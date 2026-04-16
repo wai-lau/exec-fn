@@ -1,0 +1,8 @@
+services:
+  api:
+    build: ./api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api:/app
+      - ./web:/app/static
