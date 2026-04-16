@@ -1,4 +1,9 @@
 FROM python:3.12-slim
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN curl -sL https://github.com/ddvk/rmapi/releases/download/v0.0.32/rmapi-linux-amd64.tar.gz -o /tmp/rmapi.tar.gz \
+    && tar -xzf /tmp/rmapi.tar.gz -C /usr/local/bin/ \
+    && chmod +x /usr/local/bin/rmapi \
+    && rm /tmp/rmapi.tar.gz
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt

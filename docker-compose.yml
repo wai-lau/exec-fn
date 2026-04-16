@@ -3,6 +3,12 @@ services:
     build: ./api
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     volumes:
       - ./api:/app
       - ./web:/app/static
+      - rmapi-auth:/root/.config/rmapi
+
+volumes:
+  rmapi-auth:
