@@ -70,6 +70,11 @@ docker compose up -d --build
 - `.rm` files are reMarkable v6 binary format, parsed/written with `rmscene`
 - `write_blocks(file_obj, blocks)` — note arg order (file first)
 
+### rmscene imports
+- `ParagraphStyle`, `Text` (the class used as RootTextBlock.value) → `from rmscene.scene_items import ParagraphStyle, Text`
+- `TextDocument`, `Paragraph`, `CrdtStr` are a newer higher-level API in `rmscene.text` — not used for raw block construction
+- Do NOT import from `rmscene.text` for block writing — use `scene_items` and `crdt_sequence` directly
+
 ### rmscene (Python)
 - Use `git+https://github.com/ricklupton/rmscene.git` (v0.8.1.dev0) — PyPI 0.8.0 has same limitations
 - "Some data has not been read" warning = PathItemBlock (ITEM_TYPE 0x04) not yet supported — newer stroke format
@@ -94,11 +99,38 @@ docker compose up -d --build
 - Stroke y coords in typed notebooks are relative to the text block's `pos_y` (not absolute page coords)
 - `verticalScroll` in cPages.pages is NOT needed for stroke positioning — strokes relative to text origin
 
+### rmscene firmware compatibility
+- Newer reMarkable firmware uses non-zero `block_id` in `RootTextBlock`. The assertion `assert block_id == CrdtId(0, 0)` in `rmscene/scene_stream.py` will crash on these files.
+- Fix: after `pip install`, patch it out via sed in Dockerfile:
+  ```dockerfile
+  RUN pip install -r requirements.txt && \
+      sed -i 's/        assert block_id == CrdtId(0, 0)/        # assert block_id == CrdtId(0, 0)  # relaxed: firmware changed this/' \
+      /usr/local/lib/python3.12/site-packages/rmscene/scene_stream.py
+  ```
+- After the fix, blocks that were `UnreadableBlock` become parseable `RootTextBlock` objects.
+- "Unrecognised text format code 8" warning = newer firmware data format, not fixable, reading still works.
+
+### Writing text to reMarkable via rmscene — DOES NOT WORK RELIABLY
+- Writing custom `RootTextBlock` via rmscene produces truncated text and wrong paragraph styles in the reMarkable desktop app and device. The round-trip in rmscene itself looks fine.
+- Root cause: unclear, likely CRDT merge behavior when multiple RootTextBlocks are present is incompatible with rmscene's output.
+- **Do not attempt this approach.** Use PDF instead.
+
+### PDF approach (working solution)
+- Generate an A5 PDF using `reportlab`, upload with `rmapi put --force WAI.pdf`.
+- reMarkable renders PDFs natively and perfectly.
+- `build_pdf.py` generates a 2-page A5 PDF:
+  - Page 1: daily tasks + reminders from `data/daily.json`
+  - Page 2: future projects in 2-column layout from `data/future_projects.json`
+- `daily.json` sections support: `hide_title: true` (omit section heading), `bullets: true` (bullet points instead of checkboxes)
+- Text wrapping in columns uses `reportlab.pdfbase.pdfmetrics.stringWidth`
+- Run: `docker compose exec api python3 build_pdf.py` then `docker compose exec api rmapi put --force /app/data/WAI.pdf`
+
 ### EXEC notebook structure (as of Apr 2026)
 - Page 0: 4 layers: Ink, AI, Wai (plus unnamed base). Left column = active quests (y=109–1293) + reminders (y=1344–1812). Center-origin coords.
-- Page 1: 3 layers: AI, Wai (plus unnamed base). FUTURE PROJECTS content page, full width, blank. AI content starts from top-left.
-- AI layer is empty on both pages — intended for AI-written content
-- "EXEC (AI)" = the AI-populated version uploaded via rmapi
+- Page 1: 3 layers: AI, Wai (plus unnamed base). FUTURE PROJECTS content page, full width, blank.
+- AI layer approach abandoned — rmscene text writing unreliable (see above).
+- **WAI.pdf** is the primary AI-generated document. Uploaded separately via `rmapi put --force`.
+- "EXEC (AI)" rmdoc approach is no longer used.
 
 ### Rendering .rmdoc to PNG
 - `rm_to_pdf.py` in `/app` — renders strokes + text to PNG using Pillow

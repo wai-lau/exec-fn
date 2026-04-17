@@ -9,8 +9,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Security
 from typing import Optional
 
-with open("/app/data/future_projects.json") as f:
-    FUTURE_PROJECTS = json.load(f)
+def _load(name):
+    with open(f"/app/data/{name}.json") as f:
+        return json.load(f)
 
 API_KEY = os.environ["API_KEY"]
 bearer = HTTPBearer(auto_error=False)
@@ -19,26 +20,44 @@ SESSION_TOKEN = secrets.token_urlsafe(32)
 GREEN_OVERLAY = """
 <style>
   html { filter: hue-rotate(150deg); }
-  .exec-nav { position: fixed; bottom: 32px; right: 32px; z-index: 10; }
+  .exec-nav { position: fixed; bottom: 32px; right: 32px; z-index: 10; display: flex; gap: 20px; }
   .exec-nav a {
     color: rgba(232, 157, 194, 0.6);
     font-family: monospace;
     font-size: 0.9rem;
     text-decoration: none;
     border-bottom: 1px solid rgba(232, 157, 194, 0.3);
-    transition: color 0.2s;
+    transition: color 0.2s, border-bottom-color 0.2s;
   }
-  .exec-nav a:hover { color: rgba(232, 157, 194, 1); }
+  .exec-nav a:hover { color: rgba(232, 157, 194, 1); border-bottom-color: rgba(232, 157, 194, 0.9); }
 </style>
 """
 
-EXEC_NAV = '<div class="exec-nav"><a href="/projects">future projects →</a></div>'
+_NAV_LINKS = ["directives", "omens", "delta", "r&d", "archive"]
+_NAV_HREFS = {"r&d": "/rd"}
+
+def _build_nav(active=None):
+    links = []
+    for label in _NAV_LINKS:
+        href = _NAV_HREFS.get(label, f"/{label}")
+        style = " style=\"opacity:1;border-bottom-color:rgba(232,157,194,0.9);\"" if label == active else ""
+        links.append(f'<a href="{href}"{style}>{label}</a>')
+    return '<div class="exec-nav">' + " &nbsp; ".join(links) + "</div>"
 
 with open("/app/static/index.html") as f:
     _INDEX = f.read()
 
 _NO_FORM = re.sub(r'<form class="login-box".*?</form>', '', _INDEX, flags=re.DOTALL)
-EXEC_HTML = _NO_FORM.replace("</head>", GREEN_OVERLAY + "</head>", 1).replace("</body>", EXEC_NAV + "</body>", 1)
+_BARE = re.sub(r'<div class="bg-wide">.*?</div>', '', _NO_FORM, flags=re.DOTALL)
+_BARE = re.sub(r'<div class="bg-tall">.*?</div>', '', _BARE, flags=re.DOTALL)
+_BARE = re.sub(r'<a href="[^"]*" target="_blank">.*?</a>', '', _BARE, flags=re.DOTALL)
+
+_BACK = '<div style="position:fixed;top:32px;left:32px;z-index:10;"><a href="/exec" style="color:rgba(232,157,194,0.6);font-family:monospace;font-size:0.9rem;text-decoration:none;border-bottom:1px solid rgba(232,157,194,0.3);transition:color 0.2s;" onmouseover="this.style.color=\'rgba(232,157,194,1)\'" onmouseout="this.style.color=\'rgba(232,157,194,0.6)\'">← exec</a></div>'
+
+def _build_page(active=None):
+    base = _BARE if active else _NO_FORM
+    back = _BACK if active else ""
+    return base.replace("</head>", GREEN_OVERLAY + "</head>", 1).replace("</body>", back + _build_nav(active) + "</body>", 1)
 
 app = FastAPI()
 
@@ -67,12 +86,28 @@ async def login(request: Request):
 
 @app.get("/exec", response_class=HTMLResponse, dependencies=[Depends(require_auth)])
 async def exec_page():
-    return EXEC_HTML
+    return _build_page()
 
 
-@app.get("/projects", dependencies=[Depends(require_auth)])
-async def projects():
-    return FUTURE_PROJECTS
+@app.get("/directives", response_class=HTMLResponse, dependencies=[Depends(require_auth)])
+async def directives_page():
+    return _build_page("directives")
+
+@app.get("/omens", response_class=HTMLResponse, dependencies=[Depends(require_auth)])
+async def omens_page():
+    return _build_page("omens")
+
+@app.get("/delta", response_class=HTMLResponse, dependencies=[Depends(require_auth)])
+async def delta_page():
+    return _build_page("delta")
+
+@app.get("/rd", response_class=HTMLResponse, dependencies=[Depends(require_auth)])
+async def rd_page():
+    return _build_page("r&d")
+
+@app.get("/archive", response_class=HTMLResponse, dependencies=[Depends(require_auth)])
+async def archive_page():
+    return _build_page("archive")
 
 
 app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")

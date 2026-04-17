@@ -3,9 +3,9 @@ import rmscene.scene_stream as ss
 from rmscene.crdt_sequence import CrdtSequence, CrdtSequenceItem
 from rmscene.tagged_block_common import CrdtId, LwwValue
 
-EXEC_RMDOC = "/tmp/EXEC.rmdoc"
-EW_RMDOC = "/tmp/executive_wai.rmdoc"
-OUT_RMDOC = "/tmp/EXEC_modified.rmdoc"
+EXEC_RMDOC = "/app/data/EXEC.rmdoc"
+EW_RMDOC = "/app/data/executive_wai.rmdoc"
+OUT_RMDOC = "/app/data/EXEC_modified.rmdoc"
 
 # get Text and ParagraphStyle types from executive_wai
 with zipfile.ZipFile(EW_RMDOC) as z:

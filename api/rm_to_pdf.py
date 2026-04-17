@@ -118,8 +118,8 @@ def rmdoc_to_image(rmdoc_path: str, page_index: int = None) -> bytes:
 
 if __name__ == "__main__":
     import sys
-    rmdoc = sys.argv[1] if len(sys.argv) > 1 else "/tmp/executive_wai.rmdoc"
-    out = sys.argv[2] if len(sys.argv) > 2 else "/tmp/executive_wai.png"
+    rmdoc = sys.argv[1] if len(sys.argv) > 1 else "/app/data/executive_wai.rmdoc"
+    out = sys.argv[2] if len(sys.argv) > 2 else "/app/data/executive_wai.png"
     data = rmdoc_to_image(rmdoc)
     with open(out, "wb") as f:
         f.write(data)
