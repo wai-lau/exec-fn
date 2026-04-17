@@ -168,6 +168,15 @@ _DELTA_CONTENT = '''
   <div id="delta"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
 </div>
 <script>
+function renderList(text) {
+  if (!text) return '<span style="opacity:0.4">&mdash;</span>';
+  const parts = text.split(/\s+(?=\d+\.\s)/);
+  if (parts.length > 1) {
+    const items = parts.map(p => `<li style="margin-bottom:6px">${p.replace(/^\d+\.\s*/, '')}</li>`).join('');
+    return `<ol style="margin:0;padding-left:1.4em;line-height:1.6">${items}</ol>`;
+  }
+  return `<span style="line-height:1.7">${text}</span>`;
+}
 async function load() {
   const r = await fetch('/api/delta');
   const el = document.getElementById('delta');
@@ -175,9 +184,9 @@ async function load() {
   const d = await r.json();
   el.innerHTML = `
     <h2>what wai wrote</h2>
-    <div style="font-size:0.85rem;line-height:1.7;white-space:pre-wrap">${d.wai_notes || '&mdash;'}</div>
+    <div style="font-size:0.85rem">${renderList(d.wai_notes)}</div>
     <h2>adjustments for tomorrow</h2>
-    <div style="font-size:0.85rem;line-height:1.7;white-space:pre-wrap">${d.adjustments || '&mdash;'}</div>
+    <div style="font-size:0.85rem">${renderList(d.adjustments)}</div>
     <div class="ts">${d.analyzed_at || ''}</div>
   `;
 }
