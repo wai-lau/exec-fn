@@ -1,5 +1,5 @@
 FROM python:3.12-slim
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl git fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 RUN curl -sL https://github.com/ddvk/rmapi/releases/download/v0.0.32/rmapi-linux-amd64.tar.gz -o /tmp/rmapi.tar.gz \
     && tar -xzf /tmp/rmapi.tar.gz -C /usr/local/bin/ \
     && chmod +x /usr/local/bin/rmapi \

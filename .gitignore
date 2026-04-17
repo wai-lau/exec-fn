@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 *.rmdoc
+*.pdf
+*.png
+!web/IMG_25419.png
 *.pyo
 .env
 .env.*

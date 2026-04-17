@@ -16,8 +16,10 @@
     background: #000;
     height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 40px;
     overflow: hidden;
   }
   .bg-wide {
@@ -25,7 +27,7 @@
     top: 0; left: 0;
     width: 100vw;
     height: 100vh;
-    background: url('bg.jpg') center center / 100% auto no-repeat;
+    background: url('IMG_25419.png') center center / 100% auto no-repeat;
     filter: brightness(0.2);
     z-index: 0;
   }
@@ -34,7 +36,7 @@
     top: 0; left: 0;
     width: 100vw;
     height: 100vh;
-    background: url('bg.jpg') center center / auto 100% no-repeat;
+    background: url('IMG_25419.png') center center / auto 100% no-repeat;
     z-index: 1;
   }
   a {
@@ -55,11 +57,53 @@
     color: rgba(232, 57, 154, 0.4);
     text-shadow: 0 0 60px rgba(232, 57, 154, 0.4);
   }
+  .login-box {
+    position: relative;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px 24px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .login-box input[type=password] {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    color: rgba(232, 157, 194, 0.9);
+    font-family: monospace;
+    font-size: 0.95rem;
+    padding: 4px 2px;
+    outline: none;
+    width: 160px;
+  }
+  .login-box input[type=password]::placeholder { color: rgba(255,255,255,0.2); }
+  .login-box input[type=password]:focus { border-bottom-color: rgba(232, 157, 194, 0.7); }
+  .login-box button {
+    background: none;
+    border: 1px solid rgba(232, 157, 194, 0.4);
+    color: rgba(232, 157, 194, 0.7);
+    font-family: monospace;
+    font-size: 0.85rem;
+    padding: 4px 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .login-box button:hover {
+    border-color: rgba(232, 157, 194, 0.9);
+    color: rgba(232, 157, 194, 1);
+  }
 </style>
 </head>
 <body>
   <div class="bg-wide"></div>
   <div class="bg-tall"></div>
   <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">媁</a>
+  <form class="login-box" method="POST" action="/login">
+    <input type="password" name="key" placeholder="key" autocomplete="current-password">
+    <button type="submit">→</button>
+  </form>
 </body>
 </html>
