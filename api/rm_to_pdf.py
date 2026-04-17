@@ -34,11 +34,13 @@ def extract_text_lines(root_text_block):
     return result
 
 
-def rmdoc_to_image(rmdoc_path: str) -> bytes:
+def rmdoc_to_image(rmdoc_path: str, page_index: int = None) -> bytes:
     with zipfile.ZipFile(rmdoc_path) as z:
         uid = [f for f in z.namelist() if f.endswith(".content")][0].replace(".content", "")
         content = json.loads(z.read(f"{uid}.content"))
         pages = content["cPages"]["pages"]
+        if page_index is not None:
+            pages = [pages[page_index]]
 
         all_text_lines = []
         all_strokes = []

@@ -95,9 +95,9 @@ docker compose up -d --build
 - `verticalScroll` in cPages.pages is NOT needed for stroke positioning — strokes relative to text origin
 
 ### EXEC notebook structure (as of Apr 2026)
-- Page 0: template with Ink/AI/Wai layers. Left column = active quests (y=109–1293) + reminders (y=1344–1812). Page 0 no longer has a FUTURE PROJECTS column — that was moved to page 1. All center-origin coords.
-- Page 1: FUTURE PROJECTS content page (full width, blank). AI content starts from top-left of this page.
-- AI layer is empty — intended for AI-written content
+- Page 0: 4 layers: Ink, AI, Wai (plus unnamed base). Left column = active quests (y=109–1293) + reminders (y=1344–1812). Center-origin coords.
+- Page 1: 3 layers: AI, Wai (plus unnamed base). FUTURE PROJECTS content page, full width, blank. AI content starts from top-left.
+- AI layer is empty on both pages — intended for AI-written content
 - "EXEC (AI)" = the AI-populated version uploaded via rmapi
 
 ### Rendering .rmdoc to PNG
