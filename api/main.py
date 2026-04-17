@@ -397,6 +397,12 @@ def api_rd():
     return json.loads(p.read_text()) if p.exists() else {"sections": []}
 
 
+@protected.get("/api/context")
+def api_context():
+    p = DATA_DIR / "context.json"
+    return json.loads(p.read_text()) if p.exists() else {"notes": []}
+
+
 @protected.get("/api/delta")
 def api_delta_get():
     p = DATA_DIR / "delta.json"

@@ -110,8 +110,11 @@ def _delta_prompt() -> str:
         "The image shows Wai's reMarkable page. The printed text above was already there. "
         "Any handwritten marks/strokes are Wai's annotations added during the day.\n\n"
         "1. Describe the handwritten annotations (if any visible).\n"
-        "2. Based on those, how should tomorrow's directives change?\n\n"
-        'JSON only: {"wai_notes": "...", "adjustments": "..."}'
+        "2. Based on those, how should tomorrow's directives change?\n"
+        "3. Extract any facts about Wai that should be remembered long-term "
+        "(preferences, relationships, constraints, recurring patterns). "
+        "Short declarative sentences only. Empty list if nothing new.\n\n"
+        'JSON only: {"wai_notes": "...", "adjustments": "...", "context_updates": ["..."]}'
     )
 
 
@@ -155,6 +158,16 @@ def analyze_delta() -> dict:
         "adjustments": parsed.get("adjustments", ""),
     }
     (DATA_DIR / "delta.json").write_text(json.dumps(delta, indent=2))
+
+    updates = [u for u in parsed.get("context_updates", []) if isinstance(u, str) and u.strip()]
+    if updates:
+        ctx_path = DATA_DIR / "context.json"
+        ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
+        today = date.today().isoformat()
+        for note in updates:
+            ctx["notes"].append({"date": today, "note": note.strip()})
+        ctx_path.write_text(json.dumps(ctx, indent=2))
+
     return delta
 
 
@@ -174,6 +187,7 @@ def generate_directives(feedback: str = "") -> dict:
     omens = _load("omens")
     delta = _load("delta")
     prefs = _load("preferences")
+    ctx = _load("context")
 
     rd_text = "\n".join(
         f"{s['title']}: {', '.join(s['items'][:5])}"
@@ -190,11 +204,14 @@ def generate_directives(feedback: str = "") -> dict:
         "context",
         "ADHD scaffolding. Short, specific, actionable.",
     )
+    ctx_notes = ctx.get("notes", [])
+    ctx_text = "\n".join(f"- [{n['date']}] {n['note']}" for n in ctx_notes[-30:]) or "No context notes yet."
     feedback_section = f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback.strip() else ""
 
     prompt = (
         f"Generate today's directives for Wai (ADHD executive function tool).\n\n"
         f"CONTEXT:\n{prefs_context}\n\n"
+        f"KNOWN FACTS ABOUT WAI (accumulated from past days):\n{ctx_text}\n\n"
         f"UPCOMING EVENTS (omens):\n{omens_text}\n\n"
         f"DELTA — what happened yesterday, what to carry forward:\n{delta_text}\n\n"
         f"R&D (background only):\n{rd_text}\n"
