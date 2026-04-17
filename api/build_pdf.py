@@ -6,13 +6,13 @@ from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 
 OUT_PDF = "/app/data/WAI.pdf"
-W, H = A5  # 148 x 210 mm
+W, H = A5
 
-MARGIN     = 14 * mm
-LINE_H     = 9  * mm
-SECTION_H  = 12 * mm
-GAP        = 5  * mm
-BOX_SIZE   = 3.5 * mm
+MARGIN    = 14 * mm
+LINE_H    = 9  * mm
+SECTION_H = 12 * mm
+GAP       = 5  * mm
+BOX_SIZE  = 3.5 * mm
 
 FONT_TITLE   = "Helvetica-Bold"
 FONT_SECTION = "Helvetica-Bold"
@@ -20,11 +20,6 @@ FONT_ITEM    = "Helvetica"
 SIZE_TITLE   = 11
 SIZE_SECTION = 9
 SIZE_ITEM    = 8
-
-with open("/app/data/daily.json") as f:
-    DAILY = json.load(f)
-with open("/app/data/future_projects.json") as f:
-    PROJECTS = json.load(f)
 
 
 def draw_checkbox(c, x, y):
@@ -35,13 +30,10 @@ def draw_checkbox(c, x, y):
 
 def draw_page(c, title, sections):
     y = H - MARGIN
-
-    # page title
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
     c.setFillColor(colors.black)
     c.drawString(MARGIN, y, title)
     y -= LINE_H
-    # date subheading
     c.setFont(FONT_ITEM, SIZE_ITEM + 1)
     c.setFillColor(colors.HexColor("#666666"))
     c.drawString(MARGIN, y, date.today().strftime("%A, %B %-d, %Y"))
@@ -70,8 +62,134 @@ def draw_page(c, title, sections):
                 draw_checkbox(c, MARGIN, y)
                 c.drawString(MARGIN + BOX_SIZE + 2 * mm, y, item)
             y -= LINE_H
-
         y -= GAP
+
+
+def draw_directives_page(c, directives, events):
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    LH   = 5.0 * mm
+    SH   = 4.2 * mm
+    SECH = 5.5 * mm
+    GAP  = 1.2 * mm
+    TGAP = 0.8 * mm
+    IND  = 4   * mm
+    CW   = W - 2 * MARGIN
+
+    def wrap(text, font, size, max_w):
+        words = text.split()
+        lines, cur = [], ""
+        for w in words:
+            test = (cur + " " + w).strip()
+            if stringWidth(test, font, size) <= max_w:
+                cur = test
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+        return lines or [""]
+
+    def sec_header(y, label):
+        c.setFont(FONT_SECTION, SIZE_SECTION - 1)
+        c.setFillColor(colors.HexColor("#222222"))
+        c.drawString(MARGIN, y, label)
+        y -= LH * 0.35
+        c.setStrokeColor(colors.HexColor("#cccccc"))
+        c.setLineWidth(0.4)
+        c.line(MARGIN, y, W - MARGIN, y)
+        return y - LH * 0.65
+
+    y = H - MARGIN
+    c.setFont(FONT_TITLE, SIZE_TITLE + 2)
+    c.setFillColor(colors.black)
+    c.drawString(MARGIN, y, "DIRECTIVES FROM YOUR AI OVERLORD")
+    y -= LH
+    c.setFont(FONT_ITEM, SIZE_ITEM)
+    c.setFillColor(colors.HexColor("#666666"))
+    c.drawString(MARGIN, y, date.today().strftime("%A, %B %-d, %Y"))
+    y -= SECH
+
+    # EASY — same style as steps
+    y = sec_header(y, "EASY")
+    for task in (directives.get("easy") or []):
+        if y < MARGIN + SH:
+            break
+        c.setFont(FONT_ITEM, SIZE_ITEM - 1)
+        c.setFillColor(colors.HexColor("#444444"))
+        for ln in wrap(task, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
+            if y < MARGIN + SH:
+                break
+            c.drawString(MARGIN + IND, y, ln)
+            y -= SH
+    y -= GAP
+
+    # MEDIUM — title (no checkbox) + indented steps (no bullet)
+    y = sec_header(y, "MEDIUM")
+    for task in (directives.get("medium") or []):
+        if y < MARGIN + LH * 2:
+            break
+        title = task.get("title", task) if isinstance(task, dict) else task
+        steps = task.get("steps", []) if isinstance(task, dict) else []
+        c.setFont(FONT_SECTION, SIZE_ITEM)
+        c.setFillColor(colors.black)
+        for i, ln in enumerate(wrap(title, FONT_SECTION, SIZE_ITEM, CW)):
+            if y < MARGIN + LH:
+                break
+            c.drawString(MARGIN, y, ln)
+            y -= LH * 0.85 if i < len(wrap(title, FONT_SECTION, SIZE_ITEM, CW)) - 1 else SH
+        for step in steps:
+            if y < MARGIN + SH:
+                break
+            c.setFont(FONT_ITEM, SIZE_ITEM - 1)
+            c.setFillColor(colors.HexColor("#444444"))
+            for i, ln in enumerate(wrap(step, FONT_ITEM, SIZE_ITEM - 1, CW - IND)):
+                if y < MARGIN + SH:
+                    break
+                c.drawString(MARGIN + IND, y, ln)
+                y -= SH
+        y -= TGAP
+    y -= GAP
+
+    # HARD — title (no checkbox) + indented steps (no bullet)
+    y = sec_header(y, "HARD")
+    hard = directives.get("hard") or {}
+    if isinstance(hard, dict) and hard.get("title"):
+        c.setFont(FONT_SECTION, SIZE_ITEM)
+        c.setFillColor(colors.black)
+        title_lines = wrap(hard["title"], FONT_SECTION, SIZE_ITEM, CW)
+        for i, ln in enumerate(title_lines):
+            if y < MARGIN + LH:
+                break
+            c.drawString(MARGIN, y, ln)
+            y -= LH * 0.85 if i < len(title_lines) - 1 else SH
+        for step in (hard.get("steps") or []):
+            if y < MARGIN + SH:
+                break
+            c.setFont(FONT_ITEM, SIZE_ITEM - 1)
+            c.setFillColor(colors.HexColor("#444444"))
+            for ln in wrap(step, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
+                if y < MARGIN + SH:
+                    break
+                c.drawString(MARGIN + IND, y, ln)
+                y -= SH
+    y -= GAP
+
+    # UPCOMING
+    if events and y > MARGIN + LH * 2:
+        y = sec_header(y, "OMENS")
+        for e in events[:4]:
+            if y < MARGIN + LH:
+                break
+            c.setFont(FONT_ITEM, SIZE_ITEM)
+            c.setFillColor(colors.black)
+            text = f"{e.get('title', '')} — {e.get('date', '')}"
+            for ln in wrap(text, FONT_ITEM, SIZE_ITEM, CW):
+                if y < MARGIN + LH:
+                    break
+                c.drawString(MARGIN, y, ln)
+                y -= LH
 
 
 def draw_projects_page(c, sections):
@@ -80,7 +198,6 @@ def draw_projects_page(c, sections):
     P_GAP    = 3   * mm
 
     y = H - MARGIN
-
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
     c.setFillColor(colors.black)
     c.drawString(MARGIN, y, "FUTURE TRIBUTES TO THE ARCHITECT")
@@ -88,8 +205,6 @@ def draw_projects_page(c, sections):
 
     col_w = (W - 2 * MARGIN - 6 * mm) / 2
     cols = [MARGIN, MARGIN + col_w + 6 * mm]
-
-    # split sections: left=[RENOS, ORGANIZATION, READING LIST], right=[CRAFT]
     left_sections  = [s for s in sections if s["title"] != "CRAFT"]
     right_sections = [s for s in sections if s["title"] == "CRAFT"]
 
@@ -130,17 +245,29 @@ def draw_projects_page(c, sections):
                 for i, line in enumerate(lines):
                     c.drawString(text_x if i == 0 else x + BOX_SIZE + 2 * mm, cy, line)
                     cy -= P_LINE_H
-
             cy -= P_GAP
 
 
-c = canvas.Canvas(OUT_PDF, pagesize=A5)
+def build(out_path=None):
+    out = out_path or OUT_PDF
+    with open("/app/data/directives.json") as f:
+        directives = json.load(f)
+    with open("/app/data/rd.json") as f:
+        projects = json.load(f)
+    try:
+        with open("/app/data/omens.json") as f:
+            omens = json.load(f)
+    except FileNotFoundError:
+        omens = {"events": []}
 
-draw_page(c, "DIRECTIVES FROM YOUR AI OVERLORD", DAILY["sections"])
-c.showPage()
+    c = canvas.Canvas(out, pagesize=A5)
+    draw_directives_page(c, directives, omens.get("events", []))
+    c.showPage()
+    draw_projects_page(c, projects["sections"])
+    c.showPage()
+    c.save()
+    print(f"Wrote {out}")
 
-draw_projects_page(c, PROJECTS["sections"])
-c.showPage()
 
-c.save()
-print(f"Wrote {OUT_PDF}")
+if __name__ == "__main__":
+    build()

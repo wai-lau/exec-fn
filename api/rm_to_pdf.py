@@ -34,83 +34,92 @@ def extract_text_lines(root_text_block):
     return result
 
 
-def rmdoc_to_image(rmdoc_path: str, page_index: int = None) -> bytes:
+def rmdoc_to_image(rmdoc_path: str, page_index: int = 0) -> bytes:
     with zipfile.ZipFile(rmdoc_path) as z:
-        uid = [f for f in z.namelist() if f.endswith(".content")][0].replace(".content", "")
+        names = z.namelist()
+        uid = [f for f in names if f.endswith(".content")][0].replace(".content", "")
         content = json.loads(z.read(f"{uid}.content"))
-        pages = content["cPages"]["pages"]
-        if page_index is not None:
-            pages = [pages[page_index]]
 
-        all_text_lines = []
-        all_strokes = []
-        text_start_y = None
-        raw_strokes = []
+        if "cPages" in content:
+            pages = content["cPages"]["pages"]
+        else:
+            raw = content.get("pages", [])
+            pages = [{"id": p} for p in raw] if raw and isinstance(raw[0], str) else raw
 
-        for page in pages:
-            page_id = page["id"]
+        page = pages[min(page_index, len(pages) - 1)]
+        page_id = page["id"] if isinstance(page, dict) else page
+
+        # try to use embedded PDF as background
+        bg = None
+        pdf_files = [f for f in names if f.lower().endswith(".pdf")]
+        if pdf_files:
+            try:
+                import fitz
+                pdf_bytes = z.read(pdf_files[0])
+                doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                pg = doc[min(page_index, len(doc) - 1)]
+                # reMarkable fits PDFs to page height, centering horizontally
+                scale = min(RM_W / pg.rect.width, RM_H / pg.rect.height)
+                pix = pg.get_pixmap(matrix=fitz.Matrix(scale, scale))
+                bg_img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                x_start = (RM_W - bg_img.width) // 2
+                canvas_h = max(bg_img.height, RM_H)
+                bg = Image.new("RGB", (RM_W, canvas_h), "white")
+                bg.paste(bg_img, (x_start, 0))
+            except Exception:
+                bg = None
+
+        # fall back to text rendering for native notebooks
+        if bg is None:
+            bg = Image.new("RGB", (RM_W, RM_H), "white")
+            draw_bg = ImageDraw.Draw(bg)
+            font_heading = ImageFont.truetype(FONT_BOLD, FONT_SIZE_HEADING)
+            font_body = ImageFont.truetype(FONT_REGULAR, FONT_SIZE_BODY)
             rm_path = f"{uid}/{page_id}.rm"
-            if rm_path not in z.namelist():
-                continue
+            if rm_path in names:
+                with z.open(rm_path) as f:
+                    blocks = list(ss.read_blocks(f))
+                text_start_y = None
+                for b in blocks:
+                    if isinstance(b, ss.RootTextBlock):
+                        pos_y = getattr(b.value, "pos_y", 0) or 0
+                        pos_x = getattr(b.value, "pos_x", 0) or 0
+                        if text_start_y is None:
+                            text_start_y = pos_y
+                        x = int(RM_W / 2 + pos_x)
+                        y = int(pos_y)
+                        for text, is_heading in extract_text_lines(b):
+                            if not text.strip():
+                                y += 20
+                                continue
+                            if is_heading:
+                                draw_bg.text((x, y), text, fill="black", font=font_heading)
+                                y += LINE_HEIGHT_HEADING
+                            else:
+                                draw_bg.text((x + 30, y), f"• {text}", fill="#333333", font=font_body)
+                                y += LINE_HEIGHT_BODY
+
+        # collect strokes
+        strokes = []
+        rm_path = f"{uid}/{page_id}.rm"
+        if rm_path in names:
             with z.open(rm_path) as f:
-                blocks = list(ss.read_blocks(f))
-            for b in blocks:
-                if isinstance(b, ss.RootTextBlock):
-                    pos_y = getattr(b.value, "pos_y", 0) or 0
-                    pos_x = getattr(b.value, "pos_x", 0) or 0
-                    if text_start_y is None:
-                        text_start_y = pos_y
-                    text_x = int((RM_W / 2) + pos_x)
-                    all_text_lines.append((text_x, pos_y, extract_text_lines(b)))
-                elif isinstance(b, ss.SceneLineItemBlock):
-                    item = b.item.value
-                    if item and hasattr(item, "points") and item.points:
-                        raw_strokes.append([(p.x, p.y) for p in item.points])
+                for b in ss.read_blocks(f):
+                    if isinstance(b, ss.SceneLineItemBlock):
+                        item = b.item.value
+                        if item and hasattr(item, "points") and item.points:
+                            strokes.append([(p.x, p.y) for p in item.points])
 
-        y_offset = text_start_y if text_start_y is not None else 0
-        all_strokes = [[(x, y + y_offset) for x, y in pts] for pts in raw_strokes]
+        # detect center-origin coordinates (x ranges around 0) vs left-origin (x >= 0)
+        all_pts = [p for s in strokes for p in s]
+        x_offset = RM_W // 2 if all_pts and min(p[0] for p in all_pts) < -10 else 0
 
-    # figure out total canvas height needed
-    total_text_height = 0
-    for _, start_y, lines in all_text_lines:
-        h = int(start_y)
-        for _, is_heading in lines:
-            h += LINE_HEIGHT_HEADING if is_heading else LINE_HEIGHT_BODY
-        total_text_height = max(total_text_height, h)
+        draw = ImageDraw.Draw(bg)
+        for pts in strokes:
+            if len(pts) >= 2:
+                draw.line([(p[0] + x_offset, p[1]) for p in pts], fill="black", width=4)
 
-    stroke_max_y = max((max(p[1] for p in s) for s in all_strokes), default=0)
-    canvas_h = int(max(total_text_height, stroke_max_y) + 100)
-
-    img = Image.new("RGB", (RM_W, canvas_h), "white")
-    draw = ImageDraw.Draw(img)
-    font_heading = ImageFont.truetype(FONT_BOLD, FONT_SIZE_HEADING)
-    font_body = ImageFont.truetype(FONT_REGULAR, FONT_SIZE_BODY)
-
-    # draw text
-    for text_x, start_y, lines in all_text_lines:
-        y = int(start_y)
-        for text, is_heading in lines:
-            if not text.strip():
-                y += 20
-                continue
-            if is_heading:
-                draw.text((text_x, y), text, fill="black", font=font_heading)
-                y += LINE_HEIGHT_HEADING
-            else:
-                draw.text((text_x + 30, y), f"• {text}", fill="#333333", font=font_body)
-                y += LINE_HEIGHT_BODY
-
-    # draw strokes
-    for pts in all_strokes:
-        if len(pts) < 2:
-            continue
-        coords = [(p[0], p[1]) for p in pts]
-        draw.line(coords, fill="black", width=3)
-
-    # scale down 50% for reasonable file size
-    out_w, out_h = RM_W // 2, canvas_h // 2
-    img = img.resize((out_w, out_h), Image.LANCZOS)
-
+    img = bg.resize((RM_W // 2, bg.height // 2), Image.LANCZOS)
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)
     return buf.getvalue()

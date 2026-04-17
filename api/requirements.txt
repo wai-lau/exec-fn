@@ -3,4 +3,9 @@ uvicorn
 pillow
 reportlab
 python-multipart
+anthropic
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
 git+https://github.com/ricklupton/rmscene.git
+pymupdf

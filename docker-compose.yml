@@ -1,14 +1,18 @@
 services:
   api:
-    build: ./api
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
     ports:
       - "8080:8080"
     env_file:
       - .env
     volumes:
-      - ./api:/app
-      - ./web:/app/static
+      - ./api/data:/app/data
       - rmapi-auth:/root/.config/rmapi
+      - gcal-auth:/root/.config/gcal
 
 volumes:
   rmapi-auth:
+  gcal-auth:

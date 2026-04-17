@@ -1,3 +1,4 @@
+.claude/
 __pycache__/
 *.pyc
 *.rmdoc
@@ -12,3 +13,4 @@ dist/
 .venv/
 venv/
 .DS_Store
+docker-compose.override.yml
