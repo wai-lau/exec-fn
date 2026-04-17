@@ -10,7 +10,7 @@ OUT_RMDOC  = "/app/data/EXEC_modified.rmdoc"
 BOLD     = ParagraphStyle.BOLD
 CHECKBOX = ParagraphStyle.CHECKBOX
 
-with open("/app/data/future_projects.json") as f:
+with open("/app/data/rd.json") as f:
     PROJECTS = json.load(f)
 
 
