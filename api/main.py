@@ -206,6 +206,7 @@ load();
 
 _DIRECTIVES_CONTENT = '''
 <div id="content" style="width:min(1100px,95vw)">
+  <h1 style="margin:0 0 24px;font-size:1.1rem;letter-spacing:0.15em;text-transform:uppercase">Directives</h1>
   <div style="display:flex;gap:10px;margin-bottom:24px;align-items:flex-start;">
     <textarea id="feedback" placeholder="feedback..." style="flex:1;background:none;border:1px solid rgba(232,157,194,0.4);color:rgba(232,157,194,1);font-family:monospace;font-size:0.8rem;padding:6px 10px;resize:vertical;min-height:48px;"></textarea>
     <div style="display:flex;flex-direction:column;gap:6px;">
@@ -218,7 +219,7 @@ _DIRECTIVES_CONTENT = '''
   </div>
   <div class="ts" id="dir-ts"></div>
   <div style="margin-top:40px;display:flex;justify-content:space-between;align-items:center;">
-    <h2 style="margin:0">upcoming</h2>
+    <h2 style="margin:0">omens</h2>
     <button onclick="refreshOmens(this)" style="font-size:0.75rem;padding:3px 10px;">refresh omens</button>
   </div>
   <div id="omens" style="margin-top:12px;"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
@@ -258,7 +259,7 @@ async function loadOmens() {
   const evts = d.events || [];
   el.innerHTML = evts.length
     ? evts.map(e=>`<div class="item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
-    : '<p style="opacity:0.4;font-size:0.8rem">no notable upcoming events</p>';
+    : '<p style="opacity:0.4;font-size:0.8rem">no omens</p>';
   document.getElementById('omens-ts').textContent = d.checked_at || '';
 }
 async function regen(btn) {
