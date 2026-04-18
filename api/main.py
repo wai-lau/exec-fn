@@ -289,6 +289,7 @@ async function regen(btn) {
   btn.textContent = 'encouraging...';
   await fetch('/api/encouragement', {method:'POST'}).catch(()=>{});
   btn.disabled = false; btn.textContent = 'regenerate';
+  document.getElementById('feedback').value = '';
   loadDirectives(); loadOmens(); loadEncouragement();
   if (!r.ok) {
     const err = await r.json().catch(()=>({detail:'error'}));
