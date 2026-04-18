@@ -272,6 +272,59 @@ def generate_directives(feedback: str = "") -> dict:
     return directives
 
 
+# ── encouragement ────────────────────────────────────────────────────────────
+
+def generate_encouragement() -> dict:
+    import anthropic
+
+    def _load(name):
+        p = DATA_DIR / f"{name}.json"
+        if not p.exists():
+            return {}
+        data = json.loads(p.read_text())
+        return data if isinstance(data, dict) else {}
+
+    delta = _load("delta")
+    directives = _load("directives")
+    ctx = _load("context")
+
+    wai_notes = delta.get("wai_notes", "")
+    easy = directives.get("easy", [])
+    medium = [t.get("title", t) if isinstance(t, dict) else t for t in directives.get("medium", [])]
+    hard = directives.get("hard", {})
+    today = "\n".join([
+        *[f"- {t}" for t in easy],
+        *[f"- {t}" for t in medium],
+        *([ f"- {hard['title']}" ] if isinstance(hard, dict) and hard.get("title") else []),
+    ])
+    ctx_text = "\n".join(f"- {n['note']}" for n in ctx.get("notes", [])[-10:])
+
+    prompt = (
+        f"You are a warm, personal AI companion for Wai, who has ADHD.\n\n"
+        f"WHAT WAI DID YESTERDAY (from reMarkable annotations):\n{wai_notes or 'No annotations recorded.'}\n\n"
+        f"TODAY'S TASKS:\n{today or 'No directives yet.'}\n\n"
+        f"KNOWN CONTEXT:\n{ctx_text or 'None.'}\n\n"
+        f"Write a short, genuine encouragement for Wai. Two short paragraphs:\n"
+        f"1. Acknowledge what they did yesterday — be specific and warm, not generic. If little was recorded, be gentle about it.\n"
+        f"2. A brief energizing note about what's ahead today.\n"
+        f"Under 80 words total. Plain text only."
+    )
+
+    client = anthropic.Anthropic()
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=256,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    result = {
+        "generated_at": datetime.now().isoformat(),
+        "message": msg.content[0].text.strip(),
+    }
+    (DATA_DIR / "encouragement.json").write_text(json.dumps(result, indent=2))
+    return result
+
+
 # ── omens ─────────────────────────────────────────────────────────────────────
 
 def _gcal_creds():

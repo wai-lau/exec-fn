@@ -225,6 +225,11 @@ _DIRECTIVES_CONTENT = '''
   </div>
   <div id="omens" style="margin-top:12px;"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   <div class="ts" id="omens-ts"></div>
+  <div style="margin-top:40px;">
+    <h2 style="margin:0 0 12px">encouragement</h2>
+    <div id="encouragement" style="font-size:0.85rem;line-height:1.8;opacity:0.85;white-space:pre-wrap"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+    <div class="ts" id="enc-ts"></div>
+  </div>
 </div>
 <script>
 const COL_HDR = 'font-size:0.65rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.65;margin:0 0 8px;border-bottom:1px solid rgba(232,157,194,0.25);padding-bottom:4px;';
@@ -263,13 +268,28 @@ async function loadOmens() {
     : '<p style="opacity:0.4;font-size:0.8rem">no omens</p>';
   document.getElementById('omens-ts').textContent = d.checked_at || '';
 }
+async function loadEncouragement() {
+  const r = await fetch('/api/encouragement');
+  const el = document.getElementById('encouragement');
+  if (!r.ok) { el.innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none yet — click regenerate</span>'; return; }
+  const d = await r.json();
+  el.textContent = d.message || '';
+  document.getElementById('enc-ts').textContent = d.generated_at || '';
+}
 async function regen(btn) {
   const feedback = document.getElementById('feedback').value.trim();
-  btn.disabled = true; btn.textContent = 'generating...';
-  await fetch('/api/omens', {method:'POST'});
+  btn.disabled = true;
+  btn.textContent = 'pulling & refreshing...';
+  await Promise.all([
+    fetch('/api/delta', {method:'POST'}).catch(()=>{}),
+    fetch('/api/omens', {method:'POST'}).catch(()=>{}),
+  ]);
+  btn.textContent = 'generating...';
   const r = await fetch('/api/directives', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({feedback})});
+  btn.textContent = 'encouraging...';
+  await fetch('/api/encouragement', {method:'POST'}).catch(()=>{});
   btn.disabled = false; btn.textContent = 'regenerate';
-  loadDirectives(); loadOmens();
+  loadDirectives(); loadOmens(); loadEncouragement();
   if (!r.ok) {
     const err = await r.json().catch(()=>({detail:'error'}));
     document.getElementById('dir-grid').innerHTML = `<p style="color:rgba(255,100,100,0.8);font-size:0.8rem;grid-column:1/-1">${err.detail}</p>`;
@@ -288,7 +308,7 @@ async function refreshOmens(btn) {
   if (r.ok) loadOmens();
   else { const err = await r.json().catch(()=>({detail:'error'})); document.getElementById('omens').innerHTML = `<p style="color:rgba(255,100,100,0.8);font-size:0.8rem">${err.detail}</p>`; }
 }
-loadDirectives(); loadOmens();
+loadDirectives(); loadOmens(); loadEncouragement();
 </script>
 '''
 
@@ -414,6 +434,22 @@ def api_rd():
 def api_context():
     p = DATA_DIR / "context.json"
     return json.loads(p.read_text()) if p.exists() else {"notes": []}
+
+
+@protected.get("/api/encouragement")
+def api_encouragement_get():
+    p = DATA_DIR / "encouragement.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="No encouragement yet")
+    return json.loads(p.read_text())
+
+
+@protected.post("/api/encouragement")
+def api_encouragement_run():
+    try:
+        return pipeline.generate_encouragement()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @protected.get("/api/delta")
