@@ -135,7 +135,7 @@ Triggered automatically at **4:30 AM ET** by cron inside the container.
 
 1. Pull latest EXEC.rmdoc (timestamped)
 2. Find today's baseline (`EXEC_<date>_baseline.rmdoc`) — created by morning build
-3. Render latest page 0 to PNG via `rm_to_pdf.rmdoc_to_image()`
+3. Render latest page 0 to PNG via `rm_to_pdf.rasterize()`
 4. Send image to Claude API: "describe Wai's handwritten feedback, suggest adjustments to tomorrow's directives"
 5. Save to `delta.json`: `{analyzed_at, baseline_file, latest_file, wai_notes, adjustments}`
 
@@ -286,7 +286,7 @@ These are **not** present in production — the Droplet runs from the baked imag
 - Wai writes feedback as handwritten strokes on the Wai layer — read by delta pipeline.
 
 ### Rendering .rmdoc to PNG
-- `rm_to_pdf.rmdoc_to_image(path, page_index)` — renders strokes + text to PNG bytes using Pillow
+- `rm_to_pdf.rasterize(path, page_index)` — renders strokes + text to PNG bytes using Pillow
 - For PDF-based rmdocs: renders the embedded PDF as background (height-fit, centered), then overlays strokes
 - For native notebooks: renders text blocks from rmscene, then overlays strokes
 - Center-origin stroke coords (min x < -10) use `x_offset = 702`; left-origin use `x_offset = 0`

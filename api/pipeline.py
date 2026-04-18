@@ -120,11 +120,11 @@ def _delta_prompt() -> str:
 
 def analyze_delta() -> dict:
     import anthropic
-    from rm_to_pdf import rmdoc_to_image
+    from rm_to_pdf import rasterize
 
     latest_path = pull_exec()
 
-    png_bytes = rmdoc_to_image(latest_path, page_index=0)
+    png_bytes = rasterize(latest_path, page_index=0)
     (DATA_DIR / "delta_preview.png").write_bytes(png_bytes)
     png_b64 = base64.standard_b64encode(png_bytes).decode()
 

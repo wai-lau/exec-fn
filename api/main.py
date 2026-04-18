@@ -397,11 +397,11 @@ def api_archive():
 @protected.get("/api/archive/{filename}/page/{page_num}")
 def archive_page_png(filename: str, page_num: int):
     from fastapi.responses import Response
-    from rm_to_pdf import rmdoc_to_image
+    from rm_to_pdf import rasterize
     p = DATA_DIR / filename
     if not p.exists() or not filename.endswith(".rmdoc"):
         raise HTTPException(status_code=404, detail="not found")
-    png_bytes = rmdoc_to_image(str(p), page_index=page_num)
+    png_bytes = rasterize(str(p), page_index=page_num)
     return Response(content=png_bytes, media_type="image/png")
 
 

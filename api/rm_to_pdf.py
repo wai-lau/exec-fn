@@ -34,7 +34,7 @@ def extract_text_lines(root_text_block):
     return result
 
 
-def rmdoc_to_image(rmdoc_path: str, page_index: int = 0) -> bytes:
+def rasterize(rmdoc_path: str, page_index: int = 0) -> bytes:
     with zipfile.ZipFile(rmdoc_path) as z:
         names = z.namelist()
         uid = [f for f in names if f.endswith(".content")][0].replace(".content", "")
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     import sys
     rmdoc = sys.argv[1] if len(sys.argv) > 1 else "/app/data/executive_wai.rmdoc"
     out = sys.argv[2] if len(sys.argv) > 2 else "/app/data/executive_wai.png"
-    data = rmdoc_to_image(rmdoc)
+    data = rasterize(rmdoc)
     with open(out, "wb") as f:
         f.write(data)
     print(f"wrote {len(data)} bytes to {out}")
