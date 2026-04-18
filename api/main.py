@@ -114,10 +114,7 @@ def _build_page(active=None, content=""):
 # ── page content ──────────────────────────────────────────────────────────────
 
 _ARCHIVE_CONTENT = '''
-<div id="content">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
-    <button id="pull-btn" onclick="doPull(this)">pull EXEC</button>
-  </div>
+<div id="content" style="width:min(1100px,95vw)">
   <div id="files"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
 </div>
 <script>
@@ -127,17 +124,18 @@ async function load() {
   const el = document.getElementById('files');
   if (!files.length) { el.innerHTML = '<p style="opacity:0.4;font-size:0.8rem">no files yet</p>'; return; }
   el.innerHTML = files.map(f => `
-    <div style="margin-bottom:32px;">
-      <div style="font-size:0.7rem;opacity:0.45;margin-bottom:6px;">${f.label}</div>
-      <embed src="/data/${f.filename}" type="application/pdf" width="100%" height="560" style="border:1px solid rgba(232,157,194,0.15)">
+    <div style="margin-bottom:28px;">
+      <div style="font-size:0.65rem;opacity:0.4;margin-bottom:8px;letter-spacing:0.08em;">${f.label}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/api/archive/${f.filename}/page/0" target="_blank">
+          <img src="/api/archive/${f.filename}/page/0" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);display:block;">
+        </a>
+        <a href="/api/archive/${f.filename}/page/1" target="_blank">
+          <img src="/api/archive/${f.filename}/page/1" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);display:block;">
+        </a>
+      </div>
     </div>
   `).join('');
-}
-async function doPull(btn) {
-  btn.disabled = true; btn.textContent = 'pulling...';
-  try { await fetch('/api/pull', {method:'POST'}); } finally {
-    btn.disabled = false; btn.textContent = 'pull EXEC'; load();
-  }
 }
 load();
 </script>
@@ -390,6 +388,22 @@ def api_morning():
 @protected.get("/api/archive")
 def api_archive():
     return pipeline.list_archive()
+
+
+@protected.get("/api/archive/{filename}/page/{page_num}")
+def archive_page_png(filename: str, page_num: int):
+    import fitz
+    from fastapi.responses import Response
+    p = DATA_DIR / filename
+    if not p.exists() or not filename.endswith(".pdf"):
+        raise HTTPException(status_code=404, detail="not found")
+    doc = fitz.open(str(p))
+    if page_num >= len(doc):
+        raise HTTPException(status_code=404, detail="page out of range")
+    pg = doc[page_num]
+    scale = min(702 / pg.rect.width, 936 / pg.rect.height)
+    pix = pg.get_pixmap(matrix=fitz.Matrix(scale, scale))
+    return Response(content=pix.tobytes("png"), media_type="image/png")
 
 
 @protected.get("/api/rd")
