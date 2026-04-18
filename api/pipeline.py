@@ -73,6 +73,7 @@ def build_morning() -> dict:
 # ── archive ───────────────────────────────────────────────────────────────────
 
 def list_archive() -> list:
+    import zipfile
     files = sorted(DATA_DIR.glob("EXEC_*.rmdoc"), reverse=True)
     result = []
     for f in files:
@@ -82,7 +83,19 @@ def list_archive() -> list:
             label = f"{d[:4]}-{d[4:6]}-{d[6:]} {t[:2]}:{t[2:4]}"
         else:
             label = f.stem
-        result.append({"filename": f.name, "label": label})
+        try:
+            with zipfile.ZipFile(f) as z:
+                uid = [n for n in z.namelist() if n.endswith(".content")][0].replace(".content", "")
+                content = json.loads(z.read(f"{uid}.content"))
+                if "cPages" in content:
+                    pages = content["cPages"]["pages"]
+                else:
+                    raw = content.get("pages", [])
+                    pages = [{"id": p} for p in raw] if raw and isinstance(raw[0], str) else raw
+                page_count = len(pages)
+        except Exception:
+            page_count = 1
+        result.append({"filename": f.name, "label": label, "pages": page_count})
     return result
 
 

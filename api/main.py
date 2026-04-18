@@ -135,8 +135,7 @@ async function load() {
     <div style="margin-bottom:28px;">
       <div style="font-size:0.65rem;opacity:0.4;margin-bottom:8px;letter-spacing:0.08em;">${f.label}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <img src="/api/archive/${f.filename}/page/0" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);cursor:zoom-in;" onclick="openLightbox(this.src)" onerror="this.style.display='none'">
-        <img src="/api/archive/${f.filename}/page/1" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);cursor:zoom-in;" onclick="openLightbox(this.src)" onerror="this.style.display='none'">
+        ${Array.from({length: f.pages}, (_, i) => `<img src="/api/archive/${f.filename}/page/${i}" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);cursor:zoom-in;" onclick="openLightbox(this.src)">`).join('')}
       </div>
     </div>
   `).join('');
