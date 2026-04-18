@@ -208,9 +208,15 @@ These are **not** present in production — the Droplet runs from the baked imag
 - Auth stored in Docker named volume `rmapi-auth` at `/root/.config/rmapi`. Re-auth required on Droplet separately.
 - No locking — "last write wins". Don't upload while the notebook is open on the device.
 
+### Folder structure on reMarkable
+- All files live in the `/EXEC` folder on the reMarkable cloud. `RM_FOLDER = "/EXEC"` in `pipeline.py`.
+- `rmapi ls /EXEC` — list files in EXEC folder
+- `rmapi get /EXEC/<name>` — download a file
+- `rmapi put --force -f /EXEC <file>` — upload/replace a file inside EXEC
+
 ### Uploading back to reMarkable
 - `rmapi put <file>.rmdoc` — creates new document
-- `rmapi put --force <file>.rmdoc` — replaces existing document with same name
+- `rmapi put --force -f /EXEC <file>` — replaces existing document inside EXEC folder
 - Cannot update an existing document by UUID — must use a new UUID and new `visibleName`, or `--force` on same name
 - Set `metadata["new"] = True` when packaging a new rmdoc for upload
 

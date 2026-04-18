@@ -15,8 +15,11 @@ def _today() -> str:
 
 # ── pull ──────────────────────────────────────────────────────────────────────
 
+RM_FOLDER = "/EXEC"
+
+
 def pull_exec() -> str:
-    ls = subprocess.run(["rmapi", "ls"], cwd=str(DATA_DIR), capture_output=True, text=True)
+    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], cwd=str(DATA_DIR), capture_output=True, text=True)
     if ls.returncode != 0:
         raise RuntimeError(f"rmapi ls failed: {(ls.stderr or ls.stdout).strip()}")
 
@@ -27,12 +30,12 @@ def pull_exec() -> str:
             wai_docs.append(parts[-1])
 
     if not wai_docs:
-        raise RuntimeError("No WAI_* document found on reMarkable")
+        raise RuntimeError("No WAI_* document found in EXEC folder on reMarkable")
 
     latest = sorted(wai_docs)[-1]
 
     result = subprocess.run(
-        ["rmapi", "get", f"/{latest}"],
+        ["rmapi", "get", f"{RM_FOLDER}/{latest}"],
         cwd=str(DATA_DIR),
         capture_output=True, text=True,
     )
@@ -56,7 +59,7 @@ def push_pdf() -> str:
     pdf_build(str(pdf_path))
 
     result = subprocess.run(
-        ["rmapi", "put", "--force", str(pdf_path)],
+        ["rmapi", "put", "--force", "-f", RM_FOLDER, str(pdf_path)],
         capture_output=True, text=True,
     )
     if result.returncode != 0:
