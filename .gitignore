@@ -1,4 +1,5 @@
 .claude/
+api/data/
 __pycache__/
 *.pyc
 *.rmdoc
