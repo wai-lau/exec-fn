@@ -73,10 +73,10 @@ def build_morning() -> dict:
 # ── archive ───────────────────────────────────────────────────────────────────
 
 def list_archive() -> list:
-    files = sorted(DATA_DIR.glob("WAI_*.pdf"), reverse=True)
+    files = sorted(DATA_DIR.glob("EXEC_*.rmdoc"), reverse=True)
     result = []
     for f in files:
-        parts = f.stem.split("_")  # WAI_YYYYMMDD_HHMMSS
+        parts = f.stem.split("_")  # EXEC_YYYYMMDD_HHMMSS
         if len(parts) >= 3:
             d, t = parts[1], parts[2]
             label = f"{d[:4]}-{d[4:6]}-{d[6:]} {t[:2]}:{t[2:4]}"

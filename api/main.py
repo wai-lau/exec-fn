@@ -114,10 +114,18 @@ def _build_page(active=None, content=""):
 # ── page content ──────────────────────────────────────────────────────────────
 
 _ARCHIVE_CONTENT = '''
+<div id="lightbox" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;cursor:zoom-out;display:flex;align-items:center;justify-content:center;display:none;">
+  <img id="lb-img" style="max-height:95vh;max-width:95vw;object-fit:contain;">
+</div>
 <div id="content" style="width:min(1100px,95vw)">
   <div id="files"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
 </div>
 <script>
+function openLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lb-img').src = src;
+  lb.style.display = 'flex';
+}
 async function load() {
   const r = await fetch('/api/archive');
   const files = await r.json();
@@ -127,12 +135,8 @@ async function load() {
     <div style="margin-bottom:28px;">
       <div style="font-size:0.65rem;opacity:0.4;margin-bottom:8px;letter-spacing:0.08em;">${f.label}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="/api/archive/${f.filename}/page/0" target="_blank">
-          <img src="/api/archive/${f.filename}/page/0" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);display:block;">
-        </a>
-        <a href="/api/archive/${f.filename}/page/1" target="_blank">
-          <img src="/api/archive/${f.filename}/page/1" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);display:block;">
-        </a>
+        <img src="/api/archive/${f.filename}/page/0" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);cursor:zoom-in;" onclick="openLightbox(this.src)" onerror="this.style.display='none'">
+        <img src="/api/archive/${f.filename}/page/1" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);cursor:zoom-in;" onclick="openLightbox(this.src)" onerror="this.style.display='none'">
       </div>
     </div>
   `).join('');
@@ -392,18 +396,13 @@ def api_archive():
 
 @protected.get("/api/archive/{filename}/page/{page_num}")
 def archive_page_png(filename: str, page_num: int):
-    import fitz
     from fastapi.responses import Response
+    from rm_to_pdf import rmdoc_to_image
     p = DATA_DIR / filename
-    if not p.exists() or not filename.endswith(".pdf"):
+    if not p.exists() or not filename.endswith(".rmdoc"):
         raise HTTPException(status_code=404, detail="not found")
-    doc = fitz.open(str(p))
-    if page_num >= len(doc):
-        raise HTTPException(status_code=404, detail="page out of range")
-    pg = doc[page_num]
-    scale = min(702 / pg.rect.width, 936 / pg.rect.height)
-    pix = pg.get_pixmap(matrix=fitz.Matrix(scale, scale))
-    return Response(content=pix.tobytes("png"), media_type="image/png")
+    png_bytes = rmdoc_to_image(str(p), page_index=page_num)
+    return Response(content=png_bytes, media_type="image/png")
 
 
 @protected.get("/api/rd")
