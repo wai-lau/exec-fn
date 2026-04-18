@@ -65,7 +65,7 @@ def draw_page(c, title, sections):
         y -= GAP
 
 
-def draw_directives_page(c, directives, events):
+def draw_directives_page(c, directives, events, encouragement=""):
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
     LH   = 5.0 * mm
@@ -176,7 +176,7 @@ def draw_directives_page(c, directives, events):
                 y -= SH
     y -= GAP
 
-    # UPCOMING
+    # OMENS
     if events and y > MARGIN + LH * 2:
         y = sec_header(y, "OMENS")
         for e in events[:4]:
@@ -190,6 +190,51 @@ def draw_directives_page(c, directives, events):
                     break
                 c.drawString(MARGIN, y, ln)
                 y -= LH
+    return y
+
+
+def draw_encouragement(c, message: str, y: float):
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    CW = W - 2 * MARGIN
+    LH = 4.5 * mm
+    SH = 3.8 * mm
+    FOOTER_Y = MARGIN
+
+    if not message or y < FOOTER_Y + LH * 4:
+        return
+
+    # divider
+    y -= 4 * mm
+    c.setStrokeColor(colors.HexColor("#cccccc"))
+    c.setLineWidth(0.3)
+    c.line(MARGIN, y, W - MARGIN, y)
+    y -= 3 * mm
+
+    c.setFont(FONT_SECTION, SIZE_ITEM - 1)
+    c.setFillColor(colors.HexColor("#555555"))
+    c.drawString(MARGIN, y, "ENCOURAGEMENT")
+    y -= LH
+
+    words = message.split()
+    lines, cur = [], ""
+    for w in words:
+        test = (cur + " " + w).strip()
+        if stringWidth(test, FONT_ITEM, SIZE_ITEM - 1) <= CW:
+            cur = test
+        else:
+            if cur:
+                lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+
+    c.setFont(FONT_ITEM, SIZE_ITEM - 1)
+    c.setFillColor(colors.HexColor("#444444"))
+    for ln in lines:
+        if y < FOOTER_Y:
+            break
+        c.drawString(MARGIN, y, ln)
+        y -= SH
 
 
 def draw_projects_page(c, sections):
@@ -260,8 +305,16 @@ def build(out_path=None):
     except FileNotFoundError:
         omens = {"events": []}
 
+    try:
+        with open("/app/data/encouragement.json") as f:
+            encouragement = json.load(f).get("message", "")
+    except FileNotFoundError:
+        encouragement = ""
+
     c = canvas.Canvas(out, pagesize=A5)
-    draw_directives_page(c, directives, omens.get("events", []))
+    y = draw_directives_page(c, directives, omens.get("events", []), encouragement)
+    if encouragement:
+        draw_encouragement(c, encouragement, y)
     c.showPage()
     draw_projects_page(c, projects["sections"])
     c.showPage()
