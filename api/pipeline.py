@@ -427,3 +427,37 @@ def analyze_omens() -> dict:
     }
     (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
     return omens
+
+
+# ── card classification ───────────────────────────────────────────────────────
+
+def classify_card(title: str) -> dict:
+    import anthropic
+
+    client = anthropic.Anthropic()
+    msg = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=256,
+        messages=[{"role": "user", "content": (
+            f'Categorize this personal task for Wai: "{title}"\n\n'
+            "Categories (pick one):\n"
+            "- Interfacing: work, productivity systems, tech tools, external-facing projects\n"
+            "- Hobby: crafts, creative projects, making things, cosplay, gaming, art\n"
+            "- Social: people, relationships, events, social plans, gatherings\n"
+            "- Self: home improvement, health, self-care, learning, reading, organization\n\n"
+            "Sizes (pick one):\n"
+            "- probe: under 1 hour\n"
+            "- task: under 4 hours\n"
+            "- project: under 2 days\n"
+            "- titan: longer — reminder to break it down further\n\n"
+            'JSON only: {"category": "...", "size": "...", "description": "one sentence"}'
+        )}],
+    )
+    text = msg.content[0].text
+    m = re.search(r'\{[\s\S]*\}', text)
+    parsed = json.loads(m.group()) if m else {}
+    return {
+        "category": parsed.get("category", "Self"),
+        "size": parsed.get("size", "task"),
+        "description": parsed.get("description", ""),
+    }
