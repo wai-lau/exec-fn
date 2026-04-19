@@ -536,7 +536,7 @@ load();
 
 _DIRECTIVES_CONTENT = '''
 <div id="content" style="width:min(1100px,95vw)">
-  <h1 style="margin:0 0 24px;font-size:1.1rem;letter-spacing:0.15em;text-transform:uppercase">Directives</h1>
+  <h1 style="margin:0 0 24px;font-size:1.1rem;letter-spacing:0.15em;text-transform:uppercase">Directives from AI-sama</h1>
   <div style="display:flex;gap:10px;margin-bottom:24px;align-items:flex-start;">
     <textarea id="feedback" placeholder="feedback..." style="flex:1;background:none;border:1px solid rgba(0,255,65,0.4);color:rgba(0,255,65,1);font-family:monospace;font-size:0.8rem;padding:6px 10px;resize:vertical;min-height:48px;"></textarea>
     <div style="display:flex;flex-direction:column;gap:6px;">
