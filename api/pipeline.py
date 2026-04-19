@@ -121,6 +121,13 @@ def _delta_prompt() -> str:
     else:
         directives_text = "No directives on record."
 
+    ctx_path = DATA_DIR / "context.json"
+    if ctx_path.exists():
+        ctx = json.loads(ctx_path.read_text())
+        known = "\n".join(f"- {n['note']}" for n in ctx.get("notes", []))
+    else:
+        known = "None."
+
     return (
         f"{directives_text}\n\n"
         "The image shows Wai's reMarkable page. The printed text above was already there. "
@@ -129,7 +136,8 @@ def _delta_prompt() -> str:
         "2. Based on those, how should tomorrow's directives change?\n"
         "3. Extract any facts about Wai that should be remembered long-term "
         "(preferences, relationships, constraints, recurring patterns). "
-        "Short declarative sentences only. Empty list if nothing new.\n\n"
+        "Short declarative sentences only. Empty list if nothing new.\n"
+        f"ALREADY KNOWN — do not repeat these:\n{known}\n\n"
         'JSON only: {"wai_notes": "...", "adjustments": "...", "context_updates": ["..."]}'
     )
 
@@ -179,9 +187,12 @@ def analyze_delta() -> dict:
     if updates:
         ctx_path = DATA_DIR / "context.json"
         ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
+        existing = {n["note"].strip().lower() for n in ctx.get("notes", [])}
         today = date.today().isoformat()
         for note in updates:
-            ctx["notes"].append({"date": today, "note": note.strip()})
+            if note.strip().lower() not in existing:
+                ctx["notes"].append({"date": today, "note": note.strip()})
+                existing.add(note.strip().lower())
         ctx_path.write_text(json.dumps(ctx, indent=2))
 
     return delta
