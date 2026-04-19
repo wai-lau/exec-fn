@@ -299,9 +299,7 @@ const COLS = ['backlog','doing','done'];
 let cards = [];
 let editId = null;
 let dragging = false;
-let doneCollapsed = false;
-let lastPX = 0, lastPY = 0;
-document.addEventListener('pointermove', e => { lastPX = e.clientX; lastPY = e.clientY; });
+let doneCollapsed = true;
 
 const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
 
@@ -380,12 +378,6 @@ async function save() {
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
 }
 
-function inRect(el) {
-  if (!el) return false;
-  const r = el.getBoundingClientRect();
-  return lastPX >= r.left && lastPX <= r.right && lastPY >= r.top && lastPY <= r.bottom;
-}
-
 function toggleDone(e) {
   if (e) e.stopPropagation();
   doneCollapsed = !doneCollapsed;
@@ -413,16 +405,7 @@ function buildBoard() {
     Sortable.create(el, {
       group:'kanban', animation:120, ghostClass:'sortable-ghost',
       onStart: () => { dragging = true; },
-      onEnd: (evt) => {
-        setTimeout(() => { dragging = false; }, 50);
-        const bl = document.getElementById('col-backlog');
-        const dl = document.getElementById('col-doing');
-        if (!inRect(bl) && !inRect(dl)) {
-          const card = cards.find(c => c.id === evt.item.dataset.id);
-          if (card) { card.column = 'done'; buildBoard(); }
-        }
-        save();
-      }
+      onEnd: () => { setTimeout(() => { dragging = false; }, 50); save(); }
     });
   });
   document.querySelectorAll('.card').forEach(el => {
