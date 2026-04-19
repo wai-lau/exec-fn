@@ -293,8 +293,7 @@ let cards = [];
 let editId = null;
 let dragging = false;
 
-// Disco Elysium stat palette: Intellect=blue, Psyche=violet, Physique=red, Motorics=amber
-const CAT_HUE = {Interfacing:212, Social:278, Self:0, Hobby:47, Book:165};
+/const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
 
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
