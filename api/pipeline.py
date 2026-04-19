@@ -64,7 +64,7 @@ def push_pdf() -> str:
     pdf_build(str(pdf_path))
 
     result = subprocess.run(
-        ["rmapi", "put", "--force", "-f", RM_FOLDER, str(pdf_path)],
+        ["rmapi", "put", "--force", str(pdf_path), RM_FOLDER],
         capture_output=True, text=True,
     )
     if result.returncode != 0:
@@ -109,7 +109,7 @@ def _delta_prompt() -> str:
     if rd_path.exists():
         rd = json.loads(rd_path.read_text())
         selected = sorted(
-            [c for c in rd.get("cards", []) if c.get("column") == "selected"],
+            [c for c in rd.get("cards", []) if c.get("column") == "hq"],
             key=lambda c: c.get("order", 0),
         )
         if selected:
@@ -208,7 +208,7 @@ def update_rd_from_delta(delta: dict) -> str:
     rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
     cards = rd.get("cards", [])
 
-    selected = [c for c in cards if c.get("column") == "selected"]
+    selected = [c for c in cards if c.get("column") == "hq"]
     if not selected:
         return "No selected cards to update."
 
@@ -238,7 +238,7 @@ def update_rd_from_delta(delta: dict) -> str:
     move_ids = set(parsed.get("move_to_ashes", []))
     for c in cards:
         if c["id"] in move_ids:
-            c["column"] = "ashes"
+            c["column"] = "archives"
 
     rd["cards"] = cards
     rd_path.write_text(json.dumps(rd, indent=2))
@@ -261,8 +261,8 @@ def generate_morning_recap(delta: dict, omens: dict, rd_changes: str) -> dict:
     rd_path = DATA_DIR / "rd.json"
     rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
     cards = rd.get("cards", [])
-    selected = sorted([c for c in cards if c.get("column") == "selected"], key=lambda c: c.get("order", 0))
-    ideas = sorted([c for c in cards if c.get("column") == "ideas"], key=lambda c: c.get("order", 0))
+    selected = sorted([c for c in cards if c.get("column") == "hq"], key=lambda c: c.get("order", 0))
+    ideas = sorted([c for c in cards if c.get("column") == "rd"], key=lambda c: c.get("order", 0))
 
     selected_text = "\n".join(
         f"- [{c.get('size','task')}] {c['title']}" for c in selected
@@ -440,8 +440,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
     ) or "None."
 
     cards = rd.get("cards", [])
-    selected = sorted([c for c in cards if c.get("column") == "selected"], key=lambda c: c.get("order", 0))
-    ideas = sorted([c for c in cards if c.get("column") == "ideas"], key=lambda c: c.get("order", 0))
+    selected = sorted([c for c in cards if c.get("column") == "hq"], key=lambda c: c.get("order", 0))
+    ideas = sorted([c for c in cards if c.get("column") == "rd"], key=lambda c: c.get("order", 0))
 
     selected_text = "\n".join(
         f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('description','')}"
@@ -456,20 +456,19 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         "planning": (
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
-            "When Wai confirms their plan, call set_directives with the agreed selected_ids and an encouraging_message. "
+            "Book category cards are for reading only — do NOT select them for directives. "
+            "If Wai mentions a new idea or task, call create_card to add it to the ideas pool. "
+            "When Wai confirms their plan, immediately call finalize_and_push — do NOT ask for a second confirmation. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
-        "push": (
-            "Wai's plan is finalized. Ask if they're ready to push to reMarkable. "
-            "When confirmed, call request_push. Keep it brief."
-        ),
         "done": (
-            "The plan has been pushed. Wrap up warmly. No more actions needed."
+            "The plan has been finalized and pushed to reMarkable. Wrap up warmly. No more actions needed."
         ),
     }
 
     return (
-        f"You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n\n"
+        f"You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
+        f"FORMATTING: Plain text only. No markdown — no **, no *, no #, no -, no bullet points, no headers.\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
         f"MORNING BRIEFING CONTEXT:\n{morning.get('opening_message', 'No briefing available.')}\n\n"
@@ -484,8 +483,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
 def _chat_tools() -> list:
     return [
         {
-            "name": "set_directives",
-            "description": "Finalize today's plan: set selected card IDs and save an encouraging message.",
+            "name": "finalize_and_push",
+            "description": "Finalize today's plan and push the PDF to reMarkable. Call this once Wai confirms their plan — no second confirmation needed.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -507,19 +506,32 @@ def _chat_tools() -> list:
             },
         },
         {
-            "name": "request_push",
-            "description": "Build the PDF from selected cards and push it to reMarkable.",
+            "name": "create_card",
+            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea.",
             "input_schema": {
                 "type": "object",
-                "properties": {},
-                "required": [],
+                "properties": {
+                    "title": {"type": "string", "description": "Short title for the card."},
+                    "category": {
+                        "type": "string",
+                        "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"],
+                        "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement; Book=reading/studying.",
+                    },
+                    "size": {
+                        "type": "string",
+                        "enum": ["chore", "task", "project", "titan", "book"],
+                        "description": "Size: chore (<1h), task (<4h), project (days), titan (weeks), book (long read).",
+                    },
+                    "description": {"type": "string", "description": "One-sentence description."},
+                },
+                "required": ["title", "category", "size"],
             },
         },
     ]
 
 
 def _handle_tool(name: str, input_: dict) -> dict:
-    if name == "set_directives":
+    if name == "finalize_and_push":
         selected_ids = set(input_.get("selected_ids", []))
         encouraging = input_.get("encouraging_message", "")
         context_note = input_.get("context_note", "")
@@ -527,8 +539,8 @@ def _handle_tool(name: str, input_: dict) -> dict:
         rd_path = DATA_DIR / "rd.json"
         rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
         for c in rd.get("cards", []):
-            if c.get("column") in ("selected", "ideas"):
-                c["column"] = "selected" if c["id"] in selected_ids else "ideas"
+            if c.get("column") in ("hq", "rd"):
+                c["column"] = "hq" if c["id"] in selected_ids else "rd"
         rd_path.write_text(json.dumps(rd, indent=2))
 
         directives = {
@@ -543,11 +555,31 @@ def _handle_tool(name: str, input_: dict) -> dict:
             ctx["notes"].append({"date": date.today().isoformat(), "note": context_note.strip()})
             ctx_path.write_text(json.dumps(ctx, indent=2))
 
-        return {"ok": True, "selected": len(selected_ids)}
-
-    if name == "request_push":
         pdf_name = push_pdf()
-        return {"pushed": pdf_name}
+        return {"pushed": pdf_name, "selected": len(selected_ids)}
+
+    if name == "create_card":
+        import time as _time
+        rd_path = DATA_DIR / "rd.json"
+        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"columns": ["rd", "hq", "archives", "exile"], "cards": []}
+        new_id = f"card-{int(_time.time() * 1000)}"
+        existing = rd.get("cards", [])
+        max_order = max((c.get("order", 0) for c in existing if c.get("column") == "rd"), default=-1)
+        new_card = {
+            "id": new_id,
+            "title": input_.get("title", ""),
+            "category": input_.get("category", "Self"),
+            "size": input_.get("size", "task"),
+            "description": input_.get("description", ""),
+            "column": "rd",
+            "order": max_order + 1,
+            "due_date": None,
+            "notes": "",
+        }
+        existing.append(new_card)
+        rd["cards"] = existing
+        rd_path.write_text(json.dumps(rd, indent=2))
+        return {"ok": True, "id": new_id, "title": new_card["title"]}
 
     return {"error": f"Unknown tool: {name}"}
 
@@ -578,10 +610,11 @@ def classify_card(title: str) -> dict:
         messages=[{"role": "user", "content": (
             f'Categorize this personal task for Wai: "{title}"\n\n'
             "Categories (pick one):\n"
-            "- Interfacing: work, productivity systems, tech tools, external-facing projects\n"
+            "- Interfacing: personal admin, organization, home improvement, taking care of parents or partner, work, productivity systems, tech tools\n"
             "- Hobby: crafts, creative projects, making things, cosplay, gaming, art\n"
-            "- Social: people, relationships, events, social plans, gatherings\n"
-            "- Learning: reading, studying, self-improvement, health, home improvement, organization, personal admin, self-care\n\n"
+            "- Social: events, social plans, gatherings, helping friends\n"
+            "- Self: self-care, self-improvement, personal wellness, mental health\n"
+            "- Book: reading, studying, long-form learning, research\n\n"
             "Sizes (pick one):\n"
             "- chore: under 1 hour\n"
             "- task: under 4 hours\n"
@@ -595,7 +628,7 @@ def classify_card(title: str) -> dict:
     m = re.search(r'\{[\s\S]*\}', text)
     parsed = json.loads(m.group()) if m else {}
     return {
-        "category": parsed.get("category", "Learning"),
+        "category": parsed.get("category", "Self"),
         "size": parsed.get("size", "task"),
         "description": parsed.get("description", ""),
     }

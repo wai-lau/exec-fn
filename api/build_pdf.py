@@ -242,7 +242,7 @@ def draw_projects_page(c, cards):
     P_LINE_H = 7.5 * mm
     P_GAP    = 3   * mm
 
-    doing = sorted([card for card in cards if card.get("column") == "selected"], key=lambda x: x.get("order", 0))
+    doing = sorted([card for card in cards if card.get("column") == "hq"], key=lambda x: x.get("order", 0))
 
     y = H - MARGIN
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
@@ -313,16 +313,17 @@ def build(out_path=None):
         encouraging_message = ""
 
     selected = sorted(
-        [c for c in rd.get("cards", []) if c.get("column") == "selected"],
+        [c for c in rd.get("cards", []) if c.get("column") == "hq"],
         key=lambda c: c.get("order", 0),
     )
 
     def _steps(c):
         return [s.strip() for s in c.get("description", "").split(".") if s.strip()]
 
-    easy = [c["title"] for c in selected if c.get("size") in ("chore", "task")]
-    medium = [{"title": c["title"], "steps": _steps(c)} for c in selected if c.get("size") in ("book", "project")]
-    hard_cards = [c for c in selected if c.get("size") == "titan"]
+    directive_cards = [c for c in selected if c.get("category") != "Book"]
+    easy = [c["title"] for c in directive_cards if c.get("size") in ("chore", "task")]
+    medium = [{"title": c["title"], "steps": _steps(c)} for c in directive_cards if c.get("size") in ("book", "project")]
+    hard_cards = [c for c in directive_cards if c.get("size") == "titan"]
     hard = {"title": hard_cards[0]["title"], "steps": _steps(hard_cards[0])} if hard_cards else {}
 
     directives = {"easy": easy, "medium": medium, "hard": hard}

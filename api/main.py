@@ -82,8 +82,8 @@ CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["directives", "delta", "r&d", "archive"]
-_NAV_HREFS = {"r&d": "/rd"}
+_NAV_LINKS = ["delta", "看板", "vault"]
+_NAV_HREFS = {"看板": "/rd", "vault": "/archive"}
 
 
 def _build_nav(active=None):
@@ -176,9 +176,13 @@ body { overflow: hidden !important; }
   display: flex; gap: 1px; overflow: hidden;
   background: rgba(0,255,65,0.06);
 }
+.col-group { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: rgba(0,0,0,0.25); }
-.col.ashes-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
-.col.ashes-collapsed .col-list { pointer-events: none; overflow: hidden; }
+.col.col-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
+.col.col-collapsed .col-list { pointer-events: none; overflow: hidden; }
+.drag-active .col-group { flex: 4 !important; }
+.drag-active .col.col-collapsed { flex: 1 !important; overflow: visible !important; }
+.drag-active .col.col-collapsed .col-list { pointer-events: auto !important; overflow-y: auto !important; min-height: 40px; }
 .col-hdr {
   flex-shrink: 0; padding: 14px 16px 10px;
   font-family: monospace; font-size: 0.62rem; text-transform: uppercase;
@@ -190,6 +194,8 @@ body { overflow: hidden !important; }
 .done-toggle { background:none; border:none; color:rgba(0,255,65,0.4); cursor:pointer; font-size:0.7rem; padding:0; line-height:1; }
 .done-toggle:hover { color:rgba(0,255,65,0.9); }
 .col-list { flex: 1; overflow-y: auto; padding: 10px 10px 20px; }
+#col-rd { direction: rtl; }
+#col-rd > * { direction: ltr; }
 .card {
   border-radius: 4px; padding: 9px 11px; margin-bottom: 7px;
   cursor: grab; user-select: none; font-family: monospace;
@@ -253,8 +259,8 @@ body { overflow: hidden !important; }
     <input id="a-due" type="text" placeholder="optional">
     <label>column</label>
     <select id="a-col">
-      <option value="ideas">ideas</option>
-      <option value="selected">selected</option>
+      <option value="rd">r&d</option>
+      <option value="hq">hq</option>
     </select>
     <div class="modal-actions">
       <span></span>
@@ -276,7 +282,7 @@ body { overflow: hidden !important; }
     <textarea id="e-desc"></textarea>
     <label>category</label>
     <select id="e-cat">
-      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Learning</option>
+      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option>
     </select>
     <label>size</label>
     <select id="e-size">
@@ -302,13 +308,14 @@ body { overflow: hidden !important; }
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
-const COLS = ['ideas','selected','ashes'];
+const COLS = ['rd','hq','archives','exile'];
 let cards = [];
 let editId = null;
 let dragging = false;
-let ashesCollapsed = true;
+let archivesCollapsed = true;
+let exileCollapsed = true;
 
-const CAT_HUE = {Learning:210, Social:275, Interfacing:50, Hobby:0};
+const CAT_HUE = {Book:210, Self:185, Social:275, Interfacing:50, Hobby:0};
 
 function isDarkCard(c) {
   return c.size === 'chore' || c.size === 'task' || c.size === 'book';
@@ -387,34 +394,38 @@ async function save() {
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
 }
 
-function toggleAshes(e) {
-  if (e) e.stopPropagation();
-  ashesCollapsed = !ashesCollapsed;
-  buildBoard();
+function toggleArchives(e) { if (e) e.stopPropagation(); archivesCollapsed = !archivesCollapsed; buildBoard(); }
+function toggleExile(e) { if (e) e.stopPropagation(); exileCollapsed = !exileCollapsed; buildBoard(); }
+
+function renderCol(col) {
+  const count = cards.filter(c=>c.column===col).length;
+  const isArchives = col === 'archives', isExile = col === 'exile';
+  const collapsed = (isArchives && archivesCollapsed) || (isExile && exileCollapsed);
+  const toggle = isArchives ? 'toggleArchives' : (isExile ? 'toggleExile' : null);
+  const hdr = toggle
+    ? `<span class="col-hdr-label">${collapsed ? '▶' : col} <span style="opacity:0.35">(${count})</span></span>
+       ${!collapsed ? `<button class="done-toggle" onclick="${toggle}(event)">▼</button>` : ''}`
+    : `<span class="col-hdr-label">${col} <span style="opacity:0.35">(${count})</span></span>`;
+  const colCards = collapsed ? '' : cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('');
+  return `<div class="col${collapsed?' col-collapsed':''}"${collapsed&&toggle?` onclick="${toggle}()"`:''}>
+    <div class="col-hdr">${hdr}</div>
+    <div class="col-list" id="col-${col}">${colCards}</div>
+  </div>`;
 }
 
 function buildBoard() {
-  document.getElementById('board').innerHTML = COLS.map(col => {
-    const count = cards.filter(c=>c.column===col).length;
-    const isAshes = col === 'ashes';
-    const collapsed = isAshes && ashesCollapsed;
-    const hdr = isAshes
-      ? `<span class="col-hdr-label">${collapsed ? '▶' : col} <span style="opacity:0.35">(${count})</span></span>
-         ${!collapsed ? `<button class="done-toggle" onclick="toggleAshes(event)">▼</button>` : ''}`
-      : `<span class="col-hdr-label">${col} <span style="opacity:0.35">(${count})</span></span>`;
-    const colCards = collapsed ? '' : cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('');
-    return `<div class="col${collapsed?' ashes-collapsed':''}"${collapsed?' onclick="toggleAshes()"':''}>
-      <div class="col-hdr">${hdr}</div>
-      <div class="col-list" id="col-${col}">${colCards}</div>
-    </div>`;
-  }).join('');
+  const mainCol = col => renderCol(col).replace('<div class="col', '<div style="flex:4" class="col');
+  const groupExpanded = !archivesCollapsed || !exileCollapsed;
+  document.getElementById('board').innerHTML =
+    ['rd','hq'].map(mainCol).join('') +
+    `<div class="col-group" style="flex:${groupExpanded ? 4 : 1}">${['archives','exile'].map(renderCol).join('')}</div>`;
   COLS.forEach(col => {
     const el = document.getElementById('col-'+col);
     if (!el) return;
     Sortable.create(el, {
       group:'kanban', animation:120, ghostClass:'sortable-ghost',
-      onStart: () => { dragging = true; },
-      onEnd: () => { setTimeout(() => { dragging = false; }, 50); save(); }
+      onStart: () => { dragging = true; document.getElementById('board').classList.add('drag-active'); },
+      onEnd: () => { document.getElementById('board').classList.remove('drag-active'); setTimeout(() => { dragging = false; }, 50); save(); }
     });
   });
   document.querySelectorAll('.card').forEach(el => {
@@ -439,7 +450,7 @@ async function addCard() {
   btn.disabled = true; btn.textContent = 'classifying...';
   const due_date = parseMonthDay(document.getElementById('a-due').value);
   const col = document.getElementById('a-col').value;
-  let category = 'Learning', size = 'task', description = '';
+  let category = 'Self', size = 'task', description = '';
   try {
     const r = await fetch('/api/rd/classify', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
     const cl = await r.json();
@@ -463,7 +474,7 @@ function openEdit(id) {
   editId = id;
   document.getElementById('e-title').value = c.title || '';
   document.getElementById('e-desc').value = c.description || '';
-  document.getElementById('e-cat').value = c.category || 'Learning';
+  document.getElementById('e-cat').value = c.category || 'Self';
   document.getElementById('e-size').value = c.size || 'task';
   document.getElementById('e-due').value = c.due_date ? fmtDate(c.due_date) : '';
   document.getElementById('e-notes').value = c.notes || '';
@@ -567,7 +578,7 @@ async function loadDirectives() {
   const el = document.getElementById('dir-grid');
   if (!r.ok) { el.innerHTML = '<p style="opacity:0.4;font-size:0.8rem;grid-column:1/-1">no r&d data</p>'; return; }
   const data = await r.json();
-  const cards = (data.cards || []).filter(c => c.column === 'selected');
+  const cards = (data.cards || []).filter(c => c.column === 'hq' && c.category !== 'Book');
   const easy = cards.filter(c => c.size === 'chore' || c.size === 'task');
   const medium = cards.filter(c => c.size === 'book' || c.size === 'project');
   const hard = cards.find(c => c.size === 'titan');
@@ -668,6 +679,28 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   font-size:0.78rem; cursor:pointer; padding:8px 6px 8px 0; transition:color 0.2s;
 }
 .exec-clear:hover { color:rgba(0,255,65,0.45); }
+#preview-panel {
+  position:fixed; top:0; left:0; right:0; bottom:0; z-index:50;
+  background:rgba(0,0,0,0.97);
+  overflow-y:auto; padding:52px 44px 80px;
+  font-family:monospace; font-size:0.88rem; color:rgba(0,255,65,0.85);
+  display:none;
+}
+#preview-panel.open { display:block; }
+#preview-close {
+  position:fixed; top:14px; right:32px; z-index:51;
+  background:none; border:none; color:rgba(0,255,65,0.3); font-family:monospace;
+  font-size:0.78rem; cursor:pointer; padding:4px 8px;
+}
+#preview-close:hover { color:rgba(0,255,65,0.8); }
+.pr-col-hdr { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.15em; opacity:0.65; margin:0 0 8px; border-bottom:1px solid rgba(0,255,65,0.25); padding-bottom:4px; }
+.pr-item { margin-bottom:10px; }
+.pr-step { padding:1px 0 1px 18px; font-size:0.77rem; opacity:0.82; }
+.pr-push {
+  background:none; border:1px solid rgba(0,255,65,0.25); color:rgba(0,255,65,0.55);
+  font-family:monospace; font-size:0.78rem; padding:5px 16px; cursor:pointer;
+}
+.pr-push:hover { border-color:rgba(0,255,65,0.6); color:rgba(0,255,65,0.9); }
 </style>
 
 <div id="terminal"></div>
@@ -677,7 +710,27 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
     <span id="input-prompt">wai@exec:~$</span>
     <input id="msg-input" type="text" placeholder="" autofocus>
   </div>
+  <button class="exec-send" onclick="openPreview()" title="preview directives">[pr]</button>
   <button class="exec-send" id="send-btn" onclick="sendMsg()">[cr]</button>
+</div>
+
+<div id="preview-panel">
+  <button id="preview-close" onclick="closePreview()">[x] close</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+    <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.18em;opacity:0.5;">directives</span>
+    <button class="pr-push" id="pr-push-btn" onclick="doPush(this)">push &rarr;</button>
+  </div>
+  <div id="pr-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:36px;">
+    <span style="opacity:0.4;font-size:0.8rem;">loading...</span>
+  </div>
+  <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">omens</div>
+    <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
+  <div>
+    <div class="pr-col-hdr" style="margin-bottom:10px;">encouragement</div>
+    <div id="pr-enc" style="line-height:1.7;opacity:0.8;white-space:pre-wrap;"></div>
+  </div>
 </div>
 
 <script>
@@ -688,11 +741,7 @@ let streaming = false;
 const terminal = document.getElementById('terminal');
 
 function renderText(raw) {
-  const esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return esc
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/_(.+?)_/g, '<em>$1</em>');
+  return raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function addMsg(role, text) {
@@ -764,7 +813,7 @@ async function streamResponse() {
           span.innerHTML = renderText(fullText);
           terminal.scrollTop = terminal.scrollHeight;
         } else if (data.type === 'tool_call') {
-          addMsg('sys', `[ ${data.name}: ${JSON.stringify(data.result)} ]`);
+          if (data.name === 'create_card') addMsg('sys', `[ card added: ${data.result.title || ''} ]`);
         } else if (data.type === 'done') {
           stage = data.next_stage;
           if (stage === 'done') {
@@ -840,7 +889,7 @@ function restoreMsg(m) {
       const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('\\n').trim();
       if (text) addMsg('assistant', text);
       for (const b of m.content) {
-        if (b.type === 'tool_use') addMsg('sys', `[ ${b.name}: ${JSON.stringify(b.result ?? b.input)} ]`);
+        if (b.type === 'tool_use' && b.name === 'create_card') addMsg('sys', `[ card added: ${(b.input||{}).title || ''} ]`);
       }
     }
   }
@@ -869,12 +918,8 @@ async function init() {
   const chat = await r.json();
   if (chat.messages && chat.messages.length > 0) {
     messages = chat.messages;
-    stage = chat.stage || 'planning';
+    stage = 'planning';
     for (const m of messages) restoreMsg(m);
-    if (stage === 'done') {
-      document.getElementById('msg-input').disabled = true;
-      document.getElementById('send-btn').disabled = true;
-    }
     return;
   }
 
@@ -884,6 +929,63 @@ async function init() {
 document.getElementById('msg-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
+
+// ── preview panel ─────────────────────────────────────────────────────────────
+
+let previewLoaded = false;
+
+async function loadPreview() {
+  const steps = c => (c.description||'').split('.').map(s=>s.trim()).filter(Boolean);
+  const HDR = '<div class="pr-col-hdr">';
+
+  const [rdRes, omensRes, dirRes] = await Promise.all([
+    fetch('/api/rd'), fetch('/api/omens'), fetch('/api/directives')
+  ]);
+
+  if (rdRes.ok) {
+    const data = await rdRes.json();
+    const cards = (data.cards||[]).filter(c=>c.column==='selected'&&c.category!=='Book');
+    const easy = cards.filter(c=>c.size==='chore'||c.size==='task');
+    const medium = cards.filter(c=>c.size==='book'||c.size==='project');
+    const hard = cards.find(c=>c.size==='titan');
+    document.getElementById('pr-grid').innerHTML = `
+      <div>${HDR}easy</div>${easy.length?easy.map(c=>`<div class="pr-item">&middot; ${c.title}</div>`).join(''):'<span style="opacity:0.4;font-size:0.8rem">none</span>'}</div>
+      <div>${HDR}medium</div>${medium.length?medium.map(c=>`<div class="pr-item">${c.title}${steps(c).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join(''):'<span style="opacity:0.4;font-size:0.8rem">none</span>'}</div>
+      <div>${HDR}hard</div>${hard?`<div class="pr-item">${hard.title}${steps(hard).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`:'<span style="opacity:0.4;font-size:0.8rem">none</span>'}</div>`;
+  }
+
+  if (omensRes.ok) {
+    const d = await omensRes.json();
+    const evts = d.events||[];
+    document.getElementById('pr-omens').innerHTML = evts.length
+      ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
+      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (dirRes.ok) {
+    const d = await dirRes.json();
+    document.getElementById('pr-enc').textContent = d.encouraging_message || '';
+  }
+}
+
+function openPreview() {
+  document.getElementById('preview-panel').classList.add('open');
+  if (!previewLoaded) { previewLoaded = true; loadPreview(); }
+}
+
+function closePreview() {
+  document.getElementById('preview-panel').classList.remove('open');
+}
+
+async function doPush(btn) {
+  btn.disabled = true; btn.textContent = 'pushing...';
+  const r = await fetch('/api/push', {method:'POST'});
+  btn.disabled = false;
+  if (!r.ok) { const err = await r.json().catch(()=>({detail:'error'})); alert(err.detail); btn.textContent = 'push \u2192'; }
+  else { btn.textContent = 'pushed \u2713'; setTimeout(()=>{btn.textContent='push \u2192';},3000); }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
 
 init();
 </script>
@@ -933,14 +1035,14 @@ async def exec_page():
         .replace("</body>", _EXEC_CONTENT + _build_nav(None) + "</body>", 1))
 
 
-@protected.get("/directives", response_class=HTMLResponse)
+@protected.get("/directives")
 async def directives_page():
-    return _build_page("directives", _DIRECTIVES_CONTENT)
+    return RedirectResponse(url="/exec", status_code=302)
 
 
 @protected.get("/omens")
 async def omens_page():
-    return RedirectResponse(url="/directives", status_code=302)
+    return RedirectResponse(url="/exec", status_code=302)
 
 
 @protected.get("/delta", response_class=HTMLResponse)
@@ -954,12 +1056,12 @@ async def rd_page():
     head_inject = GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _RD_CONTENT + _BACK + _build_nav("r&d") + "</body>", 1))
+        .replace("</body>", _RD_CONTENT + _TOP_NAV.replace('</div>', '<span style="color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.82rem;">看板</span></div>') + _build_nav("看板") + "</body>", 1))
 
 
 @protected.get("/archive", response_class=HTMLResponse)
 async def archive_page():
-    return _build_page("archive", _ARCHIVE_CONTENT)
+    return _build_page("vault", _ARCHIVE_CONTENT)
 
 
 # ── data file serving ─────────────────────────────────────────────────────────
@@ -1071,9 +1173,7 @@ async def api_chat(body: ChatBody):
         for block in final.content:
             if block.type == "tool_use":
                 result = await asyncio.to_thread(pipeline._handle_tool, block.name, block.input)
-                if block.name == "set_directives":
-                    next_stage = "push"
-                elif block.name == "request_push":
+                if block.name == "finalize_and_push":
                     next_stage = "done"
                 yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
                 tool_result_contents.append({
@@ -1132,14 +1232,14 @@ def archive_page_png(filename: str, page_num: int):
 @protected.get("/api/rd")
 def api_rd():
     p = DATA_DIR / "rd.json"
-    return json.loads(p.read_text()) if p.exists() else {"columns": ["ideas","selected","ashes"], "cards": []}
+    return json.loads(p.read_text()) if p.exists() else {"columns": ["rd","hq","archives","exile"], "cards": []}
 
 
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request):
     body = await request.json()
     p = DATA_DIR / "rd.json"
-    data = json.loads(p.read_text()) if p.exists() else {"columns": ["ideas","selected","ashes"]}
+    data = json.loads(p.read_text()) if p.exists() else {"columns": ["rd","hq","archives","exile"]}
     data["cards"] = body.get("cards", [])
     p.write_text(json.dumps(data, indent=2))
     return {"ok": True}
