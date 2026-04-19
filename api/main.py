@@ -664,10 +664,19 @@ let streaming = false;
 
 const terminal = document.getElementById('terminal');
 
+function renderText(raw) {
+  const esc = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return esc
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>');
+}
+
 function addMsg(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  div.textContent = text;
+  if (role === 'assistant') div.innerHTML = renderText(text);
+  else div.textContent = text;
   terminal.appendChild(div);
   div.scrollIntoView({behavior:'smooth', block:'end'});
   return div;
@@ -729,7 +738,7 @@ async function streamResponse() {
         try { data = JSON.parse(line.slice(6)); } catch { continue; }
         if (data.type === 'text') {
           fullText += data.delta;
-          span.textContent = fullText;
+          span.innerHTML = renderText(fullText);
           div.scrollIntoView({behavior:'smooth', block:'end'});
         } else if (data.type === 'tool_call') {
           const note = addMsg('sys', `[ ${data.name}: ${JSON.stringify(data.result)} ]`);
@@ -806,7 +815,7 @@ function restoreMsg(m) {
     if (typeof m.content === 'string') {
       addMsg('assistant', m.content);
     } else if (Array.isArray(m.content)) {
-      const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('\\n').trim();
       if (text) addMsg('assistant', text);
       for (const b of m.content) {
         if (b.type === 'tool_use') addMsg('sys', `[ ${b.name}: ${JSON.stringify(b.result ?? b.input)} ]`);
