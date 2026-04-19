@@ -216,13 +216,13 @@ def generate_directives(feedback: str = "") -> dict:
     prefs = _load("preferences")
     ctx = _load("context")
 
-    doing = [c for c in rd.get("cards", []) if c.get("column") == "doing"]
-    backlog = [c for c in rd.get("cards", []) if c.get("column") == "backlog"]
+    doing = [c for c in rd.get("cards", []) if c.get("column") == "selected"]
+    backlog = [c for c in rd.get("cards", []) if c.get("column") == "ideas"]
     rd_lines = []
     if doing:
         rd_lines.append("ACTIVE: " + ", ".join(c["title"] for c in doing))
     if backlog:
-        rd_lines.append("BACKLOG: " + ", ".join(c["title"] for c in backlog[:5]))
+        rd_lines.append("IDEAS: " + ", ".join(c["title"] for c in backlog[:5]))
     rd_text = "\n".join(rd_lines) or "No R&D projects."
 
     omens_text = "\n".join(

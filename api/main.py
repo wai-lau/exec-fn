@@ -170,8 +170,8 @@ body { overflow: hidden !important; }
   background: rgba(232,157,194,0.06);
 }
 .col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: rgba(0,0,0,0.25); }
-.col.done-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
-.col.done-collapsed .col-list { pointer-events: none; overflow: hidden; }
+.col.ashes-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
+.col.ashes-collapsed .col-list { pointer-events: none; overflow: hidden; }
 .col-hdr {
   flex-shrink: 0; padding: 14px 16px 10px;
   font-family: monospace; font-size: 0.62rem; text-transform: uppercase;
@@ -246,8 +246,8 @@ body { overflow: hidden !important; }
     <input id="a-due" type="text" placeholder="optional">
     <label>column</label>
     <select id="a-col">
-      <option value="backlog">backlog</option>
-      <option value="doing">doing</option>
+      <option value="ideas">ideas</option>
+      <option value="selected">selected</option>
     </select>
     <div class="modal-actions">
       <span></span>
@@ -295,11 +295,11 @@ body { overflow: hidden !important; }
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
-const COLS = ['backlog','doing','done'];
+const COLS = ['ideas','selected','ashes'];
 let cards = [];
 let editId = null;
 let dragging = false;
-let doneCollapsed = true;
+let ashesCollapsed = true;
 
 const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
 
@@ -378,23 +378,23 @@ async function save() {
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
 }
 
-function toggleDone(e) {
+function toggleAshes(e) {
   if (e) e.stopPropagation();
-  doneCollapsed = !doneCollapsed;
+  ashesCollapsed = !ashesCollapsed;
   buildBoard();
 }
 
 function buildBoard() {
   document.getElementById('board').innerHTML = COLS.map(col => {
     const count = cards.filter(c=>c.column===col).length;
-    const isDone = col === 'done';
-    const collapsed = isDone && doneCollapsed;
-    const hdr = isDone
+    const isAshes = col === 'ashes';
+    const collapsed = isAshes && ashesCollapsed;
+    const hdr = isAshes
       ? `<span class="col-hdr-label">${collapsed ? '▶' : col} <span style="opacity:0.35">(${count})</span></span>
-         ${!collapsed ? `<button class="done-toggle" onclick="toggleDone(event)">▼</button>` : ''}`
+         ${!collapsed ? `<button class="done-toggle" onclick="toggleAshes(event)">▼</button>` : ''}`
       : `<span class="col-hdr-label">${col} <span style="opacity:0.35">(${count})</span></span>`;
     const colCards = collapsed ? '' : cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('');
-    return `<div class="col${collapsed?' done-collapsed':''}"${collapsed?' onclick="toggleDone()"':''}>
+    return `<div class="col${collapsed?' ashes-collapsed':''}"${collapsed?' onclick="toggleAshes()"':''}>
       <div class="col-hdr">${hdr}</div>
       <div class="col-list" id="col-${col}">${colCards}</div>
     </div>`;
@@ -759,14 +759,14 @@ def archive_page_png(filename: str, page_num: int):
 @protected.get("/api/rd")
 def api_rd():
     p = DATA_DIR / "rd.json"
-    return json.loads(p.read_text()) if p.exists() else {"columns": ["backlog","doing","done"], "cards": []}
+    return json.loads(p.read_text()) if p.exists() else {"columns": ["ideas","selected","ashes"], "cards": []}
 
 
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request):
     body = await request.json()
     p = DATA_DIR / "rd.json"
-    data = json.loads(p.read_text()) if p.exists() else {"columns": ["backlog","doing","done"]}
+    data = json.loads(p.read_text()) if p.exists() else {"columns": ["ideas","selected","ashes"]}
     data["cards"] = body.get("cards", [])
     p.write_text(json.dumps(data, indent=2))
     return {"ok": True}

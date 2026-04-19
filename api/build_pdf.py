@@ -242,7 +242,7 @@ def draw_projects_page(c, cards):
     P_LINE_H = 7.5 * mm
     P_GAP    = 3   * mm
 
-    doing = sorted([card for card in cards if card.get("column") == "doing"], key=lambda x: x.get("order", 0))
+    doing = sorted([card for card in cards if card.get("column") == "selected"], key=lambda x: x.get("order", 0))
 
     y = H - MARGIN
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
