@@ -293,7 +293,7 @@ let cards = [];
 let editId = null;
 let dragging = false;
 
-/const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
+const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
 
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
