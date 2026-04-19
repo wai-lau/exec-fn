@@ -319,7 +319,7 @@ function cardStyle(c) {
   } else if (size === 'task') {
     return {bg:`background:#0d0d0d;color:${col};`, border:`border-color:${borderMid};`, dark:true};
   } else if (size === 'book') {
-    return {bg:`background:hsl(0,0%,20%);color:${col};`, border:`border-color:${borderMid};`, dark:true};
+    return {bg:`background:hsl(0,0%,28%);color:${col};`, border:`border-color:${borderMid};`, dark:true};
   } else if (size === 'project') {
     return {bg:`background:hsl(${h},50%,54%);`, border:'border-color:transparent;', dark:false};
   } else {
