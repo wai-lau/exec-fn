@@ -145,20 +145,70 @@ load();
 '''
 
 _RD_CONTENT = '''
-<div id="content">
-  <div id="rd"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
-</div>
+<style>
+.kanban { display:flex; gap:18px; align-items:flex-start; width:min(1100px,95vw); }
+.col { flex:1; min-width:0; }
+.col-hdr { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.15em; opacity:0.65;
+  margin-bottom:10px; padding-bottom:4px; border-bottom:1px solid rgba(232,157,194,0.25); }
+.card { background:rgba(232,157,194,0.06); border:1px solid rgba(232,157,194,0.18);
+  border-radius:3px; padding:9px 11px; margin-bottom:8px; cursor:grab; user-select:none; }
+.card:active { cursor:grabbing; opacity:0.75; }
+.card-title { font-size:0.82rem; color:rgba(232,157,194,0.92); }
+.card-meta { font-size:0.65rem; opacity:0.45; margin-top:4px; }
+.card-due { font-size:0.65rem; color:rgba(232,157,194,0.6); margin-top:3px; }
+.card-due.urgent { color:rgba(255,160,130,0.9); }
+.sortable-ghost { opacity:0.25; }
+</style>
+<div class="kanban" id="board"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
+const COLS = ['backlog','doing','done'];
+let cards = [];
+
+function urgency(due) {
+  if (!due) return '';
+  const days = (new Date(due) - new Date()) / 86400000;
+  return days <= 3 ? ' urgent' : '';
+}
+
+function renderCard(c) {
+  return `<div class="card" data-id="${c.id}">
+    <div class="card-title">${c.title}</div>
+    <div class="card-meta">${c.category}</div>
+    ${c.due_date ? `<div class="card-due${urgency(c.due_date)}">due ${c.due_date}</div>` : ''}
+  </div>`;
+}
+
+async function save() {
+  COLS.forEach(col => {
+    document.querySelectorAll(`#col-${col} .card`).forEach((el, i) => {
+      const c = cards.find(x => x.id === el.dataset.id);
+      if (c) { c.column = col; c.order = i; }
+    });
+  });
+  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
+}
+
 async function load() {
-  const r = await fetch('/api/rd');
-  const data = await r.json();
-  document.getElementById('rd').innerHTML = (data.sections || []).map(s => `
-    <h2>${s.title}</h2>
-    ${s.items.map(i => `<div class="item">&middot; ${i}</div>`).join('')}
+  const data = await (await fetch('/api/rd')).json();
+  cards = data.cards || [];
+  const board = document.getElementById('board');
+  board.innerHTML = COLS.map(col => `
+    <div class="col">
+      <div class="col-hdr">${col}</div>
+      <div id="col-${col}" style="min-height:40px;">
+        ${cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('')}
+      </div>
+    </div>
   `).join('');
+  COLS.forEach(col => {
+    Sortable.create(document.getElementById('col-'+col), {
+      group:'kanban', animation:150, ghostClass:'sortable-ghost', onEnd: save
+    });
+  });
 }
 load();
-</script>
+</script>'''
 '''
 
 _DELTA_CONTENT = '''
@@ -428,7 +478,17 @@ def archive_page_png(filename: str, page_num: int):
 @protected.get("/api/rd")
 def api_rd():
     p = DATA_DIR / "rd.json"
-    return json.loads(p.read_text()) if p.exists() else {"sections": []}
+    return json.loads(p.read_text()) if p.exists() else {"columns": ["backlog","doing","done"], "cards": []}
+
+
+@protected.patch("/api/rd")
+async def api_rd_patch(request: Request):
+    body = await request.json()
+    p = DATA_DIR / "rd.json"
+    data = json.loads(p.read_text()) if p.exists() else {"columns": ["backlog","doing","done"]}
+    data["cards"] = body.get("cards", [])
+    p.write_text(json.dumps(data, indent=2))
+    return {"ok": True}
 
 
 @protected.get("/api/context")

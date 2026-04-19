@@ -237,10 +237,12 @@ def draw_encouragement(c, message: str, y: float):
         y -= SH
 
 
-def draw_projects_page(c, sections):
+def draw_projects_page(c, cards):
     from reportlab.pdfbase.pdfmetrics import stringWidth
     P_LINE_H = 7.5 * mm
     P_GAP    = 3   * mm
+
+    doing = sorted([card for card in cards if card.get("column") == "doing"], key=lambda x: x.get("order", 0))
 
     y = H - MARGIN
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
@@ -249,48 +251,49 @@ def draw_projects_page(c, sections):
     y -= P_LINE_H
 
     col_w = (W - 2 * MARGIN - 6 * mm) / 2
-    cols = [MARGIN, MARGIN + col_w + 6 * mm]
-    left_sections  = [s for s in sections if s["title"] != "CRAFT"]
-    right_sections = [s for s in sections if s["title"] == "CRAFT"]
 
-    for col_idx, col_sections in enumerate([left_sections, right_sections]):
-        x = cols[col_idx]
-        cy = y
-        for section in col_sections:
-            c.setFont(FONT_SECTION, SIZE_SECTION)
-            c.setFillColor(colors.HexColor("#222222"))
-            c.drawString(x, cy, section["title"])
-            cy -= P_LINE_H * 0.3
-            c.setStrokeColor(colors.HexColor("#cccccc"))
-            c.setLineWidth(0.4)
-            c.line(x, cy, x + col_w, cy)
-            cy -= P_LINE_H * 0.8
+    by_category = {}
+    for card in doing:
+        by_category.setdefault(card.get("category", "OTHER"), []).append(card)
 
-            for item in section["items"]:
-                if cy < MARGIN + P_LINE_H:
-                    break
-                max_w = col_w - BOX_SIZE - 2 * mm
-                words = item.split()
-                lines, current = [], ""
-                for word in words:
-                    test = (current + " " + word).strip()
-                    if stringWidth(test, FONT_ITEM, SIZE_ITEM) <= max_w:
-                        current = test
-                    else:
-                        if current:
-                            lines.append(current)
-                        current = word
-                if current:
-                    lines.append(current)
+    x = MARGIN
+    cy = y
+    for cat, cat_cards in by_category.items():
+        c.setFont(FONT_SECTION, SIZE_SECTION)
+        c.setFillColor(colors.HexColor("#222222"))
+        c.drawString(x, cy, cat)
+        cy -= P_LINE_H * 0.3
+        c.setStrokeColor(colors.HexColor("#cccccc"))
+        c.setLineWidth(0.4)
+        c.line(x, cy, W - MARGIN, cy)
+        cy -= P_LINE_H * 0.8
 
-                draw_checkbox(c, x, cy)
-                text_x = x + BOX_SIZE + 2 * mm
-                c.setFont(FONT_ITEM, SIZE_ITEM)
-                c.setFillColor(colors.black)
-                for i, line in enumerate(lines):
-                    c.drawString(text_x if i == 0 else x + BOX_SIZE + 2 * mm, cy, line)
-                    cy -= P_LINE_H
-            cy -= P_GAP
+        for card in cat_cards:
+            if cy < MARGIN + P_LINE_H:
+                break
+            title = card["title"]
+            max_w = W - 2 * MARGIN - BOX_SIZE - 2 * mm
+            words = title.split()
+            lines, current = [], ""
+            for word in words:
+                test = (current + " " + word).strip()
+                if stringWidth(test, FONT_ITEM, SIZE_ITEM) <= max_w:
+                    current = test
+                else:
+                    if current:
+                        lines.append(current)
+                    current = word
+            if current:
+                lines.append(current)
+
+            draw_checkbox(c, x, cy)
+            text_x = x + BOX_SIZE + 2 * mm
+            c.setFont(FONT_ITEM, SIZE_ITEM)
+            c.setFillColor(colors.black)
+            for line in lines:
+                c.drawString(text_x, cy, line)
+                cy -= P_LINE_H
+        cy -= P_GAP
 
 
 def build(out_path=None):
@@ -316,7 +319,7 @@ def build(out_path=None):
     if encouragement:
         draw_encouragement(c, encouragement, y)
     c.showPage()
-    draw_projects_page(c, projects["sections"])
+    draw_projects_page(c, projects.get("cards", []))
     c.showPage()
     c.save()
     print(f"Wrote {out}")
