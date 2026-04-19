@@ -1,12 +1,12 @@
-import os, re, json, secrets, hashlib
+import asyncio, os, re, json, secrets, hashlib
 from pathlib import Path
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Cookie, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Security
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 import pipeline
 
@@ -333,10 +333,10 @@ function parseMonthDay(input) {
   const mnths = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
   const now = new Date();
   let month = -1, day = 0;
-  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  let m = s.match(/^(\\d{1,2})[\\/-](\\d{1,2})$/);
   if (m) { month = parseInt(m[1]) - 1; day = parseInt(m[2]); }
   if (month < 0) {
-    m = s.match(/^([a-z]+)\s+(\d{1,2})$/);
+    m = s.match(/^([a-z]+)\\s+(\\d{1,2})$/);
     if (m) { const i = mnths.findIndex(x => m[1].startsWith(x)); if (i >= 0) { month = i; day = parseInt(m[2]); } }
   }
   if (month < 0 || !day) return null;
@@ -500,7 +500,7 @@ _DELTA_CONTENT = '''
 <script>
 function renderList(text) {
   if (!text) return '<span style="opacity:0.4">&mdash;</span>';
-  const parts = text.split(/\s+(?=\d+\.\s)/);
+  const parts = text.split(/\\s+(?=\\d+\\.\\s)/);
   if (parts.length > 1) {
     const items = parts.map(p => `<li style="margin-bottom:6px">${p.replace(/^\d+\.\s*/, '')}</li>`).join('');
     return `<ol style="margin:0;padding-left:1.4em;line-height:1.6">${items}</ol>`;
@@ -537,54 +537,48 @@ load();
 _DIRECTIVES_CONTENT = '''
 <div id="content" style="width:min(1100px,95vw)">
   <h1 style="margin:0 0 24px;font-size:1.1rem;letter-spacing:0.15em;text-transform:uppercase">Directives from AI-sama</h1>
-  <div style="display:flex;gap:10px;margin-bottom:24px;align-items:flex-start;">
-    <textarea id="feedback" placeholder="feedback..." style="flex:1;background:none;border:1px solid rgba(0,255,65,0.4);color:rgba(0,255,65,1);font-family:monospace;font-size:0.8rem;padding:6px 10px;resize:vertical;min-height:48px;"></textarea>
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <button id="regen-btn" onclick="regen(this)">regenerate</button>
-      <button id="push-btn" onclick="doPush(this)">push</button>
-    </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+    <button id="push-btn" onclick="doPush(this)">push &rarr;</button>
   </div>
   <div id="dir-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:8px;">
     <span style="opacity:0.4;font-size:0.8rem;grid-column:1/-1">loading...</span>
   </div>
-  <div class="ts" id="dir-ts"></div>
-  <div style="margin-top:40px;display:flex;justify-content:space-between;align-items:center;">
-    <h2 style="margin:0">omens</h2>
-    <button onclick="refreshOmens(this)" style="font-size:0.75rem;padding:3px 10px;">refresh omens</button>
+  <div style="margin-top:40px;">
+    <h2 style="margin:0 0 12px">omens</h2>
+    <div id="omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+    <div class="ts" id="omens-ts"></div>
   </div>
-  <div id="omens" style="margin-top:12px;"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
-  <div class="ts" id="omens-ts"></div>
   <div style="margin-top:40px;">
     <h2 style="margin:0 0 12px">encouragement</h2>
     <div id="encouragement" style="font-size:0.85rem;line-height:1.8;opacity:0.85;white-space:pre-wrap"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
-    <div class="ts" id="enc-ts"></div>
   </div>
 </div>
 <script>
 const COL_HDR = 'font-size:0.65rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.65;margin:0 0 8px;border-bottom:1px solid rgba(0,255,65,0.25);padding-bottom:4px;';
 async function loadDirectives() {
-  const r = await fetch('/api/directives');
+  const r = await fetch('/api/rd');
   const el = document.getElementById('dir-grid');
-  if (!r.ok) { el.innerHTML = '<p style="opacity:0.4;font-size:0.8rem;grid-column:1/-1">no directives yet — click regenerate</p>'; return; }
-  const d = await r.json();
-  const easy = d.easy || [];
-  const medium = d.medium || [];
-  const hard = d.hard || {};
+  if (!r.ok) { el.innerHTML = '<p style="opacity:0.4;font-size:0.8rem;grid-column:1/-1">no r&d data</p>'; return; }
+  const data = await r.json();
+  const cards = (data.cards || []).filter(c => c.column === 'selected');
+  const easy = cards.filter(c => c.size === 'chore' || c.size === 'task');
+  const medium = cards.filter(c => c.size === 'book' || c.size === 'project');
+  const hard = cards.find(c => c.size === 'titan');
+  const steps = c => (c.description||'').split('.').map(s=>s.trim()).filter(Boolean);
   el.innerHTML = `
     <div>
       <div style="${COL_HDR}">easy</div>
-      ${easy.map(t=>`<div style="padding:5px 0 5px 18px;font-size:0.77rem;opacity:0.82;">&middot; ${t}</div>`).join('')}
+      ${easy.length ? easy.map(c=>`<div class="item">&middot; ${c.title}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>'}
     </div>
     <div>
       <div style="${COL_HDR}">medium</div>
-      ${medium.map(t=>`<div class="item"><div style="margin-bottom:3px;">${typeof t==='string'?t:t.title}</div>${(t.steps||[]).map(s=>`<div style="padding:1px 0 1px 18px;font-size:0.77rem;opacity:0.82;">&middot; ${s}</div>`).join('')}</div>`).join('')}
+      ${medium.length ? medium.map(c=>`<div class="item"><div style="margin-bottom:3px;">${c.title}</div>${steps(c).map(s=>`<div style="padding:1px 0 1px 18px;font-size:0.77rem;opacity:0.82;">&middot; ${s}</div>`).join('')}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>'}
     </div>
     <div>
       <div style="${COL_HDR}">hard</div>
-      ${hard.title?`<div class="item"><div style="margin-bottom:3px;">${hard.title}</div>${(hard.steps||[]).map(s=>`<div style="padding:1px 0 1px 18px;font-size:0.77rem;opacity:0.82;">&middot; ${s}</div>`).join('')}</div>`:'<p style="opacity:0.4;font-size:0.8rem">none</p>'}
+      ${hard ? `<div class="item"><div style="margin-bottom:3px;">${hard.title}</div>${steps(hard).map(s=>`<div style="padding:1px 0 1px 18px;font-size:0.77rem;opacity:0.82;">&middot; ${s}</div>`).join('')}</div>` : '<span style="opacity:0.4;font-size:0.8rem">none</span>'}
     </div>
   `;
-  document.getElementById('dir-ts').textContent = d.generated_at || '';
 }
 async function loadOmens() {
   const r = await fetch('/api/omens');
@@ -598,47 +592,220 @@ async function loadOmens() {
   document.getElementById('omens-ts').textContent = d.checked_at || '';
 }
 async function loadEncouragement() {
-  const r = await fetch('/api/encouragement');
+  const r = await fetch('/api/directives');
   const el = document.getElementById('encouragement');
-  if (!r.ok) { el.innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none yet — click regenerate</span>'; return; }
+  if (!r.ok) { el.innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none yet — plan your day at /exec</span>'; return; }
   const d = await r.json();
-  el.textContent = d.message || '';
-  document.getElementById('enc-ts').textContent = d.generated_at || '';
-}
-async function regen(btn) {
-  const feedback = document.getElementById('feedback').value.trim();
-  btn.disabled = true;
-  btn.textContent = 'pulling & refreshing...';
-  await Promise.all([
-    fetch('/api/delta', {method:'POST'}).catch(()=>{}),
-    fetch('/api/omens', {method:'POST'}).catch(()=>{}),
-  ]);
-  btn.textContent = 'generating...';
-  const r = await fetch('/api/directives', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({feedback})});
-  btn.textContent = 'encouraging...';
-  await fetch('/api/encouragement', {method:'POST'}).catch(()=>{});
-  btn.disabled = false; btn.textContent = 'regenerate';
-  document.getElementById('feedback').value = '';
-  loadDirectives(); loadOmens(); loadEncouragement();
-  if (!r.ok) {
-    const err = await r.json().catch(()=>({detail:'error'}));
-    document.getElementById('dir-grid').innerHTML = `<p style="color:rgba(255,100,100,0.8);font-size:0.8rem;grid-column:1/-1">${err.detail}</p>`;
-  }
+  el.textContent = d.encouraging_message || '';
 }
 async function doPush(btn) {
   btn.disabled = true; btn.textContent = 'pushing...';
   const r = await fetch('/api/push', {method:'POST'});
-  btn.disabled = false; btn.textContent = 'push';
+  btn.disabled = false; btn.textContent = 'push \u2192';
   if (!r.ok) { const err = await r.json().catch(()=>({detail:'error'})); alert(err.detail); }
-}
-async function refreshOmens(btn) {
-  btn.disabled = true; btn.textContent = 'checking...';
-  const r = await fetch('/api/omens', {method:'POST'});
-  btn.disabled = false; btn.textContent = 'refresh omens';
-  if (r.ok) loadOmens();
-  else { const err = await r.json().catch(()=>({detail:'error'})); document.getElementById('omens').innerHTML = `<p style="color:rgba(255,100,100,0.8);font-size:0.8rem">${err.detail}</p>`; }
+  else { btn.textContent = 'pushed \u2713'; setTimeout(()=>{btn.textContent='push \u2192';},3000); }
 }
 loadDirectives(); loadOmens(); loadEncouragement();
+</script>
+'''
+
+_EXEC_CONTENT = '''
+<style>
+body { display:block !important; height:100vh; overflow:hidden !important; flex-direction:unset !important; align-items:unset !important; justify-content:unset !important; gap:unset !important; }
+#terminal {
+  position:fixed; top:0; left:0; right:0; bottom:104px;
+  overflow-y:auto; padding:36px 44px;
+  font-family:monospace; font-size:0.88rem; line-height:1.72;
+  color:rgba(0,255,65,0.9);
+}
+.msg { margin-bottom:20px; max-width:680px; white-space:pre-wrap; word-break:break-word; }
+.msg.assistant { color:rgba(0,255,65,0.92); }
+.msg.user { color:rgba(0,255,65,0.42); padding-left:14px; border-left:2px solid rgba(0,255,65,0.16); }
+.msg.sys { color:rgba(0,255,65,0.26); font-size:0.72rem; font-style:italic; }
+#blinkcursor { display:inline-block; width:8px; height:1em; background:rgba(0,255,65,0.9); vertical-align:text-bottom; animation:blink 1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+#input-bar {
+  position:fixed; bottom:52px; left:0; right:0;
+  padding:10px 44px; background:rgba(0,0,0,0.94);
+  border-top:1px solid rgba(0,255,65,0.12);
+  display:flex; gap:14px; align-items:center;
+}
+#msg-input {
+  flex:1; background:none; border:none; border-bottom:1px solid rgba(0,255,65,0.25);
+  color:rgba(0,255,65,0.9); font-family:monospace; font-size:0.9rem;
+  padding:4px 2px; outline:none;
+}
+#msg-input::placeholder { color:rgba(0,255,65,0.18); }
+#msg-input:focus { border-bottom-color:rgba(0,255,65,0.6); }
+.exec-send {
+  background:none; border:1px solid rgba(0,255,65,0.25); color:rgba(0,255,65,0.55);
+  font-family:monospace; font-size:0.8rem; padding:4px 14px; cursor:pointer; transition:all 0.2s;
+}
+.exec-send:hover { border-color:rgba(0,255,65,0.85); color:rgba(0,255,65,1); }
+.exec-send:disabled { opacity:0.2; cursor:default; }
+.exec-clear {
+  background:none; border:none; color:rgba(0,255,65,0.18); font-family:monospace;
+  font-size:0.78rem; cursor:pointer; padding:2px 4px; transition:color 0.2s;
+}
+.exec-clear:hover { color:rgba(0,255,65,0.5); }
+</style>
+
+<div id="terminal"></div>
+<div id="input-bar">
+  <button class="exec-clear" id="clear-btn" onclick="clearChat()" title="new session">&circlearrowleft;</button>
+  <input id="msg-input" type="text" placeholder="type a message..." autofocus>
+  <button class="exec-send" id="send-btn" onclick="sendMsg()">&rarr;</button>
+</div>
+
+<script>
+let stage = 'planning';
+let messages = [];
+let streaming = false;
+
+const terminal = document.getElementById('terminal');
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  terminal.appendChild(div);
+  div.scrollIntoView({behavior:'smooth', block:'end'});
+  return div;
+}
+
+function addStreamDiv() {
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  const span = document.createElement('span');
+  span.id = 'stream-span';
+  const cur = document.createElement('span');
+  cur.id = 'blinkcursor';
+  div.appendChild(span);
+  div.appendChild(cur);
+  terminal.appendChild(div);
+  return {div, span, cur};
+}
+
+async function sendMsg() {
+  if (streaming) return;
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addMsg('user', text);
+  messages.push({role:'user', content:text});
+  await streamResponse();
+}
+
+async function streamResponse() {
+  streaming = true;
+  document.getElementById('send-btn').disabled = true;
+
+  const {div, span, cur} = addStreamDiv();
+  let fullText = '';
+
+  try {
+    const r = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages, stage}),
+    });
+
+    if (!r.ok) throw new Error(await r.text());
+
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split('\\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let data;
+        try { data = JSON.parse(line.slice(6)); } catch { continue; }
+        if (data.type === 'text') {
+          fullText += data.delta;
+          span.textContent = fullText;
+          div.scrollIntoView({behavior:'smooth', block:'end'});
+        } else if (data.type === 'tool_call') {
+          const note = addMsg('sys', `[ ${data.name}: ${JSON.stringify(data.result)} ]`);
+          note.scrollIntoView({behavior:'smooth', block:'end'});
+        } else if (data.type === 'done') {
+          stage = data.next_stage;
+          if (stage === 'done') {
+            document.getElementById('msg-input').disabled = true;
+            document.getElementById('send-btn').disabled = true;
+          }
+        }
+      }
+    }
+
+    cur.remove();
+    if (fullText) messages.push({role:'assistant', content:fullText});
+  } catch(e) {
+    cur.remove();
+    div.textContent = '[error: ' + e.message + ']';
+    div.style.color = 'rgba(255,100,100,0.75)';
+  }
+
+  streaming = false;
+  if (stage !== 'done') {
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('msg-input').focus();
+  }
+}
+
+async function clearChat() {
+  if (streaming) return;
+  await fetch('/api/chat', {method:'DELETE'});
+  messages = [];
+  stage = 'planning';
+  terminal.innerHTML = '';
+  document.getElementById('msg-input').disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  await init();
+}
+
+async function init() {
+  const r = await fetch('/api/chat');
+  const chat = await r.json();
+  if (chat.messages && chat.messages.length > 0) {
+    messages = chat.messages;
+    stage = chat.stage || 'planning';
+    for (const m of messages) {
+      if (m.role !== 'user' && m.role !== 'assistant') continue;
+      const content = typeof m.content === 'string' ? m.content :
+        Array.isArray(m.content)
+          ? m.content.filter(b => b.type === 'text').map(b => b.text).join('')
+          : '';
+      if (content) addMsg(m.role, content);
+    }
+    if (stage === 'done') {
+      document.getElementById('msg-input').disabled = true;
+      document.getElementById('send-btn').disabled = true;
+    }
+    return;
+  }
+
+  // Fresh session — show morning briefing
+  const mr = await fetch('/api/morning');
+  if (mr.ok) {
+    const morning = await mr.json();
+    if (morning.opening_message) addMsg('assistant', morning.opening_message);
+  } else {
+    addMsg('assistant', 'Good morning. What would you like to work on today?');
+  }
+}
+
+document.getElementById('msg-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+init();
 </script>
 '''
 
@@ -680,7 +847,10 @@ async def login(request: Request):
 
 @protected.get("/exec", response_class=HTMLResponse)
 async def exec_page():
-    return _build_page()
+    head_inject = GREEN_OVERLAY
+    return (_BARE
+        .replace("</head>", head_inject + "</head>", 1)
+        .replace("</body>", _EXEC_CONTENT + _build_nav(None) + "</body>", 1))
 
 
 @protected.get("/directives", response_class=HTMLResponse)
@@ -734,12 +904,126 @@ def api_pull():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@protected.get("/api/morning")
+def api_morning_get():
+    p = DATA_DIR / "morning.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="No morning briefing yet")
+    return json.loads(p.read_text())
+
+
 @protected.post("/api/morning")
 def api_morning():
     try:
         return pipeline.build_morning()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class ChatBody(BaseModel):
+    messages: List[dict] = []
+    stage: str = "planning"
+
+
+@protected.get("/api/chat")
+def api_chat_get():
+    return pipeline.get_chat()
+
+
+@protected.delete("/api/chat")
+def api_chat_clear():
+    p = DATA_DIR / "chat.json"
+    if p.exists():
+        p.unlink()
+    return {"ok": True}
+
+
+@protected.post("/api/chat")
+async def api_chat(body: ChatBody):
+    import anthropic as _anthropic
+
+    messages = body.messages
+    stage = body.stage
+
+    async def generate():
+        client = _anthropic.AsyncAnthropic()
+        system_prompt = pipeline._build_chat_system_prompt(stage)
+        tools = pipeline._chat_tools()
+        next_stage = stage
+        full_text = ""
+        final = None
+
+        try:
+            async with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                system=system_prompt,
+                tools=tools,
+                messages=messages,
+            ) as stream:
+                async for text in stream.text_stream:
+                    full_text += text
+                    yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
+                final = await stream.get_final_message()
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'text', 'delta': f'[error: {e}]'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'next_stage': stage})}\n\n"
+            return
+
+        # Build assistant message content
+        assistant_content = []
+        for block in final.content:
+            if block.type == "text":
+                assistant_content.append({"type": "text", "text": block.text})
+            elif block.type == "tool_use":
+                assistant_content.append({"type": "tool_use", "id": block.id, "name": block.name, "input": block.input})
+
+        all_messages = messages + [{"role": "assistant", "content": assistant_content}]
+        tool_result_contents = []
+
+        for block in final.content:
+            if block.type == "tool_use":
+                result = await asyncio.to_thread(pipeline._handle_tool, block.name, block.input)
+                if block.name == "set_directives":
+                    next_stage = "push"
+                elif block.name == "request_push":
+                    next_stage = "done"
+                yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
+                tool_result_contents.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": json.dumps(result),
+                })
+
+        if tool_result_contents:
+            all_messages.append({"role": "user", "content": tool_result_contents})
+            # Continuation call so Claude responds to the tool result with text
+            cont_text = ""
+            try:
+                async with client.messages.stream(
+                    model="claude-sonnet-4-6",
+                    max_tokens=512,
+                    system=pipeline._build_chat_system_prompt(next_stage),
+                    tools=tools,
+                    messages=all_messages,
+                ) as stream2:
+                    async for text in stream2.text_stream:
+                        cont_text += text
+                        yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
+                    final2 = await stream2.get_final_message()
+                if cont_text:
+                    all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont_text}]})
+            except Exception:
+                pass
+
+        pipeline._save_chat(all_messages, next_stage)
+        yield f"data: {json.dumps({'type': 'done', 'next_stage': next_stage})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @protected.get("/api/archive")
@@ -792,22 +1076,6 @@ def api_context():
     return json.loads(p.read_text()) if p.exists() else {"notes": []}
 
 
-@protected.get("/api/encouragement")
-def api_encouragement_get():
-    p = DATA_DIR / "encouragement.json"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="No encouragement yet")
-    return json.loads(p.read_text())
-
-
-@protected.post("/api/encouragement")
-def api_encouragement_run():
-    try:
-        return pipeline.generate_encouragement()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @protected.get("/api/delta")
 def api_delta_get():
     p = DATA_DIR / "delta.json"
@@ -830,18 +1098,6 @@ def api_directives_get():
     if not p.exists():
         raise HTTPException(status_code=404, detail="No directives yet")
     return json.loads(p.read_text())
-
-
-class DirectivesBody(BaseModel):
-    feedback: str = ""
-
-
-@protected.post("/api/directives")
-def api_directives_run(body: DirectivesBody = DirectivesBody()):
-    try:
-        return pipeline.generate_directives(feedback=body.feedback)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @protected.post("/api/push")

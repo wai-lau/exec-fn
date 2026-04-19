@@ -18,7 +18,7 @@ def _today() -> str:
 RM_FOLDER = "/EXEC"
 
 
-def pull_exec() -> str:
+def pull_exec(baseline: bool = False) -> str:
     ls = subprocess.run(["rmapi", "ls", RM_FOLDER], cwd=str(DATA_DIR), capture_output=True, text=True)
     if ls.returncode != 0:
         raise RuntimeError(f"rmapi ls failed: {(ls.stderr or ls.stdout).strip()}")
@@ -48,6 +48,11 @@ def pull_exec() -> str:
 
     dest = DATA_DIR / f"EXEC_{_ts()}.rmdoc"
     shutil.move(str(src), str(dest))
+
+    if baseline:
+        baseline_dest = DATA_DIR / f"EXEC_{_today()}_baseline.rmdoc"
+        shutil.copy(str(dest), str(baseline_dest))
+
     return str(dest)
 
 
@@ -66,11 +71,6 @@ def push_pdf() -> str:
         raise RuntimeError(f"rmapi put failed: {result.stderr.strip()}")
 
     return pdf_path.name
-
-
-def build_morning() -> dict:
-    pdf_name = push_pdf()
-    return {"pdf": pdf_name}
 
 
 # ── archive ───────────────────────────────────────────────────────────────────
@@ -105,21 +105,22 @@ def list_archive() -> list:
 # ── delta ─────────────────────────────────────────────────────────────────────
 
 def _delta_prompt() -> str:
-    p = DATA_DIR / "directives.json"
-    if p.exists():
-        d = json.loads(p.read_text())
-        easy = d.get("easy", [])
-        medium = d.get("medium", [])
-        hard = d.get("hard", {})
-        lines = ["TODAY'S DIRECTIVES (printed on the page):"]
-        lines += [f"EASY: {t}" for t in easy]
-        for t in medium:
-            lines.append(f"MEDIUM: {t.get('title', t) if isinstance(t, dict) else t}")
-        if isinstance(hard, dict) and hard.get("title"):
-            lines.append(f"HARD: {hard['title']}")
-        directives_text = "\n".join(lines)
+    rd_path = DATA_DIR / "rd.json"
+    if rd_path.exists():
+        rd = json.loads(rd_path.read_text())
+        selected = sorted(
+            [c for c in rd.get("cards", []) if c.get("column") == "selected"],
+            key=lambda c: c.get("order", 0),
+        )
+        if selected:
+            lines = ["TODAY'S SELECTED TASKS (on the reMarkable):"]
+            for c in selected:
+                lines.append(f"[{c.get('size','task')}] {c['title']}")
+            directives_text = "\n".join(lines)
+        else:
+            directives_text = "No tasks selected for today."
     else:
-        directives_text = "No directives on record."
+        directives_text = "No tasks on record."
 
     ctx_path = DATA_DIR / "context.json"
     if ctx_path.exists():
@@ -133,7 +134,7 @@ def _delta_prompt() -> str:
         "The image shows Wai's reMarkable page. The printed text above was already there. "
         "Any handwritten marks/strokes are Wai's annotations added during the day.\n\n"
         "1. Describe the handwritten annotations (if any visible).\n"
-        "2. Based on those, how should tomorrow's directives change?\n"
+        "2. Based on those, how should tomorrow's plan change?\n"
         "3. Extract any facts about Wai that should be remembered long-term "
         "(preferences, relationships, constraints, recurring patterns). "
         "Short declarative sentences only. Empty list if nothing new.\n"
@@ -142,11 +143,11 @@ def _delta_prompt() -> str:
     )
 
 
-def analyze_delta() -> dict:
+def analyze_delta(path: str = None) -> dict:
     import anthropic
     from rm_to_pdf import rasterize
 
-    latest_path = pull_exec()
+    latest_path = path or pull_exec()
 
     png_bytes = rasterize(latest_path, page_index=0)
     (DATA_DIR / "delta_preview.png").write_bytes(png_bytes)
@@ -198,149 +199,127 @@ def analyze_delta() -> dict:
     return delta
 
 
-# ── directives ────────────────────────────────────────────────────────────────
+# ── update rd from delta ───────────────────────────────────────────────────────
 
-def generate_directives(feedback: str = "") -> dict:
+def update_rd_from_delta(delta: dict) -> str:
     import anthropic
 
-    def _load(name):
-        p = DATA_DIR / f"{name}.json"
-        if not p.exists():
-            return {}
-        data = json.loads(p.read_text())
-        return data if isinstance(data, dict) else {}
+    rd_path = DATA_DIR / "rd.json"
+    rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+    cards = rd.get("cards", [])
 
-    rd = _load("rd")
-    omens = _load("omens")
-    delta = _load("delta")
-    prefs = _load("preferences")
-    ctx = _load("context")
+    selected = [c for c in cards if c.get("column") == "selected"]
+    if not selected:
+        return "No selected cards to update."
 
-    doing = [c for c in rd.get("cards", []) if c.get("column") == "selected"]
-    backlog = [c for c in rd.get("cards", []) if c.get("column") == "ideas"]
-    rd_lines = []
-    if doing:
-        rd_lines.append("ACTIVE: " + ", ".join(c["title"] for c in doing))
-    if backlog:
-        rd_lines.append("IDEAS: " + ", ".join(c["title"] for c in backlog[:5]))
-    rd_text = "\n".join(rd_lines) or "No R&D projects."
-
-    omens_text = "\n".join(
-        f"- {e['title']} ({e.get('date', '?')}): {e.get('prep_notes', '')}"
-        for e in omens.get("events", [])
-    ) or "No upcoming events."
-
-    delta_text = delta.get("adjustments", "No delta adjustments.")
-    prefs_context = prefs.get(
-        "context",
-        "ADHD scaffolding. Short, specific, actionable.",
+    cards_text = "\n".join(
+        f"- id:{c['id']} [{c.get('size','task')}] {c['title']}"
+        for c in selected
     )
-    ctx_notes = ctx.get("notes", [])
-    ctx_text = "\n".join(f"- [{n['date']}] {n['note']}" for n in ctx_notes[-30:]) or "No context notes yet."
-    feedback_section = f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback.strip() else ""
-
-    prompt = (
-        f"Generate today's directives for Wai (ADHD executive function tool).\n\n"
-        f"CONTEXT:\n{prefs_context}\n\n"
-        f"KNOWN FACTS ABOUT WAI (accumulated from past days):\n{ctx_text}\n\n"
-        f"UPCOMING EVENTS (omens):\n{omens_text}\n\n"
-        f"DELTA — what happened yesterday, what to carry forward:\n{delta_text}\n\n"
-        f"R&D (background only):\n{rd_text}\n"
-        f"{feedback_section}\n"
-        f"Rules:\n"
-        f"- 7 total: EASY (3), MEDIUM (3), HARD (1).\n"
-        f"- Caveman phrasing. Verb first. Max 8 words per item or step.\n"
-        f"- Delta: carry unfinished items forward with adjusted approach. Skip done ones.\n"
-        f"- Omens needing action this week → pull into directives instead. Do NOT show in both places.\n"
-        f"- List any omen titles pulled into directives in incorporated_omens.\n"
-        f"- Equal word count across columns.\n\n"
-        'JSON only: {"easy": ["...", "...", "..."], '
-        '"medium": [{"title": "...", "steps": ["...", "..."]}, {"title": "...", "steps": ["...", "..."]}, {"title": "...", "steps": ["...", "..."]}], '
-        '"hard": {"title": "...", "steps": ["...", "...", "..."]}, '
-        '"incorporated_omens": []}'
-    )
+    notes = (delta.get("wai_notes", "") + "\n" + delta.get("adjustments", "")).strip()
 
     client = anthropic.Anthropic()
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
+        model="claude-haiku-4-5-20251001",
+        max_tokens=256,
+        messages=[{"role": "user", "content": (
+            f"Based on Wai's day notes, which r&d cards should move to 'ashes' (completed or abandoned)?\n\n"
+            f"SELECTED CARDS:\n{cards_text}\n\n"
+            f"WAI'S NOTES:\n{notes or 'No notes recorded.'}\n\n"
+            "Return IDs to archive. If none, return empty list.\n"
+            'JSON only: {"move_to_ashes": ["id", ...], "summary": "one sentence"}'
+        )}],
     )
 
     text = msg.content[0].text
     m = re.search(r'\{[\s\S]*\}', text)
-    parsed = json.loads(m.group()) if m else {"easy": [], "medium": [], "hard": {}}
+    parsed = json.loads(m.group()) if m else {"move_to_ashes": []}
 
-    directives = {
-        "generated_at": datetime.now().isoformat(),
-        "easy": parsed.get("easy", []),
-        "medium": parsed.get("medium", []),
-        "hard": parsed.get("hard", {}),
-    }
-    (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
+    move_ids = set(parsed.get("move_to_ashes", []))
+    for c in cards:
+        if c["id"] in move_ids:
+            c["column"] = "ashes"
 
-    incorporated = parsed.get("incorporated_omens", [])
-    if incorporated:
-        omens_data = _load("omens")
-        filtered = [e for e in omens_data.get("events", []) if e.get("title") not in incorporated]
-        if len(filtered) != len(omens_data.get("events", [])):
-            omens_data["events"] = filtered
-            (DATA_DIR / "omens.json").write_text(json.dumps(omens_data, indent=2))
+    rd["cards"] = cards
+    rd_path.write_text(json.dumps(rd, indent=2))
 
-    return directives
+    return parsed.get("summary", "")
 
 
-# ── encouragement ────────────────────────────────────────────────────────────
+# ── morning recap ──────────────────────────────────────────────────────────────
 
-def generate_encouragement() -> dict:
+def generate_morning_recap(delta: dict, omens: dict, rd_changes: str) -> dict:
     import anthropic
 
-    def _load(name):
-        p = DATA_DIR / f"{name}.json"
-        if not p.exists():
-            return {}
-        data = json.loads(p.read_text())
-        return data if isinstance(data, dict) else {}
+    ctx_path = DATA_DIR / "context.json"
+    ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
+    ctx_text = "\n".join(
+        f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])[-15:]
+    ) or "None."
 
-    delta = _load("delta")
-    directives = _load("directives")
-    ctx = _load("context")
+    rd_path = DATA_DIR / "rd.json"
+    rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+    cards = rd.get("cards", [])
+    selected = sorted([c for c in cards if c.get("column") == "selected"], key=lambda c: c.get("order", 0))
+    ideas = sorted([c for c in cards if c.get("column") == "ideas"], key=lambda c: c.get("order", 0))
 
-    wai_notes = delta.get("wai_notes", "")
-    easy = directives.get("easy", [])
-    medium = [t.get("title", t) if isinstance(t, dict) else t for t in directives.get("medium", [])]
-    hard = directives.get("hard", {})
-    today = "\n".join([
-        *[f"- {t}" for t in easy],
-        *[f"- {t}" for t in medium],
-        *([ f"- {hard['title']}" ] if isinstance(hard, dict) and hard.get("title") else []),
-    ])
-    ctx_text = "\n".join(f"- {n['note']}" for n in ctx.get("notes", [])[-10:])
+    selected_text = "\n".join(
+        f"- [{c.get('size','task')}] {c['title']}" for c in selected
+    ) or "None."
+    ideas_text = "\n".join(
+        f"- [{c.get('size','task')}] {c['title']} ({c.get('category','')})"
+        for c in ideas[:15]
+    ) or "None."
+    events_text = "\n".join(
+        f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])
+    ) or "None."
 
     prompt = (
-        f"You are a warm, personal AI companion for Wai, who has ADHD.\n\n"
-        f"WHAT WAI DID YESTERDAY (from reMarkable annotations):\n{wai_notes or 'No annotations recorded.'}\n\n"
-        f"TODAY'S TASKS:\n{today or 'No directives yet.'}\n\n"
-        f"KNOWN CONTEXT:\n{ctx_text or 'None.'}\n\n"
-        f"Write a short, genuine encouragement for Wai. Two short paragraphs:\n"
-        f"1. Acknowledge what they did yesterday — be specific and warm, not generic. If little was recorded, be gentle about it.\n"
-        f"2. A brief energizing note about what's ahead today.\n"
-        f"Under 80 words total. Plain text only."
+        f"You are Wai's AI planning assistant. Write a concise morning briefing (under 120 words) to open today's planning session.\n\n"
+        f"WHAT WAI DID YESTERDAY:\n{delta.get('wai_notes', 'No annotations recorded.')}\n\n"
+        f"R&D CHANGES APPLIED:\n{rd_changes or 'None.'}\n\n"
+        f"CURRENTLY SELECTED:\n{selected_text}\n\n"
+        f"IDEAS POOL:\n{ideas_text}\n\n"
+        f"UPCOMING EVENTS:\n{events_text}\n\n"
+        f"KNOWN CONTEXT:\n{ctx_text}\n\n"
+        f"The briefing should:\n"
+        f"1. Briefly acknowledge yesterday\n"
+        f"2. Flag any time-sensitive events\n"
+        f"3. Suggest 2-3 r&d items to consider today\n"
+        f"End with a question about today's available time/energy.\n"
+        f"Warm but direct. No bullet points. Plain text."
     )
 
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=256,
+        max_tokens=300,
         messages=[{"role": "user", "content": prompt}],
     )
 
     result = {
         "generated_at": datetime.now().isoformat(),
-        "message": msg.content[0].text.strip(),
+        "opening_message": msg.content[0].text.strip(),
     }
-    (DATA_DIR / "encouragement.json").write_text(json.dumps(result, indent=2))
+    (DATA_DIR / "morning.json").write_text(json.dumps(result, indent=2))
     return result
+
+
+# ── morning pipeline ───────────────────────────────────────────────────────────
+
+def build_morning() -> dict:
+    # Clear previous day's chat
+    chat_path = DATA_DIR / "chat.json"
+    if chat_path.exists():
+        chat_path.unlink()
+
+    latest_path = pull_exec(baseline=True)
+    delta = analyze_delta(path=latest_path)
+    omens = analyze_omens()
+    rd_changes = update_rd_from_delta(delta)
+    recap = generate_morning_recap(delta, omens, rd_changes)
+    push_pdf()
+    return recap
 
 
 # ── omens ─────────────────────────────────────────────────────────────────────
@@ -429,6 +408,157 @@ def analyze_omens() -> dict:
     return omens
 
 
+# ── chat support ──────────────────────────────────────────────────────────────
+
+def _build_chat_system_prompt(stage: str = "planning") -> str:
+    def _load(name):
+        p = DATA_DIR / f"{name}.json"
+        return json.loads(p.read_text()) if p.exists() else {}
+
+    ctx = _load("context")
+    delta = _load("delta")
+    omens = _load("omens")
+    rd = _load("rd")
+    morning = _load("morning")
+
+    ctx_text = "\n".join(
+        f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])[-15:]
+    ) or "None."
+    delta_text = (
+        f"NOTES: {delta.get('wai_notes', 'None.')}\n"
+        f"ADJUSTMENTS: {delta.get('adjustments', 'None.')}"
+    )
+    events_text = "\n".join(
+        f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])
+    ) or "None."
+
+    cards = rd.get("cards", [])
+    selected = sorted([c for c in cards if c.get("column") == "selected"], key=lambda c: c.get("order", 0))
+    ideas = sorted([c for c in cards if c.get("column") == "ideas"], key=lambda c: c.get("order", 0))
+
+    selected_text = "\n".join(
+        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('description','')}"
+        for c in selected
+    ) or "None."
+    ideas_text = "\n".join(
+        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('description','')}"
+        for c in ideas[:15]
+    ) or "None."
+
+    stage_instructions = {
+        "planning": (
+            "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
+            "Consider their available time and energy. Make specific suggestions with card IDs. "
+            "When Wai confirms their plan, call set_directives with the agreed selected_ids and an encouraging_message. "
+            "Keep responses concise — this is a planning terminal, not a chat app."
+        ),
+        "push": (
+            "Wai's plan is finalized. Ask if they're ready to push to reMarkable. "
+            "When confirmed, call request_push. Keep it brief."
+        ),
+        "done": (
+            "The plan has been pushed. Wrap up warmly. No more actions needed."
+        ),
+    }
+
+    return (
+        f"You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n\n"
+        f"STAGE: {stage.upper()}\n"
+        f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
+        f"MORNING BRIEFING CONTEXT:\n{morning.get('opening_message', 'No briefing available.')}\n\n"
+        f"YESTERDAY'S DELTA:\n{delta_text}\n\n"
+        f"UPCOMING EVENTS:\n{events_text}\n\n"
+        f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
+        f"IDEAS POOL (top 15):\n{ideas_text}\n\n"
+        f"KNOWN CONTEXT:\n{ctx_text}"
+    )
+
+
+def _chat_tools() -> list:
+    return [
+        {
+            "name": "set_directives",
+            "description": "Finalize today's plan: set selected card IDs and save an encouraging message.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "selected_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Card IDs to set as selected (today's plan). Others move to ideas.",
+                    },
+                    "encouraging_message": {
+                        "type": "string",
+                        "description": "Short encouraging message for Wai, printed on the reMarkable.",
+                    },
+                    "context_note": {
+                        "type": "string",
+                        "description": "New long-term fact about Wai to remember (optional).",
+                    },
+                },
+                "required": ["selected_ids", "encouraging_message"],
+            },
+        },
+        {
+            "name": "request_push",
+            "description": "Build the PDF from selected cards and push it to reMarkable.",
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    ]
+
+
+def _handle_tool(name: str, input_: dict) -> dict:
+    if name == "set_directives":
+        selected_ids = set(input_.get("selected_ids", []))
+        encouraging = input_.get("encouraging_message", "")
+        context_note = input_.get("context_note", "")
+
+        rd_path = DATA_DIR / "rd.json"
+        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+        for c in rd.get("cards", []):
+            if c.get("column") in ("selected", "ideas"):
+                c["column"] = "selected" if c["id"] in selected_ids else "ideas"
+        rd_path.write_text(json.dumps(rd, indent=2))
+
+        directives = {
+            "generated_at": datetime.now().isoformat(),
+            "encouraging_message": encouraging,
+        }
+        (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
+
+        if context_note and context_note.strip():
+            ctx_path = DATA_DIR / "context.json"
+            ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
+            ctx["notes"].append({"date": date.today().isoformat(), "note": context_note.strip()})
+            ctx_path.write_text(json.dumps(ctx, indent=2))
+
+        return {"ok": True, "selected": len(selected_ids)}
+
+    if name == "request_push":
+        pdf_name = push_pdf()
+        return {"pushed": pdf_name}
+
+    return {"error": f"Unknown tool: {name}"}
+
+
+def _save_chat(messages: list, stage: str):
+    chat = {
+        "messages": messages,
+        "stage": stage,
+        "updated_at": datetime.now().isoformat(),
+    }
+    (DATA_DIR / "chat.json").write_text(json.dumps(chat, indent=2))
+
+
+def get_chat() -> dict:
+    p = DATA_DIR / "chat.json"
+    return json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}
+
+
 # ── card classification ───────────────────────────────────────────────────────
 
 def classify_card(title: str) -> dict:
@@ -458,7 +588,7 @@ def classify_card(title: str) -> dict:
     m = re.search(r'\{[\s\S]*\}', text)
     parsed = json.loads(m.group()) if m else {}
     return {
-        "category": parsed.get("category", "Self"),
+        "category": parsed.get("category", "Learning"),
         "size": parsed.get("size", "task"),
         "description": parsed.get("description", ""),
     }

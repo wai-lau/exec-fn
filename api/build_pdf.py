@@ -298,28 +298,39 @@ def draw_projects_page(c, cards):
 
 def build(out_path=None):
     out = out_path or OUT_PDF
-    with open("/app/data/directives.json") as f:
-        directives = json.load(f)
     with open("/app/data/rd.json") as f:
-        projects = json.load(f)
+        rd = json.load(f)
     try:
         with open("/app/data/omens.json") as f:
             omens = json.load(f)
     except FileNotFoundError:
         omens = {"events": []}
-
     try:
-        with open("/app/data/encouragement.json") as f:
-            encouragement = json.load(f).get("message", "")
+        with open("/app/data/directives.json") as f:
+            directives_meta = json.load(f)
+        encouraging_message = directives_meta.get("encouraging_message", "")
     except FileNotFoundError:
-        encouragement = ""
+        encouraging_message = ""
+
+    selected = sorted(
+        [c for c in rd.get("cards", []) if c.get("column") == "selected"],
+        key=lambda c: c.get("order", 0),
+    )
+
+    def _steps(c):
+        return [s.strip() for s in c.get("description", "").split(".") if s.strip()]
+
+    easy = [c["title"] for c in selected if c.get("size") in ("chore", "task")]
+    medium = [{"title": c["title"], "steps": _steps(c)} for c in selected if c.get("size") in ("book", "project")]
+    hard_cards = [c for c in selected if c.get("size") == "titan"]
+    hard = {"title": hard_cards[0]["title"], "steps": _steps(hard_cards[0])} if hard_cards else {}
+
+    directives = {"easy": easy, "medium": medium, "hard": hard}
 
     c = canvas.Canvas(out, pagesize=A5)
-    y = draw_directives_page(c, directives, omens.get("events", []), encouragement)
-    if encouragement:
-        draw_encouragement(c, encouragement, y)
-    c.showPage()
-    draw_projects_page(c, projects.get("cards", []))
+    y = draw_directives_page(c, directives, omens.get("events", []))
+    if encouraging_message:
+        draw_encouragement(c, encouraging_message, y)
     c.showPage()
     c.save()
     print(f"Wrote {out}")
