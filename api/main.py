@@ -770,6 +770,26 @@ async function clearChat() {
   await init();
 }
 
+let spinnerTimer = null;
+
+function startSpinner(msg) {
+  const frames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+  let i = 0;
+  const div = document.createElement('div');
+  div.id = 'spinner';
+  div.className = 'msg sys';
+  div.style.cssText = 'color:rgba(0,255,65,0.6);font-size:0.82rem;';
+  div.textContent = frames[0] + '  ' + msg;
+  terminal.appendChild(div);
+  spinnerTimer = setInterval(() => { div.textContent = frames[i++ % frames.length] + '  ' + msg; }, 80);
+}
+
+function stopSpinner() {
+  if (spinnerTimer) { clearInterval(spinnerTimer); spinnerTimer = null; }
+  const el = document.getElementById('spinner');
+  if (el) el.remove();
+}
+
 async function init() {
   const r = await fetch('/api/chat');
   const chat = await r.json();
@@ -791,13 +811,21 @@ async function init() {
     return;
   }
 
-  // Fresh session — show morning briefing
-  const mr = await fetch('/api/morning');
-  if (mr.ok) {
-    const morning = await mr.json();
-    if (morning.opening_message) addMsg('assistant', morning.opening_message);
-  } else {
-    addMsg('assistant', 'Good morning. What would you like to work on today?');
+  // Fresh session — run morning pipeline
+  startSpinner('running morning pipeline...');
+  try {
+    const mr = await fetch('/api/morning');
+    stopSpinner();
+    if (mr.ok) {
+      const morning = await mr.json();
+      if (morning.opening_message) addMsg('assistant', morning.opening_message);
+    } else {
+      const err = await mr.json().catch(() => ({}));
+      addMsg('sys', '[morning pipeline failed: ' + (err.detail || mr.status) + ']');
+    }
+  } catch(e) {
+    stopSpinner();
+    addMsg('sys', '[error: ' + e.message + ']');
   }
 }
 
