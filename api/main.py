@@ -685,7 +685,7 @@ function addMsg(role, text) {
   if (role === 'assistant') div.innerHTML = renderText(text);
   else div.textContent = text;
   terminal.appendChild(div);
-  div.scrollIntoView({behavior:'smooth', block:'end'});
+  terminal.scrollTop = terminal.scrollHeight;
   return div;
 }
 
@@ -746,10 +746,9 @@ async function streamResponse() {
         if (data.type === 'text') {
           fullText += data.delta;
           span.innerHTML = renderText(fullText);
-          div.scrollIntoView({behavior:'smooth', block:'end'});
+          terminal.scrollTop = terminal.scrollHeight;
         } else if (data.type === 'tool_call') {
-          const note = addMsg('sys', `[ ${data.name}: ${JSON.stringify(data.result)} ]`);
-          note.scrollIntoView({behavior:'smooth', block:'end'});
+          addMsg('sys', `[ ${data.name}: ${JSON.stringify(data.result)} ]`);
         } else if (data.type === 'done') {
           stage = data.next_stage;
           if (stage === 'done') {
