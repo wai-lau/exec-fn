@@ -146,29 +146,129 @@ load();
 
 _RD_CONTENT = '''
 <style>
-.kanban { display:flex; gap:18px; align-items:flex-start; width:min(1100px,95vw); }
-.col { flex:1; min-width:0; }
-.col-hdr { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.15em; opacity:0.65;
-  margin-bottom:10px; padding-bottom:4px; border-bottom:1px solid rgba(232,157,194,0.25); }
-.card { background:rgba(232,157,194,0.06); border:1px solid rgba(232,157,194,0.18);
-  border-radius:3px; padding:9px 11px; margin-bottom:8px; cursor:grab; user-select:none; }
-.card:active { cursor:grabbing; opacity:0.75; }
-.card-title { font-size:0.82rem; color:rgba(232,157,194,0.92); }
-.card-meta { font-size:0.65rem; opacity:0.45; margin-top:4px; }
-.card-due { font-size:0.65rem; color:rgba(232,157,194,0.6); margin-top:3px; }
-.card-due.urgent { color:rgba(255,160,130,0.9); }
-.sortable-ghost { opacity:0.25; }
+body { overflow: hidden !important; }
+.rd-topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding: 0 32px; gap: 12px;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(232,157,194,0.12);
+}
+.rd-bottombar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 52px; z-index: 20;
+  display: flex; align-items: center; justify-content: center; gap: 28px;
+  padding: 0 32px;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(232,157,194,0.12);
+}
+.rd-bottombar a {
+  color: rgba(232,157,194,0.65); font-family:monospace; font-size:0.85rem;
+  text-decoration:none; border-bottom:1px solid rgba(232,157,194,0.3);
+  transition: color 0.2s, border-color 0.2s;
+}
+.rd-bottombar a:hover, .rd-bottombar a.active { color:rgba(232,157,194,1); border-color:rgba(232,157,194,1); }
+.rd-board {
+  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  display: flex; gap: 1px; overflow: hidden;
+  background: rgba(232,157,194,0.06);
+}
+.col {
+  flex: 1; display: flex; flex-direction: column; min-width: 0;
+  background: rgba(0,0,0,0.25);
+}
+.col-hdr {
+  flex-shrink: 0; padding: 14px 16px 10px;
+  font-family: monospace; font-size: 0.62rem; text-transform: uppercase;
+  letter-spacing: 0.18em; color: rgba(232,157,194,0.55);
+  border-bottom: 1px solid rgba(232,157,194,0.1);
+}
+.col-list { flex: 1; overflow-y: auto; padding: 10px 10px 20px; }
+.card {
+  background: rgba(232,157,194,0.05); border: 1px solid rgba(232,157,194,0.15);
+  border-radius: 3px; padding: 9px 11px; margin-bottom: 7px;
+  cursor: grab; user-select: none; font-family: monospace;
+  transition: border-color 0.15s, background 0.15s;
+}
+.card:hover { background: rgba(232,157,194,0.09); border-color: rgba(232,157,194,0.28); }
+.card:active { cursor: grabbing; }
+.card-title { font-size: 0.8rem; color: rgba(232,157,194,0.9); }
+.card-meta { font-size: 0.62rem; opacity: 0.38; margin-top: 4px; }
+.card-due { font-size: 0.62rem; color: rgba(232,157,194,0.55); margin-top: 3px; }
+.card-due.urgent { color: rgba(255,150,120,0.9); }
+.sortable-ghost { opacity: 0.2; }
+.rd-btn {
+  background: none; border: 1px solid rgba(232,157,194,0.4);
+  color: rgba(232,157,194,0.8); font-family: monospace; font-size: 0.78rem;
+  padding: 4px 12px; cursor: pointer; transition: all 0.2s;
+}
+.rd-btn:hover { border-color: rgba(232,157,194,1); color: rgba(232,157,194,1); }
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #0a0a0a; border: 1px solid rgba(232,157,194,0.25);
+  padding: 28px 32px; width: min(380px,90vw); font-family: monospace;
+}
+.modal label { display: block; font-size: 0.65rem; color: rgba(232,157,194,0.55); margin: 14px 0 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+.modal input, .modal select {
+  width: 100%; background: none; border: 1px solid rgba(232,157,194,0.25);
+  color: rgba(232,157,194,0.9); font-family: monospace; font-size: 0.82rem;
+  padding: 5px 8px; box-sizing: border-box;
+}
+.modal select option { background: #111; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 </style>
-<div class="kanban" id="board"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+
+<div class="rd-topbar">
+  <button class="rd-btn" onclick="openModal()">+ add card</button>
+</div>
+
+<div class="rd-board" id="board">
+  <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
+</div>
+
+<div class="rd-bottombar" id="rd-nav"></div>
+
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.15em;color:rgba(232,157,194,0.7);margin-bottom:4px;">add card</div>
+    <label>title</label>
+    <input id="m-title" type="text" placeholder="what needs doing">
+    <label>category</label>
+    <select id="m-cat">
+      <option>RENOS</option><option>CRAFT</option>
+      <option>ORGANIZATION</option><option>READING</option><option>OTHER</option>
+    </select>
+    <label>column</label>
+    <select id="m-col">
+      <option value="backlog">backlog</option>
+      <option value="doing">doing</option>
+      <option value="done">done</option>
+    </select>
+    <label>due date (optional)</label>
+    <input id="m-due" type="date">
+    <div class="modal-actions">
+      <button class="rd-btn" onclick="closeModal()">cancel</button>
+      <button class="rd-btn" onclick="addCard()">add</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const COLS = ['backlog','doing','done'];
+const NAV_LINKS = [{label:'directives',href:'/directives'},{label:'delta',href:'/delta'},{label:'r&d',href:'/rd'},{label:'archive',href:'/archive'}];
 let cards = [];
+
+document.getElementById('rd-nav').innerHTML = NAV_LINKS.map(l =>
+  `<a href="${l.href}" class="${l.href==='/rd'?'active':''}">${l.label}</a>`
+).join('');
 
 function urgency(due) {
   if (!due) return '';
-  const days = (new Date(due) - new Date()) / 86400000;
-  return days <= 3 ? ' urgent' : '';
+  return (new Date(due) - new Date()) / 86400000 <= 3 ? ' urgent' : '';
 }
 
 function renderCard(c) {
@@ -189,24 +289,51 @@ async function save() {
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
 }
 
-async function load() {
-  const data = await (await fetch('/api/rd')).json();
-  cards = data.cards || [];
-  const board = document.getElementById('board');
-  board.innerHTML = COLS.map(col => `
+function buildBoard() {
+  document.getElementById('board').innerHTML = COLS.map(col => `
     <div class="col">
-      <div class="col-hdr">${col}</div>
-      <div id="col-${col}" style="min-height:40px;">
+      <div class="col-hdr">${col} <span style="opacity:0.4">(${cards.filter(c=>c.column===col).length})</span></div>
+      <div class="col-list" id="col-${col}">
         ${cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('')}
       </div>
     </div>
   `).join('');
-  COLS.forEach(col => {
-    Sortable.create(document.getElementById('col-'+col), {
-      group:'kanban', animation:150, ghostClass:'sortable-ghost', onEnd: save
-    });
-  });
+  COLS.forEach(col => Sortable.create(document.getElementById('col-'+col), {
+    group:'kanban', animation:150, ghostClass:'sortable-ghost', onEnd: save
+  }));
 }
+
+async function load() {
+  const data = await (await fetch('/api/rd')).json();
+  cards = data.cards || [];
+  buildBoard();
+}
+
+function openModal() { document.getElementById('modal').classList.add('open'); document.getElementById('m-title').focus(); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+async function addCard() {
+  const title = document.getElementById('m-title').value.trim();
+  if (!title) return;
+  const id = 'card-' + Date.now();
+  const col = document.getElementById('m-col').value;
+  const maxOrder = Math.max(-1, ...cards.filter(c=>c.column===col).map(c=>c.order));
+  const card = {
+    id, title,
+    category: document.getElementById('m-cat').value,
+    column: col, order: maxOrder + 1,
+    due_date: document.getElementById('m-due').value || null,
+    notes: ''
+  };
+  cards.push(card);
+  await save();
+  buildBoard();
+  closeModal();
+  document.getElementById('m-title').value = '';
+  document.getElementById('m-due').value = '';
+}
+
+document.getElementById('m-title').addEventListener('keydown', e => { if (e.key === 'Enter') addCard(); });
 load();
 </script>'''
 
@@ -420,7 +547,14 @@ async def delta_page():
 
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
-    return _build_page("r&d", _RD_CONTENT)
+    # custom layout: no standard nav/back — kanban has its own top/bottom bars
+    base = _BARE
+    head_inject = GREEN_OVERLAY + """<style>
+      body { display:block; height:100vh; overflow:hidden; }
+    </style>"""
+    return (base
+        .replace("</head>", head_inject + "</head>", 1)
+        .replace("</body>", _RD_CONTENT + "</body>", 1))
 
 
 @protected.get("/archive", response_class=HTMLResponse)
