@@ -170,12 +170,18 @@ body { overflow: hidden !important; }
   background: rgba(232,157,194,0.06);
 }
 .col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: rgba(0,0,0,0.25); }
+.col.done-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
+.col.done-collapsed .col-list { pointer-events: none; overflow: hidden; }
 .col-hdr {
   flex-shrink: 0; padding: 14px 16px 10px;
   font-family: monospace; font-size: 0.62rem; text-transform: uppercase;
   letter-spacing: 0.18em; color: rgba(232,157,194,0.55);
   border-bottom: 1px solid rgba(232,157,194,0.1);
+  display: flex; align-items: center; gap: 6px;
 }
+.col-hdr-label { flex: 1; }
+.done-toggle { background:none; border:none; color:rgba(232,157,194,0.4); cursor:pointer; font-size:0.7rem; padding:0; line-height:1; }
+.done-toggle:hover { color:rgba(232,157,194,0.9); }
 .col-list { flex: 1; overflow-y: auto; padding: 10px 10px 20px; }
 .card {
   border-radius: 4px; padding: 9px 11px; margin-bottom: 7px;
@@ -293,6 +299,9 @@ const COLS = ['backlog','doing','done'];
 let cards = [];
 let editId = null;
 let dragging = false;
+let doneCollapsed = false;
+let lastPX = 0, lastPY = 0;
+document.addEventListener('pointermove', e => { lastPX = e.clientX; lastPY = e.clientY; });
 
 const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
 
@@ -371,20 +380,51 @@ async function save() {
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
 }
 
+function inRect(el) {
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return lastPX >= r.left && lastPX <= r.right && lastPY >= r.top && lastPY <= r.bottom;
+}
+
+function toggleDone(e) {
+  if (e) e.stopPropagation();
+  doneCollapsed = !doneCollapsed;
+  buildBoard();
+}
+
 function buildBoard() {
-  document.getElementById('board').innerHTML = COLS.map(col => `
-    <div class="col">
-      <div class="col-hdr">${col} <span style="opacity:0.35">(${cards.filter(c=>c.column===col).length})</span></div>
-      <div class="col-list" id="col-${col}">
-        ${cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('')}
-      </div>
-    </div>
-  `).join('');
-  COLS.forEach(col => Sortable.create(document.getElementById('col-'+col), {
-    group:'kanban', animation:120, ghostClass:'sortable-ghost',
-    onStart: () => { dragging = true; },
-    onEnd: () => { setTimeout(() => { dragging = false; }, 50); save(); }
-  }));
+  document.getElementById('board').innerHTML = COLS.map(col => {
+    const count = cards.filter(c=>c.column===col).length;
+    const isDone = col === 'done';
+    const collapsed = isDone && doneCollapsed;
+    const hdr = isDone
+      ? `<span class="col-hdr-label">${collapsed ? '▶' : col} <span style="opacity:0.35">(${count})</span></span>
+         ${!collapsed ? `<button class="done-toggle" onclick="toggleDone(event)">▼</button>` : ''}`
+      : `<span class="col-hdr-label">${col} <span style="opacity:0.35">(${count})</span></span>`;
+    const colCards = collapsed ? '' : cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('');
+    return `<div class="col${collapsed?' done-collapsed':''}"${collapsed?' onclick="toggleDone()"':''}>
+      <div class="col-hdr">${hdr}</div>
+      <div class="col-list" id="col-${col}">${colCards}</div>
+    </div>`;
+  }).join('');
+  COLS.forEach(col => {
+    const el = document.getElementById('col-'+col);
+    if (!el) return;
+    Sortable.create(el, {
+      group:'kanban', animation:120, ghostClass:'sortable-ghost',
+      onStart: () => { dragging = true; },
+      onEnd: (evt) => {
+        setTimeout(() => { dragging = false; }, 50);
+        const bl = document.getElementById('col-backlog');
+        const dl = document.getElementById('col-doing');
+        if (!inRect(bl) && !inRect(dl)) {
+          const card = cards.find(c => c.id === evt.item.dataset.id);
+          if (card) { card.column = 'done'; buildBoard(); }
+        }
+        save();
+      }
+    });
+  });
   document.querySelectorAll('.card').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
   });
