@@ -447,8 +447,9 @@ def classify_card(title: str) -> dict:
             "- Self: home improvement, health, self-care, organization, personal admin\n"
             "- Book: reading a specific book or long-form written work\n\n"
             "Sizes (pick one):\n"
-            "- probe: under 1 hour\n"
+            "- chore: under 1 hour\n"
             "- task: under 4 hours\n"
+            "- book: ongoing read / long-form written work\n"
             "- project: under 2 days\n"
             "- titan: longer — reminder to break it down further\n\n"
             'JSON only: {"category": "...", "size": "...", "description": "one sentence"}'

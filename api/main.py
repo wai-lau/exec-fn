@@ -267,8 +267,9 @@ body { overflow: hidden !important; }
     </select>
     <label>size</label>
     <select id="e-size">
-      <option value="probe">probe &mdash; under 1 hour</option>
+      <option value="chore">chore &mdash; under 1 hour</option>
       <option value="task">task &mdash; under 4 hours</option>
+      <option value="book">book &mdash; ongoing read</option>
       <option value="project">project &mdash; under 2 days</option>
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
@@ -299,8 +300,8 @@ function cardStyle(c) {
   const h = CAT_HUE[c.category];
   if (h === undefined) return '';
   const size = c.size, cat = c.category;
-  if (size === 'probe' || size === 'task' || cat === 'Book') {
-    const tl = size === 'probe' ? 52 : 72;
+  if (size === 'chore' || size === 'task' || size === 'book' || cat === 'Book') {
+    const tl = size === 'chore' ? 52 : size === 'task' ? 62 : 72;
     return `background:hsl(0,0%,14%);color:hsl(${h},75%,${tl}%);`;
   }
   const bs = size === 'titan' ? 62 : 50;
