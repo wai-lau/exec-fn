@@ -275,25 +275,25 @@ def generate_morning_recap(delta: dict, omens: dict, rd_changes: str) -> dict:
     ) or "None."
 
     prompt = (
-        f"You are Wai's AI planning assistant. Write a concise morning briefing (under 120 words) to open today's planning session.\n\n"
-        f"WHAT WAI DID YESTERDAY:\n{delta.get('wai_notes', 'No annotations recorded.')}\n\n"
-        f"R&D CHANGES APPLIED:\n{rd_changes or 'None.'}\n\n"
-        f"CURRENTLY SELECTED:\n{selected_text}\n\n"
-        f"IDEAS POOL:\n{ideas_text}\n\n"
-        f"UPCOMING EVENTS:\n{events_text}\n\n"
+        f"You are Wai's AI planning assistant. Write a morning briefing to open today's planning session.\n\n"
+        f"YESTERDAY — what Wai wrote/did:\n{delta.get('wai_notes', 'No annotations recorded.')}\n\n"
+        f"YESTERDAY — suggested adjustments for today:\n{delta.get('adjustments', 'None.')}\n\n"
+        f"R&D CHANGES APPLIED OVERNIGHT:\n{rd_changes or 'None.'}\n\n"
+        f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
+        f"IDEAS POOL (candidates for today):\n{ideas_text}\n\n"
+        f"UPCOMING EVENTS (omens):\n{events_text}\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}\n\n"
-        f"The briefing should:\n"
-        f"1. Briefly acknowledge yesterday\n"
-        f"2. Flag any time-sensitive events\n"
-        f"3. Suggest 2-3 r&d items to consider today\n"
-        f"End with a question about today's available time/energy.\n"
-        f"Warm but direct. No bullet points. Plain text."
+        f"Structure the briefing in three clear paragraphs:\n"
+        f"1. Yesterday recap — specific account of what was done, what was noted, what's being carried forward. Reference real task names.\n"
+        f"2. Today's landscape — flag any time-sensitive omens; name 2-3 specific r&d items from the ideas pool that make sense given the delta and context.\n"
+        f"3. One sentence asking about today's available time and energy to kick off planning.\n\n"
+        f"Plain text only. No headers. No bullet points. Under 200 words total."
     )
 
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=300,
+        max_tokens=500,
         messages=[{"role": "user", "content": prompt}],
     )
 
