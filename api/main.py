@@ -296,17 +296,26 @@ let dragging = false;
 
 const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
 
+function isDarkCard(c) {
+  return c.size === 'chore' || c.size === 'task' || c.size === 'book';
+}
+
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
-  if (h === undefined) return '';
-  const size = c.size, cat = c.category;
-  if (size === 'chore' || size === 'task' || size === 'book' || cat === 'Book') {
-    const tl = size === 'chore' ? 52 : size === 'task' ? 62 : 72;
-    return `background:hsl(0,0%,14%);color:hsl(${h},75%,${tl}%);`;
+  if (h === undefined) return {bg:'', border:'', dark:false};
+  const size = c.size;
+  const col = `hsl(${h},75%,68%)`;
+  const borderMid = `hsl(${h},65%,60%)`;
+  const borderBright = `hsl(${h},90%,78%)`;
+  if (size === 'chore') {
+    return {bg:`background:#0d0d0d;color:${col};`, border:'border-color:transparent;', dark:true};
+  } else if (size === 'task' || size === 'book') {
+    return {bg:`background:#0d0d0d;color:${col};`, border:`border-color:${borderMid};`, dark:true};
+  } else if (size === 'project') {
+    return {bg:`background:hsl(${h},50%,54%);`, border:'border-color:transparent;', dark:false};
+  } else {
+    return {bg:`background:hsl(${h},55%,62%);`, border:`border-color:${borderBright};`, dark:false};
   }
-  const bs = size === 'titan' ? 62 : 50;
-  const bl = size === 'titan' ? 67 : 54;
-  return `background:hsl(${h},${bs}%,${bl}%);color:rgba(0,0,0,0.85);`;
 }
 
 function parseMonthDay(input) {
@@ -337,16 +346,17 @@ function isUrgent(iso) {
 }
 
 function renderCard(c) {
-  const style = cardStyle(c);
-  const dark = !!style;
-  const tc = dark ? 'rgba(0,0,0,0.55)' : 'rgba(232,157,194,0.45)';
+  const {bg, border, dark} = cardStyle(c);
+  const hasStyle = !!bg;
+  const titleC = !hasStyle ? 'rgba(232,157,194,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.85)';
+  const tc     = !hasStyle ? 'rgba(232,157,194,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
   const urgent = isUrgent(c.due_date);
-  return `<div class="card${dark ? '' : ' plain'}" data-id="${c.id}" style="${style}">
-    <div class="card-title" style="${dark ? 'color:rgba(0,0,0,0.85)' : 'color:rgba(232,157,194,0.9)'}">${c.title}</div>
+  return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" style="${bg}${border}">
+    <div class="card-title" style="color:${titleC}">${c.title}</div>
     ${c.description ? `<div class="card-desc" style="color:${tc}">${c.description}</div>` : ''}
     <div class="card-foot">
       <div class="card-badge" style="color:${tc}">${[c.category, c.size].filter(Boolean).join(' · ')}</div>
-      ${c.due_date ? `<div class="card-due" style="color:${urgent ? (dark?'rgba(180,60,0,0.9)':'rgba(255,130,80,0.9)') : tc}">${fmtDate(c.due_date)}</div>` : ''}
+      ${c.due_date ? `<div class="card-due" style="color:${urgent ? (dark?'rgba(255,140,80,0.9)':'rgba(180,60,0,0.9)') : tc}">${fmtDate(c.due_date)}</div>` : ''}
     </div>
   </div>`;
 }
