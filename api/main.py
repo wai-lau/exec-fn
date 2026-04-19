@@ -18,6 +18,14 @@ DATA_DIR = Path("/app/data")
 GREEN_OVERLAY = """
 <style>
   html { filter: hue-rotate(150deg); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(232, 157, 194, 0.45);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(232, 157, 194, 0.85); }
+  * { scrollbar-width: thin; scrollbar-color: rgba(232,157,194,0.45) transparent; }
   .exec-nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     height: 52px; display: flex; align-items: center; justify-content: center; gap: 32px;
