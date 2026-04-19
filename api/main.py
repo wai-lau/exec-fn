@@ -294,10 +294,9 @@ let editId = null;
 let dragging = false;
 
 // hue-rotate(150deg) is on html — specify CSS hue = target_hue - 150
-// actual CSS hues (filter not applying to card backgrounds)
-// Interfacing=yellow, Hobby=teal, Social=pink, Self=blue, Book=purple
-const CAT_HUE = {Interfacing:50, Hobby:175, Social:340, Self:215, Book:275};
-const SIZE_SL  = {probe:[35,92], task:[52,84], project:[65,75], titan:[78,67]};
+// Disco Elysium stat palette: Intellect=blue, Psyche=violet, Physique=red, Motorics=amber
+const CAT_HUE = {Interfacing:212, Social:278, Self:0, Hobby:47, Book:165};
+const SIZE_SL  = {probe:[28,93], task:[45,85], project:[60,77], titan:[72,69]};
 
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
