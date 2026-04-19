@@ -513,7 +513,7 @@ _DELTA_CONTENT = '''
   <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
     <button onclick="runDelta(this)">run delta</button>
   </div>
-  <div id="delta"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  <div id="delta"><span style="opacity:0.4;font-size:0.8rem">&mdash;</span></div>
 </div>
 <script>
 function renderList(text) {
@@ -548,7 +548,6 @@ async function runDelta(btn) {
     document.getElementById('delta').innerHTML = `<p style="color:rgba(255,100,100,0.8);font-size:0.8rem">${err.detail}</p>`;
   }
 }
-load();
 </script>
 '''
 
