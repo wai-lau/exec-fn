@@ -18,16 +18,22 @@ DATA_DIR = Path("/app/data")
 GREEN_OVERLAY = """
 <style>
   html { filter: hue-rotate(150deg); }
-  .exec-nav { position: fixed; bottom: 32px; right: 32px; z-index: 10; display: flex; gap: 20px; }
+  .exec-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    height: 52px; display: flex; align-items: center; justify-content: center; gap: 32px;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(232,157,194,0.12);
+  }
   .exec-nav a {
-    color: rgba(232, 157, 194, 0.85);
+    color: rgba(232, 157, 194, 0.65);
     font-family: monospace;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     text-decoration: none;
-    border-bottom: 1px solid rgba(232, 157, 194, 0.45);
+    border-bottom: 1px solid rgba(232, 157, 194, 0.3);
     transition: color 0.2s, border-bottom-color 0.2s;
   }
   .exec-nav a:hover { color: rgba(232, 157, 194, 1); border-bottom-color: rgba(232, 157, 194, 1); }
+  .exec-nav a[style*="opacity:1"] { color: rgba(232,157,194,1); border-bottom-color: rgba(232,157,194,1); }
 </style>
 """
 
@@ -38,7 +44,7 @@ CONTENT_STYLE = """
     position: relative;
     z-index: 2;
     width: min(720px, 90vw);
-    margin: 72px auto 100px;
+    margin: 72px auto 80px;
     font-family: monospace;
     color: rgba(232, 157, 194, 1);
   }
@@ -154,21 +160,8 @@ body { overflow: hidden !important; }
   background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(232,157,194,0.12);
 }
-.rd-bottombar {
-  position: fixed; bottom: 0; left: 0; right: 0; height: 52px; z-index: 20;
-  display: flex; align-items: center; justify-content: center; gap: 28px;
-  padding: 0 32px;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(232,157,194,0.12);
-}
-.rd-bottombar a {
-  color: rgba(232,157,194,0.65); font-family:monospace; font-size:0.85rem;
-  text-decoration:none; border-bottom:1px solid rgba(232,157,194,0.3);
-  transition: color 0.2s, border-color 0.2s;
-}
-.rd-bottombar a:hover, .rd-bottombar a.active { color:rgba(232,157,194,1); border-color:rgba(232,157,194,1); }
 .rd-board {
-  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0; /* bottom accounts for nav bar */
   display: flex; gap: 1px; overflow: hidden;
   background: rgba(232,157,194,0.06);
 }
@@ -229,8 +222,6 @@ body { overflow: hidden !important; }
   <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
 
-<div class="rd-bottombar" id="rd-nav"></div>
-
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.15em;color:rgba(232,157,194,0.7);margin-bottom:4px;">add card</div>
@@ -259,12 +250,7 @@ body { overflow: hidden !important; }
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const COLS = ['backlog','doing','done'];
-const NAV_LINKS = [{label:'directives',href:'/directives'},{label:'delta',href:'/delta'},{label:'r&d',href:'/rd'},{label:'archive',href:'/archive'}];
 let cards = [];
-
-document.getElementById('rd-nav').innerHTML = NAV_LINKS.map(l =>
-  `<a href="${l.href}" class="${l.href==='/rd'?'active':''}">${l.label}</a>`
-).join('');
 
 function urgency(due) {
   if (!due) return '';
@@ -547,14 +533,11 @@ async def delta_page():
 
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
-    # custom layout: no standard nav/back — kanban has its own top/bottom bars
     base = _BARE
-    head_inject = GREEN_OVERLAY + """<style>
-      body { display:block; height:100vh; overflow:hidden; }
-    </style>"""
+    head_inject = GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _RD_CONTENT + "</body>", 1))
+        .replace("</body>", _RD_CONTENT + _BACK + _build_nav("r&d") + "</body>", 1))
 
 
 @protected.get("/archive", response_class=HTMLResponse)
