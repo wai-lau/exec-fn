@@ -629,39 +629,48 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 #input-bar {
   position:fixed; bottom:52px; left:0; right:0;
-  padding:10px 44px; background:rgba(0,0,0,0.94);
-  border-top:1px solid rgba(0,255,65,0.12);
-  display:flex; gap:14px; align-items:center;
+  padding:0 44px;
+  background:rgba(0,0,0,0.94);
+  border-top:1px solid rgba(0,255,65,0.1);
+  display:flex; align-items:center; gap:10px;
 }
+#input-line {
+  flex:1; display:flex; align-items:center;
+  border:1px solid rgba(0,255,65,0.2);
+  padding:8px 12px; gap:0;
+}
+#input-line:focus-within { border-color:rgba(0,255,65,0.55); }
 #input-prompt {
-  color:rgba(0,255,65,0.4); font-family:monospace; font-size:0.9rem; white-space:nowrap;
-  user-select:none;
+  color:rgba(0,255,65,0.55); font-family:monospace; font-size:0.9rem;
+  white-space:nowrap; user-select:none; padding-right:8px;
 }
 #msg-input {
   flex:1; background:none; border:none;
-  color:rgba(0,255,65,0.9); font-family:monospace; font-size:0.9rem;
-  padding:4px 0; outline:none;
+  color:rgba(0,255,65,0.95); font-family:monospace; font-size:0.9rem;
+  padding:0; outline:none; caret-color:rgba(0,255,65,1);
 }
-#msg-input::placeholder { color:rgba(0,255,65,0.18); }
+#msg-input::placeholder { color:rgba(0,255,65,0.15); }
 .exec-send {
-  background:none; border:none; color:rgba(0,255,65,0.35); font-family:monospace;
-  font-size:0.82rem; padding:2px 6px; cursor:pointer; transition:color 0.2s;
+  background:none; border:none; color:rgba(0,255,65,0.25); font-family:monospace;
+  font-size:0.78rem; padding:8px 0 8px 6px; cursor:pointer; transition:color 0.2s;
 }
-.exec-send:hover { color:rgba(0,255,65,0.9); }
-.exec-send:disabled { opacity:0.15; cursor:default; }
+.exec-send:hover { color:rgba(0,255,65,0.75); }
+.exec-send:disabled { opacity:0.12; cursor:default; }
 .exec-clear {
-  background:none; border:none; color:rgba(0,255,65,0.18); font-family:monospace;
-  font-size:0.82rem; cursor:pointer; padding:2px 6px; transition:color 0.2s;
+  background:none; border:none; color:rgba(0,255,65,0.15); font-family:monospace;
+  font-size:0.78rem; cursor:pointer; padding:8px 6px 8px 0; transition:color 0.2s;
 }
-.exec-clear:hover { color:rgba(0,255,65,0.5); }
+.exec-clear:hover { color:rgba(0,255,65,0.45); }
 </style>
 
 <div id="terminal"></div>
 <div id="input-bar">
   <button class="exec-clear" id="clear-btn" onclick="clearChat()" title="new session">[~]</button>
-  <span id="input-prompt">$&gt;</span>
-  <input id="msg-input" type="text" placeholder="..." autofocus>
-  <button class="exec-send" id="send-btn" onclick="sendMsg()">[enter]</button>
+  <div id="input-line">
+    <span id="input-prompt">wai@exec:~$</span>
+    <input id="msg-input" type="text" placeholder="" autofocus>
+  </div>
+  <button class="exec-send" id="send-btn" onclick="sendMsg()">[cr]</button>
 </div>
 
 <script>
