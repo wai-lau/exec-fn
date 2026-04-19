@@ -614,14 +614,17 @@ _EXEC_CONTENT = '''
 body { display:block !important; height:100vh; overflow:hidden !important; flex-direction:unset !important; align-items:unset !important; justify-content:unset !important; gap:unset !important; }
 #terminal {
   position:fixed; top:0; left:0; right:0; bottom:104px;
-  overflow-y:auto; padding:36px 44px;
-  font-family:monospace; font-size:0.88rem; line-height:1.72;
+  overflow-y:auto; padding:28px 44px;
+  font-family:monospace; font-size:0.88rem; line-height:1.45;
   color:rgba(0,255,65,0.9);
 }
-.msg { margin-bottom:20px; max-width:680px; white-space:pre-wrap; word-break:break-word; }
+.msg { margin-bottom:12px; max-width:680px; white-space:pre-wrap; word-break:break-word; }
+.msg.assistant::before { content:"> "; opacity:0.4; }
 .msg.assistant { color:rgba(0,255,65,0.92); }
-.msg.user { color:rgba(0,255,65,0.42); padding-left:14px; border-left:2px solid rgba(0,255,65,0.16); }
-.msg.sys { color:rgba(0,255,65,0.26); font-size:0.72rem; font-style:italic; }
+.msg.user::before { content:"$ "; opacity:0.5; }
+.msg.user { color:rgba(0,255,65,0.42); }
+.msg.sys::before { content:"# "; }
+.msg.sys { color:rgba(0,255,65,0.26); font-size:0.72rem; }
 #blinkcursor { display:inline-block; width:8px; height:1em; background:rgba(0,255,65,0.9); vertical-align:text-bottom; animation:blink 1s step-end infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 #input-bar {
@@ -630,31 +633,35 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   border-top:1px solid rgba(0,255,65,0.12);
   display:flex; gap:14px; align-items:center;
 }
+#input-prompt {
+  color:rgba(0,255,65,0.4); font-family:monospace; font-size:0.9rem; white-space:nowrap;
+  user-select:none;
+}
 #msg-input {
-  flex:1; background:none; border:none; border-bottom:1px solid rgba(0,255,65,0.25);
+  flex:1; background:none; border:none;
   color:rgba(0,255,65,0.9); font-family:monospace; font-size:0.9rem;
-  padding:4px 2px; outline:none;
+  padding:4px 0; outline:none;
 }
 #msg-input::placeholder { color:rgba(0,255,65,0.18); }
-#msg-input:focus { border-bottom-color:rgba(0,255,65,0.6); }
 .exec-send {
-  background:none; border:1px solid rgba(0,255,65,0.25); color:rgba(0,255,65,0.55);
-  font-family:monospace; font-size:0.8rem; padding:4px 14px; cursor:pointer; transition:all 0.2s;
+  background:none; border:none; color:rgba(0,255,65,0.35); font-family:monospace;
+  font-size:0.82rem; padding:2px 6px; cursor:pointer; transition:color 0.2s;
 }
-.exec-send:hover { border-color:rgba(0,255,65,0.85); color:rgba(0,255,65,1); }
-.exec-send:disabled { opacity:0.2; cursor:default; }
+.exec-send:hover { color:rgba(0,255,65,0.9); }
+.exec-send:disabled { opacity:0.15; cursor:default; }
 .exec-clear {
   background:none; border:none; color:rgba(0,255,65,0.18); font-family:monospace;
-  font-size:0.78rem; cursor:pointer; padding:2px 4px; transition:color 0.2s;
+  font-size:0.82rem; cursor:pointer; padding:2px 6px; transition:color 0.2s;
 }
 .exec-clear:hover { color:rgba(0,255,65,0.5); }
 </style>
 
 <div id="terminal"></div>
 <div id="input-bar">
-  <button class="exec-clear" id="clear-btn" onclick="clearChat()" title="new session">&circlearrowleft;</button>
-  <input id="msg-input" type="text" placeholder="type a message..." autofocus>
-  <button class="exec-send" id="send-btn" onclick="sendMsg()">&rarr;</button>
+  <button class="exec-clear" id="clear-btn" onclick="clearChat()" title="new session">[~]</button>
+  <span id="input-prompt">$&gt;</span>
+  <input id="msg-input" type="text" placeholder="..." autofocus>
+  <button class="exec-send" id="send-btn" onclick="sendMsg()">[enter]</button>
 </div>
 
 <script>
@@ -783,7 +790,7 @@ let spinnerTimer = null;
 let spinnerDelay = null;
 
 function startSpinner(msg) {
-  const frames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+  const frames = ['|', '/', '-', '\\\\'];
   let i = 0;
   spinnerDelay = setTimeout(() => {
     const div = document.createElement('div');
