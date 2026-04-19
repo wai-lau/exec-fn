@@ -48,7 +48,7 @@ CONTENT_STYLE = """
     position: relative;
     z-index: 2;
     width: min(720px, 90vw);
-    margin: 72px auto 80px;
+    margin: 64px auto 80px;
     font-family: monospace;
     color: rgba(0, 255, 65, 1);
   }
@@ -103,22 +103,29 @@ _BARE = re.sub(r'<div class="bg-wide">.*?</div>', '', _NO_FORM, flags=re.DOTALL)
 _BARE = re.sub(r'<div class="bg-tall">.*?</div>', '', _BARE, flags=re.DOTALL)
 _BARE = re.sub(r'<a href="[^"]*" target="_blank">.*?</a>', '', _BARE, flags=re.DOTALL)
 
-_BACK = (
-    '<div style="position:fixed;top:32px;left:32px;z-index:10;">'
-    '<a href="/exec" style="color:rgba(0,255,65,0.85);font-family:monospace;font-size:0.9rem;'
-    'text-decoration:none;border-bottom:1px solid rgba(0,255,65,0.45);transition:color 0.2s;" '
+_TOP_NAV = (
+    '<div style="position:fixed;top:0;left:0;right:0;z-index:20;height:48px;'
+    'display:flex;align-items:center;padding:0 32px;gap:32px;'
+    'background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);'
+    'border-bottom:1px solid rgba(0,255,65,0.1);">'
+    '<a href="/exec" style="color:rgba(0,255,65,0.55);font-family:monospace;font-size:0.82rem;'
+    'text-decoration:none;transition:color 0.2s;" '
     "onmouseover=\"this.style.color='rgba(0,255,65,1)'\" "
-    "onmouseout=\"this.style.color='rgba(0,255,65,0.85)'\">← exec</a></div>"
+    "onmouseout=\"this.style.color='rgba(0,255,65,0.55)'\"><- exec</a>"
+    '</div>'
 )
 
 
 def _build_page(active=None, content=""):
     base = _BARE if active else _NO_FORM
-    back = _BACK if active else ""
+    top = (
+        _TOP_NAV.replace('</div>', f'<span style="color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.82rem;">{active}</span></div>')
+        if active else ""
+    )
     head_inject = GREEN_OVERLAY + (CONTENT_STYLE if content else "")
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", content + back + _build_nav(active) + "</body>", 1))
+        .replace("</body>", content + top + _build_nav(active) + "</body>", 1))
 
 
 # ── page content ──────────────────────────────────────────────────────────────
