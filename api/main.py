@@ -20,12 +20,14 @@ GREEN_OVERLAY = """
   html { filter: hue-rotate(150deg); }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(232, 157, 194, 0.45);
-    border-radius: 3px;
-  }
+  /* inner elements: pink becomes green via hue-rotate */
+  ::-webkit-scrollbar-thumb { background: rgba(232, 157, 194, 0.45); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(232, 157, 194, 0.85); }
+  /* page scrollbar sits outside the filter stacking context — use actual green */
+  html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb { background: rgba(80, 210, 120, 0.5) !important; border-radius: 3px; }
+  html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover { background: rgba(80, 210, 120, 0.9) !important; }
   * { scrollbar-width: thin; scrollbar-color: rgba(232,157,194,0.45) transparent; }
+  html, body { scrollbar-color: rgba(80, 210, 120, 0.5) transparent; }
   .exec-nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     height: 52px; display: flex; align-items: center; justify-content: center; gap: 32px;
