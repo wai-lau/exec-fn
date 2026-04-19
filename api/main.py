@@ -906,11 +906,15 @@ def api_pull():
 
 @protected.get("/api/morning")
 def api_morning_get():
+    from datetime import date
     p = DATA_DIR / "morning.json"
     if p.exists():
-        return json.loads(p.read_text())
+        data = json.loads(p.read_text())
+        generated = data.get("generated_at", "")[:10]
+        if generated == date.today().isoformat():
+            return data
     try:
-        return pipeline.quick_morning()
+        return pipeline.build_morning()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
