@@ -248,6 +248,18 @@ def update_rd_from_delta(delta: dict) -> str:
 
 # ── morning recap ──────────────────────────────────────────────────────────────
 
+def quick_morning() -> dict:
+    """Generate a morning briefing from whatever local data is available — no reMarkable pull needed."""
+    def _load(name):
+        p = DATA_DIR / f"{name}.json"
+        return json.loads(p.read_text()) if p.exists() else {}
+
+    delta = _load("delta")
+    omens = _load("omens")
+    rd_changes = ""
+    return generate_morning_recap(delta, omens, rd_changes)
+
+
 def generate_morning_recap(delta: dict, omens: dict, rd_changes: str) -> dict:
     import anthropic
 

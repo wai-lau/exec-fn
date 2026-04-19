@@ -907,9 +907,12 @@ def api_pull():
 @protected.get("/api/morning")
 def api_morning_get():
     p = DATA_DIR / "morning.json"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="No morning briefing yet")
-    return json.loads(p.read_text())
+    if p.exists():
+        return json.loads(p.read_text())
+    try:
+        return pipeline.quick_morning()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @protected.post("/api/morning")
