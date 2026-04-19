@@ -104,7 +104,7 @@ def draw_directives_page(c, directives, events, encouragement=""):
     y = H - MARGIN
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
     c.setFillColor(colors.black)
-    c.drawString(MARGIN, y, "DIRECTIVES FROM AI-SAMA")
+    c.drawString(MARGIN, y, "DIRECTIVES FROM YOUR AI OVERLORD")
     y -= LH
     c.setFont(FONT_ITEM, SIZE_ITEM)
     c.setFillColor(colors.HexColor("#666666"))
