@@ -771,54 +771,59 @@ async function clearChat() {
 }
 
 let spinnerTimer = null;
+let spinnerDelay = null;
 
 function startSpinner(msg) {
   const frames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
   let i = 0;
-  const div = document.createElement('div');
-  div.id = 'spinner';
-  div.className = 'msg sys';
-  div.style.cssText = 'color:rgba(0,255,65,0.6);font-size:0.82rem;';
-  div.textContent = frames[0] + '  ' + msg;
-  terminal.appendChild(div);
-  spinnerTimer = setInterval(() => { div.textContent = frames[i++ % frames.length] + '  ' + msg; }, 80);
+  spinnerDelay = setTimeout(() => {
+    const div = document.createElement('div');
+    div.id = 'spinner';
+    div.className = 'msg sys';
+    div.style.cssText = 'color:rgba(0,255,65,0.6);font-size:0.82rem;';
+    div.textContent = frames[0] + '  ' + msg;
+    terminal.appendChild(div);
+    spinnerTimer = setInterval(() => { div.textContent = frames[i++ % frames.length] + '  ' + msg; }, 80);
+  }, 200);
 }
 
 function stopSpinner() {
+  clearTimeout(spinnerDelay); spinnerDelay = null;
   if (spinnerTimer) { clearInterval(spinnerTimer); spinnerTimer = null; }
   const el = document.getElementById('spinner');
   if (el) el.remove();
 }
 
-async function init() {
-  const r = await fetch('/api/chat');
-  const chat = await r.json();
-  if (chat.messages && chat.messages.length > 0) {
-    messages = chat.messages;
-    stage = chat.stage || 'planning';
-    for (const m of messages) {
-      if (m.role !== 'user' && m.role !== 'assistant') continue;
-      const content = typeof m.content === 'string' ? m.content :
-        Array.isArray(m.content)
-          ? m.content.filter(b => b.type === 'text').map(b => b.text).join('')
-          : '';
-      if (content) addMsg(m.role, content);
+function restoreMsg(m) {
+  if (m.role === 'user') {
+    if (typeof m.content === 'string') {
+      addMsg('user', m.content);
+    } else if (Array.isArray(m.content)) {
+      const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      if (text) addMsg('user', text);
     }
-    if (stage === 'done') {
-      document.getElementById('msg-input').disabled = true;
-      document.getElementById('send-btn').disabled = true;
+  } else if (m.role === 'assistant') {
+    if (typeof m.content === 'string') {
+      addMsg('assistant', m.content);
+    } else if (Array.isArray(m.content)) {
+      const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      if (text) addMsg('assistant', text);
+      for (const b of m.content) {
+        if (b.type === 'tool_use') addMsg('sys', `[ ${b.name}: ${JSON.stringify(b.result ?? b.input)} ]`);
+      }
     }
-    return;
   }
+}
 
-  // Fresh session — run morning pipeline
+async function init() {
+  // Always run morning pipeline first — it clears chat.json if it's a new day
   startSpinner('running morning pipeline...');
+  let morningMsg = null;
   try {
     const mr = await fetch('/api/morning');
     stopSpinner();
     if (mr.ok) {
-      const morning = await mr.json();
-      if (morning.opening_message) addMsg('assistant', morning.opening_message);
+      morningMsg = (await mr.json()).opening_message || null;
     } else {
       const err = await mr.json().catch(() => ({}));
       addMsg('sys', '[morning pipeline failed: ' + (err.detail || mr.status) + ']');
@@ -827,6 +832,22 @@ async function init() {
     stopSpinner();
     addMsg('sys', '[error: ' + e.message + ']');
   }
+
+  // Load chat — may be empty if morning just cleared it
+  const r = await fetch('/api/chat');
+  const chat = await r.json();
+  if (chat.messages && chat.messages.length > 0) {
+    messages = chat.messages;
+    stage = chat.stage || 'planning';
+    for (const m of messages) restoreMsg(m);
+    if (stage === 'done') {
+      document.getElementById('msg-input').disabled = true;
+      document.getElementById('send-btn').disabled = true;
+    }
+    return;
+  }
+
+  if (morningMsg) addMsg('assistant', morningMsg);
 }
 
 document.getElementById('msg-input').addEventListener('keydown', e => {
