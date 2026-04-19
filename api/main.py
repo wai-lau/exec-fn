@@ -269,7 +269,7 @@ body { overflow: hidden !important; }
     <textarea id="e-desc"></textarea>
     <label>category</label>
     <select id="e-cat">
-      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option>
+      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Learning</option>
     </select>
     <label>size</label>
     <select id="e-size">
@@ -301,7 +301,7 @@ let editId = null;
 let dragging = false;
 let ashesCollapsed = true;
 
-const CAT_HUE = {Book:210, Self:275, Social:140, Interfacing:50, Hobby:0};
+const CAT_HUE = {Learning:210, Social:275, Interfacing:50, Hobby:0};
 
 function isDarkCard(c) {
   return c.size === 'chore' || c.size === 'task' || c.size === 'book';
@@ -430,7 +430,7 @@ async function addCard() {
   btn.disabled = true; btn.textContent = 'classifying...';
   const due_date = parseMonthDay(document.getElementById('a-due').value);
   const col = document.getElementById('a-col').value;
-  let category = 'Self', size = 'task', description = '';
+  let category = 'Learning', size = 'task', description = '';
   try {
     const r = await fetch('/api/rd/classify', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
     const cl = await r.json();
@@ -454,7 +454,7 @@ function openEdit(id) {
   editId = id;
   document.getElementById('e-title').value = c.title || '';
   document.getElementById('e-desc').value = c.description || '';
-  document.getElementById('e-cat').value = c.category || 'Self';
+  document.getElementById('e-cat').value = c.category || 'Learning';
   document.getElementById('e-size').value = c.size || 'task';
   document.getElementById('e-due').value = c.due_date ? fmtDate(c.due_date) : '';
   document.getElementById('e-notes').value = c.notes || '';
