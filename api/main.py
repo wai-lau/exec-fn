@@ -19,25 +19,25 @@ GREEN_OVERLAY = """
 <style>
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(232, 157, 194, 0.45); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(232, 157, 194, 0.85); }
-  * { scrollbar-width: thin; scrollbar-color: rgba(232,157,194,0.45) transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0, 255, 65, 0.45); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 65, 0.85); }
+  * { scrollbar-width: thin; scrollbar-color: rgba(0,255,65,0.45) transparent; }
   .exec-nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     height: 52px; display: flex; align-items: center; justify-content: center; gap: 32px;
     background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(232,157,194,0.12);
+    border-top: 1px solid rgba(0,255,65,0.12);
   }
   .exec-nav a {
-    color: rgba(232, 157, 194, 0.65);
+    color: rgba(0, 255, 65, 0.65);
     font-family: monospace;
     font-size: 0.85rem;
     text-decoration: none;
-    border-bottom: 1px solid rgba(232, 157, 194, 0.3);
+    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
     transition: color 0.2s, border-bottom-color 0.2s;
   }
-  .exec-nav a:hover { color: rgba(232, 157, 194, 1); border-bottom-color: rgba(232, 157, 194, 1); }
-  .exec-nav a[style*="opacity:1"] { color: rgba(232,157,194,1); border-bottom-color: rgba(232,157,194,1); }
+  .exec-nav a:hover { color: rgba(0, 255, 65, 1); border-bottom-color: rgba(0, 255, 65, 1); }
+  .exec-nav a[style*="opacity:1"] { color: rgba(0,255,65,1); border-bottom-color: rgba(0,255,65,1); }
 </style>
 """
 
@@ -50,7 +50,7 @@ CONTENT_STYLE = """
     width: min(720px, 90vw);
     margin: 72px auto 80px;
     font-family: monospace;
-    color: rgba(232, 157, 194, 1);
+    color: rgba(0, 255, 65, 1);
   }
   #content h2 {
     font-size: 0.65rem;
@@ -58,25 +58,25 @@ CONTENT_STYLE = """
     letter-spacing: 0.15em;
     opacity: 0.65;
     margin: 28px 0 8px;
-    border-bottom: 1px solid rgba(232, 157, 194, 0.25);
+    border-bottom: 1px solid rgba(0, 255, 65, 0.25);
     padding-bottom: 4px;
   }
   #content .item {
     font-size: 0.85rem;
     padding: 5px 0;
-    border-bottom: 1px solid rgba(232, 157, 194, 0.12);
+    border-bottom: 1px solid rgba(0, 255, 65, 0.12);
   }
   #content button {
     background: none;
-    border: 1px solid rgba(232, 157, 194, 0.5);
-    color: rgba(232, 157, 194, 0.85);
+    border: 1px solid rgba(0, 255, 65, 0.5);
+    color: rgba(0, 255, 65, 0.85);
     font-family: monospace;
     font-size: 0.8rem;
     padding: 4px 12px;
     cursor: pointer;
     transition: all 0.2s;
   }
-  #content button:hover { border-color: rgba(232, 157, 194, 1); color: rgba(232, 157, 194, 1); }
+  #content button:hover { border-color: rgba(0, 255, 65, 1); color: rgba(0, 255, 65, 1); }
   #content button:disabled { opacity: 0.35; cursor: default; }
   #content .ts { font-size: 0.7rem; opacity: 0.5; margin-top: 16px; }
 </style>
@@ -90,7 +90,7 @@ def _build_nav(active=None):
     links = []
     for label in _NAV_LINKS:
         href = _NAV_HREFS.get(label, f"/{label}")
-        style = ' style="opacity:1;border-bottom-color:rgba(232,157,194,0.9);"' if label == active else ""
+        style = ' style="opacity:1;border-bottom-color:rgba(0,255,65,0.9);"' if label == active else ""
         links.append(f'<a href="{href}"{style}>{label}</a>')
     return '<div class="exec-nav">' + " &nbsp; ".join(links) + "</div>"
 
@@ -105,10 +105,10 @@ _BARE = re.sub(r'<a href="[^"]*" target="_blank">.*?</a>', '', _BARE, flags=re.D
 
 _BACK = (
     '<div style="position:fixed;top:32px;left:32px;z-index:10;">'
-    '<a href="/exec" style="color:rgba(232,157,194,0.85);font-family:monospace;font-size:0.9rem;'
-    'text-decoration:none;border-bottom:1px solid rgba(232,157,194,0.45);transition:color 0.2s;" '
-    "onmouseover=\"this.style.color='rgba(232,157,194,1)'\" "
-    "onmouseout=\"this.style.color='rgba(232,157,194,0.85)'\">← exec</a></div>"
+    '<a href="/exec" style="color:rgba(0,255,65,0.85);font-family:monospace;font-size:0.9rem;'
+    'text-decoration:none;border-bottom:1px solid rgba(0,255,65,0.45);transition:color 0.2s;" '
+    "onmouseover=\"this.style.color='rgba(0,255,65,1)'\" "
+    "onmouseout=\"this.style.color='rgba(0,255,65,0.85)'\">← exec</a></div>"
 )
 
 
@@ -145,7 +145,7 @@ async function load() {
     <div style="margin-bottom:28px;">
       <div style="font-size:0.65rem;opacity:0.4;margin-bottom:8px;letter-spacing:0.08em;">${f.label}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        ${Array.from({length: f.pages}, (_, i) => `<img src="/api/archive/${f.filename}/page/${i}" style="height:180px;width:auto;border:1px solid rgba(232,157,194,0.15);cursor:zoom-in;" onclick="openLightbox(this.src)">`).join('')}
+        ${Array.from({length: f.pages}, (_, i) => `<img src="/api/archive/${f.filename}/page/${i}" style="height:180px;width:auto;border:1px solid rgba(0,255,65,0.15);cursor:zoom-in;" onclick="openLightbox(this.src)">`).join('')}
       </div>
     </div>
   `).join('');
@@ -162,12 +162,12 @@ body { overflow: hidden !important; }
   display: flex; align-items: center; justify-content: flex-end;
   padding: 0 32px; gap: 12px;
   background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(232,157,194,0.12);
+  border-bottom: 1px solid rgba(0,255,65,0.12);
 }
 .rd-board {
   position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
   display: flex; gap: 1px; overflow: hidden;
-  background: rgba(232,157,194,0.06);
+  background: rgba(0,255,65,0.06);
 }
 .col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: rgba(0,0,0,0.25); }
 .col.ashes-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
@@ -175,13 +175,13 @@ body { overflow: hidden !important; }
 .col-hdr {
   flex-shrink: 0; padding: 14px 16px 10px;
   font-family: monospace; font-size: 0.62rem; text-transform: uppercase;
-  letter-spacing: 0.18em; color: rgba(232,157,194,0.55);
-  border-bottom: 1px solid rgba(232,157,194,0.1);
+  letter-spacing: 0.18em; color: rgba(0,255,65,0.55);
+  border-bottom: 1px solid rgba(0,255,65,0.1);
   display: flex; align-items: center; gap: 6px;
 }
 .col-hdr-label { flex: 1; }
-.done-toggle { background:none; border:none; color:rgba(232,157,194,0.4); cursor:pointer; font-size:0.7rem; padding:0; line-height:1; }
-.done-toggle:hover { color:rgba(232,157,194,0.9); }
+.done-toggle { background:none; border:none; color:rgba(0,255,65,0.4); cursor:pointer; font-size:0.7rem; padding:0; line-height:1; }
+.done-toggle:hover { color:rgba(0,255,65,0.9); }
 .col-list { flex: 1; overflow-y: auto; padding: 10px 10px 20px; }
 .card {
   border-radius: 4px; padding: 9px 11px; margin-bottom: 7px;
@@ -191,8 +191,8 @@ body { overflow: hidden !important; }
 }
 .card:hover { filter: brightness(1.08); }
 .card:active { cursor: grabbing; }
-.card.plain { background: rgba(232,157,194,0.05); border-color: rgba(232,157,194,0.15); }
-.card.plain:hover { background: rgba(232,157,194,0.09); }
+.card.plain { background: rgba(0,255,65,0.05); border-color: rgba(0,255,65,0.15); }
+.card.plain:hover { background: rgba(0,255,65,0.09); }
 .card-title { font-size: 0.8rem; margin-bottom: 2px; }
 .card-desc { font-size: 0.7rem; margin-top: 3px; opacity: 0.72;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -201,11 +201,11 @@ body { overflow: hidden !important; }
 .card-due { font-size: 0.62rem; }
 .sortable-ghost { opacity: 0.2; }
 .rd-btn {
-  background: none; border: 1px solid rgba(232,157,194,0.4);
-  color: rgba(232,157,194,0.8); font-family: monospace; font-size: 0.78rem;
+  background: none; border: 1px solid rgba(0,255,65,0.4);
+  color: rgba(0,255,65,0.8); font-family: monospace; font-size: 0.78rem;
   padding: 4px 12px; cursor: pointer; transition: all 0.2s;
 }
-.rd-btn:hover { border-color: rgba(232,157,194,1); color: rgba(232,157,194,1); }
+.rd-btn:hover { border-color: rgba(0,255,65,1); color: rgba(0,255,65,1); }
 .rd-btn:disabled { opacity: 0.4; cursor: default; }
 .modal-overlay {
   display: none; position: fixed; inset: 0; z-index: 50;
@@ -213,14 +213,14 @@ body { overflow: hidden !important; }
 }
 .modal-overlay.open { display: flex; }
 .modal {
-  background: #0a0a0a; border: 1px solid rgba(232,157,194,0.25);
+  background: #0a0a0a; border: 1px solid rgba(0,255,65,0.25);
   padding: 24px 28px; width: min(420px,92vw); font-family: monospace;
 }
-.modal-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(232,157,194,0.6); margin-bottom: 16px; }
-.modal label { display: block; font-size: 0.6rem; color: rgba(232,157,194,0.45); margin: 12px 0 3px; text-transform: uppercase; letter-spacing: 0.1em; }
+.modal-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(0,255,65,0.6); margin-bottom: 16px; }
+.modal label { display: block; font-size: 0.6rem; color: rgba(0,255,65,0.45); margin: 12px 0 3px; text-transform: uppercase; letter-spacing: 0.1em; }
 .modal input, .modal select, .modal textarea {
-  width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(232,157,194,0.2);
-  color: rgba(232,157,194,0.9); font-family: monospace; font-size: 0.82rem;
+  width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,255,65,0.2);
+  color: rgba(0,255,65,0.9); font-family: monospace; font-size: 0.82rem;
   padding: 5px 8px; box-sizing: border-box; resize: vertical;
 }
 .modal select option { background: #111; }
@@ -357,8 +357,8 @@ function isUrgent(iso) {
 function renderCard(c) {
   const {bg, border, dark} = cardStyle(c);
   const hasStyle = !!bg;
-  const titleC = !hasStyle ? 'rgba(232,157,194,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.85)';
-  const tc     = !hasStyle ? 'rgba(232,157,194,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
+  const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.85)';
+  const tc     = !hasStyle ? 'rgba(0,255,65,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
   const urgent = isUrgent(c.due_date);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC}">${c.title}</div>
@@ -538,7 +538,7 @@ _DIRECTIVES_CONTENT = '''
 <div id="content" style="width:min(1100px,95vw)">
   <h1 style="margin:0 0 24px;font-size:1.1rem;letter-spacing:0.15em;text-transform:uppercase">Directives</h1>
   <div style="display:flex;gap:10px;margin-bottom:24px;align-items:flex-start;">
-    <textarea id="feedback" placeholder="feedback..." style="flex:1;background:none;border:1px solid rgba(232,157,194,0.4);color:rgba(232,157,194,1);font-family:monospace;font-size:0.8rem;padding:6px 10px;resize:vertical;min-height:48px;"></textarea>
+    <textarea id="feedback" placeholder="feedback..." style="flex:1;background:none;border:1px solid rgba(0,255,65,0.4);color:rgba(0,255,65,1);font-family:monospace;font-size:0.8rem;padding:6px 10px;resize:vertical;min-height:48px;"></textarea>
     <div style="display:flex;flex-direction:column;gap:6px;">
       <button id="regen-btn" onclick="regen(this)">regenerate</button>
       <button id="push-btn" onclick="doPush(this)">push</button>
@@ -561,7 +561,7 @@ _DIRECTIVES_CONTENT = '''
   </div>
 </div>
 <script>
-const COL_HDR = 'font-size:0.65rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.65;margin:0 0 8px;border-bottom:1px solid rgba(232,157,194,0.25);padding-bottom:4px;';
+const COL_HDR = 'font-size:0.65rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.65;margin:0 0 8px;border-bottom:1px solid rgba(0,255,65,0.25);padding-bottom:4px;';
 async function loadDirectives() {
   const r = await fetch('/api/directives');
   const el = document.getElementById('dir-grid');
