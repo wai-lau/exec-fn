@@ -316,8 +316,10 @@ function cardStyle(c) {
   const borderBright = `hsl(${h},90%,78%)`;
   if (size === 'chore') {
     return {bg:`background:#0d0d0d;color:${col};`, border:'border-color:transparent;', dark:true};
-  } else if (size === 'task' || size === 'book') {
+  } else if (size === 'task') {
     return {bg:`background:#0d0d0d;color:${col};`, border:`border-color:${borderMid};`, dark:true};
+  } else if (size === 'book') {
+    return {bg:`background:hsl(0,0%,20%);color:${col};`, border:`border-color:${borderMid};`, dark:true};
   } else if (size === 'project') {
     return {bg:`background:hsl(${h},50%,54%);`, border:'border-color:transparent;', dark:false};
   } else {
