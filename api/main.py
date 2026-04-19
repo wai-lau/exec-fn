@@ -674,11 +674,6 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 }
 .exec-send:hover { color:rgba(0,255,65,0.75); }
 .exec-send:disabled { opacity:0.12; cursor:default; }
-.exec-clear {
-  background:none; border:none; color:rgba(0,255,65,0.15); font-family:monospace;
-  font-size:0.78rem; cursor:pointer; padding:8px 6px 8px 0; transition:color 0.2s;
-}
-.exec-clear:hover { color:rgba(0,255,65,0.45); }
 #preview-panel {
   position:fixed; top:0; left:0; right:0; bottom:0; z-index:50;
   background:rgba(0,0,0,0.97);
@@ -705,13 +700,11 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 
 <div id="terminal"></div>
 <div id="input-bar">
-  <button class="exec-clear" id="clear-btn" onclick="clearChat()" title="new session">[~]</button>
   <div id="input-line">
     <span id="input-prompt">wai@exec:~$</span>
     <input id="msg-input" type="text" placeholder="" autofocus>
   </div>
   <button class="exec-send" onclick="openPreview()" title="preview directives">[pr]</button>
-  <button class="exec-send" id="send-btn" onclick="sendMsg()">[cr]</button>
 </div>
 
 <div id="preview-panel">
@@ -780,7 +773,7 @@ async function sendMsg() {
 
 async function streamResponse() {
   streaming = true;
-  document.getElementById('send-btn').disabled = true;
+  document.getElementById('msg-input').disabled = true;
 
   const {div, span, cur} = addStreamDiv();
   let fullText = '';
@@ -818,7 +811,6 @@ async function streamResponse() {
           stage = data.next_stage;
           if (stage === 'done') {
             document.getElementById('msg-input').disabled = true;
-            document.getElementById('send-btn').disabled = true;
           }
         }
       }
@@ -834,7 +826,7 @@ async function streamResponse() {
 
   streaming = false;
   if (stage !== 'done') {
-    document.getElementById('send-btn').disabled = false;
+    document.getElementById('msg-input').disabled = false;
     document.getElementById('msg-input').focus();
   }
 }
@@ -846,7 +838,6 @@ async function clearChat() {
   stage = 'planning';
   terminal.innerHTML = '';
   document.getElementById('msg-input').disabled = false;
-  document.getElementById('send-btn').disabled = false;
   await init();
 }
 
