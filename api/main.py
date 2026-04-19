@@ -269,7 +269,7 @@ body { overflow: hidden !important; }
     <textarea id="e-desc"></textarea>
     <label>category</label>
     <select id="e-cat">
-      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option>
+      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option>
     </select>
     <label>size</label>
     <select id="e-size">
@@ -300,9 +300,10 @@ let editId = null;
 let dragging = false;
 
 // hue-rotate(150deg) is on html — specify CSS hue = target_hue - 150
-// Interfacing=yellow(60), Hobby=mauve(300), Social=pink(330), Self=blue(240)
-const CAT_HUE = {Interfacing:270, Hobby:150, Social:180, Self:90};
-const SIZE_SL  = {probe:[20,90], task:[38,82], project:[56,73], titan:[70,65]};
+// actual CSS hues (filter not applying to card backgrounds)
+// Interfacing=yellow, Hobby=teal, Social=pink, Self=blue, Book=purple
+const CAT_HUE = {Interfacing:50, Hobby:175, Social:340, Self:215, Book:275};
+const SIZE_SL  = {probe:[35,92], task:[52,84], project:[65,75], titan:[78,67]};
 
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
