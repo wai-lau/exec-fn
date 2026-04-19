@@ -209,7 +209,6 @@ async function load() {
 }
 load();
 </script>'''
-'''
 
 _DELTA_CONTENT = '''
 <div id="content">
