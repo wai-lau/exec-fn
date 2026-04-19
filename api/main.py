@@ -293,16 +293,20 @@ let cards = [];
 let editId = null;
 let dragging = false;
 
-// hue-rotate(150deg) is on html — specify CSS hue = target_hue - 150
 // Disco Elysium stat palette: Intellect=blue, Psyche=violet, Physique=red, Motorics=amber
 const CAT_HUE = {Interfacing:212, Social:278, Self:0, Hobby:47, Book:165};
-const SIZE_SL  = {probe:[28,93], task:[45,85], project:[60,77], titan:[72,69]};
 
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
   if (h === undefined) return '';
-  const [s, l] = SIZE_SL[c.size] || [30, 85];
-  return `background:hsl(${h},${s}%,${l}%);color:rgba(0,0,0,0.8);`;
+  const size = c.size, cat = c.category;
+  if (size === 'probe' || size === 'task' || cat === 'Book') {
+    const tl = size === 'probe' ? 52 : 72;
+    return `background:hsl(0,0%,14%);color:hsl(${h},75%,${tl}%);`;
+  }
+  const bs = size === 'titan' ? 62 : 50;
+  const bl = size === 'titan' ? 67 : 54;
+  return `background:hsl(${h},${bs}%,${bl}%);color:rgba(0,0,0,0.85);`;
 }
 
 function parseMonthDay(input) {
