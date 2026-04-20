@@ -1169,13 +1169,14 @@ def _handle_tool(name: str, input_: dict) -> dict:
             yesterday_text = " ".join(filter(None, [yesterday_delta.get("wai_notes", ""), yesterday_delta.get("adjustments", "")])).strip()
             resp = client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=150,
+                max_tokens=300,
                 messages=[{"role": "user", "content": (
-                    f"YESTERDAY (previous day): {yesterday_text or 'none'}\n"
-                    f"TODAY (so far): {delta_text or 'none'}\n\n"
-                    "Write a short (1-2 sentence) warm, personal encouraging message for Wai. "
-                    "Reference what they did yesterday AND what they've already done today if applicable. "
-                    "Plain text only."
+                    f"PREVIOUS DAY: {yesterday_text or 'none'}\n"
+                    f"SINCE LAST 4:30AM (current day window): {delta_text or 'none'}\n\n"
+                    "Write a warm, personal encouraging message for Wai (3-5 sentences). "
+                    "Address everything they accomplished since yesterday's 4:30am -- be specific about what they did. "
+                    "Reference the previous day too if there is anything notable. "
+                    "Plain text only. No em-dashes."
                 )}],
             )
             encouraging = resp.content[0].text.strip()
