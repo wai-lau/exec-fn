@@ -859,12 +859,14 @@ function addStreamDiv() {
 }
 
 function fmtTs() {
-  const n = new Date();
-  const dd = String(n.getDate()).padStart(2,'0');
-  const mm = String(n.getMonth()+1).padStart(2,'0');
-  const hh = String(n.getHours()).padStart(2,'0');
-  const mi = String(n.getMinutes()).padStart(2,'0');
-  return `[${dd}/${mm} ${hh}:${mi}]`;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false
+  }).formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t).value;
+  return `[${get('day')}/${get('month')} ${get('hour')}:${get('minute')} ET]`;
 }
 async function sendMsg() {
   if (streaming) return;
