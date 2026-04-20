@@ -488,7 +488,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields), delete_card (permanent removal). "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
             "When finalizing, categorize each card: SEEK=requires going outdoors, HACK=quick at home (under 1h), DIVE=extended focus/setup/cleanup (over 1h). "
-            "When Wai confirms their plan, immediately call finalize_and_push — do NOT ask for a second confirmation. "
+            "When the plan looks ready, call update_preview to build the PDF and show Wai the preview, then ask if they want to push. "
+            "When Wai says yes to pushing, immediately call finalize_and_push — do NOT ask for another confirmation. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
         "done": (
@@ -619,7 +620,7 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_preview",
-            "description": "Refresh the preview panel in the UI to show the latest directives, cards, and omens. Call after changes that Wai should see reflected immediately. Always include a fresh encouraging_message.",
+            "description": "Build the PDF and open the preview panel so Wai can review the current plan. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable. Always include a fresh encouraging_message.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -759,13 +760,17 @@ def _handle_tool(name: str, input_: dict) -> dict:
         return {"ok": True, "deleted": input_.get("id")}
 
     if name == "update_preview":
+        from build_pdf import build as pdf_build
         msg = input_.get("encouraging_message", "")
         if msg:
             dir_path = DATA_DIR / "directives.json"
             d = json.loads(dir_path.read_text()) if dir_path.exists() else {}
             d["encouraging_message"] = msg
             dir_path.write_text(json.dumps(d, indent=2))
-        return {"ok": True}
+        ts = _ts()
+        pdf_path = DATA_DIR / f"WAI_{ts}.pdf"
+        pdf_build(str(pdf_path))
+        return {"ok": True, "pdf": pdf_path.name}
 
     return {"error": f"Unknown tool: {name}"}
 

@@ -827,11 +827,9 @@ async function streamResponse() {
           else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
           else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
           else if (data.name === 'update_preview') { previewLoaded = false; openPreview(); addMsg('sys', '[ preview updated ]'); }
+          else if (data.name === 'finalize_and_push') { addMsg('sys', '[ pushed to reMarkable ]'); }
         } else if (data.type === 'done') {
           stage = data.next_stage;
-          if (stage === 'done') {
-            document.getElementById('msg-input').disabled = true;
-          }
         }
       }
     }
@@ -845,10 +843,8 @@ async function streamResponse() {
   }
 
   streaming = false;
-  if (stage !== 'done') {
-    document.getElementById('msg-input').disabled = false;
-    document.getElementById('msg-input').focus();
-  }
+  document.getElementById('msg-input').disabled = false;
+  document.getElementById('msg-input').focus();
 }
 
 async function clearChat() {
@@ -1014,6 +1010,7 @@ function openPreview() {
 
 function closePreview() {
   document.getElementById('preview-panel').classList.remove('open');
+  document.getElementById('msg-input').focus();
 }
 
 async function doPush(btn) {
