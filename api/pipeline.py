@@ -453,6 +453,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('description','')}"
         for c in ideas[:15]
     ) or "None."
+    ctx_text = "\n".join(f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])) or "None."
 
     stage_instructions = {
         "planning": (
@@ -592,6 +593,27 @@ def _chat_tools() -> list:
     ]
 
 
+def _dedupe_context(notes: list) -> list:
+    import anthropic
+    lines = "\n".join(f"{i}. [{n.get('date','')}] {n['note']}" for i, n in enumerate(notes))
+    client = anthropic.Anthropic()
+    msg = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=512,
+        messages=[{"role": "user", "content": (
+            f"These are long-term memory notes about a person:\n{lines}\n\n"
+            "Remove exact or near-duplicate notes, keeping the most recent or most specific version. "
+            "Return only the indices to KEEP as JSON: {\"keep\": [0, 1, ...]}"
+        )}],
+    )
+    try:
+        m = re.search(r'\{[\s\S]*\}', msg.content[0].text)
+        keep = set(json.loads(m.group()).get("keep", range(len(notes)))) if m else set(range(len(notes)))
+    except Exception:
+        return notes
+    return [n for i, n in enumerate(notes) if i in keep]
+
+
 def _handle_tool(name: str, input_: dict) -> dict:
     if name == "finalize_and_push":
         seek_ids = list(input_.get("seek_ids", []))
@@ -621,6 +643,8 @@ def _handle_tool(name: str, input_: dict) -> dict:
             ctx_path = DATA_DIR / "context.json"
             ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
             ctx["notes"].append({"date": date.today().isoformat(), "note": context_note.strip()})
+            if len(ctx["notes"]) > 10:
+                ctx["notes"] = _dedupe_context(ctx["notes"])
             ctx_path.write_text(json.dumps(ctx, indent=2))
 
         pdf_name = push_pdf()

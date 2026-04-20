@@ -1174,7 +1174,7 @@ async def api_chat(body: ChatBody):
 
         try:
             async with client.messages.stream(
-                model="claude-sonnet-4-6",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=1024,
                 system=system_prompt,
                 tools=tools,
@@ -1218,7 +1218,7 @@ async def api_chat(body: ChatBody):
             cont_text = ""
             try:
                 async with client.messages.stream(
-                    model="claude-sonnet-4-6",
+                    model="claude-haiku-4-5-20251001",
                     max_tokens=512,
                     system=pipeline._build_chat_system_prompt(next_stage),
                     tools=tools,
