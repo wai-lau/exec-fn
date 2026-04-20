@@ -520,7 +520,7 @@ function renderList(text) {
   if (!text) return '<span style="opacity:0.4">&mdash;</span>';
   const parts = text.split(/\\s+(?=\\d+\\.\\s)/);
   if (parts.length > 1) {
-    const items = parts.map(p => `<li style="margin-bottom:6px">${p.replace(/^\d+\.\s*/, '')}</li>`).join('');
+    const items = parts.map(p => `<li style="margin-bottom:6px">${p.replace(/^\\d+\\.\\s*/, '')}</li>`).join('');
     return `<ol style="margin:0;padding-left:1.4em;line-height:1.6">${items}</ol>`;
   }
   return `<span style="line-height:1.7">${text}</span>`;
