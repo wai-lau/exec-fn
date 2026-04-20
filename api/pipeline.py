@@ -1143,6 +1143,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
 
         # Generate daily schedule
         today_dow = date.today().strftime("%A")
+        current_time = datetime.now().strftime("%-I:%M %p")
         junni_block = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
         cards_text = "".join(
             f"{cat} [{c.get('size','task')}] {c['title']} (id:{c['id']})\n"
@@ -1157,16 +1158,16 @@ def _handle_tool(name: str, input_: dict) -> dict:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=512,
                 messages=[{"role": "user", "content": (
-                    f"Generate a time-blocked schedule for Wai's day ({today_dow}).\n\n"
+                    f"Generate a time-blocked schedule for Wai's day ({today_dow}). Current time: {current_time}.\n\n"
                     f"TASKS:\n{cards_text}\n\n"
                     f"CALENDAR EVENTS:\n{events_text}\n\n"
                     f"YESTERDAY'S NOTES:\n{delta_text or 'none'}\n\n"
                     f"DAILY CONSTRAINTS:\n"
-                    f"- Wake 8:00am, sleep 1:00am\n"
-                    f"- Morning relax 8:00–10:30am (extend to afternoon if delta suggests out late)\n"
+                    f"- Start schedule at or after {current_time}\n"
+                    f"- Sleep 1:00am\n"
                     f"{junni_block}"
-                    f"- Lunch 11:45–12:45\n"
-                    f"- Dinner 6:45–7:45\n"
+                    f"- Lunch 11:45–12:45 (skip if current time is past 1pm)\n"
+                    f"- Dinner 6:45–7:45 (skip if current time is past 8pm)\n"
                     f"- Evening wind-down 11:00pm\n"
                     f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
                     f"- Leave 15min gap between tasks; group SEEK tasks if possible\n"
