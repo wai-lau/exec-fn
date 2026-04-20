@@ -186,13 +186,10 @@ def _delta_prompt() -> str:
 
 
 def _rollover_cutoff() -> datetime:
-    """Most recent 4:30 AM ET as a naive UTC datetime."""
-    # April–October = EDT = UTC-4; November–March = EST = UTC-5
-    # Use fixed EDT offset (UTC-4) since the system is configured TZ=America/New_York
-    # and we're in daylight saving time for the foreseeable deployment window.
-    now_utc = datetime.utcnow()
-    cutoff = now_utc.replace(hour=8, minute=30, second=0, microsecond=0)
-    if now_utc < cutoff:
+    """Most recent 4:30 AM ET as a naive local datetime (container TZ=America/New_York)."""
+    now = datetime.now()
+    cutoff = now.replace(hour=4, minute=30, second=0, microsecond=0)
+    if now < cutoff:
         cutoff -= timedelta(days=1)
     return cutoff
 
@@ -251,7 +248,9 @@ def _rm_latest_wai_modified() -> "datetime | None":
         if stat.returncode != 0:
             return None
         data = json.loads(stat.stdout)
-        return datetime.fromisoformat(data["ModifiedClient"].replace("Z", ""))
+        # ModifiedClient is UTC; convert to local ET (EDT = UTC-4)
+        utc = datetime.fromisoformat(data["ModifiedClient"].replace("Z", ""))
+        return utc - timedelta(hours=4)
     except Exception:
         return None
 
