@@ -498,7 +498,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
 
     return (
         f"You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
-        f"FORMATTING: Plain text only. No markdown — no **, no *, no #, no -, no bullet points, no headers.\n\n"
+        f"FORMATTING: Plain text only. No markdown — no **, no *, no #, no -, no bullet points, no headers.\n"
+        f"Never expose raw card IDs or internal formats (e.g. 'id:card-123 [task]') in your responses — refer to tasks by title only.\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
         f"MORNING BRIEFING CONTEXT:\n{morning.get('opening_message', 'No briefing available.')}\n\n"
