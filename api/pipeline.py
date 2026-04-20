@@ -185,6 +185,49 @@ def _delta_prompt() -> str:
     )
 
 
+def _rollover_cutoff() -> datetime:
+    """Most recent 4:30 AM ET as a naive UTC datetime."""
+    # April–October = EDT = UTC-4; November–March = EST = UTC-5
+    # Use fixed EDT offset (UTC-4) since the system is configured TZ=America/New_York
+    # and we're in daylight saving time for the foreseeable deployment window.
+    now_utc = datetime.utcnow()
+    cutoff = now_utc.replace(hour=8, minute=30, second=0, microsecond=0)
+    if now_utc < cutoff:
+        cutoff -= timedelta(days=1)
+    return cutoff
+
+
+def _parse_file_ts(stem: str) -> "datetime | None":
+    """Parse YYYYMMDD_HHMMSS from a filename stem, return naive UTC datetime."""
+    try:
+        parts = stem.split("_")
+        return datetime.strptime(f"{parts[-2]}_{parts[-1]}", "%Y%m%d_%H%M%S")
+    except Exception:
+        return None
+
+
+def _wai_files_since(cutoff: datetime) -> list:
+    """WAI_*.rmdoc paths from DATA_DIR since cutoff, newest first."""
+    files = []
+    for f in DATA_DIR.glob("WAI_*.rmdoc"):
+        ts = _parse_file_ts(f.stem)
+        if ts and ts >= cutoff:
+            files.append((ts, f))
+    files.sort(key=lambda x: x[0], reverse=True)
+    return [str(f) for _, f in files]
+
+
+def _delta_files_since(cutoff: datetime) -> list:
+    """delta_YYYYMMDD_HHMMSS.json paths since cutoff, newest first."""
+    files = []
+    for f in DATA_DIR.glob("delta_????????_??????.json"):
+        ts = _parse_file_ts(f.stem)
+        if ts and ts >= cutoff:
+            files.append((ts, f))
+    files.sort(key=lambda x: x[0], reverse=True)
+    return [str(f) for _, f in files]
+
+
 def _rm_latest_wai_modified() -> "datetime | None":
     """Return ModifiedClient of the latest WAI_* file on reMarkable, or None on failure."""
     try:
@@ -224,59 +267,135 @@ def analyze_delta(path: str = None) -> dict:
             except Exception:
                 pass
 
-    latest_path = path or pull_wai()
-
-    png_bytes = rasterize(latest_path, page_index=0)
-    png_path = DATA_DIR / f"delta_{_ts()}.png"
-    png_path.write_bytes(png_bytes)
-    png_b64 = base64.standard_b64encode(png_bytes).decode()
-
     client = anthropic.Anthropic()
+
+    def _rasterize_b64(fpath: str) -> "tuple[bytes, str]":
+        png = rasterize(fpath, page_index=0)
+        return png, base64.standard_b64encode(png).decode()
+
+    def _has_marks(b64: str) -> bool:
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=8,
+                messages=[{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
+                    {"type": "text", "text": "Are there any handwritten marks or annotations in this image? YES or NO only."},
+                ]}],
+            )
+            return "YES" in resp.content[0].text.upper()
+        except Exception:
+            return True
+
+    # Find best candidate: newest file with visible marks, back to last rollover
+    if path is not None:
+        candidates = [path]
+    else:
+        cutoff = _rollover_cutoff()
+        candidates = _wai_files_since(cutoff) or [pull_wai()]
+
+    chosen_path = candidates[0]
+    chosen_png_bytes = None
+    chosen_b64 = None
+
+    for cand in candidates:
+        try:
+            png, b64 = _rasterize_b64(cand)
+            if _has_marks(b64):
+                chosen_path = cand
+                chosen_png_bytes = png
+                chosen_b64 = b64
+                break
+        except Exception:
+            continue
+
+    # Fall back to most recent if nothing found
+    if chosen_b64 is None:
+        chosen_png_bytes, chosen_b64 = _rasterize_b64(chosen_path)
+
+    # Save PNG snapshot
+    png_path = DATA_DIR / f"delta_{_ts()}.png"
+    png_path.write_bytes(chosen_png_bytes)
+
+    # Full Sonnet analysis
     msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
-        messages=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "image",
-                    "source": {"type": "base64", "media_type": "image/png", "data": png_b64},
-                },
-                {
-                    "type": "text",
-                    "text": _delta_prompt(),
-                },
-            ],
-        }],
+        messages=[{"role": "user", "content": [
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": chosen_b64}},
+            {"type": "text", "text": _delta_prompt()},
+        ]}],
     )
-
     text = msg.content[0].text
     m = re.search(r'\{[\s\S]*\}', text)
     parsed = json.loads(m.group()) if m else {"wai_notes": text, "adjustments": ""}
 
-    delta = {
+    new_delta = {
         "analyzed_at": datetime.now().isoformat(),
-        "source_file": Path(latest_path).name,
+        "source_file": Path(chosen_path).name,
         "wai_notes": parsed.get("wai_notes", ""),
         "adjustments": parsed.get("adjustments", ""),
     }
-    payload = json.dumps(delta, indent=2)
-    (DATA_DIR / "delta.json").write_text(payload)
-    (DATA_DIR / f"delta_{_ts()}.json").write_text(payload)
+
+    # Save timestamped snapshot before merging
+    ts_path = DATA_DIR / f"delta_{_ts()}.json"
+    ts_path.write_text(json.dumps(new_delta, indent=2))
+
+    # Merge all today's deltas into a deduped summary
+    cutoff = _rollover_cutoff() if path is None else datetime.min
+    prior = []
+    for f in _delta_files_since(cutoff):
+        if Path(f) == ts_path:
+            continue
+        try:
+            prior.append(json.loads(Path(f).read_text()))
+        except Exception:
+            pass
+
+    if prior:
+        all_notes = "\n\n---\n\n".join(
+            filter(None, [d.get("wai_notes", "") for d in prior] + [new_delta["wai_notes"]])
+        )
+        all_adjustments = "\n\n---\n\n".join(
+            filter(None, [d.get("adjustments", "") for d in prior] + [new_delta["adjustments"]])
+        )
+        try:
+            merge_resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                messages=[{"role": "user", "content": (
+                    "These are multiple delta analyses from the same day. "
+                    "Deduplicate and merge into a single coherent summary for each field.\n\n"
+                    f"WAI_NOTES (multiple entries):\n{all_notes}\n\n"
+                    f"ADJUSTMENTS (multiple entries):\n{all_adjustments}\n\n"
+                    'JSON only: {"wai_notes": "...", "adjustments": "..."}'
+                )}],
+            )
+            raw = re.sub(r'^```\w*\n?', '', merge_resp.content[0].text.strip())
+            raw = re.sub(r'\n?```$', '', raw).strip()
+            mm = re.search(r'\{.*\}', raw, re.DOTALL)
+            if mm:
+                merged = json.loads(mm.group())
+                new_delta["wai_notes"] = merged.get("wai_notes", new_delta["wai_notes"])
+                new_delta["adjustments"] = merged.get("adjustments", new_delta["adjustments"])
+        except Exception:
+            pass
+
+    (DATA_DIR / "delta.json").write_text(json.dumps(new_delta, indent=2))
 
     updates = [u for u in parsed.get("context_updates", []) if isinstance(u, str) and u.strip()]
     if updates:
         ctx_path = DATA_DIR / "context.json"
         ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
-        existing = {n["note"].strip().lower() for n in ctx.get("notes", [])}
+        existing_notes = {n["note"].strip().lower() for n in ctx.get("notes", [])}
         today = date.today().isoformat()
         for note in updates:
-            if note.strip().lower() not in existing:
+            if note.strip().lower() not in existing_notes:
                 ctx["notes"].append({"date": today, "note": note.strip()})
-                existing.add(note.strip().lower())
+                existing_notes.add(note.strip().lower())
         ctx_path.write_text(json.dumps(ctx, indent=2))
 
-    return delta
+    return new_delta
 
 
 # ── update rd from delta ───────────────────────────────────────────────────────
