@@ -617,6 +617,11 @@ def _chat_tools() -> list:
                 "required": ["id"],
             },
         },
+        {
+            "name": "update_preview",
+            "description": "Refresh the preview panel in the UI to show the latest directives, cards, and omens. Call after changes that Wai should see reflected immediately.",
+            "input_schema": {"type": "object", "properties": {}},
+        },
     ]
 
 
@@ -735,6 +740,9 @@ def _handle_tool(name: str, input_: dict) -> dict:
             return {"error": f"Card not found: {input_.get('id')}"}
         rd_path.write_text(json.dumps(rd, indent=2))
         return {"ok": True, "deleted": input_.get("id")}
+
+    if name == "update_preview":
+        return {"ok": True}
 
     return {"error": f"Unknown tool: {name}"}
 
