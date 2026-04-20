@@ -620,16 +620,19 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_preview",
-            "description": "Build the PDF and open the preview panel so Wai can review the current plan. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable. Always include a fresh encouraging_message.",
+            "description": "Finalize the card categorization, build the PDF, and open the preview panel so Wai can review the current plan. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable.",
             "input_schema": {
                 "type": "object",
                 "properties": {
+                    "seek_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring going outdoors."},
+                    "hack_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs that can be done quickly at home (under an hour)."},
+                    "dive_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring extended focus or setup (over an hour)."},
                     "encouraging_message": {
                         "type": "string",
                         "description": "Fresh encouraging message for Wai, shown in the preview panel. Incorporate yesterday's delta into the tone and content.",
                     },
                 },
-                "required": ["encouraging_message"],
+                "required": ["seek_ids", "hack_ids", "dive_ids", "encouraging_message"],
             },
         },
     ]
@@ -761,12 +764,31 @@ def _handle_tool(name: str, input_: dict) -> dict:
 
     if name == "update_preview":
         from build_pdf import build as pdf_build
-        msg = input_.get("encouraging_message", "")
-        if msg:
-            dir_path = DATA_DIR / "directives.json"
-            d = json.loads(dir_path.read_text()) if dir_path.exists() else {}
-            d["encouraging_message"] = msg
-            dir_path.write_text(json.dumps(d, indent=2))
+        seek_ids = list(input_.get("seek_ids", []))
+        hack_ids = list(input_.get("hack_ids", []))
+        dive_ids = list(input_.get("dive_ids", []))
+        encouraging = input_.get("encouraging_message", "")
+
+        rd_path = DATA_DIR / "rd.json"
+        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+        cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
+
+        def _card_obj(id_):
+            card = cards_by_id.get(id_)
+            if not card:
+                return None
+            steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
+            return {"id": id_, "title": card["title"], "steps": steps}
+
+        directives = {
+            "generated_at": datetime.now().isoformat(),
+            "seek": [o for o in (_card_obj(i) for i in seek_ids) if o],
+            "hack": [o for o in (_card_obj(i) for i in hack_ids) if o],
+            "dive": [o for o in (_card_obj(i) for i in dive_ids) if o],
+            "encouraging_message": encouraging,
+        }
+        (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
+
         ts = _ts()
         pdf_path = DATA_DIR / f"WAI_{ts}.pdf"
         pdf_build(str(pdf_path))
