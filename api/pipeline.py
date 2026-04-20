@@ -395,9 +395,8 @@ def analyze_omens() -> dict:
             "role": "user",
             "content": (
                 f"Wai's upcoming calendar events (next 14 days):\n{events_text}\n\n"
-                "Flag any events requiring preparation or attention. "
-                "Focus on social events, deadlines, appointments, or anything needing >1 day prep. "
-                "Skip routine recurring events unless notably important. "
+                "List ALL events in the next 3 days without exception. "
+                "For events 4-14 days away, include anything social, medical, or requiring prep — skip only truly trivial recurring events (e.g. daily alarms, auto-generated). "
                 'Return as JSON only: {"events": [{"title": "...", "date": "...", "prep_notes": "..."}]}'
             ),
         }],
