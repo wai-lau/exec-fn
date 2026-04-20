@@ -19,7 +19,7 @@ RM_FOLDER = "/EXEC"
 
 
 def pull_exec(baseline: bool = False) -> str:
-    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], cwd=str(DATA_DIR), capture_output=True, text=True)
+    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], cwd=str(DATA_DIR), capture_output=True, text=True, timeout=30)
     if ls.returncode != 0:
         raise RuntimeError(f"rmapi ls failed: {(ls.stderr or ls.stdout).strip()}")
 
@@ -37,7 +37,7 @@ def pull_exec(baseline: bool = False) -> str:
     result = subprocess.run(
         ["rmapi", "get", f"{RM_FOLDER}/{latest}"],
         cwd=str(DATA_DIR),
-        capture_output=True, text=True,
+        capture_output=True, text=True, timeout=60,
     )
     if result.returncode != 0:
         raise RuntimeError(f"rmapi get failed: {(result.stderr or result.stdout).strip()}")
@@ -65,7 +65,7 @@ def push_pdf() -> str:
 
     result = subprocess.run(
         ["rmapi", "put", "--force", str(pdf_path), RM_FOLDER],
-        capture_output=True, text=True,
+        capture_output=True, text=True, timeout=60,
     )
     if result.returncode != 0:
         raise RuntimeError(f"rmapi put failed: {result.stderr.strip()}")
