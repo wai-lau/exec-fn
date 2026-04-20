@@ -620,19 +620,15 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_preview",
-            "description": "Save the card categorization and open the preview panel so Wai can review the current plan. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable.",
+            "description": "Refresh omens and delta, generate a fresh encouraging message, save the card categorization, and open the preview panel. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable.",
             "input_schema": {
                 "type": "object",
                 "properties": {
                     "seek_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring going outdoors."},
                     "hack_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs that can be done quickly at home (under an hour)."},
                     "dive_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring extended focus or setup (over an hour)."},
-                    "encouraging_message": {
-                        "type": "string",
-                        "description": "Fresh encouraging message for Wai, shown in the preview panel. Incorporate yesterday's delta into the tone and content.",
-                    },
                 },
-                "required": ["seek_ids", "hack_ids", "dive_ids", "encouraging_message"],
+                "required": ["seek_ids", "hack_ids", "dive_ids"],
             },
         },
     ]
@@ -763,10 +759,43 @@ def _handle_tool(name: str, input_: dict) -> dict:
         return {"ok": True, "deleted": input_.get("id")}
 
     if name == "update_preview":
+        import anthropic
         seek_ids = list(input_.get("seek_ids", []))
         hack_ids = list(input_.get("hack_ids", []))
         dive_ids = list(input_.get("dive_ids", []))
-        encouraging = input_.get("encouraging_message", "")
+
+        # Refresh omens and delta
+        try:
+            analyze_omens()
+        except Exception:
+            pass
+        try:
+            analyze_delta()
+        except Exception:
+            pass
+
+        # Generate encouraging message from fresh delta
+        delta = {}
+        delta_path = DATA_DIR / "delta.json"
+        if delta_path.exists():
+            delta = json.loads(delta_path.read_text())
+        delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
+
+        encouraging = ""
+        try:
+            client = anthropic.Anthropic()
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=128,
+                messages=[{"role": "user", "content": (
+                    f"Yesterday's delta: {delta_text or 'none'}\n\n"
+                    "Write a short (1-2 sentence) warm, personal encouraging message for Wai "
+                    "based on what they did yesterday. Plain text only."
+                )}],
+            )
+            encouraging = resp.content[0].text.strip()
+        except Exception:
+            pass
 
         rd_path = DATA_DIR / "rd.json"
         rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
