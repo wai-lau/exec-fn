@@ -719,7 +719,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
     <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.18em;opacity:0.5;">directives</span>
     <div style="display:flex;gap:10px;">
-      <button class="pr-push" id="pr-rebuild-btn" onclick="rebuildPreview(this)">[rebuild]</button>
+      <button class="pr-push" id="pr-rebuild-btn" onclick="rebuildPreview(this)">[plan]</button>
       <button class="pr-push" id="pr-push-btn" onclick="doPush(this)">push &rarr;</button>
     </div>
   </div>
@@ -1034,21 +1034,21 @@ async function doPush(btn) {
 }
 
 async function rebuildPreview(btn) {
-  btn.disabled = true; btn.textContent = 'assembling...';
+  btn.disabled = true; btn.textContent = 'planning...';
   const r = await fetch('/api/assemble_plan', {method:'POST'});
   btn.disabled = false;
   if (!r.ok) {
     const err = await r.json().catch(()=>({detail:'error'}));
     document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,100,100,0.8);font-size:0.8rem">assemble failed: ${err.detail}</span>`;
-    btn.textContent = '[rebuild]';
+    btn.textContent = '[plan]';
     return;
   }
   const data = await r.json().catch(()=>({}));
   if (data.delta_error) {
     document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,160,80,0.85);font-size:0.8rem">delta failed: ${data.delta_error}</span>`;
   }
-  btn.textContent = '[assembled]';
-  setTimeout(()=>{ btn.textContent='[rebuild]'; },3000);
+  btn.textContent = '[planned]';
+  setTimeout(()=>{ btn.textContent='[plan]'; },3000);
   previewLoaded = false;
   loadPreview();
 }
