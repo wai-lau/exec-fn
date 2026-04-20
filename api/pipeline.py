@@ -411,6 +411,36 @@ def analyze_delta(path: str = None) -> dict:
     return _merge_day_deltas(day_start, day_end)
 
 
+def analyze_delta_to_now() -> None:
+    """Pull latest rmdoc and analyze all WAI files from yesterday's rollover to now.
+
+    Used by assemble_plan so the delta covers the full day up to the current moment,
+    not just the morning window. Creates/updates delta_wai_*.json files which
+    _load_all_recent_deltas() then merges.
+    """
+    day_start, _ = _day_window()
+    now = datetime.now()
+
+    # Pull latest from reMarkable if it's newer than anything we have locally
+    modified = _rm_latest_wai_modified()
+    newest_local = None
+    for f in DATA_DIR.glob("WAI_*.rmdoc"):
+        ts = _parse_file_ts(f.stem)
+        if ts and (newest_local is None or ts > newest_local):
+            newest_local = ts
+
+    if modified is None or newest_local is None or modified > newest_local:
+        try:
+            pull_wai()
+        except Exception:
+            pass
+
+    # Analyze all WAI files from yesterday's rollover to now
+    candidates = _wai_files_in_window(day_start, now)
+    for wai_path in candidates:
+        _analyze_wai_doc(wai_path)
+
+
 # ── update rd from delta ───────────────────────────────────────────────────────
 
 def update_rd_from_delta(delta: dict) -> str:
@@ -1064,7 +1094,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
             pass
         delta_error = None
         try:
-            analyze_delta()
+            analyze_delta_to_now()
         except Exception as e:
             delta_error = str(e)
 
