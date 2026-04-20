@@ -710,7 +710,10 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   <button id="preview-close" onclick="closePreview()">[x] close</button>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
     <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.18em;opacity:0.5;">directives</span>
-    <button class="pr-push" id="pr-push-btn" onclick="doPush(this)">push &rarr;</button>
+    <div style="display:flex;gap:10px;">
+      <button class="pr-push" id="pr-rebuild-btn" onclick="rebuildPreview(this)">[rebuild]</button>
+      <button class="pr-push" id="pr-push-btn" onclick="doPush(this)">push &rarr;</button>
+    </div>
   </div>
   <div id="pr-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:36px;">
     <span style="opacity:0.4;font-size:0.8rem;">loading...</span>
@@ -826,7 +829,7 @@ async function streamResponse() {
           else if (data.name === 'update_card') addMsg('sys', `[ updated: ${r.title || data.input?.id} ]`);
           else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
           else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
-          else if (data.name === 'update_preview') { previewLoaded = false; openPreview(); addMsg('sys', '[ preview updated ]'); }
+          else if (data.name === 'rebuild_preview') { previewLoaded = false; openPreview(); addMsg('sys', '[ preview rebuilt ]'); }
           else if (data.name === 'finalize_and_push') { addMsg('sys', '[ pushed to reMarkable ]'); }
         } else if (data.type === 'done') {
           stage = data.next_stage;
@@ -1019,6 +1022,17 @@ async function doPush(btn) {
   btn.disabled = false;
   if (!r.ok) { const err = await r.json().catch(()=>({detail:'error'})); alert(err.detail); btn.textContent = 'push \u2192'; }
   else { btn.textContent = 'pushed \u2713'; setTimeout(()=>{btn.textContent='push \u2192';},3000); }
+}
+
+async function rebuildPreview(btn) {
+  btn.disabled = true; btn.textContent = 'rebuilding...';
+  const r = await fetch('/api/rebuild_preview', {method:'POST'});
+  btn.disabled = false;
+  if (!r.ok) { const err = await r.json().catch(()=>({detail:'error'})); alert(err.detail); btn.textContent = '[rebuild]'; return; }
+  btn.textContent = '[rebuilt]';
+  setTimeout(()=>{ btn.textContent='[rebuild]'; },3000);
+  previewLoaded = false;
+  loadPreview();
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
@@ -1327,6 +1341,22 @@ def api_directives_get():
 def api_push():
     try:
         return {"pdf": pipeline.push_pdf()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@protected.post("/api/rebuild_preview")
+def api_rebuild_preview():
+    try:
+        p = DATA_DIR / "directives.json"
+        d = json.loads(p.read_text()) if p.exists() else {}
+        seek_ids = [c["id"] for c in d.get("seek", []) if isinstance(c, dict)]
+        hack_ids = [c["id"] for c in d.get("hack", []) if isinstance(c, dict)]
+        dive_ids = [c["id"] for c in d.get("dive", []) if isinstance(c, dict)]
+        result = pipeline._handle_tool("rebuild_preview", {
+            "seek_ids": seek_ids, "hack_ids": hack_ids, "dive_ids": dive_ids,
+        })
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

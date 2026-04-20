@@ -488,7 +488,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields), delete_card (permanent removal). "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
             "When finalizing, categorize each card: SEEK=requires going outdoors, HACK=quick at home (under 1h), DIVE=extended focus/setup/cleanup (over 1h). "
-            "When the plan looks ready, call update_preview to build the PDF and show Wai the preview, then ask if they want to push. "
+            "When the plan looks ready, call rebuild_preview to build the PDF and show Wai the preview, then ask if they want to push. "
             "When Wai says yes to pushing, immediately call finalize_and_push — do NOT ask for another confirmation. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
@@ -619,7 +619,7 @@ def _chat_tools() -> list:
             },
         },
         {
-            "name": "update_preview",
+            "name": "rebuild_preview",
             "description": "Refresh omens and delta, generate a fresh encouraging message, save the card categorization, and open the preview panel. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable.",
             "input_schema": {
                 "type": "object",
@@ -758,7 +758,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
         rd_path.write_text(json.dumps(rd, indent=2))
         return {"ok": True, "deleted": input_.get("id")}
 
-    if name == "update_preview":
+    if name == "rebuild_preview":
         import anthropic
         seek_ids = list(input_.get("seek_ids", []))
         hack_ids = list(input_.get("hack_ids", []))
