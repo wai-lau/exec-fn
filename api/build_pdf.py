@@ -21,13 +21,6 @@ SIZE_TITLE   = 14
 SIZE_SECTION = 12
 SIZE_ITEM    = 10
 
-TYPE_COLORS = {
-    "seek":  "#888888",
-    "hack":  "#444444",
-    "dive":  "#111111",
-    "break": "#aaaaaa",
-}
-
 
 def _wrap(text, font, size, max_w):
     from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -47,12 +40,15 @@ def _wrap(text, font, size, max_w):
 
 
 def draw_schedule_page(c, plan, events):
+    from reportlab.pdfbase.pdfmetrics import stringWidth
     LH   = 6.5 * mm
     SH   = 5.5 * mm
     SECH = 7.2 * mm
     GAP  = 1.6 * mm
-    TIME_W = 18 * mm
     CW   = W - 2 * MARGIN
+    # Indent for task text: width of "00:00  " so wraps stay aligned
+    TIME_INDENT = stringWidth("00:00  ", FONT_ITEM, SIZE_ITEM)
+    TASK_W = CW - TIME_INDENT
 
     def sec_header(y, label):
         c.setFont(FONT_SECTION, SIZE_SECTION - 1)
@@ -77,32 +73,25 @@ def draw_schedule_page(c, plan, events):
     schedule = plan.get("schedule") or []
     if schedule:
         y = sec_header(y, "SCHEDULE")
-        task_w = CW - TIME_W - 2 * mm
         for entry in schedule:
             if y < MARGIN + SH:
                 break
-            t = entry.get("time", "")
+            # Strip AM/PM to get "H:MM" format
+            t = entry.get("time", "").replace(" AM", "").replace(" PM", "")
             task = entry.get("task", "")
-            typ = entry.get("type", "seek")
-            col = TYPE_COLORS.get(typ, "#444444")
-            font = FONT_SECTION if typ == "dive" else FONT_ITEM
 
-            task_lines = _wrap(task, font, SIZE_ITEM, task_w)
-            block_h = len(task_lines) * SH
-
-            if y - block_h < MARGIN:
+            task_lines = _wrap(task, FONT_ITEM, SIZE_ITEM, TASK_W)
+            if y - len(task_lines) * SH < MARGIN:
                 break
 
-            c.setFont(FONT_ITEM, SIZE_ITEM - 1)
+            c.setFont(FONT_ITEM, SIZE_ITEM)
             c.setFillColor(colors.HexColor("#888888"))
             c.drawString(MARGIN, y, t)
 
-            c.setFont(font, SIZE_ITEM)
-            c.setFillColor(colors.HexColor(col))
-            for i, ln in enumerate(task_lines):
-                c.drawString(MARGIN + TIME_W, y - i * SH, ln)
-
-            y -= block_h
+            c.setFillColor(colors.HexColor("#222222"))
+            for ln in task_lines:
+                c.drawString(MARGIN + TIME_INDENT, y, ln)
+                y -= SH
         y -= GAP
 
     if events and y > MARGIN + LH * 2:
