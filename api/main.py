@@ -1252,8 +1252,8 @@ def api_archive():
 def archive_page_png(filename: str, page_num: int):
     from fastapi.responses import Response
     from rm_to_pdf import rasterize
-    p = DATA_DIR / filename
-    if not p.exists() or not filename.endswith(".rmdoc"):
+    p = (DATA_DIR / filename).resolve()
+    if not str(p).startswith(str(DATA_DIR.resolve())) or not filename.endswith(".rmdoc") or not p.exists():
         raise HTTPException(status_code=404, detail="not found")
     png_bytes = rasterize(str(p), page_index=page_num)
     return Response(content=png_bytes, media_type="image/png")
