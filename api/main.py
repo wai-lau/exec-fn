@@ -821,6 +821,7 @@ async function streamResponse() {
           else if (data.name === 'move_card') addMsg('sys', `[ moved "${r.title || data.input?.id}" → ${r.column || ''} ]`);
           else if (data.name === 'update_card') addMsg('sys', `[ updated: ${r.title || data.input?.id} ]`);
           else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
+          else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
         } else if (data.type === 'done') {
           stage = data.next_stage;
           if (stage === 'done') {
@@ -900,6 +901,7 @@ function restoreMsg(m) {
           else if (b.name === 'move_card') addMsg('sys', `[ moved "${inp.id}" → ${inp.column || ''} ]`);
           else if (b.name === 'update_card') addMsg('sys', `[ updated: ${inp.id} ]`);
           else if (b.name === 'delete_card') addMsg('sys', `[ deleted: ${inp.id} ]`);
+          else if (b.name === 'refresh_omens') addMsg('sys', `[ omens refreshed ]`);
         }
       }
     }

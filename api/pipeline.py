@@ -539,6 +539,11 @@ def _chat_tools() -> list:
             },
         },
         {
+            "name": "refresh_omens",
+            "description": "Refetch upcoming calendar events from Google Calendar and update omens. Use when Wai asks about upcoming events or wants omens refreshed.",
+            "input_schema": {"type": "object", "properties": {}},
+        },
+        {
             "name": "move_card",
             "description": "Move a card to a different column. Use to archive completed tasks, exile irrelevant ones, or pull ideas into the active pool.",
             "input_schema": {
@@ -640,6 +645,12 @@ def _handle_tool(name: str, input_: dict) -> dict:
         rd["cards"] = existing
         rd_path.write_text(json.dumps(rd, indent=2))
         return {"ok": True, "id": new_id, "title": new_card["title"]}
+
+    if name == "refresh_omens":
+        result = analyze_omens()
+        events = result.get("events", [])
+        summary = ", ".join(e.get("title", "") for e in events) if events else "none"
+        return {"ok": True, "event_count": len(events), "events": summary}
 
     if name == "move_card":
         rd_path = DATA_DIR / "rd.json"
