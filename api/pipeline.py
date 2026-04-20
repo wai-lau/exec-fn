@@ -1171,11 +1171,10 @@ def _handle_tool(name: str, input_: dict) -> dict:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=300,
                 messages=[{"role": "user", "content": (
-                    f"PREVIOUS DAY: {yesterday_text or 'none'}\n"
-                    f"SINCE LAST 4:30AM (current day window): {delta_text or 'none'}\n\n"
+                    f"YESTERDAY: {yesterday_text or 'none'}\n"
+                    f"TODAY (so far, since 4:30am): {delta_text or 'none'}\n\n"
                     "Write a warm, personal encouraging message for Wai (3-5 sentences). "
-                    "Address everything they accomplished since yesterday's 4:30am -- be specific about what they did. "
-                    "Reference the previous day too if there is anything notable. "
+                    "Be specific about what they did yesterday and what they have already done today. "
                     "Plain text only. No em-dashes."
                 )}],
             )
