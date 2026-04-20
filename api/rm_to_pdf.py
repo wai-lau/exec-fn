@@ -41,10 +41,15 @@ def rasterize(rmdoc_path: str, page_index: int = 0) -> bytes:
         content = json.loads(z.read(f"{uid}.content"))
 
         if "cPages" in content:
-            pages = content["cPages"]["pages"]
+            pages = content["cPages"].get("pages") or []
         else:
-            raw = content.get("pages", [])
+            raw = content.get("pages") or []
             pages = [{"id": p} for p in raw] if raw and isinstance(raw[0], str) else raw
+
+        if not pages:
+            buf = io.BytesIO()
+            Image.new("RGB", (RM_W // 2, RM_H // 2), "white").save(buf, format="PNG")
+            return buf.getvalue()
 
         page = pages[min(page_index, len(pages) - 1)]
         page_id = page["id"] if isinstance(page, dict) else page
