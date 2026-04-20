@@ -356,6 +356,13 @@ def _gcal_creds():
     return creds
 
 
+CALENDAR_IDS = [
+    "wl.wailau@gmail.com",
+    "family02183524598292154389@group.calendar.google.com",
+    "lk327a43fqki6f02k23hg7uufg5kn5vj@import.calendar.google.com",  # Mindscape Counselling Collective
+]
+
+
 def fetch_calendar_events(days_ahead: int = 14) -> list:
     from googleapiclient.discovery import build as gcal_build
 
@@ -364,23 +371,33 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
 
     now = datetime.utcnow().isoformat() + "Z"
     end = (datetime.utcnow() + timedelta(days=days_ahead)).isoformat() + "Z"
-    result = service.events().list(
-        calendarId="primary",
-        timeMin=now,
-        timeMax=end,
-        singleEvents=True,
-        orderBy="startTime",
-        maxResults=20,
-    ).execute()
 
-    return [
-        {
-            "summary": item.get("summary", "Untitled"),
-            "start": item["start"].get("dateTime", item["start"].get("date", "")),
-            "description": item.get("description", ""),
-        }
-        for item in result.get("items", [])
-    ]
+    events = []
+    seen = set()
+    for cal_id in CALENDAR_IDS:
+        try:
+            result = service.events().list(
+                calendarId=cal_id,
+                timeMin=now,
+                timeMax=end,
+                singleEvents=True,
+                orderBy="startTime",
+                maxResults=20,
+            ).execute()
+            for item in result.get("items", []):
+                key = (item.get("summary", ""), item["start"].get("dateTime", item["start"].get("date", "")))
+                if key not in seen:
+                    seen.add(key)
+                    events.append({
+                        "summary": item.get("summary", "Untitled"),
+                        "start": item["start"].get("dateTime", item["start"].get("date", "")),
+                        "description": item.get("description", ""),
+                    })
+        except Exception:
+            pass
+
+    events.sort(key=lambda e: e["start"])
+    return events
 
 
 def analyze_omens() -> dict:
