@@ -1,6 +1,14 @@
 import json, re, shutil, subprocess, base64
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+ET = ZoneInfo("America/New_York")
+
+
+def _now_et() -> datetime:
+    """Current time in ET as a naive datetime (for display and schedule comparisons)."""
+    return datetime.now(ET).replace(tzinfo=None)
 
 DATA_DIR = Path("/app/data")
 
@@ -186,12 +194,12 @@ def _delta_prompt() -> str:
 
 
 def _rollover_cutoff() -> datetime:
-    """Most recent 4:30 AM ET as a naive local datetime (container TZ=America/New_York)."""
-    now = datetime.now()
-    cutoff = now.replace(hour=4, minute=30, second=0, microsecond=0)
-    if now < cutoff:
-        cutoff -= timedelta(days=1)
-    return cutoff
+    """Most recent 4:30 AM ET as a naive UTC datetime (for comparing with UTC file timestamps)."""
+    now_et = datetime.now(ET)
+    cutoff_et = now_et.replace(hour=4, minute=30, second=0, microsecond=0)
+    if now_et < cutoff_et:
+        cutoff_et -= timedelta(days=1)
+    return cutoff_et.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def _parse_file_ts(stem: str) -> "datetime | None":
@@ -248,9 +256,8 @@ def _rm_latest_wai_modified() -> "datetime | None":
         if stat.returncode != 0:
             return None
         data = json.loads(stat.stdout)
-        # ModifiedClient is UTC; convert to local ET (EDT = UTC-4)
         utc = datetime.fromisoformat(data["ModifiedClient"].replace("Z", ""))
-        return utc - timedelta(hours=4)
+        return utc  # UTC naive, consistent with file timestamps
     except Exception:
         return None
 
@@ -797,7 +804,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         ),
     }
 
-    today_str = datetime.now().strftime("%A, %B %-d, %Y %H:%M ET")
+    today_str = _now_et().strftime("%A, %B %-d, %Y %H:%M ET")
     return (
         f"You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
         f"TODAY: {today_str}\n"
@@ -1143,8 +1150,9 @@ def _handle_tool(name: str, input_: dict) -> dict:
             pass
 
         # Generate daily schedule
-        today_dow = date.today().strftime("%A")
-        current_time = datetime.now().strftime("%-I:%M %p")
+        now_et = _now_et()
+        today_dow = now_et.strftime("%A")
+        current_time = now_et.strftime("%-I:%M %p")
         junni_block = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
         cards_text = "".join(
             f"{cat} [{c.get('size','task')}] {c['title']} (id:{c['id']})\n"
@@ -1216,7 +1224,8 @@ def _handle_tool(name: str, input_: dict) -> dict:
         events = plan.get("omens", [])
         feedback = input_.get("feedback", "")
 
-        today_dow = date.today().strftime("%A")
+        now_et = _now_et()
+        today_dow = now_et.strftime("%A")
         junni_block = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
         cards_text = "".join(
             f"{cat} [{c.get('size','task')}] {c.get('title', c) if isinstance(c, dict) else c}\n"
@@ -1225,11 +1234,11 @@ def _handle_tool(name: str, input_: dict) -> dict:
         ) or "None."
         events_text = "\n".join(f"- {e.get('title','')} ({e.get('date','')})" for e in events) or "None."
         delta_text = (_load_all_recent_deltas().get("wai_notes") or "")
-        current_time = datetime.now().strftime("%-I:%M %p")
+        current_time = now_et.strftime("%-I:%M %p")
 
-        # Identify tasks already past their scheduled time
+        # Identify tasks already past their scheduled time (schedule times are ET)
         existing_schedule = plan.get("schedule", [])
-        now = datetime.now()
+        now = now_et
         done_titles = set()
         for entry in existing_schedule:
             try:

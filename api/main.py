@@ -603,7 +603,7 @@ async function loadOmens() {
   const d = await r.json();
   const evts = d.events || [];
   el.innerHTML = evts.length
-    ? evts.map(e=>`<div class="item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
+    ? `<table style="border-collapse:collapse;width:100%">${evts.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
     : '<p style="opacity:0.4;font-size:0.8rem">no omens</p>';
   document.getElementById('omens-ts').textContent = d.checked_at || '';
 }
@@ -716,7 +716,7 @@ async function loadPlan() {
     const d = await omensRes.json();
     const evts = d.events || [];
     document.getElementById('pr-omens').innerHTML = evts.length
-      ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
+      ? `<table style="border-collapse:collapse;width:100%">${evts.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
       : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
   }
 
@@ -738,7 +738,7 @@ async function refreshOmens(btn) {
   if (r.ok) {
     const d = await r.json();
     document.getElementById('pr-omens').innerHTML = (d.events||[]).length
-      ? d.events.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
+      ? `<table style="border-collapse:collapse;width:100%">${d.events.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
       : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
   }
 }
