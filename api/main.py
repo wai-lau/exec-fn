@@ -1364,7 +1364,7 @@ def api_context():
 
 @protected.get("/api/delta")
 def api_delta_get():
-    d = pipeline._load_daily_delta()
+    d = pipeline._load_all_recent_deltas()
     if not d:
         raise HTTPException(status_code=404, detail="No delta yet")
     return d

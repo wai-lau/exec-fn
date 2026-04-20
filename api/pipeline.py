@@ -718,6 +718,14 @@ def _load_daily_delta() -> dict:
     return json.loads(p.read_text()) if p.exists() else {}
 
 
+def _load_yesterday_delta() -> dict:
+    """Load the merged delta from the previous day window."""
+    day_start, _ = _day_window()
+    prev_start = day_start - timedelta(days=1)
+    p = DATA_DIR / f"delta_{prev_start.strftime('%m%d')}.json"
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
 def _load_all_recent_deltas() -> dict:
     """Merge all delta_wai_*.json from yesterday's rollover up to now."""
     day_start, _ = _day_window()
@@ -1106,9 +1114,11 @@ def _handle_tool(name: str, input_: dict) -> dict:
             import traceback
             delta_error = f"{e}\n{traceback.format_exc()}"
 
-        # Load fresh data — all delta_wai files from yesterday's rollover to now
-        delta = _load_all_recent_deltas()
-        delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
+        # Load fresh data — yesterday's merged delta + today's delta_wai files
+        yesterday_delta = _load_yesterday_delta()
+        today_delta = _load_all_recent_deltas()
+        delta = today_delta  # used for schedule/plan context
+        delta_text = " ".join(filter(None, [today_delta.get("wai_notes", ""), today_delta.get("adjustments", "")])).strip()
 
         omens_data = {}
         omens_path = DATA_DIR / "omens.json"
@@ -1136,13 +1146,16 @@ def _handle_tool(name: str, input_: dict) -> dict:
         # Generate encouraging message
         encouraging = ""
         try:
+            yesterday_text = " ".join(filter(None, [yesterday_delta.get("wai_notes", ""), yesterday_delta.get("adjustments", "")])).strip()
             resp = client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=128,
+                max_tokens=150,
                 messages=[{"role": "user", "content": (
-                    f"Yesterday's delta: {delta_text or 'none'}\n\n"
-                    "Write a short (1-2 sentence) warm, personal encouraging message for Wai "
-                    "based on what they did yesterday. Plain text only."
+                    f"YESTERDAY (previous day): {yesterday_text or 'none'}\n"
+                    f"TODAY (so far): {delta_text or 'none'}\n\n"
+                    "Write a short (1-2 sentence) warm, personal encouraging message for Wai. "
+                    "Reference what they did yesterday AND what they've already done today if applicable. "
+                    "Plain text only."
                 )}],
             )
             encouraging = resp.content[0].text.strip()
