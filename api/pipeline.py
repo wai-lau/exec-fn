@@ -320,6 +320,14 @@ def build_morning() -> dict:
     if chat_path.exists():
         chat_path.unlink()
 
+    # Dedupe context notes daily
+    ctx_path = DATA_DIR / "context.json"
+    if ctx_path.exists():
+        ctx = json.loads(ctx_path.read_text())
+        if len(ctx.get("notes", [])) > 1:
+            ctx["notes"] = _dedupe_context(ctx["notes"])
+            ctx_path.write_text(json.dumps(ctx, indent=2))
+
     latest_path = pull_exec(baseline=True)
     delta = analyze_delta(path=latest_path)
     omens = analyze_omens()
@@ -643,8 +651,6 @@ def _handle_tool(name: str, input_: dict) -> dict:
             ctx_path = DATA_DIR / "context.json"
             ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
             ctx["notes"].append({"date": date.today().isoformat(), "note": context_note.strip()})
-            if len(ctx["notes"]) > 10:
-                ctx["notes"] = _dedupe_context(ctx["notes"])
             ctx_path.write_text(json.dumps(ctx, indent=2))
 
         pdf_name = push_pdf()
