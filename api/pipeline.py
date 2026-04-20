@@ -458,6 +458,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "Book category cards are for reading only — do NOT select them for directives. "
             "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields), delete_card (permanent removal). "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
+            "When finalizing, categorize each card: SEEK=requires going outdoors, HACK=quick at home (under 1h), DIVE=extended focus/setup/cleanup (over 1h). "
             "When Wai confirms their plan, immediately call finalize_and_push — do NOT ask for a second confirmation. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
@@ -484,14 +485,24 @@ def _chat_tools() -> list:
     return [
         {
             "name": "finalize_and_push",
-            "description": "Finalize today's plan and push the PDF to reMarkable. Call this once Wai confirms their plan — no second confirmation needed.",
+            "description": "Finalize today's plan and push the PDF to reMarkable. Categorize each selected card into SEEK/HACK/DIVE. Call immediately once Wai confirms — no second confirmation needed.",
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "selected_ids": {
+                    "seek_ids": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Card IDs to set as selected (today's plan). Others move to ideas.",
+                        "description": "Card IDs requiring going outdoors (errands, outdoor activities, travel).",
+                    },
+                    "hack_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Card IDs that can be done quickly at home (under an hour, minimal setup).",
+                    },
+                    "dive_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Card IDs requiring setup/cleanup, extended focus, or a complete session (over an hour).",
                     },
                     "encouraging_message": {
                         "type": "string",
@@ -502,7 +513,7 @@ def _chat_tools() -> list:
                         "description": "New long-term fact about Wai to remember (optional).",
                     },
                 },
-                "required": ["selected_ids", "encouraging_message"],
+                "required": ["seek_ids", "hack_ids", "dive_ids", "encouraging_message"],
             },
         },
         {
@@ -575,7 +586,10 @@ def _chat_tools() -> list:
 
 def _handle_tool(name: str, input_: dict) -> dict:
     if name == "finalize_and_push":
-        selected_ids = set(input_.get("selected_ids", []))
+        seek_ids = list(input_.get("seek_ids", []))
+        hack_ids = list(input_.get("hack_ids", []))
+        dive_ids = list(input_.get("dive_ids", []))
+        selected_ids = set(seek_ids + hack_ids + dive_ids)
         encouraging = input_.get("encouraging_message", "")
         context_note = input_.get("context_note", "")
 
@@ -588,6 +602,9 @@ def _handle_tool(name: str, input_: dict) -> dict:
 
         directives = {
             "generated_at": datetime.now().isoformat(),
+            "seek": seek_ids,
+            "hack": hack_ids,
+            "dive": dive_ids,
             "encouraging_message": encouraging,
         }
         (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))

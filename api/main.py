@@ -953,16 +953,25 @@ async function loadPreview() {
     fetch('/api/rd'), fetch('/api/omens'), fetch('/api/directives')
   ]);
 
+  const cardMap = {};
   if (rdRes.ok) {
     const data = await rdRes.json();
-    const cards = (data.cards||[]).filter(c=>c.column==='hq'&&c.category!=='Book');
-    const easy = cards.filter(c=>c.size==='chore'||c.size==='task');
-    const medium = cards.filter(c=>c.size==='book'||c.size==='project');
-    const hard = cards.find(c=>c.size==='titan');
+    (data.cards||[]).forEach(c => cardMap[c.id] = c);
+  }
+
+  if (dirRes.ok) {
+    const d = await dirRes.json();
+    const byId = id => cardMap[id];
+    const seek = (d.seek||[]).map(byId).filter(Boolean);
+    const hack = (d.hack||[]).map(byId).filter(Boolean);
+    const dive = (d.dive||[]).map(byId).filter(Boolean);
+    const flat = cards => cards.length ? cards.map(c=>`<div class="pr-item">&middot; ${c.title}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    const deep = cards => cards.length ? cards.map(c=>`<div class="pr-item">${c.title}${steps(c).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
     document.getElementById('pr-grid').innerHTML = `
-      <div>${HDR}easy</div>${easy.length?easy.map(c=>`<div class="pr-item">&middot; ${c.title}</div>`).join(''):'<span style="opacity:0.4;font-size:0.8rem">none</span>'}</div>
-      <div>${HDR}medium</div>${medium.length?medium.map(c=>`<div class="pr-item">${c.title}${steps(c).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join(''):'<span style="opacity:0.4;font-size:0.8rem">none</span>'}</div>
-      <div>${HDR}hard</div>${hard?`<div class="pr-item">${hard.title}${steps(hard).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`:'<span style="opacity:0.4;font-size:0.8rem">none</span>'}</div>`;
+      <div>${HDR}seek</div>${flat(seek)}</div>
+      <div>${HDR}hack</div>${flat(hack)}</div>
+      <div>${HDR}dive</div>${deep(dive)}</div>`;
+    document.getElementById('pr-enc').textContent = d.encouraging_message || '';
   }
 
   if (omensRes.ok) {
@@ -971,11 +980,6 @@ async function loadPreview() {
     document.getElementById('pr-omens').innerHTML = evts.length
       ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
       : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-  }
-
-  if (dirRes.ok) {
-    const d = await dirRes.json();
-    document.getElementById('pr-enc').textContent = d.encouraging_message || '';
   }
 }
 

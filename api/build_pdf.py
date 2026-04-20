@@ -111,69 +111,59 @@ def draw_directives_page(c, directives, events, encouragement=""):
     c.drawString(MARGIN, y, date.today().strftime("%A, %B %-d, %Y"))
     y -= SECH
 
-    # EASY — same style as steps
-    y = sec_header(y, "EASY")
-    for task in (directives.get("easy") or []):
-        if y < MARGIN + SH:
-            break
-        c.setFont(FONT_ITEM, SIZE_ITEM - 1)
-        c.setFillColor(colors.HexColor("#444444"))
-        for ln in wrap(task, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
-            if y < MARGIN + SH:
-                break
-            c.drawString(MARGIN + IND, y, ln)
-            y -= SH
-    y -= GAP
-
-    # MEDIUM — title (no checkbox) + indented steps (no bullet)
-    y = sec_header(y, "MEDIUM")
-    for task in (directives.get("medium") or []):
-        if y < MARGIN + LH * 2:
-            break
-        title = task.get("title", task) if isinstance(task, dict) else task
-        steps = task.get("steps", []) if isinstance(task, dict) else []
-        c.setFont(FONT_SECTION, SIZE_ITEM)
-        c.setFillColor(colors.black)
-        for i, ln in enumerate(wrap(title, FONT_SECTION, SIZE_ITEM, CW)):
-            if y < MARGIN + LH:
-                break
-            c.drawString(MARGIN, y, ln)
-            y -= LH * 0.85 if i < len(wrap(title, FONT_SECTION, SIZE_ITEM, CW)) - 1 else SH
-        for step in steps:
+    def draw_flat_list(y, items):
+        for title in items:
             if y < MARGIN + SH:
                 break
             c.setFont(FONT_ITEM, SIZE_ITEM - 1)
             c.setFillColor(colors.HexColor("#444444"))
-            for i, ln in enumerate(wrap(step, FONT_ITEM, SIZE_ITEM - 1, CW - IND)):
+            for ln in wrap(title, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
                 if y < MARGIN + SH:
                     break
                 c.drawString(MARGIN + IND, y, ln)
                 y -= SH
-        y -= TGAP
+        return y
+
+    def draw_task_list(y, items):
+        for task in items:
+            if y < MARGIN + LH * 2:
+                break
+            title = task.get("title", task) if isinstance(task, dict) else task
+            steps = task.get("steps", []) if isinstance(task, dict) else []
+            c.setFont(FONT_SECTION, SIZE_ITEM)
+            c.setFillColor(colors.black)
+            title_lines = wrap(title, FONT_SECTION, SIZE_ITEM, CW)
+            for i, ln in enumerate(title_lines):
+                if y < MARGIN + LH:
+                    break
+                c.drawString(MARGIN, y, ln)
+                y -= LH * 0.85 if i < len(title_lines) - 1 else SH
+            for step in steps:
+                if y < MARGIN + SH:
+                    break
+                c.setFont(FONT_ITEM, SIZE_ITEM - 1)
+                c.setFillColor(colors.HexColor("#444444"))
+                for ln in wrap(step, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
+                    if y < MARGIN + SH:
+                        break
+                    c.drawString(MARGIN + IND, y, ln)
+                    y -= SH
+            y -= TGAP
+        return y
+
+    # SEEK — outdoors tasks
+    y = sec_header(y, "SEEK")
+    y = draw_flat_list(y, directives.get("seek") or [])
     y -= GAP
 
-    # HARD — title (no checkbox) + indented steps (no bullet)
-    y = sec_header(y, "HARD")
-    hard = directives.get("hard") or {}
-    if isinstance(hard, dict) and hard.get("title"):
-        c.setFont(FONT_SECTION, SIZE_ITEM)
-        c.setFillColor(colors.black)
-        title_lines = wrap(hard["title"], FONT_SECTION, SIZE_ITEM, CW)
-        for i, ln in enumerate(title_lines):
-            if y < MARGIN + LH:
-                break
-            c.drawString(MARGIN, y, ln)
-            y -= LH * 0.85 if i < len(title_lines) - 1 else SH
-        for step in (hard.get("steps") or []):
-            if y < MARGIN + SH:
-                break
-            c.setFont(FONT_ITEM, SIZE_ITEM - 1)
-            c.setFillColor(colors.HexColor("#444444"))
-            for ln in wrap(step, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
-                if y < MARGIN + SH:
-                    break
-                c.drawString(MARGIN + IND, y, ln)
-                y -= SH
+    # HACK — quick at-home tasks
+    y = sec_header(y, "HACK")
+    y = draw_flat_list(y, directives.get("hack") or [])
+    y -= GAP
+
+    # DIVE — extended focus tasks
+    y = sec_header(y, "DIVE")
+    y = draw_task_list(y, directives.get("dive") or [])
     y -= GAP
 
     # OMENS
@@ -312,21 +302,23 @@ def build(out_path=None):
     except FileNotFoundError:
         encouraging_message = ""
 
-    selected = sorted(
-        [c for c in rd.get("cards", []) if c.get("column") == "hq"],
-        key=lambda c: c.get("order", 0),
-    )
+    cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
 
-    def _steps(c):
-        return [s.strip() for s in c.get("description", "").split(".") if s.strip()]
+    def _steps(card):
+        return [s.strip() for s in card.get("description", "").split(".") if s.strip()]
 
-    directive_cards = [c for c in selected if c.get("category") != "Book"]
-    easy = [c["title"] for c in directive_cards if c.get("size") in ("chore", "task")]
-    medium = [{"title": c["title"], "steps": _steps(c)} for c in directive_cards if c.get("size") in ("book", "project")]
-    hard_cards = [c for c in directive_cards if c.get("size") == "titan"]
-    hard = {"title": hard_cards[0]["title"], "steps": _steps(hard_cards[0])} if hard_cards else {}
+    def _titles(ids):
+        return [cards_by_id[i]["title"] for i in ids if i in cards_by_id]
 
-    directives = {"easy": easy, "medium": medium, "hard": hard}
+    def _tasks(ids):
+        return [{"title": cards_by_id[i]["title"], "steps": _steps(cards_by_id[i])}
+                for i in ids if i in cards_by_id]
+
+    directives = {
+        "seek": _titles(directives_meta.get("seek", [])),
+        "hack": _titles(directives_meta.get("hack", [])),
+        "dive": _tasks(directives_meta.get("dive", [])),
+    }
 
     c = canvas.Canvas(out, pagesize=A5)
     y = draw_directives_page(c, directives, omens.get("events", []))
