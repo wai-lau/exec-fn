@@ -132,8 +132,10 @@ def rasterize(rmdoc_path: str, page_index: int = 0) -> bytes:
 
 if __name__ == "__main__":
     import sys
-    rmdoc = sys.argv[1] if len(sys.argv) > 1 else "/app/data/executive_wai.rmdoc"
-    out = sys.argv[2] if len(sys.argv) > 2 else "/app/data/executive_wai.png"
+    if len(sys.argv) < 3:
+        print("usage: rm_to_pdf.py <input.rmdoc> <output.png>")
+        sys.exit(1)
+    rmdoc, out = sys.argv[1], sys.argv[2]
     data = rasterize(rmdoc)
     with open(out, "wb") as f:
         f.write(data)
