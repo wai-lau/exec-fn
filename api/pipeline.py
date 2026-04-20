@@ -457,7 +457,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
             "Book category cards are for reading only — do NOT select them for directives. "
-            "If Wai mentions a new idea or task, call create_card to add it to the ideas pool. "
+            "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields), delete_card (permanent removal). "
+            "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
             "When Wai confirms their plan, immediately call finalize_and_push — do NOT ask for a second confirmation. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
@@ -527,6 +528,49 @@ def _chat_tools() -> list:
                 "required": ["title", "category", "size"],
             },
         },
+        {
+            "name": "move_card",
+            "description": "Move a card to a different column. Use to archive completed tasks, exile irrelevant ones, or pull ideas into the active pool.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
+                    "column": {
+                        "type": "string",
+                        "enum": ["rd", "hq", "archives", "exile"],
+                        "description": "rd=ideas pool, hq=today's plan, archives=completed, exile=dropped.",
+                    },
+                },
+                "required": ["id", "column"],
+            },
+        },
+        {
+            "name": "update_card",
+            "description": "Update fields on an existing card (title, description, category, size, notes). Only include fields that should change.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"]},
+                    "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
+                    "notes": {"type": "string"},
+                },
+                "required": ["id"],
+            },
+        },
+        {
+            "name": "delete_card",
+            "description": "Permanently delete a card. Use only when Wai explicitly asks to remove it entirely.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID to delete."},
+                },
+                "required": ["id"],
+            },
+        },
     ]
 
 
@@ -580,6 +624,38 @@ def _handle_tool(name: str, input_: dict) -> dict:
         rd["cards"] = existing
         rd_path.write_text(json.dumps(rd, indent=2))
         return {"ok": True, "id": new_id, "title": new_card["title"]}
+
+    if name == "move_card":
+        rd_path = DATA_DIR / "rd.json"
+        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+        card = next((c for c in rd.get("cards", []) if c["id"] == input_.get("id")), None)
+        if not card:
+            return {"error": f"Card not found: {input_.get('id')}"}
+        card["column"] = input_["column"]
+        rd_path.write_text(json.dumps(rd, indent=2))
+        return {"ok": True, "id": card["id"], "title": card["title"], "column": card["column"]}
+
+    if name == "update_card":
+        rd_path = DATA_DIR / "rd.json"
+        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+        card = next((c for c in rd.get("cards", []) if c["id"] == input_.get("id")), None)
+        if not card:
+            return {"error": f"Card not found: {input_.get('id')}"}
+        for field in ("title", "description", "category", "size", "notes"):
+            if field in input_:
+                card[field] = input_[field]
+        rd_path.write_text(json.dumps(rd, indent=2))
+        return {"ok": True, "id": card["id"], "title": card["title"]}
+
+    if name == "delete_card":
+        rd_path = DATA_DIR / "rd.json"
+        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+        before = len(rd.get("cards", []))
+        rd["cards"] = [c for c in rd.get("cards", []) if c["id"] != input_.get("id")]
+        if len(rd["cards"]) == before:
+            return {"error": f"Card not found: {input_.get('id')}"}
+        rd_path.write_text(json.dumps(rd, indent=2))
+        return {"ok": True, "deleted": input_.get("id")}
 
     return {"error": f"Unknown tool: {name}"}
 

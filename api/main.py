@@ -805,7 +805,11 @@ async function streamResponse() {
           span.innerHTML = renderText(fullText);
           terminal.scrollTop = terminal.scrollHeight;
         } else if (data.type === 'tool_call') {
-          if (data.name === 'create_card') addMsg('sys', `[ card added: ${data.result.title || ''} ]`);
+          const r = data.result || {};
+          if (data.name === 'create_card') addMsg('sys', `[ card added: ${r.title || ''} ]`);
+          else if (data.name === 'move_card') addMsg('sys', `[ moved "${r.title || data.input?.id}" → ${r.column || ''} ]`);
+          else if (data.name === 'update_card') addMsg('sys', `[ updated: ${r.title || data.input?.id} ]`);
+          else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
         } else if (data.type === 'done') {
           stage = data.next_stage;
           if (stage === 'done') {
@@ -879,7 +883,13 @@ function restoreMsg(m) {
       const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('\\n').trim();
       if (text) addMsg('assistant', text);
       for (const b of m.content) {
-        if (b.type === 'tool_use' && b.name === 'create_card') addMsg('sys', `[ card added: ${(b.input||{}).title || ''} ]`);
+        if (b.type === 'tool_use') {
+          const inp = b.input || {};
+          if (b.name === 'create_card') addMsg('sys', `[ card added: ${inp.title || ''} ]`);
+          else if (b.name === 'move_card') addMsg('sys', `[ moved "${inp.id}" → ${inp.column || ''} ]`);
+          else if (b.name === 'update_card') addMsg('sys', `[ updated: ${inp.id} ]`);
+          else if (b.name === 'delete_card') addMsg('sys', `[ deleted: ${inp.id} ]`);
+        }
       }
     }
   }
