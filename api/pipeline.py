@@ -256,79 +256,49 @@ def _rm_latest_wai_modified() -> "datetime | None":
         return None
 
 
-def analyze_delta(path: str = None) -> dict:
+def _analyze_wai_doc(wai_path: str) -> dict:
+    """Analyze one WAI rmdoc. Cached to delta_wai_{ts}.json. Returns empty wai_notes if no marks."""
     import anthropic
     from rm_to_pdf import rasterize
 
-    # Skip if source file hasn't changed since last analysis
-    if path is None:
-        delta_path = DATA_DIR / "delta.json"
-        if delta_path.exists():
-            try:
-                existing = json.loads(delta_path.read_text())
-                analyzed_at = datetime.fromisoformat(existing["analyzed_at"])
-                modified = _rm_latest_wai_modified()
-                if modified and analyzed_at > modified:
-                    return existing
-            except Exception:
-                pass
+    stem = Path(wai_path).stem  # "WAI_20260419_161003"
+    ts = stem[len("WAI_"):]     # "20260419_161003"
+    delta_path = DATA_DIR / f"delta_wai_{ts}.json"
 
+    if delta_path.exists():
+        return json.loads(delta_path.read_text())
+
+    png_bytes = rasterize(wai_path, page_index=0)
+    b64 = base64.standard_b64encode(png_bytes).decode()
     client = anthropic.Anthropic()
 
-    def _rasterize_b64(fpath: str) -> "tuple[bytes, str]":
-        png = rasterize(fpath, page_index=0)
-        return png, base64.standard_b64encode(png).decode()
+    # Quick marks check
+    has_marks = True
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=8,
+            messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
+                {"type": "text", "text": "Are there any handwritten marks or annotations in this image? YES or NO only."},
+            ]}],
+        )
+        has_marks = "YES" in resp.content[0].text.upper()
+    except Exception:
+        pass
 
-    def _has_marks(b64: str) -> bool:
-        try:
-            resp = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=8,
-                messages=[{"role": "user", "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
-                    {"type": "text", "text": "Are there any handwritten marks or annotations in this image? YES or NO only."},
-                ]}],
-            )
-            return "YES" in resp.content[0].text.upper()
-        except Exception:
-            return True
+    if not has_marks:
+        delta = {"analyzed_at": datetime.now().isoformat(), "source_file": stem + ".rmdoc", "wai_notes": "", "adjustments": ""}
+        delta_path.write_text(json.dumps(delta, indent=2))
+        return delta
 
-    # Find best candidate: newest file with visible marks, back to last rollover
-    if path is not None:
-        candidates = [path]
-    else:
-        day_start, day_end = _day_window()
-        candidates = _wai_files_in_window(day_start, day_end) or [pull_wai()]
-
-    chosen_path = candidates[0]
-    chosen_png_bytes = None
-    chosen_b64 = None
-
-    for cand in candidates:
-        try:
-            png, b64 = _rasterize_b64(cand)
-            if _has_marks(b64):
-                chosen_path = cand
-                chosen_png_bytes = png
-                chosen_b64 = b64
-                break
-        except Exception:
-            continue
-
-    # Fall back to most recent if nothing found
-    if chosen_b64 is None:
-        chosen_png_bytes, chosen_b64 = _rasterize_b64(chosen_path)
-
-    # Save PNG snapshot
-    png_path = DATA_DIR / f"delta_{_ts()}.png"
-    png_path.write_bytes(chosen_png_bytes)
-
-    # Full Sonnet analysis
+    # Save PNG and run full Sonnet analysis
+    (DATA_DIR / f"delta_wai_{ts}.png").write_bytes(png_bytes)
     msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
         messages=[{"role": "user", "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": chosen_b64}},
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
             {"type": "text", "text": _delta_prompt()},
         ]}],
     )
@@ -336,76 +306,111 @@ def analyze_delta(path: str = None) -> dict:
     m = re.search(r'\{[\s\S]*\}', text)
     parsed = json.loads(m.group()) if m else {"wai_notes": text, "adjustments": ""}
 
-    new_delta = {
+    delta = {
         "analyzed_at": datetime.now().isoformat(),
-        "source_file": Path(chosen_path).name,
+        "source_file": stem + ".rmdoc",
         "wai_notes": parsed.get("wai_notes", ""),
         "adjustments": parsed.get("adjustments", ""),
     }
-
-    # Save timestamped snapshot before merging
-    ts_path = DATA_DIR / f"delta_{_ts()}.json"
-    ts_path.write_text(json.dumps(new_delta, indent=2))
-
-    # Merge all of yesterday's window deltas into a deduped summary
-    prior = []
-    if path is None:
-        day_start, day_end = _day_window()
-        prior_files = _delta_files_in_window(day_start, day_end)
-    else:
-        prior_files = []
-    for f in prior_files:
-        if Path(f) == ts_path:
-            continue
-        try:
-            prior.append(json.loads(Path(f).read_text()))
-        except Exception:
-            pass
-
-    if prior:
-        all_notes = "\n\n---\n\n".join(
-            filter(None, [d.get("wai_notes", "") for d in prior] + [new_delta["wai_notes"]])
-        )
-        all_adjustments = "\n\n---\n\n".join(
-            filter(None, [d.get("adjustments", "") for d in prior] + [new_delta["adjustments"]])
-        )
-        try:
-            merge_resp = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=512,
-                messages=[{"role": "user", "content": (
-                    "These are multiple delta analyses from the same day. "
-                    "Deduplicate and merge into a single coherent summary for each field.\n\n"
-                    f"WAI_NOTES (multiple entries):\n{all_notes}\n\n"
-                    f"ADJUSTMENTS (multiple entries):\n{all_adjustments}\n\n"
-                    'JSON only: {"wai_notes": "...", "adjustments": "..."}'
-                )}],
-            )
-            raw = re.sub(r'^```\w*\n?', '', merge_resp.content[0].text.strip())
-            raw = re.sub(r'\n?```$', '', raw).strip()
-            mm = re.search(r'\{.*\}', raw, re.DOTALL)
-            if mm:
-                merged = json.loads(mm.group())
-                new_delta["wai_notes"] = merged.get("wai_notes", new_delta["wai_notes"])
-                new_delta["adjustments"] = merged.get("adjustments", new_delta["adjustments"])
-        except Exception:
-            pass
-
-    (DATA_DIR / "delta.json").write_text(json.dumps(new_delta, indent=2))
+    delta_path.write_text(json.dumps(delta, indent=2))
 
     updates = [u for u in parsed.get("context_updates", []) if isinstance(u, str) and u.strip()]
     if updates:
         ctx_path = DATA_DIR / "context.json"
         ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
         existing_notes = {n["note"].strip().lower() for n in ctx.get("notes", [])}
-        today = date.today().isoformat()
         for note in updates:
             if note.strip().lower() not in existing_notes:
-                ctx["notes"].append({"date": today, "note": note.strip()})
+                ctx["notes"].append({"date": date.today().isoformat(), "note": note.strip()})
                 existing_notes.add(note.strip().lower())
         ctx_path.write_text(json.dumps(ctx, indent=2))
 
-    return new_delta
+    return delta
+
+
+def _merge_day_deltas(day_start: datetime, day_end: datetime) -> dict:
+    """Merge all delta_wai_*.json in window into delta_MMDD.json. Always re-runs."""
+    import anthropic
+
+    date_label = day_start.strftime("%m%d")
+    daily_path = DATA_DIR / f"delta_{date_label}.json"
+
+    deltas = []
+    for f in sorted(DATA_DIR.glob("delta_wai_????????_??????.json")):
+        ts = _parse_file_ts(f.stem)
+        if ts and day_start <= ts < day_end:
+            try:
+                deltas.append(json.loads(f.read_text()))
+            except Exception:
+                pass
+
+    marked = [d for d in deltas if d.get("wai_notes", "").strip()]
+
+    if not marked:
+        result = {"analyzed_at": datetime.now().isoformat(), "wai_notes": "", "adjustments": ""}
+    elif len(marked) == 1:
+        result = {**marked[0], "analyzed_at": datetime.now().isoformat()}
+    else:
+        all_notes = "\n\n---\n\n".join(d["wai_notes"] for d in marked)
+        all_adj = "\n\n---\n\n".join(filter(None, (d.get("adjustments", "") for d in marked)))
+        result = {**marked[-1], "analyzed_at": datetime.now().isoformat()}
+        try:
+            client = anthropic.Anthropic()
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                messages=[{"role": "user", "content": (
+                    "Deduplicate and merge these delta analyses from the same day.\n\n"
+                    f"WAI_NOTES:\n{all_notes}\n\n"
+                    f"ADJUSTMENTS:\n{all_adj}\n\n"
+                    'JSON only: {"wai_notes": "...", "adjustments": "..."}'
+                )}],
+            )
+            raw = re.sub(r'^```\w*\n?', '', resp.content[0].text.strip())
+            raw = re.sub(r'\n?```$', '', raw).strip()
+            mm = re.search(r'\{.*\}', raw, re.DOTALL)
+            if mm:
+                parsed = json.loads(mm.group())
+                result["wai_notes"] = parsed.get("wai_notes", result["wai_notes"])
+                result["adjustments"] = parsed.get("adjustments", result["adjustments"])
+        except Exception:
+            pass
+
+    payload = json.dumps(result, indent=2)
+    daily_path.write_text(payload)
+    (DATA_DIR / "delta.json").write_text(payload)
+    return result
+
+
+def analyze_delta(path: str = None) -> dict:
+    """Orchestrate the full delta pipeline. If path given, analyze that file directly."""
+    if path is not None:
+        return _analyze_wai_doc(path)
+
+    day_start, day_end = _day_window()
+    date_label = day_start.strftime("%m%d")
+    daily_path = DATA_DIR / f"delta_{date_label}.json"
+
+    # Skip if daily delta is already newer than the remote file
+    if daily_path.exists():
+        try:
+            existing = json.loads(daily_path.read_text())
+            analyzed_at = datetime.fromisoformat(existing["analyzed_at"])
+            modified = _rm_latest_wai_modified()
+            if modified and analyzed_at > modified:
+                return existing
+        except Exception:
+            pass
+
+    # Collect local WAI files in window; pull latest if none exist
+    candidates = _wai_files_in_window(day_start, day_end)
+    if not candidates:
+        candidates = [pull_wai()]
+
+    for wai_path in candidates:
+        _analyze_wai_doc(wai_path)
+
+    return _merge_day_deltas(day_start, day_end)
 
 
 # ── update rd from delta ───────────────────────────────────────────────────────
