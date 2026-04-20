@@ -1344,10 +1344,10 @@ def api_context():
 
 @protected.get("/api/delta")
 def api_delta_get():
-    p = DATA_DIR / "delta.json"
-    if not p.exists():
+    d = pipeline._load_daily_delta()
+    if not d:
         raise HTTPException(status_code=404, detail="No delta yet")
-    return json.loads(p.read_text())
+    return d
 
 
 @protected.post("/api/delta")

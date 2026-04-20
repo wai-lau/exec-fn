@@ -378,7 +378,6 @@ def _merge_day_deltas(day_start: datetime, day_end: datetime) -> dict:
 
     payload = json.dumps(result, indent=2)
     daily_path.write_text(payload)
-    (DATA_DIR / "delta.json").write_text(payload)
     return result
 
 
@@ -677,13 +676,19 @@ def analyze_omens() -> dict:
 
 # ── chat support ──────────────────────────────────────────────────────────────
 
+def _load_daily_delta() -> dict:
+    day_start, _ = _day_window()
+    p = DATA_DIR / f"delta_{day_start.strftime('%m%d')}.json"
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
 def _build_chat_system_prompt(stage: str = "planning") -> str:
     def _load(name):
         p = DATA_DIR / f"{name}.json"
         return json.loads(p.read_text()) if p.exists() else {}
 
     ctx = _load("context")
-    delta = _load("delta")
+    delta = _load_daily_delta()
     omens = _load("omens")
     rd = _load("rd")
     morning = _load("morning")
@@ -1023,10 +1028,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
             delta_error = str(e)
 
         # Load fresh data
-        delta = {}
-        delta_path = DATA_DIR / "delta.json"
-        if delta_path.exists():
-            delta = json.loads(delta_path.read_text())
+        delta = _load_daily_delta()
         delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
 
         omens_data = {}
