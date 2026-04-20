@@ -620,7 +620,7 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_preview",
-            "description": "Finalize the card categorization, build the PDF, and open the preview panel so Wai can review the current plan. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable.",
+            "description": "Save the card categorization and open the preview panel so Wai can review the current plan. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -763,7 +763,6 @@ def _handle_tool(name: str, input_: dict) -> dict:
         return {"ok": True, "deleted": input_.get("id")}
 
     if name == "update_preview":
-        from build_pdf import build as pdf_build
         seek_ids = list(input_.get("seek_ids", []))
         hack_ids = list(input_.get("hack_ids", []))
         dive_ids = list(input_.get("dive_ids", []))
@@ -788,11 +787,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
             "encouraging_message": encouraging,
         }
         (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
-
-        ts = _ts()
-        pdf_path = DATA_DIR / f"WAI_{ts}.pdf"
-        pdf_build(str(pdf_path))
-        return {"ok": True, "pdf": pdf_path.name}
+        return {"ok": True}
 
     return {"error": f"Unknown tool: {name}"}
 
