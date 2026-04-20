@@ -1222,6 +1222,9 @@ def api_archive():
     return pipeline.list_archive()
 
 
+_PNG_CACHE = DATA_DIR / "cache"
+
+
 @protected.get("/api/archive/{filename}/page/{page_num}")
 def archive_page_png(filename: str, page_num: int):
     from fastapi.responses import Response
@@ -1229,7 +1232,12 @@ def archive_page_png(filename: str, page_num: int):
     p = (DATA_DIR / filename).resolve()
     if not str(p).startswith(str(DATA_DIR.resolve())) or not filename.endswith(".rmdoc") or not p.exists():
         raise HTTPException(status_code=404, detail="not found")
+    _PNG_CACHE.mkdir(exist_ok=True)
+    cache_file = _PNG_CACHE / f"{filename}.page{page_num}.png"
+    if cache_file.exists():
+        return Response(content=cache_file.read_bytes(), media_type="image/png")
     png_bytes = rasterize(str(p), page_index=page_num)
+    cache_file.write_bytes(png_bytes)
     return Response(content=png_bytes, media_type="image/png")
 
 
