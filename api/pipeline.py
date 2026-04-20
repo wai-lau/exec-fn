@@ -264,7 +264,7 @@ def _analyze_wai_doc(wai_path: str) -> dict:
     ts = stem[len("WAI_"):]     # "20260419_161003"
     delta_path = DATA_DIR / f"delta_wai_{ts}.json"
 
-    if delta_path.exists():
+    if delta_path.exists() and delta_path.stat().st_mtime >= Path(wai_path).stat().st_mtime:
         return json.loads(delta_path.read_text())
 
     png_bytes = rasterize(wai_path, page_index=0)
