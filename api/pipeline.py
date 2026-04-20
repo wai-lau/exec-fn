@@ -206,23 +206,29 @@ def _parse_file_ts(stem: str) -> "datetime | None":
         return None
 
 
-def _wai_files_since(cutoff: datetime) -> list:
-    """WAI_*.rmdoc paths from DATA_DIR since cutoff, newest first."""
+def _day_window() -> "tuple[datetime, datetime]":
+    """Return (yesterday's 4:30 AM ET, today's 4:30 AM ET) as naive UTC datetimes."""
+    day_end = _rollover_cutoff()
+    return day_end - timedelta(days=1), day_end
+
+
+def _wai_files_in_window(start: datetime, end: datetime) -> list:
+    """WAI_*.rmdoc paths from DATA_DIR within [start, end), newest first."""
     files = []
     for f in DATA_DIR.glob("WAI_*.rmdoc"):
         ts = _parse_file_ts(f.stem)
-        if ts and ts >= cutoff:
+        if ts and start <= ts < end:
             files.append((ts, f))
     files.sort(key=lambda x: x[0], reverse=True)
     return [str(f) for _, f in files]
 
 
-def _delta_files_since(cutoff: datetime) -> list:
-    """delta_YYYYMMDD_HHMMSS.json paths since cutoff, newest first."""
+def _delta_files_in_window(start: datetime, end: datetime) -> list:
+    """delta_YYYYMMDD_HHMMSS.json paths within [start, end), newest first."""
     files = []
     for f in DATA_DIR.glob("delta_????????_??????.json"):
         ts = _parse_file_ts(f.stem)
-        if ts and ts >= cutoff:
+        if ts and start <= ts < end:
             files.append((ts, f))
     files.sort(key=lambda x: x[0], reverse=True)
     return [str(f) for _, f in files]
@@ -291,8 +297,8 @@ def analyze_delta(path: str = None) -> dict:
     if path is not None:
         candidates = [path]
     else:
-        cutoff = _rollover_cutoff()
-        candidates = _wai_files_since(cutoff) or [pull_wai()]
+        day_start, day_end = _day_window()
+        candidates = _wai_files_in_window(day_start, day_end) or [pull_wai()]
 
     chosen_path = candidates[0]
     chosen_png_bytes = None
@@ -341,10 +347,14 @@ def analyze_delta(path: str = None) -> dict:
     ts_path = DATA_DIR / f"delta_{_ts()}.json"
     ts_path.write_text(json.dumps(new_delta, indent=2))
 
-    # Merge all today's deltas into a deduped summary
-    cutoff = _rollover_cutoff() if path is None else datetime.min
+    # Merge all of yesterday's window deltas into a deduped summary
     prior = []
-    for f in _delta_files_since(cutoff):
+    if path is None:
+        day_start, day_end = _day_window()
+        prior_files = _delta_files_in_window(day_start, day_end)
+    else:
+        prior_files = []
+    for f in prior_files:
         if Path(f) == ts_path:
             continue
         try:
