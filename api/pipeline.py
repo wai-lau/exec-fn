@@ -1173,14 +1173,13 @@ def _handle_tool(name: str, input_: dict) -> dict:
                     f"YESTERDAY'S NOTES:\n{delta_text or 'none'}\n\n"
                     f"DAILY CONSTRAINTS:\n"
                     f"- Start schedule at or after {current_time}\n"
-                    f"- Sleep 1:00am\n"
+                    f"- Last task must end by 1:00am\n"
                     f"{junni_block}"
                     f"- Lunch 11:45–12:45 (skip if current time is past 1pm)\n"
                     f"- Dinner 6:45–7:45 (skip if current time is past 8pm)\n"
-                    f"- Evening wind-down 11:00pm\n"
                     f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
                     f"- Leave 15min gap between tasks; group SEEK tasks if possible\n"
-                    f"- Do NOT add buffer, wake, morning relax, wind-down, or sleep entries to the schedule\n"
+                    f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries to the schedule\n"
                     f"- Do NOT schedule book/reading tasks\n\n"
                     f'JSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
                 )}],
@@ -1270,14 +1269,13 @@ def _handle_tool(name: str, input_: dict) -> dict:
                     f"NOTES:\n{delta_text or 'none'}\n\n"
                     f"DAILY CONSTRAINTS:\n"
                     f"- Start schedule at or after {current_time}\n"
-                    f"- Sleep 1:00am\n"
+                    f"- Last task must end by 1:00am\n"
                     f"{junni_block}"
                     f"- Lunch 11:45–12:45\n"
                     f"- Dinner 6:45–7:45\n"
-                    f"- Evening wind-down 11:00pm\n"
                     f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
                     f"- Leave 15min gap between tasks; group SEEK tasks if possible\n"
-                    f"- Do NOT add buffer, wake, morning relax, wind-down, or sleep entries to the schedule\n"
+                    f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries to the schedule\n"
                     f"- Do NOT schedule book/reading tasks\n"
                     + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
                     f'\nJSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
