@@ -937,6 +937,7 @@ async function streamResponse() {
           else if (data.name === 'assemble_plan') { addMsg('sys', '[ plan assembled ]'); }
           else if (data.name === 'build_pdf') { addMsg('sys', `[ pdf built: ${r.pdf || ''} ]`); }
           else if (data.name === 'finalize_and_push') { addMsg('sys', '[ pushed to reMarkable ]'); }
+          else if (data.name === 'reschedule') { addMsg('sys', `[ schedule updated: ${(r.schedule||[]).length} entries ]`); }
         } else if (data.type === 'done') {
           stage = data.next_stage;
         }

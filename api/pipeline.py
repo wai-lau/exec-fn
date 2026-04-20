@@ -874,6 +874,13 @@ def _chat_tools() -> list:
             "description": "Build the PDF from the current plan.json. Call after Wai approves the plan preview. Then ask if they want to push to reMarkable.",
             "input_schema": {"type": "object", "properties": {}},
         },
+        {
+            "name": "reschedule",
+            "description": "Regenerate the time-block schedule from the current plan cards, incorporating Wai's feedback. Use when Wai wants to adjust timing, swap tasks, or change the order of the day.",
+            "input_schema": {"type": "object", "properties": {
+                "feedback": {"type": "string", "description": "Wai's scheduling feedback or constraints to apply (e.g. 'move the dive task to afternoon', 'I have an appointment at 3pm')."},
+            }},
+        },
     ]
 
 
@@ -1129,6 +1136,65 @@ def _handle_tool(name: str, input_: dict) -> dict:
         if delta_error:
             result["delta_error"] = delta_error
         return result
+
+    if name == "reschedule":
+        plan_path = DATA_DIR / "plan.json"
+        if not plan_path.exists():
+            return {"error": "No plan.json found"}
+        plan = json.loads(plan_path.read_text())
+        seek_cards = plan.get("seek", [])
+        hack_cards = plan.get("hack", [])
+        dive_cards = plan.get("dive", [])
+        events = plan.get("omens", [])
+        feedback = args.get("feedback", "")
+
+        today_dow = date.today().strftime("%A")
+        junni_block = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
+        cards_text = "".join(
+            f"{cat} [{c.get('size','task')}] {c.get('title', c) if isinstance(c, dict) else c}\n"
+            for cat, cards in [("SEEK", seek_cards), ("HACK", hack_cards), ("DIVE", [dive_cards] if isinstance(dive_cards, dict) else dive_cards)]
+            for c in cards
+        ) or "None."
+        events_text = "\n".join(f"- {e.get('title','')} ({e.get('date','')})" for e in events) or "None."
+        delta_text = (_load_daily_delta().get("wai_notes") or "")
+
+        import anthropic
+        client = anthropic.Anthropic()
+        schedule = []
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                messages=[{"role": "user", "content": (
+                    f"Generate a time-blocked schedule for Wai's day ({today_dow}).\n\n"
+                    f"TASKS:\n{cards_text}\n\n"
+                    f"CALENDAR EVENTS:\n{events_text}\n\n"
+                    f"YESTERDAY'S NOTES:\n{delta_text or 'none'}\n\n"
+                    f"DAILY CONSTRAINTS:\n"
+                    f"- Wake 8:00am, sleep 1:00am\n"
+                    f"- Morning relax 8:00–10:30am\n"
+                    f"{junni_block}"
+                    f"- Lunch 11:45–12:45\n"
+                    f"- Dinner 6:45–7:45\n"
+                    f"- Evening wind-down 11:00pm\n"
+                    f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
+                    f"- Leave 15min gap between tasks; group SEEK tasks if possible\n"
+                    f"- Do NOT add buffer, wake, morning relax, wind-down, or sleep entries to the schedule\n"
+                    + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
+                    f'\nJSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
+                )}],
+            )
+            raw = re.sub(r'^```\w*\n?', '', resp.content[0].text.strip())
+            raw = re.sub(r'\n?```$', '', raw).strip()
+            m = re.search(r'\[.*\]', raw, re.DOTALL)
+            if m:
+                schedule = json.loads(m.group())
+        except Exception:
+            pass
+
+        plan["schedule"] = schedule
+        plan_path.write_text(json.dumps(plan, indent=2))
+        return {"ok": True, "schedule": schedule}
 
     if name == "build_pdf":
         from build_pdf import build as pdf_build
