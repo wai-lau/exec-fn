@@ -929,8 +929,9 @@ def _handle_tool(name: str, input_: dict) -> dict:
                     f'JSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
                 )}],
             )
-            raw = resp.content[0].text.strip()
-            m = re.search(r'\[[\s\S]*\]', raw)
+            raw = re.sub(r'^```\w*\n?', '', resp.content[0].text.strip())
+            raw = re.sub(r'\n?```$', '', raw).strip()
+            m = re.search(r'\[.*\]', raw, re.DOTALL)
             if m:
                 schedule = json.loads(m.group())
         except Exception:
