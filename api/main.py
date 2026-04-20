@@ -473,6 +473,7 @@ function buildBoard() {
     if (!el) return;
     Sortable.create(el, {
       group:'kanban', animation:120, ghostClass:'sortable-ghost',
+      delay: 300, delayOnTouchOnly: true,
       onStart: () => { dragging = true; document.getElementById('board').classList.add('drag-active'); },
       onEnd: () => { document.getElementById('board').classList.remove('drag-active'); setTimeout(() => { dragging = false; }, 50); save(); }
     });
