@@ -538,7 +538,7 @@ def _chat_tools() -> list:
                     },
                     "encouraging_message": {
                         "type": "string",
-                        "description": "Short encouraging message for Wai, printed on the reMarkable.",
+                        "description": "Short encouraging message for Wai, printed on the reMarkable. Incorporate yesterday's delta (what Wai actually did, how it went) into the tone and content.",
                     },
                     "context_note": {
                         "type": "string",
@@ -626,7 +626,7 @@ def _chat_tools() -> list:
                 "properties": {
                     "encouraging_message": {
                         "type": "string",
-                        "description": "Fresh encouraging message for Wai, shown in the preview panel.",
+                        "description": "Fresh encouraging message for Wai, shown in the preview panel. Incorporate yesterday's delta into the tone and content.",
                     },
                 },
                 "required": ["encouraging_message"],

@@ -137,14 +137,13 @@ def draw_directives_page(c, directives, events):
     return y
 
 
-def draw_encouragement(c, delta: dict, message: str, y: float):
+def draw_encouragement(c, message: str, y: float):
     CW = W - 2 * MARGIN
     LH = 4.5 * mm
     SH = 3.8 * mm
     FOOTER_Y = MARGIN
 
-    delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
-    if not delta_text and not message:
+    if not message:
         return
     if y < FOOTER_Y + LH * 4:
         return
@@ -154,20 +153,6 @@ def draw_encouragement(c, delta: dict, message: str, y: float):
     c.setLineWidth(0.3)
     c.line(MARGIN, y, W - MARGIN, y)
     y -= 3 * mm
-
-    if delta_text:
-        c.setFont(FONT_SECTION, SIZE_ITEM - 1)
-        c.setFillColor(colors.HexColor("#555555"))
-        c.drawString(MARGIN, y, "YESTERDAY")
-        y -= LH
-        c.setFont(FONT_ITEM, SIZE_ITEM - 1)
-        c.setFillColor(colors.HexColor("#444444"))
-        for ln in _wrap(delta_text, FONT_ITEM, SIZE_ITEM - 1, CW):
-            if y < FOOTER_Y:
-                break
-            c.drawString(MARGIN, y, ln)
-            y -= SH
-        y -= 2 * mm
 
     if message and y > FOOTER_Y + LH * 2:
         c.setFont(FONT_SECTION, SIZE_ITEM - 1)
@@ -195,15 +180,9 @@ def build(out_path=None):
             omens = json.load(f)
     except FileNotFoundError:
         omens = {"events": []}
-    try:
-        with open("/app/data/delta.json") as f:
-            delta = json.load(f)
-    except FileNotFoundError:
-        delta = {}
-
     c = canvas.Canvas(out, pagesize=A5)
     y = draw_directives_page(c, directives, omens.get("events", []))
-    draw_encouragement(c, delta, directives.get("encouraging_message", ""), y)
+    draw_encouragement(c, directives.get("encouraging_message", ""), y)
     c.showPage()
     c.save()
     print(f"Wrote {out}")
