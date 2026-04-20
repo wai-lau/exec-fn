@@ -872,8 +872,9 @@ async function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  addMsg('user', `${fmtTs()} ${text}`);
-  messages.push({role:'user', content:text});
+  const ts = fmtTs();
+  addMsg('user', `${ts} ${text}`);
+  messages.push({role:'user', content:`${ts} ${text}`});
   await streamResponse();
 }
 

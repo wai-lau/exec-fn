@@ -735,10 +735,13 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         ),
     }
 
+    today_str = datetime.now().strftime("%A, %B %-d, %Y %H:%M ET")
     return (
         f"You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
+        f"TODAY: {today_str}\n"
         f"FORMATTING: Plain text only. No markdown — no **, no *, no #, no -, no bullet points, no headers.\n"
-        f"Never expose raw card IDs or internal formats (e.g. 'id:card-123 [task]') in your responses — refer to tasks by title only.\n"
+        f"Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
+        f"CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
         f"Never state that a card is selected or on the active board unless it appears under CURRENTLY SELECTED TASKS. Do not invent or assume task status.\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
@@ -1146,7 +1149,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
         hack_cards = plan.get("hack", [])
         dive_cards = plan.get("dive", [])
         events = plan.get("omens", [])
-        feedback = args.get("feedback", "")
+        feedback = input_.get("feedback", "")
 
         today_dow = date.today().strftime("%A")
         junni_block = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
