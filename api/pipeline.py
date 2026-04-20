@@ -178,7 +178,7 @@ def _delta_prompt() -> str:
         "1. Describe the handwritten annotations (if any visible).\n"
         "2. Based on those, how should tomorrow's plan change?\n"
         "3. Extract any facts about Wai that should be remembered long-term "
-        "(preferences, relationships, constraints, recurring patterns). "
+        "(context, relationships, constraints, recurring patterns). "
         "Short declarative sentences only. Empty list if nothing new.\n"
         f"ALREADY KNOWN — do not repeat these:\n{known}\n\n"
         'JSON only: {"wai_notes": "...", "adjustments": "...", "context_updates": ["..."]}'
@@ -550,7 +550,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields), delete_card (permanent removal). "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
             "When finalizing, categorize each card: SEEK=requires going outdoors, HACK=quick at home (under 1h), DIVE=extended focus/setup/cleanup (over 1h). "
-            "When the plan looks ready, call rebuild_preview to build the PDF and show Wai the preview, then ask if they want to push. "
+            "When the plan looks ready, call assemble_plan to generate the schedule and show Wai the preview. "
+            "After Wai approves the preview, call build_pdf to generate the PDF. "
             "When Wai says yes to pushing, immediately call finalize_and_push — do NOT ask for another confirmation. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
@@ -681,8 +682,8 @@ def _chat_tools() -> list:
             },
         },
         {
-            "name": "rebuild_preview",
-            "description": "Refresh omens and delta, generate a fresh encouraging message, save the card categorization, and open the preview panel. Call this when the plan looks ready. Then ask Wai if they want to push to reMarkable.",
+            "name": "assemble_plan",
+            "description": "Refresh omens and delta, generate encouraging message and daily schedule, write plan.json, and open the preview. Call when the card selection looks ready. Then ask Wai to confirm before building the PDF.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -692,6 +693,11 @@ def _chat_tools() -> list:
                 },
                 "required": ["seek_ids", "hack_ids", "dive_ids"],
             },
+        },
+        {
+            "name": "build_pdf",
+            "description": "Build the PDF from the current plan.json. Call after Wai approves the plan preview. Then ask if they want to push to reMarkable.",
+            "input_schema": {"type": "object", "properties": {}},
         },
     ]
 
@@ -722,33 +728,24 @@ def _handle_tool(name: str, input_: dict) -> dict:
         seek_ids = list(input_.get("seek_ids", []))
         hack_ids = list(input_.get("hack_ids", []))
         dive_ids = list(input_.get("dive_ids", []))
-        selected_ids = set(seek_ids + hack_ids + dive_ids)
-        encouraging = input_.get("encouraging_message", "")
         context_note = input_.get("context_note", "")
+
+        # Resolve IDs from plan.json if caller didn't pass them
+        plan_path = DATA_DIR / "plan.json"
+        if not (seek_ids or hack_ids or dive_ids) and plan_path.exists():
+            plan = json.loads(plan_path.read_text())
+            seek_ids = [c["id"] for c in plan.get("seek", []) if isinstance(c, dict)]
+            hack_ids = [c["id"] for c in plan.get("hack", []) if isinstance(c, dict)]
+            dive_ids = [c["id"] for c in plan.get("dive", []) if isinstance(c, dict)]
+
+        selected_ids = set(seek_ids + hack_ids + dive_ids)
 
         rd_path = DATA_DIR / "rd.json"
         rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
-        cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
         for c in rd.get("cards", []):
             if c.get("column") in ("hq", "rd"):
                 c["column"] = "hq" if c["id"] in selected_ids else "rd"
         rd_path.write_text(json.dumps(rd, indent=2))
-
-        def _card_obj(id_):
-            card = cards_by_id.get(id_)
-            if not card:
-                return None
-            steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
-            return {"id": id_, "title": card["title"], "steps": steps}
-
-        directives = {
-            "generated_at": datetime.now().isoformat(),
-            "seek": [o for o in (_card_obj(i) for i in seek_ids) if o],
-            "hack": [o for o in (_card_obj(i) for i in hack_ids) if o],
-            "dive": [o for o in (_card_obj(i) for i in dive_ids) if o],
-            "encouraging_message": encouraging,
-        }
-        (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
 
         if context_note and context_note.strip():
             ctx_path = DATA_DIR / "context.json"
@@ -756,7 +753,24 @@ def _handle_tool(name: str, input_: dict) -> dict:
             ctx["notes"].append({"date": date.today().isoformat(), "note": context_note.strip()})
             ctx_path.write_text(json.dumps(ctx, indent=2))
 
-        pdf_name = push_pdf()
+        # Push pre-built PDF if available, otherwise build a new one
+        pdf_name = None
+        if plan_path.exists():
+            plan = json.loads(plan_path.read_text())
+            latest_pdf = plan.get("latest_pdf")
+            if latest_pdf:
+                pdf_file = DATA_DIR / latest_pdf
+                if pdf_file.exists():
+                    result = subprocess.run(
+                        ["rmapi", "put", "--force", str(pdf_file), RM_FOLDER],
+                        capture_output=True, text=True, timeout=60,
+                    )
+                    if result.returncode != 0:
+                        raise RuntimeError(f"rmapi put failed: {result.stderr.strip()}")
+                    pdf_name = pdf_file.name
+        if not pdf_name:
+            pdf_name = push_pdf()
+
         return {"pushed": pdf_name, "selected": len(selected_ids)}
 
     if name == "create_card":
@@ -820,7 +834,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
         rd_path.write_text(json.dumps(rd, indent=2))
         return {"ok": True, "deleted": input_.get("id")}
 
-    if name == "rebuild_preview":
+    if name == "assemble_plan":
         import anthropic
         seek_ids = list(input_.get("seek_ids", []))
         hack_ids = list(input_.get("hack_ids", []))
@@ -837,16 +851,39 @@ def _handle_tool(name: str, input_: dict) -> dict:
         except Exception as e:
             delta_error = str(e)
 
-        # Generate encouraging message from fresh delta
+        # Load fresh data
         delta = {}
         delta_path = DATA_DIR / "delta.json"
         if delta_path.exists():
             delta = json.loads(delta_path.read_text())
         delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
 
+        omens_data = {}
+        omens_path = DATA_DIR / "omens.json"
+        if omens_path.exists():
+            omens_data = json.loads(omens_path.read_text())
+        events = omens_data.get("events", [])
+
+        rd_path = DATA_DIR / "rd.json"
+        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+        cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
+
+        def _card_obj(id_):
+            card = cards_by_id.get(id_)
+            if not card:
+                return None
+            steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
+            return {"id": id_, "title": card["title"], "steps": steps, "size": card.get("size", "task")}
+
+        seek_cards = [o for o in (_card_obj(i) for i in seek_ids) if o]
+        hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
+        dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
+
+        client = anthropic.Anthropic()
+
+        # Generate encouraging message
         encouraging = ""
         try:
-            client = anthropic.Anthropic()
             resp = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=128,
@@ -860,29 +897,76 @@ def _handle_tool(name: str, input_: dict) -> dict:
         except Exception:
             pass
 
-        rd_path = DATA_DIR / "rd.json"
-        rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
-        cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
+        # Generate daily schedule
+        today_dow = date.today().strftime("%A")
+        junni_block = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
+        cards_text = "".join(
+            f"{cat} [{c.get('size','task')}] {c['title']} (id:{c['id']})\n"
+            for cat, cards in [("SEEK", seek_cards), ("HACK", hack_cards), ("DIVE", dive_cards)]
+            for c in cards
+        ) or "None."
+        events_text = "\n".join(f"- {e.get('title','')} ({e.get('date','')})" for e in events) or "None."
 
-        def _card_obj(id_):
-            card = cards_by_id.get(id_)
-            if not card:
-                return None
-            steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
-            return {"id": id_, "title": card["title"], "steps": steps}
+        schedule = []
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                messages=[{"role": "user", "content": (
+                    f"Generate a time-blocked schedule for Wai's day ({today_dow}).\n\n"
+                    f"TASKS:\n{cards_text}\n\n"
+                    f"CALENDAR EVENTS:\n{events_text}\n\n"
+                    f"YESTERDAY'S NOTES:\n{delta_text or 'none'}\n\n"
+                    f"DAILY CONSTRAINTS:\n"
+                    f"- Wake 8:00am, sleep 1:00am\n"
+                    f"- Morning relax 8:00–10:30am (extend to afternoon if delta suggests out late)\n"
+                    f"{junni_block}"
+                    f"- Lunch buffer 11:45–12:45\n"
+                    f"- Dinner buffer 6:45–7:45\n"
+                    f"- Evening wind-down 11:00pm\n"
+                    f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
+                    f"- Leave 15min buffer between tasks; group SEEK tasks if possible\n\n"
+                    f'JSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
+                )}],
+            )
+            raw = resp.content[0].text.strip()
+            m = re.search(r'\[[\s\S]*\]', raw)
+            if m:
+                schedule = json.loads(m.group())
+        except Exception:
+            pass
 
-        directives = {
+        plan = {
             "generated_at": datetime.now().isoformat(),
-            "seek": [o for o in (_card_obj(i) for i in seek_ids) if o],
-            "hack": [o for o in (_card_obj(i) for i in hack_ids) if o],
-            "dive": [o for o in (_card_obj(i) for i in dive_ids) if o],
+            "seek": seek_cards,
+            "hack": hack_cards,
+            "dive": dive_cards,
             "encouraging_message": encouraging,
+            "omens": events,
+            "schedule": schedule,
         }
+        (DATA_DIR / "plan.json").write_text(json.dumps(plan, indent=2))
+
+        # Keep directives.json in sync for preview compatibility
+        directives = {k: plan[k] for k in ("generated_at", "seek", "hack", "dive", "encouraging_message")}
         (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
+
         result = {"ok": True}
         if delta_error:
             result["delta_error"] = delta_error
         return result
+
+    if name == "build_pdf":
+        from build_pdf import build as pdf_build
+        ts = _ts()
+        pdf_path = DATA_DIR / f"WAI_{ts}.pdf"
+        pdf_build(str(pdf_path))
+        plan_path = DATA_DIR / "plan.json"
+        if plan_path.exists():
+            plan = json.loads(plan_path.read_text())
+            plan["latest_pdf"] = pdf_path.name
+            plan_path.write_text(json.dumps(plan, indent=2))
+        return {"ok": True, "pdf": pdf_path.name}
 
     return {"error": f"Unknown tool: {name}"}
 

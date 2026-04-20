@@ -170,19 +170,24 @@ def draw_encouragement(c, message: str, y: float):
 
 def build(out_path=None):
     out = out_path or OUT_PDF
-    try:
-        with open("/app/data/directives.json") as f:
-            directives = json.load(f)
-    except FileNotFoundError:
-        directives = {}
-    try:
-        with open("/app/data/omens.json") as f:
-            omens = json.load(f)
-    except FileNotFoundError:
-        omens = {"events": []}
+    plan = {}
+    for src in ("/app/data/plan.json", "/app/data/directives.json"):
+        try:
+            with open(src) as f:
+                plan = json.load(f)
+            break
+        except FileNotFoundError:
+            pass
+    events = plan.get("omens", None)
+    if events is None:
+        try:
+            with open("/app/data/omens.json") as f:
+                events = json.load(f).get("events", [])
+        except FileNotFoundError:
+            events = []
     c = canvas.Canvas(out, pagesize=A5)
-    y = draw_directives_page(c, directives, omens.get("events", []))
-    draw_encouragement(c, directives.get("encouraging_message", ""), y)
+    y = draw_directives_page(c, plan, events)
+    draw_encouragement(c, plan.get("encouraging_message", ""), y)
     c.showPage()
     c.save()
     print(f"Wrote {out}")

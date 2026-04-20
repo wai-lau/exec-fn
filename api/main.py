@@ -837,7 +837,8 @@ async function streamResponse() {
           else if (data.name === 'update_card') addMsg('sys', `[ updated: ${r.title || data.input?.id} ]`);
           else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
           else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
-          else if (data.name === 'rebuild_preview') { previewLoaded = false; openPreview(); addMsg('sys', '[ preview rebuilt ]'); }
+          else if (data.name === 'assemble_plan') { previewLoaded = false; openPreview(); addMsg('sys', '[ plan assembled ]'); }
+          else if (data.name === 'build_pdf') { addMsg('sys', `[ pdf built: ${r.pdf || ''} ]`); }
           else if (data.name === 'finalize_and_push') { addMsg('sys', '[ pushed to reMarkable ]'); }
         } else if (data.type === 'done') {
           stage = data.next_stage;
@@ -1033,12 +1034,12 @@ async function doPush(btn) {
 }
 
 async function rebuildPreview(btn) {
-  btn.disabled = true; btn.textContent = 'rebuilding...';
-  const r = await fetch('/api/rebuild_preview', {method:'POST'});
+  btn.disabled = true; btn.textContent = 'assembling...';
+  const r = await fetch('/api/assemble_plan', {method:'POST'});
   btn.disabled = false;
   if (!r.ok) {
     const err = await r.json().catch(()=>({detail:'error'}));
-    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,100,100,0.8);font-size:0.8rem">rebuild failed: ${err.detail}</span>`;
+    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,100,100,0.8);font-size:0.8rem">assemble failed: ${err.detail}</span>`;
     btn.textContent = '[rebuild]';
     return;
   }
@@ -1046,7 +1047,7 @@ async function rebuildPreview(btn) {
   if (data.delta_error) {
     document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,160,80,0.85);font-size:0.8rem">delta failed: ${data.delta_error}</span>`;
   }
-  btn.textContent = '[rebuilt]';
+  btn.textContent = '[assembled]';
   setTimeout(()=>{ btn.textContent='[rebuild]'; },3000);
   previewLoaded = false;
   loadPreview();
@@ -1370,18 +1371,26 @@ def api_push():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@protected.post("/api/rebuild_preview")
-def api_rebuild_preview():
+@protected.post("/api/assemble_plan")
+def api_assemble_plan():
     try:
         p = DATA_DIR / "directives.json"
         d = json.loads(p.read_text()) if p.exists() else {}
         seek_ids = [c["id"] for c in d.get("seek", []) if isinstance(c, dict)]
         hack_ids = [c["id"] for c in d.get("hack", []) if isinstance(c, dict)]
         dive_ids = [c["id"] for c in d.get("dive", []) if isinstance(c, dict)]
-        result = pipeline._handle_tool("rebuild_preview", {
+        result = pipeline._handle_tool("assemble_plan", {
             "seek_ids": seek_ids, "hack_ids": hack_ids, "dive_ids": dive_ids,
         })
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@protected.post("/api/build_pdf")
+def api_build_pdf():
+    try:
+        return pipeline._handle_tool("build_pdf", {})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
