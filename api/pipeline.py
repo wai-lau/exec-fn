@@ -1093,11 +1093,12 @@ def _handle_tool(name: str, input_: dict) -> dict:
                     f"- Wake 8:00am, sleep 1:00am\n"
                     f"- Morning relax 8:00–10:30am (extend to afternoon if delta suggests out late)\n"
                     f"{junni_block}"
-                    f"- Lunch buffer 11:45–12:45\n"
-                    f"- Dinner buffer 6:45–7:45\n"
+                    f"- Lunch 11:45–12:45\n"
+                    f"- Dinner 6:45–7:45\n"
                     f"- Evening wind-down 11:00pm\n"
                     f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
-                    f"- Leave 15min buffer between tasks; group SEEK tasks if possible\n\n"
+                    f"- Leave 15min gap between tasks; group SEEK tasks if possible\n"
+                    f"- Do NOT add buffer entries to the schedule\n\n"
                     f'JSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
                 )}],
             )
