@@ -619,8 +619,17 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_preview",
-            "description": "Refresh the preview panel in the UI to show the latest directives, cards, and omens. Call after changes that Wai should see reflected immediately.",
-            "input_schema": {"type": "object", "properties": {}},
+            "description": "Refresh the preview panel in the UI to show the latest directives, cards, and omens. Call after changes that Wai should see reflected immediately. Always include a fresh encouraging_message.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "encouraging_message": {
+                        "type": "string",
+                        "description": "Fresh encouraging message for Wai, shown in the preview panel.",
+                    },
+                },
+                "required": ["encouraging_message"],
+            },
         },
     ]
 
@@ -742,6 +751,12 @@ def _handle_tool(name: str, input_: dict) -> dict:
         return {"ok": True, "deleted": input_.get("id")}
 
     if name == "update_preview":
+        msg = input_.get("encouraging_message", "")
+        if msg:
+            dir_path = DATA_DIR / "directives.json"
+            d = json.loads(dir_path.read_text()) if dir_path.exists() else {}
+            d["encouraging_message"] = msg
+            dir_path.write_text(json.dumps(d, indent=2))
         return {"ok": True}
 
     return {"error": f"Unknown tool: {name}"}
