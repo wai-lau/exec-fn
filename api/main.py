@@ -727,6 +727,10 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
     <span style="opacity:0.4;font-size:0.8rem;">loading...</span>
   </div>
   <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">schedule</div>
+    <div id="pr-schedule"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
+  <div style="margin-bottom:28px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <div class="pr-col-hdr" style="margin:0;">omens</div>
       <button id="omens-refresh-btn" onclick="refreshOmens(this)" style="background:none;border:none;color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.72rem;cursor:pointer;padding:0;">[refresh]</button>
@@ -963,8 +967,8 @@ let previewLoaded = false;
 async function loadPreview() {
   const HDR = '<div class="pr-col-hdr">';
 
-  const [omensRes, dirRes, deltaRes] = await Promise.all([
-    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta')
+  const [omensRes, dirRes, deltaRes, planRes] = await Promise.all([
+    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta'), fetch('/api/plan')
   ]);
 
   if (dirRes.ok) {
@@ -979,6 +983,30 @@ async function loadPreview() {
       <div>${HDR}hack</div>${flat(hack)}</div>
       <div>${HDR}dive</div>${deep(dive)}</div>`;
     document.getElementById('pr-enc').textContent = d.encouraging_message || '';
+  }
+
+  if (planRes.ok) {
+    const p = await planRes.json();
+    const sched = p.schedule || [];
+    if (sched.length) {
+      const rows = sched.map(s => {
+        const dur = s.duration_min >= 60
+          ? `${Math.floor(s.duration_min/60)}h${s.duration_min%60 ? (s.duration_min%60)+'m' : ''}`
+          : `${s.duration_min}m`;
+        const typeColor = s.type === 'seek' ? 'rgba(0,220,255,0.7)' : s.type === 'dive' ? 'rgba(255,180,0,0.7)' : 'rgba(0,255,65,0.7)';
+        return `<tr>
+          <td style="padding:3px 10px 3px 0;opacity:0.7;white-space:nowrap;">${s.time}</td>
+          <td style="padding:3px 10px 3px 0;flex:1;">${s.title}</td>
+          <td style="padding:3px 0;opacity:0.55;white-space:nowrap;font-size:0.8em;">${dur}</td>
+          <td style="padding:3px 0 3px 10px;white-space:nowrap;font-size:0.75em;color:${typeColor};">${s.type||''}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('pr-schedule').innerHTML = `<table style="border-collapse:collapse;width:100%;font-size:0.85rem;">${rows}</table>`;
+    } else {
+      document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    }
+  } else {
+    document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
   }
 
   if (omensRes.ok) {
@@ -1360,6 +1388,14 @@ def api_directives_get():
     p = DATA_DIR / "directives.json"
     if not p.exists():
         raise HTTPException(status_code=404, detail="No directives yet")
+    return json.loads(p.read_text())
+
+
+@protected.get("/api/plan")
+def api_plan_get():
+    p = DATA_DIR / "plan.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="No plan yet")
     return json.loads(p.read_text())
 
 
