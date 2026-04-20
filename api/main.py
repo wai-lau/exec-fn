@@ -175,20 +175,27 @@ document.addEventListener('keydown', e => {
 });
 
 async function load() {
-  const r = await fetch('/api/archive');
-  const files = await r.json();
+  const [archiveRes, cacheRes] = await Promise.all([fetch('/api/archive'), fetch('/api/cache')]);
+  const pdfs = archiveRes.ok ? await archiveRes.json() : [];
+  const cached = cacheRes.ok ? await cacheRes.json() : [];
   const el = document.getElementById('files');
   el.className = '';
-  if (!files.length) { el.innerHTML = '<p style="opacity:0.4;font-size:0.8rem">no files yet</p>'; return; }
+  if (!pdfs.length && !cached.length) { el.innerHTML = '<p style="opacity:0.4;font-size:0.8rem">no files yet</p>'; return; }
   el.className = 'vault-grid';
-  el.innerHTML = files.map(f => {
+  const pdfCards = pdfs.map(f => {
     const showPages = f.pages > 2 ? 1 : f.pages;
     const thumbs = Array.from({length: showPages}, (_, i) =>
       `<img class="vault-thumb" src="/api/archive/${f.filename}/page/${i}" loading="lazy"
         onclick="openLightbox('/api/archive/${f.filename}/page/${i}')">`
     ).join('');
     return `<div class="vault-card"><div class="vault-label">${f.label}</div>${thumbs}</div>`;
-  }).join('');
+  });
+  const cacheCards = cached.map(f =>
+    `<div class="vault-card"><div class="vault-label">${f.label}</div>${
+      f.pages.map(src => `<img class="vault-thumb" src="${src}" loading="lazy" onclick="openLightbox('${src}')">`).join('')
+    }</div>`
+  );
+  el.innerHTML = [...pdfCards, ...cacheCards].join('');
 }
 load();
 </script>
@@ -1121,7 +1128,7 @@ async def archive_page():
 
 # ── data file serving ─────────────────────────────────────────────────────────
 
-@protected.get("/data/{filename}")
+@protected.get("/data/{filename:path}")
 async def serve_data(filename: str):
     path = (DATA_DIR / filename).resolve()
     if not str(path).startswith(str(DATA_DIR.resolve())):
@@ -1294,6 +1301,31 @@ def archive_page_png(filename: str, page_num: int):
     png_bytes = rasterize(str(p), page_index=page_num)
     cache_file.write_bytes(png_bytes)
     return Response(content=png_bytes, media_type="image/png")
+
+
+@protected.get("/api/cache")
+def api_cache():
+    """List pre-rendered PNGs in the cache folder, grouped by source doc, newest first."""
+    cache_dir = _PNG_CACHE
+    if not cache_dir.exists():
+        return []
+    from collections import defaultdict
+    import re as _re
+    groups = defaultdict(list)
+    for f in sorted(cache_dir.glob("*.png"), reverse=True):
+        # filename: EXEC_YYYYMMDD_HHMMSS.rmdoc.pageN.png
+        m = _re.match(r'^(.+\.rmdoc)\.page(\d+)\.png$', f.name)
+        if m:
+            groups[m.group(1)].append((int(m.group(2)), f.name))
+    result = []
+    for doc, pages in sorted(groups.items(), reverse=True):
+        pages.sort()
+        result.append({
+            "doc": doc,
+            "label": doc.replace(".rmdoc", ""),
+            "pages": [f"/data/cache/{name}" for _, name in pages],
+        })
+    return result
 
 
 @protected.get("/api/rd")
