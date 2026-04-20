@@ -1108,7 +1108,8 @@ def _handle_tool(name: str, input_: dict) -> dict:
                     f"- Evening wind-down 11:00pm\n"
                     f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
                     f"- Leave 15min gap between tasks; group SEEK tasks if possible\n"
-                    f"- Do NOT add buffer, wake, morning relax, wind-down, or sleep entries to the schedule\n\n"
+                    f"- Do NOT add buffer, wake, morning relax, wind-down, or sleep entries to the schedule\n"
+                    f"- Do NOT schedule book/reading tasks\n\n"
                     f'JSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
                 )}],
             )
@@ -1183,6 +1184,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
                     f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
                     f"- Leave 15min gap between tasks; group SEEK tasks if possible\n"
                     f"- Do NOT add buffer, wake, morning relax, wind-down, or sleep entries to the schedule\n"
+                    f"- Do NOT schedule book/reading tasks\n"
                     + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
                     f'\nJSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
                 )}],
