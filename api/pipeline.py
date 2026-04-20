@@ -64,27 +64,54 @@ def pull_exec(baseline: bool = False) -> str:
     return str(dest)
 
 
-def pull_wai() -> str:
-    """Pull the latest WAI document from reMarkable, saved as WAI_<ts>.rmdoc."""
-    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], cwd=str(DATA_DIR), capture_output=True, text=True, timeout=30)
+def _rm_list_wai() -> list:
+    """Return sorted list of WAI_* document names in the EXEC folder on reMarkable."""
+    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], capture_output=True, text=True, timeout=30)
     if ls.returncode != 0:
-        raise RuntimeError(f"rmapi ls failed: {(ls.stderr or ls.stdout).strip()}")
+        return []
+    return sorted([
+        p.strip().split()[-1]
+        for p in ls.stdout.splitlines()
+        if p.strip().split() and p.strip().split()[0] == "[f]"
+        and p.strip().split()[-1].startswith("WAI_")
+    ])
 
-    wai_docs = []
-    for line in ls.stdout.splitlines():
-        parts = line.strip().split()
-        if parts and parts[0] == "[f]" and parts[-1].startswith("WAI_"):
-            wai_docs.append(parts[-1])
 
-    if not wai_docs:
+def _rm_stat_modified(name: str) -> "datetime | None":
+    """Return ModifiedClient of a named file in EXEC folder as UTC naive datetime."""
+    try:
+        stat = subprocess.run(["rmapi", "stat", f"{RM_FOLDER}/{name}"],
+                              capture_output=True, text=True, timeout=15)
+        if stat.returncode != 0:
+            return None
+        data = json.loads(stat.stdout)
+        return datetime.fromisoformat(data["ModifiedClient"].replace("Z", ""))
+    except Exception:
+        return None
+
+
+def pull_wai() -> str:
+    """Pull the latest WAI document from reMarkable, keeping its original rM name.
+
+    Skips the download if a local copy already exists whose mtime >= rM ModifiedClient.
+    """
+    wai_names = _rm_list_wai()
+    if not wai_names:
         raise RuntimeError("No WAI_* document found in EXEC folder on reMarkable")
 
-    latest = sorted(wai_docs)[-1]
+    latest = wai_names[-1]
+    dest = DATA_DIR / f"{latest}.rmdoc"
+
+    if dest.exists():
+        modified = _rm_stat_modified(latest)
+        if modified is not None:
+            file_mtime = datetime.utcfromtimestamp(dest.stat().st_mtime)
+            if file_mtime >= modified:
+                return str(dest)
 
     result = subprocess.run(
         ["rmapi", "get", f"{RM_FOLDER}/{latest}"],
-        cwd=str(DATA_DIR),
-        capture_output=True, text=True, timeout=60,
+        cwd=str(DATA_DIR), capture_output=True, text=True, timeout=60,
     )
     if result.returncode != 0:
         raise RuntimeError(f"rmapi get failed: {(result.stderr or result.stdout).strip()}")
@@ -93,8 +120,6 @@ def pull_wai() -> str:
     if not src.exists():
         raise RuntimeError(f"rmapi get succeeded but {latest}.rmdoc not found in data dir")
 
-    dest = DATA_DIR / f"WAI_{_ts()}.rmdoc"
-    shutil.move(str(src), str(dest))
     return str(dest)
 
 
@@ -241,25 +266,10 @@ def _delta_files_in_window(start: datetime, end: datetime) -> list:
 
 def _rm_latest_wai_modified() -> "datetime | None":
     """Return ModifiedClient of the latest WAI_* file on reMarkable, or None on failure."""
-    try:
-        ls = subprocess.run(["rmapi", "ls", RM_FOLDER], capture_output=True, text=True, timeout=30)
-        if ls.returncode != 0:
-            return None
-        wai_docs = [p.strip().split()[-1] for p in ls.stdout.splitlines()
-                    if p.strip().split() and p.strip().split()[0] == "[f]"
-                    and p.strip().split()[-1].startswith("WAI_")]
-        if not wai_docs:
-            return None
-        latest_name = sorted(wai_docs)[-1]
-        stat = subprocess.run(["rmapi", "stat", f"{RM_FOLDER}/{latest_name}"],
-                              capture_output=True, text=True, timeout=15)
-        if stat.returncode != 0:
-            return None
-        data = json.loads(stat.stdout)
-        utc = datetime.fromisoformat(data["ModifiedClient"].replace("Z", ""))
-        return utc  # UTC naive, consistent with file timestamps
-    except Exception:
+    names = _rm_list_wai()
+    if not names:
         return None
+    return _rm_stat_modified(names[-1])
 
 
 def _analyze_wai_doc(wai_path: str) -> dict:
@@ -419,30 +429,12 @@ def analyze_delta(path: str = None) -> dict:
 
 
 def analyze_delta_to_now() -> None:
-    """Pull latest rmdoc and analyze all WAI files from yesterday's rollover to now.
-
-    Used by assemble_plan so the delta covers the full day up to the current moment,
-    not just the morning window. Creates/updates delta_wai_*.json files which
-    _load_all_recent_deltas() then merges.
-    """
+    """Pull latest rmdoc (if stale) and analyze all WAI files from rollover to now."""
     day_start, _ = _day_window()
-
-    # Pull latest from reMarkable if it's newer than anything we have locally
-    modified = _rm_latest_wai_modified()
-    newest_local = None
-    for f in DATA_DIR.glob("WAI_*.rmdoc"):
-        ts = _parse_file_ts(f.stem)
-        if ts and (newest_local is None or ts > newest_local):
-            newest_local = ts
-
-    if modified is None or newest_local is None or modified > newest_local:
-        try:
-            pull_wai()
-        except Exception:
-            pass
-
-    # Analyze all WAI files from yesterday's rollover to now
-    # Compute now AFTER the pull so the newly downloaded file is included
+    try:
+        pull_wai()  # skips if local copy is already up to date (mtime >= rM ModifiedClient)
+    except Exception:
+        pass
     candidates = _wai_files_in_window(day_start, datetime.now())
     for wai_path in candidates:
         _analyze_wai_doc(wai_path)
