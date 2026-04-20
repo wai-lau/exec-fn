@@ -82,8 +82,8 @@ CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["看板", "vault"]
-_NAV_HREFS = {"看板": "/rd", "vault": "/archive"}
+_NAV_LINKS = ["plan", "看板", "vault"]
+_NAV_HREFS = {"plan": "/plan", "看板": "/rd", "vault": "/archive"}
 
 
 def _build_nav(active=None):
@@ -634,6 +634,155 @@ loadDirectives(); loadOmens(); loadEncouragement();
 </script>
 '''
 
+_PLAN_CONTENT = '''
+<style>
+.pr-col-hdr { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.15em; opacity:0.65; margin:0 0 8px; border-bottom:1px solid rgba(0,255,65,0.25); padding-bottom:4px; }
+.pr-item { margin-bottom:10px; font-size:0.85rem; }
+.pr-step { padding:1px 0 1px 18px; font-size:0.77rem; opacity:0.82; }
+.pr-push {
+  background:none; border:1px solid rgba(0,255,65,0.25); color:rgba(0,255,65,0.55);
+  font-family:monospace; font-size:0.78rem; padding:5px 16px; cursor:pointer;
+}
+.pr-push:hover { border-color:rgba(0,255,65,0.6); color:rgba(0,255,65,0.9); }
+</style>
+
+<div id="content">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+    <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.18em;opacity:0.5;">plan</span>
+    <div style="display:flex;gap:10px;">
+      <button class="pr-push" id="pr-rebuild-btn" onclick="rebuildPlan(this)">[plan]</button>
+      <button class="pr-push" id="pr-push-btn" onclick="doPush(this)">push &rarr;</button>
+    </div>
+  </div>
+  <div id="pr-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:36px;">
+    <span style="opacity:0.4;font-size:0.8rem;">loading...</span>
+  </div>
+  <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">schedule</div>
+    <div id="pr-schedule"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
+  <div style="margin-bottom:28px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div class="pr-col-hdr" style="margin:0;">omens</div>
+      <button onclick="refreshOmens(this)" style="background:none;border:none;color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.72rem;cursor:pointer;padding:0;">[refresh]</button>
+    </div>
+    <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
+  <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">delta</div>
+    <div id="pr-delta"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
+  <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">encouragement</div>
+    <div id="pr-enc" style="line-height:1.7;opacity:0.8;white-space:pre-wrap;font-size:0.85rem;"></div>
+  </div>
+</div>
+
+<script>
+async function loadPlan() {
+  const HDR = '<div class="pr-col-hdr">';
+  const [omensRes, dirRes, deltaRes, planRes] = await Promise.all([
+    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta'), fetch('/api/plan')
+  ]);
+
+  if (dirRes.ok) {
+    const d = await dirRes.json();
+    const seek = d.seek || [], hack = d.hack || [], dive = d.dive || [];
+    const flat = cs => cs.length ? cs.map(c=>`<div class="pr-item">&middot; ${c.title||c}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    const deep = cs => cs.length ? cs.map(c=>`<div class="pr-item">${c.title||c}${(c.steps||[]).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    document.getElementById('pr-grid').innerHTML = `
+      <div>${HDR}seek</div>${flat(seek)}</div>
+      <div>${HDR}hack</div>${flat(hack)}</div>
+      <div>${HDR}dive</div>${deep(dive)}</div>`;
+    document.getElementById('pr-enc').textContent = d.encouraging_message || '';
+  }
+
+  if (planRes.ok) {
+    const p = await planRes.json();
+    const sched = p.schedule || [];
+    if (sched.length) {
+      const rows = sched.map(s => {
+        const dur = s.duration_min >= 60
+          ? `${Math.floor(s.duration_min/60)}h${s.duration_min%60 ? (s.duration_min%60)+'m' : ''}`
+          : `${s.duration_min}m`;
+        const typeColor = s.type === 'seek' ? 'rgba(0,220,255,0.7)' : s.type === 'dive' ? 'rgba(255,180,0,0.7)' : 'rgba(0,255,65,0.7)';
+        return `<tr>
+          <td style="padding:4px 12px 4px 0;opacity:0.7;white-space:nowrap;">${s.time}</td>
+          <td style="padding:4px 12px 4px 0;">${s.title}</td>
+          <td style="padding:4px 0;opacity:0.55;white-space:nowrap;font-size:0.8em;">${dur}</td>
+          <td style="padding:4px 0 4px 12px;white-space:nowrap;font-size:0.75em;color:${typeColor};">${s.type||''}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('pr-schedule').innerHTML = `<table style="border-collapse:collapse;width:100%;font-size:0.85rem;">${rows}</table>`;
+    } else {
+      document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    }
+  } else {
+    document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (omensRes.ok) {
+    const d = await omensRes.json();
+    const evts = d.events || [];
+    document.getElementById('pr-omens').innerHTML = evts.length
+      ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
+      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (deltaRes.ok) {
+    const d = await deltaRes.json();
+    const parts = [];
+    if (d.wai_notes) parts.push(`<div class="pr-item" style="white-space:pre-wrap;opacity:0.8;">${d.wai_notes}</div>`);
+    if (d.adjustments) parts.push(`<div class="pr-item" style="white-space:pre-wrap;opacity:0.6;font-size:0.85em;margin-top:8px;">${d.adjustments}</div>`);
+    document.getElementById('pr-delta').innerHTML = parts.length ? parts.join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  } else {
+    document.getElementById('pr-delta').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+}
+
+async function refreshOmens(btn) {
+  btn.textContent = '...';
+  const r = await fetch('/api/omens', {method:'POST'});
+  btn.textContent = '[refresh]';
+  if (r.ok) {
+    const d = await r.json();
+    document.getElementById('pr-omens').innerHTML = (d.events||[]).length
+      ? d.events.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
+      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+}
+
+async function rebuildPlan(btn) {
+  btn.disabled = true; btn.textContent = 'planning...';
+  const r = await fetch('/api/assemble_plan', {method:'POST'});
+  btn.disabled = false;
+  if (!r.ok) {
+    const err = await r.json().catch(()=>({detail:'error'}));
+    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,100,100,0.8);font-size:0.8rem">failed: ${err.detail}</span>`;
+    btn.textContent = '[plan]';
+    return;
+  }
+  const data = await r.json().catch(()=>({}));
+  if (data.delta_error) {
+    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,160,80,0.85);font-size:0.8rem">delta failed: ${data.delta_error}</span>`;
+  }
+  btn.textContent = '[planned]';
+  setTimeout(()=>{ btn.textContent='[plan]'; },3000);
+  loadPlan();
+}
+
+async function doPush(btn) {
+  btn.disabled = true; btn.textContent = 'pushing...';
+  const r = await fetch('/api/push', {method:'POST'});
+  btn.disabled = false;
+  if (!r.ok) { const err = await r.json().catch(()=>({detail:'error'})); alert(err.detail); btn.textContent = 'push \u2192'; }
+  else { btn.textContent = 'pushed \u2713'; setTimeout(()=>{ btn.textContent='push \u2192'; },3000); }
+}
+
+loadPlan();
+</script>
+'''
+
 _EXEC_CONTENT = '''
 <style>
 body { display:block !important; height:100vh; overflow:hidden !important; flex-direction:unset !important; align-items:unset !important; justify-content:unset !important; gap:unset !important; }
@@ -681,28 +830,6 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 }
 .exec-send:hover { color:rgba(0,255,65,0.75); }
 .exec-send:disabled { opacity:0.12; cursor:default; }
-#preview-panel {
-  position:fixed; top:0; left:0; right:0; bottom:0; z-index:50;
-  background:rgba(0,0,0,0.97);
-  overflow-y:auto; padding:52px 44px 80px;
-  font-family:monospace; font-size:0.88rem; color:rgba(0,255,65,0.85);
-  display:none;
-}
-#preview-panel.open { display:block; }
-#preview-close {
-  position:fixed; top:14px; right:32px; z-index:51;
-  background:none; border:none; color:rgba(0,255,65,0.3); font-family:monospace;
-  font-size:0.78rem; cursor:pointer; padding:4px 8px;
-}
-#preview-close:hover { color:rgba(0,255,65,0.8); }
-.pr-col-hdr { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.15em; opacity:0.65; margin:0 0 8px; border-bottom:1px solid rgba(0,255,65,0.25); padding-bottom:4px; }
-.pr-item { margin-bottom:10px; }
-.pr-step { padding:1px 0 1px 18px; font-size:0.77rem; opacity:0.82; }
-.pr-push {
-  background:none; border:1px solid rgba(0,255,65,0.25); color:rgba(0,255,65,0.55);
-  font-family:monospace; font-size:0.78rem; padding:5px 16px; cursor:pointer;
-}
-.pr-push:hover { border-color:rgba(0,255,65,0.6); color:rgba(0,255,65,0.9); }
 </style>
 
 <div id="terminal"></div>
@@ -710,40 +837,6 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   <div id="input-line">
     <span id="input-prompt">wai@exec:~$</span>
     <input id="msg-input" type="text" placeholder="" autofocus>
-  </div>
-  <button class="exec-send" onclick="openPreview()" title="preview directives">[pr]</button>
-</div>
-
-<div id="preview-panel">
-  <button id="preview-close" onclick="closePreview()">[x] close</button>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
-    <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.18em;opacity:0.5;">directives</span>
-    <div style="display:flex;gap:10px;">
-      <button class="pr-push" id="pr-rebuild-btn" onclick="rebuildPreview(this)">[plan]</button>
-      <button class="pr-push" id="pr-push-btn" onclick="doPush(this)">push &rarr;</button>
-    </div>
-  </div>
-  <div id="pr-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:36px;">
-    <span style="opacity:0.4;font-size:0.8rem;">loading...</span>
-  </div>
-  <div style="margin-bottom:28px;">
-    <div class="pr-col-hdr" style="margin-bottom:10px;">schedule</div>
-    <div id="pr-schedule"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
-  </div>
-  <div style="margin-bottom:28px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-      <div class="pr-col-hdr" style="margin:0;">omens</div>
-      <button id="omens-refresh-btn" onclick="refreshOmens(this)" style="background:none;border:none;color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.72rem;cursor:pointer;padding:0;">[refresh]</button>
-    </div>
-    <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
-  </div>
-  <div style="margin-bottom:28px;">
-    <div class="pr-col-hdr" style="margin-bottom:10px;">delta</div>
-    <div id="pr-delta"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
-  </div>
-  <div>
-    <div class="pr-col-hdr" style="margin-bottom:10px;">encouragement</div>
-    <div id="pr-enc" style="line-height:1.7;opacity:0.8;white-space:pre-wrap;"></div>
   </div>
 </div>
 
@@ -841,7 +934,7 @@ async function streamResponse() {
           else if (data.name === 'update_card') addMsg('sys', `[ updated: ${r.title || data.input?.id} ]`);
           else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
           else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
-          else if (data.name === 'assemble_plan') { previewLoaded = false; openPreview(); addMsg('sys', '[ plan assembled ]'); }
+          else if (data.name === 'assemble_plan') { addMsg('sys', '[ plan assembled ]'); }
           else if (data.name === 'build_pdf') { addMsg('sys', `[ pdf built: ${r.pdf || ''} ]`); }
           else if (data.name === 'finalize_and_push') { addMsg('sys', '[ pushed to reMarkable ]'); }
         } else if (data.type === 'done') {
@@ -960,129 +1053,6 @@ document.getElementById('msg-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 
-// ── preview panel ─────────────────────────────────────────────────────────────
-
-let previewLoaded = false;
-
-async function loadPreview() {
-  const HDR = '<div class="pr-col-hdr">';
-
-  const [omensRes, dirRes, deltaRes, planRes] = await Promise.all([
-    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta'), fetch('/api/plan')
-  ]);
-
-  if (dirRes.ok) {
-    const d = await dirRes.json();
-    const seek = d.seek || [];
-    const hack = d.hack || [];
-    const dive = d.dive || [];
-    const flat = cards => cards.length ? cards.map(c=>`<div class="pr-item">&middot; ${c.title||c}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-    const deep = cards => cards.length ? cards.map(c=>`<div class="pr-item">${c.title||c}${(c.steps||[]).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-    document.getElementById('pr-grid').innerHTML = `
-      <div>${HDR}seek</div>${flat(seek)}</div>
-      <div>${HDR}hack</div>${flat(hack)}</div>
-      <div>${HDR}dive</div>${deep(dive)}</div>`;
-    document.getElementById('pr-enc').textContent = d.encouraging_message || '';
-  }
-
-  if (planRes.ok) {
-    const p = await planRes.json();
-    const sched = p.schedule || [];
-    if (sched.length) {
-      const rows = sched.map(s => {
-        const dur = s.duration_min >= 60
-          ? `${Math.floor(s.duration_min/60)}h${s.duration_min%60 ? (s.duration_min%60)+'m' : ''}`
-          : `${s.duration_min}m`;
-        const typeColor = s.type === 'seek' ? 'rgba(0,220,255,0.7)' : s.type === 'dive' ? 'rgba(255,180,0,0.7)' : 'rgba(0,255,65,0.7)';
-        return `<tr>
-          <td style="padding:3px 10px 3px 0;opacity:0.7;white-space:nowrap;">${s.time}</td>
-          <td style="padding:3px 10px 3px 0;flex:1;">${s.title}</td>
-          <td style="padding:3px 0;opacity:0.55;white-space:nowrap;font-size:0.8em;">${dur}</td>
-          <td style="padding:3px 0 3px 10px;white-space:nowrap;font-size:0.75em;color:${typeColor};">${s.type||''}</td>
-        </tr>`;
-      }).join('');
-      document.getElementById('pr-schedule').innerHTML = `<table style="border-collapse:collapse;width:100%;font-size:0.85rem;">${rows}</table>`;
-    } else {
-      document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-    }
-  } else {
-    document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-  }
-
-  if (omensRes.ok) {
-    const d = await omensRes.json();
-    const evts = d.events||[];
-    document.getElementById('pr-omens').innerHTML = evts.length
-      ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
-      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-  }
-
-  if (deltaRes.ok) {
-    const d = await deltaRes.json();
-    const parts = [];
-    if (d.wai_notes) parts.push(`<div class="pr-item" style="white-space:pre-wrap;opacity:0.8;">${d.wai_notes}</div>`);
-    if (d.adjustments) parts.push(`<div class="pr-item" style="white-space:pre-wrap;opacity:0.6;font-size:0.85em;margin-top:8px;">${d.adjustments}</div>`);
-    document.getElementById('pr-delta').innerHTML = parts.length
-      ? parts.join('')
-      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-  } else {
-    document.getElementById('pr-delta').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-  }
-}
-
-async function refreshOmens(btn) {
-  btn.textContent = '...';
-  const r = await fetch('/api/omens', {method:'POST'});
-  btn.textContent = '[refresh]';
-  if (r.ok) {
-    const d = await r.json();
-    const evts = d.events||[];
-    document.getElementById('pr-omens').innerHTML = evts.length
-      ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
-      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-  }
-}
-
-function openPreview() {
-  document.getElementById('preview-panel').classList.add('open');
-  if (!previewLoaded) { previewLoaded = true; loadPreview(); }
-}
-
-function closePreview() {
-  document.getElementById('preview-panel').classList.remove('open');
-  document.getElementById('msg-input').focus();
-}
-
-async function doPush(btn) {
-  btn.disabled = true; btn.textContent = 'pushing...';
-  const r = await fetch('/api/push', {method:'POST'});
-  btn.disabled = false;
-  if (!r.ok) { const err = await r.json().catch(()=>({detail:'error'})); alert(err.detail); btn.textContent = 'push \u2192'; }
-  else { btn.textContent = 'pushed \u2713'; setTimeout(()=>{btn.textContent='push \u2192';},3000); }
-}
-
-async function rebuildPreview(btn) {
-  btn.disabled = true; btn.textContent = 'planning...';
-  const r = await fetch('/api/assemble_plan', {method:'POST'});
-  btn.disabled = false;
-  if (!r.ok) {
-    const err = await r.json().catch(()=>({detail:'error'}));
-    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,100,100,0.8);font-size:0.8rem">assemble failed: ${err.detail}</span>`;
-    btn.textContent = '[plan]';
-    return;
-  }
-  const data = await r.json().catch(()=>({}));
-  if (data.delta_error) {
-    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,160,80,0.85);font-size:0.8rem">delta failed: ${data.delta_error}</span>`;
-  }
-  btn.textContent = '[planned]';
-  setTimeout(()=>{ btn.textContent='[plan]'; },3000);
-  previewLoaded = false;
-  loadPreview();
-}
-
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
-
 init();
 </script>
 '''
@@ -1129,6 +1099,11 @@ async def exec_page():
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", _EXEC_CONTENT + _build_nav(None) + "</body>", 1))
+
+
+@protected.get("/plan", response_class=HTMLResponse)
+async def plan_page():
+    return _build_page("plan", _PLAN_CONTENT)
 
 
 @protected.get("/directives")
