@@ -56,6 +56,40 @@ def pull_exec(baseline: bool = False) -> str:
     return str(dest)
 
 
+def pull_wai() -> str:
+    """Pull the latest WAI document from reMarkable, saved as WAI_<ts>.rmdoc."""
+    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], cwd=str(DATA_DIR), capture_output=True, text=True, timeout=30)
+    if ls.returncode != 0:
+        raise RuntimeError(f"rmapi ls failed: {(ls.stderr or ls.stdout).strip()}")
+
+    wai_docs = []
+    for line in ls.stdout.splitlines():
+        parts = line.strip().split()
+        if parts and parts[0] == "[f]" and parts[-1].startswith("WAI_"):
+            wai_docs.append(parts[-1])
+
+    if not wai_docs:
+        raise RuntimeError("No WAI_* document found in EXEC folder on reMarkable")
+
+    latest = sorted(wai_docs)[-1]
+
+    result = subprocess.run(
+        ["rmapi", "get", f"{RM_FOLDER}/{latest}"],
+        cwd=str(DATA_DIR),
+        capture_output=True, text=True, timeout=60,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"rmapi get failed: {(result.stderr or result.stdout).strip()}")
+
+    src = DATA_DIR / f"{latest}.rmdoc"
+    if not src.exists():
+        raise RuntimeError(f"rmapi get succeeded but {latest}.rmdoc not found in data dir")
+
+    dest = DATA_DIR / f"WAI_{_ts()}.rmdoc"
+    shutil.move(str(src), str(dest))
+    return str(dest)
+
+
 def push_pdf() -> str:
     from build_pdf import build as pdf_build
 
@@ -147,7 +181,7 @@ def analyze_delta(path: str = None) -> dict:
     import anthropic
     from rm_to_pdf import rasterize
 
-    latest_path = path or pull_exec()
+    latest_path = path or pull_wai()
 
     png_bytes = rasterize(latest_path, page_index=0)
     (DATA_DIR / "delta_preview.png").write_bytes(png_bytes)
