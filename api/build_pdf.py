@@ -21,6 +21,13 @@ SIZE_TITLE   = 14
 SIZE_SECTION = 12
 SIZE_ITEM    = 10
 
+TYPE_COLORS = {
+    "seek":  "#888888",
+    "hack":  "#444444",
+    "dive":  "#111111",
+    "break": "#aaaaaa",
+}
+
 
 def _wrap(text, font, size, max_w):
     from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -39,12 +46,12 @@ def _wrap(text, font, size, max_w):
     return lines or [""]
 
 
-def draw_directives_page(c, directives, events):
+def draw_schedule_page(c, plan, events):
     LH   = 6.5 * mm
     SH   = 5.5 * mm
     SECH = 7.2 * mm
     GAP  = 1.6 * mm
-    IND  = 5.2 * mm
+    TIME_W = 18 * mm
     CW   = W - 2 * MARGIN
 
     def sec_header(y, label):
@@ -57,47 +64,6 @@ def draw_directives_page(c, directives, events):
         c.line(MARGIN, y, W - MARGIN, y)
         return y - LH * 0.65
 
-    def draw_flat_list(y, items):
-        for item in items:
-            title = item["title"] if isinstance(item, dict) else item
-            if y < MARGIN + SH:
-                break
-            c.setFont(FONT_ITEM, SIZE_ITEM - 1)
-            c.setFillColor(colors.HexColor("#444444"))
-            for ln in _wrap(title, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
-                if y < MARGIN + SH:
-                    break
-                c.drawString(MARGIN + IND, y, ln)
-                y -= SH
-        return y
-
-    def draw_task_list(y, items):
-        for item in items:
-            if y < MARGIN + LH * 2:
-                break
-            title = item["title"] if isinstance(item, dict) else item
-            steps = item.get("steps", []) if isinstance(item, dict) else []
-            c.setFont(FONT_SECTION, SIZE_ITEM)
-            c.setFillColor(colors.black)
-            title_lines = _wrap(title, FONT_SECTION, SIZE_ITEM, CW)
-            for i, ln in enumerate(title_lines):
-                if y < MARGIN + LH:
-                    break
-                c.drawString(MARGIN, y, ln)
-                y -= LH * 0.85 if i < len(title_lines) - 1 else SH
-            for step in steps:
-                if y < MARGIN + SH:
-                    break
-                c.setFont(FONT_ITEM, SIZE_ITEM - 1)
-                c.setFillColor(colors.HexColor("#444444"))
-                for ln in _wrap(step, FONT_ITEM, SIZE_ITEM - 1, CW - IND):
-                    if y < MARGIN + SH:
-                        break
-                    c.drawString(MARGIN + IND, y, ln)
-                    y -= SH
-            y -= 0.8 * mm
-        return y
-
     y = H - MARGIN
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
     c.setFillColor(colors.black)
@@ -108,17 +74,36 @@ def draw_directives_page(c, directives, events):
     c.drawString(MARGIN, y, date.today().strftime("%A, %B %-d, %Y"))
     y -= SECH
 
-    y = sec_header(y, "SEEK")
-    y = draw_flat_list(y, directives.get("seek") or [])
-    y -= GAP
+    schedule = plan.get("schedule") or []
+    if schedule:
+        y = sec_header(y, "SCHEDULE")
+        task_w = CW - TIME_W - 2 * mm
+        for entry in schedule:
+            if y < MARGIN + SH:
+                break
+            t = entry.get("time", "")
+            task = entry.get("task", "")
+            typ = entry.get("type", "seek")
+            col = TYPE_COLORS.get(typ, "#444444")
+            font = FONT_SECTION if typ == "dive" else FONT_ITEM
 
-    y = sec_header(y, "HACK")
-    y = draw_flat_list(y, directives.get("hack") or [])
-    y -= GAP
+            task_lines = _wrap(task, font, SIZE_ITEM, task_w)
+            block_h = len(task_lines) * SH
 
-    y = sec_header(y, "DIVE")
-    y = draw_task_list(y, directives.get("dive") or [])
-    y -= GAP
+            if y - block_h < MARGIN:
+                break
+
+            c.setFont(FONT_ITEM, SIZE_ITEM - 1)
+            c.setFillColor(colors.HexColor("#888888"))
+            c.drawString(MARGIN, y, t)
+
+            c.setFont(font, SIZE_ITEM)
+            c.setFillColor(colors.HexColor(col))
+            for i, ln in enumerate(task_lines):
+                c.drawString(MARGIN + TIME_W, y - i * SH, ln)
+
+            y -= block_h
+        y -= GAP
 
     if events and y > MARGIN + LH * 2:
         y = sec_header(y, "OMENS")
@@ -128,7 +113,7 @@ def draw_directives_page(c, directives, events):
             text = f"{e.get('title', '')} — {e.get('date', '')}"
             c.setFont(FONT_ITEM, SIZE_ITEM)
             c.setFillColor(colors.black)
-            for ln in _wrap(text, FONT_ITEM, SIZE_ITEM, W - 2 * MARGIN):
+            for ln in _wrap(text, FONT_ITEM, SIZE_ITEM, CW):
                 if y < MARGIN + LH:
                     break
                 c.drawString(MARGIN, y, ln)
@@ -186,7 +171,7 @@ def build(out_path=None):
         except FileNotFoundError:
             events = []
     c = canvas.Canvas(out, pagesize=A5)
-    y = draw_directives_page(c, plan, events)
+    y = draw_schedule_page(c, plan, events)
     draw_encouragement(c, plan.get("encouraging_message", ""), y)
     c.showPage()
     c.save()
