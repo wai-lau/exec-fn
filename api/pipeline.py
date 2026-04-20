@@ -419,7 +419,6 @@ def analyze_delta_to_now() -> None:
     _load_all_recent_deltas() then merges.
     """
     day_start, _ = _day_window()
-    now = datetime.now()
 
     # Pull latest from reMarkable if it's newer than anything we have locally
     modified = _rm_latest_wai_modified()
@@ -436,7 +435,8 @@ def analyze_delta_to_now() -> None:
             pass
 
     # Analyze all WAI files from yesterday's rollover to now
-    candidates = _wai_files_in_window(day_start, now)
+    # Compute now AFTER the pull so the newly downloaded file is included
+    candidates = _wai_files_in_window(day_start, datetime.now())
     for wai_path in candidates:
         _analyze_wai_doc(wai_path)
 
