@@ -17,9 +17,9 @@ BOX_SIZE  = 3.5 * mm
 FONT_TITLE   = "Helvetica-Bold"
 FONT_SECTION = "Helvetica-Bold"
 FONT_ITEM    = "Helvetica"
-SIZE_TITLE   = 11
-SIZE_SECTION = 9
-SIZE_ITEM    = 8
+SIZE_TITLE   = 14
+SIZE_SECTION = 12
+SIZE_ITEM    = 10
 
 
 def _wrap(text, font, size, max_w):
@@ -40,11 +40,11 @@ def _wrap(text, font, size, max_w):
 
 
 def draw_directives_page(c, directives, events):
-    LH   = 5.0 * mm
-    SH   = 4.2 * mm
-    SECH = 5.5 * mm
-    GAP  = 1.2 * mm
-    IND  = 4   * mm
+    LH   = 6.5 * mm
+    SH   = 5.5 * mm
+    SECH = 7.2 * mm
+    GAP  = 1.6 * mm
+    IND  = 5.2 * mm
     CW   = W - 2 * MARGIN
 
     def sec_header(y, label):
@@ -139,8 +139,8 @@ def draw_directives_page(c, directives, events):
 
 def draw_encouragement(c, message: str, y: float):
     CW = W - 2 * MARGIN
-    LH = 4.5 * mm
-    SH = 3.8 * mm
+    LH = 5.9 * mm
+    SH = 4.9 * mm
     FOOTER_Y = MARGIN
 
     if not message:

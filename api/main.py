@@ -82,7 +82,7 @@ CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["delta", "看板", "vault"]
+_NAV_LINKS = ["看板", "vault"]
 _NAV_HREFS = {"看板": "/rd", "vault": "/archive"}
 
 
@@ -508,48 +508,6 @@ async function deleteCard() {
 load();
 </script>'''
 
-_DELTA_CONTENT = '''
-<div id="content">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
-    <button onclick="runDelta(this)">run delta</button>
-  </div>
-  <div id="delta"><span style="opacity:0.4;font-size:0.8rem">&mdash;</span></div>
-</div>
-<script>
-function renderList(text) {
-  if (!text) return '<span style="opacity:0.4">&mdash;</span>';
-  const parts = text.split(/\\s+(?=\\d+\\.\\s)/);
-  if (parts.length > 1) {
-    const items = parts.map(p => `<li style="margin-bottom:6px">${p.replace(/^\\d+\\.\\s*/, '')}</li>`).join('');
-    return `<ol style="margin:0;padding-left:1.4em;line-height:1.6">${items}</ol>`;
-  }
-  return `<span style="line-height:1.7">${text}</span>`;
-}
-async function load() {
-  const r = await fetch('/api/delta');
-  const el = document.getElementById('delta');
-  if (!r.ok) { el.innerHTML = '<p style="opacity:0.4;font-size:0.8rem">no delta yet</p>'; return; }
-  const d = await r.json();
-  el.innerHTML = `
-    <h2>what wai wrote</h2>
-    <div style="font-size:0.85rem">${renderList(d.wai_notes)}</div>
-    <h2>adjustments for tomorrow</h2>
-    <div style="font-size:0.85rem">${renderList(d.adjustments)}</div>
-    <div class="ts">${d.analyzed_at || ''}</div>
-  `;
-}
-async function runDelta(btn) {
-  btn.disabled = true; btn.textContent = 'analyzing...';
-  const r = await fetch('/api/delta', {method:'POST'});
-  btn.disabled = false; btn.textContent = 'run delta';
-  if (r.ok) load();
-  else {
-    const err = await r.json().catch(() => ({detail: 'unknown error'}));
-    document.getElementById('delta').innerHTML = `<p style="color:rgba(255,100,100,0.8);font-size:0.8rem">${err.detail}</p>`;
-  }
-}
-</script>
-'''
 
 _DIRECTIVES_CONTENT = '''
 <div id="content" style="width:min(1100px,95vw)">
@@ -1094,10 +1052,6 @@ async def directives_page():
 async def omens_page():
     return RedirectResponse(url="/exec", status_code=302)
 
-
-@protected.get("/delta", response_class=HTMLResponse)
-async def delta_page():
-    return _build_page("delta", _DELTA_CONTENT)
 
 
 @protected.get("/rd", response_class=HTMLResponse)
