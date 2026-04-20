@@ -109,31 +109,39 @@ def push_pdf() -> str:
 
 # ── archive ───────────────────────────────────────────────────────────────────
 
+def _archive_label(stem: str, prefix: str) -> str:
+    parts = stem.split("_")
+    if len(parts) >= 3:
+        d, t = parts[1], parts[2]
+        ts = f"{d[:4]}-{d[4:6]}-{d[6:]} {t[:2]}:{t[2:4]}"
+        return f"{prefix} {ts}" if prefix != "EXEC" else ts
+    return stem
+
+
 def list_archive() -> list:
     import zipfile
-    files = sorted(DATA_DIR.glob("EXEC_*.rmdoc"), reverse=True)
-    result = []
-    for f in files:
-        parts = f.stem.split("_")  # EXEC_YYYYMMDD_HHMMSS
-        if len(parts) >= 3:
-            d, t = parts[1], parts[2]
-            label = f"{d[:4]}-{d[4:6]}-{d[6:]} {t[:2]}:{t[2:4]}"
-        else:
-            label = f.stem
+    entries = []
+
+    for f in DATA_DIR.glob("EXEC_*.rmdoc"):
+        label = _archive_label(f.stem, "EXEC")
         try:
             with zipfile.ZipFile(f) as z:
                 uid = [n for n in z.namelist() if n.endswith(".content")][0].replace(".content", "")
                 content = json.loads(z.read(f"{uid}.content"))
-                if "cPages" in content:
-                    pages = content["cPages"]["pages"]
-                else:
-                    raw = content.get("pages", [])
-                    pages = [{"id": p} for p in raw] if raw and isinstance(raw[0], str) else raw
-                page_count = len(pages)
+                pages = (content.get("cPages") or {}).get("pages") or content.get("pages") or []
+                page_count = len(pages) or 1
         except Exception:
             page_count = 1
-        result.append({"filename": f.name, "label": label, "pages": page_count})
-    return result
+        entries.append({"filename": f.name, "label": label, "pages": page_count, "_mtime": f.stat().st_mtime})
+
+    for f in DATA_DIR.glob("delta_*.png"):
+        label = _archive_label(f.stem, "delta")
+        entries.append({"filename": f.name, "label": label, "pages": 1, "_mtime": f.stat().st_mtime})
+
+    entries.sort(key=lambda e: e["_mtime"], reverse=True)
+    for e in entries:
+        del e["_mtime"]
+    return entries
 
 
 # ── delta ─────────────────────────────────────────────────────────────────────
@@ -184,7 +192,8 @@ def analyze_delta(path: str = None) -> dict:
     latest_path = path or pull_wai()
 
     png_bytes = rasterize(latest_path, page_index=0)
-    (DATA_DIR / "delta_preview.png").write_bytes(png_bytes)
+    png_path = DATA_DIR / f"delta_{_ts()}.png"
+    png_path.write_bytes(png_bytes)
     png_b64 = base64.standard_b64encode(png_bytes).decode()
 
     client = anthropic.Anthropic()
@@ -822,10 +831,11 @@ def _handle_tool(name: str, input_: dict) -> dict:
             analyze_omens()
         except Exception:
             pass
+        delta_error = None
         try:
             analyze_delta()
-        except Exception:
-            pass
+        except Exception as e:
+            delta_error = str(e)
 
         # Generate encouraging message from fresh delta
         delta = {}
@@ -869,7 +879,10 @@ def _handle_tool(name: str, input_: dict) -> dict:
             "encouraging_message": encouraging,
         }
         (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
-        return {"ok": True}
+        result = {"ok": True}
+        if delta_error:
+            result["delta_error"] = delta_error
+        return result
 
     return {"error": f"Unknown tool: {name}"}
 

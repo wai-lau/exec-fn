@@ -986,7 +986,16 @@ async function rebuildPreview(btn) {
   btn.disabled = true; btn.textContent = 'rebuilding...';
   const r = await fetch('/api/rebuild_preview', {method:'POST'});
   btn.disabled = false;
-  if (!r.ok) { const err = await r.json().catch(()=>({detail:'error'})); alert(err.detail); btn.textContent = '[rebuild]'; return; }
+  if (!r.ok) {
+    const err = await r.json().catch(()=>({detail:'error'}));
+    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,100,100,0.8);font-size:0.8rem">rebuild failed: ${err.detail}</span>`;
+    btn.textContent = '[rebuild]';
+    return;
+  }
+  const data = await r.json().catch(()=>({}));
+  if (data.delta_error) {
+    document.getElementById('pr-delta').innerHTML = `<span style="color:rgba(255,160,80,0.85);font-size:0.8rem">delta failed: ${data.delta_error}</span>`;
+  }
   btn.textContent = '[rebuilt]';
   setTimeout(()=>{ btn.textContent='[rebuild]'; },3000);
   previewLoaded = false;
@@ -1230,7 +1239,11 @@ def archive_page_png(filename: str, page_num: int):
     from fastapi.responses import Response
     from rm_to_pdf import rasterize
     p = (DATA_DIR / filename).resolve()
-    if not str(p).startswith(str(DATA_DIR.resolve())) or not filename.endswith(".rmdoc") or not p.exists():
+    if not str(p).startswith(str(DATA_DIR.resolve())) or not p.exists():
+        raise HTTPException(status_code=404, detail="not found")
+    if filename.endswith(".png"):
+        return Response(content=p.read_bytes(), media_type="image/png")
+    if not filename.endswith(".rmdoc"):
         raise HTTPException(status_code=404, detail="not found")
     _PNG_CACHE.mkdir(exist_ok=True)
     cache_file = _PNG_CACHE / f"{filename}.page{page_num}.png"
