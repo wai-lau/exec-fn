@@ -410,7 +410,7 @@ def analyze_omens() -> dict:
         (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
         return omens
 
-    events_text = "\n".join(f"- {e['summary']} on {e['start']}" for e in events)
+    events_text = "\n".join(f"- {e['summary']} | {e['start']}" for e in events)
 
     client = anthropic.Anthropic()
     msg = client.messages.create(
@@ -422,7 +422,8 @@ def analyze_omens() -> dict:
                 f"Wai's upcoming calendar events (next 14 days):\n{events_text}\n\n"
                 "List ALL events in the next 3 days without exception. "
                 "For events 4-14 days away, include anything social, medical, or requiring prep — skip only truly trivial recurring events (e.g. daily alarms, auto-generated). "
-                'Return as JSON only: {"events": [{"title": "...", "date": "...", "prep_notes": "..."}]}'
+                "Return the ISO datetime exactly as given after the | for each event. "
+                'Return as JSON only: {"events": [{"title": "...", "date": "<iso datetime from input>", "prep_notes": "..."}]}'
             ),
         }],
     )
@@ -434,9 +435,27 @@ def analyze_omens() -> dict:
     except json.JSONDecodeError:
         parsed = {"events": []}
 
+    def _fmt_date(iso: str) -> str:
+        try:
+            today = date.today()
+            if "T" in iso:
+                dt = datetime.fromisoformat(iso)
+                d, delta = dt.date(), (dt.date() - today).days
+                hour = dt.strftime("%I%p").lstrip("0").replace(":00", "")
+                return f"{d.strftime('%A')} {hour}" if delta <= 6 else f"{d.strftime('%B %-d')} {hour}"
+            else:
+                d = date.fromisoformat(iso[:10])
+                delta = (d - today).days
+                return d.strftime("%A") if delta <= 6 else d.strftime("%B %-d")
+        except Exception:
+            return iso
+
+    raw_events = sorted(parsed.get("events", []), key=lambda e: e.get("date", ""))
+    formatted_events = [{**e, "date": _fmt_date(e["date"])} for e in raw_events]
+
     omens = {
         "checked_at": datetime.now().isoformat(),
-        "events": parsed.get("events", []),
+        "events": formatted_events,
     }
     (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
     return omens
