@@ -390,7 +390,7 @@ def analyze_omens() -> dict:
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=512,
+        max_tokens=1024,
         messages=[{
             "role": "user",
             "content": (
@@ -404,7 +404,10 @@ def analyze_omens() -> dict:
 
     text = msg.content[0].text
     m = re.search(r'\{[\s\S]*\}', text)
-    parsed = json.loads(m.group()) if m else {"events": []}
+    try:
+        parsed = json.loads(m.group()) if m else {"events": []}
+    except json.JSONDecodeError:
+        parsed = {"events": []}
 
     omens = {
         "checked_at": datetime.now().isoformat(),
