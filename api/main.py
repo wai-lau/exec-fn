@@ -156,22 +156,11 @@ _ARCHIVE_CONTENT = '''
 
 #lightbox {
   display: none; position: fixed; inset: 0; z-index: 999;
-  background: rgba(0,0,0,0.92);
-  flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.92); cursor: zoom-out;
+  align-items: center; justify-content: center;
 }
 #lightbox.open { display: flex; }
-#lb-img { max-height: 88vh; max-width: 90vw; object-fit: contain; }
-#lb-nav {
-  display: flex; align-items: center; gap: 24px; margin-top: 14px;
-}
-#lb-nav button {
-  background: none; border: 1px solid rgba(0,255,65,0.3);
-  color: rgba(0,255,65,0.7); font-family: monospace; font-size: 0.8rem;
-  padding: 4px 14px; cursor: pointer;
-}
-#lb-nav button:hover { border-color: rgba(0,255,65,0.8); color: rgba(0,255,65,1); }
-#lb-nav button:disabled { opacity: 0.2; cursor: default; }
-#lb-counter { font-family: monospace; font-size: 0.72rem; color: rgba(0,255,65,0.45); min-width: 48px; text-align: center; }
+#lb-img { max-height: 95vh; max-width: 95vw; object-fit: contain; cursor: default; }
 #lb-close {
   position: fixed; top: 16px; right: 24px;
   background: none; border: none; color: rgba(0,255,65,0.35);
@@ -180,14 +169,9 @@ _ARCHIVE_CONTENT = '''
 #lb-close:hover { color: rgba(0,255,65,0.8); }
 </style>
 
-<div id="lightbox">
+<div id="lightbox" onclick="closeLightbox()">
   <button id="lb-close" onclick="closeLightbox()">[x] close</button>
-  <img id="lb-img" src="">
-  <div id="lb-nav">
-    <button id="lb-prev" onclick="lbStep(-1)">&#8592; prev</button>
-    <span id="lb-counter"></span>
-    <button id="lb-next" onclick="lbStep(1)">next &#8594;</button>
-  </div>
+  <img id="lb-img" src="" onclick="event.stopPropagation()">
 </div>
 
 <div id="content" style="width:min(1200px,96vw)">
@@ -195,35 +179,15 @@ _ARCHIVE_CONTENT = '''
 </div>
 
 <script>
-let lbFile = null, lbPage = 0, lbPages = 0;
-
-function openLightbox(filename, page, pages) {
-  lbFile = filename; lbPage = page; lbPages = pages;
+function openLightbox(src) {
+  document.getElementById('lb-img').src = src;
   document.getElementById('lightbox').classList.add('open');
-  lbRender();
 }
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
 }
-function lbRender() {
-  document.getElementById('lb-img').src = `/api/archive/${lbFile}/page/${lbPage}`;
-  document.getElementById('lb-counter').textContent = lbPages > 1 ? `${lbPage+1} / ${lbPages}` : '';
-  document.getElementById('lb-prev').disabled = lbPage === 0;
-  document.getElementById('lb-next').disabled = lbPage >= lbPages - 1;
-}
-function lbStep(d) {
-  lbPage = Math.max(0, Math.min(lbPages - 1, lbPage + d));
-  lbRender();
-}
-
 document.addEventListener('keydown', e => {
-  if (!document.getElementById('lightbox').classList.contains('open')) return;
   if (e.key === 'Escape') closeLightbox();
-  if (e.key === 'ArrowLeft') lbStep(-1);
-  if (e.key === 'ArrowRight') lbStep(1);
-});
-document.getElementById('lightbox').addEventListener('click', e => {
-  if (e.target === document.getElementById('lightbox')) closeLightbox();
 });
 
 async function load() {
@@ -237,7 +201,7 @@ async function load() {
     const showPages = f.pages > 2 ? 1 : f.pages;
     const thumbs = Array.from({length: showPages}, (_, i) =>
       `<img class="vault-thumb" src="/api/archive/${f.filename}/page/${i}" loading="lazy"
-        onclick="openLightbox('${f.filename}',${i},${f.pages})">`
+        onclick="openLightbox('/api/archive/${f.filename}/page/${i}')">`
     ).join('');
     return `<div class="vault-card"><div class="vault-label">${f.label}</div>${thumbs}</div>`;
   }).join('');
