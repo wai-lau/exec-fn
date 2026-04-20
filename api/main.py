@@ -716,7 +716,10 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
     <span style="opacity:0.4;font-size:0.8rem;">loading...</span>
   </div>
   <div style="margin-bottom:28px;">
-    <div class="pr-col-hdr" style="margin-bottom:10px;">omens</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div class="pr-col-hdr" style="margin:0;">omens</div>
+      <button id="omens-refresh-btn" onclick="refreshOmens(this)" style="background:none;border:none;color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.72rem;cursor:pointer;padding:0;">[refresh]</button>
+    </div>
     <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
   <div>
@@ -952,7 +955,7 @@ async function loadPreview() {
 
   if (rdRes.ok) {
     const data = await rdRes.json();
-    const cards = (data.cards||[]).filter(c=>c.column==='selected'&&c.category!=='Book');
+    const cards = (data.cards||[]).filter(c=>c.column==='hq'&&c.category!=='Book');
     const easy = cards.filter(c=>c.size==='chore'||c.size==='task');
     const medium = cards.filter(c=>c.size==='book'||c.size==='project');
     const hard = cards.find(c=>c.size==='titan');
@@ -973,6 +976,19 @@ async function loadPreview() {
   if (dirRes.ok) {
     const d = await dirRes.json();
     document.getElementById('pr-enc').textContent = d.encouraging_message || '';
+  }
+}
+
+async function refreshOmens(btn) {
+  btn.textContent = '...';
+  const r = await fetch('/api/omens', {method:'POST'});
+  btn.textContent = '[refresh]';
+  if (r.ok) {
+    const d = await r.json();
+    const evts = d.events||[];
+    document.getElementById('pr-omens').innerHTML = evts.length
+      ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
+      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
   }
 }
 
