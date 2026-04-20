@@ -681,6 +681,38 @@ def _load_daily_delta() -> dict:
     return json.loads(p.read_text()) if p.exists() else {}
 
 
+def _load_all_recent_deltas() -> dict:
+    """Merge all delta_wai_*.json from yesterday's rollover up to now."""
+    day_start, _ = _day_window()
+    now = datetime.now()
+    files = []
+    for f in DATA_DIR.glob("delta_wai_*.json"):
+        # stem: delta_wai_YYYYMMDD_HHMMSS
+        try:
+            ts = datetime.strptime(f.stem[len("delta_wai_"):], "%Y%m%d_%H%M%S")
+        except ValueError:
+            continue
+        if day_start <= ts <= now:
+            files.append((ts, f))
+    if not files:
+        return _load_daily_delta()
+    files.sort(key=lambda x: x[0])
+    all_notes = []
+    all_adjustments = []
+    for _, f in files:
+        d = json.loads(f.read_text())
+        if d.get("wai_notes"):
+            all_notes.append(d["wai_notes"])
+        if d.get("adjustments"):
+            all_adjustments.append(d["adjustments"])
+    if not all_notes:
+        return _load_daily_delta()
+    return {
+        "wai_notes": "\n".join(all_notes),
+        "adjustments": "\n".join(all_adjustments),
+    }
+
+
 def _build_chat_system_prompt(stage: str = "planning") -> str:
     def _load(name):
         p = DATA_DIR / f"{name}.json"
@@ -1036,8 +1068,8 @@ def _handle_tool(name: str, input_: dict) -> dict:
         except Exception as e:
             delta_error = str(e)
 
-        # Load fresh data
-        delta = _load_daily_delta()
+        # Load fresh data — all delta_wai files from yesterday's rollover to now
+        delta = _load_all_recent_deltas()
         delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
 
         omens_data = {}
@@ -1160,7 +1192,28 @@ def _handle_tool(name: str, input_: dict) -> dict:
             for c in cards
         ) or "None."
         events_text = "\n".join(f"- {e.get('title','')} ({e.get('date','')})" for e in events) or "None."
-        delta_text = (_load_daily_delta().get("wai_notes") or "")
+        delta_text = (_load_all_recent_deltas().get("wai_notes") or "")
+        current_time = datetime.now().strftime("%-I:%M %p")
+
+        # Identify tasks already past their scheduled time
+        existing_schedule = plan.get("schedule", [])
+        now = datetime.now()
+        done_titles = set()
+        for entry in existing_schedule:
+            try:
+                t = datetime.strptime(entry["time"], "%H:%M").replace(
+                    year=now.year, month=now.month, day=now.day)
+                dur = entry.get("duration_min", 0)
+                if t + timedelta(minutes=dur) < now:
+                    done_titles.add(entry.get("title", ""))
+            except Exception:
+                pass
+        remaining_cards_text = "".join(
+            f"{cat} [{c.get('size','task')}] {c.get('title', c) if isinstance(c, dict) else c}\n"
+            for cat, cards in [("SEEK", seek_cards), ("HACK", hack_cards), ("DIVE", [dive_cards] if isinstance(dive_cards, dict) else dive_cards)]
+            for c in cards
+            if (c.get('title', c) if isinstance(c, dict) else c) not in done_titles
+        ) or "None."
 
         import anthropic
         client = anthropic.Anthropic()
@@ -1170,13 +1223,13 @@ def _handle_tool(name: str, input_: dict) -> dict:
                 model="claude-haiku-4-5-20251001",
                 max_tokens=512,
                 messages=[{"role": "user", "content": (
-                    f"Generate a time-blocked schedule for Wai's day ({today_dow}).\n\n"
-                    f"TASKS:\n{cards_text}\n\n"
+                    f"Reschedule the remaining tasks for Wai's day ({today_dow}). Current time: {current_time}.\n\n"
+                    f"REMAINING TASKS (already-completed tasks excluded):\n{remaining_cards_text}\n\n"
                     f"CALENDAR EVENTS:\n{events_text}\n\n"
-                    f"YESTERDAY'S NOTES:\n{delta_text or 'none'}\n\n"
+                    f"NOTES:\n{delta_text or 'none'}\n\n"
                     f"DAILY CONSTRAINTS:\n"
-                    f"- Wake 8:00am, sleep 1:00am\n"
-                    f"- Morning relax 8:00–10:30am\n"
+                    f"- Start schedule at or after {current_time}\n"
+                    f"- Sleep 1:00am\n"
                     f"{junni_block}"
                     f"- Lunch 11:45–12:45\n"
                     f"- Dinner 6:45–7:45\n"

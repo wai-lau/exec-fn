@@ -95,17 +95,26 @@ def draw_schedule_page(c, plan, events):
         y -= GAP
 
     if events and y > MARGIN + LH * 2:
+        from reportlab.pdfbase.pdfmetrics import stringWidth
         y = sec_header(y, "OMENS")
         for e in events[:4]:
             if y < MARGIN + LH:
                 break
-            text = f"{e.get('title', '')} — {e.get('date', '')}"
+            dt = e.get('date', '')
+            title = e.get('title', '')
+            prefix = f"{dt} - "
+            indent = stringWidth(prefix, FONT_ITEM, SIZE_ITEM)
             c.setFont(FONT_ITEM, SIZE_ITEM)
             c.setFillColor(colors.black)
-            for ln in _wrap(text, FONT_ITEM, SIZE_ITEM, CW):
+            title_lines = _wrap(title, FONT_ITEM, SIZE_ITEM, CW - indent)
+            for i, ln in enumerate(title_lines):
                 if y < MARGIN + LH:
                     break
-                c.drawString(MARGIN, y, ln)
+                if i == 0:
+                    c.drawString(MARGIN, y, prefix)
+                    c.drawString(MARGIN + indent, y, ln)
+                else:
+                    c.drawString(MARGIN + indent, y, ln)
                 y -= LH
 
     return y
