@@ -82,8 +82,8 @@ CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["plan", "看板", "vault"]
-_NAV_HREFS = {"plan": "/plan", "看板": "/rd", "vault": "/archive"}
+_NAV_LINKS = ["exec", "plan", "看板", "vault"]
+_NAV_HREFS = {"exec": "/exec", "plan": "/plan", "看板": "/rd", "vault": "/archive"}
 
 
 def _build_nav(active=None):
@@ -103,29 +103,13 @@ _BARE = re.sub(r'<div class="bg-wide">.*?</div>', '', _NO_FORM, flags=re.DOTALL)
 _BARE = re.sub(r'<div class="bg-tall">.*?</div>', '', _BARE, flags=re.DOTALL)
 _BARE = re.sub(r'<a href="[^"]*" target="_blank">.*?</a>', '', _BARE, flags=re.DOTALL)
 
-_TOP_NAV = (
-    '<div style="position:fixed;top:0;left:0;right:0;z-index:20;height:48px;'
-    'display:flex;align-items:center;padding:0 32px;gap:32px;'
-    'background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);'
-    'border-bottom:1px solid rgba(0,255,65,0.1);">'
-    '<a href="/exec" style="color:rgba(0,255,65,0.55);font-family:monospace;font-size:0.82rem;'
-    'text-decoration:none;transition:color 0.2s;" '
-    "onmouseover=\"this.style.color='rgba(0,255,65,1)'\" "
-    "onmouseout=\"this.style.color='rgba(0,255,65,0.55)'\"><- exec</a>"
-    '</div>'
-)
-
 
 def _build_page(active=None, content=""):
     base = _BARE if active else _NO_FORM
-    top = (
-        _TOP_NAV.replace('</div>', f'<span style="color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.82rem;">{active}</span></div>')
-        if active else ""
-    )
     head_inject = GREEN_OVERLAY + (CONTENT_STYLE if content else "")
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", content + top + _build_nav(active) + "</body>", 1))
+        .replace("</body>", content + _build_nav(active) + "</body>", 1))
 
 
 # ── page content ──────────────────────────────────────────────────────────────
@@ -1124,7 +1108,7 @@ async def rd_page():
     head_inject = GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _RD_CONTENT + _TOP_NAV.replace('</div>', '<span style="color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.82rem;">看板</span></div>') + _build_nav("看板") + "</body>", 1))
+        .replace("</body>", _RD_CONTENT + _build_nav("看板") + "</body>", 1))
 
 
 @protected.get("/archive", response_class=HTMLResponse)
