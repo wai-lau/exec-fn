@@ -185,9 +185,44 @@ def _delta_prompt() -> str:
     )
 
 
+def _rm_latest_wai_modified() -> "datetime | None":
+    """Return ModifiedClient of the latest WAI_* file on reMarkable, or None on failure."""
+    try:
+        ls = subprocess.run(["rmapi", "ls", RM_FOLDER], capture_output=True, text=True, timeout=30)
+        if ls.returncode != 0:
+            return None
+        wai_docs = [p.strip().split()[-1] for p in ls.stdout.splitlines()
+                    if p.strip().split() and p.strip().split()[0] == "[f]"
+                    and p.strip().split()[-1].startswith("WAI_")]
+        if not wai_docs:
+            return None
+        latest_name = sorted(wai_docs)[-1]
+        stat = subprocess.run(["rmapi", "stat", f"{RM_FOLDER}/{latest_name}"],
+                              capture_output=True, text=True, timeout=15)
+        if stat.returncode != 0:
+            return None
+        data = json.loads(stat.stdout)
+        return datetime.fromisoformat(data["ModifiedClient"].replace("Z", ""))
+    except Exception:
+        return None
+
+
 def analyze_delta(path: str = None) -> dict:
     import anthropic
     from rm_to_pdf import rasterize
+
+    # Skip if source file hasn't changed since last analysis
+    if path is None:
+        delta_path = DATA_DIR / "delta.json"
+        if delta_path.exists():
+            try:
+                existing = json.loads(delta_path.read_text())
+                analyzed_at = datetime.fromisoformat(existing["analyzed_at"])
+                modified = _rm_latest_wai_modified()
+                if modified and analyzed_at > modified:
+                    return existing
+            except Exception:
+                pass
 
     latest_path = path or pull_wai()
 
@@ -225,7 +260,9 @@ def analyze_delta(path: str = None) -> dict:
         "wai_notes": parsed.get("wai_notes", ""),
         "adjustments": parsed.get("adjustments", ""),
     }
-    (DATA_DIR / "delta.json").write_text(json.dumps(delta, indent=2))
+    payload = json.dumps(delta, indent=2)
+    (DATA_DIR / "delta.json").write_text(payload)
+    (DATA_DIR / f"delta_{_ts()}.json").write_text(payload)
 
     updates = [u for u in parsed.get("context_updates", []) if isinstance(u, str) and u.strip()]
     if updates:
