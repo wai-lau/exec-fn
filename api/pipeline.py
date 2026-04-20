@@ -666,16 +666,24 @@ def _handle_tool(name: str, input_: dict) -> dict:
 
         rd_path = DATA_DIR / "rd.json"
         rd = json.loads(rd_path.read_text()) if rd_path.exists() else {"cards": []}
+        cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
         for c in rd.get("cards", []):
             if c.get("column") in ("hq", "rd"):
                 c["column"] = "hq" if c["id"] in selected_ids else "rd"
         rd_path.write_text(json.dumps(rd, indent=2))
 
+        def _card_obj(id_):
+            card = cards_by_id.get(id_)
+            if not card:
+                return None
+            steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
+            return {"id": id_, "title": card["title"], "steps": steps}
+
         directives = {
             "generated_at": datetime.now().isoformat(),
-            "seek": seek_ids,
-            "hack": hack_ids,
-            "dive": dive_ids,
+            "seek": [o for o in (_card_obj(i) for i in seek_ids) if o],
+            "hack": [o for o in (_card_obj(i) for i in hack_ids) if o],
+            "dive": [o for o in (_card_obj(i) for i in dive_ids) if o],
             "encouraging_message": encouraging,
         }
         (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))

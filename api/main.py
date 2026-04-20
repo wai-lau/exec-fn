@@ -953,27 +953,19 @@ document.getElementById('msg-input').addEventListener('keydown', e => {
 let previewLoaded = false;
 
 async function loadPreview() {
-  const steps = c => (c.description||'').split('.').map(s=>s.trim()).filter(Boolean);
   const HDR = '<div class="pr-col-hdr">';
 
-  const [rdRes, omensRes, dirRes, deltaRes] = await Promise.all([
-    fetch('/api/rd'), fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta')
+  const [omensRes, dirRes, deltaRes] = await Promise.all([
+    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta')
   ]);
-
-  const cardMap = {};
-  if (rdRes.ok) {
-    const data = await rdRes.json();
-    (data.cards||[]).forEach(c => cardMap[c.id] = c);
-  }
 
   if (dirRes.ok) {
     const d = await dirRes.json();
-    const byId = id => cardMap[id];
-    const seek = (d.seek||[]).map(byId).filter(Boolean);
-    const hack = (d.hack||[]).map(byId).filter(Boolean);
-    const dive = (d.dive||[]).map(byId).filter(Boolean);
-    const flat = cards => cards.length ? cards.map(c=>`<div class="pr-item">&middot; ${c.title}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
-    const deep = cards => cards.length ? cards.map(c=>`<div class="pr-item">${c.title}${steps(c).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    const seek = d.seek || [];
+    const hack = d.hack || [];
+    const dive = d.dive || [];
+    const flat = cards => cards.length ? cards.map(c=>`<div class="pr-item">&middot; ${c.title||c}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    const deep = cards => cards.length ? cards.map(c=>`<div class="pr-item">${c.title||c}${(c.steps||[]).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
     document.getElementById('pr-grid').innerHTML = `
       <div>${HDR}seek</div>${flat(seek)}</div>
       <div>${HDR}hack</div>${flat(hack)}</div>
