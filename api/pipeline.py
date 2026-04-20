@@ -1096,7 +1096,8 @@ def _handle_tool(name: str, input_: dict) -> dict:
         try:
             analyze_delta_to_now()
         except Exception as e:
-            delta_error = str(e)
+            import traceback
+            delta_error = f"{e}\n{traceback.format_exc()}"
 
         # Load fresh data — all delta_wai files from yesterday's rollover to now
         delta = _load_all_recent_deltas()
