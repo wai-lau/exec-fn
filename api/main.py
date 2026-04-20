@@ -722,6 +722,10 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
     </div>
     <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
+  <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">delta</div>
+    <div id="pr-delta"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
   <div>
     <div class="pr-col-hdr" style="margin-bottom:10px;">encouragement</div>
     <div id="pr-enc" style="line-height:1.7;opacity:0.8;white-space:pre-wrap;"></div>
@@ -952,8 +956,8 @@ async function loadPreview() {
   const steps = c => (c.description||'').split('.').map(s=>s.trim()).filter(Boolean);
   const HDR = '<div class="pr-col-hdr">';
 
-  const [rdRes, omensRes, dirRes] = await Promise.all([
-    fetch('/api/rd'), fetch('/api/omens'), fetch('/api/directives')
+  const [rdRes, omensRes, dirRes, deltaRes] = await Promise.all([
+    fetch('/api/rd'), fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta')
   ]);
 
   const cardMap = {};
@@ -983,6 +987,18 @@ async function loadPreview() {
     document.getElementById('pr-omens').innerHTML = evts.length
       ? evts.map(e=>`<div class="pr-item">${e.title} &mdash; <span style="opacity:0.65;font-size:0.85em">${e.date}</span></div>`).join('')
       : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (deltaRes.ok) {
+    const d = await deltaRes.json();
+    const parts = [];
+    if (d.wai_notes) parts.push(`<div class="pr-item" style="white-space:pre-wrap;opacity:0.8;">${d.wai_notes}</div>`);
+    if (d.adjustments) parts.push(`<div class="pr-item" style="white-space:pre-wrap;opacity:0.6;font-size:0.85em;margin-top:8px;">${d.adjustments}</div>`);
+    document.getElementById('pr-delta').innerHTML = parts.length
+      ? parts.join('')
+      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  } else {
+    document.getElementById('pr-delta').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
   }
 }
 
