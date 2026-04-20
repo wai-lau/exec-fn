@@ -759,13 +759,21 @@ function addStreamDiv() {
   return {div, span, cur};
 }
 
+function fmtTs() {
+  const n = new Date();
+  const dd = String(n.getDate()).padStart(2,'0');
+  const mm = String(n.getMonth()+1).padStart(2,'0');
+  const hh = String(n.getHours()).padStart(2,'0');
+  const mi = String(n.getMinutes()).padStart(2,'0');
+  return `[${dd}/${mm} ${hh}:${mi}]`;
+}
 async function sendMsg() {
   if (streaming) return;
   const input = document.getElementById('msg-input');
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  addMsg('user', text);
+  addMsg('user', `${fmtTs()} ${text}`);
   messages.push({role:'user', content:text});
   await streamResponse();
 }
