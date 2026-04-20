@@ -744,10 +744,33 @@ def _load_all_recent_deltas() -> dict:
             all_adjustments.append(d["adjustments"])
     if not all_notes:
         return _load_daily_delta()
-    return {
-        "wai_notes": "\n".join(all_notes),
-        "adjustments": "\n".join(all_adjustments),
-    }
+    if len(all_notes) == 1:
+        return {"wai_notes": all_notes[0], "adjustments": all_adjustments[0] if all_adjustments else ""}
+    import anthropic
+    merged_notes = "\n\n---\n\n".join(all_notes)
+    merged_adj = "\n\n---\n\n".join(filter(None, all_adjustments))
+    try:
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            messages=[{"role": "user", "content": (
+                "Deduplicate and merge these delta analyses from the same day. "
+                "Preserve all distinct observations.\n\n"
+                f"WAI_NOTES:\n{merged_notes}\n\n"
+                f"ADJUSTMENTS:\n{merged_adj or 'none'}\n\n"
+                'JSON only: {"wai_notes": "...", "adjustments": "..."}'
+            )}],
+        )
+        raw = re.sub(r'^```\w*\n?', '', resp.content[0].text.strip())
+        raw = re.sub(r'\n?```$', '', raw).strip()
+        m = re.search(r'\{.*\}', raw, re.DOTALL)
+        if m:
+            parsed = json.loads(m.group())
+            return {"wai_notes": parsed.get("wai_notes", merged_notes), "adjustments": parsed.get("adjustments", merged_adj)}
+    except Exception:
+        pass
+    return {"wai_notes": merged_notes, "adjustments": merged_adj}
 
 
 def _build_chat_system_prompt(stage: str = "planning") -> str:
@@ -1109,8 +1132,13 @@ def _handle_tool(name: str, input_: dict) -> dict:
         # Load fresh data — yesterday's merged delta + today's delta_wai files
         yesterday_delta = _load_yesterday_delta()
         today_delta = _load_all_recent_deltas()
-        delta = today_delta  # used for schedule/plan context
         delta_text = " ".join(filter(None, [today_delta.get("wai_notes", ""), today_delta.get("adjustments", "")])).strip()
+
+        # Move completed cards to archive based on today's delta
+        try:
+            update_rd_from_delta(today_delta)
+        except Exception:
+            pass
 
         omens_data = {}
         omens_path = DATA_DIR / "omens.json"
