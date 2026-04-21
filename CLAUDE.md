@@ -71,7 +71,6 @@ exec-fn/
     pipeline.py           # all backend logic
     build_pdf.py          # plan.json → WAI.pdf (A5, reportlab)
     rm_to_pdf.py          # .rmdoc page → PNG (Pillow)
-    populate_exec.py      # legacy, unused
     entrypoint.sh         # Docker CMD: cron + uvicorn
     exec-fn.cron          # crontab baked into image
     morning_cron.sh       # cron script → POST /api/morning
