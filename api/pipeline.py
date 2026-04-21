@@ -1152,7 +1152,7 @@ def _handle_tool(name: str, input_: dict) -> dict:
 
         def _card_obj(id_):
             card = cards_by_id.get(id_)
-            if not card:
+            if not card or card.get("column") not in ("hq", "rd"):
                 return None
             steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
             return {"id": id_, "title": card["title"], "steps": steps, "size": card.get("size", "task")}
