@@ -208,25 +208,28 @@ document.addEventListener('visibilitychange', function() {
 var _waiFs = false;
 
 function _applyFsLayout() {
-  var root = document.getElementById('root');
-  if (!root) return;
   var vw = window.innerWidth;
   var vh = window.innerHeight;
-  root.style.position = 'fixed';
-  root.style.zIndex = '9998';
   if (vh > vw) {
-    // Portrait: rotate game 90deg to fill screen with landscape layout
-    root.style.width  = vh + 'px';
-    root.style.height = vw + 'px';
-    root.style.left   = Math.round((vw - vh) / 2) + 'px';
-    root.style.top    = Math.round((vh - vw) / 2) + 'px';
-    root.style.transformOrigin = 'center center';
-    root.style.transform = 'rotate(90deg)';
+    // Portrait: rotate body so landscape-dimensioned content fills the screen.
+    // rotate(90deg) translate(0,-vw) maps the vh×vw body to fill the vw×vh screen.
+    // Using body (not #root) avoids iOS clipping of fixed elements with negative left.
+    document.documentElement.style.cssText = 'width:100vw;height:100vh;overflow:hidden;';
+    document.body.style.cssText = 'margin:0;position:absolute;width:' + vh + 'px;height:' + vw + 'px;transform-origin:0 0;transform:rotate(90deg) translate(0,-' + vw + 'px);overflow:hidden;background:#222;';
   } else {
-    root.style.width = '100%'; root.style.height = '100%';
-    root.style.left = '0'; root.style.top = '0';
-    root.style.transform = 'none';
+    // Landscape: fix #root to fill viewport
+    document.documentElement.style.cssText = 'overflow:hidden;';
+    document.body.style.cssText = 'margin:0;width:100%;height:100%;overflow:hidden;';
+    var root = document.getElementById('root');
+    if (root) root.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9998;';
   }
+}
+
+function _clearFsLayout() {
+  document.documentElement.style.cssText = '';
+  document.body.style.cssText = '';
+  var root = document.getElementById('root');
+  if (root) root.style.cssText = '';
 }
 
 function waiFsToggle() {
@@ -234,18 +237,22 @@ function waiFsToggle() {
   document.body.classList.toggle('wai-fs', _waiFs);
   document.getElementById('wai-fs-btn').textContent = _waiFs ? '✕' : '⛶';
   if (_waiFs) {
-    var el = document.documentElement;
-    if (el.requestFullscreen)            el.requestFullscreen().catch(function(){});
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    if (screen.orientation && screen.orientation.lock)
-      screen.orientation.lock('landscape').catch(function(){});
+    try { var el = document.documentElement;
+      if (el.requestFullscreen)            el.requestFullscreen().catch(function(){});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch(e) {}
+    try {
+      if (screen.orientation && screen.orientation.lock)
+        screen.orientation.lock('landscape').catch(function(){});
+    } catch(e) {}
     _applyFsLayout();
   } else {
-    if (document.exitFullscreen)            document.exitFullscreen().catch(function(){});
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-    var root = document.getElementById('root');
-    if (root) root.style.cssText = '';
+    try {
+      if (document.exitFullscreen)            document.exitFullscreen().catch(function(){});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    } catch(e) {}
+    _clearFsLayout();
   }
 }
 
