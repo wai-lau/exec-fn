@@ -105,6 +105,7 @@ async function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
+  input.focus(); // synchronous — keeps iOS keyboard open
   const ts = fmtTs();
   addMsg('user', `${ts} ${text}`);
   messages.push({role:'user', content:`${ts} ${text}`});
@@ -113,7 +114,6 @@ async function sendMsg() {
 
 async function streamResponse() {
   streaming = true;
-  document.getElementById('msg-input').disabled = true;
 
   const {div, span, cur} = addStreamDiv();
   let fullText = '';
@@ -171,8 +171,6 @@ async function streamResponse() {
   }
 
   streaming = false;
-  document.getElementById('msg-input').disabled = false;
-  document.getElementById('msg-input').focus();
 }
 
 async function clearChat() {
