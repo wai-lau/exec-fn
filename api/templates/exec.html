@@ -209,7 +209,7 @@ function stopSpinner() {
   if (el) el.remove();
 }
 
-function restoreMsg(m) {
+function restoreMsg(m, toolResults) {
   if (m.role === 'user') {
     if (typeof m.content === 'string') {
       addMsg('user', m.content);
@@ -226,10 +226,11 @@ function restoreMsg(m) {
       for (const b of m.content) {
         if (b.type === 'tool_use') {
           const inp = b.input || {};
+          const res = (toolResults && toolResults[b.id]) || {};
           if (b.name === 'create_card') addMsg('sys', `[ card added: ${inp.title || ''} ]`);
-          else if (b.name === 'move_card') addMsg('sys', `[ moved "${inp.id}" → ${inp.column || ''} ]`);
-          else if (b.name === 'update_card') addMsg('sys', `[ updated: ${inp.id} ]`);
-          else if (b.name === 'delete_card') addMsg('sys', `[ deleted: ${inp.id} ]`);
+          else if (b.name === 'move_card') addMsg('sys', `[ moved "${res.title || inp.id}" → ${inp.column || ''} ]`);
+          else if (b.name === 'update_card') addMsg('sys', `[ updated: ${res.title || inp.id} ]`);
+          else if (b.name === 'delete_card') addMsg('sys', `[ deleted: ${res.deleted || inp.id} ]`);
           else if (b.name === 'refresh_omens') addMsg('sys', `[ omens refreshed ]`);
         }
       }
@@ -261,7 +262,17 @@ async function init() {
   if (chat.messages && chat.messages.length > 0) {
     messages = chat.messages;
     stage = 'planning';
-    for (const m of messages) restoreMsg(m);
+    const toolResults = {};
+    for (const m of messages) {
+      if (m.role === 'user' && Array.isArray(m.content)) {
+        for (const b of m.content) {
+          if (b.type === 'tool_result') {
+            try { toolResults[b.tool_use_id] = JSON.parse(b.content); } catch(_) {}
+          }
+        }
+      }
+    }
+    for (const m of messages) restoreMsg(m, toolResults);
     return;
   }
 
