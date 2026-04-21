@@ -147,25 +147,24 @@ protected = APIRouter(dependencies=[Depends(require_auth)])
 _NIGHTFALL_HEAD = """
 <script>
 (function () {
-  // Monkey-patch AudioContext so we can resume all instances on first touch.
-  // Must run before game scripts create their AudioContext.
+  // Monkey-patch AudioContext so we can resume all instances on first touch
+  // and after returning from background (iOS suspends on backgrounding).
   var _AC = window.AudioContext || window.webkitAudioContext;
   if (!_AC) return;
-  var _contexts = [];
+  window._waiOrigAC = _AC;
+  window._waiAudioContexts = [];
   function PatchedAC() {
     var ctx = new _AC();
-    _contexts.push(ctx);
+    window._waiAudioContexts.push(ctx);
     return ctx;
   }
   PatchedAC.prototype = _AC.prototype;
   window.AudioContext = window.webkitAudioContext = PatchedAC;
 
   function unlockAll() {
-    _contexts.forEach(function(ctx) {
+    window._waiAudioContexts.forEach(function(ctx) {
       if (ctx.state === 'suspended') ctx.resume().catch(function(){});
     });
-    // Also unlock a fresh context in case game hasn't created one yet
-    try { var tmp = new _AC(); tmp.resume(); } catch(e) {}
   }
   document.addEventListener('touchstart', unlockAll, {once: true, passive: true});
   document.addEventListener('touchend',   unlockAll, {once: true, passive: true});
@@ -174,7 +173,7 @@ _NIGHTFALL_HEAD = """
 </script>
 """
 
-# Injected before </body> — fullscreen button + CSS
+# Injected before </body> — fullscreen button + JS layout
 _NIGHTFALL_BODY = """
 <style>
 #wai-fs-btn {
@@ -185,34 +184,72 @@ _NIGHTFALL_BODY = """
   -webkit-tap-highlight-color: transparent;
 }
 body.wai-fs { overflow: hidden; }
-body.wai-fs #root { position: fixed; top: 0; left: 0; z-index: 9998; width: 100vw; height: 100vh; }
-@media (orientation: portrait) {
-  body.wai-fs #root {
-    /* Center a landscape-dimensioned box in portrait, then rotate to fill */
-    width: 100vh; height: 100vw;
-    top: 50%; left: 50%;
-    transform-origin: center center;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-}
 </style>
 <button id="wai-fs-btn" onclick="waiFsToggle()" title="Fullscreen">⛶</button>
 <script>
+// Prevent browser pinch-zoom on the game page
+(function() {
+  var vp = document.querySelector('meta[name=viewport]');
+  if (vp) vp.setAttribute('content', 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no');
+})();
+
+// Re-unlock AudioContext when app is foregrounded (iOS suspends on background)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    var AC = window._waiOrigAC || window.AudioContext || window.webkitAudioContext;
+    if (window._waiAudioContexts) {
+      window._waiAudioContexts.forEach(function(ctx) {
+        if (ctx.state === 'suspended') ctx.resume().catch(function(){});
+      });
+    }
+  }
+});
+
+var _waiFs = false;
+
+function _applyFsLayout() {
+  var root = document.getElementById('root');
+  if (!root) return;
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  root.style.position = 'fixed';
+  root.style.zIndex = '9998';
+  if (vh > vw) {
+    // Portrait: rotate game 90deg to fill screen with landscape layout
+    root.style.width  = vh + 'px';
+    root.style.height = vw + 'px';
+    root.style.left   = Math.round((vw - vh) / 2) + 'px';
+    root.style.top    = Math.round((vh - vw) / 2) + 'px';
+    root.style.transformOrigin = 'center center';
+    root.style.transform = 'rotate(90deg)';
+  } else {
+    root.style.width = '100%'; root.style.height = '100%';
+    root.style.left = '0'; root.style.top = '0';
+    root.style.transform = 'none';
+  }
+}
+
 function waiFsToggle() {
-  var active = document.body.classList.toggle('wai-fs');
-  document.getElementById('wai-fs-btn').textContent = active ? '✕' : '⛶';
-  if (active) {
+  _waiFs = !_waiFs;
+  document.body.classList.toggle('wai-fs', _waiFs);
+  document.getElementById('wai-fs-btn').textContent = _waiFs ? '✕' : '⛶';
+  if (_waiFs) {
     var el = document.documentElement;
     if (el.requestFullscreen)            el.requestFullscreen().catch(function(){});
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     if (screen.orientation && screen.orientation.lock)
       screen.orientation.lock('landscape').catch(function(){});
+    _applyFsLayout();
   } else {
     if (document.exitFullscreen)            document.exitFullscreen().catch(function(){});
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    var root = document.getElementById('root');
+    if (root) root.style.cssText = '';
   }
 }
+
+window.addEventListener('resize', function() { if (_waiFs) _applyFsLayout(); });
 </script>
 """
 
