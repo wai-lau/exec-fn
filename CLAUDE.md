@@ -68,11 +68,23 @@ Hit localhost:8080. Login with `API_KEY` from `.env`.
 
 ## Deploy
 
+Fast path (no Dockerfile/requirements changes) — use a background sub-agent:
+
+1. **scp changed files** to `/tmp/` on droplet, `docker cp` into running container:
+   ```bash
+   scp api/main.py api/pipeline.py ... root@wai-lau.net:/tmp/
+   ssh root@wai-lau.net "docker cp /tmp/main.py exec-fn-api-1:/app/main.py && ..."
+   ```
+2. **Restart** (no rebuild): `ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"`
+3. **Check logs**: `ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"`
+4. **git commit + push** after confirming healthy
+
+Rebuild required only when `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` change:
 ```bash
-ssh root@wai-lau.net
-cd /exec-fn && git pull
-docker compose up -d --build
+ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
 ```
+
+Container name: `exec-fn-api-1` · Droplet: `root@wai-lau.net` · Repo: `/exec-fn`
 
 ## Fresh Droplet setup
 
