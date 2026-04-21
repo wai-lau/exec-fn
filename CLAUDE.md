@@ -15,6 +15,8 @@ Never run scp/ssh/docker deploy commands on the main thread. Spawn a background 
 
 **COMMIT after each discrete fix.** Don't batch.
 
+**RUN RUFF BEFORE EVERY COMMIT.** `~/.local/bin/ruff check api/pipeline.py api/main.py` must pass clean. Fix all violations before committing.
+
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
 
 ---

@@ -1,4 +1,9 @@
-import asyncio, os, re, json, secrets, hashlib
+import asyncio
+import os
+import re
+import json
+import secrets
+import hashlib
 from pathlib import Path
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Cookie, Request
 from fastapi.staticfiles import StaticFiles
@@ -459,7 +464,7 @@ async def api_chat(body: ChatBody):
                     async for text in stream2.text_stream:
                         cont_text += text
                         yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-                    final2 = await stream2.get_final_message()
+                    await stream2.get_final_message()
                 if cont_text:
                     all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont_text}]})
             except Exception:

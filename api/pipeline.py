@@ -1,4 +1,8 @@
-import json, re, shutil, subprocess, base64
+import json
+import re
+import shutil
+import subprocess
+import base64
 from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -10,9 +14,12 @@ RM_FOLDER = "/EXEC"
 _SIZE_MINUTES: dict[str, int] = {"chore": 30, "task": 90, "project": 240, "titan": 480, "book": 60}
 
 def _minutes_to_size(minutes: int) -> str:
-    if minutes <= 45: return "chore"
-    if minutes <= 165: return "task"
-    if minutes <= 360: return "project"
+    if minutes <= 45:
+        return "chore"
+    if minutes <= 165:
+        return "task"
+    if minutes <= 360:
+        return "project"
     return "titan"
 
 
@@ -667,16 +674,16 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"- Lunch 11:30–12:30 (skip if past 1pm)\n"
         f"- Dinner 7:00–8:00 (skip if past 8pm)\n"
         f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min; use ~Nmin hint if provided\n"
-        f"- 15min gap between tasks; group SEEK tasks if possible\n"
-        f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
-        f"- Do NOT schedule book/reading tasks\n"
+        "- 15min gap between tasks; group SEEK tasks if possible\n"
+        "- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
+        "- Do NOT schedule book/reading tasks\n"
         f"- ONLY schedule tasks from TASKS above — use their exact card_id\n"
         f"- TASKS are listed in priority order — schedule higher-priority tasks earlier\n"
         f"- Calendar events: include using their event_id, set card_id to empty string\n"
         + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
-        f'\nJSON array only. The "title" field must be the task name only — do NOT include category or size.\n'
-        f'[{{"time":"HH:MM","card_id":"...","event_id":"","title":"...","duration_min":90,"type":"seek|hack|dive"}}, '
-        f'{{"time":"HH:MM","card_id":"","event_id":"gcal-id","title":"...","duration_min":60,"type":"omen"}}]'
+        '\nJSON array only. The "title" field must be the task name only — do NOT include category or size.\n'
+        '[{"time":"HH:MM","card_id":"...","event_id":"","title":"...","duration_min":90,"type":"seek|hack|dive"}, '
+        '{"time":"HH:MM","card_id":"","event_id":"gcal-id","title":"...","duration_min":60,"type":"omen"}]'
     )
 
     client = anthropic.Anthropic()
