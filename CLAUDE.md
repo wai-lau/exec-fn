@@ -25,6 +25,7 @@ Personal automation system designed to support executive function (ADHD scaffold
 exec-fn/
   bootstrap.sh          # one-time Droplet setup script
   docker-compose.yml
+  nightfall-incident/   # standalone game — DO NOT edit unless explicitly asked
   web/                  # static frontend (index.html, fonts, images)
   api/
     main.py             # FastAPI app — routes and API endpoints only (no inline HTML)
