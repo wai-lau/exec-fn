@@ -143,7 +143,39 @@ protected = APIRouter(dependencies=[Depends(require_auth)])
 
 # ── public ────────────────────────────────────────────────────────────────────
 
-_NIGHTFALL_INJECT = """
+# Injected into <head> — must run before game scripts to monkey-patch AudioContext
+_NIGHTFALL_HEAD = """
+<script>
+(function () {
+  // Monkey-patch AudioContext so we can resume all instances on first touch.
+  // Must run before game scripts create their AudioContext.
+  var _AC = window.AudioContext || window.webkitAudioContext;
+  if (!_AC) return;
+  var _contexts = [];
+  function PatchedAC() {
+    var ctx = new _AC();
+    _contexts.push(ctx);
+    return ctx;
+  }
+  PatchedAC.prototype = _AC.prototype;
+  window.AudioContext = window.webkitAudioContext = PatchedAC;
+
+  function unlockAll() {
+    _contexts.forEach(function(ctx) {
+      if (ctx.state === 'suspended') ctx.resume().catch(function(){});
+    });
+    // Also unlock a fresh context in case game hasn't created one yet
+    try { var tmp = new _AC(); tmp.resume(); } catch(e) {}
+  }
+  document.addEventListener('touchstart', unlockAll, {once: true, passive: true});
+  document.addEventListener('touchend',   unlockAll, {once: true, passive: true});
+  document.addEventListener('click',      unlockAll, {once: true});
+})();
+</script>
+"""
+
+# Injected before </body> — fullscreen button + CSS
+_NIGHTFALL_BODY = """
 <style>
 #wai-fs-btn {
   position: fixed; top: 12px; right: 12px; z-index: 99999;
@@ -153,40 +185,21 @@ _NIGHTFALL_INJECT = """
   -webkit-tap-highlight-color: transparent;
 }
 body.wai-fs { overflow: hidden; }
-body.wai-fs #root {
-  position: fixed; top: 0; left: 0; z-index: 9998;
-  width: 100vw; height: 100vh;
-}
+body.wai-fs #root { position: fixed; top: 0; left: 0; z-index: 9998; width: 100vw; height: 100vh; }
 @media (orientation: portrait) {
   body.wai-fs #root {
+    /* Center a landscape-dimensioned box in portrait, then rotate to fill */
     width: 100vh; height: 100vw;
-    top: calc(50% - 50vw); left: calc(50% - 50vh);
-    transform: rotate(90deg);
+    top: 50%; left: 50%;
     transform-origin: center center;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
 }
 </style>
 <button id="wai-fs-btn" onclick="waiFsToggle()" title="Fullscreen">⛶</button>
 <script>
-(function () {
-  // iOS AudioContext unlock — must happen inside a user gesture
-  function unlockAudio() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
-    const buf = ctx.createBuffer(1, 1, 22050);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
-    ctx.resume().catch(function(){});
-  }
-  document.addEventListener('touchstart', unlockAudio, {once: true, passive: true});
-  document.addEventListener('click',      unlockAudio, {once: true});
-})();
-
 function waiFsToggle() {
-  const active = document.body.classList.toggle('wai-fs');
+  var active = document.body.classList.toggle('wai-fs');
   document.getElementById('wai-fs-btn').textContent = active ? '✕' : '⛶';
   if (active) {
     var el = document.documentElement;
@@ -206,8 +219,8 @@ function waiFsToggle() {
 @public.get("/nightfall", response_class=HTMLResponse)
 async def nightfall():
     html = Path("/app/nightfall/index.html").read_text()
-    html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">', 1)
-    html = html.replace("</body>", _NIGHTFALL_INJECT + "</body>", 1)
+    html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">' + _NIGHTFALL_HEAD, 1)
+    html = html.replace("</body>", _NIGHTFALL_BODY + "</body>", 1)
     return HTMLResponse(html)
 
 

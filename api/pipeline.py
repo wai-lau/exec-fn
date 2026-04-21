@@ -570,7 +570,8 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
         f"- Do NOT schedule book/reading tasks\n"
         + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
-        f'\nJSON array only: [{{"time":"HH:MM","card_id":"...","title":"...","duration_min":90,"type":"seek|hack|dive"}}]'
+        f'\nJSON array only. The "title" field must be the task name only — do NOT include category (SEEK/HACK/DIVE) or size ([titan] etc).\n'
+        f'[{{"time":"HH:MM","card_id":"...","title":"<task name only>","duration_min":90,"type":"seek|hack|dive"}}]'
     )
 
     client = anthropic.Anthropic()
@@ -580,7 +581,11 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
-        return _parse_json(resp.content[0].text)
+        entries = _parse_json(resp.content[0].text)
+        # Strip any "SEEK/HACK/DIVE [size] " prefixes Haiku might echo into the title
+        for entry in entries:
+            entry["title"] = re.sub(r'^(SEEK|HACK|DIVE)\s+\[[^\]]*\]\s*', '', entry.get("title", ""), flags=re.IGNORECASE).strip()
+        return entries
     except Exception:
         return []
 
