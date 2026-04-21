@@ -295,8 +295,8 @@ async function addCard() {
     category = cl.category || category; size = cl.size || size; description = cl.description || '';
   } catch(_) {}
   const id = 'card-' + Date.now();
-  const maxOrder = Math.max(-1, ...cards.filter(c=>c.column===col).map(c=>c.order));
-  cards.push({id, title, category, size, description, column: col, order: maxOrder + 1, due_date, notes: ''});
+  const minOrder = Math.min(0, ...cards.filter(c=>c.column===col).map(c=>c.order));
+  cards.push({id, title, category, size, description, column: col, order: minOrder - 1, due_date, notes: ''});
   await save();
   buildBoard();
   closeAdd();

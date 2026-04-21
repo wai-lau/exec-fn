@@ -143,10 +143,71 @@ protected = APIRouter(dependencies=[Depends(require_auth)])
 
 # ── public ────────────────────────────────────────────────────────────────────
 
+_NIGHTFALL_INJECT = """
+<style>
+#wai-fs-btn {
+  position: fixed; top: 12px; right: 12px; z-index: 99999;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.8); font-size: 17px; width: 36px; height: 36px;
+  border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+body.wai-fs { overflow: hidden; }
+body.wai-fs #root {
+  position: fixed; top: 0; left: 0; z-index: 9998;
+  width: 100vw; height: 100vh;
+}
+@media (orientation: portrait) {
+  body.wai-fs #root {
+    width: 100vh; height: 100vw;
+    top: calc(50% - 50vw); left: calc(50% - 50vh);
+    transform: rotate(90deg);
+    transform-origin: center center;
+  }
+}
+</style>
+<button id="wai-fs-btn" onclick="waiFsToggle()" title="Fullscreen">⛶</button>
+<script>
+(function () {
+  // iOS AudioContext unlock — must happen inside a user gesture
+  function unlockAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    ctx.resume().catch(function(){});
+  }
+  document.addEventListener('touchstart', unlockAudio, {once: true, passive: true});
+  document.addEventListener('click',      unlockAudio, {once: true});
+})();
+
+function waiFsToggle() {
+  const active = document.body.classList.toggle('wai-fs');
+  document.getElementById('wai-fs-btn').textContent = active ? '✕' : '⛶';
+  if (active) {
+    var el = document.documentElement;
+    if (el.requestFullscreen)            el.requestFullscreen().catch(function(){});
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    if (screen.orientation && screen.orientation.lock)
+      screen.orientation.lock('landscape').catch(function(){});
+  } else {
+    if (document.exitFullscreen)            document.exitFullscreen().catch(function(){});
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  }
+}
+</script>
+"""
+
 @public.get("/nightfall", response_class=HTMLResponse)
 async def nightfall():
     html = Path("/app/nightfall/index.html").read_text()
     html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">', 1)
+    html = html.replace("</body>", _NIGHTFALL_INJECT + "</body>", 1)
     return HTMLResponse(html)
 
 

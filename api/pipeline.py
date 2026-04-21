@@ -987,7 +987,7 @@ def _tool_create_card(input_: dict) -> dict:
 
     rd = _load_rd()
     cards = rd.get("cards", [])
-    max_order = max((c.get("order", 0) for c in cards if c.get("column") == "rd"), default=-1)
+    min_order = min((c.get("order", 0) for c in cards if c.get("column") == "rd"), default=0)
     new_card = {
         "id": f"card-{int(_time.time() * 1000)}",
         "title": input_.get("title", ""),
@@ -995,7 +995,7 @@ def _tool_create_card(input_: dict) -> dict:
         "size": input_.get("size", "task"),
         "description": input_.get("description", ""),
         "column": "rd",
-        "order": max_order + 1,
+        "order": min_order - 1,
         "due_date": None,
         "notes": "",
     }
