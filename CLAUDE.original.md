@@ -1,21 +1,21 @@
 # exec-fn
 
-ADHD scaffolding for Wai. Claude runs planning pipeline.
+Personal ADHD scaffolding system for Wai. Claude runs the planning pipeline.
 
 ---
 
 ## RULES — READ FIRST
 
 **DEPLOY = BACKGROUND AGENT. ALWAYS. NO EXCEPTIONS.**
-Never run scp/ssh/docker deploy on main thread. Spawn background sub-agent.
+Never run scp/ssh/docker deploy commands on the main thread. Spawn a background sub-agent.
 
 **NEVER touch `nightfall-incident/` unless explicitly asked.**
 
 **NEVER do `docker compose up --build` for normal deploys.** Rebuild only if `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` changed.
 
-**COMMIT after each discrete fix.** Don't batch. Push only after deploy succeeds and app is verified healthy.
+**COMMIT after each discrete fix.** Don't batch.
 
-**RUN RUFF BEFORE EVERY COMMIT.** `~/.local/bin/ruff check api/pipeline.py api/main.py` must pass clean. Fix violations before commit.
+**RUN RUFF BEFORE EVERY COMMIT.** `~/.local/bin/ruff check api/pipeline.py api/main.py` must pass clean. Fix all violations before committing.
 
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
 
@@ -42,11 +42,11 @@ ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=
 # 5. git commit + push after healthy
 ```
 
-Container paths: `/app/` api, `/app/static/` web, `/app/templates/` templates.
+File paths inside container: `/app/` for api files, `/app/static/` for web files, `/app/templates/` for templates.
 
 ### Deploy agent prompt template
 
-Pass change summary so agent can update context. Template:
+Always pass a change summary so the agent can update context. Template:
 
 ```
 Deploy <files> to production and update project context.
@@ -87,7 +87,7 @@ Report logs, health check result, and what context was updated.
 | Docker | Single container, same compose file local + prod |
 | Cron | Inside container — fires `POST /api/morning` at 4:30 AM ET |
 
-Models: `claude-sonnet-4-6` main reasoning · `claude-haiku-4-5-20251001` cheap checks/merges
+Models: `claude-sonnet-4-6` for main reasoning · `claude-haiku-4-5-20251001` for cheap checks/merges
 
 ---
 
@@ -284,7 +284,7 @@ Local dev: `docker compose up --build` → hit `localhost:8080`, login with `API
 
 ### Rules
 - Use **ddvk/rmapi v0.0.32** only. `juruen/rmapi` is dead.
-- Don't upload while notebook open on device (no locking — last write wins).
+- Don't upload while notebook is open on device (no locking — last write wins).
 - **DO NOT write text via rmscene** — produces truncated text, wrong styles. Use PDF instead.
 
 ### rmapi commands
@@ -296,7 +296,7 @@ rmapi put --force -f /EXEC <file>    # upload/replace inside EXEC folder
 rmapi stat /EXEC/<name>              # get metadata (ModifiedClient timestamp)
 ```
 
-All files in `/EXEC` folder. `RM_FOLDER = "/EXEC"` in pipeline.py.
+All files live in `/EXEC` folder. `RM_FOLDER = "/EXEC"` in pipeline.py.
 
 ### .rmdoc format
 
