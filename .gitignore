@@ -18,3 +18,5 @@ dist/
 venv/
 .DS_Store
 docker-compose.override.yml
+audio-wav/
+programs/
