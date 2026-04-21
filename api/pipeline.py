@@ -1166,6 +1166,47 @@ def _tool_delete_card(input_: dict) -> dict:
     return {"ok": True, "deleted": input_.get("id")}
 
 
+def _build_card_obj(cards_by_id: dict, card_id: str) -> dict | None:
+    card = cards_by_id.get(card_id)
+    if not card or card.get("column") not in ("hq", "rd"):
+        return None
+    steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
+    return {"id": card_id, "title": card["title"], "steps": steps, "size": card.get("size", "task"), "estimated_time": card.get("estimated_time")}
+
+
+def _build_plan_cards(rd: dict, seek_ids: list, hack_ids: list, dive_ids: list) -> tuple[list, list, list]:
+    cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
+    def mk(i):
+        return _build_card_obj(cards_by_id, i)
+
+    seek_cards = [o for o in (mk(i) for i in seek_ids) if o]
+    hack_cards = [o for o in (mk(i) for i in hack_ids) if o]
+    dive_cards = [o for o in (mk(i) for i in dive_ids) if o]
+
+    selected_ids = set(seek_ids + hack_ids + dive_ids)
+    remaining_hq = sorted(
+        [c for c in rd.get("cards", []) if c.get("column") == "hq" and c["id"] not in selected_ids and c.get("size") != "book"],
+        key=lambda c: c.get("order", 0),
+    )
+    for raw in remaining_hq:
+        obj = mk(raw["id"])
+        if obj:
+            (dive_cards if raw.get("size") in ("project", "titan") else hack_cards).append(obj)
+
+    # Auto-populate estimated_time on any card missing it
+    dirty = False
+    for c in seek_cards + hack_cards + dive_cards:
+        raw = cards_by_id.get(c["id"])
+        if raw and "estimated_time" not in raw:
+            raw["estimated_time"] = _SIZE_MINUTES.get(raw.get("size", "task"), 90)
+            c["estimated_time"] = raw["estimated_time"]
+            dirty = True
+    if dirty:
+        _save_rd(rd)
+
+    return seek_cards, hack_cards, dive_cards
+
+
 def _tool_assemble_plan(input_: dict) -> dict:
     import anthropic
 
@@ -1195,57 +1236,8 @@ def _tool_assemble_plan(input_: dict) -> dict:
         pass
 
     events = _load_json("omens", {}).get("events", [])
-
     rd = _load_rd()
-    cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
-
-    def _card_obj(card_id: str) -> dict | None:
-        card = cards_by_id.get(card_id)
-        if not card or card.get("column") not in ("hq", "rd"):
-            return None
-        steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
-        return {"id": card_id, "title": card["title"], "steps": steps, "size": card.get("size", "task"), "estimated_time": card.get("estimated_time")}
-
-    seek_cards = [o for o in (_card_obj(i) for i in seek_ids) if o]
-    hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
-    dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
-
-    # Auto-include remaining HQ cards not explicitly assigned, sorted by order (lower = higher priority)
-    selected_ids = set(seek_ids + hack_ids + dive_ids)
-    remaining_hq = sorted(
-        [c for c in rd.get("cards", []) if c.get("column") == "hq" and c["id"] not in selected_ids and c.get("size") != "book"],
-        key=lambda c: c.get("order", 0),
-    )
-    for raw in remaining_hq:
-        obj = _card_obj(raw["id"])
-        if not obj:
-            continue
-        if raw.get("size") in ("project", "titan"):
-            dive_cards.append(obj)
-        else:
-            hack_cards.append(obj)
-
-    # Auto-populate estimated_time on cards that don't have it, persist back to rd.json
-    all_assigned_ids = [c["id"] for c in seek_cards + hack_cards + dive_cards]
-    rd_dirty = False
-    for card_id in all_assigned_ids:
-        raw = cards_by_id.get(card_id)
-        if raw and "estimated_time" not in raw:
-            raw["estimated_time"] = _SIZE_MINUTES.get(raw.get("size", "task"), 90)
-            rd_dirty = True
-    if rd_dirty:
-        _save_rd(rd)
-        seek_cards = [o for o in (_card_obj(i) for i in seek_ids) if o]
-        hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
-        dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
-        for raw in remaining_hq:
-            obj = _card_obj(raw["id"])
-            if not obj:
-                continue
-            if raw.get("size") in ("project", "titan"):
-                dive_cards.append(obj)
-            else:
-                hack_cards.append(obj)
+    seek_cards, hack_cards, dive_cards = _build_plan_cards(rd, seek_ids, hack_ids, dive_ids)
 
     # Encouraging message
     encouraging = ""

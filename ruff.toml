@@ -2,5 +2,8 @@ target-version = "py312"
 line-length = 120
 
 [lint]
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "C901"]
 ignore = ["E501"]  # line length handled by line-length above
+
+[lint.mccabe]
+max-complexity = 15
