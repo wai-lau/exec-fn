@@ -27,7 +27,7 @@ exec-fn/
   docker-compose.yml
   web/                  # static frontend (index.html, fonts, images)
   api/
-    main.py             # FastAPI app — routes, page HTML, API endpoints
+    main.py             # FastAPI app — routes and API endpoints only (no inline HTML)
     pipeline.py         # all backend logic: pull, delta, directives, omens, plan
     build_pdf.py        # generates WAI.pdf from plan.json (falls back to directives.json)
     rm_to_pdf.py        # renders .rmdoc pages to PNG (Pillow)
@@ -38,17 +38,23 @@ exec-fn/
     gcal_auth.py        # one-time Google Calendar OAuth2 flow
     requirements.txt
     Dockerfile
+    templates/
+      exec.html         # terminal chat page (/exec)
+      plan.html         # daily plan page (/plan)
+      kanban.html       # r&d kanban board (/rd)
+      vault.html        # archive/vault page (/archive)
     data/
       plan.json             # single source of truth: seek/hack/dive/omens/schedule/encouraging_message
       directives.json       # legacy fallback (plan.json takes precedence)
       omens.json            # Claude-analyzed upcoming calendar events
       delta_MMDD.json       # daily merged delta (e.g. delta_0419.json) — primary delta source
-      delta_wai_*.json      # per-doc cached delta (keyed by EXEC rmdoc timestamp)
+      delta_wai_*.json      # per-doc cached delta (keyed by rmdoc filename timestamp)
       delta_wai_*.png       # PNG of marked pages (saved when marks found)
       context.json          # Wai's daily constraints / priorities context
       rd.json               # r&d projects (sections + items)
-      EXEC_*.rmdoc          # timestamped pulls from reMarkable
+      EXEC_*.rmdoc          # timestamped pulls from reMarkable (baseline copies)
       EXEC_YYYYMMDD_baseline.rmdoc  # morning baseline (no Wai strokes)
+      WAI_<rmname>.rmdoc    # pulled WAI docs keeping original rM filename
       WAI_*.pdf             # timestamped generated PDFs
 ```
 
@@ -103,14 +109,14 @@ All routes protected by `API_KEY` cookie session (set via `POST /login`).
 
 | Route | Description |
 |-------|-------------|
-| `/exec` | Main page — background image, no content |
+| `/exec` | Main terminal — chat interface with Claude for daily planning |
 | `/plan` | Daily plan — seek/hack/dive grid, schedule table, omens, delta, encouragement. `[plan]` button regenerates, `push` button builds PDF + uploads to rM. |
 | `/rd` | R&D projects from rd.json |
 | `/archive` | All timestamped WAI PDFs, newest first |
 
 `/directives` and `/omens` redirect to `/plan`.
 
-Nav links: `plan`, `看板`, `vault`. Each sub-page: black bg + green hue-rotate, back button (top-left), nav (bottom-right).
+Nav links: `exec`, `plan`, `看板`, `vault`. Bottom nav on all pages. No back button.
 
 ### API endpoints
 
@@ -121,6 +127,7 @@ Nav links: `plan`, `看板`, `vault`. Each sub-page: black bg + green hue-rotate
 | POST | `/api/push` | Build PDF from current plan.json, upload to rM |
 | POST | `/api/assemble_plan` | Generate plan.json via Claude (seek/hack/dive/omens/schedule/encouragement) |
 | POST | `/api/build_pdf` | Build timestamped WAI PDF from plan.json |
+| POST | `/api/reschedule` | Regenerate schedule only from current plan.json (also callable as chat tool) |
 | GET | `/api/plan` | Returns plan.json |
 | GET | `/api/directives` | Returns plan.json (alias) |
 | GET | `/api/archive` | List WAI_*.pdf files newest-first |
@@ -134,6 +141,22 @@ Nav links: `plan`, `看板`, `vault`. Each sub-page: black bg + green hue-rotate
 | POST | `/api/chat` | Send chat message |
 | GET | `/data/{filename}` | Serve file from /app/data/ (protected) |
 
+### Chat tools (available in `/exec` terminal)
+
+| Tool | Description |
+|------|-------------|
+| `create_card` | Add a new card to the r&d ideas pool |
+| `move_card` | Move a card to a different column (rd/hq/archives/exile) |
+| `update_card` | Edit fields on an existing card |
+| `delete_card` | Permanently delete a card |
+| `refresh_omens` | Refetch Google Calendar events and update omens |
+| `assemble_plan` | Generate seek/hack/dive + schedule, write plan.json |
+| `reschedule` | Regenerate schedule only, with optional feedback string |
+| `build_pdf` | Build PDF from current plan.json |
+| `finalize_and_push` | Categorize cards into seek/hack/dive, push PDF to rM |
+
+Chat messages include a `[DD/MM HH:MM]` timestamp. System prompt includes today's date/time so Claude knows the current day.
+
 ## Morning pipeline (`POST /api/morning`)
 
 1. `build_pdf.build(WAI_<ts>.pdf)` — builds timestamped PDF from `plan.json`
@@ -145,23 +168,26 @@ Triggered automatically at **4:30 AM ET** by cron inside the container.
 ## Delta pipeline (`POST /api/delta`)
 
 Day rollover: **4:30 AM ET** = start of new day. Window = yesterday 4:30 AM → today 4:30 AM.
+All datetime logic uses `zoneinfo.ZoneInfo("America/New_York")` for ET. File timestamps in filenames are UTC (container TZ). `_rollover_cutoff()` converts 4:30 AM ET → UTC for window comparisons.
 
-1. `rmapi stat` — check ModifiedClient timestamp on EXEC doc; skip re-analysis if cached
-2. `_wai_files_in_window(start, end)` — collect all EXEC_*.rmdoc in the day window
-3. For each WAI file: `_analyze_wai_doc(wai_path)` — cached to `delta_wai_{ts}.json`
+1. `pull_wai()` — pulls latest WAI_* from rM, keeps original rM filename (e.g. `WAI_20260420_210339.rmdoc`). Skips download if local file mtime >= rM ModifiedClient (UTC).
+2. `_wai_files_in_window(start, end)` — collect all WAI_*.rmdoc in the day window by filename timestamp
+3. For each WAI file: `_analyze_wai_doc(wai_path)` — cached to `delta_wai_{ts}.json` (skipped if cache mtime >= rmdoc mtime)
    - Haiku marks check first — returns empty `wai_notes` if no handwritten marks found
    - Full Sonnet vision analysis if marks found; saves `delta_wai_{ts}.png`
 4. `_merge_day_deltas(start, end)` — collects all `delta_wai_*.json` in window, dedupes via Haiku if multiple marked, writes `delta_MMDD.json`
-5. `_load_daily_delta()` — reads `delta_MMDD.json` for current day window
+5. `_load_all_recent_deltas()` — merges all `delta_wai_*.json` from rollover to now (deduped via Haiku); used by `GET /api/delta` and assemble_plan
 
 ## Assemble Plan pipeline (`POST /api/assemble_plan`)
 
 1. Refresh omens (Google Calendar → Claude Sonnet)
-2. Load delta via `_load_daily_delta()`
-3. Generate seek/hack/dive + encouraging_message via Claude Sonnet (uses rd.json + omens + delta + context.json)
-4. Generate schedule via Claude Haiku (time-block assignments based on task sizes + Wai's daily constraints)
-5. Write `plan.json`: `{generated_at, seek, hack, dive, omens, encouraging_message, schedule}`
-6. Also write `directives.json` (legacy alias)
+2. `analyze_delta_to_now()` — pulls latest WAI rmdoc if stale, analyzes all in today's window
+3. `update_rd_from_delta()` — moves completed cards to archives based on today's delta
+4. Load yesterday + today delta via `_load_yesterday_delta()` + `_load_all_recent_deltas()`
+5. Generate encouraging_message via Haiku (yesterday + today, 3-5 sentences, no em-dashes)
+6. Generate schedule via Haiku (time-blocked, :15 increments, starts at current ET time, excludes archived cards)
+7. Write `plan.json`: `{generated_at, seek, hack, dive, omens, encouraging_message, schedule}`
+8. Also write `directives.json` (legacy alias)
 
 `plan.json` schema:
 ```json
@@ -299,7 +325,7 @@ These are **not** present in production — the Droplet runs from the baked imag
 ### PDF approach (working solution)
 - Generate an A5 PDF using `reportlab`, upload with `rmapi put --force WAI_<ts>.pdf`.
 - reMarkable renders PDFs natively and perfectly.
-- `build_pdf.build(out_path)` generates an A5 PDF from `plan.json` (seek/hack/dive/omens/encouraging_message).
+- `build_pdf.build(out_path)` generates an A5 PDF from `plan.json`. Renders the `schedule` as `H:MM  task` rows (seek/hack/dive/omens/encouraging_message are not rendered directly — schedule is the primary content).
 - Run manually: `docker compose exec api python3 build_pdf.py`
 - Or trigger via API: `POST /api/build_pdf` or `POST /api/morning`
 
