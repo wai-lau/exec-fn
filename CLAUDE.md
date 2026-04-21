@@ -67,8 +67,12 @@ DEPLOY:
    Otherwise (normal restart):
      ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
 4. ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
+5. Verify the app is healthy: curl -s -o /dev/null -w "%{http_code}" http://168.144.13.51:8080/
+   - 200 or 401 = healthy, continue
+   - Anything else or connection error = app is not running; fix the issue and go back to step 1
+6. Once healthy: cd /home/wai/src/exec-fn && git push
 
-Report logs and what context was updated.
+Report logs, health check result, and what context was updated.
 ```
 
 ---
