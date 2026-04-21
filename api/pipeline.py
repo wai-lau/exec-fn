@@ -719,12 +719,15 @@ def _load_yesterday_delta() -> dict:
 
 
 def _load_all_recent_deltas() -> dict:
-    """Merge all delta_wai_*.json from yesterday's rollover up to now."""
+    """Merge all delta_wai_*.json from yesterday's rollover up to now.
+
+    Result is cached to delta_merged.json and only regenerated when a source
+    file is newer than the cache.
+    """
     day_start, _ = _day_window()
     now = datetime.now()
     files = []
-    for f in DATA_DIR.glob("delta_wai_*.json"):
-        # stem: delta_wai_YYYYMMDD_HHMMSS
+    for f in DATA_DIR.glob("delta_wai_????????_??????.json"):
         try:
             ts = datetime.strptime(f.stem[len("delta_wai_"):], "%Y%m%d_%H%M%S")
         except ValueError:
@@ -734,43 +737,54 @@ def _load_all_recent_deltas() -> dict:
     if not files:
         return _load_daily_delta()
     files.sort(key=lambda x: x[0])
-    all_notes = []
-    all_adjustments = []
+
+    cache_path = DATA_DIR / "delta_merged.json"
+    newest_source = max(f.stat().st_mtime for _, f in files)
+    if cache_path.exists() and cache_path.stat().st_mtime >= newest_source:
+        return json.loads(cache_path.read_text())
+
+    all_notes, all_adjustments = [], []
     for _, f in files:
         d = json.loads(f.read_text())
         if d.get("wai_notes"):
             all_notes.append(d["wai_notes"])
         if d.get("adjustments"):
             all_adjustments.append(d["adjustments"])
+
     if not all_notes:
         return _load_daily_delta()
+
     if len(all_notes) == 1:
-        return {"wai_notes": all_notes[0], "adjustments": all_adjustments[0] if all_adjustments else ""}
-    import anthropic
-    merged_notes = "\n\n---\n\n".join(all_notes)
-    merged_adj = "\n\n---\n\n".join(filter(None, all_adjustments))
-    try:
-        client = anthropic.Anthropic()
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=512,
-            messages=[{"role": "user", "content": (
-                "Deduplicate and merge these delta analyses from the same day. "
-                "Preserve all distinct observations.\n\n"
-                f"WAI_NOTES:\n{merged_notes}\n\n"
-                f"ADJUSTMENTS:\n{merged_adj or 'none'}\n\n"
-                'JSON only: {"wai_notes": "...", "adjustments": "..."}'
-            )}],
-        )
-        raw = re.sub(r'^```\w*\n?', '', resp.content[0].text.strip())
-        raw = re.sub(r'\n?```$', '', raw).strip()
-        m = re.search(r'\{.*\}', raw, re.DOTALL)
-        if m:
-            parsed = json.loads(m.group())
-            return {"wai_notes": parsed.get("wai_notes", merged_notes), "adjustments": parsed.get("adjustments", merged_adj)}
-    except Exception:
-        pass
-    return {"wai_notes": merged_notes, "adjustments": merged_adj}
+        result = {"wai_notes": all_notes[0], "adjustments": all_adjustments[0] if all_adjustments else ""}
+    else:
+        import anthropic
+        merged_notes = "\n\n---\n\n".join(all_notes)
+        merged_adj = "\n\n---\n\n".join(filter(None, all_adjustments))
+        result = {"wai_notes": merged_notes, "adjustments": merged_adj}
+        try:
+            client = anthropic.Anthropic()
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                messages=[{"role": "user", "content": (
+                    "Deduplicate and merge these delta analyses from the same day. "
+                    "Preserve all distinct observations.\n\n"
+                    f"WAI_NOTES:\n{merged_notes}\n\n"
+                    f"ADJUSTMENTS:\n{merged_adj or 'none'}\n\n"
+                    'JSON only: {"wai_notes": "...", "adjustments": "..."}'
+                )}],
+            )
+            raw = re.sub(r'^```\w*\n?', '', resp.content[0].text.strip())
+            raw = re.sub(r'\n?```$', '', raw).strip()
+            m = re.search(r'\{.*\}', raw, re.DOTALL)
+            if m:
+                parsed = json.loads(m.group())
+                result = {"wai_notes": parsed.get("wai_notes", merged_notes), "adjustments": parsed.get("adjustments", merged_adj)}
+        except Exception:
+            pass
+
+    cache_path.write_text(json.dumps(result, indent=2))
+    return result
 
 
 def _build_chat_system_prompt(stage: str = "planning") -> str:
