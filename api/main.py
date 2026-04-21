@@ -83,8 +83,8 @@ _CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["exec", "plan", "看板", "vault"]
-_NAV_HREFS = {"exec": "/exec", "plan": "/plan", "看板": "/rd", "vault": "/archive"}
+_NAV_LINKS = ["exec", "plan", "看板", "vault", "媁"]
+_NAV_HREFS = {"exec": "/exec", "plan": "/plan", "看板": "/rd", "vault": "/archive", "媁": "/nightfall"}
 
 
 def _build_nav(active=None):
