@@ -541,68 +541,66 @@ def analyze_delta_to_now() -> None:
 
 # ── rd card management ────────────────────────────────────────────────────────
 
+def _haiku_archive_decision(selected: list, notes: str, carry_ids: set) -> tuple[set, str]:
+    import anthropic
+    cards_text = "\n".join(f"- id:{c['id']} [{c.get('size','task')}] {c['title']}" for c in selected)
+    protect_text = (
+        f"\nDo NOT archive these — Wai explicitly said to carry them forward: {', '.join(carry_ids)}\n"
+        if carry_ids else ""
+    )
+    client = anthropic.Anthropic()
+    msg = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=256,
+        messages=[{"role": "user", "content": (
+            "Based on Wai's day notes, which cards should move to 'archives' (completed or abandoned)?\n\n"
+            f"SELECTED CARDS:\n{cards_text}\n{protect_text}\n"
+            f"WAI'S NOTES:\n{notes or 'No notes recorded.'}\n\n"
+            "Return IDs to archive. If none, return empty list.\n"
+            'JSON only: {"move_to_archives": ["id", ...], "summary": "one sentence"}'
+        )}],
+    )
+    try:
+        parsed = _parse_json(msg.content[0].text)
+    except Exception:
+        parsed = {"move_to_archives": []}
+    return set(parsed.get("move_to_archives", [])) - carry_ids, parsed.get("summary", "")
+
+
 def update_rd_from_delta(delta: dict) -> str:
     """Apply delta instructions: archive completed cards, carry forward incomplete ones, create new tasks."""
-    import anthropic
     import time as _time
 
     rd = _load_rd()
     cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
     selected = [c for c in rd.get("cards", []) if c.get("column") == "hq"]
     notes = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
-
     carry_ids = set(delta.get("carry_forward", []))
     summary_parts = []
 
-    # Archive completed cards (Haiku decides, excluding carry_forward)
     if selected:
-        cards_text = "\n".join(f"- id:{c['id']} [{c.get('size','task')}] {c['title']}" for c in selected)
-        protect_text = (
-            f"\nDo NOT archive these — Wai explicitly said to carry them forward: {', '.join(carry_ids)}\n"
-            if carry_ids else ""
-        )
-        client = anthropic.Anthropic()
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=256,
-            messages=[{"role": "user", "content": (
-                "Based on Wai's day notes, which cards should move to 'archives' (completed or abandoned)?\n\n"
-                f"SELECTED CARDS:\n{cards_text}\n{protect_text}\n"
-                f"WAI'S NOTES:\n{notes or 'No notes recorded.'}\n\n"
-                "Return IDs to archive. If none, return empty list.\n"
-                'JSON only: {"move_to_archives": ["id", ...], "summary": "one sentence"}'
-            )}],
-        )
-        try:
-            parsed = _parse_json(msg.content[0].text)
-        except Exception:
-            parsed = {"move_to_archives": []}
-
-        archive_ids = set(parsed.get("move_to_archives", [])) - carry_ids
+        archive_ids, summary = _haiku_archive_decision(selected, notes, carry_ids)
         for c in rd.get("cards", []):
             if c["id"] in archive_ids:
                 c["column"] = "archives"
         if archive_ids:
             summary_parts.append(f"archived {len(archive_ids)}")
-        if parsed.get("summary"):
-            summary_parts.append(parsed["summary"])
+        if summary:
+            summary_parts.append(summary)
 
-    # Ensure carry_forward cards are in HQ
     for card_id in carry_ids:
         card = cards_by_id.get(card_id)
         if card and card.get("column") != "hq":
             card["column"] = "hq"
             summary_parts.append(f"carried forward: {card['title']}")
 
-    # Create new HQ cards from delta new_tasks
-    new_task_titles = delta.get("new_tasks", [])
     cards = rd.get("cards", [])
-    for title in new_task_titles:
+    for title in delta.get("new_tasks", []):
         title = title.strip()
         if not title:
             continue
         min_order = min((c.get("order", 0) for c in cards if c.get("column") == "hq"), default=0)
-        new_card = {
+        cards.append({
             "id": f"card-{int(_time.time() * 1000)}",
             "title": title,
             "category": "Self",
@@ -613,8 +611,7 @@ def update_rd_from_delta(delta: dict) -> str:
             "due_date": None,
             "notes": "",
             "estimated_time": _SIZE_MINUTES.get("task", 90),
-        }
-        cards.append(new_card)
+        })
         summary_parts.append(f"created: {title}")
 
     rd["cards"] = cards

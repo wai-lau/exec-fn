@@ -396,6 +396,27 @@ def api_chat_clear():
     return {"ok": True}
 
 
+async def _stream_tool_followup(client, all_messages: list, tools: list, system: str):
+    """Stream the follow-up assistant turn after tool results. Yields SSE lines, returns final text."""
+    cont_text = ""
+    try:
+        async with client.messages.stream(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            system=system,
+            tools=tools,
+            messages=all_messages,
+        ) as stream2:
+            async for text in stream2.text_stream:
+                cont_text += text
+                yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
+            await stream2.get_final_message()
+    except Exception:
+        pass
+    if cont_text:
+        all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont_text}]})
+
+
 @protected.post("/api/chat")
 async def api_chat(body: ChatBody):
     import anthropic as _anthropic
@@ -428,47 +449,27 @@ async def api_chat(body: ChatBody):
             yield f"data: {json.dumps({'type': 'done', 'next_stage': stage})}\n\n"
             return
 
-        assistant_content = []
-        for block in final.content:
-            if block.type == "text":
-                assistant_content.append({"type": "text", "text": block.text})
-            elif block.type == "tool_use":
-                assistant_content.append({"type": "tool_use", "id": block.id, "name": block.name, "input": block.input})
-
+        assistant_content = [
+            {"type": "text", "text": b.text} if b.type == "text"
+            else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
+            for b in final.content if b.type in ("text", "tool_use")
+        ]
         all_messages = messages + [{"role": "assistant", "content": assistant_content}]
         tool_result_contents = []
 
         for block in final.content:
-            if block.type == "tool_use":
-                result = await asyncio.to_thread(pipeline._handle_tool, block.name, block.input)
-                if block.name == "finalize_and_push":
-                    next_stage = "done"
-                yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
-                tool_result_contents.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": json.dumps(result),
-                })
+            if block.type != "tool_use":
+                continue
+            result = await asyncio.to_thread(pipeline._handle_tool, block.name, block.input)
+            if block.name == "finalize_and_push":
+                next_stage = "done"
+            yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
+            tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
 
         if tool_result_contents:
             all_messages.append({"role": "user", "content": tool_result_contents})
-            cont_text = ""
-            try:
-                async with client.messages.stream(
-                    model="claude-haiku-4-5-20251001",
-                    max_tokens=512,
-                    system=pipeline._build_chat_system_prompt(next_stage),
-                    tools=tools,
-                    messages=all_messages,
-                ) as stream2:
-                    async for text in stream2.text_stream:
-                        cont_text += text
-                        yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-                    await stream2.get_final_message()
-                if cont_text:
-                    all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont_text}]})
-            except Exception:
-                pass
+            async for chunk in _stream_tool_followup(client, all_messages, tools, pipeline._build_chat_system_prompt(next_stage)):
+                yield chunk
 
         pipeline._save_chat(all_messages, next_stage)
         yield f"data: {json.dumps({'type': 'done', 'next_stage': next_stage})}\n\n"
