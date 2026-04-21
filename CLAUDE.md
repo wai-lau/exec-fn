@@ -1,216 +1,194 @@
 # exec-fn
 
-Personal automation system designed to support executive function (ADHD scaffolding).
+Personal ADHD scaffolding system for Wai. Claude runs the planning pipeline.
 
-## Architecture
+---
 
-- **Droplet**: DigitalOcean NYC1, reserved IP 168.144.13.51, domain wai-lau.net
-- **nginx**: bare-metal, handles SSL termination, proxies to Docker on port 8080
-- **FastAPI**: serves static files and all pipeline API endpoints
-- **Docker**: single container locally and on Droplet, same compose file
-- **Cron**: runs inside the container, triggers `POST /api/morning` at 4:30 AM ET daily
+## RULES — READ FIRST
 
-## Stack
+**DEPLOY = BACKGROUND AGENT. ALWAYS. NO EXCEPTIONS.**
+Never run scp/ssh/docker deploy commands on the main thread. Spawn a background sub-agent.
 
-- Python / FastAPI
-- Docker / docker-compose
-- nginx (bare-metal on Droplet only)
-- Anthropic API (claude-sonnet-4-6) for directives, delta, omens; claude-haiku-4-5-20251001 for cheap checks/merges
-- Google Calendar API for omens
-- rmapi + rmscene for reMarkable integration
+**NEVER touch `nightfall-incident/` unless explicitly asked.**
 
-## Project structure
+**NEVER do `docker compose up --build` for normal deploys.** Rebuild only if `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` changed.
+
+**COMMIT after each discrete fix.** Don't batch.
+
+**UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
+
+---
+
+## Deploy (background agent procedure)
+
+Container: `exec-fn-api-1` · Host: `root@wai-lau.net` · Repo on host: `/exec-fn`
+
+### Fast path (Python/HTML/JS changes — no rebuild needed)
+
+```bash
+# 1. scp changed files to host
+scp api/main.py api/pipeline.py root@wai-lau.net:/tmp/
+
+# 2. docker cp into running container
+ssh root@wai-lau.net "docker cp /tmp/main.py exec-fn-api-1:/app/main.py && docker cp /tmp/pipeline.py exec-fn-api-1:/app/pipeline.py"
+
+# 3. restart (no rebuild)
+ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
+
+# 4. check logs
+ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
+
+# 5. git commit + push after healthy
+```
+
+File paths inside container: `/app/` for api files, `/app/static/` for web files, `/app/templates/` for templates.
+
+### Rebuild path (Dockerfile / requirements.txt / entrypoint.sh / exec-fn.cron changed)
+
+```bash
+git push
+ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
+ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=30 api"
+```
+
+---
+
+## System overview
+
+| Layer | What |
+|-------|------|
+| Droplet | DigitalOcean NYC1, `168.144.13.51`, `wai-lau.net` |
+| nginx | Bare-metal, SSL termination, proxies → port 8080 |
+| FastAPI | All routes + API endpoints (`api/main.py`) |
+| Docker | Single container, same compose file local + prod |
+| Cron | Inside container — fires `POST /api/morning` at 4:30 AM ET |
+
+Models: `claude-sonnet-4-6` for main reasoning · `claude-haiku-4-5-20251001` for cheap checks/merges
+
+---
+
+## File map
 
 ```
 exec-fn/
-  bootstrap.sh          # one-time Droplet setup script
+  bootstrap.sh            # one-time droplet setup — safe to re-run
   docker-compose.yml
-  nightfall-incident/   # standalone game — DO NOT edit unless explicitly asked
-  web/                  # static frontend (index.html, fonts, images)
+  nightfall-incident/     # standalone game — DO NOT EDIT unless asked
+  web/                    # static frontend (index.html, fonts, images)
   api/
-    main.py             # FastAPI app — routes and API endpoints only (no inline HTML)
-    pipeline.py         # all backend logic: pull, delta, directives, omens, plan
-    build_pdf.py        # generates WAI.pdf from plan.json (falls back to directives.json)
-    rm_to_pdf.py        # renders .rmdoc pages to PNG (Pillow)
-    populate_exec.py    # legacy: write r&d content to EXEC rmdoc (unused)
-    entrypoint.sh       # Docker CMD: starts cron + uvicorn
-    exec-fn.cron        # crontab baked into image (/etc/cron.d/exec-fn)
-    morning_cron.sh     # cron script: curls POST /api/morning
-    gcal_auth.py        # one-time Google Calendar OAuth2 flow
+    main.py               # FastAPI routes only — no inline HTML
+    pipeline.py           # all backend logic
+    build_pdf.py          # plan.json → WAI.pdf (A5, reportlab)
+    rm_to_pdf.py          # .rmdoc page → PNG (Pillow)
+    populate_exec.py      # legacy, unused
+    entrypoint.sh         # Docker CMD: cron + uvicorn
+    exec-fn.cron          # crontab baked into image
+    morning_cron.sh       # cron script → POST /api/morning
+    gcal_auth.py          # one-time Google Calendar OAuth
     requirements.txt
     Dockerfile
     templates/
-      exec.html         # terminal chat page (/exec)
-      plan.html         # daily plan page (/plan)
-      kanban.html       # r&d kanban board (/rd)
-      vault.html        # archive/vault page (/archive)
-    data/
-      plan.json             # single source of truth: seek/hack/dive/omens/schedule/encouraging_message
-      directives.json       # legacy fallback (plan.json takes precedence)
-      omens.json            # Claude-analyzed upcoming calendar events
-      delta_MMDD.json       # daily merged delta (e.g. delta_0419.json) — primary delta source
-      delta_wai_*.json      # per-doc cached delta (keyed by rmdoc filename timestamp)
-      delta_wai_*.png       # PNG of marked pages (saved when marks found)
-      context.json          # Wai's daily constraints / priorities context
-      rd.json               # r&d projects (sections + items)
-      EXEC_*.rmdoc          # timestamped pulls from reMarkable (baseline copies)
-      EXEC_YYYYMMDD_baseline.rmdoc  # morning baseline (no Wai strokes)
-      WAI_<rmname>.rmdoc    # pulled WAI docs keeping original rM filename
-      WAI_*.pdf             # timestamped generated PDFs
+      exec.html           # /exec — terminal chat
+      plan.html           # /plan — daily plan view
+      kanban.html         # /rd — r&d kanban
+      vault.html          # /archive — PDF archive
+    data/                 # persistent volume (./api/data → /app/data)
+      plan.json           # source of truth: seek/hack/dive/omens/schedule/encouraging_message
+      directives.json     # legacy alias for plan.json
+      omens.json          # Claude-analyzed calendar events
+      delta_MMDD.json     # daily merged delta (e.g. delta_0419.json)
+      delta_wai_*.json    # per-doc cached delta
+      delta_wai_*.png     # marked page PNGs for vision
+      context.json        # Wai's daily constraints/priorities
+      rd.json             # r&d kanban data
+      EXEC_*.rmdoc        # timestamped pulls from reMarkable
+      EXEC_YYYYMMDD_baseline.rmdoc
+      WAI_*.rmdoc         # pulled WAI docs (original rM filename)
+      WAI_*.pdf           # generated PDFs
 ```
 
-## Local dev
-
-```
-docker compose up --build
-```
-Hit localhost:8080. Login with `API_KEY` from `.env`.
-
-## Deploy
-
-Fast path (no Dockerfile/requirements changes) — use a background sub-agent:
-
-1. **scp changed files** to `/tmp/` on droplet, `docker cp` into running container:
-   ```bash
-   scp api/main.py api/pipeline.py ... root@wai-lau.net:/tmp/
-   ssh root@wai-lau.net "docker cp /tmp/main.py exec-fn-api-1:/app/main.py && ..."
-   ```
-2. **Restart** (no rebuild): `ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"`
-3. **Check logs**: `ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"`
-4. **git commit + push** after confirming healthy
-
-Rebuild required only when `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` change:
-```bash
-ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
-```
-
-Container name: `exec-fn-api-1` · Droplet: `root@wai-lau.net` · Repo: `/exec-fn`
-
-## Fresh Droplet setup
-
-```bash
-bash bootstrap.sh
-```
-
-`bootstrap.sh` installs Docker, nginx, certbot (auto-SSL for wai-lau.net), fail2ban, SSH hardening, clones the repo, and runs `docker compose up --build -d`. Requires `.env` to exist first. Safe to re-run.
-
-## .env
-
-```
-API_KEY=<web auth key>
-ANTHROPIC_API_KEY=sk-ant-...
-```
+---
 
 ## Terminology
 
 | Term | Meaning |
 |------|---------|
-| **seek** | Easy tasks (5–15 min each). Formerly "easy". |
-| **hack** | Medium tasks (30–60 min, with sub-steps). Formerly "medium". |
-| **dive** | Hard task (1–2 hours, with sub-steps). Formerly "hard". |
-| **omens** | Upcoming reminders — Google Calendar events needing prep. One-liners (title + date). |
-| **r&d** | Future projects with no fixed deadline — ongoing creative / technical work. |
-| **delta** | Claude's interpretation of what Wai actually did, based on handwritten reMarkable feedback. |
-| **plan** | Daily plan: seek/hack/dive/omens/schedule/encouraging_message — the full `plan.json`. |
-| **schedule** | Time-block schedule generated by Haiku alongside the plan, stored in `plan.json`. |
+| seek | Easy tasks, 5–15 min each |
+| hack | Medium tasks, 30–60 min, has sub-steps |
+| dive | One hard task, 1–2 hours, has sub-steps |
+| omens | Upcoming calendar events needing prep (title + date, one-liners) |
+| r&d | Future projects, no deadline — kanban lives in `rd.json` |
+| delta | Claude's reading of Wai's handwritten reMarkable feedback |
+| plan | Full `plan.json` — seek/hack/dive/omens/schedule/encouraging_message |
+| schedule | Time-block schedule in `plan.json`, generated by Haiku |
+
+---
 
 ## Web app
 
-All routes protected by `API_KEY` cookie session (set via `POST /login`).
+All routes: `API_KEY` cookie auth (set via `POST /login`).
 
-### Pages
-
-| Route | Description |
-|-------|-------------|
-| `/exec` | Main terminal — chat interface with Claude for daily planning |
-| `/plan` | Daily plan — seek/hack/dive grid, schedule table, omens, delta, encouragement. `[plan]` button regenerates, `push` button builds PDF + uploads to rM. |
-| `/rd` | R&D projects from rd.json |
-| `/archive` | All timestamped WAI PDFs, newest first |
+Nav: `exec` · `plan` · `看板` · `vault` — bottom nav, all pages. No back button.
 
 `/directives` and `/omens` redirect to `/plan`.
 
-Nav links: `exec`, `plan`, `看板`, `vault`. Bottom nav on all pages. No back button.
+### Pages
+
+| Route | What |
+|-------|------|
+| `/exec` | Terminal chat with Claude for daily planning |
+| `/plan` | Seek/hack/dive grid + schedule + omens + delta + encouragement |
+| `/rd` | R&D kanban from `rd.json` |
+| `/archive` | Timestamped WAI PDFs, newest first |
+| `/nightfall` | Standalone game (unprotected route) |
 
 ### API endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
+| Method | Path | What |
+|--------|------|------|
 | POST | `/api/morning` | Build PDF + upload to rM + pull baseline EXEC |
-| POST | `/api/pull` | Pull latest EXEC.rmdoc (timestamped) |
-| POST | `/api/push` | Build PDF from current plan.json, upload to rM |
-| POST | `/api/assemble_plan` | Generate plan.json via Claude (seek/hack/dive/omens/schedule/encouragement) |
+| POST | `/api/pull` | Pull latest EXEC.rmdoc |
+| POST | `/api/push` | Build PDF from plan.json + upload to rM |
+| POST | `/api/assemble_plan` | Generate full plan.json via Claude |
 | POST | `/api/build_pdf` | Build timestamped WAI PDF from plan.json |
-| POST | `/api/reschedule` | Regenerate schedule only from current plan.json (also callable as chat tool) |
+| POST | `/api/reschedule` | Regenerate schedule only |
 | GET | `/api/plan` | Returns plan.json |
 | GET | `/api/directives` | Returns plan.json (alias) |
-| GET | `/api/archive` | List WAI_*.pdf files newest-first |
-| GET | `/api/archive/{filename}/page/{page_num}` | Render a PDF page as PNG |
-| GET/POST | `/api/omens` | Get/refresh omens via Google Calendar + Claude |
+| GET | `/api/archive` | List WAI_*.pdf newest-first |
+| GET | `/api/archive/{filename}/page/{page_num}` | Render PDF page as PNG |
+| GET/POST | `/api/omens` | Get/refresh omens |
 | GET/POST | `/api/delta` | Get today's delta / run delta analysis |
 | GET | `/api/rd` | Returns rd.json |
 | POST | `/api/rd/classify` | Classify R&D items via Claude |
 | GET | `/api/context` | Returns context.json |
-| GET | `/api/chat` | Get chat history |
-| POST | `/api/chat` | Send chat message |
-| GET | `/data/{filename}` | Serve file from /app/data/ (protected) |
+| GET/POST/DELETE | `/api/chat` | Chat history |
+| GET | `/data/{filename}` | Serve file from /app/data/ |
 
-### Chat tools (available in `/exec` terminal)
+### Chat tools (in `/exec` terminal)
 
-| Tool | Description |
-|------|-------------|
-| `create_card` | Add a new card to the r&d ideas pool |
-| `move_card` | Move a card to a different column (rd/hq/archives/exile) |
-| `update_card` | Edit fields on an existing card |
-| `delete_card` | Permanently delete a card |
-| `refresh_omens` | Refetch Google Calendar events and update omens |
-| `assemble_plan` | Generate seek/hack/dive + schedule, write plan.json |
-| `reschedule` | Regenerate schedule only, with optional feedback string |
+| Tool | What |
+|------|------|
+| `create_card` | Add card to r&d pool (goes to TOP of rd column) |
+| `move_card` | Move card between columns: rd/hq/archives/exile |
+| `update_card` | Edit card fields |
+| `delete_card` | Delete card permanently |
+| `refresh_omens` | Refetch Google Calendar → update omens |
+| `assemble_plan` | Generate seek/hack/dive + schedule → write plan.json |
+| `reschedule` | Regenerate schedule only (optional feedback string) |
 | `build_pdf` | Build PDF from current plan.json |
-| `finalize_and_push` | Categorize cards into seek/hack/dive, push PDF to rM |
+| `finalize_and_push` | Categorize cards → push PDF to rM |
 
-Chat messages include a `[DD/MM HH:MM]` timestamp. System prompt includes today's date/time so Claude knows the current day.
+Chat messages: `[DD/MM HH:MM ET]` timestamp prepended. System prompt includes current date/time.
 
-## Morning pipeline (`POST /api/morning`)
+---
 
-1. `build_pdf.build(WAI_<ts>.pdf)` — builds timestamped PDF from `plan.json`
-2. `rmapi put --force WAI_<ts>.pdf` — uploads to reMarkable
-3. `pull_exec(baseline=True)` — pulls EXEC.rmdoc, saves as `EXEC_<ts>.rmdoc` and copies to `EXEC_<date>_baseline.rmdoc`
+## plan.json schema
 
-Triggered automatically at **4:30 AM ET** by cron inside the container.
-
-## Delta pipeline (`POST /api/delta`)
-
-Day rollover: **4:30 AM ET** = start of new day. Window = yesterday 4:30 AM → today 4:30 AM.
-All datetime logic uses `zoneinfo.ZoneInfo("America/New_York")` for ET. File timestamps in filenames are UTC (container TZ). `_rollover_cutoff()` converts 4:30 AM ET → UTC for window comparisons.
-
-1. `pull_wai()` — pulls latest WAI_* from rM, keeps original rM filename (e.g. `WAI_20260420_210339.rmdoc`). Skips download if local file mtime >= rM ModifiedClient (UTC).
-2. `_wai_files_in_window(start, end)` — collect all WAI_*.rmdoc in the day window by filename timestamp
-3. For each WAI file: `_analyze_wai_doc(wai_path)` — cached to `delta_wai_{ts}.json` (skipped if cache mtime >= rmdoc mtime)
-   - Haiku marks check first — returns empty `wai_notes` if no handwritten marks found
-   - Full Sonnet vision analysis if marks found; saves `delta_wai_{ts}.png`
-4. `_merge_day_deltas(start, end)` — collects all `delta_wai_*.json` in window, dedupes via Haiku if multiple marked, writes `delta_MMDD.json`
-5. `_load_all_recent_deltas()` — merges all `delta_wai_*.json` from rollover to now (deduped via Haiku); used by `GET /api/delta` and assemble_plan
-
-## Assemble Plan pipeline (`POST /api/assemble_plan`)
-
-1. Refresh omens (Google Calendar → Claude Sonnet)
-2. `analyze_delta_to_now()` — pulls latest WAI rmdoc if stale, analyzes all in today's window
-3. `update_rd_from_delta()` — moves completed cards to archives based on today's delta
-4. Load yesterday + today delta via `_load_yesterday_delta()` + `_load_all_recent_deltas()`
-5. Generate encouraging_message via Haiku (yesterday + today, 3-5 sentences, no em-dashes)
-6. Generate schedule via Haiku (time-blocked, :15 increments, starts at current ET time, excludes archived cards)
-7. Write `plan.json`: `{generated_at, seek, hack, dive, omens, encouraging_message, schedule}`
-8. Also write `directives.json` (legacy alias)
-
-`plan.json` schema:
 ```json
 {
   "generated_at": "...",
-  "seek": ["task 1", "task 2", "task 3"],
-  "hack": [
-    {"title": "task", "steps": ["step 1", "step 2"]},
-    ...
-  ],
+  "seek": ["task", "task", "task"],
+  "hack": [{"title": "task", "steps": ["step 1", "step 2"]}],
   "dive": {"title": "task", "steps": ["step 1", "step 2", "step 3"]},
   "omens": [{"title": "...", "date": "..."}],
   "encouraging_message": "...",
@@ -218,158 +196,145 @@ All datetime logic uses `zoneinfo.ZoneInfo("America/New_York")` for ET. File tim
 }
 ```
 
-## Omens pipeline (`POST /api/omens`)
+Schedule `title` field = task name only. NEVER include category prefix (SEEK/HACK/DIVE) or size tags.
 
-Fetches next 14 days of Google Calendar events, sends to Claude to flag anything needing prep, saves to `omens.json`.
+---
 
-### Google Calendar setup (one-time)
+## Pipelines
 
-1. Create Google Cloud project, enable Calendar API, download `credentials.json` (Desktop app type)
-2. Copy into container: `docker compose cp credentials.json api:/root/.config/gcal/credentials.json`
-3. SSH tunnel: `ssh -L 8765:localhost:8765 root@wai-lau.net`
-4. Run auth: `docker compose exec -it api python3 gcal_auth.py`
-5. Visit the printed URL, paste the code back
-6. Token saved to `gcal-auth` Docker volume at `/root/.config/gcal/token.json` (auto-refreshes)
+### Morning (`POST /api/morning`) — fires 4:30 AM ET via cron
 
-## Scheduled tasks
+1. `build_pdf.build(WAI_<ts>.pdf)` — build PDF from plan.json
+2. `rmapi put --force WAI_<ts>.pdf` — upload to reMarkable
+3. `pull_exec(baseline=True)` — pull EXEC.rmdoc → save as timestamped + baseline copy
 
-Cron runs inside the Docker container. Config baked into image at `/etc/cron.d/exec-fn` (from `api/exec-fn.cron`). Env vars (`API_KEY`, `ANTHROPIC_API_KEY`) written to `/run/cron_env` at container startup by `entrypoint.sh`.
+### Delta (`POST /api/delta`)
+
+Day window: yesterday 4:30 AM ET → today 4:30 AM ET.
+All datetime logic: `zoneinfo.ZoneInfo("America/New_York")`. Filenames use UTC timestamps.
+
+1. `pull_wai()` — pull latest WAI_*.rmdoc from rM (skip if local mtime ≥ rM ModifiedClient)
+2. Collect all WAI_*.rmdoc in day window
+3. Per file: `_analyze_wai_doc()` — check for marks via Haiku first; if marks found, full Sonnet vision → save PNG
+4. Merge day deltas via Haiku, write `delta_MMDD.json`
+5. `_load_all_recent_deltas()` — used by GET /api/delta and assemble_plan
+
+### Assemble Plan (`POST /api/assemble_plan`)
+
+1. Refresh omens (Google Calendar → Sonnet)
+2. Pull + analyze latest WAI rmdoc
+3. Move completed cards to archives based on delta
+4. Load yesterday + today delta
+5. Generate encouraging_message via Haiku (3–5 sentences, no em-dashes)
+6. Generate schedule via Haiku (:15 increments, starts at current ET time)
+7. Write plan.json + directives.json (legacy)
+
+---
+
+## Cron
+
+Config baked into image at `/etc/cron.d/exec-fn`. Env vars written to `/run/cron_env` at startup.
 
 | Schedule | Task |
 |----------|------|
-| 4:30 AM ET daily | `morning_cron.sh` → `POST /api/morning` |
+| 4:30 AM ET | `morning_cron.sh` → `POST /api/morning` |
 
 Logs: `docker compose exec api tail -f /var/log/exec-fn.log`
 
-## Docker volumes
+---
 
-All source code is baked into the image via `COPY . .` in the Dockerfile.
+## Docker volumes
 
 | Volume | Mount | Purpose |
 |--------|-------|---------|
-| `./api/data` | `/app/data` | Persistent data (JSONs, rmdocs, PDFs) |
+| `./api/data` | `/app/data` | Persistent data |
 | `rmapi-auth` | `/root/.config/rmapi` | rmapi auth token |
-| `gcal-auth` | `/root/.config/gcal` | Google Calendar OAuth token |
+| `gcal-auth` | `/root/.config/gcal` | Google Calendar token |
 
-### Local dev
+Local dev only (`docker-compose.override.yml`): bind mounts `./api → /app` and `./web → /app/static` for hot reload. NOT in prod.
 
-`docker-compose.override.yml` (auto-applied by Docker Compose locally) adds bind mounts for hot reload:
-- `./api:/app`
-- `./web:/app/static`
+Local dev: `docker compose up --build` → hit `localhost:8080`, login with `API_KEY` from `.env`.
 
-These are **not** present in production — the Droplet runs from the baked image only.
+---
 
-## reMarkable Integration
+## reMarkable
 
-### Tools
-- **ddvk/rmapi v0.0.32** — the only working CLI tool as of Apr 2026. `juruen/rmapi` is dead (410 Gone). Installed in Docker container via tar.gz from GitHub releases.
-- rmapi talks to reMarkable cloud over HTTPS — works anywhere.
-- Auth stored in Docker named volume `rmapi-auth` at `/root/.config/rmapi`. Re-auth required on Droplet separately.
-- No locking — "last write wins". Don't upload while the notebook is open on the device.
+### Rules
+- Use **ddvk/rmapi v0.0.32** only. `juruen/rmapi` is dead.
+- Don't upload while notebook is open on device (no locking — last write wins).
+- **DO NOT write text via rmscene** — produces truncated text, wrong styles. Use PDF instead.
 
-### Folder structure on reMarkable
-- All files live in the `/EXEC` folder on the reMarkable cloud. `RM_FOLDER = "/EXEC"` in `pipeline.py`.
-- `rmapi ls /EXEC` — list files in EXEC folder
-- `rmapi get /EXEC/<name>` — download a file
-- `rmapi put --force -f /EXEC <file>` — upload/replace a file inside EXEC
-- `rmapi stat /EXEC/<name>` — get metadata including `ModifiedClient` timestamp (used for delta cache invalidation)
+### rmapi commands
 
-### Uploading back to reMarkable
-- `rmapi put <file>.rmdoc` — creates new document
-- `rmapi put --force -f /EXEC <file>` — replaces existing document inside EXEC folder
-- Cannot update an existing document by UUID — must use a new UUID and new `visibleName`, or `--force` on same name
-- Set `metadata["new"] = True` when packaging a new rmdoc for upload
+```bash
+rmapi ls /EXEC                       # list files
+rmapi get /EXEC/<name>               # download
+rmapi put --force -f /EXEC <file>    # upload/replace inside EXEC folder
+rmapi stat /EXEC/<name>              # get metadata (ModifiedClient timestamp)
+```
+
+All files live in `/EXEC` folder. `RM_FOLDER = "/EXEC"` in pipeline.py.
 
 ### .rmdoc format
-- ZIP archive containing: `{uid}.content`, `{uid}.metadata`, `{uid}/{page_id}.rm`
-- `.rm` files are reMarkable v6 binary format, parsed/written with `rmscene`
-- `write_blocks(file_obj, blocks)` — note arg order (file first)
+
+ZIP containing: `{uid}.content`, `{uid}.metadata`, `{uid}/{page_id}.rm`
+`.rm` = reMarkable v6 binary, parsed/written with rmscene.
+`write_blocks(file_obj, blocks)` — file arg comes FIRST.
 
 ### rmscene imports
-- `ParagraphStyle`, `Text` (the class used as RootTextBlock.value) → `from rmscene.scene_items import ParagraphStyle, Text`
-- `TextDocument`, `Paragraph`, `CrdtStr` are a newer higher-level API in `rmscene.text` — not used for raw block construction
-- Do NOT import from `rmscene.text` for block writing — use `scene_items` and `crdt_sequence` directly
 
-### rmscene (Python)
-- Use `git+https://github.com/ricklupton/rmscene.git` (v0.8.1.dev0) — PyPI 0.8.0 has same limitations
-- "Some data has not been read" warning = PathItemBlock (ITEM_TYPE 0x04) not yet supported — newer stroke format
-- `read_blocks(f)` → list of blocks
-- `RootTextBlock` — contains typed text. Has `.value` (Text object) with `.items` (CrdtSequence), `.styles`, `.pos_x`, `.pos_y`, `.width`
-- `CrdtSequence._items` — internal dict, directly mutable for filtering/rebuilding
-- `CrdtSequence.values()` — yields text values in order (ints 1/2 for heading markers, strings for text)
-- `CrdtSequence.sequence_items()` — yields `CrdtSequenceItem` objects in order
-- `SceneLineItemBlock` — handwritten strokes. `.item.value.points` = list of Points with `.x`, `.y`
-- `TreeNodeBlock` — layer definitions. `.group.label.value` = layer name (e.g. "Ink", "AI", "Wai")
+```python
+from rmscene.scene_items import ParagraphStyle, Text  # use this
+# NOT from rmscene.text — that's a newer higher-level API, don't use for block writing
+```
 
-### ParagraphStyle enum
-- BASIC=0, PLAIN=1, HEADING=2, BOLD=3, BULLET=4, BULLET2=5, CHECKBOX=6, CHECKBOX_CHECKED=7
-- Styles dict maps `predecessor_CrdtId → LwwValue(timestamp, ParagraphStyle)`
-- `CrdtId(0,0)` as key = style for the first paragraph
+Key block types:
+- `RootTextBlock` — typed text. `.value.items` (CrdtSequence), `.pos_x`, `.pos_y`, `.width`
+- `SceneLineItemBlock` — handwritten strokes. `.item.value.points` → list of `(x, y)`
+- `TreeNodeBlock` — layer definitions. `.group.label.value` = layer name ("Ink", "AI", "Wai")
+
+rmscene note: "Some data has not been read" = PathItemBlock not supported — safe to ignore.
+Firmware patch: already applied in Dockerfile (removes `assert block_id == CrdtId(0,0)` crash).
 
 ### Coordinate system
-- reMarkable page: 1404 × 1872 px
-- **Stroke coords**: x=0 is LEFT edge (0–1404) in some notebooks, x=0 is PAGE CENTER (-702 to +702) in others (e.g. EXEC template). Check stroke x range to determine.
-- **RootTextBlock pos_x**: offset from page center. `pos_x=-468, width=936` = full page width
-- **RootTextBlock pos_y**: from top of page (absolute)
-- Stroke y coords in typed notebooks are relative to the text block's `pos_y` (not absolute page coords)
-- `verticalScroll` in cPages.pages is NOT needed for stroke positioning — strokes relative to text origin
 
-### PDF display scaling on reMarkable
-- reMarkable displays PDFs **fit-to-height** (not fit-to-width). The PDF is scaled so its height = 1872px exactly, then centered horizontally.
-- For A5 PDF (419.53 × 595.28 pt): scale = 1872/595.28 = 3.145, rendered width = 1319px, left/right margin = 42px each.
-- Stroke coordinates are in device screen space (1404×1872). To render strokes over a PDF background:
-  1. Scale PDF with `scale = min(RM_W/pg.rect.width, RM_H/pg.rect.height)` (height-fit)
-  2. Center PDF horizontally: `x_start = (RM_W - img.width) // 2`
-  3. Paste PDF at `(x_start, 0)` on a 1404×1872 white canvas
-  4. Draw strokes at `(x + x_offset, y)` where `x_offset = 702` for center-origin notebooks
-- **Verified empirically**: height-fit aligns stroke clusters to within ~6px of PDF content positions.
+- Page: 1404 × 1872 px
+- Stroke x=0: LEFT edge in most notebooks, PAGE CENTER in EXEC template. Check min x to determine.
+- `RootTextBlock pos_x`: offset from page center. `pos_x=-468, width=936` = full width.
+- Stroke y: relative to text block's `pos_y` in typed notebooks.
 
-### rmscene firmware compatibility
-- Newer reMarkable firmware uses non-zero `block_id` in `RootTextBlock`. The assertion `assert block_id == CrdtId(0, 0)` in `rmscene/scene_stream.py` will crash on these files.
-- Fix: patch via sed in Dockerfile after pip install (already applied).
-- After the fix, blocks that were `UnreadableBlock` become parseable `RootTextBlock` objects.
-- "Unrecognised text format code 8" warning = newer firmware data format, not fixable, reading still works.
+### PDF on reMarkable
 
-### Writing text to reMarkable via rmscene — DOES NOT WORK RELIABLY
-- Writing custom `RootTextBlock` via rmscene produces truncated text and wrong paragraph styles.
-- Root cause: unclear, likely CRDT merge behavior incompatible with rmscene's output.
-- **Do not attempt this approach.** Use PDF instead.
+reMarkable renders PDF fit-to-height (height = 1872px, centered horizontally).
+A5 PDF (419.53 × 595.28 pt): scale = 3.145, rendered width = 1319px, margins = 42px each side.
 
-### PDF approach (working solution)
-- Generate an A5 PDF using `reportlab`, upload with `rmapi put --force WAI_<ts>.pdf`.
-- reMarkable renders PDFs natively and perfectly.
-- `build_pdf.build(out_path)` generates an A5 PDF from `plan.json`. Renders the `schedule` as `H:MM  task` rows (seek/hack/dive/omens/encouraging_message are not rendered directly — schedule is the primary content).
-- Run manually: `docker compose exec api python3 build_pdf.py`
-- Or trigger via API: `POST /api/build_pdf` or `POST /api/morning`
+Build PDF: `build_pdf.build(out_path)` → A5 via reportlab, renders schedule as `H:MM  task` rows.
 
-### EXEC notebook structure (as of Apr 2026)
-- Page 0: 4 layers: Ink, AI, Wai (plus unnamed base). Left column = active quests + reminders. Center-origin coords.
-- Page 1: 3 layers: AI, Wai (plus unnamed base). R&D content page.
-- AI layer approach abandoned — rmscene text writing unreliable (see above).
-- **WAI.pdf** is the primary AI-generated document. Uploaded separately via `rmapi put --force`.
-- Wai writes feedback as handwritten strokes on the Wai layer — read by delta pipeline.
+### Rendering .rmdoc → PNG
 
-### Rendering .rmdoc to PNG
-- `rm_to_pdf.rasterize(path, page_index)` — renders strokes + text to PNG bytes using Pillow
-- For PDF-based rmdocs: renders the embedded PDF as background (height-fit, centered), then overlays strokes
-- For native notebooks: renders text blocks from rmscene, then overlays strokes
-- Center-origin stroke coords (min x < -10) use `x_offset = 702`; left-origin use `x_offset = 0`
-- Output PNG is half-resolution (702×936 or proportional) for Claude vision API
-- Used by delta pipeline to send page images to Claude for vision analysis
+`rm_to_pdf.rasterize(path, page_index)` → PNG bytes (Pillow, half-res 702×936 for Claude vision).
+Center-origin strokes (min x < -10): `x_offset = 702`. Left-origin: `x_offset = 0`.
 
-## Droplet Setup
+---
 
-OS: Ubuntu 24.04, DigitalOcean NYC1, reserved IP 168.144.13.51
+## Google Calendar (one-time setup)
 
-### nginx config
-- HTTP (80) proxies to localhost:8080 (certbot upgrades to HTTPS redirect)
-- HTTPS (443) proxies to localhost:8080
-- Certs at /etc/letsencrypt/live/wai-lau.net/ (auto-renews via certbot)
+1. Create GCP project, enable Calendar API, download `credentials.json` (Desktop app)
+2. `docker compose cp credentials.json api:/root/.config/gcal/credentials.json`
+3. SSH tunnel: `ssh -L 8765:localhost:8765 root@wai-lau.net`
+4. `docker compose exec -it api python3 gcal_auth.py` → visit URL, paste code
+5. Token auto-saves to `gcal-auth` volume, auto-refreshes
 
-### Security
-- PasswordAuthentication disabled in /etc/ssh/sshd_config
-- fail2ban active
+---
 
-### Services on boot
-- nginx, fail2ban, docker (all systemctl-enabled)
-- Container auto-restarts via `restart: unless-stopped` in docker-compose.yml
+## Droplet
+
+OS: Ubuntu 24.04 · IP: `168.144.13.51` · Domain: `wai-lau.net`
+
+- nginx: HTTP 80 → HTTPS redirect, HTTPS 443 → localhost:8080
+- Certs: `/etc/letsencrypt/live/wai-lau.net/` (auto-renews)
+- SSH: password auth disabled, fail2ban active
+- Services: nginx + fail2ban + docker all systemctl-enabled
+- Container: `restart: unless-stopped`
+
+Fresh setup: `bash bootstrap.sh` (installs everything, clones repo, starts container).
