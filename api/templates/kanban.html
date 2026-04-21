@@ -131,6 +131,10 @@ body { overflow: hidden !important; }
     </select>
     <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
     <input id="e-due" type="text" placeholder="optional">
+    <label>scheduled for &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
+    <input id="e-scheduled-for" type="text" placeholder="optional">
+    <label>estimated time (minutes)</label>
+    <input id="e-estimated-time" type="number" min="1" placeholder="auto from size">
     <label>notes</label>
     <textarea id="e-notes"></textarea>
     <div class="modal-actions">
@@ -319,6 +323,8 @@ function openEdit(id) {
   document.getElementById('e-cat').value = c.category || 'Self';
   document.getElementById('e-size').value = c.size || 'task';
   document.getElementById('e-due').value = c.due_date ? fmtDate(c.due_date) : '';
+  document.getElementById('e-scheduled-for').value = c.scheduled_for ? fmtDate(c.scheduled_for) : '';
+  document.getElementById('e-estimated-time').value = c.estimated_time != null ? c.estimated_time : '';
   document.getElementById('e-notes').value = c.notes || '';
   document.getElementById('edit-modal').classList.add('open');
   document.getElementById('e-title').focus();
@@ -328,12 +334,15 @@ function closeEdit() { document.getElementById('edit-modal').classList.remove('o
 async function saveEdit() {
   const c = cards.find(x => x.id === editId);
   if (!c) return;
-  c.title       = document.getElementById('e-title').value.trim() || c.title;
-  c.description = document.getElementById('e-desc').value.trim();
-  c.category    = document.getElementById('e-cat').value;
-  c.size        = document.getElementById('e-size').value;
-  c.due_date    = parseMonthDay(document.getElementById('e-due').value);
-  c.notes       = document.getElementById('e-notes').value.trim();
+  c.title          = document.getElementById('e-title').value.trim() || c.title;
+  c.description    = document.getElementById('e-desc').value.trim();
+  c.category       = document.getElementById('e-cat').value;
+  c.size           = document.getElementById('e-size').value;
+  c.due_date       = parseMonthDay(document.getElementById('e-due').value);
+  c.scheduled_for  = parseMonthDay(document.getElementById('e-scheduled-for').value);
+  const etRaw      = document.getElementById('e-estimated-time').value;
+  c.estimated_time = etRaw !== '' ? parseInt(etRaw, 10) : (c.estimated_time ?? null);
+  c.notes          = document.getElementById('e-notes').value.trim();
   await save();
   buildBoard();
   closeEdit();

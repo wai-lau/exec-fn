@@ -1162,15 +1162,6 @@ def _tool_assemble_plan(input_: dict) -> dict:
         hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
         dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
 
-    selected_ids = set(seek_ids + hack_ids + dive_ids)
-    # extra_hq: HQ cards referenced in today's delta but not already in seek/hack/dive
-    delta_ref_card_ids = set(today_delta.get("referenced_cards", []))
-    extra_hq = [
-        {"id": c["id"], "title": c["title"], "size": c.get("size", "task"), "estimated_time": c.get("estimated_time")}
-        for c in rd.get("cards", [])
-        if c.get("column") == "hq" and c["id"] not in selected_ids and c["id"] in delta_ref_card_ids
-    ]
-
     # Encouraging message
     encouraging = ""
     try:
@@ -1191,7 +1182,7 @@ def _tool_assemble_plan(input_: dict) -> dict:
     except Exception:
         pass
 
-    schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text, extra_hq=extra_hq)
+    schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text)
 
     plan = {
         "generated_at": datetime.now().isoformat(),
@@ -1241,18 +1232,8 @@ def _tool_reschedule(input_: dict) -> dict:
     remaining_hack = [c for c in hack_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
     remaining_dive = [c for c in dive_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
 
-    selected_ids = {c["id"] for c in seek_cards + hack_cards + dive_cards if isinstance(c, dict) and c.get("id")}
-    today_delta = _load_all_recent_deltas()
-    delta_ref_card_ids = set(today_delta.get("referenced_cards", []))
-    rd = _load_rd()
-    extra_hq = [
-        {"id": c["id"], "title": c["title"], "size": c.get("size", "task"), "estimated_time": c.get("estimated_time")}
-        for c in rd.get("cards", [])
-        if c.get("column") == "hq" and c["id"] not in selected_ids and c["id"] in delta_ref_card_ids
-    ]
-
-    delta_text = today_delta.get("wai_notes", "")
-    schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, delta_text, feedback=feedback, extra_hq=extra_hq)
+    delta_text = _load_all_recent_deltas().get("wai_notes", "")
+    schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, delta_text, feedback=feedback)
 
     plan["schedule"] = schedule
     plan_path.write_text(json.dumps(plan, indent=2))
