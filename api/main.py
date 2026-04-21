@@ -207,17 +207,27 @@ document.addEventListener('visibilitychange', function() {
 
 var _waiFs = false;
 
+// The game sizes everything via --v-pct (100vh-based) and --h-pct (100vw-based)
+// on .container. Viewport units ignore CSS transforms, so we must override them
+// to use swapped axes when rotating portrait→landscape.
+var _FS_PORTRAIT_VARS = [
+  '--h-pct:calc((100vh - env(safe-area-inset-top,2em)*2)/100)',
+  '--v-pct:calc((100vw - env(safe-area-inset-left,2em)*2)/100*1.5)'
+].join(';');
+
 function _applyFsLayout() {
   var vw = window.innerWidth;
   var vh = window.innerHeight;
   if (vh > vw) {
-    // Portrait: rotate body so landscape-dimensioned content fills the screen.
-    // rotate(90deg) translate(0,-vw) maps the vh×vw body to fill the vw×vh screen.
-    // Using body (not #root) avoids iOS clipping of fixed elements with negative left.
+    // Portrait: rotate body so landscape content fills the screen.
+    // Also inject a style tag overriding .container's --v-pct/--h-pct to swap
+    // vh↔vw so the game actually renders at landscape dimensions inside.
     document.documentElement.style.cssText = 'width:100vw;height:100vh;overflow:hidden;';
     document.body.style.cssText = 'margin:0;position:absolute;width:' + vh + 'px;height:' + vw + 'px;transform-origin:0 0;transform:rotate(90deg) translate(0,-' + vw + 'px);overflow:hidden;background:#222;';
+    var s = document.getElementById('wai-fs-vars');
+    if (!s) { s = document.createElement('style'); s.id = 'wai-fs-vars'; document.head.appendChild(s); }
+    s.textContent = '.container{' + _FS_PORTRAIT_VARS + '!important}';
   } else {
-    // Landscape: fix #root to fill viewport
     document.documentElement.style.cssText = 'overflow:hidden;';
     document.body.style.cssText = 'margin:0;width:100%;height:100%;overflow:hidden;';
     var root = document.getElementById('root');
@@ -230,6 +240,8 @@ function _clearFsLayout() {
   document.body.style.cssText = '';
   var root = document.getElementById('root');
   if (root) root.style.cssText = '';
+  var s = document.getElementById('wai-fs-vars');
+  if (s) s.remove();
 }
 
 function waiFsToggle() {
