@@ -268,11 +268,13 @@ def _delta_prompt() -> str:
         "1. Describe the handwritten annotations (if any visible).\n"
         "2. Based on those, how should tomorrow's plan change?\n"
         "3. Which task IDs or event IDs are referenced in the handwriting? Use exact IDs from the lists above.\n"
-        "4. Extract any facts about Wai that should be remembered long-term "
+        "4. Which tasks from TODAY'S SELECTED TASKS are explicitly NOT done and should carry forward? List their IDs in carry_forward.\n"
+        "5. Did Wai write any new tasks to add (things not already in the task list)? List short titles in new_tasks.\n"
+        "6. Extract any facts about Wai that should be remembered long-term "
         "(context, relationships, constraints, recurring patterns). "
         "Short declarative sentences only. Empty list if nothing new.\n"
         f"ALREADY KNOWN — do not repeat these:\n{known}\n\n"
-        'JSON only: {"wai_notes": "...", "adjustments": "...", "referenced_cards": ["card-id1"], "referenced_events": ["event_id1"], "context_updates": ["..."]}'
+        'JSON only: {"wai_notes": "...", "adjustments": "...", "referenced_cards": ["card-id1"], "referenced_events": ["event_id1"], "carry_forward": ["card-id1"], "new_tasks": ["task title"], "context_updates": ["..."]}'
     )
 
 
@@ -344,6 +346,8 @@ def _analyze_wai_doc(wai_path: str) -> dict:
         "adjustments": parsed.get("adjustments", ""),
         "referenced_cards": [c for c in parsed.get("referenced_cards", []) if isinstance(c, str)],
         "referenced_events": [e for e in parsed.get("referenced_events", []) if isinstance(e, str)],
+        "carry_forward": [c for c in parsed.get("carry_forward", []) if isinstance(c, str)],
+        "new_tasks": [t for t in parsed.get("new_tasks", []) if isinstance(t, str) and t.strip()],
     }
     delta_path.write_text(json.dumps(delta, indent=2))
 
@@ -361,7 +365,7 @@ def _analyze_wai_doc(wai_path: str) -> dict:
     return delta
 
 
-def _haiku_merge_deltas(all_notes: list[str], all_adjustments: list[str], all_ref_cards: list | None = None, all_ref_events: list | None = None) -> dict:
+def _haiku_merge_deltas(all_notes: list[str], all_adjustments: list[str], all_ref_cards: list | None = None, all_ref_events: list | None = None, all_carry_forward: list | None = None, all_new_tasks: list | None = None) -> dict:
     """Use Haiku to deduplicate and merge multiple delta analyses into one."""
     import anthropic
 
@@ -372,6 +376,8 @@ def _haiku_merge_deltas(all_notes: list[str], all_adjustments: list[str], all_re
         "adjustments": merged_adj,
         "referenced_cards": list({c for lst in (all_ref_cards or []) for c in lst}),
         "referenced_events": list({e for lst in (all_ref_events or []) for e in lst}),
+        "carry_forward": list({c for lst in (all_carry_forward or []) for c in lst}),
+        "new_tasks": list({t for lst in (all_new_tasks or []) for t in lst}),
     }
 
     try:
@@ -412,7 +418,7 @@ def _merge_day_deltas(day_start: datetime, day_end: datetime) -> dict:
     marked = [d for d in deltas if d.get("wai_notes", "").strip()]
 
     if not marked:
-        result = {"analyzed_at": datetime.now().isoformat(), "wai_notes": "", "adjustments": "", "referenced_cards": [], "referenced_events": []}
+        result = {"analyzed_at": datetime.now().isoformat(), "wai_notes": "", "adjustments": "", "referenced_cards": [], "referenced_events": [], "carry_forward": [], "new_tasks": []}
     elif len(marked) == 1:
         result = {**marked[0], "analyzed_at": datetime.now().isoformat()}
     else:
@@ -420,7 +426,9 @@ def _merge_day_deltas(day_start: datetime, day_end: datetime) -> dict:
         adjs = [d.get("adjustments", "") for d in marked]
         ref_cards = [d.get("referenced_cards", []) for d in marked]
         ref_events = [d.get("referenced_events", []) for d in marked]
-        result = {**marked[-1], **_haiku_merge_deltas(notes, adjs, ref_cards, ref_events), "analyzed_at": datetime.now().isoformat()}
+        carry_fwd = [d.get("carry_forward", []) for d in marked]
+        new_tasks = [d.get("new_tasks", []) for d in marked]
+        result = {**marked[-1], **_haiku_merge_deltas(notes, adjs, ref_cards, ref_events, carry_fwd, new_tasks), "analyzed_at": datetime.now().isoformat()}
 
     daily_path.write_text(json.dumps(result, indent=2))
     return result
@@ -468,8 +476,10 @@ def _load_all_recent_deltas() -> dict:
     if not all_notes:
         return _load_daily_delta()
 
-    all_ref_cards = [d.get("referenced_cards", []) for d in deltas]
-    all_ref_events = [d.get("referenced_events", []) for d in deltas]
+    all_ref_cards   = [d.get("referenced_cards", []) for d in deltas]
+    all_ref_events  = [d.get("referenced_events", []) for d in deltas]
+    all_carry_fwd   = [d.get("carry_forward", []) for d in deltas]
+    all_new_tasks   = [d.get("new_tasks", []) for d in deltas]
 
     if len(all_notes) == 1:
         result = {
@@ -477,9 +487,11 @@ def _load_all_recent_deltas() -> dict:
             "adjustments": all_adjs[0] if all_adjs else "",
             "referenced_cards": all_ref_cards[0] if all_ref_cards else [],
             "referenced_events": all_ref_events[0] if all_ref_events else [],
+            "carry_forward": all_carry_fwd[0] if all_carry_fwd else [],
+            "new_tasks": all_new_tasks[0] if all_new_tasks else [],
         }
     else:
-        result = _haiku_merge_deltas(all_notes, all_adjs, all_ref_cards, all_ref_events)
+        result = _haiku_merge_deltas(all_notes, all_adjs, all_ref_cards, all_ref_events, all_carry_fwd, all_new_tasks)
 
     cache_path.write_text(json.dumps(result, indent=2))
     return result
@@ -523,42 +535,84 @@ def analyze_delta_to_now() -> None:
 # ── rd card management ────────────────────────────────────────────────────────
 
 def update_rd_from_delta(delta: dict) -> str:
-    """Ask Haiku which selected cards should be archived based on today's delta."""
+    """Apply delta instructions: archive completed cards, carry forward incomplete ones, create new tasks."""
     import anthropic
+    import time as _time
 
     rd = _load_rd()
+    cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
     selected = [c for c in rd.get("cards", []) if c.get("column") == "hq"]
-    if not selected:
-        return "No selected cards to update."
-
-    cards_text = "\n".join(f"- id:{c['id']} [{c.get('size','task')}] {c['title']}" for c in selected)
     notes = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
 
-    client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=256,
-        messages=[{"role": "user", "content": (
-            "Based on Wai's day notes, which r&d cards should move to 'archives' (completed or abandoned)?\n\n"
-            f"SELECTED CARDS:\n{cards_text}\n\n"
-            f"WAI'S NOTES:\n{notes or 'No notes recorded.'}\n\n"
-            "Return IDs to archive. If none, return empty list.\n"
-            'JSON only: {"move_to_archives": ["id", ...], "summary": "one sentence"}'
-        )}],
-    )
+    carry_ids = set(delta.get("carry_forward", []))
+    summary_parts = []
 
-    try:
-        parsed = _parse_json(msg.content[0].text)
-    except Exception:
-        parsed = {"move_to_archives": []}
+    # Archive completed cards (Haiku decides, excluding carry_forward)
+    if selected:
+        cards_text = "\n".join(f"- id:{c['id']} [{c.get('size','task')}] {c['title']}" for c in selected)
+        protect_text = (
+            f"\nDo NOT archive these — Wai explicitly said to carry them forward: {', '.join(carry_ids)}\n"
+            if carry_ids else ""
+        )
+        client = anthropic.Anthropic()
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=256,
+            messages=[{"role": "user", "content": (
+                "Based on Wai's day notes, which cards should move to 'archives' (completed or abandoned)?\n\n"
+                f"SELECTED CARDS:\n{cards_text}\n{protect_text}\n"
+                f"WAI'S NOTES:\n{notes or 'No notes recorded.'}\n\n"
+                "Return IDs to archive. If none, return empty list.\n"
+                'JSON only: {"move_to_archives": ["id", ...], "summary": "one sentence"}'
+            )}],
+        )
+        try:
+            parsed = _parse_json(msg.content[0].text)
+        except Exception:
+            parsed = {"move_to_archives": []}
 
-    move_ids = set(parsed.get("move_to_archives", []))
-    for c in rd.get("cards", []):
-        if c["id"] in move_ids:
-            c["column"] = "archives"
+        archive_ids = set(parsed.get("move_to_archives", [])) - carry_ids
+        for c in rd.get("cards", []):
+            if c["id"] in archive_ids:
+                c["column"] = "archives"
+        if archive_ids:
+            summary_parts.append(f"archived {len(archive_ids)}")
+        if parsed.get("summary"):
+            summary_parts.append(parsed["summary"])
 
+    # Ensure carry_forward cards are in HQ
+    for card_id in carry_ids:
+        card = cards_by_id.get(card_id)
+        if card and card.get("column") != "hq":
+            card["column"] = "hq"
+            summary_parts.append(f"carried forward: {card['title']}")
+
+    # Create new HQ cards from delta new_tasks
+    new_task_titles = delta.get("new_tasks", [])
+    cards = rd.get("cards", [])
+    for title in new_task_titles:
+        title = title.strip()
+        if not title:
+            continue
+        min_order = min((c.get("order", 0) for c in cards if c.get("column") == "hq"), default=0)
+        new_card = {
+            "id": f"card-{int(_time.time() * 1000)}",
+            "title": title,
+            "category": "Self",
+            "size": "task",
+            "description": "",
+            "column": "hq",
+            "order": min_order - 1,
+            "due_date": None,
+            "notes": "",
+            "estimated_time": _SIZE_MINUTES.get("task", 90),
+        }
+        cards.append(new_card)
+        summary_parts.append(f"created: {title}")
+
+    rd["cards"] = cards
     _save_rd(rd)
-    return parsed.get("summary", "")
+    return "; ".join(summary_parts) if summary_parts else "no changes"
 
 
 # ── schedule generation ───────────────────────────────────────────────────────
