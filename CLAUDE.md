@@ -23,8 +23,6 @@ Never run scp/ssh/docker deploy commands on the main thread. Spawn a background 
 
 Container: `exec-fn-api-1` · Host: `root@wai-lau.net` · Repo on host: `/exec-fn`
 
-### Fast path (Python/HTML/JS changes — no rebuild needed)
-
 ```bash
 # 1. scp changed files to host
 scp api/main.py api/pipeline.py root@wai-lau.net:/tmp/
@@ -32,8 +30,9 @@ scp api/main.py api/pipeline.py root@wai-lau.net:/tmp/
 # 2. docker cp into running container
 ssh root@wai-lau.net "docker cp /tmp/main.py exec-fn-api-1:/app/main.py && docker cp /tmp/pipeline.py exec-fn-api-1:/app/pipeline.py"
 
-# 3. restart (no rebuild)
+# 3. restart — or rebuild if Dockerfile/requirements.txt/entrypoint.sh/exec-fn.cron changed
 ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
+# rebuild: ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
 
 # 4. check logs
 ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
@@ -42,14 +41,6 @@ ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=
 ```
 
 File paths inside container: `/app/` for api files, `/app/static/` for web files, `/app/templates/` for templates.
-
-### Rebuild path (Dockerfile / requirements.txt / entrypoint.sh / exec-fn.cron changed)
-
-```bash
-git push
-ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
-ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=30 api"
-```
 
 ---
 
