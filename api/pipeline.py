@@ -7,6 +7,14 @@ ET = ZoneInfo("America/New_York")
 DATA_DIR = Path("/app/data")
 RM_FOLDER = "/EXEC"
 
+_SIZE_MINUTES: dict[str, int] = {"chore": 30, "task": 90, "project": 240, "titan": 480, "book": 60}
+
+def _minutes_to_size(minutes: int) -> str:
+    if minutes <= 45: return "chore"
+    if minutes <= 165: return "task"
+    if minutes <= 360: return "project"
+    return "titan"
+
 
 # ── time helpers ──────────────────────────────────────────────────────────────
 
@@ -535,13 +543,14 @@ def _cards_text(seek: list, hack: list, dive: list) -> str:
     for cat, cards in [("SEEK", seek), ("HACK", hack), ("DIVE", dive)]:
         for c in cards:
             if isinstance(c, dict):
-                lines.append(f"{cat} [{c.get('size','task')}] {c.get('title','')} (id:{c.get('id','')})")
+                time_hint = f", ~{c['estimated_time']}min" if c.get("estimated_time") else ""
+                lines.append(f"{cat} [{c.get('size','task')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
             else:
                 lines.append(f"{cat} {c}")
     return "\n".join(lines) or "None."
 
 
-def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_text: str, feedback: str = "") -> list:
+def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_text: str, feedback: str = "", extra_hq: list | None = None) -> list:
     import anthropic
 
     now_et = _now_et()
@@ -550,12 +559,22 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
     junni = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
 
     cards = _cards_text(seek, hack, dive)
+    extra_hq_text = ""
+    if extra_hq:
+        extra_lines = []
+        for c in extra_hq:
+            if isinstance(c, dict):
+                time_hint = f", ~{c['estimated_time']}min" if c.get("estimated_time") else ""
+                extra_lines.append(f"HQ [{c.get('size','task')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
+        if extra_lines:
+            extra_hq_text = "\n\nADDITIONAL HQ TASKS (schedule if time allows):\n" + "\n".join(extra_lines)
+
     events_text = "\n".join(f"- {e.get('title','')} ({e.get('date','')})" for e in events) or "None."
     action = "Reschedule the remaining" if feedback else "Generate a time-blocked schedule for"
 
     prompt = (
         f"{action} tasks for Wai's day ({today_dow}). Current time: {current_time}.\n\n"
-        f"TASKS:\n{cards}\n\n"
+        f"TASKS:\n{cards}{extra_hq_text}\n\n"
         f"CALENDAR EVENTS:\n{events_text}\n\n"
         f"YESTERDAY'S NOTES:\n{delta_text or 'none'}\n\n"
         f"CONSTRAINTS:\n"
@@ -565,11 +584,12 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"{junni}"
         f"- Lunch 11:30–12:30 (skip if past 1pm)\n"
         f"- Dinner 7:00–8:00 (skip if past 8pm)\n"
-        f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min\n"
+        f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min; use ~Nmin hint if provided\n"
         f"- 15min gap between tasks; group SEEK tasks if possible\n"
         f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
         f"- Do NOT schedule book/reading tasks\n"
-        f"- Do NOT invent tasks — only schedule tasks from the TASKS list above\n"
+        f"- ONLY schedule tasks listed in TASKS or ADDITIONAL HQ TASKS above — use their exact card_id\n"
+        f"- Calendar events go in the schedule using the event title, card_id empty string\n"
         + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
         f'\nJSON array only. The "title" field must be the task name only — do NOT include category (SEEK/HACK/DIVE) or size ([titan] etc).\n'
         f'[{{"time":"HH:MM","card_id":"...","title":"<task name only>","duration_min":90,"type":"seek|hack|dive"}}]'
@@ -583,12 +603,32 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
             messages=[{"role": "user", "content": prompt}],
         )
         entries = _parse_json(resp.content[0].text)
-        # Strip any "SEEK/HACK/DIVE [size] " prefixes Haiku might echo into the title
         for entry in entries:
-            entry["title"] = re.sub(r'^(SEEK|HACK|DIVE)\s+\[[^\]]*\]\s*', '', entry.get("title", ""), flags=re.IGNORECASE).strip()
-        return entries
+            entry["title"] = re.sub(r'^(SEEK|HACK|DIVE|HQ)\s+\[[^\]]*\]\s*', '', entry.get("title", ""), flags=re.IGNORECASE).strip()
     except Exception:
         return []
+
+    # Build lookup tables for post-processing
+    all_cards_by_title: dict[str, str] = {}
+    for c in seek + hack + dive + (extra_hq or []):
+        if isinstance(c, dict) and c.get("title"):
+            all_cards_by_title[c["title"].lower()] = c["id"]
+    omen_titles = {e.get("title", "").lower() for e in events}
+
+    result = []
+    for entry in entries:
+        if entry.get("card_id"):
+            result.append(entry)
+            continue
+        title_lower = (entry.get("title") or "").lower()
+        matched_id = all_cards_by_title.get(title_lower)
+        if matched_id:
+            entry["card_id"] = matched_id
+            result.append(entry)
+        elif title_lower in omen_titles:
+            result.append(entry)
+        # else: invented — drop it
+    return result
 
 
 # ── morning pipeline ───────────────────────────────────────────────────────────
@@ -828,14 +868,17 @@ def _chat_tools() -> list:
         },
         {
             "name": "create_card",
-            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea.",
+            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow).",
             "input_schema": {
                 "type": "object",
                 "properties": {
                     "title": {"type": "string", "description": "Short title for the card."},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"], "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement; Book=reading/studying."},
-                    "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"], "description": "Size: chore (<1h), task (<4h), project (days), titan (weeks), book (long read)."},
+                    "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"], "description": "Size: chore (<45min), task (<3h), project (<6h), titan (6h+), book (long read)."},
                     "description": {"type": "string", "description": "One-sentence description."},
+                    "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
+                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted."},
+                    "scheduled_for": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
                 },
                 "required": ["title", "category", "size"],
             },
@@ -859,7 +902,7 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_card",
-            "description": "Update fields on an existing card. Only include fields that should change.",
+            "description": "Update fields on an existing card. Only include fields that should change. Setting estimated_time auto-updates size if the duration implies a different category.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -869,6 +912,8 @@ def _chat_tools() -> list:
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"]},
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
                     "notes": {"type": "string"},
+                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
+                    "scheduled_for": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
                 },
                 "required": ["id"],
             },
@@ -965,18 +1010,27 @@ def _tool_create_card(input_: dict) -> dict:
 
     rd = _load_rd()
     cards = rd.get("cards", [])
-    min_order = min((c.get("order", 0) for c in cards if c.get("column") == "rd"), default=0)
+    column = input_.get("column", "rd")
+    min_order = min((c.get("order", 0) for c in cards if c.get("column") == column), default=0)
+
+    size = input_.get("size", "task")
+    estimated_time = input_.get("estimated_time") or _SIZE_MINUTES.get(size, 90)
+
     new_card = {
         "id": f"card-{int(_time.time() * 1000)}",
         "title": input_.get("title", ""),
         "category": input_.get("category", "Self"),
-        "size": input_.get("size", "task"),
+        "size": size,
         "description": input_.get("description", ""),
-        "column": "rd",
+        "column": column,
         "order": min_order - 1,
         "due_date": None,
         "notes": "",
+        "estimated_time": estimated_time,
     }
+    if input_.get("scheduled_for"):
+        new_card["scheduled_for"] = input_["scheduled_for"]
+
     cards.append(new_card)
     rd["cards"] = cards
     _save_rd(rd)
@@ -1004,9 +1058,15 @@ def _tool_update_card(input_: dict) -> dict:
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
-    for field in ("title", "description", "category", "size", "notes"):
+    for field in ("title", "description", "category", "size", "notes", "scheduled_for"):
         if field in input_:
             card[field] = input_[field]
+    if "estimated_time" in input_:
+        card["estimated_time"] = input_["estimated_time"]
+        if card.get("size") != "book":
+            new_size = _minutes_to_size(input_["estimated_time"])
+            if new_size != card.get("size"):
+                card["size"] = new_size
     _save_rd(rd)
     return {"ok": True, "id": card["id"], "title": card["title"]}
 
@@ -1059,11 +1119,32 @@ def _tool_assemble_plan(input_: dict) -> dict:
         if not card or card.get("column") not in ("hq", "rd"):
             return None
         steps = [s.strip() for s in card.get("description", "").split(".") if s.strip()]
-        return {"id": card_id, "title": card["title"], "steps": steps, "size": card.get("size", "task")}
+        return {"id": card_id, "title": card["title"], "steps": steps, "size": card.get("size", "task"), "estimated_time": card.get("estimated_time")}
 
     seek_cards = [o for o in (_card_obj(i) for i in seek_ids) if o]
     hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
     dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
+
+    # Auto-populate estimated_time on cards that don't have it, persist back to rd.json
+    rd_dirty = False
+    for card_id in seek_ids + hack_ids + dive_ids:
+        raw = cards_by_id.get(card_id)
+        if raw and "estimated_time" not in raw:
+            raw["estimated_time"] = _SIZE_MINUTES.get(raw.get("size", "task"), 90)
+            rd_dirty = True
+    if rd_dirty:
+        _save_rd(rd)
+        # Refresh card objects to include estimated_time
+        seek_cards = [o for o in (_card_obj(i) for i in seek_ids) if o]
+        hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
+        dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
+
+    selected_ids = set(seek_ids + hack_ids + dive_ids)
+    extra_hq = [
+        {"id": c["id"], "title": c["title"], "size": c.get("size", "task"), "estimated_time": c.get("estimated_time")}
+        for c in rd.get("cards", [])
+        if c.get("column") == "hq" and c["id"] not in selected_ids
+    ]
 
     # Encouraging message
     encouraging = ""
@@ -1085,7 +1166,7 @@ def _tool_assemble_plan(input_: dict) -> dict:
     except Exception:
         pass
 
-    schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text)
+    schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text, extra_hq=extra_hq)
 
     plan = {
         "generated_at": datetime.now().isoformat(),
@@ -1135,8 +1216,16 @@ def _tool_reschedule(input_: dict) -> dict:
     remaining_hack = [c for c in hack_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
     remaining_dive = [c for c in dive_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
 
+    selected_ids = {c["id"] for c in seek_cards + hack_cards + dive_cards if isinstance(c, dict) and c.get("id")}
+    rd = _load_rd()
+    extra_hq = [
+        {"id": c["id"], "title": c["title"], "size": c.get("size", "task"), "estimated_time": c.get("estimated_time")}
+        for c in rd.get("cards", [])
+        if c.get("column") == "hq" and c["id"] not in selected_ids
+    ]
+
     delta_text = _load_all_recent_deltas().get("wai_notes", "")
-    schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, delta_text, feedback=feedback)
+    schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, delta_text, feedback=feedback, extra_hq=extra_hq)
 
     plan["schedule"] = schedule
     plan_path.write_text(json.dumps(plan, indent=2))
