@@ -569,6 +569,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"- 15min gap between tasks; group SEEK tasks if possible\n"
         f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
         f"- Do NOT schedule book/reading tasks\n"
+        f"- Do NOT invent tasks — only schedule tasks from the TASKS list above\n"
         + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
         f'\nJSON array only. The "title" field must be the task name only — do NOT include category (SEEK/HACK/DIVE) or size ([titan] etc).\n'
         f'[{{"time":"HH:MM","card_id":"...","title":"<task name only>","duration_min":90,"type":"seek|hack|dive"}}]'
