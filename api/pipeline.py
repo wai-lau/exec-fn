@@ -240,31 +240,39 @@ def list_archive() -> list:
 
 def _delta_prompt() -> str:
     rd = _load_rd()
+    omens = _load_json("omens", {}).get("events", [])
     selected = sorted(
         [c for c in rd.get("cards", []) if c.get("column") == "hq"],
         key=lambda c: c.get("order", 0),
     )
     if selected:
-        directives_text = "TODAY'S SELECTED TASKS (on the reMarkable):\n" + "\n".join(
-            f"[{c.get('size', 'task')}] {c['title']}" for c in selected
+        directives_text = "TODAY'S SELECTED TASKS:\n" + "\n".join(
+            f"[id:{c['id']}] [{c.get('size', 'task')}] {c['title']}" for c in selected
         )
     else:
         directives_text = "No tasks selected for today."
+
+    omens_text = ""
+    if omens:
+        omens_text = "\nUPCOMING CALENDAR EVENTS:\n" + "\n".join(
+            f"[event_id:{e.get('event_id','')}] {e.get('title','')} ({e.get('date','')})" for e in omens
+        )
 
     ctx = _load_json("context", {"notes": []})
     known = "\n".join(f"- {n['note']}" for n in ctx.get("notes", [])) or "None."
 
     return (
-        f"{directives_text}\n\n"
+        f"{directives_text}{omens_text}\n\n"
         "The image shows Wai's reMarkable page. The printed text above was already there. "
         "Any handwritten marks/strokes are Wai's annotations added during the day.\n\n"
         "1. Describe the handwritten annotations (if any visible).\n"
         "2. Based on those, how should tomorrow's plan change?\n"
-        "3. Extract any facts about Wai that should be remembered long-term "
+        "3. Which task IDs or event IDs are referenced in the handwriting? Use exact IDs from the lists above.\n"
+        "4. Extract any facts about Wai that should be remembered long-term "
         "(context, relationships, constraints, recurring patterns). "
         "Short declarative sentences only. Empty list if nothing new.\n"
         f"ALREADY KNOWN — do not repeat these:\n{known}\n\n"
-        'JSON only: {"wai_notes": "...", "adjustments": "...", "context_updates": ["..."]}'
+        'JSON only: {"wai_notes": "...", "adjustments": "...", "referenced_cards": ["card-id1"], "referenced_events": ["event_id1"], "context_updates": ["..."]}'
     )
 
 
@@ -334,6 +342,8 @@ def _analyze_wai_doc(wai_path: str) -> dict:
         "source_file": stem + ".rmdoc",
         "wai_notes": parsed.get("wai_notes", ""),
         "adjustments": parsed.get("adjustments", ""),
+        "referenced_cards": [c for c in parsed.get("referenced_cards", []) if isinstance(c, str)],
+        "referenced_events": [e for e in parsed.get("referenced_events", []) if isinstance(e, str)],
     }
     delta_path.write_text(json.dumps(delta, indent=2))
 
@@ -351,13 +361,18 @@ def _analyze_wai_doc(wai_path: str) -> dict:
     return delta
 
 
-def _haiku_merge_deltas(all_notes: list[str], all_adjustments: list[str]) -> dict:
+def _haiku_merge_deltas(all_notes: list[str], all_adjustments: list[str], all_ref_cards: list | None = None, all_ref_events: list | None = None) -> dict:
     """Use Haiku to deduplicate and merge multiple delta analyses into one."""
     import anthropic
 
     merged_notes = "\n\n---\n\n".join(all_notes)
     merged_adj = "\n\n---\n\n".join(filter(None, all_adjustments))
-    result = {"wai_notes": merged_notes, "adjustments": merged_adj}
+    result = {
+        "wai_notes": merged_notes,
+        "adjustments": merged_adj,
+        "referenced_cards": list({c for lst in (all_ref_cards or []) for c in lst}),
+        "referenced_events": list({e for lst in (all_ref_events or []) for e in lst}),
+    }
 
     try:
         client = anthropic.Anthropic()
@@ -397,13 +412,15 @@ def _merge_day_deltas(day_start: datetime, day_end: datetime) -> dict:
     marked = [d for d in deltas if d.get("wai_notes", "").strip()]
 
     if not marked:
-        result = {"analyzed_at": datetime.now().isoformat(), "wai_notes": "", "adjustments": ""}
+        result = {"analyzed_at": datetime.now().isoformat(), "wai_notes": "", "adjustments": "", "referenced_cards": [], "referenced_events": []}
     elif len(marked) == 1:
         result = {**marked[0], "analyzed_at": datetime.now().isoformat()}
     else:
         notes = [d["wai_notes"] for d in marked]
         adjs = [d.get("adjustments", "") for d in marked]
-        result = {**marked[-1], **_haiku_merge_deltas(notes, adjs), "analyzed_at": datetime.now().isoformat()}
+        ref_cards = [d.get("referenced_cards", []) for d in marked]
+        ref_events = [d.get("referenced_events", []) for d in marked]
+        result = {**marked[-1], **_haiku_merge_deltas(notes, adjs, ref_cards, ref_events), "analyzed_at": datetime.now().isoformat()}
 
     daily_path.write_text(json.dumps(result, indent=2))
     return result
@@ -451,10 +468,18 @@ def _load_all_recent_deltas() -> dict:
     if not all_notes:
         return _load_daily_delta()
 
+    all_ref_cards = [d.get("referenced_cards", []) for d in deltas]
+    all_ref_events = [d.get("referenced_events", []) for d in deltas]
+
     if len(all_notes) == 1:
-        result = {"wai_notes": all_notes[0], "adjustments": all_adjs[0] if all_adjs else ""}
+        result = {
+            "wai_notes": all_notes[0],
+            "adjustments": all_adjs[0] if all_adjs else "",
+            "referenced_cards": all_ref_cards[0] if all_ref_cards else [],
+            "referenced_events": all_ref_events[0] if all_ref_events else [],
+        }
     else:
-        result = _haiku_merge_deltas(all_notes, all_adjs)
+        result = _haiku_merge_deltas(all_notes, all_adjs, all_ref_cards, all_ref_events)
 
     cache_path.write_text(json.dumps(result, indent=2))
     return result
@@ -569,7 +594,10 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         if extra_lines:
             extra_hq_text = "\n\nADDITIONAL HQ TASKS (schedule if time allows):\n" + "\n".join(extra_lines)
 
-    events_text = "\n".join(f"- {e.get('title','')} ({e.get('date','')})" for e in events) or "None."
+    # Include event_id in events text so Haiku can output it in schedule entries
+    events_text = "\n".join(
+        f"- [event_id:{e.get('event_id','')}] {e.get('title','')} ({e.get('date','')})" for e in events
+    ) or "None."
     action = "Reschedule the remaining" if feedback else "Generate a time-blocked schedule for"
 
     prompt = (
@@ -588,11 +616,12 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"- 15min gap between tasks; group SEEK tasks if possible\n"
         f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
         f"- Do NOT schedule book/reading tasks\n"
-        f"- ONLY schedule tasks listed in TASKS or ADDITIONAL HQ TASKS above — use their exact card_id\n"
-        f"- Calendar events go in the schedule using the event title, card_id empty string\n"
+        f"- ONLY schedule tasks listed in TASKS or ADDITIONAL HQ TASKS — use their exact card_id\n"
+        f"- Calendar events: include using their event_id, set card_id to empty string\n"
         + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
-        f'\nJSON array only. The "title" field must be the task name only — do NOT include category (SEEK/HACK/DIVE) or size ([titan] etc).\n'
-        f'[{{"time":"HH:MM","card_id":"...","title":"<task name only>","duration_min":90,"type":"seek|hack|dive"}}]'
+        f'\nJSON array only. The "title" field must be the task name only — do NOT include category or size.\n'
+        f'[{{"time":"HH:MM","card_id":"...","event_id":"","title":"...","duration_min":90,"type":"seek|hack|dive"}}, '
+        f'{{"time":"HH:MM","card_id":"","event_id":"gcal-id","title":"...","duration_min":60,"type":"omen"}}]'
     )
 
     client = anthropic.Anthropic()
@@ -608,26 +637,19 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
     except Exception:
         return []
 
-    # Build lookup tables for post-processing
-    all_cards_by_title: dict[str, str] = {}
-    for c in seek + hack + dive + (extra_hq or []):
-        if isinstance(c, dict) and c.get("title"):
-            all_cards_by_title[c["title"].lower()] = c["id"]
-    omen_titles = {e.get("title", "").lower() for e in events}
+    # Valid IDs for post-processing — no title matching
+    valid_card_ids = {c["id"] for c in seek + hack + dive + (extra_hq or []) if isinstance(c, dict) and c.get("id")}
+    valid_event_ids = {e.get("event_id", "") for e in events if e.get("event_id")}
 
     result = []
     for entry in entries:
-        if entry.get("card_id"):
+        card_id = entry.get("card_id", "")
+        event_id = entry.get("event_id", "")
+        if card_id and card_id in valid_card_ids:
             result.append(entry)
-            continue
-        title_lower = (entry.get("title") or "").lower()
-        matched_id = all_cards_by_title.get(title_lower)
-        if matched_id:
-            entry["card_id"] = matched_id
+        elif event_id and event_id in valid_event_ids:
             result.append(entry)
-        elif title_lower in omen_titles:
-            result.append(entry)
-        # else: invented — drop it
+        # else: not in known IDs — drop
     return result
 
 
@@ -753,6 +775,7 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
                 if key not in seen:
                     seen.add(key)
                     events.append({
+                        "id": item.get("id", ""),
                         "summary": item.get("summary", "Untitled"),
                         "start": item["start"].get("dateTime", item["start"].get("date", "")),
                         "description": item.get("description", ""),
@@ -783,7 +806,7 @@ def analyze_omens() -> dict:
     events = fetch_calendar_events()
     omens = {
         "checked_at": datetime.now().isoformat(),
-        "events": [{"title": e["summary"], "date": _fmt_date(e["start"])} for e in events],
+        "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"])} for e in events],
     }
     (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
     return omens
@@ -1140,10 +1163,12 @@ def _tool_assemble_plan(input_: dict) -> dict:
         dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
 
     selected_ids = set(seek_ids + hack_ids + dive_ids)
+    # extra_hq: HQ cards referenced in today's delta but not already in seek/hack/dive
+    delta_ref_card_ids = set(today_delta.get("referenced_cards", []))
     extra_hq = [
         {"id": c["id"], "title": c["title"], "size": c.get("size", "task"), "estimated_time": c.get("estimated_time")}
         for c in rd.get("cards", [])
-        if c.get("column") == "hq" and c["id"] not in selected_ids
+        if c.get("column") == "hq" and c["id"] not in selected_ids and c["id"] in delta_ref_card_ids
     ]
 
     # Encouraging message
@@ -1217,14 +1242,16 @@ def _tool_reschedule(input_: dict) -> dict:
     remaining_dive = [c for c in dive_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
 
     selected_ids = {c["id"] for c in seek_cards + hack_cards + dive_cards if isinstance(c, dict) and c.get("id")}
+    today_delta = _load_all_recent_deltas()
+    delta_ref_card_ids = set(today_delta.get("referenced_cards", []))
     rd = _load_rd()
     extra_hq = [
         {"id": c["id"], "title": c["title"], "size": c.get("size", "task"), "estimated_time": c.get("estimated_time")}
         for c in rd.get("cards", [])
-        if c.get("column") == "hq" and c["id"] not in selected_ids
+        if c.get("column") == "hq" and c["id"] not in selected_ids and c["id"] in delta_ref_card_ids
     ]
 
-    delta_text = _load_all_recent_deltas().get("wai_notes", "")
+    delta_text = today_delta.get("wai_notes", "")
     schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, delta_text, feedback=feedback, extra_hq=extra_hq)
 
     plan["schedule"] = schedule
