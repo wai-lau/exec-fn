@@ -146,7 +146,7 @@ protected = APIRouter(dependencies=[Depends(require_auth)])
 @public.get("/nightfall", response_class=HTMLResponse)
 async def nightfall():
     html = Path("/app/nightfall/index.html").read_text()
-    html = html.replace("<head>", '<head><base href="/nightfall-game/">', 1)
+    html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">', 1)
     return HTMLResponse(html)
 
 
