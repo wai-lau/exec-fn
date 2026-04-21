@@ -1,0 +1,347 @@
+
+<style>
+body { overflow: hidden !important; }
+.rd-topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding: 0 32px; gap: 12px;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,255,65,0.12);
+}
+.rd-board {
+  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  display: flex; gap: 1px; overflow: hidden;
+  background: rgba(0,255,65,0.06);
+}
+.col-group { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: rgba(0,0,0,0.25); }
+.col.col-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
+.col.col-collapsed .col-list { pointer-events: none; overflow: hidden; }
+.drag-active .col-group { flex: 4 !important; }
+.drag-active .col.col-collapsed { flex: 1 !important; overflow: visible !important; }
+.drag-active .col.col-collapsed .col-list { pointer-events: auto !important; overflow-y: auto !important; min-height: 40px; }
+.col-hdr {
+  flex-shrink: 0; padding: 14px 16px 10px;
+  font-family: monospace; font-size: 0.62rem; text-transform: uppercase;
+  letter-spacing: 0.18em; color: rgba(0,255,65,0.55);
+  border-bottom: 1px solid rgba(0,255,65,0.1);
+  display: flex; align-items: center; gap: 6px;
+}
+.col-hdr-label { flex: 1; }
+.done-toggle { background:none; border:none; color:rgba(0,255,65,0.4); cursor:pointer; font-size:0.7rem; padding:0; line-height:1; }
+.done-toggle:hover { color:rgba(0,255,65,0.9); }
+.col-list { flex: 1; overflow-y: auto; padding: 10px 10px 20px; }
+#col-rd { direction: rtl; }
+#col-rd > * { direction: ltr; }
+.card {
+  border-radius: 4px; padding: 9px 11px; margin-bottom: 7px;
+  cursor: grab; user-select: none; font-family: monospace;
+  border: 1px solid transparent;
+  transition: filter 0.15s;
+}
+.card:hover { filter: brightness(1.08); }
+.card:active { cursor: grabbing; }
+.card.plain { background: rgba(0,255,65,0.05); border-color: rgba(0,255,65,0.15); }
+.card.plain:hover { background: rgba(0,255,65,0.09); }
+.card-title { font-size: 0.8rem; margin-bottom: 2px; }
+.card-desc { font-size: 0.7rem; margin-top: 3px; opacity: 0.72;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card-foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 5px; }
+.card-badge { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
+.card-due { font-size: 0.62rem; }
+.sortable-ghost { opacity: 0.2; }
+.rd-btn {
+  background: none; border: 1px solid rgba(0,255,65,0.4);
+  color: rgba(0,255,65,0.8); font-family: monospace; font-size: 0.78rem;
+  padding: 4px 12px; cursor: pointer; transition: all 0.2s;
+}
+.rd-btn:hover { border-color: rgba(0,255,65,1); color: rgba(0,255,65,1); }
+.rd-btn:disabled { opacity: 0.4; cursor: default; }
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.75); align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #0a0a0a; border: 1px solid rgba(0,255,65,0.25);
+  padding: 24px 28px; width: min(420px,92vw); font-family: monospace;
+}
+.modal-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(0,255,65,0.6); margin-bottom: 16px; }
+.modal label { display: block; font-size: 0.6rem; color: rgba(0,255,65,0.45); margin: 12px 0 3px; text-transform: uppercase; letter-spacing: 0.1em; }
+.modal input, .modal select, .modal textarea {
+  width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,255,65,0.2);
+  color: rgba(0,255,65,0.9); font-family: monospace; font-size: 0.82rem;
+  padding: 5px 8px; box-sizing: border-box; resize: vertical;
+}
+.modal select option { background: #111; }
+.modal textarea { min-height: 56px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: space-between; align-items: center; }
+</style>
+
+<div class="rd-topbar">
+  <button class="rd-btn" id="add-btn" onclick="openAdd()">+ add card</button>
+</div>
+
+<div class="rd-board" id="board">
+  <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
+</div>
+
+<!-- add modal -->
+<div class="modal-overlay" id="add-modal" onclick="if(event.target===this)closeAdd()">
+  <div class="modal">
+    <div class="modal-title">add card</div>
+    <label>title</label>
+    <input id="a-title" type="text" placeholder="what needs doing">
+    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
+    <input id="a-due" type="text" placeholder="optional">
+    <label>column</label>
+    <select id="a-col">
+      <option value="rd">r&d</option>
+      <option value="hq">hq</option>
+    </select>
+    <div class="modal-actions">
+      <span></span>
+      <div style="display:flex;gap:8px">
+        <button class="rd-btn" onclick="closeAdd()">cancel</button>
+        <button class="rd-btn" id="a-submit" onclick="addCard()">add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- edit modal -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-title">edit card</div>
+    <label>title</label>
+    <input id="e-title" type="text">
+    <label>description</label>
+    <textarea id="e-desc"></textarea>
+    <label>category</label>
+    <select id="e-cat">
+      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option>
+    </select>
+    <label>size</label>
+    <select id="e-size">
+      <option value="chore">chore &mdash; under 1 hour</option>
+      <option value="task">task &mdash; under 4 hours</option>
+      <option value="book">book &mdash; ongoing read</option>
+      <option value="project">project &mdash; under 2 days</option>
+      <option value="titan">titan &mdash; needs breaking down</option>
+    </select>
+    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
+    <input id="e-due" type="text" placeholder="optional">
+    <label>notes</label>
+    <textarea id="e-notes"></textarea>
+    <div class="modal-actions">
+      <button class="rd-btn" style="border-color:rgba(255,100,100,0.4);color:rgba(255,120,120,0.7)" onclick="deleteCard()">delete</button>
+      <div style="display:flex;gap:8px">
+        <button class="rd-btn" onclick="closeEdit()">cancel</button>
+        <button class="rd-btn" onclick="saveEdit()">save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const COLS = ['rd','hq','archives','exile'];
+let cards = [];
+let editId = null;
+let dragging = false;
+let archivesCollapsed = true;
+let exileCollapsed = true;
+
+const CAT_HUE = {Book:210, Self:185, Social:275, Interfacing:50, Hobby:0};
+
+function isDarkCard(c) {
+  return c.size === 'chore' || c.size === 'task' || c.size === 'book';
+}
+
+function cardStyle(c) {
+  const h = CAT_HUE[c.category];
+  if (h === undefined) return {bg:'', border:'', dark:false};
+  const size = c.size;
+  const col = `hsl(${h},75%,68%)`;
+  const borderMid = `hsl(${h},65%,60%)`;
+  const borderBright = `hsl(${h},90%,78%)`;
+  if (size === 'chore') {
+    return {bg:`background:#0d0d0d;color:${col};`, border:'border-color:transparent;', dark:true};
+  } else if (size === 'task') {
+    return {bg:`background:#0d0d0d;color:${col};`, border:`border-color:${borderMid};`, dark:true};
+  } else if (size === 'book') {
+    return {bg:`background:hsl(0,0%,10%);color:${col};`, border:`border-color:${borderMid};`, dark:true};
+  } else if (size === 'project') {
+    return {bg:`background:hsl(${h},50%,54%);`, border:'border-color:transparent;', dark:false};
+  } else {
+    return {bg:`background:hsl(${h},55%,62%);`, border:`border-color:${borderBright};`, dark:false};
+  }
+}
+
+function parseMonthDay(input) {
+  if (!input || !input.trim()) return null;
+  const s = input.trim().toLowerCase();
+  const mnths = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const now = new Date();
+  let month = -1, day = 0;
+  let m = s.match(/^(\d{1,2})[\/-](\d{1,2})$/);
+  if (m) { month = parseInt(m[1]) - 1; day = parseInt(m[2]); }
+  if (month < 0) {
+    m = s.match(/^([a-z]+)\s+(\d{1,2})$/);
+    if (m) { const i = mnths.findIndex(x => m[1].startsWith(x)); if (i >= 0) { month = i; day = parseInt(m[2]); } }
+  }
+  if (month < 0 || !day) return null;
+  let yr = now.getFullYear();
+  if (new Date(yr, month, day) <= now) yr++;
+  return `${yr}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+
+function isUrgent(iso) {
+  return iso && (new Date(iso) - new Date()) / 86400000 <= 3;
+}
+
+function renderCard(c) {
+  const {bg, border, dark} = cardStyle(c);
+  const hasStyle = !!bg;
+  const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.85)';
+  const tc     = !hasStyle ? 'rgba(0,255,65,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
+  const urgent = isUrgent(c.due_date);
+  return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" style="${bg}${border}">
+    <div class="card-title" style="color:${titleC}">${c.title}</div>
+    ${c.description ? `<div class="card-desc" style="color:${tc}">${c.description}</div>` : ''}
+    <div class="card-foot">
+      <div class="card-badge" style="color:${tc}">${[c.category, c.size].filter(Boolean).join(' · ')}</div>
+      ${c.due_date ? `<div class="card-due" style="color:${urgent ? (dark?'rgba(255,140,80,0.9)':'rgba(180,60,0,0.9)') : tc}">${fmtDate(c.due_date)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+async function save() {
+  COLS.forEach(col => {
+    document.querySelectorAll(`#col-${col} .card`).forEach((el, i) => {
+      const c = cards.find(x => x.id === el.dataset.id);
+      if (c) { c.column = col; c.order = i; }
+    });
+  });
+  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
+}
+
+function toggleArchives(e) { if (e) e.stopPropagation(); archivesCollapsed = !archivesCollapsed; buildBoard(); }
+function toggleExile(e) { if (e) e.stopPropagation(); exileCollapsed = !exileCollapsed; buildBoard(); }
+
+function renderCol(col) {
+  const count = cards.filter(c=>c.column===col).length;
+  const isArchives = col === 'archives', isExile = col === 'exile';
+  const collapsed = (isArchives && archivesCollapsed) || (isExile && exileCollapsed);
+  const toggle = isArchives ? 'toggleArchives' : (isExile ? 'toggleExile' : null);
+  const hdr = toggle
+    ? `<span class="col-hdr-label">${collapsed ? '▶' : col} <span style="opacity:0.35">(${count})</span></span>
+       ${!collapsed ? `<button class="done-toggle" onclick="${toggle}(event)">▼</button>` : ''}`
+    : `<span class="col-hdr-label">${col} <span style="opacity:0.35">(${count})</span></span>`;
+  const colCards = collapsed ? '' : cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('');
+  return `<div class="col${collapsed?' col-collapsed':''}"${collapsed&&toggle?` onclick="${toggle}()"`:''}>
+    <div class="col-hdr">${hdr}</div>
+    <div class="col-list" id="col-${col}">${colCards}</div>
+  </div>`;
+}
+
+function buildBoard() {
+  const mainCol = col => renderCol(col).replace('<div class="col', '<div style="flex:4" class="col');
+  const groupExpanded = !archivesCollapsed || !exileCollapsed;
+  document.getElementById('board').innerHTML =
+    ['rd','hq'].map(mainCol).join('') +
+    `<div class="col-group" style="flex:${groupExpanded ? 4 : 1}">${['archives','exile'].map(renderCol).join('')}</div>`;
+  COLS.forEach(col => {
+    const el = document.getElementById('col-'+col);
+    if (!el) return;
+    Sortable.create(el, {
+      group:'kanban', animation:120, ghostClass:'sortable-ghost',
+      delay: 300, delayOnTouchOnly: true,
+      onStart: () => { dragging = true; document.getElementById('board').classList.add('drag-active'); },
+      onEnd: () => { document.getElementById('board').classList.remove('drag-active'); setTimeout(() => { dragging = false; }, 50); save(); }
+    });
+  });
+  document.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
+  });
+}
+
+async function load() {
+  const data = await (await fetch('/api/rd')).json();
+  cards = data.cards || [];
+  buildBoard();
+}
+
+// add modal
+function openAdd() { document.getElementById('add-modal').classList.add('open'); document.getElementById('a-title').focus(); }
+function closeAdd() { document.getElementById('add-modal').classList.remove('open'); document.getElementById('a-title').value = ''; document.getElementById('a-due').value = ''; }
+
+async function addCard() {
+  const title = document.getElementById('a-title').value.trim();
+  if (!title) return;
+  const btn = document.getElementById('a-submit');
+  btn.disabled = true; btn.textContent = 'classifying...';
+  const due_date = parseMonthDay(document.getElementById('a-due').value);
+  const col = document.getElementById('a-col').value;
+  let category = 'Self', size = 'task', description = '';
+  try {
+    const r = await fetch('/api/rd/classify', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
+    const cl = await r.json();
+    category = cl.category || category; size = cl.size || size; description = cl.description || '';
+  } catch(_) {}
+  const id = 'card-' + Date.now();
+  const maxOrder = Math.max(-1, ...cards.filter(c=>c.column===col).map(c=>c.order));
+  cards.push({id, title, category, size, description, column: col, order: maxOrder + 1, due_date, notes: ''});
+  await save();
+  buildBoard();
+  closeAdd();
+  btn.disabled = false; btn.textContent = 'add';
+}
+
+document.getElementById('a-title').addEventListener('keydown', e => { if (e.key === 'Enter') addCard(); });
+
+// edit modal
+function openEdit(id) {
+  const c = cards.find(x => x.id === id);
+  if (!c) return;
+  editId = id;
+  document.getElementById('e-title').value = c.title || '';
+  document.getElementById('e-desc').value = c.description || '';
+  document.getElementById('e-cat').value = c.category || 'Self';
+  document.getElementById('e-size').value = c.size || 'task';
+  document.getElementById('e-due').value = c.due_date ? fmtDate(c.due_date) : '';
+  document.getElementById('e-notes').value = c.notes || '';
+  document.getElementById('edit-modal').classList.add('open');
+  document.getElementById('e-title').focus();
+}
+function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); editId = null; }
+
+async function saveEdit() {
+  const c = cards.find(x => x.id === editId);
+  if (!c) return;
+  c.title       = document.getElementById('e-title').value.trim() || c.title;
+  c.description = document.getElementById('e-desc').value.trim();
+  c.category    = document.getElementById('e-cat').value;
+  c.size        = document.getElementById('e-size').value;
+  c.due_date    = parseMonthDay(document.getElementById('e-due').value);
+  c.notes       = document.getElementById('e-notes').value.trim();
+  await save();
+  buildBoard();
+  closeEdit();
+}
+
+async function deleteCard() {
+  if (!editId) return;
+  cards = cards.filter(x => x.id !== editId);
+  await save();
+  buildBoard();
+  closeEdit();
+}
+
+load();
+</script>

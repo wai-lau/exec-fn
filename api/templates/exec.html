@@ -1,0 +1,276 @@
+
+<style>
+body { display:block !important; height:100vh; overflow:hidden !important; flex-direction:unset !important; align-items:unset !important; justify-content:unset !important; gap:unset !important; }
+#terminal {
+  position:fixed; top:0; left:0; right:0; bottom:104px;
+  overflow-y:auto; padding:28px 44px;
+  font-family:monospace; font-size:0.88rem; line-height:1.45;
+  color:rgba(0,255,65,0.9);
+}
+.msg { margin-bottom:12px; max-width:680px; white-space:pre-wrap; word-break:break-word; }
+.msg.assistant::before { content:"> "; opacity:0.4; }
+.msg.assistant { color:rgba(0,255,65,0.92); }
+.msg.user::before { content:"$ "; opacity:0.5; }
+.msg.user { color:rgba(0,255,65,0.42); }
+.msg.sys::before { content:"# "; }
+.msg.sys { color:rgba(0,255,65,0.26); font-size:0.72rem; }
+#blinkcursor { display:inline-block; width:8px; height:1em; background:rgba(0,255,65,0.9); vertical-align:text-bottom; animation:blink 1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+#input-bar {
+  position:fixed; bottom:52px; left:0; right:0;
+  padding:0 44px;
+  background:rgba(0,0,0,0.94);
+  border-top:1px solid rgba(0,255,65,0.1);
+  display:flex; align-items:center; gap:10px;
+}
+#input-line {
+  flex:1; display:flex; align-items:center;
+  border:1px solid rgba(0,255,65,0.2);
+  padding:8px 12px; gap:0;
+}
+#input-line:focus-within { border-color:rgba(0,255,65,0.55); }
+#input-prompt {
+  color:rgba(0,255,65,0.55); font-family:monospace; font-size:0.9rem;
+  white-space:nowrap; user-select:none; padding-right:8px;
+}
+#msg-input {
+  flex:1; background:none; border:none;
+  color:rgba(0,255,65,0.95); font-family:monospace; font-size:0.9rem;
+  padding:0; outline:none; caret-color:rgba(0,255,65,1);
+}
+#msg-input::placeholder { color:rgba(0,255,65,0.15); }
+.exec-send {
+  background:none; border:none; color:rgba(0,255,65,0.25); font-family:monospace;
+  font-size:0.78rem; padding:8px 0 8px 6px; cursor:pointer; transition:color 0.2s;
+}
+.exec-send:hover { color:rgba(0,255,65,0.75); }
+.exec-send:disabled { opacity:0.12; cursor:default; }
+</style>
+
+<div id="terminal"></div>
+<div id="input-bar">
+  <div id="input-line">
+    <span id="input-prompt">wai@exec:~$</span>
+    <input id="msg-input" type="text" placeholder="" autofocus>
+  </div>
+</div>
+
+<script>
+let stage = 'planning';
+let messages = [];
+let streaming = false;
+
+const terminal = document.getElementById('terminal');
+
+function renderText(raw) {
+  return raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (role === 'assistant') div.innerHTML = renderText(text);
+  else div.textContent = text;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+  return div;
+}
+
+function addStreamDiv() {
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  const span = document.createElement('span');
+  span.id = 'stream-span';
+  const cur = document.createElement('span');
+  cur.id = 'blinkcursor';
+  div.appendChild(span);
+  div.appendChild(cur);
+  terminal.appendChild(div);
+  return {div, span, cur};
+}
+
+function fmtTs() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false
+  }).formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t).value;
+  return `[${get('day')}/${get('month')} ${get('hour')}:${get('minute')} ET]`;
+}
+async function sendMsg() {
+  if (streaming) return;
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  const ts = fmtTs();
+  addMsg('user', `${ts} ${text}`);
+  messages.push({role:'user', content:`${ts} ${text}`});
+  await streamResponse();
+}
+
+async function streamResponse() {
+  streaming = true;
+  document.getElementById('msg-input').disabled = true;
+
+  const {div, span, cur} = addStreamDiv();
+  let fullText = '';
+
+  try {
+    const r = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages, stage}),
+    });
+
+    if (!r.ok) throw new Error(await r.text());
+
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let data;
+        try { data = JSON.parse(line.slice(6)); } catch { continue; }
+        if (data.type === 'text') {
+          fullText += data.delta;
+          span.innerHTML = renderText(fullText);
+          terminal.scrollTop = terminal.scrollHeight;
+        } else if (data.type === 'tool_call') {
+          const r = data.result || {};
+          if (data.name === 'create_card') addMsg('sys', `[ card added: ${r.title || ''} ]`);
+          else if (data.name === 'move_card') addMsg('sys', `[ moved "${r.title || data.input?.id}" → ${r.column || ''} ]`);
+          else if (data.name === 'update_card') addMsg('sys', `[ updated: ${r.title || data.input?.id} ]`);
+          else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
+          else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
+          else if (data.name === 'assemble_plan') { addMsg('sys', '[ plan assembled ]'); }
+          else if (data.name === 'build_pdf') { addMsg('sys', `[ pdf built: ${r.pdf || ''} ]`); }
+          else if (data.name === 'finalize_and_push') { addMsg('sys', '[ pushed to reMarkable ]'); }
+          else if (data.name === 'reschedule') { addMsg('sys', `[ schedule updated: ${(r.schedule||[]).length} entries ]`); }
+        } else if (data.type === 'done') {
+          stage = data.next_stage;
+        }
+      }
+    }
+
+    cur.remove();
+    if (fullText) messages.push({role:'assistant', content:fullText});
+  } catch(e) {
+    cur.remove();
+    div.textContent = '[error: ' + e.message + ']';
+    div.style.color = 'rgba(255,100,100,0.75)';
+  }
+
+  streaming = false;
+  document.getElementById('msg-input').disabled = false;
+  document.getElementById('msg-input').focus();
+}
+
+async function clearChat() {
+  if (streaming) return;
+  await fetch('/api/chat', {method:'DELETE'});
+  messages = [];
+  stage = 'planning';
+  terminal.innerHTML = '';
+  document.getElementById('msg-input').disabled = false;
+  await init();
+}
+
+let spinnerTimer = null;
+let spinnerDelay = null;
+
+function startSpinner(msg) {
+  const frames = ['|', '/', '-', '\\'];
+  let i = 0;
+  spinnerDelay = setTimeout(() => {
+    const div = document.createElement('div');
+    div.id = 'spinner';
+    div.className = 'msg sys';
+    div.style.cssText = 'color:rgba(0,255,65,0.6);font-size:0.82rem;';
+    div.textContent = frames[0] + '  ' + msg;
+    terminal.appendChild(div);
+    spinnerTimer = setInterval(() => { div.textContent = frames[i++ % frames.length] + '  ' + msg; }, 80);
+  }, 200);
+}
+
+function stopSpinner() {
+  clearTimeout(spinnerDelay); spinnerDelay = null;
+  if (spinnerTimer) { clearInterval(spinnerTimer); spinnerTimer = null; }
+  const el = document.getElementById('spinner');
+  if (el) el.remove();
+}
+
+function restoreMsg(m) {
+  if (m.role === 'user') {
+    if (typeof m.content === 'string') {
+      addMsg('user', m.content);
+    } else if (Array.isArray(m.content)) {
+      const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      if (text) addMsg('user', text);
+    }
+  } else if (m.role === 'assistant') {
+    if (typeof m.content === 'string') {
+      addMsg('assistant', m.content);
+    } else if (Array.isArray(m.content)) {
+      const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      if (text) addMsg('assistant', text);
+      for (const b of m.content) {
+        if (b.type === 'tool_use') {
+          const inp = b.input || {};
+          if (b.name === 'create_card') addMsg('sys', `[ card added: ${inp.title || ''} ]`);
+          else if (b.name === 'move_card') addMsg('sys', `[ moved "${inp.id}" → ${inp.column || ''} ]`);
+          else if (b.name === 'update_card') addMsg('sys', `[ updated: ${inp.id} ]`);
+          else if (b.name === 'delete_card') addMsg('sys', `[ deleted: ${inp.id} ]`);
+          else if (b.name === 'refresh_omens') addMsg('sys', `[ omens refreshed ]`);
+        }
+      }
+    }
+  }
+}
+
+async function init() {
+  // Always run morning pipeline first — it clears chat.json if it's a new day
+  startSpinner('running morning pipeline...');
+  let morningMsg = null;
+  try {
+    const mr = await fetch('/api/morning');
+    stopSpinner();
+    if (mr.ok) {
+      morningMsg = (await mr.json()).opening_message || null;
+    } else {
+      const err = await mr.json().catch(() => ({}));
+      addMsg('sys', '[morning pipeline failed: ' + (err.detail || mr.status) + ']');
+    }
+  } catch(e) {
+    stopSpinner();
+    addMsg('sys', '[error: ' + e.message + ']');
+  }
+
+  // Load chat — may be empty if morning just cleared it
+  const r = await fetch('/api/chat');
+  const chat = await r.json();
+  if (chat.messages && chat.messages.length > 0) {
+    messages = chat.messages;
+    stage = 'planning';
+    for (const m of messages) restoreMsg(m);
+    return;
+  }
+
+  if (morningMsg) addMsg('assistant', morningMsg);
+}
+
+document.getElementById('msg-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+init();
+</script>
