@@ -143,6 +143,13 @@ protected = APIRouter(dependencies=[Depends(require_auth)])
 
 # ── public ────────────────────────────────────────────────────────────────────
 
+@public.get("/nightfall", response_class=HTMLResponse)
+async def nightfall():
+    html = Path("/app/nightfall/index.html").read_text()
+    html = html.replace("<head>", '<head><base href="/nightfall-game/">', 1)
+    return HTMLResponse(html)
+
+
 @public.post("/login")
 async def login(request: Request):
     form = await request.form()
@@ -506,4 +513,5 @@ def api_omens_run():
 
 app.include_router(public)
 app.include_router(protected)
+app.mount("/nightfall-game", StaticFiles(directory="/app/nightfall"), name="nightfall")
 app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")

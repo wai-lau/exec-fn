@@ -1,0 +1,2 @@
+(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[23],{79:function(e,n,a){"use strict";a.r(n);var f=a(16),g=a(32),h=[f.GuardDog,f.GuardDog,f.GuardDog,f.GuardDog,f.FireWall,f.FireWall,f.Sumo,f.Sumo,f.Radar,f.Radar],r=Object(g.a)("ped-executive","\n-----@@@@-----\n--------------\n--------------\n--------------\n.-.-.----.-.-.\n.A.-.B..C.-.D.\n.-.E.----.F.-.\neeeee----fffff\neeeee-12-fffff\n-----GIJH-----\ngggggg34hhhhhh\n",h,[700,700,790,720]);n.default=r}}]);
+//# sourceMappingURL=23.45aa13c6.chunk.js.map

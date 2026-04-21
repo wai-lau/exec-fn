@@ -1,0 +1,2 @@
+(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[32],{88:function(u,n,a){"use strict";a.r(n);var p=a(16),r=a(32),d=[p.GuardPup,p.GuardPup,p.GuardPup,p.GuardPup,p.GuardPup,p.GuardPup,p.GuardPup,p.GuardPup],t=Object(r.a)("ph-govaffairs","\n.-A-......-B-.\n--------------\nC------------D\n--------------\n.-----@@-----.\n.-1--------2-.\n.-----@@-----.\n--------------\nE------------F\n--------------\n.-G-......-H-.\n",d,[250,320]);n.default=t}}]);
+//# sourceMappingURL=32.48c0a455.chunk.js.map

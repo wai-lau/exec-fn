@@ -1,0 +1,2 @@
+(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[31],{87:function(n,a,t){"use strict";t.r(a);var p=t(16),e=t(32),u=[p.GuardPup,p.Watchman,p.GuardPup],h=Object(e.a)("ph-employee","\n......12-34...\n..............\n..............\n..............\n@------------A\n--@---------B-\n@------------C\n..............\n..............\n..............\n...56-78......\n",u,[350,350,250,330,350,330,280,330]);a.default=h}}]);
+//# sourceMappingURL=31.8307b180.chunk.js.map

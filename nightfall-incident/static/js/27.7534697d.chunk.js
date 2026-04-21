@@ -1,0 +1,2 @@
+(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[27],{83:function(n,a,e){"use strict";e.r(a);var l=e(16),u=e(32),b=[l.Mandelbug,l.Mandelbug,l.Mandelbug,l.Mandelbug,l.Mandelbug,l.Mandelbug,l.Mandelbug,l.Mandelbug],d=Object(u.a)("ped-rdbackup","\n-A--------B-\nC....--....D\n-.--------.-\n-.--------.-\n-.--@--@--.-\n-----12-----\n-.--@--@--.-\n-.---------.-\n-.---------.-\nE....--....F\n-G--------H-\n",b,[800,870]);a.default=d}}]);
+//# sourceMappingURL=27.7534697d.chunk.js.map
