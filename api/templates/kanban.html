@@ -152,7 +152,9 @@ let dragging = false;
 let archivesCollapsed = true;
 let exileCollapsed = true;
 
-const CAT_HUE = {Book:210, Self:185, Social:275, Interfacing:50, Hobby:0};
+const CAT_HUE = {Book:210, Self:185, Social:315, Interfacing:50, Hobby:0};
+const CAT_LIGHT = {Social:+10};
+const CAT_SAT   = {Social:-20};
 
 function isDarkCard(c) {
   return c.size === 'chore' || c.size === 'task' || c.size === 'book';
@@ -162,9 +164,11 @@ function cardStyle(c) {
   const h = CAT_HUE[c.category];
   if (h === undefined) return {bg:'', border:'', dark:false};
   const size = c.size;
-  const col = `hsl(${h},75%,68%)`;
-  const borderMid = `hsl(${h},65%,60%)`;
-  const borderBright = `hsl(${h},90%,78%)`;
+  const dl = CAT_LIGHT[c.category] || 0;
+  const ds = CAT_SAT[c.category]   || 0;
+  const col = `hsl(${h},${75+ds}%,${68+dl}%)`;
+  const borderMid = `hsl(${h},${65+ds}%,${60+dl}%)`;
+  const borderBright = `hsl(${h},${90+ds}%,${78+dl}%)`;
   if (size === 'chore') {
     return {bg:`background:#0d0d0d;color:${col};`, border:'border-color:transparent;', dark:true};
   } else if (size === 'task') {
@@ -172,9 +176,9 @@ function cardStyle(c) {
   } else if (size === 'book') {
     return {bg:`background:hsl(0,0%,10%);color:${col};`, border:`border-color:${borderMid};`, dark:true};
   } else if (size === 'project') {
-    return {bg:`background:hsl(${h},50%,54%);`, border:'border-color:transparent;', dark:false};
+    return {bg:`background:hsl(${h},${50+ds}%,${54+dl}%);`, border:'border-color:transparent;', dark:false};
   } else {
-    return {bg:`background:hsl(${h},55%,62%);`, border:`border-color:${borderBright};`, dark:false};
+    return {bg:`background:hsl(${h},${55+ds}%,${62+dl}%);`, border:`border-color:${borderBright};`, dark:false};
   }
 }
 
