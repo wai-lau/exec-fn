@@ -44,6 +44,30 @@ ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=
 
 File paths inside container: `/app/` for api files, `/app/static/` for web files, `/app/templates/` for templates.
 
+### Deploy agent prompt template
+
+Always pass a change summary so the agent can update context. Template:
+
+```
+Deploy <files> to production and update project context.
+
+WHAT CHANGED:
+<one paragraph summary of what was added/changed/removed>
+
+CONTEXT UPDATE:
+- Read /home/wai/src/exec-fn/CLAUDE.md and update if routes, pipelines, schemas, or conventions changed
+- Read /home/wai/.claude/projects/-home-wai-src-exec-fn/memory/MEMORY.md and update relevant memory files
+- Only update what actually changed — don't rewrite things that are still accurate
+
+DEPLOY:
+1. scp <files> root@wai-lau.net:/tmp/
+2. ssh root@wai-lau.net "docker cp /tmp/<file> exec-fn-api-1:/app/<file> [...]"
+3. ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
+4. ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
+
+Report logs and what context was updated.
+```
+
 ---
 
 ## System overview
