@@ -62,7 +62,10 @@ CONTEXT UPDATE:
 DEPLOY:
 1. scp <files> root@wai-lau.net:/tmp/
 2. ssh root@wai-lau.net "docker cp /tmp/<file> exec-fn-api-1:/app/<file> [...]"
-3. ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
+3. If Dockerfile, requirements.txt, entrypoint.sh, or exec-fn.cron changed:
+     ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
+   Otherwise (normal restart):
+     ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
 4. ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
 
 Report logs and what context was updated.
