@@ -85,7 +85,7 @@ exec-fn/
     data/                 # persistent volume (./api/data → /app/data)
       plan.json           # source of truth: seek/hack/dive/omens/schedule/encouraging_message
       directives.json     # legacy alias for plan.json
-      omens.json          # Claude-analyzed calendar events
+      omens.json          # upcoming calendar events (title + formatted date, no AI)
       delta_MMDD.json     # daily merged delta (e.g. delta_0419.json)
       delta_wai_*.json    # per-doc cached delta
       delta_wai_*.png     # marked page PNGs for vision
@@ -106,7 +106,7 @@ exec-fn/
 | seek | Easy tasks, 5–15 min each |
 | hack | Medium tasks, 30–60 min, has sub-steps |
 | dive | One hard task, 1–2 hours, has sub-steps |
-| omens | Upcoming calendar events needing prep (title + date, one-liners) |
+| omens | Upcoming Google Calendar events (title + formatted date) |
 | r&d | Future projects, no deadline — kanban lives in `rd.json` |
 | delta | Claude's reading of Wai's handwritten reMarkable feedback |
 | plan | Full `plan.json` — seek/hack/dive/omens/schedule/encouraging_message |

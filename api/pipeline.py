@@ -724,34 +724,6 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
 
 
 def analyze_omens() -> dict:
-    import anthropic
-
-    events = fetch_calendar_events()
-    if not events:
-        omens = {"checked_at": datetime.now().isoformat(), "events": []}
-        (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
-        return omens
-
-    events_text = "\n".join(f"- {e['summary']} | {e['start']}" for e in events)
-    client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": (
-            f"Wai's upcoming calendar events (next 14 days):\n{events_text}\n\n"
-            "List ALL events in the next 3 days without exception. "
-            "For events 4-14 days away, include anything social, medical, or requiring prep — "
-            "skip only truly trivial recurring events (e.g. daily alarms, auto-generated). "
-            "Return the ISO datetime exactly as given after the | for each event. "
-            'Return as JSON only: {"events": [{"title": "...", "date": "<iso datetime from input>", "prep_notes": "..."}]}'
-        )}],
-    )
-
-    try:
-        parsed = _parse_json(msg.content[0].text)
-    except Exception:
-        parsed = {"events": []}
-
     def _fmt_date(iso: str) -> str:
         try:
             today = date.today()
@@ -767,10 +739,10 @@ def analyze_omens() -> dict:
         except Exception:
             return iso
 
-    raw_events = sorted(parsed.get("events", []), key=lambda e: e.get("date", ""))
+    events = fetch_calendar_events()
     omens = {
         "checked_at": datetime.now().isoformat(),
-        "events": [{**e, "date": _fmt_date(e["date"])} for e in raw_events],
+        "events": [{"title": e["summary"], "date": _fmt_date(e["start"])} for e in events],
     }
     (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
     return omens
