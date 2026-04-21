@@ -616,7 +616,8 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"- 15min gap between tasks; group SEEK tasks if possible\n"
         f"- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
         f"- Do NOT schedule book/reading tasks\n"
-        f"- ONLY schedule tasks listed in TASKS or ADDITIONAL HQ TASKS — use their exact card_id\n"
+        f"- ONLY schedule tasks from TASKS above — use their exact card_id\n"
+        f"- TASKS are listed in priority order — schedule higher-priority tasks earlier\n"
         f"- Calendar events: include using their event_id, set card_id to empty string\n"
         + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
         f'\nJSON array only. The "title" field must be the task name only — do NOT include category or size.\n'
@@ -1148,19 +1149,42 @@ def _tool_assemble_plan(input_: dict) -> dict:
     hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
     dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
 
+    # Auto-include remaining HQ cards not explicitly assigned, sorted by order (lower = higher priority)
+    selected_ids = set(seek_ids + hack_ids + dive_ids)
+    remaining_hq = sorted(
+        [c for c in rd.get("cards", []) if c.get("column") == "hq" and c["id"] not in selected_ids and c.get("size") != "book"],
+        key=lambda c: c.get("order", 0),
+    )
+    for raw in remaining_hq:
+        obj = _card_obj(raw["id"])
+        if not obj:
+            continue
+        if raw.get("size") in ("project", "titan"):
+            dive_cards.append(obj)
+        else:
+            hack_cards.append(obj)
+
     # Auto-populate estimated_time on cards that don't have it, persist back to rd.json
+    all_assigned_ids = [c["id"] for c in seek_cards + hack_cards + dive_cards]
     rd_dirty = False
-    for card_id in seek_ids + hack_ids + dive_ids:
+    for card_id in all_assigned_ids:
         raw = cards_by_id.get(card_id)
         if raw and "estimated_time" not in raw:
             raw["estimated_time"] = _SIZE_MINUTES.get(raw.get("size", "task"), 90)
             rd_dirty = True
     if rd_dirty:
         _save_rd(rd)
-        # Refresh card objects to include estimated_time
         seek_cards = [o for o in (_card_obj(i) for i in seek_ids) if o]
         hack_cards = [o for o in (_card_obj(i) for i in hack_ids) if o]
         dive_cards = [o for o in (_card_obj(i) for i in dive_ids) if o]
+        for raw in remaining_hq:
+            obj = _card_obj(raw["id"])
+            if not obj:
+                continue
+            if raw.get("size") in ("project", "titan"):
+                dive_cards.append(obj)
+            else:
+                hack_cards.append(obj)
 
     # Encouraging message
     encouraging = ""
