@@ -176,6 +176,96 @@ _NIGHTFALL_HEAD = """
   document.addEventListener('click',      unlockAll, {once: true});
 })();
 </script>
+<script>
+(function () {
+  // Server-side save sync — only for logged-in users (API_KEY cookie present).
+  // Runs synchronously before game scripts load so localStorage is populated
+  // before the game's componentDidMount reads saves.
+  function _hasApiKey() {
+    return document.cookie.split(';').some(function(c) {
+      return c.trim().indexOf('API_KEY=') === 0;
+    });
+  }
+  if (!_hasApiKey()) return;
+
+  var _LS_PREFIX = 'nightfall/nightfall-save/';
+  var _SLOTS = ['save1', 'save2', 'save3'];
+
+  // Force localforage to use localStorage instead of IndexedDB.
+  // localforage falls back when indexedDB.open fires onerror.
+  var _realIDBOpen = IDBFactory.prototype.open;
+  IDBFactory.prototype.open = function(name) {
+    if (name === 'nightfall') {
+      var req = {};
+      setTimeout(function() {
+        if (req.onerror) {
+          req.error = new DOMException('server-sync active', 'UnknownError');
+          req.onerror({target: req, type: 'error'});
+        }
+      }, 0);
+      return req;
+    }
+    return _realIDBOpen.apply(this, arguments);
+  };
+
+  // Bulk-fetch all saves from server (sync XHR — blocks until done, but
+  // game scripts haven't loaded yet so user sees no jank).
+  var serverSaves = {};
+  try {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/gamesave', false);
+    xhr.send();
+    if (xhr.status === 200) serverSaves = JSON.parse(xhr.responseText);
+  } catch(e) {}
+
+  _SLOTS.forEach(function(slot) {
+    var lsKey = _LS_PREFIX + slot;
+    var serverSave = serverSaves[slot];
+    if (serverSave !== null && serverSave !== undefined) {
+      // Server has save → overwrite local (server is source of truth).
+      localStorage.setItem(lsKey, serverSave);
+    } else {
+      // Server empty → upload local save if present (first-time migration).
+      var local = localStorage.getItem(lsKey);
+      if (local !== null) {
+        fetch('/api/gamesave/' + slot, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({save: local})
+        }).catch(function(){});
+      }
+    }
+  });
+
+  // Mirror future writes/deletes to server so all devices stay in sync.
+  var _realSet = Storage.prototype.setItem;
+  var _realRemove = Storage.prototype.removeItem;
+
+  Storage.prototype.setItem = function(key, value) {
+    _realSet.apply(this, arguments);
+    if (this === localStorage && key.indexOf(_LS_PREFIX) === 0) {
+      var slot = key.slice(_LS_PREFIX.length);
+      if (_SLOTS.indexOf(slot) !== -1) {
+        fetch('/api/gamesave/' + slot, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({save: value})
+        }).catch(function(){});
+      }
+    }
+  };
+
+  Storage.prototype.removeItem = function(key) {
+    _realRemove.apply(this, arguments);
+    if (this === localStorage && key.indexOf(_LS_PREFIX) === 0) {
+      var slot = key.slice(_LS_PREFIX.length);
+      if (_SLOTS.indexOf(slot) !== -1) {
+        fetch('/api/gamesave/' + slot, {method: 'DELETE'}).catch(function(){});
+      }
+    }
+  };
+})();
+</script>
 """
 
 # Injected before </body> — fullscreen button + JS layout
@@ -649,6 +739,52 @@ def api_omens_run():
         return pipeline.analyze_omens()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+_VALID_SAVE_SLOTS = {"save1", "save2", "save3"}
+
+
+@protected.get("/api/gamesave")
+def api_gamesave_all():
+    result = {}
+    for slot in ["save1", "save2", "save3"]:
+        p = DATA_DIR / f"gamesave_{slot}.json"
+        result[slot] = p.read_text() if p.exists() else None
+    return result
+
+
+@protected.get("/api/gamesave/{slot}")
+def api_gamesave_get(slot: str):
+    if slot not in _VALID_SAVE_SLOTS:
+        raise HTTPException(status_code=400, detail="invalid slot")
+    p = DATA_DIR / f"gamesave_{slot}.json"
+    return {"save": p.read_text() if p.exists() else None}
+
+
+@protected.post("/api/gamesave/{slot}")
+async def api_gamesave_post(slot: str, request: Request):
+    if slot not in _VALID_SAVE_SLOTS:
+        raise HTTPException(status_code=400, detail="invalid slot")
+    body = await request.json()
+    save_str = body.get("save")
+    if not isinstance(save_str, str):
+        raise HTTPException(status_code=400, detail="save must be a string")
+    try:
+        json.loads(save_str)
+    except (json.JSONDecodeError, ValueError):
+        raise HTTPException(status_code=400, detail="save is not valid JSON")
+    (DATA_DIR / f"gamesave_{slot}.json").write_text(save_str)
+    return {"ok": True}
+
+
+@protected.delete("/api/gamesave/{slot}")
+def api_gamesave_delete(slot: str):
+    if slot not in _VALID_SAVE_SLOTS:
+        raise HTTPException(status_code=400, detail="invalid slot")
+    p = DATA_DIR / f"gamesave_{slot}.json"
+    if p.exists():
+        p.unlink()
+    return {"ok": True}
 
 
 app.include_router(public)
