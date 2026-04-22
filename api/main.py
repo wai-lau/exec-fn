@@ -220,13 +220,13 @@ var _FS_PORTRAIT_VARS = [
   '--v-pct:calc((100vw - env(safe-area-inset-left,2em)*2)/100*1.5)'
 ].join(';');
 
+var _isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
 function _applyFsLayout() {
   var vw = window.innerWidth;
   var vh = window.innerHeight;
-  if (vh > vw) {
-    // Portrait: rotate body so landscape content fills the screen.
-    // Also inject a style tag overriding .container's --v-pct/--h-pct to swap
-    // vh↔vw so the game actually renders at landscape dimensions inside.
+  if (_isMobile && vh > vw) {
+    // Portrait mobile: rotate body so landscape content fills the screen.
     document.documentElement.style.cssText = 'width:100vw;height:100vh;overflow:hidden;';
     document.body.style.cssText = 'margin:0;position:absolute;width:' + vh + 'px;height:' + vw + 'px;transform-origin:0 0;transform:rotate(90deg) translate(0,-' + vw + 'px);overflow:hidden;background:#222;';
     var s = document.getElementById('wai-fs-vars');
@@ -237,6 +237,10 @@ function _applyFsLayout() {
     document.body.style.cssText = 'margin:0;width:100%;height:100%;overflow:hidden;';
     var root = document.getElementById('root');
     if (root) root.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9998;';
+    // Remove the 10px --pct cap so the game scales up to fill the viewport.
+    var s = document.getElementById('wai-fs-vars');
+    if (!s) { s = document.createElement('style'); s.id = 'wai-fs-vars'; document.head.appendChild(s); }
+    s.textContent = '.container{--pct:var(--pct-raw)!important}';
   }
 }
 
