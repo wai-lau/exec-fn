@@ -183,7 +183,7 @@ _NIGHTFALL_HEAD = """
   // before the game's componentDidMount reads saves.
   function _hasApiKey() {
     return document.cookie.split(';').some(function(c) {
-      return c.trim().indexOf('API_KEY=') === 0;
+      return c.trim().indexOf('session=') === 0;
     });
   }
   if (!_hasApiKey()) return;
