@@ -218,6 +218,8 @@ _NIGHTFALL_HEAD = """
     if (xhr.status === 200) serverSaves = JSON.parse(xhr.responseText);
   } catch(e) {}
 
+  var _serverEmpty = _SLOTS.every(function(s) { return !serverSaves[s]; });
+
   _SLOTS.forEach(function(slot) {
     var lsKey = _LS_PREFIX + slot;
     var serverSave = serverSaves[slot];
@@ -225,7 +227,7 @@ _NIGHTFALL_HEAD = """
       // Server has save → overwrite local (server is source of truth).
       localStorage.setItem(lsKey, serverSave);
     } else {
-      // Server empty → upload local save if present (first-time migration).
+      // Server empty → upload local localStorage save if present.
       var local = localStorage.getItem(lsKey);
       if (local !== null) {
         fetch('/api/gamesave/' + slot, {
@@ -236,6 +238,68 @@ _NIGHTFALL_HEAD = """
       }
     }
   });
+
+  // If server has no saves, attempt to migrate from real IndexedDB (old saves
+  // stored before this sync system was added). Show overlay, read IDB async,
+  // upload any found saves, then reload so the game starts with correct state.
+  if (_serverEmpty) {
+    var _overlay = document.createElement('div');
+    _overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#111;display:flex;align-items:center;justify-content:center;color:#aaa;font-family:monospace;font-size:14px;';
+    _overlay.textContent = 'syncing save...';
+    document.documentElement.appendChild(_overlay);
+
+    function _dismissOverlay() {
+      if (_overlay.parentNode) _overlay.parentNode.removeChild(_overlay);
+    }
+
+    var _idbReq = _realIDBOpen.call(indexedDB, 'nightfall', 1);
+    var _migrated = false;
+    var _timeout = setTimeout(function() { _dismissOverlay(); }, 4000);
+
+    _idbReq.onerror = function() {
+      clearTimeout(_timeout);
+      _dismissOverlay();
+    };
+    _idbReq.onupgradeneeded = function() {
+      // DB didn't exist — no saves to migrate.
+      clearTimeout(_timeout);
+    };
+    _idbReq.onsuccess = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains('nightfall-save')) {
+        clearTimeout(_timeout); _dismissOverlay(); return;
+      }
+      var tx = db.transaction('nightfall-save', 'readonly');
+      var store = tx.objectStore('nightfall-save');
+      var uploads = [];
+      var remaining = _SLOTS.length;
+      _SLOTS.forEach(function(slot) {
+        var req = store.get(slot);
+        req.onsuccess = function(ev) {
+          var val = ev.target.result;
+          if (val !== undefined && val !== null) {
+            var serialized = typeof val === 'string' ? val : JSON.stringify(val);
+            localStorage.setItem(_LS_PREFIX + slot, serialized);
+            uploads.push(fetch('/api/gamesave/' + slot, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({save: serialized})
+            }).catch(function(){}));
+            _migrated = true;
+          }
+          if (--remaining === 0) {
+            clearTimeout(_timeout);
+            Promise.all(uploads).then(function() {
+              if (_migrated) { location.reload(); } else { _dismissOverlay(); }
+            });
+          }
+        };
+        req.onerror = function() {
+          if (--remaining === 0) { clearTimeout(_timeout); _dismissOverlay(); }
+        };
+      });
+    };
+  }
 
   // Mirror future writes/deletes to server so all devices stay in sync.
   var _realSet = Storage.prototype.setItem;
