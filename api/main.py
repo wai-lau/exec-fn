@@ -181,15 +181,20 @@ _NIGHTFALL_HEAD = """
   // Server-side save sync — only for logged-in users (API_KEY cookie present).
   // Runs synchronously before game scripts load so localStorage is populated
   // before the game's componentDidMount reads saves.
-  function _hasApiKey() {
-    return document.cookie.split(';').some(function(c) {
-      return c.trim().indexOf('session=') === 0;
-    });
-  }
-  if (!_hasApiKey()) return;
-
   var _LS_PREFIX = 'nightfall/nightfall-save/';
   var _SLOTS = ['save1', 'save2', 'save3'];
+
+  // Probe server — 401 means not logged in, skip sync entirely.
+  // Sync XHR blocks until done; game scripts haven't loaded yet so no jank.
+  var serverSaves = {};
+  var _loggedIn = false;
+  try {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/gamesave', false);
+    xhr.send();
+    if (xhr.status === 200) { _loggedIn = true; serverSaves = JSON.parse(xhr.responseText); }
+  } catch(e) {}
+  if (!_loggedIn) return;
 
   // Force localforage to use localStorage instead of IndexedDB.
   // localforage falls back when indexedDB.open fires onerror.
@@ -207,16 +212,6 @@ _NIGHTFALL_HEAD = """
     }
     return _realIDBOpen.apply(this, arguments);
   };
-
-  // Bulk-fetch all saves from server (sync XHR — blocks until done, but
-  // game scripts haven't loaded yet so user sees no jank).
-  var serverSaves = {};
-  try {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/gamesave', false);
-    xhr.send();
-    if (xhr.status === 200) serverSaves = JSON.parse(xhr.responseText);
-  } catch(e) {}
 
   var _serverEmpty = _SLOTS.every(function(s) { return !serverSaves[s]; });
 
