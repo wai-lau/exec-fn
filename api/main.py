@@ -220,7 +220,7 @@ _NIGHTFALL_SAVE_SCRIPT = """
     } catch (e) {}
   })();
 
-  // Non-destructive restore: server → empty IDB slots only
+  // Restore: always overwrite IDB with server save (server is source of truth)
   try {
     var resp = await fetch('/api/gamesave', { credentials: 'include' });
     if (resp.ok) {
@@ -229,12 +229,7 @@ _NIGHTFALL_SAVE_SCRIPT = """
       for (var i = 0; i < SLOTS.length; i++) {
         var slot = SLOTS[i];
         if (!server[slot]) continue;
-        var local = await dbGet(db, slot);
-        var isEmpty = true;
-        if (local) {
-          try { isEmpty = !JSON.parse(local).completedTutorial; } catch (e) {}
-        }
-        if (isEmpty) await dbSet(db, slot, server[slot]);
+        await dbSet(db, slot, server[slot]);
       }
       db.close();
     }
