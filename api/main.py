@@ -148,6 +148,87 @@ protected = APIRouter(dependencies=[Depends(require_auth)])
 
 # ── public ────────────────────────────────────────────────────────────────────
 
+# Deferred React loader + IDB save sync. __SCRIPTS__ replaced at serve time with JSON array.
+_NIGHTFALL_SAVE_SCRIPT = """
+<script>
+(async function () {
+  var STORE = 'nightfall-save';
+  var SLOTS = ['save1', 'save2', 'save3'];
+
+  function openDB() {
+    return new Promise(function (res, rej) {
+      var req = indexedDB.open('nightfall', 1);
+      req.onupgradeneeded = function (e) { e.target.result.createObjectStore(STORE); };
+      req.onsuccess = function (e) { res(e.target.result); };
+      req.onerror = function () { rej(req.error); };
+    });
+  }
+  function dbGet(db, key) {
+    return new Promise(function (res) {
+      try {
+        var r = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
+        r.onsuccess = function () { res(r.result != null ? r.result : null); };
+        r.onerror = function () { res(null); };
+      } catch (e) { res(null); }
+    });
+  }
+  function dbSet(db, key, val) {
+    return new Promise(function (res) {
+      try {
+        var tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(val, key);
+        tx.oncomplete = res; tx.onerror = res;
+      } catch (e) { res(); }
+    });
+  }
+  function loadScript(src) {
+    return new Promise(function (res) {
+      var s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = res;
+      document.head.appendChild(s);
+    });
+  }
+
+  // Intercept IDB writes → upload to server (all devices)
+  var _origPut = IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put = function (val, key) {
+    if (this.name === STORE && typeof key === 'string') {
+      fetch('/api/gamesave/' + key, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ save: val })
+      }).catch(function () {});
+    }
+    return _origPut.apply(this, arguments);
+  };
+
+  // Non-destructive restore: server → empty IDB slots only
+  try {
+    var resp = await fetch('/api/gamesave', { credentials: 'include' });
+    if (resp.ok) {
+      var server = await resp.json();
+      var db = await openDB();
+      for (var i = 0; i < SLOTS.length; i++) {
+        var slot = SLOTS[i];
+        if (!server[slot]) continue;
+        var local = await dbGet(db, slot);
+        var isEmpty = true;
+        if (local) {
+          try { isEmpty = !JSON.parse(local).completedTutorial; } catch (e) {}
+        }
+        if (isEmpty) await dbSet(db, slot, server[slot]);
+      }
+      db.close();
+    }
+  } catch (e) {}
+
+  // Load React app (deferred until restore is done)
+  var SCRIPTS = __SCRIPTS__;
+  for (var j = 0; j < SCRIPTS.length; j++) await loadScript(SCRIPTS[j]);
+})();
+</script>
+"""
+
 # Injected into <head> — must run before game scripts to monkey-patch AudioContext
 _NIGHTFALL_HEAD = """
 <script>
@@ -284,8 +365,14 @@ window.addEventListener('resize', function() { if (_waiFs) _applyFsLayout(); });
 @public.get("/nightfall", response_class=HTMLResponse)
 async def nightfall():
     html = Path("/app/nightfall/index.html").read_text()
+    # Extract chunk script tags so we can defer them until after IDB restore
+    chunk_srcs = re.findall(r'<script src="(\./static/js/[^"]+\.js)"></script>', html)
+    for src in chunk_srcs:
+        html = html.replace(f'<script src="{src}"></script>', '', 1)
+    abs_srcs = [s.replace('./', '/nightfall-game/', 1) for s in chunk_srcs]
+    save_script = _NIGHTFALL_SAVE_SCRIPT.replace('__SCRIPTS__', json.dumps(abs_srcs))
     html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">' + _NIGHTFALL_HEAD, 1)
-    html = html.replace("</body>", _NIGHTFALL_BODY + "</body>", 1)
+    html = html.replace("</body>", _NIGHTFALL_BODY + save_script + "</body>", 1)
     return HTMLResponse(html)
 
 
