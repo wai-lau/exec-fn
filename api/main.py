@@ -189,7 +189,20 @@ _NIGHTFALL_SAVE_SCRIPT = """
     });
   }
 
-  // Upload all slots to server on load (keeps server copy current)
+  // Intercept IDB writes → upload to server on every save
+  var _origPut = IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put = function (val, key) {
+    if (this.name === STORE && typeof key === 'string') {
+      fetch('/api/gamesave/' + key, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ save: val })
+      }).catch(function () {});
+    }
+    return _origPut.apply(this, arguments);
+  };
+
+  // Upload existing slots on page load (catches saves from previous sessions)
   (async function () {
     try {
       var udb = await openDB();
@@ -197,7 +210,6 @@ _NIGHTFALL_SAVE_SCRIPT = """
         var uslot = SLOTS[ui];
         var uval = await dbGet(udb, uslot);
         if (!uval) continue;
-        try { if (!JSON.parse(uval).completedTutorial) continue; } catch (e) { continue; }
         fetch('/api/gamesave/' + uslot, {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
