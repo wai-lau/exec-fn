@@ -223,17 +223,20 @@ _NIGHTFALL_SAVE_SCRIPT = """
   // Restore: always overwrite IDB with server save (server is source of truth)
   try {
     var resp = await fetch('/api/gamesave', { credentials: 'include' });
+    console.log('[nf-sync] gamesave fetch status:', resp.status);
     if (resp.ok) {
       var server = await resp.json();
+      console.log('[nf-sync] server save1 len:', server.save1 ? server.save1.length : 'null');
       var db = await openDB();
       for (var i = 0; i < SLOTS.length; i++) {
         var slot = SLOTS[i];
         if (!server[slot]) continue;
         await dbSet(db, slot, server[slot]);
+        console.log('[nf-sync] wrote', slot);
       }
       db.close();
     }
-  } catch (e) {}
+  } catch (e) { console.log('[nf-sync] restore error:', e); }
 
   // Load React app (deferred until restore is done)
   var SCRIPTS = __SCRIPTS__;
