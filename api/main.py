@@ -157,8 +157,12 @@ _NIGHTFALL_SAVE_SCRIPT = """
 
   function openDB() {
     return new Promise(function (res, rej) {
-      var req = indexedDB.open('nightfall', 1);
-      req.onupgradeneeded = function (e) { e.target.result.createObjectStore(STORE); };
+      var req = indexedDB.open('nightfall');
+      req.onupgradeneeded = function (e) {
+        if (!e.target.result.objectStoreNames.contains(STORE)) {
+          e.target.result.createObjectStore(STORE);
+        }
+      };
       req.onsuccess = function (e) { res(e.target.result); };
       req.onerror = function () { rej(req.error); };
     });
