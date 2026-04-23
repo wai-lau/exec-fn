@@ -189,19 +189,6 @@ _NIGHTFALL_SAVE_SCRIPT = """
     });
   }
 
-  // Intercept IDB writes → upload to server (all devices)
-  var _origPut = IDBObjectStore.prototype.put;
-  IDBObjectStore.prototype.put = function (val, key) {
-    if (this.name === STORE && typeof key === 'string') {
-      fetch('/api/gamesave/' + key, {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ save: val })
-      }).catch(function () {});
-    }
-    return _origPut.apply(this, arguments);
-  };
-
   // Non-destructive restore: server → empty IDB slots only
   try {
     var resp = await fetch('/api/gamesave', { credentials: 'include' });
