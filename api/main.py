@@ -279,10 +279,19 @@ body.wai-fs { overflow: hidden; }
 </style>
 <button id="wai-fs-btn" onclick="waiFsToggle()" title="Fullscreen">⛶</button>
 <script>
-// Prevent browser pinch-zoom on the game page
+// Prevent pinch-zoom and double-tap zoom
 (function() {
   var vp = document.querySelector('meta[name=viewport]');
   if (vp) vp.setAttribute('content', 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no');
+  var _lastTap = 0;
+  document.addEventListener('touchend', function(e) {
+    var now = Date.now();
+    if (now - _lastTap < 300) e.preventDefault();
+    _lastTap = now;
+  }, { passive: false });
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
 })();
 
 // Re-unlock AudioContext when app is foregrounded (iOS suspends on background)
