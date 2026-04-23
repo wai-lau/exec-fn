@@ -189,6 +189,25 @@ _NIGHTFALL_SAVE_SCRIPT = """
     });
   }
 
+  // Upload all slots to server on load (keeps server copy current)
+  (async function () {
+    try {
+      var udb = await openDB();
+      for (var ui = 0; ui < SLOTS.length; ui++) {
+        var uslot = SLOTS[ui];
+        var uval = await dbGet(udb, uslot);
+        if (!uval) continue;
+        try { if (!JSON.parse(uval).completedTutorial) continue; } catch (e) { continue; }
+        fetch('/api/gamesave/' + uslot, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ save: uval })
+        }).catch(function () {});
+      }
+      udb.close();
+    } catch (e) {}
+  })();
+
   // Non-destructive restore: server → empty IDB slots only
   try {
     var resp = await fetch('/api/gamesave', { credentials: 'include' });
