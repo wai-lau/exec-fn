@@ -1,9 +1,12 @@
+FROM golang:1.24-alpine AS rmapi-builder
+RUN apk add --no-cache git
+RUN git clone https://github.com/ddvk/rmapi.git /src && cd /src && go build -o /rmapi .
+
 FROM python:3.12-slim
 RUN apt-get update && apt-get install -y curl git fonts-dejavu-core cron && rm -rf /var/lib/apt/lists/*
-RUN curl -sL https://github.com/ddvk/rmapi/releases/download/v0.0.32/rmapi-linux-amd64.tar.gz -o /tmp/rmapi.tar.gz \
-    && tar -xzf /tmp/rmapi.tar.gz -C /usr/local/bin/ \
-    && chmod +x /usr/local/bin/rmapi \
-    && rm /tmp/rmapi.tar.gz
+COPY --from=rmapi-builder /rmapi /usr/local/bin/rmapi
+RUN chmod +x /usr/local/bin/rmapi
+ENV RMAPI_FORCE_SCHEMA_VERSION=4
 WORKDIR /app
 COPY api/requirements.txt .
 RUN pip install -r requirements.txt && \

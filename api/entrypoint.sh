@@ -3,7 +3,7 @@ set -e
 
 # Write Docker env vars to a file so cron jobs can read them
 # (cron doesn't inherit the container's environment)
-printenv | grep -E '^(API_KEY|ANTHROPIC_API_KEY)=' > /run/cron_env
+printenv | grep -E '^(API_KEY|ANTHROPIC_API_KEY|RMAPI_FORCE_SCHEMA_VERSION)=' > /run/cron_env
 chmod 600 /run/cron_env
 
 cron
