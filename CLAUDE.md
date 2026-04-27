@@ -252,7 +252,7 @@ Schedule `title` field = task name only. NEVER include category prefix (SEEK/HAC
 
 1. Clear `chat.json` (reset daily chat)
 2. Clear `rd_log.json` (reset daily activity log)
-3. `pull_rmdocs()` + `analyze_delta()` + `analyze_omens()` + `update_rd_from_delta()`
+3. `pull_rmdocs()` + `analyze_delta()` + `fetch_omens()` + `update_rd_from_delta()`
 4. `generate_morning_recap()` — Sonnet briefing → `morning.json`
 5. `push_pdf()` — build PDF plan + upload to rM
 
