@@ -754,7 +754,9 @@ def build_morning() -> dict:
         chat_path.unlink()
 
     if _RD_LOG.exists():
-        _RD_LOG.write_text("[]")
+        archive_name = DATA_DIR / f"rd_log_{_now_et().strftime('%m%d')}.json"
+        _RD_LOG.rename(archive_name)
+    _RD_LOG.write_text("[]")
 
     ctx_path = DATA_DIR / "context.json"
     if ctx_path.exists():
