@@ -280,12 +280,16 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
         mins = size_map.get(size)
         if mins:
             duration_hint = f" The task size is '{size}' (~{mins} minutes)."
+    omens = _load_json("omens", {}).get("events", [])
+    omens_text = ""
+    if omens:
+        omens_text = " Upcoming events: " + "; ".join(f"{e['title']} on {e['date']}" for e in omens[:10]) + "."
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=64,
         system=(
-            f"Now is {today} ET.{duration_hint} "
+            f"Now is {today} ET.{duration_hint}{omens_text} "
             "Parse the due date from user input and compute a 'start before' deadline (due date minus task duration). "
             "Reply with ONLY two ISO 8601 strings separated by a newline: first line = due date/datetime, second line = start_before date/datetime. "
             "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM format. Reply 'null' on either line if not applicable."
