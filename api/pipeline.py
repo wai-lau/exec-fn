@@ -746,6 +746,9 @@ def build_morning() -> dict:
     if chat_path.exists():
         chat_path.unlink()
 
+    if _RD_LOG.exists():
+        _RD_LOG.write_text("[]")
+
     ctx_path = DATA_DIR / "context.json"
     if ctx_path.exists():
         ctx = json.loads(ctx_path.read_text())
@@ -1002,6 +1005,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "Consider their available time and energy. Make specific suggestions with card IDs. "
             "Book category cards are for reading only — do NOT select them for directives. "
             "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields), delete_card (permanent removal). "
+            "COLUMN SEMANTICS: rd=upcoming ideas/backlog (card added here by default). hq=should be scheduled within remaining time today (active working set). archives=task completed. exile=wont-do. "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
             "When finalizing, categorize each card: SEEK=requires going outdoors, HACK=quick at home (under 1h), DIVE=extended focus/setup/cleanup (over 1h). "
             "When the plan looks ready, call assemble_plan to generate the schedule and show Wai the preview. "
