@@ -1,7 +1,7 @@
 import json
 import subprocess
 import zipfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -115,7 +115,7 @@ def list_archive() -> list:
             dt = datetime.strptime(f.stem, "%Y%m%d_%H%M%S")
             label = dt.strftime("%Y-%m-%d %H:%M")
         except ValueError:
-            label = datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+            label = datetime.fromtimestamp(mtime, tz=timezone.utc).replace(tzinfo=None).strftime("%Y-%m-%d %H:%M")
         try:
             with zipfile.ZipFile(f) as z:
                 uid = [n for n in z.namelist() if n.endswith(".content")][0].replace(".content", "")
@@ -128,7 +128,7 @@ def list_archive() -> list:
 
     for f in DATA_DIR.glob("delta_*.png"):
         mtime = f.stat().st_mtime
-        label = "delta " + datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+        label = "delta " + datetime.fromtimestamp(mtime, tz=timezone.utc).replace(tzinfo=None).strftime("%Y-%m-%d %H:%M")
         entries.append({"filename": f.name, "label": label, "pages": 1, "_mtime": mtime})
 
     entries.sort(key=lambda e: e["_mtime"], reverse=True)

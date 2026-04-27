@@ -1,7 +1,7 @@
 import json
 import subprocess
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from helpers import (
     DATA_DIR, RM_FOLDER, _load_json, _load_rd, _save_rd, _find_card,
@@ -232,7 +232,7 @@ def _tool_assemble_plan(input_: dict) -> dict:
     schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text)
 
     plan = {
-        "generated_at": datetime.now().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "seek": seek_cards,
         "hack": hack_cards,
         "dive": dive_cards,

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from helpers import DATA_DIR, _load_json, _load_rd, _now_et, get_rd_log, _parse_json, ET
 from delta import _load_daily_delta
@@ -50,7 +50,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         "done": "The plan has been finalized and pushed to reMarkable. Wrap up warmly. No more actions needed.",
     }
 
-    today_str = _now_et().strftime("%A, %B %-d, %Y %H:%M ET")
+    now = _now_et()
+    today_str = f"{now.strftime('%A, %B')} {now.day}, {now.year} {now.strftime('%H:%M')} ET"
     return (
         f"Your name is Exec. You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
         f"TODAY: {today_str}\n"
@@ -305,7 +306,7 @@ def _save_chat(messages: list, stage: str):
     (DATA_DIR / "chat.json").write_text(json.dumps({
         "messages": messages,
         "stage": stage,
-        "updated_at": datetime.now().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }, indent=2))
 
 

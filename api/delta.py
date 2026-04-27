@@ -1,6 +1,7 @@
 import base64
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from itertools import chain
 from pathlib import Path
 
 from helpers import (
@@ -55,7 +56,7 @@ def _wai_files_in_window(start: datetime, end: datetime) -> list[str]:
     files = [
         (mtime, f)
         for f in DATA_DIR.glob("*.rmdoc")
-        if start <= (mtime := datetime.utcfromtimestamp(f.stat().st_mtime)) < end
+        if start <= (mtime := datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc).replace(tzinfo=None)) < end
     ]
     files.sort(key=lambda x: x[0], reverse=True)
     return [str(f) for _, f in files]
@@ -92,7 +93,7 @@ def _analyze_wai_doc(wai_path: str) -> dict:
         pass
 
     if not has_marks:
-        delta = {"analyzed_at": datetime.now().isoformat(), "source_file": stem + ".rmdoc", "wai_notes": "", "adjustments": ""}
+        delta = {"analyzed_at": datetime.now(timezone.utc).isoformat(), "source_file": stem + ".rmdoc", "wai_notes": "", "adjustments": ""}
         delta_path.write_text(json.dumps(delta, indent=2))
         return delta
 
@@ -112,7 +113,7 @@ def _analyze_wai_doc(wai_path: str) -> dict:
         parsed = {"wai_notes": msg.content[0].text, "adjustments": ""}
 
     delta = {
-        "analyzed_at": datetime.now().isoformat(),
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "source_file": stem + ".rmdoc",
         "wai_notes": parsed.get("wai_notes", ""),
         "adjustments": parsed.get("adjustments", ""),
@@ -141,10 +142,10 @@ def _haiku_merge_deltas(all_notes: list[str], all_adjustments: list[str], all_re
     result = {
         "wai_notes": merged_notes,
         "adjustments": merged_adj,
-        "referenced_cards": list({c for lst in (all_ref_cards or []) for c in lst}),
-        "referenced_events": list({e for lst in (all_ref_events or []) for e in lst}),
-        "carry_forward": list({c for lst in (all_carry_forward or []) for c in lst}),
-        "new_tasks": list({t for lst in (all_new_tasks or []) for t in lst}),
+        "referenced_cards": list(set(chain.from_iterable(all_ref_cards or []))),
+        "referenced_events": list(set(chain.from_iterable(all_ref_events or []))),
+        "carry_forward": list(set(chain.from_iterable(all_carry_forward or []))),
+        "new_tasks": list(set(chain.from_iterable(all_new_tasks or []))),
     }
 
     try:
@@ -185,9 +186,9 @@ def _merge_day_deltas(day_start: datetime, day_end: datetime) -> dict:
     marked = [d for d in deltas if d.get("wai_notes", "").strip()]
 
     if not marked:
-        result = {"analyzed_at": datetime.now().isoformat(), "wai_notes": "", "adjustments": "", "referenced_cards": [], "referenced_events": [], "carry_forward": [], "new_tasks": []}
+        result = {"analyzed_at": datetime.now(timezone.utc).isoformat(), "wai_notes": "", "adjustments": "", "referenced_cards": [], "referenced_events": [], "carry_forward": [], "new_tasks": []}
     elif len(marked) == 1:
-        result = {**marked[0], "analyzed_at": datetime.now().isoformat()}
+        result = {**marked[0], "analyzed_at": datetime.now(timezone.utc).isoformat()}
     else:
         notes = [d["wai_notes"] for d in marked]
         adjs = [d.get("adjustments", "") for d in marked]
@@ -195,7 +196,7 @@ def _merge_day_deltas(day_start: datetime, day_end: datetime) -> dict:
         ref_events = [d.get("referenced_events", []) for d in marked]
         carry_fwd = [d.get("carry_forward", []) for d in marked]
         new_tasks = [d.get("new_tasks", []) for d in marked]
-        result = {**marked[-1], **_haiku_merge_deltas(notes, adjs, ref_cards, ref_events, carry_fwd, new_tasks), "analyzed_at": datetime.now().isoformat()}
+        result = {**marked[-1], **_haiku_merge_deltas(notes, adjs, ref_cards, ref_events, carry_fwd, new_tasks), "analyzed_at": datetime.now(timezone.utc).isoformat()}
 
     daily_path.write_text(json.dumps(result, indent=2))
     return result

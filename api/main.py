@@ -3,7 +3,6 @@ import re
 import json
 import secrets
 import hashlib
-from datetime import date
 from pathlib import Path
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Cookie, Request
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +17,7 @@ from gcal import gcal_start_auth, gcal_complete_auth, analyze_omens
 from delta import _load_all_recent_deltas, analyze_delta
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
-from helpers import get_rd_log, DATA_DIR
+from helpers import get_rd_log, DATA_DIR, _load_json, _now_et
 from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected
 from routes_chat import router as chat_router
 
@@ -107,8 +106,7 @@ def _build_nav(active=None):
     return '<div class="exec-nav">' + " &nbsp; ".join(links) + "</div>"
 
 
-with open("/app/static/index.html") as f:
-    _INDEX = f.read()
+_INDEX = Path("/app/static/index.html").read_text()
 
 _NO_FORM = re.sub(r'<form class="login-box".*?</form>', '', _INDEX, flags=re.DOTALL)
 _BARE = re.sub(r'<div class="bg-wide">.*?</div>', '', _NO_FORM, flags=re.DOTALL)
@@ -228,9 +226,9 @@ def api_pull():
 def api_morning_get():
     p = DATA_DIR / "morning.json"
     if p.exists():
-        data = json.loads(p.read_text())
+        data = _load_json("morning")
         generated = data.get("generated_at", "")[:10]
-        if generated == date.today().isoformat():
+        if generated == _now_et().date().isoformat():
             return data
     try:
         return build_morning()
@@ -300,15 +298,14 @@ def api_cache():
 
 @protected.get("/api/rd")
 def api_rd():
-    p = DATA_DIR / "rd.json"
-    return json.loads(p.read_text()) if p.exists() else {"columns": ["rd","hq","archives","exile"], "cards": []}
+    return _load_json("rd", {"columns": ["rd","hq","archives","exile"], "cards": []})
 
 
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request):
     body = await request.json()
     p = DATA_DIR / "rd.json"
-    data = json.loads(p.read_text()) if p.exists() else {"columns": ["rd","hq","archives","exile"]}
+    data = _load_json("rd", {"columns": ["rd","hq","archives","exile"]})
     data["cards"] = body.get("cards", [])
     p.write_text(json.dumps(data, indent=2))
     return {"ok": True}
@@ -333,14 +330,12 @@ async def api_rd_classify(request: Request):
 
 @protected.get("/api/profile")
 def api_profile():
-    p = DATA_DIR / "profile.json"
-    return json.loads(p.read_text()) if p.exists() else {"notes": []}
+    return _load_json("profile", {"notes": []})
 
 
 @protected.get("/api/context")
 def api_context():
-    p = DATA_DIR / "profile.json"
-    return json.loads(p.read_text()) if p.exists() else {"notes": []}
+    return _load_json("profile", {"notes": []})
 
 
 @protected.get("/api/delta")
@@ -364,7 +359,7 @@ def api_directives_get():
     p = DATA_DIR / "directives.json"
     if not p.exists():
         raise HTTPException(status_code=404, detail="No directives yet")
-    return json.loads(p.read_text())
+    return _load_json("directives")
 
 
 @protected.get("/api/plan")
@@ -372,7 +367,7 @@ def api_plan_get():
     p = DATA_DIR / "plan.json"
     if not p.exists():
         raise HTTPException(status_code=404, detail="No plan yet")
-    return json.loads(p.read_text())
+    return _load_json("plan")
 
 
 @protected.post("/api/push")
@@ -386,8 +381,7 @@ def api_push():
 @protected.post("/api/assemble_plan")
 def api_assemble_plan():
     try:
-        p = DATA_DIR / "directives.json"
-        d = json.loads(p.read_text()) if p.exists() else {}
+        d = _load_json("directives", {})
         seek_ids = [c["id"] for c in d.get("seek", []) if isinstance(c, dict)]
         hack_ids = [c["id"] for c in d.get("hack", []) if isinstance(c, dict)]
         dive_ids = [c["id"] for c in d.get("dive", []) if isinstance(c, dict)]
@@ -412,7 +406,7 @@ def api_omens_get():
     p = DATA_DIR / "omens.json"
     if not p.exists():
         raise HTTPException(status_code=404, detail="No omens yet")
-    data = json.loads(p.read_text())
+    data = _load_json("omens")
     now = _dt.now(_tz.utc)
     def _is_future(e: dict) -> bool:
         start = e.get("start", "")

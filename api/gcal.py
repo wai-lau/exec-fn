@@ -194,17 +194,17 @@ def analyze_omens() -> dict:
                 dt = datetime.fromisoformat(iso)
                 d, delta = dt.date(), (dt.date() - today).days
                 hour = dt.strftime("%I%p").lstrip("0").replace(":00", "")
-                return f"{d.strftime('%A')} {hour}" if delta <= 6 else f"{d.strftime('%B %-d')} {hour}"
+                return f"{d.strftime('%A')} {hour}" if delta <= 6 else f"{d.strftime('%B')} {d.day} {hour}"
             else:
                 d = date.fromisoformat(iso[:10])
                 delta = (d - today).days
-                return d.strftime("%A") if delta <= 6 else d.strftime("%B %-d")
+                return d.strftime("%A") if delta <= 6 else f"{d.strftime('%B')} {d.day}"
         except Exception:
             return iso
 
     events = fetch_calendar_events()
     omens = {
-        "checked_at": datetime.now().isoformat(),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
         "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"])} for e in events],
     }
     (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
