@@ -1,6 +1,5 @@
 import json
 import re
-import shutil
 import subprocess
 import base64
 from datetime import datetime, date, timedelta, timezone
@@ -124,39 +123,9 @@ def _rm_latest_wai_modified() -> datetime | None:
 
 # ── pull ──────────────────────────────────────────────────────────────────────
 
-def pull_exec(baseline: bool = False) -> str:
-    """Pull the latest WAI_* doc from reMarkable as EXEC_<ts>.rmdoc."""
-    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], cwd=str(DATA_DIR), capture_output=True, text=True, timeout=30)
-    if ls.returncode != 0:
-        raise RuntimeError(f"rmapi ls failed: {(ls.stderr or ls.stdout).strip()}")
-
-    wai_docs = [
-        line.strip().split()[-1]
-        for line in ls.stdout.splitlines()
-        if line.strip().startswith("[f]") and line.strip().split()[-1].startswith("WAI_")
-    ]
-    if not wai_docs:
-        raise RuntimeError("No WAI_* document found in EXEC folder on reMarkable")
-
-    latest = sorted(wai_docs)[-1]
-    result = subprocess.run(
-        ["rmapi", "get", f"{RM_FOLDER}/{latest}"],
-        cwd=str(DATA_DIR), capture_output=True, text=True, timeout=60,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"rmapi get failed: {(result.stderr or result.stdout).strip()}")
-
-    src = DATA_DIR / f"{latest}.rmdoc"
-    if not src.exists():
-        raise RuntimeError(f"rmapi get succeeded but {latest}.rmdoc not found in data dir")
-
-    dest = DATA_DIR / f"EXEC_{_ts()}.rmdoc"
-    shutil.move(str(src), str(dest))
-
-    if baseline:
-        shutil.copy(str(dest), DATA_DIR / f"EXEC_{_today()}_baseline.rmdoc")
-
-    return str(dest)
+def pull_exec() -> str:
+    """Pull the latest WAI_* rMdoc, keeping its original filename. Uses pull_wai()."""
+    return pull_wai()
 
 
 def pull_wai() -> str:
@@ -210,21 +179,13 @@ def push_pdf() -> str:
 
 # ── archive ───────────────────────────────────────────────────────────────────
 
-def _archive_label(stem: str, prefix: str) -> str:
-    parts = stem.split("_")
-    if len(parts) >= 3:
-        d, t = parts[1], parts[2]
-        ts = f"{d[:4]}-{d[4:6]}-{d[6:]} {t[:2]}:{t[2:4]}"
-        return ts if prefix == "EXEC" else f"{prefix} {ts}"
-    return stem
-
-
 def list_archive() -> list:
     import zipfile
     entries = []
 
-    for f in DATA_DIR.glob("EXEC_*.rmdoc"):
-        label = _archive_label(f.stem, "EXEC")
+    for f in DATA_DIR.glob("WAI_*.rmdoc"):
+        mtime = f.stat().st_mtime
+        label = datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
         try:
             with zipfile.ZipFile(f) as z:
                 uid = [n for n in z.namelist() if n.endswith(".content")][0].replace(".content", "")
@@ -233,10 +194,12 @@ def list_archive() -> list:
                 page_count = len(pages) or 1
         except Exception:
             page_count = 1
-        entries.append({"filename": f.name, "label": label, "pages": page_count, "_mtime": f.stat().st_mtime})
+        entries.append({"filename": f.name, "label": label, "pages": page_count, "_mtime": mtime})
 
     for f in DATA_DIR.glob("delta_*.png"):
-        entries.append({"filename": f.name, "label": _archive_label(f.stem, "delta"), "pages": 1, "_mtime": f.stat().st_mtime})
+        mtime = f.stat().st_mtime
+        label = "delta " + datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+        entries.append({"filename": f.name, "label": label, "pages": 1, "_mtime": mtime})
 
     entries.sort(key=lambda e: e["_mtime"], reverse=True)
     for e in entries:
@@ -289,9 +252,9 @@ def _delta_prompt() -> str:
 
 def _wai_files_in_window(start: datetime, end: datetime) -> list[str]:
     files = [
-        (ts, f)
+        (mtime, f)
         for f in DATA_DIR.glob("WAI_*.rmdoc")
-        if (ts := _parse_file_ts(f.stem)) and start <= ts < end
+        if start <= (mtime := datetime.utcfromtimestamp(f.stat().st_mtime)) < end
     ]
     files.sort(key=lambda x: x[0], reverse=True)
     return [str(f) for _, f in files]
@@ -776,7 +739,7 @@ def build_morning() -> dict:
             ctx["notes"] = _dedupe_context(ctx["notes"])
             ctx_path.write_text(json.dumps(ctx, indent=2))
 
-    latest_path = pull_exec(baseline=True)
+    latest_path = pull_wai()
     delta = analyze_delta(path=latest_path)
     omens = analyze_omens()
     rd_changes = update_rd_from_delta(delta)
@@ -1382,6 +1345,25 @@ def _tool_build_pdf(input_: dict) -> dict:
         plan_path.write_text(json.dumps(plan, indent=2))
 
     return {"ok": True, "pdf": pdf_path.name}
+
+
+def parse_date_natural(text: str) -> str | None:
+    import anthropic
+    from datetime import datetime
+    import zoneinfo
+    now = datetime.now(zoneinfo.ZoneInfo("America/New_York"))
+    today = now.strftime("%Y-%m-%d")
+    client = anthropic.Anthropic()
+    msg = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=32,
+        system=f"Today is {today}. Convert the user's natural language date to ISO 8601 format. Reply with ONLY the date string in YYYY-MM-DD format, or 'null' if unparseable. No explanation.",
+        messages=[{"role": "user", "content": text}],
+    )
+    raw = msg.content[0].text.strip()
+    if raw == "null" or not raw:
+        return None
+    return raw
 
 
 _TOOL_HANDLERS = {
