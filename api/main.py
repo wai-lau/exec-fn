@@ -470,7 +470,7 @@ async def serve_data(filename: str):
 @protected.post("/api/pull")
 def api_pull():
     try:
-        return {"file": Path(pipeline.pull_exec()).name}
+        return {"file": Path(pipeline.pull_wai()).name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -765,6 +765,16 @@ def api_omens_run():
         return pipeline.analyze_omens()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@protected.post("/api/parse_date")
+async def api_parse_date(request: Request):
+    data = await request.json()
+    text = (data.get("text") or "").strip()
+    if not text:
+        return {"iso": None}
+    iso = pipeline.parse_date_natural(text)
+    return {"iso": iso}
 
 
 _VALID_SAVE_SLOTS = {"save1", "save2", "save3"}

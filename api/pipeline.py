@@ -123,10 +123,6 @@ def _rm_latest_wai_modified() -> datetime | None:
 
 # ── pull ──────────────────────────────────────────────────────────────────────
 
-def pull_exec() -> str:
-    """Pull the latest WAI_* rMdoc, keeping its original filename. Uses pull_wai()."""
-    return pull_wai()
-
 
 def pull_wai() -> str:
     """Pull the latest WAI_* doc, keeping its original rM filename.
@@ -806,6 +802,44 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
     return events
 
 
+PRIMARY_CALENDAR_ID = "wl.wailau@gmail.com"
+
+
+def create_gcal_event(title: str, start: str, end: str | None = None, description: str = "") -> dict:
+    from googleapiclient.discovery import build as gcal_build
+
+    creds = _gcal_creds()
+    service = gcal_build("calendar", "v3", credentials=creds)
+
+    # Determine if all-day or timed
+    all_day = "T" not in start
+    if all_day:
+        start_obj = {"date": start[:10]}
+        if end:
+            end_obj = {"date": end[:10]}
+        else:
+            # Default: same day (GCal all-day end is exclusive so +1 day)
+            end_date = (date.fromisoformat(start[:10]) + timedelta(days=1)).isoformat()
+            end_obj = {"date": end_date}
+    else:
+        start_obj = {"dateTime": start, "timeZone": "America/New_York"}
+        if end:
+            end_obj = {"dateTime": end, "timeZone": "America/New_York"}
+        else:
+            # Default: 1 hour
+            from datetime import datetime as _dt
+            start_dt = _dt.fromisoformat(start)
+            end_dt = start_dt + timedelta(hours=1)
+            end_obj = {"dateTime": end_dt.isoformat(), "timeZone": "America/New_York"}
+
+    body = {"summary": title, "start": start_obj, "end": end_obj}
+    if description:
+        body["description"] = description
+
+    event = service.events().insert(calendarId=PRIMARY_CALENDAR_ID, body=body).execute()
+    return {"ok": True, "event_id": event.get("id"), "link": event.get("htmlLink")}
+
+
 def analyze_omens() -> dict:
     def _fmt_date(iso: str) -> str:
         try:
@@ -931,6 +965,20 @@ def _chat_tools() -> list:
             "name": "refresh_omens",
             "description": "Refetch upcoming calendar events from Google Calendar and update omens.",
             "input_schema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "create_gcal_event",
+            "description": "Create a Google Calendar event on Wai's primary calendar. Use when Wai asks to schedule something or add an event to the calendar.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Event title/summary."},
+                    "start": {"type": "string", "description": "Start as ISO 8601: YYYY-MM-DD for all-day, or YYYY-MM-DDTHH:MM:SS for timed events (ET timezone)."},
+                    "end": {"type": "string", "description": "End as ISO 8601. Optional — defaults to 1 hour after start for timed, same day for all-day."},
+                    "description": {"type": "string", "description": "Optional event notes/description."},
+                },
+                "required": ["title", "start"],
+            },
         },
         {
             "name": "move_card",
@@ -1347,6 +1395,18 @@ def _tool_build_pdf(input_: dict) -> dict:
     return {"ok": True, "pdf": pdf_path.name}
 
 
+def _tool_create_gcal_event(input_: dict) -> dict:
+    try:
+        return create_gcal_event(
+            title=input_["title"],
+            start=input_["start"],
+            end=input_.get("end"),
+            description=input_.get("description", ""),
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def parse_date_natural(text: str) -> str | None:
     import anthropic
     from datetime import datetime
@@ -1377,6 +1437,7 @@ _TOOL_HANDLERS = {
     "reschedule":        _tool_reschedule,
     "build_pdf":         _tool_build_pdf,
     "update_context":    _tool_update_context,
+    "create_gcal_event": _tool_create_gcal_event,
 }
 
 
