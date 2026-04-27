@@ -218,16 +218,32 @@ def _tool_assemble_plan(input_: dict) -> dict:
 
     encouraging = ""
     try:
+        from helpers import get_rd_log
         client = anthropic.Anthropic()
         yesterday_text = " ".join(filter(None, [yesterday_delta.get("wai_notes", ""), yesterday_delta.get("adjustments", "")])).strip()
+        rd_log_entries = get_rd_log(limit=20)
+        rd_log_text = "\n".join(f"- [{e['action']}] {e['title']}" for e in rd_log_entries) if rd_log_entries else "none"
+        omens_text = "\n".join(f"- {e['date']}: {e['title']}" for e in events) if events else "none"
+        seek_titles = [c.get("title", "") if isinstance(c, dict) else c for c in seek_cards]
+        hack_titles = [c.get("title", "") if isinstance(c, dict) else c for c in hack_cards]
+        dive_title = dive_cards[0].get("title", "") if dive_cards and isinstance(dive_cards[0], dict) else (dive_cards[0] if dive_cards else "")
+        plan_text = (
+            f"seek: {', '.join(seek_titles) or 'none'}\n"
+            f"hack: {', '.join(hack_titles) or 'none'}\n"
+            f"dive: {dive_title or 'none'}"
+        )
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=300,
             messages=[{"role": "user", "content": (
                 f"YESTERDAY: {yesterday_text or 'none'}\n"
-                f"TODAY (so far, since 4:30am): {delta_text or 'none'}\n\n"
+                f"TODAY'S ACTIVITY: {delta_text or 'none'}\n"
+                f"TODAY'S PLAN:\n{plan_text}\n"
+                f"UPCOMING EVENTS:\n{omens_text}\n"
+                f"R&D LOG (recent card activity):\n{rd_log_text}\n\n"
                 "Write a warm, personal encouraging message for Wai (3-5 sentences). "
-                "Be specific about what they did yesterday and what they have already done today. "
+                "Be specific — reference what they worked on, what's coming up, or what's on deck. "
+                "Do NOT reference when they woke up or mention 4:30am. "
                 "Plain text only. No em-dashes."
             )}],
         )
