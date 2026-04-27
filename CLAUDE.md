@@ -67,7 +67,7 @@ DEPLOY:
    Otherwise (normal restart):
      ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
 4. ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
-5. Verify the app is healthy: curl -s -o /dev/null -w "%{http_code}" http://168.144.13.51:8080/
+5. Verify the app is healthy: use WebFetch on http://wai-lau.net/ (nginx on port 80 proxies to container)
    - 200 or 401 = healthy, continue
    - Anything else or connection error = app is not running; fix the issue and go back to step 1
 6. Once healthy: cd /home/wai/src/exec-fn && git push
@@ -233,7 +233,7 @@ Schedule `title` field = task name only. NEVER include category prefix (SEEK/HAC
 
 ### Delta (`POST /api/delta`)
 
-Day window: yesterday 4:30 AM ET → today 4:30 AM ET.
+Day window: most recent 4:30 AM ET → now (current time at run time).
 All datetime logic: `zoneinfo.ZoneInfo("America/New_York")`. Filenames use UTC timestamps.
 
 1. `pull_wai()` — pull latest WAI_*.rmdoc from rM (skip if local mtime ≥ rM ModifiedClient)

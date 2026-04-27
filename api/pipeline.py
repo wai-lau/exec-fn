@@ -47,9 +47,10 @@ def _rollover_cutoff() -> datetime:
 
 
 def _day_window() -> tuple[datetime, datetime]:
-    """(yesterday 4:30 AM ET, today 4:30 AM ET) as naive UTC datetimes."""
-    day_end = _rollover_cutoff()
-    return day_end - timedelta(days=1), day_end
+    """(yesterday 4:30 AM ET, now) as naive UTC datetimes."""
+    day_start = _rollover_cutoff() - timedelta(days=1)
+    day_end = datetime.utcnow()
+    return day_start, day_end
 
 
 def _parse_file_ts(stem: str) -> datetime | None:
@@ -277,11 +278,12 @@ def _delta_prompt() -> str:
         "3. Which task IDs or event IDs are referenced in the handwriting? Use exact IDs from the lists above.\n"
         "4. Which tasks from TODAY'S SELECTED TASKS are explicitly NOT done and should carry forward? List their IDs in carry_forward.\n"
         "5. Did Wai write any new tasks to add (things not already in the task list)? List short titles in new_tasks.\n"
-        "6. Extract any facts about Wai that should be remembered long-term "
-        "(context, relationships, constraints, recurring patterns). "
+        "6. Extract context_updates: long-term facts about Wai to add, remove, or replace. "
+        "Each entry: {\"action\": \"add\"|\"remove\"|\"replace\", \"note\": \"new fact\", \"match\": \"substring of old note to remove\"}. "
+        "add: new fact not already known. remove: existing note is now wrong (match= substring). replace: update stale fact (both note + match). "
         "Short declarative sentences only. Empty list if nothing new.\n"
-        f"ALREADY KNOWN — do not repeat these:\n{known}\n\n"
-        'JSON only: {"wai_notes": "...", "adjustments": "...", "referenced_cards": ["card-id1"], "referenced_events": ["event_id1"], "carry_forward": ["card-id1"], "new_tasks": ["task title"], "context_updates": ["..."]}'
+        f"ALREADY KNOWN — do not repeat, only update if stale:\n{known}\n\n"
+        'JSON only: {"wai_notes": "...", "adjustments": "...", "referenced_cards": ["card-id1"], "referenced_events": ["event_id1"], "carry_forward": ["card-id1"], "new_tasks": ["task title"], "context_updates": [{"action": "add", "note": "..."}]}'
     )
 
 
@@ -358,16 +360,11 @@ def _analyze_wai_doc(wai_path: str) -> dict:
     }
     delta_path.write_text(json.dumps(delta, indent=2))
 
-    updates = [u for u in parsed.get("context_updates", []) if isinstance(u, str) and u.strip()]
-    if updates:
-        ctx_path = DATA_DIR / "context.json"
-        ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
-        existing = {n["note"].strip().lower() for n in ctx.get("notes", [])}
-        for note in updates:
-            if note.strip().lower() not in existing:
-                ctx["notes"].append({"date": date.today().isoformat(), "note": note.strip()})
-                existing.add(note.strip().lower())
-        ctx_path.write_text(json.dumps(ctx, indent=2))
+    for u in parsed.get("context_updates", []):
+        if isinstance(u, str) and u.strip():
+            _apply_context_update("add", note=u)
+        elif isinstance(u, dict):
+            _apply_context_update(u.get("action", "add"), note=u.get("note", ""), match=u.get("match", ""))
 
     return delta
 
@@ -638,8 +635,8 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
 
     now_et = _now_et()
     today_dow = now_et.strftime("%A")
-    current_time = now_et.strftime("%-I:%M %p")
-    junni = "- 8:10–8:45am: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
+    current_time = now_et.strftime("%H:%M")
+    junni = "- 08:10–08:45: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
 
     cards = _cards_text(seek, hack, dive)
     extra_hq_text = ""
@@ -666,10 +663,10 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"CONSTRAINTS:\n"
         f"- Start at or after {current_time}, rounded to :00 :15 :30 or :45\n"
         f"- All times on :00 :15 :30 :45\n"
-        f"- Last task must end by 1:00am\n"
+        f"- Last task must end by 01:00\n"
         f"{junni}"
-        f"- Lunch 11:30–12:30 (skip if past 1pm)\n"
-        f"- Dinner 7:00–8:00 (skip if past 8pm)\n"
+        f"- Lunch 11:30–12:30 (skip if past 13:00)\n"
+        f"- Dinner 19:00–20:00 (skip if past 20:00)\n"
         f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min; use ~Nmin hint if provided\n"
         "- 15min gap between tasks; group SEEK tasks if possible\n"
         "- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
@@ -919,7 +916,9 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"FORMATTING: Plain text only. No markdown — no **, no *, no #, no -, no bullet points, no headers.\n"
         f"Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
         f"CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
-        f"Never state that a card is selected or on the active board unless it appears under CURRENTLY SELECTED TASKS. Do not invent or assume task status.\n\n"
+        f"Never state that a card is selected or on the active board unless it appears under CURRENTLY SELECTED TASKS. Do not invent or assume task status.\n"
+        f"CRITICAL: NEVER describe taking an action without calling the tool. If you say you will create a card, move a card, update context, or do anything else — you MUST call the tool in that same response. Describing the action is not the action.\n"
+        f"CRITICAL: When Wai says 'remember [X]' or 'don't forget [X]', immediately call update_context with action=add and note=[X]. No exceptions.\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
         f"MORNING BRIEFING CONTEXT:\n{morning.get('opening_message', 'No briefing available.')}\n\n"
@@ -1033,6 +1032,24 @@ def _chat_tools() -> list:
             "input_schema": {
                 "type": "object",
                 "properties": {"feedback": {"type": "string", "description": "Wai's scheduling feedback or constraints (e.g. 'move the dive task to afternoon')."}},
+            },
+        },
+        {
+            "name": "update_context",
+            "description": (
+                "Add, remove, or replace a long-term fact about Wai in context.json. "
+                "TRIGGER: call immediately whenever Wai uses the word 'remember' or 'don't forget'. "
+                "Also call proactively for corrections to existing notes, newly learned preferences, relationship facts, recurring constraints, upcoming events. "
+                "Use add for new facts. Use remove to delete an outdated fact. Use replace to correct a stale fact."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["add", "remove", "replace"], "description": "add=new note, remove=delete matching note, replace=remove old + add new."},
+                    "note": {"type": "string", "description": "The new fact to store. Required for add and replace."},
+                    "match": {"type": "string", "description": "Substring of the existing note to find and remove. Required for remove and replace."},
+                },
+                "required": ["action"],
             },
         },
     ]
@@ -1314,6 +1331,44 @@ def _tool_reschedule(input_: dict) -> dict:
     return {"ok": True, "schedule": schedule}
 
 
+def _apply_context_update(action: str, note: str = "", match: str = "") -> dict:
+    ctx_path = DATA_DIR / "context.json"
+    ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
+    notes = ctx.get("notes", [])
+
+    if action == "add":
+        if not note.strip():
+            return {"error": "note required for add"}
+        existing = {n["note"].strip().lower() for n in notes}
+        if note.strip().lower() not in existing:
+            notes.append({"date": date.today().isoformat(), "note": note.strip()})
+    elif action in ("remove", "replace"):
+        if not match.strip():
+            return {"error": "match required for remove/replace"}
+        before = len(notes)
+        notes = [n for n in notes if match.strip().lower() not in n["note"].lower()]
+        if len(notes) == before:
+            return {"error": f"no note matched: {match!r}"}
+        if action == "replace":
+            if not note.strip():
+                return {"error": "note required for replace"}
+            notes.append({"date": date.today().isoformat(), "note": note.strip()})
+    else:
+        return {"error": f"unknown action: {action}"}
+
+    ctx["notes"] = notes
+    ctx_path.write_text(json.dumps(ctx, indent=2))
+    return {"ok": True, "action": action, "notes_count": len(notes)}
+
+
+def _tool_update_context(input_: dict) -> dict:
+    return _apply_context_update(
+        action=input_.get("action", ""),
+        note=input_.get("note", ""),
+        match=input_.get("match", ""),
+    )
+
+
 def _tool_build_pdf(input_: dict) -> dict:
     from build_pdf import build as pdf_build
 
@@ -1339,6 +1394,7 @@ _TOOL_HANDLERS = {
     "assemble_plan":     _tool_assemble_plan,
     "reschedule":        _tool_reschedule,
     "build_pdf":         _tool_build_pdf,
+    "update_context":    _tool_update_context,
 }
 
 
