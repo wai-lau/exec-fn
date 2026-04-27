@@ -143,23 +143,24 @@ def _rm_latest_wai_modified() -> datetime | None:
 
 
 def pull_rmdocs() -> str:
-    """Pull the latest WAI_* doc, keeping its original rM filename.
+    """Pull the latest WAI_* doc, saved locally as <ModifiedClient_ts>.rmdoc.
 
-    Skips download if the local copy is already up-to-date (mtime >= rM ModifiedClient).
+    Filename = rM modification timestamp. Already exists → skip download.
     """
     wai_names = _rm_list_wai()
     if not wai_names:
         raise RuntimeError("No WAI_* document found in EXEC folder on reMarkable")
 
     latest = wai_names[-1]
-    dest = DATA_DIR / f"{latest}.rmdoc"
+    modified = _rm_stat_modified(latest)
 
-    if dest.exists():
-        modified = _rm_stat_modified(latest)
-        if modified is not None:
-            file_mtime = datetime.utcfromtimestamp(dest.stat().st_mtime)
-            if file_mtime >= modified:
-                return str(dest)
+    if modified is not None:
+        ts = modified.strftime("%Y%m%d_%H%M%S")
+        dest = DATA_DIR / f"{ts}.rmdoc"
+        if dest.exists():
+            return str(dest)
+    else:
+        dest = DATA_DIR / f"{latest}.rmdoc"
 
     result = subprocess.run(
         ["rmapi", "get", f"{RM_FOLDER}/{latest}"],
@@ -168,9 +169,12 @@ def pull_rmdocs() -> str:
     if result.returncode != 0:
         raise RuntimeError(f"rmapi get failed: {(result.stderr or result.stdout).strip()}")
 
-    src = DATA_DIR / f"{latest}.rmdoc"
-    if not src.exists():
+    downloaded = DATA_DIR / f"{latest}.rmdoc"
+    if not downloaded.exists():
         raise RuntimeError(f"rmapi get succeeded but {latest}.rmdoc not found in data dir")
+
+    if dest != downloaded:
+        downloaded.rename(dest)
 
     return str(dest)
 
@@ -197,9 +201,13 @@ def list_archive() -> list:
     import zipfile
     entries = []
 
-    for f in DATA_DIR.glob("WAI_*.rmdoc"):
+    for f in DATA_DIR.glob("*.rmdoc"):
         mtime = f.stat().st_mtime
-        label = datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+        try:
+            dt = datetime.strptime(f.stem, "%Y%m%d_%H%M%S")
+            label = dt.strftime("%Y-%m-%d %H:%M")
+        except ValueError:
+            label = datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
         try:
             with zipfile.ZipFile(f) as z:
                 uid = [n for n in z.namelist() if n.endswith(".content")][0].replace(".content", "")
@@ -267,7 +275,7 @@ def _delta_prompt() -> str:
 def _wai_files_in_window(start: datetime, end: datetime) -> list[str]:
     files = [
         (mtime, f)
-        for f in DATA_DIR.glob("WAI_*.rmdoc")
+        for f in DATA_DIR.glob("*.rmdoc")
         if start <= (mtime := datetime.utcfromtimestamp(f.stat().st_mtime)) < end
     ]
     files.sort(key=lambda x: x[0], reverse=True)
