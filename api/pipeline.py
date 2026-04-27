@@ -124,7 +124,7 @@ def _rm_latest_wai_modified() -> datetime | None:
 # ── pull ──────────────────────────────────────────────────────────────────────
 
 
-def pull_wai() -> str:
+def pull_rmdocs() -> str:
     """Pull the latest WAI_* doc, keeping its original rM filename.
 
     Skips download if the local copy is already up-to-date (mtime >= rM ModifiedClient).
@@ -477,7 +477,7 @@ def analyze_delta(path: str = None) -> dict:
         except Exception:
             pass
 
-    candidates = _wai_files_in_window(day_start, day_end) or [pull_wai()]
+    candidates = _wai_files_in_window(day_start, day_end) or [pull_rmdocs()]
     for wai_path in candidates:
         _analyze_wai_doc(wai_path)
 
@@ -488,7 +488,7 @@ def analyze_delta_to_now() -> None:
     """Pull latest rmdoc (if stale) and analyze all WAI files since rollover."""
     day_start, _ = _day_window()
     try:
-        pull_wai()
+        pull_rmdocs()
     except Exception:
         pass
     for wai_path in _wai_files_in_window(day_start, datetime.now()):
@@ -735,7 +735,7 @@ def build_morning() -> dict:
             ctx["notes"] = _dedupe_context(ctx["notes"])
             ctx_path.write_text(json.dumps(ctx, indent=2))
 
-    latest_path = pull_wai()
+    latest_path = pull_rmdocs()
     delta = analyze_delta(path=latest_path)
     omens = analyze_omens()
     rd_changes = update_rd_from_delta(delta)

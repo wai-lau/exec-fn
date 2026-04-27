@@ -470,7 +470,7 @@ async def serve_data(filename: str):
 @protected.post("/api/pull")
 def api_pull():
     try:
-        return {"file": Path(pipeline.pull_wai()).name}
+        return {"file": Path(pipeline.pull_rmdocs()).name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
