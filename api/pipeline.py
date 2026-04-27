@@ -156,7 +156,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
     client = anthropic.Anthropic()
     try:
         resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-sonnet-4-6",
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -232,7 +232,7 @@ def generate_morning_recap(delta: dict, omens: dict, rd_changes: str, rd_log: li
 
     client = anthropic.Anthropic()
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=500,
         messages=[{"role": "user", "content": prompt}],
     )
