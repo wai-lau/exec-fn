@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[11],{67:function(a,n,t){"use strict";t.r(n);var c=t(16),h=t(32),m=[c.WatchmanSP,c.WatchmanSP,c.WatchmanSP,c.WatchmanSP,c.WatchmanSP,c.WatchmanSP,c.WatchmanSP,c.WatchmanSP,c.WatchmanSP],P=Object(h.a)("donut-market","\n--@--------a\n---@------Aa\n@---------Bb\n-@---------C\n------------\n------------\n------------\n-----------D\n-----------d\n-EF-------Gg\neefH-----Iig\n",m);n.default=P}}]);
-//# sourceMappingURL=11.9651ea6c.chunk.js.map

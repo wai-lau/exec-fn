@@ -1,5 +1,9 @@
 .claude/
 nightfall-incident/nightfall_save*.json
+nightfall-incident/static/js/
+nightfall-incident/static/css/
+nightfall-incident/nightfall-src/node_modules/
+nightfall-incident/node_modules/
 api/data/
 api/debug/
 __pycache__/

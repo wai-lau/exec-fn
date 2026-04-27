@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[6],{62:function(n,e,t){"use strict";t.r(e);var a=t(3),i=t(16),s=t(32),c=[i.Sentinel,i.Sentinel,i.Sentinel],l=Object(s.a)("car-sydney","\n-------.....\n-------...1.\n-------..---\n--@---A..---\n-------..C#-\n--@---B..---\n-------..---\n-------...2.\n-------.....\n",c,[270,340]);l.programs.push(Object(a.a)(Object(a.a)({},i.BitMan),{},{team:"P1",head:[0,4],body:[[0,4]]})),e.default=l}}]);
-//# sourceMappingURL=6.8576552d.chunk.js.map

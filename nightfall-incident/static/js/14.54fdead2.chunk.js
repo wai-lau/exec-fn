@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[14],{70:function(a,n,t){"use strict";t.r(n);var i=t(16),s=t(32),l=[i.Sumo],c=Object(s.a)("lmm-assimilation","\n@--------1\n----------\n---aaaA---\n---aaaa---\n---aaaa---\n----------\n2--------@\n",l,[860,790]);n.default=c}}]);
-//# sourceMappingURL=14.54fdead2.chunk.js.map

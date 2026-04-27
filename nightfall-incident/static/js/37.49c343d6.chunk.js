@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[37],{93:function(n,e,a){"use strict";a.r(e);var t=a(16),i=a(32),c=[t.Sentinel3,t.Sentinel3,t.Sentinel3,t.WardenP,t.WardenP],l=Object(i.a)("ph-vaccine","\na-b-c....-----\na1b2c....-@-@-\nA-B-C....-----\n-----....-----\n-----....-----\n-----....-----\n-----....-----\n-----....-----\n-----....-D-E-\n-@-@-....dd3ee\n-----....dd-ee\n",c,[650,590,680]);e.default=l}}]);
-//# sourceMappingURL=37.49c343d6.chunk.js.map

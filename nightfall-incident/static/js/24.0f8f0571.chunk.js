@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[24],{80:function(n,e,t){"use strict";t.r(e);var i=t(16),a=t(32),c=[i.Sentinel2,i.Sentinel2,i.Sentinel2,i.Sentinel2],l=Object(a.a)("ped-fiduciary","\naA-----Bb\naa-----bb\n----@----\ncc-----dd\ncC-----Dd\n",c);e.default=l}}]);
-//# sourceMappingURL=24.0f8f0571.chunk.js.map

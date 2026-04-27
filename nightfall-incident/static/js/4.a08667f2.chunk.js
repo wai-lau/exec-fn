@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[4],{60:function(n,a,t){"use strict";t.r(a);var e=t(16),c=t(32),r=[e.Watchman,e.Watchman,e.Sentinel,e.GuardPup,e.GuardPup],u=Object(c.a)("car-memorytower","\n.........--.\n..-...---A--\n.------D--B-\n---------C-.\n----------E.\n-----------.\n--@@-------.\n.-@@-------.\n.----------.\n....---.....\n",r);a.default=u}}]);
-//# sourceMappingURL=4.a08667f2.chunk.js.map

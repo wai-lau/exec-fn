@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[12],{68:function(n,e,t){"use strict";t.r(e);var i=t(16),a=t(32),l=[i.Sentinel3,i.Sentinel3,i.WardenPP,i.WardenPP,i.Sentinel3,i.Sentinel3,i.WardenPP,i.Sentinel3],r=Object(a.a)("donut-recipe","\n---A----B----\nC.-.-.-.-.-.D\n--1-------2--\n-.-.-.-.-.-.-\n------@------\nE.-.@.-.@.-.F\n------@------\n-.-.-.-.-.-.-\n--3-------4--\n-.-.-.-.-.-.-\n---G-------H-\n",l,[870,780,960,890]);e.default=r}}]);
-//# sourceMappingURL=12.42ee9369.chunk.js.map

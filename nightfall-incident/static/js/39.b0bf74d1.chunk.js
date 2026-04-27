@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[39],{95:function(a,t,i){"use strict";i.r(t);var c,e=i(8),n=i(16),s={id:"warez-1",name:"warez 1",prices:(c={},Object(e.a)(c,n.Hack.id,500),Object(e.a)(c,n.Bug.id,750),Object(e.a)(c,n.Slingshot.id,750),Object(e.a)(c,n.DataDoctor.id,500),Object(e.a)(c,n.BitMan.id,250),c),programs:[n.Hack,n.Bug,n.Slingshot,n.DataDoctor,n.BitMan]};t.default=s}}]);
-//# sourceMappingURL=39.b0bf74d1.chunk.js.map

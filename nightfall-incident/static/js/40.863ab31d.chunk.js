@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[40],{96:function(e,a,i){"use strict";i.r(a);var c,r=i(8),d=i(16),t={id:"warez-2",name:"warez 2",prices:(c={},Object(r.a)(c,d.Hack2.id,1500),Object(r.a)(c,d.GolemMud.id,1200),Object(r.a)(c,d.WolfSpider.id,750),Object(r.a)(c,d.Seeker.id,1e3),Object(r.a)(c,d.Tower.id,1e3),Object(r.a)(c,d.Medic.id,1e3),Object(r.a)(c,d.Turbo.id,1e3),c),programs:[d.Hack2,d.GolemMud,d.WolfSpider,d.Seeker,d.Tower,d.Medic,d.Turbo]};a.default=t}}]);
-//# sourceMappingURL=40.863ab31d.chunk.js.map

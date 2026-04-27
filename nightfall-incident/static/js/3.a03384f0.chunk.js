@@ -1,2 +1,0 @@
-(this.webpackJsonpnightfall=this.webpackJsonpnightfall||[]).push([[3],{59:function(n,a,t){"use strict";t.r(a);var c=t(16),h=t(32),i=[c.WatchmanX,c.WatchmanX,c.WatchmanX,c.WatchmanX],s=Object(h.a)("car-inventory","\n..----------..\n.------------.\n--aA------Bb--\n--------------\n--------------\n--1---@@---2--\n--------------\n--------------\n--cC------Dd--\n.------------.\n..----------..\n\n",i,[350,480]);a.default=s}}]);
-//# sourceMappingURL=3.a03384f0.chunk.js.map

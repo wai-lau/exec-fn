@@ -52,6 +52,12 @@ JH Ti tl e s  - Joi r o  H it ag a ya
 
 ___Let's Play (YouTube)/
 Em p  ire 8  74
+
+
+Remake+ (2026)/
+
+_QoL + Hosting/
+W ai      L au
 `;
 
 const GameCredits = () => (
