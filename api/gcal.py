@@ -1,0 +1,211 @@
+import json
+from datetime import datetime, date, timedelta, timezone
+from pathlib import Path
+
+DATA_DIR = Path("/app/data")
+
+GCAL_SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
+GCAL_CONFIG_DIR = Path("/root/.config/gcal")
+GCAL_TOKEN_PATH = GCAL_CONFIG_DIR / "token.json"
+GCAL_CREDS_PATH = GCAL_CONFIG_DIR / "credentials.json"
+GCAL_REDIRECT_URI = "https://wai-lau.net/api/gcal/callback"
+PRIMARY_CALENDAR_ID = "wl.wailau@gmail.com"
+
+CALENDAR_IDS = [
+    "wl.wailau@gmail.com",
+    "family02183524598292154389@group.calendar.google.com",
+    "lk327a43fqki6f02k23hg7uufg5kn5vj@import.calendar.google.com",
+]
+
+ICS_FEEDS = [
+    "http://mcc.janeapp.com/ical/23xbVylhhdvV0NzKSpbh/appointments.ics",
+]
+
+_gcal_pending_state: dict = {}
+
+
+def _load_json(name: str, default=None):
+    p = DATA_DIR / f"{name}.json"
+    if p.exists():
+        return json.loads(p.read_text())
+    return default if default is not None else {}
+
+
+def gcal_start_auth() -> str:
+    from google_auth_oauthlib.flow import Flow
+
+    if not GCAL_CREDS_PATH.exists():
+        raise RuntimeError(f"Missing {GCAL_CREDS_PATH} — copy credentials.json there first.")
+
+    flow = Flow.from_client_secrets_file(
+        str(GCAL_CREDS_PATH), scopes=GCAL_SCOPES, redirect_uri=GCAL_REDIRECT_URI
+    )
+    auth_url, state = flow.authorization_url(prompt="consent", access_type="offline")
+    _gcal_pending_state["state"] = state
+    _gcal_pending_state["flow"] = flow
+    return auth_url
+
+
+def gcal_complete_auth(code: str, state: str) -> None:
+    if state != _gcal_pending_state.get("state"):
+        raise RuntimeError("OAuth state mismatch — restart auth flow.")
+    flow = _gcal_pending_state.get("flow")
+    if not flow:
+        raise RuntimeError("No pending auth flow — visit /api/gcal/auth first.")
+    flow.fetch_token(code=code)
+    creds = flow.credentials
+    GCAL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    GCAL_TOKEN_PATH.write_text(creds.to_json())
+    _gcal_pending_state.clear()
+
+
+def _gcal_creds():
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+
+    if not GCAL_TOKEN_PATH.exists():
+        raise RuntimeError(
+            "Google Calendar not authenticated. Visit https://wai-lau.net/api/gcal/auth"
+        )
+    creds = Credentials.from_authorized_user_file(str(GCAL_TOKEN_PATH))
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+        GCAL_TOKEN_PATH.write_text(creds.to_json())
+    return creds
+
+
+def _fetch_ics_events(url: str, days_ahead: int) -> list:
+    import urllib.request
+    from icalendar import Calendar
+
+    now_dt = datetime.now(timezone.utc)
+    end_dt = now_dt + timedelta(days=days_ahead)
+
+    with urllib.request.urlopen(url, timeout=15) as resp:
+        cal = Calendar.from_ical(resp.read())
+
+    events = []
+    for component in cal.walk():
+        if component.name != "VEVENT":
+            continue
+        try:
+            dtstart = component.get("DTSTART").dt
+            if not hasattr(dtstart, "tzinfo"):
+                dtstart = datetime(dtstart.year, dtstart.month, dtstart.day, tzinfo=timezone.utc)
+            elif dtstart.tzinfo is None:
+                dtstart = dtstart.replace(tzinfo=timezone.utc)
+            if dtstart < now_dt or dtstart > end_dt:
+                continue
+            summary = str(component.get("SUMMARY", "Untitled"))
+            events.append({
+                "id": str(component.get("UID", "")),
+                "summary": summary,
+                "start": dtstart.isoformat(),
+                "description": str(component.get("DESCRIPTION", "")),
+            })
+        except Exception:
+            pass
+    return events
+
+
+def fetch_calendar_events(days_ahead: int = 30, days_behind: int = 5) -> list:
+    from googleapiclient.discovery import build as gcal_build
+
+    creds = _gcal_creds()
+    service = gcal_build("calendar", "v3", credentials=creds)
+    start = (datetime.now(timezone.utc) - timedelta(days=days_behind)).isoformat()
+    end = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
+
+    def _dedup_key(summary: str, start: str) -> tuple:
+        return (summary.strip().lower(), start[:10])
+
+    events, seen = [], set()
+    for cal_id in CALENDAR_IDS:
+        try:
+            result = service.events().list(
+                calendarId=cal_id, timeMin=start, timeMax=end,
+                singleEvents=True, orderBy="startTime", maxResults=20,
+            ).execute()
+            for item in result.get("items", []):
+                start_str = item["start"].get("dateTime", item["start"].get("date", ""))
+                key = _dedup_key(item.get("summary", ""), start_str)
+                if key not in seen:
+                    seen.add(key)
+                    events.append({
+                        "id": item.get("id", ""),
+                        "summary": item.get("summary", "Untitled"),
+                        "start": start_str,
+                        "description": item.get("description", ""),
+                    })
+        except Exception:
+            pass
+
+    for ics_url in ICS_FEEDS:
+        try:
+            for ev in _fetch_ics_events(ics_url, days_ahead):
+                key = _dedup_key(ev["summary"], ev["start"])
+                if key not in seen:
+                    seen.add(key)
+                    events.append(ev)
+        except Exception:
+            pass
+
+    events.sort(key=lambda e: e["start"])
+    return events
+
+
+def create_gcal_event(title: str, start: str, end: str | None = None, description: str = "") -> dict:
+    from googleapiclient.discovery import build as gcal_build
+
+    creds = _gcal_creds()
+    service = gcal_build("calendar", "v3", credentials=creds)
+
+    all_day = "T" not in start
+    if all_day:
+        start_obj = {"date": start[:10]}
+        if end:
+            end_obj = {"date": end[:10]}
+        else:
+            end_date = (date.fromisoformat(start[:10]) + timedelta(days=1)).isoformat()
+            end_obj = {"date": end_date}
+    else:
+        start_obj = {"dateTime": start, "timeZone": "America/New_York"}
+        if end:
+            end_obj = {"dateTime": end, "timeZone": "America/New_York"}
+        else:
+            from datetime import datetime as _dt
+            start_dt = _dt.fromisoformat(start)
+            end_dt = start_dt + timedelta(hours=1)
+            end_obj = {"dateTime": end_dt.isoformat(), "timeZone": "America/New_York"}
+
+    body = {"summary": title, "start": start_obj, "end": end_obj}
+    if description:
+        body["description"] = description
+
+    event = service.events().insert(calendarId=PRIMARY_CALENDAR_ID, body=body).execute()
+    return {"ok": True, "event_id": event.get("id"), "link": event.get("htmlLink")}
+
+
+def analyze_omens() -> dict:
+    def _fmt_date(iso: str) -> str:
+        try:
+            today = date.today()
+            if "T" in iso:
+                dt = datetime.fromisoformat(iso)
+                d, delta = dt.date(), (dt.date() - today).days
+                hour = dt.strftime("%I%p").lstrip("0").replace(":00", "")
+                return f"{d.strftime('%A')} {hour}" if delta <= 6 else f"{d.strftime('%B %-d')} {hour}"
+            else:
+                d = date.fromisoformat(iso[:10])
+                delta = (d - today).days
+                return d.strftime("%A") if delta <= 6 else d.strftime("%B %-d")
+        except Exception:
+            return iso
+
+    events = fetch_calendar_events()
+    omens = {
+        "checked_at": datetime.now().isoformat(),
+        "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"])} for e in events],
+    }
+    (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
+    return omens

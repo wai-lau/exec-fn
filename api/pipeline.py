@@ -6,6 +6,15 @@ from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from rm import (  # noqa: F401
+    pull_rmdocs, push_pdf, list_archive,
+    _rm_latest_wai_modified, _rm_list_wai, _rm_stat_modified,
+)
+from gcal import (  # noqa: F401
+    gcal_start_auth, gcal_complete_auth, fetch_calendar_events,
+    create_gcal_event, analyze_omens,
+)
+
 ET = ZoneInfo("America/New_York")
 DATA_DIR = Path("/app/data")
 RM_FOLDER = "/EXEC"
@@ -107,128 +116,6 @@ def get_rd_log(limit: int = 20) -> list:
     return log[-limit:][::-1]
 
 
-# ── reMarkable helpers ────────────────────────────────────────────────────────
-
-def _rm_list_wai() -> list[str]:
-    ls = subprocess.run(["rmapi", "ls", RM_FOLDER], capture_output=True, text=True, timeout=30)
-    if ls.returncode != 0:
-        return []
-    return sorted([
-        line.strip().split()[-1]
-        for line in ls.stdout.splitlines()
-        if line.strip().startswith("[f]") and line.strip().split()[-1].startswith("WAI_")
-    ])
-
-
-def _rm_stat_modified(name: str) -> datetime | None:
-    try:
-        stat = subprocess.run(
-            ["rmapi", "stat", f"{RM_FOLDER}/{name}"],
-            capture_output=True, text=True, timeout=15,
-        )
-        if stat.returncode != 0:
-            return None
-        data = json.loads(stat.stdout)
-        return datetime.fromisoformat(data["ModifiedClient"].replace("Z", ""))
-    except Exception:
-        return None
-
-
-def _rm_latest_wai_modified() -> datetime | None:
-    names = _rm_list_wai()
-    return _rm_stat_modified(names[-1]) if names else None
-
-
-# ── pull ──────────────────────────────────────────────────────────────────────
-
-
-def pull_rmdocs() -> str:
-    """Pull the latest WAI_* doc, saved locally as <ModifiedClient_ts>.rmdoc.
-
-    Filename = rM modification timestamp. Already exists → skip download.
-    """
-    wai_names = _rm_list_wai()
-    if not wai_names:
-        raise RuntimeError("No WAI_* document found in EXEC folder on reMarkable")
-
-    latest = wai_names[-1]
-    modified = _rm_stat_modified(latest)
-
-    if modified is not None:
-        ts = modified.strftime("%Y%m%d_%H%M%S")
-        dest = DATA_DIR / f"{ts}.rmdoc"
-        if dest.exists():
-            return str(dest)
-    else:
-        dest = DATA_DIR / f"{latest}.rmdoc"
-
-    result = subprocess.run(
-        ["rmapi", "get", f"{RM_FOLDER}/{latest}"],
-        cwd=str(DATA_DIR), capture_output=True, text=True, timeout=60,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"rmapi get failed: {(result.stderr or result.stdout).strip()}")
-
-    downloaded = DATA_DIR / f"{latest}.rmdoc"
-    if not downloaded.exists():
-        raise RuntimeError(f"rmapi get succeeded but {latest}.rmdoc not found in data dir")
-
-    if dest != downloaded:
-        downloaded.rename(dest)
-
-    return str(dest)
-
-
-def push_pdf() -> str:
-    from build_pdf import build as pdf_build
-
-    pdf_path = DATA_DIR / f"WAI_{_ts()}.pdf"
-    pdf_build(str(pdf_path))
-
-    result = subprocess.run(
-        ["rmapi", "put", "--force", str(pdf_path), RM_FOLDER],
-        capture_output=True, text=True, timeout=60,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"rmapi put failed: {result.stderr.strip()}")
-
-    return pdf_path.name
-
-
-# ── archive ───────────────────────────────────────────────────────────────────
-
-def list_archive() -> list:
-    import zipfile
-    entries = []
-
-    for f in DATA_DIR.glob("*.rmdoc"):
-        mtime = f.stat().st_mtime
-        try:
-            dt = datetime.strptime(f.stem, "%Y%m%d_%H%M%S")
-            label = dt.strftime("%Y-%m-%d %H:%M")
-        except ValueError:
-            label = datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
-        try:
-            with zipfile.ZipFile(f) as z:
-                uid = [n for n in z.namelist() if n.endswith(".content")][0].replace(".content", "")
-                content = json.loads(z.read(f"{uid}.content"))
-                pages = (content.get("cPages") or {}).get("pages") or content.get("pages") or []
-                page_count = len(pages) or 1
-        except Exception:
-            page_count = 1
-        entries.append({"filename": f.name, "label": label, "pages": page_count, "_mtime": mtime})
-
-    for f in DATA_DIR.glob("delta_*.png"):
-        mtime = f.stat().st_mtime
-        label = "delta " + datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
-        entries.append({"filename": f.name, "label": label, "pages": 1, "_mtime": mtime})
-
-    entries.sort(key=lambda e: e["_mtime"], reverse=True)
-    for e in entries:
-        del e["_mtime"]
-    return entries
-
-
 # ── delta ─────────────────────────────────────────────────────────────────────
 
 def _delta_prompt() -> str:
@@ -288,8 +175,7 @@ def _analyze_wai_doc(wai_path: str) -> dict:
     from rm_to_pdf import rasterize
 
     stem = Path(wai_path).stem
-    ts = stem[len("WAI_"):]
-    delta_path = DATA_DIR / f"delta_wai_{ts}.json"
+    delta_path = DATA_DIR / f"delta_wai_{stem}.json"
 
     if delta_path.exists() and delta_path.stat().st_mtime >= Path(wai_path).stat().st_mtime:
         return json.loads(delta_path.read_text())
@@ -318,7 +204,7 @@ def _analyze_wai_doc(wai_path: str) -> dict:
         delta_path.write_text(json.dumps(delta, indent=2))
         return delta
 
-    (DATA_DIR / f"delta_wai_{ts}.png").write_bytes(png_bytes)
+    (DATA_DIR / f"delta_wai_{stem}.png").write_bytes(png_bytes)
     msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
@@ -756,7 +642,7 @@ def generate_morning_recap(delta: dict, omens: dict, rd_changes: str, rd_log: li
     return result
 
 
-def build_morning() -> dict:
+def build_morning() -> dict:  # noqa: C901
     chat_path = DATA_DIR / "chat.json"
     if chat_path.exists():
         chat_path.unlink()
@@ -819,215 +705,6 @@ def build_morning() -> dict:
         (DATA_DIR / "morning.json").write_text(json.dumps(recap, indent=2))
 
     return recap
-
-
-# ── gcal auth ─────────────────────────────────────────────────────────────────
-
-GCAL_SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
-GCAL_CONFIG_DIR = Path("/root/.config/gcal")
-GCAL_TOKEN_PATH = GCAL_CONFIG_DIR / "token.json"
-GCAL_CREDS_PATH = GCAL_CONFIG_DIR / "credentials.json"
-GCAL_REDIRECT_URI = "https://wai-lau.net/api/gcal/callback"
-_gcal_pending_state: dict = {}
-
-
-def gcal_start_auth() -> str:
-    from google_auth_oauthlib.flow import Flow
-
-    if not GCAL_CREDS_PATH.exists():
-        raise RuntimeError(f"Missing {GCAL_CREDS_PATH} — copy credentials.json there first.")
-
-    flow = Flow.from_client_secrets_file(
-        str(GCAL_CREDS_PATH), scopes=GCAL_SCOPES, redirect_uri=GCAL_REDIRECT_URI
-    )
-    auth_url, state = flow.authorization_url(prompt="consent", access_type="offline")
-    _gcal_pending_state["state"] = state
-    _gcal_pending_state["flow"] = flow
-    return auth_url
-
-
-def gcal_complete_auth(code: str, state: str) -> None:
-    if state != _gcal_pending_state.get("state"):
-        raise RuntimeError("OAuth state mismatch — restart auth flow.")
-    flow = _gcal_pending_state.get("flow")
-    if not flow:
-        raise RuntimeError("No pending auth flow — visit /api/gcal/auth first.")
-    flow.fetch_token(code=code)
-    creds = flow.credentials
-    GCAL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    GCAL_TOKEN_PATH.write_text(creds.to_json())
-    _gcal_pending_state.clear()
-
-
-# ── omens ─────────────────────────────────────────────────────────────────────
-
-def _gcal_creds():
-    from google.oauth2.credentials import Credentials
-    from google.auth.transport.requests import Request
-
-    if not GCAL_TOKEN_PATH.exists():
-        raise RuntimeError(
-            "Google Calendar not authenticated. Visit https://wai-lau.net/api/gcal/auth"
-        )
-    creds = Credentials.from_authorized_user_file(str(GCAL_TOKEN_PATH))
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-        GCAL_TOKEN_PATH.write_text(creds.to_json())
-    return creds
-
-
-CALENDAR_IDS = [
-    "wl.wailau@gmail.com",
-    "family02183524598292154389@group.calendar.google.com",
-    "lk327a43fqki6f02k23hg7uufg5kn5vj@import.calendar.google.com",
-]
-
-ICS_FEEDS = [
-    "http://mcc.janeapp.com/ical/23xbVylhhdvV0NzKSpbh/appointments.ics",
-]
-
-
-def _fetch_ics_events(url: str, days_ahead: int) -> list:
-    import urllib.request
-    from icalendar import Calendar
-
-    now_dt = datetime.now(timezone.utc)
-    end_dt = now_dt + timedelta(days=days_ahead)
-
-    with urllib.request.urlopen(url, timeout=15) as resp:
-        cal = Calendar.from_ical(resp.read())
-
-    events = []
-    for component in cal.walk():
-        if component.name != "VEVENT":
-            continue
-        try:
-            dtstart = component.get("DTSTART").dt
-            if not hasattr(dtstart, "tzinfo"):
-                dtstart = datetime(dtstart.year, dtstart.month, dtstart.day, tzinfo=timezone.utc)
-            elif dtstart.tzinfo is None:
-                dtstart = dtstart.replace(tzinfo=timezone.utc)
-            if dtstart < now_dt or dtstart > end_dt:
-                continue
-            summary = str(component.get("SUMMARY", "Untitled"))
-            events.append({
-                "id": str(component.get("UID", "")),
-                "summary": summary,
-                "start": dtstart.isoformat(),
-                "description": str(component.get("DESCRIPTION", "")),
-            })
-        except Exception:
-            pass
-    return events
-
-
-def fetch_calendar_events(days_ahead: int = 30, days_behind: int = 5) -> list:
-    from googleapiclient.discovery import build as gcal_build
-
-    creds = _gcal_creds()
-    service = gcal_build("calendar", "v3", credentials=creds)
-    start = (datetime.now(timezone.utc) - timedelta(days=days_behind)).isoformat()
-    end = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
-
-    def _dedup_key(summary: str, start: str) -> tuple:
-        return (summary.strip().lower(), start[:10])
-
-    events, seen = [], set()
-    for cal_id in CALENDAR_IDS:
-        try:
-            result = service.events().list(
-                calendarId=cal_id, timeMin=start, timeMax=end,
-                singleEvents=True, orderBy="startTime", maxResults=20,
-            ).execute()
-            for item in result.get("items", []):
-                start_str = item["start"].get("dateTime", item["start"].get("date", ""))
-                key = _dedup_key(item.get("summary", ""), start_str)
-                if key not in seen:
-                    seen.add(key)
-                    events.append({
-                        "id": item.get("id", ""),
-                        "summary": item.get("summary", "Untitled"),
-                        "start": start_str,
-                        "description": item.get("description", ""),
-                    })
-        except Exception:
-            pass
-
-    for ics_url in ICS_FEEDS:
-        try:
-            for ev in _fetch_ics_events(ics_url, days_ahead):
-                key = _dedup_key(ev["summary"], ev["start"])
-                if key not in seen:
-                    seen.add(key)
-                    events.append(ev)
-        except Exception:
-            pass
-
-    events.sort(key=lambda e: e["start"])
-    return events
-
-
-PRIMARY_CALENDAR_ID = "wl.wailau@gmail.com"
-
-
-def create_gcal_event(title: str, start: str, end: str | None = None, description: str = "") -> dict:
-    from googleapiclient.discovery import build as gcal_build
-
-    creds = _gcal_creds()
-    service = gcal_build("calendar", "v3", credentials=creds)
-
-    # Determine if all-day or timed
-    all_day = "T" not in start
-    if all_day:
-        start_obj = {"date": start[:10]}
-        if end:
-            end_obj = {"date": end[:10]}
-        else:
-            # Default: same day (GCal all-day end is exclusive so +1 day)
-            end_date = (date.fromisoformat(start[:10]) + timedelta(days=1)).isoformat()
-            end_obj = {"date": end_date}
-    else:
-        start_obj = {"dateTime": start, "timeZone": "America/New_York"}
-        if end:
-            end_obj = {"dateTime": end, "timeZone": "America/New_York"}
-        else:
-            # Default: 1 hour
-            from datetime import datetime as _dt
-            start_dt = _dt.fromisoformat(start)
-            end_dt = start_dt + timedelta(hours=1)
-            end_obj = {"dateTime": end_dt.isoformat(), "timeZone": "America/New_York"}
-
-    body = {"summary": title, "start": start_obj, "end": end_obj}
-    if description:
-        body["description"] = description
-
-    event = service.events().insert(calendarId=PRIMARY_CALENDAR_ID, body=body).execute()
-    return {"ok": True, "event_id": event.get("id"), "link": event.get("htmlLink")}
-
-
-def analyze_omens() -> dict:
-    def _fmt_date(iso: str) -> str:
-        try:
-            today = date.today()
-            if "T" in iso:
-                dt = datetime.fromisoformat(iso)
-                d, delta = dt.date(), (dt.date() - today).days
-                hour = dt.strftime("%I%p").lstrip("0").replace(":00", "")
-                return f"{d.strftime('%A')} {hour}" if delta <= 6 else f"{d.strftime('%B %-d')} {hour}"
-            else:
-                d = date.fromisoformat(iso[:10])
-                delta = (d - today).days
-                return d.strftime("%A") if delta <= 6 else d.strftime("%B %-d")
-        except Exception:
-            return iso
-
-    events = fetch_calendar_events()
-    omens = {
-        "checked_at": datetime.now().isoformat(),
-        "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"]), "start": e["start"]} for e in events],
-    }
-    (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
-    return omens
 
 
 # ── chat ──────────────────────────────────────────────────────────────────────
@@ -1522,7 +1199,7 @@ def _tool_reschedule(input_: dict) -> dict:
 
 
 def _apply_context_update(action: str, note: str = "", match: str = "") -> dict:
-    ctx_path = DATA_DIR / "context.json"
+    ctx_path = DATA_DIR / "profile.json"
     ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
     notes = ctx.get("notes", [])
 
