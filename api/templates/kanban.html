@@ -327,7 +327,7 @@ async function resolveDue(raw) {
   const quick = parseMonthDay(raw);
   if (quick !== null || !raw.trim()) return quick;
   try {
-    const r = await fetch('/api/parse_date', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text: raw.trim()})});
+    const r = await fetch('/api/parse_date', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text: raw.trim()})});
     const d = await r.json();
     return d.iso || null;
   } catch(_) { return null; }
