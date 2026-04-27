@@ -78,11 +78,9 @@ def update_rd_from_delta(delta: dict) -> str:
             "title": title,
             "category": "Self",
             "size": "task",
-            "description": "",
             "column": "hq",
             "order": min_order - 1,
             "due_date": None,
-            "notes": "",
             "estimated_time": _SIZE_MINUTES.get("task", 90),
         })
         summary_parts.append(f"created: {title}")

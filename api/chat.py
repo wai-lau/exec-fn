@@ -25,11 +25,11 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
     ) or "None."
     events_text = "\n".join(f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])) or "None."
     selected_text = "\n".join(
-        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('description','')}"
+        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
         for c in selected
     ) or "None."
     ideas_text = "\n".join(
-        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('description','')}"
+        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
         for c in ideas[:15]
     ) or "None."
 
@@ -100,7 +100,7 @@ def _chat_tools() -> list:
                     "title": {"type": "string", "description": "Short title for the card."},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"], "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement; Book=reading/studying."},
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"], "description": "Size: chore (<45min), task (<3h), project (<6h), titan (6h+), book (long read)."},
-                    "description": {"type": "string", "description": "One-sentence description."},
+                    "notes": {"type": "string", "description": "Optional notes about the card."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context and omens when possible."},
@@ -148,10 +148,9 @@ def _chat_tools() -> list:
                 "properties": {
                     "id": {"type": "string", "description": "Card ID."},
                     "title": {"type": "string"},
-                    "description": {"type": "string"},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"]},
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
-                    "notes": {"type": "string"},
+                    "notes": {"type": "string", "description": "Progress notes. Append timestamped entry when Wai mentions working on or making progress on a task — don't overwrite existing content."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done."},
                     "start_before": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which Wai should start — typically due_date minus task duration."},
@@ -258,7 +257,7 @@ def classify_card(title: str) -> dict:
             "- book: ongoing read / long-form written work\n"
             "- project: under 2 days\n"
             "- titan: longer — reminder to break it down further\n\n"
-            'JSON only: {"category": "...", "size": "...", "description": "one sentence"}'
+            'JSON only: {"category": "...", "size": "..."}'
         )}],
     )
     try:
@@ -268,7 +267,6 @@ def classify_card(title: str) -> dict:
     return {
         "category": parsed.get("category", "Self"),
         "size": parsed.get("size", "task"),
-        "description": parsed.get("description", ""),
     }
 
 

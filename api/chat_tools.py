@@ -72,14 +72,14 @@ def _tool_create_card(input_: dict) -> dict:
         "title": input_.get("title", ""),
         "category": input_.get("category", "Self"),
         "size": size,
-        "description": input_.get("description", ""),
         "column": column,
         "order": min_order - 1,
         "due_date": input_.get("due_date") or None,
         "start_before": input_.get("start_before") or None,
-        "notes": "",
         "estimated_time": estimated_time,
     }
+    if input_.get("notes"):
+        new_card["notes"] = input_["notes"]
 
     cards.append(new_card)
     rd["cards"] = cards
@@ -112,7 +112,7 @@ def _tool_update_card(input_: dict) -> dict:
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
     changed = []
-    for field in ("title", "description", "category", "size", "notes", "due_date", "start_before"):
+    for field in ("title", "category", "size", "notes", "due_date", "start_before"):
         if field in input_:
             card[field] = input_[field]
             changed.append(field)
@@ -126,7 +126,7 @@ def _tool_update_card(input_: dict) -> dict:
     _save_rd(rd)
     extra = {"fields": changed}
     if "notes" in input_:
-        extra["note"] = input_["notes"][:120]
+        extra["notes"] = input_["notes"]
     _append_rd_log("updated", card["title"], **extra)
     return {"ok": True, "id": card["id"], "title": card["title"]}
 
