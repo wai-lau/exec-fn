@@ -38,7 +38,8 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
             "Book category cards are for reading only — do NOT select them for directives. "
-            "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields), delete_card (permanent removal). "
+            "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields or add progress notes), delete_card (permanent removal). "
+            "When Wai mentions working on, making progress on, or completing part of a task, call update_card with a timestamped note appended to the notes field. "
             "COLUMN SEMANTICS: rd=upcoming ideas/backlog (card added here by default). hq=should be scheduled within remaining time today (active working set). archives=task completed. exile=wont-do. "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
             "When finalizing, categorize each card: SEEK=requires going outdoors, HACK=quick at home (under 1h), DIVE=extended focus/setup/cleanup (over 1h). "
@@ -141,7 +142,7 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_card",
-            "description": "Update fields on an existing card. Only include fields that should change. Setting estimated_time auto-updates size if the duration implies a different category.",
+            "description": "Update fields on an existing card. Only include fields that should change. Setting estimated_time auto-updates size if the duration implies a different category. Use notes to record progress when Wai mentions working on or making progress on a task — append a timestamped note, don't overwrite existing notes.",
             "input_schema": {
                 "type": "object",
                 "properties": {

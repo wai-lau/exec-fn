@@ -111,17 +111,23 @@ def _tool_update_card(input_: dict) -> dict:
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
+    changed = []
     for field in ("title", "description", "category", "size", "notes", "due_date", "start_before"):
         if field in input_:
             card[field] = input_[field]
+            changed.append(field)
     if "estimated_time" in input_:
         card["estimated_time"] = input_["estimated_time"]
+        changed.append("estimated_time")
         if card.get("size") != "book":
             new_size = _minutes_to_size(input_["estimated_time"])
             if new_size != card.get("size"):
                 card["size"] = new_size
     _save_rd(rd)
-    _append_rd_log("updated", card["title"])
+    extra = {"fields": changed}
+    if "notes" in input_:
+        extra["note"] = input_["notes"][:120]
+    _append_rd_log("updated", card["title"], **extra)
     return {"ok": True, "id": card["id"], "title": card["title"]}
 
 
