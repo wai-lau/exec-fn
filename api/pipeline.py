@@ -852,6 +852,9 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
     now = datetime.now(timezone.utc).isoformat()
     end = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
 
+    def _dedup_key(summary: str, start: str) -> tuple:
+        return (summary.strip().lower(), start[:10])
+
     events, seen = [], set()
     for cal_id in CALENDAR_IDS:
         try:
@@ -860,13 +863,14 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
                 singleEvents=True, orderBy="startTime", maxResults=20,
             ).execute()
             for item in result.get("items", []):
-                key = (item.get("summary", ""), item["start"].get("dateTime", item["start"].get("date", "")))
+                start_str = item["start"].get("dateTime", item["start"].get("date", ""))
+                key = _dedup_key(item.get("summary", ""), start_str)
                 if key not in seen:
                     seen.add(key)
                     events.append({
                         "id": item.get("id", ""),
                         "summary": item.get("summary", "Untitled"),
-                        "start": item["start"].get("dateTime", item["start"].get("date", "")),
+                        "start": start_str,
                         "description": item.get("description", ""),
                     })
         except Exception:
@@ -875,7 +879,7 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
     for ics_url in ICS_FEEDS:
         try:
             for ev in _fetch_ics_events(ics_url, days_ahead):
-                key = (ev["summary"], ev["start"])
+                key = _dedup_key(ev["summary"], ev["start"])
                 if key not in seen:
                     seen.add(key)
                     events.append(ev)
