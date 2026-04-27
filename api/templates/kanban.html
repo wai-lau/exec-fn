@@ -131,8 +131,8 @@ body { overflow: hidden !important; }
     </select>
     <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
     <input id="e-due" type="text" placeholder="optional">
-    <label>scheduled for &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
-    <input id="e-scheduled-for" type="text" placeholder="optional">
+    <label>start before &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">auto-filled from due date &nbsp;|&nbsp; or override</span></label>
+    <input id="e-start-before" type="text" placeholder="optional">
     <label>estimated time (minutes)</label>
     <input id="e-estimated-time" type="number" min="1" placeholder="auto from size">
     <label>notes</label>
@@ -243,6 +243,18 @@ function fmtDate(iso) {
   return s;
 }
 
+function fmtStartBefore(iso) {
+  if (!iso) return '';
+  const hasTime = iso.includes('T');
+  const d = hasTime ? new Date(iso) : new Date(iso + 'T12:00:00');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  if (!hasTime) return `${mm}/${dd}`;
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${mm}/${dd} ${hh}:${min}`;
+}
+
 function isUrgent(iso) {
   return iso && (new Date(iso) - new Date()) / 86400000 <= 3;
 }
@@ -252,13 +264,15 @@ function renderCard(c) {
   const hasStyle = !!bg;
   const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.85)';
   const tc     = !hasStyle ? 'rgba(0,255,65,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
-  const urgent = isUrgent(c.due_date);
+  const displayDate = c.start_before || c.due_date;
+  const urgent = isUrgent(displayDate);
+  const dateLabel = displayDate ? (c.start_before ? 'start ' + fmtStartBefore(c.start_before) : fmtDate(c.due_date)) : '';
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC}">${c.title}</div>
     ${c.description ? `<div class="card-desc" style="color:${tc}">${c.description}</div>` : ''}
     <div class="card-foot">
       <div class="card-badge" style="color:${tc}">${[c.category, c.size].filter(Boolean).join(' · ')}</div>
-      ${c.due_date ? `<div class="card-due" style="color:${urgent ? (dark?'rgba(255,140,80,0.9)':'rgba(180,60,0,0.9)') : tc}">${fmtDate(c.due_date)}</div>` : ''}
+      ${displayDate ? `<div class="card-due" style="color:${urgent ? (dark?'rgba(255,140,80,0.9)':'rgba(180,60,0,0.9)') : tc}">${dateLabel}</div>` : ''}
     </div>
   </div>`;
 }
@@ -323,14 +337,14 @@ async function load() {
 function openAdd() { document.getElementById('add-modal').classList.add('open'); document.getElementById('a-title').focus(); }
 function closeAdd() { document.getElementById('add-modal').classList.remove('open'); document.getElementById('a-title').value = ''; document.getElementById('a-due').value = ''; }
 
-async function resolveDue(raw) {
+async function resolveDue(raw, size, estimatedMinutes) {
   const quick = parseMonthDay(raw);
-  if (quick !== null || !raw.trim()) return quick;
+  if (quick !== null || !raw.trim()) return {due: quick, start_before: null};
   try {
-    const r = await fetch('/api/parse_date', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text: raw.trim()})});
+    const r = await fetch('/api/parse_date', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text: raw.trim(), size, estimated_minutes: estimatedMinutes || null})});
     const d = await r.json();
-    return d.iso || null;
-  } catch(_) { return null; }
+    return {due: d.iso || null, start_before: d.start_before || null};
+  } catch(_) { return {due: null, start_before: null}; }
 }
 
 async function addCard() {
@@ -367,7 +381,7 @@ function openEdit(id) {
   document.getElementById('e-cat').value = c.category || 'Self';
   document.getElementById('e-size').value = c.size || 'task';
   document.getElementById('e-due').value = c.due_date ? fmtDate(c.due_date) : '';
-  document.getElementById('e-scheduled-for').value = c.scheduled_for ? fmtDate(c.scheduled_for) : '';
+  document.getElementById('e-start-before').value = c.start_before ? fmtDate(c.start_before) : '';
   document.getElementById('e-estimated-time').value = c.estimated_time != null ? c.estimated_time : '';
   document.getElementById('e-notes').value = c.notes || '';
   document.getElementById('edit-modal').classList.add('open');
@@ -382,10 +396,13 @@ async function saveEdit() {
   c.description    = document.getElementById('e-desc').value.trim();
   c.category       = document.getElementById('e-cat').value;
   c.size           = document.getElementById('e-size').value;
-  c.due_date       = await resolveDue(document.getElementById('e-due').value);
-  c.scheduled_for  = await resolveDue(document.getElementById('e-scheduled-for').value);
   const etRaw      = document.getElementById('e-estimated-time').value;
   c.estimated_time = etRaw !== '' ? parseInt(etRaw, 10) : (c.estimated_time ?? null);
+  const dueRaw     = document.getElementById('e-due').value;
+  const sbRaw      = document.getElementById('e-start-before').value;
+  const resolved   = await resolveDue(dueRaw, c.size, c.estimated_time);
+  c.due_date       = resolved.due;
+  c.start_before   = sbRaw.trim() ? (await resolveDue(sbRaw)).due : (resolved.start_before ?? c.start_before ?? null);
   c.notes          = document.getElementById('e-notes').value.trim();
   await save();
   buildBoard();

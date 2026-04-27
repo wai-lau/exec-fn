@@ -792,9 +792,11 @@ async def api_parse_date(request: Request):
     data = await request.json()
     text = (data.get("text") or "").strip()
     if not text:
-        return {"iso": None}
-    iso = pipeline.parse_date_natural(text)
-    return {"iso": iso}
+        return {"iso": None, "start_before": None}
+    size = data.get("size")
+    estimated_minutes = data.get("estimated_minutes")
+    iso, start_before = pipeline.parse_date_natural(text, size=size, estimated_minutes=estimated_minutes)
+    return {"iso": iso, "start_before": start_before}
 
 
 _VALID_SAVE_SLOTS = {"save1", "save2", "save3"}

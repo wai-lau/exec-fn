@@ -805,14 +805,52 @@ CALENDAR_IDS = [
     "lk327a43fqki6f02k23hg7uufg5kn5vj@import.calendar.google.com",
 ]
 
+ICS_FEEDS = [
+    "http://mcc.janeapp.com/ical/23xbVylhhdvV0NzKSpbh/appointments.ics",
+]
+
+
+def _fetch_ics_events(url: str, days_ahead: int) -> list:
+    import urllib.request
+    from icalendar import Calendar
+
+    now_dt = datetime.now(timezone.utc)
+    end_dt = now_dt + timedelta(days=days_ahead)
+
+    with urllib.request.urlopen(url, timeout=15) as resp:
+        cal = Calendar.from_ical(resp.read())
+
+    events = []
+    for component in cal.walk():
+        if component.name != "VEVENT":
+            continue
+        try:
+            dtstart = component.get("DTSTART").dt
+            if not hasattr(dtstart, "tzinfo"):
+                dtstart = datetime(dtstart.year, dtstart.month, dtstart.day, tzinfo=timezone.utc)
+            elif dtstart.tzinfo is None:
+                dtstart = dtstart.replace(tzinfo=timezone.utc)
+            if dtstart < now_dt or dtstart > end_dt:
+                continue
+            summary = str(component.get("SUMMARY", "Untitled"))
+            events.append({
+                "id": str(component.get("UID", "")),
+                "summary": summary,
+                "start": dtstart.isoformat(),
+                "description": str(component.get("DESCRIPTION", "")),
+            })
+        except Exception:
+            pass
+    return events
+
 
 def fetch_calendar_events(days_ahead: int = 14) -> list:
     from googleapiclient.discovery import build as gcal_build
 
     creds = _gcal_creds()
     service = gcal_build("calendar", "v3", credentials=creds)
-    now = datetime.utcnow().isoformat() + "Z"
-    end = (datetime.utcnow() + timedelta(days=days_ahead)).isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat()
+    end = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
 
     events, seen = [], set()
     for cal_id in CALENDAR_IDS:
@@ -831,6 +869,16 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
                         "start": item["start"].get("dateTime", item["start"].get("date", "")),
                         "description": item.get("description", ""),
                     })
+        except Exception:
+            pass
+
+    for ics_url in ICS_FEEDS:
+        try:
+            for ev in _fetch_ics_events(ics_url, days_ahead):
+                key = (ev["summary"], ev["start"])
+                if key not in seen:
+                    seen.add(key)
+                    events.append(ev)
         except Exception:
             pass
 
@@ -992,7 +1040,7 @@ def _chat_tools() -> list:
                     "description": {"type": "string", "description": "One-sentence description."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted."},
-                    "scheduled_for": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
+                    "start_before": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
                 },
                 "required": ["title", "category", "size"],
             },
@@ -1041,7 +1089,7 @@ def _chat_tools() -> list:
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
                     "notes": {"type": "string"},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
-                    "scheduled_for": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
+                    "start_before": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
                 },
                 "required": ["id"],
             },
@@ -1174,8 +1222,8 @@ def _tool_create_card(input_: dict) -> dict:
         "notes": "",
         "estimated_time": estimated_time,
     }
-    if input_.get("scheduled_for"):
-        new_card["scheduled_for"] = input_["scheduled_for"]
+    if input_.get("start_before"):
+        new_card["start_before"] = input_["start_before"]
 
     cards.append(new_card)
     rd["cards"] = cards
@@ -1204,7 +1252,7 @@ def _tool_update_card(input_: dict) -> dict:
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
-    for field in ("title", "description", "category", "size", "notes", "scheduled_for"):
+    for field in ("title", "description", "category", "size", "notes", "start_before"):
         if field in input_:
             card[field] = input_[field]
     if "estimated_time" in input_:
@@ -1443,23 +1491,35 @@ def _tool_create_gcal_event(input_: dict) -> dict:
         return {"error": str(e)}
 
 
-def parse_date_natural(text: str) -> str | None:
+def parse_date_natural(text: str, size: str | None = None, estimated_minutes: int | None = None) -> tuple[str | None, str | None]:
     import anthropic
-    from datetime import datetime
-    import zoneinfo
-    now = datetime.now(zoneinfo.ZoneInfo("America/New_York"))
-    today = now.strftime("%Y-%m-%d")
+    now = datetime.now(ET)
+    today = now.strftime("%Y-%m-%d %H:%M")
+    duration_hint = ""
+    if estimated_minutes:
+        duration_hint = f" The task takes ~{estimated_minutes} minutes."
+    elif size:
+        size_map = {"chore": 30, "task": 90, "project": 240, "titan": 480, "book": 60}
+        mins = size_map.get(size)
+        if mins:
+            duration_hint = f" The task size is '{size}' (~{mins} minutes)."
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=32,
-        system=f"Today is {today}. Convert the user's natural language date to ISO 8601 format. Reply with ONLY the date string in YYYY-MM-DD format, or 'null' if unparseable. No explanation.",
+        max_tokens=64,
+        system=(
+            f"Now is {today} ET.{duration_hint} "
+            "Parse the due date from user input and compute a 'start before' deadline (due date minus task duration). "
+            "Reply with ONLY two ISO 8601 strings separated by a newline: first line = due date/datetime, second line = start_before date/datetime. "
+            "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM format. Reply 'null' on either line if not applicable."
+        ),
         messages=[{"role": "user", "content": text}],
     )
-    raw = msg.content[0].text.strip()
-    if raw == "null" or not raw:
-        return None
-    return raw
+    lines = msg.content[0].text.strip().splitlines()
+    due = lines[0].strip() if lines else "null"
+    start_before = lines[1].strip() if len(lines) > 1 else "null"
+    return (None if due == "null" or not due else due,
+            None if start_before == "null" or not start_before else start_before)
 
 
 _TOOL_HANDLERS = {
