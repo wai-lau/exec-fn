@@ -128,9 +128,10 @@ body { overflow: hidden !important; }
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
     <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
-    <input id="e-due" type="text" placeholder="optional">
+    <input id="e-due" type="text" placeholder="optional" onblur="autoFillStartBefore()">
     <label>start before &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">auto-filled from due date &nbsp;|&nbsp; or override</span></label>
     <input id="e-start-before" type="text" placeholder="optional">
+    <div id="e-start-before-hint" style="font-size:0.7rem;opacity:0.45;margin-top:-6px;margin-bottom:4px;display:none"></div>
     <label>estimated time (minutes)</label>
     <input id="e-estimated-time" type="number" min="1" placeholder="auto from size">
     <label>notes</label>
@@ -412,6 +413,24 @@ async function deleteCard() {
   await save();
   buildBoard();
   closeEdit();
+}
+
+async function autoFillStartBefore() {
+  const dueRaw = document.getElementById('e-due').value.trim();
+  const sbInput = document.getElementById('e-start-before');
+  const hint = document.getElementById('e-start-before-hint');
+  if (!dueRaw) return;
+  const c = cards.find(x => x.id === editId);
+  const size = document.getElementById('e-size').value;
+  const etRaw = document.getElementById('e-estimated-time').value;
+  const estimated_minutes = etRaw !== '' ? parseInt(etRaw, 10) : null;
+  const resolved = await resolveDue(dueRaw, size, estimated_minutes);
+  if (resolved.start_before && !sbInput.value.trim()) {
+    sbInput.value = resolved.start_before;
+    hint.textContent = 'auto-filled';
+    hint.style.display = 'block';
+    setTimeout(() => { hint.style.display = 'none'; }, 2000);
+  }
 }
 
 load();

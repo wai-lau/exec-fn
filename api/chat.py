@@ -291,6 +291,7 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
         system=(
             f"Now is {today} ET.{duration_hint}{omens_text} "
             "Parse the due date from user input and compute a 'start before' deadline (due date minus task duration). "
+            "All dates MUST be in the future (after today). If a relative term like 'this weekend' or 'Monday' refers to a date already passed, use the NEXT occurrence. "
             "Reply with ONLY two ISO 8601 strings separated by a newline: first line = due date/datetime, second line = start_before date/datetime. "
             "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM format. Reply 'null' on either line if not applicable."
         ),
