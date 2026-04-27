@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 from helpers import (
     DATA_DIR, _SIZE_MINUTES, _now_et, _parse_json, _load_json, _load_rd, _save_rd,
@@ -239,12 +239,20 @@ def generate_morning_recap(delta: dict, omens: dict, rd_changes: str, rd_log: li
         messages=[{"role": "user", "content": prompt}],
     )
 
-    result = {"generated_at": datetime.now().isoformat(), "opening_message": msg.content[0].text.strip()}
+    result = {"generated_at": datetime.now(timezone.utc).isoformat(), "opening_message": msg.content[0].text.strip()}
     (DATA_DIR / "morning.json").write_text(json.dumps(result, indent=2))
     return result
 
 
-def build_morning() -> dict:  # noqa: C901
+def _run_step(errors: dict, key: str, fn):
+    try:
+        return fn()
+    except Exception as e:
+        errors[key] = str(e)
+        return None
+
+
+def build_morning() -> dict:
     chat_path = DATA_DIR / "chat.json"
     if chat_path.exists():
         chat_path.unlink()
@@ -265,42 +273,15 @@ def build_morning() -> dict:  # noqa: C901
             ctx["notes"] = _dedupe_context(ctx["notes"])
             profile_path.write_text(json.dumps(ctx, indent=2))
 
-    errors = {}
-
-    latest_path = None
-    try:
-        latest_path = pull_rmdocs()
-    except Exception as e:
-        errors["pull"] = str(e)
-
-    delta = {}
-    try:
-        delta = analyze_delta(path=latest_path)
-    except Exception as e:
-        errors["delta"] = str(e)
-
-    omens = {}
-    try:
-        omens = analyze_omens()
-    except Exception as e:
-        errors["omens"] = str(e)
-
-    rd_changes = ""
-    try:
-        rd_changes = update_rd_from_delta(delta)
-    except Exception as e:
-        errors["rd"] = str(e)
-
-    try:
-        recap = generate_morning_recap(delta, omens, rd_changes, rd_log=get_rd_log(limit=50))
-    except Exception as e:
-        errors["recap"] = str(e)
-        recap = {"generated_at": datetime.now().isoformat(), "opening_message": ""}
-
-    try:
-        push_pdf()
-    except Exception as e:
-        errors["push_pdf"] = str(e)
+    errors: dict = {}
+    latest_path = _run_step(errors, "pull", pull_rmdocs)
+    delta = _run_step(errors, "delta", lambda: analyze_delta(path=latest_path)) or {}
+    omens = _run_step(errors, "omens", analyze_omens) or {}
+    rd_changes = _run_step(errors, "rd", lambda: update_rd_from_delta(delta)) or ""
+    recap = _run_step(errors, "recap", lambda: generate_morning_recap(delta, omens, rd_changes, rd_log=get_rd_log(limit=50)))
+    if recap is None:
+        recap = {"generated_at": datetime.now(timezone.utc).isoformat(), "opening_message": ""}
+    _run_step(errors, "push_pdf", push_pdf)
 
     if errors:
         recap["errors"] = errors

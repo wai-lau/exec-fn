@@ -1,5 +1,6 @@
 import json
 from datetime import date
+from pathlib import Path
 from reportlab.lib.pagesizes import A5
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -39,6 +40,60 @@ def _wrap(text, font, size, max_w):
     return lines or [""]
 
 
+def _draw_sec_header(c, y, label, lh):
+    c.setFont(FONT_SECTION, SIZE_SECTION - 1)
+    c.setFillColor(colors.HexColor("#222222"))
+    c.drawString(MARGIN, y, label)
+    y -= lh * 0.35
+    c.setStrokeColor(colors.HexColor("#cccccc"))
+    c.setLineWidth(0.4)
+    c.line(MARGIN, y, W - MARGIN, y)
+    return y - lh * 0.65
+
+
+def _draw_schedule_section(c, schedule, y, lh, sh, gap, time_indent, task_w):
+    y = _draw_sec_header(c, y, "SCHEDULE", lh)
+    for entry in schedule:
+        if y < MARGIN + sh:
+            break
+        t = entry.get("time", "")
+        task = entry.get("title") or entry.get("task", "")
+        task_lines = _wrap(task, FONT_ITEM, SIZE_ITEM, task_w)
+        if y - len(task_lines) * sh < MARGIN:
+            break
+        c.setFont(FONT_ITEM, SIZE_ITEM)
+        c.setFillColor(colors.HexColor("#888888"))
+        c.drawString(MARGIN, y, t)
+        c.setFillColor(colors.HexColor("#222222"))
+        for ln in task_lines:
+            c.drawString(MARGIN + time_indent, y, ln)
+            y -= sh
+    return y - gap
+
+
+def _draw_omens_section(c, events, y, lh, cw):
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    y = _draw_sec_header(c, y, "OMENS", lh)
+    for e in events[:4]:
+        if y < MARGIN + lh:
+            break
+        dt = e.get('date', '')
+        title = e.get('title', '')
+        prefix = f"{dt} - "
+        indent = stringWidth(prefix, FONT_ITEM, SIZE_ITEM)
+        c.setFont(FONT_ITEM, SIZE_ITEM)
+        c.setFillColor(colors.black)
+        title_lines = _wrap(title, FONT_ITEM, SIZE_ITEM, cw - indent)
+        for i, ln in enumerate(title_lines):
+            if y < MARGIN + lh:
+                break
+            if i == 0:
+                c.drawString(MARGIN, y, prefix)
+            c.drawString(MARGIN + indent, y, ln)
+            y -= lh
+    return y
+
+
 def draw_schedule_page(c, plan, events):
     from reportlab.pdfbase.pdfmetrics import stringWidth
     LH   = 6.5 * mm
@@ -46,19 +101,8 @@ def draw_schedule_page(c, plan, events):
     SECH = 7.2 * mm
     GAP  = 1.6 * mm
     CW   = W - 2 * MARGIN
-    # Indent for task text: width of "00:00  " so wraps stay aligned
     TIME_INDENT = stringWidth("00:00  ", FONT_ITEM, SIZE_ITEM)
     TASK_W = CW - TIME_INDENT
-
-    def sec_header(y, label):
-        c.setFont(FONT_SECTION, SIZE_SECTION - 1)
-        c.setFillColor(colors.HexColor("#222222"))
-        c.drawString(MARGIN, y, label)
-        y -= LH * 0.35
-        c.setStrokeColor(colors.HexColor("#cccccc"))
-        c.setLineWidth(0.4)
-        c.line(MARGIN, y, W - MARGIN, y)
-        return y - LH * 0.65
 
     y = H - MARGIN
     c.setFont(FONT_TITLE, SIZE_TITLE + 2)
@@ -67,54 +111,15 @@ def draw_schedule_page(c, plan, events):
     y -= LH
     c.setFont(FONT_ITEM, SIZE_ITEM)
     c.setFillColor(colors.HexColor("#666666"))
-    c.drawString(MARGIN, y, date.today().strftime("%A, %B %-d, %Y"))
+    d = date.today()
+    c.drawString(MARGIN, y, f"{d.strftime('%A, %B')} {d.day}, {d.year}")
     y -= SECH
 
-    schedule = plan.get("schedule") or []
-    if schedule:
-        y = sec_header(y, "SCHEDULE")
-        for entry in schedule:
-            if y < MARGIN + SH:
-                break
-            t = entry.get("time", "")
-            task = entry.get("title") or entry.get("task", "")
-
-            task_lines = _wrap(task, FONT_ITEM, SIZE_ITEM, TASK_W)
-            if y - len(task_lines) * SH < MARGIN:
-                break
-
-            c.setFont(FONT_ITEM, SIZE_ITEM)
-            c.setFillColor(colors.HexColor("#888888"))
-            c.drawString(MARGIN, y, t)
-
-            c.setFillColor(colors.HexColor("#222222"))
-            for ln in task_lines:
-                c.drawString(MARGIN + TIME_INDENT, y, ln)
-                y -= SH
-        y -= GAP
+    if plan.get("schedule"):
+        y = _draw_schedule_section(c, plan["schedule"], y, LH, SH, GAP, TIME_INDENT, TASK_W)
 
     if events and y > MARGIN + LH * 2:
-        from reportlab.pdfbase.pdfmetrics import stringWidth
-        y = sec_header(y, "OMENS")
-        for e in events[:4]:
-            if y < MARGIN + LH:
-                break
-            dt = e.get('date', '')
-            title = e.get('title', '')
-            prefix = f"{dt} - "
-            indent = stringWidth(prefix, FONT_ITEM, SIZE_ITEM)
-            c.setFont(FONT_ITEM, SIZE_ITEM)
-            c.setFillColor(colors.black)
-            title_lines = _wrap(title, FONT_ITEM, SIZE_ITEM, CW - indent)
-            for i, ln in enumerate(title_lines):
-                if y < MARGIN + LH:
-                    break
-                if i == 0:
-                    c.drawString(MARGIN, y, prefix)
-                    c.drawString(MARGIN + indent, y, ln)
-                else:
-                    c.drawString(MARGIN + indent, y, ln)
-                y -= LH
+        y = _draw_omens_section(c, events, y, LH, CW)
 
     return y
 
@@ -153,20 +158,15 @@ def draw_encouragement(c, message: str, y: float):
 def build(out_path=None):
     out = out_path or OUT_PDF
     plan = {}
-    for src in ("/app/data/plan.json", "/app/data/directives.json"):
-        try:
-            with open(src) as f:
-                plan = json.load(f)
+    for name in ("plan", "directives"):
+        p = Path("/app/data") / f"{name}.json"
+        if p.exists():
+            plan = json.loads(p.read_text())
             break
-        except FileNotFoundError:
-            pass
     events = plan.get("omens", None)
     if events is None:
-        try:
-            with open("/app/data/omens.json") as f:
-                events = json.load(f).get("events", [])
-        except FileNotFoundError:
-            events = []
+        p = Path("/app/data/omens.json")
+        events = json.loads(p.read_text()).get("events", []) if p.exists() else []
     c = canvas.Canvas(out, pagesize=A5)
     y = draw_schedule_page(c, plan, events)
     draw_encouragement(c, plan.get("encouraging_message", ""), y)
