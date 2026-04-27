@@ -108,6 +108,14 @@ def _fetch_ics_events(url: str, days_ahead: int) -> list:
     return events
 
 
+def _is_declined(item: dict) -> bool:
+    return any(a.get("self") and a.get("responseStatus") == "declined" for a in item.get("attendees", []))
+
+
+def _dedup_key(summary: str, start: str) -> tuple:
+    return (summary.strip().lower(), start[:10])
+
+
 def fetch_calendar_events(days_ahead: int = 30, days_behind: int = 5) -> list:
     from googleapiclient.discovery import build as gcal_build
 
@@ -115,9 +123,6 @@ def fetch_calendar_events(days_ahead: int = 30, days_behind: int = 5) -> list:
     service = gcal_build("calendar", "v3", credentials=creds)
     start = (datetime.now(timezone.utc) - timedelta(days=days_behind)).isoformat()
     end = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
-
-    def _dedup_key(summary: str, start: str) -> tuple:
-        return (summary.strip().lower(), start[:10])
 
     events, seen = [], set()
     for cal_id in CALENDAR_IDS:
@@ -127,6 +132,8 @@ def fetch_calendar_events(days_ahead: int = 30, days_behind: int = 5) -> list:
                 singleEvents=True, orderBy="startTime", maxResults=20,
             ).execute()
             for item in result.get("items", []):
+                if _is_declined(item):
+                    continue
                 start_str = item["start"].get("dateTime", item["start"].get("date", ""))
                 key = _dedup_key(item.get("summary", ""), start_str)
                 if key not in seen:
