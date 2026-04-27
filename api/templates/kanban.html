@@ -92,7 +92,7 @@ body { overflow: hidden !important; }
     <div class="modal-title">add card</div>
     <label>title</label>
     <input id="a-title" type="text" placeholder="what needs doing">
-    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
+    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
     <input id="a-due" type="text" placeholder="optional">
     <label>column</label>
     <select id="a-col">
@@ -129,7 +129,7 @@ body { overflow: hidden !important; }
       <option value="project">project &mdash; under 2 days</option>
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
-    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
+    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
     <input id="e-due" type="text" placeholder="optional">
     <label>scheduled for &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">apr 26 &nbsp;|&nbsp; 4/26 &nbsp;|&nbsp; leave blank</span></label>
     <input id="e-scheduled-for" type="text" placeholder="optional">
@@ -190,23 +190,57 @@ function parseMonthDay(input) {
   if (!input || !input.trim()) return null;
   const s = input.trim().toLowerCase();
   const mnths = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const wdays = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const now = new Date();
-  let month = -1, day = 0;
-  let m = s.match(/^(\d{1,2})[\/-](\d{1,2})$/);
-  if (m) { month = parseInt(m[1]) - 1; day = parseInt(m[2]); }
+
+  // Extract trailing time: "6pm", "6:30pm", "18:00"
+  let timeStr = '';
+  let dateStr = s;
+  const tm = s.match(/\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+  if (tm) {
+    let h = parseInt(tm[1]), min = tm[2] ? parseInt(tm[2]) : 0;
+    if (tm[3].toLowerCase() === 'pm' && h < 12) h += 12;
+    if (tm[3].toLowerCase() === 'am' && h === 12) h = 0;
+    timeStr = `T${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+    dateStr = s.slice(0, s.length - tm[0].length).trim();
+  }
+
+  let yr = now.getFullYear(), month = -1, day = 0, useDate = null;
+
+  // Weekday name → next occurrence
+  const wi = wdays.findIndex(d => dateStr.startsWith(d));
+  if (wi >= 0) {
+    let diff = wi - now.getDay();
+    if (diff <= 0) diff += 7;
+    useDate = new Date(now); useDate.setDate(now.getDate() + diff); useDate.setHours(0,0,0,0);
+    month = useDate.getMonth(); day = useDate.getDate(); yr = useDate.getFullYear();
+  }
+
+  // MM/DD or MM-DD
   if (month < 0) {
-    m = s.match(/^([a-z]+)\s+(\d{1,2})$/);
+    const m = dateStr.match(/^(\d{1,2})[\/-](\d{1,2})$/);
+    if (m) { month = parseInt(m[1]) - 1; day = parseInt(m[2]); }
+  }
+
+  // "apr 26" style
+  if (month < 0) {
+    const m = dateStr.match(/^([a-z]+)\s+(\d{1,2})$/);
     if (m) { const i = mnths.findIndex(x => m[1].startsWith(x)); if (i >= 0) { month = i; day = parseInt(m[2]); } }
   }
+
   if (month < 0 || !day) return null;
-  let yr = now.getFullYear();
-  if (new Date(yr, month, day) <= now) yr++;
-  return `${yr}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  if (!useDate && new Date(yr, month, day) <= now) yr++;
+  const iso = `${yr}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  return timeStr ? iso + timeStr : iso;
 }
 
 function fmtDate(iso) {
-  const d = new Date(iso + 'T12:00:00');
-  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  if (!iso) return '';
+  const hasTime = iso.includes('T');
+  const d = hasTime ? new Date(iso) : new Date(iso + 'T12:00:00');
+  let s = d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  if (hasTime) s += ' ' + d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}).toLowerCase();
+  return s;
 }
 
 function isUrgent(iso) {
