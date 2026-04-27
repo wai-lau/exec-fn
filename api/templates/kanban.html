@@ -425,7 +425,7 @@ async function autoFillStartBefore() {
   const etRaw = document.getElementById('e-estimated-time').value;
   const estimated_minutes = etRaw !== '' ? parseInt(etRaw, 10) : null;
   const resolved = await resolveDue(dueRaw, size, estimated_minutes);
-  if (resolved.start_before && !sbInput.value.trim()) {
+  if (resolved.start_before) {
     sbInput.value = resolved.start_before;
     hint.textContent = 'auto-filled';
     hint.style.display = 'block';
