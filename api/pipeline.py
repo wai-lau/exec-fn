@@ -688,7 +688,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
 
 # ── morning pipeline ───────────────────────────────────────────────────────────
 
-def generate_morning_recap(delta: dict, omens: dict, rd_changes: str) -> dict:
+def generate_morning_recap(delta: dict, omens: dict, rd_changes: str, rd_log: list | None = None) -> dict:
     import anthropic
 
     ctx = _load_json("context", {"notes": []})
@@ -707,11 +707,18 @@ def generate_morning_recap(delta: dict, omens: dict, rd_changes: str) -> dict:
     ) or "None."
     events_text = "\n".join(f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])) or "None."
 
+    log_entries = "\n".join(
+        f"- {e['action']} '{e['title']}'" + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
+        for e in (rd_log or [])
+    )
+    rd_log_text = f"R&D ACTIVITY LOG (today):\n{log_entries}\n\n" if rd_log else ""
+
     prompt = (
         "Generate a morning briefing for Wai's planning terminal. Be terse. Use lists. No prose except the final question.\n\n"
         f"YESTERDAY — what Wai wrote/did:\n{delta.get('wai_notes', 'No annotations recorded.')}\n\n"
         f"YESTERDAY — adjustments for today:\n{delta.get('adjustments', 'None.')}\n\n"
         f"R&D CHANGES APPLIED:\n{rd_changes or 'None.'}\n\n"
+        f"{rd_log_text}"
         f"CURRENTLY SELECTED:\n{selected_text}\n\n"
         f"IDEAS POOL:\n{ideas_text}\n\n"
         f"UPCOMING EVENTS:\n{events_text}\n\n"
@@ -760,7 +767,7 @@ def build_morning() -> dict:
     delta = analyze_delta(path=latest_path)
     omens = analyze_omens()
     rd_changes = update_rd_from_delta(delta)
-    recap = generate_morning_recap(delta, omens, rd_changes)
+    recap = generate_morning_recap(delta, omens, rd_changes, rd_log=get_rd_log(limit=50))
     push_pdf()
     return recap
 
@@ -989,6 +996,11 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
 
     ctx_text = "\n".join(f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])) or "None."
     delta_text = f"NOTES: {delta.get('wai_notes', 'None.')}\nADJUSTMENTS: {delta.get('adjustments', 'None.')}"
+    rd_log_entries = get_rd_log(limit=20)
+    rd_log_text = "\n".join(
+        f"- {e['action']} '{e['title']}'" + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
+        for e in reversed(rd_log_entries)
+    ) or "None."
     events_text = "\n".join(f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])) or "None."
     selected_text = "\n".join(
         f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('description','')}"
@@ -1031,6 +1043,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"MORNING BRIEFING CONTEXT:\n{morning.get('opening_message', 'No briefing available.')}\n\n"
         f"YESTERDAY'S DELTA:\n{delta_text}\n\n"
         f"UPCOMING EVENTS:\n{events_text}\n\n"
+        f"R&D ACTIVITY LOG (today):\n{rd_log_text}\n\n"
         f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
         f"IDEAS POOL (top 15):\n{ideas_text}\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}"
