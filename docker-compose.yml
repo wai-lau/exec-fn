@@ -10,6 +10,7 @@ services:
       - .env
     volumes:
       - ./api/data:/app/data
+      - ./nightfall-incident:/app/nightfall
       - rmapi-auth:/root/.config/rmapi
       - gcal-auth:/root/.config/gcal
 

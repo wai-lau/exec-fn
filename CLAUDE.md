@@ -42,7 +42,16 @@ ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=
 # 5. git commit + push after healthy
 ```
 
-Container paths: `/app/` api, `/app/static/` web, `/app/templates/` templates.
+Container paths: `/app/` api, `/app/static/` web, `/app/templates/` templates, `/app/nightfall/` nightfall game (volume-mounted from `./nightfall-incident/` on host).
+
+### Nightfall static assets
+
+`nightfall-incident/` is volume-mounted — files served live from host, no rebuild needed.
+
+To deploy nightfall changes:
+1. Build locally: `cd nightfall-incident && npm run build` (or webpack)
+2. `scp -r nightfall-incident/static/ root@wai-lau.net:/exec-fn/nightfall-incident/static/`
+3. No restart needed — StaticFiles serves from volume directly
 
 ### Deploy agent prompt template
 
