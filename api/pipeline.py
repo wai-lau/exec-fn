@@ -744,22 +744,58 @@ def build_morning() -> dict:
     return recap
 
 
+# ── gcal auth ─────────────────────────────────────────────────────────────────
+
+GCAL_SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
+GCAL_CONFIG_DIR = Path("/root/.config/gcal")
+GCAL_TOKEN_PATH = GCAL_CONFIG_DIR / "token.json"
+GCAL_CREDS_PATH = GCAL_CONFIG_DIR / "credentials.json"
+GCAL_REDIRECT_URI = "https://wai-lau.net/api/gcal/callback"
+_gcal_pending_state: dict = {}
+
+
+def gcal_start_auth() -> str:
+    from google_auth_oauthlib.flow import Flow
+
+    if not GCAL_CREDS_PATH.exists():
+        raise RuntimeError(f"Missing {GCAL_CREDS_PATH} — copy credentials.json there first.")
+
+    flow = Flow.from_client_secrets_file(
+        str(GCAL_CREDS_PATH), scopes=GCAL_SCOPES, redirect_uri=GCAL_REDIRECT_URI
+    )
+    auth_url, state = flow.authorization_url(prompt="consent", access_type="offline")
+    _gcal_pending_state["state"] = state
+    _gcal_pending_state["flow"] = flow
+    return auth_url
+
+
+def gcal_complete_auth(code: str, state: str) -> None:
+    if state != _gcal_pending_state.get("state"):
+        raise RuntimeError("OAuth state mismatch — restart auth flow.")
+    flow = _gcal_pending_state.get("flow")
+    if not flow:
+        raise RuntimeError("No pending auth flow — visit /api/gcal/auth first.")
+    flow.fetch_token(code=code)
+    creds = flow.credentials
+    GCAL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    GCAL_TOKEN_PATH.write_text(creds.to_json())
+    _gcal_pending_state.clear()
+
+
 # ── omens ─────────────────────────────────────────────────────────────────────
 
 def _gcal_creds():
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
 
-    token_path = Path("/root/.config/gcal/token.json")
-    if not token_path.exists():
+    if not GCAL_TOKEN_PATH.exists():
         raise RuntimeError(
-            "Google Calendar not authenticated. "
-            "Run: docker compose exec -it api python3 gcal_auth.py"
+            "Google Calendar not authenticated. Visit https://wai-lau.net/api/gcal/auth"
         )
-    creds = Credentials.from_authorized_user_file(str(token_path))
+    creds = Credentials.from_authorized_user_file(str(GCAL_TOKEN_PATH))
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
-        token_path.write_text(creds.to_json())
+        GCAL_TOKEN_PATH.write_text(creds.to_json())
     return creds
 
 

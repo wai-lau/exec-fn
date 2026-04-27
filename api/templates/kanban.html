@@ -323,12 +323,22 @@ async function load() {
 function openAdd() { document.getElementById('add-modal').classList.add('open'); document.getElementById('a-title').focus(); }
 function closeAdd() { document.getElementById('add-modal').classList.remove('open'); document.getElementById('a-title').value = ''; document.getElementById('a-due').value = ''; }
 
+async function resolveDue(raw) {
+  const quick = parseMonthDay(raw);
+  if (quick !== null || !raw.trim()) return quick;
+  try {
+    const r = await fetch('/api/parse_date', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text: raw.trim()})});
+    const d = await r.json();
+    return d.iso || null;
+  } catch(_) { return null; }
+}
+
 async function addCard() {
   const title = document.getElementById('a-title').value.trim();
   if (!title) return;
   const btn = document.getElementById('a-submit');
   btn.disabled = true; btn.textContent = 'classifying...';
-  const due_date = parseMonthDay(document.getElementById('a-due').value);
+  const due_date = await resolveDue(document.getElementById('a-due').value);
   const col = document.getElementById('a-col').value;
   let category = 'Self', size = 'task', description = '';
   try {
@@ -372,8 +382,8 @@ async function saveEdit() {
   c.description    = document.getElementById('e-desc').value.trim();
   c.category       = document.getElementById('e-cat').value;
   c.size           = document.getElementById('e-size').value;
-  c.due_date       = parseMonthDay(document.getElementById('e-due').value);
-  c.scheduled_for  = parseMonthDay(document.getElementById('e-scheduled-for').value);
+  c.due_date       = await resolveDue(document.getElementById('e-due').value);
+  c.scheduled_for  = await resolveDue(document.getElementById('e-scheduled-for').value);
   const etRaw      = document.getElementById('e-estimated-time').value;
   c.estimated_time = etRaw !== '' ? parseInt(etRaw, 10) : (c.estimated_time ?? null);
   c.notes          = document.getElementById('e-notes').value.trim();

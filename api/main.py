@@ -767,6 +767,26 @@ def api_omens_run():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@protected.get("/api/gcal/auth")
+def api_gcal_auth():
+    try:
+        auth_url = pipeline.gcal_start_auth()
+        return RedirectResponse(auth_url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@public.get("/api/gcal/callback")
+def api_gcal_callback(code: str = "", state: str = "", error: str = ""):
+    if error:
+        return HTMLResponse(f"<pre>GCal auth error: {error}</pre>", status_code=400)
+    try:
+        pipeline.gcal_complete_auth(code, state)
+        return HTMLResponse("<pre>Google Calendar connected. You can close this tab.</pre>")
+    except Exception as e:
+        return HTMLResponse(f"<pre>Auth failed: {e}</pre>", status_code=500)
+
+
 @protected.post("/api/parse_date")
 async def api_parse_date(request: Request):
     data = await request.json()
