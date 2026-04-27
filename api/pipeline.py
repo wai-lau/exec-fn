@@ -996,7 +996,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
 
     today_str = _now_et().strftime("%A, %B %-d, %Y %H:%M ET")
     return (
-        f"You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
+        f"Your name is Exec. You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
         f"TODAY: {today_str}\n"
         f"FORMATTING: Plain text only. No markdown — no **, no *, no #, no -, no bullet points, no headers.\n"
         f"Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
