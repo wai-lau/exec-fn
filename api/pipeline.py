@@ -844,12 +844,12 @@ def _fetch_ics_events(url: str, days_ahead: int) -> list:
     return events
 
 
-def fetch_calendar_events(days_ahead: int = 14) -> list:
+def fetch_calendar_events(days_ahead: int = 30, days_behind: int = 5) -> list:
     from googleapiclient.discovery import build as gcal_build
 
     creds = _gcal_creds()
     service = gcal_build("calendar", "v3", credentials=creds)
-    now = datetime.now(timezone.utc).isoformat()
+    start = (datetime.now(timezone.utc) - timedelta(days=days_behind)).isoformat()
     end = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).isoformat()
 
     def _dedup_key(summary: str, start: str) -> tuple:
@@ -859,7 +859,7 @@ def fetch_calendar_events(days_ahead: int = 14) -> list:
     for cal_id in CALENDAR_IDS:
         try:
             result = service.events().list(
-                calendarId=cal_id, timeMin=now, timeMax=end,
+                calendarId=cal_id, timeMin=start, timeMax=end,
                 singleEvents=True, orderBy="startTime", maxResults=20,
             ).execute()
             for item in result.get("items", []):

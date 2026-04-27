@@ -156,6 +156,8 @@ async function streamResponse() {
           else if (data.name === 'build_pdf') { addMsg('sys', `[ pdf built: ${r.pdf || ''} ]`); }
           else if (data.name === 'finalize_and_push') { addMsg('sys', '[ pushed to reMarkable ]'); }
           else if (data.name === 'reschedule') { addMsg('sys', `[ schedule updated: ${(r.schedule||[]).length} entries ]`); }
+          else if (data.name === 'create_gcal_event') { addMsg('sys', `[ event created: ${r.summary || data.input?.title || ''} ]`); }
+          else { addMsg('sys', `[ ${data.name.replace(/_/g,' ')}: done ]`); }
         } else if (data.type === 'done') {
           stage = data.next_stage;
         }
