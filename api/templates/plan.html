@@ -137,7 +137,8 @@ async function loadPlan() {
   if (morningRes.ok) {
     const m = await morningRes.json();
     const parts = [];
-    if (m.opening_message) parts.push(`<div style="white-space:pre-wrap;opacity:0.82;font-size:0.85rem;line-height:1.65;">${m.opening_message}</div>`);
+    const briefText = [m.encouraging_message, m.helpful_prompt].filter(Boolean).join('\n\n');
+    if (briefText) parts.push(`<div style="white-space:pre-wrap;opacity:0.82;font-size:0.85rem;line-height:1.65;">${briefText}</div>`);
     if (m.errors && Object.keys(m.errors).length) {
       const errLines = Object.entries(m.errors).map(([k,v]) => `${k}: ${v}`).join('\n');
       parts.push(`<div style="white-space:pre-wrap;color:rgba(255,100,80,0.85);font-size:0.78rem;margin-top:10px;">${errLines}</div>`);

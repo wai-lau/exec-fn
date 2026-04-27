@@ -189,55 +189,34 @@ def generate_morning_recap(delta: dict, omens: dict, rd_changes: str, rd_log: li
     ctx_text = "\n".join(
         f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])[-15:]
     ) or "None."
-
-    rd = _load_rd()
-    cards = rd.get("cards", [])
-    selected = sorted([c for c in cards if c.get("column") == "hq"], key=lambda c: c.get("order", 0))
-    ideas = sorted([c for c in cards if c.get("column") == "rd"], key=lambda c: c.get("order", 0))
-
-    selected_text = "\n".join(f"- [{c.get('size','task')}] {c['title']}" for c in selected) or "None."
-    ideas_text = "\n".join(
-        f"- [{c.get('size','task')}] {c['title']} ({c.get('category','')})" for c in ideas[:15]
-    ) or "None."
+    delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
     events_text = "\n".join(f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])) or "None."
-
-    log_entries = "\n".join(
-        f"- {e['action']} '{e['title']}'" + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
-        for e in (rd_log or [])
-    )
-    rd_log_text = f"R&D ACTIVITY LOG (today):\n{log_entries}\n\n" if rd_log else ""
-
-    prompt = (
-        "Generate a morning briefing for Wai's planning terminal. Be terse. Use lists. No prose except the final question.\n\n"
-        f"YESTERDAY — what Wai wrote/did:\n{delta.get('wai_notes', 'No annotations recorded.')}\n\n"
-        f"YESTERDAY — adjustments for today:\n{delta.get('adjustments', 'None.')}\n\n"
-        f"R&D CHANGES APPLIED:\n{rd_changes or 'None.'}\n\n"
-        f"{rd_log_text}"
-        f"CURRENTLY SELECTED:\n{selected_text}\n\n"
-        f"IDEAS POOL:\n{ideas_text}\n\n"
-        f"UPCOMING EVENTS:\n{events_text}\n\n"
-        f"KNOWN CONTEXT:\n{ctx_text}\n\n"
-        "Output format (use exactly this structure, plain text):\n\n"
-        "yesterday\n"
-        "- [bullet per notable thing done or noted, use real task names, skip if nothing]\n\n"
-        "carrying forward\n"
-        "- [tasks still selected or recommended from adjustments]\n\n"
-        "omens\n"
-        "- [time-sensitive events only, skip section if none]\n\n"
-        "suggested\n"
-        "- [2-3 specific r&d items from ideas pool that fit context and delta]\n\n"
-        "[one short human question about today's time and energy — the only sentence that sounds like a person]\n\n"
-        "No headers with colons. No markdown. No extra commentary."
-    )
 
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=500,
-        messages=[{"role": "user", "content": prompt}],
+        max_tokens=300,
+        messages=[{"role": "user", "content": (
+            f"YESTERDAY: {delta_text or 'none'}\n"
+            f"UPCOMING EVENTS: {events_text}\n"
+            f"KNOWN CONTEXT: {ctx_text}\n\n"
+            "Write for Wai's planning terminal:\n"
+            "1. encouraging_message: 2-3 warm sentences acknowledging yesterday and what's ahead. Personal and specific. No em-dashes.\n"
+            "2. helpful_prompt: one short question to open the planning conversation (about energy, priorities, or what's on their mind).\n\n"
+            'JSON only: {"encouraging_message": "...", "helpful_prompt": "..."}'
+        )}],
     )
 
-    result = {"generated_at": datetime.now(timezone.utc).isoformat(), "opening_message": msg.content[0].text.strip()}
+    try:
+        parsed = _parse_json(msg.content[0].text)
+    except Exception:
+        parsed = {}
+
+    result = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "encouraging_message": parsed.get("encouraging_message", ""),
+        "helpful_prompt": parsed.get("helpful_prompt", ""),
+    }
     (DATA_DIR / "morning.json").write_text(json.dumps(result, indent=2))
     return result
 
@@ -278,7 +257,7 @@ def build_morning() -> dict:
     rd_changes = _run_step(errors, "rd", lambda: update_rd_from_delta(delta)) or ""
     recap = _run_step(errors, "recap", lambda: generate_morning_recap(delta, omens, rd_changes, rd_log=get_rd_log(limit=50)))
     if recap is None:
-        recap = {"generated_at": datetime.now(timezone.utc).isoformat(), "opening_message": ""}
+        recap = {"generated_at": datetime.now(timezone.utc).isoformat(), "encouraging_message": "", "helpful_prompt": ""}
     _run_step(errors, "push_pdf", push_pdf)
 
     if errors:

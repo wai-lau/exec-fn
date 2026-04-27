@@ -246,7 +246,8 @@ async function init() {
     const mr = await fetch('/api/morning');
     stopSpinner();
     if (mr.ok) {
-      morningMsg = (await mr.json()).opening_message || null;
+      const m = await mr.json();
+      morningMsg = [m.encouraging_message, m.helpful_prompt].filter(Boolean).join('\n\n') || null;
     } else {
       const err = await mr.json().catch(() => ({}));
       addMsg('sys', '[morning pipeline failed: ' + (err.detail || mr.status) + ']');
