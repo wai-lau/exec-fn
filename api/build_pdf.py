@@ -76,8 +76,7 @@ def draw_schedule_page(c, plan, events):
         for entry in schedule:
             if y < MARGIN + SH:
                 break
-            # Strip AM/PM to get "H:MM" format
-            t = entry.get("time", "").replace(" AM", "").replace(" PM", "")
+            t = entry.get("time", "")
             task = entry.get("title") or entry.get("task", "")
 
             task_lines = _wrap(task, FONT_ITEM, SIZE_ITEM, TASK_W)
