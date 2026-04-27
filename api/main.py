@@ -17,7 +17,7 @@ from gcal import gcal_start_auth, gcal_complete_auth, analyze_omens
 from delta import _load_all_recent_deltas, analyze_delta
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
-from helpers import get_rd_log, DATA_DIR, _load_json
+from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log
 from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected
 from routes_chat import router as chat_router
 
@@ -293,7 +293,22 @@ async def api_rd_patch(request: Request):
     body = await request.json()
     p = DATA_DIR / "rd.json"
     data = _load_json("rd", {"columns": ["rd","hq","archives","exile"]})
-    data["cards"] = body.get("cards", [])
+    old_cards = {c["id"]: c for c in data.get("cards", [])}
+    new_cards = body.get("cards", [])
+    for c in new_cards:
+        cid = c.get("id")
+        old = old_cards.get(cid)
+        if old is None:
+            _append_rd_log("created", c.get("title", cid), column=c.get("column"))
+        elif old.get("column") != c.get("column"):
+            _append_rd_log("moved", c.get("title", cid), from_col=old["column"], to_col=c["column"])
+        elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
+            _append_rd_log("updated", c.get("title", cid))
+    new_ids = {c["id"] for c in new_cards}
+    for cid, old in old_cards.items():
+        if cid not in new_ids:
+            _append_rd_log("deleted", old.get("title", cid))
+    data["cards"] = new_cards
     p.write_text(json.dumps(data, indent=2))
     return {"ok": True}
 
