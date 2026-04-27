@@ -283,7 +283,7 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
     omens = _load_json("omens", {}).get("events", [])
     omens_text = ""
     if omens:
-        omens_text = " Upcoming events: " + "; ".join(f"{e['title']} on {e['date']}" for e in omens[:10]) + "."
+        omens_text = " Upcoming events: " + "; ".join(f"{e['title']} on {e.get('date_iso') or e['date']}" for e in omens[:10]) + "."
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",

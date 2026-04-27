@@ -212,7 +212,7 @@ def fetch_omens() -> dict:
     events = fetch_calendar_events()
     omens = {
         "checked_at": datetime.now(timezone.utc).isoformat(),
-        "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"])} for e in events],
+        "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"]), "date_iso": e["start"][:10]} for e in events],
     }
     (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
     return omens
