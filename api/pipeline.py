@@ -7,7 +7,7 @@ from helpers import (
     _RD_LOG,
 )
 from rm import pull_rmdocs, push_pdf
-from gcal import analyze_omens
+from gcal import fetch_omens
 from delta import analyze_delta
 from chat import _dedupe_context
 
@@ -215,7 +215,7 @@ def build_morning() -> dict:
     errors: dict = {}
     latest_path = _run_step(errors, "pull", pull_rmdocs)
     delta = _run_step(errors, "delta", lambda: analyze_delta(path=latest_path)) or {}
-    _run_step(errors, "omens", analyze_omens)
+    _run_step(errors, "omens", fetch_omens)
     _run_step(errors, "rd", lambda: update_rd_from_delta(delta))
     _run_step(errors, "push_pdf", push_pdf)
 

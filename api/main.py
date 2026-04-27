@@ -13,7 +13,7 @@ from typing import Optional
 
 from pipeline import build_morning
 from rm import pull_rmdocs, push_pdf, list_archive
-from gcal import gcal_start_auth, gcal_complete_auth, analyze_omens
+from gcal import gcal_start_auth, gcal_complete_auth, fetch_omens
 from delta import _load_all_recent_deltas, analyze_delta
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
@@ -428,7 +428,7 @@ def api_omens_get():
 @protected.post("/api/omens")
 def api_omens_run():
     try:
-        return analyze_omens()
+        return fetch_omens()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -193,7 +193,7 @@ def create_gcal_event(title: str, start: str, end: str | None = None, descriptio
     return {"ok": True, "event_id": event.get("id"), "link": event.get("htmlLink")}
 
 
-def analyze_omens() -> dict:
+def fetch_omens() -> dict:
     def _fmt_date(iso: str) -> str:
         try:
             today = date.today()

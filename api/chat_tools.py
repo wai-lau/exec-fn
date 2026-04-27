@@ -9,7 +9,7 @@ from helpers import (
     _apply_context_update,
 )
 from delta import analyze_delta_to_now, _load_all_recent_deltas, _load_yesterday_delta
-from gcal import analyze_omens, create_gcal_event
+from gcal import fetch_omens, create_gcal_event
 from rm import push_pdf
 
 
@@ -89,7 +89,7 @@ def _tool_create_card(input_: dict) -> dict:
 
 
 def _tool_refresh_omens(input_: dict) -> dict:
-    result = analyze_omens()
+    result = fetch_omens()
     events = result.get("events", [])
     return {"ok": True, "event_count": len(events), "events": ", ".join(e.get("title", "") for e in events) or "none"}
 
@@ -193,7 +193,7 @@ def _tool_assemble_plan(input_: dict) -> dict:
     dive_ids = list(input_.get("dive_ids", []))
 
     try:
-        analyze_omens()
+        fetch_omens()
     except Exception:
         pass
 
