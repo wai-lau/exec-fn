@@ -45,7 +45,7 @@ def _rollover_cutoff() -> datetime:
 def _day_window() -> tuple[datetime, datetime]:
     """(yesterday 4:30 AM ET, now) as naive UTC datetimes."""
     day_start = _rollover_cutoff() - timedelta(days=1)
-    day_end = datetime.utcnow()
+    day_end = datetime.now(timezone.utc).replace(tzinfo=None)
     return day_start, day_end
 
 
@@ -61,9 +61,14 @@ def _parse_json(text: str) -> dict | list:
     """Extract and parse the first JSON object or array from a string."""
     raw = re.sub(r'^```\w*\n?', '', text.strip())
     raw = re.sub(r'\n?```$', '', raw).strip()
-    m = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', raw)
-    if m:
-        return json.loads(m.group())
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(raw):
+        if ch in ('{', '['):
+            try:
+                val, _ = decoder.raw_decode(raw, i)
+                return val
+            except json.JSONDecodeError:
+                continue
     raise ValueError(f"No JSON found in: {text[:200]}")
 
 
@@ -88,8 +93,7 @@ _RD_LOG = DATA_DIR / "rd_log.json"
 
 
 def _append_rd_log(action: str, title: str, **extra):
-    from datetime import timezone as _tz
-    entry = {"ts": datetime.now(_tz.utc).isoformat(), "action": action, "title": title, **extra}
+    entry = {"ts": datetime.now(timezone.utc).isoformat(), "action": action, "title": title, **extra}
     log = json.loads(_RD_LOG.read_text()) if _RD_LOG.exists() else []
     log.append(entry)
     _RD_LOG.write_text(json.dumps(log[-500:]))
