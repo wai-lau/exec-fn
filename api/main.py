@@ -758,10 +758,25 @@ def api_build_pdf():
 
 @protected.get("/api/omens")
 def api_omens_get():
+    from datetime import datetime as _dt, timezone as _tz
     p = DATA_DIR / "omens.json"
     if not p.exists():
         raise HTTPException(status_code=404, detail="No omens yet")
-    return json.loads(p.read_text())
+    data = json.loads(p.read_text())
+    now = _dt.now(_tz.utc)
+    def _is_future(e: dict) -> bool:
+        start = e.get("start", "")
+        if not start:
+            return True
+        try:
+            s = _dt.fromisoformat(start.replace("Z", "+00:00"))
+            if s.tzinfo is None:
+                s = s.replace(tzinfo=_tz.utc)
+            return s >= now
+        except Exception:
+            return True
+    data["events"] = [e for e in data.get("events", []) if _is_future(e)]
+    return data
 
 
 @protected.post("/api/omens")

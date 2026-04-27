@@ -251,7 +251,7 @@ def _delta_prompt() -> str:
             f"[event_id:{e.get('event_id','')}] {e.get('title','')} ({e.get('date','')})" for e in omens
         )
 
-    ctx = _load_json("context", {"notes": []})
+    ctx = _load_json("profile", {"notes": []})
     known = "\n".join(f"- {n['note']}" for n in ctx.get("notes", [])) or "None."
 
     return (
@@ -699,7 +699,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
 def generate_morning_recap(delta: dict, omens: dict, rd_changes: str, rd_log: list | None = None) -> dict:
     import anthropic
 
-    ctx = _load_json("context", {"notes": []})
+    ctx = _load_json("profile", {"notes": []})
     ctx_text = "\n".join(
         f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])[-15:]
     ) or "None."
@@ -766,19 +766,58 @@ def build_morning() -> dict:
         _RD_LOG.rename(archive_name)
     _RD_LOG.write_text("[]")
 
-    ctx_path = DATA_DIR / "context.json"
-    if ctx_path.exists():
-        ctx = json.loads(ctx_path.read_text())
+    profile_path = DATA_DIR / "profile.json"
+    old_ctx = DATA_DIR / "context.json"
+    if old_ctx.exists() and not profile_path.exists():
+        old_ctx.rename(profile_path)
+
+    if profile_path.exists():
+        ctx = json.loads(profile_path.read_text())
         if len(ctx.get("notes", [])) > 1:
             ctx["notes"] = _dedupe_context(ctx["notes"])
-            ctx_path.write_text(json.dumps(ctx, indent=2))
+            profile_path.write_text(json.dumps(ctx, indent=2))
 
-    latest_path = pull_rmdocs()
-    delta = analyze_delta(path=latest_path)
-    omens = analyze_omens()
-    rd_changes = update_rd_from_delta(delta)
-    recap = generate_morning_recap(delta, omens, rd_changes, rd_log=get_rd_log(limit=50))
-    push_pdf()
+    errors = {}
+
+    latest_path = None
+    try:
+        latest_path = pull_rmdocs()
+    except Exception as e:
+        errors["pull"] = str(e)
+
+    delta = {}
+    try:
+        delta = analyze_delta(path=latest_path)
+    except Exception as e:
+        errors["delta"] = str(e)
+
+    omens = {}
+    try:
+        omens = analyze_omens()
+    except Exception as e:
+        errors["omens"] = str(e)
+
+    rd_changes = ""
+    try:
+        rd_changes = update_rd_from_delta(delta)
+    except Exception as e:
+        errors["rd"] = str(e)
+
+    try:
+        recap = generate_morning_recap(delta, omens, rd_changes, rd_log=get_rd_log(limit=50))
+    except Exception as e:
+        errors["recap"] = str(e)
+        recap = {"generated_at": datetime.now().isoformat(), "opening_message": ""}
+
+    try:
+        push_pdf()
+    except Exception as e:
+        errors["push_pdf"] = str(e)
+
+    if errors:
+        recap["errors"] = errors
+        (DATA_DIR / "morning.json").write_text(json.dumps(recap, indent=2))
+
     return recap
 
 
@@ -985,7 +1024,7 @@ def analyze_omens() -> dict:
     events = fetch_calendar_events()
     omens = {
         "checked_at": datetime.now().isoformat(),
-        "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"])} for e in events],
+        "events": [{"event_id": e.get("id", ""), "title": e["summary"], "date": _fmt_date(e["start"]), "start": e["start"]} for e in events],
     }
     (DATA_DIR / "omens.json").write_text(json.dumps(omens, indent=2))
     return omens
@@ -994,7 +1033,7 @@ def analyze_omens() -> dict:
 # ── chat ──────────────────────────────────────────────────────────────────────
 
 def _build_chat_system_prompt(stage: str = "planning") -> str:
-    ctx = _load_json("context", {"notes": []})
+    ctx = _load_json("profile", {"notes": []})
     delta = _load_daily_delta()
     omens = _load_json("omens")
     rd = _load_rd()
@@ -1183,7 +1222,7 @@ def _chat_tools() -> list:
         {
             "name": "update_context",
             "description": (
-                "Add, remove, or replace a long-term fact about Wai in context.json. "
+                "Add, remove, or replace a long-term fact about Wai in profile.json. "
                 "TRIGGER: call immediately whenever Wai uses the word 'remember' or 'don't forget'. "
                 "Also call proactively for corrections to existing notes, newly learned preferences, relationship facts, recurring constraints, upcoming events. "
                 "Use add for new facts. Use remove to delete an outdated fact. Use replace to correct a stale fact."
@@ -1225,7 +1264,7 @@ def _tool_finalize_and_push(input_: dict) -> dict:
     _save_rd(rd)
 
     if context_note and context_note.strip():
-        ctx_path = DATA_DIR / "context.json"
+        ctx_path = DATA_DIR / "profile.json"
         ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}
         ctx["notes"].append({"date": date.today().isoformat(), "note": context_note.strip()})
         ctx_path.write_text(json.dumps(ctx, indent=2))

@@ -22,6 +22,10 @@
     <span style="opacity:0.4;font-size:0.8rem;">loading...</span>
   </div>
   <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">briefing</div>
+    <div id="pr-briefing"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
+  <div style="margin-bottom:28px;">
     <div class="pr-col-hdr" style="margin-bottom:10px;">schedule</div>
     <div id="pr-schedule"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
@@ -33,10 +37,6 @@
     <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
   <div style="margin-bottom:28px;">
-    <div class="pr-col-hdr" style="margin-bottom:10px;">delta</div>
-    <div id="pr-delta"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
-  </div>
-  <div style="margin-bottom:28px;">
     <div class="pr-col-hdr" style="margin-bottom:10px;">encouragement</div>
     <div id="pr-enc" style="line-height:1.7;opacity:0.8;white-space:pre-wrap;font-size:0.85rem;"></div>
   </div>
@@ -44,13 +44,17 @@
     <div class="pr-col-hdr" style="margin-bottom:10px;">r&d activity</div>
     <div id="pr-rdlog"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
+  <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">delta</div>
+    <div id="pr-delta"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
 </div>
 
 <script>
 async function loadPlan() {
   const HDR = '<div class="pr-col-hdr">';
-  const [omensRes, dirRes, deltaRes, planRes, rdlogRes] = await Promise.all([
-    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta'), fetch('/api/plan'), fetch('/api/rd/log')
+  const [omensRes, dirRes, deltaRes, planRes, rdlogRes, morningRes] = await Promise.all([
+    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta'), fetch('/api/plan'), fetch('/api/rd/log'), fetch('/api/morning')
   ]);
 
   if (dirRes.ok) {
@@ -128,6 +132,19 @@ async function loadPlan() {
     document.getElementById('pr-delta').innerHTML = parts.length ? parts.join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
   } else {
     document.getElementById('pr-delta').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (morningRes.ok) {
+    const m = await morningRes.json();
+    const parts = [];
+    if (m.opening_message) parts.push(`<div style="white-space:pre-wrap;opacity:0.82;font-size:0.85rem;line-height:1.65;">${m.opening_message}</div>`);
+    if (m.errors && Object.keys(m.errors).length) {
+      const errLines = Object.entries(m.errors).map(([k,v]) => `${k}: ${v}`).join('\n');
+      parts.push(`<div style="white-space:pre-wrap;color:rgba(255,100,80,0.85);font-size:0.78rem;margin-top:10px;">${errLines}</div>`);
+    }
+    document.getElementById('pr-briefing').innerHTML = parts.length ? parts.join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  } else {
+    document.getElementById('pr-briefing').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">unavailable</span>';
   }
 }
 
