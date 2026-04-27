@@ -40,13 +40,17 @@
     <div class="pr-col-hdr" style="margin-bottom:10px;">encouragement</div>
     <div id="pr-enc" style="line-height:1.7;opacity:0.8;white-space:pre-wrap;font-size:0.85rem;"></div>
   </div>
+  <div style="margin-bottom:28px;">
+    <div class="pr-col-hdr" style="margin-bottom:10px;">r&d activity</div>
+    <div id="pr-rdlog"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
+  </div>
 </div>
 
 <script>
 async function loadPlan() {
   const HDR = '<div class="pr-col-hdr">';
-  const [omensRes, dirRes, deltaRes, planRes] = await Promise.all([
-    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta'), fetch('/api/plan')
+  const [omensRes, dirRes, deltaRes, planRes, rdlogRes] = await Promise.all([
+    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/delta'), fetch('/api/plan'), fetch('/api/rd/log')
   ]);
 
   if (dirRes.ok) {
@@ -91,6 +95,29 @@ async function loadPlan() {
     document.getElementById('pr-omens').innerHTML = evts.length
       ? `<table style="border-collapse:collapse;width:100%">${evts.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
       : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (rdlogRes.ok) {
+    const log = await rdlogRes.json();
+    const ACTION_LABEL = {created:'+ created', moved:'→ moved', updated:'~ updated', deleted:'✕ deleted'};
+    if (log.length) {
+      const rows = log.map(e => {
+        const d = new Date(e.ts);
+        const hhmm = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});
+        const mmdd = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+        const label = ACTION_LABEL[e.action] || e.action;
+        const detail = e.action==='moved' ? ` (${e.from_col||'?'} → ${e.to_col||'?'})` : e.action==='created' && e.column ? ` → ${e.column}` : '';
+        const opacity = e.action==='deleted' ? '0.45' : '0.75';
+        return `<tr style="opacity:${opacity}">
+          <td style="padding:3px 12px 3px 0;white-space:nowrap;font-size:0.78em;opacity:0.55;">${mmdd} ${hhmm}</td>
+          <td style="padding:3px 12px 3px 0;white-space:nowrap;font-size:0.78em;">${label}</td>
+          <td style="padding:3px 0;font-size:0.82em;">${e.title}${detail}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('pr-rdlog').innerHTML = `<table style="border-collapse:collapse;width:100%;font-family:monospace;">${rows}</table>`;
+    } else {
+      document.getElementById('pr-rdlog').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">no activity yet</span>';
+    }
   }
 
   if (deltaRes.ok) {

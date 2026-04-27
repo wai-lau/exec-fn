@@ -89,6 +89,24 @@ def _find_card(rd: dict, card_id: str) -> dict | None:
     return next((c for c in rd.get("cards", []) if c["id"] == card_id), None)
 
 
+_RD_LOG = DATA_DIR / "rd_log.json"
+
+
+def _append_rd_log(action: str, title: str, **extra):
+    from datetime import timezone as _tz
+    entry = {"ts": datetime.now(_tz.utc).isoformat(), "action": action, "title": title, **extra}
+    log = json.loads(_RD_LOG.read_text()) if _RD_LOG.exists() else []
+    log.append(entry)
+    _RD_LOG.write_text(json.dumps(log[-500:]))
+
+
+def get_rd_log(limit: int = 20) -> list:
+    if not _RD_LOG.exists():
+        return []
+    log = json.loads(_RD_LOG.read_text())
+    return log[-limit:][::-1]
+
+
 # ── reMarkable helpers ────────────────────────────────────────────────────────
 
 def _rm_list_wai() -> list[str]:
@@ -1233,6 +1251,7 @@ def _tool_create_card(input_: dict) -> dict:
     cards.append(new_card)
     rd["cards"] = cards
     _save_rd(rd)
+    _append_rd_log("created", new_card["title"], column=column)
     return {"ok": True, "id": new_card["id"], "title": new_card["title"]}
 
 
@@ -1247,8 +1266,10 @@ def _tool_move_card(input_: dict) -> dict:
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
+    from_col = card.get("column")
     card["column"] = input_["column"]
     _save_rd(rd)
+    _append_rd_log("moved", card["title"], from_col=from_col, to_col=card["column"])
     return {"ok": True, "id": card["id"], "title": card["title"], "column": card["column"]}
 
 
@@ -1267,16 +1288,19 @@ def _tool_update_card(input_: dict) -> dict:
             if new_size != card.get("size"):
                 card["size"] = new_size
     _save_rd(rd)
+    _append_rd_log("updated", card["title"])
     return {"ok": True, "id": card["id"], "title": card["title"]}
 
 
 def _tool_delete_card(input_: dict) -> dict:
     rd = _load_rd()
-    before = len(rd.get("cards", []))
-    rd["cards"] = [c for c in rd.get("cards", []) if c["id"] != input_.get("id")]
-    if len(rd["cards"]) == before:
+    card = _find_card(rd, input_.get("id", ""))
+    if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
+    title = card.get("title", input_.get("id"))
+    rd["cards"] = [c for c in rd.get("cards", []) if c["id"] != input_.get("id")]
     _save_rd(rd)
+    _append_rd_log("deleted", title)
     return {"ok": True, "deleted": input_.get("id")}
 
 

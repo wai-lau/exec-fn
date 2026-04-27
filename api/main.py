@@ -669,6 +669,11 @@ async def api_rd_patch(request: Request):
     return {"ok": True}
 
 
+@protected.get("/api/rd/log")
+def api_rd_log():
+    return pipeline.get_rd_log(limit=20)
+
+
 @protected.post("/api/rd/classify")
 async def api_rd_classify(request: Request):
     body = await request.json()
