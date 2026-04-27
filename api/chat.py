@@ -10,7 +10,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
     delta = _load_daily_delta()
     omens = _load_json("omens")
     rd = _load_rd()
-    morning = _load_json("morning")
 
     cards = rd.get("cards", [])
     selected = sorted([c for c in cards if c.get("column") == "hq"], key=lambda c: c.get("order", 0))
@@ -64,8 +63,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"CRITICAL: When Wai says 'remember [X]' or 'don't forget [X]', immediately call update_context with action=add and note=[X]. No exceptions.\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
-        f"MORNING ENCOURAGEMENT:\n{morning.get('encouraging_message', '')}\n\n"
-        f"OPENING PROMPT:\n{morning.get('helpful_prompt', '')}\n\n"
         f"YESTERDAY'S DELTA:\n{delta_text}\n\n"
         f"UPCOMING EVENTS:\n{events_text}\n\n"
         f"R&D ACTIVITY LOG (today):\n{rd_log_text}\n\n"

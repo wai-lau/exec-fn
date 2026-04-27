@@ -239,26 +239,10 @@ function restoreMsg(m, toolResults) {
 }
 
 async function init() {
-  // Always run morning pipeline first — it clears chat.json if it's a new day
-  startSpinner('running morning pipeline...');
-  let morningMsg = null;
-  try {
-    const mr = await fetch('/api/morning');
-    stopSpinner();
-    if (mr.ok) {
-      const m = await mr.json();
-      morningMsg = [m.encouraging_message, m.helpful_prompt].filter(Boolean).join('\n\n') || null;
-    } else {
-      const err = await mr.json().catch(() => ({}));
-      addMsg('sys', '[morning pipeline failed: ' + (err.detail || mr.status) + ']');
-    }
-  } catch(e) {
-    stopSpinner();
-    addMsg('sys', '[error: ' + e.message + ']');
-  }
-
-  // Load chat — may be empty if morning just cleared it
+  // Load chat
+  startSpinner('loading...');
   const r = await fetch('/api/chat');
+  stopSpinner();
   const chat = await r.json();
   if (chat.messages && chat.messages.length > 0) {
     messages = chat.messages;
@@ -274,10 +258,7 @@ async function init() {
       }
     }
     for (const m of messages) restoreMsg(m, toolResults);
-    return;
   }
-
-  if (morningMsg) addMsg('assistant', morningMsg);
 }
 
 document.getElementById('msg-input').addEventListener('keydown', e => {

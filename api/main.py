@@ -17,7 +17,7 @@ from gcal import gcal_start_auth, gcal_complete_auth, analyze_omens
 from delta import _load_all_recent_deltas, analyze_delta
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
-from helpers import get_rd_log, DATA_DIR, _load_json, _now_et
+from helpers import get_rd_log, DATA_DIR, _load_json
 from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected
 from routes_chat import router as chat_router
 
@@ -221,19 +221,6 @@ def api_pull():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@protected.get("/api/morning")
-def api_morning_get():
-    p = DATA_DIR / "morning.json"
-    if p.exists():
-        data = _load_json("morning")
-        generated = data.get("generated_at", "")[:10]
-        if generated == _now_et().date().isoformat():
-            return data
-    try:
-        return build_morning()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @protected.post("/api/morning")

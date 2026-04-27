@@ -3,7 +3,7 @@ import re
 from datetime import datetime, timezone
 
 from helpers import (
-    DATA_DIR, _SIZE_MINUTES, _now_et, _parse_json, _load_json, _load_rd, _save_rd,
+    DATA_DIR, _SIZE_MINUTES, _now_et, _parse_json, _load_rd, _save_rd,
     _RD_LOG,
 )
 from rm import pull_rmdocs, push_pdf
@@ -182,44 +182,6 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
 
 # ── morning pipeline ───────────────────────────────────────────────────────────
 
-def generate_morning_recap(delta: dict, omens: dict) -> dict:
-    import anthropic
-
-    ctx = _load_json("profile", {"notes": []})
-    ctx_text = "\n".join(
-        f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])[-15:]
-    ) or "None."
-    delta_text = " ".join(filter(None, [delta.get("wai_notes", ""), delta.get("adjustments", "")])).strip()
-    events_text = "\n".join(f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])) or "None."
-
-    client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=300,
-        messages=[{"role": "user", "content": (
-            f"YESTERDAY: {delta_text or 'none'}\n"
-            f"UPCOMING EVENTS: {events_text}\n"
-            f"KNOWN CONTEXT: {ctx_text}\n\n"
-            "Write for Wai's planning terminal:\n"
-            "1. encouraging_message: 2-3 warm sentences acknowledging yesterday and what's ahead. Personal and specific. No em-dashes.\n"
-            "2. helpful_prompt: one short question to open the planning conversation (about energy, priorities, or what's on their mind).\n\n"
-            'JSON only: {"encouraging_message": "...", "helpful_prompt": "..."}'
-        )}],
-    )
-
-    try:
-        parsed = _parse_json(msg.content[0].text)
-    except Exception:
-        parsed = {}
-
-    result = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "encouraging_message": parsed.get("encouraging_message", ""),
-        "helpful_prompt": parsed.get("helpful_prompt", ""),
-    }
-    (DATA_DIR / "morning.json").write_text(json.dumps(result, indent=2))
-    return result
-
 
 def _run_step(errors: dict, key: str, fn):
     try:
@@ -253,15 +215,11 @@ def build_morning() -> dict:
     errors: dict = {}
     latest_path = _run_step(errors, "pull", pull_rmdocs)
     delta = _run_step(errors, "delta", lambda: analyze_delta(path=latest_path)) or {}
-    omens = _run_step(errors, "omens", analyze_omens) or {}
+    _run_step(errors, "omens", analyze_omens)
     _run_step(errors, "rd", lambda: update_rd_from_delta(delta))
-    recap = _run_step(errors, "recap", lambda: generate_morning_recap(delta, omens))
-    if recap is None:
-        recap = {"generated_at": datetime.now(timezone.utc).isoformat(), "encouraging_message": "", "helpful_prompt": ""}
     _run_step(errors, "push_pdf", push_pdf)
 
+    result = {"generated_at": datetime.now(timezone.utc).isoformat()}
     if errors:
-        recap["errors"] = errors
-        (DATA_DIR / "morning.json").write_text(json.dumps(recap, indent=2))
-
-    return recap
+        result["errors"] = errors
+    return result
