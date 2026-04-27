@@ -1,4 +1,5 @@
 .claude/
+nightfall-incident/nightfall_save*.json
 api/data/
 api/debug/
 __pycache__/
@@ -12,6 +13,8 @@ __pycache__/
 *.pyo
 .env
 .env.*
+api/credentials.json
+api/token.json
 *.egg-info/
 dist/
 .venv/
