@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from helpers import (
     DATA_DIR, _SIZE_MINUTES, _now_et, _parse_json, _load_json, _load_rd, _save_rd,
-    get_rd_log, _RD_LOG,
+    _RD_LOG,
 )
 from rm import pull_rmdocs, push_pdf
 from gcal import analyze_omens
@@ -182,7 +182,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
 
 # ── morning pipeline ───────────────────────────────────────────────────────────
 
-def generate_morning_recap(delta: dict, omens: dict, rd_changes: str, rd_log: list | None = None) -> dict:
+def generate_morning_recap(delta: dict, omens: dict) -> dict:
     import anthropic
 
     ctx = _load_json("profile", {"notes": []})
@@ -254,8 +254,8 @@ def build_morning() -> dict:
     latest_path = _run_step(errors, "pull", pull_rmdocs)
     delta = _run_step(errors, "delta", lambda: analyze_delta(path=latest_path)) or {}
     omens = _run_step(errors, "omens", analyze_omens) or {}
-    rd_changes = _run_step(errors, "rd", lambda: update_rd_from_delta(delta)) or ""
-    recap = _run_step(errors, "recap", lambda: generate_morning_recap(delta, omens, rd_changes, rd_log=get_rd_log(limit=50)))
+    _run_step(errors, "rd", lambda: update_rd_from_delta(delta))
+    recap = _run_step(errors, "recap", lambda: generate_morning_recap(delta, omens))
     if recap is None:
         recap = {"generated_at": datetime.now(timezone.utc).isoformat(), "encouraging_message": "", "helpful_prompt": ""}
     _run_step(errors, "push_pdf", push_pdf)
