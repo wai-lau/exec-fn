@@ -15,6 +15,7 @@ __pycache__/
 .env.*
 api/credentials.json
 api/token.json
+tmux-*.log
 *.egg-info/
 dist/
 .venv/
