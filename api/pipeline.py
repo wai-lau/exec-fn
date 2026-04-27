@@ -1030,7 +1030,7 @@ def _chat_tools() -> list:
         },
         {
             "name": "create_card",
-            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow).",
+            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Always set due_date and start_before when you can reasonably infer them — e.g. 'take cash out for Taiwan' → due_date=day before Taiwan trip from omens, start_before=a day or two before that.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -1040,7 +1040,8 @@ def _chat_tools() -> list:
                     "description": {"type": "string", "description": "One-sentence description."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted."},
-                    "start_before": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
+                    "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context and omens when possible."},
+                    "start_before": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which Wai should start the task — typically due_date minus task duration. Infer when due_date is set."},
                 },
                 "required": ["title", "category", "size"],
             },
@@ -1089,7 +1090,8 @@ def _chat_tools() -> list:
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
                     "notes": {"type": "string"},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
-                    "start_before": {"type": "string", "description": "ISO date (YYYY-MM-DD) if this task is intended for a specific day."},
+                    "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done."},
+                    "start_before": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which Wai should start — typically due_date minus task duration."},
                 },
                 "required": ["id"],
             },
@@ -1218,12 +1220,11 @@ def _tool_create_card(input_: dict) -> dict:
         "description": input_.get("description", ""),
         "column": column,
         "order": min_order - 1,
-        "due_date": None,
+        "due_date": input_.get("due_date") or None,
+        "start_before": input_.get("start_before") or None,
         "notes": "",
         "estimated_time": estimated_time,
     }
-    if input_.get("start_before"):
-        new_card["start_before"] = input_["start_before"]
 
     cards.append(new_card)
     rd["cards"] = cards
@@ -1252,7 +1253,7 @@ def _tool_update_card(input_: dict) -> dict:
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
-    for field in ("title", "description", "category", "size", "notes", "start_before"):
+    for field in ("title", "description", "category", "size", "notes", "due_date", "start_before"):
         if field in input_:
             card[field] = input_[field]
     if "estimated_time" in input_:
