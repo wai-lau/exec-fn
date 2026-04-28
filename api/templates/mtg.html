@@ -75,8 +75,10 @@ let streaming = false;
 
 const terminal = document.getElementById('terminal');
 
+const _renderer = new marked.Renderer();
+_renderer.link = ({href, title, text}) => `<a href="${href}" target="_blank" rel="noopener"${title ? ` title="${title}"` : ''}>${text}</a>`;
 function renderText(raw) {
-  return marked.parse(raw);
+  return marked.parse(raw, {renderer: _renderer});
 }
 
 function addMsg(role, text) {

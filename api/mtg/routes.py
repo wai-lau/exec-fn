@@ -19,7 +19,8 @@ When a card is mentioned:
 
 Use all three sources together to give a complete answer. Always cite rule numbers and quote relevant oracle text. If rulings clarify something, include them.
 
-FORMATTING: Use markdown. No Unicode emoji. Ultra-concise. One sentence if possible. Expand only when truly necessary."""
+FORMATTING: Use markdown. No Unicode emoji. Ultra-concise. One sentence if possible. Expand only when truly necessary.
+Hyperlink every card name you mention: [Card Name](https://scryfall.com/search?q=!"Card+Name") — replace spaces with + in the URL."""
 
 _TOOLS = [
     {
