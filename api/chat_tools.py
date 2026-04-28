@@ -340,6 +340,17 @@ def _tool_build_pdf(input_: dict) -> dict:
     return {"ok": True, "pdf": pdf_path.name}
 
 
+def _tool_schedule_card(input_: dict) -> dict:
+    rd = _load_rd()
+    card = _find_card(rd, input_.get("id", ""))
+    if not card:
+        return {"error": f"Card not found: {input_.get('id')}"}
+    card["scheduled_day"] = input_.get("scheduled_day") or None
+    _save_rd(rd)
+    _append_rd_log("scheduled", card["title"], day=card.get("scheduled_day"))
+    return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": card.get("scheduled_day")}
+
+
 def _tool_create_gcal_event(input_: dict) -> dict:
     try:
         return create_gcal_event(
@@ -359,6 +370,7 @@ _TOOL_HANDLERS = {
     "move_card":         _tool_move_card,
     "update_card":       _tool_update_card,
     "delete_card":       _tool_delete_card,
+    "schedule_card":     _tool_schedule_card,
     "assemble_plan":     _tool_assemble_plan,
     "reschedule":        _tool_reschedule,
     "build_pdf":         _tool_build_pdf,

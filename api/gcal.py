@@ -193,6 +193,65 @@ def create_gcal_event(title: str, start: str, end: str | None = None, descriptio
     return {"ok": True, "event_id": event.get("id"), "link": event.get("htmlLink")}
 
 
+def import_gcal_cards() -> dict:
+    """One-time import: pull 365 days of GCal events → rd.json cards."""
+    import time as _time
+    from helpers import _load_rd, _save_rd, _append_rd_log
+
+    events = fetch_calendar_events(days_ahead=365, days_behind=0)
+    rd = _load_rd()
+    existing = {(c.get("title", "").lower().strip(), (c.get("due_date") or "")[:10]) for c in rd.get("cards", [])}
+
+    imported, skipped = 0, 0
+    cards = rd.get("cards", [])
+
+    _BIRTHDAY_WORDS = ("birthday", "bday", "b-day")
+    _WEEKLY_WORDS = ("weekly", "every week", "every monday", "every tuesday", "every wednesday",
+                     "every thursday", "every friday", "every saturday", "every sunday")
+
+    for ev in events:
+        title = ev.get("summary", "Untitled").strip()
+        start = ev.get("start", "")
+        due_date = start[:10] if start else None
+        key = (title.lower(), due_date or "")
+        if key in existing:
+            skipped += 1
+            continue
+
+        title_lower = title.lower()
+        if any(w in title_lower for w in _BIRTHDAY_WORDS):
+            recur_type = "birthday"
+        elif any(w in title_lower for w in _WEEKLY_WORDS):
+            recur_type = "week"
+        else:
+            recur_type = None
+
+        card = {
+            "id": f"card-{int(_time.time() * 1000) + imported}",
+            "title": title,
+            "category": "Interfacing",
+            "size": "chore",
+            "column": "rd",
+            "order": -(imported + 1),
+            "due_date": due_date,
+            "start_before": None,
+            "estimated_time": 30,
+            "is_reminder": True,
+            "recur_type": recur_type,
+            "scheduled_day": None,
+            "manual_pin": False,
+            "notes": ev.get("description", "") or "",
+        }
+        cards.append(card)
+        existing.add(key)
+        _append_rd_log("imported", title, due_date=due_date)
+        imported += 1
+
+    rd["cards"] = cards
+    _save_rd(rd)
+    return {"imported": imported, "skipped": skipped}
+
+
 def fetch_omens() -> dict:
     def _fmt_date(iso: str) -> str:
         try:

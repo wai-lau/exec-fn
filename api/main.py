@@ -12,7 +12,7 @@ from gcal import gcal_start_auth, gcal_complete_auth, fetch_omens
 from delta import _load_all_recent_deltas, analyze_delta
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
-from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log
+from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log, _next_recurrence
 from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
@@ -91,8 +91,8 @@ _CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["exec", "plan", "看板", "vault", "媁", "mtg"]
-_NAV_HREFS = {"exec": "/exec", "plan": "/plan", "看板": "/rd", "vault": "/archive", "媁": "/nightfall", "mtg": "/mtg"}
+_NAV_LINKS = ["看板", "exec", "prophecies", "directives", "vault", "媁", "mtg"]
+_NAV_HREFS = {"看板": "/rd", "exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "vault": "/archive", "媁": "/nightfall", "mtg": "/mtg"}
 
 
 _GUEST_NAV_LINKS = ["媁", "mtg"]
@@ -158,11 +158,13 @@ def _build_page(active=None, content=""):
 
 # ── templates ─────────────────────────────────────────────────────────────────
 
-_VAULT_HTML  = (_TMPL / "vault.html").read_text()
-_KANBAN_HTML = (_TMPL / "kanban.html").read_text()
-_PLAN_HTML   = (_TMPL / "plan.html").read_text()
-_EXEC_HTML   = (_TMPL / "exec.html").read_text()
-_MTG_HTML    = (_TMPL / "mtg.html").read_text()
+_VAULT_HTML       = (_TMPL / "vault.html").read_text()
+_KANBAN_HTML      = (_TMPL / "kanban.html").read_text()
+_PLAN_HTML        = (_TMPL / "plan.html").read_text()
+_EXEC_HTML        = (_TMPL / "exec.html").read_text()
+_MTG_HTML         = (_TMPL / "mtg.html").read_text()
+_PROPHECIES_HTML  = (_TMPL / "prophecies.html").read_text()
+_DIRECTIVES_HTML  = (_TMPL / "directives.html").read_text()
 
 
 # ── app ───────────────────────────────────────────────────────────────────────
@@ -232,9 +234,20 @@ async def plan_page():
     return _build_page("plan", _PLAN_HTML)
 
 
-@protected.get("/directives")
+@protected.get("/prophecies", response_class=HTMLResponse)
+async def prophecies_page():
+    head_inject = _GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
+    return (_BARE
+        .replace("</head>", head_inject + "</head>", 1)
+        .replace("</body>", _PROPHECIES_HTML + _build_nav("prophecies") + "</body>", 1))
+
+
+@protected.get("/directives", response_class=HTMLResponse)
 async def directives_page():
-    return RedirectResponse(url="/exec", status_code=302)
+    head_inject = _GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
+    return (_BARE
+        .replace("</head>", head_inject + "</head>", 1)
+        .replace("</body>", _DIRECTIVES_HTML + _build_nav("directives") + "</body>", 1))
 
 
 @protected.get("/omens")
@@ -371,7 +384,31 @@ async def api_rd_patch(request: Request):
     for cid, old in old_cards.items():
         if cid not in new_ids:
             _append_rd_log("deleted", old.get("title", cid))
-    data["cards"] = new_cards
+
+    # Recurring revival: when a card moves to archives and has recur_type, spawn next occurrence
+    import time as _time
+    revived = []
+    existing_titles_dates = {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in new_cards}
+    for c in new_cards:
+        old = old_cards.get(c.get("id"))
+        if (old and old.get("column") != "archives" and c.get("column") == "archives"
+                and c.get("recur_type")):
+            next_due = _next_recurrence(c.get("due_date") or "", c["recur_type"])
+            key = (c.get("title","").lower(), (next_due or "")[:10])
+            if next_due and key not in existing_titles_dates:
+                import copy as _copy
+                clone = _copy.deepcopy(c)
+                clone["id"] = f"card-{int(_time.time() * 1000) + len(revived)}"
+                clone["column"] = "rd"
+                clone["due_date"] = next_due
+                clone["start_before"] = None
+                clone["scheduled_day"] = None
+                clone["manual_pin"] = False
+                clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
+                revived.append(clone)
+                _append_rd_log("revived", c.get("title", c["id"]), next_due=next_due)
+
+    data["cards"] = new_cards + revived
     p.write_text(json.dumps(data, indent=2))
     return {"ok": True}
 
@@ -379,6 +416,25 @@ async def api_rd_patch(request: Request):
 @protected.get("/api/rd/log")
 def api_rd_log():
     return get_rd_log(limit=20)
+
+
+@protected.get("/api/prophecies")
+def api_prophecies_get(start: str = ""):
+    from prophecies import get_week_data
+    return get_week_data(start or None)
+
+
+@protected.patch("/api/prophecies")
+async def api_prophecies_patch(request: Request):
+    body = await request.json()
+    from prophecies import bulk_update_scheduled_days
+    return bulk_update_scheduled_days(body.get("updates", []))
+
+
+@protected.get("/api/prophecies/log")
+def api_prophecies_log():
+    from prophecies import get_prophecies_log
+    return get_prophecies_log(limit=100)
 
 
 @protected.post("/api/rd/classify")
@@ -501,6 +557,15 @@ def api_gcal_auth():
     try:
         auth_url = gcal_start_auth()
         return RedirectResponse(auth_url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@protected.post("/api/gcal/import_cards")
+def api_gcal_import_cards():
+    try:
+        from gcal import import_gcal_cards
+        return import_gcal_cards()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

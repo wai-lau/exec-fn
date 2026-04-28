@@ -32,6 +32,14 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         for c in ideas[:15]
     ) or "None."
 
+    from datetime import date, timedelta
+    week_days = [(date.today() + timedelta(days=i)).isoformat() for i in range(7)]
+    scheduled_cards = [c for c in cards if c.get("scheduled_day") in week_days]
+    scheduled_text = "\n".join(
+        f"- {c.get('scheduled_day')} id:{c['id']} [{c.get('size','task')}] {c['title']}"
+        for c in sorted(scheduled_cards, key=lambda x: x.get("scheduled_day", ""))
+    ) or "None."
+
     stage_instructions = {
         "planning": (
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
@@ -68,6 +76,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"R&D ACTIVITY LOG (today):\n{rd_log_text}\n\n"
         f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
         f"IDEAS POOL (top 15):\n{ideas_text}\n\n"
+        f"7-DAY SCHEDULE (scheduled_day assignments this week):\n{scheduled_text}\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}"
     )
 
@@ -152,6 +161,18 @@ def _chat_tools() -> list:
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done."},
                     "start_before": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which Wai should start — typically due_date minus task duration."},
+                },
+                "required": ["id"],
+            },
+        },
+        {
+            "name": "schedule_card",
+            "description": "Set (or clear) the scheduled_day on a card to plan it for a specific date. Use during 7-day planning. Pass null to unschedule.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
+                    "scheduled_day": {"type": "string", "description": "ISO date YYYY-MM-DD, or null to unschedule."},
                 },
                 "required": ["id"],
             },

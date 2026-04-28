@@ -1,0 +1,400 @@
+
+<style>
+body { overflow: hidden !important; }
+.dir-topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,255,65,0.12);
+}
+.dir-body {
+  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  display: flex; overflow: hidden;
+}
+/* left: encouragement + reminders */
+.dir-left {
+  flex: 0 0 260px; display: flex; flex-direction: column;
+  border-right: 1px solid rgba(0,255,65,0.1);
+  overflow-y: auto; padding: 18px 16px 20px;
+  font-family: monospace;
+}
+.dir-section-hdr {
+  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.15em;
+  color: rgba(0,255,65,0.45); margin: 18px 0 8px;
+  border-bottom: 1px solid rgba(0,255,65,0.12); padding-bottom: 4px;
+}
+.dir-section-hdr:first-child { margin-top: 0; }
+#dir-encourage {
+  font-size: 0.82rem; line-height: 1.65; color: rgba(0,255,65,0.85);
+  white-space: pre-wrap;
+}
+.dir-reminder {
+  font-size: 0.76rem; padding: 5px 0;
+  border-bottom: 1px solid rgba(0,255,65,0.08);
+  color: rgba(0,255,65,0.7);
+}
+.dir-reminder .dir-reminder-time { opacity: 0.4; font-size: 0.65rem; margin-top: 2px; }
+/* center: schedule */
+.dir-center {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.dir-schedule-wrap {
+  flex: 1; overflow-y: auto; padding: 14px 16px 80px;
+  position: relative;
+}
+.dir-block {
+  position: relative; width: 100%; box-sizing: border-box;
+  border-radius: 3px; padding: 8px 10px; margin-bottom: 4px;
+  cursor: grab; user-select: none; font-family: monospace;
+  border: 1px solid transparent; overflow: hidden;
+  min-height: 36px;
+}
+.dir-block:active { cursor: grabbing; }
+.dir-block.plain { background: rgba(0,255,65,0.06); border-color: rgba(0,255,65,0.18); }
+.dir-block-title { font-size: 0.82rem; }
+.dir-block-meta { font-size: 0.62rem; opacity: 0.45; margin-top: 3px; display: flex; gap: 10px; }
+.dir-block-time { font-size: 0.65rem; opacity: 0.55; }
+.dir-resize {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 8px;
+  cursor: ns-resize; background: rgba(0,255,65,0.08);
+  display: flex; align-items: center; justify-content: center;
+}
+.dir-resize::after {
+  content: ''; display: block; width: 28px; height: 2px;
+  background: rgba(0,255,65,0.3); border-radius: 1px;
+}
+.dir-resize:hover { background: rgba(0,255,65,0.2); }
+.sortable-ghost { opacity: 0.15; }
+/* right: debug */
+.dir-right {
+  flex: 0 0 0; overflow: hidden; transition: flex-basis 0.25s;
+  border-left: 1px solid rgba(0,255,65,0.1);
+  font-family: monospace;
+}
+.dir-right.open { flex: 0 0 280px; }
+.dir-right-inner { width: 280px; height: 100%; overflow-y: auto; padding: 14px 14px 60px; }
+.dir-debug-hdr {
+  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.15em;
+  color: rgba(0,255,65,0.4); margin: 14px 0 6px;
+  border-bottom: 1px solid rgba(0,255,65,0.1); padding-bottom: 3px;
+}
+.dir-debug-hdr:first-child { margin-top: 0; }
+.dir-log-entry { font-size: 0.68rem; opacity: 0.55; padding: 2px 0; }
+.dir-btn {
+  background: none; border: 1px solid rgba(0,255,65,0.35);
+  color: rgba(0,255,65,0.7); font-family: monospace; font-size: 0.7rem;
+  padding: 3px 10px; cursor: pointer; transition: all 0.18s;
+}
+.dir-btn:hover { border-color: rgba(0,255,65,0.9); color: rgba(0,255,65,1); }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<div class="dir-topbar">
+  <span style="font-family:monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.5">directives</span>
+  <div style="display:flex;gap:8px">
+    <span id="dir-status" style="font-family:monospace;font-size:0.65rem;opacity:0.35"></span>
+    <button class="dir-btn" onclick="toggleDebug()">[ debug ]</button>
+  </div>
+</div>
+
+<div class="dir-body">
+  <!-- left panel -->
+  <div class="dir-left">
+    <div class="dir-section-hdr">today</div>
+    <div id="dir-encourage" style="color:rgba(0,255,65,0.45);font-size:0.75rem">loading...</div>
+    <div class="dir-section-hdr">reminders</div>
+    <div id="dir-reminders"><span style="opacity:0.3;font-size:0.75rem">none</span></div>
+  </div>
+
+  <!-- center schedule -->
+  <div class="dir-center">
+    <div class="dir-schedule-wrap" id="dir-schedule-wrap">
+      <span style="opacity:0.35;font-family:monospace;font-size:0.8rem">loading...</span>
+    </div>
+  </div>
+
+  <!-- right debug panel -->
+  <div class="dir-right" id="dir-right">
+    <div class="dir-right-inner" id="dir-debug-content">
+      <div style="opacity:0.3;font-family:monospace;font-size:0.75rem">open debug to load</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CAT_HUE = {Book:210, Self:185, Social:315, Interfacing:50, Hobby:15};
+const CAT_LIGHT = {Social:+10, Hobby:+7};
+const CAT_SAT   = {Social:-20};
+const SIZE_MIN = {chore:30, task:90, project:240, titan:480, book:60};
+const MIN_PX = 0.9;
+const BLOCK_MIN_H = 44;
+
+let scheduleCards = [];
+let debugOpen = false;
+
+function isoToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function cardBgDirectives(c) {
+  const h = CAT_HUE[c.category];
+  if (!h) return {bg:'', dark:false};
+  const ds = CAT_SAT[c.category] || 0;
+  const dl = CAT_LIGHT[c.category] || 0;
+  const dark = ['chore','task','book'].includes(c.size);
+  const col = `hsl(${h},${75+ds}%,${68+dl}%)`;
+  if (dark) return {bg:`background:#0d0d0d;color:${col};border-color:hsl(${h},${65+ds}%,${60+dl}%);`, dark:true};
+  return {bg:`background:hsl(${h},${50+ds}%,${54+dl}%);`, dark:false};
+}
+
+function blockHeight(c) {
+  const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
+  return Math.max(BLOCK_MIN_H, Math.round(mins * MIN_PX));
+}
+
+function computeStartTimes(cards) {
+  const now = new Date();
+  const startHour = now.getHours() < 9 ? 9 : now.getHours();
+  let cur = startHour * 60 + now.getMinutes();
+  return cards.map(c => {
+    const start = cur;
+    cur += (c.estimated_time || SIZE_MIN[c.size] || 60);
+    return start;
+  });
+}
+
+function fmtTime(totalMins) {
+  const h = Math.floor(totalMins / 60) % 24;
+  const m = totalMins % 60;
+  const ampm = h >= 12 ? 'pm' : 'am';
+  const hr = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+  return `${hr}:${String(m).padStart(2,'0')}${ampm}`;
+}
+
+function renderBlock(c, startMin) {
+  const {bg, dark} = cardBgDirectives(c);
+  const h = blockHeight(c) + 'px';
+  const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(0,255,65,0.88)';
+  const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(0,255,65,0.4)';
+  const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
+  const dur = mins >= 60 ? `${Math.floor(mins/60)}h${mins%60?mins%60+'m':''}` : `${mins}m`;
+  const timeLabel = fmtTime(startMin);
+  return `<div class="dir-block${bg?'':' plain'}" data-id="${c.id}" style="${bg}height:${h};padding-bottom:14px">
+    <div class="dir-block-time">${timeLabel}</div>
+    <div class="dir-block-title" style="color:${titleC}">${c.title}</div>
+    <div class="dir-block-meta" style="color:${metaC}"><span>${c.size||''}</span><span>${dur}</span></div>
+    <div class="dir-resize" data-id="${c.id}"></div>
+  </div>`;
+}
+
+function buildSchedule(cards) {
+  const startTimes = computeStartTimes(cards);
+  const wrap = document.getElementById('dir-schedule-wrap');
+  if (!cards.length) {
+    wrap.innerHTML = '<span style="opacity:0.3;font-family:monospace;font-size:0.8rem">no cards scheduled for today</span>';
+    return;
+  }
+  wrap.innerHTML = `<div id="dir-sortable">${cards.map((c, i) => renderBlock(c, startTimes[i])).join('')}</div>`;
+  initScheduleSortable();
+  initResizeHandles();
+}
+
+function initScheduleSortable() {
+  const el = document.getElementById('dir-sortable');
+  if (!el) return;
+  Sortable.create(el, {
+    animation: 120,
+    ghostClass: 'sortable-ghost',
+    handle: '.dir-block',
+    filter: '.dir-resize',
+    preventOnFilter: false,
+    delay: 200,
+    delayOnTouchOnly: true,
+    onEnd() {
+      // Recompute order from DOM
+      const newOrder = Array.from(el.querySelectorAll('.dir-block')).map(b => b.dataset.id);
+      scheduleCards.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
+      // Refresh time labels
+      const times = computeStartTimes(scheduleCards);
+      el.querySelectorAll('.dir-block').forEach((block, i) => {
+        const tl = block.querySelector('.dir-block-time');
+        if (tl) tl.textContent = fmtTime(times[i]);
+      });
+      saveCardOrder(scheduleCards);
+    },
+  });
+}
+
+function initResizeHandles() {
+  document.querySelectorAll('.dir-resize').forEach(handle => {
+    handle.addEventListener('mousedown', onResizeStart);
+    handle.addEventListener('touchstart', onResizeStart, {passive: false});
+  });
+}
+
+function onResizeStart(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const handle = e.currentTarget;
+  const block = handle.closest('.dir-block');
+  const cardId = handle.dataset.id;
+  const startY = e.touches ? e.touches[0].clientY : e.clientY;
+  const startH = block.offsetHeight;
+
+  function onMove(ev) {
+    const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+    const delta = y - startY;
+    const newH = Math.max(BLOCK_MIN_H, startH + delta);
+    block.style.height = newH + 'px';
+  }
+
+  async function onUp(ev) {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onUp);
+    const newH = block.offsetHeight;
+    const newMins = Math.max(10, Math.round(newH / MIN_PX));
+    const card = scheduleCards.find(c => c.id === cardId);
+    if (card) {
+      card.estimated_time = newMins;
+      const metaEl = block.querySelector('.dir-block-meta span:last-child');
+      if (metaEl) {
+        const m = newMins;
+        metaEl.textContent = m >= 60 ? `${Math.floor(m/60)}h${m%60?m%60+'m':''}` : `${m}m`;
+      }
+      // Refresh times
+      const times = computeStartTimes(scheduleCards);
+      document.querySelectorAll('.dir-block').forEach((b, i) => {
+        const tl = b.querySelector('.dir-block-time');
+        if (tl) tl.textContent = fmtTime(times[i]);
+      });
+      await saveEstimatedTime(cardId, newMins);
+    }
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchmove', onMove, {passive: false});
+  document.addEventListener('touchend', onUp);
+}
+
+async function saveCardOrder(cards) {
+  const rd = await (await fetch('/api/rd')).json();
+  const allCards = rd.cards || [];
+  const todayCards = new Set(cards.map(c => c.id));
+  cards.forEach((c, i) => {
+    const found = allCards.find(x => x.id === c.id);
+    if (found) found.order = i;
+  });
+  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: allCards})});
+}
+
+async function saveEstimatedTime(cardId, mins) {
+  setStatus('saving...');
+  try {
+    const rd = await (await fetch('/api/rd')).json();
+    const allCards = rd.cards || [];
+    const card = allCards.find(c => c.id === cardId);
+    if (card) {
+      card.estimated_time = mins;
+      await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: allCards})});
+    }
+    setStatus('saved');
+    setTimeout(() => setStatus(''), 1200);
+  } catch(e) { setStatus('save error'); }
+}
+
+function setStatus(msg) {
+  document.getElementById('dir-status').textContent = msg;
+}
+
+function toggleDebug() {
+  debugOpen = !debugOpen;
+  document.getElementById('dir-right').classList.toggle('open', debugOpen);
+  if (debugOpen) loadDebug();
+}
+
+async function loadDebug() {
+  const [logRes, deltaRes, omensRes] = await Promise.all([
+    fetch('/api/rd/log'), fetch('/api/delta'), fetch('/api/omens'),
+  ]);
+  let html = '';
+
+  if (logRes.ok) {
+    const log = await logRes.json();
+    html += '<div class="dir-debug-hdr">r&d log</div>';
+    html += (log.slice(0,20).map(e => {
+      const arrow = e.from_col ? ` ${e.from_col}→${e.to_col}` : '';
+      return `<div class="dir-log-entry">${e.action} "${e.title}"${arrow}</div>`;
+    }).join('')) || '<div class="dir-log-entry" style="opacity:0.3">empty</div>';
+  }
+
+  if (deltaRes.ok) {
+    const d = await deltaRes.json();
+    html += '<div class="dir-debug-hdr">delta</div>';
+    const notes = d.wai_notes || d.adjustments || '';
+    html += `<div class="dir-log-entry">${notes || 'none'}</div>`;
+  }
+
+  if (omensRes.ok) {
+    const o = await omensRes.json();
+    html += '<div class="dir-debug-hdr">omens</div>';
+    html += ((o.events||[]).slice(0,10).map(e =>
+      `<div class="dir-log-entry">${e.date} — ${e.title}</div>`
+    ).join('')) || '<div class="dir-log-entry" style="opacity:0.3">none</div>';
+  }
+
+  document.getElementById('dir-debug-content').innerHTML = html;
+}
+
+async function load() {
+  const today = isoToday();
+  const [planRes, propRes] = await Promise.all([
+    fetch('/api/plan'), fetch(`/api/prophecies?start=${today}`),
+  ]);
+
+  // Encouraging message
+  if (planRes.ok) {
+    const plan = await planRes.json();
+    const enc = plan.encouraging_message || '';
+    document.getElementById('dir-encourage').innerHTML = enc
+      ? marked.parse(enc)
+      : '<span style="opacity:0.3">no message yet — run assemble plan in Exec</span>';
+  } else {
+    document.getElementById('dir-encourage').innerHTML = '<span style="opacity:0.3">no plan yet</span>';
+  }
+
+  // Reminders + schedule from today's prophecies
+  if (propRes.ok) {
+    const data = await propRes.json();
+    const todayCards = (data.days && data.days[today]) || [];
+
+    const reminders = todayCards.filter(c => c.is_reminder);
+    const actionCards = todayCards.filter(c => !c.is_reminder);
+    scheduleCards = actionCards;
+
+    // Reminders
+    const remDiv = document.getElementById('dir-reminders');
+    if (reminders.length) {
+      remDiv.innerHTML = reminders.map(c => `
+        <div class="dir-reminder">
+          ${c.title}
+          ${c.due_date ? `<div class="dir-reminder-time">${c.due_date.slice(5)}</div>` : ''}
+        </div>`).join('');
+    } else {
+      remDiv.innerHTML = '<span style="opacity:0.3;font-size:0.75rem">none</span>';
+    }
+
+    buildSchedule(actionCards);
+  } else {
+    buildSchedule([]);
+  }
+}
+
+load();
+</script>

@@ -106,6 +106,32 @@ def get_rd_log(limit: int = 20) -> list:
     return log[-limit:][::-1]
 
 
+def _next_recurrence(due_iso: str, recur_type: str) -> str | None:
+    """Return the next ISO date for a recurring card."""
+    try:
+        d = date.fromisoformat(due_iso[:10])
+    except Exception:
+        return None
+    if recur_type == "week":
+        d += timedelta(days=7)
+    elif recur_type == "bi-week":
+        d += timedelta(days=14)
+    elif recur_type == "month":
+        month = d.month + 1 if d.month < 12 else 1
+        year = d.year if d.month < 12 else d.year + 1
+        import calendar as _cal
+        last_day = _cal.monthrange(year, month)[1]
+        d = date(year, month, min(d.day, last_day))
+    elif recur_type in ("holiday", "birthday"):
+        try:
+            d = date(d.year + 1, d.month, d.day)
+        except ValueError:
+            d = date(d.year + 1, d.month, 28)
+    else:
+        return None
+    return d.isoformat()
+
+
 def _apply_context_update(action: str, note: str = "", match: str = "") -> dict:
     ctx_path = DATA_DIR / "profile.json"
     ctx = json.loads(ctx_path.read_text()) if ctx_path.exists() else {"notes": []}

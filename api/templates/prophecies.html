@@ -1,0 +1,286 @@
+
+<style>
+body { overflow: hidden !important; }
+.pr-topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; gap: 10px;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,255,65,0.12);
+}
+.pr-board {
+  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  display: flex; gap: 1px; overflow-x: auto; overflow-y: hidden;
+  background: rgba(0,255,65,0.04);
+}
+.pr-col {
+  flex: 0 0 200px; display: flex; flex-direction: column;
+  background: rgba(0,0,0,0.3); min-width: 0;
+}
+.pr-col.pr-col-unscheduled { flex: 0 0 180px; background: rgba(0,0,0,0.5); }
+.pr-col-hdr {
+  flex-shrink: 0; padding: 12px 14px 8px;
+  font-family: monospace; font-size: 0.6rem; text-transform: uppercase;
+  letter-spacing: 0.15em; color: rgba(0,255,65,0.55);
+  border-bottom: 1px solid rgba(0,255,65,0.1);
+}
+.pr-col-hdr .pr-day-name { color: rgba(0,255,65,0.8); font-size: 0.68rem; }
+.pr-col-hdr .pr-date { opacity: 0.45; font-size: 0.58rem; }
+.pr-col-hdr.today-hdr { border-bottom-color: rgba(0,255,65,0.4); }
+.pr-col-hdr.today-hdr .pr-day-name { color: rgba(0,255,65,1); }
+.pr-list {
+  flex: 1; overflow-y: auto; padding: 8px 8px 20px;
+  min-height: 80px;
+}
+.pr-card {
+  border-radius: 3px; padding: 6px 9px; margin-bottom: 5px;
+  cursor: grab; user-select: none; font-family: monospace;
+  border: 1px solid transparent; position: relative;
+  overflow: hidden; box-sizing: border-box;
+  transition: filter 0.12s;
+  min-height: 36px;
+}
+.pr-card:active { cursor: grabbing; }
+.pr-card:hover { filter: brightness(1.1); }
+.pr-card.plain { background: rgba(0,255,65,0.06); border-color: rgba(0,255,65,0.18); }
+.pr-card-title { font-size: 0.76rem; line-height: 1.3; word-break: break-word; }
+.pr-card-meta { font-size: 0.58rem; opacity: 0.5; margin-top: 4px; display: flex; justify-content: space-between; gap: 4px; }
+.pr-pin { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; opacity: 0.4; }
+.pr-overdue { position: absolute; top: 4px; right: c.manual_pin ? 20px : 6px; font-size: 0.6rem; color: rgba(255,120,80,0.9); }
+.sortable-ghost { opacity: 0.15; }
+.pr-sep {
+  flex: 0 0 1px; background: rgba(0,255,65,0.12); align-self: stretch;
+  margin: 52px 0 52px;
+}
+.pr-btn {
+  background: none; border: 1px solid rgba(0,255,65,0.35);
+  color: rgba(0,255,65,0.75); font-family: monospace; font-size: 0.72rem;
+  padding: 3px 10px; cursor: pointer; transition: all 0.18s;
+}
+.pr-btn:hover { border-color: rgba(0,255,65,0.9); color: rgba(0,255,65,1); }
+.pr-toast {
+  position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.9); border: 1px solid rgba(255,120,80,0.5);
+  color: rgba(255,140,80,0.9); font-family: monospace; font-size: 0.78rem;
+  padding: 8px 20px; z-index: 100; pointer-events: none;
+  opacity: 0; transition: opacity 0.3s;
+}
+.pr-toast.show { opacity: 1; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<div class="pr-topbar">
+  <span style="font-family:monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.5">prophecies</span>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="pr-status" style="font-family:monospace;font-size:0.65rem;opacity:0.35"></span>
+    <button class="pr-btn" id="pr-prev-btn" onclick="shiftWeek(-7)">&#8249; prev</button>
+    <button class="pr-btn" id="pr-today-btn" onclick="resetWeek()">today</button>
+    <button class="pr-btn" id="pr-next-btn" onclick="shiftWeek(7)">next &#8250;</button>
+  </div>
+</div>
+
+<div class="pr-board" id="pr-board">
+  <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
+</div>
+
+<div class="pr-toast" id="pr-toast"></div>
+
+<script>
+const CAT_HUE = {Book:210, Self:185, Social:315, Interfacing:50, Hobby:15};
+const CAT_LIGHT = {Social:+10, Hobby:+7};
+const CAT_SAT   = {Social:-20};
+const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
+const SIZE_MIN = {chore:30, task:90, project:240, titan:480, book:60};
+
+let weekStart = null;
+let weekData = null;
+let pendingUpdates = [];
+let saveTimer = null;
+
+function isoToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function addDays(iso, n) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function fmtDay(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+}
+
+function cardHeight(c) {
+  const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
+  return Math.max(44, Math.min(220, Math.round(mins * 0.75))) + 'px';
+}
+
+function cardBg(c) {
+  const h = CAT_HUE[c.category];
+  if (!h) return {bg:'', dark:false};
+  const ds = CAT_SAT[c.category] || 0;
+  const dl = CAT_LIGHT[c.category] || 0;
+  const dark = ['chore','task','book'].includes(c.size);
+  const col = `hsl(${h},${75+ds}%,${68+dl}%)`;
+  if (dark) return {bg:`background:#0d0d0d;color:${col};border-color:hsl(${h},${65+ds}%,${60+dl}%);`, dark:true};
+  return {bg:`background:hsl(${h},${50+ds}%,${54+dl}%);`, dark:false};
+}
+
+function isOverdue(card, dayIso) {
+  if (!card.due_date) return false;
+  return dayIso > card.due_date.slice(0, 10);
+}
+
+function renderCard(c, dayIso) {
+  const {bg, dark} = cardBg(c);
+  const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(0,255,65,0.88)';
+  const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(0,255,65,0.4)';
+  const h = cardHeight(c);
+  const pin = c.manual_pin ? '<span class="pr-pin">&#128275;</span>' : '';
+  const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="pr-overdue">!</span>' : '';
+  const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
+  const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
+  const due = c.due_date ? `<span style="opacity:0.45">${c.due_date.slice(5)}</span>` : '';
+  const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
+  const dur = mins >= 60 ? `${Math.floor(mins/60)}h${mins%60?mins%60+'m':''}` : `${mins}m`;
+  return `<div class="pr-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}height:${h};min-height:${h}">
+    ${pin}${over}
+    <div class="pr-card-title" style="color:${titleC}">${c.title}${reminder}</div>
+    <div class="pr-card-meta" style="color:${metaC}">
+      <span>${[c.size, recur||''].filter(Boolean).join(' ')}</span>
+      <span>${[dur, due].filter(Boolean).join(' ')}</span>
+    </div>
+  </div>`;
+}
+
+function buildBoard() {
+  if (!weekData) return;
+  const today = isoToday();
+  const days = Object.keys(weekData.days);
+  let html = '';
+
+  for (const day of days) {
+    const cards = weekData.days[day];
+    const isToday = day === today;
+    const dayLabel = day === today ? 'Today' : fmtDay(day).split(',')[0];
+    const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
+    html += `<div class="pr-col" data-day="${day}">
+      <div class="pr-col-hdr${isToday?' today-hdr':''}">
+        <div class="pr-day-name">${dayLabel}</div>
+        <div class="pr-date">${dateLabel}</div>
+      </div>
+      <div class="pr-list" id="pr-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
+    </div>`;
+  }
+
+  // Unscheduled column
+  const unsched = weekData.unscheduled || [];
+  html += `<div class="pr-sep"></div>
+    <div class="pr-col pr-col-unscheduled" data-day="">
+      <div class="pr-col-hdr">
+        <div class="pr-day-name">unscheduled</div>
+        <div class="pr-date">hq pool</div>
+      </div>
+      <div class="pr-list" id="pr-list-unscheduled">${unsched.map(c=>renderCard(c,null)).join('')}</div>
+    </div>`;
+
+  document.getElementById('pr-board').innerHTML = html;
+  initSortable(days);
+}
+
+function initSortable(days) {
+  const allListIds = [...days.map(d=>'pr-list-'+d), 'pr-list-unscheduled'];
+
+  allListIds.forEach(listId => {
+    const el = document.getElementById(listId);
+    if (!el) return;
+    Sortable.create(el, {
+      group: 'prophecies',
+      animation: 120,
+      ghostClass: 'sortable-ghost',
+      delay: 250,
+      delayOnTouchOnly: true,
+      onEnd(evt) {
+        const cardId = evt.item.dataset.id;
+        const cardDue = evt.item.dataset.due;
+        const toListId = evt.to.id;
+        const toDay = toListId === 'pr-list-unscheduled' ? null
+          : toListId.replace('pr-list-', '');
+
+        // Due date warning
+        if (toDay && cardDue && toDay > cardDue) {
+          showToast(`Warning: scheduling after due date (${cardDue})`);
+        }
+
+        // Mark as manual pin if moved to a day column
+        if (toDay) evt.item.querySelector('.pr-pin') || (evt.item.insertAdjacentHTML('afterbegin','<span class="pr-pin">&#128275;</span>'));
+
+        queueUpdate(cardId, toDay, true);
+      },
+    });
+  });
+}
+
+function queueUpdate(cardId, scheduledDay, manualPin) {
+  const idx = pendingUpdates.findIndex(u => u.id === cardId);
+  const upd = {id: cardId, scheduled_day: scheduledDay || null, manual_pin: manualPin};
+  if (idx >= 0) pendingUpdates[idx] = upd; else pendingUpdates.push(upd);
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushUpdates, 600);
+}
+
+async function flushUpdates() {
+  if (!pendingUpdates.length) return;
+  const updates = [...pendingUpdates];
+  pendingUpdates = [];
+  setStatus('saving...');
+  try {
+    await fetch('/api/prophecies', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({updates}),
+    });
+    setStatus('saved');
+    setTimeout(() => setStatus(''), 1500);
+  } catch(e) {
+    setStatus('save error');
+  }
+}
+
+function setStatus(msg) {
+  document.getElementById('pr-status').textContent = msg;
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('pr-toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+async function load(start) {
+  document.getElementById('pr-board').innerHTML = '<span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>';
+  const url = start ? `/api/prophecies?start=${start}` : '/api/prophecies';
+  const r = await fetch(url);
+  weekData = await r.json();
+  weekStart = weekData.week_start;
+  buildBoard();
+}
+
+function shiftWeek(days) {
+  const newStart = addDays(weekStart, days);
+  load(newStart);
+}
+
+function resetWeek() {
+  load(null);
+}
+
+load(null);
+</script>

@@ -116,13 +116,20 @@ exec-fn/
     exec-fn.cron          # crontab baked into image
     morning_cron.sh       # cron script → POST /api/morning
     gcal_auth.py          # one-time Google Calendar OAuth
+    gcal.py               # GCal helpers: fetch_calendar_events, import_gcal_cards
+    helpers.py            # shared helpers: _next_recurrence(), etc.
+    prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days(), log_prophecy_change()
+    chat.py               # exec chat: system prompt (includes 7-day schedule context), tool dispatch
+    chat_tools.py         # chat tool handlers incl. _tool_schedule_card()
     requirements.txt
     Dockerfile
     templates/
-      exec.html           # /exec — terminal chat
-      plan.html           # /plan — daily plan view
-      kanban.html         # /rd — r&d kanban
+      exec.html           # /exec — terminal chat + carry-over panel
+      plan.html           # /plan — daily plan view (legacy)
+      kanban.html         # /rd — r&d kanban (is_reminder + recur_type fields)
       vault.html          # /archive — PDF archive
+      prophecies.html     # /prophecies — 7-day planning kanban
+      directives.html     # /directives — today's schedule with drag/resize
     data/                 # persistent volume (./api/data → /app/data)
       plan.json           # source of truth: seek/hack/dive/omens/schedule/encouraging_message
       directives.json     # legacy alias for plan.json
@@ -131,9 +138,10 @@ exec-fn/
       delta_wai_*.json    # per-doc cached delta (keyed by rmdoc stem)
       delta_wai_*.png     # marked page PNGs for vision
       context.json        # Wai's daily constraints/priorities
-      rd.json             # r&d kanban data
+      rd.json             # r&d kanban data (cards now have is_reminder, recur_type, scheduled_day, manual_pin)
       rd_log.json         # today's card activity log (cleared/archived at 4:30 AM)
       rd_log_MMDD.json    # archived daily card logs
+      prophecies_log.json # append-only log of manual scheduled_day changes: [{ts, card_id, from_day, to_day}]
       YYYYMMDD_HHMMSS.rmdoc  # pulled rMdoc (filename = rM ModifiedClient timestamp)
       WAI_*.pdf           # PDF plans
 ```
@@ -160,6 +168,11 @@ exec-fn/
 | PDF plan | The generated PDF (`WAI_*.pdf`) built from `plan.json` |
 | rMdoc plan | The PDF plan after upload to reMarkable (rendered on device) |
 | browser plan | The `/plan` web page showing seek/hack/dive/schedule |
+| prophecies | 7-day planning view — assigns `scheduled_day` to cards |
+| directives | Today's schedule — time blocks derived from prophecies for today |
+| scheduled_day | ISO date field on a card indicating which day it's planned for |
+| manual_pin | Card field — true when user manually placed the card in Prophecies |
+| recur_type | Recurrence type for a card; when archived, clone is auto-created with advanced due_date |
 
 ---
 
@@ -167,19 +180,20 @@ exec-fn/
 
 All routes: `API_KEY` cookie auth (set via `POST /login`).
 
-Nav: `exec` · `plan` · `看板` · `vault` — bottom nav, all pages. No back button.
-
-`/directives` and `/omens` redirect to `/plan`.
+Nav: `看板` · `exec` · `prophecies` · `directives` · `vault` · `媁` · `mtg` — bottom nav, all pages. No back button.
 
 ### Pages
 
 | Route | What |
 |-------|------|
-| `/exec` | Terminal chat with Claude for daily planning |
-| `/plan` | Browser plan — seek/hack/dive grid + schedule + omens + delta + encouragement |
-| `/rd` | R&D kanban from `rd.json` |
-| `/archive` | Timestamped WAI PDFs, newest first |
-| `/nightfall` | Standalone game (unprotected route) |
+| `/rd` | R&D kanban from `rd.json` (看板 — first tab) |
+| `/exec` | Terminal chat with Claude for daily planning (with carry-over panel) |
+| `/prophecies` | 7-day planning kanban — assign `scheduled_day` to cards |
+| `/directives` | Today's schedule — time blocks + reminders + debug section |
+| `/archive` | Timestamped WAI PDFs, newest first (vault) |
+| `/nightfall` | Standalone game, 媁 tab (unprotected route) |
+| `/mtg` | MTG rules assistant |
+| `/plan` | Legacy browser plan — seek/hack/dive grid + schedule (still active) |
 
 ### API endpoints
 
@@ -204,6 +218,10 @@ Nav: `exec` · `plan` · `看板` · `vault` — bottom nav, all pages. No back 
 | GET/POST/DELETE | `/api/chat` | Chat history |
 | GET | `/api/gcal/auth` | Initiate Google Calendar OAuth (protected, redirects to Google) |
 | GET | `/api/gcal/callback` | Receive OAuth code from Google, save token (public) |
+| POST | `/api/gcal/import_cards` | One-time import of GCal events as rd.json cards |
+| GET | `/api/prophecies` | 7-day week data: scheduled cards + unscheduled hq/rd cards |
+| PATCH | `/api/prophecies` | Bulk update `scheduled_day` on cards; sets `manual_pin=true`, logs to `prophecies_log.json` |
+| GET | `/api/prophecies/log` | Read `prophecies_log.json` — append-only log of drag/reschedule actions |
 | POST | `/api/parse_date` | Parse natural language date string via Haiku → ISO date |
 | GET | `/data/{filename}` | Serve file from /app/data/ |
 
@@ -215,6 +233,7 @@ Nav: `exec` · `plan` · `看板` · `vault` — bottom nav, all pages. No back 
 | `move_card` | Move card between columns: rd/hq/archives/exile |
 | `update_card` | Edit card fields |
 | `delete_card` | Delete card permanently |
+| `schedule_card` | Set `scheduled_day` (YYYY-MM-DD) on a card, or null to unschedule |
 | `refresh_omens` | Refetch Google Calendar → update omens |
 | `assemble_plan` | Generate seek/hack/dive + schedule → write plan.json |
 | `reschedule` | Regenerate schedule only (optional feedback string) |
@@ -241,6 +260,36 @@ Chat messages: `[DD/MM HH:MM ET]` timestamp prepended. System prompt includes cu
 ```
 
 Schedule `title` field = task name only. NEVER include category prefix (SEEK/HACK/DIVE) or size tags.
+
+---
+
+## rd.json card schema
+
+Cards in `rd.json` have these fields (all new fields are optional, default null/false):
+
+```json
+{
+  "id": "card-<timestamp>",
+  "title": "...",
+  "column": "rd|hq|archives|exile",
+  "category": "...",
+  "size": "chore|small|medium|large",
+  "due_date": "YYYY-MM-DD",
+  "estimated_time": 30,
+  "notes": "...",
+  "is_reminder": false,
+  "recur_type": null,
+  "scheduled_day": null,
+  "manual_pin": false
+}
+```
+
+- `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
+- `scheduled_day`: ISO date "YYYY-MM-DD" — which day the card is planned for (used by /prophecies)
+- `manual_pin`: true when user manually dragged the card in Prophecies view
+- `is_reminder`: true = calendar alert only, no action needed
+
+**Recurring card revival**: when a card with `recur_type` is moved to `archives`, a clone is auto-created in `rd` column with reset `scheduled_day`/`manual_pin` and `due_date` advanced via `_next_recurrence()` in `helpers.py`.
 
 ---
 
