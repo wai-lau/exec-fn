@@ -7,11 +7,23 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   font-family:monospace; font-size:0.88rem; line-height:1.45;
   color:rgba(0,255,65,0.9);
 }
-.msg { margin-bottom:12px; max-width:680px; white-space:pre-wrap; word-break:break-word; }
+.msg { margin-bottom:12px; max-width:680px; word-break:break-word; }
 .msg.assistant::before { content:"> "; opacity:0.4; }
 .msg.assistant { color:rgba(0,255,65,0.92); }
+.msg.assistant p { margin:0 0 6px; }
+.msg.assistant p:last-child { margin-bottom:0; }
+.msg.assistant strong { color:rgba(0,255,65,1); font-weight:bold; }
+.msg.assistant em { color:rgba(0,255,65,0.75); font-style:italic; }
+.msg.assistant a { color:rgba(0,255,180,0.85); text-decoration:underline; }
+.msg.assistant a:hover { color:rgba(0,255,180,1); }
+.msg.assistant code { background:rgba(0,255,65,0.08); padding:1px 4px; border-radius:2px; font-size:0.92em; }
+.msg.assistant pre { background:rgba(0,255,65,0.05); border:1px solid rgba(0,255,65,0.15); padding:8px 12px; border-radius:3px; overflow-x:auto; margin:6px 0; }
+.msg.assistant pre code { background:none; padding:0; }
+.msg.assistant ul, .msg.assistant ol { margin:4px 0 4px 16px; padding:0; }
+.msg.assistant li { margin-bottom:2px; }
+.msg.assistant h1, .msg.assistant h2, .msg.assistant h3 { color:rgba(0,255,65,1); font-size:1em; font-weight:bold; margin:8px 0 4px; }
 .msg.user::before { content:"$ "; opacity:0.5; }
-.msg.user { color:rgba(0,255,65,0.42); }
+.msg.user { color:rgba(0,255,65,0.42); white-space:pre-wrap; }
 .msg.sys::before { content:"# "; }
 .msg.sys { color:rgba(0,255,65,0.26); font-size:0.72rem; }
 #blinkcursor { display:inline-block; width:8px; height:1em; background:rgba(0,255,65,0.9); vertical-align:text-bottom; animation:blink 1s step-end infinite; }
@@ -46,6 +58,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 .exec-send:hover { color:rgba(0,255,65,0.75); }
 .exec-send:disabled { opacity:0.12; cursor:default; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <div id="terminal"></div>
 <div id="input-bar">
@@ -63,7 +76,7 @@ let streaming = false;
 const terminal = document.getElementById('terminal');
 
 function renderText(raw) {
-  return raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return marked.parse(raw, {breaks: true});
 }
 
 function addMsg(role, text) {
