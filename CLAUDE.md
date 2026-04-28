@@ -24,15 +24,20 @@ Never run scp/ssh/docker deploy on main thread. Spawn background sub-agent.
 Container: `exec-fn-api-1` · Host: `root@wai-lau.net` · Repo on host: `/exec-fn`
 
 ```bash
-# 1. scp changed files to host
+# 0. Check if already on the server (hostname = main, pwd = /exec-fn)
+#    If yes: run docker commands directly — no scp/ssh needed.
+#    If no: use scp/ssh as below.
+
+# 1. scp changed files to host (skip if already on server)
 scp api/main.py api/pipeline.py root@wai-lau.net:/tmp/
 
-# 2. docker cp into running container
+# 2. docker cp into running container (skip if already on server — docker cp directly)
 ssh root@wai-lau.net "docker cp /tmp/main.py exec-fn-api-1:/app/main.py && docker cp /tmp/pipeline.py exec-fn-api-1:/app/pipeline.py"
 
 # 3. restart — or rebuild if Dockerfile/requirements.txt/entrypoint.sh/exec-fn.cron changed
 ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
 # rebuild: ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
+# (if on server, omit ssh prefix and run docker compose commands directly)
 
 # 4. check logs
 ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
@@ -58,17 +63,21 @@ CONTEXT UPDATE:
 - Only update what actually changed — don't rewrite things that are still accurate
 
 DEPLOY:
-1. scp <files> root@wai-lau.net:/tmp/
-2. ssh root@wai-lau.net "docker cp /tmp/<file> exec-fn-api-1:/app/<file> [...]"
+0. Check if already on the server: run `hostname && pwd`. If hostname=main and cwd=/exec-fn, you are on the server — skip scp/ssh and run all commands directly.
+1. If NOT on server: scp <files> root@wai-lau.net:/tmp/
+2. If NOT on server: ssh root@wai-lau.net "docker cp /tmp/<file> exec-fn-api-1:/app/<file> [...]"
+   If ON server: docker cp <file> exec-fn-api-1:/app/<file> [...]
 3. If Dockerfile, requirements.txt, entrypoint.sh, or exec-fn.cron changed:
-     ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
+     ON server:  docker compose up -d --build
+     OFF server: ssh root@wai-lau.net "cd /exec-fn && git pull && docker compose up -d --build"
    Otherwise (normal restart):
-     ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
-4. ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api"
-5. Verify the app is healthy: use WebFetch on http://wai-lau.net/ (nginx on port 80 proxies to container)
+     ON server:  docker compose -f /exec-fn/docker-compose.yml restart api
+     OFF server: ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml restart api"
+4. Check logs: docker compose -f /exec-fn/docker-compose.yml logs --tail=20 api
+5. Verify health: curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/
    - 200 or 401 = healthy, continue
-   - Anything else or connection error = app is not running; fix the issue and go back to step 1
-6. Once healthy: cd /home/wai/src/exec-fn && git push
+   - Anything else = app not running; fix and retry from step 1
+6. Once healthy: git push
 
 Report logs, health check result, and what context was updated.
 ```
