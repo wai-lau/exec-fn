@@ -19,7 +19,7 @@ When a card is mentioned:
 
 Use all three sources together to give a complete answer. Always cite rule numbers and quote relevant oracle text. If rulings clarify something, include them.
 
-FORMATTING: Use markdown. Do not use Unicode emoji. Be as concise as possible — short answer for simple questions, longer only when the interaction is genuinely complex."""
+FORMATTING: Use markdown. No Unicode emoji. Ultra-concise. One sentence if possible. Expand only when truly necessary."""
 
 _TOOLS = [
     {
