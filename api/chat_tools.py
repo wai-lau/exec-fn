@@ -251,7 +251,12 @@ def _tool_assemble_plan(input_: dict) -> dict:
     except Exception:
         pass
 
-    schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text)
+    schedule_error = None
+    try:
+        schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text)
+    except Exception as e:
+        schedule = []
+        schedule_error = str(e)
 
     plan = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -270,6 +275,8 @@ def _tool_assemble_plan(input_: dict) -> dict:
     result = {"ok": True}
     if delta_error:
         result["delta_error"] = delta_error
+    if schedule_error:
+        result["schedule_error"] = schedule_error
     return result
 
 

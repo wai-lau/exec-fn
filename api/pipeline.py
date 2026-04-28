@@ -154,17 +154,19 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
     )
 
     client = anthropic.Anthropic()
+    raw_text = ""
     try:
         resp = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
-        entries = _parse_json(resp.content[0].text)
+        raw_text = resp.content[0].text
+        entries = _parse_json(raw_text)
         for entry in entries:
             entry["title"] = re.sub(r'^(SEEK|HACK|DIVE|HQ)\s+\[[^\]]*\]\s*', '', entry.get("title", ""), flags=re.IGNORECASE).strip()
-    except Exception:
-        return []
+    except Exception as e:
+        raise RuntimeError(f"schedule generation failed: {e} | raw: {raw_text[:200]}")
 
     valid_card_ids = {c["id"] for c in seek + hack + dive + (extra_hq or []) if isinstance(c, dict) and c.get("id")}
     valid_event_ids = {e.get("event_id", "") for e in events if e.get("event_id")}

@@ -167,6 +167,9 @@ def build(out_path=None):
     if events is None:
         p = Path("/app/data/omens.json")
         events = json.loads(p.read_text()).get("events", []) if p.exists() else []
+    from datetime import date as _date
+    today_iso = _date.today().isoformat()
+    events = [e for e in events if not e.get("date_iso") or e["date_iso"] >= today_iso]
     c = canvas.Canvas(out, pagesize=A5)
     y = draw_schedule_page(c, plan, events)
     draw_encouragement(c, plan.get("encouraging_message", ""), y)

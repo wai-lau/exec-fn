@@ -91,7 +91,8 @@ async function loadPlan() {
 
   if (omensRes.ok) {
     const d = await omensRes.json();
-    const evts = d.events || [];
+    const today = new Date().toISOString().slice(0,10);
+    const evts = (d.events || []).filter(e => !e.date_iso || e.date_iso >= today);
     document.getElementById('pr-omens').innerHTML = evts.length
       ? `<table style="border-collapse:collapse;width:100%">${evts.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
       : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
@@ -138,8 +139,10 @@ async function refreshOmens(btn) {
   btn.textContent = '[refresh]';
   if (r.ok) {
     const d = await r.json();
-    document.getElementById('pr-omens').innerHTML = (d.events||[]).length
-      ? `<table style="border-collapse:collapse;width:100%">${d.events.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
+    const today = new Date().toISOString().slice(0,10);
+    const evts = (d.events||[]).filter(e => !e.date_iso || e.date_iso >= today);
+    document.getElementById('pr-omens').innerHTML = evts.length
+      ? `<table style="border-collapse:collapse;width:100%">${evts.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
       : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
   }
 }
