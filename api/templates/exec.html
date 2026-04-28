@@ -76,7 +76,7 @@ let streaming = false;
 const terminal = document.getElementById('terminal');
 
 function renderText(raw) {
-  return marked.parse(raw, {breaks: true});
+  return marked.parse(raw);
 }
 
 function addMsg(role, text) {
