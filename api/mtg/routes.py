@@ -17,7 +17,9 @@ When a card is mentioned:
 2. Call lookup_rulings with that oracle_id to get official WotC rulings
 3. Call lookup_rule for any relevant comprehensive rules
 
-Use all three sources together to give a complete answer. Always cite rule numbers and quote relevant oracle text. If rulings clarify something, include them."""
+Use all three sources together to give a complete answer. Always cite rule numbers and quote relevant oracle text. If rulings clarify something, include them.
+
+FORMATTING: Use markdown. Do not use Unicode emoji."""
 
 _TOOLS = [
     {
@@ -74,8 +76,10 @@ async def api_mtg_chat(body: ChatBody):
         client = anthropic.AsyncAnthropic()
         messages = list(body.messages)
 
+        had_text = False
         for _ in range(8):  # max tool-call rounds
             final = None
+            round_started = False
             try:
                 async with client.messages.stream(
                     model="claude-sonnet-4-6",
@@ -85,6 +89,10 @@ async def api_mtg_chat(body: ChatBody):
                     messages=messages,
                 ) as stream:
                     async for text in stream.text_stream:
+                        if not round_started and had_text:
+                            yield f"data: {json.dumps({'type': 'text', 'delta': '\n\n'})}\n\n"
+                        round_started = True
+                        had_text = True
                         yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
                     final = await stream.get_final_message()
             except Exception as e:

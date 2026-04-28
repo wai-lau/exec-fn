@@ -104,6 +104,8 @@ async def api_chat(body: ChatBody):
 
         if tool_result_contents:
             all_messages.append({"role": "user", "content": tool_result_contents})
+            if full_text:
+                yield f"data: {json.dumps({'type': 'text', 'delta': '\n\n'})}\n\n"
             async for chunk in _stream_tool_followup(client, all_messages, tools, _build_chat_system_prompt(next_stage)):
                 yield chunk
 
