@@ -150,6 +150,8 @@ async function streamResponse() {
             : data.name === 'lookup_rulings' ? `rulings — ${data.count} found`
             : `rules — ${data.count} found`;
           addMsg('sys', `[ ${label} ]`);
+          const sysMsgs = terminal.querySelectorAll('.msg.sys');
+          if (sysMsgs.length > 3) sysMsgs[0].remove();
         }
       }
     }
