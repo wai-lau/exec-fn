@@ -170,8 +170,10 @@ app = FastAPI()
 async def unauthorized_handler(request: Request, exc: HTTPException):
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
-        next_path = request.url.path
-        return RedirectResponse(f"/guest-login?next={next_path}", status_code=302)
+        path = request.url.path
+        if path.startswith("/mtg"):
+            return RedirectResponse(f"/guest-login?next={path}", status_code=302)
+        return RedirectResponse("/", status_code=302)
     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
 
 
@@ -524,8 +526,8 @@ async def api_parse_date(request: Request):
 app.include_router(public)
 app.include_router(protected)
 app.include_router(guest_protected)
-app.include_router(nightfall_public, dependencies=[Depends(require_guest_auth)])
-app.include_router(nightfall_protected, dependencies=[Depends(require_guest_auth)])
+app.include_router(nightfall_public)
+app.include_router(nightfall_protected)
 app.include_router(chat_router, dependencies=[Depends(require_auth)])
 app.include_router(mtg_router, dependencies=[Depends(require_guest_auth)])
 app.mount("/nightfall-game", StaticFiles(directory="/app/nightfall"), name="nightfall")
