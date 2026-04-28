@@ -79,7 +79,7 @@ async def api_mtg_chat(body: ChatBody):
             try:
                 async with client.messages.stream(
                     model="claude-sonnet-4-6",
-                    max_tokens=1024,
+                    max_tokens=4096,
                     system=_SYSTEM,
                     tools=_TOOLS,
                     messages=messages,
