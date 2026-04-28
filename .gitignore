@@ -1,9 +1,5 @@
 .claude/
-nightfall-incident/nightfall_save*.json
-nightfall-incident/static/js/
-nightfall-incident/static/css/
-nightfall-incident/nightfall-src/node_modules/
-nightfall-incident/node_modules/
+nightfall-incident/
 api/data/
 api/debug/
 __pycache__/
@@ -12,8 +8,6 @@ __pycache__/
 *.pdf
 *.png
 !web/IMG_25419.png
-!nightfall-incident/**/*.png
-!nightfall-incident/*.png
 *.pyo
 .env
 .env.*
