@@ -133,7 +133,10 @@ async function streamResponse() {
           span.innerHTML = renderText(fullText);
           terminal.scrollTop = terminal.scrollHeight;
         } else if (data.type === 'tool_call') {
-          addMsg('sys', `[ looked up: ${data.query} — ${data.count} rule${data.count !== 1 ? 's' : ''} found ]`);
+          const label = data.name === 'lookup_card' ? `card lookup — ${data.count} found`
+            : data.name === 'lookup_rulings' ? `rulings — ${data.count} found`
+            : `rules — ${data.count} found`;
+          addMsg('sys', `[ ${label} ]`);
         }
       }
     }

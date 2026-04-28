@@ -6,36 +6,60 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from mtg.lookup import lookup_rule
+from mtg.lookup import lookup_card, lookup_rule, lookup_rulings
 
 router = APIRouter()
 
-_SYSTEM = """You are an expert Magic: The Gathering rules judge. Your job is to explain rules clearly to players of any experience level.
+_SYSTEM = """You are an expert Magic: The Gathering rules judge. Your job is to answer rules questions clearly and accurately.
 
-ALWAYS call lookup_rule before answering any rules question. Never answer from memory alone — look it up and cite the rule numbers.
+When a card is mentioned:
+1. Call lookup_card to get its oracle text and oracle_id
+2. Call lookup_rulings with that oracle_id to get official WotC rulings
+3. Call lookup_rule for any relevant comprehensive rules
 
-When explaining:
-- Lead with the plain-English answer
-- Back it up with the specific rule numbers you found
-- If rules interact, look up each one separately
-- Keep it concise — players want answers, not essays"""
+Use all three sources together to give a complete answer. Always cite rule numbers and quote relevant oracle text. If rulings clarify something, include them."""
 
 _TOOLS = [
     {
-        "name": "lookup_rule",
-        "description": "Search the MTG Comprehensive Rules. Pass a rule number (e.g. '702.2', '702') to get that rule and its subrules. Pass keywords (e.g. 'deathtouch', 'first strike damage') to search for matching rules.",
+        "name": "lookup_card",
+        "description": "Look up a Magic card by name. Returns oracle text, type line, mana cost, keywords, and oracle_id (needed for lookup_rulings).",
         "input_schema": {
             "type": "object",
             "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Rule number (e.g. '702', '702.2', '702.2a') or keywords to search (e.g. 'deathtouch', 'trample combat damage').",
-                }
+                "name": {"type": "string", "description": "Card name, e.g. 'Lightning Bolt', 'Deathtouch'"}
+            },
+            "required": ["name"],
+        },
+    },
+    {
+        "name": "lookup_rulings",
+        "description": "Get official WotC rulings for a card by its oracle_id (from lookup_card). Returns judge rulings that clarify how the card works.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "oracle_id": {"type": "string", "description": "oracle_id from lookup_card result"}
+            },
+            "required": ["oracle_id"],
+        },
+    },
+    {
+        "name": "lookup_rule",
+        "description": "Search the MTG Comprehensive Rules. Pass a rule number (e.g. '702.2', '702') to get that rule and subrules. Pass keywords (e.g. 'deathtouch', 'trample combat damage') to find matching rules.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Rule number (e.g. '702', '702.2') or keywords to search"}
             },
             "required": ["query"],
         },
-    }
+    },
 ]
+
+_TOOL_FNS = {
+    "lookup_card": lambda inp: lookup_card(inp.get("name", "")),
+    "lookup_rulings": lambda inp: lookup_rulings(inp.get("oracle_id", "")),
+    "lookup_rule": lambda inp: lookup_rule(inp.get("query", "")),
+}
 
 
 class ChatBody(BaseModel):
@@ -96,8 +120,10 @@ async def api_mtg_chat(body: ChatBody):
         for block in final.content:
             if block.type != "tool_use":
                 continue
-            result = await asyncio.to_thread(lookup_rule, block.input.get("query", ""))
-            yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'query': block.input.get('query', ''), 'count': result.get('count', 0)})}\n\n"
+            fn = _TOOL_FNS.get(block.name)
+            result = await asyncio.to_thread(fn, block.input) if fn else {"error": "unknown tool"}
+            count = result.get("count", len(result.get("rulings", result.get("cards", []))))
+            yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'count': count})}\n\n"
             tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
 
         if tool_results:
