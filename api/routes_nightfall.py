@@ -8,7 +8,8 @@ from helpers import DATA_DIR
 
 _NF_DIR = Path("/app/nightfall")
 
-_NIGHTFALL_HEAD = "<script>" + (_NF_DIR / "wai-head.js").read_text() + "</script>"
+_SW_UNREGISTER = "<script>if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister();});});}</script>"
+_NIGHTFALL_HEAD = _SW_UNREGISTER + "<script>" + (_NF_DIR / "wai-head.js").read_text() + "</script>"
 _NIGHTFALL_BODY = (_NF_DIR / "wai-body.html").read_text()
 _NIGHTFALL_SAVE_SCRIPT_TPL = (_NF_DIR / "wai-save-sync.js").read_text()
 
