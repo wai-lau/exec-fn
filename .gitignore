@@ -9,6 +9,7 @@ __pycache__/
 *.png
 !web/IMG_25419.png
 *.pyo
+*.Identifier
 .env
 .env.*
 api/credentials.json
