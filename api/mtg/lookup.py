@@ -5,8 +5,8 @@ from functools import lru_cache
 from helpers import DATA_DIR
 
 RULES_PATH = DATA_DIR / "mtg_rules.txt"
-CARDS_PATH = DATA_DIR / "oracle-cards-20260427210254.json"
-RULINGS_PATH = DATA_DIR / "rulings-20260427210036.json"
+CARDS_PATH = DATA_DIR / "oracle-cards-slim.json"
+RULINGS_PATH = DATA_DIR / "rulings-slim.json"
 
 _RULE_NUM_RE = re.compile(r"^(\d{3})(\.\d+[a-z]?)?$")
 
@@ -69,7 +69,7 @@ def _load_rulings() -> dict:
 def lookup_card(name: str) -> dict:
     by_name, _ = _load_cards()
     if not by_name:
-        return {"error": "Cards file not found at /app/data/oracle-cards-*.json"}
+        return {"error": "Cards file not found at /app/data/oracle-cards-slim.json"}
 
     key = name.lower().strip()
 
@@ -88,7 +88,7 @@ def lookup_card(name: str) -> dict:
 def lookup_rulings(oracle_id: str) -> dict:
     by_oracle = _load_rulings()
     if not by_oracle:
-        return {"error": "Rulings file not found at /app/data/rulings-*.json"}
+        return {"error": "Rulings file not found at /app/data/rulings-slim.json"}
     comments = by_oracle.get(oracle_id.strip(), [])
     return {"oracle_id": oracle_id, "rulings": comments, "count": len(comments)}
 
