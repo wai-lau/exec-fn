@@ -22,3 +22,9 @@ venv/
 docker-compose.override.yml
 audio-wav/
 programs/
+
+# mtg
+mtg/MagicCompRules*.txt
+mtg/rules.txt
+mtg/oracle-cards*.json
+mtg/mtg_sections/

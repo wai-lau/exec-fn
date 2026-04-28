@@ -1,15 +1,10 @@
-import os
 import re
 import json
 import secrets
-import hashlib
 from pathlib import Path
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Cookie, Request
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import Security
-from typing import Optional
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 
 from pipeline import build_morning
 from rm import pull_rmdocs, push_pdf, list_archive
@@ -20,10 +15,12 @@ from chat_tools import _handle_tool
 from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log
 from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected
 from routes_chat import router as chat_router
+from mtg.routes import router as mtg_router
+from auth import (
+    SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY,
+    require_auth, require_guest_auth, API_KEY,
+)
 
-API_KEY = os.environ["API_KEY"]
-bearer = HTTPBearer(auto_error=False)
-SESSION_TOKEN = hashlib.sha256(f"session:{API_KEY}".encode()).hexdigest()
 _TMPL = Path("/app/templates")
 
 _GREEN_OVERLAY = """
@@ -93,8 +90,8 @@ _CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["exec", "plan", "看板", "vault", "媁"]
-_NAV_HREFS = {"exec": "/exec", "plan": "/plan", "看板": "/rd", "vault": "/archive", "媁": "/nightfall"}
+_NAV_LINKS = ["exec", "plan", "看板", "vault", "媁", "mtg"]
+_NAV_HREFS = {"exec": "/exec", "plan": "/plan", "看板": "/rd", "vault": "/archive", "媁": "/nightfall", "mtg": "/mtg"}
 
 
 def _build_nav(active=None):
@@ -113,6 +110,38 @@ _BARE = re.sub(r'<div class="bg-wide">.*?</div>', '', _NO_FORM, flags=re.DOTALL)
 _BARE = re.sub(r'<div class="bg-tall">.*?</div>', '', _BARE, flags=re.DOTALL)
 _BARE = re.sub(r'<a href="[^"]*" target="_blank">.*?</a>', '', _BARE, flags=re.DOTALL)
 
+_GUEST_LOGIN_HTML = """
+<style>
+body { display:flex; align-items:center; justify-content:center; height:100vh; }
+.login-box {
+  position:relative; z-index:2;
+  background:rgba(0,0,0,0.55); backdrop-filter:blur(6px);
+  border:1px solid rgba(0,255,65,0.15);
+  padding:24px 28px; display:flex; flex-direction:column; gap:14px;
+}
+.login-box label { font-family:monospace; font-size:0.8rem; color:rgba(0,255,65,0.55); }
+.login-box input[type=password] {
+  background:transparent; border:none;
+  border-bottom:1px solid rgba(0,255,65,0.3);
+  color:rgba(0,255,65,0.9); font-family:monospace; font-size:0.95rem;
+  padding:4px 2px; outline:none; width:200px;
+}
+.login-box input[type=password]:focus { border-bottom-color:rgba(0,255,65,0.8); }
+.login-box button {
+  background:none; border:1px solid rgba(0,255,65,0.4);
+  color:rgba(0,255,65,0.85); font-family:monospace; font-size:0.85rem;
+  padding:6px 16px; cursor:pointer; transition:all 0.2s; align-self:flex-start;
+}
+.login-box button:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
+</style>
+<form class="login-box" method="post" action="/guest-login">
+  <input type="hidden" name="next" value="{next}">
+  <label>password</label>
+  <input type="password" name="key" autofocus>
+  <button type="submit">enter</button>
+</form>
+"""
+
 
 def _build_page(active=None, content=""):
     base = _BARE if active else _NO_FORM
@@ -128,6 +157,7 @@ _VAULT_HTML  = (_TMPL / "vault.html").read_text()
 _KANBAN_HTML = (_TMPL / "kanban.html").read_text()
 _PLAN_HTML   = (_TMPL / "plan.html").read_text()
 _EXEC_HTML   = (_TMPL / "exec.html").read_text()
+_MTG_HTML    = (_TMPL / "mtg.html").read_text()
 
 
 # ── app ───────────────────────────────────────────────────────────────────────
@@ -135,19 +165,18 @@ _EXEC_HTML   = (_TMPL / "exec.html").read_text()
 app = FastAPI()
 
 
-def require_auth(
-    session: Optional[str] = Cookie(default=None),
-    credentials: Optional[HTTPAuthorizationCredentials] = Security(bearer),
-):
-    if session == SESSION_TOKEN:
-        return
-    if credentials and credentials.credentials == API_KEY:
-        return
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+@app.exception_handler(401)
+async def unauthorized_handler(request: Request, exc: HTTPException):
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        next_path = request.url.path
+        return RedirectResponse(f"/guest-login?next={next_path}", status_code=302)
+    return JSONResponse({"detail": "Unauthorized"}, status_code=401)
 
 
 public = APIRouter()
 protected = APIRouter(dependencies=[Depends(require_auth)])
+guest_protected = APIRouter(dependencies=[Depends(require_guest_auth)])
 
 
 # ── public ────────────────────────────────────────────────────────────────────
@@ -160,6 +189,25 @@ async def login(request: Request):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
     resp = RedirectResponse(url="/exec", status_code=303)
     resp.set_cookie("session", SESSION_TOKEN, httponly=True, samesite="lax", secure=False)
+    return resp
+
+
+@public.get("/guest-login", response_class=HTMLResponse)
+async def guest_login_page(next: str = "/mtg"):
+    html = _BARE.replace("</head>", _GREEN_OVERLAY + "</head>", 1)
+    html = html.replace("</body>", _GUEST_LOGIN_HTML.replace("{next}", next) + "</body>", 1)
+    return html
+
+
+@public.post("/guest-login")
+async def guest_login(request: Request):
+    form = await request.form()
+    key = form.get("key", "")
+    next_path = form.get("next", "/mtg")
+    if not secrets.compare_digest(key, GUEST_KEY):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
+    resp = RedirectResponse(url=next_path, status_code=303)
+    resp.set_cookie("guest_session", GUEST_SESSION_TOKEN, httponly=True, samesite="lax", secure=False)
     return resp
 
 
@@ -198,6 +246,13 @@ async def rd_page():
 @protected.get("/archive", response_class=HTMLResponse)
 async def archive_page():
     return _build_page("vault", _VAULT_HTML)
+
+
+@guest_protected.get("/mtg", response_class=HTMLResponse)
+async def mtg_page():
+    return (_BARE
+        .replace("</head>", _GREEN_OVERLAY + "</head>", 1)
+        .replace("</body>", _MTG_HTML + _build_nav("mtg") + "</body>", 1))
 
 
 # ── data file serving ─────────────────────────────────────────────────────────
@@ -467,8 +522,10 @@ async def api_parse_date(request: Request):
 
 app.include_router(public)
 app.include_router(protected)
-app.include_router(nightfall_public)
-app.include_router(nightfall_protected, dependencies=[Depends(require_auth)])
+app.include_router(guest_protected)
+app.include_router(nightfall_public, dependencies=[Depends(require_guest_auth)])
+app.include_router(nightfall_protected, dependencies=[Depends(require_guest_auth)])
 app.include_router(chat_router, dependencies=[Depends(require_auth)])
+app.include_router(mtg_router, dependencies=[Depends(require_guest_auth)])
 app.mount("/nightfall-game", StaticFiles(directory="/app/nightfall"), name="nightfall")
 app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")
