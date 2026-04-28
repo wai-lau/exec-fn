@@ -9,8 +9,6 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 **DEPLOY = BACKGROUND AGENT. ALWAYS. NO EXCEPTIONS.**
 Never run scp/ssh/docker deploy on main thread. Spawn background sub-agent.
 
-**NEVER touch `nightfall-incident/` unless explicitly asked.**
-
 **NEVER do `docker compose up --build` for normal deploys.** Rebuild only if `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` changed.
 
 **COMMIT after each discrete fix.** Don't batch. Push only after deploy succeeds and app is verified healthy.
@@ -42,16 +40,7 @@ ssh root@wai-lau.net "docker compose -f /exec-fn/docker-compose.yml logs --tail=
 # 5. git commit + push after healthy
 ```
 
-Container paths: `/app/` api, `/app/static/` web, `/app/templates/` templates, `/app/nightfall/` nightfall game (volume-mounted from `./nightfall-incident/` on host).
-
-### Nightfall static assets
-
-`nightfall-incident/` is volume-mounted — files served live from host, no rebuild needed.
-
-To deploy nightfall changes:
-1. Build locally: `cd nightfall-incident && npm run build` (or webpack)
-2. `scp -r nightfall-incident/static/ root@wai-lau.net:/exec-fn/nightfall-incident/static/`
-3. No restart needed — StaticFiles serves from volume directly
+Container paths: `/app/` api, `/app/static/` web, `/app/templates/` templates, `/app/nightfall/` nightfall game (volume-mounted from `./nightfall-incident/` on host — separate repo: `wai-lau/nightfall`).
 
 ### Deploy agent prompt template
 
@@ -106,7 +95,7 @@ Models: `claude-sonnet-4-6` main reasoning · `claude-haiku-4-5-20251001` cheap 
 exec-fn/
   bootstrap.sh            # one-time droplet setup — safe to re-run
   docker-compose.yml
-  nightfall-incident/     # standalone game — DO NOT EDIT unless asked
+  nightfall-incident/     # separate repo (wai-lau/nightfall), volume-mounted
   web/                    # static frontend (index.html, fonts, images)
   api/
     main.py               # FastAPI routes only — no inline HTML
