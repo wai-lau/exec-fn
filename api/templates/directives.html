@@ -44,17 +44,16 @@ body { overflow: hidden !important; }
   position: relative;
 }
 .dir-block {
-  position: relative; width: 100%; box-sizing: border-box;
-  border-radius: 3px; padding: 8px 10px; margin-bottom: 4px;
+  position: absolute; left: 3px; right: 3px; box-sizing: border-box;
+  border-radius: 3px; padding: 5px 8px 14px;
   cursor: grab; user-select: none; font-family: monospace;
   border: 1px solid transparent; overflow: hidden;
-  min-height: 36px;
 }
 .dir-block:active { cursor: grabbing; }
 .dir-block.plain { background: rgba(0,255,65,0.06); border-color: rgba(0,255,65,0.18); }
-.dir-block-title { font-size: 0.82rem; }
-.dir-block-meta { font-size: 0.62rem; opacity: 0.45; margin-top: 3px; display: flex; gap: 10px; }
-.dir-block-time { font-size: 0.65rem; opacity: 0.55; }
+.dir-block-title { font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.dir-block-meta { font-size: 0.6rem; opacity: 0.45; margin-top: 2px; display: flex; gap: 8px; }
+.dir-block-time { font-size: 0.62rem; opacity: 0.5; }
 .dir-resize {
   position: absolute; bottom: 0; left: 0; right: 0; height: 8px;
   cursor: ns-resize; background: rgba(0,255,65,0.08);
@@ -65,7 +64,12 @@ body { overflow: hidden !important; }
   background: rgba(0,255,65,0.3); border-radius: 1px;
 }
 .dir-resize:hover { background: rgba(0,255,65,0.2); }
-.sortable-ghost { opacity: 0.15; }
+.dir-tl-labels { width: 44px; flex-shrink: 0; position: relative; }
+.dir-tl-label {
+  position: absolute; right: 8px; transform: translateY(-50%);
+  font-size: 0.58rem; opacity: 0.32; white-space: nowrap; font-family: monospace;
+}
+.dir-tl-track { flex: 1; position: relative; border-left: 1px solid rgba(0,255,65,0.12); }
 /* right: debug */
 .dir-right {
   flex: 0 0 0; overflow: hidden; transition: flex-basis 0.25s;
@@ -89,7 +93,6 @@ body { overflow: hidden !important; }
 .dir-btn:hover { border-color: rgba(0,255,65,0.9); color: rgba(0,255,65,1); }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <div class="dir-topbar">
@@ -129,8 +132,14 @@ const CAT_HUE = {Book:210, Self:185, Social:315, Interfacing:50, Hobby:15};
 const CAT_LIGHT = {Social:+10, Hobby:+7};
 const CAT_SAT   = {Social:-20};
 const SIZE_MIN = {chore:30, task:90, project:240, titan:480, book:60};
-const MIN_PX = 0.9;
-const BLOCK_MIN_H = 44;
+
+const TL_PX = 1;           // 1px per minute
+const TL_START = 6 * 60;   // 6am
+const TL_END   = 24 * 60;  // midnight
+const TL_H     = TL_END - TL_START; // 1080px
+const SNAP     = 15;
+
+function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
 
 let scheduleCards = [];
 let debugOpen = false;
@@ -151,18 +160,13 @@ function cardBgDirectives(c) {
   return {bg:`background:hsl(${h},${50+ds}%,${54+dl}%);`, dark:false};
 }
 
-function blockHeight(c) {
-  const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
-  return Math.max(BLOCK_MIN_H, Math.round(mins * MIN_PX));
-}
 
 function computeStartTimes(cards) {
   const now = new Date();
-  const startHour = now.getHours() < 9 ? 9 : now.getHours();
-  let cur = startHour * 60 + now.getMinutes();
+  let cur = snapMin(Math.max(TL_START, now.getHours() * 60 + now.getMinutes()));
   return cards.map(c => {
     const start = cur;
-    cur += (c.estimated_time || SIZE_MIN[c.size] || 60);
+    cur += Math.max(SNAP, snapMin(c.estimated_time || SIZE_MIN[c.size] || 60));
     return start;
   });
 }
@@ -175,112 +179,161 @@ function fmtTime(totalMins) {
   return `${hr}:${String(m).padStart(2,'0')}${ampm}`;
 }
 
-function renderBlock(c, startMin) {
+function durLabel(min) {
+  return min >= 60 ? `${Math.floor(min/60)}h${min%60?min%60+'m':''}` : `${min}m`;
+}
+
+function createBlock(c, track) {
   const {bg, dark} = cardBgDirectives(c);
-  const h = blockHeight(c) + 'px';
+  const durMin = Math.max(SNAP, snapMin(c.estimated_time || SIZE_MIN[c.size] || 60));
+  c._durMin = durMin;
+  const topPx = Math.max(0, (c._startMin - TL_START) * TL_PX);
+  const heightPx = Math.max(15, durMin * TL_PX);
   const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(0,255,65,0.88)';
   const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(0,255,65,0.4)';
-  const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
-  const dur = mins >= 60 ? `${Math.floor(mins/60)}h${mins%60?mins%60+'m':''}` : `${mins}m`;
-  const timeLabel = fmtTime(startMin);
-  return `<div class="dir-block${bg?'':' plain'}" data-id="${c.id}" style="${bg}height:${h};padding-bottom:14px">
-    <div class="dir-block-time">${timeLabel}</div>
-    <div class="dir-block-title" style="color:${titleC}">${c.title}</div>
-    <div class="dir-block-meta" style="color:${metaC}"><span>${c.size||''}</span><span>${dur}</span></div>
-    <div class="dir-resize" data-id="${c.id}"></div>
-  </div>`;
+
+  const block = document.createElement('div');
+  block.className = 'dir-block' + (bg ? '' : ' plain');
+  block.dataset.id = c.id;
+  block.style.cssText = `${bg}top:${topPx}px;height:${heightPx}px;`;
+
+  const timeEl = document.createElement('div');
+  timeEl.className = 'dir-block-time';
+  timeEl.textContent = fmtTime(c._startMin);
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'dir-block-title';
+  titleEl.style.color = titleC;
+  titleEl.textContent = c.title;
+
+  const metaEl = document.createElement('div');
+  metaEl.className = 'dir-block-meta';
+  metaEl.style.color = metaC;
+  metaEl.innerHTML = `<span>${c.size||''}</span><span class="dur-lbl">${durLabel(durMin)}</span>`;
+
+  const resizeHandle = document.createElement('div');
+  resizeHandle.className = 'dir-resize';
+
+  block.append(timeEl, titleEl, metaEl, resizeHandle);
+
+  // drag to move
+  function startDrag(startClientY, getY) {
+    const rect = track.getBoundingClientRect();
+    const offsetY = startClientY - block.getBoundingClientRect().top;
+    function onMove(ev) {
+      const rawMin = (getY(ev) - rect.top - offsetY) / TL_PX + TL_START;
+      const snapped = Math.max(TL_START, Math.min(TL_END - c._durMin, snapMin(rawMin)));
+      c._startMin = snapped;
+      block.style.top = (snapped - TL_START) * TL_PX + 'px';
+      timeEl.textContent = fmtTime(snapped);
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+      scheduleCards.sort((a, b) => a._startMin - b._startMin);
+      saveCardOrder(scheduleCards);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, {passive: false});
+    document.addEventListener('touchend', onUp);
+  }
+
+  block.addEventListener('mousedown', e => {
+    if (resizeHandle.contains(e.target)) return;
+    e.preventDefault();
+    startDrag(e.clientY, ev => ev.clientY);
+  });
+  block.addEventListener('touchstart', e => {
+    if (resizeHandle.contains(e.target)) return;
+    startDrag(e.touches[0].clientY, ev => ev.touches[0].clientY);
+  }, {passive: true});
+
+  // resize
+  function startResize(startClientY, getY) {
+    const startDur = c._durMin;
+    function onMove(ev) {
+      const delta = getY(ev) - startClientY;
+      const snapped = Math.max(SNAP, snapMin(startDur + delta / TL_PX));
+      c._durMin = snapped;
+      block.style.height = Math.max(15, snapped * TL_PX) + 'px';
+      metaEl.querySelector('.dur-lbl').textContent = durLabel(snapped);
+    }
+    async function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+      c.estimated_time = c._durMin;
+      await saveEstimatedTime(c.id, c._durMin);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, {passive: false});
+    document.addEventListener('touchend', onUp);
+  }
+
+  resizeHandle.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    startResize(e.clientY, ev => ev.clientY);
+  });
+  resizeHandle.addEventListener('touchstart', e => {
+    e.preventDefault(); e.stopPropagation();
+    startResize(e.touches[0].clientY, ev => ev.touches[0].clientY);
+  }, {passive: false});
+
+  return block;
 }
 
 function buildSchedule(cards) {
-  const startTimes = computeStartTimes(cards);
   const wrap = document.getElementById('dir-schedule-wrap');
   if (!cards.length) {
     wrap.innerHTML = '<span style="opacity:0.3;font-family:monospace;font-size:0.8rem">no cards scheduled for today</span>';
     return;
   }
-  wrap.innerHTML = `<div id="dir-sortable">${cards.map((c, i) => renderBlock(c, startTimes[i])).join('')}</div>`;
-  initScheduleSortable();
-  initResizeHandles();
-}
 
-function initScheduleSortable() {
-  const el = document.getElementById('dir-sortable');
-  if (!el) return;
-  Sortable.create(el, {
-    animation: 120,
-    ghostClass: 'sortable-ghost',
-    handle: '.dir-block',
-    filter: '.dir-resize',
-    preventOnFilter: false,
-    delay: 200,
-    delayOnTouchOnly: true,
-    onEnd() {
-      // Recompute order from DOM
-      const newOrder = Array.from(el.querySelectorAll('.dir-block')).map(b => b.dataset.id);
-      scheduleCards.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
-      // Refresh time labels
-      const times = computeStartTimes(scheduleCards);
-      el.querySelectorAll('.dir-block').forEach((block, i) => {
-        const tl = block.querySelector('.dir-block-time');
-        if (tl) tl.textContent = fmtTime(times[i]);
-      });
-      saveCardOrder(scheduleCards);
-    },
-  });
-}
+  const startTimes = computeStartTimes(cards);
+  cards.forEach((c, i) => { c._startMin = startTimes[i]; });
 
-function initResizeHandles() {
-  document.querySelectorAll('.dir-resize').forEach(handle => {
-    handle.addEventListener('mousedown', onResizeStart);
-    handle.addEventListener('touchstart', onResizeStart, {passive: false});
-  });
-}
+  const tlWrap = document.createElement('div');
+  tlWrap.style.cssText = 'display:flex;';
 
-function onResizeStart(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  const handle = e.currentTarget;
-  const block = handle.closest('.dir-block');
-  const cardId = handle.dataset.id;
-  const startY = e.touches ? e.touches[0].clientY : e.clientY;
-  const startH = block.offsetHeight;
+  const labels = document.createElement('div');
+  labels.className = 'dir-tl-labels';
+  labels.style.height = TL_H + 'px';
 
-  function onMove(ev) {
-    const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
-    const delta = y - startY;
-    const newH = Math.max(BLOCK_MIN_H, startH + delta);
-    block.style.height = newH + 'px';
-  }
+  const track = document.createElement('div');
+  track.className = 'dir-tl-track';
+  track.style.height = TL_H + 'px';
 
-  async function onUp(ev) {
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup', onUp);
-    document.removeEventListener('touchmove', onMove);
-    document.removeEventListener('touchend', onUp);
-    const newH = block.offsetHeight;
-    const newMins = Math.max(10, Math.round(newH / MIN_PX));
-    const card = scheduleCards.find(c => c.id === cardId);
-    if (card) {
-      card.estimated_time = newMins;
-      const metaEl = block.querySelector('.dir-block-meta span:last-child');
-      if (metaEl) {
-        const m = newMins;
-        metaEl.textContent = m >= 60 ? `${Math.floor(m/60)}h${m%60?m%60+'m':''}` : `${m}m`;
-      }
-      // Refresh times
-      const times = computeStartTimes(scheduleCards);
-      document.querySelectorAll('.dir-block').forEach((b, i) => {
-        const tl = b.querySelector('.dir-block-time');
-        if (tl) tl.textContent = fmtTime(times[i]);
-      });
-      await saveEstimatedTime(cardId, newMins);
+  for (let h = 6; h <= 24; h++) {
+    const y = (h * 60 - TL_START) * TL_PX;
+
+    const hline = document.createElement('div');
+    hline.style.cssText = `position:absolute;left:0;right:0;top:${y}px;border-top:1px solid rgba(0,255,65,0.2);pointer-events:none;`;
+    track.appendChild(hline);
+
+    if (h < 24) {
+      const lbl = document.createElement('div');
+      lbl.className = 'dir-tl-label';
+      lbl.style.top = y + 'px';
+      lbl.textContent = h > 12 ? `${h-12}p` : h === 12 ? '12p' : `${h}a`;
+      labels.appendChild(lbl);
+
+      const hline2 = document.createElement('div');
+      hline2.style.cssText = `position:absolute;left:0;right:0;top:${y + 30 * TL_PX}px;border-top:1px solid rgba(0,255,65,0.07);pointer-events:none;`;
+      track.appendChild(hline2);
     }
   }
 
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
-  document.addEventListener('touchmove', onMove, {passive: false});
-  document.addEventListener('touchend', onUp);
+  cards.forEach(c => track.appendChild(createBlock(c, track)));
+
+  tlWrap.appendChild(labels);
+  tlWrap.appendChild(track);
+  wrap.innerHTML = '';
+  wrap.appendChild(tlWrap);
 }
 
 async function saveCardOrder(cards) {
