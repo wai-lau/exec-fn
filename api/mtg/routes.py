@@ -66,70 +66,52 @@ class ChatBody(BaseModel):
     messages: List[dict] = []
 
 
-async def _stream_followup(client, messages, system):
-    try:
-        async with client.messages.stream(
-            model="claude-sonnet-4-6",
-            max_tokens=1024,
-            system=system,
-            tools=_TOOLS,
-            messages=messages,
-        ) as stream:
-            async for text in stream.text_stream:
-                yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-            await stream.get_final_message()
-    except Exception:
-        pass
-
-
 @router.post("/api/mtg/chat")
 async def api_mtg_chat(body: ChatBody):
     async def generate():
         import anthropic
 
         client = anthropic.AsyncAnthropic()
-        messages = body.messages
-        full_text = ""
-        final = None
+        messages = list(body.messages)
 
-        try:
-            async with client.messages.stream(
-                model="claude-sonnet-4-6",
-                max_tokens=1024,
-                system=_SYSTEM,
-                tools=_TOOLS,
-                messages=messages,
-            ) as stream:
-                async for text in stream.text_stream:
-                    full_text += text
-                    yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-                final = await stream.get_final_message()
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'text', 'delta': f'[error: {e}]'})}\n\n"
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
-            return
+        for _ in range(8):  # max tool-call rounds
+            final = None
+            try:
+                async with client.messages.stream(
+                    model="claude-sonnet-4-6",
+                    max_tokens=1024,
+                    system=_SYSTEM,
+                    tools=_TOOLS,
+                    messages=messages,
+                ) as stream:
+                    async for text in stream.text_stream:
+                        yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
+                    final = await stream.get_final_message()
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'text', 'delta': f'[error: {e}]'})}\n\n"
+                break
 
-        assistant_content = [
-            {"type": "text", "text": b.text} if b.type == "text"
-            else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
-            for b in final.content if b.type in ("text", "tool_use")
-        ]
-        all_messages = messages + [{"role": "assistant", "content": assistant_content}]
-        tool_results = []
+            assistant_content = [
+                {"type": "text", "text": b.text} if b.type == "text"
+                else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
+                for b in final.content if b.type in ("text", "tool_use")
+            ]
+            messages.append({"role": "assistant", "content": assistant_content})
 
-        for block in final.content:
-            if block.type != "tool_use":
-                continue
-            fn = _TOOL_FNS.get(block.name)
-            result = await asyncio.to_thread(fn, block.input) if fn else {"error": "unknown tool"}
-            count = result.get("count", len(result.get("rulings", result.get("cards", []))))
-            yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'count': count})}\n\n"
-            tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
+            tool_results = []
+            for block in final.content:
+                if block.type != "tool_use":
+                    continue
+                fn = _TOOL_FNS.get(block.name)
+                result = await asyncio.to_thread(fn, block.input) if fn else {"error": "unknown tool"}
+                count = result.get("count", len(result.get("rulings", result.get("cards", []))))
+                yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'count': count})}\n\n"
+                tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
 
-        if tool_results:
-            all_messages.append({"role": "user", "content": tool_results})
-            async for chunk in _stream_followup(client, all_messages, _SYSTEM):
-                yield chunk
+            if not tool_results:
+                break
+
+            messages.append({"role": "user", "content": tool_results})
 
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
