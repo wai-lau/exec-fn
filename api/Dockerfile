@@ -14,7 +14,6 @@ RUN pip install -r requirements.txt && \
     /usr/local/lib/python3.12/site-packages/rmscene/scene_stream.py
 COPY api/ .
 COPY web/ /app/static/
-COPY fonts/ /app/static/fonts/
 RUN chmod +x /app/morning_cron.sh
 COPY api/exec-fn.cron /etc/cron.d/exec-fn
 RUN chmod 0644 /etc/cron.d/exec-fn
