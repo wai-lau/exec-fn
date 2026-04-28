@@ -95,9 +95,12 @@ _NAV_LINKS = ["exec", "plan", "看板", "vault", "媁", "mtg"]
 _NAV_HREFS = {"exec": "/exec", "plan": "/plan", "看板": "/rd", "vault": "/archive", "媁": "/nightfall", "mtg": "/mtg"}
 
 
-def _build_nav(active=None):
+_GUEST_NAV_LINKS = ["媁", "mtg"]
+
+
+def _build_nav(active=None, guest=False):
     links = []
-    for label in _NAV_LINKS:
+    for label in (_GUEST_NAV_LINKS if guest else _NAV_LINKS):
         href = _NAV_HREFS.get(label, f"/{label}")
         style = ' style="opacity:1;border-bottom-color:rgba(0,255,65,0.9);"' if label == active else ""
         links.append(f'<a href="{href}"{style}>{label}</a>')
@@ -122,13 +125,13 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   padding:24px 28px; display:flex; flex-direction:column; gap:14px;
 }
 .login-box label { font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.8rem; color:rgba(0,255,65,0.55); }
-.login-box input[type=password] {
+.login-box input[type=text] {
   background:transparent; border:none;
   border-bottom:1px solid rgba(0,255,65,0.3);
   color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
   padding:4px 2px; outline:none; width:200px;
 }
-.login-box input[type=password]:focus { border-bottom-color:rgba(0,255,65,0.8); }
+.login-box input[type=text]:focus { border-bottom-color:rgba(0,255,65,0.8); }
 .login-box button {
   background:none; border:1px solid rgba(0,255,65,0.4);
   color:rgba(0,255,65,0.85); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
@@ -139,7 +142,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 <form class="login-box" method="post" action="/guest-login">
   <input type="hidden" name="next" value="{next}">
   <label>password</label>
-  <input type="password" name="key" autofocus>
+  <input type="text" name="key" autofocus autocomplete="current-password">
   <button type="submit">enter</button>
 </form>
 """
@@ -253,10 +256,11 @@ async def archive_page():
 
 
 @guest_protected.get("/mtg", response_class=HTMLResponse)
-async def mtg_page():
+async def mtg_page(request: Request):
+    is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     return (_BARE
         .replace("</head>", _GREEN_OVERLAY + "</head>", 1)
-        .replace("</body>", _MTG_HTML + _build_nav("mtg") + "</body>", 1))
+        .replace("</body>", _MTG_HTML + _build_nav("mtg", guest=not is_full_auth) + "</body>", 1))
 
 
 # ── data file serving ─────────────────────────────────────────────────────────
