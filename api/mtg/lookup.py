@@ -1,12 +1,13 @@
 import json
 import re
 from functools import lru_cache
+from pathlib import Path
 
-from helpers import DATA_DIR
+MTG_DATA_DIR = Path("/app/mtg/data")
 
-RULES_PATH = DATA_DIR / "mtg_rules.txt"
-CARDS_PATH = DATA_DIR / "oracle-cards-slim.json"
-RULINGS_PATH = DATA_DIR / "rulings-slim.json"
+RULES_PATH = MTG_DATA_DIR / "mtg_rules.txt"
+CARDS_PATH = MTG_DATA_DIR / "oracle-cards-slim.json"
+RULINGS_PATH = MTG_DATA_DIR / "rulings-slim.json"
 
 _RULE_NUM_RE = re.compile(r"^(\d{3})(\.\d+[a-z]?)?$")
 
@@ -96,7 +97,7 @@ def lookup_rulings(oracle_id: str) -> dict:
 def lookup_rule(query: str) -> dict:
     query = query.strip()
     if not RULES_PATH.exists():
-        return {"error": "Rules file not found. Copy the original rules txt to /app/data/mtg_rules.txt"}
+        return {"error": "Rules file not found. Copy the original rules txt to /app/mtg/data/mtg_rules.txt"}
 
     lines = RULES_PATH.read_text(errors="ignore").splitlines()
 

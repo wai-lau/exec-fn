@@ -38,7 +38,7 @@ _GREEN_OVERLAY = """
   }
   .exec-nav a {
     color: rgba(0, 255, 65, 0.65);
-    font-family: monospace;
+    font-family: 'Iosevka Mayukai Monolite', monospace;
     font-size: 0.85rem;
     text-decoration: none;
     border-bottom: 1px solid rgba(0, 255, 65, 0.3);
@@ -57,7 +57,7 @@ _CONTENT_STYLE = """
     z-index: 2;
     width: min(720px, 90vw);
     margin: 64px auto 80px;
-    font-family: monospace;
+    font-family: 'Iosevka Mayukai Monolite', monospace;
     color: rgba(0, 255, 65, 1);
   }
   #content h2 {
@@ -78,7 +78,7 @@ _CONTENT_STYLE = """
     background: none;
     border: 1px solid rgba(0, 255, 65, 0.5);
     color: rgba(0, 255, 65, 0.85);
-    font-family: monospace;
+    font-family: 'Iosevka Mayukai Monolite', monospace;
     font-size: 0.8rem;
     padding: 4px 12px;
     cursor: pointer;
@@ -120,17 +120,17 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   border:1px solid rgba(0,255,65,0.15);
   padding:24px 28px; display:flex; flex-direction:column; gap:14px;
 }
-.login-box label { font-family:monospace; font-size:0.8rem; color:rgba(0,255,65,0.55); }
+.login-box label { font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.8rem; color:rgba(0,255,65,0.55); }
 .login-box input[type=password] {
   background:transparent; border:none;
   border-bottom:1px solid rgba(0,255,65,0.3);
-  color:rgba(0,255,65,0.9); font-family:monospace; font-size:0.95rem;
+  color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
   padding:4px 2px; outline:none; width:200px;
 }
 .login-box input[type=password]:focus { border-bottom-color:rgba(0,255,65,0.8); }
 .login-box button {
   background:none; border:1px solid rgba(0,255,65,0.4);
-  color:rgba(0,255,65,0.85); font-family:monospace; font-size:0.85rem;
+  color:rgba(0,255,65,0.85); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
   padding:6px 16px; cursor:pointer; transition:all 0.2s; align-self:flex-start;
 }
 .login-box button:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }

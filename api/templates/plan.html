@@ -5,7 +5,7 @@
 .pr-step { padding:1px 0 1px 18px; font-size:0.77rem; opacity:0.82; }
 .pr-push {
   background:none; border:1px solid rgba(0,255,65,0.25); color:rgba(0,255,65,0.55);
-  font-family:monospace; font-size:0.78rem; padding:5px 16px; cursor:pointer;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.78rem; padding:5px 16px; cursor:pointer;
 }
 .pr-push:hover { border-color:rgba(0,255,65,0.6); color:rgba(0,255,65,0.9); }
 </style>
@@ -28,7 +28,7 @@
   <div style="margin-bottom:28px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <div class="pr-col-hdr" style="margin:0;">omens</div>
-      <button onclick="refreshOmens(this)" style="background:none;border:none;color:rgba(0,255,65,0.25);font-family:monospace;font-size:0.72rem;cursor:pointer;padding:0;">[refresh]</button>
+      <button onclick="refreshOmens(this)" style="background:none;border:none;color:rgba(0,255,65,0.25);font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.72rem;cursor:pointer;padding:0;">[refresh]</button>
     </div>
     <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
@@ -115,7 +115,7 @@ async function loadPlan() {
           <td style="padding:3px 0;font-size:0.82em;">${e.title}${detail}</td>
         </tr>`;
       }).join('');
-      document.getElementById('pr-rdlog').innerHTML = `<table style="border-collapse:collapse;width:100%;font-family:monospace;">${rows}</table>`;
+      document.getElementById('pr-rdlog').innerHTML = `<table style="border-collapse:collapse;width:100%;font-family:'Iosevka Mayukai Monolite',monospace;">${rows}</table>`;
     } else {
       document.getElementById('pr-rdlog').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">no activity yet</span>';
     }
