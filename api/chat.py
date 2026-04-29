@@ -100,20 +100,6 @@ def _chat_tools() -> list:
             "input_schema": {"type": "object", "properties": {}},
         },
         {
-            "name": "create_gcal_event",
-            "description": "Create a Google Calendar event on Wai's primary calendar. Use when Wai asks to schedule something or add an event to the calendar.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string", "description": "Event title/summary."},
-                    "start": {"type": "string", "description": "Start as ISO 8601: YYYY-MM-DD for all-day, or YYYY-MM-DDTHH:MM:SS for timed events (ET timezone)."},
-                    "end": {"type": "string", "description": "End as ISO 8601. Optional — defaults to 1 hour after start for timed, same day for all-day."},
-                    "description": {"type": "string", "description": "Optional event notes/description."},
-                },
-                "required": ["title", "start"],
-            },
-        },
-        {
             "name": "move_card",
             "description": "Move a card to a different column. Use to archive completed tasks, exile irrelevant ones, or pull ideas into the active pool.",
             "input_schema": {

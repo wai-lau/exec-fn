@@ -6,7 +6,7 @@ from helpers import (
     _append_rd_log, _SIZE_MINUTES, _minutes_to_size, _now_et,
     _apply_context_update,
 )
-from gcal import fetch_omens, create_gcal_event
+from gcal import fetch_omens
 
 
 
@@ -269,17 +269,6 @@ def _tool_schedule_card(input_: dict) -> dict:
     return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": card.get("scheduled_day")}
 
 
-def _tool_create_gcal_event(input_: dict) -> dict:
-    try:
-        return create_gcal_event(
-            title=input_["title"],
-            start=input_["start"],
-            end=input_.get("end"),
-            description=input_.get("description", ""),
-        )
-    except Exception as e:
-        return {"error": str(e)}
-
 
 _TOOL_HANDLERS = {
     "create_card":       _tool_create_card,
@@ -291,7 +280,6 @@ _TOOL_HANDLERS = {
     "assemble_plan":     _tool_assemble_plan,
     "reschedule":        _tool_reschedule,
     "update_context":    _tool_update_context,
-    "create_gcal_event": _tool_create_gcal_event,
 }
 
 

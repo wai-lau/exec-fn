@@ -167,7 +167,6 @@ async function streamResponse() {
           else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
           else if (data.name === 'assemble_plan') { addMsg('sys', '[ plan assembled ]'); }
           else if (data.name === 'reschedule') { addMsg('sys', `[ schedule updated: ${(r.schedule||[]).length} entries ]`); }
-          else if (data.name === 'create_gcal_event') { addMsg('sys', `[ event created: ${r.summary || data.input?.title || ''} ]`); }
           else if (data.name === 'schedule_card') { addMsg('sys', `[ scheduled "${r.title || data.input?.id}" → ${r.scheduled_day || 'unscheduled'} ]`); }
           else { addMsg('sys', `[ ${data.name.replace(/_/g,' ')}: done ]`); }
         } else if (data.type === 'done') {
