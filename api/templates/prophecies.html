@@ -8,6 +8,17 @@ body { overflow: hidden !important; }
   background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(0,255,65,0.12);
 }
+.pr-books {
+  display: none; position: fixed; top: 52px; left: 0; right: 0; height: 32px; z-index: 19;
+  align-items: center; padding: 0 12px; gap: 6px; overflow-x: scroll; overflow-y: hidden;
+  scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch;
+  background: rgba(0,0,0,0.35); border-bottom: 1px solid rgba(210,160,80,0.1);
+  font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.63rem;
+}
+.pr-books::-webkit-scrollbar { display: none; }
+.pr-books .book-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.8; padding: 1px 7px; border-radius: 3px; }
+.pr-books .book-item:hover { opacity: 1; }
+.has-books .pr-books { display: flex; }
 .pr-board {
   position: fixed; top: 52px; bottom: 52px; left: 0; right: 182px;
   display: flex; gap: 1px; overflow-x: auto; overflow-y: hidden;
@@ -20,6 +31,8 @@ body { overflow: hidden !important; }
   border-left: 1px solid rgba(0,255,65,0.12);
   z-index: 5;
 }
+.has-books .pr-board,
+.has-books .pr-unscheduled-panel { top: 84px; }
 .pr-col {
   flex: 0 0 200px; display: flex; flex-direction: column;
   background: rgba(0,0,0,0.3); min-width: 0;
@@ -82,6 +95,7 @@ body { overflow: hidden !important; }
   </div>
 </div>
 
+<div class="pr-books" id="pr-books-bar"></div>
 <div class="pr-board" id="pr-board">
   <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
@@ -279,10 +293,26 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
 }
 
+async function buildBooks() {
+  const r = await fetch('/api/rd');
+  const data = await r.json();
+  const all = (data.cards || []).filter(c => c.size === 'book' && c.column !== 'archives' && c.column !== 'exile');
+  const bar = document.getElementById('pr-books-bar');
+  if (!all.length) { document.body.classList.remove('has-books'); bar.innerHTML = ''; return; }
+  document.body.classList.add('has-books');
+  bar.innerHTML = all.map(c => {
+    const title = c.title.length > 30 ? c.title.slice(0, 30) + '…' : c.title;
+    return `<div class="book-item" data-id="${c.id}" style="color:hsl(210,75%,72%);background:hsl(210,55%,12%);border:1px solid hsl(210,50%,26%)">${title}</div>`;
+  }).join('');
+  bar.querySelectorAll('.book-item').forEach(el => {
+    el.addEventListener('click', () => { if (!_prDragging) openCardDialog(el.dataset.id, () => { buildBooks(); }, 'prof'); });
+  });
+}
+
 async function load(start) {
   document.getElementById('pr-board').innerHTML = '<span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>';
   const url = start ? `/api/prophecies?start=${start}` : '/api/prophecies';
-  const r = await fetch(url);
+  const [r] = await Promise.all([fetch(url), buildBooks()]);
   weekData = await r.json();
   weekStart = weekData.week_start;
   buildBoard();
