@@ -305,15 +305,18 @@ async function save() {
 function toggleArchives(e) { if (e) e.stopPropagation(); archivesCollapsed = !archivesCollapsed; buildBoard(); }
 function toggleExile(e) { if (e) e.stopPropagation(); exileCollapsed = !exileCollapsed; buildBoard(); }
 
+const COL_LABELS = {rd: 'r&d', hq: 'hq', archives: 'archives', exile: 'exile'};
+
 function renderCol(col) {
   const count = cards.filter(c=>c.column===col).length;
   const isArchives = col === 'archives', isExile = col === 'exile';
   const collapsed = (isArchives && archivesCollapsed) || (isExile && exileCollapsed);
   const toggle = isArchives ? 'toggleArchives' : (isExile ? 'toggleExile' : null);
+  const label = COL_LABELS[col] || col;
   const hdr = toggle
-    ? `<span class="col-hdr-label">${collapsed ? '▶' : col} <span style="opacity:0.35">(${count})</span></span>
+    ? `<span class="col-hdr-label">${collapsed ? '▶' : label} <span style="opacity:0.35">(${count})</span></span>
        ${!collapsed ? `<button class="done-toggle" onclick="${toggle}(event)">▼</button>` : ''}`
-    : `<span class="col-hdr-label">${col} <span style="opacity:0.35">(${count})</span></span>`;
+    : `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span>`;
   const colCards = collapsed ? '' : cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('');
   return `<div class="col${collapsed?' col-collapsed':''}"${collapsed&&toggle?` onclick="${toggle}()"`:''}>
     <div class="col-hdr">${hdr}</div>
