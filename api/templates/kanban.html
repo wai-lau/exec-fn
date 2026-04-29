@@ -361,7 +361,8 @@ function buildReminders() {
     const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
     const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
     const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
-    return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${c.title}${date}</div>`;
+    const title = c.title.length > 25 ? c.title.slice(0, 25) + '…' : c.title;
+    return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
   }).join('');
   bar.querySelectorAll('.rem-item').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
