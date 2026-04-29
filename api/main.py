@@ -25,20 +25,22 @@ _NAV_CSS = """
 <style>
   .exec-nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-    height: 52px; display: flex; align-items: center; justify-content: center; gap: 32px;
+    height: 58px; display: flex; align-items: center; justify-content: center; gap: 28px;
     background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
     border-top: 1px solid rgba(0,255,65,0.12);
   }
   .exec-nav a {
-    color: rgba(0, 255, 65, 0.65);
-    font-family: 'Iosevka Mayukai Monolite', monospace;
-    font-size: 0.85rem;
+    color: rgba(0, 255, 65, 0.5);
     text-decoration: none;
-    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
-    transition: color 0.2s, border-bottom-color 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    transition: color 0.2s;
   }
-  .exec-nav a:hover { color: rgba(0, 255, 65, 1); border-bottom-color: rgba(0, 255, 65, 1); }
-  .exec-nav a[style*="opacity:1"] { color: rgba(0,255,65,1); border-bottom-color: rgba(0,255,65,1); }
+  .exec-nav a:hover { color: rgba(0, 255, 65, 1); }
+  .exec-nav a.active { color: rgba(0, 255, 65, 1); }
+  .exec-nav .nav-label {
+    font-family: 'Iosevka Mayukai Monolite', monospace;
+    font-size: 0.45rem; text-transform: uppercase; letter-spacing: 0.1em;
+  }
 </style>
 """
 
@@ -104,24 +106,29 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg"]
 
 
 _NAV_ICONS = {
-    "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
-    "Exec":        '<img src="/guru-pink.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
-    "prophecies":  '<img src="/fiddle.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
-    "directives":  '<img src="/turbo.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
-    "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
-    "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
-    "mtg":         '<img src="/wizard.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
+    "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "Exec":        '<img src="/guru-pink.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "prophecies":  '<img src="/fiddle.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "directives":  '<img src="/turbo.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "mtg":         '<img src="/wizard.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
+}
+
+_NAV_LABELS = {
+    "core": "core", "Exec": "exec", "prophecies": "profs",
+    "directives": "dirs", "debug": "debug", "nightfall": "nightfall", "mtg": "mtg",
 }
 
 def _build_nav(active=None, guest=False):
     links = []
     for label in (_GUEST_NAV_LINKS if guest else _NAV_LINKS):
         href = _NAV_HREFS.get(label, f"/{label}")
-        is_active = label == active
-        style = ' style="opacity:1;border-bottom-color:rgba(0,255,65,0.9);"' if is_active else ""
-        content = _NAV_ICONS.get(label, label)
-        links.append(f'<a href="{href}"{style}>{content}</a>')
-    return '<div class="exec-nav">' + " &nbsp; ".join(links) + "</div>"
+        cls = ' class="active"' if label == active else ""
+        icon = _NAV_ICONS.get(label, label)
+        text = _NAV_LABELS.get(label, label.lower())
+        links.append(f'<a href="{href}"{cls}>{icon}<span class="nav-label">{text}</span></a>')
+    return '<div class="exec-nav">' + "".join(links) + "</div>"
 
 
 _INDEX = Path("/app/static/index.html").read_text()
