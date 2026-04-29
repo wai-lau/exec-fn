@@ -171,13 +171,8 @@ def _build_page(active=None, content=""):
 
 # ── templates ─────────────────────────────────────────────────────────────────
 
-_KANBAN_HTML      = (_TMPL / "kanban.html").read_text()
-_PLAN_HTML        = (_TMPL / "plan.html").read_text()
-_EXEC_HTML        = (_TMPL / "exec.html").read_text()
-_MTG_HTML         = (_TMPL / "mtg.html").read_text()
-_PROPHECIES_HTML  = (_TMPL / "prophecies.html").read_text()
-_DIRECTIVES_HTML  = (_TMPL / "directives.html").read_text()
-_DEBUG_HTML       = (_TMPL / "debug.html").read_text()
+def _tmpl(name: str) -> str:
+    return (_TMPL / name).read_text()
 
 
 # ── app ───────────────────────────────────────────────────────────────────────
@@ -239,12 +234,12 @@ async def guest_login(request: Request):
 async def exec_page():
     return (_BARE
         .replace("</head>", _PAGE_CHROME + "</head>", 1)
-        .replace("</body>", _EXEC_HTML + _build_nav("Exec") + "</body>", 1))
+        .replace("</body>", _tmpl("exec.html") + _build_nav("Exec") + "</body>", 1))
 
 
 @protected.get("/plan", response_class=HTMLResponse)
 async def plan_page():
-    return _build_page("plan", _PLAN_HTML)
+    return _build_page("plan", _tmpl("plan.html"))
 
 
 @protected.get("/prophecies", response_class=HTMLResponse)
@@ -252,7 +247,7 @@ async def prophecies_page():
     head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _PROPHECIES_HTML + _build_nav("prophecies") + "</body>", 1))
+        .replace("</body>", _tmpl("prophecies.html") + _build_nav("prophecies") + "</body>", 1))
 
 
 @protected.get("/directives", response_class=HTMLResponse)
@@ -260,12 +255,12 @@ async def directives_page():
     head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _DIRECTIVES_HTML + _build_nav("directives") + "</body>", 1))
+        .replace("</body>", _tmpl("directives.html") + _build_nav("directives") + "</body>", 1))
 
 
 @protected.get("/debug", response_class=HTMLResponse)
 async def debug_page():
-    return _build_page("debug", _DEBUG_HTML)
+    return _build_page("debug", _tmpl("debug.html"))
 
 
 @protected.get("/api/debug/logs")
@@ -292,7 +287,7 @@ async def rd_page():
     head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _KANBAN_HTML + _build_nav("core") + "</body>", 1))
+        .replace("</body>", _tmpl("kanban.html") + _build_nav("core") + "</body>", 1))
 
 
 @guest_protected.get("/mtg", response_class=HTMLResponse)
@@ -300,7 +295,7 @@ async def mtg_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     return (_BARE
         .replace("</head>", _PAGE_CHROME + "</head>", 1)
-        .replace("</body>", _MTG_HTML + _build_nav("mtg", guest=not is_full_auth) + "</body>", 1))
+        .replace("</body>", _tmpl("mtg.html") + _build_nav("mtg", guest=not is_full_auth) + "</body>", 1))
 
 
 @guest_protected.get("/nightfall", response_class=HTMLResponse)
