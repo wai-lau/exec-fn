@@ -112,28 +112,69 @@ def _run_step(errors: dict, key: str, fn):
         return None
 
 
+def _morning_retrospective(log_entries: list, profile_path) -> None:
+    if not log_entries:
+        return
+    import anthropic
+    profile = json.loads(profile_path.read_text()) if profile_path.exists() else {"notes": []}
+    existing = "\n".join(f"- [{n.get('date','')}] {n['note']}" for n in profile.get("notes", [])) or "None."
+    log_text = "\n".join(
+        f"- [{e.get('action','')}] {e.get('title','')} (source: {e.get('source','')})"
+        + (f" {e.get('from_col','?')}→{e.get('to_col','?')}" if e.get('action') == 'moved' else "")
+        for e in log_entries
+    )
+    today = _now_et().strftime("%Y-%m-%d")
+    client = anthropic.Anthropic()
+    resp = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=512,
+        messages=[{"role": "user", "content": (
+            f"Today is {today}. Here is Wai's activity log from the past day:\n{log_text}\n\n"
+            f"Existing profile notes:\n{existing}\n\n"
+            "Extract 0–3 short, specific, durable insights about Wai's work patterns, habits, or preferences that "
+            "are NOT already in the profile notes and are worth remembering long-term. "
+            "Skip generic observations. Only include genuinely new, specific information. "
+            "If there's nothing worth adding, reply with just: none\n"
+            "Otherwise reply with one insight per line, plain text, no bullets or numbering."
+        )}],
+    )
+    text = resp.content[0].text.strip()
+    if text.lower() == "none" or not text:
+        return
+    notes = profile.get("notes", [])
+    for line in text.splitlines():
+        line = line.strip()
+        if line:
+            notes.append({"date": today, "note": line})
+    profile["notes"] = notes
+    profile_path.write_text(json.dumps(profile, indent=2))
+
+
 def build_morning() -> dict:
     chat_path = DATA_DIR / "chat.json"
-    if chat_path.exists():
-        chat_path.unlink()
+    profile_path = DATA_DIR / "profile.json"
+    old_ctx = DATA_DIR / "context.json"
+    if old_ctx.exists() and not profile_path.exists():
+        old_ctx.rename(profile_path)
+
+    log_entries = json.loads(_RD_LOG.read_text()) if _RD_LOG.exists() else []
+
+    errors: dict = {}
+    _run_step(errors, "retrospective", lambda: _morning_retrospective(log_entries, profile_path))
 
     if _RD_LOG.exists():
         archive_name = DATA_DIR / f"activity_log_{_now_et().strftime('%m%d')}.json"
         _RD_LOG.rename(archive_name)
     _RD_LOG.write_text("[]")
 
-    profile_path = DATA_DIR / "profile.json"
-    old_ctx = DATA_DIR / "context.json"
-    if old_ctx.exists() and not profile_path.exists():
-        old_ctx.rename(profile_path)
+    if chat_path.exists():
+        chat_path.unlink()
 
     if profile_path.exists():
         ctx = json.loads(profile_path.read_text())
         if len(ctx.get("notes", [])) > 1:
             ctx["notes"] = _dedupe_context(ctx["notes"])
             profile_path.write_text(json.dumps(ctx, indent=2))
-
-    errors: dict = {}
 
     result = {"generated_at": datetime.now(timezone.utc).isoformat()}
     if errors:

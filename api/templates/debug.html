@@ -1,0 +1,108 @@
+
+<style>
+body { overflow-y: auto !important; }
+.dbg-wrap { width: min(860px, 94vw); margin: 24px auto 100px; }
+.dbg-section { margin-bottom: 36px; }
+.dbg-hdr {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.18em;
+  color: rgba(0,255,65,0.5); border-bottom: 1px solid rgba(0,255,65,0.12);
+  padding-bottom: 6px; margin-bottom: 14px;
+}
+.dbg-note {
+  font-size: 0.8rem; padding: 7px 0;
+  border-bottom: 1px solid rgba(0,255,65,0.07);
+  display: flex; gap: 14px; align-items: baseline;
+}
+.dbg-note-date { font-size: 0.65rem; opacity: 0.4; flex-shrink: 0; }
+.dbg-note-text { color: rgba(0,255,65,0.85); }
+.dbg-log-file { margin-bottom: 24px; }
+.dbg-log-hdr {
+  font-size: 0.62rem; color: rgba(0,255,65,0.4); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.dbg-log-hdr:hover { color: rgba(0,255,65,0.7); }
+.dbg-log-toggle { font-size: 0.7rem; }
+.dbg-log-entries { display: none; }
+.dbg-log-entries.open { display: block; }
+.dbg-entry {
+  font-size: 0.75rem; padding: 5px 0;
+  border-bottom: 1px solid rgba(0,255,65,0.06);
+  display: flex; gap: 10px; color: rgba(0,255,65,0.7);
+}
+.dbg-entry-ts { font-size: 0.6rem; opacity: 0.35; flex-shrink: 0; }
+.dbg-entry-action { opacity: 0.5; flex-shrink: 0; min-width: 60px; }
+.dbg-entry-title { flex: 1; }
+.dbg-entry-meta { font-size: 0.6rem; opacity: 0.35; }
+.dbg-empty { font-size: 0.75rem; opacity: 0.3; padding: 8px 0; }
+</style>
+
+<div class="dbg-wrap">
+  <div class="dbg-section">
+    <div class="dbg-hdr">profile</div>
+    <div id="dbg-profile"><span class="dbg-empty">loading...</span></div>
+  </div>
+  <div class="dbg-section">
+    <div class="dbg-hdr">activity logs</div>
+    <div id="dbg-logs"><span class="dbg-empty">loading...</span></div>
+  </div>
+</div>
+
+<script>
+async function loadDebug() {
+  const [ctxRes, logRes] = await Promise.all([
+    fetch('/api/context'),
+    fetch('/api/debug/logs'),
+  ]);
+
+  // Profile
+  if (ctxRes.ok) {
+    const ctx = await ctxRes.json();
+    const notes = ctx.notes || [];
+    document.getElementById('dbg-profile').innerHTML = notes.length
+      ? notes.slice().reverse().map(n =>
+          `<div class="dbg-note">
+            <span class="dbg-note-date">${n.date || ''}</span>
+            <span class="dbg-note-text">${n.note}</span>
+          </div>`).join('')
+      : '<div class="dbg-empty">no notes</div>';
+  }
+
+  // Logs
+  if (logRes.ok) {
+    const data = await logRes.json();
+    const files = data.files || [];
+    document.getElementById('dbg-logs').innerHTML = files.map((f, i) => {
+      const entries = f.entries || [];
+      const isToday = i === 0;
+      return `<div class="dbg-log-file">
+        <div class="dbg-log-hdr" onclick="toggleLog(${i})">
+          <span class="dbg-log-toggle" id="tog-${i}">${isToday ? '▼' : '▶'}</span>
+          <span>${f.name}</span>
+          <span style="opacity:0.35">(${entries.length})</span>
+        </div>
+        <div class="dbg-log-entries${isToday ? ' open' : ''}" id="log-${i}">
+          ${entries.length ? entries.slice().reverse().map(e => {
+            const ts = e.ts ? new Date(e.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '';
+            const meta = e.action === 'moved' ? `${e.from_col||'?'}→${e.to_col||'?'}` : (e.column || e.day || '');
+            return `<div class="dbg-entry">
+              <span class="dbg-entry-ts">${ts}</span>
+              <span class="dbg-entry-action">${e.action||''}</span>
+              <span class="dbg-entry-title">${e.title||''}</span>
+              <span class="dbg-entry-meta">${meta}</span>
+            </div>`;
+          }).join('') : '<div class="dbg-empty">empty</div>'}
+        </div>
+      </div>`;
+    }).join('') || '<div class="dbg-empty">no logs</div>';
+  }
+}
+
+function toggleLog(i) {
+  const el = document.getElementById('log-'+i);
+  const tog = document.getElementById('tog-'+i);
+  el.classList.toggle('open');
+  tog.textContent = el.classList.contains('open') ? '▼' : '▶';
+}
+
+loadDebug();
+</script>

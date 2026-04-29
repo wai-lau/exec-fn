@@ -96,8 +96,8 @@ _CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "nightfall", "mtg"]
-_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "nightfall": "/nightfall", "mtg": "/mtg"}
+_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "debug", "nightfall", "mtg"]
+_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg"}
 
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg"]
@@ -177,6 +177,7 @@ _EXEC_HTML        = (_TMPL / "exec.html").read_text()
 _MTG_HTML         = (_TMPL / "mtg.html").read_text()
 _PROPHECIES_HTML  = (_TMPL / "prophecies.html").read_text()
 _DIRECTIVES_HTML  = (_TMPL / "directives.html").read_text()
+_DEBUG_HTML       = (_TMPL / "debug.html").read_text()
 
 
 # ── app ───────────────────────────────────────────────────────────────────────
@@ -260,6 +261,28 @@ async def directives_page():
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", _DIRECTIVES_HTML + _build_nav("directives") + "</body>", 1))
+
+
+@protected.get("/debug", response_class=HTMLResponse)
+async def debug_page():
+    return _build_page("debug", _DEBUG_HTML)
+
+
+@protected.get("/api/debug/logs")
+def api_debug_logs():
+    import glob
+    from helpers import _RD_LOG as _log_path
+    files = []
+    # today's log first
+    today_entries = json.loads(_log_path.read_text()) if _log_path.exists() else []
+    files.append({"name": "today", "entries": today_entries})
+    # archived logs, newest first
+    archived = sorted(glob.glob(str(DATA_DIR / "activity_log_????.json")), reverse=True)
+    for path in archived:
+        name = Path(path).stem.replace("activity_log_", "")
+        entries = json.loads(Path(path).read_text())
+        files.append({"name": name, "entries": entries})
+    return {"files": files}
 
 
 
