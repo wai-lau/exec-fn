@@ -44,6 +44,8 @@ _NAV_CSS = """
 
 _GREEN_OVERLAY = """
 <style>
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf') format('truetype'); font-weight:500; font-style:normal; }
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf') format('truetype'); font-weight:700; font-style:normal; }
   body { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-style: normal; }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
