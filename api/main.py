@@ -21,14 +21,8 @@ from auth import (
 
 _TMPL = Path("/app/templates")
 
-_GREEN_OVERLAY = """
+_NAV_CSS = """
 <style>
-  body { font-weight: 500; font-style: italic; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(0, 255, 65, 0.45); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 65, 0.85); }
-  * { scrollbar-width: thin; scrollbar-color: rgba(0,255,65,0.45) transparent; }
   .exec-nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     height: 52px; display: flex; align-items: center; justify-content: center; gap: 32px;
@@ -47,6 +41,17 @@ _GREEN_OVERLAY = """
   .exec-nav a[style*="opacity:1"] { color: rgba(0,255,65,1); border-bottom-color: rgba(0,255,65,1); }
 </style>
 """
+
+_GREEN_OVERLAY = """
+<style>
+  body { font-weight: 500; font-style: italic; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0, 255, 65, 0.45); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 65, 0.85); }
+  * { scrollbar-width: thin; scrollbar-color: rgba(0,255,65,0.45) transparent; }
+</style>
+""" + _NAV_CSS
 
 _CONTENT_STYLE = """
 <style>
@@ -272,7 +277,7 @@ async def mtg_page(request: Request):
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
-    html = html.replace("</head>", _GREEN_OVERLAY + "</head>", 1)
+    html = html.replace("</head>", _NAV_CSS + "</head>", 1)
     html = html.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + "</body>", 1)
     return HTMLResponse(html)
 
