@@ -25,7 +25,7 @@ _NAV_CSS = """
 <style>
   .exec-nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-    height: 58px; display: flex; align-items: center; justify-content: center; gap: 28px;
+    height: 58px; display: flex; align-items: center; justify-content: space-evenly;
     background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
     border-top: 1px solid rgba(0,255,65,0.12);
   }
@@ -33,7 +33,7 @@ _NAV_CSS = """
     color: rgba(0, 255, 65, 0.5);
     text-decoration: none;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
-    transition: color 0.2s;
+    transition: color 0.2s; flex: 1; max-width: 72px;
   }
   .exec-nav a:hover { color: rgba(0, 255, 65, 1); }
   .exec-nav a.active { color: rgba(0, 255, 65, 1); }
@@ -117,7 +117,7 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "core": "core", "Exec": "exec", "prophecies": "profs",
-    "directives": "dirs", "debug": "debug", "nightfall": "nightfall", "mtg": "mtg",
+    "directives": "dirs", "debug": "debug", "nightfall": "night", "mtg": "mtg",
 }
 
 def _build_nav(active=None, guest=False):
@@ -311,7 +311,8 @@ async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
     html = html.replace("</head>", _NAV_CSS + "<style>body,.App{background:#000!important;background-color:#000!important}#root{padding-bottom:52px;box-sizing:border-box}</style>" + "</head>", 1)
-    html = html.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + "</body>", 1)
+    _fs_script = '<script>document.addEventListener("fullscreenchange",function(){var n=document.querySelector(".exec-nav");if(n)n.style.display=document.fullscreenElement?"none":"flex";});</script>'
+    html = html.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + _fs_script + "</body>", 1)
     return HTMLResponse(html)
 
 
