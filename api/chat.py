@@ -46,7 +46,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "When Wai mentions working on, making progress on, or completing part of a task, call update_card with a timestamped note appended to the notes field. "
             "COLUMN SEMANTICS: rd=upcoming ideas/backlog (card added here by default). hq=should be scheduled within remaining time today (active working set). archives=task completed. exile=wont-do. "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
-            "When the plan looks ready, call assemble_plan to generate the schedule and show Wai the preview. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
         "done": "The plan has been finalized. Wrap up warmly. No more actions needed.",
@@ -146,19 +145,6 @@ def _chat_tools() -> list:
                 "type": "object",
                 "properties": {"id": {"type": "string", "description": "Card ID to delete."}},
                 "required": ["id"],
-            },
-        },
-        {
-            "name": "assemble_plan",
-            "description": "Refresh omens, generate encouraging message and daily schedule, write plan.json. Call when card selection looks ready.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "seek_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring going outdoors."},
-                    "hack_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs that can be done quickly at home (under an hour)."},
-                    "dive_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring extended focus or setup (over an hour)."},
-                },
-                "required": ["seek_ids", "hack_ids", "dive_ids"],
             },
         },
         {
