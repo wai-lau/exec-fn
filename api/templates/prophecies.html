@@ -20,19 +20,11 @@ body { overflow: hidden !important; }
 .pr-books .book-item:hover { opacity: 1; }
 .has-books .pr-books { display: flex; }
 .pr-board {
-  position: fixed; top: 52px; bottom: 52px; left: 0; right: 182px;
+  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
   display: flex; gap: 1px; overflow-x: auto; overflow-y: hidden;
   background: rgba(0,255,65,0.04);
 }
-.pr-unscheduled-panel {
-  position: fixed; top: 52px; bottom: 52px; right: 0; width: 181px;
-  display: flex; flex-direction: column;
-  background: rgba(0,0,0,0.5);
-  border-left: 1px solid rgba(0,255,65,0.12);
-  z-index: 5;
-}
-.has-books .pr-board,
-.has-books .pr-unscheduled-panel { top: 84px; }
+.has-books .pr-board { top: 84px; }
 .pr-col {
   flex: 0 0 200px; display: flex; flex-direction: column;
   background: rgba(0,0,0,0.3); min-width: 0;
@@ -99,8 +91,6 @@ body { overflow: hidden !important; }
 <div class="pr-board" id="pr-board">
   <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
-<div class="pr-unscheduled-panel" id="pr-unscheduled"></div>
-
 <div class="pr-toast" id="pr-toast"></div>
 
 <script src="/card-dialog.js"></script>
@@ -204,15 +194,6 @@ function buildBoard() {
   }
 
   document.getElementById('pr-board').innerHTML = html;
-
-  // Unscheduled panel (fixed, always visible)
-  const unsched = weekData.unscheduled || [];
-  document.getElementById('pr-unscheduled').innerHTML =
-    `<div class="pr-col-hdr">
-      <div class="pr-day-name">unscheduled</div>
-      <div class="pr-date">hq pool</div>
-    </div>
-    <div class="pr-list" id="pr-list-unscheduled">${unsched.map(c=>renderCard(c,null)).join('')}</div>`;
   initSortable(days);
   document.querySelectorAll('.pr-card').forEach(el => {
     el.addEventListener('click', () => { if (!_prDragging) openCardDialog(el.dataset.id, () => load(weekStart), 'prof'); });
@@ -220,10 +201,8 @@ function buildBoard() {
 }
 
 function initSortable(days) {
-  const allListIds = [...days.map(d=>'pr-list-'+d), 'pr-list-unscheduled'];
-
-  allListIds.forEach(listId => {
-    const el = document.getElementById(listId);
+  days.forEach(day => {
+    const el = document.getElementById('pr-list-' + day);
     if (!el) return;
     Sortable.create(el, {
       group: 'prophecies',
@@ -236,18 +215,12 @@ function initSortable(days) {
         _prDragging = false;
         const cardId = evt.item.dataset.id;
         const cardDue = evt.item.dataset.due;
-        const toListId = evt.to.id;
-        const toDay = toListId === 'pr-list-unscheduled' ? null
-          : toListId.replace('pr-list-', '');
+        const toDay = evt.to.id.replace('pr-list-', '');
 
-        // Due date warning
-        if (toDay && cardDue && toDay > cardDue) {
+        if (cardDue && toDay > cardDue) {
           showToast(`Warning: scheduling after due date (${cardDue})`);
         }
-
-        // Mark as manual pin if moved to a day column
-        if (toDay) evt.item.querySelector('.pr-pin') || (evt.item.insertAdjacentHTML('afterbegin','<span class="pr-pin">&#128275;</span>'));
-
+        evt.item.querySelector('.pr-pin') || (evt.item.insertAdjacentHTML('afterbegin','<span class="pr-pin">&#128275;</span>'));
         queueUpdate(cardId, toDay, true);
       },
     });
@@ -309,12 +282,33 @@ async function buildBooks() {
   });
 }
 
+function consult_oracle() {
+  const unsched = weekData.unscheduled || [];
+  if (!unsched.length) return;
+
+  const today = isoToday();
+  const targetDays = Array.from({length: 6}, (_, i) => addDays(today, i + 1));
+
+  // count already-scheduled cards per target day
+  const counts = {};
+  for (const day of targetDays) {
+    counts[day] = (weekData.days[day] || []).length;
+  }
+
+  for (const card of unsched) {
+    const day = targetDays.reduce((a, b) => counts[a] <= counts[b] ? a : b);
+    counts[day]++;
+    queueUpdate(card.id, day, false);
+  }
+}
+
 async function load(start) {
   document.getElementById('pr-board').innerHTML = '<span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>';
   const url = start ? `/api/prophecies?start=${start}` : '/api/prophecies';
   const [r] = await Promise.all([fetch(url), buildBooks()]);
   weekData = await r.json();
   weekStart = weekData.week_start;
+  if (!start) consult_oracle();
   buildBoard();
 }
 
