@@ -164,7 +164,7 @@ function buildBoard() {
     const isToday = day === today;
     const dow = new Date(day + 'T12:00:00').getDay();
     const isWeekend = dow === 0 || dow === 6;
-    const dayLabel = day === today ? 'Today' : fmtDay(day).split(',')[0];
+    const dayLabel = fmtDay(day).split(',')[0];
     const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
     html += `<div class="pr-col${isWeekend?' weekend':''}" data-day="${day}">
       <div class="pr-col-hdr${isToday?' today-hdr':''}">
