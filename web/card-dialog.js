@@ -15,7 +15,7 @@
 .cd-btn { background:none; border:1px solid rgba(0,255,65,0.4); color:rgba(0,255,65,0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
 .cd-btn:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
 </style>
-<div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdClose()">
+<div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
   <div class="cd-box">
     <div class="cd-box-title">edit card</div>
     <label>title</label><input id="cd-title" type="text">
