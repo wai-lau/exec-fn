@@ -12,6 +12,7 @@ __pycache__/
 !web/boss-original.png
 !web/hack2.png
 !web/wizard.png
+!web/guru-pink.png
 *.pyo
 *.Identifier
 .env

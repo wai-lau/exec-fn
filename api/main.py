@@ -104,7 +104,7 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg"]
 
 
 _NAV_ICONS = {
-    "Exec":      '<img src="/boss-green.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
+    "Exec":      '<img src="/guru-pink.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
     "nightfall": '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
     "mtg":       '<img src="/wizard.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
 }
