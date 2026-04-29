@@ -131,11 +131,13 @@ def _morning_retrospective(log_entries: list, profile_path) -> None:
         messages=[{"role": "user", "content": (
             f"Today is {today}. Here is Wai's activity log from the past day:\n{log_text}\n\n"
             f"Existing profile notes:\n{existing}\n\n"
-            "Extract 0–3 short, specific, durable insights about Wai's work patterns, habits, or preferences that "
-            "are NOT already in the profile notes and are worth remembering long-term. "
-            "Skip generic observations. Only include genuinely new, specific information. "
-            "If there's nothing worth adding, reply with just: none\n"
-            "Otherwise reply with one insight per line, plain text, no bullets or numbering."
+            "Extract 0–3 durable facts about Wai worth remembering long-term — ONLY preferences, relationships, "
+            "or recurring habits. NEVER write: appointments, one-time events, upcoming plans, task status, "
+            "travel dates, specific dated events, or anything time-bound. If the log only shows routine task "
+            "management (creating/moving/archiving cards) with no new behavioral insight, reply with just: none\n"
+            "Do NOT already include facts in the existing profile notes. Be ruthlessly selective — "
+            "if unsure whether something is durable, omit it. "
+            "Reply with one fact per line, plain text, no bullets or numbering."
         )}],
     )
     text = resp.content[0].text.strip()
