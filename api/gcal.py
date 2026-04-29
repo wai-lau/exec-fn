@@ -292,36 +292,12 @@ def _haiku_classify_batch(client, batch: list) -> None:
         ev.setdefault("category", "Interfacing")
 
 
-def _haiku_dedupe(client, events: list, existing_titles: list) -> None:
-    from helpers import _parse_json
-    existing_text = "\n".join(f"- {t}" for t in existing_titles[:150])
-    new_text = "\n".join(f"{i}: {ev['summary']}" for i, ev in enumerate(events))
-    try:
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=512,
-            messages=[{"role": "user", "content": (
-                f"EXISTING CARDS:\n{existing_text}\n\n"
-                f"NEW EVENTS:\n{new_text}\n\n"
-                "Which new events are duplicates (same meaning) as existing cards?\n"
-                'JSON only: {"skip":[0,3,7]}'
-            )}],
-        )
-        skip_set = set(_parse_json(resp.content[0].text).get("skip", []))
-        for i, ev in enumerate(events):
-            if i in skip_set:
-                ev["skip"] = True
-    except Exception:
-        pass
 
-
-def _haiku_classify_events(events: list, existing_titles: list) -> list:
+def _haiku_classify_events(events: list) -> list:
     import anthropic
     client = anthropic.Anthropic()
     for i in range(0, len(events), 25):
         _haiku_classify_batch(client, events[i:i + 25])
-    if existing_titles and events:
-        _haiku_dedupe(client, events, existing_titles)
     return events
 
 
@@ -335,18 +311,13 @@ def import_gcal_cards() -> dict:
     (DATA_DIR / "gcal_events_raw.json").write_text(json.dumps(raw, indent=2))
 
     rd = _load_rd()
-    existing_titles = [c.get("title", "") for c in rd.get("cards", [])]
 
-    # Exact-match dedup first (title+date) to reduce Haiku load
+    # Exact-match dedup (title+date)
     existing_keys = {(c.get("title", "").lower().strip(), (c.get("due_date") or "")[:10]) for c in rd.get("cards", [])}
-    to_classify = []
-    for ev in raw:
-        key = (ev["summary"].lower(), ev["start"][:10])
-        if key not in existing_keys:
-            to_classify.append(ev)
+    to_classify = [ev for ev in raw if (ev["summary"].lower(), ev["start"][:10]) not in existing_keys]
 
-    # Haiku classify + fuzzy dedupe
-    classified = _haiku_classify_events(to_classify, existing_titles)
+    # Haiku classify
+    classified = _haiku_classify_events(to_classify)
 
     cards = rd.get("cards", [])
     imported = 0
@@ -380,7 +351,7 @@ def import_gcal_cards() -> dict:
 
     rd["cards"] = cards
     _save_rd(rd)
-    return {"imported": imported, "raw_count": len(raw), "exact_dupes": len(raw) - len(to_classify)}
+    return {"imported": imported, "raw_count": len(raw), "skipped_exact_dupes": len(raw) - len(to_classify)}
 
 
 def fetch_omens() -> dict:
