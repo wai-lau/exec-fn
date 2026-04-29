@@ -1,15 +1,8 @@
 
 <style>
 body { overflow: hidden !important; }
-.dir-topbar {
-  position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px;
-  background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0,255,65,0.12);
-}
 .dir-body {
-  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  position: fixed; top: 0; bottom: 52px; left: 0; right: 0;
   display: flex; overflow: hidden;
 }
 .dir-section-hdr {
@@ -54,38 +47,11 @@ body { overflow: hidden !important; }
   color: rgba(0,255,65,1);
 }
 .dir-tl-track { flex: 1; position: relative; border-left: 1px solid rgba(0,255,65,0.12); }
-.dir-btn {
-  background: none; border: 1px solid rgba(0,255,65,0.35);
-  color: rgba(0,255,65,0.7); font-family: monospace; font-size: 0.7rem;
-  padding: 3px 10px; cursor: pointer; transition: all 0.18s;
-}
-.dir-btn:hover { border-color: rgba(0,255,65,0.9); color: rgba(0,255,65,1); }
-/* context panel */
-.dir-ctx {
-  flex: 0 0 0; overflow: hidden; transition: flex-basis 0.25s;
-  border-left: 1px solid rgba(0,255,65,0.1);
-  font-family: monospace; color: rgba(0,255,65,0.75);
-}
-.dir-ctx.open { flex: 0 0 260px; }
-.dir-ctx-inner { width: 260px; height: 100%; overflow-y: auto; padding: 14px 14px 60px; }
-.dir-ctx-hdr {
-  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.15em;
-  color: rgba(0,255,65,0.4); margin: 14px 0 6px;
-  border-bottom: 1px solid rgba(0,255,65,0.1); padding-bottom: 3px;
-}
-.dir-ctx-hdr:first-child { margin-top: 0; }
-.dir-ctx-entry { font-size: 0.68rem; color: rgba(0,255,65,0.6); padding: 2px 0; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<div class="dir-topbar">
-  <span style="font-family:monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.5">directives</span>
-  <div style="display:flex;gap:8px">
-    <span id="dir-status" style="font-family:monospace;font-size:0.65rem;opacity:0.35"></span>
-    <button class="dir-btn" onclick="toggleCtx()">[ context ]</button>
-  </div>
-</div>
+<span id="dir-status" style="display:none"></span>
 
 <div class="dir-body">
   <!-- center schedule -->
@@ -95,10 +61,7 @@ body { overflow: hidden !important; }
     </div>
   </div>
 
-  <!-- context panel -->
-  <div class="dir-ctx" id="dir-ctx">
-    <div class="dir-ctx-inner" id="dir-ctx-content"></div>
-  </div>
+
 
 </div>
 <script src="/card-dialog.js"></script>
@@ -118,7 +81,6 @@ const SNAP     = 15;
 function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
 
 let scheduleCards = [];
-let ctxOpen = false;
 
 function isoToday() {
   const d = new Date();
@@ -356,27 +318,6 @@ async function saveEstimatedTime(cardId, mins) {
   } catch(e) { setStatus('save error'); }
 }
 
-function toggleCtx() {
-  ctxOpen = !ctxOpen;
-  document.getElementById('dir-ctx').classList.toggle('open', ctxOpen);
-  if (ctxOpen) loadCtx();
-}
-
-async function loadCtx() {
-  const logRes = await fetch('/api/rd/log');
-  let html = '';
-
-  if (logRes.ok) {
-    const log = await logRes.json();
-    html += '<div class="dir-ctx-hdr">activity log</div>';
-    html += (log.slice(0, 20).map(e => {
-      const arrow = e.from_col ? ` ${e.from_col}→${e.to_col}` : '';
-      return `<div class="dir-ctx-entry">${e.action} "${e.title}"${arrow}</div>`;
-    }).join('')) || '<div class="dir-ctx-entry" style="opacity:0.3">empty</div>';
-  }
-
-  document.getElementById('dir-ctx-content').innerHTML = html;
-}
 
 function setStatus(msg) {
   document.getElementById('dir-status').textContent = msg;
