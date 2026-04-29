@@ -1,15 +1,8 @@
 
 <style>
 body { overflow: hidden !important; }
-.pr-topbar {
-  position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; gap: 10px;
-  background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0,255,65,0.12);
-}
 .pr-books {
-  display: none; position: fixed; top: 52px; left: 0; right: 0; height: 32px; z-index: 19;
+  display: none; position: fixed; top: 0; left: 0; right: 0; height: 32px; z-index: 19;
   align-items: center; padding: 0 12px; gap: 6px; overflow-x: scroll; overflow-y: hidden;
   scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch;
   background: rgba(0,0,0,0.35); border-bottom: 1px solid rgba(210,160,80,0.1);
@@ -20,11 +13,11 @@ body { overflow: hidden !important; }
 .pr-books .book-item:hover { opacity: 1; }
 .has-books .pr-books { display: flex; }
 .pr-board {
-  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  position: fixed; top: 0; bottom: 52px; left: 0; right: 0;
   display: flex; gap: 1px; overflow-x: auto; overflow-y: hidden;
   background: rgba(0,255,65,0.04);
 }
-.has-books .pr-board { top: 84px; }
+.has-books .pr-board { top: 32px; }
 .pr-col {
   flex: 0 0 200px; display: flex; flex-direction: column;
   background: rgba(0,0,0,0.3); min-width: 0;
@@ -71,15 +64,11 @@ body { overflow: hidden !important; }
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
-<div class="pr-topbar">
-  <span style="font-family:monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.5">prophecies</span>
-  <span id="pr-status" style="font-family:monospace;font-size:0.65rem;opacity:0.35"></span>
-</div>
-
 <div class="pr-books" id="pr-books-bar"></div>
 <div class="pr-board" id="pr-board">
   <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
+<span id="pr-status" style="display:none"></span>
 <div class="pr-toast" id="pr-toast"></div>
 
 <script src="/card-dialog.js"></script>
