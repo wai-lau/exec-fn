@@ -91,8 +91,8 @@ _CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["看板", "exec", "prophecies", "directives", "vault", "媁", "mtg"]
-_NAV_HREFS = {"看板": "/rd", "exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "vault": "/archive", "媁": "/nightfall", "mtg": "/mtg"}
+_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "vault", "媁", "mtg"]
+_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "vault": "/archive", "媁": "/nightfall", "mtg": "/mtg"}
 
 
 _GUEST_NAV_LINKS = ["媁", "mtg"]
@@ -226,7 +226,7 @@ async def guest_login(request: Request):
 async def exec_page():
     return (_BARE
         .replace("</head>", _GREEN_OVERLAY + "</head>", 1)
-        .replace("</body>", _EXEC_HTML + _build_nav(None) + "</body>", 1))
+        .replace("</body>", _EXEC_HTML + _build_nav("Exec") + "</body>", 1))
 
 
 @protected.get("/plan", response_class=HTMLResponse)
@@ -260,7 +260,7 @@ async def rd_page():
     head_inject = _GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _KANBAN_HTML + _build_nav("看板") + "</body>", 1))
+        .replace("</body>", _KANBAN_HTML + _build_nav("core") + "</body>", 1))
 
 
 @protected.get("/archive", response_class=HTMLResponse)
