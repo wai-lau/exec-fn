@@ -67,7 +67,7 @@
   <div class="login-wrap">
     <img src="/favicon.png">
     <form class="login-box" method="POST" action="/login" id="login-form">
-      <input type="text" id="pw-display" placeholder="access-key" autocomplete="off" autofocus spellcheck="false">
+      <input type="text" id="pw-display" name="password" placeholder="access-key" autocomplete="current-password" autofocus spellcheck="false">
       <input type="hidden" name="key" id="pw-real">
     </form>
   </div>
@@ -96,6 +96,13 @@ display.addEventListener('paste', e => {
   val += (e.clipboardData || window.clipboardData).getData('text');
   display.value = '✦'.repeat(val.length);
   real.value = val;
+});
+display.addEventListener('input', () => {
+  if (display.value && !/^✦+$/.test(display.value)) {
+    val = display.value;
+    real.value = val;
+    display.value = '✦'.repeat(val.length);
+  }
 });
 </script>
 </body>
