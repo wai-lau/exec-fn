@@ -11,26 +11,61 @@ from mtg.agent import stream_chat
 
 router = APIRouter()
 
-_MTG_LOG = Path("/app/data/mtg_log.json")
+_SESSIONS_DIR = Path("/app/data/mtg_sessions")
+_OLD_LOG = Path("/app/data/mtg_log.json")
 
 
-def _append_mtg_log(user_msg: str, assistant_msg: str) -> None:
-    log = []
-    if _MTG_LOG.exists():
+def _sessions_dir() -> Path:
+    _SESSIONS_DIR.mkdir(exist_ok=True)
+    return _SESSIONS_DIR
+
+
+def _session_path(session_id: str) -> Path:
+    safe = "".join(c for c in session_id if c.isalnum() or c in "-_")
+    return _sessions_dir() / f"{safe}.json"
+
+
+def _append_exchange(session_id: str, user_msg: str, assistant_msg: str) -> None:
+    path = _session_path(session_id)
+    if path.exists():
         try:
-            log = json.loads(_MTG_LOG.read_text())
+            session = json.loads(path.read_text())
         except Exception:
-            log = []
-    log.append({
+            session = {"id": session_id, "started_at": datetime.now().isoformat(timespec="seconds"), "exchanges": []}
+    else:
+        session = {"id": session_id, "started_at": datetime.now().isoformat(timespec="seconds"), "exchanges": []}
+    session["exchanges"].append({
         "ts": datetime.now().isoformat(timespec="seconds"),
         "user": user_msg,
         "assistant": assistant_msg,
     })
-    _MTG_LOG.write_text(json.dumps(log, indent=2))
+    path.write_text(json.dumps(session, indent=2))
 
 
-async def _stream_and_log(messages: list) -> AsyncGenerator[str, None]:
-    user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user" and isinstance(m["content"], str)), "")
+def _migrate_old_log() -> None:
+    if not _OLD_LOG.exists():
+        return
+    try:
+        entries = json.loads(_OLD_LOG.read_text())
+        for entry in entries:
+            ts = entry.get("ts", datetime.now().isoformat(timespec="seconds"))
+            sid = "mtg_backfill_" + ts.replace(":", "").replace("-", "").replace("T", "_")[:15]
+            path = _session_path(sid)
+            if not path.exists():
+                session = {"id": sid, "started_at": ts, "exchanges": [entry]}
+                path.write_text(json.dumps(session, indent=2))
+    except Exception:
+        pass
+    _OLD_LOG.unlink(missing_ok=True)
+
+
+_migrate_old_log()
+
+
+async def _stream_and_log(session_id: str, messages: list) -> AsyncGenerator[str, None]:
+    user_msg = next(
+        (m["content"] for m in reversed(messages) if m["role"] == "user" and isinstance(m["content"], str)), ""
+    )
     assistant_text = []
     async for chunk in stream_chat(messages):
         yield chunk
@@ -41,27 +76,30 @@ async def _stream_and_log(messages: list) -> AsyncGenerator[str, None]:
         except Exception:
             pass
     if user_msg or assistant_text:
-        _append_mtg_log(user_msg, "".join(assistant_text))
+        _append_exchange(session_id, user_msg, "".join(assistant_text))
 
 
 @router.get("/api/mtg/log")
 async def api_mtg_log():
-    if not _MTG_LOG.exists():
-        return {"entries": []}
-    try:
-        return {"entries": json.loads(_MTG_LOG.read_text())}
-    except Exception:
-        return {"entries": []}
+    sessions_dir = _sessions_dir()
+    sessions = []
+    for path in sorted(sessions_dir.glob("*.json"), reverse=True):
+        try:
+            sessions.append(json.loads(path.read_text()))
+        except Exception:
+            pass
+    return {"sessions": sessions}
 
 
 class ChatBody(BaseModel):
     messages: List[dict] = []
+    session_id: str = ""
 
 
 @router.post("/api/mtg/chat")
 async def api_mtg_chat(body: ChatBody):
     return StreamingResponse(
-        _stream_and_log(body.messages),
+        _stream_and_log(body.session_id or "mtg_unknown", body.messages),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

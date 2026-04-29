@@ -110,17 +110,30 @@ async function loadDebug() {
   // MTG log
   if (mtgRes.ok) {
     const data = await mtgRes.json();
-    const entries = (data.entries || []).slice().reverse();
-    document.getElementById('dbg-mtg').innerHTML = entries.length
-      ? entries.map(e => {
-          const ts = e.ts ? new Date(e.ts).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-          return `<div class="dbg-mtg-entry">
-            <div class="dbg-mtg-ts">${ts}</div>
-            <div class="dbg-mtg-user">${e.user || ''}</div>
-            <div class="dbg-mtg-assistant">${e.assistant || ''}</div>
-          </div>`;
-        }).join('')
-      : '<div class="dbg-empty">no mtg logs</div>';
+    const sessions = (data.sessions || []);
+    const el = document.getElementById('dbg-mtg');
+    if (!sessions.length) { el.innerHTML = '<div class="dbg-empty">no mtg sessions</div>'; }
+    else {
+      el.innerHTML = sessions.map((s, si) => {
+        const started = s.started_at ? new Date(s.started_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : s.id;
+        const exchanges = (s.exchanges || []);
+        const open = si === 0;
+        return `<div class="dbg-log-file">
+          <div class="dbg-log-hdr" onclick="toggleLog('mtg-${si}')">
+            <span class="dbg-log-toggle" id="tog-mtg-${si}">${open ? '▼' : '▶'}</span>
+            <span>${started}</span>
+            <span style="opacity:0.35">(${exchanges.length})</span>
+          </div>
+          <div class="dbg-log-entries${open ? ' open' : ''}" id="log-mtg-${si}">
+            ${exchanges.length ? exchanges.map(e => `<div class="dbg-mtg-entry">
+              <div class="dbg-mtg-ts">${e.ts ? new Date(e.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : ''}</div>
+              <div class="dbg-mtg-user">${e.user || ''}</div>
+              <div class="dbg-mtg-assistant">${e.assistant || ''}</div>
+            </div>`).join('') : '<div class="dbg-empty">empty</div>'}
+          </div>
+        </div>`;
+      }).join('');
+    }
   }
 }
 
@@ -130,6 +143,7 @@ function toggleLog(i) {
   el.classList.toggle('open');
   tog.textContent = el.classList.contains('open') ? '▼' : '▶';
 }
+
 
 loadDebug();
 </script>

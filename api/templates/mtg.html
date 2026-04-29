@@ -92,6 +92,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 <script>
 let messages = [];
 let streaming = false;
+let _sessionId = 'mtg_' + Date.now().toString(36);
 
 const terminal = document.getElementById('terminal');
 const _WELCOME = "Hi (＊＾▽＾)／! Ask about card interactions, rules, or mechanics - I'll look up oracle text, rulings, and comprehensive rules.";
@@ -151,7 +152,7 @@ async function streamResponse() {
     const r = await fetch('/api/mtg/chat', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages}),
+      body:JSON.stringify({messages, session_id: _sessionId}),
     });
 
     if (!r.ok) throw new Error(await r.text());
@@ -199,6 +200,7 @@ async function streamResponse() {
 function clearChat() {
   if (streaming) return;
   messages = [];
+  _sessionId = 'mtg_' + Date.now().toString(36);
   terminal.innerHTML = '';
   addMsg('assistant', _WELCOME);
   document.getElementById('msg-input').focus();
