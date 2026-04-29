@@ -59,12 +59,6 @@ body { overflow: hidden !important; }
 .pr-pin { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; opacity: 0.4; }
 .pr-overdue { position: absolute; top: 4px; right: c.manual_pin ? 20px : 6px; font-size: 0.6rem; color: rgba(255,120,80,0.9); }
 .sortable-ghost { opacity: 0.15; }
-.pr-btn {
-  background: none; border: 1px solid rgba(0,255,65,0.35);
-  color: rgba(0,255,65,0.75); font-family: monospace; font-size: 0.72rem;
-  padding: 3px 10px; cursor: pointer; transition: all 0.18s;
-}
-.pr-btn:hover { border-color: rgba(0,255,65,0.9); color: rgba(0,255,65,1); }
 .pr-toast {
   position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.9); border: 1px solid rgba(255,120,80,0.5);
@@ -79,12 +73,7 @@ body { overflow: hidden !important; }
 
 <div class="pr-topbar">
   <span style="font-family:monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.5">prophecies</span>
-  <div style="display:flex;gap:8px;align-items:center">
-    <span id="pr-status" style="font-family:monospace;font-size:0.65rem;opacity:0.35"></span>
-    <button class="pr-btn" id="pr-prev-btn" onclick="shiftWeek(-7)">&#8249; prev</button>
-    <button class="pr-btn" id="pr-today-btn" onclick="resetWeek()">today</button>
-    <button class="pr-btn" id="pr-next-btn" onclick="shiftWeek(7)">next &#8250;</button>
-  </div>
+  <span id="pr-status" style="font-family:monospace;font-size:0.65rem;opacity:0.35"></span>
 </div>
 
 <div class="pr-books" id="pr-books-bar"></div>
@@ -310,15 +299,6 @@ async function load(start) {
   weekStart = weekData.week_start;
   if (!start) consult_oracle();
   buildBoard();
-}
-
-function shiftWeek(days) {
-  const newStart = addDays(weekStart, days);
-  load(newStart);
-}
-
-function resetWeek() {
-  load(null);
 }
 
 load(null);
