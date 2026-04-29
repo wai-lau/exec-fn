@@ -75,7 +75,7 @@ exec-fn/
       exec.html           # /exec — terminal chat
       plan.html           # /plan — legacy daily plan view
       kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
-      prophecies.html     # /prophecies — 7-day planning kanban; books bar at top
+      prophecies.html     # /prophecies — 6-day planning kanban; books bar at top
       directives.html     # /directives — today's schedule, drag/resize timeline
       debug.html          # /debug — profile.json + activity logs viewer
     data/                 # persistent volume (./api/data → /app/data)
@@ -98,7 +98,7 @@ exec-fn/
 | hq column | Active working set |
 | archives column | Completed tasks |
 | exile column | Won't-do tasks |
-| prophecies (prof) | 7-day planning view — assigns `scheduled_day` to cards |
+| prophecies (prof) | 6-day planning view — assigns `scheduled_day` to cards |
 | directives (dirs) | Today's schedule — visual timeline with drag/resize |
 | scheduled_day | ISO date field on a card indicating which day it's planned for |
 | manual_pin | Card field — true when user manually placed the card in Prophecies |
@@ -118,7 +118,7 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 |-------|------|
 | `/rd` | Core kanban from `rd.json` |
 | `/exec` | Terminal chat with Claude for daily planning |
-| `/prophecies` | 7-day planning kanban — assign `scheduled_day` to cards |
+| `/prophecies` | 6-day planning kanban — assign `scheduled_day` to cards |
 | `/directives` | Today's schedule — visual timeline with drag/resize, 6am–midnight |
 | `/debug` | Profile notes + activity log viewer |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
@@ -140,7 +140,7 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 | GET | `/api/gcal/auth` | Initiate Google Calendar OAuth |
 | GET | `/api/gcal/callback` | Receive OAuth code, save token (public) |
 | POST | `/api/gcal/import_cards` | One-time import of GCal events as rd.json cards |
-| GET | `/api/prophecies` | 7-day week data: scheduled cards + unscheduled hq/rd cards |
+| GET | `/api/prophecies` | 6-day week data: scheduled cards + unscheduled hq/rd cards |
 | PATCH | `/api/prophecies` | Bulk update `scheduled_day`; sets `manual_pin=true`, logs activity |
 | GET | `/api/prophecies/log` | Activity log filtered by source=prof |
 | POST | `/api/parse_date` | Parse natural language date → ISO via Haiku |
