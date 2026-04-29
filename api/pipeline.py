@@ -150,6 +150,42 @@ def _morning_retrospective(log_entries: list, profile_path) -> None:
     profile_path.write_text(json.dumps(profile, indent=2))
 
 
+def _purge_stale_notes(profile_path) -> None:
+    if not profile_path.exists():
+        return
+    import anthropic
+    profile = json.loads(profile_path.read_text())
+    notes = profile.get("notes", [])
+    if not notes:
+        return
+    today = _now_et().strftime("%Y-%m-%d")
+    numbered = "\n".join(f"{i}: [{n.get('date','')}] {n['note']}" for i, n in enumerate(notes))
+    client = anthropic.Anthropic()
+    resp = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=256,
+        messages=[{"role": "user", "content": (
+            f"Today is {today}. Below are profile notes (numbered 0-based).\n{numbered}\n\n"
+            "List the 0-based index numbers of any notes that refer to a specific past event or date that is now over "
+            "(e.g. appointments, birthdays that already passed this year, one-time events). "
+            "Do NOT remove durable facts (preferences, relationships, recurring info). "
+            "Reply with ONLY comma-separated numbers, or 'none'."
+        )}],
+    )
+    text = resp.content[0].text.strip().lower()
+    if text == "none" or not text:
+        return
+    to_remove = set()
+    for part in text.split(","):
+        part = part.strip()
+        if part.isdigit():
+            to_remove.add(int(part))
+    if not to_remove:
+        return
+    profile["notes"] = [n for i, n in enumerate(notes) if i not in to_remove]
+    profile_path.write_text(json.dumps(profile, indent=2))
+
+
 def build_morning() -> dict:
     chat_path = DATA_DIR / "chat.json"
     profile_path = DATA_DIR / "profile.json"
@@ -161,6 +197,7 @@ def build_morning() -> dict:
 
     errors: dict = {}
     _run_step(errors, "retrospective", lambda: _morning_retrospective(log_entries, profile_path))
+    _run_step(errors, "purge_stale", lambda: _purge_stale_notes(profile_path))
 
     if _RD_LOG.exists():
         archive_name = DATA_DIR / f"activity_log_{_now_et().strftime('%m%d')}.json"
