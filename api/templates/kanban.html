@@ -1,15 +1,8 @@
 
 <style>
 body { overflow: hidden !important; }
-.rd-topbar {
-  position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 20;
-  display: flex; align-items: center; justify-content: flex-end;
-  padding: 0 32px; gap: 12px;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0,255,65,0.12);
-}
 .rd-reminders {
-  display: none; position: fixed; top: 52px; left: 0; right: 0; height: 28px; z-index: 19;
+  display: none; position: fixed; top: 0; left: 0; right: 0; height: 36px; z-index: 19;
   align-items: center; padding: 0 12px; gap: 6px; overflow-x: scroll; overflow-y: hidden;
   scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch;
   background: rgba(0,0,0,0.45); border-bottom: 1px solid rgba(0,255,65,0.08);
@@ -21,11 +14,11 @@ body { overflow: hidden !important; }
 .has-reminders .rd-reminders { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 26px; border-bottom-color: rgba(0,255,65,0.22); }
 .rd-board {
-  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  position: fixed; top: 0; bottom: 52px; left: 0; right: 0;
   display: flex; gap: 1px; overflow: hidden;
   background: rgba(0,255,65,0.06);
 }
-.has-reminders .rd-board { top: 78px; }
+.has-reminders .rd-board { top: 36px; }
 .col-group { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: rgba(0,0,0,0.25); }
 .col.col-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
@@ -63,37 +56,7 @@ body { overflow: hidden !important; }
 .card-badge { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
 .card-due { font-size: 0.62rem; }
 .sortable-ghost { opacity: 0.2; }
-.rd-btn {
-  background: none; border: 1px solid rgba(0,255,65,0.4);
-  color: rgba(0,255,65,0.8); font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.78rem;
-  padding: 4px 12px; cursor: pointer; transition: all 0.2s;
-}
-.rd-btn:hover { border-color: rgba(0,255,65,1); color: rgba(0,255,65,1); }
-.rd-btn:disabled { opacity: 0.4; cursor: default; }
-.modal-overlay {
-  display: none; position: fixed; inset: 0; z-index: 50;
-  background: rgba(0,0,0,0.75); align-items: center; justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: #0a0a0a; border: 1px solid rgba(0,255,65,0.25);
-  padding: 24px 28px; width: min(420px,92vw); font-family: 'Iosevka Mayukai Monolite', monospace;
-}
-.modal-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(0,255,65,0.6); margin-bottom: 16px; }
-.modal label { display: block; font-size: 0.6rem; color: rgba(0,255,65,0.45); margin: 12px 0 3px; text-transform: uppercase; letter-spacing: 0.1em; }
-.modal input, .modal select, .modal textarea {
-  width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,255,65,0.2);
-  color: rgba(0,255,65,0.9); font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 16px;
-  padding: 5px 8px; box-sizing: border-box; resize: vertical;
-}
-.modal select option { background: #111; }
-.modal textarea { min-height: 56px; }
-.modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: space-between; align-items: center; }
 </style>
-
-<div class="rd-topbar">
-  <button class="rd-btn" id="add-btn" onclick="openAdd()">+ add card</button>
-</div>
 
 <div id="reminders-bar" class="rd-reminders"></div>
 
@@ -101,83 +64,12 @@ body { overflow: hidden !important; }
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
 
-<!-- add modal -->
-<div class="modal-overlay" id="add-modal" onclick="if(event.target===this)closeAdd()">
-  <div class="modal">
-    <div class="modal-title">add card</div>
-    <label>title</label>
-    <input id="a-title" type="text" placeholder="what needs doing">
-    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
-    <input id="a-due" type="text" placeholder="optional">
-    <label>column</label>
-    <select id="a-col">
-      <option value="rd">r&d</option>
-      <option value="hq">hq</option>
-    </select>
-    <div class="modal-actions">
-      <span></span>
-      <div style="display:flex;gap:8px">
-        <button class="rd-btn" onclick="closeAdd()">cancel</button>
-        <button class="rd-btn" id="a-submit" onclick="addCard()">add</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- edit modal -->
-<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEdit()">
-  <div class="modal">
-    <div class="modal-title">edit card</div>
-    <label>title</label>
-    <input id="e-title" type="text">
-    <label>category</label>
-    <select id="e-cat">
-      <option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option>
-    </select>
-    <label>size</label>
-    <select id="e-size">
-      <option value="chore">chore &mdash; under 1 hour</option>
-      <option value="task">task &mdash; under 4 hours</option>
-      <option value="book">book &mdash; ongoing read</option>
-      <option value="project">project &mdash; under 2 days</option>
-      <option value="titan">titan &mdash; needs breaking down</option>
-    </select>
-    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
-    <input id="e-due" type="text" placeholder="optional" onblur="autoFillStartBefore()">
-    <label>start before &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">auto-filled from due date &nbsp;|&nbsp; or override</span></label>
-    <input id="e-start-before" type="text" placeholder="optional">
-    <div id="e-start-before-hint" style="font-size:0.7rem;opacity:0.45;margin-top:-6px;margin-bottom:4px;display:none"></div>
-    <label>estimated time (minutes)</label>
-    <input id="e-estimated-time" type="number" min="1" placeholder="auto from size">
-    <label>recurrence</label>
-    <select id="e-recur">
-      <option value="">— none —</option>
-      <option value="week">weekly</option>
-      <option value="bi-week">bi-weekly</option>
-      <option value="month">monthly</option>
-      <option value="holiday">holiday (annual)</option>
-      <option value="birthday">birthday (annual)</option>
-    </select>
-    <label style="display:none">
-      <input id="e-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
-    </label>
-    <label>notes</label>
-    <textarea id="e-notes"></textarea>
-    <div class="modal-actions">
-      <button class="rd-btn" style="border-color:rgba(255,100,100,0.4);color:rgba(255,120,120,0.7)" onclick="deleteCard()">delete</button>
-      <div style="display:flex;gap:8px">
-        <button class="rd-btn" onclick="closeEdit()">cancel</button>
-        <button class="rd-btn" onclick="saveEdit()">save</button>
-      </div>
-    </div>
-  </div>
-</div>
+<script src="/card-dialog.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const COLS = ['rd','hq','archives','exile'];
 let cards = [];
-let editId = null;
 let dragging = false;
 let barSortable = null;
 let archivesCollapsed = true;
@@ -213,61 +105,6 @@ function cardStyle(c) {
   }
 }
 
-function parseMonthDay(input) {
-  if (!input || !input.trim()) return null;
-  const s = input.trim().toLowerCase();
-  const mnths = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-  const wdays = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-  const now = new Date();
-
-  // Extract trailing time: "6pm", "6:30pm", "18:00"
-  let timeStr = '';
-  let dateStr = s;
-  const tm = s.match(/\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
-  if (tm) {
-    let h = parseInt(tm[1]), min = tm[2] ? parseInt(tm[2]) : 0;
-    if (tm[3].toLowerCase() === 'pm' && h < 12) h += 12;
-    if (tm[3].toLowerCase() === 'am' && h === 12) h = 0;
-    timeStr = `T${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
-    dateStr = s.slice(0, s.length - tm[0].length).trim();
-  }
-
-  let yr = now.getFullYear(), month = -1, day = 0, useDate = null;
-
-  // Weekday name → next occurrence
-  const wi = wdays.findIndex(d => dateStr.startsWith(d));
-  if (wi >= 0) {
-    let diff = wi - now.getDay();
-    if (diff <= 0) diff += 7;
-    useDate = new Date(now); useDate.setDate(now.getDate() + diff); useDate.setHours(0,0,0,0);
-    month = useDate.getMonth(); day = useDate.getDate(); yr = useDate.getFullYear();
-  }
-
-  // MM/DD or MM-DD
-  if (month < 0) {
-    const m = dateStr.match(/^(\d{1,2})[\/-](\d{1,2})$/);
-    if (m) { month = parseInt(m[1]) - 1; day = parseInt(m[2]); }
-  }
-
-  // "apr 26" style
-  if (month < 0) {
-    const m = dateStr.match(/^([a-z]+)\s+(\d{1,2})$/);
-    if (m) { const i = mnths.findIndex(x => m[1].startsWith(x)); if (i >= 0) { month = i; day = parseInt(m[2]); } }
-  }
-
-  if (month < 0 || !day) return null;
-  if (!useDate && new Date(yr, month, day) <= now) yr++;
-  const iso = `${yr}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-  return timeStr ? iso + timeStr : iso;
-}
-
-function fmtDate(iso) {
-  if (!iso) return '';
-  const hasTime = iso.includes('T');
-  const d = hasTime ? new Date(iso) : new Date(iso + 'T12:00:00');
-  let s = d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  if (hasTime) s += ' ' + d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}).toLowerCase();
-  return s;
 }
 
 function fmtStartBefore(iso) {
@@ -365,7 +202,7 @@ function buildReminders() {
     return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
   }).join('');
   bar.querySelectorAll('.rem-item').forEach(el => {
-    el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
   });
 }
 
@@ -387,7 +224,7 @@ function buildBoard() {
     });
   });
   document.querySelectorAll('.card').forEach(el => {
-    el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
   });
   initBarSortable();
 }
@@ -427,111 +264,6 @@ async function load() {
   const data = await (await fetch('/api/rd')).json();
   cards = data.cards || [];
   buildBoard();
-}
-
-// add modal
-function openAdd() { document.getElementById('add-modal').classList.add('open'); document.getElementById('a-title').focus(); }
-function closeAdd() { document.getElementById('add-modal').classList.remove('open'); document.getElementById('a-title').value = ''; document.getElementById('a-due').value = ''; }
-
-async function resolveDue(raw, size, estimatedMinutes) {
-  const quick = parseMonthDay(raw);
-  if (quick !== null || !raw.trim()) return {due: quick, start_before: null};
-  try {
-    const r = await fetch('/api/parse_date', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text: raw.trim(), size, estimated_minutes: estimatedMinutes || null})});
-    const d = await r.json();
-    return {due: d.iso || null, start_before: d.start_before || null};
-  } catch(_) { return {due: null, start_before: null}; }
-}
-
-async function addCard() {
-  const title = document.getElementById('a-title').value.trim();
-  if (!title) return;
-  const btn = document.getElementById('a-submit');
-  btn.disabled = true; btn.textContent = 'classifying...';
-  const due_date = await resolveDue(document.getElementById('a-due').value);
-  const col = document.getElementById('a-col').value;
-  let category = 'Self', size = 'task';
-  try {
-    const r = await fetch('/api/rd/classify', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
-    const cl = await r.json();
-    category = cl.category || category; size = cl.size || size;
-  } catch(_) {}
-  const id = 'card-' + Date.now();
-  const minOrder = Math.min(0, ...cards.filter(c=>c.column===col).map(c=>c.order));
-  cards.push({id, title, category, size, column: col, order: minOrder - 1, due_date});
-  await save();
-  buildBoard();
-  closeAdd();
-  btn.disabled = false; btn.textContent = 'add';
-}
-
-document.getElementById('a-title').addEventListener('keydown', e => { if (e.key === 'Enter') addCard(); });
-
-// edit modal
-function openEdit(id) {
-  const c = cards.find(x => x.id === id);
-  if (!c) return;
-  editId = id;
-  document.getElementById('e-title').value = c.title || '';
-  document.getElementById('e-notes').value = c.notes || c.description || '';
-  document.getElementById('e-cat').value = c.category || 'Self';
-  document.getElementById('e-size').value = c.size || 'task';
-  document.getElementById('e-due').value = c.due_date ? fmtDate(c.due_date) : '';
-  document.getElementById('e-start-before').value = c.start_before ? fmtDate(c.start_before) : '';
-  document.getElementById('e-estimated-time').value = c.estimated_time != null ? c.estimated_time : '';
-  document.getElementById('e-notes').value = c.notes || '';
-  document.getElementById('e-recur').value = c.recur_type || '';
-  document.getElementById('e-reminder').checked = !!c.is_reminder;
-  document.getElementById('edit-modal').classList.add('open');
-  document.getElementById('e-title').focus();
-}
-function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); editId = null; }
-
-async function saveEdit() {
-  const c = cards.find(x => x.id === editId);
-  if (!c) return;
-  c.title          = document.getElementById('e-title').value.trim() || c.title;
-  c.category       = document.getElementById('e-cat').value;
-  c.size           = document.getElementById('e-size').value;
-  const etRaw      = document.getElementById('e-estimated-time').value;
-  c.estimated_time = etRaw !== '' ? parseInt(etRaw, 10) : (c.estimated_time ?? null);
-  const dueRaw     = document.getElementById('e-due').value;
-  const sbRaw      = document.getElementById('e-start-before').value;
-  const resolved   = await resolveDue(dueRaw, c.size, c.estimated_time);
-  c.due_date       = resolved.due;
-  c.start_before   = sbRaw.trim() ? (await resolveDue(sbRaw)).due : (resolved.start_before ?? c.start_before ?? null);
-  c.notes          = document.getElementById('e-notes').value.trim();
-  c.recur_type     = document.getElementById('e-recur').value || null;
-  c.is_reminder    = document.getElementById('e-reminder').checked;
-  await save();
-  buildBoard();
-  closeEdit();
-}
-
-async function deleteCard() {
-  if (!editId) return;
-  cards = cards.filter(x => x.id !== editId);
-  await save();
-  buildBoard();
-  closeEdit();
-}
-
-async function autoFillStartBefore() {
-  const dueRaw = document.getElementById('e-due').value.trim();
-  const sbInput = document.getElementById('e-start-before');
-  const hint = document.getElementById('e-start-before-hint');
-  if (!dueRaw) return;
-  const c = cards.find(x => x.id === editId);
-  const size = document.getElementById('e-size').value;
-  const etRaw = document.getElementById('e-estimated-time').value;
-  const estimated_minutes = etRaw !== '' ? parseInt(etRaw, 10) : null;
-  const resolved = await resolveDue(dueRaw, size, estimated_minutes);
-  if (resolved.start_before) {
-    sbInput.value = resolved.start_before;
-    hint.textContent = 'auto-filled';
-    hint.style.display = 'block';
-    setTimeout(() => { hint.style.display = 'none'; }, 2000);
-  }
 }
 
 load();
