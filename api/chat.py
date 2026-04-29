@@ -285,17 +285,24 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
         system=(
             f"Now is {today} ET.{duration_hint}{omens_text} "
             "Parse the due date from user input and compute a 'start before' deadline (due date minus task duration). "
+            "Phrases like 'before [event]' mean the day before that event starts — look it up in upcoming events. "
             "All dates MUST be in the future (after today). If a relative term like 'this weekend' or 'Monday' refers to a date already passed, use the NEXT occurrence. "
             "Reply with ONLY two ISO 8601 strings separated by a newline: first line = due date/datetime, second line = start_before date/datetime. "
             "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM format. Reply 'null' on either line if not applicable."
         ),
         messages=[{"role": "user", "content": text}],
     )
+    import re as _re
+    _iso_pat = _re.compile(r'^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$')
+
+    def _valid(s: str) -> str | None:
+        s = s.strip()
+        return s if s and s != "null" and _iso_pat.match(s) else None
+
     lines = msg.content[0].text.strip().splitlines()
-    due = lines[0].strip() if lines else "null"
-    start_before = lines[1].strip() if len(lines) > 1 else "null"
-    return (None if due == "null" or not due else due,
-            None if start_before == "null" or not start_before else start_before)
+    due = _valid(lines[0]) if lines else None
+    start_before = _valid(lines[1]) if len(lines) > 1 else None
+    return due, start_before
 
 
 def _save_chat(messages: list, stage: str):
