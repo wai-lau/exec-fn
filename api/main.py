@@ -101,7 +101,11 @@ _NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "dire
 _GUEST_NAV_LINKS = ["nightfall", "mtg"]
 
 
-_EXEC_ICON = '<img src="/boss-green.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">'
+_NAV_ICONS = {
+    "Exec":      '<img src="/boss-green.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
+    "nightfall": '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
+    "mtg":       '<img src="/wizard.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-bottom:2px">',
+}
 
 def _build_nav(active=None, guest=False):
     links = []
@@ -109,7 +113,7 @@ def _build_nav(active=None, guest=False):
         href = _NAV_HREFS.get(label, f"/{label}")
         is_active = label == active
         style = ' style="opacity:1;border-bottom-color:rgba(0,255,65,0.9);"' if is_active else ""
-        content = _EXEC_ICON if label == "Exec" else label
+        content = _NAV_ICONS.get(label, label)
         links.append(f'<a href="{href}"{style}>{content}</a>')
     return '<div class="exec-nav">' + " &nbsp; ".join(links) + "</div>"
 
