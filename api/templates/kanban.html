@@ -172,20 +172,23 @@ function isUrgent(iso) {
 function renderCard(c) {
   const {bg, border, dark} = cardStyle(c);
   const hasStyle = !!bg;
-  const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.85)';
-  const tc     = !hasStyle ? 'rgba(0,255,65,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
+  const bright = hasStyle && !dark;
+  const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.9)';
+  const tc     = !hasStyle ? 'rgba(0,255,65,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.65)';
+  const boldStyle = bright ? 'font-weight:700;' : '';
   const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
   const dateLabel = displayDate ? fmtDate(c.due_date) : '';
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
-  return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" style="${bg}${border}">
+  const dateC = urgent ? (dark ? 'rgba(255,140,80,0.9)' : 'rgba(140,40,0,0.9)') : tc;
+  return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" style="${bg}${border}${boldStyle}">
     <div class="card-title" style="color:${titleC}">${c.title}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
     <div class="card-foot">
       <div class="card-badge" style="color:${tc}">${[c.category, c.size].filter(Boolean).join(' · ')}${recurBadge}</div>
-      ${displayDate ? `<div class="card-due" style="color:${urgent ? (dark?'rgba(255,140,80,0.9)':'rgba(180,60,0,0.9)') : tc}">${dateLabel}</div>` : ''}
+      ${displayDate ? `<div class="card-due" style="color:${dateC}">${dateLabel}</div>` : ''}
     </div>
   </div>`;
 }
