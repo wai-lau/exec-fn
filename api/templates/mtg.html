@@ -57,9 +57,23 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 }
 .exec-send:hover { color:rgba(0,255,65,0.75); }
 .exec-send:disabled { opacity:0.12; cursor:default; }
+#card-tooltip {
+  position:fixed; z-index:9999; pointer-events:none;
+  display:none; flex-direction:column; gap:0;
+  filter:drop-shadow(0 4px 18px rgba(0,0,0,0.7));
+}
+#card-tooltip img {
+  width:223px; height:auto; border-radius:10px; display:block;
+}
+#card-tooltip.loading::after {
+  content:''; display:block; width:223px; height:311px;
+  background:rgba(0,255,65,0.05); border:1px solid rgba(0,255,65,0.15);
+  border-radius:10px;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+<div id="card-tooltip"><img id="card-tooltip-img" src="" alt=""></div>
 <div id="terminal"></div>
 <div id="input-bar">
   <div id="input-line">
@@ -182,5 +196,65 @@ addMsg('assistant', _WELCOME);
 
 document.getElementById('msg-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+// Card image hover tooltip via Scryfall
+const _tooltip = document.getElementById('card-tooltip');
+const _tooltipImg = document.getElementById('card-tooltip-img');
+const _imgCache = {};
+
+function _positionTooltip(e) {
+  const pad = 16, w = 223 + pad;
+  const x = e.clientX + pad + w > window.innerWidth ? e.clientX - w : e.clientX + pad;
+  const y = Math.min(e.clientY - 40, window.innerHeight - 340);
+  _tooltip.style.left = x + 'px';
+  _tooltip.style.top = y + 'px';
+}
+
+async function _showCardImage(name, e) {
+  _tooltip.className = 'loading';
+  _tooltip.style.display = 'flex';
+  _positionTooltip(e);
+  _tooltipImg.src = '';
+
+  if (!_imgCache[name]) {
+    try {
+      const r = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+      if (!r.ok) { _imgCache[name] = null; }
+      else {
+        const d = await r.json();
+        const uri = d.image_uris?.normal || d.card_faces?.[0]?.image_uris?.normal || null;
+        _imgCache[name] = uri;
+      }
+    } catch { _imgCache[name] = null; }
+  }
+
+  if (_imgCache[name]) {
+    _tooltipImg.src = _imgCache[name];
+    _tooltip.className = '';
+  } else {
+    _tooltip.style.display = 'none';
+  }
+}
+
+terminal.addEventListener('mouseover', e => {
+  const strong = e.target.closest('strong');
+  if (strong && strong.closest('.msg.assistant')) {
+    _showCardImage(strong.textContent.trim(), e);
+    strong._mtgActive = true;
+  }
+});
+
+terminal.addEventListener('mousemove', e => {
+  const strong = e.target.closest('strong');
+  if (strong && strong._mtgActive) _positionTooltip(e);
+});
+
+terminal.addEventListener('mouseout', e => {
+  const strong = e.target.closest('strong');
+  if (strong && strong._mtgActive) {
+    strong._mtgActive = false;
+    _tooltip.style.display = 'none';
+  }
 });
 </script>
