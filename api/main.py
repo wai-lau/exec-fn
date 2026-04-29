@@ -89,11 +89,11 @@ _CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "媁", "mtg"]
-_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "媁": "/nightfall", "mtg": "/mtg"}
+_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "nightfall", "mtg"]
+_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "nightfall": "/nightfall", "mtg": "/mtg"}
 
 
-_GUEST_NAV_LINKS = ["媁", "mtg"]
+_GUEST_NAV_LINKS = ["nightfall", "mtg"]
 
 
 def _build_nav(active=None, guest=False):
