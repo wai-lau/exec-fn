@@ -44,7 +44,7 @@ _NAV_CSS = """
 
 _GREEN_OVERLAY = """
 <style>
-  body { font-weight: 500; font-style: italic; }
+  body { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-style: normal; }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(0, 255, 65, 0.45); border-radius: 3px; }
