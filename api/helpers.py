@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
 DATA_DIR = Path("/app/data")
-RM_FOLDER = "/EXEC"
 
 _SIZE_MINUTES: dict[str, int] = {"chore": 30, "task": 90, "project": 240, "titan": 480, "book": 60}
 

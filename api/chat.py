@@ -2,12 +2,10 @@ import json
 from datetime import datetime, timezone
 
 from helpers import DATA_DIR, _load_json, _load_rd, _now_et, get_rd_log, _parse_json, ET
-from delta import _load_daily_delta
 
 
 def _build_chat_system_prompt(stage: str = "planning") -> str:
     ctx = _load_json("profile", {"notes": []})
-    delta = _load_daily_delta()
     omens = _load_json("omens")
     rd = _load_rd()
 
@@ -16,7 +14,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
     ideas = sorted([c for c in cards if c.get("column") == "rd"], key=lambda c: c.get("order", 0))
 
     ctx_text = "\n".join(f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])) or "None."
-    delta_text = f"NOTES: {delta.get('wai_notes', 'None.')}\nADJUSTMENTS: {delta.get('adjustments', 'None.')}"
     rd_log_entries = get_rd_log(limit=20)
     rd_log_text = "\n".join(
         f"- {e['action']} '{e['title']}'" + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
@@ -49,13 +46,10 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "When Wai mentions working on, making progress on, or completing part of a task, call update_card with a timestamped note appended to the notes field. "
             "COLUMN SEMANTICS: rd=upcoming ideas/backlog (card added here by default). hq=should be scheduled within remaining time today (active working set). archives=task completed. exile=wont-do. "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
-            "When finalizing, categorize each card: SEEK=requires going outdoors, HACK=quick at home (under 1h), DIVE=extended focus/setup/cleanup (over 1h). "
             "When the plan looks ready, call assemble_plan to generate the schedule and show Wai the preview. "
-            "After Wai approves the preview, call build_pdf to generate the PDF. "
-            "When Wai says yes to pushing, immediately call finalize_and_push — do NOT ask for another confirmation. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
-        "done": "The plan has been finalized and pushed to reMarkable. Wrap up warmly. No more actions needed.",
+        "done": "The plan has been finalized. Wrap up warmly. No more actions needed.",
     }
 
     now = _now_et()
@@ -71,7 +65,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"CRITICAL: When Wai says 'remember [X]' or 'don't forget [X]', immediately call update_context with action=add and note=[X]. No exceptions.\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
-        f"YESTERDAY'S DELTA:\n{delta_text}\n\n"
         f"UPCOMING EVENTS:\n{events_text}\n\n"
         f"ACTIVITY LOG (today):\n{rd_log_text}\n\n"
         f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
@@ -83,21 +76,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
 
 def _chat_tools() -> list:
     return [
-        {
-            "name": "finalize_and_push",
-            "description": "Finalize today's plan and push the PDF to reMarkable. Categorize each selected card into SEEK/HACK/DIVE. Call immediately once Wai confirms — no second confirmation needed.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "seek_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring going outdoors (errands, outdoor activities, travel)."},
-                    "hack_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs that can be done quickly at home (under an hour, minimal setup)."},
-                    "dive_ids": {"type": "array", "items": {"type": "string"}, "description": "Card IDs requiring setup/cleanup, extended focus, or a complete session (over an hour)."},
-                    "encouraging_message": {"type": "string", "description": "Short encouraging message for Wai, printed on the reMarkable. Incorporate yesterday's delta into the tone and content."},
-                    "context_note": {"type": "string", "description": "New long-term fact about Wai to remember (optional)."},
-                },
-                "required": ["seek_ids", "hack_ids", "dive_ids", "encouraging_message"],
-            },
-        },
         {
             "name": "create_card",
             "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Always set due_date and start_before when you can reasonably infer them — e.g. 'take cash out for Taiwan' → due_date=day before Taiwan trip from omens, start_before=a day or two before that.",
@@ -188,7 +166,7 @@ def _chat_tools() -> list:
         },
         {
             "name": "assemble_plan",
-            "description": "Refresh omens and delta, generate encouraging message and daily schedule, write plan.json. Call when card selection looks ready, then ask Wai to confirm before building the PDF.",
+            "description": "Refresh omens, generate encouraging message and daily schedule, write plan.json. Call when card selection looks ready.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -198,11 +176,6 @@ def _chat_tools() -> list:
                 },
                 "required": ["seek_ids", "hack_ids", "dive_ids"],
             },
-        },
-        {
-            "name": "build_pdf",
-            "description": "Build the PDF from the current plan.json. Call after Wai approves the plan preview.",
-            "input_schema": {"type": "object", "properties": {}},
         },
         {
             "name": "reschedule",

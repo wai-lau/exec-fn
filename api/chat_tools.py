@@ -1,59 +1,13 @@
 import json
-import subprocess
-import traceback
 from datetime import datetime, timedelta, timezone
 
 from helpers import (
-    DATA_DIR, RM_FOLDER, _load_json, _load_rd, _save_rd, _find_card,
-    _append_rd_log, _SIZE_MINUTES, _minutes_to_size, _now_et, _ts,
+    DATA_DIR, _load_json, _load_rd, _save_rd, _find_card,
+    _append_rd_log, _SIZE_MINUTES, _minutes_to_size, _now_et,
     _apply_context_update,
 )
-from delta import analyze_delta_to_now, _load_all_recent_deltas, _load_yesterday_delta
 from gcal import fetch_omens, create_gcal_event
-from rm import push_pdf
 
-
-def _tool_finalize_and_push(input_: dict) -> dict:
-    seek_ids = list(input_.get("seek_ids", []))
-    hack_ids = list(input_.get("hack_ids", []))
-    dive_ids = list(input_.get("dive_ids", []))
-    context_note = input_.get("context_note", "")
-
-    plan_path = DATA_DIR / "plan.json"
-    if not (seek_ids or hack_ids or dive_ids) and plan_path.exists():
-        plan = json.loads(plan_path.read_text())
-        seek_ids = [c["id"] for c in plan.get("seek", []) if isinstance(c, dict)]
-        hack_ids = [c["id"] for c in plan.get("hack", []) if isinstance(c, dict)]
-        dive_ids = [c["id"] for c in plan.get("dive", []) if isinstance(c, dict)]
-
-    selected_ids = set(seek_ids + hack_ids + dive_ids)
-
-    rd = _load_rd()
-    for c in rd.get("cards", []):
-        if c.get("column") in ("hq", "rd"):
-            c["column"] = "hq" if c["id"] in selected_ids else "rd"
-    _save_rd(rd)
-
-    if context_note and context_note.strip():
-        _apply_context_update("add", note=context_note.strip())
-
-    pdf_name = None
-    if plan_path.exists():
-        plan = json.loads(plan_path.read_text())
-        latest_pdf = plan.get("latest_pdf")
-        if latest_pdf and (DATA_DIR / latest_pdf).exists():
-            result = subprocess.run(
-                ["rmapi", "put", "--force", str(DATA_DIR / latest_pdf), RM_FOLDER],
-                capture_output=True, text=True, timeout=60,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(f"rmapi put failed: {result.stderr.strip()}")
-            pdf_name = latest_pdf
-
-    if not pdf_name:
-        pdf_name = push_pdf()
-
-    return {"pushed": pdf_name, "selected": len(selected_ids)}
 
 
 def _tool_create_card(input_: dict) -> dict:
@@ -186,7 +140,7 @@ def _build_plan_cards(rd: dict, seek_ids: list, hack_ids: list, dive_ids: list) 
 
 def _tool_assemble_plan(input_: dict) -> dict:
     import anthropic
-    from pipeline import _generate_schedule, update_rd_from_delta
+    from pipeline import _generate_schedule
 
     seek_ids = list(input_.get("seek_ids", []))
     hack_ids = list(input_.get("hack_ids", []))
@@ -194,21 +148,6 @@ def _tool_assemble_plan(input_: dict) -> dict:
 
     try:
         fetch_omens()
-    except Exception:
-        pass
-
-    delta_error = None
-    try:
-        analyze_delta_to_now()
-    except Exception as e:
-        delta_error = f"{e}\n{traceback.format_exc()}"
-
-    yesterday_delta = _load_yesterday_delta()
-    today_delta = _load_all_recent_deltas()
-    delta_text = " ".join(filter(None, [today_delta.get("wai_notes", ""), today_delta.get("adjustments", "")])).strip()
-
-    try:
-        update_rd_from_delta(today_delta)
     except Exception:
         pass
 
@@ -220,7 +159,6 @@ def _tool_assemble_plan(input_: dict) -> dict:
     try:
         from helpers import get_rd_log
         client = anthropic.Anthropic()
-        yesterday_text = " ".join(filter(None, [yesterday_delta.get("wai_notes", ""), yesterday_delta.get("adjustments", "")])).strip()
         rd_log_entries = get_rd_log(limit=20)
         rd_log_text = "\n".join(f"- [{e['action']}] {e['title']}" for e in rd_log_entries) if rd_log_entries else "none"
         omens_text = "\n".join(f"- {e['date']}: {e['title']}" for e in events) if events else "none"
@@ -236,14 +174,11 @@ def _tool_assemble_plan(input_: dict) -> dict:
             model="claude-haiku-4-5-20251001",
             max_tokens=300,
             messages=[{"role": "user", "content": (
-                f"YESTERDAY: {yesterday_text or 'none'}\n"
-                f"TODAY'S ACTIVITY: {delta_text or 'none'}\n"
                 f"TODAY'S PLAN:\n{plan_text}\n"
                 f"UPCOMING EVENTS:\n{omens_text}\n"
                 f"ACTIVITY LOG (recent card activity):\n{rd_log_text}\n\n"
                 "Write a warm, personal encouraging message for Wai (3-5 sentences). "
-                "Be specific — reference what they worked on, what's coming up, or what's on deck. "
-                "Do NOT reference when they woke up or mention 4:30am. "
+                "Be specific — reference what's coming up or what's on deck. "
                 "Plain text only. No em-dashes."
             )}],
         )
@@ -253,7 +188,7 @@ def _tool_assemble_plan(input_: dict) -> dict:
 
     schedule_error = None
     try:
-        schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, delta_text)
+        schedule = _generate_schedule(seek_cards, hack_cards, dive_cards, events, "")
     except Exception as e:
         schedule = []
         schedule_error = str(e)
@@ -273,8 +208,6 @@ def _tool_assemble_plan(input_: dict) -> dict:
     (DATA_DIR / "directives.json").write_text(json.dumps(directives, indent=2))
 
     result = {"ok": True}
-    if delta_error:
-        result["delta_error"] = delta_error
     if schedule_error:
         result["schedule_error"] = schedule_error
     return result
@@ -309,8 +242,7 @@ def _tool_reschedule(input_: dict) -> dict:
     remaining_hack = [c for c in hack_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
     remaining_dive = [c for c in dive_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
 
-    delta_text = _load_all_recent_deltas().get("wai_notes", "")
-    schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, delta_text, feedback=feedback)
+    schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, "", feedback=feedback)
 
     plan["schedule"] = schedule
     plan_path.write_text(json.dumps(plan, indent=2))
@@ -324,20 +256,6 @@ def _tool_update_context(input_: dict) -> dict:
         match=input_.get("match", ""),
     )
 
-
-def _tool_build_pdf(input_: dict) -> dict:
-    from build_pdf import build as pdf_build
-
-    pdf_path = DATA_DIR / f"WAI_{_ts()}.pdf"
-    pdf_build(str(pdf_path))
-
-    plan_path = DATA_DIR / "plan.json"
-    if plan_path.exists():
-        plan = json.loads(plan_path.read_text())
-        plan["latest_pdf"] = pdf_path.name
-        plan_path.write_text(json.dumps(plan, indent=2))
-
-    return {"ok": True, "pdf": pdf_path.name}
 
 
 def _tool_schedule_card(input_: dict) -> dict:
@@ -364,7 +282,6 @@ def _tool_create_gcal_event(input_: dict) -> dict:
 
 
 _TOOL_HANDLERS = {
-    "finalize_and_push": _tool_finalize_and_push,
     "create_card":       _tool_create_card,
     "refresh_omens":     _tool_refresh_omens,
     "move_card":         _tool_move_card,
@@ -373,7 +290,6 @@ _TOOL_HANDLERS = {
     "schedule_card":     _tool_schedule_card,
     "assemble_plan":     _tool_assemble_plan,
     "reschedule":        _tool_reschedule,
-    "build_pdf":         _tool_build_pdf,
     "update_context":    _tool_update_context,
     "create_gcal_event": _tool_create_gcal_event,
 }

@@ -7,9 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 
 from pipeline import build_morning
-from rm import pull_rmdocs, push_pdf, list_archive
 from gcal import gcal_start_auth, gcal_complete_auth, fetch_omens
-from delta import _load_all_recent_deltas, analyze_delta
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
 from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log, _next_recurrence
@@ -91,8 +89,8 @@ _CONTENT_STYLE = """
 </style>
 """
 
-_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "vault", "媁", "mtg"]
-_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "vault": "/archive", "媁": "/nightfall", "mtg": "/mtg"}
+_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "媁", "mtg"]
+_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "媁": "/nightfall", "mtg": "/mtg"}
 
 
 _GUEST_NAV_LINKS = ["媁", "mtg"]
@@ -158,7 +156,6 @@ def _build_page(active=None, content=""):
 
 # ── templates ─────────────────────────────────────────────────────────────────
 
-_VAULT_HTML       = (_TMPL / "vault.html").read_text()
 _KANBAN_HTML      = (_TMPL / "kanban.html").read_text()
 _PLAN_HTML        = (_TMPL / "plan.html").read_text()
 _EXEC_HTML        = (_TMPL / "exec.html").read_text()
@@ -263,11 +260,6 @@ async def rd_page():
         .replace("</body>", _KANBAN_HTML + _build_nav("core") + "</body>", 1))
 
 
-@protected.get("/archive", response_class=HTMLResponse)
-async def archive_page():
-    return _build_page("vault", _VAULT_HTML)
-
-
 @guest_protected.get("/mtg", response_class=HTMLResponse)
 async def mtg_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
@@ -290,73 +282,12 @@ async def serve_data(filename: str):
 
 # ── api ───────────────────────────────────────────────────────────────────────
 
-@protected.post("/api/pull")
-def api_pull():
-    try:
-        return {"file": Path(pull_rmdocs()).name}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
 @protected.post("/api/morning")
 def api_morning():
     try:
         return build_morning()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@protected.get("/api/archive")
-def api_archive():
-    return list_archive()
-
-
-_PNG_CACHE = DATA_DIR / "cache"
-
-
-@protected.get("/api/archive/{filename}/page/{page_num}")
-def archive_page_png(filename: str, page_num: int):
-    from fastapi.responses import Response
-    from rm_to_pdf import rasterize
-    p = (DATA_DIR / filename).resolve()
-    if not str(p).startswith(str(DATA_DIR.resolve())) or not p.exists():
-        raise HTTPException(status_code=404, detail="not found")
-    if filename.endswith(".png"):
-        return Response(content=p.read_bytes(), media_type="image/png")
-    if not filename.endswith(".rmdoc"):
-        raise HTTPException(status_code=404, detail="not found")
-    _PNG_CACHE.mkdir(exist_ok=True)
-    cache_file = _PNG_CACHE / f"{filename}.page{page_num}.png"
-    if cache_file.exists():
-        return Response(content=cache_file.read_bytes(), media_type="image/png")
-    png_bytes = rasterize(str(p), page_index=page_num)
-    cache_file.write_bytes(png_bytes)
-    return Response(content=png_bytes, media_type="image/png")
-
-
-@protected.get("/api/cache")
-def api_cache():
-    """List pre-rendered PNGs in the cache folder, grouped by source doc, newest first."""
-    cache_dir = _PNG_CACHE
-    if not cache_dir.exists():
-        return []
-    from collections import defaultdict
-    import re as _re
-    groups = defaultdict(list)
-    for f in sorted(cache_dir.glob("*.png"), reverse=True):
-        m = _re.match(r'^(.+\.rmdoc)\.page(\d+)\.png$', f.name)
-        if m:
-            groups[m.group(1)].append((int(m.group(2)), f.name))
-    result = []
-    for doc, pages in sorted(groups.items(), reverse=True):
-        pages.sort()
-        result.append({
-            "doc": doc,
-            "label": doc.replace(".rmdoc", ""),
-            "pages": [f"/data/cache/{name}" for _, name in pages],
-        })
-    return result
 
 
 @protected.get("/api/rd")
@@ -459,22 +390,6 @@ def api_context():
     return _load_json("profile", {"notes": []})
 
 
-@protected.get("/api/delta")
-def api_delta_get():
-    d = _load_all_recent_deltas()
-    if not d:
-        raise HTTPException(status_code=404, detail="No delta yet")
-    return d
-
-
-@protected.post("/api/delta")
-def api_delta_run():
-    try:
-        return analyze_delta()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @protected.get("/api/directives")
 def api_directives_get():
     p = DATA_DIR / "directives.json"
@@ -491,14 +406,6 @@ def api_plan_get():
     return _load_json("plan")
 
 
-@protected.post("/api/push")
-def api_push():
-    try:
-        return {"pdf": push_pdf()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @protected.post("/api/assemble_plan")
 def api_assemble_plan():
     try:
@@ -509,14 +416,6 @@ def api_assemble_plan():
         return _handle_tool("assemble_plan", {
             "seek_ids": seek_ids, "hack_ids": hack_ids, "dive_ids": dive_ids,
         })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@protected.post("/api/build_pdf")
-def api_build_pdf():
-    try:
-        return _handle_tool("build_pdf", {})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

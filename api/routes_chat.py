@@ -97,8 +97,6 @@ async def api_chat(body: ChatBody):
             if block.type != "tool_use":
                 continue
             result = await asyncio.to_thread(_handle_tool, block.name, block.input)
-            if block.name == "finalize_and_push":
-                next_stage = "done"
             yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
             tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
 
