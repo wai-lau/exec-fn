@@ -16,8 +16,8 @@
   @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Bold Italic Nerd Font Complete.ttf') format('truetype'); font-weight:700; font-style:italic; font-display:swap; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
+    font-family: 'Iosevka Mayukai Monolite', monospace;
     font-weight: 500;
-    font-style: italic;
     background: #000;
     height: 100vh;
     display: flex;
@@ -27,51 +27,49 @@
   }
 </style>
 <style id="login-styles">
-  .login-box {
+  .login-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
     position: relative;
     z-index: 2;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(0, 255, 65, 0.15);
-    padding: 20px 24px;
+  }
+  .login-wrap img {
+    width: 120px;
+    opacity: 0.9;
+  }
+  .login-box {
+    background: transparent;
+    border: none;
+    padding: 0;
     display: flex;
-    gap: 10px;
+    flex-direction: column;
     align-items: center;
   }
   .login-box input[type=password] {
     background: transparent;
     border: none;
-    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
-    color: rgba(0, 255, 65, 0.9);
+    border-bottom: 1px solid rgba(255, 105, 180, 0.45);
+    color: hsl(315, 80%, 75%);
     font-family: 'Iosevka Mayukai Monolite', monospace;
     font-size: 0.95rem;
     padding: 4px 2px;
     outline: none;
     width: 160px;
+    text-align: center;
   }
-  .login-box input[type=password]::placeholder { color: rgba(0, 255, 65, 0.2); }
-  .login-box input[type=password]:focus { border-bottom-color: rgba(0, 255, 65, 0.8); }
-  .login-box button {
-    background: none;
-    border: 1px solid rgba(0, 255, 65, 0.4);
-    color: rgba(0, 255, 65, 0.85);
-    font-family: 'Iosevka Mayukai Monolite', monospace;
-    font-size: 0.85rem;
-    padding: 4px 14px;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .login-box button:hover {
-    border-color: rgba(0, 255, 65, 1);
-    color: rgba(0, 255, 65, 1);
-  }
+  .login-box input[type=password]::placeholder { color: rgba(255, 105, 180, 0.35); }
+  .login-box input[type=password]:focus { border-bottom-color: hsl(315, 80%, 70%); }
 </style>
 </head>
 <body>
-  <form class="login-box" method="POST" action="/login">
-    <input type="password" name="key" placeholder="key" autocomplete="current-password">
-    <button type="submit">→</button>
-  </form>
+  <div class="login-wrap">
+    <img src="/favicon.png">
+    <form class="login-box" method="POST" action="/login">
+      <input type="password" name="key" placeholder="access-key" autocomplete="current-password" autofocus>
+    </form>
+  </div>
   <audio src="/nightfall-game/audio/lmm-intro.mp3" autoplay></audio>
 </body>
 </html>
