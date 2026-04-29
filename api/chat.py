@@ -73,7 +73,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
         f"YESTERDAY'S DELTA:\n{delta_text}\n\n"
         f"UPCOMING EVENTS:\n{events_text}\n\n"
-        f"R&D ACTIVITY LOG (today):\n{rd_log_text}\n\n"
+        f"ACTIVITY LOG (today):\n{rd_log_text}\n\n"
         f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
         f"IDEAS POOL (top 15):\n{ideas_text}\n\n"
         f"7-DAY SCHEDULE (scheduled_day assignments this week):\n{scheduled_text}\n\n"

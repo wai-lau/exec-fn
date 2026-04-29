@@ -1,9 +1,6 @@
-import json
-from datetime import date, timedelta, datetime, timezone
+from datetime import date, timedelta
 
-from helpers import DATA_DIR, _load_rd, _save_rd
-
-_PROPHECIES_LOG = DATA_DIR / "prophecies_log.json"
+from helpers import _load_rd, _save_rd, _append_rd_log, get_rd_log
 
 
 def _today_iso() -> str:
@@ -58,27 +55,16 @@ def bulk_update_scheduled_days(updates: list[dict]) -> dict:
             card["scheduled_day"] = new_day
             if upd.get("manual_pin", True):
                 card["manual_pin"] = True
-            log_prophecy_change(cid, old_day, new_day)
+            log_prophecy_change(cid, old_day, new_day, title=card.get("title", cid))
             changed += 1
 
     _save_rd(rd)
     return {"ok": True, "changed": changed}
 
 
-def log_prophecy_change(card_id: str, from_day: str | None, to_day: str | None):
-    entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "card_id": card_id,
-        "from_day": from_day,
-        "to_day": to_day,
-    }
-    log = json.loads(_PROPHECIES_LOG.read_text()) if _PROPHECIES_LOG.exists() else []
-    log.append(entry)
-    _PROPHECIES_LOG.write_text(json.dumps(log[-1000:]))
+def log_prophecy_change(card_id: str, from_day: str | None, to_day: str | None, title: str = ""):
+    _append_rd_log("rescheduled", title or card_id, source="prof", card_id=card_id, from_day=from_day, to_day=to_day)
 
 
 def get_prophecies_log(limit: int = 50) -> list:
-    if not _PROPHECIES_LOG.exists():
-        return []
-    log = json.loads(_PROPHECIES_LOG.read_text())
-    return log[-limit:][::-1]
+    return get_rd_log(limit=limit, source="prof")

@@ -365,7 +365,7 @@ def api_rd():
 
 
 @protected.patch("/api/rd")
-async def api_rd_patch(request: Request):
+async def api_rd_patch(request: Request, source: str = "core"):
     body = await request.json()
     p = DATA_DIR / "rd.json"
     data = _load_json("rd", {"columns": ["rd","hq","archives","exile"]})
@@ -375,15 +375,15 @@ async def api_rd_patch(request: Request):
         cid = c.get("id")
         old = old_cards.get(cid)
         if old is None:
-            _append_rd_log("created", c.get("title", cid), column=c.get("column"))
+            _append_rd_log("created", c.get("title", cid), source=source, column=c.get("column"))
         elif old.get("column") != c.get("column"):
-            _append_rd_log("moved", c.get("title", cid), from_col=old["column"], to_col=c["column"])
+            _append_rd_log("moved", c.get("title", cid), source=source, from_col=old["column"], to_col=c["column"])
         elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
-            _append_rd_log("updated", c.get("title", cid))
+            _append_rd_log("updated", c.get("title", cid), source=source)
     new_ids = {c["id"] for c in new_cards}
     for cid, old in old_cards.items():
         if cid not in new_ids:
-            _append_rd_log("deleted", old.get("title", cid))
+            _append_rd_log("deleted", old.get("title", cid), source=source)
 
     # Recurring revival: when a card moves to archives and has recur_type, spawn next occurrence
     import time as _time
@@ -406,7 +406,7 @@ async def api_rd_patch(request: Request):
                 clone["manual_pin"] = False
                 clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
                 revived.append(clone)
-                _append_rd_log("revived", c.get("title", c["id"]), next_due=next_due)
+                _append_rd_log("revived", c.get("title", c["id"]), source=source, next_due=next_due)
 
     data["cards"] = new_cards + revived
     p.write_text(json.dumps(data, indent=2))

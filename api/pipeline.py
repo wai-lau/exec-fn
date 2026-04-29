@@ -199,7 +199,7 @@ def build_morning() -> dict:
         chat_path.unlink()
 
     if _RD_LOG.exists():
-        archive_name = DATA_DIR / f"rd_log_{_now_et().strftime('%m%d')}.json"
+        archive_name = DATA_DIR / f"activity_log_{_now_et().strftime('%m%d')}.json"
         _RD_LOG.rename(archive_name)
     _RD_LOG.write_text("[]")
 

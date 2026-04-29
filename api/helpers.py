@@ -89,20 +89,23 @@ def _find_card(rd: dict, card_id: str) -> dict | None:
     return next((c for c in rd.get("cards", []) if c["id"] == card_id), None)
 
 
-_RD_LOG = DATA_DIR / "rd_log.json"
+_ACTIVITY_LOG = DATA_DIR / "activity_log.json"
+_RD_LOG = _ACTIVITY_LOG  # alias kept for pipeline.py archival
 
 
-def _append_rd_log(action: str, title: str, **extra):
-    entry = {"ts": datetime.now(timezone.utc).isoformat(), "action": action, "title": title, **extra}
-    log = json.loads(_RD_LOG.read_text()) if _RD_LOG.exists() else []
+def _append_rd_log(action: str, title: str, source: str = "core", **extra):
+    entry = {"ts": datetime.now(timezone.utc).isoformat(), "source": source, "action": action, "title": title, **extra}
+    log = json.loads(_ACTIVITY_LOG.read_text()) if _ACTIVITY_LOG.exists() else []
     log.append(entry)
-    _RD_LOG.write_text(json.dumps(log[-500:]))
+    _ACTIVITY_LOG.write_text(json.dumps(log[-500:]))
 
 
-def get_rd_log(limit: int = 20) -> list:
-    if not _RD_LOG.exists():
+def get_rd_log(limit: int = 20, source: str | None = None) -> list:
+    if not _ACTIVITY_LOG.exists():
         return []
-    log = json.loads(_RD_LOG.read_text())
+    log = json.loads(_ACTIVITY_LOG.read_text())
+    if source:
+        log = [e for e in log if e.get("source") == source]
     return log[-limit:][::-1]
 
 

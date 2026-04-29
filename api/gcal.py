@@ -244,7 +244,7 @@ def import_gcal_cards() -> dict:
         }
         cards.append(card)
         existing.add(key)
-        _append_rd_log("imported", title, due_date=due_date)
+        _append_rd_log("imported", title, source="core", due_date=due_date)
         imported += 1
 
     rd["cards"] = cards

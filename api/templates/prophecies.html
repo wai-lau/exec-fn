@@ -213,6 +213,12 @@ function buildBoard() {
   if (!weekData) return;
   const today = isoToday();
   const days = Object.keys(weekData.days);
+
+  // Always include today even when viewing a different week
+  if (!days.includes(today) && !weekData.days[today]) {
+    weekData.days[today] = [];
+    days.unshift(today);
+  }
   let html = '';
 
   for (const day of days) {
@@ -424,14 +430,14 @@ async function saveCE() {
   c.notes = document.getElementById('ce-notes').value.trim();
   c.recur_type = document.getElementById('ce-recur').value||null;
   c.is_reminder = document.getElementById('ce-reminder').checked;
-  await fetch('/api/rd',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
+  await fetch('/api/rd?source=prof',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
   closeCE();
   load(weekStart);
 }
 async function deleteCE() {
   if (!_ceId) return;
   _ceCards = _ceCards.filter(x => x.id !== _ceId);
-  await fetch('/api/rd',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
+  await fetch('/api/rd?source=prof',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
   closeCE();
   load(weekStart);
 }

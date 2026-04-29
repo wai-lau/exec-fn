@@ -84,7 +84,7 @@ def _tool_create_card(input_: dict) -> dict:
     cards.append(new_card)
     rd["cards"] = cards
     _save_rd(rd)
-    _append_rd_log("created", new_card["title"], column=column)
+    _append_rd_log("created", new_card["title"], source="Exec", column=column)
     return {"ok": True, "id": new_card["id"], "title": new_card["title"]}
 
 
@@ -102,7 +102,7 @@ def _tool_move_card(input_: dict) -> dict:
     from_col = card.get("column")
     card["column"] = input_["column"]
     _save_rd(rd)
-    _append_rd_log("moved", card["title"], from_col=from_col, to_col=card["column"])
+    _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col=card["column"])
     return {"ok": True, "id": card["id"], "title": card["title"], "column": card["column"]}
 
 
@@ -127,7 +127,7 @@ def _tool_update_card(input_: dict) -> dict:
     extra = {"fields": changed}
     if "notes" in input_:
         extra["notes"] = input_["notes"]
-    _append_rd_log("updated", card["title"], **extra)
+    _append_rd_log("updated", card["title"], source="Exec", **extra)
     return {"ok": True, "id": card["id"], "title": card["title"]}
 
 
@@ -139,7 +139,7 @@ def _tool_delete_card(input_: dict) -> dict:
     title = card.get("title", input_.get("id"))
     rd["cards"] = [c for c in rd.get("cards", []) if c["id"] != input_.get("id")]
     _save_rd(rd)
-    _append_rd_log("deleted", title)
+    _append_rd_log("deleted", title, source="Exec")
     return {"ok": True, "deleted": input_.get("id")}
 
 
@@ -240,7 +240,7 @@ def _tool_assemble_plan(input_: dict) -> dict:
                 f"TODAY'S ACTIVITY: {delta_text or 'none'}\n"
                 f"TODAY'S PLAN:\n{plan_text}\n"
                 f"UPCOMING EVENTS:\n{omens_text}\n"
-                f"R&D LOG (recent card activity):\n{rd_log_text}\n\n"
+                f"ACTIVITY LOG (recent card activity):\n{rd_log_text}\n\n"
                 "Write a warm, personal encouraging message for Wai (3-5 sentences). "
                 "Be specific — reference what they worked on, what's coming up, or what's on deck. "
                 "Do NOT reference when they woke up or mention 4:30am. "
@@ -347,7 +347,7 @@ def _tool_schedule_card(input_: dict) -> dict:
         return {"error": f"Card not found: {input_.get('id')}"}
     card["scheduled_day"] = input_.get("scheduled_day") or None
     _save_rd(rd)
-    _append_rd_log("scheduled", card["title"], day=card.get("scheduled_day"))
+    _append_rd_log("scheduled", card["title"], source="Exec", day=card.get("scheduled_day"))
     return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": card.get("scheduled_day")}
 
 

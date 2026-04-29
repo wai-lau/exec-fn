@@ -385,10 +385,30 @@ function buildSchedule(cards) {
 
   cards.forEach(c => track.appendChild(createBlock(c, track)));
 
+  // current time indicator
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  if (nowMin >= TL_START && nowMin <= TL_END) {
+    const nowY = (nowMin - TL_START) * TL_PX;
+    const nowLine = document.createElement('div');
+    nowLine.id = 'dir-now-line';
+    nowLine.style.cssText = `position:absolute;left:0;right:0;top:${nowY}px;border-top:1px solid rgba(255,255,255,0.7);pointer-events:none;z-index:5;`;
+    const dot = document.createElement('div');
+    dot.style.cssText = 'position:absolute;left:-4px;top:-4px;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.8);';
+    nowLine.appendChild(dot);
+    track.appendChild(nowLine);
+  }
+
   tlWrap.appendChild(labels);
   tlWrap.appendChild(track);
   wrap.innerHTML = '';
   wrap.appendChild(tlWrap);
+
+  // autoscroll to current time (offset by 60px so there's context above)
+  if (nowMin >= TL_START && nowMin <= TL_END) {
+    const scrollTarget = (nowMin - TL_START) * TL_PX - 60;
+    wrap.scrollTop = Math.max(0, scrollTarget);
+  }
 }
 
 async function saveCardOrder(cards) {
@@ -589,14 +609,14 @@ async function saveCE() {
   c.notes = document.getElementById('ce-notes').value.trim();
   c.recur_type = document.getElementById('ce-recur').value||null;
   c.is_reminder = document.getElementById('ce-reminder').checked;
-  await fetch('/api/rd',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
+  await fetch('/api/rd?source=dirs',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
   closeCE();
   load();
 }
 async function deleteCE() {
   if (!_ceId) return;
   _ceCards = _ceCards.filter(x => x.id !== _ceId);
-  await fetch('/api/rd',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
+  await fetch('/api/rd?source=dirs',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_ceCards})});
   closeCE();
   load();
 }
