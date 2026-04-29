@@ -81,6 +81,7 @@ const SNAP     = 15;
 function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
 
 let scheduleCards = [];
+let currentTrack = null;
 
 function isoToday() {
   const d = new Date();
@@ -169,6 +170,8 @@ function createBlock(c, track) {
       document.removeEventListener('touchend', onUp);
       if (!moved) { openCardDialog(c.id, () => load(), 'dirs'); return; }
       scheduleCards.sort((a, b) => a._startMin - b._startMin);
+      computeColumns(scheduleCards);
+      applyColumnLayout(scheduleCards, currentTrack);
       saveCardOrder(scheduleCards);
     }
     document.addEventListener('mousemove', onMove);
@@ -223,6 +226,46 @@ function createBlock(c, track) {
   return block;
 }
 
+function computeColumns(cards) {
+  const sorted = [...cards].sort((a, b) => a._startMin - b._startMin);
+  const laneEnds = [];
+  sorted.forEach(c => {
+    let lane = laneEnds.findIndex(end => end <= c._startMin);
+    if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+    laneEnds[lane] = c._startMin + c._durMin;
+    c._laneIdx = lane;
+  });
+  sorted.forEach(c => {
+    const cEnd = c._startMin + c._durMin;
+    let max = c._laneIdx;
+    sorted.forEach(o => {
+      if (o !== c && o._startMin < cEnd && o._startMin + o._durMin > c._startMin)
+        max = Math.max(max, o._laneIdx);
+    });
+    c._totalLanes = max + 1;
+  });
+}
+
+function applyColumnLayout(cards, track) {
+  const GAP = 3;
+  cards.forEach(c => {
+    const el = track.querySelector(`[data-id="${c.id}"]`);
+    if (!el) return;
+    const n = c._totalLanes || 1;
+    const idx = c._laneIdx || 0;
+    if (n === 1) {
+      el.style.left = GAP + 'px';
+      el.style.right = GAP + 'px';
+      el.style.width = '';
+    } else {
+      const pct = 100 / n;
+      el.style.left = `calc(${idx * pct}% + ${GAP}px)`;
+      el.style.width = `calc(${pct}% - ${GAP * 2}px)`;
+      el.style.right = 'auto';
+    }
+  });
+}
+
 function buildSchedule(cards) {
   const wrap = document.getElementById('dir-schedule-wrap');
   if (!cards.length) {
@@ -265,6 +308,9 @@ function buildSchedule(cards) {
   }
 
   cards.forEach(c => track.appendChild(createBlock(c, track)));
+  computeColumns(cards);
+  applyColumnLayout(cards, track);
+  currentTrack = track;
 
   // current time indicator
   const now = new Date();
