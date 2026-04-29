@@ -193,63 +193,194 @@ def create_gcal_event(title: str, start: str, end: str | None = None, descriptio
     return {"ok": True, "event_id": event.get("id"), "link": event.get("htmlLink")}
 
 
+def _fetch_gcal_raw_full(days_ahead: int = 365) -> list:
+    """Fetch all GCal events for next N days, keeping only first occurrence of each recurring series."""
+    from googleapiclient.discovery import build as gcal_build
+
+    creds = _gcal_creds()
+    service = gcal_build("calendar", "v3", credentials=creds)
+    now = datetime.now(timezone.utc)
+    end = now + timedelta(days=days_ahead)
+
+    raw, seen_keys, seen_recurring = [], set(), set()
+
+    for cal_id in CALENDAR_IDS:
+        try:
+            page_token = None
+            while True:
+                result = service.events().list(
+                    calendarId=cal_id,
+                    timeMin=now.isoformat(),
+                    timeMax=end.isoformat(),
+                    singleEvents=True,
+                    orderBy="startTime",
+                    maxResults=250,
+                    pageToken=page_token,
+                ).execute()
+                for item in result.get("items", []):
+                    if _is_declined(item):
+                        continue
+                    start_str = item["start"].get("dateTime", item["start"].get("date", ""))
+                    summary = (item.get("summary") or "Untitled").strip()
+                    rec_id = item.get("recurringEventId", "")
+                    if rec_id:
+                        if rec_id in seen_recurring:
+                            continue
+                        seen_recurring.add(rec_id)
+                    else:
+                        key = _dedup_key(summary, start_str)
+                        if key in seen_keys:
+                            continue
+                        seen_keys.add(key)
+                    desc = (item.get("description") or "")[:300]
+                    raw.append({
+                        "id": item.get("id", ""),
+                        "recurring_event_id": rec_id,
+                        "summary": summary,
+                        "start": start_str,
+                        "end": item["end"].get("dateTime", item["end"].get("date", "")),
+                        "location": item.get("location", ""),
+                        "description": desc,
+                        "organizer": item.get("organizer", {}).get("email", ""),
+                        "calendar_id": cal_id,
+                        "is_recurring": bool(rec_id),
+                    })
+                page_token = result.get("nextPageToken")
+                if not page_token:
+                    break
+        except Exception:
+            pass
+
+    raw.sort(key=lambda e: e["start"])
+    return raw
+
+
+def _haiku_classify_batch(client, batch: list) -> None:
+    from helpers import _parse_json
+    lines = []
+    for j, ev in enumerate(batch):
+        recur = " [recurring]" if ev.get("is_recurring") else ""
+        loc = f" @ {ev['location']}" if ev.get("location") else ""
+        lines.append(f"{j}: {ev['summary']}{recur}{loc} ({ev['start'][:10]})")
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1200,
+            messages=[{"role": "user", "content": (
+                "Classify these calendar events for Wai (personal productivity app).\n\n"
+                + "\n".join(lines) + "\n\n"
+                "is_reminder: true = just an FYI (birthday, holiday, anniversary, appointment reminder, "
+                "someone else's recurring event); false = Wai needs to actively do something\n"
+                "recur_type: week|bi-week|month|holiday|birthday|null\n"
+                "category: Interfacing|Social|Self|Hobby|Book\n\n"
+                'JSON array only: [{"i":0,"is_reminder":true,"recur_type":null,"category":"Interfacing"},...]'
+            )}],
+        )
+        for item in _parse_json(resp.content[0].text):
+            idx = item.get("i")
+            if idx is not None and 0 <= idx < len(batch):
+                batch[idx].update({
+                    "is_reminder": item.get("is_reminder", True),
+                    "recur_type": item.get("recur_type") or None,
+                    "category": item.get("category", "Interfacing"),
+                })
+    except Exception:
+        pass
+    for ev in batch:
+        ev.setdefault("is_reminder", True)
+        ev.setdefault("recur_type", None)
+        ev.setdefault("category", "Interfacing")
+
+
+def _haiku_dedupe(client, events: list, existing_titles: list) -> None:
+    from helpers import _parse_json
+    existing_text = "\n".join(f"- {t}" for t in existing_titles[:150])
+    new_text = "\n".join(f"{i}: {ev['summary']}" for i, ev in enumerate(events))
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            messages=[{"role": "user", "content": (
+                f"EXISTING CARDS:\n{existing_text}\n\n"
+                f"NEW EVENTS:\n{new_text}\n\n"
+                "Which new events are duplicates (same meaning) as existing cards?\n"
+                'JSON only: {"skip":[0,3,7]}'
+            )}],
+        )
+        skip_set = set(_parse_json(resp.content[0].text).get("skip", []))
+        for i, ev in enumerate(events):
+            if i in skip_set:
+                ev["skip"] = True
+    except Exception:
+        pass
+
+
+def _haiku_classify_events(events: list, existing_titles: list) -> list:
+    import anthropic
+    client = anthropic.Anthropic()
+    for i in range(0, len(events), 25):
+        _haiku_classify_batch(client, events[i:i + 25])
+    if existing_titles and events:
+        _haiku_dedupe(client, events, existing_titles)
+    return events
+
+
 def import_gcal_cards() -> dict:
-    """One-time import: pull 365 days of GCal events → rd.json cards."""
+    """One-time import: pull 365 days of GCal events → classify with Haiku → rd.json cards."""
     import time as _time
     from helpers import _load_rd, _save_rd, _append_rd_log
 
-    events = fetch_calendar_events(days_ahead=365, days_behind=0)
+    # Fetch full raw data and save
+    raw = _fetch_gcal_raw_full(days_ahead=365)
+    (DATA_DIR / "gcal_events_raw.json").write_text(json.dumps(raw, indent=2))
+
     rd = _load_rd()
-    existing = {(c.get("title", "").lower().strip(), (c.get("due_date") or "")[:10]) for c in rd.get("cards", [])}
+    existing_titles = [c.get("title", "") for c in rd.get("cards", [])]
 
-    imported, skipped = 0, 0
+    # Exact-match dedup first (title+date) to reduce Haiku load
+    existing_keys = {(c.get("title", "").lower().strip(), (c.get("due_date") or "")[:10]) for c in rd.get("cards", [])}
+    to_classify = []
+    for ev in raw:
+        key = (ev["summary"].lower(), ev["start"][:10])
+        if key not in existing_keys:
+            to_classify.append(ev)
+
+    # Haiku classify + fuzzy dedupe
+    classified = _haiku_classify_events(to_classify, existing_titles)
+
     cards = rd.get("cards", [])
-
-    _BIRTHDAY_WORDS = ("birthday", "bday", "b-day")
-    _WEEKLY_WORDS = ("weekly", "every week", "every monday", "every tuesday", "every wednesday",
-                     "every thursday", "every friday", "every saturday", "every sunday")
-
-    for ev in events:
-        title = ev.get("summary", "Untitled").strip()
-        start = ev.get("start", "")
-        due_date = start[:10] if start else None
-        key = (title.lower(), due_date or "")
-        if key in existing:
-            skipped += 1
+    imported = 0
+    for ev in classified:
+        if ev.get("skip"):
             continue
-
-        title_lower = title.lower()
-        if any(w in title_lower for w in _BIRTHDAY_WORDS):
-            recur_type = "birthday"
-        elif any(w in title_lower for w in _WEEKLY_WORDS):
-            recur_type = "week"
-        else:
-            recur_type = None
-
+        notes_parts = []
+        if ev.get("description"):
+            notes_parts.append(ev["description"])
+        if ev.get("location"):
+            notes_parts.append(f"location: {ev['location']}")
         card = {
             "id": f"card-{int(_time.time() * 1000) + imported}",
-            "title": title,
-            "category": "Interfacing",
+            "title": ev["summary"],
+            "category": ev.get("category", "Interfacing"),
             "size": "chore",
             "column": "rd",
             "order": -(imported + 1),
-            "due_date": due_date,
+            "due_date": ev["start"][:10] if ev.get("start") else None,
             "start_before": None,
             "estimated_time": 30,
-            "is_reminder": True,
-            "recur_type": recur_type,
+            "is_reminder": ev.get("is_reminder", True),
+            "recur_type": ev.get("recur_type") or None,
             "scheduled_day": None,
             "manual_pin": False,
-            "notes": ev.get("description", "") or "",
+            "notes": "\n".join(notes_parts) or "",
         }
         cards.append(card)
-        existing.add(key)
-        _append_rd_log("imported", title, source="core", due_date=due_date)
+        _append_rd_log("imported", ev["summary"], source="core", due_date=card["due_date"])
         imported += 1
 
     rd["cards"] = cards
     _save_rd(rd)
-    return {"imported": imported, "skipped": skipped}
+    return {"imported": imported, "raw_count": len(raw), "exact_dupes": len(raw) - len(to_classify)}
 
 
 def fetch_omens() -> dict:
