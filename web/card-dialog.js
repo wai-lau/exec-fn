@@ -30,10 +30,8 @@
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
     <label>date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
-    <input id="cd-due" type="text" placeholder="optional" onblur="cdFillSB()">
-    <label>start before &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">auto-filled from due date</span></label>
-    <input id="cd-sb" type="text" placeholder="optional">
-    <label>estimated time (minutes)</label><input id="cd-et" type="number" min="1" placeholder="auto from size">
+    <input id="cd-due" type="text" placeholder="optional">
+<label>estimated time (minutes)</label><input id="cd-et" type="number" min="1" placeholder="auto from size">
     <label>recurrence</label>
     <select id="cd-recur">
       <option value="">— none —</option><option value="week">weekly</option><option value="bi-week">bi-weekly</option>
@@ -128,7 +126,6 @@
     document.getElementById('cd-cat').value = c.category||'Self';
     document.getElementById('cd-size').value = c.size||'task';
     document.getElementById('cd-due').value = c.due_date ? _fmt(c.due_date) : '';
-    document.getElementById('cd-sb').value = c.start_before ? _fmt(c.start_before) : '';
     document.getElementById('cd-et').value = c.estimated_time != null ? c.estimated_time : '';
     document.getElementById('cd-recur').value = c.recur_type||'';
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
@@ -151,10 +148,9 @@
     const etRaw = document.getElementById('cd-et').value;
     c.estimated_time = etRaw !== '' ? parseInt(etRaw,10) : (c.estimated_time??null);
     const dueRaw = document.getElementById('cd-due').value;
-    const sbRaw = document.getElementById('cd-sb').value;
     const res = await _resolve(dueRaw, c.size, c.estimated_time);
     c.due_date = res.due;
-    c.start_before = sbRaw.trim() ? (await _resolve(sbRaw)).due : (res.start_before??c.start_before??null);
+    c.start_before = res.start_before ?? c.start_before ?? null;
     c.notes = document.getElementById('cd-notes').value.trim();
     c.recur_type = document.getElementById('cd-recur').value||null;
     c.is_reminder = document.getElementById('cd-reminder').checked;
@@ -181,10 +177,4 @@
     _cdCallback('exile');
   };
 
-  window.cdFillSB = async function() {
-    const dueRaw = document.getElementById('cd-due').value.trim();
-    if (!dueRaw) return;
-    const res = await _resolve(dueRaw, document.getElementById('cd-size').value, parseInt(document.getElementById('cd-et').value)||null);
-    if (res.start_before) document.getElementById('cd-sb').value = _fmt(res.start_before);
-  };
 })();
