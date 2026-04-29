@@ -155,6 +155,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   <form class="login-box" method="post" action="/guest-login">
     <input type="hidden" name="next" value="{next}">
     <input type="text" name="key" autofocus autocomplete="current-password" placeholder="access-key">
+    <button type="submit" style="display:none"></button>
   </form>
 </div>
 """
