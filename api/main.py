@@ -303,7 +303,7 @@ async def mtg_page(request: Request):
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
-    html = html.replace("</head>", _NAV_CSS + "<style>body,.App{background:#000!important;background-color:#000!important}</style>" + "</head>", 1)
+    html = html.replace("</head>", _NAV_CSS + "<style>body,.App{background:#000!important;background-color:#000!important}#root{padding-bottom:52px;box-sizing:border-box}</style>" + "</head>", 1)
     html = html.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + "</body>", 1)
     return HTMLResponse(html)
 
