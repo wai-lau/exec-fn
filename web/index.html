@@ -88,13 +88,13 @@ display.addEventListener('keydown', e => {
     val += e.key;
     e.preventDefault();
   } else { return; }
-  display.value = '✪'.repeat(val.length);
+  display.value = '✦'.repeat(val.length);
   real.value = val;
 });
 display.addEventListener('paste', e => {
   e.preventDefault();
   val += (e.clipboardData || window.clipboardData).getData('text');
-  display.value = '✪'.repeat(val.length);
+  display.value = '✦'.repeat(val.length);
   real.value = val;
 });
 </script>
