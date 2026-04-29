@@ -6,7 +6,6 @@ from helpers import DATA_DIR, _load_json, _load_rd, _now_et, get_rd_log, _parse_
 
 def _build_chat_system_prompt(stage: str = "planning") -> str:
     ctx = _load_json("profile", {"notes": []})
-    omens = _load_json("omens")
     rd = _load_rd()
 
     cards = rd.get("cards", [])
@@ -19,7 +18,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"- {e['action']} '{e['title']}'" + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
         for e in reversed(rd_log_entries)
     ) or "None."
-    events_text = "\n".join(f"- {e['title']} ({e.get('date','?')})" for e in omens.get("events", [])) or "None."
     selected_text = "\n".join(
         f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
         for c in selected
@@ -64,7 +62,6 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"CRITICAL: When Wai says 'remember [X]' or 'don't forget [X]', immediately call update_context with action=add and note=[X]. No exceptions.\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
-        f"UPCOMING EVENTS:\n{events_text}\n\n"
         f"ACTIVITY LOG (today):\n{rd_log_text}\n\n"
         f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
         f"IDEAS POOL (top 15):\n{ideas_text}\n\n"
@@ -77,7 +74,7 @@ def _chat_tools() -> list:
     return [
         {
             "name": "create_card",
-            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Always set due_date when you can reasonably infer it — e.g. 'take cash out for Taiwan' → due_date=day before Taiwan trip from omens.",
+            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Set due_date when you can reasonably infer it.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -87,15 +84,10 @@ def _chat_tools() -> list:
                     "notes": {"type": "string", "description": "Optional notes about the card."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted."},
-                    "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context and omens when possible."},
+                    "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context when possible."},
                 },
                 "required": ["title", "category", "size"],
             },
-        },
-        {
-            "name": "refresh_omens",
-            "description": "Refetch upcoming calendar events from Google Calendar and update omens.",
-            "input_schema": {"type": "object", "properties": {}},
         },
         {
             "name": "move_card",
@@ -244,18 +236,13 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
         mins = size_map.get(size)
         if mins:
             duration_hint = f" The task size is '{size}' (~{mins} minutes)."
-    omens = _load_json("omens", {}).get("events", [])
-    omens_text = ""
-    if omens:
-        omens_text = " Upcoming events: " + "; ".join(f"{e['title']} on {e.get('date_iso') or e['date']}" for e in omens[:10]) + "."
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=64,
         system=(
-            f"Now is {today} ET.{duration_hint}{omens_text} "
+            f"Now is {today} ET.{duration_hint} "
             "Parse the due date from user input. "
-            "Phrases like 'before [event]' mean the day before that event starts — look it up in upcoming events. "
             "All dates MUST be in the future (after today). If a relative term like 'this weekend' or 'Monday' refers to a date already passed, use the NEXT occurrence. "
             "Reply with ONLY one ISO 8601 string: the due date/datetime. "
             "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM format. Reply 'null' if not applicable."

@@ -6,8 +6,6 @@ from helpers import (
     _append_rd_log, _SIZE_MINUTES, _minutes_to_size, _now_et,
     _apply_context_update,
 )
-from gcal import fetch_omens
-
 
 
 def _tool_create_card(input_: dict) -> dict:
@@ -40,11 +38,6 @@ def _tool_create_card(input_: dict) -> dict:
     _append_rd_log("created", new_card["title"], source="Exec", column=column)
     return {"ok": True, "id": new_card["id"], "title": new_card["title"]}
 
-
-def _tool_refresh_omens(input_: dict) -> dict:
-    result = fetch_omens()
-    events = result.get("events", [])
-    return {"ok": True, "event_count": len(events), "events": ", ".join(e.get("title", "") for e in events) or "none"}
 
 
 def _tool_move_card(input_: dict) -> dict:
@@ -155,7 +148,6 @@ def _tool_schedule_card(input_: dict) -> dict:
 
 _TOOL_HANDLERS = {
     "create_card":       _tool_create_card,
-    "refresh_omens":     _tool_refresh_omens,
     "move_card":         _tool_move_card,
     "update_card":       _tool_update_card,
     "delete_card":       _tool_delete_card,

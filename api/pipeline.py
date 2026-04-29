@@ -6,7 +6,6 @@ from helpers import (
     DATA_DIR, _now_et, _parse_json,
     _RD_LOG,
 )
-from gcal import fetch_omens
 from chat import _dedupe_context
 
 
@@ -135,7 +134,6 @@ def build_morning() -> dict:
             profile_path.write_text(json.dumps(ctx, indent=2))
 
     errors: dict = {}
-    _run_step(errors, "omens", fetch_omens)
 
     result = {"generated_at": datetime.now(timezone.utc).isoformat()}
     if errors:

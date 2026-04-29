@@ -379,9 +379,7 @@ function toggleCtx() {
 }
 
 async function loadCtx() {
-  const [logRes, omensRes] = await Promise.all([
-    fetch('/api/rd/log'), fetch('/api/omens'),
-  ]);
+  const logRes = await fetch('/api/rd/log');
   let html = '';
 
   if (logRes.ok) {
@@ -391,14 +389,6 @@ async function loadCtx() {
       const arrow = e.from_col ? ` ${e.from_col}→${e.to_col}` : '';
       return `<div class="dir-ctx-entry">${e.action} "${e.title}"${arrow}</div>`;
     }).join('')) || '<div class="dir-ctx-entry" style="opacity:0.3">empty</div>';
-  }
-
-  if (omensRes.ok) {
-    const o = await omensRes.json();
-    html += '<div class="dir-ctx-hdr">omens</div>';
-    html += ((o.events || []).slice(0, 10).map(e =>
-      `<div class="dir-ctx-entry">${e.date} — ${e.title}</div>`
-    ).join('')) || '<div class="dir-ctx-entry" style="opacity:0.3">none</div>';
   }
 
   document.getElementById('dir-ctx-content').innerHTML = html;

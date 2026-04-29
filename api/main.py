@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 
 from pipeline import build_morning
-from gcal import gcal_start_auth, gcal_complete_auth, fetch_omens
+from gcal import gcal_start_auth, gcal_complete_auth
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
 from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log, _next_recurrence
@@ -262,9 +262,6 @@ async def directives_page():
         .replace("</body>", _DIRECTIVES_HTML + _build_nav("directives") + "</body>", 1))
 
 
-@protected.get("/omens")
-async def omens_page():
-    return RedirectResponse(url="/exec", status_code=302)
 
 
 @protected.get("/rd", response_class=HTMLResponse)
@@ -439,37 +436,6 @@ def api_assemble_plan():
         return _handle_tool("assemble_plan", {
             "seek_ids": seek_ids, "hack_ids": hack_ids, "dive_ids": dive_ids,
         })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@protected.get("/api/omens")
-def api_omens_get():
-    from datetime import datetime as _dt, timezone as _tz
-    p = DATA_DIR / "omens.json"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="No omens yet")
-    data = _load_json("omens")
-    now = _dt.now(_tz.utc)
-    def _is_future(e: dict) -> bool:
-        start = e.get("start", "")
-        if not start:
-            return True
-        try:
-            s = _dt.fromisoformat(start.replace("Z", "+00:00"))
-            if s.tzinfo is None:
-                s = s.replace(tzinfo=_tz.utc)
-            return s >= now
-        except Exception:
-            return True
-    data["events"] = [e for e in data.get("events", []) if _is_future(e)]
-    return data
-
-
-@protected.post("/api/omens")
-def api_omens_run():
-    try:
-        return fetch_omens()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

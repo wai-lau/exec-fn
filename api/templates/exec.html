@@ -164,8 +164,6 @@ async function streamResponse() {
           else if (data.name === 'move_card') addMsg('sys', `[ moved "${r.title || data.input?.id}" → ${r.column || ''} ]`);
           else if (data.name === 'update_card') addMsg('sys', `[ updated: ${r.title || data.input?.id} ]`);
           else if (data.name === 'delete_card') addMsg('sys', `[ deleted: ${r.deleted || ''} ]`);
-          else if (data.name === 'refresh_omens') addMsg('sys', `[ omens refreshed: ${r.event_count || 0} events ]`);
-          else if (data.name === 'assemble_plan') { addMsg('sys', '[ plan assembled ]'); }
           else if (data.name === 'reschedule') { addMsg('sys', `[ schedule updated: ${(r.schedule||[]).length} entries ]`); }
           else if (data.name === 'schedule_card') { addMsg('sys', `[ scheduled "${r.title || data.input?.id}" → ${r.scheduled_day || 'unscheduled'} ]`); }
           else { addMsg('sys', `[ ${data.name.replace(/_/g,' ')}: done ]`); }
@@ -242,7 +240,6 @@ function restoreMsg(m, toolResults) {
           else if (b.name === 'move_card') addMsg('sys', `[ moved "${res.title || inp.id}" → ${inp.column || ''} ]`);
           else if (b.name === 'update_card') addMsg('sys', `[ updated: ${res.title || inp.id} ]`);
           else if (b.name === 'delete_card') addMsg('sys', `[ deleted: ${res.deleted || inp.id} ]`);
-          else if (b.name === 'refresh_omens') addMsg('sys', `[ omens refreshed ]`);
         }
       }
     }
