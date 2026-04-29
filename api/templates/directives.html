@@ -70,6 +70,21 @@ body { overflow: hidden !important; }
   padding: 3px 10px; cursor: pointer; transition: all 0.18s;
 }
 .dir-btn:hover { border-color: rgba(0,255,65,0.9); color: rgba(0,255,65,1); }
+/* context panel */
+.dir-ctx {
+  flex: 0 0 0; overflow: hidden; transition: flex-basis 0.25s;
+  border-left: 1px solid rgba(0,255,65,0.1);
+  font-family: monospace; color: rgba(0,255,65,0.75);
+}
+.dir-ctx.open { flex: 0 0 260px; }
+.dir-ctx-inner { width: 260px; height: 100%; overflow-y: auto; padding: 14px 14px 60px; }
+.dir-ctx-hdr {
+  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.15em;
+  color: rgba(0,255,65,0.4); margin: 14px 0 6px;
+  border-bottom: 1px solid rgba(0,255,65,0.1); padding-bottom: 3px;
+}
+.dir-ctx-hdr:first-child { margin-top: 0; }
+.dir-ctx-entry { font-size: 0.68rem; color: rgba(0,255,65,0.6); padding: 2px 0; }
 /* card edit modal */
 .ce-ov { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; }
 .ce-ov.open { display:flex; }
@@ -90,6 +105,7 @@ body { overflow: hidden !important; }
   <span style="font-family:monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.15em;opacity:0.5">directives</span>
   <div style="display:flex;gap:8px">
     <span id="dir-status" style="font-family:monospace;font-size:0.65rem;opacity:0.35"></span>
+    <button class="dir-btn" onclick="toggleCtx()">[ context ]</button>
   </div>
 </div>
 
@@ -105,6 +121,11 @@ body { overflow: hidden !important; }
     <div class="dir-schedule-wrap" id="dir-schedule-wrap">
       <span style="opacity:0.35;font-family:monospace;font-size:0.8rem">loading...</span>
     </div>
+  </div>
+
+  <!-- context panel -->
+  <div class="dir-ctx" id="dir-ctx">
+    <div class="dir-ctx-inner" id="dir-ctx-content"></div>
   </div>
 
   <!-- card edit modal -->
@@ -164,6 +185,7 @@ const SNAP     = 15;
 function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
 
 let scheduleCards = [];
+let ctxOpen = false;
 
 function isoToday() {
   const d = new Date();
@@ -399,6 +421,38 @@ async function saveEstimatedTime(cardId, mins) {
     setStatus('saved');
     setTimeout(() => setStatus(''), 1200);
   } catch(e) { setStatus('save error'); }
+}
+
+function toggleCtx() {
+  ctxOpen = !ctxOpen;
+  document.getElementById('dir-ctx').classList.toggle('open', ctxOpen);
+  if (ctxOpen) loadCtx();
+}
+
+async function loadCtx() {
+  const [logRes, omensRes] = await Promise.all([
+    fetch('/api/rd/log'), fetch('/api/omens'),
+  ]);
+  let html = '';
+
+  if (logRes.ok) {
+    const log = await logRes.json();
+    html += '<div class="dir-ctx-hdr">activity log</div>';
+    html += (log.slice(0, 20).map(e => {
+      const arrow = e.from_col ? ` ${e.from_col}→${e.to_col}` : '';
+      return `<div class="dir-ctx-entry">${e.action} "${e.title}"${arrow}</div>`;
+    }).join('')) || '<div class="dir-ctx-entry" style="opacity:0.3">empty</div>';
+  }
+
+  if (omensRes.ok) {
+    const o = await omensRes.json();
+    html += '<div class="dir-ctx-hdr">omens</div>';
+    html += ((o.events || []).slice(0, 10).map(e =>
+      `<div class="dir-ctx-entry">${e.date} — ${e.title}</div>`
+    ).join('')) || '<div class="dir-ctx-entry" style="opacity:0.3">none</div>';
+  }
+
+  document.getElementById('dir-ctx-content').innerHTML = html;
 }
 
 function setStatus(msg) {
