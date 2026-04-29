@@ -132,6 +132,7 @@ _BARE = re.sub(r'<div class="bg-tall">.*?</div>', '', _BARE, flags=re.DOTALL)
 _BARE = re.sub(r'<a href="[^"]*" target="_blank">.*?</a>', '', _BARE, flags=re.DOTALL)
 _BARE = re.sub(r'<style id="login-styles">.*?</style>', '', _BARE, flags=re.DOTALL)
 _BARE = re.sub(r'<audio[^>]*>.*?</audio>', '', _BARE, flags=re.DOTALL)
+_BARE = re.sub(r'<div class="login-wrap">.*?</div>', '', _BARE, flags=re.DOTALL)
 
 _GUEST_LOGIN_HTML = """
 <style>
