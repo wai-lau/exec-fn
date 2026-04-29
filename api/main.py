@@ -157,12 +157,15 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 }
 .login-box button:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
 </style>
-<form class="login-box" method="post" action="/guest-login">
-  <input type="hidden" name="next" value="{next}">
-  <label>password</label>
-  <input type="text" name="key" autofocus autocomplete="current-password">
-  <button type="submit">enter</button>
-</form>
+<div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+  <img src="/nightfall-game/static/media/ped-logo.f0469b0a.png" style="width:160px;opacity:0.9">
+  <form class="login-box" method="post" action="/guest-login">
+    <input type="hidden" name="next" value="{next}">
+    <label>password</label>
+    <input type="text" name="key" autofocus autocomplete="current-password">
+    <button type="submit">enter</button>
+  </form>
+</div>
 """
 
 
