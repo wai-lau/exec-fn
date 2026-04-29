@@ -19,9 +19,7 @@ public_router = APIRouter()
 protected_router = APIRouter()
 
 
-@public_router.get("/nightfall")
-async def nightfall():
-    from fastapi.responses import HTMLResponse
+def build_nightfall_html() -> str:
     html = (_NF_DIR / "index.html").read_text()
     chunk_srcs = re.findall(r'<script src="(\./static/js/[^"]+\.js)"></script>', html)
     for src in chunk_srcs:
@@ -30,7 +28,7 @@ async def nightfall():
     save_script = "<script>" + _NIGHTFALL_SAVE_SCRIPT_TPL.replace('__SCRIPTS__', json.dumps(abs_srcs)) + "</script>"
     html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">' + _NIGHTFALL_HEAD, 1)
     html = html.replace("</body>", _NIGHTFALL_BODY + save_script + "</body>", 1)
-    return HTMLResponse(html)
+    return html
 
 
 @protected_router.get("/api/gamesave")
