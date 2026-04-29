@@ -199,16 +199,29 @@ function initSortable(days) {
           showToast(`Warning: scheduling after due date (${cardDue})`);
         }
         evt.item.querySelector('.pr-pin') || (evt.item.insertAdjacentHTML('afterbegin','<span class="pr-pin">&#128275;</span>'));
-        queueUpdate(cardId, toDay, true);
+        // Save new day + order for moved card; save order for all other cards in affected columns
+        evt.to.querySelectorAll('.pr-card').forEach((el, i) => {
+          if (el.dataset.id === cardId) queueUpdate(el.dataset.id, toDay, true, i);
+          else queueUpdate(el.dataset.id, undefined, undefined, i);
+        });
+        if (evt.from !== evt.to) {
+          evt.from.querySelectorAll('.pr-card').forEach((el, i) => {
+            queueUpdate(el.dataset.id, undefined, undefined, i);
+          });
+        }
       },
     });
   });
 }
 
-function queueUpdate(cardId, scheduledDay, manualPin) {
+function queueUpdate(cardId, scheduledDay, manualPin, order) {
   const idx = pendingUpdates.findIndex(u => u.id === cardId);
-  const upd = {id: cardId, scheduled_day: scheduledDay || null, manual_pin: manualPin};
-  if (idx >= 0) pendingUpdates[idx] = upd; else pendingUpdates.push(upd);
+  const upd = {id: cardId};
+  if (scheduledDay !== undefined) upd.scheduled_day = scheduledDay || null;
+  if (manualPin !== undefined) upd.manual_pin = manualPin;
+  if (order !== undefined) upd.order = order;
+  if (idx >= 0) pendingUpdates[idx] = {...pendingUpdates[idx], ...upd};
+  else pendingUpdates.push(upd);
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(flushUpdates, 600);
 }
