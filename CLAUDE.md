@@ -8,7 +8,7 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 
 **WE ARE ON THE SERVER.** This repo lives at `/exec-fn` on the production server (hostname: main). No SSH or scp needed.
 
-**Template/static file changes are live instantly** — `api/templates/` and `web/` are volume-mounted. Just edit the file.
+**Template/static file changes are live on next page load** — `api/templates/` files are read from disk per request via `_tmpl()` in `main.py`. `web/` static files are served directly by FastAPI. No restart needed for either.
 
 **Python changes need docker cp + restart:**
 ```bash
@@ -58,7 +58,7 @@ exec-fn/
     hack2.png             # Hack2.png — nightfall nav icon
     wizard.png            # Wizard.png — mtg nav icon
   api/
-    main.py               # FastAPI routes + _PAGE_CHROME + _NAV_CSS + nav builder
+    main.py               # FastAPI routes + _PAGE_CHROME + _NAV_CSS + nav builder; _tmpl() reads templates from disk per request
     pipeline.py           # morning pipeline: retrospective, purge stale notes, archive log
     entrypoint.sh         # Docker CMD: cron + uvicorn
     exec-fn.cron          # crontab baked into image (4:30 AM ET morning cron only)
@@ -74,8 +74,8 @@ exec-fn/
     templates/            # volume-mounted → live on save
       exec.html           # /exec — terminal chat
       plan.html           # /plan — legacy daily plan view
-      kanban.html         # /rd — core kanban
-      prophecies.html     # /prophecies — 7-day planning kanban
+      kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
+      prophecies.html     # /prophecies — 7-day planning kanban; books bar at top
       directives.html     # /directives — today's schedule, drag/resize timeline
       debug.html          # /debug — profile.json + activity logs viewer
     data/                 # persistent volume (./api/data → /app/data)
@@ -183,7 +183,8 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 - `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
 - `manual_pin`: true when user manually dragged the card in Prophecies
-- `is_reminder`: true = calendar alert only, shown in reminders bar
+- `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
+- `size === 'book'`: shown in books bar on prophecies page; hidden from rd/hq columns in kanban
 
 **Recurring card revival**: when a card with `recur_type` is archived, a clone is auto-created in `rd` with reset `scheduled_day`/`manual_pin` and `due_date` advanced via `_next_recurrence()`.
 
@@ -192,7 +193,7 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 ## Morning pipeline (`POST /api/morning`) — 4:30 AM ET
 
 1. Read today's `activity_log.json`
-2. **Sonnet retrospective** — extract durable insights from the day's activity, append to `profile.json`
+2. **Sonnet retrospective** — extract durable facts only (preferences, relationships, recurring habits) from the day's activity, append to `profile.json`. Never writes time-bound, event-specific, or task-status entries.
 3. **Haiku purge** — remove time-specific expired notes from `profile.json`
 4. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
 5. Clear `chat.json`
