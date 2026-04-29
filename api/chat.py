@@ -78,7 +78,7 @@ def _chat_tools() -> list:
     return [
         {
             "name": "create_card",
-            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Always set due_date and start_before when you can reasonably infer them — e.g. 'take cash out for Taiwan' → due_date=day before Taiwan trip from omens, start_before=a day or two before that.",
+            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Always set due_date when you can reasonably infer it — e.g. 'take cash out for Taiwan' → due_date=day before Taiwan trip from omens.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -89,7 +89,6 @@ def _chat_tools() -> list:
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context and omens when possible."},
-                    "start_before": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which Wai should start the task — typically due_date minus task duration. Infer when due_date is set."},
                 },
                 "required": ["title", "category", "size"],
             },
@@ -124,7 +123,6 @@ def _chat_tools() -> list:
                     "notes": {"type": "string", "description": "Progress notes. Append timestamped entry when Wai mentions working on or making progress on a task — don't overwrite existing content."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done."},
-                    "start_before": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which Wai should start — typically due_date minus task duration."},
                 },
                 "required": ["id"],
             },
@@ -270,11 +268,11 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
         max_tokens=64,
         system=(
             f"Now is {today} ET.{duration_hint}{omens_text} "
-            "Parse the due date from user input and compute a 'start before' deadline (due date minus task duration). "
+            "Parse the due date from user input. "
             "Phrases like 'before [event]' mean the day before that event starts — look it up in upcoming events. "
             "All dates MUST be in the future (after today). If a relative term like 'this weekend' or 'Monday' refers to a date already passed, use the NEXT occurrence. "
-            "Reply with ONLY two ISO 8601 strings separated by a newline: first line = due date/datetime, second line = start_before date/datetime. "
-            "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM format. Reply 'null' on either line if not applicable."
+            "Reply with ONLY one ISO 8601 string: the due date/datetime. "
+            "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM format. Reply 'null' if not applicable."
         ),
         messages=[{"role": "user", "content": text}],
     )
@@ -287,8 +285,7 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
 
     lines = msg.content[0].text.strip().splitlines()
     due = _valid(lines[0]) if lines else None
-    start_before = _valid(lines[1]) if len(lines) > 1 else None
-    return due, start_before
+    return due
 
 
 def _save_chat(messages: list, stage: str):

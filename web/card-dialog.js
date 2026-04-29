@@ -113,12 +113,12 @@
 
   async function _resolve(raw, size, et) {
     const q = _parseMD(raw);
-    if (q !== null || !raw.trim()) return {due:q, start_before:null};
+    if (q !== null || !raw.trim()) return {due:q};
     try {
       const r = await fetch('/api/parse_date',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:raw.trim(),size,estimated_minutes:et||null})});
       const d = await r.json();
-      return {due:d.iso||null, start_before:d.start_before||null};
-    } catch(_) { return {due:null, start_before:null}; }
+      return {due:d.iso||null};
+    } catch(_) { return {due:null}; }
   }
 
   async function _patch() {
@@ -162,7 +162,6 @@
     const dueRaw = document.getElementById('cd-due').value;
     const res = await _resolve(dueRaw, c.size, c.estimated_time);
     c.due_date = res.due;
-    c.start_before = res.start_before ?? c.start_before ?? null;
     c.notes = document.getElementById('cd-notes').value.trim();
     c.recur_type = document.getElementById('cd-recur').value||null;
     c.is_reminder = document.getElementById('cd-reminder').checked;

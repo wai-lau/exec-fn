@@ -354,7 +354,6 @@ async def api_rd_patch(request: Request, source: str = "core"):
                 clone["id"] = f"card-{int(_time.time() * 1000) + len(revived)}"
                 clone["column"] = "rd"
                 clone["due_date"] = next_due
-                clone["start_before"] = None
                 clone["scheduled_day"] = None
                 clone["manual_pin"] = False
                 clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
@@ -507,11 +506,11 @@ async def api_parse_date(request: Request):
     data = await request.json()
     text = (data.get("text") or "").strip()
     if not text:
-        return {"iso": None, "start_before": None}
+        return {"iso": None}
     size = data.get("size")
     estimated_minutes = data.get("estimated_minutes")
-    iso, start_before = parse_date_natural(text, size=size, estimated_minutes=estimated_minutes)
-    return {"iso": iso, "start_before": start_before}
+    iso = parse_date_natural(text, size=size, estimated_minutes=estimated_minutes)
+    return {"iso": iso}
 
 
 app.include_router(public)

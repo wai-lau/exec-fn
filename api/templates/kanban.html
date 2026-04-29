@@ -21,6 +21,20 @@ body { overflow: hidden !important; }
 .rem-ov-list { overflow-y: auto; flex: 1; }
 .rem-ov-row { padding: 7px 4px; font-size: 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(0,255,65,0.07); }
 .rem-ov-row:hover { background: rgba(0,255,65,0.05); }
+.rd-books {
+  display: none; position: fixed; top: 0; left: 0; right: 0; height: 32px; z-index: 18;
+  align-items: center; padding: 0 12px; gap: 6px; overflow-x: scroll; overflow-y: hidden;
+  scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch;
+  background: rgba(0,0,0,0.35); border-bottom: 1px solid rgba(210,160,80,0.1);
+  font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.63rem;
+}
+.rd-books::-webkit-scrollbar { display: none; }
+.rd-books .book-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.8; padding: 1px 7px; border-radius: 3px; }
+.rd-books .book-item:hover { opacity: 1; }
+.has-books .rd-books { display: flex; }
+.has-books .rd-reminders { top: 32px; }
+.has-books.has-reminders .rd-board { top: 68px; }
+.has-books:not(.has-reminders) .rd-board { top: 32px; }
 .has-reminders .rd-reminders { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 26px; border-bottom-color: rgba(0,255,65,0.22); }
 .rd-board {
@@ -68,6 +82,7 @@ body { overflow: hidden !important; }
 .sortable-ghost { opacity: 0.2; }
 </style>
 
+<div id="books-bar" class="rd-books"></div>
 <div id="reminders-bar" class="rd-reminders"></div>
 
 <div class="rem-ov-modal" id="rem-overflow-modal" onclick="if(event.target===this)this.style.display='none'">
@@ -152,9 +167,9 @@ function renderCard(c) {
   const hasStyle = !!bg;
   const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.85)';
   const tc     = !hasStyle ? 'rgba(0,255,65,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.55)';
-  const displayDate = c.start_before || c.due_date;
+  const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
-  const dateLabel = displayDate ? (c.start_before ? 'start ' + fmtStartBefore(c.start_before) : fmtDate(c.due_date)) : '';
+  const dateLabel = displayDate ? fmtDate(c.due_date) : '';
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
@@ -198,6 +213,23 @@ function renderCol(col) {
     <div class="col-hdr">${hdr}</div>
     <div class="col-list" id="col-${col}">${colCards}</div>
   </div>`;
+}
+
+function buildBooks() {
+  const active = cards.filter(c => c.size === 'book' && c.column !== 'archives' && c.column !== 'exile');
+  if (!active.length) { document.body.classList.remove('has-books'); }
+  else { document.body.classList.add('has-books'); }
+  const bar = document.getElementById('books-bar');
+  bar.innerHTML = active.map(c => {
+    const color = 'hsl(210,75%,72%)';
+    const bg    = 'hsl(210,55%,12%)';
+    const border= 'hsl(210,50%,26%)';
+    const title = c.title.length > 30 ? c.title.slice(0, 30) + '…' : c.title;
+    return `<div class="book-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}</div>`;
+  }).join('');
+  bar.querySelectorAll('.book-item').forEach(el => {
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
+  });
 }
 
 function reminderColor(c) {
@@ -263,6 +295,7 @@ function showRemOverflow() {
 }
 
 function buildBoard() {
+  buildBooks();
   buildReminders();
   const mainCol = col => renderCol(col).replace('<div class="col', '<div style="flex:4" class="col');
   const groupExpanded = !archivesCollapsed || !exileCollapsed;
