@@ -9,15 +9,21 @@ body { overflow: hidden !important; }
   border-bottom: 1px solid rgba(0,255,65,0.12);
 }
 .pr-board {
-  position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
+  position: fixed; top: 52px; bottom: 52px; left: 0; right: 182px;
   display: flex; gap: 1px; overflow-x: auto; overflow-y: hidden;
   background: rgba(0,255,65,0.04);
+}
+.pr-unscheduled-panel {
+  position: fixed; top: 52px; bottom: 52px; right: 0; width: 181px;
+  display: flex; flex-direction: column;
+  background: rgba(0,0,0,0.5);
+  border-left: 1px solid rgba(0,255,65,0.12);
+  z-index: 5;
 }
 .pr-col {
   flex: 0 0 200px; display: flex; flex-direction: column;
   background: rgba(0,0,0,0.3); min-width: 0;
 }
-.pr-col.pr-col-unscheduled { flex: 0 0 180px; background: rgba(0,0,0,0.5); }
 .pr-col-hdr {
   flex-shrink: 0; padding: 12px 14px 8px;
   font-family: monospace; font-size: 0.6rem; text-transform: uppercase;
@@ -48,10 +54,6 @@ body { overflow: hidden !important; }
 .pr-pin { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; opacity: 0.4; }
 .pr-overdue { position: absolute; top: 4px; right: c.manual_pin ? 20px : 6px; font-size: 0.6rem; color: rgba(255,120,80,0.9); }
 .sortable-ghost { opacity: 0.15; }
-.pr-sep {
-  flex: 0 0 1px; background: rgba(0,255,65,0.12); align-self: stretch;
-  margin: 52px 0 52px;
-}
 .pr-btn {
   background: none; border: 1px solid rgba(0,255,65,0.35);
   color: rgba(0,255,65,0.75); font-family: monospace; font-size: 0.72rem;
@@ -95,6 +97,7 @@ body { overflow: hidden !important; }
 <div class="pr-board" id="pr-board">
   <span style="padding:32px;font-family:monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
+<div class="pr-unscheduled-panel" id="pr-unscheduled"></div>
 
 <div class="pr-toast" id="pr-toast"></div>
 
@@ -235,18 +238,16 @@ function buildBoard() {
     </div>`;
   }
 
-  // Unscheduled column
-  const unsched = weekData.unscheduled || [];
-  html += `<div class="pr-sep"></div>
-    <div class="pr-col pr-col-unscheduled" data-day="">
-      <div class="pr-col-hdr">
-        <div class="pr-day-name">unscheduled</div>
-        <div class="pr-date">hq pool</div>
-      </div>
-      <div class="pr-list" id="pr-list-unscheduled">${unsched.map(c=>renderCard(c,null)).join('')}</div>
-    </div>`;
-
   document.getElementById('pr-board').innerHTML = html;
+
+  // Unscheduled panel (fixed, always visible)
+  const unsched = weekData.unscheduled || [];
+  document.getElementById('pr-unscheduled').innerHTML =
+    `<div class="pr-col-hdr">
+      <div class="pr-day-name">unscheduled</div>
+      <div class="pr-date">hq pool</div>
+    </div>
+    <div class="pr-list" id="pr-list-unscheduled">${unsched.map(c=>renderCard(c,null)).join('')}</div>`;
   initSortable(days);
   document.querySelectorAll('.pr-card').forEach(el => {
     el.addEventListener('click', () => { if (!_prDragging) openCE(el.dataset.id); });
