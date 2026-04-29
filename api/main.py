@@ -42,7 +42,7 @@ _NAV_CSS = """
 </style>
 """
 
-_GREEN_OVERLAY = """
+_PAGE_CHROME = """
 <style>
   @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf') format('truetype'); font-weight:500; font-style:normal; }
   @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf') format('truetype'); font-weight:700; font-style:normal; }
@@ -163,7 +163,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 
 def _build_page(active=None, content=""):
     base = _BARE if active else _NO_FORM
-    head_inject = _GREEN_OVERLAY + (_CONTENT_STYLE if content else "")
+    head_inject = _PAGE_CHROME + (_CONTENT_STYLE if content else "")
     return (base
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", content + _build_nav(active) + "</body>", 1))
@@ -215,7 +215,7 @@ async def login(request: Request):
 
 @public.get("/guest-login", response_class=HTMLResponse)
 async def guest_login_page(next: str = "/mtg"):
-    html = _BARE.replace("</head>", _GREEN_OVERLAY + "</head>", 1)
+    html = _BARE.replace("</head>", _PAGE_CHROME + "</head>", 1)
     html = html.replace("</body>", _GUEST_LOGIN_HTML.replace("{next}", next) + "</body>", 1)
     return html
 
@@ -237,7 +237,7 @@ async def guest_login(request: Request):
 @protected.get("/exec", response_class=HTMLResponse)
 async def exec_page():
     return (_BARE
-        .replace("</head>", _GREEN_OVERLAY + "</head>", 1)
+        .replace("</head>", _PAGE_CHROME + "</head>", 1)
         .replace("</body>", _EXEC_HTML + _build_nav("Exec") + "</body>", 1))
 
 
@@ -248,7 +248,7 @@ async def plan_page():
 
 @protected.get("/prophecies", response_class=HTMLResponse)
 async def prophecies_page():
-    head_inject = _GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
+    head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", _PROPHECIES_HTML + _build_nav("prophecies") + "</body>", 1))
@@ -256,7 +256,7 @@ async def prophecies_page():
 
 @protected.get("/directives", response_class=HTMLResponse)
 async def directives_page():
-    head_inject = _GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
+    head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", _DIRECTIVES_HTML + _build_nav("directives") + "</body>", 1))
@@ -269,7 +269,7 @@ async def omens_page():
 
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
-    head_inject = _GREEN_OVERLAY + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
+    head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
     return (_BARE
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", _KANBAN_HTML + _build_nav("core") + "</body>", 1))
@@ -279,7 +279,7 @@ async def rd_page():
 async def mtg_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     return (_BARE
-        .replace("</head>", _GREEN_OVERLAY + "</head>", 1)
+        .replace("</head>", _PAGE_CHROME + "</head>", 1)
         .replace("</body>", _MTG_HTML + _build_nav("mtg", guest=not is_full_auth) + "</body>", 1))
 
 
