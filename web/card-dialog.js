@@ -31,7 +31,7 @@
     </select>
     <label>date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
     <input id="cd-due" type="text" placeholder="optional">
-<label>estimated time (minutes)</label><input id="cd-et" type="number" min="1" placeholder="auto from size">
+    <label>estimated time &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">2h &nbsp;|&nbsp; 90m &nbsp;|&nbsp; 1h30m &nbsp;|&nbsp; 45</span></label><input id="cd-et" type="text" placeholder="auto from size">
     <label>recurrence</label>
     <select id="cd-recur">
       <option value="">— none —</option><option value="week">weekly</option><option value="bi-week">bi-weekly</option>
@@ -60,6 +60,17 @@
   let _cdCards = null;
   let _cdCallback = null;
   let _cdSource = 'core';
+
+  function _parseET(raw) {
+    if (!raw || !raw.trim()) return null;
+    const s = raw.trim().toLowerCase();
+    // plain number → minutes
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    let mins = 0;
+    const h = s.match(/(\d+(?:\.\d+)?)\s*h/); if (h) mins += Math.round(parseFloat(h[1]) * 60);
+    const m = s.match(/(\d+)\s*m/);            if (m) mins += parseInt(m[1], 10);
+    return mins > 0 ? mins : null;
+  }
 
   function _parseMD(input) {
     if (!input || !input.trim()) return null;
@@ -126,7 +137,8 @@
     document.getElementById('cd-cat').value = c.category||'Self';
     document.getElementById('cd-size').value = c.size||'task';
     document.getElementById('cd-due').value = c.due_date ? _fmt(c.due_date) : '';
-    document.getElementById('cd-et').value = c.estimated_time != null ? c.estimated_time : '';
+    const et = c.estimated_time;
+    document.getElementById('cd-et').value = et != null ? (et % 60 === 0 ? `${et/60}h` : et >= 60 ? `${Math.floor(et/60)}h${et%60}m` : `${et}m`) : '';
     document.getElementById('cd-recur').value = c.recur_type||'';
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
     document.getElementById('cd-notes').value = c.notes||'';
@@ -146,7 +158,7 @@
     c.category = document.getElementById('cd-cat').value;
     c.size = document.getElementById('cd-size').value;
     const etRaw = document.getElementById('cd-et').value;
-    c.estimated_time = etRaw !== '' ? parseInt(etRaw,10) : (c.estimated_time??null);
+    c.estimated_time = etRaw.trim() ? (_parseET(etRaw) ?? c.estimated_time ?? null) : (c.estimated_time ?? null);
     const dueRaw = document.getElementById('cd-due').value;
     const res = await _resolve(dueRaw, c.size, c.estimated_time);
     c.due_date = res.due;
