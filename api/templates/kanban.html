@@ -10,14 +10,16 @@ body { overflow: hidden !important; }
 }
 .rd-reminders {
   display: none; position: fixed; top: 52px; left: 0; right: 0; height: 26px; z-index: 19;
-  align-items: center; padding: 0 16px; gap: 0; overflow: hidden;
+  align-items: center; padding: 0 16px; gap: 12px; overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
   background: rgba(0,0,0,0.45); border-bottom: 1px solid rgba(0,255,65,0.08);
   font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.63rem;
-  color: rgba(0,255,65,0.65);
 }
-.rd-reminders .rem-item { cursor: pointer; }
-.rd-reminders .rem-item:hover { color: rgba(0,255,65,0.95); }
+.rd-reminders::-webkit-scrollbar { display: none; }
+.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.8; }
+.rd-reminders .rem-item:hover { opacity: 1; }
 .has-reminders .rd-reminders { display: flex; }
+.dragging-card .rd-reminders { display: flex !important; min-height: 26px; border-bottom-color: rgba(0,255,65,0.22); }
 .rd-board {
   position: fixed; top: 52px; bottom: 52px; left: 0; right: 0;
   display: flex; gap: 1px; overflow: hidden;
@@ -156,9 +158,8 @@ body { overflow: hidden !important; }
       <option value="holiday">holiday (annual)</option>
       <option value="birthday">birthday (annual)</option>
     </select>
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px">
+    <label style="display:none">
       <input id="e-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
-      <span>reminder only &mdash; <span style="opacity:0.55;font-size:0.85em">no action needed</span></span>
     </label>
     <label>notes</label>
     <textarea id="e-notes"></textarea>
@@ -330,25 +331,34 @@ function renderCol(col) {
     ? `<span class="col-hdr-label">${collapsed ? '▶' : label} <span style="opacity:0.35">(${count})</span></span>
        ${!collapsed ? `<button class="done-toggle" onclick="${toggle}(event)">▼</button>` : ''}`
     : `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span>`;
-  const colCards = collapsed ? '' : cards.filter(c=>c.column===col).sort((a,b)=>a.order-b.order).map(renderCard).join('');
+  const colCards = collapsed ? '' : cards.filter(c=>c.column===col && !(c.is_reminder && (col==='rd'||col==='hq'))).sort((a,b)=>a.order-b.order).map(renderCard).join('');
   return `<div class="col${collapsed?' col-collapsed':''}"${collapsed&&toggle?` onclick="${toggle}()"`:''}>
     <div class="col-hdr">${hdr}</div>
     <div class="col-list" id="col-${col}">${colCards}</div>
   </div>`;
 }
 
+function reminderColor(c) {
+  const h = CAT_HUE[c.category];
+  if (h === undefined) return 'rgba(0,255,65,0.75)';
+  const ds = CAT_SAT[c.category] || 0;
+  const dl = CAT_LIGHT[c.category] || 0;
+  return `hsl(${h},${75+ds}%,${68+dl}%)`;
+}
+
 function buildReminders() {
-  const active = cards.filter(c => c.is_reminder && c.column !== 'archives' && c.column !== 'exile');
-  if (!active.length) { document.body.classList.remove('has-reminders'); return; }
-  document.body.classList.add('has-reminders');
+  const active = cards.filter(c => c.is_reminder && c.column !== 'archives' && c.column !== 'exile')
+    .sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1);
+  if (!active.length) { document.body.classList.remove('has-reminders'); }
+  else { document.body.classList.add('has-reminders'); }
   const bar = document.getElementById('reminders-bar');
-  bar.innerHTML = '<span style="opacity:0.3;margin-right:14px;flex-shrink:0">reminders</span>' +
-    active.map(c => {
-      const date = c.due_date ? ` <span style="opacity:0.35">${c.due_date.slice(5)}</span>` : '';
-      return `<span class="rem-item" data-id="${c.id}" style="margin-right:18px;white-space:nowrap">${c.title}${date}</span>`;
-    }).join('<span style="opacity:0.2;margin-right:18px">·</span>');
+  bar.innerHTML = active.map(c => {
+    const date = c.due_date ? ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>` : '';
+    const color = reminderColor(c);
+    return `<div class="rem-item" data-id="${c.id}" style="color:${color}">${c.title}${date}</div>`;
+  }).join('');
   bar.querySelectorAll('.rem-item').forEach(el => {
-    el.addEventListener('click', () => openEdit(el.dataset.id));
+    el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
   });
 }
 
@@ -365,12 +375,32 @@ function buildBoard() {
     Sortable.create(el, {
       group:'kanban', animation:120, ghostClass:'sortable-ghost',
       delay: 300, delayOnTouchOnly: true,
-      onStart: () => { dragging = true; document.getElementById('board').classList.add('drag-active'); },
-      onEnd: () => { document.getElementById('board').classList.remove('drag-active'); setTimeout(() => { dragging = false; }, 50); save(); }
+      onStart: () => { dragging = true; document.getElementById('board').classList.add('drag-active'); document.body.classList.add('dragging-card'); },
+      onEnd: () => { document.getElementById('board').classList.remove('drag-active'); document.body.classList.remove('dragging-card'); setTimeout(() => { dragging = false; }, 50); save(); }
     });
   });
   document.querySelectorAll('.card').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
+  });
+  initBarSortable();
+}
+
+function initBarSortable() {
+  const bar = document.getElementById('reminders-bar');
+  if (!bar) return;
+  Sortable.create(bar, {
+    group: { name: 'kanban', put: true, pull: false },
+    animation: 120,
+    ghostClass: 'sortable-ghost',
+    onAdd: async (evt) => {
+      const id = evt.item.dataset.id;
+      evt.item.remove();
+      const c = cards.find(x => x.id === id);
+      if (c) {
+        c.is_reminder = true;
+        setTimeout(() => buildBoard(), 100);
+      }
+    }
   });
 }
 
