@@ -11,6 +11,16 @@ body { overflow: hidden !important; }
 .rd-reminders::-webkit-scrollbar { display: none; }
 .rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.85; padding: 1px 7px; border-radius: 3px; }
 .rd-reminders .rem-item:hover { opacity: 1; }
+.rem-overflow-btn { flex-shrink: 0; background: none; border: 1px solid rgba(0,255,65,0.3); color: rgba(0,255,65,0.6); font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.6rem; padding: 1px 7px; border-radius: 3px; cursor: pointer; white-space: nowrap; }
+.rem-overflow-btn:hover { border-color: rgba(0,255,65,0.7); color: rgba(0,255,65,1); }
+.rem-ov-modal { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; }
+.rem-ov-box { background: #0a0a0a; border: 1px solid rgba(0,255,65,0.25); padding: 20px 24px; width: min(360px,88vw); max-height: 70vh; display: flex; flex-direction: column; font-family: 'Iosevka Mayukai Monolite', monospace; }
+.rem-ov-hdr { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(0,255,65,0.5); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.rem-ov-close { background: none; border: none; color: rgba(0,255,65,0.5); font-size: 1rem; cursor: pointer; padding: 0; line-height: 1; }
+.rem-ov-close:hover { color: rgba(0,255,65,1); }
+.rem-ov-list { overflow-y: auto; flex: 1; }
+.rem-ov-row { padding: 7px 4px; font-size: 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(0,255,65,0.07); }
+.rem-ov-row:hover { background: rgba(0,255,65,0.05); }
 .has-reminders .rd-reminders { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 26px; border-bottom-color: rgba(0,255,65,0.22); }
 .rd-board {
@@ -59,6 +69,16 @@ body { overflow: hidden !important; }
 </style>
 
 <div id="reminders-bar" class="rd-reminders"></div>
+
+<div class="rem-ov-modal" id="rem-overflow-modal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="rem-ov-box">
+    <div class="rem-ov-hdr">
+      <span>upcoming reminders</span>
+      <button class="rem-ov-close" onclick="document.getElementById('rem-overflow-modal').style.display='none'">&times;</button>
+    </div>
+    <div class="rem-ov-list" id="rem-overflow-list"></div>
+  </div>
+</div>
 
 <div class="rd-board" id="board">
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
@@ -184,25 +204,57 @@ function reminderColor(c) {
   return `hsl(${h},${75+ds}%,${68+dl}%)`;
 }
 
+function _remChipHtml(c) {
+  const date = c.due_date ? ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>` : '';
+  const h = CAT_HUE[c.category];
+  const ds = CAT_SAT[c.category] || 0;
+  const dl = CAT_LIGHT[c.category] || 0;
+  const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
+  const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
+  const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
+  const title = c.title.length > 25 ? c.title.slice(0, 25) + '…' : c.title;
+  return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
+}
+
 function buildReminders() {
-  const active = cards.filter(c => c.is_reminder && c.column !== 'archives' && c.column !== 'exile')
+  const all = cards.filter(c => c.is_reminder && c.column !== 'archives' && c.column !== 'exile')
     .sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1);
-  if (!active.length) { document.body.classList.remove('has-reminders'); }
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 30);
+  const cutoffIso = cutoff.toISOString().slice(0, 10);
+  const visible = all.filter(c => !c.due_date || c.due_date.slice(0, 10) <= cutoffIso);
+  const overflow = all.filter(c => c.due_date && c.due_date.slice(0, 10) > cutoffIso);
+  if (!all.length) { document.body.classList.remove('has-reminders'); }
   else { document.body.classList.add('has-reminders'); }
   const bar = document.getElementById('reminders-bar');
-  bar.innerHTML = active.map(c => {
-    const date = c.due_date ? ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>` : '';
+  const overflowBtn = overflow.length
+    ? `<button class="rem-overflow-btn" onclick="showRemOverflow()">&gt;&gt; ${overflow.length}</button>`
+    : '';
+  bar.innerHTML = visible.map(_remChipHtml).join('') + overflowBtn;
+  bar.querySelectorAll('.rem-item').forEach(el => {
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
+  });
+}
+
+function showRemOverflow() {
+  const all = cards.filter(c => c.is_reminder && c.column !== 'archives' && c.column !== 'exile')
+    .sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1);
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 30);
+  const cutoffIso = cutoff.toISOString().slice(0, 10);
+  const overflow = all.filter(c => c.due_date && c.due_date.slice(0, 10) > cutoffIso);
+  const modal = document.getElementById('rem-overflow-modal');
+  document.getElementById('rem-overflow-list').innerHTML = overflow.map(c => {
     const h = CAT_HUE[c.category];
     const ds = CAT_SAT[c.category] || 0;
     const dl = CAT_LIGHT[c.category] || 0;
-    const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
-    const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
-    const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
-    const title = c.title.length > 25 ? c.title.slice(0, 25) + '…' : c.title;
-    return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
+    const color = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
+    return `<div class="rem-ov-row" data-id="${c.id}" style="color:${color}">${c.title}<span style="opacity:0.45;margin-left:8px;font-size:0.85em">${c.due_date.slice(5)}</span></div>`;
   }).join('');
-  bar.querySelectorAll('.rem-item').forEach(el => {
-    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
+  modal.style.display = 'flex';
+  modal.querySelectorAll('.rem-ov-row').forEach(el => {
+    el.addEventListener('click', () => {
+      modal.style.display = 'none';
+      openCardDialog(el.dataset.id, () => { load(); }, 'core');
+    });
   });
 }
 
