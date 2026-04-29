@@ -312,9 +312,14 @@ def import_gcal_cards() -> dict:
 
     rd = _load_rd()
 
-    # Exact-match dedup (title+date)
+    # Dedup by gcal_id first, then fall back to title+date
+    existing_gcal_ids = {c["gcal_id"] for c in rd.get("cards", []) if c.get("gcal_id")}
     existing_keys = {(c.get("title", "").lower().strip(), (c.get("due_date") or "")[:10]) for c in rd.get("cards", [])}
-    to_classify = [ev for ev in raw if (ev["summary"].lower(), ev["start"][:10]) not in existing_keys]
+    to_classify = [
+        ev for ev in raw
+        if ev.get("id") not in existing_gcal_ids
+        and (ev["summary"].lower(), ev["start"][:10]) not in existing_keys
+    ]
 
     # Haiku classify
     classified = _haiku_classify_events(to_classify)
@@ -341,6 +346,7 @@ def import_gcal_cards() -> dict:
             "estimated_time": 30,
             "is_reminder": ev.get("is_reminder", True),
             "recur_type": ev.get("recur_type") or None,
+            "gcal_id": ev.get("id") or None,
             "scheduled_day": None,
             "manual_pin": False,
             "notes": "\n".join(notes_parts) or "",
@@ -351,7 +357,7 @@ def import_gcal_cards() -> dict:
 
     rd["cards"] = cards
     _save_rd(rd)
-    return {"imported": imported, "raw_count": len(raw), "skipped_exact_dupes": len(raw) - len(to_classify)}
+    return {"imported": imported, "raw_count": len(raw), "skipped_dupes": len(raw) - len(to_classify)}
 
 
 def fetch_omens() -> dict:
