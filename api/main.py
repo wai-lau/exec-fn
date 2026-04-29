@@ -138,32 +138,23 @@ _GUEST_LOGIN_HTML = """
 body { display:flex; align-items:center; justify-content:center; height:100vh; }
 .login-box {
   position:relative; z-index:2;
-  background:rgba(0,0,0,0.55); backdrop-filter:blur(6px);
-  border:1px solid rgba(0,255,65,0.15);
-  padding:24px 28px; display:flex; flex-direction:column; gap:14px;
+  background:transparent;
+  padding:0; display:flex; flex-direction:column; align-items:center;
 }
-.login-box label { font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.8rem; color:rgba(0,255,65,0.55); }
 .login-box input[type=text] {
   background:transparent; border:none;
-  border-bottom:1px solid rgba(0,255,65,0.3);
-  color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
-  padding:4px 2px; outline:none; width:200px;
+  border-bottom:1px solid rgba(255,255,255,0.4);
+  color:#fff; font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
+  padding:4px 2px; outline:none; width:160px; text-align:center;
 }
-.login-box input[type=text]:focus { border-bottom-color:rgba(0,255,65,0.8); }
-.login-box button {
-  background:none; border:1px solid rgba(0,255,65,0.4);
-  color:rgba(0,255,65,0.85); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
-  padding:6px 16px; cursor:pointer; transition:all 0.2s; align-self:flex-start;
-}
-.login-box button:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
+.login-box input[type=text]:focus { border-bottom-color:#fff; }
+.login-box input[type=text]::placeholder { color:rgba(255,255,255,0.2); }
 </style>
-<div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:24px">
   <img src="/nightfall-game/static/media/ped-logo.f0469b0a.png" style="width:160px;opacity:0.9">
   <form class="login-box" method="post" action="/guest-login">
     <input type="hidden" name="next" value="{next}">
-    <label>password</label>
     <input type="text" name="key" autofocus autocomplete="current-password">
-    <button type="submit">enter</button>
   </form>
 </div>
 """
