@@ -38,8 +38,12 @@
       <option value="month">monthly</option><option value="holiday">holiday (annual)</option><option value="birthday">birthday (annual)</option>
     </select>
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px">
-      <input id="cd-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
+      <input id="cd-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)" onchange="document.getElementById('cd-pin-row').style.display=this.checked?'flex':'none'">
       <span>reminder only &mdash; <span style="opacity:0.55;font-size:0.85em">no action needed</span></span>
+    </label>
+    <label id="cd-pin-row" style="display:none;align-items:center;gap:8px;cursor:pointer;margin-top:6px;margin-left:20px">
+      <input id="cd-pin-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
+      <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
     </label>
     <label>notes</label><textarea id="cd-notes"></textarea>
     <div class="cd-actions">
@@ -141,6 +145,8 @@
     document.getElementById('cd-et').value = et != null ? (et % 60 === 0 ? `${et/60}h` : et >= 60 ? `${Math.floor(et/60)}h${et%60}m` : `${et}m`) : '';
     document.getElementById('cd-recur').value = c.recur_type||'';
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
+    document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
+    document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
     document.getElementById('cd-notes').value = c.notes||'';
     document.getElementById('cd-modal').classList.add('open');
     document.getElementById('cd-title').focus();
@@ -165,6 +171,7 @@
     c.notes = document.getElementById('cd-notes').value.trim();
     c.recur_type = document.getElementById('cd-recur').value||null;
     c.is_reminder = document.getElementById('cd-reminder').checked;
+    c.pinned_reminder = c.is_reminder ? document.getElementById('cd-pin-reminder').checked : false;
     await _patch();
     cdClose();
     _cdCallback('save');

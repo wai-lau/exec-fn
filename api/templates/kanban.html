@@ -9,11 +9,8 @@ body { overflow: hidden !important; }
   font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.63rem;
 }
 .rd-reminders::-webkit-scrollbar { display: none; }
-.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.85; padding: 1px 4px 1px 7px; border-radius: 3px; display: inline-flex; align-items: center; gap: 4px; }
+.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.85; padding: 1px 7px; border-radius: 3px; }
 .rd-reminders .rem-item:hover { opacity: 1; }
-.rem-pin-btn { font-size: 0.7em; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; padding: 0 3px; line-height: 1; }
-.rd-reminders .rem-item:hover .rem-pin-btn { opacity: 0.5; }
-.rem-pin-btn.pinned { opacity: 1 !important; }
 .rem-overflow-btn { flex-shrink: 0; background: none; border: 1px solid rgba(0,255,65,0.3); color: rgba(0,255,65,0.6); font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.6rem; padding: 1px 7px; border-radius: 3px; cursor: pointer; white-space: nowrap; }
 .rem-overflow-btn:hover { border-color: rgba(0,255,65,0.7); color: rgba(0,255,65,1); }
 .rem-ov-modal { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; }
@@ -231,9 +228,7 @@ function _remChipHtml(c) {
   const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
   const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
   const title = c.title.length > 25 ? c.title.slice(0, 25) + '…' : c.title;
-  const pinned = c.pinned_reminder;
-  const pinBtn = `<span class="rem-pin-btn${pinned ? ' pinned' : ''}" data-id="${c.id}" title="${pinned ? 'unpin' : 'pin'}">📌</span>`;
-  return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}${pinBtn}</div>`;
+  return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
 }
 
 function buildReminders() {
@@ -252,13 +247,6 @@ function buildReminders() {
   bar.innerHTML = visible.map(_remChipHtml).join('') + overflowBtn;
   bar.querySelectorAll('.rem-item').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
-  });
-  bar.querySelectorAll('.rem-pin-btn').forEach(el => {
-    el.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const c = cards.find(x => x.id === el.dataset.id);
-      if (c) { c.pinned_reminder = !c.pinned_reminder; await save(); buildReminders(); }
-    });
   });
 }
 
