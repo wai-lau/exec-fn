@@ -30,10 +30,6 @@
     <div id="pr-omens"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
   <div style="margin-bottom:28px;">
-    <div class="pr-col-hdr" style="margin-bottom:10px;">encouragement</div>
-    <div id="pr-enc" style="line-height:1.7;opacity:0.8;white-space:pre-wrap;font-size:0.85rem;"></div>
-  </div>
-  <div style="margin-bottom:28px;">
     <div class="pr-col-hdr" style="margin-bottom:10px;">core activity</div>
     <div id="pr-rdlog"><span style="opacity:0.4;font-size:0.8rem">loading...</span></div>
   </div>
@@ -55,7 +51,6 @@ async function loadPlan() {
       <div>${HDR}seek</div>${flat(seek)}</div>
       <div>${HDR}hack</div>${flat(hack)}</div>
       <div>${HDR}dive</div>${deep(dive)}</div>`;
-    document.getElementById('pr-enc').textContent = d.encouraging_message || '';
   }
 
   if (planRes.ok) {
