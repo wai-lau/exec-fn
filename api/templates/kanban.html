@@ -9,14 +9,14 @@ body { overflow: hidden !important; }
   border-bottom: 1px solid rgba(0,255,65,0.12);
 }
 .rd-reminders {
-  display: none; position: fixed; top: 52px; left: 0; right: 0; height: 26px; z-index: 19;
-  align-items: center; padding: 0 16px; gap: 12px; overflow-x: auto; overflow-y: hidden;
-  scrollbar-width: none;
+  display: none; position: fixed; top: 52px; left: 0; right: 0; height: 28px; z-index: 19;
+  align-items: center; padding: 0 12px; gap: 6px; overflow-x: scroll; overflow-y: hidden;
+  scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch;
   background: rgba(0,0,0,0.45); border-bottom: 1px solid rgba(0,255,65,0.08);
   font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.63rem;
 }
 .rd-reminders::-webkit-scrollbar { display: none; }
-.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.8; }
+.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.85; padding: 1px 7px; border-radius: 3px; }
 .rd-reminders .rem-item:hover { opacity: 1; }
 .has-reminders .rd-reminders { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 26px; border-bottom-color: rgba(0,255,65,0.22); }
@@ -179,6 +179,7 @@ const COLS = ['rd','hq','archives','exile'];
 let cards = [];
 let editId = null;
 let dragging = false;
+let barSortable = null;
 let archivesCollapsed = true;
 let exileCollapsed = true;
 
@@ -354,8 +355,13 @@ function buildReminders() {
   const bar = document.getElementById('reminders-bar');
   bar.innerHTML = active.map(c => {
     const date = c.due_date ? ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>` : '';
-    const color = reminderColor(c);
-    return `<div class="rem-item" data-id="${c.id}" style="color:${color}">${c.title}${date}</div>`;
+    const h = CAT_HUE[c.category];
+    const ds = CAT_SAT[c.category] || 0;
+    const dl = CAT_LIGHT[c.category] || 0;
+    const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
+    const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
+    const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
+    return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${c.title}${date}</div>`;
   }).join('');
   bar.querySelectorAll('.rem-item').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openEdit(el.dataset.id); });
@@ -388,17 +394,20 @@ function buildBoard() {
 function initBarSortable() {
   const bar = document.getElementById('reminders-bar');
   if (!bar) return;
-  Sortable.create(bar, {
+  if (barSortable) { barSortable.destroy(); barSortable = null; }
+  barSortable = Sortable.create(bar, {
     group: { name: 'kanban', put: true, pull: false },
     animation: 120,
     ghostClass: 'sortable-ghost',
+    delay: 300, delayOnTouchOnly: true,
     onAdd: async (evt) => {
       const id = evt.item.dataset.id;
       evt.item.remove();
       const c = cards.find(x => x.id === id);
       if (c) {
         c.is_reminder = true;
-        setTimeout(() => buildBoard(), 100);
+        await save();
+        buildBoard();
       }
     }
   });
