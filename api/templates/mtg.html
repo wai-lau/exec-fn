@@ -22,6 +22,12 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 .msg.assistant ul, .msg.assistant ol { margin:4px 0 4px 16px; padding:0; }
 .msg.assistant li { margin-bottom:2px; }
 .msg.assistant h1, .msg.assistant h2, .msg.assistant h3 { color:rgba(0,255,65,1); font-size:1em; font-weight:bold; margin:8px 0 4px; }
+.msg.assistant hr { border:none; border-top:1px solid rgba(0,255,65,0.35); margin:10px 0 16px; }
+.msg.assistant table { border-collapse:collapse; margin:6px 0; }
+.msg.assistant th, .msg.assistant td { border:1px solid rgba(0,255,65,0.25); padding:3px 10px; text-align:left; }
+.msg.assistant th { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.45); }
+.msg.assistant [data-card] { text-decoration:underline dotted rgba(0,255,65,0.5); text-underline-offset:3px; cursor:pointer; }
+.msg.assistant [data-card]:hover { text-decoration:underline rgba(0,255,65,0.9); color:rgba(0,255,65,1); }
 .msg.user::before { content:"$ "; opacity:0.5; }
 .msg.user { color:rgba(0,255,65,0.42); white-space:pre-wrap; }
 .msg.sys::before { content:"# "; }
@@ -91,7 +97,13 @@ const terminal = document.getElementById('terminal');
 const _WELCOME = "Hi (＊＾▽＾)／! Ask about card interactions, rules, or mechanics - I'll look up oracle text, rulings, and comprehensive rules.";
 
 const _renderer = new marked.Renderer();
-_renderer.link = ({href, title, text}) => `<a href="${href}" target="_blank" rel="noopener"${title ? ` title="${title}"` : ''}>${text}</a>`;
+_renderer.link = ({href, title, text}) => {
+  if (href && href.includes('scryfall.com')) {
+    const plain = text.replace(/<[^>]*>/g, '');
+    return `<span data-card="${plain.replace(/"/g, '&quot;')}">${text}</span>`;
+  }
+  return `<a href="${href}" target="_blank" rel="noopener"${title ? ` title="${title}"` : ''}>${text}</a>`;
+};
 function renderText(raw) {
   return marked.parse(raw, {renderer: _renderer});
 }
@@ -223,37 +235,44 @@ async function _showCardImage(name, e) {
       if (!r.ok) { _imgCache[name] = null; }
       else {
         const d = await r.json();
-        const uri = d.image_uris?.normal || d.card_faces?.[0]?.image_uris?.normal || null;
-        _imgCache[name] = uri;
+        const img = d.image_uris?.normal || d.card_faces?.[0]?.image_uris?.normal || null;
+        _imgCache[name] = img ? {img, url: d.scryfall_uri} : null;
       }
     } catch { _imgCache[name] = null; }
   }
 
   if (_imgCache[name]) {
-    _tooltipImg.src = _imgCache[name];
+    _tooltipImg.src = _imgCache[name].img;
     _tooltip.className = '';
   } else {
     _tooltip.style.display = 'none';
   }
 }
 
+terminal.addEventListener('click', e => {
+  const el = e.target.closest('[data-card]');
+  if (!el || !el.closest('.msg.assistant')) return;
+  const cached = _imgCache[el.dataset.card];
+  if (cached?.url) window.open(cached.url, '_blank', 'noopener');
+});
+
 terminal.addEventListener('mouseover', e => {
-  const strong = e.target.closest('strong');
-  if (strong && strong.closest('.msg.assistant')) {
-    _showCardImage(strong.textContent.trim(), e);
-    strong._mtgActive = true;
+  const el = e.target.closest('[data-card]');
+  if (el && el.closest('.msg.assistant')) {
+    _showCardImage(el.dataset.card, e);
+    el._mtgActive = true;
   }
 });
 
 terminal.addEventListener('mousemove', e => {
-  const strong = e.target.closest('strong');
-  if (strong && strong._mtgActive) _positionTooltip(e);
+  const el = e.target.closest('[data-card]');
+  if (el && el._mtgActive) _positionTooltip(e);
 });
 
 terminal.addEventListener('mouseout', e => {
-  const strong = e.target.closest('strong');
-  if (strong && strong._mtgActive) {
-    strong._mtgActive = false;
+  const el = e.target.closest('[data-card]');
+  if (el && el._mtgActive) {
+    el._mtgActive = false;
     _tooltip.style.display = 'none';
   }
 });

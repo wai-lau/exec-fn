@@ -34,6 +34,12 @@ body { overflow-y: auto !important; }
 .dbg-entry-title { flex: 1; }
 .dbg-entry-meta { font-size: 0.6rem; opacity: 0.35; }
 .dbg-empty { font-size: 0.75rem; opacity: 0.3; padding: 8px 0; }
+.dbg-mtg-entry { font-size: 0.75rem; padding: 10px 0; border-bottom: 1px solid rgba(0,255,65,0.07); }
+.dbg-mtg-ts { font-size: 0.6rem; opacity: 0.35; margin-bottom: 4px; }
+.dbg-mtg-user { color: rgba(0,255,65,0.45); margin-bottom: 4px; }
+.dbg-mtg-user::before { content: "$ "; }
+.dbg-mtg-assistant { color: rgba(0,255,65,0.75); white-space: pre-wrap; }
+.dbg-mtg-assistant::before { content: "> "; opacity: 0.4; }
 </style>
 
 <div class="dbg-wrap">
@@ -45,13 +51,18 @@ body { overflow-y: auto !important; }
     <div class="dbg-hdr">activity logs</div>
     <div id="dbg-logs"><span class="dbg-empty">loading...</span></div>
   </div>
+  <div class="dbg-section">
+    <div class="dbg-hdr">mtg log</div>
+    <div id="dbg-mtg"><span class="dbg-empty">loading...</span></div>
+  </div>
 </div>
 
 <script>
 async function loadDebug() {
-  const [ctxRes, logRes] = await Promise.all([
+  const [ctxRes, logRes, mtgRes] = await Promise.all([
     fetch('/api/context'),
     fetch('/api/debug/logs'),
+    fetch('/api/mtg/log'),
   ]);
 
   // Profile
@@ -94,6 +105,22 @@ async function loadDebug() {
         </div>
       </div>`;
     }).join('') || '<div class="dbg-empty">no logs</div>';
+  }
+
+  // MTG log
+  if (mtgRes.ok) {
+    const data = await mtgRes.json();
+    const entries = (data.entries || []).slice().reverse();
+    document.getElementById('dbg-mtg').innerHTML = entries.length
+      ? entries.map(e => {
+          const ts = e.ts ? new Date(e.ts).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+          return `<div class="dbg-mtg-entry">
+            <div class="dbg-mtg-ts">${ts}</div>
+            <div class="dbg-mtg-user">${e.user || ''}</div>
+            <div class="dbg-mtg-assistant">${e.assistant || ''}</div>
+          </div>`;
+        }).join('')
+      : '<div class="dbg-empty">no mtg logs</div>';
   }
 }
 
