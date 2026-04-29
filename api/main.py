@@ -217,7 +217,7 @@ async def login(request: Request):
 @public.get("/guest-login", response_class=HTMLResponse)
 async def guest_login_page(next: str = "/mtg"):
     html = _BARE.replace("</head>", _PAGE_CHROME + "</head>", 1)
-    html = html.replace("</body>", _GUEST_LOGIN_HTML.replace("{next}", next) + "</body>", 1)
+    html = html.replace("</body>", _GUEST_LOGIN_HTML.replace("{next}", next) + '<audio src="/nightfall-game/audio/ped-intro.mp3" autoplay></audio>' + "</body>", 1)
     return html
 
 
