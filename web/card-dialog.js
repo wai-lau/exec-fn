@@ -29,7 +29,7 @@
       <option value="project">project &mdash; under 2 days</option>
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
-    <label>due date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
+    <label>date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
     <input id="cd-due" type="text" placeholder="optional" onblur="cdFillSB()">
     <label>start before &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">auto-filled from due date</span></label>
     <input id="cd-sb" type="text" placeholder="optional">
