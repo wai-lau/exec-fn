@@ -397,7 +397,7 @@ function initBarSortable() {
   if (!bar) return;
   if (barSortable) { barSortable.destroy(); barSortable = null; }
   barSortable = Sortable.create(bar, {
-    group: { name: 'kanban', put: true, pull: false },
+    group: { name: 'kanban', put: true, pull: true },
     animation: 120,
     ghostClass: 'sortable-ghost',
     delay: 300, delayOnTouchOnly: true,
@@ -409,6 +409,15 @@ function initBarSortable() {
         c.is_reminder = true;
         await save();
         buildBoard();
+      }
+    },
+    onRemove: (evt) => {
+      const id = evt.item.dataset.id;
+      evt.item.remove();
+      const c = cards.find(x => x.id === id);
+      if (c) {
+        c.is_reminder = false;
+        setTimeout(() => { save(); buildBoard(); }, 80);
       }
     }
   });
