@@ -47,7 +47,7 @@
     flex-direction: column;
     align-items: center;
   }
-  .login-box input[type=text] {
+  .login-box input[type=password] {
     background: transparent;
     border: none;
     border-bottom: 1px solid rgba(224, 74, 125, 0.4);
@@ -59,51 +59,17 @@
     width: 160px;
     text-align: center;
   }
-  .login-box input[type=text]::placeholder { color: rgba(224, 74, 125, 0.35); }
-  .login-box input[type=text]:focus { border-bottom-color: rgba(224, 74, 125, 0.4); }
+  .login-box input[type=password]::placeholder { color: rgba(224, 74, 125, 0.35); }
+  .login-box input[type=password]:focus { border-bottom-color: rgba(224, 74, 125, 0.4); }
 </style>
 </head>
 <body>
   <div class="login-wrap">
     <img src="/favicon.png">
-    <form class="login-box" method="POST" action="/login" id="login-form">
-      <input type="text" id="pw-display" name="password" placeholder="access-key" autocomplete="current-password" autofocus spellcheck="false">
-      <input type="hidden" name="key" id="pw-real">
+    <form class="login-box" method="POST" action="/login">
+      <input type="password" name="key" placeholder="access-key" autocomplete="current-password" autofocus>
     </form>
   </div>
   <audio src="/nightfall-game/audio/lmm-intro.mp3" autoplay></audio>
-<script>
-const display = document.getElementById('pw-display');
-const real = document.getElementById('pw-real');
-let val = '';
-display.addEventListener('keydown', e => {
-  if (e.key === 'Backspace') {
-    val = val.slice(0, -1);
-    e.preventDefault();
-  } else if (e.key === 'Enter') {
-    real.value = val;
-    document.getElementById('login-form').submit();
-    return;
-  } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-    val += e.key;
-    e.preventDefault();
-  } else { return; }
-  display.value = '✦'.repeat(val.length);
-  real.value = val;
-});
-display.addEventListener('paste', e => {
-  e.preventDefault();
-  val += (e.clipboardData || window.clipboardData).getData('text');
-  display.value = '✦'.repeat(val.length);
-  real.value = val;
-});
-display.addEventListener('input', () => {
-  if (display.value && !/^✦+$/.test(display.value)) {
-    val = display.value;
-    real.value = val;
-    display.value = '✦'.repeat(val.length);
-  }
-});
-</script>
 </body>
 </html>
