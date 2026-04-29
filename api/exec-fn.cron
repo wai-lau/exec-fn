@@ -1,4 +1,2 @@
 SHELL=/bin/bash
-TZ=America/New_York
 30 4 * * * root /app/morning_cron.sh
-*/15 * * * * root [ -f /run/cron_env ] && source /run/cron_env && curl -sf -X POST http://localhost:8080/api/omens -H "Authorization: Bearer $API_KEY" >> /var/log/exec-fn.log 2>&1
