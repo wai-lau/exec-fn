@@ -22,6 +22,10 @@ body { overflow: hidden !important; }
   flex: 0 0 200px; display: flex; flex-direction: column;
   background: rgba(0,0,0,0.3); min-width: 0;
 }
+.pr-col.weekend { background: rgba(180,180,180,0.04); }
+.pr-col.weekend .pr-col-hdr { color: rgba(180,180,180,0.45); border-bottom-color: rgba(180,180,180,0.08); }
+.pr-col.weekend .pr-col-hdr .pr-day-name { color: rgba(180,180,180,0.55); }
+.pr-col.weekend .pr-col-hdr .pr-date { opacity: 0.35; }
 .pr-col-hdr {
   flex-shrink: 0; padding: 6px 14px 8px;
   font-family: monospace; font-size: 0.6rem; text-transform: uppercase;
@@ -160,9 +164,11 @@ function buildBoard() {
   for (const day of days) {
     const cards = weekData.days[day];
     const isToday = day === today;
+    const dow = new Date(day + 'T12:00:00').getDay();
+    const isWeekend = dow === 0 || dow === 6;
     const dayLabel = day === today ? 'Today' : fmtDay(day).split(',')[0];
     const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
-    html += `<div class="pr-col" data-day="${day}">
+    html += `<div class="pr-col${isWeekend?' weekend':''}" data-day="${day}">
       <div class="pr-col-hdr${isToday?' today-hdr':''}">
         <div class="pr-day-name">${dayLabel}</div>
         <div class="pr-date">${dateLabel}</div>
