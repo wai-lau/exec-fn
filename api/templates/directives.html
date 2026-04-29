@@ -60,7 +60,7 @@ body { overflow: hidden !important; }
 .dir-tl-labels { width: 44px; flex-shrink: 0; position: relative; }
 .dir-tl-label {
   position: absolute; right: 8px; transform: translateY(-50%);
-  font-size: 0.58rem; opacity: 0.32; white-space: nowrap; font-family: monospace;
+  font-size: 0.6rem; opacity: 0.6; white-space: nowrap; font-family: monospace;
 }
 .dir-tl-track { flex: 1; position: relative; border-left: 1px solid rgba(0,255,65,0.12); }
 /* right: debug */
@@ -240,10 +240,6 @@ function createBlock(c, track) {
   block.dataset.id = c.id;
   block.style.cssText = `${bg}top:${topPx}px;height:${heightPx}px;`;
 
-  const timeEl = document.createElement('div');
-  timeEl.className = 'dir-block-time';
-  timeEl.textContent = fmtTime(c._startMin);
-
   const titleEl = document.createElement('div');
   titleEl.className = 'dir-block-title';
   titleEl.style.color = titleC;
@@ -257,7 +253,7 @@ function createBlock(c, track) {
   const resizeHandle = document.createElement('div');
   resizeHandle.className = 'dir-resize';
 
-  block.append(timeEl, titleEl, metaEl, resizeHandle);
+  block.append(titleEl, metaEl, resizeHandle);
 
   // drag to move
   function startDrag(startClientY, getY) {
@@ -270,7 +266,6 @@ function createBlock(c, track) {
       const snapped = Math.max(TL_START, Math.min(TL_END - c._durMin, snapMin(rawMin)));
       c._startMin = snapped;
       block.style.top = (snapped - TL_START) * TL_PX + 'px';
-      timeEl.textContent = fmtTime(snapped);
     }
     function onUp() {
       document.removeEventListener('mousemove', onMove);
