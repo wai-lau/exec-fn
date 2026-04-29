@@ -148,13 +148,13 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   padding:4px 2px; outline:none; width:160px; text-align:center;
 }
 .login-box input[type=text]:focus { border-bottom-color:#fff; }
-.login-box input[type=text]::placeholder { color:rgba(255,255,255,0.2); }
+.login-box input[type=text]::placeholder { color:rgba(255,255,255,0.35); }
 </style>
 <div style="display:flex;flex-direction:column;align-items:center;gap:24px">
   <img src="/nightfall-game/static/media/ped-logo.f0469b0a.png" style="width:160px;opacity:0.9">
   <form class="login-box" method="post" action="/guest-login">
     <input type="hidden" name="next" value="{next}">
-    <input type="text" name="key" autofocus autocomplete="current-password">
+    <input type="text" name="key" autofocus autocomplete="current-password" placeholder="access-key">
   </form>
 </div>
 """
