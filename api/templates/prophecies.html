@@ -168,8 +168,7 @@ function renderCard(c, dayIso) {
   const hPx = parseInt(h);
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const notesHtml = (c.notes && hPx >= 44) ? `<div class="pr-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
-  const mealBlur = /lunch|dinner/i.test(c.title) ? 'backdrop-filter:blur(8px);' : '';
-  return `<div class="pr-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${mealBlur}${bg}${border}height:${h};min-height:${h}">
+  return `<div class="pr-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}${border}height:${h};min-height:${h}">
     ${over}
     <div class="pr-card-title" style="color:${titleC}">${c.title}${reminder}</div>
     ${recur ? `<div class="pr-card-meta" style="color:${metaC}"><span>${recur}</span></div>` : ''}

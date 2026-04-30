@@ -119,8 +119,7 @@ function createBlock(c, track) {
   const block = document.createElement('div');
   block.className = 'dir-block' + (bg ? '' : ' plain');
   block.dataset.id = c.id;
-  const meal = /lunch|dinner/i.test(c.title);
-  block.style.cssText = `${meal ? 'backdrop-filter:blur(10px);background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.2)!important;' : bg + border}top:${topPx + 2}px;height:${Math.max(13, heightPx - 7)}px;`;
+  block.style.cssText = `${bg}${border}top:${topPx + 2}px;height:${Math.max(13, heightPx - 7)}px;`;
 
   const titleEl = document.createElement('div');
   titleEl.className = 'dir-block-title';
@@ -307,7 +306,7 @@ function buildSchedule(cards) {
   ].forEach(({label, start, end}) => {
     const el = document.createElement('div');
     el.style.cssText = `position:absolute;left:3px;right:3px;top:${(start-TL_START)*TL_PX}px;height:${(end-start)*TL_PX}px;z-index:4;`
-      + `background:hsl(185,50%,54%,0.5);border:1px solid hsl(185,50%,45%,0.5);border-radius:3px;`
+      + `backdrop-filter:blur(10px);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;`
       + `display:flex;align-items:center;justify-content:center;box-sizing:border-box;pointer-events:none;`;
     el.innerHTML = `<span style="font-family:monospace;font-size:0.7rem;color:rgba(255,255,255,0.8)">[ ${label} ]</span>`;
     track.appendChild(el);
