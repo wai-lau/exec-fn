@@ -70,11 +70,10 @@ body { overflow: hidden !important; }
 .card-due { font-size: 0.62rem; }
 .sortable-ghost { opacity: 0.2; }
 #rd-search {
-  position: fixed; top: 6px; right: 10px; z-index: 30;
   background: none; border: none; outline: none;
-  color: rgba(0,255,65,0.7); font-family: 'Iosevka Mayukai Monolite', monospace;
-  font-weight: 500; font-size: 0.72rem; padding: 3px 4px; width: 110px;
-  text-align: right;
+  color: rgba(0,255,65,0.7); font-family: '04b25', monospace;
+  font-size: 0.55rem; padding: 0; width: 0; flex: 1; min-width: 0;
+  text-align: right; letter-spacing: 0.08em;
 }
 #rd-search::placeholder { color: rgba(0,255,65,0.3); }
 #rd-search:focus { color: rgba(0,255,65,0.95); }
@@ -92,8 +91,6 @@ body { overflow: hidden !important; }
     <div class="rem-ov-list" id="rem-overflow-list"></div>
   </div>
 </div>
-
-<input id="rd-search" type="text" placeholder="...search" autocomplete="off" spellcheck="false">
 
 <div class="rd-board" id="board">
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
@@ -176,7 +173,9 @@ function renderCol(col) {
   const hdr = toggle
     ? `<span class="col-hdr-label">${collapsed ? '▶' : label} <span style="opacity:0.35">(${count})</span></span>
        ${!collapsed ? `<button class="done-toggle" onclick="${toggle}(event)">▼</button>` : ''}`
-    : `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span>`;
+    : col === 'rd'
+      ? `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span><input id="rd-search" type="text" placeholder="...search" autocomplete="off" spellcheck="false">`
+      : `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span>`;
   const hideFromMain = col === 'rd' || col === 'hq';
   const colCards = collapsed ? '' : cards.filter(c=>c.column===col && !(hideFromMain && (c.is_reminder || c.size==='book'))).sort((a,b)=>a.order-b.order).map(renderCard).join('');
   return `<div class="col${collapsed?' col-collapsed':''}"${collapsed&&toggle?` onclick="${toggle}()"`:''}>
@@ -276,6 +275,15 @@ function buildBoard() {
     el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
   });
   initBarSortable();
+  const srch = document.getElementById('rd-search');
+  if (srch) srch.addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('#col-rd .card').forEach(el => {
+      const title = (el.dataset.title || '').toLowerCase();
+      const notes = (el.dataset.notes || '').toLowerCase();
+      el.classList.toggle('search-hide', !!q && !title.includes(q) && !notes.includes(q));
+    });
+  });
 }
 
 function initBarSortable() {
@@ -316,15 +324,6 @@ async function load() {
 }
 
 window.addEventListener('resize', _syncRemH);
-
-document.getElementById('rd-search').addEventListener('input', function() {
-  const q = this.value.trim().toLowerCase();
-  document.querySelectorAll('#col-rd .card').forEach(el => {
-    const title = (el.dataset.title || '').toLowerCase();
-    const notes = (el.dataset.notes || '').toLowerCase();
-    el.classList.toggle('search-hide', !!q && !title.includes(q) && !notes.includes(q));
-  });
-});
 
 load();
 </script>
