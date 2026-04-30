@@ -5,7 +5,7 @@
 <style>
 .cd-ov { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
-.cd-box { background:#0a0a0a; border:1px solid rgba(0,255,65,0.25); padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; }
+.cd-box { background:#0a0a0a; border:1px solid rgba(0,255,65,0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; }
 .cd-box-title { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.15em; color:rgba(0,255,65,0.6); margin-bottom:16px; }
 .cd-box label { display:block; font-size:0.6rem; color:rgba(0,255,65,0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
 .cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(0,255,65,0.2); color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
@@ -14,6 +14,19 @@
 .cd-actions { display:flex; gap:8px; margin-top:18px; justify-content:space-between; align-items:center; }
 .cd-btn { background:none; border:1px solid rgba(0,255,65,0.4); color:rgba(0,255,65,0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
 .cd-btn:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
+.cd-btn-exile { border-color:rgba(255,100,100,0.5) !important; color:rgba(255,120,120,0.8) !important; }
+.cd-btn-exile:hover { border-color:rgba(255,100,100,0.9) !important; color:rgba(255,130,130,1) !important; }
+.cd-dark .cd-box-title { color:inherit !important; opacity:0.8; }
+.cd-dark label { color:inherit !important; opacity:0.55; }
+.cd-dark input,.cd-dark select,.cd-dark textarea { color:inherit !important; background:rgba(255,255,255,0.04) !important; border-color:rgba(255,255,255,0.12) !important; }
+.cd-dark .cd-btn { border-color:rgba(255,255,255,0.25) !important; color:inherit !important; opacity:0.8; }
+.cd-dark .cd-btn:hover { opacity:1; }
+.cd-bright .cd-box-title { color:rgba(0,0,0,0.6) !important; }
+.cd-bright label { color:rgba(0,0,0,0.5) !important; }
+.cd-bright input,.cd-bright select,.cd-bright textarea { color:rgba(0,0,0,0.85) !important; background:rgba(0,0,0,0.08) !important; border-color:rgba(0,0,0,0.18) !important; }
+.cd-bright select option { background:#eee; color:#111; }
+.cd-bright .cd-btn { border-color:rgba(0,0,0,0.3) !important; color:rgba(0,0,0,0.65) !important; }
+.cd-bright .cd-btn:hover { border-color:rgba(0,0,0,0.7) !important; color:rgba(0,0,0,0.9) !important; }
 </style>
 <div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
   <div class="cd-box">
@@ -29,9 +42,9 @@
       <option value="project">project &mdash; under 2 days</option>
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
-    <label>date &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">monday 6pm &nbsp;|&nbsp; apr 26 &nbsp;|&nbsp; 4/26</span></label>
+    <label>date</label>
     <input id="cd-due" type="text" placeholder="optional">
-    <label>estimated time &mdash; <span style="opacity:0.55;font-size:0.7em;text-transform:none">2h &nbsp;|&nbsp; 90m &nbsp;|&nbsp; 1h30m &nbsp;|&nbsp; 45</span></label><input id="cd-et" type="text" placeholder="auto from size">
+    <label>estimated time</label><input id="cd-et" type="text" placeholder="auto from size">
     <label>recurrence</label>
     <select id="cd-recur">
       <option value="">— none —</option><option value="week">weekly</option><option value="bi-week">bi-weekly</option>
@@ -45,14 +58,20 @@
       <input id="cd-pin-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
       <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
     </label>
+    <label id="cd-pages-label" style="display:none">pages</label>
+    <div id="cd-pages-inputs" style="display:none;align-items:center;gap:8px">
+      <input id="cd-current-page" type="number" placeholder="current" min="0" style="flex:1">
+      <span style="opacity:0.4;flex-shrink:0">/</span>
+      <input id="cd-total-pages" type="number" placeholder="total" min="1" style="flex:1">
+    </div>
     <label>notes</label><textarea id="cd-notes"></textarea>
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
-        <button class="cd-btn" style="border-color:rgba(255,100,100,0.4);color:rgba(255,120,120,0.7)" onclick="cdExile()">exile</button>
+        <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
         <button class="cd-btn" style="border-color:rgba(0,255,65,0.5);color:rgba(0,255,65,0.85)" onclick="cdDone()">done</button>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="cd-btn" onclick="cdClose()">cancel</button>
+        <button class="cd-btn" onclick="cdClose()">undo</button>
         <button class="cd-btn" onclick="cdSave()">save</button>
       </div>
     </div>
@@ -64,6 +83,12 @@
   let _cdCards = null;
   let _cdCallback = null;
   let _cdSource = 'core';
+
+  function _togglePages(show) {
+    document.getElementById('cd-pages-label').style.display = show ? 'block' : 'none';
+    document.getElementById('cd-pages-inputs').style.display = show ? 'flex' : 'none';
+  }
+  document.getElementById('cd-size').addEventListener('change', function() { _togglePages(this.value === 'book'); });
 
   function _parseET(raw) {
     if (!raw || !raw.trim()) return null;
@@ -129,6 +154,27 @@
     await fetch(`/api/rd?source=${_cdSource}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_cdCards})});
   }
 
+  function _solidBg(bgStr) {
+    const m = bgStr.match(/hsla\((\d+(?:\.\d+)?),(\d+(?:\.\d+)?)%,(\d+(?:\.\d+)?)%,([\d.]+)\)/);
+    if (!m) return bgStr;
+    const h = +m[1], s = +m[2]/100, l = +m[3]/100, a = +m[4];
+    const c = (1 - Math.abs(2*l - 1)) * s;
+    const x = c * (1 - Math.abs((h/60) % 2 - 1));
+    const m0 = l - c/2;
+    let r,g,b;
+    if      (h<60)  [r,g,b]=[c,x,0];
+    else if (h<120) [r,g,b]=[x,c,0];
+    else if (h<180) [r,g,b]=[0,c,x];
+    else if (h<240) [r,g,b]=[0,x,c];
+    else if (h<300) [r,g,b]=[x,0,c];
+    else            [r,g,b]=[c,0,x];
+    const base = 10;
+    const R = Math.round(a*(r+m0)*255 + (1-a)*base);
+    const G = Math.round(a*(g+m0)*255 + (1-a)*base);
+    const B = Math.round(a*(b+m0)*255 + (1-a)*base);
+    return bgStr.replace(/hsla\([^)]+\)/, `rgb(${R},${G},${B})`);
+  }
+
   window.openCardDialog = async function(id, callback, source) {
     _cdCallback = callback || (() => {});
     _cdSource = source || 'core';
@@ -137,6 +183,16 @@
     const c = _cdCards.find(x => x.id === id);
     if (!c) return;
     _cdId = id;
+    const box = document.querySelector('.cd-box');
+    if (typeof cardStyle === 'function') {
+      const {bg, border, dark} = cardStyle(c);
+      const bgVal = (bg.match(/background:[^;]+/) || [''])[0];
+      const colVal = (bg.match(/;color:[^;]+/) || [''])[0].slice(1);
+      const bcVal = border.includes('transparent') ? '' : border;
+      box.style.cssText = [_solidBg(bgVal), colVal, bcVal].filter(Boolean).join(';');
+      box.classList.toggle('cd-dark',   dark && !!bg);
+      box.classList.toggle('cd-bright', !dark && !!bg);
+    }
     document.getElementById('cd-title').value = c.title||'';
     document.getElementById('cd-cat').value = c.category||'Self';
     document.getElementById('cd-size').value = c.size||'task';
@@ -150,12 +206,18 @@
     document.getElementById('cd-size-label').style.display = c.is_reminder ? 'none' : 'block';
     document.getElementById('cd-size').style.display = c.is_reminder ? 'none' : 'block';
     document.getElementById('cd-notes').value = c.notes||'';
+    _togglePages(c.size === 'book');
+    document.getElementById('cd-current-page').value = c.current_page ?? '';
+    document.getElementById('cd-total-pages').value = c.total_pages ?? '';
     document.getElementById('cd-modal').classList.add('open');
     document.getElementById('cd-title').focus();
   };
 
   window.cdClose = function() {
     document.getElementById('cd-modal').classList.remove('open');
+    const box = document.querySelector('.cd-box');
+    box.style.cssText = '';
+    box.classList.remove('cd-dark', 'cd-bright');
     _cdId = null;
   };
 
@@ -175,6 +237,12 @@
     c.recur_type = document.getElementById('cd-recur').value||null;
     c.is_reminder = document.getElementById('cd-reminder').checked;
     c.pinned_reminder = c.is_reminder ? document.getElementById('cd-pin-reminder').checked : false;
+    if (c.size === 'book') {
+      const cp = parseInt(document.getElementById('cd-current-page').value);
+      const tp = parseInt(document.getElementById('cd-total-pages').value);
+      c.current_page = isNaN(cp) ? null : cp;
+      c.total_pages  = isNaN(tp) ? null : tp;
+    }
     await _patch();
     cdClose();
     _cdCallback('save');
