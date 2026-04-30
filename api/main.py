@@ -1,8 +1,12 @@
 import re
 import json
+import copy
+import time
+import glob
 import secrets
 from pathlib import Path
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 
@@ -10,7 +14,7 @@ from pipeline import build_morning
 from gcal import gcal_start_auth, gcal_complete_auth
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
-from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log, _next_recurrence, _now_et
+from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence, _now_et
 from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
@@ -179,13 +183,24 @@ def _build_page(active=None, content=""):
 
 # ── templates ─────────────────────────────────────────────────────────────────
 
+_tmpl_cache: dict[str, tuple[float, str]] = {}
+
+
 def _tmpl(name: str) -> str:
-    return (_TMPL / name).read_text()
+    path = _TMPL / name
+    mtime = path.stat().st_mtime
+    cached = _tmpl_cache.get(name)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    text = path.read_text()
+    _tmpl_cache[name] = (mtime, text)
+    return text
 
 
 # ── app ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI()
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.exception_handler(401)
@@ -273,7 +288,6 @@ async def debug_page():
 
 @protected.get("/api/debug/logs")
 def api_debug_logs():
-    import glob
     from helpers import _RD_LOG as _log_path
     files = []
     # today's log first
@@ -375,18 +389,22 @@ def api_rd():
     return _load_json("rd", {"columns": ["rd","hq","archives","exile"], "cards": []})
 
 
-def _log_card_change(c: dict, old: dict | None, source: str):
-    cid = c.get("id")
-    if old is None:
-        _append_rd_log("created", c.get("title", cid), source=source, column=c.get("column"))
-    elif old.get("column") != c.get("column"):
-        _append_rd_log("moved", c.get("title", cid), source=source, from_col=old["column"], to_col=c["column"])
-        if old.get("column") == "hq" and c.get("column") != "hq":
-            c["scheduled_day"] = None
-        elif c.get("column") == "hq" and old.get("column") != "hq":
-            c["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
-    elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
-        _append_rd_log("updated", c.get("title", cid), source=source)
+
+def _log_entries_for_patch(new_cards, old_cards, source):
+    entries = []
+    for c in new_cards:
+        old = old_cards.get(c.get("id"))
+        if old is None:
+            entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "column": c.get("column")})
+        elif old.get("column") != c.get("column"):
+            entries.append({"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"]})
+        elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
+            entries.append({"action": "updated", "title": c.get("title", c.get("id")), "source": source})
+    new_ids = {c["id"] for c in new_cards}
+    for cid, old in old_cards.items():
+        if cid not in new_ids:
+            entries.append({"action": "deleted", "title": old.get("title", cid), "source": source})
+    return entries
 
 
 @protected.patch("/api/rd")
@@ -396,15 +414,19 @@ async def api_rd_patch(request: Request, source: str = "core"):
     data = _load_json("rd", {"columns": ["rd","hq","archives","exile"]})
     old_cards = {c["id"]: c for c in data.get("cards", [])}
     new_cards = body.get("cards", [])
-    for c in new_cards:
-        _log_card_change(c, old_cards.get(c.get("id")), source)
-    new_ids = {c["id"] for c in new_cards}
-    for cid, old in old_cards.items():
-        if cid not in new_ids:
-            _append_rd_log("deleted", old.get("title", cid), source=source)
 
-    # Recurring revival: when a card moves to archives and has recur_type, spawn next occurrence
-    import time as _time
+    # Apply side-effects that mutate new_cards in place (scheduled_day logic)
+    for c in new_cards:
+        old = old_cards.get(c.get("id"))
+        if old and old.get("column") != c.get("column"):
+            if old.get("column") == "hq" and c.get("column") != "hq":
+                c["scheduled_day"] = None
+            elif c.get("column") == "hq" and old.get("column") != "hq":
+                c["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
+
+    log_entries = _log_entries_for_patch(new_cards, old_cards, source)
+
+    # Recurring revival
     revived = []
     existing_titles_dates = {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in new_cards}
     for c in new_cards:
@@ -414,19 +436,18 @@ async def api_rd_patch(request: Request, source: str = "core"):
             next_due = _next_recurrence(c.get("due_date") or "", c["recur_type"])
             key = (c.get("title","").lower(), (next_due or "")[:10])
             if next_due and key not in existing_titles_dates:
-                import copy as _copy
-                clone = _copy.deepcopy(c)
-                clone["id"] = f"card-{int(_time.time() * 1000) + len(revived)}"
+                clone = copy.deepcopy(c)
+                clone["id"] = f"card-{int(time.time() * 1000) + len(revived)}"
                 clone["column"] = "rd"
                 clone["due_date"] = next_due
                 clone["scheduled_day"] = None
-
                 clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
                 revived.append(clone)
-                _append_rd_log("revived", c.get("title", c["id"]), source=source, next_due=next_due)
+                log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
 
     data["cards"] = new_cards + revived
     p.write_text(json.dumps(data, indent=2))
+    _append_rd_log_batch(log_entries)
     return {"ok": True}
 
 

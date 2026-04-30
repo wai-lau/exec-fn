@@ -71,9 +71,20 @@ def _parse_json(text: str) -> dict | list:
     raise ValueError(f"No JSON found in: {text[:200]}")
 
 
+_json_cache: dict[str, tuple[float, object]] = {}
+
+
 def _load_json(name: str, default=None):
     p = DATA_DIR / f"{name}.json"
-    return json.loads(p.read_text()) if p.exists() else (default if default is not None else {})
+    if not p.exists():
+        return default if default is not None else {}
+    mtime = p.stat().st_mtime
+    cached = _json_cache.get(name)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    data = json.loads(p.read_text())
+    _json_cache[name] = (mtime, data)
+    return data
 
 
 def _load_rd() -> dict:
@@ -93,9 +104,16 @@ _RD_LOG = _ACTIVITY_LOG  # alias kept for pipeline.py archival
 
 
 def _append_rd_log(action: str, title: str, source: str = "core", **extra):
-    entry = {"ts": datetime.now(timezone.utc).isoformat(), "source": source, "action": action, "title": title, **extra}
+    _append_rd_log_batch([{"action": action, "title": title, "source": source, **extra}])
+
+
+def _append_rd_log_batch(entries: list[dict]):
+    if not entries:
+        return
     log = json.loads(_ACTIVITY_LOG.read_text()) if _ACTIVITY_LOG.exists() else []
-    log.append(entry)
+    now = datetime.now(timezone.utc).isoformat()
+    for e in entries:
+        log.append({"ts": now, **e})
     _ACTIVITY_LOG.write_text(json.dumps(log[-500:]))
 
 
