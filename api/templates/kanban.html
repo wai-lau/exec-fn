@@ -109,9 +109,9 @@ function cardStyle(c) {
   const borderMid = `hsl(${h},${65+ds}%,${60+dl}%)`;
   const borderBright = `hsl(${h},${90+ds}%,${78+dl}%)`;
   if (size === 'chore') {
-    return {bg:`background:#0d0d0d;color:${col};`, border:'border-color:transparent;', dark:true};
+    return {bg:`background:hsla(${h},${75+ds}%,${68+dl}%,0.10);color:${col};`, border:'border-color:transparent;', dark:true};
   } else if (size === 'task') {
-    return {bg:`background:#0d0d0d;color:${col};`, border:`border-color:${borderMid};`, dark:true};
+    return {bg:`background:hsla(${h},${75+ds}%,${68+dl}%,0.25);color:${col};`, border:`border-color:${borderMid};`, dark:true};
   } else if (size === 'book') {
     return {bg:`background:hsl(0,0%,10%);color:${col};`, border:`border-color:${borderMid};`, dark:true};
   } else if (size === 'project') {
