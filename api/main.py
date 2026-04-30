@@ -15,7 +15,7 @@ from gcal import gcal_start_auth, gcal_complete_auth
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
 from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence, _now_et
-from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected, build_nightfall_html
+from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
 from auth import (
@@ -257,7 +257,7 @@ async def mtg_page(request: Request):
         .replace("</body>", _tmpl("mtg.html") + _build_nav("mtg", guest=not is_full_auth) + "</body>", 1))
 
 
-@guest_protected.get("/nightfall", response_class=HTMLResponse)
+@public.get("/nightfall", response_class=HTMLResponse)
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
@@ -494,7 +494,6 @@ async def api_parse_date(request: Request):
 app.include_router(public)
 app.include_router(protected)
 app.include_router(guest_protected)
-app.include_router(nightfall_public)
 app.include_router(nightfall_protected, dependencies=[Depends(require_auth)])
 app.include_router(chat_router, dependencies=[Depends(require_auth)])
 app.include_router(mtg_router, dependencies=[Depends(require_guest_auth)])

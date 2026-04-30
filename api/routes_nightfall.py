@@ -15,7 +15,6 @@ _NIGHTFALL_SAVE_SCRIPT_TPL = (_NF_DIR / "wai-save-sync.js").read_text()
 
 _VALID_SAVE_SLOTS = {"save1", "save2", "save3"}
 
-public_router = APIRouter()
 protected_router = APIRouter()
 
 
