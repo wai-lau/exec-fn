@@ -33,7 +33,7 @@
     <span id="input-prompt">mtg@rules:~$</span>
     <div id="input-wrapper">
       <div id="input-display" aria-hidden="true"><span id="input-mirror"></span><span id="input-cursor"></span></div>
-      <input id="msg-input" type="text" placeholder="ask a rules question..." autofocus>
+      <textarea id="msg-input" rows="1" placeholder="ask a rules question..." autofocus></textarea>
     </div>
   </div>
   <button class="exec-send" onclick="clearChat()">clear</button>
@@ -55,6 +55,8 @@ _renderer.link = ({href, title, text}) => {
   }
   return `<a href="${href}" target="_blank" rel="noopener"${title ? ` title="${title}"` : ''}>${text}</a>`;
 };
+marked.use({ breaks: true });
+
 function renderText(raw) {
   return marked.parse(raw, {renderer: _renderer});
 }
@@ -62,7 +64,7 @@ function renderText(raw) {
 function addMsg(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  if (role === 'assistant') {
+  if (role === 'assistant' || role === 'user') {
     const body = document.createElement('div');
     body.className = 'msg-body';
     body.innerHTML = renderText(text);
@@ -95,6 +97,8 @@ async function sendMsg() {
   if (!text) return;
   input.value = '';
   _mirror.textContent = '';
+  input.style.height = '';
+  terminal.style.bottom = '';
   input.focus();
   addMsg('user', text);
   messages.push({role:'user', content: text});
@@ -170,7 +174,12 @@ addMsg('assistant', _WELCOME);
 const _mirror = document.getElementById('input-mirror');
 const _inputCursor = document.getElementById('input-cursor');
 const _msgInput = document.getElementById('msg-input');
-_msgInput.addEventListener('input', () => { _mirror.textContent = _msgInput.value; });
+_msgInput.addEventListener('input', () => {
+  _mirror.textContent = _msgInput.value;
+  _msgInput.style.height = '0';
+  _msgInput.style.height = _msgInput.scrollHeight + 'px';
+  terminal.style.bottom = document.getElementById('input-bar').offsetHeight + 'px';
+});
 _msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
 _msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; });
 _msgInput.addEventListener('keydown', e => {

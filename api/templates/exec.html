@@ -8,7 +8,7 @@
     <span id="input-prompt">wai@exec:~$</span>
     <div id="input-wrapper">
       <div id="input-display" aria-hidden="true"><span id="input-mirror"></span><span id="input-cursor"></span></div>
-      <input id="msg-input" type="text" placeholder="" autofocus>
+      <textarea id="msg-input" rows="1" placeholder="" autofocus></textarea>
     </div>
   </div>
 </div>
@@ -20,6 +20,8 @@ let streaming = false;
 
 const terminal = document.getElementById('terminal');
 
+marked.use({ breaks: true });
+
 function renderText(raw) {
   return marked.parse(raw);
 }
@@ -27,7 +29,7 @@ function renderText(raw) {
 function addMsg(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  if (role === 'assistant') {
+  if (role === 'assistant' || role === 'user') {
     const body = document.createElement('div');
     body.className = 'msg-body';
     body.innerHTML = renderText(text);
@@ -70,6 +72,8 @@ async function sendMsg() {
   if (!text) return;
   input.value = '';
   _mirror.textContent = '';
+  input.style.height = '';
+  terminal.style.bottom = '';
   input.focus(); // synchronous — keeps iOS keyboard open
   const ts = fmtTs();
   addMsg('user', `${ts} ${text}`);
@@ -215,7 +219,12 @@ async function init() {
 const _mirror = document.getElementById('input-mirror');
 const _inputCursor = document.getElementById('input-cursor');
 const _msgInput = document.getElementById('msg-input');
-_msgInput.addEventListener('input', () => { _mirror.textContent = _msgInput.value; });
+_msgInput.addEventListener('input', () => {
+  _mirror.textContent = _msgInput.value;
+  _msgInput.style.height = '0';
+  _msgInput.style.height = _msgInput.scrollHeight + 'px';
+  terminal.style.bottom = document.getElementById('input-bar').offsetHeight + 'px';
+});
 _msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
 _msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; });
 _msgInput.addEventListener('keydown', e => {
