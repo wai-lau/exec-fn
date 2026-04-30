@@ -118,7 +118,7 @@ function createBlock(c, track) {
   const block = document.createElement('div');
   block.className = 'dir-block' + (bg ? '' : ' plain');
   block.dataset.id = c.id;
-  block.style.cssText = `${bg}${border}top:${topPx}px;height:${heightPx}px;`;
+  block.style.cssText = `${bg}${border}top:${topPx + 2}px;height:${Math.max(13, heightPx - 2)}px;`;
 
   const titleEl = document.createElement('div');
   titleEl.className = 'dir-block-title';
