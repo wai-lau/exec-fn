@@ -10,23 +10,6 @@ A personal productivity server that lives on a DigitalOcean droplet and helps me
 Claude (Sonnet) wakes up at **4:30 AM** every day, reviews what happened, writes durable facts into
 a profile, and clears the slate for the new day. The rest is a web app I actually use.
 
-```
-                    ┌─────────────┐
-                    │  nginx SSL  │  wai-lau.net
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │   FastAPI   │  port 8080
-                    │  main.py    │
-                    └──────┬──────┘
-              ┌────────────┼────────────┐
-              │            │            │
-         ┌────▼───┐  ┌────▼───┐  ┌────▼────┐
-         │ kanban │  │  chat  │  │ prophec │
-         │rd.json │  │ Claude │  │  ies    │
-         └────────┘  └────────┘  └─────────┘
-```
-
 ---
 
 ## pages (っ˘ω˘ς )
@@ -60,10 +43,16 @@ activity_log.json
   🧹 Haiku purges expired notes
        │
        ▼
+  📅 GCal import — pulls events 14 days ahead as cards
+       │
+       ▼
   📦 archives the log → activity_log_MMDD.json
        │
        ▼
-  💤 chat.json cleared, new day begins
+  🗺️  clears dir_start_min from all cards (timeline resets)
+       │
+       ▼
+  💤 chat.json cleared, profile deduped, new day begins
 ```
 
 ---
@@ -124,11 +113,7 @@ docker cp api/main.py exec-fn-api-1:/app/main.py
 docker compose -f /exec-fn/docker-compose.yml restart api
 ```
 
-**before every commit:**
-```bash
-~/.local/bin/ruff check api/pipeline.py api/main.py
-.git/hooks/pre-commit  # checks JS syntax in templates
-```
+**pre-commit hook runs automatically:** ruff on staged `.py` files, JS syntax + ESLint on templates, shellcheck on `.sh` files. Run `.git/hooks/pre-commit` manually to check early.
 
 ---
 
@@ -141,4 +126,4 @@ docker compose -f /exec-fn/docker-compose.yml restart api
 
 ---
 
-*built with love and executive dysfunction* (╥﹏╥)
+*built with love and dysfunction* (╥﹏╥)

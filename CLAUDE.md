@@ -23,9 +23,7 @@ docker compose up -d --build
 
 **COMMIT after each discrete fix.** Don't batch.
 
-**RUN RUFF BEFORE EVERY COMMIT.** `~/.local/bin/ruff check api/pipeline.py api/main.py` must pass clean.
-
-**PRE-COMMIT HOOK** checks JS syntax in all HTML templates. Run `.git/hooks/pre-commit` before committing.
+**PRE-COMMIT HOOK** runs automatically on commit: ruff on staged `.py` files, JS syntax + ESLint on HTML templates, shellcheck on `.sh` files. Run `.git/hooks/pre-commit` manually to check before committing.
 
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
 
@@ -195,9 +193,11 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 1. Read today's `activity_log.json`
 2. **Sonnet retrospective** — extract durable facts only (preferences, relationships, recurring habits) from the day's activity, append to `profile.json`. Never writes time-bound, event-specific, or task-status entries.
 3. **Haiku purge** — remove time-specific expired notes from `profile.json`
-4. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
-5. Clear `chat.json`
-6. Dedupe `profile.json` notes
+4. **GCal import** — pull calendar events 14 days ahead as cards
+5. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
+6. Clear `dir_start_min` from all cards (resets directives timeline positions)
+7. Clear `chat.json`
+8. Dedupe `profile.json` notes
 
 ---
 
