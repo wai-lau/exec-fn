@@ -70,14 +70,14 @@ body { overflow: hidden !important; }
 .card-due { font-size: 0.62rem; }
 .sortable-ghost { opacity: 0.2; }
 #rd-search {
-  position: fixed; top: 8px; right: 10px; z-index: 21;
-  background: none; border: none; border-bottom: 1px solid rgba(0,255,65,0.18);
+  position: fixed; top: 6px; right: 10px; z-index: 30;
+  background: none; border: none; outline: none;
   color: rgba(0,255,65,0.7); font-family: 'Iosevka Mayukai Monolite', monospace;
-  font-weight: 500; font-size: 0.72rem; padding: 3px 4px; width: 120px;
-  outline: none; text-align: right;
+  font-weight: 500; font-size: 0.72rem; padding: 3px 4px; width: 110px;
+  text-align: right;
 }
-#rd-search::placeholder { color: rgba(0,255,65,0.25); }
-#rd-search:focus { border-bottom-color: rgba(0,255,65,0.5); color: rgba(0,255,65,0.9); }
+#rd-search::placeholder { color: rgba(0,255,65,0.3); }
+#rd-search:focus { color: rgba(0,255,65,0.95); }
 .card.search-hide { display: none; }
 </style>
 
@@ -93,7 +93,7 @@ body { overflow: hidden !important; }
   </div>
 </div>
 
-<input id="rd-search" type="text" placeholder="search" autocomplete="off">
+<input id="rd-search" type="text" placeholder="...search" autocomplete="off" spellcheck="false">
 
 <div class="rd-board" id="board">
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
