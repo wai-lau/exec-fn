@@ -312,14 +312,8 @@ def import_gcal_cards(days_ahead: int = 365) -> dict:
 
     rd = _load_rd()
 
-    # Dedup by gcal_id first, then fall back to title+date
     existing_gcal_ids = {c["gcal_id"] for c in rd.get("cards", []) if c.get("gcal_id")}
-    existing_keys = {(c.get("title", "").lower().strip(), (c.get("due_date") or "")[:10]) for c in rd.get("cards", [])}
-    to_classify = [
-        ev for ev in raw
-        if ev.get("id") not in existing_gcal_ids
-        and (ev["summary"].lower(), ev["start"][:10]) not in existing_keys
-    ]
+    to_classify = [ev for ev in raw if ev.get("id") not in existing_gcal_ids]
 
     # Haiku classify
     classified = _haiku_classify_events(to_classify)
