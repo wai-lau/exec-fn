@@ -90,12 +90,10 @@ body.pr-dragging .pr-unschedule.drag-over {
 <div class="pr-toast" id="pr-toast"></div>
 <div class="pr-unschedule" id="pr-unschedule">unschedule</div>
 
+<script src="/card-style.js"></script>
 <script src="/card-dialog.js"></script>
 
 <script>
-const CAT_HUE = {Book:193, Self:193, Social:130, Interfacing:36, Hobby:8};
-const CAT_LIGHT = {Book:0, Self:0, Social:0, Interfacing:0, Hobby:0};
-const CAT_SAT   = {Social:-20, Interfacing:+35, Self:+35, Hobby:+10, Book:+30};
 const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
 const SIZE_MIN = {chore:30, task:90, project:240, titan:480, book:60};
 
@@ -126,16 +124,6 @@ function cardHeight(c) {
   return Math.max(44, Math.min(220, Math.round(mins * 0.75))) + 'px';
 }
 
-function cardBg(c) {
-  const h = CAT_HUE[c.category];
-  if (!h) return {bg:'', dark:false};
-  const ds = CAT_SAT[c.category] || 0;
-  const dl = CAT_LIGHT[c.category] || 0;
-  const dark = ['chore','task','book'].includes(c.size);
-  const col = `hsl(${h},${75+ds}%,${68+dl}%)`;
-  if (dark) return {bg:`background:#0d0d0d;color:${col};border-color:hsl(${h},${65+ds}%,${60+dl}%);`, dark:true};
-  return {bg:`background:hsl(${h},${50+ds}%,${54+dl}%);`, dark:false};
-}
 
 function isOverdue(card, dayIso) {
   if (!card.due_date) return false;
@@ -143,7 +131,7 @@ function isOverdue(card, dayIso) {
 }
 
 function renderCard(c, dayIso) {
-  const {bg, dark} = cardBg(c);
+  const {bg, border, dark} = cardStyle(c);
   const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(0,255,65,0.88)';
   const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(0,255,65,0.4)';
   const h = cardHeight(c);
@@ -154,7 +142,7 @@ function renderCard(c, dayIso) {
   const due = c.due_date ? `<span style="opacity:0.45">${c.due_date.slice(5)}</span>` : '';
   const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
   const dur = mins >= 60 ? `${Math.floor(mins/60)}h${mins%60?mins%60+'m':''}` : `${mins}m`;
-  return `<div class="pr-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}height:${h};min-height:${h}">
+  return `<div class="pr-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}${border}height:${h};min-height:${h}">
     ${over}
     <div class="pr-card-title" style="color:${titleC}">${c.title}${reminder}</div>
     <div class="pr-card-meta" style="color:${metaC}">

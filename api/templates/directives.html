@@ -44,7 +44,7 @@ body { overflow: hidden !important; }
 .dir-tl-labels { width: 44px; flex-shrink: 0; position: relative; }
 .dir-tl-label {
   position: absolute; right: 8px; transform: translateY(-50%);
-  font-size: 0.6rem; opacity: 0.6; white-space: nowrap; font-family: monospace;
+  font-size: 0.6rem; opacity: 1; white-space: nowrap; font-family: monospace;
   color: rgba(0,255,65,1);
 }
 .dir-tl-track { flex: 1; position: relative; border-left: 1px solid rgba(0,255,65,0.12); }
@@ -65,12 +65,10 @@ body { overflow: hidden !important; }
 
 
 </div>
+<script src="/card-style.js"></script>
 <script src="/card-dialog.js"></script>
 
 <script>
-const CAT_HUE = {Book:193, Self:193, Social:130, Interfacing:36, Hobby:8};
-const CAT_LIGHT = {Book:0, Self:0, Social:0, Interfacing:0, Hobby:0};
-const CAT_SAT   = {Social:-20, Interfacing:+35, Self:+35, Hobby:+10, Book:+30};
 const SIZE_MIN = {chore:30, task:90, project:240, titan:480, book:60};
 
 const TL_PX = 1;           // 1px per minute
@@ -89,16 +87,6 @@ function isoToday() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function cardBgDirectives(c) {
-  const h = CAT_HUE[c.category];
-  if (!h) return {bg:'', dark:false};
-  const ds = CAT_SAT[c.category] || 0;
-  const dl = CAT_LIGHT[c.category] || 0;
-  const dark = ['chore','task','book'].includes(c.size);
-  const col = `hsl(${h},${75+ds}%,${68+dl}%)`;
-  if (dark) return {bg:`background:#0d0d0d;color:${col};border-color:hsl(${h},${65+ds}%,${60+dl}%);`, dark:true};
-  return {bg:`background:hsl(${h},${50+ds}%,${54+dl}%);`, dark:false};
-}
 
 
 function computeStartTimes(cards) {
@@ -117,7 +105,7 @@ function durLabel(min) {
 }
 
 function createBlock(c, track) {
-  const {bg, dark} = cardBgDirectives(c);
+  const {bg, border, dark} = cardStyle(c);
   const durMin = Math.max(SNAP, snapMin(c.estimated_time || SIZE_MIN[c.size] || 60));
   c._durMin = durMin;
   const topPx = Math.max(0, (c._startMin - TL_START) * TL_PX);
@@ -128,7 +116,7 @@ function createBlock(c, track) {
   const block = document.createElement('div');
   block.className = 'dir-block' + (bg ? '' : ' plain');
   block.dataset.id = c.id;
-  block.style.cssText = `${bg}top:${topPx}px;height:${heightPx}px;`;
+  block.style.cssText = `${bg}${border}top:${topPx}px;height:${heightPx}px;`;
 
   const titleEl = document.createElement('div');
   titleEl.className = 'dir-block-title';
@@ -292,7 +280,7 @@ function buildSchedule(cards) {
       const lbl = document.createElement('div');
       lbl.className = 'dir-tl-label';
       lbl.style.top = y + 'px';
-      lbl.textContent = h > 12 ? `${h-12}p` : h === 12 ? '12p' : `${h}a`;
+      lbl.textContent = String(h).padStart(2, '0');
       labels.appendChild(lbl);
 
       const hline2 = document.createElement('div');
