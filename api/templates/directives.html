@@ -22,15 +22,16 @@ body { overflow: hidden !important; }
 }
 .dir-block {
   position: absolute; left: 3px; right: 3px; box-sizing: border-box;
-  border-radius: 3px; padding: 5px 8px 14px;
-  cursor: grab; user-select: none; font-family: monospace;
+  border-radius: 4px; padding: 9px 11px 14px;
+  cursor: grab; user-select: none; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500;
   border: 1px solid transparent; overflow: hidden;
+  display: flex; flex-direction: column;
 }
 .dir-block:active { cursor: grabbing; }
 .dir-block.plain { background: rgba(0,255,65,0.06); border-color: rgba(0,255,65,0.18); }
-.dir-block-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.dir-block-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; word-break: break-word; }
 .dir-block-meta { font-size: 0.6rem; opacity: 0.45; margin-top: 2px; display: flex; gap: 8px; }
-.dir-block-notes { font-size: 0.58rem; opacity: 0.55; margin-top: 4px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.dir-block-notes { font-size: 0.7rem; opacity: 0.72; margin-top: 3px; line-height: 1.3; flex: 1; overflow: hidden; }
 .dir-block-time { font-size: 0.62rem; opacity: 0.5; }
 .dir-resize {
   position: absolute; bottom: 0; left: 0; right: 0; height: 8px;
@@ -133,7 +134,7 @@ function createBlock(c, track) {
   const resizeHandle = document.createElement('div');
   resizeHandle.className = 'dir-resize';
 
-  if (c.notes && heightPx >= 55) {
+  if (c.notes && heightPx >= 44) {
     const notesEl = document.createElement('div');
     notesEl.className = 'dir-block-notes';
     notesEl.style.color = metaC;
