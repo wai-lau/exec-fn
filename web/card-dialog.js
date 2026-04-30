@@ -39,6 +39,7 @@
       <option value="project">project &mdash; under 2 days</option>
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
+    <label>estimated time</label><input id="cd-et" type="text" placeholder="auto from size">
     <label id="cd-pages-label" style="display:none">pages</label>
     <div id="cd-pages-inputs" style="display:none;align-items:center;gap:8px">
       <input id="cd-current-page" type="number" placeholder="current" min="0" style="flex:1">
