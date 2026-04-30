@@ -253,37 +253,23 @@ async def mtg_page(request: Request):
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
-    _nf_style = (
-        "<style>"
-        "body,.App{background:#000!important;background-color:#000!important}"
-        ".exec-nav{transform:translateY(100%);transition:transform 0.25s ease}"
-        ".exec-nav.nf-open{transform:translateY(0)}"
-        "#nf-nav-btn{position:fixed;bottom:10px;right:10px;z-index:9999;"
-        "width:28px;height:28px;border-radius:50%;"
-        "background:rgba(0,0,0,0.55);border:1px solid rgba(0,255,65,0.3);"
-        "color:rgba(0,255,65,0.7);font-size:14px;cursor:pointer;"
-        "display:flex;align-items:center;justify-content:center;"
-        "transition:opacity 0.2s;}"
-        "#nf-nav-btn:hover{color:rgba(0,255,65,1);border-color:rgba(0,255,65,0.7);}"
-        "</style>"
-    )
+    _nf_style = "<style>body,.App{background:#000!important;background-color:#000!important}</style>"
     html = html.replace("</head>", _NAV_CSS + _nf_style + "</head>", 1)
     _nf_script = (
-        "<button id='nf-nav-btn' onclick='nfNavToggle()' title='Nav'>&#9776;</button>"
         "<script>"
-        "function nfNavToggle(){"
-        "var n=document.querySelector('.exec-nav');"
-        "var b=document.getElementById('nf-nav-btn');"
-        "if(!n)return;"
-        "n.classList.toggle('nf-open');"
-        "b.innerHTML=n.classList.contains('nf-open')?'&#x2715;':'&#9776;';"
-        "}"
+        # Prevent Escape from exiting native fullscreen — game handles Escape itself
+        "document.addEventListener('keydown',function(e){"
+        "if(e.key==='Escape'&&_waiFs)e.preventDefault();"
+        "},true);"
+        # Sync _waiFs state if fullscreen exits via browser UI (not Escape)
         "document.addEventListener('fullscreenchange',function(){"
-        "var n=document.querySelector('.exec-nav');"
-        "var b=document.getElementById('nf-nav-btn');"
-        "var hide=!!document.fullscreenElement;"
-        "if(n){n.style.visibility=hide?'hidden':'';}"
-        "if(b){b.style.visibility=hide?'hidden':'';}"
+        "if(!document.fullscreenElement&&_waiFs){"
+        "_waiFs=false;"
+        "document.body.classList.remove('wai-fs');"
+        "var btn=document.getElementById('wai-fs-btn');"
+        "if(btn)btn.textContent='⧆';"
+        "_clearFsLayout();"
+        "}"
         "});"
         "</script>"
     )
