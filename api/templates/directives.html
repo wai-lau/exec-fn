@@ -134,7 +134,11 @@ function createBlock(c, track) {
   const resizeHandle = document.createElement('div');
   resizeHandle.className = 'dir-resize';
 
-  if (c.notes && heightPx >= 44) {
+  if (durMin <= 30) {
+    block.style.justifyContent = 'center';
+    titleEl.style.marginBottom = '0';
+    block.append(titleEl, resizeHandle);
+  } else if (c.notes && heightPx >= 44) {
     const notesEl = document.createElement('div');
     notesEl.className = 'dir-block-notes';
     notesEl.style.color = metaC;
