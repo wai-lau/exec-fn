@@ -54,6 +54,23 @@ body { overflow: hidden !important; }
 .pr-pin { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; opacity: 0.4; }
 .pr-overdue { position: absolute; top: 4px; right: c.manual_pin ? 20px : 6px; font-size: 0.6rem; color: rgba(255,120,80,0.9); }
 .sortable-ghost { opacity: 0.15; }
+.pr-unschedule {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 58px; z-index: 25;
+  display: flex; align-items: center; justify-content: center;
+  font-family: monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255,80,80,0.0); border-top: 1px solid rgba(255,80,80,0);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  pointer-events: none;
+}
+body.pr-dragging .pr-unschedule {
+  pointer-events: all;
+  color: rgba(255,80,80,0.55); border-top-color: rgba(255,80,80,0.3);
+  background: rgba(255,30,30,0.06);
+}
+body.pr-dragging .pr-unschedule.drag-over {
+  color: rgba(255,80,80,1); border-top-color: rgba(255,80,80,0.8);
+  background: rgba(255,30,30,0.18);
+}
 .pr-toast {
   position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.9); border: 1px solid rgba(255,120,80,0.5);
@@ -72,6 +89,7 @@ body { overflow: hidden !important; }
 </div>
 <span id="pr-status" style="display:none"></span>
 <div class="pr-toast" id="pr-toast"></div>
+<div class="pr-unschedule" id="pr-unschedule">unschedule</div>
 
 <script src="/card-dialog.js"></script>
 
@@ -183,6 +201,20 @@ function buildBoard() {
 }
 
 function initSortable(days) {
+  const unscheduleEl = document.getElementById('pr-unschedule');
+
+  Sortable.create(unscheduleEl, {
+    group: { name: 'prophecies', put: true, pull: false },
+    animation: 120,
+    ghostClass: 'sortable-ghost',
+    onAdd(evt) {
+      const cardId = evt.item.dataset.id;
+      evt.item.remove();
+      queueUpdate(cardId, null, false);
+      setTimeout(() => load(weekStart), 700);
+    },
+  });
+
   days.forEach(day => {
     const el = document.getElementById('pr-list-' + day);
     if (!el) return;
@@ -192,18 +224,23 @@ function initSortable(days) {
       ghostClass: 'sortable-ghost',
       delay: 250,
       delayOnTouchOnly: true,
-      onStart() { _prDragging = true; },
+      onStart() {
+        _prDragging = true;
+        document.body.classList.add('pr-dragging');
+      },
       onEnd(evt) {
         _prDragging = false;
+        document.body.classList.remove('pr-dragging');
         const cardId = evt.item.dataset.id;
         const cardDue = evt.item.dataset.due;
         const toDay = evt.to.id.replace('pr-list-', '');
+
+        if (evt.to === unscheduleEl) return;
 
         if (cardDue && toDay > cardDue) {
           showToast(`Warning: scheduling after due date (${cardDue})`);
         }
         evt.item.querySelector('.pr-pin') || (evt.item.insertAdjacentHTML('afterbegin','<span class="pr-pin">&#128275;</span>'));
-        // Save new day + order for moved card; save order for all other cards in affected columns
         evt.to.querySelectorAll('.pr-card').forEach((el, i) => {
           if (el.dataset.id === cardId) queueUpdate(el.dataset.id, toDay, true, i);
           else queueUpdate(el.dataset.id, undefined, undefined, i);
@@ -216,6 +253,9 @@ function initSortable(days) {
       },
     });
   });
+
+  unscheduleEl.addEventListener('dragover', () => unscheduleEl.classList.add('drag-over'));
+  unscheduleEl.addEventListener('dragleave', () => unscheduleEl.classList.remove('drag-over'));
 }
 
 function queueUpdate(cardId, scheduledDay, manualPin, order) {
