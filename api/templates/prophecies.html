@@ -31,14 +31,15 @@ body { overflow: hidden !important; }
   position: fixed; top: 0; bottom: 0; left: 0; right: 0;
   display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
   gap: 1px; overflow: hidden;
-  background: rgba(0,255,65,0.04);
+  background: rgb(24,30,28);
 }
-.has-books .pr-board { top: var(--books-bar-h, 48px); }
+.has-books .pr-board { top: calc(var(--books-bar-h, 48px) - 1px); }
 .pr-col {
   display: flex; flex-direction: column;
-  background: rgba(0,0,0,0.25); min-width: 0; min-height: 0;
+  background: rgb(24,30,28); min-width: 0; min-height: 0;
 }
-.pr-col.weekend { background: rgba(220,220,220,0.03); }
+.pr-col.weekend { background: rgb(24,30,28); }
+.pr-col.weekend .pr-day-name { color: rgba(100,160,255,0.85); }
 .pr-col-hdr {
   flex-shrink: 0; padding: 6px 14px 8px;
   font-family: '04b25', monospace; font-size: 0.6rem; text-transform: uppercase;

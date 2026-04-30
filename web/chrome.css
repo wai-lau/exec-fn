@@ -27,8 +27,54 @@
   font-style: normal;
 }
 
+/* ── Palette ─────────────────────────────────────────────────────────────────
+   Use rgba(var(--X-rgb), α) for opacity variants of base colors.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* base */
+  --bg:               rgb(24, 30, 28);
+
+  /* primary green */
+  --green-rgb:        0, 255, 65;
+  --green:            rgb(0, 255, 65);
+
+  /* blue — books bar, prophecies accents */
+  --blue-rgb:         130, 170, 230;
+  --blue:             rgb(130, 170, 230);
+  --blue-bright:      rgb(160, 200, 255);        /* book hover */
+  --blue-weekend:     rgba(100, 160, 255, 0.85); /* sat/sun day name */
+
+  /* amber — books bar bottom border */
+  --amber:            rgba(210, 160, 80, 0.1);
+
+  /* orange — nixie clock */
+  --orange:           rgba(255, 160,  40, 0.95);
+  --orange-glow-a:    rgba(255, 120,   0, 0.9);  /* tight inner halo */
+  --orange-glow-b:    rgba(255, 100,   0, 0.6);  /* mid bloom */
+  --orange-glow-c:    rgba(255,  80,   0, 0.3);  /* outer bloom */
+
+  /* teal — lunch / dinner overlay blocks */
+  --teal-meal:        hsl(185deg, 50%, 54%, 0.3);
+  --teal-meal-border: hsl(185deg, 50%, 45%, 0.5);
+
+  /* red — exile button, unschedule drop zone */
+  --red-rgb:          255, 80, 80;
+  --red:              rgb(255, 80, 80);
+  --red-dark:         rgb(255, 30, 30);          /* drop zone bg tint */
+
+  /* neutrals */
+  --white:            rgb(255, 255, 255);
+  --gray-label:       rgba(200, 200, 200, 0.55); /* future hour labels */
+  --gray-past:        rgba(120, 120, 120, 0.35); /* past hour labels */
+
+  /* surfaces */
+  --surface-nav:      rgba(0, 0, 0, 0.5);        /* nav backdrop */
+  --surface-modal:    #0a0a0a;                    /* card dialog bg */
+  --surface-scrim:    rgba(0, 0, 0, 0.78);        /* modal overlay */
+}
+
 /* Base */
-html { background: #222; }
+html { background: var(--bg); }
 
 body {
   font-family: 'Iosevka Mayukai Monolite', monospace;
@@ -38,15 +84,15 @@ body {
   height: auto;
   min-height: 100vh;
   overflow-y: auto;
-  background: #222;
+  background: var(--bg);
 }
 
 /* Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0, 255, 65, 0.45); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 65, 0.85); }
-* { scrollbar-width: thin; scrollbar-color: rgba(0, 255, 65, 0.45) transparent; }
+::-webkit-scrollbar-thumb { background: rgba(var(--green-rgb), 0.45); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--green-rgb), 0.85); }
+* { scrollbar-width: thin; scrollbar-color: rgba(var(--green-rgb), 0.45) transparent; }
 
 /* Nav */
 .exec-nav {
@@ -59,13 +105,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-evenly;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--surface-nav);
   backdrop-filter: blur(14px);
-  border-top: 1px solid rgba(0, 255, 65, 0.12);
+  border-top: 1px solid rgba(var(--green-rgb), 0.12);
 }
 
 .exec-nav a {
-  color: rgba(0, 255, 65, 0.5);
+  color: rgba(var(--green-rgb), 0.5);
   text-decoration: none;
   display: flex;
   flex-direction: column;
@@ -76,8 +122,8 @@ body {
   max-width: 72px;
 }
 
-.exec-nav a:hover { color: rgba(0, 255, 65, 1); }
-.exec-nav a.active { color: rgba(0, 255, 65, 1); }
+.exec-nav a:hover { color: var(--green); }
+.exec-nav a.active { color: var(--green); }
 
 .exec-nav .nav-label {
   font-family: "04b25", monospace;
@@ -94,7 +140,7 @@ body {
   margin: 64px auto 80px;
   font-family: 'Iosevka Mayukai Monolite', monospace;
   font-weight: 500;
-  color: rgba(0, 255, 65, 1);
+  color: var(--green);
 }
 
 #content h2 {

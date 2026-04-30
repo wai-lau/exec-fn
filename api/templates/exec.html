@@ -32,7 +32,14 @@ function addMsg(role, text) {
   if (role === 'assistant' || role === 'user') {
     const body = document.createElement('div');
     body.className = 'msg-body';
-    body.innerHTML = renderText(text);
+    if (role === 'user') {
+      const m = text.match(/^(\[\S+ \S+ ET\])\s*/);
+      body.innerHTML = m
+        ? `<span class="msg-ts">${m[1]}</span> ` + renderText(text.slice(m[0].length))
+        : renderText(text);
+    } else {
+      body.innerHTML = renderText(text);
+    }
     div.appendChild(body);
   } else {
     div.textContent = text;
