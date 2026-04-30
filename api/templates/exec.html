@@ -6,7 +6,10 @@
 <div id="input-bar">
   <div id="input-line">
     <span id="input-prompt">wai@exec:~$</span>
-    <input id="msg-input" type="text" placeholder="" autofocus>
+    <div id="input-wrapper">
+      <div id="input-display" aria-hidden="true"><span id="input-mirror"></span><span id="input-cursor"></span></div>
+      <input id="msg-input" type="text" placeholder="" autofocus>
+    </div>
   </div>
 </div>
 
@@ -201,7 +204,13 @@ async function init() {
   }
 }
 
-document.getElementById('msg-input').addEventListener('keydown', e => {
+const _mirror = document.getElementById('input-mirror');
+const _inputCursor = document.getElementById('input-cursor');
+const _msgInput = document.getElementById('msg-input');
+_msgInput.addEventListener('input', () => { _mirror.textContent = _msgInput.value; });
+_msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
+_msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; });
+_msgInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 

@@ -25,7 +25,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 .msg.user { color:rgba(255,255,255,0.75); white-space:pre-wrap; }
 .msg.sys::before { content:"# "; }
 .msg.sys { color:rgba(0,255,65,0.26); font-size:0.72rem; }
-#blinkcursor { display:inline-block; width:8px; height:1em; background:rgba(0,255,65,0.9); vertical-align:text-bottom; animation:blink 1s step-end infinite; }
+#blinkcursor { display:inline-block; width:0.6em; height:1.1em; background:rgba(0,255,65,0.9); vertical-align:text-bottom; animation:blink 1s step-end infinite; }
 
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
@@ -50,10 +50,26 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   white-space:nowrap; user-select:none; padding-right:8px;
 }
 
+#input-wrapper { flex:1; position:relative; display:flex; align-items:center; min-width:0; }
+
+#input-display {
+  position:absolute; inset:0;
+  display:flex; align-items:center;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.88rem;
+  color:rgba(0,255,65,0.95); white-space:pre; pointer-events:none; overflow:hidden;
+}
+
+#input-cursor {
+  display:inline-block; width:0.6em; height:1.1em;
+  background:rgba(0,255,65,0.9); vertical-align:text-bottom;
+  animation:blink 1s step-end infinite;
+}
+
 #msg-input {
-  flex:1; background:none; border:none;
-  color:rgba(0,255,65,0.95); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.88rem;
-  padding:0; outline:none; caret-color:rgba(0,255,65,1);
+  width:100%; background:none; border:none;
+  color:transparent; caret-color:transparent;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.88rem;
+  padding:0; outline:none; position:relative;
 }
 #msg-input::placeholder { color:rgba(0,255,65,0.15); }
 
