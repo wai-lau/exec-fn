@@ -32,6 +32,8 @@ def _tool_create_card(input_: dict) -> dict:
     }
     if is_reminder:
         new_card["is_reminder"] = True
+    if input_.get("is_event"):
+        new_card["is_event"] = True
     if input_.get("notes"):
         new_card["notes"] = input_["notes"]
 

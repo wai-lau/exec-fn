@@ -213,7 +213,7 @@ def build_morning() -> dict:
     for c in rd.get("cards", []):
         c.pop("dir_start_min", None)
         sd = c.get("scheduled_day")
-        if sd and sd < today_iso and c.get("column") in ("rd", "hq"):
+        if sd and sd < today_iso and c.get("column") in ("rd", "hq") and not c.get("is_event"):
             c["scheduled_day"] = today_iso
     _save_rd(rd)
 

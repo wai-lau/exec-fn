@@ -86,6 +86,7 @@ def _chat_tools() -> list:
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted. Omit for reminders."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context when possible."},
                     "is_reminder": {"type": "boolean", "description": "True for calendar reminders — no action needed, no size or estimated_time."},
+                    "is_event": {"type": "boolean", "description": "True for one-time scheduled events (concerts, dinners out, meetings, appointments, shows) that should NOT carry over if missed. False for tasks/todos that should roll over."},
                 },
                 "required": ["title", "category"],
             },
