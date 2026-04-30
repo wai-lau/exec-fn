@@ -307,6 +307,18 @@ function buildSchedule(cards) {
     }
   }
 
+  [
+    {label: 'lunch', start: 12*60, end: 13*60},
+    {label: 'dinner', start: 18*60+30, end: 20*60},
+  ].forEach(({label, start, end}) => {
+    const el = document.createElement('div');
+    el.style.cssText = `position:absolute;left:3px;right:3px;top:${(start-TL_START)*TL_PX}px;height:${(end-start)*TL_PX}px;`
+      + `background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:3px;`
+      + `display:flex;align-items:center;padding:0 8px;box-sizing:border-box;pointer-events:none;`;
+    el.innerHTML = `<span style="font-family:monospace;font-size:0.7rem;color:rgba(255,255,255,0.2)">${label}</span>`;
+    track.appendChild(el);
+  });
+
   cards.forEach(c => track.appendChild(createBlock(c, track)));
   computeColumns(cards);
   applyColumnLayout(cards, track);
