@@ -253,7 +253,7 @@ async def mtg_page(request: Request):
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
-    _nf_style = "<style>body,.App{background:#000!important;background-color:#000!important}</style>"
+    _nf_style = "<style>body,.App{background:#000!important;background-color:#000!important}#root{padding-bottom:58px;box-sizing:border-box}</style>"
     html = html.replace("</head>", _NAV_CSS + _nf_style + "</head>", 1)
     _nf_script = (
         "<script>"
