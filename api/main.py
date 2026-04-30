@@ -310,9 +310,41 @@ async def mtg_page(request: Request):
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
-    html = html.replace("</head>", _NAV_CSS + "<style>body,.App{background:#000!important;background-color:#000!important}.exec-nav{top:0;bottom:0;left:0;right:auto;width:52px;height:100vh;flex-direction:column;justify-content:flex-start;padding-top:16px;gap:8px;border-top:none;border-right:1px solid rgba(0,255,65,0.12)}</style>" + "</head>", 1)
-    _fs_script = '<script>document.addEventListener("fullscreenchange",function(){var n=document.querySelector(".exec-nav");if(n)n.style.display=document.fullscreenElement?"none":"flex";});</script>'
-    html = html.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + _fs_script + "</body>", 1)
+    _nf_style = (
+        "<style>"
+        "body,.App{background:#000!important;background-color:#000!important}"
+        ".exec-nav{transform:translateY(100%);transition:transform 0.25s ease}"
+        ".exec-nav.nf-open{transform:translateY(0)}"
+        "#nf-nav-btn{position:fixed;bottom:10px;right:10px;z-index:9999;"
+        "width:28px;height:28px;border-radius:50%;"
+        "background:rgba(0,0,0,0.55);border:1px solid rgba(0,255,65,0.3);"
+        "color:rgba(0,255,65,0.7);font-size:14px;cursor:pointer;"
+        "display:flex;align-items:center;justify-content:center;"
+        "transition:opacity 0.2s;}"
+        "#nf-nav-btn:hover{color:rgba(0,255,65,1);border-color:rgba(0,255,65,0.7);}"
+        "</style>"
+    )
+    html = html.replace("</head>", _NAV_CSS + _nf_style + "</head>", 1)
+    _nf_script = (
+        "<button id='nf-nav-btn' onclick='nfNavToggle()' title='Nav'>&#9776;</button>"
+        "<script>"
+        "function nfNavToggle(){"
+        "var n=document.querySelector('.exec-nav');"
+        "var b=document.getElementById('nf-nav-btn');"
+        "if(!n)return;"
+        "n.classList.toggle('nf-open');"
+        "b.innerHTML=n.classList.contains('nf-open')?'&#x2715;':'&#9776;';"
+        "}"
+        "document.addEventListener('fullscreenchange',function(){"
+        "var n=document.querySelector('.exec-nav');"
+        "var b=document.getElementById('nf-nav-btn');"
+        "var hide=!!document.fullscreenElement;"
+        "if(n){n.style.visibility=hide?'hidden':'';}"
+        "if(b){b.style.visibility=hide?'hidden':'';}"
+        "});"
+        "</script>"
+    )
+    html = html.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + _nf_script + "</body>", 1)
     return HTMLResponse(html)
 
 
