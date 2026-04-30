@@ -7,8 +7,8 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   color:rgba(0,255,65,0.9);
 }
 .msg { margin-bottom:12px; max-width:680px; overflow-wrap:break-word; }
-.msg.assistant::before { content:"> "; opacity:0.4; }
-.msg.assistant { color:rgba(0,255,65,0.92); }
+.msg.assistant::before { content:"> "; opacity:0.4; flex-shrink:0; }
+.msg.assistant { color:rgba(0,255,65,0.92); display:flex; align-items:flex-start; }
 .msg.assistant p { margin:0 0 6px; }
 .msg.assistant p:last-child { margin-bottom:0; }
 .msg.assistant strong { color:rgba(0,255,65,1); font-weight:bold; }
@@ -21,6 +21,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 .msg.assistant ul, .msg.assistant ol { margin:4px 0 4px 16px; padding:0; }
 .msg.assistant li { margin-bottom:2px; }
 .msg.assistant h1, .msg.assistant h2, .msg.assistant h3 { color:rgba(0,255,65,1); font-size:1em; font-weight:bold; margin:8px 0 4px; }
+.msg-body { flex:1; min-width:0; }
 .msg.user::before { content:"$ "; opacity:0.5; }
 .msg.user { color:rgba(255,255,255,0.75); white-space:pre-wrap; }
 .msg.sys::before { content:"# "; }

@@ -30,17 +30,18 @@ body { overflow: hidden !important; }
 .dir-block.plain { background: rgba(0,255,65,0.06); border-color: rgba(0,255,65,0.18); }
 .dir-block-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 .dir-block-meta { font-size: 0.6rem; opacity: 0.45; margin-top: 2px; display: flex; gap: 8px; }
+.dir-block-notes { font-size: 0.58rem; opacity: 0.55; margin-top: 4px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .dir-block-time { font-size: 0.62rem; opacity: 0.5; }
 .dir-resize {
   position: absolute; bottom: 0; left: 0; right: 0; height: 8px;
-  cursor: ns-resize; background: rgba(0,255,65,0.08);
+  cursor: ns-resize; background: transparent;
   display: flex; align-items: center; justify-content: center;
 }
 .dir-resize::after {
   content: ''; display: block; width: 28px; height: 2px;
-  background: rgba(0,255,65,0.3); border-radius: 1px;
+  background: #fff; border-radius: 1px;
 }
-.dir-resize:hover { background: rgba(0,255,65,0.2); }
+.dir-resize:hover { background: transparent; }
 .dir-tl-labels { width: 44px; flex-shrink: 0; position: relative; }
 .dir-tl-label {
   position: absolute; right: 8px; transform: translateY(-50%);
@@ -132,7 +133,15 @@ function createBlock(c, track) {
   const resizeHandle = document.createElement('div');
   resizeHandle.className = 'dir-resize';
 
-  block.append(titleEl, metaEl, resizeHandle);
+  if (c.notes && heightPx >= 55) {
+    const notesEl = document.createElement('div');
+    notesEl.className = 'dir-block-notes';
+    notesEl.style.color = metaC;
+    notesEl.textContent = c.notes;
+    block.append(titleEl, metaEl, notesEl, resizeHandle);
+  } else {
+    block.append(titleEl, metaEl, resizeHandle);
+  }
 
   // drag to move
   function startDrag(startClientY, getY) {
@@ -312,12 +321,12 @@ function buildSchedule(cards) {
   const nowMin = now.getHours() * 60 + now.getMinutes();
   if (nowMin >= TL_START && nowMin <= TL_END) {
     const nowY = (nowMin - TL_START) * TL_PX;
+    const pastOverlay = document.createElement('div');
+    pastOverlay.style.cssText = `position:absolute;left:0;right:0;top:0;height:${nowY}px;background:rgba(80,80,80,0.45);pointer-events:none;z-index:4;`;
+    track.appendChild(pastOverlay);
     const nowLine = document.createElement('div');
     nowLine.id = 'dir-now-line';
-    nowLine.style.cssText = `position:absolute;left:0;right:0;top:${nowY}px;border-top:1px solid rgba(255,255,255,0.7);pointer-events:none;z-index:5;`;
-    const dot = document.createElement('div');
-    dot.style.cssText = 'position:absolute;left:-4px;top:-4px;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.8);';
-    nowLine.appendChild(dot);
+    nowLine.style.cssText = `position:absolute;left:0;right:0;top:${nowY}px;border-top:3px solid #fff;box-shadow:0 0 4px #000,0 2px 4px #000;pointer-events:none;z-index:5;`;
     track.appendChild(nowLine);
   }
 
@@ -326,9 +335,9 @@ function buildSchedule(cards) {
   wrap.innerHTML = '';
   wrap.appendChild(tlWrap);
 
-  // autoscroll to current time (offset by 60px so there's context above)
+  // autoscroll to 2 hours before current time
   if (nowMin >= TL_START && nowMin <= TL_END) {
-    const scrollTarget = (nowMin - TL_START) * TL_PX - 60;
+    const scrollTarget = (nowMin - TL_START) * TL_PX - 120 * TL_PX;
     wrap.scrollTop = Math.max(0, scrollTarget);
   }
 }

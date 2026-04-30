@@ -27,8 +27,14 @@ function renderText(raw) {
 function addMsg(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  if (role === 'assistant') div.innerHTML = renderText(text);
-  else div.textContent = text;
+  if (role === 'assistant') {
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+    body.innerHTML = renderText(text);
+    div.appendChild(body);
+  } else {
+    div.textContent = text;
+  }
   terminal.appendChild(div);
   terminal.scrollTop = terminal.scrollHeight;
   return div;
@@ -37,14 +43,14 @@ function addMsg(role, text) {
 function addStreamDiv() {
   const div = document.createElement('div');
   div.className = 'msg assistant';
-  const span = document.createElement('span');
-  span.id = 'stream-span';
+  const body = document.createElement('div');
+  body.className = 'msg-body';
   const cur = document.createElement('span');
   cur.id = 'blinkcursor';
-  div.appendChild(span);
-  div.appendChild(cur);
+  body.appendChild(cur);
+  div.appendChild(body);
   terminal.appendChild(div);
-  return {div, span, cur};
+  return {div, body, cur};
 }
 
 function fmtTs() {
@@ -63,6 +69,7 @@ async function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
+  _mirror.textContent = '';
   input.focus(); // synchronous — keeps iOS keyboard open
   const ts = fmtTs();
   addMsg('user', `${ts} ${text}`);
@@ -73,7 +80,7 @@ async function sendMsg() {
 async function streamResponse() {
   streaming = true;
 
-  const {div, span, cur} = addStreamDiv();
+  const {div, body, cur} = addStreamDiv();
   let fullText = '';
 
   try {
@@ -101,7 +108,8 @@ async function streamResponse() {
         try { data = JSON.parse(line.slice(6)); } catch { continue; }
         if (data.type === 'text') {
           fullText += data.delta;
-          span.innerHTML = renderText(fullText);
+          body.innerHTML = renderText(fullText);
+          (body.lastElementChild || body).appendChild(cur);
           terminal.scrollTop = terminal.scrollHeight;
         } else if (data.type === 'tool_call') {
           const r = data.result || {};
