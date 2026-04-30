@@ -13,6 +13,20 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: BitLight;
+  src: url('/fonts/bitlight.1fe0875b.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "04b25";
+  src: url('/fonts/04b25.95438b7a.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 /* Base */
 body {
   font-family: 'Iosevka Mayukai Monolite', monospace;
@@ -63,7 +77,7 @@ body {
 .exec-nav a.active { color: rgba(0, 255, 65, 1); }
 
 .exec-nav .nav-label {
-  font-family: 'Iosevka Mayukai Monolite', monospace;
+  font-family: "04b25", monospace;
   font-size: 0.45rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -80,6 +94,7 @@ body {
 }
 
 #content h2 {
+  font-family: "04b25", monospace;
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
