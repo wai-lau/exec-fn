@@ -69,12 +69,13 @@ body { overflow: hidden !important; }
 <script src="/card-dialog.js"></script>
 
 <script>
+/* global cardStyle */
 const SIZE_MIN = {chore:30, task:90, project:240, titan:480, book:60};
 
 const TL_PX = 1;           // 1px per minute
-const TL_START = 6 * 60;   // 6am
-const TL_END   = 24 * 60;  // midnight
-const TL_H     = TL_END - TL_START; // 1080px
+const TL_START = 4 * 60;   // 4am
+const TL_END   = 28 * 60;  // 4am next day
+const TL_H     = TL_END - TL_START; // 1440px
 const SNAP     = 15;
 
 function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
@@ -269,18 +270,18 @@ function buildSchedule(cards) {
   track.className = 'dir-tl-track';
   track.style.height = TL_H + 'px';
 
-  for (let h = 6; h <= 24; h++) {
+  for (let h = 4; h <= 28; h++) {
     const y = (h * 60 - TL_START) * TL_PX;
 
     const hline = document.createElement('div');
     hline.style.cssText = `position:absolute;left:0;right:0;top:${y}px;border-top:1px solid rgba(0,255,65,0.2);pointer-events:none;`;
     track.appendChild(hline);
 
-    if (h < 24) {
+    if (h < 28) {
       const lbl = document.createElement('div');
       lbl.className = 'dir-tl-label';
       lbl.style.top = y + 'px';
-      lbl.textContent = String(h).padStart(2, '0');
+      lbl.textContent = String(h % 24).padStart(2, '0');
       labels.appendChild(lbl);
 
       const hline2 = document.createElement('div');
@@ -295,7 +296,7 @@ function buildSchedule(cards) {
   ].forEach(({label, start, end}) => {
     const el = document.createElement('div');
     el.style.cssText = `position:absolute;left:3px;right:3px;top:${(start-TL_START)*TL_PX}px;height:${(end-start)*TL_PX}px;z-index:4;`
-      + `background:hsl(185,50%,54%,0.9);border:1px solid hsl(185,50%,45%);border-radius:3px;`
+      + `background:hsl(185,50%,54%,0.5);border:1px solid hsl(185,50%,45%,0.5);border-radius:3px;`
       + `display:flex;align-items:center;justify-content:center;box-sizing:border-box;pointer-events:none;`;
     el.innerHTML = `<span style="font-family:monospace;font-size:0.7rem;color:rgba(0,0,0,0.8)">[ ${label} ]</span>`;
     track.appendChild(el);
