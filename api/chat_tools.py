@@ -53,7 +53,6 @@ def _tool_move_card(input_: dict) -> dict:
     elif card["column"] == "hq" and from_col != "hq":
         from helpers import _now_et
         card["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
-        card["manual_pin"] = True
     _save_rd(rd)
     _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col=card["column"])
     return {"ok": True, "id": card["id"], "title": card["title"], "column": card["column"]}

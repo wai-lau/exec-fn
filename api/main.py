@@ -354,7 +354,6 @@ def _log_card_change(c: dict, old: dict | None, source: str):
             c["manual_pin"] = False
         elif c.get("column") == "hq" and old.get("column") != "hq":
             c["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
-            c["manual_pin"] = True
     elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
         _append_rd_log("updated", c.get("title", cid), source=source)
 
