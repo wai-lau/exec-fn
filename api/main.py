@@ -253,10 +253,17 @@ async def mtg_page(request: Request):
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
-    _nf_style = "<style>body,.App{background:#000!important;background-color:#000!important}#root{padding-bottom:58px;box-sizing:border-box}</style>"
+    _nf_style = "<style>body,.App{background:#000!important;background-color:#000!important}#root{box-sizing:border-box}</style>"
     html = html.replace("</head>", _NAV_CSS + _nf_style + "</head>", 1)
     _nf_script = (
         "<script>"
+        # Pad #root to match nav height so game doesn't render behind it
+        "function _applyNavPad(){"
+        "var nav=document.querySelector('.exec-nav');"
+        "var root=document.getElementById('root');"
+        "if(nav&&root)root.style.paddingBottom=nav.offsetHeight+'px';"
+        "}"
+        "document.addEventListener('DOMContentLoaded',_applyNavPad);"
         # Prevent Escape from exiting native fullscreen — game handles Escape itself
         "document.addEventListener('keydown',function(e){"
         "if(e.key==='Escape'&&_waiFs)e.preventDefault();"
