@@ -6,7 +6,6 @@
 .cd-ov { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
 .cd-box { background:#0a0a0a; border:1px solid rgba(0,255,65,0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; }
-.cd-box-title { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.15em; color:rgba(0,255,65,0.6); margin-bottom:16px; }
 .cd-box label { display:block; font-size:0.6rem; color:rgba(0,255,65,0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
 .cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(0,255,65,0.2); color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
 .cd-box select option { background:#111; }
@@ -16,12 +15,10 @@
 .cd-btn:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
 .cd-btn-exile { border-color:rgba(255,100,100,0.5) !important; color:rgba(255,120,120,0.8) !important; }
 .cd-btn-exile:hover { border-color:rgba(255,100,100,0.9) !important; color:rgba(255,130,130,1) !important; }
-.cd-dark .cd-box-title { color:inherit !important; opacity:0.8; }
 .cd-dark label { color:inherit !important; opacity:0.55; }
 .cd-dark input,.cd-dark select,.cd-dark textarea { color:inherit !important; background:rgba(255,255,255,0.04) !important; border-color:rgba(255,255,255,0.12) !important; }
 .cd-dark .cd-btn { border-color:rgba(255,255,255,0.25) !important; color:inherit !important; opacity:0.8; }
 .cd-dark .cd-btn:hover { opacity:1; }
-.cd-bright .cd-box-title { color:rgba(0,0,0,0.6) !important; }
 .cd-bright label { color:rgba(0,0,0,0.5) !important; }
 .cd-bright input,.cd-bright select,.cd-bright textarea { color:rgba(0,0,0,0.85) !important; background:rgba(0,0,0,0.08) !important; border-color:rgba(0,0,0,0.18) !important; }
 .cd-bright select option { background:#eee; color:#111; }
@@ -30,10 +27,10 @@
 </style>
 <div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
   <div class="cd-box">
-    <div class="cd-box-title">edit card</div>
     <label>title</label><input id="cd-title" type="text">
-    <label>category</label>
-    <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option></select>
+    <label>date</label>
+    <input id="cd-due" type="text" placeholder="optional">
+    <label>notes</label><textarea id="cd-notes"></textarea>
     <label id="cd-size-label">size</label>
     <select id="cd-size">
       <option value="chore">chore &mdash; under 1 hour</option>
@@ -42,9 +39,14 @@
       <option value="project">project &mdash; under 2 days</option>
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
-    <label>date</label>
-    <input id="cd-due" type="text" placeholder="optional">
-    <label>estimated time</label><input id="cd-et" type="text" placeholder="auto from size">
+    <label id="cd-pages-label" style="display:none">pages</label>
+    <div id="cd-pages-inputs" style="display:none;align-items:center;gap:8px">
+      <input id="cd-current-page" type="number" placeholder="current" min="0" style="flex:1">
+      <span style="opacity:0.4;flex-shrink:0">/</span>
+      <input id="cd-total-pages" type="number" placeholder="total" min="1" style="flex:1">
+    </div>
+    <label>category</label>
+    <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option></select>
     <label>recurrence</label>
     <select id="cd-recur">
       <option value="">— none —</option><option value="week">weekly</option><option value="bi-week">bi-weekly</option>
@@ -58,13 +60,6 @@
       <input id="cd-pin-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
       <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
     </label>
-    <label id="cd-pages-label" style="display:none">pages</label>
-    <div id="cd-pages-inputs" style="display:none;align-items:center;gap:8px">
-      <input id="cd-current-page" type="number" placeholder="current" min="0" style="flex:1">
-      <span style="opacity:0.4;flex-shrink:0">/</span>
-      <input id="cd-total-pages" type="number" placeholder="total" min="1" style="flex:1">
-    </div>
-    <label>notes</label><textarea id="cd-notes"></textarea>
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
         <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
