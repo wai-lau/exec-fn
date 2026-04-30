@@ -119,7 +119,7 @@ function createBlock(c, track) {
   const block = document.createElement('div');
   block.className = 'dir-block' + (bg ? '' : ' plain');
   block.dataset.id = c.id;
-  const meal = ['lunch','dinner'].includes((c.title||'').toLowerCase());
+  const meal = /lunch|dinner/i.test(c.title);
   block.style.cssText = `${meal ? 'backdrop-filter:blur(10px);background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.2)!important;' : bg + border}top:${topPx + 2}px;height:${Math.max(13, heightPx - 7)}px;`;
 
   const titleEl = document.createElement('div');
