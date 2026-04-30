@@ -90,6 +90,7 @@ body {
   width: min(720px, 90vw);
   margin: 64px auto 80px;
   font-family: 'Iosevka Mayukai Monolite', monospace;
+  font-weight: 500;
   color: rgba(0, 255, 65, 1);
 }
 
@@ -115,6 +116,7 @@ body {
   border: 1px solid rgba(0, 255, 65, 0.5);
   color: rgba(0, 255, 65, 0.85);
   font-family: 'Iosevka Mayukai Monolite', monospace;
+  font-weight: 500;
   font-size: 0.8rem;
   padding: 4px 12px;
   cursor: pointer;

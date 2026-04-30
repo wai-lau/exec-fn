@@ -5,14 +5,14 @@
 <style>
 .cd-ov { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
-.cd-box { background:#0a0a0a; border:1px solid rgba(0,255,65,0.25); padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; max-height:90vh; overflow-y:auto; }
+.cd-box { background:#0a0a0a; border:1px solid rgba(0,255,65,0.25); padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; }
 .cd-box-title { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.15em; color:rgba(0,255,65,0.6); margin-bottom:16px; }
 .cd-box label { display:block; font-size:0.6rem; color:rgba(0,255,65,0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
-.cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(0,255,65,0.2); color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
+.cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(0,255,65,0.2); color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
 .cd-box select option { background:#111; }
 .cd-box textarea { min-height:56px; }
 .cd-actions { display:flex; gap:8px; margin-top:18px; justify-content:space-between; align-items:center; }
-.cd-btn { background:none; border:1px solid rgba(0,255,65,0.4); color:rgba(0,255,65,0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
+.cd-btn { background:none; border:1px solid rgba(0,255,65,0.4); color:rgba(0,255,65,0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
 .cd-btn:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
 </style>
 <div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
