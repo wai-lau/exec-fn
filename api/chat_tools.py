@@ -47,6 +47,9 @@ def _tool_move_card(input_: dict) -> dict:
         return {"error": f"Card not found: {input_.get('id')}"}
     from_col = card.get("column")
     card["column"] = input_["column"]
+    if from_col == "hq" and card["column"] != "hq":
+        card["scheduled_day"] = None
+        card["manual_pin"] = False
     _save_rd(rd)
     _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col=card["column"])
     return {"ok": True, "id": card["id"], "title": card["title"], "column": card["column"]}

@@ -310,7 +310,7 @@ async def mtg_page(request: Request):
 async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
-    html = html.replace("</head>", _NAV_CSS + "<style>body,.App{background:#000!important;background-color:#000!important}#root{padding-bottom:52px;box-sizing:border-box}</style>" + "</head>", 1)
+    html = html.replace("</head>", _NAV_CSS + "<style>body,.App{background:#000!important;background-color:#000!important}.exec-nav{top:0;bottom:0;left:0;right:auto;width:52px;height:100vh;flex-direction:column;justify-content:flex-start;padding-top:16px;gap:8px;border-top:none;border-right:1px solid rgba(0,255,65,0.12)}</style>" + "</head>", 1)
     _fs_script = '<script>document.addEventListener("fullscreenchange",function(){var n=document.querySelector(".exec-nav");if(n)n.style.display=document.fullscreenElement?"none":"flex";});</script>'
     html = html.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + _fs_script + "</body>", 1)
     return HTMLResponse(html)
@@ -343,6 +343,19 @@ def api_rd():
     return _load_json("rd", {"columns": ["rd","hq","archives","exile"], "cards": []})
 
 
+def _log_card_change(c: dict, old: dict | None, source: str):
+    cid = c.get("id")
+    if old is None:
+        _append_rd_log("created", c.get("title", cid), source=source, column=c.get("column"))
+    elif old.get("column") != c.get("column"):
+        _append_rd_log("moved", c.get("title", cid), source=source, from_col=old["column"], to_col=c["column"])
+        if old.get("column") == "hq" and c.get("column") != "hq":
+            c["scheduled_day"] = None
+            c["manual_pin"] = False
+    elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
+        _append_rd_log("updated", c.get("title", cid), source=source)
+
+
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request, source: str = "core"):
     body = await request.json()
@@ -351,14 +364,7 @@ async def api_rd_patch(request: Request, source: str = "core"):
     old_cards = {c["id"]: c for c in data.get("cards", [])}
     new_cards = body.get("cards", [])
     for c in new_cards:
-        cid = c.get("id")
-        old = old_cards.get(cid)
-        if old is None:
-            _append_rd_log("created", c.get("title", cid), source=source, column=c.get("column"))
-        elif old.get("column") != c.get("column"):
-            _append_rd_log("moved", c.get("title", cid), source=source, from_col=old["column"], to_col=c["column"])
-        elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
-            _append_rd_log("updated", c.get("title", cid), source=source)
+        _log_card_change(c, old_cards.get(c.get("id")), source)
     new_ids = {c["id"] for c in new_cards}
     for cid, old in old_cards.items():
         if cid not in new_ids:
