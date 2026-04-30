@@ -280,8 +280,8 @@ async function flushUpdates() {
     });
     setStatus('saved');
     setTimeout(() => setStatus(''), 1500);
-  } catch {
-    setStatus('save error');
+  } catch(e) {
+    setStatus('save error: ' + e.message);
   }
 }
 
