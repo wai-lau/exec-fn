@@ -280,7 +280,7 @@ async function flushUpdates() {
     });
     setStatus('saved');
     setTimeout(() => setStatus(''), 1500);
-  } catch(e) {
+  } catch {
     setStatus('save error');
   }
 }

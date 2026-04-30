@@ -111,14 +111,6 @@ function computeStartTimes(cards) {
   });
 }
 
-function fmtTime(totalMins) {
-  const h = Math.floor(totalMins / 60) % 24;
-  const m = totalMins % 60;
-  const ampm = h >= 12 ? 'pm' : 'am';
-  const hr = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-  return `${hr}:${String(m).padStart(2,'0')}${ampm}`;
-}
-
 function durLabel(min) {
   return min >= 60 ? `${Math.floor(min/60)}h${min%60?min%60+'m':''}` : `${min}m`;
 }
@@ -373,7 +365,7 @@ async function saveEstimatedTime(cardId, mins) {
     }
     setStatus('saved');
     setTimeout(() => setStatus(''), 1200);
-  } catch(e) { setStatus('save error'); }
+  } catch { setStatus('save error'); }
 }
 
 

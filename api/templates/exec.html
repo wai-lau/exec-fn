@@ -184,16 +184,6 @@ async function streamResponse() {
   streaming = false;
 }
 
-async function clearChat() {
-  if (streaming) return;
-  await fetch('/api/chat', {method:'DELETE'});
-  messages = [];
-  stage = 'planning';
-  terminal.innerHTML = '';
-  document.getElementById('msg-input').disabled = false;
-  await init();
-}
-
 let spinnerTimer = null;
 let spinnerDelay = null;
 

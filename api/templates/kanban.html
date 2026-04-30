@@ -99,10 +99,6 @@ const CAT_HUE = {Book:193, Self:193, Social:130, Interfacing:36, Hobby:8};
 const CAT_LIGHT = {Book:0, Self:0, Social:0, Interfacing:0, Hobby:0};
 const CAT_SAT   = {Social:-20, Interfacing:+35, Self:+35, Hobby:+10, Book:+30};
 
-function isDarkCard(c) {
-  return c.size === 'chore' || c.size === 'task' || c.size === 'book';
-}
-
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
   if (h === undefined) return {bg:'', border:'', dark:false};
@@ -136,18 +132,6 @@ function fmtDate(iso) {
     return `${mm}/${dd} ${hh}:${min}`;
   }
   return `${mm}/${dd}`;
-}
-
-function fmtStartBefore(iso) {
-  if (!iso) return '';
-  const hasTime = iso.includes('T');
-  const d = hasTime ? new Date(iso) : new Date(iso + 'T12:00:00');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  if (!hasTime) return `${mm}/${dd}`;
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${mm}/${dd} ${hh}:${min}`;
 }
 
 function isUrgent(iso) {
@@ -210,14 +194,6 @@ function renderCol(col) {
   </div>`;
 }
 
-
-function reminderColor(c) {
-  const h = CAT_HUE[c.category];
-  if (h === undefined) return 'rgba(0,255,65,0.75)';
-  const ds = CAT_SAT[c.category] || 0;
-  const dl = CAT_LIGHT[c.category] || 0;
-  return `hsl(${h},${75+ds}%,${68+dl}%)`;
-}
 
 function _remChipHtml(c) {
   const date = c.due_date ? ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>` : '';
