@@ -166,8 +166,6 @@ function renderCard(c, dayIso) {
   const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
   const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const due = c.due_date ? `<span style="opacity:0.45">${c.due_date.slice(5)}</span>` : '';
-  const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
-  const dur = mins >= 60 ? `${Math.floor(mins/60)}h${mins%60?mins%60+'m':''}` : `${mins}m`;
   const hPx = parseInt(h);
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const notesHtml = (c.notes && hPx >= 68) ? `<div class="pr-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
