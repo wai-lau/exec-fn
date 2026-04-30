@@ -59,7 +59,7 @@ body { overflow: hidden !important; }
 .card:active { cursor: grabbing; }
 .card.plain { background: rgba(0,255,65,0.05); border-color: rgba(0,255,65,0.15); }
 .card.plain:hover { background: rgba(0,255,65,0.09); }
-.card-title { font-family: '04b25', monospace; font-size: 0.8rem; margin-bottom: 2px; }
+.card-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; }
 .card-desc { font-size: 0.7rem; margin-top: 3px; opacity: 0.72;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .card-foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 5px; }
@@ -109,7 +109,7 @@ function cardStyle(c) {
   const borderMid = `hsl(${h},${65+ds}%,${60+dl}%)`;
   const borderBright = `hsl(${h},${90+ds}%,${78+dl}%)`;
   if (size === 'chore') {
-    return {bg:`background:hsla(${h},${75+ds}%,${68+dl}%,0.10);color:${col};`, border:'border-color:transparent;', dark:true};
+    return {bg:`background:hsla(${h},${75+ds}%,${68+dl}%,0.15);color:${col};`, border:'border-color:transparent;', dark:true};
   } else if (size === 'task') {
     return {bg:`background:hsla(${h},${75+ds}%,${68+dl}%,0.25);color:${col};`, border:`border-color:${borderMid};`, dark:true};
   } else if (size === 'book') {
