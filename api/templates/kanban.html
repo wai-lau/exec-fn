@@ -69,6 +69,16 @@ body { overflow: hidden !important; }
 .card-badge { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
 .card-due { font-size: 0.62rem; }
 .sortable-ghost { opacity: 0.2; }
+#rd-search {
+  position: fixed; top: 8px; right: 10px; z-index: 21;
+  background: none; border: none; border-bottom: 1px solid rgba(0,255,65,0.18);
+  color: rgba(0,255,65,0.7); font-family: 'Iosevka Mayukai Monolite', monospace;
+  font-weight: 500; font-size: 0.72rem; padding: 3px 4px; width: 120px;
+  outline: none; text-align: right;
+}
+#rd-search::placeholder { color: rgba(0,255,65,0.25); }
+#rd-search:focus { border-bottom-color: rgba(0,255,65,0.5); color: rgba(0,255,65,0.9); }
+.card.search-hide { display: none; }
 </style>
 
 <div id="reminders-bar" class="rd-reminders"></div>
@@ -82,6 +92,8 @@ body { overflow: hidden !important; }
     <div class="rem-ov-list" id="rem-overflow-list"></div>
   </div>
 </div>
+
+<input id="rd-search" type="text" placeholder="search" autocomplete="off">
 
 <div class="rd-board" id="board">
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
@@ -130,7 +142,7 @@ function renderCard(c) {
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
   const dateC = bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'rgba(0,255,65,0.95)' : tc);
-  return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" style="${bg}${border}">
+  return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${c.title}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
     <div class="card-foot">
@@ -304,5 +316,15 @@ async function load() {
 }
 
 window.addEventListener('resize', _syncRemH);
+
+document.getElementById('rd-search').addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  document.querySelectorAll('#col-rd .card').forEach(el => {
+    const title = (el.dataset.title || '').toLowerCase();
+    const notes = (el.dataset.notes || '').toLowerCase();
+    el.classList.toggle('search-hide', !!q && !title.includes(q) && !notes.includes(q));
+  });
+});
+
 load();
 </script>
