@@ -23,7 +23,7 @@ a profile, and clears the slate for the new day. The rest is a web app I actuall
               │            │            │
          ┌────▼───┐  ┌────▼───┐  ┌────▼────┐
          │ kanban │  │  chat  │  │ prophec │
-         │rd.json │  │ Claude │  │  ies   │
+         │rd.json │  │ Claude │  │  ies    │
          └────────┘  └────────┘  └─────────┘
 ```
 
