@@ -21,7 +21,7 @@
     <label>title</label><input id="cd-title" type="text">
     <label>category</label>
     <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option></select>
-    <label>size</label>
+    <label id="cd-size-label">size</label>
     <select id="cd-size">
       <option value="chore">chore &mdash; under 1 hour</option>
       <option value="task">task &mdash; under 4 hours</option>
@@ -38,7 +38,7 @@
       <option value="month">monthly</option><option value="holiday">holiday (annual)</option><option value="birthday">birthday (annual)</option>
     </select>
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px">
-      <input id="cd-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)" onchange="document.getElementById('cd-pin-row').style.display=this.checked?'flex':'none'">
+      <input id="cd-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)" onchange="document.getElementById('cd-pin-row').style.display=this.checked?'flex':'none';document.getElementById('cd-size-label').style.display=this.checked?'none':'block';document.getElementById('cd-size').style.display=this.checked?'none':'block'">
       <span>reminder only &mdash; <span style="opacity:0.55;font-size:0.85em">no action needed</span></span>
     </label>
     <label id="cd-pin-row" style="display:none;align-items:center;gap:8px;cursor:pointer;margin-top:6px;margin-left:20px">
@@ -147,6 +147,8 @@
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
     document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
     document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
+    document.getElementById('cd-size-label').style.display = c.is_reminder ? 'none' : 'block';
+    document.getElementById('cd-size').style.display = c.is_reminder ? 'none' : 'block';
     document.getElementById('cd-notes').value = c.notes||'';
     document.getElementById('cd-modal').classList.add('open');
     document.getElementById('cd-title').focus();
@@ -162,7 +164,8 @@
     if (!c) return;
     c.title = document.getElementById('cd-title').value.trim() || c.title;
     c.category = document.getElementById('cd-cat').value;
-    c.size = document.getElementById('cd-size').value;
+    const isReminder = document.getElementById('cd-reminder').checked;
+    c.size = isReminder ? null : document.getElementById('cd-size').value;
     const etRaw = document.getElementById('cd-et').value;
     c.estimated_time = etRaw.trim() ? (_parseET(etRaw) ?? c.estimated_time ?? null) : (c.estimated_time ?? null);
     const dueRaw = document.getElementById('cd-due').value;

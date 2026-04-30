@@ -80,13 +80,14 @@ def _chat_tools() -> list:
                 "properties": {
                     "title": {"type": "string", "description": "Short title for the card."},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"], "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement; Book=reading/studying."},
-                    "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"], "description": "Size: chore (<45min), task (<3h), project (<6h), titan (6h+), book (long read)."},
+                    "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"], "description": "Size: chore (<45min), task (<3h), project (<6h), titan (6h+), book (long read). Omit for reminders."},
                     "notes": {"type": "string", "description": "Optional notes about the card."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
-                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted."},
+                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted. Omit for reminders."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context when possible."},
+                    "is_reminder": {"type": "boolean", "description": "True for calendar reminders — no action needed, no size or estimated_time."},
                 },
-                "required": ["title", "category", "size"],
+                "required": ["title", "category"],
             },
         },
         {

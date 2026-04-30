@@ -16,8 +16,9 @@ def _tool_create_card(input_: dict) -> dict:
     column = input_.get("column", "rd")
     min_order = min((c.get("order", 0) for c in cards if c.get("column") == column), default=0)
 
-    size = input_.get("size", "task")
-    estimated_time = input_.get("estimated_time") or _SIZE_MINUTES.get(size, 90)
+    is_reminder = input_.get("is_reminder", False)
+    size = None if is_reminder else input_.get("size", "task")
+    estimated_time = None if is_reminder else (input_.get("estimated_time") or _SIZE_MINUTES.get(size, 90))
 
     new_card = {
         "id": f"card-{int(_time.time() * 1000)}",
@@ -29,6 +30,8 @@ def _tool_create_card(input_: dict) -> dict:
         "due_date": input_.get("due_date") or None,
         "estimated_time": estimated_time,
     }
+    if is_reminder:
+        new_card["is_reminder"] = True
     if input_.get("notes"):
         new_card["notes"] = input_["notes"]
 
@@ -57,16 +60,18 @@ def _tool_move_card(input_: dict) -> dict:
     return {"ok": True, "id": card["id"], "title": card["title"], "column": card["column"]}
 
 
-def _tool_update_card(input_: dict) -> dict:
-    rd = _load_rd()
-    card = _find_card(rd, input_.get("id", ""))
-    if not card:
-        return {"error": f"Card not found: {input_.get('id')}"}
-    changed = []
-    for field in ("title", "category", "size", "notes", "due_date"):
-        if field in input_:
-            card[field] = input_[field]
-            changed.append(field)
+def _apply_reminder_flag(card: dict, input_: dict, changed: list) -> None:
+    card["is_reminder"] = input_["is_reminder"]
+    if input_["is_reminder"]:
+        card["size"] = None
+        card["estimated_time"] = None
+    changed.append("is_reminder")
+
+
+def _apply_size_time(card: dict, input_: dict, changed: list) -> None:
+    if "size" in input_:
+        card["size"] = input_["size"]
+        changed.append("size")
     if "estimated_time" in input_:
         card["estimated_time"] = input_["estimated_time"]
         changed.append("estimated_time")
@@ -74,6 +79,22 @@ def _tool_update_card(input_: dict) -> dict:
             new_size = _minutes_to_size(input_["estimated_time"])
             if new_size != card.get("size"):
                 card["size"] = new_size
+
+
+def _tool_update_card(input_: dict) -> dict:
+    rd = _load_rd()
+    card = _find_card(rd, input_.get("id", ""))
+    if not card:
+        return {"error": f"Card not found: {input_.get('id')}"}
+    changed = []
+    if "is_reminder" in input_:
+        _apply_reminder_flag(card, input_, changed)
+    for field in ("title", "category", "notes", "due_date"):
+        if field in input_:
+            card[field] = input_[field]
+            changed.append(field)
+    if not card.get("is_reminder"):
+        _apply_size_time(card, input_, changed)
     _save_rd(rd)
     extra = {"fields": changed}
     if "notes" in input_:
