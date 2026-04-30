@@ -207,6 +207,12 @@ def build_morning() -> dict:
         _RD_LOG.rename(archive_name)
     _RD_LOG.write_text("[]")
 
+    from helpers import _load_rd, _save_rd
+    rd = _load_rd()
+    for c in rd.get("cards", []):
+        c.pop("dir_start_min", None)
+    _save_rd(rd)
+
     if chat_path.exists():
         chat_path.unlink()
 

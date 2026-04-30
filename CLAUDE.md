@@ -176,17 +176,17 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
   "is_reminder": false,
   "recur_type": null,
   "scheduled_day": null,
-  "manual_pin": false
+  "dir_start_min": null
 }
 ```
 
 - `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
-- `manual_pin`: true when user manually dragged the card in Prophecies
+- `dir_start_min`: minutes from midnight — saved position on the directives timeline; cleared each morning
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
 - `size === 'book'`: shown in books bar on prophecies page; hidden from rd/hq columns in kanban
 
-**Recurring card revival**: when a card with `recur_type` is archived, a clone is auto-created in `rd` with reset `scheduled_day`/`manual_pin` and `due_date` advanced via `_next_recurrence()`.
+**Recurring card revival**: when a card with `recur_type` is archived, a clone is auto-created in `rd` with reset `scheduled_day` and `due_date` advanced via `_next_recurrence()`.
 
 ---
 

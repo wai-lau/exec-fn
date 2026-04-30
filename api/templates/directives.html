@@ -104,6 +104,7 @@ function computeStartTimes(cards) {
   const now = new Date();
   let cur = snapMin(Math.max(TL_START, now.getHours() * 60 + now.getMinutes()));
   return cards.map(c => {
+    if (c.dir_start_min != null) return c.dir_start_min;
     const start = cur;
     cur += Math.max(SNAP, snapMin(c.estimated_time || SIZE_MIN[c.size] || 60));
     return start;
@@ -353,10 +354,9 @@ function buildSchedule(cards) {
 async function saveCardOrder(cards) {
   const rd = await (await fetch('/api/rd')).json();
   const allCards = rd.cards || [];
-  const todayCards = new Set(cards.map(c => c.id));
   cards.forEach((c, i) => {
     const found = allCards.find(x => x.id === c.id);
-    if (found) found.order = i;
+    if (found) { found.order = i; found.dir_start_min = c._startMin; }
   });
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: allCards})});
 }
