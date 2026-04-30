@@ -351,7 +351,6 @@ def _log_card_change(c: dict, old: dict | None, source: str):
         _append_rd_log("moved", c.get("title", cid), source=source, from_col=old["column"], to_col=c["column"])
         if old.get("column") == "hq" and c.get("column") != "hq":
             c["scheduled_day"] = None
-            c["manual_pin"] = False
         elif c.get("column") == "hq" and old.get("column") != "hq":
             c["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
     elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
@@ -389,7 +388,7 @@ async def api_rd_patch(request: Request, source: str = "core"):
                 clone["column"] = "rd"
                 clone["due_date"] = next_due
                 clone["scheduled_day"] = None
-                clone["manual_pin"] = False
+
                 clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
                 revived.append(clone)
                 _append_rd_log("revived", c.get("title", c["id"]), source=source, next_due=next_due)

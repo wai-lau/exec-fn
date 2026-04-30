@@ -49,7 +49,6 @@ def _tool_move_card(input_: dict) -> dict:
     card["column"] = input_["column"]
     if from_col == "hq" and card["column"] != "hq":
         card["scheduled_day"] = None
-        card["manual_pin"] = False
     elif card["column"] == "hq" and from_col != "hq":
         from helpers import _now_et
         card["scheduled_day"] = _now_et().strftime("%Y-%m-%d")

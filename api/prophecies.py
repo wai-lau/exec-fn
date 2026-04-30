@@ -39,7 +39,7 @@ def get_week_data(start_iso: str | None = None) -> dict:
 
 
 def bulk_update_scheduled_days(updates: list[dict]) -> dict:
-    """Apply list of {id, scheduled_day?, manual_pin?, order?} updates to rd.json."""
+    """Apply list of {id, scheduled_day?, order?} updates to rd.json."""
     rd = _load_rd()
     cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
     changed = 0
@@ -57,12 +57,9 @@ def bulk_update_scheduled_days(updates: list[dict]) -> dict:
             if old_day != new_day:
                 card["scheduled_day"] = new_day
                 if new_day is None:
-                    card["manual_pin"] = False
                     card["column"] = "rd"
                     rd_orders = [c.get("order", 0) for c in rd.get("cards", []) if c.get("column") == "rd"]
                     card["order"] = (min(rd_orders) - 1) if rd_orders else 0
-                elif upd.get("manual_pin"):
-                    card["manual_pin"] = True
                 log_prophecy_change(cid, old_day, new_day, title=card.get("title", cid))
                 changed_this = True
 

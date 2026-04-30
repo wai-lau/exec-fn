@@ -341,7 +341,7 @@ def import_gcal_cards(days_ahead: int = 365) -> dict:
             "recur_type": ev.get("recur_type") or None,
             "gcal_id": ev.get("id") or None,
             "scheduled_day": None,
-            "manual_pin": False,
+
             "notes": "\n".join(notes_parts) or "",
         }
         cards.append(card)
