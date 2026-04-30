@@ -25,82 +25,11 @@ from auth import (
 
 _TMPL = Path("/app/templates")
 
-_NAV_CSS = """
-<style>
-  .exec-nav {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-    height: 58px; display: flex; align-items: center; justify-content: space-evenly;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(0,255,65,0.12);
-  }
-  .exec-nav a {
-    color: rgba(0, 255, 65, 0.5);
-    text-decoration: none;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    transition: color 0.2s; flex: 1; max-width: 72px;
-  }
-  .exec-nav a:hover { color: rgba(0, 255, 65, 1); }
-  .exec-nav a.active { color: rgba(0, 255, 65, 1); }
-  .exec-nav .nav-label {
-    font-family: 'Iosevka Mayukai Monolite', monospace;
-    font-size: 0.45rem; text-transform: uppercase; letter-spacing: 0.1em;
-  }
-</style>
-"""
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css">'
 
-_PAGE_CHROME = """
-<style>
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf') format('truetype'); font-weight:500; font-style:normal; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf') format('truetype'); font-weight:700; font-style:normal; }
-  body { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-style: normal; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(0, 255, 65, 0.45); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 65, 0.85); }
-  * { scrollbar-width: thin; scrollbar-color: rgba(0,255,65,0.45) transparent; }
-</style>
-""" + _NAV_CSS
-
-_CONTENT_STYLE = """
-<style>
-  body { display: block; height: auto; min-height: 100vh; overflow-y: auto; }
-  #content {
-    position: relative;
-    z-index: 2;
-    width: min(720px, 90vw);
-    margin: 64px auto 80px;
-    font-family: 'Iosevka Mayukai Monolite', monospace;
-    color: rgba(0, 255, 65, 1);
-  }
-  #content h2 {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    opacity: 0.65;
-    margin: 28px 0 8px;
-    border-bottom: 1px solid rgba(0, 255, 65, 0.25);
-    padding-bottom: 4px;
-  }
-  #content .item {
-    font-size: 0.85rem;
-    padding: 5px 0;
-    border-bottom: 1px solid rgba(0, 255, 65, 0.12);
-  }
-  #content button {
-    background: none;
-    border: 1px solid rgba(0, 255, 65, 0.5);
-    color: rgba(0, 255, 65, 0.85);
-    font-family: 'Iosevka Mayukai Monolite', monospace;
-    font-size: 0.8rem;
-    padding: 4px 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  #content button:hover { border-color: rgba(0, 255, 65, 1); color: rgba(0, 255, 65, 1); }
-  #content button:disabled { opacity: 0.35; cursor: default; }
-  #content .ts { font-size: 0.7rem; opacity: 0.5; margin-top: 16px; }
-</style>
-"""
+_NAV_CSS = _CHROME_LINK
+_PAGE_CHROME = _CHROME_LINK
+_CONTENT_STYLE = ""
 
 _NAV_LINKS = ["core", "Exec", "prophecies", "directives", "debug", "nightfall", "mtg"]
 _NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg"}
