@@ -10,7 +10,7 @@ from pipeline import build_morning
 from gcal import gcal_start_auth, gcal_complete_auth
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
-from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log, _next_recurrence
+from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log, _next_recurrence, _now_et
 from routes_nightfall import public_router as nightfall_public, protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
@@ -352,6 +352,9 @@ def _log_card_change(c: dict, old: dict | None, source: str):
         if old.get("column") == "hq" and c.get("column") != "hq":
             c["scheduled_day"] = None
             c["manual_pin"] = False
+        elif c.get("column") == "hq" and old.get("column") != "hq":
+            c["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
+            c["manual_pin"] = True
     elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
         _append_rd_log("updated", c.get("title", cid), source=source)
 
