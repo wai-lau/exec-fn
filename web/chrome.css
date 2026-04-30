@@ -28,8 +28,6 @@
 }
 
 /* Base */
-:root { --nav-h: 58px; }
-
 html { background: #181818; }
 
 body {
@@ -57,7 +55,7 @@ body {
   left: 0;
   right: 0;
   z-index: 20;
-  height: var(--nav-h);
+  padding: 10px 0;
   display: flex;
   align-items: center;
   justify-content: space-evenly;

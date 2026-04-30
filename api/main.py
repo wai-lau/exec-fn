@@ -61,7 +61,15 @@ def _build_nav(active=None, guest=False):
         icon = _NAV_ICONS.get(label, label)
         text = _NAV_LABELS.get(label, label.lower())
         links.append(f'<a href="{href}"{cls}>{icon}<span class="nav-label">{text}</span></a>')
-    return '<div class="exec-nav">' + "".join(links) + "</div>"
+    nav = '<div class="exec-nav">' + "".join(links) + "</div>"
+    script = (
+        "<script>(function(){"
+        "function _snh(){var n=document.querySelector('.exec-nav');"
+        "if(n)document.documentElement.style.setProperty('--nav-h',n.offsetHeight+'px');}"
+        "_snh();window.addEventListener('resize',_snh);"
+        "})();</script>"
+    )
+    return nav + script
 
 
 _INDEX = Path("/app/static/index.html").read_text()
