@@ -17,7 +17,7 @@ a profile, and clears the slate for the new day. The rest is a web app I actuall
                            │
                     ┌──────▼──────┐
                     │   FastAPI   │  port 8080
-                    │  main.py   │
+                    │  main.py    │
                     └──────┬──────┘
               ┌────────────┼────────────┐
               │            │            │
