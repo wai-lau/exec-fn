@@ -59,8 +59,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-evenly;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(14px);
   border-top: 1px solid rgba(0, 255, 65, 0.12);
 }
 

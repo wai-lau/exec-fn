@@ -2,17 +2,20 @@
 <style>
 body { overflow: hidden !important; }
 .rd-reminders {
-  display: none; position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 19;
-  align-items: center; padding: 0 12px; gap: 6px; overflow-x: scroll; overflow-y: hidden;
-  scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch;
+  display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 19;
+  height: auto; max-height: 90px;
+  flex-direction: column; align-items: stretch;
+  padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto;
+  scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: touch;
   background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(0,255,65,0.08);
   font-family: 'BitLight', monospace; font-size: 0.63rem;
 }
 .rd-reminders::-webkit-scrollbar { display: none; }
-.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; opacity: 0.85; padding: 4px 14px; border-radius: 3px; }
+.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.85; padding: 5px 14px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; }
 .rd-reminders .rem-item:hover { opacity: 1; }
-.rem-overflow-btn { flex-shrink: 0; background: none; border: 1px solid rgba(0,255,65,0.3); color: rgba(0,255,65,0.6); font-family: 'BitLight', monospace; font-size: 0.63rem; padding: 4px 14px; border-radius: 3px; cursor: pointer; white-space: nowrap; }
+.rem-overflow-btn { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.8); border: 1px solid rgba(0,255,65,0.35); color: rgba(0,255,65,0.7); font-family: 'BitLight', monospace; font-size: 0.55rem; padding: 2px 6px; border-radius: 2px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
 .rem-overflow-btn:hover { border-color: rgba(0,255,65,0.7); color: rgba(0,255,65,1); }
+.dragging-card .rd-reminders { min-height: 42px; }
 .rem-ov-modal { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; }
 .rem-ov-box { background: #0a0a0a; border: 1px solid rgba(0,255,65,0.25); padding: 20px 24px; width: min(360px,88vw); max-height: 70vh; display: flex; flex-direction: column; font-family: 'BitLight', monospace; }
 .rem-ov-hdr { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(0,255,65,0.5); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
@@ -24,13 +27,13 @@ body { overflow: hidden !important; }
 .has-reminders .rd-reminders { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 48px; border-bottom-color: rgba(0,255,65,0.22); }
 .rd-board {
-  position: fixed; top: 0; bottom: 58px; left: 0; right: 0;
+  position: fixed; top: 0; bottom: 0; left: 0; right: 0;
   display: flex; gap: 1px; overflow: hidden;
   background: rgba(0,255,65,0.06);
 }
-.has-reminders .rd-board { top: 48px; }
-.col-group { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: rgba(0,0,0,0.25); }
+.has-reminders .rd-board { top: var(--rem-bar-h, 48px); }
+.col-group { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; }
+.col { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: rgba(0,0,0,0.25); }
 .col.col-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
 .col.col-collapsed .col-list { pointer-events: none; overflow: hidden; }
 .drag-active .col-group { flex: 4 !important; }
@@ -38,8 +41,8 @@ body { overflow: hidden !important; }
 .drag-active .col.col-collapsed .col-list { pointer-events: auto !important; overflow-y: auto !important; min-height: 40px; }
 .col-hdr {
   flex-shrink: 0; padding: 6px 16px 10px;
-  font-family: '04b25', monospace; font-size: 0.62rem; text-transform: uppercase;
-  letter-spacing: 0.18em; color: rgba(0,255,65,0.55);
+  font-family: '04b25', monospace; font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.18em; color: rgba(0,255,65,0.8);
   border-bottom: 1px solid rgba(0,255,65,0.1);
   display: flex; align-items: center; gap: 6px;
 }
@@ -119,7 +122,7 @@ function renderCard(c) {
   const hasStyle = !!bg;
   const bright = hasStyle && !dark;
   const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.92)';
-  const tc     = !hasStyle ? 'rgba(0,255,65,0.45)' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.65)';
+  const tc     = !hasStyle ? 'rgba(0,255,65,0.65)' : dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)';
   const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
   const dateLabel = displayDate ? fmtDate(c.due_date) : '';
@@ -131,7 +134,7 @@ function renderCard(c) {
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${c.title}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
     <div class="card-foot">
-      <div class="card-badge" style="color:${tc}">${[c.category, c.is_reminder ? null : c.size].filter(Boolean).join(' · ')}${recurBadge}</div>
+      <div class="card-badge" style="color:${tc}">${recurBadge}</div>
       ${displayDate ? `<div class="card-due" style="color:${dateC}">${dateLabel}</div>` : ''}
     </div>
   </div>`;
@@ -179,8 +182,13 @@ function _remChipHtml(c) {
   const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
   const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
   const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
-  const title = c.title.length > 25 ? c.title.slice(0, 25) + '…' : c.title;
+  const title = c.title;
   return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
+}
+
+function _syncRemH() {
+  const bar = document.getElementById('reminders-bar');
+  if (bar) document.documentElement.style.setProperty('--rem-bar-h', bar.offsetHeight + 'px');
 }
 
 function buildReminders() {
@@ -193,13 +201,23 @@ function buildReminders() {
   if (!all.length) { document.body.classList.remove('has-reminders'); }
   else { document.body.classList.add('has-reminders'); }
   const bar = document.getElementById('reminders-bar');
-  const overflowBtn = overflow.length
-    ? `<button class="rem-overflow-btn" onclick="showRemOverflow()">&gt;&gt; ${overflow.length}</button>`
-    : '';
-  bar.innerHTML = visible.map(_remChipHtml).join('') + overflowBtn;
+  bar.innerHTML = visible.map(_remChipHtml).join('');
   bar.querySelectorAll('.rem-item').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
   });
+  if (overflow.length) {
+    const last = bar.lastElementChild;
+    if (last) {
+      last.style.position = 'relative';
+      last.style.overflow = 'visible';
+      const btn = document.createElement('button');
+      btn.className = 'rem-overflow-btn';
+      btn.textContent = `+${overflow.length}`;
+      btn.onclick = showRemOverflow;
+      last.appendChild(btn);
+    }
+  }
+  _syncRemH();
 }
 
 function showRemOverflow() {
@@ -285,5 +303,6 @@ async function load() {
   buildBoard();
 }
 
+window.addEventListener('resize', _syncRemH);
 load();
 </script>
