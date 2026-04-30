@@ -2,6 +2,8 @@
 
 > ADHD scaffolding for Wai. Claude runs the planning pipeline.
 
+**[wai-lau.net](https://wai-lau.net)**
+
 ---
 
 ## what is this (｡•̀ᴗ-)✧
