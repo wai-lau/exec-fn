@@ -56,7 +56,12 @@ def bulk_update_scheduled_days(updates: list[dict]) -> dict:
             new_day = upd["scheduled_day"] or None
             if old_day != new_day:
                 card["scheduled_day"] = new_day
-                if upd.get("manual_pin"):
+                if new_day is None:
+                    card["manual_pin"] = False
+                    card["column"] = "rd"
+                    rd_orders = [c.get("order", 0) for c in rd.get("cards", []) if c.get("column") == "rd"]
+                    card["order"] = (min(rd_orders) - 1) if rd_orders else 0
+                elif upd.get("manual_pin"):
                     card["manual_pin"] = True
                 log_prophecy_change(cid, old_day, new_day, title=card.get("title", cid))
                 changed_this = True
