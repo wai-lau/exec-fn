@@ -128,7 +128,7 @@ function createBlock(c, track) {
   const metaEl = document.createElement('div');
   metaEl.className = 'dir-block-meta';
   metaEl.style.color = metaC;
-  metaEl.innerHTML = `<span>${c.size||''}</span><span class="dur-lbl">${durLabel(durMin)}</span>`;
+  metaEl.innerHTML = `<span class="dur-lbl" style="display:none">${durLabel(durMin)}</span>`;
 
   const resizeHandle = document.createElement('div');
   resizeHandle.className = 'dir-resize';

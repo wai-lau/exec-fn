@@ -175,8 +175,8 @@ function renderCard(c, dayIso) {
     ${over}
     <div class="pr-card-title" style="color:${titleC}">${c.title}${reminder}</div>
     <div class="pr-card-meta" style="color:${metaC}">
-      <span>${[c.size, recur||''].filter(Boolean).join(' ')}</span>
-      <span>${[dur, due].filter(Boolean).join(' ')}</span>
+      <span>${recur||''}</span>
+      <span>${due||''}</span>
     </div>
     ${notesHtml}
   </div>`;
