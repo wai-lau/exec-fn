@@ -301,14 +301,14 @@ def _haiku_classify_events(events: list) -> list:
     return events
 
 
-def import_gcal_cards() -> dict:
-    """One-time import: pull 365 days of GCal events → classify with Haiku → rd.json cards."""
+def import_gcal_cards(days_ahead: int = 365) -> dict:
+    """Pull GCal events → classify with Haiku → rd.json cards. Deduplicates by gcal_id and title+date."""
     import time as _time
     from helpers import _load_rd, _save_rd, _append_rd_log
 
-    # Fetch full raw data and save
-    raw = _fetch_gcal_raw_full(days_ahead=365)
-    (DATA_DIR / "gcal_events_raw.json").write_text(json.dumps(raw, indent=2))
+    raw = _fetch_gcal_raw_full(days_ahead=days_ahead)
+    if days_ahead >= 365:
+        (DATA_DIR / "gcal_events_raw.json").write_text(json.dumps(raw, indent=2))
 
     rd = _load_rd()
 
