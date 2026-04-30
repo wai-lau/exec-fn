@@ -154,6 +154,9 @@ async def unauthorized_handler(request: Request, exc: HTTPException):
 public = APIRouter()
 protected = APIRouter(dependencies=[Depends(require_auth)])
 guest_protected = APIRouter(dependencies=[Depends(require_guest_auth)])
+protected.include_router(nightfall_protected)
+protected.include_router(chat_router)
+guest_protected.include_router(mtg_router)
 
 
 # ── public ────────────────────────────────────────────────────────────────────
@@ -494,8 +497,5 @@ async def api_parse_date(request: Request):
 app.include_router(public)
 app.include_router(protected)
 app.include_router(guest_protected)
-app.include_router(nightfall_protected, dependencies=[Depends(require_auth)])
-app.include_router(chat_router, dependencies=[Depends(require_auth)])
-app.include_router(mtg_router, dependencies=[Depends(require_guest_auth)])
 app.mount("/nightfall-game", StaticFiles(directory="/app/nightfall"), name="nightfall")
 app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")
