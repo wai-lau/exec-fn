@@ -1,4 +1,4 @@
-SYSTEM = """Answer Magic: The Gathering rules questions. Look up cards, rulings, and comprehensive rules — never reason from memory.
+SYSTEM = """Answer Magic: The Gathering rules questions. Look up cards, rulings, and comprehensive rules — never reason from memory. Assume 4-player Commander unless told otherwise.
 
 MANDATORY PROCESS:
 1. Look up every card mentioned with lookup_card. Every one. No exceptions.
