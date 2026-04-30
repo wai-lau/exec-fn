@@ -28,7 +28,7 @@
 }
 
 /* Base */
-html { background: #000; }
+html { background: #181818; }
 
 body {
   font-family: 'Iosevka Mayukai Monolite', monospace;
@@ -38,7 +38,7 @@ body {
   height: auto;
   min-height: 100vh;
   overflow-y: auto;
-  background: rgba(220, 220, 220, 0.11);
+  background: #181818;
 }
 
 /* Scrollbars */
