@@ -208,9 +208,13 @@ def build_morning() -> dict:
     _RD_LOG.write_text("[]")
 
     from helpers import _load_rd, _save_rd
+    today_iso = _now_et().strftime("%Y-%m-%d")
     rd = _load_rd()
     for c in rd.get("cards", []):
         c.pop("dir_start_min", None)
+        sd = c.get("scheduled_day")
+        if sd and sd < today_iso and c.get("column") in ("rd", "hq"):
+            c["scheduled_day"] = today_iso
     _save_rd(rd)
 
     if chat_path.exists():
