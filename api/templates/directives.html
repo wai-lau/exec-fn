@@ -75,14 +75,14 @@ body { overflow: hidden !important; }
 const SIZE_MIN = {chore:30, task:90, project:240, titan:480, book:60};
 
 const TL_PX = 1;           // 1px per minute
-const TL_START = 4 * 60;   // 4am
-const TL_END   = 28 * 60;  // 4am next day
+const TL_START = 4 * 60 + 30; // 4:30am
+const TL_END   = 28 * 60 + 30; // 4:30am next day
 const TL_H     = TL_END - TL_START; // 1440px
 const SNAP     = 15;
 
 function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
 
-// Returns current time in 28h timeline minutes (midnight–4am wraps to 1440+)
+// Returns current time in timeline minutes (midnight–4:30am wraps to next-day range)
 function nowMinutes() {
   const n = new Date();
   const m = n.getHours() * 60 + n.getMinutes();
@@ -289,7 +289,7 @@ function buildSchedule(cards) {
 
   const nowMin = nowMinutes();
 
-  for (let h = 4; h <= 28; h++) {
+  for (let h = 5; h <= 28; h++) {
     const y = (h * 60 - TL_START) * TL_PX;
 
     const hline = document.createElement('div');
@@ -297,14 +297,12 @@ function buildSchedule(cards) {
     track.appendChild(hline);
 
     if (h < 28) {
-      if (h > 4) {
-        const lbl = document.createElement('div');
-        lbl.className = 'dir-tl-label';
-        lbl.style.top = y + 'px';
-        lbl.style.color = 'rgba(200,200,200,0.55)';
-        lbl.textContent = String(h % 24).padStart(2, '0');
-        labels.appendChild(lbl);
-      }
+      const lbl = document.createElement('div');
+      lbl.className = 'dir-tl-label';
+      lbl.style.top = y + 'px';
+      lbl.style.color = 'rgba(200,200,200,0.55)';
+      lbl.textContent = String(h % 24).padStart(2, '0');
+      labels.appendChild(lbl);
 
       const hline2 = document.createElement('div');
       hline2.style.cssText = `position:absolute;left:0;right:0;top:${y + 30 * TL_PX}px;border-top:1px solid rgba(255,255,255,0.08);pointer-events:none;z-index:5;`;
