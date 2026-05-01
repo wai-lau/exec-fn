@@ -266,10 +266,6 @@ function applyColumnLayout(cards, track) {
 
 function buildSchedule(cards) {
   const wrap = document.getElementById('dir-schedule-wrap');
-  if (!cards.length) {
-    wrap.innerHTML = '<span style="opacity:0.3;font-family:monospace;font-size:0.8rem">no cards scheduled for today</span>';
-    return;
-  }
 
   const startTimes = computeStartTimes(cards);
   cards.forEach((c, i) => { c._startMin = startTimes[i]; });
@@ -323,6 +319,12 @@ function buildSchedule(cards) {
     track.appendChild(el);
   });
 
+  if (!cards.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'position:absolute;top:16px;left:8px;opacity:0.3;font-family:monospace;font-size:0.8rem;pointer-events:none;';
+    empty.textContent = 'no cards scheduled for today';
+    track.appendChild(empty);
+  }
   cards.forEach(c => track.appendChild(createBlock(c, track)));
   computeColumns(cards);
   applyColumnLayout(cards, track);
