@@ -82,6 +82,13 @@ const SNAP     = 15;
 
 function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
 
+// Returns current time in 28h timeline minutes (midnight–4am wraps to 1440+)
+function nowMinutes() {
+  const n = new Date();
+  const m = n.getHours() * 60 + n.getMinutes();
+  return m < TL_START ? m + 24 * 60 : m;
+}
+
 let scheduleCards = [];
 let currentTrack = null;
 
@@ -94,8 +101,7 @@ function isoToday() {
 
 
 function computeStartTimes(cards) {
-  const now = new Date();
-  let cur = snapMin(Math.max(TL_START, now.getHours() * 60 + now.getMinutes()));
+  let cur = snapMin(Math.max(TL_START, nowMinutes()));
   return cards.map(c => {
     if (c.dir_start_min != null) return c.dir_start_min;
     const start = cur;
@@ -281,8 +287,7 @@ function buildSchedule(cards) {
   track.className = 'dir-tl-track';
   track.style.height = TL_H + 'px';
 
-  const _nowInit = new Date();
-  const nowMin = _nowInit.getHours() * 60 + _nowInit.getMinutes();
+  const nowMin = nowMinutes();
 
   for (let h = 4; h <= 28; h++) {
     const y = (h * 60 - TL_START) * TL_PX;
@@ -344,8 +349,7 @@ function buildSchedule(cards) {
   track.appendChild(nowClock);
 
   function updateNowIndicator() {
-    const n = new Date();
-    const nowMin = n.getHours() * 60 + n.getMinutes();
+    const nowMin = nowMinutes();
     const visible = nowMin >= TL_START && nowMin <= TL_END;
     nowLine.style.display = visible ? '' : 'none';
     nowClock.style.display = visible ? '' : 'none';
