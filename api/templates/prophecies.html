@@ -11,7 +11,7 @@ body { overflow: hidden !important; }
   font-family: 'BitLight', monospace; font-size: 0.63rem;
 }
 .pr-books::-webkit-scrollbar { display: none; }
-.pr-books .book-item { cursor: pointer; flex-shrink: 0; overflow: hidden; opacity: 0.8; padding: 5px 14px 4px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; display: flex; flex-direction: column; gap: 3px; }
+.pr-books .book-item { cursor: pointer; flex-shrink: 0; overflow: hidden; opacity: 0.8; padding: 9px 14px 4px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; display: flex; flex-direction: column; gap: 3px; }
 .pr-books .book-item:hover { opacity: 1; }
 .pr-books .book-item-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pr-books .book-item-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
@@ -132,6 +132,7 @@ let _prDragging = false;
 
 function isoToday() {
   const d = new Date();
+  if (d.getHours() * 60 + d.getMinutes() < 4*60+30) d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 

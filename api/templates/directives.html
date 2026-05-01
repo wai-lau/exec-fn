@@ -87,6 +87,7 @@ let currentTrack = null;
 
 function isoToday() {
   const d = new Date();
+  if (d.getHours() * 60 + d.getMinutes() < 4*60+30) d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
@@ -372,8 +373,8 @@ function buildSchedule(cards) {
   wrap.innerHTML = '';
   wrap.appendChild(tlWrap);
 
-  // autoscroll to 2 hours before current time
-  if (nowMin >= TL_START && nowMin <= TL_END) {
+  // autoscroll to 2 hours before current time — only after 4:30 AM (morning pipeline)
+  if (nowMin >= 4*60+30 && nowMin <= TL_END) {
     const scrollTarget = (nowMin - TL_START) * TL_PX - 120 * TL_PX;
     wrap.scrollTop = Math.max(0, scrollTarget);
   }
