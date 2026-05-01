@@ -159,15 +159,6 @@ async function streamResponse() {
   streaming = false;
 }
 
-function clearChat() {
-  if (streaming) return;
-  messages = [];
-  _sessionId = 'mtg_' + Date.now().toString(36);
-  terminal.innerHTML = '';
-  addMsg('assistant', _WELCOME);
-  document.getElementById('msg-input').focus();
-}
-
 addMsg('assistant', _WELCOME);
 
 const _mirror = document.getElementById('input-mirror');

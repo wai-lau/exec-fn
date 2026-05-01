@@ -11,7 +11,7 @@ body { overflow: hidden !important; }
   font-family: 'BitLight', monospace; font-size: 0.63rem;
 }
 .rd-reminders::-webkit-scrollbar { display: none; }
-.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.85; padding: 5px 14px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; }
+.rd-reminders .rem-item { cursor: pointer; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.85; padding: 9px 14px 5px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; }
 .rd-reminders .rem-item:hover { opacity: 1; }
 .rem-overflow-btn { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.8); border: 1px solid rgba(0,255,65,0.35); color: rgba(0,255,65,0.7); font-family: 'BitLight', monospace; font-size: 0.55rem; padding: 2px 6px; border-radius: 2px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
 .rem-overflow-btn:hover { border-color: rgba(0,255,65,0.7); color: rgba(0,255,65,1); }
@@ -159,7 +159,9 @@ async function save() {
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
 }
 
+// eslint-disable-next-line no-unused-vars
 function toggleArchives(e) { if (e) e.stopPropagation(); archivesCollapsed = !archivesCollapsed; buildBoard(); }
+// eslint-disable-next-line no-unused-vars
 function toggleExile(e) { if (e) e.stopPropagation(); exileCollapsed = !exileCollapsed; buildBoard(); }
 
 const COL_LABELS = {rd: 'r&d', hq: 'hq', archives: 'archives', exile: 'exile'};
