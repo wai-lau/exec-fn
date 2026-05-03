@@ -233,6 +233,25 @@
     applyDefault();
   }
 
+  function clampBubbleToViewport() {
+    const w = bubble.offsetWidth || 50;
+    const h = bubble.offsetHeight || 50;
+    const r = bubble.getBoundingClientRect();
+    if (r.right < 0 || r.bottom < 0 || r.left > window.innerWidth || r.top > window.innerHeight) {
+      // Fully off-screen — reset to default position
+      bubble.style.left = bubble.style.top = '';
+      bubble.style.right = '14px';
+      bubble.style.bottom = ((parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56) + 10) + 'px';
+    } else if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.bottom > window.innerHeight) {
+      // Partially off-screen — nudge it back in
+      const maxX = window.innerWidth - w;
+      const maxY = window.innerHeight - h;
+      bubble.style.right = bubble.style.bottom = '';
+      bubble.style.left = Math.max(0, Math.min(maxX, r.left)) + 'px';
+      bubble.style.top  = Math.max(0, Math.min(maxY, r.top)) + 'px';
+    }
+  }
+
   function restorePosition() {
     try {
       const s = JSON.parse(localStorage.getItem('exec-bpos') || 'null');
@@ -242,6 +261,9 @@
         bubble.style.top  = s.top;
       }
     } catch (_) {}
+    // Clamp after restore in case viewport shrank since last visit
+    requestAnimationFrame(clampBubbleToViewport);
+    window.addEventListener('resize', clampBubbleToViewport);
   }
 
   // ── open / close ──────────────────────────────────────────────────────────
