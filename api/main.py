@@ -31,7 +31,7 @@ _NAV_CSS = _CHROME_LINK
 _PAGE_CHROME = _CHROME_LINK
 _CONTENT_STYLE = ""
 
-_NAV_LINKS = ["core", "Exec", "prophecies", "directives", "debug", "nightfall", "mtg"]
+_NAV_LINKS = ["core", "prophecies", "directives", "debug", "nightfall", "mtg"]
 _NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg"}
 
 
@@ -69,7 +69,8 @@ def _build_nav(active=None, guest=False):
         "_snh();window.addEventListener('resize',_snh);"
         "})();</script>"
     )
-    return nav + script
+    bubble = '' if guest else '<script src="/exec-bubble.js"></script>'
+    return nav + script + bubble
 
 
 _INDEX = Path("/app/static/index.html").read_text()
