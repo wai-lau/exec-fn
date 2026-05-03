@@ -191,7 +191,20 @@ function createBlock(c, track) {
   });
   block.addEventListener('touchstart', e => {
     if (resizeHandle.contains(e.target)) return;
-    startDrag(e.touches[0].clientY, ev => ev.touches[0].clientY);
+    const t0Y = e.touches[0].clientY, t0X = e.touches[0].clientX;
+    let timer = setTimeout(() => { timer = null; cleanup(); startDrag(t0Y, ev => ev.touches[0].clientY); }, 300);
+    function cleanup() {
+      block.removeEventListener('touchmove', onEarlyMove);
+      block.removeEventListener('touchend', onEarlyEnd);
+    }
+    function onEarlyMove(ev) {
+      if (!timer) return;
+      const t = ev.touches[0];
+      if (Math.abs(t.clientY - t0Y) > 8 || Math.abs(t.clientX - t0X) > 8) { clearTimeout(timer); timer = null; cleanup(); }
+    }
+    function onEarlyEnd() { if (timer) { clearTimeout(timer); timer = null; } cleanup(); }
+    block.addEventListener('touchmove', onEarlyMove, {passive: true});
+    block.addEventListener('touchend', onEarlyEnd, {once: true});
   }, {passive: true});
 
   // resize
@@ -223,9 +236,18 @@ function createBlock(c, track) {
     startResize(e.clientY, ev => ev.clientY);
   });
   resizeHandle.addEventListener('touchstart', e => {
-    e.preventDefault(); e.stopPropagation();
-    startResize(e.touches[0].clientY, ev => ev.touches[0].clientY);
-  }, {passive: false});
+    e.stopPropagation();
+    const t0Y = e.touches[0].clientY;
+    let timer = setTimeout(() => { timer = null; cleanup(); startResize(t0Y, ev => ev.touches[0].clientY); }, 300);
+    function cleanup() {
+      resizeHandle.removeEventListener('touchmove', onEarlyMove);
+      resizeHandle.removeEventListener('touchend', onEarlyEnd);
+    }
+    function onEarlyMove() { if (timer) { clearTimeout(timer); timer = null; cleanup(); } }
+    function onEarlyEnd() { if (timer) { clearTimeout(timer); timer = null; } cleanup(); }
+    resizeHandle.addEventListener('touchmove', onEarlyMove, {passive: true});
+    resizeHandle.addEventListener('touchend', onEarlyEnd, {once: true});
+  }, {passive: true});
 
   return block;
 }
