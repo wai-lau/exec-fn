@@ -1,15 +1,27 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from helpers import _load_rd, _save_rd, _append_rd_log, get_rd_log
 
+_ET = ZoneInfo("America/New_York")
+
+
+def _logical_today() -> date:
+    """Yesterday if before 4:30 AM ET, matching client isoToday()."""
+    now = datetime.now(_ET)
+    d = now.date()
+    if now.hour * 60 + now.minute < 4 * 60 + 30:
+        d -= timedelta(days=1)
+    return d
+
 
 def _today_iso() -> str:
-    return date.today().isoformat()
+    return _logical_today().isoformat()
 
 
 def get_week_data(start_iso: str | None = None) -> dict:
-    """Return cards scheduled for 6 days starting from start_iso (default today)."""
-    start = date.fromisoformat(start_iso) if start_iso else date.today()
+    """Return cards scheduled for 6 days starting from start_iso (default logical today)."""
+    start = date.fromisoformat(start_iso) if start_iso else _logical_today()
     week_days = [(start + timedelta(days=i)).isoformat() for i in range(6)]
 
     rd = _load_rd()
