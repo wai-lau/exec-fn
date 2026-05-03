@@ -424,6 +424,15 @@ def api_context():
     return _load_json("profile", {"notes": []})
 
 
+@protected.patch("/api/context")
+async def api_context_patch(request: Request):
+    body = await request.json()
+    data = _load_json("profile", {"notes": []})
+    data["notes"] = body.get("notes", data.get("notes", []))
+    (DATA_DIR / "profile.json").write_text(json.dumps(data, indent=2))
+    return {"ok": True}
+
+
 @protected.get("/api/directives")
 def api_directives_get():
     p = DATA_DIR / "directives.json"

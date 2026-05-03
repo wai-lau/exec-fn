@@ -14,7 +14,28 @@ body { overflow-y: auto !important; }
   display: flex; gap: 14px; align-items: baseline;
 }
 .dbg-note-date { font-size: 0.65rem; color: rgba(0,255,65,0.4); flex-shrink: 0; }
-.dbg-note-text { color: rgba(0,255,65,0.85); }
+.dbg-note-text { color: rgba(0,255,65,0.85); flex: 1; }
+.dbg-note-x {
+  background: none; border: none; cursor: pointer; padding: 0 2px;
+  font-size: 0.75rem; color: rgba(0,255,65,0.25); line-height: 1;
+  flex-shrink: 0; margin-left: auto; transition: color 0.15s;
+}
+.dbg-note-x:hover { color: rgba(0,255,65,0.7); }
+.dbg-note-edit {
+  flex: 1; background: rgba(0,255,65,0.05); border: 1px solid rgba(0,255,65,0.25);
+  color: rgba(0,255,65,0.9); font-family: inherit; font-size: 0.8rem;
+  padding: 4px 6px; resize: vertical; min-height: 2em; outline: none;
+}
+.dbg-note-edit:focus { border-color: rgba(0,255,65,0.5); }
+.dbg-note-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.dbg-note-save, .dbg-note-del {
+  background: none; border: none; cursor: pointer; padding: 0 3px;
+  font-size: 0.8rem; line-height: 1; transition: color 0.15s;
+}
+.dbg-note-save { color: rgba(0,255,65,0.4); }
+.dbg-note-save:hover { color: rgba(0,255,65,0.9); }
+.dbg-note-del { color: rgba(255,60,60,0.35); }
+.dbg-note-del:hover { color: rgba(255,60,60,0.8); }
 .dbg-log-file { margin-bottom: 24px; }
 .dbg-log-hdr {
   font-size: 0.62rem; color: rgba(0,255,65,0.4); margin-bottom: 8px;
@@ -58,6 +79,82 @@ body { overflow-y: auto !important; }
 </div>
 
 <script>
+let profileNotes = [];
+
+function renderProfile() {
+  const el = document.getElementById('dbg-profile');
+  if (!profileNotes.length) { el.innerHTML = '<div class="dbg-empty">no notes</div>'; return; }
+  el.innerHTML = '';
+  [...profileNotes].reverse().forEach((n, revIdx) => {
+    const idx = profileNotes.length - 1 - revIdx;
+    const row = document.createElement('div');
+    row.className = 'dbg-note';
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'dbg-note-date';
+    dateSpan.textContent = n.date || '';
+    const textSpan = document.createElement('span');
+    textSpan.className = 'dbg-note-text';
+    textSpan.textContent = n.note;
+    const xBtn = document.createElement('button');
+    xBtn.className = 'dbg-note-x';
+    xBtn.textContent = '×';
+    xBtn.title = 'edit';
+    xBtn.onclick = () => enterEditMode(row, idx);
+    row.append(dateSpan, textSpan, xBtn);
+    el.appendChild(row);
+  });
+}
+
+function enterEditMode(row, idx) {
+  const n = profileNotes[idx];
+  row.innerHTML = '';
+  const dateSpan = document.createElement('span');
+  dateSpan.className = 'dbg-note-date';
+  dateSpan.textContent = n.date || '';
+  const textarea = document.createElement('textarea');
+  textarea.className = 'dbg-note-edit';
+  textarea.value = n.note;
+  textarea.rows = Math.max(2, Math.ceil(n.note.length / 72));
+  const actions = document.createElement('div');
+  actions.className = 'dbg-note-actions';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'dbg-note-save';
+  saveBtn.textContent = '✓';
+  saveBtn.title = 'save';
+  saveBtn.onclick = async () => {
+    const text = textarea.value.trim();
+    if (!text) return;
+    profileNotes[idx] = { ...n, note: text };
+    await patchProfile();
+    renderProfile();
+  };
+  const delBtn = document.createElement('button');
+  delBtn.className = 'dbg-note-del';
+  delBtn.textContent = '×';
+  delBtn.title = 'delete';
+  delBtn.onclick = async () => {
+    profileNotes.splice(idx, 1);
+    await patchProfile();
+    renderProfile();
+  };
+  textarea.addEventListener('keydown', e => {
+    if (e.key === 'Escape') renderProfile();
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveBtn.click(); }
+  });
+  actions.append(saveBtn, delBtn);
+  row.append(dateSpan, textarea, actions);
+  textarea.focus();
+  textarea.select();
+}
+
+async function patchProfile() {
+  await fetch('/api/context', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes: profileNotes }),
+  });
+}
+
 async function loadDebug() {
   const [ctxRes, logRes, mtgRes] = await Promise.all([
     fetch('/api/context'),
@@ -68,14 +165,8 @@ async function loadDebug() {
   // Profile
   if (ctxRes.ok) {
     const ctx = await ctxRes.json();
-    const notes = ctx.notes || [];
-    document.getElementById('dbg-profile').innerHTML = notes.length
-      ? notes.slice().reverse().map(n =>
-          `<div class="dbg-note">
-            <span class="dbg-note-date">${n.date || ''}</span>
-            <span class="dbg-note-text">${n.note}</span>
-          </div>`).join('')
-      : '<div class="dbg-empty">no notes</div>';
+    profileNotes = ctx.notes || [];
+    renderProfile();
   }
 
   // Logs
