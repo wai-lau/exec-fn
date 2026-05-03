@@ -39,6 +39,14 @@ async def _stream_tool_followup(client, all_messages: list, tools: list, system:
         all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont_text}]})
 
 
+def _parse_probe_ts(ts: str):
+    from datetime import datetime
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
 @router.get("/api/exec/probe")
 async def exec_probe(since: str = Query(default="")):
     entries = get_rd_log(limit=20)  # newest first
@@ -47,7 +55,14 @@ async def exec_probe(since: str = Query(default="")):
     if not since:
         return {"comment": None, "last_ts": last_ts}
 
-    new_entries = [e for e in entries if e.get("ts", "") > since]
+    since_dt = _parse_probe_ts(since)
+    if since_dt is None:
+        return {"comment": None, "last_ts": last_ts}
+
+    new_entries = [
+        e for e in entries
+        if (_parse_probe_ts(e.get("ts", "")) or _parse_probe_ts("1970-01-01T00:00:00+00:00")) > since_dt
+    ]
     if not new_entries:
         return {"comment": None, "last_ts": since}
 
@@ -64,6 +79,7 @@ async def exec_probe(since: str = Query(default="")):
 
 def _run_probe(activity_text: str) -> str:
     import anthropic
+    import logging
     client = anthropic.Anthropic()
     try:
         msg = client.messages.create(
@@ -76,7 +92,8 @@ def _run_probe(activity_text: str) -> str:
             )}],
         )
         return msg.content[0].text.strip()
-    except Exception:
+    except Exception as e:
+        logging.warning(f"exec probe haiku error: {e}")
         return ""
 
 

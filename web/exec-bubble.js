@@ -90,11 +90,12 @@
       }
       #exec-ph-title { color: rgba(0,255,65,0.45); font-size: 0.72rem; letter-spacing: 0.07em; }
       #exec-ph-close {
-        background: none; border: none; cursor: pointer;
-        color: rgba(0,255,65,0.25); font-family: 'Iosevka Mayukai Monolite', monospace;
-        font-size: 0.78rem; padding: 2px 4px; transition: color 0.15s;
+        background: rgba(0,255,65,0.06); border: 1px solid rgba(0,255,65,0.18); border-radius: 3px;
+        cursor: pointer; color: rgba(0,255,65,0.65);
+        font-family: 'Iosevka Mayukai Monolite', monospace;
+        font-size: 0.78rem; padding: 2px 7px; transition: background 0.15s, color 0.15s;
       }
-      #exec-ph-close:hover { color: rgba(0,255,65,0.65); }
+      #exec-ph-close:hover { background: rgba(0,255,65,0.14); color: rgba(0,255,65,1); }
 
       #exec-term {
         flex: 1; overflow-y: auto; padding: 12px 14px;
