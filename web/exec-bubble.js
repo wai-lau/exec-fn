@@ -208,7 +208,7 @@
       if (Math.abs(x - sx) > 5 || Math.abs(y - sy) > 5) dragged = true;
       if (!dragged) return;
       el.style.left = clamp(il + x - sx, 0, window.innerWidth - el.offsetWidth) + 'px';
-      el.style.top  = clamp(it + y - sy, 0, window.innerHeight - el.offsetHeight) + 'px';
+      el.style.top  = clamp(it + y - sy, 0, window.innerHeight - el.offsetHeight - navH()) + 'px';
     }
     function onEnd() {
       if (!dragged) {
@@ -234,18 +234,17 @@
   }
 
   function clampBubbleToViewport() {
+    const nh = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56;
     const w = bubble.offsetWidth || 50;
     const h = bubble.offsetHeight || 50;
+    const maxX = window.innerWidth - w;
+    const maxY = window.innerHeight - h - nh;
     const r = bubble.getBoundingClientRect();
-    if (r.right < 0 || r.bottom < 0 || r.left > window.innerWidth || r.top > window.innerHeight) {
-      // Fully off-screen — reset to default position
+    if (r.right < 0 || r.left > window.innerWidth || r.top > window.innerHeight || r.bottom < 0) {
       bubble.style.left = bubble.style.top = '';
       bubble.style.right = '14px';
-      bubble.style.bottom = ((parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56) + 10) + 'px';
-    } else if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.bottom > window.innerHeight) {
-      // Partially off-screen — nudge it back in
-      const maxX = window.innerWidth - w;
-      const maxY = window.innerHeight - h;
+      bubble.style.bottom = (nh + 10) + 'px';
+    } else if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.top > maxY) {
       bubble.style.right = bubble.style.bottom = '';
       bubble.style.left = Math.max(0, Math.min(maxX, r.left)) + 'px';
       bubble.style.top  = Math.max(0, Math.min(maxY, r.top)) + 'px';
