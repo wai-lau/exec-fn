@@ -279,7 +279,7 @@ async def nightfall_page(request: Request):
         "_waiFs=false;"
         "document.body.classList.remove('wai-fs');"
         "var btn=document.getElementById('wai-fs-btn');"
-        "if(btn)btn.textContent='⧆';"
+        "if(btn)btn.textContent='⛶';"
         "_clearFsLayout();"
         "}"
         "});"
