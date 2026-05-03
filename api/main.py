@@ -103,7 +103,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   <img src="/nightfall-game/static/media/ped-logo.f0469b0a.png" style="width:160px;opacity:0.9">
   <form class="login-box" method="post" action="/guest-login">
     <input type="hidden" name="next" value="{next}">
-    <input type="text" name="key" autofocus autocomplete="current-password" placeholder="access-key">
+    <input type="text" name="key" autofocus autocomplete="current-password" placeholder="access-key" enterkeyhint="go">
     <button type="submit" style="display:none"></button>
   </form>
 </div>
