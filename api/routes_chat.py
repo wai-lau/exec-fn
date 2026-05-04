@@ -2,13 +2,13 @@ import asyncio
 import json
 from typing import List
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from chat import _build_chat_system_prompt, _chat_tools, _save_chat
 from chat_tools import _handle_tool
-from helpers import DATA_DIR, get_rd_log
+from helpers import DATA_DIR
 
 router = APIRouter()
 
@@ -39,62 +39,6 @@ async def _stream_tool_followup(client, all_messages: list, tools: list, system:
         all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont_text}]})
 
 
-def _parse_probe_ts(ts: str):
-    from datetime import datetime
-    try:
-        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    except Exception:
-        return None
-
-
-@router.get("/api/exec/probe")
-async def exec_probe(since: str = Query(default="")):
-    entries = get_rd_log(limit=20)  # newest first
-    last_ts = entries[0].get("ts", "") if entries else ""
-
-    if not since:
-        return {"comment": None, "last_ts": last_ts}
-
-    since_dt = _parse_probe_ts(since)
-    if since_dt is None:
-        return {"comment": None, "last_ts": last_ts}
-
-    new_entries = [
-        e for e in entries
-        if (_parse_probe_ts(e.get("ts", "")) or _parse_probe_ts("1970-01-01T00:00:00+00:00")) > since_dt
-    ]
-    if not new_entries:
-        return {"comment": None, "last_ts": since}
-
-    lines = []
-    for e in new_entries[:10]:
-        line = f"- {e['action']} '{e['title']}'"
-        if e["action"] == "moved":
-            line += f" ({e.get('from_col', '?')} -> {e.get('to_col', '?')})"
-        lines.append(line)
-
-    comment = await asyncio.to_thread(_run_probe, "\n".join(lines))
-    return {"comment": comment or None, "last_ts": new_entries[0].get("ts", since)}
-
-
-def _run_probe(activity_text: str) -> str:
-    import anthropic
-    import logging
-    client = anthropic.Anthropic()
-    try:
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=100,
-            messages=[{"role": "user", "content": (
-                f"You are Exec, Wai's planning assistant monitoring card activity.\n"
-                f"Recent activity:\n{activity_text}\n\n"
-                "In 1 sentence, briefly note what changed. Be specific and direct. No emoji. No greeting. No sign-off."
-            )}],
-        )
-        return msg.content[0].text.strip()
-    except Exception as e:
-        logging.warning(f"exec probe haiku error: {e}")
-        return ""
 
 
 @router.get("/api/chat")
