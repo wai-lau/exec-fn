@@ -78,7 +78,7 @@ def _is_commentable(e: dict) -> bool:
 
 
 async def generate_encouragement(batch_start_ts: float) -> str:
-    recent = [e for e in _recent_entries(batch_start_ts) if _is_commentable(e)]
+    recent = _recent_entries(batch_start_ts)
     if not recent:
         return ""
 
