@@ -123,7 +123,9 @@ def _chat_tools() -> list:
         {
             "name": "schedule_card",
             "description": (
-                "Schedule a card for a specific date. Flow: "
+                "Schedule a card for a specific date, or set a deadline. "
+                "Use this whenever Wai says 'by [date]', 'due [date]', 'need to finish by', or assigns any date/deadline to an existing card. "
+                "Flow: "
                 "(1) if card is in rd, it gets moved to hq automatically. "
                 "(2) if date is within the 6-day prophecies window (today through today+5), sets scheduled_day — today puts it on the directives timeline, future date puts it in prophecies. "
                 "(3) if date is beyond the 6-day window, sets due_date only and leaves card in rd backlog. "
