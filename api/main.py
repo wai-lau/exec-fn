@@ -34,7 +34,7 @@ _monitor_subscribers: list[asyncio.Queue] = []
 _monitor_stored: list[str] = []
 
 _SIGNIFICANT_TO_COLS = {"archives", "hq", "exile"}
-_SIGNIFICANT_ACTIONS = {"created", "deleted", "revived", "rescheduled"}
+_SIGNIFICANT_ACTIONS = {"created", "deleted", "rescheduled"}
 
 
 def _entry_is_significant(e: dict) -> bool:
