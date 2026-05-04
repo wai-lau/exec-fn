@@ -126,6 +126,12 @@ function isUrgent(iso) {
   return iso && (new Date(iso) - new Date()) / 86400000 <= 3;
 }
 
+function isOverdue(iso) {
+  if (!iso) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return new Date(iso.slice(0,10)) < today;
+}
+
 function renderCard(c) {
   const {bg, border, dark} = cardStyle(c);
   const hasStyle = !!bg;
@@ -134,11 +140,12 @@ function renderCard(c) {
   const tc     = !hasStyle ? 'rgba(0,255,65,0.65)' : dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)';
   const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
+  const overdue = c.column === 'rd' && isOverdue(displayDate);
   const dateLabel = displayDate ? fmtDate(c.due_date) : '';
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
-  const dateC = bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'rgba(0,255,65,0.95)' : tc);
+  const dateC = overdue ? 'rgba(255,80,80,0.9)' : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'rgba(0,255,65,0.95)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${c.title}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
