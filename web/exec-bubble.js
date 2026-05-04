@@ -44,6 +44,17 @@
   // ── styles ────────────────────────────────────────────────────────────────
   function injectStyles() {
     const css = `
+      @font-face {
+        font-family: 'Iosevka Mayukai Monolite';
+        src: url('/fonts/Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf') format('truetype');
+        font-weight: 500;
+      }
+      @font-face {
+        font-family: 'Iosevka Mayukai Monolite';
+        src: url('/fonts/Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf') format('truetype');
+        font-weight: 700;
+      }
+
       #exec-bubble {
         position: fixed; z-index: 9000;
         width: 50px; height: 50px; border-radius: 50%;
@@ -79,7 +90,7 @@
         display: flex; flex-direction: column; z-index: 8999;
         transform: translateX(-50%) translateY(-100%);
         transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
-        font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500;
+        font-family: 'Iosevka Mayukai Monolite', monospace !important; font-weight: 500;
       }
       #exec-panel.open { transform: translateX(-50%) translateY(0); }
       @media (max-width: 500px) {
