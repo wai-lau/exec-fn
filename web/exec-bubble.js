@@ -402,7 +402,7 @@
             const res = data.result || {};
             const inp = data.input || {};
             if      (data.name === 'create_card')  addMsg('sys', '[ card added: ' + (res.title || '') + ' ]');
-            else if (data.name === 'move_card')    addMsg('sys', '[ moved "' + (res.title || inp.id || '') + '" -> ' + (res.column || '') + ' ]');
+            else if (data.name === 'exile_card')   addMsg('sys', '[ exiled: "' + (res.title || inp.id || '') + '" ]');
             else if (data.name === 'update_card')  addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
             else if (data.name === 'schedule_card')addMsg('sys', '[ scheduled "' + (res.title || '') + '" -> ' + (res.scheduled_day || 'unscheduled') + ' ]');
             else                                    addMsg('sys', '[ ' + data.name.replace(/_/g, ' ') + ': done ]');
@@ -443,7 +443,7 @@
           const inp = b.input || {};
           const res = (toolResults && toolResults[b.id]) || {};
           if      (b.name === 'create_card') addMsg('sys', '[ card added: ' + (inp.title || '') + ' ]');
-          else if (b.name === 'move_card')   addMsg('sys', '[ moved "' + (res.title || inp.id || '') + '" -> ' + (inp.column || '') + ' ]');
+          else if (b.name === 'exile_card')  addMsg('sys', '[ exiled: "' + (res.title || inp.id || '') + '" ]');
           else if (b.name === 'update_card') addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
         });
       }

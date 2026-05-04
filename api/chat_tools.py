@@ -50,21 +50,17 @@ def _tool_create_card(input_: dict) -> dict:
 
 
 
-def _tool_move_card(input_: dict) -> dict:
+def _tool_exile_card(input_: dict) -> dict:
     rd = _load_rd()
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
     from_col = card.get("column")
-    card["column"] = input_["column"]
-    if from_col == "hq" and card["column"] != "hq":
-        card["scheduled_day"] = None
-    elif card["column"] == "hq" and from_col != "hq":
-        from helpers import _now_et
-        card["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
+    card["column"] = "exile"
+    card["scheduled_day"] = None
     _save_rd(rd)
-    _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col=card["column"])
-    return {"ok": True, "id": card["id"], "title": card["title"], "column": card["column"]}
+    _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col="exile")
+    return {"ok": True, "id": card["id"], "title": card["title"], "column": "exile"}
 
 
 def _apply_reminder_flag(card: dict, input_: dict, changed: list) -> None:
@@ -216,7 +212,7 @@ def _tool_schedule_card(input_: dict) -> dict:
 
 _TOOL_HANDLERS = {
     "create_card":       _tool_create_card,
-    "move_card":         _tool_move_card,
+    "exile_card":        _tool_exile_card,
     "update_card":       _tool_update_card,
     "schedule_card":     _tool_schedule_card,
     "update_context":    _tool_update_context,

@@ -40,10 +40,10 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
             "Book category cards are for reading only — do NOT select them for directives. "
-            "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields or add progress notes). "
-            "When Wai mentions working on, making progress on, or completing part of a task, call update_card with a timestamped note appended to the notes field. "
-            "COLUMN SEMANTICS: rd=upcoming ideas/backlog (card added here by default). hq=should be scheduled within remaining time today (active working set). archives=task completed. exile=wont-do. "
-            "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
+            "You can manage cards freely: create_card (new idea), exile_card (drop it), update_card (edit fields or progress notes), schedule_card (dates/deadlines). "
+            "When Wai mentions working on or making progress on a task, call update_card with a timestamped note appended to the notes field. "
+            "COLUMN SEMANTICS: rd=upcoming ideas/backlog. hq=active working set (Wai manages this). archives=completed (Wai archives). exile=dropped. "
+            "Do NOT move cards to hq or archives — Wai does this manually. Only exile when explicitly dropped. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
         "done": "The plan has been finalized. Wrap up warmly. No more actions needed.",
@@ -92,15 +92,14 @@ def _chat_tools() -> list:
             },
         },
         {
-            "name": "move_card",
-            "description": "Move a card to a different column. Use to archive completed tasks, exile irrelevant ones, or pull ideas into the active pool.",
+            "name": "exile_card",
+            "description": "Move a card to exile (dropped / won't do). Use when Wai says they're dropping, skipping, or won't do something.",
             "input_schema": {
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "description": "Card ID."},
-                    "column": {"type": "string", "enum": ["rd", "hq", "archives", "exile"], "description": "rd=ideas pool, hq=today's plan, archives=completed, exile=dropped."},
                 },
-                "required": ["id", "column"],
+                "required": ["id"],
             },
         },
         {
