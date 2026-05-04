@@ -83,6 +83,7 @@ function addStreamDiv() {
   body.className = 'msg-body';
   const cur = document.createElement('span');
   cur.id = 'blinkcursor';
+  cur.innerHTML = '<span></span><span></span><span></span>';
   body.appendChild(cur);
   div.appendChild(body);
   terminal.appendChild(div);

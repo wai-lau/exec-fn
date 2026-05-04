@@ -73,7 +73,7 @@
 
       #exec-panel {
         position: fixed; top: 0; left: 50%;
-        width: 420px; height: calc(100vh - var(--nav-h, 56px));
+        width: 80vw; height: calc(100vh - var(--nav-h, 56px));
         background: rgba(10,10,10,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
         border: 1px solid rgba(0,255,65,0.07); border-top: none;
         display: flex; flex-direction: column; z-index: 8999;
@@ -129,8 +129,11 @@
       #exec-term .msg.probe::before { content: "~"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
       #exec-term .msg.probe .msg-body { font-style: italic; }
 
-      #exec-bc { display: inline-block; width: 0.6em; height: 1.1em; background: rgba(0,255,65,0.9); vertical-align: text-bottom; animation: execblink 1s step-end infinite; }
-      @keyframes execblink { 0%,100%{opacity:1} 50%{opacity:0} }
+      #exec-bc { display: inline-flex; gap: 3px; align-items: center; height: 1.1em; vertical-align: text-bottom; }
+      #exec-bc span { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: rgba(0,255,65,0.85); animation: execdot 1.2s ease-in-out infinite; }
+      #exec-bc span:nth-child(2) { animation-delay: 0.2s; }
+      #exec-bc span:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes execdot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
 
       #exec-input-area { flex-shrink: 0; padding: 0 14px; background: #181818; border-top: 1px solid rgba(0,255,65,0.06); }
       #exec-iline { display: flex; align-items: center; border-bottom: 1px solid rgba(0,255,65,0.1); padding: 6px 0; }
@@ -317,6 +320,7 @@
     body.className = 'msg-body';
     const cur = document.createElement('span');
     cur.id = 'exec-bc';
+    cur.innerHTML = '<span></span><span></span><span></span>';
     body.appendChild(cur);
     div.appendChild(body);
     termEl.appendChild(div);

@@ -29,9 +29,12 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 .msg.user { color:rgba(255,255,255,0.75); display:flex; align-items:flex-start; }
 .msg.sys::before { content:"# "; }
 .msg.sys { color:rgba(0,255,65,0.26); font-size:0.72rem; }
-#blinkcursor { display:inline-block; width:0.6em; height:1.1em; background:rgba(0,255,65,0.9); vertical-align:text-bottom; animation:blink 1s step-end infinite; }
+#blinkcursor { display:inline-flex; gap:3px; align-items:center; height:1.1em; vertical-align:text-bottom; }
+#blinkcursor span { display:inline-block; width:4px; height:4px; border-radius:50%; background:rgba(0,255,65,0.85); animation:typingdot 1.2s ease-in-out infinite; }
+#blinkcursor span:nth-child(2) { animation-delay:0.2s; }
+#blinkcursor span:nth-child(3) { animation-delay:0.4s; }
 
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes typingdot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
 
 #input-bar {
   position:fixed; bottom:var(--nav-h); left:0; right:0;
