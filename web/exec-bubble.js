@@ -72,16 +72,20 @@
       }
 
       #exec-panel {
-        position: fixed; top: 0; right: 0; bottom: var(--nav-h, 56px); width: 380px;
+        position: fixed; top: 0; left: 50%;
+        width: 420px; height: calc(100vh - var(--nav-h, 56px));
         background: rgba(10,10,10,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-        border-left: 1px solid rgba(0,255,65,0.07);
+        border: 1px solid rgba(0,255,65,0.07); border-top: none;
         display: flex; flex-direction: column; z-index: 8999;
-        transform: translateX(100%);
+        transform: translateX(-50%) translateY(-100%);
         transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
         font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500;
       }
-      #exec-panel.open { transform: translateX(0); }
-      @media (max-width: 500px) { #exec-panel { width: 100%; border-left: none; } }
+      #exec-panel.open { transform: translateX(-50%) translateY(0); }
+      @media (max-width: 500px) {
+        #exec-panel { width: 100%; left: auto; right: 0; border-left: none; border-right: none; transform: translateX(100%); }
+        #exec-panel.open { transform: translateX(0); }
+      }
 
       #exec-ph-close {
         position: absolute; top: 8px; right: 10px; z-index: 1;
