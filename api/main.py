@@ -19,7 +19,7 @@ from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _nex
 from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
-from monitor import generate_encouragement, _recent_entries
+from monitor import generate_encouragement, _recent_entries, _is_commentable
 from chat import append_monitor_comment
 from auth import (
     SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY,
@@ -61,7 +61,7 @@ async def _run_monitor(delay: float = 60.0) -> None:
     except asyncio.CancelledError:
         return
     try:
-        if not _recent_entries(_monitor_last_comment_ts):
+        if not any(_is_commentable(e) for e in _recent_entries(_monitor_last_comment_ts)):
             return
         for q in list(_monitor_subscribers):
             await q.put({"thinking": True})

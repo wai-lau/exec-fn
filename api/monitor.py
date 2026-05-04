@@ -66,8 +66,19 @@ def _build_context() -> tuple[str, str, str, str]:
     return ctx_text, hq_text, books_text, sched_text
 
 
+def _is_commentable(e: dict) -> bool:
+    if e.get("is_reminder"):
+        return False
+    action = e.get("action", "")
+    if action == "moved" and e.get("to_col") in ("archives", "exile"):
+        return True
+    if action == "updated" and e.get("size") == "book":
+        return True
+    return False
+
+
 async def generate_encouragement(batch_start_ts: float) -> str:
-    recent = _recent_entries(batch_start_ts)
+    recent = [e for e in _recent_entries(batch_start_ts) if _is_commentable(e)]
     if not recent:
         return ""
 
