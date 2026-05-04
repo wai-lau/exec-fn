@@ -90,7 +90,7 @@ _PAGE_CHROME = _CHROME_LINK
 _CONTENT_STYLE = ""
 
 _NAV_LINKS = ["core", "prophecies", "directives", "debug", "nightfall", "mtg"]
-_NAV_HREFS = {"core": "/rd", "Exec": "/exec", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg"}
+_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg"}
 
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg"]
@@ -98,7 +98,6 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg"]
 
 _NAV_ICONS = {
     "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "Exec":        '<img src="/guru-pink.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;">',
     "prophecies":  '<img src="/fiddle.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
     "directives":  '<img src="/turbo.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -107,7 +106,7 @@ _NAV_ICONS = {
 }
 
 _NAV_LABELS = {
-    "core": "core", "Exec": "exec", "prophecies": "profs",
+    "core": "core", "prophecies": "profs",
     "directives": "dirs", "debug": "debug", "nightfall": "night", "mtg": "mtg",
 }
 
@@ -226,7 +225,7 @@ async def login(request: Request):
     key = form.get("key", "")
     if not secrets.compare_digest(key, API_KEY):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
-    resp = RedirectResponse(url="/exec", status_code=303)
+    resp = RedirectResponse(url="/rd", status_code=303)
     resp.set_cookie("session", SESSION_TOKEN, httponly=True, samesite="lax", secure=False)
     return resp
 
@@ -251,12 +250,6 @@ async def guest_login(request: Request):
 
 
 # ── pages ─────────────────────────────────────────────────────────────────────
-
-@protected.get("/exec", response_class=HTMLResponse)
-async def exec_page():
-    return (_BARE
-        .replace("</head>", _PAGE_CHROME + "</head>", 1)
-        .replace("</body>", _tmpl("exec.html") + _build_nav("Exec") + "</body>", 1))
 
 
 @protected.get("/plan", response_class=HTMLResponse)
