@@ -32,7 +32,6 @@ _monitor_task: asyncio.Task | None = None
 _monitor_batch_start: float = 0.0
 _monitor_last_comment_ts: float = 0.0
 _monitor_subscribers: list[asyncio.Queue] = []
-_monitor_stored: list[str] = []
 
 _SIGNIFICANT_TO_COLS = {"archives", "exile"}
 
@@ -70,8 +69,6 @@ async def _run_monitor(delay: float = 60.0) -> None:
             return
         _monitor_last_comment_ts = time.time()
         append_monitor_comment(comment)
-        if len(_monitor_stored) < 10:
-            _monitor_stored.append(comment)
         for q in list(_monitor_subscribers):
             await q.put(comment)
     except Exception as e:
@@ -441,10 +438,6 @@ def api_rd_log():
 @protected.get("/api/monitor/stream")
 async def monitor_stream():
     q: asyncio.Queue = asyncio.Queue()
-    stored = list(_monitor_stored)
-    _monitor_stored.clear()
-    for c in stored:
-        await q.put(c)
     _monitor_subscribers.append(q)
 
     async def gen():

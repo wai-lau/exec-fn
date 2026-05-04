@@ -463,7 +463,8 @@
         }
       }
       for (const m of allMsgs) {
-        if (m.role !== 'monitor') restoreMsg(m, toolResults);
+        if (m.role === 'monitor') addMsg('probe', m.content);
+        else restoreMsg(m, toolResults);
       }
     } catch (_) {}
   }
