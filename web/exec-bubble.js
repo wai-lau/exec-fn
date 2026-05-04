@@ -404,7 +404,6 @@
             if      (data.name === 'create_card')  addMsg('sys', '[ card added: ' + (res.title || '') + ' ]');
             else if (data.name === 'move_card')    addMsg('sys', '[ moved "' + (res.title || inp.id || '') + '" -> ' + (res.column || '') + ' ]');
             else if (data.name === 'update_card')  addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
-            else if (data.name === 'delete_card')  addMsg('sys', '[ deleted: ' + (res.deleted || '') + ' ]');
             else if (data.name === 'reschedule')   addMsg('sys', '[ schedule updated ]');
             else if (data.name === 'schedule_card')addMsg('sys', '[ scheduled "' + (res.title || '') + '" -> ' + (res.scheduled_day || 'unscheduled') + ' ]');
             else                                    addMsg('sys', '[ ' + data.name.replace(/_/g, ' ') + ': done ]');
@@ -447,7 +446,6 @@
           if      (b.name === 'create_card') addMsg('sys', '[ card added: ' + (inp.title || '') + ' ]');
           else if (b.name === 'move_card')   addMsg('sys', '[ moved "' + (res.title || inp.id || '') + '" -> ' + (inp.column || '') + ' ]');
           else if (b.name === 'update_card') addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
-          else if (b.name === 'delete_card') addMsg('sys', '[ deleted: ' + (res.deleted || inp.id || '') + ' ]');
         });
       }
     }

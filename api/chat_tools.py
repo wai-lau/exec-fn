@@ -178,7 +178,6 @@ _TOOL_HANDLERS = {
     "create_card":       _tool_create_card,
     "move_card":         _tool_move_card,
     "update_card":       _tool_update_card,
-    "delete_card":       _tool_delete_card,
     "schedule_card":     _tool_schedule_card,
     "reschedule":        _tool_reschedule,
     "update_context":    _tool_update_context,

@@ -40,7 +40,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
             "Book category cards are for reading only — do NOT select them for directives. "
-            "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields or add progress notes), delete_card (permanent removal). "
+            "You can manage cards freely: create_card (new idea), move_card (change column), update_card (edit fields or add progress notes). "
             "When Wai mentions working on, making progress on, or completing part of a task, call update_card with a timestamped note appended to the notes field. "
             "COLUMN SEMANTICS: rd=upcoming ideas/backlog (card added here by default). hq=should be scheduled within remaining time today (active working set). archives=task completed. exile=wont-do. "
             "Use move_card to archive completed tasks or exile dropped ones without being asked twice. "
@@ -129,15 +129,6 @@ def _chat_tools() -> list:
                     "id": {"type": "string", "description": "Card ID."},
                     "scheduled_day": {"type": "string", "description": "ISO date YYYY-MM-DD, or null to unschedule."},
                 },
-                "required": ["id"],
-            },
-        },
-        {
-            "name": "delete_card",
-            "description": "Permanently delete a card. Use only when Wai explicitly asks to remove it entirely.",
-            "input_schema": {
-                "type": "object",
-                "properties": {"id": {"type": "string", "description": "Card ID to delete."}},
                 "required": ["id"],
             },
         },
