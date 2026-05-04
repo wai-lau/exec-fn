@@ -163,16 +163,46 @@ def _tool_update_context(input_: dict) -> dict:
 
 
 def _tool_schedule_card(input_: dict) -> dict:
+    from datetime import date
     rd = _load_rd()
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
-    card["scheduled_day"] = input_.get("scheduled_day") or None
-    if "dir_start_min" in input_:
+
+    requested = input_.get("scheduled_day") or None
+
+    if not requested:
+        card["scheduled_day"] = None
+        _save_rd(rd)
+        _append_rd_log("scheduled", card["title"], source="Exec", day=None)
+        return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": None}
+
+    try:
+        target = date.fromisoformat(requested)
+    except ValueError:
+        return {"error": f"Invalid date: {requested}"}
+
+    today = _now_et().date()
+    window_end = today + timedelta(days=5)  # 6-day window inclusive
+
+    if target > window_end:
+        # Beyond prophecies window — set due_date only, keep in rd
+        if card.get("column") != "rd":
+            card["column"] = "rd"
+        card["due_date"] = requested
+        _save_rd(rd)
+        _append_rd_log("updated", card["title"], source="Exec", fields=["due_date"])
+        return {"ok": True, "id": card["id"], "title": card["title"], "due_date": requested, "note": "beyond 6-day window, set as due date in backlog"}
+
+    # Within window — move rd → hq, set scheduled_day
+    if card.get("column") == "rd":
+        card["column"] = "hq"
+    card["scheduled_day"] = requested
+    if "dir_start_min" in input_ and target == today:
         card["dir_start_min"] = input_["dir_start_min"]
     _save_rd(rd)
-    _append_rd_log("scheduled", card["title"], source="Exec", day=card.get("scheduled_day"))
-    return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": card.get("scheduled_day")}
+    _append_rd_log("scheduled", card["title"], source="Exec", day=requested)
+    return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": requested}
 
 
 

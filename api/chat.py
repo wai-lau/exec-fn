@@ -123,11 +123,12 @@ def _chat_tools() -> list:
         {
             "name": "schedule_card",
             "description": (
-                "Set (or clear) the scheduled_day on a card. "
-                "Use today's date to put it on the directives timeline (today's schedule). "
-                "Use a future date to plan it in prophecies (6-day view). "
+                "Schedule a card for a specific date. Flow: "
+                "(1) if card is in rd, it gets moved to hq automatically. "
+                "(2) if date is within the 6-day prophecies window (today through today+5), sets scheduled_day — today puts it on the directives timeline, future date puts it in prophecies. "
+                "(3) if date is beyond the 6-day window, sets due_date only and leaves card in rd backlog. "
                 "Always infer the right date from context — don't ask unless genuinely ambiguous. "
-                "When scheduling for today and Wai mentions a time, also set dir_start_min (minutes from midnight, e.g. 9am = 540). "
+                "When scheduling for today with a known time, also set dir_start_min (minutes from midnight, e.g. 9:00am = 540, 2:30pm = 870). "
                 "Pass null to unschedule."
             ),
             "input_schema": {
