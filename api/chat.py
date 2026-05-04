@@ -264,11 +264,22 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
 
 
 def _save_chat(messages: list, stage: str):
-    (DATA_DIR / "chat.json").write_text(json.dumps({
-        "messages": messages,
+    p = DATA_DIR / "chat.json"
+    existing = json.loads(p.read_text()) if p.exists() else {}
+    monitor_msgs = [m for m in existing.get("messages", []) if m.get("role") == "monitor"]
+    p.write_text(json.dumps({
+        "messages": messages + monitor_msgs,
         "stage": stage,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }, indent=2))
+
+
+def append_monitor_comment(comment: str):
+    p = DATA_DIR / "chat.json"
+    data = json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}
+    data["messages"].append({"role": "monitor", "content": comment})
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    p.write_text(json.dumps(data, indent=2))
 
 
 def get_chat() -> dict:

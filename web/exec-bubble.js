@@ -459,7 +459,8 @@
       if (!r.ok) return;
       const chat = await r.json();
       if (!chat.messages || !chat.messages.length) return;
-      messages = chat.messages;
+      const allMsgs = chat.messages;
+      messages = allMsgs.filter(function (m) { return m.role !== 'monitor'; });
       stage = chat.stage || 'planning';
       const toolResults = {};
       for (const m of messages) {
@@ -471,7 +472,10 @@
           }
         }
       }
-      for (const m of messages) restoreMsg(m, toolResults);
+      for (const m of allMsgs) {
+        if (m.role === 'monitor') addMsg('probe', m.content);
+        else restoreMsg(m, toolResults);
+      }
     } catch (_) {}
   }
 

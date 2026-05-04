@@ -20,6 +20,7 @@ from routes_nightfall import protected_router as nightfall_protected, build_nigh
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
 from monitor import generate_encouragement
+from chat import append_monitor_comment
 from auth import (
     SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY,
     require_auth, require_guest_auth, API_KEY,
@@ -38,6 +39,8 @@ _SIGNIFICANT_ACTIONS = {"created", "deleted"}
 
 
 def _entry_is_significant(e: dict) -> bool:
+    if e.get("is_reminder"):
+        return False
     action = e.get("action", "")
     if action in _SIGNIFICANT_ACTIONS:
         return True
@@ -67,6 +70,7 @@ async def _run_monitor(delay: float = 60.0) -> None:
         if not comment:
             return
         _monitor_last_comment_ts = time.time()
+        append_monitor_comment(comment)
         if len(_monitor_stored) < 10:
             _monitor_stored.append(comment)
         for q in list(_monitor_subscribers):
@@ -374,9 +378,9 @@ def _log_entries_for_patch(new_cards, old_cards, source):
     for c in new_cards:
         old = old_cards.get(c.get("id"))
         if old is None:
-            entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "column": c.get("column")})
+            entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "column": c.get("column"), "is_reminder": c.get("is_reminder", False)})
         elif old.get("column") != c.get("column"):
-            entries.append({"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"]})
+            entries.append({"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)})
         elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
             entries.append({"action": "updated", "title": c.get("title", c.get("id")), "source": source})
     new_ids = {c["id"] for c in new_cards}
