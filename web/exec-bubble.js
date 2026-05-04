@@ -8,7 +8,6 @@
   let stage = 'planning';
   let streaming = false;
   let unreadCount = 0;
-  let lastProbedTs = new Date().toISOString();
 
   // ── marked lazy-load ──────────────────────────────────────────────────────
   function loadMarked(cb) {
@@ -32,7 +31,7 @@
       wireInput();
       restorePosition();
       loadHistory();
-      setInterval(probeOnce, 30000);
+      connectMonitorStream();
     });
   }
 
@@ -273,6 +272,7 @@
     panel.classList.add('open');
     setUnread(0);
     setTimeout(function () { if (msgInput) msgInput.focus(); }, 240);
+    fetch('/api/monitor/flush', { method: 'POST' }).catch(function () {});
   }
 
   function closePanel() {
@@ -473,18 +473,22 @@
     } catch (_) {}
   }
 
-  // ── probe ─────────────────────────────────────────────────────────────────
-  async function probeOnce() {
-    try {
-      const r = await fetch('/api/exec/probe?since=' + encodeURIComponent(lastProbedTs));
-      if (!r.ok) return;
-      const data = await r.json();
-      if (data.last_ts) lastProbedTs = data.last_ts;
-      if (data.comment) {
-        addMsg('probe', data.comment);
-        if (!isOpen) setUnread(unreadCount + 1);
-      }
-    } catch (_) {}
+  // ── monitor stream ───────────────────────────────────────────────────────
+  function connectMonitorStream() {
+    var src = new EventSource('/api/monitor/stream');
+    src.onmessage = function (e) {
+      try {
+        var data = JSON.parse(e.data);
+        if (data.comment) {
+          addMsg('probe', data.comment);
+          if (!isOpen) setUnread(unreadCount + 1);
+        }
+      } catch (_) {}
+    };
+    src.onerror = function () {
+      src.close();
+      setTimeout(connectMonitorStream, 5000);
+    };
   }
 
 })();
