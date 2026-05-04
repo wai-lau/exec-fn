@@ -19,7 +19,7 @@ from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _nex
 from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
-from monitor import generate_encouragement
+from monitor import generate_encouragement, _recent_entries
 from chat import append_monitor_comment
 from auth import (
     SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY,
@@ -29,7 +29,6 @@ from auth import (
 # ── monitor state ─────────────────────────────────────────────────────────────
 
 _monitor_task: asyncio.Task | None = None
-_monitor_batch_start: float = 0.0
 _monitor_last_comment_ts: float = 0.0
 _monitor_subscribers: list[asyncio.Queue] = []
 
@@ -49,10 +48,8 @@ def _entry_is_significant(e: dict) -> bool:
 
 def _schedule_monitor() -> None:
     """Trailing debounce: each call resets the 60s timer."""
-    global _monitor_task, _monitor_batch_start
-    if not _monitor_task or _monitor_task.done():
-        _monitor_batch_start = time.time()
-    else:
+    global _monitor_task
+    if _monitor_task and not _monitor_task.done():
         _monitor_task.cancel()
     _monitor_task = asyncio.create_task(_run_monitor())
 
@@ -64,9 +61,11 @@ async def _run_monitor(delay: float = 60.0) -> None:
     except asyncio.CancelledError:
         return
     try:
+        if not _recent_entries(_monitor_last_comment_ts):
+            return
         for q in list(_monitor_subscribers):
             await q.put({"thinking": True})
-        comment = await generate_encouragement(_monitor_batch_start)
+        comment = await generate_encouragement(_monitor_last_comment_ts)
         for q in list(_monitor_subscribers):
             await q.put({"thinking": False})
         if not comment:
