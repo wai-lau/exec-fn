@@ -64,15 +64,21 @@ async def _run_monitor(delay: float = 60.0) -> None:
     except asyncio.CancelledError:
         return
     try:
+        for q in list(_monitor_subscribers):
+            await q.put({"thinking": True})
         comment = await generate_encouragement(_monitor_batch_start)
+        for q in list(_monitor_subscribers):
+            await q.put({"thinking": False})
         if not comment:
             return
         _monitor_last_comment_ts = time.time()
         append_monitor_comment(comment)
         for q in list(_monitor_subscribers):
-            await q.put(comment)
+            await q.put({"comment": comment})
     except Exception as e:
         print(f"[monitor] error: {e}")
+        for q in list(_monitor_subscribers):
+            await q.put({"thinking": False})
 
 
 _TMPL = Path("/app/templates")
@@ -444,8 +450,8 @@ async def monitor_stream():
         try:
             while True:
                 try:
-                    comment = await asyncio.wait_for(q.get(), timeout=25)
-                    yield f"data: {json.dumps({'comment': comment})}\n\n"
+                    msg = await asyncio.wait_for(q.get(), timeout=25)
+                    yield f"data: {json.dumps(msg if isinstance(msg, dict) else {'comment': msg})}\n\n"
                 except asyncio.TimeoutError:
                     yield ": keepalive\n\n"
         finally:

@@ -478,12 +478,29 @@
   }
 
   // ── monitor stream ───────────────────────────────────────────────────────
+  var monitorThinkEl = null;
+  function setMonitorThinking(on) {
+    if (on && !monitorThinkEl) {
+      monitorThinkEl = document.createElement('div');
+      monitorThinkEl.className = 'msg probe';
+      monitorThinkEl.innerHTML = '<div class="msg-body"><span id="exec-bc"><span></span><span></span><span></span></span></div>';
+      termEl.appendChild(monitorThinkEl);
+      termEl.scrollTop = termEl.scrollHeight;
+    } else if (!on && monitorThinkEl) {
+      monitorThinkEl.remove();
+      monitorThinkEl = null;
+    }
+  }
+
   function connectMonitorStream() {
     var src = new EventSource('/api/monitor/stream');
     src.onmessage = function (e) {
       try {
         var data = JSON.parse(e.data);
-        if (data.comment) {
+        if (data.thinking !== undefined) {
+          setMonitorThinking(data.thinking);
+        } else if (data.comment) {
+          setMonitorThinking(false);
           addMsg('probe', data.comment);
           if (!isOpen) setUnread(unreadCount + 1);
         }
