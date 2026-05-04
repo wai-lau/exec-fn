@@ -41,7 +41,12 @@ def _tool_create_card(input_: dict) -> dict:
     rd["cards"] = cards
     _save_rd(rd)
     _append_rd_log("created", new_card["title"], source="Exec", column=column)
-    return {"ok": True, "id": new_card["id"], "title": new_card["title"]}
+
+    result = {"ok": True, "id": new_card["id"], "title": new_card["title"]}
+    if input_.get("due_date") and not is_reminder:
+        sched = _apply_schedule(new_card["id"], input_["due_date"], input_.get("dir_start_min"))
+        result.update(sched)
+    return result
 
 
 
@@ -91,7 +96,7 @@ def _tool_update_card(input_: dict) -> dict:
     changed = []
     if "is_reminder" in input_:
         _apply_reminder_flag(card, input_, changed)
-    for field in ("title", "category", "notes", "due_date"):
+    for field in ("title", "category", "notes"):
         if field in input_:
             card[field] = input_[field]
             changed.append(field)
@@ -162,47 +167,50 @@ def _tool_update_context(input_: dict) -> dict:
 
 
 
-def _tool_schedule_card(input_: dict) -> dict:
+def _apply_schedule(card_id: str, requested: str, dir_start_min: int | None = None) -> dict:
+    """Shared scheduling logic: rd→hq promotion, window detection, due_date fallback."""
     from datetime import date
     rd = _load_rd()
-    card = _find_card(rd, input_.get("id", ""))
+    card = _find_card(rd, card_id)
     if not card:
-        return {"error": f"Card not found: {input_.get('id')}"}
-
-    requested = input_.get("scheduled_day") or None
-
-    if not requested:
-        card["scheduled_day"] = None
-        _save_rd(rd)
-        _append_rd_log("scheduled", card["title"], source="Exec", day=None)
-        return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": None}
-
+        return {"error": f"Card not found: {card_id}"}
     try:
         target = date.fromisoformat(requested)
     except ValueError:
         return {"error": f"Invalid date: {requested}"}
-
     today = _now_et().date()
-    window_end = today + timedelta(days=5)  # 6-day window inclusive
-
+    window_end = today + timedelta(days=5)
     if target > window_end:
-        # Beyond prophecies window — set due_date only, keep in rd
         if card.get("column") != "rd":
             card["column"] = "rd"
         card["due_date"] = requested
         _save_rd(rd)
         _append_rd_log("updated", card["title"], source="Exec", fields=["due_date"])
-        return {"ok": True, "id": card["id"], "title": card["title"], "due_date": requested, "note": "beyond 6-day window, set as due date in backlog"}
-
-    # Within window — move rd → hq, set scheduled_day
+        return {"due_date": requested, "note": "beyond 6-day window, set as due date in backlog"}
     if card.get("column") == "rd":
         card["column"] = "hq"
     card["scheduled_day"] = requested
-    if "dir_start_min" in input_ and target == today:
-        card["dir_start_min"] = input_["dir_start_min"]
+    if dir_start_min is not None and target == today:
+        card["dir_start_min"] = dir_start_min
     _save_rd(rd)
     _append_rd_log("scheduled", card["title"], source="Exec", day=requested)
-    return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": requested}
+    return {"scheduled_day": requested}
+
+
+def _tool_schedule_card(input_: dict) -> dict:
+    card_id = input_.get("id", "")
+    requested = input_.get("scheduled_day") or None
+    if not requested:
+        rd = _load_rd()
+        card = _find_card(rd, card_id)
+        if not card:
+            return {"error": f"Card not found: {card_id}"}
+        card["scheduled_day"] = None
+        _save_rd(rd)
+        _append_rd_log("scheduled", card["title"], source="Exec", day=None)
+        return {"ok": True, "id": card_id, "title": card.get("title", ""), "scheduled_day": None}
+    result = _apply_schedule(card_id, requested, input_.get("dir_start_min"))
+    return {"ok": True, "id": card_id, **result}
 
 
 

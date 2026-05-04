@@ -74,7 +74,7 @@ def _chat_tools() -> list:
     return [
         {
             "name": "create_card",
-            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Set due_date when you can reasonably infer it.",
+            "description": "Add a new card to the r&d ideas pool. Use when Wai mentions a new project or task idea. Also use to create new tasks from delta notes (set column=hq for tasks to do today/tomorrow). Set due_date when you can reasonably infer it — if provided, scheduling logic runs automatically (rd→hq promotion, window detection, dir_start_min if today).",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -105,7 +105,7 @@ def _chat_tools() -> list:
         },
         {
             "name": "update_card",
-            "description": "Update fields on an existing card. Only include fields that should change. Setting estimated_time auto-updates size if the duration implies a different category. Use notes to record progress when Wai mentions working on or making progress on a task — append a timestamped note, don't overwrite existing notes.",
+            "description": "Update metadata on an existing card: title, category, size, estimated_time, or progress notes. For any date or deadline change, use schedule_card instead. Use notes to record progress — append a timestamped entry, don't overwrite existing content.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -113,9 +113,8 @@ def _chat_tools() -> list:
                     "title": {"type": "string"},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"]},
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
-                    "notes": {"type": "string", "description": "Progress notes. Append timestamped entry when Wai mentions working on or making progress on a task — don't overwrite existing content."},
+                    "notes": {"type": "string", "description": "Progress notes. Append timestamped entry — don't overwrite existing content."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
-                    "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done."},
                 },
                 "required": ["id"],
             },
