@@ -82,3 +82,9 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 }
 .exec-send:hover { color:rgba(0,255,65,0.75); }
 .exec-send:disabled { opacity:0.12; cursor:default; }
+
+.msg.monitor { color:rgba(160,255,120,0.78); display:flex; align-items:flex-start; font-style:italic; border-left:2px solid rgba(160,255,120,0.18); padding-left:8px; margin-left:2px; margin-top:10px; margin-bottom:10px; }
+.msg.monitor::before { content:"~"; opacity:0.45; flex-shrink:0; margin-right:0.4em; }
+.msg.monitor .msg-body { flex:1; min-width:0; }
+.msg.monitor p { margin:0 0 4px; }
+.msg.monitor p:last-child { margin-bottom:0; }

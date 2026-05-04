@@ -3,12 +3,13 @@ import json
 import copy
 import time
 import glob
+import asyncio
 import secrets
 from pathlib import Path
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse, StreamingResponse
 
 from pipeline import build_morning
 from gcal import gcal_start_auth, gcal_complete_auth
@@ -18,10 +19,61 @@ from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _nex
 from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
+from monitor import generate_encouragement
 from auth import (
     SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY,
     require_auth, require_guest_auth, API_KEY,
 )
+
+# ── monitor state ─────────────────────────────────────────────────────────────
+
+_monitor_task: asyncio.Task | None = None
+_monitor_batch_start: float = 0.0
+_monitor_last_comment_ts: float = 0.0
+_monitor_subscribers: list[asyncio.Queue] = []
+_monitor_stored: list[str] = []
+
+_SIGNIFICANT_TO_COLS = {"archives", "hq", "exile"}
+_SIGNIFICANT_ACTIONS = {"created", "deleted", "revived", "rescheduled"}
+
+
+def _entry_is_significant(e: dict) -> bool:
+    action = e.get("action", "")
+    if action in _SIGNIFICANT_ACTIONS:
+        return True
+    if action == "moved" and e.get("to_col") in _SIGNIFICANT_TO_COLS:
+        return True
+    return False
+
+
+def _schedule_monitor() -> None:
+    """Trailing debounce: each call resets the 60s timer."""
+    global _monitor_task, _monitor_batch_start
+    if not _monitor_task or _monitor_task.done():
+        _monitor_batch_start = time.time()
+    else:
+        _monitor_task.cancel()
+    _monitor_task = asyncio.create_task(_run_monitor())
+
+
+async def _run_monitor(delay: float = 60.0) -> None:
+    global _monitor_last_comment_ts
+    try:
+        await asyncio.sleep(delay)
+    except asyncio.CancelledError:
+        return
+    try:
+        comment = await generate_encouragement(_monitor_batch_start)
+        if not comment:
+            return
+        _monitor_last_comment_ts = time.time()
+        if len(_monitor_stored) < 10:
+            _monitor_stored.append(comment)
+        for q in list(_monitor_subscribers):
+            await q.put(comment)
+    except Exception as e:
+        print(f"[monitor] error: {e}")
+
 
 _TMPL = Path("/app/templates")
 
@@ -375,12 +427,72 @@ async def api_rd_patch(request: Request, source: str = "core"):
     data["cards"] = new_cards + revived
     p.write_text(json.dumps(data, indent=2))
     _append_rd_log_batch(log_entries)
+    if any(_entry_is_significant(e) for e in log_entries):
+        _schedule_monitor()
     return {"ok": True}
 
 
 @protected.get("/api/rd/log")
 def api_rd_log():
     return get_rd_log(limit=20)
+
+
+@protected.get("/api/monitor/stream")
+async def monitor_stream():
+    q: asyncio.Queue = asyncio.Queue()
+    stored = list(_monitor_stored)
+    _monitor_stored.clear()
+    for c in stored:
+        await q.put(c)
+    _monitor_subscribers.append(q)
+
+    async def gen():
+        try:
+            while True:
+                try:
+                    comment = await asyncio.wait_for(q.get(), timeout=25)
+                    yield f"data: {json.dumps({'comment': comment})}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            try:
+                _monitor_subscribers.remove(q)
+            except ValueError:
+                pass
+
+    return StreamingResponse(gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
+
+
+@protected.post("/api/monitor/flush")
+async def monitor_flush():
+    """Fire monitor immediately if significant activity exists since last comment."""
+    global _monitor_task, _monitor_batch_start
+    from datetime import datetime, timezone as _tz
+    cutoff = datetime.fromtimestamp(_monitor_last_comment_ts or 0, tz=_tz.utc)
+    from helpers import _ACTIVITY_LOG
+    log = json.loads(_ACTIVITY_LOG.read_text()) if _ACTIVITY_LOG.exists() else []
+    has_new = False
+    for e in log:
+        try:
+            ts = datetime.fromisoformat(e.get("ts", ""))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=_tz.utc)
+            if ts >= cutoff and _entry_is_significant(e):
+                has_new = True
+                break
+        except Exception:
+            pass
+    if not has_new:
+        return {"ok": True, "fired": False}
+    if _monitor_task and not _monitor_task.done():
+        _monitor_task.cancel()
+    else:
+        _monitor_batch_start = _monitor_last_comment_ts or 0.0
+    _monitor_task = asyncio.create_task(_run_monitor(delay=0))
+    return {"ok": True, "fired": True}
 
 
 @protected.get("/api/prophecies")
@@ -393,7 +505,10 @@ def api_prophecies_get(start: str = ""):
 async def api_prophecies_patch(request: Request):
     body = await request.json()
     from prophecies import bulk_update_scheduled_days
-    return bulk_update_scheduled_days(body.get("updates", []))
+    result = bulk_update_scheduled_days(body.get("updates", []))
+    if result.get("changed", 0):
+        _schedule_monitor()
+    return result
 
 
 @protected.get("/api/prophecies/log")
