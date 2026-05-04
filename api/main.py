@@ -34,16 +34,13 @@ _monitor_last_comment_ts: float = 0.0
 _monitor_subscribers: list[asyncio.Queue] = []
 _monitor_stored: list[str] = []
 
-_SIGNIFICANT_TO_COLS = {"archives", "hq", "exile"}
-_SIGNIFICANT_ACTIONS = {"created"}
+_SIGNIFICANT_TO_COLS = {"archives", "exile"}
 
 
 def _entry_is_significant(e: dict) -> bool:
     if e.get("is_reminder"):
         return False
     action = e.get("action", "")
-    if action in _SIGNIFICANT_ACTIONS:
-        return True
     if action == "moved" and e.get("to_col") in _SIGNIFICANT_TO_COLS:
         return True
     if action == "updated" and e.get("size") == "book":
