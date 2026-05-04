@@ -73,7 +73,8 @@
 
       #exec-panel {
         position: fixed; top: 0; right: 0; bottom: var(--nav-h, 56px); width: 380px;
-        background: #111; border-left: 1px solid rgba(0,255,65,0.07);
+        background: rgba(10,10,10,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        border-left: 1px solid rgba(0,255,65,0.07);
         display: flex; flex-direction: column; z-index: 8999;
         transform: translateX(100%);
         transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
@@ -82,19 +83,14 @@
       #exec-panel.open { transform: translateX(0); }
       @media (max-width: 500px) { #exec-panel { width: 100%; border-left: none; } }
 
-      #exec-ph {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 9px 14px; border-bottom: 1px solid rgba(0,255,65,0.06);
-        flex-shrink: 0;
-      }
-      #exec-ph-title { color: rgba(0,255,65,0.45); font-size: 0.72rem; letter-spacing: 0.07em; }
       #exec-ph-close {
-        background: rgba(0,255,65,0.06); border: 1px solid rgba(0,255,65,0.18); border-radius: 3px;
-        cursor: pointer; color: rgba(0,255,65,0.65);
+        position: absolute; top: 8px; right: 10px; z-index: 1;
+        background: none; border: none;
+        cursor: pointer; color: rgba(0,255,65,0.3);
         font-family: 'Iosevka Mayukai Monolite', monospace;
-        font-size: 0.78rem; padding: 2px 7px; transition: background 0.15s, color 0.15s;
+        font-size: 0.78rem; padding: 4px 6px; transition: color 0.15s;
       }
-      #exec-ph-close:hover { background: rgba(0,255,65,0.14); color: rgba(0,255,65,1); }
+      #exec-ph-close:hover { color: rgba(0,255,65,0.8); }
 
       #exec-term {
         flex: 1; overflow-y: auto; padding: 12px 14px;
@@ -161,10 +157,7 @@
     panel = document.createElement('div');
     panel.id = 'exec-panel';
     panel.innerHTML =
-      '<div id="exec-ph">' +
-        '<span id="exec-ph-title">exec // monitoring</span>' +
-        '<button id="exec-ph-close">[x]</button>' +
-      '</div>' +
+      '<button id="exec-ph-close">[x]</button>' +
       '<div id="exec-term"></div>' +
       '<div id="exec-input-area">' +
         '<div id="exec-iline">' +
