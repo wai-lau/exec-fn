@@ -137,7 +137,7 @@
       #exec-iline:focus-within { border-bottom-color: rgba(0,255,65,0.3); }
       #exec-prompt { color: rgba(0,255,65,0.48); font-size: 0.88rem; white-space: nowrap; user-select: none; padding-right: 8px; }
       #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
-      #exec-idisp { position: absolute; inset: 0; display: flex; align-items: flex-start; font-size: 0.82rem; color: rgba(0,255,65,0.95); white-space: pre-wrap; pointer-events: none; overflow: hidden; }
+      #exec-idisp { position: absolute; inset: 0; font-size: 0.82rem; color: rgba(0,255,65,0.95); white-space: pre-wrap; pointer-events: none; overflow: hidden; }
       #exec-icursor { display: none; width: 0.6em; height: 1.1em; background: rgba(0,255,65,0.9); vertical-align: text-bottom; animation: execblink 1s step-end infinite; }
       #exec-minput { width: 100%; background: none; border: none; color: transparent; caret-color: transparent; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-size: 0.82rem; padding: 0; outline: none; resize: none; overflow: hidden; line-height: 1.45; }
     `;
