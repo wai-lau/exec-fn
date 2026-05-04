@@ -383,8 +383,13 @@ def _log_entries_for_patch(new_cards, old_cards, source):
             entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "column": c.get("column"), "is_reminder": c.get("is_reminder", False)})
         elif old.get("column") != c.get("column"):
             entries.append({"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)})
-        elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
-            entries.append({"action": "updated", "title": c.get("title", c.get("id")), "source": source, "size": c.get("size", "")})
+        elif (old.get("notes") != c.get("notes") or old.get("title") != c.get("title")
+              or old.get("current_page") != c.get("current_page")):
+            entry = {"action": "updated", "title": c.get("title", c.get("id")), "source": source, "size": c.get("size", "")}
+            if c.get("size") == "book" and c.get("current_page") is not None:
+                entry["current_page"] = c.get("current_page")
+                entry["total_pages"] = c.get("total_pages")
+            entries.append(entry)
     new_ids = {c["id"] for c in new_cards}
     for cid, old in old_cards.items():
         if cid not in new_ids:
