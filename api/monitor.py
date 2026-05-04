@@ -41,6 +41,14 @@ async def generate_encouragement(batch_start_ts: float) -> str:
         )
         or "None."
     )
+    books = [c for c in cards if c.get("size") == "book" and c.get("column") not in ("archives", "exile")]
+    books_text = (
+        "\n".join(
+            f"- {c['title']}" + (f": {c.get('notes','')[:150]}" if c.get("notes") else "")
+            for c in books
+        )
+        or "None."
+    )
     sched = plan.get("schedule", [])
     sched_text = (
         "\n".join(f"- {s.get('time','?')}: {s.get('task','?')}" for s in sched) or "None."
@@ -72,12 +80,13 @@ async def generate_encouragement(batch_start_ts: float) -> str:
         "You are watching Wai work. Based on the recent activity, write ONE brief encouraging comment (1-3 sentences).\n\n"
         "RULES:\n"
         "- NEVER describe what happened mechanically. Never say 'moved to', 'added to hq', 'archived', or mention column names.\n"
-        "- Speak to the *meaning* of the action: finishing something, deciding to tackle something, clearing something out.\n"
+        "- Speak to the *meaning* of the action: finishing something, deciding to tackle something, clearing something out, making reading progress.\n"
         "- Be warm and human, like a friend noticing good work. Specific > generic.\n"
         "- Do not ask questions. Do not suggest next steps.\n"
         "- If multiple things happened, pick the most meaningful one to comment on.\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}\n\n"
         f"CURRENTLY SELECTED TASKS (hq):\n{hq_text}\n\n"
+        f"BOOKS IN PROGRESS:\n{books_text}\n\n"
         f"TODAY'S SCHEDULE:\n{sched_text}"
     )
 

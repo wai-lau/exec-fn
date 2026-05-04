@@ -46,6 +46,8 @@ def _entry_is_significant(e: dict) -> bool:
         return True
     if action == "moved" and e.get("to_col") in _SIGNIFICANT_TO_COLS:
         return True
+    if action == "updated" and e.get("size") == "book":
+        return True
     return False
 
 
@@ -382,7 +384,7 @@ def _log_entries_for_patch(new_cards, old_cards, source):
         elif old.get("column") != c.get("column"):
             entries.append({"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)})
         elif old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
-            entries.append({"action": "updated", "title": c.get("title", c.get("id")), "source": source})
+            entries.append({"action": "updated", "title": c.get("title", c.get("id")), "source": source, "size": c.get("size", "")})
     new_ids = {c["id"] for c in new_cards}
     for cid, old in old_cards.items():
         if cid not in new_ids:
