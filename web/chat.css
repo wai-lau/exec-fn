@@ -5,7 +5,9 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
   overflow-y:auto; padding:16px 20px;
   font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.82rem; line-height:1.45;
   color:rgba(0,255,65,0.9);
+  display:flex; flex-direction:column;
 }
+#terminal::before { content:''; flex:1; }
 .msg { margin-bottom:6px; max-width:680px; overflow-wrap:break-word; }
 .msg-ts { color:rgba(255,255,255,0.18); font-size:0.9em; }
 .msg.assistant::before { content:">"; opacity:0.4; flex-shrink:0; margin-right:0.4em; }

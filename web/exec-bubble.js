@@ -99,7 +99,9 @@
       #exec-term {
         flex: 1; overflow-y: auto; padding: 12px 14px;
         font-size: 0.82rem; line-height: 1.45; color: rgba(0,255,65,0.9);
+        display: flex; flex-direction: column;
       }
+      #exec-term::before { content: ""; flex: 1; }
       #exec-term::-webkit-scrollbar { width: 3px; }
       #exec-term::-webkit-scrollbar-track { background: transparent; }
       #exec-term::-webkit-scrollbar-thumb { background: rgba(0,255,65,0.12); border-radius: 2px; }
@@ -169,7 +171,7 @@
           '<span id="exec-prompt">wai@exec:~$</span>' +
           '<div id="exec-iwrap">' +
             '<div id="exec-idisp"><span id="exec-imirror"></span><span id="exec-icursor"></span></div>' +
-            '<textarea id="exec-minput" rows="1" enterkeyhint="send"></textarea>' +
+            '<textarea id="exec-minput" rows="1" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>' +
           '</div>' +
         '</div>' +
       '</div>';
