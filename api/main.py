@@ -34,7 +34,7 @@ _monitor_subscribers: list[asyncio.Queue] = []
 _monitor_stored: list[str] = []
 
 _SIGNIFICANT_TO_COLS = {"archives", "hq", "exile"}
-_SIGNIFICANT_ACTIONS = {"created", "deleted", "rescheduled"}
+_SIGNIFICANT_ACTIONS = {"created", "deleted"}
 
 
 def _entry_is_significant(e: dict) -> bool:
@@ -505,10 +505,7 @@ def api_prophecies_get(start: str = ""):
 async def api_prophecies_patch(request: Request):
     body = await request.json()
     from prophecies import bulk_update_scheduled_days
-    result = bulk_update_scheduled_days(body.get("updates", []))
-    if result.get("changed", 0):
-        _schedule_monitor()
-    return result
+    return bulk_update_scheduled_days(body.get("updates", []))
 
 
 @protected.get("/api/prophecies/log")
