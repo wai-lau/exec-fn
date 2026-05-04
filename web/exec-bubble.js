@@ -404,7 +404,6 @@
             if      (data.name === 'create_card')  addMsg('sys', '[ card added: ' + (res.title || '') + ' ]');
             else if (data.name === 'move_card')    addMsg('sys', '[ moved "' + (res.title || inp.id || '') + '" -> ' + (res.column || '') + ' ]');
             else if (data.name === 'update_card')  addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
-            else if (data.name === 'reschedule')   addMsg('sys', '[ schedule updated ]');
             else if (data.name === 'schedule_card')addMsg('sys', '[ scheduled "' + (res.title || '') + '" -> ' + (res.scheduled_day || 'unscheduled') + ' ]');
             else                                    addMsg('sys', '[ ' + data.name.replace(/_/g, ' ') + ': done ]');
           } else if (data.type === 'done') {

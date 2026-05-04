@@ -168,6 +168,8 @@ def _tool_schedule_card(input_: dict) -> dict:
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
     card["scheduled_day"] = input_.get("scheduled_day") or None
+    if "dir_start_min" in input_:
+        card["dir_start_min"] = input_["dir_start_min"]
     _save_rd(rd)
     _append_rd_log("scheduled", card["title"], source="Exec", day=card.get("scheduled_day"))
     return {"ok": True, "id": card["id"], "title": card["title"], "scheduled_day": card.get("scheduled_day")}
@@ -179,7 +181,6 @@ _TOOL_HANDLERS = {
     "move_card":         _tool_move_card,
     "update_card":       _tool_update_card,
     "schedule_card":     _tool_schedule_card,
-    "reschedule":        _tool_reschedule,
     "update_context":    _tool_update_context,
 }
 

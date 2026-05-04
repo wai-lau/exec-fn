@@ -122,22 +122,22 @@ def _chat_tools() -> list:
         },
         {
             "name": "schedule_card",
-            "description": "Set (or clear) the scheduled_day on a card to plan it for a specific date. Use during 7-day planning. Pass null to unschedule.",
+            "description": (
+                "Set (or clear) the scheduled_day on a card. "
+                "Use today's date to put it on the directives timeline (today's schedule). "
+                "Use a future date to plan it in prophecies (6-day view). "
+                "Always infer the right date from context — don't ask unless genuinely ambiguous. "
+                "When scheduling for today and Wai mentions a time, also set dir_start_min (minutes from midnight, e.g. 9am = 540). "
+                "Pass null to unschedule."
+            ),
             "input_schema": {
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "description": "Card ID."},
-                    "scheduled_day": {"type": "string", "description": "ISO date YYYY-MM-DD, or null to unschedule."},
+                    "scheduled_day": {"type": "string", "description": "ISO date YYYY-MM-DD (today = directives, future = prophecies), or null to unschedule."},
+                    "dir_start_min": {"type": "integer", "description": "Minutes from midnight for directives timeline position (e.g. 9:00am = 540, 2:30pm = 870). Only set when scheduling for today with a known time."},
                 },
                 "required": ["id"],
-            },
-        },
-        {
-            "name": "reschedule",
-            "description": "Regenerate the time-block schedule from the current plan cards, incorporating Wai's feedback.",
-            "input_schema": {
-                "type": "object",
-                "properties": {"feedback": {"type": "string", "description": "Wai's scheduling feedback or constraints (e.g. 'move the dive task to afternoon')."}},
             },
         },
         {
