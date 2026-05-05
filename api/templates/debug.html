@@ -222,7 +222,7 @@ async function loadDebug() {
   if (mbRes.ok) {
     const mb = await mbRes.json();
     const lines = (mb.content || '').trim();
-    mbEl.innerHTML = lines ? `<pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:0.75rem;opacity:0.8">${lines}</pre>` : '<div class="dbg-empty">no heartbeat entries</div>';
+    mbEl.innerHTML = lines ? `<pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:0.75rem;color:rgba(0,255,65,0.8)">${lines}</pre>` : '<div class="dbg-empty">no heartbeat entries</div>';
   } else { mbEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; }
 
   // Profile
