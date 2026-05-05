@@ -80,16 +80,17 @@ async def _run_monitor(delay: float = 60.0) -> None:
     except asyncio.CancelledError:
         return
     try:
-        if not any(_is_commentable(e) for e in _recent_entries(_monitor_last_comment_ts)):
+        capture_ts = _monitor_last_comment_ts
+        if not any(_is_commentable(e) for e in _recent_entries(capture_ts)):
             return
+        _monitor_last_comment_ts = time.time()
         for q in list(_monitor_subscribers):
             await q.put({"thinking": True})
-        comment = await generate_encouragement(_monitor_last_comment_ts)
+        comment = await generate_encouragement(capture_ts)
         for q in list(_monitor_subscribers):
             await q.put({"thinking": False})
         if not comment:
             return
-        _monitor_last_comment_ts = time.time()
         append_monitor_comment(comment)
         for q in list(_monitor_subscribers):
             await q.put({"comment": comment})
