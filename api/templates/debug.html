@@ -93,6 +93,10 @@ body { overflow-y: auto !important; }
     <div id="dbg-ve"><span class="dbg-empty">loading...</span></div>
   </div>
   <div class="dbg-section">
+    <div class="dbg-hdr">moltbook heartbeat</div>
+    <div id="dbg-moltbook"><span class="dbg-empty">loading...</span></div>
+  </div>
+  <div class="dbg-section">
     <div class="dbg-hdr">profile</div>
     <div id="dbg-profile"><span class="dbg-empty">loading...</span></div>
   </div>
@@ -184,11 +188,12 @@ async function patchProfile() {
 }
 
 async function loadDebug() {
-  const [ctxRes, logRes, mtgRes, veRes] = await Promise.all([
+  const [ctxRes, logRes, mtgRes, veRes, mbRes] = await Promise.all([
     fetch('/api/context'),
     fetch('/api/debug/logs'),
     fetch('/api/mtg/log'),
     fetch('/data/moltbook_needs_human.json'),
+    fetch('/api/moltbook/heartbeat-log'),
   ]);
 
   // Vain-empress
@@ -211,6 +216,14 @@ async function loadDebug() {
       }).join('');
     }
   } else { veEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; }
+
+  // Moltbook heartbeat
+  const mbEl = document.getElementById('dbg-moltbook');
+  if (mbRes.ok) {
+    const mb = await mbRes.json();
+    const lines = (mb.content || '').trim();
+    mbEl.innerHTML = lines ? `<pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:0.75rem;opacity:0.8">${lines}</pre>` : '<div class="dbg-empty">no heartbeat entries</div>';
+  } else { mbEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; }
 
   // Profile
   if (ctxRes.ok) {
