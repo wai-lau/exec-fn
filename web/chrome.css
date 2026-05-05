@@ -31,46 +31,76 @@
    Use rgba(var(--X-rgb), α) for opacity variants of base colors.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* base */
-  --bg:               rgb(24, 30, 28);
+  /* ── Backgrounds & Surfaces ──────────────────────────────────────────── */
+  --bg:                  rgb(24, 30, 28);           /* main page bg + column bg (green-tinted dark) */
+  --surface-modal:       #0a0a0a;                   /* card dialog, popup panels */
+  --surface-input:       #181818;                   /* chat input bar bg */
+  --surface-nav:         rgba(0, 0, 0, 0.5);        /* bottom nav backdrop */
+  --surface-scrim:       rgba(0, 0, 0, 0.78);       /* full-page modal overlay */
+  --surface-book:        hsl(210deg, 55%, 12%);      /* book card bg in prophecies */
+  --surface-book-border: hsl(210deg, 50%, 26%);     /* book card border in prophecies */
 
-  /* primary green */
-  --green-rgb:        0, 255, 65;
-  --green:            rgb(0, 255, 65);
+  /* ── Primary Green ───────────────────────────────────────────────────── */
+  --green-rgb:           0, 255, 65;                /* primary text + accent — use rgba(var(--green-rgb), α) */
+  --green:               rgb(0, 255, 65);
 
-  /* blue — books bar, prophecies accents */
-  --blue-rgb:         130, 170, 230;
-  --blue:             rgb(130, 170, 230);
-  --blue-bright:      rgb(160, 200, 255);        /* book hover */
-  --blue-weekend:     rgba(100, 160, 255, 0.85); /* sat/sun day name */
+  /* ── Blues ───────────────────────────────────────────────────────────── */
+  --blue-rgb:            130, 170, 230;             /* books bar, prophecies accents */
+  --blue:                rgb(130, 170, 230);
+  --blue-bright-rgb:     160, 200, 255;             /* book hover + bright label text */
+  --blue-bright:         rgb(160, 200, 255);
+  --blue-book-text:      hsl(210deg, 75%, 72%);     /* book row title text */
+  --blue-weekend:        rgba(100, 160, 255, 0.85); /* prophecies sat/sun day name */
 
-  /* amber — books bar bottom border */
-  --amber:            rgba(210, 160, 80, 0.1);
+  /* ── Cyan ────────────────────────────────────────────────────────────── */
+  --cyan-rgb:            0, 220, 255;               /* seek type badge, exec source, plan view */
+  --cyan:                rgb(0, 220, 255);           /* also covers rgba(80,200,255) probe text */
 
-  /* orange — nixie clock */
-  --orange:           rgba(255, 160,  40, 0.95);
-  --orange-glow-a:    rgba(255, 120,   0, 0.9);  /* tight inner halo */
-  --orange-glow-b:    rgba(255, 100,   0, 0.6);  /* mid bloom */
-  --orange-glow-c:    rgba(255,  80,   0, 0.3);  /* outer bloom */
+  /* ── Pink ────────────────────────────────────────────────────────────── */
+  --pink-rgb:            224, 74, 125;              /* exec bubble panel, vain-empress entries */
+  --pink:                rgb(224, 74, 125);
 
-  /* teal — lunch / dinner overlay blocks */
-  --teal-meal:        hsl(185deg, 50%, 54%, 0.3);
-  --teal-meal-border: hsl(185deg, 50%, 45%, 0.5);
+  /* ── Purple ──────────────────────────────────────────────────────────── */
+  --purple-rgb:          180, 100, 255;             /* prof source badge in plan view */
+  --purple:              rgb(180, 100, 255);
 
-  /* red — exile button, unschedule drop zone */
-  --red-rgb:          255, 80, 80;
-  --red:              rgb(255, 80, 80);
-  --red-dark:         rgb(255, 30, 30);          /* drop zone bg tint */
+  /* ── Reds ────────────────────────────────────────────────────────────── */
+  --red-rgb:             255, 80, 80;               /* overdue dates, drop zones (absorbs 255,60,60) */
+  --red:                 rgb(255, 80, 80);
+  --red-dark-rgb:        255, 30, 30;               /* overdue bg tint, error fill (absorbs 220,50,50) */
+  --red-dark:            rgb(255, 30, 30);
+  --red-exile-rgb:       255, 110, 110;             /* exile button — softer red (merged 255,100,100 + 255,120,120) */
+  --red-exile:           rgb(255, 110, 110);
 
-  /* neutrals */
-  --white:            rgb(255, 255, 255);
-  --gray-label:       rgba(200, 200, 200, 0.55); /* future hour labels */
-  --gray-past:        rgba(120, 120, 120, 0.35); /* past hour labels */
+  /* ── Oranges ─────────────────────────────────────────────────────────── */
+  --orange-rgb:          255, 160, 40;              /* now-clock text */
+  --orange:              rgb(255, 160, 40);
+  --orange-glow-a:       rgba(255, 120,   0, 0.9);  /* now-clock inner glow */
+  --orange-glow-b:       rgba(255, 100,   0, 0.6);  /* now-clock mid glow */
+  --orange-glow-c:       rgba(255,  80,   0, 0.3);  /* now-clock outer glow */
+  --orange-overdue-rgb:  255, 130, 80;              /* overdue labels/tooltips in prophecies (merged 255,120,80 + 255,140,80) */
+  --orange-overdue:      rgb(255, 130, 80);
 
-  /* surfaces */
-  --surface-nav:      rgba(0, 0, 0, 0.5);        /* nav backdrop */
-  --surface-modal:    #0a0a0a;                    /* card dialog bg */
-  --surface-scrim:    rgba(0, 0, 0, 0.78);        /* modal overlay */
+  /* ── Ambers & Yellows ────────────────────────────────────────────────── */
+  --amber-rgb:           255, 180, 0;               /* dive type badge, directives source */
+  --amber:               rgb(255, 180, 0);
+  --amber-books:         rgba(210, 160, 80, 0.1);   /* books bar decorative border tint */
+  --yellow-rgb:          255, 200, 80;              /* mention type badge in debug/ve */
+  --yellow:              rgb(255, 200, 80);
+
+  /* ── Teals ───────────────────────────────────────────────────────────── */
+  --teal-meal:           hsl(185deg, 50%, 54%, 0.3); /* directives lunch/dinner block fill */
+  --teal-meal-border:    hsl(185deg, 50%, 45%, 0.5); /* directives meal block border */
+  --teal-link-rgb:       0, 255, 120;               /* mtg assistant link color */
+  --teal-chat-rgb:       0, 255, 180;               /* exec chat assistant link color */
+
+  /* ── Monitor / System ────────────────────────────────────────────────── */
+  --green-monitor-rgb:   160, 255, 120;             /* monitor/system message text in chat */
+
+  /* ── Neutrals ────────────────────────────────────────────────────────── */
+  --white:               rgb(255, 255, 255);
+  --gray-label:          rgba(200, 200, 200, 0.55); /* directives future hour labels */
+  --gray-past:           rgba(120, 120, 120, 0.35); /* directives past hour labels */
 }
 
 /* Base */
@@ -150,20 +180,20 @@ body {
   letter-spacing: 0.15em;
   opacity: 0.65;
   margin: 28px 0 8px;
-  border-bottom: 1px solid rgba(0, 255, 65, 0.25);
+  border-bottom: 1px solid rgba(var(--green-rgb), 0.25);
   padding-bottom: 4px;
 }
 
 #content .item {
   font-size: 0.85rem;
   padding: 5px 0;
-  border-bottom: 1px solid rgba(0, 255, 65, 0.12);
+  border-bottom: 1px solid rgba(var(--green-rgb), 0.12);
 }
 
 #content button {
   background: none;
-  border: 1px solid rgba(0, 255, 65, 0.5);
-  color: rgba(0, 255, 65, 0.85);
+  border: 1px solid rgba(var(--green-rgb), 0.5);
+  color: rgba(var(--green-rgb), 0.85);
   font-family: 'Iosevka Mayukai Monolite', monospace;
   font-weight: 500;
   font-size: 0.8rem;
@@ -172,6 +202,6 @@ body {
   transition: all 0.2s;
 }
 
-#content button:hover { border-color: rgba(0, 255, 65, 1); color: rgba(0, 255, 65, 1); }
+#content button:hover { border-color: var(--green); color: var(--green); }
 #content button:disabled { opacity: 0.35; cursor: default; }
 #content .ts { font-size: 0.7rem; opacity: 0.5; margin-top: 16px; }
