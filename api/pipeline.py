@@ -207,6 +207,12 @@ def build_morning() -> dict:
         _RD_LOG.rename(archive_name)
     _RD_LOG.write_text("[]")
 
+    heartbeat_path = DATA_DIR / "moltbook-heartbeat.log"
+    if heartbeat_path.exists():
+        hb_archive = DATA_DIR / f"moltbook-heartbeat_{_now_et().strftime('%m%d')}.log"
+        heartbeat_path.rename(hb_archive)
+    heartbeat_path.write_text("")
+
     from helpers import _load_rd, _save_rd
     today_iso = _now_et().strftime("%Y-%m-%d")
     rd = _load_rd()
