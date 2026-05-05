@@ -29,8 +29,27 @@ from auth import (
 # ── monitor state ─────────────────────────────────────────────────────────────
 
 _monitor_task: asyncio.Task | None = None
-_monitor_last_comment_ts: float = 0.0
 _monitor_subscribers: list[asyncio.Queue] = []
+
+
+def _init_monitor_ts() -> float:
+    from helpers import _ACTIVITY_LOG
+    from datetime import datetime, timezone as _tz
+    if not _ACTIVITY_LOG.exists():
+        return time.time()
+    try:
+        log = json.loads(_ACTIVITY_LOG.read_text())
+        if log:
+            ts = datetime.fromisoformat(log[-1].get("ts", ""))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=_tz.utc)
+            return ts.timestamp()
+    except Exception:
+        pass
+    return time.time()
+
+
+_monitor_last_comment_ts: float = _init_monitor_ts()
 
 _SIGNIFICANT_TO_COLS = {"archives", "exile"}
 
