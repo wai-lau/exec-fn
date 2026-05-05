@@ -54,16 +54,44 @@ body { overflow-y: auto !important; }
 .dbg-entry-action { opacity: 0.5; flex-shrink: 0; min-width: 60px; }
 .dbg-entry-title { flex: 1; }
 .dbg-entry-meta { font-size: 0.6rem; opacity: 0.35; }
-.dbg-empty { font-size: 0.75rem; opacity: 0.3; padding: 8px 0; }
+.dbg-empty { font-size: 0.75rem; color: rgba(0,255,65,0.5); padding: 8px 0; }
 .dbg-mtg-entry { font-size: 0.75rem; padding: 10px 0; border-bottom: 1px solid rgba(0,255,65,0.07); }
 .dbg-mtg-ts { font-size: 0.6rem; opacity: 0.35; margin-bottom: 4px; }
 .dbg-mtg-user { color: rgba(0,255,65,0.45); margin-bottom: 4px; }
 .dbg-mtg-user::before { content: "$ "; }
 .dbg-mtg-assistant { color: rgba(0,255,65,0.75); white-space: pre-wrap; }
 .dbg-mtg-assistant::before { content: "> "; opacity: 0.4; }
+.dbg-ve-entry {
+  font-size: 0.78rem; padding: 8px 0;
+  border-bottom: 1px solid rgba(0,255,65,0.07);
+  cursor: pointer;
+}
+.dbg-ve-entry:hover .dbg-ve-summary { color: rgba(0,255,65,1); }
+.dbg-ve-top { display: flex; gap: 10px; align-items: baseline; }
+.dbg-ve-type {
+  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 1px 5px; border-radius: 2px; flex-shrink: 0;
+  border: 1px solid currentColor;
+}
+.dbg-ve-type-dm_request { color: rgba(100,200,255,0.7); }
+.dbg-ve-type-mention    { color: rgba(255,200,80,0.7); }
+.dbg-ve-type-question   { color: rgba(0,255,65,0.6); }
+.dbg-ve-type-error      { color: rgba(255,80,80,0.7); }
+.dbg-ve-summary { flex: 1; color: rgba(0,255,65,0.85); }
+.dbg-ve-ts { font-size: 0.6rem; opacity: 0.35; flex-shrink: 0; }
+.dbg-ve-detail {
+  display: none; margin-top: 6px; padding: 6px 8px;
+  background: rgba(0,255,65,0.04); border-left: 2px solid rgba(0,255,65,0.2);
+  font-size: 0.72rem; color: rgba(0,255,65,0.65); white-space: pre-wrap;
+}
+.dbg-ve-entry.open .dbg-ve-detail { display: block; }
 </style>
 
 <div class="dbg-wrap">
+  <div class="dbg-section">
+    <div class="dbg-hdr">vain-empress</div>
+    <div id="dbg-ve"><span class="dbg-empty">loading...</span></div>
+  </div>
   <div class="dbg-section">
     <div class="dbg-hdr">profile</div>
     <div id="dbg-profile"><span class="dbg-empty">loading...</span></div>
@@ -156,11 +184,33 @@ async function patchProfile() {
 }
 
 async function loadDebug() {
-  const [ctxRes, logRes, mtgRes] = await Promise.all([
+  const [ctxRes, logRes, mtgRes, veRes] = await Promise.all([
     fetch('/api/context'),
     fetch('/api/debug/logs'),
     fetch('/api/mtg/log'),
+    fetch('/data/moltbook_needs_human.json'),
   ]);
+
+  // Vain-empress
+  const veEl = document.getElementById('dbg-ve');
+  if (veRes.ok) {
+    const items = await veRes.json();
+    if (!items.length) { veEl.innerHTML = '<div class="dbg-empty">no items</div>'; }
+    else {
+      veEl.innerHTML = items.slice().reverse().map((item) => {
+        const ts = item.timestamp ? new Date(item.timestamp).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+        const typeClass = 'dbg-ve-type-' + (item.type || 'question');
+        return `<div class="dbg-ve-entry" onclick="this.classList.toggle('open')">
+          <div class="dbg-ve-top">
+            <span class="dbg-ve-type ${typeClass}">${item.type || ''}</span>
+            <span class="dbg-ve-summary">${item.summary || ''}</span>
+            <span class="dbg-ve-ts">${ts}</span>
+          </div>
+          ${item.detail ? `<div class="dbg-ve-detail">${item.detail}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+  } else { veEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; }
 
   // Profile
   if (ctxRes.ok) {
