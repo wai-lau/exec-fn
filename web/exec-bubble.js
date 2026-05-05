@@ -92,6 +92,7 @@
         transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
         font-family: 'Iosevka Mayukai Monolite', monospace !important; font-weight: 500;
       }
+      #exec-panel * { font-family: 'Iosevka Mayukai Monolite', monospace !important; }
       #exec-panel.open { transform: translateX(-50%) translateY(0); }
       @media (max-width: 500px) {
         #exec-panel { width: 100%; left: auto; right: 0; border-left: none; border-right: none; transform: translateX(100%); }
@@ -191,6 +192,14 @@
     msgInput = document.getElementById('exec-minput');
     inputMirrorEl = document.getElementById('exec-imirror');
     document.getElementById('exec-ph-close').addEventListener('click', closePanel);
+    document.addEventListener('click', function (e) {
+      if (!isOpen) return;
+      if (!panel.contains(e.target) && !bubble.contains(e.target)) closePanel();
+    });
+    document.addEventListener('touchend', function (e) {
+      if (!isOpen) return;
+      if (!panel.contains(e.target) && !bubble.contains(e.target)) closePanel();
+    });
   }
 
   // ── drag ──────────────────────────────────────────────────────────────────
@@ -284,6 +293,7 @@
     isOpen = true;
     panel.classList.add('open');
     setUnread(0);
+    if (msgInput) msgInput.focus();
     setTimeout(function () { if (msgInput) msgInput.focus(); }, 240);
     fetch('/api/monitor/flush', { method: 'POST' }).catch(function () {});
   }
