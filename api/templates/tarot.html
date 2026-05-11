@@ -2,7 +2,11 @@
 <link rel="stylesheet" href="/chat.css">
 <style>
 /* Spread height fits the cards; terminal eats the rest. */
-:root { --spread-h: calc(min(22vh, 30vw) + 6vh); }
+:root {
+  --card-w: min(13vh, 18vw);
+  --card-h: min(22vh, 30vw);
+  --spread-h: calc(var(--card-h) + 6vh);
+}
 #spread-area {
   position:fixed; top:0; left:0; right:0; height:var(--spread-h);
   overflow:hidden;
@@ -36,7 +40,7 @@
 #spread-grid {
   position:absolute; inset:0;
   display:grid;
-  grid-template-columns: repeat(5, min(13vh, 18vw));
+  grid-template-columns: var(--card-w) calc(var(--card-w) / 2) var(--card-w) var(--card-w) var(--card-w);
   column-gap: min(1vh, 1.5vw);
   align-items:center; justify-content:center;
   pointer-events:none;
