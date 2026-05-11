@@ -170,7 +170,6 @@
 const LS_SPREAD = 'tarot.spread';
 const LS_MESSAGES = 'tarot.messages';
 const LS_SIG = 'tarot.significator';
-const WELCOME = "Welcome. Before drawing, Pollack picks a Significator — a court card that represents you in the reading. Let me ask you a few things to help find the right one.";
 
 const COURT_RANKS = ['page', 'knight', 'queen', 'king'];
 const COURT_RANK_LABEL = {page: 'Page', knight: 'Knight', queen: 'Queen', king: 'King'};
@@ -520,6 +519,9 @@ sigPicker.querySelector('.close').addEventListener('click', closeSigPicker);
 sigPicker.addEventListener('click', e => { if (e.target === sigPicker) closeSigPicker(); });
 renderSigSlot();
 
+_msgInput.focus();
+renderCaret();
+
 if (messages.length) {
   for (const m of messages) {
     if (m.role === 'user' && m.content.startsWith('[') && m.content.endsWith(']')) {
@@ -528,11 +530,14 @@ if (messages.length) {
       addMsg(m.role, m.content);
     }
   }
-} else {
-  addMsg('assistant', WELCOME);
 }
-_msgInput.focus();
-renderCaret();
 
 loadSpreadsMeta().then(renderSpread);
+
+if (!messages.length) {
+  const ev = significator
+    ? `[opened /tarot; Significator already chosen: ${significator.name}; no spread yet]`
+    : '[opened /tarot; no Significator yet, no spread]';
+  autoTrigger(ev);
+}
 </script>
