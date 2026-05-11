@@ -82,6 +82,9 @@
   color:rgba(0,255,65,0.7); cursor:pointer; transition:all 0.15s;
 }
 #sig-slot:hover { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.6); }
+#sig-slot.locked { cursor:default; opacity:0.6; }
+#sig-slot.locked:hover { color:rgba(0,255,65,0.7); border-color:rgba(0,255,65,0.25); }
+#sig-slot.locked .clear { display:none; }
 #sig-slot img { width:18px; height:30px; object-fit:cover; border-radius:2px; }
 #sig-slot .clear {
   margin-left:4px; padding:0 4px; color:rgba(0,255,65,0.45);
@@ -201,12 +204,21 @@ const sigSlot = document.getElementById('sig-slot');
 const sigPicker = document.getElementById('sig-picker');
 const sigGrid = document.getElementById('sig-grid');
 
+function sigLocked() {
+  return !!(spread && spread.cards && spread.cards.some(c => c.flipped));
+}
+
 function renderSigSlot() {
+  const locked = sigLocked();
+  sigSlot.classList.toggle('locked', locked);
   if (significator) {
-    sigSlot.innerHTML = `<img src="${significator.image}" alt=""><span class="sig-text">${significator.name}</span><span class="clear" title="Clear">×</span>`;
-    sigSlot.querySelector('.clear').addEventListener('click', e => { e.stopPropagation(); clearSignificator(); });
+    const title = locked ? 'Significator locked until next draw' : '';
+    sigSlot.innerHTML = `<img src="${significator.image}" alt=""><span class="sig-text" title="${title}">${significator.name}${locked ? ' \u{1F512}' : ''}</span><span class="clear" title="Clear">×</span>`;
+    if (!locked) {
+      sigSlot.querySelector('.clear').addEventListener('click', e => { e.stopPropagation(); clearSignificator(); });
+    }
   } else {
-    sigSlot.innerHTML = '<span class="sig-text">+ Choose Significator</span>';
+    sigSlot.innerHTML = `<span class="sig-text">${locked ? 'Significator locked' : '+ Choose Significator'}</span>`;
   }
 }
 
@@ -226,6 +238,7 @@ function openSigPicker() {
 function closeSigPicker() { sigPicker.classList.remove('open'); }
 
 async function pickSignificator(c) {
+  if (sigLocked()) { closeSigPicker(); return; }
   significator = {card_id: c.card_id, name: c.name, image: c.image};
   localStorage.setItem(LS_SIG, JSON.stringify(significator));
   renderSigSlot();
@@ -234,6 +247,7 @@ async function pickSignificator(c) {
 }
 
 async function clearSignificator() {
+  if (sigLocked()) return;
   significator = null;
   localStorage.removeItem(LS_SIG);
   renderSigSlot();
@@ -342,9 +356,11 @@ async function flipCard(positionKey) {
   if (positionKey !== nextPosition()) return;
   const card = spread.cards.find(c => c.position === positionKey);
   if (!card || card.flipped) return;
+  const wasLocked = sigLocked();
   card.flipped = true;
   localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
   renderSpread();
+  if (!wasLocked) renderSigSlot();
   const meta = spreadsMeta && spreadsMeta[spread.type];
   const posLabel = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
   const orient = card.reversed ? 'reversed' : 'upright';
@@ -391,6 +407,7 @@ async function drawSpread(type) {
   terminal.innerHTML = '';
   await loadSpreadsMeta();
   renderSpread();
+  renderSigSlot();
   const meta = spreadsMeta[spread.type];
   await autoTrigger(`[drew a ${meta?.label || spread.type} spread; ${spread.cards.length} cards face-down]`);
 }
@@ -524,6 +541,7 @@ for (const btn of document.querySelectorAll('.spread-btn')) {
 
 sigSlot.addEventListener('click', e => {
   if (e.target.classList.contains('clear')) return;
+  if (sigLocked()) return;
   openSigPicker();
 });
 sigPicker.querySelector('.close').addEventListener('click', closeSigPicker);
