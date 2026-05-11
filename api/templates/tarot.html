@@ -57,21 +57,7 @@
   border-radius:4px;
   display:block;
 }
-.tarot-card .card-label {
-  position:absolute; left:50%; bottom:calc(100% + 4px);
-  transform:translateX(-50%);
-  white-space:nowrap;
-  color:rgba(0,255,65,0.65);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  text-align:center; line-height:1.15;
-  pointer-events:none;
-}
-.tarot-card .card-name {
-  display:block;
-  color:rgba(0,255,65,0.9); font-size:0.62rem; opacity:0;
-  transition:opacity 0.3s;
-}
-.tarot-card[data-flipped="true"] .card-name { opacity:1; }
+.tarot-card .card-label { display:none; }
 .tarot-card .face { display:none; }
 .tarot-card[data-flipped="true"] .back { display:none; }
 .tarot-card[data-flipped="true"] .face { display:block; }
