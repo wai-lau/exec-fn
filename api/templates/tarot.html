@@ -522,6 +522,13 @@ renderSigSlot();
 _msgInput.focus();
 renderCaret();
 
+const freshState = !significator && !spread;
+if (freshState && messages.length) {
+  // stale chat history with no sig/spread — wipe and restart Phase 1
+  messages = [];
+  localStorage.removeItem(LS_MESSAGES);
+}
+
 if (messages.length) {
   for (const m of messages) {
     if (m.role === 'user' && m.content.startsWith('[') && m.content.endsWith(']')) {
