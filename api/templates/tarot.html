@@ -93,6 +93,12 @@
 }
 .msg.assistant p { margin:0 0 10px; }
 .msg.assistant strong { font-weight:700; }
+.reader-cursor {
+  display:inline-block; width:0.55em; height:1em;
+  background:rgba(0,255,65,0.85);
+  vertical-align:text-bottom; margin-left:1px;
+  animation:blink 1s step-end infinite;
+}
 
 #sig-card {
   grid-column: 1;
@@ -364,8 +370,7 @@ function addStreamDiv() {
   const body = document.createElement('div');
   body.className = 'msg-body';
   const cur = document.createElement('span');
-  cur.id = 'blinkcursor';
-  cur.innerHTML = '<span></span><span></span><span></span>';
+  cur.className = 'reader-cursor';
   body.appendChild(cur);
   div.appendChild(body);
   terminal.appendChild(div);
