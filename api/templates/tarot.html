@@ -1,14 +1,15 @@
 
 <link rel="stylesheet" href="/chat.css">
 <style>
-/* Layout: top third spread, rest terminal */
+/* Spread height fits the cards; terminal eats the rest. */
+:root { --spread-h: calc(min(22vh, 30vw) + 6vh); }
 #spread-area {
-  position:fixed; top:0; left:0; right:0; height:33vh;
+  position:fixed; top:0; left:0; right:0; height:var(--spread-h);
   overflow:hidden;
   background:radial-gradient(ellipse at center, rgba(20,30,45,0.6) 0%, rgba(8,10,16,0.95) 70%);
   border-bottom:1px solid rgba(0,255,65,0.1);
 }
-#terminal { top:33vh !important; inset:33vh 0 104px !important; }
+#terminal { top:var(--spread-h) !important; inset:var(--spread-h) 0 104px !important; }
 
 #spread-controls {
   position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:5;
