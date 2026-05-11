@@ -87,7 +87,31 @@ def _load_framework_file(key: str) -> str:
     return path.read_text().strip()
 
 
+_PHASE1_CHEATSHEET = """# Private rank/suit cheatsheet (Phase 1 only)
+
+Use silently to map the querent's plain-language answers to a court card. Do not surface any of this to the querent.
+
+Ranks
+- Page: beginner, learning, receiving, new to this territory
+- Knight: active pursuit, restless motion, single-minded
+- Queen: inward mastery, integrated, holding from the centre
+- King: outward authority, established responsibility
+
+Suits
+- Wands: drive, will, ambition, project energy
+- Cups: feeling, relationship, longing, imagination
+- Swords: thought, decision, conflict, hard clarity
+- Pentacles: body, work, money, material building
+"""
+
+
 def load_framework(spread_type: str | None) -> str:
+    # Phase 1 / 1b / 1c — no spread drawn yet. Keep the prompt small so the
+    # model doesn't treat the framework as material to recite. Just the
+    # private cheatsheet for silent mapping.
+    if spread_type is None:
+        return _PHASE1_CHEATSHEET.strip()
+
     parts = [_load_framework_file("core"), _load_framework_file("minor")]
     if spread_type in _FRAMEWORK_FILES and spread_type not in ("core", "minor"):
         extra = _load_framework_file(spread_type)
