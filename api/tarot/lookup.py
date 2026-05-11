@@ -75,7 +75,6 @@ _FRAMEWORK_FILES = {
     "core": "framework_core.md",
     "minor": "framework_minor.md",
     "three": "framework_three.md",
-    "celtic_cross": "framework_celtic_cross.md",
 }
 
 

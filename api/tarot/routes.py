@@ -13,7 +13,7 @@ from tarot.spreads import SPREADS
 
 router = APIRouter()
 
-_SPREAD_SIZE = {"three": 3, "celtic_cross": 10}
+_SPREAD_SIZE = {"three": 3}
 _REVERSED_CHANCE = 0.3
 
 
@@ -28,7 +28,7 @@ async def api_tarot_cards():
 
 
 class DrawBody(BaseModel):
-    spread_type: Literal["three", "celtic_cross"]
+    spread_type: Literal["three"]
     significator_id: str | None = None
 
 
@@ -68,7 +68,7 @@ class Significator(BaseModel):
 
 
 class SpreadContext(BaseModel):
-    type: Literal["three", "celtic_cross"] | None = None
+    type: Literal["three"] | None = None
     revealed: list[RevealedCard] = []
     face_down_positions: list[str] = []
     significator: Significator | None = None
