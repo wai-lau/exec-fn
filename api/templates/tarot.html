@@ -12,14 +12,14 @@
 #terminal { top:var(--spread-h) !important; inset:var(--spread-h) 0 104px !important; }
 
 #spread-controls {
-  position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:5;
-  display:flex; gap:8px;
+  position:absolute; bottom:4px; left:12px; z-index:5;
+  display:flex; gap:8px; align-items:center;
 }
 .spread-btn {
   background:none; border:none; outline:none;
   color:rgba(0,255,65,0.65);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700; font-size:1.6rem;
-  line-height:1; padding:2px 6px; cursor:pointer;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700; font-size:1.2rem;
+  line-height:1; padding:0 4px; cursor:pointer;
   transition:color 0.15s, transform 0.15s;
 }
 .spread-btn:hover { color:rgba(255,160,160,1); transform:scale(1.08); }
