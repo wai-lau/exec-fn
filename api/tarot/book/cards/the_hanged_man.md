@@ -1,5 +1,15 @@
-# The Hanged Man (12)
+# The Hanged Man (XII)
 
-voluntary suspension and inversion for the sake of seeing differently.
+After the crisis of Justice — seeing what you have made of your life — comes the peace of acceptance. Artists, writers and psychologists have been drawn to this card for centuries, with its huge truths in a deliberately simple image.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+The inverted posture sits inside an old yoga and occult tradition: invert the body and gravity will pull the energy of the desires from the genitals up to the head. No serious occultist took that literally, but the physical reversal works as a perfect symbol of the deeper inversion of attitude. Where everyone else is frantic, you know calm. Where others think they are free and are actually pushed around by forces they don't understand, you have become free by understanding the forces.
+
+The T-shaped gallows is the bottom half of an ankh — the Egyptian Tau cross. Case linked the ankh to the Hebrew letter Tau, which belongs to the World. So the Hanged Man is halfway to the World — and 12 reads as 21 backwards. Flip the figure right-side-up and you get something close to the World Dancer. Pollack's halfway point is therefore not one card but three: Wheel, Justice, Hanged Man — a process, not a moment. The Dancer extends her wands outward; the Hanged Man keeps his arms folded behind him. The same awareness exists in both, but at this stage it can only be held by withdrawing; in the World it carries through ordinary life.
+
+The tree is the Tree of Life — Odin's Yggdrasil — running from underworld (unconscious) through middle (conscious) to heaven (super-conscious). The diagrammatic claim of the Lovers has become a felt experience. 12 = 2 × 6, the High Priestess lifting the Lovers to a higher key. The peace in the image comes from surrender to the rhythm of life — and surrender, Pollack stresses, is *an act*: in the old initiations it meant joining the ritual instead of watching, and for most modern people it means releasing the emotions they've held for years.
+
+Eliot's *The Waste Land* helped popularise the deck in the 1920s. The Hanged Man does not appear in it — the Tarot reader Madame Sosotris cannot find him; what she does find is the Drowned Phoenician Sailor. The ego experiences surrender as death by drowning. Eliot intuited the card's water-link (most Kabbalists assign him the letter Mem, "seas"). The crossed legs make an upside-down 4; the arms and head make a downward water-triangle. The way to the super-conscious runs through the unconscious.
+
+**In a reading.** Independence — being who you are, even if others think you've got everything backwards. Deep connection to life. A peace that has come after a difficult trial.
+
+**Reversed.** Inability to escape social pressure — second-hand experience, life modelled on parents and movie stars. Or: fighting the inner self, denying some basic piece of yourself, pitting the ego against existence and so never quite tasting life. We don't know the full meaning of being alive until, like Odin, we let ourselves hang on the World Tree — roots in the dark sea of experience, branches lost among the stars.

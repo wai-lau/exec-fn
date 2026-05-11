@@ -1,5 +1,15 @@
-# The Star (17)
+# The Star (XVII)
 
-quiet renewal after wreckage; gifts returning to bared ground.
+After the storm, peace. The querent who has gone through emotional upheaval finds a calm and an emptiness on the other side. Lay the cards out for someone who has never seen them and the Star will hardly need interpretation — everything in it speaks of wholeness, openness, healing.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+Compare it with Temperance. Both come after a crisis. Both show a figure pouring water and holding two cups, one foot on land and one in water. But where Temperance is controlled, the Star is free — not clothed but naked, not stiff but supple. Temperance conserves the water by pouring back and forth between cups; the Star maiden simply pours it out, confident life will keep refilling her. The image suggests the chalices in myth that can never be emptied.
+
+The Tower's lightning ripped the veil of consciousness; now the Star sits *behind* the veil. The pool at her feet is the water the High Priestess kept hidden — the unconscious, stirred by the act of pouring her own life-waters in. The streams running onto land link the unconscious back to outer reality. Pollack reads them as the archetypes of myth — the formless energy becoming the various streams of image through which the unconscious speaks. One stream curves back into the pool: archetypes are valuable only insofar as they connect us to the source, then return to it. The maiden's foot does not break the water — the collective unconscious has not been entered, only stirred. The ibis is Thoth's bird; all creative work draws on this pool of unformed energy, and no real work exhausts the artist, because each act returns inspiration to its source.
+
+Position. Below the Empress: the natural world's passions, here turned inward and joyfully experiencing themselves. The Star maiden is the High Priestess's interior sensitivity expressed with the Empress's passion. Below the Wheel: the Wheel was vision in symbols; the Star is direct experience without the symbol. As 17 the card goes beyond 7 — the Chariot's controlled energy here freely released. 1+7 = 8, Strength raised: the lion of desire not just tamed but transformed into light. The eight-pointed stars in the card carry the same number; an octogram is halfway between square (matter) and circle (spirit), and humans are the link between them.
+
+The Star is not yet a card of action. Unlike Temperance and the Moon there is no road back to outer mountains — the streams and the ibis only imply that the energy will eventually be used. For now the experience is peace; the journey can wait.
+
+**In a reading.** Hope; a sense of healing and wholeness, especially after an emotional storm. The Star and the Tower often imply each other even when only one is showing. The unconscious is activated, but benignly.
+
+**Reversed.** Closed off from the card's calm and hope — weakness, impotence, fear, sometimes wearing arrogance as a mask. If the upright Star is the human as a channel between spirit and the outer world, the reversed card is the channel blocked; the waters of life dammed up inside, and the outside life going tired and depressed in consequence.

@@ -1,5 +1,15 @@
-# Wheel of Fortune (10)
+# Wheel of Fortune (X)
 
-fate, cycle, the larger currents one rides rather than steers.
+The card descends from a medieval homily against pride — a king on top of a wheel that Fortuna spins, and the proud man crushed at the bottom. Arthur dreams the vision on the eve of his final battle. The medieval form is a moral lesson: however much secular power you accrue, your fate rests in God's hands.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+Pollack traces the image deeper. Long before the homily, Fortuna was the Great Goddess and the crushed king was real: each midwinter the priestesses sacrificed the king, ritually re-enacting the year's death so that spring might be coaxed back. The Wheel originally meant the mystery of nature, and the human capacity to take part in that mystery by giving something back. The card sits directly below the Empress, the Great Mother herself.
+
+By Malory's time the Wheel had become *fate* — the random rises and falls we name "luck" because we cannot see the inner connection. Malory says the power behind the turning is the Holy Ghost, dwelling in the world as a presence in the Grail (the Ace of Cups). Mystics report the same thing differently: visions in which everything is connected because the spirit unites the universe. Our short lives narrow our view to a slice too small for the pattern to become obvious. In India the king-sacrifice ended and the Wheel of Life became karma — Buddha "got off the wheel" not by escape but by full memory of every past life, recognising those lives as forms created by desire.
+
+It matters that Arthur sees the Wheel in a *dream*. The Hermit has stepped back from outer life; the unconscious can finally show the whole pattern. We see the Wheel of Life only when we step away from it. Psychologically it is the assessment of where a life has been going; spiritually, the mystery still half-veiled.
+
+Symbolism. Four beasts at the corners — Ezekiel's vision, the four fixed signs of the zodiac (Leo, Scorpio, Aquarius, Taurus), the four evangelists, the four elements — they appear *transformed and alive* in the final trump, the World. Around the rim, YHVH (Tetragrammaton) interleaved with Latin: ROTA TARO ORAT TORA ATOR — "The wheel of the Tarot speaks the law of Ator", Ator (Hathor) being an Egyptian goddess of the dead, so a law of eternal life concealed in the natural world. The spokes carry the four alchemical principles (mercury, sulphur, water, salt) for the transformation row two is performing. Set the snake descends; Anubis the jackal rises (in some legends Set's son — only death yields new life); Horus the sphinx sits above, resurrection over mystery. The Rider centre is blank: the still point where the forms vanish.
+
+**In a reading.** A change in circumstances the querent didn't cause and cannot easily account for. The corporation buys the company; the love affair ends not from any mistake but because life goes on. The right-side-up Wheel says: adapt, find meaning in the new conditions, sometimes pierce the mystery to a greater understanding of the life beneath.
+
+**Reversed.** Struggling against the change — usually doomed, because the wheel has already turned. For a querent who has lived passively, however, the reversed Wheel can name something more useful: a new awareness that the responsibility for the next turn is theirs.

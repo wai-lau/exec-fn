@@ -1,5 +1,15 @@
-# Justice (11)
+# Justice (XI)
 
-honest reckoning; the scales weigh what is actually there.
+Themis and her blindfolded Roman descendant Justitia, scales in hand, stand on courthouse facades across the West — blindfolded so the law cannot tell weak from powerful. That kind of social justice belongs to the Emperor, directly above. The Justice of the Tarot wears no blindfold. The psychic law she names depends on *seeing*: how we advance only by understanding the past.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+Pollack treats Justice as the centre of the Major Arcana — the still point of the wheel. The second row's withdrawal has been a movement away from outer doing, but stepping back is meaningless without an active response. Real action comes out of understanding; everything else is movement without traction. The figure on the card is androgynous, half-seated and half-poised to stand. Her sword points straight up — resolve, and wisdom as the blade that pierces the illusion of events to find the inner meaning. The sword is two-edged: every choice is a choice, and every choice cuts both ways. The scales balance past and future not in time but in the seeing.
+
+The card combines the Magician and the High Priestess more completely than any before — 11 reduces to 2, and is also a lesser version of 21. The woman sits before two pillars with a veil between them (High Priestess) but wears a red robe and holds the one-up, one-down posture (Magician). Wisdom comes out of action; action comes out of self-knowledge. They twine like the snakes on Hermes' caduceus or the strands of DNA.
+
+At the personal level: where the Wheel was the vision of your life turning, Justice is the understanding of that vision. The path to understanding is responsibility — admitting that we made ourselves out of everything we have done. This isn't a moral or magical claim: an earthquake destroying your house isn't your fault. It just means that what you are now is the sum of how you have responded to what has happened. Buddha freed himself by remembering every life; we free ourselves from the past by becoming conscious of it. Otherwise we repeat it.
+
+Free will: usually misunderstood. Choices are not freely made in a vacuum — they are governed by what we have not yet understood about ourselves. People constantly ignore valid predictions ("free will means I can change this") and watch the predicted outcome happen anyway. That isn't free will, it is rationalised inattention. We become free by seeing.
+
+**In a reading.** Pay close attention. The card says: events have worked out the way they were meant to, given what came before. You have what you have earned. A demand for absolute honesty with self and others; also the practical surface meanings of justice — fairness, correct action, a just legal or other decision (which may not be the one the querent wanted). At the same time, a real opportunity: lessons taken now will alter what comes next.
+
+**Reversed.** Dishonesty with self and with others; refusal to see the meaning of what has happened; an opportunity for greater understanding being missed. On the outer level, unjust actions or treatment. But the unfairness of others must not become the excuse — "look how everybody treats me" is one of the reversed Justice's specialties. Right side up or reversed, the message stays Emerson's: *Nothing can save you but yourself*.

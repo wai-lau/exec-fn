@@ -1,5 +1,15 @@
-# The Chariot (7)
+# The Chariot (VII)
 
-willed motion; opposing forces held together by focused interior command.
+Earlier decks showed the Chariot pulled by two horses rather than two sphinxes — drawn from the triumphal processions Rome gave to conquering heroes, a custom we still keep with parades for presidents, generals, and astronauts. Driving a two-horse vehicle at speed requires total control over the animals; Plato in the Phaedrus already used the chariot drawn by a black and white horse as the image of the mind. The Hindu story of Shiva given a chariot of sun-and-moon wheels and wind-horses to destroy the triple city says something larger: spiritual victory is what happens when the conscious will can focus all of nature, plus its own unconscious force, into one direction. The lingam-and-yoni symbol on the front of the Chariot (sometimes drawn like a wheel and axle) is that union of masculine and feminine in a single figure.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+The Kabbalistic title for the number 7 is "Victory" — and the Chariot crowns the first row of the Major Arcana. Pollack reads it specifically: the developed ego after the lessons of the earlier cards have been absorbed, adolescence done, the mature adult in command of the situation around them. The Charioteer carries a Magician's wand but does not raise it overhead; his power is subordinate to his will. His hands hold no reins. His strong character alone holds the opposing forces in line.
+
+His symbolism gathers the whole first row. The wand and magic signs recall the Magician; water, sphinxes, and the veil behind him echo the High Priestess; the canopy of stars recalls the Empress's crown; the city he stands before is the Emperor; the shoulder-plates (Urim and Thummim, the High Priest's plates in Jerusalem) recall the Hierophant; the lingam and yoni recall the Lovers. All these forces feed the outer personality.
+
+But notice the stone-like quality of the Chariot, the charioteer half-merging into it. The mind that subordinates all things to conscious will risks becoming rigid, cut off from the very forces it has learned to control. The black and white sphinxes face *away* from each other; the will holds them in tension, not reconciliation. If that will fails, the chariot tears apart. Paul Douglas reads it against Jung's *persona*: the mask we build to deal with the world. If the mask is mistaken for the self, we will fear its loss as a kind of death — which is why the next row ends in Death.
+
+The sphinxes carry the Greek myth too. The Sphinx outside Thebes asked the riddle that Oedipus answered ("man"); the Chariot is the figure who knows what man is. But Oedipus understood the outer riddle without ever knowing himself. The Chariot can dominate the dualities; it cannot yet reconcile them. The second row begins the real self underneath. The third deals with the gods.
+
+**In a reading.** A situation under control by force of personality. There are contradictions still in it that have been held, not resolved. Right-side-up the card is success — the personality in charge of the world around it. As an outcome card on a difficult question: victory.
+
+**Reversed.** The contradictions break loose. Will-power has not worked and the situation is getting away. Unless the querent can find another approach — softening, listening, giving way to what the gods are saying — disaster waits. Sometimes we have to let go of the reins.

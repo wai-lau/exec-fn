@@ -1,5 +1,17 @@
-# The Moon (18)
+# The Moon (XVIII)
 
-deep unconscious in half-light; honour what is not yet clear.
+The third row's real task is not the revelation itself but bringing the inner ecstasy back to consciousness. The Star had no road back — it was dwelling in the dark transformed into light. To *use* that light we have to pass through distortion and fear. The Star experience was beyond words; the Moon is what happens as it becomes form. This card is the imagination shaping the Star's energy into the visions, myths and images consciousness can begin to handle.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+Myth is always distortion. It can never quite say what it wants — it can only appeal to what is already deep in the self. The Star and the Sun give off their own light; the Moon only reflects light it doesn't make. The imagination distorts because it is reflecting inner experience outward.
+
+The world's mythologies hold monsters as well as heroes, and that's the source of the Moon's strangeness. The eerie half-light has always stirred odd feelings in people and animals — *lunacy* is from *luna*. The dog and wolf are the animal self the moon rouses; the Emperor directly above shows the rules of society fully internalised, and the last row is the super-ego coming undone, the id surfacing. A werewolf under a full moon is a vivid image of how the unconscious can pull something primitive out of the most respectable person. 18 reduces to 9, the Hermit: the teacher is no longer visible (we face this stretch alone), but the guidance given before is what helps us through.
+
+The crayfish, in Waite's phrase, is "that which lies deeper than the savage beast" — the universal nameless fears the collective unconscious carries, the formless demons that emerge under deep meditation or psychedelics or shamanic trance. Waite says it never quite makes it onto land; the deepest terrors never fully take shape, which is why they keep their grip. The same half-emergence is also why the Moon disturbs us: we cannot bring all of the Star back, and the peace becomes partially lost in translation.
+
+Still — the cool light can calm as much as it disturbs. The drops of light falling on the animals' heads are *yod* shapes again, the same letters of grace that fell from the Tower. If we have prepared, and have the simple courage to accept what the imagination is bringing up, the terrors subside, the crayfish sinks back, and the imagination leads us forward enriched. The road stays. It runs between two towers — a gateway, the same gateway image found in mystic and shamanic tradition. These are also the last clear manifestation of the duality first marked by the High Priestess's pillars. We are looking at the two towers from the inside now; the task is no longer to pierce the veil but to carry the truth back through.
+
+There is another reading the Moon carries: women's fertility, *menses* sharing the same root as *month*. Many women find themselves more emotional and more psychic during menstruation; respected rather than feared, this lunar stirring enriches life rather than scaring it.
+
+**In a reading.** An excitement of the unconscious — strange emotions, dreams, fears, sometimes hallucinations; the querent more intuitive and more psychic. Right-side-up the card is the querent allowing it. Like the High Priestess it can mean turning away from outer concerns and becoming introspective, sometimes giving up a specific activity, sometimes simply a withdrawal — for any querent, not literally menstruation. Where the High Priestess is quiet intuition, the Moon is stirred-up image.
+
+**Reversed.** A struggle against the experience. The querent doesn't want to leave the solar side and tries to drown the Moon out with activity. The Moon won't be denied; the fears get stronger the more they're fought. Let the lunar period happen and the fears turn to wonders, the gateway opens.

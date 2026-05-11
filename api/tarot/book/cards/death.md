@@ -1,5 +1,17 @@
-# Death (13)
+# Death (XIII)
 
-necessary ending in service of transformation, never literal.
+After the Lovers (directly above), Waite's Death is the most radical departure from older Tarot imagery. The traditional design carried a medieval-sermon message: Death strikes kings and commoners alike, the great democracy of dying — an idea as old as the Jewish practice of burying everyone in a plain pine box and white shroud.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+Pollack moves past the democracy to the deeper meanings. Death is as eternal as life, always present; without it nothing new can find a place in the world. The skeleton — what remains long enough to hint at eternity — is also an old shamanic image: shamans across many cultures train to see their own skeletons (through drugs, fasting, meditation) as a way of touching the eternal underneath the flesh.
+
+What we actually fear, when we fear death, is the destruction of the personality. The ego sees itself as separate from life and so cannot welcome the dissolution. It tries to hoard energy against death and, in the hoarding, prevents new life from coming in — visible in how panicked people gulp air without exhaling. Sex hoards in the same way: the ego resists climax because the ego partly dissolves in it. Elizabethan English called intercourse *dying*, and on the Tarot Death sits directly below the Lovers.
+
+The initiation rites met this fear head-on by staging a simulated death and rebirth. The initiate is made to believe they really are dying so the ego is actually tricked into letting go. Pollack makes the careful distinction: Death is not transformation itself but the precise moment the old masks are released so transformation can happen. The therapy parallel is the same — by Strength, with the Hermit's help, you have seen who you are (Wheel) and accepted it (Justice) and felt the calm desire for change (Hanged Man) — and now a fear comes: *if I give up these behaviours there will be nothing left*. The fear is correct. The "I" built out of those lifelong behaviours will die. Something else will emerge.
+
+The Waite image deepens the psychology. The king is the rigid ego, struck down — insanity is what happens when an ego cannot bend. The bishop stands and faces Death because the stiff robe of doctrine supports him; a code of belief can carry us past our fear. The maiden is partial innocence — half-aware, kneeling but turned away. Only the child meets Death directly with flowers. Death wears black (which absorbs all colour) and rides a white horse (which repels all). The white rose is desire purified — when the ego dies, the selfish and repressive desires die with it. Behind, a sun rises between two pillars: through Death we touch the radiant power of life that knows only itself. The river running through is the unity of change and eternity, the boat the true self carried through.
+
+Thirteen reads as unlucky because it disrupts the perfection of twelve (the zodiac, the divisible number). That disruption is the point: it breaks old forms to make room for new ones. The number also evokes the moon — thirteen lunations in a year, the moon's own three-day disappearance and return, the older women's lunar worship that Christianity demonised as witchcraft. 1+3 = 4, the Emperor: Death overthrows the outer social self.
+
+**In a reading.** A time of change. Often a fear of change. At best, the clearing of old habits and rigidity so a new life can emerge. At worst, a crippling fear of literal death — deeper in many querents than they realise, and capable of sinking a reading even when most of the other cards are favourable.
+
+**Reversed.** Stuck in old habits — Waite's "inertia, sleep, lethargy". The sluggish, boring life is often a disguised desperate fight by the ego to avoid the change. The card insists Death is now not just possible but necessary — the moment has come to die, and the inertia is how the ego keeps that fact out of consciousness.

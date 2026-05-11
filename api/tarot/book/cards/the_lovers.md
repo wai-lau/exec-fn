@@ -1,5 +1,15 @@
-# The Lovers (6)
+# The Lovers (VI)
 
-relationship and choice; the first encounter that changes the self.
+The most dramatic of Waite and Smith's redesigns. The older Marseilles trump showed a young man pierced by Cupid's arrow between two women (a fair one and a dark one) — sometimes titled "The Choice", a classic dilemma between a respectable but dull life and a desired but improper one. Waite replaced that with a mature man and woman under an angel, in something closer to a new Garden of Eden where the trees bring enlightenment rather than the Fall.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+The traditional reading is the moment of choice. It can be small or be the whole shape of a life. On the esoteric level the choice is between the outer way (the Hierophant's path laid out for you) and the inner path of the occultist that confronts hidden desires. In the first-row sequence Pollack reads it as the first real choice the querent makes independently of their parents — usually triggered by sexuality, which goes where it wants. Trumps 3, 4 and 5 shaped us by nature, society and parents; the Lovers is where the individual emerges. Paul Douglas reads the dark older woman as the mother — Freudian Oedipal frame optional, the wider question (stay safe under the parents or break out into your own life) is the same either way.
+
+Waite's redesign reframes the card around love itself. Sexual drive draws us out of isolation; through love we glimpse what no individual could see alone. The angel above is what neither lover sees by themselves but both glimpse together. The Tree of Life (the Magician's fire) stands behind the man; the Tree of Knowledge with its serpent (unconscious wisdom, not evil) stands behind the woman. The Hermeticists and Kabbalists held that humanity was originally hermaphroditic; Plato told a similar myth with three original double-creatures (male-male, female-female, male-female), giving equal weight to all kinds of love. The roles aren't what matter — the reality of the union does.
+
+This card quietly reverses Genesis. In the older goddess religion of the same region the serpent and the apple let the initiate into paradise. The Tarot keeps the imagery and inverts the moral: it is a path of liberation, ending the duality between God and human. The woman looks at the angel, the man looks at the woman: reason reaches past its limits through passion, not the other way around. Ego held tight makes sex a means of power that never satisfies; ego refused entirely makes it depression. Reason and passion need each other.
+
+Paul Foster Case names the angel Raphael and reads the trio as the triune mind: conscious + unconscious producing the super-conscious. The super-conscious is unconscious energy given form by consciousness.
+
+**In a reading.** The importance of love; a specific lover, often a marriage or long relationship that will leave the querent changed. Help in the surrounding situation — practical or emotional. In the position of past, paired with cards refusing the present, it can be a crippling nostalgia for a past love.
+
+**Reversed.** Past the early-row archetypes, reversals from here in start meaning weakness and block rather than missing elements. A destructive love, a bad marriage, romantic or sexual problems that dominate the life. With either image reversed: romantic immaturity — the prolonged adolescence of fantasies that the body has long outgrown.

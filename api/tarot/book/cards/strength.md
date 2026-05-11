@@ -1,5 +1,13 @@
-# Strength (8)
+# Strength (VIII)
 
-the gentle befriending of one's own animal nature; courage as presence.
+Waite swapped Strength and Justice — the most controversial of his rearrangements, and one he never fully explained. Paul Foster Case kept it at 8; Crowley left the number but moved the Hebrew letter the other way; the Order of the Golden Dawn (which Waite and Crowley both belonged to) had a secret deck with the same swap. Pollack reads the swap as signalling that the second row is about *initiation* — the slower psychological transformation the inner journey requires — rather than a rational assessment in the abstract.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+Position 8 sets Strength directly against the Chariot. The Chariot was the ego in control by force of will. Strength is the inner courage to confront yourself calmly and without fear. The woman taming the lion is the energy of the unconscious released and quieted by the direction of conscious understanding. The lion is everything the ego had to suppress in order to look successful: feelings, fears, desires, the whole force of personality smoothed over by civilised life. Strength opens that energy like Pandora's box, but does it with peace, with a love of life, with a real confidence in the outcome — because we only follow this path through if we believe self-discovery is finally a joyous thing.
+
+The lemniscate above her head links her to the Magician; her blonde hair, sensual figure and flower-belt (Waite reads it as a second lemniscate, looped around her waist and the lion's neck) link her to the Empress. She is the Magician united with the Empress — conscious direction mingled with embodied passion, with a destination further on in the Hermit. The Hebrew letter *Teth* means "snake", and in Hebrew "snake" also means "magic"; the same association runs through Hermes' wand and through Tantric kundalini. The serpent-around-the-Tree-of-Life from the Lovers is here again. In alchemy the lion is sulphur, the low element transmuted toward the gold of Temperance at the row's end.
+
+Some older decks (the Visconti among them) showed Heracles killing the Nemean lion — passion conquered by reason. Pollack's reading is the inverse: the lion need not be killed. Released with love and faith, it is the same spirit-force the Magician drew down. Strength is the *softer* kind of power. To release your deepest emotions with love takes more courage than will-power does.
+
+**In a reading.** The ability to face a difficult problem or change with hope rather than dread. Someone strong from within, passionate but not carried away by passion. The strength to begin or continue something hard despite fear. Paired with the Chariot, it is the alternative to brute will — at best the two appear as complements: the Chariot in the outer position and Strength in the inner. The querent acts powerfully and remains calm.
+
+**Reversed.** Weakness. The courage to face life has failed and the situation is overwhelming. Or the lion breaks loose from the unity it had — the bestial side now turned against the self, the passions felt as a threat to the life the ego built.

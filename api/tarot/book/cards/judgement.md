@@ -1,5 +1,19 @@
-# Judgement (20)
+# Judgement (XX)
 
-the call to recognise who one has become and step into it.
+Under the Sun we saw all of life filled with spiritual light. That awareness frees us from illusion and fear, and now — from deep inside — we feel the urge to dissolve ourselves completely into the spirit and the life carried in every being. The call comes from inside and outside at once, because the Sun has dissolved that barrier. Our very cells feel a shout of joy, and we also recognise the call as coming from a force larger than any individual life.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+The idea has analogues in ordinary life. Sometimes a person comes to a crossroads (notice the cross in the banner) where some great change is required, and it feels as though something inside has already decided; the only thing left to the conscious self is to follow with the right action. The old ways of believing have already died and we hadn't noticed.
+
+The Rider version adds mountains behind the rising figures — Waite calls them the "mountains of abstract thought", a sense of eternal truth past the limited knowledge our senses can give us. We reach this absolute by one last descent into nothingness in order to rise free of partial knowledge. Death (directly above) emphasised the dying — the ego's terror of letting go. Here the dying is barely noticed; the emphasis is the resurrection.
+
+Pollack calls it Judgement because, like Justice, it involves coming to terms with the past as part of going past it. With Justice the reckoning was personal — your own actions. Here a force greater than the self is calling, and the judgement is not just on the meaning of one life but on the true nature of existence and the way every being is part of it. The cross on the banner marks the meeting of two kinds of time — ordinary time we live by day to day, and eternity — and their meeting at the centre says the higher self does not abandon ordinary activities but does them in a new way.
+
+The Lovers sit directly above, also with an angel. There the angel was glimpsed through love. Here the angel leans down out of the cloud to call. The triangular motif from the Hierophant and Lovers reaches its last form: between the two adult figures stands a child — the poles have come together to form a new reality, the way a child is both its parents combined and something entirely new. The child's back is to us. The new existence is a mystery; we do not know what it will be like until we experience it. The hidden face also implies that we do not really know ourselves yet — every mythic hero (Arthur, Moses, Theseus, Christ) is separated from his true parents and raised not knowing his identity until the call comes.
+
+Waite adds three more rising figures behind the foreground group. Whatever Judgement leads to, there is no personal liberation alone: any one person's attainment of Judgement and the World alters the circumstances of everybody. Buddha returned as a bodhisattva because he understood he couldn't liberate himself without liberating all of humanity. The Talmudic line: *he who saves one life, it is as if he has saved the entire world.*
+
+20 is 10 × 2: the High Priestess's hidden wisdom now revealing the inner laws concealed in the Wheel of Fortune. In a different Hebrew-letter system, Judgement's letter is *Resh*, meaning *head*, also pointing to Rosh Hashanah — not the calendar's New Year but the anniversary of creation. Judgement is not a change of circumstances but a new consciousness, directly acquainted with the truth by merging with the forces of life.
+
+**In a reading.** A call from within to make some important change. The change can be mundane and immediate, or a whole shift in how the querent sees life; the surrounding cards say which. Whatever it is, the change has already happened — the old situation, the old self, have already died. The work is to recognise it and act.
+
+**Reversed.** Sometimes the querent wants to answer the call but does not know how. More often: the call is being denied, usually from fear of the unknown. There may be rational reasons not to make the change (no money, no preparation, real responsibilities), and right side up or reversed the card insists those reasons are excuses. Reversed they dominate; the querent stays in the grave. The reality of life has changed. The only choice is to follow.

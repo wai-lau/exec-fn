@@ -1,5 +1,15 @@
-# The Hierophant (5)
+# The Hierophant (V)
 
-tradition, mediation, received wisdom and its limits.
+Older decks call him the Pope or the High Priest, both names pairing him with trump 2. Waite picked *Hierophant* (the high priest of the Greek Eleusinian mysteries) to widen the card past the specifically Christian image. Two readings of the card sit side by side and turn out to be the same reading: Waite's "outer way" of churches and dogma, and Crowley's "secret doctrine" of occult initiation. In both, two acolytes are being admitted to a body of teaching they must learn and accept before they can enter. Whether the doctrine is the catechism or the rituals of the Golden Dawn, the card is about education and a tradition.
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+In Pollack's first-row sequence the Hierophant follows the natural world (Empress) and the social world (Emperor): the intellectual tradition of the querent's particular society and their education within it. He is the Emperor's companion — "pope" means *father*. Where the Emperor enforces the rules, the Hierophant teaches them, and shapes our own inner sense of obedience.
+
+A priesthood depends on the idea that most people don't really attend to God on their own — there are some who feel that current directly, called by their own awareness, who speak to God for the rest and interpret what we hear back. The argument breaks down in practice (people join priesthoods for ambition, family pressure, or career as easily as calling), and since the Reformation the West has tilted toward individual responsibility — but Pollack notes that even rejecting outer doctrine often just substitutes a new one (a cult, a rigid politics, a shallow eclecticism). The great mystics, she insists, spoke from deep inside a tradition: the Kabbalists thoroughly Jewish, the Sufis bowing to Mecca with the rest.
+
+Crowley's Hierophant signifies *initiation*: merging with the cosmos through a form that changes with each world age. The crossed gold and silver keys are the outer and inner ways. In Waite both keys are gold — the dark side is hidden from those who follow the outer path. No veil bars entry to this Church the way the High Priestess's veil bars her temple, but the pillars are a dull grey: those who enter receive protection from personal choice but do not pierce duality.
+
+The arrangement — a large central figure presiding over two smaller ones — is a triad motif that runs through the Lovers and the Chariot and is resolved only in Judgement and the World. Each of these tries not to *resolve* the opposites but to hold them in balance. A doctrine answers life's contradictions; it does not dissolve them.
+
+**In a reading.** Churches, doctrines, education in general. Orthodoxy, conformity to received codes of behaviour. Our own inner obedience. In a positive reading: a grounded tradition that gives the querent somewhere to begin a personal awareness.
+
+**Reversed.** Unorthodoxy, especially mental — forming original ideas, breaking with received belief. Also gullibility: rejecting one dogma for another shallower one. Truly rejecting the Hierophant means accepting the responsibility of finding your own way.

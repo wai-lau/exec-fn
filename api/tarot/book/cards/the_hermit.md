@@ -1,5 +1,15 @@
-# The Hermit (9)
+# The Hermit (IX)
 
-chosen solitude carrying a small inner lantern.
+The six-pointed star inside the Hermit's lantern points two ways. Inward: a withdrawal from the world to activate the unconscious (the down-pointing "water" triangle, in alchemical terms). Outward: a teacher who shows us how to begin and helps us find the way (the up-pointing "fire" triangle — an occult teacher, a therapist, a dream, a spirit guide called from within).
 
-(Read this card through its position and orientation. Reversed: the same energy, inflected — blocked, delayed, internalised, or its shadow side — not the simple opposite.)
+The Hermit had a particular place in the medieval imagination. Living in the desert or the woods, withdrawn from the Church's hierarchy entirely, the European hermit was the local equivalent of a yogi — proof that God could be approached through direct personal experience. People treated them as living saints. Crucially, they did not withdraw from humanity even when they withdrew from society; the Grail legends are full of knights stopping at a hermit's cell for wisdom on the quest. The figure persists: Thoreau at Walden writing back to the rest of us, Nietzsche's Zarathustra returning, the modern guru. When no real guide is at hand the psyche provides one — Jung's wise old men in patients' dreams, who often turn out to be the analyst the conscious mind has not yet recognised.
+
+Abulafia, the thirteenth-century Kabbalist, named three levels of approach: doctrine, personal teacher, ecstatic union. Pollack maps them onto three trumps that form a triangle in the spread of the Major Arcana — the Hierophant (doctrine), the Sun (ecstasy), and the Hermit (the teacher). The guide appears early, once the querent has found the Strength to begin.
+
+The Hermit stands on a cold, lonely peak — partly illusion: the mind is rich with symbol and light, but the first experience of it has to be the silent alternative to the noisy senses. For shamans the barren peak is a literal practice, alone in the wilderness until the spirit guide arrives. The lantern visible (rather than hidden under the cloak, as in some older decks) says the inner light is reached through a process anyone can learn. His staff is the Magician's wand, no longer carried instinctively but leaned on as conscious support — the teaching itself.
+
+Sitting directly below the High Priestess, he is her principle of withdrawal made into a deliberate technique. Her temple stays sealed for now; the lightning of the Tower (directly below him) will be what tears the veil. Until then the unconscious speaks through symbol, dream, vision. Pollack notes too that the wise-old-man image is cultural — the older traditions often gave the guide-role to women, and in any age the figure can take any face the unconscious will recognise.
+
+**In a reading.** A withdrawal from outer concerns to attend to the inner self — usually emotional, not necessarily literal. Maturity; knowing what really matters. A specific teacher or guide, sometimes inner, more often a real person whom the querent may not yet recognise as such. If the querent helps others toward understanding, the card may name them in that role.
+
+**Reversed.** Withdrawal corrupted. Fear of other people that has grown into phobia or paranoia; isolation that has stopped serving. Sometimes simply: this is a moment to be among others, not alone. And occasionally — because the Hermit's upright form carries maturity — a Peter Pan refusal to grow up: meaningless activity, performed enthusiasm, anything to avoid the responsibility of doing something real with one's life.
