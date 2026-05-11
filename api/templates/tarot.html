@@ -12,13 +12,14 @@
 #terminal { top:var(--spread-h) !important; inset:var(--spread-h) 0 104px !important; }
 
 #spread-controls {
-  position:absolute; bottom:4px; left:12px; z-index:5;
+  position:absolute; top:2px; left:50%; transform:translateX(-50%); z-index:5;
   display:flex; gap:8px; align-items:center;
+  height:18px;
 }
 .spread-btn {
   background:none; border:none; outline:none;
-  color:rgba(0,255,65,0.65);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700; font-size:1.2rem;
+  color:rgba(0,255,65,0.55);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700; font-size:1rem;
   line-height:1; padding:0 4px; cursor:pointer;
   transition:color 0.15s, transform 0.15s;
 }
@@ -276,7 +277,7 @@ function sigLocked() {
 function renderSigCard() {
   sigCard.classList.toggle('set', !!significator);
   if (significator) {
-    sigCard.innerHTML = `<img src="${significator.image}" alt=""><div class="sig-label"><span>Significator</span><span class="sig-name">${significator.name}</span></div>`;
+    sigCard.innerHTML = `<img src="${significator.image}" alt="${significator.name}">`;
   } else {
     sigCard.innerHTML = '';
   }
