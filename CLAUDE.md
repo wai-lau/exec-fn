@@ -108,7 +108,7 @@ exec-fn/
 
 All routes: `API_KEY` cookie auth (set via `POST /login`).
 
-Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mtg` — bottom nav, all pages.
+Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mtg` · `tarot` — bottom nav, all pages.
 
 ### Pages
 
@@ -121,6 +121,7 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 | `/debug` | Profile notes + activity log viewer |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
+| `/tarot` | Tarot reading: persistent spread (top half) + Pollack-voiced chat (bottom half); guest auth; per-browser state in `localStorage` (no server persistence) |
 
 ### API endpoints
 
@@ -144,6 +145,10 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 | POST | `/api/parse_date` | Parse natural language date → ISO via Haiku |
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
 | GET | `/data/{filename}` | Serve file from /app/data/ |
+| GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |
+| GET | `/api/tarot/cards` | 78-card canonical list (id/name/image) |
+| POST | `/api/tarot/draw` | Body `{spread_type}` → fresh draw with reversed flags. No server persistence — client stores in `localStorage`. |
+| POST | `/api/tarot/chat` | Body `{messages, spread: {type, revealed, face_down_positions}}` → SSE stream. Server told only about revealed cards; face-down identities never leave the browser. |
 
 ### Chat tools (in `/exec` terminal)
 

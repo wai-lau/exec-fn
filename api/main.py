@@ -19,6 +19,7 @@ from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _nex
 from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
+from tarot.routes import router as tarot_router
 from monitor import generate_encouragement, _recent_entries, _is_commentable
 from chat import append_monitor_comment
 from auth import (
@@ -108,11 +109,11 @@ _NAV_CSS = _CHROME_LINK
 _PAGE_CHROME = _CHROME_LINK
 _CONTENT_STYLE = ""
 
-_NAV_LINKS = ["core", "prophecies", "directives", "debug", "nightfall", "mtg"]
-_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg"}
+_NAV_LINKS = ["core", "prophecies", "directives", "debug", "nightfall", "mtg", "tarot"]
+_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
 
 
-_GUEST_NAV_LINKS = ["nightfall", "mtg"]
+_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
 
 
 _NAV_ICONS = {
@@ -122,11 +123,12 @@ _NAV_ICONS = {
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
     "mtg":         '<img src="/wizard.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
 _NAV_LABELS = {
     "core": "core", "prophecies": "profs",
-    "directives": "dirs", "debug": "debug", "nightfall": "night", "mtg": "mtg",
+    "directives": "dirs", "debug": "debug", "nightfall": "night", "mtg": "mtg", "tarot": "tarot",
 }
 
 def _build_nav(active=None, guest=False):
@@ -242,7 +244,7 @@ async def unauthorized_handler(request: Request, exc: HTTPException):
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
         path = request.url.path
-        if path.startswith("/mtg"):
+        if path.startswith("/mtg") or path.startswith("/tarot"):
             return RedirectResponse(f"/guest-login?next={path}", status_code=302)
         return RedirectResponse("/", status_code=302)
     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
@@ -254,6 +256,7 @@ guest_protected = APIRouter(dependencies=[Depends(require_guest_auth)])
 protected.include_router(nightfall_protected)
 protected.include_router(chat_router)
 guest_protected.include_router(mtg_router)
+guest_protected.include_router(tarot_router)
 
 
 # ── public ────────────────────────────────────────────────────────────────────
@@ -356,6 +359,14 @@ async def mtg_page(request: Request):
     return (_BARE
         .replace("</head>", _PAGE_CHROME + "</head>", 1)
         .replace("</body>", _tmpl("mtg.html") + _build_nav("mtg", guest=not is_full_auth) + "</body>", 1))
+
+
+@guest_protected.get("/tarot", response_class=HTMLResponse)
+async def tarot_page(request: Request):
+    is_full_auth = request.cookies.get("session") == SESSION_TOKEN
+    return (_BARE
+        .replace("</head>", _PAGE_CHROME + "</head>", 1)
+        .replace("</body>", _tmpl("tarot.html") + _build_nav("tarot", guest=not is_full_auth) + "</body>", 1))
 
 
 @public.get("/nightfall", response_class=HTMLResponse)

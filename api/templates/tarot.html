@@ -1,0 +1,355 @@
+
+<link rel="stylesheet" href="/chat.css">
+<style>
+/* Layout: top half spread, bottom half terminal */
+#spread-area {
+  position:fixed; top:0; left:0; right:0; height:50vh;
+  overflow:hidden;
+  background:radial-gradient(ellipse at center, rgba(20,30,45,0.6) 0%, rgba(8,10,16,0.95) 70%);
+  border-bottom:1px solid rgba(0,255,65,0.1);
+}
+#terminal { top:50vh !important; inset:50vh 0 104px !important; }
+
+#spread-controls {
+  position:absolute; top:8px; right:12px; z-index:5;
+  display:flex; gap:8px;
+}
+.spread-btn {
+  background:rgba(0,0,0,0.5); border:1px solid rgba(0,255,65,0.35);
+  color:rgba(0,255,65,0.85);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem;
+  padding:5px 10px; cursor:pointer; border-radius:3px;
+  transition:all 0.15s;
+}
+.spread-btn:hover { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.7); background:rgba(0,255,65,0.05); }
+
+#spread-empty {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  color:rgba(0,255,65,0.4);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
+  pointer-events:none;
+}
+
+.tarot-card {
+  position:absolute;
+  width:9vh; height:15.3vh;
+  cursor:pointer;
+  transition:filter 0.2s, transform 0.4s ease;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+  user-select:none;
+}
+.tarot-card:hover { filter:drop-shadow(0 0 8px rgba(0,255,65,0.5)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+.tarot-card img {
+  width:100%; height:100%; object-fit:cover;
+  border-radius:4px; border:1px solid rgba(0,0,0,0.4);
+  display:block;
+}
+.tarot-card .card-label {
+  position:absolute; left:50%; bottom:calc(100% + 4px);
+  transform:translateX(-50%);
+  white-space:nowrap;
+  color:rgba(0,255,65,0.65);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
+  text-align:center; line-height:1.15;
+  pointer-events:none;
+}
+.tarot-card .card-name {
+  display:block;
+  color:rgba(0,255,65,0.9); font-size:0.62rem; opacity:0;
+  transition:opacity 0.3s;
+}
+.tarot-card[data-flipped="true"] .card-name { opacity:1; }
+.tarot-card .face { display:none; }
+.tarot-card[data-flipped="true"] .back { display:none; }
+.tarot-card[data-flipped="true"] .face { display:block; }
+
+.msg { max-width:720px; }
+.msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; }
+.msg.assistant a:hover { color:rgba(0,255,120,1) !important; }
+.msg.assistant hr { border:none; border-top:1px solid rgba(0,255,65,0.35); margin:10px 0 16px; }
+.msg.assistant table { border-collapse:collapse; margin:6px 0; }
+.msg.assistant th, .msg.assistant td { border:1px solid rgba(0,255,65,0.25); padding:3px 10px; text-align:left; }
+.msg.assistant th { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.45); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<div id="spread-area">
+  <div id="spread-controls">
+    <button class="spread-btn" data-spread="three">Three-Card</button>
+    <button class="spread-btn" data-spread="celtic_cross">Celtic Cross</button>
+  </div>
+  <div id="spread-empty">draw a spread to begin</div>
+</div>
+<div id="terminal"></div>
+<div id="input-bar">
+  <div id="input-line">
+    <span id="input-prompt">tarot@reading:~$</span>
+    <div id="input-wrapper">
+      <div id="input-display" aria-hidden="true"><span id="input-pre"></span><span id="input-cursor"></span><span id="input-post"></span></div>
+      <div id="msg-input" contenteditable="true" data-placeholder="ask about the cards..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_SPREAD = 'tarot.spread';
+const LS_MESSAGES = 'tarot.messages';
+const WELCOME = "Hi (＊＾▽＾)／! Draw a spread above, then turn cards by clicking them. I'll read in the voice of Pollack's Seventy-Eight Degrees of Wisdom. I can only see cards you've turned face-up.";
+
+let spread = JSON.parse(localStorage.getItem(LS_SPREAD) || 'null');
+let messages = JSON.parse(localStorage.getItem(LS_MESSAGES) || '[]');
+let spreadsMeta = null;
+let streaming = false;
+
+const terminal = document.getElementById('terminal');
+const spreadArea = document.getElementById('spread-area');
+const spreadEmpty = document.getElementById('spread-empty');
+
+marked.use({ breaks: true });
+function renderText(raw) { return marked.parse(raw); }
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (role === 'assistant' || role === 'user') {
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+    body.innerHTML = renderText(text);
+    div.appendChild(body);
+  } else {
+    div.textContent = text;
+  }
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+  return div;
+}
+
+function addStreamDiv() {
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  const cur = document.createElement('span');
+  cur.id = 'blinkcursor';
+  cur.innerHTML = '<span></span><span></span><span></span>';
+  body.appendChild(cur);
+  div.appendChild(body);
+  terminal.appendChild(div);
+  return {div, body, cur};
+}
+
+async function loadSpreadsMeta() {
+  if (spreadsMeta) return spreadsMeta;
+  const r = await fetch('/api/tarot/spreads');
+  spreadsMeta = await r.json();
+  return spreadsMeta;
+}
+
+function clearSpreadCards() {
+  for (const el of spreadArea.querySelectorAll('.tarot-card')) el.remove();
+}
+
+function renderSpread() {
+  clearSpreadCards();
+  if (!spread || !spread.cards) {
+    spreadEmpty.style.display = '';
+    return;
+  }
+  spreadEmpty.style.display = 'none';
+  const meta = spreadsMeta && spreadsMeta[spread.type];
+  if (!meta) return;
+  const posByKey = Object.fromEntries(meta.positions.map(p => [p.key, p]));
+  for (const card of spread.cards) {
+    const pos = posByKey[card.position];
+    if (!pos) continue;
+    const el = document.createElement('div');
+    el.className = 'tarot-card';
+    el.dataset.position = card.position;
+    el.dataset.cardId = card.card_id;
+    el.dataset.flipped = card.flipped ? 'true' : 'false';
+    el.dataset.reversed = card.reversed ? 'true' : 'false';
+    el.style.left = pos.x + '%';
+    el.style.top = pos.y + '%';
+    const rot = (pos.rotate || 0) + ((card.flipped && card.reversed) ? 180 : 0);
+    el.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`;
+
+    const back = document.createElement('img');
+    back.className = 'back'; back.src = '/tarot/card_back.jpg'; back.alt = '';
+    el.appendChild(back);
+    const face = document.createElement('img');
+    face.className = 'face'; face.src = card.image; face.alt = card.name;
+    el.appendChild(face);
+
+    const label = document.createElement('div');
+    label.className = 'card-label';
+    const posLabel = pos.label;
+    label.innerHTML = `<span>${posLabel}</span><span class="card-name">${card.name}${card.reversed ? ' (rev)' : ''}</span>`;
+    el.appendChild(label);
+
+    el.addEventListener('click', () => flipCard(card.position));
+    spreadArea.appendChild(el);
+  }
+}
+
+function flipCard(positionKey) {
+  if (!spread) return;
+  const card = spread.cards.find(c => c.position === positionKey);
+  if (!card) return;
+  card.flipped = !card.flipped;
+  localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
+  renderSpread();
+}
+
+async function drawSpread(type) {
+  if (spread && !confirm('Draw a new spread? The current chat will be cleared.')) return;
+  let drawn;
+  try {
+    const r = await fetch('/api/tarot/draw', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({spread_type: type}),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    drawn = await r.json();
+  } catch (e) {
+    alert('Draw failed: ' + e.message);
+    return;
+  }
+  for (const c of drawn.cards) c.flipped = false;
+  spread = drawn;
+  localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
+  messages = [];
+  localStorage.removeItem(LS_MESSAGES);
+  terminal.innerHTML = '';
+  addMsg('assistant', WELCOME);
+  await loadSpreadsMeta();
+  renderSpread();
+}
+
+function filteredSpread() {
+  if (!spread) return {type: null, revealed: [], face_down_positions: []};
+  const revealed = spread.cards
+    .filter(c => c.flipped)
+    .map(c => ({position: c.position, card_id: c.card_id, name: c.name, reversed: c.reversed}));
+  const face_down_positions = spread.cards.filter(c => !c.flipped).map(c => c.position);
+  return {type: spread.type, revealed, face_down_positions};
+}
+
+async function sendMsg() {
+  if (streaming) return;
+  const input = document.getElementById('msg-input');
+  const text = input.innerText.trim();
+  if (!text) return;
+  input.textContent = '';
+  renderCaret();
+  document.getElementById('terminal').style.bottom = '';
+  input.focus();
+  addMsg('user', text);
+  messages.push({role: 'user', content: text});
+  await streamResponse();
+}
+
+async function streamResponse() {
+  streaming = true;
+  const {div, body, cur} = addStreamDiv();
+  let fullText = '';
+
+  try {
+    const r = await fetch('/api/tarot/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({messages, spread: filteredSpread()}),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let data;
+        try { data = JSON.parse(line.slice(6)); } catch { continue; }
+        if (data.type === 'text') {
+          fullText += data.delta;
+          body.innerHTML = renderText(fullText);
+          (body.lastElementChild || body).appendChild(cur);
+          terminal.scrollTop = terminal.scrollHeight;
+        } else if (data.type === 'tool_call') {
+          const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
+          addMsg('sys', `[ ${label} ]`);
+          const sysMsgs = terminal.querySelectorAll('.msg.sys');
+          if (sysMsgs.length > 6) sysMsgs[0].remove();
+        }
+      }
+    }
+    cur.remove();
+    if (fullText) {
+      messages.push({role: 'assistant', content: fullText});
+      localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
+    }
+  } catch(e) {
+    cur.remove();
+    div.textContent = '[error: ' + e.message + ']';
+    div.style.color = 'rgba(255,100,100,0.75)';
+  }
+  streaming = false;
+}
+
+const _pre = document.getElementById('input-pre');
+const _post = document.getElementById('input-post');
+const _inputCursor = document.getElementById('input-cursor');
+const _msgInput = document.getElementById('msg-input');
+
+function _caretOffset() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !_msgInput.contains(sel.anchorNode)) return _msgInput.innerText.length;
+  const range = document.createRange();
+  range.selectNodeContents(_msgInput);
+  range.setEnd(sel.anchorNode, sel.anchorOffset);
+  return range.toString().length;
+}
+
+function renderCaret() {
+  const text = _msgInput.innerText;
+  const pos = _caretOffset();
+  _pre.textContent = text.slice(0, pos);
+  _post.textContent = text.slice(pos);
+}
+
+_msgInput.addEventListener('input', () => {
+  renderCaret();
+  document.getElementById('terminal').style.bottom = document.getElementById('input-bar').offsetHeight + 'px';
+});
+_msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
+_msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; renderCaret(); });
+_msgInput.addEventListener('keyup', renderCaret);
+_msgInput.addEventListener('click', renderCaret);
+document.addEventListener('selectionchange', () => {
+  if (document.activeElement === _msgInput) renderCaret();
+});
+_msgInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+for (const btn of document.querySelectorAll('.spread-btn')) {
+  btn.addEventListener('click', () => drawSpread(btn.dataset.spread));
+}
+
+(async () => {
+  await loadSpreadsMeta();
+  renderSpread();
+  if (messages.length) {
+    for (const m of messages) addMsg(m.role, m.content);
+  } else {
+    addMsg('assistant', WELCOME);
+  }
+  _msgInput.focus();
+  renderCaret();
+})();
+</script>

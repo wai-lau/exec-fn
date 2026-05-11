@@ -1,0 +1,127 @@
+import random
+from datetime import datetime
+from typing import AsyncGenerator, Literal
+
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from tarot.agent import stream_chat
+from tarot.cards import CARDS, CARDS_BY_ID
+from tarot.prompt import build_system
+from tarot.spreads import SPREADS
+
+router = APIRouter()
+
+_SPREAD_SIZE = {"three": 3, "celtic_cross": 10}
+_REVERSED_CHANCE = 0.3
+
+
+@router.get("/api/tarot/spreads")
+async def api_tarot_spreads():
+    return SPREADS
+
+
+@router.get("/api/tarot/cards")
+async def api_tarot_cards():
+    return {"cards": CARDS}
+
+
+class DrawBody(BaseModel):
+    spread_type: Literal["three", "celtic_cross"]
+
+
+@router.post("/api/tarot/draw")
+async def api_tarot_draw(body: DrawBody):
+    spread = SPREADS[body.spread_type]
+    n = _SPREAD_SIZE[body.spread_type]
+    drawn = random.sample(CARDS, n)
+    cards = []
+    for pos, card in zip(spread["positions"], drawn):
+        cards.append({
+            "position": pos["key"],
+            "position_label": pos["label"],
+            "card_id": card["id"],
+            "name": card["name"],
+            "image": card["image"],
+            "reversed": random.random() < _REVERSED_CHANCE,
+        })
+    return {
+        "type": body.spread_type,
+        "drawn_at": datetime.now().isoformat(timespec="seconds"),
+        "cards": cards,
+    }
+
+
+class RevealedCard(BaseModel):
+    position: str
+    card_id: str
+    name: str | None = None
+    reversed: bool = False
+
+
+class SpreadContext(BaseModel):
+    type: Literal["three", "celtic_cross"] | None = None
+    revealed: list[RevealedCard] = []
+    face_down_positions: list[str] = []
+
+
+class ChatBody(BaseModel):
+    messages: list[dict] = []
+    spread: SpreadContext | None = None
+
+
+def _position_label(spread_type: str | None, position_key: str) -> str:
+    if not spread_type or spread_type not in SPREADS:
+        return position_key
+    for pos in SPREADS[spread_type]["positions"]:
+        if pos["key"] == position_key:
+            return pos["label"]
+    return position_key
+
+
+def _build_spread_preamble(spread: SpreadContext | None) -> str | None:
+    if spread is None or spread.type is None:
+        return None
+    if not spread.revealed and not spread.face_down_positions:
+        return None
+    lines: list[str] = []
+    spread_label = SPREADS.get(spread.type, {}).get("label", spread.type)
+    lines.append(f"The querent has drawn a {spread_label} spread.")
+    if spread.revealed:
+        lines.append("Revealed cards:")
+        for c in spread.revealed:
+            pos_label = _position_label(spread.type, c.position)
+            orientation = "reversed" if c.reversed else "upright"
+            name = c.name or CARDS_BY_ID.get(c.card_id, {}).get("name", c.card_id)
+            lines.append(f"- {pos_label}: **{name}** ({orientation}) - card_id `{c.card_id}`")
+    else:
+        lines.append("No cards have been revealed yet.")
+    if spread.face_down_positions:
+        labels = [_position_label(spread.type, p) for p in spread.face_down_positions]
+        lines.append(f"Face-down (unknown to both of us): {', '.join(labels)}.")
+    return "\n".join(lines)
+
+
+async def _stream(spread: SpreadContext | None, messages: list) -> AsyncGenerator[str, None]:
+    spread_type = spread.type if spread else None
+    system = build_system(spread_type)
+
+    full_messages = list(messages)
+    preamble = _build_spread_preamble(spread)
+    if preamble and full_messages:
+        full_messages.insert(0, {"role": "user", "content": preamble})
+        if full_messages[1]["role"] != "assistant":
+            full_messages.insert(1, {"role": "assistant", "content": "Understood - I'll read what's been turned and wait for you to turn the rest."})
+
+    async for chunk in stream_chat(full_messages, system):
+        yield chunk
+
+
+@router.post("/api/tarot/chat")
+async def api_tarot_chat(body: ChatBody):
+    return StreamingResponse(
+        _stream(body.spread, body.messages),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
