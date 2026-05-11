@@ -63,6 +63,15 @@
 .tarot-card .face { display:none; }
 .tarot-card[data-flipped="true"] .back { display:none; }
 .tarot-card[data-flipped="true"] .face { display:block; }
+.tarot-card[data-locked="true"] { cursor:default; opacity:0.55; }
+.tarot-card[data-locked="true"]:hover { filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+.tarot-card[data-next="true"] { animation:nextpulse 1.8s ease-in-out infinite; }
+@keyframes nextpulse {
+  0%,100% { filter:drop-shadow(0 0 6px rgba(0,255,65,0.4)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+  50%     { filter:drop-shadow(0 0 14px rgba(0,255,65,0.85)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+}
+.msg.event { color:rgba(0,255,65,0.45); font-style:italic; font-size:0.74rem; margin:6px 0; }
+.msg.event::before { content:"~ "; opacity:0.5; }
 
 .msg { max-width:720px; }
 .msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; }
@@ -95,7 +104,6 @@
 <script>
 const LS_SPREAD = 'tarot.spread';
 const LS_MESSAGES = 'tarot.messages';
-const WELCOME = "Hi (＊＾▽＾)／! Draw a spread above, then turn cards by clicking them. I'll read in the voice of Pollack's Seventy-Eight Degrees of Wisdom. I can only see cards you've turned face-up.";
 
 let spread = JSON.parse(localStorage.getItem(LS_SPREAD) || 'null');
 let messages = JSON.parse(localStorage.getItem(LS_MESSAGES) || '[]');
@@ -150,6 +158,12 @@ function clearSpreadCards() {
   for (const el of spreadArea.querySelectorAll('.tarot-card')) el.remove();
 }
 
+function nextPosition() {
+  if (!spread || !spread.cards) return null;
+  const next = spread.cards.find(c => !c.flipped);
+  return next ? next.position : null;
+}
+
 function renderSpread() {
   clearSpreadCards();
   if (!spread || !spread.cards) {
@@ -160,15 +174,20 @@ function renderSpread() {
   const meta = spreadsMeta && spreadsMeta[spread.type];
   if (!meta) return;
   const posByKey = Object.fromEntries(meta.positions.map(p => [p.key, p]));
+  const nextKey = nextPosition();
   for (const card of spread.cards) {
     const pos = posByKey[card.position];
     if (!pos) continue;
+    const isNext = !card.flipped && card.position === nextKey;
+    const isLocked = !card.flipped && !isNext;
     const el = document.createElement('div');
     el.className = 'tarot-card';
     el.dataset.position = card.position;
     el.dataset.cardId = card.card_id;
     el.dataset.flipped = card.flipped ? 'true' : 'false';
     el.dataset.reversed = card.reversed ? 'true' : 'false';
+    el.dataset.next = isNext ? 'true' : 'false';
+    el.dataset.locked = isLocked ? 'true' : 'false';
     el.style.left = pos.x + '%';
     el.style.top = pos.y + '%';
     const rot = (pos.rotate || 0) + ((card.flipped && card.reversed) ? 180 : 0);
@@ -187,18 +206,38 @@ function renderSpread() {
     label.innerHTML = `<span>${posLabel}</span><span class="card-name">${card.name}${card.reversed ? ' (rev)' : ''}</span>`;
     el.appendChild(label);
 
-    el.addEventListener('click', () => flipCard(card.position));
+    if (isNext) el.addEventListener('click', () => flipCard(card.position));
     spreadArea.appendChild(el);
   }
 }
 
-function flipCard(positionKey) {
-  if (!spread) return;
+async function flipCard(positionKey) {
+  if (!spread || streaming) return;
+  if (positionKey !== nextPosition()) return;
   const card = spread.cards.find(c => c.position === positionKey);
-  if (!card) return;
-  card.flipped = !card.flipped;
+  if (!card || card.flipped) return;
+  card.flipped = true;
   localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
   renderSpread();
+  const meta = spreadsMeta && spreadsMeta[spread.type];
+  const posLabel = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
+  const orient = card.reversed ? 'reversed' : 'upright';
+  await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
+}
+
+function addEventMsg(text) {
+  const div = document.createElement('div');
+  div.className = 'msg event';
+  div.textContent = text;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+async function autoTrigger(text) {
+  if (streaming) return;
+  addEventMsg(text);
+  messages.push({role: 'user', content: text});
+  await streamResponse();
 }
 
 async function drawSpread(type) {
@@ -222,9 +261,15 @@ async function drawSpread(type) {
   messages = [];
   localStorage.removeItem(LS_MESSAGES);
   terminal.innerHTML = '';
-  addMsg('assistant', WELCOME);
   await loadSpreadsMeta();
   renderSpread();
+  const meta = spreadsMeta[spread.type];
+  await autoTrigger(`[drew a ${meta?.label || spread.type} spread; ${spread.cards.length} cards face-down]`);
+}
+
+async function bootGreet() {
+  if (messages.length) return;
+  await autoTrigger('[opened /tarot; no spread drawn yet]');
 }
 
 function filteredSpread() {
@@ -345,9 +390,15 @@ for (const btn of document.querySelectorAll('.spread-btn')) {
   await loadSpreadsMeta();
   renderSpread();
   if (messages.length) {
-    for (const m of messages) addMsg(m.role, m.content);
+    for (const m of messages) {
+      if (m.role === 'user' && m.content.startsWith('[') && m.content.endsWith(']')) {
+        addEventMsg(m.content);
+      } else {
+        addMsg(m.role, m.content);
+      }
+    }
   } else {
-    addMsg('assistant', WELCOME);
+    await bootGreet();
   }
   _msgInput.focus();
   renderCaret();
