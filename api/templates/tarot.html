@@ -104,6 +104,7 @@
 <script>
 const LS_SPREAD = 'tarot.spread';
 const LS_MESSAGES = 'tarot.messages';
+const WELCOME = "Welcome. Take a moment to formulate your question — say it aloud, type it to me, or simply hold it in mind. Three-Card for simpler questions; Celtic Cross for situations with depth. Draw above when you're ready.";
 
 let spread = JSON.parse(localStorage.getItem(LS_SPREAD) || 'null');
 let messages = JSON.parse(localStorage.getItem(LS_MESSAGES) || '[]');
@@ -267,10 +268,6 @@ async function drawSpread(type) {
   await autoTrigger(`[drew a ${meta?.label || spread.type} spread; ${spread.cards.length} cards face-down]`);
 }
 
-async function bootGreet() {
-  if (messages.length) return;
-  await autoTrigger('[opened /tarot; no spread drawn yet]');
-}
 
 function filteredSpread() {
   if (!spread) return {type: null, revealed: [], face_down_positions: []};
@@ -386,21 +383,19 @@ for (const btn of document.querySelectorAll('.spread-btn')) {
   btn.addEventListener('click', () => drawSpread(btn.dataset.spread));
 }
 
-(async () => {
-  await loadSpreadsMeta();
-  renderSpread();
-  if (messages.length) {
-    for (const m of messages) {
-      if (m.role === 'user' && m.content.startsWith('[') && m.content.endsWith(']')) {
-        addEventMsg(m.content);
-      } else {
-        addMsg(m.role, m.content);
-      }
+if (messages.length) {
+  for (const m of messages) {
+    if (m.role === 'user' && m.content.startsWith('[') && m.content.endsWith(']')) {
+      addEventMsg(m.content);
+    } else {
+      addMsg(m.role, m.content);
     }
-  } else {
-    await bootGreet();
   }
-  _msgInput.focus();
-  renderCaret();
-})();
+} else {
+  addMsg('assistant', WELCOME);
+}
+_msgInput.focus();
+renderCaret();
+
+loadSpreadsMeta().then(renderSpread);
 </script>
