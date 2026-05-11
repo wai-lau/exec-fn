@@ -28,6 +28,21 @@ TOOLS = [
         },
     },
     {
+        "name": "deal_spread",
+        "description": (
+            "Deal a Three-Card spread for the querent. Call this once you have "
+            "moved through Phase 1b — the query is understood, the heart of "
+            "what they're asking has been named back, and you are ready to "
+            "draw. The frontend will deal the three cards face-down. After "
+            "this you'll receive [drew a Three-Card spread; ...] and proceed "
+            "to Phase 2 (frame + first-flip instruction)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
         "name": "set_significator",
         "description": (
             "Set the querent's Significator. Call this ONLY after asking at "
@@ -72,7 +87,12 @@ def _set_significator(inp: dict) -> dict:
     }
 
 
+def _deal_spread(_inp: dict) -> dict:
+    return {"ok": True, "count": 1}
+
+
 TOOL_FNS = {
     "lookup_card_meaning": lambda inp: lookup_card_meaning(inp.get("card_id", "")),
     "set_significator": _set_significator,
+    "deal_spread": _deal_spread,
 }

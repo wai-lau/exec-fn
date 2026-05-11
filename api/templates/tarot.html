@@ -11,17 +11,17 @@
 #terminal { top:33vh !important; inset:33vh 0 104px !important; }
 
 #spread-controls {
-  position:absolute; top:8px; right:12px; z-index:5;
+  position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:5;
   display:flex; gap:8px;
 }
 .spread-btn {
   background:rgba(0,0,0,0.5); border:1px solid rgba(0,255,65,0.35);
-  color:rgba(0,255,65,0.85);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem;
-  padding:5px 10px; cursor:pointer; border-radius:3px;
+  color:rgba(0,255,65,0.7);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.74rem;
+  padding:4px 12px; cursor:pointer; border-radius:3px;
   transition:all 0.15s;
 }
-.spread-btn:hover { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.7); background:rgba(0,255,65,0.05); }
+.spread-btn:hover { color:rgba(255,160,160,1); border-color:rgba(255,100,100,0.6); background:rgba(255,100,100,0.05); }
 
 #spread-empty {
   position:absolute; inset:0;
@@ -196,12 +196,12 @@
 
 <div id="spread-area">
   <div id="spread-controls">
-    <button class="spread-btn" data-spread="three">Three-Card</button>
+    <button class="spread-btn" id="reset-btn">Reset</button>
   </div>
   <div id="spread-grid">
     <div id="sig-card"></div>
   </div>
-  <div id="spread-empty">draw a spread to begin</div>
+  <div id="spread-empty"></div>
   <div id="phase-debug"></div>
 </div>
 <div id="card-zoom">
@@ -291,7 +291,7 @@ function renderSigCard() {
   if (significator) {
     sigCard.innerHTML = `<img src="${significator.image}" alt=""><div class="sig-label"><span>Significator</span><span class="sig-name">${significator.name}</span></div>`;
   } else {
-    sigCard.innerHTML = 'Significator<br>(deciding…)';
+    sigCard.innerHTML = '';
   }
   renderPhaseDebug();
 }
@@ -574,9 +574,13 @@ async function streamResponse() {
             if (c) {
               significator = {card_id: c.card_id, name: c.name, image: c.image};
               localStorage.setItem(LS_SIG, JSON.stringify(significator));
-              renderSigSlot();
+              renderSigCard();
             }
             addMsg('sys', `[ Significator set: ${c?.name || cid} ]`);
+          } else if (data.name === 'deal_spread') {
+            addMsg('sys', '[ dealing spread ]');
+            // dispatch async so the stream finishes first
+            setTimeout(() => drawSpread('three'), 200);
           } else {
             const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
             addMsg('sys', `[ ${label} ]`);
@@ -635,9 +639,20 @@ _msgInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 
-for (const btn of document.querySelectorAll('.spread-btn')) {
-  btn.addEventListener('click', () => drawSpread(btn.dataset.spread));
+function resetAll() {
+  if (!confirm('Reset everything? Significator, spread, and chat history will be cleared.')) return;
+  significator = null;
+  spread = null;
+  messages = [];
+  localStorage.removeItem(LS_SIG);
+  localStorage.removeItem(LS_SPREAD);
+  localStorage.removeItem(LS_MESSAGES);
+  terminal.innerHTML = '';
+  renderSigCard();
+  renderSpread();
+  autoTrigger('[opened /tarot; no Significator yet, no spread]');
 }
+document.getElementById('reset-btn').addEventListener('click', resetAll);
 
 sigCard.addEventListener('click', () => {
   if (significator) openZoom(significator.image, significator.name, 'Significator');
