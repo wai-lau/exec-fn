@@ -73,6 +73,62 @@
 .msg.event { color:rgba(0,255,65,0.45); font-style:italic; font-size:0.74rem; margin:6px 0; }
 .msg.event::before { content:"~ "; opacity:0.5; }
 
+#sig-slot {
+  position:absolute; top:8px; left:12px; z-index:5;
+  display:flex; align-items:center; gap:8px;
+  background:rgba(0,0,0,0.5); border:1px solid rgba(0,255,65,0.25);
+  padding:4px 8px; border-radius:3px;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.72rem;
+  color:rgba(0,255,65,0.7); cursor:pointer; transition:all 0.15s;
+}
+#sig-slot:hover { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.6); }
+#sig-slot img { width:18px; height:30px; object-fit:cover; border-radius:2px; }
+#sig-slot .clear {
+  margin-left:4px; padding:0 4px; color:rgba(0,255,65,0.45);
+  cursor:pointer; font-size:0.85rem;
+}
+#sig-slot .clear:hover { color:rgba(255,100,100,0.9); }
+
+#sig-picker {
+  position:fixed; inset:0; z-index:50; display:none;
+  background:rgba(0,0,0,0.85);
+  align-items:center; justify-content:center;
+  padding:20px;
+}
+#sig-picker.open { display:flex; }
+#sig-picker .panel {
+  background:#0e1218; border:1px solid rgba(0,255,65,0.35);
+  border-radius:6px; padding:18px;
+  max-width:560px; width:100%; max-height:90vh; overflow-y:auto;
+}
+#sig-picker h3 {
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500;
+  color:rgba(0,255,65,0.95); font-size:0.9rem; margin:0 0 6px;
+}
+#sig-picker .hint {
+  color:rgba(0,255,65,0.55); font-size:0.72rem; margin-bottom:14px; line-height:1.5;
+}
+#sig-grid {
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;
+}
+#sig-grid .opt {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:6px; border:1px solid rgba(0,255,65,0.15); border-radius:4px;
+  cursor:pointer; transition:all 0.15s; background:rgba(0,0,0,0.4);
+}
+#sig-grid .opt:hover { border-color:rgba(0,255,65,0.7); background:rgba(0,255,65,0.05); }
+#sig-grid .opt img { width:60px; height:102px; object-fit:cover; border-radius:3px; }
+#sig-grid .opt .lbl {
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
+  color:rgba(0,255,65,0.75); text-align:center; line-height:1.15;
+}
+#sig-picker .close {
+  background:none; border:none; color:rgba(0,255,65,0.5); cursor:pointer;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.8rem;
+  margin-top:14px; padding:4px 8px;
+}
+#sig-picker .close:hover { color:rgba(255,100,100,0.9); }
+
 .msg { max-width:720px; }
 .msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; }
 .msg.assistant a:hover { color:rgba(0,255,120,1) !important; }
@@ -84,11 +140,20 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <div id="spread-area">
+  <div id="sig-slot"><span class="sig-text">+ Choose Significator</span></div>
   <div id="spread-controls">
     <button class="spread-btn" data-spread="three">Three-Card</button>
     <button class="spread-btn" data-spread="celtic_cross">Celtic Cross</button>
   </div>
   <div id="spread-empty">draw a spread to begin</div>
+</div>
+<div id="sig-picker">
+  <div class="panel">
+    <h3>Choose Your Significator</h3>
+    <div class="hint">A court card that represents you in this reading. Page (child, beginner), Knight (active, youthful), Queen (inward mastery), King (outward authority). Suit by temperament: Wands fire/will, Cups water/feeling, Swords air/mind, Pentacles earth/body. The card is removed from the deck before the draw.</div>
+    <div id="sig-grid"></div>
+    <button class="close">Cancel</button>
+  </div>
 </div>
 <div id="terminal"></div>
 <div id="input-bar">
@@ -104,16 +169,77 @@
 <script>
 const LS_SPREAD = 'tarot.spread';
 const LS_MESSAGES = 'tarot.messages';
-const WELCOME = "Welcome. Take a moment to formulate your question — say it aloud, type it to me, or simply hold it in mind. Three-Card for simpler questions; Celtic Cross for situations with depth. Draw above when you're ready.";
+const LS_SIG = 'tarot.significator';
+const WELCOME = "Welcome. Before drawing, Pollack picks a Significator — a court card that represents you in the reading. Let me ask you a few things to help find the right one.";
+
+const COURT_RANKS = ['page', 'knight', 'queen', 'king'];
+const COURT_RANK_LABEL = {page: 'Page', knight: 'Knight', queen: 'Queen', king: 'King'};
+const COURT_SUITS = ['cups', 'wands', 'swords', 'pentacles'];
+const COURT_SUIT_LABEL = {cups: 'Cups', wands: 'Wands', swords: 'Swords', pentacles: 'Pentacles'};
+
+function courtList() {
+  const out = [];
+  for (const rank of COURT_RANKS) {
+    for (const suit of COURT_SUITS) {
+      const id = `${rank}_of_${suit}`;
+      const name = `${COURT_RANK_LABEL[rank]} of ${COURT_SUIT_LABEL[suit]}`;
+      out.push({card_id: id, name, image: `/tarot/cards/${id}.jpg`});
+    }
+  }
+  return out;
+}
 
 let spread = JSON.parse(localStorage.getItem(LS_SPREAD) || 'null');
 let messages = JSON.parse(localStorage.getItem(LS_MESSAGES) || '[]');
+let significator = JSON.parse(localStorage.getItem(LS_SIG) || 'null');
 let spreadsMeta = null;
 let streaming = false;
 
 const terminal = document.getElementById('terminal');
 const spreadArea = document.getElementById('spread-area');
 const spreadEmpty = document.getElementById('spread-empty');
+const sigSlot = document.getElementById('sig-slot');
+const sigPicker = document.getElementById('sig-picker');
+const sigGrid = document.getElementById('sig-grid');
+
+function renderSigSlot() {
+  if (significator) {
+    sigSlot.innerHTML = `<img src="${significator.image}" alt=""><span class="sig-text">${significator.name}</span><span class="clear" title="Clear">×</span>`;
+    sigSlot.querySelector('.clear').addEventListener('click', e => { e.stopPropagation(); clearSignificator(); });
+  } else {
+    sigSlot.innerHTML = '<span class="sig-text">+ Choose Significator</span>';
+  }
+}
+
+function openSigPicker() {
+  if (!sigGrid.children.length) {
+    for (const c of courtList()) {
+      const opt = document.createElement('div');
+      opt.className = 'opt';
+      opt.innerHTML = `<img src="${c.image}" alt=""><span class="lbl">${c.name}</span>`;
+      opt.addEventListener('click', () => pickSignificator(c));
+      sigGrid.appendChild(opt);
+    }
+  }
+  sigPicker.classList.add('open');
+}
+
+function closeSigPicker() { sigPicker.classList.remove('open'); }
+
+async function pickSignificator(c) {
+  significator = {card_id: c.card_id, name: c.name, image: c.image};
+  localStorage.setItem(LS_SIG, JSON.stringify(significator));
+  renderSigSlot();
+  closeSigPicker();
+  await autoTrigger(`[chose Significator: ${c.name}]`);
+}
+
+async function clearSignificator() {
+  significator = null;
+  localStorage.removeItem(LS_SIG);
+  renderSigSlot();
+  await autoTrigger('[cleared Significator]');
+}
 
 marked.use({ breaks: true });
 function renderText(raw) { return marked.parse(raw); }
@@ -245,10 +371,12 @@ async function drawSpread(type) {
   if (spread && !confirm('Draw a new spread? The current chat will be cleared.')) return;
   let drawn;
   try {
+    const body = {spread_type: type};
+    if (significator) body.significator_id = significator.card_id;
     const r = await fetch('/api/tarot/draw', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({spread_type: type}),
+      body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error(await r.text());
     drawn = await r.json();
@@ -270,12 +398,13 @@ async function drawSpread(type) {
 
 
 function filteredSpread() {
-  if (!spread) return {type: null, revealed: [], face_down_positions: []};
+  const sig = significator ? {card_id: significator.card_id, name: significator.name} : null;
+  if (!spread) return {type: null, revealed: [], face_down_positions: [], significator: sig};
   const revealed = spread.cards
     .filter(c => c.flipped)
     .map(c => ({position: c.position, card_id: c.card_id, name: c.name, reversed: c.reversed}));
   const face_down_positions = spread.cards.filter(c => !c.flipped).map(c => c.position);
-  return {type: spread.type, revealed, face_down_positions};
+  return {type: spread.type, revealed, face_down_positions, significator: sig};
 }
 
 async function sendMsg() {
@@ -382,6 +511,14 @@ _msgInput.addEventListener('keydown', e => {
 for (const btn of document.querySelectorAll('.spread-btn')) {
   btn.addEventListener('click', () => drawSpread(btn.dataset.spread));
 }
+
+sigSlot.addEventListener('click', e => {
+  if (e.target.classList.contains('clear')) return;
+  openSigPicker();
+});
+sigPicker.querySelector('.close').addEventListener('click', closeSigPicker);
+sigPicker.addEventListener('click', e => { if (e.target === sigPicker) closeSigPicker(); });
+renderSigSlot();
 
 if (messages.length) {
   for (const m of messages) {

@@ -29,13 +29,15 @@ async def api_tarot_cards():
 
 class DrawBody(BaseModel):
     spread_type: Literal["three", "celtic_cross"]
+    significator_id: str | None = None
 
 
 @router.post("/api/tarot/draw")
 async def api_tarot_draw(body: DrawBody):
     spread = SPREADS[body.spread_type]
     n = _SPREAD_SIZE[body.spread_type]
-    drawn = random.sample(CARDS, n)
+    deck = [c for c in CARDS if c["id"] != body.significator_id] if body.significator_id else CARDS
+    drawn = random.sample(deck, n)
     cards = []
     for pos, card in zip(spread["positions"], drawn):
         cards.append({
@@ -60,10 +62,16 @@ class RevealedCard(BaseModel):
     reversed: bool = False
 
 
+class Significator(BaseModel):
+    card_id: str
+    name: str | None = None
+
+
 class SpreadContext(BaseModel):
     type: Literal["three", "celtic_cross"] | None = None
     revealed: list[RevealedCard] = []
     face_down_positions: list[str] = []
+    significator: Significator | None = None
 
 
 class ChatBody(BaseModel):
@@ -81,11 +89,16 @@ def _position_label(spread_type: str | None, position_key: str) -> str:
 
 
 def _build_spread_preamble(spread: SpreadContext | None) -> str | None:
-    if spread is None or spread.type is None:
-        return None
-    if not spread.revealed and not spread.face_down_positions:
+    if spread is None:
         return None
     lines: list[str] = []
+    if spread.significator:
+        sig_name = spread.significator.name or CARDS_BY_ID.get(spread.significator.card_id, {}).get("name", spread.significator.card_id)
+        lines.append(f"Significator (the querent's chosen self-figure): **{sig_name}** — card_id `{spread.significator.card_id}`. This card has been removed from the deck before the draw.")
+    if spread.type is None:
+        return "\n".join(lines) if lines else None
+    if not spread.revealed and not spread.face_down_positions and not lines:
+        return None
     spread_label = SPREADS.get(spread.type, {}).get("label", spread.type)
     lines.append(f"The querent has drawn a {spread_label} spread.")
     if spread.revealed:
