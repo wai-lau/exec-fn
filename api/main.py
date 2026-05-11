@@ -175,13 +175,24 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 }
 .login-box input[type=text]:focus { border-bottom-color:#fff; }
 .login-box input[type=text]::placeholder { color:rgba(255,255,255,0.35); }
+.login-box button.submit {
+  margin-top:14px; background:transparent;
+  border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500;
+  font-size:1rem; line-height:1; width:32px; height:32px;
+  border-radius:50%; cursor:pointer; outline:none;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.login-box button.submit:hover, .login-box button.submit:focus {
+  color:#fff; border-color:rgba(255,255,255,0.7);
+}
 </style>
 <div style="display:flex;flex-direction:column;align-items:center;gap:24px">
   <img src="/nightfall-game/static/media/ped-logo.f0469b0a.png" style="width:160px;opacity:0.9">
   <form class="login-box" method="post" action="/guest-login">
     <input type="hidden" name="next" value="{next}">
     <input type="text" name="key" autofocus autocomplete="current-password" placeholder="access-key" enterkeyhint="go">
-    <button type="submit" style="display:none"></button>
+    <button type="submit" class="submit" aria-label="submit">v</button>
   </form>
 </div>
 """

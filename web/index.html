@@ -63,6 +63,29 @@
   }
   .login-box input[type=password]::placeholder { color: rgba(224, 74, 125, 0.35); }
   .login-box input[type=password]:focus { border-bottom-color: rgba(224, 74, 125, 0.4); }
+  .login-box button.submit {
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid rgba(224, 74, 125, 0.4);
+    color: rgba(224, 74, 125, 0.7);
+    font-family: 'Iosevka Mayukai Monolite', monospace;
+    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    outline: none;
+  }
+  .login-box button.submit:hover, .login-box button.submit:focus {
+    color: rgb(224, 74, 125);
+    border-color: rgba(224, 74, 125, 0.7);
+  }
 </style>
 </head>
 <body>
@@ -70,7 +93,7 @@
     <img src="/favicon.png">
     <form class="login-box" method="POST" action="/login">
       <input type="password" name="key" placeholder="access-key" autocomplete="current-password" autofocus enterkeyhint="go">
-      <button type="submit" style="display:none"></button>
+      <button type="submit" class="submit" aria-label="submit">v</button>
     </form>
   </div>
   <audio src="/nightfall-game/audio/lmm-intro.mp3" autoplay></audio>
