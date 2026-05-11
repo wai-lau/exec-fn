@@ -553,20 +553,33 @@ async function streamResponse() {
   let buffered = '';   // received from server
   let displayed = '';  // rendered to DOM
   let serverDone = false;
+  let drainCancelled = false;
 
-  const REVEAL_MS = 18;       // tick interval
-  const REVEAL_CHARS = 1;     // chars per tick
-  const tick = setInterval(() => {
+  const BASE_MS = 32;
+  function nextDelayAfter(ch) {
+    switch (ch) {
+      case '.': case '!': case '?': return 380;
+      case ',': case ';': case ':': return 220;
+      case '—': case '-':       return 240; // em-dash, hyphen
+      case '\n':                     return 320;
+      case ' ':                      return 50;
+      default:                       return BASE_MS;
+    }
+  }
+  function drainOne() {
+    if (drainCancelled) return;
     if (displayed.length < buffered.length) {
-      displayed = buffered.slice(0, displayed.length + REVEAL_CHARS);
+      displayed = buffered.slice(0, displayed.length + 1);
       body.innerHTML = renderText(displayed);
       (body.lastElementChild || body).appendChild(cur);
       terminal.scrollTop = terminal.scrollHeight;
+      const last = displayed[displayed.length - 1];
+      setTimeout(drainOne, nextDelayAfter(last));
+    } else if (!serverDone) {
+      setTimeout(drainOne, 50);
     }
-    if (serverDone && displayed.length >= buffered.length) {
-      clearInterval(tick);
-    }
-  }, REVEAL_MS);
+  }
+  drainOne();
 
   try {
     const r = await fetch('/api/tarot/chat', {
@@ -625,7 +638,7 @@ async function streamResponse() {
     }
   } catch(e) {
     serverDone = true;
-    clearInterval(tick);
+    drainCancelled = true;
     cur.remove();
     div.textContent = '[error: ' + e.message + ']';
     div.style.color = 'rgba(255,100,100,0.75)';
