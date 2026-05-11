@@ -61,22 +61,12 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 
 #input-wrapper { flex:1; position:relative; display:flex; align-items:center; min-width:0; }
 
-#input-display {
-  position:absolute; inset:0;
-  display:flex; align-items:flex-start;
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.82rem;
-  color:rgba(0,255,65,0.95); white-space:pre-wrap; pointer-events:none; overflow:hidden;
-}
-
-#input-cursor {
-  display:inline-block; width:0.6em; height:1.1em;
-  background:rgba(0,255,65,0.9); vertical-align:text-bottom;
-  animation:blink 1s step-end infinite;
-}
+#input-display { display:none; }
+#input-cursor { display:none; }
 
 #msg-input {
   width:100%; background:none; border:none;
-  color:transparent; caret-color:transparent;
+  color:rgba(0,255,65,0.95); caret-color:rgba(0,255,65,0.9);
   font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.82rem;
   padding:0; outline:none; position:relative;
   line-height:1.45; min-height:1.45em; overflow-wrap:anywhere;
