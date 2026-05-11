@@ -9,33 +9,23 @@ SUITS_DIR = BOOK_DIR / "suits"
 
 
 @lru_cache(maxsize=1)
-def _load_numerology() -> dict[str, str]:
+def load_numerology_text() -> str:
     path = BOOK_DIR / "numerology.md"
     if not path.exists():
-        return {}
-    text = path.read_text()
-    blurbs: dict[str, str] = {}
-    for line in text.splitlines():
-        line = line.strip()
-        if not line.startswith("- **"):
-            continue
-        body = line[len("- **"):]
-        try:
-            name, _, rest = body.partition("**")
-            blurbs[name.strip().lower()] = rest.lstrip(" —-").strip()
-        except Exception:
-            pass
-    return blurbs
+        return ""
+    return path.read_text().strip()
 
 
 @lru_cache(maxsize=1)
-def _load_suits() -> dict[str, str]:
-    out: dict[str, str] = {}
+def load_suits_text() -> str:
     if not SUITS_DIR.exists():
-        return out
-    for path in SUITS_DIR.glob("*.md"):
-        out[path.stem] = path.read_text().strip()
-    return out
+        return ""
+    parts: list[str] = []
+    for suit in ("cups", "wands", "swords", "pentacles"):
+        path = SUITS_DIR / f"{suit}.md"
+        if path.exists():
+            parts.append(f"## {suit.title()}\n\n{path.read_text().strip()}")
+    return "\n\n".join(parts)
 
 
 @lru_cache(maxsize=128)
@@ -46,56 +36,44 @@ def _load_card_chapter(card_id: str) -> str | None:
     return None
 
 
-_PIP_KEYS_BY_NUMBER = {
-    1: "ace", 2: "two", 3: "three", 4: "four", 5: "five",
-    6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
-    11: "page", 12: "knight", 13: "queen", 14: "king",
-}
-
-
 def lookup_card_meaning(card_id: str) -> dict:
     card = CARDS_BY_ID.get(card_id)
     if not card:
         return {"error": f"unknown card_id: {card_id}", "count": 0}
 
-    chapter = _load_card_chapter(card_id)
-    if chapter:
+    if card["arcana"] != "major":
         return {
+            "error": (
+                f"{card['name']} is a Minor Arcana card. The lookup tool covers "
+                f"Major Arcana only. Read this card from the suit and numerology "
+                f"context already provided in the system prompt, modulated by "
+                f"position and orientation."
+            ),
             "name": card["name"],
             "arcana": card["arcana"],
-            "text": chapter,
-            "count": 1,
+            "count": 0,
         }
 
-    if card["arcana"] == "minor":
-        suit = card["suit"]
-        suits = _load_suits()
-        numerology = _load_numerology()
-        pip_key = _PIP_KEYS_BY_NUMBER.get(card["number"], "")
-        parts: list[str] = []
-        if suits.get(suit):
-            parts.append(f"## Suit: {suit.title()}\n\n{suits[suit]}")
-        if pip_key and numerology.get(pip_key):
-            parts.append(f"## Rank: {pip_key.title()}\n\n{numerology[pip_key]}")
-        if not parts:
-            parts.append(f"({card['name']} — no chapter available; read from suit and number alone.)")
+    chapter = _load_card_chapter(card_id)
+    if not chapter:
         return {
+            "error": f"no chapter file for {card_id}",
             "name": card["name"],
             "arcana": card["arcana"],
-            "text": "\n\n".join(parts),
-            "count": 1,
+            "count": 0,
         }
 
     return {
         "name": card["name"],
         "arcana": card["arcana"],
-        "text": f"({card['name']} — no chapter available.)",
+        "text": chapter,
         "count": 1,
     }
 
 
 _FRAMEWORK_FILES = {
     "core": "framework_core.md",
+    "minor": "framework_minor.md",
     "three": "framework_three.md",
     "celtic_cross": "framework_celtic_cross.md",
 }
@@ -110,9 +88,11 @@ def _load_framework_file(key: str) -> str:
 
 
 def load_framework(spread_type: str | None) -> str:
-    core = _load_framework_file("core")
-    if spread_type in _FRAMEWORK_FILES and spread_type != "core":
+    parts = [_load_framework_file("core"), _load_framework_file("minor")]
+    if spread_type in _FRAMEWORK_FILES and spread_type not in ("core", "minor"):
         extra = _load_framework_file(spread_type)
         if extra:
-            return f"{core}\n\n---\n\n{extra}"
-    return core
+            parts.append(extra)
+    parts.append("# Suit Reference\n\n" + load_suits_text())
+    parts.append(load_numerology_text())
+    return "\n\n---\n\n".join(p for p in parts if p)
