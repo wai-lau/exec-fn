@@ -19,7 +19,7 @@
   }
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
-  let bubble, badge, panel, termEl, msgInput, inputMirrorEl;
+  let bubble, badge, panel, termEl, msgInput, preEl, postEl;
 
   // ── boot ──────────────────────────────────────────────────────────────────
   function init() {
@@ -100,11 +100,12 @@
       }
 
       #exec-ph-close {
-        position: absolute; top: 8px; right: 10px; z-index: 1;
+        flex-shrink: 0;
         background: none; border: none;
         cursor: pointer; color: rgba(0,255,65,0.3);
         font-family: 'Iosevka Mayukai Monolite', monospace;
-        font-size: 0.78rem; padding: 4px 6px; transition: color 0.15s;
+        font-size: 0.78rem; padding: 4px 6px; margin-left: 8px;
+        transition: color 0.15s;
       }
       #exec-ph-close:hover { color: rgba(0,255,65,0.8); }
 
@@ -146,6 +147,7 @@
       #exec-bc span:nth-child(2) { animation-delay: 0.2s; }
       #exec-bc span:nth-child(3) { animation-delay: 0.4s; }
       @keyframes execdot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+      @keyframes execblink { 0%,50%{opacity:1} 50.01%,100%{opacity:0} }
 
       #exec-input-area { flex-shrink: 0; padding: 0 14px; background: #181818; border-top: 1px solid rgba(0,255,65,0.06); }
       #exec-iline { display: flex; align-items: center; border-bottom: 1px solid rgba(0,255,65,0.1); padding: 6px 0; }
@@ -154,7 +156,8 @@
       #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
       #exec-idisp { position: absolute; inset: 0; font-size: 0.82rem; color: rgba(0,255,65,0.95); white-space: pre-wrap; pointer-events: none; overflow: hidden; }
       #exec-icursor { display: none; width: 0.6em; height: 1.1em; background: rgba(0,255,65,0.9); vertical-align: text-bottom; animation: execblink 1s step-end infinite; }
-      #exec-minput { width: 100%; background: none; border: none; color: transparent; caret-color: transparent; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-size: 0.82rem; padding: 0; outline: none; resize: none; overflow: hidden; line-height: 1.45; }
+      #exec-minput { width: 100%; background: none; border: none; color: transparent; caret-color: transparent; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-size: 0.82rem; padding: 0; outline: none; line-height: 1.45; min-height: 1.45em; overflow-wrap: anywhere; }
+      #exec-minput:empty::before { content: attr(data-placeholder); color: rgba(0,255,65,0.15); }
     `;
     const el = document.createElement('style');
     el.textContent = css;
@@ -176,21 +179,22 @@
     panel = document.createElement('div');
     panel.id = 'exec-panel';
     panel.innerHTML =
-      '<button id="exec-ph-close">[x]</button>' +
       '<div id="exec-term"></div>' +
       '<div id="exec-input-area">' +
         '<div id="exec-iline">' +
           '<span id="exec-prompt">wai@exec:~$</span>' +
           '<div id="exec-iwrap">' +
-            '<div id="exec-idisp"><span id="exec-imirror"></span><span id="exec-icursor"></span></div>' +
-            '<textarea id="exec-minput" rows="1" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>' +
+            '<div id="exec-idisp"><span id="exec-ipre"></span><span id="exec-icursor"></span><span id="exec-ipost"></span></div>' +
+            '<div id="exec-minput" contenteditable="true" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>' +
           '</div>' +
+          '<button id="exec-ph-close">[x]</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(panel);
     termEl = document.getElementById('exec-term');
     msgInput = document.getElementById('exec-minput');
-    inputMirrorEl = document.getElementById('exec-imirror');
+    preEl = document.getElementById('exec-ipre');
+    postEl = document.getElementById('exec-ipost');
     document.getElementById('exec-ph-close').addEventListener('click', closePanel);
     document.addEventListener('click', function (e) {
       if (!isOpen) return;
@@ -359,17 +363,35 @@
   }
 
   // ── input ─────────────────────────────────────────────────────────────────
+  function _caretOffset() {
+    const sel = window.getSelection();
+    if (!sel.rangeCount || !msgInput.contains(sel.anchorNode)) return msgInput.innerText.length;
+    const range = document.createRange();
+    range.selectNodeContents(msgInput);
+    range.setEnd(sel.anchorNode, sel.anchorOffset);
+    return range.toString().length;
+  }
+
+  function renderCaret() {
+    const text = msgInput.innerText;
+    const pos = _caretOffset();
+    preEl.textContent = text.slice(0, pos);
+    postEl.textContent = text.slice(pos);
+  }
+
   function wireInput() {
-    msgInput.addEventListener('input', function () {
-      inputMirrorEl.textContent = msgInput.value;
-      msgInput.style.height = '0';
-      msgInput.style.height = msgInput.scrollHeight + 'px';
+    msgInput.addEventListener('input', renderCaret);
+    msgInput.addEventListener('keyup', renderCaret);
+    msgInput.addEventListener('click', renderCaret);
+    document.addEventListener('selectionchange', function () {
+      if (document.activeElement === msgInput) renderCaret();
     });
     msgInput.addEventListener('blur', function () {
       document.getElementById('exec-icursor').style.display = 'none';
     });
     msgInput.addEventListener('focus', function () {
       document.getElementById('exec-icursor').style.display = 'inline-block';
+      renderCaret();
     });
     msgInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
@@ -378,11 +400,10 @@
 
   function sendMsg() {
     if (streaming) return;
-    const text = msgInput.value.trim();
+    const text = msgInput.innerText.trim();
     if (!text) return;
-    msgInput.value = '';
-    inputMirrorEl.textContent = '';
-    msgInput.style.height = '';
+    msgInput.textContent = '';
+    renderCaret();
     msgInput.focus();
     const ts = fmtTs();
     addMsg('user', ts + ' ' + text);
