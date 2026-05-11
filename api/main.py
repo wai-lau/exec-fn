@@ -217,6 +217,15 @@ app = FastAPI()
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
+@app.middleware("http")
+async def _no_cache_static(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.endswith((".js", ".css", ".html")) and not path.startswith("/nightfall-game/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @app.exception_handler(401)
 async def unauthorized_handler(request: Request, exc: HTTPException):
     accept = request.headers.get("accept", "")
