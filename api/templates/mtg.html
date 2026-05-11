@@ -32,8 +32,8 @@
   <div id="input-line">
     <span id="input-prompt">mtg@rules:~$</span>
     <div id="input-wrapper">
-      <div id="input-display" aria-hidden="true"><span id="input-mirror"></span><span id="input-cursor"></span></div>
-      <textarea id="msg-input" rows="1" placeholder="ask a rules question..." autofocus autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+      <div id="input-display" aria-hidden="true"><span id="input-pre"></span><span id="input-cursor"></span><span id="input-post"></span></div>
+      <div id="msg-input" contenteditable="true" data-placeholder="ask a rules question..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
     </div>
   </div>
 </div>
@@ -93,11 +93,10 @@ function addStreamDiv() {
 async function sendMsg() {
   if (streaming) return;
   const input = document.getElementById('msg-input');
-  const text = input.value.trim();
+  const text = input.innerText.trim();
   if (!text) return;
-  input.value = '';
-  _mirror.textContent = '';
-  input.style.height = '';
+  input.textContent = '';
+  renderCaret();
   terminal.style.bottom = '';
   input.focus();
   addMsg('user', text);
@@ -162,20 +161,43 @@ async function streamResponse() {
 
 addMsg('assistant', _WELCOME);
 
-const _mirror = document.getElementById('input-mirror');
+const _pre = document.getElementById('input-pre');
+const _post = document.getElementById('input-post');
 const _inputCursor = document.getElementById('input-cursor');
 const _msgInput = document.getElementById('msg-input');
+
+function _caretOffset() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !_msgInput.contains(sel.anchorNode)) return _msgInput.innerText.length;
+  const range = document.createRange();
+  range.selectNodeContents(_msgInput);
+  range.setEnd(sel.anchorNode, sel.anchorOffset);
+  return range.toString().length;
+}
+
+function renderCaret() {
+  const text = _msgInput.innerText;
+  const pos = _caretOffset();
+  _pre.textContent = text.slice(0, pos);
+  _post.textContent = text.slice(pos);
+}
+
 _msgInput.addEventListener('input', () => {
-  _mirror.textContent = _msgInput.value;
-  _msgInput.style.height = '0';
-  _msgInput.style.height = _msgInput.scrollHeight + 'px';
+  renderCaret();
   terminal.style.bottom = document.getElementById('input-bar').offsetHeight + 'px';
 });
 _msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
-_msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; });
+_msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; renderCaret(); });
+_msgInput.addEventListener('keyup', renderCaret);
+_msgInput.addEventListener('click', renderCaret);
+document.addEventListener('selectionchange', () => {
+  if (document.activeElement === _msgInput) renderCaret();
+});
 _msgInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
+_msgInput.focus();
+renderCaret();
 
 // Card image hover tooltip via Scryfall
 const _tooltip = document.getElementById('card-tooltip');
