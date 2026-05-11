@@ -31,8 +31,18 @@
   pointer-events:none;
 }
 
+#spread-grid {
+  position:absolute; inset:0;
+  display:grid;
+  grid-template-columns: repeat(5, min(13vh, 16vw));
+  column-gap: min(1vh, 1.5vw);
+  align-items:center; justify-content:center;
+  pointer-events:none;
+}
+#spread-grid > * { pointer-events:auto; }
+
 .tarot-card {
-  position:absolute;
+  position:relative;
   box-sizing:border-box;
   width:min(13vh, 16vw); height:min(22vh, 27vw);
   cursor:pointer;
@@ -75,8 +85,9 @@
 .msg.event::before { content:"~ "; opacity:0.5; }
 
 #sig-card {
-  position:absolute; left:10%; top:50%;
-  transform:translate(-50%,-50%);
+  grid-column: 1;
+  position:relative;
+  box-sizing:border-box;
   width:min(13vh, 16vw); height:min(22vh, 27vw);
   border:1px dashed rgba(0,255,65,0.25); border-radius:4px;
   display:flex; align-items:center; justify-content:center;
@@ -187,7 +198,9 @@
   <div id="spread-controls">
     <button class="spread-btn" data-spread="three">Three-Card</button>
   </div>
-  <div id="sig-card"></div>
+  <div id="spread-grid">
+    <div id="sig-card"></div>
+  </div>
   <div id="spread-empty">draw a spread to begin</div>
   <div id="phase-debug"></div>
 </div>
@@ -356,8 +369,11 @@ async function loadSpreadsMeta() {
   return spreadsMeta;
 }
 
+const spreadGrid = document.getElementById('spread-grid');
+const SPREAD_GRID_COLUMN = {past: 3, present: 4, future: 5};
+
 function clearSpreadCards() {
-  for (const el of spreadArea.querySelectorAll('.tarot-card')) el.remove();
+  for (const el of spreadGrid.querySelectorAll('.tarot-card')) el.remove();
 }
 
 function nextPosition() {
@@ -390,10 +406,9 @@ function renderSpread() {
     el.dataset.reversed = card.reversed ? 'true' : 'false';
     el.dataset.next = isNext ? 'true' : 'false';
     el.dataset.locked = isLocked ? 'true' : 'false';
-    el.style.left = pos.x + '%';
-    el.style.top = pos.y + '%';
+    el.style.gridColumn = SPREAD_GRID_COLUMN[card.position] || 'auto';
     const rot = (pos.rotate || 0) + ((card.flipped && card.reversed) ? 180 : 0);
-    el.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`;
+    if (rot) el.style.transform = `rotate(${rot}deg)`;
 
     const back = document.createElement('img');
     back.className = 'back'; back.src = '/tarot/card_back.jpg'; back.alt = '';
@@ -409,7 +424,7 @@ function renderSpread() {
     el.appendChild(label);
 
     if (isNext) el.addEventListener('click', () => flipCard(card.position));
-    spreadArea.appendChild(el);
+    spreadGrid.appendChild(el);
   }
   renderPhaseDebug();
 }
