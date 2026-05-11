@@ -629,7 +629,7 @@ async function streamResponse() {
     serverDone = true;
     // wait for the drain tick to finish revealing all buffered text
     while (displayed.length < buffered.length) {
-      await new Promise(r => setTimeout(r, REVEAL_MS));
+      await new Promise(r => setTimeout(r, 50));
     }
     cur.remove();
     if (buffered) {
