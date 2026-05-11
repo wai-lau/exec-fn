@@ -451,8 +451,19 @@ async function streamResponse() {
           (body.lastElementChild || body).appendChild(cur);
           terminal.scrollTop = terminal.scrollHeight;
         } else if (data.type === 'tool_call') {
-          const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
-          addMsg('sys', `[ ${label} ]`);
+          if (data.name === 'set_significator' && data.input?.card_id) {
+            const cid = data.input.card_id;
+            const c = courtList().find(x => x.card_id === cid);
+            if (c) {
+              significator = {card_id: c.card_id, name: c.name, image: c.image};
+              localStorage.setItem(LS_SIG, JSON.stringify(significator));
+              renderSigSlot();
+            }
+            addMsg('sys', `[ Significator set: ${c?.name || cid} ]`);
+          } else {
+            const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
+            addMsg('sys', `[ ${label} ]`);
+          }
           const sysMsgs = terminal.querySelectorAll('.msg.sys');
           if (sysMsgs.length > 6) sysMsgs[0].remove();
         }
