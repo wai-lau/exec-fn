@@ -551,9 +551,9 @@ renderSigSlot();
 _msgInput.focus();
 renderCaret();
 
-const freshState = !significator && !spread;
-if (freshState && messages.length) {
-  // stale chat history with no sig/spread — wipe and restart Phase 1
+// No Significator -> always force Phase 1 (selection interview), wiping any
+// stale chat history so the bot leads cleanly.
+if (!significator && messages.length) {
   messages = [];
   localStorage.removeItem(LS_MESSAGES);
 }
@@ -570,10 +570,12 @@ if (messages.length) {
 
 loadSpreadsMeta().then(renderSpread);
 
-if (!messages.length) {
-  const ev = significator
-    ? `[opened /tarot; Significator already chosen: ${significator.name}; no spread yet]`
+if (!significator) {
+  const ev = spread
+    ? '[opened /tarot; no Significator yet (spread already drawn — Significator must be chosen before any reading continues)]'
     : '[opened /tarot; no Significator yet, no spread]';
   autoTrigger(ev);
+} else if (!messages.length) {
+  autoTrigger(`[opened /tarot; Significator already chosen: ${significator.name}; no spread yet]`);
 }
 </script>
