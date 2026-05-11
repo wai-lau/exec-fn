@@ -22,6 +22,7 @@ __pycache__/
 !web/fiddle.png
 !web/turbo.png
 !web/seeker.png
+!web/watchman.png
 *.pyo
 *.Identifier
 .env
