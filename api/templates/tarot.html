@@ -84,6 +84,16 @@
 .msg.event { color:rgba(0,255,65,0.45); font-style:italic; font-size:0.74rem; margin:6px 0; }
 .msg.event::before { content:"~ "; opacity:0.5; }
 
+/* Reader voice: slightly heavier, more breathing room. */
+.msg.assistant {
+  font-weight:500;
+  line-height:1.7;
+  letter-spacing:0.01em;
+  color:rgba(0,255,65,1) !important;
+}
+.msg.assistant p { margin:0 0 10px; }
+.msg.assistant strong { font-weight:700; }
+
 #sig-card {
   grid-column: 1;
   position:relative;
@@ -540,13 +550,29 @@ async function sendMsg() {
 async function streamResponse() {
   streaming = true;
   const {div, body, cur} = addStreamDiv();
-  let fullText = '';
+  let buffered = '';   // received from server
+  let displayed = '';  // rendered to DOM
+  let serverDone = false;
+
+  const REVEAL_MS = 18;       // tick interval
+  const REVEAL_CHARS = 1;     // chars per tick
+  const tick = setInterval(() => {
+    if (displayed.length < buffered.length) {
+      displayed = buffered.slice(0, displayed.length + REVEAL_CHARS);
+      body.innerHTML = renderText(displayed);
+      (body.lastElementChild || body).appendChild(cur);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+    if (serverDone && displayed.length >= buffered.length) {
+      clearInterval(tick);
+    }
+  }, REVEAL_MS);
 
   try {
     const r = await fetch('/api/tarot/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({messages, spread: filteredSpread()}),
+      body: JSON.stringify({messages, spread: filteredSpread(), session_id: spread?.session_id || null}),
     });
     if (!r.ok) throw new Error(await r.text());
     const reader = r.body.getReader();
@@ -563,10 +589,7 @@ async function streamResponse() {
         let data;
         try { data = JSON.parse(line.slice(6)); } catch { continue; }
         if (data.type === 'text') {
-          fullText += data.delta;
-          body.innerHTML = renderText(fullText);
-          (body.lastElementChild || body).appendChild(cur);
-          terminal.scrollTop = terminal.scrollHeight;
+          buffered += data.delta;
         } else if (data.type === 'tool_call') {
           if (data.name === 'set_significator' && data.input?.card_id) {
             const cid = data.input.card_id;
@@ -590,12 +613,19 @@ async function streamResponse() {
         }
       }
     }
+    serverDone = true;
+    // wait for the drain tick to finish revealing all buffered text
+    while (displayed.length < buffered.length) {
+      await new Promise(r => setTimeout(r, REVEAL_MS));
+    }
     cur.remove();
-    if (fullText) {
-      messages.push({role: 'assistant', content: fullText});
+    if (buffered) {
+      messages.push({role: 'assistant', content: buffered});
       localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
     }
   } catch(e) {
+    serverDone = true;
+    clearInterval(tick);
     cur.remove();
     div.textContent = '[error: ' + e.message + ']';
     div.style.color = 'rgba(255,100,100,0.75)';
