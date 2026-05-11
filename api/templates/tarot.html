@@ -33,7 +33,7 @@
 
 .tarot-card {
   position:absolute;
-  width:13vh; height:22vh;
+  width:min(13vh, 16vw); height:min(22vh, 27vw);
   cursor:pointer;
   transition:filter 0.2s, transform 0.4s ease;
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
@@ -76,7 +76,7 @@
 #sig-card {
   position:absolute; left:10%; top:50%;
   transform:translate(-50%,-50%);
-  width:13vh; height:22vh;
+  width:min(13vh, 16vw); height:min(22vh, 27vw);
   border:1px dashed rgba(0,255,65,0.25); border-radius:4px;
   display:flex; align-items:center; justify-content:center;
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.7rem;
