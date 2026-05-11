@@ -34,7 +34,7 @@
 #spread-grid {
   position:absolute; inset:0;
   display:grid;
-  grid-template-columns: repeat(5, min(13vh, 16vw));
+  grid-template-columns: repeat(5, min(13vh, 18vw));
   column-gap: min(1vh, 1.5vw);
   align-items:center; justify-content:center;
   pointer-events:none;
@@ -44,7 +44,7 @@
 .tarot-card {
   position:relative;
   box-sizing:border-box;
-  width:min(13vh, 16vw); height:min(22vh, 27vw);
+  width:min(13vh, 18vw); height:min(22vh, 30vw);
   cursor:pointer;
   transition:filter 0.2s, transform 0.4s ease;
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
@@ -52,8 +52,8 @@
 }
 .tarot-card:hover { filter:drop-shadow(0 0 8px rgba(0,255,65,0.5)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
 .tarot-card img {
-  width:100%; height:100%; object-fit:cover;
-  border-radius:4px; border:1px solid rgba(0,0,0,0.4);
+  width:100%; height:100%; object-fit:contain;
+  border-radius:4px;
   display:block;
 }
 .tarot-card .card-label {
@@ -88,7 +88,7 @@
   grid-column: 1;
   position:relative;
   box-sizing:border-box;
-  width:min(13vh, 16vw); height:min(22vh, 27vw);
+  width:min(13vh, 18vw); height:min(22vh, 30vw);
   border:1px dashed rgba(0,255,65,0.25); border-radius:4px;
   display:flex; align-items:center; justify-content:center;
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.7rem;
@@ -100,7 +100,7 @@
   filter:drop-shadow(0 0 6px rgba(0,255,65,0.25)) drop-shadow(0 2px 6px rgba(0,0,0,0.7));
   cursor:pointer;
 }
-#sig-card.set img { width:100%; height:100%; object-fit:cover; border-radius:3px; }
+#sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius:3px; }
 #sig-card .sig-label {
   position:absolute; left:50%; bottom:calc(100% + 4px);
   transform:translateX(-50%);
