@@ -30,28 +30,46 @@ TOOLS = [
     {
         "name": "deal_spread",
         "description": (
-            "Deal a Three-Card spread for the querent. Call this once you have "
-            "moved through Phase 1b — the query is understood, the heart of "
-            "what they're asking has been named back, and you are ready to "
-            "draw. The frontend will deal the three cards face-down. After "
-            "this you'll receive [drew a Three-Card spread; ...] and proceed "
-            "to Phase 2 (frame + first-flip instruction)."
+            "Deal a Three-Card spread for the querent. Call this at the end "
+            "of Phase 2 once the query is understood and you have named back "
+            "the heart of it plus the chosen frame. MANDATORY — without this "
+            "tool call the spread never gets dealt and the reading stalls. "
+            "Narrating 'let me set the cards' is not a substitute. You MUST "
+            "pass the `frame` argument and it MUST match the frame you just "
+            "named to the querent. The frontend uses this to label the "
+            "positions correctly in the UI."
         ),
         "input_schema": {
             "type": "object",
-            "properties": {},
+            "properties": {
+                "frame": {
+                    "type": "string",
+                    "enum": ["past_present_future", "situation_obstacle_advice"],
+                    "description": (
+                        "Which frame the three positions speak in. "
+                        "`past_present_future` for trajectory / evolving "
+                        "situation / arc questions. "
+                        "`situation_obstacle_advice` for live decision / fork "
+                        "/ 'should I' questions. Must match the frame you "
+                        "named in the same response."
+                    ),
+                }
+            },
+            "required": ["frame"],
         },
     },
     {
         "name": "set_significator",
         "description": (
-            "Set the querent's Significator. Call this ONLY after asking at "
-            "least 3 narrowing questions in Phase 1 and the querent's answers "
-            "have given you enough information to confidently pick one of the "
-            "16 court cards. The frontend will fill the Significator slot "
-            "automatically when this call returns. Do not announce the call "
-            "as a tool — narrate it naturally ('I'm picking the Queen of "
-            "Swords for you'). Then proceed to Phase 1b in the same response."
+            "Set the querent's Significator. Call this on the Phase 1 exit "
+            "turn — after asking at least five narrowing questions and the "
+            "answers have given you enough to confidently pick one of the 16 "
+            "court cards. MANDATORY on the exit turn — without this call the "
+            "Significator is never set and the flow stalls. The frontend "
+            "fills the Significator slot automatically when this returns. Do "
+            "not announce the call as a tool — narrate it naturally ('I'm "
+            "picking the Queen of Swords for you'). Then proceed to the "
+            "Phase 2 opening question in the same response."
         ),
         "input_schema": {
             "type": "object",
@@ -87,8 +105,18 @@ def _set_significator(inp: dict) -> dict:
     }
 
 
-def _deal_spread(_inp: dict) -> dict:
-    return {"ok": True, "count": 1}
+def _deal_spread(inp: dict) -> dict:
+    frame = inp.get("frame")
+    if frame not in ("past_present_future", "situation_obstacle_advice"):
+        return {
+            "error": (
+                f"frame is required and must be one of "
+                f"'past_present_future' or 'situation_obstacle_advice'; got {frame!r}. "
+                "Retry deal_spread with the frame matching what you just named to the querent."
+            ),
+            "count": 0,
+        }
+    return {"ok": True, "frame": frame, "count": 1}
 
 
 TOOL_FNS = {

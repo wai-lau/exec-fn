@@ -1,8 +1,10 @@
 import random
+from collections import defaultdict, deque
 from datetime import datetime
+from time import monotonic
 from typing import AsyncGenerator, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -88,13 +90,44 @@ def _position_label(spread_type: str | None, position_key: str) -> str:
     return position_key
 
 
-def _build_spread_preamble(spread: SpreadContext | None) -> str | None:
+def _count_phase1_answers(messages: list) -> int:
+    """Count plain-text querent messages (non-bracket-event) — proxy for Phase 1 answers."""
+    n = 0
+    for m in messages:
+        if m.get("role") != "user":
+            continue
+        c = m.get("content")
+        if not isinstance(c, str):
+            continue
+        s = c.strip()
+        if s.startswith("[") and s.endswith("]"):
+            continue
+        n += 1
+    return n
+
+
+_PHASE1_MIN = 5
+
+
+def _build_spread_preamble(spread: SpreadContext | None, phase1_count: int | None = None) -> str | None:
     if spread is None:
         return None
     lines: list[str] = []
     if spread.significator:
         sig_name = spread.significator.name or CARDS_BY_ID.get(spread.significator.card_id, {}).get("name", spread.significator.card_id)
         lines.append(f"Significator (the querent's chosen self-figure): **{sig_name}** — card_id `{spread.significator.card_id}`. This card has been removed from the deck before the draw.")
+    elif phase1_count is not None:
+        if phase1_count < _PHASE1_MIN:
+            lines.append(
+                f"[State: Phase 1 turn count = {phase1_count} of {_PHASE1_MIN} minimum. "
+                f"You may NOT call `set_significator` yet. Your response MUST be a single open Phase 1 question (≤30 words). "
+                f"The exit clause does not activate until count >= {_PHASE1_MIN}.]"
+            )
+        else:
+            lines.append(
+                f"[State: Phase 1 turn count = {phase1_count} (>= {_PHASE1_MIN} minimum). "
+                f"Exit clause is now eligible — if the picture is solid, take the exit turn now: declare the court card, call `set_significator`, ask the Phase 2 opening question.]"
+            )
     if spread.type is None:
         return "\n".join(lines) if lines else None
     if not spread.revealed and not spread.face_down_positions and not lines:
@@ -121,7 +154,8 @@ async def _stream(spread: SpreadContext | None, messages: list) -> AsyncGenerato
     system = build_system(spread_type)
 
     full_messages = list(messages)
-    preamble = _build_spread_preamble(spread)
+    phase1_count = _count_phase1_answers(messages) if (spread is None or not spread.significator) else None
+    preamble = _build_spread_preamble(spread, phase1_count=phase1_count)
     if preamble and full_messages:
         full_messages.insert(0, {"role": "user", "content": preamble})
         if full_messages[1]["role"] != "assistant":
@@ -131,8 +165,32 @@ async def _stream(spread: SpreadContext | None, messages: list) -> AsyncGenerato
         yield chunk
 
 
+_RL_WINDOW_SEC = 60.0
+_RL_MAX_REQS = 20
+_rl_buckets: dict[str, deque[float]] = defaultdict(deque)
+
+
+def _client_ip(request: Request) -> str:
+    return (
+        request.headers.get("x-real-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+
+
+def _rl_check(ip: str) -> None:
+    now = monotonic()
+    bucket = _rl_buckets[ip]
+    while bucket and bucket[0] < now - _RL_WINDOW_SEC:
+        bucket.popleft()
+    if len(bucket) >= _RL_MAX_REQS:
+        raise HTTPException(429, f"rate limit: max {_RL_MAX_REQS} requests per {int(_RL_WINDOW_SEC)}s")
+    bucket.append(now)
+
+
 @router.post("/api/tarot/chat")
-async def api_tarot_chat(body: ChatBody):
+async def api_tarot_chat(body: ChatBody, request: Request):
+    _rl_check(_client_ip(request))
     return StreamingResponse(
         _stream(body.spread, body.messages),
         media_type="text/event-stream",
