@@ -24,8 +24,10 @@
   background:radial-gradient(circle at center, rgba(0,255,65,0.18), rgba(0,255,65,0) 70%);
   border:none; outline:none;
   color:rgba(0,255,65,0.95);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700; font-size:1.4rem;
-  line-height:1; padding:6px 10px; cursor:pointer; border-radius:50%;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700;
+  font-size:clamp(0.45rem, 1.1vw, 0.7rem);
+  white-space:nowrap;
+  line-height:1; padding:4px 6px; cursor:pointer; border-radius:50%;
   text-shadow:0 0 6px rgba(0,255,65,0.55);
   animation: btn-pulse 2.6s ease-in-out infinite;
   transition:color 0.15s, transform 0.15s, text-shadow 0.15s;
@@ -131,7 +133,13 @@
 }
 
 #phase-debug {
-  position:absolute; bottom:8px; right:12px; z-index:5;
+  position:absolute; bottom:8px; left:0; right:0; z-index:5; text-align:center;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
+  color:rgba(0,255,65,0.4); letter-spacing:0.05em;
+  pointer-events:none; user-select:none;
+}
+#event-debug {
+  position:absolute; top:8px; left:0; right:0; z-index:5; text-align:center;
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
   color:rgba(0,255,65,0.4); letter-spacing:0.05em;
   pointer-events:none; user-select:none;
@@ -200,7 +208,7 @@
 }
 #sig-picker .close:hover { color:rgba(255,100,100,0.9); }
 
-.msg { max-width:720px; }
+.msg { max-width:720px; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
 .msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; }
 .msg.assistant a:hover { color:rgba(0,255,120,1) !important; }
 .msg.assistant hr { border:none; border-top:1px solid rgba(0,255,65,0.35); margin:10px 0 16px; }
@@ -214,11 +222,12 @@
   <div id="spread-grid">
     <div id="sig-card"></div>
     <div id="spread-controls">
-      <button class="spread-btn" id="reset-btn" title="Reset" aria-label="Reset">𓁿</button>
+      <button class="spread-btn" id="reset-btn" title="Reset" aria-label="Reset">[ RST ]</button>
     </div>
   </div>
   <div id="spread-empty"></div>
   <div id="phase-debug"></div>
+  <div id="event-debug"></div>
 </div>
 <div id="card-zoom">
   <img alt="" />
@@ -279,18 +288,32 @@ const sigCard = document.getElementById('sig-card');
 const sigPicker = document.getElementById('sig-picker');
 const sigGrid = document.getElementById('sig-grid');
 const phaseDebug = document.getElementById('phase-debug');
+const eventDebug = document.getElementById('event-debug');
 const cardZoom = document.getElementById('card-zoom');
 const cardZoomImg = cardZoom.querySelector('img');
 const cardZoomLabel = cardZoom.querySelector('.zoom-label');
 
+const FRAME_LABELS = {
+  past_present_future:       { past:'Past',      present:'Present',  future:'Future'  },
+  situation_obstacle_advice: { past:'Situation', present:'Obstacle', future:'Advice'  },
+};
+function framePosLabel(positionKey) {
+  const frame = (spread && spread.frame) || 'past_present_future';
+  return FRAME_LABELS[frame]?.[positionKey];
+}
+
 function currentPhase() {
-  if (!significator) return ['1', 'significator interview'];
-  if (!spread) return ['1b/1c', 'reason → draw'];
+  if (!significator) return ['1', 'baseline'];
+  if (!spread) return ['2', 'query'];
   const flipped = spread.cards.filter(c => c.flipped).length;
   const total = spread.cards.length;
-  if (flipped === 0) return ['2', 'spread drawn, no flips'];
-  if (flipped < total) return [`3 (${flipped}/${total})`, 'per-flip read'];
-  return ['4', 'synthesis'];
+  if (flipped === 0) return ['3', 'encounter'];
+  if (flipped < total) {
+    const last = spread.cards.filter(c => c.flipped).slice(-1)[0];
+    const label = framePosLabel(last.position) || last.position;
+    return [`4 (${flipped}/${total})`, label.toLowerCase()];
+  }
+  return ['5', 'interlinked'];
 }
 
 function renderPhaseDebug() {
@@ -434,11 +457,11 @@ function renderSpread() {
 
     const label = document.createElement('div');
     label.className = 'card-label';
-    const posLabel = pos.label;
+    const posLabel = framePosLabel(card.position) || pos.label;
     label.innerHTML = `<span>${posLabel}</span><span class="card-name">${card.name}${card.reversed ? ' (rev)' : ''}</span>`;
     el.appendChild(label);
 
-    if (isNext) el.addEventListener('click', () => flipCard(card.position));
+    if (isNext || card.flipped) el.addEventListener('click', () => flipCard(card.position));
     spreadGrid.appendChild(el);
   }
   renderPhaseDebug();
@@ -465,6 +488,10 @@ async function flipCard(positionKey) {
   const meta = spreadsMeta && spreadsMeta[spread.type];
   const posLabel = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
   const orient = card.reversed ? 'reversed' : 'upright';
+  openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel);
+  await new Promise(resolve => {
+    cardZoom.addEventListener('click', resolve, {once: true});
+  });
   await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
 }
 
@@ -483,6 +510,10 @@ function closeZoom() {
 }
 
 function addEventMsg(text) {
+  if (text.startsWith('[opened /tarot')) {
+    eventDebug.textContent = text;
+    return;
+  }
   const div = document.createElement('div');
   div.className = 'msg event';
   div.textContent = text;
@@ -497,8 +528,7 @@ async function autoTrigger(text) {
   await streamResponse();
 }
 
-async function drawSpread(type) {
-  if (spread && !confirm('Draw a new spread? The current chat will be cleared.')) return;
+async function drawSpread(type, frame = 'past_present_future') {
   let drawn;
   try {
     const body = {spread_type: type};
@@ -516,10 +546,8 @@ async function drawSpread(type) {
   }
   for (const c of drawn.cards) c.flipped = false;
   spread = drawn;
+  spread.frame = frame;
   localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
-  messages = [];
-  localStorage.removeItem(LS_MESSAGES);
-  terminal.innerHTML = '';
   await loadSpreadsMeta();
   renderSpread();
   renderSigSlot();
@@ -560,14 +588,15 @@ async function streamResponse() {
   let serverDone = false;
   let drainCancelled = false;
 
-  const BASE_MS = 32;
+  // tuned to elderly-reader speaking pace (~130 wpm), not typing pace
+  const BASE_MS = 65;
   function nextDelayAfter(ch) {
     switch (ch) {
-      case '.': case '!': case '?': return 380;
-      case ',': case ';': case ':': return 220;
-      case '—': case '-':       return 240; // em-dash, hyphen
-      case '\n':                     return 320;
-      case ' ':                      return 50;
+      case '.': case '!': case '?': return 850;
+      case ',': case ';': case ':': return 420;
+      case '—': case '-':       return 480; // em-dash, hyphen
+      case '\n':                     return 1100;
+      case ' ':                      return 110;
       default:                       return BASE_MS;
     }
   }
@@ -611,17 +640,26 @@ async function streamResponse() {
         } else if (data.type === 'tool_call') {
           if (data.name === 'set_significator' && data.input?.card_id) {
             const cid = data.input.card_id;
-            const c = courtList().find(x => x.card_id === cid);
-            if (c) {
-              significator = {card_id: c.card_id, name: c.name, image: c.image};
-              localStorage.setItem(LS_SIG, JSON.stringify(significator));
-              renderSigCard();
+            if (data.count === 0) {
+              addMsg('sys', `[ set_significator failed: ${cid} (not a court card) ]`);
+            } else {
+              const c = courtList().find(x => x.card_id === cid);
+              if (c) {
+                significator = {card_id: c.card_id, name: c.name, image: c.image};
+                localStorage.setItem(LS_SIG, JSON.stringify(significator));
+                renderSigCard();
+              }
+              addMsg('sys', `[ Significator set: ${c?.name || cid} ]`);
             }
-            addMsg('sys', `[ Significator set: ${c?.name || cid} ]`);
           } else if (data.name === 'deal_spread') {
-            addMsg('sys', '[ dealing spread ]');
-            // dispatch async so the stream finishes first
-            setTimeout(() => drawSpread('three'), 200);
+            if (data.count === 0) {
+              addMsg('sys', '[ deal_spread error — reader will retry ]');
+            } else {
+              addMsg('sys', '[ dealing spread ]');
+              const frame = data.input?.frame || 'past_present_future';
+              // dispatch async so the stream finishes first
+              setTimeout(() => drawSpread('three', frame), 200);
+            }
           } else {
             const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
             addMsg('sys', `[ ${label} ]`);
