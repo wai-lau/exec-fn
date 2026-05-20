@@ -5,15 +5,19 @@
 :root {
   --card-w: min(13vh, 18vw);
   --card-h: min(22vh, 30vw);
-  --spread-h: calc(var(--card-h) + 6vh);
+  --spread-pad: max(0.4vh, calc(var(--card-h) * 0.06));
+  --spread-h: calc(var(--card-h) + var(--spread-pad) * 2);
 }
 #spread-area {
-  position:fixed; top:0; left:0; right:0; height:var(--spread-h);
+  position:fixed; bottom:var(--nav-h, 56px); left:0; right:0; height:var(--spread-h);
   overflow:hidden;
   background:radial-gradient(ellipse at center, rgba(20,30,45,0.6) 0%, rgba(8,10,16,0.95) 70%);
-  border-bottom:1px solid rgba(0,255,65,0.1);
+  border-top:1px solid rgba(0,255,65,0.1);
+  z-index:5;
 }
-#terminal { top:var(--spread-h) !important; inset:var(--spread-h) 0 104px !important; }
+#input-bar { bottom: calc(var(--nav-h, 56px) + var(--spread-h)) !important; }
+#terminal { padding-bottom:0 !important; }
+#terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + 104px) !important; }
 
 #spread-controls {
   grid-column: 2;
@@ -38,6 +42,11 @@
 }
 .spread-btn:hover { color:rgba(255,200,160,1); transform:scale(1.18); text-shadow:0 0 12px rgba(255,160,100,0.85); }
 .spread-btn:active { transform:scale(0.94); }
+.spread-btn .rst-glyph {
+  font-family: system-ui, sans-serif;
+  font-size:1.7em; line-height:1; vertical-align:-0.18em;
+  margin:0 0.15em; display:inline-block;
+}
 
 #spread-empty {
   position:absolute; inset:0;
@@ -60,28 +69,40 @@
 .tarot-card {
   position:relative;
   box-sizing:border-box;
+  isolation:isolate;
   width:min(13vh, 18vw); height:min(22vh, 30vw);
   cursor:pointer;
-  transition:filter 0.2s, transform 0.4s ease;
+  border-radius:4px;
+  outline:0 solid rgba(0,255,65,0);
+  transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease;
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
   user-select:none;
 }
-.tarot-card:hover { filter:drop-shadow(0 0 8px rgba(0,255,65,0.5)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+.tarot-card::after {
+  content:''; position:absolute; inset:0;
+  background:#00ff41;
+  mix-blend-mode:color;
+  pointer-events:none;
+  border-radius:4px;
+}
+.tarot-card[data-flipped="true"]::after { display:none; }
+.tarot-card:hover { outline:3px solid rgba(0,255,65,0.7); }
 .tarot-card img {
   width:100%; height:100%; object-fit:contain;
   border-radius:4px;
   display:block;
 }
+.tarot-card img.back { object-fit:fill; }
 .tarot-card .card-label { display:none; }
 .tarot-card .face { display:none; }
 .tarot-card[data-flipped="true"] .back { display:none; }
 .tarot-card[data-flipped="true"] .face { display:block; }
 .tarot-card[data-locked="true"] { cursor:default; opacity:0.55; }
-.tarot-card[data-locked="true"]:hover { filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+.tarot-card[data-locked="true"]:hover { outline:0 solid rgba(0,255,65,0); }
 .tarot-card[data-next="true"] { animation:nextpulse 1.8s ease-in-out infinite; }
 @keyframes nextpulse {
-  0%,100% { filter:drop-shadow(0 0 6px rgba(0,255,65,0.4)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
-  50%     { filter:drop-shadow(0 0 14px rgba(0,255,65,0.85)) drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+  0%,100% { outline:2px solid rgba(0,255,65,0.55); }
+  50%     { outline:5px solid rgba(0,255,65,0.95); }
 }
 .msg.event { color:rgba(0,255,65,0.45); font-style:italic; font-size:0.74rem; margin:6px 0; }
 .msg.event::before { content:"~ "; opacity:0.5; }
@@ -106,18 +127,28 @@
   grid-column: 1;
   position:relative;
   box-sizing:border-box;
+  isolation:isolate;
   width:min(13vh, 18vw); height:min(22vh, 30vw);
-  border:1px dashed rgba(0,255,65,0.25); border-radius:4px;
+  border:1px solid rgba(0,0,0,0.4); border-radius:4px;
+  background:url('/tarot/card_back.jpg?v=4') center/100% 100% no-repeat;
+  outline:1px solid rgba(0,255,65,0.35);
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
   display:flex; align-items:center; justify-content:center;
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.7rem;
-  color:rgba(0,255,65,0.4); cursor:default; user-select:none; text-align:center;
-  padding:8px; line-height:1.2;
+  cursor:pointer; user-select:none;
+}
+#sig-card::after {
+  content:''; position:absolute; inset:0;
+  background:#00ff41;
+  mix-blend-mode:color;
+  pointer-events:none;
+  border-radius:3px;
 }
 #sig-card.set {
-  border:1px solid rgba(0,0,0,0.4); padding:0;
-  filter:drop-shadow(0 0 6px rgba(0,255,65,0.25)) drop-shadow(0 2px 6px rgba(0,0,0,0.7));
-  cursor:pointer;
+  background:#000;
+  outline:2px solid rgba(0,255,65,0.5);
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
 }
+#sig-card.set::after { display:none; }
 #sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius:3px; }
 #sig-card .sig-label {
   position:absolute; left:50%; bottom:calc(100% + 4px);
@@ -156,7 +187,7 @@
 #card-zoom img {
   max-width:min(90vw, 60vh); max-height:80vh; height:auto; width:auto;
   border-radius:6px; border:1px solid rgba(0,0,0,0.5);
-  box-shadow:0 0 30px rgba(0,255,65,0.18);
+  outline:3px solid rgba(0,255,65,0.55);
 }
 #card-zoom .zoom-label {
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
@@ -222,12 +253,12 @@
   <div id="spread-grid">
     <div id="sig-card"></div>
     <div id="spread-controls">
-      <button class="spread-btn" id="reset-btn" title="Reset" aria-label="Reset">[ RST ]</button>
+      <button class="spread-btn" id="reset-btn" title="Reset" aria-label="Reset">[<span class="rst-glyph">↺</span>]</button>
     </div>
   </div>
   <div id="spread-empty"></div>
-  <div id="phase-debug"></div>
-  <div id="event-debug"></div>
+  <div id="phase-debug" style="display:none"></div>
+  <div id="event-debug" style="display:none"></div>
 </div>
 <div id="card-zoom">
   <img alt="" />
@@ -352,7 +383,7 @@ function openSigPicker() {
 function closeSigPicker() { sigPicker.classList.remove('open'); }
 
 async function pickSignificator(c) {
-  if (sigLocked()) { closeSigPicker(); return; }
+  if (significator || sigLocked()) { closeSigPicker(); return; }
   significator = {card_id: c.card_id, name: c.name, image: c.image};
   localStorage.setItem(LS_SIG, JSON.stringify(significator));
   renderSigSlot();
@@ -449,7 +480,7 @@ function renderSpread() {
     if (rot) el.style.transform = `rotate(${rot}deg)`;
 
     const back = document.createElement('img');
-    back.className = 'back'; back.src = '/tarot/card_back.jpg'; back.alt = '';
+    back.className = 'back'; back.src = '/tarot/card_back.jpg?v=4'; back.alt = '';
     el.appendChild(back);
     const face = document.createElement('img');
     face.className = 'face'; face.src = card.image; face.alt = card.name;
@@ -474,8 +505,9 @@ async function flipCard(positionKey) {
   if (card.flipped) {
     // Already revealed → zoom it
     const meta = spreadsMeta && spreadsMeta[spread.type];
-    const posLabel = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
-    openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel);
+    const fallback = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
+    const posLabel = framePosLabel(card.position) || fallback;
+    openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel, card.reversed);
     return;
   }
   if (streaming) return;
@@ -486,18 +518,20 @@ async function flipCard(positionKey) {
   renderSpread();
   if (!wasLocked) renderSigCard();
   const meta = spreadsMeta && spreadsMeta[spread.type];
-  const posLabel = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
+  const fallback = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
+  const posLabel = framePosLabel(card.position) || fallback;
   const orient = card.reversed ? 'reversed' : 'upright';
-  openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel);
+  openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel, card.reversed);
   await new Promise(resolve => {
     cardZoom.addEventListener('click', resolve, {once: true});
   });
   await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
 }
 
-function openZoom(src, name, position) {
+function openZoom(src, name, position, reversed) {
   cardZoomImg.src = src;
   cardZoomImg.alt = name;
+  cardZoomImg.style.transform = reversed ? 'rotate(180deg)' : '';
   cardZoomLabel.innerHTML = `<strong>${name}</strong>${position ? `<br><span style="opacity:0.6">${position}</span>` : ''}`;
   cardZoom.classList.add('open');
   _msgInput.blur();
@@ -529,6 +563,7 @@ async function autoTrigger(text) {
 }
 
 async function drawSpread(type, frame = 'past_present_future') {
+  if (spread) return;
   let drawn;
   try {
     const body = {spread_type: type};
@@ -640,7 +675,9 @@ async function streamResponse() {
         } else if (data.type === 'tool_call') {
           if (data.name === 'set_significator' && data.input?.card_id) {
             const cid = data.input.card_id;
-            if (data.count === 0) {
+            if (significator) {
+              addMsg('sys', `[ set_significator ignored: Significator already locked (${significator.name}) ]`);
+            } else if (data.count === 0) {
               addMsg('sys', `[ set_significator failed: ${cid} (not a court card) ]`);
             } else {
               const c = courtList().find(x => x.card_id === cid);
@@ -652,7 +689,9 @@ async function streamResponse() {
               addMsg('sys', `[ Significator set: ${c?.name || cid} ]`);
             }
           } else if (data.name === 'deal_spread') {
-            if (data.count === 0) {
+            if (spread) {
+              addMsg('sys', '[ deal_spread ignored: spread already dealt ]');
+            } else if (data.count === 0) {
               addMsg('sys', '[ deal_spread error — reader will retry ]');
             } else {
               addMsg('sys', '[ dealing spread ]');
@@ -736,7 +775,24 @@ function resetAll() {
   terminal.innerHTML = '';
   renderSigCard();
   renderSpread();
-  autoTrigger('[opened /tarot; no Significator yet, no spread]');
+  autoTrigger(`[opened /tarot; no Significator yet, no spread; ${tarotTimeMarker()}]`);
+}
+
+function tarotTimeMarker() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const h = d.getHours();
+  let band;
+  if (h < 5)       band = 'late-night';
+  else if (h < 8)  band = 'predawn';
+  else if (h < 11) band = 'morning';
+  else if (h < 14) band = 'midday';
+  else if (h < 17) band = 'afternoon';
+  else if (h < 20) band = 'dusk';
+  else if (h < 23) band = 'evening';
+  else             band = 'late-night';
+  return `time=${hh}:${mm} ${band}`;
 }
 document.getElementById('reset-btn').addEventListener('click', resetAll);
 
@@ -771,11 +827,12 @@ if (messages.length) {
 loadSpreadsMeta().then(renderSpread);
 
 if (!significator) {
+  const tm = tarotTimeMarker();
   const ev = spread
-    ? '[opened /tarot; no Significator yet (spread already drawn — Significator must be chosen before any reading continues)]'
-    : '[opened /tarot; no Significator yet, no spread]';
+    ? `[opened /tarot; no Significator yet (spread already drawn — Significator must be chosen before any reading continues); ${tm}]`
+    : `[opened /tarot; no Significator yet, no spread; ${tm}]`;
   autoTrigger(ev);
 } else if (!messages.length) {
-  autoTrigger(`[opened /tarot; Significator already chosen: ${significator.name}; no spread yet]`);
+  autoTrigger(`[opened /tarot; Significator already chosen: ${significator.name}; no spread yet; ${tarotTimeMarker()}]`);
 }
 </script>
