@@ -25,6 +25,8 @@ def build_nightfall_html() -> str:
         html = html.replace(f'<script src="{src}"></script>', '', 1)
     abs_srcs = [s.replace('./', '/nightfall-game/', 1) for s in chunk_srcs]
     save_script = "<script>" + _NIGHTFALL_SAVE_SCRIPT_TPL.replace('__SCRIPTS__', json.dumps(abs_srcs)) + "</script>"
+    css_v = int((_NF_DIR / "static" / "css" / "bundle.css").stat().st_mtime)
+    html = html.replace('./static/css/bundle.css', f'./static/css/bundle.css?v={css_v}', 1)
     html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">' + _NIGHTFALL_HEAD, 1)
     html = html.replace("</body>", _NIGHTFALL_BODY + save_script + "</body>", 1)
     return html
