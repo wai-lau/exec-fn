@@ -218,7 +218,7 @@ def classify_card(title: str) -> dict:
     }
 
 
-def parse_date_natural(text: str, size: str | None = None, estimated_minutes: int | None = None) -> tuple[str | None, str | None]:
+def parse_date_natural(text: str, size: str | None = None, estimated_minutes: int | None = None) -> str | None:
     import anthropic
     now = datetime.now(ET)
     today = now.strftime("%Y-%m-%d %H:%M")
@@ -258,9 +258,15 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
 def _save_chat(messages: list, stage: str):
     p = DATA_DIR / "chat.json"
     existing = json.loads(p.read_text()) if p.exists() else {}
-    monitor_msgs = [m for m in existing.get("messages", []) if m.get("role") == "monitor"]
+    incoming_monitor_contents = {
+        m.get("content") for m in messages if m.get("role") == "monitor"
+    }
+    monitor_msgs = [
+        m for m in existing.get("messages", [])
+        if m.get("role") == "monitor" and m.get("content") not in incoming_monitor_contents
+    ]
     p.write_text(json.dumps({
-        "messages": messages + monitor_msgs,
+        "messages": list(messages) + monitor_msgs,
         "stage": stage,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }, indent=2))

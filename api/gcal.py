@@ -24,13 +24,6 @@ ICS_FEEDS = [
 _gcal_pending_state: dict = {}
 
 
-def _load_json(name: str, default=None):
-    p = DATA_DIR / f"{name}.json"
-    if p.exists():
-        return json.loads(p.read_text())
-    return default if default is not None else {}
-
-
 def gcal_start_auth() -> str:
     from google_auth_oauthlib.flow import Flow
 
@@ -47,7 +40,9 @@ def gcal_start_auth() -> str:
 
 
 def gcal_complete_auth(code: str, state: str) -> None:
-    if state != _gcal_pending_state.get("state"):
+    import secrets as _secrets
+    expected = _gcal_pending_state.get("state") or ""
+    if not state or not _secrets.compare_digest(state, expected):
         raise RuntimeError("OAuth state mismatch — restart auth flow.")
     flow = _gcal_pending_state.get("flow")
     if not flow:

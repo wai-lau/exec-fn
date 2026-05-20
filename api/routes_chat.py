@@ -2,6 +2,7 @@ import asyncio
 import json
 from typing import List
 
+import anthropic
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ from chat_tools import _handle_tool
 from helpers import DATA_DIR
 
 router = APIRouter()
+_CHAT_TOOLS = _chat_tools()
 
 
 class ChatBody(BaseModel):
@@ -57,15 +59,13 @@ def api_chat_clear():
 
 @router.post("/api/chat")
 async def api_chat(body: ChatBody):
-    import anthropic as _anthropic
-
     messages = body.messages
     stage = body.stage
 
     async def generate():
-        client = _anthropic.AsyncAnthropic()
+        client = anthropic.AsyncAnthropic()
         system_prompt = _build_chat_system_prompt(stage)
-        tools = _chat_tools()
+        tools = _CHAT_TOOLS
         next_stage = stage
         full_text = ""
         final = None

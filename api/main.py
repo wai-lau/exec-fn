@@ -5,6 +5,7 @@ import time
 import glob
 import asyncio
 import secrets
+import html
 from pathlib import Path
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
 from fastapi.middleware.gzip import GZipMiddleware
@@ -102,12 +103,10 @@ async def _run_monitor(delay: float = 60.0) -> None:
 
 
 _TMPL = Path("/app/templates")
+_STATIC_INDEX = Path("/app/static/index.html")
+_RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
 _CHROME_LINK = '<link rel="stylesheet" href="/chrome.css">'
-
-_NAV_CSS = _CHROME_LINK
-_PAGE_CHROME = _CHROME_LINK
-_CONTENT_STYLE = ""
 
 _NAV_LINKS = ["core", "prophecies", "directives", "debug", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
@@ -151,15 +150,29 @@ def _build_nav(active=None, guest=False):
     return nav + script + bubble
 
 
-_INDEX = Path("/app/static/index.html").read_text()
+_index_cache: tuple[float, str, str] | None = None  # (mtime, no_form, bare)
 
-_NO_FORM = re.sub(r'<form class="login-box".*?</form>', '', _INDEX, flags=re.DOTALL)
-_BARE = re.sub(r'<div class="bg-wide">.*?</div>', '', _NO_FORM, flags=re.DOTALL)
-_BARE = re.sub(r'<div class="bg-tall">.*?</div>', '', _BARE, flags=re.DOTALL)
-_BARE = re.sub(r'<a href="[^"]*" target="_blank">.*?</a>', '', _BARE, flags=re.DOTALL)
-_BARE = re.sub(r'<style id="login-styles">.*?</style>', '', _BARE, flags=re.DOTALL)
-_BARE = re.sub(r'<audio[^>]*>.*?</audio>', '', _BARE, flags=re.DOTALL)
-_BARE = re.sub(r'<div class="login-wrap">.*?</div>', '', _BARE, flags=re.DOTALL)
+
+def _index_pages() -> tuple[str, str]:
+    """Return (no_form, bare) variants of /app/static/index.html, re-read on change."""
+    global _index_cache
+    mtime = _STATIC_INDEX.stat().st_mtime
+    if _index_cache and _index_cache[0] == mtime:
+        return _index_cache[1], _index_cache[2]
+    raw = _STATIC_INDEX.read_text()
+    no_form = re.sub(r'<form class="login-box".*?</form>', '', raw, flags=re.DOTALL)
+    bare = no_form
+    for pat in (
+        r'<div class="bg-wide">.*?</div>',
+        r'<div class="bg-tall">.*?</div>',
+        r'<a href="[^"]*" target="_blank">.*?</a>',
+        r'<style id="login-styles">.*?</style>',
+        r'<audio[^>]*>.*?</audio>',
+        r'<div class="login-wrap">.*?</div>',
+    ):
+        bare = re.sub(pat, '', bare, flags=re.DOTALL)
+    _index_cache = (mtime, no_form, bare)
+    return no_form, bare
 
 _GUEST_LOGIN_HTML = """
 <style>
@@ -194,18 +207,23 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   <form class="login-box" method="post" action="/guest-login">
     <input type="hidden" name="next" value="{next}">
     <input type="text" name="key" autofocus autocomplete="current-password" placeholder="access-key" enterkeyhint="go">
-    <button type="submit" class="submit" aria-label="submit">v</button>
+    <button type="submit" class="submit" aria-label="submit">▼</button>
   </form>
 </div>
 """
 
 
-def _build_page(active=None, content=""):
-    base = _BARE if active else _NO_FORM
-    head_inject = _PAGE_CHROME + (_CONTENT_STYLE if content else "")
+_FULL_HEIGHT_STYLE = "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
+
+
+def _render_page(active: str | None, content: str, full_height: bool = False, guest: bool = False) -> str:
+    no_form, bare = _index_pages()
+    base = bare if active else no_form
+    head_inject = _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
+    nav = _build_nav(active, guest=guest)
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", content + _build_nav(active) + "</body>", 1))
+        .replace("</body>", content + nav + "</body>", 1))
 
 
 # ── templates ─────────────────────────────────────────────────────────────────
@@ -261,6 +279,23 @@ guest_protected.include_router(tarot_router)
 
 # ── public ────────────────────────────────────────────────────────────────────
 
+_GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall"}
+
+
+def _safe_next(value: str, default: str = "/mtg") -> str:
+    """Restrict redirect targets to the known guest-accessible page set."""
+    return value if value in _GUEST_NEXT_ALLOWED else default
+
+
+_GUEST_AUDIO_HTML = (
+    '<audio id="bg-audio" src="/nightfall-game/audio/ped-intro.mp3" autoplay playsinline></audio>'
+    '<script>(function(){var a=document.getElementById("bg-audio");if(!a)return;var p=a.play();'
+    'if(p&&p.catch)p.catch(function(){var s=function(){a.play();'
+    '["pointerdown","touchstart","keydown"].forEach(function(e){document.removeEventListener(e,s,true);});};'
+    '["pointerdown","touchstart","keydown"].forEach(function(e){document.addEventListener(e,s,true);});});})();</script>'
+)
+
+
 @public.post("/login")
 async def login(request: Request):
     form = await request.form()
@@ -268,26 +303,28 @@ async def login(request: Request):
     if not secrets.compare_digest(key, API_KEY):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
     resp = RedirectResponse(url="/rd", status_code=303)
-    resp.set_cookie("session", SESSION_TOKEN, httponly=True, samesite="lax", secure=False)
+    resp.set_cookie("session", SESSION_TOKEN, httponly=True, samesite="lax", secure=True)
     return resp
 
 
 @public.get("/guest-login", response_class=HTMLResponse)
 async def guest_login_page(next: str = "/mtg"):
-    html = _BARE.replace("</head>", _PAGE_CHROME + "</head>", 1)
-    html = html.replace("</body>", _GUEST_LOGIN_HTML.replace("{next}", next) + '<audio src="/nightfall-game/audio/ped-intro.mp3" autoplay></audio>' + "</body>", 1)
-    return html
+    next_safe = _safe_next(next)
+    _, bare = _index_pages()
+    page = bare.replace("</head>", _CHROME_LINK + "</head>", 1)
+    body_insert = _GUEST_LOGIN_HTML.replace("{next}", html.escape(next_safe, quote=True)) + _GUEST_AUDIO_HTML
+    return page.replace("</body>", body_insert + "</body>", 1)
 
 
 @public.post("/guest-login")
 async def guest_login(request: Request):
     form = await request.form()
     key = form.get("key", "")
-    next_path = form.get("next", "/mtg")
+    next_path = _safe_next(form.get("next", "/mtg"))
     if not secrets.compare_digest(key, GUEST_KEY):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
     resp = RedirectResponse(url=next_path, status_code=303)
-    resp.set_cookie("guest_session", GUEST_SESSION_TOKEN, httponly=True, samesite="lax", secure=False)
+    resp.set_cookie("guest_session", GUEST_SESSION_TOKEN, httponly=True, samesite="lax", secure=True)
     return resp
 
 
@@ -296,28 +333,22 @@ async def guest_login(request: Request):
 
 @protected.get("/plan", response_class=HTMLResponse)
 async def plan_page():
-    return _build_page("plan", _tmpl("plan.html"))
+    return _render_page("plan", _tmpl("plan.html"))
 
 
 @protected.get("/prophecies", response_class=HTMLResponse)
 async def prophecies_page():
-    head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
-    return (_BARE
-        .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _tmpl("prophecies.html") + _build_nav("prophecies") + "</body>", 1))
+    return _render_page("prophecies", _tmpl("prophecies.html"), full_height=True)
 
 
 @protected.get("/directives", response_class=HTMLResponse)
 async def directives_page():
-    head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
-    return (_BARE
-        .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _tmpl("directives.html") + _build_nav("directives") + "</body>", 1))
+    return _render_page("directives", _tmpl("directives.html"), full_height=True)
 
 
 @protected.get("/debug", response_class=HTMLResponse)
 async def debug_page():
-    return _build_page("debug", _tmpl("debug.html"))
+    return _render_page("debug", _tmpl("debug.html"))
 
 
 @protected.get("/api/moltbook/heartbeat-log")
@@ -347,26 +378,19 @@ def api_debug_logs():
 
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
-    head_inject = _PAGE_CHROME + "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
-    return (_BARE
-        .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _tmpl("kanban.html") + _build_nav("core") + "</body>", 1))
+    return _render_page("core", _tmpl("kanban.html"), full_height=True)
 
 
 @guest_protected.get("/mtg", response_class=HTMLResponse)
 async def mtg_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
-    return (_BARE
-        .replace("</head>", _PAGE_CHROME + "</head>", 1)
-        .replace("</body>", _tmpl("mtg.html") + _build_nav("mtg", guest=not is_full_auth) + "</body>", 1))
+    return _render_page("mtg", _tmpl("mtg.html"), guest=not is_full_auth)
 
 
 @guest_protected.get("/tarot", response_class=HTMLResponse)
 async def tarot_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
-    return (_BARE
-        .replace("</head>", _PAGE_CHROME + "</head>", 1)
-        .replace("</body>", _tmpl("tarot.html") + _build_nav("tarot", guest=not is_full_auth) + "</body>", 1))
+    return _render_page("tarot", _tmpl("tarot.html"), guest=not is_full_auth)
 
 
 @public.get("/nightfall", response_class=HTMLResponse)
@@ -374,7 +398,7 @@ async def nightfall_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = build_nightfall_html()
     _nf_style = "<style>body,.App{background:#000!important;background-color:#000!important}html,body{height:100%!important;overflow:hidden!important}#root{height:calc(100% - var(--nav-h,0px))!important}.container{--v-pct:calc((100vh - var(--nav-h,0px) - env(safe-area-inset-top,2em)*2)/100*1.5)!important}</style>"
-    html = html.replace("</head>", _NAV_CSS + _nf_style + "</head>", 1)
+    html = html.replace("</head>", _CHROME_LINK + _nf_style + "</head>", 1)
     _nf_script = (
         "<script>"
         # Prevent Escape from exiting native fullscreen — game handles Escape itself
@@ -421,8 +445,14 @@ def api_morning():
 
 @protected.get("/api/rd")
 def api_rd():
-    return _load_json("rd", {"columns": ["rd","hq","archives","exile"], "cards": []})
+    return _load_json("rd", {"columns": _RD_COLUMNS, "cards": []})
 
+
+
+def _atomic_write_json(path: Path, data) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2))
+    tmp.replace(path)
 
 
 def _log_entries_for_patch(new_cards, old_cards, source):
@@ -451,7 +481,7 @@ def _log_entries_for_patch(new_cards, old_cards, source):
 async def api_rd_patch(request: Request, source: str = "core"):
     body = await request.json()
     p = DATA_DIR / "rd.json"
-    data = _load_json("rd", {"columns": ["rd","hq","archives","exile"]})
+    data = _load_json("rd", {"columns": _RD_COLUMNS})
     old_cards = {c["id"]: c for c in data.get("cards", [])}
     new_cards = body.get("cards", [])
 
@@ -486,7 +516,7 @@ async def api_rd_patch(request: Request, source: str = "core"):
                 log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
 
     data["cards"] = new_cards + revived
-    p.write_text(json.dumps(data, indent=2))
+    _atomic_write_json(p, data)
     _append_rd_log_batch(log_entries)
     if any(_entry_is_significant(e) for e in log_entries):
         _schedule_monitor()
@@ -526,10 +556,10 @@ async def monitor_stream():
 @protected.post("/api/monitor/flush")
 async def monitor_flush():
     """Fire monitor immediately if significant activity exists since last comment."""
-    global _monitor_task, _monitor_batch_start
+    global _monitor_task
     from datetime import datetime, timezone as _tz
-    cutoff = datetime.fromtimestamp(_monitor_last_comment_ts or 0, tz=_tz.utc)
     from helpers import _ACTIVITY_LOG
+    cutoff = datetime.fromtimestamp(_monitor_last_comment_ts or 0, tz=_tz.utc)
     log = json.loads(_ACTIVITY_LOG.read_text()) if _ACTIVITY_LOG.exists() else []
     has_new = False
     for e in log:
@@ -546,8 +576,6 @@ async def monitor_flush():
         return {"ok": True, "fired": False}
     if _monitor_task and not _monitor_task.done():
         _monitor_task.cancel()
-    else:
-        _monitor_batch_start = _monitor_last_comment_ts or 0.0
     _monitor_task = asyncio.create_task(_run_monitor(delay=0))
     return {"ok": True, "fired": True}
 
@@ -598,7 +626,7 @@ async def api_context_patch(request: Request):
     body = await request.json()
     data = _load_json("profile", {"notes": []})
     data["notes"] = body.get("notes", data.get("notes", []))
-    (DATA_DIR / "profile.json").write_text(json.dumps(data, indent=2))
+    _atomic_write_json(DATA_DIR / "profile.json", data)
     return {"ok": True}
 
 
