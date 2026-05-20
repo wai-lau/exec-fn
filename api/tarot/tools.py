@@ -47,11 +47,13 @@ TOOLS = [
                     "enum": ["past_present_future", "situation_obstacle_advice"],
                     "description": (
                         "Which frame the three positions speak in. "
-                        "`past_present_future` for trajectory / evolving "
-                        "situation / arc questions. "
-                        "`situation_obstacle_advice` for live decision / fork "
-                        "/ 'should I' questions. Must match the frame you "
-                        "named in the same response."
+                        "`situation_obstacle_advice` is the default — use it "
+                        "for any live deliberation, weighing, stuckness, fork, "
+                        "implied next move, or actionable question. "
+                        "`past_present_future` ONLY for explicitly "
+                        "retrospective or closure-shaped questions: grief, "
+                        "mourning, a chapter already ended, 'what was that'. "
+                        "Must match the frame you named in the same response."
                     ),
                 }
             },
