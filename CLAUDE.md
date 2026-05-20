@@ -8,7 +8,7 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 
 **WE ARE ON THE SERVER.** This repo lives at `/exec-fn` on the production server (hostname: main). No SSH or scp needed.
 
-**Template/static file changes are live on next page load** — `api/templates/` files are read from disk per request via `_tmpl()` in `main.py`. `web/` static files are served directly by FastAPI. No restart needed for either.
+**Template/static file changes are live on next page load** — `api/templates/` files are read from disk per request via `_tmpl()` in `main.py`. `web/static/index.html` is read per request via `_index_pages()` (cached by mtime). `web/` static files are served directly by FastAPI. No restart needed for any of these.
 
 **Python changes need docker cp + restart:**
 ```bash
@@ -56,26 +56,48 @@ exec-fn/
     hack2.png             # Hack2.png — nightfall nav icon
     wizard.png            # Wizard.png — mtg nav icon
   api/
-    main.py               # FastAPI routes + _PAGE_CHROME + _NAV_CSS + nav builder; _tmpl() reads templates from disk per request
+    main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
+    auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     pipeline.py           # morning pipeline: retrospective, purge stale notes, archive log
+    monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection
+    routes_chat.py        # /api/chat SSE stream + handler (Haiku, exec planning tools)
+    routes_nightfall.py   # /api/gamesave/* + build_nightfall_html() (injects base href, SW unregister, save sync)
     entrypoint.sh         # Docker CMD: cron + uvicorn
     exec-fn.cron          # crontab baked into image (4:30 AM ET morning cron only)
     morning_cron.sh       # cron script → POST /api/morning
     gcal_auth.py          # one-time Google Calendar OAuth
-    gcal.py               # GCal helpers: fetch_calendar_events, import_gcal_cards
-    helpers.py            # shared helpers: _next_recurrence(), etc.
+    gcal.py               # GCal helpers: fetch_calendar_events, import_gcal_cards, ICS feeds, Haiku classification
+    helpers.py            # shared helpers: _next_recurrence(), _load_json (mtime cache), _append_rd_log_batch, _now_et
     prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days()
-    chat.py               # exec chat: system prompt, tool definitions, parse_date_natural
-    chat_tools.py         # chat tool handlers
+    chat.py               # exec chat: system prompt, tool definitions, classify_card, parse_date_natural, _save_chat
+    chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context
+    mtg/
+      routes.py           # /api/mtg/log + /api/mtg/chat (SSE)
+      agent.py prompt.py tools.py lookup.py
+    tarot/
+      routes.py           # /api/tarot/{spreads,cards,draw,chat}; in-process IP rate-limit on /chat
+      agent.py            # streaming tool-use loop (Sonnet) with text + tool_call SSE events
+      prompt.py           # _PREAMBLE + _OPERATING_RULES; lru_cache build_system(spread_type)
+      cards.py            # canonical 78-card list (CARDS, CARDS_BY_ID)
+      spreads.py          # SPREADS dict — currently only "three" (Three-Card)
+      tools.py            # lookup_card_meaning, set_significator, deal_spread tool schemas + handlers
+      lookup.py           # Pollack chapter loader (lru_cache); framework + suits + numerology loader
+      book/               # Pollack reference material — never shown to querent
+        framework_core.md framework_minor.md framework_three.md framework_celtic_cross.md
+        numerology.md
+        cards/<card_id>.md  # per-Major chapter (Minors read from suit+numerology)
+        suits/{cups,wands,swords,pentacles}.md
+      scripts/            # one-off scripts (e.g. download_cards.py)
     requirements.txt
     Dockerfile
     templates/            # volume-mounted → live on save
-      exec.html           # /exec — terminal chat
       plan.html           # /plan — legacy daily plan view
       kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
       prophecies.html     # /prophecies — 6-day planning kanban; books bar at top
       directives.html     # /directives — today's schedule, drag/resize timeline
       debug.html          # /debug — profile.json + activity logs viewer
+      mtg.html            # /mtg — rules-assistant chat
+      tarot.html          # /tarot — spread + reader chat (localStorage-only state)
     data/                 # persistent volume (./api/data → /app/data)
       plan.json           # seek/hack/dive/schedule/encouraging_message
       directives.json     # legacy alias for plan.json
@@ -83,6 +105,9 @@ exec-fn/
       profile.json        # Wai's long-term context notes (replaces context.json)
       activity_log.json   # today's card activity log (archived at 4:30 AM)
       activity_log_MMDD.json  # archived daily activity logs
+      chat.json           # exec chat history (cleared each morning)
+      gcal_events_raw.json    # cached raw GCal pull (written on full-year imports)
+      moltbook-heartbeat.log  # moltbook heartbeat ledger (archived each morning)
 ```
 
 ---
@@ -99,29 +124,34 @@ exec-fn/
 | prophecies (prof) | 6-day planning view — assigns `scheduled_day` to cards |
 | directives (dirs) | Today's schedule — visual timeline with drag/resize |
 | scheduled_day | ISO date field on a card indicating which day it's planned for |
-| manual_pin | Card field — true when user manually placed the card in Prophecies |
 | recur_type | Recurrence type; when archived, clone auto-created with advanced due_date |
+| reader / querent | Tarot terminology: reader = AI; querent = human |
+| Significator | Court card chosen by the reader during Phase 1 to represent the querent; removed from deck before draw |
+| frame | Tarot Three-Card frame: `past_present_future` or `situation_obstacle_advice`; relabels position UI |
 
 ---
 
 ## Web app
 
-All routes: `API_KEY` cookie auth (set via `POST /login`).
+Two cookie auth tiers:
+- `session` cookie (set via `POST /login`, requires `API_KEY`) — full access.
+- `guest_session` cookie (set via `POST /guest-login`, requires `GUEST_KEY`) — only `/mtg`, `/tarot`, `/nightfall`.
 
-Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mtg` · `tarot` — bottom nav, all pages.
+Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest-login` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`.
+
+Nav: `core` · `prophecies` · `directives` · `debug` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto every protected page by `_build_nav()`; no `/exec` route.
 
 ### Pages
 
 | Route | What |
 |-------|------|
 | `/rd` | Core kanban from `rd.json` |
-| `/exec` | Terminal chat with Claude for daily planning |
 | `/prophecies` | 6-day planning kanban — assign `scheduled_day` to cards |
 | `/directives` | Today's schedule — visual timeline with drag/resize, 6am–midnight |
 | `/debug` | Profile notes + activity log viewer |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
-| `/tarot` | Tarot reading: persistent spread (top half) + Pollack-voiced chat (bottom half); guest auth; per-browser state in `localStorage` (no server persistence) |
+| `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
 
 ### API endpoints
 
@@ -132,35 +162,54 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 | GET | `/api/directives` | Returns plan.json (alias) |
 | GET | `/api/rd/log` | Today's activity log (last 20 entries) |
 | GET | `/api/rd` | Returns rd.json |
-| PATCH | `/api/rd` | Update rd.json (source query param: core/Exec/prof/dirs) |
+| PATCH | `/api/rd` | Update rd.json (source query param: core/Exec/prof/dirs). Atomic write. Runs recurring-card revival on archived cards with `recur_type`. Schedules monitor debounce if any entry is significant. |
 | POST | `/api/rd/classify` | Classify card via Haiku → category + size |
-| GET | `/api/context` | Returns profile.json |
-| GET/POST/DELETE | `/api/chat` | Chat history |
+| GET | `/api/context` | Returns profile.json (alias of `/api/profile`) |
+| GET | `/api/profile` | Returns profile.json |
+| PATCH | `/api/context` | Replace profile.json `notes` field. Atomic write. |
+| GET/POST/DELETE | `/api/chat` | Exec chat history (planning Haiku SSE). |
+| GET | `/api/monitor/stream` | SSE stream — exec-bubble live updates: `{thinking}` / `{comment}` payloads as significant activity rolls in. |
+| POST | `/api/monitor/flush` | Force-fire the monitor immediately if there is significant activity since the last comment (bypasses 60s debounce). |
+| GET | `/api/moltbook/heartbeat-log` | Plain text of `moltbook-heartbeat.log` (today's heartbeat ledger). |
 | GET | `/api/gcal/auth` | Initiate Google Calendar OAuth |
-| GET | `/api/gcal/callback` | Receive OAuth code, save token (public) |
+| GET | `/api/gcal/callback` | Receive OAuth code, save token (public; constant-time state check) |
 | POST | `/api/gcal/import_cards` | One-time import of GCal events as rd.json cards |
-| GET | `/api/prophecies` | 6-day week data: scheduled cards + unscheduled hq/rd cards |
-| PATCH | `/api/prophecies` | Bulk update `scheduled_day`; sets `manual_pin=true`, logs activity |
+| GET | `/api/prophecies` | 6-day week data starting from `?start=YYYY-MM-DD` (defaults to logical-today): scheduled cards + unscheduled hq cards |
+| PATCH | `/api/prophecies` | Bulk update `scheduled_day` and/or `order` on cards; logs `rescheduled` entries with `source=prof`. Cards unscheduled (null) drop back to `column=rd`. |
 | GET | `/api/prophecies/log` | Activity log filtered by source=prof |
 | POST | `/api/parse_date` | Parse natural language date → ISO via Haiku |
+| POST | `/api/assemble_plan` | Run the assemble_plan tool from current directives.json (legacy plan pipeline). |
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
-| GET | `/data/{filename}` | Serve file from /app/data/ |
+| GET | `/data/{filename}` | Serve file from /app/data/ (path-traversal guarded) |
+| GET | `/api/mtg/log` | mtg chat history |
+| POST | `/api/mtg/chat` | mtg chat (Sonnet, tool-use over rules) SSE |
 | GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |
 | GET | `/api/tarot/cards` | 78-card canonical list (id/name/image) |
-| POST | `/api/tarot/draw` | Body `{spread_type}` → fresh draw with reversed flags. No server persistence — client stores in `localStorage`. |
-| POST | `/api/tarot/chat` | Body `{messages, spread: {type, revealed, face_down_positions}}` → SSE stream. Server told only about revealed cards; face-down identities never leave the browser. |
+| POST | `/api/tarot/draw` | Body `{spread_type, significator_id?}` → fresh draw with reversed flags. Significator removed from deck before draw. No server persistence — client stores in `localStorage`. |
+| POST | `/api/tarot/chat` | Body `{messages, spread: {type, revealed, face_down_positions, significator?}}` → SSE stream. Server told only about revealed cards; face-down identities never leave the browser. In-process per-IP rate limit (20 req / 60s). |
+| GET | `/api/gamesave/{slot}` | Nightfall save slot read |
+| POST | `/api/gamesave/{slot}` | Nightfall save slot write |
+| DELETE | `/api/gamesave/{slot}` | Nightfall save slot delete |
 
-### Chat tools (in `/exec` terminal)
+### Exec chat tools (bubble overlay, Haiku)
+
+Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 
 | Tool | What |
 |------|------|
-| `create_card` | Add card to rd column |
-| `move_card` | Move card between columns: rd/hq/archives/exile |
-| `update_card` | Edit card fields or append progress notes |
-| `delete_card` | Delete card permanently |
-| `schedule_card` | Set `scheduled_day` (YYYY-MM-DD) on a card, or null to unschedule |
-| `reschedule` | Regenerate time-block schedule from plan.json |
-| `update_context` | Add/remove/replace a long-term fact in profile.json |
+| `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` (rd→hq promotion if in window; `dir_start_min` for today). |
+| `exile_card` | Move card to exile column (drop / won't-do). Clears `scheduled_day`. |
+| `update_card` | Edit title/category/size/estimated_time/notes/is_reminder. Auto-recomputes size if `estimated_time` crosses a band. |
+| `schedule_card` | Set or clear `scheduled_day`. Beyond 6-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day`. Optional `dir_start_min` only honoured when target = today. |
+| `update_context` | add/remove/replace a fact in `profile.json`. |
+
+Tarot tools (separate handler set in `tarot/tools.py`):
+
+| Tool | What |
+|------|------|
+| `lookup_card_meaning` | Load Pollack chapter for a Major Arcana card. Returns `{error}` on Minor — Minors must be read from suit + numerology in the system prompt. |
+| `set_significator` | Reader-side selection of the querent's court card after Phase 1 interview. Frontend fills the Significator slot when this returns. Rejects non-court ids. |
+| `deal_spread` | End of Phase 2 — deals the Three-Card spread face-down. Requires `frame ∈ {past_present_future, situation_obstacle_advice}`. Frontend calls `/api/tarot/draw` after this fires. |
 
 ---
 
@@ -200,9 +249,33 @@ Nav: `core` · `Exec` · `prophecies` · `directives` · `debug` · `媁` · `mt
 3. **Haiku purge** — remove time-specific expired notes from `profile.json`
 4. **GCal import** — pull calendar events 14 days ahead as cards
 5. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
-6. Clear `dir_start_min` from all cards (resets directives timeline positions)
-7. Clear `chat.json`
-8. Dedupe `profile.json` notes
+6. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
+7. Clear `dir_start_min` from all cards (resets directives timeline positions); past-dated `scheduled_day` on rd/hq non-event cards rolls forward to today
+8. Clear `chat.json`
+9. Dedupe `profile.json` notes (Haiku)
+
+---
+
+## Exec monitor
+
+`monitor.py` produces unsolicited warm comments after significant card activity. Trigger = move to archives/exile, or book-card update. `main.py` runs a 60s trailing debounce (`_schedule_monitor`); `POST /api/monitor/flush` bypasses the wait. Sonnet generates the comment with context = profile.json + hq cards + books-in-progress + today's schedule. Subscribers receive `{thinking}`/`{comment}` via `/api/monitor/stream` SSE. Posted comment is appended to `chat.json` as `role=monitor` so the exec bubble shows it on next load.
+
+---
+
+## Tarot reading flow
+
+Server has no per-session state. The client (`tarot.html`) drives the reading via `localStorage`-stored `messages`, `spread`, `significator`, plus bracketed `[event marker]` user-messages emitted on UI actions (open, choose Significator, draw, turn a card).
+
+Phases (enforced by `tarot/prompt.py` system prompt):
+1. **Phase 1** — Significator interview. Bot asks ≥5 single-question turns (one open question, ≤30 words, ends in `?`), silently maps answers to a court card via private rank/suit cheatsheet, then on the exit turn declares the card, calls `set_significator`, and asks Phase 2's opening question.
+2. **Phase 2** — Query dialogue. Up to 4 clarifying exchanges, then names the heart of the query + chosen frame and calls `deal_spread`.
+3. **Phase 3** — Spread drawn face-down. Bot invites the first position turn.
+4. **Phase 4** — One card per `[turned ...]` event. Calls `lookup_card_meaning` for Majors; reads Minors from system prompt's suit + numerology. Ends by naming the next position.
+5. **Phase 5** — Synthesis once all three cards revealed. Two-paragraph max.
+
+Frontend sends `[opened /tarot; ...; time=HH:MM <band>]` markers; the time band drives the opening atmospheric image (Gibson register).
+
+Privacy: server only sees revealed cards. Face-down identities live in the browser; the request body carries face-down *positions* only, never `card_id`s.
 
 ---
 
