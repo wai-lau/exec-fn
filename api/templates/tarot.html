@@ -14,7 +14,16 @@
   background:var(--bg);
   z-index:5;
 }
-#input-bar { bottom: calc(var(--nav-h, 56px) + var(--spread-h)) !important; transition: opacity 0.7s ease, visibility 0.7s; }
+#input-bar {
+  bottom: calc(var(--nav-h, 56px) + var(--spread-h)) !important;
+  transition: opacity 0.7s ease, visibility 0.7s;
+  background:transparent !important;
+  border-top:none !important;
+  padding:0 20px 8px !important;
+}
+/* merge input into the scrollback: no slab, no underline — prompt reads as the live last line */
+#input-line { border-bottom:none !important; padding:0 !important; }
+#input-prompt { font-size:0.82rem !important; padding-right:0.6em !important; }
 #terminal { padding-bottom:0 !important; }
 #terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + 104px) !important; transition: inset 0.7s ease; }
 body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
