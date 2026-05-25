@@ -109,7 +109,7 @@ exec-fn/
       chat.json           # exec chat history (cleared each morning)
       gcal_events_raw.json    # cached raw GCal pull (written on full-year imports)
       moltbook-heartbeat.log  # moltbook heartbeat ledger (archived each morning)
-      tarot_readings.json     # saved tarot readings (appended by /api/tarot/save on reset; owner flag per reading)
+      tarot_readings.json     # saved tarot readings (appended by /api/tarot/save on reset; owner-only — logged-in Wai)
 ```
 
 ---
@@ -192,7 +192,7 @@ Nav: `core` · `prophecies` · `directives` · `debug` · `nightfall` · `mtg` �
 | GET | `/api/tarot/cards` | 78-card canonical list (id/name/image) |
 | POST | `/api/tarot/draw` | Body `{spread_type, significator_id?}` → fresh draw with reversed flags. Significator removed from deck before draw. No server persistence — client stores in `localStorage`. |
 | POST | `/api/tarot/chat` | Body `{messages, spread: {type, revealed, face_down_positions, significator?}}` → SSE stream. Server told only about revealed cards; face-down identities never leave the browser. In-process per-IP rate limit (20 req / 60s). |
-| POST | `/api/tarot/save` | Body `{significator?, spread?, messages}` → append reading to `tarot_readings.json`. Called by `resetAll()` before wiping local state. `owner=true` when full `session` cookie present (Wai); guests save too, tagged `owner=false`. No-op on empty reading. |
+| POST | `/api/tarot/save` | Body `{significator?, spread?, messages}` → append reading to `tarot_readings.json`. Called by `resetAll()` before wiping local state. Owner-only: saves only when full `session` cookie present (Wai); guests no-op (their readings stay localStorage-only). No-op on empty reading. |
 | GET | `/api/gamesave/{slot}` | Nightfall save slot read |
 | POST | `/api/gamesave/{slot}` | Nightfall save slot write |
 | DELETE | `/api/gamesave/{slot}` | Nightfall save slot delete |

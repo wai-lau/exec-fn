@@ -219,15 +219,15 @@ def _atomic_write_json(path: Path, data: Any) -> None:
 @router.post("/api/tarot/save")
 async def api_tarot_save(body: SaveBody, request: Request):
     """Append the current reading to tarot_readings.json (called on reset).
-    owner=True when the full session cookie is present (Wai); guests save too,
-    tagged owner=False."""
+    Owner-only: saves only when the full session cookie is present (Wai).
+    Guests no-op — their readings stay frontend/localStorage only."""
+    if request.cookies.get("session") != SESSION_TOKEN:
+        return {"saved": False, "reason": "guest"}
     if not body.messages and not body.spread and not body.significator:
         return {"saved": False, "reason": "empty"}
 
-    owner = request.cookies.get("session") == SESSION_TOKEN
     reading = {
         "saved_at": datetime.now().isoformat(timespec="seconds"),
-        "owner": owner,
         "significator": body.significator,
         "spread": body.spread,
         "messages": body.messages,
