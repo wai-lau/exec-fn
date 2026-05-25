@@ -390,6 +390,20 @@ def api_debug_logs():
 
 
 
+@protected.get("/api/tarot/readings")
+def api_tarot_readings():
+    p = DATA_DIR / "tarot_readings.json"
+    if not p.exists():
+        return {"readings": []}
+    try:
+        readings = json.loads(p.read_text())
+        if not isinstance(readings, list):
+            readings = []
+    except json.JSONDecodeError:
+        readings = []
+    return {"readings": readings}
+
+
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
     return _render_page("core", _tmpl("kanban.html"), full_height=True)
