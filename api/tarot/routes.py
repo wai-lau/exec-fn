@@ -1,19 +1,25 @@
+import json
 import random
 from collections import defaultdict, deque
 from datetime import datetime
+from pathlib import Path
 from time import monotonic
-from typing import AsyncGenerator, Literal
+from typing import Any, AsyncGenerator, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from auth import SESSION_TOKEN
+from helpers import DATA_DIR
 from tarot.agent import stream_chat
 from tarot.cards import CARDS, CARDS_BY_ID
 from tarot.prompt import build_system
 from tarot.spreads import SPREADS
 
 router = APIRouter()
+
+_READINGS_PATH = DATA_DIR / "tarot_readings.json"
 
 _SPREAD_SIZE = {"three": 3}
 _REVERSED_CHANCE = 0.3
@@ -196,3 +202,44 @@ async def api_tarot_chat(body: ChatBody, request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+class SaveBody(BaseModel):
+    significator: dict | None = None
+    spread: dict | None = None
+    messages: list[dict] = []
+
+
+def _atomic_write_json(path: Path, data: Any) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2))
+    tmp.replace(path)
+
+
+@router.post("/api/tarot/save")
+async def api_tarot_save(body: SaveBody, request: Request):
+    """Append the current reading to tarot_readings.json (called on reset).
+    owner=True when the full session cookie is present (Wai); guests save too,
+    tagged owner=False."""
+    if not body.messages and not body.spread and not body.significator:
+        return {"saved": False, "reason": "empty"}
+
+    owner = request.cookies.get("session") == SESSION_TOKEN
+    reading = {
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "owner": owner,
+        "significator": body.significator,
+        "spread": body.spread,
+        "messages": body.messages,
+    }
+
+    try:
+        existing = json.loads(_READINGS_PATH.read_text())
+        if not isinstance(existing, list):
+            existing = []
+    except (FileNotFoundError, json.JSONDecodeError):
+        existing = []
+
+    existing.append(reading)
+    _atomic_write_json(_READINGS_PATH, existing)
+    return {"saved": True, "count": len(existing)}

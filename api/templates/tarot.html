@@ -692,8 +692,23 @@ _msgInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
 
-function resetAll() {
-  if (!confirm('Reset everything? Significator, spread, and chat history will be cleared.')) return;
+async function saveReading() {
+  if (!messages.length && !spread && !significator) return;
+  try {
+    await fetch('/api/tarot/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ significator, spread, messages }),
+      keepalive: true,
+    });
+  } catch (e) {
+    console.warn('reading save failed', e);
+  }
+}
+
+async function resetAll() {
+  if (!confirm('Reset everything? This reading will be saved, then Significator, spread, and chat history cleared.')) return;
+  await saveReading();
   significator = null;
   spread = null;
   messages = [];
