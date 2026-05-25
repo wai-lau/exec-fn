@@ -59,6 +59,7 @@ exec-fn/
     main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     pipeline.py           # morning pipeline: retrospective, purge stale notes, archive log
+    scheduler.py          # single home for dirs dir_start_min: layout_day() (cron autostack entry point, future autoscheduler), place_card_today() (intraday slot >= now)
     monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection
     routes_chat.py        # /api/chat SSE stream + handler (Haiku, exec planning tools)
     routes_nightfall.py   # /api/gamesave/* + build_nightfall_html() (injects base href, SW unregister, save sync)
@@ -200,7 +201,7 @@ Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 | `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` (rd→hq promotion if in window; `dir_start_min` for today). |
 | `exile_card` | Move card to exile column (drop / won't-do). Clears `scheduled_day`. |
 | `update_card` | Edit title/category/size/estimated_time/notes/is_reminder. Auto-recomputes size if `estimated_time` crosses a band. |
-| `schedule_card` | Set or clear `scheduled_day`. Beyond 6-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day`. Optional `dir_start_min` only honoured when target = today. |
+| `schedule_card` | Set or clear `scheduled_day`. Beyond 6-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day`. Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
 | `update_context` | add/remove/replace a fact in `profile.json`. |
 
 Tarot tools (separate handler set in `tarot/tools.py`):
@@ -234,7 +235,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 
 - `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
-- `dir_start_min`: minutes from midnight — saved position on the directives timeline; cleared each morning
+- `dir_start_min`: minutes from midnight — saved position on the directives timeline. Set whenever a card is scheduled for today (prof drag, exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py` — the front end no longer computes positions.
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
 - `size === 'book'`: shown in books bar on prophecies page; hidden from rd/hq columns in kanban
 
@@ -250,7 +251,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 4. **GCal import** — pull calendar events 14 days ahead as cards
 5. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
 6. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
-7. Clear `dir_start_min` from all cards (resets directives timeline positions); past-dated `scheduled_day` on rd/hq non-event cards rolls forward to today
+7. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today, then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today)
 8. Clear `chat.json`
 9. Dedupe `profile.json` notes (Haiku)
 

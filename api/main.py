@@ -16,7 +16,7 @@ from pipeline import build_morning
 from gcal import gcal_start_auth, gcal_complete_auth
 from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
-from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence, _now_et
+from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence
 from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
@@ -486,13 +486,18 @@ async def api_rd_patch(request: Request, source: str = "core"):
     new_cards = body.get("cards", [])
 
     # Apply side-effects that mutate new_cards in place (scheduled_day logic)
+    from scheduler import place_card_today, logical_today_iso
     for c in new_cards:
         old = old_cards.get(c.get("id"))
         if old and old.get("column") != c.get("column"):
             if old.get("column") == "hq" and c.get("column") != "hq":
                 c["scheduled_day"] = None
+                c.pop("dir_start_min", None)
             elif c.get("column") == "hq" and old.get("column") != "hq":
-                c["scheduled_day"] = _now_et().strftime("%Y-%m-%d")
+                today_iso = logical_today_iso()
+                c["scheduled_day"] = today_iso
+                c.pop("dir_start_min", None)
+                c["dir_start_min"] = place_card_today(new_cards, today_iso)
 
     log_entries = _log_entries_for_patch(new_cards, old_cards, source)
 

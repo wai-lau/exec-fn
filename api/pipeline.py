@@ -214,13 +214,19 @@ def build_morning() -> dict:
     heartbeat_path.write_text("")
 
     from helpers import _load_rd, _save_rd
+    from scheduler import layout_day, is_dir_card, AUTOSTACK_ANCHOR
     today_iso = _now_et().strftime("%Y-%m-%d")
     rd = _load_rd()
-    for c in rd.get("cards", []):
-        c.pop("dir_start_min", None)
+    cards = rd.get("cards", [])
+    restack: set[str] = set()
+    for c in cards:
         sd = c.get("scheduled_day")
         if sd and sd < today_iso and c.get("column") in ("rd", "hq") and not c.get("is_event"):
             c["scheduled_day"] = today_iso
+            restack.add(c["id"])
+    # Restack carryover + any today card missing a position; preserve pre-placed today cards.
+    restack |= {c["id"] for c in cards if is_dir_card(c, today_iso) and c.get("dir_start_min") is None}
+    layout_day(cards, anchor_min=AUTOSTACK_ANCHOR, today_iso=today_iso, only_ids=restack)
     _save_rd(rd)
 
     if chat_path.exists():

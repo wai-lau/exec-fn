@@ -180,14 +180,17 @@ def _apply_schedule(card_id: str, requested: str, dir_start_min: int | None = No
         if card.get("column") != "rd":
             card["column"] = "rd"
         card["due_date"] = requested
+        card.pop("dir_start_min", None)
         _save_rd(rd)
         _append_rd_log("updated", card["title"], source="Exec", fields=["due_date"])
         return {"due_date": requested, "note": "beyond 6-day window, set as due date in backlog"}
     if card.get("column") == "rd":
         card["column"] = "hq"
     card["scheduled_day"] = requested
-    if dir_start_min is not None and target == today:
-        card["dir_start_min"] = dir_start_min
+    card.pop("dir_start_min", None)
+    if target == today:
+        from scheduler import place_card_today
+        card["dir_start_min"] = dir_start_min if dir_start_min is not None else place_card_today(rd.get("cards", []), requested)
     _save_rd(rd)
     _append_rd_log("scheduled", card["title"], source="Exec", day=requested)
     return {"scheduled_day": requested}
@@ -202,6 +205,7 @@ def _tool_schedule_card(input_: dict) -> dict:
         if not card:
             return {"error": f"Card not found: {card_id}"}
         card["scheduled_day"] = None
+        card.pop("dir_start_min", None)
         _save_rd(rd)
         _append_rd_log("scheduled", card["title"], source="Exec", day=None)
         return {"ok": True, "id": card_id, "title": card.get("title", ""), "scheduled_day": None}

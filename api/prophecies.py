@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from helpers import _load_rd, _save_rd, _append_rd_log, get_rd_log
+from scheduler import place_card_today
 
 _ET = ZoneInfo("America/New_York")
 
@@ -68,10 +69,13 @@ def bulk_update_scheduled_days(updates: list[dict]) -> dict:
             new_day = upd["scheduled_day"] or None
             if old_day != new_day:
                 card["scheduled_day"] = new_day
+                card.pop("dir_start_min", None)
                 if new_day is None:
                     card["column"] = "rd"
                     rd_orders = [c.get("order", 0) for c in rd.get("cards", []) if c.get("column") == "rd"]
                     card["order"] = (min(rd_orders) - 1) if rd_orders else 0
+                elif new_day == _today_iso():
+                    card["dir_start_min"] = place_card_today(rd.get("cards", []), new_day)
                 log_prophecy_change(cid, old_day, new_day, title=card.get("title", cid))
                 changed_this = True
 

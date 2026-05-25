@@ -100,16 +100,6 @@ function isoToday() {
 
 
 
-function computeStartTimes(cards) {
-  let cur = snapMin(Math.max(TL_START, nowMinutes()));
-  return cards.map(c => {
-    if (c.dir_start_min != null) return c.dir_start_min;
-    const start = cur;
-    cur += Math.max(SNAP, snapMin(c.estimated_time || SIZE_MIN[c.size] || 60));
-    return start;
-  });
-}
-
 function durLabel(min) {
   return min >= 60 ? `${Math.floor(min/60)}h${min%60?min%60+'m':''}` : `${min}m`;
 }
@@ -176,7 +166,7 @@ function createBlock(c, track) {
       scheduleCards.sort((a, b) => a._startMin - b._startMin);
       computeColumns(scheduleCards);
       applyColumnLayout(scheduleCards, currentTrack);
-      saveCardOrder(scheduleCards);
+      saveStartTime(c.id, c._startMin);
     }
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -295,8 +285,7 @@ function applyColumnLayout(cards, track) {
 function buildSchedule(cards) {
   const wrap = document.getElementById('dir-schedule-wrap');
 
-  const startTimes = computeStartTimes(cards);
-  cards.forEach((c, i) => { c._startMin = startTimes[i]; });
+  cards.forEach(c => { c._startMin = c.dir_start_min != null ? c.dir_start_min : TL_START; });
 
   const tlWrap = document.createElement('div');
   tlWrap.style.cssText = 'display:flex;';
@@ -406,13 +395,12 @@ function buildSchedule(cards) {
   }
 }
 
-async function saveCardOrder(cards) {
+async function saveStartTime(cardId, startMin) {
   const rd = await (await fetch('/api/rd')).json();
   const allCards = rd.cards || [];
-  cards.forEach((c, i) => {
-    const found = allCards.find(x => x.id === c.id);
-    if (found) { found.order = i; found.dir_start_min = c._startMin; }
-  });
+  const card = allCards.find(x => x.id === cardId);
+  if (!card) return;
+  card.dir_start_min = startMin;
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: allCards})});
 }
 
