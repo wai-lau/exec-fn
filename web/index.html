@@ -93,26 +93,16 @@
     <img src="/favicon.png">
     <form class="login-box" method="POST" action="/login">
       <input type="password" name="key" placeholder="access-key" autocomplete="current-password" autofocus enterkeyhint="go">
+      <input type="hidden" name="next">
       <button type="submit" class="submit" aria-label="submit">▼</button>
     </form>
   </div>
-  <audio id="bg-audio" src="/nightfall-game/audio/lmm-intro.mp3" autoplay playsinline></audio>
   <script>
     (function(){
-      var a = document.getElementById('bg-audio');
-      if (!a) return;
-      var p = a.play();
-      if (p && p.catch) p.catch(function(){
-        var start = function(){
-          a.play();
-          ['pointerdown','touchstart','keydown'].forEach(function(e){
-            document.removeEventListener(e, start, true);
-          });
-        };
-        ['pointerdown','touchstart','keydown'].forEach(function(e){
-          document.addEventListener(e, start, true);
-        });
-      });
+      var n = new URLSearchParams(location.search).get('next');
+      if (!n) return;
+      var f = document.querySelector('form.login-box input[name="next"]');
+      if (f) f.value = n;
     })();
   </script>
 </body>

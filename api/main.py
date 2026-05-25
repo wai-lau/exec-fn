@@ -7,6 +7,7 @@ import asyncio
 import secrets
 import html
 from pathlib import Path
+from urllib.parse import quote
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -264,6 +265,9 @@ async def unauthorized_handler(request: Request, exc: HTTPException):
         path = request.url.path
         if path.startswith("/mtg") or path.startswith("/tarot"):
             return RedirectResponse(f"/guest-login?next={path}", status_code=302)
+        if request.method == "GET" and path not in ("/", "/login", "/guest-login"):
+            full = path + ("?" + request.url.query if request.url.query else "")
+            return RedirectResponse(f"/?next={quote(full, safe='')}", status_code=302)
         return RedirectResponse("/", status_code=302)
     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
 
@@ -288,6 +292,15 @@ def _safe_next(value: str, default: str = "/mtg") -> str:
     return value if value in _GUEST_NEXT_ALLOWED else default
 
 
+def _safe_local_path(value: str, default: str = "/rd") -> str:
+    """Same-origin redirect guard: accept only a leading-slash relative path,
+    rejecting protocol-relative (`//`, `/\\`) targets that escape the origin."""
+    v = (value or "").strip()
+    if not v.startswith("/") or v.startswith("//") or v.startswith("/\\"):
+        return default
+    return v
+
+
 _GUEST_AUDIO_HTML = (
     '<audio id="bg-audio" src="/nightfall-game/audio/ped-intro.mp3" autoplay playsinline></audio>'
     '<script>(function(){var a=document.getElementById("bg-audio");if(!a)return;var p=a.play();'
@@ -303,7 +316,7 @@ async def login(request: Request):
     key = form.get("key", "")
     if not secrets.compare_digest(key, API_KEY):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
-    resp = RedirectResponse(url="/rd", status_code=303)
+    resp = RedirectResponse(url=_safe_local_path(form.get("next", ""), "/rd"), status_code=303)
     resp.set_cookie("session", SESSION_TOKEN, httponly=True, samesite="lax", secure=True)
     return resp
 
