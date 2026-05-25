@@ -30,7 +30,7 @@
       buildPanel();
       wireInput();
       restorePosition();
-      loadHistory();
+      loadHistory().then(handleExecParam);
       connectMonitorStream();
     });
   }
@@ -305,6 +305,18 @@
   function closePanel() {
     isOpen = false;
     panel.classList.remove('open');
+  }
+
+  // ── ?exec=open — open expanded on load, answer a queued shortcut message ─────
+  function handleExecParam() {
+    var params;
+    try { params = new URLSearchParams(window.location.search); } catch (_) { return; }
+    if (params.get('exec') !== 'open') return;
+    openPanel();
+    var last = messages[messages.length - 1];
+    if (last && last.role === 'user' && typeof last.content === 'string' && !streaming) {
+      streamResponse();
+    }
   }
 
   // ── unread badge ──────────────────────────────────────────────────────────

@@ -3,15 +3,34 @@ import json
 from typing import List
 
 import anthropic
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from chat import _build_chat_system_prompt, _chat_tools, _save_chat
+from auth import require_say_auth
+from chat import _build_chat_system_prompt, _chat_tools, _save_chat, append_user_message
 from chat_tools import _handle_tool
-from helpers import DATA_DIR
+from helpers import DATA_DIR, _now_et
 
 router = APIRouter()
+public_chat_router = APIRouter()
+
+
+@public_chat_router.get("/api/exec/say", dependencies=[Depends(require_say_auth)])
+def api_exec_say(msg: str = Query(...)):
+    """Queue a user message to the exec chat, fire-and-forget.
+
+    Auth is a scoped bearer token (EXEC_SAY_KEY) since phone shortcuts carry no session
+    cookie. No reply is generated here — opening any page with ?exec=open makes
+    exec-bubble auto-respond to the trailing user message, so the shortcut lands
+    mid-conversation.
+    """
+    text = msg.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty message")
+    ts = _now_et().strftime("[%d/%m %H:%M ET]")
+    append_user_message(f"{ts} {text}")
+    return {"ok": True}
 _CHAT_TOOLS = _chat_tools()
 
 
