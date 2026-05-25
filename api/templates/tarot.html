@@ -15,9 +15,11 @@
   border-top:1px solid rgba(0,255,65,0.1);
   z-index:5;
 }
-#input-bar { bottom: calc(var(--nav-h, 56px) + var(--spread-h)) !important; }
+#input-bar { bottom: calc(var(--nav-h, 56px) + var(--spread-h)) !important; transition: opacity 0.7s ease, visibility 0.7s; }
 #terminal { padding-bottom:0 !important; }
-#terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + 104px) !important; }
+#terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + 104px) !important; transition: inset 0.7s ease; }
+body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
+body.no-input #terminal { inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px)) !important; }
 
 #spread-controls {
   grid-column: 2;
@@ -199,46 +201,6 @@
   color:rgba(0,255,65,0.35); letter-spacing:0.05em;
 }
 
-#sig-picker {
-  position:fixed; inset:0; z-index:50; display:none;
-  background:rgba(0,0,0,0.85);
-  align-items:center; justify-content:center;
-  padding:20px;
-}
-#sig-picker.open { display:flex; }
-#sig-picker .panel {
-  background:#0e1218; border:1px solid rgba(0,255,65,0.35);
-  border-radius:6px; padding:18px;
-  max-width:560px; width:100%; max-height:90vh; overflow-y:auto;
-}
-#sig-picker h3 {
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500;
-  color:rgba(0,255,65,0.95); font-size:0.9rem; margin:0 0 6px;
-}
-#sig-picker .hint {
-  color:rgba(0,255,65,0.55); font-size:0.72rem; margin-bottom:14px; line-height:1.5;
-}
-#sig-grid {
-  display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;
-}
-#sig-grid .opt {
-  display:flex; flex-direction:column; align-items:center; gap:4px;
-  padding:6px; border:1px solid rgba(0,255,65,0.15); border-radius:4px;
-  cursor:pointer; transition:all 0.15s; background:rgba(0,0,0,0.4);
-}
-#sig-grid .opt:hover { border-color:rgba(0,255,65,0.7); background:rgba(0,255,65,0.05); }
-#sig-grid .opt img { width:60px; height:102px; object-fit:cover; border-radius:3px; }
-#sig-grid .opt .lbl {
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  color:rgba(0,255,65,0.75); text-align:center; line-height:1.15;
-}
-#sig-picker .close {
-  background:none; border:none; color:rgba(0,255,65,0.5); cursor:pointer;
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.8rem;
-  margin-top:14px; padding:4px 8px;
-}
-#sig-picker .close:hover { color:rgba(255,100,100,0.9); }
-
 .msg { max-width:720px; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
 .msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; }
 .msg.assistant a:hover { color:rgba(0,255,120,1) !important; }
@@ -264,14 +226,6 @@
   <img alt="" />
   <div class="zoom-label"></div>
   <div class="zoom-hint">tap anywhere to return</div>
-</div>
-<div id="sig-picker">
-  <div class="panel">
-    <h3>Choose Your Significator</h3>
-    <div class="hint">A court card that represents you in this reading. Page (child, beginner), Knight (active, youthful), Queen (inward mastery), King (outward authority). Suit by temperament: Wands fire/will, Cups water/feeling, Swords air/mind, Pentacles earth/body. The card is removed from the deck before the draw.</div>
-    <div id="sig-grid"></div>
-    <button class="close">Cancel</button>
-  </div>
 </div>
 <div id="terminal"></div>
 <div id="input-bar">
@@ -313,11 +267,8 @@ let spreadsMeta = null;
 let streaming = false;
 
 const terminal = document.getElementById('terminal');
-const spreadArea = document.getElementById('spread-area');
 const spreadEmpty = document.getElementById('spread-empty');
 const sigCard = document.getElementById('sig-card');
-const sigPicker = document.getElementById('sig-picker');
-const sigGrid = document.getElementById('sig-grid');
 const phaseDebug = document.getElementById('phase-debug');
 const eventDebug = document.getElementById('event-debug');
 const cardZoom = document.getElementById('card-zoom');
@@ -366,38 +317,6 @@ function renderSigCard() {
   renderPhaseDebug();
 }
 const renderSigSlot = renderSigCard;
-
-function openSigPicker() {
-  if (!sigGrid.children.length) {
-    for (const c of courtList()) {
-      const opt = document.createElement('div');
-      opt.className = 'opt';
-      opt.innerHTML = `<img src="${c.image}" alt=""><span class="lbl">${c.name}</span>`;
-      opt.addEventListener('click', () => pickSignificator(c));
-      sigGrid.appendChild(opt);
-    }
-  }
-  sigPicker.classList.add('open');
-}
-
-function closeSigPicker() { sigPicker.classList.remove('open'); }
-
-async function pickSignificator(c) {
-  if (significator || sigLocked()) { closeSigPicker(); return; }
-  significator = {card_id: c.card_id, name: c.name, image: c.image};
-  localStorage.setItem(LS_SIG, JSON.stringify(significator));
-  renderSigSlot();
-  closeSigPicker();
-  await autoTrigger(`[chose Significator: ${c.name}]`);
-}
-
-async function clearSignificator() {
-  if (sigLocked()) return;
-  significator = null;
-  localStorage.removeItem(LS_SIG);
-  renderSigSlot();
-  await autoTrigger('[cleared Significator]');
-}
 
 marked.use({ breaks: true });
 function renderText(raw) { return marked.parse(raw); }
@@ -451,7 +370,14 @@ function nextPosition() {
   return next ? next.position : null;
 }
 
+function updateInputBarVisibility() {
+  const phaseHides = !!(spread && spread.cards && !spread.cards.every(c => c.flipped));
+  const hideInput = streaming || phaseHides;
+  document.body.classList.toggle('no-input', hideInput);
+}
+
 function renderSpread() {
+  updateInputBarVisibility();
   clearSpreadCards();
   if (!spread || !spread.cards) {
     spreadEmpty.style.display = '';
@@ -617,6 +543,7 @@ async function sendMsg() {
 
 async function streamResponse() {
   streaming = true;
+  updateInputBarVisibility();
   const {div, body, cur} = addStreamDiv();
   let buffered = '';   // received from server
   let displayed = '';  // rendered to DOM
@@ -726,6 +653,7 @@ async function streamResponse() {
     div.style.color = 'rgba(255,100,100,0.75)';
   }
   streaming = false;
+  updateInputBarVisibility();
 }
 
 const _pre = document.getElementById('input-pre');
@@ -800,8 +728,6 @@ sigCard.addEventListener('click', () => {
   if (significator) openZoom(significator.image, significator.name, 'Significator');
 });
 cardZoom.addEventListener('click', closeZoom);
-sigPicker.querySelector('.close').addEventListener('click', closeSigPicker);
-sigPicker.addEventListener('click', e => { if (e.target === sigPicker) closeSigPicker(); });
 renderSigCard();
 
 _msgInput.focus();
@@ -824,6 +750,7 @@ if (messages.length) {
   }
 }
 
+updateInputBarVisibility();
 loadSpreadsMeta().then(renderSpread);
 
 if (!significator) {
