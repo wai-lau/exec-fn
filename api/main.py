@@ -294,11 +294,22 @@ def _safe_next(value: str, default: str = "/mtg") -> str:
 
 def _safe_local_path(value: str, default: str = "/rd") -> str:
     """Same-origin redirect guard: accept only a leading-slash relative path,
-    rejecting protocol-relative (`//`, `/\\`) targets that escape the origin."""
+    rejecting protocol-relative (`//`, `/\\`) targets that escape the origin.
+    A bare `/` collapses to the default so an authed visitor can't loop back
+    onto the login screen."""
     v = (value or "").strip()
-    if not v.startswith("/") or v.startswith("//") or v.startswith("/\\"):
+    if not v.startswith("/") or v.startswith("//") or v.startswith("/\\") or v == "/":
         return default
     return v
+
+
+@public.get("/")
+async def root(request: Request, next: str = ""):
+    """Login screen. Already-authed visitors skip it and land on their
+    redirect target (`?next=`) or `/rd`; everyone else gets the form."""
+    if request.cookies.get("session") == SESSION_TOKEN:
+        return RedirectResponse(url=_safe_local_path(next, "/rd"), status_code=302)
+    return FileResponse(str(_STATIC_INDEX))
 
 
 _GUEST_AUDIO_HTML = (
