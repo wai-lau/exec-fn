@@ -23,7 +23,11 @@ def build_nightfall_html() -> str:
     chunk_srcs = re.findall(r'<script src="(\./static/js/[^"]+\.js)"></script>', html)
     for src in chunk_srcs:
         html = html.replace(f'<script src="{src}"></script>', '', 1)
-    abs_srcs = [s.replace('./', '/nightfall-game/', 1) for s in chunk_srcs]
+    abs_srcs = [
+        s.replace('./', '/nightfall-game/', 1)
+        + f'?v={int((_NF_DIR / s[2:]).stat().st_mtime)}'
+        for s in chunk_srcs
+    ]
     save_script = "<script>" + _NIGHTFALL_SAVE_SCRIPT_TPL.replace('__SCRIPTS__', json.dumps(abs_srcs)) + "</script>"
     css_v = int((_NF_DIR / "static" / "css" / "bundle.css").stat().st_mtime)
     html = html.replace('./static/css/bundle.css', f'./static/css/bundle.css?v={css_v}', 1)
