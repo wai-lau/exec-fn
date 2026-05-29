@@ -32,12 +32,15 @@ def get_week_data(start_iso: str | None = None) -> dict:
     unscheduled = []
 
     for c in cards:
-        if c.get("column") not in ("rd", "hq"):
+        # Prophecies mirrors hq exactly: same card set, no more, no less.
+        if c.get("column") != "hq":
             continue
         sd = c.get("scheduled_day")
         if sd in days:
             days[sd].append(c)
-        elif not sd and c.get("column") == "hq":
+        else:
+            # hq card with no scheduled_day, or one falling outside the
+            # visible week — still belongs in profs (hq set == profs set).
             unscheduled.append(c)
 
     for d in week_days:
@@ -71,9 +74,10 @@ def bulk_update_scheduled_days(updates: list[dict]) -> dict:
                 card["scheduled_day"] = new_day
                 card.pop("dir_start_min", None)
                 if new_day is None:
-                    card["column"] = "rd"
-                    rd_orders = [c.get("order", 0) for c in rd.get("cards", []) if c.get("column") == "rd"]
-                    card["order"] = (min(rd_orders) - 1) if rd_orders else 0
+                    # Unscheduling in profs only clears the day; the card stays
+                    # in hq so profs keeps mirroring the hq set (unscheduled lane).
+                    hq_orders = [c.get("order", 0) for c in rd.get("cards", []) if c.get("column") == "hq"]
+                    card["order"] = (min(hq_orders) - 1) if hq_orders else 0
                 elif new_day == _today_iso():
                     card["dir_start_min"] = place_card_today(rd.get("cards", []), new_day)
                 log_prophecy_change(cid, old_day, new_day, title=card.get("title", cid))
