@@ -183,14 +183,14 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   background:transparent;
   padding:0; display:flex; flex-direction:column; align-items:center;
 }
-.login-box input[type=text] {
+.login-box input[type=password] {
   background:transparent; border:none;
   border-bottom:1px solid rgba(255,255,255,0.4);
   color:#fff; font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
   padding:4px 2px; outline:none; width:160px; text-align:center;
 }
-.login-box input[type=text]:focus { border-bottom-color:#fff; }
-.login-box input[type=text]::placeholder { color:rgba(255,255,255,0.35); }
+.login-box input[type=password]:focus { border-bottom-color:#fff; }
+.login-box input[type=password]::placeholder { color:rgba(255,255,255,0.35); }
 .login-box button.submit {
   margin-top:14px; background:transparent;
   border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
@@ -207,7 +207,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   <img src="/nightfall-game/static/media/ped-logo.f0469b0a.png" style="width:160px;opacity:0.9">
   <form class="login-box" method="post" action="/guest-login">
     <input type="hidden" name="next" value="{next}">
-    <input type="text" name="key" autofocus autocomplete="current-password" placeholder="access-key" enterkeyhint="go">
+    <input type="password" name="key" autofocus autocomplete="current-password" placeholder="access-key" enterkeyhint="go">
     <button type="submit" class="submit" aria-label="submit">▼</button>
   </form>
 </div>
