@@ -132,6 +132,13 @@ function isOverdue(iso) {
   return new Date(iso.slice(0,10)) < today;
 }
 
+function isDueSoon(iso) {
+  if (!iso) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = (new Date(iso.slice(0,10)) - today) / 86400000;
+  return days >= 0 && days <= 5;
+}
+
 function renderCard(c) {
   const {bg, border, dark} = cardStyle(c);
   const hasStyle = !!bg;
@@ -141,11 +148,12 @@ function renderCard(c) {
   const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
   const overdue = c.column === 'rd' && isOverdue(displayDate);
+  const dueSoon = !overdue && isDueSoon(displayDate);
   const dateLabel = displayDate ? fmtDate(c.due_date) : '';
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
-  const dateC = overdue ? 'rgba(255,80,80,0.9)' : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'rgba(0,255,65,0.95)' : tc);
+  const dateC = overdue ? 'rgba(255,80,80,0.9)' : dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'rgba(0,255,65,0.95)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'rgba(0,255,65,0.95)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${c.title}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
@@ -186,7 +194,14 @@ function renderCol(col) {
       ? `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span><input id="rd-search" type="text" placeholder="...search" autocomplete="off" spellcheck="false">`
       : `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span>`;
   const hideFromMain = col === 'rd' || col === 'hq';
-  const colCards = collapsed ? '' : cards.filter(c=>c.column===col && !(hideFromMain && (c.is_reminder || c.size==='book'))).sort((a,b)=>a.order-b.order).map(renderCard).join('');
+  const floatSoon = col === 'rd' || col === 'hq';
+  const colCards = collapsed ? '' : cards.filter(c=>c.column===col && !(hideFromMain && (c.is_reminder || c.size==='book'))).sort((a,b)=>{
+    if (floatSoon) {
+      const sa = isDueSoon(a.due_date) ? 0 : 1, sb = isDueSoon(b.due_date) ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+    }
+    return a.order - b.order;
+  }).map(renderCard).join('');
   return `<div class="col${collapsed?' col-collapsed':''}"${collapsed&&toggle?` onclick="${toggle}()"`:''}>
     <div class="col-hdr">${hdr}</div>
     <div class="col-list" id="col-${col}">${colCards}</div>
