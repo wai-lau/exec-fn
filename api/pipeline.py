@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from helpers import (
     DATA_DIR, _now_et, _parse_json,
@@ -188,6 +188,32 @@ def _purge_stale_notes(profile_path) -> None:
     profile_path.write_text(json.dumps(profile, indent=2))
 
 
+def _roll_and_schedule(cards: list, today_iso: str) -> set:
+    """Roll past-dated scheduled_day forward; auto-schedule rd cards due
+    within the 6-day window (rd->hq). Returns ids needing a today restack."""
+    window_end_iso = (_now_et().date() + timedelta(days=5)).strftime("%Y-%m-%d")
+    restack: set[str] = set()
+    for c in cards:
+        sd = c.get("scheduled_day")
+        if sd and sd < today_iso and c.get("column") in ("rd", "hq") and not c.get("is_event"):
+            c["scheduled_day"] = today_iso
+            restack.add(c["id"])
+    for c in cards:
+        dd = c.get("due_date")
+        if not dd or c.get("scheduled_day") or c.get("column") != "rd" or c.get("is_event"):
+            continue
+        due_day = dd.split("T")[0]
+        if due_day > window_end_iso:
+            continue
+        target = due_day if due_day >= today_iso else today_iso
+        c["scheduled_day"] = target
+        c["column"] = "hq"
+        c.pop("dir_start_min", None)
+        if target == today_iso:
+            restack.add(c["id"])
+    return restack
+
+
 def build_morning() -> dict:
     chat_path = DATA_DIR / "chat.json"
     profile_path = DATA_DIR / "profile.json"
@@ -218,12 +244,7 @@ def build_morning() -> dict:
     today_iso = _now_et().strftime("%Y-%m-%d")
     rd = _load_rd()
     cards = rd.get("cards", [])
-    restack: set[str] = set()
-    for c in cards:
-        sd = c.get("scheduled_day")
-        if sd and sd < today_iso and c.get("column") in ("rd", "hq") and not c.get("is_event"):
-            c["scheduled_day"] = today_iso
-            restack.add(c["id"])
+    restack = _roll_and_schedule(cards, today_iso)
     # Restack carryover + any today card missing a position; preserve pre-placed today cards.
     restack |= {c["id"] for c in cards if is_dir_card(c, today_iso) and c.get("dir_start_min") is None}
     layout_day(cards, anchor_min=AUTOSTACK_ANCHOR, today_iso=today_iso, only_ids=restack)
