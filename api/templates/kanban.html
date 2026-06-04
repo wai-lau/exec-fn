@@ -293,11 +293,15 @@ function showRemOverflow() {
 
 function buildBoard() {
   buildReminders();
+  // preserve per-column scroll across innerHTML rebuild
+  const scrollPos = {};
+  COLS.forEach(col => { const el = document.getElementById('col-'+col); if (el) scrollPos[col] = el.scrollTop; });
   const mainCol = col => renderCol(col).replace('<div class="col', '<div style="flex:4" class="col');
   const groupExpanded = !archivesCollapsed || !exileCollapsed;
   document.getElementById('board').innerHTML =
     ['rd','hq'].map(mainCol).join('') +
     `<div class="col-group" style="flex:${groupExpanded ? 4 : 1}">${['archives','exile'].map(renderCol).join('')}</div>`;
+  COLS.forEach(col => { const el = document.getElementById('col-'+col); if (el && scrollPos[col] != null) el.scrollTop = scrollPos[col]; });
   COLS.forEach(col => {
     const el = document.getElementById('col-'+col);
     if (!el) return;
