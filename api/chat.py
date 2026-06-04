@@ -39,7 +39,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         "planning": (
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
-            "Book category cards are for reading only — do NOT select them for directives. "
+            "Cards with size 'book' (ongoing reads) are for reading only — do NOT select them for directives. "
             "You can manage cards freely: create_card (new idea), exile_card (drop it), update_card (edit fields or progress notes), schedule_card (dates/deadlines). "
             "When Wai mentions working on or making progress on a task, call update_card with a timestamped note appended to the notes field. "
             "COLUMN SEMANTICS: rd=upcoming ideas/backlog. hq=active working set (Wai manages this). archives=completed (Wai archives). exile=dropped. "
@@ -79,7 +79,7 @@ def _chat_tools() -> list:
                 "type": "object",
                 "properties": {
                     "title": {"type": "string", "description": "Short title for the card."},
-                    "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"], "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement; Book=reading/studying."},
+                    "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self"], "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement/reading/studying."},
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"], "description": "Size: chore (<45min), task (<3h), project (<6h), titan (6h+), book (long read). Omit for reminders."},
                     "notes": {"type": "string", "description": "Optional notes about the card."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
@@ -110,7 +110,7 @@ def _chat_tools() -> list:
                 "properties": {
                     "id": {"type": "string", "description": "Card ID."},
                     "title": {"type": "string"},
-                    "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self", "Book"]},
+                    "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self"]},
                     "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
                     "notes": {"type": "string", "description": "Progress notes. Append timestamped entry — don't overwrite existing content."},
                     "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
@@ -197,8 +197,7 @@ def classify_card(title: str) -> dict:
             "- Interfacing: personal admin, organization, home improvement, taking care of parents or partner, work, productivity systems, tech tools\n"
             "- Hobby: crafts, creative projects, making things, cosplay, gaming, art\n"
             "- Social: events, social plans, gatherings, helping friends\n"
-            "- Self: self-care, self-improvement, personal wellness, mental health\n"
-            "- Book: reading, studying, long-form learning, research\n\n"
+            "- Self: self-care, self-improvement, personal wellness, mental health, reading, studying, long-form learning, research\n\n"
             "Sizes (pick one):\n"
             "- chore: under 1 hour\n"
             "- task: under 4 hours\n"

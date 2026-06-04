@@ -227,7 +227,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
   "id": "card-<timestamp>",
   "title": "...",
   "column": "rd|hq|archives|exile",
-  "category": "Interfacing|Hobby|Social|Self|Book",
+  "category": "Interfacing|Hobby|Social|Self",
   "size": "chore|task|project|titan|book",
   "due_date": "YYYY-MM-DD or YYYY-MM-DDTHH:MM",
   "estimated_time": 30,

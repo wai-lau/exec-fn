@@ -267,7 +267,7 @@ def _haiku_classify_batch(client, batch: list) -> None:
                 "is_reminder: true = just an FYI (birthday, holiday, anniversary, appointment reminder, "
                 "someone else's recurring event); false = Wai needs to actively do something\n"
                 "recur_type: week|bi-week|month|holiday|birthday|null\n"
-                "category: Interfacing|Social|Self|Hobby|Book\n\n"
+                "category: Interfacing|Social|Self|Hobby\n\n"
                 'JSON array only: [{"i":0,"is_reminder":true,"recur_type":null,"category":"Interfacing"},...]'
             )}],
         )

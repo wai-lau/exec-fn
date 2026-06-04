@@ -47,7 +47,7 @@
       <input id="cd-total-pages" type="number" placeholder="total" min="1" style="flex:1">
     </div>
     <label>category</label>
-    <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option><option>Book</option></select>
+    <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>
     <label>recurrence</label>
     <select id="cd-recur">
       <option value="">— none —</option><option value="week">weekly</option><option value="bi-week">bi-weekly</option>

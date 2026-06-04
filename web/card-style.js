@@ -1,7 +1,7 @@
 /* Shared card color logic — used by kanban, prophecies, directives */
-const CAT_HUE   = {Book:193, Self:193, Social:130, Interfacing:36, Hobby:8};
-const CAT_LIGHT = {Book:0, Self:0, Social:0, Interfacing:0, Hobby:0};
-const CAT_SAT   = {Social:-20, Interfacing:+35, Self:+35, Hobby:+10, Book:+30};
+const CAT_HUE   = {Self:193, Social:130, Interfacing:36, Hobby:8};
+const CAT_LIGHT = {Self:0, Social:0, Interfacing:0, Hobby:0};
+const CAT_SAT   = {Social:-20, Interfacing:+35, Self:+35, Hobby:+10};
 
 function cardStyle(c) {
   const h = CAT_HUE[c.category];
