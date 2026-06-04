@@ -139,6 +139,14 @@ function isDueSoon(iso) {
   return days >= 0 && days <= 5;
 }
 
+// rd float window: due within 2 weeks (includes overdue)
+function isDueWithin2wk(iso) {
+  if (!iso) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = (new Date(iso.slice(0,10)) - today) / 86400000;
+  return days <= 14;
+}
+
 function renderCard(c) {
   const {bg, border, dark} = cardStyle(c);
   const hasStyle = !!bg;
@@ -196,7 +204,12 @@ function renderCol(col) {
   const hideFromMain = col === 'rd' || col === 'hq';
   const floatSoon = col === 'rd' || col === 'hq';
   const colCards = collapsed ? '' : cards.filter(c=>c.column===col && !(hideFromMain && (c.is_reminder || c.size==='book'))).sort((a,b)=>{
-    if (floatSoon) {
+    if (col === 'rd') {
+      // due within 2 weeks floats to top, sorted by due date (overrides manual order)
+      const da = isDueWithin2wk(a.due_date), db = isDueWithin2wk(b.due_date);
+      if (da !== db) return da ? -1 : 1;
+      if (da && db) return a.due_date.localeCompare(b.due_date);
+    } else if (floatSoon) {
       const sa = isDueSoon(a.due_date) ? 0 : 1, sb = isDueSoon(b.due_date) ? 0 : 1;
       if (sa !== sb) return sa - sb;
     }
