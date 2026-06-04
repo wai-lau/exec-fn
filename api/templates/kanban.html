@@ -365,6 +365,8 @@ async function load() {
 }
 
 window.addEventListener('resize', _syncRemH);
+// exec bubble changed cards -> reload live
+window.addEventListener('exec:cards-changed', () => load());
 
 load();
 </script>
