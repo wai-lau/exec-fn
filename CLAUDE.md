@@ -39,7 +39,7 @@ docker compose up -d --build
 | Docker | Single container, `TZ=America/New_York` set in compose |
 | Cron | Inside container — fires `POST /api/morning` at 4:30 AM ET |
 
-Models: `claude-sonnet-4-6` main reasoning · `claude-haiku-4-5-20251001` cheap checks/merges
+Models: `claude-opus-4-8` everywhere (main reasoning + cheap checks/merges). Auth: `ANTHROPIC_API_KEY` in `.env`.
 
 ---
 

@@ -17,7 +17,7 @@ async def stream_chat(messages: list, system: str) -> AsyncGenerator[str, None]:
         round_started = False
         try:
             async with client.messages.stream(
-                model="claude-sonnet-4-6",
+                model="claude-opus-4-8",
                 max_tokens=4096,
                 system=system,
                 tools=TOOLS,

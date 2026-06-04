@@ -76,7 +76,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
     raw_text = ""
     try:
         resp = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-opus-4-8",
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -126,7 +126,7 @@ def _morning_retrospective(log_entries: list, profile_path) -> None:
     today = _now_et().strftime("%Y-%m-%d")
     client = anthropic.Anthropic()
     resp = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-opus-4-8",
         max_tokens=512,
         messages=[{"role": "user", "content": (
             f"Today is {today}. Here is Wai's activity log from the past day:\n{log_text}\n\n"
@@ -164,7 +164,7 @@ def _purge_stale_notes(profile_path) -> None:
     numbered = "\n".join(f"{i}: [{n.get('date','')}] {n['note']}" for i, n in enumerate(notes))
     client = anthropic.Anthropic()
     resp = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-opus-4-8",
         max_tokens=256,
         messages=[{"role": "user", "content": (
             f"Today is {today}. Below are profile notes (numbered 0-based).\n{numbered}\n\n"

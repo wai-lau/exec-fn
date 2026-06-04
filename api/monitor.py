@@ -111,7 +111,7 @@ async def generate_encouragement(batch_start_ts: float) -> str:
 
     client = anthropic.AsyncAnthropic()
     msg = await client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-opus-4-8",
         max_tokens=200,
         system=system,
         messages=[{"role": "user", "content": f"Recent activity:\n{activity_text}"}],

@@ -168,7 +168,7 @@ def _dedupe_context(notes: list) -> list:
     lines = "\n".join(f"{i}. [{n.get('date','')}] {n['note']}" for i, n in enumerate(notes))
     client = anthropic.Anthropic()
     msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-opus-4-8",
         max_tokens=512,
         messages=[{"role": "user", "content": (
             f"These are long-term memory notes about a person:\n{lines}\n\n"
@@ -189,7 +189,7 @@ def classify_card(title: str) -> dict:
 
     client = anthropic.Anthropic()
     msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-opus-4-8",
         max_tokens=256,
         messages=[{"role": "user", "content": (
             f'Categorize this personal task for Wai: "{title}"\n\n'
@@ -232,7 +232,7 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
             duration_hint = f" The task size is '{size}' (~{mins} minutes)."
     client = anthropic.Anthropic()
     msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-opus-4-8",
         max_tokens=64,
         system=(
             f"Now is {today} ET.{duration_hint} "

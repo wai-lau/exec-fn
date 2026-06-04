@@ -44,7 +44,7 @@ async def _stream_tool_followup(client, all_messages: list, tools: list, system:
     cont_text = ""
     try:
         async with client.messages.stream(
-            model="claude-haiku-4-5-20251001",
+            model="claude-opus-4-8",
             max_tokens=512,
             system=system,
             tools=tools,
@@ -91,7 +91,7 @@ async def api_chat(body: ChatBody):
 
         try:
             async with client.messages.stream(
-                model="claude-haiku-4-5-20251001",
+                model="claude-opus-4-8",
                 max_tokens=1024,
                 system=system_prompt,
                 tools=tools,
