@@ -61,13 +61,13 @@ exec-fn/
     pipeline.py           # morning pipeline: retrospective, purge stale notes, archive log
     scheduler.py          # single home for scheduling: schedule_to_day() (canonical rd->hq promotion + scheduled_day on due day, shared by morning pipeline + exec chat), layout_day() (cron autostack entry point), place_card_today() (intraday slot >= now). SCHED_WINDOW_DAYS=5 (6-day window)
     monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection
-    routes_chat.py        # /api/chat SSE stream + handler (Haiku, exec planning tools)
+    routes_chat.py        # /api/chat SSE stream + handler (exec planning tools)
     routes_nightfall.py   # /api/gamesave/* + build_nightfall_html() (injects base href, SW unregister, save sync)
     entrypoint.sh         # Docker CMD: cron + uvicorn
     exec-fn.cron          # crontab baked into image (4:30 AM ET morning cron only)
     morning_cron.sh       # cron script → POST /api/morning
     gcal_auth.py          # one-time Google Calendar OAuth
-    gcal.py               # GCal helpers: fetch_calendar_events, import_gcal_cards, ICS feeds, Haiku classification
+    gcal.py               # GCal helpers: fetch_calendar_events, import_gcal_cards, ICS feeds, LLM classification
     helpers.py            # shared helpers: _next_recurrence(), _load_json (mtime cache), _append_rd_log_batch, _now_et
     prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days()
     chat.py               # exec chat: system prompt, tool definitions, classify_card, parse_date_natural, _save_chat
@@ -77,7 +77,7 @@ exec-fn/
       agent.py prompt.py tools.py lookup.py
     tarot/
       routes.py           # /api/tarot/{spreads,cards,draw,chat}; in-process IP rate-limit on /chat
-      agent.py            # streaming tool-use loop (Sonnet) with text + tool_call SSE events
+      agent.py            # streaming tool-use loop with text + tool_call SSE events
       prompt.py           # _PREAMBLE + _OPERATING_RULES; lru_cache build_system(spread_type)
       cards.py            # canonical 78-card list (CARDS, CARDS_BY_ID)
       spreads.py          # SPREADS dict — currently only "three" (Three-Card)
@@ -161,17 +161,17 @@ Nav: `core` · `prophecies` · `directives` · `debug` · `nightfall` · `mtg` �
 
 | Method | Path | What |
 |--------|------|------|
-| POST | `/api/morning` | Sonnet retrospective, purge stale notes, archive activity_log, reset chat (4:30 AM cron) |
+| POST | `/api/morning` | retrospective, purge stale notes, archive activity_log, reset chat (4:30 AM cron) |
 | GET | `/api/plan` | Returns plan.json |
 | GET | `/api/directives` | Returns plan.json (alias) |
 | GET | `/api/rd/log` | Today's activity log (last 20 entries) |
 | GET | `/api/rd` | Returns rd.json |
 | PATCH | `/api/rd` | Update rd.json (source query param: core/Exec/prof/dirs). Atomic write. Runs recurring-card revival on archived cards with `recur_type`. Schedules monitor debounce if any entry is significant. |
-| POST | `/api/rd/classify` | Classify card via Haiku → category + size |
+| POST | `/api/rd/classify` | Classify card via LLM → category + size |
 | GET | `/api/context` | Returns profile.json (alias of `/api/profile`) |
 | GET | `/api/profile` | Returns profile.json |
 | PATCH | `/api/context` | Replace profile.json `notes` field. Atomic write. |
-| GET/POST/DELETE | `/api/chat` | Exec chat history (planning Haiku SSE). |
+| GET/POST/DELETE | `/api/chat` | Exec chat history (planning SSE). |
 | GET | `/api/exec/say` | Scoped bearer auth (`Authorization: Bearer $EXEC_SAY_KEY`, `require_say_auth`). Appends `?msg=` as a user message to `chat.json`, fire-and-forget (no reply generated here). For phone shortcuts (no session cookie). Reply streams when a page is opened with `?exec=open`. |
 | GET | `/api/monitor/stream` | SSE stream — exec-bubble live updates: `{thinking}` / `{comment}` payloads as significant activity rolls in. |
 | POST | `/api/monitor/flush` | Force-fire the monitor immediately if there is significant activity since the last comment (bypasses 60s debounce). |
@@ -182,12 +182,12 @@ Nav: `core` · `prophecies` · `directives` · `debug` · `nightfall` · `mtg` �
 | GET | `/api/prophecies` | 6-day week data starting from `?start=YYYY-MM-DD` (defaults to logical-today): scheduled cards + unscheduled hq cards |
 | PATCH | `/api/prophecies` | Bulk update `scheduled_day` and/or `order` on cards; logs `rescheduled` entries with `source=prof`. Cards unscheduled (null) drop back to `column=rd`. |
 | GET | `/api/prophecies/log` | Activity log filtered by source=prof |
-| POST | `/api/parse_date` | Parse natural language date → ISO via Haiku |
+| POST | `/api/parse_date` | Parse natural language date → ISO via LLM |
 | POST | `/api/assemble_plan` | Run the assemble_plan tool from current directives.json (legacy plan pipeline). |
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
 | GET | `/data/{filename}` | Serve file from /app/data/ (path-traversal guarded) |
 | GET | `/api/mtg/log` | mtg chat history |
-| POST | `/api/mtg/chat` | mtg chat (Sonnet, tool-use over rules) SSE |
+| POST | `/api/mtg/chat` | mtg chat (tool-use over rules) SSE |
 | GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |
 | GET | `/api/tarot/cards` | 78-card canonical list (id/name/image) |
 | POST | `/api/tarot/draw` | Body `{spread_type, significator_id?}` → fresh draw with reversed flags. Significator removed from deck before draw. No server persistence — client stores in `localStorage`. |
@@ -198,7 +198,7 @@ Nav: `core` · `prophecies` · `directives` · `debug` · `nightfall` · `mtg` �
 | POST | `/api/gamesave/{slot}` | Nightfall save slot write |
 | DELETE | `/api/gamesave/{slot}` | Nightfall save slot delete |
 
-### Exec chat tools (bubble overlay, Haiku)
+### Exec chat tools (bubble overlay)
 
 Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 
@@ -252,20 +252,20 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 ## Morning pipeline (`POST /api/morning`) — 4:30 AM ET
 
 1. Read today's `activity_log.json`
-2. **Sonnet retrospective** — extract durable facts only (preferences, relationships, recurring habits) from the day's activity, append to `profile.json`. Never writes time-bound, event-specific, or task-status entries.
-3. **Haiku purge** — remove time-specific expired notes from `profile.json`
+2. **Retrospective** — extract durable facts only (preferences, relationships, recurring habits) from the day's activity, append to `profile.json`. Never writes time-bound, event-specific, or task-status entries.
+3. **Purge** — remove time-specific expired notes from `profile.json`
 4. **GCal import** — pull calendar events 14 days ahead as cards
 5. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
 6. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
 7. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today, then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today)
 8. Clear `chat.json`
-9. Dedupe `profile.json` notes (Haiku)
+9. Dedupe `profile.json` notes
 
 ---
 
 ## Exec monitor
 
-`monitor.py` produces unsolicited warm comments after significant card activity. Trigger = move to archives/exile, or book-card update. `main.py` runs a 60s trailing debounce (`_schedule_monitor`); `POST /api/monitor/flush` bypasses the wait. Sonnet generates the comment with context = profile.json + hq cards + books-in-progress + today's schedule. Subscribers receive `{thinking}`/`{comment}` via `/api/monitor/stream` SSE. Posted comment is appended to `chat.json` as `role=monitor` so the exec bubble shows it on next load.
+`monitor.py` produces unsolicited warm comments after significant card activity. Trigger = move to archives/exile, or book-card update. `main.py` runs a 60s trailing debounce (`_schedule_monitor`); `POST /api/monitor/flush` bypasses the wait. The model generates the comment with context = profile.json + hq cards + books-in-progress + today's schedule. Subscribers receive `{thinking}`/`{comment}` via `/api/monitor/stream` SSE. Posted comment is appended to `chat.json` as `role=monitor` so the exec bubble shows it on next load.
 
 ---
 
