@@ -22,12 +22,12 @@
   padding:0 20px 8px !important;
 }
 /* merge input into the scrollback: no slab, no underline — prompt reads as the live last line */
-#input-line { border-bottom:none !important; padding:0 !important; }
-#input-prompt { font-size:0.82rem !important; padding-right:0.6em !important; }
+#input-line { border-bottom:none !important; padding:0 !important; align-items:flex-start !important; }
+#input-prompt { font-size:0.82rem !important; padding-right:0.6em !important; line-height:1.45 !important; }
 #terminal { padding-bottom:0 !important; }
-#terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + 104px) !important; transition: inset 0.7s ease; }
+#terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px) + var(--input-h, 48px)) !important; }
 body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
-body.no-input #terminal { inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px)) !important; }
+body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px)) !important; }
 
 #spread-controls {
   grid-column: 2;
@@ -238,10 +238,10 @@ body.no-input #terminal { inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px)) !
 <div id="terminal"></div>
 <div id="input-bar">
   <div id="input-line">
-    <span id="input-prompt">tarot@reading:~$</span>
+    <span id="input-prompt">$</span>
     <div id="input-wrapper">
       <div id="input-display" aria-hidden="true"><span id="input-pre"></span><span id="input-cursor"></span><span id="input-post"></span></div>
-      <div id="msg-input" contenteditable="true" data-placeholder="ask about the cards..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+      <div id="msg-input" contenteditable="true" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
     </div>
   </div>
 </div>
@@ -381,7 +381,12 @@ function nextPosition() {
 function updateInputBarVisibility() {
   const phaseHides = !!(spread && spread.cards && !spread.cards.every(c => c.flipped));
   const hideInput = streaming || phaseHides;
+  const wasHidden = document.body.classList.contains('no-input');
   document.body.classList.toggle('no-input', hideInput);
+  // input just became visible → drop the caret into it
+  if (wasHidden && !hideInput && !cardZoom.classList.contains('open')) {
+    _msgInput.focus();
+  }
 }
 
 function renderSpread() {
@@ -542,7 +547,6 @@ async function sendMsg() {
   if (!text) return;
   input.textContent = '';
   renderCaret();
-  document.getElementById('terminal').style.bottom = '';
   input.focus();
   addMsg('user', text);
   messages.push({role: 'user', content: text});
@@ -557,6 +561,7 @@ async function streamResponse() {
   let displayed = '';  // rendered to DOM
   let serverDone = false;
   let drainCancelled = false;
+  const pendingSys = [];  // sys notes held until the reader finishes speaking
 
   // tuned to elderly-reader speaking pace (~130 wpm), not typing pace
   const BASE_MS = 65;
@@ -611,9 +616,9 @@ async function streamResponse() {
           if (data.name === 'set_significator' && data.input?.card_id) {
             const cid = data.input.card_id;
             if (significator) {
-              addMsg('sys', `[ set_significator ignored: Significator already locked (${significator.name}) ]`);
+              pendingSys.push(`[ set_significator ignored: Significator already locked (${significator.name}) ]`);
             } else if (data.count === 0) {
-              addMsg('sys', `[ set_significator failed: ${cid} (not a court card) ]`);
+              pendingSys.push(`[ set_significator failed: ${cid} (not a court card) ]`);
             } else {
               const c = courtList().find(x => x.card_id === cid);
               if (c) {
@@ -621,25 +626,23 @@ async function streamResponse() {
                 localStorage.setItem(LS_SIG, JSON.stringify(significator));
                 renderSigCard();
               }
-              addMsg('sys', `[ Significator set: ${c?.name || cid} ]`);
+              pendingSys.push(`[ Significator set: ${c?.name || cid} ]`);
             }
           } else if (data.name === 'deal_spread') {
             if (spread) {
-              addMsg('sys', '[ deal_spread ignored: spread already dealt ]');
+              pendingSys.push('[ deal_spread ignored: spread already dealt ]');
             } else if (data.count === 0) {
-              addMsg('sys', '[ deal_spread error — reader will retry ]');
+              pendingSys.push('[ deal_spread error — reader will retry ]');
             } else {
-              addMsg('sys', '[ dealing spread ]');
+              pendingSys.push('[ dealing spread ]');
               const frame = data.input?.frame || 'past_present_future';
               // dispatch async so the stream finishes first
               setTimeout(() => drawSpread('three', frame), 200);
             }
           } else {
             const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
-            addMsg('sys', `[ ${label} ]`);
+            pendingSys.push(`[ ${label} ]`);
           }
-          const sysMsgs = terminal.querySelectorAll('.msg.sys');
-          if (sysMsgs.length > 6) sysMsgs[0].remove();
         }
       }
     }
@@ -649,6 +652,10 @@ async function streamResponse() {
       await new Promise(r => setTimeout(r, 50));
     }
     cur.remove();
+    // reader done speaking — now emit any held sys notes
+    for (const m of pendingSys) addMsg('sys', m);
+    const sysMsgs = terminal.querySelectorAll('.msg.sys');
+    for (let i = 0; i < sysMsgs.length - 6; i++) sysMsgs[i].remove();
     if (buffered) {
       messages.push({role: 'assistant', content: buffered});
       localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
@@ -685,10 +692,17 @@ function renderCaret() {
   _post.textContent = text.slice(pos);
 }
 
-_msgInput.addEventListener('input', () => {
-  renderCaret();
-  document.getElementById('terminal').style.bottom = document.getElementById('input-bar').offsetHeight + 'px';
-});
+_msgInput.addEventListener('input', renderCaret);
+
+// keep the terminal bottom pinned to the top of the input bar so a multi-line
+// input pushes the scrollback up instead of covering it
+const _inputBar = document.getElementById('input-bar');
+const _syncInputH = () => {
+  document.documentElement.style.setProperty('--input-h', _inputBar.offsetHeight + 'px');
+  terminal.scrollTop = terminal.scrollHeight;
+};
+new ResizeObserver(_syncInputH).observe(_inputBar);
+_syncInputH();
 _msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
 _msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; renderCaret(); });
 _msgInput.addEventListener('keyup', renderCaret);
