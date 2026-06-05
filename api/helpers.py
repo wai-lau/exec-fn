@@ -126,30 +126,51 @@ def get_rd_log(limit: int = 20, source: str | None = None) -> list:
     return log[-limit:][::-1]
 
 
-def _next_recurrence(due_iso: str, recur_type: str) -> str | None:
-    """Return the next ISO date for a recurring card."""
-    try:
-        d = date.fromisoformat(due_iso[:10])
-    except Exception:
-        return None
+def _advance_recurrence(d: date, recur_type: str) -> date | None:
+    """Advance a date by one recurrence step. None for unknown type."""
     if recur_type == "week":
-        d += timedelta(days=7)
-    elif recur_type == "bi-week":
-        d += timedelta(days=14)
-    elif recur_type == "month":
+        return d + timedelta(days=7)
+    if recur_type == "bi-week":
+        return d + timedelta(days=14)
+    if recur_type == "month":
         month = d.month + 1 if d.month < 12 else 1
         year = d.year if d.month < 12 else d.year + 1
         import calendar as _cal
         last_day = _cal.monthrange(year, month)[1]
-        d = date(year, month, min(d.day, last_day))
-    elif recur_type in ("holiday", "birthday"):
+        return date(year, month, min(d.day, last_day))
+    if recur_type in ("holiday", "birthday"):
         try:
-            d = date(d.year + 1, d.month, d.day)
+            return date(d.year + 1, d.month, d.day)
         except ValueError:
-            d = date(d.year + 1, d.month, 28)
-    else:
+            return date(d.year + 1, d.month, 28)
+    return None
+
+
+def _next_recurrence(due_iso: str, recur_type: str, today: date | None = None) -> str | None:
+    """Next ISO date for a recurring card.
+
+    Advances one step from the card's due_date (or today, if it has no
+    parseable due_date), then keeps stepping until the result is strictly
+    in the future — so a card archived late lands on its next upcoming
+    occurrence instead of staying overdue.
+    """
+    if today is None:
+        today = _now_et().date()
+    try:
+        base = date.fromisoformat((due_iso or "")[:10])
+    except Exception:
+        base = today
+    nxt = _advance_recurrence(base, recur_type)
+    if nxt is None:
         return None
-    return d.isoformat()
+    guard = 0
+    while nxt <= today and guard < 1000:
+        stepped = _advance_recurrence(nxt, recur_type)
+        if stepped is None or stepped == nxt:
+            break
+        nxt = stepped
+        guard += 1
+    return nxt.isoformat()
 
 
 def _apply_context_update(action: str, note: str = "", match: str = "") -> dict:

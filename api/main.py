@@ -543,6 +543,7 @@ async def api_rd_patch(request: Request, source: str = "core"):
     # Recurring revival
     revived = []
     existing_titles_dates = {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in new_cards}
+    existing_titles_dates |= {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in old_cards.values()}
     for c in new_cards:
         old = old_cards.get(c.get("id"))
         if (old and old.get("column") != "archives" and c.get("column") == "archives"
