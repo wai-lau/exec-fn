@@ -383,9 +383,11 @@ function updateInputBarVisibility() {
   const hideInput = streaming || phaseHides;
   const wasHidden = document.body.classList.contains('no-input');
   document.body.classList.toggle('no-input', hideInput);
-  // input just became visible → drop the caret into it
-  if (wasHidden && !hideInput && !cardZoom.classList.contains('open')) {
-    _msgInput.focus();
+  // input just became visible → it shrinks the terminal viewport from the
+  // bottom, so re-pin the scroll to the last line and drop the caret in
+  if (wasHidden && !hideInput) {
+    requestAnimationFrame(() => { terminal.scrollTop = terminal.scrollHeight; });
+    if (!cardZoom.classList.contains('open')) _msgInput.focus();
   }
 }
 
