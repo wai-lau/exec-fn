@@ -110,6 +110,11 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 .tarot-card[data-locked="true"] { cursor:default; opacity:0.55; }
 .tarot-card[data-locked="true"]:hover { outline:0 solid rgba(0,255,65,0); }
 .tarot-card[data-next="true"] { animation:nextpulse 1.8s ease-in-out infinite; }
+/* hold the beckon-pulse until the reader has finished speaking */
+body.reader-speaking .tarot-card[data-next="true"] {
+  animation:none;
+  outline:0 solid rgba(0,255,65,0);
+}
 @keyframes nextpulse {
   0%,100% { outline:2px solid rgba(0,255,65,0.55); }
   50%     { outline:5px solid rgba(0,255,65,0.95); }
@@ -383,6 +388,8 @@ function updateInputBarVisibility() {
   const hideInput = streaming || phaseHides;
   const wasHidden = document.body.classList.contains('no-input');
   document.body.classList.toggle('no-input', hideInput);
+  // while the reader speaks, no card should beckon to be flipped
+  document.body.classList.toggle('reader-speaking', streaming);
   // input just became visible → it shrinks the terminal viewport from the
   // bottom, so re-pin the scroll to the last line and drop the caret in
   if (wasHidden && !hideInput) {
@@ -564,6 +571,7 @@ async function streamResponse() {
   let serverDone = false;
   let drainCancelled = false;
   const pendingSys = [];  // sys notes held until the reader finishes speaking
+  let pendingDeal = null; // frame to deal once the reader is done speaking
 
   // tuned to elderly-reader speaking pace (~130 wpm), not typing pace
   const BASE_MS = 65;
@@ -637,9 +645,9 @@ async function streamResponse() {
               pendingSys.push('[ deal_spread error — reader will retry ]');
             } else {
               pendingSys.push('[ dealing spread ]');
-              const frame = data.input?.frame || 'past_present_future';
-              // dispatch async so the stream finishes first
-              setTimeout(() => drawSpread('three', frame), 200);
+              // defer the actual draw until the reader has finished speaking
+              // and the note has printed
+              pendingDeal = data.input?.frame || 'past_present_future';
             }
           } else {
             const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
@@ -668,9 +676,16 @@ async function streamResponse() {
     cur.remove();
     div.textContent = '[error: ' + e.message + ']';
     div.style.color = 'rgba(255,100,100,0.75)';
+    pendingDeal = null;
   }
   streaming = false;
   updateInputBarVisibility();
+  // draw the spread only now — after the reader stopped and the note printed
+  if (pendingDeal) {
+    const frame = pendingDeal;
+    pendingDeal = null;
+    drawSpread('three', frame);
+  }
 }
 
 const _pre = document.getElementById('input-pre');
