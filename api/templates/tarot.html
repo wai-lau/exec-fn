@@ -96,7 +96,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   border-radius:4px;
 }
 .tarot-card[data-flipped="true"]::after { display:none; }
-.tarot-card:hover { outline:3px solid rgba(0,255,65,0.7); }
+.tarot-card:hover { outline:2px solid rgba(0,255,65,0.45); }
 .tarot-card img {
   width:100%; height:100%; object-fit:contain;
   border-radius:4px;
@@ -116,8 +116,8 @@ body.reader-speaking .tarot-card[data-next="true"] {
   outline:0 solid rgba(0,255,65,0);
 }
 @keyframes nextpulse {
-  0%,100% { outline:2px solid rgba(0,255,65,0.55); }
-  50%     { outline:5px solid rgba(0,255,65,0.95); }
+  0%,100% { outline:1px solid rgba(0,255,65,0.25); }
+  50%     { outline:2px solid rgba(0,255,65,0.5); }
 }
 .msg.event { color:rgba(0,255,65,0.45); font-style:italic; font-size:0.74rem; margin:6px 0; }
 .msg.event::before { content:"~ "; opacity:0.5; }
@@ -681,11 +681,7 @@ async function streamResponse() {
   streaming = false;
   updateInputBarVisibility();
   // draw the spread only now — after the reader stopped and the note printed
-  if (pendingDeal) {
-    const frame = pendingDeal;
-    pendingDeal = null;
-    drawSpread('three', frame);
-  }
+  if (pendingDeal) drawSpread('three', pendingDeal);
 }
 
 const _pre = document.getElementById('input-pre');
