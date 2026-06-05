@@ -393,8 +393,12 @@ function updateInputBarVisibility() {
   // input just became visible → it shrinks the terminal viewport from the
   // bottom, so re-pin the scroll to the last line and drop the caret in
   if (wasHidden && !hideInput) {
-    requestAnimationFrame(() => { terminal.scrollTop = terminal.scrollHeight; });
-    if (!cardZoom.classList.contains('open')) _msgInput.focus();
+    // defer past this frame so visibility:visible has committed before we
+    // scroll and focus — focus on a just-unhidden element is otherwise ignored
+    requestAnimationFrame(() => {
+      terminal.scrollTop = terminal.scrollHeight;
+      if (!cardZoom.classList.contains('open')) _msgInput.focus();
+    });
   }
 }
 
