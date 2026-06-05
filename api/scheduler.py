@@ -11,6 +11,7 @@ from helpers import _now_et, _SIZE_MINUTES
 TL_START_MIN = 4 * 60 + 30     # 4:30 AM — dirs timeline start / floor
 AUTOSTACK_ANCHOR = 10 * 60     # 10:00 AM — morning autostack anchor
 SNAP = 15
+SCHED_WINDOW_DAYS = 5          # today + 5 = 6-day prophecies/scheduling window
 
 
 def _snap_up(m: int, snap: int = SNAP) -> int:
@@ -75,3 +76,41 @@ def place_card_today(cards: list[dict], today_iso: str | None = None) -> int:
         return snap_now
     last_end = max(c["dir_start_min"] + card_duration(c) for c in pinned)
     return max(snap_now, last_end)
+
+
+def schedule_to_day(card: dict, cards: list[dict], target_iso: str,
+                    today_iso: str | None = None, dir_start_min: int | None = None) -> dict:
+    """Canonical rd->hq scheduling. Mutates `card` in place; no I/O.
+
+    `target_iso` is the day to aim for — a card's due day (auto) or an
+    explicitly requested day (exec chat). Single rule for both:
+      - Beyond the 6-day window: keep/return to rd, set due_date only.
+      - In window: promote rd->hq, scheduled_day = target. An overdue target
+        is clamped to today (the latest still-actionable day). dir_start_min
+        is assigned only when the target is today.
+    Returns an outcome dict ({"scheduled_day": ...} / {"due_date": ..., "note": ...}
+    / {"error": ...}); callers persist and log.
+    """
+    from datetime import date
+    try:
+        target = date.fromisoformat((target_iso or "").split("T")[0])
+    except ValueError:
+        return {"error": f"Invalid date: {target_iso}"}
+    today = date.fromisoformat(today_iso) if today_iso else _now_et().date()
+    if target > today + timedelta(days=SCHED_WINDOW_DAYS):
+        if card.get("column") != "rd":
+            card["column"] = "rd"
+        card["due_date"] = target.isoformat()
+        card["scheduled_day"] = None
+        card.pop("dir_start_min", None)
+        return {"due_date": target.isoformat(), "note": "beyond 6-day window, set as due date in backlog"}
+    if target < today:
+        target = today
+    if card.get("column") == "rd":
+        card["column"] = "hq"
+    target_s = target.isoformat()
+    card["scheduled_day"] = target_s
+    card.pop("dir_start_min", None)
+    if target == today:
+        card["dir_start_min"] = dir_start_min if dir_start_min is not None else place_card_today(cards, target_s)
+    return {"scheduled_day": target_s}

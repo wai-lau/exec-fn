@@ -59,7 +59,7 @@ exec-fn/
     main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     pipeline.py           # morning pipeline: retrospective, purge stale notes, archive log
-    scheduler.py          # single home for dirs dir_start_min: layout_day() (cron autostack entry point, future autoscheduler), place_card_today() (intraday slot >= now)
+    scheduler.py          # single home for scheduling: schedule_to_day() (canonical rd->hq promotion + scheduled_day on due day, shared by morning pipeline + exec chat), layout_day() (cron autostack entry point), place_card_today() (intraday slot >= now). SCHED_WINDOW_DAYS=5 (6-day window)
     monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection
     routes_chat.py        # /api/chat SSE stream + handler (Haiku, exec planning tools)
     routes_nightfall.py   # /api/gamesave/* + build_nightfall_html() (injects base href, SW unregister, save sync)
@@ -204,10 +204,10 @@ Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 
 | Tool | What |
 |------|------|
-| `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` (rd→hq promotion if in window; `dir_start_min` for today). |
+| `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` → `scheduler.schedule_to_day()` (rd→hq on due day if in window, overdue clamped to today; `dir_start_min` for today). |
 | `exile_card` | Move card to exile column (drop / won't-do). Clears `scheduled_day`. |
 | `update_card` | Edit title/category/size/estimated_time/notes/is_reminder. Auto-recomputes size if `estimated_time` crosses a band. |
-| `schedule_card` | Set or clear `scheduled_day`. Beyond 6-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day`. Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
+| `schedule_card` | Set or clear `scheduled_day` via `scheduler.schedule_to_day()`. Beyond 6-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day` (overdue target clamped to today). Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
 | `update_context` | add/remove/replace a fact in `profile.json`. |
 
 Tarot tools (separate handler set in `tarot/tools.py`):

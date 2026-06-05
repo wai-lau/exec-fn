@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from helpers import (
     DATA_DIR, _now_et, _parse_json,
@@ -190,8 +190,9 @@ def _purge_stale_notes(profile_path) -> None:
 
 def _roll_and_schedule(cards: list, today_iso: str) -> set:
     """Roll past-dated scheduled_day forward; auto-schedule rd cards due
-    within the 6-day window (rd->hq). Returns ids needing a today restack."""
-    window_end_iso = (_now_et().date() + timedelta(days=5)).strftime("%Y-%m-%d")
+    within the 6-day window (rd->hq) on their due day. Returns ids needing
+    a today restack."""
+    from scheduler import schedule_to_day
     restack: set[str] = set()
     for c in cards:
         sd = c.get("scheduled_day")
@@ -202,14 +203,8 @@ def _roll_and_schedule(cards: list, today_iso: str) -> set:
         dd = c.get("due_date")
         if not dd or c.get("scheduled_day") or c.get("column") != "rd" or c.get("is_event"):
             continue
-        due_day = dd.split("T")[0]
-        if due_day > window_end_iso:
-            continue
-        target = due_day if due_day >= today_iso else today_iso
-        c["scheduled_day"] = target
-        c["column"] = "hq"
-        c.pop("dir_start_min", None)
-        if target == today_iso:
+        result = schedule_to_day(c, cards, dd, today_iso=today_iso)
+        if result.get("scheduled_day") == today_iso:
             restack.add(c["id"])
     return restack
 

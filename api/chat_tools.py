@@ -164,36 +164,21 @@ def _tool_update_context(input_: dict) -> dict:
 
 
 def _apply_schedule(card_id: str, requested: str, dir_start_min: int | None = None) -> dict:
-    """Shared scheduling logic: rd→hq promotion, window detection, due_date fallback."""
-    from datetime import date
+    """Exec-chat scheduling: load/save wrapper around scheduler.schedule_to_day."""
+    from scheduler import schedule_to_day
     rd = _load_rd()
     card = _find_card(rd, card_id)
     if not card:
         return {"error": f"Card not found: {card_id}"}
-    try:
-        target = date.fromisoformat(requested)
-    except ValueError:
-        return {"error": f"Invalid date: {requested}"}
-    today = _now_et().date()
-    window_end = today + timedelta(days=5)
-    if target > window_end:
-        if card.get("column") != "rd":
-            card["column"] = "rd"
-        card["due_date"] = requested
-        card.pop("dir_start_min", None)
-        _save_rd(rd)
-        _append_rd_log("updated", card["title"], source="Exec", fields=["due_date"])
-        return {"due_date": requested, "note": "beyond 6-day window, set as due date in backlog"}
-    if card.get("column") == "rd":
-        card["column"] = "hq"
-    card["scheduled_day"] = requested
-    card.pop("dir_start_min", None)
-    if target == today:
-        from scheduler import place_card_today
-        card["dir_start_min"] = dir_start_min if dir_start_min is not None else place_card_today(rd.get("cards", []), requested)
+    result = schedule_to_day(card, rd.get("cards", []), requested, dir_start_min=dir_start_min)
+    if "error" in result:
+        return result
     _save_rd(rd)
-    _append_rd_log("scheduled", card["title"], source="Exec", day=requested)
-    return {"scheduled_day": requested}
+    if "due_date" in result:
+        _append_rd_log("updated", card["title"], source="Exec", fields=["due_date"])
+    else:
+        _append_rd_log("scheduled", card["title"], source="Exec", day=result["scheduled_day"])
+    return result
 
 
 def _tool_schedule_card(input_: dict) -> dict:
