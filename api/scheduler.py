@@ -79,12 +79,15 @@ def place_card_today(cards: list[dict], today_iso: str | None = None) -> int:
 
 
 def schedule_to_day(card: dict, cards: list[dict], target_iso: str,
-                    today_iso: str | None = None, dir_start_min: int | None = None) -> dict:
+                    today_iso: str | None = None, dir_start_min: int | None = None,
+                    clamp_to_window: bool = False) -> dict:
     """Canonical rd->hq scheduling. Mutates `card` in place; no I/O.
 
     `target_iso` is the day to aim for — a card's due day (auto) or an
-    explicitly requested day (exec chat). Single rule for both:
-      - Beyond the 6-day window: keep/return to rd, set due_date only.
+    explicitly requested day (exec chat / manual drag). Single rule:
+      - Beyond the 6-day window: by default keep/return to rd, set due_date
+        only. With clamp_to_window=True (manual move into hq), clamp the
+        target to the last window day instead so the card stays in hq.
       - In window: promote rd->hq, scheduled_day = target. An overdue target
         is clamped to today (the latest still-actionable day). dir_start_min
         is assigned only when the target is today.
@@ -97,13 +100,17 @@ def schedule_to_day(card: dict, cards: list[dict], target_iso: str,
     except ValueError:
         return {"error": f"Invalid date: {target_iso}"}
     today = date.fromisoformat(today_iso) if today_iso else _now_et().date()
-    if target > today + timedelta(days=SCHED_WINDOW_DAYS):
-        if card.get("column") != "rd":
-            card["column"] = "rd"
-        card["due_date"] = target.isoformat()
-        card["scheduled_day"] = None
-        card.pop("dir_start_min", None)
-        return {"due_date": target.isoformat(), "note": "beyond 6-day window, set as due date in backlog"}
+    window_end = today + timedelta(days=SCHED_WINDOW_DAYS)
+    if target > window_end:
+        if clamp_to_window:
+            target = window_end
+        else:
+            if card.get("column") != "rd":
+                card["column"] = "rd"
+            card["due_date"] = target.isoformat()
+            card["scheduled_day"] = None
+            card.pop("dir_start_min", None)
+            return {"due_date": target.isoformat(), "note": "beyond 6-day window, set as due date in backlog"}
     if target < today:
         target = today
     if card.get("column") == "rd":

@@ -525,7 +525,7 @@ async def api_rd_patch(request: Request, source: str = "core"):
     new_cards = body.get("cards", [])
 
     # Apply side-effects that mutate new_cards in place (scheduled_day logic)
-    from scheduler import place_card_today, logical_today_iso
+    from scheduler import schedule_to_day, logical_today_iso
     for c in new_cards:
         old = old_cards.get(c.get("id"))
         if old and old.get("column") != c.get("column"):
@@ -533,10 +533,11 @@ async def api_rd_patch(request: Request, source: str = "core"):
                 c["scheduled_day"] = None
                 c.pop("dir_start_min", None)
             elif c.get("column") == "hq" and old.get("column") != "hq":
+                # manual drag into hq: schedule on the card's due day (latest
+                # actionable), today if no due_date; clamp so it stays in hq
                 today_iso = logical_today_iso()
-                c["scheduled_day"] = today_iso
-                c.pop("dir_start_min", None)
-                c["dir_start_min"] = place_card_today(new_cards, today_iso)
+                target = (c.get("due_date") or "").split("T")[0] or today_iso
+                schedule_to_day(c, new_cards, target, today_iso=today_iso, clamp_to_window=True)
 
     log_entries = _log_entries_for_patch(new_cards, old_cards, source)
 
