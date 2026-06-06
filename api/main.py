@@ -306,9 +306,71 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
+_LANDING_STYLE = """<style>
+body{display:flex!important;align-items:center;justify-content:center;
+  min-height:100vh;overflow:hidden;position:relative;}
+
+/* CRT scanlines + flicker */
+.cyber-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(var(--green-rgb),0.05) 0px,
+      rgba(var(--green-rgb),0.05) 1px, transparent 1px, transparent 3px),
+    radial-gradient(circle at 50% 45%, rgba(var(--green-rgb),0.07), transparent 70%);
+  animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;}
+@keyframes cyber-flicker{0%,100%{opacity:1}48%{opacity:0.96}50%{opacity:0.8}
+  51%{opacity:0.96}70%{opacity:1}72%{opacity:0.85}73%{opacity:1}}
+@keyframes cyber-drift{from{background-position:0 0,0 0}to{background-position:0 3px,0 0}}
+
+/* sweeping scan beam */
+.cyber-scan{position:fixed;left:0;right:0;top:0;height:160px;z-index:1;pointer-events:none;
+  background:linear-gradient(rgba(var(--green-rgb),0) 0%,
+    rgba(var(--green-rgb),0.10) 50%, rgba(var(--green-rgb),0) 100%);
+  animation: cyber-sweep 7s linear infinite;}
+@keyframes cyber-sweep{0%{transform:translateY(-160px)}100%{transform:translateY(100vh)}}
+
+/* nav column */
+.exec-nav.landing-nav{position:relative;z-index:2;left:auto;right:auto;bottom:auto;
+  width:auto;flex-direction:column;justify-content:center;gap:36px;
+  padding:0;background:none;border:none;backdrop-filter:none;}
+.exec-nav.landing-nav a{flex:0 0 auto;max-width:none;gap:6px;
+  opacity:0;animation: cyber-bootin 0.6s ease forwards;}
+.exec-nav.landing-nav a:nth-child(1){animation-delay:0.15s}
+.exec-nav.landing-nav a:nth-child(2){animation-delay:0.30s}
+.exec-nav.landing-nav a:nth-child(3){animation-delay:0.45s}
+@keyframes cyber-bootin{from{opacity:0;transform:translateY(12px);filter:blur(6px)}
+  to{opacity:1;transform:none;filter:none}}
+
+.exec-nav.landing-nav a img{width:34px!important;height:34px!important;
+  filter:drop-shadow(0 0 4px rgba(var(--green-rgb),0.45));
+  animation: cyber-neon 2.6s ease-in-out infinite;transition:transform 0.2s;}
+@keyframes cyber-neon{0%,100%{filter:drop-shadow(0 0 3px rgba(var(--green-rgb),0.35))}
+  50%{filter:drop-shadow(0 0 9px rgba(var(--green-rgb),0.75))}}
+.exec-nav.landing-nav a:hover img{animation: cyber-glitch 0.3s steps(2) infinite;}
+@keyframes cyber-glitch{0%{transform:translate(0,0) scale(1.12)}
+  25%{transform:translate(-2px,1px) scale(1.12)}50%{transform:translate(2px,-1px) scale(1.12)}
+  75%{transform:translate(-1px,-1px) scale(1.12)}100%{transform:translate(1px,1px) scale(1.12)}}
+
+.exec-nav.landing-nav .nav-label{color:rgba(var(--green-rgb),0.7);
+  text-shadow:0 0 6px rgba(var(--green-rgb),0.4);}
+.exec-nav.landing-nav a:hover .nav-label{color:var(--green);
+  text-shadow:0 0 10px rgba(var(--green-rgb),0.85);}
+
+/* admin */
+.landing-admin{position:fixed;bottom:18px;right:20px;z-index:2;
+  font-family:'04b25',monospace;font-size:0.5rem;text-transform:uppercase;
+  letter-spacing:0.1em;text-decoration:none;color:rgba(var(--green-rgb),0.4);
+  transition:color 0.2s,text-shadow 0.2s;}
+.landing-admin:hover{color:var(--green);text-shadow:0 0 8px rgba(var(--green-rgb),0.7);}
+
+@media (prefers-reduced-motion: reduce){
+  .cyber-bg,.cyber-scan,.exec-nav.landing-nav a,.exec-nav.landing-nav a img{animation:none!important}
+  .exec-nav.landing-nav a{opacity:1}}
+</style>"""
+
+
 def _landing_html() -> str:
     """Public landing page: non-admin sections only, as a centered vertical
-    column of icons evenly spaced on screen."""
+    column of icons, with cyberpunk CRT/scan/neon animations."""
     _, bare = _index_pages()
     links = []
     for label in _GUEST_NAV_LINKS:
@@ -318,24 +380,10 @@ def _landing_html() -> str:
         links.append(f'<a href="{href}">{icon}<span class="nav-label">{text}</span></a>')
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
     admin = '<a href="/login" class="landing-admin">admin</a>'
-    style = (
-        "<style>"
-        "body{display:flex!important;align-items:center;justify-content:center;"
-        "min-height:100vh;}"
-        ".exec-nav.landing-nav{position:static;left:auto;right:auto;bottom:auto;"
-        "width:auto;flex-direction:column;justify-content:center;gap:36px;"
-        "padding:0;background:none;border:none;backdrop-filter:none;}"
-        ".exec-nav.landing-nav a{flex:0 0 auto;max-width:none;gap:6px;}"
-        ".exec-nav.landing-nav a img{width:34px!important;height:34px!important;}"
-        ".landing-admin{position:fixed;bottom:18px;right:20px;"
-        "font-family:'04b25',monospace;font-size:0.5rem;text-transform:uppercase;"
-        "letter-spacing:0.1em;text-decoration:none;color:rgba(var(--green-rgb),0.4);"
-        "transition:color 0.2s;}"
-        ".landing-admin:hover{color:var(--green);}"
-        "</style>"
-    )
+    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
+    style = _LANDING_STYLE
     page = bare.replace("</head>", _CHROME_LINK + style + "</head>", 1)
-    return page.replace("</body>", nav + admin + "</body>", 1)
+    return page.replace("</body>", fx + nav + admin + "</body>", 1)
 
 
 @public.get("/", response_class=HTMLResponse)
