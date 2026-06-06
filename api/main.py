@@ -307,10 +307,11 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 def _landing_html() -> str:
-    """Public landing page: just the nav bar, centered on screen."""
+    """Public landing page: non-admin sections only, as a centered vertical
+    column of icons evenly spaced on screen."""
     _, bare = _index_pages()
     links = []
-    for label in _NAV_LINKS:
+    for label in _GUEST_NAV_LINKS:
         href = _NAV_HREFS.get(label, f"/{label}")
         icon = _NAV_ICONS.get(label, label)
         text = _NAV_LABELS.get(label, label.lower())
@@ -319,9 +320,10 @@ def _landing_html() -> str:
     style = (
         "<style>"
         ".exec-nav.landing-nav{position:static;left:auto;right:auto;bottom:auto;"
-        "width:auto;gap:18px;padding:18px 28px;border:1px solid rgba(var(--green-rgb),0.12);"
-        "border-top:1px solid rgba(var(--green-rgb),0.12);border-radius:14px;}"
-        ".exec-nav.landing-nav a{flex:0 0 auto;max-width:none;}"
+        "width:auto;flex-direction:column;justify-content:center;gap:36px;"
+        "padding:0;background:none;border:none;backdrop-filter:none;}"
+        ".exec-nav.landing-nav a{flex:0 0 auto;max-width:none;gap:6px;}"
+        ".exec-nav.landing-nav a img{width:34px!important;height:34px!important;}"
         "</style>"
     )
     page = bare.replace("</head>", _CHROME_LINK + style + "</head>", 1)
