@@ -70,7 +70,7 @@
         box-shadow: 0 2px 22px rgba(224,74,125,0.3);
       }
       #exec-bubble img {
-        width: 26px; height: 26px;
+        width: 26px; height: 26px; border-radius: 6px;
         image-rendering: pixelated; pointer-events: none;
       }
       #exec-badge {
