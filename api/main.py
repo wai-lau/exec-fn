@@ -128,7 +128,7 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "core": "core", "prophecies": "profs",
-    "directives": "dirs", "debug": "debug", "nightfall": "night", "mtg": "mtg", "tarot": "tarot",
+    "directives": "dirs", "debug": "debug", "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
 }
 
 def _build_nav(active=None, guest=False):
@@ -356,7 +356,7 @@ def _landing_html() -> str:
     for label in _GUEST_NAV_LINKS:
         href = _NAV_HREFS.get(label, f"/{label}")
         icon = _NAV_ICONS.get(label, label)
-        # landing spells out "nightfall" in full; bottom nav keeps "night"
+        # landing spells out "nightfall" in full; bottom nav shows "12AM"
         text = "nightfall" if label == "nightfall" else _NAV_LABELS.get(label, label.lower())
         links.append(f'<a href="{href}">{icon}<span class="nav-label">{text}</span></a>')
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
