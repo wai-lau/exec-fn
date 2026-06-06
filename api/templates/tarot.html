@@ -653,9 +653,9 @@ async function streamResponse() {
             } else if (data.count === 0) {
               pendingSys.push('[ deal_spread error — reader will retry ]');
             } else {
-              pendingSys.push('[ dealing spread ]');
-              // defer the actual draw until the reader has finished speaking
-              // and the note has printed
+              // no sys note — the '[drew a ...]' event marker already
+              // announces the deal. defer the actual draw until the reader
+              // has finished speaking.
               pendingDeal = data.input?.frame || 'past_present_future';
             }
           } else {
