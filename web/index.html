@@ -92,6 +92,9 @@
   <div class="login-wrap">
     <img src="/favicon.png">
     <form class="login-box" method="POST" action="/login">
+      <input type="text" name="username" value="admin" autocomplete="username"
+        aria-hidden="true" tabindex="-1"
+        style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
       <input type="password" name="key" placeholder="access-key" autocomplete="current-password" autofocus enterkeyhint="go">
       <input type="hidden" name="next">
       <button type="submit" class="submit" aria-label="submit">▼</button>

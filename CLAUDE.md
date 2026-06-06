@@ -135,11 +135,13 @@ exec-fn/
 
 ## Web app
 
-Two cookie auth tiers:
-- `session` cookie (set via `POST /login`, requires `API_KEY`) — full access.
-- `guest_session` cookie (set via `POST /guest-login`, requires `GUEST_KEY`) — only `/mtg`, `/tarot`, `/nightfall`.
+`/` is a public landing page — just the nav bar, centered (`_landing_html()`); links to every section, no auth, no exec bubble. Clicking a section follows the 401 redirect to the right login.
 
-Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest-login` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`.
+Two cookie auth tiers:
+- `session` cookie (set via `POST /login`, requires `API_KEY`) — full access. Login form at `GET /login` (already-authed visitors redirect to `?next=`/`/rd`).
+- `guest_session` cookie (set via `POST /guest`, requires `GUEST_KEY`) — only `/mtg`, `/tarot`, `/nightfall`. Login form at `GET /guest`. `GET /guest-login` is a 302 alias to `/guest` (bookmark compat).
+
+Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
 Plus a scoped capability token: `EXEC_SAY_KEY` (env, `require_say_auth`) — bearer token whose only power is `POST`-equivalent message-queueing via `GET /api/exec/say`. Separate from `API_KEY` so a leak can't escalate.
 

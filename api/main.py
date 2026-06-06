@@ -118,8 +118,8 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
 
 _NAV_ICONS = {
     "core":        '<img src="/laser-satellite.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "prophecies":  '<img src="/catapult.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "directives":  '<img src="/golem-stone.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "prophecies":  '<img src="/fiddle.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "directives":  '<img src="/turbo.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
     "mtg":         '<img src="/wizard-green.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -205,8 +205,11 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 </style>
 <div style="display:flex;flex-direction:column;align-items:center;gap:24px">
   <img src="/ped-logo.png" style="width:160px;opacity:0.9">
-  <form class="login-box" method="post" action="/guest-login">
+  <form class="login-box" method="post" action="/guest">
     <input type="hidden" name="next" value="{next}">
+    <input type="text" name="username" value="guest" autocomplete="username"
+      aria-hidden="true" tabindex="-1"
+      style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
     <input type="password" name="key" autofocus autocomplete="current-password" placeholder="access-key" enterkeyhint="go">
     <button type="submit" class="submit" aria-label="submit">▼</button>
   </form>
@@ -264,11 +267,11 @@ async def unauthorized_handler(request: Request, exc: HTTPException):
     if "text/html" in accept:
         path = request.url.path
         if path.startswith("/mtg") or path.startswith("/tarot"):
-            return RedirectResponse(f"/guest-login?next={path}", status_code=302)
-        if request.method == "GET" and path not in ("/", "/login", "/guest-login"):
+            return RedirectResponse(f"/guest?next={path}", status_code=302)
+        if request.method == "GET" and path not in ("/", "/login", "/guest"):
             full = path + ("?" + request.url.query if request.url.query else "")
-            return RedirectResponse(f"/?next={quote(full, safe='')}", status_code=302)
-        return RedirectResponse("/", status_code=302)
+            return RedirectResponse(f"/login?next={quote(full, safe='')}", status_code=302)
+        return RedirectResponse("/login", status_code=302)
     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
 
 
@@ -303,9 +306,37 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-@public.get("/")
-async def root(request: Request, next: str = ""):
-    """Login screen. Already-authed visitors skip it and land on their
+def _landing_html() -> str:
+    """Public landing page: just the nav bar, centered on screen."""
+    _, bare = _index_pages()
+    links = []
+    for label in _NAV_LINKS:
+        href = _NAV_HREFS.get(label, f"/{label}")
+        icon = _NAV_ICONS.get(label, label)
+        text = _NAV_LABELS.get(label, label.lower())
+        links.append(f'<a href="{href}">{icon}<span class="nav-label">{text}</span></a>')
+    nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
+    style = (
+        "<style>"
+        ".exec-nav.landing-nav{position:static;left:auto;right:auto;bottom:auto;"
+        "width:auto;gap:18px;padding:18px 28px;border:1px solid rgba(var(--green-rgb),0.12);"
+        "border-top:1px solid rgba(var(--green-rgb),0.12);border-radius:14px;}"
+        ".exec-nav.landing-nav a{flex:0 0 auto;max-width:none;}"
+        "</style>"
+    )
+    page = bare.replace("</head>", _CHROME_LINK + style + "</head>", 1)
+    return page.replace("</body>", nav + "</body>", 1)
+
+
+@public.get("/", response_class=HTMLResponse)
+async def root():
+    """Public landing page — centered nav bar linking to every section."""
+    return _landing_html()
+
+
+@public.get("/login")
+async def login_page(request: Request, next: str = ""):
+    """Admin login screen. Already-authed visitors skip it and land on their
     redirect target (`?next=`) or `/rd`; everyone else gets the form."""
     if request.cookies.get("session") == SESSION_TOKEN:
         return RedirectResponse(url=_safe_local_path(next, "/rd"), status_code=302)
@@ -332,7 +363,7 @@ async def login(request: Request):
     return resp
 
 
-@public.get("/guest-login", response_class=HTMLResponse)
+@public.get("/guest", response_class=HTMLResponse)
 async def guest_login_page(next: str = "/mtg"):
     next_safe = _safe_next(next)
     _, bare = _index_pages()
@@ -341,7 +372,7 @@ async def guest_login_page(next: str = "/mtg"):
     return page.replace("</body>", body_insert + "</body>", 1)
 
 
-@public.post("/guest-login")
+@public.post("/guest")
 async def guest_login(request: Request):
     form = await request.form()
     key = form.get("key", "")
@@ -351,6 +382,12 @@ async def guest_login(request: Request):
     resp = RedirectResponse(url=next_path, status_code=303)
     resp.set_cookie("guest_session", GUEST_SESSION_TOKEN, httponly=True, samesite="lax", secure=True)
     return resp
+
+
+@public.get("/guest-login")
+async def guest_login_alias(next: str = "/mtg"):
+    """Bookmark-safe alias for the renamed /guest route."""
+    return RedirectResponse(url=f"/guest?next={quote(_safe_next(next), safe='')}", status_code=302)
 
 
 # ── pages ─────────────────────────────────────────────────────────────────────
