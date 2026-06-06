@@ -22,7 +22,7 @@ __pycache__/
 !web/laser-satellite.png
 !web/fiddle.png
 !web/turbo.png
-!web/wizard-green.png
+!web/wizard.png
 *.pyo
 *.Identifier
 .env

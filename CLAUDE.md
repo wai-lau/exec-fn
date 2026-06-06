@@ -53,8 +53,9 @@ exec-fn/
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
     card-dialog.js        # shared card edit dialog used by kanban/prophecies/directives
     boss-green.png        # green-recolored Boss.png — Exec nav icon
-    hack2.png             # Hack2.png — nightfall nav icon
-    wizard.png            # Wizard.png — mtg nav icon
+    # nav icons (27x27 program art): laser-satellite(core) fiddle(profs)
+    #   turbo(dirs) bug(debug) hack2(night) wizard(mtg) watchman(tarot)
+    # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
     main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
@@ -135,7 +136,7 @@ exec-fn/
 
 ## Web app
 
-`/` is a public landing page — just the nav bar, centered (`_landing_html()`); links to every section, no auth, no exec bubble. Clicking a section follows the 401 redirect to the right login.
+`/` is a public landing page (`_landing_html()`) — a vertically-centered column of the **non-admin** sections only (nightfall, mtg, tarot; `_GUEST_NAV_LINKS`), no auth, no exec bubble. An `admin` link sits bottom-right → `/login`. Logged-in admins (valid `session` cookie) skip the landing and 302 to `/rd`. Clicking a section follows the 401 redirect to the right login.
 
 Two cookie auth tiers:
 - `session` cookie (set via `POST /login`, requires `API_KEY`) — full access. Login form at `GET /login` (already-authed visitors redirect to `?next=`/`/rd`).
