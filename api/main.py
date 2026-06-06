@@ -183,14 +183,14 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
   background:transparent;
   padding:0; display:flex; flex-direction:column; align-items:center;
 }
-.login-box input[type=password] {
+.login-box input[name=key] {
   background:transparent; border:none;
   border-bottom:1px solid rgba(255,255,255,0.4);
   color:#fff; font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
   padding:4px 2px; outline:none; width:160px; text-align:center;
 }
-.login-box input[type=password]:focus { border-bottom-color:#fff; }
-.login-box input[type=password]::placeholder { color:rgba(255,255,255,0.35); }
+.login-box input[name=key]:focus { border-bottom-color:#fff; }
+.login-box input[name=key]::placeholder { color:rgba(255,255,255,0.35); }
 .login-box button.submit {
   margin-top:14px; background:transparent;
   border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
@@ -210,7 +210,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
     <input type="text" name="username" value="guest" autocomplete="username"
       aria-hidden="true" tabindex="-1"
       style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
-    <input type="password" name="key" autofocus autocomplete="current-password" placeholder="access-key" enterkeyhint="go">
+    <input type="text" name="key" autofocus autocomplete="off" placeholder="access-key" enterkeyhint="go">
     <button type="submit" class="submit" aria-label="submit">▼</button>
   </form>
 </div>
@@ -225,9 +225,11 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     base = bare if active else no_form
     head_inject = _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
+    # cyberpunk ambient fx only on tarot (landing injects its own)
+    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>' if active == "tarot" else ''
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", content + nav + "</body>", 1))
+        .replace("</body>", fx + content + nav + "</body>", 1))
 
 
 # ── templates ─────────────────────────────────────────────────────────────────
@@ -310,23 +312,7 @@ _LANDING_STYLE = """<style>
 body{display:flex!important;align-items:center;justify-content:center;
   min-height:100vh;overflow:hidden;position:relative;}
 
-/* CRT scanlines + flicker */
-.cyber-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    repeating-linear-gradient(0deg, rgba(var(--green-rgb),0.05) 0px,
-      rgba(var(--green-rgb),0.05) 1px, transparent 1px, transparent 3px),
-    radial-gradient(circle at 50% 45%, rgba(var(--green-rgb),0.07), transparent 70%);
-  animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;}
-@keyframes cyber-flicker{0%,100%{opacity:1}48%{opacity:0.96}50%{opacity:0.8}
-  51%{opacity:0.96}70%{opacity:1}72%{opacity:0.85}73%{opacity:1}}
-@keyframes cyber-drift{from{background-position:0 0,0 0}to{background-position:0 3px,0 0}}
-
-/* sweeping scan beam */
-.cyber-scan{position:fixed;left:0;right:0;top:0;height:160px;z-index:1;pointer-events:none;
-  background:linear-gradient(rgba(var(--green-rgb),0) 0%,
-    rgba(var(--green-rgb),0.10) 50%, rgba(var(--green-rgb),0) 100%);
-  animation: cyber-sweep 7s linear infinite;}
-@keyframes cyber-sweep{0%{transform:translateY(-160px)}100%{transform:translateY(100vh)}}
+/* .cyber-bg / .cyber-scan come from chrome.css (top layer, screen blend) */
 
 /* nav column */
 .exec-nav.landing-nav{position:relative;z-index:2;left:auto;right:auto;bottom:auto;
@@ -341,10 +327,7 @@ body{display:flex!important;align-items:center;justify-content:center;
   to{opacity:1;transform:none;filter:none}}
 
 .exec-nav.landing-nav a img{width:34px!important;height:34px!important;
-  filter:drop-shadow(0 0 4px rgba(var(--green-rgb),0.45));
-  animation: cyber-neon 2.6s ease-in-out infinite;transition:transform 0.2s;}
-@keyframes cyber-neon{0%,100%{filter:drop-shadow(0 0 3px rgba(var(--green-rgb),0.35))}
-  50%{filter:drop-shadow(0 0 9px rgba(var(--green-rgb),0.75))}}
+  transition:transform 0.2s;}
 .exec-nav.landing-nav a:hover img{transform:scale(1.12);}
 
 .exec-nav.landing-nav .nav-label{color:rgba(var(--green-rgb),0.7);

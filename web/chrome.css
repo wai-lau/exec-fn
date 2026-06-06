@@ -103,6 +103,37 @@
   --gray-past:           rgba(120, 120, 120, 0.35); /* directives past hour labels */
 }
 
+/* Ambient cyberpunk background — injected on every page via _render_page
+   (nightfall is composed separately and never gets the markup). */
+.cyber-bg {
+  position: fixed; inset: 0; z-index: 9990; pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(0deg, rgba(var(--green-rgb),0.05) 0,
+      rgba(var(--green-rgb),0.05) 1px, transparent 1px, transparent 3px),
+    radial-gradient(circle at 50% 45%, rgba(var(--green-rgb),0.07), transparent 70%);
+  animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
+}
+
+@keyframes cyber-flicker {
+  0%,100%{opacity:1} 48%{opacity:0.96} 50%{opacity:0.8}
+  51%{opacity:0.96} 70%{opacity:1} 72%{opacity:0.85} 73%{opacity:1}
+}
+
+@keyframes cyber-drift { from{background-position:0 0,0 0} to{background-position:0 3px,0 0} }
+
+.cyber-scan {
+  position: fixed; left: 0; right: 0; top: 0; height: 160px; z-index: 9990; pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(rgba(var(--green-rgb),0) 0%,
+    rgba(var(--green-rgb),0.10) 50%, rgba(var(--green-rgb),0) 100%);
+  animation: cyber-sweep 7s linear infinite;
+}
+
+@keyframes cyber-sweep { 0%{transform:translateY(-160px)} 100%{transform:translateY(100vh)} }
+
+@media (prefers-reduced-motion: reduce) { .cyber-bg, .cyber-scan { animation: none !important; } }
+
 /* Base */
 html { background: var(--bg); }
 
