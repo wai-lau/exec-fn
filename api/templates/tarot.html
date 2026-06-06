@@ -82,7 +82,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   isolation:isolate;
   width:min(13vh, 18vw); height:min(22vh, 30vw);
   cursor:pointer;
-  border-radius:4px;
+  border-radius:8px;
   outline:0 solid rgba(0,255,65,0);
   transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease;
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
@@ -93,13 +93,13 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   background:#00ff41;
   mix-blend-mode:color;
   pointer-events:none;
-  border-radius:4px;
+  border-radius:8px;
 }
 .tarot-card[data-flipped="true"]::after { display:none; }
 .tarot-card:hover { outline:2px solid rgba(0,255,65,0.45); }
 .tarot-card img {
   width:100%; height:100%; object-fit:contain;
-  border-radius:4px;
+  border-radius:8px;
   display:block;
 }
 .tarot-card img.back { object-fit:fill; }
@@ -144,7 +144,7 @@ body.reader-speaking .tarot-card[data-next="true"] {
   box-sizing:border-box;
   isolation:isolate;
   width:min(13vh, 18vw); height:min(22vh, 30vw);
-  border:1px solid rgba(0,0,0,0.4); border-radius:4px;
+  border:1px solid rgba(0,0,0,0.4); border-radius:8px;
   background:#0a0a0a url('/tarot/card_back.jpg?v=4') center/100% 100% no-repeat;
   outline:1px solid rgba(0,255,65,0.35);
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
@@ -156,15 +156,18 @@ body.reader-speaking .tarot-card[data-next="true"] {
   background:#00ff41;
   mix-blend-mode:color;
   pointer-events:none;
-  border-radius:3px;
+  border-radius:8px;
 }
 #sig-card.set {
   background:#000;
-  outline:2px solid rgba(0,255,65,0.5);
+  /* once the card is shown, treat it like any other card: no persistent
+     highlight, only on hover */
+  outline:0 solid rgba(0,255,65,0);
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
 }
+#sig-card.set:hover { outline:2px solid rgba(0,255,65,0.45); }
 #sig-card.set::after { display:none; }
-#sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius:3px; }
+#sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius:8px; }
 #sig-card .sig-label {
   position:absolute; left:50%; bottom:calc(100% + 4px);
   transform:translateX(-50%);
