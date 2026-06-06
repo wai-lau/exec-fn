@@ -147,7 +147,7 @@ def _build_nav(active=None, guest=False):
         "_snh();window.addEventListener('resize',_snh);"
         "})();</script>"
     )
-    bubble = '' if guest else '<script src="/exec-bubble.js?v=3"></script>'
+    bubble = '' if guest else '<script src="/exec-bubble.js?v=4"></script>'
     return nav + script + bubble
 
 

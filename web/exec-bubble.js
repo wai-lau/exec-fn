@@ -152,7 +152,7 @@
       #exec-input-area { flex-shrink: 0; padding: 0 14px; background: #181818; border-top: 1px solid rgba(0,255,65,0.06); }
       #exec-iline { display: flex; align-items: center; border-bottom: 1px solid rgba(0,255,65,0.1); padding: 6px 0; }
       #exec-iline:focus-within { border-bottom-color: rgba(0,255,65,0.3); }
-      #exec-prompt { color: rgba(0,255,65,0.48); font-size: 0.88rem; white-space: nowrap; user-select: none; padding-right: 8px; }
+      #exec-prompt { color: rgba(0,255,65,0.55); font-size: 0.9rem; white-space: nowrap; user-select: none; padding-right: 8px; }
       #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
       #exec-idisp { display: none; }
       #exec-icursor { display: none; }
@@ -182,7 +182,7 @@
       '<div id="exec-term"></div>' +
       '<div id="exec-input-area">' +
         '<div id="exec-iline">' +
-          '<span id="exec-prompt">wai@exec:~$</span>' +
+          '<span id="exec-prompt">$</span>' +
           '<div id="exec-iwrap">' +
             '<div id="exec-idisp"><span id="exec-ipre"></span><span id="exec-icursor"></span><span id="exec-ipost"></span></div>' +
             '<div id="exec-minput" contenteditable="true" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>' +
