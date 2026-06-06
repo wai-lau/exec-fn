@@ -345,10 +345,7 @@ body{display:flex!important;align-items:center;justify-content:center;
   animation: cyber-neon 2.6s ease-in-out infinite;transition:transform 0.2s;}
 @keyframes cyber-neon{0%,100%{filter:drop-shadow(0 0 3px rgba(var(--green-rgb),0.35))}
   50%{filter:drop-shadow(0 0 9px rgba(var(--green-rgb),0.75))}}
-.exec-nav.landing-nav a:hover img{animation: cyber-glitch 0.3s steps(2) infinite;}
-@keyframes cyber-glitch{0%{transform:translate(0,0) scale(1.12)}
-  25%{transform:translate(-2px,1px) scale(1.12)}50%{transform:translate(2px,-1px) scale(1.12)}
-  75%{transform:translate(-1px,-1px) scale(1.12)}100%{transform:translate(1px,1px) scale(1.12)}}
+.exec-nav.landing-nav a:hover img{transform:scale(1.12);}
 
 .exec-nav.landing-nav .nav-label{color:rgba(var(--green-rgb),0.7);
   text-shadow:0 0 6px rgba(var(--green-rgb),0.4);}
