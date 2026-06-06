@@ -1,6 +1,8 @@
 
 <link rel="stylesheet" href="/chat.css">
 <style>
+/* nav sits above the ambient cyber animations (z-index 9990) */
+.exec-nav { z-index:9995 !important; }
 /* Spread height fits the cards; terminal eats the rest. */
 :root {
   --card-w: min(13vh, 18vw);
@@ -270,7 +272,7 @@ function courtList() {
     for (const suit of COURT_SUITS) {
       const id = `${rank}_of_${suit}`;
       const name = `${COURT_RANK_LABEL[rank]} of ${COURT_SUIT_LABEL[suit]}`;
-      out.push({card_id: id, name, image: `/tarot/cards/${id}.jpg`});
+      out.push({card_id: id, name, image: `/tarot/cards/${id}.jpg?v=2`});
     }
   }
   return out;

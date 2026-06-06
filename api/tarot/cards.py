@@ -56,7 +56,7 @@ def _build_cards() -> list[dict]:
             "arcana": "major",
             "suit": None,
             "number": num,
-            "image": f"/tarot/cards/{cid}.jpg",
+            "image": f"/tarot/cards/{cid}.jpg?v=2",
         })
     for suit in _SUITS:
         for pip_id, pip_name, pip_num in _PIPS + _COURTS:
@@ -67,7 +67,7 @@ def _build_cards() -> list[dict]:
                 "arcana": "minor",
                 "suit": suit,
                 "number": pip_num,
-                "image": f"/tarot/cards/{cid}.jpg",
+                "image": f"/tarot/cards/{cid}.jpg?v=2",
             })
     return out
 
