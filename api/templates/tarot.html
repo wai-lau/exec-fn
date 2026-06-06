@@ -85,7 +85,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   width:min(13vh, 18vw); height:min(22vh, 30vw);
   cursor:pointer;
   border-radius:8px;
-  outline:0 solid rgba(0,255,65,0);
+  outline:1.5px solid rgba(0,255,65,0.4);
   transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease;
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
   user-select:none;
@@ -110,7 +110,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 .tarot-card[data-flipped="true"] .back { display:none; }
 .tarot-card[data-flipped="true"] .face { display:block; }
 .tarot-card[data-locked="true"] { cursor:default; opacity:0.55; }
-.tarot-card[data-locked="true"]:hover { outline:0 solid rgba(0,255,65,0); }
+.tarot-card[data-locked="true"]:hover { outline:1.5px solid rgba(0,255,65,0.4); }
 .tarot-card[data-next="true"] { animation:nextpulse 1.8s ease-in-out infinite; }
 /* hold the beckon-pulse until the reader has finished speaking */
 body.reader-speaking .tarot-card[data-next="true"] {
