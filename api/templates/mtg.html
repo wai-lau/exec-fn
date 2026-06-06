@@ -1,8 +1,20 @@
 
 <link rel="stylesheet" href="/chat.css">
 <style>
-.msg { max-width:720px; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
+/* chat look mirrored from tarot (no spread rules, no centering) */
+.msg { max-width:none; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
+
+/* merge input into the scrollback: no slab, no underline — prompt reads as the live last line */
+#input-bar { transition: opacity 0.7s ease; background:transparent !important; border-top:none !important; padding:0 20px 8px !important; }
+#input-line { border-bottom:none !important; padding:0 !important; align-items:flex-start !important; }
+#input-prompt { font-size:0.82rem !important; padding-right:0.6em !important; line-height:1.45 !important; }
 #terminal { padding-bottom:0 !important; }
+
+/* reader voice */
+.msg.assistant { font-weight:500; line-height:1.7; letter-spacing:0.01em; color:rgba(0,255,65,1) !important; }
+.msg.assistant p { margin:0 0 10px; }
+.msg.assistant strong { font-weight:700; }
+
 .msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; }
 .msg.assistant a:hover { color:rgba(0,255,120,1) !important; }
 .msg.assistant hr { border:none; border-top:1px solid rgba(0,255,65,0.35); margin:10px 0 16px; }
@@ -31,7 +43,7 @@
 <div id="terminal"></div>
 <div id="input-bar">
   <div id="input-line">
-    <span id="input-prompt">mtg@rules:~$</span>
+    <span id="input-prompt">$</span>
     <div id="input-wrapper">
       <div id="input-display" aria-hidden="true"><span id="input-pre"></span><span id="input-cursor"></span><span id="input-post"></span></div>
       <div id="msg-input" contenteditable="true" data-placeholder="ask a rules question..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
@@ -46,6 +58,18 @@ let _sessionId = 'mtg_' + Date.now().toString(36);
 
 const terminal = document.getElementById('terminal');
 const _WELCOME = "Hi (＊＾▽＾)／! Ask about card interactions, rules, or mechanics - I'll look up oracle text, rulings, and comprehensive rules.";
+
+// keep the terminal bottom pinned to the top of the (borderless) input bar so
+// the input never overlaps the scrollback
+function syncTerminalBottom() {
+  const bar = document.getElementById('input-bar');
+  const navH = parseInt(getComputedStyle(document.documentElement)
+    .getPropertyValue('--nav-h')) || 56;
+  terminal.style.bottom = (navH + bar.offsetHeight) + 'px';
+  terminal.scrollTop = terminal.scrollHeight;
+}
+window.addEventListener('resize', syncTerminalBottom);
+window.addEventListener('load', syncTerminalBottom);
 
 const _renderer = new marked.Renderer();
 _renderer.link = ({href, title, text}) => {
@@ -98,7 +122,7 @@ async function sendMsg() {
   if (!text) return;
   input.textContent = '';
   renderCaret();
-  terminal.style.bottom = '';
+  syncTerminalBottom();
   input.focus();
   addMsg('user', text);
   messages.push({role:'user', content: text});
@@ -185,7 +209,7 @@ function renderCaret() {
 
 _msgInput.addEventListener('input', () => {
   renderCaret();
-  terminal.style.bottom = document.getElementById('input-bar').offsetHeight + 'px';
+  syncTerminalBottom();
 });
 _msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
 _msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; renderCaret(); });
@@ -199,6 +223,9 @@ _msgInput.addEventListener('keydown', e => {
 });
 _msgInput.focus();
 renderCaret();
+// defer: the nav script sets --nav-h after this script runs, so the input
+// bar isn't positioned yet on this tick
+requestAnimationFrame(syncTerminalBottom);
 
 // Card image hover tooltip via Scryfall
 const _tooltip = document.getElementById('card-tooltip');
