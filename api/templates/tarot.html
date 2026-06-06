@@ -148,7 +148,7 @@ body.reader-speaking .tarot-card[data-next="true"] {
   width:min(13vh, 18vw); height:min(22vh, 30vw);
   border:1px solid rgba(0,0,0,0.4); border-radius:8px;
   background:#0a0a0a url('/tarot/card_back.jpg?v=4') center/100% 100% no-repeat;
-  outline:1px solid rgba(0,255,65,0.35);
+  outline:1.5px solid rgba(0,255,65,0.4);
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; user-select:none;
@@ -162,9 +162,8 @@ body.reader-speaking .tarot-card[data-next="true"] {
 }
 #sig-card.set {
   background:#000;
-  /* once the card is shown, treat it like any other card: no persistent
-     highlight, only on hover */
-  outline:0 solid rgba(0,255,65,0);
+  /* keep the permanent green outline, matching the spread cards */
+  outline:1.5px solid rgba(0,255,65,0.4);
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
 }
 #sig-card.set:hover { outline:2px solid rgba(0,255,65,0.45); }
