@@ -16,7 +16,7 @@
 }
 #input-bar {
   bottom: calc(var(--nav-h, 56px) + var(--spread-h)) !important;
-  transition: opacity 0.7s ease, visibility 0.7s;
+  transition: opacity 0.7s ease;
   background:transparent !important;
   border-top:none !important;
   padding:0 20px 8px !important;
@@ -393,12 +393,9 @@ function updateInputBarVisibility() {
   // input just became visible → it shrinks the terminal viewport from the
   // bottom, so re-pin the scroll to the last line and drop the caret in
   if (wasHidden && !hideInput) {
-    // defer past this frame so visibility:visible has committed before we
-    // scroll and focus — focus on a just-unhidden element is otherwise ignored
-    requestAnimationFrame(() => {
-      terminal.scrollTop = terminal.scrollHeight;
-      if (!cardZoom.classList.contains('open')) _msgInput.focus();
-    });
+    // input just reappeared: re-pin scroll to the last line and grab focus
+    requestAnimationFrame(() => { terminal.scrollTop = terminal.scrollHeight; });
+    focusInput();
   }
 }
 
@@ -578,16 +575,19 @@ async function streamResponse() {
   let pendingDeal = null; // frame to deal once the reader is done speaking
 
   // tuned to elderly-reader speaking pace (~130 wpm), not typing pace
+  const SPEED = 1.25;       // overall pace multiplier
   const BASE_MS = 65;
   function nextDelayAfter(ch) {
+    let d;
     switch (ch) {
-      case '.': case '!': case '?': return 850;
-      case ',': case ';': case ':': return 420;
-      case '—': case '-':       return 480; // em-dash, hyphen
-      case '\n':                     return 1100;
-      case ' ':                      return 110;
-      default:                       return BASE_MS;
+      case '.': case '!': case '?': d = 850; break;
+      case ',': case ';': case ':': d = 420; break;
+      case '—': case '-':           d = 480; break; // em-dash, hyphen
+      case '\n':                    d = 1100; break;
+      case ' ':                     d = 110; break;
+      default:                      d = BASE_MS;
     }
+    return d / SPEED;
   }
   function drainOne() {
     if (drainCancelled) return;
@@ -686,6 +686,22 @@ async function streamResponse() {
   updateInputBarVisibility();
   // draw the spread only now — after the reader stopped and the note printed
   if (pendingDeal) drawSpread('three', pendingDeal);
+  else focusInput();
+}
+
+// focus the composer whenever it is the querent's turn. Retries across a few
+// frames because focus on a just-unhidden element is silently dropped.
+function focusInput() {
+  if (document.body.classList.contains('no-input')) return;
+  if (cardZoom.classList.contains('open')) return;
+  const tries = [0, 60, 180];
+  for (const t of tries) {
+    setTimeout(() => {
+      if (document.body.classList.contains('no-input')) return;
+      if (cardZoom.classList.contains('open')) return;
+      if (document.activeElement !== _msgInput) _msgInput.focus({preventScroll: true});
+    }, t);
+  }
 }
 
 const _pre = document.getElementById('input-pre');
@@ -729,6 +745,25 @@ document.addEventListener('selectionchange', () => {
 });
 _msgInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+// last-resort: if auto-focus was dropped, the first printable keystroke routes
+// into the composer
+document.addEventListener('keydown', e => {
+  if (document.activeElement === _msgInput) return;
+  if (document.body.classList.contains('no-input')) return;
+  if (cardZoom.classList.contains('open')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key.length === 1) {
+    _msgInput.focus({preventScroll: true});
+    // place caret at end so the in-flight char appends correctly
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(_msgInput);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
 });
 
 async function saveReading() {
