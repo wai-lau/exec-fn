@@ -356,7 +356,8 @@ def _landing_html() -> str:
     for label in _GUEST_NAV_LINKS:
         href = _NAV_HREFS.get(label, f"/{label}")
         icon = _NAV_ICONS.get(label, label)
-        text = _NAV_LABELS.get(label, label.lower())
+        # landing spells out "nightfall" in full; bottom nav keeps "night"
+        text = "nightfall" if label == "nightfall" else _NAV_LABELS.get(label, label.lower())
         links.append(f'<a href="{href}">{icon}<span class="nav-label">{text}</span></a>')
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
     admin = '<a href="/login" class="landing-admin">admin</a>'
