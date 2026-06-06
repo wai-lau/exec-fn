@@ -317,22 +317,33 @@ def _landing_html() -> str:
         text = _NAV_LABELS.get(label, label.lower())
         links.append(f'<a href="{href}">{icon}<span class="nav-label">{text}</span></a>')
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
+    admin = '<a href="/login" class="landing-admin">admin</a>'
     style = (
         "<style>"
+        "body{display:flex!important;align-items:center;justify-content:center;"
+        "min-height:100vh;}"
         ".exec-nav.landing-nav{position:static;left:auto;right:auto;bottom:auto;"
         "width:auto;flex-direction:column;justify-content:center;gap:36px;"
         "padding:0;background:none;border:none;backdrop-filter:none;}"
         ".exec-nav.landing-nav a{flex:0 0 auto;max-width:none;gap:6px;}"
         ".exec-nav.landing-nav a img{width:34px!important;height:34px!important;}"
+        ".landing-admin{position:fixed;bottom:18px;right:20px;"
+        "font-family:'04b25',monospace;font-size:0.5rem;text-transform:uppercase;"
+        "letter-spacing:0.1em;text-decoration:none;color:rgba(var(--green-rgb),0.4);"
+        "transition:color 0.2s;}"
+        ".landing-admin:hover{color:var(--green);}"
         "</style>"
     )
     page = bare.replace("</head>", _CHROME_LINK + style + "</head>", 1)
-    return page.replace("</body>", nav + "</body>", 1)
+    return page.replace("</body>", nav + admin + "</body>", 1)
 
 
 @public.get("/", response_class=HTMLResponse)
-async def root():
-    """Public landing page — centered nav bar linking to every section."""
+async def root(request: Request):
+    """Public landing page (non-admin sections). Logged-in admins skip it
+    and land on /rd."""
+    if request.cookies.get("session") == SESSION_TOKEN:
+        return RedirectResponse(url="/rd", status_code=302)
     return _landing_html()
 
 
