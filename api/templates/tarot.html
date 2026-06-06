@@ -388,15 +388,14 @@ function nextPosition() {
 }
 
 function updateInputBarVisibility() {
-  const phaseHides = !!(spread && spread.cards && !spread.cards.every(c => c.flipped));
-  const hideInput = streaming || phaseHides;
+  // input stays visible at all times — including while the reader speaks and
+  // during the card-turning phase. The streaming send-guard still blocks
+  // submits mid-stream.
   const wasHidden = document.body.classList.contains('no-input');
-  document.body.classList.toggle('no-input', hideInput);
+  document.body.classList.remove('no-input');
   // while the reader speaks, no card should beckon to be flipped
   document.body.classList.toggle('reader-speaking', streaming);
-  // input just became visible → it shrinks the terminal viewport from the
-  // bottom, so re-pin the scroll to the last line and drop the caret in
-  if (wasHidden && !hideInput) {
+  if (wasHidden) {
     // input just reappeared: re-pin scroll to the last line and grab focus
     requestAnimationFrame(() => { terminal.scrollTop = terminal.scrollHeight; });
     focusInput();
