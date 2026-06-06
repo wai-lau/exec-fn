@@ -20,8 +20,8 @@ __pycache__/
 !web/bug.png
 !web/watchman.png
 !web/laser-satellite.png
-!web/catapult.png
-!web/golem-stone.png
+!web/fiddle.png
+!web/turbo.png
 !web/wizard-green.png
 *.pyo
 *.Identifier
