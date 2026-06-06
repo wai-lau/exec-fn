@@ -23,6 +23,10 @@ __pycache__/
 !web/turbo.png
 !web/seeker.png
 !web/watchman.png
+!web/laser-satellite.png
+!web/catapult.png
+!web/golem-stone.png
+!web/wizard-green.png
 *.pyo
 *.Identifier
 .env

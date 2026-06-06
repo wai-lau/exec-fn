@@ -155,6 +155,8 @@ body {
 .exec-nav a:hover { color: var(--green); }
 .exec-nav a.active { color: var(--green); }
 
+.exec-nav a img { border-radius: 5px; }
+
 .exec-nav .nav-label {
   font-family: "04b25", monospace;
   font-size: 0.45rem;

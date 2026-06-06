@@ -117,12 +117,12 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
 
 
 _NAV_ICONS = {
-    "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "prophecies":  '<img src="/fiddle.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "directives":  '<img src="/turbo.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "core":        '<img src="/laser-satellite.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "prophecies":  '<img src="/catapult.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "directives":  '<img src="/golem-stone.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "mtg":         '<img src="/wizard.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "mtg":         '<img src="/wizard-green.png" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
