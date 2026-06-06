@@ -272,7 +272,7 @@ function courtList() {
     for (const suit of COURT_SUITS) {
       const id = `${rank}_of_${suit}`;
       const name = `${COURT_RANK_LABEL[rank]} of ${COURT_SUIT_LABEL[suit]}`;
-      out.push({card_id: id, name, image: `/tarot/cards/${id}.jpg?v=2`});
+      out.push({card_id: id, name, image: `/tarot/cards/${id}.jpg?v=3`});
     }
   }
   return out;
