@@ -167,14 +167,17 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
     due = []
     cards = rd.get("cards", [])
     dirty = _nudge.assign_auto_deadlines(cards, today, now)
+    # Back-schedule node deadlines for EVERY hq card with a plan (not just today's),
+    # so the breakdown graph shows deadlines whenever the card is opened.
+    for c in cards:
+        if _nudge.decomposable(c) and (c.get("nudge") or {}).get("graph", {}).get("nodes"):
+            dirty |= _nudge.compute_deadlines(c)
     for c in cards:
         n = c.get("nudge") or {}
-        # plan pass builds the graph first; nudge needs node deadlines
         if not _nudge._eligible(c, today) or n.get("stage") == "resolved":
             continue
         if not n.get("graph", {}).get("nodes"):
             continue
-        dirty |= _nudge.compute_deadlines(c)
         anchor = _nudge.active_anchor(c)
         if anchor is not None:
             dirty |= _arm_nudge(c, anchor)

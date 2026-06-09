@@ -43,7 +43,6 @@
       <option value="project">project &mdash; under 2 days</option>
       <option value="titan">titan &mdash; needs breaking down</option>
     </select>
-    <label>estimated time</label><input id="cd-et" type="text" placeholder="auto from size">
     <label id="cd-pages-label" style="display:none">pages</label>
     <div id="cd-pages-inputs" style="display:none;align-items:center;gap:8px">
       <input id="cd-current-page" type="number" placeholder="current" min="0" style="flex:1">
@@ -71,7 +70,9 @@
       <input id="cd-pin-reminder" type="checkbox" style="width:auto">
       <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
     </label>
-    <label id="cd-graph-label" style="display:none">breakdown</label>
+    <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
+      <span>breakdown</span><span id="cd-graph-total" style="letter-spacing:0;text-transform:none"></span>
+    </label>
     <div id="cd-graph" style="display:none"></div>
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
@@ -106,17 +107,6 @@
     }
   });
 
-  function _parseET(raw) {
-    if (!raw || !raw.trim()) return null;
-    const s = raw.trim().toLowerCase();
-    // plain number → minutes
-    if (/^\d+$/.test(s)) return parseInt(s, 10);
-    let mins = 0;
-    const h = s.match(/(\d+(?:\.\d+)?)\s*h/); if (h) mins += Math.round(parseFloat(h[1]) * 60);
-    const m = s.match(/(\d+)\s*m/);            if (m) mins += parseInt(m[1], 10);
-    return mins > 0 ? mins : null;
-  }
-
   function _parseMD(input) {
     if (!input || !input.trim()) return null;
     const s = input.trim().toLowerCase();
@@ -145,6 +135,18 @@
     if (!useDate && new Date(yr,month,day)<=now) yr++;
     const iso = `${yr}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     return timeStr ? iso+timeStr : iso;
+  }
+
+  function _fmtDur(min) {
+    if (!min) return '';
+    const h = Math.floor(min / 60), m = min % 60;
+    return (h ? h + 'h' : '') + (m || !h ? m + 'm' : '');
+  }
+
+  function _graphTotal(c) {
+    const nodes = c.nudge && c.nudge.graph && c.nudge.graph.nodes;
+    if (!nodes || !nodes.length) return 0;
+    return nodes.reduce((s, n) => s + (n.est_min || 0), 0);
   }
 
   function _fmt(iso) {
@@ -213,8 +215,6 @@
     document.getElementById('cd-cat').value = c.category||'Self';
     document.getElementById('cd-size').value = c.size||'task';
     document.getElementById('cd-due').value = c.due_date ? _fmt(c.due_date) : '';
-    const et = c.estimated_time;
-    document.getElementById('cd-et').value = et != null ? (et % 60 === 0 ? `${et/60}h` : et >= 60 ? `${Math.floor(et/60)}h${et%60}m` : `${et}m`) : '';
     document.getElementById('cd-recur').value = c.recur_type||'';
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
     document.getElementById('cd-event').checked = !!c.is_event;
@@ -227,10 +227,13 @@
     document.getElementById('cd-current-page').value = c.current_page ?? '';
     document.getElementById('cd-total-pages').value = c.total_pages ?? '';
     const hasGraph = !!(c.nudge && c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
-    document.getElementById('cd-graph-label').style.display = hasGraph ? 'block' : 'none';
+    document.getElementById('cd-graph-label').style.display = hasGraph ? 'flex' : 'none';
     document.getElementById('cd-graph').style.display = hasGraph ? 'block' : 'none';
+    document.getElementById('cd-graph-total').textContent = hasGraph ? _fmtDur(_graphTotal(c)) : '';
     if (hasGraph && typeof renderCardGraph === 'function') {
-      renderCardGraph(document.getElementById('cd-graph'), c);
+      renderCardGraph(document.getElementById('cd-graph'), c, function () {
+        document.getElementById('cd-graph-total').textContent = _fmtDur(_graphTotal(c));
+      });
     } else {
       document.getElementById('cd-graph').innerHTML = '';
     }
@@ -253,8 +256,9 @@
     c.category = document.getElementById('cd-cat').value;
     const isReminder = document.getElementById('cd-reminder').checked;
     c.size = isReminder ? null : document.getElementById('cd-size').value;
-    const etRaw = document.getElementById('cd-et').value;
-    c.estimated_time = etRaw.trim() ? (_parseET(etRaw) ?? c.estimated_time ?? null) : (c.estimated_time ?? null);
+    // Total time is derived from the breakdown when there is one.
+    const gTotal = _graphTotal(c);
+    if (gTotal) c.estimated_time = gTotal;
     const dueRaw = document.getElementById('cd-due').value;
     const res = await _resolve(dueRaw, c.size, c.estimated_time);
     c.due_date = res.due;
