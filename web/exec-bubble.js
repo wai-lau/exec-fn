@@ -308,19 +308,23 @@
   }
 
   // Open the bubble with the input prefilled (e.g. the card dialog's chat button).
+  // Deferred a tick so the originating click finishes bubbling first — otherwise
+  // the document click-outside handler sees isOpen and closes it immediately.
   window.openExecChat = function (prefill) {
-    openPanel();
-    if (prefill != null && msgInput) {
-      msgInput.textContent = prefill;
-      var range = document.createRange();
-      range.selectNodeContents(msgInput);
-      range.collapse(false);
-      var sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-      msgInput.focus();
-      renderCaret();
-    }
+    setTimeout(function () {
+      openPanel();
+      if (prefill != null && msgInput) {
+        msgInput.textContent = prefill;
+        var range = document.createRange();
+        range.selectNodeContents(msgInput);
+        range.collapse(false);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        msgInput.focus();
+        renderCaret();
+      }
+    }, 0);
   };
 
   // ── ?exec=open — open expanded on load, answer a queued shortcut message ─────
