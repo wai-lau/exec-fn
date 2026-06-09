@@ -271,14 +271,6 @@ def _save_chat(messages: list, stage: str):
     }, indent=2))
 
 
-def append_user_message(text: str):
-    p = DATA_DIR / "chat.json"
-    data = json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}
-    data.setdefault("messages", []).append({"role": "user", "content": text})
-    data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    p.write_text(json.dumps(data, indent=2))
-
-
 def append_monitor_comment(comment: str):
     p = DATA_DIR / "chat.json"
     data = json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}

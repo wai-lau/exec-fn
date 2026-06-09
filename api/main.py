@@ -19,7 +19,7 @@ from chat import classify_card, parse_date_natural
 from chat_tools import _handle_tool
 from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence
 from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
-from routes_chat import router as chat_router, public_chat_router
+from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
 from tarot.routes import router as tarot_router
 from monitor import generate_encouragement, _recent_entries, _is_commentable
@@ -285,7 +285,6 @@ protected = APIRouter(dependencies=[Depends(require_auth)])
 guest_protected = APIRouter(dependencies=[Depends(require_guest_auth)])
 protected.include_router(nightfall_protected)
 protected.include_router(chat_router)
-public.include_router(public_chat_router)
 guest_protected.include_router(mtg_router)
 guest_protected.include_router(tarot_router)
 
