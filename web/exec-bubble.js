@@ -138,7 +138,7 @@
       #exec-term .msg.user::before { content: "$"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
       #exec-term .msg.sys { color: rgba(0,255,65,0.24); font-size: 0.72rem; }
       #exec-term .msg.sys::before { content: "# "; }
-      #exec-term .msg.probe { color: rgba(80,200,255,0.55); font-size: 0.78rem; font-style: italic; display: flex; align-items: flex-start; }
+      #exec-term .msg.probe { color: rgba(0,255,65,0.85); font-size: 0.78rem; font-style: italic; display: flex; align-items: flex-start; }
       #exec-term .msg.probe::before { content: "~"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
       #exec-term .msg.probe .msg-body { font-style: italic; }
 
