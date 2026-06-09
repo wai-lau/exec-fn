@@ -199,12 +199,35 @@ def _tool_schedule_card(input_: dict) -> dict:
 
 
 
+def _tool_decompose_task(input_: dict) -> dict:
+    import nudge as _nudge
+    rd = _load_rd()
+    card = _find_card(rd, input_.get("id", ""))
+    if not card:
+        return {"error": f"Card not found: {input_.get('id')}"}
+    if card.get("is_reminder") or card.get("is_event") or card.get("size") == "book":
+        return {"error": "Reminders, events, and books can't be decomposed."}
+    n = _nudge.ensure_nudge(card)
+    result = _nudge.decompose_sync(card)
+    n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
+    n["active_node"] = result["active_node"]
+    _save_rd(rd)
+    _append_rd_log("decomposed", card["title"], source="Exec",
+                   nodes=len(result["nodes"]))
+    return {
+        "ok": True, "id": card["id"], "title": card["title"],
+        "first_chunk": _nudge.active_label(card),
+        "node_count": len(result["nodes"]),
+    }
+
+
 _TOOL_HANDLERS = {
     "create_card":       _tool_create_card,
     "exile_card":        _tool_exile_card,
     "update_card":       _tool_update_card,
     "schedule_card":     _tool_schedule_card,
     "update_context":    _tool_update_context,
+    "decompose_task":    _tool_decompose_task,
 }
 
 
