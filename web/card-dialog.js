@@ -5,7 +5,11 @@
 <style>
 .cd-ov { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
-.cd-box { background:#0a0a0a; border:1px solid rgba(0,255,65,0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; }
+.cd-box { background:#0a0a0a; border:1px solid rgba(0,255,65,0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
+.cd-box::-webkit-scrollbar { width:8px; }
+.cd-box::-webkit-scrollbar-track { background:transparent; }
+.cd-box::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
+.cd-box input[type=checkbox] { accent-color:currentColor; }
 .cd-box label { display:block; font-size:0.6rem; color:rgba(0,255,65,0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
 .cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(0,255,65,0.2); color:rgba(0,255,65,0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
 .cd-box select option { background:#111; }
@@ -55,16 +59,16 @@
     </select>
     <div style="display:flex;align-items:center;gap:16px;margin-top:12px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input id="cd-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)" onchange="document.getElementById('cd-pin-row').style.display=this.checked?'flex':'none';document.getElementById('cd-size-label').style.display=this.checked?'none':'block';document.getElementById('cd-size').style.display=this.checked?'none':'block'">
+        <input id="cd-reminder" type="checkbox" style="width:auto" onchange="document.getElementById('cd-pin-row').style.display=this.checked?'flex':'none';document.getElementById('cd-size-label').style.display=this.checked?'none':'block';document.getElementById('cd-size').style.display=this.checked?'none':'block'">
         <span>reminder only</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input id="cd-event" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
+        <input id="cd-event" type="checkbox" style="width:auto">
         <span>event</span>
       </label>
     </div>
     <label id="cd-pin-row" style="display:none;align-items:center;gap:8px;cursor:pointer;margin-top:6px;margin-left:20px">
-      <input id="cd-pin-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
+      <input id="cd-pin-reminder" type="checkbox" style="width:auto">
       <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
     </label>
     <label id="cd-graph-label" style="display:none">breakdown</label>
@@ -93,6 +97,14 @@
     document.getElementById('cd-pages-inputs').style.display = show ? 'flex' : 'none';
   }
   document.getElementById('cd-size').addEventListener('change', function() { _togglePages(this.value === 'book'); });
+
+  // Enter saves + closes (except in the notes textarea, where it's a newline).
+  document.getElementById('cd-modal').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      window.cdSave();
+    }
+  });
 
   function _parseET(raw) {
     if (!raw || !raw.trim()) return null;
