@@ -64,6 +64,11 @@ async def api_chat(body: ChatBody):
     messages = body.messages
     stage = body.stage
 
+    # Any user turn counts as a reply to the focused awaiting nudge — a bare
+    # "I'm on it" pauses the stall timer (must run before the prompt build).
+    from nudge import clear_awaiting_focused
+    await asyncio.to_thread(clear_awaiting_focused)
+
     async def generate():
         client = anthropic.AsyncAnthropic()
         system_prompt = _build_chat_system_prompt(stage)
