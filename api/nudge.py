@@ -212,6 +212,7 @@ def default_nudge_state() -> dict:
         "last_user_reply_at": None,
         "consequences": {"asked_at": None, "answer": None, "decision": None},
         "auto_deadline": None,        # staggered deadline when no fixed one is set
+        "triage_pending": False,      # card details changed -> tick re-checks the plan
         "version": 1,
     }
 
@@ -412,6 +413,43 @@ def decompose_sync(card: dict, feedback: str = "") -> dict:
     if feedback.strip():
         user += f"\n\nWAI'S FEEDBACK TO INCORPORATE: {feedback.strip()}"
     return _normalize_graph(_json_call(system, user))
+
+
+# ── triage: did a card edit change what the plan should be? ───────────────────
+def triage_sync(card: dict) -> dict:
+    """A card's details changed. Decide whether the breakdown should change to
+    reflect them (a new constraint, scope change, or missing step) and, if so,
+    return a rebuilt graph preserving completed steps.
+
+    Returns {"needs_update": False} or
+    {"needs_update": True, "nodes", "edges", "active_node"}."""
+    nodes = ensure_nudge(card)["graph"]["nodes"]
+    existing = "\n".join(
+        f"- [{'done' if nd.get('done') else 'open'}] {nd['label']} ({nd.get('est_min', '?')}m)"
+        for nd in nodes
+    ) or "(none)"
+    system = (
+        "You are Exec, Wai's ADHD planning assistant. A task's details changed. Decide "
+        "whether its step breakdown should change to reflect the new info: a new "
+        "constraint (travel time, a location, a dependency), changed scope, or a missing "
+        "step. Be conservative — only change it if the new info actually warrants it.\n"
+        "IMPORTANT: if the details imply travel to a place (a distance or 'N min away'), "
+        "add an explicit travel/leave step as the LAST step before the event, with "
+        "est_min = the travel minutes, so the back-scheduler can tell Wai exactly when to "
+        "leave. Preserve completed steps (done=true) and their labels; give each node "
+        "est_min.\n\n"
+        f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
+        'Return JSON only. No change: {"needs_update":false}. '
+        'Changed: {"needs_update":true,"nodes":[{"id":"n1","label":"...","done":false,'
+        '"est_min":15},...],"edges":[{"from":"n1","to":"n2"},...],"active_node":"n1"}'
+    )
+    user = f"{_card_brief(card)}\n\nCURRENT BREAKDOWN:\n{existing}"
+    data = _json_call(system, user, max_tokens=700)
+    if not data.get("needs_update"):
+        return {"needs_update": False}
+    g = _normalize_graph(data)
+    return {"needs_update": True, "nodes": g["nodes"],
+            "edges": g["edges"], "active_node": g["active_node"]}
 
 
 # ── stall: peel a smaller first sub-step off the active node ──────────────────

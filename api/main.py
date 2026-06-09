@@ -293,9 +293,64 @@ async def _build_graph(card_id: str) -> bool:
     return True
 
 
+def _scan_triage() -> list[str]:
+    """Cards flagged for re-triage that still have a plan to re-evaluate."""
+    import nudge as _nudge
+    from helpers import _load_rd
+    out = []
+    for c in _load_rd().get("cards", []):
+        n = c.get("nudge") or {}
+        if not n.get("triage_pending"):
+            continue
+        if c["id"] in _nudges_inflight or time.monotonic() < _nudge_retry_after.get(c["id"], 0):
+            continue
+        if _nudge.decomposable(c) and n.get("graph", {}).get("nodes"):
+            out.append(c["id"])
+        else:
+            n["triage_pending"] = False  # nothing to triage; clear it
+    return out
+
+
+async def _run_triage(card_id: str) -> bool:
+    """Re-evaluate a card's plan against its updated details; rebuild if warranted."""
+    import nudge as _nudge
+    from helpers import _load_rd, _save_rd, _find_card
+    rd = _load_rd()
+    card = _find_card(rd, card_id)
+    if not card or not (card.get("nudge") or {}).get("graph", {}).get("nodes"):
+        return False
+    result = await asyncio.to_thread(_nudge.triage_sync, card)
+    rd = _load_rd()  # reload around the LLM call
+    card = _find_card(rd, card_id)
+    if not card:
+        return False
+    n = _nudge.ensure_nudge(card)
+    n["triage_pending"] = False
+    changed = False
+    if result.get("needs_update") and result.get("nodes"):
+        n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
+        n["active_node"] = result["active_node"]
+        _nudge.compute_deadlines(card)
+        changed = True
+    _save_rd(rd)
+    return changed
+
+
 async def _nudge_tick() -> dict:
-    fired, built = [], []
-    # Plan pass first: every actionable hq card gets a graph + per-node deadlines,
+    fired, built, triaged = [], [], []
+    # Triage pass: cards whose details changed re-check whether the plan should follow.
+    for card_id in await asyncio.to_thread(_scan_triage):
+        _nudges_inflight.add(card_id)
+        try:
+            if await _run_triage(card_id):
+                triaged.append(card_id)
+                _nudge_retry_after.pop(card_id, None)
+        except Exception as e:
+            print(f"[nudge] error triaging {card_id}: {e}")
+            _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
+        finally:
+            _nudges_inflight.discard(card_id)
+    # Plan pass: every actionable hq card gets a graph + per-node deadlines,
     # so the fire pass below can read the active node's deadline to time the nudge.
     # Scans do file I/O + deadline recompute across all cards — offload off the
     # event loop so the 30s tick never freezes request/SSE handling.
@@ -322,7 +377,7 @@ async def _nudge_tick() -> dict:
             _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
         finally:
             _nudges_inflight.discard(card_id)
-    return {"ok": True, "fired": fired, "built": built}
+    return {"ok": True, "fired": fired, "built": built, "triaged": triaged}
 
 
 async def _run_nudge_loop() -> None:
@@ -872,6 +927,17 @@ def _recompute_node_deadlines(cards: list) -> None:
             _nudge.compute_deadlines(c)
 
 
+def _flag_triage(new_cards: list, old_cards: dict) -> None:
+    """Mark a card for plan re-triage when its title/notes changed — the next tick
+    decides whether the breakdown needs to follow the new info."""
+    for c in new_cards:
+        old = old_cards.get(c.get("id"))
+        if not old or not (c.get("nudge") or {}).get("graph", {}).get("nodes"):
+            continue
+        if old.get("notes") != c.get("notes") or old.get("title") != c.get("title"):
+            c["nudge"]["triage_pending"] = True
+
+
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request, source: str = "core"):
     body = await request.json()
@@ -920,6 +986,7 @@ async def api_rd_patch(request: Request, source: str = "core"):
                 log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
 
     _recompute_node_deadlines(new_cards)
+    _flag_triage(new_cards, old_cards)
     data["cards"] = new_cards + revived
     _atomic_write_json(p, data)
     _append_rd_log_batch(log_entries)
