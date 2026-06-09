@@ -123,14 +123,6 @@ body { overflow-y: auto !important; }
 
 <div class="dbg-wrap">
   <div class="dbg-section">
-    <div class="dbg-hdr">vain-empress</div>
-    <div id="dbg-ve"><span class="dbg-empty">loading...</span></div>
-  </div>
-  <div class="dbg-section">
-    <div class="dbg-hdr">moltbook heartbeat</div>
-    <div id="dbg-moltbook"><span class="dbg-empty">loading...</span></div>
-  </div>
-  <div class="dbg-section">
     <div class="dbg-hdr">profile</div>
     <div id="dbg-profile"><span class="dbg-empty">loading...</span></div>
   </div>
@@ -145,6 +137,14 @@ body { overflow-y: auto !important; }
   <div class="dbg-section">
     <div class="dbg-hdr">tarot readings</div>
     <div id="dbg-tarot"><span class="dbg-empty">loading...</span></div>
+  </div>
+  <div class="dbg-section">
+    <div class="dbg-hdr">vain-empress</div>
+    <div id="dbg-ve"><span class="dbg-empty">loading...</span></div>
+  </div>
+  <div class="dbg-section">
+    <div class="dbg-hdr">moltbook heartbeat</div>
+    <div id="dbg-moltbook"><span class="dbg-empty">loading...</span></div>
   </div>
 </div>
 
@@ -277,7 +277,7 @@ async function loadDebug() {
     const files = data.files || [];
     document.getElementById('dbg-logs').innerHTML = files.map((f, i) => {
       const entries = f.entries || [];
-      const isToday = i === 0;
+      const isToday = false;  // activity logs pre-minimized
       return `<div class="dbg-log-file">
         <div class="dbg-log-hdr" onclick="toggleLog(${i})">
           <span class="dbg-log-toggle" id="tog-${i}">${isToday ? '▼' : '▶'}</span>
@@ -310,7 +310,7 @@ async function loadDebug() {
       el.innerHTML = sessions.map((s, si) => {
         const started = s.started_at ? new Date(s.started_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : s.id;
         const exchanges = (s.exchanges || []);
-        const open = si === 0;
+        const open = false;  // mtg logs pre-minimized
         return `<div class="dbg-log-file">
           <div class="dbg-log-hdr" onclick="toggleLog('mtg-${si}')">
             <span class="dbg-log-toggle" id="tog-mtg-${si}">${open ? '▼' : '▶'}</span>
@@ -352,7 +352,7 @@ async function loadDebug() {
           const cls = m.role === 'assistant' ? 'dbg-tarot-asst' : 'dbg-tarot-user';
           return `<div class="dbg-tarot-msg ${cls}">${esc(content)}</div>`;
         }).join('');
-        const open = ri === 0;
+        const open = false;  // tarot readings pre-minimized
         const spreadType = (r.spread && r.spread.type) || 'no spread';
         return `<div class="dbg-log-file">
           <div class="dbg-log-hdr" onclick="toggleLog('tarot-${ri}')">
