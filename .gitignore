@@ -23,7 +23,15 @@ __pycache__/
 !web/fiddle.png
 !web/turbo.png
 !web/wizard.png
+!web/sentinel.png
 *.pyo
+
+# graphify: track served artifacts, ignore local/generated state
+graphify-out/.graphify_*
+graphify-out/cache/
+graphify-out/cost.json
+graphify-out/manifest.json
+graphify-out/[0-9]*/
 *.Identifier
 .env
 .env.*
