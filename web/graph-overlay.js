@@ -12,15 +12,15 @@
   var PHYSICS = {
     enabled: true,
     forceAtlas2Based: {
-      theta: 0.4,
-      gravitationalConstant: -604,
-      centralGravity: 0.03,
+      theta: 0.7,
+      gravitationalConstant: -628,
+      centralGravity: 0.045,
       springLength: 10,
       springConstant: 0.22,
-      damping: 1,
+      damping: 0.8,
       avoidOverlap: 1,
     },
-    maxVelocity: 66,
+    maxVelocity: 2,
     minVelocity: 1,
     solver: 'forceAtlas2Based',
     wind: { x: -19, y: 10 },
@@ -33,29 +33,49 @@
     var updates = nodesDS.map(function (n) {
       return {
         id: n.id,
-        font: { size: 12, color: '#ffffff', face: 'Iosevka Mayukai Monolite, monospace' },
+        font: { size: 12, color: '#ffffff', face: 'Iosevka Mayukai Monolite' },
       };
     });
     nodesDS.update(updates);
+    // canvas labels need the web font loaded before they paint — repaint once ready
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        network.redraw();
+      });
+    }
   }
 
-  // Our own "freeze" checkbox — inverted physics toggle. Checked = physics off
-  // (frozen), unchecked = physics on. Replaces vis's native "enabled" checkbox
-  // (hidden via CSS), which had the opposite meaning.
+  // Control row: "freeze:" (inverted physics toggle — checked = physics off) and
+  // "tour:" (camera tour on/off). Replaces vis's native "enabled" checkbox.
   var freezeCb = null;
+  var tourCb = null;
 
-  function makeFreeze() {
-    var row = document.createElement('label');
-    row.className = 'gp-freeze';
+  function labeledCheck(text, checked, onChange) {
+    var label = document.createElement('label');
     var span = document.createElement('span');
-    span.textContent = 'freeze:';
-    freezeCb = document.createElement('input');
-    freezeCb.type = 'checkbox';
-    freezeCb.addEventListener('change', function () {
+    span.textContent = text;
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!checked;
+    cb.addEventListener('change', onChange);
+    label.appendChild(span);
+    label.appendChild(cb);
+    return { label: label, cb: cb };
+  }
+
+  function makeControls() {
+    var row = document.createElement('div');
+    row.className = 'gp-freeze';
+    var freeze = labeledCheck('freeze:', false, function () {
       network.setOptions({ physics: { enabled: !freezeCb.checked } });
     });
-    row.appendChild(span);
-    row.appendChild(freezeCb);
+    freezeCb = freeze.cb;
+    var tour = labeledCheck('tour:', true, function () {
+      setTour(tourCb.checked);
+    });
+    tourCb = tour.cb;
+    row.appendChild(freeze.label);
+    row.appendChild(tour.label);
     return row;
   }
 
@@ -75,7 +95,7 @@
     panel.id = 'gp-physics';
     var body = document.createElement('div');
     body.className = 'gp-panel-body';
-    panel.appendChild(makeFreeze());
+    panel.appendChild(makeControls());
     panel.appendChild(body);
     document.body.appendChild(panel);
     return body;
@@ -111,6 +131,104 @@
     });
   }
 
+  // Camera tour: pick a random cluster, focus its highest-degree node, switch
+  // to another random cluster every 10s. Clusters with < 7 nodes are skipped.
+  // Toggled by the "tour:" checkbox.
+  var tourIds = [];
+  var tourTimer = null;
+
+  function focusRandomCluster() {
+    if (!tourIds.length) {
+      return;
+    }
+    var id = tourIds[Math.floor(Math.random() * tourIds.length)];
+    network.focus(id, {
+      scale: 0.65,
+      animation: { duration: 1500, easingFunction: 'easeInOutQuad' },
+    });
+    network.selectNodes([id]);
+  }
+
+  function setTour(on) {
+    if (tourTimer) {
+      clearInterval(tourTimer);
+      tourTimer = null;
+    }
+    if (on && tourIds.length) {
+      focusRandomCluster();
+      tourTimer = setInterval(focusRandomCluster, 10000);
+    }
+  }
+
+  // How many distinct communities a node touches (itself + its neighbors).
+  // Cross-cluster hubs (> 2) are skipped as focus targets.
+  function clusterSpan(id, ownComm) {
+    var comms = {};
+    if (ownComm !== undefined && ownComm !== null) {
+      comms[ownComm] = 1;
+    }
+    network.getConnectedNodes(id).forEach(function (nid) {
+      var n = nodesDS.get(nid);
+      if (n && n._community !== undefined && n._community !== null) {
+        comms[n._community] = 1;
+      }
+    });
+    return Object.keys(comms).length;
+  }
+
+  function initTour() {
+    if (typeof nodesDS === 'undefined') {
+      return;
+    }
+    var groups = {}; // community -> { topId, topDeg, count }
+    nodesDS.forEach(function (n) {
+      var c = n._community;
+      var d = n._degree || 0;
+      if (c === undefined || c === null) {
+        return;
+      }
+      if (!groups[c]) {
+        groups[c] = { topId: null, topDeg: -1, count: 0 };
+      }
+      groups[c].count += 1;
+      // a node spanning > 2 clusters is a bridge hub — never a focus target
+      if (clusterSpan(n.id, c) > 2) {
+        return;
+      }
+      if (d > groups[c].topDeg) {
+        groups[c].topDeg = d;
+        groups[c].topId = n.id;
+      }
+    });
+    tourIds = Object.keys(groups)
+      .filter(function (c) { return groups[c].count >= 7 && groups[c].topId; })
+      .map(function (c) { return groups[c].topId; });
+    // let the initial fit settle, then start the tour if its checkbox is on
+    setTimeout(function () {
+      if (tourCb && tourCb.checked) {
+        setTour(true);
+      }
+    }, 2000);
+  }
+
+  // Cover the graph for 3s with a simple loading bar so the layout settles
+  // before the nodes are revealed.
+  function showLoading() {
+    var overlay = document.createElement('div');
+    overlay.id = 'gp-loading';
+    var track = document.createElement('div');
+    track.className = 'gp-load-track';
+    var fill = document.createElement('div');
+    fill.className = 'gp-load-fill';
+    track.appendChild(fill);
+    overlay.appendChild(track);
+    document.body.appendChild(overlay);
+    setTimeout(function () {
+      overlay.classList.add('gp-hide');
+      setTimeout(function () { overlay.remove(); }, 800);
+    }, 3000);
+  }
+
   function go() {
     if (typeof network === 'undefined') {
       setTimeout(go, 50);
@@ -119,6 +237,12 @@
     showAllLabels();
     var physBody = buildPhysicsColumn();
     network.setOptions({ physics: PHYSICS });
+    // settle fast (maxVelocity 200) while the 3s loading cover hides the graph,
+    // then drop back to the default 0.5s before the cover lifts.
+    network.setOptions({ physics: { maxVelocity: 200 } });
+    setTimeout(function () {
+      network.setOptions({ physics: { maxVelocity: PHYSICS.maxVelocity } });
+    }, 2500);
     network.setOptions({
       configure: {
         enabled: true,
@@ -142,6 +266,9 @@
         setFreeze(false);
       }, 400);
     }, 800);
+    initTour();
   }
+
+  showLoading();
   go();
 })();
