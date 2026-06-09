@@ -292,7 +292,9 @@ async def _nudge_tick() -> dict:
     fired, built = [], []
     # Plan pass first: every actionable hq card gets a graph + per-node deadlines,
     # so the fire pass below can read the active node's deadline to time the nudge.
-    for card_id in _scan_missing_graphs():
+    # Scans do file I/O + deadline recompute across all cards — offload off the
+    # event loop so the 30s tick never freezes request/SSE handling.
+    for card_id in await asyncio.to_thread(_scan_missing_graphs):
         _nudges_inflight.add(card_id)
         try:
             if await _build_graph(card_id):
@@ -304,7 +306,7 @@ async def _nudge_tick() -> dict:
         finally:
             _nudges_inflight.discard(card_id)
     # Fire pass: nudge cards whose active-node start time has arrived.
-    for card_id, kind in _scan_due_nudges():
+    for card_id, kind in await asyncio.to_thread(_scan_due_nudges):
         _nudges_inflight.add(card_id)
         try:
             if await _fire_nudge(card_id, kind):
