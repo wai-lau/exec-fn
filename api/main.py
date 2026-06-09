@@ -137,8 +137,13 @@ def _arm_nudge(c: dict, slot) -> bool:
     return dirty
 
 
-def _scan_due_nudges() -> list[str]:
-    """Arm/refresh next_nudge_at for eligible cards; return ids due to fire now."""
+_nudge_retry_after: dict[str, float] = {}  # card_id -> monotonic ts (failure backoff)
+_NUDGE_FAIL_BACKOFF_SEC = 300
+
+
+def _scan_due_nudges() -> list[tuple[str, str]]:
+    """Arm/refresh next_nudge_at for eligible cards; return (id, kind) due now.
+    kind: 'nudge' = (re-)nudge due, 'stall' = response window expired."""
     import nudge as _nudge
     from scheduler import logical_today_iso
     from helpers import _load_rd, _save_rd, _now_et
@@ -155,19 +160,24 @@ def _scan_due_nudges() -> list[str]:
             continue
         dirty |= _arm_nudge(c, slot)
         n = c["nudge"]
-        if n["awaiting_reply"] or c["id"] in _nudges_inflight:
+        if c["id"] in _nudges_inflight or time.monotonic() < _nudge_retry_after.get(c["id"], 0):
+            continue
+        if n["awaiting_reply"]:
+            wd = _nudge._parse_et(n.get("window_deadline"))
+            if wd and now >= wd:
+                due.append((c["id"], "stall"))
             continue
         nna = _nudge._parse_et(n.get("next_nudge_at"))
         if nna and now >= nna:
-            due.append(c["id"])
+            due.append((c["id"], "nudge"))
     if dirty:
         _save_rd(rd)
     return due
 
 
-async def _fire_nudge(card_id: str) -> bool:
-    """Generate + deliver one nudge. Reloads rd around the LLM call so a
-    concurrent PATCH /api/rd isn't clobbered."""
+async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
+    """Generate + deliver one nudge (or stall re-peel). Reloads rd around the
+    LLM call so a concurrent PATCH /api/rd isn't clobbered."""
     import nudge as _nudge
     from datetime import timedelta
     from scheduler import logical_today_iso
@@ -179,9 +189,16 @@ async def _fire_nudge(card_id: str) -> bool:
         return False
     n = _nudge.ensure_nudge(card)
 
+    graph_update = active = peeled_label = None
     await push_to_monitor({"thinking": True})
     try:
-        if not n["graph"]["nodes"]:
+        if kind == "stall" and n["graph"]["nodes"]:
+            result = await asyncio.to_thread(_nudge.peel_sync, card)
+            peeled_label = (result.get("sub_label") or "").strip()
+            text = (result.get("nudge_text") or "").strip()
+            if not peeled_label or not text:
+                return False
+        elif not n["graph"]["nodes"]:
             result = await asyncio.to_thread(_nudge.decompose_sync, card)
             graph_update = {"nodes": result["nodes"], "edges": result["edges"]}
             active = result["active_node"]
@@ -189,7 +206,6 @@ async def _fire_nudge(card_id: str) -> bool:
             if not text:
                 text = await asyncio.to_thread(_nudge.nudge_text_sync, card)
         else:
-            graph_update, active = None, None
             text = await asyncio.to_thread(_nudge.nudge_text_sync, card)
     finally:
         await push_to_monitor({"thinking": False})
@@ -200,9 +216,13 @@ async def _fire_nudge(card_id: str) -> bool:
     if not card or not _nudge._eligible(card, logical_today_iso()):
         return False
     n = _nudge.ensure_nudge(card)
+    if n["awaiting_reply"] != (kind == "stall"):
+        return False  # state moved under us (reply landed / another fire) — drop
     if graph_update is not None:
         n["graph"] = graph_update
         n["active_node"] = active
+    if peeled_label is not None:
+        _nudge.apply_peel(card, peeled_label)
     now = _now_et()
     n["stage"] = "awaiting"
     n["awaiting_reply"] = True
@@ -219,13 +239,15 @@ async def _fire_nudge(card_id: str) -> bool:
 
 async def _nudge_tick() -> dict:
     fired = []
-    for card_id in _scan_due_nudges():
+    for card_id, kind in _scan_due_nudges():
         _nudges_inflight.add(card_id)
         try:
-            if await _fire_nudge(card_id):
+            if await _fire_nudge(card_id, kind):
                 fired.append(card_id)
+                _nudge_retry_after.pop(card_id, None)
         except Exception as e:
-            print(f"[nudge] error firing {card_id}: {e}")
+            print(f"[nudge] error firing {card_id} ({kind}): {e}")
+            _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
         finally:
             _nudges_inflight.discard(card_id)
     return {"ok": True, "fired": fired}

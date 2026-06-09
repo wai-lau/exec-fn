@@ -146,8 +146,15 @@ def clear_awaiting_focused() -> str | None:
         return None
     card = max(cands, key=lambda c: c["nudge"].get("last_nudge_at") or "")
     n = card["nudge"]
+    now = _now_et()
     n["awaiting_reply"] = False
-    n["last_user_reply_at"] = _fmt_et(_now_et())
+    n["last_user_reply_at"] = _fmt_et(now)
+    if n.get("stage") == "awaiting":
+        # Replied but not done: restart the no-response window so the loop
+        # re-nudges if Wai goes quiet again (advance/consequences override this).
+        n["stage"] = "nudging"
+        n["next_nudge_at"] = _fmt_et(now + timedelta(minutes=window_for(card)))
+        n["window_deadline"] = None
     _save_rd(rd)
     return card["id"]
 
@@ -213,6 +220,52 @@ def decompose_sync(card: dict) -> dict:
         '"edges":[{"from":"n1","to":"n2"},...],"active_node":"n1","nudge_text":"..."}'
     )
     return _normalize_graph(_json_call(system, _card_brief(card)))
+
+
+# ── stall: peel a smaller first sub-step off the active node ──────────────────
+def peel_sync(card: dict) -> dict:
+    """LLM only; caller mutates the graph. Returns {sub_label, nudge_text}."""
+    n = ensure_nudge(card)
+    chunk = active_label(card)
+    system = (
+        "You are Exec, Wai's ADHD planning assistant. Wai has stalled on a step. Peel "
+        "off a SMALLER first sub-step: the tiniest concrete action that starts it. "
+        "There is no floor — 'open the app' or 'put the tab on screen' is fine.\n"
+        f"{_TONE}\n"
+        "Also write the nudge for ONLY that sub-step: 1-2 sentences naming it, plus 1 "
+        "sentence of why it matters (reasoning / consequence / dependency).\n\n"
+        f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
+        'Return JSON only: {"sub_label":"...","nudge_text":"..."}'
+    )
+    user = (
+        f"{_card_brief(card)}\n\nSTALLED STEP: {chunk}\n"
+        f"ALREADY PEELED {n.get('redecompose_count', 0)} TIME(S) — go smaller than last time."
+    )
+    return _json_call(system, user, max_tokens=300)
+
+
+def apply_peel(card: dict, sub_label: str) -> str:
+    """Insert the peeled sub-step as a prerequisite of the active node and make it
+    active. Returns the new node id."""
+    n = ensure_nudge(card)
+    parent_id = n.get("active_node")
+    nodes = n["graph"]["nodes"]
+    parent = next((nd for nd in nodes if nd["id"] == parent_id), None)
+    now = _now_et()
+    new_id = f"peel-{now.strftime('%H%M%S')}-{len(nodes)}"
+    nodes.append({
+        "id": new_id,
+        "label": sub_label,
+        "done": False,
+        "depth": (parent.get("depth", 0) + 1) if parent else 0,
+        "created_at": _fmt_et(now),
+    })
+    if parent_id:
+        n["graph"]["edges"].append({"from": new_id, "to": parent_id})
+    n["active_node"] = new_id
+    n["redecompose_count"] = n.get("redecompose_count", 0) + 1
+    n.setdefault("redecompose_at", []).append(_fmt_et(now))
+    return new_id
 
 
 # ── nudge text for the current chunk (graph already exists) ───────────────────
