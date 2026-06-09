@@ -11,6 +11,9 @@ services:
     environment:
       - TZ=America/New_York
     volumes:
+      # Mount the whole api/ source so uvicorn --reload picks up .py edits live —
+      # no docker cp, no image drift. Nested mounts below layer on top.
+      - ./api:/app
       - ./api/data:/app/data
       - ./api/templates:/app/templates
       - ./web:/app/static

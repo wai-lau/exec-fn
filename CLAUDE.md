@@ -10,11 +10,7 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 
 **Template/static file changes are live on next page load** — `api/templates/` files are read from disk per request via `_tmpl()` in `main.py`. `web/static/index.html` is read per request via `_index_pages()` (cached by mtime). `web/` static files are served directly by FastAPI. No restart needed for any of these.
 
-**Python changes need docker cp + restart:**
-```bash
-docker cp api/main.py exec-fn-api-1:/app/main.py
-docker compose -f /exec-fn/docker-compose.yml restart api
-```
+**Python changes are live too** — `./api` is volume-mounted to `/app` (see `docker-compose.yml`) and uvicorn runs with `--reload`, so editing any `api/*.py` on disk auto-reloads the worker. No `docker cp`, no restart, no image drift. (If `--reload` ever misses a change, `docker compose restart api` forces it — but no `docker cp` is needed since the source is mounted.)
 
 **Rebuild only if** `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` changed:
 ```bash
