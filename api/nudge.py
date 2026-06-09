@@ -500,23 +500,48 @@ def apply_peel(card: dict, sub_label: str, est_min: int = 5) -> str:
     return new_id
 
 
+def _fmt_clock(dt: datetime) -> str:
+    return dt.strftime("%-I:%M %p").lower()
+
+
+def _active_node(card: dict) -> dict | None:
+    n = card.get("nudge") or {}
+    return next((nd for nd in n.get("graph", {}).get("nodes", [])
+                 if nd["id"] == n.get("active_node")), None)
+
+
 # ── nudge text for the current chunk (graph already exists) ───────────────────
 def nudge_text_sync(card: dict) -> str:
     n = ensure_nudge(card)
-    chunk = active_label(card)
+    active = _active_node(card)
+    chunk = active["label"] if active else active_label(card)
     redec = n.get("redecompose_count", 0)
+
+    time_hint = ""
+    if active and active.get("deadline"):
+        dl = _parse_et(active["deadline"])
+        start = dl - timedelta(minutes=active.get("est_min") or 0)
+        time_hint = (
+            f"\nTIMING: this step needs to be done by {_fmt_clock(dl)}; to make that, it "
+            f"should start by {_fmt_clock(start)}."
+        )
+
     system = (
         "You are Exec, Wai's ADHD planning assistant. Write ONE nudge for the next chunk "
         "of a task. 1-2 sentences naming only that chunk, plus 1 sentence of why it "
         "matters (reasoning / consequence / dependency). Never reveal the whole plan.\n"
         f"{_TONE}\n"
+        "If the step is time-critical — especially leaving or travelling to be somewhere "
+        "on time — LEAD with the clock time and the action, plainly. Model: "
+        "\"By 6:30, leave home to meet Aman — it's a 30-minute trip and you don't want to "
+        "be late.\" Keep the warm, practical register; just put the time first.\n"
         + (
             f"Wai has been re-nudged {redec} time(s) on this task without starting — keep "
             "it extra small and inviting, zero pressure.\n" if redec else ""
         )
         + f"\nKNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\nReply with the nudge text only."
     )
-    user = f"{_card_brief(card)}\n\nNEXT CHUNK: {chunk}"
+    user = f"{_card_brief(card)}\n\nNEXT CHUNK: {chunk}{time_hint}"
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model=_MODEL, max_tokens=200, system=system,
