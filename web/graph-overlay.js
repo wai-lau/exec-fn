@@ -42,19 +42,29 @@
   // Our own "freeze" checkbox — inverted physics toggle. Checked = physics off
   // (frozen), unchecked = physics on. Replaces vis's native "enabled" checkbox
   // (hidden via CSS), which had the opposite meaning.
+  var freezeCb = null;
+
   function makeFreeze() {
     var row = document.createElement('label');
     row.className = 'gp-freeze';
     var span = document.createElement('span');
     span.textContent = 'freeze:';
-    var cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.addEventListener('change', function () {
-      network.setOptions({ physics: { enabled: !cb.checked } });
+    freezeCb = document.createElement('input');
+    freezeCb.type = 'checkbox';
+    freezeCb.addEventListener('change', function () {
+      network.setOptions({ physics: { enabled: !freezeCb.checked } });
     });
     row.appendChild(span);
-    row.appendChild(cb);
+    row.appendChild(freezeCb);
     return row;
+  }
+
+  // Programmatic freeze: keep the checkbox and physics in sync.
+  function setFreeze(on) {
+    if (freezeCb) {
+      freezeCb.checked = on;
+    }
+    network.setOptions({ physics: { enabled: !on } });
   }
 
   // Physics column (bottom-left). vis renders the configurator into its inner
@@ -71,24 +81,33 @@
     return body;
   }
 
-  // Single button: slide the whole bottom half down (and the graph reclaims it).
-  function addBottomToggle() {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'gp-bottom-toggle gp-min-btn';
-    btn.textContent = '▾';
-    btn.title = 'hide physics + graph panels';
-    document.body.appendChild(btn);
-    btn.addEventListener('click', function () {
-      var hidden = document.body.classList.toggle('gp-bottom-hidden');
-      btn.textContent = hidden ? '▴' : '▾';
-      // graph container height changed — let vis repaint to the new size.
-      setTimeout(function () {
-        if (typeof network !== 'undefined') {
-          network.setSize('100%', '100%');
-          network.redraw();
+  // One always-visible toggle per panel (collapsed by default, so the button is
+  // the only thing shown until clicked). Opening one autocloses the other.
+  function addToggles() {
+    var specs = [
+      { cls: 'phys', body: 'gp-phys-open', open: '▾', closed: '▴' },
+      { cls: 'info', body: 'gp-info-open', open: '▸', closed: '◂' },
+    ];
+    var btns = {};
+    specs.forEach(function (s) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'gp-toggle gp-min-btn ' + s.cls;
+      btn.textContent = s.closed;
+      document.body.appendChild(btn);
+      btns[s.body] = btn;
+      btn.addEventListener('click', function () {
+        var open = document.body.classList.toggle(s.body);
+        btn.textContent = open ? s.open : s.closed;
+        if (open) {
+          specs.forEach(function (o) {
+            if (o.body !== s.body) {
+              document.body.classList.remove(o.body);
+              btns[o.body].textContent = o.closed;
+            }
+          });
         }
-      }, 220);
+      });
     });
   }
 
@@ -108,12 +127,21 @@
         container: physBody,
       },
     });
-    addBottomToggle();
+    // physics collapses down (▾ open / ▴ collapsed); node info collapses right
+    // (▸ open / ◂ collapsed). Both start collapsed; opening one closes the other.
+    addToggles();
     // graph.html disables physics once stabilization finishes (its own `once`
     // handler). Re-enable it exactly once — `.once` avoids a re-stabilization loop.
     network.once('stabilizationIterationsDone', function () {
       network.setOptions({ physics: { enabled: true } });
     });
+    // Freeze-then-unfreeze pulse after load (settles, then resumes physics).
+    setTimeout(function () {
+      setFreeze(true);
+      setTimeout(function () {
+        setFreeze(false);
+      }, 400);
+    }, 800);
   }
   go();
 })();
