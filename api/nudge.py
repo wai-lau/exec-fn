@@ -206,7 +206,7 @@ def _json_call(system: str, user: str, max_tokens: int = 700) -> dict:
 
 
 # ── decomposition (one LLM call: build graph + first node + opening nudge) ─────
-def decompose_sync(card: dict) -> dict:
+def decompose_sync(card: dict, feedback: str = "") -> dict:
     system = (
         "You are Exec, Wai's ADHD planning assistant. Build a SMALL internal dependency "
         "graph for ONE task: its concrete sub-steps and which must precede which (an edge "
@@ -216,10 +216,23 @@ def decompose_sync(card: dict) -> dict:
         "The nudge is 1-2 sentences naming only the first chunk, plus 1 sentence of why it "
         "matters (reasoning / consequence / dependency). Never reveal the whole plan.\n\n"
         f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
-        'Return JSON only: {"nodes":[{"id":"n1","label":"..."},...],'
+        'Return JSON only: {"nodes":[{"id":"n1","label":"...","done":false},...],'
         '"edges":[{"from":"n1","to":"n2"},...],"active_node":"n1","nudge_text":"..."}'
     )
-    return _normalize_graph(_json_call(system, _card_brief(card)))
+    user = _card_brief(card)
+    n = card.get("nudge") or {}
+    nodes = n.get("graph", {}).get("nodes", [])
+    if nodes:
+        existing = "\n".join(
+            f"- [{'done' if nd.get('done') else 'open'}] {nd['label']}" for nd in nodes
+        )
+        user += (
+            f"\n\nEXISTING BREAKDOWN (rebuild from this — keep done steps done, "
+            f"reuse labels where still right):\n{existing}"
+        )
+    if feedback.strip():
+        user += f"\n\nWAI'S FEEDBACK TO INCORPORATE: {feedback.strip()}"
+    return _normalize_graph(_json_call(system, user))
 
 
 # ── stall: peel a smaller first sub-step off the active node ──────────────────

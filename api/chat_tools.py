@@ -58,6 +58,9 @@ def _tool_exile_card(input_: dict) -> dict:
     from_col = card.get("column")
     card["column"] = "exile"
     card["scheduled_day"] = None
+    n = card.get("nudge")
+    if n and n.get("stage") == "consequences":
+        n["consequences"]["decision"] = "delete"
     _save_rd(rd)
     _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col="exile")
     return {"ok": True, "id": card["id"], "title": card["title"], "column": "exile"}
@@ -181,14 +184,37 @@ def _apply_schedule(card_id: str, requested: str, dir_start_min: int | None = No
     return result
 
 
+_ACTIVE_NUDGE_STAGES = ("nudging", "awaiting", "stalled", "consequences")
+
+_RESCHED_GUARD_MSG = (
+    "This task has an active nudge loop — moving it later (or unscheduling it) is a "
+    "reschedule. Ask Wai what happens if it doesn't get done, call record_consequences "
+    "with the answer, then use reschedule_after_consequences."
+)
+
+
+def _nudge_resched_blocked(card: dict, requested: str | None) -> bool:
+    """Due dates are protected: an active-nudge card can't be deferred without the
+    consequences conversation. Same-day/earlier moves stay allowed."""
+    n = card.get("nudge") or {}
+    if n.get("stage") not in _ACTIVE_NUDGE_STAGES:
+        return False
+    if (n.get("consequences") or {}).get("answer"):
+        return False
+    cur = (card.get("scheduled_day") or "")[:10]
+    return requested is None or (requested or "")[:10] > cur
+
+
 def _tool_schedule_card(input_: dict) -> dict:
     card_id = input_.get("id", "")
     requested = input_.get("scheduled_day") or None
+    rd = _load_rd()
+    card = _find_card(rd, card_id)
+    if not card:
+        return {"error": f"Card not found: {card_id}"}
+    if _nudge_resched_blocked(card, requested):
+        return {"error": _RESCHED_GUARD_MSG}
     if not requested:
-        rd = _load_rd()
-        card = _find_card(rd, card_id)
-        if not card:
-            return {"error": f"Card not found: {card_id}"}
         card["scheduled_day"] = None
         card.pop("dir_start_min", None)
         _save_rd(rd)
@@ -196,6 +222,63 @@ def _tool_schedule_card(input_: dict) -> dict:
         return {"ok": True, "id": card_id, "title": card.get("title", ""), "scheduled_day": None}
     result = _apply_schedule(card_id, requested, input_.get("dir_start_min"))
     return {"ok": True, "id": card_id, **result}
+
+
+def _tool_record_consequences(input_: dict) -> dict:
+    import nudge as _nudge
+    rd = _load_rd()
+    card = _find_card(rd, input_.get("id", ""))
+    if not card:
+        return {"error": f"Card not found: {input_.get('id')}"}
+    answer = (input_.get("consequence") or "").strip()
+    if not answer:
+        return {"error": "consequence required — Wai's answer to 'what happens if this doesn't get done?'"}
+    n = _nudge.ensure_nudge(card)
+    n["consequences"]["answer"] = answer
+    n["consequences"]["asked_at"] = _nudge._fmt_et(_now_et())
+    n["stage"] = "consequences"
+    n["awaiting_reply"] = False
+    n["window_deadline"] = None
+    n["next_nudge_at"] = None
+    _save_rd(rd)
+    _append_rd_log("consequences", card["title"], source="Exec")
+    return {
+        "ok": True, "id": card["id"], "title": card["title"],
+        "note": (
+            "Recorded. Now apply gentle pushback acknowledging the real cost, then "
+            "offer exactly: try a smaller step now, reschedule "
+            "(reschedule_after_consequences), or drop it (exile_card)."
+        ),
+    }
+
+
+def _tool_reschedule_after_consequences(input_: dict) -> dict:
+    import nudge as _nudge
+    rd = _load_rd()
+    card = _find_card(rd, input_.get("id", ""))
+    if not card:
+        return {"error": f"Card not found: {input_.get('id')}"}
+    n = _nudge.ensure_nudge(card)
+    if not (n.get("consequences") or {}).get("answer"):
+        return {"error": (
+            "Consequences not recorded — ask Wai what happens if this doesn't get "
+            "done and call record_consequences first."
+        )}
+    new_date = (input_.get("new_date") or "").strip()
+    if not new_date:
+        return {"error": "new_date required (ISO date)."}
+    n["consequences"]["decision"] = "reschedule"
+    # Reset loop timing for the new day; keep graph + metrics (cumulative).
+    n["stage"] = "idle"
+    n["awaiting_reply"] = False
+    n["first_nudge_at"] = None
+    n["next_nudge_at"] = None
+    n["window_deadline"] = None
+    _save_rd(rd)
+    result = _apply_schedule(card["id"], new_date)
+    if "error" in result:
+        return result
+    return {"ok": True, "id": card["id"], "title": card["title"], **result}
 
 
 
@@ -208,7 +291,7 @@ def _tool_decompose_task(input_: dict) -> dict:
     if card.get("is_reminder") or card.get("is_event") or card.get("size") == "book":
         return {"error": "Reminders, events, and books can't be decomposed."}
     n = _nudge.ensure_nudge(card)
-    result = _nudge.decompose_sync(card)
+    result = _nudge.decompose_sync(card, feedback=input_.get("feedback", ""))
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
     _save_rd(rd)
@@ -264,13 +347,15 @@ def _tool_advance_chunk(input_: dict) -> dict:
 
 
 _TOOL_HANDLERS = {
-    "create_card":       _tool_create_card,
-    "exile_card":        _tool_exile_card,
-    "update_card":       _tool_update_card,
-    "schedule_card":     _tool_schedule_card,
-    "update_context":    _tool_update_context,
-    "decompose_task":    _tool_decompose_task,
-    "advance_chunk":     _tool_advance_chunk,
+    "create_card":                   _tool_create_card,
+    "exile_card":                    _tool_exile_card,
+    "update_card":                   _tool_update_card,
+    "schedule_card":                 _tool_schedule_card,
+    "update_context":                _tool_update_context,
+    "decompose_task":                _tool_decompose_task,
+    "advance_chunk":                 _tool_advance_chunk,
+    "record_consequences":           _tool_record_consequences,
+    "reschedule_after_consequences": _tool_reschedule_after_consequences,
 }
 
 
