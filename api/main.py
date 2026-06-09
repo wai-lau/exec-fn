@@ -113,26 +113,26 @@ async def _run_monitor(delay: float = 60.0) -> None:
 _nudges_inflight: set[str] = set()
 
 
-def _arm_nudge(c: dict, slot) -> bool:
-    """Bring a card's nudge timing in line with its placement. Returns dirty.
+def _arm_nudge(c: dict, anchor) -> bool:
+    """Bring a card's nudge timing in line with its anchor. Returns dirty.
 
     While stage is 'nudging' (first nudge not yet sent) next_nudge_at tracks the
-    card's current placement each tick, so dragging the card on the timeline
-    moves the nudge with it.
+    card's current anchor each tick, so dragging the card on the timeline moves
+    the nudge with it. Today-scheduled cards without a slot anchor to 10 AM/now.
     """
     import nudge as _nudge
     n = _nudge.ensure_nudge(c)
+    anchor_s = _nudge._fmt_et(anchor)
     dirty = False
     if n["stage"] == "idle":
         n["stage"] = "nudging"
-        n["first_nudge_at"] = _nudge._fmt_et(slot)
+        n["first_nudge_at"] = anchor_s
         dirty = True
     if n["stage"] == "nudging" and not n["last_nudge_at"]:
-        # First nudge not sent yet: keep tracking the card's placement.
+        # First nudge not sent yet: keep tracking the anchor.
         # After that, next_nudge_at is owned by the loop (advance/stall).
-        slot_s = _nudge._fmt_et(slot)
-        if n["next_nudge_at"] != slot_s:
-            n["next_nudge_at"] = slot_s
+        if n["next_nudge_at"] != anchor_s:
+            n["next_nudge_at"] = anchor_s
             dirty = True
     return dirty
 
@@ -155,10 +155,9 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
     for c in rd.get("cards", []):
         if not _nudge._eligible(c, today):
             continue
-        slot = _nudge.slot_datetime(c)
-        if slot is None or (c.get("nudge") or {}).get("stage") == "resolved":
+        if (c.get("nudge") or {}).get("stage") == "resolved":
             continue
-        dirty |= _arm_nudge(c, slot)
+        dirty |= _arm_nudge(c, _nudge.nudge_anchor(c, now))
         n = c["nudge"]
         if c["id"] in _nudges_inflight or time.monotonic() < _nudge_retry_after.get(c["id"], 0):
             continue
@@ -363,7 +362,7 @@ def _build_nav(active=None, guest=False):
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
     show_bubble = (not guest) and active in {"core", "prophecies", "directives"}
-    bubble = '<script src="/exec-bubble.js?v=5"></script>' if show_bubble else ''
+    bubble = '<script src="/exec-bubble.js?v=6"></script>' if show_bubble else ''
     return nav + script + bubble
 
 

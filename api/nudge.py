@@ -11,7 +11,6 @@ import anthropic
 from datetime import datetime, timedelta
 
 from helpers import _now_et, _load_json, _parse_json, _SIZE_MINUTES
-from scheduler import is_dir_card
 
 # ── tuning constants ──────────────────────────────────────────────────────────
 NUDGE_WINDOW_MULT = 2.6        # stall window ~= estimate * this
@@ -69,14 +68,20 @@ def decomposable(c: dict) -> bool:
 
 
 def _eligible(c: dict, today_iso: str) -> bool:
-    """Nudge-able: on today's dirs timeline AND in hq (active working set),
-    actionable, not a book. rd cards scheduled today are NOT nudged — only
-    what Wai has committed to (hq) gets the loop."""
-    return (
-        is_dir_card(c, today_iso)
-        and c.get("column") == "hq"
-        and c.get("size") != "book"
-    )
+    """Nudge-able: has a plan (decomposable hq card, events included) AND is
+    scheduled for today. Everything with a plan scheduled today nudges; a
+    dir_start_min slot is optional (see nudge_anchor for the fallback time)."""
+    return decomposable(c) and c.get("scheduled_day") == today_iso
+
+
+def nudge_anchor(c: dict, now: datetime) -> datetime:
+    """First-nudge time for a today-scheduled card: its timeline slot if placed,
+    else the 10 AM autostack anchor (or now if past it) so nothing fires pre-dawn."""
+    slot = slot_datetime(c)
+    if slot is not None:
+        return slot
+    floor = now.replace(hour=10, minute=0, second=0, microsecond=0)  # AUTOSTACK_ANCHOR
+    return max(now, floor)
 
 
 # ── state ─────────────────────────────────────────────────────────────────────
@@ -168,11 +173,11 @@ def morning_reconcile(cards: list, today_iso: str) -> None:
         # Fresh day: slot-tracking owns the first nudge again.
         n["last_nudge_at"] = None
         n["last_nudge_text"] = ""
-        if _eligible(c, today_iso) and c.get("dir_start_min") is not None:
-            slot = slot_datetime(c)
+        if _eligible(c, today_iso):
+            anchor = _fmt_et(nudge_anchor(c, _now_et()))
             n["stage"] = "nudging"
-            n["first_nudge_at"] = _fmt_et(slot) if slot else None
-            n["next_nudge_at"] = _fmt_et(slot) if slot else None
+            n["first_nudge_at"] = anchor
+            n["next_nudge_at"] = anchor
         else:
             n["stage"] = "idle"
             n["first_nudge_at"] = None
