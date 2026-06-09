@@ -462,7 +462,7 @@ async def debug_page():
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
 _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=1">'
-_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=1"></script>'
+_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=3"></script>'
 
 
 @protected.get("/graph", response_class=HTMLResponse)
