@@ -22,7 +22,7 @@
 .cg-node.done .cg-label { text-decoration:line-through; }
 .cg-meta { font-size:9px; opacity:0.55; margin-top:3px; }
 .cg-node.active .cg-meta { opacity:0.95; }
-.cg-ctl { position:absolute; top:4px; right:5px; display:flex; gap:5px; line-height:1; }
+.cg-ctl { position:absolute; top:50%; right:5px; transform:translateY(-50%); display:flex; flex-direction:column; gap:6px; line-height:1; }
 .cg-ic { background:none; border:none; color:inherit; cursor:pointer; font-family:inherit; font-size:0.78rem; opacity:0.4; padding:0; }
 .cg-ic:hover { opacity:1; }
 .cg-edge { stroke:currentColor; stroke-opacity:0.32; fill:none; stroke-width:1.3; }
