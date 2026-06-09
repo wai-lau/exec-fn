@@ -258,7 +258,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 ADHD activation scaffolding: a card placed on today's timeline gets a nudge at its slot time; stalls peel a smaller next chunk; due dates are protected behind the consequences conversation.
 
 - **Trigger**: in-process asyncio loop (`_run_nudge_loop` in `main.py`, lifespan-started, 30s tick). No cron, no rebuild — state lives on the cards in `rd.json`, so `--reload` restarts just re-arm. `POST /api/nudge/tick` = manual tick.
-- **Eligibility**: `is_dir_card()` (placed today, rd/hq, not reminder/event) and not a book.
+- **Eligibility**: `is_dir_card()` (placed today, not reminder/event) AND `column == "hq"` AND not a book. rd cards scheduled today are never nudged — only Wai's committed working set.
 - **First nudge** = card's placement (`scheduled_day` @ `dir_start_min`). While unfired, `next_nudge_at` tracks the slot each tick, so dragging the card on dirs moves the nudge.
 - **Fire**: decompose on first fire (one LLM call → graph + first chunk + nudge text), else nudge text for the active node. Delivered via the monitor SSE channel + `chat.json` `role=monitor` — same pipe as encouragement comments, zero frontend.
 - **Stall**: no reply within `clamp(estimate × 2.6, 45, 240)` min → peel a tinier first sub-step (no floor — "open the app" is fine), inserted as a prerequisite of the stalled node. Any exec-chat user turn counts as a reply and restarts the window.

@@ -55,8 +55,14 @@ def window_for(card: dict) -> int:
 
 
 def _eligible(c: dict, today_iso: str) -> bool:
-    """On today's dirs timeline, actionable, not a book — i.e. nudge-able."""
-    return is_dir_card(c, today_iso) and c.get("size") != "book"
+    """Nudge-able: on today's dirs timeline AND in hq (active working set),
+    actionable, not a book. rd cards scheduled today are NOT nudged — only
+    what Wai has committed to (hq) gets the loop."""
+    return (
+        is_dir_card(c, today_iso)
+        and c.get("column") == "hq"
+        and c.get("size") != "book"
+    )
 
 
 # ── state ─────────────────────────────────────────────────────────────────────
