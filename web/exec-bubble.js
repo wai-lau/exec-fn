@@ -307,6 +307,22 @@
     panel.classList.remove('open');
   }
 
+  // Open the bubble with the input prefilled (e.g. the card dialog's chat button).
+  window.openExecChat = function (prefill) {
+    openPanel();
+    if (prefill != null && msgInput) {
+      msgInput.textContent = prefill;
+      var range = document.createRange();
+      range.selectNodeContents(msgInput);
+      range.collapse(false);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      msgInput.focus();
+      renderCaret();
+    }
+  };
+
   // ── ?exec=open — open expanded on load, answer a queued shortcut message ─────
   function handleExecParam() {
     var params;
