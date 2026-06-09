@@ -40,9 +40,10 @@ def _active_nudge_block(cards: list) -> str:
     if ans:
         lines.append(f"- Wai's stated consequence if not done: {ans!r}")
     lines.append(
-        "HANDLING: if Wai gives feedback on the breakdown or wants a different first "
-        "step, call decompose_task to rebuild it. Speak about the current step only — "
-        "never recite the whole breakdown."
+        "HANDLING: when Wai says the current step is done, call advance_chunk and "
+        "mention only the next chunk it returns. If Wai gives feedback on the "
+        "breakdown or wants a different first step, call decompose_task to rebuild "
+        "it. Speak about the current step only — never recite the whole breakdown."
     )
     return "\n".join(lines)
 
@@ -198,6 +199,22 @@ def _chat_tools() -> list:
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "description": "Card ID."},
+                },
+                "required": ["id"],
+            },
+        },
+        {
+            "name": "advance_chunk",
+            "description": (
+                "Mark the current step of a decomposed task as done and surface the next one. "
+                "Use when Wai confirms they finished the current chunk ('done', 'did it', 'finished that part'). "
+                "Returns the next chunk to mention, or all_steps_done — never archive the card yourself."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
+                    "node_id": {"type": "string", "description": "Specific step to mark done. Omit to use the current active step."},
                 },
                 "required": ["id"],
             },

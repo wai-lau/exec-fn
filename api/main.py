@@ -127,7 +127,9 @@ def _arm_nudge(c: dict, slot) -> bool:
         n["stage"] = "nudging"
         n["first_nudge_at"] = _nudge._fmt_et(slot)
         dirty = True
-    if n["stage"] == "nudging":
+    if n["stage"] == "nudging" and not n["last_nudge_at"]:
+        # First nudge not sent yet: keep tracking the card's placement.
+        # After that, next_nudge_at is owned by the loop (advance/stall).
         slot_s = _nudge._fmt_et(slot)
         if n["next_nudge_at"] != slot_s:
             n["next_nudge_at"] = slot_s

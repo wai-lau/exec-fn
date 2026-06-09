@@ -221,6 +221,48 @@ def _tool_decompose_task(input_: dict) -> dict:
     }
 
 
+def _tool_advance_chunk(input_: dict) -> dict:
+    import nudge as _nudge
+    rd = _load_rd()
+    card = _find_card(rd, input_.get("id", ""))
+    if not card:
+        return {"error": f"Card not found: {input_.get('id')}"}
+    n = _nudge.ensure_nudge(card)
+    nodes = n["graph"]["nodes"]
+    if not nodes:
+        return {"error": "No breakdown on this card — call decompose_task first."}
+    target = input_.get("node_id") or n.get("active_node")
+    node = next((nd for nd in nodes if nd["id"] == target), None)
+    if not node:
+        return {"error": f"Step not found: {target}"}
+    node["done"] = True
+    now = _now_et()
+    n["awaiting_reply"] = False
+    n["last_user_reply_at"] = _nudge._fmt_et(now)
+    n["window_deadline"] = None
+    nxt = _nudge._first_open(nodes, n["graph"]["edges"])
+    if nxt is None:
+        n["active_node"] = None
+        n["stage"] = "resolved"
+        n["next_nudge_at"] = None
+        _save_rd(rd)
+        _append_rd_log("advanced", card["title"], source="Exec",
+                       step=node["label"], remaining=0)
+        return {"ok": True, "id": card["id"], "completed_step": node["label"],
+                "all_steps_done": True,
+                "note": "All steps done. Do NOT archive — Wai archives manually."}
+    n["active_node"] = nxt
+    # Re-nudge later only if Wai goes quiet again — one stall-window from now.
+    n["stage"] = "nudging"
+    n["next_nudge_at"] = _nudge._fmt_et(now + timedelta(minutes=_nudge.window_for(card)))
+    _save_rd(rd)
+    remaining = sum(1 for nd in nodes if not nd.get("done"))
+    _append_rd_log("advanced", card["title"], source="Exec",
+                   step=node["label"], remaining=remaining)
+    return {"ok": True, "id": card["id"], "completed_step": node["label"],
+            "next_chunk": _nudge.active_label(card), "remaining_steps": remaining}
+
+
 _TOOL_HANDLERS = {
     "create_card":       _tool_create_card,
     "exile_card":        _tool_exile_card,
@@ -228,6 +270,7 @@ _TOOL_HANDLERS = {
     "schedule_card":     _tool_schedule_card,
     "update_context":    _tool_update_context,
     "decompose_task":    _tool_decompose_task,
+    "advance_chunk":     _tool_advance_chunk,
 }
 
 

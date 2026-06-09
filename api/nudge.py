@@ -130,6 +130,28 @@ def _normalize_graph(data: dict) -> dict:
             "nudge_text": data.get("nudge_text", "")}
 
 
+def clear_awaiting_focused() -> str | None:
+    """User spoke in exec chat: mark the focused awaiting card replied-to so the
+    stall timer stops. Focused = most recently nudged (a reply about card A must
+    not silence card B's stall). Returns the card id or None."""
+    from helpers import _load_rd, _save_rd
+    from scheduler import logical_today_iso
+    rd = _load_rd()
+    today = logical_today_iso()
+    cands = [
+        c for c in rd.get("cards", [])
+        if _eligible(c, today) and (c.get("nudge") or {}).get("awaiting_reply")
+    ]
+    if not cands:
+        return None
+    card = max(cands, key=lambda c: c["nudge"].get("last_nudge_at") or "")
+    n = card["nudge"]
+    n["awaiting_reply"] = False
+    n["last_user_reply_at"] = _fmt_et(_now_et())
+    _save_rd(rd)
+    return card["id"]
+
+
 def active_label(card: dict) -> str:
     n = card.get("nudge") or {}
     for nd in n.get("graph", {}).get("nodes", []):
