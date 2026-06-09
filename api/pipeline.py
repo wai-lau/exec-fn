@@ -243,6 +243,8 @@ def build_morning() -> dict:
     # Restack carryover + any today card missing a position; preserve pre-placed today cards.
     restack |= {c["id"] for c in cards if is_dir_card(c, today_iso) and c.get("dir_start_min") is None}
     layout_day(cards, anchor_min=AUTOSTACK_ANCHOR, today_iso=today_iso, only_ids=restack)
+    from nudge import morning_reconcile
+    morning_reconcile(cards, today_iso)
     _save_rd(rd)
 
     if chat_path.exists():

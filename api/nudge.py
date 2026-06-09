@@ -130,6 +130,35 @@ def _normalize_graph(data: dict) -> dict:
             "nudge_text": data.get("nudge_text", "")}
 
 
+def morning_reconcile(cards: list, today_iso: str) -> None:
+    """4:30 AM: re-anchor nudge timing to the day's fresh layout.
+
+    Placed today  -> fresh first nudge at the (possibly restacked) slot.
+    Not placed    -> disarm to idle so the card re-arms when its day comes
+                     (NOT resolved — that would skip it forever).
+    Keeps graph, active_node, redecompose metrics, and the consequences record.
+    Never leaves a past-dated next_nudge_at (the stale overnight-fire bug).
+    """
+    for c in cards:
+        n = c.get("nudge")
+        if not isinstance(n, dict) or n.get("stage") in (None, "idle", "resolved"):
+            continue
+        n["awaiting_reply"] = False
+        n["window_deadline"] = None
+        # Fresh day: slot-tracking owns the first nudge again.
+        n["last_nudge_at"] = None
+        n["last_nudge_text"] = ""
+        if _eligible(c, today_iso) and c.get("dir_start_min") is not None:
+            slot = slot_datetime(c)
+            n["stage"] = "nudging"
+            n["first_nudge_at"] = _fmt_et(slot) if slot else None
+            n["next_nudge_at"] = _fmt_et(slot) if slot else None
+        else:
+            n["stage"] = "idle"
+            n["first_nudge_at"] = None
+            n["next_nudge_at"] = None
+
+
 def clear_awaiting_focused() -> str | None:
     """User spoke in exec chat: mark the focused awaiting card replied-to so the
     stall timer stops. Focused = most recently nudged (a reply about card A must

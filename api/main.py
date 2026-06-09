@@ -833,6 +833,8 @@ async def api_rd_patch(request: Request, source: str = "core"):
                 clone["due_date"] = next_due
                 clone["scheduled_day"] = None
                 clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
+                clone.pop("nudge", None)  # next occurrence starts its own loop
+                clone.pop("dir_start_min", None)
                 revived.append(clone)
                 log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
 

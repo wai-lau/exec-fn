@@ -67,8 +67,9 @@ exec-fn/
     gcal.py               # GCal helpers: fetch_calendar_events, import_gcal_cards, ICS feeds, LLM classification
     helpers.py            # shared helpers: _next_recurrence(), _load_json (mtime cache), _append_rd_log_batch, _now_et
     prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days()
-    chat.py               # exec chat: system prompt, tool definitions, classify_card, parse_date_natural, _save_chat
-    chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context
+    chat.py               # exec chat: system prompt (+ ACTIVE NUDGE block), tool definitions, classify_card, parse_date_natural, _save_chat
+    chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context, decompose_task, advance_chunk, record_consequences, reschedule_after_consequences
+    nudge.py              # decomposition+nudge loop: card["nudge"] state, eligibility, window math, LLM cores (decompose/peel/nudge-text), clear_awaiting_focused(), morning_reconcile()
     mtg/
       routes.py           # /api/mtg/log + /api/mtg/chat (SSE)
       agent.py prompt.py tools.py lookup.py
@@ -172,6 +173,7 @@ Nav: `core` · `prophecies` · `directives` · `debug` · `graph` · `nightfall`
 | GET | `/api/monitor/stream` | SSE stream — exec-bubble live updates: `{thinking}` / `{comment}` payloads as significant activity rolls in. |
 | POST | `/api/monitor/flush` | Force-fire the monitor immediately if there is significant activity since the last comment (bypasses 60s debounce). |
 | GET | `/api/moltbook/heartbeat-log` | Plain text of `moltbook-heartbeat.log` (today's heartbeat ledger). |
+| POST | `/api/nudge/tick` | Manual one-shot tick of the nudge loop (the in-process asyncio loop in `main.py` runs this every 30s; started from the FastAPI lifespan hook — no cron). |
 | GET | `/api/gcal/auth` | Initiate Google Calendar OAuth |
 | GET | `/api/gcal/callback` | Receive OAuth code, save token (public; constant-time state check) |
 | POST | `/api/gcal/import_cards` | One-time import of GCal events as rd.json cards |
@@ -205,6 +207,10 @@ Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 | `update_card` | Edit title/category/size/estimated_time/notes/is_reminder. Auto-recomputes size if `estimated_time` crosses a band. |
 | `schedule_card` | Set or clear `scheduled_day` via `scheduler.schedule_to_day()`. Beyond 6-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day` (overdue target clamped to today). Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
 | `update_context` | add/remove/replace a fact in `profile.json`. |
+| `decompose_task` | Build/rebuild the card's internal dependency graph (`card["nudge"]["graph"]`) and pick the first chunk. Optional `feedback` rebuilds from the existing breakdown. Not for reminders/events/books. |
+| `advance_chunk` | Mark the current step done, surface the next open node; all done → `stage=resolved` (never archives — Wai archives). |
+| `record_consequences` | Store Wai's answer to "what happens if this doesn't get done?" — the gate for any deferral of an active-nudge card. |
+| `reschedule_after_consequences` | The ONLY path that moves an active-nudge card later. Hard-fails without a recorded consequences answer. Resets loop timing, keeps graph + metrics. |
 
 Tarot tools (separate handler set in `tarot/tools.py`):
 
@@ -241,7 +247,24 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
 - `size === 'book'`: shown in books bar on prophecies page; hidden from rd/hq columns in kanban
 
-**Recurring card revival**: when a card with `recur_type` is archived, a clone is auto-created in `rd` with reset `scheduled_day` and `due_date` advanced via `_next_recurrence()`.
+**Recurring card revival**: when a card with `recur_type` is archived, a clone is auto-created in `rd` with reset `scheduled_day` and `due_date` advanced via `_next_recurrence()`. The clone's `nudge` state and `dir_start_min` are stripped — each occurrence starts its own loop.
+
+**`card["nudge"]`** (added lazily; absent on most cards): decomposition+nudge loop state — `stage` (`idle|nudging|awaiting|stalled|consequences|resolved`), `graph` (`{nodes:[{id,label,done,depth,created_at}], edges:[{from,to}]}`, edge = `from` precedes `to`), `active_node`, `redecompose_count`/`redecompose_at` (metrics), `first_nudge_at`/`next_nudge_at`/`window_deadline`/`last_nudge_at`/`last_user_reply_at` (naive-ET ISO), `awaiting_reply`, `last_nudge_text`, `consequences` (`{asked_at, answer, decision}`), `version`.
+
+---
+
+## Nudge loop (`nudge.py` + loop in `main.py`)
+
+ADHD activation scaffolding: a card placed on today's timeline gets a nudge at its slot time; stalls peel a smaller next chunk; due dates are protected behind the consequences conversation.
+
+- **Trigger**: in-process asyncio loop (`_run_nudge_loop` in `main.py`, lifespan-started, 30s tick). No cron, no rebuild — state lives on the cards in `rd.json`, so `--reload` restarts just re-arm. `POST /api/nudge/tick` = manual tick.
+- **Eligibility**: `is_dir_card()` (placed today, rd/hq, not reminder/event) and not a book.
+- **First nudge** = card's placement (`scheduled_day` @ `dir_start_min`). While unfired, `next_nudge_at` tracks the slot each tick, so dragging the card on dirs moves the nudge.
+- **Fire**: decompose on first fire (one LLM call → graph + first chunk + nudge text), else nudge text for the active node. Delivered via the monitor SSE channel + `chat.json` `role=monitor` — same pipe as encouragement comments, zero frontend.
+- **Stall**: no reply within `clamp(estimate × 2.6, 45, 240)` min → peel a tinier first sub-step (no floor — "open the app" is fine), inserted as a prerequisite of the stalled node. Any exec-chat user turn counts as a reply and restarts the window.
+- **Due-date protection**: `schedule_card` refuses to defer/unschedule an active-nudge card; `record_consequences` → `reschedule_after_consequences` is the only later-day path.
+- **Morning (4:30)**: `morning_reconcile()` re-anchors placed-today cards to a fresh first nudge at the restacked slot and disarms others to `idle` (re-arm on their day); never leaves a past-dated `next_nudge_at`.
+- **Failure backoff**: per-card 5-min in-memory retry delay on LLM errors; in-flight set prevents double fire.
 
 ---
 
@@ -253,7 +276,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 4. **GCal import** — pull calendar events 14 days ahead as cards
 5. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
 6. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
-7. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today, then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today)
+7. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today, then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout
 8. Clear `chat.json`
 9. Dedupe `profile.json` notes
 
