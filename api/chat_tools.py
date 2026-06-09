@@ -101,6 +101,8 @@ def _tool_update_card(input_: dict) -> dict:
             changed.append(field)
     if not card.get("is_reminder"):
         _apply_size_time(card, input_, changed)
+    if ("notes" in changed or "title" in changed) and (card.get("nudge") or {}).get("graph", {}).get("nodes"):
+        card["nudge"]["triage_pending"] = True
     _save_rd(rd)
     extra = {"fields": changed}
     if "notes" in input_:
