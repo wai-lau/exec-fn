@@ -148,7 +148,9 @@ def _build_nav(active=None, guest=False):
         "_snh();window.addEventListener('resize',_snh);"
         "})();</script>"
     )
-    bubble = '' if guest else '<script src="/exec-bubble.js?v=4"></script>'
+    # Exec bubble only on the planning routes — not debug/graph/other.
+    show_bubble = (not guest) and active in {"core", "prophecies", "directives"}
+    bubble = '<script src="/exec-bubble.js?v=4"></script>' if show_bubble else ''
     return nav + script + bubble
 
 
