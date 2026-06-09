@@ -1,9 +1,10 @@
 /* /graph overlay styles — injected by the /graph route (api/main.py).
-   Layout: nav pinned left; graph canvas fills the TOP half; physics + the
-   graph sidebar sit side-by-side in the BOTTOM half; one button slides the
-   whole bottom half down. vis renders the physics configurator into #gp-physics
-   via configure.container. chrome.css loads first (provides --green-rgb,
-   --surface-*, @font-face). */
+   Layout: graph canvas fills the area above the bottom nav; the physics panel
+   (bottom-left, collapses down) and the node-info sidebar (bottom-right,
+   collapses right) are independent overlays, collapsed by default — only their
+   toggle buttons show until opened. vis renders the physics configurator into
+   #gp-physics via configure.container. chrome.css loads first (provides
+   --green-rgb, --surface-*, @font-face). */
 
 body {
   margin: 0 !important;
@@ -12,49 +13,26 @@ body {
   font-family: 'Iosevka Mayukai Monolite', monospace;
 }
 
-/* nav: pinned left, full height */
+/* nav: chrome.css default — horizontal bar pinned to the bottom. --nav-h is set
+   by _build_nav's script (measured nav height). Keep it above the panels so they
+   slide behind it (not over it) when the bottom half collapses. */
 .exec-nav {
-  position: fixed !important;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 64px;
-  flex-direction: column;
-  display: flex;
-  box-sizing: border-box;
-  justify-content: space-evenly;
-  padding: 12px 0;
-  overflow-y: auto;
-  z-index: 30;
-  background: var(--surface-nav);
-  border-right: 1px solid rgba(var(--green-rgb), 0.12);
+  z-index: 40 !important;
 }
 
-.exec-nav a {
-  flex: 0 0 auto !important;
-  max-width: none !important;
-}
-
-/* graph canvas: top half, right of nav (full height when bottom is hidden) */
+/* graph canvas fills the whole area above the nav; panels overlay it */
 #graph {
   position: fixed !important;
-  top: 0;
-  left: 64px;
-  right: 0;
-  height: 50vh;
-  transition: height 0.2s ease;
+  inset: 0 0 var(--nav-h, 56px) 0;
 }
 
-body.gp-bottom-hidden #graph {
-  height: 100vh;
-}
-
-/* bottom half: two panels side by side, right of nav */
+/* two independent collapsible overlay panels, anchored above the bottom nav */
 #gp-physics,
 #sidebar {
   position: fixed !important;
-  bottom: 0;
-  height: 50vh;
+  bottom: var(--nav-h, 56px);
+  width: min(360px, 48%);
+  max-height: 70vh;
   box-sizing: border-box;
   overflow-y: auto;
   z-index: 25;
@@ -63,37 +41,67 @@ body.gp-bottom-hidden #graph {
   transition: transform 0.2s ease;
 }
 
+/* physics: full-width strip along the bottom, half the page tall. Collapses
+   DOWN. Collapsed by default. */
 #gp-physics {
-  left: 64px;
-  width: calc((100% - 64px) / 2);
-  border-right: 1px solid rgba(var(--green-rgb), 0.18);
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 50vh;
+  border-top: 1px solid rgba(var(--green-rgb), 0.18);
   overflow-x: hidden;
+  transform: translateY(120%);
 }
 
+body.gp-phys-open #gp-physics {
+  transform: none;
+}
+
+/* node info: full-height panel on the right, collapses RIGHT. Collapsed by default. */
 #sidebar {
+  top: 0;
   right: 0;
-  width: calc((100% - 64px) / 2);
+  max-height: none;
   border-left: 1px solid rgba(var(--green-rgb), 0.15) !important;
   color: rgba(var(--green-rgb), 0.85) !important;
+  transform: translateX(120%);
 }
 
-/* one button hides BOTH panels downward */
-body.gp-bottom-hidden #gp-physics,
-body.gp-bottom-hidden #sidebar {
-  transform: translateY(100%);
+body.gp-info-open #sidebar {
+  transform: none;
 }
 
-/* the shared toggle button rides the top edge of the bottom half */
-.gp-bottom-toggle {
+/* per-panel toggle buttons — always visible; the only thing shown when collapsed */
+.gp-toggle {
   position: fixed;
-  right: 8px;
-  bottom: 50vh;
-  z-index: 31;
-  transition: bottom 0.2s ease;
+  bottom: calc(var(--nav-h, 56px) + 8px);
+  z-index: 41;
 }
 
-body.gp-bottom-hidden .gp-bottom-toggle {
-  bottom: 0;
+.gp-toggle.phys {
+  left: 8px;
+}
+
+.gp-toggle.info {
+  top: 8px;
+  right: 8px;
+  bottom: auto;
+}
+
+/* bigger touch targets + readable config text on small screens */
+@media (width <= 640px) {
+  .gp-toggle.gp-min-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label,
+  #gp-physics .vis-configuration.vis-config-rangeinput,
+  #gp-physics select.vis-configuration,
+  #gp-physics .gp-freeze {
+    font-size: 0.8rem !important;
+  }
 }
 
 /* vis configurator renders inside #gp-physics — strip its own chrome */
@@ -227,6 +235,16 @@ body.gp-bottom-hidden .gp-bottom-toggle {
   padding: 2px 8px !important;
 }
 
+/* vis indents items by nesting depth (s0-s5); flatten so every row lines up */
+#gp-physics .vis-config-s0,
+#gp-physics .vis-config-s1,
+#gp-physics .vis-config-s2,
+#gp-physics .vis-config-s3,
+#gp-physics .vis-config-s4,
+#gp-physics .vis-config-s5 {
+  margin-left: 0 !important;
+}
+
 #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label {
   position: static !important;
   width: 100% !important;
@@ -241,8 +259,8 @@ body.gp-bottom-hidden .gp-bottom-toggle {
 
 #gp-physics .vis-config-item:has(input.vis-config-range) input.vis-config-range {
   position: static !important;
-  width: 90% !important;
-  max-width: 90% !important;
+  width: 100% !important;
+  max-width: 100% !important;
   min-width: 0 !important;
   margin: 0 !important;
   box-sizing: border-box !important;
@@ -285,10 +303,12 @@ body.gp-bottom-hidden .gp-bottom-toggle {
 #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-rangeinput {
   position: static !important;
   width: 64px !important;
+  align-self: center !important;
   margin: 3px 0 0 !important;
   padding: 1px 3px !important;
   font-size: 0.58rem !important;
   box-sizing: border-box !important;
+  text-align: center !important;
 }
 
 /* hide group headers, section-label rows, and vis's native "enabled" checkbox
