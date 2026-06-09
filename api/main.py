@@ -863,6 +863,15 @@ def _log_entries_for_patch(new_cards, old_cards, source):
     return entries
 
 
+def _recompute_node_deadlines(cards: list) -> None:
+    """Refresh per-node deadlines so a due-time edit updates the plan immediately,
+    not only on the next nudge tick."""
+    import nudge as _nudge
+    for c in cards:
+        if (c.get("nudge") or {}).get("graph", {}).get("nodes"):
+            _nudge.compute_deadlines(c)
+
+
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request, source: str = "core"):
     body = await request.json()
@@ -910,6 +919,7 @@ async def api_rd_patch(request: Request, source: str = "core"):
                 revived.append(clone)
                 log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
 
+    _recompute_node_deadlines(new_cards)
     data["cards"] = new_cards + revived
     _atomic_write_json(p, data)
     _append_rd_log_batch(log_entries)

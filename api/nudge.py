@@ -88,17 +88,18 @@ def _has_fixed_deadline(c: dict) -> bool:
 
 
 def card_deadline(c: dict) -> datetime:
-    """When the whole card must be DONE: a fixed deadline (slot / timed due_date),
-    else the auto-assigned staggered deadline, else end of its scheduled day."""
-    slot = slot_datetime(c)
-    if slot is not None:
-        return slot
+    """When the whole card must be DONE. Precedence: an explicit timed due_date
+    (what Wai sets in the dialog) > the timeline slot (event/placed time) > the
+    auto-assigned staggered deadline > end of its scheduled day."""
     dd = c.get("due_date") or ""
     if "T" in dd:
         try:
             return datetime.fromisoformat(dd)
         except ValueError:
             pass
+    slot = slot_datetime(c)
+    if slot is not None:
+        return slot
     auto = (c.get("nudge") or {}).get("auto_deadline")
     if auto:
         d = _parse_et(auto)
