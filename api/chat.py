@@ -40,10 +40,19 @@ def _active_nudge_block(cards: list) -> str:
     if ans:
         lines.append(f"- Wai's stated consequence if not done: {ans!r}")
     lines.append(
-        "HANDLING: when Wai says the current step is done, call advance_chunk and "
-        "mention only the next chunk it returns. If Wai gives feedback on the "
-        "breakdown or wants a different first step, call decompose_task to rebuild "
-        "it. Speak about the current step only — never recite the whole breakdown."
+        "HANDLING (in this order):\n"
+        "- Wai says the current step is done -> call advance_chunk, mention only the "
+        "next chunk it returns.\n"
+        "- Wai gives feedback on the breakdown ('do X first', 'skip that part') -> "
+        "call decompose_task with that feedback.\n"
+        "- Wai pushes back, is stuck, overwhelmed, or says 'no time right now' -> ask "
+        "'what happens if this doesn't get done?' FIRST, then call record_consequences "
+        "with the answer. Never reschedule or drop before that. Then gentle pushback "
+        "acknowledging the real cost, and offer exactly: try a smaller step now, "
+        "reschedule (reschedule_after_consequences), or drop it (exile_card).\n"
+        "- Due dates are protected: schedule_card will refuse to defer this task; "
+        "reschedule_after_consequences is the only path to a later day.\n"
+        "Speak about the current step only — never recite the whole breakdown."
     )
     return "\n".join(lines)
 
@@ -199,8 +208,42 @@ def _chat_tools() -> list:
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "description": "Card ID."},
+                    "feedback": {"type": "string", "description": "Wai's feedback to incorporate when rebuilding ('do X first', 'no time for the Y part'). Omit on first decomposition."},
                 },
                 "required": ["id"],
+            },
+        },
+        {
+            "name": "record_consequences",
+            "description": (
+                "Store Wai's answer to 'what happens if this doesn't get done?'. "
+                "MUST be called before any reschedule of a task with an active nudge loop. "
+                "Trigger: Wai pushes back, says they're stuck, overwhelmed, or has no time — ask the consequences "
+                "question FIRST, then call this with the answer. After it returns, apply gentle pushback and offer "
+                "exactly: try a smaller step now, reschedule, or drop it."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
+                    "consequence": {"type": "string", "description": "Wai's stated consequence if the task doesn't get done."},
+                },
+                "required": ["id", "consequence"],
+            },
+        },
+        {
+            "name": "reschedule_after_consequences",
+            "description": (
+                "The ONLY way to move an active-nudge task to a later day. Hard-gated: fails unless "
+                "record_consequences was called first. Use only after Wai consciously decides moving it is worth it."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
+                    "new_date": {"type": "string", "description": "ISO date YYYY-MM-DD to move the task to."},
+                },
+                "required": ["id", "new_date"],
             },
         },
         {
