@@ -54,6 +54,16 @@ def window_for(card: dict) -> int:
     return max(NUDGE_WINDOW_MIN, min(NUDGE_WINDOW_MAX, round(est * NUDGE_WINDOW_MULT)))
 
 
+def decomposable(c: dict) -> bool:
+    """Every actionable hq card should carry a plan (graph), placed today or not."""
+    return (
+        c.get("column") == "hq"
+        and not c.get("is_reminder")
+        and not c.get("is_event")
+        and c.get("size") != "book"
+    )
+
+
 def _eligible(c: dict, today_iso: str) -> bool:
     """Nudge-able: on today's dirs timeline AND in hq (active working set),
     actionable, not a book. rd cards scheduled today are NOT nudged — only
