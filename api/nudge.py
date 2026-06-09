@@ -159,19 +159,57 @@ def _back_schedule(nodes: list, edges: list, D: datetime, default: int) -> dict:
     return {nd["id"]: deadline_of(nd["id"], frozenset()) for nd in nodes}
 
 
+_EVENT_NODE_ID = "event-start"
+
+
+def ensure_event_terminal(card: dict) -> bool:
+    """For event cards, keep a fixed terminal node — the event itself — so the
+    breakdown ends with '<title> starts' at the event time and every other step
+    back-schedules before it. Removes the node if the card stops being an event.
+    Returns True if anything changed."""
+    n = ensure_nudge(card)
+    nodes, edges = n["graph"]["nodes"], n["graph"]["edges"]
+    evt = next((nd for nd in nodes if nd.get("is_event_start")), None)
+    if not card.get("is_event"):
+        if evt:
+            n["graph"]["nodes"] = [nd for nd in nodes if not nd.get("is_event_start")]
+            n["graph"]["edges"] = [e for e in edges if evt["id"] not in (e["from"], e["to"])]
+            return True
+        return False
+    if not nodes or (len(nodes) == 1 and evt):
+        return False
+    dirty = False
+    label = f"{card.get('title', 'Event')} starts"
+    if not evt:
+        evt = {"id": _EVENT_NODE_ID, "label": label, "done": False, "depth": 0,
+               "created_at": _fmt_et(_now_et()), "est_min": 0, "is_event_start": True}
+        nodes.append(evt)
+        dirty = True
+    elif evt["label"] != label:
+        evt["label"] = label
+        dirty = True
+    has_out = {e["from"] for e in edges}
+    for nd in nodes:
+        if nd["id"] == evt["id"] or nd["id"] in has_out:
+            continue
+        edges.append({"from": nd["id"], "to": evt["id"]})
+        dirty = True
+    return dirty
+
+
 def compute_deadlines(card: dict) -> bool:
     """Back-schedule a per-node deadline from the card deadline: the last node(s)
     finish by the deadline, each node finishes before any successor must start.
     Sets node['est_min'] and node['deadline'] (ISO). Returns True if anything
     changed. Pure (no I/O); cheap enough to run every tick."""
     n = ensure_nudge(card)
+    changed = ensure_event_terminal(card)
     nodes = n["graph"]["nodes"]
     if not nodes:
-        return False
+        return changed
     default = max(5, round(_lead(card) / len(nodes)))
-    changed = False
     for nd in nodes:
-        if not nd.get("est_min"):
+        if nd.get("est_min") is None:               # 0 (the event node) is valid
             nd["est_min"] = default
             changed = True
     deadlines = _back_schedule(nodes, n["graph"]["edges"], card_deadline(card), default)
@@ -235,7 +273,7 @@ def _first_open(nodes: list, edges: list) -> str | None:
     for e in edges:
         prereqs.setdefault(e["to"], []).append(e["from"])
     for n in nodes:
-        if n.get("done"):
+        if n.get("done") or n.get("is_event_start"):   # the event anchor is never "active"
             continue
         if all(by_id.get(p, {}).get("done", True) for p in prereqs.get(n["id"], [])):
             return n["id"]
@@ -260,6 +298,9 @@ def _normalize_graph(data: dict) -> dict:
                 node["est_min"] = max(1, int(nd["est_min"]))
         except (TypeError, ValueError):
             pass
+        if nd.get("is_event_start"):
+            node["is_event_start"] = True
+            node["est_min"] = 0
         nodes.append(node)
     ids = {n["id"] for n in nodes}
     edges = [
@@ -390,8 +431,12 @@ def decompose_sync(card: dict, feedback: str = "") -> dict:
         "graph for ONE task: its concrete sub-steps and which must precede which (an edge "
         "{from,to} means `from` must be done before `to`). Give each node est_min: how "
         "many minutes that single step realistically takes (the steps should sum to about "
-        "the task estimate). Then pick the FIRST doable node (no unfinished prerequisites) "
-        "and write the opening nudge for ONLY that chunk.\n"
+        "the task estimate). LABELS are short action phrases (3-7 words) — never embed "
+        "times, durations, or distances in a label. Do NOT add a node for the event "
+        "itself, 'arrive', or 'leave by <time>'; travel is just a step labelled e.g. "
+        "'Travel to the venue' with est_min = the travel minutes. Then pick the FIRST "
+        "doable node (no unfinished prerequisites) and write the opening nudge for ONLY "
+        "that chunk.\n"
         f"{_TONE}\n"
         "The nudge is 1-2 sentences naming only the first chunk, plus 1 sentence of why it "
         "matters (reasoning / consequence / dependency). Never reveal the whole plan.\n\n"
@@ -402,9 +447,10 @@ def decompose_sync(card: dict, feedback: str = "") -> dict:
     user = _card_brief(card)
     n = card.get("nudge") or {}
     nodes = n.get("graph", {}).get("nodes", [])
-    if nodes:
+    work = [nd for nd in nodes if not nd.get("is_event_start")]
+    if work:
         existing = "\n".join(
-            f"- [{'done' if nd.get('done') else 'open'}] {nd['label']}" for nd in nodes
+            f"- [{'done' if nd.get('done') else 'open'}] {nd['label']}" for nd in work
         )
         user += (
             f"\n\nEXISTING BREAKDOWN (rebuild from this — keep done steps done, "
@@ -426,18 +472,18 @@ def triage_sync(card: dict) -> dict:
     nodes = ensure_nudge(card)["graph"]["nodes"]
     existing = "\n".join(
         f"- [{'done' if nd.get('done') else 'open'}] {nd['label']} ({nd.get('est_min', '?')}m)"
-        for nd in nodes
+        for nd in nodes if not nd.get("is_event_start")
     ) or "(none)"
     system = (
-        "You are Exec, Wai's ADHD planning assistant. A task's details changed. Decide "
-        "whether its step breakdown should change to reflect the new info: a new "
-        "constraint (travel time, a location, a dependency), changed scope, or a missing "
-        "step. Be conservative — only change it if the new info actually warrants it.\n"
-        "IMPORTANT: if the details imply travel to a place (a distance or 'N min away'), "
-        "add an explicit travel/leave step as the LAST step before the event, with "
-        "est_min = the travel minutes, so the back-scheduler can tell Wai exactly when to "
-        "leave. Preserve completed steps (done=true) and their labels; give each node "
-        "est_min.\n\n"
+        "You are Exec, Wai's ADHD planning assistant. A task's details changed. Update its "
+        "step breakdown to reflect the new info. needs_update=true whenever the note adds "
+        "a step, a person to contact, a location/travel detail, a dependency, or a "
+        "constraint — only keep it false if the note genuinely changes nothing about what "
+        "must be done. If a distance or 'N min away' appears, add a 'Travel to ...' step "
+        "with est_min = the travel minutes. LABELS are short action phrases (3-7 words), "
+        "never embedding times/durations/distances. Do NOT add a node for the event "
+        "itself or 'arrive' — that's handled automatically. Preserve completed steps "
+        "(done=true); give each node est_min.\n\n"
         f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
         'Return JSON only. No change: {"needs_update":false}. '
         'Changed: {"needs_update":true,"nodes":[{"id":"n1","label":"...","done":false,'

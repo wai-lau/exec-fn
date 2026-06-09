@@ -889,6 +889,39 @@ def api_rd():
     return _load_json("rd", {"columns": _RD_COLUMNS, "cards": []})
 
 
+@protected.post("/api/rd/{card_id}/recalc")
+async def api_rd_recalc(card_id: str, request: Request):
+    """Rebuild a card's breakdown on demand (the dialog's 'recalculate' button),
+    incorporating its latest notes."""
+    import nudge as _nudge
+    from helpers import _load_rd, _save_rd, _find_card
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    rd = _load_rd()
+    card = _find_card(rd, card_id)
+    if not card:
+        raise HTTPException(status_code=404)
+    if card.get("is_reminder") or card.get("size") == "book":
+        raise HTTPException(status_code=400, detail="not decomposable")
+    if body.get("notes") is not None:
+        card["notes"] = body["notes"]
+        _save_rd(rd)  # persist the note before decomposing from it
+    result = await asyncio.to_thread(_nudge.decompose_sync, card)
+    rd = _load_rd()  # reload around the LLM call
+    card = _find_card(rd, card_id)
+    if not card:
+        raise HTTPException(status_code=404)
+    n = _nudge.ensure_nudge(card)
+    n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
+    n["active_node"] = result["active_node"]
+    n["triage_pending"] = False
+    _nudge.compute_deadlines(card)
+    _save_rd(rd)
+    return {"ok": True, "nudge": card["nudge"]}
+
+
 
 def _atomic_write_json(path: Path, data) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")

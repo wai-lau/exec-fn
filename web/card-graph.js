@@ -17,6 +17,8 @@
 .cg-node { position:relative; width:150px; box-sizing:border-box; border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-radius:5px; padding:6px 8px; background:color-mix(in srgb, currentColor 7%, transparent); }
 .cg-node.active { border-color:currentColor; border-width:2px; padding:5px 7px; }
 .cg-node.done { opacity:0.5; }
+.cg-node.event { background:color-mix(in srgb, currentColor 16%, transparent); border-style:dashed; }
+.cg-node.event .cg-label { font-weight:600; }
 .cg-label { font-size:11px; line-height:1.35; outline:none; word-break:break-word; white-space:normal; cursor:text; }
 .cg-label:focus { box-shadow:0 0 0 1px color-mix(in srgb, currentColor 50%, transparent); border-radius:2px; }
 .cg-node.done .cg-label { text-decoration:line-through; }
@@ -34,10 +36,13 @@
   document.head.appendChild(style);
   const SVGNS = 'http://www.w3.org/2000/svg';
 
-  function fmtDeadline(iso) {
-    if (!iso) return '';
-    const d = new Date(iso.indexOf('T') >= 0 ? iso : iso + 'T00:00:00');
+  function startTime(node) {
+    // When to start this step so it finishes by its deadline — the actionable
+    // time (and when its nudge fires). For a travel step that's the depart time.
+    if (!node.deadline) return '';
+    const d = new Date(node.deadline.indexOf('T') >= 0 ? node.deadline : node.deadline + 'T00:00:00');
     if (isNaN(d)) return '';
+    d.setMinutes(d.getMinutes() - (node.est_min || 0));
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
   }
 
@@ -52,7 +57,7 @@
     nodes.forEach(n => { byId[n.id] = n; });
     const pre = prereqMap(edges);
     for (const n of nodes) {
-      if (n.done) continue;
+      if (n.done || n.is_event_start) continue;
       if ((pre[n.id] || []).every(p => !byId[p] || byId[p].done)) return n.id;
     }
     return null;
@@ -96,38 +101,46 @@
 
     function nodeEl(node) {
       const box = document.createElement('div');
-      box.className = 'cg-node' + (node.done ? ' done' : '') + (node.id === n.active_node ? ' active' : '');
+      box.className = 'cg-node' + (node.done ? ' done' : '') +
+        (node.id === n.active_node ? ' active' : '') + (node.is_event_start ? ' event' : '');
       box.dataset.id = node.id;
-
-      const ctl = document.createElement('div');
-      ctl.className = 'cg-ctl';
-      const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
-      ctl.append(
-        mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; recompute(); draw(); }),
-        mk('✕', 'delete step', () => removeNode(node.id)),
-      );
 
       const label = document.createElement('div');
       label.className = 'cg-label';
-      label.contentEditable = 'true';
       label.textContent = node.label;
-      label.addEventListener('keydown', e => {
-        e.stopPropagation();                       // don't trigger the dialog's enter-to-save
-        if (e.key === 'Enter') { e.preventDefault(); label.blur(); }
-      });
-      label.addEventListener('blur', () => {
-        const v = label.textContent.trim();
-        if (v && v !== node.label) { node.label = v; if (typeof onChange === 'function') onChange(); }
-        else label.textContent = node.label;
-      });
+
+      // The event anchor is fixed — no rename, no controls.
+      if (!node.is_event_start) {
+        const ctl = document.createElement('div');
+        ctl.className = 'cg-ctl';
+        const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
+        ctl.append(
+          mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; recompute(); draw(); }),
+          mk('✕', 'delete step', () => removeNode(node.id)),
+        );
+        label.contentEditable = 'true';
+        label.addEventListener('keydown', e => {
+          e.stopPropagation();                     // don't trigger the dialog's enter-to-save
+          if (e.key === 'Enter') { e.preventDefault(); label.blur(); }
+        });
+        label.addEventListener('blur', () => {
+          const v = label.textContent.trim();
+          if (v && v !== node.label) { node.label = v; if (typeof onChange === 'function') onChange(); }
+          else label.textContent = node.label;
+        });
+        box.appendChild(ctl);
+      }
 
       const meta = document.createElement('div');
       meta.className = 'cg-meta';
-      const dl = fmtDeadline(node.deadline);
-      meta.textContent = [dl ? 'by ' + dl : '', node.est_min ? node.est_min + 'm' : ''].filter(Boolean).join('  ·  ');
+      const t = startTime(node);
+      const parts = node.is_event_start
+        ? [t ? 'starts ' + t : '']
+        : [t, node.est_min ? node.est_min + 'm' : ''];
+      meta.textContent = parts.filter(Boolean).join('  ·  ');
 
-      box.append(ctl, label);
-      if (meta.textContent) box.append(meta);
+      box.appendChild(label);
+      if (meta.textContent) box.appendChild(meta);
       return box;
     }
 

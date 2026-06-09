@@ -70,7 +70,11 @@
       <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
     </label>
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
-      <span>breakdown</span><span id="cd-graph-total" style="letter-spacing:0;text-transform:none"></span>
+      <span>breakdown</span>
+      <span style="display:flex;gap:10px;align-items:baseline;letter-spacing:0;text-transform:none">
+        <span id="cd-graph-total"></span>
+        <button type="button" id="cd-recalc" class="cd-btn" style="font-size:0.6rem;padding:1px 7px" onclick="cdRecalc()">recalculate</button>
+      </span>
     </label>
     <div id="cd-graph" style="display:none"></div>
     <label>notes</label><textarea id="cd-notes"></textarea>
@@ -101,7 +105,8 @@
 
   // Enter saves + closes (except in the notes textarea, where it's a newline).
   document.getElementById('cd-modal').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
+    if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA' &&
+        e.target.tagName !== 'BUTTON' && !e.target.isContentEditable) {
       e.preventDefault();
       window.cdSave();
     }
@@ -226,6 +231,8 @@
     _togglePages(c.size === 'book');
     document.getElementById('cd-current-page').value = c.current_page ?? '';
     document.getElementById('cd-total-pages').value = c.total_pages ?? '';
+    // Open first so the graph can measure layout (autoscroll to the active step).
+    document.getElementById('cd-modal').classList.add('open');
     const hasGraph = !!(c.nudge && c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
     document.getElementById('cd-graph-label').style.display = hasGraph ? 'flex' : 'none';
     document.getElementById('cd-graph').style.display = hasGraph ? 'block' : 'none';
@@ -237,7 +244,6 @@
     } else {
       document.getElementById('cd-graph').innerHTML = '';
     }
-    document.getElementById('cd-modal').classList.add('open');
     document.getElementById('cd-title').focus();
   };
 
@@ -285,6 +291,32 @@
     await _patch();
     cdClose();
     _cdCallback('done');
+  };
+
+  window.cdRecalc = async function() {
+    const c = _cdCards.find(x => x.id === _cdId);
+    if (!c) return;
+    const btn = document.getElementById('cd-recalc');
+    const prev = btn.textContent; btn.textContent = '...'; btn.disabled = true;
+    try {
+      const notes = document.getElementById('cd-notes').value.trim();
+      const r = await fetch('/api/rd/' + encodeURIComponent(_cdId) + '/recalc', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+      const d = await r.json();
+      if (d && d.nudge) {
+        c.nudge = d.nudge; c.notes = notes;
+        const has = !!(c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
+        document.getElementById('cd-graph-label').style.display = has ? 'flex' : 'none';
+        document.getElementById('cd-graph').style.display = has ? 'block' : 'none';
+        document.getElementById('cd-graph-total').textContent = has ? _fmtDur(_graphTotal(c)) : '';
+        if (has) renderCardGraph(document.getElementById('cd-graph'), c, function () {
+          document.getElementById('cd-graph-total').textContent = _fmtDur(_graphTotal(c));
+        });
+      }
+    } catch (_) { /* ignore */ }
+    btn.textContent = prev; btn.disabled = false;
   };
 
   window.cdChat = function() {
