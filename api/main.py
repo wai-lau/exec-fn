@@ -141,9 +141,22 @@ _nudge_retry_after: dict[str, float] = {}  # card_id -> monotonic ts (failure ba
 _NUDGE_FAIL_BACKOFF_SEC = 300
 
 
+def _due_kind(c: dict, now) -> str | None:
+    """'stall' if the response window expired, 'nudge' if the active-node start
+    arrived, else None. Skips cards in flight or in failure backoff."""
+    import nudge as _nudge
+    if c["id"] in _nudges_inflight or time.monotonic() < _nudge_retry_after.get(c["id"], 0):
+        return None
+    n = c["nudge"]
+    if n["awaiting_reply"]:
+        wd = _nudge._parse_et(n.get("window_deadline"))
+        return "stall" if (wd and now >= wd) else None
+    nna = _nudge._parse_et(n.get("next_nudge_at"))
+    return "nudge" if (nna and now >= nna) else None
+
+
 def _scan_due_nudges() -> list[tuple[str, str]]:
-    """Arm/refresh next_nudge_at for eligible cards; return (id, kind) due now.
-    kind: 'nudge' = (re-)nudge due, 'stall' = response window expired."""
+    """Arm/refresh next_nudge_at for eligible cards; return (id, kind) due now."""
     import nudge as _nudge
     from scheduler import logical_today_iso
     from helpers import _load_rd, _save_rd, _now_et
@@ -153,22 +166,19 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
     now = _now_et()
     due, dirty = [], False
     for c in rd.get("cards", []):
-        if not _nudge._eligible(c, today):
+        n = c.get("nudge") or {}
+        # plan pass builds the graph first; nudge needs node deadlines
+        if not _nudge._eligible(c, today) or n.get("stage") == "resolved":
             continue
-        if (c.get("nudge") or {}).get("stage") == "resolved":
+        if not n.get("graph", {}).get("nodes"):
             continue
-        dirty |= _arm_nudge(c, _nudge.nudge_anchor(c, now))
-        n = c["nudge"]
-        if c["id"] in _nudges_inflight or time.monotonic() < _nudge_retry_after.get(c["id"], 0):
-            continue
-        if n["awaiting_reply"]:
-            wd = _nudge._parse_et(n.get("window_deadline"))
-            if wd and now >= wd:
-                due.append((c["id"], "stall"))
-            continue
-        nna = _nudge._parse_et(n.get("next_nudge_at"))
-        if nna and now >= nna:
-            due.append((c["id"], "nudge"))
+        dirty |= _nudge.compute_deadlines(c)
+        anchor = _nudge.active_anchor(c)
+        if anchor is not None:
+            dirty |= _arm_nudge(c, anchor)
+        kind = _due_kind(c, now)
+        if kind:
+            due.append((c["id"], kind))
     if dirty:
         _save_rd(rd)
     return due
@@ -221,7 +231,8 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
         n["graph"] = graph_update
         n["active_node"] = active
     if peeled_label is not None:
-        _nudge.apply_peel(card, peeled_label)
+        _nudge.apply_peel(card, peeled_label, result.get("est_min", 5))
+    _nudge.compute_deadlines(card)
     now = _now_et()
     n["stage"] = "awaiting"
     n["awaiting_reply"] = True
@@ -272,25 +283,15 @@ async def _build_graph(card_id: str) -> bool:
         return False  # raced with a fire that already decomposed
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
+    _nudge.compute_deadlines(card)
     _save_rd(rd)
     return True
 
 
 async def _nudge_tick() -> dict:
     fired, built = [], []
-    # Fire pass first: a due card without a graph decomposes inside its fire.
-    for card_id, kind in _scan_due_nudges():
-        _nudges_inflight.add(card_id)
-        try:
-            if await _fire_nudge(card_id, kind):
-                fired.append(card_id)
-                _nudge_retry_after.pop(card_id, None)
-        except Exception as e:
-            print(f"[nudge] error firing {card_id} ({kind}): {e}")
-            _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
-        finally:
-            _nudges_inflight.discard(card_id)
-    # Plan pass: every actionable hq card carries a breakdown.
+    # Plan pass first: every actionable hq card gets a graph + per-node deadlines,
+    # so the fire pass below can read the active node's deadline to time the nudge.
     for card_id in _scan_missing_graphs():
         _nudges_inflight.add(card_id)
         try:
@@ -299,6 +300,18 @@ async def _nudge_tick() -> dict:
                 _nudge_retry_after.pop(card_id, None)
         except Exception as e:
             print(f"[nudge] error building graph for {card_id}: {e}")
+            _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
+        finally:
+            _nudges_inflight.discard(card_id)
+    # Fire pass: nudge cards whose active-node start time has arrived.
+    for card_id, kind in _scan_due_nudges():
+        _nudges_inflight.add(card_id)
+        try:
+            if await _fire_nudge(card_id, kind):
+                fired.append(card_id)
+                _nudge_retry_after.pop(card_id, None)
+        except Exception as e:
+            print(f"[nudge] error firing {card_id} ({kind}): {e}")
             _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
         finally:
             _nudges_inflight.discard(card_id)

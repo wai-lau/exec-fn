@@ -10,6 +10,7 @@
 .cg-node { cursor:pointer; }
 .cg-node rect { fill:rgba(127,127,127,0.08); stroke:currentColor; stroke-opacity:0.45; stroke-width:1; rx:5; }
 .cg-node text { fill:currentColor; fill-opacity:0.8; font-size:11px; font-family:inherit; }
+.cg-node text.cg-meta { fill-opacity:0.45; font-size:9px; }
 .cg-node.done rect { stroke-opacity:0.18; }
 .cg-node.done text { fill-opacity:0.32; text-decoration:line-through; }
 .cg-node.active rect { stroke-opacity:1; stroke-width:2; }
@@ -27,7 +28,14 @@
   style.textContent = css;
   document.head.appendChild(style);
 
-  const COL_W = 150, ROW_H = 42, NODE_W = 132, NODE_H = 30, PAD = 8;
+  const COL_W = 158, ROW_H = 50, NODE_W = 132, NODE_H = 38, PAD = 8;
+
+  function fmtDeadline(iso) {
+    if (!iso) return '';
+    var d = new Date(iso.indexOf('T') >= 0 ? iso : iso + 'T00:00:00');
+    if (isNaN(d)) return '';
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+  }
 
   function prereqMap(edges) {
     const m = {};
@@ -137,10 +145,14 @@
       nodes.forEach(x => {
         const p = pos[x.id];
         const cls = ['cg-node', x.done ? 'done' : '', x.id === n.active_node ? 'active' : '', x.id === selId ? 'sel' : ''].join(' ');
+        const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        const dl = fmtDeadline(x.deadline);
+        const meta = [dl ? 'by ' + dl : '', x.est_min ? x.est_min + 'm' : ''].filter(Boolean).join('  ');
         svg += `<g class="${cls}" data-id="${x.id}">`;
         svg += `<rect x="${p.x}" y="${p.y}" width="${NODE_W}" height="${NODE_H}" rx="5"/>`;
-        svg += `<text x="${p.x + 8}" y="${p.y + NODE_H / 2 + 4}">${trunc(x.label, 18).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`;
-        svg += `<title>${x.label.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</title></g>`;
+        svg += `<text x="${p.x + 8}" y="${p.y + 15}">${esc(trunc(x.label, 18))}</text>`;
+        if (meta) svg += `<text class="cg-meta" x="${p.x + 8}" y="${p.y + 29}">${esc(meta)}</text>`;
+        svg += `<title>${esc(x.label)}${dl ? ' — by ' + dl : ''}</title></g>`;
       });
       svg += '</svg>';
 
