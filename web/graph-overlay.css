@@ -54,9 +54,10 @@ body {
 
 /* nav: chrome.css default — horizontal bar pinned to the bottom. --nav-h is set
    by _build_nav's script (measured nav height). Keep it above the panels so they
-   slide behind it (not over it) when the bottom half collapses. */
+   slide behind it, and above #gp-loading (z 100) so it stays visible during the
+   loading cover. */
 .exec-nav {
-  z-index: 40 !important;
+  z-index: 200 !important;
 }
 
 /* graph canvas fills the whole area above the nav; panels overlay it */
@@ -138,7 +139,7 @@ body.gp-info-open #sidebar {
   #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label,
   #gp-physics .vis-configuration.vis-config-rangeinput,
   #gp-physics select.vis-configuration,
-  #gp-physics .gp-freeze {
+  .gp-freeze {
     font-size: 0.8rem !important;
   }
 }
@@ -358,29 +359,53 @@ body.gp-info-open #sidebar {
   display: none !important;
 }
 
-/* our freeze toggle */
-#gp-physics .gp-freeze {
+/* freeze/tour toggles — fixed top-left, always visible */
+.gp-freeze {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 30;
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 8px;
+  padding: 6px 10px;
   font-family: "04b25", monospace;
   font-size: 0.6rem;
   letter-spacing: 0.06em;
   color: rgba(var(--green-rgb), 0.85);
-  border-bottom: 1px solid rgba(var(--green-rgb), 0.12);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(var(--green-rgb), 0.18);
+  border-radius: 4px;
 }
 
-#gp-physics .gp-freeze label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* segmented either/or switch: freeze | tour */
+.gp-toggle-switch {
+  display: inline-flex;
+  border: 1px solid rgba(var(--green-rgb), 0.35);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gp-seg {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 4px 12px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  background: transparent;
+  color: rgba(var(--green-rgb), 0.55);
   cursor: pointer;
 }
 
-#gp-physics .gp-freeze input {
-  accent-color: var(--green);
-  cursor: pointer;
+.gp-seg + .gp-seg {
+  border-left: 1px solid rgba(var(--green-rgb), 0.35);
+}
+
+.gp-seg.active {
+  background: rgba(var(--green-rgb), 0.85);
+  color: #0f0f1a;
 }
 
 #gp-physics select.vis-configuration {
