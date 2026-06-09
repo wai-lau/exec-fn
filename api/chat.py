@@ -109,6 +109,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"TODAY: {today_str}\n"
         f"FORMATTING: Markdown is allowed. Do not use Unicode emoji.\n"
         f"Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
+        f"NEVER suggest that Wai block, schedule, or carve out time on a calendar — Exec IS Wai's calendar and scheduler. Schedule tasks here (schedule_card) or just talk about doing the work; never punt to an external calendar.\n"
         f"CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
         f"Never state that a card is selected or on the active board unless it appears under CURRENTLY SELECTED TASKS. Do not invent or assume task status.\n"
         f"CRITICAL: NEVER describe taking an action without calling the tool. If you say you will create a card, move a card, update context, or do anything else — you MUST call the tool in that same response. Describing the action is not the action.\n"

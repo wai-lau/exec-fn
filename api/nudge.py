@@ -218,7 +218,10 @@ _TONE = (
     "saccharine, fake-cheerful, or clipped/commanding. Use a warm opener and a soft "
     "suggestion. Model: \"Hey, why don't you open the app and see what's there?\" Avoid "
     "\"Just open the app...\" (too clipped) and \"You've totally got this!!\" (fake). "
-    "No Unicode emoji."
+    "No Unicode emoji. "
+    "NEVER suggest blocking, scheduling, or carving out time on a calendar — Exec IS "
+    "Wai's calendar and the task is already on today's timeline. Nudge the actual work, "
+    "never calendar admin."
 )
 
 
