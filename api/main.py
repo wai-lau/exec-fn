@@ -237,8 +237,49 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
     return True
 
 
+def _scan_missing_graphs() -> list[str]:
+    """Actionable hq cards without a breakdown — everything in hq gets a plan."""
+    import nudge as _nudge
+    from helpers import _load_rd
+    out = []
+    for c in _load_rd().get("cards", []):
+        if not _nudge.decomposable(c):
+            continue
+        n = c.get("nudge") or {}
+        if (n.get("graph") or {}).get("nodes"):
+            continue
+        if c["id"] in _nudges_inflight or time.monotonic() < _nudge_retry_after.get(c["id"], 0):
+            continue
+        out.append(c["id"])
+    return out
+
+
+async def _build_graph(card_id: str) -> bool:
+    """Silent decompose (no nudge sent) for an hq card missing its plan."""
+    import nudge as _nudge
+    from helpers import _load_rd, _save_rd, _find_card
+    rd = _load_rd()
+    card = _find_card(rd, card_id)
+    if not card or not _nudge.decomposable(card):
+        return False
+    result = await asyncio.to_thread(_nudge.decompose_sync, card)
+    # Re-load: rd.json may have changed during the LLM call.
+    rd = _load_rd()
+    card = _find_card(rd, card_id)
+    if not card or not _nudge.decomposable(card):
+        return False
+    n = _nudge.ensure_nudge(card)
+    if n["graph"]["nodes"]:
+        return False  # raced with a fire that already decomposed
+    n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
+    n["active_node"] = result["active_node"]
+    _save_rd(rd)
+    return True
+
+
 async def _nudge_tick() -> dict:
-    fired = []
+    fired, built = [], []
+    # Fire pass first: a due card without a graph decomposes inside its fire.
     for card_id, kind in _scan_due_nudges():
         _nudges_inflight.add(card_id)
         try:
@@ -250,7 +291,19 @@ async def _nudge_tick() -> dict:
             _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
         finally:
             _nudges_inflight.discard(card_id)
-    return {"ok": True, "fired": fired}
+    # Plan pass: every actionable hq card carries a breakdown.
+    for card_id in _scan_missing_graphs():
+        _nudges_inflight.add(card_id)
+        try:
+            if await _build_graph(card_id):
+                built.append(card_id)
+                _nudge_retry_after.pop(card_id, None)
+        except Exception as e:
+            print(f"[nudge] error building graph for {card_id}: {e}")
+            _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
+        finally:
+            _nudges_inflight.discard(card_id)
+    return {"ok": True, "fired": fired, "built": built}
 
 
 async def _run_nudge_loop() -> None:
