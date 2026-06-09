@@ -67,6 +67,8 @@
       <input id="cd-pin-reminder" type="checkbox" style="width:auto;accent-color:rgba(0,255,65,0.8)">
       <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
     </label>
+    <label id="cd-graph-label" style="display:none">breakdown</label>
+    <div id="cd-graph" style="display:none"></div>
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
         <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
@@ -212,6 +214,14 @@
     _togglePages(c.size === 'book');
     document.getElementById('cd-current-page').value = c.current_page ?? '';
     document.getElementById('cd-total-pages').value = c.total_pages ?? '';
+    const hasGraph = !!(c.nudge && c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
+    document.getElementById('cd-graph-label').style.display = hasGraph ? 'block' : 'none';
+    document.getElementById('cd-graph').style.display = hasGraph ? 'block' : 'none';
+    if (hasGraph && typeof renderCardGraph === 'function') {
+      renderCardGraph(document.getElementById('cd-graph'), c);
+    } else {
+      document.getElementById('cd-graph').innerHTML = '';
+    }
     document.getElementById('cd-modal').classList.add('open');
     document.getElementById('cd-title').focus();
   };
