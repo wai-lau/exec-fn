@@ -34,7 +34,6 @@
     <label>title</label><input id="cd-title" type="text">
     <label>date</label>
     <input id="cd-due" type="text" placeholder="optional">
-    <label>notes</label><textarea id="cd-notes"></textarea>
     <label id="cd-size-label">size</label>
     <select id="cd-size">
       <option value="chore">chore &mdash; under 1 hour</option>
@@ -74,6 +73,7 @@
       <span>breakdown</span><span id="cd-graph-total" style="letter-spacing:0;text-transform:none"></span>
     </label>
     <div id="cd-graph" style="display:none"></div>
+    <label>notes</label><textarea id="cd-notes"></textarea>
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
         <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>

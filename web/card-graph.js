@@ -14,17 +14,17 @@
 .cg-edges { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; z-index:0; }
 .cg-cols { display:flex; gap:34px; align-items:flex-start; position:relative; z-index:1; }
 .cg-col { display:flex; flex-direction:column; gap:16px; }
-.cg-node { width:150px; box-sizing:border-box; border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-radius:5px; padding:6px 8px; background:color-mix(in srgb, currentColor 7%, transparent); }
+.cg-node { position:relative; width:150px; box-sizing:border-box; border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-radius:5px; padding:6px 8px; background:color-mix(in srgb, currentColor 7%, transparent); }
 .cg-node.active { border-color:currentColor; border-width:2px; padding:5px 7px; }
 .cg-node.done { opacity:0.5; }
-.cg-label { font-size:11px; line-height:1.35; outline:none; word-break:break-word; white-space:normal; cursor:text; }
+.cg-label { font-size:11px; line-height:1.35; outline:none; word-break:break-word; white-space:normal; cursor:text; padding-right:26px; }
 .cg-label:focus { box-shadow:0 0 0 1px color-mix(in srgb, currentColor 50%, transparent); border-radius:2px; }
 .cg-node.done .cg-label { text-decoration:line-through; }
 .cg-meta { font-size:9px; opacity:0.55; margin-top:3px; }
 .cg-node.active .cg-meta { opacity:0.95; }
-.cg-btns { display:flex; gap:9px; margin-top:5px; }
-.cg-mini { background:none; border:none; color:inherit; cursor:pointer; font-family:inherit; font-size:0.62rem; opacity:0.5; padding:0; }
-.cg-mini:hover { opacity:1; }
+.cg-ctl { position:absolute; top:4px; right:5px; display:flex; gap:5px; line-height:1; }
+.cg-ic { background:none; border:none; color:inherit; cursor:pointer; font-family:inherit; font-size:0.78rem; opacity:0.4; padding:0; }
+.cg-ic:hover { opacity:1; }
 .cg-edge { stroke:currentColor; stroke-opacity:0.32; fill:none; stroke-width:1.3; }
 .cg-arrow { fill:currentColor; fill-opacity:0.32; }
 .cg-hint { font-size:0.55rem; opacity:0.4; margin-top:5px; }
@@ -94,17 +94,18 @@
       recompute(); draw();
     }
 
-    function addAfter(afterId) {
-      const id = 'ui-' + Date.now().toString(36) + '-' + n.graph.nodes.length;
-      n.graph.nodes.push({ id, label: 'new step', done: false, depth: 0, created_at: '', est_min: 5 });
-      n.graph.edges.push({ from: afterId, to: id });
-      recompute(); draw(id);
-    }
-
     function nodeEl(node) {
       const box = document.createElement('div');
       box.className = 'cg-node' + (node.done ? ' done' : '') + (node.id === n.active_node ? ' active' : '');
       box.dataset.id = node.id;
+
+      const ctl = document.createElement('div');
+      ctl.className = 'cg-ctl';
+      const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
+      ctl.append(
+        mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; recompute(); draw(); }),
+        mk('✕', 'delete step', () => removeNode(node.id)),
+      );
 
       const label = document.createElement('div');
       label.className = 'cg-label';
@@ -125,29 +126,19 @@
       const dl = fmtDeadline(node.deadline);
       meta.textContent = [dl ? 'by ' + dl : '', node.est_min ? node.est_min + 'm' : ''].filter(Boolean).join('  ·  ');
 
-      const btns = document.createElement('div');
-      btns.className = 'cg-btns';
-      const mk = (txt, fn) => { const b = document.createElement('button'); b.className = 'cg-mini'; b.textContent = txt; b.addEventListener('click', fn); return b; };
-      btns.append(
-        mk(node.done ? 'undo' : 'done', () => { node.done = !node.done; recompute(); draw(); }),
-        mk('+ after', () => addAfter(node.id)),
-        mk('delete', () => removeNode(node.id)),
-      );
-
-      box.append(label, meta);
-      if (meta.textContent) meta.style.display = ''; else meta.style.display = 'none';
-      box.append(btns);
+      box.append(ctl, label);
+      if (meta.textContent) box.append(meta);
       return box;
     }
 
-    function draw(focusId) {
+    function draw() {
       const nodes = n.graph.nodes, edges = n.graph.edges;
       const depth = layerOf(nodes, edges);
       const maxL = Math.max(0, ...nodes.map(x => depth[x.id]));
 
       container.innerHTML = '<div class="cg-wrap"><div class="cg-scroll"><div class="cg-canvas">' +
         '<svg class="cg-edges"></svg><div class="cg-cols"></div></div></div>' +
-        '<div class="cg-hint">click a step to rename · done / + after / delete</div></div>';
+        '<div class="cg-hint">click a step to rename · ✓ done · ✕ delete · add steps via chat</div></div>';
       const cols = container.querySelector('.cg-cols');
       const elById = {};
       for (let L = 0; L <= maxL; L++) {
@@ -167,7 +158,9 @@
         const a = elById[e.from], b = elById[e.to];
         if (!a || !b) return;
         const x1 = a.offsetLeft + a.offsetWidth, y1 = a.offsetTop + a.offsetHeight / 2;
-        const x2 = b.offsetLeft, y2 = b.offsetTop + b.offsetHeight / 2;
+        // stop short of the target's left edge so the arrowhead sits in the gap,
+        // not hidden under the HTML node (which paints above the edge svg).
+        const x2 = b.offsetLeft - 7, y2 = b.offsetTop + b.offsetHeight / 2;
         const mx = (x1 + x2) / 2;
         const path = document.createElementNS(SVGNS, 'path');
         path.setAttribute('class', 'cg-edge');
@@ -176,20 +169,14 @@
         svg.appendChild(path);
       });
 
-      // Autoscroll to the next unfinished step (or a freshly added node).
+      // Autoscroll to the next unfinished (active) step.
       const scroll = container.querySelector('.cg-scroll');
-      const target = (focusId && elById[focusId]) || elById[n.active_node];
+      const target = elById[n.active_node];
       if (target) {
         scroll.scrollTo({
           left: Math.max(0, target.offsetLeft - scroll.clientWidth / 2 + target.offsetWidth / 2),
           top: Math.max(0, target.offsetTop - scroll.clientHeight / 2 + target.offsetHeight / 2),
         });
-      }
-      if (focusId && elById[focusId]) {
-        const lbl = elById[focusId].querySelector('.cg-label');
-        lbl.focus();
-        const r = document.createRange(); r.selectNodeContents(lbl);
-        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
       }
     }
 
