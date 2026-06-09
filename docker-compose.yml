@@ -17,6 +17,7 @@ services:
       - ./api/data:/app/data
       - ./api/templates:/app/templates
       - ./web:/app/static
+      - ./graphify-out:/app/graphify-out:ro
       - ./mtg/data:/app/mtg/data
       - ./nightfall-incident:/app/nightfall
       - rmapi-auth:/root/.config/rmapi
