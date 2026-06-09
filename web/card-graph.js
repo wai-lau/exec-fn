@@ -13,7 +13,8 @@
 .cg-node { cursor:pointer; }
 .cg-node rect { fill:rgba(127,127,127,0.08); stroke:currentColor; stroke-opacity:0.45; stroke-width:1; rx:5; }
 .cg-node text { fill:currentColor; fill-opacity:0.8; font-size:11px; font-family:inherit; }
-.cg-node text.cg-meta { fill-opacity:0.45; font-size:9px; }
+.cg-node text.cg-meta { fill-opacity:0.6; font-size:9px; }
+.cg-node.active text.cg-meta { fill-opacity:0.95; }
 .cg-node.done rect { stroke-opacity:0.18; }
 .cg-node.done text { fill-opacity:0.32; text-decoration:line-through; }
 .cg-node.active rect { stroke-opacity:1; stroke-width:2; }
@@ -76,13 +77,14 @@
     return s.length > max ? s.slice(0, max - 1) + '…' : s;
   }
 
-  window.renderCardGraph = function (container, card) {
+  window.renderCardGraph = function (container, card, onChange) {
     const n = card.nudge;
     if (!n || !n.graph || !n.graph.nodes) { container.innerHTML = ''; return; }
     let selId = null;
 
     function mutateAndRedraw() {
       n.active_node = firstOpen(n.graph.nodes, n.graph.edges);
+      if (typeof onChange === 'function') onChange();
       draw();
     }
 
