@@ -6,6 +6,7 @@ import glob
 import asyncio
 import secrets
 import html
+from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
@@ -76,6 +77,12 @@ def _schedule_monitor() -> None:
     _monitor_task = asyncio.create_task(_run_monitor())
 
 
+async def push_to_monitor(payload: dict) -> None:
+    """Push a payload to all exec-bubble SSE subscribers."""
+    for q in list(_monitor_subscribers):
+        await q.put(payload)
+
+
 async def _run_monitor(delay: float = 60.0) -> None:
     global _monitor_last_comment_ts
     try:
@@ -87,20 +94,149 @@ async def _run_monitor(delay: float = 60.0) -> None:
         if not any(_is_commentable(e) for e in _recent_entries(capture_ts)):
             return
         _monitor_last_comment_ts = time.time()
-        for q in list(_monitor_subscribers):
-            await q.put({"thinking": True})
+        await push_to_monitor({"thinking": True})
         comment = await generate_encouragement(capture_ts)
-        for q in list(_monitor_subscribers):
-            await q.put({"thinking": False})
+        await push_to_monitor({"thinking": False})
         if not comment:
             return
         append_monitor_comment(comment)
-        for q in list(_monitor_subscribers):
-            await q.put({"comment": comment})
+        await push_to_monitor({"comment": comment})
     except Exception as e:
         print(f"[monitor] error: {e}")
-        for q in list(_monitor_subscribers):
-            await q.put({"thinking": False})
+        await push_to_monitor({"thinking": False})
+
+
+# ── nudge loop ────────────────────────────────────────────────────────────────
+# In-process ticker for the decomposition+nudge loop (see nudge.py). State lives
+# on the cards in rd.json, so a --reload restart just re-arms on the next tick.
+
+_nudges_inflight: set[str] = set()
+
+
+def _arm_nudge(c: dict, slot) -> bool:
+    """Bring a card's nudge timing in line with its placement. Returns dirty.
+
+    While stage is 'nudging' (first nudge not yet sent) next_nudge_at tracks the
+    card's current placement each tick, so dragging the card on the timeline
+    moves the nudge with it.
+    """
+    import nudge as _nudge
+    n = _nudge.ensure_nudge(c)
+    dirty = False
+    if n["stage"] == "idle":
+        n["stage"] = "nudging"
+        n["first_nudge_at"] = _nudge._fmt_et(slot)
+        dirty = True
+    if n["stage"] == "nudging":
+        slot_s = _nudge._fmt_et(slot)
+        if n["next_nudge_at"] != slot_s:
+            n["next_nudge_at"] = slot_s
+            dirty = True
+    return dirty
+
+
+def _scan_due_nudges() -> list[str]:
+    """Arm/refresh next_nudge_at for eligible cards; return ids due to fire now."""
+    import nudge as _nudge
+    from scheduler import logical_today_iso
+    from helpers import _load_rd, _save_rd, _now_et
+
+    rd = _load_rd()
+    today = logical_today_iso()
+    now = _now_et()
+    due, dirty = [], False
+    for c in rd.get("cards", []):
+        if not _nudge._eligible(c, today):
+            continue
+        slot = _nudge.slot_datetime(c)
+        if slot is None or (c.get("nudge") or {}).get("stage") == "resolved":
+            continue
+        dirty |= _arm_nudge(c, slot)
+        n = c["nudge"]
+        if n["awaiting_reply"] or c["id"] in _nudges_inflight:
+            continue
+        nna = _nudge._parse_et(n.get("next_nudge_at"))
+        if nna and now >= nna:
+            due.append(c["id"])
+    if dirty:
+        _save_rd(rd)
+    return due
+
+
+async def _fire_nudge(card_id: str) -> bool:
+    """Generate + deliver one nudge. Reloads rd around the LLM call so a
+    concurrent PATCH /api/rd isn't clobbered."""
+    import nudge as _nudge
+    from datetime import timedelta
+    from scheduler import logical_today_iso
+    from helpers import _load_rd, _save_rd, _find_card, _now_et
+
+    rd = _load_rd()
+    card = _find_card(rd, card_id)
+    if not card or not _nudge._eligible(card, logical_today_iso()):
+        return False
+    n = _nudge.ensure_nudge(card)
+
+    await push_to_monitor({"thinking": True})
+    try:
+        if not n["graph"]["nodes"]:
+            result = await asyncio.to_thread(_nudge.decompose_sync, card)
+            graph_update = {"nodes": result["nodes"], "edges": result["edges"]}
+            active = result["active_node"]
+            text = result.get("nudge_text", "").strip()
+            if not text:
+                text = await asyncio.to_thread(_nudge.nudge_text_sync, card)
+        else:
+            graph_update, active = None, None
+            text = await asyncio.to_thread(_nudge.nudge_text_sync, card)
+    finally:
+        await push_to_monitor({"thinking": False})
+
+    # Re-load: rd.json may have changed during the LLM call.
+    rd = _load_rd()
+    card = _find_card(rd, card_id)
+    if not card or not _nudge._eligible(card, logical_today_iso()):
+        return False
+    n = _nudge.ensure_nudge(card)
+    if graph_update is not None:
+        n["graph"] = graph_update
+        n["active_node"] = active
+    now = _now_et()
+    n["stage"] = "awaiting"
+    n["awaiting_reply"] = True
+    n["last_nudge_at"] = _nudge._fmt_et(now)
+    n["last_nudge_text"] = text
+    n["window_deadline"] = _nudge._fmt_et(now + timedelta(minutes=_nudge.window_for(card)))
+    n["next_nudge_at"] = None
+    _save_rd(rd)
+
+    append_monitor_comment(text)
+    await push_to_monitor({"comment": text})
+    return True
+
+
+async def _nudge_tick() -> dict:
+    fired = []
+    for card_id in _scan_due_nudges():
+        _nudges_inflight.add(card_id)
+        try:
+            if await _fire_nudge(card_id):
+                fired.append(card_id)
+        except Exception as e:
+            print(f"[nudge] error firing {card_id}: {e}")
+        finally:
+            _nudges_inflight.discard(card_id)
+    return {"ok": True, "fired": fired}
+
+
+async def _run_nudge_loop() -> None:
+    from nudge import NUDGE_POLL_SEC
+    while True:
+        await asyncio.sleep(NUDGE_POLL_SEC)
+        try:
+            await _nudge_tick()
+        except Exception as e:
+            print(f"[nudge] tick error: {e}")
 
 
 _TMPL = Path("/app/templates")
@@ -253,7 +389,14 @@ def _tmpl(name: str) -> str:
 
 # ── app ───────────────────────────────────────────────────────────────────────
 
-app = FastAPI()
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    nudge_task = asyncio.create_task(_run_nudge_loop())
+    yield
+    nudge_task.cancel()
+
+
+app = FastAPI(lifespan=_lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
@@ -705,6 +848,13 @@ async def monitor_stream():
         "Cache-Control": "no-cache",
         "X-Accel-Buffering": "no",
     })
+
+
+@protected.post("/api/nudge/tick")
+async def api_nudge_tick():
+    """Manual one-shot tick of the nudge loop (the in-process loop runs this
+    automatically every NUDGE_POLL_SEC)."""
+    return await _nudge_tick()
 
 
 @protected.post("/api/monitor/flush")
