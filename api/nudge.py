@@ -74,14 +74,87 @@ def _eligible(c: dict, today_iso: str) -> bool:
     return decomposable(c) and c.get("scheduled_day") == today_iso
 
 
-def nudge_anchor(c: dict, now: datetime) -> datetime:
-    """First-nudge time for a today-scheduled card: its timeline slot if placed,
-    else the 10 AM autostack anchor (or now if past it) so nothing fires pre-dawn."""
+_EOD_HOUR = 21  # fallback deadline for a today card with no event time / due time
+
+
+def _lead(c: dict) -> int:
+    """Total minutes to do the whole task (sum of node work, or the estimate)."""
+    return c.get("estimated_time") or _SIZE_MINUTES.get(c.get("size") or "task", 90)
+
+
+def card_deadline(c: dict) -> datetime:
+    """When the whole card must be DONE: its timeline slot (event/placed time),
+    else a timed due_date, else end of its scheduled day."""
     slot = slot_datetime(c)
     if slot is not None:
         return slot
-    floor = now.replace(hour=10, minute=0, second=0, microsecond=0)  # AUTOSTACK_ANCHOR
-    return max(now, floor)
+    dd = c.get("due_date") or ""
+    if "T" in dd:
+        try:
+            return datetime.fromisoformat(dd)
+        except ValueError:
+            pass
+    sd = c.get("scheduled_day") or ""
+    base = datetime.fromisoformat(sd[:10]) if sd else _now_et()
+    return base.replace(hour=_EOD_HOUR, minute=0, second=0, microsecond=0)
+
+
+def _back_schedule(nodes: list, edges: list, D: datetime, default: int) -> dict:
+    """Map node id -> deadline. A node's deadline is the earliest start of any
+    successor (its deadline minus its duration); a sink's deadline is D."""
+    by_id = {nd["id"]: nd for nd in nodes}
+    succ: dict[str, list] = {}
+    for e in edges:
+        succ.setdefault(e["from"], []).append(e["to"])
+    cache: dict[str, datetime] = {}
+
+    def deadline_of(nid: str, seen: frozenset) -> datetime:
+        if nid in cache:
+            return cache[nid]
+        outs = [] if nid in seen else succ.get(nid, [])
+        cache[nid] = D if not outs else min(
+            deadline_of(s, seen | {nid}) - timedelta(minutes=by_id[s].get("est_min", default))
+            for s in outs if s in by_id
+        )
+        return cache[nid]
+
+    return {nd["id"]: deadline_of(nd["id"], frozenset()) for nd in nodes}
+
+
+def compute_deadlines(card: dict) -> bool:
+    """Back-schedule a per-node deadline from the card deadline: the last node(s)
+    finish by the deadline, each node finishes before any successor must start.
+    Sets node['est_min'] and node['deadline'] (ISO). Returns True if anything
+    changed. Pure (no I/O); cheap enough to run every tick."""
+    n = ensure_nudge(card)
+    nodes = n["graph"]["nodes"]
+    if not nodes:
+        return False
+    default = max(5, round(_lead(card) / len(nodes)))
+    changed = False
+    for nd in nodes:
+        if not nd.get("est_min"):
+            nd["est_min"] = default
+            changed = True
+    deadlines = _back_schedule(nodes, n["graph"]["edges"], card_deadline(card), default)
+    for nd in nodes:
+        d = _fmt_et(deadlines[nd["id"]])
+        if nd.get("deadline") != d:
+            nd["deadline"] = d
+            changed = True
+    return changed
+
+
+def active_anchor(card: dict) -> datetime | None:
+    """When to nudge: the start time of the active node (its deadline minus its
+    own duration) so it gets DONE by its deadline — not nudged at the deadline."""
+    n = card.get("nudge") or {}
+    active = next((nd for nd in n.get("graph", {}).get("nodes", [])
+                   if nd["id"] == n.get("active_node")), None)
+    if not active or not active.get("deadline"):
+        return None
+    dl = _parse_et(active["deadline"])
+    return dl - timedelta(minutes=active.get("est_min") or _lead(card))
 
 
 # ── state ─────────────────────────────────────────────────────────────────────
@@ -135,13 +208,19 @@ def _normalize_graph(data: dict) -> dict:
     for nd in data.get("nodes", []):
         if not nd.get("id"):
             continue
-        nodes.append({
+        node = {
             "id": nd["id"],
             "label": nd.get("label", ""),
             "done": bool(nd.get("done", False)),
             "depth": int(nd.get("depth", 0)),
             "created_at": nd.get("created_at") or now,
-        })
+        }
+        try:
+            if nd.get("est_min"):
+                node["est_min"] = max(1, int(nd["est_min"]))
+        except (TypeError, ValueError):
+            pass
+        nodes.append(node)
     ids = {n["id"] for n in nodes}
     edges = [
         {"from": e["from"], "to": e["to"]}
@@ -170,14 +249,15 @@ def morning_reconcile(cards: list, today_iso: str) -> None:
             continue
         n["awaiting_reply"] = False
         n["window_deadline"] = None
-        # Fresh day: slot-tracking owns the first nudge again.
+        # Fresh day: the scan re-arms from the active node's deadline.
         n["last_nudge_at"] = None
         n["last_nudge_text"] = ""
         if _eligible(c, today_iso):
-            anchor = _fmt_et(nudge_anchor(c, _now_et()))
+            compute_deadlines(c)
+            anchor = active_anchor(c)
             n["stage"] = "nudging"
-            n["first_nudge_at"] = anchor
-            n["next_nudge_at"] = anchor
+            n["first_nudge_at"] = _fmt_et(anchor) if anchor else None
+            n["next_nudge_at"] = _fmt_et(anchor) if anchor else None
         else:
             n["stage"] = "idle"
             n["first_nudge_at"] = None
@@ -267,13 +347,15 @@ def decompose_sync(card: dict, feedback: str = "") -> dict:
     system = (
         "You are Exec, Wai's ADHD planning assistant. Build a SMALL internal dependency "
         "graph for ONE task: its concrete sub-steps and which must precede which (an edge "
-        "{from,to} means `from` must be done before `to`). Then pick the FIRST doable node "
-        "(no unfinished prerequisites) and write the opening nudge for ONLY that chunk.\n"
+        "{from,to} means `from` must be done before `to`). Give each node est_min: how "
+        "many minutes that single step realistically takes (the steps should sum to about "
+        "the task estimate). Then pick the FIRST doable node (no unfinished prerequisites) "
+        "and write the opening nudge for ONLY that chunk.\n"
         f"{_TONE}\n"
         "The nudge is 1-2 sentences naming only the first chunk, plus 1 sentence of why it "
         "matters (reasoning / consequence / dependency). Never reveal the whole plan.\n\n"
         f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
-        'Return JSON only: {"nodes":[{"id":"n1","label":"...","done":false},...],'
+        'Return JSON only: {"nodes":[{"id":"n1","label":"...","done":false,"est_min":15},...],'
         '"edges":[{"from":"n1","to":"n2"},...],"active_node":"n1","nudge_text":"..."}'
     )
     user = _card_brief(card)
@@ -303,9 +385,10 @@ def peel_sync(card: dict) -> dict:
         "There is no floor — 'open the app' or 'put the tab on screen' is fine.\n"
         f"{_TONE}\n"
         "Also write the nudge for ONLY that sub-step: 1-2 sentences naming it, plus 1 "
-        "sentence of why it matters (reasoning / consequence / dependency).\n\n"
+        "sentence of why it matters (reasoning / consequence / dependency). Give est_min "
+        "= minutes the tiny sub-step takes (usually 1-10).\n\n"
         f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
-        'Return JSON only: {"sub_label":"...","nudge_text":"..."}'
+        'Return JSON only: {"sub_label":"...","est_min":5,"nudge_text":"..."}'
     )
     user = (
         f"{_card_brief(card)}\n\nSTALLED STEP: {chunk}\n"
@@ -314,7 +397,7 @@ def peel_sync(card: dict) -> dict:
     return _json_call(system, user, max_tokens=300)
 
 
-def apply_peel(card: dict, sub_label: str) -> str:
+def apply_peel(card: dict, sub_label: str, est_min: int = 5) -> str:
     """Insert the peeled sub-step as a prerequisite of the active node and make it
     active. Returns the new node id."""
     n = ensure_nudge(card)
@@ -329,6 +412,7 @@ def apply_peel(card: dict, sub_label: str) -> str:
         "done": False,
         "depth": (parent.get("depth", 0) + 1) if parent else 0,
         "created_at": _fmt_et(now),
+        "est_min": max(1, int(est_min or 5)),
     })
     if parent_id:
         n["graph"]["edges"].append({"from": new_id, "to": parent_id})

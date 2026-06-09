@@ -294,6 +294,7 @@ def _tool_decompose_task(input_: dict) -> dict:
     result = _nudge.decompose_sync(card, feedback=input_.get("feedback", ""))
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
+    _nudge.compute_deadlines(card)
     _save_rd(rd)
     _append_rd_log("decomposed", card["title"], source="Exec",
                    nodes=len(result["nodes"]))
