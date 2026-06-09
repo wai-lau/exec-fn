@@ -82,9 +82,14 @@ def _lead(c: dict) -> int:
     return c.get("estimated_time") or _SIZE_MINUTES.get(c.get("size") or "task", 90)
 
 
+def _has_fixed_deadline(c: dict) -> bool:
+    """A real, user-set deadline: a timeline slot (event/placed) or a timed due_date."""
+    return slot_datetime(c) is not None or "T" in (c.get("due_date") or "")
+
+
 def card_deadline(c: dict) -> datetime:
-    """When the whole card must be DONE: its timeline slot (event/placed time),
-    else a timed due_date, else end of its scheduled day."""
+    """When the whole card must be DONE: a fixed deadline (slot / timed due_date),
+    else the auto-assigned staggered deadline, else end of its scheduled day."""
     slot = slot_datetime(c)
     if slot is not None:
         return slot
@@ -94,9 +99,41 @@ def card_deadline(c: dict) -> datetime:
             return datetime.fromisoformat(dd)
         except ValueError:
             pass
+    auto = (c.get("nudge") or {}).get("auto_deadline")
+    if auto:
+        d = _parse_et(auto)
+        if d:
+            return d
     sd = c.get("scheduled_day") or ""
     base = datetime.fromisoformat(sd[:10]) if sd else _now_et()
     return base.replace(hour=_EOD_HOUR, minute=0, second=0, microsecond=0)
+
+
+def assign_auto_deadlines(cards: list, today_iso: str, now: datetime) -> bool:
+    """Give every eligible today card a deadline. Cards without a fixed deadline
+    get a staggered nudge.auto_deadline — stacked sequentially from now by each
+    card's estimate, in `order` — so they spread across the day instead of all
+    collapsing to end-of-day. Pinned once, stable across ticks. Returns dirty."""
+    elig = [
+        c for c in cards
+        if _eligible(c, today_iso)
+        and (c.get("nudge") or {}).get("stage") != "resolved"
+        and not _has_fixed_deadline(c)
+    ]
+    elig.sort(key=lambda c: c.get("order", 0))
+    cursor = now
+    dirty = False
+    for c in elig:
+        n = ensure_nudge(c)
+        if n.get("auto_deadline"):
+            d = _parse_et(n["auto_deadline"])
+            if d:
+                cursor = max(cursor, d)
+            continue
+        cursor = cursor + timedelta(minutes=_lead(c))
+        n["auto_deadline"] = _fmt_et(cursor)
+        dirty = True
+    return dirty
 
 
 def _back_schedule(nodes: list, edges: list, D: datetime, default: int) -> dict:
@@ -173,6 +210,7 @@ def default_nudge_state() -> dict:
         "last_nudge_text": "",
         "last_user_reply_at": None,
         "consequences": {"asked_at": None, "answer": None, "decision": None},
+        "auto_deadline": None,        # staggered deadline when no fixed one is set
         "version": 1,
     }
 
@@ -249,9 +287,10 @@ def morning_reconcile(cards: list, today_iso: str) -> None:
             continue
         n["awaiting_reply"] = False
         n["window_deadline"] = None
-        # Fresh day: the scan re-arms from the active node's deadline.
+        # Fresh day: the scan re-arms from the active node's deadline + re-staggers.
         n["last_nudge_at"] = None
         n["last_nudge_text"] = ""
+        n["auto_deadline"] = None
         if _eligible(c, today_iso):
             compute_deadlines(c)
             anchor = active_anchor(c)

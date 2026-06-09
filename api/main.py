@@ -164,8 +164,10 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
     rd = _load_rd()
     today = logical_today_iso()
     now = _now_et()
-    due, dirty = [], False
-    for c in rd.get("cards", []):
+    due = []
+    cards = rd.get("cards", [])
+    dirty = _nudge.assign_auto_deadlines(cards, today, now)
+    for c in cards:
         n = c.get("nudge") or {}
         # plan pass builds the graph first; nudge needs node deadlines
         if not _nudge._eligible(c, today) or n.get("stage") == "resolved":
