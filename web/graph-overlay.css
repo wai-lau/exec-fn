@@ -13,6 +13,45 @@ body {
   font-family: 'Iosevka Mayukai Monolite', monospace;
 }
 
+/* 3s loading cover — mirrors nightfall's boot-bar (white bordered bar, white
+   fill, dark bg, 0.8s opacity fade). Settles the graph before reveal. No text. */
+#gp-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #222;
+  transition: opacity 0.8s ease;
+}
+
+#gp-loading.gp-hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#gp-loading .gp-load-track {
+  width: min(60vw, 420px);
+  height: 10px;
+  border: 2px solid #fff;
+  background: transparent;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#gp-loading .gp-load-fill {
+  width: 0;
+  height: 100%;
+  background: #fff;
+  animation: gp-load 3s ease-out forwards;
+}
+
+@keyframes gp-load {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
 /* nav: chrome.css default — horizontal bar pinned to the bottom. --nav-h is set
    by _build_nav's script (measured nav height). Keep it above the panels so they
    slide behind it (not over it) when the bottom half collapses. */
@@ -323,13 +362,19 @@ body.gp-info-open #sidebar {
 #gp-physics .gp-freeze {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 18px;
   padding: 8px;
   font-family: "04b25", monospace;
   font-size: 0.6rem;
   letter-spacing: 0.06em;
   color: rgba(var(--green-rgb), 0.85);
   border-bottom: 1px solid rgba(var(--green-rgb), 0.12);
+}
+
+#gp-physics .gp-freeze label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
 }
 
