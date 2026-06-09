@@ -75,7 +75,7 @@
         <button class="cd-btn" style="border-color:rgba(0,255,65,0.5);color:rgba(0,255,65,0.85)" onclick="cdDone()">done</button>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="cd-btn" onclick="cdClose()">undo</button>
+        <button class="cd-btn" onclick="cdChat()">chat</button>
         <button class="cd-btn" onclick="cdSave()">save</button>
       </div>
     </div>
@@ -269,6 +269,14 @@
     await _patch();
     cdClose();
     _cdCallback('done');
+  };
+
+  window.cdChat = function() {
+    const c = _cdCards.find(x => x.id === _cdId);
+    cdClose();
+    if (c && typeof window.openExecChat === 'function') {
+      window.openExecChat('Let\'s work on "' + (c.title || '') + '".');
+    }
   };
 
   window.cdExile = async function() {
