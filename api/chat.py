@@ -4,6 +4,49 @@ from datetime import datetime, timezone
 from helpers import DATA_DIR, _load_json, _load_rd, _now_et, get_rd_log, _parse_json, ET
 
 
+def _focused_nudge_card(cards: list) -> dict | None:
+    """Most-recently-nudged card with an active nudge loop."""
+    import nudge as _nudge
+    from scheduler import logical_today_iso
+    today = logical_today_iso()
+    active = [
+        c for c in cards
+        if _nudge._eligible(c, today)
+        and (c.get("nudge") or {}).get("stage") in ("nudging", "awaiting", "stalled", "consequences")
+    ]
+    if not active:
+        return None
+    return max(active, key=lambda c: (c["nudge"].get("last_nudge_at") or ""))
+
+
+def _active_nudge_block(cards: list) -> str:
+    import nudge as _nudge
+    card = _focused_nudge_card(cards)
+    if not card:
+        return ""
+    n = card["nudge"]
+    nodes = n.get("graph", {}).get("nodes", [])
+    remaining = sum(1 for nd in nodes if not nd.get("done"))
+    lines = [
+        "\n\nACTIVE NUDGE LOOP (a timed nudge is running on this task):",
+        f"- task: '{card.get('title','')}' (id:{card['id']})",
+        f"- stage: {n.get('stage')}",
+        f"- current step: {_nudge.active_label(card)}",
+        f"- steps remaining: {remaining} of {len(nodes)}" if nodes else "- no breakdown yet",
+        f"- last nudge sent: {n.get('last_nudge_text')!r} at {n.get('last_nudge_at')}",
+        f"- re-decomposed {n.get('redecompose_count', 0)} time(s)",
+    ]
+    ans = n.get("consequences", {}).get("answer")
+    if ans:
+        lines.append(f"- Wai's stated consequence if not done: {ans!r}")
+    lines.append(
+        "HANDLING: if Wai gives feedback on the breakdown or wants a different first "
+        "step, call decompose_task to rebuild it. Speak about the current step only — "
+        "never recite the whole breakdown."
+    )
+    return "\n".join(lines)
+
+
 def _build_chat_system_prompt(stage: str = "planning") -> str:
     ctx = _load_json("profile", {"notes": []})
     rd = _load_rd()
@@ -67,6 +110,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"IDEAS POOL (top 15):\n{ideas_text}\n\n"
         f"7-DAY SCHEDULE (scheduled_day assignments this week):\n{scheduled_text}\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}"
+        f"{_active_nudge_block(cards)}"
     )
 
 
@@ -137,6 +181,23 @@ def _chat_tools() -> list:
                     "id": {"type": "string", "description": "Card ID."},
                     "scheduled_day": {"type": "string", "description": "ISO date YYYY-MM-DD (today = directives, future = prophecies), or null to unschedule."},
                     "dir_start_min": {"type": "integer", "description": "Minutes from midnight for directives timeline position (e.g. 9:00am = 540, 2:30pm = 870). Only set when scheduling for today with a known time."},
+                },
+                "required": ["id"],
+            },
+        },
+        {
+            "name": "decompose_task",
+            "description": (
+                "Break a task into an internal dependency graph of small doable steps and pick the first chunk. "
+                "Use when Wai asks to break a task down, says it feels too big / overwhelming, or gives feedback "
+                "that reshapes an existing breakdown ('let's do X first', 'skip that part') — calling this again "
+                "rebuilds the graph from the card's current state. The breakdown is internal: tell Wai only the "
+                "first chunk, never the whole list. Not for reminders, events, or books."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
                 },
                 "required": ["id"],
             },
