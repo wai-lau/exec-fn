@@ -936,7 +936,10 @@ def _log_entries_for_patch(new_cards, old_cards, source):
         if old is None:
             entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "column": c.get("column"), "is_reminder": c.get("is_reminder", False)})
         elif old.get("column") != c.get("column"):
-            entries.append({"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)})
+            mv = {"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)}
+            if c.get("column") == "archives" and c.get("completed_late"):
+                mv["late"] = True  # telemetry for recalibrating estimates / nudge lead times
+            entries.append(mv)
         elif (old.get("notes") != c.get("notes") or old.get("title") != c.get("title")
               or old.get("current_page") != c.get("current_page")):
             entry = {"action": "updated", "title": c.get("title", c.get("id")), "source": source, "size": c.get("size", "")}

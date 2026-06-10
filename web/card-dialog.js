@@ -19,6 +19,8 @@
 .cd-btn:hover { border-color:rgba(0,255,65,1); color:rgba(0,255,65,1); }
 .cd-btn-exile { border-color:rgba(255,100,100,0.5) !important; color:rgba(255,120,120,0.8) !important; }
 .cd-btn-exile:hover { border-color:rgba(255,100,100,0.9) !important; color:rgba(255,130,130,1) !important; }
+.cd-btn-late { border-color:rgba(255,176,0,0.55) !important; color:rgba(255,190,40,0.85) !important; }
+.cd-btn-late:hover { border-color:rgba(255,176,0,0.95) !important; color:rgba(255,200,70,1) !important; }
 .cd-dark label { color:inherit !important; opacity:0.55; }
 .cd-dark input,.cd-dark select,.cd-dark textarea { color:inherit !important; background:rgba(255,255,255,0.04) !important; border-color:rgba(255,255,255,0.12) !important; }
 .cd-dark .cd-btn { border-color:rgba(255,255,255,0.25) !important; color:inherit !important; opacity:0.8; }
@@ -82,6 +84,7 @@
       <div style="display:flex;gap:8px">
         <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
         <button class="cd-btn" style="border-color:rgba(0,255,65,0.5);color:rgba(0,255,65,0.85)" onclick="cdDone()">done</button>
+        <button class="cd-btn cd-btn-late" onclick="cdLate()" title="done, but late — logged for recalibration">late</button>
       </div>
       <div style="display:flex;gap:8px">
         <button class="cd-btn" onclick="cdChat()">chat</button>
@@ -291,6 +294,17 @@
     await _patch();
     cdClose();
     _cdCallback('done');
+  };
+
+  // Done, but late — archive and flag for future recalibration of estimates/lead times.
+  window.cdLate = async function() {
+    const c = _cdCards.find(x => x.id === _cdId);
+    if (!c) return;
+    c.column = 'archives';
+    c.completed_late = true;
+    await _patch();
+    cdClose();
+    _cdCallback('late');
   };
 
   window.cdRecalc = async function() {
