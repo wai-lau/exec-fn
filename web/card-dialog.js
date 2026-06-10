@@ -258,9 +258,11 @@
     _cdId = null;
   };
 
-  window.cdSave = async function() {
+  // Read every dialog field onto the card and persist it. Shared by cdSave
+  // (which then closes) and cdChat (which keeps the dialog open).
+  async function _collectAndPatch() {
     const c = _cdCards.find(x => x.id === _cdId);
-    if (!c) return;
+    if (!c) return null;
     c.title = document.getElementById('cd-title').value.trim() || c.title;
     c.category = document.getElementById('cd-cat').value;
     const isReminder = document.getElementById('cd-reminder').checked;
@@ -283,6 +285,12 @@
       c.total_pages  = isNaN(tp) ? null : tp;
     }
     await _patch();
+    return c;
+  }
+
+  window.cdSave = async function() {
+    const c = await _collectAndPatch();
+    if (!c) return;
     cdClose();
     _cdCallback('save');
   };
@@ -333,10 +341,11 @@
     btn.textContent = prev; btn.disabled = false;
   };
 
-  window.cdChat = function() {
-    const c = _cdCards.find(x => x.id === _cdId);
-    cdClose();
-    if (c && typeof window.openExecChat === 'function') {
+  window.cdChat = async function() {
+    const c = await _collectAndPatch();
+    if (!c) return;
+    _cdCallback('save');
+    if (typeof window.openExecChat === 'function') {
       window.openExecChat('Let\'s work on "' + (c.title || '') + '".');
     }
   };
