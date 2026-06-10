@@ -694,6 +694,18 @@ async function streamResponse() {
 
 // focus the composer whenever it is the querent's turn. Retries across a few
 // frames because focus on a just-unhidden element is silently dropped.
+function _caretToEnd() {
+  // contenteditable .focus() alone leaves no caret/selection inside the node, so
+  // typing has nowhere to land. Put the caret at the end explicitly.
+  const sel = window.getSelection();
+  if (!sel) return;
+  const range = document.createRange();
+  range.selectNodeContents(_msgInput);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 function focusInput() {
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
@@ -702,7 +714,14 @@ function focusInput() {
     setTimeout(() => {
       if (document.body.classList.contains('no-input')) return;
       if (cardZoom.classList.contains('open')) return;
-      if (document.activeElement !== _msgInput) _msgInput.focus({preventScroll: true});
+      _msgInput.focus({preventScroll: true});
+      // only seat the caret if focus actually landed and there isn't already a
+      // live selection inside the field (don't stomp a mid-edit cursor)
+      if (document.activeElement === _msgInput) {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount || !_msgInput.contains(sel.anchorNode)) _caretToEnd();
+        renderCaret();
+      }
     }, t);
   }
 }
@@ -822,8 +841,7 @@ sigCard.addEventListener('click', () => {
 cardZoom.addEventListener('click', closeZoom);
 renderSigCard();
 
-_msgInput.focus();
-renderCaret();
+focusInput();
 
 // No Significator -> always force Phase 1 (selection interview), wiping any
 // stale chat history so the bot leads cleanly.
