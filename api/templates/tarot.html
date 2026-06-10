@@ -843,6 +843,28 @@ renderSigCard();
 
 focusInput();
 
+// iOS raises the soft keyboard only for a focus() that runs synchronously inside
+// a user gesture — never from a setTimeout (so focusInput, which defers, can't do
+// it). The send (return key) and zoom-dismiss taps already focus in-gesture; the
+// one gap is the opening turn, which has no gesture. Seat focus on the first page
+// interaction so the first question is typable, then later gestures keep it up.
+function _focusNow() {
+  if (document.body.classList.contains('no-input')) return;
+  if (cardZoom.classList.contains('open')) return;
+  _msgInput.focus({preventScroll: true});
+  if (document.activeElement === _msgInput) { _caretToEnd(); renderCaret(); }
+}
+(function armOpeningFocus() {
+  const onFirst = e => {
+    // card taps / zoom dismiss raise the keyboard via their own handlers — don't
+    // double-focus and cause a flicker
+    if (e.target.closest('#spread-area, #card-zoom')) return;
+    document.removeEventListener('pointerdown', onFirst, true);
+    _focusNow();
+  };
+  document.addEventListener('pointerdown', onFirst, true);
+})();
+
 // No Significator -> always force Phase 1 (selection interview), wiping any
 // stale chat history so the bot leads cleanly.
 if (!significator && messages.length) {
