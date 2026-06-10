@@ -27,9 +27,6 @@
 .cg-ctl { position:absolute; top:50%; left:100%; margin-left:6px; transform:translateY(-50%); display:flex; flex-direction:column; gap:8px; line-height:1; z-index:2; }
 .cg-ic { background:none; border:none; color:inherit; cursor:pointer; font-family:inherit; font-size:0.78rem; opacity:0.4; padding:0; }
 .cg-ic:hover { opacity:1; }
-.cg-ic.cg-late { color:rgba(255,176,0,0.95); font-weight:700; }
-.cg-node.late { border-color:rgba(255,176,0,0.8); }
-.cg-node.late .cg-meta { color:rgba(255,176,0,0.95); opacity:1; }
 .cg-edge { stroke:currentColor; stroke-opacity:0.32; fill:none; stroke-width:1.3; }
 .cg-arrow { fill:currentColor; fill-opacity:0.32; }
 .cg-hint { font-size:0.55rem; opacity:0.4; margin-top:5px; }
@@ -104,7 +101,7 @@
 
     function nodeEl(node) {
       const box = document.createElement('div');
-      box.className = 'cg-node' + (node.done ? ' done' : '') + (node.late ? ' late' : '') +
+      box.className = 'cg-node' + (node.done ? ' done' : '') +
         (node.id === n.active_node ? ' active' : '') + (node.is_event_start ? ' event' : '');
       box.dataset.id = node.id;
 
@@ -116,10 +113,9 @@
       if (!node.is_event_start) {
         const ctl = document.createElement('div');
         ctl.className = 'cg-ctl';
-        const mk = (txt, title, fn, cls) => { const b = document.createElement('button'); b.className = 'cg-ic' + (cls ? ' ' + cls : ''); b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
+        const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
         ctl.append(
-          mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; if (node.done) node.late = false; recompute(); draw(); }),
-          mk('!', node.late ? 'unmark late' : 'mark late (still on it)', () => { node.late = !node.late; draw(); }, 'cg-late'),
+          mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; recompute(); draw(); }),
           mk('✕', 'delete step', () => removeNode(node.id)),
         );
         label.contentEditable = 'true';
@@ -141,7 +137,6 @@
       const parts = node.is_event_start
         ? [t ? 'starts ' + t : '']
         : [t, node.est_min ? node.est_min + 'm' : ''];
-      if (node.late) parts.push('late');
       meta.textContent = parts.filter(Boolean).join('  ·  ');
 
       box.appendChild(label);
