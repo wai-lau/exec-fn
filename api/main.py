@@ -929,6 +929,20 @@ def _atomic_write_json(path: Path, data) -> None:
     tmp.replace(path)
 
 
+def _minutes_late(card) -> int:
+    """How many minutes past its deadline a card was completed (clamped >= 0,
+    capped at 4x the estimate so a card archived days later can't skew learning)."""
+    import nudge as _nudge
+    from helpers import _now_et
+    try:
+        dl = _nudge.card_deadline(card)
+    except Exception:
+        return 0
+    late = (_now_et() - dl).total_seconds() / 60
+    est = card.get("estimated_time") or 90
+    return max(0, min(round(late), est * 4))
+
+
 def _log_entries_for_patch(new_cards, old_cards, source):
     entries = []
     for c in new_cards:
@@ -937,8 +951,12 @@ def _log_entries_for_patch(new_cards, old_cards, source):
             entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "column": c.get("column"), "is_reminder": c.get("is_reminder", False)})
         elif old.get("column") != c.get("column"):
             mv = {"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)}
-            if c.get("column") == "archives" and c.get("completed_late"):
-                mv["late"] = True  # telemetry for recalibrating estimates / nudge lead times
+            if c.get("column") == "archives":
+                mv["category"] = c.get("category")  # recalibration keys factors by category
+                if c.get("completed_late"):
+                    mv["late"] = True
+                    mv["estimated_time"] = c.get("estimated_time")
+                    mv["minutes_late"] = _minutes_late(c)
             entries.append(mv)
         elif (old.get("notes") != c.get("notes") or old.get("title") != c.get("title")
               or old.get("current_page") != c.get("current_page")):

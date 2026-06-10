@@ -69,7 +69,8 @@ exec-fn/
     prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days()
     chat.py               # exec chat: system prompt (+ ACTIVE NUDGE block), tool definitions, classify_card, parse_date_natural, _save_chat
     chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context, decompose_task, advance_chunk, record_consequences, reschedule_after_consequences
-    nudge.py              # decomposition+nudge loop: card["nudge"] state, eligibility, window math, LLM cores (decompose/peel/nudge-text), clear_awaiting_focused(), morning_reconcile()
+    nudge.py              # decomposition+nudge loop: card["nudge"] state, eligibility, window math, LLM cores (decompose/peel/nudge-text), clear_awaiting_focused(), morning_reconcile(). _factor() biases lead/window/anchor by recalibration.factor_for()
+    recalibration.py      # per-category lateness factor (EMA over completions): factor_for(card), recalibrate(log_entries). Consumes `late` telemetry, fed by morning pipeline
     mtg/
       routes.py           # /api/mtg/log + /api/mtg/chat (SSE)
       agent.py prompt.py tools.py lookup.py
@@ -108,6 +109,7 @@ exec-fn/
       gcal_events_raw.json    # cached raw GCal pull (written on full-year imports)
       moltbook-heartbeat.log  # moltbook heartbeat ledger (archived each morning)
       tarot_readings.json     # saved tarot readings (appended by /api/tarot/save on reset; owner-only — logged-in Wai)
+      recalibration.json      # {categories:{<cat>:{factor,samples,updated}}} — per-category lateness EMA; written by morning recalibrate step, read by nudge._factor()
 ```
 
 ---
@@ -266,6 +268,7 @@ ADHD activation scaffolding: a card placed on today's timeline gets a nudge at i
 - **Due-date protection**: `schedule_card` refuses to defer/unschedule an active-nudge card; `record_consequences` → `reschedule_after_consequences` is the only later-day path.
 - **Morning (4:30)**: `morning_reconcile()` re-anchors placed-today cards to a fresh first nudge at the restacked slot and disarms others to `idle` (re-arm on their day); never leaves a past-dated `next_nudge_at`.
 - **Failure backoff**: per-card 5-min in-memory retry delay on LLM errors; in-flight set prevents double fire.
+- **Lateness recalibration** (`recalibration.py`): every completion (`moved→archives`) is tagged with its `category`; late ones (`completed_late`) also carry `minutes_late` + `estimated_time` (`_log_entries_for_patch` / `_minutes_late` in `main.py`). The morning pipeline folds the day's completions into a per-category EMA `factor` (`recalibrate()`), bounded [1.0, 2.0] — late tasks push it up (∝ how late), on-time pull it back toward 1.0. `nudge._factor(card)` reads it and biases `_lead()` (reserve more time), `window_for()` (wider stall window), and `active_anchor()` (nudge earlier) — so a chronically-late category starts sooner with no manual estimate change. Missing/broken store → factor 1.0 (loop never breaks).
 
 ---
 
@@ -273,13 +276,14 @@ ADHD activation scaffolding: a card placed on today's timeline gets a nudge at i
 
 1. Read today's `activity_log.json`
 2. **Retrospective** — extract durable facts only (preferences, relationships, recurring habits) from the day's activity, append to `profile.json`. Never writes time-bound, event-specific, or task-status entries.
-3. **Purge** — remove time-specific expired notes from `profile.json`
-4. **GCal import** — pull calendar events 14 days ahead as cards
-5. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
-6. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
-7. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today, then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout
-8. Clear `chat.json`
-9. Dedupe `profile.json` notes
+3. **Recalibrate** — fold the day's completions into per-category lateness factors (`recalibration.recalibrate`); read before the log is archived.
+4. **Purge** — remove time-specific expired notes from `profile.json`
+5. **GCal import** — pull calendar events 14 days ahead as cards
+6. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
+7. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
+8. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today, then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout
+9. Clear `chat.json`
+10. Dedupe `profile.json` notes
 
 ---
 
