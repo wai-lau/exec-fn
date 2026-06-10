@@ -228,7 +228,16 @@ renderCaret();
 // on-load focus above can't summon it. Seat focus on the first interaction so the
 // chat is typable with the keyboard up.
 (function () {
-  const onFirst = () => {
+  const onFirst = e => {
+    // Taps on a real control manage their own focus — let them through.
+    if (e.target.closest('button, a, input, textarea, [contenteditable]')) {
+      document.removeEventListener('pointerdown', onFirst, true);
+      return;
+    }
+    // Empty-space tap: completing it on a non-editable element would blur the
+    // input we just focused and iOS drops the keyboard — preventDefault stops the
+    // focus steal.
+    e.preventDefault();
     document.removeEventListener('pointerdown', onFirst, true);
     _msgInput.focus({preventScroll: true});
     if (document.activeElement === _msgInput) {
@@ -241,7 +250,7 @@ renderCaret();
       renderCaret();
     }
   };
-  document.addEventListener('pointerdown', onFirst, true);
+  document.addEventListener('pointerdown', onFirst, { capture: true, passive: false });
 })();
 
 // defer: the nav script sets --nav-h after this script runs, so the input

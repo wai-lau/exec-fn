@@ -332,7 +332,16 @@
   // opens the panel without a gesture, seat focus on the first interaction so
   // the input is typable and the keyboard comes up.
   function armFirstGestureFocus() {
-    var onFirst = function () {
+    var onFirst = function (e) {
+      // Taps on a real control manage their own focus — let them through.
+      if (e.target.closest('button, a, input, textarea, [contenteditable]')) {
+        document.removeEventListener('pointerdown', onFirst, true);
+        return;
+      }
+      // Empty-space tap: completing it on a non-editable element would blur the
+      // input we just focused and iOS drops the keyboard — preventDefault stops
+      // the focus steal.
+      e.preventDefault();
       document.removeEventListener('pointerdown', onFirst, true);
       if (!isOpen || !msgInput) return;
       msgInput.focus({ preventScroll: true });
@@ -346,7 +355,7 @@
         renderCaret();
       }
     };
-    document.addEventListener('pointerdown', onFirst, true);
+    document.addEventListener('pointerdown', onFirst, { capture: true, passive: false });
   }
 
   // ── ?exec=open — open expanded on load, answer a queued shortcut message ─────
