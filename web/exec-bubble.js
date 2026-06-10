@@ -84,7 +84,7 @@
 
       #exec-panel {
         position: fixed; top: 0; left: 50%;
-        width: 80vw; height: calc(100vh - var(--nav-h, 56px));
+        width: 80vw; height: calc(100vh - var(--nav-h, 56px) - var(--kb, 0px));
         background: rgba(10,10,10,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
         border: 1px solid rgba(0,255,65,0.07); border-top: none;
         display: flex; flex-direction: column; z-index: 8999;

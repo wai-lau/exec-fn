@@ -1,5 +1,5 @@
 
-<link rel="stylesheet" href="/chat.css">
+<link rel="stylesheet" href="/chat.css?v=1">
 <style>
 /* chat look mirrored from tarot (no spread rules, no centering) */
 .msg { max-width:none; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
@@ -63,13 +63,19 @@ const _WELCOME = "Hi (＊＾▽＾)／! Ask about card interactions, rules, or m
 // the input never overlaps the scrollback
 function syncTerminalBottom() {
   const bar = document.getElementById('input-bar');
-  const navH = parseInt(getComputedStyle(document.documentElement)
-    .getPropertyValue('--nav-h')) || 56;
-  terminal.style.bottom = (navH + bar.offsetHeight) + 'px';
+  const cs = getComputedStyle(document.documentElement);
+  const navH = parseInt(cs.getPropertyValue('--nav-h')) || 56;
+  const kb = parseInt(cs.getPropertyValue('--kb')) || 0;  // iOS keyboard inset
+  terminal.style.bottom = (navH + kb + bar.offsetHeight) + 'px';
   terminal.scrollTop = terminal.scrollHeight;
 }
 window.addEventListener('resize', syncTerminalBottom);
 window.addEventListener('load', syncTerminalBottom);
+if (window.visualViewport) {
+  // keyboard show/hide changes --kb but not window size — re-pin on viewport shifts
+  window.visualViewport.addEventListener('resize', syncTerminalBottom);
+  window.visualViewport.addEventListener('scroll', syncTerminalBottom);
+}
 
 const _renderer = new marked.Renderer();
 _renderer.link = ({href, title, text}) => {

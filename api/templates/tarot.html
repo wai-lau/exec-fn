@@ -1,5 +1,5 @@
 
-<link rel="stylesheet" href="/chat.css">
+<link rel="stylesheet" href="/chat.css?v=1">
 <style>
 /* nav sits above the ambient cyber animations (z-index 9990) */
 .exec-nav { z-index:9995 !important; }
@@ -11,13 +11,13 @@
   --spread-h: calc(var(--card-h) + var(--spread-pad) * 2);
 }
 #spread-area {
-  position:fixed; bottom:var(--nav-h, 56px); left:0; right:0; height:var(--spread-h);
+  position:fixed; bottom:calc(var(--nav-h, 56px) + var(--kb, 0px)); left:0; right:0; height:var(--spread-h);
   overflow:hidden;
   background:var(--bg);
   z-index:5;
 }
 #input-bar {
-  bottom: calc(var(--nav-h, 56px) + var(--spread-h)) !important;
+  bottom: calc(var(--nav-h, 56px) + var(--spread-h) + var(--kb, 0px)) !important;
   transition: opacity 0.7s ease;
   background:transparent !important;
   border-top:none !important;
@@ -27,9 +27,9 @@
 #input-line { border-bottom:none !important; padding:0 !important; align-items:flex-start !important; max-width:720px; margin-left:auto; margin-right:auto; }
 #input-prompt { font-size:0.82rem !important; padding-right:0.6em !important; line-height:1.45 !important; }
 #terminal { padding-bottom:0 !important; scrollbar-gutter:stable both-edges; }
-#terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px) + var(--input-h, 48px)) !important; }
+#terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px) + var(--input-h, 48px) + var(--kb, 0px)) !important; }
 body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
-body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px)) !important; }
+body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spread-h) + var(--nav-h, 56px) + var(--kb, 0px)) !important; }
 
 #spread-controls {
   grid-column: 2;

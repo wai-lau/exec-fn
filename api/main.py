@@ -394,7 +394,7 @@ _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=1">'
 
 _NAV_LINKS = ["core", "prophecies", "directives", "debug", "graph", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "graph": "/graph", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
@@ -433,11 +433,19 @@ def _build_nav(active=None, guest=False):
         "function _snh(){var n=document.querySelector('.exec-nav');"
         "if(n)document.documentElement.style.setProperty('--nav-h',n.offsetHeight+'px');}"
         "_snh();window.addEventListener('resize',_snh);"
+        # iOS overlays the soft keyboard on fixed-bottom content instead of
+        # resizing the layout. Track the keyboard inset via visualViewport and
+        # expose it as --kb so the nav + chat UI can lift above the keyboard.
+        "var vv=window.visualViewport;"
+        "function _kb(){var i=vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;"
+        "document.documentElement.style.setProperty('--kb',i+'px');}"
+        "if(vv){vv.addEventListener('resize',_kb);vv.addEventListener('scroll',_kb);}"
+        "_kb();"
         "})();</script>"
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
     show_bubble = (not guest) and active in {"core", "prophecies", "directives"}
-    bubble = '<script src="/exec-bubble.js?v=9"></script>' if show_bubble else ''
+    bubble = '<script src="/exec-bubble.js?v=10"></script>' if show_bubble else ''
     return nav + script + bubble
 
 
