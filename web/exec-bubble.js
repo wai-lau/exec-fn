@@ -327,12 +327,35 @@
     }, 0);
   };
 
+  // iOS raises the soft keyboard only for a focus() that runs synchronously
+  // inside a user gesture — never on load or from a setTimeout. When exec=open
+  // opens the panel without a gesture, seat focus on the first interaction so
+  // the input is typable and the keyboard comes up.
+  function armFirstGestureFocus() {
+    var onFirst = function () {
+      document.removeEventListener('pointerdown', onFirst, true);
+      if (!isOpen || !msgInput) return;
+      msgInput.focus({ preventScroll: true });
+      if (document.activeElement === msgInput) {
+        var range = document.createRange();
+        range.selectNodeContents(msgInput);
+        range.collapse(false);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        renderCaret();
+      }
+    };
+    document.addEventListener('pointerdown', onFirst, true);
+  }
+
   // ── ?exec=open — open expanded on load, answer a queued shortcut message ─────
   function handleExecParam() {
     var params;
     try { params = new URLSearchParams(window.location.search); } catch (_) { return; }
     if (params.get('exec') !== 'open') return;
     openPanel();
+    armFirstGestureFocus();
     var last = messages[messages.length - 1];
     if (last && last.role === 'user' && typeof last.content === 'string' && !streaming) {
       streamResponse();
