@@ -19,6 +19,13 @@ import json
 from helpers import DATA_DIR, _load_json, _now_et
 
 # ── tuning ────────────────────────────────────────────────────────────────────
+# Off until there's enough real late-completion data to learn from. Telemetry
+# (the `late`/`minutes_late` tags on archive moves) keeps accruing regardless;
+# flip this on once the archived logs hold a meaningful sample.
+# Late card-action ("late" button) shipped 2026-06-09 (commit dbfe999) — data
+# only accrues from then.
+ENABLED = False
+
 EMA_ALPHA = 0.25       # weight of each new completion against running factor
 FACTOR_MIN = 1.0       # never under-reserve relative to the raw estimate
 FACTOR_MAX = 2.0       # cap so one disastrous day can't double everything twice
@@ -38,6 +45,8 @@ def _save(data: dict) -> None:
 
 def factor_for(card: dict) -> float:
     """Lateness factor for a card's category (1.0 if unknown / never late)."""
+    if not ENABLED:
+        return 1.0
     cat = card.get("category")
     if not cat:
         return 1.0
@@ -61,6 +70,8 @@ def recalibrate(log_entries: list) -> bool:
     """Fold a day's completions into the per-category factors. A completion is a
     `moved -> archives` entry tagged with a category (see _log_entries_for_patch).
     Returns True if anything changed (so the caller can decide to log it)."""
+    if not ENABLED:
+        return False
     completions = [
         e for e in log_entries
         if e.get("action") == "moved" and e.get("to_col") == "archives"
