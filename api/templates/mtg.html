@@ -223,6 +223,27 @@ _msgInput.addEventListener('keydown', e => {
 });
 _msgInput.focus();
 renderCaret();
+
+// iOS raises the soft keyboard only for a focus() inside a user gesture, so the
+// on-load focus above can't summon it. Seat focus on the first interaction so the
+// chat is typable with the keyboard up.
+(function () {
+  const onFirst = () => {
+    document.removeEventListener('pointerdown', onFirst, true);
+    _msgInput.focus({preventScroll: true});
+    if (document.activeElement === _msgInput) {
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(_msgInput);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      renderCaret();
+    }
+  };
+  document.addEventListener('pointerdown', onFirst, true);
+})();
+
 // defer: the nav script sets --nav-h after this script runs, so the input
 // bar isn't positioned yet on this tick
 requestAnimationFrame(syncTerminalBottom);
