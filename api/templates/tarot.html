@@ -856,13 +856,20 @@ function _focusNow() {
 }
 (function armOpeningFocus() {
   const onFirst = e => {
-    // card taps / zoom dismiss raise the keyboard via their own handlers — don't
-    // double-focus and cause a flicker
-    if (e.target.closest('#spread-area, #card-zoom')) return;
+    // Taps on a real control (the input, a button/link, a card, the zoom) manage
+    // their own focus — let them through.
+    if (e.target.closest('button, a, input, textarea, [contenteditable], #spread-area, #card-zoom')) {
+      document.removeEventListener('pointerdown', onFirst, true);
+      return;
+    }
+    // Empty-space tap: without this, completing the tap on a non-editable element
+    // blurs the input we just focused and iOS drops the keyboard. preventDefault
+    // stops the tap from stealing focus.
+    e.preventDefault();
     document.removeEventListener('pointerdown', onFirst, true);
     _focusNow();
   };
-  document.addEventListener('pointerdown', onFirst, true);
+  document.addEventListener('pointerdown', onFirst, { capture: true, passive: false });
 })();
 
 // No Significator -> always force Phase 1 (selection interview), wiping any
