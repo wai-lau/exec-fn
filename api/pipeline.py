@@ -220,6 +220,7 @@ def build_morning() -> dict:
 
     errors: dict = {}
     _run_step(errors, "retrospective", lambda: _morning_retrospective(log_entries, profile_path))
+    _run_step(errors, "recalibrate", lambda: __import__("recalibration").recalibrate(log_entries))
     _run_step(errors, "purge_stale", lambda: _purge_stale_notes(profile_path))
     _run_step(errors, "gcal_import", lambda: __import__("gcal").import_gcal_cards(days_ahead=14))
 

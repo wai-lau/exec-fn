@@ -48,9 +48,18 @@ def slot_datetime(card: dict) -> datetime | None:
     return base + timedelta(minutes=dsm)
 
 
+def _factor(card: dict) -> float:
+    """Per-category lateness multiplier (>=1.0); 1.0 if recalibration is unavailable
+    or the category has no history. Never let a bad store break the nudge loop."""
+    try:
+        import recalibration
+        return recalibration.factor_for(card)
+    except Exception:
+        return 1.0
+
+
 def window_for(card: dict) -> int:
-    est = card.get("estimated_time") or _SIZE_MINUTES.get(card.get("size") or "task", 90)
-    return max(NUDGE_WINDOW_MIN, min(NUDGE_WINDOW_MAX, round(est * NUDGE_WINDOW_MULT)))
+    return max(NUDGE_WINDOW_MIN, min(NUDGE_WINDOW_MAX, round(_lead(card) * NUDGE_WINDOW_MULT)))
 
 
 def decomposable(c: dict) -> bool:
@@ -78,8 +87,10 @@ _EOD_HOUR = 21  # fallback deadline for a today card with no event time / due ti
 
 
 def _lead(c: dict) -> int:
-    """Total minutes to do the whole task (sum of node work, or the estimate)."""
-    return c.get("estimated_time") or _SIZE_MINUTES.get(c.get("size") or "task", 90)
+    """Total minutes to do the whole task (the estimate, biased up by the card's
+    category lateness factor so chronically-late kinds reserve more time)."""
+    base = c.get("estimated_time") or _SIZE_MINUTES.get(c.get("size") or "task", 90)
+    return round(base * _factor(c))
 
 
 def _has_fixed_deadline(c: dict) -> bool:
@@ -230,7 +241,11 @@ def active_anchor(card: dict) -> datetime | None:
     if not active or not active.get("deadline"):
         return None
     dl = _parse_et(active["deadline"])
-    return dl - timedelta(minutes=active.get("est_min") or _lead(card))
+    est = active.get("est_min")
+    # No node estimate -> _lead already carries the factor; otherwise bias the
+    # node's own duration so a late-prone category gets nudged to start earlier.
+    lead_min = _lead(card) if est is None else round(est * _factor(card))
+    return dl - timedelta(minutes=lead_min)
 
 
 # ── state ─────────────────────────────────────────────────────────────────────
