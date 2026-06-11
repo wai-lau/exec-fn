@@ -13,12 +13,15 @@ body { overflow-y: auto !important; }
   overflow: hidden; background: rgba(0,0,0,0.25);
 }
 .clr-swatch { height: 54px; display: flex; position: relative; }
-/* white bar behind the color — 1/3 height, centered — exposes alpha:
-   translucent tokens read against both white and the dark card */
+/* white bar behind the color — 1/3 height, centered — exposes alpha.
+   Fine stripes give blur/blend something to act on: flat white comes
+   back white under any blur or screen blend, so effects were invisible */
 .clr-swatch::before {
   content: ''; position: absolute;
   left: 0; right: 0; top: 33.3%; height: 33.4%;
-  background: #fff;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.55) 0, rgba(0,0,0,0.55) 1px, transparent 1px, transparent 6px),
+    #fff;
 }
 .clr-swatch span { flex: 1; position: relative; }
 .clr-info { padding: 8px 10px 9px; border-top: 1px solid rgba(var(--green-rgb),0.1); }
@@ -47,13 +50,20 @@ function esc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// effects the token's real consumer applies — reproduced on the swatch so
+// the striped bar shows them (nav backdrop runs blur(14px) under .exec-nav)
+const TOKEN_FX = {
+  'surface-nav': 'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);',
+};
+
 function swatchHtml(name, value) {
+  const fx = TOKEN_FX[name] || '';
   if (name.endsWith('-rgb')) {
     const ramp = [0.1, 0.3, 0.6, 1.0]
-      .map(a => `<span style="background:rgba(${esc(value)},${a})"></span>`).join('');
+      .map(a => `<span style="background:rgba(${esc(value)},${a});${fx}"></span>`).join('');
     return `<div class="clr-swatch">${ramp}</div>`;
   }
-  return `<div class="clr-swatch"><span style="background:${esc(value)}"></span></div>`;
+  return `<div class="clr-swatch"><span style="background:${esc(value)};${fx}"></span></div>`;
 }
 
 function parsePalette(css) {
