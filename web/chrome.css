@@ -31,7 +31,7 @@
    Use rgba(var(--X-rgb), α) for opacity variants of base colors.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* ── Backgrounds, Surfaces & Neutrals ────────────────────────────────── */
+  /* ── Neutrals ────────────────────────────────────────────────────────── */
   --bg-rgb:              24, 30, 28;                /* main page bg — use rgba(var(--bg-rgb), α) for overlays */
   --bg:                  rgb(24, 30, 28);           /* main page bg + column bg + input slabs (absorbs #181818) */
   --surface-modal:       #0a0a0a;                   /* card dialog, popup panels */
@@ -39,47 +39,35 @@
   --surface-scrim:       rgba(0, 0, 0, 0.78);       /* full-page modal overlay (absorbs 0.75 scrims) */
   --gray-label:          rgba(200, 200, 200, 0.55); /* timeline hour labels */
 
-  /* ── Primary Green ───────────────────────────────────────────────────── */
+  /* ── Cools ───────────────────────────────────────────────────────────── */
   --green-rgb:           0, 255, 65;                /* primary text + accent — use rgba(var(--green-rgb), α) */
   --green:               rgb(0, 255, 65);
   --green-monitor-rgb:   160, 255, 120;             /* monitor/system message text in chat */
-
-  /* ── Blues ───────────────────────────────────────────────────────────── */
+  --teal-link-rgb:       0, 255, 120;               /* assistant link color, all chats (absorbs 0,255,180) */
+  --teal-meal:           hsl(185deg, 50%, 54%, 0.06); /* prophecies lunch/dinner block fill */
+  --teal-meal-border:    hsl(185deg, 50%, 45%, 0.1);  /* prophecies meal block border */
+  --cyan-rgb:            0, 220, 255;               /* seek type badge, exec source, plan view */
+  --cyan:                rgb(0, 220, 255);           /* also covers rgba(80,200,255) probe text */
   --blue-rgb:            130, 170, 230;             /* books bar, prophecies accents (absorbs book-text hsl + bright 160,200,255) */
   --blue:                rgb(130, 170, 230);
   --blue-weekend:        rgba(130, 170, 230, 0.9);  /* prophecies sat/sun day name (absorbs 100,160,255) */
-
-  /* ── Cyan ────────────────────────────────────────────────────────────── */
-  --cyan-rgb:            0, 220, 255;               /* seek type badge, exec source, plan view */
-  --cyan:                rgb(0, 220, 255);           /* also covers rgba(80,200,255) probe text */
-
-  /* ── Pink ────────────────────────────────────────────────────────────── */
-  --pink-rgb:            224, 74, 125;              /* exec bubble panel, vain-empress entries */
-  --pink:                rgb(224, 74, 125);
-
-  /* ── Purple ──────────────────────────────────────────────────────────── */
   --purple-rgb:          180, 100, 255;             /* prof source badge in plan view */
   --purple:              rgb(180, 100, 255);
 
-  /* ── Reds ────────────────────────────────────────────────────────────── */
-  --red-rgb:             255, 80, 80;               /* overdue dates, drop zones, exile buttons, error text (absorbs 255,60,60 + 255,100..130,1xx exile reds) */
-  --red:                 rgb(255, 80, 80);
-  --red-dark-rgb:        255, 30, 30;               /* overdue bg tint, error fill, badge (absorbs 220,50,50) */
-  --red-dark:            rgb(255, 30, 30);
-
-  /* ── Oranges & Yellows ───────────────────────────────────────────────── */
+  /* ── Warms ───────────────────────────────────────────────────────────── */
+  --yellow-rgb:          255, 200, 80;              /* mention type badge, tarot reversed marker */
+  --yellow:              rgb(255, 200, 80);
   --orange-rgb:          255, 160, 40;              /* now-clock text, dive badge, dirs source (absorbs 255,180,0 amber) */
   --orange:              rgb(255, 160, 40);
   --orange-glow-rgb:     255, 100, 0;               /* now-clock glow — layered alphas (absorbs 255,120,0 / 255,80,0) */
   --orange-overdue-rgb:  255, 130, 80;              /* overdue labels/tooltips in prophecies (merged 255,120,80 + 255,140,80) */
   --orange-overdue:      rgb(255, 130, 80);
-  --yellow-rgb:          255, 200, 80;              /* mention type badge, tarot reversed marker */
-  --yellow:              rgb(255, 200, 80);
-
-  /* ── Teals ───────────────────────────────────────────────────────────── */
-  --teal-meal:           hsl(185deg, 50%, 54%, 0.06); /* prophecies lunch/dinner block fill */
-  --teal-meal-border:    hsl(185deg, 50%, 45%, 0.1);  /* prophecies meal block border */
-  --teal-link-rgb:       0, 255, 120;               /* assistant link color, all chats (absorbs 0,255,180) */
+  --red-rgb:             255, 80, 80;               /* overdue dates, drop zones, exile buttons, error text (absorbs 255,60,60 + exile reds) */
+  --red:                 rgb(255, 80, 80);
+  --red-dark-rgb:        255, 30, 30;               /* overdue bg tint, error fill, badge (absorbs 220,50,50) */
+  --red-dark:            rgb(255, 30, 30);
+  --pink-rgb:            224, 74, 125;              /* exec bubble panel, vain-empress entries */
+  --pink:                rgb(224, 74, 125);
 }
 
 /* Ambient cyberpunk background — injected on every page via _render_page

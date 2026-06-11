@@ -394,7 +394,7 @@ _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=7">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=8">'
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "color", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
