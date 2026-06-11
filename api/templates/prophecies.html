@@ -110,6 +110,7 @@ body.pr-dragging .pr-unschedule.drag-over {
   color: rgba(200,200,200,0.55);
 }
 .dir-tl-track { flex: 1; position: relative; background: rgb(24,30,28); }
+.pr-col.pr-drop-hl { outline: 2px solid rgba(0,255,65,0.6); outline-offset: -2px; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -208,6 +209,29 @@ function renderCard(c, dayIso, small) {
   </div>`;
 }
 
+// drop-target hit-testing for dragging a timeline block out to another day
+let _dropHlEl = null;
+function dropTarget(x, y) {
+  if (x == null || y == null) return null;
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  if (el.closest('#pr-unschedule')) return 'unschedule';
+  const col = el.closest('[data-day]');
+  return col ? col.dataset.day : null;
+}
+function highlightDrop(x, y) {
+  const t = dropTarget(x, y);
+  let el = null;
+  if (t === 'unschedule') el = document.getElementById('pr-unschedule');
+  else if (t && t !== isoToday()) el = document.querySelector(`.pr-col[data-day="${t}"]`);
+  if (_dropHlEl && _dropHlEl !== el) _dropHlEl.classList.remove('pr-drop-hl', 'drag-over');
+  if (el) el.classList.add(t === 'unschedule' ? 'drag-over' : 'pr-drop-hl');
+  _dropHlEl = el;
+}
+function clearDropHighlight() {
+  if (_dropHlEl) { _dropHlEl.classList.remove('pr-drop-hl', 'drag-over'); _dropHlEl = null; }
+}
+
 function createBlock(c, track) {
   const {bg, border, dark} = cardStyle(c);
   const durMin = Math.max(SNAP, snapMin(c.estimated_time || SIZE_MIN[c.size] || 60));
@@ -249,23 +273,43 @@ function createBlock(c, track) {
     block.append(titleEl, metaEl, resizeHandle);
   }
 
-  function startDrag(startClientY, getY) {
+  function startDrag(startClientY, getY, getX) {
     const rect = track.getBoundingClientRect();
     const offsetY = startClientY - block.getBoundingClientRect().top;
     let moved = false;
+    let lastX = null, lastY = null;
+    document.body.classList.add('pr-dragging');
     function onMove(ev) {
       moved = true;
-      const rawMin = (getY(ev) - rect.top - offsetY) / TL_PX + TL_START;
+      lastX = getX(ev); lastY = getY(ev);
+      const rawMin = (lastY - rect.top - offsetY) / TL_PX + TL_START;
       const snapped = Math.max(TL_START, Math.min(TL_END - c._durMin, snapMin(rawMin)));
       c._startMin = snapped;
       block.style.top = (snapped - TL_START) * TL_PX + 'px';
+      highlightDrop(lastX, lastY);
     }
     function onUp() {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onUp);
+      document.body.classList.remove('pr-dragging');
+      clearDropHighlight();
       if (!moved) { openCardDialog(c.id, () => load(weekStart), 'prof'); return; }
+      const tgt = dropTarget(lastX, lastY);
+      if (tgt === 'unschedule') {
+        block.style.display = 'none';
+        queueUpdate(c.id, null, false);
+        setTimeout(() => load(weekStart), 700);
+        return;
+      }
+      if (tgt && tgt !== isoToday()) {
+        block.style.display = 'none';
+        queueUpdate(c.id, tgt, false);
+        setTimeout(() => load(weekStart), 700);
+        return;
+      }
+      // released within today -> time move
       scheduleCards.sort((a, b) => a._startMin - b._startMin);
       computeColumns(scheduleCards);
       applyColumnLayout(scheduleCards, currentTrack);
@@ -280,12 +324,12 @@ function createBlock(c, track) {
   block.addEventListener('mousedown', e => {
     if (resizeHandle.contains(e.target)) return;
     e.preventDefault();
-    startDrag(e.clientY, ev => ev.clientY);
+    startDrag(e.clientY, ev => ev.clientY, ev => ev.clientX);
   });
   block.addEventListener('touchstart', e => {
     if (resizeHandle.contains(e.target)) return;
     const t0Y = e.touches[0].clientY, t0X = e.touches[0].clientX;
-    let timer = setTimeout(() => { timer = null; cleanup(); startDrag(t0Y, ev => ev.touches[0].clientY); }, 300);
+    let timer = setTimeout(() => { timer = null; cleanup(); startDrag(t0Y, ev => ev.touches[0].clientY, ev => ev.touches[0].clientX); }, 300);
     function cleanup() {
       block.removeEventListener('touchmove', onEarlyMove);
       block.removeEventListener('touchend', onEarlyEnd);
