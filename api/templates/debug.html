@@ -4,88 +4,88 @@
 body { overflow-y: auto !important; }
 #dbg-moltbook h1,#dbg-moltbook h2,#dbg-moltbook h3 {
   font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em;
-  color: rgba(var(--green-rgb),0.55); border-bottom: 1px solid rgba(var(--green-rgb),0.1);
+  color: hsl(var(--green-hsl) / 0.55); border-bottom: 1px solid hsl(var(--green-hsl) / 0.1);
   padding-bottom: 4px; margin: 18px 0 8px; font-weight: normal;
 }
-#dbg-moltbook p { font-size: 0.78rem; color: rgba(var(--green-rgb),0.8); margin: 6px 0; line-height: 1.5; }
-#dbg-moltbook ul,#dbg-moltbook ol { font-size: 0.78rem; color: rgba(var(--green-rgb),0.8); margin: 4px 0 4px 16px; padding: 0; }
+#dbg-moltbook p { font-size: 0.78rem; color: hsl(var(--green-hsl) / 0.8); margin: 6px 0; line-height: 1.5; }
+#dbg-moltbook ul,#dbg-moltbook ol { font-size: 0.78rem; color: hsl(var(--green-hsl) / 0.8); margin: 4px 0 4px 16px; padding: 0; }
 #dbg-moltbook li { margin: 3px 0; }
-#dbg-moltbook strong { color: rgba(var(--green-rgb),1); font-weight: bold; }
-#dbg-moltbook em { color: rgba(var(--green-rgb),0.6); font-style: normal; opacity: 0.8; }
-#dbg-moltbook hr { border: none; border-top: 1px solid rgba(var(--green-rgb),0.15); margin: 14px 0; }
-#dbg-moltbook code { font-family: inherit; font-size: 0.72rem; color: rgba(var(--green-rgb),0.6); background: rgba(var(--green-rgb),0.06); padding: 1px 4px; border-radius: 2px; }
-#dbg-moltbook pre { background: rgba(var(--green-rgb),0.04); border: 1px solid rgba(var(--green-rgb),0.1); border-radius: 3px; padding: 10px 12px; margin: 8px 0; overflow-x: auto; }
-#dbg-moltbook pre code { background: none; padding: 0; font-size: 0.73rem; color: rgba(var(--green-rgb),0.75); white-space: pre-wrap; word-break: break-all; }
+#dbg-moltbook strong { color: hsl(var(--green-hsl) / 1); font-weight: bold; }
+#dbg-moltbook em { color: hsl(var(--green-hsl) / 0.6); font-style: normal; opacity: 0.8; }
+#dbg-moltbook hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.15); margin: 14px 0; }
+#dbg-moltbook code { font-family: inherit; font-size: 0.72rem; color: hsl(var(--green-hsl) / 0.6); background: hsl(var(--green-hsl) / 0.06); padding: 1px 4px; border-radius: 2px; }
+#dbg-moltbook pre { background: hsl(var(--green-hsl) / 0.04); border: 1px solid hsl(var(--green-hsl) / 0.1); border-radius: 3px; padding: 10px 12px; margin: 8px 0; overflow-x: auto; }
+#dbg-moltbook pre code { background: none; padding: 0; font-size: 0.73rem; color: hsl(var(--green-hsl) / 0.75); white-space: pre-wrap; word-break: break-all; }
 #dbg-moltbook table { font-size: 0.72rem; border-collapse: collapse; margin: 8px 0; }
-#dbg-moltbook th { color: rgba(var(--green-rgb),0.5); border-bottom: 1px solid rgba(var(--green-rgb),0.2); padding: 3px 10px 3px 0; font-weight: normal; text-align: left; }
-#dbg-moltbook td { color: rgba(var(--green-rgb),0.75); padding: 2px 10px 2px 0; border-bottom: 1px solid rgba(var(--green-rgb),0.05); }
-#dbg-moltbook a { color: rgb(var(--teal-link-rgb)); }
+#dbg-moltbook th { color: hsl(var(--green-hsl) / 0.5); border-bottom: 1px solid hsl(var(--green-hsl) / 0.2); padding: 3px 10px 3px 0; font-weight: normal; text-align: left; }
+#dbg-moltbook td { color: hsl(var(--green-hsl) / 0.75); padding: 2px 10px 2px 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.05); }
+#dbg-moltbook a { color: hsl(var(--teal-link-hsl)); }
 .dbg-wrap { width: min(860px, 94vw); margin: 24px auto 100px; }
 .dbg-section { margin-bottom: 36px; }
 .dbg-hdr {
   font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.18em;
-  color: rgba(var(--green-rgb),0.5); border-bottom: 1px solid rgba(var(--green-rgb),0.12);
+  color: hsl(var(--green-hsl) / 0.5); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   padding-bottom: 6px; margin-bottom: 14px;
 }
 .dbg-note {
   font-size: 0.8rem; padding: 7px 0;
-  border-bottom: 1px solid rgba(var(--green-rgb),0.07);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.07);
   display: flex; gap: 14px; align-items: baseline;
 }
-.dbg-note-date { font-size: 0.65rem; color: rgba(var(--green-rgb),0.4); flex-shrink: 0; }
-.dbg-note-text { color: rgba(var(--green-rgb),0.85); flex: 1; }
+.dbg-note-date { font-size: 0.65rem; color: hsl(var(--green-hsl) / 0.4); flex-shrink: 0; }
+.dbg-note-text { color: hsl(var(--green-hsl) / 0.85); flex: 1; }
 .dbg-note-x {
   background: none; border: none; cursor: pointer; padding: 0 2px;
-  font-size: 0.75rem; color: rgba(var(--green-rgb),0.25); line-height: 1;
+  font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.25); line-height: 1;
   flex-shrink: 0; margin-left: auto; transition: color 0.15s;
 }
-.dbg-note-x:hover { color: rgba(var(--green-rgb),0.7); }
+.dbg-note-x:hover { color: hsl(var(--green-hsl) / 0.7); }
 .dbg-note-edit {
-  flex: 1; background: rgba(var(--green-rgb),0.05); border: 1px solid rgba(var(--green-rgb),0.25);
-  color: rgba(var(--green-rgb),0.9); font-family: inherit; font-size: 0.8rem;
+  flex: 1; background: hsl(var(--green-hsl) / 0.05); border: 1px solid hsl(var(--green-hsl) / 0.25);
+  color: hsl(var(--green-hsl) / 0.9); font-family: inherit; font-size: 0.8rem;
   padding: 4px 6px; resize: vertical; min-height: 2em; outline: none;
 }
-.dbg-note-edit:focus { border-color: rgba(var(--green-rgb),0.5); }
+.dbg-note-edit:focus { border-color: hsl(var(--green-hsl) / 0.5); }
 .dbg-note-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .dbg-note-save, .dbg-note-del {
   background: none; border: none; cursor: pointer; padding: 0 3px;
   font-size: 0.8rem; line-height: 1; transition: color 0.15s;
 }
-.dbg-note-save { color: rgba(var(--green-rgb),0.4); }
-.dbg-note-save:hover { color: rgba(var(--green-rgb),0.9); }
-.dbg-note-del { color: rgba(var(--red-rgb),0.35); }
-.dbg-note-del:hover { color: rgba(var(--red-rgb),0.8); }
+.dbg-note-save { color: hsl(var(--green-hsl) / 0.4); }
+.dbg-note-save:hover { color: hsl(var(--green-hsl) / 0.9); }
+.dbg-note-del { color: hsl(var(--red-hsl) / 0.35); }
+.dbg-note-del:hover { color: hsl(var(--red-hsl) / 0.8); }
 .dbg-log-file { margin-bottom: 24px; }
 .dbg-log-hdr {
-  font-size: 0.62rem; color: rgba(var(--green-rgb),0.4); margin-bottom: 8px;
+  font-size: 0.62rem; color: hsl(var(--green-hsl) / 0.4); margin-bottom: 8px;
   display: flex; align-items: center; gap: 10px; cursor: pointer;
 }
-.dbg-log-hdr:hover { color: rgba(var(--green-rgb),0.7); }
+.dbg-log-hdr:hover { color: hsl(var(--green-hsl) / 0.7); }
 .dbg-log-toggle { font-size: 0.7rem; }
 .dbg-log-entries { display: none; }
 .dbg-log-entries.open { display: block; }
 .dbg-entry {
   font-size: 0.75rem; padding: 5px 0;
-  border-bottom: 1px solid rgba(var(--green-rgb),0.06);
-  display: flex; gap: 10px; color: rgba(var(--green-rgb),0.7);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.06);
+  display: flex; gap: 10px; color: hsl(var(--green-hsl) / 0.7);
 }
 .dbg-entry-ts { font-size: 0.6rem; opacity: 0.35; flex-shrink: 0; }
 .dbg-entry-action { opacity: 0.5; flex-shrink: 0; min-width: 60px; }
 .dbg-entry-title { flex: 1; }
 .dbg-entry-meta { font-size: 0.6rem; opacity: 0.35; }
-.dbg-empty { font-size: 0.75rem; color: rgba(var(--green-rgb),0.5); padding: 8px 0; }
-.dbg-mtg-entry { font-size: 0.75rem; padding: 10px 0; border-bottom: 1px solid rgba(var(--green-rgb),0.07); }
+.dbg-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.5); padding: 8px 0; }
+.dbg-mtg-entry { font-size: 0.75rem; padding: 10px 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.07); }
 .dbg-mtg-ts { font-size: 0.6rem; opacity: 0.35; margin-bottom: 4px; }
-.dbg-mtg-user { color: rgba(var(--green-rgb),0.45); margin-bottom: 4px; }
+.dbg-mtg-user { color: hsl(var(--green-hsl) / 0.45); margin-bottom: 4px; }
 .dbg-mtg-user::before { content: "$ "; }
-.dbg-mtg-assistant { color: rgba(var(--green-rgb),0.75); white-space: pre-wrap; }
+.dbg-mtg-assistant { color: hsl(var(--green-hsl) / 0.75); white-space: pre-wrap; }
 .dbg-mtg-assistant::before { content: "> "; opacity: 0.4; }
 .dbg-ve-entry {
   font-size: 0.78rem; padding: 8px 0;
-  border-bottom: 1px solid rgba(var(--green-rgb),0.07);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.07);
   cursor: pointer;
 }
-.dbg-ve-entry:hover .dbg-ve-summary { color: rgba(var(--green-rgb),1); }
+.dbg-ve-entry:hover .dbg-ve-summary { color: hsl(var(--green-hsl) / 1); }
 .dbg-ve-top { display: flex; gap: 10px; align-items: baseline; }
 .dbg-ve-type {
   font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em;
@@ -93,32 +93,32 @@ body { overflow-y: auto !important; }
   border: 1px solid currentColor;
 }
 .dbg-ve-type-dm_request { color: rgba(100,200,255,0.7); }
-.dbg-ve-type-mention    { color: rgba(var(--yellow-rgb),0.7); }
-.dbg-ve-type-question   { color: rgba(var(--green-rgb),0.6); }
-.dbg-ve-type-error      { color: rgba(var(--red-rgb),0.7); }
-.dbg-ve-summary { flex: 1; color: rgba(var(--green-rgb),0.85); }
+.dbg-ve-type-mention    { color: hsl(var(--yellow-hsl) / 0.7); }
+.dbg-ve-type-question   { color: hsl(var(--green-hsl) / 0.6); }
+.dbg-ve-type-error      { color: hsl(var(--red-hsl) / 0.7); }
+.dbg-ve-summary { flex: 1; color: hsl(var(--green-hsl) / 0.85); }
 .dbg-ve-ts { font-size: 0.6rem; opacity: 0.35; flex-shrink: 0; }
 .dbg-ve-detail {
   display: none; margin-top: 6px; padding: 6px 8px;
-  background: rgba(var(--green-rgb),0.04); border-left: 2px solid rgba(var(--green-rgb),0.2);
-  font-size: 0.72rem; color: rgba(var(--green-rgb),0.65); white-space: pre-wrap;
+  background: hsl(var(--green-hsl) / 0.04); border-left: 2px solid hsl(var(--green-hsl) / 0.2);
+  font-size: 0.72rem; color: hsl(var(--green-hsl) / 0.65); white-space: pre-wrap;
 }
 .dbg-ve-entry.open .dbg-ve-detail { display: block; }
 .dbg-tarot-cards { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .dbg-tarot-card {
-  font-size: 0.6rem; color: rgba(var(--green-rgb),0.7);
-  border: 1px solid rgba(var(--green-rgb),0.18); border-radius: 2px;
+  font-size: 0.6rem; color: hsl(var(--green-hsl) / 0.7);
+  border: 1px solid hsl(var(--green-hsl) / 0.18); border-radius: 2px;
   padding: 2px 6px;
 }
 .dbg-tarot-card .pos { opacity: 0.45; }
-.dbg-tarot-card .rev { color: rgba(var(--yellow-rgb),0.7); }
-.dbg-tarot-sig { font-size: 0.65rem; color: rgba(var(--green-rgb),0.55); margin: 4px 0; }
-.dbg-tarot-msg { font-size: 0.74rem; padding: 6px 0; border-bottom: 1px solid rgba(var(--green-rgb),0.05); }
-.dbg-tarot-user { color: rgba(var(--green-rgb),0.45); white-space: pre-wrap; }
+.dbg-tarot-card .rev { color: hsl(var(--yellow-hsl) / 0.7); }
+.dbg-tarot-sig { font-size: 0.65rem; color: hsl(var(--green-hsl) / 0.55); margin: 4px 0; }
+.dbg-tarot-msg { font-size: 0.74rem; padding: 6px 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.05); }
+.dbg-tarot-user { color: hsl(var(--green-hsl) / 0.45); white-space: pre-wrap; }
 .dbg-tarot-user::before { content: "$ "; }
-.dbg-tarot-asst { color: rgba(var(--green-rgb),0.78); white-space: pre-wrap; }
+.dbg-tarot-asst { color: hsl(var(--green-hsl) / 0.78); white-space: pre-wrap; }
 .dbg-tarot-asst::before { content: "> "; opacity: 0.4; }
-.dbg-tarot-event { color: rgba(var(--green-rgb),0.3); font-style: italic; }
+.dbg-tarot-event { color: hsl(var(--green-hsl) / 0.3); font-style: italic; }
 </style>
 
 <div class="dbg-wrap">

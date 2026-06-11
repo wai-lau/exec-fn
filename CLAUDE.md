@@ -49,7 +49,8 @@ exec-fn/
   nightfall-incident/     # separate repo (wai-lau/nightfall), volume-mounted
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
     card-dialog.js        # shared card edit dialog used by kanban/prophecies/directives
-    chrome.css            # shared chrome + THE PALETTE: every color is a :root token (--green-rgb etc.); page CSS consumes rgba(var(--X-rgb), α) — no hard-coded palette literals outside this file (page-unique accents may declare local :root vars, e.g. tarot --ember-*)
+    card-style.js         # cardStyle()/chipStyle(): fetch the right --card-*/--cat-* token for a card — no color math in JS
+    chrome.css            # shared chrome + THE PALETTE, hue-based: every color is an H S% L% channel token (--green-hsl etc.); consume as hsl(var(--X-hsl) / α). Category card colors = --cat-*-h hue knobs + materialized --card-* size variants (computed once here). No hard-coded palette literals outside this file (page-unique accents may declare local :root vars, e.g. tarot --ember-hsl)
     chat.css              # terminal chat base (mtg, tarot)
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
@@ -158,7 +159,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: 3-col grid of chrome.css `:root` tokens (swatch + name + value + usage below; alpha ramps for `-rgb`). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
+| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: flat hue-sorted 3-col grid of chrome.css `:root` tokens (swatch + name + value + usage below; alpha ramps for `-hsl`; category cards grouped with size-fill segments). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |

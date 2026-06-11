@@ -76,7 +76,7 @@ body {
   box-sizing: border-box;
   overflow-y: auto;
   z-index: 25;
-  background: var(--surface-modal) !important;
+  background: hsl(var(--surface-hsl)) !important;
   font-family: 'Iosevka Mayukai Monolite', monospace !important;
   transition: transform 0.2s ease;
 }
@@ -88,7 +88,7 @@ body {
   right: 0;
   width: 100%;
   height: 50vh;
-  border-top: 1px solid rgba(var(--green-rgb), 0.18);
+  border-top: 1px solid hsl(var(--green-hsl) / 0.18);
   overflow-x: hidden;
   transform: translateY(120%);
 }
@@ -102,8 +102,8 @@ body.gp-phys-open #gp-physics {
   top: 0;
   right: 0;
   max-height: none;
-  border-left: 1px solid rgba(var(--green-rgb), 0.15) !important;
-  color: rgba(var(--green-rgb), 0.85) !important;
+  border-left: 1px solid hsl(var(--green-hsl) / 0.15) !important;
+  color: hsl(var(--green-hsl) / 0.85) !important;
   transform: translateX(120%);
 }
 
@@ -165,9 +165,9 @@ body.gp-info-open #sidebar {
   font-size: 0.6rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--green);
-  background: var(--surface-modal);
-  border-bottom: 1px solid rgba(var(--green-rgb), 0.15);
+  color: hsl(var(--green-hsl));
+  background: hsl(var(--surface-hsl));
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.15);
 }
 
 .gp-min-btn {
@@ -179,22 +179,22 @@ body.gp-info-open #sidebar {
   padding: 0;
   line-height: 1;
   cursor: pointer;
-  background: var(--surface-modal);
-  border: 1px solid rgba(var(--green-rgb), 0.4);
+  background: hsl(var(--surface-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.4);
   border-radius: 3px;
-  color: rgba(var(--green-rgb), 0.85);
+  color: hsl(var(--green-hsl) / 0.85);
   font-family: "04b25", monospace;
   font-size: 0.65rem;
 }
 
 .gp-min-btn:hover {
-  color: var(--green);
-  border-color: var(--green);
+  color: hsl(var(--green-hsl));
+  border-color: hsl(var(--green-hsl));
 }
 
 /* ── right sidebar green theme ──────────────────────────────────────── */
 #sidebar h3 {
-  color: var(--green) !important;
+  color: hsl(var(--green-hsl)) !important;
   font-family: "04b25", monospace !important;
   font-size: 0.62rem !important;
   letter-spacing: 0.08em;
@@ -202,24 +202,24 @@ body.gp-info-open #sidebar {
 }
 
 #sidebar input#search {
-  background: var(--bg) !important;
-  color: var(--green) !important;
-  border: 1px solid rgba(var(--green-rgb), 0.25) !important;
+  background: hsl(var(--bg-hsl)) !important;
+  color: hsl(var(--green-hsl)) !important;
+  border: 1px solid hsl(var(--green-hsl) / 0.25) !important;
   font-family: 'Iosevka Mayukai Monolite', monospace !important;
 }
 
 #sidebar input#search::placeholder {
-  color: rgba(var(--green-rgb), 0.4) !important;
+  color: hsl(var(--green-hsl) / 0.4) !important;
 }
 
 #sidebar #stats {
-  color: rgba(var(--green-rgb), 0.5) !important;
+  color: hsl(var(--green-hsl) / 0.5) !important;
 }
 
 .search-item:hover,
 .legend-item:hover,
 .neighbor-link:hover {
-  background: rgba(var(--green-rgb), 0.1) !important;
+  background: hsl(var(--green-hsl) / 0.1) !important;
 }
 
 /* ── vis config rows + inputs: kill the blinding light backgrounds ──── */
@@ -228,36 +228,36 @@ body.gp-info-open #sidebar {
 .vis-configuration.vis-config-s3,
 .vis-configuration.vis-config-s4,
 .vis-configuration.vis-config-header {
-  background: var(--surface-modal) !important;
+  background: hsl(var(--surface-hsl)) !important;
 }
 
 .vis-configuration.vis-config-item {
-  color: rgba(var(--green-rgb), 0.85) !important;
+  color: hsl(var(--green-hsl) / 0.85) !important;
 }
 
 .vis-configuration.vis-config-label {
-  color: rgba(var(--green-rgb), 0.7) !important;
+  color: hsl(var(--green-hsl) / 0.7) !important;
 }
 
 .vis-configuration .vis-config-rangeinput,
 .vis-configuration input[type="text"],
 .vis-configuration input[type="number"],
 .vis-configuration select {
-  background: var(--bg) !important;
-  color: var(--green) !important;
-  border: 1px solid rgba(var(--green-rgb), 0.25) !important;
+  background: hsl(var(--bg-hsl)) !important;
+  color: hsl(var(--green-hsl)) !important;
+  border: 1px solid hsl(var(--green-hsl) / 0.25) !important;
 }
 
 .vis-config-button,
 .vis-configuration.vis-config-button {
-  background: var(--bg) !important;
-  color: var(--green) !important;
-  border: 1px solid rgba(var(--green-rgb), 0.4) !important;
+  background: hsl(var(--bg-hsl)) !important;
+  color: hsl(var(--green-hsl)) !important;
+  border: 1px solid hsl(var(--green-hsl) / 0.4) !important;
 }
 
 .vis-configuration-popup {
-  background: var(--bg) !important;
-  color: rgba(var(--green-rgb), 0.85) !important;
+  background: hsl(var(--bg-hsl)) !important;
+  color: hsl(var(--green-hsl) / 0.85) !important;
 }
 
 /* ── narrow-column layout: label on its own line, slider below, gap ──── */
@@ -372,16 +372,16 @@ body.gp-info-open #sidebar {
   font-family: "04b25", monospace;
   font-size: 0.6rem;
   letter-spacing: 0.06em;
-  color: rgba(var(--green-rgb), 0.85);
+  color: hsl(var(--green-hsl) / 0.85);
   background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(var(--green-rgb), 0.18);
+  border: 1px solid hsl(var(--green-hsl) / 0.18);
   border-radius: 4px;
 }
 
 /* segmented either/or switch: freeze | tour */
 .gp-toggle-switch {
   display: inline-flex;
-  border: 1px solid rgba(var(--green-rgb), 0.35);
+  border: 1px solid hsl(var(--green-hsl) / 0.35);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -395,16 +395,16 @@ body.gp-info-open #sidebar {
   letter-spacing: inherit;
   text-transform: uppercase;
   background: transparent;
-  color: rgba(var(--green-rgb), 0.55);
+  color: hsl(var(--green-hsl) / 0.55);
   cursor: pointer;
 }
 
 .gp-seg + .gp-seg {
-  border-left: 1px solid rgba(var(--green-rgb), 0.35);
+  border-left: 1px solid hsl(var(--green-hsl) / 0.35);
 }
 
 .gp-seg.active {
-  background: rgba(var(--green-rgb), 0.85);
+  background: hsl(var(--green-hsl) / 0.85);
   color: #0f0f1a;
 }
 

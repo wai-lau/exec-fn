@@ -3,22 +3,22 @@
   // Inject modal HTML once
   const html = `
 <style>
-.cd-ov { display:none; position:fixed; inset:0; z-index:50; background:var(--surface-scrim); align-items:center; justify-content:center; }
+.cd-ov { display:none; position:fixed; inset:0; z-index:50; background:hsl(var(--scrim-hsl) / 0.78); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
-.cd-box { background:var(--surface-modal); border:1px solid rgba(var(--green-rgb),0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
+.cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
 .cd-box::-webkit-scrollbar { width:8px; }
 .cd-box::-webkit-scrollbar-track { background:transparent; }
 .cd-box::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
 .cd-box input[type=checkbox] { accent-color:currentColor; }
-.cd-box label { display:block; font-size:0.6rem; color:rgba(var(--green-rgb),0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
-.cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(var(--green-rgb),0.2); color:rgba(var(--green-rgb),0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
+.cd-box label { display:block; font-size:0.6rem; color:hsl(var(--green-hsl) / 0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
+.cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid hsl(var(--green-hsl) / 0.2); color:hsl(var(--green-hsl) / 0.9); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
 .cd-box select option { background:#111; }
 .cd-box textarea { min-height:56px; }
 .cd-actions { display:flex; gap:8px; margin-top:18px; justify-content:space-between; align-items:center; }
-.cd-btn { background:none; border:1px solid rgba(var(--green-rgb),0.4); color:rgba(var(--green-rgb),0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
-.cd-btn:hover { border-color:rgba(var(--green-rgb),1); color:rgba(var(--green-rgb),1); }
-.cd-btn-exile { border-color:rgba(var(--red-rgb),0.5) !important; color:rgba(var(--red-rgb),0.8) !important; }
-.cd-btn-exile:hover { border-color:rgba(var(--red-rgb),0.9) !important; color:rgba(var(--red-rgb),1) !important; }
+.cd-btn { background:none; border:1px solid hsl(var(--green-hsl) / 0.4); color:hsl(var(--green-hsl) / 0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
+.cd-btn:hover { border-color:hsl(var(--green-hsl) / 1); color:hsl(var(--green-hsl) / 1); }
+.cd-btn-exile { border-color:hsl(var(--red-hsl) / 0.5) !important; color:hsl(var(--red-hsl) / 0.8) !important; }
+.cd-btn-exile:hover { border-color:hsl(var(--red-hsl) / 0.9) !important; color:hsl(var(--red-hsl) / 1) !important; }
 .cd-btn-late { border-color:rgba(255,176,0,0.55) !important; color:rgba(255,190,40,0.85) !important; }
 .cd-btn-late:hover { border-color:rgba(255,176,0,0.95) !important; color:rgba(255,200,70,1) !important; }
 .cd-dark label { color:inherit !important; opacity:0.55; }
@@ -83,7 +83,7 @@
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
         <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
-        <button class="cd-btn" style="border-color:rgba(var(--green-rgb),0.5);color:rgba(var(--green-rgb),0.85)" onclick="cdDone()">done</button>
+        <button class="cd-btn" style="border-color:hsl(var(--green-hsl) / 0.5);color:hsl(var(--green-hsl) / 0.85)" onclick="cdDone()">done</button>
         <button class="cd-btn cd-btn-late" onclick="cdLate()" title="done, but late — logged for recalibration">late</button>
       </div>
       <div style="display:flex;gap:8px">
@@ -180,27 +180,6 @@
     await fetch(`/api/rd?source=${_cdSource}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_cdCards})});
   }
 
-  function _solidBg(bgStr) {
-    const m = bgStr.match(/hsla\((\d+(?:\.\d+)?),(\d+(?:\.\d+)?)%,(\d+(?:\.\d+)?)%,([\d.]+)\)/);
-    if (!m) return bgStr;
-    const h = +m[1], s = +m[2]/100, l = +m[3]/100, a = +m[4];
-    const c = (1 - Math.abs(2*l - 1)) * s;
-    const x = c * (1 - Math.abs((h/60) % 2 - 1));
-    const m0 = l - c/2;
-    let r,g,b;
-    if      (h<60)  [r,g,b]=[c,x,0];
-    else if (h<120) [r,g,b]=[x,c,0];
-    else if (h<180) [r,g,b]=[0,c,x];
-    else if (h<240) [r,g,b]=[0,x,c];
-    else if (h<300) [r,g,b]=[x,0,c];
-    else            [r,g,b]=[c,0,x];
-    const base = 10;
-    const R = Math.round(a*(r+m0)*255 + (1-a)*base);
-    const G = Math.round(a*(g+m0)*255 + (1-a)*base);
-    const B = Math.round(a*(b+m0)*255 + (1-a)*base);
-    return bgStr.replace(/hsla\([^)]+\)/, `rgb(${R},${G},${B})`);
-  }
-
   window.openCardDialog = async function(id, callback, source) {
     _cdCallback = callback || (() => {});
     _cdSource = source || 'core';
@@ -211,11 +190,12 @@
     _cdId = id;
     const box = document.querySelector('.cd-box');
     if (typeof cardStyle === 'function') {
-      const {bg, border, dark} = cardStyle(c);
-      const bgVal = (bg.match(/background:[^;]+/) || [''])[0];
+      // solidBg = opaque dialog tint — chore/task tints pre-blended over the
+      // modal surface in chrome.css (--card-*-solid, via color-mix)
+      const {bg, border, dark, solidBg} = cardStyle(c);
       const colVal = (bg.match(/;color:[^;]+/) || [''])[0].slice(1);
       const bcVal = border.includes('transparent') ? '' : border;
-      box.style.cssText = [_solidBg(bgVal), colVal, bcVal].filter(Boolean).join(';');
+      box.style.cssText = [solidBg ? 'background:' + solidBg : '', colVal, bcVal].filter(Boolean).join(';');
       box.classList.toggle('cd-dark',   dark && !!bg);
       box.classList.toggle('cd-bright', !dark && !!bg);
     }

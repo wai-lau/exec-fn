@@ -15,15 +15,15 @@
 #terminal { padding-bottom: 0 !important; }
 
 /* phosphor glow on every message */
-.msg { text-shadow: 0 0 4px rgba(var(--green-rgb), 0.5), 0 0 10px rgba(var(--green-rgb), 0.3); }
+.msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.5), 0 0 10px hsl(var(--green-hsl) / 0.3); }
 
 /* reader voice: slightly heavier, more breathing room */
-.msg.assistant { font-weight: 500; line-height: 1.7; letter-spacing: 0.01em; color: var(--green) !important; }
+.msg.assistant { font-weight: 500; line-height: 1.7; letter-spacing: 0.01em; color: hsl(var(--green-hsl)) !important; }
 .msg.assistant p { margin: 0 0 10px; }
 .msg.assistant strong { font-weight: 700; }
-.msg.assistant a { color: rgba(var(--teal-link-rgb), 0.7) !important; text-decoration: underline !important; }
-.msg.assistant a:hover { color: rgb(var(--teal-link-rgb)) !important; }
-.msg.assistant hr { border: none; border-top: 1px solid rgba(var(--green-rgb), 0.35); margin: 10px 0 16px; }
+.msg.assistant a { color: hsl(var(--teal-link-hsl) / 0.7) !important; text-decoration: underline !important; }
+.msg.assistant a:hover { color: hsl(var(--teal-link-hsl)) !important; }
+.msg.assistant hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.35); margin: 10px 0 16px; }
 .msg.assistant table { border-collapse: collapse; margin: 6px 0; }
-.msg.assistant th, .msg.assistant td { border: 1px solid rgba(var(--green-rgb), 0.25); padding: 3px 10px; text-align: left; }
-.msg.assistant th { color: var(--green); border-color: rgba(var(--green-rgb), 0.45); }
+.msg.assistant th, .msg.assistant td { border: 1px solid hsl(var(--green-hsl) / 0.25); padding: 3px 10px; text-align: left; }
+.msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.45); }

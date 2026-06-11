@@ -1,6 +1,6 @@
 
-<link rel="stylesheet" href="/chat.css?v=3">
-<link rel="stylesheet" href="/chat-reader.css?v=1">
+<link rel="stylesheet" href="/chat.css?v=4">
+<link rel="stylesheet" href="/chat-reader.css?v=2">
 <style>
 /* chat-reader.css carries the shared merged-input + reader-voice skin;
    below: mtg-only — full-width scrollback + Scryfall card hovers */
@@ -8,8 +8,8 @@
 
 /* plain external links keep body typography (chat-reader sets colors) */
 .msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; }
-.msg.assistant [data-card] { text-decoration:underline dotted rgba(var(--green-rgb),0.5); text-underline-offset:3px; cursor:pointer; }
-.msg.assistant [data-card]:hover { text-decoration:underline rgba(var(--green-rgb),0.9); color:var(--green); }
+.msg.assistant [data-card] { text-decoration:underline dotted hsl(var(--green-hsl) / 0.5); text-underline-offset:3px; cursor:pointer; }
+.msg.assistant [data-card]:hover { text-decoration:underline hsl(var(--green-hsl) / 0.9); color:hsl(var(--green-hsl)); }
 #card-tooltip {
   position:fixed; z-index:9999; pointer-events:none;
   display:none; flex-direction:column; gap:0;
@@ -20,7 +20,7 @@
 }
 #card-tooltip.loading::after {
   content:''; display:block; width:223px; height:311px;
-  background:rgba(var(--green-rgb),0.05); border:1px solid rgba(var(--green-rgb),0.15);
+  background:hsl(var(--green-hsl) / 0.05); border:1px solid hsl(var(--green-hsl) / 0.15);
   border-radius:10px;
 }
 </style>
@@ -172,7 +172,7 @@ async function streamResponse() {
   } catch(e) {
     cur.remove();
     div.textContent = '[error: ' + e.message + ']';
-    div.style.color = 'rgba(var(--red-rgb),0.75)';
+    div.style.color = 'hsl(var(--red-hsl) / 0.75)';
   }
 
   streaming = false;
