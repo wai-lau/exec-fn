@@ -1,32 +1,30 @@
 
 <style>
 body { overflow-y: auto !important; }
-.clr-wrap { width: min(860px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: var(--green); }
+.clr-wrap { width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: var(--green); }
 .clr-note {
   font-size: 0.66rem; color: rgba(var(--green-rgb),0.4);
   margin-bottom: 28px; line-height: 1.5;
 }
 .clr-note code { background: rgba(var(--green-rgb),0.08); padding: 1px 4px; border-radius: 2px; }
-.clr-section { margin-bottom: 34px; }
+.clr-section { margin-bottom: 30px; }
 .clr-hdr {
   font-family: '04b25', monospace; font-size: 0.6rem; text-transform: uppercase;
   letter-spacing: 0.18em; color: rgba(var(--green-rgb),0.5);
   border-bottom: 1px solid rgba(var(--green-rgb),0.12);
   padding-bottom: 6px; margin-bottom: 10px;
 }
-.clr-row {
-  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
-  padding: 8px 0; border-bottom: 1px solid rgba(var(--green-rgb),0.06);
+.clr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.clr-card {
+  border: 1px solid rgba(var(--green-rgb),0.12); border-radius: 4px;
+  overflow: hidden; background: rgba(0,0,0,0.25);
 }
-.clr-swatch {
-  width: 92px; height: 26px; border-radius: 3px; flex-shrink: 0;
-  border: 1px solid rgba(255,255,255,0.14); overflow: hidden;
-  display: flex;
-}
+.clr-swatch { height: 54px; display: flex; }
 .clr-swatch span { flex: 1; }
-.clr-name { flex: 0 0 180px; font-size: 0.72rem; color: rgba(var(--green-rgb),0.92); }
-.clr-val { flex: 0 0 190px; font-size: 0.6rem; opacity: 0.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.clr-use { flex: 1; min-width: 160px; font-size: 0.66rem; opacity: 0.45; line-height: 1.4; }
+.clr-info { padding: 8px 10px 9px; border-top: 1px solid rgba(var(--green-rgb),0.1); }
+.clr-name { font-size: 0.64rem; color: rgba(var(--green-rgb),0.92); margin-bottom: 2px; word-break: break-all; }
+.clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; }
+.clr-use { font-size: 0.6rem; opacity: 0.45; line-height: 1.45; }
 .clr-empty { font-size: 0.75rem; color: rgba(var(--green-rgb),0.5); padding: 8px 0; }
 </style>
 
@@ -73,6 +71,17 @@ function parsePalette(css) {
   return sections;
 }
 
+function cardHtml(t) {
+  return `<div class="clr-card">
+    ${swatchHtml(t.name, t.value)}
+    <div class="clr-info">
+      <div class="clr-name">--${esc(t.name)}</div>
+      <div class="clr-val">${esc(t.value)}</div>
+      ${t.use ? `<div class="clr-use">${esc(t.use)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
 async function loadColors() {
   const board = document.getElementById('clr-board');
   try {
@@ -82,13 +91,7 @@ async function loadColors() {
     board.innerHTML = sections.map(sec => `
       <div class="clr-section">
         <div class="clr-hdr">${esc(sec.title)}</div>
-        ${sec.tokens.map(t => `
-          <div class="clr-row">
-            ${swatchHtml(t.name, t.value)}
-            <div class="clr-name">--${esc(t.name)}</div>
-            <div class="clr-val">${esc(t.value)}</div>
-            <div class="clr-use">${esc(t.use)}</div>
-          </div>`).join('')}
+        <div class="clr-grid">${sec.tokens.map(cardHtml).join('')}</div>
       </div>`).join('');
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;

@@ -141,7 +141,7 @@ exec-fn/
 
 ## Web app
 
-`/` is a public landing page (`_landing_html()`, styles in `_LANDING_STYLE`) — a vertically-centered column of the **non-admin** sections only (nightfall, mtg, tarot; `_GUEST_NAV_LINKS`), no auth, no exec bubble. Cyberpunk fx: CRT scanlines/flicker (`.cyber-bg`), sweeping scan beam (`.cyber-scan`), icons scale on hover, boot-in stagger (honors `prefers-reduced-motion`). An `admin` link sits bottom-right → `/login`. Logged-in admins (valid `session` cookie) skip the landing and 302 to `/rd`. Clicking a section follows the 401 redirect to the right login.
+`/` is a public landing page (`_landing_html()`, styles in `web/landing.css`) — a vertically-centered column of the **non-admin** sections only (nightfall, mtg, tarot, color; `_GUEST_NAV_LINKS`), no auth, no exec bubble. Cyberpunk fx: CRT scanlines/flicker (`.cyber-bg`), sweeping scan beam (`.cyber-scan`), icons scale on hover, boot-in stagger (honors `prefers-reduced-motion`). An `admin` link sits bottom-right → `/login`. Logged-in admins (valid `session` cookie) skip the landing and 302 to `/rd`. Clicking a section follows the 401 redirect to the right login.
 
 Two cookie auth tiers:
 - `session` cookie (set via `POST /login`, requires `API_KEY`) — full access. Login form at `GET /login` (already-authed visitors redirect to `?next=`/`/rd`).
@@ -158,7 +158,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/color` | Read-only palette moodboard — renders chrome.css `:root` tokens (sections, swatches, alpha ramps). Edit colors in chrome.css; this page just watches |
+| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: 3-col grid of chrome.css `:root` tokens (swatch + name + value + usage below; alpha ramps for `-rgb`). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |

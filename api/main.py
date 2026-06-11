@@ -394,13 +394,13 @@ _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=5">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=6">'
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "color", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
 
 
-_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
+_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "color"]
 
 
 _NAV_ICONS = {
@@ -458,7 +458,7 @@ def _build_nav(active=None, guest=False):
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
     show_bubble = (not guest) and active in {"core", "prophecies"}
-    bubble = '<script src="/exec-bubble.js?v=15"></script>' if show_bubble else ''
+    bubble = '<script src="/exec-bubble.js?v=16"></script>' if show_bubble else ''
     return nav + script + bubble
 
 
@@ -583,7 +583,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=1">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=2">'
 
 
 def _landing_html() -> str:
@@ -687,16 +687,19 @@ async def debug_page():
     return _render_page("debug", _tmpl("debug.html"))
 
 
-@protected.get("/color", response_class=HTMLResponse)
-async def color_page():
-    """Read-only palette moodboard — renders chrome.css :root tokens."""
-    return _render_page("color", _tmpl("color.html"))
+@public.get("/color", response_class=HTMLResponse)
+async def color_page(request: Request):
+    """Read-only palette moodboard — renders chrome.css :root tokens.
+    Public: exposes only the palette, no data. Admin cookie gets the full
+    nav; everyone else the guest nav."""
+    guest = request.cookies.get("session") != SESSION_TOKEN
+    return _render_page("color", _tmpl("color.html"), guest=guest)
 
 
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=29">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=30">'
 _GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=27"></script>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).

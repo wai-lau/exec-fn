@@ -202,7 +202,7 @@ body.gp-info-open #sidebar {
 }
 
 #sidebar input#search {
-  background: var(--surface-input) !important;
+  background: var(--bg) !important;
   color: var(--green) !important;
   border: 1px solid rgba(var(--green-rgb), 0.25) !important;
   font-family: 'Iosevka Mayukai Monolite', monospace !important;
@@ -243,20 +243,20 @@ body.gp-info-open #sidebar {
 .vis-configuration input[type="text"],
 .vis-configuration input[type="number"],
 .vis-configuration select {
-  background: var(--surface-input) !important;
+  background: var(--bg) !important;
   color: var(--green) !important;
   border: 1px solid rgba(var(--green-rgb), 0.25) !important;
 }
 
 .vis-config-button,
 .vis-configuration.vis-config-button {
-  background: var(--surface-input) !important;
+  background: var(--bg) !important;
   color: var(--green) !important;
   border: 1px solid rgba(var(--green-rgb), 0.4) !important;
 }
 
 .vis-configuration-popup {
-  background: var(--surface-input) !important;
+  background: var(--bg) !important;
   color: rgba(var(--green-rgb), 0.85) !important;
 }
 

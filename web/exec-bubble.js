@@ -532,7 +532,7 @@
       cur.remove();
       const errDiv = document.createElement('div');
       errDiv.className = 'msg sys';
-      errDiv.style.color = 'rgba(var(--red-exile-rgb),0.7)';
+      errDiv.style.color = 'rgba(var(--red-rgb),0.7)';
       errDiv.textContent = '[error: ' + e.message + ']';
       termEl.appendChild(errDiv);
     }
