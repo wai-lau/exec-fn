@@ -295,10 +295,10 @@ function createBlock(c, track) {
       ghost.style.bottom = 'auto';
       ghost.style.pointerEvents = 'none';
       ghost.style.zIndex = '9999';
-      ghost.style.opacity = '0.9';
+      ghost.style.opacity = '1';
       ghost.style.boxShadow = '0 6px 18px rgba(0,0,0,0.6)';
       document.body.appendChild(ghost);
-      block.style.opacity = '0.25';
+      block.style.opacity = '0.15';   // faded placeholder, matches .sortable-ghost
     }
 
     function onMove(ev) {
