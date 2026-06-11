@@ -1,13 +1,13 @@
 
+<script>if((navigator.maxTouchPoints||0)===0)document.documentElement.classList.add('no-touch');</script>
 <link rel="stylesheet" href="/chat.css?v=2">
 <style>
 /* nav sits above the ambient cyber animations (z-index 9990) */
 .exec-nav { z-index:9995 !important; }
 /* keep the nav visible while the composer is focused — but only on non-touch
-   (desktop); on mobile let kb-open hide it so the keyboard has room */
-@media (hover: hover) and (pointer: fine) {
-  html.kb-open .exec-nav { visibility: visible !important; }
-}
+   (desktop, html.no-touch set by JS); on touch devices (incl. iOS) let kb-open
+   hide it so the soft keyboard has room */
+html.no-touch.kb-open .exec-nav { visibility: visible !important; }
 /* Spread height fits the cards; terminal eats the rest. */
 :root {
   --card-w: min(13vh, 18vw);
