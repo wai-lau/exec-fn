@@ -303,6 +303,16 @@ function framePosLabel(positionKey) {
   return FRAME_LABELS[frame]?.[positionKey];
 }
 
+// Remove a trailing flip-invite ("When you're ready, turn the **Past**.") that
+// the reader appended to the deal turn against the prompt's ban — the frontend
+// prints the canonical invite itself in drawSpread.
+function stripDealInvite(t) {
+  return t.replace(
+    /\n+\s*(when you'?re ready[,.]?\s*)?(go ahead and\s+)?turn the\s+\*{0,2}[\w][\w ]*\*{0,2}\s*[.?!]*\s*$/i,
+    ''
+  ).trimEnd();
+}
+
 function currentPhase() {
   if (!significator) return ['1', 'baseline'];
   if (!spread) return ['2', 'query'];
@@ -541,7 +551,19 @@ async function drawSpread(type, frame = 'past_present_future') {
   renderSpread();
   renderSigSlot();
   const meta = spreadsMeta[spread.type];
-  await autoTrigger(`[drew a ${meta?.label || spread.type} spread; ${spread.cards.length} cards face-down]`);
+  // Phase 3 is deterministic: record the deal as an event marker and print the
+  // first-position flip invite ourselves. No model turn — the reader kept
+  // duplicating this line against the prompt's hard ban, so the frontend owns it.
+  const drewMarker = `[drew a ${meta?.label || spread.type} spread; ${spread.cards.length} cards face-down]`;
+  addEventMsg(drewMarker);
+  messages.push({role: 'user', content: drewMarker});
+  const firstPos = spread.cards[0]?.position;
+  const label = framePosLabel(firstPos) || firstPos;
+  const invite = `When you're ready, turn the **${label}**.`;
+  addMsg('assistant', invite);
+  messages.push({role: 'assistant', content: invite});
+  localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
+  focusInput();
 }
 
 
@@ -671,6 +693,29 @@ async function streamResponse() {
       await new Promise(r => setTimeout(r, 50));
     }
     cur.remove();
+    // The deal turn must end at "let me set the cards." — the flip invite is the
+    // frontend's job now (see drawSpread). If the reader tacked one on anyway,
+    // strip the trailing invite so it isn't duplicated.
+    if (pendingDeal) {
+      const stripped = stripDealInvite(buffered);
+      if (stripped !== buffered) {
+        buffered = stripped;
+        body.innerHTML = renderText(buffered);
+      }
+    }
+    // backstop: reader declared the Significator in prose but skipped the
+    // set_significator tool call. Match the one court card it named and fill the
+    // slot so the flow doesn't stall.
+    if (!significator && buffered) {
+      const low = buffered.toLowerCase();
+      const named = courtList().filter(c => low.includes(c.name.toLowerCase()));
+      if (named.length === 1) {
+        const c = named[0];
+        significator = {card_id: c.card_id, name: c.name, image: c.image};
+        localStorage.setItem(LS_SIG, JSON.stringify(significator));
+        renderSigCard();
+      }
+    }
     // reader done speaking — now emit any held sys notes
     for (const m of pendingSys) addMsg('sys', m);
     const sysMsgs = terminal.querySelectorAll('.msg.sys');
