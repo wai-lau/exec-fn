@@ -23,6 +23,10 @@ body { overflow: hidden !important; }
 .pr-colgroup .pr-col:not(:first-child) {
   border-top: 2px solid rgba(0,255,65,0.28);
 }
+/* matching vertical divider between columns so day separation is even */
+.pr-colgroup:not(:first-child) {
+  border-left: 2px solid rgba(0,255,65,0.28);
+}
 /* side columns pack three days — shrink chrome to fit (day-name font +
    header padding stay the same as the today column so titles align) */
 .pr-colgroup.small .pr-list { padding: 5px 6px 14px; }
