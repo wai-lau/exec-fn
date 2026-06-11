@@ -394,10 +394,10 @@ _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=1">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=4">'
 
-_NAV_LINKS = ["core", "prophecies", "directives", "debug", "graph", "nightfall", "mtg", "tarot"]
-_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "directives": "/directives", "debug": "/debug", "graph": "/graph", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
+_NAV_LINKS = ["core", "prophecies", "debug", "graph", "nightfall", "mtg", "tarot"]
+_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
 
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
@@ -406,7 +406,6 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
 _NAV_ICONS = {
     "core":        '<img src="/laser-satellite.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
     "prophecies":  '<img src="/fiddle.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "directives":  '<img src="/turbo.png" alt="directives" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
     "graph":       '<img src="/sentinel.png" alt="graph" style="width:20px;height:20px;image-rendering:pixelated;">',
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -416,7 +415,7 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "core": "core", "prophecies": "profs",
-    "directives": "dirs", "debug": "debug", "graph": "graph", "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
+    "debug": "debug", "graph": "graph", "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
 }
 
 def _build_nav(active=None, guest=False):
@@ -430,22 +429,34 @@ def _build_nav(active=None, guest=False):
     nav = '<div class="exec-nav">' + "".join(links) + "</div>"
     script = (
         "<script>(function(){"
+        "var de=document.documentElement;"
         "function _snh(){var n=document.querySelector('.exec-nav');"
-        "if(n)document.documentElement.style.setProperty('--nav-h',n.offsetHeight+'px');}"
+        "if(n)de.style.setProperty('--nav-h',n.offsetHeight+'px');}"
         "_snh();window.addEventListener('resize',_snh);"
-        # iOS overlays the soft keyboard on fixed-bottom content instead of
-        # resizing the layout. Track the keyboard inset via visualViewport and
-        # expose it as --kb so the nav + chat UI can lift above the keyboard.
+        # iOS overlays the soft keyboard instead of resizing the layout, and the
+        # keyboard-inset arithmetic is unreliable across versions. Detect the
+        # keyboard by input focus (the one signal that always correlates) and
+        # mirror the visible viewport geometry from visualViewport so the nav can
+        # be hidden and the chat UI can fit the keyboard exactly.
         "var vv=window.visualViewport;"
-        "function _kb(){var i=vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;"
-        "document.documentElement.style.setProperty('--kb',i+'px');}"
-        "if(vv){vv.addEventListener('resize',_kb);vv.addEventListener('scroll',_kb);}"
-        "_kb();"
+        "function _vp(){if(!vv)return;"
+        "de.style.setProperty('--vvh',vv.height+'px');"
+        "de.style.setProperty('--vvt',vv.offsetTop+'px');"
+        "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height-vv.offsetTop)+'px');}"
+        "if(vv){vv.addEventListener('resize',_vp);vv.addEventListener('scroll',_vp);}"
+        "_vp();"
+        "var _ke=function(t){return !!t&&(t.isContentEditable||"
+        "/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||''));};"
+        "document.addEventListener('focusin',function(e){"
+        "if(_ke(e.target))de.classList.add('kb-open');});"
+        "document.addEventListener('focusout',function(){"
+        "setTimeout(function(){if(!_ke(document.activeElement))"
+        "de.classList.remove('kb-open');},0);});"
         "})();</script>"
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
-    show_bubble = (not guest) and active in {"core", "prophecies", "directives"}
-    bubble = '<script src="/exec-bubble.js?v=10"></script>' if show_bubble else ''
+    show_bubble = (not guest) and active in {"core", "prophecies"}
+    bubble = '<script src="/exec-bubble.js?v=13"></script>' if show_bubble else ''
     return nav + script + bubble
 
 
@@ -523,8 +534,8 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     base = bare if active else no_form
     head_inject = _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
-    # cyberpunk ambient fx only on tarot (landing injects its own)
-    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>' if active == "tarot" else ''
+    # cyberpunk ambient fx on tarot + mtg (landing injects its own)
+    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>' if active in {"tarot", "mtg"} else ''
     return (base
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", fx + content + nav + "</body>", 1))
@@ -747,11 +758,6 @@ async def plan_page():
 @protected.get("/prophecies", response_class=HTMLResponse)
 async def prophecies_page():
     return _render_page("prophecies", _tmpl("prophecies.html"), full_height=True)
-
-
-@protected.get("/directives", response_class=HTMLResponse)
-async def directives_page():
-    return _render_page("directives", _tmpl("directives.html"), full_height=True)
 
 
 @protected.get("/debug", response_class=HTMLResponse)

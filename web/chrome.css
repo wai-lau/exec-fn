@@ -158,7 +158,7 @@ body {
 /* Nav */
 .exec-nav {
   position: fixed;
-  bottom: var(--kb, 0);   /* lift above the iOS soft keyboard (see --kb in nav script) */
+  bottom: 0;
   left: 0;
   right: 0;
   z-index: 20;
@@ -170,6 +170,9 @@ body {
   backdrop-filter: blur(14px);
   border-top: 1px solid rgba(var(--green-rgb), 0.12);
 }
+
+/* keyboard up (input focused) — let the soft keyboard cover the nav */
+html.kb-open .exec-nav { visibility: hidden; }
 
 .exec-nav a {
   color: rgba(var(--green-rgb), 0.5);
