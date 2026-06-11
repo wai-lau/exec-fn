@@ -19,7 +19,7 @@ docker compose up -d --build
 
 **COMMIT after each discrete fix.** Don't batch.
 
-**PRE-COMMIT HOOK** runs automatically on commit: ruff on staged `.py` files, JS syntax + ESLint on HTML templates, shellcheck on `.sh` files. Run `.git/hooks/pre-commit` manually to check before committing.
+**PRE-COMMIT HOOK** runs automatically on commit: ruff on staged `.py` files, JS syntax + ESLint on HTML templates, stylelint on `web/*.css`, shellcheck on `.sh` files, plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes. Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
 
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
 
@@ -44,6 +44,7 @@ Models: `claude-opus-4-8` everywhere (main reasoning + cheap checks/merges). Aut
 ```
 exec-fn/
   bootstrap.sh            # one-time droplet setup — safe to re-run
+  scripts/                # version-controlled git hooks: pre-commit (lint + docs reminder) + install-hooks.sh (symlinks into .git/hooks)
   docker-compose.yml      # TZ=America/New_York; volume-mounts templates + web/static
   nightfall-incident/     # separate repo (wai-lau/nightfall), volume-mounted
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)

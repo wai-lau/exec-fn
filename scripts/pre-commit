@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -e
+
+TEMPLATES="api/templates"
+TMPDIR_="$(mktemp -d)"
+trap 'rm -rf "$TMPDIR_"' EXIT
+
+fail=0
+
+for f in "$TEMPLATES"/*.html; do
+  [ -f "$f" ] || continue
+  # Extract content of inline <script> blocks (skip those with src=)
+  python3 - "$f" "$TMPDIR_" <<'PYEOF'
+import sys, re, os
+src = open(sys.argv[1]).read()
+outdir = sys.argv[2]
+base = os.path.basename(sys.argv[1])
+blocks = re.findall(r'<script(?![^>]*\bsrc\b)[^>]*>(.*?)</script>', src, re.DOTALL)
+if blocks:
+    out = os.path.join(outdir, base + '.js')
+    open(out, 'w').write('\n;\n'.join(blocks))
+PYEOF
+done
+
+for jsfile in "$TMPDIR_"/*.js; do
+  [ -f "$jsfile" ] || continue
+  name="$(basename "${jsfile%.html.js}").html"
+  if ! node --check "$jsfile" 2>&1 | sed "s|$jsfile|$name|g"; then
+    fail=1
+  fi
+done
+
+if [ $fail -ne 0 ]; then
+  echo ""
+  echo "JS syntax errors found — commit blocked. Fix before committing."
+  exit 1
+fi
+
+# Python lint
+PY_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.py$' || true)
+if [ -n "$PY_FILES" ]; then
+  if ! ~/.local/bin/ruff check $PY_FILES 2>&1; then
+    echo ""
+    echo "Python errors found — commit blocked. Fix before committing."
+    exit 1
+  fi
+fi
+
+# CSS lint
+if command -v stylelint &>/dev/null; then
+  if ! stylelint "web/*.css" 2>&1; then
+    echo ""
+    echo "CSS errors found — commit blocked. Fix before committing."
+    exit 1
+  fi
+fi
+
+# Shell lint
+if command -v shellcheck &>/dev/null; then
+  SHELL_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.sh$' || true)
+  if [ -n "$SHELL_FILES" ]; then
+    if ! shellcheck --severity=warning $SHELL_FILES 2>&1; then
+      echo ""
+      echo "Shell errors found — commit blocked. Fix before committing."
+      exit 1
+    fi
+  fi
+fi
+
+# JS lint (extract inline scripts from templates)
+if command -v eslint &>/dev/null; then
+  JSTMP="$(mktemp -d /exec-fn/.eslint-tmp-XXXXXX)"
+  trap 'rm -rf "$JSTMP"' EXIT
+  python3 - "$TEMPLATES" "$JSTMP" <<'PYEOF'
+import sys, re
+from pathlib import Path
+tmpl_dir, outdir = sys.argv[1], sys.argv[2]
+for f in Path(tmpl_dir).glob("*.html"):
+    src = f.read_text()
+    blocks = re.findall(r'<script(?![^>]*\bsrc\b)[^>]*>(.*?)</script>', src, re.DOTALL)
+    if blocks:
+        (Path(outdir) / (f.name + '.js')).write_text('\n;\n'.join(blocks))
+PYEOF
+  if ls "$JSTMP"/*.js &>/dev/null; then
+    if ! eslint "$JSTMP"/*.js 2>&1 | sed "s|$JSTMP/||g; s|\.html\.js|.html|g"; then
+      echo ""
+      echo "JS errors found — commit blocked. Fix before committing."
+      exit 1
+    fi
+  fi
+fi
+
+# Docs reminder (non-blocking): substantive source changed but docs not staged.
+# The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
+# naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md.
+CHANGED=$(git diff --cached --name-only --diff-filter=ACMR || true)
+CODE_CHANGED=$(echo "$CHANGED" | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
+DOCS_CHANGED=$(echo "$CHANGED" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$' || true)
+if [ -n "$CODE_CHANGED" ] && [ -z "$DOCS_CHANGED" ]; then
+  echo ""
+  echo "NOTE: source changed but CLAUDE.md / ARCHITECTURE.md not staged."
+  echo "      If routes, pipelines, schemas, data files, or naming changed, update them."
+fi
+
+exit 0
