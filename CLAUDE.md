@@ -94,7 +94,7 @@ exec-fn/
     templates/            # volume-mounted → live on save
       plan.html           # /plan — legacy daily plan view
       kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
-      prophecies.html     # /prophecies — 6-day planning kanban, 3 columns: today | tomorrow+day-after | next-3-days (small cards); books bar at top
+      prophecies.html     # /prophecies — 6-day planning, 3 columns: today (TIMELINE: grid + dir_start_min blocks, drag/resize, now-line, past-hider, autoscroll) | tomorrow+day-after | next-3-days (small cards). Books bar moved to core.
       debug.html          # /debug — profile.json + activity logs viewer
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
@@ -142,7 +142,7 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `core` · `prophecies` · `debug` · `graph` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto the planning pages (`core`/`prophecies`) by `_build_nav()`; no `/exec` route. Appending `?exec=open` to a planning page URL opens the bubble expanded on load. (The `/directives` timeline page was removed — its today-schedule role folded into the prophecies today column.)
+Nav: `core` · `prophecies` · `debug` · `graph` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto the planning pages (`core`/`prophecies`) by `_build_nav()`; no `/exec` route. Appending `?exec=open` to a planning page URL opens the bubble expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
 
 ### Pages
 
@@ -243,7 +243,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 
 - `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
-- `dir_start_min`: minutes from midnight — intraday slot for a card scheduled today. Set whenever a card is scheduled for today (exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py`. (No longer has a timeline UI — the `/directives` page was removed; the field still drives nudge anchoring.)
+- `dir_start_min`: minutes from midnight — intraday slot for a card scheduled today. Set whenever a card is scheduled for today (exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py`. Edited via the prophecies today-column timeline (drag a block) and drives nudge anchoring.
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
 - `size === 'book'`: shown in books bar on prophecies page; hidden from rd/hq columns in kanban
 
