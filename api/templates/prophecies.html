@@ -86,12 +86,14 @@ body.pr-dragging .pr-unschedule.drag-over {
 .pr-toast.show { opacity: 1; }
 
 /* today column = timeline (grid, time-sort, now-line, past "hider") */
-.pr-tl-wrap { flex: 1; overflow-y: auto; padding: 0 10px; position: relative; min-height: 0; }
+.pr-tl-wrap { flex: 1; overflow-y: auto; padding: 0 10px; position: relative; min-height: 0; scrollbar-width: none; -ms-overflow-style: none; }
+.pr-tl-wrap::-webkit-scrollbar { display: none; }
 .dir-block {
   position: absolute; left: 3px; right: 3px; box-sizing: border-box;
   border-radius: 4px; padding: 6px 9px 12px;
   cursor: grab; user-select: none; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500;
   border: 1px solid transparent; overflow: hidden; display: flex; flex-direction: column;
+  z-index: 3;
 }
 .dir-block:active { cursor: grabbing; }
 .dir-block.plain { background: rgba(0,255,65,0.06); border-color: rgba(0,255,65,0.18); }
@@ -472,7 +474,7 @@ function buildSchedule(cards) {
     {label: 'dinner', start: 18*60+30, end: 20*60},
   ].forEach(({label, start, end}) => {
     const el = document.createElement('div');
-    el.style.cssText = `position:absolute;left:3px;right:3px;top:${(start-TL_START)*TL_PX + 3}px;height:${(end-start)*TL_PX - 6}px;z-index:4;`
+    el.style.cssText = `position:absolute;left:3px;right:3px;top:${(start-TL_START)*TL_PX + 3}px;height:${(end-start)*TL_PX - 6}px;z-index:1;`
       + `backdrop-filter:blur(3px);background:hsl(185,50%,54%,0.3);border:1px solid hsl(185,50%,45%,0.5);border-radius:4px;`
       + `display:flex;align-items:center;justify-content:center;box-sizing:border-box;pointer-events:none;`;
     el.innerHTML = `<span style="font-family:'Iosevka Mayukai Monolite',monospace;font-weight:700;font-size:0.72rem;color:rgba(255,255,255,0.8)">[ ${label} ]</span>`;
@@ -602,11 +604,11 @@ function buildBoard() {
   if (!weekData.days[today]) weekData.days[today] = [];
   const days = Object.keys(weekData.days).sort();
 
-  // three columns: today | tomorrow + day after | next three (small)
-  const groups = [days.slice(0, 1), days.slice(1, 3), days.slice(3, 6)];
+  // three columns: today (timeline) | next 3 days | last 3 days — full week
+  const groups = [days.slice(0, 1), days.slice(1, 4), days.slice(4, 7)];
   let html = '';
   groups.forEach((groupDays, gi) => {
-    const small = gi === 2;
+    const small = gi >= 1;
     html += `<div class="pr-colgroup${small?' small':''}">`;
     html += groupDays.map(day => dayCellHtml(day, today, small)).join('');
     html += `</div>`;
@@ -726,8 +728,8 @@ function consult_oracle() {
   if (!unsched.length) return;
 
   const today = isoToday();
-  // Stay within backend window (today..today+5); skip today itself.
-  const targetDays = Array.from({length: 5}, (_, i) => addDays(today, i + 1));
+  // Stay within backend window (today..today+6); skip today itself.
+  const targetDays = Array.from({length: 6}, (_, i) => addDays(today, i + 1));
 
   // count already-scheduled cards per target day
   const counts = {};

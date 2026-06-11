@@ -11,7 +11,7 @@ from helpers import _now_et, _SIZE_MINUTES
 TL_START_MIN = 4 * 60 + 30     # 4:30 AM — dirs timeline start / floor
 AUTOSTACK_ANCHOR = 10 * 60     # 10:00 AM — morning autostack anchor
 SNAP = 15
-SCHED_WINDOW_DAYS = 5          # today + 5 = 6-day prophecies/scheduling window
+SCHED_WINDOW_DAYS = 6          # today + 6 = 7-day prophecies/scheduling window
 
 
 def _snap_up(m: int, snap: int = SNAP) -> int:
@@ -85,7 +85,7 @@ def schedule_to_day(card: dict, cards: list[dict], target_iso: str,
 
     `target_iso` is the day to aim for — a card's due day (auto) or an
     explicitly requested day (exec chat / manual drag). Single rule:
-      - Beyond the 6-day window: by default keep/return to rd, set due_date
+      - Beyond the 7-day window: by default keep/return to rd, set due_date
         only. With clamp_to_window=True (manual move into hq), clamp the
         target to the last window day instead so the card stays in hq.
       - In window: promote rd->hq, scheduled_day = target. An overdue target
@@ -110,7 +110,7 @@ def schedule_to_day(card: dict, cards: list[dict], target_iso: str,
             card["due_date"] = target.isoformat()
             card["scheduled_day"] = None
             card.pop("dir_start_min", None)
-            return {"due_date": target.isoformat(), "note": "beyond 6-day window, set as due date in backlog"}
+            return {"due_date": target.isoformat(), "note": "beyond 7-day window, set as due date in backlog"}
     if target < today:
         target = today
     if card.get("column") == "rd":
