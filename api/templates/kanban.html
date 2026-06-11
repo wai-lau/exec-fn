@@ -299,7 +299,7 @@ function buildReminders() {
       const btn = document.createElement('button');
       btn.className = 'rem-overflow-btn';
       btn.textContent = `+${overflow.length}`;
-      btn.onclick = showRemOverflow;
+      btn.onclick = (e) => { e.stopPropagation(); showRemOverflow(); };
       last.appendChild(btn);
     }
   }
