@@ -3,6 +3,8 @@
 <style>
 /* nav sits above the ambient cyber animations (z-index 9990) */
 .exec-nav { z-index:9995 !important; }
+/* keep the nav visible while the chat composer is focused (don't hide on kb-open) */
+html.kb-open .exec-nav { visibility: visible !important; }
 /* Spread height fits the cards; terminal eats the rest. */
 :root {
   --card-w: min(13vh, 18vw);
