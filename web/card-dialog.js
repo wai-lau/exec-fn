@@ -3,7 +3,7 @@
   // Inject modal HTML once
   const html = `
 <style>
-.cd-ov { display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.78); align-items:center; justify-content:center; }
+.cd-ov { display:none; position:fixed; inset:0; z-index:50; background:var(--surface-scrim); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
 .cd-box { background:var(--surface-modal); border:1px solid rgba(var(--green-rgb),0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
 .cd-box::-webkit-scrollbar { width:8px; }
@@ -17,8 +17,8 @@
 .cd-actions { display:flex; gap:8px; margin-top:18px; justify-content:space-between; align-items:center; }
 .cd-btn { background:none; border:1px solid rgba(var(--green-rgb),0.4); color:rgba(var(--green-rgb),0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
 .cd-btn:hover { border-color:rgba(var(--green-rgb),1); color:rgba(var(--green-rgb),1); }
-.cd-btn-exile { border-color:rgba(var(--red-exile-rgb),0.5) !important; color:rgba(var(--red-exile-rgb),0.8) !important; }
-.cd-btn-exile:hover { border-color:rgba(var(--red-exile-rgb),0.9) !important; color:rgba(var(--red-exile-rgb),1) !important; }
+.cd-btn-exile { border-color:rgba(var(--red-rgb),0.5) !important; color:rgba(var(--red-rgb),0.8) !important; }
+.cd-btn-exile:hover { border-color:rgba(var(--red-rgb),0.9) !important; color:rgba(var(--red-rgb),1) !important; }
 .cd-btn-late { border-color:rgba(255,176,0,0.55) !important; color:rgba(255,190,40,0.85) !important; }
 .cd-btn-late:hover { border-color:rgba(255,176,0,0.95) !important; color:rgba(255,200,70,1) !important; }
 .cd-dark label { color:inherit !important; opacity:0.55; }
