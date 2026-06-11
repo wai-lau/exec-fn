@@ -192,6 +192,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | POST | `/api/assemble_plan` | Run the assemble_plan tool from current directives.json (legacy plan pipeline). |
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
 | GET | `/data/{filename}` | Serve file from /app/data/ (path-traversal guarded) |
+| GET | `/api/color/usage` | Public. `{token: count}` of `var(--X)` references across templates + web assets (chrome.css `:root` block excluded). Feeds the ×N badges on `/color` |
 | GET | `/api/mtg/log` | mtg chat history |
 | POST | `/api/mtg/chat` | mtg chat (tool-use over rules) SSE |
 | GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |

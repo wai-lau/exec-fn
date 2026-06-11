@@ -22,7 +22,10 @@ body { overflow-y: auto !important; }
 .clr-swatch { height: 54px; display: flex; }
 .clr-swatch span { flex: 1; }
 .clr-info { padding: 8px 10px 9px; border-top: 1px solid rgba(var(--green-rgb),0.1); }
-.clr-name { font-size: 0.64rem; color: rgba(var(--green-rgb),0.92); margin-bottom: 2px; word-break: break-all; }
+.clr-name-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+.clr-name { font-size: 0.64rem; color: rgba(var(--green-rgb),0.92); word-break: break-all; }
+.clr-count { font-size: 0.56rem; color: rgba(var(--green-rgb),0.55); flex-shrink: 0; }
+.clr-count.zero { color: rgba(var(--red-rgb),0.65); }
 .clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; }
 .clr-use { font-size: 0.6rem; opacity: 0.45; line-height: 1.45; }
 .clr-empty { font-size: 0.75rem; color: rgba(var(--green-rgb),0.5); padding: 8px 0; }
@@ -33,6 +36,7 @@ body { overflow-y: auto !important; }
     palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.
     edit the tokens there; this page just watches.
     <code>-rgb</code> triplets show their alpha ramp (0.1 / 0.3 / 0.6 / 1.0).
+    ×N = <code>var(--token)</code> references across templates + web assets.
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
@@ -71,11 +75,18 @@ function parsePalette(css) {
   return sections;
 }
 
-function cardHtml(t) {
+function cardHtml(t, usage) {
+  const n = usage[t.name] || 0;
+  const badge = n
+    ? `<span class="clr-count">&times;${n}</span>`
+    : '<span class="clr-count zero">unused</span>';
   return `<div class="clr-card">
     ${swatchHtml(t.name, t.value)}
     <div class="clr-info">
-      <div class="clr-name">--${esc(t.name)}</div>
+      <div class="clr-name-row">
+        <span class="clr-name">--${esc(t.name)}</span>
+        ${badge}
+      </div>
       <div class="clr-val">${esc(t.value)}</div>
       ${t.use ? `<div class="clr-use">${esc(t.use)}</div>` : ''}
     </div>
@@ -85,13 +96,18 @@ function cardHtml(t) {
 async function loadColors() {
   const board = document.getElementById('clr-board');
   try {
-    const css = await (await fetch('/chrome.css')).text();
+    const [cssRes, usageRes] = await Promise.all([
+      fetch('/chrome.css'),
+      fetch('/api/color/usage'),
+    ]);
+    const css = await cssRes.text();
+    const usage = usageRes.ok ? await usageRes.json() : {};
     const sections = parsePalette(css);
     if (!sections.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
     board.innerHTML = sections.map(sec => `
       <div class="clr-section">
         <div class="clr-hdr">${esc(sec.title)}</div>
-        <div class="clr-grid">${sec.tokens.map(cardHtml).join('')}</div>
+        <div class="clr-grid">${sec.tokens.map(t => cardHtml(t, usage)).join('')}</div>
       </div>`).join('');
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
