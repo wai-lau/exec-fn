@@ -13,10 +13,10 @@ body { overflow-y: auto !important; }
   overflow: hidden; background: rgba(0,0,0,0.25);
 }
 .clr-swatch { height: 54px; display: flex; position: relative; }
-/* white bar behind the color — 1/3 height, centered — exposes alpha */
+/* white bar behind the color — centered, 8.4% height, 80% width — exposes alpha */
 .clr-swatch::before {
   content: ''; position: absolute;
-  left: 0; right: 0; top: 33.3%; height: 33.4%;
+  left: 10%; right: 10%; top: 45.8%; height: 8.4%;
   background: #fff;
 }
 /* swatches that reproduce a consumer effect (blur) need structure to
