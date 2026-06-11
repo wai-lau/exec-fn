@@ -414,7 +414,7 @@ _NAV_ICONS = {
 }
 
 _NAV_LABELS = {
-    "core": "core", "prophecies": "profs",
+    "core": "core", "prophecies": "dirs",
     "debug": "debug", "graph": "graph", "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
 }
 
