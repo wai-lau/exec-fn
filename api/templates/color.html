@@ -38,7 +38,9 @@ body { overflow-y: auto !important; }
 
 <div class="clr-wrap">
   <div class="clr-note">
-    palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.
+    palette moodboard — read-only, parsed live from <code>chrome.css :root</code>,
+    plus the category card colors computed by <code>card-style.js</code>
+    (segments: chore / task / project / titan fills).
     edit the tokens there; this page just watches.
     <code>-rgb</code> triplets show their alpha ramp (0.1 / 0.3 / 0.6 / 1.0).
     ×N = <code>var(--token)</code> references across templates + web assets.
@@ -47,7 +49,9 @@ body { overflow-y: auto !important; }
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
 
+<script src="/card-style.js?v=2"></script>
 <script>
+/* global cardStyle, CAT_HUE, CAT_SAT, CAT_LIGHT */
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -59,15 +63,38 @@ const TOKEN_FX = {
   'surface-nav': 'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);',
 };
 
-function swatchHtml(name, value) {
+function swatchHtml(t) {
+  const { name, value } = t;
   const fx = TOKEN_FX[name] || '';
   const cls = fx ? 'clr-swatch fx' : 'clr-swatch';
+  if (t.segs) {
+    return `<div class="${cls}">${t.segs.map(s => `<span style="${s}"></span>`).join('')}</div>`;
+  }
   if (name.endsWith('-rgb')) {
     const ramp = [0.1, 0.3, 0.6, 1.0]
       .map(a => `<span style="background:rgba(${esc(value)},${a});${fx}"></span>`).join('');
     return `<div class="${cls}">${ramp}</div>`;
   }
   return `<div class="${cls}"><span style="background:${esc(value)};${fx}"></span></div>`;
+}
+
+// Category card colors — computed by card-style.js, not chrome.css tokens.
+// One entry per category; segments are the chore/task/project/titan fills.
+function categoryTokens() {
+  if (typeof cardStyle !== 'function') return [];
+  return Object.keys(CAT_HUE).map(cat => {
+    const segs = ['chore', 'task', 'project', 'titan']
+      .map(sz => cardStyle({ category: cat, size: sz }).bg);
+    const h = CAT_HUE[cat], s = 75 + (CAT_SAT[cat] || 0), l = 68 + (CAT_LIGHT[cat] || 0);
+    return {
+      name: `${cat} cards`,
+      cssVar: false,
+      value: `hsl(${h}, ${s}%, ${l}%)`,
+      use: 'kanban card fills by size — computed in card-style.js',
+      segs,
+      count: null,
+    };
+  });
 }
 
 function parsePalette(css) {
@@ -142,12 +169,16 @@ function visibleTokens(tokens, usage) {
 }
 
 function cardHtml(t) {
+  const label = (t.cssVar === false ? '' : '--') + esc(t.name);
+  const badge = t.count == null
+    ? '<span class="clr-count">computed</span>'
+    : `<span class="clr-count">&times;${t.count}</span>`;
   return `<div class="clr-card">
-    ${swatchHtml(t.name, t.value)}
+    ${swatchHtml(t)}
     <div class="clr-info">
       <div class="clr-name-row">
-        <span class="clr-name">--${esc(t.name)}</span>
-        <span class="clr-count">&times;${t.count}</span>
+        <span class="clr-name">${label}</span>
+        ${badge}
       </div>
       <div class="clr-val">${esc(t.value)}</div>
       ${t.use ? `<div class="clr-use">${esc(t.use)}</div>` : ''}
@@ -164,7 +195,7 @@ async function loadColors() {
     ]);
     const css = await cssRes.text();
     const usage = usageRes.ok ? await usageRes.json() : {};
-    const tokens = visibleTokens(parsePalette(css), usage)
+    const tokens = [...visibleTokens(parsePalette(css), usage), ...categoryTokens()]
       .sort((a, b) => {
         const ka = hueKey(a), kb = hueKey(b);
         return ka[0] - kb[0] || ka[1] - kb[1];
