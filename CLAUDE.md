@@ -57,7 +57,7 @@ exec-fn/
     main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     pipeline.py           # morning pipeline: retrospective, purge stale notes, archive log
-    scheduler.py          # single home for scheduling: schedule_to_day() (canonical rd->hq promotion + scheduled_day on due day, shared by morning pipeline + exec chat), layout_day() (cron autostack entry point), place_card_today() (intraday slot >= now). SCHED_WINDOW_DAYS=5 (6-day window)
+    scheduler.py          # single home for scheduling: schedule_to_day() (canonical rd->hq promotion + scheduled_day on due day, shared by morning pipeline + exec chat), layout_day() (cron autostack entry point), place_card_today() (intraday slot >= now). SCHED_WINDOW_DAYS=6 (7-day window)
     monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection
     routes_chat.py        # /api/chat SSE stream + handler (exec planning tools)
     routes_nightfall.py   # /api/gamesave/* + build_nightfall_html() (injects base href, SW unregister, save sync)
@@ -94,7 +94,7 @@ exec-fn/
     templates/            # volume-mounted → live on save
       plan.html           # /plan — legacy daily plan view
       kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
-      prophecies.html     # /prophecies — 6-day planning, 3 columns: today (TIMELINE: grid + dir_start_min blocks, drag/resize, now-line, past-hider, autoscroll) | tomorrow+day-after | next-3-days (small cards). Books bar moved to core.
+      prophecies.html     # /prophecies — 7-day planning, 3 columns: today (TIMELINE: grid + dir_start_min blocks, drag/resize+drag-out-to-day/unschedule, now-line, past-hider, autoscroll) | next 3 days | last 3 days (small cards). Full week on screen. Books bar moved to core.
       debug.html          # /debug — profile.json + activity logs viewer
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
@@ -123,7 +123,7 @@ exec-fn/
 | hq column | Active working set |
 | archives column | Completed tasks |
 | exile column | Won't-do tasks |
-| prophecies (prof) | 6-day planning view — assigns `scheduled_day` to cards. 3 columns: today \| tomorrow+day-after \| next-3-days (small cards) |
+| prophecies (prof) | 7-day planning view — assigns `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | scheduled_day | ISO date field on a card indicating which day it's planned for |
 | recur_type | Recurrence type; when archived, clone auto-created with advanced due_date |
 | reader / querent | Tarot terminology: reader = AI; querent = human |
@@ -149,7 +149,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `nightfall` · `mtg` · `ta
 | Route | What |
 |-------|------|
 | `/rd` | Core kanban from `rd.json` |
-| `/prophecies` | 6-day planning kanban — assign `scheduled_day` to cards. 3 columns: today \| tomorrow+day-after \| next-3-days (small cards) |
+| `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
@@ -177,7 +177,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `nightfall` · `mtg` · `ta
 | GET | `/api/gcal/auth` | Initiate Google Calendar OAuth |
 | GET | `/api/gcal/callback` | Receive OAuth code, save token (public; constant-time state check) |
 | POST | `/api/gcal/import_cards` | One-time import of GCal events as rd.json cards |
-| GET | `/api/prophecies` | 6-day week data starting from `?start=YYYY-MM-DD` (defaults to logical-today): scheduled cards + unscheduled hq cards |
+| GET | `/api/prophecies` | 7-day week data starting from `?start=YYYY-MM-DD` (defaults to logical-today): scheduled cards + unscheduled hq cards |
 | PATCH | `/api/prophecies` | Bulk update `scheduled_day` and/or `order` on cards; logs `rescheduled` entries with `source=prof`. Cards unscheduled (null) drop back to `column=rd`. |
 | GET | `/api/prophecies/log` | Activity log filtered by source=prof |
 | POST | `/api/parse_date` | Parse natural language date → ISO via LLM |
@@ -205,7 +205,7 @@ Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 | `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` → `scheduler.schedule_to_day()` (rd→hq on due day if in window, overdue clamped to today; `dir_start_min` for today). |
 | `exile_card` | Move card to exile column (drop / won't-do). Clears `scheduled_day`. |
 | `update_card` | Edit title/category/size/estimated_time/notes/is_reminder. Auto-recomputes size if `estimated_time` crosses a band. |
-| `schedule_card` | Set or clear `scheduled_day` via `scheduler.schedule_to_day()`. Beyond 6-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day` (overdue target clamped to today). Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
+| `schedule_card` | Set or clear `scheduled_day` via `scheduler.schedule_to_day()`. Beyond 7-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day` (overdue target clamped to today). Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
 | `update_context` | add/remove/replace a fact in `profile.json`. |
 | `decompose_task` | Build/rebuild the card's internal dependency graph (`card["nudge"]["graph"]`) and pick the first chunk. Optional `feedback` rebuilds from the existing breakdown. Not for reminders/events/books. |
 | `advance_chunk` | Mark the current step done, surface the next open node; all done → `stage=resolved` (never archives — Wai archives). |

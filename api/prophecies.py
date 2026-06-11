@@ -21,9 +21,9 @@ def _today_iso() -> str:
 
 
 def get_week_data(start_iso: str | None = None) -> dict:
-    """Return cards scheduled for 6 days starting from start_iso (default logical today)."""
+    """Return cards scheduled for 7 days starting from start_iso (default logical today)."""
     start = date.fromisoformat(start_iso) if start_iso else _logical_today()
-    week_days = [(start + timedelta(days=i)).isoformat() for i in range(6)]
+    week_days = [(start + timedelta(days=i)).isoformat() for i in range(7)]
 
     rd = _load_rd()
     cards = rd.get("cards", [])

@@ -190,7 +190,7 @@ def _purge_stale_notes(profile_path) -> None:
 
 def _roll_and_schedule(cards: list, today_iso: str) -> set:
     """Roll past-dated scheduled_day forward; auto-schedule rd cards due
-    within the 6-day window (rd->hq) on their due day. Returns ids needing
+    within the 7-day window (rd->hq) on their due day. Returns ids needing
     a today restack."""
     from scheduler import schedule_to_day
     restack: set[str] = set()
