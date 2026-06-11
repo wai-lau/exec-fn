@@ -2,12 +2,13 @@
 <style>
 body { overflow: hidden !important; }
 .rd-reminders {
-  display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 19;
+  display: none; position: fixed; top: 0; left: 0; width: 50%; z-index: 19;
   height: auto; max-height: 90px;
   flex-direction: column; align-items: stretch;
   padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto;
   scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: touch;
   background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(0,255,65,0.08);
+  border-right: 1px solid rgba(0,255,65,0.18);
   font-family: 'BitLight', monospace; font-size: 0.63rem;
 }
 .rd-reminders::-webkit-scrollbar { display: none; }
@@ -26,10 +27,10 @@ body { overflow: hidden !important; }
 .rem-ov-row:hover { background: rgba(0,255,65,0.05); }
 .has-reminders .rd-reminders { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 48px; border-bottom-color: rgba(0,255,65,0.22); }
-/* books bar — same look as the reminders bar (green), stacked below it.
-   keeps a row layout: 20-char title + progress bar filling the rest */
+/* books bar — same look as the reminders bar (green), right half of the
+   top area. row layout: fixed-width title + progress bar filling the rest */
 .pr-books {
-  display: none; position: fixed; top: var(--rem-bar-h, 0px); left: 0; right: 0; z-index: 18;
+  display: none; position: fixed; top: 0; left: 50%; right: 0; z-index: 18;
   height: auto; max-height: 90px;
   flex-direction: column; align-items: stretch;
   padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto;
@@ -56,7 +57,7 @@ body { overflow: hidden !important; }
 .book-ov-row:hover { background: rgba(0,255,65,0.05); }
 .has-books .pr-books { display: flex; }
 .rd-board {
-  position: fixed; top: calc(var(--rem-bar-h, 0px) + var(--books-bar-h, 0px)); bottom: 0; left: 0; right: 0;
+  position: fixed; top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px)); bottom: 0; left: 0; right: 0;
   display: flex; gap: 1px; overflow: hidden;
   background: rgb(24,30,28);
 }
