@@ -475,9 +475,9 @@ function buildSchedule(cards) {
   ].forEach(({label, start, end}) => {
     const el = document.createElement('div');
     el.style.cssText = `position:absolute;left:3px;right:3px;top:${(start-TL_START)*TL_PX + 3}px;height:${(end-start)*TL_PX - 6}px;z-index:1;`
-      + `backdrop-filter:blur(3px);background:hsl(185,50%,54%,0.3);border:1px solid hsl(185,50%,45%,0.5);border-radius:4px;`
+      + `background:hsl(185,50%,54%,0.06);border:1px solid hsl(185,50%,45%,0.1);border-radius:4px;`
       + `display:flex;align-items:center;justify-content:center;box-sizing:border-box;pointer-events:none;`;
-    el.innerHTML = `<span style="font-family:'Iosevka Mayukai Monolite',monospace;font-weight:700;font-size:0.72rem;color:rgba(255,255,255,0.8)">[ ${label} ]</span>`;
+    el.innerHTML = `<span style="font-family:'Iosevka Mayukai Monolite',monospace;font-weight:700;font-size:0.72rem;color:rgba(255,255,255,0.16)">[ ${label} ]</span>`;
     track.appendChild(el);
   });
 
