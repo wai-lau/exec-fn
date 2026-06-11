@@ -1,15 +1,15 @@
 
 <style>
 body { overflow-y: auto !important; }
-.clr-wrap { width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: var(--green); }
+.clr-wrap { width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl)); }
 .clr-note {
-  font-size: 0.66rem; color: rgba(var(--green-rgb),0.4);
+  font-size: 0.66rem; color: hsl(var(--green-hsl) / 0.4);
   margin-bottom: 28px; line-height: 1.5;
 }
-.clr-note code { background: rgba(var(--green-rgb),0.08); padding: 1px 4px; border-radius: 2px; }
+.clr-note code { background: hsl(var(--green-hsl) / 0.08); padding: 1px 4px; border-radius: 2px; }
 .clr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .clr-card {
-  border: 1px solid rgba(var(--green-rgb),0.12); border-radius: 4px;
+  border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: 4px;
   overflow: hidden; background: rgba(0,0,0,0.25);
 }
 .clr-swatch { height: 54px; display: flex; position: relative; }
@@ -27,31 +27,32 @@ body { overflow-y: auto !important; }
     #fff;
 }
 .clr-swatch span { flex: 1; position: relative; }
-.clr-info { padding: 8px 10px 9px; border-top: 1px solid rgba(var(--green-rgb),0.1); }
+.clr-info { padding: 8px 10px 9px; border-top: 1px solid hsl(var(--green-hsl) / 0.1); }
 .clr-name-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 2px; }
-.clr-name { font-size: 0.64rem; color: rgba(var(--green-rgb),0.92); word-break: break-all; }
-.clr-count { font-size: 0.56rem; color: rgba(var(--green-rgb),0.55); flex-shrink: 0; }
+.clr-name { font-size: 0.64rem; color: hsl(var(--green-hsl) / 0.92); word-break: break-all; }
+.clr-count { font-size: 0.56rem; color: hsl(var(--green-hsl) / 0.55); flex-shrink: 0; }
 .clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; }
 .clr-use { font-size: 0.6rem; opacity: 0.45; line-height: 1.45; }
-.clr-empty { font-size: 0.75rem; color: rgba(var(--green-rgb),0.5); padding: 8px 0; }
+.clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.5); padding: 8px 0; }
 </style>
 
 <div class="clr-wrap">
   <div class="clr-note">
-    palette moodboard — read-only, parsed live from <code>chrome.css :root</code>,
-    plus the category card colors computed by <code>card-style.js</code>
+    palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.
+    every color is a hue-based <code>-hsl</code> channel token; category card
+    colors are <code>--card-*</code> tokens computed once from per-category hue
+    knobs (<code>--cat-*-h</code>) and shown grouped
     (segments: chore / task / project / titan fills).
-    edit the tokens there; this page just watches.
-    <code>-rgb</code> triplets show their alpha ramp (0.1 / 0.3 / 0.6 / 1.0).
+    <code>-hsl</code> tokens show their alpha ramp (0.1 / 0.3 / 0.6 / 1.0).
     ×N = <code>var(--token)</code> references across templates + web assets.
-    hidden: unused tokens, and solid twins of <code>-rgb</code> tokens.
+    hidden: unused tokens.
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
 
-<script src="/card-style.js?v=2"></script>
+<script src="/card-style.js?v=3"></script>
 <script>
-/* global cardStyle, CAT_HUE, CAT_SAT, CAT_LIGHT */
+/* global cardStyle, CARD_CATS */
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -60,7 +61,7 @@ function esc(s) {
 // effects the token's real consumer applies — reproduced on the swatch so
 // the striped bar shows them (nav backdrop runs blur(14px) under .exec-nav)
 const TOKEN_FX = {
-  'surface-nav': 'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);',
+  'scrim-hsl': 'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);',
 };
 
 function swatchHtml(t) {
@@ -70,29 +71,31 @@ function swatchHtml(t) {
   if (t.segs) {
     return `<div class="${cls}">${t.segs.map(s => `<span style="${s}"></span>`).join('')}</div>`;
   }
-  if (name.endsWith('-rgb')) {
+  if (name.endsWith('-hsl')) {
     const ramp = [0.1, 0.3, 0.6, 1.0]
-      .map(a => `<span style="background:rgba(${esc(value)},${a});${fx}"></span>`).join('');
+      .map(a => `<span style="background:hsl(${esc(value)} / ${a});${fx}"></span>`).join('');
     return `<div class="${cls}">${ramp}</div>`;
   }
   return `<div class="${cls}"><span style="background:${esc(value)};${fx}"></span></div>`;
 }
 
-// Category card colors — computed by card-style.js, not chrome.css tokens.
-// One entry per category; segments are the chore/task/project/titan fills.
-function categoryTokens() {
+// Category card colors — the --card-* tokens, grouped one entry per
+// category; segments are the chore/task/project/titan fills.
+function categoryTokens(tokenMap) {
   if (typeof cardStyle !== 'function') return [];
-  return Object.keys(CAT_HUE).map(cat => {
+  return CARD_CATS.map(cat => {
     const segs = ['chore', 'task', 'project', 'titan']
       .map(sz => cardStyle({ category: cat, size: sz }).bg);
-    const h = CAT_HUE[cat], s = 75 + (CAT_SAT[cat] || 0), l = 68 + (CAT_LIGHT[cat] || 0);
+    const key = cat.toLowerCase();
+    const h = tokenMap[`cat-${key}-h`], ds = tokenMap[`cat-${key}-ds`];
     return {
       name: `${cat} cards`,
       cssVar: false,
-      value: `hsl(${h}, ${s}%, ${l}%)`,
-      use: 'kanban card fills by size — computed in card-style.js',
+      value: `hue ${h}, sat bias ${ds}`,
+      use: 'kanban card fills by size — --card-* tokens from the hue knob',
       segs,
       count: null,
+      hue: parseFloat(h),
     };
   });
 }
@@ -108,63 +111,23 @@ function parsePalette(css) {
   return tokens;
 }
 
-function toRgb(name, value) {
-  if (name.endsWith('-rgb')) {
-    const [r, g, b] = value.split(',').map(Number);
-    return { r, g, b };
-  }
-  let m = value.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/);
-  if (m) return { r: +m[1], g: +m[2], b: +m[3] };
-  m = value.match(/#([0-9a-f]{6})\b/i);
-  if (m) {
-    const v = parseInt(m[1], 16);
-    return { r: v >> 16, g: (v >> 8) & 255, b: v & 255 };
-  }
-  m = value.match(/hsla?\(\s*([\d.]+)(?:deg)?\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/i);
-  if (m) {
-    const h = +m[1], s = +m[2] / 100, l = +m[3] / 100;
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m0 = l - c / 2;
-    let rgb;
-    if (h < 60) rgb = [c, x, 0];
-    else if (h < 120) rgb = [x, c, 0];
-    else if (h < 180) rgb = [0, c, x];
-    else if (h < 240) rgb = [0, x, c];
-    else if (h < 300) rgb = [x, 0, c];
-    else rgb = [c, 0, x];
-    return { r: (rgb[0] + m0) * 255, g: (rgb[1] + m0) * 255, b: (rgb[2] + m0) * 255 };
-  }
-  return null;
-}
-
-// sort key: hue ascending from red (255,0,0 = hue 0); near-gray tokens
-// (tiny chroma) have no meaningful hue — they trail, light to dark
+// sort key: hue ascending from red (hue 0); near-gray tokens (saturation
+// under 15%) have no meaningful hue — they trail, light to dark
 function hueKey(t) {
-  const c = toRgb(t.name, t.value);
-  if (!c) return [2, 0];
-  const max = Math.max(c.r, c.g, c.b), min = Math.min(c.r, c.g, c.b), d = max - min;
-  if (d < 25) return [1, 255 - max];
-  let h;
-  if (max === c.r) h = ((c.g - c.b) / d) % 6;
-  else if (max === c.g) h = (c.b - c.r) / d + 2;
-  else h = (c.r - c.g) / d + 4;
-  h *= 60;
-  if (h < 0) h += 360;
+  if (t.hue != null) return [0, t.hue];
+  const m = t.value.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);
+  if (!m) return [2, 0];
+  const h = +m[1], s = +m[2], l = +m[3];
+  if (s < 15) return [1, 100 - l];
   return [0, h];
 }
 
-// Hide solid twins of -rgb tokens (their counts fold into the -rgb card)
-// and anything with zero combined usage.
+// Hide the category machinery (--cat-* knobs, --card-* variants — shown
+// grouped via categoryTokens) and anything with zero usage.
 function visibleTokens(tokens, usage) {
-  const names = new Set(tokens.map(t => t.name));
   return tokens
-    .filter(t => !names.has(t.name + '-rgb'))
-    .map(t => {
-      const twin = t.name.endsWith('-rgb') ? t.name.slice(0, -4) : null;
-      const twinCount = twin && names.has(twin) ? (usage[twin] || 0) : 0;
-      return { ...t, count: (usage[t.name] || 0) + twinCount };
-    })
+    .filter(t => !t.name.startsWith('cat-') && !t.name.startsWith('card-'))
+    .map(t => ({ ...t, count: usage[t.name] || 0 }))
     .filter(t => t.count > 0);
 }
 
@@ -195,7 +158,9 @@ async function loadColors() {
     ]);
     const css = await cssRes.text();
     const usage = usageRes.ok ? await usageRes.json() : {};
-    const tokens = [...visibleTokens(parsePalette(css), usage), ...categoryTokens()]
+    const parsed = parsePalette(css);
+    const tokenMap = Object.fromEntries(parsed.map(t => [t.name, t.value]));
+    const tokens = [...visibleTokens(parsed, usage), ...categoryTokens(tokenMap)]
       .sort((a, b) => {
         const ka = hueKey(a), kb = hueKey(b);
         return ka[0] - kb[0] || ka[1] - kb[1];
