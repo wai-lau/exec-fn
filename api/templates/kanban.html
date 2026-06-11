@@ -26,12 +26,38 @@ body { overflow: hidden !important; }
 .rem-ov-row:hover { background: rgba(0,255,65,0.05); }
 .has-reminders .rd-reminders { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 48px; border-bottom-color: rgba(0,255,65,0.22); }
+/* books bar — reading-progress chips, stacked below the reminders bar */
+.pr-books {
+  display: none; position: fixed; top: var(--rem-bar-h, 0px); left: 0; right: 0; z-index: 18;
+  height: auto; max-height: 90px;
+  flex-direction: column; align-items: stretch;
+  padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto;
+  scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+  background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(210,160,80,0.1);
+  font-family: 'BitLight', monospace; font-size: 0.63rem;
+}
+.pr-books::-webkit-scrollbar { display: none; }
+.pr-books .book-item { cursor: pointer; flex-shrink: 0; overflow: hidden; opacity: 0.8; padding: 6px 14px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.pr-books .book-item:hover { opacity: 1; }
+.pr-books .book-item-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr-books .book-item-bar { width: 56px; flex-shrink: 0; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
+.pr-books .book-item-fill { height: 100%; border-radius: 2px; background: rgba(130,170,230,0.6); transition: width 0.3s; }
+.book-overflow-btn { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.8); border: 1px solid rgba(130,170,230,0.4); color: rgba(130,170,230,0.8); font-family: 'BitLight', monospace; font-size: 0.55rem; padding: 2px 6px; border-radius: 2px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
+.book-overflow-btn:hover { border-color: rgba(130,170,230,0.8); color: rgba(160,200,255,1); }
+.book-ov-modal { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; }
+.book-ov-box { background: #0a0a0a; border: 1px solid rgba(130,170,230,0.25); padding: 20px 24px; width: min(360px,88vw); max-height: 70vh; display: flex; flex-direction: column; font-family: 'BitLight', monospace; }
+.book-ov-hdr { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(130,170,230,0.5); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.book-ov-close { background: none; border: none; color: rgba(130,170,230,0.5); font-size: 1rem; cursor: pointer; padding: 0; line-height: 1; }
+.book-ov-close:hover { color: rgba(160,200,255,1); }
+.book-ov-list { overflow-y: auto; flex: 1; }
+.book-ov-row { padding: 7px 4px; font-size: 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(130,170,230,0.07); color: hsl(210,75%,72%); }
+.book-ov-row:hover { background: rgba(130,170,230,0.05); }
+.has-books .pr-books { display: flex; }
 .rd-board {
-  position: fixed; top: 0; bottom: 0; left: 0; right: 0;
+  position: fixed; top: calc(var(--rem-bar-h, 0px) + var(--books-bar-h, 0px)); bottom: 0; left: 0; right: 0;
   display: flex; gap: 1px; overflow: hidden;
   background: rgb(24,30,28);
 }
-.has-reminders .rd-board { top: var(--rem-bar-h, 48px); }
 .col-group { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; }
 .col { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: rgb(24,30,28); }
 .col.col-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
@@ -89,6 +115,17 @@ body { overflow: hidden !important; }
       <button class="rem-ov-close" onclick="document.getElementById('rem-overflow-modal').style.display='none'">&times;</button>
     </div>
     <div class="rem-ov-list" id="rem-overflow-list"></div>
+  </div>
+</div>
+
+<div class="pr-books" id="books-bar"></div>
+<div class="book-ov-modal" id="book-overflow-modal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="book-ov-box">
+    <div class="book-ov-hdr">
+      <span>all books</span>
+      <button class="book-ov-close" onclick="document.getElementById('book-overflow-modal').style.display='none'">&times;</button>
+    </div>
+    <div class="book-ov-list" id="book-overflow-list"></div>
   </div>
 </div>
 
@@ -292,8 +329,62 @@ function showRemOverflow() {
   });
 }
 
+function _syncBooksH() {
+  const bar = document.getElementById('books-bar');
+  if (bar) document.documentElement.style.setProperty('--books-bar-h', bar.offsetHeight + 'px');
+}
+
+function buildBooks() {
+  const all = cards.filter(c => c.size === 'book' && c.column !== 'archives' && c.column !== 'exile');
+  const bar = document.getElementById('books-bar');
+  if (!all.length) { document.body.classList.remove('has-books'); bar.innerHTML = ''; _syncBooksH(); return; }
+  document.body.classList.add('has-books');
+  const MAX_VISIBLE = 8;
+  const visible = all.slice(0, MAX_VISIBLE);
+  const overflow = all.slice(MAX_VISIBLE);
+  bar.innerHTML = visible.map(c => {
+    const pct = (c.current_page && c.total_pages && c.total_pages > 0)
+      ? Math.min(100, Math.round(c.current_page / c.total_pages * 100)) : 0;
+    const bar_html = `<div class="book-item-bar"><div class="book-item-fill" style="width:${pct}%"></div></div>`;
+    return `<div class="book-item" data-id="${c.id}" style="color:hsl(210,75%,72%);background:hsl(210,55%,12%);border:1px solid hsl(210,50%,26%)"><div class="book-item-title">${c.title}</div>${bar_html}</div>`;
+  }).join('');
+  bar.querySelectorAll('.book-item').forEach(el => {
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => load(), 'core'); });
+  });
+  if (overflow.length) {
+    const last = bar.lastElementChild;
+    if (last) {
+      last.style.position = 'relative';
+      last.style.overflow = 'visible';
+      const btn = document.createElement('button');
+      btn.className = 'book-overflow-btn';
+      btn.textContent = `+${overflow.length}`;
+      btn.onclick = (e) => { e.stopPropagation(); showBookOverflow(); };
+      last.appendChild(btn);
+    }
+  }
+  _syncBooksH();
+}
+
+function showBookOverflow() {
+  const modal = document.getElementById('book-overflow-modal');
+  const list = document.getElementById('book-overflow-list');
+  const all = cards.filter(c => c.size === 'book' && c.column !== 'archives' && c.column !== 'exile');
+  list.innerHTML = all.slice(8).map(c =>
+    `<div class="book-ov-row" data-id="${c.id}">${c.title}</div>`
+  ).join('');
+  list.querySelectorAll('.book-ov-row').forEach(el => {
+    el.addEventListener('click', () => {
+      modal.style.display = 'none';
+      openCardDialog(el.dataset.id, () => load(), 'core');
+    });
+  });
+  modal.style.display = 'flex';
+}
+
 function buildBoard() {
   buildReminders();
+  buildBooks();
   // preserve per-column scroll across innerHTML rebuild
   const scrollPos = {};
   COLS.forEach(col => { const el = document.getElementById('col-'+col); if (el) scrollPos[col] = el.scrollTop; });
@@ -366,6 +457,7 @@ async function load() {
 }
 
 window.addEventListener('resize', _syncRemH);
+window.addEventListener('resize', _syncBooksH);
 // exec bubble changed cards -> reload live
 window.addEventListener('exec:cards-changed', () => load());
 
