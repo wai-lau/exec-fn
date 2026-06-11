@@ -39,8 +39,8 @@ body { overflow: hidden !important; }
 .pr-books::-webkit-scrollbar { display: none; }
 .pr-books .book-item { cursor: pointer; flex-shrink: 0; overflow: hidden; opacity: 0.8; padding: 6px 14px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; display: flex; flex-direction: row; align-items: center; gap: 8px; }
 .pr-books .book-item:hover { opacity: 1; }
-.pr-books .book-item-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pr-books .book-item-bar { width: 56px; flex-shrink: 0; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
+.pr-books .book-item-title { flex: 0 0 auto; white-space: pre; overflow: hidden; }
+.pr-books .book-item-bar { flex: 1; min-width: 0; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
 .pr-books .book-item-fill { height: 100%; border-radius: 2px; background: rgba(130,170,230,0.6); transition: width 0.3s; }
 .book-overflow-btn { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.8); border: 1px solid rgba(130,170,230,0.4); color: rgba(130,170,230,0.8); font-family: 'BitLight', monospace; font-size: 0.55rem; padding: 2px 6px; border-radius: 2px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
 .book-overflow-btn:hover { border-color: rgba(130,170,230,0.8); color: rgba(160,200,255,1); }
@@ -292,15 +292,15 @@ function buildReminders() {
     el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
   });
   if (overflow.length) {
-    const last = bar.lastElementChild;
-    if (last) {
-      last.style.position = 'relative';
-      last.style.overflow = 'visible';
+    const first = bar.firstElementChild;
+    if (first) {
+      first.style.position = 'relative';
+      first.style.overflow = 'visible';
       const btn = document.createElement('button');
       btn.className = 'rem-overflow-btn';
       btn.textContent = `+${overflow.length}`;
       btn.onclick = (e) => { e.stopPropagation(); showRemOverflow(); };
-      last.appendChild(btn);
+      first.appendChild(btn);
     }
   }
   _syncRemH();
@@ -334,6 +334,12 @@ function _syncBooksH() {
   if (bar) document.documentElement.style.setProperty('--books-bar-h', bar.offsetHeight + 'px');
 }
 
+function fmtBookTitle(t) {
+  t = t || '';
+  if (t.length > 20) return t.slice(0, 17) + '...';
+  return t.padEnd(20, ' ');
+}
+
 function buildBooks() {
   const all = cards.filter(c => c.size === 'book' && c.column !== 'archives' && c.column !== 'exile');
   const bar = document.getElementById('books-bar');
@@ -346,7 +352,7 @@ function buildBooks() {
     const pct = (c.current_page && c.total_pages && c.total_pages > 0)
       ? Math.min(100, Math.round(c.current_page / c.total_pages * 100)) : 0;
     const bar_html = `<div class="book-item-bar"><div class="book-item-fill" style="width:${pct}%"></div></div>`;
-    return `<div class="book-item" data-id="${c.id}" style="color:hsl(210,75%,72%);background:hsl(210,55%,12%);border:1px solid hsl(210,50%,26%)"><div class="book-item-title">${c.title}</div>${bar_html}</div>`;
+    return `<div class="book-item" data-id="${c.id}" style="color:hsl(210,75%,72%);background:hsl(210,55%,12%);border:1px solid hsl(210,50%,26%)"><div class="book-item-title">${fmtBookTitle(c.title)}</div>${bar_html}</div>`;
   }).join('');
   bar.querySelectorAll('.book-item').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => load(), 'core'); });
