@@ -131,6 +131,8 @@
       #exec-term .msg.assistant p:last-child { margin-bottom: 0; }
       #exec-term .msg.assistant strong { color: rgba(var(--green-rgb),1); }
       #exec-term .msg.assistant em { color: rgba(var(--green-rgb),0.75); font-style: italic; }
+      #exec-term .msg.assistant a { color: rgba(var(--teal-link-rgb),0.85); text-decoration: underline; }
+      #exec-term .msg.assistant a:hover { color: rgb(var(--teal-link-rgb)); }
       #exec-term .msg.assistant code { background: rgba(var(--green-rgb),0.08); padding: 1px 3px; border-radius: 2px; font-size: 0.91em; }
       #exec-term .msg.assistant pre { background: rgba(var(--green-rgb),0.05); border: 1px solid rgba(var(--green-rgb),0.12); padding: 6px 10px; border-radius: 3px; overflow-x: auto; margin: 5px 0; }
       #exec-term .msg.assistant pre code { background: none; padding: 0; }
