@@ -7,13 +7,6 @@ body { overflow-y: auto !important; }
   margin-bottom: 28px; line-height: 1.5;
 }
 .clr-note code { background: rgba(var(--green-rgb),0.08); padding: 1px 4px; border-radius: 2px; }
-.clr-section { margin-bottom: 30px; }
-.clr-hdr {
-  font-family: '04b25', monospace; font-size: 0.6rem; text-transform: uppercase;
-  letter-spacing: 0.18em; color: rgba(var(--green-rgb),0.5);
-  border-bottom: 1px solid rgba(var(--green-rgb),0.12);
-  padding-bottom: 6px; margin-bottom: 10px;
-}
 .clr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .clr-card {
   border: 1px solid rgba(var(--green-rgb),0.12); border-radius: 4px;
@@ -66,20 +59,58 @@ function swatchHtml(name, value) {
 function parsePalette(css) {
   const root = css.match(/:root\s*\{([^}]*)\}/);
   if (!root) return [];
-  const sections = [];
-  let current = { title: 'palette', tokens: [] };
+  const tokens = [];
   for (const line of root[1].split('\n')) {
-    const hdr = line.match(/^\s*\/\*\s*──\s*(.+?)\s*─+\s*\*\/\s*$/);
-    if (hdr) {
-      if (current.tokens.length) sections.push(current);
-      current = { title: hdr[1], tokens: [] };
-      continue;
-    }
     const tok = line.match(/^\s*--([\w-]+):\s*([^;]+);\s*(?:\/\*\s*(.*?)\s*\*\/)?/);
-    if (tok) current.tokens.push({ name: tok[1], value: tok[2].trim(), use: tok[3] || '' });
+    if (tok) tokens.push({ name: tok[1], value: tok[2].trim(), use: tok[3] || '' });
   }
-  if (current.tokens.length) sections.push(current);
-  return sections;
+  return tokens;
+}
+
+function toRgb(name, value) {
+  if (name.endsWith('-rgb')) {
+    const [r, g, b] = value.split(',').map(Number);
+    return { r, g, b };
+  }
+  let m = value.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/);
+  if (m) return { r: +m[1], g: +m[2], b: +m[3] };
+  m = value.match(/#([0-9a-f]{6})\b/i);
+  if (m) {
+    const v = parseInt(m[1], 16);
+    return { r: v >> 16, g: (v >> 8) & 255, b: v & 255 };
+  }
+  m = value.match(/hsla?\(\s*([\d.]+)(?:deg)?\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/i);
+  if (m) {
+    const h = +m[1], s = +m[2] / 100, l = +m[3] / 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m0 = l - c / 2;
+    let rgb;
+    if (h < 60) rgb = [c, x, 0];
+    else if (h < 120) rgb = [x, c, 0];
+    else if (h < 180) rgb = [0, c, x];
+    else if (h < 240) rgb = [0, x, c];
+    else if (h < 300) rgb = [x, 0, c];
+    else rgb = [c, 0, x];
+    return { r: (rgb[0] + m0) * 255, g: (rgb[1] + m0) * 255, b: (rgb[2] + m0) * 255 };
+  }
+  return null;
+}
+
+// sort key: hue ascending from red (255,0,0 = hue 0); near-gray tokens
+// (tiny chroma) have no meaningful hue — they trail, light to dark
+function hueKey(t) {
+  const c = toRgb(t.name, t.value);
+  if (!c) return [2, 0];
+  const max = Math.max(c.r, c.g, c.b), min = Math.min(c.r, c.g, c.b), d = max - min;
+  if (d < 25) return [1, 255 - max];
+  let h;
+  if (max === c.r) h = ((c.g - c.b) / d) % 6;
+  else if (max === c.g) h = (c.b - c.r) / d + 2;
+  else h = (c.r - c.g) / d + 4;
+  h *= 60;
+  if (h < 0) h += 360;
+  return [0, h];
 }
 
 // Hide solid twins of -rgb tokens (their counts fold into the -rgb card)
@@ -119,16 +150,13 @@ async function loadColors() {
     ]);
     const css = await cssRes.text();
     const usage = usageRes.ok ? await usageRes.json() : {};
-    const sections = parsePalette(css);
-    if (!sections.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    board.innerHTML = sections.map(sec => {
-      const tokens = visibleTokens(sec.tokens, usage);
-      if (!tokens.length) return '';
-      return `<div class="clr-section">
-        <div class="clr-hdr">${esc(sec.title)}</div>
-        <div class="clr-grid">${tokens.map(cardHtml).join('')}</div>
-      </div>`;
-    }).join('');
+    const tokens = visibleTokens(parsePalette(css), usage)
+      .sort((a, b) => {
+        const ka = hueKey(a), kb = hueKey(b);
+        return ka[0] - kb[0] || ka[1] - kb[1];
+      });
+    if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
+    board.innerHTML = `<div class="clr-grid">${tokens.map(cardHtml).join('')}</div>`;
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
   }
