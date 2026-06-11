@@ -49,10 +49,14 @@ exec-fn/
   nightfall-incident/     # separate repo (wai-lau/nightfall), volume-mounted
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
     card-dialog.js        # shared card edit dialog used by kanban/prophecies/directives
+    chrome.css            # shared chrome + THE PALETTE: every color is a :root token (--green-rgb etc.); page CSS consumes rgba(var(--X-rgb), α) — no hard-coded palette literals outside this file (page-unique accents may declare local :root vars, e.g. tarot --ember-*)
+    chat.css              # terminal chat base (mtg, tarot)
+    chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
+    landing.css           # public landing page styles (linked from _landing_html)
     boss-green.png        # green-recolored Boss.png — Exec nav icon
-    # nav icons (27x27 program art): laser-satellite(core) fiddle(profs)
-    #   bug(debug) hack2(night) wizard(mtg) watchman(tarot)
-    #   (turbo.png = old dirs icon, now unused)
+    # nav icons (27x27 program art): laser-satellite(core) turbo(profs)
+    #   bug(debug) sentinel(graph) bitman(color) hack2(night) wizard(mtg)
+    #   watchman(tarot)   (fiddle.png = old profs icon, now unused)
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
     main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
@@ -97,6 +101,8 @@ exec-fn/
       kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
       prophecies.html     # /prophecies — 7-day planning, 3 columns: today (TIMELINE: grid + dir_start_min blocks, drag/resize+drag-out-to-day/unschedule, now-line, past-hider, autoscroll) | next 3 days | last 3 days (small cards). Full week on screen. Books bar moved to core.
       debug.html          # /debug — profile.json + activity logs viewer
+      color.html          # /color — read-only palette moodboard; parses chrome.css :root tokens live
+      guest_login.html    # /guest login form fragment ({next} placeholder filled by main.py)
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
     data/                 # persistent volume (./api/data → /app/data)
@@ -143,7 +149,7 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `core` · `prophecies` · `debug` · `graph` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto the planning pages (`core`/`prophecies`) by `_build_nav()`; no `/exec` route. Appending `?exec=open` to a planning page URL opens the bubble expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
+Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto the planning pages (`core`/`prophecies`) by `_build_nav()`; no `/exec` route. Appending `?exec=open` to a planning page URL opens the bubble expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
 
 ### Pages
 
@@ -152,6 +158,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `nightfall` · `mtg` · `ta
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
+| `/color` | Read-only palette moodboard — renders chrome.css `:root` tokens (sections, swatches, alpha ramps). Edit colors in chrome.css; this page just watches |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |

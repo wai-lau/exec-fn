@@ -1,0 +1,99 @@
+
+<style>
+body { overflow-y: auto !important; }
+.clr-wrap { width: min(860px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: var(--green); }
+.clr-note {
+  font-size: 0.66rem; color: rgba(var(--green-rgb),0.4);
+  margin-bottom: 28px; line-height: 1.5;
+}
+.clr-note code { background: rgba(var(--green-rgb),0.08); padding: 1px 4px; border-radius: 2px; }
+.clr-section { margin-bottom: 34px; }
+.clr-hdr {
+  font-family: '04b25', monospace; font-size: 0.6rem; text-transform: uppercase;
+  letter-spacing: 0.18em; color: rgba(var(--green-rgb),0.5);
+  border-bottom: 1px solid rgba(var(--green-rgb),0.12);
+  padding-bottom: 6px; margin-bottom: 10px;
+}
+.clr-row {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  padding: 8px 0; border-bottom: 1px solid rgba(var(--green-rgb),0.06);
+}
+.clr-swatch {
+  width: 92px; height: 26px; border-radius: 3px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.14); overflow: hidden;
+  display: flex;
+}
+.clr-swatch span { flex: 1; }
+.clr-name { flex: 0 0 180px; font-size: 0.72rem; color: rgba(var(--green-rgb),0.92); }
+.clr-val { flex: 0 0 190px; font-size: 0.6rem; opacity: 0.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clr-use { flex: 1; min-width: 160px; font-size: 0.66rem; opacity: 0.45; line-height: 1.4; }
+.clr-empty { font-size: 0.75rem; color: rgba(var(--green-rgb),0.5); padding: 8px 0; }
+</style>
+
+<div class="clr-wrap">
+  <div class="clr-note">
+    palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.
+    edit the tokens there; this page just watches.
+    <code>-rgb</code> triplets show their alpha ramp (0.1 / 0.3 / 0.6 / 1.0).
+  </div>
+  <div id="clr-board"><span class="clr-empty">loading...</span></div>
+</div>
+
+<script>
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function swatchHtml(name, value) {
+  if (name.endsWith('-rgb')) {
+    const ramp = [0.1, 0.3, 0.6, 1.0]
+      .map(a => `<span style="background:rgba(${esc(value)},${a})"></span>`).join('');
+    return `<div class="clr-swatch">${ramp}</div>`;
+  }
+  return `<div class="clr-swatch"><span style="background:${esc(value)}"></span></div>`;
+}
+
+function parsePalette(css) {
+  const root = css.match(/:root\s*\{([^}]*)\}/);
+  if (!root) return [];
+  const sections = [];
+  let current = { title: 'palette', tokens: [] };
+  for (const line of root[1].split('\n')) {
+    const hdr = line.match(/^\s*\/\*\s*──\s*(.+?)\s*─+\s*\*\/\s*$/);
+    if (hdr) {
+      if (current.tokens.length) sections.push(current);
+      current = { title: hdr[1], tokens: [] };
+      continue;
+    }
+    const tok = line.match(/^\s*--([\w-]+):\s*([^;]+);\s*(?:\/\*\s*(.*?)\s*\*\/)?/);
+    if (tok) current.tokens.push({ name: tok[1], value: tok[2].trim(), use: tok[3] || '' });
+  }
+  if (current.tokens.length) sections.push(current);
+  return sections;
+}
+
+async function loadColors() {
+  const board = document.getElementById('clr-board');
+  try {
+    const css = await (await fetch('/chrome.css')).text();
+    const sections = parsePalette(css);
+    if (!sections.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
+    board.innerHTML = sections.map(sec => `
+      <div class="clr-section">
+        <div class="clr-hdr">${esc(sec.title)}</div>
+        ${sec.tokens.map(t => `
+          <div class="clr-row">
+            ${swatchHtml(t.name, t.value)}
+            <div class="clr-name">--${esc(t.name)}</div>
+            <div class="clr-val">${esc(t.value)}</div>
+            <div class="clr-use">${esc(t.use)}</div>
+          </div>`).join('')}
+      </div>`).join('');
+  } catch (e) {
+    board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
+  }
+}
+
+loadColors();
+</script>

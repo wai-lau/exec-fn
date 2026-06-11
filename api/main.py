@@ -396,8 +396,8 @@ _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
 _CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=5">'
 
-_NAV_LINKS = ["core", "prophecies", "debug", "graph", "nightfall", "mtg", "tarot"]
-_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
+_NAV_LINKS = ["core", "prophecies", "debug", "graph", "color", "nightfall", "mtg", "tarot"]
+_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
 
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
@@ -405,9 +405,10 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot"]
 
 _NAV_ICONS = {
     "core":        '<img src="/laser-satellite.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "prophecies":  '<img src="/fiddle.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "prophecies":  '<img src="/turbo.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
     "graph":       '<img src="/sentinel.png" alt="graph" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "color":       '<img src="/bitman.png" alt="color" style="width:20px;height:20px;image-rendering:pixelated;">',
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
     "mtg":         '<img src="/wizard.png?v=2" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -415,7 +416,8 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "core": "core", "prophecies": "dirs",
-    "debug": "debug", "graph": "graph", "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
+    "debug": "debug", "graph": "graph", "color": "color",
+    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
 }
 
 def _build_nav(active=None, guest=False):
@@ -683,6 +685,12 @@ async def prophecies_page():
 @protected.get("/debug", response_class=HTMLResponse)
 async def debug_page():
     return _render_page("debug", _tmpl("debug.html"))
+
+
+@protected.get("/color", response_class=HTMLResponse)
+async def color_page():
+    """Read-only palette moodboard — renders chrome.css :root tokens."""
+    return _render_page("color", _tmpl("color.html"))
 
 
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
