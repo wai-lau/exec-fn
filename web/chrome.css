@@ -36,8 +36,6 @@
   --green:               rgb(0, 255, 65);
   --green-monitor-rgb:   160, 255, 120;             /* monitor/system message text in chat */
   --teal-link-rgb:       0, 255, 120;               /* assistant link color, all chats (absorbs 0,255,180) */
-  --teal-meal:           hsl(185deg, 50%, 54%, 0.06); /* prophecies lunch/dinner block fill */
-  --teal-meal-border:    hsl(185deg, 50%, 45%, 0.1);  /* prophecies meal block border */
   --cyan-rgb:            0, 220, 255;               /* seek type badge, exec source, plan view */
   --cyan:                rgb(0, 220, 255);           /* also covers rgba(80,200,255) probe text */
   --blue-rgb:            130, 170, 230;             /* books bar, prophecies accents (absorbs book-text hsl + bright 160,200,255) */
