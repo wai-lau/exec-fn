@@ -484,48 +484,6 @@ def _index_pages() -> tuple[str, str]:
     _index_cache = (mtime, no_form, bare)
     return no_form, bare
 
-_GUEST_LOGIN_HTML = """
-<style>
-body { display:flex; align-items:center; justify-content:center; height:100vh; }
-.login-box {
-  position:relative; z-index:2;
-  background:transparent;
-  padding:0; display:flex; flex-direction:column; align-items:center;
-}
-.login-box input[name=key] {
-  background:transparent; border:none;
-  border-bottom:1px solid rgba(255,255,255,0.4);
-  color:#fff; font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
-  padding:4px 2px; outline:none; width:160px; text-align:center;
-}
-.login-box input[name=key]:focus { border-bottom-color:#fff; }
-.login-box input[name=key]::placeholder { color:rgba(255,255,255,0.35); }
-.login-box button.submit {
-  margin-top:14px; background:transparent;
-  border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500;
-  font-size:1rem; line-height:1; width:32px; height:32px;
-  border-radius:50%; cursor:pointer; outline:none;
-  display:flex; align-items:center; justify-content:center; padding:0;
-}
-.login-box button.submit:hover, .login-box button.submit:focus {
-  color:#fff; border-color:rgba(255,255,255,0.7);
-}
-</style>
-<div style="display:flex;flex-direction:column;align-items:center;gap:24px">
-  <img src="/ped-logo.png" style="width:160px;opacity:0.9">
-  <form class="login-box" method="post" action="/guest">
-    <input type="hidden" name="next" value="{next}">
-    <input type="text" name="username" value="guest" autocomplete="username"
-      aria-hidden="true" tabindex="-1"
-      style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
-    <input type="text" name="key" autofocus autocomplete="off" placeholder="access-key" enterkeyhint="go">
-    <button type="submit" class="submit" aria-label="submit">▼</button>
-  </form>
-</div>
-"""
-
-
 _FULL_HEIGHT_STYLE = "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
 
 
@@ -623,44 +581,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_STYLE = """<style>
-body{display:flex!important;align-items:center;justify-content:center;
-  min-height:100vh;overflow:hidden;position:relative;}
-
-/* .cyber-bg / .cyber-scan come from chrome.css (top layer, screen blend) */
-
-/* nav column */
-.exec-nav.landing-nav{position:relative;z-index:2;left:auto;right:auto;bottom:auto;
-  width:auto;flex-direction:column;justify-content:center;gap:36px;
-  padding:0;background:none;border:none;backdrop-filter:none;}
-.exec-nav.landing-nav a{flex:0 0 auto;max-width:none;gap:6px;
-  opacity:0;animation: cyber-bootin 0.6s ease forwards;}
-.exec-nav.landing-nav a:nth-child(1){animation-delay:0.15s}
-.exec-nav.landing-nav a:nth-child(2){animation-delay:0.30s}
-.exec-nav.landing-nav a:nth-child(3){animation-delay:0.45s}
-@keyframes cyber-bootin{from{opacity:0;transform:translateY(12px);filter:blur(6px)}
-  to{opacity:1;transform:none;filter:none}}
-
-.exec-nav.landing-nav a img{width:34px!important;height:34px!important;
-  transition:transform 0.2s;}
-.exec-nav.landing-nav a:hover img{transform:scale(1.12);}
-
-.exec-nav.landing-nav .nav-label{color:rgba(var(--green-rgb),0.7);
-  text-shadow:0 0 6px rgba(var(--green-rgb),0.4);}
-.exec-nav.landing-nav a:hover .nav-label{color:var(--green);
-  text-shadow:0 0 10px rgba(var(--green-rgb),0.85);}
-
-/* admin */
-.landing-admin{position:fixed;bottom:18px;right:20px;z-index:2;
-  font-family:'04b25',monospace;font-size:0.5rem;text-transform:uppercase;
-  letter-spacing:0.1em;text-decoration:none;color:rgba(var(--green-rgb),0.4);
-  transition:color 0.2s,text-shadow 0.2s;}
-.landing-admin:hover{color:var(--green);text-shadow:0 0 8px rgba(var(--green-rgb),0.7);}
-
-@media (prefers-reduced-motion: reduce){
-  .cyber-bg,.cyber-scan,.exec-nav.landing-nav a,.exec-nav.landing-nav a img{animation:none!important}
-  .exec-nav.landing-nav a{opacity:1}}
-</style>"""
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=1">'
 
 
 def _landing_html() -> str:
@@ -677,8 +598,7 @@ def _landing_html() -> str:
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
     admin = '<a href="/login" class="landing-admin">admin</a>'
     fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    style = _LANDING_STYLE
-    page = bare.replace("</head>", _CHROME_LINK + style + "</head>", 1)
+    page = bare.replace("</head>", _CHROME_LINK + _LANDING_LINK + "</head>", 1)
     return page.replace("</body>", fx + nav + admin + "</body>", 1)
 
 
@@ -725,7 +645,7 @@ async def guest_login_page(next: str = "/mtg"):
     next_safe = _safe_next(next)
     _, bare = _index_pages()
     page = bare.replace("</head>", _CHROME_LINK + "</head>", 1)
-    body_insert = _GUEST_LOGIN_HTML.replace("{next}", html.escape(next_safe, quote=True)) + _GUEST_AUDIO_HTML
+    body_insert = _tmpl("guest_login.html").replace("{next}", html.escape(next_safe, quote=True)) + _GUEST_AUDIO_HTML
     return page.replace("</body>", body_insert + "</body>", 1)
 
 

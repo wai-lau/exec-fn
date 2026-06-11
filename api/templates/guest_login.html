@@ -1,0 +1,38 @@
+<style>
+body { display:flex; align-items:center; justify-content:center; height:100vh; }
+.login-box {
+  position:relative; z-index:2;
+  background:transparent;
+  padding:0; display:flex; flex-direction:column; align-items:center;
+}
+.login-box input[name=key] {
+  background:transparent; border:none;
+  border-bottom:1px solid rgba(255,255,255,0.4);
+  color:#fff; font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
+  padding:4px 2px; outline:none; width:160px; text-align:center;
+}
+.login-box input[name=key]:focus { border-bottom-color:#fff; }
+.login-box input[name=key]::placeholder { color:rgba(255,255,255,0.35); }
+.login-box button.submit {
+  margin-top:14px; background:transparent;
+  border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500;
+  font-size:1rem; line-height:1; width:32px; height:32px;
+  border-radius:50%; cursor:pointer; outline:none;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.login-box button.submit:hover, .login-box button.submit:focus {
+  color:#fff; border-color:rgba(255,255,255,0.7);
+}
+</style>
+<div style="display:flex;flex-direction:column;align-items:center;gap:24px">
+  <img src="/ped-logo.png" style="width:160px;opacity:0.9">
+  <form class="login-box" method="post" action="/guest">
+    <input type="hidden" name="next" value="{next}">
+    <input type="text" name="username" value="guest" autocomplete="username"
+      aria-hidden="true" tabindex="-1"
+      style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
+    <input type="text" name="key" autofocus autocomplete="off" placeholder="access-key" enterkeyhint="go">
+    <button type="submit" class="submit" aria-label="submit">▼</button>
+  </form>
+</div>
