@@ -29,15 +29,27 @@ body { overflow: hidden !important; }
 .has-books .pr-books { display: flex; }
 .pr-board {
   position: fixed; top: 0; bottom: 0; left: 0; right: 0;
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
-  gap: 1px; overflow: hidden;
+  display: flex; gap: 1px; overflow: hidden;
   background: rgb(24,30,28);
 }
 .has-books .pr-board { top: calc(var(--books-bar-h, 48px) - 1px); }
-.pr-col {
-  display: flex; flex-direction: column;
-  background: rgb(24,30,28); min-width: 0; min-height: 0;
+/* three columns: [today] | [tomorrow, day after] | [next three, smaller] */
+.pr-colgroup {
+  flex: 1; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; gap: 1px;
+  background: rgb(24,30,28);
 }
+.pr-col {
+  flex: 1; display: flex; flex-direction: column;
+  background: rgb(24,30,28); min-width: 0; min-height: 0; overflow: hidden;
+}
+/* third column packs three days — shrink chrome + cards to fit */
+.pr-colgroup.small .pr-col-hdr { padding: 4px 10px 5px; }
+.pr-colgroup.small .pr-col-hdr .pr-day-name { font-size: 0.6rem; }
+.pr-colgroup.small .pr-list { padding: 5px 6px 14px; }
+.pr-colgroup.small .pr-card { padding: 5px 8px; margin-bottom: 4px; }
+.pr-colgroup.small .pr-card-title { font-size: 0.66rem; line-height: 1.2; margin-bottom: 0; }
+.pr-colgroup.small .pr-card-meta { font-size: 0.5rem; margin-top: 2px; }
 .pr-col.weekend { background: rgb(24,30,28); }
 .pr-col.weekend .pr-day-name { color: rgba(100,160,255,0.85); }
 .pr-col-hdr {
@@ -148,8 +160,9 @@ function fmtDay(iso) {
   return d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
 }
 
-function cardHeight(c) {
+function cardHeight(c, small) {
   const mins = c.estimated_time || SIZE_MIN[c.size] || 60;
+  if (small) return Math.max(26, Math.min(80, Math.round(mins * 0.3))) + 'px';
   return Math.max(44, Math.min(220, Math.round(mins * 0.75))) + 'px';
 }
 
@@ -159,11 +172,11 @@ function isOverdue(card, dayIso) {
   return dayIso > card.due_date.slice(0, 10);
 }
 
-function renderCard(c, dayIso) {
+function renderCard(c, dayIso, small) {
   const {bg, border, dark} = cardStyle(c);
   const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(0,255,65,0.88)';
   const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(0,255,65,0.4)';
-  const h = cardHeight(c);
+  const h = cardHeight(c, small);
 
   const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="pr-overdue">!</span>' : '';
   const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
@@ -173,7 +186,7 @@ function renderCard(c, dayIso) {
   const metaHtml = (recur || due) ? `<div class="pr-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
   const hPx = parseInt(h);
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const notesHtml = (c.notes && hPx >= 44) ? `<div class="pr-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
+  const notesHtml = (!small && c.notes && hPx >= 44) ? `<div class="pr-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
   return `<div class="pr-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}${border}height:${h};min-height:${h}">
     ${over}
     <div class="pr-card-title" style="color:${titleC}">${c.title}${reminder}</div>
@@ -182,32 +195,38 @@ function renderCard(c, dayIso) {
   </div>`;
 }
 
+function dayCellHtml(day, today, small) {
+  const cards = weekData.days[day] || [];
+  const isToday = day === today;
+  const dow = new Date(day + 'T12:00:00').getDay();
+  const isWeekend = dow === 0 || dow === 6;
+  const dayLabel = fmtDay(day).split(',')[0];
+  const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
+  return `<div class="pr-col${isWeekend?' weekend':''}" data-day="${day}">
+    <div class="pr-col-hdr${isToday?' today-hdr':''}">
+      <div class="pr-day-name">${dayLabel} <span class="pr-date">${dateLabel}</span></div>
+    </div>
+    <div class="pr-list" id="pr-list-${day}">${cards.map(c=>renderCard(c,day,small)).join('')}</div>
+  </div>`;
+}
+
 function buildBoard() {
   if (!weekData) return;
   const today = isoToday();
-  const days = Object.keys(weekData.days);
 
   // Always include today even when viewing a different week
-  if (!days.includes(today) && !weekData.days[today]) {
-    weekData.days[today] = [];
-    days.unshift(today);
-  }
-  let html = '';
+  if (!weekData.days[today]) weekData.days[today] = [];
+  const days = Object.keys(weekData.days).sort();
 
-  for (const day of days) {
-    const cards = weekData.days[day];
-    const isToday = day === today;
-    const dow = new Date(day + 'T12:00:00').getDay();
-    const isWeekend = dow === 0 || dow === 6;
-    const dayLabel = fmtDay(day).split(',')[0];
-    const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
-    html += `<div class="pr-col${isWeekend?' weekend':''}" data-day="${day}">
-      <div class="pr-col-hdr${isToday?' today-hdr':''}">
-        <div class="pr-day-name">${dayLabel} <span class="pr-date">${dateLabel}</span></div>
-      </div>
-      <div class="pr-list" id="pr-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
-    </div>`;
-  }
+  // three columns: today | tomorrow + day after | next three (small)
+  const groups = [days.slice(0, 1), days.slice(1, 3), days.slice(3, 6)];
+  let html = '';
+  groups.forEach((groupDays, gi) => {
+    const small = gi === 2;
+    html += `<div class="pr-colgroup${small?' small':''}">`;
+    html += groupDays.map(day => dayCellHtml(day, today, small)).join('');
+    html += `</div>`;
+  });
 
   document.getElementById('pr-board').innerHTML = html;
   initSortable(days);
