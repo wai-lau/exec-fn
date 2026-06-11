@@ -32,6 +32,7 @@
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Backgrounds & Surfaces ──────────────────────────────────────────── */
+  --bg-rgb:              24, 30, 28;                /* main page bg — use rgba(var(--bg-rgb), α) for overlays */
   --bg:                  rgb(24, 30, 28);           /* main page bg + column bg (green-tinted dark) */
   --surface-modal:       #0a0a0a;                   /* card dialog, popup panels */
   --surface-input:       #181818;                   /* chat input bar bg */
@@ -89,8 +90,8 @@
   --yellow:              rgb(255, 200, 80);
 
   /* ── Teals ───────────────────────────────────────────────────────────── */
-  --teal-meal:           hsl(185deg, 50%, 54%, 0.3); /* directives lunch/dinner block fill */
-  --teal-meal-border:    hsl(185deg, 50%, 45%, 0.5); /* directives meal block border */
+  --teal-meal:           hsl(185deg, 50%, 54%, 0.06); /* prophecies lunch/dinner block fill */
+  --teal-meal-border:    hsl(185deg, 50%, 45%, 0.1);  /* prophecies meal block border */
   --teal-link-rgb:       0, 255, 120;               /* mtg assistant link color */
   --teal-chat-rgb:       0, 255, 180;               /* exec chat assistant link color */
 
