@@ -432,7 +432,7 @@ function buildBoard() {
   const srch = document.getElementById('rd-search');
   if (srch) srch.addEventListener('input', function() {
     const q = this.value.trim().toLowerCase();
-    document.querySelectorAll('#col-rd .card, #col-hq .card').forEach(el => {
+    document.querySelectorAll('#col-rd .card, #col-hq .card, #col-archives .card, #col-exile .card').forEach(el => {
       const title = (el.dataset.title || '').toLowerCase();
       const notes = (el.dataset.notes || '').toLowerCase();
       el.classList.toggle('search-hide', !!q && !title.includes(q) && !notes.includes(q));
