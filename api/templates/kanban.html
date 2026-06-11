@@ -194,8 +194,8 @@ function renderCard(c) {
   const {bg, border, dark} = cardStyle(c);
   const hasStyle = !!bg;
   const bright = hasStyle && !dark;
-  const titleC = !hasStyle ? 'rgba(0,255,65,0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.92)';
-  const tc     = !hasStyle ? 'rgba(0,255,65,0.65)' : dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)';
+  const titleC = !hasStyle ? 'rgba(var(--green-rgb),0.9)' : dark ? 'inherit' : 'rgba(0,0,0,0.92)';
+  const tc     = !hasStyle ? 'rgba(var(--green-rgb),0.65)' : dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)';
   const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
   const overdue = c.column === 'rd' && isOverdue(displayDate);
@@ -204,7 +204,7 @@ function renderCard(c) {
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
-  const dateC = overdue ? 'rgba(255,80,80,0.9)' : dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'rgba(0,255,65,0.95)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'rgba(0,255,65,0.95)' : tc);
+  const dateC = overdue ? 'rgba(var(--red-rgb),0.9)' : dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'rgba(var(--green-rgb),0.95)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'rgba(var(--green-rgb),0.95)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${c.title}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
@@ -270,9 +270,9 @@ function _remChipHtml(c) {
   const h = CAT_HUE[c.category];
   const ds = CAT_SAT[c.category] || 0;
   const dl = CAT_LIGHT[c.category] || 0;
-  const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
-  const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
-  const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
+  const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(var(--green-rgb),0.9)';
+  const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(var(--green-rgb),0.07)';
+  const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(var(--green-rgb),0.22)';
   const title = c.title;
   return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
 }
@@ -322,7 +322,7 @@ function showRemOverflow() {
     const h = CAT_HUE[c.category];
     const ds = CAT_SAT[c.category] || 0;
     const dl = CAT_LIGHT[c.category] || 0;
-    const color = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
+    const color = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(var(--green-rgb),0.9)';
     return `<div class="rem-ov-row" data-id="${c.id}" style="color:${color}">${c.title}<span style="opacity:0.45;margin-left:8px;font-size:0.85em">${c.due_date.slice(5)}</span></div>`;
   }).join('');
   modal.style.display = 'flex';
@@ -360,9 +360,9 @@ function buildBooks() {
     const h = CAT_HUE[c.category];
     const ds = CAT_SAT[c.category] || 0;
     const dl = CAT_LIGHT[c.category] || 0;
-    const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(0,255,65,0.9)';
-    const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(0,255,65,0.07)';
-    const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(0,255,65,0.22)';
+    const color  = h !== undefined ? `hsl(${h},${75+ds}%,${72+dl}%)` : 'rgba(var(--green-rgb),0.9)';
+    const bg     = h !== undefined ? `hsl(${h},${55+ds}%,${18+dl}%)` : 'rgba(var(--green-rgb),0.07)';
+    const border = h !== undefined ? `hsl(${h},${50+ds}%,${32+dl}%)` : 'rgba(var(--green-rgb),0.22)';
     const bar_html = `<div class="book-item-bar"><div class="book-item-fill" style="width:${pct}%"></div></div>`;
     return `<div class="book-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}"><div class="book-item-title">${c.title}</div>${bar_html}</div>`;
   }).join('');
