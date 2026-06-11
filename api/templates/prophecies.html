@@ -274,19 +274,44 @@ function createBlock(c, track) {
     block.append(titleEl, metaEl, resizeHandle);
   }
 
-  function startDrag(startClientY, getY, getX) {
+  // Drag like the day<->day Sortable: a floating ghost follows the cursor and
+  // the target list highlights. Drop on another day / unschedule -> reschedule;
+  // drop within today -> set the block's time from the release position.
+  function startDrag(startClientX, startClientY, getX, getY) {
     const rect = track.getBoundingClientRect();
-    const offsetY = startClientY - block.getBoundingClientRect().top;
+    const bRect = block.getBoundingClientRect();
+    const offsetX = startClientX - bRect.left;
+    const offsetY = startClientY - bRect.top;
+    const width = bRect.width, height = bRect.height;
     let moved = false;
-    let lastX = null, lastY = null;
+    let lastX = startClientX, lastY = startClientY;
+    let ghost = null;
     document.body.classList.add('pr-dragging');
+
+    function makeGhost() {
+      ghost = block.cloneNode(true);
+      ghost.style.position = 'fixed';
+      ghost.style.margin = '0';
+      ghost.style.left = (lastX - offsetX) + 'px';
+      ghost.style.top = (lastY - offsetY) + 'px';
+      ghost.style.width = width + 'px';
+      ghost.style.height = height + 'px';
+      ghost.style.right = 'auto';
+      ghost.style.bottom = 'auto';
+      ghost.style.pointerEvents = 'none';
+      ghost.style.zIndex = '9999';
+      ghost.style.opacity = '0.9';
+      ghost.style.boxShadow = '0 6px 18px rgba(0,0,0,0.6)';
+      document.body.appendChild(ghost);
+      block.style.opacity = '0.25';
+    }
+
     function onMove(ev) {
-      moved = true;
       lastX = getX(ev); lastY = getY(ev);
-      const rawMin = (lastY - rect.top - offsetY) / TL_PX + TL_START;
-      const snapped = Math.max(TL_START, Math.min(TL_END - c._durMin, snapMin(rawMin)));
-      c._startMin = snapped;
-      block.style.top = (snapped - TL_START) * TL_PX + 'px';
+      if (!moved) { moved = true; makeGhost(); }
+      if (ev.cancelable) ev.preventDefault();
+      ghost.style.left = (lastX - offsetX) + 'px';
+      ghost.style.top = (lastY - offsetY) + 'px';
       highlightDrop(lastX, lastY);
     }
     function onUp() {
@@ -296,6 +321,8 @@ function createBlock(c, track) {
       document.removeEventListener('touchend', onUp);
       document.body.classList.remove('pr-dragging');
       clearDropHighlight();
+      if (ghost) { ghost.remove(); ghost = null; }
+      block.style.opacity = '';
       if (!moved) { openCardDialog(c.id, () => load(weekStart), 'prof'); return; }
       const tgt = dropTarget(lastX, lastY);
       if (tgt === 'unschedule') {
@@ -310,7 +337,11 @@ function createBlock(c, track) {
         setTimeout(() => load(weekStart), 700);
         return;
       }
-      // released within today -> time move
+      // dropped within today -> set the block's time from the release position
+      const rawMin = (lastY - rect.top - offsetY) / TL_PX + TL_START;
+      const snapped = Math.max(TL_START, Math.min(TL_END - c._durMin, snapMin(rawMin)));
+      c._startMin = snapped;
+      block.style.top = (snapped - TL_START) * TL_PX + 'px';
       scheduleCards.sort((a, b) => a._startMin - b._startMin);
       computeColumns(scheduleCards);
       applyColumnLayout(scheduleCards, currentTrack);
@@ -325,12 +356,12 @@ function createBlock(c, track) {
   block.addEventListener('mousedown', e => {
     if (resizeHandle.contains(e.target)) return;
     e.preventDefault();
-    startDrag(e.clientY, ev => ev.clientY, ev => ev.clientX);
+    startDrag(e.clientX, e.clientY, ev => ev.clientX, ev => ev.clientY);
   });
   block.addEventListener('touchstart', e => {
     if (resizeHandle.contains(e.target)) return;
     const t0Y = e.touches[0].clientY, t0X = e.touches[0].clientX;
-    let timer = setTimeout(() => { timer = null; cleanup(); startDrag(t0Y, ev => ev.touches[0].clientY, ev => ev.touches[0].clientX); }, 300);
+    let timer = setTimeout(() => { timer = null; cleanup(); startDrag(t0X, t0Y, ev => ev.touches[0].clientX, ev => ev.touches[0].clientY); }, 300);
     function cleanup() {
       block.removeEventListener('touchmove', onEarlyMove);
       block.removeEventListener('touchend', onEarlyEnd);
