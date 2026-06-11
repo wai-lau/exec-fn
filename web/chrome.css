@@ -38,9 +38,8 @@
   --teal-link-rgb:       0, 255, 120;               /* assistant link color, all chats (absorbs 0,255,180) */
   --cyan-rgb:            0, 220, 255;               /* seek type badge, exec source, plan view */
   --cyan:                rgb(0, 220, 255);           /* also covers rgba(80,200,255) probe text */
-  --blue-rgb:            130, 170, 230;             /* books bar, prophecies accents (absorbs book-text hsl + bright 160,200,255) */
+  --blue-rgb:            130, 170, 230;             /* books bar, prophecies accents incl. weekend day names (absorbs book-text hsl, 160,200,255, 100,160,255) */
   --blue:                rgb(130, 170, 230);
-  --blue-weekend:        rgba(130, 170, 230, 0.9);  /* prophecies sat/sun day name (absorbs 100,160,255) */
   --purple-rgb:          180, 100, 255;             /* prof source badge in plan view */
   --purple:              rgb(180, 100, 255);
 
