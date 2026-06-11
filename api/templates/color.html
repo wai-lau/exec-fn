@@ -19,8 +19,15 @@ body { overflow-y: auto !important; }
   border: 1px solid rgba(var(--green-rgb),0.12); border-radius: 4px;
   overflow: hidden; background: rgba(0,0,0,0.25);
 }
-.clr-swatch { height: 54px; display: flex; }
-.clr-swatch span { flex: 1; }
+.clr-swatch { height: 54px; display: flex; position: relative; }
+/* white bar behind the color — 1/3 height, centered — exposes alpha:
+   translucent tokens read against both white and the dark card */
+.clr-swatch::before {
+  content: ''; position: absolute;
+  left: 0; right: 0; top: 33.3%; height: 33.4%;
+  background: #fff;
+}
+.clr-swatch span { flex: 1; position: relative; }
 .clr-info { padding: 8px 10px 9px; border-top: 1px solid rgba(var(--green-rgb),0.1); }
 .clr-name-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 2px; }
 .clr-name { font-size: 0.64rem; color: rgba(var(--green-rgb),0.92); word-break: break-all; }
