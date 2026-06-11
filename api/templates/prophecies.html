@@ -214,13 +214,13 @@ function isOverdue(card, dayIso) {
 // (title, meta, notes) so all the info is visible.
 function renderCard(c, dayIso) {
   const {bg, border, dark} = cardStyle(c);
-  const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(0,255,65,0.88)';
-  const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(0,255,65,0.4)';
+  const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(var(--green-rgb),0.88)';
+  const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(var(--green-rgb),0.4)';
 
   const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="pr-overdue">!</span>' : '';
   const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
   const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
-  const dueC = (dayIso && isOverdue(c, dayIso)) ? 'rgba(255,80,80,0.9)' : metaC;
+  const dueC = (dayIso && isOverdue(c, dayIso)) ? 'rgba(var(--red-rgb),0.9)' : metaC;
   const due = c.due_date ? `<span class="pr-due" style="color:${dueC}">due ${c.due_date.slice(5).replace('T',' ')}</span>` : '';
   const metaHtml = (recur || due) ? `<div class="pr-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -249,8 +249,8 @@ function createBlock(c, track) {
   c._durMin = durMin;
   const topPx = Math.max(0, (c._startMin - TL_START) * TL_PX);
   const heightPx = Math.max(15, durMin * TL_PX);
-  const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(0,255,65,0.88)';
-  const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(0,255,65,0.4)';
+  const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'rgba(var(--green-rgb),0.88)';
+  const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'rgba(var(--green-rgb),0.4)';
 
   const block = document.createElement('div');
   block.className = 'dir-block' + (bg ? '' : ' plain');
