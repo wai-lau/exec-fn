@@ -1,6 +1,9 @@
 
-<link rel="stylesheet" href="/chat.css?v=1">
+<link rel="stylesheet" href="/chat.css?v=2">
 <style>
+/* nav sits above the ambient cyber animations (z-index 9990) */
+.exec-nav { z-index:9995 !important; }
+
 /* chat look mirrored from tarot (no spread rules, no centering) */
 .msg { max-width:none; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
 
@@ -66,7 +69,8 @@ function syncTerminalBottom() {
   const cs = getComputedStyle(document.documentElement);
   const navH = parseInt(cs.getPropertyValue('--nav-h')) || 56;
   const kb = parseInt(cs.getPropertyValue('--kb')) || 0;  // iOS keyboard inset
-  terminal.style.bottom = (navH + kb + bar.offsetHeight) + 'px';
+  // nav hides behind keyboard — pin to whichever is taller, not the sum
+  terminal.style.bottom = (Math.max(navH, kb) + bar.offsetHeight) + 'px';
   terminal.scrollTop = terminal.scrollHeight;
 }
 window.addEventListener('resize', syncTerminalBottom);

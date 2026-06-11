@@ -50,7 +50,8 @@ exec-fn/
     card-dialog.js        # shared card edit dialog used by kanban/prophecies/directives
     boss-green.png        # green-recolored Boss.png — Exec nav icon
     # nav icons (27x27 program art): laser-satellite(core) fiddle(profs)
-    #   turbo(dirs) bug(debug) hack2(night) wizard(mtg) watchman(tarot)
+    #   bug(debug) hack2(night) wizard(mtg) watchman(tarot)
+    #   (turbo.png = old dirs icon, now unused)
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
     main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
@@ -93,8 +94,7 @@ exec-fn/
     templates/            # volume-mounted → live on save
       plan.html           # /plan — legacy daily plan view
       kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
-      prophecies.html     # /prophecies — 6-day planning kanban; books bar at top
-      directives.html     # /directives — today's schedule, drag/resize timeline
+      prophecies.html     # /prophecies — 6-day planning kanban, 3 columns: today | tomorrow+day-after | next-3-days (small cards); books bar at top
       debug.html          # /debug — profile.json + activity logs viewer
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
@@ -123,8 +123,7 @@ exec-fn/
 | hq column | Active working set |
 | archives column | Completed tasks |
 | exile column | Won't-do tasks |
-| prophecies (prof) | 6-day planning view — assigns `scheduled_day` to cards |
-| directives (dirs) | Today's schedule — visual timeline with drag/resize |
+| prophecies (prof) | 6-day planning view — assigns `scheduled_day` to cards. 3 columns: today \| tomorrow+day-after \| next-3-days (small cards) |
 | scheduled_day | ISO date field on a card indicating which day it's planned for |
 | recur_type | Recurrence type; when archived, clone auto-created with advanced due_date |
 | reader / querent | Tarot terminology: reader = AI; querent = human |
@@ -143,15 +142,14 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `core` · `prophecies` · `directives` · `debug` · `graph` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto the planning pages (`core`/`prophecies`/`directives`) by `_build_nav()`; no `/exec` route. Appending `?exec=open` to a planning page URL opens the bubble expanded on load.
+Nav: `core` · `prophecies` · `debug` · `graph` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto the planning pages (`core`/`prophecies`) by `_build_nav()`; no `/exec` route. Appending `?exec=open` to a planning page URL opens the bubble expanded on load. (The `/directives` timeline page was removed — its today-schedule role folded into the prophecies today column.)
 
 ### Pages
 
 | Route | What |
 |-------|------|
 | `/rd` | Core kanban from `rd.json` |
-| `/prophecies` | 6-day planning kanban — assign `scheduled_day` to cards |
-| `/directives` | Today's schedule — visual timeline with drag/resize, 6am–midnight |
+| `/prophecies` | 6-day planning kanban — assign `scheduled_day` to cards. 3 columns: today \| tomorrow+day-after \| next-3-days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
@@ -245,7 +243,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 
 - `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
-- `dir_start_min`: minutes from midnight — saved position on the directives timeline. Set whenever a card is scheduled for today (prof drag, exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py` — the front end no longer computes positions.
+- `dir_start_min`: minutes from midnight — intraday slot for a card scheduled today. Set whenever a card is scheduled for today (exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py`. (No longer has a timeline UI — the `/directives` page was removed; the field still drives nudge anchoring.)
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
 - `size === 'book'`: shown in books bar on prophecies page; hidden from rd/hq columns in kanban
 
@@ -262,7 +260,7 @@ ADHD activation scaffolding: a card placed on today's timeline gets a nudge at i
 - **Trigger**: in-process asyncio loop (`_run_nudge_loop` in `main.py`, lifespan-started, 30s tick). No cron, no rebuild — state lives on the cards in `rd.json`, so `--reload` restarts just re-arm. `POST /api/nudge/tick` = manual tick.
 - **Eligibility** (`_eligible`): `decomposable()` (hq, not reminder/book — events included) AND `scheduled_day == today`. Everything with a plan scheduled today nudges. **Anchor** (`nudge_anchor`): the timeline slot (`dir_start_min`) if placed, else 10 AM (or now if past) — so today-scheduled cards without a slot still nudge without firing pre-dawn.
 - **Everything in hq has a plan** (`decomposable()`): each tick, hq cards missing a graph (incl. events — they can have prep steps; excl. reminders + books) get a silent decompose (`_build_graph` — no nudge sent). Events get a plan but never a time-based nudge (`_eligible` excludes them via `is_dir_card`). The breakdown is visible/editable in the card dialog (`web/card-graph.js` SVG DAG, shown when `card.nudge.graph.nodes` non-empty; edits persist on dialog save, `active_node` recomputed client-side with the same first-open rule).
-- **First nudge** = card's placement (`scheduled_day` @ `dir_start_min`). While unfired, `next_nudge_at` tracks the slot each tick, so dragging the card on dirs moves the nudge.
+- **First nudge** = card's placement (`scheduled_day` @ `dir_start_min`). While unfired, `next_nudge_at` tracks the slot each tick.
 - **Fire**: decompose on first fire (one LLM call → graph + first chunk + nudge text), else nudge text for the active node. Delivered via the monitor SSE channel + `chat.json` `role=monitor` — same pipe as encouragement comments, zero frontend.
 - **Stall**: no reply within `clamp(estimate × 2.6, 45, 240)` min → peel a tinier first sub-step (no floor — "open the app" is fine), inserted as a prerequisite of the stalled node. Any exec-chat user turn counts as a reply and restarts the window.
 - **Due-date protection**: `schedule_card` refuses to defer/unschedule an active-nudge card; `record_consequences` → `reschedule_after_consequences` is the only later-day path.

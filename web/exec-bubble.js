@@ -83,8 +83,10 @@
       }
 
       #exec-panel {
-        position: fixed; top: 0; left: 50%;
-        width: 80vw; height: calc(100vh - var(--nav-h, 56px) - var(--kb, 0px));
+        position: fixed; top: var(--vvt, 0px); left: 50%;
+        /* track the visible viewport; leave room for the nav, but fill to the
+           keyboard (nav hidden) when an input is focused — see html.kb-open */
+        width: 80vw; height: calc(var(--vvh, 100vh) - var(--nav-h, 56px));
         background: rgba(10,10,10,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
         border: 1px solid rgba(0,255,65,0.07); border-top: none;
         display: flex; flex-direction: column; z-index: 8999;
@@ -93,6 +95,8 @@
         font-family: 'Iosevka Mayukai Monolite', monospace !important; font-weight: 500;
       }
       #exec-panel * { font-family: 'Iosevka Mayukai Monolite', monospace !important; }
+      /* keyboard up: nav hidden, so the panel fills down to the keyboard */
+      html.kb-open #exec-panel { height: var(--vvh, 100vh); }
       #exec-panel.open { transform: translateX(-50%) translateY(0); }
       @media (max-width: 500px) {
         #exec-panel { width: 100%; left: auto; right: 0; border-left: none; border-right: none; transform: translateX(100%); }
@@ -149,9 +153,9 @@
       @keyframes execdot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
       @keyframes execblink { 0%,50%{opacity:1} 50.01%,100%{opacity:0} }
 
-      #exec-input-area { flex-shrink: 0; padding: 0 14px; background: #181818; border-top: 1px solid rgba(0,255,65,0.06); }
-      #exec-iline { display: flex; align-items: center; border-bottom: 1px solid rgba(0,255,65,0.1); padding: 6px 0; }
-      #exec-iline:focus-within { border-bottom-color: rgba(0,255,65,0.3); }
+      /* transparent merged input, mirrors tarot/mtg; flush to panel bottom (keyboard) */
+      #exec-input-area { flex-shrink: 0; padding: 0 14px; background: transparent; }
+      #exec-iline { display: flex; align-items: center; padding: 8px 0 0; }
       #exec-prompt { color: rgba(0,255,65,0.55); font-size: 0.9rem; white-space: nowrap; user-select: none; padding-right: 8px; }
       #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
       #exec-idisp { display: none; }
