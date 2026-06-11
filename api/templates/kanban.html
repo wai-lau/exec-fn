@@ -38,11 +38,12 @@ body { overflow: hidden !important; }
   font-family: 'BitLight', monospace; font-size: 0.63rem;
 }
 .pr-books::-webkit-scrollbar { display: none; }
-.pr-books .book-item { cursor: pointer; flex-shrink: 0; overflow: hidden; opacity: 0.85; padding: 6px 14px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.pr-books .book-item { cursor: pointer; flex-shrink: 0; overflow: hidden; opacity: 0.85; padding: 9px 14px 5px; border-radius: 0; border-left: none !important; border-right: none !important; border-top: none !important; display: flex; flex-direction: row; align-items: center; gap: 8px; }
 .pr-books .book-item:hover { opacity: 1; }
-.pr-books .book-item-title { flex: 0 0 auto; white-space: pre; overflow: hidden; }
-.pr-books .book-item-bar { flex: 1; min-width: 0; height: 3px; border-radius: 2px; background: rgba(0,255,65,0.12); overflow: hidden; }
-.pr-books .book-item-fill { height: 100%; border-radius: 2px; background: rgba(0,255,65,0.55); transition: width 0.3s; }
+/* monospace + fixed char count => every title is the same width => every bar is the same width */
+.pr-books .book-item-title { flex: 0 0 auto; white-space: pre; overflow: hidden; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
+.pr-books .book-item-bar { flex: 1; min-width: 0; height: 3px; border-radius: 2px; background: rgba(130,170,230,0.18); overflow: hidden; }
+.pr-books .book-item-fill { height: 100%; border-radius: 2px; background: rgba(130,170,230,0.6); transition: width 0.3s; }
 .book-overflow-btn { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.8); border: 1px solid rgba(0,255,65,0.35); color: rgba(0,255,65,0.7); font-family: 'BitLight', monospace; font-size: 0.55rem; padding: 2px 6px; border-radius: 2px; cursor: pointer; white-space: nowrap; line-height: 1.4; }
 .book-overflow-btn:hover { border-color: rgba(0,255,65,0.7); color: rgba(0,255,65,1); }
 .book-ov-modal { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; }
