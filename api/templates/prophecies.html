@@ -113,7 +113,10 @@ body.pr-dragging .pr-unschedule.drag-over {
   color: rgba(200,200,200,0.55);
 }
 .dir-tl-track { flex: 1; position: relative; background: rgb(24,30,28); }
-.pr-col.pr-drop-hl { outline: 2px solid rgba(0,255,65,0.6); outline-offset: -2px; }
+/* faint placeholder showing where a dragged block will land (Sortable-style) */
+.pr-drop-preview { opacity: 0.2; border: 1px dashed rgba(0,255,65,0.55); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: rgba(0,255,65,0.9); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
+.pr-drop-preview.day { padding: 5px 8px; margin-bottom: 4px; }
+.pr-drop-preview.today { position: absolute; left: 3px; right: 3px; background: rgba(0,255,65,0.12); padding: 5px 8px; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -206,7 +209,6 @@ function renderCard(c, dayIso) {
 }
 
 // drop-target hit-testing for dragging a timeline block out to another day
-let _dropHlEl = null;
 function dropTarget(x, y) {
   if (x == null || y == null) return null;
   const el = document.elementFromPoint(x, y);
@@ -214,18 +216,6 @@ function dropTarget(x, y) {
   if (el.closest('#pr-unschedule')) return 'unschedule';
   const col = el.closest('[data-day]');
   return col ? col.dataset.day : null;
-}
-function highlightDrop(x, y) {
-  const t = dropTarget(x, y);
-  let el = null;
-  if (t === 'unschedule') el = document.getElementById('pr-unschedule');
-  else if (t && t !== isoToday()) el = document.querySelector(`.pr-col[data-day="${t}"]`);
-  if (_dropHlEl && _dropHlEl !== el) _dropHlEl.classList.remove('pr-drop-hl', 'drag-over');
-  if (el) el.classList.add(t === 'unschedule' ? 'drag-over' : 'pr-drop-hl');
-  _dropHlEl = el;
-}
-function clearDropHighlight() {
-  if (_dropHlEl) { _dropHlEl.classList.remove('pr-drop-hl', 'drag-over'); _dropHlEl = null; }
 }
 
 function createBlock(c, track) {
@@ -283,6 +273,9 @@ function createBlock(c, track) {
     let ghost = null;
     document.body.classList.add('pr-dragging');
 
+    let preview = null;
+    const unEl = document.getElementById('pr-unschedule');
+
     function makeGhost() {
       ghost = block.cloneNode(true);
       ghost.style.position = 'fixed';
@@ -298,7 +291,41 @@ function createBlock(c, track) {
       ghost.style.opacity = '1';
       ghost.style.boxShadow = '0 6px 18px rgba(0,0,0,0.6)';
       document.body.appendChild(ghost);
-      block.style.opacity = '0.15';   // faded placeholder, matches .sortable-ghost
+      block.style.display = 'none';   // lifted into the ghost
+    }
+    function mkPreview(ctx) {
+      const p = document.createElement('div');
+      p.className = 'pr-drop-preview ' + ctx;
+      p.dataset.ctx = ctx;
+      p.textContent = c.title;
+      return p;
+    }
+    function clearPreview() {
+      if (preview) { preview.remove(); preview = null; }
+      if (unEl) unEl.classList.remove('drag-over');
+    }
+    // Move the faint placeholder to where the card would land — a timeline slot
+    // over today, an insertion point inside another day's list, like Sortable.
+    function placePreview(x, y) {
+      const tgt = dropTarget(x, y);
+      if (unEl) unEl.classList.toggle('drag-over', tgt === 'unschedule');
+      if (tgt === 'unschedule') { if (preview) { preview.remove(); preview = null; } return; }
+      if (tgt && tgt !== isoToday()) {
+        const list = document.getElementById('pr-list-' + tgt);
+        if (!list) { if (preview) { preview.remove(); preview = null; } return; }
+        if (!preview || preview.dataset.ctx !== 'day') { if (preview) preview.remove(); preview = mkPreview('day'); }
+        const ref = [...list.querySelectorAll('.pr-card')].find(el => {
+          const r = el.getBoundingClientRect();
+          return y < r.top + r.height / 2;
+        });
+        if (ref) list.insertBefore(preview, ref); else list.appendChild(preview);
+      } else {
+        if (!preview || preview.dataset.ctx !== 'today') { if (preview) preview.remove(); preview = mkPreview('today'); track.appendChild(preview); }
+        const rawMin = (y - rect.top - offsetY) / TL_PX + TL_START;
+        const snapped = Math.max(TL_START, Math.min(TL_END - c._durMin, snapMin(rawMin)));
+        preview.style.top = ((snapped - TL_START) * TL_PX + 3) + 'px';
+        preview.style.height = Math.max(13, c._durMin * TL_PX - 6) + 'px';
+      }
     }
 
     function onMove(ev) {
@@ -307,7 +334,7 @@ function createBlock(c, track) {
       if (ev.cancelable) ev.preventDefault();
       ghost.style.left = (lastX - offsetX) + 'px';
       ghost.style.top = (lastY - offsetY) + 'px';
-      highlightDrop(lastX, lastY);
+      placePreview(lastX, lastY);
     }
     function onUp() {
       document.removeEventListener('mousemove', onMove);
@@ -315,11 +342,16 @@ function createBlock(c, track) {
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onUp);
       document.body.classList.remove('pr-dragging');
-      clearDropHighlight();
       if (ghost) { ghost.remove(); ghost = null; }
-      block.style.opacity = '';
-      if (!moved) { openCardDialog(c.id, () => load(weekStart), 'prof'); return; }
       const tgt = dropTarget(lastX, lastY);
+      // capture the previewed insertion index before clearing it
+      let dayIndex = 0;
+      if (preview && preview.dataset.ctx === 'day' && preview.parentElement) {
+        dayIndex = [...preview.parentElement.querySelectorAll('.pr-card, .pr-drop-preview')].indexOf(preview);
+      }
+      clearPreview();
+      block.style.display = '';
+      if (!moved) { openCardDialog(c.id, () => load(weekStart), 'prof'); return; }
       if (tgt === 'unschedule') {
         block.style.display = 'none';
         queueUpdate(c.id, null, false);
@@ -328,7 +360,7 @@ function createBlock(c, track) {
       }
       if (tgt && tgt !== isoToday()) {
         block.style.display = 'none';
-        queueUpdate(c.id, tgt, false);
+        queueUpdate(c.id, tgt, dayIndex);
         setTimeout(() => load(weekStart), 700);
         return;
       }
