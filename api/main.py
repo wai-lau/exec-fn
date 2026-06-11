@@ -394,7 +394,7 @@ _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=6">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=7">'
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "color", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
@@ -694,6 +694,32 @@ async def color_page(request: Request):
     nav; everyone else the guest nav."""
     guest = request.cookies.get("session") != SESSION_TOKEN
     return _render_page("color", _tmpl("color.html"), guest=guest)
+
+
+@public.get("/api/color/usage")
+async def color_usage():
+    """var(--X) occurrence counts across templates + web assets, for the
+    /color moodboard. Definitions (`--x:`) don't match, so chrome.css only
+    contributes its own genuine usages. Public: token names only."""
+    paths = [
+        *Path("/app/templates").glob("*.html"),
+        *Path("/app/static").glob("*.css"),
+        *Path("/app/static").glob("*.js"),
+        Path("/app/main.py"),
+    ]
+    counts: dict[str, int] = {}
+    for p in paths:
+        try:
+            text = p.read_text()
+        except OSError:
+            continue
+        if p.name == "chrome.css":
+            # drop the :root definition block — its usage-hint comments
+            # would inflate counts
+            text = re.sub(r":root\s*\{[^}]*\}", "", text)
+        for name in re.findall(r"var\(--([\w-]+)", text):
+            counts[name] = counts.get(name, 0) + 1
+    return counts
 
 
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
