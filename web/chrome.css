@@ -31,14 +31,6 @@
    Use rgba(var(--X-rgb), α) for opacity variants of base colors.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* ── Neutrals ────────────────────────────────────────────────────────── */
-  --bg-rgb:              24, 30, 28;                /* main page bg — use rgba(var(--bg-rgb), α) for overlays */
-  --bg:                  rgb(24, 30, 28);           /* main page bg + column bg + input slabs (absorbs #181818) */
-  --surface-modal:       #0a0a0a;                   /* card dialog, popup panels */
-  --surface-nav:         rgba(0, 0, 0, 0.5);        /* bottom nav backdrop */
-  --surface-scrim:       rgba(0, 0, 0, 0.78);       /* full-page modal overlay (absorbs 0.75 scrims) */
-  --gray-label:          rgba(200, 200, 200, 0.55); /* timeline hour labels */
-
   /* ── Cools ───────────────────────────────────────────────────────────── */
   --green-rgb:           0, 255, 65;                /* primary text + accent — use rgba(var(--green-rgb), α) */
   --green:               rgb(0, 255, 65);
@@ -68,6 +60,14 @@
   --red-dark:            rgb(255, 30, 30);
   --pink-rgb:            224, 74, 125;              /* exec bubble panel, vain-empress entries */
   --pink:                rgb(224, 74, 125);
+
+  /* ── Neutrals ────────────────────────────────────────────────────────── */
+  --bg-rgb:              24, 30, 28;                /* main page bg — use rgba(var(--bg-rgb), α) for overlays */
+  --bg:                  rgb(24, 30, 28);           /* main page bg + column bg + input slabs (absorbs #181818) */
+  --surface-modal:       #0a0a0a;                   /* card dialog, popup panels */
+  --surface-nav:         rgba(0, 0, 0, 0.5);        /* bottom nav backdrop */
+  --surface-scrim:       rgba(0, 0, 0, 0.78);       /* full-page modal overlay (absorbs 0.75 scrims) */
+  --gray-label:          rgba(200, 200, 200, 0.55); /* timeline hour labels */
 }
 
 /* Ambient cyberpunk background — injected on every page via _render_page
