@@ -1,9 +1,11 @@
 
 <script>if((navigator.maxTouchPoints||0)===0)document.documentElement.classList.add('no-touch');</script>
 <link rel="stylesheet" href="/chat.css?v=2">
+<link rel="stylesheet" href="/chat-reader.css?v=1">
 <style>
-/* nav sits above the ambient cyber animations (z-index 9990) */
-.exec-nav { z-index:9995 !important; }
+/* chat-reader.css carries the shared merged-input + reader-voice skin;
+   below: tarot-only — spread layout, cards, zoom, centered scrollback */
+
 /* keep the nav visible while the composer is focused — but only on non-touch
    (desktop, html.no-touch set by JS); on touch devices (incl. iOS) let kb-open
    hide it so the soft keyboard has room */
@@ -14,6 +16,9 @@ html.no-touch.kb-open .exec-nav { visibility: visible !important; }
   --card-h: min(22vh, 30vw);
   --spread-pad: max(0.4vh, calc(var(--card-h) * 0.06));
   --spread-h: calc(var(--card-h) + var(--spread-pad) * 2);
+  /* tarot-only accents (global palette lives in chrome.css) */
+  --ember-rgb: 255, 160, 100;          /* spread-btn hover glow */
+  --ember-bright: rgb(255, 200, 160);  /* spread-btn hover text */
 }
 #spread-area {
   position:fixed; bottom:max(var(--nav-h, 56px), var(--kb, 0px)); left:0; right:0; height:var(--spread-h);
@@ -21,19 +26,11 @@ html.no-touch.kb-open .exec-nav { visibility: visible !important; }
   background:var(--bg);
   z-index:5;
 }
-#input-bar {
-  bottom: calc(max(var(--nav-h, 56px), var(--kb, 0px)) + var(--spread-h)) !important;
-  transition: opacity 0.7s ease;
-  background:transparent !important;
-  border-top:none !important;
-  padding:0 20px 8px !important;
-}
-/* merge input into the scrollback: no slab, no underline — prompt reads as the live last line */
-#input-line { border-bottom:none !important; padding:0 !important; align-items:flex-start !important; max-width:720px; margin-left:auto; margin-right:auto; }
-#input-prompt { font-size:0.82rem !important; padding-right:0.6em !important; line-height:1.45 !important; }
+#input-bar { bottom: calc(max(var(--nav-h, 56px), var(--kb, 0px)) + var(--spread-h)) !important; }
+#input-line { max-width:720px; margin-left:auto; margin-right:auto; }
 /* hide the $ prompt while the reader is streaming a reply */
 body.reader-speaking #input-prompt { visibility:hidden; }
-#terminal { padding-bottom:0 !important; scrollbar-width:none; -ms-overflow-style:none; }
+#terminal { scrollbar-width:none; -ms-overflow-style:none; }
 #terminal::-webkit-scrollbar { display:none; }
 #terminal { top:0 !important; inset:0 0 calc(var(--spread-h) + max(var(--nav-h, 56px), var(--kb, 0px)) + var(--input-h, 48px)) !important; }
 body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
@@ -45,22 +42,22 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   height:100%;
 }
 .spread-btn {
-  background:radial-gradient(circle at center, rgba(0,255,65,0.18), rgba(0,255,65,0) 70%);
+  background:radial-gradient(circle at center, rgba(var(--green-rgb),0.18), rgba(var(--green-rgb),0) 70%);
   border:none; outline:none;
-  color:rgba(0,255,65,0.95);
+  color:rgba(var(--green-rgb),0.95);
   font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700;
   font-size:clamp(0.45rem, 1.1vw, 0.7rem);
   white-space:nowrap;
   line-height:1; padding:4px 6px; cursor:pointer; border-radius:50%;
-  text-shadow:0 0 6px rgba(0,255,65,0.55);
+  text-shadow:0 0 6px rgba(var(--green-rgb),0.55);
   animation: btn-pulse 2.6s ease-in-out infinite;
   transition:color 0.15s, transform 0.15s, text-shadow 0.15s;
 }
 @keyframes btn-pulse {
-  0%,100% { text-shadow:0 0 4px rgba(0,255,65,0.4); }
-  50%     { text-shadow:0 0 10px rgba(0,255,65,0.85); }
+  0%,100% { text-shadow:0 0 4px rgba(var(--green-rgb),0.4); }
+  50%     { text-shadow:0 0 10px rgba(var(--green-rgb),0.85); }
 }
-.spread-btn:hover { color:rgba(255,200,160,1); transform:scale(1.18); text-shadow:0 0 12px rgba(255,160,100,0.85); }
+.spread-btn:hover { color:var(--ember-bright); transform:scale(1.18); text-shadow:0 0 12px rgba(var(--ember-rgb),0.85); }
 .spread-btn:active { transform:scale(0.94); }
 .spread-btn .rst-glyph {
   font-family: system-ui, sans-serif;
@@ -71,7 +68,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 #spread-empty {
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  color:rgba(0,255,65,0.4);
+  color:rgba(var(--green-rgb),0.4);
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
   pointer-events:none;
 }
@@ -86,27 +83,29 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 }
 #spread-grid > * { pointer-events:auto; }
 
-.tarot-card {
+/* spread cards + Significator slot share the same card body… */
+.tarot-card, #sig-card {
   position:relative;
   box-sizing:border-box;
   isolation:isolate;
-  width:min(13vh, 18vw); height:min(22vh, 30vw);
+  width:var(--card-w); height:var(--card-h);
   cursor:pointer;
   border-radius:8px;
-  outline:1.5px solid rgba(0,255,65,0.4);
-  transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease;
+  outline:1.5px solid rgba(var(--green-rgb),0.4);
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
   user-select:none;
 }
-.tarot-card::after {
+/* …and the same green phosphor wash while face-down */
+.tarot-card::after, #sig-card::after {
   content:''; position:absolute; inset:0;
-  background:#00ff41;
+  background:var(--green);
   mix-blend-mode:color;
   pointer-events:none;
   border-radius:8px;
 }
+.tarot-card { transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease; }
 .tarot-card[data-flipped="true"]::after { display:none; }
-.tarot-card:hover { outline:2px solid rgba(0,255,65,0.45); }
+.tarot-card:hover { outline:2px solid rgba(var(--green-rgb),0.45); }
 .tarot-card img {
   width:100%; height:100%; object-fit:contain;
   border-radius:8px;
@@ -118,90 +117,60 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 .tarot-card[data-flipped="true"] .back { display:none; }
 .tarot-card[data-flipped="true"] .face { display:block; }
 .tarot-card[data-locked="true"] { cursor:default; opacity:0.55; }
-.tarot-card[data-locked="true"]:hover { outline:1.5px solid rgba(0,255,65,0.4); }
+.tarot-card[data-locked="true"]:hover { outline:1.5px solid rgba(var(--green-rgb),0.4); }
 .tarot-card[data-next="true"] { animation:nextpulse 1.8s ease-in-out infinite; }
 /* hold the beckon-pulse until the reader has finished speaking */
 body.reader-speaking .tarot-card[data-next="true"] {
   animation:none;
-  outline:0 solid rgba(0,255,65,0);
+  outline:0 solid rgba(var(--green-rgb),0);
 }
 @keyframes nextpulse {
-  0%,100% { outline:1px solid rgba(0,255,65,0.25); }
-  50%     { outline:2px solid rgba(0,255,65,0.5); }
+  0%,100% { outline:1px solid rgba(var(--green-rgb),0.25); }
+  50%     { outline:2px solid rgba(var(--green-rgb),0.5); }
 }
-.msg.event { color:rgba(0,255,65,0.45); font-style:italic; font-size:0.74rem; margin:6px auto; }
+.msg.event { color:rgba(var(--green-rgb),0.45); font-style:italic; font-size:0.74rem; margin:6px auto; }
 .msg.event::before { content:"~ "; opacity:0.5; }
 
-/* Reader voice: slightly heavier, more breathing room. */
-.msg.assistant {
-  font-weight:500;
-  line-height:1.7;
-  letter-spacing:0.01em;
-  color:rgba(0,255,65,1) !important;
-}
-.msg.assistant p { margin:0 0 10px; }
-.msg.assistant strong { font-weight:700; }
 .reader-cursor {
   display:inline-block; width:0.55em; height:1em;
-  background:rgba(0,255,65,0.85);
+  background:rgba(var(--green-rgb),0.85);
   vertical-align:text-bottom; margin-left:1px;
   animation:blink 1s step-end infinite;
 }
 
+/* Significator slot deltas (shares the card body rules above) */
 #sig-card {
   grid-column: 1;
-  position:relative;
-  box-sizing:border-box;
-  isolation:isolate;
-  width:min(13vh, 18vw); height:min(22vh, 30vw);
-  border:1px solid rgba(0,0,0,0.4); border-radius:8px;
-  background:#0a0a0a url('/tarot/card_back.jpg?v=4') center/100% 100% no-repeat;
-  outline:1.5px solid rgba(0,255,65,0.4);
-  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+  border:1px solid rgba(0,0,0,0.4);
+  background:var(--surface-modal) url('/tarot/card_back.jpg?v=4') center/100% 100% no-repeat;
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer; user-select:none;
 }
-#sig-card::after {
-  content:''; position:absolute; inset:0;
-  background:#00ff41;
-  mix-blend-mode:color;
-  pointer-events:none;
-  border-radius:8px;
-}
-#sig-card.set {
-  background:#000;
-  /* keep the permanent green outline, matching the spread cards */
-  outline:1.5px solid rgba(0,255,65,0.4);
-  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
-}
-#sig-card.set:hover { outline:2px solid rgba(0,255,65,0.45); }
+#sig-card.set { background:#000; }
+#sig-card.set:hover { outline:2px solid rgba(var(--green-rgb),0.45); }
 #sig-card.set::after { display:none; }
 #sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius:8px; }
 #sig-card .sig-label {
   position:absolute; left:50%; bottom:calc(100% + 4px);
   transform:translateX(-50%);
   white-space:nowrap;
-  color:rgba(0,255,65,0.65);
+  color:rgba(var(--green-rgb),0.65);
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
   text-align:center; line-height:1.15;
   pointer-events:none;
 }
 #sig-card .sig-name {
-  display:block; color:rgba(0,255,65,0.9); font-size:0.62rem;
+  display:block; color:rgba(var(--green-rgb),0.9); font-size:0.62rem;
 }
 
-#phase-debug {
-  position:absolute; bottom:8px; left:0; right:0; z-index:5; text-align:center;
+/* phase/event readouts pinned to the spread edges */
+#phase-debug, #event-debug {
+  position:absolute; left:0; right:0; z-index:5; text-align:center;
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  color:rgba(0,255,65,0.4); letter-spacing:0.05em;
+  color:rgba(var(--green-rgb),0.4); letter-spacing:0.05em;
   pointer-events:none; user-select:none;
 }
-#event-debug {
-  position:absolute; top:8px; left:0; right:0; z-index:5; text-align:center;
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  color:rgba(0,255,65,0.4); letter-spacing:0.05em;
-  pointer-events:none; user-select:none;
-}
+#phase-debug { bottom:8px; }
+#event-debug { top:8px; }
 
 #card-zoom {
   position:fixed; inset:0; z-index:60; display:none;
@@ -214,25 +183,20 @@ body.reader-speaking .tarot-card[data-next="true"] {
 #card-zoom img {
   max-width:min(90vw, 60vh); max-height:80vh; height:auto; width:auto;
   border-radius:6px; border:1px solid rgba(0,0,0,0.5);
-  outline:3px solid rgba(0,255,65,0.55);
+  outline:3px solid rgba(var(--green-rgb),0.55);
 }
 #card-zoom .zoom-label {
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
-  color:rgba(0,255,65,0.85); text-align:center; line-height:1.3;
+  color:rgba(var(--green-rgb),0.85); text-align:center; line-height:1.3;
   max-width:60vh;
 }
 #card-zoom .zoom-hint {
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  color:rgba(0,255,65,0.35); letter-spacing:0.05em;
+  color:rgba(var(--green-rgb),0.35); letter-spacing:0.05em;
 }
 
-.msg { max-width:720px; margin-left:auto; margin-right:auto; width:100%; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
-.msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; }
-.msg.assistant a:hover { color:rgba(0,255,120,1) !important; }
-.msg.assistant hr { border:none; border-top:1px solid rgba(0,255,65,0.35); margin:10px 0 16px; }
-.msg.assistant table { border-collapse:collapse; margin:6px 0; }
-.msg.assistant th, .msg.assistant td { border:1px solid rgba(0,255,65,0.25); padding:3px 10px; text-align:left; }
-.msg.assistant th { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.45); }
+/* centered 720px scrollback (chat-reader supplies the glow) */
+.msg { max-width:720px; margin-left:auto; margin-right:auto; width:100%; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 

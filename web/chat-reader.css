@@ -1,0 +1,29 @@
+/* Reader-voice chat skin — shared by /tarot and /mtg on top of chat.css.
+   Merges the input into the scrollback (no slab, no underline — the prompt
+   reads as the live last line) and gives assistant text the heavier,
+   slower "reader" presence. Page-specific layout (tarot centering/spread
+   offsets, mtg tooltip) stays in each template.
+   Palette tokens come from chrome.css :root. */
+
+/* nav sits above the ambient cyber animations (z-index 9990) */
+.exec-nav { z-index: 9995 !important; }
+
+/* merged input */
+#input-bar { transition: opacity 0.7s ease; background: transparent !important; border-top: none !important; padding: 0 20px 8px !important; }
+#input-line { border-bottom: none !important; padding: 0 !important; align-items: flex-start !important; }
+#input-prompt { font-size: 0.82rem !important; padding-right: 0.6em !important; line-height: 1.45 !important; }
+#terminal { padding-bottom: 0 !important; }
+
+/* phosphor glow on every message */
+.msg { text-shadow: 0 0 4px rgba(var(--green-rgb), 0.5), 0 0 10px rgba(var(--green-rgb), 0.3); }
+
+/* reader voice: slightly heavier, more breathing room */
+.msg.assistant { font-weight: 500; line-height: 1.7; letter-spacing: 0.01em; color: var(--green) !important; }
+.msg.assistant p { margin: 0 0 10px; }
+.msg.assistant strong { font-weight: 700; }
+.msg.assistant a { color: rgba(var(--teal-link-rgb), 0.7) !important; text-decoration: underline !important; }
+.msg.assistant a:hover { color: rgb(var(--teal-link-rgb)) !important; }
+.msg.assistant hr { border: none; border-top: 1px solid rgba(var(--green-rgb), 0.35); margin: 10px 0 16px; }
+.msg.assistant table { border-collapse: collapse; margin: 6px 0; }
+.msg.assistant th, .msg.assistant td { border: 1px solid rgba(var(--green-rgb), 0.25); padding: 3px 10px; text-align: left; }
+.msg.assistant th { color: var(--green); border-color: rgba(var(--green-rgb), 0.45); }
