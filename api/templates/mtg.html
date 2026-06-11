@@ -1,31 +1,15 @@
 
 <link rel="stylesheet" href="/chat.css?v=2">
+<link rel="stylesheet" href="/chat-reader.css?v=1">
 <style>
-/* nav sits above the ambient cyber animations (z-index 9990) */
-.exec-nav { z-index:9995 !important; }
+/* chat-reader.css carries the shared merged-input + reader-voice skin;
+   below: mtg-only — full-width scrollback + Scryfall card hovers */
+.msg { max-width:none; }
 
-/* chat look mirrored from tarot (no spread rules, no centering) */
-.msg { max-width:none; text-shadow:0 0 4px rgba(0,255,65,0.5), 0 0 10px rgba(0,255,65,0.3); }
-
-/* merge input into the scrollback: no slab, no underline — prompt reads as the live last line */
-#input-bar { transition: opacity 0.7s ease; background:transparent !important; border-top:none !important; padding:0 20px 8px !important; }
-#input-line { border-bottom:none !important; padding:0 !important; align-items:flex-start !important; }
-#input-prompt { font-size:0.82rem !important; padding-right:0.6em !important; line-height:1.45 !important; }
-#terminal { padding-bottom:0 !important; }
-
-/* reader voice */
-.msg.assistant { font-weight:500; line-height:1.7; letter-spacing:0.01em; color:rgba(0,255,65,1) !important; }
-.msg.assistant p { margin:0 0 10px; }
-.msg.assistant strong { font-weight:700; }
-
-.msg.assistant a { color:rgba(0,255,120,0.7) !important; text-decoration:underline !important; font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; }
-.msg.assistant a:hover { color:rgba(0,255,120,1) !important; }
-.msg.assistant hr { border:none; border-top:1px solid rgba(0,255,65,0.35); margin:10px 0 16px; }
-.msg.assistant table { border-collapse:collapse; margin:6px 0; }
-.msg.assistant th, .msg.assistant td { border:1px solid rgba(0,255,65,0.25); padding:3px 10px; text-align:left; }
-.msg.assistant th { color:rgba(0,255,65,1); border-color:rgba(0,255,65,0.45); }
-.msg.assistant [data-card] { text-decoration:underline dotted rgba(0,255,65,0.5); text-underline-offset:3px; cursor:pointer; }
-.msg.assistant [data-card]:hover { text-decoration:underline rgba(0,255,65,0.9); color:rgba(0,255,65,1); }
+/* plain external links keep body typography (chat-reader sets colors) */
+.msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; }
+.msg.assistant [data-card] { text-decoration:underline dotted rgba(var(--green-rgb),0.5); text-underline-offset:3px; cursor:pointer; }
+.msg.assistant [data-card]:hover { text-decoration:underline rgba(var(--green-rgb),0.9); color:var(--green); }
 #card-tooltip {
   position:fixed; z-index:9999; pointer-events:none;
   display:none; flex-direction:column; gap:0;
@@ -36,7 +20,7 @@
 }
 #card-tooltip.loading::after {
   content:''; display:block; width:223px; height:311px;
-  background:rgba(0,255,65,0.05); border:1px solid rgba(0,255,65,0.15);
+  background:rgba(var(--green-rgb),0.05); border:1px solid rgba(var(--green-rgb),0.15);
   border-radius:10px;
 }
 </style>
