@@ -115,7 +115,6 @@ body.pr-dragging .pr-unschedule.drag-over {
 .dir-tl-track { flex: 1; position: relative; background: rgb(24,30,28); }
 /* faint placeholder showing where a dragged block will land (Sortable-style) */
 .pr-drop-preview { opacity: 0.2; border: 1px dashed rgba(0,255,65,0.55); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: rgba(0,255,65,0.9); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
-.pr-drop-preview.day { padding: 5px 8px; margin-bottom: 4px; }
 .pr-drop-preview.today { position: absolute; left: 3px; right: 3px; background: rgba(0,255,65,0.12); padding: 5px 8px; }
 </style>
 
@@ -313,8 +312,17 @@ function createBlock(c, track) {
       if (tgt && tgt !== isoToday()) {
         const list = document.getElementById('pr-list-' + tgt);
         if (!list) { if (preview) { preview.remove(); preview = null; } return; }
-        if (!preview || preview.dataset.ctx !== 'day') { if (preview) preview.remove(); preview = mkPreview('day'); }
-        const ref = [...list.querySelectorAll('.pr-card')].find(el => {
+        if (!preview || preview.dataset.ctx !== 'day') {
+          if (preview) preview.remove();
+          // a real (faded) card so it matches the Sortable placeholder exactly
+          const tmp = document.createElement('div');
+          tmp.innerHTML = renderCard(c, tgt);
+          preview = tmp.firstElementChild;
+          preview.dataset.ctx = 'day';
+          preview.classList.add('sortable-ghost');
+          preview.style.pointerEvents = 'none';
+        }
+        const ref = [...list.querySelectorAll('.pr-card')].filter(el => el !== preview).find(el => {
           const r = el.getBoundingClientRect();
           return y < r.top + r.height / 2;
         });
