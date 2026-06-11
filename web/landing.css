@@ -1,0 +1,41 @@
+/* Public landing page (/) — centered icon column + cyberpunk boot-in.
+   Loaded after chrome.css; .cyber-bg / .cyber-scan come from chrome.css
+   (top layer, screen blend). */
+
+body{display:flex!important;align-items:center;justify-content:center;
+  min-height:100vh;overflow:hidden;position:relative;}
+
+/* nav column */
+.exec-nav.landing-nav{position:relative;z-index:2;left:auto;right:auto;bottom:auto;
+  width:auto;flex-direction:column;justify-content:center;gap:36px;
+  padding:0;background:none;border:none;backdrop-filter:none;}
+
+.exec-nav.landing-nav a{flex:0 0 auto;max-width:none;gap:6px;
+  opacity:0;animation: cyber-bootin 0.6s ease forwards;}
+.exec-nav.landing-nav a:nth-child(1){animation-delay:0.15s}
+.exec-nav.landing-nav a:nth-child(2){animation-delay:0.30s}
+.exec-nav.landing-nav a:nth-child(3){animation-delay:0.45s}
+
+@keyframes cyber-bootin{from{opacity:0;transform:translateY(12px);filter:blur(6px)}
+  to{opacity:1;transform:none;filter:none}}
+
+.exec-nav.landing-nav a img{width:34px!important;height:34px!important;
+  transition:transform 0.2s;}
+.exec-nav.landing-nav a:hover img{transform:scale(1.12);}
+
+.exec-nav.landing-nav .nav-label{color:rgba(var(--green-rgb),0.7);
+  text-shadow:0 0 6px rgba(var(--green-rgb),0.4);}
+
+.exec-nav.landing-nav a:hover .nav-label{color:var(--green);
+  text-shadow:0 0 10px rgba(var(--green-rgb),0.85);}
+
+/* admin */
+.landing-admin{position:fixed;bottom:18px;right:20px;z-index:2;
+  font-family:'04b25',monospace;font-size:0.5rem;text-transform:uppercase;
+  letter-spacing:0.1em;text-decoration:none;color:rgba(var(--green-rgb),0.4);
+  transition:color 0.2s,text-shadow 0.2s;}
+.landing-admin:hover{color:var(--green);text-shadow:0 0 8px rgba(var(--green-rgb),0.7);}
+
+@media (prefers-reduced-motion: reduce){
+  .cyber-bg,.cyber-scan,.exec-nav.landing-nav a,.exec-nav.landing-nav a img{animation:none!important}
+  .exec-nav.landing-nav a{opacity:1}}
