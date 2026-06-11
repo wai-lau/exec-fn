@@ -58,16 +58,16 @@
       #exec-bubble {
         position: fixed; z-index: 9000;
         width: 50px; height: 50px; border-radius: 50%;
-        background: rgba(224,74,125,0.1);
-        border: 1.5px solid rgba(224,74,125,0.32);
+        background: rgba(var(--pink-rgb),0.1);
+        border: 1.5px solid rgba(var(--pink-rgb),0.32);
         display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 2px 16px rgba(224,74,125,0.15);
+        box-shadow: 0 2px 16px rgba(var(--pink-rgb),0.15);
         cursor: pointer; touch-action: none; user-select: none;
         transition: background 0.15s, box-shadow 0.15s;
       }
       #exec-bubble:hover {
-        background: rgba(224,74,125,0.2);
-        box-shadow: 0 2px 22px rgba(224,74,125,0.3);
+        background: rgba(var(--pink-rgb),0.2);
+        box-shadow: 0 2px 22px rgba(var(--pink-rgb),0.3);
       }
       #exec-bubble img {
         width: 26px; height: 26px; border-radius: 6px;
@@ -75,7 +75,7 @@
       }
       #exec-badge {
         position: absolute; top: -3px; right: -3px;
-        background: rgba(220,50,50,0.9); color: #fff;
+        background: rgba(var(--red-dark-rgb),0.9); color: #fff;
         font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 9px; font-weight: 700;
         min-width: 15px; height: 15px; border-radius: 8px;
         display: none; align-items: center; justify-content: center;
@@ -88,7 +88,7 @@
            keyboard (nav hidden) when an input is focused — see html.kb-open */
         width: 80vw; height: calc(var(--vvh, 100vh) - var(--nav-h, 56px));
         background: rgba(10,10,10,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(0,255,65,0.07); border-top: none;
+        border: 1px solid rgba(var(--green-rgb),0.07); border-top: none;
         display: flex; flex-direction: column; z-index: 8999;
         transform: translateX(-50%) translateY(-100%);
         transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
@@ -106,48 +106,48 @@
       #exec-ph-close {
         flex-shrink: 0;
         background: none; border: none;
-        cursor: pointer; color: rgba(0,255,65,0.3);
+        cursor: pointer; color: rgba(var(--green-rgb),0.3);
         font-family: 'Iosevka Mayukai Monolite', monospace;
         font-size: 0.78rem; padding: 4px 6px; margin-left: 8px;
         transition: color 0.15s;
       }
-      #exec-ph-close:hover { color: rgba(0,255,65,0.8); }
+      #exec-ph-close:hover { color: rgba(var(--green-rgb),0.8); }
 
       #exec-term {
         flex: 1; overflow-y: auto; padding: 12px 14px;
-        font-size: 0.82rem; line-height: 1.45; color: rgba(0,255,65,0.9);
+        font-size: 0.82rem; line-height: 1.45; color: rgba(var(--green-rgb),0.9);
         display: flex; flex-direction: column;
       }
       #exec-term::before { content: ""; flex: 1; }
       #exec-term::-webkit-scrollbar { width: 3px; }
       #exec-term::-webkit-scrollbar-track { background: transparent; }
-      #exec-term::-webkit-scrollbar-thumb { background: rgba(0,255,65,0.12); border-radius: 2px; }
+      #exec-term::-webkit-scrollbar-thumb { background: rgba(var(--green-rgb),0.12); border-radius: 2px; }
 
       #exec-term .msg { margin-bottom: 5px; overflow-wrap: break-word; }
       #exec-term .msg-ts { color: rgba(255,255,255,0.18); font-size: 0.88em; }
-      #exec-term .msg.assistant { color: rgba(0,255,65,0.92); display: flex; align-items: flex-start; }
+      #exec-term .msg.assistant { color: rgba(var(--green-rgb),0.92); display: flex; align-items: flex-start; }
       #exec-term .msg.assistant::before { content: ">"; opacity: 0.38; flex-shrink: 0; margin-right: 0.4em; }
       #exec-term .msg.assistant p { margin: 0 0 5px; }
       #exec-term .msg.assistant p:last-child { margin-bottom: 0; }
-      #exec-term .msg.assistant strong { color: rgba(0,255,65,1); }
-      #exec-term .msg.assistant em { color: rgba(0,255,65,0.75); font-style: italic; }
-      #exec-term .msg.assistant code { background: rgba(0,255,65,0.08); padding: 1px 3px; border-radius: 2px; font-size: 0.91em; }
-      #exec-term .msg.assistant pre { background: rgba(0,255,65,0.05); border: 1px solid rgba(0,255,65,0.12); padding: 6px 10px; border-radius: 3px; overflow-x: auto; margin: 5px 0; }
+      #exec-term .msg.assistant strong { color: rgba(var(--green-rgb),1); }
+      #exec-term .msg.assistant em { color: rgba(var(--green-rgb),0.75); font-style: italic; }
+      #exec-term .msg.assistant code { background: rgba(var(--green-rgb),0.08); padding: 1px 3px; border-radius: 2px; font-size: 0.91em; }
+      #exec-term .msg.assistant pre { background: rgba(var(--green-rgb),0.05); border: 1px solid rgba(var(--green-rgb),0.12); padding: 6px 10px; border-radius: 3px; overflow-x: auto; margin: 5px 0; }
       #exec-term .msg.assistant pre code { background: none; padding: 0; }
       #exec-term .msg.assistant ul, #exec-term .msg.assistant ol { margin: 3px 0 3px 14px; padding: 0; }
       #exec-term .msg.assistant li { margin-bottom: 2px; }
-      #exec-term .msg.assistant h1, #exec-term .msg.assistant h2, #exec-term .msg.assistant h3 { color: rgba(0,255,65,1); font-size: 1em; font-weight: bold; margin: 6px 0 3px; }
+      #exec-term .msg.assistant h1, #exec-term .msg.assistant h2, #exec-term .msg.assistant h3 { color: rgba(var(--green-rgb),1); font-size: 1em; font-weight: bold; margin: 6px 0 3px; }
       #exec-term .msg-body { flex: 1; min-width: 0; }
       #exec-term .msg.user { color: rgba(255,255,255,0.72); display: flex; align-items: flex-start; }
       #exec-term .msg.user::before { content: "$"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
-      #exec-term .msg.sys { color: rgba(0,255,65,0.24); font-size: 0.72rem; }
+      #exec-term .msg.sys { color: rgba(var(--green-rgb),0.24); font-size: 0.72rem; }
       #exec-term .msg.sys::before { content: "# "; }
-      #exec-term .msg.probe { color: rgba(0,255,65,0.85); font-size: 0.78rem; font-style: italic; display: flex; align-items: flex-start; }
+      #exec-term .msg.probe { color: rgba(var(--green-rgb),0.85); font-size: 0.78rem; font-style: italic; display: flex; align-items: flex-start; }
       #exec-term .msg.probe::before { content: "~"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
       #exec-term .msg.probe .msg-body { font-style: italic; }
 
       #exec-bc { display: inline-flex; gap: 3px; align-items: center; height: 1.1em; vertical-align: text-bottom; }
-      #exec-bc span { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: rgba(0,255,65,0.85); animation: execdot 1.2s ease-in-out infinite; }
+      #exec-bc span { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: rgba(var(--green-rgb),0.85); animation: execdot 1.2s ease-in-out infinite; }
       #exec-bc span:nth-child(2) { animation-delay: 0.2s; }
       #exec-bc span:nth-child(3) { animation-delay: 0.4s; }
       @keyframes execdot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
@@ -156,12 +156,12 @@
       /* transparent merged input, mirrors tarot/mtg; flush to panel bottom (keyboard) */
       #exec-input-area { flex-shrink: 0; padding: 0 14px; background: transparent; }
       #exec-iline { display: flex; align-items: center; padding: 8px 0 0; }
-      #exec-prompt { color: rgba(0,255,65,0.55); font-size: 0.9rem; white-space: nowrap; user-select: none; padding-right: 8px; }
+      #exec-prompt { color: rgba(var(--green-rgb),0.55); font-size: 0.9rem; white-space: nowrap; user-select: none; padding-right: 8px; }
       #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
       #exec-idisp { display: none; }
       #exec-icursor { display: none; }
-      #exec-minput { width: 100%; background: none; border: none; color: rgba(0,255,65,0.95); caret-color: rgba(0,255,65,0.9); font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-size: 0.82rem; padding: 0; outline: none; line-height: 1.45; min-height: 1.45em; overflow-wrap: anywhere; }
-      #exec-minput:empty::before { content: attr(data-placeholder); color: rgba(0,255,65,0.15); }
+      #exec-minput { width: 100%; background: none; border: none; color: rgba(var(--green-rgb),0.95); caret-color: rgba(var(--green-rgb),0.9); font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500; font-size: 0.82rem; padding: 0; outline: none; line-height: 1.45; min-height: 1.45em; overflow-wrap: anywhere; }
+      #exec-minput:empty::before { content: attr(data-placeholder); color: rgba(var(--green-rgb),0.15); }
     `;
     const el = document.createElement('style');
     el.textContent = css;
