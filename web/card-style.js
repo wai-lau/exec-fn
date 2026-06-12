@@ -1,7 +1,7 @@
 /* Shared card color lookup — used by kanban, prophecies, card-dialog.
-   The colors themselves live in chrome.css :root (--cat-* hue knobs,
-   --card-* size variants, computed once by the browser); this file only
-   fetches the right token for a card. */
+   The colors themselves live in chrome.css :root (--cat-*-h/-s/-l base
+   channels, --card-* size variants, computed once by the browser); this
+   file only fetches the right token for a card. */
 const CARD_CATS = ['Self', 'Social', 'Interfacing', 'Hobby'];
 
 function _catKey(c) {
@@ -27,7 +27,8 @@ function cardStyle(c) {
 }
 
 /* Bar chips (reminders/books bars + overflow rows) — softer fills than
-   cards, composed from the same per-category hue knobs. */
+   cards, composed from the same per-category base channels (saturation
+   offsets from --cat-*-s, chip-specific lightness). */
 // eslint-disable-next-line no-unused-vars
 function chipStyle(c) {
   const cat = _catKey(c);
@@ -38,6 +39,6 @@ function chipStyle(c) {
       border: 'hsl(var(--green-hsl) / 0.12)',
     };
   }
-  const f = (s, l) => `hsl(var(--cat-${cat}-h) calc(${s}% + var(--cat-${cat}-ds)) ${l}%)`;
-  return {color: f(75, 72), bg: f(55, 18), border: f(50, 32)};
+  const f = (sOff, l) => `hsl(var(--cat-${cat}-h) calc(var(--cat-${cat}-s) + ${sOff}%) ${l}%)`;
+  return {color: f(0, 72), bg: f(-20, 18), border: f(-25, 32)};
 }

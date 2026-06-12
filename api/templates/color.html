@@ -40,8 +40,8 @@ body { overflow-y: auto !important; }
   <div class="clr-note">
     palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.
     every color is a hue-based <code>-hsl</code> channel token; category card
-    colors are <code>--card-*</code> tokens computed once from per-category hue
-    knobs (<code>--cat-*-h</code>) and shown grouped
+    colors are <code>--card-*</code> tokens computed once from a per-category
+    base <code>H S% L%</code> (<code>--cat-*-h/-s/-l</code>) and shown grouped
     (segments: chore / task / project / titan fills).
     <code>-hsl</code> tokens show only the alpha steps actually in use,
     low to high.
@@ -51,7 +51,7 @@ body { overflow-y: auto !important; }
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
 
-<script src="/card-style.js?v=5"></script>
+<script src="/card-style.js?v=6"></script>
 <script>
 /* global cardStyle, CARD_CATS */
 function esc(s) {
@@ -90,12 +90,12 @@ function categoryTokens(tokenMap) {
     const segs = ['chore', 'task', 'project', 'titan']
       .map(sz => cardStyle({ category: cat, size: sz }).bg);
     const key = cat.toLowerCase();
-    const h = tokenMap[`cat-${key}-h`], ds = tokenMap[`cat-${key}-ds`];
+    const h = tokenMap[`cat-${key}-h`], s = tokenMap[`cat-${key}-s`], l = tokenMap[`cat-${key}-l`];
     return {
       name: `${cat} cards`,
       cssVar: false,
-      value: `hue ${h}, sat bias ${ds}`,
-      use: 'kanban card fills by size — --card-* tokens from the hue knob',
+      value: `${h} ${s} ${l}`,
+      use: 'kanban card fills by size — --card-* tokens from the base channels',
       segs,
       count: null,
       hue: parseFloat(h),

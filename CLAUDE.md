@@ -50,7 +50,7 @@ exec-fn/
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
     card-dialog.js        # shared card edit dialog used by kanban/prophecies/directives
     card-style.js         # cardStyle()/chipStyle(): fetch the right --card-*/--cat-* token for a card — no color math in JS
-    chrome.css            # shared chrome + THE PALETTE, hue-based: every color is an H S% L% channel token (--green-hsl etc.); consume as hsl(var(--X-hsl) / α). Category card colors = --cat-*-h hue knobs + materialized --card-* size variants (computed once here). No hard-coded palette literals outside this file (page-unique accents may declare local :root vars, e.g. tarot --ember-hsl)
+    chrome.css            # shared chrome + THE PALETTE, hue-based: every color is an H S% L% channel token (--green-hsl etc.); consume as hsl(var(--X-hsl) / α). Category card colors = --cat-*-h/-s/-l base channels (same H S% L% units as the palette) + materialized --card-* size variants (calc offsets, computed once here). No hard-coded palette literals outside this file (page-unique accents may declare local :root vars, e.g. tarot --ember-hsl)
     chat.css              # terminal chat base (mtg, tarot)
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
