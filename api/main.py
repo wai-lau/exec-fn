@@ -698,9 +698,11 @@ async def color_page(request: Request):
 
 @public.get("/api/color/usage")
 async def color_usage():
-    """var(--X) occurrence counts across templates + web assets, for the
-    /color moodboard. Definitions (`--x:`) don't match, so chrome.css only
-    contributes its own genuine usages. Public: token names only."""
+    """var(--X) occurrence counts + actually-used alphas per -hsl token,
+    across templates + web assets, for the /color moodboard. Definitions
+    (`--x:`) don't match, so chrome.css only contributes its own genuine
+    usages. Bare hsl(var(--X-hsl)) counts as alpha 1. Public: token names
+    only."""
     paths = [
         *Path("/app/templates").glob("*.html"),
         *Path("/app/static").glob("*.css"),
@@ -708,6 +710,7 @@ async def color_usage():
         Path("/app/main.py"),
     ]
     counts: dict[str, int] = {}
+    alphas: dict[str, set[float]] = {}
     for p in paths:
         try:
             text = p.read_text()
@@ -719,7 +722,9 @@ async def color_usage():
             text = re.sub(r":root\s*\{[^}]*\}", "", text)
         for name in re.findall(r"var\(--([\w-]+)", text):
             counts[name] = counts.get(name, 0) + 1
-    return counts
+        for name, alpha in re.findall(r"var\(--([\w-]+-hsl)\)(?:\s*/\s*([\d.]+))?", text):
+            alphas.setdefault(name, set()).add(float(alpha) if alpha else 1.0)
+    return {"counts": counts, "alphas": {k: sorted(v) for k, v in alphas.items()}}
 
 
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.

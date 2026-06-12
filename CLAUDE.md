@@ -159,7 +159,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: flat hue-sorted 3-col grid of chrome.css `:root` tokens (swatch + name + value + usage below; alpha ramps for `-hsl`; category cards grouped with size-fill segments). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
+| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: flat hue-sorted 3-col grid of chrome.css `:root` tokens (swatch + name + value + usage below; alpha ramps for `-hsl` show only alphas actually in use; category cards grouped with size-fill segments). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
@@ -193,7 +193,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | POST | `/api/assemble_plan` | Run the assemble_plan tool from current directives.json (legacy plan pipeline). |
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
 | GET | `/data/{filename}` | Serve file from /app/data/ (path-traversal guarded) |
-| GET | `/api/color/usage` | Public. `{token: count}` of `var(--X)` references across templates + web assets (chrome.css `:root` block excluded). Feeds the ×N badges on `/color` |
+| GET | `/api/color/usage` | Public. `{counts: {token: n}, alphas: {token: [α…]}}` — `var(--X)` reference counts + actually-used alphas per `-hsl` token across templates + web assets (chrome.css `:root` block excluded; bare `hsl(var(--X-hsl))` = α 1). Feeds the ×N badges + alpha ramps on `/color` |
 | GET | `/api/mtg/log` | mtg chat history |
 | POST | `/api/mtg/chat` | mtg chat (tool-use over rules) SSE |
 | GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |

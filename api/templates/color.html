@@ -43,7 +43,8 @@ body { overflow-y: auto !important; }
     colors are <code>--card-*</code> tokens computed once from per-category hue
     knobs (<code>--cat-*-h</code>) and shown grouped
     (segments: chore / task / project / titan fills).
-    <code>-hsl</code> tokens show their alpha ramp (0.1 / 0.3 / 0.6 / 1.0).
+    <code>-hsl</code> tokens show only the alpha steps actually in use,
+    low to high.
     ×N = <code>var(--token)</code> references across templates + web assets.
     hidden: unused tokens.
   </div>
@@ -72,7 +73,7 @@ function swatchHtml(t) {
     return `<div class="${cls}">${t.segs.map(s => `<span style="${s}"></span>`).join('')}</div>`;
   }
   if (name.endsWith('-hsl')) {
-    const ramp = [0.1, 0.3, 0.6, 1.0]
+    const ramp = (t.alphas && t.alphas.length ? t.alphas : [1])
       .map(a => `<span style="background:hsl(${esc(value)} / ${a});${fx}"></span>`).join('');
     return `<div class="${cls}">${ramp}</div>`;
   }
@@ -125,9 +126,11 @@ function hueKey(t) {
 // Hide the category machinery (--cat-* knobs, --card-* variants — shown
 // grouped via categoryTokens) and anything with zero usage.
 function visibleTokens(tokens, usage) {
+  const counts = usage.counts || {};
+  const alphas = usage.alphas || {};
   return tokens
     .filter(t => !t.name.startsWith('cat-') && !t.name.startsWith('card-'))
-    .map(t => ({ ...t, count: usage[t.name] || 0 }))
+    .map(t => ({ ...t, count: counts[t.name] || 0, alphas: alphas[t.name] || [] }))
     .filter(t => t.count > 0);
 }
 
@@ -157,7 +160,7 @@ async function loadColors() {
       fetch('/api/color/usage'),
     ]);
     const css = await cssRes.text();
-    const usage = usageRes.ok ? await usageRes.json() : {};
+    const usage = usageRes.ok ? await usageRes.json() : { counts: {}, alphas: {} };
     const parsed = parsePalette(css);
     const tokenMap = Object.fromEntries(parsed.map(t => [t.name, t.value]));
     const tokens = [...visibleTokens(parsed, usage), ...categoryTokens(tokenMap)]
