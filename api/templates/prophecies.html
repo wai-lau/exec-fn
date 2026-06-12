@@ -67,18 +67,18 @@ body { overflow: hidden !important; }
   position: fixed; bottom: 0; left: 0; right: 0; height: 58px; z-index: 25;
   display: flex; align-items: center; justify-content: center;
   font-family: monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
-  color: hsl(var(--red-hsl) / 0); border-top: 1px solid hsl(var(--red-hsl) / 0);
+  color: hsl(var(--orange-glow-hsl) / 0); border-top: 1px solid hsl(var(--orange-glow-hsl) / 0);
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   pointer-events: none;
 }
 body.pr-dragging .pr-unschedule {
   pointer-events: all;
-  color: hsl(var(--red-hsl) / 0.55); border-top-color: hsl(var(--red-hsl) / 0.3);
-  background: hsl(var(--red-dark-hsl) / 0.06);
+  color: hsl(var(--orange-glow-hsl) / 0.55); border-top-color: hsl(var(--orange-glow-hsl) / 0.3);
+  background: hsl(var(--orange-glow-hsl) / 0.06);
 }
 body.pr-dragging .pr-unschedule.drag-over {
-  color: hsl(var(--red-hsl)); border-top-color: hsl(var(--red-hsl) / 0.8);
-  background: hsl(var(--red-dark-hsl) / 0.18);
+  color: hsl(var(--orange-glow-hsl)); border-top-color: hsl(var(--orange-glow-hsl) / 0.8);
+  background: hsl(var(--orange-glow-hsl) / 0.18);
 }
 .pr-toast {
   position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
@@ -157,7 +157,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 
 <script src="/card-style.js?v=3"></script>
 <script src="/card-graph.js?v=12"></script>
-<script src="/card-dialog.js?v=12"></script>
+<script src="/card-dialog.js?v=13"></script>
 
 <script>
 /* global cardStyle */
@@ -222,7 +222,7 @@ function renderCard(c, dayIso) {
   const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="pr-overdue">!</span>' : '';
   const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
   const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
-  const dueC = (dayIso && isOverdue(c, dayIso)) ? 'hsl(var(--red-hsl) / 0.9)' : metaC;
+  const dueC = (dayIso && isOverdue(c, dayIso)) ? 'hsl(var(--orange-glow-hsl) / 0.9)' : metaC;
   const due = c.due_date ? `<span class="pr-due" style="color:${dueC}">due ${c.due_date.slice(5).replace('T',' ')}</span>` : '';
   const metaHtml = (recur || due) ? `<div class="pr-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
