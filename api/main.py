@@ -619,7 +619,11 @@ async def login_page(request: Request, next: str = ""):
     redirect target (`?next=`) or `/rd`; everyone else gets the form."""
     if request.cookies.get("session") == SESSION_TOKEN:
         return RedirectResponse(url=_safe_local_path(next, "/rd"), status_code=302)
-    return FileResponse(str(_STATIC_INDEX))
+    # chrome.css supplies the palette tokens (--pink-hsl). Injected at the TOP
+    # of head so the page's own body/layout styles still win the cascade —
+    # unlike _render_page, which injects at the bottom to override them.
+    raw = _STATIC_INDEX.read_text()
+    return HTMLResponse(raw.replace('<meta charset="UTF-8">', '<meta charset="UTF-8">' + _CHROME_LINK, 1))
 
 
 _GUEST_AUDIO_HTML = (
@@ -705,6 +709,7 @@ async def color_usage():
     only."""
     paths = [
         *Path("/app/templates").glob("*.html"),
+        *Path("/app/static").glob("*.html"),
         *Path("/app/static").glob("*.css"),
         *Path("/app/static").glob("*.js"),
         Path("/app/main.py"),

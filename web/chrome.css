@@ -43,7 +43,7 @@
   /* ── Warms ───────────────────────────────────────────────────────────── */
   --orange-hsl:          33 100% 58%;   /* now-clock text, dive badge, dirs source, overdue labels/tooltips in prophecies, mention type badge, tarot reversed marker (absorbs 17 100% 66% + yellow 41 100% 66%) */
   --orange-glow-hsl:     24 100% 50%;   /* now-clock glow — layered alphas; danger: overdue dates, drop zones, exile buttons, error text/fill, badge (absorbs red 0 100% 66% + red-dark 0 100% 56%) */
-  --pink-hsl:            340 71% 58%;   /* exec bubble panel, vain-empress entries */
+  --pink-hsl:            340 71% 58%;   /* exec bubble panel, vain-empress entries, admin login box (absorbs rgb(224,74,125)) */
 
   /* ── Neutrals ────────────────────────────────────────────────────────── */
   --bg-hsl:              160 11% 11%;   /* main page bg + column bg + input slabs */
