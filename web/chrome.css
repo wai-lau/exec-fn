@@ -46,9 +46,9 @@
   --pink-hsl:            340 71% 58%;   /* exec bubble panel, vain-empress entries, admin login box (absorbs rgb(224,74,125)) */
 
   /* ── Neutrals ────────────────────────────────────────────────────────── */
-  --bg-hsl:              160 11% 11%;   /* main page bg + column bg + input slabs */
+  --bg-hsl:              160 11% 11%;   /* main page bg + column bg + input slabs + timeline past-hider, always solid */
   --surface-hsl:         0 0% 4%;       /* card dialog, popup panels (was surface-modal) */
-  --scrim-hsl:           0 0% 0%;       /* nav backdrop @ 0.5, modal scrim @ 0.78 */
+  --scrim-hsl:           0 0% 0%;       /* nav backdrop + modal scrims, all @ 0.45 */
   --gray-hsl:            0 0% 78%;      /* timeline hour labels @ 0.55 */
 
   /* ── Category cards (hue knob + sat bias per category; size variants
