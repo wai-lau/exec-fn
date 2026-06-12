@@ -106,8 +106,10 @@ function parsePalette(css) {
   if (!root) return [];
   const tokens = [];
   for (const line of root[1].split('\n')) {
-    const tok = line.match(/^\s*--([\w-]+):\s*([^;]+);\s*(?:\/\*\s*(.*?)\s*\*\/)?/);
-    if (tok) tokens.push({ name: tok[1], value: tok[2].trim(), use: tok[3] || '' });
+    // matchAll, not match — the --cat-* knobs sit two declarations per line
+    for (const tok of line.matchAll(/--([\w-]+):\s*([^;]+);\s*(?:\/\*\s*(.*?)\s*\*\/)?/g)) {
+      tokens.push({ name: tok[1], value: tok[2].trim(), use: tok[3] || '' });
+    }
   }
   return tokens;
 }
