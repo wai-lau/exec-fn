@@ -54,9 +54,9 @@
   /* ── Category cards (base H S% L% channels per category — same units as
         the palette tokens; size variants = calc offsets from the base,
         computed once here, fetched by card-style.js) ──────────────────────── */
-  --cat-self-h:         198;  --cat-self-s:         110%;  --cat-self-l:         68%;
+  --cat-self-h:         198;  --cat-self-s:         100%;  --cat-self-l:         68%;
   --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;
-  --cat-interfacing-h:  36;  --cat-interfacing-s:  110%;  --cat-interfacing-l:  68%;
+  --cat-interfacing-h:  36;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;
   --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));
   --card-self-chore:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.15);
