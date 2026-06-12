@@ -24,7 +24,7 @@ body{display:flex!important;align-items:center;justify-content:center;
   transition:transform 0.2s;}
 .exec-nav.landing-nav a:hover img{transform:scale(1.12);}
 
-.exec-nav.landing-nav .nav-label{color:hsl(var(--green-hsl) / 0.6);
+.exec-nav.landing-nav .nav-label{color:hsl(var(--green-hsl) / 0.45);
   text-shadow:0 0 6px hsl(var(--green-hsl) / 0.45);}
 
 .exec-nav.landing-nav a:hover .nav-label{color:hsl(var(--green-hsl));
@@ -35,7 +35,7 @@ body{display:flex!important;align-items:center;justify-content:center;
   font-family:'04b25',monospace;font-size:0.5rem;text-transform:uppercase;
   letter-spacing:0.1em;text-decoration:none;color:hsl(var(--green-hsl) / 0.45);
   transition:color 0.2s,text-shadow 0.2s;}
-.landing-admin:hover{color:hsl(var(--green-hsl));text-shadow:0 0 8px hsl(var(--green-hsl) / 0.6);}
+.landing-admin:hover{color:hsl(var(--green-hsl));text-shadow:0 0 8px hsl(var(--green-hsl) / 0.45);}
 
 @media (prefers-reduced-motion: reduce){
   .cyber-bg,.cyber-scan,.exec-nav.landing-nav a,.exec-nav.landing-nav a img{animation:none!important}

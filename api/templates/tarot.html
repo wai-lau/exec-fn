@@ -1,7 +1,7 @@
 
 <script>if((navigator.maxTouchPoints||0)===0)document.documentElement.classList.add('no-touch');</script>
-<link rel="stylesheet" href="/chat.css?v=7">
-<link rel="stylesheet" href="/chat-reader.css?v=4">
+<link rel="stylesheet" href="/chat.css?v=8">
+<link rel="stylesheet" href="/chat-reader.css?v=5">
 <style>
 /* chat-reader.css carries the shared merged-input + reader-voice skin;
    below: tarot-only — spread layout, cards, zoom, centered scrollback */
@@ -49,7 +49,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   font-size:clamp(0.45rem, 1.1vw, 0.7rem);
   white-space:nowrap;
   line-height:1; padding:4px 6px; cursor:pointer; border-radius:50%;
-  text-shadow:0 0 6px hsl(var(--green-hsl) / 0.6);
+  text-shadow:0 0 6px hsl(var(--green-hsl) / 0.45);
   animation: btn-pulse 2.6s ease-in-out infinite;
   transition:color 0.15s, transform 0.15s, text-shadow 0.15s;
 }
@@ -125,7 +125,7 @@ body.reader-speaking .tarot-card[data-next="true"] {
   outline:0 solid hsl(var(--green-hsl) / 0);
 }
 @keyframes nextpulse {
-  0%,100% { outline:1px solid hsl(var(--green-hsl) / 0.25); }
+  0%,100% { outline:1px solid hsl(var(--green-hsl) / 0.12); }
   50%     { outline:2px solid hsl(var(--green-hsl) / 0.45); }
 }
 .msg.event { color:hsl(var(--green-hsl) / 0.45); font-style:italic; font-size:0.74rem; margin:6px auto; }
@@ -153,7 +153,7 @@ body.reader-speaking .tarot-card[data-next="true"] {
   position:absolute; left:50%; bottom:calc(100% + 4px);
   transform:translateX(-50%);
   white-space:nowrap;
-  color:hsl(var(--green-hsl) / 0.6);
+  color:hsl(var(--green-hsl) / 0.45);
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
   text-align:center; line-height:1.15;
   pointer-events:none;
@@ -183,7 +183,7 @@ body.reader-speaking .tarot-card[data-next="true"] {
 #card-zoom img {
   max-width:min(90vw, 60vh); max-height:80vh; height:auto; width:auto;
   border-radius:6px; border:1px solid rgba(0,0,0,0.5);
-  outline:3px solid hsl(var(--green-hsl) / 0.6);
+  outline:3px solid hsl(var(--green-hsl) / 0.45);
 }
 #card-zoom .zoom-label {
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
@@ -192,7 +192,7 @@ body.reader-speaking .tarot-card[data-next="true"] {
 }
 #card-zoom .zoom-hint {
   font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  color:hsl(var(--green-hsl) / 0.25); letter-spacing:0.05em;
+  color:hsl(var(--green-hsl) / 0.12); letter-spacing:0.05em;
 }
 
 /* centered 720px scrollback (chat-reader supplies the glow) */

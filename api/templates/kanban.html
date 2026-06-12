@@ -10,7 +10,7 @@ body { overflow: hidden !important; }
   flex-direction: column; align-items: stretch;
   padding: 0; gap: 0; overflow-x: hidden; overflow-y: auto;
   scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: touch;
-  background: rgba(0,0,0,0.2); border-bottom: 1px solid hsl(var(--green-hsl) / 0.06);
+  background: rgba(0,0,0,0.2); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-family: 'BitLight', monospace; font-size: 0.63rem;
 }
 .rd-reminders { left: 0; width: 50%; z-index: 19; border-right: 1px solid hsl(var(--green-hsl) / 0.12); }
@@ -18,7 +18,7 @@ body { overflow: hidden !important; }
 .rd-reminders::-webkit-scrollbar, .pr-books::-webkit-scrollbar { display: none; }
 .has-reminders .rd-reminders { display: flex; }
 .has-books .pr-books { display: flex; }
-.dragging-card .rd-reminders { display: flex !important; min-height: 48px; border-bottom-color: hsl(var(--green-hsl) / 0.25); }
+.dragging-card .rd-reminders { display: flex !important; min-height: 48px; border-bottom-color: hsl(var(--green-hsl) / 0.12); }
 
 /* bar chips */
 .rd-reminders .rem-item, .pr-books .book-item {
@@ -37,24 +37,24 @@ body { overflow: hidden !important; }
 /* +N overflow buttons (reminders: bottom corner, books: top corner) */
 .rem-overflow-btn, .book-overflow-btn {
   position: absolute; right: 2px; background: rgba(0,0,0,0.8);
-  border: 1px solid hsl(var(--green-hsl) / 0.25); color: hsl(var(--green-hsl) / 0.6);
+  border: 1px solid hsl(var(--green-hsl) / 0.12); color: hsl(var(--green-hsl) / 0.45);
   font-family: 'BitLight', monospace; font-size: 0.55rem; padding: 2px 6px;
   border-radius: 2px; cursor: pointer; white-space: nowrap; line-height: 1.4;
 }
 .rem-overflow-btn { bottom: 2px; }
 .book-overflow-btn { top: 2px; }
-.rem-overflow-btn:hover, .book-overflow-btn:hover { border-color: hsl(var(--green-hsl) / 0.6); color: hsl(var(--green-hsl) / 1); }
+.rem-overflow-btn:hover, .book-overflow-btn:hover { border-color: hsl(var(--green-hsl) / 0.45); color: hsl(var(--green-hsl) / 1); }
 
 /* overflow modals (shared skin) */
 .rem-ov-modal, .book-ov-modal { display: none; position: fixed; inset: 0; z-index: 60; background: hsl(var(--scrim-hsl) / 0.8); align-items: center; justify-content: center; }
-.rem-ov-box, .book-ov-box { background: hsl(var(--surface-hsl)); border: 1px solid hsl(var(--green-hsl) / 0.25); padding: 20px 24px; width: min(360px,88vw); max-height: 70vh; display: flex; flex-direction: column; font-family: 'BitLight', monospace; }
+.rem-ov-box, .book-ov-box { background: hsl(var(--surface-hsl)); border: 1px solid hsl(var(--green-hsl) / 0.12); padding: 20px 24px; width: min(360px,88vw); max-height: 70vh; display: flex; flex-direction: column; font-family: 'BitLight', monospace; }
 .rem-ov-hdr, .book-ov-hdr { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: hsl(var(--green-hsl) / 0.45); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
 .rem-ov-close, .book-ov-close { background: none; border: none; color: hsl(var(--green-hsl) / 0.45); font-size: 1rem; cursor: pointer; padding: 0; line-height: 1; }
 .rem-ov-close:hover, .book-ov-close:hover { color: hsl(var(--green-hsl) / 1); }
 .rem-ov-list, .book-ov-list { overflow-y: auto; flex: 1; }
-.rem-ov-row, .book-ov-row { padding: 7px 4px; font-size: 0.75rem; cursor: pointer; border-bottom: 1px solid hsl(var(--green-hsl) / 0.06); }
+.rem-ov-row, .book-ov-row { padding: 7px 4px; font-size: 0.75rem; cursor: pointer; border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); }
 .book-ov-row { color: hsl(var(--green-hsl) / 1); }
-.rem-ov-row:hover, .book-ov-row:hover { background: hsl(var(--green-hsl) / 0.06); }
+.rem-ov-row:hover, .book-ov-row:hover { background: hsl(var(--green-hsl) / 0.12); }
 
 /* ── board ────────────────────────────────────────────────────────────────── */
 .rd-board {
@@ -91,7 +91,7 @@ body { overflow: hidden !important; }
 }
 .card:hover { filter: brightness(1.08); }
 .card:active { cursor: grabbing; }
-.card.plain { background: hsl(var(--green-hsl) / 0.06); border-color: hsl(var(--green-hsl) / 0.12); }
+.card.plain { background: hsl(var(--green-hsl) / 0.12); border-color: hsl(var(--green-hsl) / 0.12); }
 .card.plain:hover { background: hsl(var(--green-hsl) / 0.12); }
 .card-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.66rem; line-height: 1.2; margin-bottom: 2px; }
 .card-desc { font-size: 0.72rem; margin-top: 4px; opacity: 0.88; line-height: 1.45;
@@ -102,11 +102,11 @@ body { overflow: hidden !important; }
 .sortable-ghost { opacity: 0.2; }
 #rd-search {
   background: none; border: none; outline: none;
-  color: hsl(var(--green-hsl) / 0.6); font-family: 'Iosevka Mayukai Monolite', monospace;
+  color: hsl(var(--green-hsl) / 0.45); font-family: 'Iosevka Mayukai Monolite', monospace;
   font-weight: 500; font-size: 0.68rem; line-height: 1; padding: 0; width: 0; flex: 1; min-width: 0;
   text-align: right; align-self: center;
 }
-#rd-search::placeholder { color: hsl(var(--green-hsl) / 0.25); }
+#rd-search::placeholder { color: hsl(var(--green-hsl) / 0.12); }
 #rd-search:focus { color: hsl(var(--green-hsl) / 1); }
 .card.search-hide { display: none; }
 </style>
@@ -138,9 +138,9 @@ body { overflow: hidden !important; }
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
 
-<script src="/card-style.js?v=4"></script>
+<script src="/card-style.js?v=5"></script>
 <script src="/card-graph.js?v=12"></script>
-<script src="/card-dialog.js?v=14"></script>
+<script src="/card-dialog.js?v=15"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
@@ -195,7 +195,7 @@ function renderCard(c) {
   const hasStyle = !!bg;
   const bright = hasStyle && !dark;
   const titleC = !hasStyle ? 'hsl(var(--green-hsl) / 1)' : dark ? 'inherit' : 'rgba(0,0,0,0.92)';
-  const tc     = !hasStyle ? 'hsl(var(--green-hsl) / 0.6)' : dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)';
+  const tc     = !hasStyle ? 'hsl(var(--green-hsl) / 0.45)' : dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)';
   const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
   const overdue = c.column === 'rd' && isOverdue(displayDate);

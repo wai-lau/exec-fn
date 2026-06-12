@@ -15,7 +15,7 @@
 #terminal { padding-bottom: 0 !important; }
 
 /* phosphor glow on every message */
-.msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.25); }
+.msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
 
 /* reader voice: slightly heavier, more breathing room */
 .msg.assistant { font-weight: 500; line-height: 1.7; letter-spacing: 0.01em; color: hsl(var(--green-hsl)) !important; }
@@ -23,7 +23,7 @@
 .msg.assistant strong { font-weight: 700; }
 .msg.assistant a { color: hsl(var(--cyan-hsl) / 0.6) !important; text-decoration: underline !important; }
 .msg.assistant a:hover { color: hsl(var(--cyan-hsl)) !important; }
-.msg.assistant hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.25); margin: 10px 0 16px; }
+.msg.assistant hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.12); margin: 10px 0 16px; }
 .msg.assistant table { border-collapse: collapse; margin: 6px 0; }
-.msg.assistant th, .msg.assistant td { border: 1px solid hsl(var(--green-hsl) / 0.25); padding: 3px 10px; text-align: left; }
+.msg.assistant th, .msg.assistant td { border: 1px solid hsl(var(--green-hsl) / 0.12); padding: 3px 10px; text-align: left; }
 .msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.45); }

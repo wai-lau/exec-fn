@@ -5,19 +5,19 @@
 <style>
 .cd-ov { display:none; position:fixed; inset:0; z-index:50; background:hsl(var(--scrim-hsl) / 0.8); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
-.cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.25); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
+.cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.12); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
 .cd-box::-webkit-scrollbar { width:8px; }
 .cd-box::-webkit-scrollbar-track { background:transparent; }
 .cd-box::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
 .cd-box input[type=checkbox] { accent-color:currentColor; }
 .cd-box label { display:block; font-size:0.6rem; color:hsl(var(--green-hsl) / 0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
-.cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid hsl(var(--green-hsl) / 0.25); color:hsl(var(--green-hsl) / 1); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
+.cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid hsl(var(--green-hsl) / 0.12); color:hsl(var(--green-hsl) / 1); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
 .cd-box select option { background:#111; }
 .cd-box textarea { min-height:56px; }
 .cd-actions { display:flex; gap:8px; margin-top:18px; justify-content:space-between; align-items:center; }
 .cd-btn { background:none; border:1px solid hsl(var(--green-hsl) / 0.45); color:hsl(var(--green-hsl) / 0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
 .cd-btn:hover { border-color:hsl(var(--green-hsl) / 1); color:hsl(var(--green-hsl) / 1); }
-.cd-btn-exile { border-color:hsl(var(--orange-glow-hsl) / 0.45) !important; color:hsl(var(--orange-glow-hsl) / 0.8) !important; }
+.cd-btn-exile { border-color:hsl(var(--orange-glow-hsl) / 0.6) !important; color:hsl(var(--orange-glow-hsl) / 0.8) !important; }
 .cd-btn-exile:hover { border-color:hsl(var(--orange-glow-hsl) / 1) !important; color:hsl(var(--orange-glow-hsl) / 1) !important; }
 .cd-btn-late { border-color:rgba(255,176,0,0.55) !important; color:rgba(255,190,40,0.85) !important; }
 .cd-btn-late:hover { border-color:rgba(255,176,0,0.95) !important; color:rgba(255,200,70,1) !important; }

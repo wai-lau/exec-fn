@@ -204,7 +204,7 @@ body.gp-info-open #sidebar {
 #sidebar input#search {
   background: hsl(var(--bg-hsl)) !important;
   color: hsl(var(--green-hsl)) !important;
-  border: 1px solid hsl(var(--green-hsl) / 0.25) !important;
+  border: 1px solid hsl(var(--green-hsl) / 0.12) !important;
   font-family: 'Iosevka Mayukai Monolite', monospace !important;
 }
 
@@ -236,7 +236,7 @@ body.gp-info-open #sidebar {
 }
 
 .vis-configuration.vis-config-label {
-  color: hsl(var(--green-hsl) / 0.6) !important;
+  color: hsl(var(--green-hsl) / 0.45) !important;
 }
 
 .vis-configuration .vis-config-rangeinput,
@@ -245,7 +245,7 @@ body.gp-info-open #sidebar {
 .vis-configuration select {
   background: hsl(var(--bg-hsl)) !important;
   color: hsl(var(--green-hsl)) !important;
-  border: 1px solid hsl(var(--green-hsl) / 0.25) !important;
+  border: 1px solid hsl(var(--green-hsl) / 0.12) !important;
 }
 
 .vis-config-button,
@@ -381,7 +381,7 @@ body.gp-info-open #sidebar {
 /* segmented either/or switch: freeze | tour */
 .gp-toggle-switch {
   display: inline-flex;
-  border: 1px solid hsl(var(--green-hsl) / 0.25);
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -395,12 +395,12 @@ body.gp-info-open #sidebar {
   letter-spacing: inherit;
   text-transform: uppercase;
   background: transparent;
-  color: hsl(var(--green-hsl) / 0.6);
+  color: hsl(var(--green-hsl) / 0.45);
   cursor: pointer;
 }
 
 .gp-seg + .gp-seg {
-  border-left: 1px solid hsl(var(--green-hsl) / 0.25);
+  border-left: 1px solid hsl(var(--green-hsl) / 0.12);
 }
 
 .gp-seg.active {
