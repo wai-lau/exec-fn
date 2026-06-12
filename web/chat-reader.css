@@ -21,8 +21,8 @@
 .msg.assistant { font-weight: 500; line-height: 1.7; letter-spacing: 0.01em; color: hsl(var(--green-hsl)) !important; }
 .msg.assistant p { margin: 0 0 10px; }
 .msg.assistant strong { font-weight: 700; }
-.msg.assistant a { color: hsl(var(--teal-link-hsl) / 0.7) !important; text-decoration: underline !important; }
-.msg.assistant a:hover { color: hsl(var(--teal-link-hsl)) !important; }
+.msg.assistant a { color: hsl(var(--cyan-hsl) / 0.7) !important; text-decoration: underline !important; }
+.msg.assistant a:hover { color: hsl(var(--cyan-hsl)) !important; }
 .msg.assistant hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.35); margin: 10px 0 16px; }
 .msg.assistant table { border-collapse: collapse; margin: 6px 0; }
 .msg.assistant th, .msg.assistant td { border: 1px solid hsl(var(--green-hsl) / 0.25); padding: 3px 10px; text-align: left; }
