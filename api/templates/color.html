@@ -73,7 +73,9 @@ function swatchHtml(t) {
     return `<div class="${cls}">${t.segs.map(s => `<span style="${s}"></span>`).join('')}</div>`;
   }
   if (name.endsWith('-hsl')) {
-    const ramp = (t.alphas && t.alphas.length ? t.alphas : [1])
+    // alpha 0 = transition off-states; invisible, not a gradation
+    const steps = (t.alphas || []).filter(a => a > 0);
+    const ramp = (steps.length ? steps : [1])
       .map(a => `<span style="background:hsl(${esc(value)} / ${a});${fx}"></span>`).join('');
     return `<div class="${cls}">${ramp}</div>`;
   }
