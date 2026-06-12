@@ -394,7 +394,7 @@ _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=17">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=18">'
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "color", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
@@ -458,7 +458,7 @@ def _build_nav(active=None, guest=False):
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
     show_bubble = (not guest) and active in {"core", "prophecies"}
-    bubble = '<script src="/exec-bubble.js?v=20"></script>' if show_bubble else ''
+    bubble = '<script src="/exec-bubble.js?v=21"></script>' if show_bubble else ''
     return nav + script + bubble
 
 
@@ -583,7 +583,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=3">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=4">'
 
 
 def _landing_html() -> str:
@@ -730,7 +730,7 @@ async def color_usage():
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=31">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=32">'
 _GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=27"></script>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).

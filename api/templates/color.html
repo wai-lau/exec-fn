@@ -3,10 +3,10 @@
 body { overflow-y: auto !important; }
 .clr-wrap { width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl)); }
 .clr-note {
-  font-size: 0.66rem; color: hsl(var(--green-hsl) / 0.4);
+  font-size: 0.66rem; color: hsl(var(--green-hsl) / 0.45);
   margin-bottom: 28px; line-height: 1.5;
 }
-.clr-note code { background: hsl(var(--green-hsl) / 0.08); padding: 1px 4px; border-radius: 2px; }
+.clr-note code { background: hsl(var(--green-hsl) / 0.06); padding: 1px 4px; border-radius: 2px; }
 .clr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .clr-card {
   border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: 4px;
@@ -27,13 +27,13 @@ body { overflow-y: auto !important; }
     #fff;
 }
 .clr-swatch span { flex: 1; position: relative; }
-.clr-info { padding: 8px 10px 9px; border-top: 1px solid hsl(var(--green-hsl) / 0.1); }
+.clr-info { padding: 8px 10px 9px; border-top: 1px solid hsl(var(--green-hsl) / 0.12); }
 .clr-name-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 2px; }
-.clr-name { font-size: 0.64rem; color: hsl(var(--green-hsl) / 0.92); word-break: break-all; }
-.clr-count { font-size: 0.56rem; color: hsl(var(--green-hsl) / 0.55); flex-shrink: 0; }
+.clr-name { font-size: 0.64rem; color: hsl(var(--green-hsl) / 1); word-break: break-all; }
+.clr-count { font-size: 0.56rem; color: hsl(var(--green-hsl) / 0.6); flex-shrink: 0; }
 .clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; }
 .clr-use { font-size: 0.6rem; opacity: 0.45; line-height: 1.45; }
-.clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.5); padding: 8px 0; }
+.clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
 
 <div class="clr-wrap">
@@ -51,7 +51,7 @@ body { overflow-y: auto !important; }
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
 
-<script src="/card-style.js?v=3"></script>
+<script src="/card-style.js?v=4"></script>
 <script>
 /* global cardStyle, CARD_CATS */
 function esc(s) {
