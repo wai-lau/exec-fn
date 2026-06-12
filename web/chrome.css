@@ -31,7 +31,8 @@
    Hue-based: every color is an H S% L% channel token. Consume as
    hsl(var(--X-hsl)) solid, or hsl(var(--X-hsl) / α) for opacity variants.
    α snaps to the scale 0 / 0.06 / 0.12 / 0.25 / 0.45 / 0.6 / 0.8 / 1 —
-   no freehand alphas at use sites.
+   no freehand alphas at use sites, and each token uses at most 4
+   non-zero steps from it.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Cools ───────────────────────────────────────────────────────────── */
@@ -100,9 +101,9 @@
   position: fixed; inset: 0; z-index: 9990; pointer-events: none;
   mix-blend-mode: screen;
   background:
-    repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.06) 0,
-      hsl(var(--green-hsl) / 0.06) 1px, transparent 1px, transparent 3px),
-    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.06), transparent 70%);
+    repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.12) 0,
+      hsl(var(--green-hsl) / 0.12) 1px, transparent 1px, transparent 3px),
+    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.12), transparent 70%);
   animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
 }
 
@@ -207,7 +208,7 @@ html.kb-open .exec-nav { visibility: hidden; }
   letter-spacing: 0.15em;
   opacity: 0.65;
   margin: 28px 0 8px;
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.25);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   padding-bottom: 4px;
 }
 

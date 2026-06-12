@@ -88,7 +88,7 @@
            keyboard (nav hidden) when an input is focused — see html.kb-open */
         width: 80vw; height: calc(var(--vvh, 100vh) - var(--nav-h, 56px));
         background: rgba(10,10,10,0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-        border: 1px solid hsl(var(--green-hsl) / 0.06); border-top: none;
+        border: 1px solid hsl(var(--green-hsl) / 0.12); border-top: none;
         display: flex; flex-direction: column; z-index: 8999;
         transform: translateX(-50%) translateY(-100%);
         transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
@@ -106,7 +106,7 @@
       #exec-ph-close {
         flex-shrink: 0;
         background: none; border: none;
-        cursor: pointer; color: hsl(var(--green-hsl) / 0.25);
+        cursor: pointer; color: hsl(var(--green-hsl) / 0.12);
         font-family: 'Iosevka Mayukai Monolite', monospace;
         font-size: 0.78rem; padding: 4px 6px; margin-left: 8px;
         transition: color 0.15s;
@@ -133,8 +133,8 @@
       #exec-term .msg.assistant em { color: hsl(var(--green-hsl) / 0.8); font-style: italic; }
       #exec-term .msg.assistant a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: underline; }
       #exec-term .msg.assistant a:hover { color: hsl(var(--cyan-hsl)); }
-      #exec-term .msg.assistant code { background: hsl(var(--green-hsl) / 0.06); padding: 1px 3px; border-radius: 2px; font-size: 0.91em; }
-      #exec-term .msg.assistant pre { background: hsl(var(--green-hsl) / 0.06); border: 1px solid hsl(var(--green-hsl) / 0.12); padding: 6px 10px; border-radius: 3px; overflow-x: auto; margin: 5px 0; }
+      #exec-term .msg.assistant code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 3px; border-radius: 2px; font-size: 0.91em; }
+      #exec-term .msg.assistant pre { background: hsl(var(--green-hsl) / 0.12); border: 1px solid hsl(var(--green-hsl) / 0.12); padding: 6px 10px; border-radius: 3px; overflow-x: auto; margin: 5px 0; }
       #exec-term .msg.assistant pre code { background: none; padding: 0; }
       #exec-term .msg.assistant ul, #exec-term .msg.assistant ol { margin: 3px 0 3px 14px; padding: 0; }
       #exec-term .msg.assistant li { margin-bottom: 2px; }
@@ -142,7 +142,7 @@
       #exec-term .msg-body { flex: 1; min-width: 0; }
       #exec-term .msg.user { color: rgba(255,255,255,0.72); display: flex; align-items: flex-start; }
       #exec-term .msg.user::before { content: "$"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
-      #exec-term .msg.sys { color: hsl(var(--green-hsl) / 0.25); font-size: 0.72rem; }
+      #exec-term .msg.sys { color: hsl(var(--green-hsl) / 0.12); font-size: 0.72rem; }
       #exec-term .msg.sys::before { content: "# "; }
       #exec-term .msg.probe { color: hsl(var(--green-hsl) / 0.8); font-size: 0.78rem; font-style: italic; display: flex; align-items: flex-start; }
       #exec-term .msg.probe::before { content: "~"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
@@ -158,7 +158,7 @@
       /* transparent merged input, mirrors tarot/mtg; flush to panel bottom (keyboard) */
       #exec-input-area { flex-shrink: 0; padding: 0 14px; background: transparent; }
       #exec-iline { display: flex; align-items: center; padding: 8px 0 0; }
-      #exec-prompt { color: hsl(var(--green-hsl) / 0.6); font-size: 0.9rem; white-space: nowrap; user-select: none; padding-right: 8px; }
+      #exec-prompt { color: hsl(var(--green-hsl) / 0.45); font-size: 0.9rem; white-space: nowrap; user-select: none; padding-right: 8px; }
       #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
       #exec-idisp { display: none; }
       #exec-icursor { display: none; }
