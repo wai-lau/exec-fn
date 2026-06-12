@@ -36,8 +36,7 @@
   --green-hsl:           135 100% 50%;  /* primary text + accent */
   --green-monitor-hsl:   102 100% 74%;  /* monitor/system message text in chat */
   --cyan-hsl:            188 100% 50%;  /* seek type badge, exec source, plan view, link color everywhere (absorbs teal-link 148 100% 50%) */
-  --blue-hsl:            216 67% 71%;   /* books bar, prophecies accents incl. weekend day names, meal blocks */
-  --purple-hsl:          271 100% 70%;  /* prof source badge in plan view */
+  --blue-hsl:            216 67% 71%;   /* books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view (absorbs purple 271 100% 70%) */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
   --yellow-hsl:          41 100% 66%;   /* mention type badge, tarot reversed marker */
