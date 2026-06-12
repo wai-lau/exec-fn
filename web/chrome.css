@@ -52,8 +52,8 @@
 
   /* ── Category cards (hue knob + sat bias per category; size variants
         computed once here, fetched by card-style.js) ────────────────────── */
-  --cat-self-h:          193;  --cat-self-ds: 35%;
-  --cat-social-h:        130;  --cat-social-ds: -20%;
+  --cat-self-h:          198;  --cat-self-ds: 35%;
+  --cat-social-h:        125;  --cat-social-ds: -20%;
   --cat-interfacing-h:   36;   --cat-interfacing-ds: 35%;
   --cat-hobby-h:         8;    --cat-hobby-ds: 10%;
   --card-self-text:           hsl(var(--cat-self-h) calc(75% + var(--cat-self-ds)) 68%);
