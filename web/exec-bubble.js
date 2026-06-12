@@ -75,7 +75,7 @@
       }
       #exec-badge {
         position: absolute; top: -3px; right: -3px;
-        background: hsl(var(--red-dark-hsl) / 0.9); color: #fff;
+        background: hsl(var(--orange-glow-hsl) / 0.9); color: #fff;
         font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 9px; font-weight: 700;
         min-width: 15px; height: 15px; border-radius: 8px;
         display: none; align-items: center; justify-content: center;
@@ -534,7 +534,7 @@
       cur.remove();
       const errDiv = document.createElement('div');
       errDiv.className = 'msg sys';
-      errDiv.style.color = 'hsl(var(--red-hsl) / 0.7)';
+      errDiv.style.color = 'hsl(var(--orange-glow-hsl) / 0.7)';
       errDiv.textContent = '[error: ' + e.message + ']';
       termEl.appendChild(errDiv);
     }

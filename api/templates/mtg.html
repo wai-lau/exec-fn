@@ -172,7 +172,7 @@ async function streamResponse() {
   } catch(e) {
     cur.remove();
     div.textContent = '[error: ' + e.message + ']';
-    div.style.color = 'hsl(var(--red-hsl) / 0.75)';
+    div.style.color = 'hsl(var(--orange-glow-hsl) / 0.75)';
   }
 
   streaming = false;

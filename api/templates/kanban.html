@@ -140,7 +140,7 @@ body { overflow: hidden !important; }
 
 <script src="/card-style.js?v=3"></script>
 <script src="/card-graph.js?v=12"></script>
-<script src="/card-dialog.js?v=12"></script>
+<script src="/card-dialog.js?v=13"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
@@ -204,7 +204,7 @@ function renderCard(c) {
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
-  const dateC = overdue ? 'hsl(var(--red-hsl) / 0.9)' : dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'hsl(var(--green-hsl) / 0.95)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'hsl(var(--green-hsl) / 0.95)' : tc);
+  const dateC = overdue ? 'hsl(var(--orange-glow-hsl) / 0.9)' : dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'hsl(var(--green-hsl) / 0.95)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'hsl(var(--green-hsl) / 0.95)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${c.title}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}

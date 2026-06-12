@@ -17,8 +17,8 @@
 .cd-actions { display:flex; gap:8px; margin-top:18px; justify-content:space-between; align-items:center; }
 .cd-btn { background:none; border:1px solid hsl(var(--green-hsl) / 0.4); color:hsl(var(--green-hsl) / 0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
 .cd-btn:hover { border-color:hsl(var(--green-hsl) / 1); color:hsl(var(--green-hsl) / 1); }
-.cd-btn-exile { border-color:hsl(var(--red-hsl) / 0.5) !important; color:hsl(var(--red-hsl) / 0.8) !important; }
-.cd-btn-exile:hover { border-color:hsl(var(--red-hsl) / 0.9) !important; color:hsl(var(--red-hsl) / 1) !important; }
+.cd-btn-exile { border-color:hsl(var(--orange-glow-hsl) / 0.5) !important; color:hsl(var(--orange-glow-hsl) / 0.8) !important; }
+.cd-btn-exile:hover { border-color:hsl(var(--orange-glow-hsl) / 0.9) !important; color:hsl(var(--orange-glow-hsl) / 1) !important; }
 .cd-btn-late { border-color:rgba(255,176,0,0.55) !important; color:rgba(255,190,40,0.85) !important; }
 .cd-btn-late:hover { border-color:rgba(255,176,0,0.95) !important; color:rgba(255,200,70,1) !important; }
 .cd-dark label { color:inherit !important; opacity:0.55; }
