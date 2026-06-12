@@ -51,8 +51,8 @@
   .login-box input[type=password] {
     background: transparent;
     border: none;
-    border-bottom: 1px solid rgba(224, 74, 125, 0.4);
-    color: rgb(224, 74, 125);
+    border-bottom: 1px solid hsl(var(--pink-hsl) / 0.25);
+    color: hsl(var(--pink-hsl));
     font-family: 'Iosevka Mayukai Monolite', monospace;
     font-weight: 500;
     font-size: 0.95rem;
@@ -61,13 +61,13 @@
     width: 160px;
     text-align: center;
   }
-  .login-box input[type=password]::placeholder { color: rgba(224, 74, 125, 0.35); }
-  .login-box input[type=password]:focus { border-bottom-color: rgba(224, 74, 125, 0.4); }
+  .login-box input[type=password]::placeholder { color: hsl(var(--pink-hsl) / 0.25); }
+  .login-box input[type=password]:focus { border-bottom-color: hsl(var(--pink-hsl) / 0.25); }
   .login-box button.submit {
     margin-top: 14px;
     background: transparent;
-    border: 1px solid rgba(224, 74, 125, 0.4);
-    color: rgba(224, 74, 125, 0.7);
+    border: 1px solid hsl(var(--pink-hsl) / 0.25);
+    color: hsl(var(--pink-hsl) / 0.8);
     font-family: 'Iosevka Mayukai Monolite', monospace;
     font-weight: 500;
     font-size: 1rem;
@@ -83,8 +83,8 @@
     outline: none;
   }
   .login-box button.submit:hover, .login-box button.submit:focus {
-    color: rgb(224, 74, 125);
-    border-color: rgba(224, 74, 125, 0.7);
+    color: hsl(var(--pink-hsl));
+    border-color: hsl(var(--pink-hsl) / 0.8);
   }
 </style>
 </head>
