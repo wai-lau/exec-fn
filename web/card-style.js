@@ -33,9 +33,9 @@ function chipStyle(c) {
   const cat = _catKey(c);
   if (!cat) {
     return {
-      color: 'hsl(var(--green-hsl) / 0.9)',
-      bg: 'hsl(var(--green-hsl) / 0.07)',
-      border: 'hsl(var(--green-hsl) / 0.22)',
+      color: 'hsl(var(--green-hsl) / 1)',
+      bg: 'hsl(var(--green-hsl) / 0.06)',
+      border: 'hsl(var(--green-hsl) / 0.25)',
     };
   }
   const f = (s, l) => `hsl(var(--cat-${cat}-h) calc(${s}% + var(--cat-${cat}-ds)) ${l}%)`;

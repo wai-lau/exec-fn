@@ -30,6 +30,8 @@
 /* ── Palette ─────────────────────────────────────────────────────────────────
    Hue-based: every color is an H S% L% channel token. Consume as
    hsl(var(--X-hsl)) solid, or hsl(var(--X-hsl) / α) for opacity variants.
+   α snaps to the scale 0 / 0.06 / 0.12 / 0.25 / 0.45 / 0.6 / 0.8 / 1 —
+   no freehand alphas at use sites.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Cools ───────────────────────────────────────────────────────────── */
@@ -98,9 +100,9 @@
   position: fixed; inset: 0; z-index: 9990; pointer-events: none;
   mix-blend-mode: screen;
   background:
-    repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.05) 0,
-      hsl(var(--green-hsl) / 0.05) 1px, transparent 1px, transparent 3px),
-    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.07), transparent 70%);
+    repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.06) 0,
+      hsl(var(--green-hsl) / 0.06) 1px, transparent 1px, transparent 3px),
+    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.06), transparent 70%);
   animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
 }
 
@@ -115,7 +117,7 @@
   position: fixed; left: 0; right: 0; top: 0; height: 160px; z-index: 9990; pointer-events: none;
   mix-blend-mode: screen;
   background: linear-gradient(hsl(var(--green-hsl) / 0) 0%,
-    hsl(var(--green-hsl) / 0.10) 50%, hsl(var(--green-hsl) / 0) 100%);
+    hsl(var(--green-hsl) / 0.12) 50%, hsl(var(--green-hsl) / 0) 100%);
   animation: cyber-sweep 7s linear infinite;
 }
 
@@ -141,7 +143,7 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.45); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.85); }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.8); }
 * { scrollbar-width: thin; scrollbar-color: hsl(var(--green-hsl) / 0.45) transparent; }
 
 /* Nav */
@@ -155,7 +157,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-evenly;
-  background: hsl(var(--scrim-hsl) / 0.5);
+  background: hsl(var(--scrim-hsl) / 0.45);
   backdrop-filter: blur(14px);
   border-top: 1px solid hsl(var(--green-hsl) / 0.12);
 }
@@ -164,7 +166,7 @@ body {
 html.kb-open .exec-nav { visibility: hidden; }
 
 .exec-nav a {
-  color: hsl(var(--green-hsl) / 0.5);
+  color: hsl(var(--green-hsl) / 0.45);
   text-decoration: none;
   display: flex;
   flex-direction: column;
@@ -217,8 +219,8 @@ html.kb-open .exec-nav { visibility: hidden; }
 
 #content button {
   background: none;
-  border: 1px solid hsl(var(--green-hsl) / 0.5);
-  color: hsl(var(--green-hsl) / 0.85);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  color: hsl(var(--green-hsl) / 0.8);
   font-family: 'Iosevka Mayukai Monolite', monospace;
   font-weight: 500;
   font-size: 0.8rem;
