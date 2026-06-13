@@ -13,23 +13,23 @@ body { overflow-y: auto !important; }
 .clr-note > div:last-child { margin-bottom: 0; }
 .clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
 
-/* one color per group (hue-ordered, wrapping); within a group one column per
-   shade — an -hsl token's used alpha steps and/or a category's size fills,
-   each with a usage count — then the name + effect + description. */
-.clr-board { display: flex; flex-wrap: wrap; gap: 24px 18px; align-items: flex-start; }
-.clr-group { display: flex; flex-direction: column; gap: 5px; max-width: 240px; }
-.clr-cells { display: flex; gap: 4px; }
-.clr-cell { width: 40px; }
-.clr-sw { height: 40px; border-radius: 3px; overflow: hidden;
+/* one little table per color (hue-ordered, wrapping): title on top, then a
+   table whose columns are the color's variations (card sizes, or alpha steps
+   for non-card colors) and rows are swatch / opacity / count / effects, then
+   the description beneath. */
+.clr-board { display: flex; flex-wrap: wrap; gap: 26px 20px; align-items: flex-start; }
+.clr-group { display: flex; flex-direction: column; gap: 6px; max-width: 220px; }
+.clr-title { font-size: 0.7rem; color: hsl(var(--green-hsl)); }
+.clr-tbl { border-collapse: collapse; font-size: 0.5rem; }
+.clr-tbl th { font-weight: 400; opacity: 0.55; padding: 1px 4px; text-align: center; }
+.clr-tbl td { padding: 1px 4px; text-align: center; vertical-align: middle; }
+.clr-tbl .rl { text-align: right; opacity: 0.45; padding-right: 6px; white-space: nowrap; }
+.clr-sw { height: 22px; width: 34px; border-radius: 2px; overflow: hidden; margin: 0 auto;
   /* faint dark field so translucent fills read against it */
   background: hsl(0 0% 0% / 0.3); }
 .clr-fill { width: 100%; height: 100%; }
-.clr-cap { font-size: 0.5rem; opacity: 0.6; text-align: center; margin-top: 2px; }
-.clr-cnt { font-size: 0.5rem; text-align: center; color: hsl(var(--green-hsl) / 0.45); }
-.clr-glabel { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
-.clr-gname { font-size: 0.64rem; color: hsl(var(--green-hsl)); }
-.clr-gval { font-size: 0.52rem; opacity: 0.45; }
-.clr-fx { font-size: 0.5rem; color: hsl(var(--cyan-hsl) / 0.8); white-space: nowrap; flex-shrink: 0; }
+.clr-cnt { color: hsl(var(--green-hsl) / 0.5); }
+.clr-fx { color: hsl(var(--cyan-hsl) / 0.8); }
 .clr-guse { font-size: 0.56rem; opacity: 0.55; line-height: 1.4; overflow-wrap: anywhere; white-space: normal; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
@@ -37,8 +37,8 @@ body { overflow-y: auto !important; }
 <div class="clr-wrap">
   <div class="clr-note">
     <div>palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.</div>
-    <div>one group per color (hue-ordered); within it, one column per shade — an <code>-hsl</code> token's used alpha steps (low to high) and a category's chore / task / project / titan fills. the <code>&times;N</code> under an alpha = how many times that opacity is used.</div>
-    <div>under each color: its friendly name (<code>[Name]</code> in the chrome.css comment), any consumer effect (e.g. blur), and a description of where it's used. colors that resolve to the same value are merged into one group.</div>
+    <div>one table per color (hue-ordered): columns are the variations — card colors show chore / task / project / titan, others their used alpha steps. rows: swatch, opacity, count, effects.</div>
+    <div>non-card <code>-hsl</code> alpha usages map onto the nearest card variation (their counts land in the <code>count</code> row). title above, description under the table.</div>
     <div>hidden: unused tokens.</div>
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
@@ -61,42 +61,54 @@ const TOKEN_FX = {
   },
 };
 
-// explode a token into shade cells — one per used alpha (-hsl, with its usage
-// count), one per size segment (category), or a single solid.
-function tokenCells(t) {
-  const fxStyle = (TOKEN_FX[t.name] || {}).style || '';
-  if (t.segs) {
-    // cardStyle().bg is a full `background:...;color:...;` declaration
-    const sizes = ['chore', 'task', 'project', 'titan'];
-    return t.segs.map((seg, i) => ({ style: seg, cap: sizes[i] }));
-  }
-  if (t.name.endsWith('-hsl')) {
-    // pair each alpha with its usage count, drop the invisible 0 step
-    const ac = t.alphaCounts || [];
-    const steps = (t.alphas || []).map((a, i) => ({ a, n: ac[i] })).filter(x => x.a > 0);
-    const list = steps.length ? steps : [{ a: 1 }];
-    return list.map(x => ({
-      style: `background:hsl(${t.value} / ${x.a});${fxStyle}`, cap: String(x.a), count: x.n,
-    }));
-  }
-  return [{ style: `background:${t.value};${fxStyle}`, cap: '' }];
+// canonical 4 card variations and their alpha
+const SIZES = ['chore', 'task', 'project', 'titan'];
+const SIZE_ALPHA = { chore: 0.15, task: 0.25, project: 0.8, titan: 1 };
+function nearestSize(a) {
+  let best = SIZES[0], bd = Infinity;
+  for (const s of SIZES) { const d = Math.abs(SIZE_ALPHA[s] - a); if (d < bd) { bd = d; best = s; } }
+  return best;
 }
 
-// one color = one group: a column per shade (swatch + opacity/size + count),
-// then name + effect + description
+// (alpha, count) pairs for an -hsl token; drop the invisible 0 step
+function tokenAlphaPairs(t) {
+  const ac = t.alphaCounts || [];
+  const pairs = (t.alphas || []).map((a, i) => ({ a, n: ac[i] })).filter(x => x.a > 0);
+  return pairs.length ? pairs : [{ a: 1, n: t.count }];
+}
+
+// one color = one table: columns are card sizes (chore..titan) or, for
+// non-card colors, the used alpha steps; rows are swatch/opacity/count/effects
 function groupHtml(col) {
-  const cells = col.cells.map(c =>
-    `<div class="clr-cell">
-       <div class="clr-sw"><div class="clr-fill" style="${esc(c.style)}"></div></div>
-       <div class="clr-cap">${esc(c.cap)}</div>
-       ${c.count != null ? `<div class="clr-cnt">&times;${c.count}</div>` : ''}
-     </div>`).join('');
+  let heads, swatches, opac, counts;
+  if (col.hasCard) {
+    const mapped = { chore: 0, task: 0, project: 0, titan: 0 };
+    const hasAccent = col.alphaPairs.length > 0;
+    for (const p of col.alphaPairs) mapped[nearestSize(p.a)] += (p.n || 0);
+    heads = SIZES;
+    swatches = col.segs;
+    opac = SIZES.map(s => SIZE_ALPHA[s]);
+    counts = SIZES.map(s => hasAccent ? mapped[s] : null);
+  } else {
+    heads = col.alphaPairs.map(() => '');
+    swatches = col.alphaPairs.map(p => `background:hsl(${col.value} / ${p.a});${col.fxStyle}`);
+    opac = col.alphaPairs.map(p => p.a);
+    counts = col.alphaPairs.map(p => p.n);
+  }
+  const n = swatches.length;
+  const headRow = col.hasCard
+    ? `<tr><th></th>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr>` : '';
+  const swRow = `<tr><td class="rl"></td>${swatches.map(s =>
+    `<td><div class="clr-sw"><div class="clr-fill" style="${esc(s)}"></div></div></td>`).join('')}</tr>`;
+  const opRow = `<tr><td class="rl">opacity</td>${opac.map(o =>
+    `<td>${esc(String(o))}</td>`).join('')}</tr>`;
+  const cntRow = `<tr><td class="rl">count</td>${counts.map(c =>
+    `<td>${c != null ? `<span class="clr-cnt">&times;${c}</span>` : ''}</td>`).join('')}</tr>`;
+  const fxRow = `<tr><td class="rl">effects</td><td colspan="${n}" class="clr-fx">${
+    col.fxLabel ? esc(col.fxLabel) : ''}</td></tr>`;
   return `<div class="clr-group">
-    <div class="clr-cells">${cells}</div>
-    <div class="clr-glabel">
-      <span class="clr-gname">${esc(col.name)}</span>
-      ${col.fxLabel ? `<span class="clr-fx">${esc(col.fxLabel)}</span>` : `<span class="clr-gval">${esc(col.value)}</span>`}
-    </div>
+    <div class="clr-title">${esc(col.name)}</div>
+    <table class="clr-tbl">${headRow}${swRow}${opRow}${cntRow}${fxRow}</table>
     ${col.use ? `<div class="clr-guse">${esc(col.use)}</div>` : ''}
   </div>`;
 }
@@ -114,8 +126,7 @@ const CAT_DESC = {
 function categoryTokens(tokenMap, friendlyMap) {
   if (typeof cardStyle !== 'function') return [];
   return CARD_CATS.map(cat => {
-    const segs = ['chore', 'task', 'project', 'titan']
-      .map(sz => cardStyle({ category: cat, size: sz }).bg);
+    const segs = SIZES.map(sz => cardStyle({ category: cat, size: sz }).bg);
     const key = cat.toLowerCase();
     const h = tokenMap[`cat-${key}-h`], s = tokenMap[`cat-${key}-s`], l = tokenMap[`cat-${key}-l`];
     return {
@@ -178,26 +189,31 @@ function visibleTokens(tokens, usage) {
     .filter(t => t.count > 0);
 }
 
-// collapse tokens that resolve to the same H S L into one color group,
-// concatenating their shade cells (so e.g. Marigold shows the accent's alpha
-// steps AND the interfacing card size fills). The -hsl token sets the name.
+// collapse tokens with the same H S L into one color (max 4 variations). The
+// card-size fills are the canonical variations; a non-card -hsl token sharing
+// the value keeps its (alpha, count) pairs only to map counts onto the sizes.
 function buildColumns(tokens) {
   const byVal = new Map();
   for (const t of tokens) {
     const isHsl = t.name.endsWith('-hsl');
+    const isCard = !!t.segs;
     const name = t.friendly || (t.cssVar === false ? t.name : '--' + t.name);
+    const fx = TOKEN_FX[t.name] || {};
     const cur = byVal.get(t.value);
     if (!cur) {
       byVal.set(t.value, {
-        name, value: t.value, isHsl,
-        fxLabel: (TOKEN_FX[t.name] || {}).label || '',
-        use: t.use || '', cells: tokenCells(t),
+        name, value: t.value, isHsl, hasCard: isCard,
+        segs: isCard ? t.segs : null,
+        alphaPairs: isHsl ? tokenAlphaPairs(t) : [],
+        fxLabel: fx.label || '', fxStyle: fx.style || '',
+        use: t.use || '',
       });
       continue;
     }
-    cur.cells = cur.cells.concat(tokenCells(t));
     cur.use = [cur.use, t.use].filter(Boolean).join(' ');
-    if (!cur.isHsl && isHsl) { cur.name = name; cur.isHsl = true; }
+    if (isCard && !cur.hasCard) { cur.hasCard = true; cur.segs = t.segs; }
+    if (isHsl) cur.alphaPairs = cur.alphaPairs.concat(tokenAlphaPairs(t));
+    if (!cur.isHsl && isHsl) { cur.name = name; cur.isHsl = true; cur.fxLabel = fx.label || ''; cur.fxStyle = fx.style || ''; }
   }
   return [...byVal.values()];
 }
@@ -220,7 +236,7 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    // one group per color (merged by value), hue-ordered, wrapping
+    // one table per color (merged by value), hue-ordered, wrapping
     board.innerHTML = `<div class="clr-board">${buildColumns(tokens).map(groupHtml).join('')}</div>`;
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
