@@ -15,8 +15,8 @@ body { overflow-y: auto !important; }
 /* one row per hue (ascending); within a row, each color is a group of its
    shade columns (an -hsl token's used alpha steps, or a category's
    chore/task/project/titan fills) with its name + usage beneath. */
-.clr-row { display: flex; flex-wrap: wrap; gap: 22px 26px; margin-bottom: 22px; align-items: flex-start; }
-.clr-group { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
+.clr-row { display: flex; flex-wrap: nowrap; gap: 22px 26px; margin-bottom: 22px; align-items: flex-start; overflow-x: auto; }
+.clr-group { display: flex; flex-direction: column; gap: 5px; min-width: 160px; max-width: 240px; }
 .clr-cells { display: flex; gap: 4px; }
 .clr-cell { width: 56px; }
 .clr-sw {
@@ -29,7 +29,7 @@ body { overflow-y: auto !important; }
 .clr-gname { font-size: 0.62rem; color: hsl(var(--green-hsl)); }
 .clr-gval { font-size: 0.52rem; opacity: 0.45; }
 .clr-fx { font-size: 0.5rem; color: hsl(var(--cyan-hsl) / 0.8); white-space: nowrap; flex-shrink: 0; }
-.clr-guse { font-size: 0.56rem; opacity: 0.55; line-height: 1.4; }
+.clr-guse { font-size: 0.56rem; opacity: 0.55; line-height: 1.4; overflow-wrap: anywhere; white-space: normal; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
 
