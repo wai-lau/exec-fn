@@ -6,6 +6,8 @@ body { overflow-y: auto !important; }
   font-size: 0.66rem; color: hsl(var(--green-hsl) / 0.45);
   margin-bottom: 28px; line-height: 1.5;
 }
+.clr-note > div { margin-bottom: 6px; }
+.clr-note > div:last-child { margin-bottom: 0; }
 .clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
 .clr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .clr-card {
@@ -39,18 +41,12 @@ body { overflow-y: auto !important; }
 
 <div class="clr-wrap">
   <div class="clr-note">
-    palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.
-    each swatch's headline is its friendly name (authored as a leading
-    <code>[Name]</code> in the token's chrome.css comment); the
-    <code>--var</code> sits under it.
-    every color is a hue-based <code>-hsl</code> channel token; category card
-    colors are <code>--card-*</code> tokens computed once from a per-category
-    base <code>H S% L%</code> (<code>--cat-*-h/-s/-l</code>) and shown grouped
-    (segments: chore / task / project / titan fills).
-    <code>-hsl</code> tokens show only the alpha steps actually in use,
-    low to high.
-    ×N = <code>var(--token)</code> references across templates + web assets.
-    hidden: unused tokens.
+    <div>palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.</div>
+    <div>each swatch's headline is its friendly name (authored as a leading <code>[Name]</code> in the token's chrome.css comment); the <code>--var</code> sits under it.</div>
+    <div>every color is a hue-based <code>-hsl</code> channel token; category card colors are <code>--card-*</code> tokens computed once from a per-category base <code>H S% L%</code> (<code>--cat-*-h/-s/-l</code>) and shown grouped (segments: chore / task / project / titan fills).</div>
+    <div><code>-hsl</code> tokens show only the alpha steps actually in use, low to high.</div>
+    <div>×N = <code>var(--token)</code> references across templates + web assets.</div>
+    <div>hidden: unused tokens.</div>
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
