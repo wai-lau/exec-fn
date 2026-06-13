@@ -159,7 +159,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one row per hue (ascending); within a row each color is a group of its shade columns (an `-hsl` token's used alpha steps low→high, or a category's chore/task/project/titan fills) with its friendly name (`[Name]` from the chrome.css comment), any consumer effect (e.g. blur), and a usage description beneath. Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
+| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one group per color (hue-ordered, wrapping); within a group, one column per shade — an `-hsl` token's used alpha steps low→high (each with a ×N usage count from `alpha_counts`) and/or a category's chore/task/project/titan fills — then the friendly name (`[Name]` from the chrome.css comment), any consumer effect (e.g. blur), and a usage description. Tokens that resolve to the same H S L are merged into one group (cells concatenated). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
