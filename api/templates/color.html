@@ -13,26 +13,21 @@ body { overflow-y: auto !important; }
 .clr-note > div:last-child { margin-bottom: 0; }
 .clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
 
-/* one row per hue (ascending); within a row, each color is a group of its
-   shade columns (an -hsl token's used alpha steps, or a category's
-   chore/task/project/titan fills) with its name + usage beneath. */
-.clr-row { display: flex; flex-wrap: nowrap; gap: 18px 14px; margin-bottom: 22px; align-items: flex-start; }
-/* every group the same width = window / (densest row's group count, --cols),
-   so the widest row fills the window exactly — no horizontal scroll */
-.clr-group { display: flex; flex-direction: column; gap: 5px; min-width: 0;
-  flex: 0 0 calc((100% - (var(--cols) - 1) * 14px) / var(--cols)); }
-.clr-cells { display: flex; gap: 3px; }
-.clr-cell { flex: 0 1 44px; min-width: 0; }
-.clr-sw {
-  height: 44px; border-radius: 3px; overflow: hidden;
+/* one color per group (hue-ordered, wrapping); within a group one column per
+   shade — an -hsl token's used alpha steps and/or a category's size fills,
+   each with a usage count — then the name + effect + description. */
+.clr-board { display: flex; flex-wrap: wrap; gap: 24px 18px; align-items: flex-start; }
+.clr-group { display: flex; flex-direction: column; gap: 5px; max-width: 240px; }
+.clr-cells { display: flex; gap: 4px; }
+.clr-cell { width: 40px; }
+.clr-sw { height: 40px; border-radius: 3px; overflow: hidden;
   /* faint dark field so translucent fills read against it */
-  background: hsl(0 0% 0% / 0.3);
-}
+  background: hsl(0 0% 0% / 0.3); }
 .clr-fill { width: 100%; height: 100%; }
-.clr-cap { font-size: 0.5rem; opacity: 0.5; text-align: center; margin-top: 2px; }
+.clr-cap { font-size: 0.5rem; opacity: 0.6; text-align: center; margin-top: 2px; }
 .clr-cnt { font-size: 0.5rem; text-align: center; color: hsl(var(--green-hsl) / 0.45); }
 .clr-glabel { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
-.clr-gname { font-size: 0.62rem; color: hsl(var(--green-hsl)); }
+.clr-gname { font-size: 0.64rem; color: hsl(var(--green-hsl)); }
 .clr-gval { font-size: 0.52rem; opacity: 0.45; }
 .clr-fx { font-size: 0.5rem; color: hsl(var(--cyan-hsl) / 0.8); white-space: nowrap; flex-shrink: 0; }
 .clr-guse { font-size: 0.56rem; opacity: 0.55; line-height: 1.4; overflow-wrap: anywhere; white-space: normal; }
@@ -42,8 +37,8 @@ body { overflow-y: auto !important; }
 <div class="clr-wrap">
   <div class="clr-note">
     <div>palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.</div>
-    <div>rows = hue (ascending); within a row each color shows its shade columns — an <code>-hsl</code> token's used alpha steps (low to high), or a category's chore / task / project / titan fills. the <code>&times;N</code> under an alpha = how many times that opacity is used.</div>
-    <div>under each color: its friendly name (<code>[Name]</code> in the chrome.css comment), any consumer effect (e.g. blur), and a description of where it's used.</div>
+    <div>one group per color (hue-ordered); within it, one column per shade — an <code>-hsl</code> token's used alpha steps (low to high) and a category's chore / task / project / titan fills. the <code>&times;N</code> under an alpha = how many times that opacity is used.</div>
+    <div>under each color: its friendly name (<code>[Name]</code> in the chrome.css comment), any consumer effect (e.g. blur), and a description of where it's used. colors that resolve to the same value are merged into one group.</div>
     <div>hidden: unused tokens.</div>
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
@@ -66,8 +61,8 @@ const TOKEN_FX = {
   },
 };
 
-// explode a token into shade cells — one per used alpha (-hsl), one per size
-// segment (category), or a single solid.
+// explode a token into shade cells — one per used alpha (-hsl, with its usage
+// count), one per size segment (category), or a single solid.
 function tokenCells(t) {
   const fxStyle = (TOKEN_FX[t.name] || {}).style || '';
   if (t.segs) {
@@ -87,11 +82,10 @@ function tokenCells(t) {
   return [{ style: `background:${t.value};${fxStyle}`, cap: '' }];
 }
 
-// one color: its shade columns, then name + effect + value + usage beneath
-function groupHtml(t) {
-  const name = t.friendly || (t.cssVar === false ? t.name : '--' + t.name);
-  const fxLabel = (TOKEN_FX[t.name] || {}).label || '';
-  const cells = tokenCells(t).map(c =>
+// one color = one group: a column per shade (swatch + opacity/size + count),
+// then name + effect + description
+function groupHtml(col) {
+  const cells = col.cells.map(c =>
     `<div class="clr-cell">
        <div class="clr-sw"><div class="clr-fill" style="${esc(c.style)}"></div></div>
        <div class="clr-cap">${esc(c.cap)}</div>
@@ -100,10 +94,10 @@ function groupHtml(t) {
   return `<div class="clr-group">
     <div class="clr-cells">${cells}</div>
     <div class="clr-glabel">
-      <span class="clr-gname">${esc(name)}</span>
-      ${fxLabel ? `<span class="clr-fx">${esc(fxLabel)}</span>` : `<span class="clr-gval">${esc(t.value)}</span>`}
+      <span class="clr-gname">${esc(col.name)}</span>
+      ${col.fxLabel ? `<span class="clr-fx">${esc(col.fxLabel)}</span>` : `<span class="clr-gval">${esc(col.value)}</span>`}
     </div>
-    ${t.use ? `<div class="clr-guse">${esc(t.use)}</div>` : ''}
+    ${col.use ? `<div class="clr-guse">${esc(col.use)}</div>` : ''}
   </div>`;
 }
 
@@ -159,7 +153,7 @@ function parsePalette(css) {
 }
 
 // sort key: hue ascending from red (hue 0); near-gray tokens (saturation
-// under 15%) trail, light to dark. Orders tokens within a hue row.
+// under 15%) trail, light to dark
 function hueKey(t) {
   if (t.hue != null) return [0, t.hue];
   const m = t.value.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);
@@ -167,38 +161,6 @@ function hueKey(t) {
   const h = +m[1], s = +m[2], l = +m[3];
   if (s < 15) return [1, 100 - l];
   return [0, h];
-}
-
-// exact H channel of a token (categories carry t.hue; -hsl parse from value)
-function hueOf(t) {
-  if (t.hue != null) return t.hue;
-  const m = t.value.match(/^([\d.]+)/);
-  return m ? +m[1] : 0;
-}
-
-// one row per exact hue value, ordered by hue ascending
-function rowsByHue(tokens) {
-  const map = new Map();
-  for (const t of tokens) {
-    const h = hueOf(t);
-    if (!map.has(h)) map.set(h, []);
-    map.get(h).push(t);
-  }
-  return [...map.values()].sort((a, b) => hueOf(a[0]) - hueOf(b[0]));
-}
-
-// Merge tokens that resolve to the same H S L into one group (e.g. a
-// category whose base now equals an accent token). Keep the -hsl accent as
-// the swatch (its alpha ramp), fold the other's usage note into it.
-function dedupeByColor(tokens) {
-  const byVal = new Map();
-  const out = [];
-  for (const t of tokens) {
-    const keep = byVal.get(t.value);
-    if (!keep) { byVal.set(t.value, t); out.push(t); continue; }
-    keep.use = [keep.use, t.use].filter(Boolean).join(' ');
-  }
-  return out;
 }
 
 // Hide the category machinery (--cat-* knobs, --card-* variants — shown
@@ -214,6 +176,30 @@ function visibleTokens(tokens, usage) {
       alphas: alphas[t.name] || [], alphaCounts: alphaCounts[t.name] || [],
     }))
     .filter(t => t.count > 0);
+}
+
+// collapse tokens that resolve to the same H S L into one color group,
+// concatenating their shade cells (so e.g. Marigold shows the accent's alpha
+// steps AND the interfacing card size fills). The -hsl token sets the name.
+function buildColumns(tokens) {
+  const byVal = new Map();
+  for (const t of tokens) {
+    const isHsl = t.name.endsWith('-hsl');
+    const name = t.friendly || (t.cssVar === false ? t.name : '--' + t.name);
+    const cur = byVal.get(t.value);
+    if (!cur) {
+      byVal.set(t.value, {
+        name, value: t.value, isHsl,
+        fxLabel: (TOKEN_FX[t.name] || {}).label || '',
+        use: t.use || '', cells: tokenCells(t),
+      });
+      continue;
+    }
+    cur.cells = cur.cells.concat(tokenCells(t));
+    cur.use = [cur.use, t.use].filter(Boolean).join(' ');
+    if (!cur.isHsl && isHsl) { cur.name = name; cur.isHsl = true; }
+  }
+  return [...byVal.values()];
 }
 
 async function loadColors() {
@@ -234,12 +220,8 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    const rows = rowsByHue(dedupeByColor(tokens));
-    // column width = window / densest row, so the widest row just fits
-    board.style.setProperty('--cols', Math.max(1, ...rows.map(r => r.length)));
-    board.innerHTML = rows
-      .map(row => `<div class="clr-row">${row.map(groupHtml).join('')}</div>`)
-      .join('');
+    // one group per color (merged by value), hue-ordered, wrapping
+    board.innerHTML = `<div class="clr-board">${buildColumns(tokens).map(groupHtml).join('')}</div>`;
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
   }
