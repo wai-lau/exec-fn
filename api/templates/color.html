@@ -7,20 +7,14 @@ body { overflow-y: auto !important; }
 .clr-wrap { position: relative; z-index: 9991; width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl));
   /* phosphor glow — same as the tarot reader skin (chat-reader.css) */
   text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
-.clr-note {
-  font-size: 0.66rem; color: hsl(var(--green-hsl) / 0.8);
-  margin-bottom: 28px; line-height: 1.5;
-}
-.clr-note > div { margin-bottom: 6px; }
-.clr-note > div:last-child { margin-bottom: 0; }
-.clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
 
 /* one little table per color (hue-ordered, wrapping): title on top, then a
    table whose columns are the color's variations (card sizes, or alpha steps
    for non-card colors) and rows are swatch / opacity / count / effects, then
    the description beneath. */
-.clr-board { display: flex; flex-wrap: wrap; gap: 26px 20px; align-items: flex-start; }
-.clr-group { display: flex; flex-direction: column; gap: 6px; max-width: 220px; }
+.clr-board { display: flex; flex-direction: column; gap: 24px; }
+.clr-group { display: flex; flex-direction: column; gap: 6px; max-width: 360px; }
+.clr-cntline { text-align: left; }
 .clr-title { font-size: 0.7rem; color: hsl(var(--green-hsl)); }
 .clr-tbl { border-collapse: collapse; font-size: 0.5rem; }
 .clr-tbl th { font-weight: 400; opacity: 0.55; padding: 1px 4px; text-align: center; }
@@ -36,12 +30,6 @@ body { overflow-y: auto !important; }
 </style>
 
 <div class="clr-wrap">
-  <div class="clr-note">
-    <div>palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.</div>
-    <div>one table per color (hue-ordered): columns are the variations — card colors show chore / task / project / titan, others their used alpha steps. rows: swatch, opacity, count, effects.</div>
-    <div>non-card <code>-hsl</code> alpha usages map onto the nearest card variation (their counts land in the <code>count</code> row). title above, description under the table.</div>
-    <div>hidden: unused tokens.</div>
-  </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
 
@@ -81,30 +69,35 @@ function tokenAlphaPairs(t) {
 // one color = one table: columns are card sizes (chore..titan) or, for
 // non-card colors, the used alpha steps; rows are swatch/opacity/count/effects
 function groupHtml(col) {
-  let swatches, opac, counts;
+  let swatches, opac, counts = null, countText = '';
   if (col.hasCard) {
+    // card colors: the count row is the non-card usages mapped onto each
+    // size, as text — "(chores +6)x (projects +2)x"
     const mapped = { chore: 0, task: 0, project: 0, titan: 0 };
-    const hasAccent = col.alphaPairs.length > 0;
     for (const p of col.alphaPairs) mapped[nearestSize(p.a)] += (p.n || 0);
     swatches = col.segs;
     opac = SIZES.map(s => SIZE_ALPHA[s]);
-    counts = SIZES.map(s => hasAccent ? mapped[s] : null);
+    countText = SIZES.filter(s => mapped[s] > 0)
+      .map(s => `(${s}s +${mapped[s]})×`).join(' ');
   } else {
     swatches = col.alphaPairs.map(p => `background:hsl(${col.value} / ${p.a});${col.fxStyle}`);
     opac = col.alphaPairs.map(p => p.a);
     counts = col.alphaPairs.map(p => p.n);
   }
   // pad every table to 4 columns (empty trailing cells) so they all line up
-  while (swatches.length < 4) { swatches.push(null); opac.push(null); counts.push(null); }
+  while (swatches.length < 4) { swatches.push(null); opac.push(null); if (counts) counts.push(null); }
   // no header / row labels — the note + each color's description cover them
   const swRow = `<tr>${swatches.map(s => s == null ? '<td></td>' :
     `<td><div class="clr-sw"><div class="clr-fill" style="${esc(s)}"></div></div></td>`).join('')}</tr>`;
   const opRow = `<tr>${opac.map(o =>
     `<td>${o != null ? esc(String(o)) : ''}</td>`).join('')}</tr>`;
-  const cntRow = `<tr>${counts.map(c =>
-    `<td>${c != null ? `<span class="clr-cnt">&times;${c}</span>` : ''}</td>`).join('')}</tr>`;
-  const fxRow = `<tr><td colspan="4" class="clr-fx">${
-    col.fxLabel ? esc(col.fxLabel) : ''}</td></tr>`;
+  const cntRow = counts
+    ? `<tr>${counts.map(c =>
+        `<td>${c != null ? `<span class="clr-cnt">&times;${c}</span>` : ''}</td>`).join('')}</tr>`
+    : `<tr><td colspan="4" class="clr-cnt clr-cntline">${esc(countText)}</td></tr>`;
+  // effect sits in the column it applies to (the token's first/only shade)
+  const fxRow = `<tr>${[0, 1, 2, 3].map(i =>
+    `<td class="clr-fx">${i === 0 && col.fxLabel ? esc(col.fxLabel) : ''}</td>`).join('')}</tr>`;
   return `<div class="clr-group">
     <div class="clr-title">${esc(col.name)}</div>
     <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}</table>
