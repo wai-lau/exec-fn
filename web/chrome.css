@@ -36,20 +36,20 @@
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Cools ───────────────────────────────────────────────────────────── */
-  --green-hsl:           135 100% 50%;  /* [Matrix Green] primary text + accent, monitor/system message text in chat (absorbs monitor 102 100% 74%) */
-  --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] seek type badge, exec source, plan view, link color everywhere (absorbs teal-link 148 100% 50%) */
-  --blue-hsl:            262 60% 76%;   /* [Lavender] books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view */
+  --green-hsl:           135 100% 50%;  /* [Matrix Green] Phosphor green—the interface's mother tongue. Body text, accents, the system's own murmur in the chat. */
+  --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] Cold cathode blue. The seek badge, the exec's signature, every link that jacks you elsewhere. */
+  --blue-hsl:            262 60% 76%;   /* [Lavender] Synthetic dusk. The books bar, weekend names, meal blocks, the week's quieter trim. */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
-  --orange-hsl:          33 100% 58%;   /* [Amber] now-clock text, dive badge, dirs source, overdue labels/tooltips in prophecies, mention type badge, tarot reversed marker (absorbs 17 100% 66% + yellow 41 100% 66%) */
-  --orange-glow-hsl:     24 100% 50%;   /* [Ember] now-clock glow — layered alphas; danger: overdue dates, drop zones, exile buttons, error text/fill, badge (absorbs red 0 100% 66% + red-dark 0 100% 56%) */
-  --pink-hsl:            340 71% 58%;   /* [Hot Pink] exec bubble panel, vain-empress entries, admin login box (absorbs rgb(224,74,125)) */
+  --orange-hsl:          33 100% 58%;   /* [Amber] Sodium glare. The now-clock, the dive, overdue warnings, mentions, the tarot card come up reversed. */
+  --orange-glow-hsl:     24 100% 50%;   /* [Ember] Heat off the clock, and the red under everything—overdue dates, drop zones, the exile switch, every error. */
+  --pink-hsl:            340 71% 58%;   /* [Hot Pink] Neon at 3 a.m. The exec bubble's skin, the vain empress, the admin door. */
 
   /* ── Neutrals ────────────────────────────────────────────────────────── */
-  --bg-hsl:              160 11% 11%;   /* [Gunmetal] main page bg + column bg + input slabs + timeline past-hider, always solid */
-  --surface-hsl:         0 0% 4%;       /* [Obsidian] card dialog, popup panels (was surface-modal) */
-  --scrim-hsl:           0 0% 0%;       /* [Smoked Glass] nav backdrop + modal scrims, all @ 0.45 */
-  --gray-hsl:            0 0% 78%;      /* [Silver] timeline hour labels @ 0.55 */
+  --bg-hsl:              160 11% 11%;   /* [Gunmetal] Dead-channel grey, always solid. The ground it all stands on—pages, columns, input slabs, the buried past. */
+  --surface-hsl:         0 0% 4%;       /* [Obsidian] Black glass. Where dialogs and popups surface from nothing. */
+  --scrim-hsl:           0 0% 0%;       /* [Smoked Glass] Frosted dark you read the room through—behind the nav, behind the modals. */
+  --gray-hsl:            0 0% 78%;      /* [Silver] Thin chrome. The hours ticking down the timeline. */
 
   /* ── Category cards (base H S% L% channels per category — same units as
         the palette tokens; size variants = calc offsets from the base,
