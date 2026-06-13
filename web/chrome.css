@@ -38,7 +38,7 @@
   /* ── Cools ───────────────────────────────────────────────────────────── */
   --green-hsl:           135 100% 50%;  /* [Matrix Green] primary text + accent, monitor/system message text in chat (absorbs monitor 102 100% 74%) */
   --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] seek type badge, exec source, plan view, link color everywhere (absorbs teal-link 148 100% 50%) */
-  --blue-hsl:            216 67% 71%;   /* [Steel Blue] books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view (absorbs purple 271 100% 70%) */
+  --blue-hsl:            262 60% 76%;   /* [Lavender] books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view (absorbs purple 271 100% 70%) */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
   --orange-hsl:          33 100% 58%;   /* [Amber] now-clock text, dive badge, dirs source, overdue labels/tooltips in prophecies, mention type badge, tarot reversed marker (absorbs 17 100% 66% + yellow 41 100% 66%) */
@@ -54,9 +54,9 @@
   /* ── Category cards (base H S% L% channels per category — same units as
         the palette tokens; size variants = calc offsets from the base,
         computed once here, fetched by card-style.js) ──────────────────────── */
-  --cat-self-h:         198;  --cat-self-s:         100%;  --cat-self-l:         68%;  /* [Azure] */
+  --cat-self-h:         188;  --cat-self-s:         100%;  --cat-self-l:         68%;  /* [Azure] */
   --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;  /* [Sage Green] */
-  --cat-interfacing-h:  36;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] */
+  --cat-interfacing-h:  33;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] */
   --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;  /* [Coral] */
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));
   --card-self-chore:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.15);
