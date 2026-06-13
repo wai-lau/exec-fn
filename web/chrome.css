@@ -48,7 +48,7 @@
   /* ── Neutrals ────────────────────────────────────────────────────────── */
   --bg-hsl:              160 11% 11%;   /* [Gunmetal] main page bg + column bg + input slabs + timeline past-hider, always solid */
   --surface-hsl:         0 0% 4%;       /* [Obsidian] card dialog, popup panels (was surface-modal) */
-  --scrim-hsl:           0 0% 0%;       /* [Pure Black] nav backdrop + modal scrims, all @ 0.45 */
+  --scrim-hsl:           0 0% 0%;       /* [Smoked Glass] nav backdrop + modal scrims, all @ 0.45 */
   --gray-hsl:            0 0% 78%;      /* [Silver] timeline hour labels @ 0.55 */
 
   /* ── Category cards (base H S% L% channels per category — same units as
