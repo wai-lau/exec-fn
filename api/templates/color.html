@@ -11,10 +11,12 @@ body { overflow-y: auto !important; }
 .clr-note > div { margin-bottom: 6px; }
 .clr-note > div:last-child { margin-bottom: 0; }
 .clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
-/* one row per hue — swatches sit side by side, row wraps if a hue has many */
-.clr-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+/* one row per hue; each color in the family gets its own aligned column.
+   column count set inline (= widest hue family). rowstart forces each hue
+   to begin a fresh grid row, leaving trailing cells empty. */
+.clr-grid { display: grid; gap: 10px; align-items: start; }
+.clr-card--rowstart { grid-column-start: 1; }
 .clr-card {
-  box-sizing: border-box; width: calc((100% - 20px) / 3);
   border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: 4px;
   overflow: hidden; background: rgba(0,0,0,0.25);
 }
@@ -182,7 +184,8 @@ function visibleTokens(tokens, usage) {
     .filter(t => t.count > 0);
 }
 
-function cardHtml(t) {
+function cardHtml(t, rowStart) {
+  const cls = rowStart ? 'clr-card clr-card--rowstart' : 'clr-card';
   const varLabel = (t.cssVar === false ? '' : '--') + esc(t.name);
   // friendly color name is the headline; --var token sits under it
   const title = t.friendly ? esc(t.friendly) : varLabel;
@@ -193,7 +196,7 @@ function cardHtml(t) {
   // consumer effect (e.g. blur) shown to the right of the hsl value
   const fxLabel = (TOKEN_FX[t.name] || {}).label || '';
   const fxTag = fxLabel ? `<span class="clr-fx">${esc(fxLabel)}</span>` : '';
-  return `<div class="clr-card">
+  return `<div class="${cls}">
     ${swatchHtml(t)}
     <div class="clr-info">
       <div class="clr-name-row">
@@ -225,9 +228,14 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    board.innerHTML = rowsByHue(tokens)
-      .map(row => `<div class="clr-row">${row.map(cardHtml).join('')}</div>`)
+    const rows = rowsByHue(tokens);
+    // columns = widest hue family; each color gets its own aligned column
+    const cols = Math.max(1, ...rows.map(r => r.length));
+    const cells = rows
+      .map(row => row.map((t, i) => cardHtml(t, i === 0)).join(''))
       .join('');
+    board.innerHTML =
+      `<div class="clr-grid" style="grid-template-columns:repeat(${cols},1fr)">${cells}</div>`;
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
   }
