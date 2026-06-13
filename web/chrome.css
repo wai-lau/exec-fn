@@ -38,7 +38,7 @@
   /* ── Cools ───────────────────────────────────────────────────────────── */
   --green-hsl:           135 100% 50%;  /* [Matrix Green] primary text + accent, monitor/system message text in chat (absorbs monitor 102 100% 74%) */
   --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] seek type badge, exec source, plan view, link color everywhere (absorbs teal-link 148 100% 50%) */
-  --blue-hsl:            216 67% 71%;   /* [Cornflower] books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view (absorbs purple 271 100% 70%) */
+  --blue-hsl:            216 67% 71%;   /* [Steel Blue] books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view (absorbs purple 271 100% 70%) */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
   --orange-hsl:          33 100% 58%;   /* [Amber] now-clock text, dive badge, dirs source, overdue labels/tooltips in prophecies, mention type badge, tarot reversed marker (absorbs 17 100% 66% + yellow 41 100% 66%) */
