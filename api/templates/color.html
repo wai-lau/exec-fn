@@ -1,7 +1,8 @@
 
 <style>
 body { overflow-y: auto !important; }
-.clr-wrap { width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl));
+/* raise the palette above the cyber scanlines (z 9990) so they sit behind */
+.clr-wrap { position: relative; z-index: 9991; width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl));
   /* phosphor glow — same as the tarot reader skin (chat-reader.css) */
   text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
 .clr-note {
@@ -24,9 +25,7 @@ body { overflow-y: auto !important; }
 .clr-cell { flex: 0 1 44px; min-width: 0; }
 .clr-sw {
   height: 44px; border-radius: 3px; overflow: hidden;
-  /* neutral frame + faint dark field so a swatch the same color as the
-     page bg (Gunmetal) is still visible, and translucent fills read */
-  border: 1px solid hsl(0 0% 100% / 0.2);
+  /* faint dark field so translucent fills read against it */
   background: hsl(0 0% 0% / 0.3);
 }
 .clr-fill { width: 100%; height: 100%; }
