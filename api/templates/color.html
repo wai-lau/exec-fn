@@ -14,7 +14,6 @@ body { overflow-y: auto !important; }
    the description beneath. */
 .clr-board { display: flex; flex-direction: column; gap: 32px; }
 .clr-group { display: flex; flex-direction: column; gap: 7px; width: 100%; }
-.clr-cntline { text-align: left; }
 .clr-title { font-size: 0.85rem; color: hsl(var(--green-hsl)); }
 .clr-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.62rem; }
 .clr-tbl th { font-weight: 400; opacity: 0.55; padding: 2px 6px; text-align: center; }
@@ -69,32 +68,30 @@ function tokenAlphaPairs(t) {
 // one color = one table: columns are card sizes (chore..titan) or, for
 // non-card colors, the used alpha steps; rows are swatch/opacity/count/effects
 function groupHtml(col) {
-  let swatches, opac, counts = null, countText = '';
-  if (col.hasCard) {
-    // card colors: the count row is the non-card usages mapped onto each
-    // size, as text — "(chores +6)x (projects +2)x"
+  let swatches, opac, counts;
+  const card = col.hasCard;
+  if (card) {
+    // card colors: count per size = non-card usages mapped onto it (all 4)
     const mapped = { chore: 0, task: 0, project: 0, titan: 0 };
     for (const p of col.alphaPairs) mapped[nearestSize(p.a)] += (p.n || 0);
     swatches = col.segs;
     opac = SIZES.map(s => SIZE_ALPHA[s]);
-    countText = SIZES.filter(s => mapped[s] > 0)
-      .map(s => `(${s}s +${mapped[s]})×`).join(' ');
+    counts = SIZES.map(s => mapped[s]);
   } else {
     swatches = col.alphaPairs.map(p => `background:hsl(${col.value} / ${p.a});${col.fxStyle}`);
     opac = col.alphaPairs.map(p => p.a);
     counts = col.alphaPairs.map(p => p.n);
   }
   // pad every table to 4 columns (empty trailing cells) so they all line up
-  while (swatches.length < 4) { swatches.push(null); opac.push(null); if (counts) counts.push(null); }
+  while (swatches.length < 4) { swatches.push(null); opac.push(null); counts.push(null); }
   // no header / row labels — the note + each color's description cover them
   const swRow = `<tr>${swatches.map(s => s == null ? '<td></td>' :
     `<td><div class="clr-sw"><div class="clr-fill" style="${esc(s)}"></div></div></td>`).join('')}</tr>`;
   const opRow = `<tr>${opac.map(o =>
     `<td>${o != null ? esc(String(o)) : ''}</td>`).join('')}</tr>`;
-  const cntRow = counts
-    ? `<tr>${counts.map(c =>
-        `<td>${c != null ? `<span class="clr-cnt">&times;${c}</span>` : ''}</td>`).join('')}</tr>`
-    : `<tr><td colspan="4" class="clr-cnt clr-cntline">${esc(countText)}</td></tr>`;
+  // card colors show mapped additions (+N×), non-card the raw count (×N)
+  const cntRow = `<tr>${counts.map(c => c == null ? '<td></td>' :
+    `<td><span class="clr-cnt">${card ? `+${c}&times;` : `&times;${c}`}</span></td>`).join('')}</tr>`;
   // effect sits in the column it applies to (the token's first/only shade)
   const fxRow = `<tr>${[0, 1, 2, 3].map(i =>
     `<td class="clr-fx">${i === 0 && col.fxLabel ? esc(col.fxLabel) : ''}</td>`).join('')}</tr>`;
