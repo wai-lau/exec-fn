@@ -715,7 +715,7 @@ async def color_usage():
         Path("/app/main.py"),
     ]
     counts: dict[str, int] = {}
-    alphas: dict[str, set[float]] = {}
+    alpha_tally: dict[str, dict[float, int]] = {}
     for p in paths:
         try:
             text = p.read_text()
@@ -728,8 +728,13 @@ async def color_usage():
         for name in re.findall(r"var\(--([\w-]+)", text):
             counts[name] = counts.get(name, 0) + 1
         for name, alpha in re.findall(r"var\(--([\w-]+-hsl)\)(?:\s*/\s*([\d.]+))?", text):
-            alphas.setdefault(name, set()).add(float(alpha) if alpha else 1.0)
-    return {"counts": counts, "alphas": {k: sorted(v) for k, v in alphas.items()}}
+            a = float(alpha) if alpha else 1.0
+            tally = alpha_tally.setdefault(name, {})
+            tally[a] = tally.get(a, 0) + 1
+    # per-token: sorted alpha steps + a parallel list of their usage counts
+    alphas = {k: sorted(v) for k, v in alpha_tally.items()}
+    alpha_counts = {k: [alpha_tally[k][a] for a in steps] for k, steps in alphas.items()}
+    return {"counts": counts, "alphas": alphas, "alpha_counts": alpha_counts}
 
 
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
