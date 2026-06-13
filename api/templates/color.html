@@ -24,7 +24,7 @@ body { overflow-y: auto !important; }
 .clr-title { font-size: 0.7rem; color: hsl(var(--green-hsl)); }
 .clr-tbl { border-collapse: collapse; font-size: 0.5rem; }
 .clr-tbl th { font-weight: 400; opacity: 0.55; padding: 1px 4px; text-align: center; }
-.clr-tbl td { padding: 1px 4px; text-align: center; vertical-align: middle; }
+.clr-tbl td { padding: 1px 4px; text-align: center; vertical-align: middle; min-width: 42px; }
 .clr-sw { height: 22px; width: 34px; border-radius: 2px; overflow: hidden; margin: 0 auto;
   /* faint dark field so translucent fills read against it */
   background: hsl(0 0% 0% / 0.3); }
@@ -94,15 +94,16 @@ function groupHtml(col) {
     opac = col.alphaPairs.map(p => p.a);
     counts = col.alphaPairs.map(p => p.n);
   }
-  const n = swatches.length;
+  // pad every table to 4 columns (empty trailing cells) so they all line up
+  while (swatches.length < 4) { swatches.push(null); opac.push(null); counts.push(null); }
   // no header / row labels — the note + each color's description cover them
-  const swRow = `<tr>${swatches.map(s =>
+  const swRow = `<tr>${swatches.map(s => s == null ? '<td></td>' :
     `<td><div class="clr-sw"><div class="clr-fill" style="${esc(s)}"></div></div></td>`).join('')}</tr>`;
   const opRow = `<tr>${opac.map(o =>
-    `<td>${esc(String(o))}</td>`).join('')}</tr>`;
+    `<td>${o != null ? esc(String(o)) : ''}</td>`).join('')}</tr>`;
   const cntRow = `<tr>${counts.map(c =>
     `<td>${c != null ? `<span class="clr-cnt">&times;${c}</span>` : ''}</td>`).join('')}</tr>`;
-  const fxRow = `<tr><td colspan="${n}" class="clr-fx">${
+  const fxRow = `<tr><td colspan="4" class="clr-fx">${
     col.fxLabel ? esc(col.fxLabel) : ''}</td></tr>`;
   return `<div class="clr-group">
     <div class="clr-title">${esc(col.name)}</div>
