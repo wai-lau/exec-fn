@@ -193,7 +193,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | POST | `/api/assemble_plan` | Run the assemble_plan tool from current directives.json (legacy plan pipeline). |
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
 | GET | `/data/{filename}` | Serve file from /app/data/ (path-traversal guarded) |
-| GET | `/api/color/usage` | Public. `{counts: {token: n}, alphas: {token: [α…]}}` — `var(--X)` reference counts + actually-used alphas per `-hsl` token across templates + web assets (chrome.css `:root` block excluded; bare `hsl(var(--X-hsl))` = α 1). Feeds the ×N badges + alpha ramps on `/color` |
+| GET | `/api/color/usage` | Public. `{counts: {token: n}, alphas: {token: [α…]}, alpha_counts: {token: [n…]}}` — `var(--X)` reference counts + actually-used alphas per `-hsl` token + a parallel per-alpha usage count list (same order as `alphas`), across templates + web assets (chrome.css `:root` block excluded; bare `hsl(var(--X-hsl))` = α 1). Feeds the alpha ramps + per-opacity ×N on `/color` |
 | GET | `/api/mtg/log` | mtg chat history |
 | POST | `/api/mtg/chat` | mtg chat (tool-use over rules) SSE |
 | GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |
