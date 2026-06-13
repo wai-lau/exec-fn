@@ -11,8 +11,10 @@ body { overflow-y: auto !important; }
 .clr-note > div { margin-bottom: 6px; }
 .clr-note > div:last-child { margin-bottom: 0; }
 .clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
-.clr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+/* one row per hue — swatches sit side by side, row wraps if a hue has many */
+.clr-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .clr-card {
+  box-sizing: border-box; width: calc((100% - 20px) / 3);
   border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: 4px;
   overflow: hidden; background: rgba(0,0,0,0.25);
 }
@@ -146,6 +148,29 @@ function hueKey(t) {
   return [0, h];
 }
 
+// exact H channel of a token (categories carry t.hue; -hsl parse from value)
+function hueOf(t) {
+  if (t.hue != null) return t.hue;
+  const m = t.value.match(/^([\d.]+)/);
+  return m ? +m[1] : 0;
+}
+
+// one row per exact hue value (8, 24, 33, ...); same-hue swatches share a
+// row. Rows ordered by hueKey so the near-gray neutrals trail. Input must
+// already be hueKey-sorted so each group's first token is its minimum.
+function rowsByHue(tokens) {
+  const map = new Map();
+  for (const t of tokens) {
+    const h = hueOf(t);
+    if (!map.has(h)) map.set(h, []);
+    map.get(h).push(t);
+  }
+  return [...map.values()].sort((a, b) => {
+    const ka = hueKey(a[0]), kb = hueKey(b[0]);
+    return ka[0] - kb[0] || ka[1] - kb[1];
+  });
+}
+
 // Hide the category machinery (--cat-* knobs, --card-* variants — shown
 // grouped via categoryTokens) and anything with zero usage.
 function visibleTokens(tokens, usage) {
@@ -200,7 +225,9 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    board.innerHTML = `<div class="clr-grid">${tokens.map(cardHtml).join('')}</div>`;
+    board.innerHTML = rowsByHue(tokens)
+      .map(row => `<div class="clr-row">${row.map(cardHtml).join('')}</div>`)
+      .join('');
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
   }

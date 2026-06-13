@@ -159,7 +159,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: flat hue-sorted 3-col grid of chrome.css `:root` tokens (swatch + friendly name headline + --var + value + usage below; alpha ramps for `-hsl` show only alphas actually in use; category cards grouped with size-fill segments). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
+| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one row per exact hue value (same-hue tokens share a row; up to 3-up, wraps), neutrals trail; chrome.css `:root` tokens (swatch + friendly name headline + --var + value + usage below; alpha ramps for `-hsl` show only alphas actually in use; category cards grouped with size-fill segments). Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
