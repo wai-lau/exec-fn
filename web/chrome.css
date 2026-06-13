@@ -36,14 +36,14 @@
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Cools ───────────────────────────────────────────────────────────── */
-  --green-hsl:           135 100% 50%;  /* [Matrix Green] Phosphor green—the interface's mother tongue. Body text, accents, the system's own murmur in the chat. */
-  --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] Cold cathode blue. The exec's signature, and every link that jacks you elsewhere. */
+  --green-hsl:           135 100% 50%;  /* [Ono-Sendai] Phosphor green—the interface's mother tongue. Body text, accents, the system's own murmur in the chat. */
+  --cyan-hsl:            188 100% 50%;  /* [Hack] Cold cathode blue. The exec's signature, and every link that jacks you elsewhere. */
   --blue-hsl:            262 60% 76%;   /* [Lavender] Synthetic dusk. The books bar, weekend names, meal blocks, the week's quieter trim. */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
   --orange-hsl:          33 100% 68%;   /* [Marigold] Sodium glare. The now-clock, the dive, overdue warnings, mentions, the tarot card come up reversed. */
   --orange-glow-hsl:     24 100% 50%;   /* [Ember] Heat off the clock, and the red under everything—overdue dates, drop zones, the exile switch, every error. */
-  --pink-hsl:            340 71% 58%;   /* [Hot Pink] Neon at 3 a.m. The exec bubble's skin, the vain empress, the admin door. */
+  --pink-hsl:            340 71% 58%;   /* [Lizzie's] Neon at 3 a.m. The exec bubble's skin, the vain empress, the admin door. */
 
   /* ── Neutrals ────────────────────────────────────────────────────────── */
   --bg-hsl:              160 11% 11%;   /* [Gunmetal] Dead-channel grey, always solid. The ground it all stands on—pages, columns, input slabs, the buried past. */
@@ -54,8 +54,8 @@
   /* ── Category cards (base H S% L% channels per category — same units as
         the palette tokens; size variants = calc offsets from the base,
         computed once here, fetched by card-style.js) ──────────────────────── */
-  --cat-self-h:         188;  --cat-self-s:         100%;  --cat-self-l:         50%;  /* [Cyber Cyan] = --cyan-hsl */
-  --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;  /* [Sage Green] */
+  --cat-self-h:         188;  --cat-self-s:         100%;  --cat-self-l:         50%;  /* [Hack] = --cyan-hsl */
+  --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;  /* [Chatsubo] */
   --cat-interfacing-h:  33;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] = --orange-hsl */
   --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;  /* [Coral] */
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));
