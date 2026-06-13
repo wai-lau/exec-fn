@@ -185,6 +185,20 @@ function rowsByHue(tokens) {
   return [...map.values()].sort((a, b) => hueOf(a[0]) - hueOf(b[0]));
 }
 
+// Merge tokens that resolve to the same H S L into one group (e.g. a
+// category whose base now equals an accent token). Keep the -hsl accent as
+// the swatch (its alpha ramp), fold the other's usage note into it.
+function dedupeByColor(tokens) {
+  const byVal = new Map();
+  const out = [];
+  for (const t of tokens) {
+    const keep = byVal.get(t.value);
+    if (!keep) { byVal.set(t.value, t); out.push(t); continue; }
+    keep.use = [keep.use, t.use].filter(Boolean).join(' ');
+  }
+  return out;
+}
+
 // Hide the category machinery (--cat-* knobs, --card-* variants — shown
 // grouped via categoryTokens) and anything with zero usage.
 function visibleTokens(tokens, usage) {
@@ -218,7 +232,7 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    const rows = rowsByHue(tokens);
+    const rows = rowsByHue(dedupeByColor(tokens));
     // column width = window / densest row, so the widest row just fits
     board.style.setProperty('--cols', Math.max(1, ...rows.map(r => r.length)));
     board.innerHTML = rows
