@@ -22,8 +22,6 @@ body { overflow-y: auto !important; }
 .clr-sw {
   height: 44px; border-radius: 3px; overflow: hidden;
   border: 1px solid hsl(var(--green-hsl) / 0.12);
-  /* checkerboard behind the fill exposes a swatch's transparency */
-  background: repeating-conic-gradient(#5a5a5a 0 25%, #808080 0 50%) 0 / 12px 12px;
 }
 .clr-fill { width: 100%; height: 100%; }
 .clr-cap { font-size: 0.5rem; opacity: 0.5; text-align: center; margin-top: 2px; }
@@ -37,7 +35,7 @@ body { overflow-y: auto !important; }
   <div class="clr-note">
     <div>palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.</div>
     <div>rows = hue (ascending); each column is one shade — an <code>-hsl</code> token's used alpha steps (low to high), or a category's chore / task / project / titan fills.</div>
-    <div>the first column of each color is labelled with its friendly name (<code>[Name]</code> in the chrome.css comment) + any consumer effect (e.g. blur). the checker behind a swatch shows transparency.</div>
+    <div>the first column of each color is labelled with its friendly name (<code>[Name]</code> in the chrome.css comment) + any consumer effect (e.g. blur).</div>
     <div>hidden: unused tokens.</div>
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
