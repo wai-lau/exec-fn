@@ -15,10 +15,13 @@ body { overflow-y: auto !important; }
 /* one row per hue (ascending); within a row, each color is a group of its
    shade columns (an -hsl token's used alpha steps, or a category's
    chore/task/project/titan fills) with its name + usage beneath. */
-.clr-row { display: flex; flex-wrap: nowrap; gap: 18px 14px; margin-bottom: 22px; align-items: flex-start; overflow-x: auto; }
-.clr-group { display: flex; flex-direction: column; gap: 5px; min-width: 104px; max-width: 200px; }
+.clr-row { display: flex; flex-wrap: nowrap; gap: 18px 14px; margin-bottom: 22px; align-items: flex-start; }
+/* every group the same width = window / (densest row's group count, --cols),
+   so the widest row fills the window exactly — no horizontal scroll */
+.clr-group { display: flex; flex-direction: column; gap: 5px; min-width: 0;
+  flex: 0 0 calc((100% - (var(--cols) - 1) * 14px) / var(--cols)); }
 .clr-cells { display: flex; gap: 3px; }
-.clr-cell { width: 44px; }
+.clr-cell { flex: 0 1 44px; min-width: 0; }
 .clr-sw {
   height: 44px; border-radius: 3px; overflow: hidden;
   border: 1px solid hsl(var(--green-hsl) / 0.12);
@@ -102,6 +105,14 @@ function groupHtml(t) {
   </div>`;
 }
 
+// Gibson-voiced blurbs for the four card categories
+const CAT_DESC = {
+  Self: `Your own wiring. Self-work as card-fills, chore to titan.`,
+  Social: `The others—debts and signals as card-fills, chore to titan.`,
+  Interfacing: `Jacked into the world's systems. Errands and admin as card-fills, chore to titan.`,
+  Hobby: `Off-grid hours. Making and play as card-fills, chore to titan.`,
+};
+
 // Category card colors — the --card-* tokens, grouped one entry per
 // category; segments are the chore/task/project/titan fills.
 function categoryTokens(tokenMap, friendlyMap) {
@@ -117,7 +128,7 @@ function categoryTokens(tokenMap, friendlyMap) {
       // friendly name authored on the --cat-*-l knob (last decl on its line)
       friendly: friendlyMap[`cat-${key}-l`] || '',
       value: `${h} ${s} ${l}`,
-      use: `${cat} kanban card fills by size (chore / task / project / titan)`,
+      use: CAT_DESC[cat] || `${cat} card fills by size`,
       segs,
       hue: parseFloat(h),
     };
@@ -207,7 +218,10 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    board.innerHTML = rowsByHue(tokens)
+    const rows = rowsByHue(tokens);
+    // column width = window / densest row, so the widest row just fits
+    board.style.setProperty('--cols', Math.max(1, ...rows.map(r => r.length)));
+    board.innerHTML = rows
       .map(row => `<div class="clr-row">${row.map(groupHtml).join('')}</div>`)
       .join('');
   } catch (e) {
