@@ -37,7 +37,7 @@
 :root {
   /* ── Cools ───────────────────────────────────────────────────────────── */
   --green-hsl:           135 100% 50%;  /* [Matrix Green] Phosphor green—the interface's mother tongue. Body text, accents, the system's own murmur in the chat. */
-  --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] Cold cathode blue. The seek badge, the exec's signature, every link that jacks you elsewhere. */
+  --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] Cold cathode blue. The exec's signature, and every link that jacks you elsewhere. */
   --blue-hsl:            262 60% 76%;   /* [Lavender] Synthetic dusk. The books bar, weekend names, meal blocks, the week's quieter trim. */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
@@ -54,9 +54,9 @@
   /* ── Category cards (base H S% L% channels per category — same units as
         the palette tokens; size variants = calc offsets from the base,
         computed once here, fetched by card-style.js) ──────────────────────── */
-  --cat-self-h:         188;  --cat-self-s:         100%;  --cat-self-l:         68%;  /* [Azure] */
+  --cat-self-h:         188;  --cat-self-s:         100%;  --cat-self-l:         50%;  /* [Cyber Cyan] = --cyan-hsl */
   --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;  /* [Sage Green] */
-  --cat-interfacing-h:  33;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] */
+  --cat-interfacing-h:  33;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  58%;  /* [Amber] = --orange-hsl */
   --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;  /* [Coral] */
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));
   --card-self-chore:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.15);
