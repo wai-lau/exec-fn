@@ -79,25 +79,21 @@ function tokenAlphaPairs(t) {
 // one color = one table: columns are card sizes (chore..titan) or, for
 // non-card colors, the used alpha steps; rows are swatch/opacity/count/effects
 function groupHtml(col) {
-  let heads, swatches, opac, counts;
+  let swatches, opac, counts;
   if (col.hasCard) {
     const mapped = { chore: 0, task: 0, project: 0, titan: 0 };
     const hasAccent = col.alphaPairs.length > 0;
     for (const p of col.alphaPairs) mapped[nearestSize(p.a)] += (p.n || 0);
-    heads = SIZES;
     swatches = col.segs;
     opac = SIZES.map(s => SIZE_ALPHA[s]);
     counts = SIZES.map(s => hasAccent ? mapped[s] : null);
   } else {
-    heads = col.alphaPairs.map(() => '');
     swatches = col.alphaPairs.map(p => `background:hsl(${col.value} / ${p.a});${col.fxStyle}`);
     opac = col.alphaPairs.map(p => p.a);
     counts = col.alphaPairs.map(p => p.n);
   }
   const n = swatches.length;
-  // no row-name labels — the note up top documents the row order
-  const headRow = col.hasCard
-    ? `<tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr>` : '';
+  // no header / row labels — the note + each color's description cover them
   const swRow = `<tr>${swatches.map(s =>
     `<td><div class="clr-sw"><div class="clr-fill" style="${esc(s)}"></div></div></td>`).join('')}</tr>`;
   const opRow = `<tr>${opac.map(o =>
@@ -108,7 +104,7 @@ function groupHtml(col) {
     col.fxLabel ? esc(col.fxLabel) : ''}</td></tr>`;
   return `<div class="clr-group">
     <div class="clr-title">${esc(col.name)}</div>
-    <table class="clr-tbl">${headRow}${swRow}${opRow}${cntRow}${fxRow}</table>
+    <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}</table>
     ${col.use ? `<div class="clr-guse">${esc(col.use)}</div>` : ''}
   </div>`;
 }
