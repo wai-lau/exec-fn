@@ -1,6 +1,8 @@
 
 <style>
 body { overflow-y: auto !important; }
+/* nav over the palette + scanlines (matches tarot/mtg) */
+.exec-nav { z-index: 9995; }
 /* raise the palette above the cyber scanlines (z 9990) so they sit behind */
 .clr-wrap { position: relative; z-index: 9991; width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl));
   /* phosphor glow — same as the tarot reader skin (chat-reader.css) */
