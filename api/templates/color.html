@@ -229,8 +229,10 @@ async function loadColors() {
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
     const rows = rowsByHue(tokens);
-    // columns = widest hue family; each color gets its own aligned column
-    const cols = Math.max(1, ...rows.map(r => r.length));
+    // columns = widest *chromatic* hue family (e.g. 188: Cyan + Azure);
+    // the neutral grays don't set column count — they wrap within it
+    const chromatic = rows.filter(r => hueKey(r[0])[0] === 0);
+    const cols = Math.max(1, ...chromatic.map(r => r.length));
     const cells = rows
       .map(row => row.map((t, i) => cardHtml(t, i === 0)).join(''))
       .join('');
