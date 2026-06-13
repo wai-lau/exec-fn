@@ -36,28 +36,28 @@
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   /* ── Cools ───────────────────────────────────────────────────────────── */
-  --green-hsl:           135 100% 50%;  /* primary text + accent, monitor/system message text in chat (absorbs monitor 102 100% 74%) */
-  --cyan-hsl:            188 100% 50%;  /* seek type badge, exec source, plan view, link color everywhere (absorbs teal-link 148 100% 50%) */
-  --blue-hsl:            216 67% 71%;   /* books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view (absorbs purple 271 100% 70%) */
+  --green-hsl:           135 100% 50%;  /* [Matrix Green] primary text + accent, monitor/system message text in chat (absorbs monitor 102 100% 74%) */
+  --cyan-hsl:            188 100% 50%;  /* [Cyber Cyan] seek type badge, exec source, plan view, link color everywhere (absorbs teal-link 148 100% 50%) */
+  --blue-hsl:            216 67% 71%;   /* [Cornflower] books bar, prophecies accents incl. weekend day names, meal blocks, prof source badge in plan view (absorbs purple 271 100% 70%) */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
-  --orange-hsl:          33 100% 58%;   /* now-clock text, dive badge, dirs source, overdue labels/tooltips in prophecies, mention type badge, tarot reversed marker (absorbs 17 100% 66% + yellow 41 100% 66%) */
-  --orange-glow-hsl:     24 100% 50%;   /* now-clock glow — layered alphas; danger: overdue dates, drop zones, exile buttons, error text/fill, badge (absorbs red 0 100% 66% + red-dark 0 100% 56%) */
-  --pink-hsl:            340 71% 58%;   /* exec bubble panel, vain-empress entries, admin login box (absorbs rgb(224,74,125)) */
+  --orange-hsl:          33 100% 58%;   /* [Amber] now-clock text, dive badge, dirs source, overdue labels/tooltips in prophecies, mention type badge, tarot reversed marker (absorbs 17 100% 66% + yellow 41 100% 66%) */
+  --orange-glow-hsl:     24 100% 50%;   /* [Ember] now-clock glow — layered alphas; danger: overdue dates, drop zones, exile buttons, error text/fill, badge (absorbs red 0 100% 66% + red-dark 0 100% 56%) */
+  --pink-hsl:            340 71% 58%;   /* [Hot Pink] exec bubble panel, vain-empress entries, admin login box (absorbs rgb(224,74,125)) */
 
   /* ── Neutrals ────────────────────────────────────────────────────────── */
-  --bg-hsl:              160 11% 11%;   /* main page bg + column bg + input slabs + timeline past-hider, always solid */
-  --surface-hsl:         0 0% 4%;       /* card dialog, popup panels (was surface-modal) */
-  --scrim-hsl:           0 0% 0%;       /* nav backdrop + modal scrims, all @ 0.45 */
-  --gray-hsl:            0 0% 78%;      /* timeline hour labels @ 0.55 */
+  --bg-hsl:              160 11% 11%;   /* [Gunmetal] main page bg + column bg + input slabs + timeline past-hider, always solid */
+  --surface-hsl:         0 0% 4%;       /* [Obsidian] card dialog, popup panels (was surface-modal) */
+  --scrim-hsl:           0 0% 0%;       /* [Pure Black] nav backdrop + modal scrims, all @ 0.45 */
+  --gray-hsl:            0 0% 78%;      /* [Silver] timeline hour labels @ 0.55 */
 
   /* ── Category cards (base H S% L% channels per category — same units as
         the palette tokens; size variants = calc offsets from the base,
         computed once here, fetched by card-style.js) ──────────────────────── */
-  --cat-self-h:         198;  --cat-self-s:         100%;  --cat-self-l:         68%;
-  --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;
-  --cat-interfacing-h:  36;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;
-  --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;
+  --cat-self-h:         198;  --cat-self-s:         100%;  --cat-self-l:         68%;  /* [Azure] */
+  --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;  /* [Sage Green] */
+  --cat-interfacing-h:  36;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] */
+  --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;  /* [Coral] */
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));
   --card-self-chore:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.15);
   --card-self-task:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.25);

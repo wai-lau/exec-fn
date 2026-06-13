@@ -31,6 +31,7 @@ body { overflow-y: auto !important; }
 .clr-name-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 2px; }
 .clr-name { font-size: 0.64rem; color: hsl(var(--green-hsl) / 1); word-break: break-all; }
 .clr-count { font-size: 0.56rem; color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; }
+.clr-var { font-size: 0.58rem; color: hsl(var(--green-hsl) / 0.55); margin-bottom: 3px; word-break: break-all; }
 .clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; }
 .clr-use { font-size: 0.6rem; opacity: 0.45; line-height: 1.45; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
@@ -39,6 +40,9 @@ body { overflow-y: auto !important; }
 <div class="clr-wrap">
   <div class="clr-note">
     palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.
+    each swatch's headline is its friendly name (authored as a leading
+    <code>[Name]</code> in the token's chrome.css comment); the
+    <code>--var</code> sits under it.
     every color is a hue-based <code>-hsl</code> channel token; category card
     colors are <code>--card-*</code> tokens computed once from a per-category
     base <code>H S% L%</code> (<code>--cat-*-h/-s/-l</code>) and shown grouped
@@ -84,7 +88,7 @@ function swatchHtml(t) {
 
 // Category card colors — the --card-* tokens, grouped one entry per
 // category; segments are the chore/task/project/titan fills.
-function categoryTokens(tokenMap) {
+function categoryTokens(tokenMap, friendlyMap) {
   if (typeof cardStyle !== 'function') return [];
   return CARD_CATS.map(cat => {
     const segs = ['chore', 'task', 'project', 'titan']
@@ -94,6 +98,8 @@ function categoryTokens(tokenMap) {
     return {
       name: `${cat} cards`,
       cssVar: false,
+      // friendly name authored on the --cat-*-l knob (last decl on its line)
+      friendly: friendlyMap[`cat-${key}-l`] || '',
       value: `${h} ${s} ${l}`,
       use: 'kanban card fills by size — --card-* tokens from the base channels',
       segs,
@@ -110,7 +116,15 @@ function parsePalette(css) {
   for (const line of root[1].split('\n')) {
     // matchAll, not match — the --cat-* knobs sit two declarations per line
     for (const tok of line.matchAll(/--([\w-]+):\s*([^;]+);\s*(?:\/\*\s*(.*?)\s*\*\/)?/g)) {
-      tokens.push({ name: tok[1], value: tok[2].trim(), use: tok[3] || '' });
+      const comment = tok[3] || '';
+      // leading [Friendly Name] in the comment = the color's human name
+      const nm = comment.match(/^\[([^\]]+)\]\s*([\s\S]*)$/);
+      tokens.push({
+        name: tok[1],
+        value: tok[2].trim(),
+        friendly: nm ? nm[1] : '',
+        use: nm ? nm[2].trim() : comment,
+      });
     }
   }
   return tokens;
@@ -139,7 +153,10 @@ function visibleTokens(tokens, usage) {
 }
 
 function cardHtml(t) {
-  const label = (t.cssVar === false ? '' : '--') + esc(t.name);
+  const varLabel = (t.cssVar === false ? '' : '--') + esc(t.name);
+  // friendly color name is the headline; --var token sits under it
+  const title = t.friendly ? esc(t.friendly) : varLabel;
+  const sub = t.friendly ? `<div class="clr-var">${varLabel}</div>` : '';
   const badge = t.count == null
     ? '<span class="clr-count">computed</span>'
     : `<span class="clr-count">&times;${t.count}</span>`;
@@ -147,9 +164,10 @@ function cardHtml(t) {
     ${swatchHtml(t)}
     <div class="clr-info">
       <div class="clr-name-row">
-        <span class="clr-name">${label}</span>
+        <span class="clr-name">${title}</span>
         ${badge}
       </div>
+      ${sub}
       <div class="clr-val">${esc(t.value)}</div>
       ${t.use ? `<div class="clr-use">${esc(t.use)}</div>` : ''}
     </div>
@@ -167,7 +185,8 @@ async function loadColors() {
     const usage = usageRes.ok ? await usageRes.json() : { counts: {}, alphas: {} };
     const parsed = parsePalette(css);
     const tokenMap = Object.fromEntries(parsed.map(t => [t.name, t.value]));
-    const tokens = [...visibleTokens(parsed, usage), ...categoryTokens(tokenMap)]
+    const friendlyMap = Object.fromEntries(parsed.map(t => [t.name, t.friendly]));
+    const tokens = [...visibleTokens(parsed, usage), ...categoryTokens(tokenMap, friendlyMap)]
       .sort((a, b) => {
         const ka = hueKey(a), kb = hueKey(b);
         return ka[0] - kb[0] || ka[1] - kb[1];
