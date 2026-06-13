@@ -11,49 +11,33 @@ body { overflow-y: auto !important; }
 .clr-note > div { margin-bottom: 6px; }
 .clr-note > div:last-child { margin-bottom: 0; }
 .clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
-/* one row per hue; each color in the family gets its own aligned column.
-   column count set inline (= widest hue family). rowstart forces each hue
-   to begin a fresh grid row, leaving trailing cells empty. */
-.clr-grid { display: grid; gap: 10px; align-items: start; }
-.clr-card--rowstart { grid-column-start: 1; }
-.clr-card {
-  border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: 4px;
-  overflow: hidden; background: rgba(0,0,0,0.25);
+
+/* hue rows x shade columns: each row is one hue (ascending); each column is
+   one shade cell — a used alpha step of an -hsl token, or a category's
+   chore/task/project/titan fill. column count = widest hue row (188 = 8).
+   rowstart forces each hue to begin a fresh grid row. */
+.clr-grid { display: grid; gap: 16px 5px; align-items: start; }
+.clr-cell--rowstart { grid-column-start: 1; }
+.clr-cell { min-width: 0; }
+.clr-sw {
+  height: 44px; border-radius: 3px; overflow: hidden;
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  /* checkerboard behind the fill exposes a swatch's transparency */
+  background: repeating-conic-gradient(#5a5a5a 0 25%, #808080 0 50%) 0 / 12px 12px;
 }
-.clr-swatch { height: 54px; display: flex; position: relative; }
-/* white bar behind the color — centered, 8.4% height, 80% width — exposes alpha */
-.clr-swatch::before {
-  content: ''; position: absolute;
-  left: 10%; right: 10%; top: 45.8%; height: 8.4%;
-  background: #fff;
-}
-/* swatches that reproduce a consumer effect (blur) need structure to
-   act on — flat white comes back white under blur, so stripe just these */
-.clr-swatch.fx::before {
-  background:
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.55) 0, rgba(0,0,0,0.55) 1px, transparent 1px, transparent 6px),
-    #fff;
-}
-.clr-swatch span { flex: 1; position: relative; }
-.clr-info { padding: 8px 10px 9px; border-top: 1px solid hsl(var(--green-hsl) / 0.12); }
-.clr-name-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 2px; }
-.clr-name { font-size: 0.64rem; color: hsl(var(--green-hsl) / 1); word-break: break-all; }
-.clr-count { font-size: 0.56rem; color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; }
-.clr-var { font-size: 0.58rem; color: hsl(var(--green-hsl) / 0.55); margin-bottom: 3px; word-break: break-all; }
-.clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
-.clr-fx { flex-shrink: 0; color: hsl(var(--cyan-hsl) / 0.8); opacity: 1; white-space: nowrap; }
-.clr-use { font-size: 0.6rem; opacity: 0.45; line-height: 1.45; }
+.clr-fill { width: 100%; height: 100%; }
+.clr-cap { font-size: 0.5rem; opacity: 0.5; text-align: center; margin-top: 2px; }
+.clr-cellhead { display: flex; justify-content: space-between; gap: 4px; align-items: baseline; margin-top: 2px; }
+.clr-cellname { font-size: 0.58rem; color: hsl(var(--green-hsl)); white-space: nowrap; }
+.clr-fx { font-size: 0.5rem; color: hsl(var(--cyan-hsl) / 0.8); white-space: nowrap; flex-shrink: 0; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
 
 <div class="clr-wrap">
   <div class="clr-note">
     <div>palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.</div>
-    <div>each swatch's headline is its friendly name (authored as a leading <code>[Name]</code> in the token's chrome.css comment); the <code>--var</code> sits under it.</div>
-    <div>every color is a hue-based <code>-hsl</code> channel token; category card colors are <code>--card-*</code> tokens computed once from a per-category base <code>H S% L%</code> (<code>--cat-*-h/-s/-l</code>) and shown grouped (segments: chore / task / project / titan fills).</div>
-    <div><code>-hsl</code> tokens show only the alpha steps actually in use, low to high.</div>
-    <div>×N = <code>var(--token)</code> references across templates + web assets; on a category swatch, its materialized <code>--card-*</code> variant count.</div>
-    <div>effect tag right of an hsl value (e.g. blur) = the filter its consumer applies.</div>
+    <div>rows = hue (ascending); each column is one shade — an <code>-hsl</code> token's used alpha steps (low to high), or a category's chore / task / project / titan fills.</div>
+    <div>the first column of each color is labelled with its friendly name (<code>[Name]</code> in the chrome.css comment) + any consumer effect (e.g. blur). the checker behind a swatch shows transparency.</div>
     <div>hidden: unused tokens.</div>
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
@@ -67,8 +51,8 @@ function esc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// effects the token's real consumer applies — reproduced on the swatch so
-// the striped bar shows them (nav backdrop runs blur(14px) under .exec-nav)
+// effects the token's real consumer applies — reproduced on the swatch fill
+// (nav backdrop runs blur(14px) under .exec-nav)
 const TOKEN_FX = {
   'scrim-hsl': {
     style: 'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);',
@@ -76,21 +60,41 @@ const TOKEN_FX = {
   },
 };
 
-function swatchHtml(t) {
-  const { name, value } = t;
-  const fx = (TOKEN_FX[name] || {}).style || '';
-  const cls = fx ? 'clr-swatch fx' : 'clr-swatch';
+// explode a token into shade cells — one per used alpha (-hsl), one per size
+// segment (category), or a single solid. The first cell carries the label.
+function tokenCells(t) {
+  const name = t.friendly || (t.cssVar === false ? t.name : '--' + t.name);
+  const fxStyle = (TOKEN_FX[t.name] || {}).style || '';
+  const fxLabel = (TOKEN_FX[t.name] || {}).label || '';
+  let cells;
   if (t.segs) {
-    return `<div class="${cls}">${t.segs.map(s => `<span style="${s}"></span>`).join('')}</div>`;
-  }
-  if (name.endsWith('-hsl')) {
-    // alpha 0 = transition off-states; invisible, not a gradation
+    // cardStyle().bg is a full `background:...;color:...;` declaration
+    const sizes = ['chore', 'task', 'project', 'titan'];
+    cells = t.segs.map((seg, i) => ({ style: seg, cap: sizes[i] }));
+  } else if (t.name.endsWith('-hsl')) {
     const steps = (t.alphas || []).filter(a => a > 0);
-    const ramp = (steps.length ? steps : [1])
-      .map(a => `<span style="background:hsl(${esc(value)} / ${a});${fx}"></span>`).join('');
-    return `<div class="${cls}">${ramp}</div>`;
+    cells = (steps.length ? steps : [1]).map(a => ({
+      style: `background:hsl(${t.value} / ${a});${fxStyle}`, cap: String(a),
+    }));
+  } else {
+    cells = [{ style: `background:${t.value};${fxStyle}`, cap: '' }];
   }
-  return `<div class="${cls}"><span style="background:${esc(value)};${fx}"></span></div>`;
+  cells[0] = { ...cells[0], name, value: t.value, fxLabel };
+  return cells;
+}
+
+function cellHtml(c, rowStart) {
+  const cls = 'clr-cell' + (rowStart ? ' clr-cell--rowstart' : '');
+  const tip = c.name ? ` title="${esc(c.name + ' — ' + c.value)}"` : '';
+  const head = c.name
+    ? `<div class="clr-cellhead"><span class="clr-cellname">${esc(c.name)}</span>${
+        c.fxLabel ? `<span class="clr-fx">${esc(c.fxLabel)}</span>` : ''}</div>`
+    : '';
+  return `<div class="${cls}"${tip}>
+    <div class="clr-sw"><div class="clr-fill" style="${esc(c.style)}"></div></div>
+    <div class="clr-cap">${esc(c.cap)}</div>
+    ${head}
+  </div>`;
 }
 
 // Category card colors — the --card-* tokens, grouped one entry per
@@ -102,17 +106,13 @@ function categoryTokens(tokenMap, friendlyMap) {
       .map(sz => cardStyle({ category: cat, size: sz }).bg);
     const key = cat.toLowerCase();
     const h = tokenMap[`cat-${key}-h`], s = tokenMap[`cat-${key}-s`], l = tokenMap[`cat-${key}-l`];
-    // materialized --card-<cat>-* variant tokens defined in chrome.css
-    const variants = Object.keys(tokenMap).filter(n => n.startsWith(`card-${key}-`)).length;
     return {
       name: `${cat} cards`,
       cssVar: false,
       // friendly name authored on the --cat-*-l knob (last decl on its line)
       friendly: friendlyMap[`cat-${key}-l`] || '',
       value: `${h} ${s} ${l}`,
-      use: 'kanban card fills by size — --card-* tokens from the base channels',
       segs,
-      count: variants,
       hue: parseFloat(h),
     };
   });
@@ -140,7 +140,8 @@ function parsePalette(css) {
 }
 
 // sort key: hue ascending from red (hue 0); near-gray tokens (saturation
-// under 15%) have no meaningful hue — they trail, light to dark
+// under 15%) have no meaningful hue — they trail, light to dark. Used to
+// order tokens within a hue row.
 function hueKey(t) {
   if (t.hue != null) return [0, t.hue];
   const m = t.value.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);
@@ -157,9 +158,8 @@ function hueOf(t) {
   return m ? +m[1] : 0;
 }
 
-// one row per exact hue value (8, 24, 33, ...); same-hue swatches share a
-// row. Rows ordered by hueKey so the near-gray neutrals trail. Input must
-// already be hueKey-sorted so each group's first token is its minimum.
+// one row per exact hue value, ordered by hue ascending. Input must already
+// be hueKey-sorted so tokens are ordered sensibly within each row.
 function rowsByHue(tokens) {
   const map = new Map();
   for (const t of tokens) {
@@ -167,10 +167,7 @@ function rowsByHue(tokens) {
     if (!map.has(h)) map.set(h, []);
     map.get(h).push(t);
   }
-  return [...map.values()].sort((a, b) => {
-    const ka = hueKey(a[0]), kb = hueKey(b[0]);
-    return ka[0] - kb[0] || ka[1] - kb[1];
-  });
+  return [...map.values()].sort((a, b) => hueOf(a[0]) - hueOf(b[0]));
 }
 
 // Hide the category machinery (--cat-* knobs, --card-* variants — shown
@@ -182,32 +179,6 @@ function visibleTokens(tokens, usage) {
     .filter(t => !t.name.startsWith('cat-') && !t.name.startsWith('card-'))
     .map(t => ({ ...t, count: counts[t.name] || 0, alphas: alphas[t.name] || [] }))
     .filter(t => t.count > 0);
-}
-
-function cardHtml(t, rowStart) {
-  const cls = rowStart ? 'clr-card clr-card--rowstart' : 'clr-card';
-  const varLabel = (t.cssVar === false ? '' : '--') + esc(t.name);
-  // friendly color name is the headline; --var token sits under it
-  const title = t.friendly ? esc(t.friendly) : varLabel;
-  const sub = t.friendly ? `<div class="clr-var">${varLabel}</div>` : '';
-  const badge = t.count == null
-    ? '<span class="clr-count">computed</span>'
-    : `<span class="clr-count">&times;${t.count}</span>`;
-  // consumer effect (e.g. blur) shown to the right of the hsl value
-  const fxLabel = (TOKEN_FX[t.name] || {}).label || '';
-  const fxTag = fxLabel ? `<span class="clr-fx">${esc(fxLabel)}</span>` : '';
-  return `<div class="${cls}">
-    ${swatchHtml(t)}
-    <div class="clr-info">
-      <div class="clr-name-row">
-        <span class="clr-name">${title}</span>
-        ${badge}
-      </div>
-      ${sub}
-      <div class="clr-val"><span>${esc(t.value)}</span>${fxTag}</div>
-      ${t.use ? `<div class="clr-use">${esc(t.use)}</div>` : ''}
-    </div>
-  </div>`;
 }
 
 async function loadColors() {
@@ -228,16 +199,14 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    const rows = rowsByHue(tokens);
-    // columns = widest *chromatic* hue family (e.g. 188: Cyan + Azure);
-    // the neutral grays don't set column count — they wrap within it
-    const chromatic = rows.filter(r => hueKey(r[0])[0] === 0);
-    const cols = Math.max(1, ...chromatic.map(r => r.length));
-    const cells = rows
-      .map(row => row.map((t, i) => cardHtml(t, i === 0)).join(''))
+    // each row = a hue; explode its tokens into shade cells (aligned columns)
+    const built = rowsByHue(tokens).map(row => row.flatMap(tokenCells));
+    const cols = Math.max(1, ...built.map(cells => cells.length));
+    const html = built
+      .map(cells => cells.map((c, i) => cellHtml(c, i === 0)).join(''))
       .join('');
     board.innerHTML =
-      `<div class="clr-grid" style="grid-template-columns:repeat(${cols},1fr)">${cells}</div>`;
+      `<div class="clr-grid" style="grid-template-columns:repeat(${cols},1fr)">${html}</div>`;
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
   }
