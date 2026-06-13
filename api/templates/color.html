@@ -12,30 +12,32 @@ body { overflow-y: auto !important; }
 .clr-note > div:last-child { margin-bottom: 0; }
 .clr-note code { background: hsl(var(--green-hsl) / 0.12); padding: 1px 4px; border-radius: 2px; }
 
-/* hue rows x shade columns: each row is one hue (ascending); each column is
-   one shade cell — a used alpha step of an -hsl token, or a category's
-   chore/task/project/titan fill. column count = widest hue row (188 = 8).
-   rowstart forces each hue to begin a fresh grid row. */
-.clr-grid { display: grid; gap: 16px 5px; align-items: start; }
-.clr-cell--rowstart { grid-column-start: 1; }
-.clr-cell { min-width: 0; }
+/* one row per hue (ascending); within a row, each color is a group of its
+   shade columns (an -hsl token's used alpha steps, or a category's
+   chore/task/project/titan fills) with its name + usage beneath. */
+.clr-row { display: flex; flex-wrap: wrap; gap: 22px 26px; margin-bottom: 22px; align-items: flex-start; }
+.clr-group { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
+.clr-cells { display: flex; gap: 4px; }
+.clr-cell { width: 56px; }
 .clr-sw {
   height: 44px; border-radius: 3px; overflow: hidden;
   border: 1px solid hsl(var(--green-hsl) / 0.12);
 }
 .clr-fill { width: 100%; height: 100%; }
 .clr-cap { font-size: 0.5rem; opacity: 0.5; text-align: center; margin-top: 2px; }
-.clr-cellhead { display: flex; justify-content: space-between; gap: 4px; align-items: baseline; margin-top: 2px; }
-.clr-cellname { font-size: 0.58rem; color: hsl(var(--green-hsl)); white-space: nowrap; }
+.clr-glabel { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.clr-gname { font-size: 0.62rem; color: hsl(var(--green-hsl)); }
+.clr-gval { font-size: 0.52rem; opacity: 0.45; }
 .clr-fx { font-size: 0.5rem; color: hsl(var(--cyan-hsl) / 0.8); white-space: nowrap; flex-shrink: 0; }
+.clr-guse { font-size: 0.56rem; opacity: 0.55; line-height: 1.4; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
 
 <div class="clr-wrap">
   <div class="clr-note">
     <div>palette moodboard — read-only, parsed live from <code>chrome.css :root</code>.</div>
-    <div>rows = hue (ascending); each column is one shade — an <code>-hsl</code> token's used alpha steps (low to high), or a category's chore / task / project / titan fills.</div>
-    <div>the first column of each color is labelled with its friendly name (<code>[Name]</code> in the chrome.css comment) + any consumer effect (e.g. blur).</div>
+    <div>rows = hue (ascending); within a row each color shows its shade columns — an <code>-hsl</code> token's used alpha steps (low to high), or a category's chore / task / project / titan fills.</div>
+    <div>under each color: its friendly name (<code>[Name]</code> in the chrome.css comment), any consumer effect (e.g. blur), and a description of where it's used.</div>
     <div>hidden: unused tokens.</div>
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
@@ -59,39 +61,39 @@ const TOKEN_FX = {
 };
 
 // explode a token into shade cells — one per used alpha (-hsl), one per size
-// segment (category), or a single solid. The first cell carries the label.
+// segment (category), or a single solid.
 function tokenCells(t) {
-  const name = t.friendly || (t.cssVar === false ? t.name : '--' + t.name);
   const fxStyle = (TOKEN_FX[t.name] || {}).style || '';
-  const fxLabel = (TOKEN_FX[t.name] || {}).label || '';
-  let cells;
   if (t.segs) {
     // cardStyle().bg is a full `background:...;color:...;` declaration
     const sizes = ['chore', 'task', 'project', 'titan'];
-    cells = t.segs.map((seg, i) => ({ style: seg, cap: sizes[i] }));
-  } else if (t.name.endsWith('-hsl')) {
+    return t.segs.map((seg, i) => ({ style: seg, cap: sizes[i] }));
+  }
+  if (t.name.endsWith('-hsl')) {
     const steps = (t.alphas || []).filter(a => a > 0);
-    cells = (steps.length ? steps : [1]).map(a => ({
+    return (steps.length ? steps : [1]).map(a => ({
       style: `background:hsl(${t.value} / ${a});${fxStyle}`, cap: String(a),
     }));
-  } else {
-    cells = [{ style: `background:${t.value};${fxStyle}`, cap: '' }];
   }
-  cells[0] = { ...cells[0], name, value: t.value, fxLabel };
-  return cells;
+  return [{ style: `background:${t.value};${fxStyle}`, cap: '' }];
 }
 
-function cellHtml(c, rowStart) {
-  const cls = 'clr-cell' + (rowStart ? ' clr-cell--rowstart' : '');
-  const tip = c.name ? ` title="${esc(c.name + ' — ' + c.value)}"` : '';
-  const head = c.name
-    ? `<div class="clr-cellhead"><span class="clr-cellname">${esc(c.name)}</span>${
-        c.fxLabel ? `<span class="clr-fx">${esc(c.fxLabel)}</span>` : ''}</div>`
-    : '';
-  return `<div class="${cls}"${tip}>
-    <div class="clr-sw"><div class="clr-fill" style="${esc(c.style)}"></div></div>
-    <div class="clr-cap">${esc(c.cap)}</div>
-    ${head}
+// one color: its shade columns, then name + effect + value + usage beneath
+function groupHtml(t) {
+  const name = t.friendly || (t.cssVar === false ? t.name : '--' + t.name);
+  const fxLabel = (TOKEN_FX[t.name] || {}).label || '';
+  const cells = tokenCells(t).map(c =>
+    `<div class="clr-cell">
+       <div class="clr-sw"><div class="clr-fill" style="${esc(c.style)}"></div></div>
+       <div class="clr-cap">${esc(c.cap)}</div>
+     </div>`).join('');
+  return `<div class="clr-group">
+    <div class="clr-cells">${cells}</div>
+    <div class="clr-glabel">
+      <span class="clr-gname">${esc(name)}</span>
+      ${fxLabel ? `<span class="clr-fx">${esc(fxLabel)}</span>` : `<span class="clr-gval">${esc(t.value)}</span>`}
+    </div>
+    ${t.use ? `<div class="clr-guse">${esc(t.use)}</div>` : ''}
   </div>`;
 }
 
@@ -110,6 +112,7 @@ function categoryTokens(tokenMap, friendlyMap) {
       // friendly name authored on the --cat-*-l knob (last decl on its line)
       friendly: friendlyMap[`cat-${key}-l`] || '',
       value: `${h} ${s} ${l}`,
+      use: `${cat} kanban card fills by size (chore / task / project / titan)`,
       segs,
       hue: parseFloat(h),
     };
@@ -138,8 +141,7 @@ function parsePalette(css) {
 }
 
 // sort key: hue ascending from red (hue 0); near-gray tokens (saturation
-// under 15%) have no meaningful hue — they trail, light to dark. Used to
-// order tokens within a hue row.
+// under 15%) trail, light to dark. Orders tokens within a hue row.
 function hueKey(t) {
   if (t.hue != null) return [0, t.hue];
   const m = t.value.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);
@@ -156,8 +158,7 @@ function hueOf(t) {
   return m ? +m[1] : 0;
 }
 
-// one row per exact hue value, ordered by hue ascending. Input must already
-// be hueKey-sorted so tokens are ordered sensibly within each row.
+// one row per exact hue value, ordered by hue ascending
 function rowsByHue(tokens) {
   const map = new Map();
   for (const t of tokens) {
@@ -197,14 +198,9 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    // each row = a hue; explode its tokens into shade cells (aligned columns)
-    const built = rowsByHue(tokens).map(row => row.flatMap(tokenCells));
-    const cols = Math.max(1, ...built.map(cells => cells.length));
-    const html = built
-      .map(cells => cells.map((c, i) => cellHtml(c, i === 0)).join(''))
+    board.innerHTML = rowsByHue(tokens)
+      .map(row => `<div class="clr-row">${row.map(groupHtml).join('')}</div>`)
       .join('');
-    board.innerHTML =
-      `<div class="clr-grid" style="grid-template-columns:repeat(${cols},1fr)">${html}</div>`;
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
   }
