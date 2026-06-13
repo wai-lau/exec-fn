@@ -24,7 +24,10 @@ body { overflow-y: auto !important; }
 .clr-cell { flex: 0 1 44px; min-width: 0; }
 .clr-sw {
   height: 44px; border-radius: 3px; overflow: hidden;
-  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  /* neutral frame + faint dark field so a swatch the same color as the
+     page bg (Gunmetal) is still visible, and translucent fills read */
+  border: 1px solid hsl(0 0% 100% / 0.2);
+  background: hsl(0 0% 0% / 0.3);
 }
 .clr-fill { width: 100%; height: 100%; }
 .clr-cap { font-size: 0.5rem; opacity: 0.5; text-align: center; margin-top: 2px; }
