@@ -1,7 +1,9 @@
 
 <style>
 body { overflow-y: auto !important; }
-.clr-wrap { width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl)); }
+.clr-wrap { width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl));
+  /* phosphor glow — same as the tarot reader skin (chat-reader.css) */
+  text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
 .clr-note {
   font-size: 0.66rem; color: hsl(var(--green-hsl) / 0.45);
   margin-bottom: 28px; line-height: 1.5;
@@ -34,7 +36,8 @@ body { overflow-y: auto !important; }
 .clr-name { font-size: 0.64rem; color: hsl(var(--green-hsl) / 1); word-break: break-all; }
 .clr-count { font-size: 0.56rem; color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; }
 .clr-var { font-size: 0.58rem; color: hsl(var(--green-hsl) / 0.55); margin-bottom: 3px; word-break: break-all; }
-.clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; }
+.clr-val { font-size: 0.56rem; opacity: 0.5; margin-bottom: 4px; word-break: break-all; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.clr-fx { flex-shrink: 0; color: hsl(var(--cyan-hsl) / 0.8); opacity: 1; white-space: nowrap; }
 .clr-use { font-size: 0.6rem; opacity: 0.45; line-height: 1.45; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
@@ -45,7 +48,8 @@ body { overflow-y: auto !important; }
     <div>each swatch's headline is its friendly name (authored as a leading <code>[Name]</code> in the token's chrome.css comment); the <code>--var</code> sits under it.</div>
     <div>every color is a hue-based <code>-hsl</code> channel token; category card colors are <code>--card-*</code> tokens computed once from a per-category base <code>H S% L%</code> (<code>--cat-*-h/-s/-l</code>) and shown grouped (segments: chore / task / project / titan fills).</div>
     <div><code>-hsl</code> tokens show only the alpha steps actually in use, low to high.</div>
-    <div>×N = <code>var(--token)</code> references across templates + web assets.</div>
+    <div>×N = <code>var(--token)</code> references across templates + web assets; on a category swatch, its materialized <code>--card-*</code> variant count.</div>
+    <div>effect tag right of an hsl value (e.g. blur) = the filter its consumer applies.</div>
     <div>hidden: unused tokens.</div>
   </div>
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
@@ -62,12 +66,15 @@ function esc(s) {
 // effects the token's real consumer applies — reproduced on the swatch so
 // the striped bar shows them (nav backdrop runs blur(14px) under .exec-nav)
 const TOKEN_FX = {
-  'scrim-hsl': 'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);',
+  'scrim-hsl': {
+    style: 'backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);',
+    label: 'blur(14px)',
+  },
 };
 
 function swatchHtml(t) {
   const { name, value } = t;
-  const fx = TOKEN_FX[name] || '';
+  const fx = (TOKEN_FX[name] || {}).style || '';
   const cls = fx ? 'clr-swatch fx' : 'clr-swatch';
   if (t.segs) {
     return `<div class="${cls}">${t.segs.map(s => `<span style="${s}"></span>`).join('')}</div>`;
@@ -91,6 +98,8 @@ function categoryTokens(tokenMap, friendlyMap) {
       .map(sz => cardStyle({ category: cat, size: sz }).bg);
     const key = cat.toLowerCase();
     const h = tokenMap[`cat-${key}-h`], s = tokenMap[`cat-${key}-s`], l = tokenMap[`cat-${key}-l`];
+    // materialized --card-<cat>-* variant tokens defined in chrome.css
+    const variants = Object.keys(tokenMap).filter(n => n.startsWith(`card-${key}-`)).length;
     return {
       name: `${cat} cards`,
       cssVar: false,
@@ -99,7 +108,7 @@ function categoryTokens(tokenMap, friendlyMap) {
       value: `${h} ${s} ${l}`,
       use: 'kanban card fills by size — --card-* tokens from the base channels',
       segs,
-      count: null,
+      count: variants,
       hue: parseFloat(h),
     };
   });
@@ -156,6 +165,9 @@ function cardHtml(t) {
   const badge = t.count == null
     ? '<span class="clr-count">computed</span>'
     : `<span class="clr-count">&times;${t.count}</span>`;
+  // consumer effect (e.g. blur) shown to the right of the hsl value
+  const fxLabel = (TOKEN_FX[t.name] || {}).label || '';
+  const fxTag = fxLabel ? `<span class="clr-fx">${esc(fxLabel)}</span>` : '';
   return `<div class="clr-card">
     ${swatchHtml(t)}
     <div class="clr-info">
@@ -164,7 +176,7 @@ function cardHtml(t) {
         ${badge}
       </div>
       ${sub}
-      <div class="clr-val">${esc(t.value)}</div>
+      <div class="clr-val"><span>${esc(t.value)}</span>${fxTag}</div>
       ${t.use ? `<div class="clr-use">${esc(t.use)}</div>` : ''}
     </div>
   </div>`;
