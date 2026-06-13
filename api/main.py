@@ -494,8 +494,8 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     base = bare if active else no_form
     head_inject = _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
-    # cyberpunk ambient fx on tarot + mtg (landing injects its own)
-    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>' if active in {"tarot", "mtg"} else ''
+    # cyberpunk ambient fx on tarot + mtg + color (landing injects its own)
+    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>' if active in {"tarot", "mtg", "color"} else ''
     return (base
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", fx + content + nav + "</body>", 1))
