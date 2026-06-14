@@ -723,7 +723,8 @@ async def color_usage():
         if ob != -1 and idx - ob < 600:
             cut = max(text.rfind("}", 0, ob), text.rfind(";", 0, ob), text.rfind(">", 0, ob))
             sel = " ".join(text[cut + 1:ob].split())
-            if sel and len(sel) <= 50 and not any(c in sel for c in "()=`\"'"):
+            # reject JS/template-literal contexts (e.g. `${...}` grabs a bare $)
+            if sel and len(sel) <= 50 and not any(c in sel for c in "()=`\"'$"):
                 return sel
         return fname
 
