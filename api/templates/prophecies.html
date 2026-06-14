@@ -8,7 +8,18 @@ body { overflow: hidden !important; background: transparent !important; }
 .pr-board {
   position: fixed; top: 0; bottom: 0; left: 0; right: 0;
   display: flex; gap: 1px; overflow: hidden;
-  background: hsl(var(--bg-hsl));
+  background: transparent;
+}
+/* scanlines over the board surface, behind the cards (z-1 within the board's
+   own stacking context) */
+.pr-board::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.16) 0,
+      hsl(var(--green-hsl) / 0.16) 1px, transparent 1px, transparent 3px),
+    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.16), transparent 70%);
+  animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
 }
 /* three columns: [today] | [tomorrow, day after] | [next three, smaller] */
 .pr-colgroup {
