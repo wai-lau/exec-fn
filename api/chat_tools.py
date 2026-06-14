@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from helpers import (
     DATA_DIR, _load_rd, _save_rd, _find_card,
-    _append_rd_log, _SIZE_MINUTES, _minutes_to_size, _now_et,
+    _append_rd_log, _DEFAULT_MINUTES, _now_et,
     _apply_context_update,
 )
 
@@ -17,8 +17,8 @@ def _tool_create_card(input_: dict) -> dict:
     min_order = min((c.get("order", 0) for c in cards if c.get("column") == column), default=0)
 
     is_reminder = input_.get("is_reminder", False)
-    size = None if is_reminder else input_.get("size", "task")
-    estimated_time = None if is_reminder else (input_.get("estimated_time") or _SIZE_MINUTES.get(size, 90))
+    size = None if is_reminder else input_.get("size", "idea")
+    estimated_time = None if is_reminder else (input_.get("estimated_time") or _DEFAULT_MINUTES)
 
     new_card = {
         "id": f"card-{int(_time.time() * 1000)}",
@@ -32,6 +32,8 @@ def _tool_create_card(input_: dict) -> dict:
     }
     if is_reminder:
         new_card["is_reminder"] = True
+    if input_.get("is_book"):
+        new_card["is_book"] = True
     if input_.get("is_event"):
         new_card["is_event"] = True
     if input_.get("notes"):
@@ -81,10 +83,7 @@ def _apply_size_time(card: dict, input_: dict, changed: list) -> None:
     if "estimated_time" in input_:
         card["estimated_time"] = input_["estimated_time"]
         changed.append("estimated_time")
-        if card.get("size") != "book":
-            new_size = _minutes_to_size(input_["estimated_time"])
-            if new_size != card.get("size"):
-                card["size"] = new_size
+    # importance (size) is a manual rating now — no longer derived from time
 
 
 def _tool_update_card(input_: dict) -> dict:
@@ -95,6 +94,9 @@ def _tool_update_card(input_: dict) -> dict:
     changed = []
     if "is_reminder" in input_:
         _apply_reminder_flag(card, input_, changed)
+    if "is_book" in input_:
+        card["is_book"] = bool(input_["is_book"])
+        changed.append("is_book")
     for field in ("title", "category", "notes"):
         if field in input_:
             card[field] = input_[field]
@@ -290,7 +292,7 @@ def _tool_decompose_task(input_: dict) -> dict:
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
-    if card.get("is_reminder") or card.get("is_event") or card.get("size") == "book":
+    if card.get("is_reminder") or card.get("is_event") or card.get("is_book"):
         return {"error": "Reminders, events, and books can't be decomposed."}
     n = _nudge.ensure_nudge(card)
     result = _nudge.decompose_sync(card, feedback=input_.get("feedback", ""))

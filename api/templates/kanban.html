@@ -152,9 +152,9 @@ body { overflow: hidden !important; background: transparent !important; }
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
 
-<script src="/card-style.js?v=6"></script>
+<script src="/card-style.js?v=7"></script>
 <script src="/card-graph.js?v=12"></script>
-<script src="/card-dialog.js?v=16"></script>
+<script src="/card-dialog.js?v=17"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
@@ -260,7 +260,7 @@ function renderCol(col) {
       : `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span>`;
   const hideFromMain = col === 'rd' || col === 'hq';
   const floatSoon = col === 'rd' || col === 'hq';
-  const colCards = collapsed ? '' : cards.filter(c=>c.column===col && !(hideFromMain && (c.is_reminder || c.size==='book'))).sort((a,b)=>{
+  const colCards = collapsed ? '' : cards.filter(c=>c.column===col && !(hideFromMain && (c.is_reminder || c.is_book))).sort((a,b)=>{
     if (col === 'rd') {
       // due within 2 weeks floats to top, sorted by due date (overrides manual order)
       const da = isDueWithin2wk(a.due_date), db = isDueWithin2wk(b.due_date);
@@ -348,7 +348,7 @@ function _syncBooksH() {
 // books with real progress (current_page>0 and total_pages>0) show on the bar;
 // books with undefined/0 pages live only in the +N overflow.
 function bookPartition() {
-  const all = cards.filter(c => c.size === 'book' && c.column !== 'archives' && c.column !== 'exile');
+  const all = cards.filter(c => c.is_book && c.column !== 'archives' && c.column !== 'exile');
   const active = all.filter(c => c.current_page > 0 && c.total_pages > 0);
   const noProgress = all.filter(c => !(c.current_page > 0 && c.total_pages > 0));
   const MAX_VISIBLE = 8;

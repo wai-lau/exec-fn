@@ -64,7 +64,7 @@ def _entry_is_significant(e: dict) -> bool:
     action = e.get("action", "")
     if action == "moved" and e.get("to_col") in _SIGNIFICANT_TO_COLS:
         return True
-    if action == "updated" and e.get("size") == "book":
+    if action == "updated" and e.get("is_book"):
         return True
     return False
 
@@ -911,7 +911,7 @@ async def api_rd_recalc(card_id: str, request: Request):
     card = _find_card(rd, card_id)
     if not card:
         raise HTTPException(status_code=404)
-    if card.get("is_reminder") or card.get("size") == "book":
+    if card.get("is_reminder") or card.get("is_book"):
         raise HTTPException(status_code=400, detail="not decomposable")
     if body.get("notes") is not None:
         card["notes"] = body["notes"]
@@ -968,8 +968,8 @@ def _log_entries_for_patch(new_cards, old_cards, source):
             entries.append(mv)
         elif (old.get("notes") != c.get("notes") or old.get("title") != c.get("title")
               or old.get("current_page") != c.get("current_page")):
-            entry = {"action": "updated", "title": c.get("title", c.get("id")), "source": source, "size": c.get("size", "")}
-            if c.get("size") == "book" and c.get("current_page") is not None:
+            entry = {"action": "updated", "title": c.get("title", c.get("id")), "source": source, "size": c.get("size", ""), "is_book": c.get("is_book", False)}
+            if c.get("is_book") and c.get("current_page") is not None:
                 entry["current_page"] = c.get("current_page")
                 entry["total_pages"] = c.get("total_pages")
             entries.append(entry)

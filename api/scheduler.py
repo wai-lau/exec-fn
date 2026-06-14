@@ -6,7 +6,7 @@ will own; `place_card_today` handles intraday single-card placement.
 """
 from datetime import timedelta
 
-from helpers import _now_et, _SIZE_MINUTES
+from helpers import _now_et, _DEFAULT_MINUTES
 
 TL_START_MIN = 4 * 60 + 30     # 4:30 AM — dirs timeline start / floor
 AUTOSTACK_ANCHOR = 10 * 60     # 10:00 AM — morning autostack anchor
@@ -37,7 +37,7 @@ def now_minutes() -> int:
 
 
 def card_duration(c: dict) -> int:
-    raw = c.get("estimated_time") or _SIZE_MINUTES.get(c.get("size") or "task", 90)
+    raw = c.get("estimated_time") or _DEFAULT_MINUTES
     return max(SNAP, _snap_up(raw))
 
 

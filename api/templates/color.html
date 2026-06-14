@@ -35,7 +35,7 @@ body { overflow-y: auto !important; }
   <div id="clr-board"><span class="clr-empty">loading...</span></div>
 </div>
 
-<script src="/card-style.js?v=6"></script>
+<script src="/card-style.js?v=7"></script>
 <script>
 /* global cardStyle, CARD_CATS */
 function esc(s) {
@@ -53,8 +53,8 @@ const TOKEN_FX = {
 };
 
 // canonical 4 card variations and their alpha
-const SIZES = ['chore', 'task', 'project', 'titan'];
-const SIZE_ALPHA = { chore: 0.15, task: 0.25, project: 0.8, titan: 1 };
+const SIZES = ['wisp', 'idea', 'plan', 'mission'];
+const SIZE_ALPHA = { wisp: 0.15, idea: 0.25, plan: 0.8, mission: 1 };
 function nearestSize(a) {
   let best = SIZES[0], bd = Infinity;
   for (const s of SIZES) { const d = Math.abs(SIZE_ALPHA[s] - a); if (d < bd) { bd = d; best = s; } }
@@ -68,14 +68,14 @@ function tokenAlphaPairs(t) {
   return pairs.length ? pairs : [{ a: 1, n: t.count }];
 }
 
-// one color = one table: columns are card sizes (chore..titan) or, for
+// one color = one table: columns are card sizes (wisp..mission) or, for
 // non-card colors, the used alpha steps; rows are swatch/opacity/count/effects
 function groupHtml(col) {
   let swatches, opac, counts;
   const card = col.hasCard;
   if (card) {
     // card colors: count per size = non-card usages mapped onto it (all 4)
-    const mapped = { chore: 0, task: 0, project: 0, titan: 0 };
+    const mapped = { wisp: 0, idea: 0, plan: 0, mission: 0 };
     for (const p of col.alphaPairs) mapped[nearestSize(p.a)] += (p.n || 0);
     swatches = col.segs;
     opac = SIZES.map(s => SIZE_ALPHA[s]);
@@ -153,14 +153,14 @@ function siteListHtml(siteMap) {
 
 // Gibson-voiced blurbs for the four card categories
 const CAT_DESC = {
-  Self: `Your own wiring. Self-work as card-fills, chore to titan.`,
-  Social: `The others—debts and signals as card-fills, chore to titan.`,
-  Interfacing: `Jacked into the world's systems. Errands and admin as card-fills, chore to titan.`,
-  Hobby: `Off-grid hours. Making and play as card-fills, chore to titan.`,
+  Self: `Your own wiring. Self-work as card-fills, wisp to mission.`,
+  Social: `The others—debts and signals as card-fills, wisp to mission.`,
+  Interfacing: `Jacked into the world's systems. Errands and admin as card-fills, wisp to mission.`,
+  Hobby: `Off-grid hours. Making and play as card-fills, wisp to mission.`,
 };
 
 // Category card colors — the --card-* tokens, grouped one entry per
-// category; segments are the chore/task/project/titan fills.
+// category; segments are the wisp/idea/plan/mission fills.
 function categoryTokens(tokenMap, friendlyMap) {
   if (typeof cardStyle !== 'function') return [];
   return CARD_CATS.map(cat => {

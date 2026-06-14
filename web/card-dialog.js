@@ -36,13 +36,12 @@
     <label>title</label><input id="cd-title" type="text">
     <label>date</label>
     <input id="cd-due" type="text" placeholder="optional">
-    <label id="cd-size-label">size</label>
+    <label id="cd-size-label">importance</label>
     <select id="cd-size">
-      <option value="chore">chore &mdash; under 1 hour</option>
-      <option value="task">task &mdash; under 4 hours</option>
-      <option value="book">book &mdash; ongoing read</option>
-      <option value="project">project &mdash; under 2 days</option>
-      <option value="titan">titan &mdash; needs breaking down</option>
+      <option value="wisp">wisp &mdash; trivial</option>
+      <option value="idea">idea &mdash; ordinary</option>
+      <option value="plan">plan &mdash; significant</option>
+      <option value="mission">mission &mdash; critical</option>
     </select>
     <label id="cd-pages-label" style="display:none">pages</label>
     <div id="cd-pages-inputs" style="display:none;align-items:center;gap:8px">
@@ -65,6 +64,10 @@
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
         <input id="cd-event" type="checkbox" style="width:auto">
         <span>event</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input id="cd-book" type="checkbox" style="width:auto">
+        <span>book</span>
       </label>
     </div>
     <label id="cd-pin-row" style="display:none;align-items:center;gap:8px;cursor:pointer;margin-top:6px;margin-left:20px">
@@ -104,7 +107,13 @@
     document.getElementById('cd-pages-label').style.display = show ? 'block' : 'none';
     document.getElementById('cd-pages-inputs').style.display = show ? 'flex' : 'none';
   }
-  document.getElementById('cd-size').addEventListener('change', function() { _togglePages(this.value === 'book'); });
+  // book checkbox: show page inputs + hide importance (books aren't sized)
+  document.getElementById('cd-book').addEventListener('change', function() {
+    _togglePages(this.checked);
+    const hide = this.checked ? 'none' : 'block';
+    document.getElementById('cd-size-label').style.display = hide;
+    document.getElementById('cd-size').style.display = hide;
+  });
 
   // Enter saves + closes (except in the notes textarea, where it's a newline).
   document.getElementById('cd-modal').addEventListener('keydown', function (e) {
@@ -190,7 +199,7 @@
     _cdId = id;
     const box = document.querySelector('.cd-box');
     if (typeof cardStyle === 'function') {
-      // solidBg = opaque dialog tint — chore/task tints pre-blended over the
+      // solidBg = opaque dialog tint — wisp/idea tints pre-blended over the
       // modal surface in chrome.css (--card-*-solid, via color-mix)
       const {bg, border, dark, solidBg} = cardStyle(c);
       const colVal = (bg.match(/;color:[^;]+/) || [''])[0].slice(1);
@@ -201,17 +210,19 @@
     }
     document.getElementById('cd-title').value = c.title||'';
     document.getElementById('cd-cat').value = c.category||'Self';
-    document.getElementById('cd-size').value = c.size||'task';
+    document.getElementById('cd-size').value = c.size||'idea';
     document.getElementById('cd-due').value = c.due_date ? _fmt(c.due_date) : '';
     document.getElementById('cd-recur').value = c.recur_type||'';
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
     document.getElementById('cd-event').checked = !!c.is_event;
+    document.getElementById('cd-book').checked = !!c.is_book;
     document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
     document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
-    document.getElementById('cd-size-label').style.display = c.is_reminder ? 'none' : 'block';
-    document.getElementById('cd-size').style.display = c.is_reminder ? 'none' : 'block';
+    const hideSize = (c.is_reminder || c.is_book) ? 'none' : 'block';
+    document.getElementById('cd-size-label').style.display = hideSize;
+    document.getElementById('cd-size').style.display = hideSize;
     document.getElementById('cd-notes').value = c.notes||'';
-    _togglePages(c.size === 'book');
+    _togglePages(!!c.is_book);
     document.getElementById('cd-current-page').value = c.current_page ?? '';
     document.getElementById('cd-total-pages').value = c.total_pages ?? '';
     // Open first so the graph can measure layout (autoscroll to the active step).
@@ -257,8 +268,9 @@
     c.recur_type = document.getElementById('cd-recur').value||null;
     c.is_reminder = document.getElementById('cd-reminder').checked;
     c.is_event = document.getElementById('cd-event').checked;
+    c.is_book = document.getElementById('cd-book').checked;
     c.pinned_reminder = c.is_reminder ? document.getElementById('cd-pin-reminder').checked : false;
-    if (c.size === 'book') {
+    if (c.is_book) {
       const cp = parseInt(document.getElementById('cd-current-page').value);
       const tp = parseInt(document.getElementById('cd-total-pages').value);
       c.current_page = isNaN(cp) ? null : cp;

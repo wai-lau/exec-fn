@@ -29,7 +29,7 @@ def _entry_line(e: dict) -> str:
     line = f"- [{src}] {e['action']} '{e['title']}'"
     if e["action"] == "moved":
         line += f" ({e.get('from_col','?')} -> {e.get('to_col','?')})"
-    elif e["action"] == "updated" and e.get("size") == "book" and e.get("current_page") is not None:
+    elif e["action"] == "updated" and e.get("is_book") and e.get("current_page") is not None:
         tp = e.get("total_pages")
         line += f" — now on page {e['current_page']}" + (f" of {tp}" if tp else "")
     return line
@@ -53,7 +53,7 @@ def _build_context() -> tuple[str, str, str, str]:
         )
         or "None."
     )
-    books = [c for c in cards if c.get("size") == "book" and c.get("column") not in ("archives", "exile")]
+    books = [c for c in cards if c.get("is_book") and c.get("column") not in ("archives", "exile")]
     books_text = (
         "\n".join(
             f"- {c['title']}" + (f": {c.get('notes','')[:150]}" if c.get("notes") else "")
@@ -72,7 +72,7 @@ def _is_commentable(e: dict) -> bool:
     action = e.get("action", "")
     if action == "moved" and e.get("to_col") in ("archives", "exile"):
         return True
-    if action == "updated" and e.get("size") == "book":
+    if action == "updated" and e.get("is_book"):
         return True
     return False
 

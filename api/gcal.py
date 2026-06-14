@@ -327,7 +327,7 @@ def import_gcal_cards(days_ahead: int = 365) -> dict:
             "id": f"card-{int(_time.time() * 1000) + imported}",
             "title": ev["summary"],
             "category": ev.get("category", "Interfacing"),
-            "size": "chore",
+            "size": "wisp",
             "column": "rd",
             "order": -(imported + 1),
             "due_date": ev["start"][:10] if ev.get("start") else None,

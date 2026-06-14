@@ -7,17 +7,9 @@ from zoneinfo import ZoneInfo
 ET = ZoneInfo("America/New_York")
 DATA_DIR = Path("/app/data")
 
-_SIZE_MINUTES: dict[str, int] = {"chore": 30, "task": 90, "project": 240, "titan": 480, "book": 60}
-
-
-def _minutes_to_size(minutes: int) -> str:
-    if minutes <= 45:
-        return "chore"
-    if minutes <= 165:
-        return "task"
-    if minutes <= 360:
-        return "project"
-    return "titan"
+# Duration comes only from estimated_time; when absent, fall back to this flat
+# default. Importance (size) is never mapped to a duration.
+_DEFAULT_MINUTES = 90
 
 
 def _now_et() -> datetime:
