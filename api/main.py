@@ -444,7 +444,11 @@ def _build_nav(active=None, guest=False):
         "function _vp(){if(!vv)return;"
         "de.style.setProperty('--vvh',vv.height+'px');"
         "de.style.setProperty('--vvt',vv.offsetTop+'px');"
-        "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height-vv.offsetTop)+'px');}"
+        # keyboard inset = layout height - visible height. Deliberately NOT minus
+        # offsetTop: the chat pages lock body scroll (offsetTop≈0 at rest), but iOS
+        # emits a transient offsetTop mid-animation that would make --kb dip then
+        # recover — the visible "bars bounce up and down" as the keyboard slides.
+        "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height)+'px');}"
         "if(vv){vv.addEventListener('resize',_vp);vv.addEventListener('scroll',_vp);}"
         "_vp();"
         "var _ke=function(t){return !!t&&(t.isContentEditable||"
