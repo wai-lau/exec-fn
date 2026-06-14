@@ -1,6 +1,7 @@
 
 <style>
-body { overflow: hidden !important; }
+/* transparent body so the z-1 cyber layer (over the html bg) shows through */
+body { overflow: hidden !important; background: transparent !important; }
 /* cyber scanlines sit behind the cards + reminders, not over them */
 .cyber-bg, .cyber-scan { z-index: -1; }
 
