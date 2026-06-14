@@ -6,6 +6,10 @@
    below: mtg-only — full-width scrollback + Scryfall card hovers */
 .msg { max-width:none; }
 
+/* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
+   native keyboard animation). --kb rides the keyboard; --input-h the bar. */
+#terminal { inset:0 0 calc(max(var(--nav-h,56px), var(--kb,0px)) + var(--input-h,48px)) !important; }
+
 /* plain external links keep body typography (chat-reader sets colors) */
 .msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; }
 .msg.assistant [data-card] { text-decoration:underline dotted hsl(var(--green-hsl) / 0.45); text-underline-offset:3px; cursor:pointer; }
@@ -46,24 +50,21 @@ let _sessionId = 'mtg_' + Date.now().toString(36);
 const terminal = document.getElementById('terminal');
 const _WELCOME = "Hi (＊＾▽＾)／! Ask about card interactions, rules, or mechanics - I'll look up oracle text, rulings, and comprehensive rules.";
 
-// keep the terminal bottom pinned to the top of the (borderless) input bar so
-// the input never overlaps the scrollback
-function syncTerminalBottom() {
-  const bar = document.getElementById('input-bar');
-  const cs = getComputedStyle(document.documentElement);
-  const navH = parseInt(cs.getPropertyValue('--nav-h')) || 56;
-  const kb = parseInt(cs.getPropertyValue('--kb')) || 0;  // iOS keyboard inset
-  // nav hides behind keyboard — pin to whichever is taller, not the sum
-  terminal.style.bottom = (Math.max(navH, kb) + bar.offsetHeight) + 'px';
-  terminal.scrollTop = terminal.scrollHeight;
+// Terminal bottom is CSS-driven (see #terminal rule). JS only mirrors the input
+// bar's real height into --input-h, on layout changes — NOT on viewport scroll,
+// so manual scrollback isn't yanked and the keyboard animation isn't chased.
+const _inputBar = document.getElementById('input-bar');
+function syncInputH() {
+  document.documentElement.style.setProperty('--input-h', _inputBar.offsetHeight + 'px');
 }
-window.addEventListener('resize', syncTerminalBottom);
-window.addEventListener('load', syncTerminalBottom);
-if (window.visualViewport) {
-  // keyboard show/hide changes --kb but not window size — re-pin on viewport shifts
-  window.visualViewport.addEventListener('resize', syncTerminalBottom);
-  window.visualViewport.addEventListener('scroll', syncTerminalBottom);
-}
+window.addEventListener('resize', syncInputH);
+window.addEventListener('load', syncInputH);
+syncInputH();
+// Keyboard opening shrinks the terminal from the bottom; keep the newest line
+// visible. One-shot on focus, not on every viewport event.
+document.getElementById('msg-input').addEventListener('focus', () => {
+  requestAnimationFrame(() => { terminal.scrollTop = terminal.scrollHeight; });
+});
 
 const _renderer = new marked.Renderer();
 _renderer.link = ({href, title, text}) => {
@@ -116,7 +117,7 @@ async function sendMsg() {
   if (!text) return;
   input.textContent = '';
   renderCaret();
-  syncTerminalBottom();
+  syncInputH();
   input.focus();
   addMsg('user', text);
   messages.push({role:'user', content: text});
@@ -203,7 +204,7 @@ function renderCaret() {
 
 _msgInput.addEventListener('input', () => {
   renderCaret();
-  syncTerminalBottom();
+  syncInputH();  // bar may grow/shrink a line; CSS re-pins the terminal
 });
 _msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
 _msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; renderCaret(); });
@@ -249,7 +250,7 @@ renderCaret();
 
 // defer: the nav script sets --nav-h after this script runs, so the input
 // bar isn't positioned yet on this tick
-requestAnimationFrame(syncTerminalBottom);
+requestAnimationFrame(() => { syncInputH(); terminal.scrollTop = terminal.scrollHeight; });
 
 // Card image hover tooltip via Scryfall
 const _tooltip = document.getElementById('card-tooltip');
