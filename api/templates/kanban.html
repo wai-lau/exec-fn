@@ -1,6 +1,8 @@
 
 <style>
 body { overflow: hidden !important; }
+/* cyber scanlines sit behind the cards + reminders, not over them */
+.cyber-bg, .cyber-scan { z-index: -1; }
 
 /* ── top bars: reminders (left half) + books (right half) ─────────────────
    identical chrome; only side/anchoring differs */
@@ -138,7 +140,7 @@ body { overflow: hidden !important; }
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
 
-<script src="/card-style.js?v=5"></script>
+<script src="/card-style.js?v=6"></script>
 <script src="/card-graph.js?v=12"></script>
 <script src="/card-dialog.js?v=16"></script>
 
