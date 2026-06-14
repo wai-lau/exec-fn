@@ -114,8 +114,17 @@ let SITES = {};
 // per-color usage sites: for each alpha (ordered most-used to least), the
 // list of sites it appears in (also most-used to least)
 function usageList(col) {
-  const ts = col.hslName && SITES[col.hslName];
-  if (!ts) return '';
+  // merge usage sites across all -hsl tokens that share this color
+  const ts = {};
+  for (const nm of col.hslNames || []) {
+    const s = SITES[nm];
+    if (!s) continue;
+    for (const a of Object.keys(s)) {
+      ts[a] = ts[a] || {};
+      for (const [lbl, c] of Object.entries(s[a])) ts[a][lbl] = (ts[a][lbl] || 0) + c;
+    }
+  }
+  if (!Object.keys(ts).length) return '';
   const rows = Object.keys(ts).map(a => {
     const entries = Object.entries(ts[a]).sort((x, y) => y[1] - x[1]);
     return { a, entries, total: entries.reduce((s, e) => s + e[1], 0) };
@@ -218,7 +227,7 @@ function buildColumns(tokens) {
     if (!cur) {
       byVal.set(t.value, {
         name, value: t.value, isHsl, hasCard: isCard,
-        hslName: isHsl ? t.name : null,
+        hslNames: isHsl ? [t.name] : [],
         segs: isCard ? t.segs : null,
         alphaPairs: isHsl ? tokenAlphaPairs(t) : [],
         fxLabel: fx.label || '', fxStyle: fx.style || '',
@@ -228,7 +237,7 @@ function buildColumns(tokens) {
     }
     cur.use = [cur.use, t.use].filter(Boolean).join(' ');
     if (isCard && !cur.hasCard) { cur.hasCard = true; cur.segs = t.segs; }
-    if (isHsl) { cur.alphaPairs = cur.alphaPairs.concat(tokenAlphaPairs(t)); cur.hslName = t.name; }
+    if (isHsl) { cur.alphaPairs = cur.alphaPairs.concat(tokenAlphaPairs(t)); cur.hslNames.push(t.name); }
     if (!cur.isHsl && isHsl) { cur.name = name; cur.isHsl = true; cur.fxLabel = fx.label || ''; cur.fxStyle = fx.style || ''; }
   }
   return [...byVal.values()];

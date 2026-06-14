@@ -46,8 +46,8 @@
   --pink-hsl:            340 71% 58%;   /* [Lizzie's] Neon at 3 a.m. The exec bubble's skin, the vain empress, the admin door. */
 
   /* ── Neutrals ────────────────────────────────────────────────────────── */
-  --bg-hsl:              160 11% 11%;   /* [Gunmetal] Dead-channel grey, always solid. The ground it all stands on—pages, columns, input slabs, the buried past. */
-  --surface-hsl:         0 0% 4%;       /* [Obsidian] Black glass. Where dialogs and popups surface from nothing. */
+  --bg-hsl:              0 0% 0%;       /* [Smoked Glass] always solid. The ground it all stands on—pages, columns, input slabs, the buried past. */
+  --surface-hsl:         0 0% 0%;       /* [Smoked Glass] Where dialogs and popups surface from nothing. */
   --scrim-hsl:           0 0% 0%;       /* [Smoked Glass] Frosted dark you read the room through—behind the nav, behind the modals. */
   --gray-hsl:            0 0% 78%;      /* [Silver] Thin chrome. The hours ticking down the timeline. */
 
