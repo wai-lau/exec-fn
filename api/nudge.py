@@ -10,7 +10,7 @@ UTC isoformat used by the activity log / chat.
 import anthropic
 from datetime import datetime, timedelta
 
-from helpers import _now_et, _load_json, _parse_json, _SIZE_MINUTES
+from helpers import _now_et, _load_json, _parse_json, _DEFAULT_MINUTES
 
 # ── tuning constants ──────────────────────────────────────────────────────────
 NUDGE_WINDOW_MULT = 2.6        # stall window ~= estimate * this
@@ -72,7 +72,7 @@ def decomposable(c: dict) -> bool:
     return (
         c.get("column") == "hq"
         and not c.get("is_reminder")
-        and c.get("size") != "book"
+        and not c.get("is_book")
     )
 
 
@@ -89,7 +89,7 @@ _EOD_HOUR = 21  # fallback deadline for a today card with no event time / due ti
 def _lead(c: dict) -> int:
     """Total minutes to do the whole task (the estimate, biased up by the card's
     category lateness factor so chronically-late kinds reserve more time)."""
-    base = c.get("estimated_time") or _SIZE_MINUTES.get(c.get("size") or "task", 90)
+    base = c.get("estimated_time") or _DEFAULT_MINUTES
     return round(base * _factor(c))
 
 

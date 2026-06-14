@@ -159,7 +159,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one little table per color, one per row (hue-ordered; neutrals at the end). Title (friendly `[Name]`) above; table padded to 4 columns (the variations — card colors = chore/task/project/titan, non-card `-hsl` colors = their used alpha steps, empty trailing cols); rows = swatch / opacity / count / effects / per-column usage-site list (each variation's sites, most-used first); usage description under the table. Tokens with the same H S L merge into one (max 4 variations); a non-card token's alpha usages map onto the nearest card size (`SIZE_ALPHA` = chore .15 / task .25 / project .8 / titan 1) — for card colors the count row is text `(sizes +N)×` of those mapped usages, for non-card it's per-column `×N` from `alpha_counts`. Effects (e.g. blur) sit in their column. Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
+| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one little table per color, one per row (hue-ordered; neutrals at the end). Title (friendly `[Name]`) above; table padded to 4 columns (the variations — card colors = wisp/idea/plan/mission, non-card `-hsl` colors = their used alpha steps, empty trailing cols); rows = swatch / opacity / count / effects / per-column usage-site list (each variation's sites, most-used first); usage description under the table. Tokens with the same H S L merge into one (max 4 variations); a non-card token's alpha usages map onto the nearest card size (`SIZE_ALPHA` = wisp .15 / idea .25 / plan .8 / mission 1) — for card colors the count row is text `(sizes +N)×` of those mapped usages, for non-card it's per-column `×N` from `alpha_counts`. Effects (e.g. blur) sit in their column. Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
@@ -214,7 +214,7 @@ Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 |------|------|
 | `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` → `scheduler.schedule_to_day()` (rd→hq on due day if in window, overdue clamped to today; `dir_start_min` for today). |
 | `exile_card` | Move card to exile column (drop / won't-do). Clears `scheduled_day`. |
-| `update_card` | Edit title/category/size/estimated_time/notes/is_reminder. Auto-recomputes size if `estimated_time` crosses a band. |
+| `update_card` | Edit title/category/size (importance)/estimated_time/notes/is_reminder/is_book. Size is a manual importance rating — not derived from estimated_time. |
 | `schedule_card` | Set or clear `scheduled_day` via `scheduler.schedule_to_day()`. Beyond 7-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day` (overdue target clamped to today). Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
 | `update_context` | add/remove/replace a fact in `profile.json`. |
 | `decompose_task` | Build/rebuild the card's internal dependency graph (`card["nudge"]["graph"]`) and pick the first chunk. Optional `feedback` rebuilds from the existing breakdown. Not for reminders/events/books. |
@@ -240,11 +240,12 @@ Tarot tools (separate handler set in `tarot/tools.py`):
   "title": "...",
   "column": "rd|hq|archives|exile",
   "category": "Interfacing|Hobby|Social|Self",
-  "size": "chore|task|project|titan|book",
+  "size": "wisp|idea|plan|mission",
   "due_date": "YYYY-MM-DD or YYYY-MM-DDTHH:MM",
   "estimated_time": 30,
   "notes": "...",
   "is_reminder": false,
+  "is_book": false,
   "recur_type": null,
   "scheduled_day": null,
   "dir_start_min": null
@@ -254,8 +255,9 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 - `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
 - `dir_start_min`: minutes from midnight — intraday slot for a card scheduled today. Set whenever a card is scheduled for today (exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py`. Edited via the prophecies today-column timeline (drag a block) and drives nudge anchoring.
+- `size`: **importance** (low→high) `wisp | idea | plan | mission` — a manual rating, NOT derived from time (estimated_time holds duration; no size→duration mapping). Drives card-fill intensity. Default `idea`.
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
-- `size === 'book'`: shown in books bar on prophecies page; hidden from rd/hq columns in kanban
+- `is_book`: true = ongoing read — shown in books bar on prophecies, hidden from rd/hq columns in kanban, never scheduled/decomposed (checkbox in card dialog, like `is_reminder`)
 
 **Recurring card revival**: when a card with `recur_type` is archived, a clone is auto-created in `rd` with reset `scheduled_day` and `due_date` advanced via `_next_recurrence()`. The clone's `nudge` state and `dir_start_min` are stripped — each occurrence starts its own loop.
 

@@ -72,11 +72,11 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         for e in reversed(rd_log_entries)
     ) or "None."
     selected_text = "\n".join(
-        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
+        f"- id:{c['id']} [{c.get('size','idea')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
         for c in selected
     ) or "None."
     ideas_text = "\n".join(
-        f"- id:{c['id']} [{c.get('size','task')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
+        f"- id:{c['id']} [{c.get('size','idea')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
         for c in ideas[:15]
     ) or "None."
 
@@ -84,7 +84,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
     week_days = [(date.today() + timedelta(days=i)).isoformat() for i in range(7)]
     scheduled_cards = [c for c in cards if c.get("scheduled_day") in week_days]
     scheduled_text = "\n".join(
-        f"- {c.get('scheduled_day')} id:{c['id']} [{c.get('size','task')}] {c['title']}"
+        f"- {c.get('scheduled_day')} id:{c['id']} [{c.get('size','idea')}] {c['title']}"
         for c in sorted(scheduled_cards, key=lambda x: x.get("scheduled_day", ""))
     ) or "None."
 
@@ -92,7 +92,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         "planning": (
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
-            "Cards with size 'book' (ongoing reads) are for reading only — do NOT select them for directives. "
+            "Book cards (is_book, ongoing reads) are for reading only — do NOT select them for directives. "
             "You can manage cards freely: create_card (new idea), exile_card (drop it), update_card (edit fields or progress notes), schedule_card (dates/deadlines). "
             "When Wai mentions working on or making progress on a task, call update_card with a timestamped note appended to the notes field. "
             "COLUMN SEMANTICS: rd=upcoming ideas/backlog. hq=active working set (Wai manages this). archives=completed (Wai archives). exile=dropped. "
@@ -135,12 +135,13 @@ def _chat_tools() -> list:
                 "properties": {
                     "title": {"type": "string", "description": "Short title for the card."},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self"], "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement/reading/studying."},
-                    "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"], "description": "Size: chore (<45min), task (<3h), project (<6h), titan (6h+), book (long read). Omit for reminders."},
+                    "size": {"type": "string", "enum": ["wisp", "idea", "plan", "mission"], "description": "Importance: wisp (trivial/quick), idea (ordinary), plan (significant), mission (critical). Omit for reminders."},
                     "notes": {"type": "string", "description": "Optional notes about the card."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
-                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-populated from size if omitted. Omit for reminders."},
+                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Defaults from importance if omitted. Omit for reminders."},
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context when possible."},
                     "is_reminder": {"type": "boolean", "description": "True for calendar reminders — no action needed, no size or estimated_time."},
+                    "is_book": {"type": "boolean", "description": "True for ongoing reads / long-form reading material — shown in the books bar, not scheduled or decomposed."},
                     "is_event": {"type": "boolean", "description": "True when the card is a fixed, immovable occurrence — it happens at a specific time regardless of whether Wai acts (e.g. party, concert, flight, show, sports game, wedding, scheduled call). These do NOT carry over if missed. False for tasks and todos that Wai controls the timing of (e.g. 'fix the bug', 'call mom', 'read chapter 3')."},
                 },
                 "required": ["title", "category"],
@@ -166,9 +167,10 @@ def _chat_tools() -> list:
                     "id": {"type": "string", "description": "Card ID."},
                     "title": {"type": "string"},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self"]},
-                    "size": {"type": "string", "enum": ["chore", "task", "project", "titan", "book"]},
+                    "size": {"type": "string", "enum": ["wisp", "idea", "plan", "mission"], "description": "Importance: wisp/idea/plan/mission (low→high)."},
                     "notes": {"type": "string", "description": "Progress notes. Append timestamped entry — don't overwrite existing content."},
-                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes. Auto-updates size if the new value implies a different size category."},
+                    "estimated_time": {"type": "integer", "description": "Estimated duration in minutes."},
+                    "is_book": {"type": "boolean", "description": "Mark/unmark as an ongoing read (books bar)."},
                 },
                 "required": ["id"],
             },
@@ -320,12 +322,11 @@ def classify_card(title: str) -> dict:
             "- Hobby: crafts, creative projects, making things, cosplay, gaming, art\n"
             "- Social: events, social plans, gatherings, helping friends\n"
             "- Self: self-care, self-improvement, personal wellness, mental health, reading, studying, long-form learning, research\n\n"
-            "Sizes (pick one):\n"
-            "- chore: under 1 hour\n"
-            "- task: under 4 hours\n"
-            "- book: ongoing read / long-form written work\n"
-            "- project: under 2 days\n"
-            "- titan: longer — reminder to break it down further\n\n"
+            "Importance (pick one):\n"
+            "- wisp: trivial, quick, low-stakes\n"
+            "- idea: ordinary, moderate importance\n"
+            "- plan: significant, matters\n"
+            "- mission: critical, high-stakes\n\n"
             'JSON only: {"category": "...", "size": "..."}'
         )}],
     )
@@ -335,7 +336,7 @@ def classify_card(title: str) -> dict:
         parsed = {}
     return {
         "category": parsed.get("category", "Self"),
-        "size": parsed.get("size", "task"),
+        "size": parsed.get("size", "idea"),
     }
 
 
@@ -346,11 +347,6 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
     duration_hint = ""
     if estimated_minutes:
         duration_hint = f" The task takes ~{estimated_minutes} minutes."
-    elif size:
-        size_map = {"chore": 30, "task": 90, "project": 240, "titan": 480, "book": 60}
-        mins = size_map.get(size)
-        if mins:
-            duration_hint = f" The task size is '{size}' (~{mins} minutes)."
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model="claude-opus-4-8",

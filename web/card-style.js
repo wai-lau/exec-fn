@@ -13,16 +13,16 @@ function cardStyle(c) {
   if (!cat) return {bg: '', border: '', dark: false, solidBg: ''};
   const v = name => `var(--card-${cat}-${name})`;
   const text = `color:${v('text')};`;
-  if (c.size === 'chore') {
-    return {bg: `background:${v('chore')};${text}`, border: 'border-color:transparent;', dark: true, solidBg: v('chore-solid')};
-  } else if (c.size === 'task') {
-    return {bg: `background:${v('task')};${text}`, border: `border-color:${v('border')};`, dark: true, solidBg: v('task-solid')};
-  } else if (c.size === 'book') {
+  if (c.is_book) {
     return {bg: `background:hsl(0 0% 10%);${text}`, border: `border-color:${v('border')};`, dark: true, solidBg: 'hsl(0 0% 10%)'};
-  } else if (c.size === 'project') {
-    return {bg: `background:${v('project')};`, border: 'border-color:transparent;', dark: false, solidBg: v('project')};
+  } else if (c.size === 'wisp') {
+    return {bg: `background:${v('wisp')};${text}`, border: 'border-color:transparent;', dark: true, solidBg: v('wisp-solid')};
+  } else if (c.size === 'idea') {
+    return {bg: `background:${v('idea')};${text}`, border: `border-color:${v('border')};`, dark: true, solidBg: v('idea-solid')};
+  } else if (c.size === 'plan') {
+    return {bg: `background:${v('plan')};`, border: 'border-color:transparent;', dark: false, solidBg: v('plan')};
   } else {
-    return {bg: `background:${v('titan')};`, border: `border-color:${v('border-bright')};`, dark: false, solidBg: v('titan')};
+    return {bg: `background:${v('mission')};`, border: `border-color:${v('border-bright')};`, dark: false, solidBg: v('mission')};
   }
 }
 

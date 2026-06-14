@@ -17,7 +17,7 @@ def _cards_text(seek: list, hack: list, dive: list) -> str:
         for c in cards:
             if isinstance(c, dict):
                 time_hint = f", ~{c['estimated_time']}min" if c.get("estimated_time") else ""
-                lines.append(f"{cat} [{c.get('size','task')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
+                lines.append(f"{cat} [{c.get('size','idea')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
             else:
                 lines.append(f"{cat} {c}")
     return "\n".join(lines) or "None."
@@ -38,7 +38,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         for c in extra_hq:
             if isinstance(c, dict):
                 time_hint = f", ~{c['estimated_time']}min" if c.get("estimated_time") else ""
-                extra_lines.append(f"HQ [{c.get('size','task')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
+                extra_lines.append(f"HQ [{c.get('size','idea')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
         if extra_lines:
             extra_hq_text = "\n\nADDITIONAL HQ TASKS (schedule if time allows):\n" + "\n".join(extra_lines)
 
@@ -59,7 +59,7 @@ def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_t
         f"{junni}"
         f"- Lunch 11:30–12:30 (skip if past 13:00)\n"
         f"- Dinner 19:00–20:00 (skip if past 20:00)\n"
-        f"- SIZE→DURATION: chore=30min, task=90min, project=240min, titan=480min, book=60min; use ~Nmin hint if provided\n"
+        f"- DURATION: use each task's ~Nmin estimate; default 90min if none given\n"
         "- 15min gap between tasks; group SEEK tasks if possible\n"
         "- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
         "- Do NOT schedule book/reading tasks\n"
