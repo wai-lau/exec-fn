@@ -332,6 +332,7 @@ def import_gcal_cards(days_ahead: int = 365) -> dict:
             "order": -(imported + 1),
             "due_date": ev["start"][:10] if ev.get("start") else None,
             "estimated_time": 30,
+            "prep_time": None,
             "is_reminder": ev.get("is_reminder", True),
             "recur_type": ev.get("recur_type") or None,
             "gcal_id": ev.get("id") or None,

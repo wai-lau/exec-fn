@@ -84,8 +84,11 @@
     <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
       <span>breakdown</span>
-      <span style="display:flex;gap:10px;align-items:baseline;letter-spacing:0;text-transform:none">
-        <span id="cd-graph-total"></span>
+      <span style="display:flex;gap:6px;align-items:baseline;letter-spacing:0;text-transform:none">
+        <input id="cd-prep" type="number" min="0" placeholder="prep" title="prep / lead-up minutes" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <span style="opacity:0.4;font-size:0.65rem">+</span>
+        <input id="cd-dur" type="number" min="0" placeholder="work" title="core work minutes" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <span style="opacity:0.5;font-size:0.65rem">m</span>
         <button type="button" id="cd-recalc" class="cd-btn" style="font-size:0.6rem;padding:1px 7px" onclick="cdRecalc()">recalculate</button>
       </span>
     </label>
@@ -169,18 +172,6 @@
     return timeStr ? iso+timeStr : iso;
   }
 
-  function _fmtDur(min) {
-    if (!min) return '';
-    const h = Math.floor(min / 60), m = min % 60;
-    return (h ? h + 'h' : '') + (m || !h ? m + 'm' : '');
-  }
-
-  function _graphTotal(c) {
-    const nodes = c.nudge && c.nudge.graph && c.nudge.graph.nodes;
-    if (!nodes || !nodes.length) return 0;
-    return nodes.reduce((s, n) => s + (n.est_min || 0), 0);
-  }
-
   function _fmt(iso) {
     if (!iso) return '';
     const hasT = iso.includes('T');
@@ -242,16 +233,17 @@
     _togglePages(!!c.is_book);
     document.getElementById('cd-current-page').value = c.current_page ?? '';
     document.getElementById('cd-total-pages').value = c.total_pages ?? '';
+    // prep + work split: estimated_time is the total, prep_time the lead-up slice.
+    const _pt = c.prep_time || 0, _et = c.estimated_time || 0;
+    document.getElementById('cd-prep').value = _pt || '';
+    document.getElementById('cd-dur').value = _et ? Math.max(0, _et - _pt) : '';
     // Open first so the graph can measure layout (autoscroll to the active step).
     document.getElementById('cd-modal').classList.add('open');
     const hasGraph = !!(c.nudge && c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
     document.getElementById('cd-graph-label').style.display = hasGraph ? 'flex' : 'none';
     document.getElementById('cd-graph').style.display = hasGraph ? 'block' : 'none';
-    document.getElementById('cd-graph-total').textContent = hasGraph ? _fmtDur(_graphTotal(c)) : '';
     if (hasGraph && typeof renderCardGraph === 'function') {
-      renderCardGraph(document.getElementById('cd-graph'), c, function () {
-        document.getElementById('cd-graph-total').textContent = _fmtDur(_graphTotal(c));
-      });
+      renderCardGraph(document.getElementById('cd-graph'), c, function () {});
     } else {
       document.getElementById('cd-graph').innerHTML = '';
     }
@@ -275,9 +267,15 @@
     c.category = document.getElementById('cd-cat').value;
     const isReminder = document.getElementById('cd-reminder').checked;
     c.size = isReminder ? null : document.getElementById('cd-size').value;
-    // Total time is derived from the breakdown when there is one.
-    const gTotal = _graphTotal(c);
-    if (gTotal) c.estimated_time = gTotal;
+    // Time = prep (lead-up) + work; estimated_time is their sum (the schedule block).
+    const prep = parseInt(document.getElementById('cd-prep').value) || 0;
+    const work = parseInt(document.getElementById('cd-dur').value) || 0;
+    if (isReminder) {
+      c.prep_time = null;
+    } else {
+      c.prep_time = prep;
+      if (prep + work > 0) c.estimated_time = prep + work;
+    }
     const dueRaw = document.getElementById('cd-due').value;
     const res = await _resolve(dueRaw, c.size, c.estimated_time);
     c.due_date = res.due;
@@ -332,9 +330,14 @@
     const prev = btn.textContent; btn.textContent = '...'; btn.disabled = true;
     try {
       const notes = document.getElementById('cd-notes').value.trim();
+      const prep = parseInt(document.getElementById('cd-prep').value) || 0;
+      const duration = parseInt(document.getElementById('cd-dur').value) || 0;
+      // Persist the edited split on the card so the rebuilt graph targets it.
+      c.prep_time = prep;
+      if (prep + duration > 0) c.estimated_time = prep + duration;
       const r = await fetch('/api/rd/' + encodeURIComponent(_cdId) + '/recalc', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes }),
+        body: JSON.stringify({ notes, prep, duration }),
       });
       const d = await r.json();
       if (d && d.nudge) {
@@ -342,10 +345,7 @@
         const has = !!(c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
         document.getElementById('cd-graph-label').style.display = has ? 'flex' : 'none';
         document.getElementById('cd-graph').style.display = has ? 'block' : 'none';
-        document.getElementById('cd-graph-total').textContent = has ? _fmtDur(_graphTotal(c)) : '';
-        if (has) renderCardGraph(document.getElementById('cd-graph'), c, function () {
-          document.getElementById('cd-graph-total').textContent = _fmtDur(_graphTotal(c));
-        });
+        if (has) renderCardGraph(document.getElementById('cd-graph'), c, function () {});
       }
     } catch (_) { /* ignore */ }
     btn.textContent = prev; btn.disabled = false;

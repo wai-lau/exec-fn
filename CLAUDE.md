@@ -214,7 +214,7 @@ Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 |------|------|
 | `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` → `scheduler.schedule_to_day()` (rd→hq on due day if in window, overdue clamped to today; `dir_start_min` for today). |
 | `exile_card` | Move card to exile column (drop / won't-do). Clears `scheduled_day`. |
-| `update_card` | Edit title/category/size (importance)/estimated_time/notes/is_reminder/is_book. Size is a manual importance rating — not derived from estimated_time. |
+| `update_card` | Edit title/category/size (importance)/estimated_time/prep_time/notes/is_reminder/is_book. Size is a manual importance rating — not derived from estimated_time. `estimated_time` is total (prep+work); `prep_time` is the lead-up slice. |
 | `schedule_card` | Set or clear `scheduled_day` via `scheduler.schedule_to_day()`. Beyond 7-day window → sets `due_date` only and parks in rd; inside window → moves to hq with `scheduled_day` (overdue target clamped to today). Target = today auto-assigns `dir_start_min` via `scheduler.place_card_today()` (explicit `dir_start_min` overrides); other days clear it. |
 | `update_context` | add/remove/replace a fact in `profile.json`. |
 | `decompose_task` | Build/rebuild the card's internal dependency graph (`card["nudge"]["graph"]`) and pick the first chunk. Optional `feedback` rebuilds from the existing breakdown. Not for reminders/events/books. |
@@ -243,6 +243,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
   "size": "wisp|idea|plan|mission",
   "due_date": "YYYY-MM-DD or YYYY-MM-DDTHH:MM",
   "estimated_time": 30,
+  "prep_time": 0,
   "notes": "...",
   "is_reminder": false,
   "is_book": false,
@@ -256,6 +257,8 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
 - `dir_start_min`: minutes from midnight — intraday slot for a card scheduled today. Set whenever a card is scheduled for today (exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py`. Edited via the prophecies today-column timeline (drag a block) and drives nudge anchoring.
 - `size`: **importance** (low→high) `wisp | idea | plan | mission` — a manual rating, NOT derived from time (estimated_time holds duration; no size→duration mapping). Drives card-fill intensity. Default `idea`.
+- `estimated_time`: TOTAL minutes (prep + core work) — the timeline block length read by scheduler + nudge.
+- `prep_time`: of `estimated_time`, the lead-up/getting-ready/travel/setup minutes before the real work (`estimated_time - prep_time` = core work). Auto-filled at creation (exec chat `create_card`, `_card_brief` budgets prep-vs-work in decompose). Editable in the card dialog breakdown row as two fields (prep + work); recalculate rebuilds the graph to that split. null for reminders.
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban
 - `is_book`: true = ongoing read — shown in books bar on prophecies, hidden from rd/hq columns in kanban, never scheduled/decomposed (checkbox in card dialog, like `is_reminder`)
 
