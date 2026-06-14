@@ -59,17 +59,17 @@
   --cat-interfacing-h:  33;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] = --orange-hsl */
   --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;  /* [Coral] */
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));
-  --card-self-chore:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.15);
-  --card-self-task:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.25);
-  --card-self-project:               hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 0.8);
+  --card-self-chore:                 color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 15%, hsl(var(--bg-hsl)));
+  --card-self-task:                  color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 25%, hsl(var(--bg-hsl)));
+  --card-self-project:               color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 80%, hsl(var(--bg-hsl)));
   --card-self-titan:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 1);
   --card-self-border:                hsl(var(--cat-self-h) calc(var(--cat-self-s) - 10%) calc(var(--cat-self-l) - 8%));
   --card-self-border-bright:         hsl(var(--cat-self-h) calc(var(--cat-self-s) + 15%) calc(var(--cat-self-l) + 10%));
   --card-self-chore-solid:           color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 15%, #0a0a0a);
   --card-self-task-solid:            color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 25%, #0a0a0a);
   --card-social-text:                hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l));
-  --card-social-chore:               hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.15);
-  --card-social-task:                hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25);
+  --card-social-chore:               color-mix(in srgb, hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)) 15%, hsl(var(--bg-hsl)));
+  --card-social-task:                color-mix(in srgb, hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)) 25%, hsl(var(--bg-hsl)));
   --card-social-project:             hsl(var(--cat-social-h) calc(var(--cat-social-s) - 25%) calc(var(--cat-social-l) - 14%));
   --card-social-titan:               hsl(var(--cat-social-h) calc(var(--cat-social-s) - 20%) calc(var(--cat-social-l) + 4%));
   --card-social-border:              hsl(var(--cat-social-h) calc(var(--cat-social-s) - 10%) calc(var(--cat-social-l) - 8%));
@@ -77,8 +77,8 @@
   --card-social-chore-solid:         color-mix(in srgb, hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)) 15%, #0a0a0a);
   --card-social-task-solid:          color-mix(in srgb, hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)) 25%, #0a0a0a);
   --card-interfacing-text:           hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l));
-  --card-interfacing-chore:          hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l) / 0.15);
-  --card-interfacing-task:           hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l) / 0.25);
+  --card-interfacing-chore:          color-mix(in srgb, hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l)) 15%, hsl(var(--bg-hsl)));
+  --card-interfacing-task:           color-mix(in srgb, hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l)) 25%, hsl(var(--bg-hsl)));
   --card-interfacing-project:        hsl(var(--cat-interfacing-h) calc(var(--cat-interfacing-s) - 25%) calc(var(--cat-interfacing-l) - 14%));
   --card-interfacing-titan:          hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l) / 1);
   --card-interfacing-border:         hsl(var(--cat-interfacing-h) calc(var(--cat-interfacing-s) - 10%) calc(var(--cat-interfacing-l) - 8%));
@@ -86,8 +86,8 @@
   --card-interfacing-chore-solid:    color-mix(in srgb, hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l)) 15%, #0a0a0a);
   --card-interfacing-task-solid:     color-mix(in srgb, hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l)) 25%, #0a0a0a);
   --card-hobby-text:                 hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l));
-  --card-hobby-chore:                hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l) / 0.15);
-  --card-hobby-task:                 hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l) / 0.25);
+  --card-hobby-chore:                color-mix(in srgb, hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l)) 15%, hsl(var(--bg-hsl)));
+  --card-hobby-task:                 color-mix(in srgb, hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l)) 25%, hsl(var(--bg-hsl)));
   --card-hobby-project:              hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) - 25%) calc(var(--cat-hobby-l) - 14%));
   --card-hobby-titan:                hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) - 20%) calc(var(--cat-hobby-l) - 6%));
   --card-hobby-border:               hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) - 10%) calc(var(--cat-hobby-l) - 8%));
