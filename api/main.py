@@ -702,11 +702,11 @@ async def color_page(request: Request):
 
 @public.get("/api/color/usage")
 async def color_usage():
-    """var(--X) occurrence counts + actually-used alphas per -hsl token,
-    across templates + web assets, for the /color moodboard. Definitions
-    (`--x:`) don't match, so chrome.css only contributes its own genuine
-    usages. Bare hsl(var(--X-hsl)) counts as alpha 1. Public: token names
-    only."""
+    """var(--X) occurrence counts + actually-used alphas per -hsl token +
+    per-(token, alpha) usage sites, across templates + web assets, for the
+    /color moodboard. Definitions (`--x:`) don't match, so chrome.css only
+    contributes its own genuine usages. Bare hsl(var(--X-hsl)) counts as
+    alpha 1. Public: token names + derived site labels only."""
     paths = [
         *Path("/app/templates").glob("*.html"),
         *Path("/app/static").glob("*.html"),
@@ -714,8 +714,22 @@ async def color_usage():
         *Path("/app/static").glob("*.js"),
         Path("/app/main.py"),
     ]
+
+    def site_label(text: str, idx: int, fname: str) -> str:
+        """Best-effort 'where is this used' label: the nearest enclosing CSS
+        selector, else the file name."""
+        ob = text.rfind("{", 0, idx)
+        if ob != -1 and idx - ob < 600:
+            cut = max(text.rfind("}", 0, ob), text.rfind(";", 0, ob), text.rfind(">", 0, ob))
+            sel = " ".join(text[cut + 1:ob].split())
+            if sel and len(sel) <= 50 and not any(c in sel for c in "()=`\"'"):
+                return sel
+        return fname
+
     counts: dict[str, int] = {}
     alpha_tally: dict[str, dict[float, int]] = {}
+    # token -> alpha-string -> {site label: count}
+    sites: dict[str, dict[str, dict[str, int]]] = {}
     for p in paths:
         try:
             text = p.read_text()
@@ -727,14 +741,19 @@ async def color_usage():
             text = re.sub(r":root\s*\{[^}]*\}", "", text)
         for name in re.findall(r"var\(--([\w-]+)", text):
             counts[name] = counts.get(name, 0) + 1
-        for name, alpha in re.findall(r"var\(--([\w-]+-hsl)\)(?:\s*/\s*([\d.]+))?", text):
-            a = float(alpha) if alpha else 1.0
+        for m in re.finditer(r"var\(--([\w-]+-hsl)\)(?:\s*/\s*([\d.]+))?", text):
+            name = m.group(1)
+            a = float(m.group(2)) if m.group(2) else 1.0
             tally = alpha_tally.setdefault(name, {})
             tally[a] = tally.get(a, 0) + 1
+            key = f"{a:g}"
+            label = site_label(text, m.start(), p.name)
+            bucket = sites.setdefault(name, {}).setdefault(key, {})
+            bucket[label] = bucket.get(label, 0) + 1
     # per-token: sorted alpha steps + a parallel list of their usage counts
     alphas = {k: sorted(v) for k, v in alpha_tally.items()}
     alpha_counts = {k: [alpha_tally[k][a] for a in steps] for k, steps in alphas.items()}
-    return {"counts": counts, "alphas": alphas, "alpha_counts": alpha_counts}
+    return {"counts": counts, "alphas": alphas, "alpha_counts": alpha_counts, "sites": sites}
 
 
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
