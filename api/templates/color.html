@@ -24,6 +24,7 @@ body { overflow-y: auto !important; }
 .clr-fill { width: 100%; height: 100%; }
 .clr-cnt { color: hsl(var(--green-hsl) / 0.45); }
 /* effects label matches the opacity cells (default green td text) */
+.clr-uselist { margin: 2px 0 0; padding-left: 20px; font-size: 0.6rem; opacity: 0.75; line-height: 1.5; }
 .clr-guse { font-size: 0.62rem; opacity: 0.55; line-height: 1.4; overflow-wrap: anywhere; white-space: normal; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
@@ -98,8 +99,26 @@ function groupHtml(col) {
   return `<div class="clr-group">
     <div class="clr-title">${esc(col.name)}</div>
     <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}</table>
+    ${usageList(col)}
     ${col.use ? `<div class="clr-guse">${esc(col.use)}</div>` : ''}
   </div>`;
+}
+
+// per-color usage list: one line per shade (alpha step, or card size), with
+// its usage count, ordered most-used to least
+function usageList(col) {
+  let items;
+  if (col.hasCard) {
+    const mapped = { chore: 0, task: 0, project: 0, titan: 0 };
+    for (const p of col.alphaPairs) mapped[nearestSize(p.a)] += (p.n || 0);
+    items = SIZES.map(s => ({ label: s, n: mapped[s] }));
+  } else {
+    items = col.alphaPairs.map(p => ({ label: `${p.a} alpha`, n: p.n || 0 }));
+  }
+  items = items.filter(i => i.n > 0).sort((a, b) => b.n - a.n);
+  if (!items.length) return '';
+  return `<ol class="clr-uselist">${items.map(i =>
+    `<li>${esc(i.label)} <span class="clr-cnt">&times;${i.n}</span></li>`).join('')}</ol>`;
 }
 
 // Gibson-voiced blurbs for the four card categories
