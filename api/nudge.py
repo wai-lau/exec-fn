@@ -420,8 +420,16 @@ def _card_brief(card: dict) -> str:
     parts = [f"TASK: {card.get('title', '')}"]
     if card.get("notes"):
         parts.append(f"NOTES: {card['notes']}")
-    if card.get("estimated_time"):
-        parts.append(f"ESTIMATE: ~{card['estimated_time']} min")
+    et = card.get("estimated_time")
+    if et:
+        prep = card.get("prep_time") or 0
+        if prep:
+            parts.append(
+                f"ESTIMATE: ~{et} min total (~{prep} min prep/lead-up before "
+                f"~{max(0, et - prep)} min of core work)"
+            )
+        else:
+            parts.append(f"ESTIMATE: ~{et} min")
     if card.get("due_date"):
         parts.append(f"DUE: {card['due_date']}")
     ans = (card.get("nudge") or {}).get("consequences", {}).get("answer")

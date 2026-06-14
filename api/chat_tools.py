@@ -18,7 +18,9 @@ def _tool_create_card(input_: dict) -> dict:
 
     is_reminder = input_.get("is_reminder", False)
     size = None if is_reminder else input_.get("size", "idea")
+    # estimated_time is the TOTAL (prep + work); prep_time is the lead-up slice of it.
     estimated_time = None if is_reminder else (input_.get("estimated_time") or _DEFAULT_MINUTES)
+    prep_time = None if is_reminder else max(0, int(input_.get("prep_time") or 0))
 
     new_card = {
         "id": f"card-{int(_time.time() * 1000)}",
@@ -29,6 +31,7 @@ def _tool_create_card(input_: dict) -> dict:
         "order": min_order - 1,
         "due_date": input_.get("due_date") or None,
         "estimated_time": estimated_time,
+        "prep_time": prep_time,
     }
     if is_reminder:
         new_card["is_reminder"] = True
@@ -73,6 +76,7 @@ def _apply_reminder_flag(card: dict, input_: dict, changed: list) -> None:
     if input_["is_reminder"]:
         card["size"] = None
         card["estimated_time"] = None
+        card["prep_time"] = None
     changed.append("is_reminder")
 
 
@@ -83,6 +87,9 @@ def _apply_size_time(card: dict, input_: dict, changed: list) -> None:
     if "estimated_time" in input_:
         card["estimated_time"] = input_["estimated_time"]
         changed.append("estimated_time")
+    if "prep_time" in input_:
+        card["prep_time"] = max(0, int(input_["prep_time"] or 0))
+        changed.append("prep_time")
     # importance (size) is a manual rating now — no longer derived from time
 
 

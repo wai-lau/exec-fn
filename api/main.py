@@ -915,7 +915,14 @@ async def api_rd_recalc(card_id: str, request: Request):
         raise HTTPException(status_code=400, detail="not decomposable")
     if body.get("notes") is not None:
         card["notes"] = body["notes"]
-        _save_rd(rd)  # persist the note before decomposing from it
+    prep, dur = body.get("prep"), body.get("duration")
+    if prep is not None or dur is not None:
+        p, d = max(0, int(prep or 0)), max(0, int(dur or 0))
+        card["prep_time"] = p          # lead-up slice of the total estimate
+        if p + d > 0:
+            card["estimated_time"] = p + d
+    if body.get("notes") is not None or prep is not None or dur is not None:
+        _save_rd(rd)  # persist edits before decomposing from them
     result = await asyncio.to_thread(_nudge.decompose_sync, card)
     rd = _load_rd()  # reload around the LLM call
     card = _find_card(rd, card_id)
