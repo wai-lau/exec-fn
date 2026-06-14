@@ -152,14 +152,14 @@ function parsePalette(css) {
   return tokens;
 }
 
-// sort key: near-gray tokens (saturation under 15%) lead, light to dark;
-// then chromatic by hue ascending from red (hue 0)
+// sort key: chromatic by hue ascending from red (hue 0); near-gray tokens
+// (saturation under 15%) trail at the end, light to dark
 function hueKey(t) {
   if (t.hue != null) return [0, t.hue];
   const m = t.value.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);
   if (!m) return [2, 0];
   const h = +m[1], s = +m[2], l = +m[3];
-  if (s < 15) return [-1, 100 - l];
+  if (s < 15) return [1, 100 - l];
   return [0, h];
 }
 
