@@ -494,8 +494,9 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     base = bare if active else no_form
     head_inject = _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
-    # cyberpunk ambient fx on tarot + mtg + color (landing injects its own)
-    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>' if active in {"tarot", "mtg", "color"} else ''
+    # cyberpunk ambient fx on every page (nightfall composes separately and is
+    # excluded; landing + graph inject their own)
+    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     return (base
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", fx + content + nav + "</body>", 1))
@@ -777,9 +778,10 @@ async def graph_page():
             "<pre>graph.html not found. Run /graphify to build it.</pre>",
             status_code=404,
         )
+    _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     html = p.read_text()
     html = html.replace("</head>", _VIEWPORT_META + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
-    html = html.replace("</body>", _build_nav("graph") + _GRAPH_OVERLAY_JS + "</body>", 1)
+    html = html.replace("</body>", _fx + _build_nav("graph") + _GRAPH_OVERLAY_JS + "</body>", 1)
     return HTMLResponse(html)
 
 
