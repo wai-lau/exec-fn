@@ -24,11 +24,9 @@ body { overflow-y: auto !important; }
 .clr-fill { width: 100%; height: 100%; }
 .clr-cnt { color: hsl(var(--green-hsl) / 0.45); }
 /* effects label matches the opacity cells (default green td text) */
-.clr-uselist { margin: 3px 0 0; font-size: 0.58rem; opacity: 0.78; }
-.clr-ua { margin-bottom: 3px; }
-.clr-ua-h { opacity: 0.6; }
-.clr-uselist ul { margin: 1px 0 4px; padding-left: 20px; list-style: disc; }
-.clr-uselist li { line-height: 1.4; }
+.clr-usecell { vertical-align: top; text-align: left; padding-top: 6px; }
+.clr-uselist { margin: 0; padding-left: 15px; font-size: 0.56rem; opacity: 0.78; list-style: disc; }
+.clr-uselist li { line-height: 1.4; overflow-wrap: anywhere; }
 .clr-guse { font-size: 0.62rem; opacity: 0.55; line-height: 1.4; overflow-wrap: anywhere; white-space: normal; }
 .clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
 </style>
@@ -87,8 +85,25 @@ function groupHtml(col) {
     opac = col.alphaPairs.map(p => p.a);
     counts = col.alphaPairs.map(p => p.n);
   }
+  // usage sites per column: non-card = that alpha's sites; card = sites of
+  // the accent alphas that map onto that size
+  const ms = mergedSites(col);
+  let colSites;
+  if (card) {
+    colSites = SIZES.map(s => {
+      const acc = {};
+      for (const a of Object.keys(ms)) {
+        if (nearestSize(parseFloat(a)) !== s) continue;
+        for (const [l, c] of Object.entries(ms[a])) acc[l] = (acc[l] || 0) + c;
+      }
+      return acc;
+    });
+  } else {
+    colSites = col.alphaPairs.map(p => ms[`${p.a}`] || {});
+  }
   // pad every table to 4 columns (empty trailing cells) so they all line up
   while (swatches.length < 4) { swatches.push(null); opac.push(null); counts.push(null); }
+  while (colSites.length < 4) colSites.push({});
   // no header / row labels — the note + each color's description cover them
   const swRow = `<tr>${swatches.map(s => s == null ? '<td></td>' :
     `<td><div class="clr-sw"><div class="clr-fill" style="${esc(s)}"></div></div></td>`).join('')}</tr>`;
@@ -100,10 +115,12 @@ function groupHtml(col) {
   // effect sits in the column it applies to (the token's first/only shade)
   const fxRow = `<tr>${[0, 1, 2, 3].map(i =>
     `<td class="clr-fx">${i === 0 && col.fxLabel ? esc(col.fxLabel) : ''}</td>`).join('')}</tr>`;
+  // one column of usage sites per variation (most-used to least)
+  const useRow = `<tr>${colSites.map(sm =>
+    `<td class="clr-usecell">${siteListHtml(sm)}</td>`).join('')}</tr>`;
   return `<div class="clr-group">
     <div class="clr-title">${esc(col.name)}</div>
-    <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}</table>
-    ${usageList(col)}
+    <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}${useRow}</table>
     ${col.use ? `<div class="clr-guse">${esc(col.use)}</div>` : ''}
   </div>`;
 }
@@ -111,10 +128,9 @@ function groupHtml(col) {
 // token -> alpha-string -> {site label: count}, from /api/color/usage
 let SITES = {};
 
-// per-color usage sites: for each alpha (ordered most-used to least), the
-// list of sites it appears in (also most-used to least)
-function usageList(col) {
-  // merge usage sites across all -hsl tokens that share this color
+// merge usage sites across every -hsl token that shares this color:
+// { alpha-string: { site label: count } }
+function mergedSites(col) {
   const ts = {};
   for (const nm of col.hslNames || []) {
     const s = SITES[nm];
@@ -124,17 +140,15 @@ function usageList(col) {
       for (const [lbl, c] of Object.entries(s[a])) ts[a][lbl] = (ts[a][lbl] || 0) + c;
     }
   }
-  if (!Object.keys(ts).length) return '';
-  const rows = Object.keys(ts).map(a => {
-    const entries = Object.entries(ts[a]).sort((x, y) => y[1] - x[1]);
-    return { a, entries, total: entries.reduce((s, e) => s + e[1], 0) };
-  }).sort((x, y) => y.total - x.total);
-  if (!rows.length) return '';
-  return `<div class="clr-uselist">${rows.map(r =>
-    `<div class="clr-ua"><span class="clr-ua-h">${esc(r.a)} alpha</span>
-      <ul>${r.entries.map(([lbl, n]) =>
-        `<li>${esc(lbl)} <span class="clr-cnt">&times;${n}</span></li>`).join('')}</ul>
-    </div>`).join('')}</div>`;
+  return ts;
+}
+
+// vertical site list for one column, most-used to least
+function siteListHtml(siteMap) {
+  const entries = Object.entries(siteMap || {}).sort((x, y) => y[1] - x[1]);
+  if (!entries.length) return '';
+  return `<ul class="clr-uselist">${entries.map(([lbl, n]) =>
+    `<li>${esc(lbl)} <span class="clr-cnt">&times;${n}</span></li>`).join('')}</ul>`;
 }
 
 // Gibson-voiced blurbs for the four card categories
@@ -239,6 +253,14 @@ function buildColumns(tokens) {
     if (isCard && !cur.hasCard) { cur.hasCard = true; cur.segs = t.segs; }
     if (isHsl) { cur.alphaPairs = cur.alphaPairs.concat(tokenAlphaPairs(t)); cur.hslNames.push(t.name); }
     if (!cur.isHsl && isHsl) { cur.name = name; cur.isHsl = true; cur.fxLabel = fx.label || ''; cur.fxStyle = fx.style || ''; }
+  }
+  // consolidate each color's alpha steps: sum duplicate alphas (from merged
+  // tokens) and order ascending by opacity
+  for (const col of byVal.values()) {
+    if (!col.alphaPairs.length) continue;
+    const m = new Map();
+    for (const p of col.alphaPairs) m.set(p.a, (m.get(p.a) || 0) + (p.n || 0));
+    col.alphaPairs = [...m.entries()].map(([a, n]) => ({ a, n })).sort((x, y) => x.a - y.a);
   }
   return [...byVal.values()];
 }
