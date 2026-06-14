@@ -36,6 +36,43 @@
     <label>title</label><input id="cd-title" type="text">
     <label>date</label>
     <input id="cd-due" type="text" placeholder="optional">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin-top:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+        <input id="cd-reminder" type="checkbox" style="width:auto">
+        <span>reminder only</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+        <input id="cd-event" type="checkbox" style="width:auto">
+        <span>event</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+        <input id="cd-book" type="checkbox" style="width:auto">
+        <span>book</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+        <input id="cd-recurring" type="checkbox" style="width:auto">
+        <span>recurring</span>
+      </label>
+    </div>
+    <label id="cd-pin-row" style="display:none;align-items:center;gap:8px;cursor:pointer;margin-top:6px;margin-left:20px">
+      <input id="cd-pin-reminder" type="checkbox" style="width:auto">
+      <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
+    </label>
+    <div id="cd-pages-wrap" style="display:none;margin-left:20px">
+      <label id="cd-pages-label">pages</label>
+      <div id="cd-pages-inputs" style="display:flex;align-items:center;gap:8px">
+        <input id="cd-current-page" type="number" placeholder="current" min="0" style="flex:1">
+        <span style="opacity:0.4;flex-shrink:0">/</span>
+        <input id="cd-total-pages" type="number" placeholder="total" min="1" style="flex:1">
+      </div>
+    </div>
+    <div id="cd-recur-wrap" style="display:none;margin-left:20px">
+      <label>frequency</label>
+      <select id="cd-recur">
+        <option value="week">weekly</option><option value="bi-week">bi-weekly</option>
+        <option value="month">monthly</option><option value="holiday">holiday (annual)</option><option value="birthday">birthday (annual)</option>
+      </select>
+    </div>
     <label id="cd-size-label">importance</label>
     <select id="cd-size">
       <option value="wisp">wisp &mdash; trivial</option>
@@ -43,37 +80,8 @@
       <option value="plan">plan &mdash; significant</option>
       <option value="mission">mission &mdash; critical</option>
     </select>
-    <label id="cd-pages-label" style="display:none">pages</label>
-    <div id="cd-pages-inputs" style="display:none;align-items:center;gap:8px">
-      <input id="cd-current-page" type="number" placeholder="current" min="0" style="flex:1">
-      <span style="opacity:0.4;flex-shrink:0">/</span>
-      <input id="cd-total-pages" type="number" placeholder="total" min="1" style="flex:1">
-    </div>
     <label>category</label>
     <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>
-    <label>recurrence</label>
-    <select id="cd-recur">
-      <option value="">— none —</option><option value="week">weekly</option><option value="bi-week">bi-weekly</option>
-      <option value="month">monthly</option><option value="holiday">holiday (annual)</option><option value="birthday">birthday (annual)</option>
-    </select>
-    <div style="display:flex;align-items:center;gap:16px;margin-top:12px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input id="cd-reminder" type="checkbox" style="width:auto" onchange="document.getElementById('cd-pin-row').style.display=this.checked?'flex':'none';document.getElementById('cd-size-label').style.display=this.checked?'none':'block';document.getElementById('cd-size').style.display=this.checked?'none':'block'">
-        <span>reminder only</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input id="cd-event" type="checkbox" style="width:auto">
-        <span>event</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input id="cd-book" type="checkbox" style="width:auto">
-        <span>book</span>
-      </label>
-    </div>
-    <label id="cd-pin-row" style="display:none;align-items:center;gap:8px;cursor:pointer;margin-top:6px;margin-left:20px">
-      <input id="cd-pin-reminder" type="checkbox" style="width:auto">
-      <span>pin &mdash; <span style="opacity:0.55;font-size:0.85em">always show in bar</span></span>
-    </label>
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
       <span>breakdown</span>
       <span style="display:flex;gap:10px;align-items:baseline;letter-spacing:0;text-transform:none">
@@ -104,15 +112,22 @@
   let _cdSource = 'core';
 
   function _togglePages(show) {
-    document.getElementById('cd-pages-label').style.display = show ? 'block' : 'none';
-    document.getElementById('cd-pages-inputs').style.display = show ? 'flex' : 'none';
+    document.getElementById('cd-pages-wrap').style.display = show ? 'block' : 'none';
   }
-  // book checkbox: show page inputs + hide importance (books aren't sized)
+  // book checkbox: page inputs appear under it (importance stays visible)
   document.getElementById('cd-book').addEventListener('change', function() {
     _togglePages(this.checked);
-    const hide = this.checked ? 'none' : 'block';
-    document.getElementById('cd-size-label').style.display = hide;
-    document.getElementById('cd-size').style.display = hide;
+  });
+  // reminder: show pin row + hide importance (reminders aren't sized)
+  document.getElementById('cd-reminder').addEventListener('change', function() {
+    document.getElementById('cd-pin-row').style.display = this.checked ? 'flex' : 'none';
+    const d = this.checked ? 'none' : 'block';
+    document.getElementById('cd-size-label').style.display = d;
+    document.getElementById('cd-size').style.display = d;
+  });
+  // recurring: frequency dropdown appears under it
+  document.getElementById('cd-recurring').addEventListener('change', function() {
+    document.getElementById('cd-recur-wrap').style.display = this.checked ? 'block' : 'none';
   });
 
   // Enter saves + closes (except in the notes textarea, where it's a newline).
@@ -212,13 +227,15 @@
     document.getElementById('cd-cat').value = c.category||'Self';
     document.getElementById('cd-size').value = c.size||'idea';
     document.getElementById('cd-due').value = c.due_date ? _fmt(c.due_date) : '';
-    document.getElementById('cd-recur').value = c.recur_type||'';
+    document.getElementById('cd-recur').value = c.recur_type||'week';
+    document.getElementById('cd-recurring').checked = !!c.recur_type;
+    document.getElementById('cd-recur-wrap').style.display = c.recur_type ? 'block' : 'none';
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
     document.getElementById('cd-event').checked = !!c.is_event;
     document.getElementById('cd-book').checked = !!c.is_book;
     document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
     document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
-    const hideSize = (c.is_reminder || c.is_book) ? 'none' : 'block';
+    const hideSize = c.is_reminder ? 'none' : 'block';
     document.getElementById('cd-size-label').style.display = hideSize;
     document.getElementById('cd-size').style.display = hideSize;
     document.getElementById('cd-notes').value = c.notes||'';
@@ -265,7 +282,8 @@
     const res = await _resolve(dueRaw, c.size, c.estimated_time);
     c.due_date = res.due;
     c.notes = document.getElementById('cd-notes').value.trim();
-    c.recur_type = document.getElementById('cd-recur').value||null;
+    c.recur_type = document.getElementById('cd-recurring').checked
+      ? document.getElementById('cd-recur').value : null;
     c.is_reminder = document.getElementById('cd-reminder').checked;
     c.is_event = document.getElementById('cd-event').checked;
     c.is_book = document.getElementById('cd-book').checked;
