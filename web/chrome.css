@@ -54,14 +54,14 @@
         the palette tokens; size variants = calc offsets from the base,
         computed once here, fetched by card-style.js) ──────────────────────── */
   --cat-self-h:         188;  --cat-self-s:         100%;  --cat-self-l:         50%;  /* [Hack] = --cyan-hsl */
-  --cat-social-h:       262;  --cat-social-s:       60%;  --cat-social-l:       76%;  /* [Lavender] Synthetic dusk — the Social line's skin. */
+  --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;  /* [Chatsubo] */
   --cat-interfacing-h:  33;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] = --orange-hsl */
   --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;  /* [Coral] */
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));
   --card-self-wisp:                 color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 15%, hsl(var(--bg-hsl)));
   --card-self-idea:                  color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 25%, hsl(var(--bg-hsl)));
   --card-self-plan:               color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 80%, hsl(var(--bg-hsl)));
-  --card-self-mission:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 1);
+  --card-self-commitment:                 hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l) / 1);
   --card-self-border:                hsl(var(--cat-self-h) calc(var(--cat-self-s) - 10%) calc(var(--cat-self-l) - 8%));
   --card-self-border-bright:         hsl(var(--cat-self-h) calc(var(--cat-self-s) + 15%) calc(var(--cat-self-l) + 10%));
   --card-self-wisp-solid:           color-mix(in srgb, hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l)) 15%, #0a0a0a);
@@ -70,7 +70,7 @@
   --card-social-wisp:               color-mix(in srgb, hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)) 15%, hsl(var(--bg-hsl)));
   --card-social-idea:                color-mix(in srgb, hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)) 25%, hsl(var(--bg-hsl)));
   --card-social-plan:             hsl(var(--cat-social-h) calc(var(--cat-social-s) - 25%) calc(var(--cat-social-l) - 14%));
-  --card-social-mission:               hsl(var(--cat-social-h) calc(var(--cat-social-s) - 20%) calc(var(--cat-social-l) + 4%));
+  --card-social-commitment:               hsl(var(--cat-social-h) calc(var(--cat-social-s) - 20%) calc(var(--cat-social-l) + 4%));
   --card-social-border:              hsl(var(--cat-social-h) calc(var(--cat-social-s) - 10%) calc(var(--cat-social-l) - 8%));
   --card-social-border-bright:       hsl(var(--cat-social-h) calc(var(--cat-social-s) + 15%) calc(var(--cat-social-l) + 10%));
   --card-social-wisp-solid:         color-mix(in srgb, hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)) 15%, #0a0a0a);
@@ -79,7 +79,7 @@
   --card-interfacing-wisp:          color-mix(in srgb, hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l)) 15%, hsl(var(--bg-hsl)));
   --card-interfacing-idea:           color-mix(in srgb, hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l)) 25%, hsl(var(--bg-hsl)));
   --card-interfacing-plan:        hsl(var(--cat-interfacing-h) calc(var(--cat-interfacing-s) - 25%) calc(var(--cat-interfacing-l) - 14%));
-  --card-interfacing-mission:          hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l) / 1);
+  --card-interfacing-commitment:          hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l) / 1);
   --card-interfacing-border:         hsl(var(--cat-interfacing-h) calc(var(--cat-interfacing-s) - 10%) calc(var(--cat-interfacing-l) - 8%));
   --card-interfacing-border-bright:  hsl(var(--cat-interfacing-h) calc(var(--cat-interfacing-s) + 15%) calc(var(--cat-interfacing-l) + 10%));
   --card-interfacing-wisp-solid:    color-mix(in srgb, hsl(var(--cat-interfacing-h) var(--cat-interfacing-s) var(--cat-interfacing-l)) 15%, #0a0a0a);
@@ -88,7 +88,7 @@
   --card-hobby-wisp:                color-mix(in srgb, hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l)) 15%, hsl(var(--bg-hsl)));
   --card-hobby-idea:                 color-mix(in srgb, hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l)) 25%, hsl(var(--bg-hsl)));
   --card-hobby-plan:              hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) - 25%) calc(var(--cat-hobby-l) - 14%));
-  --card-hobby-mission:                hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) - 20%) calc(var(--cat-hobby-l) - 6%));
+  --card-hobby-commitment:                hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) - 20%) calc(var(--cat-hobby-l) - 6%));
   --card-hobby-border:               hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) - 10%) calc(var(--cat-hobby-l) - 8%));
   --card-hobby-border-bright:        hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) + 15%) calc(var(--cat-hobby-l) + 10%));
   --card-hobby-wisp-solid:          color-mix(in srgb, hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l)) 15%, #0a0a0a);
