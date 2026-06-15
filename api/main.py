@@ -25,6 +25,7 @@ from mtg.routes import router as mtg_router
 from tarot.routes import router as tarot_router
 from monitor import generate_encouragement, _recent_entries, _is_commentable
 from chat import append_monitor_comment
+import nudge_llm as _nllm
 from auth import (
     SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY,
     require_auth, require_guest_auth, API_KEY,
@@ -207,20 +208,20 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
     await push_to_monitor({"thinking": True})
     try:
         if kind == "stall" and n["graph"]["nodes"]:
-            result = await asyncio.to_thread(_nudge.peel_sync, card)
+            result = await asyncio.to_thread(_nllm.peel_sync, card)
             peeled_label = (result.get("sub_label") or "").strip()
             text = (result.get("nudge_text") or "").strip()
             if not peeled_label or not text:
                 return False
         elif not n["graph"]["nodes"]:
-            result = await asyncio.to_thread(_nudge.decompose_sync, card)
+            result = await asyncio.to_thread(_nllm.decompose_sync, card)
             graph_update = {"nodes": result["nodes"], "edges": result["edges"]}
             active = result["active_node"]
             text = result.get("nudge_text", "").strip()
             if not text:
-                text = await asyncio.to_thread(_nudge.nudge_text_sync, card)
+                text = await asyncio.to_thread(_nllm.nudge_text_sync, card)
         else:
-            text = await asyncio.to_thread(_nudge.nudge_text_sync, card)
+            text = await asyncio.to_thread(_nllm.nudge_text_sync, card)
     finally:
         await push_to_monitor({"thinking": False})
 
@@ -236,7 +237,7 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
         n["graph"] = graph_update
         n["active_node"] = active
     if peeled_label is not None:
-        _nudge.apply_peel(card, peeled_label, result.get("est_min", 5))
+        _nllm.apply_peel(card, peeled_label, result.get("est_min", 5))
     _nudge.compute_deadlines(card)
     now = _now_et()
     n["stage"] = "awaiting"
@@ -277,7 +278,7 @@ async def _build_graph(card_id: str) -> bool:
     card = _find_card(rd, card_id)
     if not card or not _nudge.decomposable(card):
         return False
-    result = await asyncio.to_thread(_nudge.decompose_sync, card)
+    result = await asyncio.to_thread(_nllm.decompose_sync, card)
     # Re-load: rd.json may have changed during the LLM call.
     rd = _load_rd()
     card = _find_card(rd, card_id)
@@ -319,7 +320,7 @@ async def _run_triage(card_id: str) -> bool:
     card = _find_card(rd, card_id)
     if not card or not (card.get("nudge") or {}).get("graph", {}).get("nodes"):
         return False
-    result = await asyncio.to_thread(_nudge.triage_sync, card)
+    result = await asyncio.to_thread(_nllm.triage_sync, card)
     rd = _load_rd()  # reload around the LLM call
     card = _find_card(rd, card_id)
     if not card:
@@ -935,7 +936,7 @@ async def api_rd_recalc(card_id: str, request: Request):
             card["estimated_time"] = p + d
     if body.get("notes") is not None or prep is not None or dur is not None:
         _save_rd(rd)  # persist edits before decomposing from them
-    result = await asyncio.to_thread(_nudge.decompose_sync, card)
+    result = await asyncio.to_thread(_nllm.decompose_sync, card)
     rd = _load_rd()  # reload around the LLM call
     card = _find_card(rd, card_id)
     if not card:
