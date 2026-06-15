@@ -462,7 +462,7 @@ def _build_nav(active=None, guest=False):
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
     show_bubble = (not guest) and active in {"core", "prophecies"}
-    bubble = '<script src="/exec-bubble.js?v=22"></script>' if show_bubble else ''
+    bubble = '<script src="/exec-bubble.js?v=27"></script>' if show_bubble else ''
     return nav + script + bubble
 
 
@@ -765,8 +765,8 @@ async def color_usage():
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=33">'
-_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=27"></script>'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=34">'
+_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=28"></script>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -785,6 +785,13 @@ async def graph_page():
         )
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     html = p.read_text()
+    # Disable vis-network's improvedLayout — the graph is too large for it to
+    # position (it warns + costs perf). Patched here so it survives /graphify.
+    html = html.replace(
+        "{ nodes: nodesDS, edges: edgesDS }, {",
+        "{ nodes: nodesDS, edges: edgesDS }, {\n  layout: { improvedLayout: false },",
+        1,
+    )
     html = html.replace("</head>", _VIEWPORT_META + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
     html = html.replace("</body>", _fx + _build_nav("graph") + _GRAPH_OVERLAY_JS + "</body>", 1)
     return HTMLResponse(html)

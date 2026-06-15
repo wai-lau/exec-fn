@@ -22,7 +22,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #222;
+  pointer-events: none;
   transition: opacity 0.8s ease;
 }
 
