@@ -90,6 +90,36 @@ PYEOF
   fi
 fi
 
+# ── Max-lines (500) on staged .py + .js — no file over the cap. ──
+# api/main.py is allowlisted pending its module split (still ~983 lines).
+LINE_CAP=500
+LINE_CAP_ALLOW="api/main.py"
+cap_fail=0
+CAP_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out)/' || true)
+for f in $CAP_FILES; do
+  case " $LINE_CAP_ALLOW " in *" $f "*) continue ;; esac
+  n=$(git show ":$f" | wc -l)
+  if [ "$n" -gt "$LINE_CAP" ]; then
+    echo "$f: $n lines > $LINE_CAP — split it (no .py/.js over $LINE_CAP lines)."
+    cap_fail=1
+  fi
+done
+
+# ── No multi-line inline <script>/<style> in templates (one-liner handlers ok). ──
+TPL_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/templates/.*\.html$' || true)
+for f in $TPL_FILES; do
+  if ! git show ":$f" | python3 -c 'import sys,re; s=sys.stdin.read(); b=re.findall(r"<style[^>]*>(.*?)</style>",s,re.S)+re.findall(r"<script(?![^>]*\bsrc\b)[^>]*>(.*?)</script>",s,re.S); sys.exit(1 if any(chr(10) in x.strip() for x in b) else 0)'; then
+    echo "$f: multi-line inline <script>/<style> — extract to web/ (one-liners ok)."
+    cap_fail=1
+  fi
+done
+
+if [ "$cap_fail" -ne 0 ]; then
+  echo ""
+  echo "Refactor rules failed — commit blocked. Split long files / extract inline JS+CSS."
+  exit 1
+fi
+
 # Docs reminder (non-blocking): substantive source changed but docs not staged.
 # The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
 # naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md.
