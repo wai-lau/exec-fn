@@ -55,9 +55,9 @@ exec-fn/
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
     boss-green.png        # green-recolored Boss.png — Exec nav icon
-    # nav icons (27x27 program art): laser-satellite(core) turbo(profs)
-    #   bug(debug) sentinel(graph) bitman(color) hack2(night) wizard(mtg)
-    #   watchman(tarot)   (fiddle.png = old profs icon, now unused)
+    # nav icons (27x27 program art): seeker(core) sentinel(profs)
+    #   bug(debug) laser-satellite(graph) data-doctor(color) hack2(night)
+    #   wizard(mtg) watchman(tarot)   (turbo/bitman/fiddle.png now unused)
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
     main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes

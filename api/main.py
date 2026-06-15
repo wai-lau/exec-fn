@@ -394,7 +394,7 @@ _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=23">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=24">'
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "color", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
@@ -404,11 +404,11 @@ _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "color"]
 
 
 _NAV_ICONS = {
-    "core":        '<img src="/laser-satellite.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "prophecies":  '<img src="/turbo.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "prophecies":  '<img src="/sentinel.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "graph":       '<img src="/sentinel.png" alt="graph" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "color":       '<img src="/bitman.png" alt="color" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "graph":       '<img src="/laser-satellite.png" alt="graph" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "color":       '<img src="/data-doctor.png" alt="color" style="width:20px;height:20px;image-rendering:pixelated;">',
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
     "mtg":         '<img src="/wizard.png?v=2" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
