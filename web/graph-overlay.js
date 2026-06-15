@@ -8,7 +8,7 @@
 //    via configure.container so it never disappears across vis re-renders.
 // `network` and `nodesDS` are top-level consts in graph.html's classic script,
 // reachable here through the shared global lexical scope.
-/* global network, nodesDS, edgesDS */
+/* global network, nodesDS */
 (function () {
   var PHYSICS = {
     enabled: true,
@@ -260,46 +260,12 @@
     }, 3000);
   }
 
-  // Add a hub node per nav page and wire every node from that page's files to
-  // it, so each section's files cluster around a labelled anchor.
-  function addNavHubs() {
-    if (typeof nodesDS === 'undefined' || typeof edgesDS === 'undefined') return;
-    var NAV = [
-      { id: '__nav_core',       label: 'core',       re: /templates\/kanban\.html/ },
-      { id: '__nav_prophecies', label: 'prophecies', re: /templates\/prophecies\.html|prophecies\.py/ },
-      { id: '__nav_debug',      label: 'debug',      re: /templates\/debug\.html/ },
-      { id: '__nav_graph',      label: 'graph',      re: /graph-overlay/ },
-      { id: '__nav_color',      label: 'color',      re: /templates\/color\.html/ },
-      { id: '__nav_mtg',        label: 'mtg',        re: /mtg\/|mtg\.html/ },
-      { id: '__nav_tarot',      label: 'tarot',      re: /tarot\/|tarot\.html/ },
-      { id: '__nav_nightfall',  label: 'nightfall',  re: /nightfall/ },
-    ];
-    var hubNodes = [], hubEdges = [];
-    NAV.forEach(function (nav) {
-      var related = nodesDS.get({ filter: function (n) {
-        return n.id.indexOf('__nav_') !== 0 && nav.re.test(n._source_file || '');
-      } });
-      if (!related.length) return;
-      hubNodes.push({
-        id: nav.id, label: nav.label, shape: 'star', size: 32, borderWidth: 2,
-        color: { background: '#ffffff', border: '#ffffff', highlight: { background: '#ffffff', border: '#ffffff' } },
-        font: { size: 20, color: '#ffffff' },
-        _file_type: 'nav', _community_name: 'Nav Pages', _source_file: 'nav page', _degree: related.length,
-      });
-      related.forEach(function (n) {
-        hubEdges.push({ id: 'navedge-' + nav.id + '-' + n.id, from: nav.id, to: n.id });
-      });
-    });
-    if (hubNodes.length) { nodesDS.add(hubNodes); edgesDS.add(hubEdges); }
-  }
-
   function go() {
     if (typeof network === 'undefined') {
       setTimeout(go, 50);
       return;
     }
     showAllLabels();
-    addNavHubs();
     hideOrphans();
     var physBody = buildPhysicsColumn();
     network.setOptions({ physics: PHYSICS });
