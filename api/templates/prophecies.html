@@ -67,7 +67,7 @@ body { overflow: hidden !important; background: transparent !important; }
 .pr-card-meta { font-size: 0.58rem; opacity: 0.5; margin-top: 3px; display: flex; justify-content: space-between; gap: 4px; }
 .pr-card-notes { font-size: 0.72rem; opacity: 0.88; margin-top: 4px; line-height: 1.45; word-break: break-word; }
 .pr-overdue { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; color: hsl(var(--orange-hsl) / 1); }
-.sortable-ghost { opacity: 0.15; }
+.sortable-ghost { opacity: 0.4; }
 .pr-unschedule {
   position: fixed; bottom: 0; left: 0; right: 0; height: 58px; z-index: 25;
   display: flex; align-items: center; justify-content: center;
@@ -148,7 +148,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 }
 
 /* faint placeholder showing where a dragged block will land (Sortable-style) */
-.pr-drop-preview { opacity: 0.2; border: 1px dashed hsl(var(--green-hsl) / 0.45); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
+.pr-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.7); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
 .pr-drop-preview.today { position: absolute; left: 3px; right: 3px; background: hsl(var(--green-hsl) / 0.12); padding: 5px 8px; }
 
 /* a today card with a breakdown: thin vertical "spine" (the master, title set
@@ -161,6 +161,7 @@ body.pr-dragging .pr-unschedule.drag-over {
   border-radius: 4px 0 0 4px; border: 1px solid transparent;
   display: flex; align-items: center; justify-content: center;
   cursor: grab; user-select: none; overflow: hidden;
+  box-shadow: -2px 3px 11px rgba(0,0,0,0.6);
 }
 .dir-spine:active { cursor: grabbing; }
 .dir-spine.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 20%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.18); }
@@ -826,11 +827,29 @@ function wireSub(c, nd, sub, rh, track, masterStart, groupStart) {
     const rect = track.getBoundingClientRect();
     const sRect = sub.getBoundingClientRect();
     const offsetY = grabClientY - sRect.top;
-    sub.style.zIndex = '30';
     document.body.classList.add('pr-dragging');
+
+    // Same feel as a kanban card drag: a semi-opaque copy follows the cursor
+    // while the original stays in place as a faint placeholder at the snap slot.
+    const ghost = sub.cloneNode(true);
+    ghost.style.position = 'fixed';
+    ghost.style.left = sRect.left + 'px';
+    ghost.style.top = sRect.top + 'px';
+    ghost.style.width = sRect.width + 'px';
+    ghost.style.height = sRect.height + 'px';
+    ghost.style.margin = '0';
+    ghost.style.opacity = '0.92';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.zIndex = '9999';
+    document.body.appendChild(ghost);
+    sub.style.opacity = '0.45';
+    sub.style.zIndex = '999';
+
     function move(ev) {
       if (ev.cancelable) ev.preventDefault();
-      const rawAbs = (getY(ev) - rect.top - offsetY) / TL_PX + TL_START;
+      const y = getY(ev);
+      ghost.style.top = (y - offsetY) + 'px';
+      const rawAbs = (y - rect.top - offsetY) / TL_PX + TL_START;
       const absStart = Math.max(TL_START, Math.min(TL_END - nd._dur, snapMin(rawAbs)));
       nd._off = absStart - masterStart;
       sub.style.top = ((masterStart + nd._off) - groupStart) * TL_PX + 'px';
@@ -839,6 +858,7 @@ function wireSub(c, nd, sub, rh, track, masterStart, groupStart) {
       document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
       document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
       document.body.classList.remove('pr-dragging');
+      ghost.remove();
       nd.tl_offset = nd._off;
       freezeOffsets(c);
       snapMasterToSubs(c);
@@ -966,11 +986,15 @@ function createGroup(c, track) {
   attachBlockDrag(spine, null, (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
 
   assignLanes(subs, n => n._off, n => n._off + n._dur);
+  // earlier-starting sub-cards paint over later ones where they overlap
+  const byStart = subs.slice().sort((a, b) => a._off - b._off);
+  byStart.forEach((nd, i) => { nd._z = byStart.length - i; });
   subs.forEach(nd => {
     const sub = document.createElement('div');
     sub.className = 'dir-sub' + (nd.done ? ' done' : '') + (bg ? '' : ' plain');
     sub.dataset.nid = nd.id;
     sub.style.cssText = `${bg}${border}`;
+    sub.style.zIndex = nd._z;
     sub.style.top = Math.max(0, (masterStart + nd._off - groupStart) * TL_PX) + 'px';
     sub.style.height = Math.max(13, nd._dur * TL_PX - 3) + 'px';
     const S = nd._lanes || 1, k = nd._lane || 0;
