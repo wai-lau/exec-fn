@@ -36,7 +36,7 @@ body { overflow: hidden !important; background: transparent !important; }
 .pr-colgroup.small .pr-card-title { font-size: 0.66rem; line-height: 1.2; margin-bottom: 0; }
 .pr-colgroup.small .pr-card-meta { font-size: 0.5rem; margin-top: 2px; }
 .pr-col.weekend { background: transparent; }
-.pr-col.weekend .pr-day-name { color: hsl(var(--blue-hsl) / 1); }
+.pr-col.weekend .pr-day-name { color: hsl(var(--cyan-hsl) / 1); }
 /* anchor for the column-spanning past cover + now-line (positioned in JS) */
 .pr-col.today-col { position: relative; }
 .pr-col-hdr {
@@ -129,7 +129,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 .tl-half-line { border-top: 1px solid rgba(255,255,255,0.08); }
 .tl-meal {
   position: absolute; left: 3px; right: 3px; z-index: 1;
-  background: color-mix(in srgb, hsl(var(--blue-hsl)) 12%, hsl(var(--bg-hsl))); border: 1px solid hsl(var(--blue-hsl) / 0.12); border-radius: 4px;
+  background: color-mix(in srgb, hsl(var(--cyan-hsl)) 12%, hsl(var(--bg-hsl))); border: 1px solid hsl(var(--cyan-hsl) / 0.12); border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
   box-sizing: border-box; pointer-events: none;
 }
@@ -148,7 +148,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 }
 
 /* faint placeholder showing where a dragged block will land (Sortable-style) */
-.pr-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.7); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
+.pr-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.8); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
 .pr-drop-preview.today { position: absolute; left: 3px; right: 3px; background: hsl(var(--green-hsl) / 0.12); padding: 5px 8px; }
 
 /* a today card with a breakdown: thin vertical "spine" (the master, title set
@@ -164,7 +164,7 @@ body.pr-dragging .pr-unschedule.drag-over {
   box-shadow: -2px 3px 11px rgba(0,0,0,0.6);
 }
 .dir-spine:active { cursor: grabbing; }
-.dir-spine.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 20%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.18); }
+.dir-spine.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 20%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
 .dir-spine-title {
   writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
   font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700;
@@ -178,7 +178,7 @@ body.pr-dragging .pr-unschedule.drag-over {
   z-index: 4; box-shadow: -3px 0 5px rgba(0,0,0,0.3);
 }
 .dir-sub:active { cursor: grabbing; }
-.dir-sub.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 13%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.16); }
+.dir-sub.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 20%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
 .dir-sub.done { opacity: 0.45; }
 .dir-sub.done .dir-sub-title { text-decoration: line-through; }
 .dir-sub-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.6rem; line-height: 1.15; word-break: break-word; }
@@ -195,7 +195,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 <div class="pr-toast" id="pr-toast"></div>
 <div class="pr-unschedule" id="pr-unschedule">unschedule</div>
 
-<script src="/card-style.js?v=7"></script>
+<script src="/card-style.js?v=9"></script>
 <script src="/card-graph.js?v=13"></script>
 <script src="/card-dialog.js?v=19"></script>
 
@@ -364,6 +364,8 @@ function createBlock(c, track) {
       p.className = 'pr-drop-preview ' + ctx;
       p.dataset.ctx = ctx;
       p.textContent = c.title;
+      const cs = cardStyle(c);            // card-colored placeholder, not Ono-Sendai green
+      if (cs.bg) p.style.cssText = cs.bg + cs.border;
       return p;
     }
     function clearPreview() {
@@ -738,6 +740,8 @@ function startTimelineDrag(c, track, opts, startClientX, startClientY, getX, get
     p.className = 'pr-drop-preview ' + ctx;
     p.dataset.ctx = ctx;
     p.textContent = c.title;
+    const cs = cardStyle(c);            // card-colored placeholder, not Ono-Sendai green
+    if (cs.bg) p.style.cssText = cs.bg + cs.border;
     return p;
   }
   function clearPreview() {
