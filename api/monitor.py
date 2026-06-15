@@ -1,9 +1,13 @@
 import json
+import time
+import asyncio
 from datetime import datetime, timezone
 
 import anthropic
 
 from helpers import _load_json, _load_rd, _now_et, _ACTIVITY_LOG
+from monitor_sse import push_to_monitor
+from chat import append_monitor_comment
 
 _SRC_LABELS = {"core": "kanban", "dirs": "directives", "prof": "prophecies", "Exec": "Exec chat"}
 
@@ -117,3 +121,97 @@ async def generate_encouragement(batch_start_ts: float) -> str:
         messages=[{"role": "user", "content": f"Recent activity:\n{activity_text}"}],
     )
     return msg.content[0].text
+
+
+# ── debounce runtime ────────────────────────────────────────────────────────
+# Trailing 60s debounce so a burst of card moves yields one warm comment, plus
+# a flush path the UI can hit to fire immediately. State lives here (not main)
+# so the whole monitor lives under one name.
+
+_monitor_task: asyncio.Task | None = None
+_SIGNIFICANT_TO_COLS = {"archives", "exile"}
+
+
+def _init_monitor_ts() -> float:
+    if not _ACTIVITY_LOG.exists():
+        return time.time()
+    try:
+        log = json.loads(_ACTIVITY_LOG.read_text())
+        if log:
+            ts = datetime.fromisoformat(log[-1].get("ts", ""))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            return ts.timestamp()
+    except Exception:
+        pass
+    return time.time()
+
+
+_monitor_last_comment_ts: float = _init_monitor_ts()
+
+
+def _entry_is_significant(e: dict) -> bool:
+    if e.get("is_reminder"):
+        return False
+    action = e.get("action", "")
+    if action == "moved" and e.get("to_col") in _SIGNIFICANT_TO_COLS:
+        return True
+    if action == "updated" and e.get("is_book"):
+        return True
+    return False
+
+
+def schedule_monitor() -> None:
+    """Trailing debounce: each call resets the 60s timer."""
+    global _monitor_task
+    if _monitor_task and not _monitor_task.done():
+        _monitor_task.cancel()
+    _monitor_task = asyncio.create_task(_run_monitor())
+
+
+async def _run_monitor(delay: float = 60.0) -> None:
+    global _monitor_last_comment_ts
+    try:
+        await asyncio.sleep(delay)
+    except asyncio.CancelledError:
+        return
+    try:
+        capture_ts = _monitor_last_comment_ts
+        if not any(_is_commentable(e) for e in _recent_entries(capture_ts)):
+            return
+        _monitor_last_comment_ts = time.time()
+        await push_to_monitor({"thinking": True})
+        comment = await generate_encouragement(capture_ts)
+        await push_to_monitor({"thinking": False})
+        if not comment:
+            return
+        append_monitor_comment(comment)
+        await push_to_monitor({"comment": comment})
+    except Exception as e:
+        print(f"[monitor] error: {e}")
+        await push_to_monitor({"thinking": False})
+
+
+async def flush_monitor() -> dict:
+    """Fire the monitor now if significant activity exists since the last
+    comment (bypasses the 60s debounce). Returns {ok, fired}."""
+    global _monitor_task
+    cutoff = datetime.fromtimestamp(_monitor_last_comment_ts or 0, tz=timezone.utc)
+    log = json.loads(_ACTIVITY_LOG.read_text()) if _ACTIVITY_LOG.exists() else []
+    has_new = False
+    for e in log:
+        try:
+            ts = datetime.fromisoformat(e.get("ts", ""))
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if ts >= cutoff and _entry_is_significant(e):
+                has_new = True
+                break
+        except Exception:
+            pass
+    if not has_new:
+        return {"ok": True, "fired": False}
+    if _monitor_task and not _monitor_task.done():
+        _monitor_task.cancel()
+    _monitor_task = asyncio.create_task(_run_monitor(delay=0))
+    return {"ok": True, "fired": True}
