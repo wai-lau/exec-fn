@@ -10,8 +10,8 @@ from fastapi import Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 
 from routers import public, protected
-from pipeline import build_morning
-from chat import classify_card, parse_date_natural
+from morning import build_morning
+from card_llm import classify_card, parse_date_natural
 from gcal import gcal_start_auth, gcal_complete_auth
 from helpers import (
     DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence, get_rd_log,
