@@ -60,10 +60,18 @@ body {
   z-index: 200 !important;
 }
 
-/* graph canvas fills the whole area above the nav; panels overlay it */
+/* graph canvas fills the whole area above the nav; panels overlay it.
+   Hidden (opacity 0) until the loading bar finishes — JS adds body.gp-loaded
+   at the 3s mark, which fades it in. */
 #graph {
   position: fixed !important;
   inset: 0 0 var(--nav-h, 56px) 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+body.gp-loaded #graph {
+  opacity: 1;
 }
 
 /* two independent collapsible overlay panels, anchored above the bottom nav */
