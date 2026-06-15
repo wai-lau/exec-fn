@@ -65,17 +65,7 @@ body { overflow: hidden !important; background: transparent !important; }
   display: flex; gap: 1px; overflow: hidden;
   background: transparent;
 }
-/* scanlines over the board surface, behind the cards (z-1 within the board's
-   own stacking context) */
-.rd-board::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  mix-blend-mode: screen;
-  background:
-    repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.16) 0,
-      hsl(var(--green-hsl) / 0.16) 1px, transparent 1px, transparent 3px),
-    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.16), transparent 70%);
-  animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
-}
+/* board-surface scanline overlay: shared .cyber-surface in chrome.css */
 .col-group { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; }
 .col { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: transparent; }
 .col.col-collapsed { flex: 0 0 38px; cursor: pointer; overflow: hidden; }
@@ -148,7 +138,7 @@ body { overflow: hidden !important; background: transparent !important; }
   </div>
 </div>
 
-<div class="rd-board" id="board">
+<div class="rd-board cyber-surface" id="board">
   <span style="padding:32px;font-family:'Iosevka Mayukai Monolite',monospace;font-size:0.8rem;opacity:0.4">loading...</span>
 </div>
 

@@ -10,17 +10,7 @@ body { overflow: hidden !important; background: transparent !important; }
   display: flex; gap: 1px; overflow: hidden;
   background: transparent;
 }
-/* scanlines over the board surface, behind the cards (z-1 within the board's
-   own stacking context) */
-.pr-board::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  mix-blend-mode: screen;
-  background:
-    repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.16) 0,
-      hsl(var(--green-hsl) / 0.16) 1px, transparent 1px, transparent 3px),
-    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.16), transparent 70%);
-  animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
-}
+/* board-surface scanline overlay: shared .cyber-surface in chrome.css */
 /* three columns: [today] | [tomorrow, day after] | [next three, smaller] */
 .pr-colgroup {
   flex: 1; min-width: 0; min-height: 0; position: relative;
@@ -162,7 +152,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
-<div class="pr-board" id="pr-board">
+<div class="pr-board cyber-surface" id="pr-board">
   <span class="pr-loading">loading...</span>
 </div>
 <span id="pr-status" style="display:none"></span>
