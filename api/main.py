@@ -17,7 +17,6 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, File
 from pipeline import build_morning
 from gcal import gcal_start_auth, gcal_complete_auth
 from chat import classify_card, parse_date_natural
-from chat_tools import _handle_tool
 from helpers import get_rd_log, DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence
 from routes_nightfall import protected_router as nightfall_protected, build_nightfall_html
 from routes_chat import router as chat_router
@@ -394,11 +393,6 @@ async def guest_login_alias(next: str = "/mtg"):
 
 
 # ── pages ─────────────────────────────────────────────────────────────────────
-
-
-@protected.get("/plan", response_class=HTMLResponse)
-async def plan_page():
-    return _render_page("plan", _tmpl("plan.html"))
 
 
 @protected.get("/prophecies", response_class=HTMLResponse)
@@ -902,36 +896,6 @@ async def api_context_patch(request: Request):
     data["notes"] = body.get("notes", data.get("notes", []))
     _atomic_write_json(DATA_DIR / "profile.json", data)
     return {"ok": True}
-
-
-@protected.get("/api/directives")
-def api_directives_get():
-    p = DATA_DIR / "directives.json"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="No directives yet")
-    return _load_json("directives")
-
-
-@protected.get("/api/plan")
-def api_plan_get():
-    p = DATA_DIR / "plan.json"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="No plan yet")
-    return _load_json("plan")
-
-
-@protected.post("/api/assemble_plan")
-def api_assemble_plan():
-    try:
-        d = _load_json("directives", {})
-        seek_ids = [c["id"] for c in d.get("seek", []) if isinstance(c, dict)]
-        hack_ids = [c["id"] for c in d.get("hack", []) if isinstance(c, dict)]
-        dive_ids = [c["id"] for c in d.get("dive", []) if isinstance(c, dict)]
-        return _handle_tool("assemble_plan", {
-            "seek_ids": seek_ids, "hack_ids": hack_ids, "dive_ids": dive_ids,
-        })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @protected.get("/api/gcal/auth")
