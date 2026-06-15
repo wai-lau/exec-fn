@@ -24,7 +24,10 @@
     maxVelocity: 1,
     minVelocity: 1,
     solver: 'forceAtlas2Based',
-    wind: { x: -19, y: 10 },
+    // No wind: a constant force keeps avg node velocity above minVelocity
+    // forever, so the physics loop never idles -> CPU pegs and the graph goes
+    // laggy ("freaks out") after running a while. Breathing now comes only from
+    // the 10s gravity nudge, which lets the sim settle between pulses.
   };
 
   function showAllLabels() {
