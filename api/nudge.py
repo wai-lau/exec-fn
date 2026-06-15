@@ -313,6 +313,11 @@ def _normalize_graph(data: dict) -> dict:
                 node["est_min"] = max(1, int(nd["est_min"]))
         except (TypeError, ValueError):
             pass
+        try:
+            if nd.get("tl_offset") is not None:        # manual dirs-timeline placement
+                node["tl_offset"] = int(nd["tl_offset"])
+        except (TypeError, ValueError):
+            pass
         if nd.get("is_event_start"):
             node["is_event_start"] = True
             node["est_min"] = 0
