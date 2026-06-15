@@ -258,6 +258,8 @@ def _tool_reschedule_after_consequences(input_: dict) -> dict:
 
 def _tool_decompose_task(input_: dict) -> dict:
     import nudge as _nudge
+    import nudge_llm as _nllm
+    import nudge_deadlines as _nd
     rd = _load_rd()
     card = _find_card(rd, input_.get("id", ""))
     if not card:
@@ -265,10 +267,10 @@ def _tool_decompose_task(input_: dict) -> dict:
     if card.get("is_reminder") or card.get("is_event") or card.get("is_book"):
         return {"error": "Reminders, events, and books can't be decomposed."}
     n = _nudge.ensure_nudge(card)
-    result = _nudge.decompose_sync(card, feedback=input_.get("feedback", ""))
+    result = _nllm.decompose_sync(card, feedback=input_.get("feedback", ""))
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
-    _nudge.compute_deadlines(card)
+    _nd.compute_deadlines(card)
     _save_rd(rd)
     _append_rd_log("decomposed", card["title"], source="Exec",
                    nodes=len(result["nodes"]))

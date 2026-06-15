@@ -61,6 +61,7 @@ def _due_kind(c: dict, now) -> str | None:
 def _scan_due_nudges() -> list[tuple[str, str]]:
     """Arm/refresh next_nudge_at for eligible cards; return (id, kind) due now."""
     import nudge as _nudge
+    import nudge_deadlines as _nd
     from scheduler import logical_today_iso
     from helpers import _load_rd, _save_rd, _now_et
 
@@ -69,19 +70,19 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
     now = _now_et()
     due = []
     cards = rd.get("cards", [])
-    dirty = _nudge.assign_auto_deadlines(cards, today, now)
+    dirty = _nd.assign_auto_deadlines(cards, today, now)
     # Back-schedule node deadlines for EVERY hq card with a plan (not just today's),
     # so the breakdown graph shows deadlines whenever the card is opened.
     for c in cards:
         if _nudge.decomposable(c) and (c.get("nudge") or {}).get("graph", {}).get("nodes"):
-            dirty |= _nudge.compute_deadlines(c)
+            dirty |= _nd.compute_deadlines(c)
     for c in cards:
         n = c.get("nudge") or {}
         if not _nudge._eligible(c, today) or n.get("stage") == "resolved":
             continue
         if not n.get("graph", {}).get("nodes"):
             continue
-        anchor = _nudge.active_anchor(c)
+        anchor = _nd.active_anchor(c)
         if anchor is not None:
             dirty |= _arm_nudge(c, anchor)
         kind = _due_kind(c, now)
@@ -96,6 +97,7 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
     """Generate + deliver one nudge (or stall re-peel). Reloads rd around the
     LLM call so a concurrent PATCH /api/rd isn't clobbered."""
     import nudge as _nudge
+    import nudge_deadlines as _nd
     from datetime import timedelta
     from scheduler import logical_today_iso
     from helpers import _load_rd, _save_rd, _find_card, _now_et
@@ -140,7 +142,7 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
         n["active_node"] = active
     if peeled_label is not None:
         _nllm.apply_peel(card, peeled_label, result.get("est_min", 5))
-    _nudge.compute_deadlines(card)
+    _nd.compute_deadlines(card)
     now = _now_et()
     n["stage"] = "awaiting"
     n["awaiting_reply"] = True
@@ -175,6 +177,7 @@ def _scan_missing_graphs() -> list[str]:
 async def _build_graph(card_id: str) -> bool:
     """Silent decompose (no nudge sent) for an hq card missing its plan."""
     import nudge as _nudge
+    import nudge_deadlines as _nd
     from helpers import _load_rd, _save_rd, _find_card
     rd = _load_rd()
     card = _find_card(rd, card_id)
@@ -191,7 +194,7 @@ async def _build_graph(card_id: str) -> bool:
         return False  # raced with a fire that already decomposed
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
-    _nudge.compute_deadlines(card)
+    _nd.compute_deadlines(card)
     _save_rd(rd)
     return True
 
@@ -217,6 +220,7 @@ def _scan_triage() -> list[str]:
 async def _run_triage(card_id: str) -> bool:
     """Re-evaluate a card's plan against its updated details; rebuild if warranted."""
     import nudge as _nudge
+    import nudge_deadlines as _nd
     from helpers import _load_rd, _save_rd, _find_card
     rd = _load_rd()
     card = _find_card(rd, card_id)
@@ -233,7 +237,7 @@ async def _run_triage(card_id: str) -> bool:
     if result.get("needs_update") and result.get("nodes"):
         n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
         n["active_node"] = result["active_node"]
-        _nudge.compute_deadlines(card)
+        _nd.compute_deadlines(card)
         changed = True
     _save_rd(rd)
     return changed
