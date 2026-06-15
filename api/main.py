@@ -462,7 +462,8 @@ def _build_nav(active=None, guest=False):
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
     show_bubble = (not guest) and active in {"core", "prophecies"}
-    bubble = '<script src="/exec-bubble.js?v=28"></script>' if show_bubble else ''
+    bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
+              '<script src="/exec-bubble.js?v=29"></script>') if show_bubble else ''
     return nav + script + bubble
 
 
