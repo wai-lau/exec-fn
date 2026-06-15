@@ -25,14 +25,14 @@ body { overflow: hidden !important; background: transparent !important; }
 .pr-colgroup {
   flex: 1; min-width: 0; min-height: 0; position: relative;
   display: flex; flex-direction: column; gap: 3px;
-  background: hsl(var(--bg-hsl));
+  background: transparent;
 }
 /* today (timeline) column 25% wider, last column 25% narrower */
 .pr-colgroup:first-child { flex: 1.25; }
 .pr-colgroup:last-child { flex: 0.75; }
 .pr-col {
   flex: 1; display: flex; flex-direction: column;
-  background: hsl(var(--bg-hsl)); min-width: 0; min-height: 0; overflow: hidden;
+  background: transparent; min-width: 0; min-height: 0; overflow: hidden;
 }
 /* vertical divider between columns — matches the timeline hour lines,
    80% of column height, centered */
@@ -46,7 +46,7 @@ body { overflow: hidden !important; background: transparent !important; }
 .pr-colgroup.small .pr-card { padding: 5px 8px; margin-bottom: 4px; }
 .pr-colgroup.small .pr-card-title { font-size: 0.66rem; line-height: 1.2; margin-bottom: 0; }
 .pr-colgroup.small .pr-card-meta { font-size: 0.5rem; margin-top: 2px; }
-.pr-col.weekend { background: hsl(var(--bg-hsl)); }
+.pr-col.weekend { background: transparent; }
 .pr-col.weekend .pr-day-name { color: hsl(var(--blue-hsl) / 1); }
 .pr-col-hdr {
   flex-shrink: 0; padding: 4px 10px 5px;
@@ -129,7 +129,7 @@ body.pr-dragging .pr-unschedule.drag-over {
   font-size: 0.85rem; white-space: nowrap; font-family: '04b25', monospace;
   color: hsl(var(--gray-hsl) / 0.6);
 }
-.dir-tl-track { flex: 1; position: relative; background: hsl(var(--bg-hsl)); }
+.dir-tl-track { flex: 1; position: relative; background: transparent; }
 
 /* timeline furniture (positioned per-element from JS) */
 .tl-hour-line, .tl-half-line { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 5; }
