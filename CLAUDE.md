@@ -159,7 +159,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one little table per color, one per row (hue-ordered; neutrals at the end). Title (friendly `[Name]`) above; table padded to 4 columns (the variations — card colors = wisp/idea/plan/mission, non-card `-hsl` colors = their used alpha steps, empty trailing cols); rows = swatch / opacity / count / effects / per-column usage-site list (each variation's sites, most-used first); usage description under the table. Tokens with the same H S L merge into one (max 4 variations); a non-card token's alpha usages map onto the nearest card size (`SIZE_ALPHA` = wisp .15 / idea .25 / plan .8 / mission 1) — for card colors the count row is text `(sizes +N)×` of those mapped usages, for non-card it's per-column `×N` from `alpha_counts`. Effects (e.g. blur) sit in their column. Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
+| `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one little table per color, one per row (hue-ordered; neutrals at the end). Title (friendly `[Name]`) above; table padded to 4 columns (the variations — card colors = wisp/idea/plan/commitment, non-card `-hsl` colors = their used alpha steps, empty trailing cols); rows = swatch / opacity / count / effects / per-column usage-site list (each variation's sites, most-used first); usage description under the table. Tokens with the same H S L merge into one (max 4 variations); a non-card token's alpha usages map onto the nearest card size (`SIZE_ALPHA` = wisp .15 / idea .25 / plan .8 / commitment 1) — for card colors the count row is text `(sizes +N)×` of those mapped usages, for non-card it's per-column `×N` from `alpha_counts`. Effects (e.g. blur) sit in their column. Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
@@ -240,7 +240,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
   "title": "...",
   "column": "rd|hq|archives|exile",
   "category": "Interfacing|Hobby|Social|Self",
-  "size": "wisp|idea|plan|mission",
+  "size": "wisp|idea|plan|commitment",
   "due_date": "YYYY-MM-DD or YYYY-MM-DDTHH:MM",
   "estimated_time": 30,
   "prep_time": 0,
@@ -256,7 +256,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 - `recur_type`: null | "week" | "bi-week" | "month" | "holiday" | "birthday"
 - `scheduled_day`: ISO date — which day the card is planned for (Prophecies)
 - `dir_start_min`: minutes from midnight — intraday slot for a card scheduled today. Set whenever a card is scheduled for today (exec chat, rd→hq promotion) via `scheduler.place_card_today()`; morning cron autostacks carryover + unpinned today cards from 10 AM via `scheduler.layout_day()`. All scheduling lives in `scheduler.py`. Edited via the prophecies today-column timeline (drag a block) and drives nudge anchoring.
-- `size`: **importance** (low→high) `wisp | idea | plan | mission` — a manual rating, NOT derived from time (estimated_time holds duration; no size→duration mapping). Drives card-fill intensity. Default `idea`.
+- `size`: **importance** (low→high) `wisp | idea | plan | commitment` — a manual rating, NOT derived from time (estimated_time holds duration; no size→duration mapping). Drives card-fill intensity. Default `idea`.
 - `estimated_time`: TOTAL minutes (prep + core work) — the timeline block length read by scheduler + nudge.
 - `prep_time`: of `estimated_time`, the lead-up/getting-ready/travel/setup minutes before the real work (`estimated_time - prep_time` = core work). Auto-filled at creation (exec chat `create_card`, `_card_brief` budgets prep-vs-work in decompose). Editable in the card dialog breakdown row as two fields (prep + work); recalculate rebuilds the graph to that split. null for reminders.
 - `is_reminder`: true = calendar alert only, shown in reminders bar on kanban

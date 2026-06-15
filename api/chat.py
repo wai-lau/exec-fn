@@ -135,7 +135,7 @@ def _chat_tools() -> list:
                 "properties": {
                     "title": {"type": "string", "description": "Short title for the card."},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self"], "description": "Interfacing=admin/home/parents/partner/work; Hobby=crafts/art/gaming; Social=events/friends; Self=self-care/wellness/improvement/reading/studying."},
-                    "size": {"type": "string", "enum": ["wisp", "idea", "plan", "mission"], "description": "Importance: wisp (trivial/quick), idea (ordinary), plan (significant), mission (critical). Omit for reminders."},
+                    "size": {"type": "string", "enum": ["wisp", "idea", "plan", "commitment"], "description": "Importance: wisp (trivial/quick), idea (ordinary), plan (significant), commitment (critical). Omit for reminders."},
                     "notes": {"type": "string", "description": "Optional notes about the card."},
                     "column": {"type": "string", "enum": ["rd", "hq"], "description": "rd=ideas pool (default), hq=active today."},
                     "estimated_time": {"type": "integer", "description": "TOTAL duration in minutes, prep + core work (the timeline block). Always estimate it. Omit for reminders."},
@@ -168,7 +168,7 @@ def _chat_tools() -> list:
                     "id": {"type": "string", "description": "Card ID."},
                     "title": {"type": "string"},
                     "category": {"type": "string", "enum": ["Hobby", "Interfacing", "Social", "Self"]},
-                    "size": {"type": "string", "enum": ["wisp", "idea", "plan", "mission"], "description": "Importance: wisp/idea/plan/mission (low→high)."},
+                    "size": {"type": "string", "enum": ["wisp", "idea", "plan", "commitment"], "description": "Importance: wisp/idea/plan/commitment (low→high)."},
                     "notes": {"type": "string", "description": "Progress notes. Append timestamped entry — don't overwrite existing content."},
                     "estimated_time": {"type": "integer", "description": "TOTAL duration in minutes (prep + core work)."},
                     "prep_time": {"type": "integer", "description": "Of estimated_time, the prep / lead-up / travel / setup minutes before the real work."},
@@ -328,7 +328,7 @@ def classify_card(title: str) -> dict:
             "- wisp: trivial, quick, low-stakes\n"
             "- idea: ordinary, moderate importance\n"
             "- plan: significant, matters\n"
-            "- mission: critical, high-stakes\n\n"
+            "- commitment: critical, high-stakes\n\n"
             'JSON only: {"category": "...", "size": "..."}'
         )}],
     )

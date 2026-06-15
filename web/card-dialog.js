@@ -78,7 +78,7 @@
       <option value="wisp">wisp &mdash; trivial</option>
       <option value="idea">idea &mdash; ordinary</option>
       <option value="plan">plan &mdash; significant</option>
-      <option value="mission">mission &mdash; critical</option>
+      <option value="commitment">commitment &mdash; critical</option>
     </select>
     <label>category</label>
     <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>

@@ -21,7 +21,7 @@ function cardStyle(c) {
   } else if (c.size === 'plan') {
     return {bg: `background:${v('plan')};`, border: 'border-color:transparent;', dark: false, solidBg: v('plan')};
   } else {
-    return {bg: `background:${v('mission')};`, border: `border-color:${v('border-bright')};`, dark: false, solidBg: v('mission')};
+    return {bg: `background:${v('commitment')};`, border: `border-color:${v('border-bright')};`, dark: false, solidBg: v('commitment')};
   }
 }
 
