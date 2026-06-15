@@ -23,7 +23,7 @@ docker compose up -d --build
 
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
 
-**NO INLINE JS/CSS in templates; 500-line cap on `.py`/`.js`.** HTML templates carry no multi-line inline `<script>`/`<style>` — extract to `web/<page>.{js,css}` and reference via `<link>`/`<script src>` (a one-liner `onclick=`/touch-detect handler may stay inline). No `.py`/`.js` over 500 lines: split into modules (`nudge.py`+`nudge_llm.py`, `nudge_loop.py`, `monitor_sse.py`) or same-global-scope files loaded in order (`prophecies-core/groups/board.js`, `tarot-view/chat.js`). Both enforced by the pre-commit hook (`api/main.py` still over the cap — split pending).
+**NO INLINE JS/CSS in templates; 500-line cap on `.py`/`.js`.** HTML templates carry no multi-line inline `<script>`/`<style>` — extract to `web/<page>.{js,css}` and reference via `<link>`/`<script src>` (a one-liner `onclick=`/touch-detect handler may stay inline). No `.py`/`.js` over 500 lines: split into modules (`main.py`→`pages.py`+`routers.py`+`routes_views.py`+`routes_api.py`; `nudge.py`+`nudge_deadlines.py`+`nudge_llm.py`+`nudge_loop.py`; `monitor_sse.py`) or same-global-scope files loaded in order (`prophecies-core/groups/board.js`, `tarot-view/chat.js`). Both enforced by the pre-commit hook (no allowlist — every file is under the cap).
 
 ---
 
@@ -82,10 +82,11 @@ exec-fn/
     prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days()
     chat.py               # exec chat: system prompt (+ ACTIVE NUDGE block), tool definitions, classify_card, parse_date_natural, _save_chat
     chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context, decompose_task, advance_chunk, record_consequences, reschedule_after_consequences
-    nudge.py              # nudge ENGINE: card["nudge"] state, eligibility, window/deadline math, graph helpers, clear_awaiting_focused(), morning_reconcile(). _factor() biases lead/window/anchor by recalibration.factor_for()
+    nudge.py              # nudge ENGINE leaves: card["nudge"] state, eligibility, slot/window math, graph helpers (_first_open/_normalize_graph), clear_awaiting_focused(), active_label(). _factor() biases lead/window by recalibration.factor_for()
+    nudge_deadlines.py    # deadline math: card_deadline() precedence, staggered assign_auto_deadlines(), DAG back-schedule of per-node deadlines (compute_deadlines), event terminal node, active_anchor(), morning_reconcile(). Imports nudge leaves one-way
     nudge_llm.py          # nudge LLM calls: decompose_sync/triage_sync/peel_sync/nudge_text_sync (+ _card_brief/_profile_text/_json_call). Imports nudge engine one-way
     nudge_loop.py         # in-process asyncio nudge ticker (_run_nudge_loop/_nudge_tick/_scan/_fire) — split out of main.py
-    monitor_sse.py        # exec-bubble SSE fan-out: push_to_monitor() + _monitor_subscribers (shared by main + nudge_loop)
+    monitor_sse.py        # exec-bubble SSE fan-out: push_to_monitor() + _monitor_subscribers (shared by monitor + nudge_loop)
     recalibration.py      # per-category lateness factor (EMA over completions): factor_for(card), recalibrate(log_entries). Consumes `late` telemetry, fed by morning pipeline
     mtg/
       routes.py           # /api/mtg/log + /api/mtg/chat (SSE)
@@ -271,11 +272,11 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 
 ---
 
-## Nudge loop (`nudge.py` + loop in `main.py`)
+## Nudge loop (`nudge.py` + `nudge_deadlines.py` + `nudge_loop.py`)
 
 ADHD activation scaffolding: a card placed on today's timeline gets a nudge at its slot time; stalls peel a smaller next chunk; due dates are protected behind the consequences conversation.
 
-- **Trigger**: in-process asyncio loop (`_run_nudge_loop` in `main.py`, lifespan-started, 30s tick). No cron, no rebuild — state lives on the cards in `rd.json`, so `--reload` restarts just re-arm. `POST /api/nudge/tick` = manual tick.
+- **Trigger**: in-process asyncio loop (`_run_nudge_loop` in `nudge_loop.py`, lifespan-started from `main.py`, 30s tick). No cron, no rebuild — state lives on the cards in `rd.json`, so `--reload` restarts just re-arm. `POST /api/nudge/tick` = manual tick.
 - **Eligibility** (`_eligible`): `decomposable()` (hq, not reminder/book — events included) AND `scheduled_day == today`. Everything with a plan scheduled today nudges. **Anchor** (`nudge_anchor`): the timeline slot (`dir_start_min`) if placed, else 10 AM (or now if past) — so today-scheduled cards without a slot still nudge without firing pre-dawn.
 - **Everything in hq has a plan** (`decomposable()`): each tick, hq cards missing a graph (incl. events — they can have prep steps; excl. reminders + books) get a silent decompose (`_build_graph` — no nudge sent). Events get a plan but never a time-based nudge (`_eligible` excludes them via `is_dir_card`). The breakdown is visible/editable in the card dialog (`web/card-graph.js` SVG DAG, shown when `card.nudge.graph.nodes` non-empty; per-step label, start time (-> `tl_offset`), and estimate (`est_min`) are all editable; edits persist on dialog save, `active_node` recomputed client-side with the same first-open rule).
 - **First nudge** = card's placement (`scheduled_day` @ `dir_start_min`). While unfired, `next_nudge_at` tracks the slot each tick.

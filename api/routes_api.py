@@ -42,6 +42,7 @@ async def api_rd_recalc(card_id: str, request: Request):
     """Rebuild a card's breakdown on demand (the dialog's 'recalculate' button),
     incorporating its latest notes."""
     import nudge as _nudge
+    import nudge_deadlines as _nd
     from helpers import _load_rd, _save_rd, _find_card
     try:
         body = await request.json()
@@ -72,7 +73,7 @@ async def api_rd_recalc(card_id: str, request: Request):
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
     n["triage_pending"] = False
-    _nudge.compute_deadlines(card)
+    _nd.compute_deadlines(card)
     _save_rd(rd)
     return {"ok": True, "nudge": card["nudge"]}
 
@@ -86,10 +87,10 @@ def _atomic_write_json(path: Path, data) -> None:
 def _minutes_late(card) -> int:
     """How many minutes past its deadline a card was completed (clamped >= 0,
     capped at 4x the estimate so a card archived days later can't skew learning)."""
-    import nudge as _nudge
+    import nudge_deadlines as _nd
     from helpers import _now_et
     try:
-        dl = _nudge.card_deadline(card)
+        dl = _nd.card_deadline(card)
     except Exception:
         return 0
     late = (_now_et() - dl).total_seconds() / 60
@@ -129,10 +130,10 @@ def _log_entries_for_patch(new_cards, old_cards, source):
 def _recompute_node_deadlines(cards: list) -> None:
     """Refresh per-node deadlines so a due-time edit updates the plan immediately,
     not only on the next nudge tick."""
-    import nudge as _nudge
+    import nudge_deadlines as _nd
     for c in cards:
         if (c.get("nudge") or {}).get("graph", {}).get("nodes"):
-            _nudge.compute_deadlines(c)
+            _nd.compute_deadlines(c)
 
 
 def _flag_triage(new_cards: list, old_cards: dict) -> None:
