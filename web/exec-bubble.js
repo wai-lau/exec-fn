@@ -7,7 +7,7 @@
   let messages = [];
   let stage = 'planning';
   let streaming = false;
-  let unreadCount = 0;
+  let monitorTotal = 0;          // monitor notifications known this session
 
   // ── marked lazy-load ──────────────────────────────────────────────────────
   function loadMarked(cb) {
@@ -58,16 +58,16 @@
       #exec-bubble {
         position: fixed; z-index: 9000;
         width: 50px; height: 50px; border-radius: 50%;
-        background: hsl(var(--pink-hsl) / 0.12);
-        border: 1.5px solid hsl(var(--pink-hsl) / 0.25);
+        background: hsl(var(--cyan-hsl) / 0.12);
+        border: 9px solid hsl(var(--scrim-hsl) / 0.45);
         display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 2px 16px hsl(var(--pink-hsl) / 0.12);
+        box-shadow: 0 2px 16px hsl(var(--cyan-hsl) / 0.12);
         cursor: pointer; touch-action: none; user-select: none;
         transition: background 0.15s, box-shadow 0.15s;
       }
       #exec-bubble:hover {
-        background: hsl(var(--pink-hsl) / 0.25);
-        box-shadow: 0 2px 22px hsl(var(--pink-hsl) / 0.25);
+        background: hsl(var(--cyan-hsl) / 0.25);
+        box-shadow: 0 2px 22px hsl(var(--cyan-hsl) / 0.25);
       }
       #exec-bubble img {
         width: 26px; height: 26px; border-radius: 6px;
@@ -174,7 +174,7 @@
   function buildBubble() {
     bubble = document.createElement('div');
     bubble.id = 'exec-bubble';
-    bubble.innerHTML = '<img src="/guru-pink.png" alt="exec"><span id="exec-badge"></span>';
+    bubble.innerHTML = '<img src="/golem-stone.png" alt="exec"><span id="exec-badge"></span>';
     document.body.appendChild(bubble);
     badge = document.getElementById('exec-badge');
     makeDraggable(bubble);
@@ -302,7 +302,7 @@
   function openPanel() {
     isOpen = true;
     panel.classList.add('open');
-    setUnread(0);
+    markRead();
     if (msgInput) msgInput.focus();
     setTimeout(function () { if (msgInput) msgInput.focus(); }, 240);
     fetch('/api/monitor/flush', { method: 'POST' }).catch(function () {});
@@ -378,10 +378,22 @@
   }
 
   // ── unread badge ──────────────────────────────────────────────────────────
+  var READ_KEY = 'exec_last_read_count';
   function setUnread(n) {
-    unreadCount = n;
     badge.textContent = n;
     badge.style.display = n > 0 ? 'flex' : 'none';
+  }
+  // Badge = monitor notifications since last read. The read marker is the monitor
+  // count at last open, kept in localStorage so it survives reloads. chat.json
+  // clears each morning, so a total below the marker means a reset -> all unread.
+  function recomputeUnread() {
+    var lr = parseInt(localStorage.getItem(READ_KEY), 10) || 0;
+    if (monitorTotal < lr) { lr = 0; localStorage.setItem(READ_KEY, '0'); }
+    setUnread(Math.max(0, monitorTotal - lr));
+  }
+  function markRead() {
+    localStorage.setItem(READ_KEY, String(monitorTotal));
+    setUnread(0);
   }
 
   // ── message rendering ─────────────────────────────────────────────────────
@@ -590,6 +602,8 @@
         if (m.role === 'monitor') addMsg('probe', m.content);
         else restoreMsg(m, toolResults);
       }
+      monitorTotal = allMsgs.filter(function (m) { return m.role === 'monitor'; }).length;
+      if (isOpen) markRead(); else recomputeUnread();
     } catch (_) {}
   }
 
@@ -618,7 +632,8 @@
         } else if (data.comment) {
           setMonitorThinking(false);
           addMsg('probe', data.comment);
-          if (!isOpen) setUnread(unreadCount + 1);
+          monitorTotal += 1;
+          if (isOpen) markRead(); else recomputeUnread();
         }
       } catch (_) {}
     };
