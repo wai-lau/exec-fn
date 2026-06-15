@@ -38,7 +38,6 @@
   /* ── Cools ───────────────────────────────────────────────────────────── */
   --green-hsl:           135 100% 50%;  /* [Ono-Sendai] Phosphor green—the interface's mother tongue. Body text, accents, the system's own murmur in the chat. */
   --cyan-hsl:            188 100% 50%;  /* [Hack] Cold cathode blue. The exec's signature, and every link that jacks you elsewhere. */
-  --blue-hsl:            262 60% 76%;   /* [Lavender] Synthetic dusk. The books bar, weekend names, meal blocks, the week's quieter trim. */
 
   /* ── Warms ───────────────────────────────────────────────────────────── */
   --orange-hsl:          33 100% 68%;   /* [Marigold] Sodium glare. The now-clock, the dive, overdue warnings, mentions, the tarot card come up reversed. */
@@ -55,7 +54,7 @@
         the palette tokens; size variants = calc offsets from the base,
         computed once here, fetched by card-style.js) ──────────────────────── */
   --cat-self-h:         188;  --cat-self-s:         100%;  --cat-self-l:         50%;  /* [Hack] = --cyan-hsl */
-  --cat-social-h:       125;  --cat-social-s:       55%;  --cat-social-l:       68%;  /* [Chatsubo] */
+  --cat-social-h:       262;  --cat-social-s:       60%;  --cat-social-l:       76%;  /* [Lavender] Synthetic dusk — the Social line's skin. */
   --cat-interfacing-h:  33;  --cat-interfacing-s:  100%;  --cat-interfacing-l:  68%;  /* [Marigold] = --orange-hsl */
   --cat-hobby-h:        8;  --cat-hobby-s:        85%;  --cat-hobby-l:        68%;  /* [Coral] */
   --card-self-text:                  hsl(var(--cat-self-h) var(--cat-self-s) var(--cat-self-l));

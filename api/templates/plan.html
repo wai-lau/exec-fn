@@ -89,7 +89,7 @@ async function loadPlan() {
   if (rdlogRes.ok) {
     const log = await rdlogRes.json();
     const ACTION_LABEL = {created:'+ created', moved:'→ moved', updated:'~ updated', deleted:'✕ deleted', rescheduled:'↔ rescheduled', scheduled:'📅 scheduled', revived:'↺ revived', imported:'↓ imported'};
-    const SRC_COLOR = {core:'hsl(var(--green-hsl) / 0.45)', Exec:'hsl(var(--cyan-hsl) / 0.45)', prof:'hsl(var(--blue-hsl) / 0.45)', dirs:'hsl(var(--orange-hsl) / 0.45)'};
+    const SRC_COLOR = {core:'hsl(var(--green-hsl) / 0.45)', Exec:'hsl(var(--cyan-hsl) / 0.45)', prof:'hsl(var(--cyan-hsl) / 0.45)', dirs:'hsl(var(--orange-hsl) / 0.45)'};
     if (log.length) {
       const rows = log.map(e => {
         const d = new Date(e.ts);
