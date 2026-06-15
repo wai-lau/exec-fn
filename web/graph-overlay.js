@@ -261,6 +261,7 @@
     document.body.appendChild(overlay);
     setTimeout(function () {
       overlay.classList.add('gp-hide');
+      document.body.classList.add('gp-loaded');
       setTimeout(function () { overlay.remove(); }, 800);
     }, 3000);
   }
