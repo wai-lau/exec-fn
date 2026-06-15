@@ -1,8 +1,7 @@
-import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from helpers import (
-    DATA_DIR, _load_rd, _save_rd, _find_card,
+    _load_rd, _save_rd, _find_card,
     _append_rd_log, _DEFAULT_MINUTES, _now_et,
     _apply_context_update,
 )
@@ -130,42 +129,6 @@ def _tool_delete_card(input_: dict) -> dict:
     _save_rd(rd)
     _append_rd_log("deleted", title, source="Exec")
     return {"ok": True, "deleted": input_.get("id")}
-
-
-def _tool_reschedule(input_: dict) -> dict:
-    from pipeline import _generate_schedule
-
-    plan_path = DATA_DIR / "plan.json"
-    if not plan_path.exists():
-        return {"error": "No plan.json found"}
-
-    plan = json.loads(plan_path.read_text())
-    seek_cards = plan.get("seek", [])
-    hack_cards = plan.get("hack", [])
-    dive_raw = plan.get("dive", [])
-    dive_cards = [dive_raw] if isinstance(dive_raw, dict) else dive_raw
-    events = plan.get("omens", [])
-    feedback = input_.get("feedback", "")
-
-    now_et = _now_et()
-    done_titles = set()
-    for entry in plan.get("schedule", []):
-        try:
-            t = datetime.strptime(entry["time"], "%H:%M").replace(year=now_et.year, month=now_et.month, day=now_et.day)
-            if t + timedelta(minutes=entry.get("duration_min", 0)) < now_et:
-                done_titles.add(entry.get("title", ""))
-        except Exception:
-            pass
-
-    remaining_seek = [c for c in seek_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
-    remaining_hack = [c for c in hack_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
-    remaining_dive = [c for c in dive_cards if (c.get("title", c) if isinstance(c, dict) else c) not in done_titles]
-
-    schedule = _generate_schedule(remaining_seek, remaining_hack, remaining_dive, events, "", feedback=feedback)
-
-    plan["schedule"] = schedule
-    plan_path.write_text(json.dumps(plan, indent=2))
-    return {"ok": True, "schedule": schedule}
 
 
 def _tool_update_context(input_: dict) -> dict:

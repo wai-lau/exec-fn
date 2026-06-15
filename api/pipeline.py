@@ -1,104 +1,11 @@
 import json
-import re
 from datetime import datetime, timezone
 
 from helpers import (
-    DATA_DIR, _now_et, _parse_json,
+    DATA_DIR, _now_et,
     _RD_LOG,
 )
 from chat import _dedupe_context
-
-
-# ── schedule generation ───────────────────────────────────────────────────────
-
-def _cards_text(seek: list, hack: list, dive: list) -> str:
-    lines = []
-    for cat, cards in [("SEEK", seek), ("HACK", hack), ("DIVE", dive)]:
-        for c in cards:
-            if isinstance(c, dict):
-                time_hint = f", ~{c['estimated_time']}min" if c.get("estimated_time") else ""
-                lines.append(f"{cat} [{c.get('size','idea')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
-            else:
-                lines.append(f"{cat} {c}")
-    return "\n".join(lines) or "None."
-
-
-def _generate_schedule(seek: list, hack: list, dive: list, events: list, delta_text: str, feedback: str = "", extra_hq: list | None = None) -> list:
-    import anthropic
-
-    now_et = _now_et()
-    today_dow = now_et.strftime("%A")
-    current_time = now_et.strftime("%H:%M")
-    junni = "- 08:10–08:45: Drive Junni to work (fixed)\n" if today_dow in ("Tuesday", "Wednesday", "Friday") else ""
-
-    cards = _cards_text(seek, hack, dive)
-    extra_hq_text = ""
-    if extra_hq:
-        extra_lines = []
-        for c in extra_hq:
-            if isinstance(c, dict):
-                time_hint = f", ~{c['estimated_time']}min" if c.get("estimated_time") else ""
-                extra_lines.append(f"HQ [{c.get('size','idea')}] {c.get('title','')} (id:{c.get('id','')}){time_hint}")
-        if extra_lines:
-            extra_hq_text = "\n\nADDITIONAL HQ TASKS (schedule if time allows):\n" + "\n".join(extra_lines)
-
-    events_text = "\n".join(
-        f"- [event_id:{e.get('event_id','')}] {e.get('title','')} ({e.get('date','')})" for e in events
-    ) or "None."
-    action = "Reschedule the remaining" if feedback else "Generate a time-blocked schedule for"
-
-    prompt = (
-        f"{action} tasks for Wai's day ({today_dow}). Current time: {current_time}.\n\n"
-        f"TASKS:\n{cards}{extra_hq_text}\n\n"
-        f"CALENDAR EVENTS:\n{events_text}\n\n"
-        f"YESTERDAY'S NOTES:\n{delta_text or 'none'}\n\n"
-        f"CONSTRAINTS:\n"
-        f"- Start at or after {current_time}, rounded to :00 :15 :30 or :45\n"
-        f"- All times on :00 :15 :30 :45\n"
-        f"- Last task must end by 01:00\n"
-        f"{junni}"
-        f"- Lunch 11:30–12:30 (skip if past 13:00)\n"
-        f"- Dinner 19:00–20:00 (skip if past 20:00)\n"
-        f"- DURATION: use each task's ~Nmin estimate; default 90min if none given\n"
-        "- 15min gap between tasks; group SEEK tasks if possible\n"
-        "- Do NOT add buffer, wake, wind-down, sleep, or reading entries\n"
-        "- Do NOT schedule book/reading tasks\n"
-        f"- ONLY schedule tasks from TASKS above — use their exact card_id\n"
-        f"- TASKS are listed in priority order — schedule higher-priority tasks earlier\n"
-        f"- Calendar events: include using their event_id, set card_id to empty string\n"
-        + (f"\nWAI'S FEEDBACK:\n{feedback}\n" if feedback else "") +
-        '\nJSON array only. The "title" field must be the task name only — do NOT include category or size.\n'
-        '[{"time":"HH:MM","card_id":"...","event_id":"","title":"...","duration_min":90,"type":"seek|hack|dive"}, '
-        '{"time":"HH:MM","card_id":"","event_id":"gcal-id","title":"...","duration_min":60,"type":"omen"}]'
-    )
-
-    client = anthropic.Anthropic()
-    raw_text = ""
-    try:
-        resp = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=512,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw_text = resp.content[0].text
-        entries = _parse_json(raw_text)
-        for entry in entries:
-            entry["title"] = re.sub(r'^(SEEK|HACK|DIVE|HQ)\s+\[[^\]]*\]\s*', '', entry.get("title", ""), flags=re.IGNORECASE).strip()
-    except Exception as e:
-        raise RuntimeError(f"schedule generation failed: {e} | raw: {raw_text[:200]}")
-
-    valid_card_ids = {c["id"] for c in seek + hack + dive + (extra_hq or []) if isinstance(c, dict) and c.get("id")}
-    valid_event_ids = {e.get("event_id", "") for e in events if e.get("event_id")}
-
-    result = []
-    for entry in entries:
-        card_id = entry.get("card_id", "")
-        event_id = entry.get("event_id", "")
-        if card_id and card_id in valid_card_ids:
-            result.append(entry)
-        elif event_id and event_id in valid_event_ids:
-            result.append(entry)
-    return result
 
 
 # ── morning pipeline ───────────────────────────────────────────────────────────

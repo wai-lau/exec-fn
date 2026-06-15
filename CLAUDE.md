@@ -50,7 +50,7 @@ exec-fn/
   docker-compose.yml      # TZ=America/New_York; volume-mounts templates + web/static
   nightfall-incident/     # separate repo (wai-lau/nightfall), volume-mounted
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
-    card-dialog.js        # shared card edit dialog used by kanban/prophecies/directives
+    card-dialog.js        # shared card edit dialog used by kanban/prophecies
     card-style.js         # cardStyle()/chipStyle(): fetch the right --card-*/--cat-* token for a card — no color math in JS
     chrome.css            # shared chrome + THE PALETTE, hue-based: every color is an H S% L% channel token (--green-hsl etc.); consume as hsl(var(--X-hsl) / α). Category card colors = --cat-*-h/-s/-l base channels (same H S% L% units as the palette) + materialized --card-* size variants (calc offsets, computed once here). No hard-coded palette literals outside this file (page-unique accents may declare local :root vars, e.g. tarot --ember-hsl). Friendly color name authored as a leading `[Name]` in each token's comment (e.g. `--green-hsl: ...; /* [Matrix Green] usage */`; category name on the `--cat-*-l` knob) — /color reads it as the swatch headline
     chat.css              # terminal chat base (mtg, tarot)
@@ -103,7 +103,6 @@ exec-fn/
     requirements.txt
     Dockerfile
     templates/            # volume-mounted → live on save
-      plan.html           # /plan — legacy daily plan view
       kanban.html         # /rd — core kanban; book cards hidden from rd/hq columns
       prophecies.html     # /prophecies — 7-day planning, 3 columns: today (TIMELINE: grid + dir_start_min blocks, drag/resize+drag-out-to-day/unschedule, now-line, past-hider, autoscroll; a card with a breakdown (>=2 steps) renders as a vertical master spine + its sub-steps as their own draggable/resizable blocks to the right — sub starts = nudge-node `tl_offset` from the master start, master snaps to the sub bounding box, editing one sub freezes the rest) | next 3 days | last 3 days (small cards). Full week on screen. Books bar moved to core.
       debug.html          # /debug — profile.json + activity logs viewer
@@ -112,8 +111,6 @@ exec-fn/
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
     data/                 # persistent volume (./api/data → /app/data)
-      plan.json           # seek/hack/dive/schedule/encouraging_message
-      directives.json     # legacy alias for plan.json
       rd.json             # core kanban cards
       profile.json        # Wai's long-term context notes (replaces context.json)
       activity_log.json   # today's card activity log (archived at 4:30 AM)
@@ -174,8 +171,6 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | Method | Path | What |
 |--------|------|------|
 | POST | `/api/morning` | retrospective, purge stale notes, archive activity_log, reset chat (4:30 AM cron) |
-| GET | `/api/plan` | Returns plan.json |
-| GET | `/api/directives` | Returns plan.json (alias) |
 | GET | `/api/rd/log` | Today's activity log (last 20 entries) |
 | GET | `/api/rd` | Returns rd.json |
 | PATCH | `/api/rd` | Update rd.json (source query param: core/Exec/prof/dirs). Atomic write. Runs recurring-card revival on archived cards with `recur_type`. Schedules monitor debounce if any entry is significant. |
@@ -195,7 +190,6 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | PATCH | `/api/prophecies` | Bulk update `scheduled_day` and/or `order` on cards; logs `rescheduled` entries with `source=prof`. Cards unscheduled (null) drop back to `column=rd`. |
 | GET | `/api/prophecies/log` | Activity log filtered by source=prof |
 | POST | `/api/parse_date` | Parse natural language date → ISO via LLM |
-| POST | `/api/assemble_plan` | Run the assemble_plan tool from current directives.json (legacy plan pipeline). |
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
 | GET | `/data/{filename}` | Serve file from /app/data/ (path-traversal guarded) |
 | GET | `/api/color/usage` | Public. `{counts, alphas, alpha_counts, sites}` — `var(--X)` reference counts + actually-used alphas per `-hsl` token + parallel per-alpha counts + `sites` (`{token: {α-string: {site-label: n}}}`, site = nearest CSS selector else filename), across templates + web assets (chrome.css `:root` block excluded; bare `hsl(var(--X-hsl))` = α 1). Feeds the alpha columns, per-opacity ×N, and per-column usage-site lists on `/color` |
