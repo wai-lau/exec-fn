@@ -37,6 +37,8 @@ body { overflow: hidden !important; background: transparent !important; }
 .pr-colgroup.small .pr-card-meta { font-size: 0.5rem; margin-top: 2px; }
 .pr-col.weekend { background: transparent; }
 .pr-col.weekend .pr-day-name { color: hsl(var(--blue-hsl) / 1); }
+/* anchor for the column-spanning past cover + now-line (positioned in JS) */
+.pr-col.today-col { position: relative; }
 .pr-col-hdr {
   flex-shrink: 0; padding: 4px 10px 5px;
   font-family: '04b25', monospace; font-size: 0.6rem; text-transform: uppercase;
@@ -44,7 +46,7 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 .pr-col-hdr .pr-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: 0.68rem; }
 .pr-col-hdr .pr-date { opacity: 0.45; font-size: 0.58rem; }
-.pr-col-hdr.today-hdr { border-bottom: none; }
+.pr-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; }
 .pr-col-hdr.today-hdr .pr-day-name { color: hsl(var(--green-hsl)); }
 .pr-list {
   flex: 1; overflow-y: auto; padding: 8px 8px 20px;
@@ -132,8 +134,8 @@ body.pr-dragging .pr-unschedule.drag-over {
 }
 .tl-meal-label { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.72rem; color: rgba(255,255,255,0.16); }
 .tl-empty { position: absolute; top: 16px; left: 8px; opacity: 0.3; font-family: monospace; font-size: 0.75rem; pointer-events: none; }
-.tl-past { position: absolute; left: -18px; right: 0; top: 0; background: hsl(var(--bg-hsl) / 0.4); pointer-events: none; z-index: 6; }
-/* shown/hidden via inline style from updateNowIndicator — keep display
+.tl-past { position: absolute; left: 0; right: 0; top: 0; background: hsl(var(--bg-hsl) / 0.4); pointer-events: none; z-index: 6; }
+/* shown/hidden via inline style from positionNow — keep display
    out of these classes or style.display='' falls back to hidden */
 .tl-now-line { position: absolute; left: 0; right: 0; border-top: 3px solid #fff; box-shadow: 0 0 4px #000, 0 2px 4px #000; pointer-events: none; z-index: 7; }
 .tl-now-clock {
@@ -589,33 +591,56 @@ function buildSchedule(cards) {
   applyColumnLayout(cards, track);
   currentTrack = track;
 
-  // current-time indicator + past "hider" overlay
+  // current-time indicator + past "hider" overlay.
+  // cover + now-line live on the column (not the scrolling track) so they bleed
+  // to the screen top/side, under the date; the clock rides inside the track.
+  const col = wrap.parentElement;
+  col.querySelectorAll('.tl-past, .tl-now-line').forEach(e => e.remove());
   const pastOverlay = document.createElement('div');
   pastOverlay.className = 'tl-past';
-  track.appendChild(pastOverlay);
+  pastOverlay.style.display = 'none';
+  col.appendChild(pastOverlay);
   const nowLine = document.createElement('div');
   nowLine.className = 'tl-now-line';
   nowLine.style.display = 'none';
-  track.appendChild(nowLine);
+  col.appendChild(nowLine);
   const nowClock = document.createElement('div');
   nowClock.className = 'tl-now-clock';
   nowClock.style.display = 'none';
   track.appendChild(nowClock);
 
-  function updateNowIndicator() {
+  // the track scrolls inside the wrap; project the now-minute into the column's
+  // coordinate space so the cover/line follow the scroll while spanning the
+  // full column width (and the cover reaches the screen top, under the date).
+  function positionNow() {
     const m = nowMinutes();
-    const visible = m >= TL_START && m <= TL_END;
-    nowLine.style.display = visible ? '' : 'none';
-    nowClock.style.display = visible ? '' : 'none';
-    pastOverlay.style.display = visible ? '' : 'none';
-    if (!visible) return;
+    if (m < TL_START || m > TL_END) {
+      nowLine.style.display = 'none';
+      nowClock.style.display = 'none';
+      pastOverlay.style.display = 'none';
+      return;
+    }
+    const headerH = wrap.offsetTop;               // header sits above the wrap
+    const viewBot = headerH + wrap.clientHeight;  // timeline viewport bottom
     const nowY = (m - TL_START) * TL_PX;
-    pastOverlay.style.height = nowY + 'px';
-    nowLine.style.top = nowY + 'px';
+    const screenY = headerH + nowY - wrap.scrollTop;
+    // now-line: only while within the timeline viewport
+    const lineVis = screenY >= headerH && screenY <= viewBot;
+    nowLine.style.display = lineVis ? '' : 'none';
+    nowLine.style.top = screenY + 'px';
+    // cover: screen top down to the now-line; full viewport when now is below
+    // the fold, hidden when the whole viewport is still in the future
+    let coverH = 0;
+    if (screenY >= viewBot) coverH = viewBot;
+    else if (screenY > headerH) coverH = screenY;
+    pastOverlay.style.display = coverH > 0 ? '' : 'none';
+    pastOverlay.style.height = coverH + 'px';
+    // clock rides inside the track (scrolls naturally, clipped by the wrap)
+    nowClock.style.display = '';
     nowClock.style.top = (nowY - 16) + 'px';
   }
-  updateNowIndicator();
-  _nowInterval = setInterval(updateNowIndicator, 60000);
+  positionNow();
+  _nowInterval = setInterval(positionNow, 60000);
   (function tick() {
     const n = new Date();
     const h  = String(n.getHours()).padStart(2,'0');
@@ -623,6 +648,7 @@ function buildSchedule(cards) {
     const s  = String(n.getSeconds()).padStart(2,'0');
     const cs = String(Math.floor(n.getMilliseconds()/10)).padStart(2,'0');
     nowClock.textContent = `${h} : ${mi} : ${s} : ${cs}`;
+    positionNow();
     _nowRaf = requestAnimationFrame(tick);
   })();
 
