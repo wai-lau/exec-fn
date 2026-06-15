@@ -462,7 +462,7 @@ def _build_nav(active=None, guest=False):
     )
     # Exec bubble only on the planning routes — not debug/graph/other.
     show_bubble = (not guest) and active in {"core", "prophecies"}
-    bubble = '<script src="/exec-bubble.js?v=27"></script>' if show_bubble else ''
+    bubble = '<script src="/exec-bubble.js?v=28"></script>' if show_bubble else ''
     return nav + script + bubble
 
 
@@ -766,7 +766,7 @@ async def color_usage():
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
 _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=34">'
-_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=29"></script>'
+_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=30"></script>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'

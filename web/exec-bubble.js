@@ -60,6 +60,7 @@
         width: 50px; height: 50px; border-radius: 50%;
         background: hsl(var(--cyan-hsl) / 0.12);
         border: 9px solid hsl(var(--scrim-hsl) / 0.45);
+        outline: 1px solid hsl(var(--cyan-hsl) / 0.45);
         display: flex; align-items: center; justify-content: center;
         box-shadow: 0 2px 16px hsl(var(--cyan-hsl) / 0.12);
         cursor: pointer; touch-action: none; user-select: none;
