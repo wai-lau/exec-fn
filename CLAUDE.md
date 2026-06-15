@@ -19,9 +19,11 @@ docker compose up -d --build
 
 **COMMIT after each discrete fix.** Don't batch.
 
-**PRE-COMMIT HOOK** runs automatically on commit: ruff on staged `.py` files, JS syntax + ESLint on HTML templates, stylelint on `web/*.css`, shellcheck on `.sh` files, plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes. Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
+**PRE-COMMIT HOOK** runs automatically on commit: ruff on staged `.py` files, JS syntax + ESLint on HTML templates, stylelint on `web/*.css`, shellcheck on `.sh` files, a **500-line cap** on staged `.py`/`.js` (`api/main.py` allowlisted pending its split), a **no-multiline-inline-JS/CSS** check on templates, plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes. Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
 
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
+
+**NO INLINE JS/CSS in templates; 500-line cap on `.py`/`.js`.** HTML templates carry no multi-line inline `<script>`/`<style>` — extract to `web/<page>.{js,css}` and reference via `<link>`/`<script src>` (a one-liner `onclick=`/touch-detect handler may stay inline). No `.py`/`.js` over 500 lines: split into modules (`nudge.py`+`nudge_llm.py`, `nudge_loop.py`, `monitor_sse.py`) or same-global-scope files loaded in order (`prophecies-core/groups/board.js`, `tarot-view/chat.js`). Both enforced by the pre-commit hook (`api/main.py` still over the cap — split pending).
 
 ---
 
@@ -76,7 +78,10 @@ exec-fn/
     prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days()
     chat.py               # exec chat: system prompt (+ ACTIVE NUDGE block), tool definitions, classify_card, parse_date_natural, _save_chat
     chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context, decompose_task, advance_chunk, record_consequences, reschedule_after_consequences
-    nudge.py              # decomposition+nudge loop: card["nudge"] state, eligibility, window math, LLM cores (decompose/peel/nudge-text), clear_awaiting_focused(), morning_reconcile(). _factor() biases lead/window/anchor by recalibration.factor_for()
+    nudge.py              # nudge ENGINE: card["nudge"] state, eligibility, window/deadline math, graph helpers, clear_awaiting_focused(), morning_reconcile(). _factor() biases lead/window/anchor by recalibration.factor_for()
+    nudge_llm.py          # nudge LLM calls: decompose_sync/triage_sync/peel_sync/nudge_text_sync (+ _card_brief/_profile_text/_json_call). Imports nudge engine one-way
+    nudge_loop.py         # in-process asyncio nudge ticker (_run_nudge_loop/_nudge_tick/_scan/_fire) — split out of main.py
+    monitor_sse.py        # exec-bubble SSE fan-out: push_to_monitor() + _monitor_subscribers (shared by main + nudge_loop)
     recalibration.py      # per-category lateness factor (EMA over completions): factor_for(card), recalibrate(log_entries). Consumes `late` telemetry, fed by morning pipeline
     mtg/
       routes.py           # /api/mtg/log + /api/mtg/chat (SSE)
