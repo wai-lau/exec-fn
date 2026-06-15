@@ -1,0 +1,209 @@
+/* chat-reader.css carries the shared merged-input + reader-voice skin;
+   below: tarot-only — spread layout, cards, zoom, centered scrollback */
+
+/* keep the nav visible while the composer is focused — but only on non-touch
+   (desktop, html.no-touch set by JS); on touch devices (incl. iOS) let kb-open
+   hide it so the soft keyboard has room */
+html.no-touch.kb-open .exec-nav { visibility: visible !important; }
+
+/* Spread height fits the cards; terminal eats the rest. */
+:root {
+  --card-w: min(13vh, 18vw);
+  --card-h: min(22vh, 30vw);
+  --spread-pad: max(0.4vh, calc(var(--card-h) * 0.06));
+  --spread-h: calc(var(--card-h) + var(--spread-pad) * 2);
+
+  /* tarot-only accents (global palette lives in chrome.css) */
+  --ember-hsl: 23 100% 70%;            /* spread-btn hover glow */
+  --ember-bright: hsl(25deg 100% 81%);    /* spread-btn hover text */
+}
+
+#spread-area {
+  position:fixed; bottom:max(var(--nav-h, 56px), var(--kb, 0px)); left:0; right:0; height:var(--spread-h);
+  overflow:hidden;
+  background:hsl(var(--bg-hsl));
+  z-index:5;
+}
+#input-bar { bottom: calc(max(var(--nav-h, 56px), var(--kb, 0px)) + var(--spread-h)) !important; }
+#input-line { max-width:720px; margin-left:auto; margin-right:auto; }
+
+/* hide the $ prompt while the reader is streaming a reply */
+body.reader-speaking #input-prompt { visibility:hidden; }
+#terminal { scrollbar-width:none; -ms-overflow-style:none; inset:0 0 calc(var(--spread-h) + max(var(--nav-h, 56px), var(--kb, 0px)) + var(--input-h, 48px)) !important; }
+#terminal::-webkit-scrollbar { display:none; }
+body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
+body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spread-h) + max(var(--nav-h, 56px), var(--kb, 0px))) !important; }
+
+#spread-controls {
+  grid-column: 2;
+  display:flex; align-items:center; justify-content:center;
+  height:100%;
+}
+
+.spread-btn {
+  background:radial-gradient(circle at center, hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0) 70%);
+  border:none; outline:none;
+  color:hsl(var(--green-hsl) / 1);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700;
+  font-size:clamp(0.45rem, 1.1vw, 0.7rem);
+  white-space:nowrap;
+  line-height:1; padding:4px 6px; cursor:pointer; border-radius:50%;
+  text-shadow:0 0 6px hsl(var(--green-hsl) / 0.45);
+  animation: btn-pulse 2.6s ease-in-out infinite;
+  transition:color 0.15s, transform 0.15s, text-shadow 0.15s;
+}
+
+@keyframes btn-pulse {
+  0%,100% { text-shadow:0 0 4px hsl(var(--green-hsl) / 0.45); }
+  50%     { text-shadow:0 0 10px hsl(var(--green-hsl) / 0.8); }
+}
+.spread-btn:hover { color:var(--ember-bright); transform:scale(1.18); text-shadow:0 0 12px hsl(var(--ember-hsl) / 0.8); }
+.spread-btn:active { transform:scale(0.94); }
+
+.spread-btn .rst-glyph {
+  font-family: system-ui, sans-serif;
+  font-size:1.7em; line-height:1; vertical-align:-0.18em;
+  margin:0 0.15em; display:inline-block;
+}
+
+#spread-empty {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  color:hsl(var(--green-hsl) / 0.45);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
+  pointer-events:none;
+}
+
+#spread-grid {
+  position:absolute; inset:0;
+  display:grid;
+  grid-template-columns: var(--card-w) calc(var(--card-w) / 2) var(--card-w) var(--card-w) var(--card-w);
+  column-gap: min(1vh, 1.5vw);
+  align-items:center; justify-content:center;
+  pointer-events:none;
+}
+#spread-grid > * { pointer-events:auto; }
+
+/* spread cards + Significator slot share the same card body… */
+.tarot-card, #sig-card {
+  position:relative;
+  box-sizing:border-box;
+  isolation:isolate;
+  width:var(--card-w); height:var(--card-h);
+  cursor:pointer;
+  border-radius:8px;
+  outline:1.5px solid hsl(var(--green-hsl) / 0.45);
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+  user-select:none;
+}
+
+/* …and the same green phosphor wash while face-down */
+.tarot-card::after, #sig-card::after {
+  content:''; position:absolute; inset:0;
+  background:hsl(var(--green-hsl));
+  mix-blend-mode:color;
+  pointer-events:none;
+  border-radius:8px;
+}
+.tarot-card { transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease; }
+.tarot-card[data-flipped="true"]::after { display:none; }
+.tarot-card:hover { outline:2px solid hsl(var(--green-hsl) / 0.45); }
+
+.tarot-card img {
+  width:100%; height:100%; object-fit:contain;
+  border-radius:8px;
+  display:block;
+}
+.tarot-card img.back { object-fit:fill; }
+.tarot-card .card-label { display:none; }
+.tarot-card .face { display:none; }
+.tarot-card[data-flipped="true"] .back { display:none; }
+.tarot-card[data-flipped="true"] .face { display:block; }
+.tarot-card[data-locked="true"] { cursor:default; opacity:0.55; }
+.tarot-card[data-locked="true"]:hover { outline:1.5px solid hsl(var(--green-hsl) / 0.45); }
+.tarot-card[data-next="true"] { animation:nextpulse 1.8s ease-in-out infinite; }
+
+/* hold the beckon-pulse until the reader has finished speaking */
+body.reader-speaking .tarot-card[data-next="true"] {
+  animation:none;
+  outline:0 solid hsl(var(--green-hsl) / 0);
+}
+
+@keyframes nextpulse {
+  0%,100% { outline:1px solid hsl(var(--green-hsl) / 0.12); }
+  50%     { outline:2px solid hsl(var(--green-hsl) / 0.45); }
+}
+.msg.event { color:hsl(var(--green-hsl) / 0.45); font-style:italic; font-size:0.74rem; margin:6px auto; }
+.msg.event::before { content:"~ "; opacity:0.5; }
+
+.reader-cursor {
+  display:inline-block; width:0.55em; height:1em;
+  background:hsl(var(--green-hsl) / 0.8);
+  vertical-align:text-bottom; margin-left:1px;
+  animation:blink 1s step-end infinite;
+}
+
+/* Significator slot deltas (shares the card body rules above) */
+#sig-card {
+  grid-column: 1;
+  border:1px solid rgba(0,0,0,0.4);
+  background:hsl(var(--surface-hsl)) url('/tarot/card_back.jpg?v=4') center/100% 100% no-repeat;
+  display:flex; align-items:center; justify-content:center;
+}
+#sig-card.set { background:#000; }
+#sig-card.set:hover { outline:2px solid hsl(var(--green-hsl) / 0.45); }
+#sig-card.set::after { display:none; }
+#sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius:8px; }
+
+#sig-card .sig-label {
+  position:absolute; left:50%; bottom:calc(100% + 4px);
+  transform:translateX(-50%);
+  white-space:nowrap;
+  color:hsl(var(--green-hsl) / 0.45);
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
+  text-align:center; line-height:1.15;
+  pointer-events:none;
+}
+
+#sig-card .sig-name {
+  display:block; color:hsl(var(--green-hsl) / 1); font-size:0.62rem;
+}
+
+/* phase/event readouts pinned to the spread edges */
+#phase-debug, #event-debug {
+  position:absolute; left:0; right:0; z-index:5; text-align:center;
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
+  color:hsl(var(--green-hsl) / 0.45); letter-spacing:0.05em;
+  pointer-events:none; user-select:none;
+}
+#phase-debug { bottom:8px; }
+#event-debug { top:8px; }
+
+#card-zoom {
+  position:fixed; inset:0; z-index:60; display:none;
+  background:rgba(0,0,0,0.92);
+  align-items:center; justify-content:center;
+  flex-direction:column; gap:14px;
+  padding:20px;
+}
+#card-zoom.open { display:flex; }
+
+#card-zoom img {
+  max-width:min(90vw, 60vh); max-height:80vh; height:auto; width:auto;
+  border-radius:6px; border:1px solid rgba(0,0,0,0.5);
+  outline:3px solid hsl(var(--green-hsl) / 0.45);
+}
+
+#card-zoom .zoom-label {
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
+  color:hsl(var(--green-hsl) / 0.8); text-align:center; line-height:1.3;
+  max-width:60vh;
+}
+
+#card-zoom .zoom-hint {
+  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
+  color:hsl(var(--green-hsl) / 0.12); letter-spacing:0.05em;
+}
+
+/* centered 720px scrollback (chat-reader supplies the glow) */
+.msg { max-width:720px; margin-left:auto; margin-right:auto; width:100%; }

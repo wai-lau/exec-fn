@@ -1,0 +1,108 @@
+async function loadPlan() {
+  const HDR = '<div class="pr-col-hdr">';
+  const [omensRes, dirRes, planRes, rdlogRes] = await Promise.all([
+    fetch('/api/omens'), fetch('/api/directives'), fetch('/api/plan'), fetch('/api/rd/log')
+  ]);
+
+  if (dirRes.ok) {
+    const d = await dirRes.json();
+    const seek = d.seek || [], hack = d.hack || [], dive = d.dive || [];
+    const flat = cs => cs.length ? cs.map(c=>`<div class="pr-item">&middot; ${c.title||c}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    const deep = cs => cs.length ? cs.map(c=>`<div class="pr-item">${c.title||c}${(c.steps||[]).map(s=>`<div class="pr-step">&middot; ${s}</div>`).join('')}</div>`).join('') : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    document.getElementById('pr-grid').innerHTML = `
+      <div>${HDR}seek</div>${flat(seek)}</div>
+      <div>${HDR}hack</div>${flat(hack)}</div>
+      <div>${HDR}dive</div>${deep(dive)}</div>`;
+  }
+
+  if (planRes.ok) {
+    const p = await planRes.json();
+    const sched = p.schedule || [];
+    if (sched.length) {
+      const rows = sched.map(s => {
+        const dur = s.duration_min >= 60
+          ? `${Math.floor(s.duration_min/60)}h${s.duration_min%60 ? (s.duration_min%60)+'m' : ''}`
+          : `${s.duration_min}m`;
+        const typeColor = s.type === 'seek' ? 'hsl(var(--cyan-hsl) / 0.6)' : s.type === 'dive' ? 'hsl(var(--orange-hsl) / 0.6)' : 'hsl(var(--green-hsl) / 0.45)';
+        return `<tr>
+          <td style="padding:4px 12px 4px 0;opacity:0.7;white-space:nowrap;">${s.time}</td>
+          <td style="padding:4px 12px 4px 0;">${s.title}</td>
+          <td style="padding:4px 0;opacity:0.55;white-space:nowrap;font-size:0.8em;">${dur}</td>
+          <td style="padding:4px 0 4px 12px;white-space:nowrap;font-size:0.75em;color:${typeColor};">${s.type||''}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('pr-schedule').innerHTML = `<table style="border-collapse:collapse;width:100%;font-size:0.85rem;">${rows}</table>`;
+    } else {
+      document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+    }
+  } else {
+    document.getElementById('pr-schedule').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (omensRes.ok) {
+    const d = await omensRes.json();
+    const today = new Date().toISOString().slice(0,10);
+    const evts = (d.events || []).filter(e => !e.date_iso || e.date_iso >= today);
+    document.getElementById('pr-omens').innerHTML = evts.length
+      ? `<table style="border-collapse:collapse;width:100%">${evts.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
+      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+
+  if (rdlogRes.ok) {
+    const log = await rdlogRes.json();
+    const ACTION_LABEL = {created:'+ created', moved:'→ moved', updated:'~ updated', deleted:'✕ deleted', rescheduled:'↔ rescheduled', scheduled:'📅 scheduled', revived:'↺ revived', imported:'↓ imported'};
+    const SRC_COLOR = {core:'hsl(var(--green-hsl) / 0.45)', Exec:'hsl(var(--cyan-hsl) / 0.45)', prof:'hsl(var(--cyan-hsl) / 0.45)', dirs:'hsl(var(--orange-hsl) / 0.45)'};
+    if (log.length) {
+      const rows = log.map(e => {
+        const d = new Date(e.ts);
+        const hhmm = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});
+        const mmdd = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+        const label = ACTION_LABEL[e.action] || e.action;
+        const detail = e.action==='moved' ? ` (${e.from_col||'?'} → ${e.to_col||'?'})` : e.action==='created' && e.column ? ` → ${e.column}` : e.action==='rescheduled' ? ` ${e.from_day||'?'} → ${e.to_day||'?'}` : '';
+        const opacity = e.action==='deleted' ? '0.45' : '0.75';
+        const srcColor = SRC_COLOR[e.source] || 'rgba(255,255,255,0.3)';
+        const src = e.source ? `<span style="font-size:0.65em;color:${srcColor};margin-right:6px;">[${e.source}]</span>` : '';
+        return `<tr style="opacity:${opacity}">
+          <td style="padding:3px 12px 3px 0;white-space:nowrap;font-size:0.78em;opacity:0.55;">${mmdd} ${hhmm}</td>
+          <td style="padding:3px 12px 3px 0;white-space:nowrap;font-size:0.78em;">${src}${label}</td>
+          <td style="padding:3px 0;font-size:0.82em;">${e.title}${detail}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('pr-rdlog').innerHTML = `<table style="border-collapse:collapse;width:100%;font-family:'Iosevka Mayukai Monolite',monospace;font-weight:500;">${rows}</table>`;
+    } else {
+      document.getElementById('pr-rdlog').innerHTML = '<span style="opacity:0.4;font-size:0.8rem">no activity yet</span>';
+    }
+  }
+
+}
+
+// eslint-disable-next-line no-unused-vars
+async function refreshOmens(btn) {
+  btn.textContent = '...';
+  const r = await fetch('/api/omens', {method:'POST'});
+  btn.textContent = '[refresh]';
+  if (r.ok) {
+    const d = await r.json();
+    const today = new Date().toISOString().slice(0,10);
+    const evts = (d.events||[]).filter(e => !e.date_iso || e.date_iso >= today);
+    document.getElementById('pr-omens').innerHTML = evts.length
+      ? `<table style="border-collapse:collapse;width:100%">${evts.map(e=>`<tr><td style="opacity:0.55;font-size:0.85em;white-space:nowrap;padding-right:16px;vertical-align:top">${e.date}</td><td>${e.title}</td></tr>`).join('')}</table>`
+      : '<span style="opacity:0.4;font-size:0.8rem">none</span>';
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
+async function rebuildPlan(btn) {
+  btn.disabled = true; btn.textContent = 'planning...';
+  const r = await fetch('/api/assemble_plan', {method:'POST'});
+  btn.disabled = false;
+  if (!r.ok) {
+    btn.textContent = '[plan] failed';
+    return;
+  }
+  btn.textContent = '[planned]';
+  setTimeout(()=>{ btn.textContent='[plan]'; },3000);
+  loadPlan();
+}
+
+loadPlan();

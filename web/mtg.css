@@ -1,0 +1,28 @@
+/* chat-reader.css carries the shared merged-input + reader-voice skin;
+   below: mtg-only — full-width scrollback + Scryfall card hovers */
+.msg { max-width:none; }
+
+/* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
+   native keyboard animation). --kb rides the keyboard; --input-h the bar. */
+#terminal { inset:0 0 calc(max(var(--nav-h,56px), var(--kb,0px)) + var(--input-h,48px)) !important; }
+
+/* plain external links keep body typography (chat-reader sets colors) */
+.msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; }
+.msg.assistant [data-card] { text-decoration:underline dotted hsl(var(--green-hsl) / 0.45); text-underline-offset:3px; cursor:pointer; }
+.msg.assistant [data-card]:hover { text-decoration:underline hsl(var(--green-hsl) / 1); color:hsl(var(--green-hsl)); }
+
+#card-tooltip {
+  position:fixed; z-index:9999; pointer-events:none;
+  display:none; flex-direction:column; gap:0;
+  filter:drop-shadow(0 4px 18px rgba(0,0,0,0.7));
+}
+
+#card-tooltip img {
+  width:223px; height:auto; border-radius:10px; display:block;
+}
+
+#card-tooltip.loading::after {
+  content:''; display:block; width:223px; height:311px;
+  background:hsl(var(--green-hsl) / 0.12); border:1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius:10px;
+}
