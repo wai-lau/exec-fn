@@ -10,7 +10,6 @@ body { overflow: hidden !important; background: transparent !important; }
   display: flex; gap: 1px; overflow: hidden;
   background: transparent;
 }
-/* board-surface scanline overlay: shared .cyber-surface in chrome.css */
 /* three columns: [today] | [tomorrow, day after] | [next three, smaller] */
 .pr-colgroup {
   flex: 1; min-width: 0; min-height: 0; position: relative;
@@ -152,7 +151,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
-<div class="pr-board cyber-surface" id="pr-board">
+<div class="pr-board" id="pr-board">
   <span class="pr-loading">loading...</span>
 </div>
 <span id="pr-status" style="display:none"></span>
