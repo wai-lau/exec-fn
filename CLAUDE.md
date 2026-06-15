@@ -62,11 +62,15 @@ exec-fn/
     #   wizard(mtg) watchman(tarot)   (turbo/bitman/fiddle.png now unused)
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
-    main.py               # FastAPI routes; _render_page() page composer (cached chrome HTML by mtime); nav builder; _tmpl() reads templates from disk per request; _atomic_write_json() for rd/profile writes
+    main.py               # thin FastAPI entry point: app, lifespan (nudge loop), no-cache middleware, 401->redirect handler, include_router + static mounts. No routes/helpers — those live in the modules below
+    routers.py            # the 3 shared APIRouters (public/protected/guest_protected) + sub-router includes (nightfall/chat/mtg/tarot). Defined here so route modules decorate them without importing main (would cycle)
+    pages.py              # page composition: _build_nav(), _render_page() (cached chrome HTML by mtime), _index_pages(), _tmpl() (per-request template read), nav constants/icons/labels
+    routes_views.py       # HTML page routes (landing/login/guest, prophecies/debug/color/graph/rd/mtg/tarot/nightfall) + read-only view-data GETs (color/usage, debug/logs, tarot/readings, moltbook log) + /data file serving
+    routes_api.py         # JSON API routes: card CRUD (/api/rd GET+PATCH+recalc), morning, prophecies, classify, profile/context, gcal, parse_date, monitor stream/flush, nudge tick. Holds _atomic_write_json/_log_entries_for_patch/_minutes_late/_recompute_node_deadlines/_flag_triage
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     pipeline.py           # morning pipeline: retrospective, purge stale notes, archive log
     scheduler.py          # single home for scheduling: schedule_to_day() (canonical rd->hq promotion + scheduled_day on due day, shared by morning pipeline + exec chat), layout_day() (cron autostack entry point), place_card_today() (intraday slot >= now). SCHED_WINDOW_DAYS=6 (7-day window)
-    monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection
+    monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection, + the trailing-60s debounce runtime (schedule_monitor/flush_monitor/_run_monitor) moved out of main
     routes_chat.py        # /api/chat SSE stream + handler (exec planning tools)
     routes_nightfall.py   # /api/gamesave/* + build_nightfall_html() (injects base href, SW unregister, save sync)
     entrypoint.sh         # Docker CMD: cron + uvicorn
