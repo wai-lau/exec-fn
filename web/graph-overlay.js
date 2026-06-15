@@ -156,12 +156,17 @@
   // Toggled by the "tour:" checkbox.
   var tourIds = [];
   var tourTimer = null;
-  var gravConst = PHYSICS.forceAtlas2Based.gravitationalConstant;
+  var gravBase = PHYSICS.forceAtlas2Based.gravitationalConstant;
+  var gravConst = gravBase;
+  var GRAV_BAND = 80;   // clamp the walk to +/-this around the base
 
   // Random-walk the gravitational constant by [-20, 20] each refocus so the
-  // layout keeps breathing while the tour runs.
+  // layout keeps breathing — but CLAMP it to a band around the base. Left
+  // unbounded it drifts hundreds off over an hour, destabilising physics into
+  // the laggy "freak out" the tour eventually hit.
   function nudgeGravity() {
-    gravConst += Math.random() * 40 - 20;
+    gravConst = Math.max(gravBase - GRAV_BAND,
+      Math.min(gravBase + GRAV_BAND, gravConst + Math.random() * 40 - 20));
     network.setOptions({
       physics: { forceAtlas2Based: { gravitationalConstant: gravConst } },
     });
