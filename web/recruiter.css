@@ -1,51 +1,74 @@
-/* /recruiter — clean résumé page. Reuses chrome.css palette tokens
-   (green headings/accents, gray body, cyan links) on black. No cyber fx,
-   no bottom nav — calm and scannable for a recruiter skim. */
+/* /recruiter — light-mode résumé for recruiters.
+   Brand identity preserved by HUE, not by token: the chrome.css palette is
+   tuned for a black page (neon green 135/100/50, cyan 188/100/50) and is
+   unreadable on a light background — so this page derives deepened, legible
+   shades of the SAME brand hues (135 green, 188 cyan) and keeps everything
+   else neutral. The light background is the one deliberate departure the
+   palette doesn't cover (requested). No other hues introduced. */
+:root {
+  --cv-bg:        hsl(140deg 14% 95%);   /* page: soft off-white, faint green cast */
+  --cv-surface:   #fff;            /* the résumé card */
+  --cv-ink:       hsl(150deg 14% 15%);   /* body text: green-tinted near-black */
+  --cv-ink-soft:  hsl(150deg 8% 42%);    /* dates / secondary meta */
+  --cv-green:     hsl(135deg 60% 26%);   /* brand green 135, deepened for light */
+  --cv-green-dim: hsl(135deg 40% 44%);   /* lighter green — bullets, hairline ticks */
+  --cv-cyan:      hsl(188deg 82% 29%);   /* brand cyan 188, deepened → teal link */
+  --cv-cyan-dk:   hsl(188deg 82% 23%);   /* CTA hover */
+  --cv-rule:      hsl(140deg 18% 88%);   /* hairline dividers */
+  --cv-chip:      hsl(135deg 42% 94%);   /* skill chip fill */
+}
 
-/* unwind the bare login-shell's centered, overflow-hidden body */
+/* unwind the bare login-shell's black, centered, overflow-hidden body and
+   chrome.css's black html background */
+html { background: var(--cv-bg); }
+
 body {
   display: block;
   height: auto;
   min-height: 100vh;
   overflow-y: auto;
-  background: hsl(var(--bg-hsl));
-  -webkit-font-smoothing: antialiased;
+  background: var(--cv-bg);
 }
 
 .cv {
-  width: min(760px, 92vw);
-  margin: 0 auto;
-  padding: 72px 0 96px;
+  width: min(780px, 92vw);
+  margin: 48px auto 64px;
   position: relative;
   z-index: 2;
-  color: hsl(var(--gray-hsl));
+  background: var(--cv-surface);
+  border-top: 3px solid var(--cv-green);
+  border-radius: 3px 3px 8px 8px;
+  box-shadow: 0 1px 2px hsl(150deg 14% 15% / 0.05), 0 10px 34px hsl(150deg 14% 15% / 0.07);
+  padding: 52px clamp(28px, 6vw, 60px) 44px;
+  color: var(--cv-ink);
   font-family: 'Iosevka Mayukai Monolite', monospace;
   font-weight: 500;
   font-size: 0.9rem;
   line-height: 1.6;
 }
 
-.cv a { color: hsl(var(--cyan-hsl)); text-decoration: none; }
+.cv a { color: var(--cv-cyan); text-decoration: none; }
 .cv a:hover { text-decoration: underline; }
-.cv strong { color: hsl(var(--green-hsl)); font-weight: 700; }
+.cv strong { color: var(--cv-green); font-weight: 700; }
 
 /* ── header ───────────────────────────────────────────────────────────── */
 .cv-head {
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.25);
-  padding-bottom: 24px;
+  border-bottom: 1px solid var(--cv-rule);
+  padding-bottom: 26px;
 }
 
 .cv h1 {
-  font-size: 2rem;
+  font-size: 2.05rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  color: hsl(var(--green-hsl));
-  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+  color: var(--cv-ink);
+  margin-bottom: 5px;
 }
 
 .cv-title {
-  color: hsl(var(--green-hsl) / 0.8);
-  font-size: 0.95rem;
+  color: var(--cv-green);
+  font-size: 0.92rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
   margin-bottom: 18px;
 }
@@ -56,33 +79,34 @@ body {
   flex-wrap: wrap;
   gap: 6px 18px;
   font-size: 0.8rem;
-  color: hsl(var(--gray-hsl) / 0.8);
-  margin-bottom: 22px;
+  color: var(--cv-ink-soft);
+  margin-bottom: 24px;
 }
 
 .cv-resume {
   display: inline-block;
-  border: 1px solid hsl(var(--cyan-hsl) / 0.45);
-  color: hsl(var(--cyan-hsl));
-  padding: 9px 20px;
+  background: var(--cv-cyan);
+  color: var(--cv-surface);
+  padding: 10px 22px;
+  border-radius: 6px;
   font-size: 0.8rem;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  transition: border-color 0.18s, background 0.18s;
+  transition: background 0.18s;
 }
 
 .cv-resume:hover {
-  border-color: hsl(var(--cyan-hsl));
-  background: hsl(var(--cyan-hsl) / 0.12);
+  background: var(--cv-cyan-dk);
   text-decoration: none;
 }
 
 /* ── summary ──────────────────────────────────────────────────────────── */
 .cv-summary {
   margin: 28px 0 4px;
-  color: hsl(var(--gray-hsl));
-  font-size: 0.92rem;
-  line-height: 1.7;
+  color: var(--cv-ink);
+  font-size: 0.95rem;
+  line-height: 1.72;
 }
 
 /* ── section headers ──────────────────────────────────────────────────── */
@@ -90,15 +114,15 @@ body {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: hsl(var(--green-hsl));
-  margin: 42px 0 18px;
-  padding-bottom: 7px;
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.25);
+  letter-spacing: 0.2em;
+  color: var(--cv-green);
+  margin: 42px 0 20px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cv-rule);
 }
 
 /* ── experience ───────────────────────────────────────────────────────── */
-.cv-job { margin-bottom: 32px; }
+.cv-job { margin-bottom: 30px; }
 
 .cv-job-head {
   display: flex;
@@ -107,65 +131,76 @@ body {
   gap: 4px 12px;
   margin-bottom: 4px;
 }
-.cv-co { color: hsl(var(--green-hsl)); font-weight: 700; font-size: 1.02rem; }
-.cv-role { color: hsl(var(--gray-hsl)); font-size: 0.9rem; }
+.cv-co { color: var(--cv-ink); font-weight: 700; font-size: 1.04rem; }
+.cv-role { color: var(--cv-green); font-size: 0.9rem; font-weight: 700; }
 
 .cv-dates {
   margin-left: auto;
-  color: hsl(var(--gray-hsl) / 0.6);
+  color: var(--cv-ink-soft);
   font-size: 0.78rem;
   white-space: nowrap;
 }
 
 .cv-group {
-  color: hsl(var(--green-hsl) / 0.8);
+  color: var(--cv-green-dim);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  margin: 16px 0 7px;
+  margin: 16px 0 8px;
 }
 .cv ul { list-style: none; }
 
 .cv-job li {
   position: relative;
-  padding-left: 18px;
-  margin-bottom: 7px;
-  color: hsl(var(--gray-hsl));
-  font-size: 0.86rem;
-  line-height: 1.55;
+  padding-left: 20px;
+  margin-bottom: 8px;
+  color: var(--cv-ink);
+  font-size: 0.875rem;
+  line-height: 1.58;
 }
 
 .cv-job li::before {
   content: "▸";
   position: absolute;
   left: 0;
-  color: hsl(var(--green-hsl) / 0.6);
+  color: var(--cv-green-dim);
 }
 
-/* ── skills ───────────────────────────────────────────────────────────── */
-.cv-skills { display: flex; flex-direction: column; gap: 12px; }
-.cv-skills > div { display: grid; grid-template-columns: 150px 1fr; gap: 14px; }
+/* ── skills (chips) ───────────────────────────────────────────────────── */
+.cv-skills { display: flex; flex-direction: column; gap: 14px; }
 
-.cv-skills dt {
-  color: hsl(var(--green-hsl) / 0.8);
-  font-size: 0.76rem;
+.cv-skillrow { display: grid; grid-template-columns: 130px 1fr; gap: 14px; align-items: start; }
+
+.cv-skillrow dt {
+  color: var(--cv-green);
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  padding-top: 1px;
+  padding-top: 6px;
 }
-.cv-skills dd { color: hsl(var(--gray-hsl)); font-size: 0.86rem; }
+.cv-skillrow dd { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cv-chip {
+  background: var(--cv-chip);
+  color: var(--cv-green);
+  font-size: 0.76rem;
+  padding: 4px 10px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
 
 /* ── footer ───────────────────────────────────────────────────────────── */
 .cv-foot {
-  margin-top: 50px;
-  padding-top: 18px;
-  border-top: 1px solid hsl(var(--green-hsl) / 0.12);
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--cv-rule);
   font-size: 0.75rem;
-  color: hsl(var(--gray-hsl) / 0.45);
+  color: var(--cv-ink-soft);
 }
 
 @media (width <= 560px) {
-  .cv h1 { font-size: 1.6rem; }
+  .cv h1 { font-size: 1.7rem; }
   .cv-dates { margin-left: 0; width: 100%; }
-  .cv-skills > div { grid-template-columns: 1fr; gap: 2px; }
+  .cv-skillrow { grid-template-columns: 1fr; gap: 6px; }
+  .cv-skillrow dt { padding-top: 0; }
 }
