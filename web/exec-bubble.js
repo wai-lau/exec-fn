@@ -19,17 +19,16 @@
   }
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
-  let bubble, badge, panel, termEl, msgInput, preEl, postEl;
+  let navBtn, badge, panel, termEl, msgInput, preEl, postEl;
 
   // ── boot ──────────────────────────────────────────────────────────────────
   function init() {
     loadMarked(function () {
       marked.use({ breaks: true });
       injectStyles();
-      buildBubble();
+      bindNavButton();
       buildPanel();
       wireInput();
-      restorePosition();
       loadHistory().then(handleExecParam);
       connectMonitorStream();
     });
@@ -45,18 +44,19 @@
   function injectStyles() {
     const el = document.createElement('link');
     el.rel = 'stylesheet';
-    el.href = '/exec-bubble.css?v=1';
+    el.href = '/exec-bubble.css?v=2';
     document.head.appendChild(el);
   }
 
-  // ── bubble ────────────────────────────────────────────────────────────────
-  function buildBubble() {
-    bubble = document.createElement('div');
-    bubble.id = 'exec-bubble';
-    bubble.innerHTML = '<img src="/golem-stone.png" alt="exec"><span id="exec-badge"></span>';
-    document.body.appendChild(bubble);
+  // ── nav button ────────────────────────────────────────────────────────────
+  function bindNavButton() {
+    navBtn = document.getElementById('exec-nav-btn');
     badge = document.getElementById('exec-badge');
-    execMakeDraggable(bubble, togglePanel);
+    if (!navBtn) return;
+    navBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      togglePanel();
+    });
   }
 
   // ── panel ─────────────────────────────────────────────────────────────────
@@ -83,45 +83,12 @@
     document.getElementById('exec-ph-close').addEventListener('click', closePanel);
     document.addEventListener('click', function (e) {
       if (!isOpen) return;
-      if (!panel.contains(e.target) && !bubble.contains(e.target)) closePanel();
+      if (!panel.contains(e.target) && !navBtn.contains(e.target)) closePanel();
     });
     document.addEventListener('touchend', function (e) {
       if (!isOpen) return;
-      if (!panel.contains(e.target) && !bubble.contains(e.target)) closePanel();
+      if (!panel.contains(e.target) && !navBtn.contains(e.target)) closePanel();
     });
-  }
-
-  // ── drag ──────────────────────────────────────────────────────────────────
-  function clampBubbleToViewport() {
-    const nh = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56;
-    const w = bubble.offsetWidth || 50;
-    const h = bubble.offsetHeight || 50;
-    const maxX = window.innerWidth - w;
-    const maxY = window.innerHeight - h - nh;
-    const r = bubble.getBoundingClientRect();
-    if (r.right < 0 || r.left > window.innerWidth || r.top > window.innerHeight || r.bottom < 0) {
-      bubble.style.left = bubble.style.top = '';
-      bubble.style.right = '14px';
-      bubble.style.bottom = (nh + 10) + 'px';
-    } else if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.top > maxY) {
-      bubble.style.right = bubble.style.bottom = '';
-      bubble.style.left = Math.max(0, Math.min(maxX, r.left)) + 'px';
-      bubble.style.top  = Math.max(0, Math.min(maxY, r.top)) + 'px';
-    }
-  }
-
-  function restorePosition() {
-    try {
-      const s = JSON.parse(localStorage.getItem('exec-bpos') || 'null');
-      if (s && s.left && s.top) {
-        bubble.style.right = bubble.style.bottom = '';
-        bubble.style.left = s.left;
-        bubble.style.top  = s.top;
-      }
-    } catch (_) {}
-    // Clamp after restore in case viewport shrank since last visit
-    requestAnimationFrame(clampBubbleToViewport);
-    window.addEventListener('resize', clampBubbleToViewport);
   }
 
   // ── open / close ──────────────────────────────────────────────────────────
@@ -141,7 +108,7 @@
     panel.classList.remove('open');
   }
 
-  // Open the bubble with the input prefilled (e.g. the card dialog's chat button).
+  // Open the chat panel with the input prefilled (e.g. card dialog's chat button).
   // Deferred a tick so the originating click finishes bubbling first — otherwise
   // the document click-outside handler sees isOpen and closes it immediately.
   window.openExecChat = function (prefill) {
