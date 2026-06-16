@@ -83,7 +83,9 @@ body {
   margin-bottom: 24px;
 }
 
-.cv-resume {
+/* `.cv .cv-resume` (0-2-0) must out-specify `.cv a` (0-1-1) or the generic
+   link color repaints the label cyan-on-cyan (invisible). */
+.cv .cv-resume {
   display: inline-block;
   background: var(--cv-cyan);
   color: var(--cv-surface);
@@ -96,7 +98,7 @@ body {
   transition: background 0.18s;
 }
 
-.cv-resume:hover {
+.cv .cv-resume:hover {
   background: var(--cv-cyan-dk);
   text-decoration: none;
 }
