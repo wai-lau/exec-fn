@@ -57,7 +57,7 @@ exec-fn/
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
     recruiter.css         # public /recruiter résumé page styles (palette tokens; no fx)
-    boss-green.png        # green-recolored Boss.png — Exec nav icon
+    guru-pink.png         # pink Guru sprite (glasses) — Exec nav icon
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
     #   bug(debug) laser-satellite(graph) data-doctor(color) hack2(night)
     #   wizard(mtg) watchman(tarot)   (turbo/bitman/fiddle.png now unused)
@@ -160,7 +160,7 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. **Exec** is the leftmost nav entry (`#exec-nav-btn`, `boss-green.png` icon) on every logged-in page — never guests. It's a button, not a link: clicking toggles the Exec chat panel (`exec-bubble.js`, loaded by `_build_nav()` for non-guests). No `/exec` route. Unread monitor count shows as a badge on the nav icon. Appending `?exec=open` to any logged-in page URL opens the chat expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
+Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. **Exec** is the leftmost nav entry (`#exec-nav-btn`, `guru-pink.png` pink-glasses icon) on every logged-in page — never guests. It's a button, not a link: clicking toggles the Exec chat panel (`exec-bubble.js`, loaded by `_build_nav()` for non-guests). No `/exec` route. Unread monitor count shows as a badge on the nav icon. Appending `?exec=open` to any logged-in page URL opens the chat expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
 
 ### Pages
 
