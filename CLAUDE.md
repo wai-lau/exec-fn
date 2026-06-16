@@ -56,7 +56,7 @@ exec-fn/
     chat.css              # terminal chat base (mtg, tarot)
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
-    recruiter.css         # public /recruiter résumé page styles (palette tokens; no fx)
+    recruiter.css         # public /recruiter résumé page — LIGHT theme; page-local --cv-* tokens = deepened legible shades of brand hues (green 135 / cyan 188) on off-white card
     guru-pink.png         # pink Guru sprite (glasses) — Exec nav icon
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
     #   bug(debug) laser-satellite(graph) data-doctor(color) hack2(night)
@@ -173,7 +173,7 @@ Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `color` · `night
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
-| `/recruiter` | **Public** (no auth). Clean static résumé page for recruiters — site palette (green/cyan/gray on black), no nav / no cyber fx. Built from the bare shell like the landing (`recruiter_page()` in routes_views.py, markup in `templates/recruiter.html`, styles in `web/recruiter.css`). "Download résumé (PDF)" button → Google Doc PDF export. Not linked from anywhere — direct URL to hand out. |
+| `/recruiter` | **Public** (no auth). Clean static résumé page for recruiters — **light theme** (the one page that departs from the black palette): white card on off-white, accents = deepened legible shades of the brand hues (green 135 / cyan 188) kept as page-local `--cv-*` tokens in `recruiter.css`, no nav / no cyber fx. Skills render as chips; cyan "Download résumé (PDF)" CTA. Built from the bare shell like the landing (`recruiter_page()` in routes_views.py, markup in `templates/recruiter.html`, styles in `web/recruiter.css`). CTA → Google Doc PDF export. Not linked from anywhere — direct URL to hand out. |
 
 ### API endpoints
 
