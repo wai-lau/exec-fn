@@ -56,6 +56,7 @@ exec-fn/
     chat.css              # terminal chat base (mtg, tarot)
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
+    recruiter.css         # public /recruiter résumé page styles (palette tokens; no fx)
     boss-green.png        # green-recolored Boss.png — Exec nav icon
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
     #   bug(debug) laser-satellite(graph) data-doctor(color) hack2(night)
@@ -65,7 +66,7 @@ exec-fn/
     main.py               # thin FastAPI entry point: app, lifespan (nudge loop), no-cache middleware, 401->redirect handler, include_router + static mounts. No routes/helpers — those live in the modules below
     routers.py            # the 3 shared APIRouters (public/protected/guest_protected) + sub-router includes (nightfall/chat/mtg/tarot). Defined here so route modules decorate them without importing main (would cycle)
     pages.py              # page composition: _build_nav(), _render_page() (cached chrome HTML by mtime), _index_pages(), _tmpl() (per-request template read), nav constants/icons/labels
-    routes_views.py       # HTML page routes (landing/login/guest, prophecies/debug/color/graph/rd/mtg/tarot/nightfall) + read-only view-data GETs (color/usage, debug/logs, tarot/readings, moltbook log) + /data file serving
+    routes_views.py       # HTML page routes (landing/login/guest/recruiter, prophecies/debug/color/graph/rd/mtg/tarot/nightfall) + read-only view-data GETs (color/usage, debug/logs, tarot/readings, moltbook log) + /data file serving
     routes_api.py         # JSON API routes: card CRUD (/api/rd GET+PATCH+recalc), morning, prophecies, classify, profile/context, gcal, parse_date, monitor stream/flush, nudge tick. Holds _atomic_write_json/_log_entries_for_patch/_minutes_late/_recompute_node_deadlines/_flag_triage
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     morning.py            # morning pipeline (build_morning): retrospective, purge stale notes, archive log, roll+restack, reconcile
@@ -114,6 +115,7 @@ exec-fn/
       debug.html          # /debug — profile.json + activity logs viewer
       color.html          # /color — read-only palette moodboard; parses chrome.css :root tokens live
       guest_login.html    # /guest login form fragment ({next} placeholder filled by main.py)
+      recruiter.html      # /recruiter — public résumé markup (styles in web/recruiter.css)
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
     data/                 # persistent volume (./api/data → /app/data)
@@ -158,7 +160,7 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. Exec is a bubble overlay (`exec-bubble.js`) injected onto the planning pages (`core`/`prophecies`) by `_build_nav()`; no `/exec` route. Appending `?exec=open` to a planning page URL opens the bubble expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
+Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. **Exec** is the leftmost nav entry (`#exec-nav-btn`, `boss-green.png` icon) on every logged-in page — never guests. It's a button, not a link: clicking toggles the Exec chat panel (`exec-bubble.js`, loaded by `_build_nav()` for non-guests). No `/exec` route. Unread monitor count shows as a badge on the nav icon. Appending `?exec=open` to any logged-in page URL opens the chat expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
 
 ### Pages
 
@@ -171,6 +173,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
+| `/recruiter` | **Public** (no auth). Clean static résumé page for recruiters — site palette (green/cyan/gray on black), no nav / no cyber fx. Built from the bare shell like the landing (`recruiter_page()` in routes_views.py, markup in `templates/recruiter.html`, styles in `web/recruiter.css`). "Download résumé (PDF)" button → Google Doc PDF export. Not linked from anywhere — direct URL to hand out. |
 
 ### API endpoints
 

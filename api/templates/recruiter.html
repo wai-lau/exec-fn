@@ -1,0 +1,117 @@
+<main class="cv">
+  <header class="cv-head">
+    <h1>Wai Lau</h1>
+    <p class="cv-title">Senior Software Engineer &mdash; Infrastructure &amp; Platform</p>
+    <ul class="cv-contact">
+      <li><a href="mailto:wl.wailau@gmail.com">wl.wailau@gmail.com</a></li>
+      <li></li>
+      <li>Montr&eacute;al, QC</li>
+      <li><a href="https://www.linkedin.com/in/wai-lun-lau" target="_blank" rel="noopener">LinkedIn</a></li>
+      <li><a href="https://github.com/Wai-Lau" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+    <a class="cv-resume"
+       href="https://docs.google.com/document/d/1VFz3xqa1pYvzFO-JhPOLB1QXcopd5oVwp7ax6bUpqSc/export?format=pdf"
+       target="_blank" rel="noopener">Download r&eacute;sum&eacute; (PDF)</a>
+  </header>
+
+  <p class="cv-summary">
+    8 years building high-scale commerce and finance platforms &mdash; build-and-deploy
+    infrastructure, distributed systems, and high-throughput financial services. Early
+    adopter of LLM-assisted, multi-repo development for safely changing large, sensitive
+    codebases and driving complex migrations.
+  </p>
+
+  <section>
+    <h2>Experience</h2>
+
+    <div class="cv-job">
+      <div class="cv-job-head">
+        <span class="cv-co">Coinbase</span>
+        <span class="cv-role">Software Engineer</span>
+        <span class="cv-dates">Feb 2022 &ndash; May 2026 &middot; 4 yrs</span>
+      </div>
+
+      <p class="cv-group">Financial Platform</p>
+      <ul>
+        <li>Built and maintained a high-throughput, low-latency financial ledger with Aeron serving international and institutional clients.</li>
+        <li>Used an LLM-assisted, multi-repo workflow (Cursor with Sourcegraph and Buf MCP servers) to ship changes to financial systems safely and quickly &mdash; work that was otherwise slow and risky by hand.</li>
+        <li>Drove a Cadence-to-Temporal migration, leveraging Buf to match gRPC APIs across services.</li>
+        <li>Built multi-currency, multi-platform financial flows managing risk, slippage, and compensation steps.</li>
+      </ul>
+
+      <p class="cv-group">Build &amp; Deploy</p>
+      <ul>
+        <li>Reduced AWS costs by <strong>$500K/year</strong> by graphing ECR image dependencies and safely pruning unused storage.</li>
+        <li>Owned and improved the company-wide CI/CD pipeline; unified two distinct build-and-deploy architectures into one system.</li>
+        <li>Designed and integrated a gRPC schema (proto) registry into the deployment pipeline.</li>
+      </ul>
+    </div>
+
+    <div class="cv-job">
+      <div class="cv-job-head">
+        <span class="cv-co">Shopify</span>
+        <span class="cv-role">Production Engineer</span>
+        <span class="cv-dates">Jun 2019 &ndash; Feb 2022 &middot; 3 yrs</span>
+      </div>
+
+      <p class="cv-group">Search Platform</p>
+      <ul>
+        <li>Built active-active multi-region failover for Shopify-wide search; scaled to <strong>~150TB</strong> indexed handling <strong>~2K QPS</strong> steady, <strong>30K</strong> at peak.</li>
+        <li>Led a cross-functional effort to bring Search to the edge, cutting p99 latency from <strong>400ms to 50ms</strong> for Australia and Europe.</li>
+        <li>Parallelized and sharded the search test suite, halving total test runtime; built queuing infrastructure for high-volume indexing and bursty backfills.</li>
+      </ul>
+
+      <p class="cv-group">Developer Infrastructure</p>
+      <ul>
+        <li>Expanded and maintained company-wide developer tooling.</li>
+        <li>Built infrastructure for testing macOS and iOS software (Anka, Docker, nested VMs).</li>
+      </ul>
+    </div>
+
+    <div class="cv-job">
+      <div class="cv-job-head">
+        <span class="cv-co">Nuance Communications</span>
+        <span class="cv-role">Software Developer</span>
+        <span class="cv-dates">1 yr</span>
+      </div>
+      <ul>
+        <li>Built internal tooling and automation across speech recognition and NLP teams, from cluster-management interfaces to CI/CD pipelines.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Skills</h2>
+    <dl class="cv-skills">
+      <div>
+        <dt>Languages</dt>
+        <dd>Go, Ruby, Python, Java, JavaScript</dd>
+      </div>
+      <div>
+        <dt>Infrastructure</dt>
+        <dd>AWS, GCP, Kubernetes, Docker, Terraform, Temporal, Buildkite, Datadog</dd>
+      </div>
+      <div>
+        <dt>Data &amp; APIs</dt>
+        <dd>Kafka, Elasticsearch, Aeron, Postgres, Redis, Snowflake, gRPC, Buf, Envoy, Logstash, Splunk</dd>
+      </div>
+      <div>
+        <dt>AI / LLM</dt>
+        <dd>Cursor, Claude Code, MCP (Sourcegraph, Buf), local LLM setups, LLM-assisted migration</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Education</h2>
+    <div class="cv-job-head">
+      <span class="cv-co">Concordia University</span>
+      <span class="cv-role">B.Eng., Software Engineering (Co-op)</span>
+      <span class="cv-dates">Dean&rsquo;s List</span>
+    </div>
+  </section>
+
+  <footer class="cv-foot">
+    <a href="/">wai-lau.net</a>
+  </footer>
+</main>
