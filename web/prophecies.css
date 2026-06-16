@@ -203,7 +203,7 @@ body.pr-dragging .pr-unschedule.drag-over {
 .dir-sub.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 20%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
 .dir-sub.done { opacity: 0.45; }
 .dir-sub.done .dir-sub-title { text-decoration: line-through; }
-.dir-sub-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.6rem; line-height: 1.15; overflow-wrap: break-word; }
-.dir-sub-meta { font-size: 0.46rem; opacity: 0.6; margin-top: 1px; white-space: nowrap; }
+.dir-sub-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: calc(0.6rem - 1pt); line-height: 1.15; overflow-wrap: break-word; }
+.dir-sub-meta { font-size: calc(0.46rem - 1pt); opacity: 0.6; margin-top: 1px; white-space: nowrap; }
 
 /* .dir-sub-resize styled with .dir-resize above (bottom-right grip) */
