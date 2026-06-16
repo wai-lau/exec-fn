@@ -47,6 +47,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=5">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=1">'
 
 
 def _landing_html() -> str:
@@ -74,6 +75,18 @@ async def root(request: Request):
     if request.cookies.get("session") == SESSION_TOKEN:
         return RedirectResponse(url="/rd", status_code=302)
     return _landing_html()
+
+
+@public.get("/recruiter", response_class=HTMLResponse)
+async def recruiter_page():
+    """Public, auth-free résumé page for recruiters. Clean layout on the site
+    palette (chrome.css), no bottom nav / cyber fx — built from the bare shell
+    like the landing page."""
+    _, bare = _index_pages()
+    page = bare.replace("<title>wai-lau.net</title>",
+                        "<title>Wai Lau — Senior Software Engineer</title>", 1)
+    page = page.replace("</head>", _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
+    return page.replace("</body>", _tmpl("recruiter.html") + "</body>", 1)
 
 
 @public.get("/login")
