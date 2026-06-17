@@ -186,6 +186,8 @@
 
   skipBtn.addEventListener('click', finish);
   blurb.addEventListener('click', finish);
-  loopBtn.addEventListener('click', start);
+  // loopBtn lives inside the blurb, whose click also runs finish() — stop the
+  // bubble so the replay's start() isn't immediately undone.
+  loopBtn.addEventListener('click', function (e) { e.stopPropagation(); start(); });
   start();
 })();
