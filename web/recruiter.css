@@ -198,7 +198,15 @@ body {
   border-top: 1px solid var(--cv-rule);
   font-size: 0.75rem;
   color: var(--cv-ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
 }
+
+/* corporately-acceptable whimsy: a small, dry footer wink */
+.cv-wink { font-style: italic; opacity: 0.85; }
 
 @media (width <= 560px) {
   .cv h1 { font-size: 1.7rem; }
