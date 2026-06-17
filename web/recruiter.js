@@ -28,7 +28,7 @@
   function applyTheme(dark) {
     de.classList.toggle('cv-dark', dark);
     setFx(dark);
-    if (btn) btn.textContent = dark ? '[ light ]' : '[ dark ]';
+    if (btn) btn.textContent = dark ? '₊༺ 𖤓 ༻ ₊' : '⋆₊☾⁺₊⋆';
   }
   var saved = null;
   try { saved = localStorage.getItem('cv-theme'); } catch (_) {}

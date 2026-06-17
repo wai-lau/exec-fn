@@ -79,10 +79,9 @@ body {
   border: 1px solid var(--cv-rule);
   color: var(--cv-ink-soft);
   font-family: inherit;
-  font-size: 0.64rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 5px 9px;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 5px 10px;
   border-radius: 5px;
   cursor: pointer;
   transition: color 0.18s, border-color 0.18s;
