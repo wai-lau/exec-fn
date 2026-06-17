@@ -88,6 +88,8 @@
   var SPEED = 1.5625;
   var BASE_MS = 65;
   var BACK_MS = 30 / SPEED;  // backspacing the decoy — quick, even pace
+  var timer = null;
+  var finished = false;
   function nextDelayAfter(ch) {
     if (ch === '.') return 1000;  // each dot (incl. the decoy ellipsis) holds 1s
     var d;
@@ -102,38 +104,55 @@
     return d / SPEED;
   }
 
+  // Click/tap the blurb (or reaching the end) jumps straight to the final text:
+  // cancel the pending tick, fill every node, drop the caret.
+  function finish() {
+    if (finished) return;
+    finished = true;
+    if (timer) { clearTimeout(timer); timer = null; }
+    nodes.forEach(function (e) { e.node.nodeValue = e.text; });
+    caret.remove();
+    blurb.style.cursor = '';
+  }
+  blurb.style.cursor = 'pointer';
+  blurb.addEventListener('click', finish);
+
   // Type `text` into `node` one char at a time, then call done().
   function typeInto(node, text, done) {
     var k = 0;
     (function tick() {
+      if (finished) return;
       if (k >= text.length) { done(); return; }
       k += 1;
       node.nodeValue = text.slice(0, k);
       placeCaret(node);
-      setTimeout(tick, nextDelayAfter(text[k - 1]));
+      timer = setTimeout(tick, nextDelayAfter(text[k - 1]));
     })();
   }
 
   // Delete node's current text one char at a time, then call done().
   function backspace(node, done) {
     (function tick() {
+      if (finished) return;
       var v = node.nodeValue;
       if (!v.length) { done(); return; }
       node.nodeValue = v.slice(0, -1);
       placeCaret(node);
-      setTimeout(tick, BACK_MS);
+      timer = setTimeout(tick, BACK_MS);
     })();
   }
 
   var idx = 0;
   function runNode() {
-    if (idx >= nodes.length) { caret.remove(); return; }  // done — caret gone
+    if (finished) return;
+    if (idx >= nodes.length) { finish(); return; }
     var e = nodes[idx];
     idx += 1;
     placeCaret(e.node);
     if (e.decoy) {
       typeInto(e.node, e.decoy, function () {
-        setTimeout(function () {
+        if (finished) return;
+        timer = setTimeout(function () {
           backspace(e.node, function () { typeInto(e.node, e.text, runNode); });
         }, 650 / SPEED);  // hold a beat on the decoy before correcting it
       });
