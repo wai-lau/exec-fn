@@ -186,6 +186,24 @@ body::-webkit-scrollbar { display: none; }
   line-height: 1.72;
 }
 
+/* small grey fast-forward control sitting inline just before the blurb's first
+   word (injected by recruiter.js during the type-out, removed when it ends) */
+.cv-skip {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 0.4em 0 0;
+  font-family: inherit;
+  font-size: 0.9em;
+  line-height: 1;
+  color: var(--cv-ink-soft);
+  opacity: 0.55;
+  cursor: pointer;
+  vertical-align: baseline;
+  transition: opacity 0.15s, color 0.15s;
+}
+.cv-skip:hover { opacity: 1; color: var(--cv-green); }
+
 /* ── section headers ──────────────────────────────────────────────────── */
 .cv h2 {
   font-size: 0.72rem;

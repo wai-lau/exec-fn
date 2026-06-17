@@ -106,6 +106,16 @@
 
   // Click/tap the blurb (or reaching the end) jumps straight to the final text:
   // cancel the pending tick, fill every node, drop the caret.
+  // small grey fast-forward control inline before the blurb's first word
+  // (injected, so it only exists while the animation runs); clicking the blurb
+  // works too
+  var skipBtn = document.createElement('button');
+  skipBtn.type = 'button';
+  skipBtn.className = 'cv-skip';
+  skipBtn.textContent = '⏩';
+  skipBtn.setAttribute('aria-label', 'Skip the intro animation');
+  blurb.insertBefore(skipBtn, blurb.firstChild);
+
   function finish() {
     if (finished) return;
     finished = true;
@@ -113,7 +123,9 @@
     nodes.forEach(function (e) { e.node.nodeValue = e.text; });
     caret.remove();
     blurb.style.cursor = '';
+    skipBtn.remove();
   }
+  skipBtn.addEventListener('click', finish);
   blurb.style.cursor = 'pointer';
   blurb.addEventListener('click', finish);
 
