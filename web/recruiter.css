@@ -100,7 +100,7 @@ body {
 
 /* ── header ───────────────────────────────────────────────────────────── */
 .cv-head {
-  padding-bottom: 6px;
+  padding-bottom: 0;
 }
 
 .cv h1 {
@@ -136,7 +136,7 @@ body {
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .cv-contact {
@@ -146,7 +146,7 @@ body {
   gap: 6px 18px;
   font-size: 0.8rem;
   color: var(--cv-ink-soft);
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 /* download CTA, now in its own .cv-download block below the card (centered) */
@@ -177,7 +177,7 @@ body {
 
 /* ── summary ──────────────────────────────────────────────────────────── */
 .cv-summary {
-  margin: 28px 0 4px;
+  margin: 12px 0 4px;
   color: var(--cv-ink);
   font-size: 0.95rem;
   line-height: 1.72;
