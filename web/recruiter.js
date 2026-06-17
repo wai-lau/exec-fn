@@ -89,7 +89,7 @@
   var BASE_MS = 65;
   var BACK_MS = 30 / SPEED;  // backspacing the decoy — quick, even pace
   function nextDelayAfter(ch) {
-    if (ch === '.') return 700;  // each dot (incl. the decoy ellipsis) holds 700ms
+    if (ch === '.') return 1000;  // each dot (incl. the decoy ellipsis) holds 1s
     var d;
     switch (ch) {
       case '!': case '?':           d = 850; break;
