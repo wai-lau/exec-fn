@@ -42,7 +42,8 @@ html.cv-dark .cv {
 
 /* unwind the bare login-shell's black, centered, overflow-hidden body and
    chrome.css's black html background */
-html { background: var(--cv-bg); }
+html { background: var(--cv-bg); scrollbar-width: none; }
+html::-webkit-scrollbar { display: none; }
 
 body {
   display: block;
@@ -50,7 +51,9 @@ body {
   min-height: 100vh;
   overflow-y: auto;
   background: var(--cv-bg);
+  scrollbar-width: none;
 }
+body::-webkit-scrollbar { display: none; }
 
 .cv {
   width: min(780px, 92vw);
