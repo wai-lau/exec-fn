@@ -75,19 +75,24 @@ body {
   position: absolute;
   top: 16px;
   right: 16px;
+  display: inline-flex;
+  align-items: center;
   background: transparent;
   border: 1px solid var(--cv-rule);
   color: var(--cv-ink-soft);
   font-family: inherit;
   font-size: 0.85rem;
   line-height: 1;
-  padding: 5px 10px;
+  padding: 4px 10px;
   border-radius: 5px;
   cursor: pointer;
   transition: color 0.18s, border-color 0.18s;
   z-index: 3;
 }
 .cv-theme:hover { color: var(--cv-green); border-color: var(--cv-green-dim); }
+
+/* the moon/sun glyph itself, 3x the frame symbols around it */
+.cv-theme .cv-glyph { font-size: 3em; line-height: 1; }
 
 .cv a { color: var(--cv-cyan); text-decoration: none; }
 .cv a:hover { text-decoration: underline; }
