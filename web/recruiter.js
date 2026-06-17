@@ -47,6 +47,20 @@
   var blurb = document.querySelector('.cv-summary');
   if (!blurb) return;
 
+  var reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;  // leave the final text in place; no typing, no caret
+
+  // Keep the real blurb in normal flow but hidden (.cv-typing) so it reserves
+  // the FINAL height — the rest of the résumé never bounces as the text grows.
+  // The animation runs in an absolutely-positioned overlay clone painted on top.
+  blurb.style.position = 'relative';
+  var overlay = document.createElement('div');
+  overlay.className = 'cv-type-overlay';
+  overlay.innerHTML = blurb.innerHTML;
+  blurb.appendChild(overlay);
+  blurb.classList.add('cv-typing');
+
   var caret = document.createElement('span');
   caret.className = 'cv-caret';
 
@@ -56,16 +70,16 @@
     if (p) p.insertBefore(caret, node.nextSibling);
   }
 
-  // Blurb text nodes in order (skip whitespace-only). Collapse each node's
+  // Overlay text nodes in order (skip whitespace-only). Collapse each node's
   // whitespace the way HTML renders it, so the caret never stalls on an
-  // invisible source newline; trim the leading/trailing edges.
-  var walker = document.createTreeWalker(blurb, NodeFilter.SHOW_TEXT, {
+  // invisible source newline; trim the leading/trailing edges. A node whose
+  // parent carries data-decoy types that decoy first, then backspaces it and
+  // types the real text — a little "actually..." fake-out.
+  var walker = document.createTreeWalker(overlay, NodeFilter.SHOW_TEXT, {
     acceptNode: function (n) {
       return /\S/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }
   });
-  // A node whose parent carries data-decoy types that decoy first, then
-  // backspaces it and types the real text — a little "actually..." fake-out.
   var nodes = [];
   var n;
   while ((n = walker.nextNode())) {
@@ -73,13 +87,9 @@
     var decoy = (par && par.getAttribute) ? par.getAttribute('data-decoy') : null;
     nodes.push({ node: n, text: n.nodeValue.replace(/\s+/g, ' '), decoy: decoy });
   }
-  if (!nodes.length) return;
+  if (!nodes.length) { overlay.remove(); blurb.classList.remove('cv-typing'); return; }
   nodes[0].text = nodes[0].text.replace(/^\s+/, '');
   nodes[nodes.length - 1].text = nodes[nodes.length - 1].text.replace(/\s+$/, '');
-
-  var reduce = window.matchMedia &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return;  // full text already shown; no typing, no caret
 
   // tarot reader pacing — reading-paced, with pauses on punctuation, nudged
   // quicker than the tarot reader (1.25^3); start() blanks the nodes
@@ -160,7 +170,7 @@
     }
   }
 
-  // Click the blurb / ⏩ (or reaching the end) jumps to the final text and
+  // Click the overlay / ⏩ (or reaching the end) jumps to the final text and
   // reveals the ⟳ replay control.
   function finish() {
     if (finished) return;
@@ -168,25 +178,25 @@
     if (timer) { clearTimeout(timer); timer = null; }
     nodes.forEach(function (e) { e.node.nodeValue = e.text; });
     caret.remove();
-    blurb.style.cursor = '';
+    overlay.style.cursor = '';
     skipBtn.remove();
-    blurb.appendChild(loopBtn);  // ⟳ replay sits inline at the end of the blurb
+    overlay.appendChild(loopBtn);  // ⟳ replay sits inline at the end of the blurb
   }
 
-  // (Re)start the type-out from a blank blurb.
+  // (Re)start the type-out from a blank overlay.
   function start() {
     finished = false;
     idx = 0;
     if (loopBtn.parentNode) loopBtn.remove();
     nodes.forEach(function (e) { e.node.nodeValue = ''; });
-    blurb.insertBefore(skipBtn, blurb.firstChild);
-    blurb.style.cursor = 'pointer';
+    overlay.insertBefore(skipBtn, overlay.firstChild);
+    overlay.style.cursor = 'pointer';
     runNode();
   }
 
   skipBtn.addEventListener('click', finish);
-  blurb.addEventListener('click', finish);
-  // loopBtn lives inside the blurb, whose click also runs finish() — stop the
+  overlay.addEventListener('click', finish);
+  // loopBtn lives inside the overlay, whose click also runs finish() — stop the
   // bubble so the replay's start() isn't immediately undone.
   loopBtn.addEventListener('click', function (e) { e.stopPropagation(); start(); });
   start();
