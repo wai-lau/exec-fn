@@ -47,7 +47,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=5">'
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=11">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=12">'
 
 
 def _landing_html() -> str:
