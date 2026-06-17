@@ -65,23 +65,24 @@ body {
   margin-bottom: 5px;
 }
 
-/* whimsy, by design not words: a terminal caret blinking after the name —
-   a quiet nod to the monospace/terminal brand the rest of the site runs on */
-.cv h1::after {
-  content: "";
+@keyframes cv-blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+/* whimsy, by design not words: the résumé types itself out on load (recruiter.js)
+   behind this terminal caret, which travels with the text and then rests after
+   the name — a quiet nod to the monospace/terminal brand the rest of the site
+   runs on. A real element, not ::after, so it can move. */
+.cv-caret {
   display: inline-block;
   width: 0.5em;
   height: 1.05em;
-  margin-left: 0.12em;
+  margin-left: 0.04em;
   vertical-align: -0.16em;
   background: var(--cv-green);
   animation: cv-blink 1.15s steps(1) infinite;
 }
 
-@keyframes cv-blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
-
 @media (prefers-reduced-motion: reduce) {
-  .cv h1::after { animation: none; opacity: 0.55; }
+  .cv-caret { animation: none; opacity: 0.55; }
 }
 
 .cv-title {
