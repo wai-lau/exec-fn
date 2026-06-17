@@ -26,13 +26,13 @@ function isUrgent(iso) {
 function isOverdue(iso) {
   if (!iso) return false;
   const today = new Date(); today.setHours(0,0,0,0);
-  return new Date(iso.slice(0,10)) < today;
+  return new Date(iso.slice(0,10) + 'T00:00:00') < today;
 }
 
 function isDueSoon(iso) {
   if (!iso) return false;
   const today = new Date(); today.setHours(0,0,0,0);
-  const days = (new Date(iso.slice(0,10)) - today) / 86400000;
+  const days = (new Date(iso.slice(0,10) + 'T00:00:00') - today) / 86400000;
   return days >= 0 && days <= 5;
 }
 
@@ -40,8 +40,48 @@ function isDueSoon(iso) {
 function isDueWithin2wk(iso) {
   if (!iso) return false;
   const today = new Date(); today.setHours(0,0,0,0);
-  const days = (new Date(iso.slice(0,10)) - today) / 86400000;
+  const days = (new Date(iso.slice(0,10) + 'T00:00:00') - today) / 86400000;
   return days <= 14;
+}
+
+function _parseRGB(str) {
+  const m = (str || '').match(/rgba?\(([^)]+)\)/);
+  if (!m) return null;
+  const p = m[1].split(',').map(s => parseFloat(s));
+  return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+}
+
+// Effective opaque background behind el: composite each ancestor's background
+// color (top -> down) until an opaque layer (or the page) is reached. Returns
+// the summed {r,g,b} — e.g. a black page under a fully-transparent green
+// overlay sums to black.
+function _compositeBg(el) {
+  const layers = [];
+  for (let node = el; node; node = node.parentElement) {
+    const c = _parseRGB(getComputedStyle(node).backgroundColor);
+    if (c && c.a > 0) layers.push(c);
+    if (c && c.a >= 1) break;
+  }
+  let cur = (layers.length && layers[layers.length - 1].a >= 1)
+    ? layers.pop() : { r: 0, g: 0, b: 0 };  // black page fallback
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const L = layers[i];
+    cur = {
+      r: L.r * L.a + cur.r * (1 - L.a),
+      g: L.g * L.a + cur.g * (1 - L.a),
+      b: L.b * L.a + cur.b * (1 - L.a),
+    };
+  }
+  return cur;
+}
+
+// Due-soon dates: paint the text as the literal inverse of the card's composited
+// background (done post-insert so getComputedStyle sees the resolved tokens).
+function paintDueSoonDates() {
+  document.querySelectorAll('.card-due[data-invert]').forEach(el => {
+    const bg = _compositeBg(el.closest('.card') || el);
+    el.style.color = `rgb(${Math.round(255 - bg.r)},${Math.round(255 - bg.g)},${Math.round(255 - bg.b)})`;
+  });
 }
 
 function renderCard(c) {
@@ -64,7 +104,7 @@ function renderCard(c) {
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
     <div class="card-foot">
       <div class="card-badge" style="color:${tc}">${recurBadge}</div>
-      ${displayDate ? `<div class="card-due" style="color:${dateC}">${dateLabel}</div>` : ''}
+      ${displayDate ? `<div class="card-due"${dueSoon ? ' data-invert="1"' : ` style="color:${dateC}"`}>${dateLabel}</div>` : ''}
     </div>
   </div>`;
 }
@@ -281,6 +321,7 @@ function buildBoard() {
       el.classList.toggle('search-hide', !!q && !title.includes(q) && !notes.includes(q));
     });
   });
+  paintDueSoonDates();
 }
 
 function initBarSortable() {
