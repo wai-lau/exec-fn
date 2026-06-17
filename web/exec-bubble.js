@@ -25,12 +25,18 @@
   function init() {
     loadMarked(function () {
       marked.use({ breaks: true });
-      injectStyles();
-      bindNavButton();
-      buildPanel();
-      wireInput();
-      loadHistory().then(handleExecParam);
-      connectMonitorStream();
+      // Build the panel ONLY after its stylesheet has applied. Otherwise the
+      // panel paints unstyled (static, visible at top of body) for a frame, then
+      // the late CSS snaps in `transform: translateY(-100%)` *with* transition —
+      // so it visibly slides offscreen on every load. Gating on link.onload
+      // means the element's first paint is already the hidden state: no animation.
+      loadStyles(function () {
+        bindNavButton();
+        buildPanel();
+        wireInput();
+        loadHistory().then(handleExecParam);
+        connectMonitorStream();
+      });
     });
   }
 
@@ -41,10 +47,17 @@
   }
 
   // ── styles ────────────────────────────────────────────────────────────────
-  function injectStyles() {
+  // Load the stylesheet and invoke cb once it has applied (or failed). Callers
+  // wait on this before building the panel so the panel never paints unstyled.
+  function loadStyles(cb) {
+    const existing = document.querySelector('link[data-exec-css]');
+    if (existing) { cb(); return; }
     const el = document.createElement('link');
     el.rel = 'stylesheet';
     el.href = '/exec-bubble.css?v=2';
+    el.setAttribute('data-exec-css', '');
+    el.onload = cb;
+    el.onerror = cb;  // never hang the panel on a CSS fetch failure
     document.head.appendChild(el);
   }
 
