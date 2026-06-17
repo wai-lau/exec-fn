@@ -81,15 +81,14 @@
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduce) return;  // full text already shown; no typing, no caret
 
-  nodes.forEach(function (e) { e.node.nodeValue = ''; });
-
   // tarot reader pacing — reading-paced, with pauses on punctuation, nudged
-  // 1.25x quicker than the tarot reader (1.25 * 1.25)
-  var SPEED = 1.5625;
+  // quicker than the tarot reader (1.25^3); start() blanks the nodes
+  var SPEED = 1.953125;
   var BASE_MS = 65;
   var BACK_MS = 30 / SPEED;  // backspacing the decoy — quick, even pace
   var timer = null;
   var finished = false;
+  var idx = 0;
   function nextDelayAfter(ch) {
     if (ch === '.') return 1000;  // each dot (incl. the decoy ellipsis) holds 1s
     var d;
@@ -104,30 +103,19 @@
     return d / SPEED;
   }
 
-  // Click/tap the blurb (or reaching the end) jumps straight to the final text:
-  // cancel the pending tick, fill every node, drop the caret.
-  // small grey fast-forward control inline before the blurb's first word
-  // (injected, so it only exists while the animation runs); clicking the blurb
-  // works too
+  // ⏩ skip sits inline before the blurb's first word (only while typing);
+  // ⟳ replay sits after the blurb and reruns the type-out. Both injected.
   var skipBtn = document.createElement('button');
   skipBtn.type = 'button';
   skipBtn.className = 'cv-skip';
   skipBtn.textContent = '⏩';
   skipBtn.setAttribute('aria-label', 'Skip the intro animation');
-  blurb.insertBefore(skipBtn, blurb.firstChild);
 
-  function finish() {
-    if (finished) return;
-    finished = true;
-    if (timer) { clearTimeout(timer); timer = null; }
-    nodes.forEach(function (e) { e.node.nodeValue = e.text; });
-    caret.remove();
-    blurb.style.cursor = '';
-    skipBtn.remove();
-  }
-  skipBtn.addEventListener('click', finish);
-  blurb.style.cursor = 'pointer';
-  blurb.addEventListener('click', finish);
+  var loopBtn = document.createElement('button');
+  loopBtn.type = 'button';
+  loopBtn.className = 'cv-loop';  // same inline button style as ⏩ (.cv-skip)
+  loopBtn.textContent = '⟳';
+  loopBtn.setAttribute('aria-label', 'Replay the intro animation');
 
   // Type `text` into `node` one char at a time, then call done().
   function typeInto(node, text, done) {
@@ -154,7 +142,6 @@
     })();
   }
 
-  var idx = 0;
   function runNode() {
     if (finished) return;
     if (idx >= nodes.length) { finish(); return; }
@@ -172,5 +159,33 @@
       typeInto(e.node, e.text, runNode);
     }
   }
-  runNode();
+
+  // Click the blurb / ⏩ (or reaching the end) jumps to the final text and
+  // reveals the ⟳ replay control.
+  function finish() {
+    if (finished) return;
+    finished = true;
+    if (timer) { clearTimeout(timer); timer = null; }
+    nodes.forEach(function (e) { e.node.nodeValue = e.text; });
+    caret.remove();
+    blurb.style.cursor = '';
+    skipBtn.remove();
+    blurb.appendChild(loopBtn);  // ⟳ replay sits inline at the end of the blurb
+  }
+
+  // (Re)start the type-out from a blank blurb.
+  function start() {
+    finished = false;
+    idx = 0;
+    if (loopBtn.parentNode) loopBtn.remove();
+    nodes.forEach(function (e) { e.node.nodeValue = ''; });
+    blurb.insertBefore(skipBtn, blurb.firstChild);
+    blurb.style.cursor = 'pointer';
+    runNode();
+  }
+
+  skipBtn.addEventListener('click', finish);
+  blurb.addEventListener('click', finish);
+  loopBtn.addEventListener('click', start);
+  start();
 })();

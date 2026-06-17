@@ -47,7 +47,17 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=5">'
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=14">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=15">'
+
+# ✦ favicon for /recruiter — an inline SVG data URI (green), replacing the
+# site's default favicon.png on this page only.
+_RECRUITER_FAVICON = (
+    '<link rel="icon" href="data:image/svg+xml,'
+    "%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E"
+    "%3Ctext%20x='8'%20y='13'%20font-size='15'%20text-anchor='middle'%20fill='%2322a559'%3E"
+    '%E2%9C%A6%3C/text%3E%3C/svg%3E'
+    '">'
+)
 
 
 def _landing_html() -> str:
@@ -85,8 +95,10 @@ async def recruiter_page():
     _, bare = _index_pages()
     page = bare.replace("<title>wai-lau.net</title>",
                         "<title>Wai Lau — Senior Software Engineer</title>", 1)
+    page = page.replace('<link rel="icon" type="image/png" href="favicon.png?v=2">',
+                        _RECRUITER_FAVICON, 1)
     page = page.replace("</head>", _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
-    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=13"></script>'
+    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=14"></script>'
     return page.replace("</body>", body + "</body>", 1)
 
 
