@@ -47,7 +47,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=5">'
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=6">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=7">'
 
 
 def _landing_html() -> str:
@@ -86,7 +86,8 @@ async def recruiter_page():
     page = bare.replace("<title>wai-lau.net</title>",
                         "<title>Wai Lau — Senior Software Engineer</title>", 1)
     page = page.replace("</head>", _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
-    return page.replace("</body>", _tmpl("recruiter.html") + "</body>", 1)
+    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=1"></script>'
+    return page.replace("</body>", body + "</body>", 1)
 
 
 @public.get("/login")
