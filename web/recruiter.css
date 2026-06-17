@@ -186,6 +186,17 @@ body::-webkit-scrollbar { display: none; }
   line-height: 1.72;
 }
 
+/* during the type-out the real blurb is hidden but stays in flow, reserving the
+   final height so nothing below it bounces; recruiter.js paints the animated
+   copy in an absolute overlay on top */
+.cv-summary.cv-typing { visibility: hidden; }
+
+.cv-type-overlay {
+  position: absolute;
+  inset: 0;
+  visibility: visible;
+}
+
 /* ⏩ skip (inline before the blurb) and ⟳ replay (inline after it): matching
    little button controls, injected by recruiter.js during/after the type-out */
 .cv-skip,

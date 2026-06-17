@@ -47,7 +47,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=5">'
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=15">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=16">'
 
 # ✦ favicon for /recruiter — an inline SVG data URI (green), replacing the
 # site's default favicon.png on this page only.
@@ -98,7 +98,7 @@ async def recruiter_page():
     page = page.replace('<link rel="icon" type="image/png" href="favicon.png?v=2">',
                         _RECRUITER_FAVICON, 1)
     page = page.replace("</head>", _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
-    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=15"></script>'
+    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=16"></script>'
     return page.replace("</body>", body + "</body>", 1)
 
 
