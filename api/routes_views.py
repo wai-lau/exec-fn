@@ -86,7 +86,7 @@ async def recruiter_page():
     page = bare.replace("<title>wai-lau.net</title>",
                         "<title>Wai Lau — Senior Software Engineer</title>", 1)
     page = page.replace("</head>", _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
-    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=7"></script>'
+    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=8"></script>'
     return page.replace("</body>", body + "</body>", 1)
 
 

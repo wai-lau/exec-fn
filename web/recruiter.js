@@ -64,9 +64,15 @@
       return /\S/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }
   });
+  // A node whose parent carries data-decoy types that decoy first, then
+  // backspaces it and types the real text — a little "actually..." fake-out.
   var nodes = [];
   var n;
-  while ((n = walker.nextNode())) nodes.push({ node: n, text: n.nodeValue.replace(/\s+/g, ' ') });
+  while ((n = walker.nextNode())) {
+    var par = n.parentNode;
+    var decoy = (par && par.getAttribute) ? par.getAttribute('data-decoy') : null;
+    nodes.push({ node: n, text: n.nodeValue.replace(/\s+/g, ' '), decoy: decoy });
+  }
   if (!nodes.length) return;
   nodes[0].text = nodes[0].text.replace(/^\s+/, '');
   nodes[nodes.length - 1].text = nodes[nodes.length - 1].text.replace(/\s+$/, '');
@@ -81,6 +87,7 @@
   // 1.25x quicker than the tarot reader (1.25 * 1.25)
   var SPEED = 1.5625;
   var BASE_MS = 65;
+  var BACK_MS = 30 / SPEED;  // backspacing the decoy — quick, even pace
   function nextDelayAfter(ch) {
     var d;
     switch (ch) {
@@ -94,22 +101,44 @@
     return d / SPEED;
   }
 
-  var i = 0;  // node index
-  var c = 0;  // char index within the current node
-  function step() {
-    if (i >= nodes.length) { caret.remove(); return; }  // done — caret gone
-    var e = nodes[i];
-    if (c < e.text.length) {
-      c += 1;
-      e.node.nodeValue = e.text.slice(0, c);
-      placeCaret(e.node);
-      setTimeout(step, nextDelayAfter(e.text[c - 1]));
+  // Type `text` into `node` one char at a time, then call done().
+  function typeInto(node, text, done) {
+    var k = 0;
+    (function tick() {
+      if (k >= text.length) { done(); return; }
+      k += 1;
+      node.nodeValue = text.slice(0, k);
+      placeCaret(node);
+      setTimeout(tick, nextDelayAfter(text[k - 1]));
+    })();
+  }
+
+  // Delete node's current text one char at a time, then call done().
+  function backspace(node, done) {
+    (function tick() {
+      var v = node.nodeValue;
+      if (!v.length) { done(); return; }
+      node.nodeValue = v.slice(0, -1);
+      placeCaret(node);
+      setTimeout(tick, BACK_MS);
+    })();
+  }
+
+  var idx = 0;
+  function runNode() {
+    if (idx >= nodes.length) { caret.remove(); return; }  // done — caret gone
+    var e = nodes[idx];
+    idx += 1;
+    placeCaret(e.node);
+    if (e.decoy) {
+      typeInto(e.node, e.decoy, function () {
+        setTimeout(function () {
+          backspace(e.node, function () { typeInto(e.node, e.text, runNode); });
+        }, 650 / SPEED);  // hold a beat on the decoy before correcting it
+      });
     } else {
-      placeCaret(e.node);
-      i += 1;
-      c = 0;
-      step();  // next node, no extra pause
+      typeInto(e.node, e.text, runNode);
     }
   }
-  step();
+  runNode();
 })();
