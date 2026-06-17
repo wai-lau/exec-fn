@@ -98,7 +98,7 @@ async def recruiter_page():
     page = page.replace('<link rel="icon" type="image/png" href="favicon.png?v=2">',
                         _RECRUITER_FAVICON, 1)
     page = page.replace("</head>", _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
-    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=14"></script>'
+    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=15"></script>'
     return page.replace("</body>", body + "</body>", 1)
 
 
