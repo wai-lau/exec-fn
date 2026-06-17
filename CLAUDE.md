@@ -57,7 +57,7 @@ exec-fn/
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
     recruiter.css         # public /recruiter résumé page — LIGHT theme; page-local --cv-* tokens = deepened legible shades of brand hues (green 135 / cyan 188) on off-white card
-    recruiter.js          # /recruiter type-out: walks .cv text nodes, blanks then re-types them on load with a traveling .cv-caret that rests after the name (reduced-motion = instant). Tarot-style reveal
+    recruiter.js          # /recruiter type-out: blanks the .cv-summary blurb then re-types it on load at tarot reading pace (per-char delays, punctuation pauses) behind a .cv-caret that disappears when done. Only the blurb types; reduced-motion = instant, no caret
     guru-pink.png         # pink Guru sprite (glasses) — Exec nav icon
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
     #   bug(debug) laser-satellite(graph) data-doctor(color) hack2(night)

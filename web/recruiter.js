@@ -1,20 +1,15 @@
-// Types the résumé out on load, like the tarot reader's char-by-char reveal.
-// The page is static HTML (no stream), so we snapshot every text node, blank
-// them, then write the characters back in document order with a caret that
-// travels along and finally rests after the name.
+// Types the summary blurb out on load, at the tarot reader's reading pace
+// (per-character delays, longer pauses on punctuation). Only the blurb types;
+// the rest of the résumé renders normally. The page is static HTML, so we
+// snapshot the blurb's text nodes, blank them, then write the characters back
+// behind a blinking caret that disappears once the blurb is fully typed.
 (function () {
   'use strict';
-  var root = document.querySelector('.cv');
-  if (!root) return;
+  var blurb = document.querySelector('.cv-summary');
+  if (!blurb) return;
 
   var caret = document.createElement('span');
   caret.className = 'cv-caret';
-
-  // Park the caret after the name as the resting signature.
-  function rest() {
-    var h1 = root.querySelector('h1');
-    if (h1) h1.appendChild(caret);
-  }
 
   // Caret lives right after the text node currently being typed.
   function placeCaret(node) {
@@ -22,54 +17,59 @@
     if (p) p.insertBefore(caret, node.nextSibling);
   }
 
-  // Collect text nodes in document order, skipping whitespace-only ones.
-  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+  // Blurb text nodes in order (skip whitespace-only). Collapse each node's
+  // whitespace the way HTML renders it, so the caret never stalls on an
+  // invisible source newline; trim the leading/trailing edges.
+  var walker = document.createTreeWalker(blurb, NodeFilter.SHOW_TEXT, {
     acceptNode: function (n) {
-      return /\S/.test(n.nodeValue)
-        ? NodeFilter.FILTER_ACCEPT
-        : NodeFilter.FILTER_REJECT;
+      return /\S/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }
   });
   var nodes = [];
   var n;
-  while ((n = walker.nextNode())) nodes.push({ node: n, text: n.nodeValue });
+  while ((n = walker.nextNode())) nodes.push({ node: n, text: n.nodeValue.replace(/\s+/g, ' ') });
+  if (!nodes.length) return;
+  nodes[0].text = nodes[0].text.replace(/^\s+/, '');
+  nodes[nodes.length - 1].text = nodes[nodes.length - 1].text.replace(/\s+$/, '');
 
   var reduce = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce || !nodes.length) { rest(); return; }
+  if (reduce) return;  // full text already shown; no typing, no caret
 
-  var total = nodes.reduce(function (a, e) { return a + e.text.length; }, 0);
   nodes.forEach(function (e) { e.node.nodeValue = ''; });
 
-  // RATE = characters per millisecond. ~0.9 types a full résumé in ~2s — a
-  // brisk typing pace, not a reading one. Bump to go faster.
-  var RATE = 0.9;
-  var i = 0;        // node index
-  var c = 0;        // char index within the current node
-  var written = 0;  // chars revealed so far (for time-based pacing)
-  var start = null;
-
-  function tick(ts) {
-    if (start === null) start = ts;
-    var target = Math.min(total, Math.ceil((ts - start) * RATE));
-    while (written < target && i < nodes.length) {
-      var e = nodes[i];
-      if (c < e.text.length) {
-        c += 1;
-        written += 1;
-        e.node.nodeValue = e.text.slice(0, c);
-      } else {
-        placeCaret(e.node);
-        i += 1;
-        c = 0;
-      }
+  // tarot reader pacing — slow, reading-paced, with pauses on punctuation
+  var SPEED = 1.25;
+  var BASE_MS = 65;
+  function nextDelayAfter(ch) {
+    var d;
+    switch (ch) {
+      case '.': case '!': case '?': d = 850; break;
+      case ',': case ';': case ':': d = 420; break;
+      case '—': case '-':      d = 480; break;
+      case '\n':                    d = 1100; break;
+      case ' ':                     d = 110; break;
+      default:                      d = BASE_MS;
     }
-    if (i < nodes.length) {
-      placeCaret(nodes[i].node);
-      requestAnimationFrame(tick);
+    return d / SPEED;
+  }
+
+  var i = 0;  // node index
+  var c = 0;  // char index within the current node
+  function step() {
+    if (i >= nodes.length) { caret.remove(); return; }  // done — caret gone
+    var e = nodes[i];
+    if (c < e.text.length) {
+      c += 1;
+      e.node.nodeValue = e.text.slice(0, c);
+      placeCaret(e.node);
+      setTimeout(step, nextDelayAfter(e.text[c - 1]));
     } else {
-      rest();
+      placeCaret(e.node);
+      i += 1;
+      c = 0;
+      step();  // next node, no extra pause
     }
   }
-  requestAnimationFrame(tick);
+  step();
 })();
