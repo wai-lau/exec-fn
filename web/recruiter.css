@@ -54,7 +54,7 @@ body {
 
 .cv {
   width: min(780px, 92vw);
-  margin: 48px auto 64px;
+  margin: 48px auto 24px;
   position: relative;
   z-index: 2;
   background: var(--cv-surface);
@@ -100,8 +100,7 @@ body {
 
 /* ── header ───────────────────────────────────────────────────────────── */
 .cv-head {
-  border-bottom: 1px solid var(--cv-rule);
-  padding-bottom: 26px;
+  padding-bottom: 6px;
 }
 
 .cv h1 {
@@ -150,22 +149,28 @@ body {
   margin-bottom: 24px;
 }
 
-/* `.cv .cv-resume` (0-2-0) must out-specify `.cv a` (0-1-1) or the generic
-   link color repaints the label cyan-on-cyan (invisible). */
-.cv .cv-resume {
+/* download CTA, now in its own .cv-download block below the card (centered) */
+.cv-download {
+  width: min(780px, 92vw);
+  margin: 0 auto 64px;
+  text-align: center;
+}
+
+.cv-resume {
   display: inline-block;
   background: var(--cv-cyan);
-  color: var(--cv-surface);
-  padding: 10px 22px;
+  color: var(--cv-bg);
+  padding: 11px 26px;
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  text-decoration: none;
   transition: background 0.18s;
 }
 
-.cv .cv-resume:hover {
+.cv-resume:hover {
   background: var(--cv-cyan-dk);
   text-decoration: none;
 }
