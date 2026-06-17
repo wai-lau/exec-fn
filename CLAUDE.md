@@ -57,7 +57,7 @@ exec-fn/
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
     landing.css           # public landing page styles (linked from _landing_html)
     recruiter.css         # public /recruiter résumé page — LIGHT theme; page-local --cv-* tokens = deepened legible shades of brand hues (green 135 / cyan 188) on off-white card
-    recruiter.js          # /recruiter type-out: blanks the .cv-summary blurb then re-types it on load at tarot reading pace (per-char delays, punctuation pauses) behind a .cv-caret that disappears when done. Only the blurb types; reduced-motion = instant, no caret
+    recruiter.js          # /recruiter: (1) dark-mode toggle (#cv-theme) — flips html.cv-dark token overrides + injects tarot CRT overlay (.cyber-bg/.cyber-scan), persisted in localStorage; (2) blurb type-out — blanks .cv-summary then re-types it at ~tarot reading pace behind a .cv-caret that vanishes when done. Reduced-motion = instant blurb, no caret
     guru-pink.png         # pink Guru sprite (glasses) — Exec nav icon
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
     #   bug(debug) laser-satellite(graph) data-doctor(color) hack2(night)
@@ -174,7 +174,7 @@ Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `color` · `night
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
 | `/tarot` | Tarot reading: spread (top, fixed-height) + Pollack-voiced reader chat (bottom); guest auth; per-browser state in `localStorage` (no server persistence) |
-| `/recruiter` | **Public** (no auth). Clean static résumé page for recruiters — **light theme** (the one page that departs from the black palette): white card on off-white, accents = deepened legible shades of the brand hues (green 135 / cyan 188) kept as page-local `--cv-*` tokens in `recruiter.css`, no nav / no cyber fx. Skills render as chips; cyan "Download résumé (PDF)" CTA. Built from the bare shell like the landing (`recruiter_page()` in routes_views.py, markup in `templates/recruiter.html`, styles in `web/recruiter.css`). CTA → Google Doc PDF export. Not linked from anywhere — direct URL to hand out. |
+| `/recruiter` | **Public** (no auth). Clean static résumé page for recruiters — **light theme** (the one page that departs from the black palette): white card on off-white, accents = deepened legible shades of the brand hues (green 135 / cyan 188) kept as page-local `--cv-*` tokens in `recruiter.css`, no nav / no cyber fx. Skills render as chips; cyan "Download résumé (PDF)" CTA. Built from the bare shell like the landing (`recruiter_page()` in routes_views.py, markup in `templates/recruiter.html`, styles in `web/recruiter.css`). CTA → Google Doc PDF export. Top-right **dark-mode toggle** (`#cv-theme`, recruiter.js) flips to a green-on-black terminal (token overrides under `html.cv-dark`) with the tarot CRT scanline overlay, persisted in localStorage. Summary blurb types itself out on load (tarot-paced). Not linked from anywhere — direct URL to hand out. |
 
 ### API endpoints
 

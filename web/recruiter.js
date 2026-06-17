@@ -5,6 +5,43 @@
 // behind a blinking caret that disappears once the blurb is fully typed.
 (function () {
   'use strict';
+
+  // ── dark-mode toggle ──────────────────────────────────────────────────────
+  // Flips html.cv-dark (token overrides in recruiter.css) and adds the tarot
+  // CRT overlay (.cyber-bg/.cyber-scan from chrome.css) while dark. Persisted.
+  var de = document.documentElement;
+  var btn = document.getElementById('cv-theme');
+  var fxEls = [];
+  function setFx(on) {
+    if (on && !fxEls.length) {
+      ['cyber-bg', 'cyber-scan'].forEach(function (cls) {
+        var d = document.createElement('div');
+        d.className = cls;
+        document.body.appendChild(d);
+        fxEls.push(d);
+      });
+    } else if (!on && fxEls.length) {
+      fxEls.forEach(function (d) { d.remove(); });
+      fxEls = [];
+    }
+  }
+  function applyTheme(dark) {
+    de.classList.toggle('cv-dark', dark);
+    setFx(dark);
+    if (btn) btn.textContent = dark ? '[ light ]' : '[ dark ]';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('cv-theme'); } catch (_) {}
+  applyTheme(saved === 'dark');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var dark = !de.classList.contains('cv-dark');
+      applyTheme(dark);
+      try { localStorage.setItem('cv-theme', dark ? 'dark' : 'light'); } catch (_) {}
+    });
+  }
+
+  // ── blurb type-out ────────────────────────────────────────────────────────
   var blurb = document.querySelector('.cv-summary');
   if (!blurb) return;
 
@@ -38,8 +75,9 @@
 
   nodes.forEach(function (e) { e.node.nodeValue = ''; });
 
-  // tarot reader pacing — slow, reading-paced, with pauses on punctuation
-  var SPEED = 1.25;
+  // tarot reader pacing — reading-paced, with pauses on punctuation, nudged
+  // 1.25x quicker than the tarot reader (1.25 * 1.25)
+  var SPEED = 1.5625;
   var BASE_MS = 65;
   function nextDelayAfter(ch) {
     var d;

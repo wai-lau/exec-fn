@@ -18,6 +18,28 @@
   --cv-chip:      hsl(135deg 42% 94%);   /* skill chip fill */
 }
 
+/* dark mode: flip the page-local tokens to a green-on-black terminal, the same
+   brand hues the rest of the site runs on. The CRT scanline overlay
+   (.cyber-bg/.cyber-scan from chrome.css) is added by recruiter.js when dark,
+   matching the tarot page. Toggled via html.cv-dark. */
+html.cv-dark {
+  --cv-bg:        hsl(135deg 18% 5%);    /* near-black, faint green cast */
+  --cv-surface:   hsl(135deg 22% 7%);    /* the résumé card */
+  --cv-ink:       hsl(135deg 72% 72%);   /* body text: legible terminal green */
+  --cv-ink-soft:  hsl(135deg 24% 52%);   /* dates / secondary meta */
+  --cv-green:     hsl(135deg 95% 62%);   /* brand green, brightened for black */
+  --cv-green-dim: hsl(135deg 70% 52%);   /* bullets, hairline ticks */
+  --cv-cyan:      hsl(188deg 90% 62%);   /* brand cyan link */
+  --cv-cyan-dk:   hsl(188deg 90% 72%);   /* CTA hover */
+  --cv-rule:      hsl(135deg 30% 16%);   /* hairline dividers */
+  --cv-chip:      hsl(135deg 40% 11%);   /* skill chip fill */
+}
+
+html.cv-dark .cv {
+  box-shadow: 0 0 0 1px hsl(135deg 100% 50% / 0.06), 0 0 50px hsl(135deg 100% 50% / 0.05);
+  text-shadow: 0 0 2px hsl(135deg 100% 50% / 0.12);
+}
+
 /* unwind the bare login-shell's black, centered, overflow-hidden body and
    chrome.css's black html background */
 html { background: var(--cv-bg); }
@@ -46,6 +68,27 @@ body {
   font-size: 0.9rem;
   line-height: 1.6;
 }
+
+/* dark-mode toggle, pinned top-right of the card; tokens make it adapt to both
+   themes */
+.cv-theme {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: 1px solid var(--cv-rule);
+  color: var(--cv-ink-soft);
+  font-family: inherit;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.18s, border-color 0.18s;
+  z-index: 3;
+}
+.cv-theme:hover { color: var(--cv-green); border-color: var(--cv-green-dim); }
 
 .cv a { color: var(--cv-cyan); text-decoration: none; }
 .cv a:hover { text-decoration: underline; }
