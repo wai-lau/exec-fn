@@ -1,7 +1,7 @@
 <main class="cv">
   <header class="cv-head">
     <h1>Wai Lau</h1>
-    <p class="cv-title">Senior Software Engineer &mdash; Infrastructure &amp; Platform</p>
+    <p class="cv-title">Senior Software Engineer, Infrastructure &amp; Platform</p>
     <ul class="cv-contact">
       <li><a href="mailto:wl.wailau@gmail.com">wl.wailau@gmail.com</a></li>
       <li></li>
@@ -15,10 +15,11 @@
   </header>
 
   <p class="cv-summary">
-    8 years building high-scale commerce and finance platforms &mdash; build-and-deploy
-    infrastructure, distributed systems, and high-throughput financial services. Early
-    adopter of LLM-assisted, multi-repo development for safely changing large, sensitive
-    codebases and driving complex migrations.
+    Eight years building commerce and finance platforms at scale: build-and-deploy
+    infrastructure, distributed systems, and high-throughput financial services (the
+    kind where a rounding error leaves a paper trail). I lean on LLM-assisted,
+    multi-repo workflows to change large, sensitive codebases without breaking them,
+    and to push messy migrations all the way through.
   </p>
 
   <section>
@@ -34,7 +35,7 @@
       <p class="cv-group">Financial Platform</p>
       <ul>
         <li>Built and maintained a high-throughput, low-latency financial ledger with Aeron serving international and institutional clients.</li>
-        <li>Used an LLM-assisted, multi-repo workflow (Cursor with Sourcegraph and Buf MCP servers) to ship changes to financial systems safely and quickly &mdash; work that was otherwise slow and risky by hand.</li>
+        <li>Used an LLM-assisted, multi-repo workflow (Cursor with Sourcegraph and Buf MCP servers) to ship changes to financial systems safely and quickly, the kind of work that used to be slow and nerve-wracking by hand.</li>
         <li>Drove a Cadence-to-Temporal migration, leveraging Buf to match gRPC APIs across services.</li>
         <li>Built multi-currency, multi-platform financial flows managing risk, slippage, and compensation steps.</li>
       </ul>
@@ -56,7 +57,7 @@
 
       <p class="cv-group">Search Platform</p>
       <ul>
-        <li>Built active-active multi-region failover for Shopify-wide search; scaled to <strong>~150TB</strong> indexed handling <strong>~2K QPS</strong> steady, <strong>30K</strong> at peak.</li>
+        <li>Built active-active multi-region failover for search across all of Shopify, holding <strong>~150TB</strong> of indexed data and serving <strong>~2K QPS</strong> on a normal day, <strong>30K</strong> when Black Friday hit.</li>
         <li>Led a cross-functional effort to bring Search to the edge, cutting p99 latency from <strong>400ms to 50ms</strong> for Australia and Europe.</li>
         <li>Parallelized and sharded the search test suite, halving total test runtime; built queuing infrastructure for high-volume indexing and bursty backfills.</li>
       </ul>
@@ -121,5 +122,6 @@
 
   <footer class="cv-foot">
     <a href="/">wai-lau.net</a>
+    <span class="cv-wink">Hand-built. No em dashes were harmed in the making of this r&eacute;sum&eacute;.</span>
   </footer>
 </main>
