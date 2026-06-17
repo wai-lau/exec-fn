@@ -90,7 +90,7 @@ def _build_nav(active=None, guest=False):
     )
     # Exec chat panel: loaded on every logged-in page (never guests), driven by
     # the #exec-nav-btn in the nav above.
-    exec_chat = '<script src="/exec-bubble.js?v=30"></script>' if not guest else ''
+    exec_chat = '<script src="/exec-bubble.js?v=31"></script>' if not guest else ''
     return nav + script + exec_chat
 
 
