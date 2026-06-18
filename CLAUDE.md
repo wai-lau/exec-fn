@@ -60,7 +60,7 @@ exec-fn/
     recruiter.js          # /recruiter: (1) dark-mode toggle (#cv-theme) — flips html.cv-dark token overrides + injects tarot CRT overlay (.cyber-bg/.cyber-scan), persisted in localStorage; (2) blurb type-out — blanks .cv-summary then re-types it at ~tarot reading pace behind a .cv-caret that vanishes when done. A .cv-fake span's data-decoy types+backspaces a decoy before the real text. Click the blurb to skip to final text. Reduced-motion = instant blurb, no caret
     guru-pink.png         # pink Guru sprite (glasses) — Exec nav icon
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
-    #   bug(debug) laser-satellite(graph) data-doctor(color) hack2(night)
+    #   bug(debug) laser-satellite(graph) golem-stone(emet) data-doctor(color) hack2(night)
     #   wizard(mtg) watchman(tarot)   (turbo/bitman/fiddle.png now unused)
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
@@ -171,7 +171,7 @@ Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `emet` · `color`
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
-| `/emet` | **Protected** placeholder static page. Raw `templates/emet.html` served as-is (no chrome/nav inject) via `emet_page()` in routes_views.py. Lives in `api/templates/` (not the public `/app/static` mount) so it stays auth-gated. Nav entry (text label, no icon yet) next to graph. |
+| `/emet` | **Protected** placeholder static page. Raw `templates/emet.html` served as-is (no chrome/nav inject) via `emet_page()` in routes_views.py. Lives in `api/templates/` (not the public `/app/static` mount) so it stays auth-gated. Nav label = `אמת` (emet, "truth"), icon = `golem-stone.png` stone-golem sprite, next to graph. |
 | `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one little table per color, one per row (hue-ordered; neutrals at the end). Title (friendly `[Name]`) above; table padded to 4 columns (the variations — card colors = wisp/idea/plan/commitment, non-card `-hsl` colors = their used alpha steps, empty trailing cols); rows = swatch / opacity / count / effects / per-column usage-site list (each variation's sites, most-used first); usage description under the table. Tokens with the same H S L merge into one (max 4 variations); a non-card token's alpha usages map onto the nearest card size (`SIZE_ALPHA` = wisp .15 / idea .25 / plan .8 / commitment 1) — for card colors the count row is text `(sizes +N)×` of those mapped usages, for non-card it's per-column `×N` from `alpha_counts`. Effects (e.g. blur) sit in their column. Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
