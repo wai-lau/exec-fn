@@ -67,7 +67,7 @@ exec-fn/
     main.py               # thin FastAPI entry point: app, lifespan (nudge loop), no-cache middleware, 401->redirect handler, include_router + static mounts. No routes/helpers — those live in the modules below
     routers.py            # the 3 shared APIRouters (public/protected/guest_protected) + sub-router includes (nightfall/chat/mtg/tarot). Defined here so route modules decorate them without importing main (would cycle)
     pages.py              # page composition: _build_nav(), _render_page() (cached chrome HTML by mtime), _index_pages(), _tmpl() (per-request template read), nav constants/icons/labels
-    routes_views.py       # HTML page routes (landing/login/guest/recruiter, prophecies/debug/color/graph/rd/mtg/tarot/nightfall) + read-only view-data GETs (color/usage, debug/logs, tarot/readings, moltbook log) + /data file serving
+    routes_views.py       # HTML page routes (landing/login/guest/recruiter, prophecies/debug/color/graph/emet/rd/mtg/tarot/nightfall) + read-only view-data GETs (color/usage, debug/logs, tarot/readings, moltbook log) + /data file serving
     routes_api.py         # JSON API routes: card CRUD (/api/rd GET+PATCH+recalc), morning, prophecies, classify, profile/context, gcal, parse_date, monitor stream/flush, nudge tick. Holds _atomic_write_json/_log_entries_for_patch/_minutes_late/_recompute_node_deadlines/_flag_triage
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     morning.py            # morning pipeline (build_morning): retrospective, purge stale notes, archive log, roll+restack, reconcile
@@ -115,6 +115,7 @@ exec-fn/
       prophecies.html     # /prophecies — 7-day planning, 3 columns: today (TIMELINE: grid + dir_start_min blocks, drag/resize+drag-out-to-day/unschedule, now-line, past-hider, autoscroll; a card with a breakdown (>=2 steps) renders as a vertical master spine + its sub-steps as their own draggable/resizable blocks to the right — sub starts = nudge-node `tl_offset` from the master start, master snaps to the sub bounding box, editing one sub freezes the rest) | next 3 days | last 3 days (small cards). Full week on screen. Books bar moved to core.
       debug.html          # /debug — profile.json + activity logs viewer
       color.html          # /color — read-only palette moodboard; parses chrome.css :root tokens live
+      emet.html           # /emet — protected raw static page placeholder (served as-is, no chrome inject)
       guest_login.html    # /guest login form fragment ({next} placeholder filled by main.py)
       recruiter.html      # /recruiter — public résumé markup (styles in web/recruiter.css)
       mtg.html            # /mtg — rules-assistant chat
@@ -161,7 +162,7 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. **Exec** is the leftmost nav entry (`#exec-nav-btn`, `guru-pink.png` pink-glasses icon) on every logged-in page — never guests. It's a button, not a link: clicking toggles the Exec chat panel (`exec-bubble.js`, loaded by `_build_nav()` for non-guests). No `/exec` route. Unread monitor count shows as a badge on the nav icon. Appending `?exec=open` to any logged-in page URL opens the chat expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
+Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `emet` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. **Exec** is the leftmost nav entry (`#exec-nav-btn`, `guru-pink.png` pink-glasses icon) on every logged-in page — never guests. It's a button, not a link: clicking toggles the Exec chat panel (`exec-bubble.js`, loaded by `_build_nav()` for non-guests). No `/exec` route. Unread monitor count shows as a badge on the nav icon. Appending `?exec=open` to any logged-in page URL opens the chat expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
 
 ### Pages
 
@@ -170,6 +171,7 @@ Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `color` · `night
 | `/rd` | Core kanban from `rd.json` |
 | `/prophecies` | 7-day planning — assign `scheduled_day` to cards. 3 columns: today (timeline) \| next 3 days \| last 3 days (small cards) |
 | `/debug` | Profile notes + activity log viewer + saved tarot readings |
+| `/emet` | **Protected** placeholder static page. Raw `templates/emet.html` served as-is (no chrome/nav inject) via `emet_page()` in routes_views.py. Lives in `api/templates/` (not the public `/app/static` mount) so it stays auth-gated. Nav entry (text label, no icon yet) next to graph. |
 | `/color` | **Public** (no auth — palette only, no data). Read-only moodboard: one little table per color, one per row (hue-ordered; neutrals at the end). Title (friendly `[Name]`) above; table padded to 4 columns (the variations — card colors = wisp/idea/plan/commitment, non-card `-hsl` colors = their used alpha steps, empty trailing cols); rows = swatch / opacity / count / effects / per-column usage-site list (each variation's sites, most-used first); usage description under the table. Tokens with the same H S L merge into one (max 4 variations); a non-card token's alpha usages map onto the nearest card size (`SIZE_ALPHA` = wisp .15 / idea .25 / plan .8 / commitment 1) — for card colors the count row is text `(sizes +N)×` of those mapped usages, for non-card it's per-column `×N` from `alpha_counts`. Effects (e.g. blur) sit in their column. Edit colors in chrome.css; this page just watches. Admin cookie → full nav, else guest nav |
 | `/nightfall` | Standalone game (semi-public, guest auth) |
 | `/mtg` | MTG rules assistant (semi-public, guest auth) |
