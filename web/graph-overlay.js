@@ -15,8 +15,8 @@
     forceAtlas2Based: {
       theta: 0.6,
       gravitationalConstant: -628,
-      centralGravity: 0.045,
-      springLength: 10,
+      centralGravity: 0.025,
+      springLength: 30,
       springConstant: 0.22,
       damping: 0.95,
       avoidOverlap: 1,
