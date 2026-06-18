@@ -298,17 +298,24 @@ async def graph_page(request: Request):
 
 @protected.get("/emet", response_class=HTMLResponse)
 async def emet_page(request: Request):
-    # Same UI treatment as /graph: chrome palette + cyber-fx bg + bottom nav,
-    # injected into the static emet.html (auth-gated, NOT under the public
-    # /app/static mount). The graph-overlay css/js are NOT applied — they are
-    # vis-network-specific (physics panel + node sidebar) and would error here.
-    # Content-hash ETag + no-cache so on-server edits to emet.html cache-bust
-    # (the route path has no extension, so the no-cache middleware skips it).
+    # Same UI treatment as /graph: chrome palette + cyber-fx bg + bottom nav +
+    # an emet-specific overlay (physics menu + node-info drawer, web/emet-overlay
+    # .js). The renderer (emet.html) is auth-gated and NOT under the public
+    # /app/static mount; the graph DATA (emet-graph.json — sensitive, gitignored)
+    # is injected inline here as window.EMET_GRAPH so it stays behind login.
+    # Content-hash ETag + no-cache so on-server edits cache-bust (the route path
+    # has no extension, so the no-cache middleware skips it).
     page = _tmpl("emet.html")
+    data = Path("/app/templates/emet-graph.json").read_text()
+    # escape `<` so any "</script>" inside the data can't break out of the tag
+    data = data.replace("<", "\\u003c")
+    page = page.replace("<!--EMET_DATA-->",
+                        "<script>window.EMET_GRAPH=" + data + ";</script>", 1)
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    _emet_css = '<link rel="stylesheet" href="/emet.css?v=4">'
+    _emet_css = '<link rel="stylesheet" href="/emet.css?v=5">'
+    _emet_js = '<script src="/emet-overlay.js?v=1"></script>'
     page = page.replace("</head>", _FAVICON + _CHROME_LINK + _emet_css + "</head>", 1)
-    page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
+    page = page.replace("</body>", _fx + _build_nav("emet") + _emet_js + "</body>", 1)
     etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
     headers = {"Cache-Control": "no-cache", "ETag": etag}
     if request.headers.get("if-none-match") == etag:

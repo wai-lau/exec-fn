@@ -1,26 +1,77 @@
-/* emet page overrides — injected by the /emet route after chrome.css.
-   The cyber-fx layers (.cyber-bg/.cyber-scan) sit at z-index 9990; the
-   bottom nav defaults to z-index 20, so the sweeping scan beam washes
-   over it. Lift the nav (and the exec chat overlay) above the fx. */
+/* emet page — injected by the /emet route after chrome.css. The graph fills
+   the screen; two collapsible panels float over it, mirroring /graph: physics
+   (bottom strip, collapses down) and node info (right panel, collapses right).
+   Behavior in web/emet-overlay.js. */
+
+/* nav + exec chat above the z-9990 cyber-fx (scan beam would wash over them) */
 .exec-nav { z-index: 9991 !important; }
-#exec-panel, #exec-bubble { z-index: 9992 !important; }
 
-/* Node observations panel -> bottom half of the screen (was a right
-   360px sidebar). Graph takes the top half; observations the bottom,
-   stopping above the fixed nav. */
-#net {
-  inset: 0 0 50% !important;
-}
+#exec-panel,
+#exec-bubble { z-index: 9992 !important; }
 
+/* graph canvas fills the viewport; the node/edge counter stays hidden */
+#net { position: fixed !important; inset: 0 !important; }
+#stats { display: none !important; }
+
+/* ---- node-info panel: right side, collapses RIGHT (default closed) ---- */
 #side {
-  inset: 50% 0 var(--nav-h, 0) 0 !important;
-  width: auto !important;
-  border-left: none !important;
-  border-top: 1px solid #30363d !important;
+  position: fixed !important;
+  inset: 0 0 var(--nav-h, 0) auto !important;
+  width: min(400px, 92vw) !important;
+  overflow-y: auto;
+  background: #161b22 !important;
+  border-left: 1px solid #30363d !important;
+  border-top: none !important;
+  z-index: 9993 !important;
+  transform: translateX(102%);
+  transition: transform 0.22s ease;
 }
 
-/* Hide the "N nodes, M edges" counter overlay. */
-#stats {
-  display: none !important;
+body.emet-info-open #side { transform: none; }
+
+/* ---- physics panel: bottom strip, collapses DOWN (default closed) ---- */
+#emet-physics {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--nav-h, 0);
+  height: 50vh;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 14px 16px 20px;
+  background: #161b22;
+  color: #c9d1d9;
+  border-top: 1px solid #3fb95033;
+  z-index: 9993;
+  transform: translateY(102%);
+  transition: transform 0.22s ease;
 }
 
+body.emet-phys-open #emet-physics { transform: none; }
+
+/* ---- toggle buttons (always visible; the only thing shown when collapsed) ---- */
+.emet-toggle {
+  position: fixed;
+  z-index: 9994;
+  padding: 7px 11px;
+  font: 600 12px/1 ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #3fb950;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.emet-toggle:hover { border-color: #3fb950; }
+.emet-toggle .emet-tg-glyph { color: #8b949e; }
+.emet-toggle.phys { left: 10px; bottom: calc(var(--nav-h, 0) + 10px); }
+.emet-toggle.info { top: 10px; right: 10px; }
+
+/* ---- vis physics configurator — dark + compact inside the panel ---- */
+#emet-physics .vis-configuration-wrapper { width: 100% !important; background: transparent; }
+#emet-physics .vis-configuration { background: transparent !important; color: #c9d1d9; }
+#emet-physics .vis-configuration.vis-config-header { color: #3fb950; font-weight: 700; }
+#emet-physics .vis-configuration.vis-config-label { color: #8b949e; }
+#emet-physics .vis-configuration.vis-config-item { border-color: #30363d; }
