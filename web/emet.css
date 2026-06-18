@@ -3,11 +3,12 @@
    (bottom strip, collapses down) and node info (right panel, collapses right).
    Behavior in web/emet-overlay.js. */
 
-/* nav + exec chat above the z-9990 cyber-fx (scan beam would wash over them) */
-.exec-nav { z-index: 9991 !important; }
+/* nav + exec chat above the cyber-fx AND the overlay panels (z 9993/9994) so
+   the nav bar covers the physics strip behind it instead of vanishing under it */
+.exec-nav { z-index: 9996 !important; }
 
 #exec-panel,
-#exec-bubble { z-index: 9992 !important; }
+#exec-bubble { z-index: 9997 !important; }
 
 /* graph canvas fills the viewport; the node/edge counter stays hidden */
 #net { position: fixed !important; inset: 0 !important; }
