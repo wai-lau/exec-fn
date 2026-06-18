@@ -299,9 +299,10 @@ async def graph_page(request: Request):
 @protected.get("/emet", response_class=HTMLResponse)
 async def emet_page(request: Request):
     # Same UI treatment as /graph: chrome palette + cyber-fx bg + bottom nav +
-    # an emet-specific overlay (physics menu + node-info drawer, web/emet-overlay
-    # .js). The renderer (emet.html) is auth-gated and NOT under the public
-    # /app/static mount; the graph DATA (emet-graph.json — sensitive, gitignored)
+    # an emet-specific skin (web/emet.css: fullscreen graph + always-open
+    # node-info bottom strip). The renderer (emet.html) is auth-gated and NOT
+    # under the public /app/static mount; the graph DATA (emet-graph.json —
+    # sensitive, gitignored)
     # is injected inline here as window.EMET_GRAPH so it stays behind login.
     # Content-hash ETag + no-cache so on-server edits cache-bust (the route path
     # has no extension, so the no-cache middleware skips it).
@@ -312,10 +313,10 @@ async def emet_page(request: Request):
     page = page.replace("<!--EMET_DATA-->",
                         "<script>window.EMET_GRAPH=" + data + ";</script>", 1)
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    _emet_css = '<link rel="stylesheet" href="/emet.css?v=9">'
-    _emet_js = '<script src="/emet-overlay.js?v=4"></script>'
-    page = page.replace("</head>", _FAVICON + _CHROME_LINK + _emet_css + "</head>", 1)
-    page = page.replace("</body>", _fx + _build_nav("emet") + _emet_js + "</body>", 1)
+    _emet_css = '<link rel="stylesheet" href="/emet.css?v=10">'
+    page = page.replace("</head>",
+                        _VIEWPORT_META + _FAVICON + _CHROME_LINK + _emet_css + "</head>", 1)
+    page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
     etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
     headers = {"Cache-Control": "no-cache", "ETag": etag}
     if request.headers.get("if-none-match") == etag:

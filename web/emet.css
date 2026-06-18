@@ -1,8 +1,7 @@
 /* emet page — injected by the /emet route after chrome.css. The graph fills
-   the screen; the node-info panel is a bottom strip that collapses down.
-   Behavior in web/emet-overlay.js. */
+   the screen; the node-info panel is a fixed bottom strip, always open. */
 
-/* nav + exec chat above the cyber-fx AND the overlay panel (z 9993/9994) */
+/* nav + exec chat above the node-info panel (cyber fx sit above everything) */
 .exec-nav { z-index: 9996 !important; }
 
 #exec-panel,
@@ -12,11 +11,12 @@
 #net { position: fixed !important; inset: 0 !important; }
 #stats { display: none !important; }
 
-/* cyber fx pinned to the viewport (above the graph canvas, below the panels) so
-   the scanlines + scan-beam never pan/zoom with the graph */
-.cyber-bg, .cyber-scan { position: fixed !important; z-index: 9990 !important; }
+/* cyber fx pinned to the viewport, ON TOP of nav + panels (matches /graph's
+   stack, where cyber z 9990 sits above nav/exec) so the scanlines + scan-beam
+   blanket the whole window and never pan/zoom with the graph */
+.cyber-bg, .cyber-scan { position: fixed !important; z-index: 9999 !important; }
 
-/* ---- node-info panel: bottom strip, collapses DOWN (default closed) ---- */
+/* ---- node-info panel: fixed bottom strip, always open (not collapsible) ---- */
 #side {
   position: fixed !important;
   inset: auto 0 var(--nav-h, 0) 0 !important;
@@ -27,28 +27,4 @@
   border-top: 1px solid #30363d !important;
   border-left: none !important;
   z-index: 9993 !important;
-  transform: translateY(102%);
-  transition: transform 0.22s ease;
 }
-
-body.emet-info-open #side { transform: none; }
-
-/* ---- toggle button (always visible; the only thing shown when collapsed) ---- */
-.emet-toggle {
-  position: fixed;
-  left: 10px;
-  bottom: calc(var(--nav-h, 0) + 10px);
-  z-index: 9994;
-  padding: 7px 11px;
-  font: 600 12px/1 'Iosevka Mayukai Monolite', monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #3fb950;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.emet-toggle:hover { border-color: #3fb950; }
-.emet-toggle .emet-tg-glyph { color: #8b949e; }
