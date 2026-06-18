@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=26">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=27">'
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
