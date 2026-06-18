@@ -295,7 +295,8 @@ async def emet_page(request: Request):
     # (the route path has no extension, so the no-cache middleware skips it).
     page = _tmpl("emet.html")
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    page = page.replace("</head>", _CHROME_LINK + "</head>", 1)
+    _emet_css = '<link rel="stylesheet" href="/emet.css?v=3">'
+    page = page.replace("</head>", _CHROME_LINK + _emet_css + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
     etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
     headers = {"Cache-Control": "no-cache", "ETag": etag}
