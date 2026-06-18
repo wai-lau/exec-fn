@@ -1,3 +1,27 @@
+/* Subset Iosevka, recruiter-only: the bare login shell declares this family
+   pointing at ~11MB Nerd-Font TTFs (thousands of icon glyphs). This page renders
+   only Latin + a handful of symbols at weights 500/700, so we re-declare the
+   SAME family/weights here pointing at Latin-subset woff2 (~60KB each, built by
+   api/scripts/subset_cv_fonts.py). recruiter.css loads after the shell's inline
+   @font-face, so for these two descriptors the later definition wins and the big
+   TTFs are never fetched — every inherited reference resolves to the small font.
+   No other weight/italic is used on the page, so none of those faces download. */
+@font-face {
+  font-family: 'Iosevka Mayukai Monolite';
+  src: url('/fonts/iosevka-cv-500.woff2?v=1') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Iosevka Mayukai Monolite';
+  src: url('/fonts/iosevka-cv-700.woff2?v=1') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* /recruiter — light-mode résumé for recruiters.
    Brand identity preserved by HUE, not by token: the chrome.css palette is
    tuned for a black page (neon green 135/100/50, cyan 188/100/50) and is

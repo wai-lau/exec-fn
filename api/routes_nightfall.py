@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 
 from helpers import DATA_DIR
+from pages import _FAVICON
 
 _NF_DIR = Path("/app/nightfall")
 
@@ -31,7 +32,7 @@ def build_nightfall_html() -> str:
     save_script = "<script>" + _NIGHTFALL_SAVE_SCRIPT_TPL.replace('__SCRIPTS__', json.dumps(abs_srcs)) + "</script>"
     css_v = int((_NF_DIR / "static" / "css" / "bundle.css").stat().st_mtime)
     html = html.replace('./static/css/bundle.css', f'./static/css/bundle.css?v={css_v}', 1)
-    html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">' + _NIGHTFALL_HEAD, 1)
+    html = html.replace("<head>", '<head><base href="/nightfall-game/">' + _FAVICON + _NIGHTFALL_HEAD, 1)
     html = html.replace("</body>", _NIGHTFALL_BODY + save_script + "</body>", 1)
     return html
 
