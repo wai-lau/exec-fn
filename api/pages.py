@@ -24,7 +24,7 @@ _NAV_ICONS = {
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
     "mtg":         '<img src="/wizard.png?v=2" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "emet":        '<img src="/golem-stone.png?v=2" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "emet":        '<img src="/golem-stone.png?v=3" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
 _NAV_LABELS = {
