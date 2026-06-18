@@ -12,6 +12,10 @@
 #net { position: fixed !important; inset: 0 !important; }
 #stats { display: none !important; }
 
+/* cyber fx pinned to the viewport (above the graph canvas, below the panels) so
+   the scanlines + scan-beam never pan/zoom with the graph */
+.cyber-bg, .cyber-scan { position: fixed !important; z-index: 9990 !important; }
+
 /* ---- node-info panel: bottom strip, collapses DOWN (default closed) ---- */
 #side {
   position: fixed !important;
