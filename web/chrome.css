@@ -190,6 +190,12 @@ html.kb-open .exec-nav { visibility: hidden; }
   letter-spacing: 0.1em;
 }
 
+/* emet label = Hebrew אמת — bolder + a touch larger to read at nav size */
+.exec-nav a[href="/emet"] .nav-label {
+  font-weight: 700;
+  font-size: calc(0.45rem + 1pt);
+}
+
 /* Content pages */
 #content {
   position: relative;
