@@ -8,6 +8,7 @@ nightfall-incident/
 api/data/
 api/debug/
 api/templates/emet.html
+api/templates/emet-graph.json
 __pycache__/
 *.pyc
 *.rmdoc
