@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, Resp
 from routers import public, protected, guest_protected
 from pages import (
     _render_page, _tmpl, _index_pages, _build_nav,
-    _CHROME_LINK, _STATIC_INDEX,
+    _CHROME_LINK, _FAVICON, _STATIC_INDEX,
     _GUEST_NAV_LINKS, _NAV_HREFS, _NAV_ICONS, _NAV_LABELS,
 )
 from helpers import DATA_DIR
@@ -48,7 +48,17 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=5">'
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=16">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=17">'
+
+# preload the two Latin-subset woff2 weights so they download in parallel with
+# the CSS instead of after it (font fetch is otherwise gated on CSS parse). Both
+# ~60KB; crossorigin required for the preload to match the @font-face fetch.
+_RECRUITER_FONT_PRELOAD = (
+    '<link rel="preload" href="/fonts/iosevka-cv-500.woff2?v=1" as="font" '
+    'type="font/woff2" crossorigin>'
+    '<link rel="preload" href="/fonts/iosevka-cv-700.woff2?v=1" as="font" '
+    'type="font/woff2" crossorigin>'
+)
 
 # ✦ favicon for /recruiter — an inline SVG data URI (green), replacing the
 # site's default favicon.png on this page only.
@@ -98,7 +108,8 @@ async def recruiter_page():
                         "<title>Wai Lau — Senior Software Engineer</title>", 1)
     page = page.replace('<link rel="icon" type="image/png" href="favicon.png?v=2">',
                         _RECRUITER_FAVICON, 1)
-    page = page.replace("</head>", _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
+    page = page.replace("</head>",
+                        _RECRUITER_FONT_PRELOAD + _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
     body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=16"></script>'
     return page.replace("</body>", body + "</body>", 1)
 
@@ -272,7 +283,7 @@ async def graph_page(request: Request):
         "{ nodes: nodesDS, edges: edgesDS }, {\n  layout: { improvedLayout: false },",
         1,
     )
-    page = page.replace("</head>", _VIEWPORT_META + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
+    page = page.replace("</head>", _VIEWPORT_META + _FAVICON + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("graph") + _GRAPH_OVERLAY_JS + "</body>", 1)
     # /graph has no extension so the no-cache middleware skips it, and the route
     # body changes whenever /graphify regenerates graph.html. Tag the rendered
@@ -296,7 +307,7 @@ async def emet_page(request: Request):
     page = _tmpl("emet.html")
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     _emet_css = '<link rel="stylesheet" href="/emet.css?v=4">'
-    page = page.replace("</head>", _CHROME_LINK + _emet_css + "</head>", 1)
+    page = page.replace("</head>", _FAVICON + _CHROME_LINK + _emet_css + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
     etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
     headers = {"Cache-Control": "no-cache", "ETag": etag}
