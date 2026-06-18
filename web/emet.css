@@ -19,3 +19,8 @@
   border-top: 1px solid #30363d !important;
 }
 
+/* Hide the "N nodes, M edges" counter overlay. */
+#stats {
+  display: none !important;
+}
+
