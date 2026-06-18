@@ -286,10 +286,22 @@ async def graph_page(request: Request):
 
 
 @protected.get("/emet", response_class=HTMLResponse)
-async def emet_page():
-    # Raw static page served from api/templates/ (auth-gated, NOT under the
-    # public /app/static mount). No chrome/nav injection — serve as-is.
-    return HTMLResponse(_tmpl("emet.html"))
+async def emet_page(request: Request):
+    # Same UI treatment as /graph: chrome palette + cyber-fx bg + bottom nav,
+    # injected into the static emet.html (auth-gated, NOT under the public
+    # /app/static mount). The graph-overlay css/js are NOT applied — they are
+    # vis-network-specific (physics panel + node sidebar) and would error here.
+    # Content-hash ETag + no-cache so on-server edits to emet.html cache-bust
+    # (the route path has no extension, so the no-cache middleware skips it).
+    page = _tmpl("emet.html")
+    _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
+    page = page.replace("</head>", _CHROME_LINK + "</head>", 1)
+    page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
+    etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
+    headers = {"Cache-Control": "no-cache", "ETag": etag}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return HTMLResponse(page, headers=headers)
 
 
 @protected.get("/rd", response_class=HTMLResponse)
