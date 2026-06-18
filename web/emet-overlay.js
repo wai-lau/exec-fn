@@ -28,6 +28,9 @@
     btn.addEventListener('click', function () {
       setOpen(!document.body.classList.contains('emet-info-open'), true);
     });
+    // sync glyph — the renderer may start with the panel already open
+    var open0 = document.body.classList.contains('emet-info-open');
+    btn.querySelector('.emet-tg-glyph').textContent = open0 ? '▾' : '▴';
   }
 
   ready(addToggle);
