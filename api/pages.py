@@ -10,8 +10,8 @@ _STATIC_INDEX = Path("/app/static/index.html")
 
 _CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=27">'
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
-# Injected into the pages built from their own HTML (graph/emet/nightfall) so
-# every page shows the same icon. /recruiter overrides it with its own ✦.
+# Injected into the pages built from their own HTML (graph/emet) so they show
+# the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
 _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=2">'
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot"]
