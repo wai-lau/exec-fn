@@ -1,0 +1,21 @@
+/* emet page overrides — injected by the /emet route after chrome.css.
+   The cyber-fx layers (.cyber-bg/.cyber-scan) sit at z-index 9990; the
+   bottom nav defaults to z-index 20, so the sweeping scan beam washes
+   over it. Lift the nav (and the exec chat overlay) above the fx. */
+.exec-nav { z-index: 9991 !important; }
+#exec-panel, #exec-bubble { z-index: 9992 !important; }
+
+/* Node observations panel -> bottom half of the screen (was a right
+   360px sidebar). Graph takes the top half; observations the bottom,
+   stopping above the fixed nav. */
+#net {
+  inset: 0 0 50% !important;
+}
+
+#side {
+  inset: 50% 0 var(--nav-h, 0) 0 !important;
+  width: auto !important;
+  border-left: none !important;
+  border-top: 1px solid #30363d !important;
+}
+
