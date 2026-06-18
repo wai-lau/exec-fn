@@ -10,8 +10,8 @@ _STATIC_INDEX = Path("/app/static/index.html")
 
 _CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=26">'
 
-_NAV_LINKS = ["core", "prophecies", "debug", "graph", "color", "nightfall", "mtg", "tarot"]
-_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
+_NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot"]
+_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "color"]
 

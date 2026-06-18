@@ -276,6 +276,13 @@ async def graph_page():
     return HTMLResponse(page)
 
 
+@protected.get("/emet", response_class=HTMLResponse)
+async def emet_page():
+    # Raw static page served from api/templates/ (auth-gated, NOT under the
+    # public /app/static mount). No chrome/nav injection — serve as-is.
+    return HTMLResponse(_tmpl("emet.html"))
+
+
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
     return _render_page("core", _tmpl("kanban.html"), full_height=True)
