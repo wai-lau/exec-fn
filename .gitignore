@@ -7,6 +7,7 @@ package-lock.json
 nightfall-incident/
 api/data/
 api/debug/
+api/templates/emet.html
 __pycache__/
 *.pyc
 *.rmdoc
