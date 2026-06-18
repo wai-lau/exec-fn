@@ -312,8 +312,8 @@ async def emet_page(request: Request):
     page = page.replace("<!--EMET_DATA-->",
                         "<script>window.EMET_GRAPH=" + data + ";</script>", 1)
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    _emet_css = '<link rel="stylesheet" href="/emet.css?v=7">'
-    _emet_js = '<script src="/emet-overlay.js?v=1"></script>'
+    _emet_css = '<link rel="stylesheet" href="/emet.css?v=8">'
+    _emet_js = '<script src="/emet-overlay.js?v=2"></script>'
     page = page.replace("</head>", _FAVICON + _CHROME_LINK + _emet_css + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("emet") + _emet_js + "</body>", 1)
     etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()

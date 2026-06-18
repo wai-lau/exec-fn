@@ -1,10 +1,8 @@
 /* emet page — injected by the /emet route after chrome.css. The graph fills
-   the screen; two collapsible panels float over it, mirroring /graph: physics
-   (bottom strip, collapses down) and node info (right panel, collapses right).
+   the screen; the node-info panel is a bottom strip that collapses down.
    Behavior in web/emet-overlay.js. */
 
-/* nav + exec chat above the cyber-fx AND the overlay panels (z 9993/9994) so
-   the nav bar covers the physics strip behind it instead of vanishing under it */
+/* nav + exec chat above the cyber-fx AND the overlay panel (z 9993/9994) */
 .exec-nav { z-index: 9996 !important; }
 
 #exec-panel,
@@ -14,46 +12,28 @@
 #net { position: fixed !important; inset: 0 !important; }
 #stats { display: none !important; }
 
-/* ---- node-info panel: right side, collapses RIGHT (default closed) ---- */
+/* ---- node-info panel: bottom strip, collapses DOWN (default closed) ---- */
 #side {
   position: fixed !important;
-  inset: 0 0 var(--nav-h, 0) auto !important;
-  width: min(400px, 92vw) !important;
+  inset: auto 0 var(--nav-h, 0) 0 !important;
+  width: auto !important;
+  height: 45vh !important;
   overflow-y: auto;
   background: #161b22 !important;
-  border-left: 1px solid #30363d !important;
-  border-top: none !important;
+  border-top: 1px solid #30363d !important;
+  border-left: none !important;
   z-index: 9993 !important;
-  transform: translateX(102%);
+  transform: translateY(102%);
   transition: transform 0.22s ease;
 }
 
 body.emet-info-open #side { transform: none; }
 
-/* ---- physics panel: bottom strip, collapses DOWN (default closed) ---- */
-#emet-physics {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--nav-h, 0);
-  height: 50vh;
-  overflow: auto;
-  box-sizing: border-box;
-  padding: 14px 16px 20px;
-  background: #161b22;
-  color: #c9d1d9;
-  font-family: 'Iosevka Mayukai Monolite', monospace;
-  border-top: 1px solid #3fb95033;
-  z-index: 9993;
-  transform: translateY(102%);
-  transition: transform 0.22s ease;
-}
-
-body.emet-phys-open #emet-physics { transform: none; }
-
-/* ---- toggle buttons (always visible; the only thing shown when collapsed) ---- */
+/* ---- toggle button (always visible; the only thing shown when collapsed) ---- */
 .emet-toggle {
   position: fixed;
+  left: 10px;
+  bottom: calc(var(--nav-h, 0) + 10px);
   z-index: 9994;
   padding: 7px 11px;
   font: 600 12px/1 'Iosevka Mayukai Monolite', monospace;
@@ -68,12 +48,3 @@ body.emet-phys-open #emet-physics { transform: none; }
 
 .emet-toggle:hover { border-color: #3fb950; }
 .emet-toggle .emet-tg-glyph { color: #8b949e; }
-.emet-toggle.phys { left: 10px; bottom: calc(var(--nav-h, 0) + 10px); }
-.emet-toggle.info { top: 10px; right: 10px; }
-
-/* ---- vis physics configurator — dark + compact inside the panel ---- */
-#emet-physics .vis-configuration-wrapper { width: 100% !important; background: transparent; }
-#emet-physics .vis-configuration { background: transparent !important; color: #c9d1d9; }
-#emet-physics .vis-configuration.vis-config-header { color: #3fb950; font-weight: 700; }
-#emet-physics .vis-configuration.vis-config-label { color: #8b949e; }
-#emet-physics .vis-configuration.vis-config-item { border-color: #30363d; }
