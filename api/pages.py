@@ -24,11 +24,14 @@ _NAV_ICONS = {
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
     "mtg":         '<img src="/wizard.png?v=2" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
+    # No icon PNG yet — blank so the nav shows only the אמת label, not the
+    # "emet" key text the icon slot would otherwise fall back to.
+    "emet":        "",
 }
 
 _NAV_LABELS = {
     "core": "core", "prophecies": "dirs",
-    "debug": "debug", "graph": "graph", "color": "color",
+    "debug": "debug", "graph": "graph", "emet": "אמת", "color": "color",
     "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
 }
 
