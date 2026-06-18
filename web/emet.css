@@ -42,6 +42,7 @@ body.emet-info-open #side { transform: none; }
   padding: 14px 16px 20px;
   background: #161b22;
   color: #c9d1d9;
+  font-family: 'Iosevka Mayukai Monolite', monospace;
   border-top: 1px solid #3fb95033;
   z-index: 9993;
   transform: translateY(102%);
@@ -55,7 +56,7 @@ body.emet-phys-open #emet-physics { transform: none; }
   position: fixed;
   z-index: 9994;
   padding: 7px 11px;
-  font: 600 12px/1 ui-monospace, monospace;
+  font: 600 12px/1 'Iosevka Mayukai Monolite', monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #3fb950;
