@@ -82,7 +82,7 @@ def _build_nav(active=None, guest=False):
     # (core + prophecies/dirs) — not debug/graph/other. Never for guests.
     show_bubble = (not guest) and active in {"core", "prophecies"}
     bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
-              '<script src="/exec-bubble.js?v=32"></script>') if show_bubble else ''
+              '<script src="/exec-bubble.js?v=33"></script>') if show_bubble else ''
     return nav + script + bubble
 
 
