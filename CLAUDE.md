@@ -59,7 +59,7 @@ exec-fn/
     emet.css              # /emet skin: fullscreen graph + always-open node-info bottom strip (#side, 45vh, not collapsible) + cyber-fx pinned on top (z 9999, matches /graph). Injected by emet_page
     recruiter.css         # public /recruiter résumé page — LIGHT theme; page-local --cv-* tokens = deepened legible shades of brand hues (green 135 / cyan 188) on off-white card
     recruiter.js          # /recruiter: (1) dark-mode toggle (#cv-theme) — flips html.cv-dark token overrides + injects tarot CRT overlay (.cyber-bg/.cyber-scan), persisted in localStorage; (2) blurb type-out — blanks .cv-summary then re-types it at ~tarot reading pace behind a .cv-caret that vanishes when done. A .cv-fake span's data-decoy types+backspaces a decoy before the real text. Click the blurb to skip to final text. Reduced-motion = instant blurb, no caret
-    guru-pink.png         # pink Guru sprite (glasses) — Exec nav icon
+    guru-pink.png         # pink Guru sprite (glasses) — unused (was Exec nav icon; Exec is now a bubble using golem-stone.png)
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
     #   bug(debug) laser-satellite(graph) golem-stone(emet) data-doctor(color) hack2(night)
     #   wizard(mtg) watchman(tarot)   (turbo/bitman/fiddle.png now unused)
@@ -163,7 +163,7 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `exec` · `core` · `prophecies` · `debug` · `graph` · `emet` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. **Exec** is the leftmost nav entry (`#exec-nav-btn`, `guru-pink.png` pink-glasses icon) on every logged-in page — never guests. It's a button, not a link: clicking toggles the Exec chat panel (`exec-bubble.js`, loaded by `_build_nav()` for non-guests). No `/exec` route. Unread monitor count shows as a badge on the nav icon. Appending `?exec=open` to any logged-in page URL opens the chat expanded on load. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
+Nav: `core` · `prophecies` · `debug` · `graph` · `emet` · `color` · `nightfall` · `mtg` · `tarot` — bottom nav, all pages. **Exec** is NOT a nav entry — it's a floating draggable bubble (`#exec-bubble`, `golem-stone.png` icon, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()` ONLY on the planning routes (`/rd` core + `/prophecies` dirs) for non-guests. Clicking/tapping the bubble toggles the Exec chat panel. No `/exec` route. Unread monitor count shows as a badge on the bubble. Appending `?exec=open` to core/prophecies opens the chat expanded on load. Bubble position persists in `localStorage` (`exec-bpos`), clamped to viewport. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
 
 ### Pages
 

@@ -38,23 +38,8 @@ _NAV_LABELS = {
 }
 
 
-_EXEC_NAV_BTN = (
-    '<a id="exec-nav-btn" role="button" tabindex="0">'
-    '<span class="exec-icon-wrap">'
-    '<img src="/guru-pink.png" alt="exec" style="width:20px;height:20px;image-rendering:pixelated;">'
-    '<span id="exec-badge"></span>'
-    '</span>'
-    '<span class="nav-label">exec</span>'
-    '</a>'
-)
-
-
 def _build_nav(active=None, guest=False):
     links = []
-    # Exec is the leftmost nav entry for the logged-in admin (never guests) — a
-    # button that toggles the chat panel rather than navigating.
-    if not guest:
-        links.append(_EXEC_NAV_BTN)
     for label in (_GUEST_NAV_LINKS if guest else _NAV_LINKS):
         href = _NAV_HREFS.get(label, f"/{label}")
         cls = ' class="active"' if label == active else ""
@@ -93,10 +78,12 @@ def _build_nav(active=None, guest=False):
         "de.classList.remove('kb-open');},0);});"
         "})();</script>"
     )
-    # Exec chat panel: loaded on every logged-in page (never guests), driven by
-    # the #exec-nav-btn in the nav above.
-    exec_chat = '<script src="/exec-bubble.js?v=31"></script>' if not guest else ''
-    return nav + script + exec_chat
+    # Exec chat = a floating draggable bubble, only on the planning routes
+    # (core + prophecies/dirs) — not debug/graph/other. Never for guests.
+    show_bubble = (not guest) and active in {"core", "prophecies"}
+    bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
+              '<script src="/exec-bubble.js?v=32"></script>') if show_bubble else ''
+    return nav + script + bubble
 
 
 _index_cache: tuple[float, str, str] | None = None  # (mtime, no_form, bare)
