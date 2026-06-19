@@ -49,6 +49,22 @@
     }
   }
 
+  // Redact any node label longer than 20 chars — show "[redacted] :)" instead.
+  function redactLongLabels() {
+    if (typeof nodesDS === 'undefined') {
+      return;
+    }
+    var updates = [];
+    nodesDS.forEach(function (n) {
+      if (n.label && n.label.length > 20) {
+        updates.push({ id: n.id, label: '[redacted] :)' });
+      }
+    });
+    if (updates.length) {
+      nodesDS.update(updates);
+    }
+  }
+
   // Hide orphaned nodes (no edges, _degree 0) by default — they clutter the
   // periphery and carry no relationships.
   function hideOrphans() {
@@ -275,6 +291,7 @@
       return;
     }
     showAllLabels();
+    redactLongLabels();
     hideOrphans();
     var physBody = buildPhysicsColumn();
     network.setOptions({ physics: PHYSICS });
@@ -309,6 +326,21 @@
     }, 800);
     initTour();
   }
+
+  // Reload after the device wakes from sleep. While suspended, setInterval is
+  // paused; on wake the first tick fires far later than its period — a gap that
+  // big means we slept, and the physics/canvas come back wedged, so a fresh load
+  // is the clean recovery.
+  (function watchSleep() {
+    var last = Date.now();
+    setInterval(function () {
+      var now = Date.now();
+      if (now - last > 30000) {   // tick >30s late => slept
+        location.reload();
+      }
+      last = now;
+    }, 10000);
+  })();
 
   showLoading();
   go();
