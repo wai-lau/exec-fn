@@ -19,7 +19,7 @@ from routers import public, protected, guest_protected
 from pages import (
     _render_page, _tmpl, _index_pages, _build_nav,
     _CHROME_LINK, _FAVICON, _STATIC_INDEX,
-    _GUEST_NAV_LINKS, _NAV_HREFS, _NAV_ICONS, _NAV_LABELS,
+    _NAV_HREFS, _NAV_ICONS, _NAV_LABELS,
 )
 from helpers import DATA_DIR
 from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY, API_KEY
@@ -47,7 +47,34 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=5">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=9">'
+
+# Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
+# tile) -> graph 171° (teal) -> nightfall 194° (cyan) -> color 226° (blue) ->
+# mtg 261° (purple) -> tarot 351° (pink).
+_LANDING_HUE_ORDER = ["recruiter", "graph", "nightfall", "color", "mtg", "tarot"]
+
+# Gibson-register one-liners shown to the right of each landing link — clipped,
+# noir, second-person where it lands. One per _LANDING_HUE_ORDER section.
+_LANDING_BLURBS = {
+    "graph": "The whole machine as constellation. Every node a live nerve.",
+    "nightfall": "Flash games died, but this one lives. Night falls on the net.",
+    "color": "The console's own spectrum, stripped to raw hue and signal.",
+    "mtg": "A judge wired to the stack. It rules, and it never sleeps.",
+    "tarot": "Seventy-eight gates, a green terminal, the reader is waiting for you to begin.",
+    "recruiter": "A clean dossier for prying eyes. Wai's credentials.",
+}
+
+# Reference-desk descriptions under each Gibson line — neutral, cataloguing
+# register, the plain factual counterpart to the noir blurb.
+_LANDING_DESCS = {
+    "graph": "An interactive map of this site's codebase: files and functions as nodes, their references as edges.",
+    "nightfall": "A browser-based infiltration game: breach networked nodes, manage detection, and clear each site.",
+    "color": "A read-only reference of the site's color palette, listing each token with its usage and opacity.",
+    "mtg": "A rules assistant for Magic: The Gathering, answering interaction and timing questions from the comprehensive rules.",
+    "tarot": "An interactive three-card tarot reading: choose a significator, deal the spread, and interpret each position.",
+    "recruiter": "A résumé page for recruiters: background, skills, and a downloadable PDF.",
+}
 _RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=17">'
 
 # preload the two Latin-subset woff2 weights so they download in parallel with
@@ -76,12 +103,22 @@ def _landing_html() -> str:
     column of icons, with cyberpunk CRT/scan/neon animations."""
     _, bare = _index_pages()
     links = []
-    for label in _GUEST_NAV_LINKS:
+    for label in _LANDING_HUE_ORDER:
         href = _NAV_HREFS.get(label, f"/{label}")
         icon = _NAV_ICONS.get(label, label)
         # landing spells out "nightfall" in full; bottom nav shows "12AM"
         text = "nightfall" if label == "nightfall" else _NAV_LABELS.get(label, label.lower())
-        links.append(f'<a href="{href}">{icon}<span class="nav-label">{text}</span></a>')
+        blurb = _LANDING_BLURBS.get(label, "")
+        desc = _LANDING_DESCS.get(label, "")
+        links.append(
+            f'<a href="{href}">'
+            f'<span class="landing-link">{icon}<span class="nav-label">{text}</span></span>'
+            f'<span class="landing-copy">'
+            f'<span class="landing-blurb">{blurb}</span>'
+            f'<span class="landing-sub">{desc}</span>'
+            f'</span>'
+            f'</a>'
+        )
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
     admin = '<a href="/login" class="landing-admin">admin</a>'
     fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
@@ -262,20 +299,60 @@ _GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=33"></script>'
 # desktop width and scales everything down (tiny buttons/text).
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
 
+# graphify bakes a per-node "rationale" summary from each symbol's docstring. A
+# few of those leak internals we don't want on the now-public /graph — e.g. the
+# bearer-auth design + the EXEC_SAY_KEY key name. Scrub their label+title to
+# "[redacted]" at serve time so the redaction survives /graphify rebuilds (same
+# rationale as the improvedLayout patch). Kept deliberately small — the graph is
+# otherwise just benign codebase structure.
+_GRAPH_REDACT_IDS = {
+    "api_auth_rationale_47",  # bearer-auth scheme + EXEC_SAY_KEY name
+}
 
-@protected.get("/graph", response_class=HTMLResponse)
+
+def _redact_graph_nodes(page: str) -> str:
+    """Blank the label+title of every _GRAPH_REDACT_IDS node to "[redacted]" in
+    graphify's embedded RAW_NODES array. No-op if the array is absent/unparseable
+    or nothing matched."""
+    m = re.search(r"RAW_NODES = (\[.*?\]);", page, re.DOTALL)
+    if not m:
+        return page
+    try:
+        nodes = json.loads(m.group(1))
+    except ValueError:
+        return page
+    changed = False
+    for n in nodes:
+        if n.get("id") in _GRAPH_REDACT_IDS:
+            n["label"] = n["title"] = "[redacted]"
+            changed = True
+    if not changed:
+        return page
+    return page.replace(
+        m.group(0),
+        "RAW_NODES = " + json.dumps(nodes, ensure_ascii=False) + ";",
+        1,
+    )
+
+
+@public.get("/graph", response_class=HTMLResponse)
 async def graph_page(request: Request):
     # Self-contained graphify viz from the ./graphify-out volume (regenerated by
-    # /graphify). Inject chrome.css + the overlay css/js (nav restyle + live
-    # physics panel) + the nav. All injected here so they survive rebuilds.
+    # /graphify). Public: the graph is just codebase structure; sensitive node
+    # summaries are scrubbed by _redact_graph_nodes. Inject chrome.css + the
+    # overlay css/js (nav restyle + live physics panel) + the nav. All injected
+    # here so they survive rebuilds. Non-admins get the guest nav (the full nav
+    # links to login-gated pages); admins keep the full nav.
     p = Path("/app/graphify-out/graph.html")
     if not p.exists():
         return HTMLResponse(
             "<pre>graph.html not found. Run /graphify to build it.</pre>",
             status_code=404,
         )
+    guest = request.cookies.get("session") != SESSION_TOKEN
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     page = p.read_text()
+    page = _redact_graph_nodes(page)
     # Disable vis-network's improvedLayout — the graph is too large for it to
     # position (it warns + costs perf). Patched here so it survives /graphify.
     page = page.replace(
@@ -284,7 +361,7 @@ async def graph_page(request: Request):
         1,
     )
     page = page.replace("</head>", _VIEWPORT_META + _FAVICON + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
-    page = page.replace("</body>", _fx + _build_nav("graph") + _GRAPH_OVERLAY_JS + "</body>", 1)
+    page = page.replace("</body>", _fx + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
     # /graph has no extension so the no-cache middleware skips it, and the route
     # body changes whenever /graphify regenerates graph.html. Tag the rendered
     # bytes with a content-hash ETag + no-cache so the browser revalidates every
