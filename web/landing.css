@@ -11,7 +11,7 @@ body{display:flex!important;align-items:center;justify-content:center;
    matter how many lines each blurb/description wraps to. */
 .exec-nav.landing-nav{position:relative;z-index:2;left:auto;right:auto;bottom:auto;
   width:auto;max-width:min(540px,92vw);
-  display:grid;grid-auto-rows:1fr;justify-items:start;gap:24px;
+  display:grid;grid-auto-rows:1fr;justify-items:start;gap:12px;
   padding:0;background:none;border:none;backdrop-filter:none;}
 
 .exec-nav.landing-nav a{max-width:none;flex-direction:row;

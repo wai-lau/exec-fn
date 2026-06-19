@@ -47,7 +47,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=9">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=10">'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> graph 171° (teal) -> nightfall 194° (cyan) -> color 226° (blue) ->
@@ -62,7 +62,7 @@ _LANDING_BLURBS = {
     "color": "The console's own spectrum, stripped to raw hue and signal.",
     "mtg": "A judge wired to the stack. It rules, and it never sleeps.",
     "tarot": "Seventy-eight gates, a green terminal, the reader is waiting for you to begin.",
-    "recruiter": "A clean dossier for prying eyes. Wai's credentials.",
+    "recruiter": "Coin is universal. Wai's credentials for the headhunters.",
 }
 
 # Reference-desk descriptions under each Gibson line — neutral, cataloguing
@@ -75,7 +75,7 @@ _LANDING_DESCS = {
     "tarot": "An interactive three-card tarot reading: choose a significator, deal the spread, and interpret each position.",
     "recruiter": "A résumé page for recruiters: background, skills, and a downloadable PDF.",
 }
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=17">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=18">'
 
 # preload the two Latin-subset woff2 weights so they download in parallel with
 # the CSS instead of after it (font fetch is otherwise gated on CSS parse). Both
@@ -294,7 +294,7 @@ async def color_usage():
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
 _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=35">'
-_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=33"></script>'
+_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=34"></script>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
