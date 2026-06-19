@@ -14,10 +14,10 @@ _CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=28">'
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
 _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=2">'
 
-_NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot"]
-_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot"}
+_NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "recruiter"]
+_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "recruiter": "/recruiter"}
 
-_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "color"]
+_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "color", "recruiter"]
 
 _NAV_ICONS = {
     "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -29,12 +29,13 @@ _NAV_ICONS = {
     "mtg":         '<img src="/wizard.png?v=2" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
     "emet":        '<img src="/golem-stone.png?v=3" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "recruiter":   '<img src="/data-file.png?v=3" alt="recruiter" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
 _NAV_LABELS = {
     "core": "core", "prophecies": "dirs",
     "debug": "debug", "graph": "graph", "emet": "emet", "color": "color",
-    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
+    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "recruiter": "cv",
 }
 
 
@@ -82,7 +83,7 @@ def _build_nav(active=None, guest=False):
     # (core + prophecies/dirs) — not debug/graph/other. Never for guests.
     show_bubble = (not guest) and active in {"core", "prophecies"}
     bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
-              '<script src="/exec-bubble.js?v=34"></script>') if show_bubble else ''
+              '<script src="/exec-bubble.js?v=35"></script>') if show_bubble else ''
     return nav + script + bubble
 
 

@@ -29,6 +29,7 @@ __pycache__/
 !web/sentinel.png
 !web/seeker.png
 !web/data-doctor.png
+!web/data-file.png
 !web/golem-stone.png
 *.pyo
 

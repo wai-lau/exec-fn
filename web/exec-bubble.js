@@ -55,7 +55,7 @@
     if (existing) { cb(); return; }
     const el = document.createElement('link');
     el.rel = 'stylesheet';
-    el.href = '/exec-bubble.css?v=4';
+    el.href = '/exec-bubble.css?v=5';
     el.setAttribute('data-exec-css', '');
     el.onload = cb;
     el.onerror = cb;  // never hang the panel on a CSS fetch failure
