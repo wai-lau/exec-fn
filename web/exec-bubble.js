@@ -66,7 +66,7 @@
   function buildBubble() {
     bubble = document.createElement('div');
     bubble.id = 'exec-bubble';
-    bubble.innerHTML = '<img src="/golem-stone.png" alt="exec"><span id="exec-badge"></span>';
+    bubble.innerHTML = '<img src="/guru-pink.png" alt="exec"><span id="exec-badge"></span>';
     document.body.appendChild(bubble);
     badge = document.getElementById('exec-badge');
     execMakeDraggable(bubble, togglePanel);
