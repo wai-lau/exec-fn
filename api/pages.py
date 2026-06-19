@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=27">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=28">'
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph/emet) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
@@ -33,7 +33,7 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "core": "core", "prophecies": "dirs",
-    "debug": "debug", "graph": "graph", "emet": "אמת", "color": "color",
+    "debug": "debug", "graph": "graph", "emet": "emet", "color": "color",
     "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot",
 }
 
@@ -82,7 +82,7 @@ def _build_nav(active=None, guest=False):
     # (core + prophecies/dirs) — not debug/graph/other. Never for guests.
     show_bubble = (not guest) and active in {"core", "prophecies"}
     bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
-              '<script src="/exec-bubble.js?v=33"></script>') if show_bubble else ''
+              '<script src="/exec-bubble.js?v=34"></script>') if show_bubble else ''
     return nav + script + bubble
 
 
