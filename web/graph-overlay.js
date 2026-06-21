@@ -266,6 +266,98 @@
     }, 2000);
   }
 
+  // Clamp zoom + pan by visible-node count: never zoom out past half the
+  // (non-orphan) nodes, never zoom/pan in to fewer than 2. vis-network has no
+  // node-count zoom bound, so count the nodes inside the viewport rect on each
+  // USER zoom/drag and snap back to the last in-bounds view when a gesture
+  // breaks a bound. Programmatic camera moves (tour focus, our own snap-back)
+  // fire `zoom` with params.event == null and are skipped, so the clamp never
+  // fights them.
+  var MIN_VISIBLE = 2;
+
+  function setupZoomLimits() {
+    if (typeof network === 'undefined' || typeof nodesDS === 'undefined') {
+      return;
+    }
+    var container = document.getElementById('graph');
+    if (!container) {
+      return;
+    }
+    var liveIds = [];
+    nodesDS.forEach(function (n) {
+      if (!n.hidden) {
+        liveIds.push(n.id);
+      }
+    });
+    if (liveIds.length < MIN_VISIBLE) {
+      return;
+    }
+    var maxVisible = Math.max(MIN_VISIBLE, Math.floor(liveIds.length / 2));
+    var good = null;     // last view within [MIN_VISIBLE, maxVisible]
+    var fixing = false;  // re-entrancy guard for our own moveTo
+
+    function view() {
+      return { scale: network.getScale(), position: network.getViewPosition() };
+    }
+
+    function visibleCount() {
+      var scale = network.getScale();
+      var c = network.getViewPosition();
+      var hw = (container.clientWidth / scale) / 2;
+      var hh = (container.clientHeight / scale) / 2;
+      var pos = network.getPositions(liveIds);
+      var n = 0;
+      for (var id in pos) {
+        var p = pos[id];
+        if (p.x >= c.x - hw && p.x <= c.x + hw &&
+            p.y >= c.y - hh && p.y <= c.y + hh) {
+          n += 1;
+        }
+      }
+      return n;
+    }
+
+    function enforce() {
+      if (fixing) {
+        return;
+      }
+      var n = visibleCount();
+      if (n >= MIN_VISIBLE && n <= maxVisible) {
+        good = view();
+        return;
+      }
+      fixing = true;
+      if (good) {
+        network.moveTo(good);   // snap back to last in-bounds view
+      } else {
+        // nothing banked yet — nudge toward valid: zoom IN when too far out
+        // (> half), zoom OUT when too far in (< 2).
+        network.moveTo({ scale: network.getScale() * (n > maxVisible ? 1.3 : 0.77) });
+      }
+      setTimeout(function () { fixing = false; }, 0);
+    }
+
+    network.on('zoom', function (params) {
+      if (params && params.event) {   // user wheel/pinch only, not programmatic
+        enforce();
+      }
+    });
+    network.on('dragEnd', function (params) {
+      if (params && params.nodes && params.nodes.length) {
+        return;   // dragging a node, not panning the canvas
+      }
+      enforce();
+    });
+
+    // Bank a baseline once the load cover lifts + the tour has framed a cluster.
+    setTimeout(function () {
+      var n = visibleCount();
+      if (n >= MIN_VISIBLE && n <= maxVisible) {
+        good = view();
+      }
+    }, 3600);
+  }
+
   // Cover the graph for 3s with a simple loading bar so the layout settles
   // before the nodes are revealed.
   function showLoading() {
@@ -325,6 +417,7 @@
       }, 400);
     }, 800);
     initTour();
+    setupZoomLimits();
   }
 
   // Reload after the device wakes from sleep. While suspended, setInterval is
