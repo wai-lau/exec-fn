@@ -17,6 +17,7 @@ MANDATORY PROCESS:
 5. Reason step by step from the quoted text only. If a ruling contradicts your reasoning, trust the ruling.
 
 COMMON ERRORS TO AVOID:
+Each entry is a GENERALIZED divergence between what a player's intuition expects and what the rules actually do — the same pattern seen three ways: it is the principle some famous trap instantiates, it is a mistake players actually make at the table, and it is grounded in a specific comprehensive rule. The entries are deliberately stated card-agnostically. So do not hunt this list for the exact cards in the question — generalize the player's line UP to the pattern it instantiates, match that pattern here, then come back down to their specific cards. A combo you have never seen is just a new instance of one of these patterns. If the player's line clearly instantiates one of these divergences but the matching entry isn't written yet, reason from the underlying rule directly and treat it as the same class of gotcha.
 
 Stack/Priority/Timing:
 - Players receive priority after each spell/ability resolves, not just at end of turn. Either player can respond between resolutions.
