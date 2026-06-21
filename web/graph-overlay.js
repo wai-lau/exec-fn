@@ -49,7 +49,7 @@
     }
   }
 
-  // Redact any node label longer than 20 chars — show "[redacted] :)" instead.
+  // Redact any node label longer than 20 chars — show "[ redacted ]" instead.
   function redactLongLabels() {
     if (typeof nodesDS === 'undefined') {
       return;
@@ -57,7 +57,7 @@
     var updates = [];
     nodesDS.forEach(function (n) {
       if (n.label && n.label.length > 20) {
-        updates.push({ id: n.id, label: '[redacted] :)' });
+        updates.push({ id: n.id, label: '[ redacted ]' });
       }
     });
     if (updates.length) {
