@@ -266,14 +266,21 @@
     }, 2000);
   }
 
-  // Clamp zoom + pan by visible-node count: never zoom out past half the
-  // (non-orphan) nodes, never zoom/pan in to fewer than 2. vis-network has no
-  // node-count zoom bound, so count the nodes inside the viewport rect on each
-  // USER zoom/drag and snap back to the last in-bounds view when a gesture
-  // breaks a bound. Programmatic camera moves (tour focus, our own snap-back)
-  // fire `zoom` with params.event == null and are skipped, so the clamp never
-  // fights them.
+  // Hard zoom/pan walls: the camera STOPS at the threshold rather than
+  // snapping back. vis-network has no node-count zoom bound, so translate the
+  // intent into scale + pan bounds and clamp them in place on each USER
+  // gesture:
+  //   - zoom OUT wall: viewport world-area <= half the node-cloud area, so at
+  //     most ~half the nodes are ever in frame  -> a minimum scale.
+  //   - zoom IN wall: viewport world-area >= 2 nodes' worth of area, so >= ~2
+  //     nodes stay in frame  -> a maximum scale.
+  //   - pan wall: the viewport centre is clamped to the node bounding box, so
+  //     the cloud can't be dragged off-screen.
+  // Bounds are recomputed live from current node positions (the layout keeps
+  // breathing). Programmatic camera moves (tour focus) fire `zoom`/`dragEnd`
+  // with params.event == null and are left alone.
   var MIN_VISIBLE = 2;
+  var MAX_VISIBLE_FRACTION = 0.5;
 
   function setupZoomLimits() {
     if (typeof network === 'undefined' || typeof nodesDS === 'undefined') {
@@ -289,73 +296,68 @@
         liveIds.push(n.id);
       }
     });
-    if (liveIds.length < MIN_VISIBLE) {
+    if (liveIds.length <= MIN_VISIBLE / MAX_VISIBLE_FRACTION) {
       return;
     }
-    var maxVisible = Math.max(MIN_VISIBLE, Math.floor(liveIds.length / 2));
-    var good = null;     // last view within [MIN_VISIBLE, maxVisible]
-    var fixing = false;  // re-entrancy guard for our own moveTo
+    var clamping = false;   // re-entrancy guard for our own moveTo
 
-    function view() {
-      return { scale: network.getScale(), position: network.getViewPosition() };
-    }
-
-    function visibleCount() {
-      var scale = network.getScale();
-      var c = network.getViewPosition();
-      var hw = (container.clientWidth / scale) / 2;
-      var hh = (container.clientHeight / scale) / 2;
+    // Live node bounding box + scale walls derived from it. Recomputed each
+    // gesture so the walls track the breathing layout.
+    function bounds() {
       var pos = network.getPositions(liveIds);
-      var n = 0;
+      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (var id in pos) {
         var p = pos[id];
-        if (p.x >= c.x - hw && p.x <= c.x + hw &&
-            p.y >= c.y - hh && p.y <= c.y + hh) {
-          n += 1;
-        }
+        if (p.x < minX) { minX = p.x; }
+        if (p.x > maxX) { maxX = p.x; }
+        if (p.y < minY) { minY = p.y; }
+        if (p.y > maxY) { maxY = p.y; }
       }
-      return n;
+      var area = Math.max((maxX - minX) * (maxY - minY), 1);
+      var vp = container.clientWidth * container.clientHeight;
+      var n = liveIds.length;
+      // viewport world-area = vp / scale^2; cap it at half the cloud area
+      // (zoom-out wall) and floor it at 2/n of the cloud area (zoom-in wall).
+      return {
+        minX: minX, maxX: maxX, minY: minY, maxY: maxY,
+        minScale: Math.sqrt(vp / (area * MAX_VISIBLE_FRACTION)),
+        maxScale: Math.sqrt(vp / (area * (MIN_VISIBLE / n))),
+      };
     }
 
-    function enforce() {
-      if (fixing) {
+    function clamp(v, lo, hi) {
+      return Math.max(lo, Math.min(hi, v));
+    }
+
+    function clampView() {
+      if (clamping) {
         return;
       }
-      var n = visibleCount();
-      if (n >= MIN_VISIBLE && n <= maxVisible) {
-        good = view();
+      var b = bounds();
+      var scale = network.getScale();
+      var pos = network.getViewPosition();
+      var cs = clamp(scale, b.minScale, b.maxScale);
+      var cx = clamp(pos.x, b.minX, b.maxX);
+      var cy = clamp(pos.y, b.minY, b.maxY);
+      if (cs === scale && cx === pos.x && cy === pos.y) {
         return;
       }
-      fixing = true;
-      if (good) {
-        network.moveTo(good);   // snap back to last in-bounds view
-      } else {
-        // nothing banked yet — nudge toward valid: zoom IN when too far out
-        // (> half), zoom OUT when too far in (< 2).
-        network.moveTo({ scale: network.getScale() * (n > maxVisible ? 1.3 : 0.77) });
-      }
-      setTimeout(function () { fixing = false; }, 0);
+      clamping = true;
+      network.moveTo({ scale: cs, position: { x: cx, y: cy } });
+      setTimeout(function () { clamping = false; }, 0);
     }
 
     network.on('zoom', function (params) {
       if (params && params.event) {   // user wheel/pinch only, not programmatic
-        enforce();
+        clampView();
       }
     });
     network.on('dragEnd', function (params) {
       if (params && params.nodes && params.nodes.length) {
         return;   // dragging a node, not panning the canvas
       }
-      enforce();
+      clampView();
     });
-
-    // Bank a baseline once the load cover lifts + the tour has framed a cluster.
-    setTimeout(function () {
-      var n = visibleCount();
-      if (n >= MIN_VISIBLE && n <= maxVisible) {
-        good = view();
-      }
-    }, 3600);
   }
 
   // Cover the graph for 3s with a simple loading bar so the layout settles
