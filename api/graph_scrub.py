@@ -1,12 +1,19 @@
 """Serve-time scrubbing of graphify's /graph page.
 
-graph.html is regenerated wholesale by /graphify, so anything we want kept out
-of the public graph is applied per request against its embedded RAW_NODES /
-RAW_EDGES / LEGEND arrays (same survives-rebuild rationale as the improvedLayout
-patch in routes_views). Two transforms live here:
+graph.html is regenerated wholesale by /graphify (and by the post-commit watch
+rebuild), so anything we want kept out of the public graph is applied per
+request against its embedded RAW_NODES / RAW_EDGES / LEGEND arrays (same
+survives-rebuild rationale as the improvedLayout patch in routes_views). Two
+transforms live here:
 
 - `_redact_graph_nodes`: blank a few leaky per-node summaries to "[redacted]".
 - `_drop_graph_book_nodes`: cut the Pollack tarot reference book wholesale.
+
+graphify emits each array as a single physical line, so we anchor on the line
+(`^NAME = [...];$`, greedy within the line). A non-greedy `\\[.*?\\]` would stop
+at the first `];` — which can occur *inside* a node title/docstring — and parse
+a truncated, invalid array. The `const ` prefix is optional: the full /graphify
+build emits `const LEGEND`, the watch rebuild emits bare `LEGEND`.
 """
 import re
 import json
@@ -28,58 +35,61 @@ _GRAPH_REDACT_IDS = {
 _GRAPH_DROP_SOURCE_PREFIX = "api/tarot/book/"
 
 
+def _array_re(name: str) -> "re.Pattern":
+    """Match `[const |var |let ]NAME = [ ... ];` on its own line. Group 1 is the
+    assignment prefix (preserved on replace), group 2 is the array literal."""
+    return re.compile(
+        r"^((?:const |var |let )?" + re.escape(name) + r" = )(\[.*\]);$",
+        re.MULTILINE,
+    )
+
+
+def _read_array(page: str, name: str):
+    """Return the parsed array for `name`, or None if absent/unparseable."""
+    m = _array_re(name).search(page)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(2))
+    except ValueError:
+        return None
+
+
+def _sub_json_array(page: str, name: str, transform) -> str:
+    """Find the `name` array, json-parse it, apply `transform`, splice the result
+    back (keeping the original assignment prefix). No-op if absent/unparseable."""
+    m = _array_re(name).search(page)
+    if not m:
+        return page
+    try:
+        arr = json.loads(m.group(2))
+    except ValueError:
+        return page
+    return page.replace(
+        m.group(0),
+        m.group(1) + json.dumps(transform(arr), ensure_ascii=False) + ";",
+        1,
+    )
+
+
 def _redact_graph_nodes(page: str) -> str:
     """Blank the label+title of every _GRAPH_REDACT_IDS node to "[redacted]" in
-    graphify's embedded RAW_NODES array. No-op if the array is absent/unparseable
-    or nothing matched."""
-    m = re.search(r"RAW_NODES = (\[.*?\]);", page, re.DOTALL)
-    if not m:
-        return page
-    try:
-        nodes = json.loads(m.group(1))
-    except ValueError:
-        return page
-    changed = False
-    for n in nodes:
-        if n.get("id") in _GRAPH_REDACT_IDS:
-            n["label"] = n["title"] = "[redacted]"
-            changed = True
-    if not changed:
-        return page
-    return page.replace(
-        m.group(0),
-        "RAW_NODES = " + json.dumps(nodes, ensure_ascii=False) + ";",
-        1,
-    )
+    graphify's embedded RAW_NODES array."""
+    def _redact(nodes):
+        for n in nodes:
+            if n.get("id") in _GRAPH_REDACT_IDS:
+                n["label"] = n["title"] = "[redacted]"
+        return nodes
 
-
-def _sub_json_array(page: str, prefix: str, transform) -> str:
-    """Find `<prefix> = [...];`, json-parse the array, apply `transform` to it,
-    and splice the result back. No-op if the array is absent or unparseable."""
-    m = re.search(re.escape(prefix) + r" = (\[.*?\]);", page, re.DOTALL)
-    if not m:
-        return page
-    try:
-        arr = json.loads(m.group(1))
-    except ValueError:
-        return page
-    return page.replace(
-        m.group(0),
-        prefix + " = " + json.dumps(transform(arr), ensure_ascii=False) + ";",
-        1,
-    )
+    return _sub_json_array(page, "RAW_NODES", _redact)
 
 
 def _drop_graph_book_nodes(page: str) -> str:
     """Remove every RAW_NODES entry whose source_file is under the tarot book
     dir, drop RAW_EDGES touching them, and prune the now-empty community rows
     from LEGEND. No-op if RAW_NODES is absent/unparseable or nothing matched."""
-    m = re.search(r"RAW_NODES = (\[.*?\]);", page, re.DOTALL)
-    if not m:
-        return page
-    try:
-        nodes = json.loads(m.group(1))
-    except ValueError:
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
         return page
     drop_ids = {
         n.get("id")
@@ -101,7 +111,19 @@ def _drop_graph_book_nodes(page: str) -> str:
     )
     page = _sub_json_array(
         page,
-        "const LEGEND",
+        "LEGEND",
         lambda rows: [r for r in rows if r.get("cid") in live_cids],
+    )
+    # Hyperedges (shaded regions) carry graphify's narrative cluster labels —
+    # e.g. "First-row forces gathered into the Chariot's ego" off the tarot
+    # book. Drop any that reference a removed node (else they dangle + keep the
+    # book's reading-trivia framing on the public graph).
+    page = _sub_json_array(
+        page,
+        "hyperedges",
+        lambda hs: [
+            h for h in hs
+            if not any(nid in drop_ids for nid in h.get("nodes", []))
+        ],
     )
     return page
