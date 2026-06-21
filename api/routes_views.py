@@ -24,6 +24,7 @@ from pages import (
 from helpers import DATA_DIR
 from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY, API_KEY
 from routes_nightfall import build_nightfall_html
+from graph_scrub import _redact_graph_nodes, _drop_graph_book_nodes
 
 
 # ── public: landing + auth ──────────────────────────────────────────────────
@@ -299,41 +300,6 @@ _GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=34"></script>'
 # desktop width and scales everything down (tiny buttons/text).
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
 
-# graphify bakes a per-node "rationale" summary from each symbol's docstring. A
-# few of those leak internals we don't want on the now-public /graph — e.g. the
-# bearer-auth design + the EXEC_SAY_KEY key name. Scrub their label+title to
-# "[redacted]" at serve time so the redaction survives /graphify rebuilds (same
-# rationale as the improvedLayout patch). Kept deliberately small — the graph is
-# otherwise just benign codebase structure.
-_GRAPH_REDACT_IDS = {
-    "api_auth_rationale_47",  # bearer-auth scheme + EXEC_SAY_KEY name
-}
-
-
-def _redact_graph_nodes(page: str) -> str:
-    """Blank the label+title of every _GRAPH_REDACT_IDS node to "[redacted]" in
-    graphify's embedded RAW_NODES array. No-op if the array is absent/unparseable
-    or nothing matched."""
-    m = re.search(r"RAW_NODES = (\[.*?\]);", page, re.DOTALL)
-    if not m:
-        return page
-    try:
-        nodes = json.loads(m.group(1))
-    except ValueError:
-        return page
-    changed = False
-    for n in nodes:
-        if n.get("id") in _GRAPH_REDACT_IDS:
-            n["label"] = n["title"] = "[redacted]"
-            changed = True
-    if not changed:
-        return page
-    return page.replace(
-        m.group(0),
-        "RAW_NODES = " + json.dumps(nodes, ensure_ascii=False) + ";",
-        1,
-    )
-
 
 @public.get("/graph", response_class=HTMLResponse)
 async def graph_page(request: Request):
@@ -353,6 +319,7 @@ async def graph_page(request: Request):
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     page = p.read_text()
     page = _redact_graph_nodes(page)
+    page = _drop_graph_book_nodes(page)
     # Disable vis-network's improvedLayout — the graph is too large for it to
     # position (it warns + costs perf). Patched here so it survives /graphify.
     page = page.replace(
