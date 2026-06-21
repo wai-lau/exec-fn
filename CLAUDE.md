@@ -309,7 +309,7 @@ ADHD activation scaffolding: a card placed on today's timeline gets a nudge at i
 5. **GCal import** — pull calendar events 14 days ahead as cards
 6. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
 7. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
-8. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today, then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout
+8. Roll past-dated `scheduled_day` on rd/hq non-event cards forward to today (events don't roll — a past event already happened), auto-promote rd cards with a `due_date` inside the 7-day window to hq (rd->hq via `schedule_to_day`; **events included** — they promote but never time-nudge), then `scheduler.layout_day()` autostacks carryover + unpinned today cards from 10 AM (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout
 9. Clear `chat.json`
 10. Dedupe `profile.json` notes
 
