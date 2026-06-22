@@ -2,59 +2,82 @@ import asyncio
 import json
 from typing import AsyncGenerator
 
-from mtg.prompt import SYSTEM
+from mtg.prompt import SYSTEM, SUMMARIZE
 from mtg.tools import TOOL_FNS, TOOLS
+
+_MODEL = "claude-opus-4-8"
+
+
+def _err(e) -> str:
+    return f"data: {json.dumps({'type': 'text', 'delta': f'[error: {e}]'})}\n\n"
 
 
 async def stream_chat(messages: list) -> AsyncGenerator[str, None]:
+    """Two passes. Pass 1 (research) runs the tool loop with its prose discarded —
+    only the lookup chips surface, so the player never sees the model think out
+    loud or reverse itself. Pass 2 (summarize) is the only streamed prose: one
+    committed verdict synthesized from the gathered context."""
     import anthropic
 
     client = anthropic.AsyncAnthropic()
     messages = list(messages)
 
-    had_text = False
-    for _ in range(8):  # max tool-call rounds
-        final = None
-        round_started = False
-        try:
-            async with client.messages.stream(
-                model="claude-opus-4-8",
+    # ── Pass 1: research (hidden) ──────────────────────────────────────────────
+    try:
+        for _ in range(8):  # max tool-call rounds
+            resp = await client.messages.create(
+                model=_MODEL,
                 max_tokens=4096,
                 system=SYSTEM,
                 tools=TOOLS,
                 messages=messages,
-            ) as stream:
-                async for text in stream.text_stream:
-                    if not round_started and had_text:
-                        yield f"data: {json.dumps({'type': 'text', 'delta': '\n\n'})}\n\n"
-                    round_started = True
-                    had_text = True
-                    yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-                final = await stream.get_final_message()
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'text', 'delta': f'[error: {e}]'})}\n\n"
-            break
+            )
+            messages.append({
+                "role": "assistant",
+                "content": [
+                    {"type": "text", "text": b.text} if b.type == "text"
+                    else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
+                    for b in resp.content if b.type in ("text", "tool_use")
+                ],
+            })
 
-        assistant_content = [
-            {"type": "text", "text": b.text} if b.type == "text"
-            else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
-            for b in final.content if b.type in ("text", "tool_use")
-        ]
-        messages.append({"role": "assistant", "content": assistant_content})
+            tool_results = []
+            for block in resp.content:
+                if block.type != "tool_use":
+                    continue
+                fn = TOOL_FNS.get(block.name)
+                result = await asyncio.to_thread(fn, block.input) if fn else {"error": "unknown tool"}
+                count = result.get("count", len(result.get("rulings", result.get("cards", []))))
+                yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'count': count})}\n\n"
+                tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
 
-        tool_results = []
-        for block in final.content:
-            if block.type != "tool_use":
-                continue
-            fn = TOOL_FNS.get(block.name)
-            result = await asyncio.to_thread(fn, block.input) if fn else {"error": "unknown tool"}
-            count = result.get("count", len(result.get("rulings", result.get("cards", []))))
-            yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'count': count})}\n\n"
-            tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
+            if not tool_results:
+                break
+            messages.append({"role": "user", "content": tool_results})
+    except Exception as e:
+        yield _err(e)
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        return
 
-        if not tool_results:
-            break
+    # ── Pass 2: summarize (the only visible prose) ─────────────────────────────
+    # Deliver the summarize instruction inside a user turn: append to the trailing
+    # tool_results turn if the loop ended there, else add a fresh user turn.
+    last = messages[-1] if messages else None
+    if last and last["role"] == "user" and isinstance(last["content"], list):
+        last["content"].append({"type": "text", "text": SUMMARIZE})
+    else:
+        messages.append({"role": "user", "content": SUMMARIZE})
 
-        messages.append({"role": "user", "content": tool_results})
+    try:
+        async with client.messages.stream(
+            model=_MODEL,
+            max_tokens=2048,
+            system=SYSTEM,
+            messages=messages,
+        ) as stream:
+            async for text in stream.text_stream:
+                yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
+    except Exception as e:
+        yield _err(e)
 
     yield f"data: {json.dumps({'type': 'done'})}\n\n"

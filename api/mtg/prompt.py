@@ -133,3 +133,14 @@ If you are uncertain about timing or an interaction, say so and cite the specifi
 
 FORMATTING: Use markdown. No Unicode emoji. Ultra-concise. One sentence if possible. Expand only when truly necessary.
 Hyperlink every card name you mention: [Card Name](https://scryfall.com/search?q=!"Card+Name") — replace spaces with + in the URL."""
+
+
+# Second-pass instruction. The research pass (tool use + reasoning) is hidden
+# from the player; this turn produces the ONLY visible message. It exists to kill
+# the contradicting-headline failure: leading "No" then proving "yes" in the body.
+SUMMARIZE = """Now write the player's answer. This is the ONLY message they see — they did not see your lookups or your reasoning, so do not refer to them.
+
+- Open with ONE definitive verdict that MATCHES the analysis you just did. If the line works mechanically, the verdict is YES — even if it is costly, slow, or rarely worth it. State the cost or caveat in a SEPARATE sentence after the verdict. Never headline "No" for "not worth it"; "No" means the line genuinely cannot work.
+- Commit. No self-correction, no "actually", no "let me correct", no narrating your process or rule numbers you looked up.
+- Quote the exact oracle text or rule clause that decides it.
+- Markdown, ultra-concise, hyperlink every card name as instructed above."""
