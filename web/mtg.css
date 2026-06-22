@@ -26,3 +26,21 @@
   background:hsl(var(--green-hsl) / 0.12); border:1px solid hsl(var(--green-hsl) / 0.12);
   border-radius:10px;
 }
+
+/* rule citations: cyan dotted marker (distinct from the green card refs) */
+.msg.assistant .rule-ref {
+  text-decoration:underline dotted hsl(var(--cyan-hsl) / 0.45); text-underline-offset:3px;
+  color:hsl(var(--cyan-hsl) / 0.8); cursor:pointer;
+}
+.msg.assistant .rule-ref:hover { text-decoration:underline hsl(var(--cyan-hsl) / 1); color:hsl(var(--cyan-hsl)); }
+
+#rule-tooltip {
+  position:fixed; z-index:9999; pointer-events:none; display:none;
+  max-width:360px; max-height:45vh; overflow:hidden;
+  padding:10px 12px; border-radius:8px;
+  background:rgba(10,10,10,0.95); border:1px solid hsl(var(--cyan-hsl) / 0.45);
+  color:hsl(var(--green-hsl) / 1);
+  font-family:'Iosevka Mayukai Monolite', monospace; font-size:0.78rem; line-height:1.45;
+  white-space:pre-wrap; overflow-wrap:anywhere;
+  filter:drop-shadow(0 4px 18px rgba(0,0,0,0.7));
+}

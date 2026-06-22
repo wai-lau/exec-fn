@@ -42,6 +42,7 @@ function addMsg(role, text) {
     const body = document.createElement('div');
     body.className = 'msg-body';
     body.innerHTML = renderText(text);
+    if (role === 'assistant') _linkifyRules(body);
     div.appendChild(body);
   } else {
     div.textContent = text;
@@ -124,7 +125,13 @@ async function streamResponse() {
     }
 
     cur.remove();
-    if (fullText) messages.push({role:'assistant', content: fullText});
+    if (fullText) {
+      // Re-render the settled text once and wrap rule citations — done here, not
+      // per-delta, so half-typed numbers don't flicker as hover targets.
+      body.innerHTML = renderText(fullText);
+      _linkifyRules(body);
+      messages.push({role:'assistant', content: fullText});
+    }
   } catch(e) {
     cur.remove();
     div.textContent = '[error: ' + e.message + ']';
@@ -289,3 +296,99 @@ terminal.addEventListener('mouseout', e => {
     _tooltip.style.display = 'none';
   }
 });
+
+// ── Comprehensive-rule hover/tap preview ───────────────────────────────────
+// Wrap rule citations in assistant text so they get a text-popup like the card
+// image preview. Conservative match: a number with a sub-part (724.1b) is always
+// a rule; a bare 3-digit number only counts when preceded by the word "rule"
+// (so life totals / mana / years don't become targets).
+const _RULE_RE = /\b(rule\s+)?(\d{3}(?:\.\d+[a-z]?)?)\b/gi;
+
+function _linkifyRules(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const targets = [];
+  let n;
+  while ((n = walker.nextNode())) {
+    if (n.parentElement.closest('a, code, pre, [data-card], [data-rule]')) continue;
+    _RULE_RE.lastIndex = 0;
+    if (_RULE_RE.test(n.nodeValue)) targets.push(n);
+  }
+  for (const node of targets) {
+    const text = node.nodeValue;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    _RULE_RE.lastIndex = 0;
+    while ((m = _RULE_RE.exec(text))) {
+      const prefix = m[1] || '', num = m[2];
+      if (!m[1] && !num.includes('.')) continue;  // bare number, no "rule" — skip
+      const start = m.index + prefix.length;       // keep "rule " as plain text
+      if (start > last) frag.appendChild(document.createTextNode(text.slice(last, start)));
+      const span = document.createElement('span');
+      span.className = 'rule-ref';
+      span.dataset.rule = num;
+      span.textContent = num;
+      frag.appendChild(span);
+      last = start + num.length;
+    }
+    if (!last) continue;
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  }
+}
+
+const _ruleTip = document.getElementById('rule-tooltip');
+const _ruleCache = {};
+let _rulePinned = false, _ruleTipEl = null;
+
+function _positionRuleTip(e) {
+  const pad = 14;
+  const r = _ruleTip.getBoundingClientRect();
+  const w = r.width || 320, h = r.height || 80;
+  let x = e.clientX + pad;
+  if (x + w > window.innerWidth - 8) x = Math.max(8, e.clientX - pad - w);
+  let y = e.clientY + pad;
+  if (y + h > window.innerHeight - 8) y = Math.max(8, e.clientY - pad - h);
+  _ruleTip.style.left = x + 'px';
+  _ruleTip.style.top = y + 'px';
+}
+
+function _hideRuleTip() { _ruleTip.style.display = 'none'; _rulePinned = false; _ruleTipEl = null; }
+
+async function _showRule(number, e) {
+  _ruleTip.textContent = 'looking up ' + number + '...';
+  _ruleTip.style.display = 'block';
+  _positionRuleTip(e);
+  if (_ruleCache[number] === undefined) {
+    try {
+      const r = await fetch('/api/mtg/rule/' + encodeURIComponent(number));
+      _ruleCache[number] = r.ok ? await r.json() : null;
+    } catch { _ruleCache[number] = null; }
+  }
+  const data = _ruleCache[number];
+  _ruleTip.textContent = (data && data.text) ? data.text.slice(0, 1500) : number + ': not found';
+  _positionRuleTip(e);
+}
+
+terminal.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-rule]');
+  if (el && el.closest('.msg.assistant') && !_rulePinned) { _showRule(el.dataset.rule, e); el._mtgRuleActive = true; }
+});
+terminal.addEventListener('mousemove', e => {
+  const el = e.target.closest('[data-rule]');
+  if (el && el._mtgRuleActive && !_rulePinned) _positionRuleTip(e);
+});
+terminal.addEventListener('mouseout', e => {
+  const el = e.target.closest('[data-rule]');
+  if (el && el._mtgRuleActive) { el._mtgRuleActive = false; if (!_rulePinned) _ruleTip.style.display = 'none'; }
+});
+// Tap (mobile) / click pins the preview open; tapping the same ref or anywhere
+// else closes it.
+terminal.addEventListener('click', e => {
+  const el = e.target.closest('[data-rule]');
+  if (!el || !el.closest('.msg.assistant')) return;
+  e.stopPropagation();
+  if (_rulePinned && _ruleTipEl === el) { _hideRuleTip(); return; }
+  _rulePinned = true; _ruleTipEl = el;
+  _showRule(el.dataset.rule, e);
+});
+document.addEventListener('click', () => { if (_rulePinned) _hideRuleTip(); });

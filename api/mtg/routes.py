@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
@@ -8,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from mtg.agent import stream_chat
+from mtg.lookup import lookup_rule
 
 router = APIRouter()
 
@@ -77,6 +79,19 @@ async def _stream_and_log(session_id: str, messages: list) -> AsyncGenerator[str
             pass
     if user_msg or assistant_text:
         _append_exchange(session_id, user_msg, "".join(assistant_text))
+
+
+@router.get("/api/mtg/rule/{number}")
+async def api_mtg_rule(number: str):
+    """Rule text for the hover/tap preview. Looks up by number (e.g. 724.1b)."""
+    res = await asyncio.to_thread(lookup_rule, number)
+    rules = res.get("rules", [])
+    return {
+        "number": number,
+        "text": "\n".join(rules),
+        "count": res.get("count", len(rules)),
+        "error": res.get("error"),
+    }
 
 
 @router.get("/api/mtg/log")
