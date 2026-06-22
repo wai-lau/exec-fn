@@ -60,6 +60,7 @@ exec-fn/
     recruiter.css         # public /recruiter résumé page — LIGHT theme; page-local --cv-* tokens = deepened legible shades of brand hues (green 135 / cyan 188) on off-white card
     recruiter.js          # /recruiter: (1) dark-mode toggle (#cv-theme) — flips html.cv-dark token overrides + injects tarot CRT overlay (.cyber-bg/.cyber-scan), persisted in localStorage; (2) blurb type-out — blanks .cv-summary then re-types it at ~tarot reading pace behind a .cv-caret that vanishes when done. A .cv-fake span's data-decoy types+backspaces a decoy before the real text. Click the blurb to skip to final text. Reduced-motion = instant blurb, no caret
     guru-pink.png         # pink Guru sprite (glasses) — Exec bubble icon
+    exec-todos.js         # exec-panel scratch todo list (top section): GET/POST/DELETE /api/todos. window.execBuildTodos(panel) called by exec-bubble.js after buildPanel(); shares its global scope. Items DELETED on checkbox (separate from rd.json cards, which archive)
     # nav icons (27x27 program art): seeker(core) sentinel(profs)
     #   bug(debug) laser-satellite(graph) golem-stone(emet) data-doctor(color) hack2(night)
     #   wizard(mtg) watchman(tarot)   (turbo/bitman/fiddle.png now unused)
@@ -71,7 +72,7 @@ exec-fn/
     pages.py              # page composition: _build_nav(), _render_page() (cached chrome HTML by mtime), _index_pages(), _tmpl() (per-request template read), nav constants/icons/labels
     routes_views.py       # HTML page routes (landing/login/guest/recruiter, prophecies/debug/color/graph/emet/rd/mtg/tarot/nightfall) + read-only view-data GETs (color/usage, debug/logs, tarot/readings, moltbook log) + /data file serving
     graph_scrub.py        # serve-time scrubbing of graphify's /graph HTML (imported by graph_page): _redact_graph_nodes() blanks leaky node summaries; _drop_graph_book_nodes() cuts the api/tarot/book/ Pollack reference nodes + their edges/legend rows/hyperedges (the narrative "shaded region" clusters off the book, e.g. "...gathered into the Chariot's ego"). Per-line anchored array match (^NAME = [...];$, optional const/var/let) — a non-greedy [.*?] would truncate at a `];` inside a node title. Runs per request so edits survive /graphify rebuilds
-    routes_api.py         # JSON API routes: card CRUD (/api/rd GET+PATCH+recalc), morning, prophecies, classify, profile/context, gcal, parse_date, monitor stream/flush, nudge tick. Holds _atomic_write_json/_log_entries_for_patch/_minutes_late/_recompute_node_deadlines/_flag_triage
+    routes_api.py         # JSON API routes: card CRUD (/api/rd GET+PATCH+recalc), morning, prophecies, classify, profile/context, todos (exec scratch list), gcal, parse_date, monitor stream/flush, nudge tick. Holds _atomic_write_json/_log_entries_for_patch/_minutes_late/_recompute_node_deadlines/_flag_triage
     auth.py               # SESSION_TOKEN, GUEST_SESSION_TOKEN; require_auth + require_guest_auth deps
     morning.py            # morning pipeline (build_morning): retrospective, purge stale notes, archive log, roll+restack, reconcile
     scheduler.py          # single home for scheduling: schedule_to_day() (canonical rd->hq promotion + scheduled_day on due day, shared by morning pipeline + exec chat), layout_day() (cron autostack entry point), place_card_today() (intraday slot >= now). SCHED_WINDOW_DAYS=6 (7-day window)
@@ -133,6 +134,7 @@ exec-fn/
       moltbook-heartbeat.log  # moltbook heartbeat ledger (archived each morning)
       tarot_readings.json     # saved tarot readings (appended by /api/tarot/save on reset; owner-only — logged-in Wai)
       recalibration.json      # {categories:{<cat>:{factor,samples,updated}}} — per-category lateness EMA; written by morning recalibrate step, read by nudge._factor()
+      exec_todos.json         # {items:[{id,text}]} — exec-panel scratch todo list; lightweight, separate from rd.json (checkbox = delete, not archive). GET/POST/DELETE /api/todos
 ```
 
 ---
@@ -165,7 +167,7 @@ Two cookie auth tiers:
 
 Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`. `/guest` `next` param is allowlisted (`/mtg`, `/tarot`, `/nightfall` only); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects protected pages to `/login?next=`, guest pages (`/mtg`, `/tarot`) to `/guest?next=`. Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
 
-Nav: `core` · `prophecies` · `debug` · `graph` · `emet` · `color` · `nightfall` · `mtg` · `tarot` · `cv` (→`/recruiter`) — bottom nav, all pages. **Exec** is NOT a nav entry — it's a floating draggable bubble (`#exec-bubble`, `guru-pink.png` glasses icon, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()` ONLY on the planning routes (`/rd` core + `/prophecies` dirs) for non-guests. Clicking/tapping the bubble toggles the Exec chat panel. No `/exec` route. Unread monitor count shows as a badge on the bubble. Appending `?exec=open` to core/prophecies opens the chat expanded on load. Bubble position persists in `localStorage` (`exec-bpos`), clamped to viewport. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
+Nav: `core` · `prophecies` · `debug` · `graph` · `emet` · `color` · `nightfall` · `mtg` · `tarot` · `cv` (→`/recruiter`) — bottom nav, all pages. **Exec** is NOT a nav entry — it's a floating draggable bubble (`#exec-bubble`, `guru-pink.png` glasses icon, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()` ONLY on the planning routes (`/rd` core + `/prophecies` dirs) for non-guests. Clicking/tapping the bubble toggles the Exec chat panel. The panel's top section is a server-persisted scratch **todo list** (`exec-todos.js`, `exec_todos.json`) — sizes to its content up to half the panel, then scrolls; an add-input sits at the top, a clear divider line under the list, and the chat fills the rest below. Items are DELETED on checkbox (distinct from rd.json cards, which archive). No `/exec` route. Unread monitor count shows as a badge on the bubble. Appending `?exec=open` to core/prophecies opens the chat expanded on load. Bubble position persists in `localStorage` (`exec-bpos`), clamped to viewport. (The standalone `/directives` timeline page was removed — the timeline now lives in the prophecies today column.)
 
 ### Pages
 
@@ -195,6 +197,9 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `emet` · `color` · `night
 | GET | `/api/profile` | Returns profile.json |
 | PATCH | `/api/context` | Replace profile.json `notes` field. Atomic write. |
 | GET/POST/DELETE | `/api/chat` | Exec chat history (planning SSE). |
+| GET | `/api/todos` | Exec-panel scratch todo list (`exec_todos.json`): `{items:[{id,text}]}`. |
+| POST | `/api/todos` | Add a todo. Body `{text}` → appends `{id,text}`, returns the item. 400 on empty. |
+| DELETE | `/api/todos/{id}` | Delete a todo (checkbox = delete, not archive). |
 | GET | `/api/monitor/stream` | SSE stream — exec-bubble live updates: `{thinking}` / `{comment}` payloads as significant activity rolls in. |
 | POST | `/api/monitor/flush` | Force-fire the monitor immediately if there is significant activity since the last comment (bypasses 60s debounce). |
 | GET | `/api/moltbook/heartbeat-log` | Plain text of `moltbook-heartbeat.log` (today's heartbeat ledger). |
@@ -292,7 +297,7 @@ ADHD activation scaffolding: a card placed on today's timeline gets a nudge at i
 - **Everything in hq has a plan** (`decomposable()`): each tick, hq cards missing a graph (incl. events — they can have prep steps; excl. reminders + books) get a silent decompose (`_build_graph` — no nudge sent). Events get a plan but never a time-based nudge (`_eligible` excludes them via `is_dir_card`). The breakdown is visible/editable in the card dialog (`web/card-graph.js` SVG DAG, shown when `card.nudge.graph.nodes` non-empty; per-step label, start time (-> `tl_offset`), and estimate (`est_min`) are all editable; edits persist on dialog save, `active_node` recomputed client-side with the same first-open rule).
 - **First nudge** = card's placement (`scheduled_day` @ `dir_start_min`). While unfired, `next_nudge_at` tracks the slot each tick.
 - **Fire**: decompose on first fire (one LLM call → graph + first chunk + nudge text), else nudge text for the active node. Delivered via the monitor SSE channel + `chat.json` `role=monitor` — same pipe as encouragement comments, zero frontend.
-- **Stall**: no reply within `clamp(estimate × 2.6, 45, 240)` min → peel a tinier first sub-step (no floor — "open the app" is fine), inserted as a prerequisite of the stalled node. Any exec-chat user turn counts as a reply and restarts the window.
+- **Stall**: no reply within `clamp(estimate × 2.6, 45, 240)` min → peel a tinier first sub-step (1-minute floor — "open the app and load the file" is fine, no sub-second flicks; enforced in code by `max(1, est_min)` in `apply_peel`/`_normalize_graph`), inserted as a prerequisite of the stalled node. Any exec-chat user turn counts as a reply and restarts the window.
 - **Due-date protection**: `schedule_card` refuses to defer/unschedule an active-nudge card; `record_consequences` → `reschedule_after_consequences` is the only later-day path.
 - **Morning (4:30)**: `morning_reconcile()` re-anchors placed-today cards to a fresh first nudge at the restacked slot and disarms others to `idle` (re-arm on their day); never leaves a past-dated `next_nudge_at`.
 - **Failure backoff**: per-card 5-min in-memory retry delay on LLM errors; in-flight set prevents double fire.

@@ -297,6 +297,38 @@ async def api_context_patch(request: Request):
     return {"ok": True}
 
 
+# Exec-panel scratch todo list — a lightweight, separate list from rd.json cards
+# (these are DELETED on checkbox, not archived). Lives in exec_todos.json.
+def _save_todos(data) -> None:
+    _atomic_write_json(DATA_DIR / "exec_todos.json", data)
+
+
+@protected.get("/api/todos")
+def api_todos():
+    return _load_json("exec_todos", {"items": []})
+
+
+@protected.post("/api/todos")
+async def api_todos_add(request: Request):
+    body = await request.json()
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty todo")
+    data = _load_json("exec_todos", {"items": []})
+    item = {"id": f"todo-{int(time.time() * 1000)}", "text": text}
+    data.setdefault("items", []).append(item)
+    _save_todos(data)
+    return item
+
+
+@protected.delete("/api/todos/{todo_id}")
+def api_todos_delete(todo_id: str):
+    data = _load_json("exec_todos", {"items": []})
+    data["items"] = [t for t in data.get("items", []) if t.get("id") != todo_id]
+    _save_todos(data)
+    return {"ok": True}
+
+
 @protected.get("/api/gcal/auth")
 def api_gcal_auth():
     try:
