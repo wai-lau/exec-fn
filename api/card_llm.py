@@ -48,7 +48,7 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
         duration_hint = f" The task takes ~{estimated_minutes} minutes."
     client = anthropic.Anthropic()
     msg = client.messages.create(
-        model="claude-opus-4-8",
+        model="claude-haiku-4-5",
         max_tokens=64,
         system=(
             f"Now is {today} ET.{duration_hint} "
