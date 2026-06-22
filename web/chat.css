@@ -64,9 +64,10 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 #input-display { display:none; }
 #input-cursor { display:none; }
 
+/* typed text reads white to match the sent .msg.user; caret stays green */
 #msg-input {
   width:100%; background:none; border:none;
-  color:hsl(var(--green-hsl) / 1); caret-color:hsl(var(--green-hsl) / 1);
+  color:rgba(255,255,255,0.75); caret-color:hsl(var(--green-hsl) / 1);
   font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.82rem;
   padding:0; outline:none; position:relative;
   line-height:1.45; min-height:1.45em; overflow-wrap:anywhere;
