@@ -2,10 +2,6 @@
    below: mtg-only — full-width scrollback + Scryfall card hovers */
 .msg { max-width:none; }
 
-/* Cap the contenteditable so a big paste scrolls instead of growing the
-   input bar tall enough to collapse #terminal (pinned to --input-h). */
-#msg-input { max-height:35vh; overflow-y:auto; }
-
 /* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
    native keyboard animation). --kb rides the keyboard; --input-h the bar. */
 #terminal { inset:0 0 calc(max(var(--nav-h,56px), var(--kb,0px)) + var(--input-h,48px)) !important; }
