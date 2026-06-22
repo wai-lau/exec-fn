@@ -94,6 +94,32 @@ def lookup_rulings(oracle_id: str) -> dict:
     return {"oracle_id": oracle_id, "rulings": comments, "count": len(comments)}
 
 
+def _stem(word: str) -> str:
+    """Strip a common suffix so a query word matches the rule's root form."""
+    for suf in ("ing", "ed", "es", "s"):
+        if word.endswith(suf) and len(word) - len(suf) >= 3:
+            return word[: -len(suf)]
+    return word
+
+
+def _keyword_rules(lines: list[str], query: str) -> list[str]:
+    """Rule lines ranked by how many distinct (stemmed) query keywords each holds,
+    best first. Never requires all keywords in one line — that AND returned 0 for
+    over-specified queries. Stems let "targeted"/"countered" match "target"/"counter"."""
+    stems = [_stem(k) for k in query.lower().split()]
+    rule_line = re.compile(r"^\d{3}\.")
+    scored = []
+    for line in lines:
+        if not rule_line.match(line):
+            continue
+        low = line.lower()
+        hits = sum(1 for s in stems if s in low)
+        if hits:
+            scored.append((hits, line))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    return [line for _, line in scored]
+
+
 def lookup_rule(query: str) -> dict:
     query = query.strip()
     if not RULES_PATH.exists():
@@ -121,20 +147,5 @@ def lookup_rule(query: str) -> dict:
             results = [line for line in lines if pat.match(line)]
         return {"query": query, "rules": results[:60], "count": len(results)}
 
-    keywords = query.lower().split()
-    rule_line = re.compile(r"^\d{3}\.")
-    # Rank by how many distinct query keywords a rule line contains rather than
-    # requiring ALL of them in one line — that AND returned 0 for over-specified
-    # queries (e.g. "ward countered targeted", whose words live on separate
-    # lines). Best matches first; stable order (rule-number) within a score.
-    scored = []
-    for line in lines:
-        if not rule_line.match(line):
-            continue
-        low = line.lower()
-        hits = sum(1 for k in keywords if k in low)
-        if hits:
-            scored.append((hits, line))
-    scored.sort(key=lambda t: t[0], reverse=True)
-    results = [line for _, line in scored]
+    results = _keyword_rules(lines, query)
     return {"query": query, "rules": results[:30], "count": len(results)}
