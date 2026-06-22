@@ -47,6 +47,7 @@ tmux-*.log
 dist/
 .venv/
 venv/
+.pytest_cache/
 .DS_Store
 docker-compose.override.yml
 audio-wav/

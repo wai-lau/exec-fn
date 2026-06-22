@@ -1,0 +1,71 @@
+"""Smoke-test fixtures.
+
+These run against the LIVE app (the running container on :8080), not an
+imported FastAPI instance — a smoke test's job is to prove the deployed
+artifact actually serves: real templates render, graphify-out + emet data are
+present, routes are wired. Override the target with SMOKE_BASE_URL.
+
+Auth uses the Bearer-token path (`Authorization: Bearer <key>`), which both
+require_auth and require_guest_auth accept. The cookie login sets a Secure
+cookie, which httpx won't replay over plain-HTTP localhost — Bearer sidesteps
+that entirely and is the cleaner header auth for a test client.
+"""
+import os
+from pathlib import Path
+
+import httpx
+import pytest
+
+BASE_URL = os.environ.get("SMOKE_BASE_URL", "http://localhost:8080")
+_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+
+
+def _key(name: str) -> str | None:
+    """Env var first; fall back to the repo .env (same host, same secrets)."""
+    if os.environ.get(name):
+        return os.environ[name]
+    if _ENV_FILE.exists():
+        for line in _ENV_FILE.read_text().splitlines():
+            line = line.strip()
+            if line.startswith(f"{name}="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return None
+
+
+API_KEY = _key("API_KEY")
+GUEST_KEY = _key("GUEST_KEY") or "REDACTED_ROTATED_KEY"
+
+
+@pytest.fixture(scope="session")
+def base_url() -> str:
+    """Probe the live app once; skip the whole suite if it isn't reachable."""
+    try:
+        httpx.get(f"{BASE_URL}/login", timeout=5.0)
+    except httpx.HTTPError as e:
+        pytest.skip(f"app not reachable at {BASE_URL}: {e}")
+    return BASE_URL
+
+
+@pytest.fixture
+def client(base_url: str):
+    # follow_redirects=False so a 401->/login redirect is asserted as the 302
+    # it is, not silently followed to the 200 login page.
+    with httpx.Client(base_url=base_url, follow_redirects=False, timeout=15.0) as c:
+        yield c
+
+
+@pytest.fixture
+def admin_headers() -> dict:
+    if not API_KEY:
+        pytest.skip("API_KEY not set (env or .env) — cannot auth as admin")
+    return {"Authorization": f"Bearer {API_KEY}", "Accept": "text/html"}
+
+
+@pytest.fixture
+def guest_headers() -> dict:
+    return {"Authorization": f"Bearer {GUEST_KEY}", "Accept": "text/html"}
+
+
+# A browser GET sends this; it's what flips the 401 handler from JSON to a
+# login redirect, so the no-auth page tests must send it.
+HTML_ACCEPT = {"Accept": "text/html"}

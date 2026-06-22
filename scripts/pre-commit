@@ -119,6 +119,28 @@ if [ "$cap_fail" -ne 0 ]; then
   exit 1
 fi
 
+# ── Page smoke tests — only when app code changed; hits the live container. ──
+# A broken route (wrong status / 500) fails and blocks the commit. A missing
+# dev venv (fresh clone) or an unreachable app skips cleanly — the suite's
+# conftest pytest.skips when :8080 is down, so a stopped app never blocks.
+SRC_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
+if [ -n "$SRC_CHANGED" ]; then
+  PYTEST=""
+  if [ -x /exec-fn/.venv/bin/pytest ]; then
+    PYTEST=/exec-fn/.venv/bin/pytest
+  elif command -v pytest &>/dev/null; then
+    PYTEST=pytest
+  fi
+  if [ -z "$PYTEST" ]; then
+    echo "NOTE: skipping page smoke tests — no pytest. Run:"
+    echo "      python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt"
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/ -q -x; then
+    echo ""
+    echo "Page smoke tests failed — commit blocked. A page route is broken."
+    exit 1
+  fi
+fi
+
 # Docs reminder (non-blocking): substantive source changed but docs not staged.
 # The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
 # naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md.
