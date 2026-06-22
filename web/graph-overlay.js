@@ -321,8 +321,8 @@
   //   - pan wall: the viewport centre is clamped to the node bounding box, so
   //     the cloud can't be dragged off-screen.
   // Bounds are recomputed live from current node positions (the layout keeps
-  // breathing). Programmatic camera moves (tour focus) fire `zoom`/`dragEnd`
-  // with params.event == null and are left alone.
+  // breathing). Programmatic camera moves (tour focus) send a zoom payload with
+  // params.pointer == null (vis zoom carries no `.event`) and are left alone.
   var MIN_VISIBLE = 2;
   var MAX_VISIBLE_FRACTION = 0.5;
 
@@ -392,7 +392,10 @@
     }
 
     network.on('zoom', function (params) {
-      if (params && params.event) {   // user wheel/pinch only, not programmatic
+      // vis zoom payload is {direction, scale, pointer} -- no `.event` field
+      // (only dragEnd carries one). User wheel/pinch sets pointer non-null;
+      // programmatic/keyboard/tour-focus zoom sends pointer:null -> skipped.
+      if (params && params.pointer) {
         clampView();
       }
     });
