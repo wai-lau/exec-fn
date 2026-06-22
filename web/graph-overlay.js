@@ -8,7 +8,7 @@
 //    via configure.container so it never disappears across vis re-renders.
 // `network` and `nodesDS` are top-level consts in graph.html's classic script,
 // reachable here through the shared global lexical scope.
-/* global network, nodesDS */
+/* global network, nodesDS, showInfo */
 (function () {
   var PHYSICS = {
     enabled: true,
@@ -80,6 +80,50 @@
     if (updates.length) {
       nodesDS.update(updates);
     }
+  }
+
+  // A node is "redacted" when its label was blanked — server-side to
+  // "[redacted]" (_redact_graph_nodes) or client-side to "[ redacted ]" (long
+  // labels, redactLongLabels above). For those, the node-info panel must not
+  // leak Type/Source or the neighbor list.
+  function isRedacted(n) {
+    return n && (n.label === '[ redacted ]' || n.label === '[redacted]');
+  }
+
+  // graph.html defines showInfo() (global, classic script). Wrap it so that
+  // after it renders, redacted nodes get Type/Source blanked to "redacted" and
+  // their neighbors section removed. Community + Degree stay. The bare identifier
+  // showInfo in graph.html's click/focus handlers resolves to this global.
+  function patchInfoPanel() {
+    if (typeof showInfo !== 'function') {
+      return;
+    }
+    var orig = showInfo;
+    window.showInfo = function (id) {
+      orig(id);
+      var n = typeof nodesDS !== 'undefined' ? nodesDS.get(id) : null;
+      if (!isRedacted(n)) {
+        return;
+      }
+      var content = document.getElementById('info-content');
+      if (!content) {
+        return;
+      }
+      content.querySelectorAll('.field').forEach(function (f) {
+        var t = f.textContent || '';
+        if (t.indexOf('Type:') === 0) {
+          f.textContent = 'Type: redacted';
+        } else if (t.indexOf('Source:') === 0) {
+          f.textContent = 'Source: redacted';
+        } else if (t.indexOf('Neighbors') === 0) {
+          f.remove();   // the "Neighbors (N)" header field
+        }
+      });
+      var list = document.getElementById('neighbors-list');
+      if (list) {
+        list.remove();
+      }
+    };
   }
 
   // Single either/or toggle: "freeze" (physics off, no camera tour) vs "tour"
@@ -387,6 +431,7 @@
     showAllLabels();
     redactLongLabels();
     hideOrphans();
+    patchInfoPanel();
     var physBody = buildPhysicsColumn();
     network.setOptions({ physics: PHYSICS });
     // settle fast (maxVelocity 200) while the 3s loading cover hides the graph,
