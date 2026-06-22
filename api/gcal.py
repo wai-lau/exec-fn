@@ -259,7 +259,7 @@ def _haiku_classify_batch(client, batch: list) -> None:
         lines.append(f"{j}: {ev['summary']}{recur}{loc} ({ev['start'][:10]})")
     try:
         resp = client.messages.create(
-            model="claude-opus-4-8",
+            model="claude-haiku-4-5",
             max_tokens=1200,
             messages=[{"role": "user", "content": (
                 "Classify these calendar events for Wai (personal productivity app).\n\n"
