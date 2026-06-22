@@ -105,13 +105,20 @@ def lookup_rule(query: str) -> dict:
     if m:
         section, sub = m.group(1), m.group(2)
         if sub is None:
+            # section: every rule + subrule under it ("113." -> "113.7.", "113.7a ...")
             prefix = section + "."
             results = [line for line in lines if line.startswith(prefix)]
-        elif not re.search(r"[a-z]$", sub):
-            pat = re.compile(r"^" + re.escape(query) + r"[a-z]?\.")
+        elif re.search(r"[a-z]$", sub):
+            # lettered subrule "113.7a": the CR line is "113.7a <text>" (letter then a
+            # space, NO trailing dot), so anchor the number and require a non-alnum
+            # boundary. (The old "startswith(query + '.')" expected a dot and never matched.)
+            pat = re.compile(r"^" + re.escape(query) + r"(?![a-z0-9])")
             results = [line for line in lines if pat.match(line)]
         else:
-            results = [line for line in lines if line.startswith(query + ".")]
+            # numbered rule "113.7": the rule itself ("113.7. ...") plus its lettered
+            # subrules ("113.7a ...", "113.7b ..."), but not "113.70"/"113.71".
+            pat = re.compile(r"^" + re.escape(query) + r"(\.|[a-z])")
+            results = [line for line in lines if pat.match(line)]
         return {"query": query, "rules": results[:60], "count": len(results)}
 
     keywords = query.lower().split()
