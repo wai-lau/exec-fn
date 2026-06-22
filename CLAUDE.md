@@ -97,7 +97,8 @@ exec-fn/
     recalibration.py      # per-category lateness factor (EMA over completions): factor_for(card), recalibrate(log_entries). Consumes `late` telemetry, fed by morning pipeline
     mtg/
       routes.py           # /api/mtg/log + /api/mtg/chat (SSE) + /api/mtg/rule/{number} (rule text for hover/tap preview)
-      agent.py prompt.py tools.py lookup.py
+      agent.py            # two-pass stream_chat: pass 1 = research (tool loop, prose discarded, only lookup chips surface); pass 2 = streamed summarize (prompt.SUMMARIZE) — one committed verdict, no think-out-loud / flip-flop / contradicting headline
+      prompt.py tools.py lookup.py
     tarot/
       routes.py           # /api/tarot/{spreads,cards,draw,chat}; in-process IP rate-limit on /chat
       agent.py            # streaming tool-use loop with text + tool_call SSE events
