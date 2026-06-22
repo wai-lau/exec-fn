@@ -19,7 +19,7 @@ docker compose up -d --build
 
 **COMMIT after each discrete fix.** Don't batch.
 
-**PRE-COMMIT HOOK** runs automatically on commit: ruff on staged `.py` files, JS syntax + ESLint on HTML templates, stylelint on `web/*.css`, shellcheck on `.sh` files, a **500-line cap** on staged `.py`/`.js` (`api/main.py` allowlisted pending its split), a **no-multiline-inline-JS/CSS** check on templates, plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes. Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
+**PRE-COMMIT HOOK** runs automatically on commit: ruff on staged `.py` files, JS syntax + ESLint on HTML templates, stylelint on `web/*.css`, shellcheck on `.sh` files, a **500-line cap** on staged `.py`/`.js` (`api/main.py` allowlisted pending its split), a **no-multiline-inline-JS/CSS** check on templates, **page smoke tests** (`tests/` via pytest, run only when `api/*.py` or templates change — HTTP over every route against the live container on :8080; skips cleanly if it's down or the dev venv is absent, fails+blocks on a broken route), plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes. Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
 
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change.
 
@@ -37,7 +37,7 @@ docker compose up -d --build
 | Docker | Single container, `TZ=America/New_York` set in compose |
 | Cron | Inside container — fires `POST /api/morning` at 4:30 AM ET |
 
-Models: `claude-opus-4-8` everywhere (main reasoning + cheap checks/merges). Auth: `ANTHROPIC_API_KEY` in `.env`.
+Models: `claude-opus-4-8` for reasoning, chat, voice, and the nudge graph; `claude-haiku-4-5` for two cheap classification calls — NL date-parse (`card_llm.parse_date_natural`) and gcal event batch-classify (`gcal._haiku_classify_batch`). `classify_card` stays on opus. Auth: `ANTHROPIC_API_KEY` in `.env` — these are pay-per-token API calls, NOT a Claude subscription.
 
 ---
 
@@ -46,7 +46,9 @@ Models: `claude-opus-4-8` everywhere (main reasoning + cheap checks/merges). Aut
 ```
 exec-fn/
   bootstrap.sh            # one-time droplet setup — safe to re-run
-  scripts/                # version-controlled git hooks: pre-commit (lint + docs reminder) + install-hooks.sh (symlinks into .git/hooks)
+  scripts/                # version-controlled git hooks: pre-commit (lint + page smoke tests + docs reminder) + install-hooks.sh (symlinks into .git/hooks)
+  tests/                  # pytest page smoke suite (test_smoke.py + conftest.py) — HTTP over every route by auth tier vs the live container; run: .venv/bin/pytest tests/ -q
+  requirements-dev.txt    # test-only deps (pytest, httpx) — NOT in the prod image; install into a venv
   docker-compose.yml      # TZ=America/New_York; volume-mounts templates + web/static
   nightfall-incident/     # separate repo (wai-lau/nightfall), volume-mounted
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
