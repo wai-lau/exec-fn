@@ -191,7 +191,14 @@ function _caretOffset() {
   if (!sel.rangeCount || !_msgInput.contains(sel.anchorNode)) return _msgInput.innerText.length;
   const range = document.createRange();
   range.selectNodeContents(_msgInput);
-  range.setEnd(sel.anchorNode, sel.anchorOffset);
+  // After clearing the input (submit), the stale selection offset can point past
+  // the emptied node — WebKit throws IndexSizeError where Chromium clamps. Falling
+  // back keeps renderCaret (hence sendMsg) from aborting and blanking the page.
+  try {
+    range.setEnd(sel.anchorNode, sel.anchorOffset);
+  } catch {
+    return _msgInput.innerText.length;
+  }
   return range.toString().length;
 }
 
