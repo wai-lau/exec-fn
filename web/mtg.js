@@ -171,6 +171,15 @@ document.addEventListener('selectionchange', () => {
 _msgInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
+// Paste plain text only: rich HTML drags in inline colors (invisible on the
+// dark terminal) and stray nodes the input wasn't built for.
+_msgInput.addEventListener('paste', e => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  document.execCommand('insertText', false, text);
+  renderCaret();
+  syncInputH();
+});
 _msgInput.focus();
 renderCaret();
 
