@@ -33,6 +33,7 @@
       loadStyles(function () {
         buildBubble();
         buildPanel();
+        if (window.execBuildTodos) execBuildTodos(panel);
         wireInput();
         restorePosition();
         loadHistory().then(handleExecParam);
@@ -55,7 +56,7 @@
     if (existing) { cb(); return; }
     const el = document.createElement('link');
     el.rel = 'stylesheet';
-    el.href = '/exec-bubble.css?v=5';
+    el.href = '/exec-bubble.css?v=9';
     el.setAttribute('data-exec-css', '');
     el.onload = cb;
     el.onerror = cb;  // never hang the panel on a CSS fetch failure
