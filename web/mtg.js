@@ -302,23 +302,24 @@ terminal.addEventListener('mouseout', e => {
 // image preview. Conservative match: a number with a sub-part (724.1b) is always
 // a rule; a bare 3-digit number only counts when preceded by the word "rule"
 // (so life totals / mana / years don't become targets).
-const _RULE_RE = /\b(rule\s+)?(\d{3}(?:\.\d+[a-z]?)?)\b/gi;
-
+// Regex is local: this runs at load (for the welcome line), so a module-level
+// const would be in its temporal dead zone and throw, blanking the chat.
 function _linkifyRules(root) {
+  const re = /\b(rule\s+)?(\d{3}(?:\.\d+[a-z]?)?)\b/gi;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
   const targets = [];
   let n;
   while ((n = walker.nextNode())) {
     if (n.parentElement.closest('a, code, pre, [data-card], [data-rule]')) continue;
-    _RULE_RE.lastIndex = 0;
-    if (_RULE_RE.test(n.nodeValue)) targets.push(n);
+    re.lastIndex = 0;
+    if (re.test(n.nodeValue)) targets.push(n);
   }
   for (const node of targets) {
     const text = node.nodeValue;
     const frag = document.createDocumentFragment();
     let last = 0, m;
-    _RULE_RE.lastIndex = 0;
-    while ((m = _RULE_RE.exec(text))) {
+    re.lastIndex = 0;
+    while ((m = re.exec(text))) {
       const prefix = m[1] || '', num = m[2];
       if (!m[1] && !num.includes('.')) continue;  // bare number, no "rule" — skip
       const start = m.index + prefix.length;       // keep "rule " as plain text
