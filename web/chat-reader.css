@@ -14,6 +14,10 @@
 #input-prompt { font-size: 0.82rem !important; padding-right: 0.6em !important; line-height: 1.45 !important; }
 #terminal { padding-bottom: 0 !important; }
 
+/* Cap the contenteditable so a big paste scrolls instead of growing the input
+   bar tall enough to collapse #terminal (pinned to --input-h). Shared mtg+tarot. */
+#msg-input { max-height: 35vh; overflow-y: auto; }
+
 /* phosphor glow on every message */
 .msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
 
