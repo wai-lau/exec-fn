@@ -123,5 +123,18 @@ def lookup_rule(query: str) -> dict:
 
     keywords = query.lower().split()
     rule_line = re.compile(r"^\d{3}\.")
-    results = [line for line in lines if rule_line.match(line) and all(k in line.lower() for k in keywords)]
+    # Rank by how many distinct query keywords a rule line contains rather than
+    # requiring ALL of them in one line — that AND returned 0 for over-specified
+    # queries (e.g. "ward countered targeted", whose words live on separate
+    # lines). Best matches first; stable order (rule-number) within a score.
+    scored = []
+    for line in lines:
+        if not rule_line.match(line):
+            continue
+        low = line.lower()
+        hits = sum(1 for k in keywords if k in low)
+        if hits:
+            scored.append((hits, line))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    results = [line for _, line in scored]
     return {"query": query, "rules": results[:30], "count": len(results)}
