@@ -24,7 +24,13 @@ from pages import (
 from helpers import DATA_DIR
 from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY, API_KEY
 from routes_nightfall import build_nightfall_html
-from graph_scrub import _redact_graph_nodes, _drop_graph_book_nodes
+from graph_scrub import (
+    _redact_graph_nodes,
+    _drop_graph_book_nodes,
+    _drop_graph_moltbook_nodes,
+    _name_graph_communities,
+    _size_graph_by_loc,
+)
 
 
 # ── public: landing + auth ──────────────────────────────────────────────────
@@ -295,7 +301,7 @@ async def color_usage():
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
 _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=35">'
-_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=36"></script>'
+_GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=37"></script>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -320,6 +326,12 @@ async def graph_page(request: Request):
     page = p.read_text()
     page = _redact_graph_nodes(page)
     page = _drop_graph_book_nodes(page)
+    page = _drop_graph_moltbook_nodes(page)
+    # Name communities after the drops so the dominant-source vote and the
+    # emptied-community pruning are already settled.
+    page = _name_graph_communities(page)
+    # Size nodes by line count (from graph.json sibling) instead of degree.
+    page = _size_graph_by_loc(page, p.with_name("graph.json"))
     # Disable vis-network's improvedLayout — the graph is too large for it to
     # position (it warns + costs perf). Patched here so it survives /graphify.
     page = page.replace(
