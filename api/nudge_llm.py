@@ -64,8 +64,9 @@ def decompose_sync(card: dict, feedback: str = "") -> dict:
         "You are Exec, Wai's ADHD planning assistant. Build a SMALL internal dependency "
         "graph for ONE task: its concrete sub-steps and which must precede which (an edge "
         "{from,to} means `from` must be done before `to`). Give each node est_min: how "
-        "many minutes that single step realistically takes (the steps should sum to about "
-        "the task estimate). LABELS are short action phrases (3-7 words) — never embed "
+        "many minutes that single step realistically takes — no step under 1 minute "
+        "(the steps should sum to about the task estimate). LABELS are short action "
+        "phrases (3-7 words) — never embed "
         "times, durations, or distances in a label. Do NOT add a node for the event "
         "itself, 'arrive', or 'leave by <time>'; travel is just a step labelled e.g. "
         "'Travel to the venue' with est_min = the travel minutes. Then pick the FIRST "
@@ -140,11 +141,12 @@ def peel_sync(card: dict) -> dict:
     system = (
         "You are Exec, Wai's ADHD planning assistant. Wai has stalled on a step. Peel "
         "off a SMALLER first sub-step: the tiniest concrete action that starts it. "
-        "There is no floor — 'open the app' or 'put the tab on screen' is fine.\n"
+        "Floor: the sub-step should take no less than 1 minute of real effort — "
+        "'open the app and load today's file' is fine, a sub-second flick is not.\n"
         f"{_TONE}\n"
         "Also write the nudge for ONLY that sub-step: 1-2 sentences naming it, plus 1 "
         "sentence of why it matters (reasoning / consequence / dependency). Give est_min "
-        "= minutes the tiny sub-step takes (usually 1-10).\n\n"
+        "= minutes the tiny sub-step takes (no less than 1, usually 1-10).\n\n"
         f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
         'Return JSON only: {"sub_label":"...","est_min":5,"nudge_text":"..."}'
     )
