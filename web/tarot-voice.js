@@ -31,10 +31,14 @@ const tarotVoice = (() => {
       .trim();
   }
 
-  // on AND audio actually unlocked (a gesture has run). When off / not yet
+  // on AND a user gesture has unlocked the player. When off / not yet
   // unlocked, tarot-chat falls back to the guessed-pace typewriter.
+  // Gate on gestureUnlocked() (sticky "a gesture ran"), NOT isUnlocked() (live
+  // ctx.state): on Windows Chrome the live state can read non-running at this
+  // check even though playback works, which silently dropped the voice. speak()
+  // resumes a suspended context, so the sticky signal is the right gate.
   function ready() {
-    return on && !!player && player.isUnlocked();
+    return on && !!player && player.gestureUnlocked();
   }
 
   function setOn(v) {

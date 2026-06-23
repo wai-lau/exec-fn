@@ -20,6 +20,7 @@
     let playhead = 0; // next free time on the schedule (ctx clock)
     let sources = []; // scheduled buffer sources, for flush()
     let silentEl = null;
+    let unlockedOnce = false; // a user-gesture unlock has run at least once
 
     // current utterance
     let cur = null; // {onStatus, onFirstAudio, onChunk}
@@ -61,6 +62,7 @@
       s.buffer = b;
       s.connect(ctx.destination);
       s.start(0);
+      unlockedOnce = true; // a gesture ran this; the player may now speak
     }
 
     function flush() {
@@ -170,8 +172,17 @@
       audioDuration() {
         return bufferedDur;
       },
+      // Live state: is the context running RIGHT NOW. Racy -- on Windows Chrome
+      // (WASAPI) the state can read non-running between a gesture-unlock and the
+      // next playback even though audio is fully usable. Prefer gestureUnlocked()
+      // to decide "may we speak"; speak() itself resumes a suspended context.
       isUnlocked() {
         return !!ctx && ctx.state === "running";
+      },
+      // Sticky: has a user gesture ever unlocked this player. The correct gate
+      // for "audio is permitted" -- doesn't false-negative on a transient suspend.
+      gestureUnlocked() {
+        return unlockedOnce;
       },
     };
   }

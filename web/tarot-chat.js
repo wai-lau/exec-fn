@@ -50,11 +50,16 @@ async function streamResponse() {
     cum[0] = 0;
     for (let i = 0; i < text.length; i++) cum[i + 1] = cum[i] + charWeight(text[i]);
     const totalW = cum[text.length] || 1;
+    const t0 = performance.now();
     function tick() {
       if (drainCancelled) return;
       if (!ctl.ok) { drainGuessed(); return; }  // audio fell through → guessed pace
       const dur = ctl.duration();
       const el = ctl.elapsed();
+      // Watchdog: the gate let us attempt voice, but the audio clock never moved
+      // (a device/context that can't actually play). Don't freeze the text —
+      // hand off to the guessed-pace typewriter from wherever we are.
+      if (el === 0 && !ctl.ended && performance.now() - t0 > 2500) { drainGuessed(); return; }
       if (dur > 0) {
         // fraction of the voice consumed; don't outrun audio that's still buffering
         let frac = ctl.ended ? el / dur : Math.min(el / dur, 0.999);
