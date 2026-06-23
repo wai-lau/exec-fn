@@ -1,27 +1,21 @@
-// TTS page client: opens a same-origin WebSocket (proxied server-side to the
-// home GPU server) and plays the streamed float32 PCM (24 kHz mono). Auth is
-// the app's session cookie -- sent automatically on the WS handshake.
-//
-// Playback uses AudioBufferSourceNode scheduling rather than an AudioWorklet:
-// on iOS Safari a worklet context forced to a non-hardware sampleRate (24 kHz)
-// renders silence even when it reports "running". An AudioBuffer can carry any
-// rate and gets resampled to the hardware rate on playback, so the context is
-// left at its default rate and stays audible on iOS.
+// TTS page client: drives the SPEAK UI (voice list, knobs) and plays streamed
+// audio via the shared HosakaAudio player (see hosaka-audio.js for the WS +
+// iOS-unlock + PCM-scheduling core). Auth is the app's session cookie -- sent
+// automatically on the same-origin WS handshake.
 const $ = (id) => document.getElementById(id);
 const setStatus = (s) => {
   $("tts-status").textContent = s;
 };
 
-const SR = 24000; // upstream PCM rate
-
-let ctx = null;
-let gainNode = null;
-let ws = null;
-let volume = 1.0;
-let playhead = 0; // next free time on the schedule (ctx clock)
-let sources = []; // scheduled buffer sources, for flush()
-
 const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
+
+const player = HosakaAudio.createPlayer({
+  onConnState: (state) => {
+    if (state === "connected") setStatus("connected");
+    else if (state === "error") setStatus("connection error");
+    else if (state === "disconnected") setStatus("disconnected");
+  },
+});
 
 async function loadVoices() {
   const sel = $("tts-voice");
@@ -74,10 +68,7 @@ function wireKnobs() {
     };
     el.addEventListener("input", () => {
       show();
-      if (name === "volume") {
-        volume = parseFloat(el.value);
-        if (gainNode) gainNode.gain.value = volume;
-      }
+      if (name === "volume") player.setVolume(parseFloat(el.value));
     });
     show();
   }
@@ -89,121 +80,26 @@ function params() {
   return p;
 }
 
-// iOS mutes the Web Audio API under the Ring/Silent switch. Looping a silent
-// HTMLMediaElement (in-gesture) moves the page's audio session to "playback",
-// which the switch does NOT mute -- so the buffer output is then audible even
-// in silent mode. Kept looping so the session stays in that category.
-let silentEl = null;
-function enableSilentModePlayback() {
-  if (!silentEl) {
-    silentEl = document.createElement("audio");
-    silentEl.src = "/silence.wav?v=1";
-    silentEl.loop = true;
-    silentEl.playsInline = true;
-    silentEl.setAttribute("playsinline", "");
-  }
-  silentEl.play().catch(() => {
-    /* no gesture / unsupported -- audio still works with the switch off */
-  });
-}
-
-// Create + unlock the AudioContext. MUST run synchronously inside the click
-// gesture: iOS Safari only unlocks audio when a buffer source is started (not
-// resume() alone) within the gesture, so the first utterance stays silent
-// otherwise -- "done" with no sound. No forced sampleRate (see file header).
-function unlockAudio() {
-  if (!ctx) {
-    ctx = new AudioContext();
-    gainNode = ctx.createGain();
-    gainNode.gain.value = volume;
-    gainNode.connect(ctx.destination);
-  }
-  if (ctx.state === "suspended") ctx.resume();
-  enableSilentModePlayback(); // play through the iOS Ring/Silent switch
-  // Silent 1-sample blip through the destination: the actual iOS unlock kick.
-  const b = ctx.createBuffer(1, 1, ctx.sampleRate);
-  const s = ctx.createBufferSource();
-  s.buffer = b;
-  s.connect(ctx.destination);
-  s.start(0);
-}
-
-function flushPlayback() {
-  for (const s of sources) {
-    try {
-      s.stop();
-    } catch {
-      /* already stopped */
-    }
-  }
-  sources = [];
-  playhead = 0;
-}
-
-// Schedule one PCM chunk (Float32Array @ 24 kHz) right after the previous one.
-function enqueuePCM(f32) {
-  if (!f32.length) return;
-  const buf = ctx.createBuffer(1, f32.length, SR);
-  buf.getChannelData(0).set(f32);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.connect(gainNode);
-  const at = Math.max(ctx.currentTime + 0.05, playhead);
-  src.start(at);
-  playhead = at + buf.duration;
-  sources.push(src);
-  src.onended = () => {
-    sources = sources.filter((x) => x !== src);
-  };
-}
-
-function openSocket() {
-  return new Promise((resolve, reject) => {
-    const scheme = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(`${scheme}://${location.host}/ws/hosaka`);
-    ws.binaryType = "arraybuffer";
-    ws.onopen = () => {
-      setStatus("connected");
-      resolve();
-    };
-    ws.onerror = () => {
-      setStatus("connection error");
-      reject(new Error("ws error"));
-    };
-    ws.onclose = () => setStatus("disconnected");
-    ws.onmessage = (e) => {
-      if (typeof e.data === "string") {
-        const msg = JSON.parse(e.data);
-        if (msg.type === "error") setStatus("error: " + msg.detail);
-        else if (msg.type === "start") setStatus("speaking...");
-        else if (msg.type === "end") setStatus("done");
-        return;
-      }
-      enqueuePCM(new Float32Array(e.data));
-    };
-  });
-}
-
 async function speak() {
-  unlockAudio();
-  if (ctx.state === "suspended") await ctx.resume();
-  if (!ws || ws.readyState !== WebSocket.OPEN) await openSocket();
-  flushPlayback(); // drop any tail from a previous utterance
-  ws.send(
-    JSON.stringify({
-      input: $("tts-text").value,
-      backend: selectedBackend(),
-      voice: $("tts-voice").value,
-      params: params(),
-    }),
-  );
+  await player.speak({
+    input: $("tts-text").value,
+    backend: selectedBackend(),
+    voice: $("tts-voice").value,
+    params: params(),
+    onStatus: (msg) => {
+      if (msg.type === "error") setStatus("error: " + msg.detail);
+      else if (msg.type === "start") setStatus("speaking...");
+      else if (msg.type === "end") setStatus("done");
+    },
+  });
 }
 
 window.addEventListener("DOMContentLoaded", () => {
   wireKnobs();
+  player.setVolume(parseFloat($("tts-volume").value));
   loadVoices();
   $("tts-speak").addEventListener("click", () => {
-    unlockAudio(); // synchronous, in-gesture -- the iOS audio unlock
+    player.unlock(); // synchronous, in-gesture -- the iOS audio unlock
     speak().catch((err) => setStatus("error: " + err.message));
   });
 });
