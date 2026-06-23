@@ -61,3 +61,4 @@ mtg/rulings*.json
 api/data/oracle-cards*.json
 api/data/rulings*.json
 mtg/mtg_sections/
+!web/radar.png

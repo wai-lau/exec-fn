@@ -16,6 +16,7 @@ from nudge_loop import _run_nudge_loop
 from routers import public, protected, guest_protected
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
+import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
 
 
 @asynccontextmanager
