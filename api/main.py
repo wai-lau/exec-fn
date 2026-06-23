@@ -4,11 +4,13 @@ Routes live in routes_views.py (HTML) + routes_api.py (JSON); rendering in
 pages.py; the routers themselves in routers.py. Importing the route modules
 registers their decorators on those shared routers before include_router."""
 import asyncio
+import mimetypes
 from contextlib import asynccontextmanager
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.gzip import GZipMiddleware
+import starlette.middleware.gzip as _gzip
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse
 
@@ -17,6 +19,28 @@ from routers import public, protected, guest_protected
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
 import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
+
+# StaticFiles guesses MIME via mimetypes, which doesn't know woff2 -> it served
+# them as application/octet-stream. Register the real types so the preload
+# `type=font/woff2` matches and the gzip exclusion below can recognize them.
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("font/woff", ".woff")
+
+# Starlette's GZipMiddleware only skips text/event-stream. Also skip already-
+# compressed payloads -- re-gzipping a woff2/png/jpg/mp3 burns CPU and adds
+# TTFB (a 2.3MB mp3) for ~zero size gain. SVG/TTF/WAV stay compressible.
+# (GZipResponder extends IdentityResponder, which reads this module global at
+# response.start, so overriding it here covers both the compress + identity
+# paths.)
+_gzip.DEFAULT_EXCLUDED_CONTENT_TYPES = (
+    "text/event-stream",
+    "font/woff",  # matches font/woff and font/woff2
+    "image/png", "image/jpeg", "image/gif", "image/webp", "image/avif",
+    "image/vnd.microsoft.icon", "image/x-icon",
+    "audio/mpeg", "audio/mp4", "audio/ogg", "audio/aac",
+    "video/",
+    "application/zip", "application/gzip",
+)
 
 
 @asynccontextmanager
