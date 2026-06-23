@@ -6,14 +6,13 @@
 <link rel="icon" type="image/png" href="favicon.png?v=2">
 <title>wai-lau.net</title>
 <style>
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Nerd Font Complete.ttf') format('truetype'); font-weight:400; font-style:normal; font-display:swap; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Italic Nerd Font Complete.ttf') format('truetype'); font-weight:400; font-style:italic; font-display:swap; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf') format('truetype'); font-weight:500; font-style:normal; font-display:swap; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Medium Italic Nerd Font Complete.ttf') format('truetype'); font-weight:500; font-style:italic; font-display:swap; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Semibold Nerd Font Complete.ttf') format('truetype'); font-weight:600; font-style:normal; font-display:swap; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Semibold Italic Nerd Font Complete.ttf') format('truetype'); font-weight:600; font-style:italic; font-display:swap; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf') format('truetype'); font-weight:700; font-style:normal; font-display:swap; }
-  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/Iosevka Mayukai Monolite Bold Italic Nerd Font Complete.ttf') format('truetype'); font-weight:700; font-style:italic; font-display:swap; }
+  /* woff2 subsets (api/scripts/subset_cv_fonts.py) — were ~11MB Nerd-Font TTFs each. 600/700 italic dropped (no italic text renders at those weights). */
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/iosevka-400.woff2?v=1') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/iosevka-400-italic.woff2?v=1') format('woff2'); font-weight:400; font-style:italic; font-display:swap; }
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/iosevka-500.woff2?v=1') format('woff2'); font-weight:500; font-style:normal; font-display:swap; }
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/iosevka-500-italic.woff2?v=1') format('woff2'); font-weight:500; font-style:italic; font-display:swap; }
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/iosevka-600.woff2?v=1') format('woff2'); font-weight:600; font-style:normal; font-display:swap; }
+  @font-face { font-family:'Iosevka Mayukai Monolite'; src:url('/fonts/iosevka-700.woff2?v=1') format('woff2'); font-weight:700; font-style:normal; font-display:swap; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Iosevka Mayukai Monolite', monospace;
