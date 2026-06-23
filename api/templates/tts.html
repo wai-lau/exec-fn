@@ -1,0 +1,39 @@
+
+<link rel="stylesheet" href="/tts.css?v=1">
+
+<main class="tts">
+  <h1>SPEAK</h1>
+  <textarea id="tts-text" placeholder="Type something to speak...">Hello from the web.</textarea>
+
+  <select id="tts-voice"><option>loading voices...</option></select>
+
+  <div id="tts-cb">
+    <div class="tts-group">clone knobs (chatterbox)</div>
+    <div class="tts-knobs">
+      <label class="tts-knob"><span class="tts-kname">exaggeration</span>
+        <input type="range" id="tts-exaggeration" min="0" max="2" step="0.05" value="0.5">
+        <span class="tts-kval" id="tts-exaggeration-val"></span></label>
+      <label class="tts-knob"><span class="tts-kname">cfg_weight</span>
+        <input type="range" id="tts-cfg_weight" min="0" max="1" step="0.05" value="0.4">
+        <span class="tts-kval" id="tts-cfg_weight-val"></span></label>
+      <label class="tts-knob"><span class="tts-kname">temperature</span>
+        <input type="range" id="tts-temperature" min="0.1" max="2" step="0.05" value="0.8">
+        <span class="tts-kval" id="tts-temperature-val"></span></label>
+    </div>
+  </div>
+
+  <div class="tts-group">playback</div>
+  <div class="tts-knobs">
+    <label class="tts-knob"><span class="tts-kname">speed</span>
+      <input type="range" id="tts-speed" min="0.5" max="2" step="0.05" value="1.0">
+      <span class="tts-kval" id="tts-speed-val"></span></label>
+    <label class="tts-knob"><span class="tts-kname">volume</span>
+      <input type="range" id="tts-volume" min="0" max="5" step="0.1" value="1.0">
+      <span class="tts-kval" id="tts-volume-val"></span></label>
+  </div>
+
+  <button id="tts-speak">Speak</button>
+  <div id="tts-status">idle</div>
+</main>
+
+<script src="/tts.js?v=1"></script>

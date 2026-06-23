@@ -10,3 +10,4 @@ google-auth-oauthlib
 git+https://github.com/ricklupton/rmscene.git
 pymupdf
 icalendar
+websockets
