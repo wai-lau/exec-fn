@@ -18,6 +18,13 @@ _FONT_PRELOAD = (
     '<link rel="preload" href="/fonts/iosevka-700.woff2?v=1" as="font" '
     'type="font/woff2" crossorigin>'
 )
+# Open the DNS+TLS to the script CDN early on the pages that load from it
+# (kanban/prophecies = sortable+marked; debug/mtg/tarot = marked), so the
+# handshake overlaps page parse instead of blocking the script fetch.
+_JSDELIVR_PRECONNECT = (
+    '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
+)
+_JSDELIVR_PAGES = {"core", "prophecies", "debug", "mtg", "tarot"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph/emet) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
@@ -129,7 +136,8 @@ _FULL_HEIGHT_STYLE = "<style>body{display:block;height:100vh;overflow:hidden!imp
 def _render_page(active: str | None, content: str, full_height: bool = False, guest: bool = False) -> str:
     no_form, bare = _index_pages()
     base = bare if active else no_form
-    head_inject = _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
+    preconnect = _JSDELIVR_PRECONNECT if active in _JSDELIVR_PAGES else ""
+    head_inject = preconnect + _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
     # cyberpunk ambient fx on every page (nightfall composes separately and is
     # excluded; landing + graph inject their own)

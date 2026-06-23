@@ -31,11 +31,26 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware("http")
-async def _no_cache_static(request: Request, call_next):
+async def _cache_control(request: Request, call_next):
+    # Static assets are content-versioned via ?v= query params (the codebase
+    # bumps the query on every edit), so cache them hard and let the bumped
+    # query bust them — this kills the per-asset revalidation round-trip on
+    # every navigation across the multi-page app. HTML shells embed live data,
+    # so they stay no-cache. Unversioned static gets a 1-day safety TTL.
+    # Nightfall serves its own bundle and manages its own caching.
     response = await call_next(request)
     path = request.url.path
-    if path.endswith((".js", ".css", ".html")) and not path.startswith("/nightfall-game/"):
+    if path.startswith("/nightfall-game/"):
+        return response
+    ctype = response.headers.get("content-type", "")
+    if ctype.startswith("text/html"):
         response.headers["Cache-Control"] = "no-cache"
+    elif path.endswith((".css", ".js", ".woff2", ".woff", ".ttf", ".otf",
+                         ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".mp3")):
+        response.headers["Cache-Control"] = (
+            "public, max-age=31536000, immutable" if request.url.query
+            else "public, max-age=86400"
+        )
     return response
 
 
