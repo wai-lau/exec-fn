@@ -23,8 +23,13 @@
   width: auto !important;
   height: 45vh !important;
   overflow-y: auto;
+  scrollbar-width: none;          /* Firefox: scrolls, no visible bar */
+  -ms-overflow-style: none;       /* old Edge/IE */
   background: #161b22 !important;
   border-top: 1px solid #30363d !important;
   border-left: none !important;
   z-index: 9993 !important;
 }
+
+/* WebKit/Blink: hide the node-info scrollbar (scroll still works) */
+#side::-webkit-scrollbar { display: none; }
