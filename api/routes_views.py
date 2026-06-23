@@ -369,7 +369,7 @@ async def emet_page(request: Request):
     page = page.replace("<!--EMET_DATA-->",
                         "<script>window.EMET_GRAPH=" + data + ";</script>", 1)
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    _emet_css = '<link rel="stylesheet" href="/emet.css?v=10">'
+    _emet_css = '<link rel="stylesheet" href="/emet.css?v=11">'
     page = page.replace("</head>",
                         _VIEWPORT_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _emet_css + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
