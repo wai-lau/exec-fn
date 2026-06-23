@@ -24,12 +24,12 @@ from routers import protected, public
 _UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
 
 
-@protected.get("/tts", response_class=HTMLResponse)
+@protected.get("/hosaka", response_class=HTMLResponse)
 async def tts_page():
-    return _render_page("tts", _tmpl("tts.html"), full_height=True)
+    return _render_page("hosaka", _tmpl("tts.html"), full_height=True)
 
 
-@protected.get("/api/tts/voices")
+@protected.get("/api/hosaka/voices")
 async def tts_voices():
     try:
         async with httpx.AsyncClient(timeout=5) as client:
@@ -58,7 +58,7 @@ async def _pump_to_client(ws, upstream):
             await ws.send_text(msg)
 
 
-@public.websocket("/ws/tts")
+@public.websocket("/ws/hosaka")
 async def ws_tts(ws: WebSocket):
     # Same session cookie as the rest of the app; the browser sends it on the
     # same-origin WS handshake. Reject before accepting if missing/wrong.

@@ -17,7 +17,7 @@ async function loadVoices() {
   const sel = $("tts-voice");
   let voices;
   try {
-    voices = await (await fetch("/api/tts/voices")).json();
+    voices = await (await fetch("/api/hosaka/voices")).json();
   } catch {
     voices = [];
   }
@@ -91,7 +91,7 @@ async function ensureAudio() {
 function openSocket() {
   return new Promise((resolve, reject) => {
     const scheme = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(`${scheme}://${location.host}/ws/tts`);
+    ws = new WebSocket(`${scheme}://${location.host}/ws/hosaka`);
     ws.binaryType = "arraybuffer";
     ws.onopen = () => {
       setStatus("connected");
