@@ -68,7 +68,7 @@ exec-fn/
     # nav icons (27x27 program art): seeker(core) turbo(profs/HQ)
     #   bug(debug) laser-satellite(graph) golem-stone(emet) data-doctor(color) hack2(night)
     #   wizard(mtg) watchman(tarot) radar(hosaka)   (sentinel/bitman/fiddle.png now unused)
-    tts.js tts.css pcm-player.js  # /hosaka (HOSAKA) TTS page assets: tts.js drives the SPEAK UI (voice list, clone/playback knobs) + the /ws/hosaka WebSocket; pcm-player.js streams raw PCM chunks to WebAudio. See routes_tts.py
+    tts.js tts.css  # /hosaka (HOSAKA) TTS page assets: tts.js drives the SPEAK UI (voice list, clone/playback knobs), opens the /ws/hosaka WebSocket, and plays the streamed 24kHz float32 PCM by scheduling AudioBufferSourceNodes (NOT an AudioWorklet — iOS-safe: context left at hardware rate, AudioBuffer carries 24kHz and resamples on playback; audio unlocked by a silent buffer-source .start() inside the click gesture). See routes_tts.py
     data-file.png         # recruiter/cv nav icon: nightfall grid/data.png (3-paper "file" stack) composited onto a Sentinel-orange rgb(252,152,0) tile so it reads like the other solid-bg sprites
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
@@ -129,7 +129,7 @@ exec-fn/
       emet.html           # /emet — protected static page; emet_page() injects chrome+cyber-fx+nav like graph (gitignored; edit on-server)
       guest_login.html    # /guest login form fragment ({next} placeholder filled by main.py)
       recruiter.html      # /recruiter — public résumé markup (styles in web/recruiter.css)
-      tts.html            # /hosaka — SPEAK UI (text box, voice select, clone/playback knobs); assets web/tts.{js,css} + pcm-player.js
+      tts.html            # /hosaka — SPEAK UI (text box, voice select, clone/playback knobs); assets web/tts.{js,css}
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
     data/                 # persistent volume (./api/data → /app/data)
