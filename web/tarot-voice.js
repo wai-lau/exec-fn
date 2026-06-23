@@ -47,6 +47,22 @@ const tarotVoice = (() => {
     if (v) ensurePlayer().unlock(); // in-gesture (toggle click) -> iOS unlock
   }
 
+  // Persisted-on across a reload: the toggle reads on but no gesture has unlocked
+  // the player, so ready() stays false and the reader is silent until the user
+  // re-clicks. Arm a one-shot unlock on the first real gesture (tap or keypress)
+  // -- it MUST run synchronously inside that gesture (iOS audio rule), so no
+  // load-time/setTimeout unlock here.
+  function armPersistedUnlock() {
+    if (!on) return;
+    function fire() {
+      document.removeEventListener("pointerdown", fire, true);
+      document.removeEventListener("keydown", fire, true);
+      if (on) ensurePlayer().unlock(); // still synchronous, inside the gesture
+    }
+    document.addEventListener("pointerdown", fire, true);
+    document.addEventListener("keydown", fire, true);
+  }
+
   // Begin narrating `md`. Returns a controller the typewriter polls:
   //   elapsed()  seconds of voice played
   //   duration() seconds buffered so far (final once ended)
@@ -101,7 +117,8 @@ const tarotVoice = (() => {
     controls.insertBefore(btn, controls.firstChild);
   }
 
-  return { ready, speak, mount };
+  return { ready, speak, mount, armPersistedUnlock };
 })();
 
 tarotVoice.mount();
+tarotVoice.armPersistedUnlock();
