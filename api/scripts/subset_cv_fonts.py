@@ -72,8 +72,18 @@ PAIRS = [
         ("Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf", "iosevka-cv-500.woff2"),
         ("Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf", "iosevka-cv-700.woff2"),
     ]),
+    # The full family the chrome UI actually renders: weights 400/500/600/700
+    # normal + 400/500 italic (600/700 italic never occur -- italic text is all
+    # 400-500 context). index.html's @font-face points at these; the source TTFs
+    # for the non-500/700 weights are NOT committed (deleted to save ~67MB) --
+    # restore the Iosevka Mayukai Monolite Nerd Font pack to web/fonts/ to
+    # re-subset those rows. Medium + Bold (500/700) sources ARE kept.
     (SITE_TEXT, [
+        ("Iosevka Mayukai Monolite Nerd Font Complete.ttf", "iosevka-400.woff2"),
+        ("Iosevka Mayukai Monolite Italic Nerd Font Complete.ttf", "iosevka-400-italic.woff2"),
         ("Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf", "iosevka-500.woff2"),
+        ("Iosevka Mayukai Monolite Medium Italic Nerd Font Complete.ttf", "iosevka-500-italic.woff2"),
+        ("Iosevka Mayukai Monolite Semibold Nerd Font Complete.ttf", "iosevka-600.woff2"),
         ("Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf", "iosevka-700.woff2"),
     ]),
 ]
