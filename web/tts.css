@@ -10,7 +10,7 @@
   flex-direction: column;
   gap: 0.7rem;
   font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: hsl(var(--green-hsl) / 0.9);
+  color: hsl(var(--green-hsl) / 0.8);
 }
 
 .tts h1 {
@@ -18,7 +18,7 @@
   letter-spacing: 0.3em;
   margin: 0;
   color: hsl(var(--cyan-hsl));
-  text-shadow: 0 0 6px hsl(var(--cyan-hsl) / 0.5);
+  text-shadow: 0 0 6px hsl(var(--cyan-hsl) / 0.45);
 }
 
 .tts textarea,
@@ -28,7 +28,7 @@
   font: inherit;
   color: inherit;
   background: hsl(var(--bg-hsl));
-  border: 1px solid hsl(var(--green-hsl) / 0.35);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: 6px;
   padding: 0.55rem 0.7rem;
 }
@@ -48,7 +48,7 @@
   cursor: pointer;
   font-weight: 600;
   color: hsl(var(--bg-hsl));
-  background: hsl(var(--green-hsl) / 0.85);
+  background: hsl(var(--green-hsl) / 0.8);
   border-color: hsl(var(--green-hsl));
 }
 
@@ -57,7 +57,7 @@
 }
 
 .tts #tts-status {
-  color: hsl(var(--green-hsl) / 0.6);
+  color: hsl(var(--green-hsl) / 0.45);
   min-height: 1.3em;
 }
 
@@ -84,14 +84,14 @@
 
 .tts-kname {
   font-size: 0.85rem;
-  color: hsl(var(--green-hsl) / 0.75);
+  color: hsl(var(--green-hsl) / 0.8);
 }
 
 .tts-kval {
   font-size: 0.85rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: hsl(var(--cyan-hsl) / 0.85);
+  color: hsl(var(--cyan-hsl) / 0.8);
 }
 
 .tts-knob input[type="range"] {
@@ -107,5 +107,5 @@
 }
 
 #tts-cb.off {
-  opacity: 0.32;
+  opacity: 0.25;
 }
