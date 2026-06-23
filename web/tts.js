@@ -89,6 +89,24 @@ function params() {
   return p;
 }
 
+// iOS mutes the Web Audio API under the Ring/Silent switch. Looping a silent
+// HTMLMediaElement (in-gesture) moves the page's audio session to "playback",
+// which the switch does NOT mute -- so the buffer output is then audible even
+// in silent mode. Kept looping so the session stays in that category.
+let silentEl = null;
+function enableSilentModePlayback() {
+  if (!silentEl) {
+    silentEl = document.createElement("audio");
+    silentEl.src = "/silence.wav?v=1";
+    silentEl.loop = true;
+    silentEl.playsInline = true;
+    silentEl.setAttribute("playsinline", "");
+  }
+  silentEl.play().catch(() => {
+    /* no gesture / unsupported -- audio still works with the switch off */
+  });
+}
+
 // Create + unlock the AudioContext. MUST run synchronously inside the click
 // gesture: iOS Safari only unlocks audio when a buffer source is started (not
 // resume() alone) within the gesture, so the first utterance stays silent
@@ -101,6 +119,7 @@ function unlockAudio() {
     gainNode.connect(ctx.destination);
   }
   if (ctx.state === "suspended") ctx.resume();
+  enableSilentModePlayback(); // play through the iOS Ring/Silent switch
   // Silent 1-sample blip through the destination: the actual iOS unlock kick.
   const b = ctx.createBuffer(1, 1, ctx.sampleRate);
   const s = ctx.createBufferSource();
