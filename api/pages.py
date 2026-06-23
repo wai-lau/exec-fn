@@ -8,7 +8,16 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=28">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=29">'
+# Preload the two site woff2 subsets so they fetch in parallel with the
+# stylesheet instead of after the @font-face is discovered. crossorigin is
+# required for the preload to match the font fetch (fonts are always CORS).
+_FONT_PRELOAD = (
+    '<link rel="preload" href="/fonts/iosevka-500.woff2?v=1" as="font" '
+    'type="font/woff2" crossorigin>'
+    '<link rel="preload" href="/fonts/iosevka-700.woff2?v=1" as="font" '
+    'type="font/woff2" crossorigin>'
+)
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph/emet) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
@@ -119,7 +128,7 @@ _FULL_HEIGHT_STYLE = "<style>body{display:block;height:100vh;overflow:hidden!imp
 def _render_page(active: str | None, content: str, full_height: bool = False, guest: bool = False) -> str:
     no_form, bare = _index_pages()
     base = bare if active else no_form
-    head_inject = _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
+    head_inject = _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
     # cyberpunk ambient fx on every page (nightfall composes separately and is
     # excluded; landing + graph inject their own)

@@ -1,16 +1,23 @@
 /* Fonts */
+
+/* Site woff2 subsets (~60KB each) — the shipped Nerd-Font TTFs are ~11MB each
+   (thousands of unused PUA icon glyphs). Built by api/scripts/subset_cv_fonts.py
+   to the exact glyph set the chrome UI renders. font-display:swap = text paints
+   immediately in the monospace fallback, no invisible-text stall on first load. */
 @font-face {
   font-family: 'Iosevka Mayukai Monolite';
-  src: url('/fonts/Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf') format('truetype');
+  src: url('/fonts/iosevka-500.woff2?v=1') format('woff2');
   font-weight: 500;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'Iosevka Mayukai Monolite';
-  src: url('/fonts/Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf') format('truetype');
+  src: url('/fonts/iosevka-700.woff2?v=1') format('woff2');
   font-weight: 700;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
