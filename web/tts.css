@@ -1,0 +1,96 @@
+/* TTS page -- phosphor-green on black, matching the exec-fn chrome tokens. */
+.tts {
+  max-width: 620px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1.5rem 1rem calc(var(--nav-h, 64px) + 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: hsl(var(--green-hsl) / 0.9);
+}
+.tts h1 {
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  margin: 0;
+  color: hsl(var(--cyan-hsl));
+  text-shadow: 0 0 6px hsl(var(--cyan-hsl) / 0.5);
+}
+.tts textarea,
+.tts select,
+.tts input,
+.tts button {
+  font: inherit;
+  color: inherit;
+  background: hsl(var(--bg-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.35);
+  border-radius: 6px;
+  padding: 0.55rem 0.7rem;
+}
+.tts textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.tts select {
+  width: 100%;
+}
+.tts button {
+  cursor: pointer;
+  font-weight: 600;
+  color: hsl(var(--bg-hsl));
+  background: hsl(var(--green-hsl) / 0.85);
+  border-color: hsl(var(--green-hsl));
+}
+.tts button:hover {
+  background: hsl(var(--green-hsl));
+}
+.tts #tts-status {
+  color: hsl(var(--green-hsl) / 0.6);
+  min-height: 1.3em;
+}
+.tts-group {
+  color: hsl(var(--green-hsl) / 0.45);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+}
+.tts-knobs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.tts-knob {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 3rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+.tts-kname {
+  font-size: 0.85rem;
+  color: hsl(var(--green-hsl) / 0.75);
+}
+.tts-kval {
+  font-size: 0.85rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--cyan-hsl) / 0.85);
+}
+.tts-knob input[type="range"] {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: hsl(var(--green-hsl));
+}
+#tts-cb {
+  transition: opacity 0.15s;
+}
+#tts-cb.off {
+  opacity: 0.32;
+}
