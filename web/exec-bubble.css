@@ -1,13 +1,17 @@
+/* woff2 subsets — see chrome.css note. Redeclared here because the exec bubble
+   can mount over nightfall, which doesn't load chrome.css. */
 @font-face {
   font-family: 'Iosevka Mayukai Monolite';
-  src: url('/fonts/Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf') format('truetype');
+  src: url('/fonts/iosevka-500.woff2?v=1') format('woff2');
   font-weight: 500;
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'Iosevka Mayukai Monolite';
-  src: url('/fonts/Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf') format('truetype');
+  src: url('/fonts/iosevka-700.woff2?v=1') format('woff2');
   font-weight: 700;
+  font-display: swap;
 }
 
 #exec-bubble {

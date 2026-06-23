@@ -1,12 +1,18 @@
-"""One-off build step: subset the two Iosevka weights the /recruiter page
-actually uses (Medium 500, Bold 700) down to the Latin + handful-of-symbol
-glyph set the résumé renders, and emit woff2. The shipped Nerd-Font TTFs are
-~11MB each (thousands of icon glyphs in the PUA/high planes); subsetting to the
-glyphs below drops each to tens of KB so first paint is sub-1s.
+"""One-off build step: subset the two Iosevka weights (Medium 500, Bold 700)
+down to the glyphs the site actually renders, and emit woff2. The shipped
+Nerd-Font TTFs are ~11MB each (thousands of icon glyphs in the PUA/high
+planes); subsetting drops each to tens of KB so first paint is sub-1s.
 
-Runs inside the api container (only host with pip). Writes into
-/app/static/fonts, which is the volume mount for web/fonts/ — so the woff2
-files land on the host and get committed. Re-runnable.
+Two output pairs:
+  - iosevka-cv-{500,700}.woff2  — narrow Latin set the /recruiter résumé needs
+  - iosevka-{500,700}.woff2     — the whole site: Latin + every box-drawing /
+    arrow / geometric / Greek glyph the chrome UI renders (chat, kanban, emet,
+    prophecies). chrome.css + exec-bubble.css @font-face point here.
+
+Runs inside the api container (only host with pip — `pip install fonttools
+brotli` first; brotli is the woff2 codec). Writes into /app/static/fonts,
+the volume mount for web/fonts/ — so the woff2 files land on the host and get
+committed. Re-runnable.
 """
 from fontTools.subset import main as subset_main
 
@@ -35,24 +41,57 @@ EXTRAS = (
 )
 TEXT = ASCII + EXTRAS
 
-JOBS = [
-    ("Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf", "iosevka-cv-500.woff2"),
-    ("Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf", "iosevka-cv-700.woff2"),
+# Every non-ASCII glyph the chrome UI renders beyond the recruiter set, gathered
+# from templates + web/*.{css,js}: box-drawing, geometric shapes, arrows, Greek,
+# the few math/dingbat symbols in CSS `content:` and JS-built text. CJK + the
+# fullwidth kaomoji chars are deliberately omitted — Iosevka Monolite has no
+# glyph for them, so they already fall back; subsetting can't add what's absent.
+SITE_EXTRAS = EXTRAS + (
+    "×"   # ×  multiply / close
+    "α"   # α  alpha (graph node)
+    "↑"   # ↑  up arrow
+    "→"   # →  right arrow
+    "↺"   # ↺  reload glyph
+    "─"   # ─  box-drawing horizontal
+    "▲"   # ▲  emet parent link
+    "▴"   # ▴
+    "▶"   # ▶  emet child link
+    "▼"   # ▼
+    "▽"   # ▽
+    "▾"   # ▾
+    "◂"   # ◂
+    "☼"   # ☼  sun (timeline day band)
+    "✓"   # ✓  check
+    "✕"   # ✕  close
+)
+SITE_TEXT = ASCII + SITE_EXTRAS
+
+# (text, [(src_ttf, out_woff2), ...])
+PAIRS = [
+    (TEXT, [
+        ("Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf", "iosevka-cv-500.woff2"),
+        ("Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf", "iosevka-cv-700.woff2"),
+    ]),
+    (SITE_TEXT, [
+        ("Iosevka Mayukai Monolite Medium Nerd Font Complete.ttf", "iosevka-500.woff2"),
+        ("Iosevka Mayukai Monolite Bold Nerd Font Complete.ttf", "iosevka-700.woff2"),
+    ]),
 ]
 
 
 def run() -> None:
-    for src, out in JOBS:
-        subset_main([
-            f"{FONTS}/{src}",
-            f"--text={TEXT}",
-            "--flavor=woff2",
-            "--layout-features=*",
-            "--no-hinting",
-            "--desubroutinize",
-            f"--output-file={FONTS}/{out}",
-        ])
-        print(f"wrote {out}")
+    for text, jobs in PAIRS:
+        for src, out in jobs:
+            subset_main([
+                f"{FONTS}/{src}",
+                f"--text={text}",
+                "--flavor=woff2",
+                "--layout-features=*",
+                "--no-hinting",
+                "--desubroutinize",
+                f"--output-file={FONTS}/{out}",
+            ])
+            print(f"wrote {out}")
 
 
 if __name__ == "__main__":
