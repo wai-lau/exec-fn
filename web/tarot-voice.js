@@ -67,6 +67,29 @@ const tarotVoice = (() => {
     document.addEventListener("keydown", fire, true);
   }
 
+  // Fire the opening reader turn so it gets NARRATED, not typed silently.
+  // Browsers won't play audio before a user gesture, and the opening turn
+  // auto-fires with none -- so when voice is on but not yet unlocked, hold the
+  // turn until the user's first gesture (tap/keypress), which both unlocks audio
+  // and fires it. Voice off / already unlocked -> fire immediately (today's
+  // behaviour). `onHold` (called when we defer) may return a cleanup run on fire,
+  // e.g. to show/clear a "tap to begin" hint.
+  function armOpening(fire, onHold) {
+    if (!on) return fire();
+    ensurePlayer();
+    if (player.gestureUnlocked()) return fire();
+    const cleanup = onHold ? onHold() : null;
+    function go() {
+      document.removeEventListener("pointerdown", go, true);
+      document.removeEventListener("keydown", go, true);
+      if (typeof cleanup === "function") cleanup();
+      ensurePlayer().unlock(); // synchronous, inside the gesture
+      fire();
+    }
+    document.addEventListener("pointerdown", go, true);
+    document.addEventListener("keydown", go, true);
+  }
+
   // Begin narrating `md`. Returns a controller the typewriter polls:
   //   elapsed()  seconds of voice played
   //   duration() seconds buffered so far (final once ended)
@@ -121,8 +144,7 @@ const tarotVoice = (() => {
     controls.insertBefore(btn, controls.firstChild);
   }
 
-  return { ready, speak, mount, armPersistedUnlock };
+  return { ready, speak, mount, armPersistedUnlock, armOpening };
 })();
 
 tarotVoice.mount();
-tarotVoice.armPersistedUnlock();

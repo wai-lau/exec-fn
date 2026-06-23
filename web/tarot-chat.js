@@ -425,12 +425,31 @@ if (messages.length) {
 updateInputBarVisibility();
 loadSpreadsMeta().then(renderSpread);
 
+// Faint terminal hint shown while the opening turn waits for the first gesture
+// (voice on, not yet unlocked). Returns a cleanup that removes it.
+function showBeginHint() {
+  const hint = document.createElement('div');
+  hint.className = 'begin-hint';
+  hint.textContent = '[ tap anywhere to begin the reading ]';
+  terminal.appendChild(hint);
+  return () => hint.remove();
+}
+
+let _openingEv = null;
 if (!significator) {
   const tm = tarotTimeMarker();
-  const ev = spread
+  _openingEv = spread
     ? `[opened /tarot; no Significator yet (spread already drawn — Significator must be chosen before any reading continues); ${tm}]`
     : `[opened /tarot; no Significator yet, no spread; ${tm}]`;
-  autoTrigger(ev);
 } else if (!messages.length) {
-  autoTrigger(`[opened /tarot; Significator already chosen: ${significator.name}; no spread yet; ${tarotTimeMarker()}]`);
+  _openingEv = `[opened /tarot; Significator already chosen: ${significator.name}; no spread yet; ${tarotTimeMarker()}]`;
+}
+if (_openingEv) {
+  // Voice on -> hold the opening until the first gesture so it's narrated, not
+  // typed silently. Voice off / already unlocked -> fires immediately.
+  tarotVoice.armOpening(() => autoTrigger(_openingEv), showBeginHint);
+} else {
+  // No opening turn (returning mid-reading) -> still unlock on first gesture so
+  // the next reader turn narrates.
+  tarotVoice.armPersistedUnlock();
 }
