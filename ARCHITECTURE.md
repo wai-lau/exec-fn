@@ -64,6 +64,12 @@ flowchart TB
 **Secrets** (`.env`): `API_KEY`, `ANTHROPIC_API_KEY`, `GUEST_KEY`.
 cron reads them via `/run/cron_env`.
 
+**TTS upstream (`/hosaka`):** the `/hosaka` page + `/ws/hosaka` WebSocket
+(`routes_tts.py`) reverse-proxy to a home GPU TTS server (hosaka: Kokoro +
+Chatterbox) reached at `172.17.0.1:8123` — the docker bridge gateway, where a
+home box holds open an SSH reverse tunnel. No inbound port on the home box;
+gated by the normal session cookie. Override host via `TTS_UPSTREAM`.
+
 ---
 
 ## 2. Module graph
