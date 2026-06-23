@@ -17,8 +17,8 @@
   font-size: 1rem;
   letter-spacing: 0.3em;
   margin: 0;
-  color: hsl(var(--cyan-hsl));
-  text-shadow: 0 0 6px hsl(var(--cyan-hsl) / 0.45);
+  color: hsl(var(--green-hsl));
+  text-shadow: 0 0 6px hsl(var(--green-hsl) / 0.45);
 }
 
 .tts textarea,
@@ -35,6 +35,7 @@
 
 .tts textarea {
   width: 100%;
+  flex: 1 1 auto;
   min-height: 4.5rem;
   resize: vertical;
   box-sizing: border-box;
