@@ -152,6 +152,16 @@ body.reader-speaking .tarot-card[data-next="true"] {
 .msg.event { color:hsl(var(--green-hsl) / 0.45); font-style:italic; font-size:0.74rem; margin:6px auto; }
 .msg.event::before { content:"~ "; opacity:0.5; }
 
+/* hint shown while the opening reader turn waits for the first gesture (voice
+   on, audio not yet unlocked) -- removed once the turn fires */
+.begin-hint {
+  color:hsl(var(--green-hsl) / 0.45); font-style:italic;
+  font-size:0.8rem; text-align:center; margin:20px auto;
+  animation:begin-hint-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes begin-hint-pulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
+
 .reader-cursor {
   display:inline-block; width:0.55em; height:1em;
   background:hsl(var(--green-hsl) / 0.8);
