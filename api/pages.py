@@ -23,8 +23,8 @@ _FONT_PRELOAD = (
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
 _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=2">'
 
-_NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "recruiter"]
-_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "recruiter": "/recruiter"}
+_NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
+_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "color", "recruiter"]
 
@@ -37,6 +37,7 @@ _NAV_ICONS = {
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
     "mtg":         '<img src="/wizard.png?v=2" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "hosaka":      '<img src="/radar.png" alt="hosaka" style="width:20px;height:20px;image-rendering:pixelated;">',
     "emet":        '<img src="/golem-stone.png?v=3" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
     "recruiter":   '<img src="/data-file.png?v=3" alt="recruiter" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
@@ -44,7 +45,7 @@ _NAV_ICONS = {
 _NAV_LABELS = {
     "core": "core", "prophecies": "HQ",
     "debug": "debug", "graph": "graph", "emet": "emet", "color": "color",
-    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "recruiter": "cv",
+    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "hosaka": "hosaka", "recruiter": "cv",
 }
 
 
