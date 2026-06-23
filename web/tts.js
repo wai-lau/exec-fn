@@ -1,15 +1,25 @@
 // TTS page client: opens a same-origin WebSocket (proxied server-side to the
-// home GPU server), streams float32 PCM (24 kHz mono) into an AudioWorklet.
-// Auth is the app's session cookie -- sent automatically on the WS handshake.
+// home GPU server) and plays the streamed float32 PCM (24 kHz mono). Auth is
+// the app's session cookie -- sent automatically on the WS handshake.
+//
+// Playback uses AudioBufferSourceNode scheduling rather than an AudioWorklet:
+// on iOS Safari a worklet context forced to a non-hardware sampleRate (24 kHz)
+// renders silence even when it reports "running". An AudioBuffer can carry any
+// rate and gets resampled to the hardware rate on playback, so the context is
+// left at its default rate and stays audible on iOS.
 const $ = (id) => document.getElementById(id);
 const setStatus = (s) => {
   $("tts-status").textContent = s;
 };
 
+const SR = 24000; // upstream PCM rate
+
 let ctx = null;
-let node = null;
+let gainNode = null;
 let ws = null;
-let gain = 1.0;
+let volume = 1.0;
+let playhead = 0; // next free time on the schedule (ctx clock)
+let sources = []; // scheduled buffer sources, for flush()
 
 const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
 
@@ -65,8 +75,8 @@ function wireKnobs() {
     el.addEventListener("input", () => {
       show();
       if (name === "volume") {
-        gain = parseFloat(el.value);
-        if (node) node.port.postMessage({ gain });
+        volume = parseFloat(el.value);
+        if (gainNode) gainNode.gain.value = volume;
       }
     });
     show();
@@ -79,13 +89,53 @@ function params() {
   return p;
 }
 
-async function ensureAudio() {
-  if (ctx) return;
-  ctx = new AudioContext({ sampleRate: 24000 });
-  await ctx.audioWorklet.addModule("/pcm-player.js");
-  node = new AudioWorkletNode(ctx, "pcm-player");
-  node.port.postMessage({ gain });
-  node.connect(ctx.destination);
+// Create + unlock the AudioContext. MUST run synchronously inside the click
+// gesture: iOS Safari only unlocks audio when a buffer source is started (not
+// resume() alone) within the gesture, so the first utterance stays silent
+// otherwise -- "done" with no sound. No forced sampleRate (see file header).
+function unlockAudio() {
+  if (!ctx) {
+    ctx = new AudioContext();
+    gainNode = ctx.createGain();
+    gainNode.gain.value = volume;
+    gainNode.connect(ctx.destination);
+  }
+  if (ctx.state === "suspended") ctx.resume();
+  // Silent 1-sample blip through the destination: the actual iOS unlock kick.
+  const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const s = ctx.createBufferSource();
+  s.buffer = b;
+  s.connect(ctx.destination);
+  s.start(0);
+}
+
+function flushPlayback() {
+  for (const s of sources) {
+    try {
+      s.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+  sources = [];
+  playhead = 0;
+}
+
+// Schedule one PCM chunk (Float32Array @ 24 kHz) right after the previous one.
+function enqueuePCM(f32) {
+  if (!f32.length) return;
+  const buf = ctx.createBuffer(1, f32.length, SR);
+  buf.getChannelData(0).set(f32);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(gainNode);
+  const at = Math.max(ctx.currentTime + 0.05, playhead);
+  src.start(at);
+  playhead = at + buf.duration;
+  sources.push(src);
+  src.onended = () => {
+    sources = sources.filter((x) => x !== src);
+  };
 }
 
 function openSocket() {
@@ -110,16 +160,16 @@ function openSocket() {
         else if (msg.type === "end") setStatus("done");
         return;
       }
-      node.port.postMessage(new Float32Array(e.data));
+      enqueuePCM(new Float32Array(e.data));
     };
   });
 }
 
 async function speak() {
-  await ensureAudio();
+  unlockAudio();
   if (ctx.state === "suspended") await ctx.resume();
   if (!ws || ws.readyState !== WebSocket.OPEN) await openSocket();
-  node.port.postMessage(null); // flush previous tail
+  flushPlayback(); // drop any tail from a previous utterance
   ws.send(
     JSON.stringify({
       input: $("tts-text").value,
@@ -134,6 +184,7 @@ window.addEventListener("DOMContentLoaded", () => {
   wireKnobs();
   loadVoices();
   $("tts-speak").addEventListener("click", () => {
+    unlockAudio(); // synchronous, in-gesture -- the iOS audio unlock
     speak().catch((err) => setStatus("error: " + err.message));
   });
 });
