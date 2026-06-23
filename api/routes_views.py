@@ -302,6 +302,8 @@ async def color_usage():
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
 _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=35">'
 _GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=38"></script>'
+# graph + emet load vis-network from unpkg — open its DNS+TLS early.
+_UNPKG_PRECONNECT = '<link rel="preconnect" href="https://unpkg.com" crossorigin>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -339,7 +341,7 @@ async def graph_page(request: Request):
         "{ nodes: nodesDS, edges: edgesDS }, {\n  layout: { improvedLayout: false },",
         1,
     )
-    page = page.replace("</head>", _VIEWPORT_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
+    page = page.replace("</head>", _UNPKG_PRECONNECT + _VIEWPORT_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
     # /graph has no extension so the no-cache middleware skips it, and the route
     # body changes whenever /graphify regenerates graph.html. Tag the rendered
@@ -371,7 +373,7 @@ async def emet_page(request: Request):
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     _emet_css = '<link rel="stylesheet" href="/emet.css?v=11">'
     page = page.replace("</head>",
-                        _VIEWPORT_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _emet_css + "</head>", 1)
+                        _UNPKG_PRECONNECT + _VIEWPORT_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _emet_css + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
     etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
     headers = {"Cache-Control": "no-cache", "ETag": etag}

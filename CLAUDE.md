@@ -72,7 +72,7 @@ exec-fn/
     data-file.png         # recruiter/cv nav icon: nightfall grid/data.png (3-paper "file" stack) composited onto a Sentinel-orange rgb(252,152,0) tile so it reads like the other solid-bg sprites
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
-    main.py               # thin FastAPI entry point: app, lifespan (nudge loop), no-cache middleware, 401->redirect handler, include_router + static mounts. No routes/helpers — those live in the modules below
+    main.py               # thin FastAPI entry point: app, lifespan (nudge loop), gzip + cache-control middleware, 401->redirect handler, include_router + static mounts. No routes/helpers — those live in the modules below. CACHE POLICY (`_cache_control`): HTML responses = `no-cache` (shells embed live data); versioned static (`.css/.js/.woff2/.png/...` WITH a `?v=` query) = `immutable, 1yr`; unversioned static = `max-age=86400`. So bumping `?v=` on a changed asset is REQUIRED for clients to see it (browsers cache versioned assets hard). Nightfall (`/nightfall-game/`) manages its own caching
     routers.py            # the 3 shared APIRouters (public/protected/guest_protected) + sub-router includes (nightfall/chat/mtg/tarot). Defined here so route modules decorate them without importing main (would cycle)
     pages.py              # page composition: _build_nav(), _render_page() (cached chrome HTML by mtime), _index_pages(), _tmpl() (per-request template read), nav constants/icons/labels
     routes_views.py       # HTML page routes (landing/login/guest/recruiter, prophecies/debug/color/graph/emet/rd/mtg/tarot/nightfall) + read-only view-data GETs (color/usage, debug/logs, tarot/readings, moltbook log) + /data file serving
