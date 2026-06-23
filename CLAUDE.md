@@ -68,7 +68,7 @@ exec-fn/
     # nav icons (27x27 program art): seeker(core) turbo(profs/HQ)
     #   bug(debug) laser-satellite(graph) golem-stone(emet) data-doctor(color) hack2(night)
     #   wizard(mtg) watchman(tarot) radar(hosaka)   (sentinel/bitman/fiddle.png now unused)
-    tts.js tts.css  # /hosaka (HOSAKA) TTS page assets: tts.js drives the SPEAK UI (voice list, clone/playback knobs), opens the /ws/hosaka WebSocket, and plays the streamed 24kHz float32 PCM by scheduling AudioBufferSourceNodes (NOT an AudioWorklet — iOS-safe: context left at hardware rate, AudioBuffer carries 24kHz and resamples on playback; audio unlocked by a silent buffer-source .start() inside the click gesture). See routes_tts.py
+    tts.js tts.css silence.wav  # /hosaka (HOSAKA) TTS page assets: tts.js drives the SPEAK UI (voice list, clone/playback knobs), opens the /ws/hosaka WebSocket, and plays the streamed 24kHz float32 PCM by scheduling AudioBufferSourceNodes (NOT an AudioWorklet — iOS-safe: context left at hardware rate, AudioBuffer carries 24kHz and resamples on playback; audio unlocked by a silent buffer-source .start() inside the click gesture). iOS mutes Web Audio under the Ring/Silent switch — so the unlock also loops silence.wav through an HTMLMediaElement to move the page's audio session to "playback", which the switch doesn't mute (audio plays in silent mode / DnD). See routes_tts.py
     data-file.png         # recruiter/cv nav icon: nightfall grid/data.png (3-paper "file" stack) composited onto a Sentinel-orange rgb(252,152,0) tile so it reads like the other solid-bg sprites
     # all *.png gitignored; each nav icon whitelisted in .gitignore
   api/
