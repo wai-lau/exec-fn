@@ -9,35 +9,81 @@ async function streamResponse() {
   const pendingSys = [];  // sys notes held until the reader finishes speaking
   let pendingDeal = null; // frame to deal once the reader is done speaking
 
-  // tuned to elderly-reader speaking pace (~130 wpm), not typing pace
-  const SPEED = 1.25;       // overall pace multiplier
+  // Punctuation-weighted pacing. In SILENT mode these are the literal per-char
+  // delays (tuned to an unhurried reader, ~130 wpm). In VOICE mode the SAME
+  // weights set only the SHAPE of the typing — the dramatic pauses at periods
+  // and em-dashes — while the total is rescaled to the measured audio duration
+  // and driven off the playback clock, so the text tracks the actual voice.
+  const SPEED = 1.25;       // overall pace multiplier (silent mode)
   const BASE_MS = 65;
-  function nextDelayAfter(ch) {
-    let d;
+  function charWeight(ch) {
     switch (ch) {
-      case '.': case '!': case '?': d = 850; break;
-      case ',': case ';': case ':': d = 420; break;
-      case '—': case '-':           d = 480; break; // em-dash, hyphen
-      case '\n':                    d = 1100; break;
-      case ' ':                     d = 110; break;
-      default:                      d = BASE_MS;
+      case '.': case '!': case '?': return 850;
+      case ',': case ';': case ':': return 420;
+      case '—': case '-':           return 480; // em-dash, hyphen
+      case '\n':                    return 1100;
+      case ' ':                     return 110;
+      default:                      return BASE_MS;
     }
-    return d / SPEED;
   }
-  function drainOne() {
+  function render() {
+    body.innerHTML = renderText(displayed);
+    (body.lastElementChild || body).appendChild(cur);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+  // SILENT: reveal one char at a time at the weighted (guessed) pace.
+  function drainGuessed() {
     if (drainCancelled) return;
     if (displayed.length < buffered.length) {
       displayed = buffered.slice(0, displayed.length + 1);
-      body.innerHTML = renderText(displayed);
-      (body.lastElementChild || body).appendChild(cur);
-      terminal.scrollTop = terminal.scrollHeight;
-      const last = displayed[displayed.length - 1];
-      setTimeout(drainOne, nextDelayAfter(last));
+      render();
+      setTimeout(drainGuessed, charWeight(displayed[displayed.length - 1]) / SPEED);
     } else if (!serverDone) {
-      setTimeout(drainOne, 50);
+      setTimeout(drainGuessed, 50);
     }
   }
-  drainOne();
+  // VOICE: drive the reveal off the audio clock. `buffered` is final by the time
+  // this runs (after the server stream completes), so the weight schedule is fixed.
+  function drainAudio(ctl) {
+    const text = buffered;
+    const cum = new Array(text.length + 1);
+    cum[0] = 0;
+    for (let i = 0; i < text.length; i++) cum[i + 1] = cum[i] + charWeight(text[i]);
+    const totalW = cum[text.length] || 1;
+    function tick() {
+      if (drainCancelled) return;
+      if (!ctl.ok) { drainGuessed(); return; }  // audio fell through → guessed pace
+      const dur = ctl.duration();
+      const el = ctl.elapsed();
+      if (dur > 0) {
+        // fraction of the voice consumed; don't outrun audio that's still buffering
+        let frac = ctl.ended ? el / dur : Math.min(el / dur, 0.999);
+        frac = Math.max(0, Math.min(1, frac));
+        const targetW = frac * totalW;
+        let n = displayed.length;
+        while (n < text.length && cum[n + 1] <= targetW) n++;
+        if (n !== displayed.length) { displayed = text.slice(0, n); render(); }
+      }
+      const audioFinished = ctl.ended && el >= dur;
+      if (audioFinished && displayed.length >= text.length) return;  // done
+      if (audioFinished && displayed.length < text.length) {
+        // tail with no audio behind it (e.g. a stripped invite) → flush briskly
+        displayed = text.slice(0, displayed.length + 2);
+        render();
+        setTimeout(tick, 16);
+        return;
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  // Decide the path up front. Voice mode holds the text until audio starts (the
+  // reader "draws breath" behind a blinking cursor); silent mode types as the
+  // server text arrives, exactly as before.
+  const voiceReady = tarotVoice.ready();
+  let voiceCtl = null;
+  if (!voiceReady) drainGuessed();
 
   try {
     const r = await fetch('/api/tarot/chat', {
@@ -96,8 +142,19 @@ async function streamResponse() {
       }
     }
     serverDone = true;
-    // wait for the drain tick to finish revealing all buffered text
-    while (displayed.length < buffered.length) {
+    // Voice mode: strip any trailing flip-invite BEFORE narrating (so the voice
+    // and the typewriter both work from the final text), then start the reader
+    // and pace the reveal to it. Silent mode strips after typing (below).
+    if (voiceReady && pendingDeal) buffered = stripDealInvite(buffered);
+    if (voiceReady) {
+      voiceCtl = tarotVoice.speak(buffered);
+      drainAudio(voiceCtl);
+    }
+    // wait for the reveal to catch up — and, in voice mode, for the voice to end
+    while (
+      displayed.length < buffered.length ||
+      (voiceCtl && voiceCtl.ok && !voiceCtl.ended)
+    ) {
       await new Promise(r => setTimeout(r, 50));
     }
     cur.remove();
