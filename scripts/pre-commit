@@ -94,7 +94,7 @@ fi
 LINE_CAP=500
 LINE_CAP_ALLOW=""
 cap_fail=0
-CAP_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out)/' || true)
+CAP_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out|web/vendor)/' || true)
 for f in $CAP_FILES; do
   case " $LINE_CAP_ALLOW " in *" $f "*) continue ;; esac
   n=$(git show ":$f" | wc -l)

@@ -56,6 +56,7 @@ exec-fn/
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
     card-dialog.js        # shared card edit dialog used by kanban/prophecies
     card-style.js         # cardStyle()/chipStyle(): fetch the right --card-*/--cat-* token for a card — no color math in JS
+    vendor/vis-network-9.1.9.min.js  # vendored vis-network for /graph + /emet — served same-origin + immutable-cached, replacing two unpkg CDN loads (was 9.1.6 standalone for graph, 9.1.9 dist for emet — version drift, third-party RTT, no shared cache). graph_page() regex-rewrites graphify's CDN <script> (incl. its stale 9.1.6 SRI hash) to this at serve time; emet.html references it directly. Excluded from the pre-commit line cap (web/vendor/)
     chrome.css            # shared chrome + THE PALETTE, hue-based: every color is an H S% L% channel token (--green-hsl etc.); consume as hsl(var(--X-hsl) / α). Category card colors = --cat-*-h/-s/-l base channels (same H S% L% units as the palette) + materialized --card-* size variants (calc offsets, computed once here). No hard-coded palette literals outside this file (page-unique accents may declare local :root vars, e.g. tarot --ember-hsl). Friendly color name authored as a leading `[Name]` in each token's comment (e.g. `--green-hsl: ...; /* [Matrix Green] usage */`; category name on the `--cat-*-l` knob) — /color reads it as the swatch headline
     chat.css              # terminal chat base (mtg, tarot)
     chat-reader.css       # shared merged-input + reader-voice skin on top of chat.css (mtg + tarot)
