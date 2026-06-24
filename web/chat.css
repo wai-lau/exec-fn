@@ -39,7 +39,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 @keyframes blink { 0%,50%{opacity:1} 50.01%,100%{opacity:0} }
 
 #input-bar {
-  position:fixed; bottom:max(var(--nav-h), var(--kb, 0px)); left:0; right:0;  /* sit above keyboard; nav hides behind it */
+  position:fixed; bottom:var(--kb-anchor); left:0; right:0;  /* sit above keyboard; nav hides behind it */
   padding:0 16px;
   background:hsl(var(--bg-hsl));
   border-top:1px solid hsl(var(--green-hsl) / 0.12);

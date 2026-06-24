@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=31">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=32">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -141,15 +141,18 @@ def _build_nav(active=None, guest=False):
         "de.style.setProperty('--vvh',vv.height+'px');"
         "de.style.setProperty('--vvt',vv.offsetTop+'px');"
         # Two distinct quantities — don't conflate them:
-        #  --kb (how far to LIFT the input above the keyboard) = clientHeight -
-        #    vv.height. Overlay model: keyboard height. Resize model: 0 (the layout
-        #    already shrank to sit above the keyboard, so no lift — using the base
-        #    delta here would double-count and shove the input to the top).
+        #  --kb (how far a fixed bottom:0 element must rise to sit at the visible
+        #    bottom = above the keyboard) = clientHeight - vv.height - vv.offsetTop.
+        #    iOS standalone SCROLLS the doc + offsets the visual viewport when the
+        #    keyboard opens, so offsetTop is large and MUST be subtracted — without
+        #    it the input flies to the top. Measured on device: client=775 vvH=455
+        #    vvT=320 -> lift 0 (layout bottom already meets the keyboard). Safari
+        #    tabs keep vvT≈0, so this also stays correct there.
         #  kb-open (whether to HIDE the nav) = base delta. clientHeight-vv.height
-        #    reads 0 in the resize model, so detect against the tallest viewport
-        #    seen while the keyboard was down. offsetTop left out (bounce).
+        #    can read 0 when iOS resizes the layout, so detect against the tallest
+        #    viewport seen while the keyboard was down.
         "if(!de.classList.contains('kb-open'))_baseH=Math.max(_baseH,vv.height);"
-        "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height)+'px');"
+        "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height-vv.offsetTop)+'px');"
         "de.classList.toggle('kb-open',(_baseH-vv.height)>80);}"
         "if(vv){vv.addEventListener('resize',_vp);vv.addEventListener('scroll',_vp);}"
         "_vp();"
