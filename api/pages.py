@@ -187,9 +187,15 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-todos.js?v=2"></script>'
                   '<script src="/exec-bubble.js?v=39"></script>')
     else:
-        bubble = ('<a id="exec-bubble" href="/prophecies?exec=open" aria-label="Exec" '
+        # Same look as the core/prophecies bubble (#exec-bubble in exec-bubble.css,
+        # normally injected by exec-bubble.js — load it directly here since the
+        # chat JS isn't present), but it's a link, not the chat toggle. exec-bubble.js
+        # sets the position on the planning pages; here a default sits it
+        # bottom-right above the nav.
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=10">'
+                  '<a id="exec-bubble" href="/prophecies?exec=open" aria-label="Exec" '
                   'style="right:16px;bottom:calc(var(--nav-h, 56px) + 16px);">'
-                  '<img src="/guru-pink.png" alt="Exec"></a>')
+                  '<img src="/guru-pink.png" alt="exec"></a>')
     return nav + script + bubble
 
 
