@@ -127,16 +127,157 @@
     return depth;
   }
 
+  // One step's box. ctx bundles the shared render state + the mutating callbacks
+  // (recompute/draw/removeNode) so this can live outside renderCardGraph.
+  function cgNodeEl(ctx, node) {
+    const { n, card, onChange } = ctx;
+    const box = document.createElement('div');
+    box.className = 'cg-node' + (node.done ? ' done' : '') +
+      (node.id === n.active_node ? ' active' : '') + (node.is_event_start ? ' event' : '');
+    box.dataset.id = node.id;
+
+    const label = document.createElement('div');
+    label.className = 'cg-label';
+    label.textContent = node.label;
+
+    // The event anchor is fixed — no rename, no controls.
+    if (!node.is_event_start) {
+      const ctl = document.createElement('div');
+      ctl.className = 'cg-ctl';
+      const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
+      ctl.append(
+        mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; ctx.recompute(); ctx.draw(); }),
+        mk('✕', 'delete step', () => ctx.removeNode(node.id)),
+      );
+      label.contentEditable = 'true';
+      label.addEventListener('keydown', e => {
+        e.stopPropagation();                     // don't trigger the dialog's enter-to-save
+        if (e.key === 'Enter') { e.preventDefault(); label.blur(); }
+      });
+      label.addEventListener('blur', () => {
+        const v = label.textContent.trim();
+        if (v && v !== node.label) { node.label = v; if (typeof onChange === 'function') onChange(); }
+        else label.textContent = node.label;
+      });
+      box.appendChild(ctl);
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'cg-meta';
+    if (node.is_event_start) {
+      const t = startTime(node);
+      meta.textContent = t ? 'starts ' + t : '';
+    } else {
+      const master = masterStartOf(card);
+      if (master != null) {
+        // editable start time, stored as an offset from the master (dir_start_min)
+        const ti = document.createElement('input');
+        ti.className = 'cg-time';
+        ti.value = fmtClock(master + (node._off || 0));
+        ti.title = 'start time';
+        ti.addEventListener('mousedown', e => e.stopPropagation());
+        ti.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); ti.blur(); } });
+        ti.addEventListener('blur', () => {
+          const mins = parseClock(ti.value);
+          if (mins == null) { ti.value = fmtClock(master + (node._off || 0)); return; }
+          let abs = mins; if (abs < 270) abs += 1440;   // before 4:30am = after-midnight slot (matches timeline day)
+          freezeOffsets(card);
+          node.tl_offset = abs - master;
+          node._off = node.tl_offset;
+          ti.value = fmtClock(master + node._off);
+          if (typeof onChange === 'function') onChange();
+        });
+        meta.append(ti, document.createTextNode(' · '));
+      } else {
+        const t = startTime(node);
+        if (t) meta.append(document.createTextNode(t + '  ·  '));
+      }
+      // editable estimate (minutes)
+      const di = document.createElement('input');
+      di.className = 'cg-est';
+      di.type = 'number';
+      di.min = '1';
+      di.value = node.est_min || '';
+      di.title = 'minutes';
+      di.addEventListener('mousedown', e => e.stopPropagation());
+      di.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); di.blur(); } });
+      di.addEventListener('blur', () => {
+        const v = parseInt(di.value);
+        if (!v || v < 1) { di.value = node.est_min || ''; return; }
+        if (masterStartOf(card) != null) freezeOffsets(card);   // keep the others put
+        node.est_min = v;
+        node._dur = Math.max(10, v);
+        if (typeof onChange === 'function') onChange();
+      });
+      meta.append(di, document.createTextNode('m'));
+    }
+
+    box.appendChild(label);
+    if (meta.childNodes.length) box.appendChild(meta);
+    return box;
+  }
+
+  // Lay out the layered DAG (HTML nodes + SVG edges) into ctx.container.
+  function cgDraw(ctx) {
+    const { n, card, container } = ctx;
+    computeOffsets(card);   // refresh each step's default/explicit timeline offset
+    const nodes = n.graph.nodes, edges = n.graph.edges;
+    const depth = layerOf(nodes, edges);
+    const maxL = Math.max(0, ...nodes.map(x => depth[x.id]));
+
+    container.innerHTML = '<div class="cg-wrap"><div class="cg-scroll"><div class="cg-canvas">' +
+      '<svg class="cg-edges"></svg><div class="cg-cols"></div></div></div>' +
+      '<div class="cg-hint">click a step to rename · ✓ done · ✕ delete · add steps via chat</div></div>';
+    const cols = container.querySelector('.cg-cols');
+    const elById = {};
+    for (let L = 0; L <= maxL; L++) {
+      const col = document.createElement('div');
+      col.className = 'cg-col';
+      nodes.filter(x => depth[x.id] === L).forEach(x => { const e = cgNodeEl(ctx, x); elById[x.id] = e; col.appendChild(e); });
+      cols.appendChild(col);
+    }
+
+    // edges: right-center of `from` -> left-center of `to`, measured post-layout
+    const canvas = container.querySelector('.cg-canvas');
+    const svg = container.querySelector('.cg-edges');
+    svg.setAttribute('width', canvas.scrollWidth);
+    svg.setAttribute('height', canvas.scrollHeight);
+    svg.innerHTML = '<defs><marker id="cg-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="cg-arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>';
+    edges.forEach(e => {
+      const a = elById[e.from], b = elById[e.to];
+      if (!a || !b) return;
+      const x1 = a.offsetLeft + a.offsetWidth, y1 = a.offsetTop + a.offsetHeight / 2;
+      // stop short of the target's left edge so the arrowhead sits in the gap,
+      // not hidden under the HTML node (which paints above the edge svg).
+      const x2 = b.offsetLeft - 7, y2 = b.offsetTop + b.offsetHeight / 2;
+      const mx = (x1 + x2) / 2;
+      const path = document.createElementNS(SVGNS, 'path');
+      path.setAttribute('class', 'cg-edge');
+      path.setAttribute('marker-end', 'url(#cg-arr)');
+      path.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+      svg.appendChild(path);
+    });
+
+    // Autoscroll to the next unfinished (active) step.
+    const scroll = container.querySelector('.cg-scroll');
+    const target = elById[n.active_node];
+    if (target) {
+      scroll.scrollTo({
+        left: Math.max(0, target.offsetLeft - scroll.clientWidth / 2 + target.offsetWidth / 2),
+        top: Math.max(0, target.offsetTop - scroll.clientHeight / 2 + target.offsetHeight / 2),
+      });
+    }
+  }
+
   window.renderCardGraph = function (container, card, onChange) {
     const n = card.nudge;
     if (!n || !n.graph || !n.graph.nodes) { container.innerHTML = ''; return; }
-
-    function recompute() {
+    const ctx = { n, card, container, onChange };
+    ctx.recompute = () => {
       n.active_node = firstOpen(n.graph.nodes, n.graph.edges);
       if (typeof onChange === 'function') onChange();
-    }
-
-    function removeNode(id) {
+    };
+    ctx.removeNode = (id) => {
       const edges = n.graph.edges;
       const pres = edges.filter(e => e.to === id).map(e => e.from);
       const deps = edges.filter(e => e.from === id).map(e => e.to);
@@ -145,146 +286,9 @@
         if (!n.graph.edges.some(e => e.from === p && e.to === d2)) n.graph.edges.push({ from: p, to: d2 });
       }));
       n.graph.nodes = n.graph.nodes.filter(x => x.id !== id);
-      recompute(); draw();
-    }
-
-    function nodeEl(node) {
-      const box = document.createElement('div');
-      box.className = 'cg-node' + (node.done ? ' done' : '') +
-        (node.id === n.active_node ? ' active' : '') + (node.is_event_start ? ' event' : '');
-      box.dataset.id = node.id;
-
-      const label = document.createElement('div');
-      label.className = 'cg-label';
-      label.textContent = node.label;
-
-      // The event anchor is fixed — no rename, no controls.
-      if (!node.is_event_start) {
-        const ctl = document.createElement('div');
-        ctl.className = 'cg-ctl';
-        const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
-        ctl.append(
-          mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; recompute(); draw(); }),
-          mk('✕', 'delete step', () => removeNode(node.id)),
-        );
-        label.contentEditable = 'true';
-        label.addEventListener('keydown', e => {
-          e.stopPropagation();                     // don't trigger the dialog's enter-to-save
-          if (e.key === 'Enter') { e.preventDefault(); label.blur(); }
-        });
-        label.addEventListener('blur', () => {
-          const v = label.textContent.trim();
-          if (v && v !== node.label) { node.label = v; if (typeof onChange === 'function') onChange(); }
-          else label.textContent = node.label;
-        });
-        box.appendChild(ctl);
-      }
-
-      const meta = document.createElement('div');
-      meta.className = 'cg-meta';
-      if (node.is_event_start) {
-        const t = startTime(node);
-        meta.textContent = t ? 'starts ' + t : '';
-      } else {
-        const master = masterStartOf(card);
-        if (master != null) {
-          // editable start time, stored as an offset from the master (dir_start_min)
-          const ti = document.createElement('input');
-          ti.className = 'cg-time';
-          ti.value = fmtClock(master + (node._off || 0));
-          ti.title = 'start time';
-          ti.addEventListener('mousedown', e => e.stopPropagation());
-          ti.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); ti.blur(); } });
-          ti.addEventListener('blur', () => {
-            const mins = parseClock(ti.value);
-            if (mins == null) { ti.value = fmtClock(master + (node._off || 0)); return; }
-            let abs = mins; if (abs < 270) abs += 1440;   // before 4:30am = after-midnight slot (matches timeline day)
-            freezeOffsets(card);
-            node.tl_offset = abs - master;
-            node._off = node.tl_offset;
-            ti.value = fmtClock(master + node._off);
-            if (typeof onChange === 'function') onChange();
-          });
-          meta.append(ti, document.createTextNode(' · '));
-        } else {
-          const t = startTime(node);
-          if (t) meta.append(document.createTextNode(t + '  ·  '));
-        }
-        // editable estimate (minutes)
-        const di = document.createElement('input');
-        di.className = 'cg-est';
-        di.type = 'number';
-        di.min = '1';
-        di.value = node.est_min || '';
-        di.title = 'minutes';
-        di.addEventListener('mousedown', e => e.stopPropagation());
-        di.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); di.blur(); } });
-        di.addEventListener('blur', () => {
-          const v = parseInt(di.value);
-          if (!v || v < 1) { di.value = node.est_min || ''; return; }
-          if (masterStartOf(card) != null) freezeOffsets(card);   // keep the others put
-          node.est_min = v;
-          node._dur = Math.max(10, v);
-          if (typeof onChange === 'function') onChange();
-        });
-        meta.append(di, document.createTextNode('m'));
-      }
-
-      box.appendChild(label);
-      if (meta.childNodes.length) box.appendChild(meta);
-      return box;
-    }
-
-    function draw() {
-      computeOffsets(card);   // refresh each step's default/explicit timeline offset
-      const nodes = n.graph.nodes, edges = n.graph.edges;
-      const depth = layerOf(nodes, edges);
-      const maxL = Math.max(0, ...nodes.map(x => depth[x.id]));
-
-      container.innerHTML = '<div class="cg-wrap"><div class="cg-scroll"><div class="cg-canvas">' +
-        '<svg class="cg-edges"></svg><div class="cg-cols"></div></div></div>' +
-        '<div class="cg-hint">click a step to rename · ✓ done · ✕ delete · add steps via chat</div></div>';
-      const cols = container.querySelector('.cg-cols');
-      const elById = {};
-      for (let L = 0; L <= maxL; L++) {
-        const col = document.createElement('div');
-        col.className = 'cg-col';
-        nodes.filter(x => depth[x.id] === L).forEach(x => { const e = nodeEl(x); elById[x.id] = e; col.appendChild(e); });
-        cols.appendChild(col);
-      }
-
-      // edges: right-center of `from` -> left-center of `to`, measured post-layout
-      const canvas = container.querySelector('.cg-canvas');
-      const svg = container.querySelector('.cg-edges');
-      svg.setAttribute('width', canvas.scrollWidth);
-      svg.setAttribute('height', canvas.scrollHeight);
-      svg.innerHTML = '<defs><marker id="cg-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="cg-arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>';
-      edges.forEach(e => {
-        const a = elById[e.from], b = elById[e.to];
-        if (!a || !b) return;
-        const x1 = a.offsetLeft + a.offsetWidth, y1 = a.offsetTop + a.offsetHeight / 2;
-        // stop short of the target's left edge so the arrowhead sits in the gap,
-        // not hidden under the HTML node (which paints above the edge svg).
-        const x2 = b.offsetLeft - 7, y2 = b.offsetTop + b.offsetHeight / 2;
-        const mx = (x1 + x2) / 2;
-        const path = document.createElementNS(SVGNS, 'path');
-        path.setAttribute('class', 'cg-edge');
-        path.setAttribute('marker-end', 'url(#cg-arr)');
-        path.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
-        svg.appendChild(path);
-      });
-
-      // Autoscroll to the next unfinished (active) step.
-      const scroll = container.querySelector('.cg-scroll');
-      const target = elById[n.active_node];
-      if (target) {
-        scroll.scrollTo({
-          left: Math.max(0, target.offsetLeft - scroll.clientWidth / 2 + target.offsetWidth / 2),
-          top: Math.max(0, target.offsetTop - scroll.clientHeight / 2 + target.offsetHeight / 2),
-        });
-      }
-    }
-
-    draw();
+      ctx.recompute(); cgDraw(ctx);
+    };
+    ctx.draw = () => cgDraw(ctx);
+    cgDraw(ctx);
   };
 })();
