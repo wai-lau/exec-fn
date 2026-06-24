@@ -3,6 +3,8 @@
 
 <main class="tts">
   <textarea id="tts-text" placeholder="Type something to speak...">Hello from the web.</textarea>
+  <button id="tts-speak">Speak</button>
+  <div id="tts-status">idle</div>
 
   <select id="tts-voice"><option>loading voices...</option></select>
 
@@ -31,8 +33,6 @@
       <span class="tts-kval" id="tts-volume-val"></span></label>
   </div>
 
-  <button id="tts-speak">Speak</button>
-  <div id="tts-status">idle</div>
 </main>
 
 <script src="/hosaka-audio.js?v=3"></script>
