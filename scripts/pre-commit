@@ -151,6 +151,29 @@ if [ -n "$SRC_CHANGED" ]; then
   fi
 fi
 
+# ── Tarot reading-progression (WebKit) — only when the tarot reader changed. ──
+# The browser suite (marked `browser`, kept out of the smoke step above) guards
+# the invariant that a reading always progresses. Run it when the reader's JS /
+# template / api / its own test is staged, so a change there can't ship a
+# hang/freeze. Skips cleanly (no pytest venv, no WebKit, or app down) so a fresh
+# clone or browser-less CI never blocks — same philosophy as the smoke suite.
+TAROT_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/tarot/|^api/templates/tarot\.html$|^web/tarot.*\.js$|^web/hosaka-audio\.js$|^tests/test_tarot_progression\.py$' || true)
+if [ -n "$TAROT_CHANGED" ]; then
+  PYTEST=""
+  if [ -x /exec-fn/.venv/bin/pytest ]; then
+    PYTEST=/exec-fn/.venv/bin/pytest
+  elif command -v pytest &>/dev/null; then
+    PYTEST=pytest
+  fi
+  if [ -z "$PYTEST" ]; then
+    echo "NOTE: skipping tarot progression tests — no pytest venv."
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/test_tarot_progression.py -q; then
+    echo ""
+    echo "Tarot progression tests failed — commit blocked. A reading can hang."
+    exit 1
+  fi
+fi
+
 # Docs reminder (non-blocking): substantive source changed but docs not staged.
 # The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
 # naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md.

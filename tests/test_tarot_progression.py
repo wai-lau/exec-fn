@@ -13,8 +13,10 @@ no-op shim so reveal text == buffered text), and /tarot-voice.js (a controllable
 fake voice, to exercise the audio-failure / stall fallbacks without a TTS box).
 Nothing here hits the LLM or the hosaka WebSocket.
 
-Marked `browser` so the fast pre-commit smoke gate (`-m "not browser"`) skips
-them — playwright + WebKit are heavier than the HTTP smoke suite. Run them with:
+Marked `browser` so the general smoke step skips them (`-m "not browser"`) —
+playwright + WebKit are heavier than the HTTP suite. They DO run in pre-commit
+as a dedicated step whenever the reader changes (its JS / template / api / this
+test), so a hang/freeze can't ship. Run by hand with:
 
     .venv/bin/playwright install webkit   # once
     .venv/bin/pytest tests/test_tarot_progression.py -q
