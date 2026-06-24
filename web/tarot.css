@@ -153,6 +153,12 @@ body.reader-speaking .tarot-card[data-next="true"] {
 .msg.event { color:hsl(var(--green-hsl) / 0.45); font-style:italic; font-size:0.74rem; margin:6px auto; }
 .msg.event::before { content:"~ "; opacity:0.5; }
 
+/* opening held for the first gesture: blank the reader bubble (its cursor and
+   the ">" prefix) + the input bar, so only the "tap to begin" hint shows until
+   the click starts the reading */
+body.opening-pending #input-bar { visibility:hidden; }
+body.opening-pending .msg.assistant { display:none; }
+
 /* hint shown while the opening reader turn waits for the first gesture (voice
    on, audio not yet unlocked) -- removed once the turn fires */
 .begin-hint {
