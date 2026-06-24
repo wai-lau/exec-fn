@@ -142,82 +142,120 @@ function attachResize(handle, start) {
 // Floating-ghost drag shared by plain blocks and group spines. Drop on another
 // day / unschedule -> reschedule the card; drop within today -> opts.onTodayCommit
 // with the snapped start-minute of the dragged element's top.
-function startTimelineDrag(c, track, opts, startClientX, startClientY, getX, getY) {
-  const rect = track.getBoundingClientRect();
-  const srcRect = opts.ghostSrc.getBoundingClientRect();
-  const offsetX = startClientX - srcRect.left;
-  const offsetY = startClientY - srcRect.top;
-  const width = srcRect.width, height = srcRect.height;
-  let moved = false, lastX = startClientX, lastY = startClientY, ghost = null, preview = null;
-  const unEl = document.getElementById('pr-unschedule');
-  document.body.classList.add('pr-dragging');
+function tdMakeGhost(ds) {
+  const g = ds.opts.ghostSrc.cloneNode(true);
+  g.style.position = 'fixed';
+  g.style.margin = '0';
+  g.style.left = (ds.lastX - ds.offsetX) + 'px';
+  g.style.top = (ds.lastY - ds.offsetY) + 'px';
+  g.style.width = ds.width + 'px';
+  g.style.height = ds.height + 'px';
+  g.style.right = 'auto';
+  g.style.bottom = 'auto';
+  g.style.pointerEvents = 'none';
+  g.style.zIndex = '9999';
+  g.style.opacity = '1';
+  g.style.boxShadow = '0 6px 18px rgba(0,0,0,0.6)';
+  document.body.appendChild(g);
+  ds.ghost = g;
+  ds.opts.liftEl.style.display = 'none';
+}
 
-  function makeGhost() {
-    ghost = opts.ghostSrc.cloneNode(true);
-    ghost.style.position = 'fixed';
-    ghost.style.margin = '0';
-    ghost.style.left = (lastX - offsetX) + 'px';
-    ghost.style.top = (lastY - offsetY) + 'px';
-    ghost.style.width = width + 'px';
-    ghost.style.height = height + 'px';
-    ghost.style.right = 'auto';
-    ghost.style.bottom = 'auto';
-    ghost.style.pointerEvents = 'none';
-    ghost.style.zIndex = '9999';
-    ghost.style.opacity = '1';
-    ghost.style.boxShadow = '0 6px 18px rgba(0,0,0,0.6)';
-    document.body.appendChild(ghost);
-    opts.liftEl.style.display = 'none';
-  }
-  function mkPreview(ctx) {
-    const p = document.createElement('div');
-    p.className = 'pr-drop-preview ' + ctx;
-    p.dataset.ctx = ctx;
-    p.textContent = c.title;
-    const cs = cardStyle(c);            // card-colored placeholder, not Ono-Sendai green
-    if (cs.bg) { p.style.cssText = cs.bg + cs.border; if (!cs.dark) p.style.color = 'rgba(0,0,0,0.85)'; }
-    return p;
-  }
-  function clearPreview() {
-    if (preview) { preview.remove(); preview = null; }
-    if (unEl) unEl.classList.remove('drag-over');
-  }
-  function placePreview(x, y) {
-    const tgt = dropTarget(x, y);
-    if (unEl) unEl.classList.toggle('drag-over', tgt === 'unschedule');
-    if (tgt === 'unschedule') { if (preview) { preview.remove(); preview = null; } return; }
-    if (tgt && tgt !== isoToday()) {
-      const list = document.getElementById('pr-list-' + tgt);
-      if (!list) { if (preview) { preview.remove(); preview = null; } return; }
-      if (!preview || preview.dataset.ctx !== 'day') {
-        if (preview) preview.remove();
-        const tmp = document.createElement('div');
-        tmp.innerHTML = renderCard(c, tgt);
-        preview = tmp.firstElementChild;
-        preview.dataset.ctx = 'day';
-        preview.classList.add('sortable-ghost');
-        preview.style.pointerEvents = 'none';
-      }
-      const ref = [...list.querySelectorAll('.pr-card')].filter(el => el !== preview).find(el => {
-        const r = el.getBoundingClientRect();
-        return y < r.top + r.height / 2;
-      });
-      if (ref) list.insertBefore(preview, ref); else list.appendChild(preview);
-    } else {
-      if (!preview || preview.dataset.ctx !== 'today') { if (preview) preview.remove(); preview = mkPreview('today'); track.appendChild(preview); }
-      const rawMin = (y - rect.top - offsetY) / TL_PX + TL_START;
-      const snapped = Math.max(TL_START, Math.min(TL_END - opts.spanMin, snapMin(rawMin)));
-      preview.style.top = ((snapped - TL_START) * TL_PX + 3) + 'px';
-      preview.style.height = Math.max(13, opts.spanMin * TL_PX - 6) + 'px';
+function tdMkPreview(ds, ctx) {
+  const p = document.createElement('div');
+  p.className = 'pr-drop-preview ' + ctx;
+  p.dataset.ctx = ctx;
+  p.textContent = ds.c.title;
+  const cs = cardStyle(ds.c);          // card-colored placeholder, not Ono-Sendai green
+  if (cs.bg) { p.style.cssText = cs.bg + cs.border; if (!cs.dark) p.style.color = 'rgba(0,0,0,0.85)'; }
+  return p;
+}
+
+function tdClearPreview(ds) {
+  if (ds.preview) { ds.preview.remove(); ds.preview = null; }
+  if (ds.unEl) ds.unEl.classList.remove('drag-over');
+}
+
+function tdPlacePreview(ds, x, y) {
+  const {c, track, rect, offsetY, unEl, opts} = ds;
+  const tgt = dropTarget(x, y);
+  if (unEl) unEl.classList.toggle('drag-over', tgt === 'unschedule');
+  if (tgt === 'unschedule') { if (ds.preview) { ds.preview.remove(); ds.preview = null; } return; }
+  if (tgt && tgt !== isoToday()) {
+    const list = document.getElementById('pr-list-' + tgt);
+    if (!list) { if (ds.preview) { ds.preview.remove(); ds.preview = null; } return; }
+    if (!ds.preview || ds.preview.dataset.ctx !== 'day') {
+      if (ds.preview) ds.preview.remove();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = renderCard(c, tgt);
+      ds.preview = tmp.firstElementChild;
+      ds.preview.dataset.ctx = 'day';
+      ds.preview.classList.add('sortable-ghost');
+      ds.preview.style.pointerEvents = 'none';
     }
+    const pv = ds.preview;
+    const ref = [...list.querySelectorAll('.pr-card')].filter(el => el !== pv).find(el => {
+      const r = el.getBoundingClientRect();
+      return y < r.top + r.height / 2;
+    });
+    if (ref) list.insertBefore(pv, ref); else list.appendChild(pv);
+  } else {
+    if (!ds.preview || ds.preview.dataset.ctx !== 'today') { if (ds.preview) ds.preview.remove(); ds.preview = tdMkPreview(ds, 'today'); track.appendChild(ds.preview); }
+    const rawMin = (y - rect.top - offsetY) / TL_PX + TL_START;
+    const snapped = Math.max(TL_START, Math.min(TL_END - opts.spanMin, snapMin(rawMin)));
+    ds.preview.style.top = ((snapped - TL_START) * TL_PX + 3) + 'px';
+    ds.preview.style.height = Math.max(13, opts.spanMin * TL_PX - 6) + 'px';
   }
+}
+
+function tdFinish(ds) {
+  const {c, rect, offsetY, opts} = ds;
+  if (ds.ghost) { ds.ghost.remove(); ds.ghost = null; }
+  const tgt = dropTarget(ds.lastX, ds.lastY);
+  let dayIndex = 0;
+  if (ds.preview && ds.preview.dataset.ctx === 'day' && ds.preview.parentElement) {
+    dayIndex = [...ds.preview.parentElement.querySelectorAll('.pr-card, .pr-drop-preview')].indexOf(ds.preview);
+  }
+  tdClearPreview(ds);
+  opts.liftEl.style.display = '';
+  if (!ds.moved) { if (opts.onClick) opts.onClick(); return; }
+  if (tgt === 'unschedule') {
+    opts.liftEl.style.display = 'none';
+    queueUpdate(c.id, null, false);
+    setTimeout(() => load(weekStart), 700);
+    return;
+  }
+  if (tgt && tgt !== isoToday()) {
+    opts.liftEl.style.display = 'none';
+    queueUpdate(c.id, tgt, dayIndex);
+    setTimeout(() => load(weekStart), 700);
+    return;
+  }
+  const rawMin = (ds.lastY - rect.top - offsetY) / TL_PX + TL_START;
+  const snapped = Math.max(TL_START, Math.min(TL_END - opts.spanMin, snapMin(rawMin)));
+  opts.onTodayCommit(snapped);
+}
+
+function startTimelineDrag(c, track, opts, startClientX, startClientY, getX, getY) {
+  const srcRect = opts.ghostSrc.getBoundingClientRect();
+  const ds = {
+    c, track, opts,
+    rect: track.getBoundingClientRect(),
+    offsetX: startClientX - srcRect.left,
+    offsetY: startClientY - srcRect.top,
+    width: srcRect.width, height: srcRect.height,
+    moved: false, lastX: startClientX, lastY: startClientY,
+    ghost: null, preview: null,
+    unEl: document.getElementById('pr-unschedule'),
+  };
+  document.body.classList.add('pr-dragging');
   function onMove(ev) {
-    lastX = getX(ev); lastY = getY(ev);
-    if (!moved) { moved = true; makeGhost(); }
+    ds.lastX = getX(ev); ds.lastY = getY(ev);
+    if (!ds.moved) { ds.moved = true; tdMakeGhost(ds); }
     if (ev.cancelable) ev.preventDefault();
-    ghost.style.left = (lastX - offsetX) + 'px';
-    ghost.style.top = (lastY - offsetY) + 'px';
-    placePreview(lastX, lastY);
+    ds.ghost.style.left = (ds.lastX - ds.offsetX) + 'px';
+    ds.ghost.style.top = (ds.lastY - ds.offsetY) + 'px';
+    tdPlacePreview(ds, ds.lastX, ds.lastY);
   }
   function onUp() {
     document.removeEventListener('mousemove', onMove);
@@ -225,30 +263,7 @@ function startTimelineDrag(c, track, opts, startClientX, startClientY, getX, get
     document.removeEventListener('touchmove', onMove);
     document.removeEventListener('touchend', onUp);
     document.body.classList.remove('pr-dragging');
-    if (ghost) { ghost.remove(); ghost = null; }
-    const tgt = dropTarget(lastX, lastY);
-    let dayIndex = 0;
-    if (preview && preview.dataset.ctx === 'day' && preview.parentElement) {
-      dayIndex = [...preview.parentElement.querySelectorAll('.pr-card, .pr-drop-preview')].indexOf(preview);
-    }
-    clearPreview();
-    opts.liftEl.style.display = '';
-    if (!moved) { if (opts.onClick) opts.onClick(); return; }
-    if (tgt === 'unschedule') {
-      opts.liftEl.style.display = 'none';
-      queueUpdate(c.id, null, false);
-      setTimeout(() => load(weekStart), 700);
-      return;
-    }
-    if (tgt && tgt !== isoToday()) {
-      opts.liftEl.style.display = 'none';
-      queueUpdate(c.id, tgt, dayIndex);
-      setTimeout(() => load(weekStart), 700);
-      return;
-    }
-    const rawMin = (lastY - rect.top - offsetY) / TL_PX + TL_START;
-    const snapped = Math.max(TL_START, Math.min(TL_END - opts.spanMin, snapMin(rawMin)));
-    opts.onTodayCommit(snapped);
+    tdFinish(ds);
   }
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
