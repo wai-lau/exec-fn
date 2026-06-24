@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=32">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=33">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
