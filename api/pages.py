@@ -136,6 +136,13 @@ def _build_nav(active=None, guest=False):
         # that delta is the keyboard height in BOTH models. Drive kb-open off the
         # same delta (not just focusin, which can miss / not fire on a
         # contenteditable) so the nav reliably hides when the keyboard is up.
+        # kb-open is a SOFT-KEYBOARD state -- it must engage only on touch devices.
+        # On a no-touch desktop there is no keyboard, so the geometry path never
+        # fires to clear a focusin-added kb-open; it sticks while the composer is
+        # focused and collapses --kb-anchor to 0 (chrome.css), sliding the chat
+        # chrome under the still-visible nav. Gate both kb-open paths on touch.
+        # maxTouchPoints===0 mirrors the page's no-touch detection.
+        "var _touch=(navigator.maxTouchPoints||0)>0;"
         "var vv=window.visualViewport,_baseH=(vv&&vv.height)||window.innerHeight||0;"
         "function _vp(){if(!vv)return;"
         "de.style.setProperty('--vvh',vv.height+'px');"
@@ -153,7 +160,7 @@ def _build_nav(active=None, guest=False):
         #    viewport seen while the keyboard was down.
         "if(!de.classList.contains('kb-open'))_baseH=Math.max(_baseH,vv.height);"
         "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height-vv.offsetTop)+'px');"
-        "de.classList.toggle('kb-open',(_baseH-vv.height)>80);}"
+        "de.classList.toggle('kb-open',_touch&&(_baseH-vv.height)>80);}"
         "if(vv){vv.addEventListener('resize',_vp);vv.addEventListener('scroll',_vp);}"
         "_vp();"
         # focusin adds kb-open immediately (snappier than waiting for the vv resize
@@ -161,7 +168,7 @@ def _build_nav(active=None, guest=False):
         "var _ke=function(t){return !!t&&(t.isContentEditable||"
         "/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||''));};"
         "document.addEventListener('focusin',function(e){"
-        "if(_ke(e.target))de.classList.add('kb-open');});"
+        "if(_touch&&_ke(e.target))de.classList.add('kb-open');});"
         # Clear on blur for the no-keyboard case (desktop focus fires no vv resize,
         # so the geometry toggle never runs to undo the focusin add).
         "document.addEventListener('focusout',function(){"
@@ -169,12 +176,20 @@ def _build_nav(active=None, guest=False):
         "de.classList.remove('kb-open');},0);});"
         "})();</script>"
     )
-    # Exec chat = a floating draggable bubble, only on the planning routes
-    # (core + prophecies/dirs) — not debug/graph/other. Never for guests.
-    show_bubble = (not guest) and active in {"core", "prophecies"}
-    bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
-              '<script src="/exec-todos.js?v=2"></script>'
-              '<script src="/exec-bubble.js?v=39"></script>') if show_bubble else ''
+    # Exec chat = a floating draggable bubble + panel, on the planning routes
+    # (core + prophecies). On every OTHER non-guest page the same bubble shows
+    # as a plain link to the planning chat (/prophecies?exec=open) — same-origin
+    # so the standalone link interceptor keeps it in-app. Never for guests.
+    if guest:
+        bubble = ''
+    elif active in {"core", "prophecies"}:
+        bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
+                  '<script src="/exec-todos.js?v=2"></script>'
+                  '<script src="/exec-bubble.js?v=39"></script>')
+    else:
+        bubble = ('<a id="exec-bubble" href="/prophecies?exec=open" aria-label="Exec" '
+                  'style="right:16px;bottom:calc(var(--nav-h, 56px) + 16px);">'
+                  '<img src="/guru-pink.png" alt="Exec"></a>')
     return nav + script + bubble
 
 
