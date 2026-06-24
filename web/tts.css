@@ -9,16 +9,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 15px/1.5 'Iosevka Mayukai Monolite', ui-monospace, monospace;
   color: hsl(var(--green-hsl) / 0.8);
-}
-
-.tts h1 {
-  font-size: 1rem;
-  letter-spacing: 0.3em;
-  margin: 0;
-  color: hsl(var(--green-hsl));
-  text-shadow: 0 0 6px hsl(var(--green-hsl) / 0.45);
 }
 
 .tts textarea,
