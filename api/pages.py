@@ -127,26 +127,40 @@ def _build_nav(active=None, guest=False):
         "var u;try{u=new URL(a.getAttribute('href'),location.href);}catch(_){return;}"
         "if(u.origin!==location.origin||u.protocol!=='https:'&&u.protocol!=='http:')return;"
         "e.preventDefault();location.href=u.href;});}"
-        # iOS overlays the soft keyboard instead of resizing the layout, and the
-        # keyboard-inset arithmetic is unreliable across versions. Detect the
-        # keyboard by input focus (the one signal that always correlates) and
-        # mirror the visible viewport geometry from visualViewport so the nav can
-        # be hidden and the chat UI can fit the keyboard exactly.
-        "var vv=window.visualViewport;"
+        # Keyboard handling. Safari tabs OVERLAY the soft keyboard (layout stays
+        # full, visualViewport shrinks); iOS home-screen standalone RESIZES the
+        # layout instead — so de.clientHeight shrinks too and the old
+        # `clientHeight - vv.height` read 0, leaving --kb=0 and the nav on screen
+        # above the keyboard (chat "pushed up"). Measure the keyboard against a
+        # stable base = the tallest visible viewport seen while NO keyboard is up;
+        # that delta is the keyboard height in BOTH models. Drive kb-open off the
+        # same delta (not just focusin, which can miss / not fire on a
+        # contenteditable) so the nav reliably hides when the keyboard is up.
+        "var vv=window.visualViewport,_baseH=(vv&&vv.height)||window.innerHeight||0;"
         "function _vp(){if(!vv)return;"
         "de.style.setProperty('--vvh',vv.height+'px');"
         "de.style.setProperty('--vvt',vv.offsetTop+'px');"
-        # keyboard inset = layout height - visible height. Deliberately NOT minus
-        # offsetTop: the chat pages lock body scroll (offsetTop≈0 at rest), but iOS
-        # emits a transient offsetTop mid-animation that would make --kb dip then
-        # recover — the visible "bars bounce up and down" as the keyboard slides.
-        "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height)+'px');}"
+        # Two distinct quantities — don't conflate them:
+        #  --kb (how far to LIFT the input above the keyboard) = clientHeight -
+        #    vv.height. Overlay model: keyboard height. Resize model: 0 (the layout
+        #    already shrank to sit above the keyboard, so no lift — using the base
+        #    delta here would double-count and shove the input to the top).
+        #  kb-open (whether to HIDE the nav) = base delta. clientHeight-vv.height
+        #    reads 0 in the resize model, so detect against the tallest viewport
+        #    seen while the keyboard was down. offsetTop left out (bounce).
+        "if(!de.classList.contains('kb-open'))_baseH=Math.max(_baseH,vv.height);"
+        "de.style.setProperty('--kb',Math.max(0,de.clientHeight-vv.height)+'px');"
+        "de.classList.toggle('kb-open',(_baseH-vv.height)>80);}"
         "if(vv){vv.addEventListener('resize',_vp);vv.addEventListener('scroll',_vp);}"
         "_vp();"
+        # focusin adds kb-open immediately (snappier than waiting for the vv resize
+        # to land); _vp's geometry toggle is the authority that also clears it.
         "var _ke=function(t){return !!t&&(t.isContentEditable||"
         "/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||''));};"
         "document.addEventListener('focusin',function(e){"
         "if(_ke(e.target))de.classList.add('kb-open');});"
+        # Clear on blur for the no-keyboard case (desktop focus fires no vv resize,
+        # so the geometry toggle never runs to undo the focusin add).
         "document.addEventListener('focusout',function(){"
         "setTimeout(function(){if(!_ke(document.activeElement))"
         "de.classList.remove('kb-open');},0);});"
