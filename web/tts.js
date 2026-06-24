@@ -14,6 +14,18 @@ const OFFLINE = "TTS server offline — start it on the home box";
 
 const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
 
+// Per-voice loudness trim so every voice plays at ~the same level by default.
+// Derived from the measured RMS of a fixed sentence per voice, normalized to a
+// ~0.05 target (calm_brit was ~3x quiet; f_ellen/glados hot enough to clip).
+// Effective gain = volume knob * this trim; unknown voices default to 1.0.
+const VOICE_GAIN = {
+  af_heart: 1.09, af_bella: 1.08, af_nicole: 0.98, af_sarah: 0.92,
+  am_adam: 0.65, am_michael: 1.29, bf_emma: 0.81, bm_george: 0.86,
+  calm_brit: 2.72, f_ellen: 0.16, glados: 0.25,
+};
+const voiceGain = () => VOICE_GAIN[$("tts-voice").value] ?? 1.0;
+const applyVolume = () => player.setVolume(parseFloat($("tts-volume").value) * voiceGain());
+
 let speaking = false; // suppress health polling clobbering live speak status
 
 const player = HosakaAudio.createPlayer({
@@ -75,6 +87,7 @@ function selectedBackend() {
 // Dim the chatterbox-only knobs for kokoro voices (kokoro honors only speed).
 function reflectBackend() {
   $("tts-cb").classList.toggle("off", selectedBackend() !== "chatterbox");
+  applyVolume(); // re-trim for the newly selected voice
 }
 
 function wireKnobs() {
@@ -86,7 +99,7 @@ function wireKnobs() {
     };
     el.addEventListener("input", () => {
       show();
-      if (name === "volume") player.setVolume(parseFloat(el.value));
+      if (name === "volume") applyVolume();
     });
     show();
   }
@@ -120,7 +133,7 @@ async function speak() {
 
 window.addEventListener("DOMContentLoaded", () => {
   wireKnobs();
-  player.setVolume(parseFloat($("tts-volume").value));
+  applyVolume();
   loadVoices();
   checkHealth();
   setInterval(checkHealth, 15000);
