@@ -90,8 +90,20 @@ def _build_nav(active=None, guest=False):
         "window.matchMedia('(display-mode: standalone)').matches){"
         "de.classList.add('standalone');"
         "var _nav=document.querySelector('.exec-nav');"
-        "if(_nav)_nav.style.setProperty('--per-row',"
-        "Math.ceil(_nav.querySelectorAll('a').length/2));}"
+        "if(_nav){"
+        # No browser chrome in standalone -> no reload button. Add a nav one
+        # (firewall icon, last slot) that hard-reloads the current page. Appended
+        # before the --per-row count so the two-row reflow includes it. No href,
+        # so the same-origin link interceptor below ignores it.
+        "var _rf=document.createElement('a');_rf.id='nav-refresh';"
+        "_rf.style.cursor='pointer';"
+        "_rf.innerHTML='<img src=\"/firewall.png?v=1\" alt=\"refresh\" "
+        "style=\"width:20px;height:20px;image-rendering:pixelated;\">"
+        "<span class=\"nav-label\">refresh</span>';"
+        "_rf.addEventListener('click',function(e){e.preventDefault();"
+        "location.reload();});_nav.appendChild(_rf);"
+        "_nav.style.setProperty('--per-row',"
+        "Math.ceil(_nav.querySelectorAll('a').length/2));}}"
         "function _snh(){var n=document.querySelector('.exec-nav');"
         "if(n)de.style.setProperty('--nav-h',n.offsetHeight+'px');}"
         "_snh();window.addEventListener('resize',_snh);"
