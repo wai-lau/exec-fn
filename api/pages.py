@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=30">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=31">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -92,6 +92,13 @@ def _build_nav(active=None, guest=False):
         "function _snh(){var n=document.querySelector('.exec-nav');"
         "if(n)de.style.setProperty('--nav-h',n.offsetHeight+'px');}"
         "_snh();window.addEventListener('resize',_snh);"
+        # Nav height changes after first paint — icon images load, and the
+        # standalone class reflows to two rows. A one-shot _snh() reads the
+        # short single-row height; observe the nav so --nav-h tracks the real
+        # height (else pages reserving var(--nav-h) hide content behind it).
+        "window.addEventListener('load',_snh);"
+        "if(window.ResizeObserver){var _nvo=document.querySelector('.exec-nav');"
+        "if(_nvo)new ResizeObserver(_snh).observe(_nvo);}"
         # iOS overlays the soft keyboard instead of resizing the layout, and the
         # keyboard-inset arithmetic is unreliable across versions. Detect the
         # keyboard by input focus (the one signal that always correlates) and
