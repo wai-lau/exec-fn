@@ -4,3 +4,8 @@
 #   .venv/bin/pytest tests/ -q
 pytest
 httpx
+# WebKit browser tests (tarot reading-progression). Marked `browser` and
+# excluded from the fast pre-commit gate. After install, fetch the browser:
+#   .venv/bin/playwright install webkit
+#   .venv/bin/pytest tests/test_tarot_progression.py -q
+playwright

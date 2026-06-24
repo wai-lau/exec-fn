@@ -144,7 +144,7 @@ if [ -n "$SRC_CHANGED" ]; then
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping page smoke tests — no pytest. Run:"
     echo "      python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt"
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/ -q -x; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/ -q -x -m "not browser"; then
     echo ""
     echo "Page smoke tests failed — commit blocked. A page route is broken."
     exit 1

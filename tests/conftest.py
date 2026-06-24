@@ -36,6 +36,18 @@ API_KEY = _key("API_KEY")
 GUEST_KEY = _key("GUEST_KEY") or "REDACTED_ROTATED_KEY"
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "browser: WebKit (playwright) tests — heavier than the HTTP smoke "
+        "suite; excluded from the fast pre-commit gate via `-m 'not browser'`.")
+
+
+@pytest.fixture
+def guest_key() -> str:
+    return GUEST_KEY
+
+
 @pytest.fixture(scope="session")
 def base_url() -> str:
     """Probe the live app once; skip the whole suite if it isn't reachable."""
