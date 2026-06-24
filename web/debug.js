@@ -74,6 +74,135 @@ async function patchProfile() {
   });
 }
 
+async function renderVE(veRes) {
+  const veEl = document.getElementById('dbg-ve');
+  if (!veRes.ok) { veEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; return; }
+  const items = await veRes.json();
+  if (!items.length) { veEl.innerHTML = '<div class="dbg-empty">no items</div>'; return; }
+  veEl.innerHTML = items.slice().reverse().map((item) => {
+    const ts = item.timestamp ? new Date(item.timestamp).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    const typeClass = 'dbg-ve-type-' + (item.type || 'question').replace(/_/g, '-');
+    return `<div class="dbg-ve-entry" onclick="this.classList.toggle('open')">
+      <div class="dbg-ve-top">
+        <span class="dbg-ve-type ${typeClass}">${item.type || ''}</span>
+        <span class="dbg-ve-summary">${item.summary || ''}</span>
+        <span class="dbg-ve-ts">${ts}</span>
+      </div>
+      ${item.detail ? `<div class="dbg-ve-detail">${item.detail}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function renderMoltbook(mbRes) {
+  const mbEl = document.getElementById('dbg-moltbook');
+  if (!mbRes.ok) { mbEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; return; }
+  const mb = await mbRes.json();
+  const lines = (mb.content || '').trim();
+  mbEl.innerHTML = lines ? marked.parse(lines) : '<div class="dbg-empty">no heartbeat entries</div>';
+}
+
+async function renderProfileSection(ctxRes) {
+  if (!ctxRes.ok) return;
+  const ctx = await ctxRes.json();
+  profileNotes = ctx.notes || [];
+  renderProfile();
+}
+
+async function renderLogs(logRes) {
+  if (!logRes.ok) return;
+  const data = await logRes.json();
+  const files = data.files || [];
+  document.getElementById('dbg-logs').innerHTML = files.map((f, i) => {
+    const entries = f.entries || [];
+    const isToday = false;  // activity logs pre-minimized
+    return `<div class="dbg-log-file">
+      <div class="dbg-log-hdr" onclick="toggleLog(${i})">
+        <span class="dbg-log-toggle" id="tog-${i}">${isToday ? '▼' : '▶'}</span>
+        <span>${f.name}</span>
+        <span style="opacity:0.35">(${entries.length})</span>
+      </div>
+      <div class="dbg-log-entries${isToday ? ' open' : ''}" id="log-${i}">
+        ${entries.length ? entries.slice().reverse().map(e => {
+          const ts = e.ts ? new Date(e.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '';
+          const meta = e.action === 'moved' ? `${e.from_col||'?'}→${e.to_col||'?'}` : (e.column || e.day || '');
+          return `<div class="dbg-entry">
+            <span class="dbg-entry-ts">${ts}</span>
+            <span class="dbg-entry-action">${e.action||''}</span>
+            <span class="dbg-entry-title">${e.title||''}</span>
+            <span class="dbg-entry-meta">${meta}</span>
+          </div>`;
+        }).join('') : '<div class="dbg-empty">empty</div>'}
+      </div>
+    </div>`;
+  }).join('') || '<div class="dbg-empty">no logs</div>';
+}
+
+async function renderMtg(mtgRes) {
+  if (!mtgRes.ok) return;
+  const data = await mtgRes.json();
+  const sessions = (data.sessions || []);
+  const el = document.getElementById('dbg-mtg');
+  if (!sessions.length) { el.innerHTML = '<div class="dbg-empty">no mtg sessions</div>'; return; }
+  el.innerHTML = sessions.map((s, si) => {
+    const started = s.started_at ? new Date(s.started_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : s.id;
+    const exchanges = (s.exchanges || []);
+    const open = false;  // mtg logs pre-minimized
+    return `<div class="dbg-log-file">
+      <div class="dbg-log-hdr" onclick="toggleLog('mtg-${si}')">
+        <span class="dbg-log-toggle" id="tog-mtg-${si}">${open ? '▼' : '▶'}</span>
+        <span>${started}</span>
+        <span style="opacity:0.35">(${exchanges.length})</span>
+      </div>
+      <div class="dbg-log-entries${open ? ' open' : ''}" id="log-mtg-${si}">
+        ${exchanges.length ? exchanges.map(e => `<div class="dbg-mtg-entry">
+          <div class="dbg-mtg-ts">${e.ts ? new Date(e.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : ''}</div>
+          <div class="dbg-mtg-user">${e.user || ''}</div>
+          <div class="dbg-mtg-assistant">${e.assistant || ''}</div>
+        </div>`).join('') : '<div class="dbg-empty">empty</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renderTarot(tarotRes) {
+  const tEl = document.getElementById('dbg-tarot');
+  if (!tarotRes.ok) { tEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; return; }
+  const data = await tarotRes.json();
+  const readings = (data.readings || []);
+  if (!readings.length) { tEl.innerHTML = '<div class="dbg-empty">no readings</div>'; return; }
+  tEl.innerHTML = readings.slice().reverse().map((r, ri) => {
+    const when = r.saved_at ? new Date(r.saved_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    const sigName = r.significator && r.significator.name ? r.significator.name : null;
+    const cards = (r.spread && r.spread.cards) || [];
+    const cardsHtml = cards.map(c =>
+      `<span class="dbg-tarot-card"><span class="pos">${esc(c.position_label || c.position || '')}:</span> ${esc(c.name || c.card_id || '')}${c.reversed ? ' <span class="rev">(rev)</span>' : ''}</span>`
+    ).join('');
+    const msgs = (r.messages || []).map(m => {
+      const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+      const s = content.trim();
+      if (m.role === 'user' && s.startsWith('[') && s.endsWith(']')) {
+        return `<div class="dbg-tarot-msg dbg-tarot-event">${esc(s)}</div>`;
+      }
+      const cls = m.role === 'assistant' ? 'dbg-tarot-asst' : 'dbg-tarot-user';
+      return `<div class="dbg-tarot-msg ${cls}">${esc(content)}</div>`;
+    }).join('');
+    const open = false;  // tarot readings pre-minimized
+    const spreadType = (r.spread && r.spread.type) || 'no spread';
+    return `<div class="dbg-log-file">
+      <div class="dbg-log-hdr" onclick="toggleLog('tarot-${ri}')">
+        <span class="dbg-log-toggle" id="tog-tarot-${ri}">${open ? '▼' : '▶'}</span>
+        <span>${when}</span>
+        <span style="opacity:0.35">${esc(spreadType)}${sigName ? ' · sig ' + esc(sigName) : ''} (${(r.messages||[]).length})</span>
+      </div>
+      <div class="dbg-log-entries${open ? ' open' : ''}" id="log-tarot-${ri}">
+        ${sigName ? `<div class="dbg-tarot-sig">Significator: ${esc(sigName)}</div>` : ''}
+        ${cardsHtml ? `<div class="dbg-tarot-cards">${cardsHtml}</div>` : ''}
+        ${msgs || '<div class="dbg-empty">no messages</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function loadDebug() {
   const [ctxRes, logRes, mtgRes, veRes, mbRes, tarotRes] = await Promise.all([
     fetch('/api/context'),
@@ -83,141 +212,12 @@ async function loadDebug() {
     fetch('/api/moltbook/heartbeat-log'),
     fetch('/api/tarot/readings'),
   ]);
-
-  // Vain-empress
-  const veEl = document.getElementById('dbg-ve');
-  if (veRes.ok) {
-    const items = await veRes.json();
-    if (!items.length) { veEl.innerHTML = '<div class="dbg-empty">no items</div>'; }
-    else {
-      veEl.innerHTML = items.slice().reverse().map((item) => {
-        const ts = item.timestamp ? new Date(item.timestamp).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-        const typeClass = 'dbg-ve-type-' + (item.type || 'question').replace(/_/g, '-');
-        return `<div class="dbg-ve-entry" onclick="this.classList.toggle('open')">
-          <div class="dbg-ve-top">
-            <span class="dbg-ve-type ${typeClass}">${item.type || ''}</span>
-            <span class="dbg-ve-summary">${item.summary || ''}</span>
-            <span class="dbg-ve-ts">${ts}</span>
-          </div>
-          ${item.detail ? `<div class="dbg-ve-detail">${item.detail}</div>` : ''}
-        </div>`;
-      }).join('');
-    }
-  } else { veEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; }
-
-  // Moltbook heartbeat
-  const mbEl = document.getElementById('dbg-moltbook');
-  if (mbRes.ok) {
-    const mb = await mbRes.json();
-    const lines = (mb.content || '').trim();
-    mbEl.innerHTML = lines ? marked.parse(lines) : '<div class="dbg-empty">no heartbeat entries</div>';
-  } else { mbEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; }
-
-  // Profile
-  if (ctxRes.ok) {
-    const ctx = await ctxRes.json();
-    profileNotes = ctx.notes || [];
-    renderProfile();
-  }
-
-  // Logs
-  if (logRes.ok) {
-    const data = await logRes.json();
-    const files = data.files || [];
-    document.getElementById('dbg-logs').innerHTML = files.map((f, i) => {
-      const entries = f.entries || [];
-      const isToday = false;  // activity logs pre-minimized
-      return `<div class="dbg-log-file">
-        <div class="dbg-log-hdr" onclick="toggleLog(${i})">
-          <span class="dbg-log-toggle" id="tog-${i}">${isToday ? '▼' : '▶'}</span>
-          <span>${f.name}</span>
-          <span style="opacity:0.35">(${entries.length})</span>
-        </div>
-        <div class="dbg-log-entries${isToday ? ' open' : ''}" id="log-${i}">
-          ${entries.length ? entries.slice().reverse().map(e => {
-            const ts = e.ts ? new Date(e.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '';
-            const meta = e.action === 'moved' ? `${e.from_col||'?'}→${e.to_col||'?'}` : (e.column || e.day || '');
-            return `<div class="dbg-entry">
-              <span class="dbg-entry-ts">${ts}</span>
-              <span class="dbg-entry-action">${e.action||''}</span>
-              <span class="dbg-entry-title">${e.title||''}</span>
-              <span class="dbg-entry-meta">${meta}</span>
-            </div>`;
-          }).join('') : '<div class="dbg-empty">empty</div>'}
-        </div>
-      </div>`;
-    }).join('') || '<div class="dbg-empty">no logs</div>';
-  }
-
-  // MTG log
-  if (mtgRes.ok) {
-    const data = await mtgRes.json();
-    const sessions = (data.sessions || []);
-    const el = document.getElementById('dbg-mtg');
-    if (!sessions.length) { el.innerHTML = '<div class="dbg-empty">no mtg sessions</div>'; }
-    else {
-      el.innerHTML = sessions.map((s, si) => {
-        const started = s.started_at ? new Date(s.started_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : s.id;
-        const exchanges = (s.exchanges || []);
-        const open = false;  // mtg logs pre-minimized
-        return `<div class="dbg-log-file">
-          <div class="dbg-log-hdr" onclick="toggleLog('mtg-${si}')">
-            <span class="dbg-log-toggle" id="tog-mtg-${si}">${open ? '▼' : '▶'}</span>
-            <span>${started}</span>
-            <span style="opacity:0.35">(${exchanges.length})</span>
-          </div>
-          <div class="dbg-log-entries${open ? ' open' : ''}" id="log-mtg-${si}">
-            ${exchanges.length ? exchanges.map(e => `<div class="dbg-mtg-entry">
-              <div class="dbg-mtg-ts">${e.ts ? new Date(e.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : ''}</div>
-              <div class="dbg-mtg-user">${e.user || ''}</div>
-              <div class="dbg-mtg-assistant">${e.assistant || ''}</div>
-            </div>`).join('') : '<div class="dbg-empty">empty</div>'}
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
-
-  // Tarot readings
-  const tEl = document.getElementById('dbg-tarot');
-  if (tarotRes.ok) {
-    const data = await tarotRes.json();
-    const readings = (data.readings || []);
-    if (!readings.length) { tEl.innerHTML = '<div class="dbg-empty">no readings</div>'; }
-    else {
-      tEl.innerHTML = readings.slice().reverse().map((r, ri) => {
-        const when = r.saved_at ? new Date(r.saved_at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-        const sigName = r.significator && r.significator.name ? r.significator.name : null;
-        const cards = (r.spread && r.spread.cards) || [];
-        const cardsHtml = cards.map(c =>
-          `<span class="dbg-tarot-card"><span class="pos">${esc(c.position_label || c.position || '')}:</span> ${esc(c.name || c.card_id || '')}${c.reversed ? ' <span class="rev">(rev)</span>' : ''}</span>`
-        ).join('');
-        const msgs = (r.messages || []).map(m => {
-          const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-          const s = content.trim();
-          if (m.role === 'user' && s.startsWith('[') && s.endsWith(']')) {
-            return `<div class="dbg-tarot-msg dbg-tarot-event">${esc(s)}</div>`;
-          }
-          const cls = m.role === 'assistant' ? 'dbg-tarot-asst' : 'dbg-tarot-user';
-          return `<div class="dbg-tarot-msg ${cls}">${esc(content)}</div>`;
-        }).join('');
-        const open = false;  // tarot readings pre-minimized
-        const spreadType = (r.spread && r.spread.type) || 'no spread';
-        return `<div class="dbg-log-file">
-          <div class="dbg-log-hdr" onclick="toggleLog('tarot-${ri}')">
-            <span class="dbg-log-toggle" id="tog-tarot-${ri}">${open ? '▼' : '▶'}</span>
-            <span>${when}</span>
-            <span style="opacity:0.35">${esc(spreadType)}${sigName ? ' · sig ' + esc(sigName) : ''} (${(r.messages||[]).length})</span>
-          </div>
-          <div class="dbg-log-entries${open ? ' open' : ''}" id="log-tarot-${ri}">
-            ${sigName ? `<div class="dbg-tarot-sig">Significator: ${esc(sigName)}</div>` : ''}
-            ${cardsHtml ? `<div class="dbg-tarot-cards">${cardsHtml}</div>` : ''}
-            ${msgs || '<div class="dbg-empty">no messages</div>'}
-          </div>
-        </div>`;
-      }).join('');
-    }
-  } else { tEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; }
+  await renderVE(veRes);
+  await renderMoltbook(mbRes);
+  await renderProfileSection(ctxRes);
+  await renderLogs(logRes);
+  await renderMtg(mtgRes);
+  await renderTarot(tarotRes);
 }
 
 function esc(s) {
@@ -225,7 +225,7 @@ function esc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// eslint-disable-next-line no-unused-vars
+// called from inline onclick in the rendered log headers
 function toggleLog(i) {
   const el = document.getElementById('log-'+i);
   const tog = document.getElementById('tog-'+i);
