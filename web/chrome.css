@@ -197,6 +197,22 @@ html.kb-open .exec-nav { visibility: hidden; }
   letter-spacing: 0.1em;
 }
 
+/* Standalone (home-screen / installed) launch: two rows, one empty cell of
+   padding each side. --per-row set by the nav script (= ceil(item count / 2)).
+   Cell width = W/(per-row + 2); the 2 extra cells are the side padding. */
+html.standalone .exec-nav {
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 8px;
+  padding-left: calc(100% / (var(--per-row) + 2));
+  padding-right: calc(100% / (var(--per-row) + 2));
+}
+
+html.standalone .exec-nav a {
+  flex: 0 0 calc(100% / var(--per-row));
+  max-width: none;
+}
+
 /* Content pages */
 #content {
   position: relative;

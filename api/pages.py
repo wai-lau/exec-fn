@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=29">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=30">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -29,6 +29,18 @@ _JSDELIVR_PAGES = {"core", "prophecies", "debug", "mtg", "tarot"}
 # Injected into the pages built from their own HTML (graph/emet) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
 _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=2">'
+
+# Site-wide standalone web-app meta. Running as a standalone home-screen web app
+# is the one way iOS drops the keyboard accessory bar (the prev/next/Done
+# assistant) above the soft keyboard -- it can't be removed from a Safari tab.
+# Inert in a normal tab; kicks in once a page is added to the Home Screen and
+# launched from that icon. Injected into the shared shell head by _index_pages
+# (covers every derived page) and into graph/emet, which build their own HTML.
+_APPLE_WEBAPP_META = (
+    '<meta name="apple-mobile-web-app-capable" content="yes">'
+    '<meta name="mobile-web-app-capable" content="yes">'
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'
+)
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
@@ -68,6 +80,15 @@ def _build_nav(active=None, guest=False):
     script = (
         "<script>(function(){"
         "var de=document.documentElement;"
+        # Home-screen / installed standalone launch (iOS navigator.standalone,
+        # cross-browser display-mode). Two-row nav with one empty cell of side
+        # padding — see html.standalone in chrome.css. --per-row = ceil(n/2).
+        "if(window.navigator.standalone===true||"
+        "window.matchMedia('(display-mode: standalone)').matches){"
+        "de.classList.add('standalone');"
+        "var _nav=document.querySelector('.exec-nav');"
+        "if(_nav)_nav.style.setProperty('--per-row',"
+        "Math.ceil(_nav.querySelectorAll('a').length/2));}"
         "function _snh(){var n=document.querySelector('.exec-nav');"
         "if(n)de.style.setProperty('--nav-h',n.offsetHeight+'px');}"
         "_snh();window.addEventListener('resize',_snh);"
@@ -115,6 +136,11 @@ def _index_pages() -> tuple[str, str]:
     if _index_cache and _index_cache[0] == mtime:
         return _index_cache[1], _index_cache[2]
     raw = _STATIC_INDEX.read_text()
+    # Site-wide standalone web-app meta -- injected into the shared shell head so
+    # EVERY page derived from it (all _render_page views + landing/recruiter +
+    # login/guest) carries it. graph/emet read their own HTML and inject it
+    # separately. See _APPLE_WEBAPP_META.
+    raw = raw.replace("</head>", _APPLE_WEBAPP_META + "</head>", 1)
     no_form = re.sub(r'<form class="login-box".*?</form>', '', raw, flags=re.DOTALL)
     bare = no_form
     for pat in (
