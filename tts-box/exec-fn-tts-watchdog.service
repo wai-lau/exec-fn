@@ -1,0 +1,9 @@
+[Unit]
+Description=exec-fn TTS watchdog (restart server if its port is unresponsive)
+
+[Service]
+Type=oneshot
+# EDIT: same launch command as exec-fn-tts.service, and the path you copied the
+# watchdog to. The watchdog restarts the server when the port stops answering.
+Environment=START_CMD=REPLACE_WITH_START_CMD --port 8123
+ExecStart=%h/.local/bin/tts-watchdog.sh

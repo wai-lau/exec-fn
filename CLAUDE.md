@@ -52,6 +52,7 @@ exec-fn/
   tests/                  # pytest page smoke suite (test_smoke.py + conftest.py) — HTTP over every route by auth tier vs the live container; run: .venv/bin/pytest tests/ -q
   requirements-dev.txt    # test-only deps (pytest, httpx) — NOT in the prod image; install into a venv
   docker-compose.yml      # TZ=America/New_York; volume-mounts templates + web/static
+  tts-box/                # HOME GPU BOX deploy artifacts (NOT droplet/container): systemd user service (Restart=always) + port watchdog (.sh + .timer) + README to keep the Kokoro/Chatterbox TTS upstream alive. Installed on Wai's home box, reached only via the SSH reverse tunnel — can't be deployed from the droplet. When the model server dies the tunnel port still accepts+resets (bound port != liveness), so /hosaka shows "TTS server offline"
   nightfall-incident/     # separate repo (wai-lau/nightfall), volume-mounted
   web/                    # static frontend (index.html, fonts, card-dialog.js, images)
     card-dialog.js        # shared card edit dialog used by kanban/prophecies
@@ -87,7 +88,7 @@ exec-fn/
     monitor.py            # exec-bubble monitor: generate_encouragement(), significant-activity detection, + the trailing-60s debounce runtime (schedule_monitor/flush_monitor/_run_monitor) moved out of main
     routes_chat.py        # /api/chat SSE stream + handler (exec planning tools)
     routes_nightfall.py   # /api/gamesave/* + build_nightfall_html() (injects base href, SW unregister, save sync)
-    routes_tts.py         # /hosaka TTS page + same-origin reverse-proxy to a home GPU box (Kokoro/Chatterbox) reached over an SSH tunnel on the Docker bridge gateway (TTS_UPSTREAM, default 172.17.0.1:8123). Serves /hosaka (protected), GET /api/hosaka/voices (proxies the upstream voices list), and the WS /ws/hosaka (public route, but rejects unless the session cookie matches — proxies the audio stream both ways). Cookie auth rides the WS handshake (basic-auth doesn't, on mobile). Needs the `websockets` dep.
+    routes_tts.py         # /hosaka TTS page + same-origin reverse-proxy to a home GPU box (Kokoro/Chatterbox) reached over an SSH tunnel on the Docker bridge gateway (TTS_UPSTREAM, default 172.17.0.1:8123). Serves /hosaka (protected), GET /api/hosaka/voices (proxies the upstream voices list), GET /api/hosaka/health (probes the upstream — `{ok}`/503; a bound tunnel port isn't liveness, only a real response is, so /hosaka polls this to show "TTS server offline" before SPEAK), and the WS /ws/hosaka (public route, but rejects unless the session cookie matches — proxies the audio stream both ways). Cookie auth rides the WS handshake (basic-auth doesn't, on mobile). Needs the `websockets` dep.
     entrypoint.sh         # Docker CMD: cron + uvicorn
     exec-fn.cron          # crontab baked into image (4:30 AM ET morning cron only)
     morning_cron.sh       # cron script → POST /api/morning
@@ -239,6 +240,7 @@ Nav: `core` · `prophecies` · `debug` · `graph` · `emet` · `color` · `night
 | POST | `/api/gamesave/{slot}` | Nightfall save slot write |
 | DELETE | `/api/gamesave/{slot}` | Nightfall save slot delete |
 | GET | `/api/hosaka/voices` | Protected. Proxies the TTS upstream's `/v1/voices` list (empty list on upstream error). |
+| GET | `/api/hosaka/health` | Protected. Probes the TTS upstream → `{ok:true}` or 503 `{ok:false,detail}`. Liveness = a real response (the reverse-tunnel port stays bound when the home server is down). `/hosaka` polls it to show "TTS server offline". |
 | WS | `/ws/hosaka` | TTS audio stream reverse-proxy. Public route, but closes (1008) unless the `session` cookie matches; pumps text/bytes both ways between browser and the home GPU upstream. |
 
 ### Exec chat tools (bubble overlay)

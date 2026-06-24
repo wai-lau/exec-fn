@@ -1,0 +1,18 @@
+[Unit]
+Description=exec-fn TTS model server (Kokoro/Chatterbox)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# EDIT these two for your box, then: systemctl --user daemon-reload
+WorkingDirectory=%h/tts
+ExecStart=/usr/bin/env bash -lc 'REPLACE_WITH_START_CMD --port 8123'
+# Restart=always self-recovers a CRASH/exit (the common case here -- process
+# gone, tunnel port resets). For a HANG (process alive, port unresponsive) use
+# the watchdog timer too.
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

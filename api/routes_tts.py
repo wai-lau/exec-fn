@@ -39,6 +39,21 @@ async def tts_voices():
         return JSONResponse([])
 
 
+@protected.get("/api/hosaka/health")
+async def tts_health():
+    """Is the home-box TTS upstream reachable. The reverse-tunnel listener stays
+    bound on the droplet even when the model server behind it is down (connect
+    then RST -> 'Connection reset by peer'), so a bound port is NOT liveness --
+    only an actual response is. Lets /hosaka show 'offline' before SPEAK."""
+    try:
+        async with httpx.AsyncClient(timeout=3) as client:
+            r = await client.get(f"http://{_UPSTREAM}/v1/voices")
+            r.raise_for_status()
+            return JSONResponse({"ok": True})
+    except Exception as e:
+        return JSONResponse({"ok": False, "detail": type(e).__name__}, status_code=503)
+
+
 async def _pump_to_upstream(ws, upstream):
     while True:
         m = await ws.receive()
