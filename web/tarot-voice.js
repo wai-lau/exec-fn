@@ -99,6 +99,7 @@ const tarotVoice = (() => {
     const ctl = {
       ended: false,
       ok: true,
+      error: null,
       elapsed: () => (player ? player.elapsed() : 0),
       duration: () => (player ? player.audioDuration() : 0),
     };
@@ -119,12 +120,14 @@ const tarotVoice = (() => {
           else if (msg.type === "error") {
             ctl.ok = false;
             ctl.ended = true;
+            ctl.error = msg.detail || "tts error";
           }
         },
       })
       .catch(() => {
         ctl.ok = false;
         ctl.ended = true;
+        ctl.error = "connection failed";
       });
     return ctl;
   }
