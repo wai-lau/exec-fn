@@ -50,16 +50,35 @@ async function streamResponse() {
     cum[0] = 0;
     for (let i = 0; i < text.length; i++) cum[i + 1] = cum[i] + charWeight(text[i]);
     const totalW = cum[text.length] || 1;
-    const t0 = performance.now();
+    let lastEl = -1, lastProgressAt = performance.now();
+    // Audio gave up (errored, never started, or stalled mid-stream). Mark the
+    // controller failed so the outer wait loop can exit, record the reason for
+    // the chat note, then finish the text at the guessed pace. NEVER leave the
+    // reveal hanging — that froze the page when speaking failed.
+    function bail(reason) {
+      ctl.ok = false;
+      ctl.ended = true;
+      if (!ctl.error) ctl.error = reason;
+      drainGuessed();
+    }
+    // Audio ended cleanly but text is still behind (e.g. a tail with no audio):
+    // reveal the rest briskly, then stop.
+    function finishBrisk() {
+      if (drainCancelled) return;
+      if (displayed.length >= text.length) return;
+      displayed = text.slice(0, displayed.length + 2);
+      render();
+      setTimeout(finishBrisk, 16);
+    }
     function tick() {
       if (drainCancelled) return;
-      if (!ctl.ok) { drainGuessed(); return; }  // audio fell through → guessed pace
+      if (!ctl.ok) { bail(ctl.error); return; }  // upstream/speak error → guessed pace
       const dur = ctl.duration();
       const el = ctl.elapsed();
-      // Watchdog: the gate let us attempt voice, but the audio clock never moved
-      // (a device/context that can't actually play). Don't freeze the text —
-      // hand off to the guessed-pace typewriter from wherever we are.
-      if (el === 0 && !ctl.ended && performance.now() - t0 > 2500) { drainGuessed(); return; }
+      if (el > lastEl) { lastEl = el; lastProgressAt = performance.now(); }
+      // Audio never started OR stalled with no clean end (a device/context that
+      // can't play, or the upstream dropped mid-utterance) → don't freeze.
+      if (!ctl.ended && performance.now() - lastProgressAt > 2500) { bail('no audio'); return; }
       if (dur > 0) {
         // fraction of the voice consumed; don't outrun audio that's still buffering
         let frac = ctl.ended ? el / dur : Math.min(el / dur, 0.999);
@@ -69,15 +88,7 @@ async function streamResponse() {
         while (n < text.length && cum[n + 1] <= targetW) n++;
         if (n !== displayed.length) { displayed = text.slice(0, n); render(); }
       }
-      const audioFinished = ctl.ended && el >= dur;
-      if (audioFinished && displayed.length >= text.length) return;  // done
-      if (audioFinished && displayed.length < text.length) {
-        // tail with no audio behind it (e.g. a stripped invite) → flush briskly
-        displayed = text.slice(0, displayed.length + 2);
-        render();
-        setTimeout(tick, 16);
-        return;
-      }
+      if (ctl.ended) { finishBrisk(); return; }  // clean end → mop up the tail, done
       requestAnimationFrame(tick);
     }
     tick();
@@ -188,6 +199,12 @@ async function streamResponse() {
     }
     // reader done speaking — now emit any held sys notes
     for (const m of pendingSys) addMsg('sys', m);
+    // voice was on but the narration failed (TTS offline, stalled, can't play) —
+    // the reader still read silently. Log it as an action note (not reader prose)
+    // so it's visible without breaking the reading.
+    if (voiceCtl && !voiceCtl.ok) {
+      addMsg('sys', `[ reader voice unavailable: ${voiceCtl.error || 'no audio'} ]`);
+    }
     const sysMsgs = terminal.querySelectorAll('.msg.sys');
     for (let i = 0; i < sysMsgs.length - 6; i++) sysMsgs[i].remove();
     if (buffered) {
@@ -198,8 +215,10 @@ async function streamResponse() {
     serverDone = true;
     drainCancelled = true;
     cur.remove();
-    div.textContent = '[error: ' + e.message + ']';
-    div.style.color = 'hsl(var(--orange-glow-hsl) / 0.8)';
+    // Log the error as an action note (not reader prose). Keep any reader text
+    // that already rendered; drop the bubble only if it's empty.
+    if (!displayed) div.remove();
+    addMsg('sys', '[ error: ' + e.message + ' ]');
     pendingDeal = null;
   }
   streaming = false;
