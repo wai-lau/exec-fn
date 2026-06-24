@@ -67,24 +67,25 @@ const tarotVoice = (() => {
     document.addEventListener("keydown", fire, true);
   }
 
-  // Fire the opening reader turn so it gets NARRATED, not typed silently.
-  // Browsers won't play audio before a user gesture, and the opening turn
-  // auto-fires with none -- so when voice is on but not yet unlocked, hold the
-  // turn until the user's first gesture (tap/keypress), which both unlocks audio
-  // and fires it. Voice off / already unlocked -> fire immediately (today's
-  // behaviour). `onHold` (called when we defer) may return a cleanup run on fire,
-  // e.g. to show/clear a "tap to begin" hint.
-  function armOpening(fire, onHold) {
-    if (!on) return fire();
+  // True when the opening reader turn should be pre-generated on load but its
+  // reveal+voice held until the first gesture: voice is on but no gesture has
+  // unlocked audio yet (browsers won't play audio pre-gesture). Voice off /
+  // already unlocked -> reveal immediately, no hold.
+  function wantsDeferredOpening() {
     ensurePlayer();
-    if (player.gestureUnlocked()) return fire();
-    const cleanup = onHold ? onHold() : null;
+    return on && !player.gestureUnlocked();
+  }
+
+  // Arm a one-shot first gesture (tap/keypress) that unlocks audio and calls
+  // `onGesture` IN the gesture. The opening turn's reveal+voice are gated on this
+  // (generation already ran in the background) so the click starts the reading
+  // with no LLM wait. MUST unlock synchronously inside the gesture (iOS rule).
+  function armOpeningUnlock(onGesture) {
     function go() {
       document.removeEventListener("pointerdown", go, true);
       document.removeEventListener("keydown", go, true);
-      if (typeof cleanup === "function") cleanup();
       ensurePlayer().unlock(); // synchronous, inside the gesture
-      fire();
+      if (onGesture) onGesture();
     }
     document.addEventListener("pointerdown", go, true);
     document.addEventListener("keydown", go, true);
@@ -147,7 +148,7 @@ const tarotVoice = (() => {
     controls.insertBefore(btn, controls.firstChild);
   }
 
-  return { ready, speak, mount, armPersistedUnlock, armOpening };
+  return { ready, speak, mount, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
 })();
 
 tarotVoice.mount();

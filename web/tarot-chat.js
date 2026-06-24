@@ -1,232 +1,3 @@
-async function streamResponse() {
-  streaming = true;
-  updateInputBarVisibility();
-  const {div, body, cur} = addStreamDiv();
-  let buffered = '';   // received from server
-  let displayed = '';  // rendered to DOM
-  let serverDone = false;
-  let drainCancelled = false;
-  const pendingSys = [];  // sys notes held until the reader finishes speaking
-  let pendingDeal = null; // frame to deal once the reader is done speaking
-
-  // Punctuation-weighted pacing. In SILENT mode these are the literal per-char
-  // delays (tuned to an unhurried reader, ~130 wpm). In VOICE mode the SAME
-  // weights set only the SHAPE of the typing — the dramatic pauses at periods
-  // and em-dashes — while the total is rescaled to the measured audio duration
-  // and driven off the playback clock, so the text tracks the actual voice.
-  const SPEED = 1.25;       // overall pace multiplier (silent mode)
-  const BASE_MS = 65;
-  function charWeight(ch) {
-    switch (ch) {
-      case '.': case '!': case '?': return 850;
-      case ',': case ';': case ':': return 420;
-      case '—': case '-':           return 480; // em-dash, hyphen
-      case '\n':                    return 1100;
-      case ' ':                     return 110;
-      default:                      return BASE_MS;
-    }
-  }
-  function render() {
-    body.innerHTML = renderText(displayed);
-    (body.lastElementChild || body).appendChild(cur);
-    terminal.scrollTop = terminal.scrollHeight;
-  }
-  // SILENT: reveal one char at a time at the weighted (guessed) pace.
-  function drainGuessed() {
-    if (drainCancelled) return;
-    if (displayed.length < buffered.length) {
-      displayed = buffered.slice(0, displayed.length + 1);
-      render();
-      setTimeout(drainGuessed, charWeight(displayed[displayed.length - 1]) / SPEED);
-    } else if (!serverDone) {
-      setTimeout(drainGuessed, 50);
-    }
-  }
-  // VOICE: drive the reveal off the audio clock. `buffered` is final by the time
-  // this runs (after the server stream completes), so the weight schedule is fixed.
-  function drainAudio(ctl) {
-    const text = buffered;
-    const cum = new Array(text.length + 1);
-    cum[0] = 0;
-    for (let i = 0; i < text.length; i++) cum[i + 1] = cum[i] + charWeight(text[i]);
-    const totalW = cum[text.length] || 1;
-    let lastEl = -1, lastProgressAt = performance.now();
-    // Audio gave up (errored, never started, or stalled mid-stream). Mark the
-    // controller failed so the outer wait loop can exit, record the reason for
-    // the chat note, then finish the text at the guessed pace. NEVER leave the
-    // reveal hanging — that froze the page when speaking failed.
-    function bail(reason) {
-      ctl.ok = false;
-      ctl.ended = true;
-      if (!ctl.error) ctl.error = reason;
-      drainGuessed();
-    }
-    // Audio ended cleanly but text is still behind (e.g. a tail with no audio):
-    // reveal the rest briskly, then stop.
-    function finishBrisk() {
-      if (drainCancelled) return;
-      if (displayed.length >= text.length) return;
-      displayed = text.slice(0, displayed.length + 2);
-      render();
-      setTimeout(finishBrisk, 16);
-    }
-    function tick() {
-      if (drainCancelled) return;
-      if (!ctl.ok) { bail(ctl.error); return; }  // upstream/speak error → guessed pace
-      const dur = ctl.duration();
-      const el = ctl.elapsed();
-      if (el > lastEl) { lastEl = el; lastProgressAt = performance.now(); }
-      // Audio never started OR stalled with no clean end (a device/context that
-      // can't play, or the upstream dropped mid-utterance) → don't freeze.
-      if (!ctl.ended && performance.now() - lastProgressAt > 2500) { bail('no audio'); return; }
-      if (dur > 0) {
-        // fraction of the voice consumed; don't outrun audio that's still buffering
-        let frac = ctl.ended ? el / dur : Math.min(el / dur, 0.999);
-        frac = Math.max(0, Math.min(1, frac));
-        const targetW = frac * totalW;
-        let n = displayed.length;
-        while (n < text.length && cum[n + 1] <= targetW) n++;
-        if (n !== displayed.length) { displayed = text.slice(0, n); render(); }
-      }
-      if (ctl.ended) { finishBrisk(); return; }  // clean end → mop up the tail, done
-      requestAnimationFrame(tick);
-    }
-    tick();
-  }
-
-  // Decide the path up front. Voice mode holds the text until audio starts (the
-  // reader "draws breath" behind a blinking cursor); silent mode types as the
-  // server text arrives, exactly as before.
-  const voiceReady = tarotVoice.ready();
-  let voiceCtl = null;
-  if (!voiceReady) drainGuessed();
-
-  try {
-    const r = await fetch('/api/tarot/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({messages, spread: filteredSpread(), session_id: spread?.session_id || null}),
-    });
-    if (!r.ok) throw new Error(await r.text());
-    const reader = r.body.getReader();
-    const dec = new TextDecoder();
-    let buf = '';
-    while (true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, {stream: true});
-      const lines = buf.split('\n');
-      buf = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        let data;
-        try { data = JSON.parse(line.slice(6)); } catch { continue; }
-        if (data.type === 'text') {
-          buffered += data.delta;
-        } else if (data.type === 'tool_call') {
-          if (data.name === 'set_significator' && data.input?.card_id) {
-            const cid = data.input.card_id;
-            if (significator) {
-              pendingSys.push(`[ set_significator ignored: Significator already locked (${significator.name}) ]`);
-            } else if (data.count === 0) {
-              pendingSys.push(`[ set_significator failed: ${cid} (not a court card) ]`);
-            } else {
-              const c = courtList().find(x => x.card_id === cid);
-              if (c) {
-                significator = {card_id: c.card_id, name: c.name, image: c.image};
-                localStorage.setItem(LS_SIG, JSON.stringify(significator));
-                renderSigCard();
-              }
-              pendingSys.push(`[ Significator set: ${c?.name || cid} ]`);
-            }
-          } else if (data.name === 'deal_spread') {
-            if (spread) {
-              pendingSys.push('[ deal_spread ignored: spread already dealt ]');
-            } else if (data.count === 0) {
-              pendingSys.push('[ deal_spread error — reader will retry ]');
-            } else {
-              // no sys note — the '[drew a ...]' event marker already
-              // announces the deal. defer the actual draw until the reader
-              // has finished speaking.
-              pendingDeal = data.input?.frame || 'past_present_future';
-            }
-          } else {
-            const label = data.input?.card_id ? `card lookup — ${data.input.card_id}` : `${data.name} — ${data.count}`;
-            pendingSys.push(`[ ${label} ]`);
-          }
-        }
-      }
-    }
-    serverDone = true;
-    // Voice mode: strip any trailing flip-invite BEFORE narrating (so the voice
-    // and the typewriter both work from the final text), then start the reader
-    // and pace the reveal to it. Silent mode strips after typing (below).
-    if (voiceReady && pendingDeal) buffered = stripDealInvite(buffered);
-    if (voiceReady) {
-      voiceCtl = tarotVoice.speak(buffered);
-      drainAudio(voiceCtl);
-    }
-    // wait for the reveal to catch up — and, in voice mode, for the voice to end
-    while (
-      displayed.length < buffered.length ||
-      (voiceCtl && voiceCtl.ok && !voiceCtl.ended)
-    ) {
-      await new Promise(r => setTimeout(r, 50));
-    }
-    cur.remove();
-    // The deal turn must end at "let me set the cards." — the flip invite is the
-    // frontend's job now (see drawSpread). If the reader tacked one on anyway,
-    // strip the trailing invite so it isn't duplicated.
-    if (pendingDeal) {
-      const stripped = stripDealInvite(buffered);
-      if (stripped !== buffered) {
-        buffered = stripped;
-        body.innerHTML = renderText(buffered);
-      }
-    }
-    // backstop: reader declared the Significator in prose but skipped the
-    // set_significator tool call. Match the one court card it named and fill the
-    // slot so the flow doesn't stall.
-    if (!significator && buffered) {
-      const low = buffered.toLowerCase();
-      const named = courtList().filter(c => low.includes(c.name.toLowerCase()));
-      if (named.length === 1) {
-        const c = named[0];
-        significator = {card_id: c.card_id, name: c.name, image: c.image};
-        localStorage.setItem(LS_SIG, JSON.stringify(significator));
-        renderSigCard();
-      }
-    }
-    // reader done speaking — now emit any held sys notes
-    for (const m of pendingSys) addMsg('sys', m);
-    // voice was on but the narration failed (TTS offline, stalled, can't play) —
-    // the reader still read silently. Log it as an action note (not reader prose)
-    // so it's visible without breaking the reading.
-    if (voiceCtl && !voiceCtl.ok) {
-      addMsg('sys', `[ reader voice unavailable: ${voiceCtl.error || 'no audio'} ]`);
-    }
-    const sysMsgs = terminal.querySelectorAll('.msg.sys');
-    for (let i = 0; i < sysMsgs.length - 6; i++) sysMsgs[i].remove();
-    if (buffered) {
-      messages.push({role: 'assistant', content: buffered});
-      localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
-    }
-  } catch(e) {
-    serverDone = true;
-    drainCancelled = true;
-    cur.remove();
-    // Log the error as an action note (not reader prose). Keep any reader text
-    // that already rendered; drop the bubble only if it's empty.
-    if (!displayed) div.remove();
-    addMsg('sys', '[ error: ' + e.message + ' ]');
-    pendingDeal = null;
-  }
-  streaming = false;
-  updateInputBarVisibility();
-  // draw the spread only now — after the reader stopped and the note printed
-  if (pendingDeal) drawSpread('three', pendingDeal);
-  else focusInput();
-}
 
 // focus the composer whenever it is the querent's turn. Retries across a few
 // frames because focus on a just-unhidden element is silently dropped.
@@ -424,6 +195,19 @@ function _focusNow() {
   document.addEventListener('pointerdown', onFirst, { capture: true, passive: false });
 })();
 
+// Tapping the reader's text area focuses the composer (raises the soft keyboard)
+// so a reply can be typed without aiming at the input bar. Use `click`, not
+// `pointerdown`: pointerdown on the non-focusable terminal moves focus away as
+// the tap completes (blurring the input we just focused), whereas click fires
+// after that and the focus sticks — and a scroll-drag yields no click, so the
+// scrollback still drags. Skip while the reader speaks (don't cover the reading)
+// and when a real control/card/zoom owns the tap.
+terminal.addEventListener('click', e => {
+  if (document.body.classList.contains('reader-speaking')) return;
+  if (e.target.closest('button, a, input, textarea, [contenteditable], #card-zoom')) return;
+  _focusNow();
+});
+
 // No Significator -> always force Phase 1 (selection interview), wiping any
 // stale chat history so the bot leads cleanly.
 if (!significator && messages.length) {
@@ -464,9 +248,26 @@ if (!significator) {
   _openingEv = `[opened /tarot; Significator already chosen: ${significator.name}; no spread yet; ${tarotTimeMarker()}]`;
 }
 if (_openingEv) {
-  // Voice on -> hold the opening until the first gesture so it's narrated, not
-  // typed silently. Voice off / already unlocked -> fires immediately.
-  tarotVoice.armOpening(() => autoTrigger(_openingEv), showBeginHint);
+  if (tarotVoice.wantsDeferredOpening()) {
+    // Voice on but not yet unlocked. START GENERATING NOW (don't wait for the
+    // click to start thinking) and HOLD only the reveal+voice until the first
+    // gesture unlocks audio -- so the click starts the reading with no LLM wait.
+    // While held, blank the reader cursor + input bar (body.opening-pending) so
+    // only the "tap to begin" hint shows; the gesture clears it and reveals both.
+    const clearHint = showBeginHint();
+    document.body.classList.add('opening-pending');
+    let openGate;
+    const gate = new Promise((res) => { openGate = res; });
+    tarotVoice.armOpeningUnlock(() => {
+      document.body.classList.remove('opening-pending');
+      clearHint();
+      openGate();
+    });
+    autoTrigger(_openingEv, gate);
+  } else {
+    // Voice off / already unlocked -> fires + reveals immediately.
+    autoTrigger(_openingEv);
+  }
 } else {
   // No opening turn (returning mid-reading) -> still unlock on first gesture so
   // the next reader turn narrates.

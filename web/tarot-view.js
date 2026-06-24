@@ -259,11 +259,11 @@ function addEventMsg(text) {
   terminal.scrollTop = terminal.scrollHeight;
 }
 
-async function autoTrigger(text) {
+async function autoTrigger(text, holdForGesture = null) {
   if (streaming) return;
   addEventMsg(text);
   messages.push({role: 'user', content: text});
-  await streamResponse();
+  await streamResponse(holdForGesture);
 }
 
 async function drawSpread(type, frame = 'past_present_future') {
