@@ -134,7 +134,13 @@
 @media (prefers-reduced-motion: reduce) { .cyber-bg, .cyber-scan { animation: none !important; } }
 
 /* Base */
-html { background: hsl(var(--bg-hsl)); }
+html {
+  background: hsl(var(--bg-hsl));
+
+  /* bottom-chrome anchor for chat pages: clears the nav by default (see the
+     html.kb-open override below for the keyboard-up case) */
+  --kb-anchor: max(var(--nav-h, 56px), var(--kb, 0px));
+}
 
 body {
   font-family: 'Iosevka Mayukai Monolite', monospace;
@@ -172,6 +178,12 @@ body {
 
 /* keyboard up (input focused) — let the soft keyboard cover the nav */
 html.kb-open .exec-nav { visibility: hidden; }
+
+/* Keyboard up: the nav is hidden, so anchor the chat chrome flush to the
+   keyboard (--kb, which is 0 in the standalone model where the layout bottom
+   already meets the keyboard) — no reserved nav-h gap. Base value on `html`
+   above. Consumed by #input-bar / #terminal / #spread-area. */
+html.kb-open { --kb-anchor: var(--kb, 0px); }
 
 .exec-nav a {
   color: hsl(var(--green-hsl) / 0.45);

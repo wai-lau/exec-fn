@@ -19,20 +19,25 @@ html.no-touch.kb-open .exec-nav { visibility: visible !important; }
 }
 
 #spread-area {
-  position:fixed; bottom:max(var(--nav-h, 56px), var(--kb, 0px)); left:0; right:0; height:var(--spread-h);
+  position:fixed; bottom:var(--kb-anchor); left:0; right:0; height:var(--spread-h);
   overflow:hidden;
   background:hsl(var(--bg-hsl));
   z-index:5;
 }
-#input-bar { bottom: calc(max(var(--nav-h, 56px), var(--kb, 0px)) + var(--spread-h)) !important; }
+#input-bar { bottom: calc(var(--kb-anchor) + var(--spread-h)) !important; }
 #input-line { max-width:720px; margin-left:auto; margin-right:auto; }
 
 /* hide the $ prompt while the reader is streaming a reply */
 body.reader-speaking #input-prompt { visibility:hidden; }
-#terminal { scrollbar-width:none; -ms-overflow-style:none; inset:0 0 calc(var(--spread-h) + max(var(--nav-h, 56px), var(--kb, 0px)) + var(--input-h, 48px)) !important; }
+
+/* the querent's caret shows only when it's their turn -- not while the reader
+   streams a turn or the opening is held (a manual tap mustn't blink a caret) */
+body.reader-speaking #msg-input,
+body.opening-pending #msg-input { caret-color:transparent; }
+#terminal { scrollbar-width:none; -ms-overflow-style:none; inset:0 0 calc(var(--spread-h) + var(--kb-anchor) + var(--input-h, 48px)) !important; }
 #terminal::-webkit-scrollbar { display:none; }
 body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
-body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spread-h) + max(var(--nav-h, 56px), var(--kb, 0px))) !important; }
+body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spread-h) + var(--kb-anchor)) !important; }
 
 #spread-controls {
   grid-column: 2;
@@ -70,7 +75,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 /* reader-voice toggle: shares the spread-btn body; state in [data-on]. Off =
    dim, no pulse; on = full green + the shared btn-pulse glow. */
 .voice-btn { animation:none; }
-.voice-btn[data-on="false"] { color:hsl(var(--green-hsl) / 0.4); text-shadow:none; }
+.voice-btn[data-on="false"] { color:hsl(var(--green-hsl) / 0.45); text-shadow:none; }
 
 .voice-btn[data-on="true"]  {
   color:hsl(var(--green-hsl) / 1);

@@ -4,7 +4,7 @@
 
 /* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
    native keyboard animation). --kb rides the keyboard; --input-h the bar. */
-#terminal { inset:0 0 calc(max(var(--nav-h,56px), var(--kb,0px)) + var(--input-h,48px)) !important; }
+#terminal { inset:0 0 calc(var(--kb-anchor) + var(--input-h,48px)) !important; }
 
 /* plain external links keep body typography (chat-reader sets colors) */
 .msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; }
