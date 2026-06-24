@@ -218,7 +218,10 @@ html.standalone .exec-nav a {
   position: relative;
   z-index: 2;
   width: min(720px, 90vw);
-  margin: 64px auto 80px;
+
+  /* track the live nav height (taller in two-row standalone) so scroll-page
+     content clears the nav instead of sliding behind it */
+  margin: 64px auto calc(var(--nav-h, 80px) + 24px);
   font-family: 'Iosevka Mayukai Monolite', monospace;
   font-weight: 500;
   color: hsl(var(--green-hsl));
