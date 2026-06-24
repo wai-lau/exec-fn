@@ -88,6 +88,16 @@ PYEOF
       exit 1
     fi
   fi
+  # Lint staged web/*.js too (mainly the per-function size cap). Staged-only =
+  # a ratchet: untouched legacy isn't forced, but a file you touch must comply.
+  WEB_JS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/.*\.js$' | grep -vE '^web/vendor/' || true)
+  if [ -n "$WEB_JS" ]; then
+    if ! eslint $WEB_JS 2>&1; then
+      echo ""
+      echo "JS errors found in web/ — commit blocked. Fix before committing."
+      exit 1
+    fi
+  fi
 fi
 
 # ── Max-lines (500) on staged .py + .js — no file over the cap. ──
