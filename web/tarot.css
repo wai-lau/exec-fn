@@ -36,7 +36,8 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 
 #spread-controls {
   grid-column: 2;
-  display:flex; align-items:center; justify-content:center;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px;
   height:100%;
 }
 
