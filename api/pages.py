@@ -40,6 +40,9 @@ _APPLE_WEBAPP_META = (
     '<meta name="apple-mobile-web-app-capable" content="yes">'
     '<meta name="mobile-web-app-capable" content="yes">'
     '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'
+    # The manifest's scope/display is what keeps an iOS home-screen launch
+    # chrome-less across in-app navigation (read at add-to-home-screen time).
+    '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
