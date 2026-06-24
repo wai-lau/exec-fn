@@ -71,9 +71,35 @@ function buildSchedule(cards) {
   applyColumnLayout(cards, track);
   currentTrack = track;
 
-  // current-time indicator + past "hider" overlay.
-  // cover + now-line live on the column (not the scrolling track) so they bleed
-  // to the screen top/side, under the date; the clock rides inside the track.
+  setupNowIndicator(wrap, track);
+
+  tlWrap.appendChild(labels);
+  tlWrap.appendChild(track);
+  wrap.innerHTML = '';
+  wrap.appendChild(tlWrap);
+
+  // drop target: drag a card from another day onto today's timeline
+  Sortable.create(wrap, {
+    group: { name: 'prophecies', put: true, pull: false },
+    draggable: '.__nodrag__',
+    onAdd(evt) {
+      const cardId = evt.item.dataset.id;
+      evt.item.remove();
+      queueUpdate(cardId, isoToday(), false);
+      setTimeout(() => load(weekStart), 700);
+    },
+  });
+
+  // autoscroll to 2 hours before now
+  if (nowMin >= TL_START && nowMin <= TL_END) {
+    wrap.scrollTop = Math.max(0, (nowMin - TL_START) * TL_PX - 120 * TL_PX);
+  }
+}
+
+// Current-time indicator + past "hider" overlay. Cover + now-line live on the
+// column (not the scrolling track) so they bleed to the screen top/side, under
+// the date; the clock rides inside the track. Sets the module-level now timers.
+function setupNowIndicator(wrap, track) {
   const col = wrap.parentElement;
   col.querySelectorAll('.tl-past, .tl-now-line').forEach(e => e.remove());
   const pastOverlay = document.createElement('div');
@@ -131,28 +157,6 @@ function buildSchedule(cards) {
     positionNow();
     _nowRaf = requestAnimationFrame(tick);
   })();
-
-  tlWrap.appendChild(labels);
-  tlWrap.appendChild(track);
-  wrap.innerHTML = '';
-  wrap.appendChild(tlWrap);
-
-  // drop target: drag a card from another day onto today's timeline
-  Sortable.create(wrap, {
-    group: { name: 'prophecies', put: true, pull: false },
-    draggable: '.__nodrag__',
-    onAdd(evt) {
-      const cardId = evt.item.dataset.id;
-      evt.item.remove();
-      queueUpdate(cardId, isoToday(), false);
-      setTimeout(() => load(weekStart), 700);
-    },
-  });
-
-  // autoscroll to 2 hours before now
-  if (nowMin >= TL_START && nowMin <= TL_END) {
-    wrap.scrollTop = Math.max(0, (nowMin - TL_START) * TL_PX - 120 * TL_PX);
-  }
 }
 
 async function saveStartTime(cardId, startMin) {
