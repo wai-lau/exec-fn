@@ -25,6 +25,10 @@ import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-prox
 # `type=font/woff2` matches and the gzip exclusion below can recognize them.
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("font/woff", ".woff")
+# Web App Manifest -- iOS reads `scope`/`display` from it to keep home-screen
+# launches chrome-less across in-scope navigation (legacy apple meta alone shows
+# the Safari toolbar on every page load). Needs the real MIME or Safari ignores it.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 # Starlette's GZipMiddleware only skips text/event-stream. Also skip already-
 # compressed payloads -- re-gzipping a woff2/png/jpg/mp3 burns CPU and adds
