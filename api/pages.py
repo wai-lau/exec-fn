@@ -99,6 +99,19 @@ def _build_nav(active=None, guest=False):
         "window.addEventListener('load',_snh);"
         "if(window.ResizeObserver){var _nvo=document.querySelector('.exec-nav');"
         "if(_nvo)new ResizeObserver(_snh).observe(_nvo);}"
+        # iOS home-screen standalone: a plain <a> tap is treated as leaving the
+        # web app, so iOS slaps a Safari toolbar (back/reload/compass) on the
+        # bottom for every page after the launch URL. Programmatic navigation
+        # stays "in-app" and keeps the chrome hidden — intercept same-origin
+        # link taps and drive them through location.href. Only when standalone
+        # (navigator.standalone); normal tabs keep default anchor behaviour.
+        "if(window.navigator.standalone===true){"
+        "document.addEventListener('click',function(e){"
+        "var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;"
+        "if(a.target==='_blank'||a.hasAttribute('download'))return;"
+        "var u;try{u=new URL(a.getAttribute('href'),location.href);}catch(_){return;}"
+        "if(u.origin!==location.origin||u.protocol!=='https:'&&u.protocol!=='http:')return;"
+        "e.preventDefault();location.href=u.href;});}"
         # iOS overlays the soft keyboard instead of resizing the layout, and the
         # keyboard-inset arithmetic is unreliable across versions. Detect the
         # keyboard by input focus (the one signal that always correlates) and
