@@ -187,15 +187,17 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-todos.js?v=2"></script>'
                   '<script src="/exec-bubble.js?v=39"></script>')
     else:
-        # Same look as the core/prophecies bubble (#exec-bubble in exec-bubble.css,
-        # normally injected by exec-bubble.js — load it directly here since the
-        # chat JS isn't present), but it's a link, not the chat toggle. exec-bubble.js
-        # sets the position on the planning pages; here a default sits it
-        # bottom-right above the nav.
+        # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
+        # normally injected by exec-bubble.js, loaded directly here), same drag +
+        # position persistence (exec-bubble-drag.js + the shared exec-bpos), but a
+        # tap NAVIGATES to the planning chat instead of toggling a panel
+        # (exec-link.js). A <div>, like the real bubble, so a drag never fires a
+        # stray click.
         bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=10">'
-                  '<a id="exec-bubble" href="/prophecies?exec=open" aria-label="Exec" '
-                  'style="right:16px;bottom:calc(var(--nav-h, 56px) + 16px);">'
-                  '<img src="/guru-pink.png" alt="exec"></a>')
+                  '<div id="exec-bubble" role="button" aria-label="Exec">'
+                  '<img src="/guru-pink.png" alt="exec"></div>'
+                  '<script src="/exec-bubble-drag.js?v=1"></script>'
+                  '<script src="/exec-link.js?v=1"></script>')
     return nav + script + bubble
 
 
