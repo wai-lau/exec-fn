@@ -57,13 +57,14 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=10">'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
-# tile) -> graph 171° (teal) -> nightfall 194° (cyan) -> color 226° (blue) ->
-# mtg 261° (purple) -> tarot 351° (pink).
-_LANDING_HUE_ORDER = ["recruiter", "graph", "nightfall", "color", "mtg", "tarot"]
+# tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
+# (cyan) -> color 226° (blue) -> mtg 261° (purple) -> tarot 351° (pink).
+_LANDING_HUE_ORDER = ["recruiter", "hosaka", "graph", "nightfall", "color", "mtg", "tarot"]
 
 # Gibson-register one-liners shown to the right of each landing link — clipped,
 # noir, second-person where it lands. One per _LANDING_HUE_ORDER section.
 _LANDING_BLURBS = {
+    "hosaka": "Feed the Hosaka your words. It answers in a voice that was never yours.",
     "graph": "The whole machine as constellation. Every node a live nerve.",
     "nightfall": "Flash games died, but this one lives. Night falls on the net.",
     "color": "The console's own spectrum, stripped to raw hue and signal.",
@@ -75,6 +76,7 @@ _LANDING_BLURBS = {
 # Reference-desk descriptions under each Gibson line — neutral, cataloguing
 # register, the plain factual counterpart to the noir blurb.
 _LANDING_DESCS = {
+    "hosaka": "A text-to-speech studio: type text, pick a synthetic voice, and stream the spoken audio.",
     "graph": "An interactive map of this site's codebase: files and functions as nodes, their references as edges.",
     "nightfall": "A browser-based infiltration game: breach networked nodes, manage detection, and clear each site.",
     "color": "A read-only reference of the site's color palette, listing each token with its usage and opacity.",
