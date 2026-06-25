@@ -1,12 +1,14 @@
 # exec-fn — Architecture (UML, Mermaid)
 
 Generated from source (`api/*.py`, `docker-compose.yml`, `Dockerfile`,
-cron). Three views:
+cron). Four views:
 
 1. [Deployment](#1-deployment) — how a request reaches code
 2. [Module graph](#2-module-graph) — what imports what
 3. [Morning pipeline + scheduling](#3-morning-pipeline--scheduling) — how
    cards move through time
+4. [TTS subsystem](#4-tts-text-to-speech) — how every voice reaches the
+   browser
 
 ---
 
@@ -221,3 +223,109 @@ Outside the window the card stays in `rd` with just a `due_date`.
 **Exec chat call chain:**
 `POST /api/chat -> routes_chat._handle_tool -> chat_tools._TOOL_HANDLERS[name]`
 `-> _apply_schedule -> scheduler.schedule_to_day`.
+
+---
+
+## 4. TTS (text-to-speech)
+
+Every voice in the app — the `/hosaka` SPEAK page, the `/tarot` reader
+narration, and the Exec bubble — streams from a **single home GPU box**
+through a **same-origin reverse proxy**. No TTS models run on the droplet;
+the container only proxies. The browser always talks same-origin, so the
+session/guest cookie carries auth on the WebSocket handshake (HTTP basic
+auth does not ride a WS upgrade reliably on mobile).
+
+### 4a. Topology
+
+The model server (Kokoro / Chatterbox / Piper) runs on Wai's home box and
+is reached only over an SSH reverse tunnel bound to the Docker bridge
+gateway (`TTS_UPSTREAM`, default `172.17.0.1:8123`). `tts-box/` (systemd
+user service + port watchdog, installed on the home box) keeps that
+upstream alive.
+
+```mermaid
+flowchart LR
+  browser["Browser<br/>(/hosaka · /tarot · Exec bubble)"]
+
+  subgraph droplet["droplet container — routes_tts.py"]
+    page["GET /hosaka<br/>(guest_protected)"]
+    voices["GET /api/hosaka/voices<br/>GET /api/hosaka/health<br/>(guest_protected)"]
+    ws["WS /ws/hosaka<br/>(public route, cookie-gated)"]
+  end
+
+  tunnel(["SSH reverse tunnel<br/>172.17.0.1:8123"])
+
+  subgraph home["home GPU box (RTX) — tts-box keepalive"]
+    upstream["TTS upstream<br/>WS /v1/audio/stream<br/>GET /v1/voices<br/>Kokoro · Chatterbox · Piper"]
+  end
+
+  browser -->|HTTPS page load| page
+  browser -->|"GET (httpx proxy)"| voices
+  browser <-->|"WS audio (bidi pump)"| ws
+  voices -->|http| tunnel
+  ws -->|"websockets.connect"| tunnel
+  tunnel --- upstream
+```
+
+`_pump_to_upstream` / `_pump_to_client` shuttle text + binary frames both
+directions; `/api/hosaka/health` probes the upstream for a *real* response
+(the reverse-tunnel listener stays bound on the droplet even when the model
+server is down — a bound port is **not** liveness), letting `/hosaka` show
+"TTS server offline" before SPEAK.
+
+### 4b. Auth — now guest-or-full
+
+`/hosaka` and `/api/hosaka/*` moved from the full-auth `protected` router to
+**`guest_protected`** — a guest session now reaches the SPEAK page. The WS
+`/ws/hosaka` is declared on the `public` router but rejects (close `1008`)
+unless a `session` **or** `guest_session` cookie matches before `accept()`.
+The guest tier is what lets the `/tarot` reader voice work for guests.
+
+| Endpoint | Router | Reachable by |
+|----------|--------|--------------|
+| `GET /hosaka` | `guest_protected` | full + guest (nav renders guest-tier for non-admins) |
+| `GET /api/hosaka/voices`, `/health` | `guest_protected` | full + guest |
+| `WS /ws/hosaka` | `public` + cookie check | full + guest (else `1008`) |
+
+### 4c. Three consumers of one audio core
+
+All three share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`) — it
+owns the `AudioContext`, the iOS unlock dance, the `/ws/hosaka` socket, and
+playback of streamed **24 kHz float32 PCM** via scheduled
+`AudioBufferSourceNode`s. The upstream emits only `{start}` / coarse PCM
+blobs / `{end}` (no per-word timestamps), so any visual syncs to the
+*measured* audio duration.
+
+| Surface | Script | Voice | Backend |
+|---------|--------|-------|---------|
+| `/hosaka` SPEAK UI | `tts.js` | `charlie` (default) + full voice list | chatterbox + RVC |
+| `/tarot` reader | `tarot-voice.js` | `af_nicole` | kokoro |
+| Exec bubble | `exec-voice.js` / `exec-voice-listener.js` | `glados` | piper |
+
+The `/tarot` reader paces its typewriter to the audio clock (holds text
+until audio starts, then reveals on a `charWeight` schedule normalized to
+the measured duration); on any audio failure it bails to a guessed-pace
+typewriter and logs a sys note. Exec is fire-and-forget (no typewriter).
+
+### 4d. One utterance
+
+```mermaid
+sequenceDiagram
+  participant B as Browser (HosakaAudio)
+  participant WS as /ws/hosaka (proxy)
+  participant U as home upstream
+
+  B->>WS: WS upgrade (cookie)
+  WS->>WS: session|guest_session? else close 1008
+  WS->>U: websockets.connect /v1/audio/stream
+  B->>WS: speak(text)
+  WS->>U: text frame
+  U-->>WS: {start}
+  WS-->>B: {start} (onStatus)
+  loop PCM blobs
+    U-->>WS: 24kHz float32 PCM
+    WS-->>B: bytes -> schedule AudioBufferSourceNode
+  end
+  U-->>WS: {end}
+  WS-->>B: {end} (playback drains to completion)
+```
