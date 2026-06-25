@@ -1,11 +1,12 @@
 /* emet page — injected by the /emet route after chrome.css. The graph fills
    the screen; the node-info panel is a fixed bottom strip, always open. */
 
-/* nav + exec chat above the node-info panel (cyber fx sit above everything) */
+/* nav + exec chat above the node-info panel. The exec bubble sits above
+   even the cyber fx (z 9999) so it stays the topmost thing on every page. */
 .exec-nav { z-index: 9996 !important; }
 
-#exec-panel,
-#exec-bubble { z-index: 9997 !important; }
+#exec-panel { z-index: 9997 !important; }
+#exec-bubble { z-index: 10000 !important; }
 
 /* graph canvas fills the viewport; the node/edge counter stays hidden */
 #net { position: fixed !important; inset: 0 !important; }
