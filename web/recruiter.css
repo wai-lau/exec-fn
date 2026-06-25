@@ -73,11 +73,20 @@ html.cv-dark .cv {
 html { background: var(--cv-bg); scrollbar-width: none; }
 html::-webkit-scrollbar { display: none; }
 
+/* overflow:visible (NOT overflow-y:auto) is deliberate: this is a plain
+   document-scroll page. With overflow-y:auto, iOS Safari makes BODY the
+   scroll container and uses body.scrollHeight as the max — which EXCLUDES the
+   last child's collapsed bottom margin, so the trailing CTA gets clipped and
+   you can't scroll the final ~100px. overflow:visible keeps the documentElement
+   (html) as the scroller, whose scrollHeight includes that margin. The tail gap
+   is also moved into body padding-bottom (below) so it's inside the scroll box
+   either way. */
 body {
   display: block;
   height: auto;
   min-height: 100vh;
-  overflow-y: auto;
+  overflow: visible;
+  padding-bottom: 64px;
   background: var(--cv-bg);
   scrollbar-width: none;
 }
@@ -180,10 +189,12 @@ body::-webkit-scrollbar { display: none; }
   margin-bottom: 12px;
 }
 
-/* download CTA, now in its own .cv-download block below the card (centered) */
+/* download CTA, now in its own .cv-download block below the card (centered).
+   Bottom gap lives in body padding-bottom (see above), not a trailing margin
+   here — a collapsed trailing margin gets clipped from iOS's body scroll. */
 .cv-download {
   width: min(780px, 92vw);
-  margin: 0 auto 64px;
+  margin: 0 auto;
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
