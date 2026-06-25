@@ -6,7 +6,7 @@ from fastapi import Cookie, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 API_KEY = os.environ["API_KEY"]
-GUEST_KEY = os.environ.get("GUEST_KEY", "REDACTED_ROTATED_KEY")
+GUEST_KEY = os.environ["GUEST_KEY"]
 
 SESSION_TOKEN = hashlib.sha256(f"session:{API_KEY}".encode()).hexdigest()
 GUEST_SESSION_TOKEN = hashlib.sha256(f"guest:{GUEST_KEY}".encode()).hexdigest()
