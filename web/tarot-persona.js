@@ -28,7 +28,7 @@ const tarotPersona = (() => {
   }
 
   function applyVoice() {
-    if (window.tarotVoice && tarotVoice.setVoice) tarotVoice.setVoice(record());
+    if (typeof tarotVoice !== "undefined" && tarotVoice.setVoice) tarotVoice.setVoice(record());
   }
 
   function select(id) {
@@ -63,7 +63,7 @@ const tarotPersona = (() => {
       b.innerHTML = `[<span class="persona-name">${p.name}</span>]`;
       b.addEventListener("click", () => {
         select(p.id);
-        if (window.tarotVoice && tarotVoice.unlock) tarotVoice.unlock();
+        if (typeof tarotVoice !== "undefined" && tarotVoice.unlock) tarotVoice.unlock();
         wrap.remove();
         onPick(p.id);
       });
