@@ -91,7 +91,7 @@ async def unauthorized_handler(request: Request, exc: HTTPException):
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
         path = request.url.path
-        if path.startswith("/mtg") or path.startswith("/tarot"):
+        if path.startswith("/mtg") or path.startswith("/tarot") or path.startswith("/hosaka"):
             return RedirectResponse(f"/guest?next={path}", status_code=302)
         if request.method == "GET" and path not in ("/", "/login", "/guest"):
             full = path + ("?" + request.url.query if request.url.query else "")

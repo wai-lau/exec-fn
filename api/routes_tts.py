@@ -13,23 +13,24 @@ import os
 
 import httpx
 import websockets
-from fastapi import WebSocket
+from fastapi import Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
 from pages import _render_page, _tmpl
-from routers import protected, public
+from routers import guest_protected, public
 
 # Docker bridge gateway -> host loopback :8123 (the SSH tunnel to the home box).
 _UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
 
 
-@protected.get("/hosaka", response_class=HTMLResponse)
-async def tts_page():
-    return _render_page("hosaka", _tmpl("tts.html"), full_height=True)
+@guest_protected.get("/hosaka", response_class=HTMLResponse)
+async def tts_page(request: Request):
+    is_full_auth = request.cookies.get("session") == SESSION_TOKEN
+    return _render_page("hosaka", _tmpl("tts.html"), full_height=True, guest=not is_full_auth)
 
 
-@protected.get("/api/hosaka/voices")
+@guest_protected.get("/api/hosaka/voices")
 async def tts_voices():
     try:
         async with httpx.AsyncClient(timeout=5) as client:
@@ -39,7 +40,7 @@ async def tts_voices():
         return JSONResponse([])
 
 
-@protected.get("/api/hosaka/health")
+@guest_protected.get("/api/hosaka/health")
 async def tts_health():
     """Is the home-box TTS upstream reachable. The reverse-tunnel listener stays
     bound on the droplet even when the model server behind it is down (connect
