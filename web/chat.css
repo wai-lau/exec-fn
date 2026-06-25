@@ -38,6 +38,16 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 
 @keyframes blink { 0%,50%{opacity:1} 50.01%,100%{opacity:0} }
 
+/* Smooth the keyboard-driven re-anchor. --kb-anchor tracks the live keyboard
+   height (pages.py visualViewport handler); iOS bumps it in several steps as the
+   keyboard, QuickType bar, and form accessory bar settle, and again whenever
+   predictive text toggles mid-typing -- each step SNAPS these fixed elements,
+   which reads as a bob. A short glide absorbs the small steps. Scoped to
+   html.kb-open (touch-only; see pages.py) so the resting layout, the open/close
+   itself, and desktop are untouched. */
+html.kb-open #input-bar,
+html.kb-open #terminal { transition: bottom 0.13s ease-out, inset 0.13s ease-out; }
+
 #input-bar {
   position:fixed; bottom:var(--kb-anchor); left:0; right:0;  /* sit above keyboard; nav hides behind it */
   padding:0 16px;
