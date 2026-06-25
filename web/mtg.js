@@ -69,10 +69,10 @@ function addStreamDiv() {
 async function sendMsg() {
   if (streaming) return;
   const input = document.getElementById('msg-input');
-  const text = input.value.trim();
+  const text = input.innerText.trim();
   if (!text) return;
-  input.value = '';
-  autoGrow();
+  input.textContent = '';
+  renderCaret();
   syncInputH();
   input.focus();
   addMsg('user', text);
@@ -143,27 +143,59 @@ async function streamResponse() {
 
 addMsg('assistant', _WELCOME);
 
+const _pre = document.getElementById('input-pre');
+const _post = document.getElementById('input-post');
+const _inputCursor = document.getElementById('input-cursor');
 const _msgInput = document.getElementById('msg-input');
 
-// <textarea> auto-grow: collapse, then fit to content. chat-reader.css caps the
-// height at 35vh and scrolls past that. (A textarea is plain-text by nature, so
-// no paste sanitizing or custom-caret mirroring is needed — that's the whole
-// point of the swap: iOS honours autocorrect=off here and drops the QuickType
-// suggestions bar, which it ignores on a contenteditable.)
-function autoGrow() {
-  _msgInput.style.height = 'auto';
-  _msgInput.style.height = _msgInput.scrollHeight + 'px';
+function _caretOffset() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !_msgInput.contains(sel.anchorNode)) return _msgInput.innerText.length;
+  const range = document.createRange();
+  range.selectNodeContents(_msgInput);
+  // After clearing the input (submit), the stale selection offset can point past
+  // the emptied node — WebKit throws IndexSizeError where Chromium clamps. Falling
+  // back keeps renderCaret (hence sendMsg) from aborting and blanking the page.
+  try {
+    range.setEnd(sel.anchorNode, sel.anchorOffset);
+  } catch {
+    return _msgInput.innerText.length;
+  }
+  return range.toString().length;
+}
+
+function renderCaret() {
+  const text = _msgInput.innerText;
+  const pos = _caretOffset();
+  _pre.textContent = text.slice(0, pos);
+  _post.textContent = text.slice(pos);
 }
 
 _msgInput.addEventListener('input', () => {
-  autoGrow();
+  renderCaret();
   syncInputH();  // bar may grow/shrink a line; CSS re-pins the terminal
+});
+_msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
+_msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; renderCaret(); });
+_msgInput.addEventListener('keyup', renderCaret);
+_msgInput.addEventListener('click', renderCaret);
+document.addEventListener('selectionchange', () => {
+  if (document.activeElement === _msgInput) renderCaret();
 });
 _msgInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
 });
+// Paste plain text only: rich HTML drags in inline colors (invisible on the
+// dark terminal) and stray nodes the input wasn't built for.
+_msgInput.addEventListener('paste', e => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  document.execCommand('insertText', false, text);
+  renderCaret();
+  syncInputH();
+});
 _msgInput.focus();
-autoGrow();
+renderCaret();
 
 // iOS raises the soft keyboard only for a focus() inside a user gesture, so the
 // on-load focus above can't summon it. Seat focus on the first interaction so the
@@ -182,8 +214,13 @@ autoGrow();
     document.removeEventListener('pointerdown', onFirst, true);
     _msgInput.focus({preventScroll: true});
     if (document.activeElement === _msgInput) {
-      const n = _msgInput.value.length;
-      _msgInput.setSelectionRange(n, n);  // caret to end
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(_msgInput);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      renderCaret();
     }
   };
   document.addEventListener('pointerdown', onFirst, { capture: true, passive: false });
@@ -191,7 +228,7 @@ autoGrow();
 
 // defer: the nav script sets --nav-h after this script runs, so the input
 // bar isn't positioned yet on this tick
-requestAnimationFrame(() => { autoGrow(); syncInputH(); terminal.scrollTop = terminal.scrollHeight; });
+requestAnimationFrame(() => { syncInputH(); terminal.scrollTop = terminal.scrollHeight; });
 
 // Card image hover tooltip via Scryfall
 const _tooltip = document.getElementById('card-tooltip');
