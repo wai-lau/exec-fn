@@ -13,14 +13,26 @@ function _caretToEnd() {
   sel.addRange(range);
 }
 
+// The querent may type only when it is their turn: NOT while the reader streams
+// a turn (reader-speaking) and NOT while the opening is held for the first
+// gesture (opening-pending). Gating focus on this keeps the caret (and the soft
+// keyboard) from appearing mid-reading -- the cursor shows only when it's time
+// to type.
+function _canType() {
+  return !document.body.classList.contains('reader-speaking')
+      && !document.body.classList.contains('opening-pending');
+}
+
 function focusInput() {
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
+  if (!_canType()) return;
   const tries = [0, 60, 180];
   for (const t of tries) {
     setTimeout(() => {
       if (document.body.classList.contains('no-input')) return;
       if (cardZoom.classList.contains('open')) return;
+      if (!_canType()) return;
       _msgInput.focus({preventScroll: true});
       // only seat the caret if focus actually landed and there isn't already a
       // live selection inside the field (don't stomp a mid-edit cursor)
@@ -98,6 +110,7 @@ document.addEventListener('keydown', e => {
   if (document.activeElement === _msgInput) return;
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
+  if (!_canType()) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key.length === 1) {
     _msgInput.focus({preventScroll: true});
@@ -174,6 +187,7 @@ focusInput();
 function _focusNow() {
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
+  if (!_canType()) return;
   _msgInput.focus({preventScroll: true});
   if (document.activeElement === _msgInput) { _caretToEnd(); renderCaret(); }
 }
