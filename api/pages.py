@@ -196,11 +196,24 @@ def _build_nav(active=None, guest=False):
         # tap NAVIGATES to the planning chat instead of toggling a panel
         # (exec-link.js). A <div>, like the real bubble, so a drag never fires a
         # stray click.
+        # Exec voice (nudges + monitor comments spoken on whatever page Wai is
+        # on) loads on every non-planning protected page EXCEPT /tarot (its own
+        # reader voice would clash) and /hosaka (the TTS page itself). The
+        # link-bubble stays on those two — just without the voice scripts.
+        want_voice = active not in {"tarot", "hosaka"}
+        voice_pre = (
+            '<script src="/hosaka-audio.js?v=3"></script>'
+            '<script src="/voice-util.js?v=1"></script>'
+            '<script src="/exec-voice.js?v=1"></script>'
+        ) if want_voice else ''
+        voice_listener = '<script src="/exec-voice-listener.js?v=1"></script>' if want_voice else ''
         bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=12">'
                   '<div id="exec-bubble" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
+                  + voice_pre +
                   '<script src="/exec-bubble-drag.js?v=1"></script>'
-                  '<script src="/exec-link.js?v=1"></script>')
+                  '<script src="/exec-link.js?v=1"></script>'
+                  + voice_listener)
     return nav + script + bubble
 
 
