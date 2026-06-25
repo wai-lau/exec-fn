@@ -149,7 +149,7 @@ const tarotVoice = (() => {
     btn.setAttribute("aria-label", "Mute reader voice");
     btn.setAttribute("aria-pressed", String(on));
     btn.dataset.on = on ? "true" : "false";
-    btn.innerHTML = '[<span class="voice-glyph">&#9834;</span>]';
+    btn.innerHTML = '[<span class="voice-glyph">&#10022;</span>]';
     btn.addEventListener("click", () => setOn(!on));
     controls.insertBefore(btn, controls.firstChild);
   }
