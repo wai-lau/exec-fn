@@ -190,22 +190,6 @@ body.opening-pending .msg.assistant { display:none; }
 
 @keyframes begin-hint-pulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
 
-/* "who reads for you?" gate shown before a fresh reading -- one .spread-btn per
-   persona; the pick selects the reader + begins the (eager-generated) opening */
-.reader-select {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:1.4em; padding:2.6em 1em; text-align:center;
-}
-
-.reader-select-title {
-  color:hsl(var(--green-hsl) / 0.45); font-style:italic;
-  letter-spacing:0.1em; font-size:0.95rem;
-}
-
-.reader-select-row { display:flex; gap:1.6em; flex-wrap:wrap; justify-content:center; }
-
-.reader-pick { font-size:1.05rem; }
-
 .reader-cursor {
   display:inline-block; width:0.55em; height:1em;
   background:hsl(var(--green-hsl) / 0.8);
