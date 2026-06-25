@@ -3,13 +3,12 @@
 // non-default persona through a second haiku pass -- see api/tarot/restyle.py),
 // and the persona's TTS voice is handed to tarot-voice.js for narration.
 //
-// Two entry points:
-//  - chooseScreen(onPick): the "who reads for you?" gate shown before a fresh
-//    reading. The pick is the user gesture that selects the persona + unlocks
-//    audio, then fires onPick(id). tarot-chat.js eager-generates every persona's
-//    opening behind this screen so the pick reveals instantly.
-//  - a cycle button (#persona-btn, shares .spread-btn) in #spread-controls for
-//    switching persona mid-reading (affects subsequent turns).
+// The ONLY chooser is the "who reads for you?" gate (chooseScreen) shown before a
+// fresh reading: the pick selects the persona, unlocks audio, and begins the
+// reading. Once you pick, you are committed for the session -- there is no
+// mid-reading switch. tarot-chat.js eager-generates every persona's opening
+// behind this screen so the pick reveals instantly.
+//
 // Selection persists in localStorage `tarot.persona` (default `reader`). Loaded
 // AFTER tarot-voice.js (needs tarotVoice) + BEFORE tarot-stream.js.
 const LS_PERSONA = "tarot.persona";
@@ -23,7 +22,6 @@ const tarotPersona = (() => {
   // persona list has fetched), so seed it from localStorage now.
   let current = localStorage.getItem(LS_PERSONA) || READER_PERSONA.id;
   let personas = [READER_PERSONA];
-  let cycleBtn = null;
 
   function record() {
     return personas.find((p) => p.id === current) || personas[0];
@@ -38,29 +36,6 @@ const tarotPersona = (() => {
     current = id;
     localStorage.setItem(LS_PERSONA, current);
     applyVoice();
-    renderCycle();
-  }
-
-  function renderCycle() {
-    if (cycleBtn) cycleBtn.innerHTML = `[<span class="persona-name">${record().name}</span>]`;
-  }
-
-  function cycle() {
-    const i = personas.findIndex((p) => p.id === current);
-    select(personas[(i + 1) % personas.length].id);
-  }
-
-  function mountCycle() {
-    const controls = document.getElementById("spread-controls");
-    if (!controls || cycleBtn) return;
-    cycleBtn = document.createElement("button");
-    cycleBtn.className = "spread-btn persona-btn";
-    cycleBtn.id = "persona-btn";
-    cycleBtn.title = "Reader persona (tap to change)";
-    cycleBtn.setAttribute("aria-label", "Change reader persona");
-    cycleBtn.addEventListener("click", cycle);
-    renderCycle();
-    controls.appendChild(cycleBtn);
   }
 
   // The "who reads for you?" gate. Renders one button per persona in #terminal;
@@ -107,7 +82,6 @@ const tarotPersona = (() => {
       /* offline / error -> keep the default reader only */
     }
     if (!personas.some((p) => p.id === current)) current = READER_PERSONA.id;
-    mountCycle();
     applyVoice();
     return personas;
   })();

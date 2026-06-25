@@ -48,17 +48,18 @@ around it, no notes about what you changed.
 === CANONICAL READING TEXT ===
 """
 
-# Opening turn: the persona has its own fixed opener (already in voice). Deliver
-# IT -- not the reader's atmospheric image -- preserving every beat + its closing
-# question, varying only small wording. Source = the opener, so the card scaffold
-# above is bypassed entirely (an opening is not a card reading).
-_OPENER_PRESERVE = """=== YOUR TASK: DELIVER THIS OPENING ===
+# Opening turn: deliver the persona's own opening (not the reader's atmospheric
+# image). The opening may be written as literal lines OR as a set of beats /
+# instructions; this prompt handles both. Source = the opener, so the card
+# scaffold above is bypassed entirely (an opening is not a card reading).
+_OPENER_PRESERVE = """=== YOUR TASK: OPEN THE READING ===
 
-Below is your fixed opening for the very first turn of a reading. Deliver it in
-your voice, keeping EVERY beat and image it contains and its closing question to
-the querent. Vary only small wording so two visits never read identically -- do
-NOT drop any line, do NOT replace the closing question with a different one, do
-NOT add tarot cards. Keep it short.
+Below is your opening for the very first turn of a reading. Deliver it in your
+voice. If it is written as a set of BEATS or INSTRUCTIONS, follow that shape and
+fill it in your own words, varying the changeable parts so two visits never read
+the same. If it is written as LITERAL lines, keep them, varying only small
+wording. Either way: this opens the reading and MUST end by asking the querent a
+question (ending in "?"). Add no tarot cards. Keep it short.
 
 Output ONLY the spoken opening. No preamble, no quotation marks, no notes.
 
