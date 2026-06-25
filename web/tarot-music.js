@@ -141,7 +141,7 @@ const tarotMusic = (() => {
     btn.setAttribute("aria-label", "Toggle ambient music");
     btn.setAttribute("aria-pressed", String(on));
     btn.dataset.on = on ? "true" : "false";
-    btn.innerHTML = '[<span class="music-glyph">&#9835;</span>]'; // beamed notes
+    btn.innerHTML = '[<span class="music-glyph">&#9834;</span>]'; // eighth note
     btn.addEventListener("click", () => setOn(!on));
     controls.appendChild(btn);
   }
