@@ -87,6 +87,14 @@
   color: hsl(var(--cyan-hsl) / 0.8);
 }
 
+.tts-kdesc {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: hsl(var(--green-hsl) / 0.45);
+  margin-top: -0.1rem;
+}
+
 .tts-knob input[type="range"] {
   width: 100%;
   padding: 0;
