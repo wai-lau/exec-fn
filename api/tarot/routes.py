@@ -14,6 +14,7 @@ from auth import SESSION_TOKEN
 from helpers import DATA_DIR
 from tarot.agent import stream_chat
 from tarot.cards import CARDS, CARDS_BY_ID
+from tarot.personas import get_persona_brief, get_persona_opener, public_list
 from tarot.prompt import build_system
 from tarot.spreads import SPREADS
 
@@ -33,6 +34,13 @@ async def api_tarot_spreads():
 @router.get("/api/tarot/cards")
 async def api_tarot_cards():
     return {"cards": CARDS}
+
+
+@router.get("/api/tarot/personas")
+async def api_tarot_personas():
+    """Reader persona menu (id/name/voice_id/backend/gain) -- voice briefs are
+    server-only and never sent here."""
+    return {"personas": public_list()}
 
 
 class DrawBody(BaseModel):
@@ -85,6 +93,7 @@ class SpreadContext(BaseModel):
 class ChatBody(BaseModel):
     messages: list[dict] = []
     spread: SpreadContext | None = None
+    persona: str | None = None
 
 
 def _position_label(spread_type: str | None, position_key: str) -> str:
@@ -110,6 +119,19 @@ def _count_phase1_answers(messages: list) -> int:
             continue
         n += 1
     return n
+
+
+def _is_opening(messages: list) -> bool:
+    """True on the very first turn of a fresh reading -- the persona opener (if
+    any) replaces the reader's atmospheric image here. Fresh start = the
+    `[opened /tarot; no Significator ...]` marker with no assistant turn yet."""
+    if any(m.get("role") == "assistant" for m in messages):
+        return False
+    last = messages[-1].get("content") if messages else None
+    if not isinstance(last, str):
+        return False
+    s = last.lstrip()
+    return s.startswith("[opened /tarot") and "no Significator" in s
 
 
 _PHASE1_MIN = 5
@@ -155,9 +177,13 @@ def _build_spread_preamble(spread: SpreadContext | None, phase1_count: int | Non
     return "\n".join(lines)
 
 
-async def _stream(spread: SpreadContext | None, messages: list) -> AsyncGenerator[str, None]:
+async def _stream(
+    spread: SpreadContext | None, messages: list, persona: str | None = None
+) -> AsyncGenerator[str, None]:
     spread_type = spread.type if spread else None
     system = build_system(spread_type)
+    persona_brief = get_persona_brief(persona)
+    persona_opener = get_persona_opener(persona) if _is_opening(messages) else None
 
     full_messages = list(messages)
     phase1_count = _count_phase1_answers(messages) if (spread is None or not spread.significator) else None
@@ -167,7 +193,9 @@ async def _stream(spread: SpreadContext | None, messages: list) -> AsyncGenerato
         if full_messages[1]["role"] != "assistant":
             full_messages.insert(1, {"role": "assistant", "content": "Understood - I'll read what's been turned and wait for you to turn the rest."})
 
-    async for chunk in stream_chat(full_messages, system):
+    async for chunk in stream_chat(
+        full_messages, system, persona_brief=persona_brief, persona_opener=persona_opener
+    ):
         yield chunk
 
 
@@ -198,7 +226,7 @@ def _rl_check(ip: str) -> None:
 async def api_tarot_chat(body: ChatBody, request: Request):
     _rl_check(_client_ip(request))
     return StreamingResponse(
-        _stream(body.spread, body.messages),
+        _stream(body.spread, body.messages, persona=body.persona),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
