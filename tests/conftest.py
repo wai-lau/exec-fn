@@ -34,7 +34,7 @@ def _key(name: str) -> str | None:
 
 
 API_KEY = _key("API_KEY")
-GUEST_KEY = _key("GUEST_KEY") or "REDACTED_ROTATED_KEY"
+GUEST_KEY = _key("GUEST_KEY") or "test-guest-key"
 
 
 def pytest_configure(config):
