@@ -129,9 +129,11 @@ def browser(_pw):
 def open_tarot(browser, base_url, guest_key):
     """Open /tarot in a fresh context with the boundaries mocked.
 
-    `chat_handler` answers /api/tarot/chat (this turn). The opening turn
-    auto-fires on load (no significator yet), so navigation itself is the
-    trigger — install routes BEFORE goto, which this does.
+    `chat_handler` answers /api/tarot/chat (this turn). A fresh reading now opens
+    behind the "who reads for you?" persona screen: the opening for every persona
+    is eager-generated on load, and picking one begins it. So _open picks a reader
+    to start the turn (chat is mocked, so which persona is irrelevant to the body).
+    Install routes BEFORE goto, which this does.
     """
     contexts = []
 
@@ -147,6 +149,13 @@ def open_tarot(browser, base_url, guest_key):
         if init_script:
             pg.add_init_script(init_script)
         pg.goto(f"{base_url}/tarot", wait_until="domcontentloaded")
+        # Pick a reader to begin the opening. Falls through if the screen never
+        # shows (single-persona degraded path auto-fires the opening instead).
+        try:
+            pg.wait_for_selector(".reader-select-row .reader-pick", timeout=5000)
+            pg.click(".reader-select-row .reader-pick")
+        except PWError:
+            pass
         return pg
 
     yield _open

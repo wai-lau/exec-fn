@@ -3,13 +3,29 @@
 // start TTS for the full reader text, and read the audio clock so the
 // typewriter paces to the actual voice (the upstream emits no word timings --
 // see hosaka-audio.js -- so we sync the typing to measured audio duration).
-const TAROT_VOICE = "af_nicole"; // reader voice (kokoro, realtime)
+const TAROT_VOICE = "af_nicole"; // default reader voice (kokoro, realtime)
 const LS_VOICE = "tarot.voice";
 
 const tarotVoice = (() => {
   let player = null;
   let on = localStorage.getItem(LS_VOICE) === "1";
   let btn = null;
+  // Active TTS voice -- the default reader unless a persona overrides it via
+  // setVoice(). gain is the per-voice loudness trim (HosakaAudio default is hot
+  // for clone voices like glados); see VOICE_GAIN in tts.js for the rationale.
+  let voiceId = TAROT_VOICE;
+  let backend = "kokoro";
+  let gain = 0.98;
+
+  // Point narration at a persona's voice (tarot-persona.js calls this on load
+  // and on every persona change). Applies the loudness trim immediately if a
+  // player already exists.
+  function setVoice(p) {
+    voiceId = p.voice_id || TAROT_VOICE;
+    backend = p.backend || "kokoro";
+    gain = typeof p.gain === "number" ? p.gain : 1.0;
+    if (player) player.setVolume(gain);
+  }
 
   function ensurePlayer() {
     if (!player) player = HosakaAudio.createPlayer();
@@ -39,6 +55,13 @@ const tarotVoice = (() => {
   // resumes a suspended context, so the sticky signal is the right gate.
   function ready() {
     return on && !!player && player.gestureUnlocked();
+  }
+
+  // In-gesture audio unlock (iOS rule). The reader-select pick is a real user
+  // gesture, so calling this in the pick handler unlocks audio for the opening
+  // narration with no separate "tap to begin". No-op if voice is off.
+  function unlock() {
+    if (on) ensurePlayer().unlock();
   }
 
   function setOn(v) {
@@ -110,11 +133,12 @@ const tarotVoice = (() => {
       ctl.ended = true;
       return ctl;
     }
+    player.setVolume(gain);
     player
       .speak({
         input: text,
-        backend: "kokoro",
-        voice: TAROT_VOICE,
+        backend: backend,
+        voice: voiceId,
         params: { speed: 1.0 },
         onStatus: (msg) => {
           if (msg.type === "end") ctl.ended = true;
@@ -148,7 +172,7 @@ const tarotVoice = (() => {
     controls.insertBefore(btn, controls.firstChild);
   }
 
-  return { ready, speak, mount, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
+  return { ready, speak, mount, setVoice, unlock, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
 })();
 
 tarotVoice.mount();
