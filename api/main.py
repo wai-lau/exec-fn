@@ -29,6 +29,10 @@ mimetypes.add_type("font/woff", ".woff")
 # launches chrome-less across in-scope navigation (legacy apple meta alone shows
 # the Safari toolbar on every page load). Needs the real MIME or Safari ignores it.
 mimetypes.add_type("application/manifest+json", ".webmanifest")
+# .m4a (AAC) -- mimetypes maps it to audio/mpeg or octet-stream depending on the
+# platform db; Safari/iOS refuse to play an <audio> served as octet-stream. Pin
+# audio/mp4 so the /tarot ambient track plays everywhere.
+mimetypes.add_type("audio/mp4", ".m4a")
 
 # Starlette's GZipMiddleware only skips text/event-stream. Also skip already-
 # compressed payloads -- re-gzipping a woff2/png/jpg/mp3 burns CPU and adds
