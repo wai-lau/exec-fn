@@ -7,18 +7,27 @@ from datetime import datetime, timedelta
 
 from helpers import _now_et, _load_json, _parse_json
 from nudge import ensure_nudge, active_label, _normalize_graph, _fmt_et, _parse_et, _MODEL
+from chat import EXEC_VOICE
 
 
 # ── LLM plumbing ──────────────────────────────────────────────────────────────
+# Nudge text is Exec talking — same GLaDOS skin as chat + monitor. EXEC_VOICE
+# carries the persona; the tail below is nudge-specific shape + guardrails.
 _TONE = (
-    "VOICE: a practical adult with good executive function — gentle and inviting, never "
-    "saccharine, fake-cheerful, or clipped/commanding. Use a warm opener and a soft "
-    "suggestion. Model: \"Hey, why don't you open the app and see what's there?\" Avoid "
-    "\"Just open the app...\" (too clipped) and \"You've totally got this!!\" (fake). "
+    EXEC_VOICE +
+    "\nThis is a NUDGE, not a chat reply: one or two sentences that point Wai at "
+    "the very next physical action on a task sitting untouched on today's "
+    "timeline. Stay in the GLaDOS register — frame the un-started task as a "
+    "clinical finding, then name the tiny first move. "
+    "The opener is NOT a script: VARY it every single time. Never reuse a stock "
+    "phrase ('Hey, why don't you...', 'Just open...'); each nudge must read as a "
+    "fresh deadpan observation, not a template. "
+    "If Wai is clearly stalled or overwhelmed (a peeled-down tinier step), drop "
+    "the contempt and deliver the next step straight — calm and clinical. "
     "No Unicode emoji. "
-    "NEVER suggest blocking, scheduling, or carving out time on a calendar — Exec IS "
-    "Wai's calendar and the task is already on today's timeline. Nudge the actual work, "
-    "never calendar admin."
+    "NEVER suggest blocking, scheduling, or carving out time on a calendar — Exec "
+    "IS Wai's calendar and the task is already on today's timeline. Nudge the "
+    "actual work, never calendar admin."
 )
 
 

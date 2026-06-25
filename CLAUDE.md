@@ -103,7 +103,7 @@ exec-fn/
     chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context, decompose_task, advance_chunk, record_consequences, reschedule_after_consequences
     nudge.py              # nudge ENGINE leaves: card["nudge"] state, eligibility, slot/window math, graph helpers (_first_open/_normalize_graph), clear_awaiting_focused(), active_label(). _factor() biases lead/window by recalibration.factor_for()
     nudge_deadlines.py    # deadline math: card_deadline() precedence, staggered assign_auto_deadlines(), DAG back-schedule of per-node deadlines (compute_deadlines), event terminal node, active_anchor(), morning_reconcile(). Imports nudge leaves one-way
-    nudge_llm.py          # nudge LLM calls: decompose_sync/triage_sync/peel_sync/nudge_text_sync (+ _card_brief/_profile_text/_json_call). Imports nudge engine one-way
+    nudge_llm.py          # nudge LLM calls: decompose_sync/triage_sync/peel_sync/nudge_text_sync (+ _card_brief/_profile_text/_json_call). Imports nudge engine one-way. Nudge text speaks in Exec's GLaDOS voice (`_TONE` = `EXEC_VOICE` from chat + nudge-specific shape: vary the opener every time, drop the contempt on a peeled/overwhelmed step)
     nudge_loop.py         # in-process asyncio nudge ticker (_run_nudge_loop/_nudge_tick/_scan/_fire) — split out of main.py
     monitor_sse.py        # exec-bubble SSE fan-out: push_to_monitor() + _monitor_subscribers (shared by monitor + nudge_loop)
     recalibration.py      # per-category lateness factor (EMA over completions): factor_for(card), recalibrate(log_entries). Consumes `late` telemetry, fed by morning pipeline
