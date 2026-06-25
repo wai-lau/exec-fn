@@ -82,7 +82,7 @@ _LANDING_DESCS = {
     "tarot": "An interactive three-card tarot reading: choose a significator, deal the spread, and interpret each position.",
     "recruiter": "A résumé page for recruiters: background, skills, and a downloadable PDF.",
 }
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=18">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=19">'
 
 # preload the two Latin-subset woff2 weights so they download in parallel with
 # the CSS instead of after it (font fetch is otherwise gated on CSS parse). Both
