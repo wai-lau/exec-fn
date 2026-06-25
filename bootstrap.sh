@@ -59,6 +59,22 @@ fi
 sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 systemctl restart sshd
 
+# ── hosaka reverse-tunnel sshd config ─────────────────────────────────────────
+# The home GPU box reverse-tunnels its TTS server to 172.17.0.1:8123 here.
+# GatewayPorts: let the -R forward bind the docker-bridge IP (not just loopback).
+# ClientAlive*: probe idle tunnel clients so a dead home box's session is reaped
+#   (~90s) and its port frees — without this a home-box reboot leaves an orphaned
+#   sshd squatting :8123 and the respawning tunnel flaps forever, unable to rebind.
+cat > /etc/ssh/sshd_config.d/10-gatewayports.conf <<'EOF'
+GatewayPorts clientspecified
+EOF
+cat > /etc/ssh/sshd_config.d/20-hosaka-keepalive.conf <<'EOF'
+# Reap dead reverse-tunnel sessions so a stale -R bind frees its port.
+ClientAliveInterval 30
+ClientAliveCountMax 3
+EOF
+sshd -t && systemctl reload ssh
+
 # ── enable services on boot ───────────────────────────────────────────────────
 systemctl enable docker nginx fail2ban
 systemctl start docker nginx fail2ban
