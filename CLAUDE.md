@@ -98,7 +98,7 @@ exec-fn/
     gcal.py               # GCal helpers: fetch_calendar_events, import_gcal_cards, ICS feeds, LLM classification
     helpers.py            # shared helpers: _next_recurrence(), _load_json (mtime cache), _append_rd_log_batch, _now_et
     prophecies.py         # prophecies module: get_week_data(), bulk_update_scheduled_days()
-    chat.py               # exec chat: system prompt (+ ACTIVE NUDGE block), tool definitions, _dedupe_context, _save_chat/get_chat, append_monitor_comment
+    chat.py               # exec chat: system prompt (+ ACTIVE NUDGE block + EXEC_VOICE GLaDOS persona skin, shared with monitor.py), tool definitions, _dedupe_context, _save_chat/get_chat, append_monitor_comment
     card_llm.py           # one-shot card LLM helpers (not chat): classify_card() category+importance, parse_date_natural() NL due date → ISO. Used by the card API endpoints
     chat_tools.py         # exec chat tool handlers: create_card, exile_card, update_card, schedule_card, update_context, decompose_task, advance_chunk, record_consequences, reschedule_after_consequences
     nudge.py              # nudge ENGINE leaves: card["nudge"] state, eligibility, slot/window math, graph helpers (_first_open/_normalize_graph), clear_awaiting_focused(), active_label(). _factor() biases lead/window by recalibration.factor_for()
@@ -341,7 +341,7 @@ ADHD activation scaffolding: a card placed on today's timeline gets a nudge at i
 
 ## Exec monitor
 
-`monitor.py` produces unsolicited warm comments after significant card activity. Trigger = move to archives/exile, or book-card update. `main.py` runs a 60s trailing debounce (`_schedule_monitor`); `POST /api/monitor/flush` bypasses the wait. The model generates the comment with context = profile.json + hq cards + books-in-progress + today's schedule. Subscribers receive `{thinking}`/`{comment}` via `/api/monitor/stream` SSE. Posted comment is appended to `chat.json` as `role=monitor` so the exec bubble shows it on next load.
+`monitor.py` produces unsolicited comments after significant card activity — in Exec's GLaDOS voice (`EXEC_VOICE`, shared with chat), backhanded observations rather than warm encouragement. Trigger = move to archives/exile, or book-card update. `main.py` runs a 60s trailing debounce (`_schedule_monitor`); `POST /api/monitor/flush` bypasses the wait. The model generates the comment with context = profile.json + hq cards + books-in-progress + today's schedule. Subscribers receive `{thinking}`/`{comment}` via `/api/monitor/stream` SSE. Posted comment is appended to `chat.json` as `role=monitor` so the exec bubble shows it on next load.
 
 ---
 
