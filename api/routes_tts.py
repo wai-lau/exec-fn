@@ -16,7 +16,7 @@ import websockets
 from fastapi import WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from auth import SESSION_TOKEN
+from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
 from pages import _render_page, _tmpl
 from routers import protected, public
 
@@ -76,8 +76,13 @@ async def _pump_to_client(ws, upstream):
 @public.websocket("/ws/hosaka")
 async def ws_tts(ws: WebSocket):
     # Same session cookie as the rest of the app; the browser sends it on the
-    # same-origin WS handshake. Reject before accepting if missing/wrong.
-    if ws.cookies.get("session") != SESSION_TOKEN:
+    # same-origin WS handshake. Accept the full owner session OR a guest session
+    # (so guests on /tarot get the reader voice too). Reject anything else
+    # before accepting.
+    if (
+        ws.cookies.get("session") != SESSION_TOKEN
+        and ws.cookies.get("guest_session") != GUEST_SESSION_TOKEN
+    ):
         await ws.close(code=1008)
         return
     await ws.accept()
