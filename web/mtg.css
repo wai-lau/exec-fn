@@ -2,6 +2,13 @@
    below: mtg-only — full-width scrollback + Scryfall card hovers */
 .msg { max-width:none; }
 
+/* The composer is a real <textarea> (not contenteditable) so iOS honours
+   autocorrect=off and drops the QuickType suggestions bar. Base look comes from
+   chat.css #msg-input; here just kill the resize grip and native chrome (it
+   auto-grows in JS, chat-reader.css caps it at 35vh + scrolls). */
+textarea#msg-input { resize:none; display:block; }
+textarea#msg-input::placeholder { color:hsl(var(--green-hsl) / 0.12); }
+
 /* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
    native keyboard animation). --kb rides the keyboard; --input-h the bar. */
 #terminal { inset:0 0 calc(var(--kb-anchor) + var(--input-h,48px)) !important; }
