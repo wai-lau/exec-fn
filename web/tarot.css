@@ -88,6 +88,22 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   margin:0 0.12em; display:inline-block;
 }
 
+/* ambient-music toggle: same body as the voice toggle. Off = dim, no pulse;
+   on = full green + the shared btn-pulse glow. */
+.music-btn { animation:none; }
+.music-btn[data-on="false"] { color:hsl(var(--green-hsl) / 0.45); text-shadow:none; }
+
+.music-btn[data-on="true"]  {
+  color:hsl(var(--green-hsl) / 1);
+  animation:btn-pulse 2.6s ease-in-out infinite;
+}
+
+.music-btn .music-glyph {
+  font-family: system-ui, sans-serif;
+  font-size:1.3em; line-height:1; vertical-align:-0.08em;
+  margin:0 0.12em; display:inline-block;
+}
+
 #spread-empty {
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;

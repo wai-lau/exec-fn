@@ -63,3 +63,6 @@ api/data/rulings*.json
 mtg/mtg_sections/
 !web/radar.png
 !web/firewall.png
+
+# tarot ambient track -- 58MB, lives on the server (volume-mounted), too big for git
+web/tarot-ambient.m4a
