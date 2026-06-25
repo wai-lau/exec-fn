@@ -16,7 +16,7 @@ PUBLIC_PAGES = ["/", "/recruiter", "/color", "/graph", "/nightfall", "/login", "
 # require_auth — no auth redirects to /login; admin Bearer renders.
 PROTECTED_PAGES = ["/rd", "/prophecies", "/debug", "/emet"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
-GUEST_PAGES = ["/mtg", "/tarot"]
+GUEST_PAGES = ["/mtg", "/tarot", "/hosaka"]
 
 
 def _is_page(r) -> bool:

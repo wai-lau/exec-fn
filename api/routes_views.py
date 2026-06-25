@@ -35,7 +35,7 @@ from graph_scrub import (
 
 # ── public: landing + auth ──────────────────────────────────────────────────
 
-_GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall"}
+_GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall", "/hosaka"}
 
 
 def _safe_next(value: str, default: str = "/mtg") -> str:

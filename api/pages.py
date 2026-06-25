@@ -48,7 +48,7 @@ _APPLE_WEBAPP_META = (
 _NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
 _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
 
-_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "color", "recruiter"]
+_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "hosaka", "color", "recruiter"]
 
 _NAV_ICONS = {
     "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
