@@ -82,7 +82,7 @@ PERSONAS = {
         "id": "glados",
         "name": "GLaDOS",
         "voice_id": "glados",
-        "backend": "chatterbox",
+        "backend": "piper",
         "gain": 0.25,
         "brief": _GLADOS_BRIEF,
         "opener": _GLADOS_OPENER,
