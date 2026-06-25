@@ -193,7 +193,7 @@ def _build_nav(active=None, guest=False):
         # tap NAVIGATES to the planning chat instead of toggling a panel
         # (exec-link.js). A <div>, like the real bubble, so a drag never fires a
         # stray click.
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=10">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=11">'
                   '<div id="exec-bubble" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   '<script src="/exec-bubble-drag.js?v=1"></script>'

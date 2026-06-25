@@ -158,7 +158,7 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 #exec-term .msg-body { flex: 1; min-width: 0; }
 #exec-term .msg.user { color: rgba(255,255,255,0.72); display: flex; align-items: flex-start; }
 #exec-term .msg.user::before { content: "$"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
-#exec-term .msg.sys { color: hsl(var(--green-hsl) / 0.12); font-size: 0.72rem; }
+#exec-term .msg.sys { color: hsl(var(--green-hsl) / 0.45); font-size: 0.72rem; }
 #exec-term .msg.sys::before { content: "# "; }
 #exec-term .msg.probe { color: hsl(var(--green-hsl) / 0.8); font-size: 0.78rem; font-style: italic; display: flex; align-items: flex-start; }
 #exec-term .msg.probe::before { content: "~"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
