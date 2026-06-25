@@ -8,7 +8,10 @@ const LS_VOICE = "tarot.voice";
 
 const tarotVoice = (() => {
   let player = null;
-  let on = localStorage.getItem(LS_VOICE) === "1";
+  // The #voice-btn is a MUTE: narration is audible by default; the button only
+  // sets the player volume to 0 (and back). `on` = unmuted. localStorage "0" =
+  // muted, anything else audible.
+  let on = localStorage.getItem(LS_VOICE) !== "0";
   let btn = null;
 
   function ensurePlayer() {
@@ -31,16 +34,18 @@ const tarotVoice = (() => {
       .trim();
   }
 
-  // on AND a user gesture has unlocked the player. When off / not yet
-  // unlocked, tarot-chat falls back to the guessed-pace typewriter.
+  // A user gesture has unlocked the player. Narration plays whenever unlocked;
+  // the mute button only zeroes the volume (setOn), it does NOT gate narration.
   // Gate on gestureUnlocked() (sticky "a gesture ran"), NOT isUnlocked() (live
   // ctx.state): on Windows Chrome the live state can read non-running at this
   // check even though playback works, which silently dropped the voice. speak()
   // resumes a suspended context, so the sticky signal is the right gate.
   function ready() {
-    return on && !!player && player.gestureUnlocked();
+    return !!player && player.gestureUnlocked();
   }
 
+  // The mute toggle: v=true unmuted (volume 1), v=false muted (volume 0). It does
+  // nothing but set the player volume -- narration still streams + paces either way.
   function setOn(v) {
     on = v;
     localStorage.setItem(LS_VOICE, v ? "1" : "0");
@@ -48,7 +53,8 @@ const tarotVoice = (() => {
       btn.dataset.on = v ? "true" : "false";
       btn.setAttribute("aria-pressed", String(v));
     }
-    if (v) ensurePlayer().unlock(); // in-gesture (toggle click) -> iOS unlock
+    if (v) ensurePlayer().unlock(); // unmute is a gesture -> iOS unlock
+    if (player) player.setVolume(v ? 1.0 : 0);
   }
 
   // Persisted-on across a reload: the toggle reads on but no gesture has unlocked
@@ -57,11 +63,10 @@ const tarotVoice = (() => {
   // -- it MUST run synchronously inside that gesture (iOS audio rule), so no
   // load-time/setTimeout unlock here.
   function armPersistedUnlock() {
-    if (!on) return;
     function fire() {
       document.removeEventListener("pointerdown", fire, true);
       document.removeEventListener("keydown", fire, true);
-      if (on) ensurePlayer().unlock(); // still synchronous, inside the gesture
+      ensurePlayer().unlock(); // synchronous, inside the gesture
     }
     document.addEventListener("pointerdown", fire, true);
     document.addEventListener("keydown", fire, true);
@@ -73,7 +78,7 @@ const tarotVoice = (() => {
   // already unlocked -> reveal immediately, no hold.
   function wantsDeferredOpening() {
     ensurePlayer();
-    return on && !player.gestureUnlocked();
+    return !player.gestureUnlocked();
   }
 
   // Arm a one-shot first gesture (tap/keypress) that unlocks audio and calls
@@ -104,12 +109,13 @@ const tarotVoice = (() => {
       elapsed: () => (player ? player.elapsed() : 0),
       duration: () => (player ? player.audioDuration() : 0),
     };
-    const text = on ? plain(md) : "";
+    const text = plain(md);
     if (!text || !ready()) {
       ctl.ok = false;
       ctl.ended = true;
       return ctl;
     }
+    player.setVolume(on ? 1.0 : 0);
     player
       .speak({
         input: text,
@@ -139,8 +145,8 @@ const tarotVoice = (() => {
     btn = document.createElement("button");
     btn.className = "spread-btn voice-btn";
     btn.id = "voice-btn";
-    btn.title = "Reader voice";
-    btn.setAttribute("aria-label", "Toggle reader voice");
+    btn.title = "Mute reader voice";
+    btn.setAttribute("aria-label", "Mute reader voice");
     btn.setAttribute("aria-pressed", String(on));
     btn.dataset.on = on ? "true" : "false";
     btn.innerHTML = '[<span class="voice-glyph">&#9834;</span>]';

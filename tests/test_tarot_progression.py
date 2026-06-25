@@ -129,9 +129,11 @@ def browser(_pw):
 def open_tarot(browser, base_url, guest_key):
     """Open /tarot in a fresh context with the boundaries mocked.
 
-    `chat_handler` answers /api/tarot/chat (this turn). The opening turn
-    auto-fires on load (no significator yet), so navigation itself is the
-    trigger — install routes BEFORE goto, which this does.
+    `chat_handler` answers /api/tarot/chat (this turn). Reader narration is
+    audible by default, so the opening is eager-generated on load but HELD for
+    the first gesture (browsers won't autoplay audio) — install routes BEFORE
+    goto, then tap to begin the reading. The stub voices (voice_js) report no
+    deferral, so for them the opening auto-fires and the tap is a harmless no-op.
     """
     contexts = []
 
@@ -147,6 +149,12 @@ def open_tarot(browser, base_url, guest_key):
         if init_script:
             pg.add_init_script(init_script)
         pg.goto(f"{base_url}/tarot", wait_until="domcontentloaded")
+        # Audible-by-default opening holds for the first gesture; tap to start it.
+        try:
+            pg.wait_for_selector("body.opening-pending", timeout=3000)
+            pg.mouse.click(200, 400)
+        except PWError:
+            pass  # not held (stub voice) -> already auto-fired
         return pg
 
     yield _open
