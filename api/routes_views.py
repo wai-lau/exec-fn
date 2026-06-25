@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, Resp
 from routers import public, protected, guest_protected
 from pages import (
     _render_page, _tmpl, _index_pages, _build_nav,
-    _CHROME_LINK, _FONT_PRELOAD, _FAVICON, _STATIC_INDEX,
+    _CHROME_LINK, _FONT_PRELOAD, _FAVICON, _STATIC_INDEX, _APPLE_WEBAPP_META,
     _NAV_HREFS, _NAV_ICONS, _NAV_LABELS,
 )
 from helpers import DATA_DIR
@@ -349,7 +349,7 @@ async def graph_page(request: Request):
         "{ nodes: nodesDS, edges: edgesDS }, {\n  layout: { improvedLayout: false },",
         1,
     )
-    page = page.replace("</head>", _VIEWPORT_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
+    page = page.replace("</head>", _VIEWPORT_META + _APPLE_WEBAPP_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
     # /graph has no extension so the no-cache middleware skips it, and the route
     # body changes whenever /graphify regenerates graph.html. Tag the rendered
@@ -381,7 +381,7 @@ async def emet_page(request: Request):
     _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     _emet_css = '<link rel="stylesheet" href="/emet.css?v=11">'
     page = page.replace("</head>",
-                        _VIEWPORT_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _emet_css + "</head>", 1)
+                        _VIEWPORT_META + _APPLE_WEBAPP_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _emet_css + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
     etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
     headers = {"Cache-Control": "no-cache", "ETag": etag}
