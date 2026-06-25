@@ -8,7 +8,10 @@
 // speak() just fires and forgets. Exposes window.execVoice for exec-bubble.js.
 const EXEC_VOICE_ID = "glados"; // upstream piper voice
 const EXEC_VOICE_BACKEND = "piper";
-const EXEC_VOICE_GAIN = 0.25; // glados clips at 1.0 — matches tts.js VOICE_GAIN
+// glados is peak-normalized to ~1.0 by the upstream (measured worst-case peak
+// ~1.013), so 0.95 is about as loud as it goes without clipping — a deliberate
+// step up from tts.js's 0.25 RMS-match trim, since Exec should be heard.
+const EXEC_VOICE_GAIN = 0.95;
 const EXEC_LS_VOICE = "exec.voice";
 
 window.execVoice = (function () {

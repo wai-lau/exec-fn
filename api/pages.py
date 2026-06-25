@@ -185,7 +185,7 @@ def _build_nav(active=None, guest=False):
     elif active in {"core", "prophecies"}:
         bubble = ('<script src="/hosaka-audio.js?v=3"></script>'
                   '<script src="/voice-util.js?v=1"></script>'
-                  '<script src="/exec-voice.js?v=1"></script>'
+                  '<script src="/exec-voice.js?v=2"></script>'
                   '<script src="/exec-bubble-drag.js?v=1"></script>'
                   '<script src="/exec-todos.js?v=2"></script>'
                   '<script src="/exec-bubble.js?v=40"></script>')
@@ -204,7 +204,7 @@ def _build_nav(active=None, guest=False):
         voice_pre = (
             '<script src="/hosaka-audio.js?v=3"></script>'
             '<script src="/voice-util.js?v=1"></script>'
-            '<script src="/exec-voice.js?v=1"></script>'
+            '<script src="/exec-voice.js?v=2"></script>'
         ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=1"></script>' if want_voice else ''
         bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=12">'
