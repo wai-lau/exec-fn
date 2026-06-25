@@ -14,6 +14,37 @@ is therefore *not* liveness — only an actual HTTP response is. `/hosaka` shows
 **"TTS server offline"** (see `/api/hosaka/health`). The fix is to bring the
 model server back up here.
 
+## The OTHER failure mode — tunnel can't rebind after a reboot
+
+When this box reboots (e.g. WSL restart) the ssh client dies abruptly without a
+clean disconnect. The droplet's sshd doesn't notice and keeps the old session's
+`-R` bind on `172.17.0.1:8123`. When this box comes back, `hosaka-tunnel.service`
+starts a new ssh, tries the same `-R` bind, the droplet refuses it
+(`Error: remote port forwarding failed for listen port 8123`), ssh exits 255,
+systemd respawns it — **permanent flap**, `/hosaka` dead.
+
+Fixed on **both** sides by SSH keepalive:
+
+- **Droplet** (`/etc/ssh/sshd_config.d/20-hosaka-keepalive.conf`, in `bootstrap.sh`):
+  `ClientAliveInterval 30` + `ClientAliveCountMax 3` — sshd probes the idle
+  tunnel and reaps the dead session in ~90s, freeing the port.
+- **Home box** (`hosaka-tunnel.service`, Option C below): `ServerAliveInterval` +
+  `ExitOnForwardFailure` — the client detects a dead droplet and exits cleanly,
+  and stops holding a half-open tunnel while the port is still taken.
+
+After both, a reboot self-heals within ~90s with no manual `kill`.
+
+## Option C — the reverse tunnel itself (systemd user service)
+
+```bash
+cp hosaka-tunnel.service ~/.config/systemd/user/
+# `wai-lau-tunnel` must be a Host alias in ~/.ssh/config
+# (HostName wai-lau.net, User …, IdentityFile …). Then:
+systemctl --user daemon-reload
+systemctl --user enable --now hosaka-tunnel
+loginctl enable-linger "$USER"   # survive logout / reboot
+```
+
 ## Option A — systemd user service (primary, self-recovers a crash)
 
 ```bash

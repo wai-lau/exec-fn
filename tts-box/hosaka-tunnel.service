@@ -1,0 +1,23 @@
+[Unit]
+Description=hosaka reverse SSH tunnel (home :8123 -> droplet 172.17.0.1:8123)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# `wai-lau-tunnel` is a Host alias in ~/.ssh/config (HostName/User/IdentityFile).
+# ServerAlive*: detect a dead/unreachable droplet and exit so systemd respawns.
+# ExitOnForwardFailure: if the remote -R bind is still taken (stale session not
+#   yet reaped), exit immediately instead of holding a half-open tunnel; the
+#   droplet's ClientAliveInterval frees the port within ~90s, so the next
+#   respawn binds cleanly. Both sides keepalive => no permanent flap after a
+#   home-box reboot.
+ExecStart=/usr/bin/ssh -NT \
+  -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+  -o ExitOnForwardFailure=yes -o TCPKeepAlive=yes \
+  -R 172.17.0.1:8123:127.0.0.1:8123 wai-lau-tunnel
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
