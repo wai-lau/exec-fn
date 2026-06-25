@@ -3,8 +3,15 @@
 // iOS-unlock + PCM-scheduling core). Auth is the app's session cookie -- sent
 // automatically on the same-origin WS handshake.
 const $ = (id) => document.getElementById(id);
+// #tts-status carries only diagnostic detail now (offline reason / error text);
+// the speak lifecycle (ready -> generating -> speaking) drives the SPEAK button.
 const setStatus = (s) => {
   $("tts-status").textContent = s;
+};
+const setBtn = (label, enabled) => {
+  const b = $("tts-speak");
+  b.textContent = label;
+  b.disabled = !enabled;
 };
 
 // The upstream lives on a home GPU box behind an SSH tunnel; when its model
@@ -36,19 +43,23 @@ let speaking = false; // suppress health polling clobbering live speak status
 
 const player = HosakaAudio.createPlayer({
   onConnState: (state) => {
-    if (state === "connected") setStatus("connected");
-    else if (state === "error" || state === "disconnected") setStatus(OFFLINE);
+    if (state === "error" || state === "disconnected") {
+      if (speaking) { speaking = false; setBtn("Speak", true); }
+      setStatus(OFFLINE);
+    }
   },
 });
 
 // Poll the upstream so the page shows offline BEFORE the user hits SPEAK (a bound
 // tunnel port isn't liveness -- see /api/hosaka/health).
 async function checkHealth() {
-  if (speaking) return;
+  if (speaking) return; // mid-speak: the button shows generating/speaking
   try {
     const j = await (await fetch("/api/hosaka/health")).json();
-    setStatus(j.ok ? "ready" : OFFLINE);
+    if (j.ok) { setBtn("Speak", true); setStatus(""); }
+    else { setBtn("offline", false); setStatus(OFFLINE); }
   } catch {
+    setBtn("offline", false);
     setStatus(OFFLINE);
   }
 }
@@ -81,11 +92,15 @@ async function loadVoices() {
       const o = document.createElement("option");
       o.value = v.id;
       o.dataset.backend = v.backend;
-      o.textContent = v.description ? `${v.id} - ${v.description}` : v.id;
+      o.textContent = v.id;
       og.appendChild(o);
     }
     sel.appendChild(og);
   }
+  // Charlie (chatterbox clone + RVC) is the headline voice -- default to it
+  // when the upstream offers it; fall back to the first listed voice otherwise.
+  const def = [...sel.options].find((o) => o.value === "charlie");
+  if (def) def.selected = true;
   sel.addEventListener("change", reflectBackend);
   reflectBackend();
 }
@@ -124,6 +139,8 @@ function params() {
 
 async function speak() {
   speaking = true;
+  setStatus("");
+  setBtn("generating...", false);
   await player.speak({
     input: $("tts-text").value,
     backend: selectedBackend(),
@@ -132,11 +149,19 @@ async function speak() {
     onStatus: (msg) => {
       if (msg.type === "error") {
         speaking = false;
+        setBtn("Speak", true);
         setStatus(msg.detail === "tts upstream unreachable" ? OFFLINE : "error: " + msg.detail);
-      } else if (msg.type === "start") setStatus("speaking...");
-      else if (msg.type === "end") {
-        speaking = false;
-        setStatus("done");
+      } else if (msg.type === "start") {
+        setBtn("generating...", false);
+      } else if (msg.type === "end") {
+        // {end} = upstream done sending; audio is buffered + playing. Hold the
+        // button on "speaking..." for the remaining playback, then free it.
+        setBtn("speaking...", false);
+        const remainMs = Math.max(0, player.audioDuration() - player.elapsed()) * 1000;
+        setTimeout(() => {
+          speaking = false;
+          setBtn("Speak", true);
+        }, remainMs + 200);
       }
     },
   });
@@ -152,6 +177,7 @@ window.addEventListener("DOMContentLoaded", () => {
     player.unlock(); // synchronous, in-gesture -- the iOS audio unlock
     speak().catch((err) => {
       speaking = false;
+      setBtn("Speak", true);
       setStatus("error: " + err.message);
     });
   });

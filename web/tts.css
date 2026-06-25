@@ -45,13 +45,19 @@
   border-color: hsl(var(--green-hsl));
 }
 
-.tts button:hover {
+.tts button:hover:not(:disabled) {
   background: hsl(var(--green-hsl));
+}
+
+.tts button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .tts #tts-status {
   color: hsl(var(--green-hsl) / 0.45);
   min-height: 1.3em;
+  text-align: center;
 }
 
 .tts-group {
