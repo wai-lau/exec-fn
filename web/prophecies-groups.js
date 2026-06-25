@@ -454,6 +454,16 @@ function createGroup(c, track) {
     sub.style.left = `calc(${SUB_X}px + (100% - ${SUB_X}px) * ${k} / ${S})`;
     sub.style.width = `calc((100% - ${SUB_X}px) / ${S} - ${SUBGAP}px)`;
 
+    const del = document.createElement('div');
+    del.className = 'dir-sub-del';
+    del.textContent = '✕';
+    del.title = 'delete step';
+    del.style.color = titleC;
+    del.addEventListener('mousedown', e => e.stopPropagation());
+    del.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+    del.addEventListener('click', e => { e.stopPropagation(); deleteSub(c, nd, track); });
+    sub.appendChild(del);
+
     const lab = document.createElement('div');
     lab.className = 'dir-sub-title';
     lab.style.color = titleC;

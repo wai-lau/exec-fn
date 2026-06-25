@@ -231,6 +231,35 @@ function computeColumns(cards) {
   });
 }
 
+// Drop one sub-step from a card's breakdown: remove the node, bridge its
+// prerequisites straight to its dependents (so the chain stays connected), then
+// re-pick the active node by the first-open rule. Mutates the passed card.
+function pruneNode(card, id) {
+  const g = card.nudge && card.nudge.graph;
+  if (!g || !g.nodes) return;
+  const edges = g.edges || [];
+  const pres = edges.filter(e => e.to === id).map(e => e.from);
+  const deps = edges.filter(e => e.from === id).map(e => e.to);
+  g.edges = edges.filter(e => e.from !== id && e.to !== id);
+  pres.forEach(p => deps.forEach(d => {
+    if (!g.edges.some(e => e.from === p && e.to === d)) g.edges.push({from: p, to: d});
+  }));
+  g.nodes = g.nodes.filter(x => x.id !== id);
+  const byId = {}; g.nodes.forEach(n => { byId[n.id] = n; });
+  const pre = {}; g.edges.forEach(e => (pre[e.to] = pre[e.to] || []).push(e.from));
+  const open = g.nodes.find(n => !n.done && !n.is_event_start &&
+    (pre[n.id] || []).every(p => !byId[p] || byId[p].done));
+  card.nudge.active_node = open ? open.id : null;
+}
+
+// X-button handler on a timeline sub-step: prune it locally for an instant
+// redraw, then persist the same prune against the authoritative rd.json.
+function deleteSub(c, nd, track) {
+  pruneNode(c, nd.id);
+  redrawCards(track);
+  patchCard(c.id, card => pruneNode(card, nd.id));
+}
+
 function applyColumnLayout(cards, track) {
   const GAP = 3;
   cards.forEach(c => {
