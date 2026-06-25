@@ -61,7 +61,10 @@ def api_chat_clear():
 
 @router.post("/api/chat")
 async def api_chat(body: ChatBody):
-    messages = body.messages
+    # Strip everything but role/content. The stored chat carries a server-side
+    # `ts` on each message (for chronological merge); the Anthropic API rejects
+    # unknown keys, so never let one ride in on the conversation we send/save.
+    messages = [{"role": m.get("role"), "content": m.get("content")} for m in body.messages]
     stage = body.stage
 
     # Any user turn counts as a reply to the focused awaiting nudge — a bare

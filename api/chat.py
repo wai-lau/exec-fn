@@ -374,25 +374,50 @@ def _dedupe_context(notes: list) -> list:
 def _save_chat(messages: list, stage: str):
     p = DATA_DIR / "chat.json"
     existing = json.loads(p.read_text()) if p.exists() else {}
+    existing_msgs = existing.get("messages", [])
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Stamp each conversation message with a `ts`. The conversation only ever
+    # grows by appending, so position i in `messages` is the same message we
+    # stored at position i of the existing (monitor-stripped) conversation —
+    # carry its timestamp forward; brand-new tail messages get `now`. The
+    # incoming messages are API-clean ({role, content}) and never carry ts.
+    existing_convo = [m for m in existing_msgs if m.get("role") != "monitor"]
+    stamped = []
+    for i, m in enumerate(messages):
+        ts = existing_convo[i].get("ts") if i < len(existing_convo) else None
+        stamped.append({**m, "ts": ts or now})
+
+    # Preserve monitor comments (each keeps its own ts); dedup any that somehow
+    # rode in on the incoming conversation.
     incoming_monitor_contents = {
         m.get("content") for m in messages if m.get("role") == "monitor"
     }
     monitor_msgs = [
-        m for m in existing.get("messages", [])
+        m for m in existing_msgs
         if m.get("role") == "monitor" and m.get("content") not in incoming_monitor_contents
     ]
+    for m in monitor_msgs:
+        m.setdefault("ts", now)
+
+    # Merge conversation + monitor into one chronological stream. Stable sort
+    # keeps a turn's assistant/tool_result/follow-up (same ts) in order.
+    merged = sorted(stamped + monitor_msgs, key=lambda m: m.get("ts") or "")
     p.write_text(json.dumps({
-        "messages": list(messages) + monitor_msgs,
+        "messages": merged,
         "stage": stage,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": now,
     }, indent=2))
 
 
 def append_monitor_comment(comment: str):
     p = DATA_DIR / "chat.json"
     data = json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}
-    data["messages"].append({"role": "monitor", "content": comment})
-    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
+    data["messages"].append({"role": "monitor", "content": comment, "ts": now})
+    # Keep the stored stream chronological so the frontend renders it merged.
+    data["messages"].sort(key=lambda m: m.get("ts") or "")
+    data["updated_at"] = now
     p.write_text(json.dumps(data, indent=2))
 
 
