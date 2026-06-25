@@ -56,7 +56,7 @@
     if (existing) { cb(); return; }
     const el = document.createElement('link');
     el.rel = 'stylesheet';
-    el.href = '/exec-bubble.css?v=11';
+    el.href = '/exec-bubble.css?v=12';
     el.setAttribute('data-exec-css', '');
     el.onload = cb;
     el.onerror = cb;  // never hang the panel on a CSS fetch failure
@@ -86,6 +86,7 @@
             '<div id="exec-idisp"><span id="exec-ipre"></span><span id="exec-icursor"></span><span id="exec-ipost"></span></div>' +
             '<div id="exec-minput" contenteditable="true" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>' +
           '</div>' +
+          '<button id="exec-mute" title="Mute Exec voice">[<span class="exec-vglyph">&#10022;</span>]</button>' +
           '<button id="exec-ph-close">[x]</button>' +
         '</div>' +
       '</div>';
@@ -95,6 +96,7 @@
     preEl = document.getElementById('exec-ipre');
     postEl = document.getElementById('exec-ipost');
     document.getElementById('exec-ph-close').addEventListener('click', closePanel);
+    if (window.execVoice) execVoice.mountButton();
     document.addEventListener('click', function (e) {
       if (!isOpen) return;
       if (!panel.contains(e.target) && !bubble.contains(e.target)) closePanel();
@@ -144,6 +146,7 @@
   function openPanel() {
     isOpen = true;
     panel.classList.add('open');
+    if (window.execVoice) execVoice.unlock(); // opening via bubble tap = a gesture
     markRead();
     if (msgInput) msgInput.focus();
     setTimeout(function () { if (msgInput) msgInput.focus(); }, 240);
@@ -383,7 +386,10 @@
         }
       }
       cur.remove();
-      if (fullText) messages.push({ role: 'assistant', content: fullText });
+      if (fullText) {
+        messages.push({ role: 'assistant', content: fullText });
+        if (window.execVoice) execVoice.speak(fullText);  // narrate Exec's reply
+      }
     } catch (e) {
       cur.remove();
       const errDiv = document.createElement('div');
@@ -474,6 +480,7 @@
         } else if (data.comment) {
           setMonitorThinking(false);
           addMsg('probe', data.comment);
+          if (window.execVoice) execVoice.speak(data.comment);  // narrate nudge / monitor
           monitorTotal += 1;
           if (isOpen) markRead(); else recomputeUnread();
         }

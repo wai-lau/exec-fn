@@ -78,6 +78,17 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 }
 #exec-ph-close:hover { color: hsl(var(--green-hsl) / 1); }
 
+#exec-mute {
+  flex-shrink: 0;
+  background: none; border: none;
+  cursor: pointer; color: hsl(var(--green-hsl) / 0.8);
+  font-family: 'Iosevka Mayukai Monolite', monospace;
+  font-size: 0.78rem; padding: 4px 6px; margin-left: 8px;
+  transition: color 0.15s;
+}
+#exec-mute:hover { color: hsl(var(--green-hsl) / 1); }
+#exec-mute[data-muted="true"] { color: hsl(var(--green-hsl) / 0.12); }
+
 /* ── todo list (panel top) ─────────────────────────────────────────────────
    Sizes to content, capped at half the panel; the list scrolls past the cap.
    flex-grow 0 so the chat below keeps every row the todos don't need. */
