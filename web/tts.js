@@ -14,6 +14,12 @@ const OFFLINE = "TTS server offline — start it on the home box";
 
 const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
 
+// Backends whose generation runs through Chatterbox, so the clone knobs
+// (exaggeration/cfg_weight/temperature) take effect. `rvc` = a Chatterbox
+// clone fed through RVC voice conversion (e.g. charlie) -- still Chatterbox
+// underneath, so its knobs are live too. kokoro/piper honor only speed.
+const CLONE_BACKENDS = new Set(["chatterbox", "rvc"]);
+
 // Per-voice loudness trim so every voice plays at ~the same level by default.
 // Derived from the measured RMS of a fixed sentence per voice, normalized to a
 // ~0.05 target (calm_brit was ~3x quiet; f_ellen/glados hot enough to clip).
@@ -61,7 +67,12 @@ async function loadVoices() {
   }
   const groups = {};
   for (const v of voices) (groups[v.backend] ||= []).push(v);
-  const labels = { kokoro: "kokoro (realtime)", chatterbox: "chatterbox (clone)" };
+  const labels = {
+    kokoro: "kokoro (realtime)",
+    chatterbox: "chatterbox (clone)",
+    rvc: "rvc (chatterbox clone + voice conversion)",
+    piper: "piper",
+  };
   sel.innerHTML = "";
   for (const backend of Object.keys(groups)) {
     const og = document.createElement("optgroup");
@@ -84,9 +95,9 @@ function selectedBackend() {
   return o ? o.dataset.backend : "kokoro";
 }
 
-// Dim the chatterbox-only knobs for kokoro voices (kokoro honors only speed).
+// Dim the clone knobs for non-Chatterbox voices (kokoro/piper honor only speed).
 function reflectBackend() {
-  $("tts-cb").classList.toggle("off", selectedBackend() !== "chatterbox");
+  $("tts-cb").classList.toggle("off", !CLONE_BACKENDS.has(selectedBackend()));
   applyVolume(); // re-trim for the newly selected voice
 }
 
