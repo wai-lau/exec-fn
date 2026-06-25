@@ -10,6 +10,7 @@ require_auth and require_guest_auth accept. The cookie login sets a Secure
 cookie, which httpx won't replay over plain-HTTP localhost — Bearer sidesteps
 that entirely and is the cleaner header auth for a test client.
 """
+import hashlib
 import os
 from pathlib import Path
 
@@ -76,6 +77,21 @@ def admin_headers() -> dict:
 @pytest.fixture
 def guest_headers() -> dict:
     return {"Authorization": f"Bearer {GUEST_KEY}", "Accept": "text/html"}
+
+
+@pytest.fixture
+def admin_cookie() -> dict:
+    """Full-auth via the SESSION COOKIE (what a real logged-in browser sends).
+
+    Some pages branch their guest/non-guest rendering on the cookie, not the
+    Bearer header (e.g. /color, /tarot decide the nav + Exec bubble from it), so
+    cookie auth is the faithful tier for wiring tests. The cookie is normally
+    Secure (httpx won't replay it over plain HTTP), so set it as a raw header.
+    """
+    if not API_KEY:
+        pytest.skip("API_KEY not set (env or .env) — cannot auth as admin")
+    token = hashlib.sha256(f"session:{API_KEY}".encode()).hexdigest()
+    return {"Cookie": f"session={token}", "Accept": "text/html"}
 
 
 # A browser GET sends this; it's what flips the 401 handler from JSON to a

@@ -186,6 +186,28 @@ if [ -n "$TAROT_CHANGED" ]; then
   fi
 fi
 
+# ── Exec-voice behaviour (WebKit) — only when the voice layer changed. ────────
+# Proves Exec actually speaks its turns in the glados voice (and only the right
+# ones) without a real TTS box — the boundary is mocked. Run it when the voice
+# scripts / their wiring / this test are staged. Skips cleanly (no pytest venv,
+# no WebKit, or app down), same as the tarot suite.
+VOICE_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/exec-voice\.js$|^web/exec-voice-listener\.js$|^web/voice-util\.js$|^web/exec-bubble\.js$|^web/hosaka-audio\.js$|^api/pages\.py$|^tests/test_exec_voice_browser\.py$' || true)
+if [ -n "$VOICE_CHANGED" ]; then
+  PYTEST=""
+  if [ -x /exec-fn/.venv/bin/pytest ]; then
+    PYTEST=/exec-fn/.venv/bin/pytest
+  elif command -v pytest &>/dev/null; then
+    PYTEST=pytest
+  fi
+  if [ -z "$PYTEST" ]; then
+    echo "NOTE: skipping exec-voice tests — no pytest venv."
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/test_exec_voice_browser.py -q; then
+    echo ""
+    echo "Exec-voice tests failed — commit blocked. The voice may be broken."
+    exit 1
+  fi
+fi
+
 # Docs reminder (non-blocking): substantive source changed but docs not staged.
 # The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
 # naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md.
