@@ -13,26 +13,14 @@ function _caretToEnd() {
   sel.addRange(range);
 }
 
-// The querent may type only when it is their turn: NOT while the reader streams
-// a turn (reader-speaking) and NOT while the opening is held for the first
-// gesture (opening-pending). Gating focus on this keeps the caret (and the soft
-// keyboard) from appearing mid-reading -- the cursor shows only when it's time
-// to type.
-function _canType() {
-  return !document.body.classList.contains('reader-speaking')
-      && !document.body.classList.contains('opening-pending');
-}
-
 function focusInput() {
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
-  if (!_canType()) return;
   const tries = [0, 60, 180];
   for (const t of tries) {
     setTimeout(() => {
       if (document.body.classList.contains('no-input')) return;
       if (cardZoom.classList.contains('open')) return;
-      if (!_canType()) return;
       _msgInput.focus({preventScroll: true});
       // only seat the caret if focus actually landed and there isn't already a
       // live selection inside the field (don't stomp a mid-edit cursor)
@@ -110,7 +98,6 @@ document.addEventListener('keydown', e => {
   if (document.activeElement === _msgInput) return;
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
-  if (!_canType()) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key.length === 1) {
     _msgInput.focus({preventScroll: true});
@@ -187,7 +174,6 @@ focusInput();
 function _focusNow() {
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
-  if (!_canType()) return;
   _msgInput.focus({preventScroll: true});
   if (document.activeElement === _msgInput) { _caretToEnd(); renderCaret(); }
 }
@@ -262,40 +248,12 @@ if (!significator) {
   _openingEv = `[opened /tarot; Significator already chosen: ${significator.name}; no spread yet; ${tarotTimeMarker()}]`;
 }
 if (_openingEv) {
-  beginOpening(_openingEv);
-} else {
-  // No opening turn (returning mid-reading) -> still unlock on first gesture so
-  // the next reader turn narrates.
-  tarotVoice.armPersistedUnlock();
-}
-
-// Fresh reading: gate the opening behind the "who reads for you?" screen. Add the
-// opening marker once, eager-generate EVERY persona's opening in parallel (server
-// streams into buffers), then let the pick replay the chosen one instantly and
-// abort the rest. The pick is the gesture that unlocks audio for narration.
-async function beginOpening(ev) {
-  await tarotPersona.ready;
-  const cast = tarotPersona.list();
-  if (cast.length <= 1) { openingNoChoice(ev); return; }  // degraded: nothing to choose
-  addEventMsg(ev);
-  messages.push({role: 'user', content: ev});
-  const pre = {};
-  for (const p of cast) pre[p.id] = prefetchOpening(p.id);
-  document.body.classList.add('opening-pending');
-  tarotPersona.chooseScreen((id) => {
-    document.body.classList.remove('opening-pending');
-    // Abort the openings we won't use; swallow their rejection so a discarded
-    // prefetch never surfaces as an unhandled rejection.
-    for (const k in pre) if (k !== id) { pre[k].abort(); pre[k].promise.catch(() => {}); }
-    streamResponse(null, pre[id].promise);
-  });
-}
-
-// Fallback when the persona list is unavailable (single persona): the original
-// eager-hold-for-gesture opening — generate now, hold the reveal+voice until the
-// first gesture if voice is on but not yet unlocked.
-function openingNoChoice(ev) {
   if (tarotVoice.wantsDeferredOpening()) {
+    // Voice on but not yet unlocked. START GENERATING NOW (don't wait for the
+    // click to start thinking) and HOLD only the reveal+voice until the first
+    // gesture unlocks audio -- so the click starts the reading with no LLM wait.
+    // While held, blank the reader cursor + input bar (body.opening-pending) so
+    // only the "tap to begin" hint shows; the gesture clears it and reveals both.
     const clearHint = showBeginHint();
     document.body.classList.add('opening-pending');
     let openGate;
@@ -305,8 +263,13 @@ function openingNoChoice(ev) {
       clearHint();
       openGate();
     });
-    autoTrigger(ev, gate);
+    autoTrigger(_openingEv, gate);
   } else {
-    autoTrigger(ev);
+    // Voice off / already unlocked -> fires + reveals immediately.
+    autoTrigger(_openingEv);
   }
+} else {
+  // No opening turn (returning mid-reading) -> still unlock on first gesture so
+  // the next reader turn narrates.
+  tarotVoice.armPersistedUnlock();
 }

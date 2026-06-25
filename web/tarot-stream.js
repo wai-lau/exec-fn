@@ -120,25 +120,7 @@ function handleToolCall(data, pendingSys) {
   return null;
 }
 
-// Eager opening generation. Starts a chat fetch for one persona NOW (server
-// begins generating + streams into the socket buffers) without reading the body.
-// tarot-chat.js fires one per persona behind the "who reads for you?" screen, so
-// the pick replays the chosen buffered response with no LLM wait; the others are
-// aborted. Returns {promise, abort}.
-function prefetchOpening(persona) {
-  const ac = new AbortController();
-  const promise = fetch('/api/tarot/chat', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({messages, spread: filteredSpread(), persona, session_id: spread?.session_id || null}),
-    signal: ac.signal,
-  });
-  return {promise, abort: () => ac.abort()};
-}
-
-// `prefetched`, when given, is a Promise<Response> from prefetchOpening — used
-// instead of issuing a fresh fetch (eager opening replay).
-async function streamResponse(holdForGesture = null, prefetched = null) {
+async function streamResponse(holdForGesture = null) {
   streaming = true;
   updateInputBarVisibility();
   const {div, body, cur} = addStreamDiv();
@@ -155,10 +137,10 @@ async function streamResponse(holdForGesture = null, prefetched = null) {
   if (!voiceReady && !holdForGesture) tw.guessed();
 
   try {
-    const r = prefetched ? await prefetched : await fetch('/api/tarot/chat', {
+    const r = await fetch('/api/tarot/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({messages, spread: filteredSpread(), persona: tarotPersona.current(), session_id: spread?.session_id || null}),
+      body: JSON.stringify({messages, spread: filteredSpread(), session_id: spread?.session_id || null}),
     });
     if (!r.ok) throw new Error(await r.text());
     const reader = r.body.getReader();
