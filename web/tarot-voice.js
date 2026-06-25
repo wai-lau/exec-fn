@@ -19,20 +19,10 @@ const tarotVoice = (() => {
     return player;
   }
 
-  // Strip markdown so the voice reads prose, not asterisks. Runs on the reader's
-  // already-cleaned text (event markers never reach here).
-  function plain(md) {
-    return md
-      .replace(/```[\s\S]*?```/g, " ")
-      .replace(/`([^`]*)`/g, "$1")
-      .replace(/\*\*([^*]+)\*\*/g, "$1")
-      .replace(/\*([^*]+)\*/g, "$1")
-      .replace(/_([^_]+)_/g, "$1")
-      .replace(/^#{1,6}\s*/gm, "")
-      .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
+  // Strip markdown so the voice reads prose, not asterisks (shared with
+  // exec-voice via voice-util.js). Runs on the reader's already-cleaned text
+  // (event markers never reach here).
+  const plain = (md) => VoiceUtil.stripMarkdown(md);
 
   // A user gesture has unlocked the player. Narration plays whenever unlocked;
   // the mute button only zeroes the volume (setOn), it does NOT gate narration.

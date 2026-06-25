@@ -183,9 +183,12 @@ def _build_nav(active=None, guest=False):
     if guest:
         bubble = ''
     elif active in {"core", "prophecies"}:
-        bubble = ('<script src="/exec-bubble-drag.js?v=1"></script>'
+        bubble = ('<script src="/hosaka-audio.js?v=3"></script>'
+                  '<script src="/voice-util.js?v=1"></script>'
+                  '<script src="/exec-voice.js?v=1"></script>'
+                  '<script src="/exec-bubble-drag.js?v=1"></script>'
                   '<script src="/exec-todos.js?v=2"></script>'
-                  '<script src="/exec-bubble.js?v=39"></script>')
+                  '<script src="/exec-bubble.js?v=40"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -193,7 +196,7 @@ def _build_nav(active=None, guest=False):
         # tap NAVIGATES to the planning chat instead of toggling a panel
         # (exec-link.js). A <div>, like the real bubble, so a drag never fires a
         # stray click.
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=11">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=12">'
                   '<div id="exec-bubble" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   '<script src="/exec-bubble-drag.js?v=1"></script>'
