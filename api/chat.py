@@ -116,7 +116,29 @@ def _active_nudge_block(cards: list) -> str:
     return "\n".join(lines)
 
 
-def _build_chat_system_prompt(stage: str = "planning") -> str:
+# Static, never-per-request slice of the exec system prompt — identity + voice +
+# global rules. Built once at import. With the exec tools (~3.5K) it forms a
+# ~5.2K-token prefix that clears opus's 4096 cache minimum, so a cache_control
+# marker on this block caches tools+this together. EVERYTHING that varies
+# per-request (TODAY, activity log, card lists, schedule, context, nudge block)
+# is appended AFTER this in a second, unmarked system block — that's what keeps
+# the cached prefix byte-stable across turns. TODAY used to sit near the top and
+# silently invalidated the whole prefix every request; it now lives in the tail.
+_CHAT_STATIC_PREFIX = (
+    "Your name is Exec. You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
+    f"{EXEC_VOICE}\n"
+    "FORMATTING: Markdown is allowed. Do not use Unicode emoji.\n"
+    "Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
+    "NEVER suggest that Wai block, schedule, or carve out time on a calendar — Exec IS Wai's calendar and scheduler. Schedule tasks here (schedule_card) or just talk about doing the work; never punt to an external calendar.\n"
+    "CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
+    "Never state that a card is selected or on the active board unless it appears under CURRENTLY SELECTED TASKS. Do not invent or assume task status.\n"
+    "When you create or schedule a card in this same turn, describe it as the action you just took ('added it', 'scheduled it for Friday'). Never say it is 'already showing', 'already on the schedule', or otherwise imply it existed before you acted — it appears because you just created it.\n"
+    "CRITICAL: NEVER describe taking an action without calling the tool. If you say you will create a card, move a card, update context, or do anything else — you MUST call the tool in that same response. Describing the action is not the action.\n"
+    "CRITICAL: When Wai says 'remember [X]' or 'don't forget [X]', immediately call update_context with action=add and note=[X]. No exceptions.\n"
+)
+
+
+def _build_chat_system_prompt(stage: str = "planning") -> list:
     ctx = _load_json("profile", {"notes": []})
     rd = _load_rd()
 
@@ -163,18 +185,11 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
 
     now = _now_et()
     today_str = f"{now.strftime('%A, %B')} {now.day}, {now.year} {now.strftime('%H:%M')} ET"
-    return (
-        f"Your name is Exec. You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
-        f"{EXEC_VOICE}\n"
-        f"TODAY: {today_str}\n"
-        f"FORMATTING: Markdown is allowed. Do not use Unicode emoji.\n"
-        f"Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
-        f"NEVER suggest that Wai block, schedule, or carve out time on a calendar — Exec IS Wai's calendar and scheduler. Schedule tasks here (schedule_card) or just talk about doing the work; never punt to an external calendar.\n"
-        f"CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
-        f"Never state that a card is selected or on the active board unless it appears under CURRENTLY SELECTED TASKS. Do not invent or assume task status.\n"
-        f"When you create or schedule a card in this same turn, describe it as the action you just took ('added it', 'scheduled it for Friday'). Never say it is 'already showing', 'already on the schedule', or otherwise imply it existed before you acted — it appears because you just created it.\n"
-        f"CRITICAL: NEVER describe taking an action without calling the tool. If you say you will create a card, move a card, update context, or do anything else — you MUST call the tool in that same response. Describing the action is not the action.\n"
-        f"CRITICAL: When Wai says 'remember [X]' or 'don't forget [X]', immediately call update_context with action=add and note=[X]. No exceptions.\n\n"
+    # Volatile tail — everything that changes per request. Sits AFTER the cached
+    # static prefix block so it never invalidates it. Marker goes only on the
+    # static block above; this block carries none.
+    volatile = (
+        f"TODAY: {today_str}\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
         f"ACTIVITY LOG (today):\n{rd_log_text}\n\n"
@@ -184,6 +199,11 @@ def _build_chat_system_prompt(stage: str = "planning") -> str:
         f"KNOWN CONTEXT:\n{ctx_text}"
         f"{_active_nudge_block(cards)}"
     )
+    return [
+        {"type": "text", "text": _CHAT_STATIC_PREFIX,
+         "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": volatile},
+    ]
 
 
 def _chat_tools() -> list:
