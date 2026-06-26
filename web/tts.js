@@ -37,6 +37,10 @@ const VOICE_GAIN = {
   nicole: 0.98, glados: 0.25,
 };
 const voiceGain = () => VOICE_GAIN[$("tts-voice").value] ?? 1.0;
+
+// Charlie (RVC clone) degrades past 1.1x playback speed; cap its slider there.
+// Other voices keep the full range.
+const SPEED_CAP = { charlie: 1.1 };
 const applyVolume = () => player.setVolume(parseFloat($("tts-volume").value) * voiceGain());
 
 let speaking = false; // suppress health polling clobbering live speak status
@@ -124,6 +128,17 @@ function selectedIsClone() {
 function reflectBackend() {
   $("tts-cb").classList.toggle("off", !selectedIsClone());
   applyVolume(); // re-trim for the newly selected voice
+  applySpeedCap(); // charlie degrades past 1.1x
+}
+
+function applySpeedCap() {
+  const el = $("tts-speed");
+  const cap = SPEED_CAP[$("tts-voice").value] ?? 2;
+  el.max = cap;
+  if (parseFloat(el.value) > cap) {
+    el.value = cap;
+    $("tts-speed-val").textContent = parseFloat(el.value).toFixed(2);
+  }
 }
 
 function wireKnobs() {
