@@ -45,6 +45,12 @@ _GRAPH_REDACT_IDS = {
 # is cut.
 _GRAPH_DROP_SOURCE_PREFIX = "api/tarot/book/"
 
+# Vendored third-party libs (e.g. vis-network's minified bundle) parse into a
+# node per mangled function name — Kv(), _f(), Le(), ... — 150+ meaningless
+# symbols that aren't our code and drown the real structure. Drop the whole
+# vendor dir; same survives-rebuild rationale as the book drop.
+_GRAPH_DROP_VENDOR_PREFIX = "web/vendor/"
+
 # moltbook is a separate side-ledger (heartbeat log) wired into exec-fn through a
 # single read-only route + its data file. It's noise on the public codebase
 # graph, so drop any node whose id/label/source mentions it. Substring match (not
@@ -154,6 +160,21 @@ def _drop_graph_book_nodes(page: str) -> str:
         n.get("id")
         for n in nodes
         if str(n.get("source_file") or "").startswith(_GRAPH_DROP_SOURCE_PREFIX)
+    }
+    return _prune_graph_nodes(page, drop_ids)
+
+
+def _drop_graph_vendor_nodes(page: str) -> str:
+    """Remove every RAW_NODES entry under the vendored-lib dir (and its dangling
+    references). Strips the minified vis-network function nodes (Kv(), _f(), ...)
+    from the public graph. No-op if RAW_NODES is absent or nothing matched."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
+        return page
+    drop_ids = {
+        n.get("id")
+        for n in nodes
+        if str(n.get("source_file") or "").startswith(_GRAPH_DROP_VENDOR_PREFIX)
     }
     return _prune_graph_nodes(page, drop_ids)
 

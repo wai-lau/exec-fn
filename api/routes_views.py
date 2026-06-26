@@ -28,6 +28,7 @@ from graph_scrub import (
     _redact_graph_nodes,
     _drop_graph_book_nodes,
     _drop_graph_moltbook_nodes,
+    _drop_graph_vendor_nodes,
     _name_graph_communities,
     _size_graph_by_loc,
 )
@@ -339,6 +340,7 @@ async def graph_page(request: Request):
     page = _redact_graph_nodes(page)
     page = _drop_graph_book_nodes(page)
     page = _drop_graph_moltbook_nodes(page)
+    page = _drop_graph_vendor_nodes(page)
     # Name communities after the drops so the dominant-source vote and the
     # emptied-community pruning are already settled.
     page = _name_graph_communities(page)
