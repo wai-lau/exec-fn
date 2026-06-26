@@ -141,6 +141,38 @@ if [ "$cap_fail" -ne 0 ]; then
   exit 1
 fi
 
+# ── Fixture-graph resolution — whole suite, app-independent, ~0.3s. ───────────
+# Catches a stale/renamed/deleted fixture reference ANYWHERE in tests/, even
+# when the consuming test sits behind a per-feature trigger gate below. A
+# fixture lives in conftest and is cross-cutting; the behavioural gates (smoke,
+# tarot, voice) are per-feature, so a rename like guest_key->guest_cookie that
+# breaks a consumer NOT staged this commit slips through every gate and only
+# explodes later when that gate finally fires. `pytest --setup-plan` RESOLVES
+# every test's fixture graph without executing fixture/test bodies — no WebKit,
+# no live app, no app needed — so a missing fixture fails here regardless of
+# which file is staged. Fires whenever any test or api .py is staged (the two
+# places a fixture or its consumer changes). Skips cleanly with no pytest venv.
+FIXTURES_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^tests/.*\.py$|^api/.*\.py$' || true)
+if [ -n "$FIXTURES_CHANGED" ]; then
+  PYTEST=""
+  if [ -x /exec-fn/.venv/bin/pytest ]; then
+    PYTEST=/exec-fn/.venv/bin/pytest
+  elif command -v pytest &>/dev/null; then
+    PYTEST=pytest
+  fi
+  if [ -z "$PYTEST" ]; then
+    echo "NOTE: skipping fixture-resolution check — no pytest venv."
+  elif ! FX_OUT=$("$PYTEST" /exec-fn/tests/ --setup-plan -q 2>&1); then
+    echo ""
+    echo "$FX_OUT" | grep -E "fixture .* not found|ERROR" | head
+    echo ""
+    echo "Fixture resolution failed — commit blocked. A test references a"
+    echo "fixture that no longer exists (renamed/deleted in conftest?). Run:"
+    echo "      .venv/bin/pytest tests/ --setup-plan -q"
+    exit 1
+  fi
+fi
+
 # ── Page smoke tests — only when app code changed; hits the live container. ──
 # A broken route (wrong status / 500) fails and blocks the commit. A missing
 # dev venv (fresh clone) or an unreachable app skips cleanly — the suite's
