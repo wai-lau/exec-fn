@@ -8,10 +8,11 @@ let saveTimer = null;
 let _hqDragging = false;
 
 // today-column timeline state
-const TL_PX = 1;                 // 1px per minute
+let TL_PX = 1;                   // px per minute; rescaled per build to zoom 8h to fill the column
 const TL_START = 4 * 60 + 30;    // 4:30am
 const TL_END   = 28 * 60 + 30;   // 4:30am next day
-const TL_H     = TL_END - TL_START; // 1440px
+const TL_H     = TL_END - TL_START; // 1440 (minutes; px = TL_H * TL_PX)
+const TL_VIEW_MIN = 8 * 60;      // visible window: current hour + next 7; rest scrolls
 const SNAP     = 15;
 let currentTrack = null;
 let scheduleCards = [];

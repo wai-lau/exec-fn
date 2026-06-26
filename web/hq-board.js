@@ -10,6 +10,9 @@ function redrawCards(track) {
 function buildSchedule(cards) {
   const wrap = document.getElementById('hq-tl-wrap');
   if (!wrap) return;
+  // zoom: scale px-per-minute so the 8h window (TL_VIEW_MIN) exactly fills the
+  // column height. The full day (TL_H) overflows the wrap and stays scrollable.
+  TL_PX = (wrap.clientHeight || TL_VIEW_MIN) / TL_VIEW_MIN;
   if (_nowInterval) { clearInterval(_nowInterval); _nowInterval = null; }
   if (_nowRaf) { cancelAnimationFrame(_nowRaf); _nowRaf = null; }
 
@@ -21,11 +24,11 @@ function buildSchedule(cards) {
 
   const labels = document.createElement('div');
   labels.className = 'dir-tl-labels';
-  labels.style.height = TL_H + 'px';
+  labels.style.height = (TL_H * TL_PX) + 'px';
 
   const track = document.createElement('div');
   track.className = 'dir-tl-track';
-  track.style.height = TL_H + 'px';
+  track.style.height = (TL_H * TL_PX) + 'px';
 
   const nowMin = nowMinutes();
 
@@ -90,9 +93,10 @@ function buildSchedule(cards) {
     },
   });
 
-  // autoscroll to 2 hours before now
+  // autoscroll so the current hour sits at the top of the 8h window
   if (nowMin >= TL_START && nowMin <= TL_END) {
-    wrap.scrollTop = Math.max(0, (nowMin - TL_START) * TL_PX - 120 * TL_PX);
+    const hourTop = Math.floor(nowMin / 60) * 60;
+    wrap.scrollTop = Math.max(0, (hourTop - TL_START) * TL_PX - 6);
   }
 }
 
