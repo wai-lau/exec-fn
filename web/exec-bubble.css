@@ -153,7 +153,10 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 #exec-term .msg { margin-bottom: 5px; overflow-wrap: break-word; }
 #exec-term .msg-ts { color: rgba(255,255,255,0.18); font-size: 0.88em; }
 #exec-term .msg.assistant { color: hsl(var(--green-hsl) / 1); display: flex; align-items: flex-start; }
-#exec-term .msg.assistant::before { content: ">"; opacity: 0.38; flex-shrink: 0; margin-right: 0.4em; }
+#exec-term .msg-mark { flex-shrink: 0; margin-right: 0.4em; padding: 0 2px; cursor: pointer; user-select: none; opacity: 0.5; }
+#exec-term .msg-mark:hover { opacity: 1; }
+#exec-term .msg.assistant .msg-mark { opacity: 0.38; }
+#exec-term .msg.assistant .msg-mark:hover { opacity: 1; }
 #exec-term .msg.assistant p { margin: 0 0 5px; }
 #exec-term .msg.assistant p:last-child { margin-bottom: 0; }
 #exec-term .msg.assistant strong { color: hsl(var(--green-hsl) / 1); }
@@ -172,7 +175,6 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 #exec-term .msg.sys { color: hsl(var(--green-hsl) / 0.45); font-size: 0.72rem; }
 #exec-term .msg.sys::before { content: "# "; }
 #exec-term .msg.probe { color: hsl(var(--green-hsl) / 0.8); font-size: 0.78rem; font-style: italic; display: flex; align-items: flex-start; }
-#exec-term .msg.probe::before { content: "~"; opacity: 0.5; flex-shrink: 0; margin-right: 0.4em; }
 #exec-term .msg.probe .msg-body { font-style: italic; }
 
 #exec-bc { display: inline-flex; gap: 3px; align-items: center; height: 1.1em; vertical-align: text-bottom; }

@@ -185,10 +185,10 @@ def _build_nav(active=None, guest=False):
     elif active in {"rd", "hq"}:
         bubble = ('<script src="/hosaka-audio.js?v=3"></script>'
                   '<script src="/voice-util.js?v=1"></script>'
-                  '<script src="/exec-voice.js?v=2"></script>'
+                  '<script src="/exec-voice.js?v=3"></script>'
                   '<script src="/exec-bubble-drag.js?v=1"></script>'
                   '<script src="/exec-todos.js?v=2"></script>'
-                  '<script src="/exec-bubble.js?v=40"></script>')
+                  '<script src="/exec-bubble.js?v=41"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -204,10 +204,10 @@ def _build_nav(active=None, guest=False):
         voice_pre = (
             '<script src="/hosaka-audio.js?v=3"></script>'
             '<script src="/voice-util.js?v=1"></script>'
-            '<script src="/exec-voice.js?v=2"></script>'
+            '<script src="/exec-voice.js?v=3"></script>'
         ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=1"></script>' if want_voice else ''
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=13">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=14">'
                   '<div id="exec-bubble" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
