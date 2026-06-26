@@ -176,15 +176,6 @@ async def login_page(request: Request, next: str = ""):
     return HTMLResponse(raw.replace('<meta charset="UTF-8">', '<meta charset="UTF-8">' + _CHROME_LINK, 1))
 
 
-_GUEST_AUDIO_HTML = (
-    '<audio id="bg-audio" src="/nightfall-game/audio/ped-intro.mp3" autoplay playsinline></audio>'
-    '<script>(function(){var a=document.getElementById("bg-audio");if(!a)return;var p=a.play();'
-    'if(p&&p.catch)p.catch(function(){var s=function(){a.play();'
-    '["pointerdown","touchstart","keydown"].forEach(function(e){document.removeEventListener(e,s,true);});};'
-    '["pointerdown","touchstart","keydown"].forEach(function(e){document.addEventListener(e,s,true);});});})();</script>'
-)
-
-
 @public.post("/login")
 async def login(request: Request):
     form = await request.form()
@@ -201,7 +192,7 @@ async def guest_login_page(next: str = "/mtg"):
     next_safe = _safe_next(next)
     _, bare = _index_pages()
     page = bare.replace("</head>", _FONT_PRELOAD + _CHROME_LINK + "</head>", 1)
-    body_insert = _tmpl("guest_login.html").replace("{next}", html.escape(next_safe, quote=True)).replace("{site_key}", html.escape(TURNSTILE_SITE_KEY, quote=True)) + _GUEST_AUDIO_HTML
+    body_insert = _tmpl("guest_login.html").replace("{next}", html.escape(next_safe, quote=True)).replace("{site_key}", html.escape(TURNSTILE_SITE_KEY, quote=True))
     return page.replace("</body>", body_insert + "</body>", 1)
 
 
