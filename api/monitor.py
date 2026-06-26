@@ -21,7 +21,10 @@ def _recent_entries(batch_start_ts: float) -> list:
             ts = datetime.fromisoformat(e.get("ts", ""))
             if ts.tzinfo is None:
                 ts = ts.replace(tzinfo=timezone.utc)
-            if ts >= cutoff:
+            # Strict > so the baseline entry (the last log line at process
+            # start, see _init_monitor_ts) is treated as already-handled — a
+            # --reload must not re-comment the last action.
+            if ts > cutoff:
                 out.append(e)
         except Exception:
             pass
@@ -205,7 +208,7 @@ async def flush_monitor() -> dict:
             ts = datetime.fromisoformat(e.get("ts", ""))
             if ts.tzinfo is None:
                 ts = ts.replace(tzinfo=timezone.utc)
-            if ts >= cutoff and _entry_is_significant(e):
+            if ts > cutoff and _entry_is_significant(e):
                 has_new = True
                 break
         except Exception:
