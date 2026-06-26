@@ -7,6 +7,13 @@ from mtg.tools import TOOL_FNS, TOOLS
 
 _MODEL = "claude-opus-4-8"
 
+# SYSTEM (~5.9K tokens) + TOOLS are static and reused across every research-loop
+# iteration AND the summarize pass of one question. Cache the prefix so only the
+# first call pays full price; the rest read it at ~0.1x. Same bytes at both call
+# sites => the create() loop writes the cache and the stream() summarize reads it.
+_SYSTEM_CACHED = [{"type": "text", "text": SYSTEM,
+                   "cache_control": {"type": "ephemeral"}}]
+
 
 def _err(e) -> str:
     return f"data: {json.dumps({'type': 'text', 'delta': f'[error: {e}]'})}\n\n"
@@ -28,7 +35,7 @@ async def stream_chat(messages: list) -> AsyncGenerator[str, None]:
             resp = await client.messages.create(
                 model=_MODEL,
                 max_tokens=4096,
-                system=SYSTEM,
+                system=_SYSTEM_CACHED,
                 tools=TOOLS,
                 messages=messages,
             )
@@ -72,7 +79,7 @@ async def stream_chat(messages: list) -> AsyncGenerator[str, None]:
         async with client.messages.stream(
             model=_MODEL,
             max_tokens=2048,
-            system=SYSTEM,
+            system=_SYSTEM_CACHED,
             messages=messages,
         ) as stream:
             async for text in stream.text_stream:

@@ -43,6 +43,7 @@ Models: `claude-opus-4-8` for reasoning, chat, voice, and the nudge graph; `clau
 
 **Prompt caching** (Anthropic `cache_control: ephemeral`, 5-min TTL) is wired on the large STATIC system prefixes that get reused across turns, so repeat turns read the prefix at ~0.1x instead of full price. Opus min cacheable prefix = 4096 tokens; anything below that won't cache (silently) and is left alone. Cached call sites:
 - **Tarot** (`tarot/agent.py`) — `system=build_system(spread_type)` (~8.7K no-spread / ~13.4K three-card) + `TOOLS`, marked on the single system block. Fully static per reading; the per-turn spread context rides in `messages`, never `system`. A reading is many turns reusing the prefix.
+- **MTG** (`mtg/agent.py`, `_SYSTEM_CACHED`) — `SYSTEM` (~5.9K) marked once, used at both call sites. Pass 1 (research tool-loop, with `TOOLS`) caches the ~6.6K tools+system prefix across its own iterations; pass 2 (summarize, NO tools) is a separate system-only prefix — both cache cross-question, only pass 1 caches within a single question.
 
 ---
 
