@@ -63,7 +63,9 @@ flowchart TB
 **Image:** `python:3.12-slim`; rmapi Go binary pre-built from
 `golang:1.24-alpine`. No `EXPOSE`; port bound at compose level only.
 
-**Secrets** (`.env`): `API_KEY`, `ANTHROPIC_API_KEY`, `GUEST_KEY`.
+**Secrets** (`.env`): `API_KEY`, `ANTHROPIC_API_KEY`, `TURNSTILE_SITE_KEY`,
+`TURNSTILE_SECRET` (the guest gate is a Cloudflare Turnstile challenge, not a
+shared key — `GUEST_KEY` retired).
 cron reads them via `/run/cron_env`.
 
 ---

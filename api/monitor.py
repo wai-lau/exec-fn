@@ -39,6 +39,12 @@ def _entry_line(e: dict) -> str:
     elif e["action"] == "updated" and e.get("is_book") and e.get("current_page") is not None:
         tp = e.get("total_pages")
         line += f" — now on page {e['current_page']}" + (f" of {tp}" if tp else "")
+    elif e["action"] == "advanced":
+        step, rem = e.get("step", ""), e.get("remaining")
+        if rem == 0:
+            line += f' — finished the final sub-step ("{step}")'
+        else:
+            line += f' — completed a sub-step ("{step}")' + (f", {rem} remaining" if rem else "")
     return line
 
 
@@ -81,6 +87,8 @@ def _is_commentable(e: dict) -> bool:
         return True
     if action == "updated" and e.get("is_book"):
         return True
+    if action == "advanced":          # a completed decompose sub-step
+        return True
     return False
 
 
@@ -107,7 +115,7 @@ async def generate_encouragement(batch_start_ts: float) -> str:
         "- exile = intentionally dropped / won't do\n\n"
         "RULES:\n"
         "- NEVER describe what happened mechanically. Never say 'moved to', 'added to hq', 'archived', or mention column names.\n"
-        "- Speak to the *meaning*: finishing something, committing to tackle something today, letting something go, making reading progress.\n"
+        "- Speak to the *meaning*: finishing something, committing to tackle something today, letting something go, making reading progress, chipping a sub-step off a larger task (momentum, not the full finish).\n"
         "- Comment on ALL significant actions — group related ones into a sentence, give separate sentences for unrelated ones.\n"
         "- A real win earns a grudging, backhanded acknowledgment; a dropped task earns a dry, clinical note. Specific > generic. Stay deadpan; the help underneath is real.\n"
         "- Do not ask questions. Do not suggest next steps.\n\n"
@@ -161,6 +169,8 @@ def _entry_is_significant(e: dict) -> bool:
     if action == "moved" and e.get("to_col") in _SIGNIFICANT_TO_COLS:
         return True
     if action == "updated" and e.get("is_book"):
+        return True
+    if action == "advanced":          # finishing a sub-step earns a comment
         return True
     return False
 

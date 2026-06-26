@@ -22,7 +22,7 @@ from pages import (
     _NAV_HREFS, _NAV_ICONS, _NAV_LABELS,
 )
 from helpers import DATA_DIR
-from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, GUEST_KEY, API_KEY
+from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, TURNSTILE_SITE_KEY, API_KEY, verify_turnstile
 from routes_nightfall import build_nightfall_html
 from graph_scrub import (
     _redact_graph_nodes,
@@ -201,17 +201,17 @@ async def guest_login_page(next: str = "/mtg"):
     next_safe = _safe_next(next)
     _, bare = _index_pages()
     page = bare.replace("</head>", _FONT_PRELOAD + _CHROME_LINK + "</head>", 1)
-    body_insert = _tmpl("guest_login.html").replace("{next}", html.escape(next_safe, quote=True)) + _GUEST_AUDIO_HTML
+    body_insert = _tmpl("guest_login.html").replace("{next}", html.escape(next_safe, quote=True)).replace("{site_key}", html.escape(TURNSTILE_SITE_KEY, quote=True)) + _GUEST_AUDIO_HTML
     return page.replace("</body>", body_insert + "</body>", 1)
 
 
 @public.post("/guest")
 async def guest_login(request: Request):
     form = await request.form()
-    key = form.get("key", "")
+    token = form.get("cf-turnstile-response", "")
     next_path = _safe_next(form.get("next", "/mtg"))
-    if not secrets.compare_digest(key, GUEST_KEY):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
+    if not await verify_turnstile(token, request.headers.get("cf-connecting-ip")):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Turnstile verification failed")
     resp = RedirectResponse(url=next_path, status_code=303)
     resp.set_cookie("guest_session", GUEST_SESSION_TOKEN, httponly=True, samesite="lax", secure=True)
     return resp
