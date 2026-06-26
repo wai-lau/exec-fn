@@ -29,6 +29,7 @@ from graph_scrub import (
     _drop_graph_book_nodes,
     _drop_graph_moltbook_nodes,
     _drop_graph_vendor_nodes,
+    _drop_graph_library_nodes,
     _merge_graph_communities,
     _fix_graph_stats,
     _size_graph_by_loc,
@@ -342,6 +343,9 @@ async def graph_page(request: Request):
     page = _drop_graph_book_nodes(page)
     page = _drop_graph_moltbook_nodes(page)
     page = _drop_graph_vendor_nodes(page)
+    # Drop imported library/framework symbols (BaseModel, Request, ...) — not our
+    # code, just clutter.
+    page = _drop_graph_library_nodes(page)
     # Merge graphify's many fine-grained communities into <=12 dir-based groups
     # (after the drops) so each gets a distinct color — vis only has 10 palette
     # slots, so 56 communities collapse to indistinguishable color noise.
