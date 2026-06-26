@@ -131,9 +131,6 @@
   display: block;
   width: 100%;
   height: 34px;
-  box-sizing: border-box;
-  border: 1px solid hsl(var(--green-hsl) / 0.45);
-  border-radius: 6px;
   color: hsl(var(--green-hsl) / 0.8);
 
   /* faint baseline down the middle (persists when the scope is empty) */
