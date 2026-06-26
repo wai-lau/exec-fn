@@ -134,7 +134,10 @@
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  height: 68px;
+
+  /* equal vertical margin centers the scope between the Speak row and knobs */
+  margin-block: 1.5rem;
+  height: 136px;
   color: hsl(var(--green-hsl) / 0.8);
 
   /* faint baseline down the middle (persists when the scope is empty) */
