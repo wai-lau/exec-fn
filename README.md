@@ -16,7 +16,7 @@ a single Claude pipeline that does the reasoning, scheduling, and voice.
 |-------|--------------|
 | **R&D board** (`/rd`) | Cards with category, importance, time estimates, recurrence |
 | **HQ** (`/hq`) | 7-day planner — drag cards onto a today-timeline with real time blocks |
-| **Nudge loop** | Decomposes a task into a dependency graph, nudges you at its slot, peels a *smaller* first step when you stall, and guards due dates behind a "what happens if this slips?" conversation |
+| **Nudge loop** | Splits a task into prep steps that back-schedule before its event, nudges you at *each step's* start time, peels a *smaller* first step when you stall, and guards due dates behind a "what happens if this slips?" conversation |
 | **Morning pipeline** | 4:30 AM cron: retrospective over yesterday, durable-fact extraction into a long-term profile, GCal import, day restack |
 | **Exec voice** | Every assistant turn is spoken aloud in a GLaDOS register over a streamed-TTS backend |
 | **Side apps** | A Magic: The Gathering rules assistant, a Pollack-voiced tarot reader, and an embedded browser RPG |
