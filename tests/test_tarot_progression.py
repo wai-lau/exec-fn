@@ -126,7 +126,7 @@ def browser(_pw):
 
 
 @pytest.fixture
-def open_tarot(browser, base_url, guest_key):
+def open_tarot(browser, base_url, admin_headers):
     """Open /tarot in a fresh context with the boundaries mocked.
 
     `chat_handler` answers /api/tarot/chat (this turn). Reader narration is
@@ -139,7 +139,7 @@ def open_tarot(browser, base_url, guest_key):
 
     def _open(chat_handler, *, voice_js=None, init_script=None):
         ctx = browser.new_context(
-            extra_http_headers={"Authorization": f"Bearer {guest_key}"})
+            extra_http_headers={"Authorization": admin_headers["Authorization"]})
         contexts.append(ctx)
         pg = ctx.new_page()
         pg.route("**/marked.min.js", _marked)
