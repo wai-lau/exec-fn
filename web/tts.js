@@ -265,11 +265,41 @@ async function speak() {
   });
 }
 
+// Live count of users on /hosaka right now. A dedicated presence WebSocket
+// (separate from the audio /ws/hosaka, which only opens on Speak): the server
+// holds every open presence socket and broadcasts {count} on each join/leave.
+// Reconnects with a capped backoff if the socket drops.
+function mountPresence() {
+  const el = $("tts-presence");
+  if (!el) return;
+  const scheme = location.protocol === "https:" ? "wss" : "ws";
+  let retry = 0;
+  const render = (n) => {
+    el.textContent = n === 1 ? "1 user connected" : n + " users connected";
+  };
+  const connect = () => {
+    const ws = new WebSocket(`${scheme}://${location.host}/ws/hosaka/presence`);
+    ws.onopen = () => { retry = 0; };
+    ws.onmessage = (e) => {
+      try { render(JSON.parse(e.data).count); } catch { /* ignore */ }
+    };
+    ws.onclose = () => {
+      // Keep the last count on screen (never blank) so the line holds its
+      // height -- reconnect quietly in the background.
+      retry = Math.min(retry + 1, 6);
+      setTimeout(connect, retry * 1000);
+    };
+    ws.onerror = () => ws.close();
+  };
+  connect();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   wireKnobs();
   applyVolume();
   loadVoices();
   wave.start(); // always-on scope -- flat baseline until audio plays
+  mountPresence();
   checkHealth();
   setInterval(checkHealth, 15000);
   $("tts-speak").addEventListener("click", () => {

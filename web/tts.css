@@ -38,6 +38,17 @@
   width: 100%;
 }
 
+/* Live connected-users count, top of the page. Defaults to 0 so the line holds
+   its height from first paint -- the count landing must not shift the layout. */
+#tts-presence {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+  color: hsl(var(--green-hsl) / 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Speak button + voice selector share one line. */
 .tts-row {
   display: flex;

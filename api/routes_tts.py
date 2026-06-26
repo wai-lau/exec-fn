@@ -74,6 +74,46 @@ async def _pump_to_client(ws, upstream):
             await ws.send_text(msg)
 
 
+# Live presence: every open /hosaka tab holds a presence socket (separate from
+# the audio /ws/hosaka, which only opens on Speak). The set is the source of
+# truth for "connected users"; we re-broadcast the count on every join/leave.
+_presence: set[WebSocket] = set()
+
+
+async def _broadcast_presence():
+    n = len(_presence)
+    payload = json.dumps({"count": n})
+    for c in list(_presence):
+        try:
+            await c.send_text(payload)
+        except Exception:
+            _presence.discard(c)
+
+
+@public.websocket("/ws/hosaka/presence")
+async def ws_presence(ws: WebSocket):
+    # Same cookie gate as the audio socket (full owner OR guest session).
+    if (
+        ws.cookies.get("session") != SESSION_TOKEN
+        and ws.cookies.get("guest_session") != GUEST_SESSION_TOKEN
+    ):
+        await ws.close(code=1008)
+        return
+    await ws.accept()
+    _presence.add(ws)
+    await _broadcast_presence()
+    try:
+        while True:
+            m = await ws.receive()
+            if m["type"] == "websocket.disconnect":
+                break
+    except Exception:
+        pass
+    finally:
+        _presence.discard(ws)
+        await _broadcast_presence()
+
+
 @public.websocket("/ws/hosaka")
 async def ws_tts(ws: WebSocket):
     # Same session cookie as the rest of the app; the browser sends it on the
