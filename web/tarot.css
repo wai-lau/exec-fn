@@ -126,11 +126,10 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
 }
 #spread-grid > * { pointer-events:auto; }
 
-/* spread cards + Significator slot share the same card body… */
+/* spread cards + Significator slot share the same card body */
 .tarot-card, #sig-card {
   position:relative;
   box-sizing:border-box;
-  isolation:isolate;
   width:var(--card-w); height:var(--card-h);
   cursor:pointer;
   border-radius:8px;
@@ -139,16 +138,7 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   user-select:none;
 }
 
-/* …and the same green phosphor wash while face-down */
-.tarot-card::after, #sig-card::after {
-  content:''; position:absolute; inset:0;
-  background:hsl(var(--green-hsl));
-  mix-blend-mode:color;
-  pointer-events:none;
-  border-radius:8px;
-}
 .tarot-card { transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease; }
-.tarot-card[data-flipped="true"]::after { display:none; }
 .tarot-card:hover { outline:2px solid hsl(var(--green-hsl) / 0.45); }
 
 .tarot-card img {
