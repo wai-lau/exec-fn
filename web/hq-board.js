@@ -7,12 +7,19 @@ function redrawCards(track) {
   applyColumnLayout(scheduleCards, track);
 }
 
+let _tlResizeObs = null;   // rescales the timeline when the column height settles/changes
+let _tlWrapH = 0;          // last wrap height TL_PX was computed from
+
 function buildSchedule(cards) {
   const wrap = document.getElementById('hq-tl-wrap');
   if (!wrap) return;
   // zoom: scale px-per-minute so the 8h window (TL_VIEW_MIN) exactly fills the
   // column height. The full day (TL_H) overflows the wrap and stays scrollable.
-  TL_PX = (wrap.clientHeight || TL_VIEW_MIN) / TL_VIEW_MIN;
+  // wrap height is content-independent (flex:1 in a fixed full-height board), so
+  // it's a stable basis once layout settles — the ResizeObserver below corrects
+  // an early/zero first measurement and tracks viewport resizes.
+  _tlWrapH = wrap.clientHeight;
+  TL_PX = (_tlWrapH || TL_VIEW_MIN) / TL_VIEW_MIN;
   if (_nowInterval) { clearInterval(_nowInterval); _nowInterval = null; }
   if (_nowRaf) { cancelAnimationFrame(_nowRaf); _nowRaf = null; }
 
@@ -81,22 +88,37 @@ function buildSchedule(cards) {
   wrap.innerHTML = '';
   wrap.appendChild(tlWrap);
 
-  // drop target: drag a card from another day onto today's timeline
-  Sortable.create(wrap, {
-    group: { name: 'hq', put: true, pull: false },
-    draggable: '.__nodrag__',
-    onAdd(evt) {
-      const cardId = evt.item.dataset.id;
-      evt.item.remove();
-      queueUpdate(cardId, isoToday(), false);
-      setTimeout(() => load(weekStart), 700);
-    },
-  });
+  // drop target: drag a card from another day onto today's timeline (bind once;
+  // Sortable watches the container, so rebuilds must not stack new instances)
+  if (!wrap._sortableInit) {
+    wrap._sortableInit = true;
+    Sortable.create(wrap, {
+      group: { name: 'hq', put: true, pull: false },
+      draggable: '.__nodrag__',
+      onAdd(evt) {
+        const cardId = evt.item.dataset.id;
+        evt.item.remove();
+        queueUpdate(cardId, isoToday(), false);
+        setTimeout(() => load(weekStart), 700);
+      },
+    });
+  }
 
   // autoscroll so the current hour sits at the top of the 8h window
   if (nowMin >= TL_START && nowMin <= TL_END) {
     const hourTop = Math.floor(nowMin / 60) * 60;
     wrap.scrollTop = Math.max(0, (hourTop - TL_START) * TL_PX - 6);
+  }
+
+  // rescale when the real column height is known (first layout / font settle) or
+  // the viewport resizes. Observe the wrap (content-independent height) so this
+  // fires only on genuine size changes, not on our own track rebuilds.
+  if (!_tlResizeObs) {
+    _tlResizeObs = new ResizeObserver(() => {
+      const h = wrap.clientHeight;
+      if (h && Math.abs(h - _tlWrapH) > 1) buildSchedule(scheduleCards);
+    });
+    _tlResizeObs.observe(wrap);
   }
 }
 
