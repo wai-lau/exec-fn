@@ -50,6 +50,8 @@ let speaking = false; // suppress health polling clobbering live speak status
 const setSpeaking = (on) => {
   speaking = on;
   $("tts-speed").disabled = on;
+  if (on) wave.start();
+  else wave.stop();
 };
 
 const player = HosakaAudio.createPlayer({
@@ -60,6 +62,73 @@ const player = HosakaAudio.createPlayer({
     }
   },
 });
+
+// Minimalist playback scope: a waveform that scrolls leftward while the player
+// speaks. Each animation frame samples the player's analyser tap for a single
+// peak amplitude, pushes it onto the right edge, and shifts the history left.
+// The stroke hue is read from the canvas `color` (set in tts.css) so the palette
+// stays in CSS. Idle = a flat line; stops + clears when playback ends.
+const wave = (() => {
+  const cv = $("tts-wave");
+  const cx = cv && cv.getContext("2d");
+  if (!cx) return { start() {}, stop() {} };
+  let raf = 0;
+  let cols = [];
+  let stroke = "currentColor";
+
+  const dpr = () => window.devicePixelRatio || 1;
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    cv.width = Math.max(1, Math.round(r.width * dpr()));
+    cv.height = Math.max(1, Math.round(r.height * dpr()));
+    stroke = getComputedStyle(cv).color || stroke;
+  }
+
+  function peak() {
+    const an = player.getAnalyser();
+    if (!an) return 0;
+    const buf = new Uint8Array(an.fftSize);
+    an.getByteTimeDomainData(buf);
+    let m = 0;
+    for (let i = 0; i < buf.length; i++) {
+      const v = Math.abs(buf[i] - 128) / 128;
+      if (v > m) m = v;
+    }
+    return m;
+  }
+
+  function frame() {
+    const w = cv.width, h = cv.height, mid = h / 2;
+    cols.push(peak());
+    while (cols.length > w) cols.shift(); // scroll left
+    cx.clearRect(0, 0, w, h);
+    cx.strokeStyle = stroke;
+    cx.lineWidth = dpr();
+    cx.beginPath();
+    const base = w - cols.length; // newest sample hugs the right edge
+    for (let i = 0; i < cols.length; i++) {
+      const x = base + i + 0.5;
+      const a = cols[i] * (mid - 1);
+      cx.moveTo(x, mid - a);
+      cx.lineTo(x, mid + a);
+    }
+    cx.stroke();
+    raf = requestAnimationFrame(frame);
+  }
+
+  return {
+    start() {
+      resize();
+      if (!raf) raf = requestAnimationFrame(frame);
+    },
+    stop() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      cols = [];
+      cx.clearRect(0, 0, cv.width, cv.height);
+    },
+  };
+})();
 
 // Poll the upstream so the page shows offline BEFORE the user hits SPEAK (a bound
 // tunnel port isn't liveness -- see /api/hosaka/health).

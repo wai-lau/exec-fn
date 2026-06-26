@@ -43,6 +43,12 @@
       S.gainNode = S.ctx.createGain();
       S.gainNode.gain.value = S.volume;
       S.gainNode.connect(S.ctx.destination);
+      // Tap for visualizers (e.g. the /hosaka waveform): a parallel branch off
+      // the gain node with no onward connection, so it reads the signal without
+      // affecting the audible path.
+      S.analyser = S.ctx.createAnalyser();
+      S.analyser.fftSize = 1024;
+      S.gainNode.connect(S.analyser);
     }
     if (S.ctx.state === "suspended") S.ctx.resume();
     enableSilentModePlayback(S); // play through the iOS Ring/Silent switch
@@ -146,7 +152,7 @@
 
   function createPlayer(opts = {}) {
     const S = {
-      ctx: null, gainNode: null, ws: null,
+      ctx: null, gainNode: null, analyser: null, ws: null,
       volume: opts.volume == null ? 1.0 : opts.volume,
       playhead: 0,      // next free time on the schedule (ctx clock)
       sources: [],      // scheduled buffer sources, for flush()
@@ -185,6 +191,10 @@
       // for "audio is permitted" -- doesn't false-negative on a transient suspend.
       gestureUnlocked() {
         return S.unlockedOnce;
+      },
+      // AnalyserNode tapping the output, or null before the first unlock().
+      getAnalyser() {
+        return S.analyser;
       },
     };
   }
