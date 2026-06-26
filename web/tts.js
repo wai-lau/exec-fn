@@ -21,20 +21,20 @@ const OFFLINE = "TTS server offline — start it on the home box";
 
 const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
 
-// Backends whose generation runs through Chatterbox, so the clone knobs
+// Fallback for upstreams that don't tag voices with `cb`: backends whose
+// generation runs through Chatterbox, so the clone knobs
 // (exaggeration/cfg_weight/temperature) take effect. `rvc` = a Chatterbox
 // clone fed through RVC voice conversion (e.g. charlie) -- still Chatterbox
-// underneath, so its knobs are live too. kokoro/piper honor only speed.
+// underneath. kokoro/piper honor only speed. When the upstream sends `cb` per
+// voice (authoritative), that wins -- see reflectBackend().
 const CLONE_BACKENDS = new Set(["chatterbox", "rvc"]);
 
 // Per-voice loudness trim so every voice plays at ~the same level by default.
 // Derived from the measured RMS of a fixed sentence per voice, normalized to a
-// ~0.05 target (calm_brit was ~3x quiet; f_ellen/glados hot enough to clip).
-// Effective gain = volume knob * this trim; unknown voices default to 1.0.
+// ~0.05 target (glados is hot enough to clip). Effective gain = volume knob *
+// this trim; unknown voices (e.g. charlie) default to 1.0.
 const VOICE_GAIN = {
-  af_heart: 1.09, af_bella: 1.08, af_nicole: 0.98, af_sarah: 0.92,
-  am_adam: 0.65, am_michael: 1.29, bf_emma: 0.81, bm_george: 0.86,
-  calm_brit: 2.72, f_ellen: 0.16, glados: 0.25,
+  nicole: 0.98, glados: 0.25,
 };
 const voiceGain = () => VOICE_GAIN[$("tts-voice").value] ?? 1.0;
 const applyVolume = () => player.setVolume(parseFloat($("tts-volume").value) * voiceGain());
@@ -73,7 +73,7 @@ async function loadVoices() {
     voices = [];
   }
   if (!voices.length) {
-    sel.innerHTML = '<option value="af_heart">af_heart</option>';
+    sel.innerHTML = '<option value="nicole">nicole</option>';
     return;
   }
   const groups = {};
@@ -92,6 +92,8 @@ async function loadVoices() {
       const o = document.createElement("option");
       o.value = v.id;
       o.dataset.backend = v.backend;
+      // Authoritative chatterbox-clone flag from the upstream, when present.
+      if (v.cb != null) o.dataset.cb = v.cb ? "1" : "0";
       o.textContent = v.id;
       og.appendChild(o);
     }
@@ -110,9 +112,17 @@ function selectedBackend() {
   return o ? o.dataset.backend : "kokoro";
 }
 
+// Does the selected voice run through Chatterbox (clone knobs apply). Prefer the
+// upstream's per-voice `cb` flag; fall back to the backend heuristic when absent.
+function selectedIsClone() {
+  const o = $("tts-voice").selectedOptions[0];
+  if (o && o.dataset.cb != null) return o.dataset.cb === "1";
+  return CLONE_BACKENDS.has(selectedBackend());
+}
+
 // Dim the clone knobs for non-Chatterbox voices (kokoro/piper honor only speed).
 function reflectBackend() {
-  $("tts-cb").classList.toggle("off", !CLONE_BACKENDS.has(selectedBackend()));
+  $("tts-cb").classList.toggle("off", !selectedIsClone());
   applyVolume(); // re-trim for the newly selected voice
 }
 

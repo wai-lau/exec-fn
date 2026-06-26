@@ -3,7 +3,7 @@
 // start TTS for the full reader text, and read the audio clock so the
 // typewriter paces to the actual voice (the upstream emits no word timings --
 // see hosaka-audio.js -- so we sync the typing to measured audio duration).
-const TAROT_VOICE = "af_nicole"; // reader voice (kokoro, realtime)
+const TAROT_VOICE = "nicole"; // reader voice (kokoro, realtime)
 const LS_VOICE = "tarot.voice";
 
 const tarotVoice = (() => {
