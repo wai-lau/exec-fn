@@ -75,6 +75,7 @@ const wave = (() => {
   let raf = 0;
   let cols = [];
   let stroke = "currentColor";
+  let drainLeft = -1; // >=0 while draining: frames of silence left to scroll out
 
   const dpr = () => window.devicePixelRatio || 1;
   function resize() {
@@ -99,7 +100,9 @@ const wave = (() => {
 
   function frame() {
     const w = cv.width, h = cv.height, mid = h / 2;
-    cols.push(peak());
+    // While speaking, append the live peak; while draining, append silence so the
+    // captured wave keeps marching left off the edge instead of vanishing.
+    cols.push(drainLeft < 0 ? peak() : 0);
     while (cols.length > w) cols.shift(); // scroll left
     cx.clearRect(0, 0, w, h);
     cx.strokeStyle = stroke;
@@ -113,19 +116,25 @@ const wave = (() => {
       cx.lineTo(x, mid + a);
     }
     cx.stroke();
+    if (drainLeft >= 0 && --drainLeft < 0) {
+      raf = 0; // fully scrolled off; halt (CSS border + baseline remain)
+      cx.clearRect(0, 0, w, h);
+      return;
+    }
     raf = requestAnimationFrame(frame);
   }
 
   return {
     start() {
       resize();
+      drainLeft = -1; // resume live capture
       if (!raf) raf = requestAnimationFrame(frame);
     },
     stop() {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-      cols = [];
-      cx.clearRect(0, 0, cv.width, cv.height);
+      // Keep the loop running, but stop feeding audio: the existing wave scrolls
+      // left until the last real sample clears the canvas (~one canvas width).
+      drainLeft = cv.width;
+      if (!raf) raf = requestAnimationFrame(frame);
     },
   };
 })();
