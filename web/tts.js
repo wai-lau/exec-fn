@@ -29,12 +29,13 @@ const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
 // voice (authoritative), that wins -- see reflectBackend().
 const CLONE_BACKENDS = new Set(["chatterbox", "rvc"]);
 
-// Per-voice loudness trim so every voice plays at ~the same level by default.
-// Derived from the measured RMS of a fixed sentence per voice, normalized to a
-// ~0.05 target (glados is hot enough to clip). Effective gain = volume knob *
-// this trim; unknown voices (e.g. charlie) default to 1.0.
+// Per-voice loudness trim so every voice's default lands at ~80% of the clipping
+// limit (output peak ~0.8) at volume knob 1.0. Effective gain = volume knob *
+// this trim, so gain = 0.8 / (voice's measured worst-case peak): nicole peaks
+// ~0.59 (kokoro, quiet) -> 1.35; glados ~1.01 (piper, hot) -> 0.79; charlie
+// ~0.83 (rvc clone) -> 0.97. Unknown voices fall back to 1.0.
 const VOICE_GAIN = {
-  nicole: 0.98, glados: 0.25,
+  nicole: 1.35, glados: 0.79, charlie: 0.97,
 };
 const voiceGain = () => VOICE_GAIN[$("tts-voice").value] ?? 1.0;
 
