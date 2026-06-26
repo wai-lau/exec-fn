@@ -103,5 +103,17 @@ window.execVoice = (function () {
     armUnlock();
   }
 
-  return { speak, setOn, isOn, ready, unlock, armUnlock, mountButton };
+  // Clickable leading glyph for an Exec turn (assistant '>' / monitor-nudge
+  // '~'): tapping it re-speaks that message. The click is a user gesture, so it
+  // also unlocks audio on first use. Returns the span for exec-bubble.js to prepend.
+  function mark(role, text) {
+    var mk = document.createElement("span");
+    mk.className = "msg-mark";
+    mk.textContent = role === "probe" ? "~" : ">";
+    mk.title = "replay voice";
+    mk.addEventListener("click", function () { speak(text); });
+    return mk;
+  }
+
+  return { speak, mark, setOn, isOn, ready, unlock, armUnlock, mountButton };
 })();

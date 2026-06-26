@@ -56,7 +56,7 @@
     if (existing) { cb(); return; }
     const el = document.createElement('link');
     el.rel = 'stylesheet';
-    el.href = '/exec-bubble.css?v=13';
+    el.href = '/exec-bubble.css?v=14';
     el.setAttribute('data-exec-css', '');
     el.onload = cb;
     el.onerror = cb;  // never hang the panel on a CSS fetch failure
@@ -246,6 +246,8 @@
     const div = document.createElement('div');
     div.className = 'msg ' + role;
     if (role === 'user' || role === 'assistant' || role === 'probe') {
+      // Exec turns get a clickable replay glyph (execVoice.mark, see exec-voice.js).
+      if ((role === 'assistant' || role === 'probe') && window.execVoice) div.appendChild(execVoice.mark(role, text));
       const body = document.createElement('div');
       body.className = 'msg-body';
       if (role === 'user') {
@@ -341,7 +343,7 @@
   // ── stream response ───────────────────────────────────────────────────────
   async function streamResponse() {
     streaming = true;
-    const { body, cur } = addStreamDiv();
+    const { div: streamDiv, body, cur } = addStreamDiv();
     let fullText = '';
     try {
       const r = await fetch('/api/chat', {
@@ -389,6 +391,7 @@
       if (fullText) {
         messages.push({ role: 'assistant', content: fullText });
         if (window.execVoice) execVoice.speak(fullText);  // narrate Exec's reply
+        if (window.execVoice) streamDiv.insertBefore(execVoice.mark('assistant', fullText), streamDiv.firstChild);
       }
     } catch (e) {
       cur.remove();
