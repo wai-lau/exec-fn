@@ -107,7 +107,7 @@
     nodes.forEach(n => { byId[n.id] = n; });
     const pre = prereqMap(edges);
     for (const n of nodes) {
-      if (n.done || n.is_event_start) continue;
+      if (n.done) continue;   // the event block can be active — its start nudge
       if ((pre[n.id] || []).every(p => !byId[p] || byId[p].done)) return n.id;
     }
     return null;
@@ -167,7 +167,8 @@
     meta.className = 'cg-meta';
     if (node.is_event_start) {
       const t = startTime(node);
-      meta.textContent = t ? 'starts ' + t : '';
+      const dur = node.est_min ? ' · ' + node.est_min + 'm' : '';
+      meta.textContent = t ? 'starts ' + t + dur : (node.est_min ? node.est_min + 'm' : '');
     } else {
       const master = masterStartOf(card);
       if (master != null) {

@@ -280,3 +280,25 @@ function applyColumnLayout(cards, track) {
   });
 }
 
+// Greedy lane packing so overlapping items share horizontal space. Writes
+// _lane / _lanes onto each item (generic over blocks or sub-steps). Used by the
+// group renderer in hq-groups.js (same global scope, loaded after this file).
+function assignLanes(items, getStart, getEnd) {
+  const sorted = [...items].sort((a, b) => getStart(a) - getStart(b));
+  const laneEnds = [];
+  sorted.forEach(it => {
+    let lane = laneEnds.findIndex(end => end <= getStart(it));
+    if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+    laneEnds[lane] = getEnd(it);
+    it._lane = lane;
+  });
+  sorted.forEach(it => {
+    const e = getEnd(it);
+    let max = it._lane;
+    sorted.forEach(o => {
+      if (o !== it && getStart(o) < e && getEnd(o) > getStart(it)) max = Math.max(max, o._lane);
+    });
+    it._lanes = max + 1;
+  });
+}
+

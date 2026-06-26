@@ -12,6 +12,16 @@ DATA_DIR = Path("/app/data")
 _DEFAULT_MINUTES = 90
 
 
+def _prep_min(c: dict) -> int:
+    """Minutes of decomposed lead-up before the event block (0 if unset)."""
+    return max(0, int(c.get("prep_time") or 0))
+
+
+def _work_min(c: dict) -> int:
+    """Minutes of the atomic event block = estimated_time minus prep (never < 0)."""
+    return max(0, int(c.get("estimated_time") or _DEFAULT_MINUTES) - _prep_min(c))
+
+
 def _now_et() -> datetime:
     return datetime.now(ET).replace(tzinfo=None)
 
@@ -79,8 +89,21 @@ def _load_json(name: str, default=None):
     return data
 
 
+def _migrate_cards(rd: dict) -> dict:
+    """In-memory schema compat. Maps the old `is_event` flag (a fixed-occurrence
+    marker that also gated structure) onto `no_rollover` (its surviving meaning:
+    a card that does NOT carry forward if missed). Idempotent; persisted on the
+    next _save_rd, harmless if it isn't."""
+    for c in rd.get("cards", []):
+        if "is_event" in c:
+            c.setdefault("no_rollover", bool(c.pop("is_event")))
+    return rd
+
+
 def _load_rd() -> dict:
-    return _load_json("rd", {"columns": ["rd", "hq", "archives", "exile"], "cards": []})
+    return _migrate_cards(
+        _load_json("rd", {"columns": ["rd", "hq", "archives", "exile"], "cards": []})
+    )
 
 
 def _save_rd(rd: dict):

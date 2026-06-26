@@ -36,8 +36,8 @@ def _tool_create_card(input_: dict) -> dict:
         new_card["is_reminder"] = True
     if input_.get("is_book"):
         new_card["is_book"] = True
-    if input_.get("is_event"):
-        new_card["is_event"] = True
+    if input_.get("no_rollover"):
+        new_card["no_rollover"] = True
     if input_.get("notes"):
         new_card["notes"] = input_["notes"]
 
@@ -264,16 +264,19 @@ def _tool_decompose_task(input_: dict) -> dict:
     card = _find_card(rd, input_.get("id", ""))
     if not card:
         return {"error": f"Card not found: {input_.get('id')}"}
-    if card.get("is_reminder") or card.get("is_event") or card.get("is_book"):
-        return {"error": "Reminders, events, and books can't be decomposed."}
+    if card.get("is_reminder") or card.get("is_book"):
+        return {"error": "Reminders and books can't be decomposed."}
     n = _nudge.ensure_nudge(card)
     result = _nllm.decompose_sync(card, feedback=input_.get("feedback", ""))
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
-    _nd.compute_deadlines(card)
+    _nd.compute_deadlines(card)          # appends the event block
+    g = n["graph"]
+    if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
+        n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
     _save_rd(rd)
     _append_rd_log("decomposed", card["title"], source="Exec",
-                   nodes=len(result["nodes"]))
+                   nodes=len(g["nodes"]))
     return {
         "ok": True, "id": card["id"], "title": card["title"],
         "first_chunk": _nudge.active_label(card),

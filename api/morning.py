@@ -103,13 +103,14 @@ def _roll_and_schedule(cards: list, today_iso: str) -> set:
     restack: set[str] = set()
     for c in cards:
         sd = c.get("scheduled_day")
-        # Events don't roll: a past event already happened, it doesn't move to today.
-        if sd and sd < today_iso and c.get("column") in ("rd", "hq") and not c.get("is_event"):
+        # No-Rollover cards don't roll: a missed fixed occurrence stays in the past
+        # rather than moving to today.
+        if sd and sd < today_iso and c.get("column") in ("rd", "hq") and not c.get("no_rollover"):
             c["scheduled_day"] = today_iso
             restack.add(c["id"])
     for c in cards:
         dd = c.get("due_date")
-        # Events DO auto-promote rd->hq within the window (they just never time-nudge).
+        # All dated cards auto-promote rd->hq within the window.
         if not dd or c.get("scheduled_day") or c.get("column") != "rd":
             continue
         result = schedule_to_day(c, cards, dd, today_iso=today_iso)

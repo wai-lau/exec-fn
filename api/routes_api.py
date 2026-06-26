@@ -73,7 +73,10 @@ async def api_rd_recalc(card_id: str, request: Request):
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
     n["triage_pending"] = False
-    _nd.compute_deadlines(card)
+    _nd.compute_deadlines(card)          # appends the event block
+    g = n["graph"]
+    if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
+        n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
     _save_rd(rd)
     return {"ok": True, "nudge": card["nudge"]}
 

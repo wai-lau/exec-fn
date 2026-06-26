@@ -7,14 +7,18 @@ line cap. One-way: imports the state/eligibility leaves from nudge; nothing in
 nudge imports back here."""
 from datetime import datetime, timedelta
 
-from helpers import _now_et
+from helpers import _now_et, _prep_min, _work_min
 from nudge import (
-    ensure_nudge, _eligible, _lead, _factor, slot_datetime,
+    ensure_nudge, decomposable, _eligible, _lead, _factor, slot_datetime,
     _fmt_et, _parse_et,
 )
 
 _EOD_HOUR = 21  # fallback deadline for a today card with no event time / due time
 _EVENT_NODE_ID = "event-start"
+
+
+def _total_min(c: dict) -> int:
+    return _prep_min(c) + _work_min(c)
 
 
 def _has_fixed_deadline(c: dict) -> bool:
@@ -23,18 +27,22 @@ def _has_fixed_deadline(c: dict) -> bool:
 
 
 def card_deadline(c: dict) -> datetime:
-    """When the whole card must be DONE. Precedence: an explicit timed due_date
-    (what Wai sets in the dialog) > the timeline slot (event/placed time) > the
-    auto-assigned staggered deadline > end of its scheduled day."""
+    """When the whole card must be DONE — the END of its timeline block, so the
+    event block (the final `work` minutes) ends here and the prep back-schedules
+    before the anchor (= deadline - work). Precedence:
+      placed slot (block start) + total > timed due_date (event start) + work >
+      auto-staggered block-end > end of its scheduled day.
+    For a correctly placed timed card the first two agree (dir_start_min was set
+    to event_time - prep)."""
+    slot = slot_datetime(c)              # dir_start_min based = block start
+    if slot is not None:
+        return slot + timedelta(minutes=_total_min(c))
     dd = c.get("due_date") or ""
     if "T" in dd:
         try:
-            return datetime.fromisoformat(dd)
+            return datetime.fromisoformat(dd) + timedelta(minutes=_work_min(c))
         except ValueError:
             pass
-    slot = slot_datetime(c)
-    if slot is not None:
-        return slot
     auto = (c.get("nudge") or {}).get("auto_deadline")
     if auto:
         d = _parse_et(auto)
@@ -94,32 +102,38 @@ def _back_schedule(nodes: list, edges: list, D: datetime, default: int) -> dict:
     return {nd["id"]: deadline_of(nd["id"], frozenset()) for nd in nodes}
 
 
-def ensure_event_terminal(card: dict) -> bool:
-    """For event cards, keep a fixed terminal node — the event itself — so the
-    breakdown ends with '<title> starts' at the event time and every other step
-    back-schedules before it. Removes the node if the card stops being an event.
-    Returns True if anything changed."""
+def ensure_event_block(card: dict) -> bool:
+    """Every decomposable card carries ONE terminal event-block node — the atomic
+    'work' the prep leads up to. Its est_min = the card's work minutes, so it
+    occupies [anchor, anchor+work] at the end of the block while every prep step
+    back-schedules before the anchor. Drops the node if the card stops being
+    decomposable (became a reminder/book). Returns True if anything changed."""
     n = ensure_nudge(card)
     nodes, edges = n["graph"]["nodes"], n["graph"]["edges"]
     evt = next((nd for nd in nodes if nd.get("is_event_start")), None)
-    if not card.get("is_event"):
+    work = _work_min(card)
+    # The event block exists ONLY for an atomic external occurrence (work > 0).
+    # A self-directed task (work == 0) is all prep/steps and carries no event node.
+    if not decomposable(card) or work <= 0:
         if evt:
             n["graph"]["nodes"] = [nd for nd in nodes if not nd.get("is_event_start")]
             n["graph"]["edges"] = [e for e in edges if evt["id"] not in (e["from"], e["to"])]
             return True
         return False
-    if not nodes or (len(nodes) == 1 and evt):
-        return False
     dirty = False
-    label = f"{card.get('title', 'Event')} starts"
+    label = card.get("title", "Event")
     if not evt:
         evt = {"id": _EVENT_NODE_ID, "label": label, "done": False, "depth": 0,
-               "created_at": _fmt_et(_now_et()), "est_min": 0, "is_event_start": True}
+               "created_at": _fmt_et(_now_et()), "est_min": work, "is_event_start": True}
         nodes.append(evt)
         dirty = True
-    elif evt["label"] != label:
-        evt["label"] = label
-        dirty = True
+    else:
+        if evt["label"] != label:
+            evt["label"] = label
+            dirty = True
+        if evt.get("est_min") != work:
+            evt["est_min"] = work
+            dirty = True
     has_out = {e["from"] for e in edges}
     for nd in nodes:
         if nd["id"] == evt["id"] or nd["id"] in has_out:
@@ -135,13 +149,14 @@ def compute_deadlines(card: dict) -> bool:
     Sets node['est_min'] and node['deadline'] (ISO). Returns True if anything
     changed. Pure (no I/O); cheap enough to run every tick."""
     n = ensure_nudge(card)
-    changed = ensure_event_terminal(card)
+    changed = ensure_event_block(card)
     nodes = n["graph"]["nodes"]
     if not nodes:
         return changed
-    default = max(5, round(_lead(card) / len(nodes)))
+    prep_nodes = [nd for nd in nodes if not nd.get("is_event_start")]
+    default = max(5, round(_prep_min(card) / max(1, len(prep_nodes))))
     for nd in nodes:
-        if nd.get("est_min") is None:               # 0 (the event node) is valid
+        if nd.get("est_min") is None:               # the event node is set above
             nd["est_min"] = default
             changed = True
     deadlines = _back_schedule(nodes, n["graph"]["edges"], card_deadline(card), default)
