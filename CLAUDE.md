@@ -196,7 +196,7 @@ Tarot tools (separate handler set in `tarot/tools.py`):
 - `estimated_time`: TOTAL minutes (prep + core work) — the timeline block length read by scheduler + nudge.
 - `prep_time`: of `estimated_time`, the lead-up/getting-ready/travel/setup minutes before the real work (`estimated_time - prep_time` = core work). Auto-filled at creation (exec chat `create_card`, `_card_brief` budgets prep-vs-work in decompose). Editable in the card dialog breakdown row as two fields (prep + work); recalculate rebuilds the graph to that split. null for reminders.
 - `is_reminder`: true = calendar alert only, shown in reminders bar on R&D
-- `is_book`: true = ongoing read — shown in books bar on hq, hidden from rd/hq columns in R&D, never scheduled/decomposed (checkbox in card dialog, like `is_reminder`)
+- `is_book`: true = ongoing read — shown in books bar on HQ, hidden from rd/hq columns in R&D, never scheduled/decomposed (checkbox in card dialog, like `is_reminder`)
 
 **Recurring card revival**: when a card with `recur_type` is archived, a clone is auto-created in `rd` with reset `scheduled_day` and `due_date` advanced via `_next_recurrence()`. The clone's `nudge` state and `dir_start_min` are stripped — each occurrence starts its own loop.
 
