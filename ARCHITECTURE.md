@@ -185,7 +185,7 @@ sequenceDiagram
 ### 3b. scheduler.py — the time model
 
 All `dir_start_min` / `scheduled_day` logic lives here. Window =
-`SCHED_WINDOW_DAYS=5` (today + 5 = 6-day span).
+`SCHED_WINDOW_DAYS=6` (today + 6 = 7-day span).
 
 ```mermaid
 flowchart TB
@@ -206,7 +206,7 @@ flowchart TB
   execchat -->|"_apply_schedule()"| s2d
   hq --> s2d
 
-  s2d --> decide{"target in<br/>6-day window?"}
+  s2d --> decide{"target in<br/>7-day window?"}
   decide -->|"no"| outwin["stay in rd<br/>set due_date only<br/>(clamp_to_window: clamp to edge)"]
   decide -->|"yes"| inwin["column = hq<br/>scheduled_day = target<br/>(overdue: clamp to today)"]
   inwin --> istoday{"target ==<br/>today?"}
@@ -215,7 +215,7 @@ flowchart TB
 ```
 
 **rd to hq promotion** (`schedule_to_day`): a card moves out of the `rd`
-column into `hq` only when its target day falls inside the 6-day window.
+column into `hq` only when its target day falls inside the 7-day window.
 `dir_start_min` (timeline position) is set only when the target is today —
 either an explicit value or the next free slot from `place_card_today()`.
 Outside the window the card stays in `rd` with just a `due_date`.
