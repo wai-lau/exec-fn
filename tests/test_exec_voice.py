@@ -7,7 +7,7 @@ refactor / version-bump that drops a script tag or leaks voice onto an excluded
 page fails the commit. They do NOT test audio (that's the browser suite); they
 assert the right `<script src>` tags are present/absent per auth + page tier.
 
-  - planning pages (/rd, /prophecies): full panel voice (exec-voice.js +
+  - planning pages (/rd, /hq): full panel voice (exec-voice.js +
     exec-bubble.js).
   - other protected pages (/debug, /color): the listener (exec-voice-listener.js
     + exec-voice.js) on the link-bubble, no panel.
@@ -19,7 +19,7 @@ voice-util.js) — exec-voice.js is undefined without them.
 """
 import pytest
 
-PLANNING = ["/rd", "/prophecies"]
+PLANNING = ["/rd", "/hq"]
 LISTENER = ["/debug", "/color"]      # non-planning, protected, voice via listener
 EXCLUDED = ["/tarot", "/hosaka"]     # link-bubble, no voice
 

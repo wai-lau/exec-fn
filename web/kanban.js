@@ -119,9 +119,7 @@ async function save() {
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
 }
 
-// eslint-disable-next-line no-unused-vars
 function toggleArchives(e) { if (e) e.stopPropagation(); archivesCollapsed = !archivesCollapsed; buildBoard(); }
-// eslint-disable-next-line no-unused-vars
 function toggleExile(e) { if (e) e.stopPropagation(); exileCollapsed = !exileCollapsed; buildBoard(); }
 
 const COL_LABELS = {rd: 'r&d', hq: 'hq', archives: 'archives', exile: 'exile'};
@@ -183,7 +181,7 @@ function buildReminders() {
   const bar = document.getElementById('reminders-bar');
   bar.innerHTML = visible.map(_remChipHtml).join('');
   bar.querySelectorAll('.rem-item').forEach(el => {
-    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'rd'); });
   });
   if (overflow.length) {
     const first = bar.firstElementChild;
@@ -215,7 +213,7 @@ function showRemOverflow() {
   modal.querySelectorAll('.rem-ov-row').forEach(el => {
     el.addEventListener('click', () => {
       modal.style.display = 'none';
-      openCardDialog(el.dataset.id, () => { load(); }, 'core');
+      openCardDialog(el.dataset.id, () => { load(); }, 'rd');
     });
   });
 }
@@ -249,7 +247,7 @@ function buildBooks() {
     return `<div class="book-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}"><div class="book-item-title">${c.title}</div>${bar_html}</div>`;
   }).join('');
   bar.querySelectorAll('.book-item').forEach(el => {
-    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => load(), 'core'); });
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => load(), 'rd'); });
   });
   if (overflow.length) {
     // +N on the topmost chip (top-right); if nothing is visible, host it on an empty chip
@@ -280,7 +278,7 @@ function showBookOverflow() {
   list.querySelectorAll('.book-ov-row').forEach(el => {
     el.addEventListener('click', () => {
       modal.style.display = 'none';
-      openCardDialog(el.dataset.id, () => load(), 'core');
+      openCardDialog(el.dataset.id, () => load(), 'rd');
     });
   });
   modal.style.display = 'flex';
@@ -309,7 +307,7 @@ function buildBoard() {
     });
   });
   document.querySelectorAll('.card').forEach(el => {
-    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'core'); });
+    el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'rd'); });
   });
   initBarSortable();
   const srch = document.getElementById('rd-search');

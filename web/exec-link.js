@@ -1,5 +1,5 @@
 // Link-bubble for non-planning pages: the same draggable, position-persistent
-// #exec-bubble as the core/prophecies chat bubble, but a tap NAVIGATES to the
+// #exec-bubble as the R&D/HQ chat bubble, but a tap NAVIGATES to the
 // planning chat instead of toggling a panel. Shares the exec-bpos position with
 // the real bubble and reuses execMakeDraggable (exec-bubble-drag.js). A <div>
 // (not <a>) so a drag-release can't fire a stray native/intercepted click; the
@@ -7,7 +7,7 @@
 (function () {
   var el = document.getElementById('exec-bubble');
   if (!el || typeof execMakeDraggable !== 'function') return;
-  var HREF = '/prophecies?exec=open';
+  var HREF = '/hq?exec=open';
 
   function navH() {
     return parseInt(getComputedStyle(document.documentElement)

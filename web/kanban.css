@@ -6,7 +6,7 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* ── top bars: reminders (left half) + books (right half) ─────────────────
    identical chrome; only side/anchoring differs */
-.rd-reminders, .pr-books {
+.rd-reminders, .hq-books {
   display: none; position: fixed; top: 0;
   height: auto; max-height: 90px;
   flex-direction: column; align-items: stretch;
@@ -16,26 +16,26 @@ body { overflow: hidden !important; background: transparent !important; }
   font-family: BitLight, monospace; font-size: 0.63rem;
 }
 .rd-reminders { left: 0; width: 50%; z-index: 19; border-right: 1px solid hsl(var(--green-hsl) / 0.12); }
-.pr-books     { left: 50%; right: 0; z-index: 18; border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
-.rd-reminders::-webkit-scrollbar, .pr-books::-webkit-scrollbar { display: none; }
+.hq-books     { left: 50%; right: 0; z-index: 18; border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
+.rd-reminders::-webkit-scrollbar, .hq-books::-webkit-scrollbar { display: none; }
 .has-reminders .rd-reminders { display: flex; }
-.has-books .pr-books { display: flex; }
+.has-books .hq-books { display: flex; }
 .dragging-card .rd-reminders { display: flex !important; min-height: 48px; border-bottom-color: hsl(var(--green-hsl) / 0.12); }
 
 /* bar chips */
-.rd-reminders .rem-item, .pr-books .book-item {
+.rd-reminders .rem-item, .hq-books .book-item {
   cursor: pointer; flex-shrink: 0; overflow: hidden; opacity: 0.85;
   padding: 9px 14px 5px; border-radius: 0;
   border-left: none !important; border-right: none !important; border-top: none !important;
 }
 .rd-reminders .rem-item { white-space: nowrap; text-overflow: ellipsis; }
-.pr-books .book-item { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.rd-reminders .rem-item:hover, .pr-books .book-item:hover { opacity: 1; }
+.hq-books .book-item { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.rd-reminders .rem-item:hover, .hq-books .book-item:hover { opacity: 1; }
 
 /* fixed-width title box (same font as reminders) => every progress bar is equal width */
-.pr-books .book-item-title { flex: 0 0 132px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pr-books .book-item-bar { flex: 1; min-width: 0; height: 3px; border-radius: 2px; background: hsl(var(--green-hsl) / 0.12); overflow: hidden; }
-.pr-books .book-item-fill { height: 100%; border-radius: 2px; background: hsl(var(--green-hsl) / 0.45); transition: width 0.3s; }
+.hq-books .book-item-title { flex: 0 0 132px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hq-books .book-item-bar { flex: 1; min-width: 0; height: 3px; border-radius: 2px; background: hsl(var(--green-hsl) / 0.12); overflow: hidden; }
+.hq-books .book-item-fill { height: 100%; border-radius: 2px; background: hsl(var(--green-hsl) / 0.45); transition: width 0.3s; }
 
 /* +N overflow buttons (reminders: bottom corner, books: top corner) */
 .rem-overflow-btn, .book-overflow-btn {

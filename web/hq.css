@@ -3,65 +3,65 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* cyber scanlines sit behind the cards + reminders, not over them */
 .cyber-bg, .cyber-scan { z-index: -1; }
-.pr-loading { padding: 32px; font-family: monospace; font-size: 0.8rem; opacity: 0.4; }
+.hq-loading { padding: 32px; font-family: monospace; font-size: 0.8rem; opacity: 0.4; }
 
-.pr-board {
+.hq-board {
   position: fixed; inset: 0;
   display: flex; gap: 1px; overflow: hidden;
   background: transparent;
 }
 
 /* three columns: [today] | [tomorrow, day after] | [next three, smaller] */
-.pr-colgroup {
+.hq-colgroup {
   flex: 1; min-width: 0; min-height: 0; position: relative;
   display: flex; flex-direction: column; gap: 3px;
   background: transparent;
 }
 
 /* today (timeline) column 25% wider, last column 25% narrower */
-.pr-colgroup:first-child { flex: 1.25; }
-.pr-colgroup:last-child { flex: 0.75; }
+.hq-colgroup:first-child { flex: 1.25; }
+.hq-colgroup:last-child { flex: 0.75; }
 
-.pr-col {
+.hq-col {
   flex: 1; display: flex; flex-direction: column;
   background: transparent; min-width: 0; min-height: 0; overflow: hidden;
 }
 
 /* vertical divider between columns — matches the timeline hour lines,
    80% of column height, centered */
-.pr-colgroup:not(:first-child)::before {
+.hq-colgroup:not(:first-child)::before {
   content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 3px;
   background: rgba(255,255,255,0.2); pointer-events: none; z-index: 10;
 }
 
 /* side columns pack three days — shrink chrome to fit (day-name font +
    header padding stay the same as the today column so titles align) */
-.pr-colgroup.small .pr-list { padding: 5px 6px 14px; }
-.pr-colgroup.small .pr-card { padding: 5px 8px; margin-bottom: 4px; }
-.pr-colgroup.small .pr-card-title { font-size: 0.66rem; line-height: 1.2; margin-bottom: 0; }
-.pr-colgroup.small .pr-card-meta { font-size: 0.5rem; margin-top: 2px; }
-.pr-col.weekend { background: transparent; }
-.pr-col.weekend .pr-day-name { color: hsl(var(--cyan-hsl) / 1); }
+.hq-colgroup.small .hq-list { padding: 5px 6px 14px; }
+.hq-colgroup.small .hq-card { padding: 5px 8px; margin-bottom: 4px; }
+.hq-colgroup.small .hq-card-title { font-size: 0.66rem; line-height: 1.2; margin-bottom: 0; }
+.hq-colgroup.small .hq-card-meta { font-size: 0.5rem; margin-top: 2px; }
+.hq-col.weekend { background: transparent; }
+.hq-col.weekend .hq-day-name { color: hsl(var(--cyan-hsl) / 1); }
 
 /* anchor for the column-spanning past cover + now-line (positioned in JS) */
-.pr-col.today-col { position: relative; }
+.hq-col.today-col { position: relative; }
 
-.pr-col-hdr {
+.hq-col-hdr {
   flex-shrink: 0; padding: 4px 10px 5px;
   font-family: '04b25', monospace; font-size: 0.6rem; text-transform: uppercase;
   letter-spacing: 0.15em; color: hsl(var(--green-hsl) / 0.45);
 }
-.pr-col-hdr .pr-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: 0.68rem; }
-.pr-col-hdr .pr-date { opacity: 0.45; font-size: 0.58rem; }
-.pr-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; }
-.pr-col-hdr.today-hdr .pr-day-name { color: hsl(var(--green-hsl)); }
+.hq-col-hdr .hq-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: 0.68rem; }
+.hq-col-hdr .hq-date { opacity: 0.45; font-size: 0.58rem; }
+.hq-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; }
+.hq-col-hdr.today-hdr .hq-day-name { color: hsl(var(--green-hsl)); }
 
-.pr-list {
+.hq-list {
   flex: 1; overflow-y: auto; padding: 8px 8px 20px;
   min-height: 0;
 }
 
-.pr-card {
+.hq-card {
   border-radius: 4px; padding: 9px 11px; margin-bottom: 5px;
   cursor: grab; user-select: none; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500;
   border: 1px solid transparent; position: relative;
@@ -69,18 +69,18 @@ body { overflow: hidden !important; background: transparent !important; }
   transition: filter 0.12s;
   min-height: 36px; display: flex; flex-direction: column;
 }
-.pr-card:active { cursor: grabbing; }
-.pr-card:hover { filter: brightness(1.1); }
-.pr-card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.pr-card-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.8rem; line-height: 1.3; overflow-wrap: break-word; margin-bottom: 2px; }
-.pr-card-meta { font-size: 0.58rem; opacity: 0.5; margin-top: 3px; display: flex; justify-content: space-between; gap: 4px; }
+.hq-card:active { cursor: grabbing; }
+.hq-card:hover { filter: brightness(1.1); }
+.hq-card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
+.hq-card-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.8rem; line-height: 1.3; overflow-wrap: break-word; margin-bottom: 2px; }
+.hq-card-meta { font-size: 0.58rem; opacity: 0.5; margin-top: 3px; display: flex; justify-content: space-between; gap: 4px; }
 
-.pr-card-notes { font-size: 0.72rem; opacity: 0.88; margin-top: 4px; line-height: 1.45; overflow-wrap: break-word;
+.hq-card-notes { font-size: 0.72rem; opacity: 0.88; margin-top: 4px; line-height: 1.45; overflow-wrap: break-word;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.pr-overdue { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; color: hsl(var(--orange-hsl) / 1); }
+.hq-overdue { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; color: hsl(var(--orange-hsl) / 1); }
 .sortable-ghost { opacity: 0.4; }
 
-.pr-unschedule {
+.hq-unschedule {
   position: fixed; bottom: 0; left: 0; right: 0; height: 58px; z-index: 25;
   display: flex; align-items: center; justify-content: center;
   font-family: monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
@@ -89,29 +89,29 @@ body { overflow: hidden !important; background: transparent !important; }
   pointer-events: none;
 }
 
-body.pr-dragging .pr-unschedule {
+body.hq-dragging .hq-unschedule {
   pointer-events: all;
   color: hsl(var(--orange-glow-hsl) / 0.6); border-top-color: hsl(var(--orange-glow-hsl) / 0.25);
   background: hsl(var(--orange-glow-hsl) / 0.25);
 }
 
-body.pr-dragging .pr-unschedule.drag-over {
+body.hq-dragging .hq-unschedule.drag-over {
   color: hsl(var(--orange-glow-hsl)); border-top-color: hsl(var(--orange-glow-hsl) / 0.8);
   background: hsl(var(--orange-glow-hsl) / 0.25);
 }
 
-.pr-toast {
+.hq-toast {
   position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.9); border: 1px solid hsl(var(--orange-hsl) / 0.45);
   color: hsl(var(--orange-hsl) / 1); font-family: monospace; font-size: 0.78rem;
   padding: 8px 20px; z-index: 100; pointer-events: none;
   opacity: 0; transition: opacity 0.3s;
 }
-.pr-toast.show { opacity: 1; }
+.hq-toast.show { opacity: 1; }
 
 /* today column = timeline (grid, time-sort, now-line, past "hider") */
-.pr-tl-wrap { flex: 1; overflow-y: auto; padding: 0 10px; position: relative; min-height: 0; scrollbar-width: none; -ms-overflow-style: none; }
-.pr-tl-wrap::-webkit-scrollbar { display: none; }
+.hq-tl-wrap { flex: 1; overflow-y: auto; padding: 0 10px; position: relative; min-height: 0; scrollbar-width: none; -ms-overflow-style: none; }
+.hq-tl-wrap::-webkit-scrollbar { display: none; }
 
 .dir-block {
   position: absolute; left: 3px; right: 3px; box-sizing: border-box;
@@ -169,8 +169,8 @@ body.pr-dragging .pr-unschedule.drag-over {
 }
 
 /* faint placeholder showing where a dragged block will land (Sortable-style) */
-.pr-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.8); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
-.pr-drop-preview.today { position: absolute; left: 3px; right: 3px; background: hsl(var(--green-hsl) / 0.12); padding: 5px 8px; }
+.hq-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.8); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
+.hq-drop-preview.today { position: absolute; left: 3px; right: 3px; background: hsl(var(--green-hsl) / 0.12); padding: 5px 8px; }
 
 /* a today card with a breakdown: thin vertical "spine" (the master, title set
    vertical) + its sub-steps as their own draggable blocks to the right,

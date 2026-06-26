@@ -226,9 +226,9 @@ async def guest_login_alias(next: str = "/mtg"):
 # ── pages ───────────────────────────────────────────────────────────────────
 
 
-@protected.get("/prophecies", response_class=HTMLResponse)
-async def prophecies_page():
-    return _render_page("prophecies", _tmpl("prophecies.html"), full_height=True)
+@protected.get("/hq", response_class=HTMLResponse)
+async def hq_page():
+    return _render_page("hq", _tmpl("hq.html"), full_height=True)
 
 
 @protected.get("/debug", response_class=HTMLResponse)
@@ -404,7 +404,7 @@ async def emet_page(request: Request):
 
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
-    return _render_page("core", _tmpl("kanban.html"), full_height=True)
+    return _render_page("rd", _tmpl("kanban.html"), full_height=True)
 
 
 @guest_protected.get("/mtg", response_class=HTMLResponse)

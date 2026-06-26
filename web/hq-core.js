@@ -5,7 +5,7 @@ let weekStart = null;
 let weekData = null;
 let pendingUpdates = [];
 let saveTimer = null;
-let _prDragging = false;
+let _hqDragging = false;
 
 // today-column timeline state
 const TL_PX = 1;                 // 1px per minute
@@ -56,17 +56,17 @@ function renderCard(c, dayIso) {
   const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'hsl(var(--green-hsl) / 0.8)';
   const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'hsl(var(--green-hsl) / 0.45)';
 
-  const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="pr-overdue">!</span>' : '';
+  const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="hq-overdue">!</span>' : '';
   const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
   const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const dueC = (dayIso && isOverdue(c, dayIso)) ? 'hsl(var(--orange-glow-hsl) / 1)' : metaC;
-  const due = c.due_date ? `<span class="pr-due" style="color:${dueC}">due ${c.due_date.slice(5).replace('T',' ')}</span>` : '';
-  const metaHtml = (recur || due) ? `<div class="pr-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
+  const due = c.due_date ? `<span class="hq-due" style="color:${dueC}">due ${c.due_date.slice(5).replace('T',' ')}</span>` : '';
+  const metaHtml = (recur || due) ? `<div class="hq-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const notesHtml = c.notes ? `<div class="pr-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
-  return `<div class="pr-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}${border}">
+  const notesHtml = c.notes ? `<div class="hq-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
+  return `<div class="hq-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}${border}">
     ${over}
-    <div class="pr-card-title" style="color:${titleC}">${c.title}${reminder}</div>
+    <div class="hq-card-title" style="color:${titleC}">${c.title}${reminder}</div>
     ${metaHtml}
     ${notesHtml}
   </div>`;
@@ -77,7 +77,7 @@ function dropTarget(x, y) {
   if (x == null || y == null) return null;
   const el = document.elementFromPoint(x, y);
   if (!el) return null;
-  if (el.closest('#pr-unschedule')) return 'unschedule';
+  if (el.closest('#hq-unschedule')) return 'unschedule';
   const col = el.closest('[data-day]');
   return col ? col.dataset.day : null;
 }
@@ -124,7 +124,7 @@ function createBlock(c, track) {
   }
 
   // Drag uses the shared startTimelineDrag (the same floating-ghost drag the
-  // group spines use; defined in prophecies-groups.js) with block-specific opts.
+  // group spines use; defined in hq-groups.js) with block-specific opts.
   // Resize is local (startResize). State rides one `ds` object inside the drag.
   block.addEventListener('mousedown', e => {
     if (resizeHandle.contains(e.target)) return;
@@ -170,7 +170,7 @@ function createBlock(c, track) {
   return block;
 }
 
-// Block-specific config for the shared startTimelineDrag (prophecies-groups.js),
+// Block-specific config for the shared startTimelineDrag (hq-groups.js),
 // the same floating-ghost drag the group spines use. spanMin is read fresh each
 // drag so a prior resize is honored; lift/ghost is the block element itself.
 function blockDragOpts(c, block) {
@@ -184,7 +184,7 @@ function blockDragOpts(c, block) {
       applyColumnLayout(scheduleCards, currentTrack);
       saveStartTime(c.id, c._startMin);
     },
-    onClick() { openCardDialog(c.id, () => load(weekStart), 'prof'); },
+    onClick() { openCardDialog(c.id, () => load(weekStart), 'hq'); },
   };
 }
 

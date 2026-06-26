@@ -9,7 +9,7 @@ from helpers import _load_json, _load_rd, _now_et, _ACTIVITY_LOG
 from monitor_sse import push_to_monitor
 from chat import append_monitor_comment, EXEC_VOICE
 
-_SRC_LABELS = {"core": "kanban", "dirs": "directives", "prof": "prophecies", "Exec": "Exec chat"}
+_SRC_LABELS = {"rd": "R&D", "dirs": "directives", "hq": "HQ", "Exec": "Exec chat"}
 
 
 def _recent_entries(batch_start_ts: float) -> list:

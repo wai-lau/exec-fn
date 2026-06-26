@@ -2,7 +2,7 @@
 // panel). Loads the same glados HosakaAudio player as the planning panel and
 // speaks Exec's UNSOLICITED turns — monitor comments + timed nudges — that
 // arrive on the /api/monitor/stream SSE channel, so a nudge narrates on
-// whatever page Wai is on, not only /rd + /prophecies. There is no chat here,
+// whatever page Wai is on, not only /rd + /hq. There is no chat here,
 // so assistant replies don't apply. Mute is the same global localStorage flag
 // (`exec.voice`) the planning panel's button toggles.
 (function () {

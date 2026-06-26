@@ -163,7 +163,7 @@ function tdMakeGhost(ds) {
 
 function tdMkPreview(ds, ctx) {
   const p = document.createElement('div');
-  p.className = 'pr-drop-preview ' + ctx;
+  p.className = 'hq-drop-preview ' + ctx;
   p.dataset.ctx = ctx;
   p.textContent = ds.c.title;
   const cs = cardStyle(ds.c);          // card-colored placeholder, not Ono-Sendai green
@@ -182,7 +182,7 @@ function tdPlacePreview(ds, x, y) {
   if (unEl) unEl.classList.toggle('drag-over', tgt === 'unschedule');
   if (tgt === 'unschedule') { if (ds.preview) { ds.preview.remove(); ds.preview = null; } return; }
   if (tgt && tgt !== isoToday()) {
-    const list = document.getElementById('pr-list-' + tgt);
+    const list = document.getElementById('hq-list-' + tgt);
     if (!list) { if (ds.preview) { ds.preview.remove(); ds.preview = null; } return; }
     if (!ds.preview || ds.preview.dataset.ctx !== 'day') {
       if (ds.preview) ds.preview.remove();
@@ -194,7 +194,7 @@ function tdPlacePreview(ds, x, y) {
       ds.preview.style.pointerEvents = 'none';
     }
     const pv = ds.preview;
-    const ref = [...list.querySelectorAll('.pr-card')].filter(el => el !== pv).find(el => {
+    const ref = [...list.querySelectorAll('.hq-card')].filter(el => el !== pv).find(el => {
       const r = el.getBoundingClientRect();
       return y < r.top + r.height / 2;
     });
@@ -214,7 +214,7 @@ function tdFinish(ds) {
   const tgt = dropTarget(ds.lastX, ds.lastY);
   let dayIndex = 0;
   if (ds.preview && ds.preview.dataset.ctx === 'day' && ds.preview.parentElement) {
-    dayIndex = [...ds.preview.parentElement.querySelectorAll('.pr-card, .pr-drop-preview')].indexOf(ds.preview);
+    dayIndex = [...ds.preview.parentElement.querySelectorAll('.hq-card, .hq-drop-preview')].indexOf(ds.preview);
   }
   tdClearPreview(ds);
   opts.liftEl.style.display = '';
@@ -246,9 +246,9 @@ function startTimelineDrag(c, track, opts, startClientX, startClientY, getX, get
     width: srcRect.width, height: srcRect.height,
     moved: false, lastX: startClientX, lastY: startClientY,
     ghost: null, preview: null,
-    unEl: document.getElementById('pr-unschedule'),
+    unEl: document.getElementById('hq-unschedule'),
   };
-  document.body.classList.add('pr-dragging');
+  document.body.classList.add('hq-dragging');
   function onMove(ev) {
     ds.lastX = getX(ev); ds.lastY = getY(ev);
     if (!ds.moved) { ds.moved = true; tdMakeGhost(ds); }
@@ -262,7 +262,7 @@ function startTimelineDrag(c, track, opts, startClientX, startClientY, getX, get
     document.removeEventListener('mouseup', onUp);
     document.removeEventListener('touchmove', onMove);
     document.removeEventListener('touchend', onUp);
-    document.body.classList.remove('pr-dragging');
+    document.body.classList.remove('hq-dragging');
     tdFinish(ds);
   }
   document.addEventListener('mousemove', onMove);
@@ -280,7 +280,7 @@ function wireSub(c, nd, sub, rh, track, masterStart, groupStart) {
     const rect = track.getBoundingClientRect();
     const sRect = sub.getBoundingClientRect();
     const offsetY = grabClientY - sRect.top;
-    document.body.classList.add('pr-dragging');
+    document.body.classList.add('hq-dragging');
 
     // Same feel as a kanban card drag: a semi-opaque copy follows the cursor
     // while the original stays in place as a faint placeholder at the snap slot.
@@ -310,7 +310,7 @@ function wireSub(c, nd, sub, rh, track, masterStart, groupStart) {
     function up() {
       document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
       document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
-      document.body.classList.remove('pr-dragging');
+      document.body.classList.remove('hq-dragging');
       ghost.remove();
       nd.tl_offset = nd._off;
       freezeOffsets(c);
@@ -434,7 +434,7 @@ function createGroup(c, track) {
       redrawCards(track);
       saveStartTime(c.id, c.dir_start_min);
     },
-    onClick() { openCardDialog(c.id, () => load(weekStart), 'prof'); },
+    onClick() { openCardDialog(c.id, () => load(weekStart), 'hq'); },
   };
   attachBlockDrag(spine, null, (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
 

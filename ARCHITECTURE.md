@@ -82,7 +82,7 @@ flowchart LR
   pipeline["pipeline.py"]
   scheduler["scheduler.py"]
   monitor["monitor.py"]
-  prophecies["prophecies.py"]
+  hq["hq.py"]
   chat["chat.py"]
   chat_tools["chat_tools.py"]
   routes_chat["routes_chat.py"]
@@ -112,8 +112,8 @@ flowchart LR
   chat_tools --> helpers
   monitor --> helpers
   scheduler --> helpers
-  prophecies --> helpers
-  prophecies --> scheduler
+  hq --> helpers
+  hq --> scheduler
   routes_night --> helpers
 
   subgraph tarot["tarot/"]
@@ -192,7 +192,7 @@ flowchart TB
   subgraph entry["Callers"]
     morning["morning cron<br/>(_roll_and_schedule)"]
     execchat["exec chat tools<br/>create_card / schedule_card"]
-    prof["prophecies drag"]
+    hq["HQ drag"]
   end
 
   subgraph sched["scheduler.py"]
@@ -204,7 +204,7 @@ flowchart TB
   morning --> s2d
   morning --> layout
   execchat -->|"_apply_schedule()"| s2d
-  prof --> s2d
+  hq --> s2d
 
   s2d --> decide{"target in<br/>6-day window?"}
   decide -->|"no"| outwin["stay in rd<br/>set due_date only<br/>(clamp_to_window: clamp to edge)"]

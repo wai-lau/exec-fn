@@ -59,7 +59,7 @@
     const g = card.nudge && card.nudge.graph;
     return g && g.nodes ? g.nodes.filter(x => !x.is_event_start) : [];
   }
-  // Same plan order + sequential default tiling as the prophecies timeline, so the
+  // Same plan order + sequential default tiling as the HQ timeline, so the
   // dialog and the timeline agree on each step's start (offset from the master).
   function computeOffsets(card) {
     let acc = 0;

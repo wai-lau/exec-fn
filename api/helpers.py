@@ -95,7 +95,7 @@ _ACTIVITY_LOG = DATA_DIR / "activity_log.json"
 _RD_LOG = _ACTIVITY_LOG  # alias kept for pipeline.py archival
 
 
-def _append_rd_log(action: str, title: str, source: str = "core", **extra):
+def _append_rd_log(action: str, title: str, source: str = "rd", **extra):
     _append_rd_log_batch([{"action": action, "title": title, "source": source, **extra}])
 
 

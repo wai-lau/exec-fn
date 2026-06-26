@@ -8,7 +8,7 @@ function redrawCards(track) {
 }
 
 function buildSchedule(cards) {
-  const wrap = document.getElementById('pr-tl-wrap');
+  const wrap = document.getElementById('hq-tl-wrap');
   if (!wrap) return;
   if (_nowInterval) { clearInterval(_nowInterval); _nowInterval = null; }
   if (_nowRaf) { cancelAnimationFrame(_nowRaf); _nowRaf = null; }
@@ -80,7 +80,7 @@ function buildSchedule(cards) {
 
   // drop target: drag a card from another day onto today's timeline
   Sortable.create(wrap, {
-    group: { name: 'prophecies', put: true, pull: false },
+    group: { name: 'hq', put: true, pull: false },
     draggable: '.__nodrag__',
     onAdd(evt) {
       const cardId = evt.item.dataset.id;
@@ -189,18 +189,18 @@ function dayCellHtml(day, today) {
   const isWeekend = dow === 0 || dow === 6;
   const dayLabel = fmtDay(day).split(',')[0];
   const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
-  const hdr = `<div class="pr-col-hdr${isToday?' today-hdr':''}">
-      <div class="pr-day-name">${dayLabel} <span class="pr-date">${dateLabel}</span></div>
+  const hdr = `<div class="hq-col-hdr${isToday?' today-hdr':''}">
+      <div class="hq-day-name">${dayLabel} <span class="hq-date">${dateLabel}</span></div>
     </div>`;
   // today renders as a timeline instead of a card list
   if (isToday) {
-    return `<div class="pr-col today-col" data-day="${day}">${hdr}
-      <div class="pr-tl-wrap" id="pr-tl-wrap"><span style="opacity:0.3;padding:12px;font-size:0.75rem">loading…</span></div>
+    return `<div class="hq-col today-col" data-day="${day}">${hdr}
+      <div class="hq-tl-wrap" id="hq-tl-wrap"><span style="opacity:0.3;padding:12px;font-size:0.75rem">loading…</span></div>
     </div>`;
   }
   const cards = weekData.days[day] || [];
-  return `<div class="pr-col${isWeekend?' weekend':''}" data-day="${day}">${hdr}
-    <div class="pr-list" id="pr-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
+  return `<div class="hq-col${isWeekend?' weekend':''}" data-day="${day}">${hdr}
+    <div class="hq-list" id="hq-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
   </div>`;
 }
 
@@ -217,15 +217,15 @@ function buildBoard() {
   let html = '';
   groups.forEach((groupDays, gi) => {
     const small = gi >= 1;
-    html += `<div class="pr-colgroup${small?' small':''}">`;
+    html += `<div class="hq-colgroup${small?' small':''}">`;
     html += groupDays.map(day => dayCellHtml(day, today)).join('');
     html += `</div>`;
   });
 
-  document.getElementById('pr-board').innerHTML = html;
+  document.getElementById('hq-board').innerHTML = html;
   initSortable(days);
-  document.querySelectorAll('.pr-card').forEach(el => {
-    el.addEventListener('click', () => { if (!_prDragging) openCardDialog(el.dataset.id, () => load(weekStart), 'prof'); });
+  document.querySelectorAll('.hq-card').forEach(el => {
+    el.addEventListener('click', () => { if (!_hqDragging) openCardDialog(el.dataset.id, () => load(weekStart), 'hq'); });
   });
   // build the today timeline (drop target + blocks)
   const todayCards = (weekData.days[today] || []).filter(c => !c.is_reminder && !c.is_book);
@@ -233,10 +233,10 @@ function buildBoard() {
 }
 
 function initSortable(days) {
-  const unscheduleEl = document.getElementById('pr-unschedule');
+  const unscheduleEl = document.getElementById('hq-unschedule');
 
   Sortable.create(unscheduleEl, {
-    group: { name: 'prophecies', put: true, pull: false },
+    group: { name: 'hq', put: true, pull: false },
     animation: 120,
     ghostClass: 'sortable-ghost',
     onAdd(evt) {
@@ -248,36 +248,36 @@ function initSortable(days) {
   });
 
   days.forEach(day => {
-    const el = document.getElementById('pr-list-' + day);
+    const el = document.getElementById('hq-list-' + day);
     if (!el) return;
     Sortable.create(el, {
-      group: 'prophecies',
+      group: 'hq',
       animation: 120,
       ghostClass: 'sortable-ghost',
       delay: 300,
       delayOnTouchOnly: true,
       onStart() {
-        _prDragging = true;
-        document.body.classList.add('pr-dragging');
+        _hqDragging = true;
+        document.body.classList.add('hq-dragging');
       },
       onEnd(evt) {
-        _prDragging = false;
-        document.body.classList.remove('pr-dragging');
+        _hqDragging = false;
+        document.body.classList.remove('hq-dragging');
         const cardId = evt.item.dataset.id;
         const cardDue = evt.item.dataset.due;
-        const toDay = evt.to.id.replace('pr-list-', '');
+        const toDay = evt.to.id.replace('hq-list-', '');
 
         if (evt.to === unscheduleEl) return;
 
         if (cardDue && toDay > cardDue) {
           showToast(`Warning: scheduling after due date (${cardDue})`);
         }
-        evt.to.querySelectorAll('.pr-card').forEach((el, i) => {
+        evt.to.querySelectorAll('.hq-card').forEach((el, i) => {
           if (el.dataset.id === cardId) queueUpdate(el.dataset.id, toDay, i);
           else queueUpdate(el.dataset.id, undefined, i);
         });
         if (evt.from !== evt.to) {
-          evt.from.querySelectorAll('.pr-card').forEach((el, i) => {
+          evt.from.querySelectorAll('.hq-card').forEach((el, i) => {
             queueUpdate(el.dataset.id, undefined, i);
           });
         }
@@ -306,7 +306,7 @@ async function flushUpdates() {
   pendingUpdates = [];
   setStatus('saving...');
   try {
-    await fetch('/api/prophecies', {
+    await fetch('/api/hq', {
       method: 'PATCH',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({updates}),
@@ -319,12 +319,12 @@ async function flushUpdates() {
 }
 
 function setStatus(msg) {
-  document.getElementById('pr-status').textContent = msg;
+  document.getElementById('hq-status').textContent = msg;
 }
 
 let toastTimer = null;
 function showToast(msg) {
-  const el = document.getElementById('pr-toast');
+  const el = document.getElementById('hq-toast');
   el.textContent = msg;
   el.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
@@ -358,8 +358,8 @@ function consult_oracle() {
 }
 
 async function load(start) {
-  document.getElementById('pr-board').innerHTML = '<span class="pr-loading">loading...</span>';
-  const url = start ? `/api/prophecies?start=${start}` : '/api/prophecies';
+  document.getElementById('hq-board').innerHTML = '<span class="hq-loading">loading...</span>';
+  const url = start ? `/api/hq?start=${start}` : '/api/hq';
   const r = await fetch(url);
   weekData = await r.json();
   weekStart = weekData.week_start;

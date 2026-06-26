@@ -341,7 +341,7 @@ def import_gcal_cards(days_ahead: int = 365) -> dict:
             "notes": "\n".join(notes_parts) or "",
         }
         cards.append(card)
-        _append_rd_log("imported", ev["summary"], source="core", due_date=card["due_date"])
+        _append_rd_log("imported", ev["summary"], source="rd", due_date=card["due_date"])
         imported += 1
 
     rd["cards"] = cards

@@ -32,7 +32,7 @@ def get_week_data(start_iso: str | None = None) -> dict:
     unscheduled = []
 
     for c in cards:
-        # Prophecies mirrors hq exactly: same card set, no more, no less.
+        # HQ mirrors the hq column exactly: same card set, no more, no less.
         if c.get("column") != "hq":
             continue
         sd = c.get("scheduled_day")
@@ -40,7 +40,7 @@ def get_week_data(start_iso: str | None = None) -> dict:
             days[sd].append(c)
         else:
             # hq card with no scheduled_day, or one falling outside the
-            # visible week — still belongs in profs (hq set == profs set).
+            # visible week — still belongs in HQ (hq set == HQ set).
             unscheduled.append(c)
 
     for d in week_days:
@@ -79,7 +79,7 @@ def bulk_update_scheduled_days(updates: list[dict]) -> dict:
                     card["order"] = (min(rd_orders) - 1) if rd_orders else 0
                 elif new_day == _today_iso():
                     card["dir_start_min"] = place_card_today(rd.get("cards", []), new_day)
-                log_prophecy_change(cid, old_day, new_day, title=card.get("title", cid))
+                log_hq_change(cid, old_day, new_day, title=card.get("title", cid))
                 changed_this = True
 
         if "order" in upd:
@@ -93,9 +93,9 @@ def bulk_update_scheduled_days(updates: list[dict]) -> dict:
     return {"ok": True, "changed": changed}
 
 
-def log_prophecy_change(card_id: str, from_day: str | None, to_day: str | None, title: str = ""):
-    _append_rd_log("rescheduled", title or card_id, source="prof", card_id=card_id, from_day=from_day, to_day=to_day)
+def log_hq_change(card_id: str, from_day: str | None, to_day: str | None, title: str = ""):
+    _append_rd_log("rescheduled", title or card_id, source="hq", card_id=card_id, from_day=from_day, to_day=to_day)
 
 
-def get_prophecies_log(limit: int = 50) -> list:
-    return get_rd_log(limit=limit, source="prof")
+def get_hq_log(limit: int = 50) -> list:
+    return get_rd_log(limit=limit, source="hq")
