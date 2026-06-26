@@ -188,77 +188,116 @@ _NAME_ACRONYMS = {
 }
 
 
-def _friendly_from_source(src: str) -> str:
-    """Title-case name from a source path's basename: strip dir + extension,
-    split on _-. separators, capitalize each word (acronyms fully upper)."""
-    base = src.rsplit("/", 1)[-1].rsplit(".", 1)[0]
-    words = []
-    for w in re.split(r"[_\-.]+", base):
-        if not w:
-            continue
-        words.append(w.upper() if w.lower() in _NAME_ACRONYMS else w.capitalize())
-    return " ".join(words)
+# Distinct, high-contrast node colors for the merged communities (Tableau-10 +
+# two extensions) so up to MAX_COMMUNITIES groups each get their OWN color. These
+# are vis-network DATA colors baked into the graph JSON, NOT the chrome.css UI
+# palette, so the palette lint never sees them. Indexed by community rank.
+_COMMUNITY_COLORS = [
+    "#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948",
+    "#B07AA1", "#FF9DA7", "#9C755F", "#86BCB6", "#D37295", "#A0CBE8",
+]
+_OTHER_COLOR = "#8C8C8C"  # the overflow "(other)" bucket, a neutral grey
+MAX_COMMUNITIES = 12
 
 
-def _dominant_community_name(nodes, cid) -> str:
-    """Friendly name for community `cid` from its members' most common source
-    file, or "" if the community has no source-backed nodes."""
-    srcs = Counter(
-        str(n.get("source_file"))
-        for n in nodes
-        if n.get("community") == cid and n.get("source_file")
-    )
-    if not srcs:
-        return ""
-    return _friendly_from_source(srcs.most_common(1)[0][0])
+def _node_group_key(src) -> str:
+    """Merge bucket for a node: its top-level source directory. Repo-root files
+    (and sourceless synthetic nodes) bucket together as "(root)"."""
+    parts = str(src or "").split("/")
+    return parts[0] if len(parts) > 1 and parts[0] else "(root)"
 
 
-_GENERIC_COMMUNITY_RE = re.compile(r"^Community \d+$")
+def _friendly_dir(key: str) -> str:
+    """Readable community label from a directory key: strip a leading dot,
+    title-case each word (acronyms fully upper). "(root)" -> "Root"."""
+    if key.startswith("(") and key.endswith(")"):
+        return key.strip("()").capitalize()
+    words = [
+        w.upper() if w.lower() in _NAME_ACRONYMS else w.capitalize()
+        for w in re.split(r"[_\-.]+", key.lstrip("."))
+        if w
+    ]
+    return " ".join(words) or key
 
 
-def _community_renames(nodes, legend) -> dict:
-    """Map of cid -> friendly name for every legend row still labeled generically
-    ("Community N") that has a source-backed dominant file."""
-    renames = {}
-    for row in legend:
-        if _GENERIC_COMMUNITY_RE.match(str(row.get("label") or "")):
-            name = _dominant_community_name(nodes, row.get("cid"))
-            if name:
-                renames[row.get("cid")] = name
-    return renames
+def _node_color(hex_color: str) -> dict:
+    """vis-network per-node color object in graphify's shape."""
+    return {
+        "background": hex_color,
+        "border": hex_color,
+        "highlight": {"background": "#ffffff", "border": hex_color},
+    }
 
 
-def _apply_legend_renames(rows, renames):
-    for r in rows:
-        if r.get("cid") in renames:
-            r["label"] = renames[r["cid"]]
-    return rows
+def _merge_graph_communities(page: str, max_n: int = MAX_COMMUNITIES) -> str:
+    """Collapse graphify's many fine-grained communities into at most `max_n`
+    groups keyed by top-level source directory — for the /graph page only.
 
-
-def _apply_node_renames(nodes, renames):
-    for n in nodes:
-        name = renames.get(n.get("community"))
-        if name:
-            n["community_name"] = name
-    return nodes
-
-
-def _name_graph_communities(page: str) -> str:
-    """Replace generic "Community N" labels with a name derived from each
-    community's dominant source file. Updates both the LEGEND label (legend
-    list) and member nodes' community_name (node-info panel) — both render. Best
-    effort: communities with no source files keep their generic label. Run AFTER
-    the drop passes so the dominant-source vote reflects only surviving nodes."""
+    graphify emits dozens of communities but vis cycles only a 10-color palette,
+    so 6+ communities share one color and the clusters become visually
+    indistinguishable (reads as color noise). Regrouping by top-level dir
+    (api / web / tests / ...) yields a handful of groups, each given its OWN
+    distinct color + legend row, so color encodes structure again. Reassigns
+    every node's community / community_name / color and rebuilds LEGEND. The long
+    tail beyond max_n folds into a single grey "Other" bucket. No-op if RAW_NODES
+    is absent. Supersedes the old per-community rename pass."""
     nodes = _read_array(page, "RAW_NODES")
-    legend = _read_array(page, "LEGEND")
-    if not nodes or not legend:
+    if not nodes:
         return page
-    renames = _community_renames(nodes, legend)
-    if not renames:
-        return page
-    page = _sub_json_array(page, "LEGEND", lambda rows: _apply_legend_renames(rows, renames))
-    page = _sub_json_array(page, "RAW_NODES", lambda ns: _apply_node_renames(ns, renames))
+    counts = Counter(_node_group_key(n.get("source_file")) for n in nodes)
+    ranked = [k for k, _ in counts.most_common()]
+    keep = set(ranked[: max_n - 1]) if len(ranked) > max_n else set(ranked)
+    ordered = [k for k in ranked if k in keep]  # size-desc, stable cid + color
+    cid_of = {k: i for i, k in enumerate(ordered)}
+    other_cid = len(ordered)
+    has_other = len(ranked) > len(keep)
+
+    def _color_for(cid):
+        return _COMMUNITY_COLORS[cid % len(_COMMUNITY_COLORS)]
+
+    def _retag(ns):
+        for n in ns:
+            k = _node_group_key(n.get("source_file"))
+            if k in keep:
+                cid, color, label = cid_of[k], _color_for(cid_of[k]), _friendly_dir(k)
+            else:
+                cid, color, label = other_cid, _OTHER_COLOR, "Other"
+            n["community"] = cid
+            n["community_name"] = label
+            n["color"] = _node_color(color)
+        return ns
+
+    legend = [
+        {"cid": cid_of[k], "color": _color_for(cid_of[k]),
+         "label": _friendly_dir(k), "count": counts[k]}
+        for k in ordered
+    ]
+    if has_other:
+        tail = sum(counts[k] for k in ranked if k not in keep)
+        legend.append({"cid": other_cid, "color": _OTHER_COLOR, "label": "Other", "count": tail})
+
+    page = _sub_json_array(page, "RAW_NODES", _retag)
+    page = _sub_json_array(page, "LEGEND", lambda _rows: legend)
     return page
+
+
+def _fix_graph_stats(page: str) -> str:
+    """Rewrite the #stats header to match the scrubbed + merged graph. graphify
+    bakes the PRE-scrub node/edge/community counts into that div, so after the
+    drops + community merge it's stale (e.g. "56 communities" when we render 8).
+    No-op if RAW_NODES or the div is missing."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
+        return page
+    edges = _read_array(page, "RAW_EDGES") or []
+    legend = _read_array(page, "LEGEND")
+    communities = len(legend) if legend else len({n.get("community") for n in nodes})
+    return re.sub(
+        r'(<div id="stats">).*?(</div>)',
+        rf"\g<1>{len(nodes)} nodes &middot; {len(edges)} edges "
+        rf"&middot; {communities} communities\g<2>",
+        page, count=1, flags=re.DOTALL,
+    )
 
 
 def _drop_graph_moltbook_nodes(page: str) -> str:

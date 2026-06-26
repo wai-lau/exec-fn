@@ -29,7 +29,8 @@ from graph_scrub import (
     _drop_graph_book_nodes,
     _drop_graph_moltbook_nodes,
     _drop_graph_vendor_nodes,
-    _name_graph_communities,
+    _merge_graph_communities,
+    _fix_graph_stats,
     _size_graph_by_loc,
 )
 
@@ -341,11 +342,14 @@ async def graph_page(request: Request):
     page = _drop_graph_book_nodes(page)
     page = _drop_graph_moltbook_nodes(page)
     page = _drop_graph_vendor_nodes(page)
-    # Name communities after the drops so the dominant-source vote and the
-    # emptied-community pruning are already settled.
-    page = _name_graph_communities(page)
+    # Merge graphify's many fine-grained communities into <=12 dir-based groups
+    # (after the drops) so each gets a distinct color — vis only has 10 palette
+    # slots, so 56 communities collapse to indistinguishable color noise.
+    page = _merge_graph_communities(page)
     # Size nodes by line count (from graph.json sibling) instead of degree.
     page = _size_graph_by_loc(page, p.with_name("graph.json"))
+    # Header counts are baked pre-scrub; rewrite to the merged/dropped reality.
+    page = _fix_graph_stats(page)
     # Disable vis-network's improvedLayout — the graph is too large for it to
     # position (it warns + costs perf). Patched here so it survives /graphify.
     page = page.replace(
