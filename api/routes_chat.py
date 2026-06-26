@@ -60,6 +60,20 @@ def api_chat_clear():
     return {"ok": True}
 
 
+async def _dispatch_tools(blocks, tool_result_contents):
+    """Run each tool_use block: stream a tool_call SSE event, collect its
+    tool_result, and fire the debounced monitor on a completed sub-step
+    (advance_chunk) — same channel as R&D/HQ activity."""
+    for block in blocks:
+        if block.type != "tool_use":
+            continue
+        result = await asyncio.to_thread(_handle_tool, block.name, block.input)
+        if block.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
+            schedule_monitor()
+        yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
+        tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
+
+
 @router.post("/api/chat")
 async def api_chat(body: ChatBody):
     # Strip everything but role/content. The stored chat carries a server-side
@@ -105,21 +119,9 @@ async def api_chat(body: ChatBody):
         ]
         all_messages = messages + [{"role": "assistant", "content": assistant_content}]
         tool_result_contents = []
-        fire_monitor = False
 
-        for block in final.content:
-            if block.type != "tool_use":
-                continue
-            result = await asyncio.to_thread(_handle_tool, block.name, block.input)
-            # A completed sub-step is monitor-worthy — let the debounced monitor
-            # comment on the momentum (same channel as R&D/HQ activity).
-            if block.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
-                fire_monitor = True
-            yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
-            tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
-
-        if fire_monitor:
-            schedule_monitor()
+        async for chunk in _dispatch_tools(final.content, tool_result_contents):
+            yield chunk
 
         if tool_result_contents:
             all_messages.append({"role": "user", "content": tool_result_contents})
