@@ -51,6 +51,20 @@ _GRAPH_DROP_SOURCE_PREFIX = "api/tarot/book/"
 # vendor dir; same survives-rebuild rationale as the book drop.
 _GRAPH_DROP_VENDOR_PREFIX = "web/vendor/"
 
+# External library / framework symbols graphify lifts out of imports + type
+# annotations (BaseModel, Request, WebSocket, FastAPI, Path, datetime, ...) —
+# not exec-fn's own code, just clutter on the viz. In graph.html they carry NO
+# source_file (no in-repo definition site); this label set backs that up for any
+# that slip through with a mis-attributed source.
+_GRAPH_LIB_LABELS = {
+    "Request", "Response", "WebSocket", "WebSocketDisconnect", "BaseModel",
+    "FastAPI", "APIRouter", "HTTPException", "JSONResponse", "HTMLResponse",
+    "PlainTextResponse", "StreamingResponse", "FileResponse", "RedirectResponse",
+    "Depends", "Security", "Cookie", "Query", "Path", "HTTPBearer",
+    "HTTPAuthorizationCredentials", "BackgroundTasks", "Any", "Optional",
+    "datetime", "date", "timedelta", "timezone",
+}
+
 # moltbook is a separate side-ledger (heartbeat log) wired into exec-fn through a
 # single read-only route + its data file. It's noise on the public codebase
 # graph, so drop any node whose id/label/source mentions it. Substring match (not
@@ -179,25 +193,50 @@ def _drop_graph_vendor_nodes(page: str) -> str:
     return _prune_graph_nodes(page, drop_ids)
 
 
+def _drop_graph_library_nodes(page: str) -> str:
+    """Drop external library/framework symbols from the viz — imported names like
+    BaseModel / Request / WebSocket / FastAPI, not exec-fn code. Signal: a code
+    node with no source_file (no in-repo definition) OR a known library label.
+    Prunes their dangling edges too. No-op if RAW_NODES is absent."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
+        return page
+    drop_ids = {
+        n.get("id")
+        for n in nodes
+        if n.get("file_type") == "code"
+        and (
+            not str(n.get("source_file") or "").strip()
+            or n.get("label") in _GRAPH_LIB_LABELS
+        )
+    }
+    return _prune_graph_nodes(page, drop_ids)
+
+
 # Short tokens that read better fully uppercased in a derived community name
 # (acronyms / domain terms) than title-cased ("Routes Api" -> "Routes API").
 _NAME_ACRONYMS = {
     "api", "css", "js", "html", "llm", "mtg", "gcal", "sse", "ui", "id",
     "json", "cv", "rd", "hq", "ics", "oauth", "svg", "etag", "ip", "ts",
-    "tsx", "md", "sh", "url", "sql", "http", "dag",
+    "tsx", "md", "sh", "url", "sql", "http", "dag", "tts",
 }
 
 
-# Distinct, high-contrast node colors for the merged communities (Tableau-10 +
-# two extensions) so up to MAX_COMMUNITIES groups each get their OWN color. These
+# Distinct, high-contrast node colors for the merged communities (Tableau-20 +
+# ColorBrewer Dark2 = 28 hues) so each logical module gets its OWN color. These
 # are vis-network DATA colors baked into the graph JSON, NOT the chrome.css UI
-# palette, so the palette lint never sees them. Indexed by community rank.
+# palette, so the palette lint never sees them. Biggest community = index 0;
+# cycles only if a graph ever yields more communities than colors.
 _COMMUNITY_COLORS = [
     "#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948",
-    "#B07AA1", "#FF9DA7", "#9C755F", "#86BCB6", "#D37295", "#A0CBE8",
+    "#B07AA1", "#FF9DA7", "#9C755F", "#BAB0AC", "#A0CBE8", "#FFBE7D",
+    "#8CD17D", "#86BCB6", "#F1CE63", "#D7B5A6", "#FABFD2", "#D4A6C8",
+    "#D37295", "#499894", "#1B9E77", "#D95F02", "#7570B3", "#E7298A",
+    "#66A61E", "#E6AB02", "#A6761D", "#666666",
 ]
-_OTHER_COLOR = "#8C8C8C"  # the overflow "(other)" bucket, a neutral grey
-MAX_COMMUNITIES = 12
+# A logical module/feature with fewer than this many nodes folds into its
+# top-level dir bucket, so the legend isn't littered with 2-node modules.
+_MIN_COMMUNITY = 10
 
 
 def _node_group_key(src) -> str:
@@ -205,6 +244,20 @@ def _node_group_key(src) -> str:
     (and sourceless synthetic nodes) bucket together as "(root)"."""
     parts = str(src or "").split("/")
     return parts[0] if len(parts) > 1 and parts[0] else "(root)"
+
+
+def _logical_key(src) -> str:
+    """The logical module/feature a node belongs to — its community. A subdir
+    module (api/tarot/*, api/mtg/* -> "tarot"/"mtg") or a flat file's family
+    (web/tarot-view.js, api/nudge_loop.py -> "tarot"/"nudge"), so a FEATURE groups
+    across layers: api/tarot/* and web/tarot-*.js both land in "Tarot". Root /
+    sourceless nodes -> "(root)"."""
+    parts = str(src or "").split("/")
+    if len(parts) >= 3:
+        return parts[1]  # subdir module name
+    if len(parts) == 2:
+        return re.split(r"[-_]", parts[1].rsplit(".", 1)[0])[0]  # filename family
+    return "(root)"
 
 
 def _friendly_dir(key: str) -> str:
@@ -229,54 +282,48 @@ def _node_color(hex_color: str) -> dict:
     }
 
 
-def _merge_graph_communities(page: str, max_n: int = MAX_COMMUNITIES) -> str:
-    """Collapse graphify's many fine-grained communities into at most `max_n`
-    groups keyed by top-level source directory — for the /graph page only.
-
-    graphify emits dozens of communities but vis cycles only a 10-color palette,
-    so 6+ communities share one color and the clusters become visually
-    indistinguishable (reads as color noise). Regrouping by top-level dir
-    (api / web / tests / ...) yields a handful of groups, each given its OWN
-    distinct color + legend row, so color encodes structure again. Reassigns
-    every node's community / community_name / color and rebuilds LEGEND. The long
-    tail beyond max_n folds into a single grey "Other" bucket. No-op if RAW_NODES
-    is absent. Supersedes the old per-community rename pass."""
+def _merge_graph_communities(page: str, min_size: int = _MIN_COMMUNITY) -> str:
+    """Regroup nodes into logically-named, feature-based communities for the
+    /graph page only, so color encodes real structure. graphify emits dozens of
+    fine-grained communities but vis cycles a 10-color palette -> colors collide
+    -> the clusters read as indistinguishable noise. Group by logical
+    module/feature (`_logical_key`: api/tarot/* + web/tarot-*.js -> "Tarot",
+    api/nudge*.py -> "Nudge", ...); a feature smaller than `min_size` folds into
+    its top-level dir bucket ("API"/"Web") so the legend isn't littered with
+    2-node modules. Every feature here is already <=150 nodes. Reassigns each
+    node's community/community_name/color and rebuilds LEGEND, biggest community
+    first. No-op if RAW_NODES absent. Supersedes the per-community rename pass."""
     nodes = _read_array(page, "RAW_NODES")
     if not nodes:
         return page
-    counts = Counter(_node_group_key(n.get("source_file")) for n in nodes)
-    ranked = [k for k, _ in counts.most_common()]
-    keep = set(ranked[: max_n - 1]) if len(ranked) > max_n else set(ranked)
-    ordered = [k for k in ranked if k in keep]  # size-desc, stable cid + color
-    cid_of = {k: i for i, k in enumerate(ordered)}
-    other_cid = len(ordered)
-    has_other = len(ranked) > len(keep)
+    fam_counts = Counter(_logical_key(n.get("source_file")) for n in nodes)
 
-    def _color_for(cid):
+    def key_of(n):
+        src = n.get("source_file")
+        fam = _logical_key(src)
+        return fam if fam_counts[fam] >= min_size else _node_group_key(src)
+
+    key_counts = Counter(key_of(n) for n in nodes)
+    order = [k for k, _ in sorted(key_counts.items(), key=lambda kc: (-kc[1], kc[0]))]
+    cid_of = {k: i for i, k in enumerate(order)}
+
+    def _color(cid):
         return _COMMUNITY_COLORS[cid % len(_COMMUNITY_COLORS)]
 
     def _retag(ns):
         for n in ns:
-            k = _node_group_key(n.get("source_file"))
-            if k in keep:
-                cid, color, label = cid_of[k], _color_for(cid_of[k]), _friendly_dir(k)
-            else:
-                cid, color, label = other_cid, _OTHER_COLOR, "Other"
+            cid = cid_of[key_of(n)]
             n["community"] = cid
-            n["community_name"] = label
-            n["color"] = _node_color(color)
+            n["community_name"] = _friendly_dir(order[cid])
+            n["color"] = _node_color(_color(cid))
         return ns
 
-    legend = [
-        {"cid": cid_of[k], "color": _color_for(cid_of[k]),
-         "label": _friendly_dir(k), "count": counts[k]}
-        for k in ordered
-    ]
-    if has_other:
-        tail = sum(counts[k] for k in ranked if k not in keep)
-        legend.append({"cid": other_cid, "color": _OTHER_COLOR, "label": "Other", "count": tail})
-
     page = _sub_json_array(page, "RAW_NODES", _retag)
+    legend = [
+        {"cid": cid_of[k], "color": _color(cid_of[k]),
+         "label": _friendly_dir(k), "count": key_counts[k]}
+        for k in order
+    ]
     page = _sub_json_array(page, "LEGEND", lambda _rows: legend)
     return page
 
