@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from chat import _build_chat_system_prompt, _chat_tools, _save_chat
 from chat_tools import _handle_tool
 from helpers import DATA_DIR
+from monitor import schedule_monitor
 
 router = APIRouter()
 
@@ -104,13 +105,21 @@ async def api_chat(body: ChatBody):
         ]
         all_messages = messages + [{"role": "assistant", "content": assistant_content}]
         tool_result_contents = []
+        fire_monitor = False
 
         for block in final.content:
             if block.type != "tool_use":
                 continue
             result = await asyncio.to_thread(_handle_tool, block.name, block.input)
+            # A completed sub-step is monitor-worthy — let the debounced monitor
+            # comment on the momentum (same channel as R&D/HQ activity).
+            if block.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
+                fire_monitor = True
             yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
             tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
+
+        if fire_monitor:
+            schedule_monitor()
 
         if tool_result_contents:
             all_messages.append({"role": "user", "content": tool_result_contents})

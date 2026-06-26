@@ -9,7 +9,7 @@ Run (server is up locally):
 """
 import pytest
 
-from conftest import API_KEY, GUEST_KEY, HTML_ACCEPT
+from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 
 # Public — no auth, must render.
 PUBLIC_PAGES = ["/", "/recruiter", "/color", "/graph", "/nightfall", "/login", "/guest"]
@@ -61,9 +61,9 @@ def test_guest_redirects_without_auth(client, path):
 
 
 @pytest.mark.parametrize("path", GUEST_PAGES)
-def test_guest_loads_with_guest_bearer(client, guest_headers, path):
-    r = client.get(path, headers=guest_headers)
-    assert r.status_code == 200, f"{path} -> {r.status_code} with guest Bearer"
+def test_guest_loads_with_guest_cookie(client, guest_cookie, path):
+    r = client.get(path, headers=guest_cookie)
+    assert r.status_code == 200, f"{path} -> {r.status_code} with guest cookie"
     assert _is_page(r)
 
 
@@ -88,14 +88,19 @@ def test_login_post_bad_key_rejected(client):
     assert r.status_code == 401
 
 
-def test_guest_post_good_key_sets_cookie(client):
-    r = client.post("/guest", data={"key": GUEST_KEY})
+def test_guest_post_valid_turnstile_sets_cookie(client):
+    # Only the Cloudflare test secret (1x0000…) attests an arbitrary token; with a
+    # real secret a passing token can't be minted offline, so skip there.
+    if not (TURNSTILE_SECRET or "").startswith("1x0000000000000000000000000000000"):
+        pytest.skip("not using the Cloudflare test secret; cannot mint a passing token")
+    r = client.post("/guest", data={"cf-turnstile-response": "dummy"})
     assert r.status_code == 303
     assert "guest_session=" in r.headers.get("set-cookie", "")
 
 
-def test_guest_post_bad_key_rejected(client):
-    r = client.post("/guest", data={"key": "wrong-key"})
+def test_guest_post_no_token_rejected(client):
+    # Empty/missing Turnstile token is a fast 401 (no siteverify call) under any secret.
+    r = client.post("/guest", data={"cf-turnstile-response": ""})
     assert r.status_code == 401
 
 

@@ -1,13 +1,12 @@
 <link rel="stylesheet" href="/guest_login.css?v=2">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <div style="display:flex;flex-direction:column;align-items:center;gap:24px">
   <img src="/ped-logo.png" style="width:160px;opacity:0.9">
   <form class="login-box" method="post" action="/guest">
     <input type="hidden" name="next" value="{next}">
-    <input type="text" name="username" value="guest" autocomplete="username"
-      aria-hidden="true" tabindex="-1"
-      style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
-    <input type="text" name="key" autofocus autocomplete="off" placeholder="access-key" enterkeyhint="go">
+    <div class="cf-turnstile" data-sitekey="{site_key}" data-callback="onGuestVerified" data-theme="dark"></div>
     <button type="submit" class="submit" aria-label="submit">▼</button>
   </form>
 </div>
+<script src="/guest_login.js?v=1"></script>
 <a href="/login" class="landing-admin">admin</a>

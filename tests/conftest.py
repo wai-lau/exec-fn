@@ -5,10 +5,12 @@ imported FastAPI instance — a smoke test's job is to prove the deployed
 artifact actually serves: real templates render, graphify-out + emet data are
 present, routes are wired. Override the target with SMOKE_BASE_URL.
 
-Auth uses the Bearer-token path (`Authorization: Bearer <key>`), which both
-require_auth and require_guest_auth accept. The cookie login sets a Secure
-cookie, which httpx won't replay over plain-HTTP localhost — Bearer sidesteps
-that entirely and is the cleaner header auth for a test client.
+Admin auth uses the Bearer-token path (`Authorization: Bearer <API_KEY>`), which
+both require_auth and require_guest_auth accept. The guest tier is no longer a
+shared bearer key — it's a Cloudflare Turnstile challenge — so guest tests mint
+the guest_session cookie directly (sha256("guest:<TURNSTILE_SECRET>")) rather
+than solving a live challenge. The cookie login sets a Secure cookie, which
+httpx won't replay over plain-HTTP localhost, so these set it as a raw header.
 """
 import hashlib
 import os
@@ -34,7 +36,7 @@ def _key(name: str) -> str | None:
 
 
 API_KEY = _key("API_KEY")
-GUEST_KEY = _key("GUEST_KEY") or "test-guest-key"
+TURNSTILE_SECRET = _key("TURNSTILE_SECRET")
 
 
 def pytest_configure(config):
@@ -42,11 +44,6 @@ def pytest_configure(config):
         "markers",
         "browser: WebKit (playwright) tests — heavier than the HTTP smoke "
         "suite; excluded from the fast pre-commit gate via `-m 'not browser'`.")
-
-
-@pytest.fixture
-def guest_key() -> str:
-    return GUEST_KEY
 
 
 @pytest.fixture(scope="session")
@@ -75,8 +72,16 @@ def admin_headers() -> dict:
 
 
 @pytest.fixture
-def guest_headers() -> dict:
-    return {"Authorization": f"Bearer {GUEST_KEY}", "Accept": "text/html"}
+def guest_cookie() -> dict:
+    """Guest tier via the guest_session cookie a real Turnstile solve would set.
+
+    The cookie value is sha256("guest:<TURNSTILE_SECRET>") — recomputed here so
+    tests don't have to solve a live challenge. Secure cookie → raw header.
+    """
+    if not TURNSTILE_SECRET:
+        pytest.skip("TURNSTILE_SECRET not set (env or .env) — cannot mint guest cookie")
+    token = hashlib.sha256(f"guest:{TURNSTILE_SECRET}".encode()).hexdigest()
+    return {"Cookie": f"guest_session={token}", "Accept": "text/html"}
 
 
 @pytest.fixture
