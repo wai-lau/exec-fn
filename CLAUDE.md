@@ -138,7 +138,7 @@ exec-fn/
       emet.html           # /emet — protected static page; emet_page() injects chrome+cyber-fx+nav like graph (gitignored; edit on-server)
       guest_login.html    # /guest login form fragment ({next} placeholder filled by main.py)
       recruiter.html      # /recruiter — public résumé markup (styles in web/recruiter.css)
-      tts.html            # /hosaka — HOSAKA SPEAK UI (no title; textarea flex-grows to fill the column; voice select, clone/playback knobs). All Iosevka. Assets web/tts.{js,css}
+      tts.html            # /hosaka — HOSAKA SPEAK UI (no title; textarea flex-grows to fill the column; Speak button + voice select share one `.tts-row`, clone/playback knobs below). All Iosevka. Assets web/tts.{js,css}
       mtg.html            # /mtg — rules-assistant chat
       tarot.html          # /tarot — spread + reader chat (localStorage state; reading saved server-side on reset)
     data/                 # persistent volume (./api/data → /app/data)
