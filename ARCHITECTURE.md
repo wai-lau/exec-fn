@@ -1,7 +1,7 @@
 # exec-fn — Architecture (UML, Mermaid)
 
 Generated from source (`api/*.py`, `docker-compose.yml`, `Dockerfile`,
-cron). Four views:
+cron). Five views:
 
 1. [Deployment](#1-deployment) — how a request reaches code
 2. [Module graph](#2-module-graph) — what imports what
@@ -9,6 +9,8 @@ cron). Four views:
    cards move through time
 4. [TTS subsystem](#4-tts-text-to-speech) — how every voice reaches the
    browser
+5. [LLM call sites + prompt caching](#5-llm-call-sites--prompt-caching) —
+   every Claude request and which prefixes are cached
 
 ---
 
@@ -331,3 +333,82 @@ sequenceDiagram
   U-->>WS: {end}
   WS-->>B: {end} (playback drains to completion)
 ```
+
+---
+
+## 5. LLM call sites + prompt caching
+
+Every Claude call goes through the `anthropic` SDK with a pay-per-token
+`ANTHROPIC_API_KEY` (no subscription). Where a large, byte-stable system
+prefix is **reused across turns**, a `cache_control: {type: ephemeral}`
+marker (5-min TTL) lets repeat requests read that prefix at ~0.1x instead
+of full price.
+
+### The one invariant
+
+Render order is `tools -> system -> messages`. A marker on the **last
+system block** caches `tools + system` together as the prefix. Caching is
+a pure prefix match: any byte that changes inside the cached span (a
+timestamp, per-request card data) invalidates everything after it. So the
+static text must physically precede the volatile text, and the marker sits
+at the end of the static part. **Opus min cacheable prefix = 4096 tokens**
+— a shorter prefix silently caches nothing (`cache_creation_input_tokens`
+stays 0), so anything under that is left uncached.
+
+### Cached sites
+
+```mermaid
+flowchart LR
+  subgraph tarot["tarot/agent.py — stream_chat"]
+    tsys["system = [build_system(spread_type)]<br/>+ cache_control"]
+    ttools["tools = TOOLS"]
+    tmsg["messages<br/>(spread context lives HERE)"]
+    ttools --> tsys --> tmsg
+  end
+
+  subgraph mtg["mtg/agent.py — _SYSTEM_CACHED"]
+    msys["system = [SYSTEM] + cache_control"]
+    p1["pass 1: + TOOLS<br/>(research loop)"]
+    p2["pass 2: no tools<br/>(summarize)"]
+    msys --> p1
+    msys --> p2
+  end
+
+  subgraph exec["chat._build_chat_system_prompt"]
+    estatic["block 1: _CHAT_STATIC_PREFIX<br/>(identity + EXEC_VOICE + rules)<br/>+ cache_control"]
+    evol["block 2: volatile tail<br/>(TODAY, log, cards, schedule,<br/>context, nudge) — NO marker"]
+    etools["tools = _chat_tools()"]
+    etools --> estatic --> evol
+  end
+```
+
+| Call site | Model | Cached prefix | Tokens | Reuse pattern |
+|-----------|-------|---------------|-------:|---------------|
+| `tarot/agent.py` `stream_chat` | opus-4-8 | `build_system(spread_type)` + `TOOLS` | ~8.7K / ~13.4K | every turn of a reading |
+| `mtg/agent.py` pass 1 | opus-4-8 | `SYSTEM` + `TOOLS` | ~6.6K | across research tool-loop iterations + cross-question |
+| `mtg/agent.py` pass 2 | opus-4-8 | `SYSTEM` (no tools) | ~5.9K | cross-question only (separate prefix from pass 1) |
+| `routes_chat` `/api/chat` + `_stream_tool_followup` | opus-4-8 | `_CHAT_STATIC_PREFIX` + `_chat_tools()` | ~5.2K | every exec turn; follow-up reads what the main turn wrote |
+
+**Exec restructure:** the tools alone (~3.5K) are under 4096, so the static
+text is what lifts the prefix over the floor. `_build_chat_system_prompt`
+returns a **two-block** system list — a marked static block (identity +
+`EXEC_VOICE` + global rules) and an unmarked volatile tail. `TODAY` was at
+the top of the old single-string prompt and silently invalidated the cache
+every request; it now lives in the volatile tail. Both `routes_chat` call
+sites build the identical static block.
+
+### Uncached (measured, left alone)
+
+| Call site | Why |
+|-----------|-----|
+| `monitor.py` | static slice ~1.3K (no tools) < 4096; debounced bursts = low reuse |
+| `nudge_llm` `_TONE` | ~1.4K (no tools) < 4096; per-card one-shot |
+| `card_llm` classify / parse-date | one-shot per card; no system / ~80-token volatile system |
+| `morning.py`, `chat._dedupe_context` | daily one-shot; prompt lives in the user message |
+| `gcal._haiku_classify_batch` | no system block; tiny instructions in the user message |
+
+**Verifying:** the response `usage` reports `cache_creation_input_tokens`
+(written this request, ~1.25x) and `cache_read_input_tokens` (served from
+cache, ~0.1x). First request creates, second identical-prefix request
+reads. `cache_read` staying 0 across two identical requests means a silent
+invalidator is back in the prefix.
