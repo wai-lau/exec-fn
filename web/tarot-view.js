@@ -184,7 +184,7 @@ function renderSpread() {
     if (rot) el.style.transform = `rotate(${rot}deg)`;
 
     const back = document.createElement('img');
-    back.className = 'back'; back.src = '/tarot/card_back.jpg?v=5'; back.alt = '';
+    back.className = 'back'; back.src = '/tarot/card_back.jpg?v=6'; back.alt = '';
     el.appendChild(back);
     const face = document.createElement('img');
     face.className = 'face'; face.src = card.image; face.alt = card.name;
