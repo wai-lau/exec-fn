@@ -129,13 +129,11 @@
   accent-color: hsl(var(--green-hsl));
 }
 
-/* Scrolling playback scope between the Speak row and the clone knobs. The
-   `color` here is read by tts.js as the canvas stroke (keeps the hue in CSS). */
+/* Scrolling playback scope between the Speak row and the clone knobs. Always
+   present -- idle it shows the flat baseline; while speaking it scrolls a live
+   trace. The `color` here is read by tts.js as the canvas stroke (keeps the hue
+   in CSS). */
 #tts-wave {
-  display: none; /* hidden until audio starts (JS adds .live) -- frees the space */
-}
-
-#tts-wave.live {
   display: block;
 
   /* span the column width. NOT 100vw full-bleed: .tts now clips overflow (both
