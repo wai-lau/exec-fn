@@ -146,11 +146,11 @@
   height: 136px;
   color: hsl(var(--green-hsl) / 0.8);
 
-  /* faint baseline down the middle (persists when the scope is empty) */
+  /* baseline down the middle (persists when the scope is empty) */
   background: linear-gradient(
     transparent calc(50% - 0.5px),
-    hsl(var(--green-hsl) / 0.12) calc(50% - 0.5px),
-    hsl(var(--green-hsl) / 0.12) calc(50% + 0.5px),
+    hsl(var(--green-hsl) / 0.45) calc(50% - 0.5px),
+    hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
     transparent calc(50% + 0.5px)
   );
 }
