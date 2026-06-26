@@ -115,4 +115,5 @@
 
 #tts-cb.off {
   opacity: 0.25;
+  pointer-events: none; /* non-clickable until a chatterbox voice re-enables it */
 }
