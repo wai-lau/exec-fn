@@ -26,7 +26,7 @@
 .cg-est-unit { display:inline-flex; align-items:center; white-space:nowrap; }
 .cg-meta input { font:inherit; font-size:9px; color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
 .cg-meta input:focus { outline:1px solid color-mix(in srgb, currentColor 55%, transparent); }
-.cg-time { width:52px; text-align:center; }
+.cg-time { width:calc(7ch + 8px); text-align:center; }
 .cg-est { width:30px; text-align:right; -moz-appearance:textfield; }
 .cg-est::-webkit-outer-spin-button, .cg-est::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 .cg-node.active .cg-meta { opacity:0.95; }
