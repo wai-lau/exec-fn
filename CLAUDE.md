@@ -41,6 +41,9 @@ docker compose up -d --build
 
 Models: `claude-opus-4-8` for reasoning, chat, voice, and the nudge graph; `claude-haiku-4-5` for two cheap classification calls — NL date-parse (`card_llm.parse_date_natural`) and gcal event batch-classify (`gcal._haiku_classify_batch`). `classify_card` stays on opus. Auth: `ANTHROPIC_API_KEY` in `.env` — these are pay-per-token API calls, NOT a Claude subscription.
 
+**Prompt caching** (Anthropic `cache_control: ephemeral`, 5-min TTL) is wired on the large STATIC system prefixes that get reused across turns, so repeat turns read the prefix at ~0.1x instead of full price. Opus min cacheable prefix = 4096 tokens; anything below that won't cache (silently) and is left alone. Cached call sites:
+- **Tarot** (`tarot/agent.py`) — `system=build_system(spread_type)` (~8.7K no-spread / ~13.4K three-card) + `TOOLS`, marked on the single system block. Fully static per reading; the per-turn spread context rides in `messages`, never `system`. A reading is many turns reusing the prefix.
+
 ---
 
 ## File map

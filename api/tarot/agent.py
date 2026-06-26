@@ -19,7 +19,13 @@ async def stream_chat(messages: list, system: str) -> AsyncGenerator[str, None]:
             async with client.messages.stream(
                 model="claude-opus-4-8",
                 max_tokens=4096,
-                system=system,
+                # Static prefix (system + tools) cached: a reading is many turns
+                # reusing the same build_system(spread_type) + TOOLS. ~8.7-13.4K
+                # prefix tokens read at ~0.1x after the first turn. The per-turn
+                # spread context rides in messages, never in system, so the cache
+                # prefix stays byte-stable across the reading.
+                system=[{"type": "text", "text": system,
+                         "cache_control": {"type": "ephemeral"}}],
                 tools=TOOLS,
                 messages=messages,
             ) as stream:
