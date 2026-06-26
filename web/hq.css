@@ -139,7 +139,10 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .dir-tl-label {
   position: absolute; right: 3px; transform: translateY(-50%);
-  font-size: 0.55rem; white-space: nowrap; font-family: '04b25', monospace;
+
+  /* large as the fixed-width gutter allows; right-aligned so growing the font
+     fills the gutter leftward and never shifts the track/spine */
+  font-size: 0.9rem; white-space: nowrap; font-family: '04b25', monospace;
   color: hsl(var(--gray-hsl) / 0.6);
 }
 .dir-tl-track { flex: 1; position: relative; background: transparent; }
