@@ -14,7 +14,7 @@ from conftest import API_KEY, GUEST_KEY, HTML_ACCEPT
 # Public — no auth, must render.
 PUBLIC_PAGES = ["/", "/recruiter", "/color", "/graph", "/nightfall", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
-PROTECTED_PAGES = ["/rd", "/prophecies", "/debug", "/emet"]
+PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/emet"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
 GUEST_PAGES = ["/mtg", "/tarot", "/hosaka"]
 

@@ -245,7 +245,7 @@ def _chat_tools() -> list:
                 "Use this whenever Wai says 'by [date]', 'due [date]', 'need to finish by', or assigns any date/deadline to an existing card. "
                 "Flow: "
                 "(1) if card is in rd, it gets moved to hq automatically. "
-                "(2) if date is within the 7-day prophecies window (today through today+6), sets scheduled_day — today puts it on today's timeline, future date schedules it in prophecies. "
+                "(2) if date is within the 7-day HQ window (today through today+6), sets scheduled_day — today puts it on today's timeline, future date schedules it in HQ. "
                 "(3) if date is beyond the 7-day window, sets due_date only and leaves card in rd backlog. "
                 "Always infer the right date from context — don't ask unless genuinely ambiguous. "
                 "When scheduling for today with a known time, also set dir_start_min (minutes from midnight, e.g. 9:00am = 540, 2:30pm = 870). "
@@ -255,7 +255,7 @@ def _chat_tools() -> list:
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "description": "Card ID."},
-                    "scheduled_day": {"type": "string", "description": "ISO date YYYY-MM-DD (today = directives, future = prophecies), or null to unschedule."},
+                    "scheduled_day": {"type": "string", "description": "ISO date YYYY-MM-DD (today = directives, future = HQ), or null to unschedule."},
                     "dir_start_min": {"type": "integer", "description": "Minutes from midnight for directives timeline position (e.g. 9:00am = 540, 2:30pm = 870). Only set when scheduling for today with a known time."},
                 },
                 "required": ["id"],

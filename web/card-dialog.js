@@ -1,4 +1,4 @@
-/* Shared card edit dialog — used by kanban, prophecies, directives */
+/* Shared card edit dialog — used by kanban, hq, directives */
 (function () {
   // Inject modal HTML once
   const html = `
@@ -112,7 +112,7 @@
   let _cdId = null;
   let _cdCards = null;
   let _cdCallback = null;
-  let _cdSource = 'core';
+  let _cdSource = 'rd';
 
   function _togglePages(show) {
     document.getElementById('cd-pages-wrap').style.display = show ? 'block' : 'none';
@@ -164,7 +164,7 @@
       useDate = new Date(now); useDate.setDate(now.getDate()+diff); useDate.setHours(0,0,0,0);
       month = useDate.getMonth(); day = useDate.getDate(); yr = useDate.getFullYear();
     }
-    if (month<0) { const m = dateStr.match(/^(\d{1,2})[\/-](\d{1,2})$/); if (m) { month=parseInt(m[1])-1; day=parseInt(m[2]); } }
+    if (month<0) { const m = dateStr.match(/^(\d{1,2})[/-](\d{1,2})$/); if (m) { month=parseInt(m[1])-1; day=parseInt(m[2]); } }
     if (month<0) { const m = dateStr.match(/^([a-z]+)\s+(\d{1,2})$/); if (m) { const i=mnths.findIndex(x=>m[1].startsWith(x)); if (i>=0) { month=i; day=parseInt(m[2]); } } }
     if (month<0||!day) return null;
     if (!useDate && new Date(yr,month,day)<=now) yr++;
@@ -197,7 +197,7 @@
 
   window.openCardDialog = async function(id, callback, source) {
     _cdCallback = callback || (() => {});
-    _cdSource = source || 'core';
+    _cdSource = source || 'rd';
     const data = await (await fetch('/api/rd')).json();
     _cdCards = data.cards || [];
     const c = _cdCards.find(x => x.id === id);

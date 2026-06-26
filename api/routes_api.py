@@ -148,7 +148,7 @@ def _flag_triage(new_cards: list, old_cards: dict) -> None:
 
 
 @protected.patch("/api/rd")
-async def api_rd_patch(request: Request, source: str = "core"):
+async def api_rd_patch(request: Request, source: str = "rd"):
     body = await request.json()
     p = DATA_DIR / "rd.json"
     data = _load_json("rd", {"columns": _RD_COLUMNS})
@@ -247,23 +247,23 @@ async def monitor_flush():
     return await flush_monitor()
 
 
-@protected.get("/api/prophecies")
-def api_prophecies_get(start: str = ""):
-    from prophecies import get_week_data
+@protected.get("/api/hq")
+def api_hq_get(start: str = ""):
+    from hq import get_week_data
     return get_week_data(start or None)
 
 
-@protected.patch("/api/prophecies")
-async def api_prophecies_patch(request: Request):
+@protected.patch("/api/hq")
+async def api_hq_patch(request: Request):
     body = await request.json()
-    from prophecies import bulk_update_scheduled_days
+    from hq import bulk_update_scheduled_days
     return bulk_update_scheduled_days(body.get("updates", []))
 
 
-@protected.get("/api/prophecies/log")
-def api_prophecies_log():
-    from prophecies import get_prophecies_log
-    return get_prophecies_log(limit=100)
+@protected.get("/api/hq/log")
+def api_hq_log():
+    from hq import get_hq_log
+    return get_hq_log(limit=100)
 
 
 @protected.post("/api/rd/classify")

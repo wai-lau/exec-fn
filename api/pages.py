@@ -19,12 +19,12 @@ _FONT_PRELOAD = (
     'type="font/woff2" crossorigin>'
 )
 # Open the DNS+TLS to the script CDN early on the pages that load from it
-# (kanban/prophecies = sortable+marked; debug/mtg/tarot = marked), so the
+# (kanban/hq = sortable+marked; debug/mtg/tarot = marked), so the
 # handshake overlaps page parse instead of blocking the script fetch.
 _JSDELIVR_PRECONNECT = (
     '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
 )
-_JSDELIVR_PAGES = {"core", "prophecies", "debug", "mtg", "tarot"}
+_JSDELIVR_PAGES = {"rd", "hq", "debug", "mtg", "tarot"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph/emet) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
@@ -45,14 +45,14 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["core", "prophecies", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
-_NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
+_NAV_LINKS = ["rd", "hq", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "hosaka", "color", "recruiter"]
 
 _NAV_ICONS = {
-    "core":        '<img src="/fiddle.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "prophecies":  '<img src="/turbo.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "rd":          '<img src="/fiddle.png" alt="rd" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "hq":          '<img src="/turbo.png" alt="hq" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
     "graph":       '<img src="/laser-satellite.png" alt="graph" style="width:20px;height:20px;image-rendering:pixelated;">',
     "color":       '<img src="/data-doctor.png" alt="color" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -65,7 +65,7 @@ _NAV_ICONS = {
 }
 
 _NAV_LABELS = {
-    "core": "core", "prophecies": "HQ",
+    "rd": "R&D", "hq": "HQ",
     "debug": "debug", "graph": "graph", "emet": "emet", "color": "color",
     "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "hosaka": "hosaka", "recruiter": "cv",
 }
@@ -177,12 +177,12 @@ def _build_nav(active=None, guest=False):
         "})();</script>"
     )
     # Exec chat = a floating draggable bubble + panel, on the planning routes
-    # (core + prophecies). On every OTHER non-guest page the same bubble shows
-    # as a plain link to the planning chat (/prophecies?exec=open) — same-origin
+    # (rd + hq). On every OTHER non-guest page the same bubble shows
+    # as a plain link to the planning chat (/hq?exec=open) — same-origin
     # so the standalone link interceptor keeps it in-app. Never for guests.
     if guest:
         bubble = ''
-    elif active in {"core", "prophecies"}:
+    elif active in {"rd", "hq"}:
         bubble = ('<script src="/hosaka-audio.js?v=3"></script>'
                   '<script src="/voice-util.js?v=1"></script>'
                   '<script src="/exec-voice.js?v=2"></script>'

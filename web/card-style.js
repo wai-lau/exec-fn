@@ -1,4 +1,4 @@
-/* Shared card color lookup — used by kanban, prophecies, card-dialog.
+/* Shared card color lookup — used by kanban, hq, card-dialog.
    The colors themselves live in chrome.css :root (--cat-*-h/-s/-l base
    channels, --card-* size variants, computed once by the browser); this
    file only fetches the right token for a card. */
@@ -28,7 +28,6 @@ function cardStyle(c) {
 /* Bar chips (reminders/books bars + overflow rows) — softer fills than
    cards, composed from the same per-category base channels (saturation
    offsets from --cat-*-s, chip-specific lightness). */
-// eslint-disable-next-line no-unused-vars
 function chipStyle(c) {
   const cat = _catKey(c);
   if (!cat) {
@@ -44,7 +43,6 @@ function chipStyle(c) {
 
 /* Book progress-bar colors — category hue at the standard track/fill alphas
    (green for an uncategorized book). */
-// eslint-disable-next-line no-unused-vars
 function bookBarColors(c) {
   const cat = _catKey(c);
   const ch = cat

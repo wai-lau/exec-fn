@@ -11,7 +11,7 @@ from helpers import _now_et, _DEFAULT_MINUTES
 TL_START_MIN = 4 * 60 + 30     # 4:30 AM — dirs timeline start / floor
 AUTOSTACK_ANCHOR = 10 * 60     # 10:00 AM — morning autostack anchor
 SNAP = 15
-SCHED_WINDOW_DAYS = 6          # today + 6 = 7-day prophecies/scheduling window
+SCHED_WINDOW_DAYS = 6          # today + 6 = 7-day HQ/scheduling window
 
 
 def _snap_up(m: int, snap: int = SNAP) -> int:
