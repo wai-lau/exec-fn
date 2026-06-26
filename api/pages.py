@@ -51,7 +51,7 @@ _NAV_HREFS = {"core": "/rd", "prophecies": "/prophecies", "debug": "/debug", "gr
 _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "hosaka", "color", "recruiter"]
 
 _NAV_ICONS = {
-    "core":        '<img src="/seeker.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "core":        '<img src="/fiddle.png" alt="core" style="width:20px;height:20px;image-rendering:pixelated;">',
     "prophecies":  '<img src="/turbo.png" alt="prophecies" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
     "graph":       '<img src="/laser-satellite.png" alt="graph" style="width:20px;height:20px;image-rendering:pixelated;">',
