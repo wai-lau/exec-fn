@@ -37,6 +37,22 @@
   width: 100%;
 }
 
+/* Speak button + voice selector share one line. */
+.tts-row {
+  display: flex;
+  gap: 0.7rem;
+  align-items: stretch;
+}
+
+.tts-row button {
+  flex: 0 0 auto;
+}
+
+.tts-row select {
+  flex: 1 1 auto;
+  width: auto;
+}
+
 .tts button {
   cursor: pointer;
   font-weight: 600;
