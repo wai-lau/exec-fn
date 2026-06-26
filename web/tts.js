@@ -45,10 +45,17 @@ const applyVolume = () => player.setVolume(parseFloat($("tts-volume").value) * v
 
 let speaking = false; // suppress health polling clobbering live speak status
 
+// Speed is a generation param already sent upstream; it can't change
+// mid-utterance. Lock the slider for the whole generating->playback lifecycle.
+const setSpeaking = (on) => {
+  speaking = on;
+  $("tts-speed").disabled = on;
+};
+
 const player = HosakaAudio.createPlayer({
   onConnState: (state) => {
     if (state === "error" || state === "disconnected") {
-      if (speaking) { speaking = false; setBtn("Speak", true); }
+      if (speaking) { setSpeaking(false); setBtn("Speak", true); }
       setStatus(OFFLINE);
     }
   },
@@ -163,7 +170,7 @@ function params() {
 }
 
 async function speak() {
-  speaking = true;
+  setSpeaking(true);
   setStatus("");
   setBtn("generating...", false);
   await player.speak({
@@ -173,7 +180,7 @@ async function speak() {
     params: params(),
     onStatus: (msg) => {
       if (msg.type === "error") {
-        speaking = false;
+        setSpeaking(false);
         setBtn("Speak", true);
         setStatus(msg.detail === "tts upstream unreachable" ? OFFLINE : "error: " + msg.detail);
       } else if (msg.type === "start") {
@@ -184,7 +191,7 @@ async function speak() {
         setBtn("speaking...", false);
         const remainMs = Math.max(0, player.audioDuration() - player.elapsed()) * 1000;
         setTimeout(() => {
-          speaking = false;
+          setSpeaking(false);
           setBtn("Speak", true);
         }, remainMs + 200);
       }
@@ -201,7 +208,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("tts-speak").addEventListener("click", () => {
     player.unlock(); // synchronous, in-gesture -- the iOS audio unlock
     speak().catch((err) => {
-      speaking = false;
+      setSpeaking(false);
       setBtn("Speak", true);
       setStatus("error: " + err.message);
     });
