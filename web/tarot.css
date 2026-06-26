@@ -195,7 +195,7 @@ body.opening-pending .msg.assistant { display:none; }
 #sig-card {
   grid-column: 1;
   border:1px solid rgba(0,0,0,0.4);
-  background:hsl(var(--surface-hsl)) url('/tarot/card_back.jpg?v=5') center/100% 100% no-repeat;
+  background:hsl(var(--surface-hsl)) url('/tarot/card_back.jpg?v=6') center/100% 100% no-repeat;
   display:flex; align-items:center; justify-content:center;
 }
 #sig-card.set { background:#000; }
