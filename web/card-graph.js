@@ -22,7 +22,8 @@
 .cg-label { font-size:11px; line-height:1.35; outline:none; word-break:break-word; white-space:normal; cursor:text; }
 .cg-label:focus { box-shadow:0 0 0 1px color-mix(in srgb, currentColor 50%, transparent); border-radius:2px; }
 .cg-node.done .cg-label { text-decoration:line-through; }
-.cg-meta { font-size:9px; opacity:0.55; margin-top:3px; display:flex; align-items:center; gap:2px; flex-wrap:wrap; }
+.cg-meta { font-size:9px; opacity:0.55; margin-top:3px; display:flex; align-items:center; gap:2px; flex-wrap:nowrap; }
+.cg-est-unit { display:inline-flex; align-items:center; white-space:nowrap; }
 .cg-meta input { font:inherit; font-size:9px; color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
 .cg-meta input:focus { outline:1px solid color-mix(in srgb, currentColor 55%, transparent); }
 .cg-time { width:52px; text-align:center; }
@@ -209,7 +210,10 @@
         node._dur = Math.max(10, v);
         if (typeof onChange === 'function') onChange();
       });
-      meta.append(di, document.createTextNode('m'));
+      const estUnit = document.createElement('span');
+      estUnit.className = 'cg-est-unit';
+      estUnit.append(di, document.createTextNode('m'));
+      meta.append(estUnit);
     }
 
     box.appendChild(label);
