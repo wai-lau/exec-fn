@@ -1,0 +1,10 @@
+# Keep vendored / minified third-party code out of the knowledge graph.
+# gitignore-style patterns; graphify reads this on every build.
+**/vendor/
+**/node_modules/
+**/dist/
+*.min.js
+*.min.css
+*.bundle.js
+*-bundle.js
+*.bundle.css
