@@ -57,7 +57,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=10">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=11">'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
