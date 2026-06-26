@@ -1,4 +1,4 @@
-/* Shared card edit dialog — used by kanban, hq, directives */
+/* Shared card edit dialog — used by rd, hq, directives */
 (function () {
   // Inject modal HTML once
   const html = `

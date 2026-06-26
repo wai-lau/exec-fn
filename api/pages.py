@@ -19,7 +19,7 @@ _FONT_PRELOAD = (
     'type="font/woff2" crossorigin>'
 )
 # Open the DNS+TLS to the script CDN early on the pages that load from it
-# (kanban/hq = sortable+marked; debug/mtg/tarot = marked), so the
+# (rd/hq = sortable+marked; debug/mtg/tarot = marked), so the
 # handshake overlaps page parse instead of blocking the script fetch.
 _JSDELIVR_PRECONNECT = (
     '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
