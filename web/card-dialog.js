@@ -41,9 +41,9 @@
         <input id="cd-reminder" type="checkbox" style="width:auto">
         <span>reminder only</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
-        <input id="cd-event" type="checkbox" style="width:auto">
-        <span>event</span>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0" title="don't carry this card forward if its day passes (a fixed occurrence)">
+        <input id="cd-norollover" type="checkbox" style="width:auto">
+        <span>no-rollover</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
         <input id="cd-book" type="checkbox" style="width:auto">
@@ -85,9 +85,9 @@
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
       <span>breakdown</span>
       <span style="display:flex;gap:6px;align-items:baseline;letter-spacing:0;text-transform:none">
-        <input id="cd-prep" type="number" min="0" placeholder="prep" title="prep / lead-up minutes" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <input id="cd-prep" type="number" min="0" placeholder="prep" title="prep minutes — the hands-on steps that get decomposed" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
         <span style="opacity:0.4;font-size:0.65rem">+</span>
-        <input id="cd-dur" type="number" min="0" placeholder="work" title="core work minutes" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <input id="cd-dur" type="number" min="0" placeholder="event" title="event minutes — an atomic occurrence you attend (class/concert/appt); 0 for a self-directed task" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
         <span style="opacity:0.5;font-size:0.65rem">m</span>
         <button type="button" id="cd-recalc" class="cd-btn" style="font-size:0.6rem;padding:1px 7px" onclick="cdRecalc()">recalculate</button>
       </span>
@@ -222,7 +222,7 @@
     document.getElementById('cd-recurring').checked = !!c.recur_type;
     document.getElementById('cd-recur-wrap').style.display = c.recur_type ? 'block' : 'none';
     document.getElementById('cd-reminder').checked = !!c.is_reminder;
-    document.getElementById('cd-event').checked = !!c.is_event;
+    document.getElementById('cd-norollover').checked = !!c.no_rollover;
     document.getElementById('cd-book').checked = !!c.is_book;
     document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
     document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
@@ -283,7 +283,7 @@
     c.recur_type = document.getElementById('cd-recurring').checked
       ? document.getElementById('cd-recur').value : null;
     c.is_reminder = document.getElementById('cd-reminder').checked;
-    c.is_event = document.getElementById('cd-event').checked;
+    c.no_rollover = document.getElementById('cd-norollover').checked;
     c.is_book = document.getElementById('cd-book').checked;
     c.pinned_reminder = c.is_reminder ? document.getElementById('cd-pin-reminder').checked : false;
     if (c.is_book) {

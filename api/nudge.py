@@ -134,8 +134,10 @@ def _first_open(nodes: list, edges: list) -> str | None:
     for e in edges:
         prereqs.setdefault(e["to"], []).append(e["from"])
     for n in nodes:
-        if n.get("done") or n.get("is_event_start"):   # the event anchor is never "active"
+        if n.get("done"):
             continue
+        # The event block CAN go active — that is the "start the work/event"
+        # nudge, fired at its anchor once all prep is done.
         if all(by_id.get(p, {}).get("done", True) for p in prereqs.get(n["id"], [])):
             return n["id"]
     return None
@@ -165,8 +167,7 @@ def _normalize_graph(data: dict) -> dict:
         except (TypeError, ValueError):
             pass
         if nd.get("is_event_start"):
-            node["is_event_start"] = True
-            node["est_min"] = 0
+            node["is_event_start"] = True   # est_min (the work block) set by ensure_event_block
         nodes.append(node)
     ids = {n["id"] for n in nodes}
     edges = [

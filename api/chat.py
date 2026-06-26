@@ -204,7 +204,7 @@ def _chat_tools() -> list:
                     "due_date": {"type": "string", "description": "ISO date/datetime (YYYY-MM-DD or YYYY-MM-DDTHH:MM) by which the task must be done. Infer from context when possible."},
                     "is_reminder": {"type": "boolean", "description": "True for calendar reminders — no action needed, no size or estimated_time."},
                     "is_book": {"type": "boolean", "description": "True for ongoing reads / long-form reading material — shown in the books bar, not scheduled or decomposed."},
-                    "is_event": {"type": "boolean", "description": "True when the card is a fixed, immovable occurrence — it happens at a specific time regardless of whether Wai acts (e.g. party, concert, flight, show, sports game, wedding, scheduled call). These do NOT carry over if missed. False for tasks and todos that Wai controls the timing of (e.g. 'fix the bug', 'call mom', 'read chapter 3')."},
+                    "no_rollover": {"type": "boolean", "description": "True ONLY to stop the card carrying forward if missed — a fixed occurrence tied to its day/time (e.g. party, concert, flight, show, sports game, wedding, scheduled call): once its day passes it's gone, not moved to today. False (default) for tasks Wai controls the timing of (e.g. 'fix the bug', 'call mom') — those roll forward until done. Does NOT affect how the card is scheduled or decomposed."},
                 },
                 "required": ["title", "category"],
             },
@@ -268,7 +268,8 @@ def _chat_tools() -> list:
                 "Use when Wai asks to break a task down, says it feels too big / overwhelming, or gives feedback "
                 "that reshapes an existing breakdown ('let's do X first', 'skip that part') — calling this again "
                 "rebuilds the graph from the card's current state. The breakdown is internal: tell Wai only the "
-                "first chunk, never the whole list. Not for reminders, events, or books."
+                "first chunk, never the whole list. Builds the PREP steps only — the core "
+                "work block is separate and never split. Not for reminders or books."
             ),
             "input_schema": {
                 "type": "object",

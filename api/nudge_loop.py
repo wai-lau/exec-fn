@@ -194,7 +194,10 @@ async def _build_graph(card_id: str) -> bool:
         return False  # raced with a fire that already decomposed
     n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
     n["active_node"] = result["active_node"]
-    _nd.compute_deadlines(card)
+    _nd.compute_deadlines(card)          # appends the event block (+ its deadline)
+    g = n["graph"]
+    if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
+        n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
     _save_rd(rd)
     return True
 

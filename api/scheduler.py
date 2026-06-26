@@ -4,9 +4,9 @@ Every dir_start_min decision flows through here so there is one place to grow
 the future cron autoscheduler. `layout_day` is the entry point that autoscheduler
 will own; `place_card_today` handles intraday single-card placement.
 """
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from helpers import _now_et, _DEFAULT_MINUTES
+from helpers import _now_et, _DEFAULT_MINUTES, _prep_min
 
 TL_START_MIN = 4 * 60 + 30     # 4:30 AM — dirs timeline start / floor
 AUTOSTACK_ANCHOR = 10 * 60     # 10:00 AM — morning autostack anchor
@@ -42,13 +42,32 @@ def card_duration(c: dict) -> int:
 
 
 def is_dir_card(c: dict, today_iso: str) -> bool:
-    """A card that belongs on today's dirs timeline."""
+    """A card that belongs on today's dirs timeline. No-Rollover cards (fixed
+    occurrences) DO sit on the timeline now — their prep back-schedules before
+    the event time; only reminders (alerts) and books (reading) stay off it."""
     return (
         c.get("scheduled_day") == today_iso
         and c.get("column") in ("rd", "hq")
         and not c.get("is_reminder")
-        and not c.get("is_event")
+        and not c.get("is_book")
     )
+
+
+def timed_start_min(c: dict) -> int | None:
+    """Block-start minute for a card with a fixed event TIME: the event time
+    (its due_date clock) minus its prep, so prep back-schedules to finish exactly
+    at the event. None when the due_date carries no time component."""
+    dd = c.get("due_date") or ""
+    if "T" not in dd:
+        return None
+    try:
+        t = datetime.fromisoformat(dd)
+    except ValueError:
+        return None
+    m = t.hour * 60 + t.minute
+    if m < TL_START_MIN:        # after-midnight event sits past the 24h mark
+        m += 24 * 60
+    return max(TL_START_MIN, m - _prep_min(c))
 
 
 def layout_day(cards: list[dict], anchor_min: int = AUTOSTACK_ANCHOR,
@@ -63,6 +82,10 @@ def layout_day(cards: list[dict], anchor_min: int = AUTOSTACK_ANCHOR,
     targets.sort(key=lambda c: c.get("order", 0))
     cur = anchor_min
     for c in targets:
+        pinned = timed_start_min(c)     # fixed event time -> back-scheduled slot
+        if pinned is not None:
+            c["dir_start_min"] = pinned
+            continue                    # timed cards don't consume the autostack cursor
         c["dir_start_min"] = cur
         cur += card_duration(c)
 
@@ -119,5 +142,10 @@ def schedule_to_day(card: dict, cards: list[dict], target_iso: str,
     card["scheduled_day"] = target_s
     card.pop("dir_start_min", None)
     if target == today:
-        card["dir_start_min"] = dir_start_min if dir_start_min is not None else place_card_today(cards, target_s)
+        if dir_start_min is not None:
+            card["dir_start_min"] = dir_start_min
+        else:
+            # A fixed event time pins the slot (prep back-scheduled before it);
+            # otherwise stack after the day's already-placed cards.
+            card["dir_start_min"] = timed_start_min(card) or place_card_today(cards, target_s)
     return {"scheduled_day": target_s}

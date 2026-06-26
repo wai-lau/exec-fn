@@ -4,14 +4,16 @@ const SUB_X = 26;        // px from group-left where sub-cards start: just right
 const SUBGAP = 2;        // px gap between side-by-side overlapping sub-lanes
 const DEFAULT_SUB = 15;  // fallback minutes for a step with no est_min
 
-function workNodes(c) {
+// Every node that occupies time on the timeline: the prep steps PLUS the atomic
+// event block (is_event_start, est = the card's work minutes), which tiles last.
+function timelineNodes(c) {
   const g = c.nudge && c.nudge.graph;
   if (!g || !g.nodes) return [];
-  return g.nodes.filter(n => !n.is_event_start);
+  return g.nodes;
 }
 // A breakdown earns the spine treatment only with >=2 real steps; a single step
 // stays an ordinary block.
-function hasBreakdown(c) { return workNodes(c).length >= 2; }
+function hasBreakdown(c) { return timelineNodes(c).length >= 2; }
 function findNode(card, nid) {
   const g = card.nudge && card.nudge.graph;
   return g && g.nodes ? g.nodes.find(n => n.id === nid) : null;
@@ -19,7 +21,7 @@ function findNode(card, nid) {
 // Plan order = back-scheduled deadline, then creation order. Default offsets tile
 // the sub-cards sequentially from the master start by their own estimates.
 function orderedSubs(c) {
-  return workNodes(c).slice().sort((a, b) =>
+  return timelineNodes(c).slice().sort((a, b) =>
     (a.deadline || '').localeCompare(b.deadline || '') ||
     (a.created_at || '').localeCompare(b.created_at || '') ||
     a.id.localeCompare(b.id));
@@ -46,13 +48,13 @@ async function patchCard(cid, mutate) {
 // shifts the others (a default start = the running sum of prior steps' estimates,
 // so a resize would otherwise drag every later default step with it).
 function freezeOffsets(c) {
-  workNodes(c).forEach(nd => { if (nd.tl_offset == null && nd._off != null) nd.tl_offset = nd._off; });
+  timelineNodes(c).forEach(nd => { if (nd.tl_offset == null && nd._off != null) nd.tl_offset = nd._off; });
 }
 // The master is the bounding box of its sub-steps: re-base so the earliest sub is
 // the master start (offsets stay >= 0) and set the master duration to the span.
 // Call after freezeOffsets so every sub already carries an explicit offset.
 function snapMasterToSubs(c) {
-  const subs = workNodes(c);
+  const subs = timelineNodes(c);
   if (!subs.length) return;
   const offOf = n => (n.tl_offset != null ? n.tl_offset : (n._off || 0));
   const durOf = n => (n._dur != null ? n._dur : Math.max(10, n.est_min || DEFAULT_SUB));
@@ -70,7 +72,7 @@ function persistLayout(c, edited) {
   patchCard(c.id, card => {
     if (c.dir_start_min != null) card.dir_start_min = c.dir_start_min;
     if (c.estimated_time != null) card.estimated_time = c.estimated_time;
-    workNodes(c).forEach(local => {
+    timelineNodes(c).forEach(local => {
       const m = findNode(card, local.id);
       if (m && local.tl_offset != null) m.tl_offset = local.tl_offset;
     });
@@ -81,27 +83,6 @@ function persistLayout(c, edited) {
         if (edited.done != null) m.done = edited.done;
       }
     }
-  });
-}
-
-// Greedy lane packing so overlapping items share horizontal space. Writes
-// _lane / _lanes onto each item (generic over blocks or sub-steps).
-function assignLanes(items, getStart, getEnd) {
-  const sorted = [...items].sort((a, b) => getStart(a) - getStart(b));
-  const laneEnds = [];
-  sorted.forEach(it => {
-    let lane = laneEnds.findIndex(end => end <= getStart(it));
-    if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
-    laneEnds[lane] = getEnd(it);
-    it._lane = lane;
-  });
-  sorted.forEach(it => {
-    const e = getEnd(it);
-    let max = it._lane;
-    sorted.forEach(o => {
-      if (o !== it && getStart(o) < e && getEnd(o) > getStart(it)) max = Math.max(max, o._lane);
-    });
-    it._lanes = max + 1;
   });
 }
 
@@ -386,6 +367,61 @@ function startSubResize(c, nd, sub, track, startClientY, getY) {
   document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', up);
 }
 
+function subMeta(startMin, dur, color) {
+  const meta = document.createElement('div');
+  meta.className = 'dir-sub-meta';
+  meta.style.color = color;
+  meta.textContent = `${fmtClock(startMin)} · ${durLabel(dur)}`;
+  return meta;
+}
+
+// One block in a group. Prep steps drag/resize/tap-done; the event block
+// (is_event_start) is fixed display only — the occurrence at its anchor time,
+// moved only by moving the whole card. style = {bg, border, titleC, metaC}.
+function renderSubBlock(c, nd, track, masterStart, groupStart, style) {
+  const {bg, border, titleC, metaC} = style;
+  const isEvent = !!nd.is_event_start;
+  const sub = document.createElement('div');
+  sub.className = 'dir-sub' + (nd.done ? ' done' : '') + (bg ? '' : ' plain') + (isEvent ? ' event' : '');
+  sub.dataset.nid = nd.id;
+  sub.style.cssText = `${bg}${border}`;
+  sub.style.zIndex = nd._z;
+  sub.style.top = Math.max(0, (masterStart + nd._off - groupStart) * TL_PX) + 'px';
+  sub.style.height = Math.max(13, nd._dur * TL_PX - 3) + 'px';
+  const S = nd._lanes || 1, k = nd._lane || 0;
+  sub.style.left = `calc(${SUB_X}px + (100% - ${SUB_X}px) * ${k} / ${S})`;
+  sub.style.width = `calc((100% - ${SUB_X}px) / ${S} - ${SUBGAP}px)`;
+
+  const lab = document.createElement('div');
+  lab.className = 'dir-sub-title';
+  lab.style.color = titleC;
+  lab.textContent = nd.label;
+
+  if (isEvent) {
+    sub.style.borderStyle = 'dashed';
+    sub.appendChild(lab);
+    if (nd._dur * TL_PX >= 28) sub.appendChild(subMeta(masterStart + nd._off, nd._dur, metaC));
+    return sub;
+  }
+
+  const del = document.createElement('div');
+  del.className = 'dir-sub-del';
+  del.textContent = '✕';
+  del.title = 'delete step';
+  del.style.color = titleC;
+  del.addEventListener('mousedown', e => e.stopPropagation());
+  del.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+  del.addEventListener('click', e => { e.stopPropagation(); deleteSub(c, nd, track); });
+  sub.appendChild(del);
+  sub.appendChild(lab);
+  if (nd._dur * TL_PX >= 28) sub.appendChild(subMeta(masterStart + nd._off, nd._dur, metaC));
+  const rh = document.createElement('div');
+  rh.className = 'dir-sub-resize';
+  sub.appendChild(rh);
+  wireSub(c, nd, sub, rh, track, masterStart, groupStart);
+  return sub;
+}
+
 // A today card with a breakdown: thin vertical spine (master) + its sub-steps as
 // their own blocks to the right. Sub starts are offsets from the master start, so
 // moving the spine carries them all (saveStartTime only writes dir_start_min).
@@ -442,47 +478,9 @@ function createGroup(c, track) {
   // earlier-starting sub-cards paint over later ones where they overlap
   const byStart = subs.slice().sort((a, b) => a._off - b._off);
   byStart.forEach((nd, i) => { nd._z = byStart.length - i; });
-  subs.forEach(nd => {
-    const sub = document.createElement('div');
-    sub.className = 'dir-sub' + (nd.done ? ' done' : '') + (bg ? '' : ' plain');
-    sub.dataset.nid = nd.id;
-    sub.style.cssText = `${bg}${border}`;
-    sub.style.zIndex = nd._z;
-    sub.style.top = Math.max(0, (masterStart + nd._off - groupStart) * TL_PX) + 'px';
-    sub.style.height = Math.max(13, nd._dur * TL_PX - 3) + 'px';
-    const S = nd._lanes || 1, k = nd._lane || 0;
-    sub.style.left = `calc(${SUB_X}px + (100% - ${SUB_X}px) * ${k} / ${S})`;
-    sub.style.width = `calc((100% - ${SUB_X}px) / ${S} - ${SUBGAP}px)`;
-
-    const del = document.createElement('div');
-    del.className = 'dir-sub-del';
-    del.textContent = '✕';
-    del.title = 'delete step';
-    del.style.color = titleC;
-    del.addEventListener('mousedown', e => e.stopPropagation());
-    del.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-    del.addEventListener('click', e => { e.stopPropagation(); deleteSub(c, nd, track); });
-    sub.appendChild(del);
-
-    const lab = document.createElement('div');
-    lab.className = 'dir-sub-title';
-    lab.style.color = titleC;
-    lab.textContent = nd.label;
-    sub.appendChild(lab);
-    if (nd._dur * TL_PX >= 28) {
-      const meta = document.createElement('div');
-      meta.className = 'dir-sub-meta';
-      meta.style.color = metaC;
-      meta.textContent = `${fmtClock(masterStart + nd._off)} · ${durLabel(nd._dur)}`;
-      sub.appendChild(meta);
-    }
-    const rh = document.createElement('div');
-    rh.className = 'dir-sub-resize';
-    sub.appendChild(rh);
-
-    wireSub(c, nd, sub, rh, track, masterStart, groupStart);
-    container.appendChild(sub);
-  });
+  const style = {bg, border, titleC, metaC};
+  subs.forEach(nd => container.appendChild(
+    renderSubBlock(c, nd, track, masterStart, groupStart, style)));
 
   return container;
 }
