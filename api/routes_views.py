@@ -73,7 +73,7 @@ _LANDING_BLURBS = {
     "color": "The console's own spectrum, stripped to raw hue and signal.",
     "mtg": "A judge wired to the stack. It rules, and it never sleeps.",
     "tarot": "Seventy-eight gates, a green terminal, the reader is waiting for you to begin.",
-    "recruiter": "Coin is universal. Wai's credentials for the headhunters.",
+    "recruiter": "Wai's credentials for the headhunters.",
 }
 
 # Reference-desk descriptions under each Gibson line — neutral, cataloguing
