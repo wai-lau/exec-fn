@@ -50,6 +50,7 @@ let speaking = false; // suppress health polling clobbering live speak status
 const setSpeaking = (on) => {
   speaking = on;
   $("tts-speed").disabled = on;
+  document.querySelector(".tts").classList.toggle("busy", on);
   if (on) wave.start();
   else wave.stop();
 };

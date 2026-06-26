@@ -31,6 +31,7 @@
   min-height: 4.5rem;
   resize: vertical;
   box-sizing: border-box;
+  font-size: 14px; /* a touch smaller than the rest of the UI */
 }
 
 .tts select {
@@ -72,8 +73,11 @@
 
 .tts #tts-status {
   color: hsl(var(--green-hsl) / 0.45);
-  min-height: 1.3em;
   text-align: center;
+}
+
+.tts #tts-status:empty {
+  display: none; /* don't reserve a blank band above the scope */
 }
 
 .tts-group {
@@ -130,13 +134,11 @@
 #tts-wave {
   display: block;
 
-  /* full-bleed: span the whole viewport, escaping the centered .tts column */
+  /* full-bleed horizontally (escape the centered .tts column); the negative
+     vertical margin cancels the .tts column gap so the scope butts against the
+     Speak row above and the knobs below, touching at the clip edges */
   width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-
-  /* equal vertical margin centers the scope between the Speak row and knobs */
-  margin-block: 1.5rem;
+  margin: -0.7rem calc(50% - 50vw);
   height: 136px;
   color: hsl(var(--green-hsl) / 0.8);
 
@@ -156,4 +158,15 @@
 #tts-cb.off {
   opacity: 0.25;
   pointer-events: none; /* non-clickable until a chatterbox voice re-enables it */
+}
+
+/* Freeze + dim every knob block while generating/speaking -- the params are
+   already locked in for the in-flight utterance. `> ` targets the top-level
+   blocks only (clone block + playback group/knobs), so opacity doesn't nest. */
+.tts.busy > #tts-cb,
+.tts.busy > .tts-group,
+.tts.busy > .tts-knobs {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.15s;
 }
