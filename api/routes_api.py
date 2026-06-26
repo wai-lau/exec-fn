@@ -101,6 +101,24 @@ def _minutes_late(card) -> int:
     return max(0, min(round(late), est * 4))
 
 
+def _advanced_entries(c, old, source):
+    """A sub-step toggled done on the timeline (card-graph tap) PATCHes the whole
+    card, mutating only a nested nudge node — the card-level diff misses it. Emit
+    the same "advanced" signal the advance_chunk chat tool logs (one per node that
+    went done false->true) so the monitor comments on it."""
+    if not old:
+        return []
+    new_nodes = (c.get("nudge") or {}).get("graph", {}).get("nodes", [])
+    if not new_nodes:
+        return []
+    old_done = {n.get("id"): n.get("done")
+                for n in ((old.get("nudge") or {}).get("graph", {}).get("nodes", []))}
+    remaining = sum(1 for n in new_nodes if not n.get("done"))
+    return [{"action": "advanced", "title": c.get("title", c.get("id")),
+             "source": source, "step": n.get("label", ""), "remaining": remaining}
+            for n in new_nodes if n.get("done") and not old_done.get(n.get("id"))]
+
+
 def _log_entries_for_patch(new_cards, old_cards, source):
     entries = []
     for c in new_cards:
@@ -123,6 +141,9 @@ def _log_entries_for_patch(new_cards, old_cards, source):
                 entry["current_page"] = c.get("current_page")
                 entry["total_pages"] = c.get("total_pages")
             entries.append(entry)
+        # done-toggle is independent of the elif chain (a same-patch column change
+        # must not mask a sub-step completion)
+        entries.extend(_advanced_entries(c, old, source))
     new_ids = {c["id"] for c in new_cards}
     for cid, old in old_cards.items():
         if cid not in new_ids:
