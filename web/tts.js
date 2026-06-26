@@ -51,9 +51,6 @@ const setSpeaking = (on) => {
   speaking = on;
   $("tts-speed").disabled = on;
   document.querySelector(".tts").classList.toggle("busy", on);
-  // The scope appears when audio actually starts (onFirstAudio), not at click,
-  // so it doesn't sit blank through "generating...". Only the stop is here.
-  if (!on) wave.stop();
 };
 
 const player = HosakaAudio.createPlayer({
@@ -65,20 +62,20 @@ const player = HosakaAudio.createPlayer({
   },
 });
 
-// Minimalist playback scope: a waveform that scrolls leftward while the player
-// speaks. Each animation frame samples the player's analyser tap for a single
-// peak amplitude, pushes it onto the right edge, and shifts the history left.
-// The stroke hue is read from the canvas `color` (set in tts.css) so the palette
-// stays in CSS. Idle = a flat line; stops + clears when playback ends.
+// Minimalist playback scope: a scrolling waveform pinned to the right edge.
+// Always present -- on load it shows a flat baseline; each animation frame
+// samples the player's analyser tap for a single peak amplitude and pushes it
+// onto the right edge, scrolling older samples left. When nothing is playing the
+// analyser reads silence (or is absent before the first unlock), so the trace
+// sits flat. The stroke hue is read from the canvas `color` (set in tts.css) so
+// the palette stays in CSS.
 const wave = (() => {
   const cv = $("tts-wave");
   const cx = cv && cv.getContext("2d");
-  if (!cx) return { start() {}, stop() {} };
+  if (!cx) return { start() {} };
   let raf = 0;
   let cols = [];
   let stroke = "currentColor";
-  let live = false; // scope visible + capturing (revealed on first audio)
-  let drainLeft = -1; // >=0 while draining: frames of silence left to scroll out
 
   const dpr = () => window.devicePixelRatio || 1;
   function resize() {
@@ -103,9 +100,7 @@ const wave = (() => {
 
   function frame() {
     const w = cv.width, h = cv.height, mid = h / 2;
-    // While speaking, append the live peak; while draining, append silence so the
-    // captured wave keeps marching left off the edge instead of vanishing.
-    cols.push(drainLeft < 0 ? peak() : 0);
+    cols.push(peak()); // silence (or 0 before unlock) keeps the line flat
     while (cols.length > w) cols.shift(); // scroll left
     cx.clearRect(0, 0, w, h);
     cx.strokeStyle = stroke;
@@ -119,32 +114,14 @@ const wave = (() => {
       cx.lineTo(x, mid + a);
     }
     cx.stroke();
-    if (drainLeft >= 0 && --drainLeft < 0) {
-      raf = 0; // fully scrolled off; halt + hide until the next playback
-      cx.clearRect(0, 0, w, h);
-      cv.classList.remove("live");
-      return;
-    }
     raf = requestAnimationFrame(frame);
   }
 
   return {
     start() {
-      if (live) return;
-      live = true;
-      cv.classList.add("live"); // reveal the scope (display:block) before measuring
+      if (raf) return;
       resize();
-      drainLeft = -1; // resume live capture
-      if (!raf) raf = requestAnimationFrame(frame);
-    },
-    stop() {
-      // Keep the loop running, but stop feeding audio: the existing wave scrolls
-      // left until the last real sample clears the canvas (~one canvas width),
-      // then frame() hides it. No-op if it never became visible.
-      if (!live) return;
-      live = false;
-      drainLeft = cv.width;
-      if (!raf) raf = requestAnimationFrame(frame);
+      raf = requestAnimationFrame(frame);
     },
   };
 })();
@@ -266,7 +243,6 @@ async function speak() {
     backend: selectedBackend(),
     voice: $("tts-voice").value,
     params: params(),
-    onFirstAudio: () => wave.start(), // reveal the scope the instant sound plays
     onStatus: (msg) => {
       if (msg.type === "error") {
         setSpeaking(false);
@@ -292,6 +268,7 @@ window.addEventListener("DOMContentLoaded", () => {
   wireKnobs();
   applyVolume();
   loadVoices();
+  wave.start(); // always-on scope -- flat baseline until audio plays
   checkHealth();
   setInterval(checkHealth, 15000);
   $("tts-speak").addEventListener("click", () => {
