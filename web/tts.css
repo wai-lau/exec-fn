@@ -3,7 +3,7 @@
   max-width: 620px;
   margin: 0 auto;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden; /* everything fits; no scrollbar -- textarea flexes to fill */
   box-sizing: border-box;
   padding: 1.5rem 1rem calc(var(--nav-h, 64px) + 1.5rem);
   display: flex;
@@ -27,9 +27,9 @@
 
 .tts textarea {
   width: 100%;
-  flex: 1 1 auto;
-  min-height: 4.5rem;
-  resize: vertical;
+  flex: 1 1 0; /* shrink past content so the page never overflows */
+  min-height: 2.5rem;
+  resize: none; /* no manual resize -- it owns the leftover height */
   box-sizing: border-box;
   font-size: 14px; /* a touch smaller than the rest of the UI */
 }
@@ -132,13 +132,19 @@
 /* Scrolling playback scope between the Speak row and the clone knobs. The
    `color` here is read by tts.js as the canvas stroke (keeps the hue in CSS). */
 #tts-wave {
+  display: none; /* hidden until audio starts (JS adds .live) -- frees the space */
+}
+
+#tts-wave.live {
   display: block;
 
-  /* full-bleed horizontally (escape the centered .tts column); the negative
-     vertical margin cancels the .tts column gap so the scope butts against the
-     Speak row above and the knobs below, touching at the clip edges */
-  width: 100vw;
-  margin: -0.7rem calc(50% - 50vw);
+  /* span the column width. NOT 100vw full-bleed: .tts now clips overflow (both
+     axes) to kill the page scrollbar, so a viewport-wide scope would be clipped
+     on wide screens (column is max 620px). Keep it inside the column. The
+     negative vertical margin cancels the .tts column gap so the scope butts
+     against the Speak row above and the knobs below. */
+  width: 100%;
+  margin: -0.7rem 0;
   height: 136px;
   color: hsl(var(--green-hsl) / 0.8);
 

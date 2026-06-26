@@ -51,8 +51,9 @@ const setSpeaking = (on) => {
   speaking = on;
   $("tts-speed").disabled = on;
   document.querySelector(".tts").classList.toggle("busy", on);
-  if (on) wave.start();
-  else wave.stop();
+  // The scope appears when audio actually starts (onFirstAudio), not at click,
+  // so it doesn't sit blank through "generating...". Only the stop is here.
+  if (!on) wave.stop();
 };
 
 const player = HosakaAudio.createPlayer({
@@ -76,6 +77,7 @@ const wave = (() => {
   let raf = 0;
   let cols = [];
   let stroke = "currentColor";
+  let live = false; // scope visible + capturing (revealed on first audio)
   let drainLeft = -1; // >=0 while draining: frames of silence left to scroll out
 
   const dpr = () => window.devicePixelRatio || 1;
@@ -118,8 +120,9 @@ const wave = (() => {
     }
     cx.stroke();
     if (drainLeft >= 0 && --drainLeft < 0) {
-      raf = 0; // fully scrolled off; halt (CSS border + baseline remain)
+      raf = 0; // fully scrolled off; halt + hide until the next playback
       cx.clearRect(0, 0, w, h);
+      cv.classList.remove("live");
       return;
     }
     raf = requestAnimationFrame(frame);
@@ -127,13 +130,19 @@ const wave = (() => {
 
   return {
     start() {
+      if (live) return;
+      live = true;
+      cv.classList.add("live"); // reveal the scope (display:block) before measuring
       resize();
       drainLeft = -1; // resume live capture
       if (!raf) raf = requestAnimationFrame(frame);
     },
     stop() {
       // Keep the loop running, but stop feeding audio: the existing wave scrolls
-      // left until the last real sample clears the canvas (~one canvas width).
+      // left until the last real sample clears the canvas (~one canvas width),
+      // then frame() hides it. No-op if it never became visible.
+      if (!live) return;
+      live = false;
       drainLeft = cv.width;
       if (!raf) raf = requestAnimationFrame(frame);
     },
@@ -257,6 +266,7 @@ async function speak() {
     backend: selectedBackend(),
     voice: $("tts-voice").value,
     params: params(),
+    onFirstAudio: () => wave.start(), // reveal the scope the instant sound plays
     onStatus: (msg) => {
       if (msg.type === "error") {
         setSpeaking(false);
