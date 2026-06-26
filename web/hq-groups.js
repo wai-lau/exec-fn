@@ -282,7 +282,7 @@ function wireSub(c, nd, sub, rh, track, masterStart, groupStart) {
     const offsetY = grabClientY - sRect.top;
     document.body.classList.add('hq-dragging');
 
-    // Same feel as a kanban card drag: a semi-opaque copy follows the cursor
+    // Same feel as an R&D card drag: a semi-opaque copy follows the cursor
     // while the original stays in place as a faint placeholder at the snap slot.
     const ghost = sub.cloneNode(true);
     ghost.style.position = 'fixed';

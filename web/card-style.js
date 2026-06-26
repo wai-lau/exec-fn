@@ -1,4 +1,4 @@
-/* Shared card color lookup — used by kanban, hq, card-dialog.
+/* Shared card color lookup — used by rd, hq, card-dialog.
    The colors themselves live in chrome.css :root (--cat-*-h/-s/-l base
    channels, --card-* size variants, computed once by the browser); this
    file only fetches the right token for a card. */

@@ -300,7 +300,7 @@ function buildBoard() {
     const el = document.getElementById('col-'+col);
     if (!el) return;
     Sortable.create(el, {
-      group:'kanban', animation:120, ghostClass:'sortable-ghost',
+      group:'rd', animation:120, ghostClass:'sortable-ghost',
       delay: 300, delayOnTouchOnly: true,
       onStart: () => { dragging = true; document.getElementById('board').classList.add('drag-active'); document.body.classList.add('dragging-card'); },
       onEnd: () => { document.getElementById('board').classList.remove('drag-active'); document.body.classList.remove('dragging-card'); setTimeout(() => { dragging = false; }, 50); save(); }
@@ -327,7 +327,7 @@ function initBarSortable() {
   if (!bar) return;
   if (barSortable) { barSortable.destroy(); barSortable = null; }
   barSortable = Sortable.create(bar, {
-    group: { name: 'kanban', put: true, pull: true },
+    group: { name: 'rd', put: true, pull: true },
     animation: 120,
     ghostClass: 'sortable-ghost',
     delay: 300, delayOnTouchOnly: true,

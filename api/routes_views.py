@@ -404,7 +404,7 @@ async def emet_page(request: Request):
 
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
-    return _render_page("rd", _tmpl("kanban.html"), full_height=True)
+    return _render_page("rd", _tmpl("rd.html"), full_height=True)
 
 
 @guest_protected.get("/mtg", response_class=HTMLResponse)

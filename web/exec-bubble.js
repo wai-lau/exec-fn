@@ -376,7 +376,7 @@
             else if (data.name === 'update_card')  addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
             else if (data.name === 'schedule_card')addMsg('sys', '[ scheduled "' + (res.title || '') + '" -> ' + (res.scheduled_day || 'unscheduled') + ' ]');
             else                                    addMsg('sys', '[ ' + data.name.replace(/_/g, ' ') + ': done ]');
-            // notify card views (kanban/hq/directives) to reload live
+            // notify card views (rd/hq/directives) to reload live
             if (['create_card','exile_card','update_card','schedule_card'].includes(data.name)) {
               window.dispatchEvent(new CustomEvent('exec:cards-changed', { detail: { name: data.name } }));
             }

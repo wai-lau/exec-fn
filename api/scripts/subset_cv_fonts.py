@@ -6,7 +6,7 @@ planes); subsetting drops each to tens of KB so first paint is sub-1s.
 Two output pairs:
   - iosevka-cv-{500,700}.woff2  — narrow Latin set the /recruiter résumé needs
   - iosevka-{500,700}.woff2     — the whole site: Latin + every box-drawing /
-    arrow / geometric / Greek glyph the chrome UI renders (chat, kanban, emet,
+    arrow / geometric / Greek glyph the chrome UI renders (chat, rd, emet,
     hq). chrome.css + exec-bubble.css @font-face point here.
 
 Runs inside the api container (only host with pip — `pip install fonttools
