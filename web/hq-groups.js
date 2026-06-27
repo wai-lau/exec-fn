@@ -1,6 +1,6 @@
 // ── breakdown groups (master spine + draggable sub-step blocks) ────────────────
-const SUB_X = 26;        // px from group-left where sub-cards start: just right of
-                         // the 24px master spine (2px gap), not overlapping it
+const SUB_X = 16;        // px from group-left where sub-cards start: just right of
+                         // the 14px master spine (2px gap), not overlapping it
 const SUBGAP = 2;        // px gap between side-by-side overlapping sub-lanes
 const DEFAULT_SUB = 15;  // fallback minutes for a step with no est_min
 
