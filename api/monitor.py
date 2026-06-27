@@ -12,6 +12,23 @@ from chat import append_monitor_comment, EXEC_VOICE
 _SRC_LABELS = {"rd": "R&D", "dirs": "directives", "hq": "HQ", "Exec": "Exec chat"}
 
 
+def _drop_undone_advanced(entries: list) -> list:
+    """Drop 'advanced' entries whose sub-step is no longer done — a step marked
+    done then unmarked (accidental, within the debounce) must not earn a comment.
+    Only a CONFIRMED undo is suppressed (node present AND done is False); a missing
+    card/node keeps the entry (real history, e.g. the card was since archived, or
+    a legacy entry with no id)."""
+    if not any(e.get("action") == "advanced" for e in entries):
+        return entries
+    done_by = {}
+    for c in _load_rd().get("cards", []):
+        for n in (c.get("nudge") or {}).get("graph", {}).get("nodes", []):
+            done_by[(c.get("id"), n.get("id"))] = bool(n.get("done"))
+    return [e for e in entries
+            if e.get("action") != "advanced"
+            or done_by.get((e.get("id"), e.get("node_id")), True)]
+
+
 def _recent_entries(batch_start_ts: float) -> list:
     cutoff = datetime.fromtimestamp(batch_start_ts, tz=timezone.utc)
     log = json.loads(_ACTIVITY_LOG.read_text()) if _ACTIVITY_LOG.exists() else []
@@ -28,7 +45,7 @@ def _recent_entries(batch_start_ts: float) -> list:
                 out.append(e)
         except Exception:
             pass
-    return out
+    return _drop_undone_advanced(out)
 
 
 def _entry_line(e: dict) -> str:

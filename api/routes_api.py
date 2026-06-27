@@ -114,8 +114,11 @@ def _advanced_entries(c, old, source):
     old_done = {n.get("id"): n.get("done")
                 for n in ((old.get("nudge") or {}).get("graph", {}).get("nodes", []))}
     remaining = sum(1 for n in new_nodes if not n.get("done"))
+    # carry id + node_id so the monitor can re-check at fire time that the step is
+    # still done (a done-then-undone within the debounce must not earn a comment)
     return [{"action": "advanced", "title": c.get("title", c.get("id")),
-             "source": source, "step": n.get("label", ""), "remaining": remaining}
+             "source": source, "step": n.get("label", ""), "remaining": remaining,
+             "id": c.get("id"), "node_id": n.get("id")}
             for n in new_nodes if n.get("done") and not old_done.get(n.get("id"))]
 
 
