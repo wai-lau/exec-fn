@@ -191,6 +191,15 @@ async function saveStartTime(cardId, startMin) {
   const card = allCards.find(x => x.id === cardId);
   if (!card) return;
   card.dir_start_min = startMin;
+  // Dragging the block on the today timeline moves the event with it: keep the
+  // event time = block start + prep, so the due TIME follows the drag while the
+  // due DATE is untouched (between-column drags, which go through /api/hq, don't
+  // touch due_date at all). Only retime cards that already carry a due date.
+  if (card.due_date) {
+    const m = ((startMin + (card.prep_time || 0)) % 1440 + 1440) % 1440;
+    const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    card.due_date = card.due_date.split('T')[0] + 'T' + hhmm;
+  }
   await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: allCards})});
 }
 
