@@ -4,6 +4,22 @@
    file only fetches the right token for a card. */
 const CARD_CATS = ['Self', 'Social', 'Interfacing', 'Hobby'];
 
+// Parse a duration string to whole minutes (no LLM). Accepts a bare number
+// (minutes) or h/m units: "90"->90, "10m"->10, "2h"->120, "1h30m"->90,
+// "1.5h"->90, "30min"->30. Returns null if unparseable. Shared by the card
+// dialog (prep/event) and the breakdown graph (per-step estimate).
+function parseDuration(s) {
+  if (s == null) return null;
+  s = String(s).trim().toLowerCase();
+  if (!s) return null;
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(parseFloat(s));
+  const m = s.match(/^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m(?:in)?)?$/);
+  if (!m || (m[1] == null && m[2] == null)) return null;
+  const h = m[1] != null ? parseFloat(m[1]) : 0;
+  const min = m[2] != null ? parseInt(m[2], 10) : 0;
+  return Math.round(h * 60 + min);
+}
+
 function _catKey(c) {
   return CARD_CATS.includes(c.category) ? c.category.toLowerCase() : null;
 }
