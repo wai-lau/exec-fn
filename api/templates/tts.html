@@ -1,8 +1,11 @@
 
-<link rel="stylesheet" href="/tts.css?v=19">
+<link rel="stylesheet" href="/tts.css?v=20">
 
 <main class="tts">
-  <div id="tts-presence" aria-live="polite">0 users connected</div>
+  <div class="tts-presence-row">
+    <div id="tts-status"></div>
+    <div id="tts-presence" aria-live="polite">0 users connected</div>
+  </div>
   <textarea id="tts-text" placeholder="Type something to speak...">Hi, so, there's a project that I've been working on that I really want to talk to you about. --- Project Hosaka! ---
 
 You type stuff in this here little box, and it says it out loud. --- Now, I know, the name sounds like a computer brand from Neuromancer, and uh --- yes it is! ---
@@ -14,7 +17,6 @@ Uh, I mean, friends! I mean share this great tool with friends!</textarea>
     <select id="tts-voice"><option>loading voices...</option></select>
     <button id="tts-speak">Speak</button>
   </div>
-  <div id="tts-status"></div>
   <canvas id="tts-wave" aria-hidden="true"></canvas>
 
   <div id="tts-cb">

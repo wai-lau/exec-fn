@@ -38,15 +38,27 @@
   width: 100%;
 }
 
+/* Top line: diagnostic status (offline reason / glados-only) on the left, the
+   connected-users count on the right. The status shrinks/wraps; the count keeps
+   its old flush-right spot via margin-left:auto, so an empty status (display:none
+   below) can't pull the count leftward. */
+.tts-presence-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
 /* Live connected-users count, top of the page. Defaults to 0 so the line holds
    its height from first paint -- the count landing must not shift the layout. */
 #tts-presence {
+  margin-left: auto;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: right;
   color: hsl(var(--green-hsl) / 0.45);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Speak button + voice selector share one line. */
@@ -82,13 +94,19 @@
   opacity: 0.45;
 }
 
+/* Sits at the left of the presence row -- match the count's small-caps look,
+   shrink before the count, wrap if the message is long. */
 .tts #tts-status {
+  min-width: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
   color: hsl(var(--green-hsl) / 0.45);
-  text-align: center;
 }
 
 .tts #tts-status:empty {
-  display: none; /* don't reserve a blank band above the scope */
+  display: none; /* collapse so it claims no width when there's nothing to say */
 }
 
 .tts-group {
