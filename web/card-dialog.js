@@ -85,9 +85,9 @@
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
       <span>breakdown</span>
       <span style="display:flex;gap:6px;align-items:baseline;letter-spacing:0;text-transform:none">
-        <input id="cd-prep" type="number" min="0" placeholder="prep" title="prep minutes — the hands-on steps that get decomposed" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <input id="cd-prep" type="text" inputmode="text" placeholder="prep" title="prep time — the hands-on steps that get decomposed. accepts 90, 10m, 2h, 1h30m" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
         <span style="opacity:0.4;font-size:0.65rem">+</span>
-        <input id="cd-dur" type="number" min="0" placeholder="event" title="event minutes — an atomic occurrence you attend (class/concert/appt); 0 for a self-directed task" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <input id="cd-dur" type="text" inputmode="text" placeholder="event" title="event time — an atomic occurrence you attend (class/concert/appt); 0 for a self-directed task. accepts 90, 10m, 2h, 1h30m" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
         <span style="opacity:0.5;font-size:0.65rem">m</span>
         <button type="button" id="cd-recalc" class="cd-btn" style="font-size:0.6rem;padding:1px 7px" onclick="cdRecalc()">recalculate</button>
       </span>
@@ -268,8 +268,8 @@
     const isReminder = document.getElementById('cd-reminder').checked;
     c.size = isReminder ? null : document.getElementById('cd-size').value;
     // Time = prep (lead-up) + work; estimated_time is their sum (the schedule block).
-    const prep = parseInt(document.getElementById('cd-prep').value) || 0;
-    const work = parseInt(document.getElementById('cd-dur').value) || 0;
+    const prep = parseDuration(document.getElementById('cd-prep').value) || 0;
+    const work = parseDuration(document.getElementById('cd-dur').value) || 0;
     if (isReminder) {
       c.prep_time = null;
     } else {
@@ -330,8 +330,8 @@
     const prev = btn.textContent; btn.textContent = '...'; btn.disabled = true;
     try {
       const notes = document.getElementById('cd-notes').value.trim();
-      const prep = parseInt(document.getElementById('cd-prep').value) || 0;
-      const duration = parseInt(document.getElementById('cd-dur').value) || 0;
+      const prep = parseDuration(document.getElementById('cd-prep').value) || 0;
+      const duration = parseDuration(document.getElementById('cd-dur').value) || 0;
       // Persist the edited split on the card so the rebuilt graph targets it.
       c.prep_time = prep;
       if (prep + duration > 0) c.estimated_time = prep + duration;

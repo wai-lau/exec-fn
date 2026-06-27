@@ -22,12 +22,12 @@
 .cg-label { font-size:11px; line-height:1.35; outline:none; word-break:break-word; white-space:normal; cursor:text; }
 .cg-label:focus { box-shadow:0 0 0 1px color-mix(in srgb, currentColor 50%, transparent); border-radius:2px; }
 .cg-node.done .cg-label { text-decoration:line-through; }
-.cg-meta { font-size:9px; opacity:0.55; margin-top:3px; display:flex; align-items:center; gap:2px; flex-wrap:nowrap; }
+.cg-meta { font-size:11px; opacity:0.55; margin-top:3px; display:flex; align-items:center; gap:2px; flex-wrap:nowrap; }
 .cg-est-unit { display:inline-flex; align-items:center; white-space:nowrap; }
-.cg-meta input { font:inherit; font-size:9px; color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
+.cg-meta input { font:inherit; font-size:11px; color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
 .cg-meta input:focus { outline:1px solid color-mix(in srgb, currentColor 55%, transparent); }
 .cg-time { width:calc(7ch + 8px); text-align:center; }
-.cg-est { width:30px; text-align:right; -moz-appearance:textfield; }
+.cg-est { width:4ch; text-align:right; -moz-appearance:textfield; }
 .cg-est::-webkit-outer-spin-button, .cg-est::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 .cg-node.active .cg-meta { opacity:0.95; }
 .cg-ctl { position:absolute; top:50%; left:100%; margin-left:6px; transform:translateY(-50%); display:flex; flex-direction:column; gap:8px; line-height:1; z-index:2; }
@@ -197,18 +197,18 @@
       // editable estimate (minutes)
       const di = document.createElement('input');
       di.className = 'cg-est';
-      di.type = 'number';
-      di.min = '1';
+      di.type = 'text';
       di.value = node.est_min || '';
-      di.title = 'minutes';
+      di.title = 'estimate — accepts 20, 10m, 2h, 1h30m';
       di.addEventListener('mousedown', e => e.stopPropagation());
       di.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); di.blur(); } });
       di.addEventListener('blur', () => {
-        const v = parseInt(di.value);
+        const v = parseDuration(di.value);
         if (!v || v < 1) { di.value = node.est_min || ''; return; }
         if (masterStartOf(card) != null) freezeOffsets(card);   // keep the others put
         node.est_min = v;
         node._dur = Math.max(10, v);
+        di.value = v;                       // normalize "2h" -> 120 in the field
         if (typeof onChange === 'function') onChange();
       });
       const estUnit = document.createElement('span');
