@@ -185,7 +185,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 .dir-group { position: absolute; left: 3px; right: 3px; box-sizing: border-box; z-index: 3; }
 
 .dir-spine {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 24px; box-sizing: border-box;
+  position: absolute; left: 0; top: 0; bottom: 0; width: 14px; box-sizing: border-box;
   border-radius: 4px 0 0 4px; border: 1px solid transparent;
   display: flex; align-items: center; justify-content: center;
   cursor: grab; user-select: none; overflow: hidden;
