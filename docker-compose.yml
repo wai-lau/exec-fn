@@ -23,6 +23,16 @@ services:
       - rmapi-auth:/root/.config/rmapi
       - gcal-auth:/root/.config/gcal
 
+  # Always-on GLaDOS voice (CPU Piper). Built separately from the hosaka repo:
+  #   docker build -f ~/src/hosaka/Dockerfile.piper -t hosaka-piper:latest ~/src/hosaka
+  # No torch, glados baked into the image. Keeps /hosaka's glados live even when
+  # the home GPU box is off. The api container reaches it by service name over
+  # the compose network (TTS_PIPER_UPSTREAM defaults to hosaka-piper:8123); no
+  # ports are published -- only api talks to it.
+  hosaka-piper:
+    image: hosaka-piper:latest
+    restart: unless-stopped
+
 volumes:
   rmapi-auth:
   gcal-auth:
