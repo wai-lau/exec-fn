@@ -28,6 +28,7 @@ const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
 // underneath. kokoro/piper honor only speed. When the upstream sends `cb` per
 // voice (authoritative), that wins -- see reflectBackend().
 const CLONE_BACKENDS = new Set(["chatterbox", "rvc"]);
+const PIPER_BACKENDS = new Set(["piper"]);
 
 // Per-voice loudness trim so every voice's default lands at ~80% of the clipping
 // limit (output peak ~0.8) at volume knob 1.0. Effective gain = volume knob *
@@ -45,6 +46,7 @@ const SPEED_CAP = { charlie: 1.1 };
 const applyVolume = () => player.setVolume(parseFloat($("tts-volume").value) * voiceGain());
 
 let speaking = false; // suppress health polling clobbering live speak status
+let health = { ok: false, home: false, piper: false };
 
 // The params are locked in for the in-flight utterance, so freeze every knob
 // for the whole generating->playback lifecycle. The `.busy` class dims + makes
@@ -131,18 +133,42 @@ const wave = (() => {
   };
 })();
 
+function backendLive(backend) {
+  return PIPER_BACKENDS.has(backend) ? health.piper : health.home;
+}
+
+function applyHealth() {
+  const sel = $("tts-voice");
+  for (const o of sel.options) {
+    o.disabled = !backendLive(o.dataset.backend);
+  }
+  // If the selected voice's upstream just went down, move to a live one.
+  const cur = sel.selectedOptions[0];
+  if (cur && cur.disabled) {
+    const live = [...sel.options].find((o) => !o.disabled);
+    if (live) live.selected = true;
+  }
+  const liveSel = sel.selectedOptions[0];
+  if (liveSel && backendLive(liveSel.dataset.backend)) {
+    setBtn("Speak", true);
+    setStatus(health.home ? "" : "home box offline -- glados only");
+  } else {
+    setBtn("offline", false);
+    setStatus(OFFLINE);
+  }
+  if (typeof reflectBackend === "function") reflectBackend();
+}
+
 // Poll the upstream so the page shows offline BEFORE the user hits SPEAK (a bound
 // tunnel port isn't liveness -- see /api/hosaka/health).
 async function checkHealth() {
   if (speaking) return; // mid-speak: the button shows generating/speaking
   try {
-    const j = await (await fetch("/api/hosaka/health")).json();
-    if (j.ok) { setBtn("Speak", true); setStatus(""); }
-    else { setBtn("offline", false); setStatus(OFFLINE); }
+    health = await (await fetch("/api/hosaka/health")).json();
   } catch {
-    setBtn("offline", false);
-    setStatus(OFFLINE);
+    health = { ok: false, home: false, piper: false };
   }
+  applyHealth();
 }
 
 async function loadVoices() {
@@ -184,8 +210,9 @@ async function loadVoices() {
   // when the upstream offers it; fall back to the first listed voice otherwise.
   const def = [...sel.options].find((o) => o.value === "charlie");
   if (def) def.selected = true;
-  sel.addEventListener("change", reflectBackend);
+  sel.addEventListener("change", () => { reflectBackend(); applyHealth(); });
   reflectBackend();
+  applyHealth();
 }
 
 function selectedBackend() {
