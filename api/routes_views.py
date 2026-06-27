@@ -71,7 +71,7 @@ _LANDING_BLURBS = {
     "graph": "The whole machine as constellation. Every node a live nerve.",
     "nightfall": "Flash games died, but this one lives. Night falls on the net.",
     "color": "The console's own spectrum, stripped to raw hue and signal.",
-    "mtg": "A judge wired to the stack. It rules, and it never sleeps.",
+    "mtg": "A wizard wired to the stack. It rules, and it never sleeps.",
     "tarot": "Seventy-eight gates, a green terminal, the reader is waiting for you to begin.",
     "recruiter": "Wai's credentials for the headhunters.",
 }
