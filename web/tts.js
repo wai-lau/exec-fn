@@ -17,7 +17,7 @@ const setBtn = (label, enabled) => {
 // The upstream lives on a home GPU box behind an SSH tunnel; when its model
 // server is down the WS just closes ("disconnected" from the raw conn state),
 // which reads like a bug. Name the real cause instead.
-const OFFLINE = "TTS server offline — start it on the home box";
+const OFFLINE = "TTS server offline — start it on Wai's GPU";
 
 const PARAM_IDS = ["exaggeration", "cfg_weight", "temperature", "speed"];
 
@@ -151,7 +151,7 @@ function applyHealth() {
   const liveSel = sel.selectedOptions[0];
   if (liveSel && backendLive(liveSel.dataset.backend)) {
     setBtn("Speak", true);
-    setStatus(health.home ? "" : "home box offline -- glados only");
+    setStatus(health.home ? "" : "Wai's GPU offline -- glados only");
   } else {
     setBtn("offline", false);
     setStatus(OFFLINE);
