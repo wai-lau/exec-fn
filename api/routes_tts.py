@@ -19,9 +19,12 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
 from pages import _render_page, _tmpl
 from routers import guest_protected, public
+from tts_routing import merge_voices, pick_upstream
 
 # Docker bridge gateway -> host loopback :8123 (the SSH tunnel to the home box).
 _UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
+# Always-on droplet-local piper (glados). Separate from the home GPU tunnel.
+_PIPER_UPSTREAM = os.environ.get("TTS_PIPER_UPSTREAM", "hosaka-piper:8123")
 
 
 @guest_protected.get("/hosaka", response_class=HTMLResponse)
@@ -30,40 +33,43 @@ async def tts_page(request: Request):
     return _render_page("hosaka", _tmpl("tts.html"), full_height=True, guest=not is_full_auth)
 
 
+async def _get_voices(upstream: str):
+    async with httpx.AsyncClient(timeout=5) as client:
+        r = await client.get(f"http://{upstream}/v1/voices")
+        return r.json()
+
+
 @guest_protected.get("/api/hosaka/voices")
 async def tts_voices():
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            r = await client.get(f"http://{_UPSTREAM}/v1/voices")
-            return JSONResponse(r.json())
-    except Exception:
-        return JSONResponse([])
+    async def safe(upstream: str):
+        try:
+            return await _get_voices(upstream)
+        except Exception:
+            return []
+
+    piper_voices = await safe(_PIPER_UPSTREAM)
+    home_voices = await safe(_UPSTREAM)
+    return JSONResponse(merge_voices(piper_voices, home_voices))
 
 
 @guest_protected.get("/api/hosaka/health")
 async def tts_health():
-    """Is the home-box TTS upstream reachable. The reverse-tunnel listener stays
-    bound on the droplet even when the model server behind it is down (connect
-    then RST -> 'Connection reset by peer'), so a bound port is NOT liveness --
-    only an actual response is. Lets /hosaka show 'offline' before SPEAK."""
-    try:
-        async with httpx.AsyncClient(timeout=3) as client:
-            r = await client.get(f"http://{_UPSTREAM}/v1/voices")
-            r.raise_for_status()
-            return JSONResponse({"ok": True})
-    except Exception as e:
-        return JSONResponse({"ok": False, "detail": type(e).__name__}, status_code=503)
+    """ok if EITHER upstream answers. Glados alone (home box down) is still ok;
+    the UI greys out GPU voices but keeps glados live. A bound tunnel port is
+    not liveness -- only an actual /v1/voices response counts."""
 
+    async def live(upstream: str) -> bool:
+        try:
+            async with httpx.AsyncClient(timeout=3) as client:
+                r = await client.get(f"http://{upstream}/v1/voices")
+                r.raise_for_status()
+                return True
+        except Exception:
+            return False
 
-async def _pump_to_upstream(ws, upstream):
-    while True:
-        m = await ws.receive()
-        if m["type"] == "websocket.disconnect":
-            break
-        if m.get("text") is not None:
-            await upstream.send(m["text"])
-        elif m.get("bytes") is not None:
-            await upstream.send(m["bytes"])
+    home, piper = await asyncio.gather(live(_UPSTREAM), live(_PIPER_UPSTREAM))
+    ok = home or piper
+    return JSONResponse({"ok": ok, "home": home, "piper": piper}, status_code=200 if ok else 503)
 
 
 async def _pump_to_client(ws, upstream):
@@ -93,10 +99,7 @@ async def _broadcast_presence():
 @public.websocket("/ws/hosaka/presence")
 async def ws_presence(ws: WebSocket):
     # Same cookie gate as the audio socket (full owner OR guest session).
-    if (
-        ws.cookies.get("session") != SESSION_TOKEN
-        and ws.cookies.get("guest_session") != GUEST_SESSION_TOKEN
-    ):
+    if ws.cookies.get("session") != SESSION_TOKEN and ws.cookies.get("guest_session") != GUEST_SESSION_TOKEN:
         await ws.close(code=1008)
         return
     await ws.accept()
@@ -114,35 +117,57 @@ async def ws_presence(ws: WebSocket):
         await _broadcast_presence()
 
 
+async def _ws_connect(conns, pumps, ws, url):
+    """Lazily open and cache one upstream WS per backend URL."""
+    if url not in conns:
+        up = await websockets.connect(f"ws://{url}/v1/audio/stream", max_size=None)
+        conns[url] = up
+        pumps.append(asyncio.create_task(_pump_to_client(ws, up)))
+    return conns[url]
+
+
+async def _ws_dispatch(ws, conns, pumps):
+    """Forward client messages to the right upstream, routed per utterance."""
+    while True:
+        m = await ws.receive()
+        if m["type"] == "websocket.disconnect":
+            break
+        if m.get("text") is None:
+            continue  # the audio protocol is client->server JSON utterances only
+        try:
+            req = json.loads(m["text"])
+        except Exception:
+            await ws.send_text(json.dumps({"type": "error", "detail": "bad request json"}))
+            continue
+        url = pick_upstream(req, _UPSTREAM, _PIPER_UPSTREAM)
+        try:
+            up = await _ws_connect(conns, pumps, ws, url)
+        except Exception:
+            await ws.send_text(json.dumps({"type": "error", "detail": "tts upstream unreachable"}))
+            continue
+        await up.send(m["text"])
+
+
 @public.websocket("/ws/hosaka")
 async def ws_tts(ws: WebSocket):
-    # Same session cookie as the rest of the app; the browser sends it on the
-    # same-origin WS handshake. Accept the full owner session OR a guest session
-    # (so guests on /tarot get the reader voice too). Reject anything else
-    # before accepting.
-    if (
-        ws.cookies.get("session") != SESSION_TOKEN
-        and ws.cookies.get("guest_session") != GUEST_SESSION_TOKEN
-    ):
+    if ws.cookies.get("session") != SESSION_TOKEN and ws.cookies.get("guest_session") != GUEST_SESSION_TOKEN:
         await ws.close(code=1008)
         return
     await ws.accept()
+    conns: dict[str, object] = {}  # upstream url -> open websocket
+    pumps: list = []  # upstream->client pump tasks
     try:
-        upstream = await websockets.connect(f"ws://{_UPSTREAM}/v1/audio/stream", max_size=None)
+        await _ws_dispatch(ws, conns, pumps)
     except Exception:
-        await ws.send_text(json.dumps({"type": "error", "detail": "tts upstream unreachable"}))
-        await ws.close()
-        return
-    tasks = [
-        asyncio.create_task(_pump_to_upstream(ws, upstream)),
-        asyncio.create_task(_pump_to_client(ws, upstream)),
-    ]
-    try:
-        await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        pass
     finally:
-        for t in tasks:
+        for t in pumps:
             t.cancel()
-        await upstream.close()
+        for up in conns.values():
+            try:
+                await up.close()
+            except Exception:
+                pass
         try:
             await ws.close()
         except Exception:
