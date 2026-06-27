@@ -46,11 +46,12 @@ const applyVolume = () => player.setVolume(parseFloat($("tts-volume").value) * v
 
 let speaking = false; // suppress health polling clobbering live speak status
 
-// Speed is a generation param already sent upstream; it can't change
-// mid-utterance. Lock the slider for the whole generating->playback lifecycle.
+// The params are locked in for the in-flight utterance, so freeze every knob
+// for the whole generating->playback lifecycle. The `.busy` class dims + makes
+// all knob blocks non-interactive uniformly; don't also set the speed slider's
+// `disabled` (the native UA grey made it look different from the others).
 const setSpeaking = (on) => {
   speaking = on;
-  $("tts-speed").disabled = on;
   document.querySelector(".tts").classList.toggle("busy", on);
 };
 
