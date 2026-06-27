@@ -32,6 +32,13 @@ services:
   hosaka-piper:
     image: hosaka-piper:latest
     restart: unless-stopped
+    volumes:
+      # Pronunciation lexicon synced from the home box (scripts/sync_lexicon.sh,
+      # rsync --inplace). Single-file bind mount + hosaka's Lexicon mtime
+      # hot-reload => live pronunciation updates with no restart. The host file
+      # must exist before the container starts (else docker creates a dir);
+      # seed it with the first sync. Read-only: the container only reads it.
+      - /srv/hosaka-piper/lexicon.json:/opt/hosaka/.local/share/hosaka/lexicon.json:ro
 
 volumes:
   rmapi-auth:
