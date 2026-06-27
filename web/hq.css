@@ -228,6 +228,6 @@ body.hq-dragging .hq-unschedule.drag-over {
 }
 .dir-sub-del:hover { opacity: 1; }
 .dir-sub-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: calc(0.6rem - 1pt); line-height: 1.15; overflow-wrap: break-word; padding-left: 12px; }
-.dir-sub-meta { font-size: calc(0.46rem - 1pt); opacity: 0.6; margin-top: 1px; white-space: nowrap; }
+.dir-sub-meta { font-size: calc(0.6rem - 1pt); opacity: 0.6; margin-top: 1px; white-space: nowrap; }
 
 /* .dir-sub-resize styled with .dir-resize above (bottom-right grip) */
