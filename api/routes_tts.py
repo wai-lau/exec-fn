@@ -47,8 +47,9 @@ async def tts_voices():
         except Exception:
             return []
 
-    piper_voices = await safe(_PIPER_UPSTREAM)
-    home_voices = await safe(_UPSTREAM)
+    # Concurrent: a slow/down home box must not stall the page-load behind its
+    # full timeout (the piper side is local and fast). Mirrors tts_health.
+    piper_voices, home_voices = await asyncio.gather(safe(_PIPER_UPSTREAM), safe(_UPSTREAM))
     return JSONResponse(merge_voices(piper_voices, home_voices))
 
 
@@ -142,10 +143,15 @@ async def _ws_dispatch(ws, conns, pumps):
         url = pick_upstream(req, _UPSTREAM, _PIPER_UPSTREAM)
         try:
             up = await _ws_connect(conns, pumps, ws, url)
+            await up.send(m["text"])
         except Exception:
+            # A dead/stale cached upstream must fail only THIS utterance, not tear
+            # down the whole session -- a mid-session home-box death would
+            # otherwise also drop a live glados connection. Evict so the next
+            # utterance reconnects; the stale pump ends when its upstream closes.
+            conns.pop(url, None)
             await ws.send_text(json.dumps({"type": "error", "detail": "tts upstream unreachable"}))
             continue
-        await up.send(m["text"])
 
 
 @public.websocket("/ws/hosaka")
