@@ -12,8 +12,8 @@
 .cg-scroll::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
 .cg-canvas { position:relative; width:max-content; }
 .cg-edges { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; z-index:0; }
-.cg-cols { display:flex; gap:40px; align-items:flex-start; position:relative; z-index:1; padding-right:24px; }
-.cg-col { display:flex; flex-direction:column; gap:16px; }
+.cg-cols { display:flex; flex-direction:column; gap:30px; align-items:center; position:relative; z-index:1; padding:0 24px 24px 0; }
+.cg-col { display:flex; flex-direction:row; gap:40px; align-items:flex-start; }
 .cg-node { position:relative; width:150px; box-sizing:border-box; border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-radius:5px; padding:6px 8px; background:color-mix(in srgb, currentColor 7%, transparent); }
 .cg-node.active { border-color:currentColor; border-width:2px; padding:5px 7px; }
 .cg-node.done { opacity:0.5; }
@@ -251,15 +251,16 @@
     edges.forEach(e => {
       const a = elById[e.from], b = elById[e.to];
       if (!a || !b) return;
-      const x1 = a.offsetLeft + a.offsetWidth, y1 = a.offsetTop + a.offsetHeight / 2;
-      // stop short of the target's left edge so the arrowhead sits in the gap,
-      // not hidden under the HTML node (which paints above the edge svg).
-      const x2 = b.offsetLeft - 7, y2 = b.offsetTop + b.offsetHeight / 2;
-      const mx = (x1 + x2) / 2;
+      // top-down: bottom-center of `from` -> top-center of `to`. Stop short of
+      // the target's top edge so the arrowhead sits in the gap, not hidden under
+      // the HTML node (which paints above the edge svg).
+      const x1 = a.offsetLeft + a.offsetWidth / 2, y1 = a.offsetTop + a.offsetHeight;
+      const x2 = b.offsetLeft + b.offsetWidth / 2, y2 = b.offsetTop - 7;
+      const my = (y1 + y2) / 2;
       const path = document.createElementNS(SVGNS, 'path');
       path.setAttribute('class', 'cg-edge');
       path.setAttribute('marker-end', 'url(#cg-arr)');
-      path.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+      path.setAttribute('d', `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`);
       svg.appendChild(path);
     });
 
