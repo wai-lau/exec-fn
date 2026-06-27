@@ -74,7 +74,7 @@ const wave = (() => {
   const cv = $("tts-wave");
   const cx = cv && cv.getContext("2d");
   if (!cx) return { start() {} };
-  let raf = 0;
+  let timer = 0;
   let cols = [];
   let stroke = "currentColor";
 
@@ -115,14 +115,17 @@ const wave = (() => {
       cx.lineTo(x, mid + a);
     }
     cx.stroke();
-    raf = requestAnimationFrame(frame);
   }
 
   return {
+    // Timer-driven, not requestAnimationFrame: WebKit throttles rAF to a crawl
+    // when the window loses focus, freezing the scope while audio still plays.
+    // setInterval keeps firing at full rate for a visible-but-unfocused window
+    // (it only clamps once the tab is fully hidden, where the wave isn't seen).
     start() {
-      if (raf) return;
+      if (timer) return;
       resize();
-      raf = requestAnimationFrame(frame);
+      timer = setInterval(frame, 1000 / 60);
     },
   };
 })();
