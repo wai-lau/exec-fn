@@ -188,8 +188,17 @@ body.hq-dragging .hq-unschedule.drag-over {
   position: absolute; left: 0; top: 0; bottom: 0; width: 14px; box-sizing: border-box;
   border-radius: 4px 0 0 4px; border: 1px solid transparent;
   display: flex; align-items: center; justify-content: center;
-  cursor: grab; user-select: none; overflow: hidden;
+  cursor: grab; user-select: none;
   box-shadow: -2px 3px 11px rgba(0,0,0,0.6);
+}
+
+/* transparent grab extension into the left margin (hour-number gutter) so the
+   now-thin 14px bar is still an easy drag target. Part of the spine for
+   hit-testing, so it triggers the same drag handler; the visible bar stays 14px.
+   (overflow:hidden removed from .dir-spine so this isn't clipped — the title
+   self-clips.) */
+.dir-spine::before {
+  content: ''; position: absolute; inset: 0 0 0 -24px;
 }
 .dir-spine:active { cursor: grabbing; }
 .dir-spine.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 20%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
