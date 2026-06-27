@@ -171,16 +171,11 @@ def _flag_triage(new_cards: list, old_cards: dict) -> None:
             c["nudge"]["triage_pending"] = True
 
 
-@protected.patch("/api/rd")
-async def api_rd_patch(request: Request, source: str = "rd"):
-    body = await request.json()
-    p = DATA_DIR / "rd.json"
-    data = _load_json("rd", {"columns": _RD_COLUMNS})
-    old_cards = {c["id"]: c for c in data.get("cards", [])}
-    new_cards = body.get("cards", [])
-
-    # Apply side-effects that mutate new_cards in place (scheduled_day logic)
-    from scheduler import schedule_to_day, logical_today_iso
+def _apply_patch_schedule(new_cards, old_cards):
+    """Mutate new_cards in place for scheduling side-effects of a PATCH: handle
+    hq<->rd column moves, and re-pin a today card's timeline block when its event
+    TIME was edited."""
+    from scheduler import schedule_to_day, logical_today_iso, timed_start_min
     for c in new_cards:
         old = old_cards.get(c.get("id"))
         if old and old.get("column") != c.get("column"):
@@ -193,6 +188,27 @@ async def api_rd_patch(request: Request, source: str = "rd"):
                 today_iso = logical_today_iso()
                 target = (c.get("due_date") or "").split("T")[0] or today_iso
                 schedule_to_day(c, new_cards, target, today_iso=today_iso, clamp_to_window=True)
+        elif (old and c.get("column") == "hq"
+                and c.get("scheduled_day") == logical_today_iso()
+                and (old.get("due_date") or "") != (c.get("due_date") or "")):
+            # Event TIME edited (e.g. in the card dialog) on a card already placed
+            # today: re-pin its block to event_time - prep so the today timeline
+            # repositions it. Timeless edits leave the stacked slot untouched.
+            pinned = timed_start_min(c)
+            if pinned is not None:
+                c["dir_start_min"] = pinned
+
+
+@protected.patch("/api/rd")
+async def api_rd_patch(request: Request, source: str = "rd"):
+    body = await request.json()
+    p = DATA_DIR / "rd.json"
+    data = _load_json("rd", {"columns": _RD_COLUMNS})
+    old_cards = {c["id"]: c for c in data.get("cards", [])}
+    new_cards = body.get("cards", [])
+
+    # Apply side-effects that mutate new_cards in place (scheduled_day logic)
+    _apply_patch_schedule(new_cards, old_cards)
 
     log_entries = _log_entries_for_patch(new_cards, old_cards, source)
 

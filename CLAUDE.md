@@ -109,7 +109,7 @@ Nav: `R&D` · `HQ` · `debug` · `graph` · `emet` · `color` · `nightfall` · 
 | POST | `/api/morning` | retrospective, purge stale notes, archive activity_log, reset chat (4:30 AM cron) |
 | GET | `/api/rd/log` | Today's activity log (last 20 entries) |
 | GET | `/api/rd` | Returns rd.json |
-| PATCH | `/api/rd` | Update rd.json (source query param: rd/Exec/hq/dirs). Atomic write. Runs recurring-card revival on archived cards with `recur_type`. Schedules monitor debounce if any entry is significant. |
+| PATCH | `/api/rd` | Update rd.json (source query param: rd/Exec/hq/dirs). Atomic write. Scheduling side-effects (`_apply_patch_schedule`): hq<->rd column moves, and re-pin a today card's `dir_start_min` to `event_time - prep` (`scheduler.timed_start_min`) when its timed due_date is edited (so the today timeline auto-repositions the block; a plain drag, with no due change, is left alone). Runs recurring-card revival on archived cards with `recur_type`. Schedules monitor debounce if any entry is significant. |
 | POST | `/api/rd/classify` | Classify card via LLM → category + size |
 | GET | `/api/context` | Returns profile.json (alias of `/api/profile`) |
 | GET | `/api/profile` | Returns profile.json |
