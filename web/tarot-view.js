@@ -226,10 +226,14 @@ async function flipCard(positionKey) {
   const posLabel = framePosLabel(card.position) || fallback;
   const orient = card.reversed ? 'reversed' : 'upright';
   openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel, card.reversed);
-  // Fire the reader turn NOW — while the card is still maximized — so generation
-  // + TTS overlap the time the querent spends looking at the card. The zoom is
-  // dismissed by its own click listener (closeZoom), no longer gating this turn.
-  await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
+  // Start GENERATING the reader turn now — while the card is still maximized — so
+  // the LLM round-trip overlaps the time the querent spends looking at the card.
+  // Hold the reveal + voice until the zoom is dismissed (the minimize click
+  // resolves the gate), so the words/TTS START on minimize with no LLM wait.
+  let openGate;
+  const gate = new Promise(resolve => { openGate = resolve; });
+  cardZoom.addEventListener('click', () => openGate(), {once: true});
+  await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`, gate);
 }
 
 function openZoom(src, name, position, reversed) {
