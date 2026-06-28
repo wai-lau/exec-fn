@@ -291,6 +291,30 @@ The guest tier is what lets the `/tarot` reader voice work for guests.
 | `GET /api/hosaka/voices`, `/health` | `guest_protected` | full + guest |
 | `WS /ws/hosaka` | `public` + cookie check | full + guest (else `1008`) |
 
+### 4b-ii. GPU-mode owner control
+
+`GET /api/hosaka/mode` and `POST /api/hosaka/mode` sit on the **`protected`**
+router (owner-only -- guests must never flip the GPU). They proxy the home-box
+`gpu-mode` service over the SSH tunnel at `172.17.0.1:8124` (env:
+`GPU_MODE_UPSTREAM`, default `172.17.0.1:8124`) using `Authorization: Bearer
+$GPU_MODE_TOKEN` (the token must match the value on the home box;
+provisioned in the droplet `.env` -- operator step). The GET returns the
+current mode; the POST body `{"mode": "homo"|"emo"|"idle"}` transitions it.
+`emo` and `idle` stop hosaka-server and therefore disconnect active remote
+users; the route confirms against `_presence` (the connected WebSocket set in
+`routes_tts.py`) and returns `409` if any users are connected and the caller
+has not sent `{"force": true}`. `homo` never needs confirmation.
+
+The `/hosaka` page renders an `emo | idle | homo` segmented control only for
+owners. If the proxy call to the home service fails (tunnel down, service not
+running), the mode is reported as `gone` (an exec-fn label; the home service
+itself never returns `gone`).
+
+| Endpoint | Router | Reachable by |
+|----------|--------|--------------|
+| `GET /api/hosaka/mode` | `protected` | owner only |
+| `POST /api/hosaka/mode` | `protected` | owner only |
+
 ### 4c. Three consumers of one audio core
 
 All three share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`) — it
