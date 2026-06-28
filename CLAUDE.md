@@ -297,7 +297,7 @@ OS: Ubuntu 24.04 · IP: `168.144.13.51` · Domain: `wai-lau.net`
 
 - nginx: HTTP 80 → HTTPS redirect, HTTPS 443 → localhost:8080
 - Certs: `/etc/letsencrypt/live/wai-lau.net/` (auto-renews)
-- SSH: password auth disabled, fail2ban active
+- SSH: key-only (password auth disabled), **direct root login disabled** (`PermitRootLogin no`); log in as `wai-root` (sudo NOPASSWD) — `ssh wai-root@wai-lau.net`. fail2ban active.
 - Container: `restart: unless-stopped`
 
 Fresh setup: `bash bootstrap.sh`.
