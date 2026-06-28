@@ -381,6 +381,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (confirm(n + " user(s) streaming -- switch anyway?")) return post(action, true);
       return; // cancelled
     }
+    if (!r.ok) { await load(); return; }
     render((await r.json()).mode);
   }
 
