@@ -13,18 +13,23 @@ import os
 
 import httpx
 import websockets
-from fastapi import Request, WebSocket
+from fastapi import HTTPException, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
+from gpu_mode_client import fetch_mode, needs_user_confirm, switch_mode
 from pages import _render_page, _tmpl
-from routers import guest_protected, public
+from routers import guest_protected, protected, public
 from tts_routing import merge_voices, pick_upstream
 
 # Docker bridge gateway -> host loopback :8123 (the SSH tunnel to the home box).
 _UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
 # Always-on droplet-local piper (glados). Separate from the home GPU tunnel.
 _PIPER_UPSTREAM = os.environ.get("TTS_PIPER_UPSTREAM", "hosaka-piper:8123")
+# Home-box gpu-mode switch (homo/emo/idle), reached over the same SSH tunnel as
+# the TTS upstream. Owner-only; bearer-authed on the home side.
+_GPU_MODE_UPSTREAM = os.environ.get("GPU_MODE_UPSTREAM", "172.17.0.1:8124")
+_GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
 
 
 @guest_protected.get("/hosaka", response_class=HTMLResponse)
@@ -71,6 +76,25 @@ async def tts_health():
     home, piper = await asyncio.gather(live(_UPSTREAM), live(_PIPER_UPSTREAM))
     ok = home or piper
     return JSONResponse({"ok": ok, "home": home, "piper": piper}, status_code=200 if ok else 503)
+
+
+@protected.get("/api/hosaka/mode")
+async def gpu_mode_get():
+    """Current GPU mode (homo/emo/idle), or 'gone' if the home box is
+    unreachable. Owner-only: guests never see the control."""
+    return JSONResponse({"mode": await fetch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN)})
+
+
+@protected.post("/api/hosaka/mode")
+async def gpu_mode_post(request: Request):
+    body = await request.json()
+    action = body.get("action")
+    force = bool(body.get("force"))
+    if action not in ("homo", "emo", "idle"):
+        raise HTTPException(status_code=400, detail="bad action")
+    if needs_user_confirm(action, len(_presence), force):
+        raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_presence)})
+    return JSONResponse({"mode": await switch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN, action)})
 
 
 async def _pump_to_client(ws, upstream):

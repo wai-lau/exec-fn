@@ -120,3 +120,16 @@ def test_protected_json_api_requires_auth(client):
 def test_protected_json_api_loads_with_admin(client, admin_headers):
     r = client.get("/api/debug/logs", headers={**admin_headers, "Accept": "application/json"})
     assert r.status_code == 200
+
+
+# ── gpu-mode owner-only routes ──────────────────────────────────────────────────
+def test_hosaka_mode_route_authed(client, admin_headers):
+    r = client.get("/api/hosaka/mode", headers=admin_headers)
+    assert r.status_code == 200
+    assert r.json()["mode"] in {"homo", "emo", "idle", "gone"}
+
+
+def test_hosaka_mode_route_requires_auth(client):
+    # no cookie / no bearer -> 401 from require_auth
+    r = client.get("/api/hosaka/mode")
+    assert r.status_code == 401
