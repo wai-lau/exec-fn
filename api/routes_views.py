@@ -155,7 +155,7 @@ async def recruiter_page():
     _, bare = _index_pages()
     page = bare.replace("<title>wai-lau.net</title>",
                         "<title>Wai Lau — Senior Software Engineer</title>", 1)
-    page = page.replace('<link rel="icon" type="image/png" href="favicon.png?v=2">',
+    page = page.replace('<link rel="icon" type="image/png" href="favicon.png?v=3">',
                         _RECRUITER_FAVICON, 1)
     page = page.replace("</head>",
                         _RECRUITER_FONT_PRELOAD + _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
