@@ -9,7 +9,7 @@
 # Run auth (needs port 8765 reachable — SSH tunnel or temporary port mapping):
 #   docker compose exec -it api python3 gcal_auth.py
 #
-# SSH tunnel from WSL: ssh -L 8765:localhost:8765 root@wai-lau.net
+# SSH tunnel from WSL: ssh -L 8765:localhost:8765 wai-root@wai-lau.net
 # Then visit the printed URL in your browser.
 
 from pathlib import Path
