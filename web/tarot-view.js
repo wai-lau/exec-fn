@@ -226,9 +226,9 @@ async function flipCard(positionKey) {
   const posLabel = framePosLabel(card.position) || fallback;
   const orient = card.reversed ? 'reversed' : 'upright';
   openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel, card.reversed);
-  await new Promise(resolve => {
-    cardZoom.addEventListener('click', resolve, {once: true});
-  });
+  // Fire the reader turn NOW — while the card is still maximized — so generation
+  // + TTS overlap the time the querent spends looking at the card. The zoom is
+  // dismissed by its own click listener (closeZoom), no longer gating this turn.
   await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
 }
 
