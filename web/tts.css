@@ -236,7 +236,7 @@
 /* Current mode: filled with the green accent, bg text -- matches .tts button fill. */
 .tts .tts-mode-btn.active {
   background: hsl(var(--green-hsl) / 0.8);
-  color: hsl(var(--bg-hsl));
+  color: hsl(var(--bg-hsl) / 1);
   cursor: default;
 }
 
