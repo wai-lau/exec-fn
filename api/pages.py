@@ -45,8 +45,8 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["rd", "hq", "debug", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
-_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
+_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "hosaka", "color", "recruiter"]
 
@@ -54,6 +54,7 @@ _NAV_ICONS = {
     "rd":          '<img src="/fiddle.png" alt="rd" style="width:20px;height:20px;image-rendering:pixelated;">',
     "hq":          '<img src="/turbo.png" alt="hq" style="width:20px;height:20px;image-rendering:pixelated;">',
     "debug":       '<img src="/bug.png" alt="debug" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "security":    '<img src="/sentinel.png" alt="security" style="width:20px;height:20px;image-rendering:pixelated;">',
     "graph":       '<img src="/laser-satellite.png" alt="graph" style="width:20px;height:20px;image-rendering:pixelated;">',
     "color":       '<img src="/data-doctor.png" alt="color" style="width:20px;height:20px;image-rendering:pixelated;">',
     "nightfall":   '<img src="/hack2.png" alt="nightfall" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -66,7 +67,7 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
-    "debug": "debug", "graph": "graph", "emet": "emet", "color": "color",
+    "debug": "debug", "security": "sec", "graph": "graph", "emet": "emet", "color": "color",
     "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "hosaka": "hosaka", "recruiter": "cv",
 }
 

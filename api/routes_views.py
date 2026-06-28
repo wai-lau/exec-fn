@@ -24,6 +24,7 @@ from pages import (
 from helpers import DATA_DIR
 from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, TURNSTILE_SITE_KEY, API_KEY, verify_turnstile
 from routes_nightfall import build_nightfall_html
+from security import render_security, load_security_data
 from graph_scrub import (
     _redact_graph_nodes,
     _drop_graph_book_nodes,
@@ -396,6 +397,13 @@ async def emet_page(request: Request):
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
     return _render_page("rd", _tmpl("rd.html"), full_height=True)
+
+
+@protected.get("/security", response_class=HTMLResponse)
+async def security_page():
+    # Owner-only. Content is rendered from data/security.json, refreshed out-of-band
+    # by the host cron (scripts/security/refresh.py reads /var/log as root).
+    return _render_page("security", render_security(load_security_data()))
 
 
 @guest_protected.get("/mtg", response_class=HTMLResponse)
