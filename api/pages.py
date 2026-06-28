@@ -28,7 +28,7 @@ _JSDELIVR_PAGES = {"rd", "hq", "debug", "mtg", "tarot"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph/emet) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
-_FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=2">'
+_FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 
 # Site-wide standalone web-app meta. Running as a standalone home-screen web app
 # is the one way iOS drops the keyboard accessory bar (the prev/next/Done
