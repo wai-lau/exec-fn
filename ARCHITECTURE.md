@@ -299,7 +299,8 @@ router (owner-only -- guests must never flip the GPU). They proxy the home-box
 `GPU_MODE_UPSTREAM`, default `172.17.0.1:8124`) using `Authorization: Bearer
 $GPU_MODE_TOKEN` (the token must match the value on the home box;
 provisioned in the droplet `.env` -- operator step). The GET returns the
-current mode; the POST body `{"mode": "homo"|"emo"|"idle"}` transitions it.
+current mode; the POST body `{"action": "homo"|"emo"|"idle", "force"?: bool}`
+transitions it.
 `emo` and `idle` stop hosaka-server and therefore disconnect active remote
 users; the route confirms against `_presence` (the connected WebSocket set in
 `routes_tts.py`) and returns `409` if any users are connected and the caller
