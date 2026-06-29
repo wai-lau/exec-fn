@@ -26,14 +26,9 @@ from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, TURNSTILE_SITE_KEY, API_KEY
 from routes_nightfall import build_nightfall_html
 from security import render_security, load_security_data
 from graph_scrub import (
-    _redact_graph_nodes,
-    _drop_graph_book_nodes,
-    _drop_graph_moltbook_nodes,
-    _drop_graph_vendor_nodes,
-    _drop_graph_library_nodes,
-    _merge_graph_communities,
-    _fix_graph_stats,
-    _size_graph_by_loc,
+    _redact_graph_nodes, _drop_graph_book_nodes, _drop_graph_moltbook_nodes,
+    _drop_graph_vendor_nodes, _drop_graph_library_nodes, _drop_graph_inferred_edges,
+    _restyle_graph_nodes, _merge_graph_communities, _fix_graph_stats, _size_graph_by_loc,
 )
 
 
@@ -338,6 +333,9 @@ async def graph_page(request: Request):
     # Drop imported library/framework symbols (BaseModel, Request, ...) — not our
     # code, just clutter.
     page = _drop_graph_library_nodes(page)
+    # Drop dashed (INFERRED, low-confidence) edges before the stats rewrite so the
+    # edge count reflects reality — thins the physics/canvas load for a faster render.
+    page = _drop_graph_inferred_edges(page)
     # Merge graphify's many fine-grained communities into <=12 dir-based groups
     # (after the drops) so each gets a distinct color — vis only has 10 palette
     # slots, so 56 communities collapse to indistinguishable color noise.
@@ -353,6 +351,9 @@ async def graph_page(request: Request):
         "{ nodes: nodesDS, edges: edgesDS }, {\n  layout: { improvedLayout: false },",
         1,
     )
+    # Hexagon nodes + bg-filled (coloured-outline) look, matching /emet; repoints
+    # the neighbour-stripe colour to the border. After the merge so node colours exist.
+    page = _restyle_graph_nodes(page)
     page = page.replace("</head>", _VIEWPORT_META + _APPLE_WEBAPP_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
     page = page.replace("</body>", _fx + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
     # /graph has no extension so the no-cache middleware skips it, and the route
