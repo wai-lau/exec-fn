@@ -10,11 +10,11 @@
 .cg-scroll::-webkit-scrollbar { width:8px; height:8px; }
 .cg-scroll::-webkit-scrollbar-track { background:transparent; }
 .cg-scroll::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
-.cg-canvas { position:relative; width:max-content; }
+.cg-canvas { position:relative; width:100%; box-sizing:border-box; }
 .cg-edges { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; z-index:0; }
-.cg-cols { display:flex; flex-direction:column; gap:30px; align-items:center; position:relative; z-index:1; padding:0 8px 24px 28px; }
+.cg-cols { display:flex; flex-direction:column; gap:30px; align-items:stretch; position:relative; z-index:1; padding:36px 8px 24px 34px; }
 .cg-col { display:flex; flex-direction:row; gap:40px; align-items:flex-start; }
-.cg-node { position:relative; width:150px; box-sizing:border-box; border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-radius:5px; padding:6px 8px; background:color-mix(in srgb, currentColor 7%, transparent); }
+.cg-node { position:relative; flex:1; box-sizing:border-box; border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-radius:5px; padding:6px 8px; background:color-mix(in srgb, currentColor 7%, transparent); }
 .cg-node.active { border-color:currentColor; border-width:2px; padding:5px 7px; }
 .cg-node.done { opacity:0.5; }
 .cg-node.event { background:color-mix(in srgb, currentColor 16%, transparent); border-style:dashed; }
@@ -34,10 +34,11 @@
 .cg-est::-webkit-outer-spin-button, .cg-est::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 .cg-node.active .cg-meta { opacity:0.95; }
 .cg-ctl { position:absolute; top:50%; right:100%; margin-right:6px; transform:translateY(-50%); display:flex; flex-direction:column; gap:8px; line-height:1; z-index:2; }
-.cg-ic { background:none; border:none; color:inherit; cursor:pointer; font-family:inherit; font-size:0.78rem; opacity:0.4; padding:0; }
-.cg-ic:hover { opacity:1; }
+.cg-circ { width:18px; height:18px; padding:0; border-radius:50%; border:1px solid color-mix(in srgb, currentColor 50%, transparent); background:color-mix(in srgb, currentColor 20%, transparent); color:inherit; font-family:inherit; font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0.5; }
+.cg-circ:hover { opacity:1; border-color:currentColor; }
 .cg-edge { stroke:currentColor; stroke-opacity:0.32; fill:none; stroke-width:1.3; }
 .cg-arrow { fill:currentColor; fill-opacity:0.32; }
+.cg-add { position:absolute; transform:translate(-50%,-50%); z-index:3; }
 .cg-hint { font-size:0.55rem; opacity:0.4; margin-top:5px; }
 `;
   const style = document.createElement('style');
@@ -148,9 +149,19 @@
     if (!node.is_event_start) {
       const ctl = document.createElement('div');
       ctl.className = 'cg-ctl';
-      const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
+      const mk = (txt, title, fn) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'cg-circ'; b.textContent = txt; b.title = title;
+        b.addEventListener('mousedown', e => e.stopPropagation());
+        b.addEventListener('click', e => { e.stopPropagation(); fn(); });
+        return b;
+      };
       ctl.append(
         mk('✕', 'delete step', () => ctx.removeNode(node.id)),
+        mk('+', 'insert a step after', () => {
+          const succ = (ctx.n.graph.edges.find(e => e.from === node.id) || {}).to;
+          if (succ) insertStep(ctx, node.id, succ);
+        }),
       );
       label.contentEditable = 'true';
       label.addEventListener('keydown', e => {
@@ -223,6 +234,29 @@
     return box;
   }
 
+  // Insert a fresh step into the chain. fromId null = insert before `toId` (new
+  // head); otherwise splice the fromId->toId edge into fromId->new->toId. The
+  // chain stays linear. The new step is `active` and inline-renamable.
+  let _stepSeq = 0;
+  function insertStep(ctx, fromId, toId) {
+    const g = ctx.n.graph;
+    const nn = {
+      id: 'n' + Date.now().toString(36) + (_stepSeq++),
+      label: 'new step', done: false, depth: 0, est_min: 10,
+      created_at: new Date().toISOString(),
+    };
+    g.nodes.push(nn);
+    if (fromId != null) {
+      const e = g.edges.find(x => x.from === fromId && x.to === toId);
+      if (e) e.to = nn.id; else g.edges.push({ from: fromId, to: nn.id });
+      g.edges.push({ from: nn.id, to: toId });
+    } else {
+      g.edges.push({ from: nn.id, to: toId });
+    }
+    ctx.recompute();   // active_node + persist via onChange
+    ctx.draw();
+  }
+
   // Lay out the layered DAG (HTML nodes + SVG edges) into ctx.container.
   function cgDraw(ctx) {
     const { n, card, container } = ctx;
@@ -233,7 +267,7 @@
 
     container.innerHTML = '<div class="cg-wrap"><div class="cg-scroll"><div class="cg-canvas">' +
       '<svg class="cg-edges"></svg><div class="cg-cols"></div></div></div>' +
-      '<div class="cg-hint">click a step to rename · ✕ delete · add steps via chat</div></div>';
+      '<div class="cg-hint">click a step to rename · ✕ delete · + insert a step</div></div>';
     const cols = container.querySelector('.cg-cols');
     const elById = {};
     for (let L = 0; L <= maxL; L++) {
@@ -249,6 +283,19 @@
     svg.setAttribute('width', canvas.scrollWidth);
     svg.setAttribute('height', canvas.scrollHeight);
     svg.innerHTML = '<defs><marker id="cg-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="cg-arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>';
+    // A "+" button at (x,y) over the canvas: click to insert a step there.
+    const addInsert = (x, y, fromId, toId, title) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cg-circ cg-add';
+      btn.textContent = '+';
+      btn.title = title || 'insert a step here';
+      btn.style.left = x + 'px';
+      btn.style.top = y + 'px';
+      btn.addEventListener('mousedown', ev => ev.stopPropagation());
+      btn.addEventListener('click', ev => { ev.stopPropagation(); insertStep(ctx, fromId, toId); });
+      canvas.appendChild(btn);
+    };
     edges.forEach(e => {
       const a = elById[e.from], b = elById[e.to];
       if (!a || !b) return;
@@ -264,6 +311,22 @@
       path.setAttribute('d', `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`);
       svg.appendChild(path);
     });
+
+    // Entry arrow pointing into the head step (the chain's start), with a "+"
+    // above it to insert a step before the start. Per-step inserts live in each
+    // node's left control stack (✕ over +). Head = the node nothing points to.
+    const incoming = new Set(edges.map(e => e.to));
+    const head = nodes.find(x => !x.is_event_start && !incoming.has(x.id));
+    if (head && elById[head.id]) {
+      const h = elById[head.id];
+      const hx = h.offsetLeft + h.offsetWidth / 2, hy = h.offsetTop;
+      const ep = document.createElementNS(SVGNS, 'path');
+      ep.setAttribute('class', 'cg-edge');
+      ep.setAttribute('marker-end', 'url(#cg-arr)');
+      ep.setAttribute('d', `M${hx},${hy - 30} L${hx},${hy - 7}`);
+      svg.appendChild(ep);
+      addInsert(hx, hy - 30, null, head.id, 'insert a step before the start');
+    }
 
     // Autoscroll to the next unfinished (active) step.
     const scroll = container.querySelector('.cg-scroll');

@@ -362,7 +362,9 @@
     if (!c) return;
     _cdCallback('save');
     if (typeof window.openExecChat === 'function') {
-      window.openExecChat('Let\'s work on "' + (c.title || '') + '".');
+      // Reference the card by its unique id (not the title, which can collide)
+      // so Exec's card tools target this exact card.
+      window.openExecChat('Let\'s work on card ' + c.id + (c.title ? ' ("' + c.title + '")' : '') + '.');
     }
   };
 
