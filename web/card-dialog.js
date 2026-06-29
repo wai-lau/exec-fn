@@ -34,7 +34,7 @@
     <label>title</label><input id="cd-title" type="text">
     <div style="display:flex;align-items:flex-start;gap:10px">
       <div style="flex:1;min-width:0">
-        <label>date</label>
+        <label>due</label>
         <input id="cd-due" type="text" placeholder="flexible">
       </div>
       <div style="flex-shrink:0;width:72px">
@@ -240,7 +240,10 @@
     document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
     document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
     document.getElementById('cd-size-col').style.display = c.is_reminder ? 'none' : 'block';
-    document.getElementById('cd-breakdown').style.display = (!c.is_book && !c.is_reminder) ? '' : 'none';
+    // breakdown button only creates the FIRST breakdown; once a graph exists the
+    // recalculate button (in the breakdown row) handles rebuilds, so hide it.
+    const _hasG = !!(c.nudge && c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
+    document.getElementById('cd-breakdown').style.display = (!c.is_book && !c.is_reminder && !_hasG) ? '' : 'none';
     document.getElementById('cd-notes').value = c.notes||'';
     _togglePages(!!c.is_book);
     document.getElementById('cd-current-page').value = c.current_page ?? '';
@@ -348,6 +351,7 @@
         const has = !!(c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
         document.getElementById('cd-graph-label').style.display = has ? 'flex' : 'none';
         document.getElementById('cd-graph').style.display = has ? 'block' : 'none';
+        document.getElementById('cd-breakdown').style.display = has ? 'none' : '';   // graph exists now -> recalculate takes over
         if (has) renderCardGraph(document.getElementById('cd-graph'), c, function () {});
       }
     } catch (_) { /* ignore */ }
