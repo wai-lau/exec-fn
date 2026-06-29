@@ -9,9 +9,6 @@ from helpers import DATA_DIR
 _NF_DIR = Path("/app/nightfall")
 
 _SW_UNREGISTER = "<script>if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister();});});}</script>"
-_NIGHTFALL_HEAD = _SW_UNREGISTER + "<script>" + (_NF_DIR / "wai-head.js").read_text() + "</script>"
-_NIGHTFALL_BODY = (_NF_DIR / "wai-body.html").read_text()
-_NIGHTFALL_SAVE_SCRIPT_TPL = (_NF_DIR / "wai-save-sync.js").read_text()
 
 _VALID_SAVE_SLOTS = {"save1", "save2", "save3"}
 
@@ -19,6 +16,15 @@ protected_router = APIRouter()
 
 
 def build_nightfall_html() -> str:
+    # All /app/nightfall reads happen HERE (per request), never at import. The dir
+    # is a bind-mounted nested repo; if it stales (a `git stash` that churns the
+    # untracked tree, a host dir replace) an import-time read would FileNotFoundError
+    # and crash the whole app on --reload -> 502 across every route. Reading lazily
+    # contains a staled mount to /nightfall alone; the rest of the site stays up and
+    # /nightfall self-heals once the mount is healthy again (no restart needed).
+    nf_head = _SW_UNREGISTER + "<script>" + (_NF_DIR / "wai-head.js").read_text() + "</script>"
+    nf_body = (_NF_DIR / "wai-body.html").read_text()
+    nf_save_tpl = (_NF_DIR / "wai-save-sync.js").read_text()
     html = (_NF_DIR / "index.html").read_text()
     chunk_srcs = re.findall(r'<script src="(\./static/js/[^"]+\.js)"></script>', html)
     for src in chunk_srcs:
@@ -28,7 +34,7 @@ def build_nightfall_html() -> str:
         + f'?v={int((_NF_DIR / s[2:]).stat().st_mtime)}'
         for s in chunk_srcs
     ]
-    save_script = "<script>" + _NIGHTFALL_SAVE_SCRIPT_TPL.replace('__SCRIPTS__', json.dumps(abs_srcs)) + "</script>"
+    save_script = "<script>" + nf_save_tpl.replace('__SCRIPTS__', json.dumps(abs_srcs)) + "</script>"
     css_v = int((_NF_DIR / "static" / "css" / "bundle.css").stat().st_mtime)
     html = html.replace('./static/css/bundle.css', f'./static/css/bundle.css?v={css_v}', 1)
     # Standalone web-app meta (inlined to keep the game module isolated -- mirrors
@@ -39,8 +45,8 @@ def build_nightfall_html() -> str:
         '<meta name="mobile-web-app-capable" content="yes">'
         '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'
     )
-    html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">' + _webapp_meta + _NIGHTFALL_HEAD, 1)
-    html = html.replace("</body>", _NIGHTFALL_BODY + save_script + "</body>", 1)
+    html = html.replace("<head>", '<head><base href="/nightfall-game/"><link rel="icon" href="/nightfall-game/hack.png">' + _webapp_meta + nf_head, 1)
+    html = html.replace("</body>", nf_body + save_script + "</body>", 1)
     return html
 
 
