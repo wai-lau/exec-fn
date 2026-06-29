@@ -24,10 +24,13 @@
 .cg-node.done .cg-label { text-decoration:line-through; }
 .cg-meta { font-size:11px; opacity:0.55; margin-top:3px; display:flex; align-items:center; gap:2px; flex-wrap:nowrap; }
 .cg-est-unit { display:inline-flex; align-items:center; white-space:nowrap; }
-.cg-meta input { font:inherit; font-size:11px; color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
+/* scope under .cd-box so these beat .cd-box input (16px / width:100%) from the
+   dialog stylesheet — equal specificity + later source would otherwise win and
+   blow the breakdown inputs up to 16px + full width. Keeps meta = .cg-label 11px. */
+.cd-box .cg-meta input { font:inherit; font-size:11px; color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
 .cg-meta input:focus { outline:1px solid color-mix(in srgb, currentColor 55%, transparent); }
-.cg-time { width:calc(7ch + 8px); text-align:center; }
-.cg-est { width:4ch; text-align:right; -moz-appearance:textfield; }
+.cd-box .cg-time { width:8ch; text-align:center; }
+.cd-box .cg-est { width:4ch; text-align:right; -moz-appearance:textfield; }
 .cg-est::-webkit-outer-spin-button, .cg-est::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 .cg-node.active .cg-meta { opacity:0.95; }
 .cg-ctl { position:absolute; top:50%; left:100%; margin-left:6px; transform:translateY(-50%); display:flex; flex-direction:column; gap:8px; line-height:1; z-index:2; }
@@ -49,7 +52,7 @@
     const d = new Date(node.deadline.indexOf('T') >= 0 ? node.deadline : node.deadline + 'T00:00:00');
     if (isNaN(d)) return '';
     d.setMinutes(d.getMinutes() - (node.est_min || 0));
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(/\s/g, '');
   }
 
   // A placed-today card's master start (dir_start_min). null otherwise — then the
@@ -167,8 +170,7 @@
     meta.className = 'cg-meta';
     if (node.is_event_start) {
       const t = startTime(node);
-      const dur = node.est_min ? ' ' + node.est_min : '';
-      meta.textContent = t ? 'starts ' + t + dur : (node.est_min || '');
+      meta.textContent = t ? 'starts ' + t : (node.est_min || '');
     } else {
       const master = masterStartOf(card);
       if (master != null) {
