@@ -213,6 +213,33 @@ def _drop_graph_library_nodes(page: str) -> str:
     return _prune_graph_nodes(page, drop_ids)
 
 
+def _drop_graph_inferred_edges(page: str) -> str:
+    """Drop the dashed (INFERRED, low-confidence) edges from RAW_EDGES — ~16% of
+    edges, drawn at opacity 0.35. Removing them thins the edge set the physics
+    sim + canvas have to chew, so the graph settles + renders faster, and only
+    the EXTRACTED (solid) relationships remain. No-op if RAW_EDGES is absent."""
+    return _sub_json_array(
+        page, "RAW_EDGES", lambda es: [e for e in es if not e.get("dashes")]
+    )
+
+
+def _restyle_graph_nodes(page: str) -> str:
+    """Render nodes as hexagons (matching /emet) instead of vis's default dots,
+    and bump the border so the bg-filled outline reads. Also repoint the node-info
+    neighbour stripe from .color.background (now the page bg, invisible) to
+    .color.border (the community colour). String tweaks on graphify's emitted JS,
+    so they survive a /graphify rebuild."""
+    page = page.replace(
+        "nodes: { shape: 'dot', borderWidth: 1.5 }",
+        "nodes: { shape: 'hexagon', borderWidth: 2 }",
+        1,
+    )
+    # showInfo() colours each neighbour link's left stripe from the neighbour's
+    # fill; with bg-filled nodes that stripe vanishes, so use the border colour.
+    page = page.replace("nb.color.background", "nb.color.border", 1)
+    return page
+
+
 # Short tokens that read better fully uppercased in a derived community name
 # (acronyms / domain terms) than title-cased ("Routes Api" -> "Routes API").
 _NAME_ACRONYMS = {
@@ -273,12 +300,20 @@ def _friendly_dir(key: str) -> str:
     return " ".join(words) or key
 
 
+# graph.html body bg. Node interiors fill with this so the community colour reads
+# as the hexagon OUTLINE only (the /emet look: bg-filled node, coloured border).
+_GRAPH_BG = "#0f0f1a"
+
+
 def _node_color(hex_color: str) -> dict:
-    """vis-network per-node color object in graphify's shape."""
+    """vis-network per-node color object in graphify's shape — bg-filled interior
+    + the community colour as the border (matches /emet). On select the border
+    flashes white; bg never changes, so the hexagon stays a clean outline."""
     return {
-        "background": hex_color,
+        "background": _GRAPH_BG,
         "border": hex_color,
-        "highlight": {"background": "#ffffff", "border": hex_color},
+        "highlight": {"background": _GRAPH_BG, "border": "#ffffff"},
+        "hover": {"background": _GRAPH_BG, "border": hex_color},
     }
 
 
