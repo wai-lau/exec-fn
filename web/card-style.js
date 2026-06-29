@@ -20,6 +20,14 @@ function parseDuration(s) {
   return Math.round(h * 60 + min);
 }
 
+// Format whole minutes to a compact single-unit string for the card dialog
+// boxes: whole hours -> "Nh" (360 -> "6h"), otherwise "Nm" (35 -> "35m").
+// 0 / null -> "" (empty box). Inverse of parseDuration for the values it emits.
+function fmtDuration(min) {
+  if (!min) return '';
+  return min % 60 === 0 ? (min / 60) + 'h' : min + 'm';
+}
+
 function _catKey(c) {
   return CARD_CATS.includes(c.category) ? c.category.toLowerCase() : null;
 }

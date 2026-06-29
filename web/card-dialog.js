@@ -34,15 +34,19 @@
 <div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
   <div class="cd-box">
     <label>title</label><input id="cd-title" type="text">
-    <label>date</label>
-    <div style="display:flex;align-items:center;gap:8px">
-      <input id="cd-due" type="text" placeholder="optional" style="flex:1;min-width:0">
-      <span style="display:flex;gap:4px;align-items:center;flex-shrink:0;letter-spacing:0;text-transform:none">
-        <input id="cd-prep" type="text" inputmode="text" placeholder="prep" title="prep time — the hands-on steps that get decomposed. accepts 90, 10m, 2h, 1h30m" style="width:44px;font-size:0.65rem;padding:1px 4px;text-align:right">
-        <span style="opacity:0.4;font-size:0.65rem">+</span>
-        <input id="cd-dur" type="text" inputmode="text" placeholder="duration" title="duration — the atomic occurrence you attend (class/concert/appt); 0 for a self-directed task. accepts 90, 10m, 2h, 1h30m" style="width:44px;font-size:0.65rem;padding:1px 4px;text-align:right">
-        <span style="opacity:0.5;font-size:0.65rem">m</span>
-      </span>
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <div style="flex:1;min-width:0">
+        <label>date</label>
+        <input id="cd-due" type="text" placeholder="optional">
+      </div>
+      <div style="flex-shrink:0;width:72px">
+        <label>prep</label>
+        <input id="cd-prep" type="text" inputmode="text" title="prep time — the hands-on steps that get decomposed. format 35m or 6h" style="text-align:right">
+      </div>
+      <div style="flex-shrink:0;width:72px">
+        <label>duration</label>
+        <input id="cd-dur" type="text" inputmode="text" title="duration — the atomic occurrence you attend (class/concert/appt); 0 for a self-directed task. format 35m or 6h" style="text-align:right">
+      </div>
     </div>
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin-top:12px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
@@ -237,8 +241,8 @@
     document.getElementById('cd-total-pages').value = c.total_pages ?? '';
     // prep + work split: estimated_time is the total, prep_time the lead-up slice.
     const _pt = c.prep_time || 0, _et = c.estimated_time || 0;
-    document.getElementById('cd-prep').value = _pt || '';
-    document.getElementById('cd-dur').value = _et ? Math.max(0, _et - _pt) : '';
+    document.getElementById('cd-prep').value = fmtDuration(_pt);
+    document.getElementById('cd-dur').value = fmtDuration(_et ? Math.max(0, _et - _pt) : 0);
     // Open first so the graph can measure layout (autoscroll to the active step).
     document.getElementById('cd-modal').classList.add('open');
     const hasGraph = !!(c.nudge && c.nudge.graph && c.nudge.graph.nodes && c.nudge.graph.nodes.length);
