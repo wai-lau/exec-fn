@@ -211,6 +211,14 @@
   overflow: hidden;
 }
 
+/* The owner-only mode strip ships with the `hidden` attr and is revealed by JS
+   only after /api/hosaka/mode answers 200 (guests get 401 → stays hidden). The
+   class's `display` would otherwise beat the UA `[hidden]{display:none}` rule on
+   specificity and leak the control to guests, so re-assert it here. */
+.tts-mode[hidden] {
+  display: none;
+}
+
 /* Override the generic .tts button rules (background, border, padding) with a
    more specific selector so the segmented layout takes precedence. */
 .tts .tts-mode-btn {
