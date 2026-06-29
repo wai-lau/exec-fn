@@ -49,7 +49,10 @@ def _card_brief(card: dict) -> str:
                 f"~{max(0, et - prep)} min of core work)"
             )
         else:
-            parts.append(f"ESTIMATE: ~{et} min")
+            parts.append(
+                f"ESTIMATE: ~{et} min of work, no separate prep — break the task "
+                f"itself into steps that sum to about {et} min"
+            )
     if card.get("due_date"):
         parts.append(f"DUE: {card['due_date']}")
     ans = (card.get("nudge") or {}).get("consequences", {}).get("answer")
@@ -79,11 +82,12 @@ def decompose_sync(card: dict, feedback: str = "") -> dict:
         "minutes. An edge {from,to} means `from` must be done before `to`. Give each node "
         "est_min: realistic minutes for that one step, no step under 1 minute; the prep "
         "steps should sum to about the PREP minutes in the brief. If the brief shows ~0 "
-        "prep, return an EMPTY nodes list (the work block stands alone). LABELS are short "
+        "prep (no separate lead-up), do NOT return an empty list — instead break the TASK "
+        "ITSELF into its sequence of actionable work steps whose est_min sum to about the "
+        "total ESTIMATE; there is no separate protected work block then. LABELS are short "
         "action phrases (3-7 words) — never embed times, durations, or distances. Then "
         "pick the FIRST doable node (no unfinished prerequisites) and write the opening "
-        "nudge for ONLY that chunk; if there is no prep, active_node is null and the nudge "
-        "points at starting the work itself.\n"
+        "nudge for ONLY that chunk.\n"
         f"{_TONE}\n"
         "The nudge is 1-2 sentences naming only the first chunk, plus 1 sentence of why it "
         "matters (reasoning / consequence / dependency). Never reveal the whole plan.\n\n"
