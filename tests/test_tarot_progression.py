@@ -29,8 +29,7 @@ import json
 import pytest
 
 playwright_api = pytest.importorskip("playwright.sync_api")
-sync_playwright = playwright_api.sync_playwright
-PWError = playwright_api.Error
+PWError = playwright_api.Error  # used by open_tarot's wait_for_selector guard
 
 pytestmark = pytest.mark.browser
 
@@ -110,23 +109,9 @@ SETTLED = """() => {
 
 
 # ── fixtures ───────────────────────────────────────────────────────────────
-@pytest.fixture(scope="session")
-def _pw():
-    pw = sync_playwright().start()
-    yield pw
-    pw.stop()
-
-
-@pytest.fixture(scope="session")
-def browser(_pw):
-    try:
-        b = _pw.webkit.launch()
-    except PWError as e:
-        pytest.skip(f"WebKit not installed (run: .venv/bin/playwright install webkit): {e}")
-    yield b
-    b.close()
-
-
+# The session-scoped WebKit `browser` fixture lives in conftest.py, shared with
+# the other browser-marked files (one sync_playwright per session — see the note
+# there). This module only adds the per-test page wiring.
 @pytest.fixture
 def open_tarot(browser, base_url, admin_headers):
     """Open /tarot in a fresh context with the boundaries mocked.
