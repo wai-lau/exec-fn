@@ -112,9 +112,11 @@ def ensure_event_block(card: dict) -> bool:
     nodes, edges = n["graph"]["nodes"], n["graph"]["edges"]
     evt = next((nd for nd in nodes if nd.get("is_event_start")), None)
     work = _work_min(card)
-    # The event block exists ONLY for an atomic external occurrence (work > 0).
-    # A self-directed task (work == 0) is all prep/steps and carries no event node.
-    if not decomposable(card) or work <= 0:
+    # The event block exists ONLY for an atomic external occurrence reached through
+    # PREP (prep > 0 and work > 0). A self-directed task (work == 0) is all
+    # prep/steps; and a card with NO prep (prep == 0) is fully decomposed into work
+    # steps — neither carries an event node.
+    if not decomposable(card) or work <= 0 or _prep_min(card) <= 0:
         if evt:
             n["graph"]["nodes"] = [nd for nd in nodes if not nd.get("is_event_start")]
             n["graph"]["edges"] = [e for e in edges if evt["id"] not in (e["from"], e["to"])]
@@ -154,7 +156,10 @@ def compute_deadlines(card: dict) -> bool:
     if not nodes:
         return changed
     prep_nodes = [nd for nd in nodes if not nd.get("is_event_start")]
-    default = max(5, round(_prep_min(card) / max(1, len(prep_nodes))))
+    # Budget the per-step default est across the decomposed nodes: prep minutes for
+    # a prep+event card, the full estimate when there's no prep (fully decomposed).
+    budget = _prep_min(card) or _total_min(card)
+    default = max(5, round(budget / max(1, len(prep_nodes))))
     for nd in nodes:
         if nd.get("est_min") is None:               # the event node is set above
             nd["est_min"] = default
