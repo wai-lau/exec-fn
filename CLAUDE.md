@@ -6,21 +6,21 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 
 ## RULES — READ FIRST
 
-**WE ARE ON THE SERVER.** This repo lives at `/exec-fn` on the production server (hostname: main). No SSH or scp needed.
+**TWO CONTEXTS — know which you are before deploying:**
+- **Droplet claude** — cwd is `/exec-fn` on the server (hostname `main`). You ARE the live working tree: edit files in place and they go live (see *Live edits*). No SSH, no `git pull`, no `reset`. Commit + push to origin. **NEVER `git reset --hard`** — it would discard your own uncommitted edits.
+- **Local claude** — cwd is `~/src/exec-fn` on the home box (WSL). You edit a dev MIRROR; nothing is live until you commit + push + deploy to the droplet over SSH (see *Local-claude deploy*).
 
-**Template/static file changes are live on next page load** — `api/templates/` files are read from disk per request via `_tmpl()` in `main.py`. `web/static/index.html` is read per request via `_index_pages()` (cached by mtime). `web/` static files are served directly by FastAPI. No restart needed for any of these.
+**Live edits (droplet claude, editing `/exec-fn` directly):**
+- *Templates/static* are live on next page load — `api/templates/` read per request via `_tmpl()`; `web/static/index.html` per request via `_index_pages()` (mtime-cached); `web/` served directly by FastAPI. No restart.
+- *Python* is live too — `./api` is volume-mounted to `/app` and uvicorn runs `--reload`, so editing any `api/*.py` auto-reloads the worker (1–2s). No `docker cp`, no rebuild. (If `--reload` misses a change: `docker compose restart api`.)
 
-**Python changes are live too** — `./api` is volume-mounted to `/app` (see `docker-compose.yml`) and uvicorn runs with `--reload`, so editing any `api/*.py` on disk auto-reloads the worker. No `docker cp`, no restart, no image drift. (If `--reload` ever misses a change, `docker compose restart api` forces it — but no `docker cp` is needed since the source is mounted.)
-
-**Deploying to the droplet — use a deterministic reset, NOT `git pull`/`git stash`.** `/exec-fn` always carries local drift (regenerated `graphify-out`) and has a rebase-pull config; combined with the bind-mounted **untracked** dirs (`./nightfall-incident` → `/app/nightfall`, `./graphify-out`), `git pull`/`git stash` are fragile — a mangled stash-pop or a staled bind mount crashes the worker → **site down, 502** (`routes_nightfall` reads `nightfall-incident/wai-head.js` at module load, so a staled `/app/nightfall` mount kills startup). Both `stash -u` AND plain `stash` have caused outages. The reliable deploy:
+**Local-claude deploy — push, then deterministic reset over SSH (NOT `git pull`/`git stash`).** `/exec-fn` always carries local drift (regenerated `graphify-out`) + a rebase-pull config; with the bind-mounted **untracked** dirs (`./nightfall-incident` → `/app/nightfall`, `./graphify-out`), `pull`/`stash` are fragile — a mangled stash-pop or a staled mount crashes the worker → **502** (`routes_nightfall` reads `nightfall-incident/wai-head.js` at import, so a staled `/app/nightfall` kills startup). Both `stash -u` and plain `stash` have caused outages. After `git push` from `~/src/exec-fn`:
 ```bash
-git -C /exec-fn fetch origin
-git -C /exec-fn reset --hard origin/master   # discards local graphify-out drift — re-run /graphify after (or commit it first); untracked nightfall-incident is preserved
-cd /exec-fn && docker compose up -d --force-recreate api   # rebuilds the mount namespace so a churned untracked dir can't stale → can't crash startup
+ssh wai-root@wai-lau.net 'cd /exec-fn && sudo git fetch origin && sudo git reset --hard origin/master && sudo docker compose up -d --force-recreate api'
 ```
-`--force-recreate` is the safety net; `--reload` alone can pick up a `.py` edit but won't fix a staled mount.
+`reset --hard` discards the droplet's `graphify-out` drift (re-run `/graphify` after, or commit it first); untracked `nightfall-incident` is preserved; `--force-recreate` rebuilds the mount namespace so a churned untracked dir can't stale and crash startup.
 
-**Auto-deploy is the expected workflow** — the owner wants code changes pushed to the live droplet via the steps above (confirmed after weighing the outage risk); deploy yourself, don't hand the command back to run manually.
+**Auto-deploy is the expected workflow** (local claude) — the owner wants code changes pushed to the live droplet via the SSH deploy above (confirmed after weighing the outage risk); deploy yourself, don't hand the command back to run manually.
 
 **Rebuild only if** `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` changed:
 ```bash
