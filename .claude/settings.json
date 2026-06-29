@@ -19,6 +19,12 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/docs-commit-guard.sh",
             "if": "Bash(git commit*)",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/git-stash-guard.sh",
+            "if": "Bash(git stash*)",
+            "timeout": 10
           }
         ]
       }
