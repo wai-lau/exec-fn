@@ -167,8 +167,8 @@
     meta.className = 'cg-meta';
     if (node.is_event_start) {
       const t = startTime(node);
-      const dur = node.est_min ? ' · ' + node.est_min + 'm' : '';
-      meta.textContent = t ? 'starts ' + t + dur : (node.est_min ? node.est_min + 'm' : '');
+      const dur = node.est_min ? ' ' + node.est_min : '';
+      meta.textContent = t ? 'starts ' + t + dur : (node.est_min || '');
     } else {
       const master = masterStartOf(card);
       if (master != null) {
@@ -189,10 +189,10 @@
           ti.value = fmtClock(master + node._off);
           if (typeof onChange === 'function') onChange();
         });
-        meta.append(ti, document.createTextNode(' · '));
+        meta.append(ti);
       } else {
         const t = startTime(node);
-        if (t) meta.append(document.createTextNode(t + '  ·  '));
+        if (t) meta.append(document.createTextNode(t));
       }
       // editable estimate (minutes)
       const di = document.createElement('input');
@@ -213,7 +213,7 @@
       });
       const estUnit = document.createElement('span');
       estUnit.className = 'cg-est-unit';
-      estUnit.append(di, document.createTextNode('m'));
+      estUnit.append(di);
       meta.append(estUnit);
     }
 
