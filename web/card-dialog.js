@@ -35,7 +35,15 @@
   <div class="cd-box">
     <label>title</label><input id="cd-title" type="text">
     <label>date</label>
-    <input id="cd-due" type="text" placeholder="optional">
+    <div style="display:flex;align-items:center;gap:8px">
+      <input id="cd-due" type="text" placeholder="optional" style="flex:1;min-width:0">
+      <span style="display:flex;gap:4px;align-items:center;flex-shrink:0;letter-spacing:0;text-transform:none">
+        <input id="cd-prep" type="text" inputmode="text" placeholder="prep" title="prep time — the hands-on steps that get decomposed. accepts 90, 10m, 2h, 1h30m" style="width:44px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <span style="opacity:0.4;font-size:0.65rem">+</span>
+        <input id="cd-dur" type="text" inputmode="text" placeholder="duration" title="duration — the atomic occurrence you attend (class/concert/appt); 0 for a self-directed task. accepts 90, 10m, 2h, 1h30m" style="width:44px;font-size:0.65rem;padding:1px 4px;text-align:right">
+        <span style="opacity:0.5;font-size:0.65rem">m</span>
+      </span>
+    </div>
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin-top:12px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
         <input id="cd-reminder" type="checkbox" style="width:auto">
@@ -84,13 +92,7 @@
     <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
       <span>breakdown</span>
-      <span style="display:flex;gap:6px;align-items:baseline;letter-spacing:0;text-transform:none">
-        <input id="cd-prep" type="text" inputmode="text" placeholder="prep" title="prep time — the hands-on steps that get decomposed. accepts 90, 10m, 2h, 1h30m" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
-        <span style="opacity:0.4;font-size:0.65rem">+</span>
-        <input id="cd-dur" type="text" inputmode="text" placeholder="event" title="event time — an atomic occurrence you attend (class/concert/appt); 0 for a self-directed task. accepts 90, 10m, 2h, 1h30m" style="width:48px;font-size:0.65rem;padding:1px 4px;text-align:right">
-        <span style="opacity:0.5;font-size:0.65rem">m</span>
-        <button type="button" id="cd-recalc" class="cd-btn" style="font-size:0.6rem;padding:1px 7px" onclick="cdRecalc()">recalculate</button>
-      </span>
+      <button type="button" id="cd-recalc" class="cd-btn" style="font-size:0.6rem;padding:1px 7px;letter-spacing:0;text-transform:none" onclick="cdRecalc()">recalculate</button>
     </label>
     <div id="cd-graph" style="display:none"></div>
     <label>notes</label><textarea id="cd-notes"></textarea>
