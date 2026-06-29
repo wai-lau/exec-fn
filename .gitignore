@@ -9,6 +9,8 @@ api/data/
 api/debug/
 api/templates/emet.html
 api/templates/emet-graph.json
+emet_gen.py
+emet.html
 __pycache__/
 *.pyc
 *.rmdoc
