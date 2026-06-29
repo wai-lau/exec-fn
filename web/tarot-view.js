@@ -106,6 +106,12 @@ function addMsg(role, text) {
   return div;
 }
 
+// sys notes show in the top status bar (latest only), not the chat scrollback
+function setStatus(text) {
+  const el = document.getElementById('tarot-statusline');
+  if (el) el.textContent = text || '';
+}
+
 function addStreamDiv() {
   const div = document.createElement('div');
   div.className = 'msg assistant';

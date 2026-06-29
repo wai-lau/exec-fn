@@ -65,6 +65,18 @@ const tarotMusic = (() => {
       },
       { once: true },
     );
+    // Belt-and-suspenders loop: native loop=true can fail to restart a track
+    // that was seeked into a progressively-streamed m4a (range request). On end,
+    // rewind and replay so the bed never goes silent.
+    el.addEventListener("ended", () => {
+      if (!on) return;
+      try {
+        el.currentTime = 0;
+      } catch {
+        /* seek unsupported */
+      }
+      el.play().catch(() => {});
+    });
     return el;
   }
 
