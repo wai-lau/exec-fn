@@ -19,8 +19,6 @@
 .cd-btn:hover { border-color:hsl(var(--green-hsl) / 1); color:hsl(var(--green-hsl) / 1); }
 .cd-btn-exile { border-color:hsl(var(--orange-glow-hsl) / 0.6) !important; color:hsl(var(--orange-glow-hsl) / 0.8) !important; }
 .cd-btn-exile:hover { border-color:hsl(var(--orange-glow-hsl) / 1) !important; color:hsl(var(--orange-glow-hsl) / 1) !important; }
-.cd-btn-late { border-color:rgba(255,176,0,0.55) !important; color:rgba(255,190,40,0.85) !important; }
-.cd-btn-late:hover { border-color:rgba(255,176,0,0.95) !important; color:rgba(255,200,70,1) !important; }
 .cd-dark label { color:inherit !important; opacity:0.55; }
 .cd-dark input,.cd-dark select,.cd-dark textarea { color:inherit !important; background:rgba(255,255,255,0.04) !important; border-color:rgba(255,255,255,0.12) !important; }
 .cd-dark .cd-btn { border-color:rgba(255,255,255,0.25) !important; color:inherit !important; opacity:0.8; }
@@ -85,26 +83,31 @@
         <option value="month">monthly</option><option value="holiday">holiday (annual)</option><option value="birthday">birthday (annual)</option>
       </select>
     </div>
-    <label id="cd-size-label">importance</label>
-    <select id="cd-size">
-      <option value="wisp">wisp &mdash; trivial</option>
-      <option value="idea">idea &mdash; ordinary</option>
-      <option value="plan">plan &mdash; significant</option>
-      <option value="commitment">commitment &mdash; critical</option>
-    </select>
-    <label>category</label>
-    <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <div id="cd-size-col" style="flex:1;min-width:0">
+        <label id="cd-size-label">importance</label>
+        <select id="cd-size">
+          <option value="wisp">Wisp</option>
+          <option value="idea">Idea</option>
+          <option value="plan">Plan</option>
+          <option value="commitment">Commitment</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:0">
+        <label>category</label>
+        <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>
+      </div>
+    </div>
+    <label>notes</label><textarea id="cd-notes"></textarea>
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
       <span>breakdown</span>
-      <button type="button" id="cd-recalc" class="cd-btn" style="font-size:0.6rem;padding:1px 7px;letter-spacing:0;text-transform:none" onclick="cdRecalc()">recalculate</button>
+      <button type="button" id="cd-recalc" class="cd-btn" style="letter-spacing:0;text-transform:none" onclick="cdRecalc()">recalculate</button>
     </label>
     <div id="cd-graph" style="display:none"></div>
-    <label>notes</label><textarea id="cd-notes"></textarea>
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
         <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
         <button class="cd-btn" style="border-color:hsl(var(--green-hsl) / 0.45);color:hsl(var(--green-hsl) / 0.8)" onclick="cdDone()">done</button>
-        <button class="cd-btn cd-btn-late" onclick="cdLate()" title="done, but late — logged for recalibration">late</button>
       </div>
       <div style="display:flex;gap:8px">
         <button class="cd-btn" onclick="cdChat()">chat</button>
@@ -232,9 +235,7 @@
     document.getElementById('cd-book').checked = !!c.is_book;
     document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
     document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
-    const hideSize = c.is_reminder ? 'none' : 'block';
-    document.getElementById('cd-size-label').style.display = hideSize;
-    document.getElementById('cd-size').style.display = hideSize;
+    document.getElementById('cd-size-col').style.display = c.is_reminder ? 'none' : 'block';
     document.getElementById('cd-notes').value = c.notes||'';
     _togglePages(!!c.is_book);
     document.getElementById('cd-current-page').value = c.current_page ?? '';
@@ -316,17 +317,6 @@
     await _patch();
     cdClose();
     _cdCallback('done');
-  };
-
-  // Done, but late — archive and flag for future recalibration of estimates/lead times.
-  window.cdLate = async function() {
-    const c = _cdCards.find(x => x.id === _cdId);
-    if (!c) return;
-    c.column = 'archives';
-    c.completed_late = true;
-    await _patch();
-    cdClose();
-    _cdCallback('late');
   };
 
   window.cdRecalc = async function() {
