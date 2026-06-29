@@ -95,8 +95,6 @@ def dotmap(geo, width=960, H=460):
         x=X(lon); out.append(f'<line x1="{x:.1f}" y1="{pad}" x2="{x:.1f}" y2="{pad+Hh}" stroke="{GRID}" stroke-width="{1.4 if lon==0 else .6}"/><text x="{x:.1f}" y="{pad+Hh-3}" text-anchor="middle" class="sg">{lon}</text>')
     for lat in range(-60,91,30):
         y=Y(lat); out.append(f'<line x1="{pad}" y1="{y:.1f}" x2="{pad+W}" y2="{y:.1f}" stroke="{GRID}" stroke-width="{1.4 if lat==0 else .6}"/><text x="{pad+3}" y="{y-3:.1f}" class="sg">{lat}</text>')
-    for lab,lon,lat in [("N.AMERICA",-100,45),("S.AMERICA",-60,-12),("EUROPE",18,52),("AFRICA",20,2),("ASIA",92,48),("OCEANIA",140,-25)]:
-        out.append(f'<text x="{X(lon):.1f}" y="{Y(lat):.1f}" text-anchor="middle" class="sr">{lab}</text>')
     for o in sorted(geo,key=lambda o:o.get("total",0)):
         if o.get("lat") is None: continue
         x=X(o["lon"]); y=Y(o["lat"]); r=min(17,2+math.sqrt(o.get("total",1))*0.2)
@@ -226,14 +224,14 @@ def render_security(data):
         body = '<p class="snote">Telemetry not generated yet — the host cron writes data/security.json hourly.</p>'
         return f'<div class="secwrap">{_CSS}<div class="sechead"><h2>◎ security</h2></div>{body}</div>'
     meta = f'web {W["totals"]["day_first"]}→{W["totals"]["day_last"]} · ssh {A["totals"]["day_first"]}→{A["totals"]["day_last"]}' if (W and A) else ""
-    panes = (f'<div class="secpane on" data-t="ssh">{_ssh_tab(A)}</div>'
-             f'<div class="secpane" data-t="web">{_web_tab(W,A)}</div>'
-             f'<div class="secpane" data-t="geo">{_geo_tab(Gd)}</div>')
+    panes = (f'<div class="secpane on" data-t="geo">{_geo_tab(Gd)}</div>'
+             f'<div class="secpane" data-t="ssh">{_ssh_tab(A)}</div>'
+             f'<div class="secpane" data-t="web">{_web_tab(W,A)}</div>')
     return (f'<div class="secwrap">{_CSS}'
         f'<div class="sechead"><h2>◎ wai-lau.net security</h2>'
         f'<span class="meta">{_e(meta)} · generated {_e(gen)}</span></div>'
         f'<div class="sectabs">'
-        f'<button class="sectab on" data-t="ssh">ssh brute-force</button>'
-        f'<button class="sectab" data-t="web">all incoming</button>'
-        f'<button class="sectab" data-t="geo">geolocation</button></div>'
+        f'<button class="sectab on" data-t="geo">geolocation</button>'
+        f'<button class="sectab" data-t="ssh">ssh brute-force</button>'
+        f'<button class="sectab" data-t="web">all incoming</button></div>'
         f'{panes}{_JS}</div>')
