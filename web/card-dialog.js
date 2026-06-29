@@ -35,7 +35,7 @@
     <div style="display:flex;align-items:flex-start;gap:10px">
       <div style="flex:1;min-width:0">
         <label>date</label>
-        <input id="cd-due" type="text" placeholder="optional">
+        <input id="cd-due" type="text" placeholder="flexible">
       </div>
       <div style="flex-shrink:0;width:72px">
         <label>prep</label>
@@ -98,7 +98,11 @@
         <select id="cd-cat"><option>Interfacing</option><option>Hobby</option><option>Social</option><option>Self</option></select>
       </div>
     </div>
-    <label>notes</label><textarea id="cd-notes"></textarea>
+    <label style="display:flex;justify-content:space-between;align-items:baseline">
+      <span>notes</span>
+      <button type="button" id="cd-breakdown" class="cd-btn" style="letter-spacing:0;text-transform:none" onclick="cdBreakdown()" title="rebuild the step breakdown from the current title, notes, prep + duration">breakdown</button>
+    </label>
+    <textarea id="cd-notes"></textarea>
     <label id="cd-graph-label" style="display:none;justify-content:space-between;align-items:baseline">
       <span>breakdown</span>
       <button type="button" id="cd-recalc" class="cd-btn" style="letter-spacing:0;text-transform:none" onclick="cdRecalc()">recalculate</button>
@@ -236,6 +240,7 @@
     document.getElementById('cd-pin-reminder').checked = !!c.pinned_reminder;
     document.getElementById('cd-pin-row').style.display = c.is_reminder ? 'flex' : 'none';
     document.getElementById('cd-size-col').style.display = c.is_reminder ? 'none' : 'block';
+    document.getElementById('cd-breakdown').style.display = (!c.is_book && !c.is_reminder) ? '' : 'none';
     document.getElementById('cd-notes').value = c.notes||'';
     _togglePages(!!c.is_book);
     document.getElementById('cd-current-page').value = c.current_page ?? '';
@@ -319,10 +324,12 @@
     _cdCallback('done');
   };
 
-  window.cdRecalc = async function() {
+  // Rebuild the step breakdown from the current dialog state (title, notes,
+  // prep + duration). Shared by the "breakdown" button next to notes and the
+  // "recalculate" button in the breakdown row — both run the same task breakdown.
+  async function _runBreakdown(btn) {
     const c = _cdCards.find(x => x.id === _cdId);
     if (!c) return;
-    const btn = document.getElementById('cd-recalc');
     const prev = btn.textContent; btn.textContent = '...'; btn.disabled = true;
     try {
       const notes = document.getElementById('cd-notes').value.trim();
@@ -345,7 +352,10 @@
       }
     } catch (_) { /* ignore */ }
     btn.textContent = prev; btn.disabled = false;
-  };
+  }
+
+  window.cdRecalc = function() { _runBreakdown(document.getElementById('cd-recalc')); };
+  window.cdBreakdown = function() { _runBreakdown(document.getElementById('cd-breakdown')); };
 
   window.cdChat = async function() {
     const c = await _collectAndPatch();

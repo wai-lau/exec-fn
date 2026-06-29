@@ -143,6 +143,43 @@ def _first_open(nodes: list, edges: list) -> str | None:
     return None
 
 
+def _linearize_chain(nodes: list, edges: list) -> tuple[list, list]:
+    """Force the breakdown into a strict linear chain — a breakdown is a
+    sequence of steps, never parallel work. Topo-sort the prep nodes by the
+    given edges (stable on input order, which is the model's plan order) so any
+    intended precedence survives, then re-chain step0 -> step1 -> ... -> stepN
+    and discard the model's branching edges. Event-block nodes (is_event_start)
+    are kept out of the chain; ensure_event_block re-attaches the lone terminal
+    sink after deadlines. Idempotent: a chain in stays a chain out."""
+    prep = [n for n in nodes if not n.get("is_event_start")]
+    events = [n for n in nodes if n.get("is_event_start")]
+    if len(prep) <= 1:
+        return prep + events, []
+    ids = [n["id"] for n in prep]
+    idset = set(ids)
+    indeg = {i: 0 for i in ids}
+    succ = {i: [] for i in ids}
+    for e in edges:
+        f, t = e.get("from"), e.get("to")
+        if f in idset and t in idset and f != t:
+            indeg[t] += 1
+            succ[f].append(t)
+    by_id = {n["id"]: n for n in prep}
+    ordered, placed = [], set()
+    while len(ordered) < len(ids):
+        nxt = next((i for i in ids if i not in placed and indeg[i] == 0), None)
+        if nxt is None:                      # cycle/stuck — keep the rest in input order
+            ordered.extend(by_id[i] for i in ids if i not in placed)
+            break
+        ordered.append(by_id[nxt])
+        placed.add(nxt)
+        for s in succ[nxt]:
+            indeg[s] -= 1
+    chain = [{"from": ordered[k]["id"], "to": ordered[k + 1]["id"]}
+             for k in range(len(ordered) - 1)]
+    return ordered + events, chain
+
+
 def _normalize_graph(data: dict) -> dict:
     now = _fmt_et(_now_et())
     nodes = []
@@ -175,6 +212,7 @@ def _normalize_graph(data: dict) -> dict:
         for e in data.get("edges", [])
         if e.get("from") in ids and e.get("to") in ids
     ]
+    nodes, edges = _linearize_chain(nodes, edges)   # breakdown is a chain, never parallel
     active = data.get("active_node")
     if active not in ids:
         active = _first_open(nodes, edges)

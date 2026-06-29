@@ -187,8 +187,15 @@ def apply_peel(card: dict, sub_label: str, est_min: int = 5) -> str:
         "created_at": _fmt_et(now),
         "est_min": max(1, int(est_min or 5)),
     })
+    edges = n["graph"]["edges"]
     if parent_id:
-        n["graph"]["edges"].append({"from": new_id, "to": parent_id})
+        # Splice the peel BETWEEN parent and its predecessor so the chain stays
+        # linear: P -> parent becomes P -> new -> parent. If parent is the head
+        # (no predecessor), new simply becomes the new head.
+        for e in edges:
+            if e.get("to") == parent_id:
+                e["to"] = new_id
+        edges.append({"from": new_id, "to": parent_id})
     n["active_node"] = new_id
     n["redecompose_count"] = n.get("redecompose_count", 0) + 1
     n.setdefault("redecompose_at", []).append(_fmt_et(now))

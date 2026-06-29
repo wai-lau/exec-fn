@@ -12,7 +12,7 @@
 .cg-scroll::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
 .cg-canvas { position:relative; width:max-content; }
 .cg-edges { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; z-index:0; }
-.cg-cols { display:flex; flex-direction:column; gap:30px; align-items:center; position:relative; z-index:1; padding:0 24px 24px 0; }
+.cg-cols { display:flex; flex-direction:column; gap:30px; align-items:center; position:relative; z-index:1; padding:0 8px 24px 28px; }
 .cg-col { display:flex; flex-direction:row; gap:40px; align-items:flex-start; }
 .cg-node { position:relative; width:150px; box-sizing:border-box; border:1px solid color-mix(in srgb, currentColor 45%, transparent); border-radius:5px; padding:6px 8px; background:color-mix(in srgb, currentColor 7%, transparent); }
 .cg-node.active { border-color:currentColor; border-width:2px; padding:5px 7px; }
@@ -24,16 +24,16 @@
 .cg-node.done .cg-label { text-decoration:line-through; }
 .cg-meta { font-size:11px; opacity:0.55; margin-top:3px; display:flex; align-items:center; gap:2px; flex-wrap:nowrap; }
 .cg-est-unit { display:inline-flex; align-items:center; white-space:nowrap; }
-/* scope under .cd-box so these beat .cd-box input (16px / width:100%) from the
-   dialog stylesheet — equal specificity + later source would otherwise win and
-   blow the breakdown inputs up to 16px + full width. Keeps meta = .cg-label 11px. */
-.cd-box .cg-meta input { font:inherit; font-size:11px; color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
+/* scope under .cd-box so the width rules beat .cd-box input width:100% (equal
+   specificity + later source would otherwise win). Font is intentionally left to
+   .cd-box input (16px) so the time/est boxes match the dialog's other inputs. */
+.cd-box .cg-meta input { color:inherit; background:color-mix(in srgb, currentColor 10%, transparent); border:1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius:2px; padding:0 2px; box-sizing:border-box; }
 .cg-meta input:focus { outline:1px solid color-mix(in srgb, currentColor 55%, transparent); }
 .cd-box .cg-time { width:8ch; text-align:center; }
 .cd-box .cg-est { width:4ch; text-align:right; -moz-appearance:textfield; }
 .cg-est::-webkit-outer-spin-button, .cg-est::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 .cg-node.active .cg-meta { opacity:0.95; }
-.cg-ctl { position:absolute; top:50%; left:100%; margin-left:6px; transform:translateY(-50%); display:flex; flex-direction:column; gap:8px; line-height:1; z-index:2; }
+.cg-ctl { position:absolute; top:50%; right:100%; margin-right:6px; transform:translateY(-50%); display:flex; flex-direction:column; gap:8px; line-height:1; z-index:2; }
 .cg-ic { background:none; border:none; color:inherit; cursor:pointer; font-family:inherit; font-size:0.78rem; opacity:0.4; padding:0; }
 .cg-ic:hover { opacity:1; }
 .cg-edge { stroke:currentColor; stroke-opacity:0.32; fill:none; stroke-width:1.3; }
@@ -150,7 +150,6 @@
       ctl.className = 'cg-ctl';
       const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'cg-ic'; b.textContent = txt; b.title = title; b.addEventListener('click', fn); return b; };
       ctl.append(
-        mk('✓', node.done ? 'mark not done' : 'mark done', () => { node.done = !node.done; ctx.recompute(); ctx.draw(); }),
         mk('✕', 'delete step', () => ctx.removeNode(node.id)),
       );
       label.contentEditable = 'true';
@@ -234,7 +233,7 @@
 
     container.innerHTML = '<div class="cg-wrap"><div class="cg-scroll"><div class="cg-canvas">' +
       '<svg class="cg-edges"></svg><div class="cg-cols"></div></div></div>' +
-      '<div class="cg-hint">click a step to rename · ✓ done · ✕ delete · add steps via chat</div></div>';
+      '<div class="cg-hint">click a step to rename · ✕ delete · add steps via chat</div></div>';
     const cols = container.querySelector('.cg-cols');
     const elById = {};
     for (let L = 0; L <= maxL; L++) {
