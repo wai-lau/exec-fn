@@ -20,6 +20,8 @@ cd /exec-fn && docker compose up -d --force-recreate api   # rebuilds the mount 
 ```
 `--force-recreate` is the safety net; `--reload` alone can pick up a `.py` edit but won't fix a staled mount.
 
+**Auto-deploy is the expected workflow** — the owner wants code changes pushed to the live droplet via the steps above (confirmed after weighing the outage risk); deploy yourself, don't hand the command back to run manually.
+
 **Rebuild only if** `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` changed:
 ```bash
 docker compose up -d --build
