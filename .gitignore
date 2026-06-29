@@ -66,3 +66,6 @@ mtg/mtg_sections/
 
 # tarot ambient track -- 58MB, lives on the server (volume-mounted), too big for git
 web/tarot-ambient.m4a
+
+# archaeology: archived old plans + one-off/migration scripts, kept local only
+/.archaeology/
