@@ -262,6 +262,17 @@ ADHD activation scaffolding: every card = decomposed **prep** steps + (when `wor
 
 ---
 
+## Discord bridge (`discord_bot.py`)
+
+Reaches Wai's phone when away from the computer — a `discord.py` bot run as a lifespan asyncio task (`_run_discord_bot`, spawned in `main.py` beside `_run_nudge_loop`). **Disabled (clean no-op) unless `DISCORD_BOT_TOKEN` + `DISCORD_USER_ID` are set in `.env`** — so dev/tests without the token (and without `discord.py` installed) import fine: `import discord` is deferred *inside* `_run_discord_bot`, never at module top.
+
+- **Outbound** — the bot appends its own `asyncio.Queue` to `monitor_sse._monitor_subscribers` (the same fan-out an SSE client subscribes to), drains `{comment}` payloads, and DMs them. Nudge fires AND monitor comments both push `{comment}` through that one channel, so a single drain catches both; `{thinking}` events are ignored. **No edits to the nudge/monitor call sites.**
+- **Inbound** — `on_message` from the owner's user-id, in a DM only, runs `exec_reply()`: loads the shared `chat.json` history, calls the Exec model with the same `_build_chat_system_prompt` + `_chat_tools` as the web bubble, does **one tool round** (full parity — can create/schedule/decompose cards), persists via `_save_chat`, and replies in the DM. So the phone and the web bubble are one conversation. Sync helpers go through `asyncio.to_thread`; replies are chunked to Discord's 2000-char cap.
+
+`--reload` cancels the lifespan on every `.py` edit → the gateway re-identifies (Discord rate-limits identify), but that churn only happens during active dev = when Wai is at the computer = when phone push is moot; steady-state prod has no edits and the bot stays connected. Adding the dep means **one rebuild** (`docker compose up -d --build`). Bot setup is owner-side: create the app + bot at discord.com/developers (enable the **Message Content** intent), add it to a server you share, copy the bot token + your user-id into `.env`.
+
+---
+
 ## Tarot reading flow
 
 Server has no per-session state. The client (`tarot.html`) drives the reading via `localStorage`-stored `messages`, `spread`, `significator`, plus bracketed `[event marker]` user-messages emitted on UI actions (open, choose Significator, draw, turn a card).
