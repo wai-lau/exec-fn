@@ -102,3 +102,31 @@ def admin_cookie() -> dict:
 # A browser GET sends this; it's what flips the 401 handler from JSON to a
 # login redirect, so the no-auth page tests must send it.
 HTML_ACCEPT = {"Accept": "text/html"}
+
+
+# ── shared WebKit browser (playwright) ───────────────────────────────────────
+# ONE sync_playwright + one WebKit launch for the whole session, shared by every
+# `browser`-marked file. Each file used to define its own session-scoped
+# sync_playwright().start(); with two such files collected together the second
+# start() raised "Playwright Sync API inside the asyncio loop" (the first
+# instance's loop is still live), so a full `pytest tests/` run errored every
+# tarot test. Hoisting the fixtures here means a single start per session — no
+# duplicate, no collision — and a single browser launch (faster).
+@pytest.fixture(scope="session")
+def _playwright():
+    pw_api = pytest.importorskip("playwright.sync_api")
+    pw = pw_api.sync_playwright().start()
+    yield pw
+    pw.stop()
+
+
+@pytest.fixture(scope="session")
+def browser(_playwright):
+    from playwright.sync_api import Error as PWError
+
+    try:
+        b = _playwright.webkit.launch()
+    except PWError as e:
+        pytest.skip(f"WebKit not installed (run: .venv/bin/playwright install webkit): {e}")
+    yield b
+    b.close()
