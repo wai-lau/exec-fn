@@ -206,14 +206,13 @@ async function streamResponse(holdForGesture = null) {
         renderSigCard();
       }
     }
-    for (const m of pendingSys) addMsg('sys', m);   // held sys notes
-    // voice was on but narration failed — reader still read silently. Log it as
-    // an action note (not reader prose) so it's visible without breaking things.
-    if (voiceCtl && !voiceCtl.ok) {
-      addMsg('sys', `[ reader voice unavailable: ${voiceCtl.error || 'no audio'} ]`);
+    for (const m of pendingSys) setStatus(m);   // held sys notes (latest wins)
+    // voice was on but narration of ACTUAL prose failed — reader still read
+    // silently. Surface it in the status bar (not reader prose). Skip when there
+    // was nothing to narrate (a tool-only turn) — empty speech isn't a failure.
+    if (st.buffered && voiceCtl && !voiceCtl.ok) {
+      setStatus(`[ reader voice unavailable: ${voiceCtl.error || 'no audio'} ]`);
     }
-    const sysMsgs = terminal.querySelectorAll('.msg.sys');
-    for (let i = 0; i < sysMsgs.length - 6; i++) sysMsgs[i].remove();
     if (st.buffered) {
       messages.push({role: 'assistant', content: st.buffered});
       localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
@@ -225,7 +224,7 @@ async function streamResponse(holdForGesture = null) {
     // Log the error as an action note (not reader prose). Keep any reader text
     // already rendered; drop the bubble only if it's empty.
     if (!st.displayed) div.remove();
-    addMsg('sys', '[ error: ' + e.message + ' ]');
+    setStatus('[ error: ' + e.message + ' ]');
     pendingDeal = null;
   }
   streaming = false;

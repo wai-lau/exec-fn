@@ -12,6 +12,7 @@ html.no-touch.kb-open .exec-nav { visibility: visible !important; }
   --card-h: min(22vh, 30vw);
   --spread-pad: max(0.4vh, calc(var(--card-h) * 0.06));
   --spread-h: calc(var(--card-h) + var(--spread-pad) * 2);
+  --status-h: calc(3rem + env(safe-area-inset-top, 0px));
 
   /* tarot-only accents (global palette lives in chrome.css) */
   --ember-hsl: 23 100% 70%;            /* spread-btn hover glow */
@@ -38,10 +39,35 @@ body.reader-speaking #input-prompt { visibility:hidden; }
    streams a turn or the opening is held (a manual tap mustn't blink a caret) */
 body.reader-speaking #msg-input,
 body.opening-pending #msg-input { caret-color:transparent; }
-#terminal { scrollbar-width:none; -ms-overflow-style:none; inset:0 0 calc(var(--spread-h) + var(--kb-anchor) + var(--input-h, 48px)) !important; }
+#terminal { scrollbar-width:none; -ms-overflow-style:none; inset:var(--status-h) 0 calc(var(--spread-h) + var(--kb-anchor) + var(--input-h, 48px)) !important; }
 #terminal::-webkit-scrollbar { display:none; }
 body.no-input #input-bar { opacity:0; visibility:hidden; pointer-events:none; }
-body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spread-h) + var(--kb-anchor)) !important; }
+body.no-input #terminal { transition: inset 0.7s ease; inset:var(--status-h) 0 calc(var(--spread-h) + var(--kb-anchor)) !important; }
+
+/* top status bar: book/art credits + latest bracketed sys note (was in chat) */
+#tarot-status {
+  position:fixed; top:0; left:0; right:0; z-index:6;
+  height:var(--status-h); box-sizing:border-box;
+  padding-top:env(safe-area-inset-top, 0);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px;
+  background:hsl(var(--bg-hsl) / 1);
+  font-family:'Iosevka Mayukai Monolite',monospace;
+  text-align:center; pointer-events:none;
+}
+#tarot-credits { display:flex; flex-direction:column; }
+
+#tarot-credits, #tarot-credits a {
+  color:hsl(var(--green-hsl) / 0.45);
+  font-size:0.6rem; line-height:1.35; text-decoration:none;
+}
+#tarot-credits a { pointer-events:auto; }
+#tarot-credits a:hover { color:hsl(var(--green-hsl) / 0.8); }
+
+#tarot-statusline {
+  color:hsl(var(--green-hsl) / 0.45);
+  font-size:0.72rem; line-height:1.35; min-height:1em;
+}
 
 #spread-controls {
   grid-column: 2;
@@ -178,9 +204,13 @@ body.opening-pending .msg.assistant { display:none; }
    on, audio not yet unlocked) -- removed once the turn fires */
 .begin-hint {
   color:hsl(var(--green-hsl) / 0.45); font-style:italic;
-  font-size:0.8rem; text-align:center; margin:20px auto;
+  font-size:0.8rem; text-align:center; margin:auto;
   animation:begin-hint-pulse 1.8s ease-in-out infinite;
 }
+
+/* #terminal bottom-anchors chat via a flex:1 ::before spacer (chat.css); with
+   only the begin hint present, neutralize it so the lone hint centers vertically */
+#terminal:has(.begin-hint)::before { flex:0; }
 
 @keyframes begin-hint-pulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
 

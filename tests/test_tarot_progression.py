@@ -103,7 +103,9 @@ SETTLED = """() => {
   if (!t) return false;
   const reader = t.querySelector('.msg.assistant .msg-body');
   const readerDone = !!(reader && reader.innerText.trim().length > 0);
-  return readerDone || !!t.querySelector('.msg.sys');
+  const status = document.getElementById('tarot-statusline');
+  const statusDone = !!(status && status.innerText.trim().length > 0);
+  return readerDone || statusDone;
 }"""
 
 
@@ -175,7 +177,10 @@ def reader_text(pg) -> str:
 
 
 def sys_texts(pg) -> list[str]:
-    return pg.eval_on_selector_all(".msg.sys", "els => els.map(e => e.innerText)")
+    # Sys notes now live in the top status bar (latest-wins), not the chat.
+    el = pg.query_selector("#tarot-statusline")
+    t = el.inner_text() if el else ""
+    return [t] if t.strip() else []
 
 
 def assert_recovered(pg):
