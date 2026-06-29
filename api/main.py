@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from nudge_loop import _run_nudge_loop
+from discord_bot import _run_discord_bot
 from routers import public, protected, guest_protected
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
@@ -54,8 +55,12 @@ _gzip.DEFAULT_EXCLUDED_CONTENT_TYPES = (
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     nudge_task = asyncio.create_task(_run_nudge_loop())
+    # Discord bridge — DMs nudges/monitor comments to Wai's phone and answers
+    # DMs back. No-op unless DISCORD_BOT_TOKEN + DISCORD_USER_ID are set.
+    discord_task = asyncio.create_task(_run_discord_bot())
     yield
     nudge_task.cancel()
+    discord_task.cancel()
 
 
 app = FastAPI(lifespan=_lifespan)

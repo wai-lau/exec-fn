@@ -11,3 +11,4 @@ git+https://github.com/ricklupton/rmscene.git
 pymupdf
 icalendar
 websockets
+discord.py
