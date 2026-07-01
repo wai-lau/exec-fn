@@ -1,0 +1,39 @@
+<link rel="stylesheet" href="/emet.css?v=13">
+
+<main class="emet">
+  <p class="emet-lede">emet knowledge-graph · MCP test harness</p>
+
+  <section class="emet-sec">
+    <h2>recall</h2>
+    <p class="emet-hint">resolve free text to the best-matching node; returns its public scope.</p>
+    <form id="form-recall" class="emet-form" data-out="out-recall">
+      <input type="text" name="topic" placeholder="topic" autocomplete="off" required>
+      <button type="submit">recall</button>
+    </form>
+    <div class="emet-out" id="out-recall"></div>
+  </section>
+
+  <section class="emet-sec">
+    <h2>scope</h2>
+    <p class="emet-hint">bounded public neighbourhood around a node id.</p>
+    <form id="form-scope" class="emet-form" data-out="out-scope">
+      <input type="text" name="node_id" placeholder="node_id" autocomplete="off" required>
+      <input type="number" name="hops" class="emet-hops" value="1" min="0" max="5" title="hops">
+      <button type="submit">scope</button>
+    </form>
+    <div class="emet-out" id="out-scope"></div>
+  </section>
+
+  <section class="emet-sec">
+    <h2>ask</h2>
+    <p class="emet-hint">local-LLM prose over sensitive facts; never raw private rows.</p>
+    <form id="form-ask" class="emet-form emet-form-ask" data-out="out-ask">
+      <input type="text" name="question" placeholder="question" autocomplete="off" required>
+      <input type="text" name="topic" placeholder="topic (optional)" autocomplete="off">
+      <button type="submit">ask</button>
+    </form>
+    <div class="emet-out" id="out-ask"></div>
+  </section>
+</main>
+
+<script src="/emet.js?v=13"></script>
