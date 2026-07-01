@@ -288,3 +288,13 @@ body.opening-pending .msg.assistant { display:none; }
 
 /* centered 720px scrollback (chat-reader supplies the glow) */
 .msg { max-width:720px; margin-left:auto; margin-right:auto; width:100%; }
+
+/* reader voice on the document palette: soften only the reader's PROSE to the
+   --doc-* green (matching /mtg + the doc reading pages) with a gentler glow.
+   The spread, cards, Significator, status bar, buttons, cursor, and black
+   background keep tarot's neon phosphor mood — this is the reader turn only. */
+.msg.assistant {
+  color: var(--doc-ink) !important;
+  text-shadow: 0 0 4px hsl(135deg 72% 72% / 0.25), 0 0 10px hsl(135deg 72% 72% / 0.12);
+}
+.msg.assistant a { color: var(--doc-cyan) !important; }
