@@ -76,7 +76,6 @@ _CSS = """
    .doc-card class (see render_security) and just widens it for the dashboard. */
 body{background:var(--doc-bg)}
 .secwrap{width:min(1080px,94vw)}
-.sintro{color:var(--doc-ink-soft);font-size:var(--fs-sm);max-width:66ch;margin:0 0 var(--space-6)}
 .sg2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6)}@media(max-width:740px){.sg2{grid-template-columns:1fr}}
 /* no per-panel card — the whole page is already one .doc-card; panels are just
    labelled sections with vertical rhythm (no nested card-on-card). */
@@ -101,10 +100,7 @@ def render_security(data):
     if not data or not Gd or not Gd.get("geo"):
         body = '<p class="snote">Telemetry not generated yet — the host cron refreshes it hourly.</p>'
         return f'<div class="secwrap doc-card">{_CSS}{body}</div>'
-    intro = ("The public internet scans every server that answers. This is the automated "
-             "bot &amp; scanner traffic hitting wai-lau.net — the request counts run to the "
-             "thousands, but the humans behind them number in the single digits.")
-    parts = [f'<p class="sintro">{intro}</p>']
+    parts = []
     # 1. origin map — the hero, first thing, zoomed in; no subtitle line.
     parts.append(f'<section class="spanel"><h3>Origin of automated traffic</h3>{dotmap(Gd["geo"])}</section>')
     # NOTE: deliberately NO user-agent "human vs bot" split — the `kind` field
