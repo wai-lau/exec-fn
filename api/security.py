@@ -16,8 +16,9 @@ from pathlib import Path
 
 DATA_PATH = Path(os.environ.get("SECURITY_JSON", "/app/data/security.json"))
 
-# SVG chart DATA colours (kept distinct from the doc-theme chrome — viz needs hue)
-CYAN="#2bd9d9"; MAG="#ff4dd2"; AMBER="#ffb454"; RED="#f85149"; GRID="#1c2533"
+# SVG chart DATA colours — Ono-Sendai green only (series differentiate by shade,
+# not hue). SVG fill= attributes can't resolve var(), so these are concrete hsl.
+G="hsl(135 100% 50%)"; GDIM="hsl(135 50% 42%)"; GHI="hsl(135 100% 72%)"; GRID="hsl(135 30% 16%)"
 
 def _e(s): return html.escape(str(s))
 def _f(n):
@@ -30,7 +31,7 @@ def hbar(data, color, h=24, gap=7, labw=170, valw=72, width=720, mark=None):
     mx=max(v for _,v in data) or 1; barw=width-labw-valw; rows=[]; y=0
     for lab,val in data:
         bw=max(2,barw*val/mx)
-        c=AMBER if (mark and lab==mark) else color
+        c=GHI if (mark and lab==mark) else color
         tag=' ◄ you' if (mark and lab==mark) else ''
         rows.append(f'<text x="{labw-8}" y="{y+h*0.68:.0f}" text-anchor="end" class="sl">{_e(lab)}</text>'
             f'<rect x="{labw}" y="{y+3}" width="{bw:.1f}" height="{h-6}" rx="3" fill="{c}" opacity="0.85"/>'
@@ -45,7 +46,7 @@ def dotmap(geo, width=960, H=460, zoom=1.2):
     pad=8; W=width-2*pad; Hh=H-2*pad
     lon_span=360/zoom; lat_span=180/zoom; lon0=-lon_span/2; lat_top=lat_span/2
     X=lambda lon: pad+(lon-lon0)/lon_span*W; Y=lambda lat: pad+(lat_top-lat)/lat_span*Hh
-    out=[f'<rect x="{pad}" y="{pad}" width="{W}" height="{Hh}" fill="#0a121b" rx="6"/>']
+    out=[f'<rect x="{pad}" y="{pad}" width="{W}" height="{Hh}" fill="hsl(135 35% 6%)" rx="6"/>']
     for lon in range(-180,181,30):
         if lon<lon0 or lon>-lon0: continue
         x=X(lon); out.append(f'<line x1="{x:.1f}" y1="{pad}" x2="{x:.1f}" y2="{pad+Hh}" stroke="{GRID}" stroke-width="{1.4 if lon==0 else .6}"/><text x="{x:.1f}" y="{pad+Hh-3}" text-anchor="middle" class="sg">{lon}</text>')
@@ -55,11 +56,11 @@ def dotmap(geo, width=960, H=460, zoom=1.2):
     for o in sorted(geo,key=lambda o:o.get("total",0)):
         if o.get("lat") is None: continue
         x=X(o["lon"]); y=Y(o["lat"]); r=min(17,2+math.sqrt(o.get("total",1))*0.2)
-        col=RED if o.get("ssh",0)>=o.get("web",0) else CYAN
+        col=G if o.get("ssh",0)>=o.get("web",0) else GDIM
         out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{col}" fill-opacity="0.45" stroke="{col}" stroke-opacity="0.7" stroke-width="0.6"/>')
-    out.append(f'<rect x="{width-186}" y="14" width="178" height="44" rx="6" fill="#0d1722" stroke="{GRID}"/>'
-        f'<circle cx="{width-170}" cy="30" r="6" fill="{RED}" fill-opacity="0.5"/><text x="{width-158}" y="34" class="sa">SSH login bots</text>'
-        f'<circle cx="{width-170}" cy="48" r="6" fill="{CYAN}" fill-opacity="0.5"/><text x="{width-158}" y="52" class="sa">web scanners</text>')
+    out.append(f'<rect x="{width-186}" y="14" width="178" height="44" rx="6" fill="hsl(135 28% 9%)" stroke="{GRID}"/>'
+        f'<circle cx="{width-170}" cy="30" r="6" fill="{G}" fill-opacity="0.5"/><text x="{width-158}" y="34" class="sa">SSH login bots</text>'
+        f'<circle cx="{width-170}" cy="48" r="6" fill="{GDIM}" fill-opacity="0.5"/><text x="{width-158}" y="52" class="sa">web scanners</text>')
     return f'<svg viewBox="0 0 {width} {H}" class="sc" preserveAspectRatio="xMinYMin meet">{"".join(out)}</svg>'
 
 # ---------------------------------------------------------------- building blocks
@@ -69,15 +70,17 @@ def _panel(t,sub,svg):
 
 _CSS = """
 <style>
-/* /security on the shared "dark recruiter" document theme: chrome uses the
-   chrome.css --doc-* tokens; the SVG chart DATA colours (RED/CYAN/AMBER/MAG,
-   set inline) stay as-is — data viz needs distinct hues. .secwrap adds the
+/* /security on the shared document theme: chrome uses the chrome.css --doc-*
+   tokens; the SVG chart DATA colours are all Ono-Sendai green shades (G/GDIM/GHI,
+   set inline — SVG fill= can't resolve var()). .secwrap adds the
    .doc-card class (see render_security) and just widens it for the dashboard. */
 body{background:var(--doc-bg)}
 .secwrap{width:min(1080px,94vw)}
 .sintro{color:var(--doc-ink-soft);font-size:var(--fs-sm);max-width:66ch;margin:0 0 var(--space-6)}
 .sg2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6)}@media(max-width:740px){.sg2{grid-template-columns:1fr}}
-.spanel{background:var(--doc-bg);border:1px solid var(--doc-rule);border-radius:var(--radius-4);padding:var(--space-5) var(--space-6);margin:var(--space-6) 0}
+/* no per-panel card — the whole page is already one .doc-card; panels are just
+   labelled sections with vertical rhythm (no nested card-on-card). */
+.spanel{margin:var(--space-6) 0}
 .spanel h3{margin:0;font-size:var(--fs-sm);color:var(--doc-green);text-transform:uppercase;letter-spacing:var(--tracking-caps)}.spanel .ssub{color:var(--doc-ink-soft);font-size:var(--fs-sm);margin:var(--space-0-5) 0 var(--space-3)}
 .sc{width:100%;height:auto;display:block}
 .sl{fill:var(--doc-ink);font-size:12px}.sv{fill:var(--doc-ink-soft);font-size:11px}.sa{fill:var(--doc-ink-soft);font-size:10px}.sp{fill:var(--doc-green);font-size:11px;font-weight:600}
@@ -112,11 +115,11 @@ def render_security(data):
     # 2 + 3. geo breakdown of the bot traffic.
     countries=[(f'{Gd["cc_map"].get(c,"")} · {c}',v) for c,v in Gd["country"]]
     asn=[(a[:34],v) for a,v in Gd["asn"]]
-    parts.append(f'<div class="sg2">{_panel("Scanner traffic by country","",hbar(countries,MAG,width=520,labw=170))}'
-        f'{_panel("Networks hosting the bots","",hbar(asn,AMBER,width=520,labw=240))}</div>')
+    parts.append(f'<div class="sg2">{_panel("Scanner traffic by country","",hbar(countries,G,width=520,labw=170))}'
+        f'{_panel("Networks hosting the bots","",hbar(asn,G,width=520,labw=240))}</div>')
     # 5. what the scanners hunt for — all 404s, none of these paths exist here.
     if W and W.get("top_404"):
         parts.append(_panel("What the scanners hunt for",
             "paths bots probe for — every one a 404 (none exist here)",
-            hbar([(p,c) for p,c in W["top_404"]],RED,labw=200)))
+            hbar([(p,c) for p,c in W["top_404"]],G,labw=200)))
     return f'<div class="secwrap doc-card">{_CSS}{"".join(parts)}</div>'
