@@ -37,9 +37,8 @@ BORDER = {"--border": 1, "--border-2": 2, "--border-3": 3}
 BLUR = {"--blur-sm": 6, "--blur": 14}
 # z-index + duration + easing + font-family map on EXACT value only (no snap).
 Z_EXACT = {2: "--z-raised", 10: "--z-sticky", 60: "--z-nav", 100: "--z-overlay",
-           8999: "--z-bubble", 9000: "--z-panel", 9990: "--z-modal",
-           9999: "--z-top", 10000: "--z-max"}
-DUR_EXACT = {"0.13s": "--dur-fast", "0.15s": "--dur", "0.2s": "--dur-med", "0.4s": "--dur-slow"}
+           8999: "--z-bubble", 9990: "--z-modal", 9999: "--z-top", 10000: "--z-max"}
+DUR_EXACT = {"0.15s": "--dur", "0.2s": "--dur-med"}
 FONT_EXACT = {
     "'iosevka mayukai monolite',monospace": "--font-mono",
     "'iosevka mayukai monolite'": "--font-mono",
