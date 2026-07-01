@@ -146,7 +146,7 @@
   --fs-micro: 0.5rem;
   --fs-2xs:   0.6rem;
   --fs-xs:    0.68rem;
-  --fs-sm:    0.72rem;   /* most-used body size (18×) */
+  --fs-sm:    0.72rem;   /* the body default (live count on /color) */
   --fs-base:  0.78rem;
   --fs-md:    0.85rem;
   --fs-lg:    0.9rem;
@@ -171,7 +171,6 @@
 
   /* ── Type: letter-spacing (caps labels) ──────────────────────────────── */
   --tracking-tight:  -0.01em;
-  --tracking-normal: 0;
   --tracking-wide:   0.05em;
   --tracking-wider:  0.08em;
   --tracking-x:      0.1em;
@@ -180,15 +179,13 @@
   --tracking-mega:   0.18em;
 
   /* ── Borders ─────────────────────────────────────────────────────────── */
-  --border:    1px;   /* 71× — the default */
+  --border:    1px;   /* the default (live count on /color) */
   --border-2:  2px;
   --border-3:  3px;
 
   /* ── Motion: duration (UI transitions; keyframe anims stay bespoke) ───── */
-  --dur-fast:  0.13s;
-  --dur:       0.15s;   /* default (22×) */
+  --dur:       0.15s;   /* the default */
   --dur-med:   0.2s;
-  --dur-slow:  0.4s;
 
   /* ── Motion: easing ──────────────────────────────────────────────────── */
   --ease:        ease;
@@ -206,7 +203,6 @@
   --z-nav:     60;
   --z-overlay: 100;
   --z-bubble:  8999;
-  --z-panel:   9000;
   --z-modal:   9990;
   --z-top:     9999;
   --z-max:     10000;

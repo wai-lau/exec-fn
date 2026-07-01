@@ -244,7 +244,12 @@ async def color_usage():
         *Path("/app/static").glob("*.html"),
         *Path("/app/static").glob("*.css"),
         *Path("/app/static").glob("*.js"),
-        Path("/app/main.py"),
+        # all api modules — several ship inline CSS (security.py alone references
+        # ~56 tokens) that would otherwise vanish from the counts, misflagging
+        # used tokens (e.g. --fs-2xl) as "unused" on /color. The count regex
+        # wants a literal `var(` so routes_views' own escaped `var\(` regex
+        # source never self-matches.
+        *Path("/app").glob("*.py"),
     ]
 
     def site_label(text: str, idx: int, fname: str) -> str:
