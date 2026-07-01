@@ -210,6 +210,70 @@
   --z-modal:   9990;
   --z-top:     9999;
   --z-max:     10000;
+
+  /* ── Document theme — the "dark recruiter" reading-page palette: a centred
+        card on near-black green, terminal-green ink, ruled headers, tag chips.
+        Shared by the reading/dashboard pages (/debug, /emet, /color, /mtg,
+        /tarot chat, /security). Mirrors /recruiter's html.cv-dark --cv-* set
+        (recruiter = source of truth); brand hues only, the same deliberate
+        light/dark departure the palette otherwise doesn't cover. ─────────── */
+  --doc-bg:        hsl(135deg 18% 5%);
+  --doc-surface:   hsl(135deg 22% 7%);
+  --doc-ink:       hsl(135deg 72% 72%);
+  --doc-ink-soft:  hsl(135deg 24% 52%);
+  --doc-green:     hsl(135deg 95% 62%);
+  --doc-green-dim: hsl(135deg 70% 52%);
+  --doc-cyan:      hsl(188deg 90% 62%);
+  --doc-pink:      hsl(340deg 85% 68%);
+  --doc-rule:      hsl(135deg 30% 16%);
+  --doc-chip:      hsl(135deg 40% 11%);
+}
+
+/* Document-theme components — apply these classes on a reading page's wrapper /
+   section headers / tags; the page's own CSS keeps only page-specific layout
+   and references the --doc-* tokens for any extra colour. */
+.doc-page { background: var(--doc-bg); }
+
+.doc-card {
+  width: min(780px, 92vw);
+  margin: var(--space-10) auto calc(var(--nav-h, 64px) + var(--space-8));
+  position: relative;
+  z-index: var(--z-raised);
+  background: var(--doc-surface);
+  border: 1px solid var(--doc-rule);
+  border-radius: var(--radius-4);
+  box-shadow: 0 0 0 1px hsl(135deg 100% 50% / 0.06), 0 0 50px hsl(135deg 100% 50% / 0.05);
+  text-shadow: 0 0 2px hsl(135deg 100% 50% / 0.12);
+  padding: 52px clamp(28px, 6vw, 60px) 44px;
+  color: var(--doc-ink);
+  font-family: var(--font-mono);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-relaxed);
+}
+.doc-card a { color: var(--doc-cyan); text-decoration: none; }
+.doc-card a:hover { text-decoration: underline; }
+.doc-card strong { color: var(--doc-green); font-weight: var(--fw-bold); }
+
+.doc-h2 {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-mega);
+  color: var(--doc-green);
+  margin: 0 0 var(--space-7);
+  padding-bottom: var(--space-2-5);
+  border-bottom: 1px solid var(--doc-rule);
+}
+
+.doc-chip {
+  display: inline-block;
+  background: var(--doc-chip);
+  color: var(--doc-green);
+  font-size: var(--fs-xs);
+  padding: var(--space-px) var(--space-2);
+  border-radius: var(--radius-2);
+  white-space: nowrap;
 }
 
 /* Ambient cyberpunk background — injected on every page via _render_page
