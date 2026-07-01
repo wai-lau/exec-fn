@@ -377,11 +377,15 @@ async def rd_page():
     return _render_page("rd", _tmpl("rd.html"), full_height=True)
 
 
-@protected.get("/security", response_class=HTMLResponse)
-async def security_page():
-    # Owner-only. Content is rendered from data/security.json, refreshed out-of-band
-    # by the host cron (scripts/security/refresh.py reads /var/log as root).
-    return _render_page("security", render_security(load_security_data()))
+@public.get("/security", response_class=HTMLResponse)
+async def security_page(request: Request):
+    # Public. Content is rendered from data/security.json, refreshed out-of-band by
+    # the host cron (scripts/security/refresh.py reads /var/log as root). The render
+    # carries NO owner-identifying data (no owner-IP marker, no raw attacker IPs) —
+    # just the automated bot/scanner traffic any public server sees. Non-owners get
+    # the guest nav (the full nav links to login-gated pages).
+    guest = request.cookies.get("session") != SESSION_TOKEN
+    return _render_page("security", render_security(load_security_data()), guest=guest)
 
 
 @guest_protected.get("/mtg", response_class=HTMLResponse)
