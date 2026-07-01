@@ -367,34 +367,6 @@ async def graph_page(request: Request):
     return HTMLResponse(page, headers=headers)
 
 
-@protected.get("/emet", response_class=HTMLResponse)
-async def emet_page(request: Request):
-    # Same UI treatment as /graph: chrome palette + cyber-fx bg + bottom nav +
-    # an emet-specific skin (web/emet.css: fullscreen graph + always-open
-    # node-info bottom strip). The renderer (emet.html) is auth-gated and NOT
-    # under the public /app/static mount; the graph DATA (emet-graph.json —
-    # sensitive, gitignored)
-    # is injected inline here as window.EMET_GRAPH so it stays behind login.
-    # Content-hash ETag + no-cache so on-server edits cache-bust (the route path
-    # has no extension, so the no-cache middleware skips it).
-    page = _tmpl("emet.html")
-    data = Path("/app/templates/emet-graph.json").read_text()
-    # escape `<` so any "</script>" inside the data can't break out of the tag
-    data = data.replace("<", "\\u003c")
-    page = page.replace("<!--EMET_DATA-->",
-                        "<script>window.EMET_GRAPH=" + data + ";</script>", 1)
-    _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    _emet_css = '<link rel="stylesheet" href="/emet.css?v=12">'
-    page = page.replace("</head>",
-                        _VIEWPORT_META + _APPLE_WEBAPP_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _emet_css + "</head>", 1)
-    page = page.replace("</body>", _fx + _build_nav("emet") + "</body>", 1)
-    etag = '"%s"' % hashlib.md5(page.encode()).hexdigest()
-    headers = {"Cache-Control": "no-cache", "ETag": etag}
-    if request.headers.get("if-none-match") == etag:
-        return Response(status_code=304, headers=headers)
-    return HTMLResponse(page, headers=headers)
-
-
 @protected.get("/rd", response_class=HTMLResponse)
 async def rd_page():
     return _render_page("rd", _tmpl("rd.html"), full_height=True)

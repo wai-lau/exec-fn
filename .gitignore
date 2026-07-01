@@ -7,10 +7,13 @@ package-lock.json
 nightfall-incident/
 api/data/
 api/debug/
-api/templates/emet.html
+# emet-graph.json is Wai's private personal knowledge graph (data) -- never
+# commit. emet_gen.py + the root emet.html are the OLD standalone graph-viz
+# export outputs (now orphaned by the MCP harness). api/templates/emet.html is
+# now the generic MCP test-harness partial (no personal data) -- tracked.
 api/templates/emet-graph.json
-emet_gen.py
-emet.html
+/emet_gen.py
+/emet.html
 __pycache__/
 *.pyc
 *.rmdoc

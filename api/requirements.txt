@@ -12,3 +12,4 @@ pymupdf
 icalendar
 websockets
 discord.py
+mcp

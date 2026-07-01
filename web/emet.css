@@ -1,36 +1,209 @@
-/* emet page — injected by the /emet route after chrome.css. The graph fills
-   the screen; the node-info panel is a fixed bottom strip, always open. */
-
-/* nav + exec chat above the node-info panel. The exec bubble sits above
-   even the cyber fx (z 9999) so it stays the topmost thing on every page. */
-.exec-nav { z-index: 9996 !important; }
-
-#exec-panel { z-index: 9997 !important; }
-#exec-bubble { z-index: 10000 !important; }
-
-/* graph canvas fills the viewport; the node/edge counter stays hidden */
-#net { position: fixed !important; inset: 0 !important; }
-#stats { display: none !important; }
-
-/* cyber fx pinned to the viewport, ON TOP of nav + panels (matches /graph's
-   stack, where cyber z 9990 sits above nav/exec) so the scanlines + scan-beam
-   blanket the whole window and never pan/zoom with the graph */
-.cyber-bg, .cyber-scan { position: fixed !important; z-index: 9999 !important; }
-
-/* ---- node-info panel: fixed bottom strip, always open (not collapsible) ---- */
-#side {
-  position: fixed !important;
-  inset: auto 0 var(--nav-h, 0) 0 !important;
-  width: auto !important;
-  height: 45vh !important;
-  overflow-y: auto;
-  scrollbar-width: none;          /* Firefox: scrolls, no visible bar */
-  -ms-overflow-style: none;       /* old Edge/IE */
-  background: #161b22 !important;
-  border-top: 1px solid #30363d !important;
-  border-left: none !important;
-  z-index: 9993 !important;
+/* emet MCP test harness -- phosphor-on-black, matching the exec-fn chrome
+   tokens. Utilitarian: three tool sections (recall/scope/ask), each a form + a
+   results area. Only baseline (token, alpha) pairs (see scripts/lint-colors). */
+.emet {
+  max-width: 720px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 1.5rem 1rem calc(var(--nav-h, 64px) + 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  font: 15px/1.5 'Iosevka Mayukai Monolite', ui-monospace, monospace;
+  color: hsl(var(--green-hsl) / 0.8);
 }
 
-/* WebKit/Blink: hide the node-info scrollbar (scroll still works) */
-#side::-webkit-scrollbar { display: none; }
+.emet-lede {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+.emet-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.emet-sec h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--cyan-hsl) / 0.8);
+}
+
+.emet-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+.emet-form {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.emet-form input {
+  font: inherit;
+  color: inherit;
+  background: hsl(var(--bg-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.emet-form .emet-hops {
+  flex: 0 0 4.5rem;
+}
+
+.emet-form button {
+  font: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  color: hsl(var(--bg-hsl));
+  background: hsl(var(--green-hsl) / 0.8);
+  border: 1px solid hsl(var(--green-hsl));
+  border-radius: 6px;
+  padding: 0.5rem 1.1rem;
+  flex: 0 0 auto;
+}
+
+.emet-form button:hover {
+  background: hsl(var(--green-hsl));
+}
+
+.emet-out {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.emet-out:empty {
+  display: none;
+}
+
+.emet-node {
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+
+.emet-node-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.emet-node-label {
+  font-weight: 600;
+  color: hsl(var(--green-hsl) / 1);
+}
+
+.emet-node-id {
+  font-size: 0.68rem;
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+.emet-obs {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.emet-obs li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.emet-priv {
+  flex: none;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  color: hsl(var(--cyan-hsl) / 0.8);
+  border: 1px solid hsl(var(--cyan-hsl) / 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+.emet-obs-text {
+  color: hsl(var(--green-hsl) / 0.8);
+}
+
+.emet-matched {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--cyan-hsl) / 0.45);
+}
+
+.emet-empty {
+  font-size: 0.82rem;
+  color: hsl(var(--green-hsl) / 0.45);
+  font-style: italic;
+}
+
+.emet-capped {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+}
+
+.emet-offline {
+  font-size: 0.85rem;
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+  border: 1px solid hsl(var(--orange-glow-hsl) / 0.25);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+}
+
+.emet-answer {
+  white-space: pre-wrap;
+  line-height: 1.55;
+  color: hsl(var(--green-hsl) / 0.8);
+  border-left: 2px solid hsl(var(--green-hsl) / 0.45);
+  padding-left: 0.7rem;
+}
+
+.emet-note {
+  font-size: 0.82rem;
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+}
+
+.emet-badge {
+  align-self: flex-start;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+.badge-ok {
+  color: hsl(var(--bg-hsl));
+  background: hsl(var(--green-hsl) / 0.8);
+}
+
+.badge-no-context {
+  color: hsl(var(--green-hsl) / 0.8);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+}
+
+.badge-llm-offline {
+  color: hsl(var(--bg-hsl));
+  background: hsl(var(--orange-glow-hsl) / 0.8);
+}
