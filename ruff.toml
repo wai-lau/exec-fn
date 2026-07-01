@@ -7,3 +7,10 @@ ignore = ["E501"]  # line length handled by line-length above
 
 [lint.mccabe]
 max-complexity = 10
+
+[lint.per-file-ignores]
+# security.py builds inline SVG charts as deliberately dense, semicolon-packed
+# row-builders + tiny lambda helpers — that compactness is the point for chart
+# code. Exempt ONLY the statement-density style rules; F (logic), W, and C901
+# (complexity) still apply.
+"api/security.py" = ["E701", "E702", "E731"]
