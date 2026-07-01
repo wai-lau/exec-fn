@@ -31,12 +31,10 @@ LH = {"--lh-none": 1.0, "--lh-tight": 1.2, "--lh-snug": 1.35, "--lh-normal": 1.4
 TRACK = {"--tracking-tight": -0.01, "--tracking-wide": 0.05, "--tracking-wider": 0.08,
          "--tracking-x": 0.1, "--tracking-widest": 0.12, "--tracking-caps": 0.15,
          "--tracking-mega": 0.18}
-BORDER = {"--border": 1, "--border-2": 2, "--border-3": 3}
 BLUR = {"--blur-sm": 6, "--blur": 14}
-# z-index + duration + easing + font-family map on EXACT value only (no snap).
+# z-index + font-family map on EXACT value only (no snap).
 Z_EXACT = {2: "--z-raised", 10: "--z-sticky", 60: "--z-nav", 100: "--z-overlay",
            8999: "--z-bubble", 9990: "--z-modal", 9999: "--z-top", 10000: "--z-max"}
-DUR_EXACT = {"0.15s": "--dur", "0.2s": "--dur-med"}
 FONT_EXACT = {
     "'iosevka mayukai monolite',monospace": "--font-mono",
     "'iosevka mayukai monolite'": "--font-mono",

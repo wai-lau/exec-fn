@@ -169,15 +169,6 @@
   --tracking-caps:   0.15em;
   --tracking-mega:   0.18em;
 
-  /* ── Borders ─────────────────────────────────────────────────────────── */
-  --border:    1px;   /* the default (live count on /color) */
-  --border-2:  2px;
-  --border-3:  3px;
-
-  /* ── Motion: duration (UI transitions; keyframe anims stay bespoke) ───── */
-  --dur:       0.15s;   /* the default */
-  --dur-med:   0.2s;
-
   /* ── Blur ────────────────────────────────────────────────────────────── */
   --blur-sm: 6px;
   --blur:    14px;

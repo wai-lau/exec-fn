@@ -234,14 +234,11 @@ function buildColumns(tokens) {
 const SAMPLE = 'Sundog';
 function visSpace(t) { return `<i class="sc-bar" style="width:${esc(t.value)}"></i>`; }
 function visRadius(t) { return `<i class="sc-rad" style="border-radius:${esc(t.value)}"></i>`; }
-function visBorder(t) { return `<i class="sc-brd" style="border-top-width:${esc(t.value)}"></i>`; }
 function visFont(t) { return `<span class="sc-txt" style="font-family:${esc(t.value)}">Neon rain 0123</span>`; }
 function visFs(t) { return `<span class="sc-txt" style="font-size:${esc(t.value)}">${SAMPLE} 42</span>`; }
 function visFw(t) { return `<span class="sc-txt" style="font-weight:${esc(t.value)}">${SAMPLE}</span>`; }
 function visLh(t) { return `<span class="sc-para" style="line-height:${esc(t.value)}">console static<br>stacked into<br>a rhythm</span>`; }
 function visTrack(t) { return `<span class="sc-txt sc-caps" style="letter-spacing:${esc(t.value)}">MATRIX</span>`; }
-function visMotion(t, extra) { return `<i class="sc-dur"><i class="sc-durbar" style="${extra}transition-duration:${esc(t.value === '' ? '0.8s' : t.value)}"></i></i>`; }
-function visDur(t) { return visMotion(t, ''); }
 function visBlur(t) { return `<span class="sc-txt sc-blur" style="filter:blur(${esc(t.value)})">GRID</span>`; }
 function visDoc(t) { return `<i class="sc-sw"><i class="sc-fill" style="background:${esc(t.value)}"></i></i>`; }
 
@@ -249,13 +246,11 @@ function visDoc(t) { return `<i class="sc-sw"><i class="sc-fill" style="backgrou
 const SCALE_FAMS = [
   { title: 'Spacing', pfx: 'space-', unit: 'steps', num: true, vis: visSpace },
   { title: 'Radius', pfx: 'radius-', unit: 'steps', num: true, vis: visRadius },
-  { title: 'Border width', pfx: 'border', unit: 'widths', num: true, vis: visBorder },
   { title: 'Font family', pfx: 'font-', unit: 'families', num: false, vis: visFont },
   { title: 'Font size', pfx: 'fs-', unit: 'sizes', num: true, vis: visFs },
   { title: 'Font weight', pfx: 'fw-', unit: 'weights', num: true, vis: visFw },
   { title: 'Line height', pfx: 'lh-', unit: 'steps', num: true, vis: visLh },
   { title: 'Tracking', pfx: 'tracking-', unit: 'steps', num: true, vis: visTrack },
-  { title: 'Duration', pfx: 'dur', unit: 'speeds', num: true, vis: visDur },
   { title: 'Blur', pfx: 'blur', unit: 'steps', num: true, vis: visBlur },
   { title: 'Document theme', pfx: 'doc-', unit: 'colors', num: false, vis: visDoc },
 ];

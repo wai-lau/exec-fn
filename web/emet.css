@@ -36,7 +36,7 @@ body { background: var(--doc-bg); }
   border: 1px solid var(--doc-green); border-radius: var(--radius-2);
   padding: var(--space-2-5) var(--space-6); flex: 0 0 auto;
   text-transform: uppercase; letter-spacing: var(--tracking-wide);
-  transition: background var(--dur-med);
+  transition: background 0.2s;
 }
 .emet-form button:hover { background: var(--doc-green-dim); }
 

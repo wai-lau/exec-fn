@@ -27,7 +27,7 @@ a:hover { text-decoration: underline; }
 .dbg-note-x {
   background: none; border: none; cursor: pointer; padding: 0 var(--space-0-5);
   font-size: var(--fs-sm); color: var(--doc-rule); line-height: var(--lh-none);
-  flex-shrink: 0; margin-left: auto; transition: color var(--dur-med);
+  flex-shrink: 0; margin-left: auto; transition: color 0.2s;
 }
 .dbg-note-x:hover { color: var(--doc-pink); }
 
@@ -42,7 +42,7 @@ a:hover { text-decoration: underline; }
 
 .dbg-note-save, .dbg-note-del {
   background: none; border: none; cursor: pointer; padding: 0 var(--space-1);
-  font-size: var(--fs-sm); line-height: var(--lh-none); transition: color var(--dur);
+  font-size: var(--fs-sm); line-height: var(--lh-none); transition: color 0.15s;
 }
 .dbg-note-save { color: var(--doc-ink-soft); }
 .dbg-note-save:hover { color: var(--doc-green); }
