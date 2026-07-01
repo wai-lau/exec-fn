@@ -14,7 +14,7 @@ import os
 import httpx
 import websockets
 from fastapi import HTTPException, Request, WebSocket
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
 from gpu_mode_client import fetch_mode, needs_user_confirm, switch_mode
@@ -30,6 +30,16 @@ _PIPER_UPSTREAM = os.environ.get("TTS_PIPER_UPSTREAM", "hosaka-piper:8123")
 # the TTS upstream. Owner-only; bearer-authed on the home side.
 _GPU_MODE_UPSTREAM = os.environ.get("GPU_MODE_UPSTREAM", "172.17.0.1:8124")
 _GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
+
+# SSE fan-out for GPU-mode changes: every open /hosaka + /emet page subscribes so
+# a switch on one page reflects live on the others. Only actual switches are
+# pushed (the initial state comes from GET /api/hosaka/mode on load).
+_mode_subscribers: list[asyncio.Queue] = []
+
+
+async def _broadcast_mode(mode: str) -> None:
+    for q in list(_mode_subscribers):
+        await q.put(mode)
 
 
 @guest_protected.get("/hosaka", response_class=HTMLResponse)
@@ -94,7 +104,36 @@ async def gpu_mode_post(request: Request):
         raise HTTPException(status_code=400, detail="bad action")
     if needs_user_confirm(action, len(_presence), force):
         raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_presence)})
-    return JSONResponse({"mode": await switch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN, action)})
+    mode = await switch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN, action)
+    await _broadcast_mode(mode)  # live-sync the other open /hosaka + /emet pages
+    return JSONResponse({"mode": mode})
+
+
+@protected.get("/api/hosaka/mode/stream")
+async def gpu_mode_stream():
+    """SSE of GPU-mode changes so /hosaka + /emet stay in sync live. Emits on an
+    actual switch only; the initial state comes from GET /api/hosaka/mode."""
+    q: asyncio.Queue = asyncio.Queue()
+    _mode_subscribers.append(q)
+
+    async def gen():
+        try:
+            while True:
+                try:
+                    mode = await asyncio.wait_for(q.get(), timeout=25)
+                    yield f"data: {json.dumps({'mode': mode})}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            try:
+                _mode_subscribers.remove(q)
+            except ValueError:
+                pass
+
+    return StreamingResponse(gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
 
 
 async def _pump_to_client(ws, upstream):

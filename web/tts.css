@@ -8,7 +8,7 @@
   padding: 1.5rem 1rem calc(var(--nav-h, 64px) + 1.5rem);
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: var(--space-4);
   font: 15px/1.5 'Iosevka Mayukai Monolite', ui-monospace, monospace;
   color: hsl(var(--green-hsl) / 0.8);
 }
@@ -21,8 +21,8 @@
   color: inherit;
   background: hsl(var(--bg-hsl));
   border: 1px solid hsl(var(--green-hsl) / 0.45);
-  border-radius: 6px;
-  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-3);
+  padding: var(--space-2-5) var(--space-4);
 }
 
 .tts textarea {
@@ -31,31 +31,34 @@
   min-height: 2.5rem;
   resize: none; /* no manual resize -- it owns the leftover height */
   box-sizing: border-box;
-  font-size: 14px; /* a touch smaller than the rest of the UI */
+  font-size: var(--fs-md); /* a touch smaller than the rest of the UI */
 }
 
 .tts select {
   width: 100%;
 }
 
-/* Top line: diagnostic status (offline reason / glados-only) on the left, the
-   connected-users count on the right. The status shrinks/wraps; the count keeps
-   its old flush-right spot via margin-left:auto, so an empty status (display:none
-   below) can't pull the count leftward. */
+/* Top line: connected-users count on the left, then the diagnostic status
+   (offline reason / glados-only), and the GPU-mode toggle flush right (pushed
+   there by margin-left:auto below). The status shrinks/wraps between them. */
 .tts-presence-row {
   display: flex;
   align-items: baseline;
-  gap: 0.7rem;
+  gap: var(--space-4);
 }
 
-/* Live connected-users count, top of the page. Defaults to 0 so the line holds
-   its height from first paint -- the count landing must not shift the layout. */
-#tts-presence {
+/* GPU-mode strip pinned to the right edge of the row (swapped with the count). */
+.tts-presence-row #gpu-mode {
   margin-left: auto;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+}
+
+/* Live connected-users count, top-left of the page. Defaults to 0 so the line
+   holds its height from first paint -- the count landing must not shift layout. */
+#tts-presence {
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  text-align: right;
+  text-align: left;
   color: hsl(var(--green-hsl) / 0.45);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -64,7 +67,7 @@
 /* Speak button + voice selector share one line. */
 .tts-row {
   display: flex;
-  gap: 0.7rem;
+  gap: var(--space-4);
   align-items: stretch;
 }
 
@@ -79,7 +82,7 @@
 
 .tts button {
   cursor: pointer;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: hsl(var(--bg-hsl));
   background: hsl(var(--green-hsl) / 0.8);
   border-color: hsl(var(--green-hsl));
@@ -98,8 +101,8 @@
    shrink before the count, wrap if the message is long. */
 .tts #tts-status {
   min-width: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
   text-align: left;
   color: hsl(var(--green-hsl) / 0.45);
@@ -111,32 +114,32 @@
 
 .tts-group {
   color: hsl(var(--green-hsl) / 0.45);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
-  margin-top: 0.4rem;
+  margin-top: var(--space-2);
 }
 
 .tts-knobs {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-2);
 }
 
 .tts-knob {
   display: grid;
   grid-template-columns: 7.5rem 1fr 3rem;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-3);
 }
 
 .tts-kname {
-  font-size: 0.85rem;
+  font-size: var(--fs-md);
   color: hsl(var(--green-hsl) / 0.8);
 }
 
 .tts-kval {
-  font-size: 0.85rem;
+  font-size: var(--fs-md);
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: hsl(var(--cyan-hsl) / 0.8);
@@ -144,8 +147,8 @@
 
 .tts-kdesc {
   grid-column: 1 / -1;
-  font-size: 0.68rem;
-  line-height: 1.35;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 0.45);
   margin-top: -0.1rem;
 }
