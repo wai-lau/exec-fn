@@ -1,7 +1,15 @@
-<link rel="stylesheet" href="/emet.css?v=13">
+<link rel="stylesheet" href="/gpu-mode.css?v=1">
+<link rel="stylesheet" href="/emet.css?v=15">
 
 <main class="emet">
-  <p class="emet-lede">emet knowledge-graph · MCP test harness</p>
+  <div class="emet-head">
+    <p class="emet-lede">emet knowledge-graph · MCP test harness</p>
+    <div id="gpu-mode" class="gpu-mode" hidden>
+      <button type="button" class="gpu-mode-btn" data-mode="emo">emo</button>
+      <button type="button" class="gpu-mode-btn" data-mode="idle">idle</button>
+      <button type="button" class="gpu-mode-btn" data-mode="homo">homo</button>
+    </div>
+  </div>
 
   <section class="emet-sec">
     <h2>recall</h2>
@@ -36,4 +44,5 @@
   </section>
 </main>
 
+<script src="/gpu-mode.js?v=1"></script>
 <script src="/emet.js?v=13"></script>

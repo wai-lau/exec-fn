@@ -13,12 +13,27 @@
   color: hsl(var(--green-hsl) / 0.8);
 }
 
+/* Header row: lede on the left, the shared GPU-mode strip flush right. */
+.emet-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
 .emet-lede {
   margin: 0;
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: hsl(var(--green-hsl) / 0.45);
+}
+
+/* Never shrink the strip (it clips under its own overflow:hidden); the lede
+   wraps instead. margin-left:auto keeps it flush right on the same line. */
+.emet-head #gpu-mode {
+  margin-left: auto;
+  flex: none;
 }
 
 .emet-sec {
