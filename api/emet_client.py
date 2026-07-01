@@ -18,7 +18,14 @@ import os
 # Docker bridge gateway -> host loopback :8125 (the SSH reverse tunnel to the
 # home box), matching the hosaka TTS/gpu-mode pattern.
 _EMET_URL = os.environ.get("EMET_MCP_URL", "http://172.17.0.1:8125/mcp")
-_TIMEOUT = float(os.environ.get("EMET_MCP_TIMEOUT", "10"))  # whole round-trip
+# recall/scope are fast graph reads (warm < 4s) -> a short cap fails fast when the
+# home box is down. `ask` runs an LLM generation on the home GPU and must tolerate
+# a COLD model load (ollama pulling the model into VRAM on first hit after an
+# idle/mode-switch), which stacks tens of seconds on top of the ~9s warm ceiling
+# -- so it gets its own, much longer timeout. nginx proxy_read_timeout is 3600s,
+# so this asyncio cap is the only clamp. Both env-overridable.
+_TIMEOUT = float(os.environ.get("EMET_MCP_TIMEOUT", "10"))  # recall/scope round-trip
+_ASK_TIMEOUT = float(os.environ.get("EMET_MCP_ASK_TIMEOUT", "90"))  # ask (cold load + gen)
 
 
 def _unwrap(data):
@@ -48,10 +55,16 @@ async def _call(name: str, args: dict) -> dict:
             return {}
 
 
-async def call_tool(name: str, args: dict) -> dict:
+async def call_tool(name: str, args: dict, timeout: float | None = None) -> dict:
     """Run one emet MCP tool under a hard timeout. Returns the tool's dict, or
-    {"unreachable": True} when the tunnel / home box / dep is unavailable."""
+    {"unreachable": True} when the tunnel / home box / dep is unavailable.
+
+    Timeout defaults per tool: the long `_ASK_TIMEOUT` for `ask` (LLM gen + cold
+    model load), the short `_TIMEOUT` for the fast reads. Pass `timeout` to
+    override (used by latency tests)."""
+    if timeout is None:
+        timeout = _ASK_TIMEOUT if name == "ask" else _TIMEOUT
     try:
-        return await asyncio.wait_for(_call(name, args), timeout=_TIMEOUT)
+        return await asyncio.wait_for(_call(name, args), timeout=timeout)
     except Exception:
         return {"unreachable": True}
