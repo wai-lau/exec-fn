@@ -1,7 +1,7 @@
-<link rel="stylesheet" href="/gpu-mode.css?v=1">
-<link rel="stylesheet" href="/emet.css?v=15">
+<link rel="stylesheet" href="/gpu-mode.css?v=2">
+<link rel="stylesheet" href="/emet.css?v=17">
 
-<main class="emet">
+<main class="emet doc-card">
   <div class="emet-head">
     <p class="emet-lede">emet knowledge-graph · MCP test harness</p>
     <div id="gpu-mode" class="gpu-mode" hidden>
@@ -12,7 +12,7 @@
   </div>
 
   <section class="emet-sec">
-    <h2>recall</h2>
+    <h2 class="doc-h2">recall</h2>
     <p class="emet-hint">resolve free text to the best-matching node; returns its public scope.</p>
     <form id="form-recall" class="emet-form" data-out="out-recall">
       <input type="text" name="topic" placeholder="topic" autocomplete="off" required>
@@ -22,7 +22,7 @@
   </section>
 
   <section class="emet-sec">
-    <h2>scope</h2>
+    <h2 class="doc-h2">scope</h2>
     <p class="emet-hint">bounded public neighbourhood around a node id.</p>
     <form id="form-scope" class="emet-form" data-out="out-scope">
       <input type="text" name="node_id" placeholder="node_id" autocomplete="off" required>
@@ -33,7 +33,7 @@
   </section>
 
   <section class="emet-sec">
-    <h2>ask</h2>
+    <h2 class="doc-h2">ask</h2>
     <p class="emet-hint">local-LLM prose over sensitive facts; never raw private rows.</p>
     <form id="form-ask" class="emet-form emet-form-ask" data-out="out-ask">
       <input type="text" name="question" placeholder="question" autocomplete="off" required>
@@ -44,5 +44,5 @@
   </section>
 </main>
 
-<script src="/gpu-mode.js?v=1"></script>
+<script src="/gpu-mode.js?v=2"></script>
 <script src="/emet.js?v=13"></script>

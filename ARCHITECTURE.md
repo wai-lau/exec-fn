@@ -306,15 +306,24 @@ users; the route confirms against `_presence` (the connected WebSocket set in
 `routes_tts.py`) and returns `409` if any users are connected and the caller
 has not sent `{"force": true}`. `homo` never needs confirmation.
 
-The `/hosaka` page renders an `emo | idle | homo` segmented control only for
-owners. If the proxy call to the home service fails (tunnel down, service not
-running), the mode is reported as `gone` (an exec-fn label; the home service
-itself never returns `gone`).
+Both `/hosaka` and `/emet` render the same `emo | idle | homo` segmented
+control (shared `web/gpu-mode.{js,css}`, keyed on `#gpu-mode`) for owners only.
+If the proxy call to the home service fails (tunnel down, service not running),
+the mode is reported as `gone` (an exec-fn label; the home service itself never
+returns `gone`).
+
+`GET /api/hosaka/mode/stream` is an owner-only SSE fan-out (`_mode_subscribers`
+in `routes_tts.py`): a successful `POST` broadcasts the new mode to every
+subscriber, so the control **live-syncs across pages** — flipping it on
+`/hosaka` updates the strip on an open `/emet` (and vice-versa) with no reload.
+The stream pushes only on an actual switch; each page seeds its initial state
+from `GET /api/hosaka/mode` on load.
 
 | Endpoint | Router | Reachable by |
 |----------|--------|--------------|
 | `GET /api/hosaka/mode` | `protected` | owner only |
 | `POST /api/hosaka/mode` | `protected` | owner only |
+| `GET /api/hosaka/mode/stream` | `protected` | owner only |
 
 ### 4c. Three consumers of one audio core
 

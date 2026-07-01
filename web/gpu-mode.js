@@ -23,11 +23,24 @@
       }
     }
 
+    let es = null;
+    // Live cross-page sync: subscribe to mode-change events so a switch on
+    // /hosaka reflects on /emet (and vice-versa) without a reload. EventSource
+    // auto-reconnects on transient drops. Only opened once, after auth passes.
+    function subscribe() {
+      if (es) return;
+      es = new EventSource('/api/hosaka/mode/stream');
+      es.onmessage = (e) => {
+        try { render(JSON.parse(e.data).mode); } catch { /* ignore */ }
+      };
+    }
+
     async function load() {
       try {
         const r = await fetch('/api/hosaka/mode');
         if (r.status === 401) { el.hidden = true; return; } // guest: no control
         render((await r.json()).mode);
+        subscribe();
       } catch { el.hidden = true; }
     }
 
