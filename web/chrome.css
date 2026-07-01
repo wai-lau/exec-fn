@@ -100,12 +100,122 @@
   --card-hobby-border-bright:        hsl(var(--cat-hobby-h) calc(var(--cat-hobby-s) + 15%) calc(var(--cat-hobby-l) + 10%));
   --card-hobby-wisp-solid:          color-mix(in srgb, hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l)) 15%, #0a0a0a);
   --card-hobby-idea-solid:           color-mix(in srgb, hsl(var(--cat-hobby-h) var(--cat-hobby-s) var(--cat-hobby-l)) 25%, #0a0a0a);
+
+  /* ════════════════════════════════════════════════════════════════════════
+     STRUCTURAL SCALE TOKENS — the same move color made, for every other
+     design choice. Scales are SNAP scales (like the color/alpha snap scale):
+     values derived from real usage across the app, anchored on RD + HQ (the
+     reference pages), outliers snap in. Everything not a colour references
+     these. Enforced by scripts/lint-scale.py the way lint-colors.py guards
+     the palette. Edit here; the whole UI follows.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* ── Spacing (px; fine at the bottom for dense card layouts, coarse up
+        top). Used by padding / margin / gap. ──────────────────────────── */
+  --space-0:    0;
+  --space-px:   1px;   /* hairline gaps between stacked cards (RD/HQ) */
+  --space-0-5:  2px;
+  --space-1:    3px;
+  --space-1-5:  4px;
+  --space-2:    6px;
+  --space-2-5:  8px;
+  --space-3:    10px;
+  --space-4:    12px;
+  --space-5:    14px;
+  --space-6:    16px;
+  --space-7:    20px;
+  --space-8:    24px;
+  --space-10:   32px;
+
+  /* ── Radius ──────────────────────────────────────────────────────────── */
+  --radius-0:      0;
+  --radius-1:      2px;   /* RD chips/inputs */
+  --radius-2:      4px;   /* HQ cards, default */
+  --radius-3:      6px;
+  --radius-4:      8px;
+  --radius-pill:   999px;
+  --radius-round:  50%;
+
+  /* ── Type: family ────────────────────────────────────────────────────── */
+  --font-mono:   'Iosevka Mayukai Monolite', monospace;  /* the interface's body */
+  --font-pixel:  '04b25', monospace;                     /* pixel display */
+  --font-bit:    'BitLight', monospace;                  /* nightfall-adjacent */
+  --font-ui:     system-ui, sans-serif;                  /* recruiter light page */
+
+  /* ── Type: size (rem) ────────────────────────────────────────────────── */
+  --fs-micro: 0.5rem;
+  --fs-2xs:   0.6rem;
+  --fs-xs:    0.68rem;
+  --fs-sm:    0.72rem;   /* most-used body size (18×) */
+  --fs-base:  0.78rem;
+  --fs-md:    0.85rem;
+  --fs-lg:    0.9rem;
+  --fs-xl:    1rem;
+  --fs-2xl:   1.3rem;
+  --fs-3xl:   1.7rem;
+  --fs-4xl:   2.05rem;
+
+  /* ── Type: weight ────────────────────────────────────────────────────── */
+  --fw-normal:   400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* ── Type: line-height ───────────────────────────────────────────────── */
+  --lh-none:    1;
+  --lh-tight:   1.2;
+  --lh-snug:    1.35;
+  --lh-normal:  1.45;
+  --lh-relaxed: 1.6;
+  --lh-loose:   1.7;
+
+  /* ── Type: letter-spacing (caps labels) ──────────────────────────────── */
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.05em;
+  --tracking-wider:  0.08em;
+  --tracking-x:      0.1em;
+  --tracking-widest: 0.12em;
+  --tracking-caps:   0.15em;
+  --tracking-mega:   0.18em;
+
+  /* ── Borders ─────────────────────────────────────────────────────────── */
+  --border:    1px;   /* 71× — the default */
+  --border-2:  2px;
+  --border-3:  3px;
+
+  /* ── Motion: duration (UI transitions; keyframe anims stay bespoke) ───── */
+  --dur-fast:  0.13s;
+  --dur:       0.15s;   /* default (22×) */
+  --dur-med:   0.2s;
+  --dur-slow:  0.4s;
+
+  /* ── Motion: easing ──────────────────────────────────────────────────── */
+  --ease:        ease;
+  --ease-out:    ease-out;
+  --ease-in-out: ease-in-out;
+  --ease-bounce: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── Blur ────────────────────────────────────────────────────────────── */
+  --blur-sm: 6px;
+  --blur:    14px;
+
+  /* ── Z layers (semantic; small in-component stacking stays local) ────── */
+  --z-raised:  2;
+  --z-sticky:  10;
+  --z-nav:     60;
+  --z-overlay: 100;
+  --z-bubble:  8999;
+  --z-panel:   9000;
+  --z-modal:   9990;
+  --z-top:     9999;
+  --z-max:     10000;
 }
 
 /* Ambient cyberpunk background — injected on every page via _render_page
    (nightfall is composed separately and never gets the markup). */
 .cyber-bg {
-  position: fixed; inset: 0; z-index: 9990; pointer-events: none;
+  position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: screen;
   background:
     repeating-linear-gradient(0deg, hsl(var(--green-hsl) / 0.12) 0,
@@ -122,7 +232,7 @@
 @keyframes cyber-drift { from{background-position:0 0,0 0} to{background-position:0 3px,0 0} }
 
 .cyber-scan {
-  position: fixed; left: 0; right: 0; top: 0; height: 160px; z-index: 9990; pointer-events: none;
+  position: fixed; left: 0; right: 0; top: 0; height: 160px; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: screen;
   background: linear-gradient(hsl(var(--green-hsl) / 0) 0%,
     hsl(var(--green-hsl) / 0.12) 50%, hsl(var(--green-hsl) / 0) 100%);
@@ -143,8 +253,8 @@ html {
 }
 
 body {
-  font-family: 'Iosevka Mayukai Monolite', monospace;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-weight: var(--fw-medium);
   font-style: normal;
   display: block;
   height: auto;
@@ -156,7 +266,7 @@ body {
 /* Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.45); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-1); }
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.8); }
 * { scrollbar-width: thin; scrollbar-color: hsl(var(--green-hsl) / 0.45) transparent; }
 
@@ -167,12 +277,12 @@ body {
   left: 0;
   right: 0;
   z-index: 20;
-  padding: 10px 0;
+  padding: var(--space-3) 0;
   display: flex;
   align-items: center;
   justify-content: space-evenly;
   background: hsl(var(--scrim-hsl) / 0.45);
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(var(--blur));
   border-top: 1px solid hsl(var(--green-hsl) / 0.12);
 }
 
@@ -191,7 +301,7 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-0-5);
   transition: color 0.2s;
   flex: 1;
   max-width: 72px;
@@ -200,13 +310,13 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
 .exec-nav a:hover { color: hsl(var(--green-hsl)); }
 .exec-nav a.active { color: hsl(var(--green-hsl)); }
 
-.exec-nav a img { border-radius: 5px; }
+.exec-nav a img { border-radius: var(--radius-2); }
 
 .exec-nav .nav-label {
-  font-family: "04b25", monospace;
-  font-size: 0.45rem;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-micro);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-x);
 }
 
 /* Standalone (home-screen / installed) launch: two rows, one empty cell of
@@ -215,7 +325,7 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
 html.standalone .exec-nav {
   flex-wrap: wrap;
   justify-content: center;
-  row-gap: 8px;
+  row-gap: var(--space-2-5);
   padding-left: calc(100% / (var(--per-row) + 2));
   padding-right: calc(100% / (var(--per-row) + 2));
 }
@@ -230,41 +340,41 @@ html.standalone .exec-nav a {
    desktop mouse (fine) keeps the base size. Icons are sized inline (20px) in the
    nav markup, so the bump needs !important. --nav-h tracks the taller nav live. */
 @media (pointer: coarse) {
-  .exec-nav { padding: 12px 0; }
-  .exec-nav a { gap: 3px; max-width: 86px; }
+  .exec-nav { padding: var(--space-4) 0; }
+  .exec-nav a { gap: var(--space-1); max-width: 86px; }
   .exec-nav a img { width: 24px !important; height: 24px !important; }
-  .exec-nav .nav-label { font-size: 0.54rem; }
-  html.standalone .exec-nav { row-gap: 10px; }
+  .exec-nav .nav-label { font-size: var(--fs-micro); }
+  html.standalone .exec-nav { row-gap: var(--space-3); }
 }
 
 /* Content pages */
 #content {
   position: relative;
-  z-index: 2;
+  z-index: var(--z-raised);
   width: min(720px, 90vw);
 
   /* track the live nav height (taller in two-row standalone) so scroll-page
      content clears the nav instead of sliding behind it */
   margin: 64px auto calc(var(--nav-h, 80px) + 24px);
-  font-family: 'Iosevka Mayukai Monolite', monospace;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-weight: var(--fw-medium);
   color: hsl(var(--green-hsl));
 }
 
 #content h2 {
-  font-family: "04b25", monospace;
-  font-size: 0.65rem;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-xs);
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: var(--tracking-caps);
   opacity: 0.65;
-  margin: 28px 0 8px;
+  margin: var(--space-8) 0 var(--space-2-5);
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
-  padding-bottom: 4px;
+  padding-bottom: var(--space-1-5);
 }
 
 #content .item {
-  font-size: 0.85rem;
-  padding: 5px 0;
+  font-size: var(--fs-md);
+  padding: var(--space-1-5) 0;
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
 }
 
@@ -272,14 +382,14 @@ html.standalone .exec-nav a {
   background: none;
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   color: hsl(var(--green-hsl) / 0.8);
-  font-family: 'Iosevka Mayukai Monolite', monospace;
-  font-weight: 500;
-  font-size: 0.8rem;
-  padding: 4px 12px;
+  font-family: var(--font-mono);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-base);
+  padding: var(--space-1-5) var(--space-4);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 #content button:hover { border-color: hsl(var(--green-hsl)); color: hsl(var(--green-hsl)); }
 #content button:disabled { opacity: 0.35; cursor: default; }
-#content .ts { font-size: 0.7rem; opacity: 0.5; margin-top: 16px; }
+#content .ts { font-size: var(--fs-xs); opacity: 0.5; margin-top: var(--space-6); }

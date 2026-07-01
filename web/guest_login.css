@@ -1,7 +1,7 @@
 body { display:flex; align-items:center; justify-content:center; height:100vh; }
 
 .login-box {
-  position:relative; z-index:2;
+  position:relative; z-index: var(--z-raised);
   background:transparent;
   padding:0; display:flex; flex-direction:column; align-items:center;
 }
@@ -9,17 +9,17 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 .login-box input[name="key"] {
   background:transparent; border:none;
   border-bottom:1px solid rgba(255,255,255,0.4);
-  color:#fff; font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.95rem;
-  padding:4px 2px; outline:none; width:160px; text-align:center;
+  color:#fff; font-family: var(--font-mono); font-size: var(--fs-lg);
+  padding: var(--space-1-5) var(--space-0-5); outline:none; width:160px; text-align:center;
 }
 .login-box input[name="key"]:focus { border-bottom-color:#fff; }
 .login-box input[name="key"]::placeholder { color:rgba(255,255,255,0.35); }
 
 .login-box button.submit {
-  margin-top:14px; background:transparent;
+  margin-top: var(--space-5); background:transparent;
   border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500;
-  font-size:1rem; line-height:1; width:32px; height:32px;
+  font-family: var(--font-mono); font-weight: var(--fw-medium);
+  font-size: var(--fs-xl); line-height: var(--lh-none); width:32px; height:32px;
   border-radius:50%; cursor:pointer; outline:none;
   display:flex; align-items:center; justify-content:center; padding:0;
 }
@@ -29,8 +29,8 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 }
 
 /* admin link to /login (mirrors landing.css .landing-admin) */
-.landing-admin{position:fixed;bottom:18px;right:20px;z-index:2;
-  font-family:'04b25',monospace;font-size:0.5rem;text-transform:uppercase;
-  letter-spacing:0.1em;text-decoration:none;color:hsl(var(--green-hsl) / 0.45);
+.landing-admin{position:fixed;bottom:18px;right:20px;z-index: var(--z-raised);
+  font-family: var(--font-pixel);font-size: var(--fs-micro);text-transform:uppercase;
+  letter-spacing: var(--tracking-x);text-decoration:none;color:hsl(var(--green-hsl) / 0.45);
   transition:color 0.2s,text-shadow 0.2s;}
 .landing-admin:hover{color:hsl(var(--green-hsl));text-shadow:0 0 8px hsl(var(--green-hsl) / 0.45);}

@@ -4,7 +4,7 @@ body { overflow-y: auto !important; }
 .exec-nav { z-index: 9995; }
 
 /* raise the palette above the cyber scanlines (z 9990) so they sit behind */
-.clr-wrap { position: relative; z-index: 9991; width: min(980px, 94vw); margin: 24px auto 100px; font-family: 'Iosevka Mayukai Monolite', monospace; color: hsl(var(--green-hsl));
+.clr-wrap { position: relative; z-index: 9991; width: min(980px, 94vw); margin: var(--space-8) auto var(--space-10); font-family: var(--font-mono); color: hsl(var(--green-hsl));
 
   /* phosphor glow — same as the tarot reader skin (chat-reader.css) */
   text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
@@ -13,14 +13,14 @@ body { overflow-y: auto !important; }
    table whose columns are the color's variations (card sizes, or alpha steps
    for non-card colors) and rows are swatch / opacity / count / effects, then
    the description beneath. */
-.clr-board { display: flex; flex-direction: column; gap: 32px; }
-.clr-group { display: flex; flex-direction: column; gap: 7px; width: 100%; }
-.clr-title { font-size: 0.85rem; color: hsl(var(--green-hsl)); }
-.clr-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.62rem; }
-.clr-tbl th { font-weight: 400; opacity: 0.55; padding: 2px 6px; text-align: center; }
-.clr-tbl td { padding: 2px 6px; text-align: center; vertical-align: middle; }
+.clr-board { display: flex; flex-direction: column; gap: var(--space-10); }
+.clr-group { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
+.clr-title { font-size: var(--fs-md); color: hsl(var(--green-hsl)); }
+.clr-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs-2xs); }
+.clr-tbl th { font-weight: var(--fw-normal); opacity: 0.55; padding: var(--space-0-5) var(--space-2); text-align: center; }
+.clr-tbl td { padding: var(--space-0-5) var(--space-2); text-align: center; vertical-align: middle; }
 
-.clr-sw { width: 100%; height: 16px; border-radius: 3px; overflow: hidden;
+.clr-sw { width: 100%; height: 16px; border-radius: var(--radius-1); overflow: hidden;
 
   /* faint dark field so translucent fills read against it */
   background: hsl(0deg 0% 0% / 0.3); }
@@ -28,8 +28,8 @@ body { overflow-y: auto !important; }
 .clr-cnt { color: hsl(var(--green-hsl) / 0.45); }
 
 /* effects label matches the opacity cells (default green td text) */
-.clr-tbl td.clr-usecell { vertical-align: top; text-align: left; padding-top: 6px; }
-.clr-uselist { margin: 0; padding-left: 15px; font-size: 0.56rem; opacity: 0.78; list-style: disc; }
-.clr-uselist li { line-height: 1.4; overflow-wrap: anywhere; }
-.clr-guse { font-size: 0.62rem; opacity: 0.55; line-height: 1.4; overflow-wrap: anywhere; white-space: normal; }
-.clr-empty { font-size: 0.75rem; color: hsl(var(--green-hsl) / 0.45); padding: 8px 0; }
+.clr-tbl td.clr-usecell { vertical-align: top; text-align: left; padding-top: var(--space-2); }
+.clr-uselist { margin: 0; padding-left: var(--space-5); font-size: var(--fs-2xs); opacity: 0.78; list-style: disc; }
+.clr-uselist li { line-height: var(--lh-snug); overflow-wrap: anywhere; }
+.clr-guse { font-size: var(--fs-2xs); opacity: 0.55; line-height: var(--lh-snug); overflow-wrap: anywhere; white-space: normal; }
+.clr-empty { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); padding: var(--space-2-5) 0; }

@@ -3,18 +3,18 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* cyber scanlines sit behind the cards + reminders, not over them */
 .cyber-bg, .cyber-scan { z-index: -1; }
-.hq-loading { padding: 32px; font-family: monospace; font-size: 0.8rem; opacity: 0.4; }
+.hq-loading { padding: var(--space-10); font-family: monospace; font-size: var(--fs-base); opacity: 0.4; }
 
 .hq-board {
   position: fixed; inset: 0;
-  display: flex; gap: 1px; overflow: hidden;
+  display: flex; gap: var(--space-px); overflow: hidden;
   background: transparent;
 }
 
 /* three columns: [today] | [tomorrow, day after] | [next three, smaller] */
 .hq-colgroup {
   flex: 1; min-width: 0; min-height: 0; position: relative;
-  display: flex; flex-direction: column; gap: 3px;
+  display: flex; flex-direction: column; gap: var(--space-1);
   background: transparent;
 }
 
@@ -31,15 +31,15 @@ body { overflow: hidden !important; background: transparent !important; }
    80% of column height, centered */
 .hq-colgroup:not(:first-child)::before {
   content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 3px;
-  background: rgba(255,255,255,0.2); pointer-events: none; z-index: 10;
+  background: rgba(255,255,255,0.2); pointer-events: none; z-index: var(--z-sticky);
 }
 
 /* side columns pack three days — shrink chrome to fit (day-name font +
    header padding stay the same as the today column so titles align) */
-.hq-colgroup.small .hq-list { padding: 5px 6px 14px; }
-.hq-colgroup.small .hq-card { padding: 5px 8px; margin-bottom: 4px; }
-.hq-colgroup.small .hq-card-title { font-size: 0.66rem; line-height: 1.2; margin-bottom: 0; }
-.hq-colgroup.small .hq-card-meta { font-size: 0.5rem; margin-top: 2px; }
+.hq-colgroup.small .hq-list { padding: var(--space-1-5) var(--space-2) var(--space-5); }
+.hq-colgroup.small .hq-card { padding: var(--space-1-5) var(--space-2-5); margin-bottom: var(--space-1-5); }
+.hq-colgroup.small .hq-card-title { font-size: var(--fs-xs); line-height: var(--lh-tight); margin-bottom: 0; }
+.hq-colgroup.small .hq-card-meta { font-size: var(--fs-micro); margin-top: var(--space-0-5); }
 .hq-col.weekend { background: transparent; }
 .hq-col.weekend .hq-day-name { color: hsl(var(--cyan-hsl) / 1); }
 
@@ -47,23 +47,23 @@ body { overflow: hidden !important; background: transparent !important; }
 .hq-col.today-col { position: relative; }
 
 .hq-col-hdr {
-  flex-shrink: 0; padding: 4px 10px 5px;
-  font-family: '04b25', monospace; font-size: 0.6rem; text-transform: uppercase;
-  letter-spacing: 0.15em; color: hsl(var(--green-hsl) / 0.45);
+  flex-shrink: 0; padding: var(--space-1-5) var(--space-3) var(--space-1-5);
+  font-family: var(--font-pixel); font-size: var(--fs-2xs); text-transform: uppercase;
+  letter-spacing: var(--tracking-caps); color: hsl(var(--green-hsl) / 0.45);
 }
-.hq-col-hdr .hq-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: 0.68rem; }
-.hq-col-hdr .hq-date { opacity: 0.45; font-size: 0.58rem; }
+.hq-col-hdr .hq-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: var(--fs-xs); }
+.hq-col-hdr .hq-date { opacity: 0.45; font-size: var(--fs-2xs); }
 .hq-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; }
 .hq-col-hdr.today-hdr .hq-day-name { color: hsl(var(--green-hsl)); }
 
 .hq-list {
-  flex: 1; overflow-y: auto; padding: 8px 8px 20px;
+  flex: 1; overflow-y: auto; padding: var(--space-2-5) var(--space-2-5) var(--space-7);
   min-height: 0;
 }
 
 .hq-card {
-  border-radius: 4px; padding: 9px 11px; margin-bottom: 5px;
-  cursor: grab; user-select: none; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500;
+  border-radius: var(--radius-2); padding: var(--space-2-5) var(--space-3); margin-bottom: var(--space-1-5);
+  cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-medium);
   border: 1px solid transparent; position: relative;
   overflow: hidden; box-sizing: border-box;
   transition: filter 0.12s;
@@ -72,18 +72,18 @@ body { overflow: hidden !important; background: transparent !important; }
 .hq-card:active { cursor: grabbing; }
 .hq-card:hover { filter: brightness(1.1); }
 .hq-card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.hq-card-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.8rem; line-height: 1.3; overflow-wrap: break-word; margin-bottom: 2px; }
-.hq-card-meta { font-size: 0.58rem; opacity: 0.5; margin-top: 3px; display: flex; justify-content: space-between; gap: 4px; }
+.hq-card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-base); line-height: var(--lh-snug); overflow-wrap: break-word; margin-bottom: var(--space-0-5); }
+.hq-card-meta { font-size: var(--fs-2xs); opacity: 0.5; margin-top: var(--space-1); display: flex; justify-content: space-between; gap: var(--space-1-5); }
 
-.hq-card-notes { font-size: 0.72rem; opacity: 0.88; margin-top: 4px; line-height: 1.45; overflow-wrap: break-word;
+.hq-card-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-1-5); line-height: var(--lh-normal); overflow-wrap: break-word;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.hq-overdue { position: absolute; top: 4px; right: 6px; font-size: 0.6rem; color: hsl(var(--orange-hsl) / 1); }
+.hq-overdue { position: absolute; top: 4px; right: 6px; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
 .sortable-ghost { opacity: 0.4; }
 
 .hq-unschedule {
   position: fixed; bottom: 0; left: 0; right: 0; height: 58px; z-index: 25;
   display: flex; align-items: center; justify-content: center;
-  font-family: monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+  font-family: monospace; font-size: var(--fs-xs); letter-spacing: var(--tracking-widest); text-transform: uppercase;
   color: hsl(var(--orange-glow-hsl) / 0); border-top: 1px solid hsl(var(--orange-glow-hsl) / 0);
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   pointer-events: none;
@@ -103,8 +103,8 @@ body.hq-dragging .hq-unschedule.drag-over {
 .hq-toast {
   position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.9); border: 1px solid hsl(var(--orange-hsl) / 0.45);
-  color: hsl(var(--orange-hsl) / 1); font-family: monospace; font-size: 0.78rem;
-  padding: 8px 20px; z-index: 100; pointer-events: none;
+  color: hsl(var(--orange-hsl) / 1); font-family: monospace; font-size: var(--fs-base);
+  padding: var(--space-2-5) var(--space-7); z-index: var(--z-overlay); pointer-events: none;
   opacity: 0; transition: opacity 0.3s;
 }
 .hq-toast.show { opacity: 1; }
@@ -113,28 +113,28 @@ body.hq-dragging .hq-unschedule.drag-over {
    wrap padding: tight right (3px + block's 3px inset = 6px gap, matching the
    card gap in the other columns); a slightly looser left so the hour-number
    gutter isn't jammed against the column edge */
-.hq-tl-wrap { flex: 1; overflow-y: auto; padding: 0 3px 0 5px; position: relative; min-height: 0; scrollbar-width: none; -ms-overflow-style: none; }
+.hq-tl-wrap { flex: 1; overflow-y: auto; padding: 0 var(--space-1) 0 var(--space-1-5); position: relative; min-height: 0; scrollbar-width: none; -ms-overflow-style: none; }
 .hq-tl-wrap::-webkit-scrollbar { display: none; }
 
 .dir-block {
   position: absolute; left: 3px; right: 3px; box-sizing: border-box;
-  border-radius: 4px; padding: 6px 9px 12px;
-  cursor: grab; user-select: none; font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 500;
+  border-radius: var(--radius-2); padding: var(--space-2) var(--space-2-5) var(--space-4);
+  cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-medium);
   border: 1px solid transparent; overflow: hidden; display: flex; flex-direction: column;
   z-index: 3;
 }
 .dir-block:active { cursor: grabbing; }
 .dir-block.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.dir-block-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.66rem; line-height: 1.2; margin-bottom: 2px; overflow-wrap: break-word; }
-.dir-block-meta { font-size: 0.5rem; opacity: 0.45; margin-top: 2px; display: flex; gap: 8px; }
-.dir-block-notes { font-size: 0.72rem; opacity: 0.88; margin-top: 4px; line-height: 1.4; flex: 1; overflow: hidden; }
+.dir-block-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-xs); line-height: var(--lh-tight); margin-bottom: var(--space-0-5); overflow-wrap: break-word; }
+.dir-block-meta { font-size: var(--fs-micro); opacity: 0.45; margin-top: var(--space-0-5); display: flex; gap: var(--space-2-5); }
+.dir-block-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-1-5); line-height: var(--lh-snug); flex: 1; overflow: hidden; }
 
 /* resize grip: bottom-right corner of the card, same size on blocks + sub-steps */
 .dir-resize, .dir-sub-resize {
   position: absolute; bottom: 0; right: 0; width: 28px; height: 9px;
   cursor: ns-resize; display: flex; align-items: center; justify-content: center;
 }
-.dir-resize::after, .dir-sub-resize::after { content: ''; display: block; width: 18px; height: 2px; background: #fff; border-radius: 1px; mix-blend-mode: overlay; }
+.dir-resize::after, .dir-sub-resize::after { content: ''; display: block; width: 18px; height: 2px; background: #fff; border-radius: var(--radius-1); mix-blend-mode: overlay; }
 .dir-tl-labels { width: 18px; flex-shrink: 0; position: relative; }
 
 .dir-tl-label {
@@ -142,7 +142,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 
   /* large as the fixed-width gutter allows; right-aligned so growing the font
      fills the gutter leftward and never shifts the track/spine */
-  font-size: 0.9rem; white-space: nowrap; font-family: '04b25', monospace;
+  font-size: var(--fs-lg); white-space: nowrap; font-family: var(--font-pixel);
   color: hsl(var(--gray-hsl) / 0.6);
 }
 .dir-tl-track { flex: 1; position: relative; background: transparent; }
@@ -154,12 +154,12 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .tl-meal {
   position: absolute; left: 3px; right: 3px; z-index: 1;
-  background: color-mix(in srgb, hsl(var(--cyan-hsl)) 12%, hsl(var(--bg-hsl))); border: 1px solid hsl(var(--cyan-hsl) / 0.12); border-radius: 4px;
+  background: color-mix(in srgb, hsl(var(--cyan-hsl)) 12%, hsl(var(--bg-hsl))); border: 1px solid hsl(var(--cyan-hsl) / 0.12); border-radius: var(--radius-2);
   display: flex; align-items: center; justify-content: center;
   box-sizing: border-box; pointer-events: none;
 }
-.tl-meal-label { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.72rem; color: rgba(255,255,255,0.16); }
-.tl-empty { position: absolute; top: 16px; left: 8px; opacity: 0.3; font-family: monospace; font-size: 0.75rem; pointer-events: none; }
+.tl-meal-label { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); color: rgba(255,255,255,0.16); }
+.tl-empty { position: absolute; top: 16px; left: 8px; opacity: 0.3; font-family: monospace; font-size: var(--fs-sm); pointer-events: none; }
 .tl-past { position: absolute; left: 0; right: 0; top: 0; background: hsl(var(--bg-hsl) / 0.45); pointer-events: none; z-index: 6; }
 
 /* shown/hidden via inline style from positionNow — keep display
@@ -168,15 +168,15 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .tl-now-clock {
   position: absolute; left: 0; right: 0; text-align: center;
-  font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.72rem; font-weight: 400;
+  font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: var(--fw-normal);
   color: hsl(var(--orange-hsl) / 1);
   text-shadow: 0 0 8px hsl(var(--orange-glow-hsl) / 1), 0 0 20px hsl(var(--orange-glow-hsl) / 0.6);
   pointer-events: none; z-index: 7;
 }
 
 /* faint placeholder showing where a dragged block will land (Sortable-style) */
-.hq-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.8); border-radius: 4px; box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: 'Iosevka Mayukai Monolite', monospace; font-size: 0.66rem; }
-.hq-drop-preview.today { position: absolute; left: 3px; right: 3px; background: hsl(var(--green-hsl) / 0.12); padding: 5px 8px; }
+.hq-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.8); border-radius: var(--radius-2); box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-mono); font-size: var(--fs-xs); }
+.hq-drop-preview.today { position: absolute; left: 3px; right: 3px; background: hsl(var(--green-hsl) / 0.12); padding: var(--space-1-5) var(--space-2-5); }
 
 /* a today card with a breakdown: thin vertical "spine" (the master, title set
    vertical) + its sub-steps as their own draggable blocks to the right,
@@ -186,7 +186,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .dir-spine {
   position: absolute; left: 0; top: 0; bottom: 0; width: 14px; box-sizing: border-box;
-  border-radius: 4px 0 0 4px; border: 1px solid transparent;
+  border-radius: var(--radius-2) 0 0 var(--radius-2); border: 1px solid transparent;
   display: flex; align-items: center; justify-content: center;
   cursor: grab; user-select: none;
   box-shadow: -2px 3px 11px rgba(0,0,0,0.6);
@@ -205,14 +205,14 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .dir-spine-title {
   writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
-  font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700;
-  font-size: 0.6rem; line-height: 1; letter-spacing: 0.04em;
+  font-family: var(--font-mono); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); line-height: var(--lh-none); letter-spacing: var(--tracking-wide);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%;
 }
 
 .dir-sub {
-  position: absolute; box-sizing: border-box; border-radius: 4px;
-  border: 1px solid transparent; padding: 3px 6px 8px; overflow: hidden;
+  position: absolute; box-sizing: border-box; border-radius: var(--radius-2);
+  border: 1px solid transparent; padding: var(--space-1) var(--space-2) var(--space-2-5); overflow: hidden;
   cursor: grab; user-select: none; display: flex; flex-direction: column;
   z-index: 4; box-shadow: -3px 0 5px rgba(0,0,0,0.3);
 }
@@ -223,11 +223,11 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .dir-sub-del {
   position: absolute; top: 0; left: 2px; z-index: 6;
-  font-size: 0.6rem; line-height: 1; padding: 1px 2px;
+  font-size: var(--fs-2xs); line-height: var(--lh-none); padding: var(--space-px) var(--space-0-5);
   cursor: pointer; opacity: 0.5;
 }
 .dir-sub-del:hover { opacity: 1; }
-.dir-sub-title { font-family: 'Iosevka Mayukai Monolite', monospace; font-weight: 700; font-size: 0.6rem; line-height: 1.15; overflow-wrap: break-word; padding-left: 12px; }
-.dir-sub-meta { font-size: 0.6rem; opacity: 0.6; margin-top: 1px; white-space: nowrap; }
+.dir-sub-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-2xs); line-height: var(--lh-tight); overflow-wrap: break-word; padding-left: var(--space-4); }
+.dir-sub-meta { font-size: var(--fs-2xs); opacity: 0.6; margin-top: var(--space-px); white-space: nowrap; }
 
 /* .dir-sub-resize styled with .dir-resize above (bottom-right grip) */
