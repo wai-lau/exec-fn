@@ -80,6 +80,9 @@ body{background:var(--doc-bg)}
 /* no per-panel card — the whole page is already one .doc-card; panels are just
    labelled sections with vertical rhythm (no nested card-on-card). */
 .spanel{margin:var(--space-6) 0}
+/* origin map bleeds to the card edges (cancels .doc-card's 52px/clamp h-padding),
+   scaling it up full-width; the h3 title stays inset with the rest. */
+.spanel-map .sc{width:calc(100% + 2 * clamp(28px, 6vw, 60px));margin-left:calc(-1 * clamp(28px, 6vw, 60px))}
 .spanel h3{margin:0;font-size:var(--fs-sm);color:var(--doc-green);text-transform:uppercase;letter-spacing:var(--tracking-caps)}.spanel .ssub{color:var(--doc-ink-soft);font-size:var(--fs-sm);margin:var(--space-0-5) 0 var(--space-3)}
 .sc{width:100%;height:auto;display:block}
 .sl{fill:var(--doc-ink);font-size:12px}.sv{fill:var(--doc-ink-soft);font-size:11px}.sa{fill:var(--doc-ink-soft);font-size:10px}.sp{fill:var(--doc-green);font-size:11px;font-weight:600}
@@ -102,7 +105,7 @@ def render_security(data):
         return f'<div class="secwrap doc-card">{_CSS}{body}</div>'
     parts = []
     # 1. origin map — the hero, first thing, zoomed in; no subtitle line.
-    parts.append(f'<section class="spanel"><h3>Origin of automated traffic</h3>{dotmap(Gd["geo"])}</section>')
+    parts.append(f'<section class="spanel spanel-map"><h3>Origin of automated traffic</h3>{dotmap(Gd["geo"])}</section>')
     # NOTE: deliberately NO user-agent "human vs bot" split — the `kind` field
     # classifies by UA string, which bots spoof (browser-UA "human" bucket is
     # mostly automated), so it reads as tens of thousands of humans and inverts
