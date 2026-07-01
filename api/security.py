@@ -4,7 +4,10 @@ combined JSON written by scripts/security/refresh.py (host cron, reads /var/log)
 Pure rendering — NO log/file access beyond the prepared JSON in data/. Three
 tabs (ssh / all-incoming / geo), inline SVG, no external assets. The route wraps
 this in the standard page shell (head+nav+chrome+favicon) via _render_page."""
-import json, html, math, os
+import json
+import html
+import math
+import os
 from pathlib import Path
 
 DATA_PATH = Path(os.environ.get("SECURITY_JSON", "/app/data/security.json"))
@@ -171,25 +174,31 @@ def _geo_tab(Gd):
 
 _CSS = """
 <style>
-.secwrap{max-width:1080px;margin:0 auto;padding:8px 4px 60px;font:14px/1.5 ui-monospace,"Iosevka",Menlo,Consolas,monospace;color:#c9d1d9}
-.sechead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:4px 0 6px}
-.sechead h2{margin:0;font-size:20px;color:#fff}.sechead .meta{color:#6e7681;font-size:12px}
-.sectabs{display:flex;gap:8px;margin:14px 0 6px;border-bottom:1px solid #1c2533}
-.sectab{background:none;border:none;color:#6e7681;font:inherit;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent}
-.sectab:hover{color:#c9d1d9}.sectab.on{color:#fff;border-bottom-color:#2bd9d9}
+/* /security on the shared "dark recruiter" document theme: chrome uses the
+   chrome.css --doc-* tokens; the SVG chart DATA colours (RED/CYAN/AMBER/MAG,
+   set inline) stay as-is — data viz needs distinct hues. .secwrap adds the
+   .doc-card class (see render_security) and just widens it for the dashboard. */
+body{background:var(--doc-bg)}
+.secwrap{width:min(1080px,94vw)}
+.sechead{display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap;margin:0 0 var(--space-2)}
+.sechead h2{margin:0;font-size:var(--fs-xl);color:var(--doc-green);text-transform:uppercase;letter-spacing:var(--tracking-caps)}
+.sechead .meta{color:var(--doc-ink-soft);font-size:var(--fs-xs)}
+.sectabs{display:flex;gap:var(--space-2);margin:var(--space-5) 0 var(--space-2);border-bottom:1px solid var(--doc-rule)}
+.sectab{background:none;border:none;color:var(--doc-ink-soft);font:inherit;padding:var(--space-2-5) var(--space-5);cursor:pointer;border-bottom:2px solid transparent}
+.sectab:hover{color:var(--doc-ink)}.sectab.on{color:var(--doc-green);border-bottom-color:var(--doc-green)}
 .secpane{display:none}.secpane.on{display:block}
-.scards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}
-.scard{background:#0d1420;border:1px solid #1c2533;border-radius:10px;padding:12px 14px}
-.scard .sb{font-size:22px;font-weight:700;line-height:1.1}.scard .ss{color:#6e7681;font-size:11px;margin-top:3px}
-.sg2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:740px){.sg2{grid-template-columns:1fr}}
-.spanel{background:#0b111b;border:1px solid #1c2533;border-radius:12px;padding:14px 16px;margin:16px 0}
-.spanel h3{margin:0;font-size:14px;color:#fff}.spanel .ssub{color:#6e7681;font-size:11px;margin:2px 0 10px}
+.scards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--space-3);margin:var(--space-6) 0}
+.scard{background:var(--doc-bg);border:1px solid var(--doc-rule);border-radius:var(--radius-4);padding:var(--space-4) var(--space-5)}
+.scard .sb{font-size:var(--fs-2xl);font-weight:var(--fw-bold);line-height:var(--lh-tight)}.scard .ss{color:var(--doc-ink-soft);font-size:var(--fs-xs);margin-top:var(--space-1)}
+.sg2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6)}@media(max-width:740px){.sg2{grid-template-columns:1fr}}
+.spanel{background:var(--doc-bg);border:1px solid var(--doc-rule);border-radius:var(--radius-4);padding:var(--space-5) var(--space-6);margin:var(--space-6) 0}
+.spanel h3{margin:0;font-size:var(--fs-sm);color:var(--doc-green);text-transform:uppercase;letter-spacing:var(--tracking-caps)}.spanel .ssub{color:var(--doc-ink-soft);font-size:var(--fs-xs);margin:var(--space-0-5) 0 var(--space-3)}
 .sc{width:100%;height:auto;display:block}
-.sl{fill:#c9d1d9;font-size:12px}.sv{fill:#6e7681;font-size:11px}.sa{fill:#6e7681;font-size:10px}.sp{fill:#fff;font-size:11px;font-weight:600}
-.sg{fill:#33414f;font-size:9px}.sr{fill:#2c3a47;font-size:11px;letter-spacing:2px}
-.snote{color:#6e7681;padding:30px;text-align:center}
-.stab{width:100%;border-collapse:collapse;font-size:12px}.stab th,.stab td{text-align:left;padding:5px 8px;border-bottom:1px solid #1c2533}
-.stab th{color:#6e7681}.stab td.ip{color:#ffb454}.stab td.isp{color:#6e7681}.stab td.n{text-align:right;font-variant-numeric:tabular-nums}
+.sl{fill:var(--doc-ink);font-size:12px}.sv{fill:var(--doc-ink-soft);font-size:11px}.sa{fill:var(--doc-ink-soft);font-size:10px}.sp{fill:var(--doc-green);font-size:11px;font-weight:600}
+.sg{fill:var(--doc-rule);font-size:9px}.sr{fill:var(--doc-rule);font-size:11px;letter-spacing:2px}
+.snote{color:var(--doc-ink-soft);padding:30px;text-align:center}
+.stab{width:100%;border-collapse:collapse;font-size:12px}.stab th,.stab td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--doc-rule)}
+.stab th{color:var(--doc-ink-soft)}.stab td.ip{color:var(--doc-cyan)}.stab td.isp{color:var(--doc-ink-soft)}.stab td.n{text-align:right;font-variant-numeric:tabular-nums}
 </style>
 """
 _JS = """
@@ -222,12 +231,12 @@ def render_security(data):
     Gd = data.get("geo") if data else None
     if not data:
         body = '<p class="snote">Telemetry not generated yet — the host cron writes data/security.json hourly.</p>'
-        return f'<div class="secwrap">{_CSS}<div class="sechead"><h2>◎ security</h2></div>{body}</div>'
+        return f'<div class="secwrap doc-card">{_CSS}<div class="sechead"><h2>◎ security</h2></div>{body}</div>'
     meta = f'web {W["totals"]["day_first"]}→{W["totals"]["day_last"]} · ssh {A["totals"]["day_first"]}→{A["totals"]["day_last"]}' if (W and A) else ""
     panes = (f'<div class="secpane on" data-t="geo">{_geo_tab(Gd)}</div>'
              f'<div class="secpane" data-t="ssh">{_ssh_tab(A)}</div>'
              f'<div class="secpane" data-t="web">{_web_tab(W,A)}</div>')
-    return (f'<div class="secwrap">{_CSS}'
+    return (f'<div class="secwrap doc-card">{_CSS}'
         f'<div class="sechead"><h2>◎ wai-lau.net security</h2>'
         f'<span class="meta">{_e(meta)} · generated {_e(gen)}</span></div>'
         f'<div class="sectabs">'
