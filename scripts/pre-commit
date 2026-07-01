@@ -67,6 +67,20 @@ if [ -n "$PALETTE_FILES" ]; then
   fi
 fi
 
+# Scale discipline — no new off-scale structural values (full-tree css scan;
+# runs when any web css is staged). Every governed property (spacing / radius /
+# font-size / weight / line-height / letter-spacing / font-family) must use a
+# chrome.css scale token; scripts/scale-codemod.py snaps a page onto them.
+SCALE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/.*\.css$' | grep -vE '^web/vendor/' || true)
+if [ -n "$SCALE_FILES" ]; then
+  if ! python3 scripts/lint-scale.py; then
+    echo ""
+    echo "Scale lint failed — commit blocked. Snap raw values to chrome.css tokens"
+    echo "(python3 scripts/scale-codemod.py shows the diff; see above)."
+    exit 1
+  fi
+fi
+
 # Shell lint
 if command -v shellcheck &>/dev/null; then
   SHELL_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.sh$' || true)

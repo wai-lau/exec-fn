@@ -10,7 +10,7 @@ body {
   margin: 0 !important;
   height: 100vh !important;
   overflow: hidden !important;
-  font-family: 'Iosevka Mayukai Monolite', monospace;
+  font-family: var(--font-mono);
 }
 
 /* 3s loading cover — mirrors nightfall's boot-bar (white bordered bar, white
@@ -18,7 +18,7 @@ body {
 #gp-loading {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,7 +85,7 @@ body.gp-loaded #graph {
   overflow-y: auto;
   z-index: 25;
   background: hsl(var(--surface-hsl)) !important;
-  font-family: 'Iosevka Mayukai Monolite', monospace !important;
+  font-family: var(--font-mono) !important;
   transition: transform 0.2s ease;
 }
 
@@ -141,14 +141,14 @@ body.gp-info-open #sidebar {
   .gp-toggle.gp-min-btn {
     width: 36px;
     height: 36px;
-    font-size: 0.9rem;
+    font-size: var(--fs-lg);
   }
 
   #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label,
   #gp-physics .vis-configuration.vis-config-rangeinput,
   #gp-physics select.vis-configuration,
   .gp-freeze {
-    font-size: 0.8rem !important;
+    font-size: var(--fs-base) !important;
   }
 }
 
@@ -160,7 +160,7 @@ body.gp-info-open #sidebar {
   padding: 0 !important;
   background: transparent !important;
   border: none !important;
-  font-family: 'Iosevka Mayukai Monolite', monospace !important;
+  font-family: var(--font-mono) !important;
 }
 
 /* ── panel header labels ────────────────────────────────────────────── */
@@ -168,10 +168,10 @@ body.gp-info-open #sidebar {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 6px 8px;
-  font-family: "04b25", monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
+  padding: var(--space-2) var(--space-2-5);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
   color: hsl(var(--green-hsl));
   background: hsl(var(--surface-hsl));
@@ -185,14 +185,14 @@ body.gp-info-open #sidebar {
   width: 22px;
   height: 22px;
   padding: 0;
-  line-height: 1;
+  line-height: var(--lh-none);
   cursor: pointer;
   background: hsl(var(--surface-hsl));
   border: 1px solid hsl(var(--green-hsl) / 0.45);
-  border-radius: 3px;
+  border-radius: var(--radius-1);
   color: hsl(var(--green-hsl) / 0.8);
-  font-family: "04b25", monospace;
-  font-size: 0.65rem;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-xs);
 }
 
 .gp-min-btn:hover {
@@ -203,9 +203,9 @@ body.gp-info-open #sidebar {
 /* ── right sidebar green theme ──────────────────────────────────────── */
 #sidebar h3 {
   color: hsl(var(--green-hsl)) !important;
-  font-family: "04b25", monospace !important;
-  font-size: 0.62rem !important;
-  letter-spacing: 0.08em;
+  font-family: var(--font-pixel) !important;
+  font-size: var(--fs-2xs) !important;
+  letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
 }
 
@@ -213,7 +213,7 @@ body.gp-info-open #sidebar {
   background: hsl(var(--bg-hsl)) !important;
   color: hsl(var(--green-hsl)) !important;
   border: 1px solid hsl(var(--green-hsl) / 0.12) !important;
-  font-family: 'Iosevka Mayukai Monolite', monospace !important;
+  font-family: var(--font-mono) !important;
 }
 
 #sidebar input#search::placeholder {
@@ -279,8 +279,8 @@ body.gp-info-open #sidebar {
   align-items: stretch !important;
   height: auto !important;
   min-height: 0 !important;
-  margin: 0 0 12px !important;
-  padding: 2px 8px !important;
+  margin: 0 0 var(--space-4) !important;
+  padding: var(--space-0-5) var(--space-2-5) !important;
 }
 
 /* vis indents items by nesting depth (s0-s5); flatten so every row lines up */
@@ -298,10 +298,10 @@ body.gp-info-open #sidebar {
   width: 100% !important;
   height: auto !important;
   box-sizing: border-box !important;
-  margin: 0 0 1px !important;
+  margin: 0 0 var(--space-px) !important;
   padding: 0 !important;
-  font-size: 0.58rem !important;
-  line-height: 1.2 !important;
+  font-size: var(--fs-2xs) !important;
+  line-height: var(--lh-tight) !important;
   white-space: normal !important;
 }
 
@@ -327,7 +327,7 @@ body.gp-info-open #sidebar {
   display: block !important;
   width: 90% !important;
   max-width: 90% !important;
-  margin: 8px auto !important;
+  margin: var(--space-2-5) auto !important;
 }
 
 #gp-physics pre,
@@ -345,16 +345,16 @@ body.gp-info-open #sidebar {
 #gp-physics hr,
 #gp-physics .vis-config-hr {
   width: 90% !important;
-  margin: 8px auto !important;
+  margin: var(--space-2-5) auto !important;
 }
 
 #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-rangeinput {
   position: static !important;
   width: 64px !important;
   align-self: center !important;
-  margin: 3px 0 0 !important;
-  padding: 1px 3px !important;
-  font-size: 0.58rem !important;
+  margin: var(--space-1) 0 0 !important;
+  padding: var(--space-px) var(--space-1) !important;
+  font-size: var(--fs-2xs) !important;
   box-sizing: border-box !important;
   text-align: center !important;
 }
@@ -375,22 +375,22 @@ body.gp-info-open #sidebar {
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 6px 10px;
-  font-family: "04b25", monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.06em;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
   color: hsl(var(--green-hsl) / 0.8);
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid hsl(var(--green-hsl) / 0.12);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
 }
 
 /* segmented either/or switch: freeze | tour */
 .gp-toggle-switch {
   display: inline-flex;
   border: 1px solid hsl(var(--green-hsl) / 0.12);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
   overflow: hidden;
 }
 
@@ -398,7 +398,7 @@ body.gp-info-open #sidebar {
   appearance: none;
   border: 0;
   margin: 0;
-  padding: 4px 12px;
+  padding: var(--space-1-5) var(--space-4);
   font: inherit;
   letter-spacing: inherit;
   text-transform: uppercase;
@@ -418,17 +418,17 @@ body.gp-info-open #sidebar {
 
 #gp-physics select.vis-configuration {
   width: 100% !important;
-  font-size: 0.58rem !important;
+  font-size: var(--fs-2xs) !important;
 }
 
 #gp-physics .vis-configuration.vis-config-header {
-  font-size: 0.62rem !important;
-  padding: 6px 8px !important;
+  font-size: var(--fs-2xs) !important;
+  padding: var(--space-2) var(--space-2-5) !important;
 }
 
 /* breathing room above the first slider (theta) now that headers are hidden */
 #gp-physics .gp-panel-body {
-  padding-top: 12px;
+  padding-top: var(--space-4);
 }
 
 .gp-bottom-toggle.gp-min-btn {

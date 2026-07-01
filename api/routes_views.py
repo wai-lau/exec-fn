@@ -53,7 +53,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=11">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=12">'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
@@ -83,7 +83,7 @@ _LANDING_DESCS = {
     "tarot": "An interactive three-card tarot reading: choose a significator, deal the spread, and interpret each position.",
     "recruiter": "A résumé page for recruiters: background, skills, and a downloadable PDF.",
 }
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=19">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=20">'
 
 # preload the two Latin-subset woff2 weights so they download in parallel with
 # the CSS instead of after it (font fetch is otherwise gated on CSS parse). Both
@@ -292,7 +292,7 @@ async def color_usage():
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = enable the live
 # physics configurator. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=35">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=36">'
 _GRAPH_OVERLAY_JS = '<script src="/graph-overlay.js?v=38"></script>'
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).

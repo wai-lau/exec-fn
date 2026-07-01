@@ -50,9 +50,9 @@ body.no-input #terminal { transition: inset 0.7s ease; inset:0 0 calc(var(--spre
   position:fixed; bottom:var(--kb-anchor); left:0; right:0; z-index:6;
   height:var(--status-h); box-sizing:border-box;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:2px;
+  gap: var(--space-0-5);
   background:hsl(var(--bg-hsl) / 1);
-  font-family:'Iosevka Mayukai Monolite',monospace;
+  font-family: var(--font-mono);
   text-align:center; pointer-events:none;
 }
 
@@ -62,20 +62,20 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
 
 #tarot-credits, #tarot-credits a {
   color:hsl(var(--green-hsl) / 0.45);
-  font-size:0.6rem; line-height:1.35; text-decoration:none;
+  font-size: var(--fs-2xs); line-height: var(--lh-snug); text-decoration:none;
 }
 #tarot-credits a { pointer-events:auto; }
 #tarot-credits a:hover { color:hsl(var(--green-hsl) / 0.8); }
 
 #tarot-statusline {
   color:hsl(var(--green-hsl) / 0.45);
-  font-size:0.72rem; line-height:1.35; min-height:1em;
+  font-size: var(--fs-sm); line-height: var(--lh-snug); min-height:1em;
 }
 
 #spread-controls {
   grid-column: 2;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:2px;
+  gap: var(--space-0-5);
   height:100%;
 }
 
@@ -83,10 +83,10 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
   background:radial-gradient(circle at center, hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0) 70%);
   border:none; outline:none;
   color:hsl(var(--green-hsl) / 1);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-weight:700;
+  font-family: var(--font-mono); font-weight: var(--fw-bold);
   font-size:clamp(0.45rem, 1.1vw, 0.7rem);
   white-space:nowrap;
-  line-height:1; padding:4px 6px; cursor:pointer; border-radius:50%;
+  line-height: var(--lh-none); padding: var(--space-1-5) var(--space-2); cursor:pointer; border-radius:50%;
   text-shadow:0 0 6px hsl(var(--green-hsl) / 0.45);
   animation: btn-pulse 2.6s ease-in-out infinite;
   transition:color 0.15s, transform 0.15s, text-shadow 0.15s;
@@ -100,8 +100,8 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
 .spread-btn:active { transform:scale(0.94); }
 
 .spread-btn .rst-glyph {
-  font-family: system-ui, sans-serif;
-  font-size:1.7em; line-height:1; vertical-align:-0.18em;
+  font-family: var(--font-ui);
+  font-size:1.7em; line-height: var(--lh-none); vertical-align:-0.18em;
   margin:0 0.15em; display:inline-block;
 }
 
@@ -116,8 +116,8 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
 }
 
 .voice-btn .voice-glyph {
-  font-family: system-ui, sans-serif;
-  font-size:1.3em; line-height:1; vertical-align:-0.08em;
+  font-family: var(--font-ui);
+  font-size:1.3em; line-height: var(--lh-none); vertical-align:-0.08em;
   margin:0 0.12em; display:inline-block;
 }
 
@@ -132,8 +132,8 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
 }
 
 .music-btn .music-glyph {
-  font-family: system-ui, sans-serif;
-  font-size:1.3em; line-height:1; vertical-align:-0.08em;
+  font-family: var(--font-ui);
+  font-size:1.3em; line-height: var(--lh-none); vertical-align:-0.08em;
   margin:0 0.12em; display:inline-block;
 }
 
@@ -141,7 +141,7 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
   color:hsl(var(--green-hsl) / 0.45);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
+  font-family: var(--font-mono); font-size: var(--fs-md);
   pointer-events:none;
 }
 
@@ -161,7 +161,7 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
   box-sizing:border-box;
   width:var(--card-w); height:var(--card-h);
   cursor:pointer;
-  border-radius:8px;
+  border-radius: var(--radius-4);
   outline:1.5px solid hsl(var(--green-hsl) / 0.45);
   filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));
   user-select:none;
@@ -172,7 +172,7 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
 
 .tarot-card img {
   width:100%; height:100%; object-fit:contain;
-  border-radius:8px;
+  border-radius: var(--radius-4);
   display:block;
 }
 .tarot-card img.back { object-fit:fill; }
@@ -194,7 +194,7 @@ body.reader-speaking .tarot-card[data-next="true"] {
   0%,100% { outline:1px solid hsl(var(--green-hsl) / 0.12); }
   50%     { outline:2px solid hsl(var(--green-hsl) / 0.45); }
 }
-.msg.event { color:hsl(var(--green-hsl) / 0.45); font-style:italic; font-size:0.74rem; margin:6px auto; }
+.msg.event { color:hsl(var(--green-hsl) / 0.45); font-style:italic; font-size: var(--fs-sm); margin: var(--space-2) auto; }
 .msg.event::before { content:"~ "; opacity:0.5; }
 
 /* opening held for the first gesture: blank the reader bubble (its cursor and
@@ -207,7 +207,7 @@ body.opening-pending .msg.assistant { display:none; }
    on, audio not yet unlocked) -- removed once the turn fires */
 .begin-hint {
   color:hsl(var(--green-hsl) / 0.45); font-style:italic;
-  font-size:0.8rem; text-align:center; margin:auto;
+  font-size: var(--fs-base); text-align:center; margin:auto;
   animation:begin-hint-pulse 1.8s ease-in-out infinite;
 }
 
@@ -220,7 +220,7 @@ body.opening-pending .msg.assistant { display:none; }
 .reader-cursor {
   display:inline-block; width:0.55em; height:1em;
   background:hsl(var(--green-hsl) / 0.8);
-  vertical-align:text-bottom; margin-left:1px;
+  vertical-align:text-bottom; margin-left: var(--space-px);
   animation:blink 1s step-end infinite;
 }
 
@@ -234,56 +234,56 @@ body.opening-pending .msg.assistant { display:none; }
 #sig-card.set { background:#000; }
 #sig-card.set:hover { outline:2px solid hsl(var(--green-hsl) / 0.45); }
 #sig-card.set::after { display:none; }
-#sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius:8px; }
+#sig-card.set img { width:100%; height:100%; object-fit:contain; border-radius: var(--radius-4); }
 
 #sig-card .sig-label {
   position:absolute; left:50%; bottom:calc(100% + 4px);
   transform:translateX(-50%);
   white-space:nowrap;
   color:hsl(var(--green-hsl) / 0.45);
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  text-align:center; line-height:1.15;
+  font-family: var(--font-mono); font-size: var(--fs-xs);
+  text-align:center; line-height: var(--lh-tight);
   pointer-events:none;
 }
 
 #sig-card .sig-name {
-  display:block; color:hsl(var(--green-hsl) / 1); font-size:0.62rem;
+  display:block; color:hsl(var(--green-hsl) / 1); font-size: var(--fs-2xs);
 }
 
 /* phase/event readouts pinned to the spread edges */
 #phase-debug, #event-debug {
   position:absolute; left:0; right:0; z-index:5; text-align:center;
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  color:hsl(var(--green-hsl) / 0.45); letter-spacing:0.05em;
+  font-family: var(--font-mono); font-size: var(--fs-xs);
+  color:hsl(var(--green-hsl) / 0.45); letter-spacing: var(--tracking-wide);
   pointer-events:none; user-select:none;
 }
 #phase-debug { bottom:8px; }
 #event-debug { top:8px; }
 
 #card-zoom {
-  position:fixed; inset:0; z-index:60; display:none;
+  position:fixed; inset:0; z-index: var(--z-nav); display:none;
   background:rgba(0,0,0,0.92);
   align-items:center; justify-content:center;
-  flex-direction:column; gap:14px;
-  padding:20px;
+  flex-direction:column; gap: var(--space-5);
+  padding: var(--space-7);
 }
 #card-zoom.open { display:flex; }
 
 #card-zoom img {
   max-width:min(90vw, 60vh); max-height:80vh; height:auto; width:auto;
-  border-radius:6px; border:1px solid rgba(0,0,0,0.5);
+  border-radius: var(--radius-3); border:1px solid rgba(0,0,0,0.5);
   outline:3px solid hsl(var(--green-hsl) / 0.45);
 }
 
 #card-zoom .zoom-label {
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.85rem;
-  color:hsl(var(--green-hsl) / 0.8); text-align:center; line-height:1.3;
+  font-family: var(--font-mono); font-size: var(--fs-md);
+  color:hsl(var(--green-hsl) / 0.8); text-align:center; line-height: var(--lh-snug);
   max-width:60vh;
 }
 
 #card-zoom .zoom-hint {
-  font-family:'Iosevka Mayukai Monolite',monospace; font-size:0.66rem;
-  color:hsl(var(--green-hsl) / 0.12); letter-spacing:0.05em;
+  font-family: var(--font-mono); font-size: var(--fs-xs);
+  color:hsl(var(--green-hsl) / 0.12); letter-spacing: var(--tracking-wide);
 }
 
 /* centered 720px scrollback (chat-reader supplies the glow) */
