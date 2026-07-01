@@ -141,14 +141,14 @@ body.gp-info-open #sidebar {
   .gp-toggle.gp-min-btn {
     width: 36px;
     height: 36px;
-    font-size: var(--fs-lg);
+    font-size: var(--fs-xl);
   }
 
   #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label,
   #gp-physics .vis-configuration.vis-config-rangeinput,
   #gp-physics select.vis-configuration,
   .gp-freeze {
-    font-size: var(--fs-base) !important;
+    font-size: var(--fs-sm) !important;
   }
 }
 
@@ -192,7 +192,7 @@ body.gp-info-open #sidebar {
   border-radius: var(--radius-1);
   color: hsl(var(--green-hsl) / 0.8);
   font-family: var(--font-pixel);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
 }
 
 .gp-min-btn:hover {

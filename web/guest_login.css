@@ -9,7 +9,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 .login-box input[name="key"] {
   background:transparent; border:none;
   border-bottom:1px solid rgba(255,255,255,0.4);
-  color:#fff; font-family: var(--font-mono); font-size: var(--fs-lg);
+  color:#fff; font-family: var(--font-mono); font-size: var(--fs-xl);
   padding: var(--space-1-5) var(--space-0-5); outline:none; width:160px; text-align:center;
 }
 .login-box input[name="key"]:focus { border-bottom-color:#fff; }
@@ -18,7 +18,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 .login-box button.submit {
   margin-top: var(--space-5); background:transparent;
   border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
-  font-family: var(--font-mono); font-weight: var(--fw-medium);
+  font-family: var(--font-mono); font-weight: var(--fw-normal);
   font-size: var(--fs-xl); line-height: var(--lh-none); width:32px; height:32px;
   border-radius:50%; cursor:pointer; outline:none;
   display:flex; align-items:center; justify-content:center; padding:0;
@@ -30,7 +30,7 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 
 /* admin link to /login (mirrors landing.css .landing-admin) */
 .landing-admin{position:fixed;bottom:18px;right:20px;z-index: var(--z-raised);
-  font-family: var(--font-pixel);font-size: var(--fs-micro);text-transform:uppercase;
+  font-family: var(--font-pixel);font-size: var(--fs-2xs);text-transform:uppercase;
   letter-spacing: var(--tracking-x);text-decoration:none;color:hsl(var(--green-hsl) / 0.45);
   transition:color 0.2s,text-shadow 0.2s;}
 .landing-admin:hover{color:hsl(var(--green-hsl));text-shadow:0 0 8px hsl(var(--green-hsl) / 0.45);}

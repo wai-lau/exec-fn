@@ -3,7 +3,7 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* cyber scanlines sit behind the cards + reminders, not over them */
 .cyber-bg, .cyber-scan { z-index: -1; }
-.hq-loading { padding: var(--space-10); font-family: monospace; font-size: var(--fs-base); opacity: 0.4; }
+.hq-loading { padding: var(--space-10); font-family: monospace; font-size: var(--fs-sm); opacity: 0.4; }
 
 .hq-board {
   position: fixed; inset: 0;
@@ -38,8 +38,8 @@ body { overflow: hidden !important; background: transparent !important; }
    header padding stay the same as the today column so titles align) */
 .hq-colgroup.small .hq-list { padding: var(--space-1-5) var(--space-2) var(--space-5); }
 .hq-colgroup.small .hq-card { padding: var(--space-1-5) var(--space-2-5); margin-bottom: var(--space-1-5); }
-.hq-colgroup.small .hq-card-title { font-size: var(--fs-xs); line-height: var(--lh-tight); margin-bottom: 0; }
-.hq-colgroup.small .hq-card-meta { font-size: var(--fs-micro); margin-top: var(--space-0-5); }
+.hq-colgroup.small .hq-card-title { font-size: var(--fs-sm); line-height: var(--lh-tight); margin-bottom: 0; }
+.hq-colgroup.small .hq-card-meta { font-size: var(--fs-2xs); margin-top: var(--space-0-5); }
 .hq-col.weekend { background: transparent; }
 .hq-col.weekend .hq-day-name { color: hsl(var(--cyan-hsl) / 1); }
 
@@ -51,7 +51,7 @@ body { overflow: hidden !important; background: transparent !important; }
   font-family: var(--font-pixel); font-size: var(--fs-2xs); text-transform: uppercase;
   letter-spacing: var(--tracking-caps); color: hsl(var(--green-hsl) / 0.45);
 }
-.hq-col-hdr .hq-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: var(--fs-xs); }
+.hq-col-hdr .hq-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: var(--fs-sm); }
 .hq-col-hdr .hq-date { opacity: 0.45; font-size: var(--fs-2xs); }
 .hq-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; }
 .hq-col-hdr.today-hdr .hq-day-name { color: hsl(var(--green-hsl)); }
@@ -63,7 +63,7 @@ body { overflow: hidden !important; background: transparent !important; }
 
 .hq-card {
   border-radius: var(--radius-2); padding: var(--space-2-5) var(--space-3); margin-bottom: var(--space-1-5);
-  cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-medium);
+  cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-normal);
   border: 1px solid transparent; position: relative;
   overflow: hidden; box-sizing: border-box;
   transition: filter 0.12s;
@@ -72,7 +72,7 @@ body { overflow: hidden !important; background: transparent !important; }
 .hq-card:active { cursor: grabbing; }
 .hq-card:hover { filter: brightness(1.1); }
 .hq-card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.hq-card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-base); line-height: var(--lh-snug); overflow-wrap: break-word; margin-bottom: var(--space-0-5); }
+.hq-card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-snug); overflow-wrap: break-word; margin-bottom: var(--space-0-5); }
 .hq-card-meta { font-size: var(--fs-2xs); opacity: 0.5; margin-top: var(--space-1); display: flex; justify-content: space-between; gap: var(--space-1-5); }
 
 .hq-card-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-1-5); line-height: var(--lh-normal); overflow-wrap: break-word;
@@ -83,7 +83,7 @@ body { overflow: hidden !important; background: transparent !important; }
 .hq-unschedule {
   position: fixed; bottom: 0; left: 0; right: 0; height: 58px; z-index: 25;
   display: flex; align-items: center; justify-content: center;
-  font-family: monospace; font-size: var(--fs-xs); letter-spacing: var(--tracking-widest); text-transform: uppercase;
+  font-family: monospace; font-size: var(--fs-sm); letter-spacing: var(--tracking-widest); text-transform: uppercase;
   color: hsl(var(--orange-glow-hsl) / 0); border-top: 1px solid hsl(var(--orange-glow-hsl) / 0);
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   pointer-events: none;
@@ -103,7 +103,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 .hq-toast {
   position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.9); border: 1px solid hsl(var(--orange-hsl) / 0.45);
-  color: hsl(var(--orange-hsl) / 1); font-family: monospace; font-size: var(--fs-base);
+  color: hsl(var(--orange-hsl) / 1); font-family: monospace; font-size: var(--fs-sm);
   padding: var(--space-2-5) var(--space-7); z-index: var(--z-overlay); pointer-events: none;
   opacity: 0; transition: opacity 0.3s;
 }
@@ -119,14 +119,14 @@ body.hq-dragging .hq-unschedule.drag-over {
 .dir-block {
   position: absolute; left: 3px; right: 3px; box-sizing: border-box;
   border-radius: var(--radius-2); padding: var(--space-2) var(--space-2-5) var(--space-4);
-  cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-medium);
+  cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-normal);
   border: 1px solid transparent; overflow: hidden; display: flex; flex-direction: column;
   z-index: 3;
 }
 .dir-block:active { cursor: grabbing; }
 .dir-block.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.dir-block-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-xs); line-height: var(--lh-tight); margin-bottom: var(--space-0-5); overflow-wrap: break-word; }
-.dir-block-meta { font-size: var(--fs-micro); opacity: 0.45; margin-top: var(--space-0-5); display: flex; gap: var(--space-2-5); }
+.dir-block-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-tight); margin-bottom: var(--space-0-5); overflow-wrap: break-word; }
+.dir-block-meta { font-size: var(--fs-2xs); opacity: 0.45; margin-top: var(--space-0-5); display: flex; gap: var(--space-2-5); }
 .dir-block-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-1-5); line-height: var(--lh-snug); flex: 1; overflow: hidden; }
 
 /* resize grip: bottom-right corner of the card, same size on blocks + sub-steps */
@@ -142,7 +142,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 
   /* large as the fixed-width gutter allows; right-aligned so growing the font
      fills the gutter leftward and never shifts the track/spine */
-  font-size: var(--fs-lg); white-space: nowrap; font-family: var(--font-pixel);
+  font-size: var(--fs-xl); white-space: nowrap; font-family: var(--font-pixel);
   color: hsl(var(--gray-hsl) / 0.6);
 }
 .dir-tl-track { flex: 1; position: relative; background: transparent; }
@@ -175,7 +175,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 }
 
 /* faint placeholder showing where a dragged block will land (Sortable-style) */
-.hq-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.8); border-radius: var(--radius-2); box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-mono); font-size: var(--fs-xs); }
+.hq-drop-preview { opacity: 0.5; border: 1px dashed hsl(var(--green-hsl) / 0.8); border-radius: var(--radius-2); box-sizing: border-box; pointer-events: none; color: hsl(var(--green-hsl) / 1); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-mono); font-size: var(--fs-sm); }
 .hq-drop-preview.today { position: absolute; left: 3px; right: 3px; background: hsl(var(--green-hsl) / 0.12); padding: var(--space-1-5) var(--space-2-5); }
 
 /* a today card with a breakdown: thin vertical "spine" (the master, title set

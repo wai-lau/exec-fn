@@ -142,23 +142,14 @@
   --font-bit:    'BitLight', monospace;                  /* nightfall-adjacent */
   --font-ui:     system-ui, sans-serif;                  /* recruiter light page */
 
-  /* ── Type: size (rem) ────────────────────────────────────────────────── */
-  --fs-micro: 0.5rem;
-  --fs-2xs:   0.6rem;
-  --fs-xs:    0.68rem;
+  /* ── Type: size (rem) — 4 steps; fluid clamp() sizes stay bespoke ─────── */
+  --fs-2xs:   0.6rem;    /* meta / dim labels */
   --fs-sm:    0.72rem;   /* the body default (live count on /color) */
-  --fs-base:  0.78rem;
-  --fs-md:    0.85rem;
-  --fs-lg:    0.9rem;
-  --fs-xl:    1rem;
-  --fs-2xl:   1.3rem;
-  --fs-3xl:   1.7rem;
-  --fs-4xl:   2.05rem;
+  --fs-xl:    1rem;      /* emphasis / titles */
+  --fs-3xl:   1.7rem;    /* display */
 
-  /* ── Type: weight ────────────────────────────────────────────────────── */
+  /* ── Type: weight — normal + bold only ───────────────────────────────── */
   --fw-normal:   400;
-  --fw-medium:   500;
-  --fw-semibold: 600;
   --fw-bold:     700;
 
   /* ── Type: line-height ───────────────────────────────────────────────── */
@@ -187,12 +178,6 @@
   --dur:       0.15s;   /* the default */
   --dur-med:   0.2s;
 
-  /* ── Motion: easing ──────────────────────────────────────────────────── */
-  --ease:        ease;
-  --ease-out:    ease-out;
-  --ease-in-out: ease-in-out;
-  --ease-bounce: cubic-bezier(0.22, 1, 0.36, 1);
-
   /* ── Blur ────────────────────────────────────────────────────────────── */
   --blur-sm: 6px;
   --blur:    14px;
@@ -207,22 +192,22 @@
   --z-top:     9999;
   --z-max:     10000;
 
-  /* ── Document theme — the "dark recruiter" reading-page palette: a centred
-        card on near-black green, terminal-green ink, ruled headers, tag chips.
-        Shared by the reading/dashboard pages (/debug, /emet, /color, /mtg,
-        /tarot chat, /security). Mirrors /recruiter's html.cv-dark --cv-* set
-        (recruiter = source of truth); brand hues only, the same deliberate
-        light/dark departure the palette otherwise doesn't cover. ─────────── */
-  --doc-bg:        hsl(135deg 18% 5%);
-  --doc-surface:   hsl(135deg 22% 7%);
-  --doc-ink:       hsl(135deg 72% 72%);
-  --doc-ink-soft:  hsl(135deg 24% 52%);
-  --doc-green:     hsl(135deg 95% 62%);
-  --doc-green-dim: hsl(135deg 70% 52%);
-  --doc-cyan:      hsl(188deg 90% 62%);
-  --doc-pink:      hsl(340deg 85% 68%);
-  --doc-rule:      hsl(135deg 30% 16%);
-  --doc-chip:      hsl(135deg 40% 11%);
+  /* ── Document theme — the reading-page skin (card + ruled headers + chips)
+        for /debug, /emet, /color, /mtg, /tarot chat, /security. Built ENTIRELY
+        from the palette tokens above (no new colours): the app's phosphor green
+        on black, plus cyan links + pink for destructive. Surfaces are green
+        mixed into the black ground; every alpha is on the snap scale and within
+        green's 4-step budget (0.12/0.45/0.8/1). ──────────────────────────── */
+  --doc-bg:        color-mix(in srgb, hsl(var(--green-hsl)) 5%, hsl(var(--bg-hsl)));
+  --doc-surface:   color-mix(in srgb, hsl(var(--green-hsl)) 9%, hsl(var(--bg-hsl)));
+  --doc-ink:       hsl(var(--green-hsl) / 0.8);
+  --doc-ink-soft:  hsl(var(--green-hsl) / 0.45);
+  --doc-green:     hsl(var(--green-hsl));
+  --doc-green-dim: hsl(var(--green-hsl) / 0.45);
+  --doc-cyan:      hsl(var(--cyan-hsl) / 0.8);
+  --doc-pink:      hsl(var(--pink-hsl));
+  --doc-rule:      hsl(var(--green-hsl) / 0.12);
+  --doc-chip:      hsl(var(--green-hsl) / 0.12);
 }
 
 /* Document-theme components — apply these classes on a reading page's wrapper /
@@ -238,13 +223,13 @@
   background: var(--doc-surface);
   border: 1px solid var(--doc-rule);
   border-radius: var(--radius-4);
-  box-shadow: 0 0 0 1px hsl(135deg 100% 50% / 0.06), 0 0 50px hsl(135deg 100% 50% / 0.05);
-  text-shadow: 0 0 2px hsl(135deg 100% 50% / 0.12);
+  box-shadow: 0 0 0 1px hsl(var(--green-hsl) / 0.12), 0 0 50px hsl(var(--green-hsl) / 0.12);
+  text-shadow: 0 0 2px hsl(var(--green-hsl) / 0.12);
   padding: 52px clamp(28px, 6vw, 60px) 44px;
   color: var(--doc-ink);
   font-family: var(--font-mono);
-  font-weight: var(--fw-medium);
-  font-size: var(--fs-lg);
+  font-weight: var(--fw-normal);
+  font-size: var(--fs-xl);
   line-height: var(--lh-relaxed);
 }
 .doc-card a { color: var(--doc-cyan); text-decoration: none; }
@@ -266,7 +251,7 @@
   display: inline-block;
   background: var(--doc-chip);
   color: var(--doc-green);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   padding: var(--space-px) var(--space-2);
   border-radius: var(--radius-2);
   white-space: nowrap;
@@ -314,7 +299,7 @@ html {
 
 body {
   font-family: var(--font-mono);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-normal);
   font-style: normal;
   display: block;
   height: auto;
@@ -374,7 +359,7 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
 
 .exec-nav .nav-label {
   font-family: var(--font-pixel);
-  font-size: var(--fs-micro);
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-x);
 }
@@ -403,7 +388,7 @@ html.standalone .exec-nav a {
   .exec-nav { padding: var(--space-4) 0; }
   .exec-nav a { gap: var(--space-1); max-width: 86px; }
   .exec-nav a img { width: 24px !important; height: 24px !important; }
-  .exec-nav .nav-label { font-size: var(--fs-micro); }
+  .exec-nav .nav-label { font-size: var(--fs-2xs); }
   html.standalone .exec-nav { row-gap: var(--space-3); }
 }
 
@@ -417,13 +402,13 @@ html.standalone .exec-nav a {
      content clears the nav instead of sliding behind it */
   margin: 64px auto calc(var(--nav-h, 80px) + 24px);
   font-family: var(--font-mono);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-normal);
   color: hsl(var(--green-hsl));
 }
 
 #content h2 {
   font-family: var(--font-pixel);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   text-transform: uppercase;
   letter-spacing: var(--tracking-caps);
   opacity: 0.65;
@@ -433,7 +418,7 @@ html.standalone .exec-nav a {
 }
 
 #content .item {
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   padding: var(--space-1-5) 0;
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
 }
@@ -443,8 +428,8 @@ html.standalone .exec-nav a {
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   color: hsl(var(--green-hsl) / 0.8);
   font-family: var(--font-mono);
-  font-weight: var(--fw-medium);
-  font-size: var(--fs-base);
+  font-weight: var(--fw-normal);
+  font-size: var(--fs-sm);
   padding: var(--space-1-5) var(--space-4);
   cursor: pointer;
   transition: all 0.2s;
@@ -452,4 +437,4 @@ html.standalone .exec-nav a {
 
 #content button:hover { border-color: hsl(var(--green-hsl)); color: hsl(var(--green-hsl)); }
 #content button:disabled { opacity: 0.35; cursor: default; }
-#content .ts { font-size: var(--fs-xs); opacity: 0.5; margin-top: var(--space-6); }
+#content .ts { font-size: var(--fs-sm); opacity: 0.5; margin-top: var(--space-6); }

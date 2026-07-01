@@ -45,15 +45,17 @@ body { overflow-y: auto !important; background: var(--doc-bg); }
 /* ── Scale section — the non-colour design tokens, one family per block, each a
    wrapping grid of token cards (visual on top, --name / value / ×count below).
    The visual renders the token at its real value: bars sized to spacing, text
-   at the type token, a fill that animates at the duration/easing. ──────────── */
+   at the type token, a fill that animates at the duration. ──────────── */
 .sc-section { display: flex; flex-direction: column; gap: var(--space-8); margin-top: var(--space-10); }
-.sc-h1 { font-size: var(--fs-md); }
+.sc-h1 { font-size: var(--fs-sm); }
 .sc-note { font-size: var(--fs-2xs); color: var(--doc-ink-soft); line-height: var(--lh-snug); margin-top: calc(-1 * var(--space-4)); }
 .sc-note code { color: var(--doc-cyan); font-family: var(--font-mono); }
 .sc-board { display: flex; flex-direction: column; gap: var(--space-7); }
 .sc-group { display: flex; flex-direction: column; gap: var(--space-3); }
 .sc-headn { color: var(--doc-ink-soft); font-weight: var(--fw-normal); text-transform: none; letter-spacing: var(--tracking-wide); }
-.sc-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+.sc-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+
+@media (width <= 640px) { .sc-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .sc-card {
   display: flex; flex-direction: column; gap: var(--space-2);
@@ -67,7 +69,7 @@ body { overflow-y: auto !important; background: var(--doc-bg); }
 .sc-sub { display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--fs-2xs); }
 .sc-val { color: var(--doc-green-dim); font-family: var(--font-mono); }
 .sc-cnt { color: var(--doc-ink-soft); }
-.sc-flag { font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
+.sc-flag { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
 .sc-dead { color: var(--doc-pink); }
 .sc-rare { color: var(--doc-green-dim); }
 
@@ -79,12 +81,11 @@ body { overflow-y: auto !important; background: var(--doc-bg); }
 .sc-caps { text-transform: uppercase; }
 .sc-blur { color: var(--doc-green); font-weight: var(--fw-bold); }
 .sc-para { display: block; font-size: var(--fs-2xs); color: var(--doc-ink-soft); }
-.sc-znum { font-family: var(--font-mono); font-size: var(--fs-lg); color: var(--doc-green); }
 .sc-sw { display: block; width: 100%; height: 26px; border-radius: var(--radius-1); overflow: hidden; background: hsl(0deg 0% 0% / 0.3); }
 .sc-fill { display: block; width: 100%; height: 100%; }
 
-/* duration / easing — a track whose fill sweeps on card hover, at the token's
-   own speed / curve so the timing is felt, not just labelled */
+/* duration — a track whose fill sweeps on card hover at the token's own speed,
+   so the timing is felt, not just labelled */
 .sc-dur { display: block; width: 100%; height: 8px; border-radius: var(--radius-pill); background: var(--doc-rule); overflow: hidden; }
 .sc-durbar { display: block; width: 22%; height: 100%; background: var(--doc-green); border-radius: var(--radius-pill); transition-property: width; }
 .sc-card:hover .sc-durbar { width: 100%; }

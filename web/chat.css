@@ -3,7 +3,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 #terminal {
   position:fixed; inset:0 0 104px;
   overflow-y:auto; padding: var(--space-6) var(--space-7);
-  font-family: var(--font-mono); font-weight: var(--fw-medium); font-size: var(--fs-md); line-height: var(--lh-normal);
+  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm); line-height: var(--lh-normal);
   color:hsl(var(--green-hsl) / 1);
   display:flex; flex-direction:column;
 }
@@ -65,7 +65,7 @@ html.kb-open #terminal { transition: bottom 0.13s ease-out, inset 0.13s ease-out
 #input-line:focus-within { border-bottom-color:hsl(var(--green-hsl) / 0.12); }
 
 #input-prompt {
-  color:hsl(var(--green-hsl) / 0.45); font-family: var(--font-mono); font-weight: var(--fw-medium); font-size: var(--fs-lg);
+  color:hsl(var(--green-hsl) / 0.45); font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-xl);
   white-space:nowrap; user-select:none; padding-right: var(--space-2-5);
 }
 
@@ -78,15 +78,15 @@ html.kb-open #terminal { transition: bottom 0.13s ease-out, inset 0.13s ease-out
 #msg-input {
   width:100%; background:none; border:none;
   color:rgba(255,255,255,0.75); caret-color:hsl(var(--green-hsl) / 1);
-  font-family: var(--font-mono); font-weight: var(--fw-medium); font-size: var(--fs-md);
+  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm);
   padding:0; outline:none; position:relative;
   line-height: var(--lh-normal); min-height:1.45em; overflow-wrap:anywhere;
 }
 #msg-input:empty::before { content:attr(data-placeholder); color:hsl(var(--green-hsl) / 0.12); }
 
 .exec-send {
-  background:none; border:none; color:hsl(var(--green-hsl) / 0.12); font-family: var(--font-mono); font-weight: var(--fw-medium);
-  font-size: var(--fs-base); padding: var(--space-2-5) 0 var(--space-2-5) var(--space-2); cursor:pointer; transition:color 0.2s;
+  background:none; border:none; color:hsl(var(--green-hsl) / 0.12); font-family: var(--font-mono); font-weight: var(--fw-normal);
+  font-size: var(--fs-sm); padding: var(--space-2-5) 0 var(--space-2-5) var(--space-2); cursor:pointer; transition:color 0.2s;
 }
 .exec-send:hover { color:hsl(var(--green-hsl) / 0.8); }
 .exec-send:disabled { opacity:0.12; cursor:default; }

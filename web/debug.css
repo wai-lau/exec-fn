@@ -8,14 +8,14 @@ body { overflow-y: auto !important; background: var(--doc-bg); }
 .dbg-section { margin-bottom: var(--space-10); }
 .dbg-section:last-child { margin-bottom: 0; }
 
-.dbg-empty { color: var(--doc-ink-soft); font-size: var(--fs-md); }
+.dbg-empty { color: var(--doc-ink-soft); font-size: var(--fs-sm); }
 
 a, .dbg-mtg-assistant a, #dbg-moltbook a { color: var(--doc-cyan); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ── profile notes ──────────────────────────────────────────────────────── */
 .dbg-note {
-  font-size: var(--fs-md); padding: var(--space-2-5) 0;
+  font-size: var(--fs-sm); padding: var(--space-2-5) 0;
   border-bottom: 1px solid var(--doc-rule);
   display: flex; gap: var(--space-5); align-items: baseline;
   line-height: var(--lh-relaxed);
@@ -33,7 +33,7 @@ a:hover { text-decoration: underline; }
 
 .dbg-note-edit {
   flex: 1; background: var(--doc-bg); border: 1px solid var(--doc-rule);
-  color: var(--doc-ink); font-family: inherit; font-size: var(--fs-md);
+  color: var(--doc-ink); font-family: inherit; font-size: var(--fs-sm);
   padding: var(--space-1-5) var(--space-2); resize: vertical; min-height: 2em;
   border-radius: var(--radius-2); outline: none;
 }
@@ -42,7 +42,7 @@ a:hover { text-decoration: underline; }
 
 .dbg-note-save, .dbg-note-del {
   background: none; border: none; cursor: pointer; padding: 0 var(--space-1);
-  font-size: var(--fs-md); line-height: var(--lh-none); transition: color var(--dur);
+  font-size: var(--fs-sm); line-height: var(--lh-none); transition: color var(--dur);
 }
 .dbg-note-save { color: var(--doc-ink-soft); }
 .dbg-note-save:hover { color: var(--doc-green); }
@@ -63,7 +63,7 @@ a:hover { text-decoration: underline; }
 .dbg-log-entries.open { display: block; }
 
 .dbg-entry {
-  font-size: var(--fs-md); padding: var(--space-2) 0 var(--space-2) var(--space-7);
+  font-size: var(--fs-sm); padding: var(--space-2) 0 var(--space-2) var(--space-7);
   position: relative;
   color: var(--doc-ink); line-height: var(--lh-relaxed);
   display: flex; gap: var(--space-3);
@@ -79,7 +79,7 @@ a:hover { text-decoration: underline; }
 
 /* ── mtg log ────────────────────────────────────────────────────────────── */
 .dbg-mtg-entry {
-  font-size: var(--fs-md); padding: var(--space-3) 0;
+  font-size: var(--fs-sm); padding: var(--space-3) 0;
   border-bottom: 1px solid var(--doc-rule); line-height: var(--lh-relaxed);
 }
 .dbg-mtg-ts { font-size: var(--fs-sm); color: var(--doc-ink-soft); margin-bottom: var(--space-1-5); }
@@ -90,7 +90,7 @@ a:hover { text-decoration: underline; }
 
 /* ── vain-empress entries ───────────────────────────────────────────────── */
 .dbg-ve-entry {
-  font-size: var(--fs-md); padding: var(--space-2-5) 0;
+  font-size: var(--fs-sm); padding: var(--space-2-5) 0;
   border-bottom: 1px solid var(--doc-rule); cursor: pointer; line-height: var(--lh-relaxed);
 }
 .dbg-ve-entry:hover .dbg-ve-summary { color: var(--doc-green); }
@@ -98,7 +98,7 @@ a:hover { text-decoration: underline; }
 
 /* type tag = recruiter chip */
 .dbg-ve-type {
-  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-x);
+  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-x);
   padding: var(--space-px) var(--space-2); border-radius: var(--radius-2);
   background: var(--doc-chip); flex-shrink: 0;
 }
@@ -121,14 +121,14 @@ a:hover { text-decoration: underline; }
 .dbg-tarot-cards { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2-5) 0; }
 
 .dbg-tarot-card {
-  font-size: var(--fs-xs); color: var(--doc-green);
+  font-size: var(--fs-sm); color: var(--doc-green);
   background: var(--doc-chip); border-radius: var(--radius-2);
   padding: var(--space-0-5) var(--space-2);
 }
 .dbg-tarot-card .pos { color: var(--doc-ink-soft); }
 .dbg-tarot-card .rev { color: var(--doc-pink); }
 .dbg-tarot-sig { font-size: var(--fs-sm); color: var(--doc-ink-soft); margin: var(--space-1-5) 0; }
-.dbg-tarot-msg { font-size: var(--fs-md); padding: var(--space-2) 0; border-bottom: 1px solid var(--doc-rule); line-height: var(--lh-relaxed); }
+.dbg-tarot-msg { font-size: var(--fs-sm); padding: var(--space-2) 0; border-bottom: 1px solid var(--doc-rule); line-height: var(--lh-relaxed); }
 .dbg-tarot-user { color: var(--doc-green); white-space: pre-wrap; }
 .dbg-tarot-user::before { content: "$ "; color: var(--doc-green-dim); }
 .dbg-tarot-asst { color: var(--doc-ink); white-space: pre-wrap; }
@@ -142,8 +142,8 @@ a:hover { text-decoration: underline; }
   padding-bottom: var(--space-1-5); margin: var(--space-6) 0 var(--space-2-5);
   font-weight: var(--fw-bold);
 }
-#dbg-moltbook p { font-size: var(--fs-md); color: var(--doc-ink); margin: var(--space-2) 0; line-height: var(--lh-relaxed); }
-#dbg-moltbook ul, #dbg-moltbook ol { font-size: var(--fs-md); color: var(--doc-ink); margin: var(--space-1-5) 0 var(--space-1-5) var(--space-6); padding: 0; }
+#dbg-moltbook p { font-size: var(--fs-sm); color: var(--doc-ink); margin: var(--space-2) 0; line-height: var(--lh-relaxed); }
+#dbg-moltbook ul, #dbg-moltbook ol { font-size: var(--fs-sm); color: var(--doc-ink); margin: var(--space-1-5) 0 var(--space-1-5) var(--space-6); padding: 0; }
 #dbg-moltbook li { margin: var(--space-1) 0; }
 #dbg-moltbook strong { color: var(--doc-green); font-weight: var(--fw-bold); }
 #dbg-moltbook em { color: var(--doc-ink-soft); font-style: italic; }

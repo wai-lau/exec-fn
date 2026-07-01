@@ -81,8 +81,8 @@ function groupHtml(col) {
     `<td class="clr-usecell">${siteListHtml(sm)}</td>`).join('')}</tr>`;
   return `<div class="clr-group">
     <div class="clr-title">${esc(col.name)}</div>
-    <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}${useRow}</table>
     ${col.use ? `<div class="clr-guse">${esc(col.use)}</div>` : ''}
+    <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}${useRow}</table>
   </div>`;
 }
 
@@ -242,9 +242,7 @@ function visLh(t) { return `<span class="sc-para" style="line-height:${esc(t.val
 function visTrack(t) { return `<span class="sc-txt sc-caps" style="letter-spacing:${esc(t.value)}">MATRIX</span>`; }
 function visMotion(t, extra) { return `<i class="sc-dur"><i class="sc-durbar" style="${extra}transition-duration:${esc(t.value === '' ? '0.8s' : t.value)}"></i></i>`; }
 function visDur(t) { return visMotion(t, ''); }
-function visEase(t) { return visMotion({ value: '' }, `transition-timing-function:${esc(t.value)};`); }
 function visBlur(t) { return `<span class="sc-txt sc-blur" style="filter:blur(${esc(t.value)})">GRID</span>`; }
-function visZ(t) { return `<span class="sc-znum">${esc(t.value)}</span>`; }
 function visDoc(t) { return `<i class="sc-sw"><i class="sc-fill" style="background:${esc(t.value)}"></i></i>`; }
 
 // prefix -> {title, unit, num (sort by numeric value), vis (row visual)}
@@ -258,9 +256,7 @@ const SCALE_FAMS = [
   { title: 'Line height', pfx: 'lh-', unit: 'steps', num: true, vis: visLh },
   { title: 'Tracking', pfx: 'tracking-', unit: 'steps', num: true, vis: visTrack },
   { title: 'Duration', pfx: 'dur', unit: 'speeds', num: true, vis: visDur },
-  { title: 'Easing', pfx: 'ease', unit: 'curves', num: false, vis: visEase },
   { title: 'Blur', pfx: 'blur', unit: 'steps', num: true, vis: visBlur },
-  { title: 'Z index', pfx: 'z-', unit: 'layers', num: true, vis: visZ },
   { title: 'Document theme', pfx: 'doc-', unit: 'colors', num: false, vis: visDoc },
 ];
 const SCALE_PFX = SCALE_FAMS.map(f => f.pfx);
