@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=35">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=36">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -48,7 +48,7 @@ _APPLE_WEBAPP_META = (
 _NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "color", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
 _NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "color": "/color", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
 
-_GUEST_NAV_LINKS = ["nightfall", "mtg", "tarot", "hosaka", "color", "recruiter"]
+_GUEST_NAV_LINKS = ["security", "nightfall", "mtg", "tarot", "hosaka", "color", "recruiter"]
 
 _NAV_ICONS = {
     "rd":          '<img src="/fiddle.png" alt="rd" style="width:20px;height:20px;image-rendering:pixelated;">',
