@@ -50,6 +50,15 @@ def _recent_entries(batch_start_ts: float) -> list:
 
 def _entry_line(e: dict) -> str:
     src = _SRC_LABELS.get(e.get("source", ""), e.get("source", ""))
+    if e["action"] == "revived":
+        # A recurring card was completed and the system auto-cloned its next
+        # occurrence. Spell that out so the comment treats it as "this recurs,
+        # so it's back on the list for next time" — NOT Wai un-finishing it or
+        # something rising from the dead.
+        nd = (e.get("next_due") or "")[:10]
+        return (f"- [{src}] '{e['title']}' is a recurring task; the system "
+                f"automatically queued its next occurrence"
+                + (f" (due {nd})" if nd else ""))
     line = f"- [{src}] {e['action']} '{e['title']}'"
     if e["action"] == "moved":
         line += f" ({e.get('from_col','?')} -> {e.get('to_col','?')})"
@@ -135,6 +144,7 @@ async def generate_encouragement(batch_start_ts: float) -> str:
         "- Speak to the *meaning*: finishing something, committing to tackle something today, letting something go, making reading progress, chipping a sub-step off a larger task (momentum, not the full finish).\n"
         "- Comment on ALL significant actions — group related ones into a sentence, give separate sentences for unrelated ones.\n"
         "- A real win earns a grudging, backhanded acknowledgment; a dropped task earns a dry, clinical note. Specific > generic. Stay deadpan; the help underneath is real.\n"
+        "- A 'recurring task; the system automatically queued its next occurrence' line is NOT Wai undoing or un-finishing work — it's a repeating obligation that cycles back on its own. Note that this round is done and it'll come around again next time; never frame the requeue as resurrection, undeath, a clerical error, or something clawing its way back.\n"
         "- Do not ask questions. Do not suggest next steps.\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}\n\n"
         f"CURRENTLY SELECTED TASKS (hq):\n{hq_text}\n\n"
