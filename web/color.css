@@ -1,35 +1,43 @@
-body { overflow-y: auto !important; }
+/* /color — the palette moodboard on the shared "dark recruiter" document theme.
+   Chrome (card, titles, text) uses the --doc-* tokens; the SWATCHES stay
+   true-colour (the whole point of the page) and the wrap stays lifted above the
+   CRT scanline blend so swatch colour renders un-tinted. */
+body { overflow-y: auto !important; background: var(--doc-bg); }
 
 /* nav over the palette + scanlines (matches tarot/mtg) */
 .exec-nav { z-index: 9995; }
 
-/* raise the palette above the cyber scanlines (z 9990) so they sit behind */
-.clr-wrap { position: relative; z-index: 9991; width: min(980px, 94vw); margin: var(--space-8) auto var(--space-10); font-family: var(--font-mono); color: hsl(var(--green-hsl));
-
-  /* phosphor glow — same as the tarot reader skin (chat-reader.css) */
-  text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
+/* the doc card at the wider board width, above the scanlines (z 9991) so the
+   swatches read true — overrides .doc-card's narrower width + z-raised */
+.clr-wrap { width: min(980px, 94vw); z-index: 9991; }
 
 /* one little table per color (hue-ordered, wrapping): title on top, then a
-   table whose columns are the color's variations (card sizes, or alpha steps
-   for non-card colors) and rows are swatch / opacity / count / effects, then
-   the description beneath. */
+   table whose columns are the color's variations and rows are swatch / opacity
+   / count / effects, then the description beneath. */
 .clr-board { display: flex; flex-direction: column; gap: var(--space-10); }
 .clr-group { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
-.clr-title { font-size: var(--fs-md); color: hsl(var(--green-hsl)); }
+
+/* color name rendered as a doc section header */
+.clr-title {
+  font-size: var(--fs-sm); font-weight: var(--fw-bold); text-transform: uppercase;
+  letter-spacing: var(--tracking-caps); color: var(--doc-green);
+  padding-bottom: var(--space-1-5); border-bottom: 1px solid var(--doc-rule);
+}
+
 .clr-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs-2xs); }
-.clr-tbl th { font-weight: var(--fw-normal); opacity: 0.55; padding: var(--space-0-5) var(--space-2); text-align: center; }
-.clr-tbl td { padding: var(--space-0-5) var(--space-2); text-align: center; vertical-align: middle; }
+.clr-tbl th { font-weight: var(--fw-normal); color: var(--doc-ink-soft); padding: var(--space-0-5) var(--space-2); text-align: center; }
+.clr-tbl td { padding: var(--space-0-5) var(--space-2); text-align: center; vertical-align: middle; color: var(--doc-ink); }
 
-.clr-sw { width: 100%; height: 16px; border-radius: var(--radius-1); overflow: hidden;
-
-  /* faint dark field so translucent fills read against it */
-  background: hsl(0deg 0% 0% / 0.3); }
+/* swatches — TRUE COLOUR, untouched: a faint dark field so translucent fills
+   read against it, then the real palette colour painted inline by color.js */
+.clr-sw { width: 100%; height: 16px; border-radius: var(--radius-1); overflow: hidden; background: hsl(0deg 0% 0% / 0.3); }
 .clr-fill { width: 100%; height: 100%; }
-.clr-cnt { color: hsl(var(--green-hsl) / 0.45); }
 
-/* effects label matches the opacity cells (default green td text) */
+.clr-cnt { color: var(--doc-ink-soft); }
+
+/* effects/usage cells */
 .clr-tbl td.clr-usecell { vertical-align: top; text-align: left; padding-top: var(--space-2); }
-.clr-uselist { margin: 0; padding-left: var(--space-5); font-size: var(--fs-2xs); opacity: 0.78; list-style: disc; }
+.clr-uselist { margin: 0; padding-left: var(--space-5); font-size: var(--fs-2xs); color: var(--doc-ink-soft); list-style: disc; }
 .clr-uselist li { line-height: var(--lh-snug); overflow-wrap: anywhere; }
-.clr-guse { font-size: var(--fs-2xs); opacity: 0.55; line-height: var(--lh-snug); overflow-wrap: anywhere; white-space: normal; }
-.clr-empty { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); padding: var(--space-2-5) 0; }
+.clr-guse { font-size: var(--fs-2xs); color: var(--doc-ink-soft); line-height: var(--lh-snug); overflow-wrap: anywhere; white-space: normal; }
+.clr-empty { font-size: var(--fs-sm); color: var(--doc-ink-soft); padding: var(--space-2-5) 0; }
