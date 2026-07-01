@@ -17,7 +17,7 @@ body { background: var(--doc-bg); }
 
 .emet-sec { display: flex; flex-direction: column; gap: var(--space-2-5); }
 .emet-sec .doc-h2 { margin: 0; }   /* the flex gap owns section spacing */
-.emet-hint { margin: 0; font-size: var(--fs-md); line-height: var(--lh-snug); color: var(--doc-ink-soft); }
+.emet-hint { margin: 0; font-size: var(--fs-sm); line-height: var(--lh-snug); color: var(--doc-ink-soft); }
 
 /* ── forms ──────────────────────────────────────────────────────────────── */
 .emet-form { display: flex; gap: var(--space-3); align-items: stretch; flex-wrap: wrap; }
@@ -50,10 +50,10 @@ body { background: var(--doc-bg); }
 }
 .emet-node-head { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
 .emet-node-label { font-weight: var(--fw-bold); color: var(--doc-green); }
-.emet-node-id { font-size: var(--fs-xs); color: var(--doc-ink-soft); }
+.emet-node-id { font-size: var(--fs-sm); color: var(--doc-ink-soft); }
 
 .emet-obs { list-style: none; margin: var(--space-2-5) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.emet-obs li { display: flex; gap: var(--space-2-5); align-items: baseline; font-size: var(--fs-md); }
+.emet-obs li { display: flex; gap: var(--space-2-5); align-items: baseline; font-size: var(--fs-sm); }
 
 .emet-priv {
   flex: none; font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide);
@@ -64,11 +64,11 @@ body { background: var(--doc-bg); }
 .emet-obs-text { color: var(--doc-ink); }
 
 .emet-matched { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: var(--doc-ink-soft); }
-.emet-empty { font-size: var(--fs-md); color: var(--doc-ink-soft); font-style: italic; }
-.emet-capped { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: var(--doc-pink); }
+.emet-empty { font-size: var(--fs-sm); color: var(--doc-ink-soft); font-style: italic; }
+.emet-capped { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: var(--doc-pink); }
 
 .emet-offline {
-  font-size: var(--fs-md); color: var(--doc-pink);
+  font-size: var(--fs-sm); color: var(--doc-pink);
   border: 1px solid var(--doc-rule); border-radius: var(--radius-3);
   padding: var(--space-2-5) var(--space-4);
 }
@@ -77,7 +77,7 @@ body { background: var(--doc-bg); }
   white-space: pre-wrap; line-height: var(--lh-relaxed); color: var(--doc-ink);
   border-left: 2px solid var(--doc-green-dim); padding-left: var(--space-4);
 }
-.emet-note { font-size: var(--fs-md); color: var(--doc-ink-soft); }
+.emet-note { font-size: var(--fs-sm); color: var(--doc-ink-soft); }
 
 /* status chips (recruiter chip idiom) */
 .emet-badge {

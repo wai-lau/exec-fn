@@ -6,7 +6,7 @@
    its neon reader mood (the shared chat-reader.css is untouched; these
    overrides are mtg-only, and mtg.css loads last). Type is already on the
    scale tokens. */
-.msg { max-width:none; text-shadow: 0 0 4px hsl(135deg 72% 72% / 0.25), 0 0 10px hsl(135deg 72% 72% / 0.12); }
+.msg { max-width:none; text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12); }
 body { background: var(--doc-bg); }
 .msg.assistant { color: var(--doc-ink) !important; }
 .msg.assistant hr { border-top-color: var(--doc-rule); }
@@ -51,7 +51,7 @@ body { background: var(--doc-bg); }
   padding: var(--space-3) var(--space-4); border-radius: var(--radius-4);
   background:rgba(10,10,10,0.95); border:1px solid hsl(var(--cyan-hsl) / 0.45);
   color:hsl(var(--green-hsl) / 1);
-  font-family: var(--font-mono); font-size: var(--fs-base); line-height: var(--lh-normal);
+  font-family: var(--font-mono); font-size: var(--fs-sm); line-height: var(--lh-normal);
   white-space:pre-wrap; overflow-wrap:anywhere;
   filter:drop-shadow(0 4px 18px rgba(0,0,0,0.7));
 }

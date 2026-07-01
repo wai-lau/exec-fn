@@ -141,7 +141,7 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
   color:hsl(var(--green-hsl) / 0.45);
-  font-family: var(--font-mono); font-size: var(--fs-md);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
   pointer-events:none;
 }
 
@@ -207,7 +207,7 @@ body.opening-pending .msg.assistant { display:none; }
    on, audio not yet unlocked) -- removed once the turn fires */
 .begin-hint {
   color:hsl(var(--green-hsl) / 0.45); font-style:italic;
-  font-size: var(--fs-base); text-align:center; margin:auto;
+  font-size: var(--fs-sm); text-align:center; margin:auto;
   animation:begin-hint-pulse 1.8s ease-in-out infinite;
 }
 
@@ -241,7 +241,7 @@ body.opening-pending .msg.assistant { display:none; }
   transform:translateX(-50%);
   white-space:nowrap;
   color:hsl(var(--green-hsl) / 0.45);
-  font-family: var(--font-mono); font-size: var(--fs-xs);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
   text-align:center; line-height: var(--lh-tight);
   pointer-events:none;
 }
@@ -253,7 +253,7 @@ body.opening-pending .msg.assistant { display:none; }
 /* phase/event readouts pinned to the spread edges */
 #phase-debug, #event-debug {
   position:absolute; left:0; right:0; z-index:5; text-align:center;
-  font-family: var(--font-mono); font-size: var(--fs-xs);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
   color:hsl(var(--green-hsl) / 0.45); letter-spacing: var(--tracking-wide);
   pointer-events:none; user-select:none;
 }
@@ -276,13 +276,13 @@ body.opening-pending .msg.assistant { display:none; }
 }
 
 #card-zoom .zoom-label {
-  font-family: var(--font-mono); font-size: var(--fs-md);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
   color:hsl(var(--green-hsl) / 0.8); text-align:center; line-height: var(--lh-snug);
   max-width:60vh;
 }
 
 #card-zoom .zoom-hint {
-  font-family: var(--font-mono); font-size: var(--fs-xs);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
   color:hsl(var(--green-hsl) / 0.12); letter-spacing: var(--tracking-wide);
 }
 
@@ -295,6 +295,6 @@ body.opening-pending .msg.assistant { display:none; }
    background keep tarot's neon phosphor mood — this is the reader turn only. */
 .msg.assistant {
   color: var(--doc-ink) !important;
-  text-shadow: 0 0 4px hsl(135deg 72% 72% / 0.25), 0 0 10px hsl(135deg 72% 72% / 0.12);
+  text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12);
 }
 .msg.assistant a { color: var(--doc-cyan) !important; }

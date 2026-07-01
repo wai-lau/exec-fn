@@ -31,7 +31,7 @@
   min-height: 2.5rem;
   resize: none; /* no manual resize -- it owns the leftover height */
   box-sizing: border-box;
-  font-size: var(--fs-md); /* a touch smaller than the rest of the UI */
+  font-size: var(--fs-sm); /* a touch smaller than the rest of the UI */
 }
 
 .tts select {
@@ -82,7 +82,7 @@
 
 .tts button {
   cursor: pointer;
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-bold);
   color: hsl(var(--bg-hsl));
   background: hsl(var(--green-hsl) / 0.8);
   border-color: hsl(var(--green-hsl));
@@ -134,12 +134,12 @@
 }
 
 .tts-kname {
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   color: hsl(var(--green-hsl) / 0.8);
 }
 
 .tts-kval {
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: hsl(var(--cyan-hsl) / 0.8);
@@ -147,7 +147,7 @@
 
 .tts-kdesc {
   grid-column: 1 / -1;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 0.45);
   margin-top: -0.1rem;
