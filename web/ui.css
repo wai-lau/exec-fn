@@ -1,4 +1,4 @@
-/* /color — the palette moodboard on the shared "dark recruiter" document theme.
+/* /UI — the palette + scale moodboard on the shared "dark recruiter" document theme.
    Chrome (card, titles, text) uses the .doc-card classes; the SWATCHES stay
    true-colour (the whole point of the page) and the wrap stays lifted above the
    CRT scanline blend so swatch colour renders un-tinted. */

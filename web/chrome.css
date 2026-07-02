@@ -144,7 +144,7 @@
 
   /* ── Type: size (rem) — 4 steps; fluid clamp() sizes stay bespoke ─────── */
   --fs-2xs:   0.6rem;    /* meta / dim labels */
-  --fs-sm:    0.72rem;   /* the body default (live count on /color) */
+  --fs-sm:    0.72rem;   /* the body default (live count on /UI) */
   --fs-xl:    1rem;      /* emphasis / titles */
   --fs-3xl:   1.7rem;    /* display */
 

@@ -86,7 +86,7 @@ function groupHtml(col) {
   </div>`;
 }
 
-// token -> alpha-string -> {site label: count}, from /api/color/usage
+// token -> alpha-string -> {site label: count}, from /api/ui/usage
 let SITES = {};
 
 // merge usage sites across every -hsl token that shares this color:
@@ -308,7 +308,7 @@ async function loadColors() {
   try {
     const [cssRes, usageRes] = await Promise.all([
       fetch('/chrome.css'),
-      fetch('/api/color/usage'),
+      fetch('/api/ui/usage'),
     ]);
     const css = await cssRes.text();
     const usage = usageRes.ok ? await usageRes.json() : { counts: {}, alphas: {} };

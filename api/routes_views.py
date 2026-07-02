@@ -57,8 +57,8 @@ _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=13">'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
-# (cyan) -> color 226° (blue) -> mtg 261° (purple) -> tarot 351° (pink).
-_LANDING_HUE_ORDER = ["recruiter", "hosaka", "graph", "nightfall", "color", "mtg", "tarot"]
+# (cyan) -> ui 226° (blue) -> mtg 261° (purple) -> tarot 351° (pink).
+_LANDING_HUE_ORDER = ["recruiter", "hosaka", "graph", "nightfall", "ui", "mtg", "tarot"]
 
 # Gibson-register one-liners shown to the right of each landing link — clipped,
 # noir, second-person where it lands. One per _LANDING_HUE_ORDER section.
@@ -66,7 +66,7 @@ _LANDING_BLURBS = {
     "hosaka": "Feed the Hosaka your words. It answers in a voice that was never yours.",
     "graph": "The whole machine as constellation. Every node a live nerve.",
     "nightfall": "Flash games died, but this one lives. Night falls on the net.",
-    "color": "The console's own spectrum, stripped to raw hue and signal.",
+    "ui": "The console's own spectrum, stripped to raw hue and signal.",
     "mtg": "A wizard wired to the stack. It rules, and it never sleeps.",
     "tarot": "Seventy-eight gates, a green terminal, the reader is waiting for you to begin.",
     "recruiter": "Wai's credentials for the headhunters.",
@@ -78,7 +78,7 @@ _LANDING_DESCS = {
     "hosaka": "A text-to-speech studio: type text, pick a synthetic voice, and stream the spoken audio.",
     "graph": "An interactive map of this site's codebase: files and functions as nodes, their references as edges.",
     "nightfall": "A browser-based infiltration game: breach networked nodes, manage detection, and clear each site.",
-    "color": "A read-only reference of the site's color palette, listing each token with its usage and opacity.",
+    "ui": "A read-only reference of the site's UI design system: colour palette and structural scale tokens with their usage.",
     "mtg": "A rules assistant for Magic: The Gathering, answering interaction and timing questions from the comprehensive rules.",
     "tarot": "An interactive three-card tarot reading: choose a significator, deal the spread, and interpret each position.",
     "recruiter": "A résumé page for recruiters: background, skills, and a downloadable PDF.",
@@ -223,20 +223,20 @@ async def debug_page():
     return _render_page("debug", _tmpl("debug.html"))
 
 
-@public.get("/color", response_class=HTMLResponse)
-async def color_page(request: Request):
-    """Read-only palette moodboard — renders chrome.css :root tokens.
+@public.get("/UI", response_class=HTMLResponse)
+async def ui_page(request: Request):
+    """Read-only palette + scale moodboard — renders chrome.css :root tokens.
     Public: exposes only the palette, no data. Admin cookie gets the full
-    nav; everyone else the guest nav."""
+    nav; everyone else the guest nav. (Route is case-sensitive: `/UI`.)"""
     guest = request.cookies.get("session") != SESSION_TOKEN
-    return _render_page("color", _tmpl("color.html"), guest=guest)
+    return _render_page("ui", _tmpl("ui.html"), guest=guest)
 
 
-@public.get("/api/color/usage")
-async def color_usage():
+@public.get("/api/ui/usage")
+async def ui_usage():
     """var(--X) occurrence counts + actually-used alphas per -hsl token +
     per-(token, alpha) usage sites, across templates + web assets, for the
-    /color moodboard. Definitions (`--x:`) don't match, so chrome.css only
+    /UI moodboard. Definitions (`--x:`) don't match, so chrome.css only
     contributes its own genuine usages. Bare hsl(var(--X-hsl)) counts as
     alpha 1. Public: token names + derived site labels only."""
     paths = [
@@ -246,7 +246,7 @@ async def color_usage():
         *Path("/app/static").glob("*.js"),
         # all api modules — several ship inline CSS (security.py alone references
         # ~56 tokens) that would otherwise vanish from the counts, misflagging
-        # used tokens (e.g. --fs-2xl) as "unused" on /color. The count regex
+        # used tokens (e.g. --fs-2xl) as "unused" on /UI. The count regex
         # wants a literal `var(` so routes_views' own escaped `var\(` regex
         # source never self-matches.
         *Path("/app").glob("*.py"),

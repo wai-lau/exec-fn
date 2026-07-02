@@ -89,7 +89,7 @@ def admin_cookie() -> dict:
     """Full-auth via the SESSION COOKIE (what a real logged-in browser sends).
 
     Some pages branch their guest/non-guest rendering on the cookie, not the
-    Bearer header (e.g. /color, /tarot decide the nav + Exec bubble from it), so
+    Bearer header (e.g. /UI, /tarot decide the nav + Exec bubble from it), so
     cookie auth is the faithful tier for wiring tests. The cookie is normally
     Secure (httpx won't replay it over plain HTTP), so set it as a raw header.
     """

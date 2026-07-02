@@ -9,7 +9,7 @@ assert the right `<script src>` tags are present/absent per auth + page tier.
 
   - planning pages (/rd, /hq): full panel voice (exec-voice.js +
     exec-bubble.js).
-  - other protected pages (/debug, /color): the listener (exec-voice-listener.js
+  - other non-planning pages (/debug, /UI): the listener (exec-voice-listener.js
     + exec-voice.js) on the link-bubble, no panel.
   - /tarot + /hosaka: link-bubble only, NO exec voice (tarot has its own reader
     voice; /hosaka IS the TTS page).
@@ -20,7 +20,7 @@ voice-util.js) — exec-voice.js is undefined without them.
 import pytest
 
 PLANNING = ["/rd", "/hq"]
-LISTENER = ["/debug", "/color"]      # non-planning, protected, voice via listener
+LISTENER = ["/debug", "/UI"]         # non-planning, voice via listener
 EXCLUDED = ["/tarot", "/hosaka"]     # link-bubble, no voice
 
 
