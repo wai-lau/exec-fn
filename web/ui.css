@@ -1,21 +1,27 @@
-/* /UI — the palette + scale moodboard on the shared "dark recruiter" document theme.
-   Chrome (card, titles, text) uses the .doc-card classes; the SWATCHES stay
-   true-colour (the whole point of the page) and the wrap stays lifted above the
-   CRT scanline blend so swatch colour renders un-tinted. */
+/* /UI — the palette + scale moodboard. Each section (one colour, or one scale
+   family) is its own card on the raw green-on-black palette; the board is NOT
+   one big .doc-card (no card-on-card). The SWATCHES stay true-colour (the whole
+   point) and the board sits above the CRT scanline blend so swatch colour renders
+   un-tinted. */
 body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 
 /* nav over the palette + scanlines (matches tarot/mtg) */
 .exec-nav { z-index: 9995; }
 
-/* the doc card at the wider board width, above the scanlines (z 9991) so the
-   swatches read true — overrides .doc-card's narrower width + z-raised */
-.clr-wrap { width: min(980px, 94vw); z-index: 9991; }
+/* board wrapper: centred, above the scanlines (z 9991) so swatches read true.
+   NOT a .doc-card itself — each section is its own card (below), no card-on-card. */
+.clr-wrap { width: min(980px, 94vw); margin: var(--space-10) auto calc(var(--nav-h, 64px) + var(--space-8)); z-index: 9991; }
 
-/* one little table per color (hue-ordered, wrapping): title on top, then a
-   table whose columns are the color's variations and rows are swatch / opacity
-   / count / effects, then the description beneath. */
-.clr-board { display: flex; flex-direction: column; gap: var(--space-10); }
-.clr-group { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
+/* each section (one colour, or one scale-token family) is its own card, tiled
+   in a responsive grid — title on top, then its table. */
+.clr-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-6); align-items: start; }
+
+.clr-group {
+  display: flex; flex-direction: column; gap: var(--space-3); width: 100%;
+  padding: var(--space-6); border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-4); background: hsl(var(--green-hsl) / 0.12);
+  box-shadow: 0 0 30px hsl(var(--green-hsl) / 0.12);
+}
 
 /* color name rendered as a doc section header */
 .clr-title {
