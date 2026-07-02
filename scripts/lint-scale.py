@@ -14,21 +14,34 @@ scripts/scale-codemod.py. Allowed raw, per property: `0`, `var(...)`,
 the CSS-wide keywords (`inherit/auto/none/normal/unset/...`). font-family also
 allows a bare generic (`monospace/sans-serif/serif`).
 
+box-shadow + z-index are FREEZE-governed (not token-family governed): they have
+no clean token scale to snap to (shadows are bespoke; z is a mix of the semantic
+--z-* scale and small local-stacking integers), so instead of a token rule the
+current set of values is frozen into scripts/scale-baseline.json and any NEW,
+unseen value is rejected. Tokenised z (`z-index: var(--z-*)`) always passes; a
+new raw shadow or a new raw z sends you to --update (a deliberate, diffed act).
+
 NOT governed (intentionally left raw): border-width (lives in the `border`
-shorthand with style+colour), transition/animation durations, z-index (semantic
-+ local stacking), box-shadow, and width/height/inset layout dimensions. Those
-have tokens available in chrome.css but aren't enforced here.
+shorthand with style+colour), transition/animation durations, and
+width/height/inset layout dimensions.
 
 Scope: web/*.css (the stylesheet layer). Inline one-liner styles in templates
 are a separate, minor surface already constrained by the no-inline-CSS rule.
 
-Run: python3 scripts/lint-scale.py            (exit 1 on any violation)
+Run:    python3 scripts/lint-scale.py            (exit 1 on any violation)
+Update: python3 scripts/lint-scale.py --update   (re-freeze shadow/z baseline)
 """
+import json
 import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+SCALE_BASELINE = ROOT / "scripts/scale-baseline.json"
+
+# Freeze-governed props: no token family to snap to, so the current set of raw
+# values is grandfathered in scale-baseline.json and only NEW ones are rejected.
+BASELINED = {"box-shadow", "z-index"}
 
 # Governed property -> the token family a raw value should have snapped to.
 LENGTH_LIST = {"padding", "padding-top", "padding-right", "padding-bottom",
@@ -132,18 +145,70 @@ def _raw_violation(prop, value):
     return handler(low, v) if handler else _v_length_list(prop, v)
 
 
+def _clean_text(path):
+    """File text with token DEFINITIONS + @font-face descriptors (raw by
+    necessity) and comments stripped."""
+    text = "".join(
+        "" if (seg.startswith(":root") or seg.startswith("@font-face"))
+        else seg
+        for seg in PROTECTED.split(path.read_text())
+    )
+    return re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+
+
+def _norm_decl(value):
+    """Normalise a declaration value for baseline compare: drop !important,
+    collapse whitespace, lowercase."""
+    v = re.sub(r"\s*!important\s*$", "", value).strip()
+    return re.sub(r"\s+", " ", v).lower()
+
+
+def _fully_tokenized(norm):
+    """True when the value is only var()/keywords/0 — no raw literal at all
+    (e.g. `z-index: var(--z-nav)` or `auto`), so it never needs baselining."""
+    parts = norm.replace(",", " ").split()
+    return all(p.startswith("var(") or p in KEYWORDS for p in parts)
+
+
+def _baselined_values():
+    """{prop: set(normalized value)} for the freeze-governed props, current."""
+    out = {p: set() for p in BASELINED}
+    for path in sorted(ROOT.glob("web/*.css")):
+        for m in DECL.finditer(_clean_text(path)):
+            prop = m.group(1).strip().lower()
+            if prop in BASELINED:
+                out[prop].add(_norm_decl(m.group(2)))
+    return out
+
+
+def update():
+    base = _baselined_values()
+    payload = {k: sorted(v) for k, v in sorted(base.items())}
+    SCALE_BASELINE.write_text(json.dumps(payload, indent=2) + "\n")
+    n = sum(len(v) for v in base.values())
+    print(f"wrote {SCALE_BASELINE.relative_to(ROOT)}: {n} frozen box-shadow/z-index values")
+    return 0
+
+
 def check():
+    allowed = {}
+    if SCALE_BASELINE.exists():
+        allowed = {k: set(v) for k, v in json.loads(SCALE_BASELINE.read_text()).items()}
+
     errors = []
     for path in sorted(ROOT.glob("web/*.css")):
-        # skip token DEFINITIONS + @font-face descriptors (raw by necessity)
-        text = "".join(
-            "" if (seg.startswith(":root") or seg.startswith("@font-face"))
-            else seg
-            for seg in PROTECTED.split(path.read_text())
-        )
-        text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)  # drop comments
-        for m in DECL.finditer(text):
+        for m in DECL.finditer(_clean_text(path)):
             prop = m.group(1).strip().lower()
+            if prop in BASELINED:
+                norm = _norm_decl(m.group(2))
+                if _fully_tokenized(norm) or norm in allowed.get(prop, set()):
+                    continue
+                errors.append(
+                    f"{path.name}: {prop}: {m.group(2).strip()} -- new {prop} value, "
+                    f"not in scale-baseline. Use a token (z-index: var(--z-*)) or, "
+                    f"if deliberate, re-run with --update."
+                )
+                continue
             if prop not in GOVERNED:
                 continue
             reason = _raw_violation(prop, m.group(2))
@@ -159,5 +224,11 @@ def check():
     return 0
 
 
+def main(argv):
+    if "--update" in argv:
+        return update()
+    return check()
+
+
 if __name__ == "__main__":
-    sys.exit(check())
+    sys.exit(main(sys.argv[1:]))

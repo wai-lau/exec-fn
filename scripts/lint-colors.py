@@ -15,6 +15,10 @@ DERIVED from actual usage, the same extraction `/api/color/usage` feeds the
      brand-new colour token) is rejected.
   4. DEFINED TOKEN  -- every `var(--<name>-hsl)` referenced is defined in
      chrome.css :root (or a whitelisted page-local accent).
+  5. NO RAW LITERAL -- no hardcoded colour literal (rgb/rgba/hex, or an
+     hsl()/hsla() NOT of the token form hsl(var(--X-hsl))). The current set is
+     grandfathered in scripts/raw-color-baseline.json; a NEW raw literal is
+     rejected. Named colours (transparent/currentcolor etc.) are not checked.
 
 Adding a colour or an alpha is a deliberate act: make the change, eyeball it on
 /color, then regenerate the baseline with `python3 scripts/lint-colors.py
@@ -31,6 +35,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / "scripts/palette-baseline.json"
+RAW_BASELINE = ROOT / "scripts/raw-color-baseline.json"
 CHROME = "web/chrome.css"
 
 # chrome.css's documented alpha snap scale (see its palette header). The one
@@ -47,6 +52,15 @@ LOCAL_ACCENTS = {"ember-hsl"}
 # moodboard never disagree.
 _USE = re.compile(r"var\(--([\w-]+-hsl)\)(?:\s*/\s*([\d.]+))?")
 _DEF = re.compile(r"--([a-z0-9-]+-hsl)\s*:")
+
+# Raw colour literals: rgb/rgba/hex, and hsl/hsla NOT of the token form
+# hsl(var(--X-hsl) ...). Named colours are not matched (transparent/currentcolor
+# are keywords; other names are rare + low-risk).
+_RAW_COLOR = re.compile(
+    r"#[0-9a-fA-F]{3,8}\b"
+    r"|rgba?\(\s*(?!var\()[^)]*\)"
+    r"|hsla?\(\s*(?!var\()[^)]*\)"
+)
 
 
 def _scan_paths():
@@ -91,6 +105,19 @@ def _defined_tokens():
     return tokens | LOCAL_ACCENTS
 
 
+def _norm_color(lit):
+    return re.sub(r"\s+", "", lit).lower()  # "rgba(0, 0, 0, .5)" -> "rgba(0,0,0,.5)"
+
+
+def raw_colors():
+    """Normalized raw colour literals across the scanned files."""
+    out = set()
+    for p in _scan_paths():
+        for m in _RAW_COLOR.finditer(_strip_comments(p.read_text())):
+            out.add(_norm_color(m.group(0)))
+    return out
+
+
 def _load_baseline():
     data = json.loads(BASELINE.read_text())
     return {k: set(v) for k, v in data.items()}
@@ -100,21 +127,17 @@ def update():
     cur = usage()
     payload = {k: sorted(v, key=float) for k, v in sorted(cur.items())}
     BASELINE.write_text(json.dumps(payload, indent=2) + "\n")
+    raw = sorted(raw_colors())
+    RAW_BASELINE.write_text(json.dumps({"raw_colors": raw}, indent=2) + "\n")
     pairs = sum(len(v) for v in cur.values())
     print(f"wrote {BASELINE.relative_to(ROOT)}: {len(cur)} colors, {pairs} (color, alpha) pairs")
+    print(f"wrote {RAW_BASELINE.relative_to(ROOT)}: {len(raw)} grandfathered raw colour literals")
     return 0
 
 
-def check():
-    if not BASELINE.exists():
-        print(f"no baseline at {BASELINE.relative_to(ROOT)} -- run: "
-              f"python3 scripts/lint-colors.py --update")
-        return 1
-    baseline = _load_baseline()
-    defined = _defined_tokens()
-    cur = usage()
+def _token_errors(baseline, defined, cur):
+    """Guards 1-4: per-token alpha count, on-scale, in-baseline, and defined."""
     errors = []
-
     for token in sorted(cur):
         nonzero = sorted((a for a in cur[token] if float(a) != 0), key=float)
         if len(nonzero) > 4:
@@ -131,13 +154,34 @@ def check():
             if a not in baseline.get(token, set()):
                 errors.append(
                     f"--{token} / {a}: new (color, alpha) tuple, not in the palette "
-                    f"baseline. If intended, eyeball /color then re-run with --update."
+                    f"baseline. If intended, eyeball /UI then re-run with --update."
                 )
         if token not in defined:
             errors.append(
                 f"--{token}: referenced but not defined in chrome.css or LOCAL_ACCENTS."
             )
+    return errors
 
+
+def _raw_color_errors():
+    """Guard 5: the current raw-colour literals are frozen; reject any new one."""
+    allowed = set()
+    if RAW_BASELINE.exists():
+        allowed = set(json.loads(RAW_BASELINE.read_text()).get("raw_colors", []))
+    return [
+        f"raw colour literal '{lit}' -- use a palette token hsl(var(--X-hsl) / α). "
+        f"If deliberate, re-run with --update."
+        for lit in sorted(raw_colors()) if lit not in allowed
+    ]
+
+
+def check():
+    if not BASELINE.exists():
+        print(f"no baseline at {BASELINE.relative_to(ROOT)} -- run: "
+              f"python3 scripts/lint-colors.py --update")
+        return 1
+    errors = _token_errors(_load_baseline(), _defined_tokens(), usage())
+    errors += _raw_color_errors()
     if errors:
         print("palette lint: %d violation(s)" % len(errors))
         for e in errors:
