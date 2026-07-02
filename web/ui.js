@@ -244,17 +244,17 @@ function visFont(t) {
 function visFs(t) { return `<span class="sc-txt" style="font-size:${esc(t.value)}">--${esc(t.name)}</span>`; }
 function visFw(t) { return `<span class="sc-txt" style="font-weight:${esc(t.value)}">--${esc(t.name)}</span>`; }
 function visLh(t) { return `<span class="sc-para" style="line-height:${esc(t.value)}">console static<br>stacked into<br>a rhythm</span>`; }
-function visTrack(t) { return `<span class="sc-txt sc-caps" style="letter-spacing:${esc(t.value)}">MATRIX</span>`; }
+function visTrack(t) { return `<span class="sc-txt" style="letter-spacing:${esc(t.value)}">--${esc(t.name)}</span>`; }
 function visBlur(t) { return `<span class="sc-txt sc-blur" style="filter:blur(${esc(t.value)})">GRID</span>`; }
 
 // prefix -> {title, unit, num (sort by numeric value), vis (row visual)}
 const SCALE_FAMS = [
   { title: 'Radius', pfx: 'radius-', num: true, vis: visRadius, hideUnused: true },
   { title: 'Font family', pfx: 'font-', num: false, vis: visFont },
-  { title: 'Font size', pfx: 'fs-', num: true, vis: visFs },
-  { title: 'Font weight', pfx: 'fw-', num: true, vis: visFw },
+  { title: 'Font size', pfx: 'fs-', num: true, vis: visFs, selfLabel: true },
+  { title: 'Font weight', pfx: 'fw-', num: true, vis: visFw, selfLabel: true },
   { title: 'Line height', pfx: 'lh-', num: true, vis: visLh },
-  { title: 'Tracking', pfx: 'tracking-', num: true, vis: visTrack },
+  { title: 'Tracking', pfx: 'tracking-', num: true, vis: visTrack, selfLabel: true },
   { title: 'Blur', pfx: 'blur', num: true, vis: visBlur },
 ];
 const SCALE_PFX = SCALE_FAMS.map(f => f.pfx);
@@ -298,7 +298,7 @@ function scaleTableHtml(fam, toks) {
     <div class="clr-title">${esc(fam.title)}</div>
     <table class="clr-tbl">
       ${row(t => td(`<div class="sc-vis">${fam.vis(t)}</div>`))}
-      ${row(t => td(`<span class="sc-name">--${esc(t.name)}</span>`))}
+      ${fam.selfLabel ? '' : row(t => td(`<span class="sc-name">--${esc(t.name)}</span>`))}
       ${row(t => td(`<span class="sc-val">${esc(t.value)}</span>`))}
       ${row(t => td(`<span class="clr-cnt">&times;${t.count || 0}</span>`))}
       ${row(t => td(siteListHtml(flatSites(t.name)), 'clr-usecell'), 'clr-usecell')}
