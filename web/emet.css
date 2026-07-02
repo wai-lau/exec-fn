@@ -1,8 +1,8 @@
 /* /emet — the "dark recruiter" reading page (MCP test harness). The card +
    section headers come from chrome.css's shared .doc-card / .doc-h2 (applied in
    emet.html); this file styles the harness controls + result cards on the
-   shared --doc-* document tokens. */
-body { background: var(--doc-bg); }
+   shared document-theme palette (raw green/cyan on black). */
+body { background: hsl(var(--bg-hsl)); }
 
 .emet { display: flex; flex-direction: column; gap: var(--space-8); }
 
@@ -11,46 +11,46 @@ body { background: var(--doc-bg); }
 
 .emet-lede {
   margin: 0; font-size: var(--fs-sm); letter-spacing: var(--tracking-widest);
-  text-transform: uppercase; color: var(--doc-ink-soft);
+  text-transform: uppercase; color: hsl(var(--green-hsl) / 0.45);
 }
 .emet-head #gpu-mode { margin-left: auto; flex: none; }
 
 .emet-sec { display: flex; flex-direction: column; gap: var(--space-2-5); }
 .emet-sec .doc-h2 { margin: 0; }   /* the flex gap owns section spacing */
-.emet-hint { margin: 0; font-size: var(--fs-sm); line-height: var(--lh-snug); color: var(--doc-ink-soft); }
+.emet-hint { margin: 0; font-size: var(--fs-sm); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.45); }
 
 /* ── forms ──────────────────────────────────────────────────────────────── */
 .emet-form { display: flex; gap: var(--space-3); align-items: stretch; flex-wrap: wrap; }
 
 .emet-form input {
-  font: inherit; color: var(--doc-ink); background: var(--doc-bg);
-  border: 1px solid var(--doc-rule); border-radius: var(--radius-2);
+  font: inherit; color: hsl(var(--green-hsl) / 0.8); background: hsl(var(--bg-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-2);
   padding: var(--space-2-5) var(--space-3); flex: 1 1 12rem; min-width: 0;
 }
-.emet-form input:focus { border-color: var(--doc-green-dim); outline: none; }
+.emet-form input:focus { border-color: hsl(var(--green-hsl) / 0.45); outline: none; }
 .emet-form .emet-hops { flex: 0 0 4.5rem; }
 
 .emet-form button {
   font: inherit; cursor: pointer; font-weight: var(--fw-bold);
-  color: var(--doc-bg); background: var(--doc-green);
-  border: 1px solid var(--doc-green); border-radius: var(--radius-2);
+  color: hsl(var(--bg-hsl)); background: hsl(var(--green-hsl));
+  border: 1px solid hsl(var(--green-hsl)); border-radius: var(--radius-2);
   padding: var(--space-2-5) var(--space-6); flex: 0 0 auto;
   text-transform: uppercase; letter-spacing: var(--tracking-wide);
   transition: background 0.2s;
 }
-.emet-form button:hover { background: var(--doc-green-dim); }
+.emet-form button:hover { background: hsl(var(--green-hsl) / 0.45); }
 
 /* ── results ────────────────────────────────────────────────────────────── */
 .emet-out { display: flex; flex-direction: column; gap: var(--space-3); }
 .emet-out:empty { display: none; }
 
 .emet-node {
-  border: 1px solid var(--doc-rule); border-radius: var(--radius-3);
-  padding: var(--space-3) var(--space-4); background: var(--doc-bg);
+  border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-3);
+  padding: var(--space-3) var(--space-4); background: hsl(var(--bg-hsl));
 }
 .emet-node-head { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
-.emet-node-label { font-weight: var(--fw-bold); color: var(--doc-green); }
-.emet-node-id { font-size: var(--fs-sm); color: var(--doc-ink-soft); }
+.emet-node-label { font-weight: var(--fw-bold); color: hsl(var(--green-hsl)); }
+.emet-node-id { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); }
 
 .emet-obs { list-style: none; margin: var(--space-2-5) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .emet-obs li { display: flex; gap: var(--space-2-5); align-items: baseline; font-size: var(--fs-sm); }
@@ -58,26 +58,26 @@ body { background: var(--doc-bg); }
 .emet-priv {
   flex: none; font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide);
   padding: var(--space-px) var(--space-2); border-radius: var(--radius-2);
-  color: var(--doc-cyan); border: 1px solid var(--doc-rule);
+  color: hsl(var(--cyan-hsl) / 0.8); border: 1px solid hsl(var(--green-hsl) / 0.12);
   font-variant-numeric: tabular-nums;
 }
-.emet-obs-text { color: var(--doc-ink); }
+.emet-obs-text { color: hsl(var(--green-hsl) / 0.8); }
 
-.emet-matched { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: var(--doc-ink-soft); }
-.emet-empty { font-size: var(--fs-sm); color: var(--doc-ink-soft); font-style: italic; }
-.emet-capped { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: var(--doc-pink); }
+.emet-matched { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: hsl(var(--green-hsl) / 0.45); }
+.emet-empty { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); font-style: italic; }
+.emet-capped { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: hsl(var(--pink-hsl)); }
 
 .emet-offline {
-  font-size: var(--fs-sm); color: var(--doc-pink);
-  border: 1px solid var(--doc-rule); border-radius: var(--radius-3);
+  font-size: var(--fs-sm); color: hsl(var(--pink-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-3);
   padding: var(--space-2-5) var(--space-4);
 }
 
 .emet-answer {
-  white-space: pre-wrap; line-height: var(--lh-relaxed); color: var(--doc-ink);
-  border-left: 2px solid var(--doc-green-dim); padding-left: var(--space-4);
+  white-space: pre-wrap; line-height: var(--lh-relaxed); color: hsl(var(--green-hsl) / 0.8);
+  border-left: 2px solid hsl(var(--green-hsl) / 0.45); padding-left: var(--space-4);
 }
-.emet-note { font-size: var(--fs-sm); color: var(--doc-ink-soft); }
+.emet-note { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); }
 
 /* status chips (recruiter chip idiom) */
 .emet-badge {
@@ -85,6 +85,6 @@ body { background: var(--doc-bg); }
   letter-spacing: var(--tracking-wider); padding: var(--space-0-5) var(--space-2-5);
   border-radius: var(--radius-2);
 }
-.badge-ok { color: var(--doc-bg); background: var(--doc-green); }
-.badge-no-context { color: var(--doc-green); border: 1px solid var(--doc-green-dim); }
-.badge-llm-offline { color: var(--doc-bg); background: var(--doc-pink); }
+.badge-ok { color: hsl(var(--bg-hsl)); background: hsl(var(--green-hsl)); }
+.badge-no-context { color: hsl(var(--green-hsl)); border: 1px solid hsl(var(--green-hsl) / 0.45); }
+.badge-llm-offline { color: hsl(var(--bg-hsl)); background: hsl(var(--pink-hsl)); }

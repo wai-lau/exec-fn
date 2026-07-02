@@ -1,63 +1,63 @@
 /* /debug — the "dark recruiter" reading page. The card + section headers come
    from chrome.css's shared .doc-card / .doc-h2 (applied in debug.html); this
    file styles only debug's own content (notes, logs, entries, tags) on the
-   shared --doc-* document tokens. */
+   shared document-theme palette (raw green/cyan on black). */
 
-body { overflow-y: auto !important; background: var(--doc-bg); }
+body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 
 .dbg-section { margin-bottom: var(--space-10); }
 .dbg-section:last-child { margin-bottom: 0; }
 
-.dbg-empty { color: var(--doc-ink-soft); font-size: var(--fs-sm); }
+.dbg-empty { color: hsl(var(--green-hsl) / 0.45); font-size: var(--fs-sm); }
 
-a, .dbg-mtg-assistant a, #dbg-moltbook a { color: var(--doc-cyan); text-decoration: none; }
+a, .dbg-mtg-assistant a, #dbg-moltbook a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ── profile notes ──────────────────────────────────────────────────────── */
 .dbg-note {
   font-size: var(--fs-sm); padding: var(--space-2-5) 0;
-  border-bottom: 1px solid var(--doc-rule);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   display: flex; gap: var(--space-5); align-items: baseline;
   line-height: var(--lh-relaxed);
 }
 .dbg-note:last-child { border-bottom: none; }
-.dbg-note-date { font-size: var(--fs-sm); color: var(--doc-ink-soft); flex-shrink: 0; }
-.dbg-note-text { color: var(--doc-ink); flex: 1; }
+.dbg-note-date { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; }
+.dbg-note-text { color: hsl(var(--green-hsl) / 0.8); flex: 1; }
 
 .dbg-note-x {
   background: none; border: none; cursor: pointer; padding: 0 var(--space-0-5);
-  font-size: var(--fs-sm); color: var(--doc-rule); line-height: var(--lh-none);
+  font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.12); line-height: var(--lh-none);
   flex-shrink: 0; margin-left: auto; transition: color 0.2s;
 }
-.dbg-note-x:hover { color: var(--doc-pink); }
+.dbg-note-x:hover { color: hsl(var(--pink-hsl)); }
 
 .dbg-note-edit {
-  flex: 1; background: var(--doc-bg); border: 1px solid var(--doc-rule);
-  color: var(--doc-ink); font-family: inherit; font-size: var(--fs-sm);
+  flex: 1; background: hsl(var(--bg-hsl)); border: 1px solid hsl(var(--green-hsl) / 0.12);
+  color: hsl(var(--green-hsl) / 0.8); font-family: inherit; font-size: var(--fs-sm);
   padding: var(--space-1-5) var(--space-2); resize: vertical; min-height: 2em;
   border-radius: var(--radius-2); outline: none;
 }
-.dbg-note-edit:focus { border-color: var(--doc-green-dim); }
+.dbg-note-edit:focus { border-color: hsl(var(--green-hsl) / 0.45); }
 .dbg-note-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
 
 .dbg-note-save, .dbg-note-del {
   background: none; border: none; cursor: pointer; padding: 0 var(--space-1);
   font-size: var(--fs-sm); line-height: var(--lh-none); transition: color 0.15s;
 }
-.dbg-note-save { color: var(--doc-ink-soft); }
-.dbg-note-save:hover { color: var(--doc-green); }
-.dbg-note-del { color: var(--doc-ink-soft); }
-.dbg-note-del:hover { color: var(--doc-pink); }
+.dbg-note-save { color: hsl(var(--green-hsl) / 0.45); }
+.dbg-note-save:hover { color: hsl(var(--green-hsl)); }
+.dbg-note-del { color: hsl(var(--green-hsl) / 0.45); }
+.dbg-note-del:hover { color: hsl(var(--pink-hsl)); }
 
 /* ── activity logs ──────────────────────────────────────────────────────── */
 .dbg-log-file { margin-bottom: var(--space-6); }
 
 .dbg-log-hdr {
-  font-size: var(--fs-sm); color: var(--doc-green-dim); margin-bottom: var(--space-2-5);
+  font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); margin-bottom: var(--space-2-5);
   text-transform: uppercase; letter-spacing: var(--tracking-caps);
   display: flex; align-items: center; gap: var(--space-3); cursor: pointer;
 }
-.dbg-log-hdr:hover { color: var(--doc-green); }
+.dbg-log-hdr:hover { color: hsl(var(--green-hsl)); }
 .dbg-log-toggle { font-size: var(--fs-sm); }
 .dbg-log-entries { display: none; }
 .dbg-log-entries.open { display: block; }
@@ -65,55 +65,55 @@ a:hover { text-decoration: underline; }
 .dbg-entry {
   font-size: var(--fs-sm); padding: var(--space-2) 0 var(--space-2) var(--space-7);
   position: relative;
-  color: var(--doc-ink); line-height: var(--lh-relaxed);
+  color: hsl(var(--green-hsl) / 0.8); line-height: var(--lh-relaxed);
   display: flex; gap: var(--space-3);
 }
 
 .dbg-entry::before {
-  content: "\25b8"; position: absolute; left: 0; color: var(--doc-green-dim);
+  content: "\25b8"; position: absolute; left: 0; color: hsl(var(--green-hsl) / 0.45);
 }
-.dbg-entry-ts { font-size: var(--fs-sm); color: var(--doc-ink-soft); flex-shrink: 0; }
-.dbg-entry-action { color: var(--doc-green-dim); flex-shrink: 0; min-width: 60px; }
+.dbg-entry-ts { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; }
+.dbg-entry-action { color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; min-width: 60px; }
 .dbg-entry-title { flex: 1; }
-.dbg-entry-meta { font-size: var(--fs-sm); color: var(--doc-ink-soft); }
+.dbg-entry-meta { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); }
 
 /* ── mtg log ────────────────────────────────────────────────────────────── */
 .dbg-mtg-entry {
   font-size: var(--fs-sm); padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--doc-rule); line-height: var(--lh-relaxed);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); line-height: var(--lh-relaxed);
 }
-.dbg-mtg-ts { font-size: var(--fs-sm); color: var(--doc-ink-soft); margin-bottom: var(--space-1-5); }
-.dbg-mtg-user { color: var(--doc-green); margin-bottom: var(--space-1-5); }
-.dbg-mtg-user::before { content: "$ "; color: var(--doc-green-dim); }
-.dbg-mtg-assistant { color: var(--doc-ink); white-space: pre-wrap; }
-.dbg-mtg-assistant::before { content: "\25b8 "; color: var(--doc-green-dim); }
+.dbg-mtg-ts { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); margin-bottom: var(--space-1-5); }
+.dbg-mtg-user { color: hsl(var(--green-hsl)); margin-bottom: var(--space-1-5); }
+.dbg-mtg-user::before { content: "$ "; color: hsl(var(--green-hsl) / 0.45); }
+.dbg-mtg-assistant { color: hsl(var(--green-hsl) / 0.8); white-space: pre-wrap; }
+.dbg-mtg-assistant::before { content: "\25b8 "; color: hsl(var(--green-hsl) / 0.45); }
 
 /* ── vain-empress entries ───────────────────────────────────────────────── */
 .dbg-ve-entry {
   font-size: var(--fs-sm); padding: var(--space-2-5) 0;
-  border-bottom: 1px solid var(--doc-rule); cursor: pointer; line-height: var(--lh-relaxed);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); cursor: pointer; line-height: var(--lh-relaxed);
 }
-.dbg-ve-entry:hover .dbg-ve-summary { color: var(--doc-green); }
+.dbg-ve-entry:hover .dbg-ve-summary { color: hsl(var(--green-hsl)); }
 .dbg-ve-top { display: flex; gap: var(--space-3); align-items: baseline; }
 
 /* type tag = recruiter chip */
 .dbg-ve-type {
   font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-x);
   padding: var(--space-px) var(--space-2); border-radius: var(--radius-2);
-  background: var(--doc-chip); flex-shrink: 0;
+  background: hsl(var(--green-hsl) / 0.12); flex-shrink: 0;
 }
-.dbg-ve-type-dm-request { color: var(--doc-cyan); }
-.dbg-ve-type-mention    { color: var(--doc-green); }
-.dbg-ve-type-question   { color: var(--doc-ink-soft); }
-.dbg-ve-type-error      { color: var(--doc-pink); }
-.dbg-ve-summary { flex: 1; color: var(--doc-ink); }
-.dbg-ve-ts { font-size: var(--fs-sm); color: var(--doc-ink-soft); flex-shrink: 0; }
+.dbg-ve-type-dm-request { color: hsl(var(--cyan-hsl) / 0.8); }
+.dbg-ve-type-mention    { color: hsl(var(--green-hsl)); }
+.dbg-ve-type-question   { color: hsl(var(--green-hsl) / 0.45); }
+.dbg-ve-type-error      { color: hsl(var(--pink-hsl)); }
+.dbg-ve-summary { flex: 1; color: hsl(var(--green-hsl) / 0.8); }
+.dbg-ve-ts { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; }
 
 .dbg-ve-detail {
   display: none; margin-top: var(--space-2); padding: var(--space-2) var(--space-2-5);
-  background: var(--doc-bg); border-left: 2px solid var(--doc-green-dim);
+  background: hsl(var(--bg-hsl)); border-left: 2px solid hsl(var(--green-hsl) / 0.45);
   border-radius: 0 var(--radius-2) var(--radius-2) 0;
-  font-size: var(--fs-sm); color: var(--doc-ink-soft); white-space: pre-wrap;
+  font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); white-space: pre-wrap;
 }
 .dbg-ve-entry.open .dbg-ve-detail { display: block; }
 
@@ -121,36 +121,36 @@ a:hover { text-decoration: underline; }
 .dbg-tarot-cards { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2-5) 0; }
 
 .dbg-tarot-card {
-  font-size: var(--fs-sm); color: var(--doc-green);
-  background: var(--doc-chip); border-radius: var(--radius-2);
+  font-size: var(--fs-sm); color: hsl(var(--green-hsl));
+  background: hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-2);
   padding: var(--space-0-5) var(--space-2);
 }
-.dbg-tarot-card .pos { color: var(--doc-ink-soft); }
-.dbg-tarot-card .rev { color: var(--doc-pink); }
-.dbg-tarot-sig { font-size: var(--fs-sm); color: var(--doc-ink-soft); margin: var(--space-1-5) 0; }
-.dbg-tarot-msg { font-size: var(--fs-sm); padding: var(--space-2) 0; border-bottom: 1px solid var(--doc-rule); line-height: var(--lh-relaxed); }
-.dbg-tarot-user { color: var(--doc-green); white-space: pre-wrap; }
-.dbg-tarot-user::before { content: "$ "; color: var(--doc-green-dim); }
-.dbg-tarot-asst { color: var(--doc-ink); white-space: pre-wrap; }
-.dbg-tarot-asst::before { content: "\25b8 "; color: var(--doc-green-dim); }
-.dbg-tarot-event { color: var(--doc-ink-soft); font-style: italic; }
+.dbg-tarot-card .pos { color: hsl(var(--green-hsl) / 0.45); }
+.dbg-tarot-card .rev { color: hsl(var(--pink-hsl)); }
+.dbg-tarot-sig { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); margin: var(--space-1-5) 0; }
+.dbg-tarot-msg { font-size: var(--fs-sm); padding: var(--space-2) 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); line-height: var(--lh-relaxed); }
+.dbg-tarot-user { color: hsl(var(--green-hsl)); white-space: pre-wrap; }
+.dbg-tarot-user::before { content: "$ "; color: hsl(var(--green-hsl) / 0.45); }
+.dbg-tarot-asst { color: hsl(var(--green-hsl) / 0.8); white-space: pre-wrap; }
+.dbg-tarot-asst::before { content: "\25b8 "; color: hsl(var(--green-hsl) / 0.45); }
+.dbg-tarot-event { color: hsl(var(--green-hsl) / 0.45); font-style: italic; }
 
 /* ── moltbook heartbeat (rendered markdown) ─────────────────────────────── */
 #dbg-moltbook h1, #dbg-moltbook h2, #dbg-moltbook h3 {
   font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-caps);
-  color: var(--doc-green); border-bottom: 1px solid var(--doc-rule);
+  color: hsl(var(--green-hsl)); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   padding-bottom: var(--space-1-5); margin: var(--space-6) 0 var(--space-2-5);
   font-weight: var(--fw-bold);
 }
-#dbg-moltbook p { font-size: var(--fs-sm); color: var(--doc-ink); margin: var(--space-2) 0; line-height: var(--lh-relaxed); }
-#dbg-moltbook ul, #dbg-moltbook ol { font-size: var(--fs-sm); color: var(--doc-ink); margin: var(--space-1-5) 0 var(--space-1-5) var(--space-6); padding: 0; }
+#dbg-moltbook p { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); margin: var(--space-2) 0; line-height: var(--lh-relaxed); }
+#dbg-moltbook ul, #dbg-moltbook ol { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); margin: var(--space-1-5) 0 var(--space-1-5) var(--space-6); padding: 0; }
 #dbg-moltbook li { margin: var(--space-1) 0; }
-#dbg-moltbook strong { color: var(--doc-green); font-weight: var(--fw-bold); }
-#dbg-moltbook em { color: var(--doc-ink-soft); font-style: italic; }
-#dbg-moltbook hr { border: none; border-top: 1px solid var(--doc-rule); margin: var(--space-5) 0; }
-#dbg-moltbook code { font-family: inherit; font-size: var(--fs-sm); color: var(--doc-green); background: var(--doc-chip); padding: var(--space-px) var(--space-1); border-radius: var(--radius-1); }
-#dbg-moltbook pre { background: var(--doc-bg); border: 1px solid var(--doc-rule); border-radius: var(--radius-2); padding: var(--space-3) var(--space-4); margin: var(--space-2-5) 0; overflow-x: auto; }
-#dbg-moltbook pre code { background: none; padding: 0; font-size: var(--fs-sm); color: var(--doc-ink); white-space: pre-wrap; word-break: break-all; }
+#dbg-moltbook strong { color: hsl(var(--green-hsl)); font-weight: var(--fw-bold); }
+#dbg-moltbook em { color: hsl(var(--green-hsl) / 0.45); font-style: italic; }
+#dbg-moltbook hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.12); margin: var(--space-5) 0; }
+#dbg-moltbook code { font-family: inherit; font-size: var(--fs-sm); color: hsl(var(--green-hsl)); background: hsl(var(--green-hsl) / 0.12); padding: var(--space-px) var(--space-1); border-radius: var(--radius-1); }
+#dbg-moltbook pre { background: hsl(var(--bg-hsl)); border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-2); padding: var(--space-3) var(--space-4); margin: var(--space-2-5) 0; overflow-x: auto; }
+#dbg-moltbook pre code { background: none; padding: 0; font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); white-space: pre-wrap; word-break: break-all; }
 #dbg-moltbook table { font-size: var(--fs-sm); border-collapse: collapse; margin: var(--space-2-5) 0; }
-#dbg-moltbook th { color: var(--doc-green-dim); border-bottom: 1px solid var(--doc-rule); padding: var(--space-1) var(--space-3) var(--space-1) 0; font-weight: var(--fw-bold); text-align: left; }
-#dbg-moltbook td { color: var(--doc-ink); padding: var(--space-0-5) var(--space-3) var(--space-0-5) 0; border-bottom: 1px solid var(--doc-rule); }
+#dbg-moltbook th { color: hsl(var(--green-hsl) / 0.45); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); padding: var(--space-1) var(--space-3) var(--space-1) 0; font-weight: var(--fw-bold); text-align: left; }
+#dbg-moltbook td { color: hsl(var(--green-hsl) / 0.8); padding: var(--space-0-5) var(--space-3) var(--space-0-5) 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); }
