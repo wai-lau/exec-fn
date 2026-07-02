@@ -70,11 +70,11 @@ def _panel(t,sub,svg):
 
 _CSS = """
 <style>
-/* /security on the shared document theme: chrome uses the chrome.css --doc-*
-   tokens; the SVG chart DATA colours are all Ono-Sendai green shades (G/GDIM/GHI,
+/* /security on the shared document theme: chrome uses the chrome.css .doc-card
+   classes; the SVG chart DATA colours are all Ono-Sendai green shades (G/GDIM/GHI,
    set inline — SVG fill= can't resolve var()). .secwrap adds the
    .doc-card class (see render_security) and just widens it for the dashboard. */
-body{background:var(--doc-bg)}
+body{background:hsl(var(--bg-hsl))}
 .secwrap{width:min(1080px,94vw)}
 .sg2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6)}@media(max-width:740px){.sg2{grid-template-columns:1fr}}
 /* no per-panel card — the whole page is already one .doc-card; panels are just
@@ -83,11 +83,11 @@ body{background:var(--doc-bg)}
 /* origin map bleeds to the card edges (cancels .doc-card's 52px/clamp h-padding),
    scaling it up full-width; the h3 title stays inset with the rest. */
 .spanel-map .sc{width:calc(100% + 2 * clamp(28px, 6vw, 60px));margin-left:calc(-1 * clamp(28px, 6vw, 60px))}
-.spanel h3{margin:0;font-size:var(--fs-sm);color:var(--doc-green);text-transform:uppercase;letter-spacing:var(--tracking-caps)}.spanel .ssub{color:var(--doc-ink-soft);font-size:var(--fs-sm);margin:var(--space-0-5) 0 var(--space-3)}
+.spanel h3{margin:0;font-size:var(--fs-sm);color:hsl(var(--green-hsl));text-transform:uppercase;letter-spacing:var(--tracking-caps)}.spanel .ssub{color:hsl(var(--green-hsl) / 0.45);font-size:var(--fs-sm);margin:var(--space-0-5) 0 var(--space-3)}
 .sc{width:100%;height:auto;display:block}
-.sl{fill:var(--doc-ink);font-size:12px}.sv{fill:var(--doc-ink-soft);font-size:11px}.sa{fill:var(--doc-ink-soft);font-size:10px}.sp{fill:var(--doc-green);font-size:11px;font-weight:600}
-.sg{fill:var(--doc-rule);font-size:9px}
-.snote{color:var(--doc-ink-soft);padding:30px;text-align:center}
+.sl{fill:hsl(var(--green-hsl) / 0.8);font-size:12px}.sv{fill:hsl(var(--green-hsl) / 0.45);font-size:11px}.sa{fill:hsl(var(--green-hsl) / 0.45);font-size:10px}.sp{fill:hsl(var(--green-hsl));font-size:11px;font-weight:600}
+.sg{fill:hsl(var(--green-hsl) / 0.12);font-size:9px}
+.snote{color:hsl(var(--green-hsl) / 0.45);padding:30px;text-align:center}
 </style>
 """
 

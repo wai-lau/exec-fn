@@ -2,23 +2,23 @@
    below: mtg-only — full-width scrollback + Scryfall card hovers */
 
 /* mtg is a reading/reference page, so it joins the document palette: softer
-   --doc-* greens on the doc page background, and a glow to match. tarot keeps
+   phosphor greens on the doc page background, and a glow to match. tarot keeps
    its neon reader mood (the shared chat-reader.css is untouched; these
    overrides are mtg-only, and mtg.css loads last). Type is already on the
    scale tokens. */
 .msg { max-width:none; text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12); }
-body { background: var(--doc-bg); }
-.msg.assistant { color: var(--doc-ink) !important; }
-.msg.assistant hr { border-top-color: var(--doc-rule); }
-.msg.assistant th { color: var(--doc-green); border-color: var(--doc-rule); }
-.msg.assistant td { border-color: var(--doc-rule); }
+body { background: hsl(var(--bg-hsl)); }
+.msg.assistant { color: hsl(var(--green-hsl) / 0.8) !important; }
+.msg.assistant hr { border-top-color: hsl(var(--green-hsl) / 0.12); }
+.msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.12); }
+.msg.assistant td { border-color: hsl(var(--green-hsl) / 0.12); }
 
 /* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
    native keyboard animation). --kb rides the keyboard; --input-h the bar. */
 #terminal { inset:0 0 calc(var(--kb-anchor) + var(--input-h,48px)) !important; }
 
 /* plain external links keep body typography (chat-reader sets colors) */
-.msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; color: var(--doc-cyan) !important; }
+.msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; color: hsl(var(--cyan-hsl) / 0.8) !important; }
 .msg.assistant [data-card] { text-decoration:underline dotted hsl(var(--green-hsl) / 0.45); text-underline-offset:3px; cursor:pointer; }
 .msg.assistant [data-card]:hover { text-decoration:underline hsl(var(--green-hsl) / 1); color:hsl(var(--green-hsl)); }
 

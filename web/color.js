@@ -232,7 +232,6 @@ function buildColumns(tokens) {
 // a fill that animates at the duration — beside its live var() usage count, so
 // the scale's shape and its bloat (unused / rare steps) read at a glance. ─────
 const SAMPLE = 'Sundog';
-function visSpace(t) { return `<i class="sc-bar" style="width:${esc(t.value)}"></i>`; }
 function visRadius(t) { return `<i class="sc-rad" style="border-radius:${esc(t.value)}"></i>`; }
 function visFont(t) { return `<span class="sc-txt" style="font-family:${esc(t.value)}">Neon rain 0123</span>`; }
 function visFs(t) { return `<span class="sc-txt" style="font-size:${esc(t.value)}">${SAMPLE} 42</span>`; }
@@ -240,22 +239,24 @@ function visFw(t) { return `<span class="sc-txt" style="font-weight:${esc(t.valu
 function visLh(t) { return `<span class="sc-para" style="line-height:${esc(t.value)}">console static<br>stacked into<br>a rhythm</span>`; }
 function visTrack(t) { return `<span class="sc-txt sc-caps" style="letter-spacing:${esc(t.value)}">MATRIX</span>`; }
 function visBlur(t) { return `<span class="sc-txt sc-blur" style="filter:blur(${esc(t.value)})">GRID</span>`; }
-function visDoc(t) { return `<i class="sc-sw"><i class="sc-fill" style="background:${esc(t.value)}"></i></i>`; }
 
 // prefix -> {title, unit, num (sort by numeric value), vis (row visual)}
 const SCALE_FAMS = [
-  { title: 'Spacing', pfx: 'space-', unit: 'steps', num: true, vis: visSpace },
-  { title: 'Radius', pfx: 'radius-', unit: 'steps', num: true, vis: visRadius },
+  { title: 'Radius', pfx: 'radius-', unit: 'steps', num: true, vis: visRadius, hideUnused: true },
   { title: 'Font family', pfx: 'font-', unit: 'families', num: false, vis: visFont },
   { title: 'Font size', pfx: 'fs-', unit: 'sizes', num: true, vis: visFs },
   { title: 'Font weight', pfx: 'fw-', unit: 'weights', num: true, vis: visFw },
   { title: 'Line height', pfx: 'lh-', unit: 'steps', num: true, vis: visLh },
   { title: 'Tracking', pfx: 'tracking-', unit: 'steps', num: true, vis: visTrack },
   { title: 'Blur', pfx: 'blur', unit: 'steps', num: true, vis: visBlur },
-  { title: 'Document theme', pfx: 'doc-', unit: 'colors', num: false, vis: visDoc },
 ];
 const SCALE_PFX = SCALE_FAMS.map(f => f.pfx);
-function isScaleName(n) { return SCALE_PFX.some(p => n.startsWith(p)); }
+// structural tokens that live in the same :root but aren't rendered on the
+// board — spacing + z-layers (dropped as families), plus doc-* (folded back
+// into the palette colours). Hidden here so they don't leak into the colour
+// board as broken numeric/alias "colours".
+const HIDDEN_PFX = ['space-', 'z-', 'doc-'];
+function isScaleName(n) { return SCALE_PFX.some(p => n.startsWith(p)) || HIDDEN_PFX.some(p => n.startsWith(p)); }
 
 // one token = one card: the visual, then --name / value / ×count, with a
 // trim flag when the token is unused (dead) or barely used (rare).
@@ -286,6 +287,7 @@ function scaleSectionHtml(parsed, usage) {
   const toks = scaleTokensOf(parsed, usage);
   const blocks = SCALE_FAMS.map(fam => {
     let rows = toks.filter(t => t.name.startsWith(fam.pfx));
+    if (fam.hideUnused) rows = rows.filter(t => (t.count || 0) > 0);
     if (fam.num) rows = rows.slice().sort((a, b) => parseFloat(a.value) - parseFloat(b.value));
     if (!rows.length) return '';
     const cards = rows.map(t => scaleCard(t, fam.vis)).join('');
@@ -296,7 +298,7 @@ function scaleSectionHtml(parsed, usage) {
   }).join('');
   return `<div class="sc-section">
     <div class="clr-title sc-h1">Scale</div>
-    <div class="sc-note">Structural design tokens — spacing, type, motion, layers — from the same chrome.css <code>:root</code>. Each renders at its real value; &times;N is its live <code>var()</code> count across the app. <span class="sc-dead">unused</span> and <span class="sc-rare">rare</span> flag trim candidates.</div>
+    <div class="sc-note">Structural design tokens — radius, type, and blur — from the same chrome.css <code>:root</code>. Each renders at its real value; &times;N is its live <code>var()</code> count across the app. <span class="sc-dead">unused</span> and <span class="sc-rare">rare</span> flag trim candidates.</div>
     <div class="sc-board">${blocks}</div>
   </div>`;
 }

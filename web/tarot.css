@@ -290,11 +290,11 @@ body.opening-pending .msg.assistant { display:none; }
 .msg { max-width:720px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* reader voice on the document palette: soften only the reader's PROSE to the
-   --doc-* green (matching /mtg + the doc reading pages) with a gentler glow.
+   document-theme green (matching /mtg + the doc reading pages) with a gentler glow.
    The spread, cards, Significator, status bar, buttons, cursor, and black
    background keep tarot's neon phosphor mood — this is the reader turn only. */
 .msg.assistant {
-  color: var(--doc-ink) !important;
+  color: hsl(var(--green-hsl) / 0.8) !important;
   text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12);
 }
-.msg.assistant a { color: var(--doc-cyan) !important; }
+.msg.assistant a { color: hsl(var(--cyan-hsl) / 0.8) !important; }

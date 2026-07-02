@@ -182,66 +182,50 @@
   --z-modal:   9990;
   --z-top:     9999;
   --z-max:     10000;
-
-  /* ── Document theme — the reading-page skin (card + ruled headers + chips)
-        for /debug, /emet, /color, /mtg, /tarot chat, /security. Built ENTIRELY
-        from the palette tokens above (no new colours): the app's phosphor green
-        on black, plus cyan links + pink for destructive. Surfaces are green
-        mixed into the black ground; every alpha is on the snap scale and within
-        green's 4-step budget (0.12/0.45/0.8/1). ──────────────────────────── */
-  --doc-bg:        color-mix(in srgb, hsl(var(--green-hsl)) 5%, hsl(var(--bg-hsl)));
-  --doc-surface:   color-mix(in srgb, hsl(var(--green-hsl)) 9%, hsl(var(--bg-hsl)));
-  --doc-ink:       hsl(var(--green-hsl) / 0.8);
-  --doc-ink-soft:  hsl(var(--green-hsl) / 0.45);
-  --doc-green:     hsl(var(--green-hsl));
-  --doc-green-dim: hsl(var(--green-hsl) / 0.45);
-  --doc-cyan:      hsl(var(--cyan-hsl) / 0.8);
-  --doc-pink:      hsl(var(--pink-hsl));
-  --doc-rule:      hsl(var(--green-hsl) / 0.12);
-  --doc-chip:      hsl(var(--green-hsl) / 0.12);
 }
 
 /* Document-theme components — apply these classes on a reading page's wrapper /
-   section headers / tags; the page's own CSS keeps only page-specific layout
-   and references the --doc-* tokens for any extra colour. */
-.doc-page { background: var(--doc-bg); }
+   section headers / tags; the page's own CSS keeps only page-specific layout.
+   Colours are the raw palette (phosphor green on black, cyan links, pink for
+   destructive) referenced directly — no --doc-* alias layer. */
+.doc-page { background: hsl(var(--bg-hsl)); }
 
 .doc-card {
   width: min(780px, 92vw);
   margin: var(--space-10) auto calc(var(--nav-h, 64px) + var(--space-8));
   position: relative;
   z-index: var(--z-raised);
-  background: var(--doc-surface);
-  border: 1px solid var(--doc-rule);
+  background: hsl(var(--green-hsl) / 0.12);
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
   border-radius: var(--radius-4);
   box-shadow: 0 0 0 1px hsl(var(--green-hsl) / 0.12), 0 0 50px hsl(var(--green-hsl) / 0.12);
   text-shadow: 0 0 2px hsl(var(--green-hsl) / 0.12);
   padding: 52px clamp(28px, 6vw, 60px) 44px;
-  color: var(--doc-ink);
+  color: hsl(var(--green-hsl) / 0.8);
   font-family: var(--font-mono);
   font-weight: var(--fw-normal);
   font-size: var(--fs-xl);
   line-height: var(--lh-relaxed);
 }
-.doc-card a { color: var(--doc-cyan); text-decoration: none; }
+.doc-card a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: none; }
 .doc-card a:hover { text-decoration: underline; }
-.doc-card strong { color: var(--doc-green); font-weight: var(--fw-bold); }
+.doc-card strong { color: hsl(var(--green-hsl)); font-weight: var(--fw-bold); }
 
 .doc-h2 {
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-mega);
-  color: var(--doc-green);
+  color: hsl(var(--green-hsl));
   margin: 0 0 var(--space-7);
   padding-bottom: var(--space-2-5);
-  border-bottom: 1px solid var(--doc-rule);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
 }
 
 .doc-chip {
   display: inline-block;
-  background: var(--doc-chip);
-  color: var(--doc-green);
+  background: hsl(var(--green-hsl) / 0.12);
+  color: hsl(var(--green-hsl));
   font-size: var(--fs-sm);
   padding: var(--space-px) var(--space-2);
   border-radius: var(--radius-2);
