@@ -3,7 +3,7 @@ body { display:block !important; height:100vh; overflow:hidden !important; flex-
 #terminal {
   position:fixed; inset:0 0 104px;
   overflow-y:auto; padding: var(--space-6) var(--space-7);
-  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm); line-height: var(--lh-normal);
+  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm); line-height: var(--lh-snug);
   color:hsl(var(--green-hsl) / 1);
   display:flex; flex-direction:column;
 }
@@ -80,7 +80,7 @@ html.kb-open #terminal { transition: bottom 0.13s ease-out, inset 0.13s ease-out
   color:rgba(255,255,255,0.75); caret-color:hsl(var(--green-hsl) / 1);
   font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm);
   padding:0; outline:none; position:relative;
-  line-height: var(--lh-normal); min-height:1.45em; overflow-wrap:anywhere;
+  line-height: var(--lh-snug); min-height:1.45em; overflow-wrap:anywhere;
 }
 #msg-input:empty::before { content:attr(data-placeholder); color:hsl(var(--green-hsl) / 0.12); }
 

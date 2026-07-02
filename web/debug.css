@@ -54,7 +54,7 @@ a:hover { text-decoration: underline; }
 
 .dbg-log-hdr {
   font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); margin-bottom: var(--space-2-5);
-  text-transform: uppercase; letter-spacing: var(--tracking-caps);
+  text-transform: uppercase; letter-spacing: var(--tracking-mega);
   display: flex; align-items: center; gap: var(--space-3); cursor: pointer;
 }
 .dbg-log-hdr:hover { color: hsl(var(--green-hsl)); }
@@ -98,7 +98,7 @@ a:hover { text-decoration: underline; }
 
 /* type tag = recruiter chip */
 .dbg-ve-type {
-  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-x);
+  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wide);
   padding: var(--space-px) var(--space-2); border-radius: var(--radius-2);
   background: hsl(var(--green-hsl) / 0.12); flex-shrink: 0;
 }
@@ -137,7 +137,7 @@ a:hover { text-decoration: underline; }
 
 /* ── moltbook heartbeat (rendered markdown) ─────────────────────────────── */
 #dbg-moltbook h1, #dbg-moltbook h2, #dbg-moltbook h3 {
-  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-caps);
+  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-mega);
   color: hsl(var(--green-hsl)); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   padding-bottom: var(--space-1-5); margin: var(--space-6) 0 var(--space-2-5);
   font-weight: var(--fw-bold);

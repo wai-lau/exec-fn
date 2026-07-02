@@ -10,7 +10,7 @@ body { background: hsl(var(--bg-hsl)); }
 .emet-head { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
 
 .emet-lede {
-  margin: 0; font-size: var(--fs-sm); letter-spacing: var(--tracking-widest);
+  margin: 0; font-size: var(--fs-sm); letter-spacing: var(--tracking-mega);
   text-transform: uppercase; color: hsl(var(--green-hsl) / 0.45);
 }
 .emet-head #gpu-mode { margin-left: auto; flex: none; }
@@ -63,9 +63,9 @@ body { background: hsl(var(--bg-hsl)); }
 }
 .emet-obs-text { color: hsl(var(--green-hsl) / 0.8); }
 
-.emet-matched { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: hsl(var(--green-hsl) / 0.45); }
+.emet-matched { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
 .emet-empty { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); font-style: italic; }
-.emet-capped { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wider); color: hsl(var(--pink-hsl)); }
+.emet-capped { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: hsl(var(--pink-hsl)); }
 
 .emet-offline {
   font-size: var(--fs-sm); color: hsl(var(--pink-hsl));
@@ -82,7 +82,7 @@ body { background: hsl(var(--bg-hsl)); }
 /* status chips (recruiter chip idiom) */
 .emet-badge {
   align-self: flex-start; font-size: var(--fs-2xs); text-transform: uppercase;
-  letter-spacing: var(--tracking-wider); padding: var(--space-0-5) var(--space-2-5);
+  letter-spacing: var(--tracking-wide); padding: var(--space-0-5) var(--space-2-5);
   border-radius: var(--radius-2);
 }
 .badge-ok { color: hsl(var(--bg-hsl)); background: hsl(var(--green-hsl)); }

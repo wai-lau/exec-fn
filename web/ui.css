@@ -20,7 +20,7 @@ body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 /* color name rendered as a doc section header */
 .clr-title {
   font-size: var(--fs-sm); font-weight: var(--fw-bold); text-transform: uppercase;
-  letter-spacing: var(--tracking-caps); color: hsl(var(--green-hsl));
+  letter-spacing: var(--tracking-mega); color: hsl(var(--green-hsl));
   padding-bottom: var(--space-1-5); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
 }
 
@@ -76,7 +76,7 @@ body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 /* per-family visuals */
 .sc-bar { display: block; height: 8px; background: hsl(var(--green-hsl)); border-radius: var(--radius-1); }
 .sc-rad { display: block; width: 30px; height: 30px; background: hsl(var(--green-hsl) / 0.12); border: 1px solid hsl(var(--green-hsl)); }
-.sc-txt { color: hsl(var(--green-hsl) / 0.8); line-height: var(--lh-tight); white-space: nowrap; }
+.sc-txt { color: hsl(var(--green-hsl) / 0.8); line-height: var(--lh-snug); white-space: nowrap; }
 .sc-caps { text-transform: uppercase; }
 .sc-blur { color: hsl(var(--green-hsl)); font-weight: var(--fw-bold); }
 .sc-para { display: block; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); }

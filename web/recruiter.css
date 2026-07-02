@@ -229,7 +229,7 @@ body::-webkit-scrollbar { display: none; }
   margin: var(--space-4) 0 var(--space-1-5);
   color: var(--cv-ink);
   font-size: var(--fs-xl);
-  line-height: var(--lh-loose);
+  line-height: var(--lh-relaxed);
 }
 
 /* during the type-out the real blurb is hidden but stays in flow, reserving the
@@ -303,7 +303,7 @@ body::-webkit-scrollbar { display: none; }
   color: var(--cv-green-dim);
   font-size: var(--fs-sm);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
+  letter-spacing: var(--tracking-mega);
   margin: var(--space-6) 0 var(--space-2-5);
 }
 .cv ul { list-style: none; }
@@ -333,7 +333,7 @@ body::-webkit-scrollbar { display: none; }
   color: var(--cv-green);
   font-size: var(--fs-sm);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-x);
+  letter-spacing: var(--tracking-wide);
   padding-top: var(--space-2);
 }
 .cv-skillrow dd { display: flex; flex-wrap: wrap; gap: var(--space-2); }

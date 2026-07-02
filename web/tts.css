@@ -56,7 +56,7 @@
    holds its height from first paint -- the count landing must not shift layout. */
 #tts-presence {
   font-size: var(--fs-sm);
-  letter-spacing: var(--tracking-wider);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   text-align: left;
   color: hsl(var(--green-hsl) / 0.45);
@@ -102,7 +102,7 @@
 .tts #tts-status {
   min-width: 0;
   font-size: var(--fs-sm);
-  letter-spacing: var(--tracking-wider);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   text-align: left;
   color: hsl(var(--green-hsl) / 0.45);
@@ -115,7 +115,7 @@
 .tts-group {
   color: hsl(var(--green-hsl) / 0.45);
   font-size: var(--fs-sm);
-  letter-spacing: var(--tracking-widest);
+  letter-spacing: var(--tracking-mega);
   text-transform: uppercase;
   margin-top: var(--space-2);
 }

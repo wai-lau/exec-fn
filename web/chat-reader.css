@@ -11,7 +11,7 @@
 /* merged input */
 #input-bar { transition: opacity 0.7s ease; background: transparent !important; border-top: none !important; padding: 0 var(--space-7) var(--space-2-5) !important; }
 #input-line { border-bottom: none !important; padding: 0 !important; align-items: flex-start !important; }
-#input-prompt { font-size: var(--fs-sm) !important; padding-right: 0.6em !important; line-height: var(--lh-normal) !important; }
+#input-prompt { font-size: var(--fs-sm) !important; padding-right: 0.6em !important; line-height: var(--lh-snug) !important; }
 #terminal { padding-bottom: 0 !important; }
 
 /* Cap the contenteditable so a big paste scrolls instead of growing the input
@@ -22,7 +22,7 @@
 .msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
 
 /* reader voice: slightly heavier, more breathing room */
-.msg.assistant { font-weight: var(--fw-normal); line-height: var(--lh-loose); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl)) !important; }
+.msg.assistant { font-weight: var(--fw-normal); line-height: var(--lh-relaxed); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl)) !important; }
 .msg.assistant p { margin: 0 0 var(--space-3); }
 .msg.assistant strong { font-weight: var(--fw-bold); }
 .msg.assistant a { color: hsl(var(--cyan-hsl) / 0.45) !important; text-decoration: underline !important; }
