@@ -104,12 +104,15 @@ function mergedSites(col) {
   return ts;
 }
 
-// vertical site list for one column, most-used to least
+// vertical site list for one column, most-used to least — collapsed by default
+// behind a "> [ show usage ]" toggle (native <details>).
 function siteListHtml(siteMap) {
   const entries = Object.entries(siteMap || {}).sort((x, y) => y[1] - x[1]);
   if (!entries.length) return '';
-  return `<ul class="clr-uselist">${entries.map(([lbl, n]) =>
-    `<li>${esc(lbl)} <span class="clr-cnt">&times;${n}</span></li>`).join('')}</ul>`;
+  const items = entries.map(([lbl, n]) =>
+    `<li>${esc(lbl)} <span class="clr-cnt">&times;${n}</span></li>`).join('');
+  return `<details class="clr-usedet"><summary>[ show usage ]</summary>` +
+    `<ul class="clr-uselist">${items}</ul></details>`;
 }
 
 // Gibson-voiced blurbs for the four card categories
@@ -231,24 +234,28 @@ function buildColumns(tokens) {
 // visual — a bar sized to the spacing value, sample text at the type token,
 // a fill that animates at the duration — beside its live var() usage count, so
 // the scale's shape and its bloat (unused / rare steps) read at a glance. ─────
-const SAMPLE = 'Sundog';
 function visRadius(t) { return `<i class="sc-rad" style="border-radius:${esc(t.value)}"></i>`; }
-function visFont(t) { return `<span class="sc-txt" style="font-family:${esc(t.value)}">Neon rain 0123</span>`; }
-function visFs(t) { return `<span class="sc-txt" style="font-size:${esc(t.value)}">${SAMPLE} 42</span>`; }
-function visFw(t) { return `<span class="sc-txt" style="font-weight:${esc(t.value)}">${SAMPLE}</span>`; }
+// font family: the typeface's own name, set IN that family (Iosevka / BitLight / …)
+function visFont(t) {
+  const fam = t.value.split(',')[0].replace(/['"]/g, '').trim();
+  return `<span class="sc-txt" style="font-family:${esc(t.value)}">${esc(fam)}</span>`;
+}
+// size + weight self-label: the token's own name rendered at that value
+function visFs(t) { return `<span class="sc-txt" style="font-size:${esc(t.value)}">--${esc(t.name)}</span>`; }
+function visFw(t) { return `<span class="sc-txt" style="font-weight:${esc(t.value)}">--${esc(t.name)}</span>`; }
 function visLh(t) { return `<span class="sc-para" style="line-height:${esc(t.value)}">console static<br>stacked into<br>a rhythm</span>`; }
 function visTrack(t) { return `<span class="sc-txt sc-caps" style="letter-spacing:${esc(t.value)}">MATRIX</span>`; }
 function visBlur(t) { return `<span class="sc-txt sc-blur" style="filter:blur(${esc(t.value)})">GRID</span>`; }
 
 // prefix -> {title, unit, num (sort by numeric value), vis (row visual)}
 const SCALE_FAMS = [
-  { title: 'Radius', pfx: 'radius-', unit: 'steps', num: true, vis: visRadius, hideUnused: true },
-  { title: 'Font family', pfx: 'font-', unit: 'families', num: false, vis: visFont },
-  { title: 'Font size', pfx: 'fs-', unit: 'sizes', num: true, vis: visFs },
-  { title: 'Font weight', pfx: 'fw-', unit: 'weights', num: true, vis: visFw },
-  { title: 'Line height', pfx: 'lh-', unit: 'steps', num: true, vis: visLh },
-  { title: 'Tracking', pfx: 'tracking-', unit: 'steps', num: true, vis: visTrack },
-  { title: 'Blur', pfx: 'blur', unit: 'steps', num: true, vis: visBlur },
+  { title: 'Radius', pfx: 'radius-', num: true, vis: visRadius, hideUnused: true },
+  { title: 'Font family', pfx: 'font-', num: false, vis: visFont },
+  { title: 'Font size', pfx: 'fs-', num: true, vis: visFs },
+  { title: 'Font weight', pfx: 'fw-', num: true, vis: visFw },
+  { title: 'Line height', pfx: 'lh-', num: true, vis: visLh },
+  { title: 'Tracking', pfx: 'tracking-', num: true, vis: visTrack },
+  { title: 'Blur', pfx: 'blur', num: true, vis: visBlur },
 ];
 const SCALE_PFX = SCALE_FAMS.map(f => f.pfx);
 // structural tokens that live in the same :root but aren't rendered on the
@@ -258,20 +265,15 @@ const SCALE_PFX = SCALE_FAMS.map(f => f.pfx);
 const HIDDEN_PFX = ['space-', 'z-', 'doc-'];
 function isScaleName(n) { return SCALE_PFX.some(p => n.startsWith(p)) || HIDDEN_PFX.some(p => n.startsWith(p)); }
 
-// one token = one card: the visual, then --name / value / ×count, with a
-// trim flag when the token is unused (dead) or barely used (rare).
-function scaleCard(t, vis) {
-  const c = t.count || 0;
-  const flag = c === 0 ? '<span class="sc-flag sc-dead">unused</span>'
-    : c <= 2 ? '<span class="sc-flag sc-rare">rare</span>' : '';
-  return `<div class="sc-card${c === 0 ? ' sc-dim' : ''}">
-    <div class="sc-vis">${vis(t)}</div>
-    <div class="sc-meta">
-      <span class="sc-name">--${esc(t.name)}</span>
-      <span class="sc-sub"><span class="sc-val">${esc(t.value)}</span>
-        <span class="sc-cnt">${c ? `&times;${c}` : ''}</span>${flag}</span>
-    </div>
-  </div>`;
+// merge every alpha bucket of a token's usage sites into one {label:count}.
+// scale tokens carry a single "*" bucket; -hsl colours carry per-alpha buckets.
+function flatSites(token) {
+  const buckets = SITES[token] || {};
+  const out = {};
+  for (const k of Object.keys(buckets)) {
+    for (const [lbl, n] of Object.entries(buckets[k])) out[lbl] = (out[lbl] || 0) + n;
+  }
+  return out;
 }
 
 // scale tokens off the parsed :root, tagged with their var() counts; the zero
@@ -283,24 +285,37 @@ function scaleTokensOf(parsed, usage) {
     .map(t => ({ name: t.name, value: t.value, count: counts[t.name] || 0 }));
 }
 
-function scaleSectionHtml(parsed, usage) {
+// one family = one table in the SAME format as the colour tables: 4 columns
+// (one per token, padded to 4), rows = visual / --name / value / ×count / usage
+// sites. No "Scale" header, no step count — it reads as more of the colour board.
+function scaleTableHtml(fam, toks) {
+  const cells = toks.slice(0, 4);
+  const pad = 4 - cells.length;
+  const td = (inner, cls) => `<td${cls ? ` class="${cls}"` : ''}>${inner}</td>`;
+  const empties = (cls) => td('', cls).repeat(pad);
+  const row = (fn, cls) => `<tr>${cells.map(fn).join('')}${empties(cls)}</tr>`;
+  return `<div class="clr-group">
+    <div class="clr-title">${esc(fam.title)}</div>
+    <table class="clr-tbl">
+      ${row(t => td(`<div class="sc-vis">${fam.vis(t)}</div>`))}
+      ${row(t => td(`<span class="sc-name">--${esc(t.name)}</span>`))}
+      ${row(t => td(`<span class="sc-val">${esc(t.value)}</span>`))}
+      ${row(t => td(`<span class="clr-cnt">&times;${t.count || 0}</span>`))}
+      ${row(t => td(siteListHtml(flatSites(t.name)), 'clr-usecell'), 'clr-usecell')}
+    </table>
+  </div>`;
+}
+
+// all scale families as colour-style tables (concatenated, no section wrapper).
+function scaleGroupsHtml(parsed, usage) {
   const toks = scaleTokensOf(parsed, usage);
-  const blocks = SCALE_FAMS.map(fam => {
+  return SCALE_FAMS.map(fam => {
     let rows = toks.filter(t => t.name.startsWith(fam.pfx));
     if (fam.hideUnused) rows = rows.filter(t => (t.count || 0) > 0);
     if (fam.num) rows = rows.slice().sort((a, b) => parseFloat(a.value) - parseFloat(b.value));
     if (!rows.length) return '';
-    const cards = rows.map(t => scaleCard(t, fam.vis)).join('');
-    return `<div class="sc-group">
-      <div class="clr-title">${esc(fam.title)} <span class="sc-headn">${rows.length} ${esc(fam.unit)}</span></div>
-      <div class="sc-cards">${cards}</div>
-    </div>`;
+    return scaleTableHtml(fam, rows);
   }).join('');
-  return `<div class="sc-section">
-    <div class="clr-title sc-h1">Scale</div>
-    <div class="sc-note">Structural design tokens — radius, type, and blur — from the same chrome.css <code>:root</code>. Each renders at its real value; &times;N is its live <code>var()</code> count across the app. <span class="sc-dead">unused</span> and <span class="sc-rare">rare</span> flag trim candidates.</div>
-    <div class="sc-board">${blocks}</div>
-  </div>`;
 }
 
 async function loadColors() {
@@ -322,11 +337,11 @@ async function loadColors() {
         return ka[0] - kb[0] || ka[1] - kb[1];
       });
     if (!tokens.length) { board.innerHTML = '<div class="clr-empty">no :root palette found in chrome.css</div>'; return; }
-    // one table per color (merged by value), hue-ordered, wrapping; then the
-    // non-colour scale tokens (spacing/type/motion/layers) below.
+    // one table per color (merged by value, hue-ordered), then the non-colour
+    // scale-token families as tables in the identical format — one board.
     board.innerHTML =
-      `<div class="clr-board">${buildColumns(tokens).map(groupHtml).join('')}</div>` +
-      scaleSectionHtml(parsed, usage);
+      `<div class="clr-board">${buildColumns(tokens).map(groupHtml).join('')}` +
+      `${scaleGroupsHtml(parsed, usage)}</div>`;
   } catch (e) {
     board.innerHTML = `<div class="clr-empty">failed to load palette: ${esc(e.message)}</div>`;
   }
