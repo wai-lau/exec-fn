@@ -12,7 +12,7 @@ import pytest
 from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 
 # Public — no auth, must render.
-PUBLIC_PAGES = ["/", "/recruiter", "/color", "/graph", "/nightfall", "/login", "/guest"]
+PUBLIC_PAGES = ["/", "/recruiter", "/UI", "/graph", "/nightfall", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
 PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/emet"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
@@ -106,7 +106,7 @@ def test_guest_post_no_token_rejected(client):
 
 # ── read-only JSON API (a couple, as a wiring check) ────────────────────────────
 def test_public_json_api_loads(client):
-    r = client.get("/api/color/usage")
+    r = client.get("/api/ui/usage")
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("application/json")
 
