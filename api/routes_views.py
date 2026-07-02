@@ -235,7 +235,8 @@ async def ui_page(request: Request):
 @public.get("/api/ui/usage")
 async def ui_usage():
     """var(--X) occurrence counts + actually-used alphas per -hsl token +
-    per-(token, alpha) usage sites, across templates + web assets, for the
+    usage sites (per-(token, alpha) for -hsl colours; per-token under a flat
+    "*" bucket for scale tokens), across templates + web assets, for the
     /UI moodboard. Definitions (`--x:`) don't match, so chrome.css only
     contributes its own genuine usages. Bare hsl(var(--X-hsl)) counts as
     alpha 1. Public: token names + derived site labels only."""
@@ -277,8 +278,16 @@ async def ui_usage():
             # drop the :root definition block — its usage-hint comments
             # would inflate counts
             text = re.sub(r":root\s*\{[^}]*\}", "", text)
-        for name in re.findall(r"var\(--([\w-]+)", text):
+        for m in re.finditer(r"var\(--([\w-]+)", text):
+            name = m.group(1)
             counts[name] = counts.get(name, 0) + 1
+            # non-hsl (scale) tokens: record usage sites under a flat "*" bucket
+            # so /UI can list WHERE each scale token is used, like the colour
+            # tables. -hsl tokens get their alpha-keyed sites in the loop below.
+            if not name.endswith("-hsl"):
+                label = site_label(text, m.start(), p.name)
+                bucket = sites.setdefault(name, {}).setdefault("*", {})
+                bucket[label] = bucket.get(label, 0) + 1
         for m in re.finditer(r"var\(--([\w-]+-hsl)\)(?:\s*/\s*([\d.]+))?", text):
             name = m.group(1)
             a = float(m.group(2)) if m.group(2) else 1.0

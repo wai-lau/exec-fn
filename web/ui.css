@@ -37,48 +37,30 @@ body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 
 /* effects/usage cells */
 .clr-tbl td.clr-usecell { vertical-align: top; text-align: left; padding-top: var(--space-2); }
-.clr-uselist { margin: 0; padding-left: var(--space-5); font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); list-style: disc; }
+.clr-uselist { margin: var(--space-1) 0 0; padding-left: var(--space-5); font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); list-style: disc; }
 .clr-uselist li { line-height: var(--lh-snug); overflow-wrap: anywhere; }
+
+/* usage list collapsed by default behind a "> [ show usage ]" toggle */
+.clr-usedet > summary { list-style: none; cursor: pointer; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); }
+.clr-usedet > summary::-webkit-details-marker { display: none; }
+.clr-usedet > summary::before { content: '> '; }
+.clr-usedet[open] > summary::before { content: 'v '; }
+.clr-usedet > summary:hover { color: hsl(var(--green-hsl) / 0.8); }
 .clr-guse { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); line-height: var(--lh-snug); overflow-wrap: anywhere; white-space: normal; }
 .clr-empty { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); padding: var(--space-2-5) 0; }
 
-/* ── Scale section — the non-colour design tokens, one family per block, each a
-   wrapping grid of token cards (visual on top, --name / value / ×count below).
-   The visual renders the token at its real value: bars sized to spacing, text
-   at the type token, a fill that animates at the duration. ──────────── */
-.sc-section { display: flex; flex-direction: column; gap: var(--space-8); margin-top: var(--space-10); }
-.sc-h1 { font-size: var(--fs-sm); }
-.sc-note { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); line-height: var(--lh-snug); margin-top: calc(-1 * var(--space-4)); }
-.sc-note code { color: hsl(var(--cyan-hsl) / 0.8); font-family: var(--font-mono); }
-.sc-board { display: flex; flex-direction: column; gap: var(--space-7); }
-.sc-group { display: flex; flex-direction: column; gap: var(--space-3); }
-.sc-headn { color: hsl(var(--green-hsl) / 0.45); font-weight: var(--fw-normal); text-transform: none; letter-spacing: var(--tracking-wide); }
-.sc-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
-
-@media (width <= 640px) { .sc-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-.sc-card {
-  display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3); border: 1px solid hsl(var(--green-hsl) / 0.12);
-  border-radius: var(--radius-2); background: hsl(var(--green-hsl) / 0.12);
-}
-.sc-card.sc-dim { opacity: 0.55; }
-.sc-vis { min-height: 38px; display: flex; align-items: center; overflow: hidden; }
-.sc-meta { display: flex; flex-direction: column; gap: var(--space-0-5); }
+/* ── Scale-token families — rendered as tables in the SAME format as the colour
+   tables above (.clr-tbl): rows are visual / --name / value / ×count / usage.
+   Only the per-token visual + label cells are bespoke; the table chrome, counts
+   (.clr-cnt) and usage lists (.clr-usecell/.clr-uselist) reuse the .clr-* classes.
+   ──────────────────────────────────────────────────────────────────────────── */
+.sc-vis { min-height: 38px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .sc-name { font-family: var(--font-mono); font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); overflow-wrap: anywhere; }
-.sc-sub { display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--fs-2xs); }
-.sc-val { color: hsl(var(--green-hsl) / 0.45); font-family: var(--font-mono); }
-.sc-cnt { color: hsl(var(--green-hsl) / 0.45); }
-.sc-flag { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
-.sc-dead { color: hsl(var(--pink-hsl)); }
-.sc-rare { color: hsl(var(--green-hsl) / 0.45); }
+.sc-val { font-family: var(--font-mono); color: hsl(var(--green-hsl) / 0.45); overflow-wrap: anywhere; }
 
-/* per-family visuals */
-.sc-bar { display: block; height: 8px; background: hsl(var(--green-hsl)); border-radius: var(--radius-1); }
+/* per-family visuals — each rendered at the token's own real value */
 .sc-rad { display: block; width: 30px; height: 30px; background: hsl(var(--green-hsl) / 0.12); border: 1px solid hsl(var(--green-hsl)); }
 .sc-txt { color: hsl(var(--green-hsl) / 0.8); line-height: var(--lh-snug); white-space: nowrap; }
 .sc-caps { text-transform: uppercase; }
 .sc-blur { color: hsl(var(--green-hsl)); font-weight: var(--fw-bold); }
 .sc-para { display: block; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); }
-.sc-sw { display: block; width: 100%; height: 26px; border-radius: var(--radius-1); overflow: hidden; background: hsl(0deg 0% 0% / 0.3); }
-.sc-fill { display: block; width: 100%; height: 100%; }
