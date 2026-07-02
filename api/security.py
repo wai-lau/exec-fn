@@ -83,7 +83,7 @@ body{background:hsl(var(--bg-hsl))}
 /* origin map bleeds to the card edges (cancels .doc-card's 52px/clamp h-padding),
    scaling it up full-width; the h3 title stays inset with the rest. */
 .spanel-map .sc{width:calc(100% + 2 * clamp(28px, 6vw, 60px));margin-left:calc(-1 * clamp(28px, 6vw, 60px))}
-.spanel h3{margin:0;font-size:var(--fs-sm);color:hsl(var(--green-hsl));text-transform:uppercase;letter-spacing:var(--tracking-caps)}.spanel .ssub{color:hsl(var(--green-hsl) / 0.45);font-size:var(--fs-sm);margin:var(--space-0-5) 0 var(--space-3)}
+.spanel h3{margin:0;font-size:var(--fs-sm);color:hsl(var(--green-hsl));text-transform:uppercase;letter-spacing:var(--tracking-mega)}.spanel .ssub{color:hsl(var(--green-hsl) / 0.45);font-size:var(--fs-sm);margin:var(--space-0-5) 0 var(--space-3)}
 .sc{width:100%;height:auto;display:block}
 .sl{fill:hsl(var(--green-hsl) / 0.8);font-size:12px}.sv{fill:hsl(var(--green-hsl) / 0.45);font-size:11px}.sa{fill:hsl(var(--green-hsl) / 0.45);font-size:10px}.sp{fill:hsl(var(--green-hsl));font-size:11px;font-weight:600}
 .sg{fill:hsl(var(--green-hsl) / 0.12);font-size:9px}

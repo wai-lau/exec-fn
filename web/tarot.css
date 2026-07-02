@@ -242,7 +242,7 @@ body.opening-pending .msg.assistant { display:none; }
   white-space:nowrap;
   color:hsl(var(--green-hsl) / 0.45);
   font-family: var(--font-mono); font-size: var(--fs-sm);
-  text-align:center; line-height: var(--lh-tight);
+  text-align:center; line-height: var(--lh-snug);
   pointer-events:none;
 }
 

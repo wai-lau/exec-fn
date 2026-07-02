@@ -108,7 +108,7 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 
 .exec-todo {
   display: flex; align-items: flex-start; gap: 0.5em;
-  padding: var(--space-1) 0; font-size: var(--fs-sm); line-height: var(--lh-normal);
+  padding: var(--space-1) 0; font-size: var(--fs-sm); line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 1);
   transition: opacity 0.18s;
 }
@@ -136,13 +136,13 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   flex: 1; min-width: 0; background: none; border: none;
   color: hsl(var(--green-hsl) / 1); caret-color: hsl(var(--green-hsl) / 1);
   font-family: var(--font-mono); font-weight: var(--fw-normal);
-  font-size: var(--fs-sm); padding: 0; outline: none; line-height: var(--lh-normal);
+  font-size: var(--fs-sm); padding: 0; outline: none; line-height: var(--lh-snug);
 }
 #exec-todo-input::placeholder { color: hsl(var(--green-hsl) / 0.12); }
 
 #exec-term {
   flex: 1; overflow-y: auto; padding: var(--space-4) var(--space-5);
-  font-size: var(--fs-sm); line-height: var(--lh-normal); color: hsl(var(--green-hsl) / 1);
+  font-size: var(--fs-sm); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 1);
   display: flex; flex-direction: column;
   scrollbar-width: none; /* hide scrollbar (Firefox); still scrolls */
 }
@@ -192,5 +192,5 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
 #exec-idisp { display: none; }
 #exec-icursor { display: none; }
-#exec-minput { width: 100%; background: none; border: none; color: hsl(var(--green-hsl) / 1); caret-color: hsl(var(--green-hsl) / 1); font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm); padding: 0; outline: none; line-height: var(--lh-normal); min-height: 1.45em; overflow-wrap: anywhere; }
+#exec-minput { width: 100%; background: none; border: none; color: hsl(var(--green-hsl) / 1); caret-color: hsl(var(--green-hsl) / 1); font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm); padding: 0; outline: none; line-height: var(--lh-snug); min-height: 1.45em; overflow-wrap: anywhere; }
 #exec-minput:empty::before { content: attr(data-placeholder); color: hsl(var(--green-hsl) / 0.12); }

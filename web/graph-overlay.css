@@ -171,7 +171,7 @@ body.gp-info-open #sidebar {
   padding: var(--space-2) var(--space-2-5);
   font-family: var(--font-pixel);
   font-size: var(--fs-2xs);
-  letter-spacing: var(--tracking-wider);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   color: hsl(var(--green-hsl));
   background: hsl(var(--surface-hsl));
@@ -205,7 +205,7 @@ body.gp-info-open #sidebar {
   color: hsl(var(--green-hsl)) !important;
   font-family: var(--font-pixel) !important;
   font-size: var(--fs-2xs) !important;
-  letter-spacing: var(--tracking-wider);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
 }
 
@@ -301,7 +301,7 @@ body.gp-info-open #sidebar {
   margin: 0 0 var(--space-px) !important;
   padding: 0 !important;
   font-size: var(--fs-2xs) !important;
-  line-height: var(--lh-tight) !important;
+  line-height: var(--lh-snug) !important;
   white-space: normal !important;
 }
 

@@ -153,21 +153,14 @@
   --fw-bold:     700;
 
   /* ── Type: line-height ───────────────────────────────────────────────── */
-  --lh-none:    1;
-  --lh-tight:   1.2;
-  --lh-snug:    1.35;
-  --lh-normal:  1.45;
-  --lh-relaxed: 1.6;
-  --lh-loose:   1.7;
+  --lh-none:    1;      /* single-line: buttons, glyphs, icon rows */
+  --lh-snug:    1.35;   /* tight prose + UI text (default reading step) */
+  --lh-relaxed: 1.6;    /* airy: answer bodies, long-form */
 
   /* ── Type: letter-spacing (caps labels) ──────────────────────────────── */
-  --tracking-tight:  -0.01em;
-  --tracking-wide:   0.05em;
-  --tracking-wider:  0.08em;
-  --tracking-x:      0.1em;
-  --tracking-widest: 0.12em;
-  --tracking-caps:   0.15em;
-  --tracking-mega:   0.18em;
+  --tracking-tight:  -0.01em;   /* pull-in: recruiter display */
+  --tracking-wide:   0.05em;    /* subtle caps: labels, chips, buttons */
+  --tracking-mega:   0.18em;    /* loud spaced caps: section headers */
 
   /* ── Blur ────────────────────────────────────────────────────────────── */
   --blur-sm: 6px;
@@ -336,7 +329,7 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
   font-family: var(--font-pixel);
   font-size: var(--fs-2xs);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-x);
+  letter-spacing: var(--tracking-wide);
 }
 
 /* Standalone (home-screen / installed) launch: two rows, one empty cell of
@@ -385,7 +378,7 @@ html.standalone .exec-nav a {
   font-family: var(--font-pixel);
   font-size: var(--fs-sm);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
+  letter-spacing: var(--tracking-mega);
   opacity: 0.65;
   margin: var(--space-8) 0 var(--space-2-5);
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
