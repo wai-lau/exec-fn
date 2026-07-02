@@ -18,7 +18,12 @@ DERIVED from actual usage, the same extraction `/api/color/usage` feeds the
   5. NO RAW LITERAL -- no hardcoded colour literal (rgb/rgba/hex, or an
      hsl()/hsla() NOT of the token form hsl(var(--X-hsl))). The current set is
      grandfathered in scripts/raw-color-baseline.json; a NEW raw literal is
-     rejected. Named colours (transparent/currentcolor etc.) are not checked.
+     rejected.
+  6. NO NAMED COLOUR -- a CSS named colour (red/white/gold/...) in a colour
+     property is rejected outright (there are none to grandfather). Checked in
+     web/*.css declarations + template inline style="" attrs; token names like
+     --green-hsl are NOT misread (var()/functions/url()/hex stripped first).
+     `transparent`/`currentcolor` stay allowed (CSS-wide keywords, not names).
 
 Adding a colour or an alpha is a deliberate act: make the change, eyeball it on
 /color, then regenerate the baseline with `python3 scripts/lint-colors.py
@@ -60,6 +65,53 @@ _RAW_COLOR = re.compile(
     r"#[0-9a-fA-F]{3,8}\b"
     r"|rgba?\(\s*(?!var\()[^)]*\)"
     r"|hsla?\(\s*(?!var\()[^)]*\)"
+)
+
+# CSS named colours (the 148 keywords). A bare one in a colour property is a raw
+# literal; there are ZERO in the tree, so they're banned outright (no baseline).
+# `transparent`/`currentcolor` are CSS-wide keywords, deliberately NOT included.
+NAMED_COLORS = {
+    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque",
+    "black", "blanchedalmond", "blue", "blueviolet", "brown", "burlywood",
+    "cadetblue", "chartreuse", "chocolate", "coral", "cornflowerblue", "cornsilk",
+    "crimson", "cyan", "darkblue", "darkcyan", "darkgoldenrod", "darkgray",
+    "darkgreen", "darkgrey", "darkkhaki", "darkmagenta", "darkolivegreen",
+    "darkorange", "darkorchid", "darkred", "darksalmon", "darkseagreen",
+    "darkslateblue", "darkslategray", "darkslategrey", "darkturquoise",
+    "darkviolet", "deeppink", "deepskyblue", "dimgray", "dimgrey", "dodgerblue",
+    "firebrick", "floralwhite", "forestgreen", "fuchsia", "gainsboro", "ghostwhite",
+    "gold", "goldenrod", "gray", "green", "greenyellow", "grey", "honeydew",
+    "hotpink", "indianred", "indigo", "ivory", "khaki", "lavender", "lavenderblush",
+    "lawngreen", "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
+    "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey", "lightpink",
+    "lightsalmon", "lightseagreen", "lightskyblue", "lightslategray",
+    "lightslategrey", "lightsteelblue", "lightyellow", "lime", "limegreen", "linen",
+    "magenta", "maroon", "mediumaquamarine", "mediumblue", "mediumorchid",
+    "mediumpurple", "mediumseagreen", "mediumslateblue", "mediumspringgreen",
+    "mediumturquoise", "mediumvioletred", "midnightblue", "mintcream", "mistyrose",
+    "moccasin", "navajowhite", "navy", "oldlace", "olive", "olivedrab", "orange",
+    "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise",
+    "palevioletred", "papayawhip", "peachpuff", "peru", "pink", "plum", "powderblue",
+    "purple", "rebeccapurple", "red", "rosybrown", "royalblue", "saddlebrown",
+    "salmon", "sandybrown", "seagreen", "seashell", "sienna", "silver", "skyblue",
+    "slateblue", "slategray", "slategrey", "snow", "springgreen", "steelblue", "tan",
+    "teal", "thistle", "tomato", "turquoise", "violet", "wheat", "white",
+    "whitesmoke", "yellow", "yellowgreen",
+}
+# properties whose value carries a colour (so a bare named colour there is real).
+COLOR_PROPS = {
+    "color", "background", "background-color", "background-image", "border",
+    "border-color", "border-top", "border-right", "border-bottom", "border-left",
+    "border-top-color", "border-right-color", "border-bottom-color",
+    "border-left-color", "outline", "outline-color", "box-shadow", "text-shadow",
+    "fill", "stroke", "caret-color", "text-decoration-color", "column-rule-color",
+}
+_DECL = re.compile(r"([\w-]+)\s*:\s*([^;{}]+)")
+_STYLE_ATTR = re.compile(r'style\s*=\s*"([^"]*)"')
+# strip token refs + colour/maths functions + url() + hex so only bare words remain
+_STRIP_FUNCS = re.compile(
+    r"var\([^)]*\)|url\([^)]*\)|#[0-9a-fA-F]{3,8}"
+    r"|(?:hsla?|rgba?|hwb|lab|lch|oklab|oklch|color-mix|calc|min|max|clamp)\([^)]*\)"
 )
 
 
@@ -116,6 +168,33 @@ def raw_colors():
         for m in _RAW_COLOR.finditer(_strip_comments(p.read_text())):
             out.add(_norm_color(m.group(0)))
     return out
+
+
+def _named_in(value):
+    """A bare CSS named colour left in a value once tokens/functions/url()/hex
+    are stripped (so `hsl(var(--green-hsl))` is NOT read as the colour 'green')."""
+    for w in re.findall(r"[a-z]+", _STRIP_FUNCS.sub("", value.lower())):
+        if w in NAMED_COLORS:
+            return w
+    return None
+
+
+def named_color_errors():
+    """CSS named colour in a colour property -- web/*.css declarations + template
+    inline style="" attrs. There are none in the tree, so any hit is new."""
+    errors = []
+    for p in sorted(ROOT.glob("web/*.css")):
+        for m in _DECL.finditer(_strip_comments(p.read_text())):
+            if m.group(1).strip().lower() in COLOR_PROPS and (w := _named_in(m.group(2))):
+                errors.append(f"{p.name}: {m.group(1).strip()}: named colour '{w}' "
+                              f"-- use a palette token hsl(var(--X-hsl) / α).")
+    for p in sorted(ROOT.glob("api/templates/*.html")):
+        for sm in _STYLE_ATTR.finditer(p.read_text()):
+            for m in _DECL.finditer(sm.group(1)):
+                if m.group(1).strip().lower() in COLOR_PROPS and (w := _named_in(m.group(2))):
+                    errors.append(f"{p.name}: inline style named colour '{w}' "
+                                  f"-- use a palette token.")
+    return errors
 
 
 def _load_baseline():
@@ -182,6 +261,7 @@ def check():
         return 1
     errors = _token_errors(_load_baseline(), _defined_tokens(), usage())
     errors += _raw_color_errors()
+    errors += named_color_errors()
     if errors:
         print("palette lint: %d violation(s)" % len(errors))
         for e in errors:
