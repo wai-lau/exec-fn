@@ -15,22 +15,5 @@ body { display:flex; align-items:center; justify-content:center; height:100vh; }
 .login-box input[name="key"]:focus { border-bottom-color:#fff; }
 .login-box input[name="key"]::placeholder { color:rgba(255,255,255,0.35); }
 
-.login-box button.submit {
-  margin-top: var(--space-5); background:transparent;
-  border:1px solid rgba(255,255,255,0.4); color:rgba(255,255,255,0.7);
-  font-family: var(--font-mono); font-weight: var(--fw-normal);
-  font-size: var(--fs-xl); line-height: var(--lh-none); width:32px; height:32px;
-  border-radius:50%; cursor:pointer; outline:none;
-  display:flex; align-items:center; justify-content:center; padding:0;
-}
-
-.login-box button.submit:hover, .login-box button.submit:focus {
-  color:#fff; border-color:rgba(255,255,255,0.7);
-}
-
-/* admin link to /login (mirrors landing.css .landing-admin) */
-.landing-admin{position:fixed;bottom:18px;right:20px;z-index: var(--z-raised);
-  font-family: var(--font-pixel);font-size: var(--fs-2xs);text-transform:uppercase;
-  letter-spacing: var(--tracking-wide);text-decoration:none;color:hsl(var(--green-hsl) / 0.45);
-  transition:color 0.2s,text-shadow 0.2s;}
-.landing-admin:hover{color:hsl(var(--green-hsl));text-shadow:0 0 8px hsl(var(--green-hsl) / 0.45);}
+/* Turnstile auto-submits via guest_login.js onGuestVerified — no manual submit
+   button, no admin link (the page auto-continues on solve). */
