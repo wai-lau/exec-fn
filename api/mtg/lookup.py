@@ -67,6 +67,20 @@ def _load_rulings() -> dict:
     return by_oracle
 
 
+def _attach_rulings(summaries: list[dict]) -> list[dict]:
+    """Fold each card's official rulings into its summary so a single lookup_card
+    pulls ALL of a card's info — the model never has to remember the separate
+    lookup_rulings round-trip (the omission that let it answer from oracle text
+    alone and miss the deciding ruling). Summaries are fresh dicts from
+    _card_summary, so this never mutates the cached raw card."""
+    by_oracle = _load_rulings()
+    for s in summaries:
+        rulings = by_oracle.get(s["oracle_id"], [])
+        s["rulings"] = rulings
+        s["rulings_count"] = len(rulings)
+    return summaries
+
+
 def lookup_card(name: str) -> dict:
     by_name, _ = _load_cards()
     if not by_name:
@@ -76,12 +90,12 @@ def lookup_card(name: str) -> dict:
 
     # Exact match
     if key in by_name:
-        return {"match": "exact", "cards": [_card_summary(by_name[key])]}
+        return {"match": "exact", "cards": _attach_rulings([_card_summary(by_name[key])])}
 
     # Substring match
     matches = [card for k, card in by_name.items() if key in k]
     if matches:
-        return {"match": "partial", "cards": [_card_summary(c) for c in matches[:5]]}
+        return {"match": "partial", "cards": _attach_rulings([_card_summary(c) for c in matches[:5]])}
 
     return {"match": "none", "cards": []}
 

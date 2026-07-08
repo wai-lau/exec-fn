@@ -3,7 +3,7 @@ from mtg.lookup import lookup_card, lookup_rule, lookup_rulings
 TOOLS = [
     {
         "name": "lookup_card",
-        "description": "Look up a Magic card by name. Returns oracle text, type line, mana cost, keywords, and oracle_id (needed for lookup_rulings).",
+        "description": "Look up a Magic card by name. Returns ALL of the card's info in one call: oracle text, type line, mana cost, keywords, oracle_id, AND the card's official WotC rulings (bundled inline as `rulings` — no separate lookup_rulings call needed). Read the rulings every time; they often decide the interaction and override reasoning from oracle text alone.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -14,7 +14,7 @@ TOOLS = [
     },
     {
         "name": "lookup_rulings",
-        "description": "Get official WotC rulings for a card by its oracle_id (from lookup_card). Returns judge rulings that clarify how the card works.",
+        "description": "Fallback only — lookup_card already bundles a card's rulings. Use this solely when you hold a bare oracle_id (from context, not a fresh lookup_card). Returns official WotC judge rulings for that oracle_id.",
         "input_schema": {
             "type": "object",
             "properties": {
