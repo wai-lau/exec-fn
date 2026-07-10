@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 
+from chat_actions import _actions_taken_block
 from helpers import DATA_DIR, _load_json, _load_rd, _now_et, get_rd_log, _parse_json
 
 
@@ -138,7 +139,7 @@ _CHAT_STATIC_PREFIX = (
 )
 
 
-def _build_chat_system_prompt(stage: str = "planning") -> list:
+def _build_chat_system_prompt(stage: str = "planning", actions: list | None = None) -> list:
     ctx = _load_json("profile", {"notes": []})
     rd = _load_rd()
 
@@ -198,6 +199,7 @@ def _build_chat_system_prompt(stage: str = "planning") -> list:
         f"7-DAY SCHEDULE (scheduled_day assignments this week):\n{scheduled_text}\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}"
         f"{_active_nudge_block(cards)}"
+        f"{_actions_taken_block(actions)}"
     )
     return [
         {"type": "text", "text": _CHAT_STATIC_PREFIX,
