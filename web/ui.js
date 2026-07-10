@@ -76,13 +76,12 @@ function groupHtml(col) {
   // effect sits in the column it applies to (the token's first/only shade)
   const fxRow = `<tr>${[0, 1, 2, 3].map(i =>
     `<td class="clr-fx">${i === 0 && col.fxLabel ? esc(col.fxLabel) : ''}</td>`).join('')}</tr>`;
-  // one column of usage sites per variation (most-used to least)
-  const useRow = `<tr>${colSites.map(sm =>
-    `<td class="clr-usecell">${siteListHtml(sm)}</td>`).join('')}</tr>`;
+  // description always rendered (fixed-height box) so every card is the same size
   return `<div class="clr-group">
     <div class="clr-title">${esc(col.name)}</div>
-    ${col.use ? `<div class="clr-guse">${esc(col.use)}</div>` : ''}
-    <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}${useRow}</table>
+    <div class="clr-guse">${esc(col.use || '')}</div>
+    <table class="clr-tbl">${swRow}${opRow}${cntRow}${fxRow}</table>
+    ${usageDetails(colSites)}
   </div>`;
 }
 
@@ -104,15 +103,25 @@ function mergedSites(col) {
   return ts;
 }
 
-// vertical site list for one column, most-used to least — collapsed by default
-// behind a "> [ show usage ]" toggle (native <details>).
-function siteListHtml(siteMap) {
+// vertical site list for one column, most-used to least (bare <ul>, no toggle).
+function siteListInner(siteMap) {
   const entries = Object.entries(siteMap || {}).sort((x, y) => y[1] - x[1]);
   if (!entries.length) return '';
   const items = entries.map(([lbl, n]) =>
     `<li>${esc(lbl)} <span class="clr-cnt">&times;${n}</span></li>`).join('');
-  return `<details class="clr-usedet"><summary>[ show usage ]</summary>` +
-    `<ul class="clr-uselist">${items}</ul></details>`;
+  return `<ul class="clr-uselist">${items}</ul>`;
+}
+
+// ONE usage toggle per card: a single centred ▼ that reveals every column's
+// sites at once, laid out in a fixed 4-col row so the lists stay aligned under
+// the swatches above. Returns '' when no column has any usage.
+function usageDetails(colSites) {
+  const cells = colSites.slice(0, 4);
+  while (cells.length < 4) cells.push({});
+  if (!cells.some(sm => Object.keys(sm || {}).length)) return '';
+  const tds = cells.map(sm => `<td class="clr-usecell">${siteListInner(sm)}</td>`).join('');
+  return `<details class="clr-usedet"><summary></summary>` +
+    `<table class="clr-tbl clr-usetbl"><tr>${tds}</tr></table></details>`;
 }
 
 // Gibson-voiced blurbs for the four card categories
@@ -286,14 +295,15 @@ function scaleTokensOf(parsed, usage) {
 }
 
 // one family = one table in the SAME format as the colour tables: 4 columns
-// (one per token, padded to 4), rows = visual / --name / value / ×count / usage
-// sites. No "Scale" header, no step count — it reads as more of the colour board.
+// (one per token, padded to 4), rows = visual / --name / value / ×count, then a
+// single usage toggle below. No "Scale" header — reads as more of the colour board.
 function scaleTableHtml(fam, toks) {
   const cells = toks.slice(0, 4);
   const pad = 4 - cells.length;
   const td = (inner, cls) => `<td${cls ? ` class="${cls}"` : ''}>${inner}</td>`;
   const empties = (cls) => td('', cls).repeat(pad);
   const row = (fn, cls) => `<tr>${cells.map(fn).join('')}${empties(cls)}</tr>`;
+  const colSites = cells.map(t => flatSites(t.name));
   return `<div class="clr-group">
     <div class="clr-title">${esc(fam.title)}</div>
     <table class="clr-tbl">
@@ -301,8 +311,8 @@ function scaleTableHtml(fam, toks) {
       ${fam.selfLabel ? '' : row(t => td(`<span class="sc-name">--${esc(t.name)}</span>`))}
       ${row(t => td(`<span class="sc-val">${esc(t.value)}</span>`))}
       ${row(t => td(`<span class="clr-cnt">&times;${t.count || 0}</span>`))}
-      ${row(t => td(siteListHtml(flatSites(t.name)), 'clr-usecell'), 'clr-usecell')}
     </table>
+    ${usageDetails(colSites)}
   </div>`;
 }
 
