@@ -89,6 +89,7 @@ flowchart LR
   hq["hq.py"]
   chat["chat.py"]
   chat_tools["chat_tools.py"]
+  chat_actions["chat_actions.py<br/>(follow-up action diff)"]
   routes_chat["routes_chat.py"]
   routes_night["routes_nightfall.py"]
   gcal["gcal.py"]
@@ -113,6 +114,7 @@ flowchart LR
   pipeline --> helpers
   pipeline --> chat
   chat --> helpers
+  chat --> chat_actions
   chat_tools --> helpers
   monitor --> helpers
   scheduler --> helpers
@@ -430,6 +432,16 @@ returns a **two-block** system list — a marked static block (identity +
 the top of the old single-string prompt and silently invalidated the cache
 every request; it now lives in the volatile tail. Both `routes_chat` call
 sites build the identical static block.
+
+**Follow-up action diff:** after a tool round, the follow-up turn rebuilds the
+system prompt — so its board lists now include any card the turn just created.
+`_build_chat_system_prompt(stage, actions=…)` appends an **ACTIONS YOU JUST
+TOOK** block (rendered by `chat_actions._actions_taken_block` from the dispatched
+`{name, input, result}` list) to the **volatile tail**, so the model reads the
+refreshed board as the result of its own action rather than reporting a phantom
+duplicate. Marked only in the volatile tail → the cached static prefix stays
+byte-stable. Threaded through both follow-up paths (`routes_chat._dispatch_tools`
+collects the actions; `discord_bot.exec_reply` rebuilds `system2` with them).
 
 ### Uncached (measured, left alone)
 

@@ -71,6 +71,7 @@ async def exec_reply(text: str) -> str:
 
     # One tool round (matches the web bubble's single follow-up).
     tool_results = []
+    actions_taken = []
     for b in final.content:
         if b.type != "tool_use":
             continue
@@ -78,14 +79,19 @@ async def exec_reply(text: str) -> str:
         if b.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
             from monitor import schedule_monitor
             schedule_monitor()
+        actions_taken.append({"name": b.name, "input": b.input, "result": result})
         tool_results.append({
             "type": "tool_result", "tool_use_id": b.id, "content": json.dumps(result),
         })
     if tool_results:
         all_messages.append({"role": "user", "content": tool_results})
+        # Rebuild the follow-up system fresh WITH this turn's action diff — same
+        # fix as the web bubble: the follow-up reads the refreshed board as the
+        # result of its own action, not a phantom pre-existing/duplicate card.
+        system2 = await asyncio.to_thread(_build_chat_system_prompt, "planning", actions_taken)
         final2 = await client.messages.create(
             model="claude-opus-4-8", max_tokens=512,
-            system=system, tools=tools, messages=all_messages,
+            system=system2, tools=tools, messages=all_messages,
         )
         cont = "".join(b.text for b in final2.content if b.type == "text")
         if cont:

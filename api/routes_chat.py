@@ -60,16 +60,18 @@ def api_chat_clear():
     return {"ok": True}
 
 
-async def _dispatch_tools(blocks, tool_result_contents):
+async def _dispatch_tools(blocks, tool_result_contents, actions_taken):
     """Run each tool_use block: stream a tool_call SSE event, collect its
-    tool_result, and fire the debounced monitor on a completed sub-step
-    (advance_chunk) — same channel as R&D/HQ activity."""
+    tool_result, record the action for the follow-up diff, and fire the debounced
+    monitor on a completed sub-step (advance_chunk) — same channel as R&D/HQ
+    activity."""
     for block in blocks:
         if block.type != "tool_use":
             continue
         result = await asyncio.to_thread(_handle_tool, block.name, block.input)
         if block.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
             schedule_monitor()
+        actions_taken.append({"name": block.name, "input": block.input, "result": result})
         yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
         tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
 
@@ -119,15 +121,20 @@ async def api_chat(body: ChatBody):
         ]
         all_messages = messages + [{"role": "assistant", "content": assistant_content}]
         tool_result_contents = []
+        actions_taken = []
 
-        async for chunk in _dispatch_tools(final.content, tool_result_contents):
+        async for chunk in _dispatch_tools(final.content, tool_result_contents, actions_taken):
             yield chunk
 
         if tool_result_contents:
             all_messages.append({"role": "user", "content": tool_result_contents})
             if full_text:
                 yield f"data: {json.dumps({'type': 'text', 'delta': '\n\n'})}\n\n"
-            async for chunk in _stream_tool_followup(client, all_messages, tools, _build_chat_system_prompt(next_stage)):
+            # Rebuild the follow-up system prompt WITH this turn's action diff, so
+            # the model reads the refreshed board (now carrying any just-created
+            # card) as the result of its own action — not a phantom duplicate.
+            followup_system = _build_chat_system_prompt(next_stage, actions=actions_taken)
+            async for chunk in _stream_tool_followup(client, all_messages, tools, followup_system):
                 yield chunk
 
         _save_chat(all_messages, next_stage)
