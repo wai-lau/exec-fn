@@ -14,7 +14,7 @@ body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 
 /* each section (one colour, or one scale-token family) is its own card, tiled
    two-up (max 2 per row); collapses to one column on a phone. */
-.clr-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); align-items: start; }
+.clr-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); align-items: stretch; grid-auto-rows: 1fr; }
 
 @media (width <= 640px) { .clr-board { grid-template-columns: 1fr; } }
 
