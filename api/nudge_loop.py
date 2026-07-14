@@ -94,13 +94,22 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
 
 
 async def _stall_generate(card: dict, n: dict) -> tuple[str | None, int, str]:
-    """A card stalled. Peel a smaller first sub-step, UNLESS the active step is
-    already at the peel floor (est_min <= _PEEL_FLOOR_MIN) — then stop going smaller
-    and just re-nudge the same chunk. Returns (peeled_label, peel_est, nudge_text):
-    peeled_label is None on the re-nudge path, "" if the peel LLM returned nothing."""
-    active_nd = next((nd for nd in n["graph"]["nodes"]
-                      if nd["id"] == n.get("active_node")), None)
-    if active_nd and (active_nd.get("est_min") or 0) <= _nllm._PEEL_FLOOR_MIN:
+    """A card stalled. Peel a smaller first sub-step, then re-nudge the same chunk
+    (peeled_label=None) instead of peeling when EITHER:
+      - the active step is already at the peel floor (est_min <= _PEEL_FLOOR_MIN) —
+        stop going smaller; or
+      - the active step is NOT the head of the chain (it has a predecessor) — only
+        the FIRST step is ever peeled; once Wai is moving through the chain we don't
+        keep fragmenting mid-task.
+    The chain is strictly linear, so the head is the one node with no incoming edge
+    (a peel splices before the head, becoming the new head, so first-step peels
+    still chain). Returns (peeled_label, peel_est, nudge_text); peeled_label is ""
+    if the peel LLM returned nothing."""
+    active_id = n.get("active_node")
+    active_nd = next((nd for nd in n["graph"]["nodes"] if nd["id"] == active_id), None)
+    at_floor = active_nd and (active_nd.get("est_min") or 0) <= _nllm._PEEL_FLOOR_MIN
+    has_predecessor = any(e.get("to") == active_id for e in n["graph"]["edges"])
+    if not active_nd or at_floor or has_predecessor:
         text = (await asyncio.to_thread(_nllm.nudge_text_sync, card)).strip()
         return None, _nllm._PEEL_FLOOR_MIN, text
     result = await asyncio.to_thread(_nllm.peel_sync, card)
