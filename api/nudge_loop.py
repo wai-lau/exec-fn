@@ -93,6 +93,22 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
     return due
 
 
+async def _stall_generate(card: dict, n: dict) -> tuple[str | None, int, str]:
+    """A card stalled. Peel a smaller first sub-step, UNLESS the active step is
+    already at the peel floor (est_min <= _PEEL_FLOOR_MIN) — then stop going smaller
+    and just re-nudge the same chunk. Returns (peeled_label, peel_est, nudge_text):
+    peeled_label is None on the re-nudge path, "" if the peel LLM returned nothing."""
+    active_nd = next((nd for nd in n["graph"]["nodes"]
+                      if nd["id"] == n.get("active_node")), None)
+    if active_nd and (active_nd.get("est_min") or 0) <= _nllm._PEEL_FLOOR_MIN:
+        text = (await asyncio.to_thread(_nllm.nudge_text_sync, card)).strip()
+        return None, _nllm._PEEL_FLOOR_MIN, text
+    result = await asyncio.to_thread(_nllm.peel_sync, card)
+    return ((result.get("sub_label") or "").strip(),
+            result.get("est_min", _nllm._PEEL_FLOOR_MIN),
+            (result.get("nudge_text") or "").strip())
+
+
 async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
     """Generate + deliver one nudge (or stall re-peel). Reloads rd around the
     LLM call so a concurrent PATCH /api/rd isn't clobbered."""
@@ -109,13 +125,12 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
     n = _nudge.ensure_nudge(card)
 
     graph_update = active = peeled_label = None
+    peel_est = _nllm._PEEL_FLOOR_MIN
     await push_to_monitor({"thinking": True})
     try:
         if kind == "stall" and n["graph"]["nodes"]:
-            result = await asyncio.to_thread(_nllm.peel_sync, card)
-            peeled_label = (result.get("sub_label") or "").strip()
-            text = (result.get("nudge_text") or "").strip()
-            if not peeled_label or not text:
+            peeled_label, peel_est, text = await _stall_generate(card, n)
+            if not text or peeled_label == "":   # None = re-nudge (ok); "" = peel failed
                 return False
         elif not n["graph"]["nodes"]:
             result = await asyncio.to_thread(_nllm.decompose_sync, card)
@@ -141,7 +156,7 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
         n["graph"] = graph_update
         n["active_node"] = active
     if peeled_label is not None:
-        _nllm.apply_peel(card, peeled_label, result.get("est_min", 5))
+        _nllm.apply_peel(card, peeled_label, peel_est)
     _nd.compute_deadlines(card)
     now = _now_et()
     n["stage"] = "awaiting"
