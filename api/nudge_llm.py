@@ -158,12 +158,13 @@ def peel_sync(card: dict) -> dict:
     system = (
         "You are Exec, Wai's ADHD planning assistant. Wai has stalled on a step. Peel "
         "off a SMALLER first sub-step: the tiniest concrete action that starts it. "
-        "Floor: the sub-step should take no less than 1 minute of real effort — "
-        "'open the app and load today's file' is fine, a sub-second flick is not.\n"
+        "Floor: the sub-step should take no less than 5 minutes of real effort — "
+        "'open the app, load today's file and read the first section' is fine, a "
+        "sub-second flick is not.\n"
         f"{_TONE}\n"
         "Also write the nudge for ONLY that sub-step: 1-2 sentences naming it, plus 1 "
         "sentence of why it matters (reasoning / consequence / dependency). Give est_min "
-        "= minutes the tiny sub-step takes (no less than 1, usually 1-10).\n\n"
+        "= minutes the small sub-step takes (no less than 5, usually 5-10).\n\n"
         f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
         'Return JSON only: {"sub_label":"...","est_min":5,"nudge_text":"..."}'
     )
@@ -174,22 +175,34 @@ def peel_sync(card: dict) -> dict:
     return _json_call(system, user, max_tokens=300)
 
 
+_PEEL_FLOOR_MIN = 5  # a peeled sub-step never goes below this; a step already AT the
+                     # floor is not peeled further (guarded in nudge_loop._fire_nudge)
+
+
 def apply_peel(card: dict, sub_label: str, est_min: int = 5) -> str:
     """Insert the peeled sub-step as a prerequisite of the active node and make it
-    active. Returns the new node id."""
+    active. The sub-step is a slice taken OUT of the parent step, not extra time —
+    so the breakdown sum (and the timeline block length it drives) is unchanged;
+    only a manual edit grows the card's prep/duration. Returns the new node id."""
     n = ensure_nudge(card)
     parent_id = n.get("active_node")
     nodes = n["graph"]["nodes"]
     parent = next((nd for nd in nodes if nd["id"] == parent_id), None)
     now = _now_et()
     new_id = f"peel-{now.strftime('%H%M%S')}-{len(nodes)}"
+    peel_est = max(_PEEL_FLOOR_MIN, int(est_min or _PEEL_FLOOR_MIN))
+    # Conserve total: shrink the parent by what the peel takes, so the chain doesn't
+    # grow (and back-scheduling doesn't march the whole prep earlier every stall).
+    if parent is not None and parent.get("est_min") is not None:
+        peel_est = min(peel_est, parent["est_min"])
+        parent["est_min"] = max(0, parent["est_min"] - peel_est)
     nodes.append({
         "id": new_id,
         "label": sub_label,
         "done": False,
         "depth": (parent.get("depth", 0) + 1) if parent else 0,
         "created_at": _fmt_et(now),
-        "est_min": max(1, int(est_min or 5)),
+        "est_min": peel_est,
     })
     edges = n["graph"]["edges"]
     if parent_id:
