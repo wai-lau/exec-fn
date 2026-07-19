@@ -13,6 +13,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 import starlette.middleware.gzip as _gzip
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse
+from starlette.datastructures import MutableHeaders
 
 from nudge_loop import _run_nudge_loop
 from discord_bot import _run_discord_bot
@@ -68,28 +69,54 @@ app = FastAPI(lifespan=_lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
-@app.middleware("http")
-async def _cache_control(request: Request, call_next):
+_STATIC_SUFFIXES = (".css", ".js", ".woff2", ".woff", ".ttf", ".otf",
+                    ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".mp3")
+
+
+class CacheControlMiddleware:
     # Static assets are content-versioned via ?v= query params (the codebase
     # bumps the query on every edit), so cache them hard and let the bumped
     # query bust them — this kills the per-asset revalidation round-trip on
     # every navigation across the multi-page app. HTML shells embed live data,
     # so they stay no-cache. Unversioned static gets a 1-day safety TTL.
     # Nightfall serves its own bundle and manages its own caching.
-    response = await call_next(request)
-    path = request.url.path
-    if path.startswith("/nightfall-game/"):
-        return response
-    ctype = response.headers.get("content-type", "")
-    if ctype.startswith("text/html"):
-        response.headers["Cache-Control"] = "no-cache"
-    elif path.endswith((".css", ".js", ".woff2", ".woff", ".ttf", ".otf",
-                         ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".mp3")):
-        response.headers["Cache-Control"] = (
-            "public, max-age=31536000, immutable" if request.url.query
-            else "public, max-age=86400"
-        )
-    return response
+    #
+    # Pure ASGI (not BaseHTTPMiddleware): we only stamp a header on the
+    # response.start message, never buffer the body via call_next. The old
+    # BaseHTTPMiddleware form raised `RuntimeError: No response returned.`
+    # (anyio.EndOfStream) every time a client dropped a long-lived SSE stream
+    # (/api/monitor/stream, /api/hosaka/mode/stream) — hundreds of noise
+    # tracebacks. Header-only ASGI has no call_next, so a disconnect can't
+    # re-raise, and it never interferes with stream flushing.
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        path = scope["path"]
+        query = scope.get("query_string", b"")
+
+        async def send_wrapper(message):
+            if (message["type"] == "http.response.start"
+                    and not path.startswith("/nightfall-game/")):
+                headers = MutableHeaders(raw=message["headers"])
+                ctype = headers.get("content-type", "")
+                if ctype.startswith("text/html"):
+                    headers["Cache-Control"] = "no-cache"
+                elif path.endswith(_STATIC_SUFFIXES):
+                    headers["Cache-Control"] = (
+                        "public, max-age=31536000, immutable" if query
+                        else "public, max-age=86400"
+                    )
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+
+# Registered after GZip so it stays the outermost http middleware (matches the
+# old decorator order): it stamps the final response headers last.
+app.add_middleware(CacheControlMiddleware)
 
 
 @app.exception_handler(401)
