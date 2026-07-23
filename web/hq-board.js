@@ -402,6 +402,26 @@ async function load(start) {
   buildBoard();
 }
 
-// exec bubble changed cards -> reload live
-window.addEventListener('exec:cards-changed', () => load(weekStart));
+// Skip a live reload mid-drag or while a layout save is pending (a refetch
+// would clobber the in-flight edit); the next wake/event catches up.
+function hqCanReload() { return !_hqDragging && !saveTimer; }
+
+// exec bubble OR a serverside mutation (nudge/morning/discord, relayed as
+// exec:cards-changed by exec-bubble.js on the monitor SSE cards_changed) ->
+// reload live, preserving the current week view.
+window.addEventListener('exec:cards-changed', () => { if (hqCanReload()) load(weekStart); });
+
+// Wake/return catch-up: a page left open across the 4:30 rollover (or any
+// serverside change while backgrounded/asleep) shows stale data — the SSE push
+// isn't replayed after the tab was suspended. On returning to the foreground
+// after a real gap, re-anchor to the fresh logical-today (load(null)) so a date
+// rollover moves the "today" column. Mirrors graph-overlay's wake-reload.
+let _hqHiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { _hqHiddenAt = Date.now(); return; }
+  if (_hqHiddenAt && Date.now() - _hqHiddenAt > 30000 && hqCanReload()) load(null);
+  _hqHiddenAt = 0;
+});
+window.addEventListener('pageshow', e => { if (e.persisted && hqCanReload()) load(null); });
+
 load(null);

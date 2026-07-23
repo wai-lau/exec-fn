@@ -17,7 +17,7 @@ from helpers import (
     DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence, get_rd_log,
 )
 from monitor import schedule_monitor, flush_monitor, _entry_is_significant
-from monitor_sse import _monitor_subscribers
+from monitor_sse import _monitor_subscribers, push_to_monitor
 import nudge_llm as _nllm
 from nudge_loop import _nudge_tick
 
@@ -25,11 +25,14 @@ _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
 
 
 @protected.post("/api/morning")
-def api_morning():
+async def api_morning():
     try:
-        return build_morning()
+        result = await asyncio.to_thread(build_morning)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    # Tell any open board to refresh (rollover re-laid the day).
+    await push_to_monitor({"cards_changed": True})
+    return result
 
 
 @protected.get("/api/rd")

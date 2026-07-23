@@ -480,6 +480,8 @@
         var data = JSON.parse(e.data);
         if (data.thinking !== undefined) {
           setMonitorThinking(data.thinking);
+        } else if (data.cards_changed) {  // serverside mutation -> open board reloads live
+          window.dispatchEvent(new Event('exec:cards-changed'));
         } else if (data.comment) {
           setMonitorThinking(false);
           addMsg('probe', data.comment);

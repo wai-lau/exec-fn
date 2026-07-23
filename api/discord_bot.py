@@ -99,6 +99,10 @@ async def exec_reply(text: str) -> str:
             reply_text = (reply_text + "\n\n" + cont).strip()
 
     await asyncio.to_thread(_save_chat, all_messages, "planning")
+    # A card-mutating tool ran on the phone -> refresh any open web board live.
+    if any(a["name"] != "update_context" for a in actions_taken):
+        from monitor_sse import push_to_monitor
+        await push_to_monitor({"cards_changed": True})
     return reply_text or "[no reply]"
 
 
