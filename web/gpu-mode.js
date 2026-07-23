@@ -35,12 +35,37 @@
       };
     }
 
+    // A page open BEFORE an out-of-band mode change (home-box watchdog restart,
+    // a switch from another device, reboot self-heal) never gets an SSE push --
+    // that only fires on a POST through this app. One delayed recheck catches a
+    // change that lands right after load (the common watchdog-restart case); a
+    // refresh on tab-refocus catches a switch made elsewhere while this tab sat
+    // backgrounded. No interval -- a long-open foreground tab drifts until
+    // touched. Transient fetch errors keep the last known mode; 401 -> hide.
+    let rechecked = false;
+    async function refresh() {
+      try {
+        const r = await fetch('/api/hosaka/mode');
+        if (r.status === 401) { el.hidden = true; return; }
+        render((await r.json()).mode);
+      } catch { /* transient -- keep last known mode */ }
+    }
+    function startRecheck() {
+      if (rechecked) return;
+      rechecked = true;
+      setTimeout(refresh, 10000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refresh();
+      });
+    }
+
     async function load() {
       try {
         const r = await fetch('/api/hosaka/mode');
         if (r.status === 401) { el.hidden = true; return; } // guest: no control
         render((await r.json()).mode);
         subscribe();
+        startRecheck();
       } catch { el.hidden = true; }
     }
 
