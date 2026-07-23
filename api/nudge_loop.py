@@ -178,6 +178,7 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
 
     append_monitor_comment(text)
     await push_to_monitor({"comment": text})
+    await push_to_monitor({"cards_changed": True})  # peel/advance/decompose changed the board
     return True
 
 
@@ -223,6 +224,7 @@ async def _build_graph(card_id: str) -> bool:
     if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
         n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
     _save_rd(rd)
+    await push_to_monitor({"cards_changed": True})  # new breakdown group appears on the board
     return True
 
 
@@ -267,6 +269,8 @@ async def _run_triage(card_id: str) -> bool:
         _nd.compute_deadlines(card)
         changed = True
     _save_rd(rd)
+    if changed:
+        await push_to_monitor({"cards_changed": True})  # plan rebuilt -> board reflects it
     return changed
 
 
