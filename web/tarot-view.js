@@ -232,14 +232,13 @@ async function flipCard(positionKey) {
   const posLabel = framePosLabel(card.position) || fallback;
   const orient = card.reversed ? 'reversed' : 'upright';
   openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel, card.reversed);
-  // Start GENERATING the reader turn now — while the card is still maximized — so
-  // the LLM round-trip overlaps the time the querent spends looking at the card.
-  // Hold the reveal + voice until the zoom is dismissed (the minimize click
-  // resolves the gate), so the words/TTS START on minimize with no LLM wait.
-  let openGate;
-  const gate = new Promise(resolve => { openGate = resolve; });
-  cardZoom.addEventListener('click', () => openGate(), {once: true});
-  await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`, gate);
+  // Fire the reader turn immediately on flip — generate the response AND start the
+  // voice/reveal as soon as the text is ready, WITHOUT waiting for the querent to
+  // minimize. The card click is the audio-unlock gesture (document-capture
+  // pointerdown unlock runs before this click handler), so TTS can begin the
+  // moment the stream completes; the zoom stays up as a visual the querent
+  // dismisses whenever (persistent closeZoom handler in tarot-chat.js).
+  await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
 }
 
 function openZoom(src, name, position, reversed) {
