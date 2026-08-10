@@ -81,8 +81,9 @@ window.tarotVoice = {
 };
 """
 
-# A fake voice that "starts" but never advances the clock — the audio-stall case
-# the 2.5s watchdog must catch and finish at the guessed pace.
+# A fake voice that connects but never streams a single PCM chunk (duration
+# stays 0) — the "no audio at all" case the first-audio grace must catch and
+# finish at the guessed pace after the window elapses.
 VOICE_STALL = """
 window.tarotVoice = {
   ready: () => true,
@@ -91,6 +92,20 @@ window.tarotVoice = {
   armPersistedUnlock: () => {},
   speak: () => ({ ok:true, ended:false, error:null,
                   elapsed:()=>0, duration:()=>0 }),
+};
+"""
+
+# A fake voice that buffers audio (duration>0) but whose playback clock never
+# advances — the mid-stream freeze the 2.5s stall watchdog must catch once audio
+# is flowing. Some audio buffered, so this is NOT flagged "voice unavailable".
+VOICE_MIDSTALL = """
+window.tarotVoice = {
+  ready: () => true,
+  wantsDeferredOpening: () => false,
+  armOpeningUnlock: () => {},
+  armPersistedUnlock: () => {},
+  speak: () => ({ ok:true, ended:false, error:null,
+                  elapsed:()=>0, duration:()=>1.5 }),
 };
 """
 
@@ -231,10 +246,23 @@ def test_voice_failure_falls_back_to_text(open_tarot):
 
 
 def test_voice_stall_watchdog_unblocks(open_tarot):
-    # Audio "starts" but the clock never advances; the 2.5s watchdog bails to the
-    # guessed pace so the reveal still completes. Wide timeout for the stall wait.
+    # Upstream connects but never streams a chunk (duration stays 0); the
+    # first-audio grace bails to the guessed pace so the reveal still completes
+    # and, since zero audio ever played, flags the voice unavailable. Wide
+    # timeout: the bail waits out the (>2.5s) first-audio window.
     pg = open_tarot(fulfill_sse(sse(txt("Stalled but finishes."))), voice_js=VOICE_STALL)
     settle(pg, timeout=12000)
     assert reader_text(pg) == "Stalled but finishes."
     assert any("voice unavailable" in n.lower() for n in sys_texts(pg))
+    assert_recovered(pg)
+
+
+def test_voice_midstream_stall_unblocks(open_tarot):
+    # Audio buffers (duration>0) but the playback clock never advances — the
+    # mid-stream freeze. The 2.5s stall watchdog bails to the guessed pace so the
+    # reveal completes. Some audio buffered, so it is NOT flagged unavailable.
+    pg = open_tarot(fulfill_sse(sse(txt("Frozen mid-stream."))), voice_js=VOICE_MIDSTALL)
+    settle(pg, timeout=12000)
+    assert reader_text(pg) == "Frozen mid-stream."
+    assert not any("voice unavailable" in n.lower() for n in sys_texts(pg))
     assert_recovered(pg)

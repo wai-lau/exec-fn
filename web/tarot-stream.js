@@ -45,7 +45,17 @@ function createTypewriter(st, body, cur) {
     cum[0] = 0;
     for (let i = 0; i < text.length; i++) cum[i + 1] = cum[i] + charWeight(text[i]);
     const totalW = cum[text.length] || 1;
-    let lastEl = -1, lastProgressAt = performance.now();
+    const startWait = performance.now();
+    let lastProgress = -1, lastProgressAt = performance.now();
+    // TTS synthesizes for a while before the first PCM chunk streams — that
+    // silent gap is NOT a failure (kokoro can take a few seconds on the first
+    // utterance / a cold home box), so the pre-audio wait is generous. The old
+    // 2.5s watchdog fired in this gap and falsely reported the voice dead while
+    // it was merely slow to start. A stream that never streams still bails here.
+    const FIRST_AUDIO_MS = 8000;
+    // Once audio is flowing, a 2.5s freeze (playback clock OR buffer not moving)
+    // means the upstream stalled mid-stream → finish at the guessed pace.
+    const STALL_MS = 2500;
     // Audio gave up (errored / never started / stalled): mark the controller
     // failed so the outer wait loop exits, record the reason, finish at the
     // guessed pace. NEVER leave the reveal hanging — that froze the page.
@@ -67,10 +77,19 @@ function createTypewriter(st, body, cur) {
       if (!ctl.ok) { bail(ctl.error); return; }
       const dur = ctl.duration();
       const el = ctl.elapsed();
-      if (el > lastEl) { lastEl = el; lastProgressAt = performance.now(); }
+      const started = dur > 0 || el > 0;
+      // Any forward motion (playback advancing OR more audio buffered) resets the
+      // stall clock — one watchdog covers both a frozen ctx and a dead upstream.
+      const progress = el + dur;
+      if (progress > lastProgress) { lastProgress = progress; lastProgressAt = performance.now(); }
       const audioFinished = ctl.ended && dur > 0 && el >= dur;
-      // Stall: clock frozen 2.5s and playback not done → finish at guessed pace.
-      if (!audioFinished && performance.now() - lastProgressAt > 2500) { bail('no audio'); return; }
+      if (!started) {
+        // Still buffering the first chunk — hold, don't read the flat clock as a stall.
+        if (ctl.ended) { bail('no audio'); return; }                          // ended, never made sound
+        if (performance.now() - startWait > FIRST_AUDIO_MS) { bail('no audio'); return; }
+      } else if (!audioFinished && performance.now() - lastProgressAt > STALL_MS) {
+        bail('no audio'); return;
+      }
       if (dur > 0) {
         let frac = Math.min(el / dur, audioFinished ? 1 : 0.999);
         frac = Math.max(0, Math.min(1, frac));
@@ -210,7 +229,7 @@ async function streamResponse(holdForGesture = null) {
     // voice was on but narration of ACTUAL prose failed — reader still read
     // silently. Surface it in the status bar (not reader prose). Skip when there
     // was nothing to narrate (a tool-only turn) — empty speech isn't a failure.
-    if (st.buffered && voiceCtl && !voiceCtl.ok) {
+    if (st.buffered && voiceCtl && !voiceCtl.ok && voiceCtl.duration() === 0) {
       setStatus(`[ reader voice unavailable: ${voiceCtl.error || 'no audio'} ]`);
     }
     if (st.buffered) {
