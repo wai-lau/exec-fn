@@ -11,7 +11,8 @@ html.no-touch.kb-open .exec-nav { visibility: visible !important; }
   --card-w: min(13vh, 18vw);
   --card-h: min(22vh, 30vw);
   --spread-pad: max(0.4vh, calc(var(--card-h) * 0.06));
-  --spread-h: calc(var(--card-h) + var(--spread-pad) * 2);
+  --sig-credit-h: 1.25rem;   /* room under the card back for its art credit */
+  --spread-h: calc(var(--card-h) + var(--spread-pad) * 2 + var(--sig-credit-h));
   --status-h: 3rem;
 
   /* tarot-only accents (global palette lives in chrome.css) */
@@ -224,9 +225,28 @@ body.opening-pending .msg.assistant { display:none; }
   animation:blink 1s step-end infinite;
 }
 
+/* Card-back slot: the Significator card + its art credit pinned directly below.
+   The slot is exactly card-height so it centers in the row with the spread
+   cards; the credit floats out of flow into the reserved --sig-credit-h band. */
+#sig-slot {
+  grid-column: 1;
+  position:relative;
+  width:var(--card-w); height:var(--card-h);
+}
+
+#sig-credit {
+  /* left-aligned to the card edge: the full line is far wider than the small
+     card, so centering would push it off the left screen edge */
+  position:absolute; top:calc(100% + 2px); left:0;
+  white-space:nowrap; pointer-events:auto;
+  color:hsl(var(--green-hsl) / 0.45);
+  font-family: var(--font-mono); font-size: var(--fs-2xs); text-decoration:none;
+}
+#sig-credit:hover { color:hsl(var(--green-hsl) / 0.8); }
+
 /* Significator slot deltas (shares the card body rules above) */
 #sig-card {
-  grid-column: 1;
+  width:100%; height:100%;
   border:1px solid rgba(0,0,0,0.4);
   background:hsl(var(--surface-hsl)) url('/tarot/card_back.jpg?v=6') center/100% 100% no-repeat;
   display:flex; align-items:center; justify-content:center;
