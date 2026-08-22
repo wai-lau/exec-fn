@@ -153,16 +153,22 @@ async def _pump_to_client(ws, upstream, url, busy):
 # the audio /ws/hosaka, which only opens on Speak). The set is the source of
 # truth for "connected users"; we re-broadcast the count on every join/leave.
 _presence: set[WebSocket] = set()
+# Serializes broadcasts so two concurrent join/leave events can't interleave
+# their sends -- without this, a broadcast computed with a smaller/staler
+# count could finish AFTER a fresher one, leaving some tabs showing a stale
+# number until the next join/leave.
+_presence_lock = asyncio.Lock()
 
 
 async def _broadcast_presence():
-    n = len(_presence)
-    payload = json.dumps({"count": n})
-    for c in list(_presence):
-        try:
-            await c.send_text(payload)
-        except Exception:
-            _presence.discard(c)
+    async with _presence_lock:
+        n = len(_presence)
+        payload = json.dumps({"count": n})
+        for c in list(_presence):
+            try:
+                await c.send_text(payload)
+            except Exception:
+                _presence.discard(c)
 
 
 @public.websocket("/ws/hosaka/presence")
