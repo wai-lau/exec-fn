@@ -84,7 +84,12 @@ async def api_gamesave_post(slot: str, request: Request):
         json.loads(save_str)
     except (json.JSONDecodeError, ValueError):
         raise HTTPException(status_code=400, detail="save is not valid JSON")
-    (DATA_DIR / f"gamesave_{slot}.json").write_text(save_str)
+    # Atomic replace (tmp + rename), like helpers._save_rd -- a truncated write
+    # (kill, force-recreate, full disk) must never destroy the prior save.
+    p = DATA_DIR / f"gamesave_{slot}.json"
+    tmp = p.with_suffix(".json.tmp")
+    tmp.write_text(save_str)
+    tmp.replace(p)
     return {"ok": True}
 
 
