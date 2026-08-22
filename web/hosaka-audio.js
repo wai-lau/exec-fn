@@ -97,8 +97,14 @@
     if (S.cur && S.cur.onChunk) S.cur.onChunk(S.bufferedDur);
   }
 
+  // Concurrent speak() calls (fire-and-forget callers like exec-voice.js carry
+  // no busy-guard) can both see S.ws not-yet-OPEN and both call this. Cache the
+  // in-flight connect on S so a second caller awaits the SAME socket instead of
+  // opening another one and overwriting S.ws mid-handshake -- which would abandon
+  // the first socket, still accepted server-side, open forever.
   function openSocket(S) {
-    return new Promise((resolve, reject) => {
+    if (S._connecting) return S._connecting;
+    const p = new Promise((resolve, reject) => {
       const scheme = location.protocol === "https:" ? "wss" : "ws";
       S.ws = new WebSocket(`${scheme}://${location.host}/ws/hosaka`);
       S.ws.binaryType = "arraybuffer";
@@ -127,6 +133,10 @@
         enqueuePCM(S, new Float32Array(e.data));
       };
     });
+    S._connecting = p.finally(() => {
+      S._connecting = null;
+    });
+    return S._connecting;
   }
 
   // Speak one utterance. Opens the socket on first use, drops any previous tail,
@@ -152,7 +162,7 @@
 
   function createPlayer(opts = {}) {
     const S = {
-      ctx: null, gainNode: null, analyser: null, ws: null,
+      ctx: null, gainNode: null, analyser: null, ws: null, _connecting: null,
       volume: opts.volume == null ? 1.0 : opts.volume,
       playhead: 0,      // next free time on the schedule (ctx clock)
       sources: [],      // scheduled buffer sources, for flush()
