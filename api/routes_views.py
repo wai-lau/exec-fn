@@ -477,6 +477,26 @@ def api_tarot_readings():
     return {"readings": readings}
 
 
+@protected.get("/api/mtg/log")
+def api_mtg_log():
+    """Every MTG session transcript, for the owner-only /debug viewer.
+
+    Owner-only (`protected`, NOT the guest mtg_router): the store is shared
+    across auth tiers and holds Wai's own /mtg chats, and it returns ALL
+    sessions with no per-caller scoping — a guest must never read it. Mirrors
+    /api/tarot/readings. Route intentionally lives here, not in mtg/routes.py."""
+    sessions_dir = DATA_DIR / "mtg_sessions"
+    if not sessions_dir.exists():
+        return {"sessions": []}
+    sessions = []
+    for path in sorted(sessions_dir.glob("*.json"), reverse=True):
+        try:
+            sessions.append(json.loads(path.read_text()))
+        except Exception:
+            pass
+    return {"sessions": sessions}
+
+
 # ── data file serving ───────────────────────────────────────────────────────
 
 

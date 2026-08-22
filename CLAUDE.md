@@ -146,7 +146,7 @@ Nav: `R&D` · `HQ` · `debug` · `sec` (→`/security`, **guest-gated**; in the 
 | GET | `/api/debug/logs` | All activity log files (today + archived), newest first |
 | GET | `/data/{filename}` | Serve file from /app/data/ (path-traversal guarded) |
 | GET | `/api/ui/usage` | Public. `{counts, alphas, alpha_counts, sites}` — `var(--X)` reference counts + actually-used alphas per `-hsl` token + parallel per-alpha counts + `sites` (`{token: {α-string: {site-label: n}}}`, site = nearest CSS selector else filename; `-hsl` colours keyed per-alpha, scale tokens under a flat `*` bucket), across templates + web assets + **all `api/*.py`** (several ship inline CSS — `security.py` alone references ~56 tokens — that would otherwise misflag used tokens as unused on /UI; chrome.css `:root` block excluded; bare `hsl(var(--X-hsl))` = α 1). Feeds the alpha columns, per-opacity ×N, per-column usage-site lists, and the Scale-section counts/flags on `/UI` |
-| GET | `/api/mtg/log` | mtg chat history |
+| GET | `/api/mtg/log` | **Owner-only** (`protected`, defined in routes_views.py — NOT the guest `mtg_router`). All MTG session transcripts for the `/debug` viewer; returns every session unscoped and the store is shared across auth tiers (holds Wai's own /mtg chats), so guests must never reach it. Same rationale as `/api/tarot/readings`. |
 | GET | `/api/mtg/rule/{number}` | Rule text for the hover/tap preview (`lookup_rule` by number, e.g. `724.1b`). |
 | POST | `/api/mtg/chat` | mtg chat (tool-use over rules) SSE |
 | GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |
