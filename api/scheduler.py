@@ -80,14 +80,35 @@ def layout_day(cards: list[dict], anchor_min: int = AUTOSTACK_ANCHOR,
     today = today_iso or logical_today_iso()
     targets = [c for c in cards if is_dir_card(c, today) and (only_ids is None or c["id"] in only_ids)]
     targets.sort(key=lambda c: c.get("order", 0))
-    cur = anchor_min
+
+    timed, timeless = [], []
     for c in targets:
         pinned = timed_start_min(c)     # fixed event time -> back-scheduled slot
         if pinned is not None:
             c["dir_start_min"] = pinned
-            continue                    # timed cards don't consume the autostack cursor
+            timed.append(c)
+        else:
+            timeless.append(c)
+
+    # Timeless cards stack forward from anchor_min, but must not land inside a
+    # pinned timed card's window — `order` has no relationship to a timed
+    # card's actual clock-time slot, so skip past any pinned interval a
+    # timeless card's would-be slot overlaps.
+    pinned_intervals = sorted(
+        (c["dir_start_min"], c["dir_start_min"] + card_duration(c)) for c in timed
+    )
+    cur = anchor_min
+    for c in timeless:
+        dur = card_duration(c)
+        moved = True
+        while moved:
+            moved = False
+            for start, end in pinned_intervals:
+                if cur < end and cur + dur > start:
+                    cur = end
+                    moved = True
         c["dir_start_min"] = cur
-        cur += card_duration(c)
+        cur += dur
 
 
 def place_card_today(cards: list[dict], today_iso: str | None = None) -> int:
