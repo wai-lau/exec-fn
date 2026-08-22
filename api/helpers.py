@@ -237,5 +237,7 @@ def _apply_context_update(action: str, note: str = "", match: str = "") -> dict:
         return {"error": f"unknown action: {action}"}
 
     ctx["notes"] = notes
-    ctx_path.write_text(json.dumps(ctx, indent=2))
+    tmp = ctx_path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(ctx, indent=2))
+    tmp.replace(ctx_path)
     return {"ok": True, "action": action, "notes_count": len(notes)}
