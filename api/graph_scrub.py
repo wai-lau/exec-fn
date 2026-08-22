@@ -217,9 +217,31 @@ def _drop_graph_inferred_edges(page: str) -> str:
     """Drop the dashed (INFERRED, low-confidence) edges from RAW_EDGES — ~16% of
     edges, drawn at opacity 0.35. Removing them thins the edge set the physics
     sim + canvas have to chew, so the graph settles + renders faster, and only
-    the EXTRACTED (solid) relationships remain. No-op if RAW_EDGES is absent."""
+    the EXTRACTED (solid) relationships remain.
+
+    Also recomputes each surviving node's baked `degree` against the final
+    edge set: graphify bakes degree pre-scrub, and by the time this runs the
+    earlier node-drop passes (book/vendor/library/moltbook) have already
+    pruned their own dangling edges too, so a stale degree would misreport the
+    node-info sidebar's "Degree: N" and skew graph-overlay.js's
+    highest-degree-node tour pick. No-op if RAW_EDGES/RAW_NODES is absent."""
+    edges = _read_array(page, "RAW_EDGES")
+    if edges is None:
+        return page
+    kept = [e for e in edges if not e.get("dashes")]
+    page = _sub_json_array(page, "RAW_EDGES", lambda _es: kept)
+
+    degree = Counter()
+    for e in kept:
+        if e.get("from") is not None:
+            degree[e["from"]] += 1
+        if e.get("to") is not None:
+            degree[e["to"]] += 1
+
     return _sub_json_array(
-        page, "RAW_EDGES", lambda es: [e for e in es if not e.get("dashes")]
+        page,
+        "RAW_NODES",
+        lambda nodes: [{**n, "degree": degree.get(n.get("id"), 0)} for n in nodes],
     )
 
 
