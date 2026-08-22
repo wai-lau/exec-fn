@@ -152,7 +152,9 @@ def _append_rd_log_batch(entries: list[dict]):
     now = datetime.now(timezone.utc).isoformat()
     for e in entries:
         log.append({"ts": now, **e})
-    _ACTIVITY_LOG.write_text(json.dumps(log[-500:]))
+    tmp = _ACTIVITY_LOG.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(log[-500:]))
+    tmp.replace(_ACTIVITY_LOG)
 
 
 def get_rd_log(limit: int = 20, source: str | None = None) -> list:
