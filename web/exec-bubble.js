@@ -371,13 +371,7 @@
             (body.lastElementChild || body).appendChild(cur);
             termEl.scrollTop = termEl.scrollHeight;
           } else if (data.type === 'tool_call') {
-            const res = data.result || {};
-            const inp = data.input || {};
-            if      (data.name === 'create_card')  addMsg('sys', '[ card added: ' + (res.title || '') + ' ]');
-            else if (data.name === 'exile_card')   addMsg('sys', '[ exiled: "' + (res.title || inp.id || '') + '" ]');
-            else if (data.name === 'update_card')  addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
-            else if (data.name === 'schedule_card')addMsg('sys', '[ scheduled "' + (res.title || '') + '" -> ' + (res.scheduled_day || 'unscheduled') + ' ]');
-            else                                    addMsg('sys', '[ ' + data.name.replace(/_/g, ' ') + ': done ]');
+            addMsg('sys', toolSysText(data.name, data.input || {}, data.result || {}));
             // notify card views (rd/hq/directives) to reload live
             if (['create_card','exile_card','update_card','schedule_card'].includes(data.name)) {
               window.dispatchEvent(new CustomEvent('exec:cards-changed', { detail: { name: data.name } }));
@@ -405,6 +399,16 @@
   }
 
   // ── history ───────────────────────────────────────────────────────────────
+  // Shared by the live stream + history restore so an unlisted tool falls
+  // through to the same generic sys line in both, instead of vanishing on reload.
+  function toolSysText(name, inp, res) {
+    if (name === 'create_card')   return '[ card added: ' + (res.title || inp.title || '') + ' ]';
+    if (name === 'exile_card')    return '[ exiled: "' + (res.title || inp.id || '') + '" ]';
+    if (name === 'update_card')   return '[ updated: ' + (res.title || inp.id || '') + ' ]';
+    if (name === 'schedule_card') return '[ scheduled "' + (res.title || '') + '" -> ' + (res.scheduled_day || 'unscheduled') + ' ]';
+    return '[ ' + name.replace(/_/g, ' ') + ': done ]';
+  }
+
   function restoreMsg(m, toolResults) {
     if (m.role === 'user') {
       if (typeof m.content === 'string') addMsg('user', m.content);
@@ -420,11 +424,7 @@
         if (text) addMsg('assistant', text);
         m.content.forEach(function (b) {
           if (b.type !== 'tool_use') return;
-          const inp = b.input || {};
-          const res = (toolResults && toolResults[b.id]) || {};
-          if      (b.name === 'create_card') addMsg('sys', '[ card added: ' + (inp.title || '') + ' ]');
-          else if (b.name === 'exile_card')  addMsg('sys', '[ exiled: "' + (res.title || inp.id || '') + '" ]');
-          else if (b.name === 'update_card') addMsg('sys', '[ updated: ' + (res.title || inp.id || '') + ' ]');
+          addMsg('sys', toolSysText(b.name, b.input || {}, (toolResults && toolResults[b.id]) || {}));
         });
       }
     }
