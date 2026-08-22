@@ -110,8 +110,13 @@ def _roll_and_schedule(cards: list, today_iso: str) -> set:
             restack.add(c["id"])
     for c in cards:
         dd = c.get("due_date")
-        # All dated cards auto-promote rd->hq within the window.
+        # All dated cards auto-promote rd->hq within the window. A No-Rollover
+        # card whose due date has already passed is left alone here too —
+        # schedule_to_day clamps an overdue target to today, which is exactly
+        # the rollover this flag exists to prevent.
         if not dd or c.get("scheduled_day") or c.get("column") != "rd":
+            continue
+        if c.get("no_rollover") and dd[:10] < today_iso:
             continue
         result = schedule_to_day(c, cards, dd, today_iso=today_iso)
         if result.get("scheduled_day") == today_iso:
