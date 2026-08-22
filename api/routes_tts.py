@@ -136,12 +136,17 @@ async def gpu_mode_stream():
     })
 
 
-async def _pump_to_client(ws, upstream):
+async def _pump_to_client(ws, upstream, url, busy):
     async for msg in upstream:
         if isinstance(msg, (bytes, bytearray)):
             await ws.send_bytes(msg)
         else:
             await ws.send_text(msg)
+            try:
+                if json.loads(msg).get("type") in ("end", "error"):
+                    busy[url] = False
+            except Exception:
+                pass
 
 
 # Live presence: every open /hosaka tab holds a presence socket (separate from
@@ -181,17 +186,19 @@ async def ws_presence(ws: WebSocket):
         await _broadcast_presence()
 
 
-async def _ws_connect(conns, pumps, ws, url):
+async def _ws_connect(conns, pumps, ws, url, busy):
     """Lazily open and cache one upstream WS per backend URL."""
     if url not in conns:
         up = await websockets.connect(f"ws://{url}/v1/audio/stream", max_size=None)
         conns[url] = up
-        pumps.append(asyncio.create_task(_pump_to_client(ws, up)))
+        busy[url] = False
+        pumps.append(asyncio.create_task(_pump_to_client(ws, up, url, busy)))
     return conns[url]
 
 
 async def _ws_dispatch(ws, conns, pumps):
     """Forward client messages to the right upstream, routed per utterance."""
+    busy: dict[str, bool] = {}  # url -> an utterance is in flight (no {end}/{error} yet)
     while True:
         m = await ws.receive()
         if m["type"] == "websocket.disconnect":
@@ -204,8 +211,21 @@ async def _ws_dispatch(ws, conns, pumps):
             await ws.send_text(json.dumps({"type": "error", "detail": "bad request json"}))
             continue
         url = pick_upstream(req, _UPSTREAM, _PIPER_UPSTREAM)
+        if busy.get(url):
+            # The client already flushed local playback for a new utterance while
+            # the previous one on this same upstream connection is still generating
+            # (no {end}/{error} seen) -- sending on the live socket would interleave
+            # the old utterance's trailing frames into the new one's stream. Cut the
+            # stale connection instead; _ws_connect below opens a fresh one.
+            stale = conns.pop(url, None)
+            if stale is not None:
+                try:
+                    await stale.close()
+                except Exception:
+                    pass
         try:
-            up = await _ws_connect(conns, pumps, ws, url)
+            up = await _ws_connect(conns, pumps, ws, url, busy)
+            busy[url] = True
             await up.send(m["text"])
         except Exception:
             # A dead/stale cached upstream must fail only THIS utterance, not tear
@@ -213,6 +233,7 @@ async def _ws_dispatch(ws, conns, pumps):
             # otherwise also drop a live glados connection. Evict so the next
             # utterance reconnects; the stale pump ends when its upstream closes.
             conns.pop(url, None)
+            busy[url] = False
             await ws.send_text(json.dumps({"type": "error", "detail": "tts upstream unreachable"}))
             continue
 
