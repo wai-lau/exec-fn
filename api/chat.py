@@ -394,21 +394,55 @@ def _dedupe_context(notes: list) -> list:
     return [n for i, n in enumerate(notes) if i in keep]
 
 
+def _msg_text_key(m: dict) -> tuple | None:
+    """Canonical (role, text) identity for ts-matching a stored/incoming
+    message, or None if it carries no matchable text. A tool_use/tool_result
+    block set has no text and is never round-tripped by the frontend (it only
+    ever echoes back a flattened {role, content:<string>} per turn), so those
+    always come back None and get stamped fresh."""
+    content = m.get("content")
+    if isinstance(content, str):
+        text = content
+    elif isinstance(content, list):
+        text = "".join(
+            b.get("text", "") for b in content
+            if isinstance(b, dict) and b.get("type") == "text"
+        )
+    else:
+        return None
+    return (m.get("role"), text) if text else None
+
+
 def _save_chat(messages: list, stage: str):
     p = DATA_DIR / "chat.json"
     existing = json.loads(p.read_text()) if p.exists() else {}
     existing_msgs = existing.get("messages", [])
     now = datetime.now(timezone.utc).isoformat()
 
-    # Stamp each conversation message with a `ts`. The conversation only ever
-    # grows by appending, so position i in `messages` is the same message we
-    # stored at position i of the existing (monitor-stripped) conversation —
-    # carry its timestamp forward; brand-new tail messages get `now`. The
-    # incoming messages are API-clean ({role, content}) and never carry ts.
+    # Stamp each conversation message with a `ts`, matched by (role, text)
+    # rather than list position. Position-based matching is unsafe: the
+    # frontend only ever tracks ONE flattened {role, content:<string>} entry
+    # per turn, while a turn that fires a tool call saves 3-4 structured
+    # entries here (assistant tool_use, user tool_result, assistant
+    # follow-up) — so the two lists' lengths diverge the moment a tool runs,
+    # and index i silently stops meaning "the same message" on both sides (a
+    # later, genuinely new message then inherits a stale ts left over from an
+    # earlier turn's extra entries). A text-content match survives the
+    # frontend's string-vs-block-list round-trip and recovers the true ts;
+    # anything with no matchable text (tool_use/tool_result-only entries) can
+    # only be freshly created in THIS call and always gets `now`.
     existing_convo = [m for m in existing_msgs if m.get("role") != "monitor"]
+    ts_queue: dict[tuple, list] = {}
+    for m in existing_convo:
+        key = _msg_text_key(m)
+        if key:
+            ts_queue.setdefault(key, []).append(m.get("ts"))
+
     stamped = []
-    for i, m in enumerate(messages):
-        ts = existing_convo[i].get("ts") if i < len(existing_convo) else None
+    for m in messages:
+        key = _msg_text_key(m)
+        bucket = ts_queue.get(key) if key else None
+        ts = bucket.pop(0) if bucket else None
         stamped.append({**m, "ts": ts or now})
 
     # Preserve monitor comments (each keeps its own ts); dedup any that somehow
