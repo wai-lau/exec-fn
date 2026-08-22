@@ -46,41 +46,45 @@ async def api_rd_recalc(card_id: str, request: Request):
     incorporating its latest notes."""
     import nudge as _nudge
     import nudge_deadlines as _nd
-    from helpers import _load_rd, _save_rd, _find_card
+    from helpers import _load_rd, _save_rd, _find_card, _RD_LOCK
     try:
         body = await request.json()
     except Exception:
         body = {}
-    rd = _load_rd()
-    card = _find_card(rd, card_id)
-    if not card:
-        raise HTTPException(status_code=404)
-    if card.get("is_reminder") or card.get("is_book"):
-        raise HTTPException(status_code=400, detail="not decomposable")
-    if body.get("notes") is not None:
-        card["notes"] = body["notes"]
-    prep, dur = body.get("prep"), body.get("duration")
-    if prep is not None or dur is not None:
-        p, d = max(0, int(prep or 0)), max(0, int(dur or 0))
-        card["prep_time"] = p          # lead-up slice of the total estimate
-        if p + d > 0:
-            card["estimated_time"] = p + d
-    if body.get("notes") is not None or prep is not None or dur is not None:
-        _save_rd(rd)  # persist edits before decomposing from them
+    with _RD_LOCK:
+        rd = _load_rd()
+        card = _find_card(rd, card_id)
+        if not card:
+            raise HTTPException(status_code=404)
+        if card.get("is_reminder") or card.get("is_book"):
+            raise HTTPException(status_code=400, detail="not decomposable")
+        if body.get("notes") is not None:
+            card["notes"] = body["notes"]
+        prep, dur = body.get("prep"), body.get("duration")
+        if prep is not None or dur is not None:
+            p, d = max(0, int(prep or 0)), max(0, int(dur or 0))
+            card["prep_time"] = p          # lead-up slice of the total estimate
+            if p + d > 0:
+                card["estimated_time"] = p + d
+        if body.get("notes") is not None or prep is not None or dur is not None:
+            _save_rd(rd)  # persist edits before decomposing from them
     result = await asyncio.to_thread(_nllm.decompose_sync, card)
-    rd = _load_rd()  # reload around the LLM call
-    card = _find_card(rd, card_id)
-    if not card:
-        raise HTTPException(status_code=404)
-    n = _nudge.ensure_nudge(card)
-    n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
-    n["active_node"] = result["active_node"]
-    n["triage_pending"] = False
-    _nd.compute_deadlines(card)          # appends the event block
-    g = n["graph"]
-    if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
-        n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
-    _save_rd(rd)
+    # Reload around the LLM call; locked so a parallel-thread writer can't
+    # interleave inside this apply cycle.
+    with _RD_LOCK:
+        rd = _load_rd()
+        card = _find_card(rd, card_id)
+        if not card:
+            raise HTTPException(status_code=404)
+        n = _nudge.ensure_nudge(card)
+        n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
+        n["active_node"] = result["active_node"]
+        n["triage_pending"] = False
+        _nd.compute_deadlines(card)          # appends the event block
+        g = n["graph"]
+        if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
+            n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
+        _save_rd(rd)
     return {"ok": True, "nudge": card["nudge"]}
 
 
@@ -209,43 +213,47 @@ def _apply_patch_schedule(new_cards, old_cards):
 
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request, source: str = "rd"):
+    from helpers import _load_rd, _save_rd, _RD_LOCK
     body = await request.json()
-    p = DATA_DIR / "rd.json"
-    data = _load_json("rd", {"columns": _RD_COLUMNS})
-    old_cards = {c["id"]: c for c in data.get("cards", [])}
-    new_cards = body.get("cards", [])
+    # Whole read-modify-write cycle under _RD_LOCK: this runs on the event loop
+    # while nudge scans + chat tools run on real OS threads — unlocked, either
+    # side's save could silently drop the other's changes.
+    with _RD_LOCK:
+        data = _load_rd()
+        old_cards = {c["id"]: c for c in data.get("cards", [])}
+        new_cards = body.get("cards", [])
 
-    # Apply side-effects that mutate new_cards in place (scheduled_day logic)
-    _apply_patch_schedule(new_cards, old_cards)
+        # Apply side-effects that mutate new_cards in place (scheduled_day logic)
+        _apply_patch_schedule(new_cards, old_cards)
 
-    log_entries = _log_entries_for_patch(new_cards, old_cards, source)
+        log_entries = _log_entries_for_patch(new_cards, old_cards, source)
 
-    # Recurring revival
-    revived = []
-    existing_titles_dates = {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in new_cards}
-    existing_titles_dates |= {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in old_cards.values()}
-    for c in new_cards:
-        old = old_cards.get(c.get("id"))
-        if (old and old.get("column") != "archives" and c.get("column") == "archives"
-                and c.get("recur_type")):
-            next_due = _next_recurrence(c.get("due_date") or "", c["recur_type"])
-            key = (c.get("title","").lower(), (next_due or "")[:10])
-            if next_due and key not in existing_titles_dates:
-                clone = copy.deepcopy(c)
-                clone["id"] = f"card-{int(time.time() * 1000) + len(revived)}"
-                clone["column"] = "rd"
-                clone["due_date"] = next_due
-                clone["scheduled_day"] = None
-                clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
-                clone.pop("nudge", None)  # next occurrence starts its own loop
-                clone.pop("dir_start_min", None)
-                revived.append(clone)
-                log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
+        # Recurring revival
+        revived = []
+        existing_titles_dates = {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in new_cards}
+        existing_titles_dates |= {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in old_cards.values()}
+        for c in new_cards:
+            old = old_cards.get(c.get("id"))
+            if (old and old.get("column") != "archives" and c.get("column") == "archives"
+                    and c.get("recur_type")):
+                next_due = _next_recurrence(c.get("due_date") or "", c["recur_type"])
+                key = (c.get("title","").lower(), (next_due or "")[:10])
+                if next_due and key not in existing_titles_dates:
+                    clone = copy.deepcopy(c)
+                    clone["id"] = f"card-{int(time.time() * 1000) + len(revived)}"
+                    clone["column"] = "rd"
+                    clone["due_date"] = next_due
+                    clone["scheduled_day"] = None
+                    clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
+                    clone.pop("nudge", None)  # next occurrence starts its own loop
+                    clone.pop("dir_start_min", None)
+                    revived.append(clone)
+                    log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
 
-    _recompute_node_deadlines(new_cards)
-    _flag_triage(new_cards, old_cards)
-    data["cards"] = new_cards + revived
-    _atomic_write_json(p, data)
+        _recompute_node_deadlines(new_cards)
+        _flag_triage(new_cards, old_cards)
+        data["cards"] = new_cards + revived
+        _save_rd(data)
     _append_rd_log_batch(log_entries)
     if any(_entry_is_significant(e) for e in log_entries):
         schedule_monitor()

@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from helpers import _load_rd, _save_rd, _append_rd_log, get_rd_log
+from helpers import _load_rd, _save_rd, _append_rd_log, get_rd_log, _RD_LOCK
 from scheduler import place_card_today
 
 _ET = ZoneInfo("America/New_York")
@@ -56,40 +56,43 @@ def get_week_data(start_iso: str | None = None) -> dict:
 
 def bulk_update_scheduled_days(updates: list[dict]) -> dict:
     """Apply list of {id, scheduled_day?, order?} updates to rd.json."""
-    rd = _load_rd()
-    cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
-    changed = 0
+    # Locked whole cycle: runs on Starlette's thread pool, parallel to the
+    # nudge-loop scans + chat tools — an unlocked save could drop theirs.
+    with _RD_LOCK:
+        rd = _load_rd()
+        cards_by_id = {c["id"]: c for c in rd.get("cards", [])}
+        changed = 0
 
-    for upd in updates:
-        cid = upd.get("id")
-        card = cards_by_id.get(cid)
-        if not card:
-            continue
-        changed_this = False
+        for upd in updates:
+            cid = upd.get("id")
+            card = cards_by_id.get(cid)
+            if not card:
+                continue
+            changed_this = False
 
-        if "scheduled_day" in upd:
-            old_day = card.get("scheduled_day")
-            new_day = upd["scheduled_day"] or None
-            if old_day != new_day:
-                card["scheduled_day"] = new_day
-                card.pop("dir_start_min", None)
-                if new_day is None:
-                    card["column"] = "rd"
-                    rd_orders = [c.get("order", 0) for c in rd.get("cards", []) if c.get("column") == "rd"]
-                    card["order"] = (min(rd_orders) - 1) if rd_orders else 0
-                elif new_day == _today_iso():
-                    card["dir_start_min"] = place_card_today(rd.get("cards", []), new_day)
-                log_hq_change(cid, old_day, new_day, title=card.get("title", cid))
+            if "scheduled_day" in upd:
+                old_day = card.get("scheduled_day")
+                new_day = upd["scheduled_day"] or None
+                if old_day != new_day:
+                    card["scheduled_day"] = new_day
+                    card.pop("dir_start_min", None)
+                    if new_day is None:
+                        card["column"] = "rd"
+                        rd_orders = [c.get("order", 0) for c in rd.get("cards", []) if c.get("column") == "rd"]
+                        card["order"] = (min(rd_orders) - 1) if rd_orders else 0
+                    elif new_day == _today_iso():
+                        card["dir_start_min"] = place_card_today(rd.get("cards", []), new_day)
+                    log_hq_change(cid, old_day, new_day, title=card.get("title", cid))
+                    changed_this = True
+
+            if "order" in upd:
+                card["order"] = upd["order"]
                 changed_this = True
 
-        if "order" in upd:
-            card["order"] = upd["order"]
-            changed_this = True
+            if changed_this:
+                changed += 1
 
-        if changed_this:
-            changed += 1
-
-    _save_rd(rd)
+        _save_rd(rd)
     return {"ok": True, "changed": changed}
 
 

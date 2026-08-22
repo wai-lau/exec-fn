@@ -145,18 +145,21 @@ def build_morning() -> dict:
         heartbeat_path.rename(hb_archive)
     heartbeat_path.write_text("")
 
-    from helpers import _load_rd, _save_rd
+    from helpers import _load_rd, _save_rd, _RD_LOCK
     from scheduler import layout_day, is_dir_card, AUTOSTACK_ANCHOR
     today_iso = _now_et().strftime("%Y-%m-%d")
-    rd = _load_rd()
-    cards = rd.get("cards", [])
-    restack = _roll_and_schedule(cards, today_iso)
-    # Restack carryover + any today card missing a position; preserve pre-placed today cards.
-    restack |= {c["id"] for c in cards if is_dir_card(c, today_iso) and c.get("dir_start_min") is None}
-    layout_day(cards, anchor_min=AUTOSTACK_ANCHOR, today_iso=today_iso, only_ids=restack)
-    from nudge_deadlines import morning_reconcile
-    morning_reconcile(cards, today_iso)
-    _save_rd(rd)
+    # Locked whole cycle — the nudge loop's 30s tick runs on parallel threads
+    # even at 4:30 AM; an unlocked save could drop its changes (or vice versa).
+    with _RD_LOCK:
+        rd = _load_rd()
+        cards = rd.get("cards", [])
+        restack = _roll_and_schedule(cards, today_iso)
+        # Restack carryover + any today card missing a position; preserve pre-placed today cards.
+        restack |= {c["id"] for c in cards if is_dir_card(c, today_iso) and c.get("dir_start_min") is None}
+        layout_day(cards, anchor_min=AUTOSTACK_ANCHOR, today_iso=today_iso, only_ids=restack)
+        from nudge_deadlines import morning_reconcile
+        morning_reconcile(cards, today_iso)
+        _save_rd(rd)
 
     if chat_path.exists():
         chat_path.unlink()

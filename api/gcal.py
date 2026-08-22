@@ -299,53 +299,56 @@ def _haiku_classify_events(events: list) -> list:
 def import_gcal_cards(days_ahead: int = 365) -> dict:
     """Pull GCal events → classify with Haiku → rd.json cards. Deduplicates by gcal_id and title+date."""
     import time as _time
-    from helpers import _load_rd, _save_rd, _append_rd_log
+    from helpers import _load_rd, _save_rd, _append_rd_log, _RD_LOCK
 
     raw = _fetch_gcal_raw_full(days_ahead=days_ahead)
     if days_ahead >= 365:
         (DATA_DIR / "gcal_events_raw.json").write_text(json.dumps(raw, indent=2))
 
-    rd = _load_rd()
-
-    existing_gcal_ids = {c["gcal_id"] for c in rd.get("cards", []) if c.get("gcal_id")}
+    existing_gcal_ids = {c["gcal_id"] for c in _load_rd().get("cards", []) if c.get("gcal_id")}
     to_classify = [ev for ev in raw if ev.get("id") not in existing_gcal_ids]
 
-    # Haiku classify
+    # Haiku classify — network call stays OUTSIDE the lock; reload after.
     classified = _haiku_classify_events(to_classify)
 
-    cards = rd.get("cards", [])
-    imported = 0
-    for ev in classified:
-        if ev.get("skip"):
-            continue
-        notes_parts = []
-        if ev.get("description"):
-            notes_parts.append(ev["description"])
-        if ev.get("location"):
-            notes_parts.append(f"location: {ev['location']}")
-        card = {
-            "id": f"card-{int(_time.time() * 1000) + imported}",
-            "title": ev["summary"],
-            "category": ev.get("category", "Interfacing"),
-            "size": "wisp",
-            "column": "rd",
-            "order": -(imported + 1),
-            "due_date": ev["start"][:10] if ev.get("start") else None,
-            "estimated_time": 30,
-            "prep_time": None,
-            "is_reminder": ev.get("is_reminder", True),
-            "recur_type": ev.get("recur_type") or None,
-            "gcal_id": ev.get("id") or None,
-            "scheduled_day": None,
+    with _RD_LOCK:
+        rd = _load_rd()
+        # Re-check dupes against the fresh load (rd.json may have changed
+        # during the classify call).
+        fresh_gcal_ids = {c["gcal_id"] for c in rd.get("cards", []) if c.get("gcal_id")}
+        cards = rd.get("cards", [])
+        imported = 0
+        for ev in classified:
+            if ev.get("skip") or ev.get("id") in fresh_gcal_ids:
+                continue
+            notes_parts = []
+            if ev.get("description"):
+                notes_parts.append(ev["description"])
+            if ev.get("location"):
+                notes_parts.append(f"location: {ev['location']}")
+            card = {
+                "id": f"card-{int(_time.time() * 1000) + imported}",
+                "title": ev["summary"],
+                "category": ev.get("category", "Interfacing"),
+                "size": "wisp",
+                "column": "rd",
+                "order": -(imported + 1),
+                "due_date": ev["start"][:10] if ev.get("start") else None,
+                "estimated_time": 30,
+                "prep_time": None,
+                "is_reminder": ev.get("is_reminder", True),
+                "recur_type": ev.get("recur_type") or None,
+                "gcal_id": ev.get("id") or None,
+                "scheduled_day": None,
 
-            "notes": "\n".join(notes_parts) or "",
-        }
-        cards.append(card)
-        _append_rd_log("imported", ev["summary"], source="rd", due_date=card["due_date"])
-        imported += 1
+                "notes": "\n".join(notes_parts) or "",
+            }
+            cards.append(card)
+            _append_rd_log("imported", ev["summary"], source="rd", due_date=card["due_date"])
+            imported += 1
 
-    rd["cards"] = cards
-    _save_rd(rd)
+        rd["cards"] = cards
+        _save_rd(rd)
     return {"imported": imported, "raw_count": len(raw), "skipped_dupes": len(raw) - len(to_classify)}
 
 

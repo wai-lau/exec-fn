@@ -224,28 +224,30 @@ def clear_awaiting_focused() -> str | None:
     """User spoke in exec chat: mark the focused awaiting card replied-to so the
     stall timer stops. Focused = most recently nudged (a reply about card A must
     not silence card B's stall). Returns the card id or None."""
-    from helpers import _load_rd, _save_rd
+    from helpers import _load_rd, _save_rd, _RD_LOCK
     from scheduler import logical_today_iso
-    rd = _load_rd()
-    today = logical_today_iso()
-    cands = [
-        c for c in rd.get("cards", [])
-        if _eligible(c, today) and (c.get("nudge") or {}).get("awaiting_reply")
-    ]
-    if not cands:
-        return None
-    card = max(cands, key=lambda c: c["nudge"].get("last_nudge_at") or "")
-    n = card["nudge"]
-    now = _now_et()
-    n["awaiting_reply"] = False
-    n["last_user_reply_at"] = _fmt_et(now)
-    if n.get("stage") == "awaiting":
-        # Replied but not done: restart the no-response window so the loop
-        # re-nudges if Wai goes quiet again (advance/consequences override this).
-        n["stage"] = "nudging"
-        n["next_nudge_at"] = _fmt_et(now + timedelta(minutes=window_for(card)))
-        n["window_deadline"] = None
-    _save_rd(rd)
+    # Locked whole cycle: runs via asyncio.to_thread, parallel to other writers.
+    with _RD_LOCK:
+        rd = _load_rd()
+        today = logical_today_iso()
+        cands = [
+            c for c in rd.get("cards", [])
+            if _eligible(c, today) and (c.get("nudge") or {}).get("awaiting_reply")
+        ]
+        if not cands:
+            return None
+        card = max(cands, key=lambda c: c["nudge"].get("last_nudge_at") or "")
+        n = card["nudge"]
+        now = _now_et()
+        n["awaiting_reply"] = False
+        n["last_user_reply_at"] = _fmt_et(now)
+        if n.get("stage") == "awaiting":
+            # Replied but not done: restart the no-response window so the loop
+            # re-nudges if Wai goes quiet again (advance/consequences override this).
+            n["stage"] = "nudging"
+            n["next_nudge_at"] = _fmt_et(now + timedelta(minutes=window_for(card)))
+            n["window_deadline"] = None
+        _save_rd(rd)
     return card["id"]
 
 
