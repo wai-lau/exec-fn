@@ -436,16 +436,19 @@ def api_moltbook_heartbeat_log():
 @protected.get("/api/debug/logs")
 def api_debug_logs():
     from helpers import _RD_LOG as _log_path
-    files = []
-    # today's log first
-    today_entries = json.loads(_log_path.read_text()) if _log_path.exists() else []
-    files.append({"name": "today", "entries": today_entries})
+
+    def entries(p: Path) -> list:
+        # A truncated/corrupted log (interrupted write, non-atomic writer) must
+        # not 500 the whole viewer -- skip that one file, like api_tarot_readings.
+        try:
+            return json.loads(p.read_text())
+        except (json.JSONDecodeError, OSError):
+            return []
+
+    files = [{"name": "today", "entries": entries(_log_path) if _log_path.exists() else []}]
     # archived logs, newest first
-    archived = sorted(glob.glob(str(DATA_DIR / "activity_log_????.json")), reverse=True)
-    for path in archived:
-        name = Path(path).stem.replace("activity_log_", "")
-        entries = json.loads(Path(path).read_text())
-        files.append({"name": name, "entries": entries})
+    for path in sorted(glob.glob(str(DATA_DIR / "activity_log_????.json")), reverse=True):
+        files.append({"name": Path(path).stem.replace("activity_log_", ""), "entries": entries(Path(path))})
     return {"files": files}
 
 
