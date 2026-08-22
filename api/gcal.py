@@ -119,6 +119,17 @@ def _dedup_key(summary: str, start: str) -> tuple:
     return (summary.strip().lower(), start[:10])
 
 
+def _gcal_due_date(start: str | None) -> str | None:
+    """GCal `start` -> rd.json due_date. All-day events (`start` has no "T")
+    keep just the date; timed events (RFC3339 `dateTime`, e.g.
+    "2026-08-25T15:00:00-04:00") keep the wall-clock time too
+    ("2026-08-25T15:00") — scheduler.timed_start_min() needs the "T" to
+    anchor a card's block to the actual event time."""
+    if not start:
+        return None
+    return start[:16] if "T" in start else start[:10]
+
+
 def fetch_calendar_events(days_ahead: int = 30, days_behind: int = 5) -> list:
     from googleapiclient.discovery import build as gcal_build
 
@@ -341,7 +352,7 @@ def import_gcal_cards(days_ahead: int = 365) -> dict:
                 "size": "wisp",
                 "column": "rd",
                 "order": -(imported + 1),
-                "due_date": ev["start"][:10] if ev.get("start") else None,
+                "due_date": _gcal_due_date(ev.get("start")),
                 "estimated_time": 30,
                 "prep_time": None,
                 "is_reminder": ev.get("is_reminder", True),
