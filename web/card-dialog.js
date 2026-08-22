@@ -292,8 +292,15 @@
       if (prep + work > 0) c.estimated_time = prep + work;
     }
     const dueRaw = document.getElementById('cd-due').value;
-    const res = await _resolve(dueRaw, c.size, c.estimated_time);
-    c.due_date = res.due;
+    // The field shows a year-less rendering of c.due_date (_fmt). Only re-parse
+    // when the text actually changed -- round-tripping the untouched string
+    // through _parseMD's "already passed this year -> bump" heuristic would
+    // silently corrupt the year on every save that doesn't touch due date.
+    const dueWasShown = c.due_date ? _fmt(c.due_date) : '';
+    if (dueRaw !== dueWasShown) {
+      const res = await _resolve(dueRaw, c.size, c.estimated_time);
+      c.due_date = res.due;
+    }
     c.notes = document.getElementById('cd-notes').value.trim();
     c.recur_type = document.getElementById('cd-recurring').checked
       ? document.getElementById('cd-recur').value : null;
