@@ -127,9 +127,9 @@ async function renderLogs(logRes) {
           const meta = e.action === 'moved' ? `${e.from_col||'?'}→${e.to_col||'?'}` : (e.column || e.day || '');
           return `<div class="dbg-entry">
             <span class="dbg-entry-ts">${ts}</span>
-            <span class="dbg-entry-action">${e.action||''}</span>
-            <span class="dbg-entry-title">${e.title||''}</span>
-            <span class="dbg-entry-meta">${meta}</span>
+            <span class="dbg-entry-action">${esc(e.action||'')}</span>
+            <span class="dbg-entry-title">${esc(e.title||'')}</span>
+            <span class="dbg-entry-meta">${esc(meta)}</span>
           </div>`;
         }).join('') : '<div class="dbg-empty">empty</div>'}
       </div>
