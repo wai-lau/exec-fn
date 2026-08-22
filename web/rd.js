@@ -1,5 +1,9 @@
 /* global cardStyle, chipStyle, bookBarColors */
 const COLS = ['rd','hq','archives','exile'];
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 let cards = [];
 let dragging = false;
 let barSortable = null;
@@ -100,8 +104,8 @@ function renderCard(c) {
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
   const dateC = overdue ? 'hsl(var(--orange-glow-hsl) / 1)' : dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'hsl(var(--green-hsl) / 1)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'hsl(var(--green-hsl) / 1)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
-    <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${c.title}${reminderBadge}</div>
-    ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${c.notes||c.description}</div>` : ''}
+    <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${esc(c.title)}${reminderBadge}</div>
+    ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${esc(c.notes||c.description)}</div>` : ''}
     <div class="card-foot">
       <div class="card-badge" style="color:${tc}">${recurBadge}</div>
       ${displayDate ? `<div class="card-due"${dueSoon ? ' data-invert="1"' : ` style="color:${dateC}"`}>${dateLabel}</div>` : ''}
@@ -160,7 +164,7 @@ function renderCol(col) {
 function _remChipHtml(c) {
   const date = c.due_date ? ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>` : '';
   const {color, bg, border} = chipStyle(c);
-  const title = c.title;
+  const title = esc(c.title);
   return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
 }
 
@@ -207,7 +211,7 @@ function showRemOverflow() {
   const modal = document.getElementById('rem-overflow-modal');
   document.getElementById('rem-overflow-list').innerHTML = overflow.map(c => {
     const color = chipStyle(c).color;
-    return `<div class="rem-ov-row" data-id="${c.id}" style="color:${color}">${c.title}<span style="opacity:0.45;margin-left:8px;font-size:0.85em">${c.due_date.slice(5)}</span></div>`;
+    return `<div class="rem-ov-row" data-id="${c.id}" style="color:${color}">${esc(c.title)}<span style="opacity:0.45;margin-left:8px;font-size:0.85em">${c.due_date.slice(5)}</span></div>`;
   }).join('');
   modal.style.display = 'flex';
   modal.querySelectorAll('.rem-ov-row').forEach(el => {
@@ -244,7 +248,7 @@ function buildBooks() {
     const {color, bg, border} = chipStyle(c);
     const bk = bookBarColors(c);
     const bar_html = `<div class="book-item-bar" style="background:${bk.track}"><div class="book-item-fill" style="width:${pct}%;background:${bk.fill}"></div></div>`;
-    return `<div class="book-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}"><div class="book-item-title">${c.title}</div>${bar_html}</div>`;
+    return `<div class="book-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}"><div class="book-item-title">${esc(c.title)}</div>${bar_html}</div>`;
   }).join('');
   bar.querySelectorAll('.book-item').forEach(el => {
     el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => load(), 'rd'); });
@@ -273,7 +277,7 @@ function showBookOverflow() {
   const modal = document.getElementById('book-overflow-modal');
   const list = document.getElementById('book-overflow-list');
   list.innerHTML = bookPartition().overflow.map(c =>
-    `<div class="book-ov-row" data-id="${c.id}">${c.title}</div>`
+    `<div class="book-ov-row" data-id="${c.id}">${esc(c.title)}</div>`
   ).join('');
   list.querySelectorAll('.book-ov-row').forEach(el => {
     el.addEventListener('click', () => {
