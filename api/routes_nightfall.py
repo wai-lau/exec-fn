@@ -71,7 +71,12 @@ def api_gamesave_get(slot: str):
 async def api_gamesave_post(slot: str, request: Request):
     if slot not in _VALID_SAVE_SLOTS:
         raise HTTPException(status_code=400, detail="invalid slot")
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="malformed request body")
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="malformed request body")
     save_str = body.get("save")
     if not isinstance(save_str, str):
         raise HTTPException(status_code=400, detail="save must be a string")
