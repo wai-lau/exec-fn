@@ -177,9 +177,15 @@ _rl_buckets: dict[str, deque[float]] = defaultdict(deque)
 
 
 def _client_ip(request: Request) -> str:
+    # This app sits behind a single trusted nginx front (bootstrap.sh sets
+    # `proxy_set_header X-Real-IP $remote_addr` and appends the real client IP
+    # as the LAST hop of X-Forwarded-For via $proxy_add_x_forwarded_for) — any
+    # earlier X-Forwarded-For hops are caller-suppliable, so only the last one
+    # (or X-Real-IP, which nginx overwrites wholesale) is trustworthy.
+    xff = request.headers.get("x-forwarded-for", "")
     return (
         request.headers.get("x-real-ip")
-        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (xff.rsplit(",", 1)[-1].strip() if xff else "")
         or (request.client.host if request.client else "unknown")
     )
 
