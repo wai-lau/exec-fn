@@ -220,9 +220,23 @@ async def _run_monitor(delay: float = 60.0) -> None:
         capture_ts = _monitor_last_comment_ts
         if not any(_is_commentable(e) for e in _recent_entries(capture_ts)):
             return
-        _monitor_last_comment_ts = time.time()
         await push_to_monitor({"thinking": True})
-        comment = await generate_encouragement(capture_ts)
+        try:
+            comment = await generate_encouragement(capture_ts)
+        except asyncio.CancelledError:
+            # schedule_monitor() cancelled us mid-call (a new significant event
+            # arrived while the LLM request was in flight) — clear the
+            # thinking indicator before the cancellation propagates, or it's
+            # stuck on until some unrelated later cycle succeeds.
+            await push_to_monitor({"thinking": False})
+            raise
+        # Only advance the watermark once the LLM call actually succeeded.
+        # Advancing it first (as before) meant any failure here (429/529/
+        # timeout, routine for a live external API) permanently dropped this
+        # batch's entries — they'd already be older than the new watermark on
+        # every future _recent_entries() call, with no retry and no
+        # user-visible sign of loss.
+        _monitor_last_comment_ts = time.time()
         await push_to_monitor({"thinking": False})
         if not comment:
             return
