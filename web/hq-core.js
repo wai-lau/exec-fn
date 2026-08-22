@@ -248,7 +248,9 @@ function pruneNode(card, id) {
   g.nodes = g.nodes.filter(x => x.id !== id);
   const byId = {}; g.nodes.forEach(n => { byId[n.id] = n; });
   const pre = {}; g.edges.forEach(e => (pre[e.to] = pre[e.to] || []).push(e.from));
-  const open = g.nodes.find(n => !n.done && !n.is_event_start &&
+  // The event block can be active too -- its start is itself a nudge point
+  // (card-graph.js firstOpen has the same no-exclusion rule).
+  const open = g.nodes.find(n => !n.done &&
     (pre[n.id] || []).every(p => !byId[p] || byId[p].done));
   card.nudge.active_node = open ? open.id : null;
 }
