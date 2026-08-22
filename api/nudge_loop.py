@@ -263,6 +263,11 @@ async def _run_triage(card_id: str) -> bool:
     card = _find_card(rd, card_id)
     if not card or not (card.get("nudge") or {}).get("graph", {}).get("nodes"):
         return False
+    # Snapshot done-state before the (multi-second) LLM call so we can detect
+    # progress that lands during the round-trip -- e.g. advance_chunk marking
+    # the active node done. The result below is computed from THIS graph; if
+    # it's no longer current, applying it would silently revert that progress.
+    before = {nd["id"]: nd.get("done") for nd in card["nudge"]["graph"]["nodes"]}
     result = await asyncio.to_thread(_nllm.triage_sync, card)
     # Reload around the LLM call; locked so a parallel-thread writer can't
     # interleave inside this apply cycle.
@@ -272,6 +277,13 @@ async def _run_triage(card_id: str) -> bool:
         if not card:
             return False
         n = _nudge.ensure_nudge(card)
+        now = {nd["id"]: nd.get("done") for nd in n["graph"]["nodes"]}
+        if now != before:
+            # Graph moved under us (a step completed, a stall peeled, another
+            # fire decomposed it) while the LLM was thinking. Drop this stale
+            # result and leave triage_pending set so the next tick re-triages
+            # against the fresh graph instead of clobbering the progress.
+            return False
         n["triage_pending"] = False
         changed = False
         if result.get("needs_update") and result.get("nodes"):
