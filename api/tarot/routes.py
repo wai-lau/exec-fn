@@ -190,7 +190,12 @@ def _client_ip(request: Request) -> str:
     )
 
 
+_RL_SWEEP_EVERY = 500
+_rl_calls_since_sweep = 0
+
+
 def _rl_check(ip: str) -> None:
+    global _rl_calls_since_sweep
     now = monotonic()
     bucket = _rl_buckets[ip]
     while bucket and bucket[0] < now - _RL_WINDOW_SEC:
@@ -198,6 +203,15 @@ def _rl_check(ip: str) -> None:
     if len(bucket) >= _RL_MAX_REQS:
         raise HTTPException(429, f"rate limit: max {_RL_MAX_REQS} requests per {int(_RL_WINDOW_SEC)}s")
     bucket.append(now)
+
+    # _rl_buckets never drops a key on its own once a caller identity's deque
+    # empties again — over weeks of public traffic that's an unbounded number
+    # of stale dict entries. Periodically sweep out the empty ones.
+    _rl_calls_since_sweep += 1
+    if _rl_calls_since_sweep >= _RL_SWEEP_EVERY:
+        _rl_calls_since_sweep = 0
+        for k in [k for k, v in _rl_buckets.items() if not v]:
+            del _rl_buckets[k]
 
 
 _MAX_HISTORY_MESSAGES = 40
