@@ -148,16 +148,16 @@ Nav: `R&D` · `HQ` · `debug` · `sec` (→`/security`, **guest-gated**; in the 
 | GET | `/api/ui/usage` | Public. `{counts, alphas, alpha_counts, sites}` — `var(--X)` reference counts + actually-used alphas per `-hsl` token + parallel per-alpha counts + `sites` (`{token: {α-string: {site-label: n}}}`, site = nearest CSS selector else filename; `-hsl` colours keyed per-alpha, scale tokens under a flat `*` bucket), across templates + web assets + **all `api/*.py`** (several ship inline CSS — `security.py` alone references ~56 tokens — that would otherwise misflag used tokens as unused on /UI; chrome.css `:root` block excluded; bare `hsl(var(--X-hsl))` = α 1). Feeds the alpha columns, per-opacity ×N, per-column usage-site lists, and the Scale-section counts/flags on `/UI` |
 | GET | `/api/mtg/log` | **Owner-only** (`protected`, defined in routes_views.py — NOT the guest `mtg_router`). All MTG session transcripts for the `/debug` viewer; returns every session unscoped and the store is shared across auth tiers (holds Wai's own /mtg chats), so guests must never reach it. Same rationale as `/api/tarot/readings`. |
 | GET | `/api/mtg/rule/{number}` | Rule text for the hover/tap preview (`lookup_rule` by number, e.g. `724.1b`). |
-| POST | `/api/mtg/chat` | mtg chat (tool-use over rules) SSE |
+| POST | `/api/mtg/chat` | mtg chat (tool-use over rules) SSE. In-process per-IP rate limit (20 req / 60s), mirroring `/api/tarot/chat`. |
 | GET | `/api/tarot/spreads` | Spread layouts (position coords/labels) |
 | GET | `/api/tarot/cards` | 78-card canonical list (id/name/image) |
 | POST | `/api/tarot/draw` | Body `{spread_type, significator_id?}` → fresh draw with reversed flags. Significator removed from deck before draw. No server persistence — client stores in `localStorage`. |
-| POST | `/api/tarot/chat` | Body `{messages, spread: {type, revealed, face_down_positions, significator?}}` → SSE stream. Server told only about revealed cards; face-down identities never leave the browser. In-process per-IP rate limit (20 req / 60s). |
+| POST | `/api/tarot/chat` | Body `{messages, spread: {type, revealed, face_down_positions, significator?}}` → SSE stream. Server told only about revealed cards; face-down identities never leave the browser. In-process per-IP rate limit (20 req / 60s); message history capped (last 40 messages, per-message content clamped to 4000 chars) before the LLM call. |
 | POST | `/api/tarot/save` | Body `{significator?, spread?, messages}` → append reading to `tarot_readings.json`. Called by `resetAll()` before wiping local state. Owner-only: saves only when full `session` cookie present (Wai); guests no-op (their readings stay localStorage-only). No-op on empty reading. |
 | GET | `/api/tarot/readings` | Full-auth (`protected`, not guest tarot router) → `{readings: [...]}` from `tarot_readings.json`. Rendered in `/debug` tarot-readings section. |
-| GET | `/api/gamesave/{slot}` | Nightfall save slot read |
-| POST | `/api/gamesave/{slot}` | Nightfall save slot write |
-| DELETE | `/api/gamesave/{slot}` | Nightfall save slot delete |
+| GET | `/api/gamesave/{slot}` | Nightfall save slot read. **Guest-or-full** (the game is guest-playable); slot names allowlisted (`_VALID_SAVE_SLOTS`). |
+| POST | `/api/gamesave/{slot}` | Nightfall save slot write (guest-or-full; atomic temp+rename; 400 on malformed body). |
+| DELETE | `/api/gamesave/{slot}` | Nightfall save slot delete (guest-or-full). |
 | GET | `/api/hosaka/voices` | Guest-or-full. Proxies the TTS upstream's `/v1/voices` list (empty list on upstream error). |
 | GET | `/api/hosaka/health` | Guest-or-full. Probes the TTS upstream → `{ok:true}` or 503 `{ok:false,detail}`. Liveness = a real response (the reverse-tunnel port stays bound when the home server is down). `/hosaka` polls it to show "TTS server offline". |
 | GET/POST | `/api/hosaka/mode` | **Owner-only.** GET → current GPU mode (`homo`/`emo`/`idle`, or `gone` if the home box is unreachable). POST `{action, force?}` switches it (409 if it would cut off connected users and `force` absent); the shared `#gpu-mode` strip on `/hosaka`+`/emet` drives it. |
@@ -255,8 +255,8 @@ ADHD activation scaffolding: every card = decomposed **prep** steps + (when `wor
 3. **Recalibrate** — fold the day's completions into per-category lateness factors (`recalibration.recalibrate`); read before the log is archived.
 4. **Purge** — remove time-specific expired notes from `profile.json`
 5. **GCal import** — pull calendar events 14 days ahead as cards
-6. Archive `activity_log.json` → `activity_log_MMDD.json`, reset to `[]`
-7. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_MMDD.log`, reset to `""`
+6. Archive `activity_log.json` → `activity_log_YYYYMMDD.json`, reset to `[]` (year included so archives don't collide/overwrite across years; `/api/debug/logs` globs `activity_log_[0-9]*.json`, matching both the new 8-digit and legacy `MMDD` names)
+7. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_YYYYMMDD.log`, reset to `""`
 8. Roll past-dated `scheduled_day` on rd/hq cards forward to today (skip `no_rollover` cards — a missed fixed occurrence stays in the past), auto-promote rd cards with a `due_date` inside the 7-day window to hq (rd->hq via `schedule_to_day`), then `scheduler.layout_day()` autostacks carryover + unpinned timeless today cards from 10 AM while pinning timed cards at `event_time - prep` (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout
 9. Clear `chat.json`
 10. Dedupe `profile.json` notes

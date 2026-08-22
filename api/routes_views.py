@@ -447,7 +447,7 @@ def api_debug_logs():
 
     files = [{"name": "today", "entries": entries(_log_path) if _log_path.exists() else []}]
     # archived logs, newest first
-    for path in sorted(glob.glob(str(DATA_DIR / "activity_log_????.json")), reverse=True):
+    for path in sorted(glob.glob(str(DATA_DIR / "activity_log_[0-9]*.json")), reverse=True):
         files.append({"name": Path(path).stem.replace("activity_log_", ""), "entries": entries(Path(path))})
     return {"files": files}
 

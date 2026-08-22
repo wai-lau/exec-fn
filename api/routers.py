@@ -6,7 +6,7 @@ Sub-routers (nightfall/chat/mtg/tarot) are folded in at their auth tier."""
 from fastapi import APIRouter, Depends
 
 from auth import require_auth, require_guest_auth
-from routes_nightfall import protected_router as nightfall_protected
+from routes_nightfall import game_router as nightfall_game
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
 from tarot.routes import router as tarot_router
@@ -15,7 +15,9 @@ public = APIRouter()
 protected = APIRouter(dependencies=[Depends(require_auth)])
 guest_protected = APIRouter(dependencies=[Depends(require_guest_auth)])
 
-protected.include_router(nightfall_protected)
+# nightfall gamesave API is guest-accessible (the game itself is guest-playable);
+# slots are allowlisted so guest write access can't traverse the data dir.
+guest_protected.include_router(nightfall_game)
 protected.include_router(chat_router)
 guest_protected.include_router(mtg_router)
 guest_protected.include_router(tarot_router)

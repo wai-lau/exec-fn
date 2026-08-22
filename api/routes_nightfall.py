@@ -12,7 +12,10 @@ _SW_UNREGISTER = "<script>if('serviceWorker'in navigator){navigator.serviceWorke
 
 _VALID_SAVE_SLOTS = {"save1", "save2", "save3"}
 
-protected_router = APIRouter()
+# Guest-accessible: /nightfall is a guest-playable game, so its save-slot API
+# sits on the guest tier too (slots are allowlisted via _VALID_SAVE_SLOTS and
+# shared, matching the page's own guest_protected auth). Mounted in routers.py.
+game_router = APIRouter()
 
 
 def build_nightfall_html() -> str:
@@ -50,7 +53,7 @@ def build_nightfall_html() -> str:
     return html
 
 
-@protected_router.get("/api/gamesave")
+@game_router.get("/api/gamesave")
 def api_gamesave_all():
     result = {}
     for slot in ["save1", "save2", "save3"]:
@@ -59,7 +62,7 @@ def api_gamesave_all():
     return result
 
 
-@protected_router.get("/api/gamesave/{slot}")
+@game_router.get("/api/gamesave/{slot}")
 def api_gamesave_get(slot: str):
     if slot not in _VALID_SAVE_SLOTS:
         raise HTTPException(status_code=400, detail="invalid slot")
@@ -67,7 +70,7 @@ def api_gamesave_get(slot: str):
     return {"save": p.read_text() if p.exists() else None}
 
 
-@protected_router.post("/api/gamesave/{slot}")
+@game_router.post("/api/gamesave/{slot}")
 async def api_gamesave_post(slot: str, request: Request):
     if slot not in _VALID_SAVE_SLOTS:
         raise HTTPException(status_code=400, detail="invalid slot")
@@ -93,7 +96,7 @@ async def api_gamesave_post(slot: str, request: Request):
     return {"ok": True}
 
 
-@protected_router.delete("/api/gamesave/{slot}")
+@game_router.delete("/api/gamesave/{slot}")
 def api_gamesave_delete(slot: str):
     if slot not in _VALID_SAVE_SLOTS:
         raise HTTPException(status_code=400, detail="invalid slot")
