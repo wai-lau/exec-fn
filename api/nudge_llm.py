@@ -205,10 +205,14 @@ def apply_peel(card: dict, sub_label: str, est_min: int = 5) -> str:
         "est_min": peel_est,
     })
     edges = n["graph"]["edges"]
-    if parent_id:
+    if parent is not None:
         # Splice the peel BETWEEN parent and its predecessor so the chain stays
         # linear: P -> parent becomes P -> new -> parent. If parent is the head
-        # (no predecessor), new simply becomes the new head.
+        # (no predecessor), new simply becomes the new head. Guard on the actual
+        # node lookup, not the id string's truthiness -- active_node can point
+        # at a since-removed node (e.g. the event block dropped by
+        # ensure_event_block), and wiring an edge to a missing id leaves a
+        # dangling successor that later crashes back-scheduling.
         for e in edges:
             if e.get("to") == parent_id:
                 e["to"] = new_id
