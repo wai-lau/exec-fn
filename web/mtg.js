@@ -21,13 +21,40 @@ document.getElementById('msg-input').addEventListener('focus', () => {
   requestAnimationFrame(() => { terminal.scrollTop = terminal.scrollHeight; });
 });
 
+// marked's default link renderer runs href through cleanUrl()/encodeURI()
+// (neutralizing quote chars) before interpolating it into the <a> tag; this
+// custom renderer replaces that entirely, so it must redo that safety itself —
+// escape both href and title for the attribute context, and refuse a
+// javascript:/data: destination so quoting a hostile markdown link (LLM output
+// or attacker-supplied "card text" the assistant is asked to reproduce) can't
+// inject an attribute or execute script.
+function _escapeAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+function _safeHref(href) {
+  if (!href) return null;
+  try {
+    const u = new URL(href, document.baseURI);
+    return (u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'mailto:') ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 const _renderer = new marked.Renderer();
 _renderer.link = ({href, title, text}) => {
   if (href && href.includes('scryfall.com')) {
     const plain = text.replace(/<[^>]*>/g, '');
-    return `<span data-card="${plain.replace(/"/g, '&quot;')}">${text}</span>`;
+    return `<span data-card="${_escapeAttr(plain)}">${text}</span>`;
   }
-  return `<a href="${href}" target="_blank" rel="noopener"${title ? ` title="${title}"` : ''}>${text}</a>`;
+  const safe = _safeHref(href);
+  if (!safe) return text; // unparseable / disallowed scheme — drop the link, keep the label
+  const titleAttr = title ? ` title="${_escapeAttr(title)}"` : '';
+  return `<a href="${_escapeAttr(safe)}" target="_blank" rel="noopener"${titleAttr}>${text}</a>`;
 };
 marked.use({ breaks: true });
 
