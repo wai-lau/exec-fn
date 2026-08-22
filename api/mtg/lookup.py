@@ -134,12 +134,18 @@ def _keyword_rules(lines: list[str], query: str) -> list[str]:
     return [line for _, line in scored]
 
 
+@lru_cache(maxsize=1)
+def _load_rule_lines() -> tuple[str, ...]:
+    if not RULES_PATH.exists():
+        return ()
+    return tuple(RULES_PATH.read_text(errors="ignore").splitlines())
+
+
 def lookup_rule(query: str) -> dict:
     query = query.strip()
-    if not RULES_PATH.exists():
+    lines = _load_rule_lines()
+    if not lines:
         return {"error": "Rules file not found. Copy the original rules txt to /app/mtg/data/mtg_rules.txt"}
-
-    lines = RULES_PATH.read_text(errors="ignore").splitlines()
 
     m = _RULE_NUM_RE.match(query)
     if m:
