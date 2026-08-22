@@ -139,8 +139,23 @@ async function saveReading() {
 }
 
 async function resetAll() {
+  // Block Reset while a reader turn is in flight: streamResponse() (tarot-stream.js)
+  // holds and writes the shared `significator`/`spread`/`messages` globals by name
+  // for its whole lifetime (set_significator, deal_spread, the final assistant
+  // push) and only flips `streaming` false once those writes are done — so gating
+  // on it here means a stale in-flight turn can never resurrect state into a
+  // reading that was just wiped. Checked again after the (awaited) save in case a
+  // turn started while that fetch was in flight.
+  if (streaming) {
+    setStatus('[ reset blocked: reader still speaking — try again once this turn finishes ]');
+    return;
+  }
   if (!confirm('Reset everything? This reading will be saved, then Significator, spread, and chat history cleared.')) return;
   await saveReading();
+  if (streaming) {
+    setStatus('[ reset blocked: reader still speaking — try again once this turn finishes ]');
+    return;
+  }
   significator = null;
   spread = null;
   messages = [];
