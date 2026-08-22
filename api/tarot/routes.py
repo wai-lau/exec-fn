@@ -200,11 +200,29 @@ def _rl_check(ip: str) -> None:
     bucket.append(now)
 
 
+_MAX_HISTORY_MESSAGES = 40
+_MAX_MESSAGE_CHARS = 4000
+
+
+def _cap_messages(messages: list) -> list:
+    """Bound the caller-supplied history before it reaches the paid LLM: keep
+    only the most recent _MAX_HISTORY_MESSAGES entries and clamp any oversized
+    string content. ChatBody.messages has no size limit of its own."""
+    capped = messages[-_MAX_HISTORY_MESSAGES:]
+    out = []
+    for m in capped:
+        content = m.get("content") if isinstance(m, dict) else None
+        if isinstance(content, str) and len(content) > _MAX_MESSAGE_CHARS:
+            m = {**m, "content": content[:_MAX_MESSAGE_CHARS]}
+        out.append(m)
+    return out
+
+
 @router.post("/api/tarot/chat")
 async def api_tarot_chat(body: ChatBody, request: Request):
     _rl_check(_client_ip(request))
     return StreamingResponse(
-        _stream(body.spread, body.messages),
+        _stream(body.spread, _cap_messages(body.messages)),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
