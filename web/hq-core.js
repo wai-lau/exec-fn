@@ -253,6 +253,16 @@ function pruneNode(card, id) {
   const open = g.nodes.find(n => !n.done &&
     (pre[n.id] || []).every(p => !byId[p] || byId[p].done));
   card.nudge.active_node = open ? open.id : null;
+  // Re-derive estimated_time/prep_time from what's left (estimated_time = prep
+  // + work, event block = terminal node) -- otherwise a stale total survives
+  // the deletion and only shows up once the breakdown collapses to a single
+  // node (hasBreakdown drops the group-span recompute that was masking it).
+  const eventNode = g.nodes.find(n => n.is_event_start);
+  const work = eventNode ? (eventNode.est_min || 0) : 0;
+  const prep = g.nodes.filter(n => !n.is_event_start)
+    .reduce((sum, n) => sum + (n.est_min || 0), 0);
+  card.prep_time = prep;
+  card.estimated_time = prep + work;
 }
 
 // X-button handler on a timeline sub-step: prune it locally for an instant
