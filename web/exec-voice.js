@@ -20,6 +20,11 @@ window.execVoice = (function () {
   // Audible by default; "0" in localStorage mutes. The mute only zeroes the
   // player volume — Exec's turns still reach here either way.
   let on = localStorage.getItem(EXEC_LS_VOICE) !== "0";
+  // player.speak() flushes any audio mid-flight, so an in-flight reply would
+  // get cut off by a monitor comment or replay tap arriving seconds later.
+  // Queue extra utterances and drain them once the current one finishes.
+  let speaking = false;
+  let queue = [];
 
   function ensurePlayer() {
     if (!player) player = HosakaAudio.createPlayer({ volume: on ? EXEC_VOICE_GAIN : 0 });
@@ -65,12 +70,20 @@ window.execVoice = (function () {
     document.addEventListener("keydown", fire, true);
   }
 
-  // Speak one of Exec's turns. No-op when muted, not-yet-unlocked, or empty
-  // after stripping markdown + any [bracketed] spans. Fire-and-forget.
-  function speak(md) {
-    if (!on || !ready()) return;
-    const text = VoiceUtil.stripMarkdown(md).replace(/\[[^\]]*\]/g, " ").replace(/\s+/g, " ").trim();
-    if (!text) return;
+  // Advance the queue once the current utterance has actually finished playing
+  // (not just finished streaming) — wait out whatever's still buffered ahead.
+  function _finishThenNext() {
+    const remainMs = Math.max(0, (player.audioDuration() - player.elapsed()) * 1000);
+    setTimeout(() => {
+      speaking = false;
+      if (!on) { queue = []; return; }  // muted mid-queue — drop the backlog, don't resume it later
+      const next = queue.shift();
+      if (next) _doSpeak(next);
+    }, remainMs);
+  }
+
+  function _doSpeak(text) {
+    speaking = true;
     player.setVolume(EXEC_VOICE_GAIN);
     player
       .speak({
@@ -78,10 +91,23 @@ window.execVoice = (function () {
         backend: EXEC_VOICE_BACKEND,
         voice: EXEC_VOICE_ID,
         params: {},
+        onStatus: (msg) => { if (msg.type === "end" || msg.type === "error") _finishThenNext(); },
       })
       .catch(() => {
         /* connection failed — stay silent, the text is already on screen */
+        _finishThenNext();
       });
+  }
+
+  // Speak one of Exec's turns. No-op when muted, not-yet-unlocked, or empty
+  // after stripping markdown + any [bracketed] spans. Queues behind any
+  // utterance already playing instead of cutting it off.
+  function speak(md) {
+    if (!on || !ready()) return;
+    const text = VoiceUtil.stripMarkdown(md).replace(/\[[^\]]*\]/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) return;
+    if (speaking) { queue.push(text); return; }
+    _doSpeak(text);
   }
 
   // Wire the panel's mute button (#exec-mute, built by exec-bubble.js) to the
