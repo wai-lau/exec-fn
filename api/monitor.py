@@ -15,18 +15,31 @@ _SRC_LABELS = {"rd": "R&D", "dirs": "directives", "hq": "HQ", "Exec": "Exec chat
 def _drop_undone_advanced(entries: list) -> list:
     """Drop 'advanced' entries whose sub-step is no longer done — a step marked
     done then unmarked (accidental, within the debounce) must not earn a comment.
-    Only a CONFIRMED undo is suppressed (node present AND done is False); a missing
-    card/node keeps the entry (real history, e.g. the card was since archived, or
-    a legacy entry with no id)."""
+    Only a CONFIRMED undo is suppressed (same node, same label, done is False);
+    a missing card/node keeps the entry (real history, e.g. the card was since
+    archived, or a legacy entry with no id) — and so does an id whose CURRENT
+    label no longer matches what was logged: nudge_llm numbers a fresh
+    breakdown "n1", "n2", ... on every full rebuild (decompose_task feedback,
+    triage), so a node id is not stable across rebuilds. Without the label
+    check, a rebuild that happens to reuse a completed step's old id for an
+    unrelated, still-open node would read as a false "undo" and silently
+    swallow the real progress comment."""
     if not any(e.get("action") == "advanced" for e in entries):
         return entries
-    done_by = {}
+    by_id = {}
     for c in _load_rd().get("cards", []):
         for n in (c.get("nudge") or {}).get("graph", {}).get("nodes", []):
-            done_by[(c.get("id"), n.get("id"))] = bool(n.get("done"))
-    return [e for e in entries
-            if e.get("action") != "advanced"
-            or done_by.get((e.get("id"), e.get("node_id")), True)]
+            by_id[(c.get("id"), n.get("id"))] = n
+
+    def _keep(e: dict) -> bool:
+        if e.get("action") != "advanced":
+            return True
+        node = by_id.get((e.get("id"), e.get("node_id")))
+        if node is None or node.get("label") != e.get("step"):
+            return True
+        return bool(node.get("done"))
+
+    return [e for e in entries if _keep(e)]
 
 
 def _recent_entries(batch_start_ts: float) -> list:
