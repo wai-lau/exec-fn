@@ -66,6 +66,9 @@ def parse_date_natural(text: str, size: str | None = None, estimated_minutes: in
         s = s.strip()
         return s if s and s != "null" and _iso_pat.match(s) else None
 
-    lines = msg.content[0].text.strip().splitlines()
+    try:
+        lines = msg.content[0].text.strip().splitlines()
+    except (IndexError, AttributeError):
+        return None
     due = _valid(lines[0]) if lines else None
     return due
