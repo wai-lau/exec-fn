@@ -83,7 +83,12 @@ systemctl start docker nginx fail2ban
 if [ ! -d ${REPO_DIR} ]; then
     git clone https://github.com/wai-lau/exec-fn ${REPO_DIR}
 else
-    git -C ${REPO_DIR} pull
+    # Deterministic update (matches the deploy pattern in CLAUDE.md): a plain
+    # `git pull` can hit a merge conflict on a droplet with local drift and
+    # abort the whole script under set -e. fetch + reset --hard never
+    # conflicts, keeping a partial-failure re-run idempotent.
+    git -C ${REPO_DIR} fetch origin
+    git -C ${REPO_DIR} reset --hard origin/master
 fi
 
 # ── .env check ────────────────────────────────────────────────────────────────
