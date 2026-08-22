@@ -39,8 +39,8 @@
         if (window.execBuildTodos) execBuildTodos(panel);
         wireInput();
         restorePosition();
-        loadHistory().then(handleExecParam);
-        connectMonitorStream();
+        // SSE connects only after history resolves, so a comment landing mid-fetch can't double-render.
+        loadHistory().then(function () { handleExecParam(); connectMonitorStream(); });
       });
     });
   }
