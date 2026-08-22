@@ -25,19 +25,27 @@
     return li;
   }
 
-  // Checkbox = delete. Mark done, drop on the server, then fade the row out.
+  // Checkbox = delete. Mark done, drop on the server, then fade the row out —
+  // but only once the DELETE actually succeeds; on failure, undo the done state
+  // so the item isn't left showing "gone" while still present server-side.
   function checkOff(li, box) {
     if (li.classList.contains('done')) return;
     li.classList.add('done');
     box.textContent = '[x]';
     var id = li.dataset.id;
     fetch('/api/todos/' + encodeURIComponent(id), { method: 'DELETE' })
-      .catch(function () {})
-      .finally(function () {
+      .then(function (r) {
+        if (!r.ok) throw new Error('delete failed');
         setTimeout(function () { li.remove(); }, 180);
+      })
+      .catch(function () {
+        li.classList.remove('done');
+        box.textContent = '[ ]';
       });
   }
 
+  // On failure, restore the typed text into the input instead of discarding it
+  // silently — a network error would otherwise lose what the user just typed.
   function addTodo(text) {
     text = (text || '').trim();
     if (!text) return;
@@ -52,9 +60,13 @@
         if (item) {
           listEl.appendChild(renderItem(item));
           listEl.scrollTop = listEl.scrollHeight;
+        } else if (!inputEl.value) {
+          inputEl.value = text;
         }
       })
-      .catch(function () {});
+      .catch(function () {
+        if (!inputEl.value) inputEl.value = text;
+      });
   }
 
   function loadTodos() {
