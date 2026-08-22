@@ -261,6 +261,10 @@ requestAnimationFrame(() => { syncInputH(); terminal.scrollTop = terminal.scroll
 const _tooltip = document.getElementById('card-tooltip');
 const _tooltipImg = document.getElementById('card-tooltip-img');
 const _imgCache = {};
+// The name currently hovered — checked when a (possibly slow, possibly cached)
+// lookup resolves so an out-of-order response can't clobber a newer hover's
+// tooltip (show the wrong card, or hide the correct one it raced past).
+let _activeHoverName = null;
 
 function _positionTooltip(e) {
   const pad = 16, w = 223 + pad;
@@ -288,6 +292,8 @@ async function _showCardImage(name, e) {
     } catch { _imgCache[name] = null; }
   }
 
+  if (name !== _activeHoverName) return; // superseded by a newer hover meanwhile
+
   if (_imgCache[name]) {
     _tooltipImg.src = _imgCache[name].img;
     _tooltip.className = '';
@@ -306,6 +312,7 @@ terminal.addEventListener('click', e => {
 terminal.addEventListener('mouseover', e => {
   const el = e.target.closest('[data-card]');
   if (el && el.closest('.msg.assistant')) {
+    _activeHoverName = el.dataset.card;
     _showCardImage(el.dataset.card, e);
     el._mtgActive = true;
   }
@@ -320,6 +327,7 @@ terminal.addEventListener('mouseout', e => {
   const el = e.target.closest('[data-card]');
   if (el && el._mtgActive) {
     el._mtgActive = false;
+    if (_activeHoverName === el.dataset.card) _activeHoverName = null;
     _tooltip.style.display = 'none';
   }
 });
