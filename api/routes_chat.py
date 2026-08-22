@@ -80,7 +80,7 @@ async def _dispatch_tools(blocks, tool_result_contents, actions_taken):
         if block.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
             schedule_monitor()
         actions_taken.append({"name": block.name, "input": block.input, "result": result})
-        yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'result': result})}\n\n"
+        yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'input': block.input, 'result': result})}\n\n"
         tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
 
 
