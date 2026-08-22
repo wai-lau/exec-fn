@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import os
 from typing import Optional
 
@@ -41,9 +42,9 @@ def require_auth(
     session: Optional[str] = Cookie(default=None),
     credentials: Optional[HTTPAuthorizationCredentials] = Security(bearer),
 ):
-    if session == SESSION_TOKEN:
+    if hmac.compare_digest(session or "", SESSION_TOKEN):
         return
-    if credentials and credentials.credentials == API_KEY:
+    if credentials and hmac.compare_digest(credentials.credentials, API_KEY):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
@@ -53,10 +54,10 @@ def require_guest_auth(
     guest_session: Optional[str] = Cookie(default=None),
     credentials: Optional[HTTPAuthorizationCredentials] = Security(bearer),
 ):
-    if session == SESSION_TOKEN:
+    if hmac.compare_digest(session or "", SESSION_TOKEN):
         return
-    if guest_session == GUEST_SESSION_TOKEN:
+    if hmac.compare_digest(guest_session or "", GUEST_SESSION_TOKEN):
         return
-    if credentials and credentials.credentials == API_KEY:
+    if credentials and hmac.compare_digest(credentials.credentials, API_KEY):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
