@@ -94,16 +94,10 @@ async def api_mtg_rule(number: str):
     }
 
 
-@router.get("/api/mtg/log")
-async def api_mtg_log():
-    sessions_dir = _sessions_dir()
-    sessions = []
-    for path in sorted(sessions_dir.glob("*.json"), reverse=True):
-        try:
-            sessions.append(json.loads(path.read_text()))
-        except Exception:
-            pass
-    return {"sessions": sessions}
+# NOTE: GET /api/mtg/log is defined in routes_views.py on the owner-only
+# `protected` router, NOT here — it returns EVERY session's transcript with no
+# per-caller scoping, so it must never sit on the guest-reachable mtg_router.
+# Same rationale as /api/tarot/readings (its sibling). Only /debug consumes it.
 
 
 class ChatBody(BaseModel):
