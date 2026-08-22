@@ -63,33 +63,37 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
     import nudge as _nudge
     import nudge_deadlines as _nd
     from scheduler import logical_today_iso
-    from helpers import _load_rd, _save_rd, _now_et
+    from helpers import _load_rd, _save_rd, _now_et, _RD_LOCK
 
-    rd = _load_rd()
-    today = logical_today_iso()
-    now = _now_et()
-    due = []
-    cards = rd.get("cards", [])
-    dirty = _nd.assign_auto_deadlines(cards, today, now)
-    # Back-schedule node deadlines for EVERY hq card with a plan (not just today's),
-    # so the breakdown graph shows deadlines whenever the card is opened.
-    for c in cards:
-        if _nudge.decomposable(c) and (c.get("nudge") or {}).get("graph", {}).get("nodes"):
-            dirty |= _nd.compute_deadlines(c)
-    for c in cards:
-        n = c.get("nudge") or {}
-        if not _nudge._eligible(c, today) or n.get("stage") == "resolved":
-            continue
-        if not n.get("graph", {}).get("nodes"):
-            continue
-        anchor = _nd.active_anchor(c)
-        if anchor is not None:
-            dirty |= _arm_nudge(c, anchor)
-        kind = _due_kind(c, now)
-        if kind:
-            due.append((c["id"], kind))
-    if dirty:
-        _save_rd(rd)
+    # Runs on a to_thread worker, parallel to chat tools + sync-def routes —
+    # the whole read-modify-write cycle holds _RD_LOCK so its save can't drop
+    # a concurrent writer's changes (and vice versa).
+    with _RD_LOCK:
+        rd = _load_rd()
+        today = logical_today_iso()
+        now = _now_et()
+        due = []
+        cards = rd.get("cards", [])
+        dirty = _nd.assign_auto_deadlines(cards, today, now)
+        # Back-schedule node deadlines for EVERY hq card with a plan (not just today's),
+        # so the breakdown graph shows deadlines whenever the card is opened.
+        for c in cards:
+            if _nudge.decomposable(c) and (c.get("nudge") or {}).get("graph", {}).get("nodes"):
+                dirty |= _nd.compute_deadlines(c)
+        for c in cards:
+            n = c.get("nudge") or {}
+            if not _nudge._eligible(c, today) or n.get("stage") == "resolved":
+                continue
+            if not n.get("graph", {}).get("nodes"):
+                continue
+            anchor = _nd.active_anchor(c)
+            if anchor is not None:
+                dirty |= _arm_nudge(c, anchor)
+            kind = _due_kind(c, now)
+            if kind:
+                due.append((c["id"], kind))
+        if dirty:
+            _save_rd(rd)
     return due
 
 
@@ -125,7 +129,7 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
     import nudge_deadlines as _nd
     from datetime import timedelta
     from scheduler import logical_today_iso
-    from helpers import _load_rd, _save_rd, _find_card, _now_et
+    from helpers import _load_rd, _save_rd, _find_card, _now_et, _RD_LOCK
 
     rd = _load_rd()
     card = _find_card(rd, card_id)
@@ -153,28 +157,30 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
     finally:
         await push_to_monitor({"thinking": False})
 
-    # Re-load: rd.json may have changed during the LLM call.
-    rd = _load_rd()
-    card = _find_card(rd, card_id)
-    if not card or not _nudge._eligible(card, logical_today_iso()):
-        return False
-    n = _nudge.ensure_nudge(card)
-    if n["awaiting_reply"] != (kind == "stall"):
-        return False  # state moved under us (reply landed / another fire) — drop
-    if graph_update is not None:
-        n["graph"] = graph_update
-        n["active_node"] = active
-    if peeled_label is not None:
-        _nllm.apply_peel(card, peeled_label, peel_est)
-    _nd.compute_deadlines(card)
-    now = _now_et()
-    n["stage"] = "awaiting"
-    n["awaiting_reply"] = True
-    n["last_nudge_at"] = _nudge._fmt_et(now)
-    n["last_nudge_text"] = text
-    n["window_deadline"] = _nudge._fmt_et(now + timedelta(minutes=_nudge.window_for(card)))
-    n["next_nudge_at"] = None
-    _save_rd(rd)
+    # Re-load: rd.json may have changed during the LLM call. Locked so a
+    # parallel-thread writer can't interleave inside this apply cycle.
+    with _RD_LOCK:
+        rd = _load_rd()
+        card = _find_card(rd, card_id)
+        if not card or not _nudge._eligible(card, logical_today_iso()):
+            return False
+        n = _nudge.ensure_nudge(card)
+        if n["awaiting_reply"] != (kind == "stall"):
+            return False  # state moved under us (reply landed / another fire) — drop
+        if graph_update is not None:
+            n["graph"] = graph_update
+            n["active_node"] = active
+        if peeled_label is not None:
+            _nllm.apply_peel(card, peeled_label, peel_est)
+        _nd.compute_deadlines(card)
+        now = _now_et()
+        n["stage"] = "awaiting"
+        n["awaiting_reply"] = True
+        n["last_nudge_at"] = _nudge._fmt_et(now)
+        n["last_nudge_text"] = text
+        n["window_deadline"] = _nudge._fmt_et(now + timedelta(minutes=_nudge.window_for(card)))
+        n["next_nudge_at"] = None
+        _save_rd(rd)
 
     append_monitor_comment(text)
     await push_to_monitor({"comment": text})
@@ -203,27 +209,29 @@ async def _build_graph(card_id: str) -> bool:
     """Silent decompose (no nudge sent) for an hq card missing its plan."""
     import nudge as _nudge
     import nudge_deadlines as _nd
-    from helpers import _load_rd, _save_rd, _find_card
+    from helpers import _load_rd, _save_rd, _find_card, _RD_LOCK
     rd = _load_rd()
     card = _find_card(rd, card_id)
     if not card or not _nudge.decomposable(card):
         return False
     result = await asyncio.to_thread(_nllm.decompose_sync, card)
-    # Re-load: rd.json may have changed during the LLM call.
-    rd = _load_rd()
-    card = _find_card(rd, card_id)
-    if not card or not _nudge.decomposable(card):
-        return False
-    n = _nudge.ensure_nudge(card)
-    if n["graph"]["nodes"]:
-        return False  # raced with a fire that already decomposed
-    n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
-    n["active_node"] = result["active_node"]
-    _nd.compute_deadlines(card)          # appends the event block (+ its deadline)
-    g = n["graph"]
-    if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
-        n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
-    _save_rd(rd)
+    # Re-load: rd.json may have changed during the LLM call. Locked so a
+    # parallel-thread writer can't interleave inside this apply cycle.
+    with _RD_LOCK:
+        rd = _load_rd()
+        card = _find_card(rd, card_id)
+        if not card or not _nudge.decomposable(card):
+            return False
+        n = _nudge.ensure_nudge(card)
+        if n["graph"]["nodes"]:
+            return False  # raced with a fire that already decomposed
+        n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
+        n["active_node"] = result["active_node"]
+        _nd.compute_deadlines(card)          # appends the event block (+ its deadline)
+        g = n["graph"]
+        if n["active_node"] not in {nd["id"] for nd in g["nodes"]}:
+            n["active_node"] = _nudge._first_open(g["nodes"], g["edges"])
+        _save_rd(rd)
     await push_to_monitor({"cards_changed": True})  # new breakdown group appears on the board
     return True
 
@@ -250,25 +258,28 @@ async def _run_triage(card_id: str) -> bool:
     """Re-evaluate a card's plan against its updated details; rebuild if warranted."""
     import nudge as _nudge
     import nudge_deadlines as _nd
-    from helpers import _load_rd, _save_rd, _find_card
+    from helpers import _load_rd, _save_rd, _find_card, _RD_LOCK
     rd = _load_rd()
     card = _find_card(rd, card_id)
     if not card or not (card.get("nudge") or {}).get("graph", {}).get("nodes"):
         return False
     result = await asyncio.to_thread(_nllm.triage_sync, card)
-    rd = _load_rd()  # reload around the LLM call
-    card = _find_card(rd, card_id)
-    if not card:
-        return False
-    n = _nudge.ensure_nudge(card)
-    n["triage_pending"] = False
-    changed = False
-    if result.get("needs_update") and result.get("nodes"):
-        n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
-        n["active_node"] = result["active_node"]
-        _nd.compute_deadlines(card)
-        changed = True
-    _save_rd(rd)
+    # Reload around the LLM call; locked so a parallel-thread writer can't
+    # interleave inside this apply cycle.
+    with _RD_LOCK:
+        rd = _load_rd()
+        card = _find_card(rd, card_id)
+        if not card:
+            return False
+        n = _nudge.ensure_nudge(card)
+        n["triage_pending"] = False
+        changed = False
+        if result.get("needs_update") and result.get("nodes"):
+            n["graph"] = {"nodes": result["nodes"], "edges": result["edges"]}
+            n["active_node"] = result["active_node"]
+            _nd.compute_deadlines(card)
+            changed = True
+        _save_rd(rd)
     if changed:
         await push_to_monitor({"cards_changed": True})  # plan rebuilt -> board reflects it
     return changed

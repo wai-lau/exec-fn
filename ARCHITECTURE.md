@@ -188,6 +188,30 @@ sequenceDiagram
   P-->>API: summary
 ```
 
+### rd.json concurrency — `helpers._RD_LOCK`
+
+rd.json writers run on genuinely parallel OS threads: the nudge loop's scans
+(`asyncio.to_thread`), chat-tool dispatch (`routes_chat` → `to_thread`),
+sync-`def` routes on Starlette's thread pool (gcal import), and the event loop
+itself (`PATCH /api/rd`). Three guards in `helpers.py` make that safe:
+
+- **`_RD_LOCK`** (`threading.RLock`) — every read-modify-write cycle holds it
+  around the WHOLE load→mutate→save sequence (`with _RD_LOCK:`), so one
+  thread's save can never silently drop another's changes. LLM/network calls
+  are NEVER made under the lock — callers release, call the model, then
+  re-lock + reload + apply (`_fire_nudge`, `_build_graph`, `_run_triage`,
+  `api_rd_recalc`, `_tool_decompose_task`, `import_gcal_cards`).
+- **`_load_rd()` returns a private deep copy** — the `_load_json` mtime cache
+  holds one shared object; handing it out mutable would leak one thread's
+  in-progress edits into another's snapshot.
+- **`_save_rd()` is an atomic replace** (tmp + rename), so a concurrent
+  reader never sees a truncated file.
+
+Single-process invariant: uvicorn runs ONE worker (`--reload`), so a
+process-wide lock is sufficient; nothing outside the container writes rd.json.
+Read-only loads (`monitor`, `get_week_data`, scans) don't take the lock — the
+deep copy + atomic replace make unlocked reads safe.
+
 ### 3b. scheduler.py — the time model
 
 All `dir_start_min` / `scheduled_day` logic lives here. Window =

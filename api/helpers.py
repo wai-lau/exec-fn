@@ -1,5 +1,7 @@
+import copy
 import json
 import re
+import threading
 from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -100,14 +102,35 @@ def _migrate_cards(rd: dict) -> dict:
     return rd
 
 
+# Serializes every rd.json read-modify-write cycle. Cycles run on genuinely
+# parallel OS threads (asyncio.to_thread nudge scans, sync-def routes on
+# Starlette's thread pool, chat-tool dispatch), so two unlocked load->mutate->
+# save sequences can interleave and the last save silently drops the other's
+# changes. Every caller that mutates and saves must hold this around the WHOLE
+# cycle (`with _RD_LOCK:`), and must NOT hold it across an LLM/network call —
+# reload after the call instead (see nudge_loop._fire_nudge). RLock so a locked
+# section may call helpers that also take it.
+_RD_LOCK = threading.RLock()
+
+
 def _load_rd() -> dict:
-    return _migrate_cards(
-        _load_json("rd", {"columns": ["rd", "hq", "archives", "exile"], "cards": []})
-    )
+    """Load rd.json as a PRIVATE deep copy. The _load_json mtime cache holds one
+    shared object; handing it out mutable would leak one thread's in-progress
+    edits into another's snapshot."""
+    with _RD_LOCK:
+        return _migrate_cards(copy.deepcopy(
+            _load_json("rd", {"columns": ["rd", "hq", "archives", "exile"], "cards": []})
+        ))
 
 
 def _save_rd(rd: dict):
-    (DATA_DIR / "rd.json").write_text(json.dumps(rd, indent=2))
+    """Atomic replace (tmp + rename) so a concurrent reader never sees a
+    truncated/partial file."""
+    with _RD_LOCK:
+        p = DATA_DIR / "rd.json"
+        tmp = p.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(rd, indent=2))
+        tmp.replace(p)
 
 
 def _find_card(rd: dict, card_id: str) -> dict | None:
