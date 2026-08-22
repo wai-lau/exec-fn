@@ -156,8 +156,8 @@ async function renderMtg(mtgRes) {
       <div class="dbg-log-entries${open ? ' open' : ''}" id="log-mtg-${si}">
         ${exchanges.length ? exchanges.map(e => `<div class="dbg-mtg-entry">
           <div class="dbg-mtg-ts">${e.ts ? new Date(e.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : ''}</div>
-          <div class="dbg-mtg-user">${e.user || ''}</div>
-          <div class="dbg-mtg-assistant">${e.assistant || ''}</div>
+          <div class="dbg-mtg-user">${esc(e.user || '')}</div>
+          <div class="dbg-mtg-assistant">${esc(e.assistant || '')}</div>
         </div>`).join('') : '<div class="dbg-empty">empty</div>'}
       </div>
     </div>`;
