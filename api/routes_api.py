@@ -1,6 +1,7 @@
 """JSON API routes: card CRUD, scheduling, profile/context, gcal, monitor +
 nudge control. HTML page routes live in routes_views.py."""
 import copy
+import html
 import json
 import time
 import asyncio
@@ -406,12 +407,12 @@ def api_gcal_import_cards():
 @public.get("/api/gcal/callback")
 def api_gcal_callback(code: str = "", state: str = "", error: str = ""):
     if error:
-        return HTMLResponse(f"<pre>GCal auth error: {error}</pre>", status_code=400)
+        return HTMLResponse(f"<pre>GCal auth error: {html.escape(error)}</pre>", status_code=400)
     try:
         gcal_complete_auth(code, state)
         return HTMLResponse("<pre>Google Calendar connected. You can close this tab.</pre>")
     except Exception as e:
-        return HTMLResponse(f"<pre>Auth failed: {e}</pre>", status_code=500)
+        return HTMLResponse(f"<pre>Auth failed: {html.escape(str(e))}</pre>", status_code=500)
 
 
 @protected.post("/api/parse_date")
