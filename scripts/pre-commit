@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+# Repo root — portable across the droplet (/exec-fn) and local dev
+# (~/src/exec-fn): derive it instead of hardcoding either path.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
 TEMPLATES="api/templates"
 TMPDIR_="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_"' EXIT
@@ -95,7 +99,7 @@ fi
 
 # JS lint (extract inline scripts from templates)
 if command -v eslint &>/dev/null; then
-  JSTMP="$(mktemp -d /exec-fn/.eslint-tmp-XXXXXX)"
+  JSTMP="$(mktemp -d "$REPO_ROOT/.eslint-tmp-XXXXXX")"
   trap 'rm -rf "$JSTMP"' EXIT
   python3 - "$TEMPLATES" "$JSTMP" <<'PYEOF'
 import sys, re
@@ -169,14 +173,14 @@ fi
 FIXTURES_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^tests/.*\.py$|^api/.*\.py$' || true)
 if [ -n "$FIXTURES_CHANGED" ]; then
   PYTEST=""
-  if [ -x /exec-fn/.venv/bin/pytest ]; then
-    PYTEST=/exec-fn/.venv/bin/pytest
+  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
+    PYTEST="$REPO_ROOT/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping fixture-resolution check — no pytest venv."
-  elif ! FX_OUT=$("$PYTEST" /exec-fn/tests/ --setup-plan -q 2>&1); then
+  elif ! FX_OUT=$("$PYTEST" "$REPO_ROOT/tests/" --setup-plan -q 2>&1); then
     echo ""
     echo "$FX_OUT" | grep -E "fixture .* not found|ERROR" | head
     echo ""
@@ -194,15 +198,15 @@ fi
 SRC_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
 if [ -n "$SRC_CHANGED" ]; then
   PYTEST=""
-  if [ -x /exec-fn/.venv/bin/pytest ]; then
-    PYTEST=/exec-fn/.venv/bin/pytest
+  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
+    PYTEST="$REPO_ROOT/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping page smoke tests — no pytest. Run:"
     echo "      python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt"
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/ -q -x -m "not browser"; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" "$REPO_ROOT/tests/" -q -x -m "not browser"; then
     echo ""
     echo "Page smoke tests failed — commit blocked. A page route is broken."
     exit 1
@@ -218,14 +222,14 @@ fi
 TAROT_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/tarot/|^api/templates/tarot\.html$|^web/tarot.*\.js$|^web/hosaka-audio\.js$|^tests/test_tarot_progression\.py$' || true)
 if [ -n "$TAROT_CHANGED" ]; then
   PYTEST=""
-  if [ -x /exec-fn/.venv/bin/pytest ]; then
-    PYTEST=/exec-fn/.venv/bin/pytest
+  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
+    PYTEST="$REPO_ROOT/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping tarot progression tests — no pytest venv."
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/test_tarot_progression.py -q; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" "$REPO_ROOT/tests/test_tarot_progression.py" -q; then
     echo ""
     echo "Tarot progression tests failed — commit blocked. A reading can hang."
     exit 1
@@ -240,14 +244,14 @@ fi
 VOICE_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/exec-voice\.js$|^web/exec-voice-listener\.js$|^web/voice-util\.js$|^web/exec-bubble\.js$|^web/hosaka-audio\.js$|^api/pages\.py$|^tests/test_exec_voice_browser\.py$' || true)
 if [ -n "$VOICE_CHANGED" ]; then
   PYTEST=""
-  if [ -x /exec-fn/.venv/bin/pytest ]; then
-    PYTEST=/exec-fn/.venv/bin/pytest
+  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
+    PYTEST="$REPO_ROOT/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping exec-voice tests — no pytest venv."
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" /exec-fn/tests/test_exec_voice_browser.py -q; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" "$REPO_ROOT/tests/test_exec_voice_browser.py" -q; then
     echo ""
     echo "Exec-voice tests failed — commit blocked. The voice may be broken."
     exit 1
