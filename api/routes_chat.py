@@ -68,7 +68,15 @@ async def _dispatch_tools(blocks, tool_result_contents, actions_taken):
     for block in blocks:
         if block.type != "tool_use":
             continue
-        result = await asyncio.to_thread(_handle_tool, block.name, block.input)
+        try:
+            result = await asyncio.to_thread(_handle_tool, block.name, block.input)
+        except Exception as e:
+            # A tool handler can raise on a malformed LLM-supplied argument
+            # (e.g. non-numeric prep_time). Left uncaught, this propagates out
+            # of the async generator, aborts the whole SSE response mid-turn,
+            # and skips _save_chat entirely — the turn (and any tool mutation
+            # that already landed) vanishes with no error shown to Wai.
+            result = {"error": f"tool failed: {e}"}
         if block.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
             schedule_monitor()
         actions_taken.append({"name": block.name, "input": block.input, "result": result})
