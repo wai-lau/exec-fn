@@ -50,8 +50,16 @@ def gcal_complete_auth(code: str, state: str) -> None:
     flow.fetch_token(code=code)
     creds = flow.credentials
     GCAL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    GCAL_TOKEN_PATH.write_text(creds.to_json())
+    _write_gcal_token(creds)
     _gcal_pending_state.clear()
+
+
+def _write_gcal_token(creds) -> None:
+    """Atomic replace (tmp + rename) so a crash mid-write can't leave
+    token.json truncated — unrecoverable without the interactive re-auth flow."""
+    tmp = GCAL_TOKEN_PATH.with_suffix(".json.tmp")
+    tmp.write_text(creds.to_json())
+    tmp.replace(GCAL_TOKEN_PATH)
 
 
 def _gcal_creds():
@@ -65,7 +73,7 @@ def _gcal_creds():
     creds = Credentials.from_authorized_user_file(str(GCAL_TOKEN_PATH))
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
-        GCAL_TOKEN_PATH.write_text(creds.to_json())
+        _write_gcal_token(creds)
     return creds
 
 
