@@ -223,10 +223,6 @@ async function flipCard(positionKey) {
   if (streaming) return;
   if (positionKey !== nextPosition()) return;
   const wasLocked = sigLocked();
-  card.flipped = true;
-  localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
-  renderSpread();
-  if (!wasLocked) renderSigCard();
   const meta = spreadsMeta && spreadsMeta[spread.type];
   const fallback = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
   const posLabel = framePosLabel(card.position) || fallback;
@@ -238,7 +234,19 @@ async function flipCard(positionKey) {
   // pointerdown unlock runs before this click handler), so TTS can begin the
   // moment the stream completes; the zoom stays up as a visual the querent
   // dismisses whenever (persistent closeZoom handler in tarot-chat.js).
-  await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
+  //
+  // Don't commit `card.flipped`/persist/re-render until the turn actually
+  // narrates the card: a network drop or backend error would otherwise leave
+  // the position permanently revealed-but-uncommented (nextPosition() moves on,
+  // no retry). On failure the card stays face-down-and-unlocked so tapping it
+  // again retries the same turn.
+  const ok = await autoTrigger(`[turned **${posLabel}**: ${card.name}, ${orient}]`);
+  if (ok) {
+    card.flipped = true;
+    localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
+    renderSpread();
+    if (!wasLocked) renderSigCard();
+  }
 }
 
 function openZoom(src, name, position, reversed) {
@@ -268,11 +276,18 @@ function addEventMsg(text) {
   terminal.scrollTop = terminal.scrollHeight;
 }
 
+// Returns whether the turn actually produced reader content — streamResponse
+// (tarot-stream.js) swallows its own errors (status-bar note, no throw), so the
+// only externally-visible success signal is whether it pushed an assistant
+// reply onto the shared `messages` array; on failure it pushes nothing beyond
+// our own event marker. Callers that condition on outcome (flipCard) use this.
 async function autoTrigger(text, holdForGesture = null) {
-  if (streaming) return;
+  if (streaming) return false;
   addEventMsg(text);
   messages.push({role: 'user', content: text});
+  const before = messages.length;
   await streamResponse(holdForGesture);
+  return messages.length > before;
 }
 
 async function drawSpread(type, frame = 'past_present_future') {
