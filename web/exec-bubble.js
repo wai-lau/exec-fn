@@ -18,6 +18,9 @@
     document.head.appendChild(s);
   }
 
+  // marked passes raw HTML straight through — strip <script>/on*=/javascript: URLs.
+  function mdHtml(t) { return marked.parse(t).replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '').replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"'); }
+
   // ── DOM refs ──────────────────────────────────────────────────────────────
   let bubble, badge, panel, termEl, msgInput, preEl, postEl;
 
@@ -153,10 +156,7 @@
     fetch('/api/monitor/flush', { method: 'POST' }).catch(function () {});
   }
 
-  function closePanel() {
-    isOpen = false;
-    panel.classList.remove('open');
-  }
+  function closePanel() { isOpen = false; panel.classList.remove('open'); }
 
   // Open the bubble with the input prefilled (e.g. the card dialog's chat button).
   // Deferred a tick so the originating click finishes bubbling first — otherwise
@@ -253,10 +253,10 @@
       if (role === 'user') {
         const m = text.match(/^(\[\S+ \S+ ET\])\s*/);
         body.innerHTML = m
-          ? '<span class="msg-ts">' + m[1] + '</span> ' + marked.parse(text.slice(m[0].length))
-          : marked.parse(text);
+          ? '<span class="msg-ts">' + m[1] + '</span> ' + mdHtml(text.slice(m[0].length))
+          : mdHtml(text);
       } else {
-        body.innerHTML = marked.parse(text);
+        body.innerHTML = mdHtml(text);
       }
       div.appendChild(body);
     } else {
@@ -367,7 +367,7 @@
           try { data = JSON.parse(line.slice(6)); } catch (_) { continue; }
           if (data.type === 'text') {
             fullText += data.delta;
-            body.innerHTML = marked.parse(fullText);
+            body.innerHTML = mdHtml(fullText);
             (body.lastElementChild || body).appendChild(cur);
             termEl.scrollTop = termEl.scrollHeight;
           } else if (data.type === 'tool_call') {
