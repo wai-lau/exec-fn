@@ -1,10 +1,12 @@
 import asyncio
 import json
+from collections import defaultdict, deque
 from datetime import datetime
 from pathlib import Path
+from time import monotonic
 from typing import AsyncGenerator, List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -12,6 +14,45 @@ from mtg.agent import stream_chat
 from mtg.lookup import lookup_rule
 
 router = APIRouter()
+
+# Guest-reachable and each request drives up to several real opus-4-8 calls
+# (tool-loop + summarize pass) — mirrors tarot/routes.py's in-process per-IP
+# limiter (same window/cap, same trusted-last-hop IP extraction).
+_RL_WINDOW_SEC = 60.0
+_RL_MAX_REQS = 20
+_RL_SWEEP_EVERY = 500
+_rl_buckets: dict[str, deque[float]] = defaultdict(deque)
+_rl_calls_since_sweep = 0
+
+
+def _client_ip(request: Request) -> str:
+    # This app sits behind a single trusted nginx front which sets X-Real-IP
+    # to $remote_addr and appends the real client IP as the LAST hop of
+    # X-Forwarded-For via $proxy_add_x_forwarded_for — earlier hops are
+    # caller-suppliable, so only the last one (or X-Real-IP) is trustworthy.
+    xff = request.headers.get("x-forwarded-for", "")
+    return (
+        request.headers.get("x-real-ip")
+        or (xff.rsplit(",", 1)[-1].strip() if xff else "")
+        or (request.client.host if request.client else "unknown")
+    )
+
+
+def _rl_check(ip: str) -> None:
+    global _rl_calls_since_sweep
+    now = monotonic()
+    bucket = _rl_buckets[ip]
+    while bucket and bucket[0] < now - _RL_WINDOW_SEC:
+        bucket.popleft()
+    if len(bucket) >= _RL_MAX_REQS:
+        raise HTTPException(429, f"rate limit: max {_RL_MAX_REQS} requests per {int(_RL_WINDOW_SEC)}s")
+    bucket.append(now)
+
+    _rl_calls_since_sweep += 1
+    if _rl_calls_since_sweep >= _RL_SWEEP_EVERY:
+        _rl_calls_since_sweep = 0
+        for k in [k for k, v in _rl_buckets.items() if not v]:
+            del _rl_buckets[k]
 
 _SESSIONS_DIR = Path("/app/data/mtg_sessions")
 _OLD_LOG = Path("/app/data/mtg_log.json")
@@ -106,7 +147,8 @@ class ChatBody(BaseModel):
 
 
 @router.post("/api/mtg/chat")
-async def api_mtg_chat(body: ChatBody):
+async def api_mtg_chat(body: ChatBody, request: Request):
+    _rl_check(_client_ip(request))
     return StreamingResponse(
         _stream_and_log(body.session_id or "mtg_unknown", body.messages),
         media_type="text/event-stream",
