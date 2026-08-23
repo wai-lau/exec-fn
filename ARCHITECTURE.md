@@ -328,9 +328,11 @@ provisioned in the droplet `.env` -- operator step). The GET returns the
 current mode; the POST body `{"action": "homo"|"emo"|"idle", "force"?: bool}`
 transitions it.
 `emo` and `idle` stop hosaka-server and therefore disconnect active remote
-users; the route confirms against `_presence` (the connected WebSocket set in
-`routes_tts.py`) and returns `409` if any users are connected and the caller
-has not sent `{"force": true}`. `homo` never needs confirmation.
+users; the route confirms against `_audio_conns` (the live `/ws/hosaka` audio
+socket set in `routes_tts.py` — the real listeners, incl. /tarot narration and
+Exec voice, not just `/hosaka`-page `_presence`) and returns `409` if any users
+are connected and the caller has not sent `{"force": true}`. `homo` never needs
+confirmation.
 
 Both `/hosaka` and `/emet` render the same `emo | idle | homo` segmented
 control (shared `web/gpu-mode.{js,css}`, keyed on `#gpu-mode`) for owners only.
