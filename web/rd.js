@@ -120,7 +120,20 @@ async function save() {
       if (c) { c.column = col; c.order = i; }
     });
   });
-  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards})});
+  // Merge-patch contract: the board only ever moves cards between columns /
+  // reorders within one — send just {id, column, order} per card so the
+  // server's shallow merge-by-id preserves every other field untouched
+  // (esp. the nudge loop's server-owned subtree, rewritten independently
+  // every ~30s — a stale full-card snapshot here would silently clobber it).
+  const payload = cards.map(c => ({id: c.id, column: c.column, order: c.order}));
+  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: payload})});
+}
+
+// Reminders-bar drag toggles is_reminder on one card without moving it between
+// board columns — a separate minimal patch so it doesn't need to ride along
+// on save(), which under the merge-patch contract owns only column/order.
+async function patchReminderFlag(id, flag) {
+  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [{id, is_reminder: flag}]})});
 }
 
 function toggleArchives(e) { if (e) e.stopPropagation(); archivesCollapsed = !archivesCollapsed; buildBoard(); }
@@ -342,6 +355,7 @@ function initBarSortable() {
       if (c) {
         c.is_reminder = true;
         await save();
+        await patchReminderFlag(id, true);
         buildBoard();
       }
     },
@@ -351,7 +365,7 @@ function initBarSortable() {
       const c = cards.find(x => x.id === id);
       if (c) {
         c.is_reminder = false;
-        setTimeout(() => { save(); buildBoard(); }, 80);
+        setTimeout(() => { save(); patchReminderFlag(id, false); buildBoard(); }, 80);
       }
     }
   });
