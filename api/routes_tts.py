@@ -102,8 +102,8 @@ async def gpu_mode_post(request: Request):
     force = bool(body.get("force"))
     if action not in ("homo", "emo", "idle"):
         raise HTTPException(status_code=400, detail="bad action")
-    if needs_user_confirm(action, len(_presence), force):
-        raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_presence)})
+    if needs_user_confirm(action, len(_audio_conns), force):
+        raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_audio_conns)})
     mode = await switch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN, action)
     await _broadcast_mode(mode)  # live-sync the other open /hosaka + /emet pages
     return JSONResponse({"mode": mode})
@@ -150,8 +150,11 @@ async def _pump_to_client(ws, upstream, url, busy):
 
 
 # Live presence: every open /hosaka tab holds a presence socket (separate from
-# the audio /ws/hosaka, which only opens on Speak). The set is the source of
-# truth for "connected users"; we re-broadcast the count on every join/leave.
+# the audio /ws/hosaka, which only opens on Speak -- and is also used by
+# /tarot + Exec voice, which never open this socket). This set is the source
+# of truth for the /hosaka page's "connected users" display only, NOT for the
+# GPU-mode kill-switch guard (see _audio_conns below); we re-broadcast the
+# count on every join/leave.
 _presence: set[WebSocket] = set()
 # Serializes broadcasts so two concurrent join/leave events can't interleave
 # their sends -- without this, a broadcast computed with a smaller/staler
@@ -244,12 +247,22 @@ async def _ws_dispatch(ws, conns, pumps):
             continue
 
 
+# Active audio listeners: every open /ws/hosaka socket (Speak in progress or
+# just holding the connection) -- this is who a hosaka-killing GPU-mode switch
+# actually cuts off. Distinct from _presence above (which is /hosaka-PAGE-only
+# and misses /tarot + Exec voice, both of which stream audio here without ever
+# opening a /hosaka tab). No broadcast reads this set, so no lock is needed --
+# add/discard are the only operations.
+_audio_conns: set[WebSocket] = set()
+
+
 @public.websocket("/ws/hosaka")
 async def ws_tts(ws: WebSocket):
     if ws.cookies.get("session") != SESSION_TOKEN and ws.cookies.get("guest_session") != GUEST_SESSION_TOKEN:
         await ws.close(code=1008)
         return
     await ws.accept()
+    _audio_conns.add(ws)
     conns: dict[str, object] = {}  # upstream url -> open websocket
     pumps: list = []  # upstream->client pump tasks
     try:
@@ -257,6 +270,7 @@ async def ws_tts(ws: WebSocket):
     except Exception:
         pass
     finally:
+        _audio_conns.discard(ws)
         for t in pumps:
             t.cancel()
         for up in conns.values():
