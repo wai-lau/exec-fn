@@ -204,8 +204,14 @@
     } catch(_) { return {due:null}; }
   }
 
+  // Merge-patch contract: the dialog edits exactly one card — send only that
+  // card (full, including its `nudge` breakdown the dialog/graph edits) so the
+  // server's shallow merge-by-id leaves every other fetched-at-open-time card
+  // (and their server-owned nudge state) untouched on disk.
   async function _patch() {
-    await fetch(`/api/rd?source=${_cdSource}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:_cdCards})});
+    const c = _cdCards.find(x => x.id === _cdId);
+    if (!c) return;
+    await fetch(`/api/rd?source=${_cdSource}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cards:[c]})});
   }
 
   window.openCardDialog = async function(id, callback, source) {
