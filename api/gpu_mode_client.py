@@ -1,6 +1,7 @@
 """Owner-only client for the home-box gpu-mode service (port 8124, reached over
 the SSH reverse tunnel at 172.17.0.1:8124). Pure guard logic + thin async
-proxies; the route layer (routes_tts.py) owns auth + the _presence count."""
+proxies; the route layer (routes_tts.py) owns auth + the active-audio-listener
+count (who would actually be cut off by a hosaka-killing switch)."""
 
 import httpx
 
