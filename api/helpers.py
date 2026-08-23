@@ -137,6 +137,47 @@ def _find_card(rd: dict, card_id: str) -> dict | None:
     return next((c for c in rd.get("cards", []) if c["id"] == card_id), None)
 
 
+def _merge_cards(disk_cards: list, incoming_cards: list) -> list:
+    """PATCH /api/rd merge-patch contract: shallow-merge the incoming card(s)
+    from a client onto the on-disk cards, by id, instead of replacing the
+    whole array.
+
+    Every client (rd.js, hq-board.js, hq-groups.js, card-dialog.js) holds a
+    SNAPSHOT of the cards it fetched, mutates the one/few it actually touched,
+    and PATCHes those back. Meanwhile the in-process nudge loop writes
+    server-owned state (`card["nudge"]`: graph/stage/active_node/timestamps)
+    to cards on disk roughly every 30s. Replacing the whole array with a
+    stale client snapshot silently reverts those writes on every OTHER card
+    the client didn't mean to touch.
+
+    For an incoming card whose id exists on disk: `{**disk_card, **incoming}`
+    — incoming top-level fields win, any field the incoming card OMITS is
+    preserved from disk. This is a SHALLOW merge only: if a client sends a
+    `nudge` key, it replaces the disk `nudge` wholesale (never deep-merged) —
+    correct, because only nudge-authoring clients (card-dialog.js, via
+    card-graph.js) ever send one.
+
+    For an incoming id NOT found on disk, the card is new and is kept as-is
+    (supports card creation through this endpoint, same as the old
+    whole-array-replace behavior).
+
+    Order: cards present in `incoming_cards` keep the incoming order;
+    disk-only cards not mentioned in the body (untouched) are appended after,
+    in their existing disk order.
+    """
+    disk_by_id = {c["id"]: c for c in disk_cards if c.get("id") is not None}
+    touched_ids = set()
+    merged = []
+    for inc in incoming_cards:
+        cid = inc.get("id")
+        old = disk_by_id.get(cid) if cid is not None else None
+        merged.append({**old, **inc} if old is not None else inc)
+        if cid is not None:
+            touched_ids.add(cid)
+    merged.extend(c for c in disk_cards if c.get("id") not in touched_ids)
+    return merged
+
+
 _ACTIVITY_LOG = DATA_DIR / "activity_log.json"
 _RD_LOG = _ACTIVITY_LOG  # alias kept for pipeline.py archival
 
