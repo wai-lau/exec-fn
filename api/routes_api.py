@@ -214,15 +214,23 @@ def _apply_patch_schedule(new_cards, old_cards):
 
 @protected.patch("/api/rd")
 async def api_rd_patch(request: Request, source: str = "rd"):
-    from helpers import _load_rd, _save_rd, _RD_LOCK
+    from helpers import _load_rd, _save_rd, _merge_cards, _RD_LOCK
     body = await request.json()
     # Whole read-modify-write cycle under _RD_LOCK: this runs on the event loop
     # while nudge scans + chat tools run on real OS threads — unlocked, either
     # side's save could silently drop the other's changes.
     with _RD_LOCK:
         data = _load_rd()
-        old_cards = {c["id"]: c for c in data.get("cards", [])}
-        new_cards = body.get("cards", [])
+        disk_cards = data.get("cards", [])
+        old_cards = {c["id"]: c for c in disk_cards}
+        # Merge-patch contract: clients send only the card(s) they touched, with
+        # only the fields they own — shallow-merge those onto disk by id so an
+        # omitted field (esp. the nudge loop's server-owned `nudge` subtree) is
+        # preserved rather than clobbered by a stale/partial client snapshot.
+        # The existing schedule/log/revival side-effects below all run on this
+        # MERGED full-board list exactly as they used to run on a client-sent
+        # whole array, diffing it against the same `old_cards` disk snapshot.
+        new_cards = _merge_cards(disk_cards, body.get("cards", []))
 
         # Apply side-effects that mutate new_cards in place (scheduled_day logic)
         _apply_patch_schedule(new_cards, old_cards)
