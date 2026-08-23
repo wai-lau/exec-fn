@@ -42,7 +42,10 @@ async function patchCard(cid, mutate) {
   const card = cards.find(x => x.id === cid);
   if (!card) return;
   mutate(card);
-  await fetch('/api/rd', {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cards})});
+  // Merge-patch contract: send only the one card we touched, not the whole
+  // board snapshot — the server shallow-merges by id, so a stale full-array
+  // PATCH would otherwise clobber other cards' server-owned nudge state.
+  await fetch('/api/rd', {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cards: [card]})});
 }
 // Lock every still-default sub-step to an explicit offset so editing one never
 // shifts the others (a default start = the running sum of prior steps' estimates,

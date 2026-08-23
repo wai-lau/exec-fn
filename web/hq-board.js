@@ -200,7 +200,10 @@ async function saveStartTime(cardId, startMin) {
     const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     card.due_date = card.due_date.split('T')[0] + 'T' + hhmm;
   }
-  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: allCards})});
+  // Merge-patch contract: send only the one mutated card, not the whole
+  // fetched snapshot — the server shallow-merges by id, preserving every
+  // other card's server-owned nudge state that this snapshot doesn't carry.
+  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [card]})});
 }
 
 async function saveEstimatedTime(cardId, mins) {
@@ -211,7 +214,7 @@ async function saveEstimatedTime(cardId, mins) {
     const card = allCards.find(c => c.id === cardId);
     if (card) {
       card.estimated_time = mins;
-      await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: allCards})});
+      await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [card]})});
     }
     setStatus('saved');
     setTimeout(() => setStatus(''), 1200);
