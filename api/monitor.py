@@ -7,7 +7,8 @@ import anthropic
 
 from helpers import _load_json, _load_rd, _now_et, _ACTIVITY_LOG
 from monitor_sse import push_to_monitor
-from chat import append_monitor_comment, EXEC_VOICE
+from chat import EXEC_VOICE
+from chat_store import append_monitor_comment
 
 _SRC_LABELS = {"rd": "R&D", "dirs": "directives", "hq": "HQ", "Exec": "Exec chat"}
 

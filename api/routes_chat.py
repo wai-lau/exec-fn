@@ -7,7 +7,8 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from chat import _build_chat_system_prompt, _chat_tools, _save_chat
+from chat import _build_chat_system_prompt, _chat_tools
+from chat_store import _save_chat, sanitize_history_for_api
 from chat_tools import _handle_tool
 from helpers import DATA_DIR
 from monitor import schedule_monitor
@@ -48,7 +49,7 @@ async def _stream_tool_followup(client, all_messages: list, tools: list, system:
 
 @router.get("/api/chat")
 def api_chat_get():
-    from chat import get_chat
+    from chat_store import get_chat
     return get_chat()
 
 
@@ -86,10 +87,12 @@ async def _dispatch_tools(blocks, tool_result_contents, actions_taken):
 
 @router.post("/api/chat")
 async def api_chat(body: ChatBody):
-    # Strip everything but role/content. The stored chat carries a server-side
-    # `ts` on each message (for chronological merge); the Anthropic API rejects
-    # unknown keys, so never let one ride in on the conversation we send/save.
-    messages = [{"role": m.get("role"), "content": m.get("content")} for m in body.messages]
+    # Flatten history to text-only, role-alternating messages: drops the
+    # server-side `ts` (the API rejects unknown keys) AND any prior-turn
+    # tool_use/tool_result blocks the ts-merge may have orphaned (an unpaired
+    # tool_use 400s the API). The fresh, correctly-paired tool round is appended
+    # after this, so only past turns are flattened.
+    messages = sanitize_history_for_api(body.messages)
     stage = body.stage
 
     # Any user turn counts as a reply to the focused awaiting nudge — a bare
