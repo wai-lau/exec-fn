@@ -128,6 +128,7 @@ Nav: `R&D` · `HQ` · `debug` · `sec` (→`/security`, **guest-gated**; in the 
 | GET/POST/DELETE | `/api/chat` | Exec chat history (planning SSE). |
 | GET | `/api/todos` | Exec-panel scratch todo list (`exec_todos.json`): `{items:[{id,text}]}`. |
 | POST | `/api/todos` | Add a todo. Body `{text}` → appends `{id,text}`, returns the item. 400 on empty. |
+| PATCH | `/api/todos/{id}` | Edit a todo's text. Body `{text}` → updates in place, returns the item. 400 on empty, 404 on unknown id. Tap the item text in the exec panel to inline-edit (Enter/blur commits, Escape reverts). |
 | DELETE | `/api/todos/{id}` | Delete a todo (checkbox = delete, not archive). |
 | GET | `/api/monitor/stream` | SSE stream — exec-bubble live updates: `{thinking}` / `{comment}` payloads as significant activity rolls in, plus `{cards_changed:true}` when a serverside mutation (morning rollover, nudge peel/advance/decompose, discord tool round) rewrites `rd.json` — exec-bubble.js relays it as a `window` `exec:cards-changed` event so any open board (`/hq`, `/rd`) refetches live. |
 | POST | `/api/monitor/flush` | Force-fire the monitor immediately if there is significant activity since the last comment (bypasses 60s debounce). |

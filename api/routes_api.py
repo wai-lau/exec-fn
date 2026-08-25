@@ -387,6 +387,21 @@ async def api_todos_add(request: Request):
     return item
 
 
+@protected.patch("/api/todos/{todo_id}")
+async def api_todos_edit(todo_id: str, request: Request):
+    body = await request.json()
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty todo")
+    data = _load_json("exec_todos", {"items": []})
+    item = next((t for t in data.get("items", []) if t.get("id") == todo_id), None)
+    if item is None:
+        raise HTTPException(status_code=404, detail="todo not found")
+    item["text"] = text
+    _save_todos(data)
+    return item
+
+
 @protected.delete("/api/todos/{todo_id}")
 def api_todos_delete(todo_id: str):
     data = _load_json("exec_todos", {"items": []})

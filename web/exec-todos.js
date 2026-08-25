@@ -13,6 +13,7 @@
     var li = document.createElement('li');
     li.className = 'exec-todo';
     li.dataset.id = item.id;
+    li.dataset.text = esc(item.text);
     var box = document.createElement('span');
     box.className = 'exec-todo-box';
     box.textContent = '[ ]';
@@ -22,7 +23,60 @@
     li.appendChild(box);
     li.appendChild(txt);
     box.addEventListener('click', function () { checkOff(li, box); });
+    txt.addEventListener('click', function () { startEdit(li, txt); });
     return li;
+  }
+
+  // Tap the text → inline edit. Enter/blur commits, Escape reverts. Empty text
+  // reverts (delete is the checkbox's job). On PATCH failure, restore the old
+  // text so the row never shows an unsaved value.
+  function startEdit(li, txt) {
+    if (li.classList.contains('done') || txt.isContentEditable) return;
+    txt.contentEditable = 'true';
+    txt.spellcheck = false;
+    txt.focus();
+    var sel = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(txt);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    function finish(commit) {
+      txt.removeEventListener('keydown', onKey);
+      txt.removeEventListener('blur', onBlur);
+      txt.contentEditable = 'false';
+      var next = (txt.textContent || '').trim();
+      var prev = li.dataset.text || '';
+      if (!commit || !next || next === prev) {
+        txt.textContent = prev;
+        return;
+      }
+      txt.textContent = next;
+      saveEdit(li, txt, next, prev);
+    }
+    function onKey(e) {
+      if (e.key === 'Enter') { e.preventDefault(); txt.blur(); }
+      else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    }
+    function onBlur() { finish(true); }
+    txt.addEventListener('keydown', onKey);
+    txt.addEventListener('blur', onBlur);
+  }
+
+  function saveEdit(li, txt, next, prev) {
+    var id = li.dataset.id;
+    fetch('/api/todos/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: next }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('edit failed');
+        li.dataset.text = next;
+      })
+      .catch(function () {
+        txt.textContent = prev;
+      });
   }
 
   // Checkbox = delete. Mark done, drop on the server, then fade the row out —

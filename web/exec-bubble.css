@@ -118,7 +118,8 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   color: hsl(var(--green-hsl) / 0.45); transition: color 0.15s;
 }
 .exec-todo-box:hover { color: hsl(var(--green-hsl) / 1); }
-.exec-todo-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.exec-todo-text { flex: 1; min-width: 0; overflow-wrap: anywhere; cursor: text; }
+.exec-todo-text[contenteditable="true"] { outline: none; color: hsl(var(--green-hsl) / 1); }
 .exec-todo.done { opacity: 0; }
 .exec-todo.done .exec-todo-text { text-decoration: line-through; }
 
@@ -138,7 +139,7 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   font-family: var(--font-mono); font-weight: var(--fw-normal);
   font-size: var(--fs-sm); padding: 0; outline: none; line-height: var(--lh-snug);
 }
-#exec-todo-input::placeholder { color: hsl(var(--green-hsl) / 0.12); }
+#exec-todo-input::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 
 #exec-term {
   flex: 1; overflow-y: auto; padding: var(--space-4) var(--space-5);
