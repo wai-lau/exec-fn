@@ -1,8 +1,5 @@
-import json
-from datetime import datetime, timezone
-
 from chat_actions import _actions_taken_block
-from helpers import DATA_DIR, _load_json, _load_rd, _now_et, get_rd_log, _parse_json
+from helpers import _load_json, _load_rd, _now_et, get_rd_log, _parse_json
 
 
 # Delivery skin for everything Exec says to Wai (chat + monitor comments).
@@ -394,90 +391,6 @@ def _dedupe_context(notes: list) -> list:
     return [n for i, n in enumerate(notes) if i in keep]
 
 
-def _msg_text_key(m: dict) -> tuple | None:
-    """Canonical (role, text) identity for ts-matching a stored/incoming
-    message, or None if it carries no matchable text. A tool_use/tool_result
-    block set has no text and is never round-tripped by the frontend (it only
-    ever echoes back a flattened {role, content:<string>} per turn), so those
-    always come back None and get stamped fresh."""
-    content = m.get("content")
-    if isinstance(content, str):
-        text = content
-    elif isinstance(content, list):
-        text = "".join(
-            b.get("text", "") for b in content
-            if isinstance(b, dict) and b.get("type") == "text"
-        )
-    else:
-        return None
-    return (m.get("role"), text) if text else None
-
-
-def _save_chat(messages: list, stage: str):
-    p = DATA_DIR / "chat.json"
-    existing = json.loads(p.read_text()) if p.exists() else {}
-    existing_msgs = existing.get("messages", [])
-    now = datetime.now(timezone.utc).isoformat()
-
-    # Stamp each conversation message with a `ts`, matched by (role, text)
-    # rather than list position. Position-based matching is unsafe: the
-    # frontend only ever tracks ONE flattened {role, content:<string>} entry
-    # per turn, while a turn that fires a tool call saves 3-4 structured
-    # entries here (assistant tool_use, user tool_result, assistant
-    # follow-up) — so the two lists' lengths diverge the moment a tool runs,
-    # and index i silently stops meaning "the same message" on both sides (a
-    # later, genuinely new message then inherits a stale ts left over from an
-    # earlier turn's extra entries). A text-content match survives the
-    # frontend's string-vs-block-list round-trip and recovers the true ts;
-    # anything with no matchable text (tool_use/tool_result-only entries) can
-    # only be freshly created in THIS call and always gets `now`.
-    existing_convo = [m for m in existing_msgs if m.get("role") != "monitor"]
-    ts_queue: dict[tuple, list] = {}
-    for m in existing_convo:
-        key = _msg_text_key(m)
-        if key:
-            ts_queue.setdefault(key, []).append(m.get("ts"))
-
-    stamped = []
-    for m in messages:
-        key = _msg_text_key(m)
-        bucket = ts_queue.get(key) if key else None
-        ts = bucket.pop(0) if bucket else None
-        stamped.append({**m, "ts": ts or now})
-
-    # Preserve monitor comments (each keeps its own ts); dedup any that somehow
-    # rode in on the incoming conversation.
-    incoming_monitor_contents = {
-        m.get("content") for m in messages if m.get("role") == "monitor"
-    }
-    monitor_msgs = [
-        m for m in existing_msgs
-        if m.get("role") == "monitor" and m.get("content") not in incoming_monitor_contents
-    ]
-    for m in monitor_msgs:
-        m.setdefault("ts", now)
-
-    # Merge conversation + monitor into one chronological stream. Stable sort
-    # keeps a turn's assistant/tool_result/follow-up (same ts) in order.
-    merged = sorted(stamped + monitor_msgs, key=lambda m: m.get("ts") or "")
-    p.write_text(json.dumps({
-        "messages": merged,
-        "stage": stage,
-        "updated_at": now,
-    }, indent=2))
-
-
-def append_monitor_comment(comment: str):
-    p = DATA_DIR / "chat.json"
-    data = json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}
-    now = datetime.now(timezone.utc).isoformat()
-    data["messages"].append({"role": "monitor", "content": comment, "ts": now})
-    # Keep the stored stream chronological so the frontend renders it merged.
-    data["messages"].sort(key=lambda m: m.get("ts") or "")
-    data["updated_at"] = now
-    p.write_text(json.dumps(data, indent=2))
-
-
-def get_chat() -> dict:
-    p = DATA_DIR / "chat.json"
-    return json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}
+# Chat.json persistence (get/save/monitor-append) + API-safe history flattening
+# moved to chat_store.py to keep this file under the 500-line cap. Re-import if
+# chat.py ever needs them internally.

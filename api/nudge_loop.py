@@ -6,7 +6,7 @@ import asyncio
 
 import nudge_llm as _nllm
 from monitor_sse import push_to_monitor
-from chat import append_monitor_comment
+from chat_store import append_monitor_comment
 
 
 # ── nudge loop ────────────────────────────────────────────────────────────────

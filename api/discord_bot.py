@@ -38,7 +38,8 @@ async def exec_reply(text: str) -> str:
     sync helpers (prompt build, tool handlers, file I/O) go through to_thread so
     a DM turn never stalls the shared event loop."""
     import anthropic
-    from chat import _build_chat_system_prompt, _save_chat, get_chat
+    from chat import _build_chat_system_prompt
+    from chat_store import _save_chat, get_chat, sanitize_history_for_api
     from chat_tools import _handle_tool
     from nudge import clear_awaiting_focused
 
@@ -46,13 +47,13 @@ async def exec_reply(text: str) -> str:
     await asyncio.to_thread(clear_awaiting_focused)
 
     chat = await asyncio.to_thread(get_chat)
-    # API-clean history: drop monitor lines + the server-side ts the API rejects.
-    history = [
-        {"role": m["role"], "content": m["content"]}
-        for m in chat.get("messages", [])
-        if m.get("role") in ("user", "assistant")
-    ]
-    messages = history + [{"role": "user", "content": text}]
+    # Flatten history to text-only, role-alternating (drops monitor lines, the
+    # server-side ts, and any orphaned prior-turn tool_use/tool_result blocks the
+    # API rejects). Append the fresh user turn, then re-flatten so appending it
+    # after a dropped tool_result can't leave two adjacent user messages.
+    messages = sanitize_history_for_api(
+        list(chat.get("messages", [])) + [{"role": "user", "content": text}]
+    )
     system = await asyncio.to_thread(_build_chat_system_prompt, "planning")
     tools = _tools()
     client = anthropic.AsyncAnthropic()
