@@ -4,14 +4,9 @@ const SUB_X = 16;        // px from group-left where sub-cards start: just right
 const SUBGAP = 2;        // px gap between side-by-side overlapping sub-lanes
 const DEFAULT_SUB = 15;  // fallback minutes for a step with no est_min
 
-// Which groups are expanded (show every sub-step). Default is COLLAPSED — a group
-// shows only its current step (spine view); tapping the spine toggles the full
-// chain. Keyed by card id in a module Set so an expansion survives a live SSE/wake
-// reload (which rebuilds card objects) instead of snapping shut on every refetch.
-const _expandedGroups = new Set();
-// The one step a collapsed group shows: the active (first-open) step — what to do
-// next. Falls back to the first not-done step, then the last node (all done).
-function collapsedSub(c, subs) {
+// The CURRENT step the spine view highlights: the active (first-open) step — what
+// to do next. Falls back to the first not-done step, then the last node (all done).
+function currentStep(c, subs) {
   const active = c.nudge && c.nudge.active_node;
   return subs.find(n => n.id === active && !n.done)
       || subs.find(n => !n.done)
@@ -67,22 +62,6 @@ async function patchCard(cid, mutate) {
 function freezeOffsets(c) {
   timelineNodes(c).forEach(nd => { if (nd.tl_offset == null && nd._off != null) nd.tl_offset = nd._off; });
 }
-// The master is the bounding box of its sub-steps: re-base so the earliest sub is
-// the master start (offsets stay >= 0) and set the master duration to the span.
-// Call after freezeOffsets so every sub already carries an explicit offset.
-function snapMasterToSubs(c) {
-  const subs = timelineNodes(c);
-  if (!subs.length) return;
-  const offOf = n => (n.tl_offset != null ? n.tl_offset : (n._off || 0));
-  const durOf = n => (n._dur != null ? n._dur : Math.max(10, n.est_min || DEFAULT_SUB));
-  const minOff = Math.min(...subs.map(offOf));
-  const maxEnd = Math.max(...subs.map(n => offOf(n) + durOf(n)));
-  if (minOff !== 0) {                       // a sub moved above the master start
-    subs.forEach(n => { n.tl_offset = offOf(n) - minOff; });
-    c.dir_start_min = (c.dir_start_min != null ? c.dir_start_min : TL_START) + minOff;
-  }
-  c.estimated_time = maxEnd - minOff;       // master duration = the sub span
-}
 // One write for the whole breakdown: persist the master start/duration plus every
 // step's (now explicit) offset and the edited step's est_min / done.
 function persistLayout(c, edited) {
@@ -103,141 +82,6 @@ function persistLayout(c, edited) {
   });
 }
 
-// One sub-step block: drag to set its time (offset from the master start), resize
-// to set its estimate, tap to toggle done.
-function wireSub(c, nd, sub, rh, track, masterStart, groupStart) {
-  attachResize(rh, (sy, gy) => startSubResize(c, nd, sub, track, sy, gy));
-
-  function beginDrag(grabClientY, getY) {
-    const rect = track.getBoundingClientRect();
-    const sRect = sub.getBoundingClientRect();
-    const offsetY = grabClientY - sRect.top;
-    document.body.classList.add('hq-dragging');
-
-    // Same feel as an R&D card drag: a semi-opaque copy follows the cursor
-    // while the original stays in place as a faint placeholder at the snap slot.
-    const ghost = sub.cloneNode(true);
-    ghost.style.position = 'fixed';
-    ghost.style.left = sRect.left + 'px';
-    ghost.style.top = sRect.top + 'px';
-    ghost.style.width = sRect.width + 'px';
-    ghost.style.height = sRect.height + 'px';
-    ghost.style.margin = '0';
-    ghost.style.opacity = '0.92';
-    ghost.style.pointerEvents = 'none';
-    ghost.style.zIndex = '9999';
-    document.body.appendChild(ghost);
-    sub.style.opacity = '0.45';
-    sub.style.zIndex = '999';
-
-    function move(ev) {
-      if (ev.cancelable) ev.preventDefault();
-      const y = getY(ev);
-      ghost.style.top = (y - offsetY) + 'px';
-      const rawAbs = (y - rect.top - offsetY) / TL_PX + TL_START;
-      const absStart = Math.max(TL_START, Math.min(TL_END - nd._dur, snapMin(rawAbs)));
-      nd._off = absStart - masterStart;
-      sub.style.top = ((masterStart + nd._off) - groupStart) * TL_PX + 'px';
-    }
-    function up() {
-      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
-      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
-      document.body.classList.remove('hq-dragging');
-      ghost.remove();
-      nd.tl_offset = nd._off;
-      freezeOffsets(c);
-      snapMasterToSubs(c);
-      redrawCards(track);
-      persistLayout(c, null);
-    }
-    document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
-    document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', up);
-  }
-
-  function toggleDone() {
-    nd.done = !nd.done;
-    freezeOffsets(c);
-    redrawCards(track);
-    persistLayout(c, {id: nd.id, done: nd.done});
-  }
-
-  // mouse: a >4px move starts a drag, otherwise the release toggles done
-  sub.addEventListener('mousedown', e => {
-    if (rh.contains(e.target)) return;
-    e.preventDefault();
-    const sx = e.clientX, sy = e.clientY;
-    let engaged = false;
-    function pre(ev) {
-      if (!engaged && (Math.abs(ev.clientX - sx) > 4 || Math.abs(ev.clientY - sy) > 4)) {
-        engaged = true;
-        document.removeEventListener('mousemove', pre);
-        document.removeEventListener('mouseup', preUp);
-        beginDrag(ev.clientY, ev2 => ev2.clientY);
-      }
-    }
-    function preUp() {
-      document.removeEventListener('mousemove', pre);
-      document.removeEventListener('mouseup', preUp);
-      if (!engaged) toggleDone();
-    }
-    document.addEventListener('mousemove', pre);
-    document.addEventListener('mouseup', preUp);
-  });
-
-  // touch: long-press drags, quick tap toggles done
-  sub.addEventListener('touchstart', e => {
-    if (rh.contains(e.target)) return;
-    const t0 = e.touches[0], x = t0.clientX, y = t0.clientY;
-    let timer = setTimeout(() => { timer = null; cleanup(); beginDrag(y, ev => ev.touches[0].clientY); }, 300);
-    function cleanup() { sub.removeEventListener('touchmove', m); sub.removeEventListener('touchend', en); }
-    function m(ev) { const t = ev.touches[0]; if (Math.abs(t.clientX - x) > 8 || Math.abs(t.clientY - y) > 8) { if (timer) { clearTimeout(timer); timer = null; } cleanup(); } }
-    function en() { if (timer) { clearTimeout(timer); timer = null; cleanup(); toggleDone(); } }
-    sub.addEventListener('touchmove', m, {passive: true});
-    sub.addEventListener('touchend', en, {once: true});
-  }, {passive: true});
-}
-
-// The event block: draggable to RESCHEDULE the occurrence and resizable to set
-// its own DURATION. Dragging moves the whole card so the event lands at the drop
-// (prep cascades — the prep offsets ride on dir_start_min — and the due time
-// follows via saveStartTime). Resizing reuses the prep resize: it sets the event
-// node's est_min (= work), which snapMasterToSubs folds into estimated_time
-// (= prep + work). Tap opens the dialog.
-function wireEvent(c, nd, sub, rh, track) {
-  attachResize(rh, (sy, gy) => startSubResize(c, nd, sub, track, sy, gy));
-  const opts = {
-    ghostSrc: sub, liftEl: sub, spanMin: nd._dur,
-    onTodayCommit(snapped) {
-      c.dir_start_min = snapped - nd._off;   // event lands at `snapped`; prep follows
-      redrawCards(track);
-      saveStartTime(c.id, c.dir_start_min);
-    },
-    onClick() { openCardDialog(c.id, () => load(weekStart), 'hq'); },
-  };
-  attachBlockDrag(sub, rh, (x, y, gx, gy) => startTimelineDrag(c, track, opts, x, y, gx, gy));
-}
-
-function startSubResize(c, nd, sub, track, startClientY, getY) {
-  const startDur = nd._dur;
-  function move(ev) {
-    if (ev.cancelable) ev.preventDefault();
-    const delta = getY(ev) - startClientY;
-    nd._dur = Math.max(SNAP, snapMin(startDur + delta / TL_PX));
-    sub.style.height = Math.max(13, nd._dur * TL_PX - 3) + 'px';
-  }
-  function up() {
-    document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
-    document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
-    nd.est_min = nd._dur;
-    freezeOffsets(c);
-    snapMasterToSubs(c);
-    redrawCards(track);
-    persistLayout(c, {id: nd.id, est_min: nd._dur});
-  }
-  document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
-  document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', up);
-}
-
 function subMeta(startMin, dur, color) {
   const meta = document.createElement('div');
   meta.className = 'dir-sub-meta';
@@ -246,62 +90,53 @@ function subMeta(startMin, dur, color) {
   return meta;
 }
 
-// One block in a group. Prep steps drag/resize/tap-done; the event block
-// (is_event_start) drags to reschedule the occurrence (cascading the prep) and
-// resizes to set its duration — see wireEvent. style = {bg, border, titleC, metaC}.
-function renderSubBlock(c, nd, track, masterStart, groupStart, style) {
+// Click a task -> mark done (grey out) and reveal the next open step; clicking a
+// done task un-marks it. persistLayout writes the done flag (freezing offsets)
+// via the merge-patch. The whole card drags via the spine, so tasks are click-only.
+function wireTaskDone(c, nd, el, track) {
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    nd.done = !nd.done;
+    freezeOffsets(c);
+    redrawCards(track);
+    persistLayout(c, {id: nd.id, done: nd.done});
+  });
+}
+
+// One task block in the spine view. A DONE step sits greyed at its real time slot;
+// the CURRENT step is stretched down to the group bottom so the active work "takes
+// up the whole task time". style = {bg, border, titleC, metaC}.
+function renderTaskBlock(c, nd, track, masterStart, groupStart, contH, current, style) {
   const {bg, border, titleC, metaC} = style;
   const isEvent = !!nd.is_event_start;
-  const sub = document.createElement('div');
-  sub.className = 'dir-sub' + (nd.done ? ' done' : '') + (bg ? '' : ' plain') + (isEvent ? ' event' : '');
-  sub.dataset.nid = nd.id;
-  sub.style.cssText = `${bg}${border}`;
-  sub.style.zIndex = nd._z;
-  sub.style.top = Math.max(0, (masterStart + nd._off - groupStart) * TL_PX) + 'px';
-  sub.style.height = Math.max(13, nd._dur * TL_PX - 3) + 'px';
-  const S = nd._lanes || 1, k = nd._lane || 0;
-  sub.style.left = `calc(${SUB_X}px + (100% - ${SUB_X}px) * ${k} / ${S})`;
-  sub.style.width = `calc((100% - ${SUB_X}px) / ${S} - ${SUBGAP}px)`;
+  const startPx = Math.max(0, (masterStart + nd._off - groupStart) * TL_PX);
+  const el = document.createElement('div');
+  el.className = 'dir-sub dir-task' + (nd.done ? ' done' : '') + (bg ? '' : ' plain') + (isEvent ? ' event' : '');
+  el.dataset.nid = nd.id;
+  el.style.cssText = `${bg}${border}`;
+  el.style.left = SUB_X + 'px';
+  el.style.right = '0';
+  el.style.top = startPx + 'px';
+  // current step fills to the group bottom; a done step keeps its own duration
+  const h = (nd === current) ? (contH - startPx) : (nd._dur * TL_PX - 3);
+  el.style.height = Math.max(13, h) + 'px';
+  if (isEvent) el.style.borderStyle = 'dashed';
 
   const lab = document.createElement('div');
   lab.className = 'dir-sub-title';
   lab.style.color = titleC;
   lab.textContent = nd.label;
-
-  if (isEvent) {
-    sub.style.borderStyle = 'dashed';
-    sub.appendChild(lab);
-    if (nd._dur * TL_PX >= 28) sub.appendChild(subMeta(masterStart + nd._off, nd._dur, metaC));
-    const erh = document.createElement('div');
-    erh.className = 'dir-sub-resize';
-    sub.appendChild(erh);
-    wireEvent(c, nd, sub, erh, track);
-    return sub;
-  }
-
-  const del = document.createElement('div');
-  del.className = 'dir-sub-del';
-  del.textContent = '✕';
-  del.title = 'delete step';
-  del.style.color = titleC;
-  del.addEventListener('mousedown', e => e.stopPropagation());
-  del.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-  del.addEventListener('click', e => { e.stopPropagation(); deleteSub(c, nd, track); });
-  sub.appendChild(del);
-  sub.appendChild(lab);
-  if (nd._dur * TL_PX >= 28) sub.appendChild(subMeta(masterStart + nd._off, nd._dur, metaC));
-  const rh = document.createElement('div');
-  rh.className = 'dir-sub-resize';
-  sub.appendChild(rh);
-  wireSub(c, nd, sub, rh, track, masterStart, groupStart);
-  return sub;
+  el.appendChild(lab);
+  if (h >= 28) el.appendChild(subMeta(masterStart + nd._off, nd._dur, metaC));
+  wireTaskDone(c, nd, el, track);
+  return el;
 }
 
-// A today card with a breakdown. COLLAPSED (default): one full-footprint block
-// showing the current step — it takes over the whole spine space, tap opens the
-// card. EXPANDED (toggle): thin vertical spine (master) + its sub-steps as their
-// own blocks to the right. Sub starts are offsets from the master start, so
-// moving the spine carries them all (saveStartTime only writes dir_start_min).
+// A today card with a breakdown: a thin vertical spine (master; tap → card,
+// drag → move the group) plus the CURRENT step stretched to fill the whole card
+// time, with any DONE steps greyed above it at their real slots. Sub starts are
+// offsets from the master start, so moving the spine carries them all
+// (saveStartTime only writes dir_start_min).
 function createGroup(c, track) {
   const masterStart = c.dir_start_min != null ? c.dir_start_min : TL_START;
   const subs = orderedSubs(c);
@@ -330,29 +165,19 @@ function createGroup(c, track) {
   container.style.height = Math.max(20, c._durMin * TL_PX - 6) + 'px';
 
   const contH = Math.max(20, c._durMin * TL_PX - 6);
-  const expanded = _expandedGroups.has(c.id);
-  container.classList.add(expanded ? 'expanded' : 'collapsed');
 
-  // The ▾/▸ toggle is its OWN control (stops the drag/dialog underneath it) so a
-  // tap on the spine or the collapsed block still opens the card.
-  function doToggle() {
-    if (_expandedGroups.has(c.id)) _expandedGroups.delete(c.id);
-    else _expandedGroups.add(c.id);
-    redrawCards(track);
-  }
-  function makeToggle() {
-    const tg = document.createElement('div');
-    tg.className = 'dir-spine-toggle';
-    tg.style.color = titleC;
-    tg.textContent = expanded ? '▾' : (subs.length > 1 ? `▸${subs.length}` : '▸');
-    const stop = e => e.stopPropagation();
-    tg.addEventListener('mousedown', stop);
-    tg.addEventListener('touchstart', stop, {passive: true});
-    tg.addEventListener('click', e => { e.stopPropagation(); doToggle(); });
-    return tg;
-  }
+  // Spine is ALWAYS shown (thin bar, left): tap opens the card, drag moves the
+  // whole group (its sub-offsets ride on dir_start_min).
+  const spine = document.createElement('div');
+  spine.className = 'dir-spine' + (bg ? '' : ' plain');
+  spine.style.cssText = `${bg}${border}`;
+  const spineTitle = document.createElement('div');
+  spineTitle.className = 'dir-spine-title';
+  spineTitle.style.color = titleC;
+  spineTitle.textContent = c.title;
+  spine.appendChild(spineTitle);
+  container.appendChild(spine);
 
-  // Tap opens the card; drag moves the whole group.
   const groupOpts = {
     ghostSrc: container, liftEl: container, spanMin: c._durMin,
     onTodayCommit(snapped) {
@@ -363,55 +188,18 @@ function createGroup(c, track) {
     },
     onClick() { openCardDialog(c.id, () => load(weekStart), 'hq'); },
   };
+  attachBlockDrag(spine, null, (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
 
-  // Collapsed: ONE full-footprint block (the current step) that takes over the
-  // spine's whole space. Tap opens the card, the toggle expands the chain.
-  if (!expanded) {
-    const nd = collapsedSub(c, subs);
-    const blk = document.createElement('div');
-    blk.className = 'dir-block dir-collapsed' + (bg ? '' : ' plain');
-    blk.dataset.nid = nd ? nd.id : '';
-    blk.style.cssText = `${bg}${border}top:0;left:0;right:0;height:${contH}px;`;
-    const t = document.createElement('div');
-    t.className = 'dir-block-title';
-    t.style.color = titleC;
-    t.textContent = c.title;
-    blk.appendChild(t);
-    if (nd) {
-      const m = document.createElement('div');
-      m.className = 'dir-block-meta';
-      m.style.color = metaC;
-      m.textContent = (nd.done ? '✓ ' : '▸ ') + nd.label;
-      blk.appendChild(m);
-    }
-    blk.appendChild(makeToggle());
-    attachBlockDrag(blk, blk.querySelector('.dir-spine-toggle'),
-      (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
-    container.appendChild(blk);
-    return container;
-  }
-
-  // Expanded: thin spine (tap → card) + every sub-step; the toggle collapses.
-  const spine = document.createElement('div');
-  spine.className = 'dir-spine' + (bg ? '' : ' plain');
-  spine.style.cssText = `${bg}${border}`;
-  const spineTitle = document.createElement('div');
-  spineTitle.className = 'dir-spine-title';
-  spineTitle.style.color = titleC;
-  spineTitle.textContent = c.title;
-  spine.appendChild(spineTitle);
-  const toggle = makeToggle();
-  spine.appendChild(toggle);
-  container.appendChild(spine);
-  attachBlockDrag(spine, toggle, (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
-
-  assignLanes(subs, n => n._off, n => n._off + n._dur);
-  // earlier-starting sub-cards paint over later ones where they overlap
-  const byStart = subs.slice().sort((a, b) => a._off - b._off);
-  byStart.forEach((nd, i) => { nd._z = byStart.length - i; });
+  // Task blocks: every DONE step greyed at its real slot + the CURRENT step
+  // stretched to fill the rest of the time. Future (not-yet-open) steps stay
+  // hidden under the current block. Tap a task to mark it done / undo.
+  const current = currentStep(c, subs);
   const style = {bg, border, titleC, metaC};
-  subs.forEach(nd => container.appendChild(
-    renderSubBlock(c, nd, track, masterStart, groupStart, style)));
+  subs.forEach(nd => {
+    if (nd.done || nd === current)
+      container.appendChild(
+        renderTaskBlock(c, nd, track, masterStart, groupStart, contH, current, style));
+  });
 
   return container;
 }
