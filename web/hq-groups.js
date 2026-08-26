@@ -4,6 +4,20 @@ const SUB_X = 16;        // px from group-left where sub-cards start: just right
 const SUBGAP = 2;        // px gap between side-by-side overlapping sub-lanes
 const DEFAULT_SUB = 15;  // fallback minutes for a step with no est_min
 
+// Which groups are expanded (show every sub-step). Default is COLLAPSED — a group
+// shows only its current step (spine view); tapping the spine toggles the full
+// chain. Keyed by card id in a module Set so an expansion survives a live SSE/wake
+// reload (which rebuilds card objects) instead of snapping shut on every refetch.
+const _expandedGroups = new Set();
+// The one step a collapsed group shows: the active (first-open) step — what to do
+// next. Falls back to the first not-done step, then the last node (all done).
+function collapsedSub(c, subs) {
+  const active = c.nudge && c.nudge.active_node;
+  return subs.find(n => n.id === active && !n.done)
+      || subs.find(n => !n.done)
+      || subs[subs.length - 1];
+}
+
 // Every node that occupies time on the timeline: the prep steps PLUS the atomic
 // event block (is_event_start, est = the card's work minutes), which tiles last.
 function timelineNodes(c) {
@@ -313,6 +327,9 @@ function createGroup(c, track) {
   container.style.top = ((groupStart - TL_START) * TL_PX + 3) + 'px';
   container.style.height = Math.max(20, c._durMin * TL_PX - 6) + 'px';
 
+  const expanded = _expandedGroups.has(c.id);
+  container.classList.add(expanded ? 'expanded' : 'collapsed');
+
   const spine = document.createElement('div');
   spine.className = 'dir-spine' + (bg ? '' : ' plain');
   spine.style.cssText = `${bg}${border}`;
@@ -321,8 +338,15 @@ function createGroup(c, track) {
   spineTitle.style.color = titleC;
   spineTitle.textContent = c.title;
   spine.appendChild(spineTitle);
+  // expand/collapse cue at the spine top: ▾ = full chain, ▸N = N steps hidden.
+  const toggle = document.createElement('div');
+  toggle.className = 'dir-spine-toggle';
+  toggle.style.color = titleC;
+  toggle.textContent = expanded ? '▾' : (subs.length > 1 ? `▸${subs.length}` : '▸');
+  spine.appendChild(toggle);
   container.appendChild(spine);
 
+  // A tap on the spine toggles the full breakdown; a drag still moves the group.
   const groupOpts = {
     ghostSrc: container, liftEl: container, spanMin: c._durMin,
     onTodayCommit(snapped) {
@@ -331,16 +355,23 @@ function createGroup(c, track) {
       redrawCards(track);
       saveStartTime(c.id, c.dir_start_min);
     },
-    onClick() { openCardDialog(c.id, () => load(weekStart), 'hq'); },
+    onClick() {
+      if (_expandedGroups.has(c.id)) _expandedGroups.delete(c.id);
+      else _expandedGroups.add(c.id);
+      redrawCards(track);
+    },
   };
   attachBlockDrag(spine, null, (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
 
-  assignLanes(subs, n => n._off, n => n._off + n._dur);
+  // Collapsed: render only the current step. Expanded: the whole chain. Master
+  // bounds (spine height) always reflect ALL steps, so the time footprint holds.
+  const shown = expanded ? subs : [collapsedSub(c, subs)].filter(Boolean);
+  assignLanes(shown, n => n._off, n => n._off + n._dur);
   // earlier-starting sub-cards paint over later ones where they overlap
-  const byStart = subs.slice().sort((a, b) => a._off - b._off);
+  const byStart = shown.slice().sort((a, b) => a._off - b._off);
   byStart.forEach((nd, i) => { nd._z = byStart.length - i; });
   const style = {bg, border, titleC, metaC};
-  subs.forEach(nd => container.appendChild(
+  shown.forEach(nd => container.appendChild(
     renderSubBlock(c, nd, track, masterStart, groupStart, style)));
 
   return container;
