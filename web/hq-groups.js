@@ -297,8 +297,10 @@ function renderSubBlock(c, nd, track, masterStart, groupStart, style) {
   return sub;
 }
 
-// A today card with a breakdown: thin vertical spine (master) + its sub-steps as
-// their own blocks to the right. Sub starts are offsets from the master start, so
+// A today card with a breakdown. COLLAPSED (default): one full-footprint block
+// showing the current step — it takes over the whole spine space, tap opens the
+// card. EXPANDED (toggle): thin vertical spine (master) + its sub-steps as their
+// own blocks to the right. Sub starts are offsets from the master start, so
 // moving the spine carries them all (saveStartTime only writes dir_start_min).
 function createGroup(c, track) {
   const masterStart = c.dir_start_min != null ? c.dir_start_min : TL_START;
@@ -327,26 +329,30 @@ function createGroup(c, track) {
   container.style.top = ((groupStart - TL_START) * TL_PX + 3) + 'px';
   container.style.height = Math.max(20, c._durMin * TL_PX - 6) + 'px';
 
+  const contH = Math.max(20, c._durMin * TL_PX - 6);
   const expanded = _expandedGroups.has(c.id);
   container.classList.add(expanded ? 'expanded' : 'collapsed');
 
-  const spine = document.createElement('div');
-  spine.className = 'dir-spine' + (bg ? '' : ' plain');
-  spine.style.cssText = `${bg}${border}`;
-  const spineTitle = document.createElement('div');
-  spineTitle.className = 'dir-spine-title';
-  spineTitle.style.color = titleC;
-  spineTitle.textContent = c.title;
-  spine.appendChild(spineTitle);
-  // expand/collapse cue at the spine top: ▾ = full chain, ▸N = N steps hidden.
-  const toggle = document.createElement('div');
-  toggle.className = 'dir-spine-toggle';
-  toggle.style.color = titleC;
-  toggle.textContent = expanded ? '▾' : (subs.length > 1 ? `▸${subs.length}` : '▸');
-  spine.appendChild(toggle);
-  container.appendChild(spine);
+  // The ▾/▸ toggle is its OWN control (stops the drag/dialog underneath it) so a
+  // tap on the spine or the collapsed block still opens the card.
+  function doToggle() {
+    if (_expandedGroups.has(c.id)) _expandedGroups.delete(c.id);
+    else _expandedGroups.add(c.id);
+    redrawCards(track);
+  }
+  function makeToggle() {
+    const tg = document.createElement('div');
+    tg.className = 'dir-spine-toggle';
+    tg.style.color = titleC;
+    tg.textContent = expanded ? '▾' : (subs.length > 1 ? `▸${subs.length}` : '▸');
+    const stop = e => e.stopPropagation();
+    tg.addEventListener('mousedown', stop);
+    tg.addEventListener('touchstart', stop, {passive: true});
+    tg.addEventListener('click', e => { e.stopPropagation(); doToggle(); });
+    return tg;
+  }
 
-  // A tap on the spine toggles the full breakdown; a drag still moves the group.
+  // Tap opens the card; drag moves the whole group.
   const groupOpts = {
     ghostSrc: container, liftEl: container, spanMin: c._durMin,
     onTodayCommit(snapped) {
@@ -355,23 +361,56 @@ function createGroup(c, track) {
       redrawCards(track);
       saveStartTime(c.id, c.dir_start_min);
     },
-    onClick() {
-      if (_expandedGroups.has(c.id)) _expandedGroups.delete(c.id);
-      else _expandedGroups.add(c.id);
-      redrawCards(track);
-    },
+    onClick() { openCardDialog(c.id, () => load(weekStart), 'hq'); },
   };
-  attachBlockDrag(spine, null, (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
 
-  // Collapsed: render only the current step. Expanded: the whole chain. Master
-  // bounds (spine height) always reflect ALL steps, so the time footprint holds.
-  const shown = expanded ? subs : [collapsedSub(c, subs)].filter(Boolean);
-  assignLanes(shown, n => n._off, n => n._off + n._dur);
+  // Collapsed: ONE full-footprint block (the current step) that takes over the
+  // spine's whole space. Tap opens the card, the toggle expands the chain.
+  if (!expanded) {
+    const nd = collapsedSub(c, subs);
+    const blk = document.createElement('div');
+    blk.className = 'dir-block dir-collapsed' + (bg ? '' : ' plain');
+    blk.dataset.nid = nd ? nd.id : '';
+    blk.style.cssText = `${bg}${border}top:0;left:0;right:0;height:${contH}px;`;
+    const t = document.createElement('div');
+    t.className = 'dir-block-title';
+    t.style.color = titleC;
+    t.textContent = c.title;
+    blk.appendChild(t);
+    if (nd) {
+      const m = document.createElement('div');
+      m.className = 'dir-block-meta';
+      m.style.color = metaC;
+      m.textContent = (nd.done ? '✓ ' : '▸ ') + nd.label;
+      blk.appendChild(m);
+    }
+    blk.appendChild(makeToggle());
+    attachBlockDrag(blk, blk.querySelector('.dir-spine-toggle'),
+      (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
+    container.appendChild(blk);
+    return container;
+  }
+
+  // Expanded: thin spine (tap → card) + every sub-step; the toggle collapses.
+  const spine = document.createElement('div');
+  spine.className = 'dir-spine' + (bg ? '' : ' plain');
+  spine.style.cssText = `${bg}${border}`;
+  const spineTitle = document.createElement('div');
+  spineTitle.className = 'dir-spine-title';
+  spineTitle.style.color = titleC;
+  spineTitle.textContent = c.title;
+  spine.appendChild(spineTitle);
+  const toggle = makeToggle();
+  spine.appendChild(toggle);
+  container.appendChild(spine);
+  attachBlockDrag(spine, toggle, (x, y, gx, gy) => startTimelineDrag(c, track, groupOpts, x, y, gx, gy));
+
+  assignLanes(subs, n => n._off, n => n._off + n._dur);
   // earlier-starting sub-cards paint over later ones where they overlap
-  const byStart = shown.slice().sort((a, b) => a._off - b._off);
+  const byStart = subs.slice().sort((a, b) => a._off - b._off);
   byStart.forEach((nd, i) => { nd._z = byStart.length - i; });
   const style = {bg, border, titleC, metaC};
-  shown.forEach(nd => container.appendChild(
+  subs.forEach(nd => container.appendChild(
     renderSubBlock(c, nd, track, masterStart, groupStart, style)));
 
   return container;
