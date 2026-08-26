@@ -13,7 +13,7 @@ let _tlWrapH = 0;          // last wrap height TL_PX was computed from
 function buildSchedule(cards) {
   const wrap = document.getElementById('hq-tl-wrap');
   if (!wrap) return;
-  // zoom: scale px-per-minute so the 8h window (TL_VIEW_MIN) exactly fills the
+  // zoom: scale px-per-minute so the view window (TL_VIEW_MIN) exactly fills the
   // column height. The full day (TL_H) overflows the wrap and stays scrollable.
   // wrap height is content-independent (flex:1 in a fixed full-height board), so
   // it's a stable basis once layout settles — the ResizeObserver below corrects
@@ -104,7 +104,7 @@ function buildSchedule(cards) {
     });
   }
 
-  // autoscroll so the current hour sits at the top of the 8h window
+  // autoscroll so the current hour sits at the top of the view window
   if (nowMin >= TL_START && nowMin <= TL_END) {
     const hourTop = Math.floor(nowMin / 60) * 60;
     wrap.scrollTop = Math.max(0, (hourTop - TL_START) * TL_PX - 6);

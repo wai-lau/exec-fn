@@ -203,6 +203,15 @@ body.hq-dragging .hq-unschedule.drag-over {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%;
 }
 
+/* expand/collapse cue pinned to the spine top (▾ open / ▸N collapsed). Colour set
+   inline from JS to match the card's title ink. */
+.dir-spine-toggle {
+  position: absolute; top: 0; left: 0; right: 0; text-align: center;
+  font-family: var(--font-mono); font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs); line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
+  pointer-events: none; opacity: 0.7;
+}
+
 .dir-sub {
   position: absolute; box-sizing: border-box; border-radius: var(--radius-2);
   border: 1px solid transparent; padding: var(--space-1) var(--space-2) var(--space-2-5); overflow: hidden;

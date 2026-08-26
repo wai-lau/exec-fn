@@ -1,0 +1,1072 @@
+{
+  ".claude/hooks/session-start.sh": {
+    "mtime": 1778497476.2369275,
+    "ast_hash": "a2801d5591fbf0a2704b155ebfc66aee",
+    "semantic_hash": "a2801d5591fbf0a2704b155ebfc66aee"
+  },
+  ".claude/settings.json": {
+    "mtime": 1778497482.7259684,
+    "ast_hash": "3850be437051ab4f71f6bcc13d97fbaa",
+    "semantic_hash": "3850be437051ab4f71f6bcc13d97fbaa"
+  },
+  ".stylelintrc.json": {
+    "mtime": 1777564668.723029,
+    "ast_hash": "6e676c441760ad1dbee0bae230c638c2",
+    "semantic_hash": "6e676c441760ad1dbee0bae230c638c2"
+  },
+  "api/auth.py": {
+    "mtime": 1780985109.8288434,
+    "ast_hash": "808dbfa08f27327508365c1db0db2ab1",
+    "semantic_hash": ""
+  },
+  "api/chat.py": {
+    "mtime": 1781561514.1749814,
+    "ast_hash": "6f8d45d0cf5106d601c95a91936ca3fb",
+    "semantic_hash": ""
+  },
+  "api/chat_tools.py": {
+    "mtime": 1781561237.680764,
+    "ast_hash": "221c5aae678bf23ec3f4241a491c54a4",
+    "semantic_hash": ""
+  },
+  "api/entrypoint.sh": {
+    "mtime": 1781043248.9460926,
+    "ast_hash": "a8b445d9906896ea83b20628d2196408",
+    "semantic_hash": ""
+  },
+  "api/gcal.py": {
+    "mtime": 1781446855.1395676,
+    "ast_hash": "eed127becc42c55c8d4760cfaebcf2b0",
+    "semantic_hash": ""
+  },
+  "api/gcal_auth.py": {
+    "mtime": 1777324136.3583632,
+    "ast_hash": "8ad85dd04895dcda24010dcebb455b7c",
+    "semantic_hash": "8ad85dd04895dcda24010dcebb455b7c"
+  },
+  "api/helpers.py": {
+    "mtime": 1781417667.4228175,
+    "ast_hash": "f2f36af8e408ef00b1a8b6082eca0105",
+    "semantic_hash": ""
+  },
+  "api/main.py": {
+    "mtime": 1781560690.4643114,
+    "ast_hash": "a100dccfa51e719bb81ee11d6d0d326c",
+    "semantic_hash": ""
+  },
+  "api/monitor.py": {
+    "mtime": 1781560562.4187224,
+    "ast_hash": "3e0a3ef356085b317f34f9c41bd4f565",
+    "semantic_hash": ""
+  },
+  "api/morning_cron.sh": {
+    "mtime": 1776527726.2411935,
+    "ast_hash": "529cf180b52830234316e60286ec5926",
+    "semantic_hash": "529cf180b52830234316e60286ec5926"
+  },
+  "api/mtg/__init__.py": {
+    "mtime": 1777382887.6381762,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "api/mtg/agent.py": {
+    "mtime": 1780605908.9143274,
+    "ast_hash": "b29c10b420e92172520fdd967fe426f8",
+    "semantic_hash": "b29c10b420e92172520fdd967fe426f8"
+  },
+  "api/mtg/lookup.py": {
+    "mtime": 1777386051.1704774,
+    "ast_hash": "6581afef904bef4f30680099afa9de67",
+    "semantic_hash": "6581afef904bef4f30680099afa9de67"
+  },
+  "api/mtg/prompt.py": {
+    "mtime": 1777576616.9386692,
+    "ast_hash": "955e6daed9a1a5d8532eaee8500c87e1",
+    "semantic_hash": "955e6daed9a1a5d8532eaee8500c87e1"
+  },
+  "api/mtg/routes.py": {
+    "mtime": 1777486608.5299096,
+    "ast_hash": "b2fe74a04156d19a64fe8c6c6e393bce",
+    "semantic_hash": "b2fe74a04156d19a64fe8c6c6e393bce"
+  },
+  "api/mtg/tools.py": {
+    "mtime": 1777386050.0905309,
+    "ast_hash": "2fbe571a300ee63a217a4639c4759d2c",
+    "semantic_hash": "2fbe571a300ee63a217a4639c4759d2c"
+  },
+  "api/prophecies.py": {
+    "mtime": 1781193699.3870177,
+    "ast_hash": "86cfe6a681b7a3c93e67e53566816491",
+    "semantic_hash": ""
+  },
+  "api/routes_chat.py": {
+    "mtime": 1781033738.5557222,
+    "ast_hash": "6c51c5274f2cdf35a7f0f50001aeda40",
+    "semantic_hash": ""
+  },
+  "api/routes_nightfall.py": {
+    "mtime": 1781752054.4655774,
+    "ast_hash": "461214c1fa632bb5b8f4e913e355c27c",
+    "semantic_hash": ""
+  },
+  "api/scheduler.py": {
+    "mtime": 1781417703.3319855,
+    "ast_hash": "edf1d74bf5405269eb55b539d30c195d",
+    "semantic_hash": ""
+  },
+  "api/tarot/__init__.py": {
+    "mtime": 1778495933.6345541,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "api/tarot/agent.py": {
+    "mtime": 1780605908.9143274,
+    "ast_hash": "1caa0e0b50f3f2fdb4d867be1ac7d259",
+    "semantic_hash": "1caa0e0b50f3f2fdb4d867be1ac7d259"
+  },
+  "api/tarot/cards.py": {
+    "mtime": 1780716427.7649531,
+    "ast_hash": "5e9f66932d62048bc1312a92d261e6d7",
+    "semantic_hash": "5e9f66932d62048bc1312a92d261e6d7"
+  },
+  "api/tarot/lookup.py": {
+    "mtime": 1778516602.635478,
+    "ast_hash": "655721d01c377144f00ce171d96140a3",
+    "semantic_hash": "655721d01c377144f00ce171d96140a3"
+  },
+  "api/tarot/prompt.py": {
+    "mtime": 1781190826.0019763,
+    "ast_hash": "783683982c628ab5a27ee550b13873d0",
+    "semantic_hash": ""
+  },
+  "api/tarot/routes.py": {
+    "mtime": 1779707778.2341197,
+    "ast_hash": "ce63db9231929d75654b5d899d6caae3",
+    "semantic_hash": "ce63db9231929d75654b5d899d6caae3"
+  },
+  "api/tarot/scripts/__init__.py": {
+    "mtime": 1778496912.043174,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "api/tarot/scripts/download_cards.py": {
+    "mtime": 1778496947.690414,
+    "ast_hash": "db00ba0776ebdb87aeb41c5f15989181",
+    "semantic_hash": "db00ba0776ebdb87aeb41c5f15989181"
+  },
+  "api/tarot/spreads.py": {
+    "mtime": 1778541917.1576974,
+    "ast_hash": "7d1f978f17a9bbb8c02b27b000b44172",
+    "semantic_hash": "7d1f978f17a9bbb8c02b27b000b44172"
+  },
+  "api/tarot/tools.py": {
+    "mtime": 1779300787.4105077,
+    "ast_hash": "e6c4637968e067db379c05b93baca53c",
+    "semantic_hash": "e6c4637968e067db379c05b93baca53c"
+  },
+  "bootstrap.sh": {
+    "mtime": 1776527726.2421937,
+    "ast_hash": "431cc53d230f67b67736a50d02dc928e",
+    "semantic_hash": "431cc53d230f67b67736a50d02dc928e"
+  },
+  "eslint.config.mjs": {
+    "mtime": 1777566900.4281912,
+    "ast_hash": "a750e92df53bd71dd6ce7963f7308742",
+    "semantic_hash": "a750e92df53bd71dd6ce7963f7308742"
+  },
+  "mtg/data/oracle-cards-slim.json": {
+    "mtime": 1777347796.0,
+    "ast_hash": "e478b6a43df00e95eef46d249ab1d4b0",
+    "semantic_hash": "e478b6a43df00e95eef46d249ab1d4b0"
+  },
+  "mtg/data/rulings-slim.json": {
+    "mtime": 1777347799.0,
+    "ast_hash": "6feee297085476426bc40096ba7d794a",
+    "semantic_hash": "6feee297085476426bc40096ba7d794a"
+  },
+  "mtg/mtg_compress.py": {
+    "mtime": 1777382887.648177,
+    "ast_hash": "eec25defc55cb96c00b0672dc373bdce",
+    "semantic_hash": "eec25defc55cb96c00b0672dc373bdce"
+  },
+  "package.json": {
+    "mtime": 1777565648.0289567,
+    "ast_hash": "4ae54e3c672e41c84d45257f9fd6a827",
+    "semantic_hash": "4ae54e3c672e41c84d45257f9fd6a827"
+  },
+  "web/card-dialog.js": {
+    "mtime": 1781537611.530081,
+    "ast_hash": "bd6e3dd11380a89e78707cdf0e8672e5",
+    "semantic_hash": ""
+  },
+  "web/card-style.js": {
+    "mtime": 1781537611.520081,
+    "ast_hash": "9c024dfa844eec71af6892ece91317f6",
+    "semantic_hash": ""
+  },
+  "web/exec-bubble.js": {
+    "mtime": 1781895205.745902,
+    "ast_hash": "2b29adae8c98671ba210959cddcb8822",
+    "semantic_hash": ""
+  },
+  "ARCHITECTURE.md": {
+    "mtime": 1780985205.759229,
+    "ast_hash": "85b3fe1d81c9b2cd838a295fe7fad98f",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1781893471.8371968,
+    "ast_hash": "cb1abff4f6d359ebab1eb4b383eccbef",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1780983421.712069,
+    "ast_hash": "afae0e2e727300dc7627e9ed2c681e90",
+    "semantic_hash": ""
+  },
+  "api/requirements.txt": {
+    "mtime": 1777324136.3593633,
+    "ast_hash": "13cbe0b157d49dbb8888021caa7e9def",
+    "semantic_hash": "13cbe0b157d49dbb8888021caa7e9def"
+  },
+  "api/tarot/book/cards/death.md": {
+    "mtime": 1778498682.4517798,
+    "ast_hash": "b83e40846590f4e33d37bfa075c65e80",
+    "semantic_hash": "b83e40846590f4e33d37bfa075c65e80"
+  },
+  "api/tarot/book/cards/judgement.md": {
+    "mtime": 1778498905.6302552,
+    "ast_hash": "031d8083cb04d85151d4766b821e7fea",
+    "semantic_hash": "031d8083cb04d85151d4766b821e7fea"
+  },
+  "api/tarot/book/cards/justice.md": {
+    "mtime": 1778498620.824373,
+    "ast_hash": "cfcdf888d923cbdfbfb0190263b7d9bb",
+    "semantic_hash": "cfcdf888d923cbdfbfb0190263b7d9bb"
+  },
+  "api/tarot/book/cards/strength.md": {
+    "mtime": 1778498517.7016926,
+    "ast_hash": "ade0b9447346a7e46f9b70cde7362988",
+    "semantic_hash": "ade0b9447346a7e46f9b70cde7362988"
+  },
+  "api/tarot/book/cards/temperance.md": {
+    "mtime": 1778498716.561005,
+    "ast_hash": "be6213732e2dccc39397a6b1a23cabf7",
+    "semantic_hash": "be6213732e2dccc39397a6b1a23cabf7"
+  },
+  "api/tarot/book/cards/the_chariot.md": {
+    "mtime": 1778498485.7044816,
+    "ast_hash": "6b129b352e76e7987c3bc0ae09d8dd55",
+    "semantic_hash": "6b129b352e76e7987c3bc0ae09d8dd55"
+  },
+  "api/tarot/book/cards/the_devil.md": {
+    "mtime": 1778498748.1552138,
+    "ast_hash": "d80cd5215e91f9598e7cb8be7164f522",
+    "semantic_hash": "d80cd5215e91f9598e7cb8be7164f522"
+  },
+  "api/tarot/book/cards/the_emperor.md": {
+    "mtime": 1778498335.0854902,
+    "ast_hash": "18e02c0721d5ae0650ac8fede7e4cf25",
+    "semantic_hash": "18e02c0721d5ae0650ac8fede7e4cf25"
+  },
+  "api/tarot/book/cards/the_empress.md": {
+    "mtime": 1778498291.1852016,
+    "ast_hash": "f5fd88990a0a303e5f7e6008e0c3c3d3",
+    "semantic_hash": "f5fd88990a0a303e5f7e6008e0c3c3d3"
+  },
+  "api/tarot/book/cards/the_fool.md": {
+    "mtime": 1778498140.900216,
+    "ast_hash": "9e3009de300ae5766c1d19db11c5a142",
+    "semantic_hash": "9e3009de300ae5766c1d19db11c5a142"
+  },
+  "api/tarot/book/cards/the_hanged_man.md": {
+    "mtime": 1778498650.4195683,
+    "ast_hash": "90a37a5fa051c953b9fcc4e10ebd3c00",
+    "semantic_hash": "90a37a5fa051c953b9fcc4e10ebd3c00"
+  },
+  "api/tarot/book/cards/the_hermit.md": {
+    "mtime": 1778498551.3719146,
+    "ast_hash": "2624a02a71fcd129545e62189329cca8",
+    "semantic_hash": "2624a02a71fcd129545e62189329cca8"
+  },
+  "api/tarot/book/cards/the_hierophant.md": {
+    "mtime": 1778498374.3867486,
+    "ast_hash": "6f717bf31faec07d29084bf7a700cbd2",
+    "semantic_hash": "6f717bf31faec07d29084bf7a700cbd2"
+  },
+  "api/tarot/book/cards/the_high_priestess.md": {
+    "mtime": 1778498226.029774,
+    "ast_hash": "e1b05eafbd49b1aa877893635bab19ec",
+    "semantic_hash": "e1b05eafbd49b1aa877893635bab19ec"
+  },
+  "api/tarot/book/cards/the_lovers.md": {
+    "mtime": 1778498447.1252275,
+    "ast_hash": "c1874469918d0239d766755a680b7983",
+    "semantic_hash": "c1874469918d0239d766755a680b7983"
+  },
+  "api/tarot/book/cards/the_magician.md": {
+    "mtime": 1778498189.7765362,
+    "ast_hash": "a59a394d158ba7076200a7eba87e06f8",
+    "semantic_hash": "a59a394d158ba7076200a7eba87e06f8"
+  },
+  "api/tarot/book/cards/the_moon.md": {
+    "mtime": 1778498837.0198014,
+    "ast_hash": "facaf98d27ef6848d5148f6947467964",
+    "semantic_hash": "facaf98d27ef6848d5148f6947467964"
+  },
+  "api/tarot/book/cards/the_star.md": {
+    "mtime": 1778498804.1235838,
+    "ast_hash": "9921d98c68e70a9b4fcef57ce15a8060",
+    "semantic_hash": "9921d98c68e70a9b4fcef57ce15a8060"
+  },
+  "api/tarot/book/cards/the_sun.md": {
+    "mtime": 1778498866.6329973,
+    "ast_hash": "953639ca8108432a7b8ba094eacd3dce",
+    "semantic_hash": "953639ca8108432a7b8ba094eacd3dce"
+  },
+  "api/tarot/book/cards/the_tower.md": {
+    "mtime": 1778498777.5864084,
+    "ast_hash": "019fd1868b5bc5e8d1ec6b839a1dd012",
+    "semantic_hash": "019fd1868b5bc5e8d1ec6b839a1dd012"
+  },
+  "api/tarot/book/cards/the_world.md": {
+    "mtime": 1778498938.6674738,
+    "ast_hash": "cb993f7f003c8e487315d48d16894a0d",
+    "semantic_hash": "cb993f7f003c8e487315d48d16894a0d"
+  },
+  "api/tarot/book/cards/wheel_of_fortune.md": {
+    "mtime": 1778498587.500153,
+    "ast_hash": "7656aed54264d7882ad31e4a5c4ae13c",
+    "semantic_hash": "7656aed54264d7882ad31e4a5c4ae13c"
+  },
+  "api/tarot/book/framework_celtic_cross.md": {
+    "mtime": 1778497165.450878,
+    "ast_hash": "9f05c9bf5ba47178820894d6a5880b2b",
+    "semantic_hash": "9f05c9bf5ba47178820894d6a5880b2b"
+  },
+  "api/tarot/book/framework_core.md": {
+    "mtime": 1778497136.320682,
+    "ast_hash": "0445886ab46e7f352b58bca33d0e24a3",
+    "semantic_hash": "0445886ab46e7f352b58bca33d0e24a3"
+  },
+  "api/tarot/book/framework_minor.md": {
+    "mtime": 1778499610.587877,
+    "ast_hash": "dfc3ae758ea848eedaf260ae1b70fa00",
+    "semantic_hash": "dfc3ae758ea848eedaf260ae1b70fa00"
+  },
+  "api/tarot/book/framework_three.md": {
+    "mtime": 1778497150.9147801,
+    "ast_hash": "f3d085505a8239443b1195fc587e9fca",
+    "semantic_hash": "f3d085505a8239443b1195fc587e9fca"
+  },
+  "api/tarot/book/numerology.md": {
+    "mtime": 1778497229.2473066,
+    "ast_hash": "17617e2dc920e91a3a6ce98a2d17553d",
+    "semantic_hash": "17617e2dc920e91a3a6ce98a2d17553d"
+  },
+  "api/tarot/book/suits/cups.md": {
+    "mtime": 1778497175.0929427,
+    "ast_hash": "8c7c6c6460d4d3550e2dec5350c36c35",
+    "semantic_hash": "8c7c6c6460d4d3550e2dec5350c36c35"
+  },
+  "api/tarot/book/suits/pentacles.md": {
+    "mtime": 1778497211.9491904,
+    "ast_hash": "41ea4ed84196410bd69a16da6fac385e",
+    "semantic_hash": "41ea4ed84196410bd69a16da6fac385e"
+  },
+  "api/tarot/book/suits/swords.md": {
+    "mtime": 1778497197.7210948,
+    "ast_hash": "960a5f2e253f58ea44d08f8182ce9caa",
+    "semantic_hash": "960a5f2e253f58ea44d08f8182ce9caa"
+  },
+  "api/tarot/book/suits/wands.md": {
+    "mtime": 1778497185.7600145,
+    "ast_hash": "67b50e3fcc79705efa7f214b64dd0da3",
+    "semantic_hash": "67b50e3fcc79705efa7f214b64dd0da3"
+  },
+  "api/templates/debug.html": {
+    "mtime": 1781556379.5963683,
+    "ast_hash": "61146f27bfafbd4b41ba6ece72dd41f2",
+    "semantic_hash": ""
+  },
+  "api/templates/kanban.html": {
+    "mtime": 1781724456.6887686,
+    "ast_hash": "7877a76bfe9fa59056b47a2d67e877b8",
+    "semantic_hash": ""
+  },
+  "api/templates/mtg.html": {
+    "mtime": 1781556379.7033687,
+    "ast_hash": "a7b1c707cba5549e3ff77efe0a1276ef",
+    "semantic_hash": ""
+  },
+  "api/templates/prophecies.html": {
+    "mtime": 1781625433.5930104,
+    "ast_hash": "ca79a53f38eda34878199a35dc5e63d8",
+    "semantic_hash": ""
+  },
+  "api/templates/tarot.html": {
+    "mtime": 1781557051.0678406,
+    "ast_hash": "06a23ef5cd761e6215e83d31743db091",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1780981900.8706594,
+    "ast_hash": "03844e4d79aee60eab010018ae5dff4d",
+    "semantic_hash": ""
+  },
+  "mtg/README.md": {
+    "mtime": 1777382887.648177,
+    "ast_hash": "46e3d8cf68a33d209f8027c1267a3928",
+    "semantic_hash": "46e3d8cf68a33d209f8027c1267a3928"
+  },
+  "mtg/data/mtg_rules.txt": {
+    "mtime": 1777346672.0,
+    "ast_hash": "87561250c7b39e7d138c02a884e09a00",
+    "semantic_hash": "87561250c7b39e7d138c02a884e09a00"
+  },
+  "web/index.html": {
+    "mtime": 1781235577.4767654,
+    "ast_hash": "2a5fea77f28e18d4fe4dc6b4a55d760b",
+    "semantic_hash": ""
+  },
+  "web/IMG_25419.png": {
+    "mtime": 1776527726.294198,
+    "ast_hash": "ac1b36267e72aac361401d5e84629899",
+    "semantic_hash": ""
+  },
+  "web/boss-green.png": {
+    "mtime": 1777431697.1291115,
+    "ast_hash": "f86a127032c66d9dbd0a2a64bc21ad45",
+    "semantic_hash": ""
+  },
+  "web/boss-original.png": {
+    "mtime": 1777431631.301684,
+    "ast_hash": "9916135c15d52a550159aceffcca1eea",
+    "semantic_hash": ""
+  },
+  "web/bug.png": {
+    "mtime": 1777475587.3504488,
+    "ast_hash": "2ec4950b9e767fb5bf167cd3bbb7ccb0",
+    "semantic_hash": ""
+  },
+  "web/fiddle.png": {
+    "mtime": 1780705696.6094146,
+    "ast_hash": "abebce60130d48882211e7cbae1cf942",
+    "semantic_hash": ""
+  },
+  "web/guru-pink.png": {
+    "mtime": 1777475308.091709,
+    "ast_hash": "94d5fbc80c624de391632254568a442b",
+    "semantic_hash": ""
+  },
+  "web/hack2.png": {
+    "mtime": 1777431778.286639,
+    "ast_hash": "93fbfc7910d59d379b2604472020e5d1",
+    "semantic_hash": ""
+  },
+  "web/laser-satellite.png": {
+    "mtime": 1780705430.0985417,
+    "ast_hash": "edb4c5c3d38b1f772da81ca71f6bd406",
+    "semantic_hash": ""
+  },
+  "web/sentinel.png": {
+    "mtime": 1780979808.6792693,
+    "ast_hash": "b0b1d469f8ff9e5e0dc0cdab70a7d8be",
+    "semantic_hash": ""
+  },
+  "web/tarot/card_back.jpg": {
+    "mtime": 1779300787.4115076,
+    "ast_hash": "fa56db89c156b774d2d36d5ceee66045",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ace_of_cups.jpg": {
+    "mtime": 1780716419.5609205,
+    "ast_hash": "f47f08ac9b95d59bcb23ec5e8fd0f2ed",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ace_of_pentacles.jpg": {
+    "mtime": 1780716419.5609205,
+    "ast_hash": "9fd9da1fecdba42f171c4e5bfd35051a",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ace_of_swords.jpg": {
+    "mtime": 1780716419.5619204,
+    "ast_hash": "bba88b262e6bc12d2662621ad11cedf4",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ace_of_wands.jpg": {
+    "mtime": 1780716419.5619204,
+    "ast_hash": "b91b8b60bac38e88d22bcc7db284cc4d",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/death.jpg": {
+    "mtime": 1780716419.5619204,
+    "ast_hash": "0d76539410eb702aa13b8ef15fff4b93",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/eight_of_cups.jpg": {
+    "mtime": 1780716419.5629203,
+    "ast_hash": "64e6e1fe463cd555231cd13133b3b4ea",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/eight_of_pentacles.jpg": {
+    "mtime": 1780716419.5629203,
+    "ast_hash": "84c13e2586808fe14a8dc14473bace23",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/eight_of_swords.jpg": {
+    "mtime": 1780716419.5629203,
+    "ast_hash": "efc408794c583064556c3f948897bbd3",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/eight_of_wands.jpg": {
+    "mtime": 1780716419.5639205,
+    "ast_hash": "1b10ef619514761d755c34362aba1649",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/five_of_cups.jpg": {
+    "mtime": 1780716419.5639205,
+    "ast_hash": "ad6cc033c1a136b49c9a6a2b3253f26b",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/five_of_pentacles.jpg": {
+    "mtime": 1780716419.5639205,
+    "ast_hash": "cc77d8cf51e854b5c31a14133caed95f",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/five_of_swords.jpg": {
+    "mtime": 1780716419.5649204,
+    "ast_hash": "6dd33f30fdacb73e0e7d45c726c8f540",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/five_of_wands.jpg": {
+    "mtime": 1780716419.5649204,
+    "ast_hash": "6ac3a31c1fc26853f739745e51dcdded",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/four_of_cups.jpg": {
+    "mtime": 1780716419.5649204,
+    "ast_hash": "05e77896f3ffb1a040275bb4a2d90c12",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/four_of_pentacles.jpg": {
+    "mtime": 1780716419.5649204,
+    "ast_hash": "daa4c5bc5888e2eacb093e79c1c6776c",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/four_of_swords.jpg": {
+    "mtime": 1780716419.5659204,
+    "ast_hash": "ed2998aedede7afbdb08c62ad1a4e00c",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/four_of_wands.jpg": {
+    "mtime": 1780716419.5659204,
+    "ast_hash": "59b74c93d052ded5de1b53d6eb1185ed",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/judgement.jpg": {
+    "mtime": 1780716419.5659204,
+    "ast_hash": "fe5e6b82ddc1fab0a77c10a50226f9a2",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/justice.jpg": {
+    "mtime": 1780716419.5669205,
+    "ast_hash": "847ebda8e3cd77b2fe8c9cc57ab30d47",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/king_of_cups.jpg": {
+    "mtime": 1780716419.5669205,
+    "ast_hash": "efd4e74a529b458f40193dbdaf4bc4a5",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/king_of_pentacles.jpg": {
+    "mtime": 1780716419.5669205,
+    "ast_hash": "a9883ae235cbdbd8862d91fab418df15",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/king_of_swords.jpg": {
+    "mtime": 1780716419.5679204,
+    "ast_hash": "1d5ae5f3032c3dbcf1d5bc087433e14d",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/king_of_wands.jpg": {
+    "mtime": 1780716419.5679204,
+    "ast_hash": "13e8b4744cd1fd8a2e7e57fae9f8fd59",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/knight_of_cups.jpg": {
+    "mtime": 1780716419.5679204,
+    "ast_hash": "190ec49fd590bef9c164955b093a4697",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/knight_of_pentacles.jpg": {
+    "mtime": 1780716419.5689204,
+    "ast_hash": "ef2165dadb23a7bdfe3b938bfec032f3",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/knight_of_swords.jpg": {
+    "mtime": 1780716419.5689204,
+    "ast_hash": "04f78e9824b99a39c1ab8706b2e9445d",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/knight_of_wands.jpg": {
+    "mtime": 1780716419.5689204,
+    "ast_hash": "6636155e637a13d7e9fbe6fd53e4beff",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/nine_of_cups.jpg": {
+    "mtime": 1780716419.5699205,
+    "ast_hash": "bee6ad641c4f870b9c9dfad5525a45d3",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/nine_of_pentacles.jpg": {
+    "mtime": 1780716419.5699205,
+    "ast_hash": "19d40e56a3e35302b4346b097483e111",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/nine_of_swords.jpg": {
+    "mtime": 1780716419.5699205,
+    "ast_hash": "b11e4e1dd1d675612fc67973a4b35e4c",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/nine_of_wands.jpg": {
+    "mtime": 1780716419.5709205,
+    "ast_hash": "5867d42bc1f36d5c2d63687a4cc6478a",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/page_of_cups.jpg": {
+    "mtime": 1780716419.5709205,
+    "ast_hash": "86968b266d604df07ead1ce027a6a0f0",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/page_of_pentacles.jpg": {
+    "mtime": 1780716419.5709205,
+    "ast_hash": "da3d96661f5161deac21fd7830b28980",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/page_of_swords.jpg": {
+    "mtime": 1780716419.5719204,
+    "ast_hash": "51d7b5bbf0c40c8b98dd40af1b29eb1b",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/page_of_wands.jpg": {
+    "mtime": 1780716419.5719204,
+    "ast_hash": "aa5876dbaae3e75c65cb8ce9efd17ec5",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/queen_of_cups.jpg": {
+    "mtime": 1780716419.5719204,
+    "ast_hash": "e1db57a049ba0c6c53fbda21437e738a",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/queen_of_pentacles.jpg": {
+    "mtime": 1780716419.5729206,
+    "ast_hash": "d01b4410fc9183aaa47c576c04d80b06",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/queen_of_swords.jpg": {
+    "mtime": 1780716419.5729206,
+    "ast_hash": "3620dc48b92885640cc16c04525fd564",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/queen_of_wands.jpg": {
+    "mtime": 1780716419.5739205,
+    "ast_hash": "df6735646861f72efc47faf37b33c446",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/seven_of_cups.jpg": {
+    "mtime": 1780716419.5739205,
+    "ast_hash": "c416b54a8b675f92202c4b46d54817ff",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/seven_of_pentacles.jpg": {
+    "mtime": 1780716419.5739205,
+    "ast_hash": "131ee5fdadab1d4159a37492243c57aa",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/seven_of_swords.jpg": {
+    "mtime": 1780716419.5749204,
+    "ast_hash": "89a9e67a11c93c25e01deb8266146c73",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/seven_of_wands.jpg": {
+    "mtime": 1780716419.5749204,
+    "ast_hash": "66c2fd553f493e6123bb6d0ab2716b0c",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/six_of_cups.jpg": {
+    "mtime": 1780716419.5749204,
+    "ast_hash": "259e617feaae29a042d61264e1961bfe",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/six_of_pentacles.jpg": {
+    "mtime": 1780716419.5759206,
+    "ast_hash": "872290ad6073a039af6767849db3e05d",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/six_of_swords.jpg": {
+    "mtime": 1780716419.5759206,
+    "ast_hash": "45e07fba3b8c078f02742eaab54bda24",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/six_of_wands.jpg": {
+    "mtime": 1780716419.5759206,
+    "ast_hash": "95d5b19a539a451aa8352893637bd143",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/strength.jpg": {
+    "mtime": 1780716419.5769205,
+    "ast_hash": "cc2b94dedf1e0a73cc0bd72bfb8ccbfe",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/temperance.jpg": {
+    "mtime": 1780716419.5769205,
+    "ast_hash": "ede907685971f4e0a93eb1e8ea25c51f",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ten_of_cups.jpg": {
+    "mtime": 1780716419.5769205,
+    "ast_hash": "5756d0b3d4627677cfccda91659bd301",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ten_of_pentacles.jpg": {
+    "mtime": 1780716419.5769205,
+    "ast_hash": "40e9470857061cd0758701fbd12f7d24",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ten_of_swords.jpg": {
+    "mtime": 1780716419.5779204,
+    "ast_hash": "b961b95282283beabb13add675c5808f",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/ten_of_wands.jpg": {
+    "mtime": 1780716419.5779204,
+    "ast_hash": "8f6abc8c61bc98753a0565f6393d104a",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_chariot.jpg": {
+    "mtime": 1780716419.5779204,
+    "ast_hash": "b2dee7f907a5d053d4e56e36e68bf8fe",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_devil.jpg": {
+    "mtime": 1780716419.5789206,
+    "ast_hash": "0ebf1731da9c4e0107b453fa62db1ba8",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_emperor.jpg": {
+    "mtime": 1780716419.5789206,
+    "ast_hash": "c7f2b3c5f01954594f6abeb84abe6638",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_empress.jpg": {
+    "mtime": 1780716419.5789206,
+    "ast_hash": "9de3063950d05988cf2478663b92b571",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_fool.jpg": {
+    "mtime": 1780716419.5799205,
+    "ast_hash": "376ab2c6819fa81cd865a8e8dfc7e08c",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_hanged_man.jpg": {
+    "mtime": 1780716419.5799205,
+    "ast_hash": "574ff2027f5d5bb4efe1d85bba0054e4",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_hermit.jpg": {
+    "mtime": 1780716419.5799205,
+    "ast_hash": "4537fd22470e963a10641eb06f9dc10f",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_hierophant.jpg": {
+    "mtime": 1780716419.5809205,
+    "ast_hash": "e0b08be0b1851d9f24f5bb262dd04baf",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_high_priestess.jpg": {
+    "mtime": 1780716419.5809205,
+    "ast_hash": "955d85c3aa46689aa76896e281d6cc30",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_lovers.jpg": {
+    "mtime": 1780716419.5809205,
+    "ast_hash": "d2c62269851b6b21da75ab34415e8c4d",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_magician.jpg": {
+    "mtime": 1780716419.5819206,
+    "ast_hash": "9fe9db9ad17e7a2f577e017451659c14",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_moon.jpg": {
+    "mtime": 1780716419.5819206,
+    "ast_hash": "975d10e60968dbf667e8e41cff2a9ab7",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_star.jpg": {
+    "mtime": 1780716419.5819206,
+    "ast_hash": "c170970d4d8307ef96b5d7462ba3c92a",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_sun.jpg": {
+    "mtime": 1780716419.5829206,
+    "ast_hash": "3c77e7ed325c17f25ac98e514e87ea0d",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_tower.jpg": {
+    "mtime": 1780716419.5829206,
+    "ast_hash": "23561165db211452985babbc080a9a4c",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/the_world.jpg": {
+    "mtime": 1780716419.5829206,
+    "ast_hash": "4baf39cf86d87badad9f2125d5d2e483",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/three_of_cups.jpg": {
+    "mtime": 1780716419.5839205,
+    "ast_hash": "c66472e2b6b6dd1018a40128cc23a77c",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/three_of_pentacles.jpg": {
+    "mtime": 1780716419.5839205,
+    "ast_hash": "3c4381df204da05cc3c53060846a51ee",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/three_of_swords.jpg": {
+    "mtime": 1780716419.5839205,
+    "ast_hash": "6761038ea791a7347320ec03e0e212e9",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/three_of_wands.jpg": {
+    "mtime": 1780716419.5849206,
+    "ast_hash": "8145c58a37b61196dbc292ec5f82e622",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/two_of_cups.jpg": {
+    "mtime": 1780716419.5849206,
+    "ast_hash": "3061ed3ab3db5159ac2131b61bed8bbe",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/two_of_pentacles.jpg": {
+    "mtime": 1780716419.5849206,
+    "ast_hash": "0daa5d9812116fcd83e27c067fa0b68d",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/two_of_swords.jpg": {
+    "mtime": 1780716419.5859206,
+    "ast_hash": "786b437a98959e45b5ab3030d2c53039",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/two_of_wands.jpg": {
+    "mtime": 1780716419.5859206,
+    "ast_hash": "1219ebd64bab6fe35516b6f976c44261",
+    "semantic_hash": ""
+  },
+  "web/tarot/cards/wheel_of_fortune.jpg": {
+    "mtime": 1780716419.5859206,
+    "ast_hash": "12fe638718d8a69ae603397ac9ebb50b",
+    "semantic_hash": ""
+  },
+  "web/turbo.png": {
+    "mtime": 1780705696.6104147,
+    "ast_hash": "00e9ec672af774e85cceeb683e6f3a51",
+    "semantic_hash": ""
+  },
+  "web/watchman.png": {
+    "mtime": 1778500884.2121842,
+    "ast_hash": "6be246034202f8ccda47ac5bb321ca30",
+    "semantic_hash": ""
+  },
+  "web/wizard.png": {
+    "mtime": 1780711696.2299936,
+    "ast_hash": "d0561350a31daaceeef9b7caf1d48a64",
+    "semantic_hash": ""
+  },
+  "web/graph-overlay.js": {
+    "mtime": 1781750513.9178975,
+    "ast_hash": "ed36738ee7a752edc78955c00b40d02c",
+    "semantic_hash": ""
+  },
+  "api/nudge.py": {
+    "mtime": 1781561094.3171287,
+    "ast_hash": "f69b557a6564bc89d18aa69105f99187",
+    "semantic_hash": ""
+  },
+  "web/card-graph.js": {
+    "mtime": 1781520679.4639506,
+    "ast_hash": "6f1fc0a98b21d82040107aff9b3d2065",
+    "semantic_hash": ""
+  },
+  "api/recalibration.py": {
+    "mtime": 1781067385.5081525,
+    "ast_hash": "580d6edc86f0065075633edaf6d0aa27",
+    "semantic_hash": ""
+  },
+  "scripts/install-hooks.sh": {
+    "mtime": 1781202708.8825834,
+    "ast_hash": "80d5b3409dfbe28ab1fb7fe5648a5467",
+    "semantic_hash": ""
+  },
+  "scripts/pre-commit": {
+    "mtime": 1781560786.2477472,
+    "ast_hash": "92a98dd1dc474a06f4d82480b0991a4b",
+    "semantic_hash": ""
+  },
+  "api/templates/guest_login.html": {
+    "mtime": 1781556379.792369,
+    "ast_hash": "5289c56eed9dca30396a8eeec78e2782",
+    "semantic_hash": ""
+  },
+  "api/templates/color.html": {
+    "mtime": 1781556343.6812563,
+    "ast_hash": "9f6ab7cd42d742a4b1c2006c2fbced54",
+    "semantic_hash": ""
+  },
+  "web/bitman.png": {
+    "mtime": 1781206853.7207959,
+    "ast_hash": "e88f289acf97f9377dc3a6c15d988ca3",
+    "semantic_hash": ""
+  },
+  "web/data-doctor.png": {
+    "mtime": 1781534319.8659422,
+    "ast_hash": "e193755b80f1e804847c69afccef8123",
+    "semantic_hash": ""
+  },
+  "web/seeker.png": {
+    "mtime": 1781534319.8489423,
+    "ast_hash": "9f771896976a29383ac13421da55d5da",
+    "semantic_hash": ""
+  },
+  "web/golem-stone.png": {
+    "mtime": 1781747464.7493424,
+    "ast_hash": "3043c0ab2392a37247c517112c4c1105",
+    "semantic_hash": ""
+  },
+  "web/color.js": {
+    "mtime": 1781556343.677256,
+    "ast_hash": "8a456cde6e2894d1f3e34c0be30a6ba5",
+    "semantic_hash": ""
+  },
+  "web/debug.js": {
+    "mtime": 1781556493.8137436,
+    "ast_hash": "2704b81bf13dba8c138b2adce065ba8c",
+    "semantic_hash": ""
+  },
+  "web/kanban.js": {
+    "mtime": 1781724448.47275,
+    "ast_hash": "5890f93f9266dc1185311142a2a40265",
+    "semantic_hash": ""
+  },
+  "web/mtg.js": {
+    "mtime": 1781556379.7023687,
+    "ast_hash": "3c4d7d3a504a77267ee14785b07acf2e",
+    "semantic_hash": ""
+  },
+  "web/prophecies-board.js": {
+    "mtime": 1781556893.4332156,
+    "ast_hash": "5b03cce31abe5b43d78116c19b19a80d",
+    "semantic_hash": ""
+  },
+  "web/prophecies-core.js": {
+    "mtime": 1781556893.4262156,
+    "ast_hash": "d3b52f92b7e8678213c455bf03e5e75a",
+    "semantic_hash": ""
+  },
+  "web/prophecies-groups.js": {
+    "mtime": 1781556893.4302156,
+    "ast_hash": "e7ed5ef04d2ac10ee5c4d2dde56d4e19",
+    "semantic_hash": ""
+  },
+  "web/tarot-chat.js": {
+    "mtime": 1781557050.95684,
+    "ast_hash": "65f48e64225f779635a820e67754d4f1",
+    "semantic_hash": ""
+  },
+  "web/tarot-view.js": {
+    "mtime": 1781557050.95284,
+    "ast_hash": "3f22970fed3261003e62bd86c621c96c",
+    "semantic_hash": ""
+  },
+  "api/nudge_llm.py": {
+    "mtime": 1781558373.6374185,
+    "ast_hash": "e77fab15de802da33463bfbf4af00012",
+    "semantic_hash": ""
+  },
+  "api/monitor_sse.py": {
+    "mtime": 1781558847.8173602,
+    "ast_hash": "760a9b676d825332b7ecbf447086f8d4",
+    "semantic_hash": ""
+  },
+  "api/nudge_loop.py": {
+    "mtime": 1781561225.7667115,
+    "ast_hash": "ebf79c75192df9331e966befc7022306",
+    "semantic_hash": ""
+  },
+  "api/pages.py": {
+    "mtime": 1781895211.5519278,
+    "ast_hash": "3a1926735befd27cb7484a23494512ef",
+    "semantic_hash": ""
+  },
+  "api/routers.py": {
+    "mtime": 1781560537.6606073,
+    "ast_hash": "a849afb2e1f61887db9f98cb99df0017",
+    "semantic_hash": ""
+  },
+  "api/routes_api.py": {
+    "mtime": 1781561464.0727615,
+    "ast_hash": "600a13bdcb9be288385b89cb82113d16",
+    "semantic_hash": ""
+  },
+  "api/routes_views.py": {
+    "mtime": 1781893891.7599738,
+    "ast_hash": "def9668dcd672c0217fb92a179158f2a",
+    "semantic_hash": ""
+  },
+  "api/nudge_deadlines.py": {
+    "mtime": 1781561055.3389552,
+    "ast_hash": "401dec62e5e4104e49bc2c42915b9e26",
+    "semantic_hash": ""
+  },
+  "api/card_llm.py": {
+    "mtime": 1781561486.0138578,
+    "ast_hash": "da0bfcf4b6d8ec64a8884a96f41670a4",
+    "semantic_hash": ""
+  },
+  "api/morning.py": {
+    "mtime": 1781561268.0168982,
+    "ast_hash": "c2228cd2b57d9e196b7704b710e517ed",
+    "semantic_hash": ""
+  },
+  "api/templates/recruiter.html": {
+    "mtime": 1781706993.0435338,
+    "ast_hash": "692c3d1cdac83da7364ffd93d01408ea",
+    "semantic_hash": ""
+  },
+  "web/recruiter.js": {
+    "mtime": 1781709848.7642353,
+    "ast_hash": "f7ea0ac7477a8f306139a8e45caf2d08",
+    "semantic_hash": ""
+  },
+  "api/templates/emet.html": {
+    "mtime": 1781743310.4510193,
+    "ast_hash": "6ce6ba6397511f56af0e25186ced37de",
+    "semantic_hash": ""
+  },
+  "api/scripts/subset_cv_fonts.py": {
+    "mtime": 1781750658.6006315,
+    "ast_hash": "7d69f123f0649201a2cda89798c933a1",
+    "semantic_hash": ""
+  },
+  "web/exec-bubble-drag.js": {
+    "mtime": 1781891566.7552578,
+    "ast_hash": "f6c82097190100860a263c690de3de75",
+    "semantic_hash": ""
+  },
+  "web/data-file.png": {
+    "mtime": 1781893436.7770488,
+    "ast_hash": "9630389fdc4819afadb90858df05082f",
+    "semantic_hash": ""
+  }
+}
