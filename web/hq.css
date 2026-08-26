@@ -203,16 +203,9 @@ body.hq-dragging .hq-unschedule.drag-over {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%;
 }
 
-/* expand/collapse control, top-right of the spine (expanded) or collapsed block
-   (▾ open / ▸N collapsed). Its own tap target so the spine/card tap opens the
-   dialog underneath. Colour set inline from JS to match the card's title ink. */
-.dir-spine-toggle {
-  position: absolute; top: 0; right: 0; z-index: 6;
-  font-family: var(--font-mono); font-weight: var(--fw-bold);
-  font-size: var(--fs-2xs); line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
-  padding: var(--space-px) var(--space-1); cursor: pointer; opacity: 0.7;
-}
-.dir-spine-toggle:hover { opacity: 1; }
+/* the current task stretches to fill the card's whole time; it's click-only
+   (mark done / undo) — the whole card drags via the spine, so no grab cursor. */
+.dir-sub.dir-task { cursor: pointer; }
 
 .dir-sub {
   position: absolute; box-sizing: border-box; border-radius: var(--radius-2);
