@@ -33,7 +33,7 @@ def _arm_nudge(c: dict, anchor) -> bool:
         dirty = True
     if n["stage"] == "nudging" and not n["last_nudge_at"]:
         # First nudge not sent yet: keep tracking the anchor.
-        # After that, next_nudge_at is owned by the loop (advance/stall).
+        # After that, next_nudge_at is owned by the loop (advance re-nudge).
         if n["next_nudge_at"] != anchor_s:
             n["next_nudge_at"] = anchor_s
             dirty = True
@@ -44,22 +44,25 @@ _nudge_retry_after: dict[str, float] = {}  # card_id -> monotonic ts (failure ba
 _NUDGE_FAIL_BACKOFF_SEC = 300
 
 
-def _due_kind(c: dict, now) -> str | None:
-    """'stall' if the response window expired, 'nudge' if the active-node start
-    arrived, else None. Skips cards in flight or in failure backoff."""
-    import nudge as _nudge
+def _due_nudge(c: dict, now) -> bool:
+    """True if the active-node start arrived and the card is not already awaiting a
+    reply. Skips cards in flight or in failure backoff. ONE NUDGE PER STEP: a step
+    nudges once at its start, then sits `awaiting_reply` in silence — no stall
+    re-peel, no re-nudge on no reply. The frontier only moves when Wai acts
+    (advance_chunk / timeline tap-done), which re-arms next_nudge_at for the NEXT
+    step."""
     if c["id"] in _nudges_inflight or time.monotonic() < _nudge_retry_after.get(c["id"], 0):
-        return None
+        return False
     n = c["nudge"]
     if n["awaiting_reply"]:
-        wd = _nudge._parse_et(n.get("window_deadline"))
-        return "stall" if (wd and now >= wd) else None
+        return False  # one nudge per step — no stall re-peel/re-nudge
+    import nudge as _nudge
     nna = _nudge._parse_et(n.get("next_nudge_at"))
-    return "nudge" if (nna and now >= nna) else None
+    return bool(nna and now >= nna)
 
 
-def _scan_due_nudges() -> list[tuple[str, str]]:
-    """Arm/refresh next_nudge_at for eligible cards; return (id, kind) due now."""
+def _scan_due_nudges() -> list[str]:
+    """Arm/refresh next_nudge_at for eligible cards; return ids due to nudge now."""
     import nudge as _nudge
     import nudge_deadlines as _nd
     from scheduler import logical_today_iso
@@ -89,45 +92,20 @@ def _scan_due_nudges() -> list[tuple[str, str]]:
             anchor = _nd.active_anchor(c)
             if anchor is not None:
                 dirty |= _arm_nudge(c, anchor)
-            kind = _due_kind(c, now)
-            if kind:
-                due.append((c["id"], kind))
+            if _due_nudge(c, now):
+                due.append(c["id"])
         if dirty:
             _save_rd(rd)
     return due
 
 
-async def _stall_generate(card: dict, n: dict) -> tuple[str | None, int, str]:
-    """A card stalled. Peel a smaller sub-step off the FIRST INCOMPLETE step, else
-    re-nudge the same chunk (peeled_label=None). Only the first open step is ever
-    peeled — once it's done and the frontier advances, the NEW first step is what
-    peels; a completed step is never touched. Re-nudge instead of peeling when the
-    active step is: not the first incomplete step, the atomic event block (never
-    split), or already at the floor (est_min <= _PEEL_FLOOR_MIN — stop going
-    smaller). Returns (peeled_label, peel_est, nudge_text); peeled_label is "" if
-    the peel LLM returned nothing."""
-    import nudge as _nudge
-    nodes, edges = n["graph"]["nodes"], n["graph"]["edges"]
-    active_id = n.get("active_node")
-    active_nd = next((nd for nd in nodes if nd["id"] == active_id), None)
-    at_floor = active_nd and (active_nd.get("est_min") or 0) <= _nllm._PEEL_FLOOR_MIN
-    is_event = active_nd and active_nd.get("is_event_start")
-    is_first_open = active_id == _nudge._first_open(nodes, edges)
-    if not active_nd or at_floor or is_event or not is_first_open:
-        text = (await asyncio.to_thread(_nllm.nudge_text_sync, card)).strip()
-        return None, _nllm._PEEL_FLOOR_MIN, text
-    result = await asyncio.to_thread(_nllm.peel_sync, card)
-    return ((result.get("sub_label") or "").strip(),
-            result.get("est_min", _nllm._PEEL_FLOOR_MIN),
-            (result.get("nudge_text") or "").strip())
-
-
-async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
-    """Generate + deliver one nudge (or stall re-peel). Reloads rd around the
-    LLM call so a concurrent PATCH /api/rd isn't clobbered."""
+async def _fire_nudge(card_id: str) -> bool:
+    """Generate + deliver ONE nudge for the card's active step (decomposing first if
+    the card has no graph yet). One nudge per step: after this fires the card sits
+    `awaiting_reply` in silence until Wai advances it — there is no stall re-peel.
+    Reloads rd around the LLM call so a concurrent PATCH /api/rd isn't clobbered."""
     import nudge as _nudge
     import nudge_deadlines as _nd
-    from datetime import timedelta
     from scheduler import logical_today_iso
     from helpers import _load_rd, _save_rd, _find_card, _now_et, _RD_LOCK
 
@@ -137,15 +115,10 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
         return False
     n = _nudge.ensure_nudge(card)
 
-    graph_update = active = peeled_label = None
-    peel_est = _nllm._PEEL_FLOOR_MIN
+    graph_update = active = None
     await push_to_monitor({"thinking": True})
     try:
-        if kind == "stall" and n["graph"]["nodes"]:
-            peeled_label, peel_est, text = await _stall_generate(card, n)
-            if not text or peeled_label == "":   # None = re-nudge (ok); "" = peel failed
-                return False
-        elif not n["graph"]["nodes"]:
+        if not n["graph"]["nodes"]:
             result = await asyncio.to_thread(_nllm.decompose_sync, card)
             graph_update = {"nodes": result["nodes"], "edges": result["edges"]}
             active = result["active_node"]
@@ -165,26 +138,24 @@ async def _fire_nudge(card_id: str, kind: str = "nudge") -> bool:
         if not card or not _nudge._eligible(card, logical_today_iso()):
             return False
         n = _nudge.ensure_nudge(card)
-        if n["awaiting_reply"] != (kind == "stall"):
-            return False  # state moved under us (reply landed / another fire) — drop
+        if n["awaiting_reply"]:
+            return False  # state moved under us (already awaiting a reply) — drop
         if graph_update is not None:
             n["graph"] = graph_update
             n["active_node"] = active
-        if peeled_label is not None:
-            _nllm.apply_peel(card, peeled_label, peel_est)
         _nd.compute_deadlines(card)
         now = _now_et()
         n["stage"] = "awaiting"
         n["awaiting_reply"] = True
         n["last_nudge_at"] = _nudge._fmt_et(now)
         n["last_nudge_text"] = text
-        n["window_deadline"] = _nudge._fmt_et(now + timedelta(minutes=_nudge.window_for(card)))
+        n["window_deadline"] = None
         n["next_nudge_at"] = None
         _save_rd(rd)
 
     append_monitor_comment(text)
     await push_to_monitor({"comment": text})
-    await push_to_monitor({"cards_changed": True})  # peel/advance/decompose changed the board
+    await push_to_monitor({"cards_changed": True})  # advance/decompose changed the board
     return True
 
 
@@ -327,14 +298,14 @@ async def _nudge_tick() -> dict:
         finally:
             _nudges_inflight.discard(card_id)
     # Fire pass: nudge cards whose active-node start time has arrived.
-    for card_id, kind in await asyncio.to_thread(_scan_due_nudges):
+    for card_id in await asyncio.to_thread(_scan_due_nudges):
         _nudges_inflight.add(card_id)
         try:
-            if await _fire_nudge(card_id, kind):
+            if await _fire_nudge(card_id):
                 fired.append(card_id)
                 _nudge_retry_after.pop(card_id, None)
         except Exception as e:
-            print(f"[nudge] error firing {card_id} ({kind}): {e}")
+            print(f"[nudge] error firing {card_id}: {e}")
             _nudge_retry_after[card_id] = time.monotonic() + _NUDGE_FAIL_BACKOFF_SEC
         finally:
             _nudges_inflight.discard(card_id)
