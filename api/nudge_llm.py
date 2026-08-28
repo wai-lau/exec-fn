@@ -1,12 +1,12 @@
-"""LLM calls for the nudge loop — decompose / triage / peel / nudge-text.
+"""LLM calls for the nudge loop — decompose / triage / nudge-text.
 
 Split out of nudge.py to keep modules under the line cap. Imports the engine
 helpers it needs from nudge (one-way; nudge never imports this back)."""
 import anthropic
 from datetime import datetime, timedelta
 
-from helpers import _now_et, _load_json, _parse_json
-from nudge import ensure_nudge, active_label, _normalize_graph, _fmt_et, _parse_et, _MODEL
+from helpers import _load_json, _parse_json
+from nudge import ensure_nudge, active_label, _normalize_graph, _parse_et, _MODEL
 from chat import EXEC_VOICE
 
 
@@ -150,77 +150,6 @@ def triage_sync(card: dict) -> dict:
             "edges": g["edges"], "active_node": g["active_node"]}
 
 
-# ── stall: peel a smaller first sub-step off the active node ──────────────────
-def peel_sync(card: dict) -> dict:
-    """LLM only; caller mutates the graph. Returns {sub_label, nudge_text}."""
-    n = ensure_nudge(card)
-    chunk = active_label(card)
-    system = (
-        "You are Exec, Wai's ADHD planning assistant. Wai has stalled on a step. Peel "
-        "off a SMALLER first sub-step: the tiniest concrete action that starts it. "
-        "Floor: the sub-step should take no less than 5 minutes of real effort — "
-        "'open the app, load today's file and read the first section' is fine, a "
-        "sub-second flick is not.\n"
-        f"{_TONE}\n"
-        "Also write the nudge for ONLY that sub-step: 1-2 sentences naming it, plus 1 "
-        "sentence of why it matters (reasoning / consequence / dependency). Give est_min "
-        "= minutes the small sub-step takes (no less than 5, usually 5-10).\n\n"
-        f"KNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\n"
-        'Return JSON only: {"sub_label":"...","est_min":5,"nudge_text":"..."}'
-    )
-    user = (
-        f"{_card_brief(card)}\n\nSTALLED STEP: {chunk}\n"
-        f"ALREADY PEELED {n.get('redecompose_count', 0)} TIME(S) — go smaller than last time."
-    )
-    return _json_call(system, user, max_tokens=300)
-
-
-_PEEL_FLOOR_MIN = 5  # a peeled sub-step never goes below this; a step already AT the
-                     # floor is not peeled further (guarded in nudge_loop._fire_nudge)
-
-
-def apply_peel(card: dict, sub_label: str, est_min: int = 5) -> str:
-    """Insert the peeled sub-step as a prerequisite of the active node and make it
-    active. The sub-step is a slice taken OUT of the parent step, not extra time —
-    so the breakdown sum (and the timeline block length it drives) is unchanged;
-    only a manual edit grows the card's prep/duration. Returns the new node id."""
-    n = ensure_nudge(card)
-    parent_id = n.get("active_node")
-    nodes = n["graph"]["nodes"]
-    parent = next((nd for nd in nodes if nd["id"] == parent_id), None)
-    now = _now_et()
-    new_id = f"peel-{now.strftime('%H%M%S')}-{len(nodes)}"
-    peel_est = max(_PEEL_FLOOR_MIN, int(est_min or _PEEL_FLOOR_MIN))
-    # Conserve total: shrink the parent by what the peel takes, so the chain doesn't
-    # grow (and back-scheduling doesn't march the whole prep earlier every stall).
-    if parent is not None and parent.get("est_min") is not None:
-        peel_est = min(peel_est, parent["est_min"])
-        parent["est_min"] = max(0, parent["est_min"] - peel_est)
-    nodes.append({
-        "id": new_id,
-        "label": sub_label,
-        "done": False,
-        "depth": (parent.get("depth", 0) + 1) if parent else 0,
-        "created_at": _fmt_et(now),
-        "est_min": peel_est,
-    })
-    edges = n["graph"]["edges"]
-    if parent is not None:
-        # Splice the peel BETWEEN parent and its predecessor so the chain stays
-        # linear: P -> parent becomes P -> new -> parent. If parent is the head
-        # (no predecessor), new simply becomes the new head. Guard on the actual
-        # node lookup, not the id string's truthiness -- active_node can point
-        # at a since-removed node (e.g. the event block dropped by
-        # ensure_event_block), and wiring an edge to a missing id leaves a
-        # dangling successor that later crashes back-scheduling.
-        for e in edges:
-            if e.get("to") == parent_id:
-                e["to"] = new_id
-        edges.append({"from": new_id, "to": parent_id})
-    n["active_node"] = new_id
-    n["redecompose_count"] = n.get("redecompose_count", 0) + 1
-    n.setdefault("redecompose_at", []).append(_fmt_et(now))
-    return new_id
 
 
 def _fmt_clock(dt: datetime) -> str:
