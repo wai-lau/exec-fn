@@ -249,15 +249,7 @@
     repeating-linear-gradient(0deg, transparent 0, transparent 1px,
       hsl(var(--green-hsl) / 0.12) 1px, hsl(var(--green-hsl) / 0.12) 4px),
     radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.12), transparent 70%);
-  animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
 }
-
-@keyframes cyber-flicker {
-  0%,100%{opacity:1} 48%{opacity:0.96} 50%{opacity:0.8}
-  51%{opacity:0.96} 70%{opacity:1} 72%{opacity:0.85} 73%{opacity:1}
-}
-
-@keyframes cyber-drift { from{background-position:0 0,0 0} to{background-position:0 4px,0 0} }
 
 .cyber-scan {
   position: fixed; left: 0; right: 0; top: 0; height: 160px; z-index: var(--z-modal); pointer-events: none;
