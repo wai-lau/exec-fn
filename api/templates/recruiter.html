@@ -2,19 +2,19 @@
   <button id="cv-theme" class="cv-theme" type="button" aria-label="Toggle dark mode">⋆₊<span class="cv-glyph">⏾</span>⁺₊⋆</button>
   <header class="cv-head">
     <h1>Wai Lau</h1>
-    <p class="cv-title">Senior Software Engineer, Infrastructure &amp; Platform</p>
+    <p class="cv-title">Senior Software Engineer<br>Backend Services &amp; Distributed Systems</p>
     <ul class="cv-contact">
       <li><a href="mailto:wl.wailau@gmail.com">wl.wailau@gmail.com</a></li>
-      <li>Montr&eacute;al, QC</li>
+      <li><a href="tel:+15147990173">+1 (514) 799-0173</a></li>
+      <li>Montr&eacute;al, Quebec</li>
       <li><a href="https://www.linkedin.com/in/wai-lun-lau" target="_blank" rel="noopener">LinkedIn</a></li>
       <li><a href="https://github.com/Wai-Lau" target="_blank" rel="noopener">GitHub</a></li>
     </ul>
   </header>
 
   <p class="cv-summary">
-    <b>8 years of experience scaling international commerce and financial platforms</b>:<br>build-and-deploy
-    infrastructure, distributed systems, and high-throughput financial services.
-    <span class="cv-fake" data-decoy="I use AI to build epic things that actually work, don't leak PII, and won't require a status page update...">I harness LLMs and orchestrate multi-repo workflows to drive complex migrations and modernize sensitive codebases.</span>
+    <b>7 years of experience building and operating backend services at scale across commerce and finance</b>: distributed systems, high-throughput financial platforms, and build-and-deploy infrastructure across GCP and AWS. Capable of owning complex services end-to-end with SLAs, SLOs and on-call shifts.
+    <span class="cv-fake" data-decoy="I use AI to build epic things that actually work, don't leak PII, and won't require a status page update...">An early adopter of LLM-assisted workflows, shipping safely for sensitive codebases and driving complex migrations.</span>
   </p>
 
   <section>
@@ -24,21 +24,25 @@
       <div class="cv-job-head">
         <span class="cv-co">Coinbase</span>
         <span class="cv-role">Software Engineer</span>
-        <span class="cv-dates">Feb 2022 &ndash; May 2026 &middot; 4 yrs</span>
+        <span class="cv-dates">Feb 2022 &ndash; May 2026</span>
       </div>
 
       <p class="cv-group">Financial Platform</p>
       <ul>
-        <li>Built and maintained a high-throughput, low-latency financial ledger with Aeron, serving international and institutional clients.</li>
-        <li>Used an LLM-assisted, multi-repo workflow (Cursor with Sourcegraph and Buf MCP servers) to ship changes to financial systems safely and quickly.</li>
-        <li>Drove a Cadence-to-Temporal migration, leveraging Buf to match gRPC APIs across services.</li>
+        <li>Built and operated a high-throughput, low-latency financial ledger with Aeron, serving international and institutional clients.</li>
         <li>Built multi-currency, multi-platform financial flows managing risk, slippage, and compensation steps.</li>
+        <li>Mapped relational database records into SBE encodings for the Aeron transport layer, working directly against the underlying schema and query behaviour.</li>
+        <li>Drove a Cadence-to-Temporal migration, leveraging Buf to match gRPC APIs across services.</li>
+        <li>Carried the payments on-call pager for transfer availability, throughput, and correctness; triaged and resolved production issues end to end.</li>
+        <li>Used an LLM-assisted, multi-repo development workflow (Cursor with Sourcegraph and Buf MCP servers) to ship changes to financial systems safely and quickly, work that was otherwise slow and risky by hand.</li>
+        <li>Mentored interns and served as onboarding buddy for new team members.</li>
       </ul>
 
       <p class="cv-group">Build &amp; Deploy</p>
       <ul>
-        <li>Reduced AWS costs by <strong>$500K/year</strong> by graphing ECR image dependencies and safely pruning unused storage.</li>
-        <li>Owned and improved the company-wide CI/CD pipeline; unified two distinct build-and-deploy architectures into one system.</li>
+        <li>Owned and improved the company-wide CI/CD pipeline; unified two distinct container build-and-deploy architectures into one system.</li>
+        <li>Carried the build-and-deploy on-call pager, handling escalations where a broken pipeline blocked urgent deploys during active incidents.</li>
+        <li>Reduced AWS costs by <strong>$500K/year</strong> by graphing ECR container image dependencies and safely pruning unused storage.</li>
         <li>Designed and integrated a gRPC schema (proto) registry into the deployment pipeline.</li>
       </ul>
     </div>
@@ -47,14 +51,16 @@
       <div class="cv-job-head">
         <span class="cv-co">Shopify</span>
         <span class="cv-role">Production Engineer</span>
-        <span class="cv-dates">Jun 2019 &ndash; Feb 2022 &middot; 3 yrs</span>
+        <span class="cv-dates">Jun 2019 &ndash; Feb 2022</span>
       </div>
 
       <p class="cv-group">Search Platform</p>
       <ul>
-        <li>Built active-active multi-region failover for search across all of Shopify, holding <strong>~150TB</strong> of indexed data and serving <strong>~2K QPS</strong> on a normal day, <strong>30K</strong> when Black Friday hit.</li>
+        <li>Built active-active multi-region failover for Shopify-wide search on GCP, using Kubernetes and Google Cloud load balancing; scaled to <strong>~150TB</strong> indexed, handling <strong>~2K QPS</strong> steady and <strong>30K</strong> at peak.</li>
         <li>Led a cross-functional effort to bring Search to the edge, cutting p99 latency from <strong>400ms to 50ms</strong> for Australia and Europe.</li>
+        <li>Carried the on-call pager for Shopify-wide search availability, responding to downtime and degradation in production.</li>
         <li>Parallelized and sharded the search test suite, halving total test runtime; built queuing infrastructure for high-volume indexing and bursty backfills.</li>
+        <li>Worked with a Prometheus sidecar streaming service telemetry into Datadog for search monitoring and alerting.</li>
       </ul>
 
       <p class="cv-group">Developer Infrastructure</p>
@@ -67,11 +73,27 @@
     <div class="cv-job">
       <div class="cv-job-head">
         <span class="cv-co">Nuance Communications</span>
-        <span class="cv-role">Software Developer</span>
-        <span class="cv-dates">1 yr</span>
+        <span class="cv-role">Internship</span>
+        <span class="cv-dates">June 2017 &ndash; Feb 2018</span>
       </div>
       <ul>
-        <li>Built internal tooling and automation across speech recognition and NLP teams, from cluster-management interfaces to CI/CD pipelines.</li>
+        <li>Built internal tooling and automation across the speech recognition and NLP team:
+          <ul>
+            <li>Custom Django cluster-management interfaces</li>
+            <li>Jenkins CI/CD pipelines deploying NLP models</li>
+            <li>Grafana dashboards for observability and monitoring</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Projects</h2>
+    <div class="cv-job">
+      <ul>
+        <li><strong>emet</strong> &mdash; a privacy-sensitive, local-LLM memory map with an MCP frontend</li>
+        <li><strong>exec-fn</strong> &mdash; self-hosted planning agent with a nightly memory pipeline</li>
       </ul>
     </div>
   </section>
@@ -82,19 +104,25 @@
       <div class="cv-skillrow">
         <dt>Languages</dt>
         <dd>
-          <span class="cv-chip">Go</span><span class="cv-chip">Ruby</span><span class="cv-chip">Python</span><span class="cv-chip">Java</span><span class="cv-chip">JavaScript</span>
+          <span class="cv-chip">Python</span><span class="cv-chip">Go</span><span class="cv-chip">Java</span><span class="cv-chip">Ruby</span><span class="cv-chip">JS</span>
+        </dd>
+      </div>
+      <div class="cv-skillrow">
+        <dt>Backend &amp; Data</dt>
+        <dd>
+          <span class="cv-chip">Postgres</span><span class="cv-chip">Kafka</span><span class="cv-chip">Elasticsearch</span><span class="cv-chip">Redis</span><span class="cv-chip">Aeron</span><span class="cv-chip">Snowflake</span><span class="cv-chip">gRPC</span><span class="cv-chip">Buf</span><span class="cv-chip">Envoy</span>
         </dd>
       </div>
       <div class="cv-skillrow">
         <dt>Infrastructure</dt>
         <dd>
-          <span class="cv-chip">AWS</span><span class="cv-chip">GCP</span><span class="cv-chip">Kubernetes</span><span class="cv-chip">Docker</span><span class="cv-chip">Terraform</span><span class="cv-chip">Temporal</span><span class="cv-chip">Buildkite</span><span class="cv-chip">Datadog</span>
+          <span class="cv-chip">GCP</span><span class="cv-chip">AWS</span><span class="cv-chip">Kubernetes</span><span class="cv-chip">Docker</span><span class="cv-chip">Terraform</span><span class="cv-chip">Temporal</span><span class="cv-chip">Buildkite</span>
         </dd>
       </div>
       <div class="cv-skillrow">
-        <dt>Data &amp; APIs</dt>
+        <dt>Observability</dt>
         <dd>
-          <span class="cv-chip">Kafka</span><span class="cv-chip">Elasticsearch</span><span class="cv-chip">Aeron</span><span class="cv-chip">Postgres</span><span class="cv-chip">Redis</span><span class="cv-chip">Snowflake</span><span class="cv-chip">gRPC</span><span class="cv-chip">Buf</span><span class="cv-chip">Envoy</span><span class="cv-chip">Logstash</span><span class="cv-chip">Splunk</span>
+          <span class="cv-chip">Grafana</span><span class="cv-chip">Prometheus</span><span class="cv-chip">Datadog</span><span class="cv-chip">Splunk</span><span class="cv-chip">Logstash</span>
         </dd>
       </div>
       <div class="cv-skillrow">
