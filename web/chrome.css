@@ -239,14 +239,15 @@
     hsl(var(--bg-hsl)) 1px, transparent 1px, transparent 4px);
 }
 
-/* 2. Ono-Sendai overlay — phosphor green on the lit rows + a centre glow */
+/* 2. Ono-Sendai overlay — phosphor green filling the lit rows BETWEEN the black
+   lines (same 4px period) + a centre glow. plus-lighter is additive, so the lit
+   rows add back the brightness the multiplied black gaps take away. */
 .cyber-bg {
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
-  mix-blend-mode: screen;
+  mix-blend-mode: plus-lighter;
   background:
     repeating-linear-gradient(0deg, transparent 0, transparent 1px,
-      hsl(var(--green-hsl) / 0.12) 1px, hsl(var(--green-hsl) / 0.12) 2px,
-      transparent 2px, transparent 3px),
+      hsl(var(--green-hsl) / 0.12) 1px, hsl(var(--green-hsl) / 0.12) 4px),
     radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.12), transparent 70%);
   animation: cyber-flicker 5s steps(60) infinite, cyber-drift 0.5s linear infinite;
 }
@@ -256,7 +257,7 @@
   51%{opacity:0.96} 70%{opacity:1} 72%{opacity:0.85} 73%{opacity:1}
 }
 
-@keyframes cyber-drift { from{background-position:0 0,0 0} to{background-position:0 3px,0 0} }
+@keyframes cyber-drift { from{background-position:0 0,0 0} to{background-position:0 4px,0 0} }
 
 .cyber-scan {
   position: fixed; left: 0; right: 0; top: 0; height: 160px; z-index: var(--z-modal); pointer-events: none;
