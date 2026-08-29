@@ -62,9 +62,10 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
 
 #tarot-credits, #tarot-credits a {
   color:hsl(var(--green-hsl) / 0.45);
-  font-size: var(--fs-2xs); line-height: var(--lh-snug); text-decoration:none;
+  font-size: calc(var(--fs-2xs) * 0.85); line-height: var(--lh-snug); text-decoration:none;
 }
 #tarot-credits a { pointer-events:auto; }
+#tarot-credits a:last-child { color:hsl(var(--green-hsl) / 0.12); }
 #tarot-credits a:hover { color:hsl(var(--green-hsl) / 0.8); }
 
 #tarot-statusline {
