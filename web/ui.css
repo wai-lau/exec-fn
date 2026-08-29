@@ -51,8 +51,8 @@ body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 /* ONE usage toggle per card: a single centred ▼ (no label) below the table */
 .clr-usedet > summary { list-style: none; cursor: pointer; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); }
 .clr-usedet > summary::-webkit-details-marker { display: none; }
-.clr-usedet > summary::before { content: '▼'; display: inline-block; }
-.clr-usedet[open] > summary::before { transform: rotate(180deg); }
+.clr-usedet > summary::before { content: '[▼]'; display: inline-block; }
+.clr-usedet[open] > summary::before { content: '[▲]'; }
 .clr-usedet > summary:hover { color: hsl(var(--green-hsl) / 0.8); }
 
 /* nested usage table revealed by the toggle — same fixed 4-col layout */
