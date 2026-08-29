@@ -163,6 +163,7 @@
   --tracking-mega:   0.18em;    /* loud spaced caps: section headers */
 
   /* ── Blur ────────────────────────────────────────────────────────────── */
+  --blur-xs: 3px;   /* CRT-glass haze — ~2x the scanline period */
   --blur-sm: 6px;
   --blur:    14px;
 
@@ -273,7 +274,7 @@
    the full composite. On the dense boards it drops to z:-1 like the others. */
 .cyber-blur {
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
-  backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-xs));
 }
 
 @media (prefers-reduced-motion: reduce) {
