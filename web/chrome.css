@@ -235,7 +235,7 @@
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: multiply;
   background: repeating-linear-gradient(0deg, hsl(var(--bg-hsl)) 0,
-    hsl(var(--bg-hsl)) 1px, transparent 1px, transparent 3px);
+    hsl(var(--bg-hsl)) 1px, transparent 1px, transparent 4px);
 }
 
 /* 2. Ono-Sendai overlay — phosphor green on the lit rows + a centre glow */
@@ -267,18 +267,13 @@
 
 @keyframes cyber-sweep { 0%{transform:translateY(-160px)} 100%{transform:translateY(100vh)} }
 
-/* 4. phosphor bloom — the overlay's own light, blurred into a soft halo on top.
-   filter blurs only this layer's paint, so content + the black lines stay crisp. */
+/* 4. blur pane — topmost layer; backdrop-filter blurs EVERYTHING under it
+   (the content + the black lines + the phosphor overlay + the sweep) into a
+   soft CRT-glass haze. Stacks last (injected last, same z) so its backdrop is
+   the full composite. On the dense boards it drops to z:-1 like the others. */
 .cyber-blur {
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
-  mix-blend-mode: screen;
-  filter: blur(var(--blur-sm));
-  background:
-    repeating-linear-gradient(0deg, transparent 0, transparent 1px,
-      hsl(var(--green-hsl) / 0.12) 1px, hsl(var(--green-hsl) / 0.12) 2px,
-      transparent 2px, transparent 3px),
-    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.12), transparent 70%);
-  animation: cyber-flicker 5s steps(60) infinite;
+  backdrop-filter: blur(var(--blur-sm));
 }
 
 @media (prefers-reduced-motion: reduce) {
