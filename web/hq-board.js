@@ -232,7 +232,7 @@ function dayCellHtml(day, today) {
     </div>`;
   // today renders as a timeline instead of a card list
   if (isToday) {
-    return `<div class="hq-col today-col" data-day="${day}">${hdr}
+    return `<div class="hq-col today-col${isWeekend?' weekend':''}" data-day="${day}">${hdr}
       <div class="hq-tl-wrap" id="hq-tl-wrap"><span style="opacity:0.3;padding:12px;font-size:0.75rem">loading…</span></div>
     </div>`;
   }
