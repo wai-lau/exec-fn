@@ -2,7 +2,7 @@
 body { overflow: hidden !important; background: transparent !important; }
 
 /* cyber scanlines sit behind the cards + reminders, not over them */
-.cyber-bg, .cyber-scan { z-index: -1; }
+.cyber-lines, .cyber-bg, .cyber-scan, .cyber-blur { z-index: -1; }
 .hq-loading { padding: var(--space-10); font-family: monospace; font-size: var(--fs-sm); opacity: 0.4; }
 
 .hq-board {

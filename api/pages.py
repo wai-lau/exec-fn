@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=36">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=37">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -259,7 +259,8 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     nav = _build_nav(active, guest=guest)
     # cyberpunk ambient fx on every page (nightfall composes separately and is
     # excluded; landing + graph inject their own)
-    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
+    fx = ('<div class="cyber-lines"></div><div class="cyber-bg"></div>'
+          '<div class="cyber-scan"></div><div class="cyber-blur"></div>')
     return (base
         .replace("</head>", head_inject + "</head>", 1)
         .replace("</body>", fx + content + nav + "</body>", 1))

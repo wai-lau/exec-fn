@@ -14,7 +14,7 @@
   var fxEls = [];
   function setFx(on) {
     if (on && !fxEls.length) {
-      ['cyber-bg', 'cyber-scan'].forEach(function (cls) {
+      ['cyber-lines', 'cyber-bg', 'cyber-scan', 'cyber-blur'].forEach(function (cls) {
         var d = document.createElement('div');
         d.className = cls;
         document.body.appendChild(d);
