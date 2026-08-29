@@ -96,8 +96,11 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 .card:hover { filter: brightness(1.08); }
 .card:active { cursor: grabbing; }
-.card.plain { background: hsl(var(--green-hsl) / 0.12); border-color: hsl(var(--green-hsl) / 0.12); }
-.card.plain:hover { background: hsl(var(--green-hsl) / 0.12); }
+
+/* opaque fill (matches hq's .hq-card.plain) so the z-1 scanlines don't bleed
+   through the card — R&D cards sit OVER the effects, not tinted by them */
+.card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
+.card.plain:hover { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); }
 .card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-snug); margin-bottom: var(--space-0-5); }
 
 .card-desc { font-size: var(--fs-sm); margin-top: var(--space-1-5); opacity: 0.88; line-height: var(--lh-snug);

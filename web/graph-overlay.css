@@ -57,7 +57,7 @@ body {
    slide behind it, and above #gp-loading (z 100) so it stays visible during the
    loading cover. */
 .exec-nav {
-  z-index: 200 !important;
+  z-index: var(--z-top) !important;   /* above the CRT fx (--z-modal) */
 }
 
 /* graph canvas fills the whole area above the nav; panels overlay it.
