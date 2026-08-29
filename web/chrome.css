@@ -163,7 +163,7 @@
   --tracking-mega:   0.18em;    /* loud spaced caps: section headers */
 
   /* ── Blur ────────────────────────────────────────────────────────────── */
-  --blur-xs: 1px;   /* CRT-glass haze — floor that keeps text legible */
+  --blur-xs: 0.5px;   /* CRT-glass haze — sub-px floor that keeps text legible */
   --blur-sm: 6px;
   --blur:    14px;
 
@@ -314,7 +314,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: var(--z-top);   /* always above the CRT fx (lines/overlay/sweep/blur @ --z-modal) */
   padding: var(--space-3) 0;
   display: flex;
   align-items: center;
