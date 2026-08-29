@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=51">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=53">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -33,9 +33,13 @@ _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 # CRT ambient stack markup — the four fixed fx layers (see .cyber-* in
 # chrome.css). Shared by every page builder (_render_page, landing, graph) so the
 # layer set stays in one place. nightfall composes separately and never gets it.
+# ORDER MATTERS (same z, DOM order = paint order): the green overlay + sweep
+# paint first, then cyber-lines (multiply black) paints ON TOP so it re-blacks
+# the line rows the green tinted — nothing colours the black lines but cyber-blur
+# (topmost, backdrop blur of the whole composite).
 _CRT_FX = (
-    '<div class="cyber-lines"></div><div class="cyber-bg"></div>'
-    '<div class="cyber-scan"></div><div class="cyber-blur"></div>'
+    '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
+    '<div class="cyber-lines"></div><div class="cyber-blur"></div>'
 )
 
 # Site-wide standalone web-app meta. Running as a standalone home-screen web app

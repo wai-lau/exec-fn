@@ -239,7 +239,7 @@
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: multiply;
   background: repeating-linear-gradient(0deg,
-    hsl(var(--bg-hsl)) 0, transparent 2px, hsl(var(--bg-hsl)) 4px);
+    hsl(var(--bg-hsl)) 0, transparent 1px, transparent 3px, hsl(var(--bg-hsl)) 4px);
 }
 
 /* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
@@ -259,14 +259,14 @@
 }
 
 .cyber-scan {
-  position: fixed; left: 0; right: 0; top: 0; height: 160px; z-index: var(--z-modal); pointer-events: none;
-  mix-blend-mode: screen;
+  position: fixed; left: 0; right: 0; top: 0; height: 480px; z-index: var(--z-modal); pointer-events: none;
+  mix-blend-mode: overlay;
   background: linear-gradient(hsl(var(--green-hsl) / 0) 0%,
     hsl(var(--green-hsl) / 0.12) 50%, hsl(var(--green-hsl) / 0) 100%);
   animation: cyber-sweep 7s linear infinite;
 }
 
-@keyframes cyber-sweep { 0%{transform:translateY(-160px)} 100%{transform:translateY(100vh)} }
+@keyframes cyber-sweep { 0%{transform:translateY(-480px)} 100%{transform:translateY(100vh)} }
 
 /* 4. blur pane — topmost layer; backdrop-filter blurs EVERYTHING under it
    (the content + the black lines + the phosphor overlay + the sweep) into a
