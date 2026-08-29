@@ -251,9 +251,11 @@
   mix-blend-mode: plus-lighter;
   background:
     repeating-linear-gradient(0deg,
-      transparent 0, transparent 1.25px, hsl(var(--green-hsl) / 0.45) 2px,
+      transparent 0, transparent 1.25px,
+      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.8) 2px,
       transparent 2.75px, transparent 4px),
-    radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.45), transparent 70%);
+    radial-gradient(circle at 50% 45%,
+      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.8), transparent 70%);
 }
 
 .cyber-scan {
