@@ -253,7 +253,7 @@
   background:
     repeating-linear-gradient(0deg,
       transparent 0,
-      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25) calc(2 * var(--crt-u)),
+      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.45) calc(2 * var(--crt-u)),
       transparent calc(4 * var(--crt-u))),
     radial-gradient(circle at 50% 45%,
       hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.06), transparent 70%);
