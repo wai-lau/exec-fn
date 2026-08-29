@@ -40,7 +40,7 @@ _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 _CRT_FX = (
     '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     '<div class="cyber-lines"></div><div class="cyber-blur"></div>'
-    '<script src="/crt-zoom.js?v=1"></script>'
+    '<script src="/crt-zoom.js?v=2"></script>'
 )
 
 # Site-wide standalone web-app meta. Running as a standalone home-screen web app
