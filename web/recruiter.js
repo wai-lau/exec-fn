@@ -7,8 +7,8 @@
   'use strict';
 
   // ── dark-mode toggle ──────────────────────────────────────────────────────
-  // Flips html.cv-dark (token overrides in recruiter.css) and adds the tarot
-  // CRT overlay (.cyber-bg/.cyber-scan from chrome.css) while dark. Persisted.
+  // Flips html.cv-dark (token overrides in recruiter.css) and adds the shared
+  // CRT stack (.cyber-* from chrome.css) while dark. Persisted.
   var de = document.documentElement;
   var btn = document.getElementById('cv-theme');
   var fxEls = [];

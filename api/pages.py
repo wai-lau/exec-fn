@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=45">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=48">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -29,6 +29,14 @@ _JSDELIVR_PAGES = {"rd", "hq", "debug", "mtg", "tarot"}
 # Injected into the pages built from their own HTML (graph/emet) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
 _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
+
+# CRT ambient stack markup — the four fixed fx layers (see .cyber-* in
+# chrome.css). Shared by every page builder (_render_page, landing, graph) so the
+# layer set stays in one place. nightfall composes separately and never gets it.
+_CRT_FX = (
+    '<div class="cyber-lines"></div><div class="cyber-bg"></div>'
+    '<div class="cyber-scan"></div><div class="cyber-blur"></div>'
+)
 
 # Site-wide standalone web-app meta. Running as a standalone home-screen web app
 # is the one way iOS drops the keyboard accessory bar (the prev/next/Done
@@ -258,12 +266,10 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     head_inject = preconnect + _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
     # cyberpunk ambient fx on every page (nightfall composes separately and is
-    # excluded; landing + graph inject their own)
-    fx = ('<div class="cyber-lines"></div><div class="cyber-bg"></div>'
-          '<div class="cyber-scan"></div><div class="cyber-blur"></div>')
+    # excluded; landing + graph inject the same _CRT_FX)
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", fx + content + nav + "</body>", 1))
+        .replace("</body>", _CRT_FX + content + nav + "</body>", 1))
 
 
 _tmpl_cache: dict[str, tuple[float, str]] = {}
