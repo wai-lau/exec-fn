@@ -239,7 +239,8 @@
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: multiply;
   background: repeating-linear-gradient(0deg,
-    hsl(var(--bg-hsl) / 0.45) 0, transparent 1px, transparent 3px, hsl(var(--bg-hsl) / 0.45) 4px);
+    hsl(var(--bg-hsl) / 0.45) 0, transparent var(--crt-u),
+    transparent calc(3 * var(--crt-u)), hsl(var(--bg-hsl) / 0.45) calc(4 * var(--crt-u)));
 }
 
 /* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
@@ -252,8 +253,8 @@
   background:
     repeating-linear-gradient(0deg,
       transparent 0,
-      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25) 2px,
-      transparent 4px),
+      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25) calc(2 * var(--crt-u)),
+      transparent calc(4 * var(--crt-u))),
     radial-gradient(circle at 50% 45%,
       hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.06), transparent 70%);
 }
@@ -288,6 +289,12 @@ html {
   /* bottom-chrome anchor for chat pages: clears the nav by default (see the
      html.kb-open override below for the keyboard-up case) */
   --kb-anchor: max(var(--nav-h, 56px), var(--kb, 0px));
+
+  /* CRT scanline base unit. --crt-scale is driven by crt-zoom.js
+     (baseDPR / currentDPR) so the scanline period holds a constant on-screen
+     size across browser zoom; defaults to 1 with no JS. The .cyber-* gradients
+     size their stops as calc(N * var(--crt-u)). */
+  --crt-u: calc(1px * var(--crt-scale, 1));
 }
 
 body {

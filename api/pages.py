@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=54">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=55">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -40,6 +40,7 @@ _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 _CRT_FX = (
     '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
     '<div class="cyber-lines"></div><div class="cyber-blur"></div>'
+    '<script src="/crt-zoom.js?v=1"></script>'
 )
 
 # Site-wide standalone web-app meta. Running as a standalone home-screen web app
