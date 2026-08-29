@@ -163,7 +163,7 @@
   --tracking-mega:   0.18em;    /* loud spaced caps: section headers */
 
   /* ── Blur ────────────────────────────────────────────────────────────── */
-  --blur-xs: 3px;   /* CRT-glass haze — ~2x the scanline period */
+  --blur-xs: 1px;   /* CRT-glass haze — floor that keeps text legible */
   --blur-sm: 6px;
   --blur:    14px;
 
