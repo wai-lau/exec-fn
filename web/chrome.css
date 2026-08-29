@@ -239,7 +239,7 @@
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: multiply;
   background: repeating-linear-gradient(0deg,
-    hsl(var(--bg-hsl)) 0, transparent 0.75px, transparent 3.25px, hsl(var(--bg-hsl)) 4px);
+    hsl(var(--bg-hsl)) 0, transparent 2px, hsl(var(--bg-hsl)) 4px);
 }
 
 /* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
@@ -251,11 +251,11 @@
   mix-blend-mode: plus-lighter;
   background:
     repeating-linear-gradient(0deg,
-      transparent 0, transparent 1.25px,
+      transparent 0,
       hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25) 2px,
-      transparent 2.75px, transparent 4px),
+      transparent 4px),
     radial-gradient(circle at 50% 45%,
-      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25), transparent 70%);
+      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.06), transparent 70%);
 }
 
 .cyber-scan {
