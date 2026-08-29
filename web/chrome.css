@@ -231,23 +231,27 @@
    Ono-Sendai phosphor overlay, the sweep beam, then a soft phosphor bloom.
    nightfall composes separately and never gets the markup. */
 
-/* 1. scanline gaps — actual opaque black lines multiplied onto the content */
+/* 1. scanline gaps — black lines multiplied onto the content. A TRIANGLE ramp
+   (opaque black peak at 0/4px, fading to transparent at 2px) instead of a hard
+   1px stop: the soft profile is near single-frequency, so it barely aliases
+   against the pixel grid — no low-frequency moiré band every N lines on zoom. */
 .cyber-lines {
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: multiply;
-  background: repeating-linear-gradient(0deg, hsl(var(--bg-hsl)) 0,
-    hsl(var(--bg-hsl)) 1px, transparent 1px, transparent 4px);
+  background: repeating-linear-gradient(0deg,
+    hsl(var(--bg-hsl)) 0, transparent 2px, hsl(var(--bg-hsl)) 4px);
 }
 
-/* 2. Ono-Sendai overlay — phosphor green filling the lit rows BETWEEN the black
-   lines (same 4px period) + a centre glow. plus-lighter is additive, so the lit
-   rows add back the brightness the multiplied black gaps take away. */
+/* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
+   lines (triangle, peak at 2px, same 4px period, opposite phase) + a centre
+   glow. plus-lighter is additive, so the lit rows add back the brightness the
+   multiplied black lines take away. Soft profile = uniform, no moiré. */
 .cyber-bg {
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: plus-lighter;
   background:
-    repeating-linear-gradient(0deg, transparent 0, transparent 1px,
-      hsl(var(--green-hsl) / 0.12) 1px, hsl(var(--green-hsl) / 0.12) 4px),
+    repeating-linear-gradient(0deg,
+      transparent 0, hsl(var(--green-hsl) / 0.12) 2px, transparent 4px),
     radial-gradient(circle at 50% 45%, hsl(var(--green-hsl) / 0.12), transparent 70%);
 }
 
