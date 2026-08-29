@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, Resp
 from routers import public, protected, guest_protected
 from pages import (
     _render_page, _tmpl, _index_pages, _build_nav,
-    _CHROME_LINK, _FONT_PRELOAD, _FAVICON, _STATIC_INDEX, _APPLE_WEBAPP_META,
+    _CHROME_LINK, _FONT_PRELOAD, _FAVICON, _STATIC_INDEX, _APPLE_WEBAPP_META, _CRT_FX,
     _NAV_HREFS, _NAV_ICONS, _NAV_LABELS,
 )
 from helpers import DATA_DIR
@@ -126,9 +126,8 @@ def _landing_html() -> str:
         )
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
     admin = '<a href="/login" class="landing-admin">admin</a>'
-    fx = '<div class="cyber-lines"></div><div class="cyber-bg"></div><div class="cyber-scan"></div><div class="cyber-blur"></div>'
     page = bare.replace("</head>", _FONT_PRELOAD + _CHROME_LINK + _LANDING_LINK + "</head>", 1)
-    return page.replace("</body>", fx + nav + admin + "</body>", 1)
+    return page.replace("</body>", _CRT_FX + nav + admin + "</body>", 1)
 
 
 @public.get("/", response_class=HTMLResponse)
@@ -324,7 +323,7 @@ async def graph_page(request: Request):
             status_code=404,
         )
     guest = request.cookies.get("session") != SESSION_TOKEN
-    _fx = '<div class="cyber-lines"></div><div class="cyber-bg"></div><div class="cyber-scan"></div><div class="cyber-blur"></div>'
+    _fx = _CRT_FX
     page = p.read_text()
     # Serve vis-network from our own origin (immutable-cached, no third-party
     # RTT) and unify with /emet's 9.1.9 so both share one cached copy. Replace
