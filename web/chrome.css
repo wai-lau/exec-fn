@@ -237,7 +237,7 @@
    against the pixel grid — no low-frequency moiré band every N lines on zoom. */
 .cyber-lines {
   position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
-  mix-blend-mode: multiply;
+  mix-blend-mode: hard-light;
   background: repeating-linear-gradient(0deg,
     hsl(var(--bg-hsl) / 0.45) 0, transparent var(--crt-u),
     transparent calc(3 * var(--crt-u)), hsl(var(--bg-hsl) / 0.45) calc(4 * var(--crt-u)));
