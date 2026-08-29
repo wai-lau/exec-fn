@@ -126,7 +126,7 @@ def _landing_html() -> str:
         )
     nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
     admin = '<a href="/login" class="landing-admin">admin</a>'
-    fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
+    fx = '<div class="cyber-lines"></div><div class="cyber-bg"></div><div class="cyber-scan"></div><div class="cyber-blur"></div>'
     page = bare.replace("</head>", _FONT_PRELOAD + _CHROME_LINK + _LANDING_LINK + "</head>", 1)
     return page.replace("</body>", fx + nav + admin + "</body>", 1)
 
@@ -324,7 +324,7 @@ async def graph_page(request: Request):
             status_code=404,
         )
     guest = request.cookies.get("session") != SESSION_TOKEN
-    _fx = '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
+    _fx = '<div class="cyber-lines"></div><div class="cyber-bg"></div><div class="cyber-scan"></div><div class="cyber-blur"></div>'
     page = p.read_text()
     # Serve vis-network from our own origin (immutable-cached, no third-party
     # RTT) and unify with /emet's 9.1.9 so both share one cached copy. Replace
