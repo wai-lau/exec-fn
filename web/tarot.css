@@ -69,6 +69,7 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
 #tarot-credits a:hover { color:hsl(var(--green-hsl) / 0.8); }
 
 #tarot-statusline {
+  display:none; /* bracketed sys notes hidden -- credits are the only bar content */
   color:hsl(var(--green-hsl) / 0.45);
   font-size: var(--fs-sm); line-height: var(--lh-snug); min-height:1em;
 }
