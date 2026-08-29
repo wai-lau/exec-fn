@@ -299,3 +299,11 @@ body.opening-pending .msg.assistant { display:none; }
   text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12);
 }
 .msg.assistant a { color: hsl(var(--cyan-hsl) / 0.8) !important; }
+
+/* querent matches the reader's typography exactly -- only the ink color differs
+   (querent white, reader green). Same family/size/weight, line-height, tracking,
+   and glow, so the two voices read as one hand in two colours. */
+.msg.user {
+  line-height: var(--lh-relaxed); letter-spacing: var(--tracking-wide);
+  text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12);
+}
