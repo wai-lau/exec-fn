@@ -17,7 +17,8 @@ function createTypewriter(st, body, cur) {
   function charWeight(ch) {
     switch (ch) {
       case '.': case '!': case '?': return 850;
-      case ',': case ';': case ':': return 420;
+      case ';':                     return 620; // more than comma, less than period
+      case ',': case ':':           return 420;
       case '—': case '-':           return 480; // em-dash, hyphen
       case '\n':                    return 1100;
       case ' ':                     return 110;
