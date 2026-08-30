@@ -86,18 +86,25 @@ def rewrite_kind(content_type: str) -> str | None:
     return None
 
 
+# Bumped whenever rewrite_html / rewrite_js change. Folded into the ETag of
+# every rewritten body so a browser holding a copy patched by OLDER rules
+# refetches instead of 304-ing on the printer's (unchanged) ETag -- the
+# printer never sees a conditional request; the proxy answers them itself.
+REWRITE_VERSION = "3"
+
 # Request headers forwarded to the printer. An ALLOWLIST: the session cookie
 # and the admin bearer must never reach the printer, and accept-encoding is
 # pinned to identity so rewritable bodies arrive uncompressed. content-length
 # rides along so a streamed upload body is sent with a known length (the
-# printer's tiny HTTP server is not trusted to speak chunked).
+# printer's tiny HTTP server is not trusted to speak chunked). Conditional
+# headers are deliberately NOT forwarded (see REWRITE_VERSION).
 _REQ_FORWARD = ("accept", "accept-language", "content-type", "content-length",
-                "if-none-match", "if-modified-since", "range", "user-agent",
-                "x-requested-with")
+                "range", "user-agent", "x-requested-with")
 # Response headers passed back. Hop-by-hop, content-length (bodies get
-# rewritten) and content-encoding (httpx already decoded) are dropped.
-_RESP_FORWARD = ("content-type", "etag", "last-modified", "content-disposition",
-                 "accept-ranges", "content-range")
+# rewritten) and content-encoding (httpx already decoded) are dropped; etag is
+# re-derived by proxy_etag, and last-modified only survives on bodies that
+# pass through untouched (a rewritten body's freshness is the ETag's alone).
+_RESP_FORWARD = ("content-type", "content-disposition", "accept-ranges", "content-range")
 # Every proxied response is auth-gated, so it is never a shared-cache
 # candidate: private, and revalidated each time (the etag round-trip makes
 # that a 304 for the hashed bundles). main.py's CacheControlMiddleware skips
@@ -112,13 +119,39 @@ def upstream_request_headers(headers) -> dict:
     return out
 
 
-def client_response_headers(headers) -> dict:
+def proxy_etag(upstream_etag: str | None, kind: str | None) -> str | None:
+    """The ETag the browser sees: the printer's own for a pass-through body,
+    or the printer's tag + the rewrite-rules version for a rewritten one."""
+    if not upstream_etag:
+        return None
+    if kind is None:
+        return upstream_etag
+    tag = upstream_etag.strip()
+    core = (tag[2:] if tag.startswith("W/") else tag).strip('"')
+    return f'"{core}-rw{REWRITE_VERSION}"'
+
+
+def not_modified(request_headers, etag: str | None) -> bool:
+    """True iff the browser's If-None-Match names this proxy ETag."""
+    inm = request_headers.get("if-none-match")
+    if not etag or not inm:
+        return False
+    tags = {t.strip() for t in inm.split(",")}
+    return "*" in tags or etag in tags or f"W/{etag}" in tags
+
+
+def client_response_headers(headers, kind: str | None = None) -> dict:
     """Allowlisted copy of the printer's response headers for the browser.
     Only a root-relative Location survives (re-rooted under PREFIX); an
     absolute, protocol-relative or otherwise odd redirect target is dropped
     rather than sending the owner's browser off-origin."""
     out = {k: v for k, v in headers.items() if k.lower() in _RESP_FORWARD}
     out["cache-control"] = CACHE_CONTROL
+    etag = proxy_etag(headers.get("etag"), kind)
+    if etag:
+        out["etag"] = etag
+    if kind is None and headers.get("last-modified"):
+        out["last-modified"] = headers["last-modified"]
     loc = headers.get("location")
     if loc and loc.startswith("/") and not loc.startswith(("//", "/\\")):
         out["location"] = f"{PREFIX}{loc}"

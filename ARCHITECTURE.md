@@ -570,9 +570,14 @@ the way back (bodies change) but a request `content-length` is forwarded (a
 streamed upload keeps its known length — the printer's tiny HTTP server is
 not trusted to speak chunked); every response is stamped
 `Cache-Control: private, no-cache` (auth-gated, never a shared-cache
-candidate; the etag round-trip still makes the hashed bundles a 304), and
-`main.py`'s `CacheControlMiddleware` skips the `/printer/` prefix so its
-public/immutable stamp for static-looking suffixes never applies; only a
+candidate) and `main.py`'s `CacheControlMiddleware` skips the `/printer/`
+prefix so its public/immutable stamp for static-looking suffixes never
+applies. Conditional requests are answered by the **proxy**, never the
+printer: `If-None-Match` is not forwarded, and a rewritten body's ETag is
+the printer's tag + `-rw<REWRITE_VERSION>` (bump the constant whenever
+`rewrite_html`/`rewrite_js` change), so the hashed bundles still 304 while a
+browser copy patched by older rules misses and refetches — otherwise the
+printer's unchanged ETag would 304 a stale rewrite back into service; only a
 root-relative `Location` survives, re-rooted under the prefix — an absolute
 or protocol-relative redirect target is dropped rather than sent to the
 owner's browser.

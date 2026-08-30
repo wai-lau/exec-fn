@@ -13,8 +13,8 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 from printer_proxy import (  # noqa: E402
-    client_response_headers, rewrite_html, rewrite_js, rewrite_kind,
-    rewrite_ws_text, upstream_request_headers,
+    REWRITE_VERSION, client_response_headers, not_modified, proxy_etag, rewrite_html,
+    rewrite_js, rewrite_kind, rewrite_ws_text, upstream_request_headers,
 )
 
 INDEX = (
@@ -131,7 +131,7 @@ def test_request_headers_never_leak_auth_to_printer():
     })
     assert "cookie" not in out and "authorization" not in out and "host" not in out
     assert out["accept"] == "text/html"
-    assert out["if-none-match"] == '"abc"'
+    assert "if-none-match" not in out  # conditionals are answered by the proxy, never the printer
     assert out["accept-encoding"] == "identity"
     assert out["content-length"] == "4096"  # streamed upload keeps its known length
 
@@ -142,7 +142,7 @@ def test_response_headers_drop_length_encoding_and_reroot_location():
         "etag": '"x"', "transfer-encoding": "chunked", "location": "/network/control",
         "cache-control": "public, max-age=31536000",
     })
-    assert out["content-type"] == "text/html" and out["etag"] == '"x"'
+    assert out["content-type"] == "text/html" and out["etag"] == '"x"'  # pass-through kind keeps the printer's tag
     assert "content-length" not in out and "content-encoding" not in out and "transfer-encoding" not in out
     assert out["location"] == "/printer/network/control"
 
@@ -156,3 +156,28 @@ def test_response_is_always_private_no_cache():
 @pytest.mark.parametrize("loc", ["http://elsewhere/x", "//elsewhere/x", "/\\elsewhere/x", "elsewhere/x"])
 def test_response_non_root_relative_location_dropped(loc):
     assert "location" not in client_response_headers({"location": loc})
+
+
+# ── conditional requests ──────────────────────────────────────────────────────
+def test_rewritten_body_etag_carries_rewrite_version():
+    assert proxy_etag('"1782465519.416037"', "js") == f'"1782465519.416037-rw{REWRITE_VERSION}"'
+    assert proxy_etag('W/"abc"', "html") == f'"abc-rw{REWRITE_VERSION}"'
+    assert proxy_etag('"abc"', None) == '"abc"'
+    assert proxy_etag(None, "js") is None
+
+
+def test_rewritten_body_drops_last_modified_but_passthrough_keeps_it():
+    up = {"etag": '"e"', "last-modified": "Tue, 01 Jan 2030 00:00:00 GMT", "content-type": "text/javascript"}
+    assert "last-modified" not in client_response_headers(up, "js")
+    assert client_response_headers(dict(up, **{"content-type": "text/css"}), None)["last-modified"] == up["last-modified"]
+
+
+def test_not_modified_matches_only_the_proxy_etag():
+    tag = f'"e-rw{REWRITE_VERSION}"'
+    assert not_modified({"if-none-match": tag}, tag)
+    assert not_modified({"if-none-match": f'"other", W/{tag}'}, tag)
+    assert not_modified({"if-none-match": "*"}, tag)
+    # a browser copy patched by OLDER rules holds the bare printer tag -> miss -> refetch
+    assert not not_modified({"if-none-match": '"e"'}, tag)
+    assert not not_modified({}, tag)
+    assert not not_modified({"if-none-match": tag}, None)

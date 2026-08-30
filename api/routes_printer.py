@@ -28,8 +28,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from auth import SESSION_TOKEN
 from pages import _render_page, _tmpl
 from printer_proxy import (
-    PREFIX, client_response_headers, rewrite_html, rewrite_js, rewrite_kind,
-    rewrite_ws_text, upstream_request_headers,
+    PREFIX, client_response_headers, not_modified, rewrite_html, rewrite_js,
+    rewrite_kind, rewrite_ws_text, upstream_request_headers,
 )
 from routers import protected, public
 
@@ -161,8 +161,15 @@ async def printer_proxy(path: str, request: Request):
     except httpx.HTTPError:
         await client.aclose()
         return JSONResponse({"ok": False, "detail": "printer offline"}, status_code=503)
-    headers = client_response_headers(r.headers)
     kind = rewrite_kind(r.headers.get("content-type", ""))
+    headers = client_response_headers(r.headers, kind)
+    if r.status_code == 200 and not_modified(request.headers, headers.get("etag")):
+        # Conditionals are answered HERE, never by the printer: a rewritten
+        # body's ETag carries the rewrite-rules version, so a browser copy
+        # patched by older rules misses and refetches (see REWRITE_VERSION).
+        await r.aclose()
+        await client.aclose()
+        return Response(status_code=304, headers=headers)
     if kind is None:
         return StreamingResponse(_stream(client, r), status_code=r.status_code, headers=headers)
     try:
