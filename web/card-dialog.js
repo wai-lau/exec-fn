@@ -8,7 +8,7 @@
 .cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.12); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
 .cd-box::-webkit-scrollbar { width:8px; }
 .cd-box::-webkit-scrollbar-track { background:transparent; }
-.cd-box::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
+.cd-box::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:999px; }
 .cd-box input[type=checkbox] { accent-color:currentColor; }
 .cd-box label { display:block; font-size:0.6rem; color:hsl(var(--green-hsl) / 0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
 .cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid hsl(var(--green-hsl) / 0.12); color:hsl(var(--green-hsl) / 1); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }

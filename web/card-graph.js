@@ -9,7 +9,7 @@
 .cg-scroll { overflow:auto; max-height:300px; border:1px solid color-mix(in srgb, currentColor 25%, transparent); padding:8px; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
 .cg-scroll::-webkit-scrollbar { width:8px; height:8px; }
 .cg-scroll::-webkit-scrollbar-track { background:transparent; }
-.cg-scroll::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:2px; }
+.cg-scroll::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:999px; }
 .cg-canvas { position:relative; width:100%; box-sizing:border-box; }
 .cg-edges { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; z-index:0; }
 .cg-cols { display:flex; flex-direction:column; gap:30px; align-items:stretch; position:relative; z-index:1; padding:36px 8px 24px 34px; }

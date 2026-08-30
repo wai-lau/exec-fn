@@ -311,7 +311,7 @@ body {
 /* Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-1); }
+::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-pill); }
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.8); }
 * { scrollbar-width: thin; scrollbar-color: hsl(var(--green-hsl) / 0.45) transparent; }
 

@@ -104,7 +104,7 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 }
 #exec-todo-list::-webkit-scrollbar { width: 3px; }
 #exec-todo-list::-webkit-scrollbar-track { background: transparent; }
-#exec-todo-list::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-1); }
+#exec-todo-list::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-pill); }
 
 .exec-todo {
   display: flex; align-items: flex-start; gap: 0.5em;
