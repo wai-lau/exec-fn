@@ -236,7 +236,7 @@
    1px stop: the soft profile is near single-frequency, so it barely aliases
    against the pixel grid — no low-frequency moiré band every N lines on zoom. */
 .cyber-lines {
-  position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: hard-light;
   background: repeating-linear-gradient(0deg,
     hsl(var(--bg-hsl) / 0.8) 0, transparent calc(0.25 * var(--crt-u)),
@@ -248,7 +248,7 @@
    glow. plus-lighter is additive, so the lit rows add back the brightness the
    multiplied black lines take away. Soft profile = uniform, no moiré. */
 .cyber-bg {
-  position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: plus-lighter;
   background:
     repeating-linear-gradient(0deg,
@@ -260,7 +260,7 @@
 }
 
 .cyber-scan {
-  position: fixed; left: 0; right: 0; top: 0; height: 480px; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; left: 0; right: 0; top: 0; width: 100vw; height: 480px; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: overlay;
   background: linear-gradient(hsl(var(--green-hsl) / 0) 0%,
     hsl(var(--green-hsl) / 0.12) 50%, hsl(var(--green-hsl) / 0) 100%);
@@ -274,7 +274,7 @@
    soft CRT-glass haze. Stacks last (injected last, same z) so its backdrop is
    the full composite. On the dense boards it drops to z:-1 like the others. */
 .cyber-blur {
-  position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   backdrop-filter: blur(var(--blur-xs));
 }
 
@@ -285,6 +285,11 @@
 /* Base */
 html {
   background: hsl(var(--bg-hsl));
+
+  /* the full-bleed 100vw fixed layers (cyber-* fx, nav) overhang by one
+     scrollbar-width; clip that horizontal overflow so it never spawns a
+     horizontal scrollbar. clip (not hidden) leaves vertical scroll untouched. */
+  overflow-x: clip;
 
   /* bottom-chrome anchor for chat pages: clears the nav by default (see the
      html.kb-open override below for the keyboard-up case) */
@@ -309,13 +314,20 @@ body {
 }
 
 /* Scrollbars */
-::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
+::-webkit-scrollbar { width: 12px; height: 12px; background: transparent; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-track-piece { background: transparent; }
 ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
-::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-pill); }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.8); }
+
+/* padded pill: the transparent border insets the thumb a few px from the gutter
+   edges (background-clip keeps the fill inside the padding box) — a floating
+   pong-paddle, not a full-width bar */
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-pill);
+  border: 4px solid transparent; background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.8); background-clip: padding-box; }
 
 /* Firefox has no ::-webkit-scrollbar; give it the standard props. Chrome 121+
    would otherwise let these standard props OVERRIDE the ::-webkit-scrollbar pill
@@ -330,6 +342,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
+  width: 100vw;            /* span the full viewport INCL the scrollbar gutter, so the classic scrollbar can't clip the nav's right edge */
   z-index: var(--z-top);   /* always above the CRT fx (lines/overlay/sweep/blur @ --z-modal) */
   padding: var(--space-3) 0;
   display: flex;
