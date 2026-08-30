@@ -6,7 +6,7 @@
 (function () {
   const css = `
 .cg-wrap { margin-top:4px; }
-.cg-scroll { overflow:auto; max-height:300px; border:1px solid color-mix(in srgb, currentColor 25%, transparent); padding:8px; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
+.cg-scroll { overflow:auto; max-height:300px; border:1px solid color-mix(in srgb, currentColor 25%, transparent); padding:8px; }
 .cg-scroll::-webkit-scrollbar { width:8px; height:8px; }
 .cg-scroll::-webkit-scrollbar-track { background:transparent; }
 .cg-scroll::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:999px; }
