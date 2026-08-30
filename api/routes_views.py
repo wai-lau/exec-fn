@@ -50,10 +50,10 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=13">'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
-# tile) -> hosaka 50° (amber radar) -> printer 77° (lime bitman tile) -> graph
-# 171° (teal) -> nightfall 194° (cyan) -> ui 226° (blue) -> mtg 261° (purple)
-# -> tarot 351° (pink).
-_LANDING_HUE_ORDER = ["recruiter", "hosaka", "printer", "graph", "nightfall", "ui", "mtg", "tarot"]
+# tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
+# (cyan) -> printer 206° (blue bitman tile) -> ui 226° (blue) -> mtg 261°
+# (purple) -> tarot 351° (pink).
+_LANDING_HUE_ORDER = ["recruiter", "hosaka", "graph", "nightfall", "printer", "ui", "mtg", "tarot"]
 
 # Gibson-register one-liners shown to the right of each landing link — clipped,
 # noir, second-person where it lands. One per _LANDING_HUE_ORDER section.
