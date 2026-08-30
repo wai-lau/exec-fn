@@ -6,12 +6,11 @@
    bottom nav, on the shared raw palette (green ink on --bg-hsl). */
 body { background: hsl(var(--bg-hsl)); }
 
-/* Owner tier only: the proxied vendor SPA has to stay legible and true-colour,
-   so the CRT stack drops behind the page there (same move as /rd + /hq). The
-   read-only camera view keeps it IN FRONT -- the printer's picture should read
-   as a feed on a CRT, phosphor and scanlines included. */
-body:not(:has(.printer[data-readonly="1"]))
-  :is(.cyber-lines, .cyber-bg, .cyber-scan, .cyber-blur) { z-index: -1; }
+/* The CRT stack stays IN FRONT here for BOTH tiers (chrome.css already puts it
+   at --z-modal -- /printer just doesn't drop it to -1 the way /rd + /hq do):
+   the printer's picture should read as a feed on a CRT, phosphor and scanlines
+   included, and that goes for the proxied vendor SPA too. The layers are
+   pointer-events:none, so the SPA underneath stays clickable. */
 
 .printer {
   height: 100%;
