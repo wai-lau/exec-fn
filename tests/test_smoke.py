@@ -14,10 +14,11 @@ from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 # Public — no auth, must render. Only the front doors + login bootstrap stay open.
 PUBLIC_PAGES = ["/", "/recruiter", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
-PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/emet", "/printer"]
+PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/emet"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
-# /graph, /UI, /security, /nightfall moved public->guest 2026-07-03.
-GUEST_PAGES = ["/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security", "/nightfall"]
+# /graph, /UI, /security, /nightfall moved public->guest 2026-07-03; /printer
+# owner->guest 2026-08-30 (READ-ONLY for guests — see the tier tests below).
+GUEST_PAGES = ["/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security", "/nightfall", "/printer"]
 
 
 def _is_page(r) -> bool:
@@ -157,3 +158,49 @@ def test_printer_proxy_requires_auth(client):
     assert r.headers["location"].startswith("/login")
     r = client.get("/printer/video")
     assert r.status_code == 401
+
+
+# ── printer tier split: guests view, only the owner controls ────────────────────
+def test_printer_control_routes_deny_guest(client, guest_cookie):
+    """The whole point of the public page: nothing a guest sends reaches the
+    LAN. The SPA proxy (the only browser->printer HTTP path) must not serve a
+    guest -- it bounces to the ADMIN login, not the guest gate."""
+    for path in ("/printer/network-device-manager/network/control",
+                 "/printer/index.html",
+                 "/printer/uploadFile/upload"):
+        r = client.get(path, headers=guest_cookie)
+        assert r.status_code == 302, f"{path} -> {r.status_code} for a guest"
+        assert r.headers["location"].startswith("/login"), path
+
+
+def test_printer_page_is_readonly_for_guest(client, guest_cookie, admin_cookie):
+    # The server decides the tier; printer.js reads data-readonly and never
+    # mounts the SPA frame for a guest.
+    assert 'data-readonly="1"' in client.get("/printer", headers=guest_cookie).text
+    assert 'data-readonly="1"' not in client.get("/printer", headers=admin_cookie).text
+
+
+def test_printer_status_is_guest_readable_and_scrubbed(client, guest_cookie):
+    """Status is pushed by the printer (no command sent) and whitelisted: no
+    identifiers, nothing naming what is being printed."""
+    r = client.get("/api/printer/status", headers={**guest_cookie, "Accept": "application/json"})
+    assert r.status_code == 200
+    body = r.json()
+    assert "online" in body
+    for leaked in ("Filename", "TaskId", "MainboardID", "filename"):
+        assert leaked not in r.text, f"{leaked} leaked into the public status payload"
+    if body["online"]:
+        assert {"state", "nozzle", "bed", "progress"} <= set(body)
+
+
+def test_printer_video_streams_for_guest(client, guest_cookie):
+    """Guests get the camera -- a one-way read the server opens, fanned out
+    from a single shared upstream stream."""
+    with client.stream("GET", "/printer/video", headers=guest_cookie) as r:
+        if r.status_code == 503:
+            pytest.skip("printer offline / too many viewers")
+        assert r.status_code == 200
+        assert "multipart/x-mixed-replace" in r.headers["content-type"]
+        for chunk in r.iter_bytes():
+            assert chunk.startswith(b"--printerframe")
+            break

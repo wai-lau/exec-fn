@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/printer.css?v=1">
+<link rel="stylesheet" href="/printer.css?v=3">
 
 <main class="printer">
   <div class="printer-head">
@@ -6,7 +6,11 @@
     <span id="printer-status" class="printer-status">checking</span>
   </div>
   <iframe id="printer-frame" class="printer-frame" title="printer control" hidden></iframe>
+  <div id="printer-view" class="printer-view" hidden>
+    <img id="printer-cam" class="printer-cam" alt="live view of the printer's build plate">
+    <dl id="printer-stats" class="printer-stats"></dl>
+  </div>
   <div id="printer-offline" class="printer-offline" hidden>printer offline</div>
 </main>
 
-<script src="/printer.js?v=1"></script>
+<script src="/printer.js?v=2"></script>

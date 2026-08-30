@@ -494,7 +494,29 @@ MJPEG camera and SDCP websocket controls) from wai-lau.net, without the SPA
 ever knowing it left the LAN. Same-origin everywhere: the browser talks only
 to the droplet, so the full `session` cookie rides every sub-request incl.
 the websocket handshake, and nothing weaker than the owner reaches a machine
-that can heat a nozzle. No guest tier at all.
+that can heat a nozzle.
+
+Since 2026-08-30 the page also has a **guest tier — read-only, by routing**
+(it is linked from the public landing; guests pass Turnstile). The rule is not
+"filter what a guest may send", it is "a guest has no route that carries their
+bytes to the LAN":
+
+| Route | Owner | Guest | Why |
+|-------|-------|-------|-----|
+| `GET /printer` | SPA wrapper | camera + stats wrapper | same template, `data-readonly="1"` for guests |
+| `ANY /printer/{path}` | full proxy | **401 → admin login** | the SPA, its file endpoints, uploads — every browser→printer HTTP path |
+| `WS /ws/printer` | SDCP relay | **1008** | the only browser→printer socket; it drives the machine |
+| `GET /printer/video` | ~10fps | ~2fps | one-way read, off the shared hub |
+| `GET /api/printer/status` | ✓ | ✓ | one-way read; the printer pushes it unasked |
+| `GET /api/printer/health` | ✓ | ✓ | one-way liveness GET |
+
+The two guest-reachable readers are **server-opened singletons**, not relays
+of anything a viewer said: `printer_camera.py` holds ONE upstream MJPEG
+stream (demuxed to whole JPEG frames, re-muxed per viewer — the printer only
+allows ~4 streams, so a public page can't be 1:1) and `printer_status.py`
+holds ONE SDCP socket that **sends no frame, ever** — the printer pushes
+`sdcp/status/<id>` about once a second on its own, and `public_status()`
+whitelists it (no `MainboardID`/`TaskId`/`Filename`).
 
 ### 6a. Topology
 
@@ -509,11 +531,12 @@ flowchart LR
   browser["Browser<br/>(/printer wrapper + iframe)"]
 
   subgraph droplet["droplet container — routes_printer.py"]
-    page["GET /printer<br/>(protected)"]
-    health["GET /api/printer/health<br/>(protected)"]
-    http["ANY /printer/{path}<br/>(protected, rewrites HTML+JS)"]
-    video["GET /printer/video<br/>(protected, MJPEG relay)"]
-    ws["WS /ws/printer<br/>(public route, session-cookie gated)"]
+    page["GET /printer<br/>(guest or owner)"]
+    health["GET /api/printer/health<br/>(guest or owner)"]
+    status["GET /api/printer/status<br/>(guest or owner, read-only)"]
+    http["ANY /printer/{path}<br/>(OWNER ONLY, rewrites HTML+JS)"]
+    video["GET /printer/video<br/>(guest or owner, shared MJPEG hub)"]
+    ws["WS /ws/printer<br/>(OWNER ONLY, session-cookie gated)"]
   end
 
   tunnel(["SSH reverse tunnel<br/>172.17.0.1:8126 / 8127 / 8128"])
@@ -528,8 +551,10 @@ flowchart LR
   browser -->|15s poll| health
   browser -->|iframe src + assets| http
   browser -->|"<img src>"| video
+  browser -->|3s poll, guest view| status
   browser <-->|SDCP JSON frames| ws
   health --> tunnel
+  status --> tunnel
   http --> tunnel
   video --> tunnel
   ws --> tunnel
