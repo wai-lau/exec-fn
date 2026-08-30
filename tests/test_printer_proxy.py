@@ -43,6 +43,12 @@ def test_html_relative_paths_untouched():
     assert 'src="runtime.d8e385257819bb9e3f4a.js"' in out
 
 
+def test_html_injects_frame_overrides_once_unrerooted():
+    out = rewrite_html(INDEX)
+    assert out.count('<link rel="stylesheet" href="/printer-frame.css?v=1"></head>') == 1
+    assert 'href="/printer/printer-frame.css' not in out  # injected after the re-root pass
+
+
 def test_html_protocol_relative_untouched():
     assert rewrite_html('<script src="//cdn.example/x.js">') == '<script src="//cdn.example/x.js">'
 

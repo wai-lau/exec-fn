@@ -1,0 +1,10 @@
+/* Overrides for the PROXIED ELEGOO document (the SPA inside the /printer
+   iframe), not the wrapper page: printer_proxy.rewrite_html injects a <link>
+   to this file into the printer's own index HTML. Keep it to what the site
+   must hide/adjust in the vendor UI; the wrapper's styles live in printer.css. */
+
+/* The SPA's top bar (ELEGOO logo · language dropdown · ELEGOO STORE link) is
+   noise inside the site's shell: drop it and let the status/control sections
+   move up. `.section-header` is the in-flow wrapper around <app-header>. */
+.section-header:has(> app-header),
+app-header { display: none !important; }

@@ -63,9 +63,17 @@ _VIDEO_URL_RE = re.compile(r'("VideoUrl"\s*:\s*")[^"]*:3031/video(")')
 _LAN_HTTP_RE = re.compile(r"http://(?:\d{1,3}\.){3}\d{1,3}(?::80)?/")
 
 
+# Site-side overrides for the proxied document (hide the SPA's top bar, …).
+# Served by the public static mount; an absolute path, so it must be injected
+# AFTER the root-absolute rewrite above or it would be re-rooted too.
+FRAME_CSS = '<link rel="stylesheet" href="/printer-frame.css?v=1">'
+
+
 def rewrite_html(body: str) -> str:
-    """Re-root the SPA shell under PREFIX (base href + absolute asset paths)."""
-    return _ABS_ATTR_RE.sub(rf'\1="{PREFIX}/', body)
+    """Re-root the SPA shell under PREFIX (base href + absolute asset paths)
+    and inject the site's override stylesheet for the proxied document."""
+    body = _ABS_ATTR_RE.sub(rf'\1="{PREFIX}/', body)
+    return body.replace("</head>", FRAME_CSS + "</head>", 1)
 
 
 def rewrite_js(body: str) -> str:
@@ -97,7 +105,7 @@ def rewrite_kind(content_type: str) -> str | None:
 # every rewritten body so a browser holding a copy patched by OLDER rules
 # refetches instead of 304-ing on the printer's (unchanged) ETag -- the
 # printer never sees a conditional request; the proxy answers them itself.
-REWRITE_VERSION = "3"
+REWRITE_VERSION = "4"
 
 # Request headers forwarded to the printer. An ALLOWLIST: the session cookie
 # and the admin bearer must never reach the printer, and accept-encoding is
