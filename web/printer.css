@@ -1,9 +1,14 @@
-/* /printer -- owner-only wrapper: a status row over the proxied ELEGOO SPA in an
-   iframe (isolated on purpose: the SPA's global antd CSS must never fight
-   chrome.css, and its <base href> only applies inside its own document).
+/* /printer -- a status row over either the proxied ELEGOO SPA in an iframe
+   (owner; isolated on purpose: the SPA's global antd CSS must never fight
+   chrome.css, and its <base href> only applies inside its own document) or the
+   read-only camera + stats view (guests -- see routes_printer's tier split).
    Full-height page (body 100vh, overflow hidden) reserving --nav-h for the
    bottom nav, on the shared raw palette (green ink on --bg-hsl). */
 body { background: hsl(var(--bg-hsl)); }
+
+/* The camera IS the content here, and the phosphor overlay tints it to a murky
+   green -- so the CRT stack drops behind the page (same move as /rd + /hq). */
+.cyber-lines, .cyber-bg, .cyber-scan, .cyber-blur { z-index: -1; }
 
 .printer {
   height: 100%;
@@ -58,7 +63,44 @@ body { background: hsl(var(--bg-hsl)); }
   border-radius: var(--radius-3);
 }
 
+/* read-only view: camera fills the height, stats wrap in a row beneath it */
+.printer-view {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+/* 16:9 stream in a tall column: size to the aspect and centre it, so the stats
+   sit under the picture instead of being pushed to the floor. */
+.printer-cam {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-3);
+  background: hsl(var(--bg-hsl));
+}
+
+.printer-stats {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.printer-stat { display: flex; gap: var(--space-2); }
+.printer-stat dt { color: hsl(var(--green-hsl) / 0.45); }
+.printer-stat dd { margin: 0; color: hsl(var(--green-hsl) / 0.8); }
+
 .printer-frame[hidden],
+.printer-view[hidden],
 .printer-offline[hidden] { display: none; }
 
 /* while the exec bubble is being mouse-dragged (html.exec-drag, set by

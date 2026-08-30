@@ -61,7 +61,7 @@ _APPLE_WEBAPP_META = (
 _NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
 _NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
 
-_GUEST_NAV_LINKS = ["security", "nightfall", "mtg", "tarot", "hosaka", "ui", "recruiter"]
+_GUEST_NAV_LINKS = ["security", "nightfall", "mtg", "tarot", "hosaka", "printer", "ui", "recruiter"]
 
 _NAV_ICONS = {
     "rd":          '<img src="/fiddle.png" alt="rd" style="width:20px;height:20px;image-rendering:pixelated;">',
