@@ -284,18 +284,11 @@
 
 /* Base */
 html {
-  /* Canvas (root) background = the base black with a faint static scanline.
-     A classic scrollbar's reserved gutter shows the CANVAS bg (body is only
-     clientWidth wide, so it covers everything EXCEPT the gutter) — painting the
-     scanline here makes the 12px gutter read as CRT instead of a black bar,
-     with zero compounding elsewhere (body's opaque bg hides it over content).
-     The on-top .cyber-* fx can't reach under the scrollbar; this can. */
-  background:
-    repeating-linear-gradient(0deg,
-      transparent 0, transparent calc(3 * var(--crt-u)),
-      hsl(var(--green-hsl) / 0.12) calc(3 * var(--crt-u)),
-      hsl(var(--green-hsl) / 0.12) calc(4 * var(--crt-u))),
-    hsl(var(--bg-hsl));
+  /* Solid base. The scrollbar gutter (classic desktop scrollbar) is covered by
+     the .cyber-* fx, which now span the full viewport width (100vw) — no need
+     for a scanline on the canvas bg, which as a huge repeating gradient over
+     the whole scroll height moiréd into bright bands on iOS retina. */
+  background: hsl(var(--bg-hsl));
 
   /* bottom-chrome anchor for chat pages: clears the nav by default (see the
      html.kb-open override below for the keyboard-up case) */
