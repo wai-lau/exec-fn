@@ -10,8 +10,9 @@ These rewrites re-anchor the app on the proxy: HTML + JS bodies are patched
 in flight, and the SDCP frames flowing browser-ward have their video URL
 rewritten to the same-origin MJPEG route.
 
-Covered: the SDCP socket (:3030), the MJPEG camera (:3031) and the file
-host (:80). NOT covered, on purpose: the WebRTC signalling socket
+Covered: the SDCP socket (:3030), the MJPEG camera (:3031), the file
+host (:80) and the root-absolute "/assets/…" image paths baked into the
+compiled Angular templates. NOT covered, on purpose: the WebRTC signalling socket
 (`ws://<host>:8883`, only reached when the printer advertises the
 `VIDEO_WEBRTC` capability -- this unit reports FILE_TRANSFER / PRINT_CONTROL /
 VIDEO_STREAM only). Wiring it would need a fourth tunnel port + relay; until
@@ -46,6 +47,12 @@ _VIDEO_SRC_RE = re.compile(r'"http://"\+(\([^()]*\.VideoUrl\))')
 _HOST80_RE = re.compile(r"http://\$\{[^}]*hostName\}:80")
 _HOST80_SUB = "${location.origin}" + PREFIX
 
+# Angular templates compiled into the bundles carry root-absolute image paths
+# ("/assets/images/network/start.png" etc.) that would resolve against the
+# site root, not the proxy. Rewrite the quoted string-literal form only.
+_JS_ASSETS_RE = re.compile(r'(["\'`])/assets/')
+_JS_ASSETS_SUB = r"\1" + PREFIX + "/assets/"
+
 # SDCP frame (printer -> browser): "VideoUrl":"192.168.x.y:3031/video" (set by
 # the enable-video-stream reply, cmd 386) -> the same-origin MJPEG route.
 _VIDEO_URL_RE = re.compile(r'("VideoUrl"\s*:\s*")[^"]*:3031/video(")')
@@ -60,7 +67,8 @@ def rewrite_js(body: str) -> str:
     """Patch the SPA's hard-coded printer-origin URLs to the proxy's routes."""
     body = _WS_URL_RE.sub(_WS_URL_SUB, body)
     body = _VIDEO_SRC_RE.sub(r"\1", body)
-    return _HOST80_RE.sub(_HOST80_SUB, body)
+    body = _HOST80_RE.sub(_HOST80_SUB, body)
+    return _JS_ASSETS_RE.sub(_JS_ASSETS_SUB, body)
 
 
 def rewrite_ws_text(text: str) -> str:
