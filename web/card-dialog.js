@@ -5,7 +5,7 @@
 <style>
 .cd-ov { display:none; position:fixed; inset:0; z-index:50; background:hsl(var(--scrim-hsl) / 0.45); align-items:center; justify-content:center; }
 .cd-ov.open { display:flex; }
-.cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.12); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, currentColor 45%, transparent) transparent; }
+.cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.12); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; }
 .cd-box::-webkit-scrollbar { width:8px; }
 .cd-box::-webkit-scrollbar-track { background:transparent; }
 .cd-box::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:999px; }

@@ -316,7 +316,13 @@ body {
 ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-pill); }
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.8); }
-* { scrollbar-width: thin; scrollbar-color: hsl(var(--green-hsl) / 0.45) transparent; }
+
+/* Firefox has no ::-webkit-scrollbar; give it the standard props. Chrome 121+
+   would otherwise let these standard props OVERRIDE the ::-webkit-scrollbar pill
+   above (killing the restyle), so scope them to engines without the pseudo. */
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--green-hsl) / 0.45) transparent; }
+}
 
 /* Nav */
 .exec-nav {
