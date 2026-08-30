@@ -484,3 +484,158 @@ collects the actions; `discord_bot.exec_reply` rebuilds `system2` with them).
 cache, ~0.1x). First request creates, second identical-prefix request
 reads. `cache_read` staying 0 across two identical requests means a silent
 invalidator is back in the prefix.
+
+---
+
+## 6. Printer (ELEGOO Centauri Carbon) — owner-only reverse proxy
+
+`/printer` serves the printer's **own** web UI (an Angular SPA with a live
+MJPEG camera and SDCP websocket controls) from wai-lau.net, without the SPA
+ever knowing it left the LAN. Same-origin everywhere: the browser talks only
+to the droplet, so the full `session` cookie rides every sub-request incl.
+the websocket handshake, and nothing weaker than the owner reaches a machine
+that can heat a nozzle. No guest tier at all.
+
+### 6a. Topology
+
+The printer sits on Wai's home LAN (`192.168.2.25`). Its three ports are
+reverse-tunnelled from the home box to the droplet's docker bridge by
+`printer-box/printer-tunnel.service` — the hosaka/emet pattern (§4a), with
+the `-R` forwards pointing straight at the printer's LAN address (nothing
+listens on the home box).
+
+```mermaid
+flowchart LR
+  browser["Browser<br/>(/printer wrapper + iframe)"]
+
+  subgraph droplet["droplet container — routes_printer.py"]
+    page["GET /printer<br/>(protected)"]
+    health["GET /api/printer/health<br/>(protected)"]
+    http["ANY /printer/{path}<br/>(protected, rewrites HTML+JS)"]
+    video["GET /printer/video<br/>(protected, MJPEG relay)"]
+    ws["WS /ws/printer<br/>(public route, session-cookie gated)"]
+  end
+
+  tunnel(["SSH reverse tunnel<br/>172.17.0.1:8126 / 8127 / 8128"])
+
+  subgraph lan["home LAN — ELEGOO Centauri Carbon"]
+    p80[":80 SPA + files"]
+    p3030[":3030 /websocket (SDCP)"]
+    p3031[":3031 /video (MJPEG)"]
+  end
+
+  browser -->|HTTPS| page
+  browser -->|15s poll| health
+  browser -->|iframe src + assets| http
+  browser -->|"<img src>"| video
+  browser <-->|SDCP JSON frames| ws
+  health --> tunnel
+  http --> tunnel
+  video --> tunnel
+  ws --> tunnel
+  tunnel --- p80
+  tunnel --- p3030
+  tunnel --- p3031
+```
+
+### 6b. Why rewrites, and which
+
+The SPA assumes it is the origin. Served under a path prefix on a different
+host over https, four things break; each is patched in flight by the pure
+helpers in `printer_proxy.py` (no I/O — unit-tested in
+`tests/test_printer_proxy.py` against verbatim slices of firmware V1.4.49):
+
+| Upstream shape | Breaks because | Rewrite |
+|----------------|----------------|---------|
+| `<base href="/">`, `href="/assets/…"` (index HTML) | assets + Angular routes resolve against the site root | `rewrite_html`: root-absolute `href`/`src` → `/printer/…` (protocol-relative `//` untouched) |
+| `` `ws://${this.hostName}:3030/websocket` `` (main.js) | wrong host, wrong port, `ws://` on an https page | `rewrite_js`: → `` `${location.protocol==="https:"?"wss":"ws"}://${location.host}/ws/printer` `` |
+| `"http://"+(…VideoUrl)` on the camera `<img>` (25.\<hash\>.js) | mixed content | `rewrite_js`: scheme dropped, the (rewritten) `VideoUrl` used verbatim |
+| `` `http://${…hostName}:80` `` (file download href, upload POST) | wrong origin | `rewrite_js`: → `` `${location.origin}/printer` `` |
+| `"VideoUrl":"192.168.2.25:3031/video"` in the SDCP reply to *enable video stream* (cmd 386) | LAN address | `rewrite_ws_text` on printer→browser text frames → `/printer/video` |
+
+Relative URLs (hashed CSS/JS, webpack lazy chunks with `publicPath ""`,
+`assets/i18n/…`, `iconfont.ttf`) resolve against the rewritten base href and
+need nothing. **Deliberately not rewritten:** the WebRTC signalling socket
+(`ws://<host>:8883`, reached only when the printer advertises
+`VIDEO_WEBRTC` — this unit reports FILE_TRANSFER / PRINT_CONTROL /
+VIDEO_STREAM only); a regression test pins it as untouched, so wiring it
+(a fourth tunnel port + relay) is a conscious change.
+
+Headers are **allowlists** in both directions (`upstream_request_headers` /
+`client_response_headers`): the session cookie and admin bearer never reach
+the printer; `accept-encoding` is pinned to `identity` so rewritable bodies
+arrive uncompressed; `content-length` / `content-encoding` are dropped on
+the way back (bodies change) but a request `content-length` is forwarded (a
+streamed upload keeps its known length — the printer's tiny HTTP server is
+not trusted to speak chunked); every response is stamped
+`Cache-Control: private, no-cache` (auth-gated, never a shared-cache
+candidate; the etag round-trip still makes the hashed bundles a 304), and
+`main.py`'s `CacheControlMiddleware` skips the `/printer/` prefix so its
+public/immutable stamp for static-looking suffixes never applies; only a
+root-relative `Location` survives, re-rooted under the prefix — an absolute
+or protocol-relative redirect target is dropped rather than sent to the
+owner's browser.
+
+### 6c. Runtime shape
+
+- **`/printer/{path}`** streams every non-HTML/JS body straight through in
+  BOTH directions (`StreamingResponse` over `httpx` `aiter_raw` down; the
+  request body as `request.stream()` up, write timeout unbounded so a gcode
+  upload runs at whatever the home uplink allows) — nothing is buffered;
+  HTML/JS are read whole, rewritten, re-served.
+- **`/printer/video`** relays the camera's `multipart/x-mixed-replace` with
+  `X-Accel-Buffering: no` (nginx's `location /` buffers by default) and the
+  content type excluded from `GZipMiddleware` (gzip would hold frames inside
+  zlib). Newer starlette binds the exclusion list as a constructor-kwarg
+  default at import time, so `main.py` passes the patched list explicitly
+  when the signature accepts it (older starlette keeps reading the module
+  global), and the tuple carries both the prefix and `type/*` spellings —
+  without that, the MJPEG frames (and the fonts/images the list already
+  named) were being gzipped after all. The relay **reconnects instead of
+  ending**: the SPA's `<img>` never re-requests a dead MJPEG stream, so when
+  the upstream ends or stalls past the 30s read timeout (camera pause,
+  tunnel restart) `_video_frames` re-dials with 1→15s backoff and splices
+  the fresh stream into the SAME open response (the printer's part boundary
+  is constant; a changed boundary ends the response instead). Closing the
+  tab cancels the generator wherever it is; its `finally` closes the
+  upstream, releasing one of the printer's 4 allowed streams.
+- **`/ws/printer`** accepts first, then dials the printer (like
+  `/ws/hosaka`) — a browser that vanishes mid-handshake never strands an
+  open upstream socket, and a down printer surfaces as a clean `1011` close
+  the SPA retries on. Two pump tasks (`_pump_to_client` rewrites text
+  frames; `_pump_to_upstream` forwards text + bytes) under
+  `asyncio.wait(FIRST_COMPLETED)`; whichever side closes tears down both.
+  Declared on the `public` router like `/ws/hosaka` (a router-level
+  `Depends` can't gate a websocket the same way) and checks the `session`
+  cookie itself with `hmac.compare_digest` — guests are refused (`1008`
+  before `accept()`, which the browser sees as a 403 handshake).
+- **Liveness** (`/api/printer/health`): the tunnel ports stay bound while the
+  printer is off and a connect *accepts then resets* — so only a real HTTP
+  answer from the SPA shell counts as online (the `/api/hosaka/health`
+  rule), probed with its own fail-fast 2s-connect / 3s timeout. Every
+  upstream call has a short connect timeout and degrades to a 503 or a
+  closed socket, never a 500.
+- **The wrapper** (`templates/printer.html` + `web/printer.{css,js}`): a
+  status row over an `<iframe>` of `/printer/network-device-manager/network/control`.
+  The iframe isolates the SPA's global antd CSS from chrome.css and scopes
+  its `<base href>` to its own document. `printer.js` polls health every 15s
+  (+ on tab focus; polls are sequence-numbered so a slow, older answer can
+  never overwrite a fresher one) and mounts the iframe only while online;
+  offline swaps in a "printer offline" note and sets the frame to
+  `about:blank` so the SPA's reconnect loop dies with it. Online again →
+  remounts by itself. The page keeps the site's Exec link-bubble; because
+  `window` mouse events stop firing once the cursor crosses into a
+  cross-document frame, `exec-bubble-drag.js` flags a live mouse drag as
+  `html.exec-drag` and `printer.css` drops the iframe's `pointer-events`
+  for its duration, so the bubble can be dragged across the SPA.
+
+Verified end-to-end against the live printer with the real app under
+uvicorn (auth tiers, rewrites, etag→304, un-gzipped MJPEG, WS relay + the
+cmd-386 rewrite, reconnect splice against a fake upstream that drops every
+few frames).
+
+| Endpoint | Router | Reachable by |
+|----------|--------|--------------|
+| `GET /printer`, `GET /api/printer/health` | `protected` | owner only |
+| `ANY /printer/{path}`, `GET /printer/video` | `protected` | owner only |
+| `WS /ws/printer` | `public` + `session` cookie check | owner only (else `1008`) |

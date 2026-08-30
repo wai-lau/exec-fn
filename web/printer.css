@@ -1,0 +1,67 @@
+/* /printer -- owner-only wrapper: a status row over the proxied ELEGOO SPA in an
+   iframe (isolated on purpose: the SPA's global antd CSS must never fight
+   chrome.css, and its <base href> only applies inside its own document).
+   Full-height page (body 100vh, overflow hidden) reserving --nav-h for the
+   bottom nav, on the shared raw palette (green ink on --bg-hsl). */
+body { background: hsl(var(--bg-hsl)); }
+
+.printer {
+  height: 100%;
+  box-sizing: border-box;
+  padding: var(--space-4) var(--space-4) calc(var(--nav-h, 64px) + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+  z-index: var(--z-raised);
+}
+
+.printer-head { display: flex; align-items: center; gap: var(--space-4); }
+
+.printer-lede {
+  margin: 0;
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-mega);
+  text-transform: uppercase;
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+/* offline = ember, online = phosphor */
+.printer-status {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+}
+.printer-status.is-online { color: hsl(var(--green-hsl) / 0.8); }
+
+.printer-frame {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-3);
+  background: hsl(var(--bg-hsl));
+}
+
+.printer-offline {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: hsl(var(--green-hsl) / 0.45);
+  border: 1px dashed hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-3);
+}
+
+.printer-frame[hidden],
+.printer-offline[hidden] { display: none; }
+
+/* while the exec bubble is being mouse-dragged (html.exec-drag, set by
+   exec-bubble-drag.js) the frame must not swallow the pointer, or the drag
+   dies the moment the cursor crosses into the SPA's document */
+html.exec-drag .printer-frame { pointer-events: none; }

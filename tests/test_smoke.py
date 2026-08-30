@@ -14,7 +14,7 @@ from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 # Public — no auth, must render. Only the front doors + login bootstrap stay open.
 PUBLIC_PAGES = ["/", "/recruiter", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
-PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/emet"]
+PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/emet", "/printer"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
 # /graph, /UI, /security, /nightfall moved public->guest 2026-07-03.
 GUEST_PAGES = ["/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security", "/nightfall"]
@@ -133,4 +133,27 @@ def test_hosaka_mode_route_authed(client, admin_headers):
 def test_hosaka_mode_route_requires_auth(client):
     # no cookie / no bearer -> 401 from require_auth
     r = client.get("/api/hosaka/mode")
+    assert r.status_code == 401
+
+
+# ── printer owner-only routes ───────────────────────────────────────────────────
+def test_printer_health_route_authed(client, admin_headers):
+    # 200 {ok:true} when the printer answers through the tunnel, 503 {ok:false}
+    # when it (or the home box) is off -- both are the route working.
+    r = client.get("/api/printer/health", headers={**admin_headers, "Accept": "application/json"})
+    assert r.status_code in (200, 503)
+    assert r.json()["ok"] is (r.status_code == 200)
+
+
+def test_printer_health_route_requires_auth(client):
+    r = client.get("/api/printer/health")
+    assert r.status_code == 401
+
+
+def test_printer_proxy_requires_auth(client):
+    # The proxied SPA + its websocket-adjacent routes are full-session only.
+    r = client.get("/printer/network-device-manager/network/control", headers=HTML_ACCEPT)
+    assert r.status_code == 302
+    assert r.headers["location"].startswith("/login")
+    r = client.get("/printer/video")
     assert r.status_code == 401
