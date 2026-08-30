@@ -18,6 +18,7 @@ __pycache__/
 *.pyc
 *.rmdoc
 *.pdf
+!web/wai-lau-resume.pdf
 *.png
 !web/IMG_25419.png
 !web/boss-green.png
