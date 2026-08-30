@@ -107,6 +107,24 @@ def test_ws_empty_video_url_untouched():
     assert rewrite_ws_text(frame) == frame
 
 
+def test_ws_task_thumbnail_and_timelapse_urls_move_under_prefix():
+    # cmd 321 (history task detail): the SPA binds Thumbnail straight onto an <img src>
+    frame = ('{"Data":{"Cmd":321,"Data":{"Ack":0,"HistoryDetailList":[{"Thumbnail":'
+             '"http://192.168.2.25/board-resource/history_image/42df3c5c.png",'
+             '"TimeLapseVideoUrl":"http://192.168.2.25:80/board-resource/timelapse/x.mp4",'
+             '"TaskName":"/local/ECC_0.4_tri.gcode"}]}}}')
+    out = rewrite_ws_text(frame)
+    assert '"Thumbnail":"/printer/board-resource/history_image/42df3c5c.png"' in out
+    assert '"TimeLapseVideoUrl":"/printer/board-resource/timelapse/x.mp4"' in out
+    assert '"TaskName":"/local/ECC_0.4_tri.gcode"' in out  # a bare path is not a URL
+    assert "192.168.2.25" not in out
+
+
+def test_ws_other_ports_left_alone():
+    frame = '{"X":"http://192.168.2.25:3030/uploadFile/upload","MainboardIP":"192.168.2.25"}'
+    assert rewrite_ws_text(frame) == frame
+
+
 def test_ws_status_frame_untouched():
     frame = '{"Status":{"TempOfNozzle":220.4,"CurrenCoord":"245.35,119.50,-1.73"},"Topic":"sdcp/status/x"}'
     assert rewrite_ws_text(frame) == frame

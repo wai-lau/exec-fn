@@ -56,6 +56,11 @@ _JS_ASSETS_SUB = r"\1" + PREFIX + "/assets/"
 # SDCP frame (printer -> browser): "VideoUrl":"192.168.x.y:3031/video" (set by
 # the enable-video-stream reply, cmd 386) -> the same-origin MJPEG route.
 _VIDEO_URL_RE = re.compile(r'("VideoUrl"\s*:\s*")[^"]*:3031/video(")')
+# Any other http URL on the printer's :80 inside a frame -- the print-task
+# Thumbnail ("http://192.168.2.25/board-resource/history_image/<task>.png",
+# cmd 321) and the timelapse TimeLapseVideoUrl -- -> the same-origin proxy,
+# which serves them straight off the printer. Other ports are left alone.
+_LAN_HTTP_RE = re.compile(r"http://(?:\d{1,3}\.){3}\d{1,3}(?::80)?/")
 
 
 def rewrite_html(body: str) -> str:
@@ -72,8 +77,10 @@ def rewrite_js(body: str) -> str:
 
 
 def rewrite_ws_text(text: str) -> str:
-    """Rewrite the video URL in a printer->browser SDCP text frame."""
-    return _VIDEO_URL_RE.sub(rf"\g<1>{VIDEO_PATH}\2", text)
+    """Rewrite the printer-origin URLs in a printer->browser SDCP text frame:
+    the MJPEG VideoUrl -> VIDEO_PATH, any :80 http URL -> under PREFIX."""
+    text = _VIDEO_URL_RE.sub(rf"\g<1>{VIDEO_PATH}\2", text)
+    return _LAN_HTTP_RE.sub(f"{PREFIX}/", text)
 
 
 def rewrite_kind(content_type: str) -> str | None:
