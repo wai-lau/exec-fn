@@ -47,7 +47,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=13">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=14">'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
@@ -148,7 +148,7 @@ async def recruiter_page():
                         _RECRUITER_FAVICON, 1)
     page = page.replace("</head>",
                         _RECRUITER_FONT_PRELOAD + _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
-    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=17"></script>'
+    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=18"></script>'
     return page.replace("</body>", body + "</body>", 1)
 
 
