@@ -75,7 +75,7 @@ _NAV_ICONS = {
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
     "hosaka":      '<img src="/radar.png" alt="hosaka" style="width:20px;height:20px;image-rendering:pixelated;">',
     "emet":        '<img src="/golem-stone.png?v=3" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "printer":     '<img src="/printer.png?v=1" alt="printer" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "printer":     '<img src="/printer.png?v=2" alt="printer" style="width:20px;height:20px;image-rendering:pixelated;">',
     "recruiter":   '<img src="/data-file.png?v=3" alt="recruiter" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
