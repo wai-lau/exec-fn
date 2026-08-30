@@ -79,6 +79,15 @@ def test_js_unrelated_http_strings_untouched():
     assert rewrite_js(src) == src
 
 
+def test_js_absolute_asset_paths_move_under_prefix():
+    # compiled Angular template: [["src","/assets/images/network/start.png"],…]
+    src = 'u.TgZ(0,"img",83),["src","/assets/images/network/start.png"],x=`/assets/images/network/${n}.png`'
+    out = rewrite_js(src)
+    assert '"/printer/assets/images/network/start.png"' in out
+    assert '`/printer/assets/images/network/${n}.png`' in out
+    assert "/assets/" not in out.replace("/printer/assets/", "")
+
+
 def test_js_webrtc_signalling_socket_left_alone():
     # Deliberately out of scope (needs VIDEO_WEBRTC, which this printer lacks,
     # plus a fourth tunnel port). Pin it so a future rule is a conscious change.
