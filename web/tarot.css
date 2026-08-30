@@ -308,3 +308,7 @@ body.opening-pending .msg.assistant { display:none; }
   line-height: var(--lh-relaxed); letter-spacing: var(--tracking-wide);
   text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12);
 }
+
+/* the typed input carries the same tracking as the sent .msg.user, so the
+   text doesn't visibly tighten while typing then loosen once sent */
+#msg-input { letter-spacing: var(--tracking-wide); }
