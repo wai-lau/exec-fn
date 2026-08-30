@@ -36,13 +36,27 @@ function execMakeDraggable(el, onTap) {
     }
   }
 
+  // html.exec-drag marks a live mouse drag: a page with an <iframe> (/printer)
+  // sets pointer-events:none on it while the class is up, else the window
+  // mousemove/mouseup below stop firing once the cursor crosses into the frame
+  // and the bubble is left stranded mid-drag. Touch drags target the bubble
+  // itself, so they need no such flag.
   el.addEventListener('mousedown', function (e) {
     e.preventDefault();
     onStart(e.clientX, e.clientY);
-    function mm(e) { onMove(e.clientX, e.clientY); }
-    function mu() { window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); onEnd(); }
+    document.documentElement.classList.add('exec-drag');
+    function mu() {
+      window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu);
+      window.removeEventListener('blur', mu);
+      document.documentElement.classList.remove('exec-drag');
+      onEnd();
+    }
+    // A button released OUTSIDE the window never fires mouseup here: end the
+    // drag on window blur, or on the first move back in with no button down.
+    function mm(e) { if (e.buttons === 0) { mu(); return; } onMove(e.clientX, e.clientY); }
     window.addEventListener('mousemove', mm);
     window.addEventListener('mouseup', mu);
+    window.addEventListener('blur', mu);
   });
   el.addEventListener('touchstart', function (e) { e.preventDefault(); onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
   el.addEventListener('touchmove',  function (e) { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });

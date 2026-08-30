@@ -4,6 +4,7 @@ Routes live in routes_views.py (HTML) + routes_api.py (JSON); rendering in
 pages.py; the routers themselves in routers.py. Importing the route modules
 registers their decorators on those shared routers before include_router."""
 import asyncio
+import inspect
 import mimetypes
 from contextlib import asynccontextmanager
 from urllib.parse import quote
@@ -22,6 +23,7 @@ import routes_views  # noqa: F401  — registers HTML routes on the shared route
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
 import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
 import routes_emet   # noqa: F401  — registers /emet + the emet MCP JSON routes
+import routes_printer  # noqa: F401  — registers /printer + the ELEGOO printer reverse proxy
 
 # StaticFiles guesses MIME via mimetypes, which doesn't know woff2 -> it served
 # them as application/octet-stream. Register the real types so the preload
@@ -40,17 +42,21 @@ mimetypes.add_type("audio/mp4", ".m4a")
 # Starlette's GZipMiddleware only skips text/event-stream. Also skip already-
 # compressed payloads -- re-gzipping a woff2/png/jpg/mp3 burns CPU and adds
 # TTFB (a 2.3MB mp3) for ~zero size gain. SVG/TTF/WAV stay compressible.
-# (GZipResponder extends IdentityResponder, which reads this module global at
-# response.start, so overriding it here covers both the compress + identity
-# paths.)
+# Older starlette reads this module global at response.start and matches by
+# PREFIX ("font/woff" covers woff2, "video/" covers every video type); newer
+# starlette matches an EXACT media type or a "type/*" wildcard and takes the
+# list as a constructor kwarg (passed below) -- so both spellings are listed.
 _gzip.DEFAULT_EXCLUDED_CONTENT_TYPES = (
     "text/event-stream",
-    "font/woff",  # matches font/woff and font/woff2
+    "font/woff", "font/woff2",
     "image/png", "image/jpeg", "image/gif", "image/webp", "image/avif",
     "image/vnd.microsoft.icon", "image/x-icon",
     "audio/mpeg", "audio/mp4", "audio/ogg", "audio/aac",
-    "video/",
+    "video/", "video/*",
     "application/zip", "application/gzip",
+    # /printer/video MJPEG relay: gzip would buffer frames inside zlib and
+    # stall the live camera; the type is a stream, never a document.
+    "multipart/x-mixed-replace",
 )
 
 
@@ -66,7 +72,15 @@ async def _lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=_lifespan)
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# Newer starlette takes the exclusion list as a constructor kwarg whose default
+# was bound at import time -- the module reassignment above is invisible to it
+# (and /printer/video's MJPEG frames would be gzipped). Pass the list
+# explicitly wherever the signature accepts it; older starlette (no kwarg)
+# keeps reading the patched module global.
+_gzip_kwargs = {"minimum_size": 1000}
+if "exclude_content_types" in inspect.signature(GZipMiddleware.__init__).parameters:
+    _gzip_kwargs["exclude_content_types"] = _gzip.DEFAULT_EXCLUDED_CONTENT_TYPES
+app.add_middleware(GZipMiddleware, **_gzip_kwargs)
 
 
 _STATIC_SUFFIXES = (".css", ".js", ".woff2", ".woff", ".ttf", ".otf",
@@ -98,8 +112,11 @@ class CacheControlMiddleware:
         query = scope.get("query_string", b"")
 
         async def send_wrapper(message):
+            # /printer/* is an auth-gated reverse proxy whose upstream file
+            # names look like public static assets (hashed .js/.css/.ttf) --
+            # it sets its own private, no-cache (printer_proxy.CACHE_CONTROL).
             if (message["type"] == "http.response.start"
-                    and not path.startswith("/nightfall-game/")):
+                    and not path.startswith(("/nightfall-game/", "/printer/"))):
                 headers = MutableHeaders(raw=message["headers"])
                 ctype = headers.get("content-type", "")
                 if ctype.startswith("text/html"):

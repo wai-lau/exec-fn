@@ -58,8 +58,8 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "ui", "nightfall", "mtg", "tarot", "hosaka", "recruiter"]
-_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "recruiter": "/recruiter"}
+_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["security", "nightfall", "mtg", "tarot", "hosaka", "ui", "recruiter"]
 
@@ -75,13 +75,14 @@ _NAV_ICONS = {
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
     "hosaka":      '<img src="/radar.png" alt="hosaka" style="width:20px;height:20px;image-rendering:pixelated;">',
     "emet":        '<img src="/golem-stone.png?v=3" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "printer":     '<img src="/printer.png?v=1" alt="printer" style="width:20px;height:20px;image-rendering:pixelated;">',
     "recruiter":   '<img src="/data-file.png?v=3" alt="recruiter" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
     "debug": "debug", "security": "sec", "graph": "graph", "emet": "emet", "ui": "UI",
-    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "hosaka": "hosaka", "recruiter": "cv",
+    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "hosaka": "hosaka", "printer": "printer", "recruiter": "cv",
 }
 
 
@@ -200,7 +201,7 @@ def _build_nav(active=None, guest=False):
         bubble = ('<script src="/hosaka-audio.js?v=3"></script>'
                   '<script src="/voice-util.js?v=1"></script>'
                   '<script src="/exec-voice.js?v=3"></script>'
-                  '<script src="/exec-bubble-drag.js?v=1"></script>'
+                  '<script src="/exec-bubble-drag.js?v=2"></script>'
                   '<script src="/exec-todos.js?v=3"></script>'
                   '<script src="/exec-bubble.js?v=42"></script>')
     else:
@@ -225,7 +226,7 @@ def _build_nav(active=None, guest=False):
                   '<div id="exec-bubble" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
-                  '<script src="/exec-bubble-drag.js?v=1"></script>'
+                  '<script src="/exec-bubble-drag.js?v=2"></script>'
                   '<script src="/exec-link.js?v=1"></script>'
                   + voice_listener)
     return nav + script + bubble

@@ -1,0 +1,36 @@
+# printer reverse SSH tunnel: the ELEGOO Centauri Carbon on the home LAN
+# (192.168.2.25) -> the droplet docker bridge, so the exec-fn container can
+# reverse-proxy its web UI at /printer. Mirrors hosaka-tunnel.service /
+# emet-tunnel.service (same key, own alias). ssh -R forwards straight to the
+# printer's LAN address -- nothing listens on this box.
+#   :80   SPA + files          -> 172.17.0.1:8126  (PRINTER_UPSTREAM)
+#   :3030 SDCP control socket  -> 172.17.0.1:8127  (PRINTER_WS_UPSTREAM)
+#   :3031 MJPEG camera stream  -> 172.17.0.1:8128  (PRINTER_VIDEO_UPSTREAM)
+# The `printer-tunnel` alias (in ~/.ssh/config, next to wai-lau-tunnel /
+# emet-tunnel) supplies ServerAliveInterval + ExitOnForwardFailure so a dead
+# link makes ssh exit and systemd reconnect. The bound ports stay up while the
+# printer itself is off -- the app's /api/printer/health probe is what decides
+# "online", not the bind.
+#
+# Install (one time, as wai):
+#   cp printer-box/printer-tunnel.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now printer-tunnel.service
+[Unit]
+Description=printer reverse SSH tunnel (LAN 192.168.2.25 :80/:3030/:3031 -> droplet 172.17.0.1:8126-8128)
+After=network-online.target
+Wants=network-online.target
+# Never stop retrying while the key is unauthorized or the link is down.
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/bin/ssh -NT \
+  -R 172.17.0.1:8126:192.168.2.25:80 \
+  -R 172.17.0.1:8127:192.168.2.25:3030 \
+  -R 172.17.0.1:8128:192.168.2.25:3031 \
+  printer-tunnel
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
