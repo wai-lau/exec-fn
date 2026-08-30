@@ -236,7 +236,7 @@
    1px stop: the soft profile is near single-frequency, so it barely aliases
    against the pixel grid — no low-frequency moiré band every N lines on zoom. */
 .cyber-lines {
-  position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: hard-light;
   background: repeating-linear-gradient(0deg,
     hsl(var(--bg-hsl) / 0.8) 0, transparent calc(0.25 * var(--crt-u)),
@@ -248,7 +248,7 @@
    glow. plus-lighter is additive, so the lit rows add back the brightness the
    multiplied black lines take away. Soft profile = uniform, no moiré. */
 .cyber-bg {
-  position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: plus-lighter;
   background:
     repeating-linear-gradient(0deg,
@@ -260,7 +260,7 @@
 }
 
 .cyber-scan {
-  position: fixed; left: 0; right: 0; top: 0; height: 480px; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; left: 0; right: 0; top: 0; width: 100vw; height: 480px; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: overlay;
   background: linear-gradient(hsl(var(--green-hsl) / 0) 0%,
     hsl(var(--green-hsl) / 0.12) 50%, hsl(var(--green-hsl) / 0) 100%);
@@ -274,7 +274,7 @@
    soft CRT-glass haze. Stacks last (injected last, same z) so its backdrop is
    the full composite. On the dense boards it drops to z:-1 like the others. */
 .cyber-blur {
-  position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none;
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   backdrop-filter: blur(var(--blur-xs));
 }
 
@@ -348,6 +348,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
+  width: 100vw;            /* full viewport incl the scrollbar gutter, so the bar reaches the true edge (fixed 100vw doesn't add h-scroll) */
   z-index: var(--z-top);   /* always above the CRT fx (lines/overlay/sweep/blur @ --z-modal) */
   padding: var(--space-3) 0;
   display: flex;
