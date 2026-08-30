@@ -10,7 +10,7 @@ body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 
 /* board wrapper: centred, above the scanlines (z 9991) so swatches read true.
    NOT a .doc-card itself — each section is its own card (below), no card-on-card. */
-.clr-wrap { width: min(980px, 94vw); margin: var(--space-10) auto calc(var(--nav-h, 64px) + var(--space-8)); z-index: 9991; }
+.clr-wrap { width: min(980px, 94vw); margin: var(--space-10) auto calc(var(--nav-h, 64px) + var(--space-8)); position: relative; z-index: 9991; }
 
 /* each section (one colour, or one scale-token family) is its own card, tiled
    two-up (max 2 per row); collapses to one column on a phone. */
