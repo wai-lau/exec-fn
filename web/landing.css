@@ -78,5 +78,5 @@ body{display:flex!important;align-items:center;justify-content:center;
 }
 
 @media (prefers-reduced-motion: reduce){
-  .cyber-lines,.cyber-bg,.cyber-scan,.cyber-blur,.exec-nav.landing-nav a,.exec-nav.landing-nav a img{animation:none!important}
+  .cyber-lines,.cyber-bg,.cyber-scan,.exec-nav.landing-nav a,.exec-nav.landing-nav a img{animation:none!important}
   .exec-nav.landing-nav a{opacity:1}}

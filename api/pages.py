@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=65">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=66">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -34,12 +34,14 @@ _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 # chrome.css). Shared by every page builder (_render_page, landing, graph) so the
 # layer set stays in one place. nightfall composes separately and never gets it.
 # ORDER MATTERS (same z, DOM order = paint order): the green overlay + sweep
-# paint first, then cyber-lines (multiply black) paints ON TOP so it re-blacks
-# the line rows the green tinted — nothing colours the black lines but cyber-blur
-# (topmost, backdrop blur of the whole composite).
+# paint first, then cyber-lines (hard-light black) paints ON TOP so it re-blacks
+# the line rows the green tinted. THREE layers, not four — the old .cyber-blur
+# backdrop-filter pane was removed 2026-08-30 (see chrome.css): a full-viewport
+# backdrop-filter re-blurs the whole screen on any pixel change under it, which
+# is what made pages fill in top-to-bottom instead of at once.
 _CRT_FX = (
     '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    '<div class="cyber-lines"></div><div class="cyber-blur"></div>'
+    '<div class="cyber-lines"></div>'
     '<script src="/crt-zoom.js?v=2"></script>'
 )
 
