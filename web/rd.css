@@ -101,9 +101,9 @@ body { overflow: hidden !important; background: transparent !important; }
    through the card — R&D cards sit OVER the effects, not tinted by them */
 .card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
 .card.plain:hover { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); }
-.card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-snug); margin-bottom: var(--space-0-5); }
+.card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-2xs); line-height: var(--lh-snug); margin-bottom: var(--space-0-5); }
 
-.card-desc { font-size: var(--fs-sm); margin-top: var(--space-1-5); opacity: 0.88; line-height: var(--lh-snug);
+.card-desc { font-size: var(--fs-2xs); margin-top: var(--space-1-5); opacity: 0.88; line-height: var(--lh-snug);
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .card-foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: var(--space-1-5); }
 .card-badge { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); opacity: 0.6; }
