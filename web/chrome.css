@@ -231,15 +231,18 @@
    nightfall composes separately and never gets the markup. */
 
 /* 1. scanline gaps — black lines multiplied onto the content. A TRIANGLE ramp
-   (opaque black peak at 0/4px, fading to transparent at 2px) instead of a hard
-   1px stop: the soft profile is near single-frequency, so it barely aliases
-   against the pixel grid — no low-frequency moiré band every N lines on zoom. */
+   (opaque black peak at 0/4px, fading to transparent at 0.75px each side, so a
+   1.5px-wide symmetric spike per 4px period) instead of a hard 1px stop: the
+   pure-triangle profile is near single-frequency, so it barely aliases against
+   the pixel grid — no low-frequency moiré band every N lines on zoom. Widened
+   from a 0.25px shoulder + lifted to full-opacity black 2026-08-31 (the hairline
+   read too faint); still a triangle, so still moiré-safe. */
 .cyber-lines {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: hard-light;
   background: repeating-linear-gradient(0deg,
-    hsl(var(--bg-hsl) / 0.8) 0, transparent calc(0.25 * var(--crt-u)),
-    transparent calc(3.75 * var(--crt-u)), hsl(var(--bg-hsl) / 0.8) calc(4 * var(--crt-u)));
+    hsl(var(--bg-hsl) / 1) 0, transparent calc(0.75 * var(--crt-u)),
+    transparent calc(3.25 * var(--crt-u)), hsl(var(--bg-hsl) / 1) calc(4 * var(--crt-u)));
 }
 
 /* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
