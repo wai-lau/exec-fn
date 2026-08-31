@@ -246,8 +246,8 @@
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: hard-light;
   background: repeating-linear-gradient(0deg,
-    hsl(var(--bg-hsl) / 0.8) 0, transparent calc(0.75 * var(--crt-u)),
-    transparent calc(3.25 * var(--crt-u)), hsl(var(--bg-hsl) / 0.8) calc(4 * var(--crt-u)));
+    hsl(var(--bg-hsl) / 0.45) 0, transparent calc(0.75 * var(--crt-u)),
+    transparent calc(3.25 * var(--crt-u)), hsl(var(--bg-hsl) / 0.45) calc(4 * var(--crt-u)));
 }
 
 /* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
