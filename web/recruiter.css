@@ -228,7 +228,7 @@ body::-webkit-scrollbar { display: none; }
 .cv-summary {
   margin: var(--space-4) 0 var(--space-1-5);
   color: var(--cv-ink);
-  font-size: var(--fs-xl);
+  font-size: var(--fs-sm);
   line-height: var(--lh-relaxed);
 }
 
