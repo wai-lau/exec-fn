@@ -86,7 +86,7 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
   border:none; outline:none;
   color:hsl(var(--green-hsl) / 1);
   font-family: var(--font-mono); font-weight: var(--fw-bold);
-  font-size:clamp(0.45rem, 1.1vw, 0.7rem);
+  font-size:clamp(0.7rem, 1.1vw, 0.95rem);
   white-space:nowrap;
   line-height: var(--lh-none); padding: var(--space-1-5) var(--space-2); cursor:pointer; border-radius:50%;
   text-shadow:0 0 6px hsl(var(--green-hsl) / 0.45);
