@@ -36,14 +36,18 @@ _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 # ORDER MATTERS (same z, DOM order = paint order), bottom→top: cyber-bg (green
 # phosphor overlay) → cyber-lines (hard-light black, re-blacks the rows the green
 # tinted) → cyber-blur (backdrop-filter glass, blurs that static composite) →
-# cyber-scan (the ONE animated layer, sweep beam, plain alpha, painted ABOVE the
-# glass). The glass reinstated 2026-08-31 (removed 2026-08-30): keeping the sweep
-# ABOVE it means the blur's backdrop is 100% static, so the compositor blurs once
-# and caches it instead of re-blurring every frame — the sweep-under-glass was the
-# whole reason the old pane cost 233ms/frame. See chrome.css .cyber-blur.
+# cyber-crt (backdrop-filter brightness/contrast punch on that same static
+# composite — the CRT phosphor pop) → cyber-scan (the ONE animated layer, sweep
+# beam, plain alpha, painted ABOVE the glass). The glass reinstated 2026-08-31
+# (removed 2026-08-30): keeping the sweep ABOVE it means the blur's backdrop is
+# 100% static, so the compositor blurs once and caches it instead of re-blurring
+# every frame — the sweep-under-glass was the whole reason the old pane cost
+# 233ms/frame. cyber-crt sits UNDER the sweep for the same reason (static backdrop
+# = cached brightness/contrast pass, idle readback cost 0). See chrome.css.
 _CRT_FX = (
     '<div class="cyber-bg"></div><div class="cyber-lines"></div>'
-    '<div class="cyber-blur"></div><div class="cyber-scan"></div>'
+    '<div class="cyber-blur"></div><div class="cyber-crt"></div>'
+    '<div class="cyber-scan"></div>'
     '<script src="/crt-zoom.js?v=2"></script>'
 )
 

@@ -306,6 +306,19 @@
   backdrop-filter: blur(var(--blur-xs));
 }
 
+/* 5. CRT phosphor punch — a brightness/contrast backdrop-filter over the same
+   static composite as .cyber-blur (painted right after it, UNDER .cyber-scan).
+   Pumps the phosphor greens without touching the palette (a filter, not a colour).
+   Kept below the animated sweep for the exact reason the glass is: its backdrop
+   (bg + lines + blur + static content) never animates, so the compositor runs the
+   brightness/contrast pass ONCE and re-composites the cached texture — idle
+   per-frame readback cost 0. Over the sweep it would re-fire every frame (the
+   backdrop-filter trap). Dense boards push it to z-index:-1 like the rest. */
+.cyber-crt {
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
+  backdrop-filter: brightness(1.03) contrast(1.1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cyber-lines, .cyber-bg, .cyber-scan { animation: none !important; }
 }
