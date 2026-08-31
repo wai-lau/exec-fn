@@ -45,10 +45,11 @@ body { overflow: hidden !important; background: transparent !important; }
   letter-spacing: var(--tracking-mega); color: hsl(var(--green-hsl) / 0.45);
 }
 .hq-col-hdr .hq-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: var(--fs-sm); }
-.hq-col-hdr .hq-date { opacity: 0.45; font-size: var(--fs-2xs); }
+.hq-col-hdr .hq-date { opacity: 0.6; font-size: var(--fs-2xs); }
 .hq-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; text-align: center; }
 .hq-col-hdr.today-hdr .hq-day-name { color: hsl(var(--green-hsl)); }
 .hq-col.weekend .hq-col-hdr.today-hdr .hq-day-name { color: hsl(var(--cyan-hsl)); }
+.hq-col.weekend .hq-col-hdr.today-hdr .hq-date { color: hsl(var(--cyan-hsl)); }
 
 .hq-list {
   flex: 1; overflow-y: auto; padding: var(--space-2-5) var(--space-2-5) var(--space-7);
@@ -132,12 +133,11 @@ body.hq-dragging .hq-unschedule.drag-over {
 .dir-tl-labels { width: 18px; flex-shrink: 0; position: relative; }
 
 .dir-tl-label {
-  position: absolute; right: 3px; transform: translateY(-50%);
-
-  /* large as the fixed-width gutter allows; right-aligned so growing the font
-     fills the gutter leftward and never shifts the track/spine */
+  /* hour number in the right-hand gutter, centered on its hour line */
+  position: absolute; left: 0; right: 0; transform: translateY(-50%);
+  text-align: center;
   font-size: var(--fs-xl); white-space: nowrap; font-family: var(--font-pixel);
-  color: hsl(var(--gray-hsl) / 0.6);
+  color: hsl(var(--gray-hsl) / 0.45);
 }
 .dir-tl-track { flex: 1; position: relative; background: transparent; }
 
@@ -179,7 +179,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 .dir-group { position: absolute; left: 3px; right: 3px; box-sizing: border-box; z-index: 3; }
 
 .dir-spine {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 14px; box-sizing: border-box;
+  position: absolute; left: 0; top: 0; bottom: 0; width: 40px; box-sizing: border-box;
   border-radius: var(--radius-2) 0 0 var(--radius-2); border: 1px solid transparent;
   display: flex; align-items: center; justify-content: center;
   cursor: grab; user-select: none;
@@ -200,8 +200,8 @@ body.hq-dragging .hq-unschedule.drag-over {
 .dir-spine-title {
   writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
   font-family: var(--font-mono); font-weight: var(--fw-bold);
-  font-size: var(--fs-2xs); line-height: var(--lh-none); letter-spacing: var(--tracking-wide);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%;
+  font-size: var(--fs-2xs); line-height: var(--lh-snug); letter-spacing: var(--tracking-wide);
+  white-space: normal; overflow: hidden; max-height: 100%;   /* wraps to 2 vertical columns in the 28px spine */
 }
 
 /* the current task stretches to fill the card's whole time; it's click-only
@@ -256,8 +256,11 @@ body.hq-dragging .hq-unschedule.drag-over {
   letter-spacing: var(--tracking-mega); color: hsl(var(--green-hsl) / 0.8);
   white-space: nowrap; overflow: hidden;
 }
-.hq-row-label .hq-date { opacity: 0.45; font-size: var(--fs-2xs); }
+.hq-row-label .hq-date { opacity: 0.6; font-size: var(--fs-2xs); }
 .hq-row.weekend .hq-row-label .hq-day-name { color: hsl(var(--cyan-hsl)); }
+
+/* date shares the day-name hue on weekends — only the opacity differs (.hq-date opacity:0.6) */
+.hq-row.weekend .hq-row-label .hq-date { color: hsl(var(--cyan-hsl)); }
 
 /* cards flow horizontally inside a row, each a fixed width, filling row height.
    .hq-list is a plain block (no display:flex), so set it here or cards stack. */
