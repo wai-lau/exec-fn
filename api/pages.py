@@ -33,15 +33,17 @@ _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 # CRT ambient stack markup — the four fixed fx layers (see .cyber-* in
 # chrome.css). Shared by every page builder (_render_page, landing, graph) so the
 # layer set stays in one place. nightfall composes separately and never gets it.
-# ORDER MATTERS (same z, DOM order = paint order): the green overlay + sweep
-# paint first, then cyber-lines (hard-light black) paints ON TOP so it re-blacks
-# the line rows the green tinted. THREE layers, not four — the old .cyber-blur
-# backdrop-filter pane was removed 2026-08-30 (see chrome.css): a full-viewport
-# backdrop-filter re-blurs the whole screen on any pixel change under it, which
-# is what made pages fill in top-to-bottom instead of at once.
+# ORDER MATTERS (same z, DOM order = paint order), bottom→top: cyber-bg (green
+# phosphor overlay) → cyber-lines (hard-light black, re-blacks the rows the green
+# tinted) → cyber-blur (backdrop-filter glass, blurs that static composite) →
+# cyber-scan (the ONE animated layer, sweep beam, plain alpha, painted ABOVE the
+# glass). The glass reinstated 2026-08-31 (removed 2026-08-30): keeping the sweep
+# ABOVE it means the blur's backdrop is 100% static, so the compositor blurs once
+# and caches it instead of re-blurring every frame — the sweep-under-glass was the
+# whole reason the old pane cost 233ms/frame. See chrome.css .cyber-blur.
 _CRT_FX = (
-    '<div class="cyber-bg"></div><div class="cyber-scan"></div>'
-    '<div class="cyber-lines"></div>'
+    '<div class="cyber-bg"></div><div class="cyber-lines"></div>'
+    '<div class="cyber-blur"></div><div class="cyber-scan"></div>'
     '<script src="/crt-zoom.js?v=2"></script>'
 )
 

@@ -163,6 +163,7 @@
   --tracking-mega:   0.18em;    /* loud spaced caps: section headers */
 
   /* ── Blur ────────────────────────────────────────────────────────────── */
+  --blur-xs: 0.5px;   /* CRT glass haze (.cyber-blur) — barely-there frost, text stays legible */
   --blur-sm: 6px;
   --blur:    14px;
 
@@ -226,23 +227,27 @@
 }
 
 /* Ambient CRT stack — injected on every page via _render_page as four fixed,
-   pointer-events:none layers, bottom→top: opaque black scanline gaps, an
-   Ono-Sendai phosphor overlay, the sweep beam, then a soft phosphor bloom.
-   nightfall composes separately and never gets the markup. */
+   pointer-events:none layers. Paint order (DOM order in _CRT_FX, all same z):
+   bg (phosphor overlay) → lines (black scanline gaps, hard-light) → blur (glass)
+   → scan (sweep beam). The glass blurs the static bg+lines+content composite; the
+   ONLY animated layer (scan) sits ABOVE it so the blur's backdrop never animates
+   and the compositor caches it. nightfall composes separately, never gets the
+   markup. */
 
 /* 1. scanline gaps — black lines multiplied onto the content. A TRIANGLE ramp
-   (opaque black peak at 0/4px, fading to transparent at 0.75px each side, so a
+   (black peak @ 0.8 at 0/4px, fading to transparent at 0.75px each side, so a
    1.5px-wide symmetric spike per 4px period) instead of a hard 1px stop: the
    pure-triangle profile is near single-frequency, so it barely aliases against
-   the pixel grid — no low-frequency moiré band every N lines on zoom. Widened
-   from a 0.25px shoulder + lifted to full-opacity black 2026-08-31 (the hairline
-   read too faint); still a triangle, so still moiré-safe. */
+   the pixel grid — no low-frequency moiré band every N lines on zoom. Shoulder
+   widened from 0.25px → 0.75px 2026-08-31 (the hairline read too faint); opacity
+   stays 0.8 (a brief bump to full-opacity black was reverted). Still a triangle,
+   so still moiré-safe. */
 .cyber-lines {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   mix-blend-mode: hard-light;
   background: repeating-linear-gradient(0deg,
-    hsl(var(--bg-hsl) / 1) 0, transparent calc(0.75 * var(--crt-u)),
-    transparent calc(3.25 * var(--crt-u)), hsl(var(--bg-hsl) / 1) calc(4 * var(--crt-u)));
+    hsl(var(--bg-hsl) / 0.8) 0, transparent calc(0.75 * var(--crt-u)),
+    transparent calc(3.25 * var(--crt-u)), hsl(var(--bg-hsl) / 0.8) calc(4 * var(--crt-u)));
 }
 
 /* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
@@ -279,14 +284,27 @@
 
 @keyframes cyber-sweep { 0%{transform:translateY(-480px)} 100%{transform:translateY(100vh)} }
 
-/* There is no 4th layer. A `.cyber-blur` pane used to sit on top with
-   backdrop-filter, blurring the whole composite into a CRT-glass haze -- it was
-   the single most expensive thing on the site (233ms/frame in WebKit, ~45% of
-   frame time in both engines), because a full-viewport backdrop-filter has to
-   read back and re-blur the entire screen whenever ANY pixel under it changes.
-   At that cost the engine can't finish a viewport inside one vsync, so it
-   presents half-rastered tiles and the page visibly fills in top-to-bottom.
-   Removed 2026-08-30 along with the --blur-xs token it was the only user of. */
+/* 4. CRT glass — a backdrop-filter pane that blurs the whole composite behind it
+   into a phosphor haze. This USED to be the single most expensive thing on the
+   site (233ms/frame WebKit, ~45% of frame time) and was removed 2026-08-30 --
+   NOT because backdrop-filter is inherently slow, but because it sat UNDER the
+   animated .cyber-scan sweep: a full-viewport backdrop-filter must read back and
+   re-blur its backdrop whenever ANY pixel under it changes, and the perpetual
+   sweep dirtied it every single frame forever. Reinstated 2026-08-31 with the fix
+   that makes it cheap: the glass is now painted ABOVE bg+lines (DOM order in
+   _CRT_FX), and the ONLY animated layer, .cyber-scan, is painted ABOVE the glass.
+   So the glass's backdrop (bg + lines + static page content) never animates -> the
+   compositor blurs it ONCE on first paint / resize and re-composites the cached
+   texture every frame after. Per-frame readback cost = 0 while the page is idle;
+   a discrete content change (card drag, chat line) re-blurs that one frame only,
+   never continuously. The sweep on top stays sharp + plain-alpha (NO blend mode --
+   a blend on the animated layer is the same per-frame-readback trap as the old
+   under-glass blur, see .cyber-scan). Dense boards (/rd,/hq) push the whole stack
+   to z-index:-1 behind opaque cards, so the glass is inert there. */
+.cyber-blur {
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
+  backdrop-filter: blur(var(--blur-xs));
+}
 
 @media (prefers-reduced-motion: reduce) {
   .cyber-lines, .cyber-bg, .cyber-scan { animation: none !important; }
