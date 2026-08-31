@@ -92,8 +92,8 @@
   nodes[nodes.length - 1].text = nodes[nodes.length - 1].text.replace(/\s+$/, '');
 
   // tarot reader pacing — reading-paced, with pauses on punctuation, nudged
-  // quicker than the tarot reader (1.25^3); start() blanks the nodes
-  var SPEED = 1.953125;
+  // quicker than the tarot reader (1.25^3 × 1.2); start() blanks the nodes
+  var SPEED = 2.34375;
   var BASE_MS = 65;
   var BACK_MS = 30 / SPEED;  // backspacing the decoy — quick, even pace
   var timer = null;
