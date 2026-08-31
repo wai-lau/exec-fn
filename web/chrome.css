@@ -421,6 +421,7 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
   gap: var(--space-0-5);
   transition: color 0.2s;
   flex: 1;
+  min-width: 0;      /* equalize widths — else a wide label (hosaka) blocks flex-shrink and skews icon spacing */
   max-width: 72px;
 }
 
