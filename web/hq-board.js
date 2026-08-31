@@ -83,8 +83,8 @@ function buildSchedule(cards) {
 
   setupNowIndicator(wrap, track);
 
-  tlWrap.appendChild(labels);
   tlWrap.appendChild(track);
+  tlWrap.appendChild(labels);   // labels on the RIGHT of the track (right of the hour lines)
   wrap.innerHTML = '';
   wrap.appendChild(tlWrap);
 
