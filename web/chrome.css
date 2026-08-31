@@ -316,7 +316,7 @@
    backdrop-filter trap). Dense boards push it to z-index:-1 like the rest. */
 .cyber-crt {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
-  backdrop-filter: brightness(1.03) contrast(1.1);
+  backdrop-filter: brightness(0.85) contrast(1.5);
 }
 
 @media (prefers-reduced-motion: reduce) {
