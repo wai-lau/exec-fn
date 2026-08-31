@@ -12,6 +12,9 @@ const EXEC_VOICE_BACKEND = "piper";
 // ~1.013), so 0.95 is about as loud as it goes without clipping — a deliberate
 // step up from tts.js's 0.25 RMS-match trim, since Exec should be heard.
 const EXEC_VOICE_GAIN = 0.95;
+// glados's default piper pace reads slow for a nudge bark; 1.2x keeps the
+// deadpan but stops Exec from droning (piper maps speed -> 1/length_scale).
+const EXEC_VOICE_SPEED = 1.2;
 const EXEC_LS_VOICE = "exec.voice";
 
 window.execVoice = (function () {
@@ -90,7 +93,7 @@ window.execVoice = (function () {
         input: text,
         backend: EXEC_VOICE_BACKEND,
         voice: EXEC_VOICE_ID,
-        params: {},
+        params: { speed: EXEC_VOICE_SPEED },
         onStatus: (msg) => { if (msg.type === "end" || msg.type === "error") _finishThenNext(); },
       })
       .catch(() => {
