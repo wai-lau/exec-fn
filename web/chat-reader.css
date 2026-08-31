@@ -16,10 +16,10 @@
 
 /* Cap the contenteditable so a big paste scrolls instead of growing the input
    bar tall enough to collapse #terminal (pinned to --input-h). Shared mtg+tarot. */
-#msg-input { max-height: 35vh; overflow-y: auto; }
+#msg-input { max-height: 35vh; overflow-y: auto; letter-spacing: var(--tracking-wide); }
 
-/* phosphor glow on every message */
-.msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); }
+/* phosphor glow + wide tracking on every message (input box matches, above) */
+.msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); letter-spacing: var(--tracking-wide); }
 
 /* reader voice: slightly heavier, more breathing room */
 .msg.assistant { font-weight: var(--fw-normal); line-height: var(--lh-relaxed); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl)) !important; }
