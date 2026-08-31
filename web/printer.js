@@ -74,9 +74,26 @@
     }
   }
 
+  // The proxied vendor SPA paints a white document before its app renders, so
+  // revealing the iframe the instant its src is set flashes white. Keep it
+  // invisible (opacity 0 via the missing .ready class) until its load event
+  // fires, then fade it in — the page shows its own dark bg during the boot.
+  if (frame) {
+    frame.addEventListener('load', () => {
+      if (frame.src && !/about:blank$/.test(frame.src)) frame.classList.add('ready');
+    });
+  }
+
   function applyOwner(ok) {
-    frame.hidden = !ok;
-    frame.src = ok ? FRAME_SRC : 'about:blank'; // drop the SPA + its socket
+    if (!ok) {
+      frame.hidden = true;
+      frame.classList.remove('ready'); // re-arm the fade for the next mount
+      frame.src = 'about:blank'; // drop the SPA + its socket
+      return;
+    }
+    frame.classList.remove('ready'); // stay invisible until the SPA has painted
+    frame.hidden = false;
+    frame.src = FRAME_SRC;
   }
 
   function apply(ok) {
