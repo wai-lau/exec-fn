@@ -233,6 +233,10 @@ body::-webkit-scrollbar { display: none; }
   line-height: var(--lh-relaxed);
 }
 
+/* the bold lead-in keeps the original headline size; only the rest of the
+   blurb drops to bullet size */
+.cv-summary b { font-size: var(--fs-xl); }
+
 /* during the type-out the real blurb is hidden but stays in flow, reserving the
    final height so nothing below it bounces; recruiter.js paints the animated
    copy in an absolute overlay on top */
