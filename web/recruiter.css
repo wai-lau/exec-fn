@@ -184,7 +184,7 @@ body::-webkit-scrollbar { display: none; }
    its own line, centered to match the centered download pills. */
 .cv-contact {
   width: min(780px, 92vw);
-  margin: 0 auto var(--space-5);
+  margin: 0 auto;
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -195,12 +195,17 @@ body::-webkit-scrollbar { display: none; }
   text-align: center;
 }
 
+/* contact links sit OUTSIDE main.cv, so .cv a no longer reaches them — style
+   them here in the same Hack-blue link colour (hue 188) as the rest of the page. */
+.cv-contact a { color: var(--cv-cyan); text-decoration: none; }
+.cv-contact a:hover { text-decoration: underline; }
+
 /* download CTA, now in its own .cv-download block below the card (centered).
    Bottom gap lives in body padding-bottom (see above), not a trailing margin
    here — a collapsed trailing margin gets clipped from iOS's body scroll. */
 .cv-download {
   width: min(780px, 92vw);
-  margin: 0 auto;
+  margin: 0 auto var(--space-5);
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
@@ -301,6 +306,11 @@ body::-webkit-scrollbar { display: none; }
 }
 .cv-co { color: var(--cv-ink); font-weight: var(--fw-bold); font-size: var(--fs-xl); }
 .cv-role { color: var(--cv-green); font-size: var(--fs-xl); font-weight: var(--fw-bold); }
+
+/* Education head runs 2pt smaller than the job heads (requested) */
+.cv-edu-head .cv-co,
+.cv-edu-head .cv-role { font-size: calc(var(--fs-xl) - 2pt); }
+.cv-edu-head .cv-dates { font-size: calc(var(--fs-sm) - 2pt); }
 
 .cv-dates {
   margin-left: auto;
