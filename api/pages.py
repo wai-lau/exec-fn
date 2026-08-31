@@ -86,7 +86,7 @@ _NAV_ICONS = {
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
     "debug": "debug", "security": "sec", "graph": "graph", "emet": "emet", "ui": "UI",
-    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "hosaka": "hosaka", "printer": "printer", "recruiter": "cv",
+    "nightfall": "12AM", "mtg": "mtg", "tarot": "tarot", "hosaka": "hosaka", "printer": "FAB", "recruiter": "cv",
 }
 
 
@@ -275,11 +275,17 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     preconnect = _JSDELIVR_PRECONNECT if active in _JSDELIVR_PAGES else ""
     head_inject = preconnect + _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     nav = _build_nav(active, guest=guest)
+    # Non-full-height pages scroll at the document root, whose native scrollbar
+    # is top-layer and paints over the fixed bottom nav's right edge. Confine the
+    # scroll to a wrapper that stops at the nav top (.page-scroll in chrome.css)
+    # so the pill spans only the content area. full_height pages manage their own
+    # inner scrollers (body overflow:hidden) and don't get the wrapper.
+    body = content if full_height else '<div class="page-scroll">' + content + "</div>"
     # cyberpunk ambient fx on every page (nightfall composes separately and is
     # excluded; landing + graph inject the same _CRT_FX)
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _CRT_FX + content + nav + "</body>", 1))
+        .replace("</body>", _CRT_FX + body + nav + "</body>", 1))
 
 
 _tmpl_cache: dict[str, tuple[float, str]] = {}

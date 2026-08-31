@@ -363,6 +363,16 @@ body {
   * { scrollbar-width: thin; scrollbar-color: hsl(var(--green-hsl) / 0.45) transparent; }
 }
 
+/* Non-full-height pages scroll inside this wrapper, not the document root, so
+   the styled scrollbar spans only the content area and stops at the nav top —
+   the native root scrollbar is top-layer and would otherwise paint over the
+   fixed bottom nav's right edge. --nav-h is kept live by the nav ResizeObserver. */
+.page-scroll {
+  position: fixed;
+  inset: 0 0 var(--nav-h, 56px) 0;
+  overflow: hidden auto;
+}
+
 /* Nav */
 .exec-nav {
   position: fixed;
