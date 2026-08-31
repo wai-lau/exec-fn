@@ -12,14 +12,25 @@
   var de = document.documentElement;
   var btn = document.getElementById('cv-theme');
   var fxEls = [];
+  var fxZoomLoaded = false;
+  // The full site CRT stack, in the load-bearing DOM/paint order
+  // (bg -> lines -> blur -> crt -> scan) — the glass caches only while the
+  // one animated layer (.cyber-scan) is painted ABOVE it. Mirrors _CRT_FX in
+  // pages.py so dark mode matches every other page, not a 3-layer subset.
   function setFx(on) {
     if (on && !fxEls.length) {
-      ['cyber-bg', 'cyber-scan', 'cyber-lines'].forEach(function (cls) {
+      ['cyber-bg', 'cyber-lines', 'cyber-blur', 'cyber-crt', 'cyber-scan'].forEach(function (cls) {
         var d = document.createElement('div');
         d.className = cls;
         document.body.appendChild(d);
         fxEls.push(d);
       });
+      if (!fxZoomLoaded) {  // zoom-lock: keeps scanline size constant across browser zoom
+        var s = document.createElement('script');
+        s.src = '/crt-zoom.js?v=2';
+        document.body.appendChild(s);
+        fxZoomLoaded = true;
+      }
     } else if (!on && fxEls.length) {
       fxEls.forEach(function (d) { d.remove(); });
       fxEls = [];
