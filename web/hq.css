@@ -46,7 +46,7 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 .hq-col-hdr .hq-day-name { color: hsl(var(--green-hsl) / 0.8); font-size: var(--fs-sm); }
 .hq-col-hdr .hq-date { opacity: 0.45; font-size: var(--fs-2xs); }
-.hq-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; }
+.hq-col-hdr.today-hdr { border-bottom: none; position: relative; z-index: 8; text-align: center; }
 .hq-col-hdr.today-hdr .hq-day-name { color: hsl(var(--green-hsl)); }
 .hq-col.weekend .hq-col-hdr.today-hdr .hq-day-name { color: hsl(var(--cyan-hsl)); }
 
@@ -225,7 +225,71 @@ body.hq-dragging .hq-unschedule.drag-over {
   cursor: pointer; opacity: 0.5;
 }
 .dir-sub-del:hover { opacity: 1; }
-.dir-sub-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-2xs); line-height: var(--lh-snug); overflow-wrap: break-word; padding-left: var(--space-4); }
+.dir-sub-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-2xs); line-height: var(--lh-snug); overflow-wrap: break-word; }
 .dir-sub-meta { font-size: var(--fs-2xs); opacity: 0.6; margin-top: var(--space-px); white-space: nowrap; }
 
 /* .dir-sub-resize styled with .dir-resize above (bottom-right grip) */
+
+/* HQ horizontal layout: today (timeline) column on the left, the other 6 days
+   as full-width rows stacked to its right. Appended so these override the old
+   3-column :first/:last flex ratios on ties (source order). */
+.hq-colgroup.today-group { flex: 1.1; }
+
+.hq-rows {
+  flex: 1.5; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; gap: var(--space-px);
+  background: transparent;
+
+  /* keep the 6 day-rows above the fixed bottom nav (board is inset:0) */
+  padding-bottom: var(--nav-h);
+}
+
+/* .hq-row is also .hq-col (flex:1) so the 6 rows share the region height */
+.hq-row { flex-direction: row; }
+
+/* vertical-text day label spine (matches .dir-spine-title's rotation) */
+.hq-row-label {
+  flex-shrink: 0; width: 16px; box-sizing: border-box; padding: var(--space-0-5) 0;
+  display: flex; align-items: center; justify-content: center; gap: var(--space-1-5);
+  writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
+  font-family: var(--font-pixel); font-size: var(--fs-sm); text-transform: uppercase;
+  letter-spacing: var(--tracking-mega); color: hsl(var(--green-hsl) / 0.8);
+  white-space: nowrap; overflow: hidden;
+}
+.hq-row-label .hq-date { opacity: 0.45; font-size: var(--fs-2xs); }
+.hq-row.weekend .hq-row-label .hq-day-name { color: hsl(var(--cyan-hsl)); }
+
+/* cards flow horizontally inside a row, each a fixed width, filling row height.
+   .hq-list is a plain block (no display:flex), so set it here or cards stack. */
+.hq-list-row {
+  display: flex; flex-direction: row; overflow: auto hidden; min-width: 0;
+
+  /* tight left pad = small gap to the day-label spine on its right */
+  padding: var(--space-2) var(--space-2-5) var(--space-2) var(--space-0-5);
+  gap: var(--space-1-5); align-items: stretch;
+}
+
+/* basis = 1/3 of the row's content box so ≥3 cards are always visible; the cap
+   lets wider screens fit more, the rest scroll horizontally */
+.hq-list-row .hq-card {
+  flex: 0 0 calc((100% - var(--space-1-5) * 2) / 3); max-width: 150px;
+  min-width: 0; height: 100%; margin: 0;
+
+  /* anchor the due line to the bottom (see .hq-card-due below) */
+  padding-bottom: var(--space-5);
+}
+
+/* card text down to the timeline's size (--fs-2xs) — title + notes were --fs-sm */
+.hq-list-row .hq-card-title,
+.hq-list-row .hq-card-notes { font-size: var(--fs-2xs); }
+
+/* due date pinned to the card bottom: no "due" word, one line, small + bold */
+.hq-list-row .hq-card-meta {
+  position: absolute; left: var(--space-3); right: var(--space-3); bottom: var(--space-2);
+  margin: 0;
+}
+
+.hq-list-row .hq-due {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}

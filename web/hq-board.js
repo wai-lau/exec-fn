@@ -242,6 +242,21 @@ function dayCellHtml(day, today) {
   </div>`;
 }
 
+// A non-today day as a full-width ROW: a vertical-text day label spine on the
+// left, cards flowing horizontally to its right. data-day + #hq-list-<day> are
+// preserved so drag targeting (elementFromPoint) and Sortable are unchanged.
+function dayRowHtml(day, today) {
+  const dow = new Date(day + 'T12:00:00').getDay();
+  const isWeekend = dow === 0 || dow === 6;
+  const dayLabel = fmtDay(day).split(',')[0];
+  const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
+  const cards = weekData.days[day] || [];
+  return `<div class="hq-col hq-row${isWeekend?' weekend':''}" data-day="${day}">
+    <div class="hq-row-label"><span class="hq-day-name">${dayLabel}</span> <span class="hq-date">${dateLabel}</span></div>
+    <div class="hq-list hq-list-row" id="hq-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
+  </div>`;
+}
+
 function buildBoard() {
   if (!weekData) return;
   const today = isoToday();
@@ -250,15 +265,12 @@ function buildBoard() {
   if (!weekData.days[today]) weekData.days[today] = [];
   const days = Object.keys(weekData.days).sort();
 
-  // three columns: today (timeline) | next 3 days | last 3 days — full week
-  const groups = [days.slice(0, 1), days.slice(1, 4), days.slice(4, 7)];
-  let html = '';
-  groups.forEach((groupDays, gi) => {
-    const small = gi >= 1;
-    html += `<div class="hq-colgroup${small?' small':''}">`;
-    html += groupDays.map(day => dayCellHtml(day, today)).join('');
-    html += `</div>`;
-  });
+  // today (timeline) = tall column on the left; the other 6 days = full-width
+  // rows stacked to its right, each row's cards flowing horizontally. Pin today
+  // to the timeline explicitly (not days[0]) so it holds if the week view shifts.
+  const rest = days.filter(d => d !== today).slice(0, 6);
+  let html = `<div class="hq-colgroup today-group">${dayCellHtml(today, today)}</div>`;
+  html += `<div class="hq-rows">${rest.map(day => dayRowHtml(day, today)).join('')}</div>`;
 
   document.getElementById('hq-board').innerHTML = html;
   initSortable(days);
