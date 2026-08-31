@@ -143,10 +143,10 @@
   --font-ui:     system-ui, sans-serif;                  /* recruiter light page */
 
   /* ── Type: size (rem) — 4 steps; fluid clamp() sizes stay bespoke ─────── */
-  --fs-2xs:   0.6rem;    /* meta / dim labels */
-  --fs-sm:    0.72rem;   /* the body default (live count on /UI) */
-  --fs-xl:    1rem;      /* emphasis / titles */
-  --fs-3xl:   1.7rem;    /* display */
+  --fs-2xs:   0.85rem;   /* meta / dim labels — +3pt (0.25rem) 2026-08-31 */
+  --fs-sm:    0.97rem;   /* the body default (live count on /UI) — +3pt */
+  --fs-xl:    1.25rem;   /* emphasis / titles — +3pt */
+  --fs-3xl:   1.95rem;   /* display — +3pt */
 
   /* ── Type: weight — normal + bold only ───────────────────────────────── */
   --fw-normal:   400;
