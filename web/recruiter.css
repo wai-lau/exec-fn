@@ -231,9 +231,24 @@ body::-webkit-scrollbar { display: none; }
   text-decoration: none;
 }
 
-/* wai-lau.net CTA — same pill as the download button, in Lizzie's pink */
-.cv-site { background: var(--cv-pink); }
-.cv-site:hover { background: var(--cv-pink-dk); }
+/* wai-lau.net CTA — light: a bold blue (Hack cyan) outline, no fill; dark keeps
+   the Lizzie's-pink fill pill. The 2px border is subtracted from the padding so
+   the outlined pill keeps the same outer size as the filled download button. */
+.cv-site {
+  background: transparent;
+  color: var(--cv-cyan);
+  border: 2px solid var(--cv-cyan);
+  padding: calc(var(--space-3) - 2px) calc(var(--space-8) - 2px);
+}
+.cv-site:hover { background: transparent; color: var(--cv-cyan-dk); border-color: var(--cv-cyan-dk); }
+
+html.cv-dark .cv-site {
+  background: var(--cv-pink);
+  color: var(--cv-bg);
+  border-color: transparent;
+  padding: var(--space-3) var(--space-8);
+}
+html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: transparent; }
 
 /* ── summary ──────────────────────────────────────────────────────────── */
 .cv-summary {
@@ -311,6 +326,24 @@ body::-webkit-scrollbar { display: none; }
 .cv-edu-head .cv-co,
 .cv-edu-head .cv-role,
 .cv-edu-head .cv-dates { font-size: var(--fs-sm); }
+
+/* Concordia gets its own line; B.Eng + Dean's List share the next row in a
+   nested NOWRAP flex (cv-edu-line2) — the outer head is flex-wrap:wrap, and a
+   plain sibling would let Dean's List wrap to a third line before B.Eng ever
+   shrinks. Inside the nowrap row, cv-role flexes with min-width:0 so its text
+   wraps internally on a narrow phone while Dean's List stays pinned right
+   (margin-left:auto, width:auto overriding the mobile .cv-dates width:100%). */
+.cv-edu-head { align-items: flex-start; }
+.cv-edu-head .cv-co { flex-basis: 100%; }
+
+.cv-edu-line2 {
+  flex-basis: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+.cv-edu-line2 .cv-role { flex: 1 1 auto; min-width: 0; }
+.cv-edu-line2 .cv-dates { margin-left: auto; width: auto; flex: 0 0 auto; }
 
 .cv-dates {
   margin-left: auto;
