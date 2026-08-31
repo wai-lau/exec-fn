@@ -25,6 +25,13 @@
   transition: background 0.15s, box-shadow 0.15s;
 }
 
+/* Link-bubble variant (non-planning pages, exec-link.js) sits UNDER the CRT fx
+   — behind the glass + scanlines — for the same in-the-screen look as the rest
+   of the chrome. The fx are pointer-events:none, so the tap still lands. On
+   rd/hq (the interactive chat bubble) the fx are at z-index:-1, so the default
+   --z-max keeps that bubble above them and this class isn't applied. */
+#exec-bubble.exec-under-fx { z-index: var(--z-bubble); }
+
 #exec-bubble:hover {
   background: hsl(var(--pink-hsl) / 0.25);
   box-shadow: 0 2px 22px hsl(var(--pink-hsl) / 0.25);
