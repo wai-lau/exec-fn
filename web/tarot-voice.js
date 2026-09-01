@@ -148,3 +148,8 @@ const tarotVoice = (() => {
 })();
 
 tarotVoice.mount();
+
+// Hold a presence socket so a reader at the table counts as a person on the
+// hosaka voice backend (the reader narrates through the same /ws/hosaka).
+// /tarot renders no count of its own -- it only contributes to /hosaka's.
+HosakaPresence.mount();
