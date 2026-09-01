@@ -149,12 +149,14 @@ async def _pump_to_client(ws, upstream, url, busy):
                 pass
 
 
-# Live presence: every open /hosaka tab holds a presence socket (separate from
-# the audio /ws/hosaka, which only opens on Speak -- and is also used by
-# /tarot + Exec voice, which never open this socket). This set is the source
-# of truth for the /hosaka page's "connected users" display only, NOT for the
-# GPU-mode kill-switch guard (see _audio_conns below); we re-broadcast the
-# count on every join/leave.
+# Live presence: every open /hosaka AND /tarot tab holds a presence socket
+# (separate from the audio /ws/hosaka, which only opens on Speak -- Exec voice
+# speaks over that one but never opens this). A /tarot reader is a person on the
+# voice backend, so they count even though /tarot renders no count of its own.
+# The broadcast {count} is the TOTAL including the receiving tab; each client
+# subtracts its own socket to show "N other people speaking". This set is the
+# source of truth for that display only, NOT for the GPU-mode kill-switch guard
+# (see _audio_conns below); we re-broadcast the count on every join/leave.
 _presence: set[WebSocket] = set()
 # Serializes broadcasts so two concurrent join/leave events can't interleave
 # their sends -- without this, a broadcast computed with a smaller/staler
