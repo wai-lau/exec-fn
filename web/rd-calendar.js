@@ -16,15 +16,25 @@ function _isoLocal(d) {
 // count -- they happened on their day, and a month with the finished work
 // erased reads as emptier than the month actually was. Exiled cards do not:
 // those were dropped, so nothing happened on that day at all.
+//
+// But an archived card only counts on a day that has ALREADY happened. Its day
+// here comes from due_date, and a card finished EARLY keeps a due_date in the
+// future -- so finished work drew itself onto a day where nothing is going to
+// happen. On a recurring card that also double-books the future: archiving one
+// clones the next occurrence as its own card, so the series was represented
+// twice from then on.
+//
 // Each value carries the dot's colour (category hue) AND
 // its length in circle-widths (importance), so the day reads as both a mix of
 // what's on it and how heavy it is -- not just how much.
 function calDots() {
   const m = {};
+  const today = _isoLocal(new Date());
   cards.forEach(c => {
     if (c.is_book || c.column === 'exile') return;
     const day = c.scheduled_day || (c.due_date ? c.due_date.slice(0, 10) : null);
     if (!day) return;
+    if (c.column === 'archives' && day > today) return;
     (m[day] = m[day] || []).push({color: dotColor(c), units: dotUnits(c)});
   });
   return m;
