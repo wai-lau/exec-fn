@@ -264,6 +264,17 @@ function closeZoom() {
   _msgInput.focus();
 }
 
+// Messages kept for the model but never drawn in the scrollback: the deal's
+// `[drew a ... spread; N cards face-down]` state record and the flip invite
+// the frontend writes alongside it (see drawSpread). Used by the reload replay
+// so a refresh doesn't resurrect the two lines the live deal suppressed.
+function isHiddenLine(m) {
+  if (m.role === 'user') return m.content.startsWith('[drew a ');
+  if (m.role === 'assistant')
+    return /^when you'?re ready,\s*turn the\s+\*{0,2}[\w ]+\*{0,2}\.?$/i.test(m.content.trim());
+  return false;
+}
+
 function addEventMsg(text) {
   if (text.startsWith('[opened /tarot')) {
     eventDebug.textContent = text;
@@ -315,16 +326,21 @@ async function drawSpread(type, frame = 'past_present_future') {
   renderSpread();
   renderSigSlot();
   const meta = spreadsMeta[spread.type];
-  // Phase 3 is deterministic: record the deal as an event marker and print the
-  // first-position flip invite ourselves. No model turn — the reader kept
-  // duplicating this line against the prompt's hard ban, so the frontend owns it.
+  // Phase 3 is deterministic: record the deal marker and the first-position
+  // flip invite ourselves. No model turn — the reader kept duplicating the
+  // invite against the prompt's hard ban, so the frontend owns it.
+  //
+  // Both are pushed to `messages` (the model needs the deal state + its own
+  // invite for continuity) but NEITHER is rendered: the deal turn already ends
+  // on "let me set the cards" and the cards are sitting there face-down, so
+  // echoing a bracketed state record and a second "turn the X" only repeats
+  // what the spread already says. `isHiddenLine` keeps them out of the
+  // reload replay too.
   const drewMarker = `[drew a ${meta?.label || spread.type} spread; ${spread.cards.length} cards face-down]`;
-  addEventMsg(drewMarker);
   messages.push({role: 'user', content: drewMarker});
   const firstPos = spread.cards[0]?.position;
   const label = framePosLabel(firstPos) || firstPos;
   const invite = `When you're ready, turn the **${label}**.`;
-  addMsg('assistant', invite);
   messages.push({role: 'assistant', content: invite});
   localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
   focusInput();

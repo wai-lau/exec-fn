@@ -246,7 +246,9 @@ if (!significator && messages.length) {
 
 if (messages.length) {
   for (const m of messages) {
-    if (m.role === 'user' && m.content.startsWith('[') && m.content.endsWith(']')) {
+    if (isHiddenLine(m)) {
+      continue; // deal marker + frontend flip invite: kept for the model, never drawn
+    } else if (m.role === 'user' && m.content.startsWith('[') && m.content.endsWith(']')) {
       addEventMsg(m.content);
     } else {
       addMsg(m.role, m.content);
