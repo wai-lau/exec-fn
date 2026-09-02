@@ -107,6 +107,7 @@
     const p = new Promise((resolve, reject) => {
       const scheme = location.protocol === "https:" ? "wss" : "ws";
       S.ws = new WebSocket(`${scheme}://${location.host}/ws/hosaka`);
+      const sock = S.ws; // this handler's own socket, for the onclose guard below
       S.ws.binaryType = "arraybuffer";
       S.ws.onopen = () => {
         if (S.opts.onConnState) S.opts.onConnState("connected");
@@ -118,6 +119,16 @@
       };
       S.ws.onclose = () => {
         if (S.opts.onConnState) S.opts.onConnState("disconnected");
+        // The socket died with an utterance still in flight (dropped network,
+        // proxy restart) — no {end}/{error} is coming. Consumers pace off the
+        // audio clock and wait on that terminal frame, so deliver a synthetic
+        // one rather than leaving them waiting forever. Only for the LIVE socket:
+        // a superseded one closing late must not fail the utterance that already
+        // moved to its replacement.
+        if (S.ws !== sock) return;
+        const cur = S.cur;
+        S.cur = null;
+        if (cur && cur.onStatus) cur.onStatus({ type: "error", detail: "voice connection lost" });
       };
       S.ws.onmessage = (e) => {
         if (typeof e.data === "string") {

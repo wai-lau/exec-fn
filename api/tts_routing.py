@@ -14,6 +14,19 @@ def pick_upstream(req, home: str, piper: str) -> str:
     return home
 
 
+def died_mid_utterance(conns: dict, busy: dict, url: str, upstream) -> bool:
+    """True iff an upstream stream just ended while an utterance was still in
+    flight on the LIVE connection for `url` -- i.e. the backend vanished without
+    sending its own {end}/{error} and the proxy must synthesize one.
+
+    Two things disqualify it. An utterance that already terminated (`busy` false)
+    needs nothing. And a connection that is no longer the one cached for `url`
+    was deliberately cut by _ws_dispatch to start a NEW utterance on a fresh
+    socket -- synthesizing an error for that superseded stream would abort the
+    utterance that replaced it."""
+    return conns.get(url) is upstream and bool(busy.get(url))
+
+
 def merge_voices(piper_voices: list[dict], home_voices: list[dict]) -> list[dict]:
     """Merge the two upstreams' voice lists: the piper voices come from the
     always-on piper upstream, everything else from the home box. Filtering each

@@ -20,7 +20,7 @@ from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
 from gpu_mode_client import fetch_mode, needs_user_confirm, switch_mode
 from pages import _render_page, _tmpl
 from routers import guest_protected, protected, public
-from tts_routing import merge_voices, pick_upstream
+from tts_routing import died_mid_utterance, merge_voices, pick_upstream
 
 # Docker bridge gateway -> host loopback :8123 (the SSH tunnel to the home box).
 _UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
@@ -136,17 +136,34 @@ async def gpu_mode_stream():
     })
 
 
-async def _pump_to_client(ws, upstream, url, busy):
-    async for msg in upstream:
-        if isinstance(msg, (bytes, bytearray)):
-            await ws.send_bytes(msg)
-        else:
-            await ws.send_text(msg)
+async def _pump_to_client(ws, conns, upstream, url, busy):
+    try:
+        async for msg in upstream:
+            if isinstance(msg, (bytes, bytearray)):
+                await ws.send_bytes(msg)
+            else:
+                await ws.send_text(msg)
+                try:
+                    if json.loads(msg).get("type") in ("end", "error"):
+                        busy[url] = False
+                except Exception:
+                    pass
+    finally:
+        # The upstream ended the stream. If an utterance was still in flight it
+        # died WITHOUT an {end}/{error} (home box crashed, tunnel dropped, GPU
+        # server restarted mid-sentence), and the client is waiting on a terminal
+        # frame that will never come -- /tarot paces its typewriter off the audio
+        # clock, so it spins forever with the text stuck part-revealed. Synthesize
+        # the missing frame so every consumer takes its normal error path.
+        if died_mid_utterance(conns, busy, url, upstream):
+            busy[url] = False
             try:
-                if json.loads(msg).get("type") in ("end", "error"):
-                    busy[url] = False
+                await ws.send_text(json.dumps(
+                    {"type": "error", "detail": "tts upstream closed mid-utterance"}))
             except Exception:
                 pass
+        if conns.get(url) is upstream:
+            conns.pop(url, None)  # dead connection; the next utterance reconnects
 
 
 # Live presence: every open /hosaka AND /tarot tab holds a presence socket
@@ -203,7 +220,7 @@ async def _ws_connect(conns, pumps, ws, url, busy):
         up = await websockets.connect(f"ws://{url}/v1/audio/stream", max_size=None)
         conns[url] = up
         busy[url] = False
-        pumps.append(asyncio.create_task(_pump_to_client(ws, up, url, busy)))
+        pumps.append(asyncio.create_task(_pump_to_client(ws, conns, up, url, busy)))
     return conns[url]
 
 
@@ -275,7 +292,10 @@ async def ws_tts(ws: WebSocket):
         _audio_conns.discard(ws)
         for t in pumps:
             t.cancel()
-        for up in conns.values():
+        # Snapshot: a cancelled pump's finally pops its own entry out of `conns`,
+        # and it gets to run during the awaits below -- iterating the live dict
+        # would raise "changed size during iteration".
+        for up in list(conns.values()):
             try:
                 await up.close()
             except Exception:
