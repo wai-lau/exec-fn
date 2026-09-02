@@ -66,7 +66,7 @@ function wheelReduced() {
 // from the front of the wheel to the SEAM, and DTH = (PI/2)/K puts that seam at
 // exactly 90 degrees -- edge-on, cos 0, already fully transparent -- so the ring
 // closes with no pop whatever K comes out to be. K therefore sets the count:
-// 2K-1 items are lit. The loop takes the largest K that neither collides the
+// up to 2K-1 items are lit, capped by n. The loop takes the largest K that neither collides the
 // front pair nor pushes the outermost lit item off the screen, which is what
 // makes "as many as will fit" an answer the page works out rather than a number
 // baked in: seven across a desktop, five on a phone where the same copy runs to
@@ -79,7 +79,14 @@ function wheelReduced() {
 function wheelGeometry() {
   var half = innerHeight / 2;
   var hs = wheelItems.map(function (el) { return el.offsetHeight; });
-  for (var k = Math.floor(wheelN / 2); k >= 1; k--) {
+  // K may reach n/2 but never pass it, or two offsets would name the same item.
+  // On an EVEN n that lands a spoke exactly on the seam, where cos is 0 and it
+  // is already invisible. On an ODD n the seam falls BETWEEN two slots, so K can
+  // round up: nothing ever rests there, and an item only crosses it at an
+  // opacity of a few hundredths behind 6-odd px of blur. Rounding up is worth
+  // it twice over -- it lights every item, and it narrows DTH, which tightens
+  // the front spacing (R sin DTH) at the same time.
+  for (var k = Math.ceil(wheelN / 2); k >= 1; k--) {
     var dth = Math.PI / 2 / k;
     var s1 = WHEEL_PERSPECTIVE / (WHEEL_PERSPECTIVE + 1 - Math.cos(dth));
     // Only the front pair can collide -- furthest apart in y, and both near full

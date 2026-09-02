@@ -94,7 +94,7 @@ body { overflow: hidden; height: 100vh; position: relative;
    at 2x the letters carry their own presence, and the airy spacing that suited
    a small line reads as a gap at this size. The nav code above keeps its wide
    caps -- it is a label, not prose. */
-.wheel-item .landing-blurb { font-family: var(--font-mono); font-size: calc(var(--fs-sm) * 2);
+.wheel-item .landing-blurb { font-family: var(--font-mono); font-size: calc(var(--fs-sm) * 2); font-weight: var(--fw-bold);
   line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
   color: hsl(var(--green-hsl)); text-shadow: 0 0 8px hsl(var(--green-hsl) / 0.8); }
 
