@@ -165,16 +165,50 @@ body { overflow: hidden !important; background: transparent !important; }
    outline for a slab and lose the distinction it exists to make. */
 .cal-d.today { border: 1px solid hsl(var(--green-hsl) / 0.8); }
 
-/* weekend column and the 7 days from today each darken one step; where they
-   overlap the two 0.45 blacks composite (~0.70) for the extra-dark cell —
-   stacked as gradients so the alphas stay on the snap scale. */
-.cal-d.we, .cal-d.cw { background: hsl(var(--bg-hsl) / 0.45); }
+/* Two independent washes, and a cell can carry both.
+
+   Weekend = cyan, the same signal HQ uses for a weekend (there it tints the
+   day NAME; the calendar has no names, so it tints the cell).
+
+   The 7 days from today LIGHTEN in phosphor green — this week is the live part
+   of the month, so it reads as lit rather than as the shadow it used to be.
+
+   Where they overlap the two tints stack as gradients, which keeps each on its
+   own snap-scale alpha instead of inventing a blended one. */
+.cal-d.we { background: hsl(var(--cyan-hsl) / 0.12); }
+.cal-d.cw { background: hsl(var(--green-hsl) / 0.12); }
 
 .cal-d.we.cw {
   background:
-    linear-gradient(hsl(var(--bg-hsl) / 0.45), hsl(var(--bg-hsl) / 0.45)),
-    linear-gradient(hsl(var(--bg-hsl) / 0.45), hsl(var(--bg-hsl) / 0.45));
+    linear-gradient(hsl(var(--cyan-hsl) / 0.12), hsl(var(--cyan-hsl) / 0.12)),
+    linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12));
 }
 
-.cal-dots { display: flex; align-items: center; justify-content: center; gap: var(--space-1); height: var(--space-2); }
-.cal-dots i { width: 6px; height: 6px; border-radius: var(--radius-round); background: hsl(var(--green-hsl) / 1); }
+/* One dot per card on the day. A dot's LENGTH is the card's importance — one
+   circle-width per size step (wisp 1 … commitment 4, see dotUnits) — so a day
+   shows its weight, not just its count.
+
+   Shape is a stadium: two semicircles with a rectangle between them, no seam.
+   That needs --radius-pill, NOT --radius-round: 50% is relative to each axis,
+   so it would draw a 4-wide dot as an ellipse (curved along its whole length)
+   instead of straight sides with round caps. At 1 unit the box is square and
+   the pill radius resolves to the same circle as before.
+
+   Dots never shrink (a squashed dot would misreport its size), so a very heavy
+   day is clipped at the cell edge rather than bleeding into its neighbours. */
+.cal-dots {
+  --cal-dot: 6px;  /* circle diameter = one unit of length */
+
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-1); height: var(--space-2); overflow: hidden;
+}
+
+.cal-dots i {
+  flex: 0 0 auto;
+  width: var(--cal-dot); height: var(--cal-dot);
+  border-radius: var(--radius-pill);
+  background: hsl(var(--green-hsl) / 1);
+}
+.cal-dots i.cal-u2 { width: calc(var(--cal-dot) * 2); }
+.cal-dots i.cal-u3 { width: calc(var(--cal-dot) * 3); }
+.cal-dots i.cal-u4 { width: calc(var(--cal-dot) * 4); }

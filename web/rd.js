@@ -312,15 +312,16 @@ function _isoLocal(d) {
 
 // one dot per card landing on a day: its scheduled_day, else its due date.
 // Books live on their own bar and carry no meaningful day; archived/exiled
-// cards are done with. Values are the dots' colors (category hue), so the
-// day reads as a mix of what's on it, not just how much.
+// cards are done with. Each value carries the dot's colour (category hue) AND
+// its length in circle-widths (importance), so the day reads as both a mix of
+// what's on it and how heavy it is -- not just how much.
 function calDots() {
   const m = {};
   cards.forEach(c => {
     if (c.is_book || c.column === 'archives' || c.column === 'exile') return;
     const day = c.scheduled_day || (c.due_date ? c.due_date.slice(0, 10) : null);
     if (!day) return;
-    (m[day] = m[day] || []).push(dotColor(c));
+    (m[day] = m[day] || []).push({color: dotColor(c), units: dotUnits(c)});
   });
   return m;
 }
@@ -335,7 +336,7 @@ function _calCellHtml(d, dots, todayMs) {
   const day = (dots[_isoLocal(d)] || []).slice(0, 5);
   return `<div class="${cls.join(' ')}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
-    <div class="cal-dots">${day.map(col => `<i style="background:${col}"></i>`).join('')}</div>
+    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}</div>
   </div>`;
 }
 
