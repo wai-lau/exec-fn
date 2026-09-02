@@ -47,14 +47,15 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=17">'
-_LANDING_SCRIPT = '<script src="/landing-wheel.js?v=2"></script>'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=18">'
+_LANDING_SCRIPT = '<script src="/landing-wheel.js?v=7"></script>'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
-# tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
-# (cyan) -> printer 206° (blue bitman tile) -> ui 226° (blue) -> mtg 261°
-# (purple) -> tarot 351° (pink).
-_LANDING_HUE_ORDER = ["recruiter", "hosaka", "graph", "nightfall", "printer", "ui", "mtg", "tarot"]
+# tile) -> security 36° (same orange, with a blue secondary that leans it
+# toward what follows) -> hosaka 50° (amber radar) -> graph 171° (teal) ->
+# nightfall 194° (cyan) -> printer 206° (blue bitman tile) -> ui 226° (blue) ->
+# mtg 261° (purple) -> tarot 351° (pink).
+_LANDING_HUE_ORDER = ["recruiter", "security", "hosaka", "graph", "nightfall", "printer", "ui", "mtg", "tarot"]
 
 # The name each section goes by, shown under its nav code. Not the code and not
 # a sentence -- the thing's own title. One per _LANDING_HUE_ORDER section.
@@ -67,6 +68,7 @@ _LANDING_BLURBS = {
     "mtg": "The Magician",
     "tarot": "Seventy-Eight Gates",
     "recruiter": "Resume",
+    "security": "Crawlers",
 }
 
 # One plain line under each title saying what the thing actually is.
@@ -79,6 +81,7 @@ _LANDING_DESCS = {
     "mtg": "Rules assistant for MtG.",
     "tarot": "Introspection from chaos.",
     "recruiter": "Everyone needs a plug.",
+    "security": "Someone's watching.",
 }
 _RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=25">'
 

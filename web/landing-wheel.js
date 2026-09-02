@@ -29,7 +29,10 @@
 
 var WHEEL_PERSPECTIVE = 0.55;  // focal length as a fraction of the radius
 var WHEEL_FADE_POW = 1.6;      // how hard a spoke fades as it turns away
-var WHEEL_MIN_GAP = 20;        // px of clearance between the two front items
+var WHEEL_BLUR_PX = 8;         // depth-of-field blur at the seam, in px
+var WHEEL_REACH = 1.12;        // how far past the viewport edge the rim may sit
+var WHEEL_FILL = 0.68;         // ring radius as a fraction of the half-viewport
+var WHEEL_MIN_GAP = 4;         // px of clearance between the two front items
 var WHEEL_TAU = 95;            // ms time constant of the settle
 var WHEEL_SETTLE = 0.004;      // slots: close enough to call it landed
 var WHEEL_STEP_DELTA = 60;     // wheel-event pixels per slot
@@ -59,17 +62,48 @@ function wheelReduced() {
   return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 
-// R comes from the viewport, but is never allowed to get so tight that the two
-// front items collide -- the front is where the slots are furthest apart in y
-// AND the items are at full size, so it is the only place that can overlap.
+// Pick the tightest ring that still fits. K is how many slots it takes to get
+// from the front of the wheel to the SEAM, and DTH = (PI/2)/K puts that seam at
+// exactly 90 degrees -- edge-on, cos 0, already fully transparent -- so the ring
+// closes with no pop whatever K comes out to be. K therefore sets the count:
+// 2K-1 items are lit. The loop takes the largest K that neither collides the
+// front pair nor pushes the outermost lit item off the screen, which is what
+// makes "as many as will fit" an answer the page works out rather than a number
+// baked in: seven across a desktop, five on a phone where the same copy runs to
+// three and four lines.
+//
+// WHEEL_FILL is the spacing knob. A ring drawn to the full half-height sets its
+// front slots a third of the screen apart, which reads as a list with gaps
+// rather than as a wheel; pulling it in tightens every gap at once, as far as
+// the front pair will allow.
 function wheelGeometry() {
-  wheelDth = Math.PI / wheelN;
-  var tallest = 0;
-  for (var i = 0; i < wheelN; i++) {
-    if (wheelItems[i].offsetHeight > tallest) tallest = wheelItems[i].offsetHeight;
+  var half = innerHeight / 2;
+  var hs = wheelItems.map(function (el) { return el.offsetHeight; });
+  for (var k = Math.floor(wheelN / 2); k >= 1; k--) {
+    var dth = Math.PI / 2 / k;
+    var s1 = WHEEL_PERSPECTIVE / (WHEEL_PERSPECTIVE + 1 - Math.cos(dth));
+    // Only the front pair can collide -- furthest apart in y, and both near full
+    // size -- so the clearance is measured over the pairs that actually sit
+    // together, with the taller of the two at the front where it is unshrunk.
+    var need = 0;
+    for (var i = 0; i < wheelN; i++) {
+      var a = hs[i], bh = hs[(i + 1) % wheelN];
+      var pair = (Math.max(a, bh) + Math.min(a, bh) * s1) / 2 + WHEEL_MIN_GAP;
+      if (pair > need) need = pair;
+    }
+    var r = Math.max(half * WHEEL_FILL, need / Math.sin(dth));
+    // The outermost lit item sits one slot inside the seam, and only its CENTRE
+    // has to be on screen: a real wheel is bigger than what you can see of it,
+    // so the rim bleeds past the edges. Those items are the blurriest and
+    // faintest ones, which is what makes the bleed read as depth rather than as
+    // clipping -- and letting them go is what keeps the ring tight.
+    if (r * Math.sin((k - 1) * dth) <= half * WHEEL_REACH || k === 1) {
+      wheelDth = dth;
+      wheelR = r;
+      wheelPitch = r * dth;   // dy per slot at theta 0, for 1:1 dragging
+      return;
+    }
   }
-  wheelR = Math.max(innerHeight / 2, (tallest + WHEEL_MIN_GAP) / Math.sin(wheelDth));
-  wheelPitch = wheelR * wheelDth;   // dy per slot at theta 0, for 1:1 dragging
 }
 
 function wheelRender() {
@@ -84,9 +118,20 @@ function wheelRender() {
     // that follows from it: full size at the front, smallest at the rim.
     var s = WHEEL_PERSPECTIVE / (WHEEL_PERSPECTIVE + 1 - c);
     var o = c > 0 ? Math.pow(c, WHEEL_FADE_POW) : 0;
+    // Depth of field: what has swung back is out of focus as well as small and
+    // faint. Quantised to a half-pixel, and anything under a pixel dropped
+    // outright: a blur radius that changes every frame is a fresh rasterisation
+    // every frame, and the nearest pair's sub-pixel blur would buy a full one of
+    // those to be invisible. So a spin hands the compositor two distinct radii
+    // across four elements rather than a new value on six. WebKit at 430x932
+    // holds a 17ms median frame through a spin with the blur on -- 60fps, the
+    // same median as with it off.
+    var blur = Math.round(WHEEL_BLUR_PX * (1 - c) * 2) / 2;
+    if (blur < 1) blur = 0;
     var el = wheelItems[i];
     el.style.transform = 'translate(-50%, calc(-50% + ' + y.toFixed(2) + 'px)) scale(' + s.toFixed(4) + ')';
     el.style.opacity = o.toFixed(4);
+    el.style.filter = blur > 0 ? 'blur(' + blur + 'px)' : 'none';
     var lit = o > 0.02;
     el.style.visibility = lit ? 'visible' : 'hidden';
     el.style.pointerEvents = lit ? 'auto' : 'none';

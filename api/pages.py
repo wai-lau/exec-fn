@@ -89,7 +89,7 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
-    "debug": "DBG", "security": "SEC", "graph": "GPH", "emet": "EMT", "ui": "UIX",
+    "debug": "DBG", "security": "BOT", "graph": "GPH", "emet": "EMT", "ui": "UIX",
     "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "recruiter": "CV",
 }
 
