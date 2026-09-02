@@ -1,0 +1,45 @@
+# wai-lau.net
+#
+# Almost every page here sits behind a login or a Turnstile challenge, so a
+# crawler that follows those links collects nothing but redirects to the two
+# login forms. The landing page and the résumé are the parts meant to be
+# found; everything else is listed here so a crawler doesn't spend its budget
+# discovering that for itself.
+#
+# AI/training crawlers are deliberately NOT blocked -- the résumé is published
+# to be read, and a separate User-agent block is the way to change that.
+
+User-agent: *
+
+# Full-auth pages (session cookie).
+Disallow: /rd
+Disallow: /hq
+Disallow: /debug
+Disallow: /emet
+
+# Guest-gated pages (Cloudflare Turnstile).
+Disallow: /UI
+Disallow: /graph
+Disallow: /hosaka
+Disallow: /mtg
+Disallow: /nightfall
+Disallow: /printer
+Disallow: /security
+Disallow: /tarot
+
+# These rules are PREFIXES, not paths, so "/printer" also covers the landing
+# page's own printer.png icon. A renderer fetches that, so allow it back --
+# longest match wins, and Allow wins a tie (RFC 9309).
+Allow: /printer.png
+
+# Login forms: nothing to index, and an indexed login only draws credential
+# noise to it.
+Disallow: /login
+Disallow: /guest
+Disallow: /guest-login
+
+# Machine surfaces -- JSON APIs, websockets, the data dir, the game bundle.
+Disallow: /api/
+Disallow: /ws/
+Disallow: /data/
+Disallow: /nightfall-game/
