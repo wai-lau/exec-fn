@@ -444,6 +444,21 @@ async function load() {
 window.addEventListener('resize', _syncRemH);
 window.addEventListener('resize', _syncBooksH);
 window.addEventListener('resize', buildCalendar);
+
+// The bar heights are published as CSS vars that the calendar anchors to and
+// the board offsets by, but they were only ever measured at build time and on
+// resize. A bar that reflows AFTER the build — the bit webfont landing and
+// changing chip height is the everyday one — left the vars holding a height the
+// bar no longer had, so the calendar sat that many px below the reminders with
+// a dead gap between them (6px, measured). No resize event fires for a reflow,
+// so watch the elements themselves; same idiom the nav uses for --nav-h.
+if (typeof ResizeObserver !== 'undefined') {
+  const ro = new ResizeObserver(() => { _syncRemH(); _syncBooksH(); });
+  for (const id of ['reminders-bar', 'books-bar']) {
+    const el = document.getElementById(id);
+    if (el) ro.observe(el);
+  }
+}
 // exec bubble changed cards -> reload live
 window.addEventListener('exec:cards-changed', () => load());
 

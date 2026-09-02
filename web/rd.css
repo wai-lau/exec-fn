@@ -144,20 +144,25 @@ body { overflow: hidden !important; background: transparent !important; }
   color: hsl(var(--green-hsl) / 0.45);
 }
 
-/* hairline grid: each cell draws its own right + bottom rule, so the last row
-   supplies the bar's bottom edge and the last column has no dangling stub */
+/* grid: each cell draws its own right + bottom rule, so the last row supplies
+   the bar's bottom edge and the last column has no dangling stub. 5px, not a
+   hairline — at 0.12 the 1px rules read as noise against the scanlines and the
+   month lost its grid; the weight is what makes it legible, so it stays in the
+   border width rather than climbing the alpha scale. */
 .cal-d {
   box-sizing: border-box;
   padding: var(--space-2) 0;
   text-align: center;
-  border-right: 1px solid hsl(var(--green-hsl) / 0.12);
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-right: 5px solid hsl(var(--green-hsl) / 0.12);
+  border-bottom: 5px solid hsl(var(--green-hsl) / 0.12);
 }
 .cal-d:nth-child(7n) { border-right: none; }
 
 /* today: a full bright rule on all four sides — the one cell that outlines
    itself (after the :nth-child reset above so a Saturday today keeps its
-   right edge) */
+   right edge). Stays a 1px hairline: it reads as today because it is BRIGHT
+   (0.8 vs 0.12), and thickening it to match the grid would trade that crisp
+   outline for a slab and lose the distinction it exists to make. */
 .cal-d.today { border: 1px solid hsl(var(--green-hsl) / 0.8); }
 
 /* weekend column and the 7 days from today each darken one step; where they
