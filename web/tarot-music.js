@@ -12,17 +12,19 @@
 // reliably-playing <audio>. el.volume is then used ONLY for the desktop
 // fade-in (0 -> 1); iOS ignores it and simply starts at the file's level.
 //
-// LEVEL: measure it, don't eyeball the multiplier. v3 was the source cut by
-// 0.15, which sounded like a safe "15% bed" but landed the file at -31.8 dBFS
-// mean / -16.2 dB peak -- roughly 16 dB under a normal bed, i.e. inaudible on
-// desktop speakers, which read as "the music isn't playing at all" (it was:
-// paused=false, clock advancing, in all three engines). v4 is that same cut
-// +10 dB -> -21.8 dBFS mean / -6.0 dB peak: audible under the reader, still
-// well clear of clipping. Re-bake from the archived 0.15 master with
-// `ffmpeg -i <master> -af volume=NdB -c:a aac -b:a 128k -movflags +faststart`
-// and check with `-af volumedetect` -- the file is gitignored (58MB), so the
-// only copy of a level lives on the server.
-const TAROT_MUSIC_SRC = "/tarot-ambient.m4a?v=4"; // -21.8 dBFS mean (see above)
+// LEVEL: v3, the source cut by 0.15, measures -31.8 dBFS mean / -16.2 dB peak.
+// That reads as silent on desktop speakers -- a "the music isn't playing"
+// report that turned out to be the music playing (paused=false, clock
+// advancing, no media error, in chromium/firefox/webkit alike). A v4 re-bake at
+// +10 dB (-21.8 dBFS mean) fixed the audibility and went too far the other way:
+// it drowned the reader, so v3 is what ships. The bed is meant to sit UNDER the
+// narration; whatever replaces it has to clear the desktop noise floor without
+// competing with a voice, and the gap between those two is narrower than +10 dB.
+// Re-bake from the archived 0.15 master (`~/tarot-ambient-0.15-orig.m4a` --
+// the track is gitignored at 58MB, so the server holds the only copy of any
+// level) with `ffmpeg -i <master> -af volume=NdB -c:a aac -b:a 128k
+// -movflags +faststart`, measure with `-af volumedetect`, and bump ?v=.
+const TAROT_MUSIC_SRC = "/tarot-ambient.m4a?v=3"; // -31.8 dBFS mean (see above)
 const LS_MUSIC = "tarot.music"; // "0" = user stopped it; default on
 const FADE_MS = 4000; // first-start fade-in duration (desktop only)
 
