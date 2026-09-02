@@ -93,8 +93,18 @@ body { overflow: hidden; height: 100vh; position: relative;
   line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
   color: hsl(var(--green-hsl)); text-shadow: 0 0 8px hsl(var(--green-hsl) / 0.8); }
 
-/* line 2 — the description: dimmer, flat, no glow */
-.wheel-item .landing-sub { font-family: var(--font-mono); font-size: calc(var(--fs-2xs) * 2);
+/* line 2 — the description: dimmer, flat, no glow.
+
+   Sized to stay on ONE line. The copy column is the viewport minus a fixed
+   icon, so its width tracks vw closely enough that a vw-based size holds the
+   same characters-per-line at any width -- 3.1vw is what the longest
+   description ("Files and functions as nodes, referenced by edges.", 50 chars)
+   needs at 430px. The 2x cap keeps it from growing past the title's weight on
+   a desktop, where the column is wide enough that it fits regardless. A
+   description longer than ~50 characters will wrap again; shorten the copy or
+   lower the vw figure. */
+.wheel-item .landing-sub { font-family: var(--font-mono);
+  font-size: min(calc(var(--fs-2xs) * 2), 3.1vw);
   line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
   color: hsl(var(--green-hsl) / 0.8); }
 

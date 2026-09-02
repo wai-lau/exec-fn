@@ -202,6 +202,11 @@ function wheelOnScroll(e) {
   if (steps > WHEEL_MAX_BURST) steps = WHEEL_MAX_BURST;
   if (steps < -WHEEL_MAX_BURST) steps = -WHEEL_MAX_BURST;
   wheelAcc -= steps * WHEEL_STEP_DELTA;
+  // Past the cap there is unspent delta left over -- a single 1000px flick banks
+  // enough for three more bursts, and a trackpad's momentum train would cash it
+  // in and spin the wheel half way round. Only a capped event can leave a whole
+  // slot behind, so that is exactly the case this drops.
+  if (Math.abs(wheelAcc) >= WHEEL_STEP_DELTA) wheelAcc = 0;
   wheelStep(steps);
 }
 
