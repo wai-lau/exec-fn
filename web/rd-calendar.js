@@ -27,15 +27,53 @@ function _isoLocal(d) {
 // Each value carries the dot's colour (category hue) AND
 // its length in circle-widths (importance), so the day reads as both a mix of
 // what's on it and how heavy it is -- not just how much.
+// A recurring card exists as exactly ONE live occurrence -- archiving it is what
+// clones the next -- so the months ahead read empty even though a weekly series
+// will land in them every week. Project each LIVE recurring card forward from
+// its own day, out to this horizon, and dot the projections like the real thing:
+// same commitment, just not instantiated yet. Past occurrences are never
+// projected -- the archived cards already hold those.
+const _RECUR_HORIZON_MONTHS = 2;
+
+// One recurrence step, mirroring helpers._advance_recurrence on the server so
+// the two never disagree about where the next one lands. Day-of-month is
+// CLAMPED: a 31st stepping into a 30-day month lands on the 30th, where
+// new Date(y, mo, 31) would roll over into the next month instead.
+function _advanceRecur(d, type) {
+  const y = d.getFullYear(), mo = d.getMonth(), dom = d.getDate();
+  if (type === 'week') return new Date(y, mo, dom + 7);
+  if (type === 'bi-week') return new Date(y, mo, dom + 14);
+  if (type === 'month') {
+    const ny = mo < 11 ? y : y + 1, nm = (mo + 1) % 12;
+    return new Date(ny, nm, Math.min(dom, new Date(ny, nm + 1, 0).getDate()));
+  }
+  // Annual, so nothing inside a two-month horizon -- kept for parity with the
+  // server's step table rather than for what it contributes here.
+  if (type === 'holiday' || type === 'birthday') return new Date(y + 1, mo, dom);
+  return null;
+}
+
 function calDots() {
   const m = {};
-  const today = _isoLocal(new Date());
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const today = _isoLocal(now);
+  const horizon = new Date(now.getFullYear(), now.getMonth() + _RECUR_HORIZON_MONTHS, now.getDate());
   cards.forEach(c => {
     if (c.is_book || c.column === 'exile') return;
     const day = c.scheduled_day || (c.due_date ? c.due_date.slice(0, 10) : null);
     if (!day) return;
     if (c.column === 'archives' && day > today) return;
-    (m[day] = m[day] || []).push({color: dotColor(c), units: dotUnits(c)});
+    const dot = {color: dotColor(c), units: dotUnits(c)};
+    (m[day] = m[day] || []).push(dot);
+    if (!c.recur_type || c.column === 'archives') return;
+    const [yy, mm, dd] = day.split('-').map(Number);
+    let cur = new Date(yy, mm - 1, dd);   // built from parts: "2026-09-03" parses as UTC
+    for (let i = 0; i < 64 && cur; i++) {
+      cur = _advanceRecur(cur, c.recur_type);
+      if (!cur || cur > horizon) break;
+      const k = _isoLocal(cur);
+      (m[k] = m[k] || []).push(dot);
+    }
   });
   return m;
 }

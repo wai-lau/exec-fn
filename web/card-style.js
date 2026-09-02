@@ -73,9 +73,23 @@ function chipStyle(c) {
 
 /* Calendar dot colour — the pure category hue at full opacity (same token the
    card title text uses), green for an uncategorized card. */
+/* Two of the four category hues are adjacent warms -- Marigold 33 and Coral 8,
+   both at L 68% -- which a card can carry (it has a title, a column, a size) but
+   a dot cannot: a wisp is ~4px of pure hue under the phosphor wash, with nothing
+   else to read it by. So the dot palette pulls Hobby off Coral and onto Ember
+   and separates the pair by VALUE as well as hue: bright Marigold at full alpha
+   against deep Ember (L 50%) at 0.8. Both pairs are already in the palette
+   baseline, so this adds no colour to the system.
+
+   Dots only -- the cards keep their Coral. */
+const _DOT_COLOR = {
+  interfacing: 'hsl(var(--orange-hsl) / 1)',
+  hobby: 'hsl(var(--orange-glow-hsl) / 0.8)',
+};
 function dotColor(c) {
   const cat = _catKey(c);
-  return cat ? `var(--card-${cat}-text)` : 'hsl(var(--green-hsl) / 1)';
+  if (!cat) return 'hsl(var(--green-hsl) / 1)';
+  return _DOT_COLOR[cat] || `var(--card-${cat}-text)`;
 }
 
 /* Calendar dot LENGTH, in circle-widths: the card's importance (`size`), not
