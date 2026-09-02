@@ -72,6 +72,16 @@ function dotColor(c) {
   return cat ? `var(--card-${cat}-text)` : 'hsl(var(--green-hsl) / 1)';
 }
 
+/* Calendar dot LENGTH, in circle-widths: the card's importance (`size`), not
+   its duration -- estimated_time is a separate field and never feeds this. One
+   circle for a wisp up to four for a commitment, so a day reads its WEIGHT at a
+   glance instead of just how many cards landed on it. An unset/unknown size
+   falls back to `idea`, the schema default for a new card. */
+const _DOT_UNITS = {wisp: 1, idea: 2, plan: 3, commitment: 4};
+function dotUnits(c) {
+  return _DOT_UNITS[c.size] || _DOT_UNITS.idea;
+}
+
 /* Book progress-bar colors — category hue at the standard track/fill alphas
    (green for an uncategorized book). */
 function bookBarColors(c) {
