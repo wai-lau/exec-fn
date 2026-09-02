@@ -150,6 +150,7 @@ body { overflow: hidden !important; background: transparent !important; }
    month lost its grid; the weight is what makes it legible, so it stays in the
    border width rather than climbing the alpha scale. */
 .cal-d {
+  position: relative;
   box-sizing: border-box;
   padding: var(--space-2) 0;
   text-align: center;
@@ -158,31 +159,36 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 .cal-d:nth-child(7n) { border-right: none; }
 
-/* today: a full bright rule on all four sides — the one cell that outlines
-   itself (after the :nth-child reset above so a Saturday today keeps its
-   right edge). Stays a 1px hairline: it reads as today because it is BRIGHT
-   (0.8 vs 0.12), and thickening it to match the grid would trade that crisp
-   outline for a slab and lose the distinction it exists to make. */
-.cal-d.today { border: 1px solid hsl(var(--green-hsl) / 0.8); }
-
-/* Two independent washes, and a cell can carry both.
-
-   Weekend = cyan, the same signal HQ uses for a weekend (there it tints the
-   day NAME; the calendar has no names, so it tints the cell).
-
-   The 7 days from today LIGHTEN in phosphor green — this week is the live part
-   of the month, so it reads as lit rather than as the shadow it used to be.
-
-   Where they overlap the two tints stack as gradients, which keeps each on its
-   own snap-scale alpha instead of inventing a blended one. */
-.cal-d.we { background: hsl(var(--cyan-hsl) / 0.12); }
-.cal-d.cw { background: hsl(var(--green-hsl) / 0.12); }
-
-.cal-d.we.cw {
-  background:
-    linear-gradient(hsl(var(--cyan-hsl) / 0.12), hsl(var(--cyan-hsl) / 0.12)),
-    linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12));
+/* today: a bright 1px box, drawn as an overlay rather than as this cell's
+   border. A `border` override would REPLACE the 5px grid rules on this one
+   cell — punching a thin spot in the grid, and leaving the bright line riding
+   the outer edge of a 5px band so it read as shifted ~4px right and down.
+   Absolutely positioned at inset:0, the overlay is laid out against the
+   PADDING box, so it lands exactly on the cell's visual interior: flush to the
+   neighbouring rules above and left, flush to its own (still 5px) rules right
+   and below. It stays a 1px hairline — today reads as today by being BRIGHT
+   (0.8 vs the grid's 0.12), and thickening it to match would trade a crisp
+   outline for a slab. */
+.cal-d.today::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid hsl(var(--green-hsl) / 0.8);
+  pointer-events: none;
 }
+
+/* Weekend = a cyan DATE, exactly what HQ does (it tints the day name, and the
+   date shares that hue). Nothing else about the cell changes, so the two
+   markers stay independent: colour says which days are the weekend, the wash
+   below says which week is live, and a weekend inside this week shows both
+   without either having to composite. Note the out-of-month cells are blank,
+   so a weekend column no longer runs unbroken past the end of the month —
+   there is no date there to colour. */
+.cal-d.we .cal-n { color: hsl(var(--cyan-hsl) / 0.45); }
+
+/* The 7 days from today LIGHTEN in phosphor green — this week is the live part
+   of the month, so it reads as lit rather than as the shadow it used to be. */
+.cal-d.cw { background: hsl(var(--green-hsl) / 0.12); }
 
 /* One dot per card on the day. A dot's LENGTH is the card's importance — one
    circle-width per size step (wisp 1 … commitment 4, see dotUnits) — so a day
