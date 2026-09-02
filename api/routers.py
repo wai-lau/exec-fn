@@ -15,8 +15,12 @@ public = APIRouter()
 protected = APIRouter(dependencies=[Depends(require_auth)])
 guest_protected = APIRouter(dependencies=[Depends(require_guest_auth)])
 
-# nightfall gamesave API is guest-accessible (the game itself is guest-playable);
-# slots are allowlisted so guest write access can't traverse the data dir.
+# nightfall gamesave API is guest-accessible (the game itself is guest-playable).
+# Guest WRITE access to a shared store is only safe because the slots are scoped
+# per caller (gamesave_store): the owner's save is permanent at the original
+# paths, each guest gets its own set keyed to an nf_save cookie. Slot names are
+# still allowlisted, and the guest path component is a sha256 digest, so neither
+# can traverse the data dir.
 guest_protected.include_router(nightfall_game)
 protected.include_router(chat_router)
 guest_protected.include_router(mtg_router)

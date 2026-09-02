@@ -92,6 +92,7 @@ flowchart LR
   chat_actions["chat_actions.py<br/>(follow-up action diff)"]
   routes_chat["routes_chat.py"]
   routes_night["routes_nightfall.py"]
+  gamesave["gamesave_store.py<br/>(per-caller save slots)"]
   gcal["gcal.py"]
 
   main --> pipeline
@@ -106,6 +107,7 @@ flowchart LR
   main --> mtgr["mtg.routes"]
   main --> tarr["tarot.routes"]
 
+  routes_night --> gamesave
   routes_chat --> auth
   routes_chat --> chat
   routes_chat --> chat_tools

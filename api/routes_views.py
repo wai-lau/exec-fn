@@ -22,7 +22,7 @@ from pages import (
 )
 from helpers import DATA_DIR
 from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, TURNSTILE_SITE_KEY, API_KEY, verify_turnstile
-from routes_nightfall import build_nightfall_html
+from routes_nightfall import build_nightfall_html, save_identity, set_guest_cookie
 from security import render_security, load_security_data
 
 
@@ -339,7 +339,16 @@ async def nightfall_page(request: Request):
         "</script>"
     )
     page = page.replace("</body>", _build_nav("nightfall", guest=not is_full_auth) + _nf_script + "</body>", 1)
-    return HTMLResponse(page)
+    resp = HTMLResponse(page)
+    # Mint the guest's save id HERE rather than lazily in the API. wai-save-sync.js
+    # fires its three slot POSTs in parallel the moment the page loads, and a
+    # cookie-less gamesave request mints its own id -- three simultaneous ones
+    # would scatter a single guest's slots across three buckets. Stamping it on
+    # the page guarantees the cookie exists before any /api/gamesave call runs.
+    gid, minted = save_identity(request)
+    if minted:
+        set_guest_cookie(resp, gid)
+    return resp
 
 
 # ── read-only view data ─────────────────────────────────────────────────────
