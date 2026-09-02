@@ -264,7 +264,7 @@ body { overflow: hidden !important; background: transparent !important; }
   font-family: var(--font-mono); font-weight: var(--fw-bold);
   font-size: min(var(--cal-h, 200px), 26vw);
   line-height: var(--lh-none);
-  color: hsl(var(--green-hsl) / 0.45);
+  color: hsl(var(--green-hsl) / 0.12);
   text-shadow: 0 0 24px hsl(var(--green-hsl) / 0.45), 0 0 8px hsl(var(--green-hsl) / 0.12);
   pointer-events: none;
   white-space: nowrap;
