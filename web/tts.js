@@ -301,7 +301,11 @@ async function speak() {
 // same presence socket). Socket + backoff live in hosaka-presence.js.
 function mountPresence() {
   const el = $("tts-presence");
-  if (!el) return;
+  // The count is cosmetic, so a missing module must never throw here: an
+  // exception in this handler would skip everything after it, and checkHealth()
+  // used to be after it -- leaving `health` at its false default, which greys
+  // out every voice and shows the page as offline while the box is up.
+  if (!el || typeof HosakaPresence === "undefined") return;
   HosakaPresence.mount((n) => {
     el.textContent = n === 1 ? "1 other person speaking" : n + " other people speaking";
   });
@@ -312,8 +316,8 @@ window.addEventListener("DOMContentLoaded", () => {
   applyVolume();
   loadVoices();
   wave.start(); // always-on scope -- flat baseline until audio plays
+  checkHealth(); // before the cosmetics -- Speak must never wait on them
   mountPresence();
-  checkHealth();
   setInterval(checkHealth, 15000);
   $("tts-speak").addEventListener("click", () => {
     player.unlock(); // synchronous, in-gesture -- the iOS audio unlock
