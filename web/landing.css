@@ -78,7 +78,12 @@ body { overflow: hidden; height: 100vh; position: relative;
 
 /* right cell: the section's title stacked over its one-line description */
 .wheel-item .landing-copy { display: flex; flex-direction: column;
-  gap: var(--space-0-5); flex: 1 1 auto; min-width: 0; }
+  gap: var(--space-0-5); flex: 1 1 auto; min-width: 0;
+
+  /* size container for .landing-sub: the description is sized to fit one line,
+     and what it must fit inside is THIS column -- which caps at 500px, so a
+     vw-based size kept growing past it on desktop and wrapped again. */
+  container-type: inline-size; }
 
 /* Every item is painted at its full, lit treatment; depth is carried entirely
    by the per-item opacity the script writes, which multiplies through. Baking a
@@ -95,16 +100,15 @@ body { overflow: hidden; height: 100vh; position: relative;
 
 /* line 2 — the description: dimmer, flat, no glow.
 
-   Sized to stay on ONE line. The copy column is the viewport minus a fixed
-   icon, so its width tracks vw closely enough that a vw-based size holds the
-   same characters-per-line at any width -- 3.1vw is what the longest
-   description ("Files and functions as nodes, referenced by edges.", 50 chars)
-   needs at 430px. The 2x cap keeps it from growing past the title's weight on
-   a desktop, where the column is wide enough that it fits regardless. A
-   description longer than ~50 characters will wrap again; shorten the copy or
-   lower the vw figure. */
+   Sized to stay on ONE line, measured against the COLUMN (cqw), not the
+   viewport: the column caps at 500px, so a vw-based size kept growing past it
+   on a desktop and wrapped again. 3.7cqw is what the longest description
+   ("Files and functions as nodes, referenced by edges.", 50 chars) needs, and
+   because the unit is the container that ratio holds at every width. The 2x
+   cap stops it outgrowing the title. A description much longer than 50
+   characters will wrap again -- shorten the copy or lower the cqw figure. */
 .wheel-item .landing-sub { font-family: var(--font-mono);
-  font-size: min(calc(var(--fs-2xs) * 2), 3.1vw);
+  font-size: min(calc(var(--fs-2xs) * 2), 3.7cqw);
   line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
   color: hsl(var(--green-hsl) / 0.8); }
 
