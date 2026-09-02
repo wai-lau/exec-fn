@@ -172,6 +172,12 @@ body { overflow: hidden !important; background: transparent !important; }
   position: relative;
   box-sizing: border-box;
 
+  /* A 1fr track's min-width is auto, so a cell whose dots are wider than its
+     column silently WIDENS the column -- a busy day pushed the whole grid out
+     of square instead of overflowing. min-width:0 pins the seven columns equal
+     and lets the dot row overflow, which is what fitCalDots measures. */
+  min-width: 0;
+
   /* Clip the cell's wash to the padding box so it never tints the cell's OWN
      grid rules. A cell only draws its right + bottom rules, so with the default
      border-box clip a lit cell lightened those two but not the neighbours'
@@ -274,3 +280,11 @@ body { overflow: hidden !important; background: transparent !important; }
 .cal-dots i.cal-u2 { width: calc(var(--cal-dot) * 2); }
 .cal-dots i.cal-u3 { width: calc(var(--cal-dot) * 3); }
 .cal-dots i.cal-u4 { width: calc(var(--cal-dot) * 4); }
+
+/* "there are more than fit" — colour inherits the calendar's, so it reads as
+   part of the date's own row rather than as another dot. */
+.cal-more {
+  flex: 0 0 auto;
+  font-family: var(--font-bit); font-size: var(--fs-2xs);
+  line-height: var(--lh-none);
+}
