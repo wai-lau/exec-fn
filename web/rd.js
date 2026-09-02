@@ -337,7 +337,7 @@ function buildBoard() {
       group:'rd', animation:120, ghostClass:'sortable-ghost',
       delay: 300, delayOnTouchOnly: true,
       onStart: () => { dragging = true; document.getElementById('board').classList.add('drag-active'); document.body.classList.add('dragging-card'); },
-      onEnd: () => { document.getElementById('board').classList.remove('drag-active'); document.body.classList.remove('dragging-card'); setTimeout(() => { dragging = false; }, 50); save(); }
+      onEnd: () => { document.getElementById('board').classList.remove('drag-active'); document.body.classList.remove('dragging-card'); setTimeout(() => { dragging = false; }, 50); save().then(flushCalDrop); }   // a calendar drop POSTs after this save, never beside it
     });
   });
   document.querySelectorAll('.card').forEach(el => {

@@ -91,7 +91,9 @@ function _calCellHtml(d, dots, todayMs) {
   // on the row. The overflow marker ships with the cell (hidden) so the fitter
   // can measure with it in place instead of reflowing once to add it.
   const day = dots[_isoLocal(d)] || [];
-  return `<div class="${cls.join(' ')}">
+  // data-day marks the cell as a drop target (wireCalendarDrops); the
+  // out-of-month padding cells deliberately have none.
+  return `<div class="${cls.join(' ')}" data-day="${_isoLocal(d)}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
     <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}<b class="cal-more" hidden></b></div>
   </div>`;
@@ -140,7 +142,90 @@ function buildCalendar() {
   if (markEl) markEl.textContent = calOffset === 0 ? `> ${mm} <` : calOffset < 0 ? `${mm} >>` : `<< ${mm}`;
   el.innerHTML = html;
   fitCalDots();
+  wireCalendarDrops();
   _syncCalH();
+}
+
+// ── drop a card on a day ────────────────────────────────────────────────────
+// Each in-month cell is a Sortable list in the board's own 'rd' group, so
+// dragging a card onto a date is the same gesture as dragging it between
+// columns -- it just lands on a day instead. sort:false and an immediate
+// remove() in onAdd mean nothing ever actually lives in a cell; the card is
+// only passing through, and rd.css hides it while it hovers (a real card laid
+// into a 40px grid cell would resize the calendar mid-drag, which moves the
+// board under the finger).
+//
+// Only the board columns can drop here. The reminders bar is excluded on
+// purpose: its onRemove reads any exit as "no longer a reminder", so a chip
+// dropped on a date would silently clear the flag as well as set the date.
+let _calDrops = [];
+
+function wireCalendarDrops() {
+  _calDrops.forEach(s => s.destroy());
+  _calDrops = [];
+  if (typeof Sortable === 'undefined') return;
+  document.querySelectorAll('#rd-calendar .cal-d[data-day]').forEach(cell => {
+    _calDrops.push(Sortable.create(cell, {
+      sort: false,
+      group: {name: 'rd', pull: false, put: (to, from) => (from.el.id || '').startsWith('col-')},
+      onAdd: evt => {
+        evt.item.remove();
+        queueCalDrop(evt.item.dataset.id, cell.dataset.day);
+      },
+    }));
+  });
+}
+
+// The drop is POSTed only AFTER the board's own save() lands (rd.js chains
+// flushCalDrop onto it). Both writes touch the same card: save() sends every
+// card's {column, order} from the local array, where this one still reads as
+// the column it was dragged OUT of -- fired concurrently it could land last
+// and undo the promotion to hq. Sequenced, the board saves the stale column
+// and the drop then moves it for real.
+let _pendingCalDrop = null;
+
+function queueCalDrop(id, day) {
+  if (id && day) _pendingCalDrop = {id, day};
+}
+
+async function flushCalDrop() {
+  if (!_pendingCalDrop) return;
+  const {id, day} = _pendingCalDrop;
+  _pendingCalDrop = null;
+  let r;
+  try {
+    r = await fetch(`/api/rd/${id}/schedule`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date: day}),
+    });
+  } catch (e) {
+    calToast('offline — the drop did not save');
+    return load();
+  }
+  const body = await r.json().catch(() => ({}));
+  if (r.status === 409) calToast('active nudge — talk to Exec before moving this later');
+  else if (!r.ok) calToast(body.detail || 'could not schedule that');
+  else if (body.note) calToast(`due ${day} — beyond the week, waiting in r&d`);
+  await load();
+}
+
+// Only ever says something the drop itself doesn't already show: a refusal, or
+// a date too far out to have moved the card anywhere visible.
+let _calToastTimer = null;
+
+function calToast(msg) {
+  let el = document.getElementById('rd-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'rd-toast';
+    el.className = 'rd-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_calToastTimer);
+  _calToastTimer = setTimeout(() => el.classList.remove('show'), 3200);
 }
 
 // Dots are a single row that never wraps and never shrinks, so a busy day can

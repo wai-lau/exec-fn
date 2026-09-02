@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from card_schedule import _RESCHED_GUARD_MSG, apply_schedule, nudge_resched_blocked
 from helpers import (
     _load_rd, _save_rd, _find_card, _RD_LOCK,
     _append_rd_log, _DEFAULT_MINUTES, _now_et,
@@ -54,7 +55,7 @@ def _tool_create_card(input_: dict) -> dict:
 
     result = {"ok": True, "id": new_card["id"], "title": new_card["title"]}
     if input_.get("due_date") and not is_reminder:
-        sched = _apply_schedule(new_card["id"], input_["due_date"], input_.get("dir_start_min"))
+        sched = apply_schedule(new_card["id"], input_["due_date"], input_.get("dir_start_min"))
         result.update(sched)
     return result
 
@@ -149,46 +150,6 @@ def _tool_update_context(input_: dict) -> dict:
 
 
 
-def _apply_schedule(card_id: str, requested: str, dir_start_min: int | None = None) -> dict:
-    """Exec-chat scheduling: load/save wrapper around scheduler.schedule_to_day."""
-    from scheduler import schedule_to_day
-    with _RD_LOCK:
-        rd = _load_rd()
-        card = _find_card(rd, card_id)
-        if not card:
-            return {"error": f"Card not found: {card_id}"}
-        result = schedule_to_day(card, rd.get("cards", []), requested, dir_start_min=dir_start_min)
-        if "error" in result:
-            return result
-        _save_rd(rd)
-    if "due_date" in result:
-        _append_rd_log("updated", card["title"], source="Exec", fields=["due_date"])
-    else:
-        _append_rd_log("scheduled", card["title"], source="Exec", day=result["scheduled_day"])
-    return result
-
-
-_ACTIVE_NUDGE_STAGES = ("nudging", "awaiting", "stalled", "consequences")
-
-_RESCHED_GUARD_MSG = (
-    "This task has an active nudge loop — moving it later (or unscheduling it) is a "
-    "reschedule. Ask Wai what happens if it doesn't get done, call record_consequences "
-    "with the answer, then use reschedule_after_consequences."
-)
-
-
-def _nudge_resched_blocked(card: dict, requested: str | None) -> bool:
-    """Due dates are protected: an active-nudge card can't be deferred without the
-    consequences conversation. Same-day/earlier moves stay allowed."""
-    n = card.get("nudge") or {}
-    if n.get("stage") not in _ACTIVE_NUDGE_STAGES:
-        return False
-    if (n.get("consequences") or {}).get("answer"):
-        return False
-    cur = (card.get("scheduled_day") or "")[:10]
-    return requested is None or (requested or "")[:10] > cur
-
-
 def _tool_schedule_card(input_: dict) -> dict:
     card_id = input_.get("id", "")
     requested = input_.get("scheduled_day") or None
@@ -197,7 +158,7 @@ def _tool_schedule_card(input_: dict) -> dict:
         card = _find_card(rd, card_id)
         if not card:
             return {"error": f"Card not found: {card_id}"}
-        if _nudge_resched_blocked(card, requested):
+        if nudge_resched_blocked(card, requested):
             return {"error": _RESCHED_GUARD_MSG}
         if not requested:
             card["scheduled_day"] = None
@@ -205,7 +166,7 @@ def _tool_schedule_card(input_: dict) -> dict:
             _save_rd(rd)
             _append_rd_log("scheduled", card["title"], source="Exec", day=None)
             return {"ok": True, "id": card_id, "title": card.get("title", ""), "scheduled_day": None}
-        result = _apply_schedule(card_id, requested, input_.get("dir_start_min"))
+        result = apply_schedule(card_id, requested, input_.get("dir_start_min"))
     return {"ok": True, "id": card_id, **result}
 
 
@@ -262,7 +223,7 @@ def _tool_reschedule_after_consequences(input_: dict) -> dict:
         n["next_nudge_at"] = None
         n["window_deadline"] = None
         _save_rd(rd)
-        result = _apply_schedule(card["id"], new_date)
+        result = apply_schedule(card["id"], new_date)
     if "error" in result:
         return result
     return {"ok": True, "id": card["id"], "title": card["title"], **result}
