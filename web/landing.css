@@ -46,8 +46,11 @@ body { overflow: hidden; height: 100vh; position: relative;
    Starts hidden: the first render lands before paint, and until then all eight
    would be stacked on top of each other. */
 .wheel-item { position: absolute; left: 50%; top: 50%;
-  width: min(560px, 88vw);
-  display: flex; align-items: center; gap: var(--space-7);
+  width: min(560px, 96vw);
+
+  /* the copy gets every px going: at phone widths the type is ~30px, so one
+     more wrapped line per item is what decides whether five fit or seven */
+  display: flex; align-items: center; gap: var(--space-4);
   text-decoration: none;
   transform: translate(-50%, -50%);
 
@@ -62,7 +65,7 @@ body { overflow: hidden; height: 100vh; position: relative;
 
 /* left cell: icon stacked over label, fixed width so the blurbs share a margin */
 .wheel-item .landing-link { display: flex; flex-direction: column;
-  align-items: center; gap: var(--space-2); width: 64px; flex: 0 0 auto; }
+  align-items: center; gap: var(--space-2); width: 48px; flex: 0 0 auto; }
 
 .wheel-item img { width: 34px !important; height: 34px !important;
   border-radius: var(--radius-4);
@@ -75,7 +78,7 @@ body { overflow: hidden; height: 100vh; position: relative;
 
 /* right cell: the section's title stacked over its one-line description */
 .wheel-item .landing-copy { display: flex; flex-direction: column;
-  gap: var(--space-1-5); flex: 1 1 auto; min-width: 0; }
+  gap: var(--space-0-5); flex: 1 1 auto; min-width: 0; }
 
 /* Every item is painted at its full, lit treatment; depth is carried entirely
    by the per-item opacity the script writes, which multiplies through. Baking a
