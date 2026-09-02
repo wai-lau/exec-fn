@@ -139,9 +139,9 @@ body { overflow: hidden !important; background: transparent !important; }
   left: 0; right: 0;
   display: grid; grid-template-columns: repeat(7, 1fr);
   pointer-events: none;
-  font-family: var(--font-mono); font-size: var(--fs-xl); font-weight: var(--fw-bold);
+  font-family: var(--font-mono); font-size: calc(var(--fs-xl) * 1.5); font-weight: var(--fw-bold);
   line-height: var(--lh-none);
-  color: hsl(var(--green-hsl) / 0.45);
+  color: hsl(var(--green-hsl) / 0.8);
 }
 
 /* grid: each cell draws its own right + bottom rule, so the last row supplies
@@ -152,6 +152,14 @@ body { overflow: hidden !important; background: transparent !important; }
 .cal-d {
   position: relative;
   box-sizing: border-box;
+
+  /* Clip the cell's wash to the padding box so it never tints the cell's OWN
+     grid rules. A cell only draws its right + bottom rules, so with the default
+     border-box clip a lit cell lightened those two but not the neighbours'
+     rules on its left and top — the lit week ended up with a dark rule down one
+     side and a lit rule down the other. Clipped, every rule renders the same
+     0.12 whatever the cell behind it, and the lattice stays even. */
+  background-clip: padding-box;
   padding: var(--space-2) 0;
   text-align: center;
   border-right: 5px solid hsl(var(--green-hsl) / 0.12);
@@ -184,11 +192,21 @@ body { overflow: hidden !important; background: transparent !important; }
    without either having to composite. Note the out-of-month cells are blank,
    so a weekend column no longer runs unbroken past the end of the month —
    there is no date there to colour. */
-.cal-d.we .cal-n { color: hsl(var(--cyan-hsl) / 0.45); }
+.cal-d.we .cal-n { color: hsl(var(--cyan-hsl) / 0.8); }
 
 /* The 7 days from today LIGHTEN in phosphor green — this week is the live part
-   of the month, so it reads as lit rather than as the shadow it used to be. */
-.cal-d.cw { background: hsl(var(--green-hsl) / 0.12); }
+   of the month, so it reads as lit rather than as the shadow it used to be.
+
+   background-COLOR, not the `background` shorthand: the shorthand resets every
+   background-* longhand, which would silently undo .cal-d's padding-box clip
+   and put the wash back onto this cell's own grid rules. */
+.cal-d.cw { background-color: hsl(var(--green-hsl) / 0.12); }
+
+/* Québec statutory holiday (see qc-holidays.js for which days and why). Last of
+   the date-colour rules on purpose: same specificity as the weekend rule above,
+   so a holiday that lands on a weekend wins on source order. Pink 0.8 outranks
+   the weekend's 0.45 in weight too — a holiday is the louder fact. */
+.cal-d.hol .cal-n { color: hsl(var(--pink-hsl) / 0.8); }
 
 /* One dot per card on the day. A dot's LENGTH is the card's importance — one
    circle-width per size step (wisp 1 … commitment 4, see dotUnits) — so a day

@@ -333,6 +333,7 @@ function _calCellHtml(d, dots, todayMs) {
   const ahead = Math.round((d.getTime() - todayMs) / 86400000);
   if (ahead >= 0 && ahead <= 6) cls.push('cw');
   if (ahead === 0) cls.push('today');
+  if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(d)) cls.push('hol');
   const day = (dots[_isoLocal(d)] || []).slice(0, 5);
   return `<div class="${cls.join(' ')}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
