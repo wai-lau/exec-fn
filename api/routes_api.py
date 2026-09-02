@@ -191,7 +191,16 @@ def _apply_patch_schedule(new_cards, old_cards):
         old = old_cards.get(c.get("id"))
         if old and old.get("column") != c.get("column"):
             if old.get("column") == "hq" and c.get("column") != "hq":
-                c["scheduled_day"] = None
+                # Leaving hq drops the card off the week -- EXCEPT into archives,
+                # where the move means "done" and scheduled_day is the only
+                # record of the day it actually happened. Clearing it there sent
+                # the calendar back to due_date, so a card finished early (or
+                # rescheduled, then completed) drew on the wrong day or, once
+                # due_date was in the future, on no day at all. Inert elsewhere:
+                # get_week_data takes column == "hq", the morning rollover takes
+                # ("rd", "hq"), and nudges need decomposable() -> hq.
+                if c.get("column") != "archives":
+                    c["scheduled_day"] = None
                 c.pop("dir_start_min", None)
             elif c.get("column") == "hq" and old.get("column") != "hq":
                 # manual drag into hq: schedule on the card's due day (latest
