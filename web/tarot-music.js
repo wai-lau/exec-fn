@@ -4,14 +4,25 @@
 // independent of the WebAudio TTS pipeline (hosaka-audio.js); the two mix at the
 // OS level.
 //
-// VOLUME: the 15% bed level is BAKED INTO THE FILE (re-encoded at 0.15 gain).
-// iOS makes HTMLMediaElement.volume read-only (el.volume is a no-op) AND silences
-// any element routed through a WebAudio MediaElementSource -- so neither JS path
-// can attenuate the bed on iPhone. Baking it into the file is the only thing that
-// gives a quiet bed on BOTH desktop and iOS with a plain, reliably-playing
-// <audio>. el.volume is then used ONLY for the desktop fade-in (0 -> 1); iOS
-// ignores it and simply starts at the file's level.
-const TAROT_MUSIC_SRC = "/tarot-ambient.m4a?v=3"; // re-encoded at 15% (see above)
+// VOLUME: the bed level is BAKED INTO THE FILE, not set in JS. iOS makes
+// HTMLMediaElement.volume read-only (el.volume is a no-op) AND silences any
+// element routed through a WebAudio MediaElementSource -- so neither JS path
+// can attenuate the bed on iPhone. Baking it into the file is the only thing
+// that gives one predictable level on BOTH desktop and iOS with a plain,
+// reliably-playing <audio>. el.volume is then used ONLY for the desktop
+// fade-in (0 -> 1); iOS ignores it and simply starts at the file's level.
+//
+// LEVEL: measure it, don't eyeball the multiplier. v3 was the source cut by
+// 0.15, which sounded like a safe "15% bed" but landed the file at -31.8 dBFS
+// mean / -16.2 dB peak -- roughly 16 dB under a normal bed, i.e. inaudible on
+// desktop speakers, which read as "the music isn't playing at all" (it was:
+// paused=false, clock advancing, in all three engines). v4 is that same cut
+// +10 dB -> -21.8 dBFS mean / -6.0 dB peak: audible under the reader, still
+// well clear of clipping. Re-bake from the archived 0.15 master with
+// `ffmpeg -i <master> -af volume=NdB -c:a aac -b:a 128k -movflags +faststart`
+// and check with `-af volumedetect` -- the file is gitignored (58MB), so the
+// only copy of a level lives on the server.
+const TAROT_MUSIC_SRC = "/tarot-ambient.m4a?v=4"; // -21.8 dBFS mean (see above)
 const LS_MUSIC = "tarot.music"; // "0" = user stopped it; default on
 const FADE_MS = 4000; // first-start fade-in duration (desktop only)
 
