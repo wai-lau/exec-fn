@@ -79,12 +79,26 @@ function _compositeBg(el) {
   return cur;
 }
 
-// Due-soon dates: paint the text as the literal inverse of the card's composited
-// background (done post-insert so getComputedStyle sees the resolved tokens).
+// Due-soon (approaching, not yet late) dates: black on a light card, white on a
+// dark one. Done post-insert so getComputedStyle sees the resolved tokens, and
+// off the COMPOSITED background so a .card.plain -- whose colour comes from CSS
+// rather than an inline style -- is judged on what it actually looks like.
+//
+// This used to paint the literal inverse of that background, which is why an
+// approaching date on a green card came out RED: the inverse of phosphor green
+// is magenta. Only a LATE date is meant to be warm; approaching should read as
+// ordinary text.
 function paintDueSoonDates() {
+  // WCAG relative luminance; 0.179 is the crossover where black and white swap
+  // places as the higher-contrast choice.
+  const lin = (v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
   document.querySelectorAll('.card-due[data-invert]').forEach(el => {
     const bg = _compositeBg(el.closest('.card') || el);
-    el.style.color = `rgb(${Math.round(255 - bg.r)},${Math.round(255 - bg.g)},${Math.round(255 - bg.b)})`;
+    const L = 0.2126 * lin(bg.r) + 0.7152 * lin(bg.g) + 0.0722 * lin(bg.b);
+    el.style.color = L > 0.179 ? '#000' : '#fff';
   });
 }
 

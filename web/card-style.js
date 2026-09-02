@@ -38,7 +38,13 @@ function cardStyle(c) {
   const v = name => `var(--card-${cat}-${name})`;
   const text = `color:${v('text')};`;
   // books take their category/size tint like any card (no longer a dark slab)
-  if (c.size === 'wisp') {
+  //
+  // A REMINDER is always wisp, whatever its size says. It is a calendar alert,
+  // not work -- the lightest weight on the board is the honest one. It also
+  // fixes reminders imported from gcal with size:null, which fell past every
+  // branch below to the `else` and rendered as full COMMITMENT cards: the
+  // loudest thing on /hq, for a card that is only a note that a day exists.
+  if (c.is_reminder || c.size === 'wisp') {
     return {bg: `background:${v('wisp')};${text}`, border: 'border-color:transparent;', dark: true, solidBg: v('wisp-solid')};
   } else if (c.size === 'idea') {
     return {bg: `background:${v('idea')};${text}`, border: `border-color:${v('border')};`, dark: true, solidBg: v('idea-solid')};

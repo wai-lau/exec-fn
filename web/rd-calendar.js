@@ -12,14 +12,17 @@ function _isoLocal(d) {
 }
 
 // one dot per card landing on a day: its scheduled_day, else its due date.
-// Books live on their own bar and carry no meaningful day; archived/exiled
-// cards are done with. Each value carries the dot's colour (category hue) AND
+// Books live on their own bar and carry no meaningful day. ARCHIVED cards still
+// count -- they happened on their day, and a month with the finished work
+// erased reads as emptier than the month actually was. Exiled cards do not:
+// those were dropped, so nothing happened on that day at all.
+// Each value carries the dot's colour (category hue) AND
 // its length in circle-widths (importance), so the day reads as both a mix of
 // what's on it and how heavy it is -- not just how much.
 function calDots() {
   const m = {};
   cards.forEach(c => {
-    if (c.is_book || c.column === 'archives' || c.column === 'exile') return;
+    if (c.is_book || c.column === 'exile') return;
     const day = c.scheduled_day || (c.due_date ? c.due_date.slice(0, 10) : null);
     if (!day) return;
     (m[day] = m[day] || []).push({color: dotColor(c), units: dotUnits(c)});
@@ -35,10 +38,13 @@ function _calCellHtml(d, dots, todayMs) {
   if (ahead >= 0 && ahead <= 6) cls.push('cw');
   if (ahead === 0) cls.push('today');
   if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(d)) cls.push('hol');
-  const day = (dots[_isoLocal(d)] || []).slice(0, 5);
+  // Every dot is rendered; fitCalDots() decides afterwards how many actually fit
+  // on the row. The "+" ships with the cell (hidden) so the fitter can measure
+  // with it in place instead of reflowing once to add it.
+  const day = dots[_isoLocal(d)] || [];
   return `<div class="${cls.join(' ')}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
-    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}</div>
+    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}<b class="cal-more" hidden>+</b></div>
   </div>`;
 }
 
@@ -76,7 +82,41 @@ function buildCalendar() {
   // It leads the grid as a full-width row (see .cal-label).
   const name = shown.toLocaleDateString(undefined, {month: 'long', year: 'numeric'});
   el.innerHTML = `<div class="cal-label">${esc(name)}</div>` + html;
+  fitCalDots();
   _syncCalH();
+}
+
+// Dots are a single row that never wraps and never shrinks, so a busy day can
+// hold more than the cell is wide. Show as many whole dots as fit and mark the
+// remainder with a trailing "+" -- a clipped half-dot would misreport a card's
+// size, which is the one thing the dot's length is for.
+//
+// Measured rather than counted: dots are 1-4 units wide, so "how many fit" has
+// no fixed answer, and the cell width moves with the viewport.
+// Span of the visible children vs the row's own width. NOT scrollWidth: the row
+// is justify-content:center, so overflow spills out BOTH sides and scrollWidth
+// never reports it -- it read "fits" for a row nine dots too wide.
+function _dotsFit(row) {
+  const kids = [...row.children].filter(k => !k.hidden);
+  if (!kids.length) return true;
+  const first = kids[0].getBoundingClientRect();
+  const last = kids[kids.length - 1].getBoundingClientRect();
+  return (last.right - first.left) <= row.getBoundingClientRect().width + 0.5;
+}
+
+function fitCalDots() {
+  document.querySelectorAll('#rd-calendar .cal-dots').forEach(row => {
+    const more = row.querySelector('.cal-more');
+    const dots = [...row.querySelectorAll('i')];
+    dots.forEach(d => { d.hidden = false; });
+    if (more) more.hidden = true;
+    if (_dotsFit(row)) return;                 // everything fits as-is
+    if (more) more.hidden = false;             // from here on, measure WITH the "+"
+    for (let i = dots.length - 1; i >= 0; i--) {
+      dots[i].hidden = true;
+      if (_dotsFit(row)) break;
+    }
+  });
 }
 
 function _syncCalH() {
