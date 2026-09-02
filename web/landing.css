@@ -1,21 +1,18 @@
-/* Public landing page (/) — the site's sections as a vertical carousel wheel.
+/* Public landing page (/) — the site's sections as a ferris wheel.
    Loaded after chrome.css; the five .cyber-* CRT layers come from chrome.css
    and sit ABOVE this (--z-modal), same as every other page.
 
-   Only FIVE items are ever on screen: the active one at full size and opacity,
-   then two rings out on each side, each step smaller, fainter, and lower in the
-   stack. Everything past that is parked one slot further out — transparent and
-   inert, but already in the right place to animate in from when it comes round.
-   Five rows is also what makes the page FIT a phone: the old eight-row column
-   ran 1289px tall in a 932px viewport and simply clipped the last two.
+   Almost everything here is layout only: `transform`, `opacity`, `visibility`
+   and `pointer-events` on each item are written per frame by landing-wheel.js,
+   which turns a real wheel — the items are spokes on a ring seen edge-on, and
+   their angle decides position, size and solidity together. See that file for
+   the geometry. Nothing is transitioned, because the script animates the
+   position itself: a CSS transition would tween in a straight line between two
+   states and flatten the arc back out.
 
-   Geometry: every item is absolutely centred on the viewport, then pushed to its
-   slot by `--off` (its signed distance from the active item, in slots) times
-   `--pitch`. The translate's -50% resolves against the item's OWN height, so
-   items whose copy wraps to different line counts still centre exactly on their
-   slot — the ring stays true no matter how the text falls. `--sc` scales about
-   that same centre, so a shrunk item stays pinned. Both are set from
-   landing-wheel.js; the transition is what makes a step read as a spin. */
+   Showing the whole front half of the ring is what makes the page FIT a phone:
+   the old full-height column of all eight ran 1289px tall in a 932px viewport
+   and simply clipped the last two. */
 
 body { overflow: hidden; height: 100vh; position: relative;
 
@@ -25,8 +22,8 @@ body { overflow: hidden; height: 100vh; position: relative;
 
 .landing-wheel { position: fixed; inset: 0; z-index: var(--z-raised);
 
-  /* only the five live items take taps — the admin link underneath stays
-     clickable, and the gesture listeners live on `window`, not on this box */
+  /* only the lit items take taps — the admin link underneath stays clickable,
+     and the gesture listeners live on `window`, not on this box */
   pointer-events: none;
   user-select: none;
 
@@ -37,71 +34,66 @@ body { overflow: hidden; height: 100vh; position: relative;
      follows swallows the rest of the pointer stream, killing the spin
      mid-gesture. Same trap the R&D calendar's month swipe hit. */
   -webkit-user-select: none;
-
-  --pitch: clamp(140px, 18vh, 176px);
-
   opacity: 0; animation: wheel-bootin 0.6s ease 0.15s forwards; }
 
 @keyframes wheel-bootin {
   from { opacity: 0; filter: blur(var(--blur-sm)) }
   to   { opacity: 1; filter: none } }
 
+/* Every item is centred on the viewport and then pushed to its slot by the
+   script. The translate's -50% resolves against the item's OWN height, so items
+   whose copy wraps to different line counts still ride the ring dead centre.
+   Starts hidden: the first render lands before paint, and until then all eight
+   would be stacked on top of each other. */
 .wheel-item { position: absolute; left: 50%; top: 50%;
   width: min(560px, 88vw);
   display: flex; align-items: center; gap: var(--space-7);
   text-decoration: none;
-  transform: translate(-50%, calc(-50% + var(--off, 0) * var(--pitch))) scale(var(--sc, 1));
-  transform-origin: 50% 50%;
+  transform: translate(-50%, -50%);
+
+  /* scale about the LEFT edge, not the centre: every item then shares one left
+     margin, so the icons hold a clean vertical column as the wheel turns.
+     Centre-origin is the truer projection but makes the icon column cascade
+     rightward as items recede, which reads as a vanishing point off to the
+     side rather than as a wheel. */
+  transform-origin: 0% 50%;
   opacity: 0; visibility: hidden; pointer-events: none;
-  will-change: transform, opacity;
-
-  /* visibility flips only AFTER the fade, so an item leaving the ring fades out
-     instead of vanishing mid-step */
-  transition: transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
-              opacity 0.38s ease, visibility 0s 0.38s; }
-
-.wheel-item[data-depth] { visibility: visible; pointer-events: auto;
-  transition: transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
-              opacity 0.38s ease, visibility 0s 0s; }
-
-/* depth = slots from centre. Size, opacity and stacking all fall off together
-   so the ring reads as depth rather than as a list. */
-.wheel-item[data-depth="0"] { --sc: 1;    opacity: 1;    z-index: 5; }
-.wheel-item[data-depth="1"] { --sc: 0.82; opacity: 0.6;  z-index: 4; }
-.wheel-item[data-depth="2"] { --sc: 0.64; opacity: 0.25; z-index: 3; }
+  will-change: transform, opacity; }
 
 /* left cell: icon stacked over label, fixed width so the blurbs share a margin */
 .wheel-item .landing-link { display: flex; flex-direction: column;
   align-items: center; gap: var(--space-2); width: 64px; flex: 0 0 auto; }
 
 .wheel-item img { width: 34px !important; height: 34px !important;
+  border-radius: var(--radius-4);
   transition: transform 0.2s; }
-.wheel-item[data-depth="0"]:hover img { transform: scale(1.12); }
+.wheel-item:hover img { transform: scale(1.12); }
 
 .wheel-item .nav-label { font-family: var(--font-pixel); font-size: var(--fs-2xs);
   text-transform: uppercase; letter-spacing: var(--tracking-wide);
-  color: hsl(var(--green-hsl) / 0.45); text-shadow: 0 0 6px hsl(var(--green-hsl) / 0.45); }
+  color: hsl(var(--green-hsl)); text-shadow: 0 0 10px hsl(var(--green-hsl) / 0.8); }
 
-/* right cell: gibson blurb stacked over the librarian description */
+/* right cell: the section's title stacked over its one-line description */
 .wheel-item .landing-copy { display: flex; flex-direction: column;
   gap: var(--space-1-5); flex: 1 1 auto; min-width: 0; }
 
-/* line 1 — gibson register: bright + glowing, atmospheric */
-.wheel-item .landing-blurb { font-family: var(--font-mono); font-size: var(--fs-sm);
-  line-height: var(--lh-snug); letter-spacing: var(--tracking-wide);
-  color: hsl(var(--green-hsl) / 0.8); text-shadow: 0 0 5px hsl(var(--green-hsl) / 0.45); }
+/* Every item is painted at its full, lit treatment; depth is carried entirely
+   by the per-item opacity the script writes, which multiplies through. Baking a
+   second dimmer treatment for the off-centre ones would step where the wheel
+   is continuous. */
 
-/* line 2 — librarian register: smaller, dimmer, flat, no glow */
-.wheel-item .landing-sub { font-family: var(--font-mono); font-size: var(--fs-2xs);
-  line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.45); }
+/* line 1 — the title: bright + glowing. Tracking pulled in from wide to tight:
+   at 2x the letters carry their own presence, and the airy spacing that suited
+   a small line reads as a gap at this size. The nav code above keeps its wide
+   caps -- it is a label, not prose. */
+.wheel-item .landing-blurb { font-family: var(--font-mono); font-size: calc(var(--fs-sm) * 2);
+  line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
+  color: hsl(var(--green-hsl)); text-shadow: 0 0 8px hsl(var(--green-hsl) / 0.8); }
 
-/* the centre item is the one being read — it gets the full phosphor */
-.wheel-item[data-depth="0"] .nav-label { color: hsl(var(--green-hsl));
-  text-shadow: 0 0 10px hsl(var(--green-hsl) / 0.8); }
-
-.wheel-item[data-depth="0"] .landing-blurb { color: hsl(var(--green-hsl));
-  text-shadow: 0 0 8px hsl(var(--green-hsl) / 0.8); }
-.wheel-item[data-depth="0"] .landing-sub { color: hsl(var(--green-hsl) / 0.8); }
+/* line 2 — the description: dimmer, flat, no glow */
+.wheel-item .landing-sub { font-family: var(--font-mono); font-size: calc(var(--fs-2xs) * 2);
+  line-height: var(--lh-snug); letter-spacing: var(--tracking-tight);
+  color: hsl(var(--green-hsl) / 0.8); }
 
 /* admin */
 .landing-admin { position: fixed; bottom: 18px; right: 20px; z-index: var(--z-raised);
@@ -115,9 +107,4 @@ body { overflow: hidden; height: 100vh; position: relative;
 
 @media (prefers-reduced-motion: reduce) {
   .cyber-lines, .cyber-bg, .cyber-scan { animation: none !important }
-  .landing-wheel { animation: none; opacity: 1 }
-
-  /* both selectors -- .wheel-item[data-depth] re-declares transition at higher
-     specificity, so the bare class alone would not win here */
-  .wheel-item,
-  .wheel-item[data-depth] { transition: none } }
+  .landing-wheel { animation: none; opacity: 1 } }
