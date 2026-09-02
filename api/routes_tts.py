@@ -10,6 +10,7 @@ handshake reliably on mobile."""
 import asyncio
 import json
 import os
+import time
 
 import httpx
 import websockets
@@ -17,7 +18,7 @@ from fastapi import HTTPException, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
-from gpu_mode_client import fetch_mode, needs_user_confirm, switch_mode
+from gpu_mode_client import effective_mode, fetch_mode, needs_user_confirm, switch_mode
 from pages import _render_page, _tmpl
 from routers import guest_protected, protected, public
 from tts_routing import died_mid_utterance, merge_voices, pick_upstream
@@ -35,6 +36,19 @@ _GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
 # a switch on one page reflects live on the others. Only actual switches are
 # pushed (the initial state comes from GET /api/hosaka/mode on load).
 _mode_subscribers: list[asyncio.Queue] = []
+
+# Mode-stream tick. Doubles as the keepalive and as the poll that catches an
+# out-of-band change (home-box-side switch, watchdog restart, a wedged
+# hosaka-server under a mode still claiming homo) -- those never reach
+# _mode_subscribers, which only carries switches made through this app.
+_MODE_POLL_S = 15
+
+# After a homo switch the box still has to load models before /v1/voices
+# answers. Without a grace the next poll reads "homo but no TTS" and reports
+# idle, so the strip flips to idle and back the moment loading finishes. Assume
+# live for this long after a homo switch instead of flapping.
+_HOMO_GRACE_S = 90
+_homo_until = 0.0
 
 
 async def _broadcast_mode(mode: str) -> None:
@@ -68,31 +82,42 @@ async def tts_voices():
     return JSONResponse(merge_voices(piper_voices, home_voices))
 
 
+async def _live(upstream: str) -> bool:
+    """Is this TTS upstream really answering. A bound tunnel port is NOT liveness
+    (the listener stays bound on the droplet with the home box off), so only an
+    actual /v1/voices response counts."""
+    try:
+        async with httpx.AsyncClient(timeout=3) as client:
+            r = await client.get(f"http://{upstream}/v1/voices")
+            r.raise_for_status()
+            return True
+    except Exception:
+        return False
+
+
 @guest_protected.get("/api/hosaka/health")
 async def tts_health():
     """ok if EITHER upstream answers. Glados alone (home box down) is still ok;
-    the UI greys out GPU voices but keeps glados live. A bound tunnel port is
-    not liveness -- only an actual /v1/voices response counts."""
-
-    async def live(upstream: str) -> bool:
-        try:
-            async with httpx.AsyncClient(timeout=3) as client:
-                r = await client.get(f"http://{upstream}/v1/voices")
-                r.raise_for_status()
-                return True
-        except Exception:
-            return False
-
-    home, piper = await asyncio.gather(live(_UPSTREAM), live(_PIPER_UPSTREAM))
+    the UI greys out GPU voices but keeps glados live."""
+    home, piper = await asyncio.gather(_live(_UPSTREAM), _live(_PIPER_UPSTREAM))
     ok = home or piper
     return JSONResponse({"ok": ok, "home": home, "piper": piper}, status_code=200 if ok else 503)
+
+
+async def _current_mode() -> str:
+    """The mode to report: what the box claims, corrected against whether its TTS
+    is actually answering (see gpu_mode_client.effective_mode). Probed
+    concurrently so the strip never waits out both timeouts in series."""
+    reported, tts_live = await asyncio.gather(
+        fetch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN), _live(_UPSTREAM))
+    return effective_mode(reported, tts_live or time.monotonic() < _homo_until)
 
 
 @protected.get("/api/hosaka/mode")
 async def gpu_mode_get():
     """Current GPU mode (homo/emo/idle), or 'gone' if the home box is
     unreachable. Owner-only: guests never see the control."""
-    return JSONResponse({"mode": await fetch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN)})
+    return JSONResponse({"mode": await _current_mode()})
 
 
 @protected.post("/api/hosaka/mode")
@@ -105,25 +130,40 @@ async def gpu_mode_post(request: Request):
     if needs_user_confirm(action, len(_audio_conns), force):
         raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_audio_conns)})
     mode = await switch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN, action)
+    global _homo_until
+    _homo_until = time.monotonic() + _HOMO_GRACE_S if mode == "homo" else 0.0
     await _broadcast_mode(mode)  # live-sync the other open /hosaka + /emet pages
     return JSONResponse({"mode": mode})
 
 
 @protected.get("/api/hosaka/mode/stream")
 async def gpu_mode_stream():
-    """SSE of GPU-mode changes so /hosaka + /emet stay in sync live. Emits on an
-    actual switch only; the initial state comes from GET /api/hosaka/mode."""
+    """SSE of GPU-mode changes so /hosaka + /emet stay in sync live.
+
+    Two sources, because a switch through this app is not the only way the mode
+    moves. A POST here pushes instantly via `_mode_subscribers`; everything else
+    -- a switch made at the home box, a watchdog restart, hosaka-server dying
+    under a mode that still claims homo -- is invisible to that queue, and the
+    strip used to sit wrong until the tab was reloaded or refocused. So the
+    keepalive tick doubles as a poll of the real state and emits on any change.
+    Only actual changes are sent; an unchanged poll falls through to a comment,
+    so an idle stream still costs one line per tick."""
     q: asyncio.Queue = asyncio.Queue()
     _mode_subscribers.append(q)
 
     async def gen():
+        last = None
         try:
             while True:
                 try:
-                    mode = await asyncio.wait_for(q.get(), timeout=25)
-                    yield f"data: {json.dumps({'mode': mode})}\n\n"
+                    mode = await asyncio.wait_for(q.get(), timeout=_MODE_POLL_S)
                 except asyncio.TimeoutError:
-                    yield ": keepalive\n\n"
+                    mode = await _current_mode()
+                    if mode == last:
+                        yield ": keepalive\n\n"
+                        continue
+                last = mode
+                yield f"data: {json.dumps({'mode': mode})}\n\n"
         finally:
             try:
                 _mode_subscribers.remove(q)
