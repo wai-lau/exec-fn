@@ -65,6 +65,13 @@ function chipStyle(c) {
   return {color: f(0, 72), bg: f(-20, 18), border: f(-25, 32)};
 }
 
+/* Calendar dot colour — the pure category hue at full opacity (same token the
+   card title text uses), green for an uncategorized card. */
+function dotColor(c) {
+  const cat = _catKey(c);
+  return cat ? `var(--card-${cat}-text)` : 'hsl(var(--green-hsl) / 1)';
+}
+
 /* Book progress-bar colors — category hue at the standard track/fill alphas
    (green for an uncategorized book). */
 function bookBarColors(c) {

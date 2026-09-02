@@ -61,7 +61,8 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* ── board ────────────────────────────────────────────────────────────────── */
 .rd-board {
-  position: fixed; inset: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px)) 0 0;
+  position: fixed;
+  inset: calc(max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px)) + var(--cal-h, 0px)) 0 0;
   display: flex; gap: var(--space-px); overflow: hidden;
   background: transparent;
 }
@@ -126,3 +127,49 @@ body { overflow: hidden !important; background: transparent !important; }
 #rd-search::placeholder { color: hsl(var(--green-hsl) / 0.12); }
 #rd-search:focus { color: hsl(var(--green-hsl) / 1); }
 .card.search-hide { display: none; }
+
+/* ── minimal month calendar ────────────────────────────────────────────────
+   The current month under the reminders/books bars, above the board. Sunday
+   -first, no weekday guide row, and 4-6 rows depending on how the month falls
+   (JS emits exactly the weeks it needs — never a spare row).
+   Inert by design (pointer-events:none) — it is a glance, not a control. */
+#rd-calendar {
+  position: fixed; z-index: var(--z-raised);
+  top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
+  left: 0; right: 0;
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  pointer-events: none;
+  font-family: var(--font-mono); font-size: var(--fs-xl); font-weight: var(--fw-bold);
+  line-height: var(--lh-none);
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+/* hairline grid: each cell draws its own right + bottom rule, so the last row
+   supplies the bar's bottom edge and the last column has no dangling stub */
+.cal-d {
+  box-sizing: border-box;
+  padding: var(--space-2) 0;
+  text-align: center;
+  border-right: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
+}
+.cal-d:nth-child(7n) { border-right: none; }
+
+/* today: a full bright rule on all four sides — the one cell that outlines
+   itself (after the :nth-child reset above so a Saturday today keeps its
+   right edge) */
+.cal-d.today { border: 1px solid hsl(var(--green-hsl) / 0.8); }
+
+/* weekend column and the 7 days from today each darken one step; where they
+   overlap the two 0.45 blacks composite (~0.70) for the extra-dark cell —
+   stacked as gradients so the alphas stay on the snap scale. */
+.cal-d.we, .cal-d.cw { background: hsl(var(--bg-hsl) / 0.45); }
+
+.cal-d.we.cw {
+  background:
+    linear-gradient(hsl(var(--bg-hsl) / 0.45), hsl(var(--bg-hsl) / 0.45)),
+    linear-gradient(hsl(var(--bg-hsl) / 0.45), hsl(var(--bg-hsl) / 0.45));
+}
+
+.cal-dots { display: flex; align-items: center; justify-content: center; gap: var(--space-1); height: var(--space-2); }
+.cal-dots i { width: 6px; height: 6px; border-radius: var(--radius-round); background: hsl(var(--green-hsl) / 1); }
