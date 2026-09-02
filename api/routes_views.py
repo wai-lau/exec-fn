@@ -67,7 +67,7 @@ _LANDING_BLURBS = {
     "ui": "Human-Machine Protocol",
     "mtg": "The Magician",
     "tarot": "Seventy-Eight Gates",
-    "recruiter": "Resume",
+    "recruiter": "Résumé",
     "security": "Crawlers",
 }
 
