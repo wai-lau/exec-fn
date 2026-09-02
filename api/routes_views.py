@@ -56,30 +56,29 @@ _LANDING_SCRIPT = '<script src="/landing-wheel.js?v=1"></script>'
 # (purple) -> tarot 351° (pink).
 _LANDING_HUE_ORDER = ["recruiter", "hosaka", "graph", "nightfall", "printer", "ui", "mtg", "tarot"]
 
-# Gibson-register one-liners shown to the right of each landing link — clipped,
-# noir, second-person where it lands. One per _LANDING_HUE_ORDER section.
+# The name each section goes by, shown under its nav code. Not the code and not
+# a sentence -- the thing's own title. One per _LANDING_HUE_ORDER section.
 _LANDING_BLURBS = {
-    "hosaka": "Feed the Hosaka your words. It answers in a voice that was never yours.",
-    "printer": "A machine on a home LAN, extruding. Watch the layers stack, touch nothing.",
-    "graph": "The whole machine as constellation. Every node a live nerve.",
-    "nightfall": "Flash games died, but this one lives. Night falls on the net.",
-    "ui": "The console's own spectrum, stripped to raw hue and signal.",
-    "mtg": "A wizard wired to the stack. It rules, and it never sleeps.",
-    "tarot": "Seventy-eight gates, a green terminal, the reader is waiting for you to begin.",
-    "recruiter": "Wai's credentials for the headhunters.",
+    "hosaka": "Hosaka",
+    "printer": "Thermoplastic Extruder",
+    "graph": "Construct Graph",
+    "nightfall": "The Nightfall Incident",
+    "ui": "Human-machine Interface Protocol",
+    "mtg": "The Magician",
+    "tarot": "Seventy-Eight Gates",
+    "recruiter": "Resume",
 }
 
-# Reference-desk descriptions under each Gibson line — neutral, cataloguing
-# register, the plain factual counterpart to the noir blurb.
+# One plain line under each title saying what the thing actually is.
 _LANDING_DESCS = {
-    "hosaka": "A text-to-speech studio: type text, pick a synthetic voice, and stream the spoken audio.",
-    "printer": "A live read-only view of a 3D printer: camera feed and current job state. Viewers cannot control it.",
-    "graph": "An interactive map of this site's codebase: files and functions as nodes, their references as edges.",
-    "nightfall": "A browser-based infiltration game: breach networked nodes, manage detection, and clear each site.",
-    "ui": "A read-only reference of the site's UI design system: colour palette and structural scale tokens with their usage.",
-    "mtg": "A rules assistant for Magic: The Gathering, answering interaction and timing questions from the comprehensive rules.",
-    "tarot": "An interactive three-card tarot reading: choose a significator, deal the spread, and interpret each position.",
-    "recruiter": "A résumé page for recruiters: background, skills, and a downloadable PDF.",
+    "hosaka": "Text-to-speech studio.",
+    "printer": "Spinning a web over fourty slices of concrete.",
+    "graph": "Files and functions as nodes, referenced by edges.",
+    "nightfall": "Archive of one of my favourite Flash games.",
+    "ui": "UI design reference, color and structure.",
+    "mtg": "Rules assistant for MtG.",
+    "tarot": "Introspection from chaos.",
+    "recruiter": "Everyone needs a plug.",
 }
 _RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=25">'
 
@@ -115,8 +114,9 @@ def _landing_html() -> str:
     for label in _LANDING_HUE_ORDER:
         href = _NAV_HREFS.get(label, f"/{label}")
         icon = _NAV_ICONS.get(label, label)
-        # landing spells out "nightfall" in full; bottom nav shows "12AM"
-        text = "nightfall" if label == "nightfall" else _NAV_LABELS.get(label, label.lower())
+        # the nav code, same everywhere -- nightfall reads "12AM" here too, so a
+        # section is called one thing on the landing and in the bottom nav
+        text = _NAV_LABELS.get(label, label.lower())
         blurb = _LANDING_BLURBS.get(label, "")
         desc = _LANDING_DESCS.get(label, "")
         links.append(
