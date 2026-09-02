@@ -81,7 +81,13 @@ function createTypewriter(st, body, cur) {
       const started = dur > 0 || el > 0;
       // Any forward motion (playback advancing OR more audio buffered) resets the
       // stall clock — one watchdog covers both a frozen ctx and a dead upstream.
-      const progress = el + dur;
+      // `el` is the ctx clock since the utterance began and keeps climbing after
+      // the buffer drains, so a raw el+dur NEVER stops rising: an upstream that
+      // dies mid-utterance without {end}/{error} defeated this watchdog entirely
+      // and hung the reveal forever (frac clamps at 0.999, so the text also never
+      // finished). Capping el at what was actually buffered freezes the signal
+      // once playback catches up to a stream that stopped arriving.
+      const progress = Math.min(el, dur) + dur;
       if (progress > lastProgress) { lastProgress = progress; lastProgressAt = performance.now(); }
       const audioFinished = ctl.ended && dur > 0 && el >= dur;
       if (!started) {

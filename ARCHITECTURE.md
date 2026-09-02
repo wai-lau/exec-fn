@@ -305,6 +305,29 @@ directions; `/api/hosaka/health` probes the upstream for a *real* response
 server is down — a bound port is **not** liveness), letting `/hosaka` show
 "TTS server offline" before SPEAK.
 
+**Every utterance ends in a terminal frame** — the proxy guarantees it even
+when the backend doesn't. An utterance normally ends with the upstream's own
+`{"type":"end"}` / `{"type":"error"}`, which clears `busy[url]`; if the
+upstream stream instead just *ends* (home box crashed, tunnel dropped, GPU
+server restarted mid-sentence) `_pump_to_client`'s `finally` synthesizes
+`{"type":"error","detail":"tts upstream closed mid-utterance"}` and evicts the
+dead connection so the next utterance reconnects. This is load-bearing for
+`/tarot`: the reader's typewriter paces off the audio clock and waits on a
+terminal frame, so a silently-dead upstream left the reveal spinning forever
+with the text stuck part-revealed. The guard is the pure predicate
+`tts_routing.died_mid_utterance` (unit-tested — `routes_tts` can't be imported
+by the dev venv), which fires **only** for the live connection on that `url`:
+a stale socket `_ws_dispatch` deliberately cut to start a new utterance is
+superseded, and its error would abort the utterance that replaced it.
+
+Client-side belts for the same failure, since a frame can also be lost between
+browser and droplet: `hosaka-audio.js`'s `ws.onclose` delivers a synthetic
+`{type:"error"}` to the in-flight utterance (guarded on the socket still being
+the live one), and `tarot-stream.js`'s stall watchdog caps `elapsed()` at the
+buffered duration in its progress signal — the raw `el + dur` never stopped
+rising (the ctx clock keeps running after the buffer drains), so the watchdog
+could never fire on a dead stream.
+
 ### 4b. Auth — now guest-or-full
 
 `/hosaka` and `/api/hosaka/*` moved from the full-auth `protected` router to
