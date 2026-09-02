@@ -138,7 +138,26 @@ body { overflow: hidden !important; background: transparent !important; }
   top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
   left: 0; right: 0;
   display: grid; grid-template-columns: repeat(7, 1fr);
-  pointer-events: none;
+
+  /* Drag/swipe sideways to page through months (wireCalendarSwipe). The cells
+     themselves are still inert -- nothing here is clickable, the whole band is
+     just a gesture surface -- but it can no longer be pointer-events:none.
+     touch-action:none so a horizontal swipe is ours and not the browser's.
+
+     user-select:none is load-bearing, not cosmetic: dragging across the dates
+     selected them, and a drag that starts on a text selection fires the native
+     `dragstart`, which SWALLOWS the rest of the pointer stream -- pointermove
+     and pointerup stopped arriving and the gesture died mid-swipe. */
+  touch-action: none;
+  user-select: none;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix --
+     NOT redundant: WebKit (Safari/iOS, the target here) exposes only the
+     prefixed property. Unprefixed user-select computes to `text` there, so the
+     dates still select and the native dragstart that follows swallows the
+     swipe. Measured in WebKit, not assumed -- drop this and month paging dies
+     after the first gesture. */
+  -webkit-user-select: none;
   font-family: var(--font-mono); font-size: calc(var(--fs-xl) * 1.5); font-weight: var(--fw-bold);
   line-height: var(--lh-none);
   color: hsl(var(--green-hsl) / 0.8);
@@ -200,13 +219,32 @@ body { overflow: hidden !important; background: transparent !important; }
    background-COLOR, not the `background` shorthand: the shorthand resets every
    background-* longhand, which would silently undo .cal-d's padding-box clip
    and put the wash back onto this cell's own grid rules. */
-.cal-d.cw { background-color: hsl(var(--green-hsl) / 0.12); }
+.cal-d.cw {
+  background-image:
+    linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12)),
+    linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12));
+}
 
 /* Québec statutory holiday (see qc-holidays.js for which days and why). Last of
    the date-colour rules on purpose: same specificity as the weekend rule above,
    so a holiday that lands on a weekend wins on source order. Pink 0.8 outranks
    the weekend's 0.45 in weight too — a holiday is the louder fact. */
 .cal-d.hol .cal-n { color: hsl(var(--pink-hsl) / 0.8); }
+
+/* Which month you are looking at — necessary the moment the grid can be paged
+   off the present month. A real full-width grid row, not an overlay: an overlay
+   would have to sit on top of the first row's dates and hide them, and one that
+   appeared only when navigated would resize the calendar mid-swipe and shift
+   the board under your finger. As a permanent row it costs one line, --cal-h
+   accounts for it, and nothing moves when you page. */
+.cal-label {
+  grid-column: 1 / -1;
+  padding: var(--space-1) 0;
+  text-align: center;
+  color: hsl(var(--green-hsl) / 0.45);
+  font-family: var(--font-bit); font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-mega);
+}
 
 /* One dot per card on the day. A dot's LENGTH is the card's importance — one
    circle-width per size step (wisp 1 … commitment 4, see dotUnits) — so a day

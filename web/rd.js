@@ -303,69 +303,6 @@ function showBookOverflow() {
 
 
 // ── month calendar (under the reminders/books bars) ───────────────────────
-// Current month only, Sunday-first, so the grid is 4-6 rows depending on how
-// the month falls. Inert: no hover, no click (pointer-events:none in CSS).
-
-function _isoLocal(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-// one dot per card landing on a day: its scheduled_day, else its due date.
-// Books live on their own bar and carry no meaningful day; archived/exiled
-// cards are done with. Each value carries the dot's colour (category hue) AND
-// its length in circle-widths (importance), so the day reads as both a mix of
-// what's on it and how heavy it is -- not just how much.
-function calDots() {
-  const m = {};
-  cards.forEach(c => {
-    if (c.is_book || c.column === 'archives' || c.column === 'exile') return;
-    const day = c.scheduled_day || (c.due_date ? c.due_date.slice(0, 10) : null);
-    if (!day) return;
-    (m[day] = m[day] || []).push({color: dotColor(c), units: dotUnits(c)});
-  });
-  return m;
-}
-
-function _calCellHtml(d, dots, todayMs) {
-  const dow = d.getDay();
-  const cls = ['cal-d'];
-  if (dow === 0 || dow === 6) cls.push('we');
-  const ahead = Math.round((d.getTime() - todayMs) / 86400000);
-  if (ahead >= 0 && ahead <= 6) cls.push('cw');
-  if (ahead === 0) cls.push('today');
-  if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(d)) cls.push('hol');
-  const day = (dots[_isoLocal(d)] || []).slice(0, 5);
-  return `<div class="${cls.join(' ')}">
-    <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
-    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}</div>
-  </div>`;
-}
-
-function buildCalendar() {
-  const el = document.getElementById('rd-calendar');
-  if (!el) return;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const todayMs = today.getTime();
-  const y = today.getFullYear(), mo = today.getMonth();
-  const lead = new Date(y, mo, 1).getDay();          // blank cells before the 1st
-  const days = new Date(y, mo + 1, 0).getDate();
-  const rows = Math.ceil((lead + days) / 7);         // 4, 5 or 6 - never a spare row
-  const dots = calDots();
-  let html = '';
-  for (let i = 0; i < rows * 7; i++) {
-    const dom = i - lead + 1;
-    if (dom < 1 || dom > days) {
-      // out-of-month padding: no number, but the weekend column keeps its
-      // shading so the two dark columns run unbroken top to bottom
-      html += `<div class="cal-d${(i % 7 === 0 || i % 7 === 6) ? ' we' : ''}"></div>`;
-      continue;
-    }
-    html += _calCellHtml(new Date(y, mo, dom), dots, todayMs);
-  }
-  el.innerHTML = html;
-  document.documentElement.style.setProperty('--cal-h', el.offsetHeight + 'px');
-}
-
 function buildBoard() {
   buildReminders();
   buildBooks();
@@ -455,8 +392,8 @@ window.addEventListener('resize', buildCalendar);
 // a dead gap between them (6px, measured). No resize event fires for a reflow,
 // so watch the elements themselves; same idiom the nav uses for --nav-h.
 if (typeof ResizeObserver !== 'undefined') {
-  const ro = new ResizeObserver(() => { _syncRemH(); _syncBooksH(); });
-  for (const id of ['reminders-bar', 'books-bar']) {
+  const ro = new ResizeObserver(() => { _syncRemH(); _syncBooksH(); _syncCalH(); });
+  for (const id of ['reminders-bar', 'books-bar', 'rd-calendar']) {
     const el = document.getElementById(id);
     if (el) ro.observe(el);
   }
@@ -464,4 +401,5 @@ if (typeof ResizeObserver !== 'undefined') {
 // exec bubble changed cards -> reload live
 window.addEventListener('exec:cards-changed', () => load());
 
+wireCalendarSwipe();
 load();
