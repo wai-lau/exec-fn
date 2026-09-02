@@ -163,7 +163,8 @@
   --tracking-mega:   0.18em;    /* loud spaced caps: section headers */
 
   /* ── Blur ────────────────────────────────────────────────────────────── */
-  --blur-xs: 0.5px;   /* CRT glass haze (.cyber-blur) — barely-there frost, text stays legible */
+  --blur-2xs: 0.5px;  /* CRT glass haze (.cyber-blur) — barely-there frost, text stays legible */
+  --blur-xs: 3px;     /* soft defocus that keeps its shape (#cal-mark watermark) */
   --blur-sm: 6px;
   --blur:    14px;
 
@@ -303,7 +304,7 @@
    to z-index:-1 behind opaque cards, so the glass is inert there. */
 .cyber-blur {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
-  backdrop-filter: blur(var(--blur-xs));
+  backdrop-filter: blur(var(--blur-2xs));
 }
 
 /* 5. CRT phosphor punch — a brightness/contrast backdrop-filter over the same

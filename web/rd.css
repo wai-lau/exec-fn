@@ -266,6 +266,12 @@ body { overflow: hidden !important; background: transparent !important; }
   line-height: var(--lh-none);
   color: hsl(var(--green-hsl) / 0.12);
   text-shadow: 0 0 24px hsl(var(--green-hsl) / 0.12), 0 0 8px hsl(var(--green-hsl) / 0.12);
+
+  /* Defocused, not just faint: a plain filter blur, NOT a backdrop-filter —
+     it reads only this element's own pixels, so there is no viewport readback
+     and nothing under it animates it. The mark never moves, so the compositor
+     blurs it once and caches. */
+  filter: blur(var(--blur-xs));
   pointer-events: none;
   white-space: nowrap;
 }
