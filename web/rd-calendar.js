@@ -88,12 +88,12 @@ function _calCellHtml(d, dots, todayMs) {
   if (ahead === 0) cls.push('today');
   if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(d)) cls.push('hol');
   // Every dot is rendered; fitCalDots() decides afterwards how many actually fit
-  // on the row. The "+" ships with the cell (hidden) so the fitter can measure
-  // with it in place instead of reflowing once to add it.
+  // on the row. The overflow marker ships with the cell (hidden) so the fitter
+  // can measure with it in place instead of reflowing once to add it.
   const day = dots[_isoLocal(d)] || [];
   return `<div class="${cls.join(' ')}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
-    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}<b class="cal-more" hidden>+</b></div>
+    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}<b class="cal-more" hidden></b></div>
   </div>`;
 }
 
@@ -145,7 +145,7 @@ function buildCalendar() {
 
 // Dots are a single row that never wraps and never shrinks, so a busy day can
 // hold more than the cell is wide. Show as many whole dots as fit and mark the
-// remainder with a trailing "+" -- a clipped half-dot would misreport a card's
+// remainder with a trailing hollow dot -- a clipped half-dot would misreport a card's
 // size, which is the one thing the dot's length is for.
 //
 // Measured rather than counted: dots are 1-4 units wide, so "how many fit" has
@@ -168,7 +168,7 @@ function fitCalDots() {
     dots.forEach(d => { d.hidden = false; });
     if (more) more.hidden = true;
     if (_dotsFit(row)) return;                 // everything fits as-is
-    if (more) more.hidden = false;             // from here on, measure WITH the "+"
+    if (more) more.hidden = false;             // from here on, measure WITH the marker
     for (let i = dots.length - 1; i >= 0; i--) {
       dots[i].hidden = true;
       if (_dotsFit(row)) break;
