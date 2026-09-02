@@ -47,8 +47,8 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=15">'
-_LANDING_SCRIPT = '<script src="/landing-wheel.js?v=1"></script>'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=16">'
+_LANDING_SCRIPT = '<script src="/landing-wheel.js?v=2"></script>'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
@@ -72,7 +72,7 @@ _LANDING_BLURBS = {
 # One plain line under each title saying what the thing actually is.
 _LANDING_DESCS = {
     "hosaka": "Text-to-speech studio.",
-    "printer": "Spinning a web over fourty slices of concrete.",
+    "printer": "Spinning a web over forty slices of concrete.",
     "graph": "Files and functions as nodes, referenced by edges.",
     "nightfall": "Archive of one of my favourite Flash games.",
     "ui": "UI design reference, color and structure.",
