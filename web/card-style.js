@@ -82,9 +82,16 @@ function dotColor(c) {
    its duration -- estimated_time is a separate field and never feeds this. One
    circle for a wisp up to four for a commitment, so a day reads its WEIGHT at a
    glance instead of just how many cards landed on it. An unset/unknown size
-   falls back to `idea`, the schema default for a new card. */
+   falls back to `idea`, the schema default for a new card.
+
+   A reminder is forced to wisp whatever its `size` says -- the same override
+   cardStyle applies, for the same reason: a reminder is a note that a day
+   exists, not work to be done, so it must never outweigh a real card on the
+   day it sits on. This also catches gcal-imported reminders, which carry
+   size: null and would otherwise fall through to the `idea` default. */
 const _DOT_UNITS = {wisp: 1, idea: 2, plan: 3, commitment: 4};
 function dotUnits(c) {
+  if (c.is_reminder) return _DOT_UNITS.wisp;
   return _DOT_UNITS[c.size] || _DOT_UNITS.idea;
 }
 
