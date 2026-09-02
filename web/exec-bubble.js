@@ -9,18 +9,6 @@
   let streaming = false;
   let monitorTotal = 0;          // monitor notifications known this session
 
-  // ── marked lazy-load ──────────────────────────────────────────────────────
-  function loadMarked(cb) {
-    if (window.marked) { cb(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-    s.onload = cb;
-    document.head.appendChild(s);
-  }
-
-  // marked passes raw HTML straight through — strip <script>/on*=/javascript: URLs.
-  function mdHtml(t) { return marked.parse(t).replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '').replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"'); }
-
   // ── DOM refs ──────────────────────────────────────────────────────────────
   let bubble, badge, panel, termEl, msgInput, preEl, postEl;
 
@@ -52,20 +40,6 @@
   }
 
   // ── styles ────────────────────────────────────────────────────────────────
-  // Load the stylesheet and invoke cb once it has applied (or failed). Callers
-  // wait on this before building the panel so the panel never paints unstyled.
-  function loadStyles(cb) {
-    const existing = document.querySelector('link[data-exec-css]');
-    if (existing) { cb(); return; }
-    const el = document.createElement('link');
-    el.rel = 'stylesheet';
-    el.href = '/exec-bubble.css?v=19';
-    el.setAttribute('data-exec-css', '');
-    el.onload = cb;
-    el.onerror = cb;  // never hang the panel on a CSS fetch failure
-    document.head.appendChild(el);
-  }
-
   // ── bubble ────────────────────────────────────────────────────────────────
   function buildBubble() {
     bubble = document.createElement('div');
@@ -473,8 +447,18 @@
     }
   }
 
+  var monitorConnected = false;
+
   function connectMonitorStream() {
     var src = new EventSource('/api/monitor/stream');
+    // A dropped stream (backgrounded tab, phone asleep, network flap) eats
+    // every push it missed -- EventSource never replays. So on a RECONNECT,
+    // nudge any open board to refetch; without this a gap shorter than the
+    // 30s wake threshold left /hq and /rd sitting on a stale board.
+    src.onopen = function () {
+      if (monitorConnected) window.dispatchEvent(new Event('exec:cards-changed'));
+      monitorConnected = true;
+    };
     src.onmessage = function (e) {
       try {
         var data = JSON.parse(e.data);

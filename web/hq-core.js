@@ -5,6 +5,7 @@ let weekStart = null;
 let weekData = null;
 let pendingUpdates = [];
 let saveTimer = null;
+let _hqSaving = false;   // a PATCH is in flight (saveTimer is already null by then)
 let _hqDragging = false;
 
 // today-column timeline state

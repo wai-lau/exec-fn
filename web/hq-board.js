@@ -351,10 +351,17 @@ function queueUpdate(cardId, scheduledDay, order) {
 }
 
 async function flushUpdates() {
+  // Clear the timer handle FIRST: hqCanReload() reads it as "a save is
+  // pending", and leaving the fired handle set wedged it truthy forever --
+  // after the first drag of a session every live/wake reload was skipped and
+  // the board went stale until a manual refresh. _hqSaving covers the window
+  // the handle used to (wrongly) cover: the in-flight PATCH itself.
+  saveTimer = null;
   if (!pendingUpdates.length) return;
   const updates = [...pendingUpdates];
   pendingUpdates = [];
   setStatus('saving...');
+  _hqSaving = true;
   try {
     await fetch('/api/hq', {
       method: 'PATCH',
@@ -365,6 +372,8 @@ async function flushUpdates() {
     setTimeout(() => setStatus(''), 1500);
   } catch(e) {
     setStatus('save error: ' + e.message);
+  } finally {
+    _hqSaving = false;
   }
 }
 
@@ -410,7 +419,9 @@ function consult_oracle() {
 async function load(start) {
   document.getElementById('hq-board').innerHTML = '<span class="hq-loading">loading...</span>';
   const url = start ? `/api/hq?start=${start}` : '/api/hq';
-  const r = await fetch(url);
+  // no-store: the JSON carries no cache headers and iOS Safari will happily
+  // hand a suspended-then-woken tab its own stale copy of the board.
+  const r = await fetch(url, {cache: 'no-store'});
   weekData = await r.json();
   weekStart = weekData.week_start;
   if (!start) consult_oracle();
@@ -419,7 +430,7 @@ async function load(start) {
 
 // Skip a live reload mid-drag or while a layout save is pending (a refetch
 // would clobber the in-flight edit); the next wake/event catches up.
-function hqCanReload() { return !_hqDragging && !saveTimer; }
+function hqCanReload() { return !_hqDragging && !saveTimer && !_hqSaving; }
 
 // exec bubble OR a serverside mutation (nudge/morning/discord, relayed as
 // exec:cards-changed by exec-bubble.js on the monitor SSE cards_changed) ->
