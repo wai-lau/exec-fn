@@ -34,6 +34,7 @@ function _calCellHtml(d, dots, todayMs) {
   const dow = d.getDay();
   const cls = ['cal-d'];
   if (dow === 0 || dow === 6) cls.push('we');
+  if (dow === 6) cls.push('cal-eow');   // last column: no dangling right stub
   const ahead = Math.round((d.getTime() - todayMs) / 86400000);
   if (ahead >= 0 && ahead <= 6) cls.push('cw');
   if (ahead === 0) cls.push('today');
@@ -71,17 +72,25 @@ function buildCalendar() {
     if (dom < 1 || dom > days) {
       // out-of-month padding: no number, but the weekend column keeps its
       // shading so the two dark columns run unbroken top to bottom
-      html += `<div class="cal-d${(i % 7 === 0 || i % 7 === 6) ? ' we' : ''}"></div>`;
+      const edge = i % 7 === 6;
+      html += `<div class="cal-d${(i % 7 === 0 || edge) ? ' we' : ''}${edge ? ' cal-eow' : ''}"></div>`;
       continue;
     }
     html += _calCellHtml(new Date(y, mo, dom), dots, todayMs);
   }
-  // Name the month ALWAYS, not just when navigated: a grid you can page off the
-  // present month is unreadable without it, and a label that came and went
-  // would resize the calendar mid-swipe and shift the board under your finger.
-  // It leads the grid as a full-width row (see .cal-label).
-  const name = shown.toLocaleDateString(undefined, {month: 'long', year: 'numeric'});
-  el.innerHTML = `<div class="cal-label">${esc(name)}</div>` + html;
+  // Month number as a big faint watermark BEHIND the grid (see .cal-mark) --
+  // it takes no space, so it can be there always without costing a row and
+  // without resizing the calendar mid-swipe.
+  //
+  // Arrows point the way BACK to the present month: a past month reads "08 >>"
+  // (go forward to reach today), a future one "<< 10". The present month points
+  // INWARD, "> 09 <" -- you are here, both ways lead away. Direction alone
+  // carries it, so no year is shown: a month is only ambiguous once you are 12+
+  // away, which is further than this is meant to be dragged.
+  const mm = String(mo + 1).padStart(2, '0');
+  const markEl = document.getElementById('cal-mark');
+  if (markEl) markEl.textContent = calOffset === 0 ? `> ${mm} <` : calOffset < 0 ? `${mm} >>` : `<< ${mm}`;
+  el.innerHTML = html;
   fitCalDots();
   _syncCalH();
 }

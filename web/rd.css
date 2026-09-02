@@ -190,7 +190,13 @@ body { overflow: hidden !important; background: transparent !important; }
   border-right: 5px solid hsl(var(--green-hsl) / 0.12);
   border-bottom: 5px solid hsl(var(--green-hsl) / 0.12);
 }
-.cal-d:nth-child(7n) { border-right: none; }
+
+/* Last column draws no right rule (it would dangle off the grid's edge). Keyed
+   off a class the builder sets from the DAY, not :nth-child(7n): nth-child
+   counts EVERY child of #rd-calendar, so adding the .cal-mark watermark as the
+   first child shifted the count by one and silently moved this to Friday --
+   which is how the Friday/Saturday hairline went missing. */
+.cal-d.cal-eow { border-right: none; }
 
 /* today: a bright 1px box, drawn as an overlay rather than as this cell's
    border. A `border` override would REPLACE the 5px grid rules on this one
@@ -237,19 +243,31 @@ body { overflow: hidden !important; background: transparent !important; }
    the weekend's 0.45 in weight too — a holiday is the louder fact. */
 .cal-d.hol .cal-n { color: hsl(var(--pink-hsl) / 0.8); }
 
-/* Which month you are looking at — necessary the moment the grid can be paged
-   off the present month. A real full-width grid row, not an overlay: an overlay
-   would have to sit on top of the first row's dates and hide them, and one that
-   appeared only when navigated would resize the calendar mid-swipe and shift
-   the board under your finger. As a permanent row it costs one line, --cal-h
-   accounts for it, and nothing moves when you page. */
-.cal-label {
-  grid-column: 1 / -1;
-  padding: var(--space-1) 0;
-  text-align: center;
+/* Which month you are looking at, as a big number behind the grid — glowing,
+   and UNDER the CRT stack so the scanlines and phosphor run across it and it
+   reads as part of the screen rather than as something laid on top.
+
+   It is a sibling of #rd-calendar, not a child, and that is load-bearing:
+   #rd-calendar is position:fixed WITH a z-index, so it opens its own stacking
+   context and a negative-z child of it can only ever sink behind its own
+   content, never behind the page's cyber-* layers (which /rd pins at -1). As a
+   fixed sibling at -2 it lands under them and above the page background.
+
+   Being fixed also means it takes no space and cannot change --cal-h, so
+   sizing it FROM --cal-h has no feedback loop. It tracks the calendar's band
+   by reading the same bar-height vars the calendar anchors to. */
+.cal-mark {
+  position: fixed; z-index: -2;
+  top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
+  left: 0; right: 0; height: var(--cal-h, 0);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: var(--fw-bold);
+  font-size: min(var(--cal-h, 200px), 26vw);
+  line-height: var(--lh-none);
   color: hsl(var(--green-hsl) / 0.45);
-  font-family: var(--font-bit); font-size: var(--fs-2xs);
-  letter-spacing: var(--tracking-mega);
+  text-shadow: 0 0 24px hsl(var(--green-hsl) / 0.45), 0 0 8px hsl(var(--green-hsl) / 0.12);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* One dot per card on the day. A dot's LENGTH is the card's importance — one
