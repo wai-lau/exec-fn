@@ -8,6 +8,23 @@ import httpx
 _STOP_HOSAKA = {"emo", "idle"}  # actions that kill hosaka-server -> guard them
 
 
+def effective_mode(reported: str, tts_live: bool) -> str:
+    """The mode to actually REPORT, given what the box claims and whether its TTS
+    is really answering.
+
+    `/mode` reports the home box's own intent, which outlives reality: when
+    hosaka-server dies or wedges, the box goes on saying "homo" long after it
+    stopped serving a byte, and the strip lights the homo segment over a dead
+    backend. Nothing is running, so the honest reading is `idle`.
+
+    Only homo is second-guessed. `emo`/`idle` mean hosaka-server is deliberately
+    stopped -- a failing TTS probe is the EXPECTED state there, not a
+    contradiction -- and `gone` (box unreachable) already says everything."""
+    if reported == "homo" and not tts_live:
+        return "idle"
+    return reported
+
+
 def needs_user_confirm(action: str, presence_count: int, force: bool) -> bool:
     """True iff this switch would cut off connected users and the caller has not
     already confirmed. homo (which starts hosaka) never needs it."""
