@@ -359,6 +359,32 @@ Exec voice, not just `/hosaka`-page `_presence`) and returns `409` if any users
 are connected and the caller has not sent `{"force": true}`. `homo` never needs
 confirmation.
 
+**The reported mode is corrected against reality.** `/mode` reports the box's
+*intent*, and that outlives the truth: when hosaka-server dies or wedges the
+box goes on answering `homo` while nothing synthesizes, and the strip lights
+the homo segment over a dead backend. `_current_mode()` probes `/mode` and TTS
+liveness concurrently and passes both to the pure
+`gpu_mode_client.effective_mode`, which reports `idle` for a claimed `homo`
+whose TTS is not answering. Only `homo` is second-guessed — under `emo`/`idle`
+a failing probe is the *expected* state, not a contradiction, and `gone` (box
+unreachable) already says everything. Liveness is the same `_live()` rule the
+health route uses: only a real `/v1/voices` response, never a bound tunnel
+port. A `homo` switch sets a 90s grace (`_HOMO_GRACE_S`) during which liveness
+is assumed, because the box has to load models before `/v1/voices` answers and
+the next poll would otherwise read "homo but no TTS" and flip the strip to
+idle and back.
+
+**Mode changes reach open pages two ways.** A POST here pushes instantly to
+`_mode_subscribers`. Everything else — a switch made at the home box, a
+watchdog restart, hosaka-server dying under a mode still claiming homo — never
+touches that queue, so `/api/hosaka/mode/stream`'s keepalive tick doubles as a
+poll of the real mode (`_MODE_POLL_S`, 15s) and emits on change. This is what
+fixes drift for pages that are already open; `gpu-mode.js`'s recheck-on-load
+and refresh-on-refocus only ever covered pages that got touched, and its own
+comment said so ("No interval -- a long-open foreground tab drifts until
+touched"). An unchanged poll falls through to a `: keepalive` comment, so an
+idle stream still costs one line per tick.
+
 Both `/hosaka` and `/emet` render the same `emo | idle | homo` segmented
 control (shared `web/gpu-mode.{js,css}`, keyed on `#gpu-mode`) for owners only.
 If the proxy call to the home service fails (tunnel down, service not running),
