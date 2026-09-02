@@ -205,6 +205,26 @@ body { overflow: hidden !important; background: transparent !important; }
    which is how the Friday/Saturday hairline went missing. */
 .cal-d.cal-eow { border-right: none; }
 
+/* Drop a card on a day (wireCalendarDrops). Sortable really does insert the
+   dragged card into the cell it is hovering, and a full-size card laid into a
+   ~40px grid cell would grow the calendar -- which moves the whole board under
+   the finger mid-drag. Hide it instead: the cell lighting up IS the feedback,
+   and :has() lets the cell answer for a child it never shows. */
+#rd-calendar .cal-d > .card { display: none; }
+#rd-calendar .cal-d[data-day]:has(> .card) { background-color: hsl(var(--green-hsl) / 0.45); }
+
+/* Says only what the drop itself can't: a refusal, or a date far enough out
+   that the card stayed in the backlog. */
+.rd-toast {
+  position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%);
+  background: hsl(var(--bg-hsl) / 1); border: 1px solid hsl(var(--green-hsl) / 0.45);
+  color: hsl(var(--green-hsl) / 0.8);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  padding: var(--space-2-5) var(--space-7); z-index: var(--z-overlay);
+  pointer-events: none; opacity: 0; transition: opacity 0.3s;
+}
+.rd-toast.show { opacity: 1; }
+
 /* today: a bright 1px box, drawn as an overlay rather than as this cell's
    border. A `border` override would REPLACE the 5px grid rules on this one
    cell — punching a thin spot in the grid, and leaving the bright line riding

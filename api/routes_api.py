@@ -5,6 +5,7 @@ import html
 import json
 import time
 import asyncio
+from datetime import date
 from pathlib import Path
 
 from fastapi import Request, HTTPException
@@ -39,6 +40,34 @@ async def api_morning():
 @protected.get("/api/rd")
 def api_rd():
     return _load_json("rd", {"columns": _RD_COLUMNS, "cards": []})
+
+
+@protected.post("/api/rd/{card_id}/schedule")
+async def api_rd_schedule(card_id: str, request: Request):
+    """Drop a card on a day in the /rd month calendar.
+
+    The dropped day IS the due date. Inside the 7-day window the card also goes
+    rd->hq and through the scheduler for its slot; beyond it, the due date alone
+    lands and the card waits in the backlog (scheduler.schedule_to_day owns that
+    split, card_schedule.drop_on_day the persistence around it).
+    """
+    import card_schedule
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    day = (body.get("date") or "").split("T")[0]
+    try:
+        date.fromisoformat(day)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid date: {day}")
+    result = await asyncio.to_thread(card_schedule.drop_on_day, card_id, day)
+    if result.get("blocked"):      # active nudge loop -> consequences first
+        raise HTTPException(status_code=409, detail=result["error"])
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    await push_to_monitor({"cards_changed": True})   # open /hq refetches
+    return result
 
 
 @protected.post("/api/rd/{card_id}/recalc")
