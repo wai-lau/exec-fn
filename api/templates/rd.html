@@ -1,5 +1,5 @@
 
-<link rel="stylesheet" href="/rd.css?v=21">
+<link rel="stylesheet" href="/rd.css?v=24">
 
 <div id="reminders-bar" class="rd-reminders"></div>
 
@@ -24,6 +24,9 @@
   </div>
 </div>
 
+<!-- watermark lives OUTSIDE #rd-calendar: that element is position:fixed with a
+     z-index, so a negative-z child of it can never sink below the CRT layers -->
+<div id="cal-mark" class="cal-mark"></div>
 <div id="rd-calendar"></div>
 
 <div class="rd-board" id="board">
@@ -36,5 +39,5 @@
 <script src="/card-dialog.js?v=28"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script src="/rd-calendar.js?v=5"></script>
+<script src="/rd-calendar.js?v=10"></script>
 <script src="/rd.js?v=10"></script>
