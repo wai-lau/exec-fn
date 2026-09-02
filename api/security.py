@@ -116,9 +116,8 @@ def render_security(data):
     asn=[(a[:34],v) for a,v in Gd["asn"]]
     parts.append(f'<div class="sg2">{_panel("Scanner traffic by country","",hbar(countries,G,width=520,labw=170))}'
         f'{_panel("Networks hosting the bots","",hbar(asn,G,width=520,labw=240))}</div>')
-    # 5. what the scanners hunt for — all 404s, none of these paths exist here.
+    # 5. the paths the scanners probe — all 404s, none of these exist here.
     if W and W.get("top_404"):
-        parts.append(_panel("What the scanners hunt for",
-            "paths bots probe for — every one a 404 (none exist here)",
+        parts.append(_panel("Common endpoints", "",
             hbar([(p,c) for p,c in W["top_404"]],G,labw=200)))
     return f'<div class="secwrap doc-card">{_CSS}{"".join(parts)}</div>'
