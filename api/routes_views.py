@@ -47,7 +47,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=16">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=17">'
 _LANDING_SCRIPT = '<script src="/landing-wheel.js?v=2"></script>'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
@@ -63,7 +63,7 @@ _LANDING_BLURBS = {
     "printer": "Thermoplastic Extruder",
     "graph": "Construct Graph",
     "nightfall": "The Nightfall Incident",
-    "ui": "Human-machine Interface Protocol",
+    "ui": "Human-Machine Interface Protocol",
     "mtg": "The Magician",
     "tarot": "Seventy-Eight Gates",
     "recruiter": "Resume",
