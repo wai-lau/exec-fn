@@ -165,7 +165,7 @@ body { overflow: hidden !important; background: transparent !important; }
      swipe. Measured in WebKit, not assumed -- drop this and month paging dies
      after the first gesture. */
   -webkit-user-select: none;
-  font-family: var(--font-mono); font-size: calc(var(--fs-xl) * 1.5); font-weight: var(--fw-bold);
+  font-family: var(--font-mono); font-size: calc(var(--fs-sm) * 1.5); font-weight: var(--fw-bold);
   line-height: var(--lh-none);
   color: hsl(var(--green-hsl) / 0.8);
 }
@@ -296,7 +296,7 @@ body { overflow: hidden !important; background: transparent !important; }
    Dots never shrink (a squashed dot would misreport its size), so a very heavy
    day is clipped at the cell edge rather than bleeding into its neighbours. */
 .cal-dots {
-  --cal-dot: 6px;  /* circle diameter = one unit of length */
+  --cal-dot: 5px;  /* circle diameter = one unit of length */
 
   display: flex; align-items: center; justify-content: center;
   gap: var(--space-1); height: var(--space-2); overflow: hidden;
@@ -312,10 +312,15 @@ body { overflow: hidden !important; background: transparent !important; }
 .cal-dots i.cal-u3 { width: calc(var(--cal-dot) * 3); }
 .cal-dots i.cal-u4 { width: calc(var(--cal-dot) * 4); }
 
-/* "there are more than fit" — colour inherits the calendar's, so it reads as
-   part of the date's own row rather than as another dot. */
+/* "there are more than fit" — a HOLLOW dot, not a glyph: it keeps the row's
+   rhythm (same diameter, same pill radius as a one-unit dot) instead of
+   breaking it with a character on a different baseline. Ring only, and silver
+   rather than any category hue — it stands for cards it cannot name, so it
+   must not read as one of them. Inherits --cal-dot from .cal-dots, so it
+   tracks the dot size automatically. */
 .cal-more {
   flex: 0 0 auto;
-  font-family: var(--font-bit); font-size: var(--fs-2xs);
-  line-height: var(--lh-none);
+  width: var(--cal-dot); height: var(--cal-dot);
+  border-radius: var(--radius-pill);
+  border: 1px solid hsl(var(--gray-hsl) / 0.45);
 }
