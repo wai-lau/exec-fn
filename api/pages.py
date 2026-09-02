@@ -122,7 +122,7 @@ def _build_nav(active=None, guest=False):
         "_rf.style.cursor='pointer';"
         "_rf.innerHTML='<img src=\"/firewall.png?v=1\" alt=\"refresh\" "
         "style=\"width:20px;height:20px;image-rendering:pixelated;\">"
-        "<span class=\"nav-label\">refresh</span>';"
+        "<span class=\"nav-label\">F5</span>';"
         "_rf.addEventListener('click',function(e){e.preventDefault();"
         "location.reload();});_nav.appendChild(_rf);"
         "_nav.style.setProperty('--per-row',"
@@ -206,12 +206,13 @@ def _build_nav(active=None, guest=False):
     if guest:
         bubble = ''
     elif active in {"rd", "hq"}:
-        bubble = ('<script src="/hosaka-audio.js?v=3"></script>'
+        bubble = ('<script src="/hosaka-audio.js?v=5"></script>'
                   '<script src="/voice-util.js?v=1"></script>'
-                  '<script src="/exec-voice.js?v=3"></script>'
+                  '<script src="/exec-voice.js?v=4"></script>'
                   '<script src="/exec-bubble-drag.js?v=2"></script>'
                   '<script src="/exec-todos.js?v=3"></script>'
-                  '<script src="/exec-bubble.js?v=42"></script>')
+                  '<script src="/exec-bubble-assets.js?v=1"></script>'
+                  '<script src="/exec-bubble.js?v=43"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -225,17 +226,17 @@ def _build_nav(active=None, guest=False):
         # link-bubble stays on those two — just without the voice scripts.
         want_voice = active not in {"tarot", "hosaka"}
         voice_pre = (
-            '<script src="/hosaka-audio.js?v=3"></script>'
+            '<script src="/hosaka-audio.js?v=5"></script>'
             '<script src="/voice-util.js?v=1"></script>'
-            '<script src="/exec-voice.js?v=3"></script>'
+            '<script src="/exec-voice.js?v=4"></script>'
         ) if want_voice else ''
-        voice_listener = '<script src="/exec-voice-listener.js?v=1"></script>' if want_voice else ''
+        voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
         bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=19">'
                   '<div id="exec-bubble" class="exec-under-fx" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
                   '<script src="/exec-bubble-drag.js?v=2"></script>'
-                  '<script src="/exec-link.js?v=1"></script>'
+                  '<script src="/exec-link.js?v=2"></script>'
                   + voice_listener)
     return nav + script + bubble
 
