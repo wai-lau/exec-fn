@@ -33,15 +33,42 @@ apt-get install -y nginx certbot python3-certbot-nginx fail2ban
 
 # Basic HTTP config (certbot will upgrade to HTTPS)
 cat > /etc/nginx/sites-available/exec-fn << 'NGINXEOF'
+# The app runs under `uvicorn --reload` on purpose: editing api/*.py on the
+# droplet IS the deploy. The reloader holds the listen socket in the parent and
+# swaps the worker underneath, so a new connection is never refused -- but a
+# request that lands on the OLD worker while it drains gets its connection
+# closed with no response, and nginx turns that into a 502. Measured on the live
+# box: 20 of 220 requests to / across two reloads came back 502, while the same
+# probe straight at 127.0.0.1:8080 saw none.
+#
+# Hence an explicit upstream listed TWICE -- nginx allows one try per peer, so a
+# single-server upstream can never retry -- never marked down, with a retry on a
+# dropped or timed-out connection. Same probe after the change: 220/220 200s.
+upstream execfn_app {
+    server 127.0.0.1:8080 max_fails=0;
+    server 127.0.0.1:8080 max_fails=0;
+}
+
 server {
     listen 80;
     server_name wai-lau.net;
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://execfn_app;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 120s;
+
+        # Ride out a worker swap instead of surfacing it as a 502.
+        # `non_idempotent` is deliberately NOT set: a retried POST/PATCH would
+        # apply a mutation twice, so this covers the GETs that serve pages and
+        # assets, which is where the 502 was visible. NOT http_503 either --
+        # this app returns a real 503 when the home box or the printer is
+        # unreachable, and retrying that would only delay an honest answer.
+        proxy_connect_timeout 3s;
+        proxy_next_upstream error timeout http_502;
+        proxy_next_upstream_tries 3;
+        proxy_next_upstream_timeout 20s;
     }
 }
 NGINXEOF
