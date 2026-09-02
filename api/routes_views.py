@@ -47,7 +47,8 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
     return v
 
 
-_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=14">'
+_LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=15">'
+_LANDING_SCRIPT = '<script src="/landing-wheel.js?v=1"></script>'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> hosaka 50° (amber radar) -> graph 171° (teal) -> nightfall 194°
@@ -101,8 +102,14 @@ _RECRUITER_FAVICON = (
 
 
 def _landing_html() -> str:
-    """Public landing page: non-admin sections only, as a centered vertical
-    column of icons, with cyberpunk CRT/scan/neon animations."""
+    """Public landing page: non-admin sections only, as a vertical carousel
+    wheel of icons, with cyberpunk CRT/scan/neon animations.
+
+    Every section is emitted, in hue order, but landing.css/landing-wheel.js
+    only ever show FIVE at a time -- the active one plus two rings each side.
+    That is what makes the page fit a phone: the old full-height column of all
+    eight ran taller than the viewport and clipped the last two outright.
+    """
     _, bare = _index_pages()
     links = []
     for label in _LANDING_HUE_ORDER:
@@ -113,7 +120,7 @@ def _landing_html() -> str:
         blurb = _LANDING_BLURBS.get(label, "")
         desc = _LANDING_DESCS.get(label, "")
         links.append(
-            f'<a href="{href}">'
+            f'<a class="wheel-item" href="{href}">'
             f'<span class="landing-link">{icon}<span class="nav-label">{text}</span></span>'
             f'<span class="landing-copy">'
             f'<span class="landing-blurb">{blurb}</span>'
@@ -121,10 +128,10 @@ def _landing_html() -> str:
             f'</span>'
             f'</a>'
         )
-    nav = '<div class="exec-nav landing-nav">' + "".join(links) + "</div>"
+    nav = '<div class="landing-wheel" id="landing-wheel">' + "".join(links) + "</div>"
     admin = '<a href="/login" class="landing-admin">admin</a>'
     page = bare.replace("</head>", _FONT_PRELOAD + _CHROME_LINK + _LANDING_LINK + "</head>", 1)
-    return page.replace("</body>", _CRT_FX + nav + admin + "</body>", 1)
+    return page.replace("</body>", _CRT_FX + nav + admin + _LANDING_SCRIPT + "</body>", 1)
 
 
 @public.get("/", response_class=HTMLResponse)
