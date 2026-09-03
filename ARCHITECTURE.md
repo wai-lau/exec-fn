@@ -520,6 +520,28 @@ duplicate. Marked only in the volatile tail → the cached static prefix stays
 byte-stable. Threaded through both follow-up paths (`routes_chat._dispatch_tools`
 collects the actions; `discord_bot.exec_reply` rebuilds `system2` with them).
 
+**Tool rounds are a bounded LOOP, not one shot** (`_MAX_TOOL_ROUNDS` = 3, in both
+`routes_chat` and `discord_bot`). The follow-up turn is handed the tools, so it
+can answer a tool result by calling another tool — an exile right after a create.
+Both paths used to keep only the follow-up's TEXT: any `tool_use` it emitted was
+dropped on the floor, never dispatched and never stored, so Exec could announce
+an action ("I'll exile the duplicate") that provably never happened — observed
+2026-09-02, with `rd.json` holding one card and the activity log holding no
+exile. `chat_store.assistant_content_blocks` is the shared helper that preserves
+text + `tool_use` from an API message; each round dispatches the pending turn's
+tool_use blocks, appends the results, and streams the next turn with a REBUILT
+action diff (cumulative across rounds). A stream that dies mid-follow-up keeps
+whatever text arrived and ends the loop.
+
+**Activity-log entries carry the card `id`** (`_log_entries_for_patch`:
+created/moved/updated/deleted, plus `revived`), and `_build_chat_system_prompt`
+renders it as a trailing `[id:…]` on each log line. One `create_card` WITH a
+due_date emits both a `created` and an `updated` entry — by title alone that
+reads as two cards, which is what produced the phantom "there was already one in
+the pool from earlier this turn". The actions block says so explicitly: entries
+sharing an id are one card. Legacy entries with no id render unchanged.
+Regression properties pinned in `tests/test_exec_tool_rounds.py`.
+
 ### Uncached (measured, left alone)
 
 | Call site | Why |

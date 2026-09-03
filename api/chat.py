@@ -146,8 +146,14 @@ def _build_chat_system_prompt(stage: str = "planning", actions: list | None = No
 
     ctx_text = "\n".join(f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])) or "None."
     rd_log_entries = get_rd_log(limit=20)
+    # id on every line: one create can emit BOTH a `created` and an `updated`
+    # entry (create_card with a due_date patches it straight after), and with
+    # titles alone that reads as two separate cards — the phantom "there was
+    # already one" duplicate. Same id = same card.
     rd_log_text = "\n".join(
-        f"- {e['action']} '{e['title']}'" + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
+        f"- {e['action']} '{e['title']}'"
+        + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
+        + (f" [id:{e['id']}]" if e.get('id') else "")
         for e in reversed(rd_log_entries)
     ) or "None."
     selected_text = "\n".join(

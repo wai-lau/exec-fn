@@ -14,6 +14,18 @@ from datetime import datetime, timezone
 from helpers import DATA_DIR
 
 
+def assistant_content_blocks(final) -> list:
+    """An API message's text + tool_use blocks in storable dict form. Shared by
+    both Exec send paths (web SSE + Discord) so a follow-up turn's tool_use is
+    kept, not flattened away — dropping it made Exec announce an action it never
+    performed."""
+    return [
+        {"type": "text", "text": b.text} if b.type == "text"
+        else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
+        for b in final.content if b.type in ("text", "tool_use")
+    ]
+
+
 def _msg_text_key(m: dict) -> tuple | None:
     """Canonical (role, text) identity for ts-matching a stored/incoming
     message, or None if it carries no matchable text. A tool_use/tool_result
