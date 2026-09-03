@@ -71,5 +71,7 @@ def _actions_taken_block(actions: list | None) -> str:
         + "\nAny card in the lists above that matches one you just created or edited is THAT SAME card, "
         "appearing because you just acted — NOT a pre-existing card and NOT a duplicate. Do not warn about a "
         "duplicate or say a card 'already existed' / 'was already there' for anything you just did this turn; "
-        "describe it plainly as the action you just performed."
+        "describe it plainly as the action you just performed. The ACTIVITY LOG above may carry SEVERAL entries "
+        "for a single card you just made (a create with a due date logs both 'created' and 'updated') — entries "
+        "sharing an [id:...] are the same card, never two."
     )

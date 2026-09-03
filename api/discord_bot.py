@@ -17,6 +17,7 @@ import json
 import os
 
 _MAX_LEN = 2000  # Discord per-message hard cap.
+_MAX_TOOL_ROUNDS = 3  # matches routes_chat: a follow-up may call another tool.
 
 _tools_cache = None
 
@@ -34,12 +35,12 @@ async def exec_reply(text: str) -> str:
     """Run one Exec turn for an inbound DM and return the reply text.
 
     Mirrors routes_chat.generate() but non-streaming: load the shared history,
-    one tool round, then persist via _save_chat so the web bubble sees it. The
+    bounded tool rounds, then persist via _save_chat so the web bubble sees it. The
     sync helpers (prompt build, tool handlers, file I/O) go through to_thread so
     a DM turn never stalls the shared event loop."""
     import anthropic
     from chat import _build_chat_system_prompt
-    from chat_store import _save_chat, get_chat, sanitize_history_for_api
+    from chat_store import _save_chat, assistant_content_blocks, get_chat, sanitize_history_for_api
     from chat_tools import _handle_tool
     from nudge import clear_awaiting_focused
 
@@ -62,41 +63,42 @@ async def exec_reply(text: str) -> str:
         model="claude-opus-4-8", max_tokens=1024,
         system=system, tools=tools, messages=messages,
     )
-    assistant_content = [
-        {"type": "text", "text": b.text} if b.type == "text"
-        else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
-        for b in final.content if b.type in ("text", "tool_use")
-    ]
-    all_messages = messages + [{"role": "assistant", "content": assistant_content}]
+    all_messages = messages + [{"role": "assistant", "content": assistant_content_blocks(final)}]
     reply_text = "".join(b.text for b in final.content if b.type == "text")
 
-    # One tool round (matches the web bubble's single follow-up).
-    tool_results = []
+    # Tool rounds, bounded — mirrors the web bubble. A follow-up may itself call a
+    # tool (an exile right after a create); keeping only its text dropped that
+    # tool_use, so Exec announced an action it never performed.
     actions_taken = []
-    for b in final.content:
-        if b.type != "tool_use":
-            continue
-        result = await asyncio.to_thread(_handle_tool, b.name, b.input)
-        if b.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
-            from monitor import schedule_monitor
-            schedule_monitor()
-        actions_taken.append({"name": b.name, "input": b.input, "result": result})
-        tool_results.append({
-            "type": "tool_result", "tool_use_id": b.id, "content": json.dumps(result),
-        })
-    if tool_results:
+    for _ in range(_MAX_TOOL_ROUNDS):
+        tool_results = []
+        for b in final.content:
+            if b.type != "tool_use":
+                continue
+            result = await asyncio.to_thread(_handle_tool, b.name, b.input)
+            if b.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
+                from monitor import schedule_monitor
+                schedule_monitor()
+            actions_taken.append({"name": b.name, "input": b.input, "result": result})
+            tool_results.append({
+                "type": "tool_result", "tool_use_id": b.id, "content": json.dumps(result),
+            })
+        if not tool_results:
+            break
         all_messages.append({"role": "user", "content": tool_results})
         # Rebuild the follow-up system fresh WITH this turn's action diff — same
         # fix as the web bubble: the follow-up reads the refreshed board as the
         # result of its own action, not a phantom pre-existing/duplicate card.
         system2 = await asyncio.to_thread(_build_chat_system_prompt, "planning", actions_taken)
-        final2 = await client.messages.create(
+        final = await client.messages.create(
             model="claude-opus-4-8", max_tokens=512,
             system=system2, tools=tools, messages=all_messages,
         )
-        cont = "".join(b.text for b in final2.content if b.type == "text")
+        content = assistant_content_blocks(final)
+        if content:
+            all_messages.append({"role": "assistant", "content": content})
+        cont = "".join(b.text for b in final.content if b.type == "text")
         if cont:
-            all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont}]})
             reply_text = (reply_text + "\n\n" + cont).strip()
 
     await asyncio.to_thread(_save_chat, all_messages, "planning")

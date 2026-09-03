@@ -164,9 +164,9 @@ def _log_entries_for_patch(new_cards, old_cards, source):
     for c in new_cards:
         old = old_cards.get(c.get("id"))
         if old is None:
-            entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "column": c.get("column"), "is_reminder": c.get("is_reminder", False)})
+            entries.append({"action": "created", "title": c.get("title", c.get("id")), "source": source, "id": c.get("id"), "column": c.get("column"), "is_reminder": c.get("is_reminder", False)})
         elif old.get("column") != c.get("column"):
-            mv = {"action": "moved", "title": c.get("title", c.get("id")), "source": source, "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)}
+            mv = {"action": "moved", "title": c.get("title", c.get("id")), "source": source, "id": c.get("id"), "from_col": old["column"], "to_col": c["column"], "is_reminder": c.get("is_reminder", False)}
             if c.get("column") == "archives":
                 mv["category"] = c.get("category")  # recalibration keys factors by category
                 if c.get("completed_late"):
@@ -176,7 +176,7 @@ def _log_entries_for_patch(new_cards, old_cards, source):
             entries.append(mv)
         elif (old.get("notes") != c.get("notes") or old.get("title") != c.get("title")
               or old.get("current_page") != c.get("current_page")):
-            entry = {"action": "updated", "title": c.get("title", c.get("id")), "source": source, "size": c.get("size", ""), "is_book": c.get("is_book", False)}
+            entry = {"action": "updated", "title": c.get("title", c.get("id")), "source": source, "id": c.get("id"), "size": c.get("size", ""), "is_book": c.get("is_book", False)}
             if c.get("is_book") and c.get("current_page") is not None:
                 entry["current_page"] = c.get("current_page")
                 entry["total_pages"] = c.get("total_pages")
@@ -187,7 +187,7 @@ def _log_entries_for_patch(new_cards, old_cards, source):
     new_ids = {c["id"] for c in new_cards}
     for cid, old in old_cards.items():
         if cid not in new_ids:
-            entries.append({"action": "deleted", "title": old.get("title", cid), "source": source})
+            entries.append({"action": "deleted", "title": old.get("title", cid), "source": source, "id": cid})
     return entries
 
 
@@ -296,7 +296,7 @@ async def api_rd_patch(request: Request, source: str = "rd"):
                     clone.pop("dir_start_min", None)
                     clone.pop("completed_late", None)  # don't inherit the prior occurrence's flag
                     revived.append(clone)
-                    log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "next_due": next_due})
+                    log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "id": c["id"], "next_due": next_due})
 
         _recompute_node_deadlines(new_cards)
         _flag_triage(new_cards, old_cards)

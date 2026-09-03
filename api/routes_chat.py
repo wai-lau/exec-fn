@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from chat import _build_chat_system_prompt, _chat_tools
-from chat_store import _save_chat, sanitize_history_for_api
+from chat_store import _save_chat, assistant_content_blocks, sanitize_history_for_api
 from chat_tools import _handle_tool
 from helpers import DATA_DIR
 from monitor import schedule_monitor
@@ -18,15 +18,27 @@ router = APIRouter()
 
 _CHAT_TOOLS = _chat_tools()
 
+# Tool rounds per user turn. A follow-up may call another tool (an exile after a
+# create); this caps the chain so a model looping on tools can't spin forever.
+_MAX_TOOL_ROUNDS = 3
+
 
 class ChatBody(BaseModel):
     messages: List[dict] = []
     stage: str = "planning"
 
 
-async def _stream_tool_followup(client, all_messages: list, tools: list, system: str):
-    """Stream follow-up assistant turn after tool results."""
+async def _stream_tool_followup(client, all_messages: list, tools: list, system: str, out: list | None = None):
+    """Stream the follow-up assistant turn after tool results, appending its FULL
+    content (text AND any tool_use) to `all_messages` and putting the final API
+    message in `out` so the caller can run another tool round.
+
+    The follow-up is offered `tools`, so it can answer a tool result by calling
+    another tool — Exec saying "I'll exile the duplicate" and then doing it. That
+    tool_use used to be dropped on the floor: only the text was kept, nothing was
+    dispatched, and the announced action silently never happened."""
     cont_text = ""
+    final2 = None
     try:
         async with client.messages.stream(
             model="claude-opus-4-8",
@@ -38,11 +50,18 @@ async def _stream_tool_followup(client, all_messages: list, tools: list, system:
             async for text in stream2.text_stream:
                 cont_text += text
                 yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-            await stream2.get_final_message()
+            final2 = await stream2.get_final_message()
     except Exception:
         pass
-    if cont_text:
-        all_messages.append({"role": "assistant", "content": [{"type": "text", "text": cont_text}]})
+    if final2 is not None:
+        content = assistant_content_blocks(final2)
+    else:
+        # stream died mid-turn: keep whatever text arrived, run no tool round
+        content = [{"type": "text", "text": cont_text}] if cont_text else []
+    if content:
+        all_messages.append({"role": "assistant", "content": content})
+    if out is not None:
+        out.append(final2)
 
 
 
@@ -125,28 +144,38 @@ async def api_chat(body: ChatBody):
             yield f"data: {json.dumps({'type': 'done', 'next_stage': stage})}\n\n"
             return
 
-        assistant_content = [
-            {"type": "text", "text": b.text} if b.type == "text"
-            else {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
-            for b in final.content if b.type in ("text", "tool_use")
-        ]
-        all_messages = messages + [{"role": "assistant", "content": assistant_content}]
-        tool_result_contents = []
+        all_messages = messages + [{"role": "assistant", "content": assistant_content_blocks(final)}]
         actions_taken = []
+        any_text = bool(full_text)
 
-        async for chunk in _dispatch_tools(final.content, tool_result_contents, actions_taken):
-            yield chunk
-
-        if tool_result_contents:
+        # Tool rounds. Each round dispatches the pending turn's tool_use blocks,
+        # then streams a follow-up that may itself call a tool — so an action the
+        # model announces in the follow-up ("I'll exile the duplicate") actually
+        # runs. Bounded by _MAX_TOOL_ROUNDS so a tool-calling loop can't spin.
+        for _ in range(_MAX_TOOL_ROUNDS):
+            if final is None:
+                break
+            tool_result_contents = []
+            async for chunk in _dispatch_tools(final.content, tool_result_contents, actions_taken):
+                yield chunk
+            if not tool_result_contents:
+                break
             all_messages.append({"role": "user", "content": tool_result_contents})
-            if full_text:
+            if any_text:
                 yield f"data: {json.dumps({'type': 'text', 'delta': '\n\n'})}\n\n"
             # Rebuild the follow-up system prompt WITH this turn's action diff, so
             # the model reads the refreshed board (now carrying any just-created
             # card) as the result of its own action — not a phantom duplicate.
             followup_system = _build_chat_system_prompt(next_stage, actions=actions_taken)
-            async for chunk in _stream_tool_followup(client, all_messages, tools, followup_system):
+            out = []
+            async for chunk in _stream_tool_followup(client, all_messages, tools, followup_system, out):
                 yield chunk
+            final = out[0] if out else None
+            any_text = any(
+                b.get("type") == "text" and b.get("text")
+                for b in (all_messages[-1].get("content") or [])
+                if isinstance(b, dict)
+            ) if all_messages[-1].get("role") == "assistant" else any_text
 
         _save_chat(all_messages, next_stage)
         yield f"data: {json.dumps({'type': 'done', 'next_stage': next_stage})}\n\n"
