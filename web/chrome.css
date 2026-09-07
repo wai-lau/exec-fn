@@ -300,8 +300,9 @@
    a discrete content change (card drag, chat line) re-blurs that one frame only,
    never continuously. The sweep on top stays sharp + plain-alpha (NO blend mode --
    a blend on the animated layer is the same per-frame-readback trap as the old
-   under-glass blur, see .cyber-scan). Dense boards (/rd,/hq) push the whole stack
-   to z-index:-1 behind opaque cards, so the glass is inert there. */
+   under-glass blur, see .cyber-scan). Dense boards (/rd,/hq) keep the stack on
+   top like everywhere else, but halve it (opacity .5 on the colour layers, both
+   filters pulled halfway to identity) — see the head of rd.css/hq.css. */
 .cyber-blur {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   backdrop-filter: blur(var(--blur-2xs));
@@ -314,7 +315,7 @@
    (bg + lines + blur + static content) never animates, so the compositor runs the
    brightness/contrast pass ONCE and re-composites the cached texture — idle
    per-frame readback cost 0. Over the sweep it would re-fire every frame (the
-   backdrop-filter trap). Dense boards push it to z-index:-1 like the rest. */
+   backdrop-filter trap). Dense boards halve it like the rest of the stack. */
 .cyber-crt {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   backdrop-filter: brightness(0.85) contrast(1.5);

@@ -1,8 +1,19 @@
-/* transparent body so the z-1 cyber layer (over the html bg) shows through */
+/* transparent body so the html bg shows through under the CRT stack */
 body { overflow: hidden !important; background: transparent !important; }
 
-/* cyber scanlines sit behind the cards + reminders, not over them */
-.cyber-lines, .cyber-bg, .cyber-scan, .cyber-blur, .cyber-crt { z-index: -1; }
+/* CRT stack rides back OVER the cards (chrome.css's --z-modal -- no z override
+   here any more), at HALF strength so a dense board stays readable through it:
+   the three colour layers at opacity .5, and both backdrop-filter panes pulled
+   halfway back toward identity (blur .5px -> .25px, brightness .85 -> .925,
+   contrast 1.5 -> 1.25). Halved with `opacity` rather than by rewriting the
+   gradient alphas because half of 0.45 is 0.225 -- off the palette snap scale.
+   Paint order is untouched (bg -> lines -> blur -> crt -> scan), so both
+   backdrop-filters still sit UNDER the one animated layer and blur a backdrop
+   that is static while the board is idle -- the compositor caches it. A card
+   drag is the one thing that dirties it per frame. */
+.cyber-bg, .cyber-lines, .cyber-scan { opacity: 0.5; }
+.cyber-blur { backdrop-filter: blur(calc(var(--blur-2xs) / 2)); }
+.cyber-crt { backdrop-filter: brightness(0.925) contrast(1.25); }
 
 /* ── top bars: reminders (left half) + books (right half) ─────────────────
    identical chrome; only side/anchoring differs */
@@ -112,8 +123,10 @@ body { overflow: hidden !important; background: transparent !important; }
 .card:hover { filter: brightness(1.08); }
 .card:active { cursor: grabbing; }
 
-/* opaque fill (matches hq's .hq-card.plain) so the z-1 scanlines don't bleed
-   through the card — R&D cards sit OVER the effects, not tinted by them */
+/* opaque fill (matches hq's .hq-card.plain) so nothing behind the board bleeds
+   up through a card. The CRT stack is back on TOP (see the head of this file),
+   so the scanlines DO cross the cards now — at half strength, over an opaque
+   fill, which is the "cards inside the CRT" look rather than a see-through one */
 .card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
 .card.plain:hover { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); }
 .card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-2xs); line-height: var(--lh-snug); margin-bottom: var(--space-0-5); }
@@ -277,8 +290,9 @@ body { overflow: hidden !important; background: transparent !important; }
    It is a sibling of #rd-calendar, not a child, and that is load-bearing:
    #rd-calendar is position:fixed WITH a z-index, so it opens its own stacking
    context and a negative-z child of it can only ever sink behind its own
-   content, never behind the page's cyber-* layers (which /rd pins at -1). As a
-   fixed sibling at -2 it lands under them and above the page background.
+   content, never behind the page's own layers. As a fixed sibling at -2 it
+   lands behind the board and above the page background — and the cyber-* stack
+   is at --z-modal above everything here, so it runs across this too.
 
    Being fixed also means it takes no space and cannot change --cal-h, so
    sizing it FROM --cal-h has no feedback loop. It tracks the calendar's band
