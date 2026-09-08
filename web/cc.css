@@ -5,6 +5,13 @@
 body { background: hsl(var(--bg-hsl)); }
 
 .cc {
+  /* The Exec link-bubble is fixed at right:14px / bottom:nav+10 and is 50px
+     across, which lands exactly on a bottom-right send button -- WebKit at
+     430x932 reported it intercepting the click. The composer row reserves that
+     corner; the transcript above keeps the full width. A dragged bubble can
+     still sit anywhere, but the DEFAULT position no longer eats the button. */
+  --cc-bubble-gutter: calc(var(--space-10) * 2 + var(--space-2));
+
   position: fixed; inset: 0 0 var(--nav-h) 0;
   display: flex; flex-direction: column; gap: var(--space-3);
   padding: var(--space-4);
@@ -91,7 +98,10 @@ body { background: hsl(var(--bg-hsl)); }
 .cc-err { font-size: var(--fs-sm); color: hsl(var(--pink-hsl)); }
 
 /* ── composer ───────────────────────────────────────────────────────────── */
-.cc-form { flex: none; display: flex; gap: var(--space-3); align-items: flex-end; }
+.cc-form {
+  flex: none; display: flex; gap: var(--space-3); align-items: flex-end;
+  padding-right: var(--cc-bubble-gutter);
+}
 
 .cc-form textarea {
   font: inherit; flex: 1 1 auto; min-width: 0; resize: none;
