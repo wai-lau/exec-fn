@@ -15,7 +15,13 @@ cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
 
 # Pull the command being run. jq if present, else a tolerant grep fallback.
 payload="$(cat)"
-if command -v jq >/dev/null 2>&1; then
+# Prefer cmdscan: it strips heredoc BODIES, so a script that merely mentions
+# "git commit" is not read as running one. Quoted strings are deliberately kept
+# — the [skip-docs] opt-out lives inside the quoted commit message.
+cmd="$(printf '%s' "$payload" | python3 "$(dirname "$0")/cmdscan.py" 2>/dev/null)"
+if [ -n "$cmd" ]; then
+  :
+elif command -v jq >/dev/null 2>&1; then
   cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)"
 else
   cmd="$(printf '%s' "$payload" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*:[[:space:]]*"//; s/"$//')"
