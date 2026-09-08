@@ -1,0 +1,21 @@
+<link rel="stylesheet" href="/cc.css?v=1">
+
+<main class="cc">
+  <div class="cc-head">
+    <p class="cc-lede">claude code · sandboxed · /srv/cc-sandbox</p>
+    <span id="cc-status" class="cc-badge">checking</span>
+    <button type="button" id="cc-new" class="cc-new" title="start a fresh session">new</button>
+  </div>
+
+  <div id="cc-log" class="cc-log">
+    <p class="cc-hint">Runs as <b>cc-agent</b> with Read/Write/Edit/Glob/Grep/Bash confined to
+    <b>/srv/cc-sandbox</b>. No repo access, no network tools, one run at a time.</p>
+  </div>
+
+  <form id="cc-form" class="cc-form">
+    <textarea id="cc-input" rows="1" placeholder="ask claude code…" autocomplete="off"></textarea>
+    <button type="submit" id="cc-send">run</button>
+  </form>
+</main>
+
+<script src="/cc.js?v=1"></script>

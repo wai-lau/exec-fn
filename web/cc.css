@@ -1,0 +1,114 @@
+/* /cc — sandboxed Claude Code terminal. full_height page: the transcript is the
+   only scroller (body is overflow:hidden), the composer is pinned above the
+   fixed nav. Palette is the shared document theme (raw green/cyan/pink on
+   black), same vocabulary as emet.css. */
+body { background: hsl(var(--bg-hsl)); }
+
+.cc {
+  position: fixed; inset: 0 0 var(--nav-h) 0;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4);
+  min-height: 0;   /* or the log's flex:1 cannot shrink and the composer is pushed off */
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+.cc-head { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; flex: none; }
+
+.cc-lede {
+  margin: 0; font-size: var(--fs-sm); letter-spacing: var(--tracking-mega);
+  text-transform: uppercase; color: hsl(var(--green-hsl) / 0.45);
+}
+.cc-head .cc-badge { margin-left: auto; }
+
+.cc-badge {
+  flex: none; font-size: var(--fs-2xs); text-transform: uppercase;
+  letter-spacing: var(--tracking-wide); padding: var(--space-0-5) var(--space-2-5);
+  border-radius: var(--radius-2);
+  color: hsl(var(--green-hsl)); border: 1px solid hsl(var(--green-hsl) / 0.45);
+}
+.cc-badge.ok { color: hsl(var(--bg-hsl)); background: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl)); }
+.cc-badge.busy { color: hsl(var(--cyan-hsl) / 0.8); border-color: hsl(var(--green-hsl) / 0.45); }
+.cc-badge.down { color: hsl(var(--bg-hsl)); background: hsl(var(--pink-hsl)); border-color: hsl(var(--pink-hsl)); }
+
+.cc-new {
+  font: inherit; cursor: pointer; flex: none;
+  font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide);
+  color: hsl(var(--green-hsl) / 0.8); background: hsl(var(--bg-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-2);
+  padding: var(--space-0-5) var(--space-2-5);
+}
+.cc-new:hover { border-color: hsl(var(--green-hsl) / 0.45); }
+
+/* ── transcript ─────────────────────────────────────────────────────────── */
+.cc-log {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding-right: var(--space-2);
+}
+
+.cc-hint {
+  margin: 0; font-size: var(--fs-sm); line-height: var(--lh-snug);
+  color: hsl(var(--green-hsl) / 0.45);
+}
+.cc-hint b { color: hsl(var(--green-hsl) / 0.8); font-weight: var(--fw-bold); }
+
+.cc-msg { white-space: pre-wrap; line-height: var(--lh-relaxed); overflow-wrap: anywhere; }
+
+.cc-you {
+  color: hsl(var(--cyan-hsl) / 0.8);
+  border-left: 2px solid hsl(var(--cyan-hsl) / 0.8); padding-left: var(--space-3);
+}
+.cc-text { color: hsl(var(--green-hsl) / 0.8); }
+.cc-think { color: hsl(var(--green-hsl) / 0.45); font-style: italic; font-size: var(--fs-sm); }
+
+/* A tool call is the thing worth seeing at a glance on a phone, so it gets the
+   chip treatment rather than another paragraph of prose. */
+.cc-tool {
+  display: flex; align-items: baseline; gap: var(--space-2-5); flex-wrap: wrap;
+  font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45);
+}
+
+.cc-tool-name {
+  flex: none; font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide);
+  text-transform: uppercase; font-size: var(--fs-2xs);
+  color: hsl(var(--bg-hsl)); background: hsl(var(--green-hsl) / 0.45);
+  padding: var(--space-px) var(--space-2); border-radius: var(--radius-2);
+}
+.cc-tool-arg { overflow-wrap: anywhere; color: hsl(var(--green-hsl) / 0.45); }
+
+.cc-result {
+  white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--fs-2xs);
+  line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.45);
+  border-left: 2px solid hsl(var(--green-hsl) / 0.12); padding-left: var(--space-3);
+  max-height: 12rem; overflow-y: auto;
+}
+.cc-result.err { color: hsl(var(--pink-hsl)); border-left-color: hsl(var(--pink-hsl)); }
+
+.cc-done {
+  font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide);
+  color: hsl(var(--green-hsl) / 0.45);
+}
+.cc-err { font-size: var(--fs-sm); color: hsl(var(--pink-hsl)); }
+
+/* ── composer ───────────────────────────────────────────────────────────── */
+.cc-form { flex: none; display: flex; gap: var(--space-3); align-items: flex-end; }
+
+.cc-form textarea {
+  font: inherit; flex: 1 1 auto; min-width: 0; resize: none;
+  color: hsl(var(--green-hsl) / 0.8); background: hsl(var(--bg-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-2);
+  padding: var(--space-2-5) var(--space-3); line-height: var(--lh-snug);
+  max-height: 8rem; overflow-y: auto;
+}
+.cc-form textarea:focus { border-color: hsl(var(--green-hsl) / 0.45); outline: none; }
+
+.cc-form button {
+  font: inherit; cursor: pointer; font-weight: var(--fw-bold); flex: 0 0 auto;
+  color: hsl(var(--bg-hsl)); background: hsl(var(--green-hsl));
+  border: 1px solid hsl(var(--green-hsl)); border-radius: var(--radius-2);
+  padding: var(--space-2-5) var(--space-6);
+  text-transform: uppercase; letter-spacing: var(--tracking-wide);
+  transition: background 0.2s;
+}
+.cc-form button:hover { background: hsl(var(--green-hsl) / 0.45); }
+.cc-form button:disabled { cursor: default; background: hsl(var(--green-hsl) / 0.45); border-color: hsl(var(--green-hsl) / 0.45); }

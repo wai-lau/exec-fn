@@ -66,8 +66,8 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
-_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
+_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "cc", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "cc": "/cc", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["security", "nightfall", "mtg", "tarot", "hosaka", "printer", "ui", "recruiter"]
 
@@ -85,11 +85,12 @@ _NAV_ICONS = {
     "emet":        '<img src="/golem-stone.png?v=3" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
     "printer":     '<img src="/printer.png?v=3" alt="printer" style="width:20px;height:20px;image-rendering:pixelated;">',
     "recruiter":   '<img src="/data-file.png?v=3" alt="recruiter" style="width:20px;height:20px;image-rendering:pixelated;">',
+    "cc":          '<img src="/seeker.png?v=1" alt="cc" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
-    "debug": "DBG", "security": "BOT", "graph": "GPH", "emet": "EMT", "ui": "UIX",
+    "debug": "DBG", "security": "BOT", "graph": "GPH", "emet": "EMT", "cc": "CC", "ui": "UIX",
     "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "recruiter": "CV",
 }
 
