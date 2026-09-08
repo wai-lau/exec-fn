@@ -1,0 +1,42 @@
+[Unit]
+Description=Sandboxed Claude Code sidecar for exec-fn
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=cc-agent
+Group=cc-agent
+WorkingDirectory=/srv/cc-sandbox
+Environment=NODE_ENV=production
+Environment=CC_SANDBOX=/srv/cc-sandbox
+EnvironmentFile=/etc/cc-sidecar.env
+ExecStart=/usr/bin/node /srv/cc-agent/server.mjs
+Restart=on-failure
+RestartSec=3
+
+# The sandbox is the blast radius; systemd enforces what the tool allowlist
+# cannot. /exec-fn is not merely unreadable by uid -- it is not in the mount
+# namespace at all, so a Bash tool call cannot reach the repo, the .env, or
+# docker.sock even if the in-process gate is bypassed.
+ProtectSystem=strict
+# tmpfs hides every other user's home; the two BindPaths below punch back in
+# exactly what the service needs. cc-agent's OWN home must stay READ-WRITE --
+# Claude Code refreshes the subscription OAuth token into ~/.claude and writes
+# session transcripts there, so a read-only home logs the sidecar out on the
+# first token refresh.
+ProtectHome=tmpfs
+BindPaths=/srv/cc-sandbox /home/cc-agent
+BindReadOnlyPaths=/srv/cc-agent
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryMax=700M
+
+[Install]
+WantedBy=multi-user.target
