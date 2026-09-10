@@ -14,19 +14,30 @@ ExecStart=/usr/bin/node /srv/cc-agent/server.mjs
 Restart=on-failure
 RestartSec=3
 
-# The sandbox is the blast radius; systemd enforces what the tool allowlist
-# cannot. /exec-fn is not merely unreadable by uid -- it is not in the mount
-# namespace at all, so a Bash tool call cannot reach the repo, the .env, or
-# docker.sock even if the in-process gate is bypassed.
-ProtectSystem=strict
-# tmpfs hides every other user's home; the two BindPaths below punch back in
-# exactly what the service needs. cc-agent's OWN home must stay READ-WRITE --
-# Claude Code refreshes the subscription OAuth token into ~/.claude and writes
-# session transcripts there, so a read-only home logs the sidecar out on the
-# first token refresh.
-ProtectHome=tmpfs
+# The sandbox is the blast radius, and this is what actually enforces it.
+#
+# ProtectSystem=strict alone does NOT do that: it makes the filesystem READ-ONLY,
+# it does not hide anything. Under it the agent could still `ls /exec-fn`, stat
+# docker.sock, and read /exec-fn/.env -- verified live 2026-09-10, which is how
+# this was caught. BindPaths= ADDS mounts; it never restricts to them.
+#
+# So the root is a tmpfs and every path the service needs is bound back in by
+# name. That makes it an ALLOWLIST: a directory nobody listed here does not
+# exist for this process, including ones that have not been created yet. An
+# InaccessiblePaths= denylist would only cover what someone remembered to name.
+TemporaryFileSystem=/:ro
+BindReadOnlyPaths=/usr /etc /bin /sbin /lib /lib64 /srv/cc-agent
+# DNS: /etc/resolv.conf is a symlink into the resolved stub on Ubuntu.
+BindReadOnlyPaths=-/run/systemd/resolve
+# The only writable paths in the entire namespace.
 BindPaths=/srv/cc-sandbox /home/cc-agent
-BindReadOnlyPaths=/srv/cc-agent
+
+# NO ProtectSystem= here, deliberately. It CONFLICTS with the tmpfs root and
+# wins: with ProtectSystem=strict set, the namespace's / came back as the real
+# ext4 root mounted read-only (checked in /proc/<pid>/mountinfo) and every path
+# above was visible again. Read-only is already covered -- the tmpfs root and
+# every bind but the two below are ro.
+ProtectHome=tmpfs
 PrivateTmp=true
 PrivateDevices=true
 NoNewPrivileges=true

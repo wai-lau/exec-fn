@@ -13,8 +13,10 @@
  * The security model is three independent layers, because the in-process one is
  * the weakest: canUseTool (below) is a deterministic allowlist, settingSources
  * is empty so the agent cannot grant itself tools by writing its own
- * settings.json, and systemd's mount namespace means /exec-fn is not merely
- * unreadable but absent. Any one of the three failing still leaves two.
+ * settings.json, and the unit gives the service a tmpfs root with only named
+ * paths bound back in, so /exec-fn is absent rather than merely unreadable.
+ * Any one of the three failing still leaves two. That third layer did NOT hold
+ * as written until 2026-09-10 -- see cc-sidecar.service for what defeated it.
  */
 
 import fs from "node:fs";
@@ -95,7 +97,8 @@ function normalize(msg) {
       subtype: msg.subtype,
       turns: msg.num_turns,
       ms: msg.duration_ms,
-      // Present on API-key auth, absent (or 0) on subscription auth.
+      // Reported on subscription runs too (an equivalent-cost estimate, not a
+      // charge) -- do not read a non-zero value here as "this is billing per token".
       costUsd: msg.total_cost_usd,
     });
     return out;
