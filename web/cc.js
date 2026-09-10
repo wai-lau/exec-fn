@@ -1,4 +1,4 @@
-/* /cc — sandboxed Claude Code on the shared chat terminal.
+/* /cc — a personal Claude chat page on the shared chat terminal.
  *
  * Same shell as mtg.js (contenteditable input, caret mirror, iOS gesture focus,
  * marked-rendered assistant prose). What differs is the payload: the stream is
@@ -144,7 +144,7 @@ async function announceState() {
     } else if (d.authed === false) {
       addMsg('sys warn', '[ cc-agent not logged in — run: sudo -u cc-agent -H /usr/bin/claude, then /login ]');
     } else {
-      addMsg('sys', '[ sandbox ready — /srv/cc-sandbox · Read/Write/Edit/Glob/Grep/Bash ]');
+      addMsg('sys', '[ ready ]');
     }
   } catch {
     addMsg('sys warn', '[ sidecar unreachable ]');

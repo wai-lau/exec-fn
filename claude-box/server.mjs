@@ -35,10 +35,57 @@ const MAX_CONCURRENT = Number(process.env.CC_MAX_CONCURRENT || 1);
 const MAX_TURNS = Number(process.env.CC_MAX_TURNS || 40);
 const IDLE_TIMEOUT_MS = Number(process.env.CC_IDLE_TIMEOUT_MS || 10 * 60 * 1000);
 
-// Chosen blast radius: full authoring power, confined to SANDBOX. WebFetch and
-// WebSearch are absent deliberately -- they would let a prompt-injected page
-// exfiltrate sandbox contents outward, which the mount namespace cannot stop.
-const ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"];
+// NO tools. /cc is a general chat UI on Wai's subscription, not a coding agent:
+// nothing here edits a repo, and the page offers no way to download a file the
+// agent might write, so a filesystem tool could only produce work nobody can
+// reach. Denying the whole set also removes the prompt-injection surface
+// outright -- with no Read there is no untrusted content to inject THROUGH, and
+// with no WebFetch/WebSearch nothing to exfiltrate through.
+//
+// ALLOWED_TOOLS is empty, so canUseTool below denies EVERY tool by construction.
+// That is deliberate structure, not laziness: a list of blocked NAMES is a
+// denylist, and this file has already been burned once by a denylist that only
+// covered what someone remembered to write down.
+//
+// It has to be a denylist-free design because of what the subscription login
+// drags in. Signing cc-agent into claude.ai attaches that ACCOUNT's connectors:
+// a probe on 2026-09-10 found Gmail, Google Calendar and Google Drive all
+// "connected" -- send_message, trash_thread, share_file, download_file_content,
+// delete_event -- plus CronCreate, RemoteTrigger and PushNotification. None of
+// them are Claude Code built-ins, so a hand-written blocklist missed all of
+// them, and none are files, so neither the mount namespace nor settingSources
+// touched them. They are server-side capability riding the OAuth identity.
+//
+// BLOCKED_TOOLS therefore exists only to keep the built-ins out of CONTEXT (a
+// tool the model can see, calls, and gets refused on burns a turn and reads as
+// the assistant being broken). It is a UX measure. The security is canUseTool.
+const ALLOWED_TOOLS = [];
+const BLOCKED_TOOLS = [
+  "Read", "Write", "Edit", "NotebookEdit",
+  "Bash", "BashOutput", "KillShell",
+  "Glob", "Grep", "WebFetch", "WebSearch",
+  "Task", "TodoWrite",
+  // Not Claude Code file tools -- harness capability that also rode in on the
+  // login. Cron* schedules agents that outlive the request, Workflow fans out
+  // many at once, and RemoteTrigger / PushNotification / SendMessage reach
+  // outward. A chat page needs none of them.
+  "CronCreate", "CronDelete", "CronList", "DesignSync",
+  "EnterWorktree", "ExitWorktree", "ListAgents", "Monitor",
+  "PushNotification", "RemoteTrigger", "ReportFindings", "ScheduleWakeup",
+  "SendMessage", "Skill", "ToolSearch", "Workflow",
+];
+
+// Claude Code's own preset would introduce a terminal coding assistant. This is
+// a personal chat page, so the harness's identity is replaced rather than
+// appended to. Kept short on purpose -- the point is to remove a persona, not
+// impose a new one.
+const SYSTEM_PROMPT = [
+  "You are Claude, talking with Wai through a personal chat page he built.",
+  "This is ordinary conversation, not a coding session: you have no tools, no",
+  "filesystem and no repository here, so never offer to run, read or edit",
+  "anything, and never describe yourself as a CLI or coding assistant.",
+  "Answer as you normally would in conversation.",
+].join(" ");
 
 let active = 0;
 
@@ -176,7 +223,15 @@ async function handleQuery(req, res, body) {
     const options = {
       cwd: SANDBOX,
       permissionMode: "default",
-      canUseTool,
+      systemPrompt: SYSTEM_PROMPT,
+      disallowedTools: BLOCKED_TOOLS,
+      // Drop the account's claude.ai connectors (Gmail / Calendar / Drive).
+      // strictMcpConfig means "only the servers named in mcpServers", and that
+      // is the empty set -- so they leave the model's context entirely instead
+      // of sitting there connected and merely refused at call time.
+      mcpServers: {},
+      strictMcpConfig: true,
+      canUseTool,   // the actual gate: ALLOWED_TOOLS is empty, so this denies all
       maxTurns: MAX_TURNS,
       // Load NO settings files. The agent has Bash and a writable $HOME, so a
       // settings.json it wrote itself would otherwise be read back as policy.
