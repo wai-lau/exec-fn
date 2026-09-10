@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=71">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=72">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -90,16 +90,9 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
-    "debug": "DBG", "security": "BOT", "graph": "GPH", "emet": "EMT", "cc": "✦", "ui": "UIX",
+    "debug": "DBG", "security": "BOT", "graph": "GPH", "emet": "EMT", "cc": "CD", "ui": "UIX",
     "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "recruiter": "CV",
 }
-
-
-# Nav labels are 3-char codes in the pixel font (04b25), which carries 106
-# glyphs -- ASCII only, no ✦ (U+2726). Iosevka (--font-mono) does have it, so
-# these labels are marked and re-fonted in chrome.css rather than silently
-# falling back to whatever the platform picks.
-_NAV_GLYPH_LABELS = {"cc"}
 
 
 def _build_nav(active=None, guest=False):
@@ -109,8 +102,7 @@ def _build_nav(active=None, guest=False):
         cls = ' class="active"' if label == active else ""
         icon = _NAV_ICONS.get(label, label)
         text = _NAV_LABELS.get(label, label.lower())
-        lcls = "nav-label nav-glyph" if label in _NAV_GLYPH_LABELS else "nav-label"
-        links.append(f'<a href="{href}"{cls}>{icon}<span class="{lcls}">{text}</span></a>')
+        links.append(f'<a href="{href}"{cls}>{icon}<span class="nav-label">{text}</span></a>')
     nav = '<div class="exec-nav">' + "".join(links) + "</div>"
     script = (
         "<script>(function(){"
