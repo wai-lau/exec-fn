@@ -439,21 +439,6 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
   letter-spacing: var(--tracking-wide);
 }
 
-/* The pixel nav font (04b25) carries 106 glyphs -- ASCII only. A label that is a
-   symbol rather than a 3-char code (✦ U+2726) has no glyph there, and the
-   implicit fallback picks a different face on every device. Iosevka
-   (--font-mono) does have it, so those labels are re-fonted explicitly.
-   MUST stay after .nav-label: the element carries both classes and both
-   selectors weigh (0,2,0), so source order is the only thing that decides. */
-.exec-nav .nav-glyph {
-  font-family: var(--font-mono);
-
-  /* Iosevka's ✦ at --fs-2xs reads as a speck beside the pixel font's chunky
-     3-char codes -- same nominal size, a fraction of the ink. Stepping it up
-     matches the neighbours' visual weight rather than their metrics. */
-  font-size: var(--fs-sm);
-  letter-spacing: 0;
-}
 
 /* Standalone (home-screen / installed) launch: two rows, one empty cell of
    padding each side. --per-row set by the nav script (= ceil(item count / 2)).
