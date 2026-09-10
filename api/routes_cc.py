@@ -25,7 +25,7 @@ _MAX_PROMPT = 32_000
 
 @protected.get("/cc", response_class=HTMLResponse)
 async def cc_page():
-    return _render_page("cc", _tmpl("cc.html"), full_height=True)
+    return _render_page("cc", _tmpl("cc.html"))
 
 
 @protected.get("/api/cc/health")

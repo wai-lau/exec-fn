@@ -1,21 +1,17 @@
-<link rel="stylesheet" href="/cc.css?v=2">
+<link rel="stylesheet" href="/chat.css?v=14">
+<link rel="stylesheet" href="/chat-reader.css?v=10">
+<link rel="stylesheet" href="/cc.css?v=3">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<main class="cc">
-  <div class="cc-head">
-    <p class="cc-lede">claude code · sandboxed</p>
-    <span id="cc-status" class="cc-badge">checking</span>
-    <button type="button" id="cc-new" class="cc-new" title="start a fresh session">new</button>
+<div id="terminal"></div>
+<div id="input-bar">
+  <div id="input-line">
+    <span id="input-prompt">$</span>
+    <div id="input-wrapper">
+      <div id="input-display" aria-hidden="true"><span id="input-pre"></span><span id="input-cursor"></span><span id="input-post"></span></div>
+      <div id="msg-input" contenteditable="true" data-placeholder="ask claude code..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+    </div>
   </div>
+</div>
 
-  <div id="cc-log" class="cc-log">
-    <p class="cc-hint">Runs as <b>cc-agent</b> with Read/Write/Edit/Glob/Grep/Bash confined to
-    <b>/srv/cc-sandbox</b>. No repo access, no network tools, one run at a time.</p>
-  </div>
-
-  <form id="cc-form" class="cc-form">
-    <textarea id="cc-input" rows="1" placeholder="ask claude code…" autocomplete="off"></textarea>
-    <button type="submit" id="cc-send">run</button>
-  </form>
-</main>
-
-<script src="/cc.js?v=1"></script>
+<script src="/cc.js?v=3"></script>

@@ -17,7 +17,10 @@
  * unreadable but absent. Any one of the three failing still leaves two.
  */
 
+import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
@@ -37,15 +40,34 @@ const ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"];
 
 let active = 0;
 
+/** Whether cc-agent has completed its subscription login.
+ *
+ * Checked per call, never cached: the file appears the moment the one-time
+ * `sudo -u cc-agent -H /usr/bin/claude` + /login finishes, and a cached false
+ * would keep the page saying "login needed" until someone restarted the unit.
+ * Advisory only -- a run is never blocked on it. */
+function hasLogin() {
+  try {
+    return fs.existsSync(path.join(os.homedir(), ".claude", ".credentials.json"));
+  } catch {
+    return false;
+  }
+}
+
 const isAuthed = (req) =>
   Boolean(TOKEN) && req.headers["x-cc-token"] === TOKEN;
 
-/** Deterministic permission gate.
+/** Deterministic permission gate -- the ONLY one.
  *
- * Returning a decision for EVERY request is the point: with no canUseTool, a
- * tool outside allowedTools falls through to an interactive prompt, and headless
- * there is nobody to answer it -- the run stalls until the idle timeout instead
- * of failing cleanly. */
+ * These names are deliberately NOT passed as `allowedTools`. A bare allowedTools
+ * entry auto-approves the whole tool BEFORE this callback is consulted, which
+ * the SDK reports as CLAUDE_SDK_CAN_USE_TOOL_SHADOWED: the gate silently stops
+ * running for exactly the tools that matter most. Letting every tool fall
+ * through to here keeps one decision point instead of two overlapping ones.
+ *
+ * Answering for EVERY request is the other half: a tool with no decision falls
+ * through to an interactive prompt, and headless there is nobody to answer it --
+ * the run stalls until the idle timeout instead of failing cleanly. */
 async function canUseTool(toolName) {
   if (ALLOWED_TOOLS.includes(toolName)) {
     return { behavior: "allow", updatedInput: undefined };
@@ -151,7 +173,6 @@ async function handleQuery(req, res, body) {
     const options = {
       cwd: SANDBOX,
       permissionMode: "default",
-      allowedTools: ALLOWED_TOOLS,
       canUseTool,
       maxTurns: MAX_TURNS,
       // Load NO settings files. The agent has Bash and a writable $HOME, so a
@@ -208,7 +229,9 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && req.url === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true, busy: active >= MAX_CONCURRENT, active }));
+    res.end(
+      JSON.stringify({ ok: true, busy: active >= MAX_CONCURRENT, active, authed: hasLogin() }),
+    );
     return;
   }
 
