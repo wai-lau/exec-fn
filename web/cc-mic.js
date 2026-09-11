@@ -29,6 +29,12 @@ const CC_MIC_LIVE = '●';   // the prompt itself, lit while listening
 let ccRec = null;
 let ccMicOn = false;
 let ccMicSent = false;
+let ccMicTimer = 0;
+
+// A recognizer that never fires `end` holds the microphone open for as long as
+// the page lives. Safari has done exactly that when a handler threw, so the
+// watchdog is a second line of defence rather than a nicety.
+const CC_MIC_MAX_MS = 20000;
 
 function ccMicSupported() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -51,6 +57,20 @@ function ccMicFill(text) {
   if (typeof renderCaret === 'function') renderCaret();
 }
 
+/** End the session and put the prompt back, without sending. */
+function ccMicStop(btn) {
+  ccMicSent = true;
+  clearTimeout(ccMicTimer);
+  ccMicSet(btn, false);
+}
+
+/** Same, but say why on the page -- there is no console on a phone. */
+function ccMicFail(btn, why) {
+  ccMicStop(btn);
+  try { ccRec.abort(); } catch { /* already dead */ }
+  if (typeof addMsg === 'function') addMsg('sys warn', '[ mic: ' + why + ' ]');
+}
+
 function ccMicStart(btn) {
   const Rec = ccMicSupported();
   if (!Rec) return;
@@ -64,23 +84,43 @@ function ccMicStart(btn) {
   ccRec.maxAlternatives = 1;
 
   ccRec.onresult = (e) => {
-    let text = '';
-    let done = false;
-    for (const res of e.results) {
-      text += res[0].transcript;
-      if (res.isFinal) done = true;
+    try {
+      let text = '';
+      let done = false;
+      // INDEX LOOP, not for...of. SpeechRecognitionResultList is array-LIKE in
+      // Safari with no Symbol.iterator, so for...of threw TypeError here --
+      // which killed the handler before it could fill the composer or call
+      // stop(), leaving the recognizer running with its audio session hot. That
+      // is what "it never sends" and "the whole page freezes" both were.
+      for (let i = 0; i < e.results.length; i++) {
+        const res = e.results[i];
+        const alt = res[0];
+        if (alt && alt.transcript) text += alt.transcript;
+        if (res.isFinal) done = true;
+      }
+      ccMicFill(text.trim());
+      // Recognition stops itself on silence; onend does the sending so a final
+      // result and a natural stop cannot both fire it.
+      if (done) ccRec.stop();
+    } catch (err) {
+      ccMicFail(btn, err && err.message ? err.message : 'result error');
     }
-    ccMicFill(text.trim());
-    // Recognition stops itself on silence; onend does the sending so a final
-    // result and a natural stop cannot both fire it.
-    if (done) ccRec.stop();
   };
 
-  // A refused or failed recognition must not leave the button lit and the page
-  // looking like it is still listening.
-  ccRec.onerror = () => { ccMicSent = true; ccMicSet(btn, false); };
+  // A refused or failed recognition must not leave the prompt lit and the page
+  // looking like it is still listening. The reason is SHOWN, not swallowed: a
+  // mic that silently does nothing is indistinguishable from a broken page,
+  // and this one is used on a phone where there is no console to check.
+  ccRec.onerror = (e) => {
+    // `no-speech` and `aborted` are ordinary outcomes of tapping and not
+    // talking -- ending quietly is the right answer for those.
+    const code = (e && e.error) || 'error';
+    if (code === 'no-speech' || code === 'aborted') { ccMicStop(btn); return; }
+    ccMicFail(btn, code);
+  };
 
   ccRec.onend = () => {
+    clearTimeout(ccMicTimer);
     ccMicSet(btn, false);
     const input = document.getElementById('msg-input');
     const said = input ? input.innerText.trim() : '';
@@ -92,6 +132,8 @@ function ccMicStart(btn) {
   try {
     ccRec.start();
     ccMicSet(btn, true);
+    clearTimeout(ccMicTimer);
+    ccMicTimer = setTimeout(() => { try { ccRec.stop(); } catch { /* gone */ } }, CC_MIC_MAX_MS);
   } catch {
     ccMicSet(btn, false);   // start() throws if one is already running
   }
@@ -108,5 +150,10 @@ function ccMicInit() {
     ccMicStart(btn);
   });
 }
+
+// Backgrounding the tab with the mic live leaves iOS holding the audio session.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && ccMicOn && ccRec) { try { ccRec.abort(); } catch { /* gone */ } }
+});
 
 ccMicInit();

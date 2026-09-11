@@ -195,8 +195,16 @@
 #input-prompt.mic { cursor: pointer; transition: color 0.15s; }
 #input-prompt.mic:hover { color: hsl(var(--green-hsl) / 0.8); }
 
-/* Listening reads as lit, and pulses -- a mic that looks the same on as off is
-   how you end up talking to a page that stopped listening ten seconds ago. */
-#input-prompt[data-live="true"] { color: hsl(var(--green-hsl)); animation: cc-mic-pulse 1.1s ease-in-out infinite; }
+/* Listening reads as lit -- a mic that looks the same on as off is how you end
+   up talking to a page that stopped listening ten seconds ago. The glyph
+   carries it: `$` becomes `●`.
 
-@keyframes cc-mic-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+   It does NOT pulse, and that is load-bearing rather than taste. /cc rides
+   under the CRT stack, whose .cyber-blur and .cyber-crt panes are
+   backdrop-filters: a full-viewport readback with no partial invalidation,
+   cheap only while nothing beneath them animates. A one-character element
+   pulsing forever re-fires both panes every frame for the whole time the mic is
+   open -- reported as the page freezing while voice mode was on, and exactly
+   the trap chrome.css warns about for .cyber-scan. A colour change is one
+   repaint; an animation is one per frame, forever. */
+#input-prompt[data-live="true"] { color: hsl(var(--green-hsl)); }
