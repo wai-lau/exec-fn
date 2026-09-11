@@ -101,3 +101,32 @@ body { background: hsl(var(--bg-hsl)); }
   max-width: 100%; max-height: 40vh; width: auto; border-radius: var(--radius-2);
   border: 1px solid hsl(var(--green-hsl) / 0.12); display: block;
 }
+
+/* ── SVG diagrams ───────────────────────────────────────────────────────── */
+
+/* Claude cannot make raster images but writes clean SVG, so a ```svg block is
+   the one route a picture takes back from the model (cc-svg.js sanitises and
+   swaps it in). The svg's authored width/height are stripped there, so it
+   scales to the column instead of forcing a horizontal scroll on a phone. */
+.cc-svg {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-2);
+  overflow-x: auto;
+}
+.cc-svg svg { max-width: 100%; height: auto; display: block; }
+
+/* Source kept, collapsed: a diagram is usually something to tweak, and
+   discarding the markup would mean asking the model to draw it again. */
+.cc-svg-src { margin: calc(var(--space-3) * -1) 0 var(--space-3); }
+
+.cc-svg-src summary {
+  cursor: pointer; list-style: none;
+  font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide);
+  text-transform: uppercase; color: hsl(var(--green-hsl) / 0.45);
+}
+.cc-svg-src summary::-webkit-details-marker { display: none; }
+.cc-svg-src summary::before { content: "▸ "; }
+.cc-svg-src[open] summary::before { content: "▾ "; }
+.cc-svg-src pre { max-height: 16rem; overflow: auto; }

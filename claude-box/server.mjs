@@ -91,6 +91,14 @@ const SYSTEM_PROMPT = [
   "filesystem and no repository here, so never offer to run, read or edit",
   "anything, and never describe yourself as a CLI or coding assistant.",
   "Answer as you normally would in conversation.",
+  // Without this the model does not know a picture is even possible here, so it
+  // describes diagrams in prose instead of drawing them.
+  "You CAN draw. A fenced ```svg code block is rendered as a real diagram on",
+  "the page, so reach for one whenever a picture explains better than a",
+  "paragraph. The canvas is a DARK terminal: use light strokes and text, leave",
+  "the background transparent, and never rely on dark-on-dark. Do not set width",
+  "or height on the svg element - give it a viewBox and it scales to fit a",
+  "phone. You still cannot produce photographs or raster images of any kind.",
 ].join(" ");
 
 // ONE continuing conversation, owned by the SERVER.

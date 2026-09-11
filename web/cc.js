@@ -74,6 +74,7 @@ function addMsg(role, text, images) {
     const body = document.createElement('div');
     body.className = 'msg-body';
     body.innerHTML = renderText(text);
+    ccRenderSvgBlocks(body);
     addImages(body, images);
     div.appendChild(body);
   } else {
@@ -367,7 +368,11 @@ async function streamResponse(prompt, imgs) {
         }
       }
     }
-    if (div) { cur.remove(); if (!fullText) div.remove(); }
+    if (div) {
+      cur.remove();
+      if (!fullText) div.remove();
+      else { body.innerHTML = renderText(fullText); ccRenderSvgBlocks(body); }
+    }
   } catch (e) {
     if (div) { cur.remove(); if (!fullText) div.remove(); }
     addMsg('sys warn', '[ ' + e.message + ' ]');
