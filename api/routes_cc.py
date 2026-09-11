@@ -37,6 +37,13 @@ async def cc_health():
     return JSONResponse(await cc_client.health())
 
 
+@protected.get("/api/cc/limits")
+async def cc_limits():
+    """Subscription usage windows for the status bar. Owner-only like the rest
+    of /cc — it reports how much of Wai's own plan is spent."""
+    return JSONResponse(await cc_client.limits())
+
+
 @protected.get("/api/cc/history")
 async def cc_history():
     """The ongoing conversation. /cc is ONE continuing thread — the session id

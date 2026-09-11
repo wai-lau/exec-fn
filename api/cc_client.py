@@ -46,6 +46,27 @@ async def health() -> dict:
         return {"ok": False, "unreachable": True, "detail": str(exc)}
 
 
+async def limits() -> dict:
+    """The subscription's 5h / 7d windows, for the status bar.
+
+    The SDK does not carry these (`rate_limit_event` is declared but never
+    emitted by the shipped runtime), so the sidecar asks the same
+    `/api/oauth/usage` endpoint the CLI uses and hands back percentages only --
+    cc-agent's OAuth token never leaves that process. Unreachable or
+    not-logged-in degrades to {ok: False}: the bar omits the fields rather than
+    showing a number it cannot stand behind.
+    """
+    if not _TOKEN:
+        return {"ok": False}
+    try:
+        async with httpx.AsyncClient(timeout=_HEALTH_TIMEOUT * 3) as client:
+            r = await client.get(f"{_CC_URL}/limits", headers=_headers())
+            r.raise_for_status()
+            return r.json()
+    except Exception:
+        return {"ok": False}
+
+
 async def history() -> dict:
     """The ongoing conversation, replayed on page load.
 

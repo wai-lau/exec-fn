@@ -128,6 +128,23 @@ function ccSeg(cls, text) {
   return el;
 }
 
+/* The 5h / 7d windows come from /api/cc/limits, not from the stream: the SDK
+ * declares a rate_limit_event it never emits, so the sidecar asks the same
+ * endpoint the CLI does. Fetched on load and after each reply, and cached a
+ * minute server-side -- these move in percent-points per hour. */
+async function ccLimitsFetch() {
+  try {
+    const r = await fetch('/api/cc/limits', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j || !j.ok) return;     // logged out or unreachable: show nothing
+    if (j.five_hour) ccStatusState.windows.five_hour = j.five_hour;
+    if (j.seven_day) ccStatusState.windows.seven_day = j.seven_day;
+    if (j.seven_day_opus) ccStatusState.windows.seven_day_opus = j.seven_day_opus;
+    ccStatusRender();
+  } catch { /* offline: the bar simply omits them */ }
+}
+
 /** Every SSE frame passes through here; only three carry status. */
 function ccStatusOn(data) {
   if (!data) return;
@@ -164,5 +181,12 @@ function ccStatusMeasure() {
 ccStatusState.base = ccBaseLoad();
 ccStatusRender();
 ccStatusMeasure();
+ccLimitsFetch();
+// A turn is the only thing that moves these, so refresh when one ends rather
+// than on a timer.
+document.addEventListener('DOMContentLoaded', () => {
+  const term = document.getElementById('terminal');
+  if (term) term.addEventListener('cc:reply-done', ccLimitsFetch);
+});
 // The reset countdown is only true at the moment it is drawn.
 setInterval(ccStatusRender, 60000);

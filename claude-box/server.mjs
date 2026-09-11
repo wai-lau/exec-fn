@@ -25,6 +25,7 @@ import os from "node:os";
 import path from "node:path";
 import { query, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
+import { usage } from "./usage.mjs";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
 const PORT = Number(process.env.CC_BIND_PORT || 8129);
@@ -530,6 +531,12 @@ const server = http.createServer(async (req, res) => {
     res.end(
       JSON.stringify({ ok: true, busy: active >= MAX_CONCURRENT, active, authed: hasLogin() }),
     );
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/limits") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(await usage()));
     return;
   }
 
