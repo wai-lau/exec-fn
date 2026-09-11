@@ -105,3 +105,23 @@ a:hover { text-decoration: underline; }
 .dbg-tarot-asst { color: hsl(var(--green-hsl) / 0.8); white-space: pre-wrap; }
 .dbg-tarot-asst::before { content: "\25b8 "; color: hsl(var(--green-hsl) / 0.45); }
 .dbg-tarot-event { color: hsl(var(--green-hsl) / 0.45); font-style: italic; }
+
+/* ── cron output ────────────────────────────────────────────────────────── */
+
+.dbg-cron-job {
+  color: hsl(var(--green-hsl) / 0.8); font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide); text-transform: uppercase;
+  margin: var(--space-2) 0 var(--space-1);
+}
+
+/* Raw output, kept raw: wrapped rather than scrolled sideways, and capped so a
+   noisy night cannot bury the days under it. */
+.dbg-cron-out {
+  margin: 0; padding: var(--space-2);
+  background: hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-1);
+  color: hsl(var(--green-hsl) / 0.8);
+  font-size: var(--fs-2xs); line-height: var(--lh-tight);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  max-height: 18rem; overflow-y: auto;
+}

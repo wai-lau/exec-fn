@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from helpers import (
     DATA_DIR, _now_et,
@@ -124,6 +124,26 @@ def _roll_and_schedule(cards: list, today_iso: str) -> set:
     return restack
 
 
+def _prune_cron_logs(days: int = 30) -> None:
+    """Keep a month of cron output and drop the rest.
+
+    One file per job per day is tiny, but nothing else ever deletes them, and
+    an append-only directory on a 1967MB box is a slow leak rather than a
+    decision. Named `YYYY-MM-DD__job.log`, so the date is a string compare --
+    no stat() per file, and no clock skew between the writer and the sweeper.
+    """
+    from helpers import DATA_DIR
+
+    cutoff = (date.today() - timedelta(days=days)).isoformat()
+    for path in (DATA_DIR / "cron").glob("*.log"):
+        day = path.stem.partition("__")[0]
+        if len(day) == 10 and day < cutoff:
+            try:
+                path.unlink()
+            except OSError:
+                pass   # a file we cannot remove is not worth failing the morning over
+
+
 def build_morning() -> dict:
     chat_path = DATA_DIR / "chat.json"
     profile_path = DATA_DIR / "profile.json"
@@ -138,6 +158,7 @@ def build_morning() -> dict:
     _run_step(errors, "recalibrate", lambda: __import__("recalibration").recalibrate(log_entries))
     _run_step(errors, "purge_stale", lambda: _purge_stale_notes(profile_path))
     _run_step(errors, "gcal_import", lambda: __import__("gcal").import_gcal_cards(days_ahead=14))
+    _run_step(errors, "prune_cron", _prune_cron_logs)
 
     if _RD_LOG.exists():
         archive_name = DATA_DIR / f"activity_log_{_now_et().strftime('%Y%m%d')}.json"

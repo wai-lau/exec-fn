@@ -20,7 +20,11 @@
 set -uo pipefail
 
 REPO=/exec-fn
-LOG="${HOME}/.cache/graphify-rebuild.log"
+# Into the data volume, one file per day: it is what /debug can read, and a log
+# nobody can see is how a nightly job fails quietly for weeks.
+CRON_DIR="$REPO/api/data/cron"
+mkdir -p "$CRON_DIR" 2>/dev/null || true
+LOG="$CRON_DIR/$(date +%F)__graphify.log"
 LOCK=/tmp/graphify-daily.lock
 PY=/home/wai-root/.local/share/uv/tools/graphifyy/bin/python
 
