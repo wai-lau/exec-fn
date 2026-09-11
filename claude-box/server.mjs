@@ -24,6 +24,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { query, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
+import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
 const PORT = Number(process.env.CC_BIND_PORT || 8129);
@@ -73,7 +74,7 @@ const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp
 // BLOCKED_TOOLS therefore exists only to keep the built-ins out of CONTEXT (a
 // tool the model can see, calls, and gets refused on burns a turn and reads as
 // the assistant being broken). It is a UX measure. The security is canUseTool.
-const ALLOWED_TOOLS = ["WebSearch", "WebFetch"];
+const ALLOWED_TOOLS = ["WebSearch", "WebFetch", ...ARCHIVE_TOOL_NAMES];
 const BLOCKED_TOOLS = [
   "Read", "Write", "Edit", "NotebookEdit",
   "Bash", "BashOutput", "KillShell",
@@ -101,6 +102,12 @@ const SYSTEM_PROMPT = [
   "Answer as you normally would in conversation.",
   // Without this it announces its training cutoff instead of searching, which
   // is exactly how the missing capability got reported.
+  "Wai's PAST conversations with you on this page are archived and you can",
+  "read them: list_conversations, search_conversations, read_conversation.",
+  "When she refers to something you discussed before, search the archive",
+  "rather than saying you have no memory of it -- you do, one tool call away.",
+  "The CURRENT conversation is whatever is in this context; the archive holds",
+  "the ones she ended with /new.",
   "You CAN search the web and fetch a URL. Use them without being asked",
   "whenever an answer turns on current facts -- news, prices, releases, who",
   "holds a post, anything dated. Search first and answer from what you find;",
@@ -416,13 +423,15 @@ async function handleQuery(req, res, body) {
       permissionMode: "default",
       systemPrompt: buildSystemPrompt(),
       disallowedTools: BLOCKED_TOOLS,
-      // Drop the account's claude.ai connectors (Gmail / Calendar / Drive).
-      // strictMcpConfig means "only the servers named in mcpServers", and that
-      // is the empty set -- so they leave the model's context entirely instead
-      // of sitting there connected and merely refused at call time.
-      mcpServers: {},
+      // strictMcpConfig means "only the servers named in mcpServers". That is
+      // what drops the account's claude.ai connectors (Gmail / Calendar /
+      // Drive): they leave the model's context entirely instead of sitting
+      // there connected and merely refused at call time. The ONE server named
+      // is ours and runs in this process -- three read-only tools over the
+      // archive directory, which is not a filesystem and reaches nothing else.
+      mcpServers: { archive: archiveServer(ARCHIVE_DIR) },
       strictMcpConfig: true,
-      canUseTool,   // the actual gate: ALLOWED_TOOLS is empty, so this denies all
+      canUseTool,   // the actual gate: every name outside ALLOWED_TOOLS is denied
       maxTurns: MAX_TURNS,
       // Load NO settings files. The agent has Bash and a writable $HOME, so a
       // settings.json it wrote itself would otherwise be read back as policy.
