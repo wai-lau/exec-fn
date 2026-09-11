@@ -29,8 +29,13 @@
 .msg.assistant a:hover { color: hsl(var(--cyan-hsl)) !important; }
 .msg.assistant hr { margin: var(--space-3) 0 var(--space-6); }
 
-#input-bar { padding: 0 var(--space-7) var(--space-2-5); }
-#input-prompt { line-height: var(--lh-relaxed); }
+/* The composer's side padding must MATCH #terminal's, or the `$` sits a few
+   pixels right of the `>` above it and the two columns visibly disagree. The
+   tracking has to match too: the prompt is one character in the shared 1ch
+   gutter, and a gutter set in `ch` without the tracking the messages carry
+   comes out narrower than the marker it is lining up with. */
+#input-bar { padding: 0 var(--space-5) var(--space-2-5); }
+#input-prompt { line-height: var(--lh-relaxed); letter-spacing: var(--tracking-wide); }
 #msg-input { letter-spacing: var(--tracking-wide); line-height: var(--lh-relaxed); }
 
 /* The reader's cursor (tarot.css) blinks while the reader "draws breath"

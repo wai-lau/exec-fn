@@ -158,8 +158,13 @@
    Merged into the scrollback on every surface: no slab, no underline — the
    prompt reads as the live last line of the transcript. The `$` matches the one
    in front of a sent .msg.user, so a message does not move when it is sent. */
+
+/* `flex: 1` is load-bearing: /tarot centres its composer with a 720px
+   max-width and auto side margins, and inside the flex #input-bar an item that
+   is not told to grow takes its CONTENT width -- at which point those auto
+   margins centre the prompt itself in the middle of the screen. */
 #input-line,
-#exec-iline { display: flex; align-items: flex-start; gap: 0; }
+#exec-iline { flex: 1; display: flex; align-items: flex-start; gap: 0; }
 
 #input-prompt,
 #exec-prompt {
