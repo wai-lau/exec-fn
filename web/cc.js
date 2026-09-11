@@ -350,6 +350,9 @@ async function streamResponse(prompt, imgs) {
         if (!line.startsWith('data: ')) continue;
         let data;
         try { data = JSON.parse(line.slice(6)); } catch { continue; }
+        // The status bar reads model / context / rate-limit windows off the
+        // same stream; it ignores everything else.
+        if (typeof ccStatusOn === 'function') ccStatusOn(data);
 
         if (data.type === 'session') {
           /* the sidecar owns the thread; nothing to track here */
