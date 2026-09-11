@@ -223,9 +223,8 @@
 
      line 1   the conversation's title on a hash-coloured bar, black text,
               a space of padding each side, and nothing else
-     line 2   model in that same hue, cwd warm off-white, ctx bright white,
-              base grey, and -- when the SDK ever reports them -- 5h pink,
-              its reset mint, 7d cyan
+     line 2   model in that same hue (omitted until a reply names it), ctx
+              bright white, base grey, 5h pink, its reset mint, 7d cyan
 
    FIXED, and moved onto <body> by cc-status.js: _render_page wraps this page in
    a scrolling .page-scroll, and a bar meant to outlast every scroll has no
@@ -268,7 +267,6 @@
   display: flex; flex-wrap: wrap; gap: 0 var(--space-2);
   padding: var(--space-1) var(--space-3) 0;
 }
-.cs-path { color: #f5edd8; }
 .cs-ctx { color: #fff; }
 .cs-base { color: #8a8a8a; }
 .cs-5h { color: #ffafaf; }
