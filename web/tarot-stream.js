@@ -12,33 +12,18 @@
 // is rescaled to the measured audio duration. Upstream {end} only means audio is
 // BUFFERED, so we stay synced to el/dur until playback actually finishes.
 function createTypewriter(st, body, cur) {
-  const SPEED = 1.25;   // overall pace multiplier (silent mode)
+  // The reader's pace. The chat surfaces run the same engine at 2 -- see
+  // typewriter.js, which is where the weights and the silent loop now live.
+  const SPEED = 1.25;
   const BASE_MS = 65;
-  function charWeight(ch) {
-    switch (ch) {
-      case '.': case '!': case '?': return 850;
-      case ';':                     return 620; // more than comma, less than period
-      case ',': case ':':           return 420;
-      case '—': case '-':           return 480; // em-dash, hyphen
-      case '\n':                    return 1100;
-      case ' ':                     return 110;
-      default:                      return BASE_MS;
-    }
-  }
+  const charWeight = (ch) => twCharWeight(ch, BASE_MS);
   function render() {
     body.innerHTML = renderText(st.displayed);
     (body.lastElementChild || body).appendChild(cur);
     terminal.scrollTop = terminal.scrollHeight;
   }
   function guessed() {
-    if (st.cancelled) return;
-    if (st.displayed.length < st.buffered.length) {
-      st.displayed = st.buffered.slice(0, st.displayed.length + 1);
-      render();
-      setTimeout(guessed, charWeight(st.displayed[st.displayed.length - 1]) / SPEED);
-    } else if (!st.serverDone) {
-      setTimeout(guessed, 50);
-    }
+    twGuess(st, render, { speed: SPEED, baseMs: BASE_MS }).start();
   }
   function audio(ctl) {
     const text = st.buffered;  // final by now (server stream complete)

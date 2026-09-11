@@ -1,5 +1,7 @@
 let messages = [];
 let streaming = false;
+// Chat pace: twice the tarot reader's. This page is read for an answer.
+const MTG_TYPE_SPEED = 2;
 let _sessionId = 'mtg_' + Date.now().toString(36);
 
 const terminal = document.getElementById('terminal');
@@ -115,6 +117,20 @@ async function streamResponse() {
   streaming = true;
   const {div, body, cur} = addStreamDiv();
   let fullText = '';
+  // Reveal at a readable pace rather than in stream-sized bursts: /tarot's
+  // engine at SPEED 2 (typewriter.js).
+  const tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
+  let typing = null;
+  const startTyper = () => {
+    if (typing) return;
+    typing = new Promise((resolve) => {
+      twGuess(tw, (shown) => {
+        body.innerHTML = renderText(shown);
+        (body.lastElementChild || body).appendChild(cur);
+        terminal.scrollTop = terminal.scrollHeight;
+      }, { speed: MTG_TYPE_SPEED, onDone: resolve }).start();
+    });
+  };
 
   try {
     const r = await fetch('/api/mtg/chat', {
@@ -141,9 +157,8 @@ async function streamResponse() {
         try { data = JSON.parse(line.slice(6)); } catch { continue; }
         if (data.type === 'text') {
           fullText += data.delta;
-          body.innerHTML = renderText(fullText);
-          (body.lastElementChild || body).appendChild(cur);
-          terminal.scrollTop = terminal.scrollHeight;
+          tw.buffered = fullText;
+          startTyper();
         } else if (data.type === 'tool_call') {
           const label = data.name === 'lookup_card' ? `card lookup — ${data.count} found`
             : data.name === 'lookup_rulings' ? `rulings — ${data.count} found`
@@ -155,6 +170,11 @@ async function streamResponse() {
       }
     }
 
+    // Let the reveal catch up first: the settle pass is what wraps rule
+    // citations, and running it mid-type would print the whole answer and then
+    // keep typing over it.
+    tw.serverDone = true;
+    if (typing) await typing;
     cur.remove();
     if (fullText) {
       // Re-render the settled text once and wrap rule citations — done here, not

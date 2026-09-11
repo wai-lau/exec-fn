@@ -319,6 +319,7 @@
     streaming = true;
     const { div: streamDiv, body, cur } = addStreamDiv();
     let fullText = '';
+    const typer = execTyper(body, cur, termEl);
     try {
       const r = await fetch('/api/chat', {
         method: 'POST',
@@ -341,9 +342,7 @@
           try { data = JSON.parse(line.slice(6)); } catch (_) { continue; }
           if (data.type === 'text') {
             fullText += data.delta;
-            body.innerHTML = mdHtml(fullText);
-            (body.lastElementChild || body).appendChild(cur);
-            termEl.scrollTop = termEl.scrollHeight;
+            typer.push(fullText);
           } else if (data.type === 'tool_call') {
             addMsg('sys', toolSysText(data.name, data.input || {}, data.result || {}));
             // notify card views (rd/hq/directives) to reload live
@@ -355,6 +354,7 @@
           }
         }
       }
+      await typer.finish();
       cur.remove();
       if (fullText) {
         messages.push({ role: 'assistant', content: fullText });
