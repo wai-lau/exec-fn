@@ -208,3 +208,9 @@
    the trap chrome.css warns about for .cyber-scan. A colour change is one
    repaint; an animation is one per frame, forever. */
 #input-prompt[data-live="true"] { color: hsl(var(--green-hsl)); }
+
+/* Open, but discarding: a reply is streaming and the mic cannot be paused
+   (stop() needs no gesture, start() does, so a pause would be one-way). Dimmed
+   rather than lit, because a control that looks identical either way is how you
+   end up talking into a bin. */
+#input-prompt[data-drop="true"] { color: hsl(var(--green-hsl) / 0.45); }
