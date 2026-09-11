@@ -66,7 +66,7 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "cc", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
+_NAV_LINKS = ["cc", "rd", "hq", "debug", "security", "graph", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
 _NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "cc": "/cc", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["security", "nightfall", "mtg", "tarot", "hosaka", "printer", "ui", "recruiter"]
