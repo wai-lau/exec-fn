@@ -364,13 +364,6 @@ async def nightfall_page(request: Request):
 # ── read-only view data ─────────────────────────────────────────────────────
 
 
-@protected.get("/api/moltbook/heartbeat-log")
-def api_moltbook_heartbeat_log():
-    log_path = DATA_DIR / "moltbook-heartbeat.log"
-    content = log_path.read_text() if log_path.exists() else ""
-    return {"content": content}
-
-
 @protected.get("/api/debug/logs")
 def api_debug_logs():
     from helpers import _RD_LOG as _log_path

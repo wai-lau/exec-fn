@@ -10,7 +10,7 @@ body { overflow-y: auto !important; background: hsl(var(--bg-hsl)); }
 
 .dbg-empty { color: hsl(var(--green-hsl) / 0.45); font-size: var(--fs-sm); }
 
-a, .dbg-mtg-assistant a, #dbg-moltbook a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: none; }
+a, .dbg-mtg-assistant a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ── profile notes ──────────────────────────────────────────────────────── */
@@ -88,35 +88,6 @@ a:hover { text-decoration: underline; }
 .dbg-mtg-assistant { color: hsl(var(--green-hsl) / 0.8); white-space: pre-wrap; }
 .dbg-mtg-assistant::before { content: "\25b8 "; color: hsl(var(--green-hsl) / 0.45); }
 
-/* ── vain-empress entries ───────────────────────────────────────────────── */
-.dbg-ve-entry {
-  font-size: var(--fs-sm); padding: var(--space-2-5) 0;
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); cursor: pointer; line-height: var(--lh-relaxed);
-}
-.dbg-ve-entry:hover .dbg-ve-summary { color: hsl(var(--green-hsl)); }
-.dbg-ve-top { display: flex; gap: var(--space-3); align-items: baseline; }
-
-/* type tag = recruiter chip */
-.dbg-ve-type {
-  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-wide);
-  padding: var(--space-px) var(--space-2); border-radius: var(--radius-2);
-  background: hsl(var(--green-hsl) / 0.12); flex-shrink: 0;
-}
-.dbg-ve-type-dm-request { color: hsl(var(--cyan-hsl) / 0.8); }
-.dbg-ve-type-mention    { color: hsl(var(--green-hsl)); }
-.dbg-ve-type-question   { color: hsl(var(--green-hsl) / 0.45); }
-.dbg-ve-type-error      { color: hsl(var(--pink-hsl)); }
-.dbg-ve-summary { flex: 1; color: hsl(var(--green-hsl) / 0.8); }
-.dbg-ve-ts { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); flex-shrink: 0; }
-
-.dbg-ve-detail {
-  display: none; margin-top: var(--space-2); padding: var(--space-2) var(--space-2-5);
-  background: hsl(var(--bg-hsl)); border-left: 2px solid hsl(var(--green-hsl) / 0.45);
-  border-radius: 0 var(--radius-2) var(--radius-2) 0;
-  font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.45); white-space: pre-wrap;
-}
-.dbg-ve-entry.open .dbg-ve-detail { display: block; }
-
 /* ── tarot readings ─────────────────────────────────────────────────────── */
 .dbg-tarot-cards { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2-5) 0; }
 
@@ -134,23 +105,3 @@ a:hover { text-decoration: underline; }
 .dbg-tarot-asst { color: hsl(var(--green-hsl) / 0.8); white-space: pre-wrap; }
 .dbg-tarot-asst::before { content: "\25b8 "; color: hsl(var(--green-hsl) / 0.45); }
 .dbg-tarot-event { color: hsl(var(--green-hsl) / 0.45); font-style: italic; }
-
-/* ── moltbook heartbeat (rendered markdown) ─────────────────────────────── */
-#dbg-moltbook h1, #dbg-moltbook h2, #dbg-moltbook h3 {
-  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-mega);
-  color: hsl(var(--green-hsl)); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
-  padding-bottom: var(--space-1-5); margin: var(--space-6) 0 var(--space-2-5);
-  font-weight: var(--fw-bold);
-}
-#dbg-moltbook p { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); margin: var(--space-2) 0; line-height: var(--lh-relaxed); }
-#dbg-moltbook ul, #dbg-moltbook ol { font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); margin: var(--space-1-5) 0 var(--space-1-5) var(--space-6); padding: 0; }
-#dbg-moltbook li { margin: var(--space-1) 0; }
-#dbg-moltbook strong { color: hsl(var(--green-hsl)); font-weight: var(--fw-bold); }
-#dbg-moltbook em { color: hsl(var(--green-hsl) / 0.45); font-style: italic; }
-#dbg-moltbook hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.12); margin: var(--space-5) 0; }
-#dbg-moltbook code { font-family: inherit; font-size: var(--fs-sm); color: hsl(var(--green-hsl)); background: hsl(var(--green-hsl) / 0.12); padding: var(--space-px) var(--space-1); border-radius: var(--radius-1); }
-#dbg-moltbook pre { background: hsl(var(--bg-hsl)); border: 1px solid hsl(var(--green-hsl) / 0.12); border-radius: var(--radius-2); padding: var(--space-3) var(--space-4); margin: var(--space-2-5) 0; overflow-x: auto; }
-#dbg-moltbook pre code { background: none; padding: 0; font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); white-space: pre-wrap; word-break: break-all; }
-#dbg-moltbook table { font-size: var(--fs-sm); border-collapse: collapse; margin: var(--space-2-5) 0; }
-#dbg-moltbook th { color: hsl(var(--green-hsl) / 0.45); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); padding: var(--space-1) var(--space-3) var(--space-1) 0; font-weight: var(--fw-bold); text-align: left; }
-#dbg-moltbook td { color: hsl(var(--green-hsl) / 0.8); padding: var(--space-0-5) var(--space-3) var(--space-0-5) 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); }

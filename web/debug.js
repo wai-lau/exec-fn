@@ -74,33 +74,6 @@ async function patchProfile() {
   });
 }
 
-async function renderVE(veRes) {
-  const veEl = document.getElementById('dbg-ve');
-  if (!veRes.ok) { veEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; return; }
-  const items = await veRes.json();
-  if (!items.length) { veEl.innerHTML = '<div class="dbg-empty">no items</div>'; return; }
-  veEl.innerHTML = items.slice().reverse().map((item) => {
-    const ts = item.timestamp ? new Date(item.timestamp).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-    const typeClass = 'dbg-ve-type-' + (item.type || 'question').replace(/_/g, '-');
-    return `<div class="dbg-ve-entry" onclick="this.classList.toggle('open')">
-      <div class="dbg-ve-top">
-        <span class="dbg-ve-type ${typeClass}">${item.type || ''}</span>
-        <span class="dbg-ve-summary">${item.summary || ''}</span>
-        <span class="dbg-ve-ts">${ts}</span>
-      </div>
-      ${item.detail ? `<div class="dbg-ve-detail">${item.detail}</div>` : ''}
-    </div>`;
-  }).join('');
-}
-
-async function renderMoltbook(mbRes) {
-  const mbEl = document.getElementById('dbg-moltbook');
-  if (!mbRes.ok) { mbEl.innerHTML = '<div class="dbg-empty">unavailable</div>'; return; }
-  const mb = await mbRes.json();
-  const lines = (mb.content || '').trim();
-  mbEl.innerHTML = lines ? marked.parse(lines) : '<div class="dbg-empty">no heartbeat entries</div>';
-}
-
 async function renderProfileSection(ctxRes) {
   if (!ctxRes.ok) return;
   const ctx = await ctxRes.json();
@@ -204,16 +177,12 @@ async function renderTarot(tarotRes) {
 }
 
 async function loadDebug() {
-  const [ctxRes, logRes, mtgRes, veRes, mbRes, tarotRes] = await Promise.all([
+  const [ctxRes, logRes, mtgRes, tarotRes] = await Promise.all([
     fetch('/api/context'),
     fetch('/api/debug/logs'),
     fetch('/api/mtg/log'),
-    fetch('/data/moltbook_needs_human.json'),
-    fetch('/api/moltbook/heartbeat-log'),
     fetch('/api/tarot/readings'),
   ]);
-  await renderVE(veRes);
-  await renderMoltbook(mbRes);
   await renderProfileSection(ctxRes);
   await renderLogs(logRes);
   await renderMtg(mtgRes);
