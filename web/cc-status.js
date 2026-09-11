@@ -60,9 +60,13 @@ function ccCtxWindow(model) {
   return /\[1m\]/i.test(model || '') ? CC_CTX_1M : CC_CTX_DEFAULT;
 }
 
-/** `claude-opus-5[1m]` -> `opus-5[1m]`: the part that differs. */
+/** `claude-opus-5[1m]` -> `opus-5[1m]`: the part that differs.
+ *
+ * Empty until the first reply names the model, and an empty string renders no
+ * segment at all -- a placeholder reading `claude` on a page that is nothing
+ * but Claude said nothing and took a slot. */
 function ccModelShort(model) {
-  return (model || '').replace(/^claude-/, '') || 'claude';
+  return (model || '').replace(/^claude-/, '');
 }
 
 /** 7320000 -> `2h02m`, 540000 -> `9m`. The CLI shows time-to-reset the same way. */
@@ -104,8 +108,9 @@ function ccStatusRender() {
   // it belongs with the metrics, not competing with the title above.
   const meta = bar.querySelector('.cs-meta');
   meta.textContent = '';
-  meta.appendChild(ccSeg('cs-model', ccModelShort(ccStatusState.model)));
-  meta.appendChild(ccSeg('cs-path', '/cc'));
+  // No path segment: you are standing on /cc, and it never changes.
+  const model = ccModelShort(ccStatusState.model);
+  if (model) meta.appendChild(ccSeg('cs-model', model));
   if (pct != null) meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pct + '%'));
   if (ccStatusState.base) {
     const basePct = Math.round((ccStatusState.base / ccCtxWindow(ccStatusState.model)) * 100);
