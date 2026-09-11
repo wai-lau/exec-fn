@@ -7,7 +7,7 @@
  * measured audio clock) stays in tarot-stream.js, since without narration
  * there is no clock to pace to.
  *
- * The three chat surfaces run it at SPEED 2 against tarot's 1.25. A reading is
+ * The three chat surfaces run it at SPEED 3 against tarot's 1.25. A reading is
  * paced to be listened to; /cc, /mtg and the Exec panel are read for an answer,
  * and a typewriter that lags behind the eye is just latency with a costume on.
  *

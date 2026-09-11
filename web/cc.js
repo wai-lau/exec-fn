@@ -8,8 +8,8 @@
  * error. */
 
 let streaming = false;
-// Chat pace: twice the reader's. These pages are read for an answer.
-const CC_TYPE_SPEED = 2;
+// Chat pace: three times the tarot reader's. These pages are read for an answer.
+const CC_TYPE_SPEED = 3;
 let pending = [];   // images pasted but not yet sent
 
 const terminal = document.getElementById('terminal');
@@ -174,8 +174,10 @@ async function loadHistory() {
     const d = await r.json();
     const msgs = d.messages || [];
     for (const m of msgs) addMsg(m.role === 'user' ? 'user' : 'assistant', m.text, m.images);
-    if (msgs.length) addMsg('sys', '[ continuing — /new starts a fresh conversation ]');
-    else addMsg('sys', '[ ready — /new starts a fresh conversation ]');
+    // No "continuing" line, and no "ready" either. A sys line is for something
+    // Claude DID -- a search, a fetch, a failure -- not for telling you the page
+    // works the way it always works: a transcript says it continued, and an
+    // empty one says it is new.
     terminal.scrollTop = terminal.scrollHeight;
   } catch {
     addMsg('sys warn', '[ could not load the conversation ]');
@@ -264,7 +266,7 @@ async function streamResponse(prompt, imgs) {
   };
 
   // Reveal the reply at a readable pace instead of in stream-sized bursts --
-  // the same engine /tarot uses, at SPEED 2 (typewriter.js). It never lags the
+  // the same engine /tarot uses, at SPEED 3 (typewriter.js). It never lags the
   // stream by much: the weights are per character and the text is already here.
   let tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
   let typing = null;
@@ -332,9 +334,12 @@ async function streamResponse(prompt, imgs) {
           const t = (data.text || '').trim();
           if (t) { dropIfEmpty(); addMsg('out' + (data.isError ? ' err' : ''), clamp(t)); }
         } else if (data.type === 'done') {
+          // Turn count and duration are a receipt for an ordinary reply, so they
+          // are only worth a line when something actually happened: a tool ran,
+          // or the answer took long enough that the wait wants explaining.
           const bits = [];
-          if (data.turns != null) bits.push(data.turns + ' turn' + (data.turns === 1 ? '' : 's'));
-          if (data.ms != null) bits.push((data.ms / 1000).toFixed(1) + 's');
+          if (data.turns > 1) bits.push(data.turns + ' turns');
+          if (data.ms != null && data.ms >= 15000) bits.push((data.ms / 1000).toFixed(1) + 's');
           if (bits.length) { dropIfEmpty(); addMsg('sys', '[ ' + bits.join(' · ') + ' ]'); }
         } else if (data.type === 'busy') {
           dropIfEmpty();
