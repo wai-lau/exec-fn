@@ -280,7 +280,10 @@ async function sendMsg() {
   _msgInput.textContent = '';
   renderCaret();
   syncInputH();
-  _msgInput.focus();
+  // Keep the keyboard up between typed messages -- but NOT during a voice
+  // session, where focusing the box is what raises the keyboard, shrinks the
+  // viewport and takes the nav bar with it, for an input nobody is typing into.
+  if (typeof ccMicActive !== 'function' || !ccMicActive()) _msgInput.focus();
   if (text.startsWith('/') && !pending.length) { await runCommand(text); return; }
   const imgs = pending.slice();
   pending = [];
@@ -389,6 +392,9 @@ async function streamResponse(prompt, imgs) {
   }
 
   streaming = false;
+  // The turn is over. cc-mic.js listens for this to re-arm a voice session; the
+  // event says only "a reply finished" and knows nothing about the microphone.
+  terminal.dispatchEvent(new CustomEvent('cc:reply-done'));
 }
 
 // ── input (mtg idioms) ────────────────────────────────────────────────────

@@ -30,6 +30,15 @@ let ccRec = null;
 let ccMicOn = false;
 let ccMicSent = false;
 let ccMicTimer = 0;
+// A voice SESSION, not a single dictation: tapping the prompt starts a
+// back-and-forth, and the mic re-opens as soon as Claude has finished
+// answering. Scoped deliberately -- a turn you typed never opens the
+// microphone, because a page that starts listening on its own is a page you
+// have to remember to switch off.
+let ccMicMode = false;
+// Long enough for the reply to finish rendering, short enough to feel like a
+// conversation rather than a form.
+const CC_MIC_REARM_MS = 350;
 
 // A recognizer that never fires `end` holds the microphone open for as long as
 // the page lives. Safari has done exactly that when a handler threw, so the
@@ -57,9 +66,11 @@ function ccMicFill(text) {
   if (typeof renderCaret === 'function') renderCaret();
 }
 
-/** End the session and put the prompt back, without sending. */
+/** End the session and put the prompt back, without sending. Ends the voice
+ *  session too: every caller is a deliberate stop or a failure. */
 function ccMicStop(btn) {
   ccMicSent = true;
+  ccMicMode = false;
   clearTimeout(ccMicTimer);
   ccMicSet(btn, false);
 }
@@ -71,9 +82,19 @@ function ccMicFail(btn, why) {
   if (typeof addMsg === 'function') addMsg('sys warn', '[ mic: ' + why + ' ]');
 }
 
+/** Is a voice session live (listening, or waiting to listen again)? */
+function ccMicActive() {
+  return ccMicMode || ccMicOn;
+}
+
 function ccMicStart(btn) {
   const Rec = ccMicSupported();
   if (!Rec) return;
+  // Drop the keyboard if it is up. Voice mode does not need it, and on a phone
+  // the keyboard is what shrinks the viewport and takes the nav bar with it --
+  // the whole screen reshuffles for an input nobody is typing into.
+  const input = document.getElementById('msg-input');
+  if (input && document.activeElement === input) input.blur();
   ccMicSent = false;
   ccRec = new Rec();
   ccRec.lang = navigator.language || 'en-US';
@@ -124,7 +145,12 @@ function ccMicStart(btn) {
     ccMicSet(btn, false);
     const input = document.getElementById('msg-input');
     const said = input ? input.innerText.trim() : '';
-    if (ccMicSent || !said) return;
+    if (ccMicSent || !said) {
+      // Heard nothing. That is how a voice session ends: stop talking and it
+      // stops listening, rather than holding the microphone open indefinitely.
+      ccMicMode = false;
+      return;
+    }
     ccMicSent = true;
     if (typeof sendMsg === 'function') sendMsg();
   };
@@ -146,9 +172,20 @@ function ccMicInit() {
   btn.classList.add('mic');
   ccMicSet(btn, false);
   btn.addEventListener('click', () => {
-    if (ccMicOn && ccRec) { ccRec.stop(); return; }
+    if (ccMicOn && ccRec) { ccMicStop(btn); try { ccRec.abort(); } catch { /* gone */ } return; }
+    ccMicMode = true;          // a tap opens a session, not one dictation
     ccMicStart(btn);
   });
+
+  // Claude has finished answering: listen again, so a conversation is talk,
+  // listen, talk -- with no tap in between.
+  const term = document.getElementById('terminal');
+  if (term) {
+    term.addEventListener('cc:reply-done', () => {
+      if (!ccMicMode || ccMicOn) return;
+      setTimeout(() => { if (ccMicMode && !ccMicOn) ccMicStart(btn); }, CC_MIC_REARM_MS);
+    });
+  }
 }
 
 // Backgrounding the tab with the mic live leaves iOS holding the audio session.
