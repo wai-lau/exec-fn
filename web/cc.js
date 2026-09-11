@@ -298,9 +298,15 @@ async function streamResponse(prompt, imgs) {
   // call arriving before any prose would otherwise be appended AFTER an empty
   // bubble; instead the empty one is dropped and a fresh bubble opens for the
   // prose that follows, so the transcript stays in real order.
+  // Idempotent, and that is the whole point: a turn routinely fires several of
+  // these in a row (tool, tool_result, tool again -- the archive tools list
+  // then read), and the first call sets div to null. Without the guard the
+  // second one called .remove() on null and the turn died with "null is not an
+  // object", losing the reply that was still streaming behind it.
   const dropIfEmpty = () => {
-    if (!fullText) { cur.remove(); div.remove(); div = null; }
-    else { cur.remove(); }
+    if (!div) return;
+    cur.remove();
+    if (!fullText) { div.remove(); div = null; }
   };
   const reopen = () => {
     const s = addStreamDiv();

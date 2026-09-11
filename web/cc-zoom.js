@@ -20,6 +20,10 @@
 'use strict';
 
 const CC_ZOOM_MAX = 8;
+// Below fit, deliberately. An svg is fitted by its declared viewBox, and a
+// model routinely draws a label past that box -- with overflow visible the ink
+// is there but off the screen edge, and pulling back is the only way to see it.
+const CC_ZOOM_MIN = 0.5;
 const CC_ZOOM_TAP_PX = 8;        // a press that travelled further is a drag
 const CC_ZOOM_DBL_MS = 300;
 const CC_ZOOM_DBL_K = 2.5;
@@ -101,7 +105,7 @@ function ccZoomClamp() {
 
 /** Scale about a viewport point, keeping whatever sits under it fixed. */
 function ccZoomTo(k, px, py) {
-  const next = Math.max(1, Math.min(CC_ZOOM_MAX, k));
+  const next = Math.max(CC_ZOOM_MIN, Math.min(CC_ZOOM_MAX, k));
   ccZoomTx = px - ((px - ccZoomTx) / ccZoomK) * next;
   ccZoomTy = py - ((py - ccZoomTy) / ccZoomK) * next;
   ccZoomK = next;
@@ -132,7 +136,7 @@ function ccZoomMove(e) {
   const m = ccZoomMid();
 
   if (ccZoomPtrs.size >= 2 && ccZoomStart.d > 0) {
-    const k = Math.max(1, Math.min(CC_ZOOM_MAX, ccZoomStart.k * (m.d / ccZoomStart.d)));
+    const k = Math.max(CC_ZOOM_MIN, Math.min(CC_ZOOM_MAX, ccZoomStart.k * (m.d / ccZoomStart.d)));
     // The pinch pans as well as scales: the content point under the ORIGINAL
     // midpoint stays under the CURRENT one.
     ccZoomTx = m.x - ((ccZoomStart.x - ccZoomStart.tx) / ccZoomStart.k) * k;
@@ -161,13 +165,13 @@ function ccZoomUp(e) {
   const now = Date.now();
   if (now - ccZoomLastTap < CC_ZOOM_DBL_MS) {
     ccZoomLastTap = 0;
-    ccZoomTo(ccZoomK > 1.01 ? 1 : CC_ZOOM_DBL_K, e.clientX, e.clientY);
+    ccZoomTo(Math.abs(ccZoomK - 1) < 0.01 ? CC_ZOOM_DBL_K : 1, e.clientX, e.clientY);
     return;
   }
   ccZoomLastTap = now;
   // A single tap closes only at rest. Once zoomed in, a tap is how you stop a
   // fling, and closing there would throw away the position you just found.
-  if (ccZoomK <= 1.01) setTimeout(() => { if (ccZoomLastTap === now) ccZoomClose(); }, CC_ZOOM_DBL_MS);
+  if (Math.abs(ccZoomK - 1) < 0.01) setTimeout(() => { if (ccZoomLastTap === now) ccZoomClose(); }, CC_ZOOM_DBL_MS);
 }
 
 function ccZoomWheel(e) {
