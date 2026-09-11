@@ -22,6 +22,21 @@ const CC_CTX_DEFAULT = 200000;
 
 const ccStatusState = { model: '', ctx: 0, windows: {} };
 
+/* Title hue, the way the terminal's status line does it: a hash of the title
+ * modulo 360, at high saturation and mid lightness, so a conversation keeps its
+ * colour and two conversations rarely share one. The shell script hashes with
+ * md5 and the browser has no md5 (SubtleCrypto is SHA-only), so this is FNV-1a
+ * -- same behaviour, and the exact hue for a given title will not match the
+ * terminal's. */
+function ccHue(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h % 360;
+}
+
 function ccCtxWindow(model) {
   return /\[1m\]/i.test(model || '') ? CC_CTX_1M : CC_CTX_DEFAULT;
 }
@@ -40,13 +55,6 @@ function ccUntil(ms) {
   return h ? h + 'h' + String(m).padStart(2, '0') + 'm' : m + 'm';
 }
 
-function ccWindowText(key, label) {
-  const w = ccStatusState.windows[key];
-  if (!w || w.pct == null) return '';
-  const left = w.resetsAt ? ccUntil(w.resetsAt * 1000 - Date.now()) : '';
-  return label + ':' + Math.round(w.pct) + '%' + (left ? ' (' + left + ')' : '');
-}
-
 /** The conversation's own opening line, which is what it is "about". */
 function ccStatusTitle() {
   const first = document.querySelector('#terminal .msg.user .msg-body');
@@ -60,16 +68,33 @@ function ccStatusRender() {
   const pct = ccStatusState.ctx
     ? Math.min(100, Math.round((ccStatusState.ctx / ccCtxWindow(ccStatusState.model)) * 100))
     : null;
-  const bits = ['wai-root', '/cc'];
-  if (pct != null) bits.push('ctx:' + pct + '%');
-  const five = ccWindowText('five_hour', '5h');
-  const seven = ccWindowText('seven_day', '7d') || ccWindowText('seven_day_opus', '7d');
-  if (five) bits.push(five);
-  if (seven) bits.push(seven);
-
-  bar.querySelector('.cs-title').textContent = ccStatusTitle();
+  const title = ccStatusTitle();
+  bar.style.setProperty('--cs-hue', ccHue(title) + 'deg');
+  bar.querySelector('.cs-title').textContent = title;
   bar.querySelector('.cs-model').textContent = ccModelShort(ccStatusState.model);
-  bar.querySelector('.cs-meta').textContent = bits.join('  ');
+
+  // Built as spans, not one string: each field carries its own colour, the way
+  // the terminal's line does.
+  const meta = bar.querySelector('.cs-meta');
+  meta.textContent = '';
+  meta.appendChild(ccSeg('cs-user', 'wai-root'));
+  meta.appendChild(ccSeg('cs-path', '/cc'));
+  if (pct != null) meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pct + '%'));
+  const five = ccStatusState.windows.five_hour;
+  if (five && five.pct != null) {
+    meta.appendChild(ccSeg('cs-5h', '5h:' + Math.round(five.pct) + '%'));
+    const left = five.resetsAt ? ccUntil(five.resetsAt * 1000 - Date.now()) : '';
+    if (left) meta.appendChild(ccSeg('cs-reset', '(' + left + ')'));
+  }
+  const seven = ccStatusState.windows.seven_day || ccStatusState.windows.seven_day_opus;
+  if (seven && seven.pct != null) meta.appendChild(ccSeg('cs-7d', '7d:' + Math.round(seven.pct) + '%'));
+}
+
+function ccSeg(cls, text) {
+  const el = document.createElement('span');
+  el.className = cls;
+  el.textContent = text;
+  return el;
 }
 
 /** Every SSE frame passes through here; only three carry status. */
@@ -90,6 +115,11 @@ function ccStatusOn(data) {
 function ccStatusMeasure() {
   const bar = document.getElementById('cc-status');
   if (!bar) return;
+  // OUT of .page-scroll and onto <body>. _render_page wraps a non-full_height
+  // page's content in a fixed, scrolling wrapper, and a bar that is meant to
+  // outlast every scroll has no business inside the thing being scrolled --
+  // reported as having to scroll up to see it.
+  if (bar.parentElement !== document.body) document.body.appendChild(bar);
   const set = () => document.documentElement.style.setProperty(
     '--cc-status-h', Math.ceil(bar.getBoundingClientRect().height) + 'px');
   set();
