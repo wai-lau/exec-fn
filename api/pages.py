@@ -26,7 +26,7 @@ _JSDELIVR_PRECONNECT = (
 )
 _JSDELIVR_PAGES = {"rd", "hq", "debug", "mtg", "tarot", "cc"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
-# Injected into the pages built from their own HTML (graph/emet) so they show
+# Injected into the pages built from their own HTML (graph) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
 _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=3">'
 
@@ -56,7 +56,7 @@ _CRT_FX = (
 # assistant) above the soft keyboard -- it can't be removed from a Safari tab.
 # Inert in a normal tab; kicks in once a page is added to the Home Screen and
 # launched from that icon. Injected into the shared shell head by _index_pages
-# (covers every derived page) and into graph/emet, which build their own HTML.
+# (covers every derived page) and into graph, which builds its own HTML.
 _APPLE_WEBAPP_META = (
     '<meta name="apple-mobile-web-app-capable" content="yes">'
     '<meta name="mobile-web-app-capable" content="yes">'
@@ -66,8 +66,8 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "emet", "cc", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
-_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "emet": "/emet", "cc": "/cc", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
+_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "cc", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "cc": "/cc", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["security", "nightfall", "mtg", "tarot", "hosaka", "printer", "ui", "recruiter"]
 
@@ -82,7 +82,6 @@ _NAV_ICONS = {
     "mtg":         '<img src="/wizard.png?v=2" alt="mtg" style="width:20px;height:20px;image-rendering:pixelated;">',
     "tarot":       '<img src="/watchman.png" alt="tarot" style="width:20px;height:20px;image-rendering:pixelated;">',
     "hosaka":      '<img src="/radar.png" alt="hosaka" style="width:20px;height:20px;image-rendering:pixelated;">',
-    "emet":        '<img src="/golem-stone.png?v=3" alt="emet" style="width:20px;height:20px;image-rendering:pixelated;">',
     "printer":     '<img src="/printer.png?v=3" alt="printer" style="width:20px;height:20px;image-rendering:pixelated;">',
     "recruiter":   '<img src="/data-file.png?v=3" alt="recruiter" style="width:20px;height:20px;image-rendering:pixelated;">',
     "cc":          '<img src="/seeker.png?v=1" alt="cc" style="width:20px;height:20px;image-rendering:pixelated;">',
@@ -90,7 +89,7 @@ _NAV_ICONS = {
 
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
-    "debug": "DBG", "security": "BOT", "graph": "GPH", "emet": "EMT", "cc": "CD", "ui": "UIX",
+    "debug": "DBG", "security": "BOT", "graph": "GPH", "cc": "CD", "ui": "UIX",
     "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "recruiter": "CV",
 }
 
@@ -254,7 +253,7 @@ def _index_pages() -> tuple[str, str]:
     raw = _STATIC_INDEX.read_text()
     # Site-wide standalone web-app meta -- injected into the shared shell head so
     # EVERY page derived from it (all _render_page views + landing/recruiter +
-    # login/guest) carries it. graph/emet read their own HTML and inject it
+    # login/guest) carries it. graph reads its own HTML and injects it
     # separately. See _APPLE_WEBAPP_META.
     raw = raw.replace("</head>", _APPLE_WEBAPP_META + "</head>", 1)
     no_form = re.sub(r'<form class="login-box".*?</form>', '', raw, flags=re.DOTALL)

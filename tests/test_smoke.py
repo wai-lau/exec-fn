@@ -14,7 +14,7 @@ from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 # Public — no auth, must render. Only the front doors + login bootstrap stay open.
 PUBLIC_PAGES = ["/", "/recruiter", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
-PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/emet"]
+PROTECTED_PAGES = ["/rd", "/hq", "/debug"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
 # /graph, /UI, /security, /nightfall moved public->guest 2026-07-03; /printer
 # owner->guest 2026-08-30 (READ-ONLY for guests — see the tier tests below).

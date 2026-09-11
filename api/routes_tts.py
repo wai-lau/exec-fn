@@ -32,7 +32,7 @@ _PIPER_UPSTREAM = os.environ.get("TTS_PIPER_UPSTREAM", "hosaka-piper:8123")
 _GPU_MODE_UPSTREAM = os.environ.get("GPU_MODE_UPSTREAM", "172.17.0.1:8124")
 _GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
 
-# SSE fan-out for GPU-mode changes: every open /hosaka + /emet page subscribes so
+# SSE fan-out for GPU-mode changes: every open /hosaka page subscribes so
 # a switch on one page reflects live on the others. Only actual switches are
 # pushed (the initial state comes from GET /api/hosaka/mode on load).
 _mode_subscribers: list[asyncio.Queue] = []
@@ -132,13 +132,13 @@ async def gpu_mode_post(request: Request):
     mode = await switch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN, action)
     global _homo_until
     _homo_until = time.monotonic() + _HOMO_GRACE_S if mode == "homo" else 0.0
-    await _broadcast_mode(mode)  # live-sync the other open /hosaka + /emet pages
+    await _broadcast_mode(mode)  # live-sync the other open /hosaka pages
     return JSONResponse({"mode": mode})
 
 
 @protected.get("/api/hosaka/mode/stream")
 async def gpu_mode_stream():
-    """SSE of GPU-mode changes so /hosaka + /emet stay in sync live.
+    """SSE of GPU-mode changes so open /hosaka pages stay in sync live.
 
     Two sources, because a switch through this app is not the only way the mode
     moves. A POST here pushes instantly via `_mode_subscribers`; everything else

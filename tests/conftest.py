@@ -2,7 +2,7 @@
 
 These run against the LIVE app (the running container on :8080), not an
 imported FastAPI instance — a smoke test's job is to prove the deployed
-artifact actually serves: real templates render, graphify-out + emet data are
+artifact actually serves: real templates render, graphify-out data is
 present, routes are wired. Override the target with SMOKE_BASE_URL.
 
 Admin auth uses the Bearer-token path (`Authorization: Bearer <API_KEY>`), which

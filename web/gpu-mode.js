@@ -1,5 +1,5 @@
-// Shared GPU-mode control (owner-only) for /hosaka + /emet. The home GPU box
-// runs EITHER hosaka TTS (homo) or is freed for other work incl. the emet LLM
+// GPU-mode control (owner-only) for /hosaka. The home GPU box
+// runs EITHER hosaka TTS (homo) or is freed for other work (idle/emo)
 // (emo / idle); this segmented strip flips between them. Both pages hit the same
 // backend (/api/hosaka/mode), so the control is shared state across them. GET
 // 401 for guests keeps the strip hidden. Loaded on both pages; keys off the

@@ -1,4 +1,4 @@
-/* Shared GPU-mode segmented control (owner-only) for /hosaka + /emet -- hidden
+/* Shared GPU-mode segmented control (owner-only) for /hosaka -- hidden
    by default until JS auth. Standalone so both pages can load it; wired by
    gpu-mode.js. Selectors are `.gpu-mode .gpu-mode-btn` (specificity 0,2,0) so
    they beat the tts page's generic `.tts button` (0,1,1) without page scoping. */
