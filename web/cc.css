@@ -261,6 +261,11 @@
 
 /* Full width: the band is the page's own header, and a title that hugs its text
    leaves a strip of dead black beside it. */
+
+/* `display: block` loses to the UA's [hidden] only if restated -- same trap
+   #cc-thumbs hit. */
+.cs-title[hidden] { display: none; }
+
 .cs-title {
   display: block;
   background: hsl(var(--cs-hue, 135deg) 95% 60%); color: #000;
