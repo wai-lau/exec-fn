@@ -34,12 +34,14 @@ let ccMicTimer = 0;
 // of the session, so without a floor each new utterance would resend the whole
 // conversation so far.
 let ccMicBase = 0;
-// A MediaStream held for the life of the session. iOS tears the audio session
-// down when a recognizer sits idle, and the next recognizer wakes to
-// `audio-capture` -- which is what a long silence produced. Holding an open
-// track keeps the session hot so there is nothing to wake up into. Acquired
-// inside the opening tap, where getUserMedia is allowed to prompt.
-let ccMicStream = null;
+// NO held getUserMedia stream, deliberately. One was added to keep iOS's audio
+// session warm across a long silence, and it worked, but Safari gates
+// getUserMedia (microphone) and speech recognition SEPARATELY -- so opening a
+// voice session asked for permission twice, which is a worse bug than the one
+// it fixed. The recovery path carries it instead: every error is silent, every
+// restart builds a fresh recognizer, and a refused start is retried. If
+// `audio-capture` ever becomes common again, the held stream is the fix, and
+// the second prompt is its price.
 // Consecutive failed restarts. A recognizer that cannot be restarted must not
 // be retried forever; ten is far past any transient hiccup.
 let ccMicFails = 0;
@@ -99,7 +101,6 @@ function ccMicStop(btn) {
   ccMicMode = false;
   ccMicFails = 0;
   ccMicKill();
-  ccMicRelease();
   ccMicSet(btn, false);
   ccMicBusyPaint();
 }
@@ -117,14 +118,6 @@ function ccMicKill() {
   ccRec.onerror = null;
   try { ccRec.abort(); } catch { /* already gone */ }
   ccRec = null;
-}
-
-/** Release the held microphone track. Only at the end of a session -- while one
- *  is running this is what keeps iOS from dropping the audio session. */
-function ccMicRelease() {
-  if (!ccMicStream) return;
-  try { ccMicStream.getTracks().forEach((tr) => tr.stop()); } catch { /* gone */ }
-  ccMicStream = null;
 }
 
 /** Is a reply streaming right now?
@@ -261,16 +254,6 @@ function ccMicInit() {
   btn.addEventListener('click', () => {
     if (ccMicOn && ccRec) { ccMicStop(btn); try { ccRec.abort(); } catch { /* gone */ } return; }
     ccMicMode = true;          // a tap opens a session, not one dictation
-    // Inside the gesture, where a permission prompt is allowed. The track is
-    // held for the whole session so iOS never tears the audio session down
-    // between utterances -- that teardown is what surfaced as `audio-capture`
-    // after a long silence. Failure is not fatal: recognition may still work,
-    // and asking twice for the same microphone is worse than going without.
-    if (!ccMicStream && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then((s) => { if (ccMicMode) ccMicStream = s; else s.getTracks().forEach((tr) => tr.stop()); })
-        .catch(() => { /* no held stream; the recognizer gets its own */ });
-    }
     ccMicStart(btn);
     ccMicBusyPaint();
   });
