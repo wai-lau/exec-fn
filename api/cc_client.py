@@ -46,7 +46,39 @@ async def health() -> dict:
         return {"ok": False, "unreachable": True, "detail": str(exc)}
 
 
-async def stream_query(prompt: str, session_id: str | None = None):
+async def history() -> dict:
+    """The ongoing conversation, replayed on page load.
+
+    The sidecar owns the thread (a pointer file), not the browser — so this
+    returns the same conversation on a phone and a laptop, and survives a
+    reload. Unreachable degrades to an empty thread, never an error: the page
+    must still open and accept a message."""
+    if not _TOKEN:
+        return {"sessionId": None, "messages": [], "unreachable": True}
+    try:
+        async with httpx.AsyncClient(timeout=_HEALTH_TIMEOUT * 3) as client:
+            r = await client.get(f"{_CC_URL}/history", headers=_headers())
+            r.raise_for_status()
+            return r.json()
+    except Exception as exc:
+        return {"sessionId": None, "messages": [], "unreachable": True, "detail": str(exc)}
+
+
+async def new_conversation() -> dict:
+    """End the current thread. Drops the pointer only — the old transcript stays
+    on disk, so this is never destructive."""
+    if not _TOKEN:
+        return {"ok": False, "detail": "CC_SIDECAR_TOKEN unset"}
+    try:
+        async with httpx.AsyncClient(timeout=_HEALTH_TIMEOUT) as client:
+            r = await client.post(f"{_CC_URL}/new", headers=_headers())
+            r.raise_for_status()
+            return r.json()
+    except Exception as exc:
+        return {"ok": False, "detail": str(exc)}
+
+
+async def stream_query(prompt: str):
     """Yield already-encoded SSE frames from the sidecar, passed straight through.
 
     The sidecar's event vocabulary (session/text/thinking/tool/tool_result/done/
@@ -58,9 +90,9 @@ async def stream_query(prompt: str, session_id: str | None = None):
         yield _frame({"type": "error", "detail": "CC_SIDECAR_TOKEN unset"})
         return
 
+    # No session id is sent: the sidecar owns which conversation this is, so
+    # every device continues the same thread rather than starting its own.
     body = {"prompt": prompt}
-    if session_id:
-        body["sessionId"] = session_id
 
     # connect fails fast; read is unbounded because an agent turn legitimately
     # runs long and the sidecar already enforces its own idle timeout.

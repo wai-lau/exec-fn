@@ -23,7 +23,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
 const PORT = Number(process.env.CC_BIND_PORT || 8129);
@@ -86,6 +86,33 @@ const SYSTEM_PROMPT = [
   "anything, and never describe yourself as a CLI or coding assistant.",
   "Answer as you normally would in conversation.",
 ].join(" ");
+
+// ONE continuing conversation, owned by the SERVER.
+//
+// The session id used to live only in a JS variable on the page, so every
+// reload silently began a new conversation -- five sessions came out of a
+// handful of messages. Holding it here instead means the thread survives a
+// reload, a phone locking, and a move between devices, which a browser-side
+// value cannot. Wai ends a conversation deliberately; nothing else does.
+const SESSION_FILE = path.join(os.homedir(), ".cc-session");
+
+function currentSession() {
+  try {
+    const id = fs.readFileSync(SESSION_FILE, "utf8").trim();
+    return id || null;
+  } catch {
+    return null;   // absent = start fresh on the next turn
+  }
+}
+
+function rememberSession(id) {
+  if (!id || id === currentSession()) return;
+  try {
+    fs.writeFileSync(SESSION_FILE, id + "\n", { mode: 0o600 });
+  } catch {
+    /* a lost pointer costs continuity, never the run in flight */
+  }
+}
 
 let active = 0;
 
@@ -180,6 +207,37 @@ function normalize(msg) {
   return out;
 }
 
+/** The stored thread, flattened to what the page renders.
+ *
+ * Slash-command turns are stored as user messages carrying <command-name> tags;
+ * they are machinery, not things Wai typed, so they never reach the transcript.
+ * An unreadable or vanished session is an EMPTY history, never an error -- the
+ * page must still open and accept a new message. */
+async function historyFor(sessionId) {
+  if (!sessionId) return [];
+  let msgs;
+  try {
+    msgs = await getSessionMessages(sessionId);
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const m of msgs || []) {
+    const role = m.message?.role ?? m.role;
+    if (role !== "user" && role !== "assistant") continue;
+    const blocks = m.message?.content ?? m.content;
+    let text = "";
+    if (typeof blocks === "string") text = blocks;
+    else if (Array.isArray(blocks)) {
+      text = blocks.filter((b) => b?.type === "text").map((b) => b.text).join("");
+    }
+    text = text.trim();
+    if (!text || text.startsWith("<command-name>")) continue;
+    out.push({ role, text });
+  }
+  return out;
+}
+
 function sse(res, event) {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
@@ -238,13 +296,17 @@ async function handleQuery(req, res, body) {
       settingSources: [],
       abortController: controller,
     };
-    if (typeof body.sessionId === "string" && body.sessionId) {
-      options.resume = body.sessionId;
-    }
+    // The client does not choose the conversation -- the pointer does, so every
+    // device lands in the same thread.
+    const resume = currentSession();
+    if (resume) options.resume = resume;
 
     for await (const msg of query({ prompt, options })) {
       touch();
-      for (const event of normalize(msg)) sse(res, event);
+      for (const event of normalize(msg)) {
+        if (event.type === "session") rememberSession(event.sessionId);
+        sse(res, event);
+      }
     }
   } catch (err) {
     const aborted = controller.signal.aborted;
@@ -290,6 +352,25 @@ const server = http.createServer(async (req, res) => {
     res.end(
       JSON.stringify({ ok: true, busy: active >= MAX_CONCURRENT, active, authed: hasLogin() }),
     );
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/history") {
+    const id = currentSession();
+    const messages = await historyFor(id);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ sessionId: id, messages }));
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/new") {
+    // Drop the pointer only. The old transcript stays on disk under
+    // ~/.claude/projects, so "new conversation" is never "destroy the last one".
+    try {
+      fs.rmSync(SESSION_FILE, { force: true });
+    } catch { /* already gone */ }
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
     return;
   }
 

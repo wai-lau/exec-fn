@@ -33,6 +33,19 @@ async def cc_health():
     return JSONResponse(await cc_client.health())
 
 
+@protected.get("/api/cc/history")
+async def cc_history():
+    """The ongoing conversation. /cc is ONE continuing thread — the session id
+    lives on the sidecar, not the page, so a reload resumes rather than starting
+    over (it used to start over every single load)."""
+    return JSONResponse(await cc_client.history())
+
+
+@protected.post("/api/cc/new")
+async def cc_new():
+    return JSONResponse(await cc_client.new_conversation())
+
+
 @protected.post("/api/cc/query")
 async def cc_query(request: Request):
     body = await request.json()
@@ -41,10 +54,8 @@ async def cc_query(request: Request):
         return JSONResponse({"error": "prompt required"}, status_code=400)
     if len(prompt) > _MAX_PROMPT:
         return JSONResponse({"error": "prompt too long"}, status_code=413)
-    session_id = (body.get("sessionId") or "").strip() or None
-
     return StreamingResponse(
-        cc_client.stream_query(prompt, session_id),
+        cc_client.stream_query(prompt),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
