@@ -217,28 +217,48 @@
 
 /* ── status bar ─────────────────────────────────────────────────────────── */
 
-/* The numbers the Claude Code status line shows in a terminal, in the same
-   shape. FIXED and outside #terminal: they describe the session, not the part
-   of the transcript on screen, so scrolling must never take them away. */
+/* The Claude Code status line, as it actually renders in Wai's terminal --
+   same two rows, same fields, same colours, read off
+   ~/.claude/statusline-command.sh rather than approximated:
+
+     line 1   title on a hash-coloured bar, black text, a space of padding
+              each side, then the model in that same hue
+     line 2   user as black-on-white, cwd warm off-white, ctx bright white,
+              5h pink, its reset mint, 7d cyan
+
+   FIXED, and moved onto <body> by cc-status.js: _render_page wraps this page in
+   a scrolling .page-scroll, and a bar meant to outlast every scroll has no
+   business inside the thing being scrolled. */
 #cc-status {
   position: fixed; top: 0; left: 0; right: 0; z-index: var(--z-sticky);
-  padding: var(--space-2) var(--space-5);
+  padding: var(--space-1) var(--space-3) var(--space-2);
   background: hsl(var(--bg-hsl));
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
-  color: hsl(var(--green-hsl) / 0.45);
 }
 
-.cs-row { display: flex; gap: var(--space-3); align-items: baseline; }
+.cs-row { display: flex; gap: var(--space-2); align-items: baseline; }
 
-/* The title takes the slack and the model keeps its place at the right edge,
-   however long the conversation's opening line turns out to be. */
+/* The hue is set per-title by cc-status.js (--cs-hue); 95% / 60% are the
+   saturation and lightness the shell script's hls_to_rgb call uses. */
 .cs-title {
-  flex: 1; min-width: 0; color: hsl(var(--green-hsl) / 0.8);
+  flex: 1; min-width: 0;
+  background: hsl(var(--cs-hue, 135deg) 95% 60%); color: #000;
+  padding: 0 var(--space-1);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.cs-model { flex-shrink: 0; color: hsl(var(--green-hsl) / 0.45); }
-.cs-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-model { flex-shrink: 0; color: hsl(var(--cs-hue, 135deg) 95% 60%); }
+
+.cs-meta {
+  display: flex; flex-wrap: wrap; gap: 0 var(--space-2);
+  margin-top: var(--space-0-5);
+}
+.cs-user { background: #fff; color: #000; padding: 0 var(--space-1); }
+.cs-path { color: #f5edd8; }
+.cs-ctx { color: #fff; }
+.cs-5h { color: #ffafaf; }
+.cs-reset { color: #afffaf; }
+.cs-7d { color: #00cdcd; }
 
 /* The transcript starts below the bar. chat-doc.css pins #terminal with
    !important, so this restates the whole inset rather than only the top. */
