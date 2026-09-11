@@ -1,19 +1,7 @@
 /* transparent body so the html bg shows through under the CRT stack */
 body { overflow: hidden !important; background: transparent !important; }
 
-/* CRT stack rides back OVER the cards (chrome.css's --z-modal -- no z override
-   here any more), at HALF strength so a dense board stays readable through it:
-   the three colour layers at opacity .5, and both backdrop-filter panes pulled
-   halfway back toward identity (blur .5px -> .25px, brightness .85 -> .925,
-   contrast 1.5 -> 1.25). Halved with `opacity` rather than by rewriting the
-   gradient alphas because half of 0.45 is 0.225 -- off the palette snap scale.
-   Paint order is untouched (bg -> lines -> blur -> crt -> scan), so both
-   backdrop-filters still sit UNDER the one animated layer and blur a backdrop
-   that is static while the board is idle -- the compositor caches it. A card
-   drag is the one thing that dirties it per frame. */
-.cyber-bg, .cyber-lines, .cyber-scan { opacity: 0.5; }
-.cyber-blur { backdrop-filter: blur(calc(var(--blur-2xs) / 2)); }
-.cyber-crt { backdrop-filter: brightness(0.925) contrast(1.25); }
+/* The half-strength CRT stack this page rides under is crt-half.css. */
 
 /* ── top bars: reminders (left half) + books (right half) ─────────────────
    identical chrome; only side/anchoring differs */
