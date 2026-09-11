@@ -221,11 +221,12 @@
    same two rows, same fields, same colours, read off
    ~/.claude/statusline-command.sh rather than approximated:
 
-     ONE row: the conversation's title on a hash-coloured band at the left
-     edge, black text, and the metrics beside it on the page's own black --
-     ctx bright white, base grey, 5h pink, its reset mint, 7d cyan. The band
-     hugs its title so the colours of the metrics survive; they are unreadable
-     on a bright background.
+     line 1   the conversation's title on a full-width hash-coloured band,
+              black text
+     line 2   the metrics on the page's own black -- ctx bright white, base
+              grey, 5h pink, its reset mint, 7d cyan. On their own line the
+              colours survive (they are unreadable on a bright band) and the
+              title never has to compete with them for width.
 
    FIXED, and moved onto <body> by cc-status.js: _render_page wraps this page in
    a scrolling .page-scroll, and a bar meant to outlast every scroll has no
@@ -241,12 +242,13 @@
      and is what #exec-panel anchors to for the same reason. */
   top: var(--vvt, 0);
 
-  /* ONE row. stretch rather than baseline: aligned on their text the two spans
-     overflowed the bar and the metrics were pushed onto a second line with room
-     to spare. No padding of its own -- the band starts at the very left edge
-     and each part carries its own. */
-  display: flex; align-items: stretch; flex-wrap: nowrap;
-  padding: 0;
+  /* TWO rows, and it reads better than the merged one did: the band gets the
+     whole width and the metrics get a line they never have to compete for. A
+     single row meant the title was truncated to whatever the ~330px of numbers
+     left over, which on a phone is almost nothing. No padding of its own --
+     each row carries its own. */
+  display: block;
+  padding: 0 0 var(--space-1);
   background: hsl(var(--bg-hsl));
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
@@ -257,22 +259,18 @@
    text so the metrics can sit beside it in their own colours -- white, mint and
    cyan are illegible on a bright band. */
 
-/* The METRICS get the space they need and the title takes what is left: they
-   are a fixed ~330px at 430px wide, so a title allowed half the bar pushed them
-   onto a second line. A truncated title still reads; a wrapped number row stops
-   being one line, which was the whole point. */
+/* Full width: the band is the page's own header, and a title that hugs its text
+   leaves a strip of dead black beside it. */
 .cs-title {
-  display: flex; align-items: center;
-  flex: 1 1 auto; min-width: 0;
+  display: block;
   background: hsl(var(--cs-hue, 135deg) 95% 60%); color: #000;
   padding: var(--space-1) var(--space-3);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .cs-meta {
-  display: flex; align-items: center; flex-wrap: nowrap; gap: 0 var(--space-2);
-  flex: 0 0 auto; white-space: nowrap;
-  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--space-2);
+  padding: var(--space-1) var(--space-3) 0;
 }
 .cs-ctx { color: #fff; }
 .cs-base { color: #8a8a8a; }
