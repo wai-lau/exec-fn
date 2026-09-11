@@ -214,3 +214,32 @@
    rather than lit, because a control that looks identical either way is how you
    end up talking into a bin. */
 #input-prompt[data-drop="true"] { color: hsl(var(--green-hsl) / 0.45); }
+
+/* ── status bar ─────────────────────────────────────────────────────────── */
+
+/* The numbers the Claude Code status line shows in a terminal, in the same
+   shape. FIXED and outside #terminal: they describe the session, not the part
+   of the transcript on screen, so scrolling must never take them away. */
+#cc-status {
+  position: fixed; top: 0; left: 0; right: 0; z-index: var(--z-sticky);
+  padding: var(--space-2) var(--space-5);
+  background: hsl(var(--bg-hsl));
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
+  font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+.cs-row { display: flex; gap: var(--space-3); align-items: baseline; }
+
+/* The title takes the slack and the model keeps its place at the right edge,
+   however long the conversation's opening line turns out to be. */
+.cs-title {
+  flex: 1; min-width: 0; color: hsl(var(--green-hsl) / 0.8);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cs-model { flex-shrink: 0; color: hsl(var(--green-hsl) / 0.45); }
+.cs-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The transcript starts below the bar. chat-doc.css pins #terminal with
+   !important, so this restates the whole inset rather than only the top. */
+#terminal { inset: var(--cc-status-h, 42px) 0 calc(var(--kb-anchor) + var(--input-h, 48px)) !important; }

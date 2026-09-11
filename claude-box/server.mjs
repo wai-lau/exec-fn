@@ -228,9 +228,32 @@ function normalize(msg) {
     return out;
   }
 
+  // Subscription rate-limit telemetry: the 5h and 7d windows the CLI's own
+  // status line shows. Forwarded so the page can show the same numbers rather
+  // than inventing its own accounting.
+  if (msg.type === "rate_limit_event") {
+    const info = msg.rate_limit_info || {};
+    out.push({
+      type: "limits",
+      kind: info.rateLimitType,
+      pct: info.utilization,
+      resetsAt: info.resetsAt,
+      status: info.status,
+    });
+    return out;
+  }
+
   if (msg.type === "result") {
+    const u = msg.usage || {};
     out.push({
       type: "done",
+      // The input side of the last turn IS the live context: prompt + whatever
+      // was read from cache. The page turns it into a percentage against the
+      // model's window, which it learns from the session frame.
+      ctxTokens: (u.input_tokens || 0)
+        + (u.cache_read_input_tokens || 0)
+        + (u.cache_creation_input_tokens || 0),
+      outTokens: u.output_tokens || 0,
       subtype: msg.subtype,
       turns: msg.num_turns,
       ms: msg.duration_ms,
