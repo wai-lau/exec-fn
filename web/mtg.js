@@ -99,6 +99,10 @@ async function sendMsg() {
   const text = input.innerText.trim();
   if (!text) return;
   input.textContent = '';
+  // The hint earns its place once, on an empty page: it says what this input is
+  // for. After that the conversation says it, and a standing "ask a rules
+  // question..." under every reply is furniture.
+  input.removeAttribute('data-placeholder');
   renderCaret();
   syncInputH();
   input.focus();
