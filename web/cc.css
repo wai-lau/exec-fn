@@ -221,19 +221,17 @@
    same two rows, same fields, same colours, read off
    ~/.claude/statusline-command.sh rather than approximated:
 
-     line 1   the conversation's title on a hash-coloured bar, black text,
-              a space of padding each side, and nothing else
-     line 2   model in that same hue (omitted until a reply names it), ctx
-              bright white, base grey, 5h pink, its reset mint, 7d cyan
+     ONE row: the conversation's title on a hash-coloured band at the left
+     edge, black text, and the metrics beside it on the page's own black --
+     ctx bright white, base grey, 5h pink, its reset mint, 7d cyan. The band
+     hugs its title so the colours of the metrics survive; they are unreadable
+     on a bright background.
 
    FIXED, and moved onto <body> by cc-status.js: _render_page wraps this page in
    a scrolling .page-scroll, and a bar meant to outlast every scroll has no
    business inside the thing being scrolled. */
 #cc-status {
   position: fixed; left: 0; right: 0; z-index: var(--z-sticky);
-
-  /* No side padding of its own: the title band runs edge to edge, so the
-     padding belongs to the rows instead. */
 
   /* Anchored to the VISUAL viewport, not the layout one. A soft keyboard
      shrinks the visual viewport and offsets it (iOS standalone also scrolls the
@@ -242,30 +240,39 @@
      opened. --vvt is vv.offsetTop, published on every page by the nav script,
      and is what #exec-panel anchors to for the same reason. */
   top: var(--vvt, 0);
-  padding: 0 0 var(--space-2);
+
+  /* ONE row. stretch rather than baseline: aligned on their text the two spans
+     overflowed the bar and the metrics were pushed onto a second line with room
+     to spare. No padding of its own -- the band starts at the very left edge
+     and each part carries its own. */
+  display: flex; align-items: stretch; flex-wrap: nowrap;
+  padding: 0;
   background: hsl(var(--bg-hsl));
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
 }
 
-.cs-row { display: flex; gap: var(--space-2); align-items: baseline; }
-
 /* The hue is set per-title by cc-status.js (--cs-hue); 95% / 60% are the
-   saturation and lightness the shell script's hls_to_rgb call uses. It spans
-   the FULL width -- a phone is not a terminal: a pill that hugs its text leaves
-   a band of dead black beside it, where edge-to-edge reads as the screen's own
-   header. */
+   saturation and lightness the shell script's hls_to_rgb call uses. It hugs its
+   text so the metrics can sit beside it in their own colours -- white, mint and
+   cyan are illegible on a bright band. */
+
+/* The METRICS get the space they need and the title takes what is left: they
+   are a fixed ~330px at 430px wide, so a title allowed half the bar pushed them
+   onto a second line. A truncated title still reads; a wrapped number row stops
+   being one line, which was the whole point. */
 .cs-title {
-  flex: 1; min-width: 0;
+  display: flex; align-items: center;
+  flex: 1 1 auto; min-width: 0;
   background: hsl(var(--cs-hue, 135deg) 95% 60%); color: #000;
   padding: var(--space-1) var(--space-3);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.cs-model { color: hsl(var(--cs-hue, 135deg) 95% 60%); }
 
 .cs-meta {
-  display: flex; flex-wrap: wrap; gap: 0 var(--space-2);
-  padding: var(--space-1) var(--space-3) 0;
+  display: flex; align-items: center; flex-wrap: nowrap; gap: 0 var(--space-2);
+  flex: 0 0 auto; white-space: nowrap;
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
 }
 .cs-ctx { color: #fff; }
 .cs-base { color: #8a8a8a; }
