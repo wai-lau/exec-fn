@@ -8,7 +8,6 @@
  * error. */
 
 let streaming = false;
-let sessionId = null;   // resumes the sidecar's conversation across runs
 
 const terminal = document.getElementById('terminal');
 
@@ -141,14 +140,55 @@ async function announceState() {
     const d = await r.json();
     if (d.unreachable || !d.ok) {
       addMsg('sys warn', '[ sidecar offline — sudo systemctl status cc-sidecar ]');
-    } else if (d.authed === false) {
-      addMsg('sys warn', '[ cc-agent not logged in — run: sudo -u cc-agent -H /usr/bin/claude, then /login ]');
-    } else {
-      addMsg('sys', '[ ready ]');
+      return false;
     }
+    if (d.authed === false) {
+      addMsg('sys warn', '[ cc-agent not logged in — run: sudo -u cc-agent -H /usr/bin/claude, then /login ]');
+      return false;
+    }
+    return true;
   } catch {
     addMsg('sys warn', '[ sidecar unreachable ]');
+    return false;
   }
+}
+
+/** Replay the ongoing conversation.
+ *
+ * /cc is ONE continuing thread: the session lives on the sidecar, so a reload —
+ * or a different device — resumes it instead of starting over, which is what it
+ * used to do on every single load. Rendered before the input is usable so the
+ * page never looks empty while the model still remembers everything. */
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/cc/history', { cache: 'no-store' });
+    const d = await r.json();
+    const msgs = d.messages || [];
+    for (const m of msgs) addMsg(m.role === 'user' ? 'user' : 'assistant', m.text);
+    if (msgs.length) addMsg('sys', '[ continuing — /new starts a fresh conversation ]');
+    else addMsg('sys', '[ ready — /new starts a fresh conversation ]');
+    terminal.scrollTop = terminal.scrollHeight;
+  } catch {
+    addMsg('sys warn', '[ could not load the conversation ]');
+  }
+}
+
+/** Slash commands, handled client-side. The page has no chrome by design (it is
+ * the mtg terminal), so the control is typed rather than a button. */
+async function runCommand(text) {
+  const cmd = text.slice(1).trim().toLowerCase();
+  if (cmd !== 'new' && cmd !== 'clear') {
+    addMsg('sys warn', '[ unknown command: /' + cmd + ' — only /new ]');
+    return true;
+  }
+  try {
+    await fetch('/api/cc/new', { method: 'POST' });
+    terminal.textContent = '';
+    addMsg('sys', '[ new conversation — the previous one is kept on disk ]');
+  } catch {
+    addMsg('sys warn', '[ could not start a new conversation ]');
+  }
+  return true;
 }
 
 // ── run ───────────────────────────────────────────────────────────────────
@@ -160,6 +200,7 @@ async function sendMsg() {
   renderCaret();
   syncInputH();
   _msgInput.focus();
+  if (text.startsWith('/')) { await runCommand(text); return; }
   addMsg('user', text);
   await streamResponse(text);
 }
@@ -184,12 +225,10 @@ async function streamResponse(prompt) {
   };
 
   try {
-    const b = { prompt: prompt };
-    if (sessionId) b.sessionId = sessionId;
     const r = await fetch('/api/cc/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(b),
+      body: JSON.stringify({ prompt: prompt }),
     });
     if (!r.ok || !r.body) {
       let msg = 'request failed (' + r.status + ')';
@@ -215,7 +254,7 @@ async function streamResponse(prompt) {
         try { data = JSON.parse(line.slice(6)); } catch { continue; }
 
         if (data.type === 'session') {
-          sessionId = data.sessionId || sessionId;
+          /* the sidecar owns the thread; nothing to track here */
         } else if (data.type === 'text') {
           if (!div) reopen();
           fullText += data.text;
@@ -330,7 +369,9 @@ renderCaret();
   document.addEventListener('pointerdown', onFirst, { capture: true, passive: false });
 })();
 
-announceState();
+(async () => {
+  if (await announceState()) await loadHistory();
+})();
 
 // defer: the nav script sets --nav-h after this script runs, so the input bar
 // isn't positioned yet on this tick
