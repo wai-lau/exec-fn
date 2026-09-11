@@ -221,10 +221,11 @@
    same two rows, same fields, same colours, read off
    ~/.claude/statusline-command.sh rather than approximated:
 
-     line 1   title on a hash-coloured bar, black text, a space of padding
-              each side, then the model in that same hue
-     line 2   user as black-on-white, cwd warm off-white, ctx bright white,
-              5h pink, its reset mint, 7d cyan
+     line 1   the conversation's title on a hash-coloured bar, black text,
+              a space of padding each side, and nothing else
+     line 2   model in that same hue, cwd warm off-white, ctx bright white,
+              base grey, and -- when the SDK ever reports them -- 5h pink,
+              its reset mint, 7d cyan
 
    FIXED, and moved onto <body> by cc-status.js: _render_page wraps this page in
    a scrolling .page-scroll, and a bar meant to outlast every scroll has no
@@ -257,13 +258,12 @@
   padding: 0 var(--space-1);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.cs-model { flex-shrink: 0; color: hsl(var(--cs-hue, 135deg) 95% 60%); }
+.cs-model { color: hsl(var(--cs-hue, 135deg) 95% 60%); }
 
 .cs-meta {
   display: flex; flex-wrap: wrap; gap: 0 var(--space-2);
   margin-top: var(--space-0-5);
 }
-.cs-user { background: #fff; color: #000; padding: 0 var(--space-1); }
 .cs-path { color: #f5edd8; }
 .cs-ctx { color: #fff; }
 .cs-base { color: #8a8a8a; }
