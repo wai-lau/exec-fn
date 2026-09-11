@@ -1,0 +1,202 @@
+/* Shared chat vocabulary — ONE transcript look across every chat surface:
+   /mtg, /cc and /tarot (inside the full-page #terminal) and the Exec panel
+   (inside the floating #exec-term). It used to be three near-copies of the same
+   forty lines — chat.css, exec-bubble.css, and the tail of mtg.css/cc.css — which
+   drifted apart a value at a time: Exec's scrollback was a step tighter than
+   /mtg's, sys lines were near-invisible on one page and legible on another.
+
+   DELIBERATELY POSITION-FREE. Nothing here is fixed, sized to the viewport, or
+   aware of a keyboard, because the same rules have to work inside a panel that
+   slides in from the top and a terminal pinned to the window. The page shell
+   lives in chat.css; the panel shell in exec-bubble.css.
+
+   Selectors are grouped across BOTH id families (#msg-input / #exec-minput) on
+   purpose: the ids are JS handles in three separate files, and renaming them to
+   share a class would be a much bigger change than sharing the rule. */
+
+/* ── the gutter ────────────────────────────────────────────────────────────
+   Every line hangs its marker in a fixed one-character column, so the bodies of
+   `>`, `$`, `#`, `~` and every wrapped line under them start on ONE left edge.
+   The markers used to be inline `::before` content of varying width, which left
+   each role's text at its own indent and read as ragged. */
+:root {
+  --chat-gutter: 1ch;
+  --chat-gutter-gap: 0.45em;
+  --chat-indent: calc(var(--chat-gutter) + var(--chat-gutter-gap));
+}
+
+.msg {
+  display: flex; align-items: flex-start;
+  margin-bottom: var(--space-1);
+  line-height: var(--lh-tight);
+  max-width: 680px; overflow-wrap: break-word;
+}
+
+.msg::before,
+.msg > .msg-mark {
+  flex: 0 0 var(--chat-gutter);
+  margin-right: var(--chat-gutter-gap);
+  opacity: 0.45; user-select: none;
+}
+
+.msg-body { flex: 1; min-width: 0; }
+
+/* A line with no marker of its own (tool output, thinking) still starts on the
+   body edge rather than a character to the left of it. */
+.msg.flush { padding-left: var(--chat-indent); }
+
+.msg-ts { color: rgba(255,255,255,0.18); font-size: var(--fs-2xs); }
+
+/* ── roles ─────────────────────────────────────────────────────────────────
+   Three ranks, by how much of the reader's attention the line has earned:
+   assistant full green, user white (it is already known — it was just typed),
+   sys dim and a size down. */
+.msg.assistant { color: hsl(var(--green-hsl) / 1); }
+.msg.assistant::before { content: ">"; }
+
+.msg.user { color: rgba(255,255,255,0.75); }
+.msg.user::before { content: "$"; }
+
+/* 0.45, not the old 0.12: at 0.12 a sys line was legible only as a smudge, and
+   on /cc that wash is exactly how "not logged in" got read as a broken page. */
+.msg.sys { color: hsl(var(--green-hsl) / 0.45); font-size: var(--fs-2xs); }
+.msg.sys::before { content: "#"; }
+
+.msg.monitor {
+  color: hsl(var(--green-hsl) / 0.8); font-style: italic;
+  border-left: 1px solid hsl(var(--green-hsl) / 0.12);
+  padding-left: var(--space-2); margin: var(--space-2) 0;
+}
+.msg.monitor::before { content: "~"; }
+
+/* A surface that builds its OWN marker element takes the gutter with that, and
+   must not also get the CSS one -- the Exec panel's marker is a replay button
+   (tap it to re-speak the line), so its assistant and monitor lines carry a
+   real <span> where /mtg and /cc have a ::before. Without this they render both
+   and every Exec reply opens "> >".
+
+   It sits AFTER the role markers deliberately: `.msg:has(> .msg-mark)` and
+   `.msg.assistant` weigh exactly the same (two classes), so source order is the
+   whole of the decision. Above them it silently loses. */
+.msg:has(> .msg-mark)::before { content: none; }
+
+/* ── markdown inside a reply ───────────────────────────────────────────────
+   Tight by design: a transcript is read as a column of exchanges, and the old
+   spacing spent a third of a phone screen on gaps between paragraphs. */
+.msg.assistant p { margin: 0 0 var(--space-1-5); }
+.msg.assistant p:last-child { margin-bottom: 0; }
+.msg.assistant strong { color: hsl(var(--green-hsl) / 1); font-weight: var(--fw-bold); }
+.msg.assistant em { color: hsl(var(--green-hsl) / 0.8); font-style: italic; }
+.msg.assistant a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: underline; }
+.msg.assistant a:hover { color: hsl(var(--cyan-hsl) / 1); }
+
+.msg.assistant code {
+  background: hsl(var(--green-hsl) / 0.12);
+  padding: var(--space-px) var(--space-1);
+  border-radius: var(--radius-1); font-size: 0.92em;
+}
+
+.msg.assistant pre {
+  background: hsl(var(--green-hsl) / 0.12);
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-1); overflow-x: auto;
+  margin: var(--space-1-5) 0; line-height: var(--lh-snug);
+}
+.msg.assistant pre code { background: none; padding: 0; }
+
+.msg.assistant ul,
+.msg.assistant ol { margin: var(--space-1) 0 var(--space-1) var(--space-5); padding: 0; }
+.msg.assistant li { margin-bottom: var(--space-0-5); }
+
+.msg.assistant h1,
+.msg.assistant h2,
+.msg.assistant h3 {
+  color: hsl(var(--green-hsl) / 1); font-size: 1em; font-weight: var(--fw-bold);
+  margin: var(--space-2) 0 var(--space-1);
+}
+
+.msg.assistant hr {
+  border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.12);
+  margin: var(--space-3) 0;
+}
+
+.msg.assistant table { border-collapse: collapse; margin: var(--space-1-5) 0; }
+
+.msg.assistant th,
+.msg.assistant td {
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  padding: var(--space-0-5) var(--space-2); text-align: left;
+}
+.msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.45); }
+
+/* ── the waiting indicator ─────────────────────────────────────────────────
+   Same three dots on every surface; the two ids are the two JS files that
+   build it. */
+#blinkcursor,
+#exec-bc {
+  display: inline-flex; gap: var(--space-1); align-items: center;
+  height: 1.1em; vertical-align: text-bottom;
+}
+
+#blinkcursor span,
+#exec-bc span {
+  display: inline-block; width: 4px; height: 4px; border-radius: var(--radius-round);
+  background: hsl(var(--green-hsl) / 0.8);
+  animation: typingdot 1.2s ease-in-out infinite;
+}
+
+#blinkcursor span:nth-child(2),
+#exec-bc span:nth-child(2) { animation-delay: 0.2s; }
+
+#blinkcursor span:nth-child(3),
+#exec-bc span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingdot { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+/* ── the composer ──────────────────────────────────────────────────────────
+   Merged into the scrollback on every surface: no slab, no underline — the
+   prompt reads as the live last line of the transcript. The `$` matches the one
+   in front of a sent .msg.user, so a message does not move when it is sent. */
+#input-line,
+#exec-iline { display: flex; align-items: flex-start; gap: 0; }
+
+#input-prompt,
+#exec-prompt {
+  color: hsl(var(--green-hsl) / 0.45);
+  font-family: var(--font-mono); font-weight: var(--fw-normal);
+  font-size: var(--fs-sm); line-height: var(--lh-tight);
+  flex: 0 0 var(--chat-gutter); margin-right: var(--chat-gutter-gap);
+  white-space: nowrap; user-select: none;
+}
+
+#input-wrapper,
+#exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
+
+#input-display, #input-cursor,
+#exec-idisp, #exec-icursor { display: none; }
+
+/* Typed text reads like the .msg.user it becomes; the caret stays green.
+   max-height caps a big paste so it scrolls instead of growing the bar tall
+   enough to collapse the transcript above it. */
+#msg-input,
+#exec-minput {
+  width: 100%; background: none; border: none;
+  color: rgba(255,255,255,0.75); caret-color: hsl(var(--green-hsl) / 1);
+  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm);
+  line-height: var(--lh-tight); min-height: 1.2em;
+  padding: 0; outline: none; position: relative;
+  max-height: 35vh; overflow-y: auto; overflow-wrap: anywhere;
+}
+
+#msg-input:empty::before,
+#exec-minput:empty::before { content: attr(data-placeholder); color: hsl(var(--green-hsl) / 0.45); }
+
+.exec-send {
+  background: none; border: none; color: hsl(var(--green-hsl) / 0.45);
+  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm);
+  padding: var(--space-2) 0 var(--space-2) var(--space-2);
+  cursor: pointer; transition: color 0.2s;
+}
+.exec-send:hover { color: hsl(var(--green-hsl) / 0.8); }
+.exec-send:disabled { opacity: 0.12; cursor: default; }

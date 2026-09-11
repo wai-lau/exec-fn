@@ -1,42 +1,33 @@
-body { display:block !important; height:100vh; overflow:hidden !important; flex-direction:unset !important; align-items:unset !important; justify-content:unset !important; gap:unset !important; }
+/* Full-page chat SHELL — /mtg, /cc, /tarot. The transcript's own look (messages,
+   markdown, composer) is chat-msg.css, shared with the Exec panel; this file is
+   only the page-level scaffolding the panel must not inherit: a body that does
+   not scroll, a terminal pinned to the window, and a composer anchored above the
+   keyboard.
+
+   The composer is MERGED into the scrollback (transparent, no slab, no rule) on
+   every page that loads this. That used to be an override in chat-reader.css,
+   which meant the slab variant underneath it was styled but unreachable — no
+   page ever shipped it. */
+
+body {
+  display: block !important; height: 100vh; overflow: hidden !important;
+  flex-direction: unset !important; align-items: unset !important;
+  justify-content: unset !important; gap: unset !important;
+}
 
 #terminal {
-  position:fixed; inset:0 0 104px;
-  overflow-y:auto; padding: var(--space-6) var(--space-7);
-  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm); line-height: var(--lh-snug);
-  color:hsl(var(--green-hsl) / 1);
-  display:flex; flex-direction:column;
+  position: fixed; inset: 0 0 104px;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5) 0;
+  font-family: var(--font-mono); font-weight: var(--fw-normal);
+  font-size: var(--fs-sm); line-height: var(--lh-tight);
+  color: hsl(var(--green-hsl) / 1);
+  display: flex; flex-direction: column;
 }
-#terminal::before { content:''; flex:1; }
-.msg { margin-bottom: var(--space-2); max-width:680px; overflow-wrap:break-word; }
-.msg-ts { color:rgba(255,255,255,0.18); font-size:0.9em; }
-.msg.assistant::before { content:">"; opacity:0.4; flex-shrink:0; margin-right:0.4em; }
-.msg.assistant { color:hsl(var(--green-hsl) / 1); display:flex; align-items:flex-start; }
-.msg.assistant p { margin: 0 0 var(--space-2); }
-.msg.assistant p:last-child { margin-bottom:0; }
-.msg.assistant strong { color:hsl(var(--green-hsl) / 1); font-weight: var(--fw-bold); }
-.msg.assistant em { color:hsl(var(--green-hsl) / 0.8); font-style:italic; }
-.msg.assistant a { color:hsl(var(--cyan-hsl) / 0.8); text-decoration:underline; }
-.msg.assistant a:hover { color:hsl(var(--cyan-hsl) / 1); }
-.msg.assistant code { background:hsl(var(--green-hsl) / 0.12); padding: var(--space-px) var(--space-1-5); border-radius: var(--radius-1); font-size:0.92em; }
-.msg.assistant pre { background:hsl(var(--green-hsl) / 0.12); border:1px solid hsl(var(--green-hsl) / 0.12); padding: var(--space-2-5) var(--space-4); border-radius: var(--radius-1); overflow-x:auto; margin: var(--space-2) 0; }
-.msg.assistant pre code { background:none; padding:0; }
-.msg.assistant ul, .msg.assistant ol { margin: var(--space-1-5) 0 var(--space-1-5) var(--space-6); padding:0; }
-.msg.assistant li { margin-bottom: var(--space-0-5); }
-.msg.assistant h1, .msg.assistant h2, .msg.assistant h3 { color:hsl(var(--green-hsl) / 1); font-size:1em; font-weight: var(--fw-bold); margin: var(--space-2-5) 0 var(--space-1-5); }
-.msg-body { flex:1; min-width:0; }
-.msg.user::before { content:"$"; opacity:0.5; flex-shrink:0; margin-right:0.4em; }
-.msg.user { color:rgba(255,255,255,0.75); display:flex; align-items:flex-start; }
-.msg.sys::before { content:"# "; }
-.msg.sys { color:hsl(var(--green-hsl) / 0.12); font-size: var(--fs-sm); }
-#blinkcursor { display:inline-flex; gap: var(--space-1); align-items:center; height:1.1em; vertical-align:text-bottom; }
-#blinkcursor span { display:inline-block; width:4px; height:4px; border-radius:50%; background:hsl(var(--green-hsl) / 0.8); animation:typingdot 1.2s ease-in-out infinite; }
-#blinkcursor span:nth-child(2) { animation-delay:0.2s; }
-#blinkcursor span:nth-child(3) { animation-delay:0.4s; }
 
-@keyframes typingdot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
-
-@keyframes blink { 0%,50%{opacity:1} 50.01%,100%{opacity:0} }
+/* Bottom-anchor the log: the spacer eats the slack so a short conversation sits
+   at the composer rather than floating at the top of an empty screen. */
+#terminal::before { content: ''; flex: 1; }
 
 /* Smooth the keyboard-driven re-anchor. --kb-anchor tracks the live keyboard
    height (pages.py visualViewport handler); iOS bumps it in several steps as the
@@ -49,50 +40,9 @@ html.kb-open #input-bar,
 html.kb-open #terminal { transition: bottom 0.13s ease-out, inset 0.13s ease-out; }
 
 #input-bar {
-  position:fixed; bottom:var(--kb-anchor); left:0; right:0;  /* sit above keyboard; nav hides behind it */
-  padding: 0 var(--space-6);
-  background:hsl(var(--bg-hsl));
-  border-top:1px solid hsl(var(--green-hsl) / 0.12);
-  display:flex; align-items:center; gap: var(--space-3);
+  position: fixed; bottom: var(--kb-anchor); left: 0; right: 0;
+  padding: 0 var(--space-5) var(--space-2);
+  background: transparent;
+  display: flex; align-items: center; gap: var(--space-3);
+  transition: opacity 0.7s ease;
 }
-
-#input-line {
-  flex:1; display:flex; align-items:center;
-  border:none;
-  border-bottom:1px solid hsl(var(--green-hsl) / 0.12);
-  padding: var(--space-2) 0; gap:0;
-}
-#input-line:focus-within { border-bottom-color:hsl(var(--green-hsl) / 0.12); }
-
-#input-prompt {
-  color:hsl(var(--green-hsl) / 0.45); font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-xl);
-  white-space:nowrap; user-select:none; padding-right: var(--space-2-5);
-}
-
-#input-wrapper { flex:1; position:relative; display:flex; align-items:center; min-width:0; }
-
-#input-display { display:none; }
-#input-cursor { display:none; }
-
-/* typed text reads white to match the sent .msg.user; caret stays green */
-#msg-input {
-  width:100%; background:none; border:none;
-  color:rgba(255,255,255,0.75); caret-color:hsl(var(--green-hsl) / 1);
-  font-family: var(--font-mono); font-weight: var(--fw-normal); font-size: var(--fs-sm);
-  padding:0; outline:none; position:relative;
-  line-height: var(--lh-snug); min-height:1.45em; overflow-wrap:anywhere;
-}
-#msg-input:empty::before { content:attr(data-placeholder); color:hsl(var(--green-hsl) / 0.12); }
-
-.exec-send {
-  background:none; border:none; color:hsl(var(--green-hsl) / 0.12); font-family: var(--font-mono); font-weight: var(--fw-normal);
-  font-size: var(--fs-sm); padding: var(--space-2-5) 0 var(--space-2-5) var(--space-2); cursor:pointer; transition:color 0.2s;
-}
-.exec-send:hover { color:hsl(var(--green-hsl) / 0.8); }
-.exec-send:disabled { opacity:0.12; cursor:default; }
-
-.msg.monitor { color:hsl(var(--green-hsl) / 0.8); display:flex; align-items:flex-start; font-style:italic; border-left:2px solid hsl(var(--green-hsl) / 0.12); padding-left: var(--space-2-5); margin-left: var(--space-0-5); margin-top: var(--space-3); margin-bottom: var(--space-3); }
-.msg.monitor::before { content:"~"; opacity:0.45; flex-shrink:0; margin-right:0.4em; }
-.msg.monitor .msg-body { flex:1; min-width:0; }
-.msg.monitor p { margin: 0 0 var(--space-1-5); }
-.msg.monitor p:last-child { margin-bottom:0; }

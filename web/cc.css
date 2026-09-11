@@ -1,25 +1,11 @@
 /* /cc — sandboxed Claude Code, on the shared chat terminal.
-   chat.css + chat-reader.css carry the merged-input skin; this file is the
-   mtg-equivalent tail: document palette, the CSS-driven terminal inset, and the
-   few things only an agent transcript needs (tool lines, tool output).
+   chat.css (shell), chat-msg.css (transcript vocabulary) and chat-doc.css
+   (document palette) do the general work; this file is only what an AGENT
+   transcript needs on top — tool lines, tool output, pasted images, diagrams.
 
    The bespoke composer this replaced is gone, and with it the Exec-bubble
    collision it had -- #input-bar is full-width and its send affordance is the
    Enter key, so nothing sits under the bubble's bottom-right resting spot. */
-
-/* mtg's reading-page treatment: softer phosphor on the doc background. */
-.msg { max-width: none; text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12); }
-body { background: hsl(var(--bg-hsl)); }
-
-.msg.assistant { color: hsl(var(--green-hsl) / 0.8) !important; }
-.msg.assistant hr { border-top-color: hsl(var(--green-hsl) / 0.12); }
-.msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.12); }
-.msg.assistant td { border-color: hsl(var(--green-hsl) / 0.12); }
-.msg.assistant a { color: hsl(var(--cyan-hsl) / 0.8); }
-
-/* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
-   native keyboard animation). --kb-anchor rides the keyboard; --input-h the bar. */
-#terminal { inset: 0 0 calc(var(--kb-anchor) + var(--input-h, 48px)) !important; }
 
 /* ── agent transcript ───────────────────────────────────────────────────── */
 
@@ -27,31 +13,39 @@ body { background: hsl(var(--bg-hsl)); }
    shared .msg line idiom (like mtg's "[ card lookup — N found ]") but stays
    legible rather than dropping to the 0.12 sys wash: on a coding agent the tool
    calls ARE the content, not incidental chatter. */
-.msg.tool {
-  display: flex; align-items: flex-start;
-  color: hsl(var(--green-hsl) / 0.45); font-size: var(--fs-sm);
-}
-.msg.tool::before { content: "⚡"; opacity: 0.45; flex-shrink: 0; margin-right: 0.4em; }
+.msg.tool { color: hsl(var(--green-hsl) / 0.45); font-size: var(--fs-2xs); }
+
+/* `+` rather than the ⚡ this used to carry: every other line on every chat
+   surface hangs a one-character ASCII marker in the shared 1ch gutter, and an
+   emoji is about half a character wider than that — enough to push its own text
+   out of the column the whole transcript is aligned to. */
+.msg.tool::before { content: "+"; opacity: 0.8; }
 .msg.tool b { color: hsl(var(--green-hsl) / 0.8); font-weight: var(--fw-bold); }
 
 /* Tool OUTPUT is reference material, not prose: dim, capped, independently
    scrollable so a 500-line ls cannot bury the reply under it. */
 .msg.out {
   white-space: pre-wrap; overflow-wrap: anywhere;
-  font-size: var(--fs-2xs); line-height: var(--lh-snug);
+  font-size: var(--fs-2xs); line-height: var(--lh-tight);
   color: hsl(var(--green-hsl) / 0.45);
-  border-left: 2px solid hsl(var(--green-hsl) / 0.12);
-  padding-left: var(--space-3);
+  border-left: 1px solid hsl(var(--green-hsl) / 0.12);
+
+  /* No marker of its own, so it indents to the shared body edge by hand. */
+  margin-left: var(--chat-indent); padding-left: var(--space-2);
   max-height: 12rem; overflow-y: auto;
 }
 .msg.out.err { color: hsl(var(--pink-hsl)); border-left-color: hsl(var(--pink-hsl)); }
 
-.msg.think { color: hsl(var(--green-hsl) / 0.45); font-style: italic; font-size: var(--fs-sm); }
+.msg.think {
+  color: hsl(var(--green-hsl) / 0.45); font-style: italic; font-size: var(--fs-2xs);
+  padding-left: var(--chat-indent);
+}
 
 /* A sys line that is ACTIONABLE (login needed, sidecar down) must not sit at the
    0.12 wash the incidental ones use -- it is the whole reason the page is idle,
    and washing it out is how "not logged in" got read as "the page is down". */
 .msg.sys.warn { color: hsl(var(--pink-hsl)); font-size: var(--fs-sm); }
+.msg.sys.warn::before { opacity: 0.8; }
 
 /* ── pasted images ──────────────────────────────────────────────────────── */
 
