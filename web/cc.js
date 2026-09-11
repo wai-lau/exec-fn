@@ -184,8 +184,12 @@ function addStreamDiv() {
 function summarize(inp) {
   if (inp == null) return '';
   if (typeof inp === 'string') return clamp(inp, 200);
-  // Show the field that says what the call DOES, not a JSON dump.
-  const key = inp.command || inp.file_path || inp.pattern || inp.path || inp.prompt;
+  // Show the field that says what the call DOES, not a JSON dump. `query` and
+  // `url` come first for the web tools: WebSearch has neither of the older keys
+  // and fell through to a raw JSON dump, and WebFetch carries a `prompt` too --
+  // which is the instruction to the fetcher, not the thing being fetched.
+  const key = inp.query || inp.url || inp.command || inp.file_path
+    || inp.pattern || inp.path || inp.prompt;
   if (typeof key === 'string') return clamp(key, 200);
   try { return clamp(JSON.stringify(inp), 200); } catch { return ''; }
 }
