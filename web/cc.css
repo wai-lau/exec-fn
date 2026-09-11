@@ -221,12 +221,11 @@
    same two rows, same fields, same colours, read off
    ~/.claude/statusline-command.sh rather than approximated:
 
-     line 1   the conversation's title on a full-width hash-coloured band,
-              black text
-     line 2   the metrics on the page's own black -- ctx bright white, base
+     line 1   the metrics on the page's own black -- ctx bright white, base
               grey, 5h pink, its reset mint, 7d cyan. On their own line the
-              colours survive (they are unreadable on a bright band) and the
-              title never has to compete with them for width.
+              colours survive; they are unreadable on a bright band.
+     line 2   the conversation's title on a full-width hash-coloured band,
+              black text, sitting directly above the transcript it names.
 
    FIXED, and moved onto <body> by cc-status.js: _render_page wraps this page in
    a scrolling .page-scroll, and a bar meant to outlast every scroll has no
@@ -248,7 +247,7 @@
      left over, which on a phone is almost nothing. No padding of its own --
      each row carries its own. */
   display: block;
-  padding: 0 0 var(--space-1);
+  padding: 0;
   background: hsl(var(--bg-hsl));
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
@@ -280,7 +279,7 @@
 .cs-meta {
   display: grid; grid-template-columns: repeat(5, 1fr);
   align-items: baseline;
-  padding: var(--space-1) var(--space-2) 0;
+  padding: var(--space-1) var(--space-2);
 }
 .cs-meta > span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-ctx { color: #fff; }
