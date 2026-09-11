@@ -268,10 +268,16 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+/* Five equal columns, each value centred in its own. A flex row sized every box
+   to its text, so the numbers shifted sideways as they changed -- ctx going
+   9% -> 10% moved everything after it. On a fixed fifth each value moves only
+   within its own box, and the row reads as a gauge rather than a sentence. */
 .cs-meta {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--space-2);
-  padding: var(--space-1) var(--space-3) 0;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  align-items: baseline;
+  padding: var(--space-1) var(--space-2) 0;
 }
+.cs-meta > span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-ctx { color: #fff; }
 .cs-base { color: #8a8a8a; }
 .cs-5h { color: #ffafaf; }

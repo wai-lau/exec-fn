@@ -127,9 +127,6 @@ function ccStatusTitle() {
 function ccStatusRender() {
   const bar = document.getElementById('cc-status');
   if (!bar) return;
-  const pct = ccStatusState.ctx
-    ? Math.min(100, Math.round((ccStatusState.ctx / ccCtxWindow(ccStatusState.model)) * 100))
-    : null;
   const title = ccStatusTitle();
   bar.style.setProperty('--cs-hue', ccHue(title) + 'deg');
   // Row 1 is the conversation's title and nothing else.
@@ -140,26 +137,23 @@ function ccStatusRender() {
   // it belongs with the metrics, not competing with the title above.
   const meta = bar.querySelector('.cs-meta');
   meta.textContent = '';
-  // No model and no path. The model is still tracked -- it decides which
-  // context window ctx% is measured against -- but naming it in the bar said
-  // nothing a page called /cc did not already say.
-  if (pct != null) meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pct + '%'));
-  if (ccStatusState.base) {
-    // Clamped like ctx. base is recorded in TOKENS and divided by the window of
-    // whatever model is known at render time -- so a floor learned on a [1m]
-    // model, read back before a reply has named the model, divides by 200K and
-    // comes out over 100%. Measured at 250% doing exactly that.
-    const basePct = Math.min(100, Math.round((ccStatusState.base / ccCtxWindow(ccStatusState.model)) * 100));
-    meta.appendChild(ccSeg('cs-base', '(base:' + basePct + '%)'));
-  }
-  const five = ccStatusState.windows.five_hour;
-  if (five && five.pct != null) {
-    meta.appendChild(ccSeg('cs-5h', '5h:' + Math.round(five.pct) + '%'));
-    const left = five.resetsAt ? ccUntil(five.resetsAt * 1000 - Date.now()) : '';
-    if (left) meta.appendChild(ccSeg('cs-reset', '(' + left + ')'));
-  }
-  const seven = ccStatusState.windows.seven_day || ccStatusState.windows.seven_day_opus;
-  if (seven && seven.pct != null) meta.appendChild(ccSeg('cs-7d', '7d:' + Math.round(seven.pct) + '%'));
+  // FIVE boxes, always all five, in the same order every time: ctx, base, 5h,
+  // its reset, 7d. A slot that renders only once it has a value makes the row
+  // jump as numbers arrive, and an absent ctx reads as broken rather than as
+  // "no reply yet" -- so a missing value is 0, not a missing box. The model and
+  // the path are not among them: the model is still tracked (it decides which
+  // context window ctx% is measured against) but naming it on a page called
+  // /cc said nothing.
+  const win = ccCtxWindow(ccStatusState.model);
+  const five = ccStatusState.windows.five_hour || {};
+  const seven = ccStatusState.windows.seven_day || ccStatusState.windows.seven_day_opus || {};
+  const pctOf = (n) => (n ? Math.min(100, Math.round((n / win) * 100)) : 0);
+
+  meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pctOf(ccStatusState.ctx) + '%'));
+  meta.appendChild(ccSeg('cs-base', '(base:' + pctOf(ccStatusState.base) + '%)'));
+  meta.appendChild(ccSeg('cs-5h', '5h:' + Math.round(five.pct || 0) + '%'));
+  meta.appendChild(ccSeg('cs-reset', '(' + (five.resetsAt ? ccUntil(five.resetsAt * 1000 - Date.now()) || '0m' : '0m') + ')'));
+  meta.appendChild(ccSeg('cs-7d', '7d:' + Math.round(seven.pct || 0) + '%'));
 }
 
 function ccSeg(cls, text) {
