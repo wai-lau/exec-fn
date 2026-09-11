@@ -23,7 +23,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { query, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
+import { query, getSessionInfo, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
 import { usage } from "./usage.mjs";
 
@@ -531,6 +531,26 @@ const server = http.createServer(async (req, res) => {
     res.end(
       JSON.stringify({ ok: true, busy: active >= MAX_CONCURRENT, active, authed: hasLogin() }),
     );
+    return;
+  }
+
+  // The conversation's own title, the way the CLI's status line has one: the
+  // SDK generates a summary per session (and honours a custom rename), which is
+  // a far better name than the first thing that was typed -- "Crisis fragments
+  // endgame" rather than "poe2, what are crisis fragments for? I'm like deep".
+  if (req.method === "GET" && req.url === "/title") {
+    const id = currentSession();
+    let title = null;
+    if (id) {
+      try {
+        const info = await getSessionInfo(id);
+        title = (info && (info.customTitle || info.summary)) || null;
+      } catch {
+        /* no session file yet, or an SDK that no longer has it: no title */
+      }
+    }
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ sessionId: id, title }));
     return;
   }
 

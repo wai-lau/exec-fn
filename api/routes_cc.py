@@ -37,6 +37,12 @@ async def cc_health():
     return JSONResponse(await cc_client.health())
 
 
+@protected.get("/api/cc/title")
+async def cc_title():
+    """The conversation's generated title for the status bar."""
+    return JSONResponse(await cc_client.title())
+
+
 @protected.get("/api/cc/limits")
 async def cc_limits():
     """Subscription usage windows for the status bar. Owner-only like the rest
