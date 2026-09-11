@@ -1,0 +1,24 @@
+/* CRT stack at HALF strength — the dense, text-heavy pages.
+
+   The five `cyber-*` layers ride OVER the content at `--z-modal` on every page
+   (chrome.css). That is the look, and it stays; but on a page you READ rather
+   than glance at — a packed board, a chat transcript — full strength costs
+   legibility. So the three colour layers drop to opacity .5 and both
+   backdrop-filter panes are pulled halfway back toward identity
+   (blur .5px -> .25px, brightness .85 -> .925, contrast 1.5 -> 1.25).
+
+   Halved with `opacity` rather than by rewriting the gradient alphas because
+   half of 0.45 is 0.225 — off the palette snap scale, so the palette lint would
+   reject it; `opacity` is governed by neither lint.
+
+   Paint order is untouched (bg -> lines -> blur -> crt -> scan), so both
+   backdrop-filters still sit UNDER the one animated layer and blur a backdrop
+   that is static while the page is idle — the compositor caches it. A card drag
+   is the one thing that dirties it per frame.
+
+   Was the same three lines in rd.css and hq.css; /mtg and /cc joined 2026-09-11
+   for the same reason the boards did. /tarot deliberately does NOT — its CRT is
+   the mood, and the reader is paced to be looked at, not scanned. */
+.cyber-bg, .cyber-lines, .cyber-scan { opacity: 0.5; }
+.cyber-blur { backdrop-filter: blur(calc(var(--blur-2xs) / 2)); }
+.cyber-crt { backdrop-filter: brightness(0.925) contrast(1.25); }
