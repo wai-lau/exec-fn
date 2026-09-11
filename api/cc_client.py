@@ -78,7 +78,7 @@ async def new_conversation() -> dict:
         return {"ok": False, "detail": str(exc)}
 
 
-async def stream_query(prompt: str):
+async def stream_query(prompt: str, images: list | None = None):
     """Yield already-encoded SSE frames from the sidecar, passed straight through.
 
     The sidecar's event vocabulary (session/text/thinking/tool/tool_result/done/
@@ -93,6 +93,8 @@ async def stream_query(prompt: str):
     # No session id is sent: the sidecar owns which conversation this is, so
     # every device continues the same thread rather than starting its own.
     body = {"prompt": prompt}
+    if images:
+        body["images"] = images
 
     # connect fails fast; read is unbounded because an agent turn legitimately
     # runs long and the sidecar already enforces its own idle timeout.

@@ -34,6 +34,12 @@ const TOKEN = process.env.CC_SIDECAR_TOKEN || "";
 const MAX_CONCURRENT = Number(process.env.CC_MAX_CONCURRENT || 1);
 const MAX_TURNS = Number(process.env.CC_MAX_TURNS || 40);
 const IDLE_TIMEOUT_MS = Number(process.env.CC_IDLE_TIMEOUT_MS || 10 * 60 * 1000);
+// Pasted images. The client downscales to ~1568px before sending (Claude
+// downsamples above that anyway), so these ceilings are a guard against a
+// pathological paste, not the normal path -- a phone photo arrives ~200KB.
+const MAX_IMAGES = Number(process.env.CC_MAX_IMAGES || 4);
+const MAX_IMAGE_B64 = Number(process.env.CC_MAX_IMAGE_B64 || 5 * 1024 * 1024);
+const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
 
 // NO tools. /cc is a general chat UI on Wai's subscription, not a coding agent:
 // nothing here edits a repo, and the page offers no way to download a file the
@@ -227,13 +233,21 @@ async function historyFor(sessionId) {
     if (role !== "user" && role !== "assistant") continue;
     const blocks = m.message?.content ?? m.content;
     let text = "";
+    const images = [];
     if (typeof blocks === "string") text = blocks;
     else if (Array.isArray(blocks)) {
-      text = blocks.filter((b) => b?.type === "text").map((b) => b.text).join("");
+      for (const b of blocks) {
+        if (b?.type === "text") text += b.text;
+        // Replay pasted images too. Without this a reload keeps the words and
+        // silently drops the picture they were about, which reads as corruption.
+        else if (b?.type === "image" && b.source?.type === "base64") {
+          images.push({ media_type: b.source.media_type, data: b.source.data });
+        }
+      }
     }
     text = text.trim();
-    if (!text || text.startsWith("<command-name>")) continue;
-    out.push({ role, text });
+    if ((!text && !images.length) || text.startsWith("<command-name>")) continue;
+    out.push(images.length ? { role, text, images } : { role, text });
   }
   return out;
 }
@@ -242,11 +256,29 @@ function sse(res, event) {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
+/** Validate pasted images into Anthropic image blocks, dropping anything odd.
+ *
+ * A bad block would fail the whole turn, so a malformed entry is discarded and
+ * the text still goes through -- losing one image beats losing the message. */
+function imageBlocks(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  for (const im of list.slice(0, MAX_IMAGES)) {
+    const mt = typeof im?.media_type === "string" ? im.media_type : "";
+    const data = typeof im?.data === "string" ? im.data : "";
+    if (!IMAGE_TYPES.has(mt) || !data || data.length > MAX_IMAGE_B64) continue;
+    if (!/^[A-Za-z0-9+/=]+$/.test(data)) continue;   // must be bare base64
+    out.push({ type: "image", source: { type: "base64", media_type: mt, data } });
+  }
+  return out;
+}
+
 async function handleQuery(req, res, body) {
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
-  if (!prompt) {
+  const images = imageBlocks(body.images);
+  if (!prompt && !images.length) {
     res.writeHead(400, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: "prompt required" }));
+    res.end(JSON.stringify({ error: "prompt or image required" }));
     return;
   }
   if (active >= MAX_CONCURRENT) {
@@ -301,7 +333,19 @@ async function handleQuery(req, res, body) {
     const resume = currentSession();
     if (resume) options.resume = resume;
 
-    for await (const msg of query({ prompt, options })) {
+    // A string prompt cannot carry images, so once there is one we hand the SDK
+    // an async iterable of user messages instead -- same turn, richer content.
+    const input = images.length
+      ? (async function* () {
+          yield {
+            type: "user",
+            parent_tool_use_id: null,
+            message: { role: "user", content: [...images, { type: "text", text: prompt || "" }] },
+          };
+        })()
+      : prompt;
+
+    for await (const msg of query({ prompt: input, options })) {
       touch();
       for (const event of normalize(msg)) {
         if (event.type === "session") rememberSession(event.sessionId);
@@ -327,7 +371,8 @@ function readBody(req) {
     let raw = "";
     req.on("data", (c) => {
       raw += c;
-      if (raw.length > 64 * 1024) reject(new Error("body too large"));
+      // Images ride in this body, so the cap is sized for them, not for text.
+      if (raw.length > 24 * 1024 * 1024) reject(new Error("body too large"));
     });
     req.on("end", () => {
       try {

@@ -8,6 +8,7 @@
  * error. */
 
 let streaming = false;
+let pending = [];   // images pasted but not yet sent
 
 const terminal = document.getElementById('terminal');
 
@@ -62,7 +63,7 @@ function atBottom() {
   return terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 60;
 }
 
-function addMsg(role, text) {
+function addMsg(role, text, images) {
   // Only chase the tail when the reader is already there — yanking the view down
   // mid-scroll while a long tool result streams is the worst thing a transcript
   // can do.
@@ -73,6 +74,7 @@ function addMsg(role, text) {
     const body = document.createElement('div');
     body.className = 'msg-body';
     body.innerHTML = renderText(text);
+    addImages(body, images);
     div.appendChild(body);
   } else {
     div.textContent = text;
@@ -80,6 +82,71 @@ function addMsg(role, text) {
   terminal.appendChild(div);
   if (stick) terminal.scrollTop = terminal.scrollHeight;
   return div;
+}
+
+/** Downscale a pasted image before it ever leaves the browser.
+ *
+ * Claude downsamples anything over ~1568px anyway, so full-resolution upload
+ * buys nothing and costs everything: a raw phone photo is 3-4MB crossing a
+ * 1967MB box that has already been OOM-killed once tonight. Resized, the same
+ * photo arrives ~200KB. JPEG unless the source has alpha worth keeping. */
+function shrink(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1568;
+      let { width: w, height: h } = img;
+      const scale = Math.min(1, MAX / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      const png = file.type === 'image/png' || file.type === 'image/gif';
+      const mt = png ? 'image/png' : 'image/jpeg';
+      const dataUrl = cv.toDataURL(mt, 0.85);
+      resolve({ media_type: mt, data: dataUrl.split(',')[1], url: dataUrl });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+function thumbStrip() {
+  let el = document.getElementById('cc-thumbs');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'cc-thumbs';
+    document.getElementById('input-bar').prepend(el);
+  }
+  el.innerHTML = '';
+  pending.forEach((im, i) => {
+    const w = document.createElement('span');
+    w.className = 'cc-thumb';
+    const g = document.createElement('img');
+    g.src = im.url; g.alt = 'pasted image';
+    const x = document.createElement('button');
+    x.type = 'button'; x.textContent = '×'; x.title = 'remove';
+    x.addEventListener('click', () => { pending.splice(i, 1); thumbStrip(); syncInputH(); });
+    w.appendChild(g); w.appendChild(x);
+    el.appendChild(w);
+  });
+  el.hidden = !pending.length;
+  syncInputH();
+}
+
+function addImages(div, images) {
+  if (!images || !images.length) return;
+  const row = document.createElement('div');
+  row.className = 'cc-imgs';
+  for (const im of images) {
+    const g = document.createElement('img');
+    g.src = im.url || `data:${im.media_type};base64,${im.data}`;
+    g.alt = 'image';
+    row.appendChild(g);
+  }
+  div.appendChild(row);
 }
 
 function addToolMsg(name, arg) {
@@ -164,7 +231,7 @@ async function loadHistory() {
     const r = await fetch('/api/cc/history', { cache: 'no-store' });
     const d = await r.json();
     const msgs = d.messages || [];
-    for (const m of msgs) addMsg(m.role === 'user' ? 'user' : 'assistant', m.text);
+    for (const m of msgs) addMsg(m.role === 'user' ? 'user' : 'assistant', m.text, m.images);
     if (msgs.length) addMsg('sys', '[ continuing — /new starts a fresh conversation ]');
     else addMsg('sys', '[ ready — /new starts a fresh conversation ]');
     terminal.scrollTop = terminal.scrollHeight;
@@ -195,17 +262,22 @@ async function runCommand(text) {
 async function sendMsg() {
   if (streaming) return;
   const text = _msgInput.innerText.trim();
-  if (!text) return;
+  // An image on its own is a real message ("what is this?"), so an empty box
+  // is only empty when there is nothing pending either.
+  if (!text && !pending.length) return;
   _msgInput.textContent = '';
   renderCaret();
   syncInputH();
   _msgInput.focus();
-  if (text.startsWith('/')) { await runCommand(text); return; }
-  addMsg('user', text);
-  await streamResponse(text);
+  if (text.startsWith('/') && !pending.length) { await runCommand(text); return; }
+  const imgs = pending.slice();
+  pending = [];
+  thumbStrip();
+  addMsg('user', text, imgs);
+  await streamResponse(text, imgs);
 }
 
-async function streamResponse(prompt) {
+async function streamResponse(prompt, imgs) {
   streaming = true;
   let { div, body, cur } = addStreamDiv();
   let fullText = '';
@@ -228,7 +300,12 @@ async function streamResponse(prompt) {
     const r = await fetch('/api/cc/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt }),
+      body: JSON.stringify({
+        prompt: prompt,
+        // strip the data: URL used for the local thumbnail; the wire wants
+        // bare base64 and the prefix would fail the sidecar's validation
+        images: (imgs || []).map(i => ({ media_type: i.media_type, data: i.data })),
+      }),
     });
     if (!r.ok || !r.body) {
       let msg = 'request failed (' + r.status + ')';
@@ -334,8 +411,21 @@ _msgInput.addEventListener('keydown', e => {
 // Paste plain text only: rich HTML drags in inline colors (invisible on the dark
 // terminal) and stray nodes the input wasn't built for.
 _msgInput.addEventListener('paste', e => {
+  const cd = e.clipboardData || window.clipboardData;
+  // A screenshot paste carries an image FILE, not text. Take those first;
+  // anything else falls through to the plain-text path below, which exists
+  // because rich HTML drags in inline colors invisible on a dark terminal.
+  const files = Array.from(cd.files || []).filter(f => f.type.startsWith('image/'));
+  if (files.length) {
+    e.preventDefault();
+    Promise.all(files.slice(0, 4).map(shrink)).then(list => {
+      for (const im of list) if (im && pending.length < 4) pending.push(im);
+      thumbStrip();
+    });
+    return;
+  }
   e.preventDefault();
-  const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  const text = cd.getData('text/plain');
   document.execCommand('insertText', false, text);
   renderCaret();
   syncInputH();
