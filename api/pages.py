@@ -211,7 +211,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-voice.js?v=4"></script>'
                   '<script src="/exec-bubble-drag.js?v=2"></script>'
                   '<script src="/exec-todos.js?v=3"></script>'
-                  '<script src="/exec-bubble-assets.js?v=2"></script>'
+                  '<script src="/exec-bubble-assets.js?v=3"></script>'
                   '<script src="/exec-bubble.js?v=43"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
