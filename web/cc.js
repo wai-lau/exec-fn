@@ -249,9 +249,16 @@ async function runCommand(text) {
     return true;
   }
   try {
-    await fetch('/api/cc/new', { method: 'POST' });
+    const r = await fetch('/api/cc/new', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.ok === false) {
+      // The archive runs BEFORE the clear and a failure aborts it, so the old
+      // conversation is still intact — say so rather than leaving it ambiguous.
+      addMsg('sys warn', '[ not cleared — ' + (d.error || 'archive failed') + '; conversation kept ]');
+      return true;
+    }
     terminal.textContent = '';
-    addMsg('sys', '[ new conversation — the previous one is kept on disk ]');
+    addMsg('sys', '[ new conversation — the previous one is archived ]');
   } catch {
     addMsg('sys warn', '[ could not start a new conversation ]');
   }

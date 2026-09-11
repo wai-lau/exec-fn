@@ -101,6 +101,7 @@ const SYSTEM_PROMPT = [
 // reload, a phone locking, and a move between devices, which a browser-side
 // value cannot. Wai ends a conversation deliberately; nothing else does.
 const SESSION_FILE = path.join(os.homedir(), ".cc-session");
+const ARCHIVE_DIR = path.join(os.homedir(), ".cc-archive");
 
 function currentSession() {
   try {
@@ -247,9 +248,60 @@ async function historyFor(sessionId) {
     }
     text = text.trim();
     if ((!text && !images.length) || text.startsWith("<command-name>")) continue;
-    out.push(images.length ? { role, text, images } : { role, text });
+    const ts = typeof m.timestamp === "string" ? m.timestamp : "";
+    out.push(images.length ? { role, text, images, ts } : { role, text, ts });
   }
   return out;
+}
+
+/** Write the whole conversation to disk before it is let go.
+ *
+ * Clearing is the ONLY way a thread ends, so this is the one choke point; it
+ * runs before the pointer is dropped, and a failure here ABORTS the clear
+ * rather than losing the transcript silently.
+ *
+ * Format is fixed and parseable, not pretty-printed: a `key: value` header, a
+ * blank line, then one block per message opening with
+ * `[NNNN] SPEAKER ISO8601Z`. Index is zero-padded so lexical order is
+ * chronological order, the speaker is a bare uppercase word, and timestamps are
+ * always UTC with a Z -- nothing about the output varies with locale, timezone
+ * or terminal width. Images are written beside the transcript and named from
+ * the index that referenced them. */
+async function archiveSession(sessionId) {
+  const msgs = await historyFor(sessionId);
+  if (!msgs.length) return null;
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const dir = path.join(ARCHIVE_DIR, `${stamp}__${sessionId || "unknown"}`);
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+
+  const lines = [
+    `session: ${sessionId || "unknown"}`,
+    `archived: ${new Date().toISOString()}`,
+    `messages: ${msgs.length}`,
+    "",
+  ];
+  msgs.forEach((m, i) => {
+    const n = String(i + 1).padStart(4, "0");
+    const who = m.role === "user" ? "USER" : "ASSISTANT";
+    const files = (m.images || []).map((im, j) => {
+      const ext = (im.media_type || "image/png").split("/")[1].replace("jpeg", "jpg");
+      const name = `img-${n}-${j + 1}.${ext}`;
+      try {
+        fs.writeFileSync(path.join(dir, name), Buffer.from(im.data, "base64"));
+      } catch {
+        return null;   // one unwritable image must not cost the transcript
+      }
+      return name;
+    }).filter(Boolean);
+    lines.push(`[${n}] ${who} ${m.ts || ""}`.trimEnd());
+    if (files.length) lines.push(`images: ${files.join(", ")}`);
+    lines.push(m.text || "", "");
+  });
+
+  const file = path.join(dir, "conversation.txt");
+  fs.writeFileSync(file, lines.join("\n"), { mode: 0o600 });
+  return file;
 }
 
 function sse(res, event) {
@@ -409,13 +461,24 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url === "/new") {
-    // Drop the pointer only. The old transcript stays on disk under
-    // ~/.claude/projects, so "new conversation" is never "destroy the last one".
+    // Archive BEFORE dropping the pointer, and refuse to clear if the archive
+    // fails -- a clear that loses the transcript is the one outcome worth
+    // failing loudly for. The SDK's own session files stay under
+    // ~/.claude/projects either way; this is the readable copy.
+    const id = currentSession();
+    let archived = null;
+    try {
+      archived = await archiveSession(id);
+    } catch (err) {
+      res.writeHead(500, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: `archive failed: ${err.message}` }));
+      return;
+    }
     try {
       fs.rmSync(SESSION_FILE, { force: true });
     } catch { /* already gone */ }
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true }));
+    res.end(JSON.stringify({ ok: true, archived }));
     return;
   }
 
