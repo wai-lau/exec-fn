@@ -101,3 +101,31 @@ sudo systemctl restart cc-sidecar        # after editing server.mjs, then re-run
 
 `setup.sh` copies `server.mjs` into `/srv/cc-agent`; editing the repo copy alone
 changes nothing until you re-run it.
+
+## The persona
+
+`cc-context.md` is the second half of the system prompt — who Wai is, how she
+wants to be spoken to. `server.mjs` holds the operating rules; this holds the
+person, so changing her context is not a code change.
+
+It is read **per run**, so an edit needs no restart — but it is read from
+`/srv/cc-agent/`, so reinstall it:
+
+```bash
+sudo install -o root -g cc-agent -m 0640 claude-box/cc-context.md /srv/cc-agent/
+```
+
+Root-owned on purpose: the agent must not be able to rewrite its own
+instructions the way it could a file in the sandbox.
+
+It deliberately carries no repo or project detail. With no tools and no
+filesystem here, that would be tokens on every turn buying nothing. The personal
+detail it does carry is safe only while `/cc` stays owner-only — widening that
+tier means pulling this file first.
+
+Testing a prompt change costs a turn in the ONE live conversation, so park the
+pointer rather than writing into it:
+
+```bash
+sudo mv /home/cc-agent/.cc-session /tmp/cc-session.bak   # test, then move it back
+```

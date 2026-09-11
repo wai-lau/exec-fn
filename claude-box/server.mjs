@@ -101,6 +101,29 @@ const SYSTEM_PROMPT = [
   "phone. You still cannot produce photographs or raster images of any kind.",
 ].join(" ");
 
+// Wai's own standing context: who he is, how he wants to be spoken to. It sits
+// in a FILE rather than in the string above for three reasons -- editing it is
+// not a code change, it is read per run so an edit lands with no restart, and it
+// is installed root-owned into /srv/cc-agent like the rest of the sidecar, so
+// the agent cannot rewrite its own instructions the way it could a file in the
+// sandbox. Deliberately carries no repo or project detail: with no tools and no
+// filesystem here, that would be tokens on every turn buying nothing.
+const CONTEXT_FILE = new URL("./cc-context.md", import.meta.url);
+
+/** The full system prompt: the operating rules above plus Wai's context.
+ *
+ * Byte-stable across turns (same file, same bytes), which is what lets the
+ * prefix cache instead of being re-read at full price every message. */
+function buildSystemPrompt() {
+  let context = "";
+  try {
+    context = fs.readFileSync(CONTEXT_FILE, "utf8").trim();
+  } catch {
+    /* absent or unreadable degrades to the base prompt -- never a failed run */
+  }
+  return context ? `${SYSTEM_PROMPT}\n\n${context}` : SYSTEM_PROMPT;
+}
+
 // ONE continuing conversation, owned by the SERVER.
 //
 // The session id used to live only in a JS variable on the page, so every
@@ -373,7 +396,7 @@ async function handleQuery(req, res, body) {
     const options = {
       cwd: SANDBOX,
       permissionMode: "default",
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt: buildSystemPrompt(),
       disallowedTools: BLOCKED_TOOLS,
       // Drop the account's claude.ai connectors (Gmail / Calendar / Drive).
       // strictMcpConfig means "only the servers named in mcpServers", and that
