@@ -24,7 +24,7 @@ _FONT_PRELOAD = (
 _JSDELIVR_PRECONNECT = (
     '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
 )
-_JSDELIVR_PAGES = {"rd", "hq", "debug", "mtg", "tarot", "cc"}
+_JSDELIVR_PAGES = {"rd", "hq", "mtg", "tarot", "cc"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
