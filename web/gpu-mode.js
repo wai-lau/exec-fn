@@ -1,5 +1,8 @@
 // GPU-mode control (owner-only) for /hosaka. The home GPU box
-// runs EITHER hosaka TTS (homo) or is freed for other work (idle/emo)
+// runs EITHER hosaka TTS (homo) or is freed for other work (idle/emo).
+// NOTE: `idle` is shown to the user as "down" -- the label changed, the WIRE
+// value did not. data-mode is the action the home box accepts, so renaming it
+// would break the switch; only the button text differs.
 // (emo / idle); this segmented strip flips between them. Both pages hit the same
 // backend (/api/hosaka/mode), so the control is shared state across them. GET
 // 401 for guests keeps the strip hidden. Loaded on both pages; keys off the
