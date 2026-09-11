@@ -75,12 +75,15 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   #exec-panel.open { transform: translateX(0); }
 }
 
+/* No vertical padding: these sit ON the prompt line, and any of their own
+   height makes the row taller than the text it is supposed to continue. */
 #exec-ph-close {
   flex-shrink: 0;
   background: none; border: none;
   cursor: pointer; color: hsl(var(--green-hsl) / 0.8);
   font-family: var(--font-mono);
-  font-size: var(--fs-sm); padding: var(--space-1-5) var(--space-2); margin-left: var(--space-2-5);
+  font-size: var(--fs-sm); line-height: var(--lh-tight);
+  padding: 0 0 0 var(--space-2); margin-left: var(--space-2-5);
   transition: color 0.15s;
 }
 #exec-ph-close:hover { color: hsl(var(--green-hsl) / 1); }
@@ -90,7 +93,8 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   background: none; border: none;
   cursor: pointer; color: hsl(var(--green-hsl) / 0.8);
   font-family: var(--font-mono);
-  font-size: var(--fs-sm); padding: var(--space-1-5) var(--space-2); margin-left: var(--space-2-5);
+  font-size: var(--fs-sm); line-height: var(--lh-tight);
+  padding: 0 0 0 var(--space-2); margin-left: var(--space-2-5);
   transition: color 0.15s;
 }
 #exec-mute:hover { color: hsl(var(--green-hsl) / 1); }
@@ -176,4 +180,10 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 }
 
 #exec-input-area { flex-shrink: 0; padding: 0 var(--space-4) var(--space-2); background: transparent; }
-#exec-iline { padding: var(--space-2) 0 0; align-items: center; }
+
+/* ONE TEXT LINE TALL, exactly like the messages above it -- the panel is meant
+   to read as a terminal where the prompt is simply the next line, and it was
+   33px against an 18.6px message line: 6px of row padding plus two buttons
+   carrying their own vertical padding. Nothing in this row may be taller than
+   the text. */
+#exec-iline { padding: 0; align-items: flex-start; }
