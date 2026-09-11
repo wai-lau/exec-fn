@@ -74,11 +74,18 @@ function ccUntil(ms) {
   return h ? h + 'h' + String(m).padStart(2, '0') + 'm' : m + 'm';
 }
 
-/** The conversation's own opening line, which is what it is "about". */
+/** The conversation's own opening line, which is what it is "about".
+ *
+ * Falls through user -> assistant: a conversation that opens with a pasted
+ * screenshot and no words has an empty first user message, and titling that
+ * `/cc` says nothing when the reply right under it does. */
 function ccStatusTitle() {
-  const first = document.querySelector('#terminal .msg.user .msg-body');
-  const text = first ? first.textContent.trim() : '';
-  return text ? text.slice(0, 44) : '/cc';
+  for (const sel of ['#terminal .msg.user .msg-body', '#terminal .msg.assistant .msg-body']) {
+    const el = document.querySelector(sel);
+    const text = el ? el.textContent.trim().replace(/\s+/g, ' ') : '';
+    if (text) return text.slice(0, 48);
+  }
+  return '/cc';
 }
 
 function ccStatusRender() {
@@ -89,14 +96,15 @@ function ccStatusRender() {
     : null;
   const title = ccStatusTitle();
   bar.style.setProperty('--cs-hue', ccHue(title) + 'deg');
+  // Row 1 is the conversation's title and nothing else.
   bar.querySelector('.cs-title').textContent = title;
-  bar.querySelector('.cs-model').textContent = ccModelShort(ccStatusState.model);
 
   // Built as spans, not one string: each field carries its own colour, the way
-  // the terminal's line does.
+  // the terminal's line does. The model leads row 2 in the title's own hue --
+  // it belongs with the metrics, not competing with the title above.
   const meta = bar.querySelector('.cs-meta');
   meta.textContent = '';
-  meta.appendChild(ccSeg('cs-user', 'wai-root'));
+  meta.appendChild(ccSeg('cs-model', ccModelShort(ccStatusState.model)));
   meta.appendChild(ccSeg('cs-path', '/cc'));
   if (pct != null) meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pct + '%'));
   if (ccStatusState.base) {
