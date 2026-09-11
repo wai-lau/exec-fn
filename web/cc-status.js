@@ -121,7 +121,7 @@ function ccStatusTitle() {
     const text = el ? el.textContent.trim().replace(/\s+/g, ' ') : '';
     if (text) return text.slice(0, 48);
   }
-  return '/cc';
+  return '';   // nothing said yet -- no title, rather than a stand-in
 }
 
 function ccStatusRender() {
@@ -129,8 +129,13 @@ function ccStatusRender() {
   if (!bar) return;
   const title = ccStatusTitle();
   bar.style.setProperty('--cs-hue', ccHue(title) + 'deg');
-  // Row 1 is the conversation's title and nothing else.
-  bar.querySelector('.cs-title').textContent = title;
+  // Row 1 is the conversation's title and nothing else -- and with no title
+  // there is no row: a full-width band of colour saying nothing is louder than
+  // anything else on the page. It comes back the moment the conversation has a
+  // first line, and --cc-status-h is observed, so the transcript re-anchors.
+  const el = bar.querySelector('.cs-title');
+  el.textContent = title;
+  el.hidden = !title;
 
   // Built as spans, not one string: each field carries its own colour, the way
   // the terminal's line does. The model leads row 2 in the title's own hue --
@@ -215,10 +220,26 @@ function ccStatusMeasure() {
   window.addEventListener('resize', set);
 }
 
+/* The title comes from the transcript, which arrives asynchronously: the bar
+ * renders long before /api/cc/history has replayed a single line, so a one-shot
+ * render titles every conversation empty. Watch until there is something to
+ * read, then stop -- the title is the conversation's FIRST line and cannot
+ * change once it exists. */
+function ccStatusWatchTitle() {
+  const term = document.getElementById('terminal');
+  if (!term || !window.MutationObserver) return;
+  const obs = new MutationObserver(() => {
+    ccStatusRender();
+    if (ccStatusTitle()) obs.disconnect();
+  });
+  obs.observe(term, { childList: true, subtree: true });
+}
+
 ccStateLoad();
 ccStatusState.base = ccBaseLoad();
 ccStatusRender();
 ccStatusMeasure();
+ccStatusWatchTitle();
 ccLimitsFetch();
 // A turn is the only thing that moves these, so refresh when one ends rather
 // than on a timer.
