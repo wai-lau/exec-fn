@@ -22,7 +22,6 @@ from routers import public, protected, guest_protected
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
 import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
-import routes_emet   # noqa: F401  — registers /emet + the emet MCP JSON routes
 import routes_graph  # noqa: F401  — registers /graph (graphify viz, scrubbed + restyled)
 import routes_printer  # noqa: F401  — registers /printer + the ELEGOO printer reverse proxy
 import routes_cc     # noqa: F401  — registers /cc + the sandboxed Claude Code sidecar routes

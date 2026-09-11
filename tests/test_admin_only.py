@@ -11,6 +11,14 @@ against the live container, and the dev venv has no fastapi, so the app cannot
 be imported host-side. The decorator IS the declaration of tier, so scanning it
 tests the same fact.
 
+Only modules the app actually LOADS are scanned — the file set is walked from
+`main.py` down the import graph. A module that declares routes but that nothing
+imports registers nothing: its decorators are dead text, and firing those paths
+over HTTP would assert a tier against a 404. Deriving the set from the imports
+keeps it honest in both directions — a route module joins the suite the moment
+`main.py` imports it, and leaves the moment that import is dropped (which is how
+`/emet` was unlinked 2026-09-10, its source deliberately kept in tree).
+
 **GET routes are fired over HTTP; mutating ones deliberately are NOT.** This
 suite runs on every commit against the LIVE production container. FastAPI
 resolves dependencies before the handler, so an unauthenticated POST should stop
@@ -56,11 +64,45 @@ _PARAMS = {
 _STREAMING = {"/api/monitor/stream", "/api/hosaka/mode/stream"}
 
 
+# Matches top-level AND indented imports — a route module pulled in inside a
+# function (the deferred-import idiom this app uses for optional deps) still
+# registers its routes when that function runs.
+_IMPORT = re.compile(
+    r"^[ \t]*(?:import\s+(?P<plain>[\w.]+)"
+    r"|from\s+(?P<mod>[\w.]+)\s+import\s+(?P<names>[^\n#]+))",
+    re.M,
+)
+
+
+def _module_source(mod: str):
+    """Dotted api-relative module -> its source file, or None if not ours."""
+    base = os.path.join(_API, *mod.split("."))
+    for cand in (base + ".py", os.path.join(base, "__init__.py")):
+        if os.path.isfile(cand):
+            return cand
+    return None
+
+
 def _py_files():
-    for root, _dirs, files in os.walk(_API):
-        for f in files:
-            if f.endswith(".py"):
-                yield os.path.join(root, f)
+    """The api sources reachable from main.py, walked down the import graph."""
+    seen, queue = set(), ["main"]
+    while queue:
+        path = _module_source(queue.pop())
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        for m in _IMPORT.finditer(_read(path)):
+            if m.group("plain"):
+                queue.append(m.group("plain"))
+                continue
+            base = m.group("mod")
+            queue.append(base)
+            # `from pkg import sub` may name a SUBMODULE, not only a symbol.
+            for name in m.group("names").replace("(", " ").replace(")", " ").split(","):
+                name = name.split(" as ")[0].strip().strip("\\").strip()
+                if name and name != "*":
+                    queue.append(f"{base}.{name}")
+    return sorted(seen)
 
 
 def _read(path):
@@ -158,7 +200,7 @@ def _get(client, path, headers):
 def test_scan_found_the_admin_tier():
     assert len(ADMIN) >= 30, f"admin scan found only {len(ADMIN)} routes — scan is broken"
     assert len(ADMIN_GET) >= 15, f"only {len(ADMIN_GET)} admin GETs — scan is broken"
-    for known in [("GET", "/cc"), ("GET", "/rd"), ("GET", "/hq"), ("GET", "/emet"),
+    for known in [("GET", "/cc"), ("GET", "/rd"), ("GET", "/hq"), ("GET", "/debug"),
                   ("POST", "/api/cc/query"), ("GET", "/api/rd")]:
         assert known in TIERS["protected"], f"{known} missing from admin scan"
 
@@ -236,3 +278,41 @@ def test_mutating_admin_routes_are_admin_tier_only():
     for entry in ADMIN_MUTATING:
         assert entry not in TIERS["public"], f"{entry} is also public"
         assert entry not in TIERS["guest_protected"], f"{entry} is also guest"
+
+
+# ── mount order: the catch-all must never outrank the admin router ───────────
+#
+# Starlette matches in REGISTRATION order and `app.mount("/", StaticFiles(...))`
+# matches every path, so the only thing keeping /cc (and every other admin page)
+# off the public static handler is that the routers are included first. Nothing
+# enforced that, and the failure would be silent and total: the admin router
+# would simply stop being reached.
+#
+# Asserted on source order rather than on an imported app because the mounts are
+# hardcoded to container paths (/app/static, /app/nightfall). Importing `main`
+# host-side means fabricating those directories, which buys a more fragile test,
+# not a stronger one — registration order IS source order for module-level calls.
+_MAIN = os.path.join(_API, "main.py")
+_INCLUDE_CALL = re.compile(r"^\s*app\.include_router\(\s*(\w+)", re.M)
+_ROOT_MOUNT = re.compile(r"^\s*app\.mount\(\s*[\"']/?[\"']", re.M)
+
+
+def _line_of(match, text):
+    return text.count("\n", 0, match.start()) + 1
+
+
+def test_routers_are_registered_before_the_root_static_mount():
+    text = _read(_MAIN)
+    mounts = [(_line_of(m, text), m.group(0).strip()) for m in _ROOT_MOUNT.finditer(text)]
+    includes = {m.group(1): _line_of(m, text) for m in _INCLUDE_CALL.finditer(text)}
+
+    assert "protected" in includes, "app.include_router(protected) not found in main.py"
+    assert mounts, "no root mount found — this guard is asserting nothing; re-check main.py"
+
+    first_mount = min(line for line, _ in mounts)
+    for name, line in includes.items():
+        assert line < first_mount, (
+            f"app.include_router({name}) is registered at line {line}, AFTER the "
+            f"root mount at line {first_mount} — the catch-all now shadows it and "
+            f"every route on that router is unreachable"
+        )
