@@ -383,6 +383,38 @@ def api_debug_logs():
     return {"files": files}
 
 
+@protected.get("/api/debug/cron")
+def api_debug_cron():
+    """Every cron job's output, one file per day per job.
+
+    Three jobs write here and they are three different uids -- the morning
+    pipeline as root inside the container, graphify as wai-root on the host,
+    the security refresh as host root -- so each writes its OWN file
+    (`YYYY-MM-DD__job.log`) rather than sharing a daily one, which the first
+    writer would otherwise own and lock the others out of.
+
+    The tail is what matters when something failed overnight, so an oversized
+    file is cut from the FRONT; a corrupt or unreadable one is skipped rather
+    than 500ing the viewer, like the activity-log reader above.
+    """
+    cap = 20000
+    days: dict[str, list] = {}
+    for path in sorted(glob.glob(str(DATA_DIR / "cron" / "*.log")), reverse=True):
+        p = Path(path)
+        day, _, job = p.stem.partition("__")
+        try:
+            text = p.read_text(errors="replace")
+        except OSError:
+            continue
+        clipped = len(text) > cap
+        days.setdefault(day, []).append({
+            "job": job or "cron",
+            "bytes": p.stat().st_size,
+            "text": ("… earlier output trimmed …\n" + text[-cap:]) if clipped else text,
+        })
+    return {"days": [{"day": d, "jobs": days[d]} for d in sorted(days, reverse=True)]}
+
+
 @protected.get("/api/tarot/readings")
 def api_tarot_readings():
     p = DATA_DIR / "tarot_readings.json"

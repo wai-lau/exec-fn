@@ -110,6 +110,44 @@ async function renderLogs(logRes) {
   }).join('') || '<div class="dbg-empty">no logs</div>';
 }
 
+/* Cron output, newest day first, one collapsible block per job.
+ *
+ * Collapsed by default like every other section here: on a good night these are
+ * four lines saying nothing happened, and the reason to open the page is the
+ * night that was not good. */
+async function renderCron(cronRes) {
+  if (!cronRes.ok) return;
+  const data = await cronRes.json();
+  const days = data.days || [];
+  const el = document.getElementById('dbg-cron');
+  if (!days.length) {
+    el.innerHTML = '<div class="dbg-empty">no cron output yet</div>';
+    return;
+  }
+  el.innerHTML = days.map((d, i) => {
+    const jobs = d.jobs || [];
+    const names = jobs.map(j => j.job).join(', ');
+    return `<div class="dbg-log-file">
+      <div class="dbg-log-hdr" onclick="toggleCron(${i})">
+        <span class="dbg-log-toggle" id="ctog-${i}">▶</span>
+        <span>${esc(d.day)}</span>
+        <span style="opacity:0.35">(${esc(names)})</span>
+      </div>
+      <div class="dbg-log-entries" id="cron-${i}">
+        ${jobs.map(j => `<div class="dbg-cron-job">${esc(j.job)}</div>
+          <pre class="dbg-cron-out">${esc(j.text || '')}</pre>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCron(i) {
+  const box = document.getElementById('cron-' + i);
+  const tog = document.getElementById('ctog-' + i);
+  const open = box.classList.toggle('open');
+  tog.textContent = open ? '▼' : '▶';
+}
+
 async function renderMtg(mtgRes) {
   if (!mtgRes.ok) return;
   const data = await mtgRes.json();
@@ -177,13 +215,15 @@ async function renderTarot(tarotRes) {
 }
 
 async function loadDebug() {
-  const [ctxRes, logRes, mtgRes, tarotRes] = await Promise.all([
+  const [ctxRes, logRes, cronRes, mtgRes, tarotRes] = await Promise.all([
     fetch('/api/context'),
     fetch('/api/debug/logs'),
+    fetch('/api/debug/cron'),
     fetch('/api/mtg/log'),
     fetch('/api/tarot/readings'),
   ]);
   await renderProfileSection(ctxRes);
+  await renderCron(cronRes);
   await renderLogs(logRes);
   await renderMtg(mtgRes);
   await renderTarot(tarotRes);
