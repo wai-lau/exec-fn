@@ -46,6 +46,26 @@ async def health() -> dict:
         return {"ok": False, "unreachable": True, "detail": str(exc)}
 
 
+async def title() -> dict:
+    """The conversation's generated title: `{sessionId, title}`.
+
+    The SDK writes a summary per session (and honours a rename), which is what
+    the CLI's own status line shows -- a real name rather than the first words
+    typed. Absent on a brand-new conversation, so the page falls back to the
+    transcript's opening line. Never raises: a bar without a title is fine, a
+    500 on the page is not.
+    """
+    if not _TOKEN:
+        return {"title": None}
+    try:
+        async with httpx.AsyncClient(timeout=_HEALTH_TIMEOUT * 3) as client:
+            r = await client.get(f"{_CC_URL}/title", headers=_headers())
+            r.raise_for_status()
+            return r.json()
+    except Exception:
+        return {"title": None}
+
+
 async def limits() -> dict:
     """The subscription's 5h / 7d windows, for the status bar.
 

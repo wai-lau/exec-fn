@@ -20,7 +20,7 @@
 const CC_CTX_1M = 1000000;
 const CC_CTX_DEFAULT = 200000;
 
-const ccStatusState = { model: '', ctx: 0, base: 0, windows: {} };
+const ccStatusState = { model: '', ctx: 0, base: 0, windows: {}, title: '' };
 
 // The statusline script's definition, mirrored: `base` is the SMALLEST total
 // input ever observed -- system prompt + tools + standing context, the floor a
@@ -49,6 +49,7 @@ function ccStateLoad() {
     if (!raw.at || Date.now() - raw.at > CC_CACHE_TTL_MS) return;
     ccStatusState.model = raw.model || '';
     ccStatusState.ctx = raw.ctx || 0;
+    ccStatusState.title = raw.title || '';
     const wins = raw.windows && typeof raw.windows === 'object' ? raw.windows : {};
     // A window whose reset has already passed has rolled over; its utilization
     // describes a period that is finished, so it goes rather than misinforms.
@@ -65,6 +66,7 @@ function ccStateSave() {
       at: Date.now(),
       model: ccStatusState.model,
       ctx: ccStatusState.ctx,
+      title: ccStatusState.title,
       windows: ccStatusState.windows,
     }));
   } catch { /* private mode: the bar just does not survive a reload */ }
@@ -110,12 +112,31 @@ function ccUntil(ms) {
   return h ? h + 'h' + String(m).padStart(2, '0') + 'm' : m + 'm';
 }
 
+/* The conversation's GENERATED title -- what the CLI's own status line shows.
+ * The SDK writes a summary per session and honours a rename, so a conversation
+ * is called "Crisis fragments endgame" rather than "poe2, what are crisis
+ * fragments for? I'm like deep into e…". Absent on a brand-new conversation,
+ * which is what the transcript fallback below is for. */
+async function ccTitleFetch() {
+  try {
+    const r = await fetch('/api/cc/title', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && j.title && j.title !== ccStatusState.title) {
+      ccStatusState.title = j.title;
+      ccStateSave();
+      ccStatusRender();
+    }
+  } catch { /* offline: the opening line still titles it */ }
+}
+
 /** The conversation's own opening line, which is what it is "about".
  *
  * Falls through user -> assistant: a conversation that opens with a pasted
  * screenshot and no words has an empty first user message, and titling that
  * `/cc` says nothing when the reply right under it does. */
 function ccStatusTitle() {
+  if (ccStatusState.title) return ccStatusState.title.slice(0, 48);
   for (const sel of ['#terminal .msg.user .msg-body', '#terminal .msg.assistant .msg-body']) {
     const el = document.querySelector(sel);
     const text = el ? el.textContent.trim().replace(/\s+/g, ' ') : '';
@@ -241,16 +262,19 @@ ccStatusRender();
 ccStatusMeasure();
 ccStatusWatchTitle();
 ccLimitsFetch();
+ccTitleFetch();
 // A turn is the only thing that moves these, so refresh when one ends rather
 // than on a timer.
 document.addEventListener('DOMContentLoaded', () => {
   const term = document.getElementById('terminal');
   if (!term) return;
   term.addEventListener('cc:reply-done', ccLimitsFetch);
+  term.addEventListener('cc:reply-done', ccTitleFetch);
   // A cleared conversation is back at the floor. base and the windows survive
   // (they are account-wide, not conversation-wide); the context does not.
   term.addEventListener('cc:conversation-new', () => {
     ccStatusState.ctx = 0;
+    ccStatusState.title = '';
     ccStateSave();
     ccStatusRender();
   });
