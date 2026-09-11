@@ -1,21 +1,6 @@
-/* chat-reader.css carries the shared merged-input + reader-voice skin;
-   below: mtg-only — full-width scrollback + Scryfall card hovers */
-
-/* mtg is a reading/reference page, so it joins the document palette: softer
-   phosphor greens on the doc page background, and a glow to match. tarot keeps
-   its neon reader mood (the shared chat-reader.css is untouched; these
-   overrides are mtg-only, and mtg.css loads last). Type is already on the
-   scale tokens. */
-.msg { max-width:none; text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12); }
-body { background: hsl(var(--bg-hsl)); }
-.msg.assistant { color: hsl(var(--green-hsl) / 0.8) !important; }
-.msg.assistant hr { border-top-color: hsl(var(--green-hsl) / 0.12); }
-.msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.12); }
-.msg.assistant td { border-color: hsl(var(--green-hsl) / 0.12); }
-
-/* terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
-   native keyboard animation). --kb rides the keyboard; --input-h the bar. */
-#terminal { inset:0 0 calc(var(--kb-anchor) + var(--input-h,48px)) !important; }
+/* /mtg — Scryfall card hovers + rule-citation tooltips. Everything about the
+   transcript itself is shared: chat-msg.css carries the message vocabulary and
+   chat-doc.css the document palette /mtg and /cc both read on. */
 
 /* plain external links keep body typography (chat-reader sets colors) */
 .msg.assistant a { font-family:inherit !important; font-size:inherit !important; font-weight:inherit !important; letter-spacing:inherit !important; text-shadow:none !important; background:none !important; padding:0 !important; display:inline !important; color: hsl(var(--cyan-hsl) / 0.8) !important; }

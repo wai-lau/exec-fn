@@ -1,0 +1,24 @@
+/* Document-palette chat — /mtg and /cc, loaded after chat.css + chat-msg.css.
+
+   Both are reading/reference pages rather than mood pieces, so they join the
+   document palette the rest of the site's prose uses: softer phosphor on the doc
+   background, full-width scrollback, and a glow dialled down to a hint. /tarot
+   keeps the neon reader mood (chat-reader.css) instead.
+
+   This was the same ten lines copied into the head of mtg.css and cc.css. */
+
+body { background: hsl(var(--bg-hsl)); }
+
+.msg {
+  max-width: none;
+  text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.12), 0 0 10px hsl(var(--green-hsl) / 0.12);
+}
+
+.msg.assistant { color: hsl(var(--green-hsl) / 0.8); }
+.msg.assistant strong { color: hsl(var(--green-hsl)); }
+.msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.12); }
+.msg.assistant td { border-color: hsl(var(--green-hsl) / 0.12); }
+
+/* Terminal bottom = input bar + keyboard, CSS-driven (no JS reflow racing the
+   native keyboard animation). --kb-anchor rides the keyboard; --input-h the bar. */
+#terminal { inset: 0 0 calc(var(--kb-anchor) + var(--input-h, 48px)) !important; }

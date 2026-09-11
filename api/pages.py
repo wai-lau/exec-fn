@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=72">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=73">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -211,7 +211,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-voice.js?v=4"></script>'
                   '<script src="/exec-bubble-drag.js?v=2"></script>'
                   '<script src="/exec-todos.js?v=3"></script>'
-                  '<script src="/exec-bubble-assets.js?v=1"></script>'
+                  '<script src="/exec-bubble-assets.js?v=2"></script>'
                   '<script src="/exec-bubble.js?v=43"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
@@ -231,7 +231,7 @@ def _build_nav(active=None, guest=False):
             '<script src="/exec-voice.js?v=4"></script>'
         ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=19">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=20">'
                   '<div id="exec-bubble" class="exec-under-fx" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +

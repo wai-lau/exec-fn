@@ -1,33 +1,38 @@
-/* Reader-voice chat skin — shared by /tarot and /mtg on top of chat.css.
-   Merges the input into the scrollback (no slab, no underline — the prompt
-   reads as the live last line) and gives assistant text the heavier,
-   slower "reader" presence. Page-specific layout (tarot centering/spread
-   offsets, mtg tooltip) stays in each template.
+/* Reader-voice skin — /tarot only, on top of chat.css + chat-msg.css.
+
+   The shared vocabulary is DENSE, because a rules assistant and an agent
+   transcript are read as a column of exchanges. A reading is not: the reader
+   speaks aloud and the typewriter paces to the audio, so the text wants room to
+   breathe and the phosphor glow that /mtg and /cc deliberately soften. This file
+   is the difference between those two moods, and nothing else — it used to also
+   carry the merged composer and the markdown tables, which every chat surface
+   needs and which now live in chat-msg.css.
    Palette tokens come from chrome.css :root. */
 
-/* nav sits above the ambient cyber animations (z-index 9990) */
+/* nav sits above the ambient cyber animations */
 .exec-nav { z-index: 9995 !important; }
 
-/* merged input */
-#input-bar { transition: opacity 0.7s ease; background: transparent !important; border-top: none !important; padding: 0 var(--space-7) var(--space-2-5) !important; }
-#input-line { border-bottom: none !important; padding: 0 !important; align-items: flex-start !important; }
-#input-prompt { font-size: var(--fs-sm) !important; padding-right: 0.6em !important; line-height: var(--lh-snug) !important; }
-#terminal { padding-bottom: 0 !important; }
+/* phosphor glow + wide tracking on every message (the composer matches, below) */
+.msg {
+  text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12);
+  letter-spacing: var(--tracking-wide);
+  line-height: var(--lh-relaxed);
+}
 
-/* Cap the contenteditable so a big paste scrolls instead of growing the input
-   bar tall enough to collapse #terminal (pinned to --input-h). Shared mtg+tarot. */
-#msg-input { max-height: 35vh; overflow-y: auto; letter-spacing: var(--tracking-wide); }
-
-/* phosphor glow + wide tracking on every message (input box matches, above) */
-.msg { text-shadow: 0 0 4px hsl(var(--green-hsl) / 0.45), 0 0 10px hsl(var(--green-hsl) / 0.12); letter-spacing: var(--tracking-wide); }
-
-/* reader voice: slightly heavier, more breathing room */
-.msg.assistant { font-weight: var(--fw-normal); line-height: var(--lh-relaxed); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl)) !important; }
+/* reader voice: more breathing room than the shared dense default */
+.msg.assistant {
+  font-weight: var(--fw-normal); line-height: var(--lh-relaxed);
+  color: hsl(var(--green-hsl)) !important;
+}
 .msg.assistant p { margin: 0 0 var(--space-3); }
-.msg.assistant strong { font-weight: var(--fw-bold); }
 .msg.assistant a { color: hsl(var(--cyan-hsl) / 0.45) !important; text-decoration: underline !important; }
 .msg.assistant a:hover { color: hsl(var(--cyan-hsl)) !important; }
-.msg.assistant hr { border: none; border-top: 1px solid hsl(var(--green-hsl) / 0.12); margin: var(--space-3) 0 var(--space-6); }
-.msg.assistant table { border-collapse: collapse; margin: var(--space-2) 0; }
-.msg.assistant th, .msg.assistant td { border: 1px solid hsl(var(--green-hsl) / 0.12); padding: var(--space-1) var(--space-3); text-align: left; }
-.msg.assistant th { color: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl) / 0.45); }
+.msg.assistant hr { margin: var(--space-3) 0 var(--space-6); }
+
+#input-bar { padding: 0 var(--space-7) var(--space-2-5); }
+#input-prompt { line-height: var(--lh-relaxed); }
+#msg-input { letter-spacing: var(--tracking-wide); line-height: var(--lh-relaxed); }
+
+/* The reader's cursor (tarot.css) blinks while the reader "draws breath"
+   between the audio starting and the first character landing. */
+@keyframes blink { 0%,50% { opacity: 1; } 50.01%,100% { opacity: 0; } }
