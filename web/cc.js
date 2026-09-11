@@ -8,6 +8,8 @@
  * error. */
 
 let streaming = false;
+// Chat pace: twice the reader's. These pages are read for an answer.
+const CC_TYPE_SPEED = 2;
 let pending = [];   // images pasted but not yet sent
 
 const terminal = document.getElementById('terminal');
@@ -247,12 +249,34 @@ async function streamResponse(prompt, imgs) {
   const dropIfEmpty = () => {
     if (!div) return;
     cur.remove();
-    if (!fullText) { div.remove(); div = null; }
+    if (!fullText) { div.remove(); div = null; tw.cancelled = true; }
   };
   const reopen = () => {
     const s = addStreamDiv();
     div = s.div; body = s.body; cur = s.cur;
     fullText = '';
+    // A new bubble gets a new reveal. The old state object is cancelled rather
+    // than reused: a typer still running against it would otherwise keep
+    // writing into the bubble that was just closed.
+    tw.cancelled = true;
+    tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
+    typing = null;
+  };
+
+  // Reveal the reply at a readable pace instead of in stream-sized bursts --
+  // the same engine /tarot uses, at SPEED 2 (typewriter.js). It never lags the
+  // stream by much: the weights are per character and the text is already here.
+  let tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
+  let typing = null;
+  const startTyper = () => {
+    if (typing) return;
+    typing = new Promise((resolve) => {
+      twGuess(tw, (shown) => {
+        body.innerHTML = renderText(shown);
+        (body.lastElementChild || body).appendChild(cur);
+        if (atBottom()) terminal.scrollTop = terminal.scrollHeight;
+      }, { speed: CC_TYPE_SPEED, onDone: resolve }).start();
+    });
   };
 
   try {
@@ -297,9 +321,8 @@ async function streamResponse(prompt, imgs) {
         } else if (data.type === 'text') {
           if (!div) reopen();
           fullText += data.text;
-          body.innerHTML = renderText(fullText);
-          (body.lastElementChild || body).appendChild(cur);
-          if (atBottom()) terminal.scrollTop = terminal.scrollHeight;
+          tw.buffered = fullText;
+          startTyper();
         } else if (data.type === 'thinking') {
           if (data.text) { dropIfEmpty(); addMsg('think', data.text); }
         } else if (data.type === 'tool') {
@@ -322,6 +345,11 @@ async function streamResponse(prompt, imgs) {
         }
       }
     }
+    // Let the reveal catch up before settling: the final render is the markdown
+    // pass that also swaps in SVG diagrams, and running it while the typer is
+    // still going would print the whole reply and then keep typing over it.
+    tw.serverDone = true;
+    if (typing) await typing;
     if (div) {
       cur.remove();
       if (!fullText) div.remove();

@@ -4,6 +4,33 @@
 // scope, so exec-bubble.js calls these by bare name like its own functions.
 'use strict';
 
+// Exec's reveal: /tarot's typewriter at SPEED 2 (typewriter.js), so a reply
+// arrives at a readable pace rather than in stream-sized bursts. The glue lives
+// here rather than in exec-bubble.js, which is at 484 of the 500-line cap.
+const EXEC_TYPE_SPEED = 2;
+
+function execTyper(body, cur, termEl) {
+  const tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
+  let typing = null;
+  function start() {
+    if (typing) return typing;
+    typing = new Promise((resolve) => {
+      twGuess(tw, (shown) => {
+        body.innerHTML = mdHtml(shown);
+        (body.lastElementChild || body).appendChild(cur);
+        termEl.scrollTop = termEl.scrollHeight;
+      }, { speed: EXEC_TYPE_SPEED, onDone: resolve }).start();
+    });
+    return typing;
+  }
+  // Wait for the reveal to catch up before the caller settles the bubble.
+  function finish() {
+    tw.serverDone = true;
+    return typing || Promise.resolve();
+  }
+  return { push: (text) => { tw.buffered = text; start(); }, finish };
+}
+
 // ── marked lazy-load ────────────────────────────────────────────────────────
 function loadMarked(cb) {
   if (window.marked) { cb(); return; }
