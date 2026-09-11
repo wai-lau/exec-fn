@@ -17,10 +17,14 @@ import cc_client
 from pages import _render_page, _tmpl
 from routers import protected
 
-# The sidecar reads the whole body into memory before parsing and caps it at
-# 64KB; clamp here too so an oversized prompt is a clean 400 from us rather than
-# a truncated stream from it.
+# The sidecar reads the whole body into memory before parsing; clamp here too so
+# an oversized request is a clean 4xx from us rather than a truncated stream from
+# it. Images ride in the same body, which is why the ceiling is megabytes: the
+# page downscales a paste to ~1568px first (Claude downsamples above that
+# anyway), so a phone photo arrives ~200KB and these are guards, not the norm.
 _MAX_PROMPT = 32_000
+_MAX_IMAGES = 4
+_MAX_IMAGE_B64 = 5 * 1024 * 1024
 
 
 @protected.get("/cc", response_class=HTMLResponse)
@@ -50,12 +54,21 @@ async def cc_new():
 async def cc_query(request: Request):
     body = await request.json()
     prompt = (body.get("prompt") or "").strip()
-    if not prompt:
-        return JSONResponse({"error": "prompt required"}, status_code=400)
+    images = body.get("images") or []
+    if not isinstance(images, list):
+        images = []
+    # An image with no words is a legitimate message ("what is this?"), so the
+    # emptiness check is on BOTH, not on the text alone.
+    if not prompt and not images:
+        return JSONResponse({"error": "prompt or image required"}, status_code=400)
     if len(prompt) > _MAX_PROMPT:
         return JSONResponse({"error": "prompt too long"}, status_code=413)
+    if len(images) > _MAX_IMAGES:
+        return JSONResponse({"error": f"at most {_MAX_IMAGES} images"}, status_code=413)
+    if any(len((im or {}).get("data") or "") > _MAX_IMAGE_B64 for im in images):
+        return JSONResponse({"error": "image too large"}, status_code=413)
     return StreamingResponse(
-        cc_client.stream_query(prompt),
+        cc_client.stream_query(prompt, images),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
