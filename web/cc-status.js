@@ -20,7 +20,26 @@
 const CC_CTX_1M = 1000000;
 const CC_CTX_DEFAULT = 200000;
 
-const ccStatusState = { model: '', ctx: 0, windows: {} };
+const ccStatusState = { model: '', ctx: 0, base: 0, windows: {} };
+
+// The statusline script's definition, mirrored: `base` is the SMALLEST total
+// input ever observed -- system prompt + tools + standing context, the floor a
+// conversation can never go below -- and it persists, because the first turn
+// after a /new is the only time you see it cleanly. localStorage here is the
+// analogue of the script's ~/.claude/cache/statusline_baseline_global.
+const CC_BASE_KEY = 'cc.ctxbase';
+
+function ccBaseLoad() {
+  try { return parseInt(localStorage.getItem(CC_BASE_KEY) || '0', 10) || 0; } catch { return 0; }
+}
+
+function ccBaseNote(total) {
+  if (!total) return;
+  if (!ccStatusState.base || total < ccStatusState.base) {
+    ccStatusState.base = total;
+    try { localStorage.setItem(CC_BASE_KEY, String(total)); } catch { /* private mode */ }
+  }
+}
 
 /* Title hue, the way the terminal's status line does it: a hash of the title
  * modulo 360, at high saturation and mid lightness, so a conversation keeps its
@@ -80,6 +99,10 @@ function ccStatusRender() {
   meta.appendChild(ccSeg('cs-user', 'wai-root'));
   meta.appendChild(ccSeg('cs-path', '/cc'));
   if (pct != null) meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pct + '%'));
+  if (ccStatusState.base) {
+    const basePct = Math.round((ccStatusState.base / ccCtxWindow(ccStatusState.model)) * 100);
+    meta.appendChild(ccSeg('cs-base', '(base:' + basePct + '%)'));
+  }
   const five = ccStatusState.windows.five_hour;
   if (five && five.pct != null) {
     meta.appendChild(ccSeg('cs-5h', '5h:' + Math.round(five.pct) + '%'));
@@ -101,7 +124,10 @@ function ccSeg(cls, text) {
 function ccStatusOn(data) {
   if (!data) return;
   if (data.type === 'session' && data.model) ccStatusState.model = data.model;
-  else if (data.type === 'done' && data.ctxTokens) ccStatusState.ctx = data.ctxTokens;
+  else if (data.type === 'done' && data.ctxTokens) {
+    ccStatusState.ctx = data.ctxTokens;
+    ccBaseNote(data.ctxTokens);
+  }
   else if (data.type === 'limits' && data.kind) {
     ccStatusState.windows[data.kind] = { pct: data.pct, resetsAt: data.resetsAt };
   } else return;
@@ -127,6 +153,7 @@ function ccStatusMeasure() {
   window.addEventListener('resize', set);
 }
 
+ccStatusState.base = ccBaseLoad();
 ccStatusRender();
 ccStatusMeasure();
 // The reset countdown is only true at the moment it is drawn.

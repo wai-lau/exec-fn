@@ -230,7 +230,15 @@
    a scrolling .page-scroll, and a bar meant to outlast every scroll has no
    business inside the thing being scrolled. */
 #cc-status {
-  position: fixed; top: 0; left: 0; right: 0; z-index: var(--z-sticky);
+  position: fixed; left: 0; right: 0; z-index: var(--z-sticky);
+
+  /* Anchored to the VISUAL viewport, not the layout one. A soft keyboard
+     shrinks the visual viewport and offsets it (iOS standalone also scrolls the
+     document), while a position:fixed top:0 stays pinned to the layout viewport
+     -- which is how the bar ended up above the screen the moment the keyboard
+     opened. --vvt is vv.offsetTop, published on every page by the nav script,
+     and is what #exec-panel anchors to for the same reason. */
+  top: var(--vvt, 0);
   padding: var(--space-1) var(--space-3) var(--space-2);
   background: hsl(var(--bg-hsl));
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
@@ -240,9 +248,11 @@
 .cs-row { display: flex; gap: var(--space-2); align-items: baseline; }
 
 /* The hue is set per-title by cc-status.js (--cs-hue); 95% / 60% are the
-   saturation and lightness the shell script's hls_to_rgb call uses. */
+   saturation and lightness the shell script's hls_to_rgb call uses. It hugs its
+   text, like the terminal's -- the bar is the title, not a full-width band, so
+   the model reads as sitting next to it rather than across a gap. */
 .cs-title {
-  flex: 1; min-width: 0;
+  flex: 0 1 auto; min-width: 0; max-width: 62%;
   background: hsl(var(--cs-hue, 135deg) 95% 60%); color: #000;
   padding: 0 var(--space-1);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -256,10 +266,17 @@
 .cs-user { background: #fff; color: #000; padding: 0 var(--space-1); }
 .cs-path { color: #f5edd8; }
 .cs-ctx { color: #fff; }
+.cs-base { color: #8a8a8a; }
 .cs-5h { color: #ffafaf; }
 .cs-reset { color: #afffaf; }
 .cs-7d { color: #00cdcd; }
 
 /* The transcript starts below the bar. chat-doc.css pins #terminal with
    !important, so this restates the whole inset rather than only the top. */
-#terminal { inset: var(--cc-status-h, 42px) 0 calc(var(--kb-anchor) + var(--input-h, 48px)) !important; }
+#terminal { inset: calc(var(--vvt, 0px) + var(--cc-status-h, 42px)) 0 calc(var(--kb-anchor) + var(--input-h, 48px)) !important; }
+
+/* Same short glide the composer and transcript use: iOS settles the keyboard in
+   several steps (QuickType bar, accessory bar, predictive text toggling), and
+   each step would otherwise snap the bar. */
+html.kb-open #cc-status,
+html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
