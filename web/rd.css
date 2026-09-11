@@ -1,7 +1,7 @@
 /* transparent body so the html bg shows through under the CRT stack */
 body { overflow: hidden !important; background: transparent !important; }
 
-/* The half-strength CRT stack this page rides under is crt-half.css. */
+/* The reduced-strength CRT stack this page rides under is crt-dim.css. */
 
 /* ── top bars: reminders (left half) + books (right half) ─────────────────
    identical chrome; only side/anchoring differs */

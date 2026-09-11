@@ -133,11 +133,13 @@
    overlay. */
 .cc-svg, .cc-imgs img { cursor: zoom-in; }
 
-/* ABOVE the cyber-* layers (--z-modal), which is half the point: nothing
-   crosses the picture while you are looking at it. Opaque, so the transcript
-   underneath does not read through either. */
+/* UNDER the cyber-* layers (--z-modal), like the rest of the chrome: the
+   picture is on the screen, not in front of it, so the scanlines and the glass
+   cross it the way they cross everything else. The fx are pointer-events:none,
+   so every gesture still lands. Opaque, so the transcript underneath does not
+   read through. */
 #cc-zoom {
-  position: fixed; inset: 0; z-index: var(--z-max);
+  position: fixed; inset: 0; z-index: var(--z-bubble);
   background: hsl(var(--bg-hsl));
   overflow: hidden; touch-action: none;
   user-select: none;
@@ -163,7 +165,15 @@
    about a sixth of the height it could have used. max-height catches the tall
    ones -- an svg with a viewBox has an intrinsic ratio, so the cap shrinks it
    without distorting. */
-#cc-zoom-pan > svg { width: 100%; height: auto; max-height: 100%; }
+#cc-zoom-pan > svg {
+  width: 100%; height: auto; max-height: 100%;
+
+  /* An outermost svg clips to its viewBox by default, and a model routinely
+     writes a label that runs past the box it declared -- in the transcript that
+     just loses the end of a word, but the whole point of this overlay is to
+     READ the thing. Showing the overflow beats cropping it. */
+  overflow: visible;
+}
 #cc-zoom-pan > img { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
 
 #cc-zoom-x {

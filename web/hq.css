@@ -1,7 +1,7 @@
 /* transparent body so the html bg shows through under the CRT stack */
 body { overflow: hidden !important; background: transparent !important; }
 
-/* The half-strength CRT stack this page rides under is crt-half.css. */
+/* The reduced-strength CRT stack this page rides under is crt-dim.css. */
 .hq-loading { padding: var(--space-10); font-family: monospace; font-size: var(--fs-sm); opacity: 0.4; }
 
 .hq-board {
