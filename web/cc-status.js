@@ -28,6 +28,47 @@ const ccStatusState = { model: '', ctx: 0, base: 0, windows: {} };
 // after a /new is the only time you see it cleanly. localStorage here is the
 // analogue of the script's ~/.claude/cache/statusline_baseline_global.
 const CC_BASE_KEY = 'cc.ctxbase';
+// EVERY slot is cached, not just base. The model arrives with the first reply,
+// the windows with the first fetch and the context with the first result -- so
+// a freshly opened page had an empty bar until it was spoken to, which reads as
+// broken rather than as waiting. The cache is a first paint, replaced by live
+// numbers the moment any of them land.
+const CC_STATE_KEY = 'cc.status';
+// How long a cached paint is worth showing before the page would rather show
+// nothing. Long enough to cover a night, short enough that a figure from a
+// different week never appears.
+const CC_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+
+function ccStateLoad() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CC_STATE_KEY) || '{}');
+    if (!raw || typeof raw !== 'object') return;
+    // A cached number is a first paint, not a fact. Anything older than the TTL
+    // is dropped whole rather than shown: a context figure from yesterday's
+    // conversation is not "slightly stale", it is about something else.
+    if (!raw.at || Date.now() - raw.at > CC_CACHE_TTL_MS) return;
+    ccStatusState.model = raw.model || '';
+    ccStatusState.ctx = raw.ctx || 0;
+    const wins = raw.windows && typeof raw.windows === 'object' ? raw.windows : {};
+    // A window whose reset has already passed has rolled over; its utilization
+    // describes a period that is finished, so it goes rather than misinforms.
+    const now = Date.now() / 1000;
+    for (const [k, w] of Object.entries(wins)) {
+      if (w && (!w.resetsAt || w.resetsAt > now)) ccStatusState.windows[k] = w;
+    }
+  } catch { /* unreadable or private mode: start empty */ }
+}
+
+function ccStateSave() {
+  try {
+    localStorage.setItem(CC_STATE_KEY, JSON.stringify({
+      at: Date.now(),
+      model: ccStatusState.model,
+      ctx: ccStatusState.ctx,
+      windows: ccStatusState.windows,
+    }));
+  } catch { /* private mode: the bar just does not survive a reload */ }
+}
 
 function ccBaseLoad() {
   try { return parseInt(localStorage.getItem(CC_BASE_KEY) || '0', 10) || 0; } catch { return 0; }
@@ -113,7 +154,11 @@ function ccStatusRender() {
   if (model) meta.appendChild(ccSeg('cs-model', model));
   if (pct != null) meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pct + '%'));
   if (ccStatusState.base) {
-    const basePct = Math.round((ccStatusState.base / ccCtxWindow(ccStatusState.model)) * 100);
+    // Clamped like ctx. base is recorded in TOKENS and divided by the window of
+    // whatever model is known at render time -- so a floor learned on a [1m]
+    // model, read back before a reply has named the model, divides by 200K and
+    // comes out over 100%. Measured at 250% doing exactly that.
+    const basePct = Math.min(100, Math.round((ccStatusState.base / ccCtxWindow(ccStatusState.model)) * 100));
     meta.appendChild(ccSeg('cs-base', '(base:' + basePct + '%)'));
   }
   const five = ccStatusState.windows.five_hour;
@@ -146,6 +191,7 @@ async function ccLimitsFetch() {
     if (j.five_hour) ccStatusState.windows.five_hour = j.five_hour;
     if (j.seven_day) ccStatusState.windows.seven_day = j.seven_day;
     if (j.seven_day_opus) ccStatusState.windows.seven_day_opus = j.seven_day_opus;
+    ccStateSave();
     ccStatusRender();
   } catch { /* offline: the bar simply omits them */ }
 }
@@ -161,6 +207,7 @@ function ccStatusOn(data) {
   else if (data.type === 'limits' && data.kind) {
     ccStatusState.windows[data.kind] = { pct: data.pct, resetsAt: data.resetsAt };
   } else return;
+  ccStateSave();
   ccStatusRender();
 }
 
@@ -183,6 +230,7 @@ function ccStatusMeasure() {
   window.addEventListener('resize', set);
 }
 
+ccStateLoad();
 ccStatusState.base = ccBaseLoad();
 ccStatusRender();
 ccStatusMeasure();
@@ -191,7 +239,15 @@ ccLimitsFetch();
 // than on a timer.
 document.addEventListener('DOMContentLoaded', () => {
   const term = document.getElementById('terminal');
-  if (term) term.addEventListener('cc:reply-done', ccLimitsFetch);
+  if (!term) return;
+  term.addEventListener('cc:reply-done', ccLimitsFetch);
+  // A cleared conversation is back at the floor. base and the windows survive
+  // (they are account-wide, not conversation-wide); the context does not.
+  term.addEventListener('cc:conversation-new', () => {
+    ccStatusState.ctx = 0;
+    ccStateSave();
+    ccStatusRender();
+  });
 });
 // The reset countdown is only true at the moment it is drawn.
 setInterval(ccStatusRender, 60000);
