@@ -124,3 +124,53 @@
 .cc-svg-src summary::before { content: "▸ "; }
 .cc-svg-src[open] summary::before { content: "▾ "; }
 .cc-svg-src pre { max-height: 16rem; overflow: auto; }
+
+/* ── zoomable pictures ──────────────────────────────────────────────────── */
+
+/* A diagram authored for a page, scaled into a 430px column, puts its axis
+   labels at about 6px with scanlines across them -- the part most worth
+   reading is the part you cannot read. Tapping one opens cc-zoom.js's
+   overlay. */
+.cc-svg, .cc-imgs img { cursor: zoom-in; }
+
+/* ABOVE the cyber-* layers (--z-modal), which is half the point: nothing
+   crosses the picture while you are looking at it. Opaque, so the transcript
+   underneath does not read through either. */
+#cc-zoom {
+  position: fixed; inset: 0; z-index: var(--z-max);
+  background: hsl(var(--bg-hsl));
+  overflow: hidden; touch-action: none;
+  user-select: none;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix --
+     NOT redundant: WebKit (Safari/iOS, the target here) exposes only the
+     prefixed property -- unprefixed computes to `text` there, measured. Without
+     it a pinch that starts on the diagram selects text instead, and the native
+     dragstart that follows swallows the rest of the pointer stream. Same trap
+     the landing wheel and the /rd calendar swipe each hit. */
+  -webkit-user-select: none;
+}
+
+#cc-zoom-pan {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-5);
+  transform-origin: 0 0;
+}
+
+/* width first, height from the viewBox: a `height: 100%` fills the screen with
+   the svg's BOX and letterboxes the drawing inside it, so a wide diagram opened
+   about a sixth of the height it could have used. max-height catches the tall
+   ones -- an svg with a viewBox has an intrinsic ratio, so the cap shrinks it
+   without distorting. */
+#cc-zoom-pan > svg { width: 100%; height: auto; max-height: 100%; }
+#cc-zoom-pan > img { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
+
+#cc-zoom-x {
+  position: absolute; top: var(--space-3); right: var(--space-4);
+  background: none; border: none; cursor: pointer;
+  color: hsl(var(--green-hsl) / 0.8);
+  font-family: var(--font-mono); font-size: var(--fs-sm);
+  padding: var(--space-2);
+}
+#cc-zoom-x:hover { color: hsl(var(--green-hsl)); }
