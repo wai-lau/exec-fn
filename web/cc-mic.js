@@ -34,10 +34,17 @@ let ccMicTimer = 0;
 // of the session, so without a floor each new utterance would resend the whole
 // conversation so far.
 let ccMicBase = 0;
-// Did this recognizer instance hear anything at all? Silence is how a session
-// ends; a restart loop that never hears anything would hold the mic open for
-// the life of the page.
-let ccMicHeard = false;
+// A MediaStream held for the life of the session. iOS tears the audio session
+// down when a recognizer sits idle, and the next recognizer wakes to
+// `audio-capture` -- which is what a long silence produced. Holding an open
+// track keeps the session hot so there is nothing to wake up into. Acquired
+// inside the opening tap, where getUserMedia is allowed to prompt.
+let ccMicStream = null;
+// Consecutive failed restarts. A recognizer that cannot be restarted must not
+// be retried forever; ten is far past any transient hiccup.
+let ccMicFails = 0;
+const CC_MIC_MAX_FAILS = 10;
+const CC_MIC_RETRY_MS = 300;
 // A voice SESSION, not a single dictation: tapping the prompt starts a
 // back-and-forth, and the mic re-opens as soon as Claude has finished
 // answering. Scoped deliberately -- a turn you typed never opens the
@@ -90,15 +97,34 @@ function ccMicFill(text) {
 function ccMicStop(btn) {
   ccMicSent = true;
   ccMicMode = false;
-  clearTimeout(ccMicTimer);
+  ccMicFails = 0;
+  ccMicKill();
+  ccMicRelease();
   ccMicSet(btn, false);
+  ccMicBusyPaint();
 }
 
-/** Same, but say why on the page -- there is no console on a phone. */
-function ccMicFail(btn, why) {
-  ccMicStop(btn);
-  try { ccRec.abort(); } catch { /* already dead */ }
-  if (typeof addMsg === 'function') addMsg('sys warn', '[ mic: ' + why + ' ]');
+/** Tear the recognizer down completely.
+ *
+ * Handlers are detached first: an aborted instance still fires `end`, and a
+ * corpse calling back into the restart path is how one dead recognizer turned
+ * into a mic that no tap could revive. */
+function ccMicKill() {
+  clearTimeout(ccMicTimer);
+  if (!ccRec) return;
+  ccRec.onresult = null;
+  ccRec.onend = null;
+  ccRec.onerror = null;
+  try { ccRec.abort(); } catch { /* already gone */ }
+  ccRec = null;
+}
+
+/** Release the held microphone track. Only at the end of a session -- while one
+ *  is running this is what keeps iOS from dropping the audio session. */
+function ccMicRelease() {
+  if (!ccMicStream) return;
+  try { ccMicStream.getTracks().forEach((tr) => tr.stop()); } catch { /* gone */ }
+  ccMicStream = null;
 }
 
 /** Is a reply streaming right now?
@@ -119,13 +145,13 @@ function ccMicActive() {
 function ccMicStart(btn) {
   const Rec = ccMicSupported();
   if (!Rec) return;
+  ccMicKill();          // never two recognizers, never a corpse still wired up
   // Drop the keyboard if it is up. Voice mode does not need it, and on a phone
   // the keyboard is what shrinks the viewport and takes the nav bar with it --
   // the whole screen reshuffles for an input nobody is typing into.
   const input = document.getElementById('msg-input');
   if (input && document.activeElement === input) input.blur();
   ccMicSent = false;
-  ccMicHeard = false;
   ccMicBase = 0;
   ccRec = new Rec();
   ccRec.lang = navigator.language || 'en-US';
@@ -143,7 +169,6 @@ function ccMicStart(btn) {
 
   ccRec.onresult = (e) => {
     try {
-      ccMicHeard = true;
       // DROP whatever is heard while a reply is streaming. The mic cannot be
       // paused and resumed -- stop() needs no gesture but start() does, so a
       // pause would be one-way and the session could never restart itself. So
@@ -178,51 +203,52 @@ function ccMicStart(btn) {
         const said = text.trim();
         if (said && typeof sendMsg === 'function') { sendMsg(); ccMicBusyPaint(); }
       }
-    } catch (err) {
-      ccMicFail(btn, err && err.message ? err.message : 'result error');
+    } catch {
+      // A throw in here once killed the handler before it could send or stop,
+      // which is how the mic silently stopped working. Swallow it, mark what
+      // arrived as consumed so it cannot resurface glued to the next utterance,
+      // and let the session carry on -- one lost sentence beats a dead mic.
+      try { ccMicBase = e.results.length; } catch { /* nothing usable */ }
     }
   };
 
-  // A refused or failed recognition must not leave the prompt lit and the page
-  // looking like it is still listening. The reason is SHOWN, not swallowed: a
-  // mic that silently does nothing is indistinguishable from a broken page,
-  // and this one is used on a phone where there is no console to check.
-  ccRec.onerror = (e) => {
-    // `no-speech` and `aborted` are ordinary outcomes of tapping and not
-    // talking -- ending quietly is the right answer for those.
-    const code = (e && e.error) || 'error';
-    if (code === 'no-speech' || code === 'aborted') { ccMicStop(btn); return; }
-    ccMicFail(btn, code);
-  };
+  // NOTHING here is shown. `no-speech` after a pause, `audio-capture` when iOS
+  // drops an idle audio session, `network` on a flaky connection -- these are
+  // weather, not failures, and a red line in the transcript for each one made a
+  // working session look broken. `end` follows every error, so the restart path
+  // there is the single place that decides what happens next. The one thing an
+  // error must not do is end a session the user never ended.
+  ccRec.onerror = () => {};
 
-  // iOS ends a recognizer on silence even in continuous mode, so `end` is a
-  // normal event mid-session rather than the end of one.
+  // iOS ends a recognizer on silence even in continuous mode, so `end` is an
+  // ordinary mid-session event rather than the end of one. Silence no longer
+  // ends a session either: a session ends when it is tapped off, and not
+  // before -- the held stream is what makes an idle one survivable.
   ccRec.onend = () => {
     clearTimeout(ccMicTimer);
-    ccMicSet(btn, false);
-    if (!ccMicMode) return;                 // tapped off, or failed
-    if (!ccMicHeard) { ccMicMode = false; return; }   // silence ends the session
-    // Heard something, so the session continues: pick the mic straight back up.
-    // This start() is still outside a gesture and Safari may refuse it -- if it
-    // does, say so rather than leaving a prompt that looks armed and is not.
-    try {
-      ccMicHeard = false;
-      ccRec.start();
-      ccMicSet(btn, true);
-    } catch {
-      ccMicMode = false;
-      ccMicSet(btn, false);
-      if (typeof addMsg === 'function') addMsg('sys', '[ mic: tap $ to keep talking ]');
-    }
+    if (!ccMicMode) { ccMicSet(btn, false); return; }   // tapped off
+    // A FRESH recognizer every time. Restarting an ended instance is what
+    // Safari is least reliable about, and a dead one that still holds the audio
+    // session is how the mic stopped answering any tap at all.
+    setTimeout(() => { if (ccMicMode) ccMicStart(btn); }, CC_MIC_RETRY_MS);
   };
 
   try {
     ccRec.start();
+    ccMicFails = 0;
     ccMicSet(btn, true);
     clearTimeout(ccMicTimer);
     ccMicTimer = setTimeout(() => { try { ccRec.stop(); } catch { /* gone */ } }, CC_MIC_MAX_MS);
   } catch {
-    ccMicSet(btn, false);   // start() throws if one is already running
+    // Refused (no gesture, or one still winding down). Retry quietly; give up
+    // silently rather than ever printing at her, and leave the prompt idle so a
+    // tap is obviously the way back.
+    ccMicSet(btn, false);
+    if (ccMicMode && ++ccMicFails < CC_MIC_MAX_FAILS) {
+      setTimeout(() => { if (ccMicMode) ccMicStart(btn); }, CC_MIC_RETRY_MS);
+    } else {
+      ccMicStop(btn);
+    }
   }
 }
 
@@ -235,6 +261,16 @@ function ccMicInit() {
   btn.addEventListener('click', () => {
     if (ccMicOn && ccRec) { ccMicStop(btn); try { ccRec.abort(); } catch { /* gone */ } return; }
     ccMicMode = true;          // a tap opens a session, not one dictation
+    // Inside the gesture, where a permission prompt is allowed. The track is
+    // held for the whole session so iOS never tears the audio session down
+    // between utterances -- that teardown is what surfaced as `audio-capture`
+    // after a long silence. Failure is not fatal: recognition may still work,
+    // and asking twice for the same microphone is worse than going without.
+    if (!ccMicStream && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((s) => { if (ccMicMode) ccMicStream = s; else s.getTracks().forEach((tr) => tr.stop()); })
+        .catch(() => { /* no held stream; the recognizer gets its own */ });
+    }
     ccMicStart(btn);
     ccMicBusyPaint();
   });
@@ -254,7 +290,7 @@ function ccMicInit() {
 
 // Backgrounding the tab with the mic live leaves iOS holding the audio session.
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && ccMicOn && ccRec) { try { ccRec.abort(); } catch { /* gone */ } }
+  if (document.hidden && ccMicActive()) ccMicStop(document.getElementById('input-prompt'));
 });
 
 ccMicInit();
