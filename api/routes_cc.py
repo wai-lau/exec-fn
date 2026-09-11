@@ -14,6 +14,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 import cc_client
+import cc_title
 from pages import _render_page, _tmpl
 from routers import protected
 
@@ -38,9 +39,29 @@ async def cc_health():
 
 
 @protected.get("/api/cc/title")
-async def cc_title():
-    """The conversation's generated title for the status bar."""
-    return JSONResponse(await cc_client.title())
+async def cc_conversation_title():
+    """A rolling title for the status bar.
+
+    The sidecar's own `summary` is the SDK's, and on a live conversation that is
+    usually just the opening prompt -- which is what the bar was showing back,
+    verbatim. So the transcript is summarised by haiku instead (`cc_title`,
+    mirroring Wai's terminal recap hook), and the SDK's value is used only when
+    it is a deliberate rename or when generation is unavailable.
+    """
+    import asyncio
+
+    info = await cc_client.title()
+    hist = await cc_client.history()
+    # The handler is NOT named cc_title: a route function with the module's name
+    # rebinds it at module scope, and `cc_title.rolling_title` then resolves to
+    # an attribute of the function object.
+    rolling = await asyncio.to_thread(
+        cc_title.rolling_title, info.get("sessionId") or "", hist.get("messages") or []
+    )
+    return JSONResponse({
+        "sessionId": info.get("sessionId"),
+        "title": rolling or info.get("title"),
+    })
 
 
 @protected.get("/api/cc/limits")
