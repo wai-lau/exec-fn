@@ -76,6 +76,39 @@ function twLinkTail(text, from) {
   return close + 1;
 }
 
+/* Syntax that is not prose. Markdown's markers are instructions to the
+ * renderer: a `#` becomes a heading, a `-` becomes a bullet, `**` becomes
+ * weight. Typing them out shows punctuation that then vanishes -- the reader
+ * watches the machinery instead of the sentence. Everything here is revealed in
+ * one frame; only the words between them type.
+ *
+ * BLOCK markers count only at a line start (a `-` mid-sentence is a dash, a `#`
+ * is a hash); inline ones count anywhere. */
+const TW_BLOCK_RE = /^(?:#{1,6} +|>[ \t]?|[-*+] +|\d{1,9}[.)] +|(?:---+|\*\*\*+|___+)[ \t]*(?:\r?\n|$))/;
+const TW_INLINE_RE = /^(?:!\[[^\]]*\]\([^)\s]{0,500}\)|\*\*\*|\*\*|__|~~|[*_`[])/;
+
+/** The index to jump to for any syntax at `i`, or -1 to type the next char.
+ *
+ * Order is by size, largest first: a fenced block swallows everything inside
+ * it, a table opening spans two lines, an image is one token, and the small
+ * markers are last. */
+function twJump(text, i) {
+  const atStart = i === 0 || text[i - 1] === '\n';
+  if (atStart) {
+    const head = twTableHead(text, i);
+    if (head > i) return head;
+  }
+  if (text.startsWith('```', i)) {
+    const end = twFenceEnd(text, i);
+    return end === -1 ? text.length : end;
+  }
+  const tail = twLinkTail(text, i);
+  if (tail > i) return tail;
+  const rest = text.slice(i, i + 600);
+  const m = (atStart && TW_BLOCK_RE.exec(rest)) || TW_INLINE_RE.exec(rest);
+  return m ? i + m[0].length : -1;
+}
+
 /** Reveal `state.buffered` one character at a time.
  *
  * @param state  {buffered, displayed, serverDone, cancelled} -- shared, mutable
@@ -91,39 +124,15 @@ function twGuess(state, render, opts) {
   function step() {
     if (state.cancelled) return;
     if (state.displayed.length < state.buffered.length) {
-      // A fenced block is not prose and nobody reads it as it arrives -- an SVG
-      // diagram typed backtick by backtick is markup scrolling past, not a
-      // picture being drawn. Jump the whole block in one frame. While it is
-      // still unclosed (the stream is mid-block) reveal everything there is and
-      // keep jumping, so the typewriter never crawls through markup.
       const i = state.displayed.length;
-      // Table openings, like fenced blocks, are structure rather than prose.
-      // Only at a line start, or a `|` mid-sentence would be mistaken for one.
-      if (i === 0 || state.buffered[i - 1] === '\n') {
-        const head = twTableHead(state.buffered, i);
-        if (head > i) {
-          state.displayed = state.buffered.slice(0, head);
-          render(state.displayed);
-          setTimeout(step, 0);
-          return;
-        }
-      }
-      // A link's tail: everything between the label and the next character.
-      const link = twLinkTail(state.buffered, i);
-      if (link > i) {
-        state.displayed = state.buffered.slice(0, link);
+      const jump = twJump(state.buffered, i);
+      if (jump > i) {
+        state.displayed = state.buffered.slice(0, jump);
         render(state.displayed);
         setTimeout(step, 0);
         return;
       }
-      if (state.buffered.startsWith('```', i)) {
-        const end = twFenceEnd(state.buffered, i);
-        state.displayed = state.buffered.slice(0, end === -1 ? state.buffered.length : end);
-        render(state.displayed);
-        setTimeout(step, 0);
-        return;
-      }
-      state.displayed = state.buffered.slice(0, state.displayed.length + 1);
+      state.displayed = state.buffered.slice(0, i + 1);
       render(state.displayed);
       const last = state.displayed[state.displayed.length - 1];
       setTimeout(step, twCharWeight(last, baseMs) / speed);

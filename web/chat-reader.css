@@ -38,6 +38,6 @@
 #input-prompt { line-height: var(--lh-relaxed); letter-spacing: var(--tracking-wide); }
 #msg-input { letter-spacing: var(--tracking-wide); line-height: var(--lh-relaxed); }
 
-/* The reader's cursor (tarot.css) blinks while the reader "draws breath"
-   between the audio starting and the first character landing. */
-@keyframes blink { 0%,50% { opacity: 1; } 50.01%,100% { opacity: 0; } }
+/* tarot.css's .reader-cursor blinks on the `blink` keyframes, which live in
+   chat-msg.css now: the shared waiting indicator is the same blinking block, so
+   one definition covers the reader and the three chat surfaces alike. */

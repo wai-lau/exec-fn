@@ -212,6 +212,29 @@ async function sendMsg() {
   await streamResponse(text, imgs);
 }
 
+/** Park the blinking cursor on a line, and return that line.
+ *
+ * The cursor follows the work. Dropping the empty bubble for a tool call took
+ * the only "still going" signal off the screen with it, so a long search or
+ * fetch looked like a page that had stopped -- it now rides whatever line is
+ * last until the turn actually ends. */
+function park(el, cur) {
+  if (el && cur) el.appendChild(cur);
+  return el;
+}
+
+/** The turn/time receipt, or null when nothing happened worth reporting.
+ *
+ * An ordinary reply needs no line: the answer is the receipt. It is worth one
+ * only when a tool ran (more than one turn) or the wait was long enough to want
+ * explaining. */
+function ccDoneLine(data) {
+  const bits = [];
+  if (data.turns > 1) bits.push(data.turns + ' turns');
+  if (data.ms != null && data.ms >= 15000) bits.push((data.ms / 1000).toFixed(1) + 's');
+  return bits.length ? '[ ' + bits.join(' · ') + ' ]' : null;
+}
+
 async function streamResponse(prompt, imgs) {
   streaming = true;
   let { div, body, cur } = addStreamDiv();
@@ -304,21 +327,16 @@ async function streamResponse(prompt, imgs) {
           tw.buffered = fullText;
           startTyper();
         } else if (data.type === 'thinking') {
-          if (data.text) { dropIfEmpty(); addMsg('think', data.text); }
+          if (data.text) { dropIfEmpty(); park(addMsg('think', data.text), cur); }
         } else if (data.type === 'tool') {
           dropIfEmpty();
-          addToolMsg(data.name, summarize(data.input));
+          park(addToolMsg(data.name, summarize(data.input)), cur);
         } else if (data.type === 'tool_result') {
           const t = (data.text || '').trim();
-          if (t) { dropIfEmpty(); addMsg('out' + (data.isError ? ' err' : ''), clamp(t)); }
+          if (t) { dropIfEmpty(); park(addMsg('out' + (data.isError ? ' err' : ''), clamp(t)), cur); }
         } else if (data.type === 'done') {
-          // Turn count and duration are a receipt for an ordinary reply, so they
-          // are only worth a line when something actually happened: a tool ran,
-          // or the answer took long enough that the wait wants explaining.
-          const bits = [];
-          if (data.turns > 1) bits.push(data.turns + ' turns');
-          if (data.ms != null && data.ms >= 15000) bits.push((data.ms / 1000).toFixed(1) + 's');
-          if (bits.length) { dropIfEmpty(); addMsg('sys', '[ ' + bits.join(' · ') + ' ]'); }
+          const receipt = ccDoneLine(data);
+          if (receipt) { dropIfEmpty(); addMsg('sys', receipt); }
         } else if (data.type === 'busy') {
           dropIfEmpty();
           addMsg('sys warn', '[ busy — one run at a time (memory ceiling); try again shortly ]');
