@@ -14,15 +14,26 @@
  */
 'use strict';
 
-/** "3h", "yesterday", "6d" -- a list is scanned, not read. */
+/** How long ago, as `<1m` / `45m` / `2h 20m` / `3d 14h 3m`.
+ *
+ * Minutes are the floor and days the ceiling -- no seconds, because nothing in
+ * a list of conversations turns on them, and no weeks or months, because "3w"
+ * makes you do arithmetic to compare it with "9d". Leading zero units are
+ * dropped and trailing ones too (`2h`, not `2h 0m`), but an interior zero stays
+ * (`3d 0h 5m`) so the columns keep their meaning. */
 function ccWhen(ms) {
   if (!ms) return '';
-  const mins = Math.round((Date.now() - ms) / 60000);
-  if (mins < 60) return mins + 'm';
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return hrs + 'h';
-  const days = Math.round(hrs / 24);
-  return days === 1 ? 'yesterday' : days + 'd';
+  let mins = Math.floor((Date.now() - ms) / 60000);
+  if (mins < 1) return '<1m';
+  const d = Math.floor(mins / 1440);
+  mins -= d * 1440;
+  const h = Math.floor(mins / 60);
+  const m = mins - h * 60;
+  const parts = [];
+  if (d) parts.push(d + 'd');
+  if (h || (d && m)) parts.push(h + 'h');
+  if (m) parts.push(m + 'm');
+  return parts.join(' ');
 }
 
 async function ccResumeSession(id, title) {
@@ -97,12 +108,13 @@ async function ccListSessions(limit) {
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'cc-sess' + (s.id === data.current ? ' current' : '');
+    if (s.id === data.current) row.title = 'current conversation';
     const name = document.createElement('span');
     name.className = 'cc-sess-title';
     name.textContent = s.title || '(untitled)';
     const when = document.createElement('span');
     when.className = 'cc-sess-when';
-    when.textContent = s.id === data.current ? 'current' : ccWhen(s.modified);
+    when.textContent = ccWhen(s.modified);
     row.appendChild(name);
     row.appendChild(when);
     // The current one is not a destination; tapping it would clear the screen
