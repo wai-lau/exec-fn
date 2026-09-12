@@ -10,6 +10,12 @@
 let streaming = false;
 // Chat pace: three times the tarot reader's. These pages are read for an answer.
 const CC_TYPE_SPEED = 3;
+// Slash commands the SDK answers itself -- probed 2026-09-11, not assumed.
+// `/clear` is deliberately NOT here: the SDK honours it silently and would drop
+// the conversation without the archive /new writes first. /help, /status and
+// /memory answer "isn't available in this environment"; /agents says it was
+// removed.
+const CC_SDK_COMMANDS = new Set(['context', 'cost', 'usage', 'compact', 'model']);
 let pending = [];   // images pasted but not yet sent
 
 const terminal = document.getElementById('terminal');
@@ -191,8 +197,14 @@ async function runCommand(text) {
   if (cmd === 'list') { await ccListSessions(CC_LIST_LIMIT); return true; }
   if (cmd === 'listall') { await ccListSessions(0); return true; }
   if (cmd === 'back') { await ccBackSession(); return true; }
+  // Commands the SDK answers itself, passed through on purpose. They cost no
+  // turn and never reach the model -- it replies "isn't available in this
+  // environment" for the ones it does not have. `false` = not handled here, so
+  // sendMsg goes on to send it like any other message.
+  if (CC_SDK_COMMANDS.has(cmd.split(/\s+/)[0])) return false;
   if (cmd !== 'new' && cmd !== 'clear') {
-    addMsg('sys warn', '[ unknown: /' + cmd + ' — /new /list /listall /back ]');
+    addMsg('sys warn', '[ unknown: /' + cmd + ' — /new /list /listall /back'
+      + ' /context /cost /usage /compact /model ]');
     return true;
   }
   try {
@@ -229,7 +241,14 @@ async function sendMsg() {
   // session, where focusing the box is what raises the keyboard, shrinks the
   // viewport and takes the nav bar with it, for an input nobody is typing into.
   if (typeof ccMicActive !== 'function' || !ccMicActive()) _msgInput.focus();
-  if (text.startsWith('/') && !pending.length) { await runCommand(text); return; }
+  // EVERY leading slash goes through runCommand, images attached or not. The
+  // `&& !pending.length` that used to be here meant a command typed with a
+  // screenshot attached was sent to the SDK verbatim -- including `/clear`,
+  // which the SDK honours silently and which would have dropped the
+  // conversation WITHOUT the archive that /new writes first.
+  if (text.startsWith('/')) {
+    if (await runCommand(text)) return;
+  }
   const imgs = pending.slice();
   pending = [];
   thumbStrip();
