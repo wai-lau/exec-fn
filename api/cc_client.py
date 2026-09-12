@@ -46,6 +46,39 @@ async def health() -> dict:
         return {"ok": False, "unreachable": True, "detail": str(exc)}
 
 
+async def sessions() -> dict:
+    """Past conversations for the /list picker: `{current, sessions:[...]}`.
+
+    Scoped sidecar-side to this sandbox's cwd, so the account's other sessions
+    never appear. Unreachable degrades to an empty list, never an error.
+    """
+    if not _TOKEN:
+        return {"sessions": []}
+    try:
+        async with httpx.AsyncClient(timeout=_HEALTH_TIMEOUT * 3) as client:
+            r = await client.get(f"{_CC_URL}/sessions", headers=_headers())
+            r.raise_for_status()
+            return r.json()
+    except Exception:
+        return {"sessions": []}
+
+
+async def resume(session_id: str) -> dict:
+    """Point the thread at an existing conversation. The pointer IS the thread,
+    so nothing is copied and nothing is lost; the sidecar refuses an id that is
+    not one of this sandbox's own."""
+    if not _TOKEN:
+        return {"ok": False}
+    try:
+        async with httpx.AsyncClient(timeout=_HEALTH_TIMEOUT * 3) as client:
+            r = await client.post(
+                f"{_CC_URL}/resume", headers=_headers(), json={"sessionId": session_id}
+            )
+            return r.json()
+    except Exception:
+        return {"ok": False}
+
+
 async def title() -> dict:
     """The conversation's generated title: `{sessionId, title}`.
 

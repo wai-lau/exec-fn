@@ -38,6 +38,31 @@ async def cc_health():
     return JSONResponse(await cc_client.health())
 
 
+@protected.get("/api/cc/sessions")
+async def cc_sessions():
+    """Past conversations, newest first, for the `/list` picker.
+
+    The SDK's own title for a session is usually its opening prompt, so a
+    rolling haiku title is preferred wherever one has already been generated --
+    read from the cache only, since a list of forty rows must not fire forty
+    haiku calls to name itself.
+    """
+    data = await cc_client.sessions()
+    for row in data.get("sessions") or []:
+        better = cc_title.cached_title(row.get("id") or "")
+        if better:
+            row["title"] = better
+    return JSONResponse(data)
+
+
+@protected.post("/api/cc/resume")
+async def cc_resume(request: Request):
+    """Switch the thread to an existing conversation."""
+    body = await request.json()
+    sid = (body or {}).get("sessionId") or ""
+    return JSONResponse(await cc_client.resume(sid))
+
+
 @protected.get("/api/cc/title")
 async def cc_conversation_title():
     """A rolling title for the status bar.

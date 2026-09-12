@@ -188,8 +188,9 @@ async function loadHistory() {
  * the mtg terminal), so the control is typed rather than a button. */
 async function runCommand(text) {
   const cmd = text.slice(1).trim().toLowerCase();
+  if (cmd === 'list') { await ccListSessions(); return true; }
   if (cmd !== 'new' && cmd !== 'clear') {
-    addMsg('sys warn', '[ unknown command: /' + cmd + ' — only /new ]');
+    addMsg('sys warn', '[ unknown command: /' + cmd + ' — /new or /list ]');
     return true;
   }
   try {
