@@ -44,6 +44,22 @@ function twFenceEnd(text, from) {
   return after === -1 ? text.length : after + 1;
 }
 
+/** Where a markdown table's opening lines end, or -1 if this is not one.
+ *
+ * A table is only a table once its `|---|---|` separator is complete: until
+ * then markdown renders the header as a line of raw pipes, so typing those two
+ * lines character by character shows a row of punctuation slowly turning into a
+ * table. Both are revealed at once instead. Only the OPENING is jumped -- the
+ * body rows are prose and type like everything else.
+ *
+ * `from` must be a line start, and the pattern is deliberately strict: a header
+ * row, then a separator of nothing but pipes, dashes, colons and spaces. */
+function twTableHead(text, from) {
+  const rest = text.slice(from, from + 2000);
+  const m = /^\|[^\n]*\|[ \t]*\r?\n[ \t]*\|[ :|<>=-]*\|[ \t]*(\r?\n|$)/.exec(rest);
+  return m ? from + m[0].length : -1;
+}
+
 /** Reveal `state.buffered` one character at a time.
  *
  * @param state  {buffered, displayed, serverDone, cancelled} -- shared, mutable
@@ -65,6 +81,17 @@ function twGuess(state, render, opts) {
       // still unclosed (the stream is mid-block) reveal everything there is and
       // keep jumping, so the typewriter never crawls through markup.
       const i = state.displayed.length;
+      // Table openings, like fenced blocks, are structure rather than prose.
+      // Only at a line start, or a `|` mid-sentence would be mistaken for one.
+      if (i === 0 || state.buffered[i - 1] === '\n') {
+        const head = twTableHead(state.buffered, i);
+        if (head > i) {
+          state.displayed = state.buffered.slice(0, head);
+          render(state.displayed);
+          setTimeout(step, 0);
+          return;
+        }
+      }
       if (state.buffered.startsWith('```', i)) {
         const end = twFenceEnd(state.buffered, i);
         state.displayed = state.buffered.slice(0, end === -1 ? state.buffered.length : end);
