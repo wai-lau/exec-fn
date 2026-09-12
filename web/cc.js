@@ -10,12 +10,6 @@
 let streaming = false;
 // Chat pace: three times the tarot reader's. These pages are read for an answer.
 const CC_TYPE_SPEED = 3;
-// Slash commands the SDK answers itself -- probed 2026-09-11, not assumed.
-// `/clear` is deliberately NOT here: the SDK honours it silently and would drop
-// the conversation without the archive /new writes first. /help, /status and
-// /memory answer "isn't available in this environment"; /agents says it was
-// removed.
-const CC_SDK_COMMANDS = new Set(['context', 'cost', 'usage', 'compact', 'model']);
 let pending = [];   // images pasted but not yet sent
 
 const terminal = document.getElementById('terminal');
@@ -190,44 +184,6 @@ async function loadHistory() {
   }
 }
 
-/** Slash commands, handled client-side. The page has no chrome by design (it is
- * the mtg terminal), so the control is typed rather than a button. */
-async function runCommand(text) {
-  const cmd = text.slice(1).trim().toLowerCase();
-  if (cmd === 'list') { await ccListSessions(CC_LIST_LIMIT); return true; }
-  if (cmd === 'listall') { await ccListSessions(0); return true; }
-  if (cmd === 'back') { await ccBackSession(); return true; }
-  // Commands the SDK answers itself, passed through on purpose. They cost no
-  // turn and never reach the model -- it replies "isn't available in this
-  // environment" for the ones it does not have. `false` = not handled here, so
-  // sendMsg goes on to send it like any other message.
-  if (CC_SDK_COMMANDS.has(cmd.split(/\s+/)[0])) return false;
-  if (cmd !== 'new' && cmd !== 'clear') {
-    addMsg('sys warn', '[ unknown: /' + cmd + ' — /new /list /listall /back'
-      + ' /context /cost /usage /compact /model ]');
-    return true;
-  }
-  try {
-    const r = await fetch('/api/cc/new', { method: 'POST' });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok || d.ok === false) {
-      // The archive runs BEFORE the clear and a failure aborts it, so the old
-      // conversation is still intact — say so rather than leaving it ambiguous.
-      addMsg('sys warn', '[ not cleared — ' + (d.error || 'archive failed') + '; conversation kept ]');
-      return true;
-    }
-    terminal.textContent = '';
-    addMsg('sys', '[ new conversation — the previous one is archived ]');
-    // The context is back to the floor; the status bar caches its last value
-    // and would otherwise keep showing the old conversation's.
-    terminal.dispatchEvent(new CustomEvent('cc:conversation-new'));
-  } catch {
-    addMsg('sys warn', '[ could not start a new conversation ]');
-  }
-  return true;
-}
-
-// ── run ───────────────────────────────────────────────────────────────────
 async function sendMsg() {
   if (streaming) return;
   const text = _msgInput.innerText.trim();

@@ -319,3 +319,12 @@ html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
 
 .cc-sess-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cc-sess-when { flex-shrink: 0; color: hsl(var(--green-hsl) / 0.45); }
+
+/* /help — the same row shape as the conversation picker, since both are a
+   short list of things you can type or tap. */
+.cc-help-row {
+  display: flex; gap: var(--space-3);
+  font-size: var(--fs-2xs); line-height: var(--lh-tight);
+}
+.cc-help-cmd { flex: 0 0 auto; min-width: 5rem; color: hsl(var(--green-hsl)); }
+.cc-help-what { color: hsl(var(--green-hsl) / 0.45); }
