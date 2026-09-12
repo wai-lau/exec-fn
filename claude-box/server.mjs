@@ -23,7 +23,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { query, getSessionInfo, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
+import { query, getSessionInfo, getSessionMessages, listSessions } from "@anthropic-ai/claude-agent-sdk";
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
 import { usage } from "./usage.mjs";
 
@@ -538,6 +538,64 @@ const server = http.createServer(async (req, res) => {
   // SDK generates a summary per session (and honours a custom rename), which is
   // a far better name than the first thing that was typed -- "Crisis fragments
   // endgame" rather than "poe2, what are crisis fragments for? I'm like deep".
+  // Past conversations, so one can be picked back up. Scoped to THIS sandbox:
+  // listSessions is account-wide and would otherwise hand the page every
+  // session cc-agent has ever had, including any that were not /cc.
+  if (req.method === "GET" && req.url === "/sessions") {
+    let rows = [];
+    try {
+      const all = await listSessions({ limit: 100 });
+      rows = all
+        .filter((s) => s.cwd === SANDBOX)
+        .map((s) => ({
+          id: s.sessionId,
+          title: s.customTitle || s.summary || s.firstPrompt || "",
+          modified: s.lastModified || s.createdAt || 0,
+          bytes: s.fileSize || 0,
+        }))
+        .sort((a, b) => b.modified - a.modified)
+        .slice(0, 40);
+    } catch {
+      /* no store yet: an empty list, not an error */
+    }
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ current: currentSession(), sessions: rows }));
+    return;
+  }
+
+  // Point the thread at an existing session. The pointer IS the conversation
+  // (see currentSession), so this is the whole of "resume": nothing is copied,
+  // nothing is lost, and /new still archives whatever is current before it
+  // drops the pointer.
+  if (req.method === "POST" && req.url === "/resume") {
+    const body = await readBody(req).catch(() => ({}));
+    const id = typeof body?.sessionId === "string" ? body.sessionId.trim() : "";
+    // A uuid and nothing else: this string becomes a filename downstream.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "bad session id" }));
+      return;
+    }
+    // It must be one of ours. Without this the endpoint would resume any
+    // session on the account by id, /cc or not.
+    let known = false;
+    try {
+      const all = await listSessions({ limit: 100 });
+      known = all.some((s) => s.sessionId === id && s.cwd === SANDBOX);
+    } catch {
+      known = false;
+    }
+    if (!known) {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "unknown session" }));
+      return;
+    }
+    rememberSession(id);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true, sessionId: id }));
+    return;
+  }
+
   if (req.method === "GET" && req.url === "/title") {
     const id = currentSession();
     let title = null;

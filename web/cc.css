@@ -297,3 +297,25 @@
    each step would otherwise snap the bar. */
 html.kb-open #cc-status,
 html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
+
+/* ── the /list picker ───────────────────────────────────────────────────── */
+
+/* Tappable rows, not a numbered list to type an index from: this page is used
+   one-handed, where reading a list and then typing "/resume 3" means the
+   keyboard covers the thing being read from. */
+.cc-list { display: flex; flex-direction: column; padding-left: var(--chat-indent); }
+
+.cc-sess {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  background: none; border: none; cursor: pointer; text-align: left;
+  padding: var(--space-0-5) 0;
+  font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+.cc-sess:hover { color: hsl(var(--green-hsl)); }
+
+/* The one you are already in is a label, not a destination. */
+.cc-sess.current { color: hsl(var(--green-hsl) / 0.45); cursor: default; }
+
+.cc-sess-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-sess-when { flex-shrink: 0; color: hsl(var(--green-hsl) / 0.45); }

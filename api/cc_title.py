@@ -65,6 +65,16 @@ def _ask(messages: list) -> str | None:
     return text[:60] or None
 
 
+def cached_title(session_id: str) -> str | None:
+    """A title already generated for this session, or None.
+
+    Read-only on purpose: the conversation list shows dozens of sessions and
+    must not fire a haiku call per row to name them.
+    """
+    entry = (_load().get(session_id) or {}) if session_id else {}
+    return entry.get("title") or None
+
+
 def rolling_title(session_id: str, messages: list) -> str | None:
     """Cached per session, regenerated every `_EVERY` messages.
 
