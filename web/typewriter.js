@@ -33,6 +33,17 @@ function twCharWeight(ch, baseMs) {
   }
 }
 
+/** Where a fenced block that opens at `from` ends, or -1 while it is unclosed.
+ *
+ * Includes the closing fence's own line: the whole block is one unit, and
+ * stopping on the last backtick would leave the fence typing itself out. */
+function twFenceEnd(text, from) {
+  const close = text.indexOf('\n```', from + 3);
+  if (close === -1) return -1;
+  const after = text.indexOf('\n', close + 1);
+  return after === -1 ? text.length : after + 1;
+}
+
 /** Reveal `state.buffered` one character at a time.
  *
  * @param state  {buffered, displayed, serverDone, cancelled} -- shared, mutable
@@ -48,6 +59,19 @@ function twGuess(state, render, opts) {
   function step() {
     if (state.cancelled) return;
     if (state.displayed.length < state.buffered.length) {
+      // A fenced block is not prose and nobody reads it as it arrives -- an SVG
+      // diagram typed backtick by backtick is markup scrolling past, not a
+      // picture being drawn. Jump the whole block in one frame. While it is
+      // still unclosed (the stream is mid-block) reveal everything there is and
+      // keep jumping, so the typewriter never crawls through markup.
+      const i = state.displayed.length;
+      if (state.buffered.startsWith('```', i)) {
+        const end = twFenceEnd(state.buffered, i);
+        state.displayed = state.buffered.slice(0, end === -1 ? state.buffered.length : end);
+        render(state.displayed);
+        setTimeout(step, 0);
+        return;
+      }
       state.displayed = state.buffered.slice(0, state.displayed.length + 1);
       render(state.displayed);
       const last = state.displayed[state.displayed.length - 1];
