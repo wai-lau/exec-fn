@@ -48,20 +48,48 @@ async function ccResumeSession(id, title) {
   }
 }
 
-async function ccListSessions() {
-  let data;
+// /list shows the recent ones; /listall shows every one. Twenty is about what
+// fits a phone screen without becoming a thing to scroll through, and the ones
+// past it are old enough that you would search rather than browse.
+const CC_LIST_LIMIT = 20;
+
+async function ccFetchSessions() {
   try {
     const r = await fetch('/api/cc/sessions', { cache: 'no-store' });
-    data = await r.json();
+    return await r.json();
   } catch {
+    return null;
+  }
+}
+
+/** Switch to the most recently touched conversation that is not this one. */
+async function ccBackSession() {
+  const data = await ccFetchSessions();
+  const rows = (data && data.sessions) || [];
+  const prev = rows.find((s) => s.id !== data.current);
+  if (!prev) {
+    addMsg('sys', '[ no other conversation ]');
+    return;
+  }
+  await ccResumeSession(prev.id, prev.title);
+}
+
+async function ccListSessions(limit) {
+  const data = await ccFetchSessions();
+  if (!data) {
     addMsg('sys warn', '[ could not list conversations ]');
     return;
   }
-  const rows = (data && data.sessions) || [];
+  let rows = data.sessions || [];
   if (!rows.length) {
     addMsg('sys', '[ no past conversations ]');
     return;
   }
+  const total = rows.length;
+  if (limit) rows = rows.slice(0, limit);
+  // Oldest first, so the most recent sits at the BOTTOM -- nearest the composer
+  // and where the eye already is, the same way the transcript itself reads.
+  rows = rows.slice().reverse();
 
   const box = document.createElement('div');
   box.className = 'msg cc-list';
@@ -87,5 +115,8 @@ async function ccListSessions() {
     box.appendChild(row);
   }
   terminal.appendChild(box);
+  if (limit && total > limit) {
+    addMsg('sys', '[ ' + limit + ' of ' + total + ' — /listall for the rest ]');
+  }
   terminal.scrollTop = terminal.scrollHeight;
 }
