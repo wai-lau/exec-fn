@@ -188,9 +188,11 @@ async function loadHistory() {
  * the mtg terminal), so the control is typed rather than a button. */
 async function runCommand(text) {
   const cmd = text.slice(1).trim().toLowerCase();
-  if (cmd === 'list') { await ccListSessions(); return true; }
+  if (cmd === 'list') { await ccListSessions(CC_LIST_LIMIT); return true; }
+  if (cmd === 'listall') { await ccListSessions(0); return true; }
+  if (cmd === 'back') { await ccBackSession(); return true; }
   if (cmd !== 'new' && cmd !== 'clear') {
-    addMsg('sys warn', '[ unknown command: /' + cmd + ' — /new or /list ]');
+    addMsg('sys warn', '[ unknown: /' + cmd + ' — /new /list /listall /back ]');
     return true;
   }
   try {

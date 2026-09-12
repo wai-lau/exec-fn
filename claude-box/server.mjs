@@ -553,8 +553,11 @@ const server = http.createServer(async (req, res) => {
           modified: s.lastModified || s.createdAt || 0,
           bytes: s.fileSize || 0,
         }))
+        // Newest first is the canonical order; /list caps and /listall does not,
+        // and the page reverses for display. Capped high rather than at the
+        // page's limit so /listall has something to be all OF.
         .sort((a, b) => b.modified - a.modified)
-        .slice(0, 40);
+        .slice(0, 200);
     } catch {
       /* no store yet: an empty list, not an error */
     }
