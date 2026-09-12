@@ -21,7 +21,7 @@ host="$(hostname 2>/dev/null || echo unknown)"
 if [ "$host" = "main" ] && [ "$root" = "/exec-fn" ]; then
   ctx="DROPLET CLAUDE — cwd /exec-fn on the live server (host '$host'). This working tree IS production: api/ is volume-mounted with uvicorn --reload and web/ + api/templates/ are read per request, so every edit is live on save. No SSH, no git pull, no docker cp, NEVER 'git reset --hard' (it would discard your own uncommitted edits). Commit + push; the push happens automatically via the push-after-commit hook."
 else
-  ctx="LOCAL CLAUDE — cwd '$root' on host '$host' is a dev MIRROR. Nothing is live until you commit, push, and deploy over SSH: ssh wai-root@wai-lau.net 'cd /exec-fn && sudo git fetch origin && sudo git reset --hard origin/master && sudo docker compose up -d --force-recreate api'. Auto-deploy is the expected workflow — run it yourself, don't hand it back."
+  ctx="LOCAL CLAUDE — cwd '$root' on host '$host' is a dev MIRROR. Nothing is live until you commit, push, and deploy over SSH: ssh wai-root@wai-lau.net 'cd /exec-fn && git fetch origin && git reset --hard origin/master && sudo docker compose up -d --force-recreate api'. Auto-deploy is the expected workflow — run it yourself, don't hand it back."
 fi
 
 # Keep graphify's post-commit rebuild installed in this repo and the nested one.
