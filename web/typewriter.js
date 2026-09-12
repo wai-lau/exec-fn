@@ -60,6 +60,22 @@ function twTableHead(text, from) {
   return m ? from + m[0].length : -1;
 }
 
+/** Where a markdown link's `](url)` tail ends, or -1 if it is not there yet.
+ *
+ * The label is the only part anyone reads -- the URL is machinery, and typing
+ * it out character by character spends seconds rendering something that will
+ * not even be visible once the link closes. So the label types and the tail
+ * arrives whole.
+ *
+ * Returns -1 while the closing paren has not streamed in: jumping to the end of
+ * what has arrived would reveal half a URL as text and then take it back. */
+function twLinkTail(text, from) {
+  if (!text.startsWith('](', from)) return -1;
+  const close = text.indexOf(')', from + 2);
+  if (close === -1 || close - from > 500) return -1;
+  return close + 1;
+}
+
 /** Reveal `state.buffered` one character at a time.
  *
  * @param state  {buffered, displayed, serverDone, cancelled} -- shared, mutable
@@ -91,6 +107,14 @@ function twGuess(state, render, opts) {
           setTimeout(step, 0);
           return;
         }
+      }
+      // A link's tail: everything between the label and the next character.
+      const link = twLinkTail(state.buffered, i);
+      if (link > i) {
+        state.displayed = state.buffered.slice(0, link);
+        render(state.displayed);
+        setTimeout(step, 0);
+        return;
       }
       if (state.buffered.startsWith('```', i)) {
         const end = twFenceEnd(state.buffered, i);
