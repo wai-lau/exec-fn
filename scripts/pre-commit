@@ -234,6 +234,24 @@ fi
 # template / api / its own test is staged, so a change there can't ship a
 # hang/freeze. Skips cleanly (no pytest venv, no WebKit, or app down) so a fresh
 # clone or browser-less CI never blocks — same philosophy as the smoke suite.
+# ── browser suites run INSIDE a memory cap ────────────────────────────────
+# A WebKit launch wants 200-400MB and this box runs ~1.4GB used with swap
+# effectively full, so a browser spike does not fail politely: it invites the
+# GLOBAL oom-killer, which picks its victim by badness score rather than by
+# culprit and has taken out dbus-daemon and uvicorn's python instead of the
+# browser that caused it. Inside a scope the kernel kills only what is in the
+# scope, so a blowup fails the commit instead of the site.
+#
+# Falls back to a bare run wherever systemd-run is unavailable (a fresh clone,
+# CI, a container): the cap is a safety net, never a requirement.
+run_capped() {
+  if command -v systemd-run &>/dev/null && systemd-run --user --scope -q true &>/dev/null; then
+    systemd-run --user --scope -q -p MemoryMax=700M "$@"
+  else
+    "$@"
+  fi
+}
+
 TAROT_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/tarot/|^api/templates/tarot\.html$|^web/tarot.*\.js$|^web/hosaka-audio\.js$|^tests/test_tarot_progression\.py$' || true)
 if [ -n "$TAROT_CHANGED" ]; then
   PYTEST=""
@@ -244,7 +262,7 @@ if [ -n "$TAROT_CHANGED" ]; then
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping tarot progression tests — no pytest venv."
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" "$REPO_ROOT/tests/test_tarot_progression.py" -q; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$REPO_ROOT/tests/test_tarot_progression.py" -q; then
     echo ""
     echo "Tarot progression tests failed — commit blocked. A reading can hang."
     exit 1
@@ -266,7 +284,7 @@ if [ -n "$VOICE_CHANGED" ]; then
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping exec-voice tests — no pytest venv."
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" "$REPO_ROOT/tests/test_exec_voice_browser.py" -q; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$REPO_ROOT/tests/test_exec_voice_browser.py" -q; then
     echo ""
     echo "Exec-voice tests failed — commit blocked. The voice may be broken."
     exit 1
