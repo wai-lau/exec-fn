@@ -99,6 +99,31 @@ async def title() -> dict:
         return {"title": None}
 
 
+async def generate_title(messages: list) -> dict:
+    """A written-and-checked rolling title: `{title, attempts, ok}`.
+
+    Runs on the SUBSCRIPTION, not the API key -- same account /cc itself uses,
+    so naming a conversation costs no per-token credit. The sidecar writes a
+    title, then makes a SECOND independent call to judge whether it is title
+    shaped and retries once with that feedback (title-gen.mjs).
+
+    Generous timeout: that is up to four CLI subprocesses at ~7s each, and it
+    runs in the background off `cc:reply-done`, so nothing is waiting on it.
+    Never raises -- `cc_title.rolling_title` keeps the last good title.
+    """
+    if not _TOKEN:
+        return {"title": None}
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=_CONNECT_TIMEOUT)) as client:
+            r = await client.post(
+                f"{_CC_URL}/title-gen", headers=_headers(), json={"messages": messages},
+            )
+            r.raise_for_status()
+            return r.json()
+    except Exception:
+        return {"title": None}
+
+
 async def limits() -> dict:
     """The subscription's 5h / 7d windows, for the status bar.
 

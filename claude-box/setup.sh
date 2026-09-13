@@ -21,8 +21,14 @@ sudo install -d -o cc-agent -g cc-agent -m 0750 "$SANDBOX"
 # must not be able to rewrite the server that constrains it.
 sudo install -d -o root -g cc-agent -m 0750 "$APPDIR"
 
+# EVERY module server.mjs imports has to be listed here. archive-tools.mjs and
+# usage.mjs were missing until 2026-09-13 (they had been copied in by hand), so
+# a fresh run of this script deployed a server.mjs whose imports did not exist
+# and the unit would not boot.
 sudo install -o root -g cc-agent -m 0640 \
   /exec-fn/claude-box/package.json /exec-fn/claude-box/server.mjs \
+  /exec-fn/claude-box/archive-tools.mjs /exec-fn/claude-box/usage.mjs \
+  /exec-fn/claude-box/title-gen.mjs \
   /exec-fn/claude-box/cc-context.md "$APPDIR/"
 sudo npm --prefix "$APPDIR" install --omit=dev --no-audit --no-fund
 sudo chgrp -R cc-agent "$APPDIR" && sudo chmod -R g+rX "$APPDIR"

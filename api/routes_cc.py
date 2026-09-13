@@ -73,15 +73,13 @@ async def cc_conversation_title():
     mirroring Wai's terminal recap hook), and the SDK's value is used only when
     it is a deliberate rename or when generation is unavailable.
     """
-    import asyncio
-
     info = await cc_client.title()
     hist = await cc_client.history()
     # The handler is NOT named cc_title: a route function with the module's name
     # rebinds it at module scope, and `cc_title.rolling_title` then resolves to
     # an attribute of the function object.
-    rolling = await asyncio.to_thread(
-        cc_title.rolling_title, info.get("sessionId") or "", hist.get("messages") or []
+    rolling = await cc_title.rolling_title(
+        info.get("sessionId") or "", hist.get("messages") or []
     )
     return JSONResponse({
         "sessionId": info.get("sessionId"),

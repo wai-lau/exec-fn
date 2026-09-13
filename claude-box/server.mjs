@@ -26,6 +26,7 @@ import path from "node:path";
 import { query, getSessionInfo, getSessionMessages, listSessions } from "@anthropic-ai/claude-agent-sdk";
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
 import { usage } from "./usage.mjs";
+import { generateTitle } from "./title-gen.mjs";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
 const PORT = Number(process.env.CC_BIND_PORT || 8129);
@@ -177,6 +178,11 @@ function rememberSession(id) {
 }
 
 let active = 0;
+// Separate from `active` on purpose: a title run must never consume the single
+// query slot (that would 429 Wai's actual message to name the conversation),
+// and a query must never wait on one. They exclude each other by yielding, not
+// by queueing -- see the /title-gen route.
+let titleBusy = false;
 
 /** Whether cc-agent has completed its subscription login.
  *
@@ -612,6 +618,37 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ sessionId: id, title }));
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/title-gen") {
+    // A written-and-checked rolling title, on the subscription (see
+    // title-gen.mjs). Two guards, both about memory rather than politeness:
+    // single-flight, and it yields entirely while a real query is running --
+    // each call spawns a ~304MB CLI subprocess and the unit's cgroup is 700M,
+    // so stacking a title run under a live chat turn is how something gets
+    // killed mid-answer. Both refusals return 200 with title:null; a title is
+    // never worth failing a request over, and the app keeps its cached one.
+    if (titleBusy || active > 0) {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ title: null, skipped: titleBusy ? "busy" : "query-in-flight" }));
+      return;
+    }
+    titleBusy = true;
+    try {
+      const body = await readBody(req).catch(() => ({}));
+      const out = await generateTitle(body?.messages, {
+        sandbox: SANDBOX,
+        blockedTools: BLOCKED_TOOLS,
+      });
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(out));
+    } catch (err) {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ title: null, error: String(err?.message || err) }));
+    } finally {
+      titleBusy = false;
+    }
     return;
   }
 

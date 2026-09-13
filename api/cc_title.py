@@ -6,10 +6,20 @@ back. The good titles in Wai's terminal come from her own recap hook
 (`~/.claude/hooks/session-recap-gen.js`), which asks haiku for a tiny rolling
 title every few prompts. This is that, app-side.
 
-App-side rather than in the sidecar deliberately: the sidecar would have to
-spawn another `claude` subprocess on a 1967MB box that already caps itself at
-one concurrent run, while the app has haiku wired for exactly this class of
-cheap call (card classification, date parsing).
+The generation itself lives in the SIDECAR (`claude-box/title-gen.mjs`), on the
+subscription -- the same account /cc runs on, so naming a conversation costs no
+API credit. It is two calls, not one: haiku writes a title, then a second,
+independent haiku call judges whether it is title SHAPED and hands back one
+sentence of feedback, which the writer gets one retry with. A model checking its
+own output in the same breath talks itself into whatever it just wrote.
+
+This module is the CACHE and the schedule -- when to re-title, and what to keep
+when generation fails. It used to hold the model call too, against the Anthropic
+API key; the docstring here argued for that on the grounds that the sidecar
+would have to spawn a `claude` subprocess on a 1967MB box. It does, and that
+cost is real (~304MB, ~7s a call), which is why the sidecar route is
+single-flight and yields while a chat turn is in flight -- but it is the plan,
+and the plan is what this should have been spending all along.
 """
 
 import json
@@ -40,29 +50,24 @@ def _save(data: dict) -> None:
         pass   # a title that does not persist is a re-generated title, not an error
 
 
-def _ask(messages: list) -> str | None:
-    import anthropic
+async def _ask(messages: list) -> str | None:
+    """Hand the transcript to the sidecar's write-then-check loop.
+
+    The trimming below is duplicated there (it has to be -- the sidecar caps
+    what it feeds the model regardless of who calls it); doing it here too keeps
+    a long transcript off the wire in the first place.
+    """
+    import cc_client
 
     recent = [m for m in messages if (m.get("text") or "").strip()][-_MAX_MSGS:]
     if not recent:
         return None
-    body = "\n".join(
-        f"{m.get('role', 'user')}: {(m.get('text') or '')[:_MAX_CHARS]}" for m in recent
-    )
-    client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=32,
-        system=(
-            "Write a 3-6 word title for what this conversation is CURRENTLY about, "
-            "weighting the latest messages most. Output ONLY the title: no quotes, "
-            "no punctuation at the end, no preamble."
-        ),
-        messages=[{"role": "user", "content": body}],
-    )
-    text = "".join(b.text for b in msg.content if b.type == "text").strip()
-    text = text.strip('"').strip()
-    return text[:60] or None
+    payload = [
+        {"role": m.get("role", "user"), "text": (m.get("text") or "")[:_MAX_CHARS]}
+        for m in recent
+    ]
+    out = await cc_client.generate_title(payload)
+    return (out.get("title") or "").strip()[:60] or None
 
 
 def cached_title(session_id: str) -> str | None:
@@ -75,11 +80,13 @@ def cached_title(session_id: str) -> str | None:
     return entry.get("title") or None
 
 
-def rolling_title(session_id: str, messages: list) -> str | None:
+async def rolling_title(session_id: str, messages: list) -> str | None:
     """Cached per session, regenerated every `_EVERY` messages.
 
-    Never raises: a status bar without a title is fine, and a failed haiku call
-    must not take the page's title endpoint down with it.
+    Never raises: a status bar without a title is fine, and a failed generation
+    must not take the page's title endpoint down with it. The sidecar likewise
+    answers `title: null` rather than an error when it is busy or a chat turn is
+    in flight, which lands here as "keep the cached one".
     """
     if not session_id or not messages:
         return None
@@ -89,7 +96,7 @@ def rolling_title(session_id: str, messages: list) -> str | None:
     if entry.get("title") and n - int(entry.get("at", 0)) < _EVERY:
         return entry["title"]
     try:
-        title = _ask(messages)
+        title = await _ask(messages)
     except Exception:
         return entry.get("title")    # keep the last good one rather than blanking
     if not title:
