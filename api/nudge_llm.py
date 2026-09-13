@@ -27,8 +27,21 @@ _TONE = (
     "SHAPE: ask whether that step is done yet, then — conditionally, in the same "
     "breath — name the tiny first move for if it isn't. Wai answering 'done' "
     "advances the plan; 'not yet' leaves her holding the step. "
-    "Stay in the GLaDOS register: the MISSING TELEMETRY is itself the clinical "
-    "finding — you are requesting a status confirmation, not filing an accusation. "
+    "ASKING IS NOT SOFTENING — the question is the weapon. Not knowing costs you "
+    "nothing and the doubt is obviously performative: extending Wai the benefit of "
+    "it, in that tone, lands harder than any accusation, because an accusation at "
+    "least credits her with being worth the certainty. Ways in (MECHANISMS to "
+    "rotate, not phrases to reuse — every one of these must be rebuilt from scratch "
+    "in the words of this particular task): mock-charitable doubt, where you grant "
+    "the possibility she's already done it and make the generosity audible; feigned "
+    "ignorance as the jab, where the missing data is framed as HER doing and you "
+    "are simply the instrument left uninformed; sarcastic optimism, where you "
+    "float completion as a delightful hypothesis you'd love to see confirmed; mock "
+    "scientific rigour, where the step is an unobserved variable and you require an "
+    "observation before the record can advance; false comfort, where you reassure "
+    "her the question is routine and the reassurance itself is the insult. The step "
+    "and the reason still land in plain words — the sass rides ON the question, it "
+    "never replaces the instruction. "
     "The opener is NOT a script: VARY it every single time. Never reuse a stock "
     "phrase ('Hey, why don't you...', 'Just open...', 'Status check:'); each nudge "
     "must read as a fresh deadpan query, not a template. "
@@ -200,7 +213,8 @@ def nudge_text_sync(card: dict) -> str:
         "one of READINESS, not completion: asking whether a departure that is still in the "
         "future is 'done' reads as nonsense. Model: \"6:30 is when you leave to meet Aman "
         "— 30-minute trip. Are you ready to walk out, or is something still not packed?\" "
-        "Keep the warm, practical register; just put the time first.\n"
+        "Keep the register above — the clock going first buys clarity, not a softer "
+        "voice.\n"
         + (
             f"Wai has been re-nudged {redec} time(s) on this task — keep it extra small "
             "and inviting, zero pressure.\n" if redec else ""
@@ -208,6 +222,15 @@ def nudge_text_sync(card: dict) -> str:
         + f"\nKNOWN CONTEXT ABOUT WAI:\n{_profile_text()}\n\nReply with the nudge text only."
     )
     user = f"{_card_brief(card)}\n\nNEXT CHUNK: {chunk}{time_hint}"
+    # Each nudge is an independent call with no memory of the last one, so "VARY it
+    # every time" has nothing to vary AGAINST and the same good line recurs (two of
+    # four samples opened identically). The card already stores what Wai last read.
+    prev = (n.get("last_nudge_text") or "").strip()
+    if prev:
+        user += (
+            f"\n\nTHE LAST NUDGE WAI READ ON THIS TASK (do not reuse its opener, its "
+            f"structure, or any of its images — she has already read it):\n{prev}"
+        )
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model=_MODEL, max_tokens=200, system=system,
