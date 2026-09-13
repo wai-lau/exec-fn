@@ -88,5 +88,117 @@ def test_choice_row_is_not_spoken(browser, admin_headers, base_url):
         ctx.close()
 
 
+def test_card_actions_patch_the_card_and_send_nothing(browser, admin_headers, base_url):
+    """done / exile are NOT answers — they move the card the way the dialog's
+    own two buttons do, so they must PATCH {id, column} and send no message.
+
+    fetch is stubbed: this suite runs against the LIVE container, and a real
+    PATCH here would archive one of Wai's actual cards.
+    """
+    ctx = browser.new_context(extra_http_headers=admin_headers,
+                              viewport={"width": 430, "height": 932})
+    try:
+        pg = ctx.new_page()
+        pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
+        pg.wait_for_function("window.execChoices && document.getElementById('exec-term')",
+                             timeout=15000)
+
+        res = pg.evaluate(
+            """async () => {
+              const term = document.getElementById('exec-term');
+              const calls = [], sent = [], events = [];
+              const realFetch = window.fetch;
+              window.fetch = (url, opt) => {
+                calls.push({ url: String(url), body: JSON.parse(opt.body) });
+                return Promise.resolve({ ok: true, status: 200 });
+              };
+              window.addEventListener('exec:cards-changed', () => events.push(1));
+
+              // A nudge (has a card id) and a monitor comment (has none).
+              const mk = (txt, cardId) => {
+                const d = document.createElement('div');
+                d.className = 'msg probe';
+                term.appendChild(d);
+                const p = window.execChoices.parse(txt);
+                window.execChoices.attach(term, d, p.opts, (s) => sent.push(s), cardId);
+                return d;
+              };
+
+              mk('monitor line\\n[Yes | No]', null);
+              const noAct = [...term.querySelectorAll('.exec-act')].length;
+
+              mk('nudge\\n[Sent it | Not yet]', 'card-123');
+              const labels = [...term.querySelectorAll('.exec-choice')].map(b => b.textContent);
+              const exileBox = term.querySelector('.exec-act-exile').getBoundingClientRect();
+
+              term.querySelector('.exec-act-done').click();
+              await new Promise(r => setTimeout(r, 50));
+              const afterDone = term.querySelectorAll('.exec-choice-row').length;
+
+              // Now the failure path: the row must survive and re-arm.
+              window.fetch = () => Promise.resolve({ ok: false, status: 500 });
+              const d2 = mk('nudge 2\\n[A | B]', 'card-456');
+              const ex = term.querySelector('.exec-act-exile');
+              ex.click();
+              await new Promise(r => setTimeout(r, 50));
+              const afterFail = term.querySelectorAll('.exec-choice-row').length;
+              const reArmed = !ex.disabled;
+
+              window.fetch = realFetch;
+              return { noAct, labels, calls, sent, events: events.length,
+                       afterDone, afterFail, reArmed,
+                       exileH: Math.round(exileBox.height) };
+            }"""
+        )
+
+        assert res["noAct"] == 0, "a monitor comment has no card, so no card actions"
+        assert res["labels"] == ["Sent it", "Not yet", "done", "exile"], \
+            "card actions are appended by the client, after the model's answers"
+        assert res["sent"] == [], "a card action is a mutation, never a message"
+        assert len(res["calls"]) == 1, "exactly one PATCH per tap"
+        call = res["calls"][0]
+        assert "/api/rd" in call["url"] and "source=Exec" in call["url"]
+        assert call["body"] == {"cards": [{"id": "card-123", "column": "archives"}]}, \
+            "done archives the card, sending only the fields the client owns"
+        assert res["events"] == 1, "an open board is repainted immediately"
+        assert res["afterDone"] == 0, "a successful action consumes the row"
+        assert res["afterFail"] == 1, "a failed action leaves the row in place"
+        assert res["reArmed"], "a failed action re-arms its button"
+        assert res["exileH"] >= 18, "actions must be tappable, not hairlines"
+    finally:
+        ctx.close()
+
+
+def test_exile_action_sends_the_exile_column(browser, admin_headers, base_url):
+    ctx = browser.new_context(extra_http_headers=admin_headers)
+    try:
+        pg = ctx.new_page()
+        pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
+        pg.wait_for_function("window.execChoices && document.getElementById('exec-term')",
+                             timeout=15000)
+        body = pg.evaluate(
+            """async () => {
+              const term = document.getElementById('exec-term');
+              let captured = null;
+              const realFetch = window.fetch;
+              window.fetch = (url, opt) => {
+                captured = JSON.parse(opt.body);
+                return Promise.resolve({ ok: true, status: 200 });
+              };
+              const d = document.createElement('div');
+              d.className = 'msg probe';
+              term.appendChild(d);
+              window.execChoices.attach(term, d, [], () => {}, 'card-789');
+              term.querySelector('.exec-act-exile').click();
+              await new Promise(r => setTimeout(r, 50));
+              window.fetch = realFetch;
+              return captured;
+            }"""
+        )
+        assert body == {"cards": [{"id": "card-789", "column": "exile"}]}
+    finally:
+        ctx.close()
+
+
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__])

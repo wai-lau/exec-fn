@@ -153,8 +153,11 @@ async def _fire_nudge(card_id: str) -> bool:
         n["next_nudge_at"] = None
         _save_rd(rd)
 
-    append_monitor_comment(text)
-    await push_to_monitor({"comment": text})
+    # card_id rides along so the panel can offer this card's own done/exile
+    # actions under the nudge (a monitor comment, which is about the whole
+    # board rather than one card, sends none).
+    append_monitor_comment(text, card_id=card_id)
+    await push_to_monitor({"comment": text, "card_id": card_id})
     await push_to_monitor({"cards_changed": True})  # advance/decompose changed the board
     return True
 

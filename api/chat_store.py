@@ -143,11 +143,23 @@ def _save_chat(messages: list, stage: str):
     }, indent=2))
 
 
-def append_monitor_comment(comment: str):
+def append_monitor_comment(comment: str, card_id: str | None = None):
+    """Append a monitor/nudge line.
+
+    A NUDGE is about one card, so it carries that card's id; a monitor comment
+    reads the whole board and carries none. The id is what lets the panel offer
+    the card's own done/exile actions under the nudge — without it the buttons
+    would have nothing to act on. Monitor messages are preserved whole by
+    _save_chat and dropped entirely by sanitize_history_for_api, so the extra
+    key never reaches the API.
+    """
     p = DATA_DIR / "chat.json"
     data = json.loads(p.read_text()) if p.exists() else {"messages": [], "stage": "planning"}
     now = datetime.now(timezone.utc).isoformat()
-    data["messages"].append({"role": "monitor", "content": comment, "ts": now})
+    msg = {"role": "monitor", "content": comment, "ts": now}
+    if card_id:
+        msg["card_id"] = card_id
+    data["messages"].append(msg)
     # Keep the stored stream chronological so the frontend renders it merged.
     data["messages"].sort(key=lambda m: m.get("ts") or "")
     data["updated_at"] = now
