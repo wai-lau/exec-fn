@@ -1,1081 +1,1081 @@
 {
   ".claude/hooks/session-start.sh": {
-    "mtime": 1789188203.6721184,
+    "mtime": 1778497476.2369275,
     "ast_hash": "a2801d5591fbf0a2704b155ebfc66aee",
     "semantic_hash": "a2801d5591fbf0a2704b155ebfc66aee"
   },
   ".claude/settings.json": {
-    "mtime": 1789188203.6731186,
+    "mtime": 1788846126.4109602,
     "ast_hash": "dba2b4aecc4bb154a2beea9d37187172",
     "semantic_hash": ""
   },
   ".stylelintrc.json": {
-    "mtime": 1789188203.6741185,
+    "mtime": 1777564668.723029,
     "ast_hash": "6e676c441760ad1dbee0bae230c638c2",
     "semantic_hash": "6e676c441760ad1dbee0bae230c638c2"
   },
   "api/auth.py": {
-    "mtime": 1789188203.6831186,
+    "mtime": 1787441559.7624521,
     "ast_hash": "cbd4699e51679201c1ccc6d1fdee0f04",
     "semantic_hash": ""
   },
   "api/chat.py": {
-    "mtime": 1789316413.6833901,
-    "ast_hash": "d097918b0a6c2601accbf3de904a9b84",
+    "mtime": 1788395069.441512,
+    "ast_hash": "4d29ee65e30bfdfb246a8a5ca6a8090d",
     "semantic_hash": ""
   },
   "api/chat_tools.py": {
-    "mtime": 1789188203.6861186,
+    "mtime": 1788332195.4307017,
     "ast_hash": "a0ee6be4b020da623523d65ded6dd2b5",
     "semantic_hash": ""
   },
   "api/entrypoint.sh": {
-    "mtime": 1789188203.6871185,
+    "mtime": 1781043248.9460926,
     "ast_hash": "a8b445d9906896ea83b20628d2196408",
     "semantic_hash": ""
   },
   "api/gcal.py": {
-    "mtime": 1789188203.6891186,
+    "mtime": 1787441559.763452,
     "ast_hash": "bbd0fdda7a3e84f2cd0a7a04fce64db4",
     "semantic_hash": ""
   },
   "api/gcal_auth.py": {
-    "mtime": 1789188203.6891186,
+    "mtime": 1782659454.6980429,
     "ast_hash": "6c5284215beeda16723ec9f5ea00c238",
     "semantic_hash": ""
   },
   "api/helpers.py": {
-    "mtime": 1789188203.6911185,
+    "mtime": 1787446797.571986,
     "ast_hash": "80b38f0c7c960845996cefeb7fec216e",
     "semantic_hash": ""
   },
   "api/main.py": {
-    "mtime": 1789188203.6921186,
-    "ast_hash": "611e9fc7241686c7f8fd991b51781e6e",
+    "mtime": 1788902428.045961,
+    "ast_hash": "79e62c037c10d2e0e125ae49d5ed877f",
     "semantic_hash": ""
   },
   "api/monitor.py": {
-    "mtime": 1789188203.6921186,
+    "mtime": 1787641508.3880847,
     "ast_hash": "7d092dad4e89e4e21bccb611ccb4de11",
     "semantic_hash": ""
   },
   "api/morning_cron.sh": {
-    "mtime": 1789188203.6931186,
-    "ast_hash": "629fb4edfe0cb9ba21cd5cf46e203047",
-    "semantic_hash": ""
+    "mtime": 1776527726.2411935,
+    "ast_hash": "529cf180b52830234316e60286ec5926",
+    "semantic_hash": "529cf180b52830234316e60286ec5926"
   },
   "api/mtg/__init__.py": {
-    "mtime": 1789188203.6931186,
+    "mtime": 1777382887.6381762,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "api/mtg/agent.py": {
-    "mtime": 1789188203.6941185,
+    "mtime": 1782503594.2310967,
     "ast_hash": "5645ef53898fb274fcb8847e3e8cd630",
     "semantic_hash": ""
   },
   "api/mtg/lookup.py": {
-    "mtime": 1789188203.6941185,
+    "mtime": 1787441559.7654521,
     "ast_hash": "d22503d723414e03d71fa411a80c1df6",
     "semantic_hash": ""
   },
   "api/mtg/prompt.py": {
-    "mtime": 1789188203.6951187,
+    "mtime": 1783550026.2936301,
     "ast_hash": "674eb910c21e8dc56837e16109a86d8d",
     "semantic_hash": ""
   },
   "api/mtg/routes.py": {
-    "mtime": 1789188203.6951187,
+    "mtime": 1787441559.7654521,
     "ast_hash": "aa6f01582ab03dd492f904acff41c96d",
     "semantic_hash": ""
   },
   "api/mtg/tools.py": {
-    "mtime": 1789188203.6951187,
+    "mtime": 1783550007.9855578,
     "ast_hash": "b95473880d74d71e32642c30b4f98a1e",
     "semantic_hash": ""
   },
   "api/routes_chat.py": {
-    "mtime": 1789188203.7011187,
+    "mtime": 1788395128.5657418,
     "ast_hash": "e1c961b40f897c8326932793b374f3df",
     "semantic_hash": ""
   },
   "api/routes_nightfall.py": {
-    "mtime": 1789188203.7021186,
+    "mtime": 1788309304.7374313,
     "ast_hash": "373c701c8c6813dd06b499972d831c08",
     "semantic_hash": ""
   },
   "api/scheduler.py": {
-    "mtime": 1789188203.7031186,
+    "mtime": 1787441559.767452,
     "ast_hash": "6cdb58f5e7f4d751d04262e041f538a9",
     "semantic_hash": ""
   },
   "api/tarot/__init__.py": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778495933.6345541,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "api/tarot/agent.py": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1782503564.2779622,
     "ast_hash": "1a6ae6178de0c58321719def5ae3301b",
     "semantic_hash": ""
   },
   "api/tarot/cards.py": {
-    "mtime": 1789188203.7081187,
+    "mtime": 1780716427.7649531,
     "ast_hash": "5e9f66932d62048bc1312a92d261e6d7",
     "semantic_hash": "5e9f66932d62048bc1312a92d261e6d7"
   },
   "api/tarot/lookup.py": {
-    "mtime": 1789188203.7081187,
+    "mtime": 1778516602.635478,
     "ast_hash": "655721d01c377144f00ce171d96140a3",
     "semantic_hash": "655721d01c377144f00ce171d96140a3"
   },
   "api/tarot/prompt.py": {
-    "mtime": 1789188203.7081187,
+    "mtime": 1786394650.056776,
     "ast_hash": "22371d710fcd679f056ef674e587b06e",
     "semantic_hash": ""
   },
   "api/tarot/routes.py": {
-    "mtime": 1789188203.7091186,
+    "mtime": 1787441559.7684522,
     "ast_hash": "52fb7e28d5677c992bd9e50b2c9e509e",
     "semantic_hash": ""
   },
   "api/tarot/scripts/__init__.py": {
-    "mtime": 1789188203.7091186,
+    "mtime": 1778496912.043174,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "api/tarot/scripts/download_cards.py": {
-    "mtime": 1789188203.7091186,
+    "mtime": 1778496947.690414,
     "ast_hash": "db00ba0776ebdb87aeb41c5f15989181",
     "semantic_hash": "db00ba0776ebdb87aeb41c5f15989181"
   },
   "api/tarot/spreads.py": {
-    "mtime": 1789188203.7091186,
+    "mtime": 1778541917.1576974,
     "ast_hash": "7d1f978f17a9bbb8c02b27b000b44172",
     "semantic_hash": "7d1f978f17a9bbb8c02b27b000b44172"
   },
   "api/tarot/tools.py": {
-    "mtime": 1789188203.7091186,
+    "mtime": 1779300787.4105077,
     "ast_hash": "e6c4637968e067db379c05b93baca53c",
     "semantic_hash": "e6c4637968e067db379c05b93baca53c"
   },
   "bootstrap.sh": {
-    "mtime": 1789320969.5797799,
-    "ast_hash": "7716f0eedb902834ec174a2bbd4bd0c5",
+    "mtime": 1788326148.5244296,
+    "ast_hash": "2535063932817adda7b0347b6324ca21",
     "semantic_hash": ""
   },
   "eslint.config.mjs": {
-    "mtime": 1789188203.7161186,
+    "mtime": 1782267406.2220752,
     "ast_hash": "1420e9c4b4271c55eccf1a68ea6412ea",
     "semantic_hash": ""
   },
   "mtg/data/oracle-cards-slim.json": {
-    "mtime": 1789188203.9511197,
+    "mtime": 1777347796.0,
     "ast_hash": "e478b6a43df00e95eef46d249ab1d4b0",
     "semantic_hash": "e478b6a43df00e95eef46d249ab1d4b0"
   },
   "mtg/data/rulings-slim.json": {
-    "mtime": 1789188204.06212,
+    "mtime": 1777347799.0,
     "ast_hash": "6feee297085476426bc40096ba7d794a",
     "semantic_hash": "6feee297085476426bc40096ba7d794a"
   },
   "mtg/mtg_compress.py": {
-    "mtime": 1789188204.06412,
+    "mtime": 1777382887.648177,
     "ast_hash": "eec25defc55cb96c00b0672dc373bdce",
     "semantic_hash": "eec25defc55cb96c00b0672dc373bdce"
   },
   "package.json": {
-    "mtime": 1789188204.06412,
+    "mtime": 1777565648.0289567,
     "ast_hash": "4ae54e3c672e41c84d45257f9fd6a827",
     "semantic_hash": "4ae54e3c672e41c84d45257f9fd6a827"
   },
   "web/card-dialog.js": {
-    "mtime": 1789188204.1401203,
+    "mtime": 1788111505.6093204,
     "ast_hash": "56c10052516b1197e8359af667efcd27",
     "semantic_hash": ""
   },
   "web/card-style.js": {
-    "mtime": 1789188204.1421204,
+    "mtime": 1788328821.9054518,
     "ast_hash": "e61953cc52c34aeca3f525e5e34090e3",
     "semantic_hash": ""
   },
   "web/exec-bubble.js": {
-    "mtime": 1789188204.1561203,
-    "ast_hash": "7173463fba78c007ae60e15ea4daf790",
+    "mtime": 1788330484.6580358,
+    "ast_hash": "e83253c2458a9be92201bf6fce800605",
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1789188203.6761186,
+    "mtime": 1788395248.7672112,
     "ast_hash": "60d5eb7d4007351a26e6fc64ac4d5b11",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1789341103.319777,
-    "ast_hash": "7c1c472e1ca9d67ba512be041842d6b6",
+    "mtime": 1788902582.1325183,
+    "ast_hash": "0a4217ddd8cadda989af456e33d6b3f6",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1789188203.6801186,
+    "mtime": 1782501859.4162664,
     "ast_hash": "e369e41bc1ff1469742f680f40eea0d5",
     "semantic_hash": ""
   },
   "api/requirements.txt": {
-    "mtime": 1789188203.6991186,
+    "mtime": 1782867730.3888187,
     "ast_hash": "ebc53575ed788938bfada8848871ca50",
     "semantic_hash": ""
   },
   "api/tarot/book/cards/death.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498682.4517798,
     "ast_hash": "b83e40846590f4e33d37bfa075c65e80",
     "semantic_hash": "b83e40846590f4e33d37bfa075c65e80"
   },
   "api/tarot/book/cards/judgement.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498905.6302552,
     "ast_hash": "031d8083cb04d85151d4766b821e7fea",
     "semantic_hash": "031d8083cb04d85151d4766b821e7fea"
   },
   "api/tarot/book/cards/justice.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498620.824373,
     "ast_hash": "cfcdf888d923cbdfbfb0190263b7d9bb",
     "semantic_hash": "cfcdf888d923cbdfbfb0190263b7d9bb"
   },
   "api/tarot/book/cards/strength.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498517.7016926,
     "ast_hash": "ade0b9447346a7e46f9b70cde7362988",
     "semantic_hash": "ade0b9447346a7e46f9b70cde7362988"
   },
   "api/tarot/book/cards/temperance.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498716.561005,
     "ast_hash": "be6213732e2dccc39397a6b1a23cabf7",
     "semantic_hash": "be6213732e2dccc39397a6b1a23cabf7"
   },
   "api/tarot/book/cards/the_chariot.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498485.7044816,
     "ast_hash": "6b129b352e76e7987c3bc0ae09d8dd55",
     "semantic_hash": "6b129b352e76e7987c3bc0ae09d8dd55"
   },
   "api/tarot/book/cards/the_devil.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498748.1552138,
     "ast_hash": "d80cd5215e91f9598e7cb8be7164f522",
     "semantic_hash": "d80cd5215e91f9598e7cb8be7164f522"
   },
   "api/tarot/book/cards/the_emperor.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498335.0854902,
     "ast_hash": "18e02c0721d5ae0650ac8fede7e4cf25",
     "semantic_hash": "18e02c0721d5ae0650ac8fede7e4cf25"
   },
   "api/tarot/book/cards/the_empress.md": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1778498291.1852016,
     "ast_hash": "f5fd88990a0a303e5f7e6008e0c3c3d3",
     "semantic_hash": "f5fd88990a0a303e5f7e6008e0c3c3d3"
   },
   "api/tarot/book/cards/the_fool.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498140.900216,
     "ast_hash": "9e3009de300ae5766c1d19db11c5a142",
     "semantic_hash": "9e3009de300ae5766c1d19db11c5a142"
   },
   "api/tarot/book/cards/the_hanged_man.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498650.4195683,
     "ast_hash": "90a37a5fa051c953b9fcc4e10ebd3c00",
     "semantic_hash": "90a37a5fa051c953b9fcc4e10ebd3c00"
   },
   "api/tarot/book/cards/the_hermit.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498551.3719146,
     "ast_hash": "2624a02a71fcd129545e62189329cca8",
     "semantic_hash": "2624a02a71fcd129545e62189329cca8"
   },
   "api/tarot/book/cards/the_hierophant.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498374.3867486,
     "ast_hash": "6f717bf31faec07d29084bf7a700cbd2",
     "semantic_hash": "6f717bf31faec07d29084bf7a700cbd2"
   },
   "api/tarot/book/cards/the_high_priestess.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498226.029774,
     "ast_hash": "e1b05eafbd49b1aa877893635bab19ec",
     "semantic_hash": "e1b05eafbd49b1aa877893635bab19ec"
   },
   "api/tarot/book/cards/the_lovers.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498447.1252275,
     "ast_hash": "c1874469918d0239d766755a680b7983",
     "semantic_hash": "c1874469918d0239d766755a680b7983"
   },
   "api/tarot/book/cards/the_magician.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498189.7765362,
     "ast_hash": "a59a394d158ba7076200a7eba87e06f8",
     "semantic_hash": "a59a394d158ba7076200a7eba87e06f8"
   },
   "api/tarot/book/cards/the_moon.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498837.0198014,
     "ast_hash": "facaf98d27ef6848d5148f6947467964",
     "semantic_hash": "facaf98d27ef6848d5148f6947467964"
   },
   "api/tarot/book/cards/the_star.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498804.1235838,
     "ast_hash": "9921d98c68e70a9b4fcef57ce15a8060",
     "semantic_hash": "9921d98c68e70a9b4fcef57ce15a8060"
   },
   "api/tarot/book/cards/the_sun.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498866.6329973,
     "ast_hash": "953639ca8108432a7b8ba094eacd3dce",
     "semantic_hash": "953639ca8108432a7b8ba094eacd3dce"
   },
   "api/tarot/book/cards/the_tower.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498777.5864084,
     "ast_hash": "019fd1868b5bc5e8d1ec6b839a1dd012",
     "semantic_hash": "019fd1868b5bc5e8d1ec6b839a1dd012"
   },
   "api/tarot/book/cards/the_world.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498938.6674738,
     "ast_hash": "cb993f7f003c8e487315d48d16894a0d",
     "semantic_hash": "cb993f7f003c8e487315d48d16894a0d"
   },
   "api/tarot/book/cards/wheel_of_fortune.md": {
-    "mtime": 1789188203.7061186,
+    "mtime": 1778498587.500153,
     "ast_hash": "7656aed54264d7882ad31e4a5c4ae13c",
     "semantic_hash": "7656aed54264d7882ad31e4a5c4ae13c"
   },
   "api/tarot/book/framework_celtic_cross.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497165.450878,
     "ast_hash": "9f05c9bf5ba47178820894d6a5880b2b",
     "semantic_hash": "9f05c9bf5ba47178820894d6a5880b2b"
   },
   "api/tarot/book/framework_core.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497136.320682,
     "ast_hash": "0445886ab46e7f352b58bca33d0e24a3",
     "semantic_hash": "0445886ab46e7f352b58bca33d0e24a3"
   },
   "api/tarot/book/framework_minor.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778499610.587877,
     "ast_hash": "dfc3ae758ea848eedaf260ae1b70fa00",
     "semantic_hash": "dfc3ae758ea848eedaf260ae1b70fa00"
   },
   "api/tarot/book/framework_three.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497150.9147801,
     "ast_hash": "f3d085505a8239443b1195fc587e9fca",
     "semantic_hash": "f3d085505a8239443b1195fc587e9fca"
   },
   "api/tarot/book/numerology.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497229.2473066,
     "ast_hash": "17617e2dc920e91a3a6ce98a2d17553d",
     "semantic_hash": "17617e2dc920e91a3a6ce98a2d17553d"
   },
   "api/tarot/book/suits/cups.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497175.0929427,
     "ast_hash": "8c7c6c6460d4d3550e2dec5350c36c35",
     "semantic_hash": "8c7c6c6460d4d3550e2dec5350c36c35"
   },
   "api/tarot/book/suits/pentacles.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497211.9491904,
     "ast_hash": "41ea4ed84196410bd69a16da6fac385e",
     "semantic_hash": "41ea4ed84196410bd69a16da6fac385e"
   },
   "api/tarot/book/suits/swords.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497197.7210948,
     "ast_hash": "960a5f2e253f58ea44d08f8182ce9caa",
     "semantic_hash": "960a5f2e253f58ea44d08f8182ce9caa"
   },
   "api/tarot/book/suits/wands.md": {
-    "mtime": 1789188203.7071187,
+    "mtime": 1778497185.7600145,
     "ast_hash": "67b50e3fcc79705efa7f214b64dd0da3",
     "semantic_hash": "67b50e3fcc79705efa7f214b64dd0da3"
   },
   "api/templates/debug.html": {
-    "mtime": 1789188203.7101188,
-    "ast_hash": "3bae1819424b270d68fcf95db9a559f1",
+    "mtime": 1788330631.9336278,
+    "ast_hash": "a6ff031dfd406d895a959e2657c8558a",
     "semantic_hash": ""
   },
   "api/templates/mtg.html": {
-    "mtime": 1789188203.7111187,
-    "ast_hash": "3c859c6cb80f4b6f41c070e23852be82",
+    "mtime": 1788330792.5922744,
+    "ast_hash": "5fdc492c08d0361d97c1066d8e5bdac4",
     "semantic_hash": ""
   },
   "api/templates/tarot.html": {
-    "mtime": 1789188203.7121186,
-    "ast_hash": "1e535f3254c5d4b89dca5920bc07f38c",
+    "mtime": 1788330792.6092744,
+    "ast_hash": "0d70568b1abbc640306d790815256ca6",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
-    "mtime": 1789188203.7161186,
+    "mtime": 1787441559.769452,
     "ast_hash": "8ba60ed8a60e86741372ca2a0fcccd59",
     "semantic_hash": ""
   },
   "mtg/README.md": {
-    "mtime": 1789188203.8421192,
+    "mtime": 1777382887.648177,
     "ast_hash": "46e3d8cf68a33d209f8027c1267a3928",
     "semantic_hash": "46e3d8cf68a33d209f8027c1267a3928"
   },
   "mtg/data/mtg_rules.txt": {
-    "mtime": 1789188203.8481193,
+    "mtime": 1777346672.0,
     "ast_hash": "87561250c7b39e7d138c02a884e09a00",
     "semantic_hash": "87561250c7b39e7d138c02a884e09a00"
   },
   "web/index.html": {
-    "mtime": 1789188204.3781211,
+    "mtime": 1782659454.7370431,
     "ast_hash": "78a5e1ced90a0a6e77ad30e69a5cc16e",
     "semantic_hash": ""
   },
   "web/IMG_25419.png": {
-    "mtime": 1789188204.1381202,
+    "mtime": 1776527726.294198,
     "ast_hash": "ac1b36267e72aac361401d5e84629899",
     "semantic_hash": ""
   },
   "web/boss-green.png": {
-    "mtime": 1789188204.1391203,
+    "mtime": 1777431697.1291115,
     "ast_hash": "f86a127032c66d9dbd0a2a64bc21ad45",
     "semantic_hash": ""
   },
   "web/boss-original.png": {
-    "mtime": 1789188204.1391203,
+    "mtime": 1777431631.301684,
     "ast_hash": "9916135c15d52a550159aceffcca1eea",
     "semantic_hash": ""
   },
   "web/bug.png": {
-    "mtime": 1789188204.1391203,
+    "mtime": 1777475587.3504488,
     "ast_hash": "2ec4950b9e767fb5bf167cd3bbb7ccb0",
     "semantic_hash": ""
   },
   "web/fiddle.png": {
-    "mtime": 1789188204.1581204,
+    "mtime": 1780705696.6094146,
     "ast_hash": "abebce60130d48882211e7cbae1cf942",
     "semantic_hash": ""
   },
   "web/guru-pink.png": {
-    "mtime": 1789188204.375121,
+    "mtime": 1777475308.091709,
     "ast_hash": "94d5fbc80c624de391632254568a442b",
     "semantic_hash": ""
   },
   "web/hack2.png": {
-    "mtime": 1789188204.375121,
+    "mtime": 1777431778.286639,
     "ast_hash": "93fbfc7910d59d379b2604472020e5d1",
     "semantic_hash": ""
   },
   "web/laser-satellite.png": {
-    "mtime": 1789188204.379121,
+    "mtime": 1780705430.0985417,
     "ast_hash": "edb4c5c3d38b1f772da81ca71f6bd406",
     "semantic_hash": ""
   },
   "web/sentinel.png": {
-    "mtime": 1789188204.3861213,
+    "mtime": 1780979808.6792693,
     "ast_hash": "b0b1d469f8ff9e5e0dc0cdab70a7d8be",
     "semantic_hash": ""
   },
   "web/tarot/card_back.jpg": {
-    "mtime": 1789188204.3911211,
+    "mtime": 1782489534.6919768,
     "ast_hash": "d2d66b4da0f6da43996de942969afacd",
     "semantic_hash": ""
   },
   "web/tarot/cards/ace_of_cups.jpg": {
-    "mtime": 1789188204.3931212,
+    "mtime": 1780716419.5609205,
     "ast_hash": "f47f08ac9b95d59bcb23ec5e8fd0f2ed",
     "semantic_hash": ""
   },
   "web/tarot/cards/ace_of_pentacles.jpg": {
-    "mtime": 1789188204.3931212,
+    "mtime": 1780716419.5609205,
     "ast_hash": "9fd9da1fecdba42f171c4e5bfd35051a",
     "semantic_hash": ""
   },
   "web/tarot/cards/ace_of_swords.jpg": {
-    "mtime": 1789188204.3931212,
+    "mtime": 1780716419.5619204,
     "ast_hash": "bba88b262e6bc12d2662621ad11cedf4",
     "semantic_hash": ""
   },
   "web/tarot/cards/ace_of_wands.jpg": {
-    "mtime": 1789188204.3931212,
+    "mtime": 1780716419.5619204,
     "ast_hash": "b91b8b60bac38e88d22bcc7db284cc4d",
     "semantic_hash": ""
   },
   "web/tarot/cards/death.jpg": {
-    "mtime": 1789188204.3931212,
+    "mtime": 1780716419.5619204,
     "ast_hash": "0d76539410eb702aa13b8ef15fff4b93",
     "semantic_hash": ""
   },
   "web/tarot/cards/eight_of_cups.jpg": {
-    "mtime": 1789188204.3941212,
+    "mtime": 1780716419.5629203,
     "ast_hash": "64e6e1fe463cd555231cd13133b3b4ea",
     "semantic_hash": ""
   },
   "web/tarot/cards/eight_of_pentacles.jpg": {
-    "mtime": 1789188204.3941212,
+    "mtime": 1780716419.5629203,
     "ast_hash": "84c13e2586808fe14a8dc14473bace23",
     "semantic_hash": ""
   },
   "web/tarot/cards/eight_of_swords.jpg": {
-    "mtime": 1789188204.3941212,
+    "mtime": 1780716419.5629203,
     "ast_hash": "efc408794c583064556c3f948897bbd3",
     "semantic_hash": ""
   },
   "web/tarot/cards/eight_of_wands.jpg": {
-    "mtime": 1789188204.3941212,
+    "mtime": 1780716419.5639205,
     "ast_hash": "1b10ef619514761d755c34362aba1649",
     "semantic_hash": ""
   },
   "web/tarot/cards/five_of_cups.jpg": {
-    "mtime": 1789188204.395121,
+    "mtime": 1780716419.5639205,
     "ast_hash": "ad6cc033c1a136b49c9a6a2b3253f26b",
     "semantic_hash": ""
   },
   "web/tarot/cards/five_of_pentacles.jpg": {
-    "mtime": 1789188204.395121,
+    "mtime": 1780716419.5639205,
     "ast_hash": "cc77d8cf51e854b5c31a14133caed95f",
     "semantic_hash": ""
   },
   "web/tarot/cards/five_of_swords.jpg": {
-    "mtime": 1789188204.395121,
+    "mtime": 1780716419.5649204,
     "ast_hash": "6dd33f30fdacb73e0e7d45c726c8f540",
     "semantic_hash": ""
   },
   "web/tarot/cards/five_of_wands.jpg": {
-    "mtime": 1789188204.395121,
+    "mtime": 1780716419.5649204,
     "ast_hash": "6ac3a31c1fc26853f739745e51dcdded",
     "semantic_hash": ""
   },
   "web/tarot/cards/four_of_cups.jpg": {
-    "mtime": 1789188204.3961213,
+    "mtime": 1780716419.5649204,
     "ast_hash": "05e77896f3ffb1a040275bb4a2d90c12",
     "semantic_hash": ""
   },
   "web/tarot/cards/four_of_pentacles.jpg": {
-    "mtime": 1789188204.3961213,
+    "mtime": 1780716419.5649204,
     "ast_hash": "daa4c5bc5888e2eacb093e79c1c6776c",
     "semantic_hash": ""
   },
   "web/tarot/cards/four_of_swords.jpg": {
-    "mtime": 1789188204.3961213,
+    "mtime": 1780716419.5659204,
     "ast_hash": "ed2998aedede7afbdb08c62ad1a4e00c",
     "semantic_hash": ""
   },
   "web/tarot/cards/four_of_wands.jpg": {
-    "mtime": 1789188204.3961213,
+    "mtime": 1780716419.5659204,
     "ast_hash": "59b74c93d052ded5de1b53d6eb1185ed",
     "semantic_hash": ""
   },
   "web/tarot/cards/judgement.jpg": {
-    "mtime": 1789188204.3971212,
+    "mtime": 1780716419.5659204,
     "ast_hash": "fe5e6b82ddc1fab0a77c10a50226f9a2",
     "semantic_hash": ""
   },
   "web/tarot/cards/justice.jpg": {
-    "mtime": 1789188204.3971212,
+    "mtime": 1780716419.5669205,
     "ast_hash": "847ebda8e3cd77b2fe8c9cc57ab30d47",
     "semantic_hash": ""
   },
   "web/tarot/cards/king_of_cups.jpg": {
-    "mtime": 1789188204.3971212,
+    "mtime": 1780716419.5669205,
     "ast_hash": "efd4e74a529b458f40193dbdaf4bc4a5",
     "semantic_hash": ""
   },
   "web/tarot/cards/king_of_pentacles.jpg": {
-    "mtime": 1789188204.3971212,
+    "mtime": 1780716419.5669205,
     "ast_hash": "a9883ae235cbdbd8862d91fab418df15",
     "semantic_hash": ""
   },
   "web/tarot/cards/king_of_swords.jpg": {
-    "mtime": 1789188204.398121,
+    "mtime": 1780716419.5679204,
     "ast_hash": "1d5ae5f3032c3dbcf1d5bc087433e14d",
     "semantic_hash": ""
   },
   "web/tarot/cards/king_of_wands.jpg": {
-    "mtime": 1789188204.398121,
+    "mtime": 1780716419.5679204,
     "ast_hash": "13e8b4744cd1fd8a2e7e57fae9f8fd59",
     "semantic_hash": ""
   },
   "web/tarot/cards/knight_of_cups.jpg": {
-    "mtime": 1789188204.398121,
+    "mtime": 1780716419.5679204,
     "ast_hash": "190ec49fd590bef9c164955b093a4697",
     "semantic_hash": ""
   },
   "web/tarot/cards/knight_of_pentacles.jpg": {
-    "mtime": 1789188204.3991213,
+    "mtime": 1780716419.5689204,
     "ast_hash": "ef2165dadb23a7bdfe3b938bfec032f3",
     "semantic_hash": ""
   },
   "web/tarot/cards/knight_of_swords.jpg": {
-    "mtime": 1789188204.3991213,
+    "mtime": 1780716419.5689204,
     "ast_hash": "04f78e9824b99a39c1ab8706b2e9445d",
     "semantic_hash": ""
   },
   "web/tarot/cards/knight_of_wands.jpg": {
-    "mtime": 1789188204.3991213,
+    "mtime": 1780716419.5689204,
     "ast_hash": "6636155e637a13d7e9fbe6fd53e4beff",
     "semantic_hash": ""
   },
   "web/tarot/cards/nine_of_cups.jpg": {
-    "mtime": 1789188204.4001212,
+    "mtime": 1780716419.5699205,
     "ast_hash": "bee6ad641c4f870b9c9dfad5525a45d3",
     "semantic_hash": ""
   },
   "web/tarot/cards/nine_of_pentacles.jpg": {
-    "mtime": 1789188204.4001212,
+    "mtime": 1780716419.5699205,
     "ast_hash": "19d40e56a3e35302b4346b097483e111",
     "semantic_hash": ""
   },
   "web/tarot/cards/nine_of_swords.jpg": {
-    "mtime": 1789188204.4001212,
+    "mtime": 1780716419.5699205,
     "ast_hash": "b11e4e1dd1d675612fc67973a4b35e4c",
     "semantic_hash": ""
   },
   "web/tarot/cards/nine_of_wands.jpg": {
-    "mtime": 1789188204.4011211,
+    "mtime": 1780716419.5709205,
     "ast_hash": "5867d42bc1f36d5c2d63687a4cc6478a",
     "semantic_hash": ""
   },
   "web/tarot/cards/page_of_cups.jpg": {
-    "mtime": 1789188204.4011211,
+    "mtime": 1780716419.5709205,
     "ast_hash": "86968b266d604df07ead1ce027a6a0f0",
     "semantic_hash": ""
   },
   "web/tarot/cards/page_of_pentacles.jpg": {
-    "mtime": 1789188204.4011211,
+    "mtime": 1780716419.5709205,
     "ast_hash": "da3d96661f5161deac21fd7830b28980",
     "semantic_hash": ""
   },
   "web/tarot/cards/page_of_swords.jpg": {
-    "mtime": 1789188204.4011211,
+    "mtime": 1780716419.5719204,
     "ast_hash": "51d7b5bbf0c40c8b98dd40af1b29eb1b",
     "semantic_hash": ""
   },
   "web/tarot/cards/page_of_wands.jpg": {
-    "mtime": 1789188204.4021213,
+    "mtime": 1780716419.5719204,
     "ast_hash": "aa5876dbaae3e75c65cb8ce9efd17ec5",
     "semantic_hash": ""
   },
   "web/tarot/cards/queen_of_cups.jpg": {
-    "mtime": 1789188204.4021213,
+    "mtime": 1780716419.5719204,
     "ast_hash": "e1db57a049ba0c6c53fbda21437e738a",
     "semantic_hash": ""
   },
   "web/tarot/cards/queen_of_pentacles.jpg": {
-    "mtime": 1789188204.4021213,
+    "mtime": 1780716419.5729206,
     "ast_hash": "d01b4410fc9183aaa47c576c04d80b06",
     "semantic_hash": ""
   },
   "web/tarot/cards/queen_of_swords.jpg": {
-    "mtime": 1789188204.4031212,
+    "mtime": 1780716419.5729206,
     "ast_hash": "3620dc48b92885640cc16c04525fd564",
     "semantic_hash": ""
   },
   "web/tarot/cards/queen_of_wands.jpg": {
-    "mtime": 1789188204.4031212,
+    "mtime": 1780716419.5739205,
     "ast_hash": "df6735646861f72efc47faf37b33c446",
     "semantic_hash": ""
   },
   "web/tarot/cards/seven_of_cups.jpg": {
-    "mtime": 1789188204.4041212,
+    "mtime": 1780716419.5739205,
     "ast_hash": "c416b54a8b675f92202c4b46d54817ff",
     "semantic_hash": ""
   },
   "web/tarot/cards/seven_of_pentacles.jpg": {
-    "mtime": 1789188204.4041212,
+    "mtime": 1780716419.5739205,
     "ast_hash": "131ee5fdadab1d4159a37492243c57aa",
     "semantic_hash": ""
   },
   "web/tarot/cards/seven_of_swords.jpg": {
-    "mtime": 1789188204.4041212,
+    "mtime": 1780716419.5749204,
     "ast_hash": "89a9e67a11c93c25e01deb8266146c73",
     "semantic_hash": ""
   },
   "web/tarot/cards/seven_of_wands.jpg": {
-    "mtime": 1789188204.4041212,
+    "mtime": 1780716419.5749204,
     "ast_hash": "66c2fd553f493e6123bb6d0ab2716b0c",
     "semantic_hash": ""
   },
   "web/tarot/cards/six_of_cups.jpg": {
-    "mtime": 1789188204.4051213,
+    "mtime": 1780716419.5749204,
     "ast_hash": "259e617feaae29a042d61264e1961bfe",
     "semantic_hash": ""
   },
   "web/tarot/cards/six_of_pentacles.jpg": {
-    "mtime": 1789188204.4051213,
+    "mtime": 1780716419.5759206,
     "ast_hash": "872290ad6073a039af6767849db3e05d",
     "semantic_hash": ""
   },
   "web/tarot/cards/six_of_swords.jpg": {
-    "mtime": 1789188204.4051213,
+    "mtime": 1780716419.5759206,
     "ast_hash": "45e07fba3b8c078f02742eaab54bda24",
     "semantic_hash": ""
   },
   "web/tarot/cards/six_of_wands.jpg": {
-    "mtime": 1789188204.4051213,
+    "mtime": 1780716419.5759206,
     "ast_hash": "95d5b19a539a451aa8352893637bd143",
     "semantic_hash": ""
   },
   "web/tarot/cards/strength.jpg": {
-    "mtime": 1789188204.4061213,
+    "mtime": 1780716419.5769205,
     "ast_hash": "cc2b94dedf1e0a73cc0bd72bfb8ccbfe",
     "semantic_hash": ""
   },
   "web/tarot/cards/temperance.jpg": {
-    "mtime": 1789188204.4061213,
+    "mtime": 1780716419.5769205,
     "ast_hash": "ede907685971f4e0a93eb1e8ea25c51f",
     "semantic_hash": ""
   },
   "web/tarot/cards/ten_of_cups.jpg": {
-    "mtime": 1789188204.4061213,
+    "mtime": 1780716419.5769205,
     "ast_hash": "5756d0b3d4627677cfccda91659bd301",
     "semantic_hash": ""
   },
   "web/tarot/cards/ten_of_pentacles.jpg": {
-    "mtime": 1789188204.4071212,
+    "mtime": 1780716419.5769205,
     "ast_hash": "40e9470857061cd0758701fbd12f7d24",
     "semantic_hash": ""
   },
   "web/tarot/cards/ten_of_swords.jpg": {
-    "mtime": 1789188204.4071212,
+    "mtime": 1780716419.5779204,
     "ast_hash": "b961b95282283beabb13add675c5808f",
     "semantic_hash": ""
   },
   "web/tarot/cards/ten_of_wands.jpg": {
-    "mtime": 1789188204.4071212,
+    "mtime": 1780716419.5779204,
     "ast_hash": "8f6abc8c61bc98753a0565f6393d104a",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_chariot.jpg": {
-    "mtime": 1789188204.4071212,
+    "mtime": 1780716419.5779204,
     "ast_hash": "b2dee7f907a5d053d4e56e36e68bf8fe",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_devil.jpg": {
-    "mtime": 1789188204.4081213,
+    "mtime": 1780716419.5789206,
     "ast_hash": "0ebf1731da9c4e0107b453fa62db1ba8",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_emperor.jpg": {
-    "mtime": 1789188204.4081213,
+    "mtime": 1780716419.5789206,
     "ast_hash": "c7f2b3c5f01954594f6abeb84abe6638",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_empress.jpg": {
-    "mtime": 1789188204.4081213,
+    "mtime": 1780716419.5789206,
     "ast_hash": "9de3063950d05988cf2478663b92b571",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_fool.jpg": {
-    "mtime": 1789188204.4081213,
+    "mtime": 1780716419.5799205,
     "ast_hash": "376ab2c6819fa81cd865a8e8dfc7e08c",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_hanged_man.jpg": {
-    "mtime": 1789188204.4091213,
+    "mtime": 1780716419.5799205,
     "ast_hash": "574ff2027f5d5bb4efe1d85bba0054e4",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_hermit.jpg": {
-    "mtime": 1789188204.4091213,
+    "mtime": 1780716419.5799205,
     "ast_hash": "4537fd22470e963a10641eb06f9dc10f",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_hierophant.jpg": {
-    "mtime": 1789188204.4091213,
+    "mtime": 1780716419.5809205,
     "ast_hash": "e0b08be0b1851d9f24f5bb262dd04baf",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_high_priestess.jpg": {
-    "mtime": 1789188204.4101212,
+    "mtime": 1780716419.5809205,
     "ast_hash": "955d85c3aa46689aa76896e281d6cc30",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_lovers.jpg": {
-    "mtime": 1789188204.4101212,
+    "mtime": 1780716419.5809205,
     "ast_hash": "d2c62269851b6b21da75ab34415e8c4d",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_magician.jpg": {
-    "mtime": 1789188204.4101212,
+    "mtime": 1780716419.5819206,
     "ast_hash": "9fe9db9ad17e7a2f577e017451659c14",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_moon.jpg": {
-    "mtime": 1789188204.4111214,
+    "mtime": 1780716419.5819206,
     "ast_hash": "975d10e60968dbf667e8e41cff2a9ab7",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_star.jpg": {
-    "mtime": 1789188204.4111214,
+    "mtime": 1780716419.5819206,
     "ast_hash": "c170970d4d8307ef96b5d7462ba3c92a",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_sun.jpg": {
-    "mtime": 1789188204.4111214,
+    "mtime": 1780716419.5829206,
     "ast_hash": "3c77e7ed325c17f25ac98e514e87ea0d",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_tower.jpg": {
-    "mtime": 1789188204.4111214,
+    "mtime": 1780716419.5829206,
     "ast_hash": "23561165db211452985babbc080a9a4c",
     "semantic_hash": ""
   },
   "web/tarot/cards/the_world.jpg": {
-    "mtime": 1789188204.4121213,
+    "mtime": 1780716419.5829206,
     "ast_hash": "4baf39cf86d87badad9f2125d5d2e483",
     "semantic_hash": ""
   },
   "web/tarot/cards/three_of_cups.jpg": {
-    "mtime": 1789188204.4121213,
+    "mtime": 1780716419.5839205,
     "ast_hash": "c66472e2b6b6dd1018a40128cc23a77c",
     "semantic_hash": ""
   },
   "web/tarot/cards/three_of_pentacles.jpg": {
-    "mtime": 1789188204.4121213,
+    "mtime": 1780716419.5839205,
     "ast_hash": "3c4381df204da05cc3c53060846a51ee",
     "semantic_hash": ""
   },
   "web/tarot/cards/three_of_swords.jpg": {
-    "mtime": 1789188204.4121213,
+    "mtime": 1780716419.5839205,
     "ast_hash": "6761038ea791a7347320ec03e0e212e9",
     "semantic_hash": ""
   },
   "web/tarot/cards/three_of_wands.jpg": {
-    "mtime": 1789188204.4131212,
+    "mtime": 1780716419.5849206,
     "ast_hash": "8145c58a37b61196dbc292ec5f82e622",
     "semantic_hash": ""
   },
   "web/tarot/cards/two_of_cups.jpg": {
-    "mtime": 1789188204.4131212,
+    "mtime": 1780716419.5849206,
     "ast_hash": "3061ed3ab3db5159ac2131b61bed8bbe",
     "semantic_hash": ""
   },
   "web/tarot/cards/two_of_pentacles.jpg": {
-    "mtime": 1789188204.4131212,
+    "mtime": 1780716419.5849206,
     "ast_hash": "0daa5d9812116fcd83e27c067fa0b68d",
     "semantic_hash": ""
   },
   "web/tarot/cards/two_of_swords.jpg": {
-    "mtime": 1789188204.4131212,
+    "mtime": 1780716419.5859206,
     "ast_hash": "786b437a98959e45b5ab3030d2c53039",
     "semantic_hash": ""
   },
   "web/tarot/cards/two_of_wands.jpg": {
-    "mtime": 1789188204.4141214,
+    "mtime": 1780716419.5859206,
     "ast_hash": "1219ebd64bab6fe35516b6f976c44261",
     "semantic_hash": ""
   },
   "web/tarot/cards/wheel_of_fortune.jpg": {
-    "mtime": 1789188204.4141214,
+    "mtime": 1780716419.5859206,
     "ast_hash": "12fe638718d8a69ae603397ac9ebb50b",
     "semantic_hash": ""
   },
   "web/turbo.png": {
-    "mtime": 1789188204.4151213,
+    "mtime": 1780705696.6104147,
     "ast_hash": "00e9ec672af774e85cceeb683e6f3a51",
     "semantic_hash": ""
   },
   "web/watchman.png": {
-    "mtime": 1789188204.4211214,
+    "mtime": 1778500884.2121842,
     "ast_hash": "6be246034202f8ccda47ac5bb321ca30",
     "semantic_hash": ""
   },
   "web/wizard.png": {
-    "mtime": 1789188204.4211214,
+    "mtime": 1780711696.2299936,
     "ast_hash": "d0561350a31daaceeef9b7caf1d48a64",
     "semantic_hash": ""
   },
   "web/graph-overlay.js": {
-    "mtime": 1789188204.3741212,
+    "mtime": 1782150126.7781029,
     "ast_hash": "ddc9571a20f99164ffe5fa28afb24a56",
     "semantic_hash": ""
   },
   "api/nudge.py": {
-    "mtime": 1789188203.6961186,
+    "mtime": 1787439899.2800846,
     "ast_hash": "ff99bded33b62342dfc25ec18df35b48",
     "semantic_hash": ""
   },
   "web/card-graph.js": {
-    "mtime": 1789188204.1421204,
+    "mtime": 1788111496.2412832,
     "ast_hash": "9f106c737008ddfb73c7aa29f1b321ad",
     "semantic_hash": ""
   },
   "api/recalibration.py": {
-    "mtime": 1789188203.6991186,
+    "mtime": 1781067385.5081525,
     "ast_hash": "580d6edc86f0065075633edaf6d0aa27",
     "semantic_hash": ""
   },
   "scripts/install-hooks.sh": {
-    "mtime": 1789188204.06612,
+    "mtime": 1781202708.8825834,
     "ast_hash": "80d5b3409dfbe28ab1fb7fe5648a5467",
     "semantic_hash": ""
   },
   "scripts/pre-commit": {
-    "mtime": 1789188204.06812,
-    "ast_hash": "1028a662616eb5a22e098d5056224f4b",
+    "mtime": 1788330968.6569831,
+    "ast_hash": "0cf83b778cb6d4e42a230e4a32e9117c",
     "semantic_hash": ""
   },
   "api/templates/guest_login.html": {
-    "mtime": 1789188203.7101188,
+    "mtime": 1788330792.5852742,
     "ast_hash": "7af44816628c50667ab13b747b9ad018",
     "semantic_hash": ""
   },
   "web/bitman.png": {
-    "mtime": 1789188204.1381202,
+    "mtime": 1781206853.7207959,
     "ast_hash": "e88f289acf97f9377dc3a6c15d988ca3",
     "semantic_hash": ""
   },
   "web/data-doctor.png": {
-    "mtime": 1789188204.1521204,
+    "mtime": 1781534319.8659422,
     "ast_hash": "e193755b80f1e804847c69afccef8123",
     "semantic_hash": ""
   },
   "web/seeker.png": {
-    "mtime": 1789188204.3861213,
+    "mtime": 1781534319.8489423,
     "ast_hash": "9f771896976a29383ac13421da55d5da",
     "semantic_hash": ""
   },
   "web/golem-stone.png": {
-    "mtime": 1789188204.373121,
+    "mtime": 1781747464.7493424,
     "ast_hash": "3043c0ab2392a37247c517112c4c1105",
     "semantic_hash": ""
   },
   "web/debug.js": {
-    "mtime": 1789188204.1531203,
-    "ast_hash": "4104d1cdf1b402ec544094890827ffee",
+    "mtime": 1787441559.770452,
+    "ast_hash": "e879183859da9f186b4d0a998a95b506",
     "semantic_hash": ""
   },
   "web/mtg.js": {
-    "mtime": 1789188204.3801212,
-    "ast_hash": "94ce05462f3ba318f78664c32fee291c",
+    "mtime": 1787441559.772452,
+    "ast_hash": "6b1c237dd3ef31470796e66f19abc559",
     "semantic_hash": ""
   },
   "web/tarot-chat.js": {
-    "mtime": 1789188204.3861213,
+    "mtime": 1788326297.253044,
     "ast_hash": "640070e86d435f7c9f115ccc9b786e2d",
     "semantic_hash": ""
   },
   "web/tarot-view.js": {
-    "mtime": 1789188204.3881211,
+    "mtime": 1788326293.428028,
     "ast_hash": "9b04c100c3d7be013cbde36ba0c316e6",
     "semantic_hash": ""
   },
   "api/nudge_llm.py": {
-    "mtime": 1789316859.1850357,
-    "ast_hash": "5f664692d27c775362c4314ee7a868ea",
+    "mtime": 1787942512.0526705,
+    "ast_hash": "dd1b788a43f9573773f6ac3580ae63e2",
     "semantic_hash": ""
   },
   "api/monitor_sse.py": {
-    "mtime": 1789188203.6931186,
+    "mtime": 1781558847.8173602,
     "ast_hash": "760a9b676d825332b7ecbf447086f8d4",
     "semantic_hash": ""
   },
   "api/nudge_loop.py": {
-    "mtime": 1789188203.6971185,
+    "mtime": 1787942464.6374786,
     "ast_hash": "60868904776e9a4cdd473e77c2ff3689",
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1789188203.6971185,
-    "ast_hash": "9a5a506fd406288328a1b594f6f9e93c",
+    "mtime": 1788902428.090961,
+    "ast_hash": "2db8577eeca14682a12252e78cad7a75",
     "semantic_hash": ""
   },
   "api/routers.py": {
-    "mtime": 1789188203.6991186,
+    "mtime": 1788309304.8144314,
     "ast_hash": "0b180f93e828dd85eab203f3c4d60534",
     "semantic_hash": ""
   },
   "api/routes_api.py": {
-    "mtime": 1789188203.7001185,
+    "mtime": 1788395061.0774796,
     "ast_hash": "ae4efc7388ca12435b27346f4d99c1fc",
     "semantic_hash": ""
   },
   "api/routes_views.py": {
-    "mtime": 1789188203.7031186,
-    "ast_hash": "2e79b6385d178eaf8e8ee597a207e5ec",
+    "mtime": 1788330631.937628,
+    "ast_hash": "84ccadb1a5cf7ab2b7295b38414914f4",
     "semantic_hash": ""
   },
   "api/nudge_deadlines.py": {
-    "mtime": 1789188203.6961186,
+    "mtime": 1782760902.7050784,
     "ast_hash": "54e294890420caaf2607620c87eef18b",
     "semantic_hash": ""
   },
   "api/card_llm.py": {
-    "mtime": 1789188203.6831186,
+    "mtime": 1787441559.763452,
     "ast_hash": "936eccfa8adc66b43b77f9810ce3c16e",
     "semantic_hash": ""
   },
   "api/morning.py": {
-    "mtime": 1789188203.6931186,
-    "ast_hash": "3afbe5375708ac9622dcb52f010da5b2",
+    "mtime": 1787441559.764452,
+    "ast_hash": "389d80bf5aa379f8409688ab90f077ff",
     "semantic_hash": ""
   },
   "api/templates/recruiter.html": {
-    "mtime": 1789188203.7121186,
+    "mtime": 1788327932.17882,
     "ast_hash": "0fca028347add12c23d130cc08e14414",
     "semantic_hash": ""
   },
   "web/recruiter.js": {
-    "mtime": 1789188204.385121,
+    "mtime": 1788202988.335919,
     "ast_hash": "12ecc9e8ed7f2338b1caa2feabe1fabb",
     "semantic_hash": ""
   },
   "api/templates/emet.html": {
-    "mtime": 1789188203.7101188,
-    "ast_hash": "a612220a78ef92ad5c73256a67667af3",
+    "mtime": 1788330792.5802743,
+    "ast_hash": "4e8f9d167b138bd38892dc33a0024d33",
     "semantic_hash": ""
   },
   "api/scripts/subset_cv_fonts.py": {
-    "mtime": 1789188203.7041187,
+    "mtime": 1782499733.518934,
     "ast_hash": "926304a14139d4b3053e8fc2a2f9edf8",
     "semantic_hash": ""
   },
   "web/exec-bubble-drag.js": {
-    "mtime": 1789188204.1551204,
+    "mtime": 1788074761.0499134,
     "ast_hash": "e5e4ba912ffe41ffa1375cd201bd4b50",
     "semantic_hash": ""
   },
   "web/data-file.png": {
-    "mtime": 1789188204.1521204,
+    "mtime": 1781893436.7770488,
     "ast_hash": "9630389fdc4819afadb90858df05082f",
     "semantic_hash": ""
   },
   "api/graph_scrub.py": {
-    "mtime": 1789188203.6901186,
+    "mtime": 1788111546.235482,
     "ast_hash": "d9bd96273fc28b31ea5e5a99eba99cf7",
     "semantic_hash": ""
   },
   "web/exec-todos.js": {
-    "mtime": 1789188204.1571202,
+    "mtime": 1787633321.942129,
     "ast_hash": "d8103b407cc2b9abf70b1606d41e8158",
     "semantic_hash": ""
   },
   "tests/conftest.py": {
-    "mtime": 1789188204.06912,
-    "ast_hash": "aa1a6307c4e125412f7d97e2deb796d3",
+    "mtime": 1783012603.1907485,
+    "ast_hash": "14d2b3b87bf0fa8e05db264bfd3b9e33",
     "semantic_hash": ""
   },
   "tests/test_smoke.py": {
-    "mtime": 1789188204.07412,
-    "ast_hash": "75a362dba883a07b37649b751119f7c5",
+    "mtime": 1788112303.6315331,
+    "ast_hash": "7605d10ed5a7a809bb7cdc3797dae0a6",
     "semantic_hash": ""
   },
   "requirements-dev.txt": {
-    "mtime": 1789188204.06412,
+    "mtime": 1782316154.9775605,
     "ast_hash": "7623d6114218783d273c5e983c7f6fc1",
     "semantic_hash": ""
   },
   ".claude/hooks/docs-commit-guard.sh": {
-    "mtime": 1789188203.6701186,
+    "mtime": 1788846233.954341,
     "ast_hash": "95ed115844811e9e0ead8b87e839bb18",
     "semantic_hash": ""
   },
   "api/routes_tts.py": {
-    "mtime": 1789188203.7021186,
-    "ast_hash": "fe0eeea89e62c4785d6dfb116f3c02f9",
+    "mtime": 1788318306.1013982,
+    "ast_hash": "4dd08bed21fcee89e24a7e8d2e7f7c6f",
     "semantic_hash": ""
   },
   "web/tts.js": {
-    "mtime": 1789188204.4151213,
+    "mtime": 1788309369.4526756,
     "ast_hash": "930d07bb8f9c448aa84b3b0a0c8a0d23",
     "semantic_hash": ""
   },
   "api/templates/tts.html": {
-    "mtime": 1789188203.7121186,
-    "ast_hash": "7b2c0c01947e916be3116246ab600103",
+    "mtime": 1788330792.6132743,
+    "ast_hash": "c59fd10b35149ddf306dbffa4da3a50b",
     "semantic_hash": ""
   },
   "web/radar.png": {
-    "mtime": 1789188204.382121,
+    "mtime": 1782192107.1968155,
     "ast_hash": "488b8c9165d286c66aeeb30d79d7721c",
     "semantic_hash": ""
   },
   "web/silence.wav": {
-    "mtime": 1789188204.3861213,
+    "mtime": 1782193533.5942755,
     "ast_hash": "ecaa3c732519f171465471f73fbb7d5c",
     "semantic_hash": ""
   },
@@ -1085,82 +1085,82 @@
     "semantic_hash": ""
   },
   "web/hosaka-audio.js": {
-    "mtime": 1789188204.375121,
+    "mtime": 1788317548.0063896,
     "ast_hash": "61341b56c6cec1e8b2f646db1a139a5d",
     "semantic_hash": ""
   },
   "web/tarot-voice.js": {
-    "mtime": 1789188204.3881211,
+    "mtime": 1788309369.4526756,
     "ast_hash": "221342dd80bbd22095128486037bc4b0",
     "semantic_hash": ""
   },
   "tts-box/tts-watchdog.sh": {
-    "mtime": 1789188204.07512,
+    "mtime": 1782263312.5630367,
     "ast_hash": "9713a117ce214b9ebba0fc7818a75263",
     "semantic_hash": ""
   },
   "tts-box/README.md": {
-    "mtime": 1789188204.07512,
+    "mtime": 1782431534.604309,
     "ast_hash": "c61125fdb9ab813e69dcd0db6f7560db",
     "semantic_hash": ""
   },
   "web/tarot-stream.js": {
-    "mtime": 1789188204.3881211,
-    "ast_hash": "a80ae7d58e3c87037c6b51315289b495",
+    "mtime": 1788317532.0073278,
+    "ast_hash": "784c43fcd5b03f4384b968fd8da818d3",
     "semantic_hash": ""
   },
   "scripts/lint-colors.py": {
-    "mtime": 1789188204.06612,
+    "mtime": 1783017434.9289823,
     "ast_hash": "0aed5ea954ef016e12cff5eca2137295",
     "semantic_hash": ""
   },
   "scripts/palette-baseline.json": {
-    "mtime": 1789188204.06712,
+    "mtime": 1788201878.3104205,
     "ast_hash": "da7633413c09d594dd7a4ef36f5acd96",
     "semantic_hash": ""
   },
   "web/firewall.png": {
-    "mtime": 1789188204.1591203,
+    "mtime": 1782274668.9443629,
     "ast_hash": "98476fadbe043dc9f2227494f1cfdcb5",
     "semantic_hash": ""
   },
   "tests/test_tarot_progression.py": {
-    "mtime": 1789188204.07412,
+    "mtime": 1786395231.759953,
     "ast_hash": "8f1f9d0d5b1a6240208b6fa21bc40aad",
     "semantic_hash": ""
   },
   "web/tarot-music.js": {
-    "mtime": 1789188204.3871212,
+    "mtime": 1788327478.9089506,
     "ast_hash": "eb8874bb321d0b37d380c757549cb625",
     "semantic_hash": ""
   },
   "web/exec-link.js": {
-    "mtime": 1789188204.1561203,
+    "mtime": 1782498140.087278,
     "ast_hash": "a66c8696ea74be0c5244cbc3f10cc0d3",
     "semantic_hash": ""
   },
   "web/exec-voice.js": {
-    "mtime": 1789188204.1581204,
+    "mtime": 1788200439.1566978,
     "ast_hash": "9b8233efbd2b43acd8620fcf9dc542ba",
     "semantic_hash": ""
   },
   "web/voice-util.js": {
-    "mtime": 1789188204.4201212,
+    "mtime": 1782404613.453146,
     "ast_hash": "8071e2c49908e46da97a135ffa285f90",
     "semantic_hash": ""
   },
   "web/exec-voice-listener.js": {
-    "mtime": 1789188204.1571202,
+    "mtime": 1782498140.083278,
     "ast_hash": "dba9963451d39ae43dff6af3266375c4",
     "semantic_hash": ""
   },
   "tests/test_exec_voice.py": {
-    "mtime": 1789188204.07012,
+    "mtime": 1783012570.1246028,
     "ast_hash": "30c8397492d72469eb24cff229658d14",
     "semantic_hash": ""
   },
   "tests/test_exec_voice_browser.py": {
-    "mtime": 1789188204.07112,
+    "mtime": 1782752791.46177,
     "ast_hash": "1c8a4096f27c066a3e8818171ff1bef1",
     "semantic_hash": ""
   },
@@ -1170,8 +1170,8 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1789316355.4491508,
-    "ast_hash": "7901c2cbdfe34322715857a6f4152dd8",
+    "mtime": 1788892317.4912508,
+    "ast_hash": "65d8e6f793163b6e780fad42aeead827",
     "semantic_hash": ""
   },
   "api/data/activity_log_0429.json": {
@@ -1775,8 +1775,8 @@
     "semantic_hash": ""
   },
   "api/data/exec_todos.json": {
-    "mtime": 1789102835.2857034,
-    "ast_hash": "aa10dd3521839720358313772c4d00cd",
+    "mtime": 1787877598.790232,
+    "ast_hash": "8d626f098ccf4800bee3eb08b02a3d23",
     "semantic_hash": ""
   },
   "api/data/gamesave_save1.json": {
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1789288205.1850963,
-    "ast_hash": "6d5b10c0b461300cc23f36ff1175582a",
+    "mtime": 1788856207.992615,
+    "ast_hash": "f83b7fc71aa6af0ab6ec6ef219d27d94",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1789329630.006338,
-    "ast_hash": "9f335b14b41aa277e011c038d53ad1b0",
+    "mtime": 1788892485.48093,
+    "ast_hash": "b08f70df0b6e370987e58ae2486e8576",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -5785,12 +5785,12 @@
     "semantic_hash": ""
   },
   "web/favicon.png": {
-    "mtime": 1789188204.1581204,
+    "mtime": 1782659454.7370431,
     "ast_hash": "edf0564f5c399eb14bafbca49b7c5d52",
     "semantic_hash": ""
   },
   "web/ped-logo.png": {
-    "mtime": 1789188204.3811212,
+    "mtime": 1780194593.1856196,
     "ast_hash": "611324ceda1e61d4d6d44aa43c38a2fe",
     "semantic_hash": ""
   },
@@ -6175,42 +6175,42 @@
     "semantic_hash": ""
   },
   "api/hq.py": {
-    "mtime": 1789188203.6911185,
+    "mtime": 1787439899.2800846,
     "ast_hash": "f0dee0e0cd1b706f5d59fd08aadad8c8",
     "semantic_hash": ""
   },
   "web/hq-board.js": {
-    "mtime": 1789188204.376121,
+    "mtime": 1788330216.8259606,
     "ast_hash": "a6e51ba44a602e1f5a5833a9483ae852",
     "semantic_hash": ""
   },
   "web/hq-core.js": {
-    "mtime": 1789188204.3771212,
+    "mtime": 1788330216.8249605,
     "ast_hash": "be0f66365c95003b31f70c521fca0087",
     "semantic_hash": ""
   },
   "web/hq-groups.js": {
-    "mtime": 1789188204.3781211,
+    "mtime": 1788201669.5615854,
     "ast_hash": "dbf00b6a0fa0307f5e46e332836074c7",
     "semantic_hash": ""
   },
   "api/templates/hq.html": {
-    "mtime": 1789188203.7101188,
-    "ast_hash": "c54520191c735c095b5a4235f3c20f03",
+    "mtime": 1788805602.5230827,
+    "ast_hash": "e85460bbb2910331af115a1eadbe1af4",
     "semantic_hash": ""
   },
   "web/rd.js": {
-    "mtime": 1789188204.3841212,
+    "mtime": 1788332331.8022392,
     "ast_hash": "2c18f8b28874d74e230750407a377ab3",
     "semantic_hash": ""
   },
   "api/templates/rd.html": {
-    "mtime": 1789188203.7111187,
-    "ast_hash": "edaa0dd8e83b88941bba5638bd559ec4",
+    "mtime": 1788805602.5230827,
+    "ast_hash": "0a6591b345f0e0526f7248bc7696e6d8",
     "semantic_hash": ""
   },
   "web/guest_login.js": {
-    "mtime": 1789188204.375121,
+    "mtime": 1782501281.4179668,
     "ast_hash": "b1f3a6ed1ddb2e1b5abe034836afdc2f",
     "semantic_hash": ""
   },
@@ -6230,17 +6230,22 @@
     "semantic_hash": ""
   },
   "api/tts_routing.py": {
-    "mtime": 1789188203.7131186,
+    "mtime": 1788317691.2719464,
     "ast_hash": "bde79d53aa50f7b944d5acc2c89c5708",
     "semantic_hash": ""
   },
   "tests/test_tts_routing.py": {
-    "mtime": 1789188204.07512,
+    "mtime": 1788317711.9370272,
     "ast_hash": "360786c55b144075b5b3a99b8e494958",
     "semantic_hash": ""
   },
+  "api/data/chat.json": {
+    "mtime": 1788892485.48193,
+    "ast_hash": "2a524cb4dfabb20dcd6749a4a8f37579",
+    "semantic_hash": ""
+  },
   "web/hq-drag.js": {
-    "mtime": 1789188204.3771212,
+    "mtime": 1782576927.5090718,
     "ast_hash": "eaae8c55e50f837cfd7c93cf72ddd6b2",
     "semantic_hash": ""
   },
@@ -6255,37 +6260,37 @@
     "semantic_hash": ""
   },
   "api/gpu_mode_client.py": {
-    "mtime": 1789188203.6901186,
+    "mtime": 1788318257.218201,
     "ast_hash": "8463d38f86a82294beaafa5497ffd997",
     "semantic_hash": ""
   },
   "tests/test_gpu_mode_client.py": {
-    "mtime": 1789188204.07112,
+    "mtime": 1788318326.612481,
     "ast_hash": "fa687b2f6ad14266ceb232080cc549ab",
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1789290615.1504045,
+    "mtime": 1788858614.0052152,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1789290615.1614044,
+    "mtime": 1788858614.0122154,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/scripts/security/refresh.py": {
-    "mtime": 1789188203.7041187,
+    "mtime": 1782663725.1726742,
     "ast_hash": "7df158723cbfdfd260ae9f2255d2a70c",
     "semantic_hash": ""
   },
   "api/security.py": {
-    "mtime": 1789188203.7051187,
+    "mtime": 1788327789.1112323,
     "ast_hash": "fadacde8b5f1acf47e4364583807b110",
     "semantic_hash": ""
   },
   ".claude/hooks/git-stash-guard.sh": {
-    "mtime": 1789188203.6711185,
+    "mtime": 1788846230.3743284,
     "ast_hash": "a9c049868ff21dba85c5405a82132e34",
     "semantic_hash": ""
   },
@@ -6295,17 +6300,17 @@
     "semantic_hash": ""
   },
   "api/discord_bot.py": {
-    "mtime": 1789188203.6861186,
+    "mtime": 1788395154.316842,
     "ast_hash": "887b24a504dcce4b95d7882ab829e3d4",
     "semantic_hash": ""
   },
   "api/chat_actions.py": {
-    "mtime": 1789188203.6851187,
+    "mtime": 1788395075.7845368,
     "ast_hash": "06440053b81fa87937283a9d32797575",
     "semantic_hash": ""
   },
   "api/chat_store.py": {
-    "mtime": 1789188203.6851187,
+    "mtime": 1788395128.5657418,
     "ast_hash": "bd27e149d5d7010140f681ec597d6365",
     "semantic_hash": ""
   },
@@ -6715,127 +6720,127 @@
     "semantic_hash": ""
   },
   "api/emet_client.py": {
-    "mtime": 1789188203.6861186,
+    "mtime": 1782930279.1082926,
     "ast_hash": "019493c830f12a0a2e70ef79b292572c",
     "semantic_hash": ""
   },
   "api/graph_style.py": {
-    "mtime": 1789188203.6911185,
+    "mtime": 1788111528.0444095,
     "ast_hash": "7e10142f566351174b7c1e496cfc47ac",
     "semantic_hash": ""
   },
   "api/printer_camera.py": {
-    "mtime": 1789188203.6981187,
+    "mtime": 1788111937.2330503,
     "ast_hash": "c96ec9938779f73282b7158600a71d9f",
     "semantic_hash": ""
   },
   "api/printer_proxy.py": {
-    "mtime": 1789188203.6981187,
+    "mtime": 1788101938.749997,
     "ast_hash": "c2345cace55819d401d93999fd1508d3",
     "semantic_hash": ""
   },
   "api/printer_status.py": {
-    "mtime": 1789188203.6981187,
+    "mtime": 1788111965.210163,
     "ast_hash": "4eb43eef0868cb846f264315e9684eee",
     "semantic_hash": ""
   },
   "api/routes_emet.py": {
-    "mtime": 1789188203.7011187,
+    "mtime": 1782867651.2554848,
     "ast_hash": "59d359073111c052964cd6bacab27cc9",
     "semantic_hash": ""
   },
   "api/routes_graph.py": {
-    "mtime": 1789188203.7011187,
+    "mtime": 1788330792.4952738,
     "ast_hash": "55cad91a8a4e285c31acc3e9fca2af95",
     "semantic_hash": ""
   },
   "api/routes_printer.py": {
-    "mtime": 1789188203.7021186,
+    "mtime": 1788112054.3255231,
     "ast_hash": "4ee0e8ba34ce0511aead9a4005630a55",
     "semantic_hash": ""
   },
   "scripts/lint-scale.py": {
-    "mtime": 1789188204.06712,
+    "mtime": 1783016720.4789357,
     "ast_hash": "f09c14902b0f287b39e06399e2d498af",
     "semantic_hash": ""
   },
   "scripts/raw-color-baseline.json": {
-    "mtime": 1789188204.06812,
-    "ast_hash": "bdbeee6cb67880d5fe14dd43d8dcc03e",
+    "mtime": 1788201878.3504207,
+    "ast_hash": "e7d70dae61b308e02bf9f1e517a96125",
     "semantic_hash": ""
   },
   "scripts/scale-baseline.json": {
-    "mtime": 1789188204.06812,
+    "mtime": 1788322015.6364992,
     "ast_hash": "7594971b6a5691ebbedf158ce5f4913c",
     "semantic_hash": ""
   },
   "scripts/scale-codemod.py": {
-    "mtime": 1789188204.06912,
+    "mtime": 1782922075.7176886,
     "ast_hash": "78335735781a67a072a9b986370baad8",
     "semantic_hash": ""
   },
   "tests/test_printer_proxy.py": {
-    "mtime": 1789188204.07212,
+    "mtime": 1788101938.749997,
     "ast_hash": "b5dd44513a39e17496c21c4a1406aafe",
     "semantic_hash": ""
   },
   "tests/test_rd_lock.py": {
-    "mtime": 1789188204.07312,
+    "mtime": 1787439899.2810848,
     "ast_hash": "62986dfd66200c9778d39fa9eaee4584",
     "semantic_hash": ""
   },
   "tests/test_rd_merge_patch.py": {
-    "mtime": 1789188204.07312,
+    "mtime": 1787446797.5729861,
     "ast_hash": "cfa4fd439e1a327b9d539bddb3d00332",
     "semantic_hash": ""
   },
   "web/crt-zoom.js": {
-    "mtime": 1789188204.1511202,
+    "mtime": 1788039512.6392028,
     "ast_hash": "48c120e6158d52a3f1c694db7e25d563",
     "semantic_hash": ""
   },
   "web/emet.js": {
-    "mtime": 1789188204.1541202,
+    "mtime": 1782868065.0855622,
     "ast_hash": "74f9e9a64c98e1cd238da2948ba2ae90",
     "semantic_hash": ""
   },
   "web/gpu-mode.js": {
-    "mtime": 1789188204.373121,
-    "ast_hash": "10169ec214752e6e35ef249c593e718f",
+    "mtime": 1784829520.598037,
+    "ast_hash": "913b54617a79768309348d9ef984a030",
     "semantic_hash": ""
   },
   "web/printer.js": {
-    "mtime": 1789188204.382121,
+    "mtime": 1788175642.5156202,
     "ast_hash": "37a9070f7c3bcd447e4a8d869cde1495",
     "semantic_hash": ""
   },
   "web/ui.js": {
-    "mtime": 1789188204.4161212,
+    "mtime": 1783702613.243013,
     "ast_hash": "a15da2643788a4f9f6ae9de0b967c750",
     "semantic_hash": ""
   },
   "api/templates/printer.html": {
-    "mtime": 1789188203.7111187,
+    "mtime": 1788175653.0426638,
     "ast_hash": "a015e9d0c2bfcc8b2cf2876b824a825b",
     "semantic_hash": ""
   },
   "api/templates/ui.html": {
-    "mtime": 1789188203.7131186,
+    "mtime": 1788330792.6172745,
     "ast_hash": "58701bbe383fdf73dc704fff507cf81e",
     "semantic_hash": ""
   },
   "printer-box/README.md": {
-    "mtime": 1789188204.06412,
+    "mtime": 1788074761.0479133,
     "ast_hash": "6262102285f039687d0280563de23f7f",
     "semantic_hash": ""
   },
   "web/wai-lau-resume.pdf": {
-    "mtime": 1789188204.4211214,
+    "mtime": 1788100802.5001662,
     "ast_hash": "3cbbde86046dd8f87c6839f623d0f2d3",
     "semantic_hash": ""
   },
   "web/printer.png": {
-    "mtime": 1789188204.382121,
+    "mtime": 1788116286.401994,
     "ast_hash": "b2879f596e4fcef93324f82909359436",
     "semantic_hash": ""
   },
@@ -6845,47 +6850,47 @@
     "semantic_hash": ""
   },
   "api/gamesave_store.py": {
-    "mtime": 1789188203.6881187,
+    "mtime": 1788309287.1813653,
     "ast_hash": "f302663cce5ae5bca9c29ca105e5c15a",
     "semantic_hash": ""
   },
   "tests/test_gamesave_store.py": {
-    "mtime": 1789188204.07112,
+    "mtime": 1788309332.2405348,
     "ast_hash": "05de3f6a921d090742eac6a79705c973",
     "semantic_hash": ""
   },
   "tests/test_hosaka_presence_browser.py": {
-    "mtime": 1789188204.07212,
+    "mtime": 1788309382.2847242,
     "ast_hash": "22b449115ed84e84edc1c1283726d1d4",
     "semantic_hash": ""
   },
   "web/hosaka-presence.js": {
-    "mtime": 1789188204.376121,
+    "mtime": 1788305107.8244333,
     "ast_hash": "a4d79a042fcf65e545bd5bf795e49624",
     "semantic_hash": ""
   },
   "tests/test_qc_holidays.py": {
-    "mtime": 1789188204.07212,
+    "mtime": 1788320081.3653038,
     "ast_hash": "818432aa81b7d9f8f66e3e824e4d1bf5",
     "semantic_hash": ""
   },
   "web/qc-holidays.js": {
-    "mtime": 1789188204.382121,
+    "mtime": 1788319948.5427327,
     "ast_hash": "5d7b04ed32ba1280839f304837014468",
     "semantic_hash": ""
   },
   "web/rd-calendar.js": {
-    "mtime": 1789188204.3831213,
+    "mtime": 1788332318.8641882,
     "ast_hash": "57f51deb578c7aa43558dcb4d4021600",
     "semantic_hash": ""
   },
   "web/landing-wheel.js": {
-    "mtime": 1789188204.379121,
+    "mtime": 1788325601.5911112,
     "ast_hash": "81fc2f99e8ecceafee8c944300fb4c37",
     "semantic_hash": ""
   },
   "web/robots.txt": {
-    "mtime": 1789188204.385121,
+    "mtime": 1788327874.2365823,
     "ast_hash": "23a5b6fac5f9ab9d0dbb1dec1b357923",
     "semantic_hash": ""
   },
@@ -6895,7 +6900,7 @@
     "semantic_hash": ""
   },
   "api/card_schedule.py": {
-    "mtime": 1789188203.6831186,
+    "mtime": 1788332746.8058794,
     "ast_hash": "5aa8456d999406650d8d8a55bec8ebca",
     "semantic_hash": ""
   },
@@ -6945,58 +6950,58 @@
     "semantic_hash": ""
   },
   "scripts/lint-cachebust.py": {
-    "mtime": 1789188204.06612,
+    "mtime": 1788330659.6177392,
     "ast_hash": "2fd498f2eee0e9ed5730cd9420ef24dc",
     "semantic_hash": ""
   },
   "tests/test_card_schedule_drop.py": {
-    "mtime": 1789188204.07012,
+    "mtime": 1788332709.8907332,
     "ast_hash": "5f571b8e303c1406ab87c328609c241b",
     "semantic_hash": ""
   },
   "tests/test_exec_tool_rounds.py": {
-    "mtime": 1789188204.07012,
+    "mtime": 1788395197.2720098,
     "ast_hash": "405f1bb4951db386b5e681f1e69c77c3",
     "semantic_hash": ""
   },
   "web/exec-bubble-assets.js": {
-    "mtime": 1789188204.1551204,
-    "ast_hash": "da314de47d3f8ee7d18d8d8c92bf3c6b",
+    "mtime": 1788330484.6580358,
+    "ast_hash": "b9a7a255b33fef99419bfd80de81f8fd",
     "semantic_hash": ""
   },
   ".claude/hooks/cmdscan.py": {
-    "mtime": 1789188203.6691184,
+    "mtime": 1788846207.0022457,
     "ast_hash": "b4352ce2c6d62bbc869ea08f714c93bc",
     "semantic_hash": ""
   },
   ".claude/hooks/dead-file-guard.sh": {
-    "mtime": 1789188203.6701186,
+    "mtime": 1788845903.5711718,
     "ast_hash": "72a494e26b4a87a779acdf3a11f30cdd",
     "semantic_hash": ""
   },
   ".claude/hooks/deploy-healthcheck.sh": {
-    "mtime": 1789188203.6701186,
+    "mtime": 1788846221.9442985,
     "ast_hash": "ed87cb6f1d3ab15c12a821871b8f05c9",
     "semantic_hash": ""
   },
   ".claude/hooks/nightfall-build-guard.py": {
-    "mtime": 1789188203.6711185,
+    "mtime": 1788846253.5584104,
     "ast_hash": "635dca6faa985a5b758b35525b0991f3",
     "semantic_hash": ""
   },
   ".claude/hooks/push-after-commit.sh": {
-    "mtime": 1789188203.6711185,
+    "mtime": 1788846218.133285,
     "ast_hash": "38002511f6670532d9373453ae2b6b93",
     "semantic_hash": ""
   },
   ".claude/hooks/session-context.sh": {
-    "mtime": 1789188218.8211749,
-    "ast_hash": "da628c25254c52bed8ec1c9b8597b620",
+    "mtime": 1788845922.6672392,
+    "ast_hash": "155409fcdd4ebb308b0b80f03315a29e",
     "semantic_hash": ""
   },
   "api/cc_client.py": {
-    "mtime": 1789320704.2749476,
-    "ast_hash": "45b4037b76764694f762cf3ba684c472",
+    "mtime": 1788902371.8247585,
+    "ast_hash": "5b579aca816672599f2487c12f033aea",
     "semantic_hash": ""
   },
   "api/data/activity_log_20260908.json": {
@@ -7005,183 +7010,38 @@
     "semantic_hash": ""
   },
   "api/routes_cc.py": {
-    "mtime": 1789320724.7500076,
-    "ast_hash": "c1c53e32c5732975de408b5536aa735e",
+    "mtime": 1788902384.9788058,
+    "ast_hash": "ce0359eb685da41a3819f63f98fad537",
     "semantic_hash": ""
   },
   "claude-box/package.json": {
-    "mtime": 1789188203.7151186,
+    "mtime": 1788902141.5579362,
     "ast_hash": "e71df0b42a11fa5cd1a685f59dc75d6b",
     "semantic_hash": ""
   },
   "claude-box/server.mjs": {
-    "mtime": 1789328714.0381384,
-    "ast_hash": "b0902a6c59a8776d0a9fd81100b8d85b",
+    "mtime": 1788902203.2341552,
+    "ast_hash": "dedb12a7051da4b0cc298f40dadf417d",
     "semantic_hash": ""
   },
   "claude-box/setup.sh": {
-    "mtime": 1789320747.8620765,
-    "ast_hash": "e91bdcd77163fbbc4150d13ceb5d946a",
+    "mtime": 1788902217.1142046,
+    "ast_hash": "8c4cdafe2ec732310d956a38dc3ebc28",
     "semantic_hash": ""
   },
   "web/cc.js": {
-    "mtime": 1789321511.0417054,
-    "ast_hash": "fa390c82abd0f05ecf06cfcdc5da7ea6",
+    "mtime": 1788902504.0842354,
+    "ast_hash": "e6601317a13dc5472ffc57b550fbc311",
     "semantic_hash": ""
   },
   "api/templates/cc.html": {
-    "mtime": 1789322359.8509529,
-    "ast_hash": "92b95ed07507a28d287e26da0a2624d5",
+    "mtime": 1788902940.4610279,
+    "ast_hash": "c7120ff414888e97699c99f6804289dc",
     "semantic_hash": ""
   },
   "claude-box/README.md": {
-    "mtime": 1789188203.7131186,
-    "ast_hash": "8e87a48c970eb5ca0ba57ac60bafcc01",
-    "semantic_hash": ""
-  },
-  "api/cc_title.py": {
-    "mtime": 1789320722.526001,
-    "ast_hash": "24898b46e5e466fce7a00382bd21c46d",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260909.json": {
-    "mtime": 1788892317.4912508,
-    "ast_hash": "65d8e6f793163b6e780fad42aeead827",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260910.json": {
-    "mtime": 1788983409.8123138,
-    "ast_hash": "0428bb8b85d109315e563468dac0e435",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260911.json": {
-    "mtime": 1789104287.8079739,
-    "ast_hash": "c2f69596a9bce1356296bc3059445382",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260912.json": {
-    "mtime": 1789178620.5944848,
-    "ast_hash": "36b6cae837b7fb5a8a5c311dc35f7383",
-    "semantic_hash": ""
-  },
-  "api/data/cc_titles.json": {
-    "mtime": 1789324908.788474,
-    "ast_hash": "2b28b73a314be36019990d400e7700df",
-    "semantic_hash": ""
-  },
-  "api/data/mtg_sessions/mtg_mtwgpi33.json": {
-    "mtime": 1789101284.800299,
-    "ast_hash": "f80f0b6b052b687f85cb8f17089411c2",
-    "semantic_hash": ""
-  },
-  "api/data/mtg_sessions/mtg_mtwgr8l3.json": {
-    "mtime": 1789101211.4430077,
-    "ast_hash": "dfa5d75be6434e42f86a4a0186ed3ef1",
-    "semantic_hash": ""
-  },
-  "api/data/mtg_sessions/mtg_mtwjytuy.json": {
-    "mtime": 1789106576.6920512,
-    "ast_hash": "6f7799ab1d241346ac5a417e80e3d5fd",
-    "semantic_hash": ""
-  },
-  "api/data/mtg_sessions/mtg_mtwjzjfu.json": {
-    "mtime": 1789106647.7003012,
-    "ast_hash": "a4742b7e5df412293c6920a6a48c7d5b",
-    "semantic_hash": ""
-  },
-  "api/data/mtg_sessions/mtg_mtxj2zvt.json": {
-    "mtime": 1789165742.9385521,
-    "ast_hash": "82fd1bc0fbe73036361b2f1b382856f6",
-    "semantic_hash": ""
-  },
-  "api/data/mtg_sessions/mtg_mtxlr307.json": {
-    "mtime": 1789170222.2234664,
-    "ast_hash": "e5b0a141e780cdf2dc2ebe9440aebef5",
-    "semantic_hash": ""
-  },
-  "claude-box/archive-tools.mjs": {
-    "mtime": 1789188203.7141187,
-    "ast_hash": "fd0c1db9ef10e9acc7686b0f665ace4b",
-    "semantic_hash": ""
-  },
-  "claude-box/usage.mjs": {
-    "mtime": 1789188203.7161186,
-    "ast_hash": "4295cfc3e578ef91259c0b03799a8237",
-    "semantic_hash": ""
-  },
-  "scripts/graphify-daily.sh": {
-    "mtime": 1789342081.079669,
-    "ast_hash": "f38079c6378d889b0524f04dcf7f1870",
-    "semantic_hash": ""
-  },
-  "tests/test_admin_only.py": {
-    "mtime": 1789188204.06912,
-    "ast_hash": "8843c38d85a2ec592e7c2c360e5d844f",
-    "semantic_hash": ""
-  },
-  "web/cc-commands.js": {
-    "mtime": 1789188204.1431203,
-    "ast_hash": "d2a6916eb5814c48755e95287fa9ee5d",
-    "semantic_hash": ""
-  },
-  "web/cc-images.js": {
-    "mtime": 1789188204.1431203,
-    "ast_hash": "95540d328f33d5a90ed3908def377e3d",
-    "semantic_hash": ""
-  },
-  "web/cc-mic.js": {
-    "mtime": 1789188204.1441202,
-    "ast_hash": "6e7dcae902590acae4643fc23ad823a3",
-    "semantic_hash": ""
-  },
-  "web/cc-sessions.js": {
-    "mtime": 1789188204.1441202,
-    "ast_hash": "24f383ff91bd9e707a226d6e36d2e5a1",
-    "semantic_hash": ""
-  },
-  "web/cc-status.js": {
-    "mtime": 1789188204.1451204,
-    "ast_hash": "b2237e62e6017836af1dd346046b85b2",
-    "semantic_hash": ""
-  },
-  "web/cc-svg.js": {
-    "mtime": 1789321162.521441,
-    "ast_hash": "796abc6631fe13638424f1429f624975",
-    "semantic_hash": ""
-  },
-  "web/cc-zoom.js": {
-    "mtime": 1789188204.1451204,
-    "ast_hash": "54d1a98fffb8fdf78f79e521f276d474",
-    "semantic_hash": ""
-  },
-  "web/typewriter.js": {
-    "mtime": 1789188204.4151213,
-    "ast_hash": "436be90d71143357dfc880be3d64c544",
-    "semantic_hash": ""
-  },
-  "claude-box/cc-context.md": {
-    "mtime": 1789188203.7141187,
-    "ast_hash": "b9da3ae8b549411ff3bd8a3e5793f2ce",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260913.json": {
-    "mtime": 1789201805.0393918,
-    "ast_hash": "d751713988987e9331980363e24189ce",
-    "semantic_hash": ""
-  },
-  "api/data/gamesave_guests/8d0f31d71fef02d0ac56ee55ff011bed_save1.json": {
-    "mtime": 1789269184.0890782,
-    "ast_hash": "bdecaa25376b97db687c24afe2f448f7",
-    "semantic_hash": ""
-  },
-  "api/data/chat.json": {
-    "mtime": 1789329630.0103378,
-    "ast_hash": "7912cb53d661ed38d76929321a9b1e46",
-    "semantic_hash": ""
-  },
-  "claude-box/title-gen.mjs": {
-    "mtime": 1789321003.369893,
-    "ast_hash": "587be1eeec3ff6389e9cc0f4d4b3552f",
+    "mtime": 1788902298.958497,
+    "ast_hash": "26417150ae80793b6ed6d150b03b679a",
     "semantic_hash": ""
   }
 }
