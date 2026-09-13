@@ -1177,9 +1177,9 @@ It is a real wheel, not a styled list: the sections are **spokes `DTH` radians a
 |---|---|---|
 | position | `y = R·sin θ` | where the item sits |
 | depth | `1 − cos θ` | how far it has swung into the screen |
-| scale | `P/(P + 1 − cos θ)` | perspective shrink (`P` = 0.55, focal length over radius) |
-| opacity | `cos^1.6 θ` | how square-on the spoke is |
-| blur | rises with `1 − cos θ` | depth of field, `WHEEL_BLUR_PX` 8 at the seam |
+| scale | `scale = P/(P + 1 − cos θ)` | perspective shrink (`P` = 0.55, focal length over radius) |
+| opacity | `opacity = cos^1.6 θ` | how square-on the spoke is |
+| blur | a depth-of-field `filter: blur()` rising with `1 − cos θ` | `WHEEL_BLUR_PX` 8 at the seam |
 
 Items stay **upright** as they travel (gondolas hang level), so the copy stays readable and the arc shows itself in the SPACING instead — slots bunch toward the rim the way seats on a turning wheel do.
 
@@ -1286,3 +1286,274 @@ The halving is `.cyber-bg`/`.cyber-lines`/`.cyber-scan` at `opacity: .75`, and b
 Paint order is untouched, so the two backdrop-filters still sit UNDER the one animated layer and cache their static backdrop. A card DRAG is the one thing that dirties them per frame.
 
 `.exec-nav` sits at `--z-top`, above the fx; the `/graph` nav override (`graph-overlay.css`) matches it. Icons scale on hover, and there is a boot-in stagger that honors `prefers-reduced-motion`.
+
+---
+
+## 11. `/graph` — serve-time transforms over a generated artifact
+
+Guest-gated (Turnstile; it was public until 2026-07-03). A self-contained graphify codebase visualisation served from the `./graphify-out` volume, which `/graphify` regenerates (nightly at 05:00 — see CLAUDE.md § *Cron*).
+
+**Everything below is a string transform applied at SERVE time, on graphify's emitted HTML/JS — never a change to the generated file.** That is the whole design: a rebuild overwrites `graph.html` wholesale, so any edit made to it would be lost the next morning. Serve-time patches survive.
+
+`graph_page()` lives in **`routes_graph.py`** (split out of routes_views 2026-08-30 for the 500-line cap). The transforms split two ways:
+
+- **`graph_scrub.py`** — privacy scrubs + node/edge drops (what survives)
+- **`graph_style.py`** — communities/colours, hexagons, tooltips, sizes, the stats fixup (how what survives LOOKS)
+
+chrome.css, the cyber-fx bg, the bottom nav and `web/graph-overlay.{css,js}` (nav restyle + live physics panel) are all injected at serve time for the same reason. Non-admins get the guest nav (the full nav links to login-gated pages); admins keep the full nav. Content-hash ETag + `no-cache`.
+
+### 11a. Drops, in order
+
+| Function | Drops | Why |
+|---|---|---|
+| `_redact_graph_nodes()` | node summaries in `_GRAPH_REDACT_IDS` → `[redacted]` | a few leak internals (the bearer-auth scheme, the `EXEC_SAY_KEY` name) |
+| `_drop_graph_book_nodes()` | the Pollack tarot reference book (`api/tarot/book/`, ~110 nodes) | prefix `_GRAPH_DROP_SOURCE_PREFIX`, via `_sub_json_array()` |
+| `_drop_graph_moltbook_nodes()` | the moltbook heartbeat plumbing (one read-only route node) | substring match on id/label/source |
+| `_drop_graph_vendor_nodes()` | the vendored vis-network bundle (`web/vendor/`), by prefix `_GRAPH_DROP_VENDOR_PREFIX` | ~150 minified function nodes like `Kv()`/`_f()` graphify parsed out of the blob — noise, not our code. The `<script>` that loads the lib stays; only its parsed nodes go |
+| `_drop_graph_library_nodes()` | external library/framework symbols | a code node with NO `source_file` (no in-repo definition) OR a label in `_GRAPH_LIB_LABELS` — `BaseModel`, `Request`, `WebSocket`, `FastAPI`, `Path`, `datetime`, … |
+| `_drop_graph_inferred_edges()` | the dashed INFERRED edges (~16% of edges, opacity 0.35) | keeps only solid EXTRACTED relationships; thins the physics/canvas load for a faster render |
+
+The book drop also prunes `RAW_EDGES` touching those nodes, drops their now-empty `LEGEND` rows ("Tarot Major Arcana Meanings" / "Tarot Core Framework" / "Celtic Cross Spread"), and drops the `hyperedges` (shaded narrative clusters off the book, e.g. "First-row forces gathered into the Chariot's ego") that reference any removed node. Tarot *engine* nodes stay.
+
+The vendored bundle is ALSO excluded at ingestion by the repo-root `.graphifyignore` (`**/vendor/`, `*.min.js`, … — graphify reads it each build), so fresh graphs never carry vendor nodes; `_drop_graph_vendor_nodes()` is the serve-time backstop for a stale/cached `graph.html` built before that landed.
+
+`_drop_graph_inferred_edges()` runs **before** the stats rewrite so the edge count is honest.
+
+### 11b. Communities are re-derived by FEATURE
+
+**vis cycles only a 10-colour palette**, so graphify's dozens of fine-grained communities share colours and the clusters become indistinguishable colour-noise.
+
+`_merge_graph_communities()` regroups nodes into logically-named, FEATURE-based communities (`_logical_key`: `api/tarot/*` + `web/tarot-*.js` → "Tarot", `api/nudge*.py` → "Nudge", `api/graph_scrub` + `web/graph-overlay` → "Graph", …), giving each module its OWN distinct colour from `_COMMUNITY_COLORS` (Tableau-20 + Dark2 = 28 hues) and rebuilding `LEGEND` biggest-first, reassigning every node's `community`/`community_name`/`color`.
+
+A feature with fewer than `_MIN_COMMUNITY` (10) nodes folds into its top-level dir bucket ("API"/"Web") so the legend is not littered with 2-node modules. Every feature is already ≤150 nodes — the cross-layer merge is what splits the old per-dir API/Web blobs.
+
+This supersedes the old per-community rename pass, and it is `/graph`-page-only: the raw `graph.json` / `GRAPH_REPORT.md` keep graphify's full community set.
+
+### 11c. Size, shape, tooltips, stats
+
+`_size_graph_by_loc()` rescales every node's `size` to track its line count (file node = whole-file lines, symbol = span to the next def), read from the sibling `graph.json`'s `source_location` start lines — **no source-file reads, since most are not mounted in the container** — sqrt-compressed into ~10..40. It uses a **per-line anchored** array regex, because a non-greedy `[.*?]` truncates at a `];` inside a node title.
+
+`_restyle_graph_nodes()` renders nodes as **hexagons** (vis default is `dot`) with a bg-filled interior + community-coloured border — the /emet look, node fill `_GRAPH_BG` `#0f0f1a`, set in `_node_color()` — and repoints `showInfo()`'s neighbour-stripe colour from `.color.background` (now the page bg, invisible) to `.color.border`.
+
+`_drop_graph_tooltips()` strips `title:` from BOTH DataSet mappers (node + edge) so **nothing pops up on hover** — graphify puts a whole docstring-derived summary in `title`. The same text/metadata still reaches the click-through node-info panel, which reads `nodesDS`'s `label`/`_*` fields, never `title`. The regex targets the unquoted `title: x.title,`; `RAW_NODES`/`RAW_EDGES` carry it JSON-quoted, so the data arrays are untouched.
+
+`_fix_graph_stats()` runs **last**, rewriting the `#stats` header — graphify bakes PRE-scrub node/edge/community counts — to the merged/dropped reality.
+
+### 11d. The client-side overlay
+
+`graph-overlay.js` does four things the server cannot:
+
+1. Redacts any node *label* over 20 chars to `[ redacted ]`.
+2. For any redacted node (server `[redacted]` or client `[ redacted ]`), `patchInfoPanel()` wraps graph.html's global `showInfo()` to blank the node-info Type + Source to "redacted" and remove the neighbors section. Community + Degree stay.
+3. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
+4. `setupZoomLimits()` clamps zoom/pan with hard walls so the viewport holds roughly between 2 and half the non-orphan nodes — translating that intent into min/max scale (viewport world-area vs. node-cloud area) plus a pan box (centre clamped to the node bounding box), recomputed live, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back). Programmatic camera moves (tour focus) are skipped (`zoom` params.event == null).
+
+---
+
+## 12. The bottom nav
+
+Fixed to every page. Labels are all **fixed 3-char codes** (`_NAV_LABELS`).
+
+| Code | Route | Tier |
+|---|---|---|
+| `CD` | `/cc` | owner-only, FIRST slot |
+| `R&D` · `HQ` · `DBG` | `/rd` · `/hq` · `/debug` | owner |
+| `BOT` | `/security` | guest-gated |
+| `GPH` | `/graph` | guest-gated |
+| `UIX` | `/UI` | guest-gated |
+| `12AM` | `/nightfall` | guest |
+| `MTG` · `TRT` | `/mtg` · `/tarot` | guest |
+| `HSK` | `/hosaka` | guest-or-full |
+| `3DP` | `/printer` | guest read-only / owner control |
+| `CV` | `/recruiter` | public |
+
+The guest-gated ones (`BOT`, `UIX`, `HSK`, `3DP`, `GPH`) appear in the guest nav too.
+
+### 12a. A non-ASCII label needs machinery that is deliberately NOT present
+
+The pixel nav font (`04b25`, `--font-pixel`) carries **106 glyphs, ASCII only**. A symbol like `✦` (U+2726) has no glyph, so the implicit fallback picks a different face on every device.
+
+It needs a marked class re-fonted to `--font-mono` (Iosevka has it) at a size step up, and **that rule must sit AFTER `.nav-label`** — both selectors weigh (0,2,0), so source order alone decides. A `nav-glyph` mechanism doing exactly this existed briefly for a `✦` label and was removed with it rather than left as an unexercised branch. Re-add it from this note if a glyph label ever returns.
+
+### 12b. Standalone launch (home-screen / installed web app)
+
+Detected by `navigator.standalone` or `display-mode: standalone` in the `_build_nav` script, which adds `html.standalone` and sets `--per-row` = ceil(item count / 2).
+
+The nav reflows to **two rows** with one empty icon-cell of padding on each side (`html.standalone .exec-nav` in chrome.css; cell width = W/(per-row+2)).
+
+Standalone also appends a **refresh** nav item (`#nav-refresh`, `firewall.png` padlock icon, last slot, labelled `F5`) — created in JS only when the standalone class is added (counted before `--per-row`), with no href so the link interceptor skips it, and a click handler that hard-reloads via `location.reload()`. There is no browser chrome to reload from in a home-screen launch.
+
+The nav script also tracks the live nav height via a `ResizeObserver` (→ `--nav-h`, taller in two-row mode so pages reserving it do not hide content behind the nav) and, in standalone, intercepts same-origin link taps → `location.href` (prevents Safari kick-out).
+
+**Keeping iOS chrome-less across navigation is the manifest's job, not the meta's.** `/manifest.webmanifest` (served by the static mount with `application/manifest+json` via a `mimetypes.add_type` in main.py; linked from `_APPLE_WEBAPP_META`) declares `scope:"/"` + `display:"standalone"`, so iOS treats in-scope page loads as in-app and hides the back/reload toolbar. **iOS reads the manifest at add-to-home-screen time only** — changing it requires deleting and re-adding the icon.
+
+### 12c. The Exec bubble is not a nav entry
+
+It is a floating draggable bubble (`#exec-bubble`, `guru-pink.png` glasses icon, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()`. There is no `/exec` route. Guests get no bubble.
+
+**On the planning routes (`/rd`, `/hq`)** it toggles the Exec chat panel. Appending `?exec=open` opens the panel expanded on load.
+
+**On every OTHER non-guest page** the same `#exec-bubble` renders (identical look via exec-bubble.css, same drag + shared `exec-bpos` position) but a tap NAVIGATES to `/hq?exec=open` — wired by `exec-link.js`. It is a `<div>`, not an `<a>`, so a drag cannot fire a stray click; nav goes via `location.href`, which stays in-app under standalone.
+
+The link-bubble carries `.exec-under-fx` (`z-index: var(--z-bubble)` < the fx's `--z-modal`) so it sits UNDER the CRT glass + scanlines — behind the screen, the same in-the-CRT look as the rest of the chrome. The fx are `pointer-events:none`, so the tap still lands. On `/rd`+`/hq` the interactive bubble keeps its default `--z-max`.
+
+Bubble position persists in `localStorage` (`exec-bpos`), clamped to viewport. Unread monitor count shows as a badge on it.
+
+(The standalone `/directives` timeline page was removed — that timeline now lives in the hq today column.)
+
+### 12d. Exec's voice, and the panel
+
+Exec speaks aloud in the GLaDOS voice (`exec-voice.js`, `glados`/piper over the shared HosakaAudio core), audible by default with an `#exec-mute` toggle in the panel input line (localStorage `exec.voice`, global across pages). Wai's own messages and bracketed sys notes are never spoken.
+
+Each Exec turn's leading glyph in the panel is a clickable **replay** marker (`.msg-mark` — `>` reply / `~` monitor-nudge, built by `exec-bubble.js speakMark`); Wai's `$` and sys `#` lines get no marker.
+
+On the planning pages the panel voices assistant replies + monitor comments + nudges. On every OTHER non-planning protected page **except /tarot and /hosaka**, `exec-voice-listener.js` loads the same player and voices the unsolicited turns (monitor comments + nudges) arriving over `/api/monitor/stream`, so a nudge narrates wherever Wai is. Audio unlocks on the first user gesture per page (browser autoplay rule).
+
+The panel's top section is a server-persisted scratch **todo list** (`exec-todos.js`, `exec_todos.json`) — sizes to its content up to half the panel, then scrolls; an add-input at the top, a divider under the list, chat below. Items are DELETED on checkbox, distinct from rd.json cards, which archive.
+
+**The panel's composer is exactly one text line tall**, matching the messages above it — the point of the panel is that it reads as a terminal where the prompt is simply the next line. It was 33px against an 18.6px message line (6px of row padding, plus `#exec-mute` and `#exec-ph-close` carrying their own vertical padding), so **nothing in that row may have height of its own**: `#exec-iline` has zero padding and `align-items: flex-start`, and both buttons are `padding: 0 0 0 var(--space-2)` at `--lh-tight`. Measured in WebKit: prompt, input and the assistant/user message bodies all start at x=27 with an 18.6px line box.
+
+### 12e. Page scroll
+
+Non-`full_height` pages (`/UI`, `/security`, `/debug`, `/mtg`, `/tarot`) scroll inside a `.page-scroll` wrapper — `_render_page` wraps `content` when not `full_height`; `position:fixed; inset:0 0 var(--nav-h) 0; overflow-y:auto` in chrome.css.
+
+The reason is not layout preference: **the native root scrollbar is top-layer** and painted the styled pill (and its track's scanlines) OVER the fixed bottom nav's right edge. Confining the scroller to end at the nav top keeps the pill in the content area.
+
+`full_height` pages (`/rd`, `/hq`, `/printer`, `/hosaka`) already scroll inner containers (body `overflow:hidden`) so they skip the wrapper.
+
+
+---
+
+## 13. The pre-commit hook suite
+
+Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
+
+Every check is **trigger-gated on what a commit actually stages**, so the suite stays fast.
+
+| Check | Fires when | What it rejects |
+|---|---|---|
+| ruff | staged `.py` | lint |
+| JS syntax + ESLint | staged templates, `web/*.js` | syntax; `max-lines-per-function: 100` |
+| stylelint | staged `web/*.css` | lint |
+| `scripts/lint-colors.py` | any css / web-js / template staged | a new colour or alpha (below) |
+| `scripts/lint-scale.py` | any `web/*.css` staged | a raw literal on a governed property (below) |
+| `scripts/lint-cachebust.py` | staged `web/*.{css,js}` | an asset edited without bumping its `?v=` |
+| shellcheck | staged `.sh` | lint |
+| 500-line cap | staged `.py`/`.js` | any file over the cap (`api/main.py` allowlisted pending its split) |
+| no-multiline-inline-JS/CSS | templates | a multi-line inline `<script>`/`<style>` |
+| fixture resolution | staged `tests/` or `api/*.py` | a stale/renamed/deleted fixture reference |
+| page smoke tests | staged `api/*.py` or templates | a broken route |
+| admin-tier guard | (part of the smoke tests) | a `protected` route reachable by guest/anon |
+
+Plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes.
+
+### 13a. The palette lint (`scripts/lint-colors.py`)
+
+**The allowed `(color, alpha)` pairs are DERIVED from usage**, by the same extraction `/api/ui/usage` feeds to `/UI`, and frozen in `scripts/palette-baseline.json`. It rejects:
+
+1. Any off-snap-scale alpha. The scale is `0/0.06/0.12/0.25/0.45/0.6/0.8/1`.
+2. Any colour using more than **4 non-zero** alpha steps.
+3. Any `(token, alpha)` pair not in the baseline — a new alpha for a colour, or a new colour token.
+4. Any `var(--*-hsl)` not defined in chrome.css or `LOCAL_ACCENTS`.
+5. Any raw colour literal (rgb/rgba/hex, or a non-token `hsl()`/`hsla()`) not in `scripts/raw-color-baseline.json` — current raw literals are grandfathered as a freeze-baseline, a NEW one is rejected.
+6. Any CSS **named colour** (red/white/gold/…) in a colour property — `web/*.css` declarations and template inline `style=` — rejected outright. None exist to grandfather. `var(--green-hsl)` etc. are not misread as the colour; `transparent`/`currentcolor` stay allowed.
+
+Every hued colour sits at ≤4 steps (e.g. `--cyan-hsl` = `0.12/0.45/0.8/1`, matching `--green-hsl`); neutrals (Silver, Smoked Glass) use fewer.
+
+**To add a colour or alpha**: make the change, eyeball it on `/UI`, then `python3 scripts/lint-colors.py --update` to regenerate the baseline, and commit that too.
+
+### 13b. The scale lint (`scripts/lint-scale.py`)
+
+The SAME move as the palette lint, for every OTHER design choice.
+
+Structural scale tokens live in chrome.css's second `:root` section: `--space-*` px steps, `--radius-*`, `--font-*` families, `--fs-*` (4 rem sizes — 2xs/sm/xl/3xl; fluid `clamp()` sizes stay bespoke), `--fw-*` (2 weights), `--lh-*`, `--tracking-*` em, `--blur-*`, `--z-*`. Border-width, duration and easing tokens were all dropped as unused — transitions and the `border` shorthand stay raw.
+
+Every **governed** property — padding / margin / gap / border-radius / font-size / font-weight / line-height / letter-spacing / font-family — must reference a token, not a raw literal.
+
+Allowed raw: `0`, `calc()/min()/max()/clamp()`, `%` + viewport units, CSS keywords, **`em`** (relative-by-design, left fluid for size and spacing — but letter-spacing tokens ARE em, so raw em tracking is rejected), and **negative** lengths (deliberate pull-ups).
+
+NOT governed: border-width (it lives in the `border` shorthand), and transition/animation duration.
+
+**`box-shadow` and `z-index` are FREEZE-governed** — there is no clean token scale to snap them to, so the current values are frozen into `scripts/scale-baseline.json` and any NEW/unseen value is rejected. A tokenised `z-index: var(--z-*)` always passes. Add a deliberate new shadow or z with `python3 scripts/lint-scale.py --update`, the same act as the palette `--update`.
+
+It scans `web/*.css` only; inline template styles are covered by the no-inline-CSS rule.
+
+**Snap a page onto the scale** with `python3 scripts/scale-codemod.py [file...]` (dry-run) or `--write`. The codemod is unit-aware: px↔rem convert and snap, em stays raw.
+
+### 13c. The cache-bust lint (`scripts/lint-cachebust.py`)
+
+A changed asset must bump the `?v=` on EVERY `api/` reference to it **in the same commit**.
+
+Versioned static is served `public, max-age=31536000, immutable`, so an unbumped edit simply never reaches a browser that already holds the old copy. That is how `/hq`'s row layout shipped to desktop while the phone kept rendering the pre-rows `hq.css?v=17` for weeks.
+
+`--all` audits the whole tree against git history — an asset committed later than its `?v=` last moved. **Pick a version number never used before**: reusing one a browser cached earlier busts nothing.
+
+### 13d. The admin-tier guard (`tests/test_admin_only.py`)
+
+Every route on `protected` must be admin-**ONLY**: refused for anonymous AND guest, and still reachable by the admin cookie. (A route that refused everyone would otherwise pass a "not public, not guest" check while being broken.)
+
+**The route list is enumerated from the decorators, never hand-written.** A hand-written list is a denylist covering only what someone remembered, and a route added later would be silently uncovered.
+
+Two traps it hit while being written, both worth knowing:
+
+- **`protected` is a SUFFIX of `guest_protected`**, so an unanchored match files every guest route as admin — the same substring trap `cmdscan.py` exists for. The regex uses `(?<![\w_])`.
+- **An included router's alias must resolve to its MODULE.** Nearly every route module names its router `router`, so resolving `chat_router` to the bare symbol and scanning every file swept mtg/tarot/nightfall in as admin.
+
+**GET routes are fired over HTTP; mutating ones deliberately are NOT.** The suite runs against the LIVE container, and the one case where an unauthenticated POST does not stop at 401 is precisely the bug under test — at which point `POST /api/morning` would run the morning pipeline against real data. Those get a structural assertion instead.
+
+SSE routes (`/api/monitor/stream`, `/api/hosaka/mode/stream`) are held open by an ACCEPTED request and answer nothing, so a timeout there means *not refused* and is read as such.
+
+### 13e. The fixture-resolution check
+
+`pytest tests/ --setup-plan`, run when any `tests/` or `api/*.py` is staged. It RESOLVES every test's fixture graph across the WHOLE suite without executing fixture or test bodies, so no WebKit and no live app are needed (~0.3s).
+
+It catches a stale/renamed/deleted fixture reference *anywhere*, even when the consuming test sits behind a per-feature trigger gate — so a cross-cutting conftest rename cannot hide in an untriggered test. It skips cleanly with no pytest venv.
+
+The **page smoke tests** themselves are HTTP over every route against the live container on :8080; they skip cleanly if it is down or the dev venv is absent, and fail+block on a broken route.
+
+---
+
+## 14. `/tarot` — the reading surface
+
+Guest auth. Spread (top, fixed-height) + Pollack-voiced reader chat (bottom). Per-browser state in `localStorage`, no server persistence. The reading FLOW and its five phases are in CLAUDE.md § *Tarot reading flow*; this section is the page.
+
+### 14a. The status bar carries what the chat no longer says
+
+A fixed **status bar under the cards** (`#tarot-status`, styled in tarot.css) sits below the spread and above the nav; the spread/input/terminal stacks reserve `--status-h` at the bottom for it, and `#terminal` reserves `--status-h` at top.
+
+It holds two dim credit lines, each a whole-line link — "method from 78 Degrees of Wisdom — Rachel Pollack" → the Pollack book, and "card back by u/vegetablebasket" → that reddit comment — below a single-line `#tarot-statusline` (top of the bar) showing the LATEST bracketed sys note: `set_significator`/`deal_spread` results, `reader voice unavailable`, errors.
+
+Those used to be `.msg.sys` lines in the chat scrollback. Now `setStatus()` (tarot-view.js) writes them to the bar, latest-wins, and **the chat carries only reader/querent prose**.
+
+**The deal turn's last two lines are likewise unrendered.** `drawSpread` still pushes the `[drew a … spread; N cards face-down]` state record and the frontend-owned flip invite ("When you're ready, turn the **Situation**.") into `messages` — the model needs the deal state and its own invite for continuity — but neither reaches the scrollback, so the chat ends on "…let me set the cards." with the face-down cards saying the rest. `isHiddenLine()` (tarot-view.js) is the shared predicate, and `tarot-chat.js`'s reload replay skips the same two, so a refresh cannot resurrect them.
+
+The pre-reading `begin-hint` ("tap anywhere to begin the reading") centers vertically in the empty terminal — a `#terminal:has(.begin-hint)::before{flex:0}` neutralizes chat.css's bottom-anchoring flex spacer.
+
+### 14b. Narration paces the typewriter
+
+`tarot-voice.js`, AUDIBLE by default, works for full `session` AND `guest_session`. The reader's turn is spoken via hosaka (voice `nicole`), and the typewriter paces to **the actual audio clock**.
+
+`tarot-chat.js` holds the text until audio starts (the reader "draws breath" behind a blinking cursor), then reveals characters on a `charWeight`-shaped schedule normalized to the measured audio duration — preserving punctuation pauses, with no drift, self-correcting off `player.elapsed()`.
+
+The ♪ button in `#spread-controls` is a **MUTE** (volume → 0); narration still streams and still paces the typewriter. Audio failure or not-yet-unlocked falls back to the guessed-pace typewriter.
+
+This is the one chat surface that does NOT use the shared `web/typewriter.js` engine for its main path — that engine is its SILENT fallback. See CLAUDE.md § *Typewriter*.
+
+### 14c. Ambient music, and why the level is measured
+
+`tarot-music.js`, ♫ toggle below the reset button. A looping background track, streamed lazily from `web/tarot-ambient.m4a` (gitignored, 58MB — **the server holds the only copy**). Starts and fades in over 4s on the first tap, from a random point.
+
+**The bed level is baked into the file.** iOS makes `el.volume` read-only AND silences a WebAudio-routed element, so no JS path can attenuate it there. There is no ducking.
+
+**Set that level by MEASURING dBFS, not by picking a multiplier — the usable band is narrow.** The shipping bake (`?v=3`) is the source × 0.15 = **−31.8 dBFS mean / −16.2 dB peak**. That is quiet enough to read as silent on desktop speakers (a "music isn't playing" report that was the music playing: `paused:false`, clock advancing, no media error, verified in chromium/firefox/webkit), but a 2026-09-02 re-bake at **+10 dB → −21.8 dBFS mean** overshot and drowned the reader, so v3 was restored the same day. Anything replacing it has to clear the desktop noise floor without competing with the narration, and that window is well under 10 dB.
+
+Re-bake from `~/tarot-ambient-0.15-orig.m4a`:
+
+```bash
+ffmpeg -i <master> -af volume=NdB -c:a aac -b:a 128k -movflags +faststart
+ffmpeg -i <out> -af volumedetect -f null -   # verify
+```
+
+Then bump `?v=`.
+
+It loops via `el.loop=true` **plus** an `ended` handler that rewinds to 0 and replays — native loop can fail to restart a track seeked into a progressively-streamed m4a.
