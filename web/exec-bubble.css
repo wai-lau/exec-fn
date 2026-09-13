@@ -187,3 +187,26 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
    carrying their own vertical padding. Nothing in this row may be taller than
    the text. */
 #exec-iline { padding: 0; align-items: flex-start; }
+
+/* Nudge multiple-choice answers (exec-choices.js): the model's last line is
+   [a | b | c] and each becomes a button that sends that text as Wai's reply.
+   They sit under the message, indented onto the same left edge as the body
+   they answer, so the row reads as part of the nudge rather than as chrome. */
+.exec-choice-row {
+  display: flex; flex-wrap: wrap; gap: var(--space-1-5);
+  padding: var(--space-1) 0 var(--space-2) var(--chat-indent);
+}
+
+.exec-choice {
+  font-family: inherit; font-size: var(--fs-2xs); line-height: var(--lh-tight);
+  padding: var(--space-1) var(--space-2-5);
+  border: 1px solid hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-pill);
+  background: none; color: hsl(var(--green-hsl) / 0.8);
+  cursor: pointer;
+}
+
+.exec-choice:hover, .exec-choice:active {
+  background: hsl(var(--green-hsl) / 0.12);
+  border-color: hsl(var(--green-hsl) / 0.8);
+  color: hsl(var(--green-hsl) / 1);
+}
