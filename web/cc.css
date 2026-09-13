@@ -331,9 +331,22 @@ html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
 
 /* The turn/time footnote, hung on the end of the reply rather than given a row
    of its own. Same dim sys colour and size, so it reads as a margin note on the
-   answer instead of another thing said. */
+   answer instead of another thing said.
+
+   nowrap is not cosmetic: at 430px the bracket split across lines as
+   "[ 3 turns ·" / "32.7s ]", which reads as debris rather than a footnote. As
+   one unwrappable unit it sits inline when the last line has room and drops
+   whole when it does not -- still in the text column with no "#" marker, so it
+   is a tail of the answer either way.
+
+   Dimmed with opacity, not a lower alpha: --green-hsl is already at the palette
+   lint's 4-step cap (0.12/0.45/0.8/1), so a new alpha would be rejected, and
+   opacity is governed by neither lint (the crt-dim precedent). Measured against
+   the CRT stack at 430x932 -- 0.5 starts losing the glyphs to the scanlines. */
 .cc-receipt {
-  margin-left: var(--space-2);
+  margin-left: var(--space-3);
   font-size: var(--fs-2xs);
   color: hsl(var(--green-hsl) / 0.45);
+  white-space: nowrap;
+  opacity: 0.6;
 }
