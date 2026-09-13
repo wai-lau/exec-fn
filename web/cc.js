@@ -235,10 +235,29 @@ function ccDoneLine(data) {
   return bits.length ? '[ ' + bits.join(' · ') + ' ]' : null;
 }
 
+/** Hang the receipt on the END of the reply rather than giving it a row.
+ *
+ * It is a footnote about the answer, not a message of its own, and a `#` sys
+ * line under every tool-using turn reads as another thing said. Inline on the
+ * final line of prose; its own trailing element after anything that is not
+ * prose (a code block, a diagram, a list), where an inline tail would land
+ * inside the box. With no reply to hang it on -- a turn that was all tool
+ * calls and no text -- it falls back to the sys line it used to be. */
+function ccAppendReceipt(body, text) {
+  if (!body) { addMsg('sys', text); return; }
+  const span = document.createElement('span');
+  span.className = 'cc-receipt';
+  span.textContent = text;
+  const last = body.lastElementChild;
+  if (last && /^(P|H[1-6]|BLOCKQUOTE)$/.test(last.tagName)) last.appendChild(span);
+  else body.appendChild(span);
+}
+
 async function streamResponse(prompt, imgs) {
   streaming = true;
   let { div, body, cur } = addStreamDiv();
   let fullText = '';
+  let receipt = null;   // the turn/time footnote, appended after the settle
 
   // The assistant bubble is created up front to carry the typing dots. A tool
   // call arriving before any prose would otherwise be appended AFTER an empty
@@ -340,8 +359,10 @@ async function streamResponse(prompt, imgs) {
           const t = (data.text || '').trim();
           if (t) { dropIfEmpty(); park(addMsg('out' + (data.isError ? ' err' : ''), clamp(t)), cur); }
         } else if (data.type === 'done') {
-          const receipt = ccDoneLine(data);
-          if (receipt) { dropIfEmpty(); addMsg('sys', receipt); }
+          // Stashed, not rendered: `done` can arrive while the typer is still
+          // revealing, and the settle pass below rebuilds innerHTML from
+          // scratch -- appending here would be wiped a moment later.
+          receipt = ccDoneLine(data);
         } else if (data.type === 'busy') {
           dropIfEmpty();
           addMsg('sys warn', '[ busy — one run at a time (memory ceiling); try again shortly ]');
@@ -356,11 +377,13 @@ async function streamResponse(prompt, imgs) {
     // still going would print the whole reply and then keep typing over it.
     tw.serverDone = true;
     if (typing) await typing;
+    let settled = null;
     if (div) {
       cur.remove();
       if (!fullText) div.remove();
-      else { body.innerHTML = renderText(fullText); ccRenderSvgBlocks(body); }
+      else { body.innerHTML = renderText(fullText); ccRenderSvgBlocks(body); settled = body; }
     }
+    if (receipt) ccAppendReceipt(settled, receipt);
   } catch (e) {
     if (div) { cur.remove(); if (!fullText) div.remove(); }
     addMsg('sys warn', '[ ' + e.message + ' ]');
