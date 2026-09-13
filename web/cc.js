@@ -276,6 +276,11 @@ async function streamResponse(prompt, imgs) {
     typing = new Promise((resolve) => {
       twGuess(tw, (shown) => {
         body.innerHTML = renderText(shown);
+        // Swap in every diagram whose closing fence has already arrived. A
+        // finished SVG used to sit as raw markup until the WHOLE reply settled,
+        // so a picture the model had finished drawing was still scrolling past
+        // as source. Only CLOSED blocks: a half-written one would flicker.
+        ccRenderSvgBlocks(body, ccClosedSvgCount(shown));
         (body.lastElementChild || body).appendChild(cur);
         if (atBottom()) terminal.scrollTop = terminal.scrollHeight;
       }, { speed: CC_TYPE_SPEED, onDone: resolve }).start();

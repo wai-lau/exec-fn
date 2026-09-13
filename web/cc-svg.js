@@ -94,14 +94,57 @@ function ccSanitizeSvg(src) {
  * The source is kept in a collapsed <details> rather than thrown away: a
  * diagram is often something to tweak, and losing the markup would mean asking
  * the model to produce it again. */
-function ccRenderSvgBlocks(root) {
+/* How many fenced svg blocks in `src` have had their CLOSING fence arrive.
+ *
+ * This is what lets a diagram appear the moment it is finished instead of at
+ * the end of the whole reply. A block still streaming must NOT be rendered:
+ * half-written markup either sanitises to nothing (and flickers) or, worse,
+ * parses as a partial drawing that is then replaced a frame later. The closing
+ * fence is the only honest signal that a block is done. */
+function ccClosedSvgCount(src) {
+  let open = null;
+  let count = 0;
+  for (const line of String(src || '').split('\n')) {
+    const m = /^\s{0,3}```(.*)$/.exec(line);
+    if (!m) {
+      if (open) open.body += line + '\n';
+      continue;
+    }
+    if (!open) {
+      open = { lang: m[1].trim().toLowerCase(), body: '' };
+    } else {
+      if (/^(svg|xml)$/.test(open.lang) || open.body.trim().startsWith('<svg')) count += 1;
+      open = null;
+    }
+  }
+  return count;
+}
+
+/* Sanitising is not free and the typer rebuilds innerHTML every frame, so a
+ * finished diagram would be re-parsed sixty times a second for the rest of the
+ * reply. Keyed by the exact source text, which is stable once the block closes. */
+const _ccSvgCache = new Map();
+function ccSanitizeSvgCached(text) {
+  if (_ccSvgCache.has(text)) return _ccSvgCache.get(text);
+  const svg = ccSanitizeSvg(text);
+  if (_ccSvgCache.size > 24) _ccSvgCache.clear();   // a transcript, not a store
+  _ccSvgCache.set(text, svg);
+  return svg;
+}
+
+/* @param limit  render at most this many blocks (see ccClosedSvgCount).
+ *               Omitted = every svg block, for a settled or replayed message. */
+function ccRenderSvgBlocks(root, limit) {
   if (!root) return;
+  let done = 0;
   for (const code of Array.from(root.querySelectorAll('code'))) {
     const cls = code.className || '';
     const looksSvg = /language-(svg|xml)/.test(cls) ||
       code.textContent.trim().startsWith('<svg');
     if (!looksSvg) continue;
-    const svg = ccSanitizeSvg(code.textContent.trim());
+    if (limit != null && done >= limit) break;
+    done += 1;
+    const svg = ccSanitizeSvgCached(code.textContent.trim());
     if (!svg) continue;   // unparseable or unsafe: leave the code block visible
 
     const pre = code.closest('pre') || code;
