@@ -31,6 +31,16 @@ import { generateTitle } from "./title-gen.mjs";
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
 const PORT = Number(process.env.CC_BIND_PORT || 8129);
 const SANDBOX = process.env.CC_SANDBOX || "/srv/cc-sandbox";
+// The titler runs in its OWN cwd, and that is the whole of why: a query() call
+// files a session transcript in the project dir for its cwd, and /sessions
+// lists every session whose cwd is SANDBOX. Sharing the sandbox meant each
+// rolling title (writer + judge, twice on a retry) left 2-4 throwaway sessions
+// in the picker, each summarised from the excerpt it carried -- so /list showed
+// "Zekoa physical mitigation" three times, seconds apart, none of them a
+// conversation, and 20 of 61 listed sessions were titler scratch. A subdir of
+// the sandbox keeps them out of the list without widening the unit's writable
+// set: /srv/cc-sandbox is already one of the two writable binds.
+const TITLE_SANDBOX = process.env.CC_TITLE_SANDBOX || path.join(SANDBOX, ".titles");
 const TOKEN = process.env.CC_SIDECAR_TOKEN || "";
 // The box has ~930MB free and each run spawns a CLI subprocess, so this is a
 // memory ceiling expressed as a queue depth, not a politeness limit.
@@ -638,7 +648,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req).catch(() => ({}));
       const out = await generateTitle(body?.messages, {
-        sandbox: SANDBOX,
+        sandbox: TITLE_SANDBOX,
         blockedTools: BLOCKED_TOOLS,
       });
       res.writeHead(200, { "content-type": "application/json" });
@@ -704,6 +714,16 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404, { "content-type": "application/json" });
   res.end(JSON.stringify({ error: "not found" }));
 });
+
+// Made here rather than in setup.sh: the unit must come up working on a box
+// where setup.sh ran before this directory existed. A failure is logged and
+// ignored -- the titler would then file its scratch back in the sandbox, which
+// is untidy, not broken.
+try {
+  fs.mkdirSync(TITLE_SANDBOX, { recursive: true });
+} catch (err) {
+  console.error(`cc-sidecar: could not create ${TITLE_SANDBOX}: ${err?.message || err}`);
+}
 
 server.listen(PORT, HOST, () => {
   console.log(`cc-sidecar listening on ${HOST}:${PORT} sandbox=${SANDBOX}`);
