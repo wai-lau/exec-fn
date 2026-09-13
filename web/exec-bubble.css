@@ -210,3 +210,31 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   border-color: hsl(var(--green-hsl) / 0.8);
   color: hsl(var(--green-hsl) / 1);
 }
+
+/* Card actions (done / exile) sit in the same row but are NOT answers — they
+   move the card the way the dialog's own two buttons do. The separator and the
+   heavier weight are the whole distinction: tapping an answer sends a message,
+   tapping one of these changes the board, and the row must not read as four
+   equivalent replies. Ember is the exile switch everywhere else in the app. */
+.exec-act {
+  margin-left: var(--space-1-5);
+  border-left: 1px solid hsl(var(--green-hsl) / 0.12);
+  font-weight: var(--fw-bold);
+}
+
+.exec-act + .exec-act { margin-left: 0; border-left: 0; }
+
+.exec-act-done { border-color: hsl(var(--green-hsl) / 0.8); }
+
+.exec-act-exile {
+  border-color: hsl(var(--orange-glow-hsl) / 0.6);
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+}
+
+.exec-act-exile:hover, .exec-act-exile:active {
+  background: hsl(var(--orange-glow-hsl) / 0.25);
+  border-color: hsl(var(--orange-glow-hsl) / 1);
+  color: hsl(var(--orange-glow-hsl) / 1);
+}
+
+.exec-act[disabled] { opacity: 0.45; cursor: default; }

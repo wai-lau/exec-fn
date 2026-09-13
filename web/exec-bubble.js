@@ -216,7 +216,7 @@
   }
 
   // ── message rendering ─────────────────────────────────────────────────────
-  function addMsg(role, text) {
+  function addMsg(role, text, cardId) {
     const div = document.createElement('div');
     div.className = 'msg ' + role;
     // A nudge writes its answers as a trailing [a | b | c] line: strip it here,
@@ -241,7 +241,7 @@
       div.textContent = text;
     }
     termEl.appendChild(div);
-    if (choices && choices.opts.length) execChoices.attach(termEl, div, choices.opts, sendText);
+    if (choices) execChoices.attach(termEl, div, choices.opts, sendText, cardId, function (t) { addMsg('sys', t); });
     termEl.scrollTop = termEl.scrollHeight;
     return div;
   }
@@ -437,7 +437,7 @@
         }
       }
       for (const m of allMsgs) {
-        if (m.role === 'monitor') addMsg('probe', m.content);
+        if (m.role === 'monitor') addMsg('probe', m.content, m.card_id);
         else restoreMsg(m, toolResults);
       }
       monitorTotal = allMsgs.filter(function (m) { return m.role === 'monitor'; }).length;
@@ -481,7 +481,7 @@
           window.dispatchEvent(new Event('exec:cards-changed'));
         } else if (data.comment) {
           setMonitorThinking(false);
-          addMsg('probe', data.comment);
+          addMsg('probe', data.comment, data.card_id);
           if (window.execVoice) execVoice.speak(data.comment);  // narrate nudge / monitor
           monitorTotal += 1;
           if (isOpen) markRead(); else recomputeUnread();
