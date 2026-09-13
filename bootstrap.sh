@@ -52,6 +52,14 @@ upstream execfn_app {
 server {
     listen 80;
     server_name wai-lau.net;
+
+    # A pasted screenshot on /cc arrives as base64 in a JSON body, and nginx's
+    # 1m DEFAULT rejected it with its own HTML 413 before the app saw it (fixed
+    # on the live box 2026-09-13, reported as "[ request failed (413) ] when
+    # uploading image"). The app's caps are the real ones -- 4 images, 5MB
+    # base64 each, 24MB body -- and they answer in JSON the page can render.
+    client_max_body_size 25m;
+
     location / {
         proxy_pass http://execfn_app;
         proxy_set_header Host $host;
