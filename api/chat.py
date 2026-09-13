@@ -98,8 +98,13 @@ def _active_nudge_block(cards: list) -> str:
         lines.append(f"- Wai's stated consequence if not done: {ans!r}")
     lines.append(
         "HANDLING (in this order):\n"
+        "- The nudge ASKS whether the current step is done (the loop has no completion "
+        "data of its own), so a bare affirmative — 'yes', 'yep', 'did that', 'already "
+        "done' — IS Wai saying the step is done.\n"
         "- Wai says the current step is done -> call advance_chunk, mention only the "
         "next chunk it returns.\n"
+        "- Wai says it is NOT done ('not yet', 'no') -> do NOT advance and do NOT treat "
+        "that as pushback; just hand her the step's first physical move.\n"
         "- Wai gives feedback on the breakdown ('do X first', 'skip that part') -> "
         "call decompose_task with that feedback.\n"
         "- Wai pushes back, is stuck, overwhelmed, or says 'no time right now' -> ask "
