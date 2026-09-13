@@ -219,6 +219,10 @@
   function addMsg(role, text) {
     const div = document.createElement('div');
     div.className = 'msg ' + role;
+    // A nudge writes its answers as a trailing [a | b | c] line: strip it here,
+    // and exec-choices.js renders it as buttons under the message.
+    const choices = role === 'probe' && window.execChoices ? execChoices.parse(text) : null;
+    if (choices) text = choices.clean;
     if (role === 'user' || role === 'assistant' || role === 'probe') {
       // Exec turns get a clickable replay glyph (execVoice.mark, see exec-voice.js).
       if ((role === 'assistant' || role === 'probe') && window.execVoice) div.appendChild(execVoice.mark(role, text));
@@ -237,6 +241,7 @@
       div.textContent = text;
     }
     termEl.appendChild(div);
+    if (choices && choices.opts.length) execChoices.attach(termEl, div, choices.opts, sendText);
     termEl.scrollTop = termEl.scrollHeight;
     return div;
   }
@@ -308,6 +313,14 @@
     msgInput.textContent = '';
     renderCaret();
     msgInput.focus();
+    sendText(text);
+  }
+
+  // Typing and tapping a nudge's choice button reach the same path, so a tapped
+  // answer IS the message Wai would have typed.
+  function sendText(text) {
+    if (streaming || !text) return;
+    if (window.execChoices) execChoices.clear(termEl);
     const ts = fmtTs();
     addMsg('user', ts + ' ' + text);
     messages.push({ role: 'user', content: ts + ' ' + text });

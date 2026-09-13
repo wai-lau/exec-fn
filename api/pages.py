@@ -212,8 +212,9 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-bubble-drag.js?v=2"></script>'
                   '<script src="/exec-todos.js?v=3"></script>'
                   '<script src="/typewriter.js?v=6"></script>'
-                  '<script src="/exec-bubble-assets.js?v=7"></script>'
-                  '<script src="/exec-bubble.js?v=44"></script>')
+                  '<script src="/exec-choices.js?v=1"></script>'
+                  '<script src="/exec-bubble-assets.js?v=8"></script>'
+                  '<script src="/exec-bubble.js?v=45"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -232,7 +233,7 @@ def _build_nav(active=None, guest=False):
             '<script src="/exec-voice.js?v=4"></script>'
         ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=21">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=22">'
                   '<div id="exec-bubble" class="exec-under-fx" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
