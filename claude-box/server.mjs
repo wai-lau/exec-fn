@@ -23,6 +23,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { query, getSessionInfo, getSessionMessages, listSessions } from "@anthropic-ai/claude-agent-sdk";
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
 import { usage } from "./usage.mjs";
@@ -83,11 +84,37 @@ const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp
 // them, and none are files, so neither the mount namespace nor settingSources
 // touched them. They are server-side capability riding the OAuth identity.
 //
-// BLOCKED_TOOLS therefore exists only to keep the built-ins out of CONTEXT (a
-// tool the model can see, calls, and gets refused on burns a turn and reads as
-// the assistant being broken). It is a UX measure. The security is canUseTool.
-const ALLOWED_TOOLS = ["WebSearch", "WebFetch", ...ARCHIVE_TOOL_NAMES];
+// `tools` is the ALLOWLIST and it is the security: it sets the base set of
+// built-in tools, so anything not named here never enters the model's context
+// at all -- including a tool that ships in a future SDK, which is the whole
+// class of bug a denylist cannot cover. BUILTIN_TOOLS is the built-in half of
+// ALLOWED_TOOLS; the archive tools arrive separately, through mcpServers.
+//
+// BLOCKED_TOOLS stays as belt, and to keep the built-ins out of CONTEXT (a tool
+// the model can see, calls, and gets refused on burns a turn and reads as the
+// assistant being broken). canUseTool stays too, but do NOT describe it as the
+// gate: measured 2026-09-10, a deny-everything callback did not stop ToolSearch
+// or CronList, and was never invoked for either. It does not see harness tools.
+//
+// AskUserQuestion is why this is now an allowlist. It was not in BLOCKED_TOOLS
+// (nothing listed it, because nothing knew to), so it rode in on the login, the
+// model called it mid-answer, and the page printed a raw
+// "AskUserQuestion is not available in the sandbox" at Wai. Every name added to
+// the denylist after the fact is one that already reached a user once.
+const BUILTIN_TOOLS = ["WebSearch", "WebFetch"];
+export const ALLOWED_TOOLS = [...BUILTIN_TOOLS, ...ARCHIVE_TOOL_NAMES];
 const BLOCKED_TOOLS = [
+  // Asks the harness to put a question to the user. There is no such channel
+  // here -- the page streams one answer -- so a call is a dead end by
+  // construction.
+  "AskUserQuestion",
+  // Ends the session / drives plan mode / reports into the harness UI. All
+  // assume a Claude Code terminal on the other end; this is a web page.
+  "EndConversation", "EnterPlanMode", "ExitPlanMode", "SlashCommand",
+  "TaskOutput", "TaskStop", "SendFeedback",
+  // Publish or hand a file outward. A chat page must not be able to put
+  // conversation content on the open web or into the user's files.
+  "Artifact", "SendUserFile",
   "Read", "Write", "Edit", "NotebookEdit",
   "Bash", "BashOutput", "KillShell",
   "Glob", "Grep",
@@ -459,23 +486,8 @@ async function handleQuery(req, res, body) {
 
   try {
     const options = {
-      cwd: SANDBOX,
-      permissionMode: "default",
+      ...sandboxOptions(),
       systemPrompt: buildSystemPrompt(),
-      disallowedTools: BLOCKED_TOOLS,
-      // strictMcpConfig means "only the servers named in mcpServers". That is
-      // what drops the account's claude.ai connectors (Gmail / Calendar /
-      // Drive): they leave the model's context entirely instead of sitting
-      // there connected and merely refused at call time. The ONE server named
-      // is ours and runs in this process -- three read-only tools over the
-      // archive directory, which is not a filesystem and reaches nothing else.
-      mcpServers: { archive: archiveServer(ARCHIVE_DIR) },
-      strictMcpConfig: true,
-      canUseTool,   // the actual gate: every name outside ALLOWED_TOOLS is denied
-      maxTurns: MAX_TURNS,
-      // Load NO settings files. The agent has Bash and a writable $HOME, so a
-      // settings.json it wrote itself would otherwise be read back as policy.
-      settingSources: [],
       abortController: controller,
     };
     // The client does not choose the conversation -- the pointer does, so every
@@ -533,6 +545,42 @@ function readBody(req) {
     });
     req.on("error", reject);
   });
+}
+
+// The sandbox, as one object. Exported so probe-tools.mjs measures the SAME
+// policy that serves traffic -- a probe that builds its own options is only
+// ever testing itself.
+export function sandboxOptions() {
+  return {
+    cwd: SANDBOX,
+    permissionMode: "default",
+    // The allowlist. Everything outside it -- including a tool added by a
+    // future SDK -- is never in context. This is the line that matters.
+    tools: BUILTIN_TOOLS,
+    disallowedTools: BLOCKED_TOOLS,
+    // strictMcpConfig means "only the servers named in mcpServers". That is
+    // what drops the account's claude.ai connectors (Gmail / Calendar /
+    // Drive): they leave the model's context entirely instead of sitting
+    // there connected and merely refused at call time. The ONE server named
+    // is ours and runs in this process -- three read-only tools over the
+    // archive directory, which is not a filesystem and reaches nothing else.
+    mcpServers: { archive: archiveServer(ARCHIVE_DIR) },
+    strictMcpConfig: true,
+    // Third layer, not the first: it never sees a harness tool (measured).
+    canUseTool,
+    maxTurns: MAX_TURNS,
+    // Load NO settings files. A settings.json anywhere the agent can write
+    // would otherwise be read back as policy. It has no Write and no Bash
+    // today, but that guarantee must not depend on the tool list staying
+    // empty -- which is exactly the assumption AskUserQuestion broke.
+    settingSources: [],
+  };
+}
+
+// The probe runs one throwaway turn in its own cwd, so it never files a session
+// transcript into the picker the way the titler used to.
+export function probeOptions() {
+  return { ...sandboxOptions(), cwd: TITLE_SANDBOX, systemPrompt: "probe" };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -725,6 +773,14 @@ try {
   console.error(`cc-sidecar: could not create ${TITLE_SANDBOX}: ${err?.message || err}`);
 }
 
-server.listen(PORT, HOST, () => {
-  console.log(`cc-sidecar listening on ${HOST}:${PORT} sandbox=${SANDBOX}`);
-});
+// Only bind when RUN, never when imported. probe-tools.mjs imports this module
+// to read the real sandbox policy off it, and an import that seized the port
+// would take the live sidecar down to answer a question about it.
+const RUN_AS_MAIN = process.argv[1]
+  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (RUN_AS_MAIN) {
+  server.listen(PORT, HOST, () => {
+    console.log(`cc-sidecar listening on ${HOST}:${PORT} sandbox=${SANDBOX}`);
+  });
+}
