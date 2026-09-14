@@ -8,9 +8,11 @@
  * error. */
 
 let streaming = false;
-// Chat pace: three times the tarot reader's. These pages are read for an answer.
-const CC_TYPE_SPEED = 3;
+// Chat pace: FOUR times the tarot reader's 1.25. These pages are read for an
+// answer, and a typewriter the eye outruns is latency wearing a costume.
+const CC_TYPE_SPEED = 5;
 let pending = [];   // images pasted but not yet sent
+let _sending = false;   // mid-interrupt: a second Enter must not double-send
 
 const terminal = document.getElementById('terminal');
 
@@ -185,7 +187,6 @@ async function loadHistory() {
 }
 
 async function sendMsg() {
-  if (streaming) return;
   const text = _msgInput.innerText.trim();
   // An image on its own is a real message ("what is this?"), so an empty box
   // is only empty when there is nothing pending either.
@@ -208,7 +209,18 @@ async function sendMsg() {
   const imgs = pending.slice();
   pending = [];
   thumbStrip();
+  // The message lands in the transcript BEFORE the interrupt it triggers: the
+  // wait below is up to a few hundred ms of round trips, and a line that leaves
+  // the composer and appears nowhere reads as a dropped keystroke.
   addMsg('user', text, imgs);
+  // Sending IS the interrupt: stop the turn in flight and wait for the sidecar's
+  // slot before opening the next one (cc-interrupt.js). A no-op when idle.
+  // `_sending` covers only that window -- interrupting again mid-reply is
+  // allowed, two Enters in the same tick doing it twice is not.
+  if (_sending) return;
+  _sending = true;
+  if (streaming) await ccInterrupt();
+  _sending = false;
   await streamResponse(text, imgs);
 }
 
@@ -254,7 +266,7 @@ function ccAppendReceipt(body, text) {
 }
 
 async function streamResponse(prompt, imgs) {
-  streaming = true; ccResetTools();   // no call from a dead turn may pair here
+  streaming = true; ccResetTools(); const signal = ccRunBegin();   // see cc-interrupt.js
   let { div, body, cur } = addStreamDiv();
   let fullText = '';
   let receipt = null;   // the turn/time footnote, appended after the settle
@@ -286,7 +298,7 @@ async function streamResponse(prompt, imgs) {
   };
 
   // Reveal the reply at a readable pace instead of in stream-sized bursts --
-  // the same engine /tarot uses, at SPEED 3 (typewriter.js). It never lags the
+  // the same engine /tarot uses, at SPEED 5 (typewriter.js). It never lags the
   // stream by much: the weights are per character and the text is already here.
   let tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
   let typing = null;
@@ -308,7 +320,7 @@ async function streamResponse(prompt, imgs) {
 
   try {
     const r = await fetch('/api/cc/query', {
-      method: 'POST',
+      method: 'POST', signal,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt: prompt,
@@ -385,105 +397,15 @@ async function streamResponse(prompt, imgs) {
     }
     if (receipt) ccAppendReceipt(settled, receipt);
   } catch (e) {
-    if (div) { cur.remove(); if (!fullText) div.remove(); }
-    addMsg('sys warn', '[ ' + e.message + ' ]');
+    tw.cancelled = true; if (div) { cur.remove(); if (!fullText) div.remove(); }
+    addMsg('sys warn', ccStopNote(e));
   }
 
-  streaming = false;
+  streaming = false; ccRunEnd();
   // The turn is over. cc-mic.js listens for this to re-arm a voice session; the
   // event says only "a reply finished" and knows nothing about the microphone.
   terminal.dispatchEvent(new CustomEvent('cc:reply-done'));
 }
-
-// ── input (mtg idioms) ────────────────────────────────────────────────────
-const _pre = document.getElementById('input-pre');
-const _post = document.getElementById('input-post');
-const _inputCursor = document.getElementById('input-cursor');
-
-function _caretOffset() {
-  const sel = window.getSelection();
-  if (!sel.rangeCount || !_msgInput.contains(sel.anchorNode)) return _msgInput.innerText.length;
-  const range = document.createRange();
-  range.selectNodeContents(_msgInput);
-  // After clearing the input on submit, the stale selection offset can point past
-  // the emptied node — WebKit throws IndexSizeError where Chromium clamps.
-  // Falling back keeps renderCaret (hence sendMsg) from aborting.
-  try {
-    range.setEnd(sel.anchorNode, sel.anchorOffset);
-  } catch {
-    return _msgInput.innerText.length;
-  }
-  return range.toString().length;
-}
-
-function renderCaret() {
-  const text = _msgInput.innerText;
-  const pos = _caretOffset();
-  _pre.textContent = text.slice(0, pos);
-  _post.textContent = text.slice(pos);
-}
-
-_msgInput.addEventListener('input', () => { renderCaret(); syncInputH(); });
-_msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
-_msgInput.addEventListener('focus', () => { _inputCursor.style.display = ''; renderCaret(); });
-_msgInput.addEventListener('keyup', renderCaret);
-_msgInput.addEventListener('click', renderCaret);
-document.addEventListener('selectionchange', () => {
-  if (document.activeElement === _msgInput) renderCaret();
-});
-_msgInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
-});
-// Paste plain text only: rich HTML drags in inline colors (invisible on the dark
-// terminal) and stray nodes the input wasn't built for.
-_msgInput.addEventListener('paste', e => {
-  const cd = e.clipboardData || window.clipboardData;
-  // A screenshot paste carries an image FILE, not text. Take those first;
-  // anything else falls through to the plain-text path below, which exists
-  // because rich HTML drags in inline colors invisible on a dark terminal.
-  const files = Array.from(cd.files || []).filter(f => f.type.startsWith('image/'));
-  if (files.length) {
-    e.preventDefault();
-    Promise.all(files.slice(0, 4).map(shrink)).then(list => {
-      for (const im of list) if (im && pending.length < 4) pending.push(im);
-      thumbStrip();
-    });
-    return;
-  }
-  e.preventDefault();
-  const text = cd.getData('text/plain');
-  document.execCommand('insertText', false, text);
-  renderCaret();
-  syncInputH();
-});
-_msgInput.focus();
-renderCaret();
-
-// iOS raises the soft keyboard only for a focus() inside a user gesture, so the
-// on-load focus above can't summon it. Seat focus on the first interaction.
-(function () {
-  const onFirst = e => {
-    if (e.target.closest('button, a, input, textarea, [contenteditable]')) {
-      document.removeEventListener('pointerdown', onFirst, true);
-      return;
-    }
-    // Empty-space tap: completing it on a non-editable element would blur the
-    // input we just focused and iOS drops the keyboard.
-    e.preventDefault();
-    document.removeEventListener('pointerdown', onFirst, true);
-    _msgInput.focus({ preventScroll: true });
-    if (document.activeElement === _msgInput) {
-      const sel = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(_msgInput);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      renderCaret();
-    }
-  };
-  document.addEventListener('pointerdown', onFirst, { capture: true, passive: false });
-})();
 
 (async () => {
   if (await announceState()) await loadHistory();
