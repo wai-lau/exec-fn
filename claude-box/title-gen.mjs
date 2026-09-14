@@ -152,6 +152,14 @@ async function ask(systemPrompt, prompt, { sandbox, blockedTools }) {
         model: MODEL,
         systemPrompt,
         maxTurns: 1,
+        // `tools: []` disables every built-in tool -- this call writes a string
+        // and needs none. It is the ALLOWLIST, and it is what holds when a
+        // future SDK ships a new tool; `allowedTools: []` below reads like a
+        // restriction but is not one (it means "auto-allow these without
+        // prompting"), and a denylist only ever covers names someone already
+        // thought of. AskUserQuestion reached the model through exactly that
+        // gap on the main query path, 2026-09-13.
+        tools: [],
         allowedTools: [],
         disallowedTools: blockedTools,
         mcpServers: {},
