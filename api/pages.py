@@ -213,7 +213,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-todos.js?v=3"></script>'
                   '<script src="/typewriter.js?v=6"></script>'
                   '<script src="/exec-choices.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=9"></script>'
+                  '<script src="/exec-bubble-assets.js?v=10"></script>'
                   '<script src="/exec-bubble.js?v=46"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
