@@ -296,6 +296,9 @@
   display: grid; grid-template-columns: repeat(5, 1fr);
   align-items: baseline;
   padding: var(--space-1) var(--space-2);
+
+  /* Room for the [x] parked at the bar's top-right corner. */
+  padding-right: var(--space-8);
 }
 .cs-meta > span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -310,9 +313,13 @@
    the box lets them shrink at all.
 
    Lit pills take the segment's own colour (currentColor) so a gauge belongs to
-   the number above it; the rest sit at the calendar's own 0.12 rule green. */
+   the number above it; the rest sit at the calendar's own 0.12 rule green.
+
+   CONNECTED, with no gap: touching pills read as one gauge that happens to be
+   divided, where spaced ones read as ten separate marks and the eye has to
+   count them to get a level. */
 .cs-bar {
-  display: flex; gap: var(--space-px);
+  display: flex; gap: 0;
 
   /* Side margins matter: edge to edge the five gauges butt together into ONE
      dotted rule across the bar, and a run of lit pills stops reading as the
@@ -343,6 +350,27 @@
    each step would otherwise snap the bar. */
 html.kb-open #cc-status,
 html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
+
+/* Exec's own [x], same mono, same 0.8 green lifting to 1 -- Exec's closes the
+   panel, this one does what /new does: ends the conversation, archived first.
+
+   It sits in the STATUS BAR, not at the right end of the composer where Exec
+   puts it, because on this page that corner is taken: the Exec bubble rests
+   there, and `elementFromPoint` over a composer button returns `exec-bubble`,
+   so every tap would have opened the planning panel instead. The bar is also
+   where it belongs by meaning -- the row that says what this conversation IS
+   is the row that ends it. `.cs-meta` pads right by exactly the button's width
+   so the 7d column never slides under it. */
+#cc-new {
+  position: absolute; top: var(--space-px); right: var(--space-2);
+  background: none; border: none; cursor: pointer;
+  color: hsl(var(--green-hsl) / 0.8);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm); line-height: var(--lh-tight);
+  padding: 0; z-index: var(--z-raised);
+  transition: color 0.15s;
+}
+#cc-new:hover { color: hsl(var(--green-hsl) / 1); }
 
 /* ── the /list picker ───────────────────────────────────────────────────── */
 

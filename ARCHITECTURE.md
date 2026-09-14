@@ -1073,7 +1073,9 @@ Metrics sit on the page's own black in **five equal columns** (`grid-template-co
 Three details it turns on:
 - **The pills flex (`flex: 1 1 0`, `min-width: 0`) rather than sitting at a fixed 5px.** Five gauges of ten fixed dots do not fit a 375px phone, and a gauge that overflows its fifth is worse than one whose dots are a little narrow.
 - **The lit count rounds UP off zero** — 4% is one pill, not none. An empty gauge has to mean nothing is there, not "not much".
-- **The gauges carry side margins.** Edge to edge the five run together into ONE dotted rule across the bar, and a run of lit pills stops reading as the gauge of its own number.
+- **The gauges carry side margins, and the pills inside one carry none** (`gap: 0`). Touching pills read as one gauge that happens to be divided; spaced ones read as ten separate marks the eye has to count. Between gauges the margin is what stops the five running together into a single dotted rule across the bar.
+
+**`[x]` ends the conversation** — Exec's own button, same mono and same 0.8 green lifting to 1, doing what `/new` does (archive first, then drop the pointer; a run in flight is interrupted before the pointer moves, since a reply streaming into a conversation that no longer exists is the one way to lose it). **It sits in the status bar, not at the right end of the composer where Exec puts it**: on this page that corner belongs to the Exec bubble, and `elementFromPoint` over a composer button there returns `exec-bubble` — every tap would have opened the planning panel. `.cs-meta` pads right by the button's width so the `7d` column never slides under it.
 
 The reset box gauges **how much of the 5h window has BURNED** (`ccBurned`, from the time left), so all five bars mean the same thing — more filled = less left — instead of one of them running backwards. No reset time means an empty bar, never a full one: an unknown must not look like an alarm.
 
