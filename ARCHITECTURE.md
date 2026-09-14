@@ -889,9 +889,24 @@ Know which is which before trusting one.
 
    **This was the 2026-09-10 session's worst finding.** Signing cc-agent into claude.ai attached that ACCOUNT's connectors — a probe found Gmail, Google Calendar and Google Drive all `"connected"`, exposing `send_message`, `trash_thread`, `share_file`, `download_file_content` and `delete_event` through a public-internet page behind one cookie. They are server-side capability riding the OAuth identity, so the mount namespace, `settingSources: []` and a built-in-tool blocklist ALL missed them completely. **Any subscription login inherits whatever connectors the account has** — re-probe after enabling a new one.
 
-3. **Tools are a DENYLIST with no backstop** — `disallowedTools`, listing every name. This is the weak one, and it is weak by necessity: **`canUseTool` does NOT gate harness tools.** Measured 2026-09-10 with a deny-everything callback and `ToolSearch`/`CronList` left visible: both EXECUTED (`CronList` returned "No scheduled jobs") and the callback was never invoked once. So do not describe `canUseTool` as the gate — it is `ALLOWED_TOOLS = []`, and it covers less than it looks like it does. The list must therefore name the harness tools too (`CronCreate`/`CronDelete`/`Workflow`/`RemoteTrigger`/`PushNotification`/`SendMessage`/`ScheduleWakeup`/`ToolSearch`/`Skill`/…), and **an SDK upgrade that adds a new tool arrives unblocked**.
+3. **Tools are an ALLOWLIST — since 2026-09-13, and only since then.** The SDK's **`tools`** option sets the base set of built-in tools (`[]` disables them all), so anything not named there never enters the model's context, **including a tool that ships in a future SDK**. `BUILTIN_TOOLS` is `["WebSearch", "WebFetch"]`; the archive tools arrive separately through `mcpServers`.
 
-   > After any `@anthropic-ai/claude-agent-sdk` bump, re-run the init probe and confirm `TOOL COUNT: 0` before trusting it.
+   It was a **denylist** until then (`disallowedTools`, listing every name by hand), and that is a losing game: every name added to it after the fact is one that already reached a user once. **`AskUserQuestion` is how this was found** — nothing listed it, because nothing knew to, so it rode in on the login, the model called it mid-answer, and the page printed a raw `AskUserQuestion is not available in the sandbox` at Wai.
+
+   Measured on the pre-fix config the same day — **8 tools reached the model, not 5**: `AskUserQuestion`, **`EnterPlanMode`** and **`ExitPlanMode`**, the last two unnoticed because the model never happened to call them. With `tools` set: exactly the 5 in `ALLOWED_TOOLS`.
+
+   `disallowedTools` stays as belt, and to keep built-ins out of CONTEXT — a tool the model can see, calls, and is refused on burns a turn and reads as the assistant being broken.
+
+   **`canUseTool` is NOT the gate and must never be described as one.** Measured 2026-09-10 with a deny-everything callback and `ToolSearch`/`CronList` left visible: both EXECUTED (`CronList` returned "No scheduled jobs") and the callback was never invoked once. It does not see harness tools. The code said "the actual gate" in a comment for months, which is most of why the denylist was treated as cosmetic and left to rot.
+
+   > After any `@anthropic-ai/claude-agent-sdk` bump, run the probe and confirm `TOOL COUNT: 5` with no `UNEXPECTED` line:
+   >
+   > ```bash
+   > systemd-run --user --scope -p MemoryMax=700M \
+   >   sudo -u cc-agent -H node /srv/cc-agent/probe-tools.mjs
+   > ```
+   >
+   > `claude-box/probe-tools.mjs` imports `sandboxOptions()` from `server.mjs` rather than rebuilding it, so it measures the policy that actually serves traffic. That import is why `server.listen` is guarded by `RUN_AS_MAIN` — an import that seized the port would take the live sidecar down to answer a question about it. **The probe was referenced in these docs for months without existing as a file**, which is most of how a tool reached a user: nothing was re-run because there was nothing to run.
 
 **Why the blast radius stays small anyway:** with no `Read` there is no local untrusted content to inject THROUGH, and with no `Bash`/`Write` an injected instruction reaches nothing it could act on. That is most of why a chat page is a far smaller target than the coding agent this started as, even with the web tools on.
 
