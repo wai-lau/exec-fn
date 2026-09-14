@@ -386,6 +386,18 @@ html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
 .cc-sess.current { color: hsl(var(--green-hsl) / 0.45); cursor: default; }
 
 .cc-sess-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hued like the status bar's title band, from the same hash -- a conversation
+   keeps its colour from the row you tap to the band you land on. TEXT, not a
+   filled band: twenty filled rows would be a paint chart, and the picker is a
+   list of names, not a set of buttons competing for the eye. The timestamp
+   beside it stays green, so the hue marks the NAME and the row still reads as
+   part of this page. */
+.cc-sess-title.hued { color: hsl(var(--cs-hue, 135deg) 95% 60%); }
+
+/* The one you are already in keeps its hue but steps back with the rest of the
+   row -- it is a label, not a destination. */
+.cc-sess.current .cc-sess-title.hued { opacity: 0.45; }
 .cc-sess-when { flex-shrink: 0; color: hsl(var(--green-hsl) / 0.45); }
 
 /* /help — the same row shape as the conversation picker, since both are a

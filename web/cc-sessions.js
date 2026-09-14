@@ -112,6 +112,14 @@ async function ccListSessions(limit) {
     const name = document.createElement('span');
     name.className = 'cc-sess-title';
     name.textContent = s.title || '(untitled)';
+    // A conversation keeps its colour: the same FNV hash the status bar's title
+    // band uses (ccHue, cc-status.js), so the row you tap and the band you land
+    // on are the same hue. Only a TITLED row is hued -- an untitled one has
+    // nothing to hash, and the bar shows it no band either.
+    if (s.title && typeof ccHue === 'function') {
+      name.classList.add('hued');
+      name.style.setProperty('--cs-hue', ccHue(s.title) + 'deg');
+    }
     const when = document.createElement('span');
     when.className = 'cc-sess-when';
     when.textContent = ccWhen(s.modified);
