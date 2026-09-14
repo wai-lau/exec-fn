@@ -19,6 +19,8 @@
 // not updated -- at which point the percentage is off, not the page.
 const CC_CTX_1M = 1000000;
 const CC_CTX_DEFAULT = 200000;
+// The subscription's short window, used to turn "1h20m left" into a gauge.
+const CC_FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
 
 const ccStatusState = { model: '', ctx: 0, base: 0, windows: {}, title: '' };
 
@@ -175,17 +177,39 @@ function ccStatusRender() {
   const seven = ccStatusState.windows.seven_day || ccStatusState.windows.seven_day_opus || {};
   const pctOf = (n) => (n ? Math.min(100, Math.round((n / win) * 100)) : 0);
 
-  meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pctOf(ccStatusState.ctx) + '%'));
-  meta.appendChild(ccSeg('cs-base', '(base:' + pctOf(ccStatusState.base) + '%)'));
-  meta.appendChild(ccSeg('cs-5h', '5h:' + Math.round(five.pct || 0) + '%'));
-  meta.appendChild(ccSeg('cs-reset', '(' + (five.resetsAt ? ccUntil(five.resetsAt * 1000 - Date.now()) || '0m' : '0m') + ')'));
-  meta.appendChild(ccSeg('cs-7d', '7d:' + Math.round(seven.pct || 0) + '%'));
+  // Each box also carries its own little gauge (ccSeg's third argument): a bar
+  // is read at a glance where a two-digit number has to be read. The reset box
+  // gauges the window it counts down -- how much of the 5h has BURNED, so all
+  // five bars mean the same thing (more filled = less left) instead of one of
+  // them running backwards.
+  meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pctOf(ccStatusState.ctx) + '%', pctOf(ccStatusState.ctx)));
+  meta.appendChild(ccSeg('cs-base', '(base:' + pctOf(ccStatusState.base) + '%)', pctOf(ccStatusState.base)));
+  meta.appendChild(ccSeg('cs-5h', '5h:' + Math.round(five.pct || 0) + '%', five.pct || 0));
+  const left = five.resetsAt ? five.resetsAt * 1000 - Date.now() : 0;
+  meta.appendChild(ccSeg('cs-reset', '(' + (five.resetsAt ? ccUntil(left) || '0m' : '0m') + ')', ccBurned(left)));
+  meta.appendChild(ccSeg('cs-7d', '7d:' + Math.round(seven.pct || 0) + '%', seven.pct || 0));
 }
 
-function ccSeg(cls, text) {
+/** How much of the 5h window is gone, as a percentage, from the time left on
+ *  it. No reset time means nothing is known, which reads as an empty bar rather
+ *  than a full one -- an unknown must never look like an alarm. */
+function ccBurned(msLeft) {
+  if (!msLeft || msLeft <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round(100 - (msLeft / CC_FIVE_HOUR_MS) * 100)));
+}
+
+function ccSeg(cls, text, pct) {
   const el = document.createElement('span');
   el.className = cls;
-  el.textContent = text;
+  el.appendChild(document.createTextNode(text));
+  const bar = document.createElement('b');
+  bar.className = 'cs-bar';
+  bar.style.setProperty('--cs-pct', Math.max(0, Math.min(100, Math.round(pct || 0))));
+  // The filled part is its own element rather than a background-size trick: the
+  // cells have to line up with the track's, and a gradient sized to the FILL
+  // would shift its lattice every time the number moved.
+  bar.appendChild(document.createElement('i'));
+  el.appendChild(bar);
   return el;
 }
 

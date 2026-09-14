@@ -1042,6 +1042,15 @@ Metrics sit on the page's own black in **five equal columns** (`grid-template-co
 | its reset | mint `#afffaf` |
 | `7d:N%` | cyan `#00cdcd` |
 
+**Each box also carries a little gauge under its number** (`.cs-bar`, 2026-09-14), drawn the way `/rd`'s month calendar draws itself: flat rectangular cells on a 5px rule, square corners, no gloss — a lattice, not a candy bar. Track cells are the calendar's own `0.12` rule green; the filled cells take the segment's own colour via `currentColor`, so a bar belongs to the number above it instead of turning the row into one green block.
+
+Three details it turns on:
+- **The cell period is a fixed 6px (5px lit + 1px gutter) on BOTH layers, anchored left** — that is the only reason the fill's cells line up with the track's. A period in `%` is relative to each layer's own width, so the fill's lattice would slide every time the number moved.
+- **The fill is its own element**, not a `background-size` trick, for the same reason.
+- **The gauges carry side margins.** At full column width the five run together into ONE dotted rule across the bar, and a run of lit cells stops reading as the gauge of the number above it.
+
+The reset box gauges **how much of the 5h window has BURNED** (`ccBurned`, from the time left), so all five bars mean the same thing — more filled = less left — instead of one of them running backwards. No reset time means an empty bar, never a full one: an unknown must not look like an alarm.
+
 **All five always render, defaulting to 0**: a slot that appears only once it has a value makes the row jump as numbers arrive, and an absent `ctx` reads as broken rather than as "no reply yet". A flex row sized each box to its text, so `9% → 10%` shifted everything after it; on a fixed fifth a value moves only inside its own box and the row reads as a gauge. (All four colours grandfathered into `raw-color-baseline.json` via `--update`, the sanctioned route for a deliberate new colour.)
 
 The title hue is `hash(title) % 360` at 95% / 60% — the shell hashes with md5 and the browser has none (SubtleCrypto is SHA-only), so it uses FNV-1a: same behaviour, different exact hue from the terminal for the same title.
