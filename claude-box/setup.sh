@@ -29,6 +29,7 @@ sudo install -o root -g cc-agent -m 0640 \
   /exec-fn/claude-box/package.json /exec-fn/claude-box/server.mjs \
   /exec-fn/claude-box/archive-tools.mjs /exec-fn/claude-box/usage.mjs \
   /exec-fn/claude-box/title-gen.mjs /exec-fn/claude-box/probe-tools.mjs \
+  /exec-fn/claude-box/sandbox-paths.mjs \
   /exec-fn/claude-box/cc-context.md "$APPDIR/"
 sudo npm --prefix "$APPDIR" install --omit=dev --no-audit --no-fund
 sudo chgrp -R cc-agent "$APPDIR" && sudo chmod -R g+rX "$APPDIR"

@@ -28,10 +28,17 @@ import { query, getSessionInfo, getSessionMessages, listSessions } from "@anthro
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
 import { usage } from "./usage.mjs";
 import { generateTitle } from "./title-gen.mjs";
+import { checkToolPaths } from "./sandbox-paths.mjs";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
 const PORT = Number(process.env.CC_BIND_PORT || 8129);
 const SANDBOX = process.env.CC_SANDBOX || "/srv/cc-sandbox";
+// Resolved ONCE at startup, and it is the resolved form every path check
+// compares against -- if the sandbox itself is reached through a symlink, every
+// legitimate path would otherwise resolve to something that fails the test.
+const SANDBOX_ROOT = (() => {
+  try { return fs.realpathSync(SANDBOX); } catch { return path.resolve(SANDBOX); }
+})();
 // The titler runs in its OWN cwd, and that is the whole of why: a query() call
 // files a session transcript in the project dir for its cwd, and /sessions
 // lists every session whose cwd is SANDBOX. Sharing the sandbox meant each
@@ -284,11 +291,20 @@ const isAuthed = (req) =>
  * Answering for EVERY request is the other half: a tool with no decision falls
  * through to an interactive prompt, and headless there is nobody to answer it --
  * the run stalls until the idle timeout instead of failing cleanly. */
-async function canUseTool(toolName) {
-  if (ALLOWED_TOOLS.includes(toolName)) {
-    return { behavior: "allow", updatedInput: undefined };
+async function canUseTool(toolName, input) {
+  if (!ALLOWED_TOOLS.includes(toolName)) {
+    return { behavior: "deny", message: `${toolName} is not available in the sandbox.` };
   }
-  return { behavior: "deny", message: `${toolName} is not available in the sandbox.` };
+  // Second gate: an allowed tool still may not reach outside the sandbox dir.
+  // The mount namespace decides what EXISTS; this decides where inside it the
+  // agent may go -- and the namespace still contains /home/cc-agent, which
+  // holds the OAuth token. See sandbox-paths.mjs for why a string test alone
+  // is not enough once the agent has Write.
+  const ok = checkToolPaths(SANDBOX_ROOT, toolName, input);
+  if (!ok.ok) {
+    return { behavior: "deny", message: `outside the sandbox -- ${ok.reason}` };
+  }
+  return { behavior: "allow", updatedInput: input };
 }
 
 /** Flatten one SDK message into the small stable shape the browser renders.
