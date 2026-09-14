@@ -74,6 +74,16 @@ _msgInput.addEventListener('paste', e => {
   renderCaret();
   syncInputH();
 });
+/* [x] is /new typed for you -- the same call, the same archive-first
+ * guarantee, the same sys line -- because on a phone the command that is
+ * reached for most is the one that is most annoying to type. A run in flight is
+ * interrupted first: dropping the session pointer out from under a live query
+ * leaves the reply streaming into a conversation that no longer exists. */
+document.getElementById('cc-new').addEventListener('click', async () => {
+  if (streaming) await ccInterrupt();
+  await runCommand('/new');
+});
+
 _msgInput.focus();
 renderCaret();
 
