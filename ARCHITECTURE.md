@@ -1068,14 +1068,13 @@ Metrics sit on the page's own black in **five equal columns** (`grid-template-co
 | its reset | mint `#afffaf` |
 | `7d:N%` | cyan `#00cdcd` |
 
-**Each box also carries a little gauge under its number** (`.cs-bar`, 2026-09-14), drawn in the idiom `/rd`'s month calendar already uses for a day's load: **a row of PILLS, not a bar with a lit portion** — same 5px body, same `--radius-pill`, same flat fill with no gloss. Ten pills, so one pill is 10%; lit pills take the segment's own colour via `currentColor` (a gauge belongs to the number above it, rather than the row becoming one green block) and the rest sit at the calendar's own `0.12` rule green.
+**Each box also carries a little gauge under its number** (`.cs-bar`, 2026-09-14): **ONE pill that extends, riding a darker full-width pill that shows the capacity it is a fraction of** — same 5px body and same `--radius-pill` as `/rd`'s calendar dots. The rounded end is the whole reading: it says "this much of that", where a divided bar says "count me" (it was ten separate pills for an afternoon, and counting is exactly what the row must not ask for). Track is the calendar's own `0.12` rule green; the fill takes the segment's colour via `currentColor`, so a gauge belongs to the number above it rather than the row becoming one green block.
 
-Three details it turns on:
-- **The pills flex (`flex: 1 1 0`, `min-width: 0`) rather than sitting at a fixed 5px.** Five gauges of ten fixed dots do not fit a 375px phone, and a gauge that overflows its fifth is worse than one whose dots are a little narrow.
-- **The lit count rounds UP off zero** — 4% is one pill, not none. An empty gauge has to mean nothing is there, not "not much".
-- **The gauges carry side margins, and the pills inside one carry none** (`gap: 0`). Touching pills read as one gauge that happens to be divided; spaced ones read as ten separate marks the eye has to count. Between gauges the margin is what stops the five running together into a single dotted rule across the bar.
+Two details it turns on:
+- **`min-width: 5px` on the fill, and NO fill element at all for zero.** At 4% of a 60px box the fill is 2px, which at this radius renders as nothing; one body wide is the floor. Without the zero case that floor would make empty look like a little.
+- **The gauges carry side margins.** Edge to edge the five run together into one rule across the bar and a fill stops reading as the gauge of its own number.
 
-**`[x]` ends the conversation** — Exec's own button, same mono and same 0.8 green lifting to 1, doing what `/new` does (archive first, then drop the pointer; a run in flight is interrupted before the pointer moves, since a reply streaming into a conversation that no longer exists is the one way to lose it). **It sits in the status bar, not at the right end of the composer where Exec puts it**: on this page that corner belongs to the Exec bubble, and `elementFromPoint` over a composer button there returns `exec-bubble` — every tap would have opened the planning panel. `.cs-meta` pads right by the button's width so the `7d` column never slides under it.
+**`[x]` ends the conversation** — Exec's own button, same mono and same 0.8 green lifting to 1, at the same right end of the input line, doing what `/new` does (archive first, then drop the pointer; a run in flight is interrupted before the pointer moves, since a reply streaming into a conversation that no longer exists is the one way to lose it). The Exec bubble rests on that corner and swallows the tap until it is dragged off — **that is the bubble's nature, not a reason to site the control elsewhere**: it is draggable, and where it sits is Wai's choice.
 
 The reset box gauges **how much of the 5h window has BURNED** (`ccBurned`, from the time left), so all five bars mean the same thing — more filled = less left — instead of one of them running backwards. No reset time means an empty bar, never a full one: an unknown must not look like an alarm.
 

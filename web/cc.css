@@ -296,44 +296,38 @@
   display: grid; grid-template-columns: repeat(5, 1fr);
   align-items: baseline;
   padding: var(--space-1) var(--space-2);
-
-  /* Room for the [x] parked at the bar's top-right corner. */
-  padding-right: var(--space-8);
 }
 .cs-meta > span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Each box carries a little gauge under its number, drawn in the idiom /rd's
-   month calendar already uses for a day's load: a row of PILLS, not a bar with
-   a lit portion -- same 5px body, same --radius-pill, same flat fill with no
-   gloss. Ten of them, so one pill is 10%.
+/* Each box carries a little gauge under its number: ONE pill that extends,
+   riding on a darker full-width pill that shows the capacity it is a fraction
+   of. Same 5px body and same --radius-pill as /rd's calendar dots -- the
+   rounded end is the whole reading: it says "this much of that", where a
+   divided bar says "count me".
 
-   The pills FLEX to the column instead of being a fixed 5px: five gauges of
-   ten fixed dots do not fit a 375px phone, and a gauge that overflows its
-   fifth is worse than one whose dots are a little narrow. `min-width: 0` on
-   the box lets them shrink at all.
-
-   Lit pills take the segment's own colour (currentColor) so a gauge belongs to
-   the number above it; the rest sit at the calendar's own 0.12 rule green.
-
-   CONNECTED, with no gap: touching pills read as one gauge that happens to be
-   divided, where spaced ones read as ten separate marks and the eye has to
-   count them to get a level. */
+   The track is the calendar's own 0.12 rule green; the fill takes the
+   segment's colour (currentColor), so a gauge belongs to the number above it
+   rather than turning the row into one green block. */
 .cs-bar {
-  display: flex; gap: 0;
+  display: block; height: 5px;
+  border-radius: var(--radius-pill);
+  background: hsl(var(--green-hsl) / 0.12);
 
-  /* Side margins matter: edge to edge the five gauges butt together into ONE
-     dotted rule across the bar, and a run of lit pills stops reading as the
-     gauge of the number above it. */
+  /* Side margins: edge to edge the five gauges butt together into one rule
+     across the bar, and a fill stops reading as the gauge of its own number. */
   margin: var(--space-px) var(--space-2) 0;
 }
 
+/* min-width is what keeps a small-but-real number visible: at 4% of a 60px
+   box the fill is 2px, which at this radius renders as nothing at all. A pill
+   one body wide is the floor, and 0 renders no fill element at all -- empty
+   has to mean empty. */
 .cs-bar > i {
-  flex: 1 1 0; min-width: 0; height: 5px;
+  display: block; height: 100%;
+  width: calc(var(--cs-pct, 0) * 1%); min-width: 5px;
   border-radius: var(--radius-pill);
-  background: hsl(var(--green-hsl) / 0.12);
+  background: currentcolor;
 }
-
-.cs-bar > i.on { background: currentcolor; }
 
 .cs-ctx { color: #fff; }
 .cs-base { color: #8a8a8a; }
@@ -351,23 +345,23 @@
 html.kb-open #cc-status,
 html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
 
-/* Exec's own [x], same mono, same 0.8 green lifting to 1 -- Exec's closes the
-   panel, this one does what /new does: ends the conversation, archived first.
+/* Exec's own [x], same mono, same 0.8 green lifting to 1, at the same right
+   end of the input line -- Exec's closes the panel, this one does what /new
+   does: ends the conversation, archived first.
 
-   It sits in the STATUS BAR, not at the right end of the composer where Exec
-   puts it, because on this page that corner is taken: the Exec bubble rests
-   there, and `elementFromPoint` over a composer button returns `exec-bubble`,
-   so every tap would have opened the planning panel instead. The bar is also
-   where it belongs by meaning -- the row that says what this conversation IS
-   is the row that ends it. `.cs-meta` pads right by exactly the button's width
-   so the 7d column never slides under it. */
+   The Exec bubble rests on this corner and will swallow a tap until it is
+   dragged off; that is the bubble's nature (it is draggable, and where it sits
+   is Wai's choice), not a reason to put this control somewhere it isn't.
+
+   `flex-shrink: 0` and the left padding keep it off the caret: the input
+   beside it grows with the text. */
 #cc-new {
-  position: absolute; top: var(--space-px); right: var(--space-2);
+  flex-shrink: 0;
   background: none; border: none; cursor: pointer;
   color: hsl(var(--green-hsl) / 0.8);
   font-family: var(--font-mono);
   font-size: var(--fs-sm); line-height: var(--lh-tight);
-  padding: 0; z-index: var(--z-raised);
+  padding: 0 0 0 var(--space-2); margin-left: var(--space-2-5);
   transition: color 0.15s;
 }
 #cc-new:hover { color: hsl(var(--green-hsl) / 1); }
