@@ -299,38 +299,34 @@
 }
 .cs-meta > span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Each box carries a little gauge under its number, drawn the way /rd's month
-   calendar draws itself -- flat rectangular cells on a 5px rule, square
-   corners, no gloss: a lattice, not a candy bar. The track cells are the
-   calendar's own 0.12 rule green; the filled cells take the segment's colour
-   (currentColor), so a bar belongs to the number above it rather than turning
-   the row into one green block.
+/* Each box carries a little gauge under its number, drawn in the idiom /rd's
+   month calendar already uses for a day's load: a row of PILLS, not a bar with
+   a lit portion -- same 5px body, same --radius-pill, same flat fill with no
+   gloss. Ten of them, so one pill is 10%.
 
-   Cells are a fixed 6px period (5px lit + 1px gutter) on BOTH layers, anchored
-   left, which is the only reason they line up: a period in % would be relative
-   to each layer's own width and the fill's lattice would slide every time the
-   number moved. */
+   The pills FLEX to the column instead of being a fixed 5px: five gauges of
+   ten fixed dots do not fit a 375px phone, and a gauge that overflows its
+   fifth is worse than one whose dots are a little narrow. `min-width: 0` on
+   the box lets them shrink at all.
+
+   Lit pills take the segment's own colour (currentColor) so a gauge belongs to
+   the number above it; the rest sit at the calendar's own 0.12 rule green. */
 .cs-bar {
-  --cs-cell: 6px;
+  display: flex; gap: var(--space-px);
 
-  position: relative; display: block; height: 5px;
-
-  /* Side margins matter: at full column width the five gauges butt together
-     into ONE dotted rule across the bar, and a run of lit cells stops reading
-     as the gauge of the number above it. */
+  /* Side margins matter: edge to edge the five gauges butt together into ONE
+     dotted rule across the bar, and a run of lit pills stops reading as the
+     gauge of the number above it. */
   margin: var(--space-px) var(--space-2) 0;
-  background: repeating-linear-gradient(to right,
-    hsl(var(--green-hsl) / 0.12) 0 calc(var(--cs-cell) - 1px),
-    transparent calc(var(--cs-cell) - 1px) var(--cs-cell));
 }
 
 .cs-bar > i {
-  position: absolute; inset: 0 auto 0 0;
-  width: calc(var(--cs-pct, 0) * 1%);
-  background: repeating-linear-gradient(to right,
-    currentcolor 0 calc(var(--cs-cell) - 1px),
-    transparent calc(var(--cs-cell) - 1px) var(--cs-cell));
+  flex: 1 1 0; min-width: 0; height: 5px;
+  border-radius: var(--radius-pill);
+  background: hsl(var(--green-hsl) / 0.12);
 }
+
+.cs-bar > i.on { background: currentcolor; }
 
 .cs-ctx { color: #fff; }
 .cs-base { color: #8a8a8a; }

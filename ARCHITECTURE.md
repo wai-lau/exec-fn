@@ -1068,12 +1068,12 @@ Metrics sit on the page's own black in **five equal columns** (`grid-template-co
 | its reset | mint `#afffaf` |
 | `7d:N%` | cyan `#00cdcd` |
 
-**Each box also carries a little gauge under its number** (`.cs-bar`, 2026-09-14), drawn the way `/rd`'s month calendar draws itself: flat rectangular cells on a 5px rule, square corners, no gloss — a lattice, not a candy bar. Track cells are the calendar's own `0.12` rule green; the filled cells take the segment's own colour via `currentColor`, so a bar belongs to the number above it instead of turning the row into one green block.
+**Each box also carries a little gauge under its number** (`.cs-bar`, 2026-09-14), drawn in the idiom `/rd`'s month calendar already uses for a day's load: **a row of PILLS, not a bar with a lit portion** — same 5px body, same `--radius-pill`, same flat fill with no gloss. Ten pills, so one pill is 10%; lit pills take the segment's own colour via `currentColor` (a gauge belongs to the number above it, rather than the row becoming one green block) and the rest sit at the calendar's own `0.12` rule green.
 
 Three details it turns on:
-- **The cell period is a fixed 6px (5px lit + 1px gutter) on BOTH layers, anchored left** — that is the only reason the fill's cells line up with the track's. A period in `%` is relative to each layer's own width, so the fill's lattice would slide every time the number moved.
-- **The fill is its own element**, not a `background-size` trick, for the same reason.
-- **The gauges carry side margins.** At full column width the five run together into ONE dotted rule across the bar, and a run of lit cells stops reading as the gauge of the number above it.
+- **The pills flex (`flex: 1 1 0`, `min-width: 0`) rather than sitting at a fixed 5px.** Five gauges of ten fixed dots do not fit a 375px phone, and a gauge that overflows its fifth is worse than one whose dots are a little narrow.
+- **The lit count rounds UP off zero** — 4% is one pill, not none. An empty gauge has to mean nothing is there, not "not much".
+- **The gauges carry side margins.** Edge to edge the five run together into ONE dotted rule across the bar, and a run of lit pills stops reading as the gauge of its own number.
 
 The reset box gauges **how much of the 5h window has BURNED** (`ccBurned`, from the time left), so all five bars mean the same thing — more filled = less left — instead of one of them running backwards. No reset time means an empty bar, never a full one: an unknown must not look like an alarm.
 
