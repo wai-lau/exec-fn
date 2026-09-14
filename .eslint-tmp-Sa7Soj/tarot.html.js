@@ -1,0 +1,1 @@
+if((navigator.maxTouchPoints||0)===0)document.documentElement.classList.add('no-touch');

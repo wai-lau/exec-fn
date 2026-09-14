@@ -24,6 +24,11 @@ import { probeOptions, ALLOWED_TOOLS } from "./server.mjs";
 
 const EXPECTED = new Set(ALLOWED_TOOLS);
 
+// Conditional: the SDK only surfaces these once a background shell exists, so
+// their absence on a cold probe is normal and must not read as a finding. The
+// direction that matters is UNEXPECTED, never missing.
+const CONDITIONAL = new Set(["BashOutput", "KillShell"]);
+
 async function main() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60_000);
@@ -51,7 +56,9 @@ async function main() {
 
   const got = (init.tools || []).slice().sort();
   const unexpected = got.filter((t) => !EXPECTED.has(t));
-  const missing = [...EXPECTED].filter((t) => !got.includes(t)).sort();
+  const missing = [...EXPECTED]
+    .filter((t) => !got.includes(t) && !CONDITIONAL.has(t))
+    .sort();
 
   console.log("model: " + (init.model || "?"));
   console.log("TOOL COUNT: " + got.length);

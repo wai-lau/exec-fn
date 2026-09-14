@@ -854,7 +854,11 @@ Verified end-to-end against the live printer with the real app under uvicorn: au
 
 ## 7. `/cc` — Claude Code in the browser
 
-Owner-only. A general CHAT page over Wai's Claude subscription — **not** a coding agent, and nothing here reaches the exec-fn repo. Summary + the invariants a change must not break live in CLAUDE.md's page table; this section is the mechanism and the incident history.
+Owner-only. Wai's own Claude Code session, driven from a web page instead of a terminal — often from a phone. Summary + the invariants a change must not break live in CLAUDE.md's page table; this section is the mechanism and the incident history.
+
+**It became a full agent on 2026-09-13.** It shipped as a deliberately tools-light chat page ("no filesystem, never offer to run anything", two web tools), and that framing is now historical: `Read`, `Write`, `Edit`, `Bash`, `Glob` and `Grep` are on, at Wai's request, because she wants the working surface of a terminal session without the terminal. Both halves of that decision are recorded here — what it bought, and what it costs (§7b).
+
+Its `cwd` is a private scratch sandbox and **not** a checkout of exec-fn: the repo is not in the unit's mount namespace, so the agent cannot see it. The system prompt says so explicitly, because a model that goes looking for a project, finds an empty directory and reports the page as broken is the obvious failure here.
 
 ### 7a. Topology
 
@@ -908,7 +912,31 @@ Know which is which before trusting one.
    >
    > `claude-box/probe-tools.mjs` imports `sandboxOptions()` from `server.mjs` rather than rebuilding it, so it measures the policy that actually serves traffic. That import is why `server.listen` is guarded by `RUN_AS_MAIN` — an import that seized the port would take the live sidecar down to answer a question about it. **The probe was referenced in these docs for months without existing as a file**, which is most of how a tool reached a user: nothing was re-run because there was nothing to run.
 
-**Why the blast radius stays small anyway:** with no `Read` there is no local untrusted content to inject THROUGH, and with no `Bash`/`Write` an injected instruction reaches nothing it could act on. That is most of why a chat page is a far smaller target than the coding agent this started as, even with the web tools on.
+### 7b-bis. The blast radius, honestly (2026-09-13)
+
+This used to read "with no `Read` there is no local untrusted content to inject THROUGH, and with no `Bash`/`Write` an injected instruction reaches nothing it could act on." **That is no longer true and must not be quoted back as if it were.**
+
+With `Bash` + `Read` + `WebFetch` all on, the exfiltration path is real and specific:
+
+```
+fetched page (or text inside a pasted screenshot)
+  -> untrusted instructions land in context
+  -> Bash/Read reach /home/cc-agent/.claude/.credentials.json
+  -> WebFetch carries it out
+```
+
+`/home/cc-agent` is a **writable** bind (`BindPaths=` in the unit) and the sidecar runs **as** `cc-agent`, so the OAuth subscription token is readable by the very process holding the tools. No mount trick fixes this: the process needs those credentials to authenticate at all.
+
+**Admin-only does not mitigate it.** The trigger is content the model fetched, not a person logging in — so "I am the only one with access" is true and irrelevant to this path.
+
+**This was raised, understood and accepted** by Wai on 2026-09-13, weighing that the worst case is her subscription quota rather than infrastructure or data. Do not re-litigate it. **Do** re-raise if the credential storage changes, if a larger secret lands in that bind, or if the unit ever gains a bind that reaches the exec-fn repo or `data/`.
+
+What still bounds it:
+
+- **The mount namespace** (§7b.1) is unchanged and is still the strongest layer: `TemporaryFileSystem=/:ro` plus named binds, so `Bash` sees `/usr /etc /bin /sbin /lib /lib64 /srv/cc-agent` read-only and `/srv/cc-sandbox` + `/home/cc-agent` read-write, and **nothing else on the droplet** — not `/exec-fn`, not `data/`, not the container.
+- **`MemoryMax=700M`** on the unit means a runaway command kills the sidecar rather than inviting the global OOM killer to pick a victim by badness score (§17b).
+- **`settingSources: []`** stops the agent writing its own permission rules and having them honoured next turn. That was a hypothetical when it had no `Write`; it is now load-bearing.
+- **The tier.** `/cc` hands a shell to whoever reaches it, so admin-only is the whole of the access story — pinned by `tests/test_cc_admin_only.py`, which enumerates the routes from `routes_cc.py` rather than trusting a hand-written list.
 
 ### 7c. Tools — what is granted, and the deliberate widening
 
@@ -919,6 +947,10 @@ The web tools were added 2026-09-11 after the page answered "search news" with i
 **This is a deliberate widening of the sandbox, not an oversight.** `WebFetch` is a real exfiltration channel — a fetched page is untrusted text that can try to steer the model into putting conversation content into a follow-up URL — and Wai enabled it weighing exactly that.
 
 Tool lines render on the page via `summarize()` in `cc.js`, which puts `query`/`url` FIRST (WebSearch has none of the older keys and fell through to a raw JSON dump; WebFetch's `prompt` is the instruction to the fetcher, not the thing fetched).
+
+**A tool call is ONE line, and its output folds under it** (`web/cc-toolout.js`, 2026-09-13). The line clips with an ellipsis (`.msg.tool .msg-body`, `white-space: nowrap`) — a url or a bash command routinely wrapped to three rows, and a turn with four fetches was a wall of addresses with the answer somewhere past it. The result renders collapsed (`hidden`); tapping the line reveals it and flips the gutter marker `+` → `-`. **The whole row is the hit target, not the marker glyph** — a 1ch pseudo-element is not a thumb, and this page is driven from a phone. Open, the block is capped at `max-height: 20lh` and scrolls inside itself: `lh` is 20 of the block's OWN lines, which is what the cap is about, where the `12rem` it replaced was a different number of lines at every font size.
+
+Pairing is **FIFO, not by id**: the sidecar flattens `tool_use`/`tool_result` blocks to name+text (`server.mjs`) and carries no `tool_use_id`, and a turn's results arrive in the order its calls were made. A call is consumed from the queue even when its result is empty and nothing renders — otherwise it would stay queued and swallow the NEXT result — and `streamResponse` empties the queue at the top of every turn so an aborted run cannot pair across turns. A result with no waiting call falls back to a standalone open block rather than vanishing. The cursor parks on the TOOL line while the block is folded, since a blinking cursor inside a hidden element reads as a page that stopped.
 
 ### 7d. The archive is three tools, not a filesystem
 

@@ -101,7 +101,29 @@ const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp
 // model called it mid-answer, and the page printed a raw
 // "AskUserQuestion is not available in the sandbox" at Wai. Every name added to
 // the denylist after the fact is one that already reached a user once.
-const BUILTIN_TOOLS = ["WebSearch", "WebFetch"];
+// The working set of a real session, enabled 2026-09-13 at Wai's request: she
+// drives this page the way she drives a terminal Claude Code session, just from
+// a phone. Read/Write/Edit/Bash are the POINT of that, not a concession.
+//
+// What is deliberately still OUT -- each a judgement, so change it on purpose:
+//   Task            subagents at ~300MB each against the unit's 700M cap; a
+//                   runaway one kills the sidecar mid-answer. Contained by the
+//                   cap rather than by the global OOM killer, but still useless.
+//   AskUserQuestion / EnterPlanMode / ExitPlanMode
+//                   the page cannot render them, and AskUserQuestion reaching
+//                   the model is what printed a raw error at Wai on 2026-09-13.
+//   Skill           reads ~/.claude/skills, which is not in the mount
+//                   namespace, so it would find nothing.
+//   Cron* / Workflow / RemoteTrigger / PushNotification / SendMessage /
+//   ScheduleWakeup / Monitor / ListAgents / Task* / *Worktree / DesignSync /
+//   ReportFindings / ToolSearch
+//                   all assume a Claude Code terminal on the other end.
+const BUILTIN_TOOLS = [
+  "Read", "Write", "Edit", "NotebookEdit",
+  "Bash", "BashOutput", "KillShell",
+  "Glob", "Grep",
+  "WebSearch", "WebFetch",
+];
 export const ALLOWED_TOOLS = [...BUILTIN_TOOLS, ...ARCHIVE_TOOL_NAMES];
 const BLOCKED_TOOLS = [
   // Asks the harness to put a question to the user. There is no such channel
@@ -115,10 +137,7 @@ const BLOCKED_TOOLS = [
   // Publish or hand a file outward. A chat page must not be able to put
   // conversation content on the open web or into the user's files.
   "Artifact", "SendUserFile",
-  "Read", "Write", "Edit", "NotebookEdit",
-  "Bash", "BashOutput", "KillShell",
-  "Glob", "Grep",
-  "Task", "TodoWrite",
+  "Task", "TodoWrite",   // subagents / a todo UI this page cannot render
   // Not Claude Code file tools -- harness capability that also rode in on the
   // login. Cron* schedules agents that outlive the request, Workflow fans out
   // many at once, and RemoteTrigger / PushNotification / SendMessage reach
@@ -129,16 +148,30 @@ const BLOCKED_TOOLS = [
   "SendMessage", "Skill", "ToolSearch", "Workflow",
 ];
 
-// Claude Code's own preset would introduce a terminal coding assistant. This is
-// a personal chat page, so the harness's identity is replaced rather than
-// appended to. Kept short on purpose -- the point is to remove a persona, not
-// impose a new one.
+// Claude Code's own preset is still replaced rather than appended to: this is
+// Wai's own page, and the preset assumes a terminal with a repo in front of it.
+// But as of 2026-09-13 the "you have no filesystem, never offer to run
+// anything" line is GONE -- it was true when the page had two web tools and is
+// now actively wrong, and a model told it has no filesystem will not use the
+// one it has.
 const SYSTEM_PROMPT = [
   "You are Claude, talking with Wai through a personal chat page she built.",
-  "This is ordinary conversation, not a coding session: you have no filesystem",
-  "and no repository here, so never offer to run, read or edit anything, and",
-  "never describe yourself as a CLI or coding assistant.",
-  "Answer as you normally would in conversation.",
+  "She drives this the way she drives a terminal Claude Code session -- often",
+  "from a phone -- so it is both ordinary conversation AND real work.",
+  "You have a real sandbox: Read, Write, Edit, Bash, Glob and Grep all work.",
+  "Use them rather than describing what you would do. Say what you ran and",
+  "what came back; if something failed, show the error rather than summarising",
+  "it away.",
+  // The sandbox is small and is NOT the exec-fn repo. Without this it goes
+  // looking for a project, finds an empty dir, and reports the page as broken.
+  "Your working directory is a private scratch sandbox, not a checkout of any",
+  "project. If she asks about code that is not in it, say so instead of",
+  "guessing at a path.",
+  // It runs as cc-agent on the live droplet. An agent that thinks it is in a
+  // throwaway container is the one that runs something destructive.
+  "This sandbox is on Wai's live server, not a disposable container. Treat",
+  "anything outside your working directory as production: read freely, but",
+  "confirm before changing or deleting anything you did not create.",
   // Without this it announces its training cutoff instead of searching, which
   // is exactly how the missing capability got reported.
   "Wai's PAST conversations with you on this page are archived and you can",
@@ -570,9 +603,9 @@ export function sandboxOptions() {
     canUseTool,
     maxTurns: MAX_TURNS,
     // Load NO settings files. A settings.json anywhere the agent can write
-    // would otherwise be read back as policy. It has no Write and no Bash
-    // today, but that guarantee must not depend on the tool list staying
-    // empty -- which is exactly the assumption AskUserQuestion broke.
+    // would otherwise be read back as policy -- and since 2026-09-13 it HAS
+    // Write and Bash, so this is no longer a hypothetical: without it the agent
+    // could write its own permission rules and have them honoured next turn.
     settingSources: [],
   };
 }
