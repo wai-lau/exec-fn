@@ -26,7 +26,23 @@ RestartSec=3
 # exist for this process, including ones that have not been created yet. An
 # InaccessiblePaths= denylist would only cover what someone remembered to name.
 TemporaryFileSystem=/:ro
-BindReadOnlyPaths=/usr /etc /bin /sbin /lib /lib64 /srv/cc-agent
+BindReadOnlyPaths=/usr /bin /sbin /lib /lib64 /srv/cc-agent
+# /etc is bound FILE BY FILE, not wholesale. It used to be the whole directory,
+# which was the one place this allowlist went coarse -- and once Bash landed
+# (2026-09-13) that mattered: /etc/cron.d/exec-fn-security carries
+# SECURITY_OWNER_IP, Wai's home IP, which is precisely the owner-identifying
+# data /security is careful never to render. /etc/nginx exposed the topology
+# too. Neither is a secret the way a key is, but neither has any business in
+# reach of a page that fetches untrusted URLs.
+#
+# Nothing here is optional: ssl/certs is outbound TLS (api.anthropic.com and
+# every WebFetch), nsswitch+hosts+resolv are name resolution, passwd+group are
+# user lookup, localtime is the clock. Verified by running probe-tools.mjs after
+# the change -- it authenticates to Anthropic, so it exercises DNS and TLS and
+# fails loudly if either bind is missing.
+BindReadOnlyPaths=/etc/ssl /etc/ca-certificates /etc/ca-certificates.conf
+BindReadOnlyPaths=/etc/passwd /etc/group /etc/nsswitch.conf /etc/hosts
+BindReadOnlyPaths=/etc/localtime -/etc/resolv.conf
 # DNS: /etc/resolv.conf is a symlink into the resolved stub on Ubuntu.
 BindReadOnlyPaths=-/run/systemd/resolve
 # The only writable paths in the entire namespace.
