@@ -933,7 +933,21 @@ fetched page (or text inside a pasted screenshot)
 
 What still bounds it:
 
-- **The mount namespace** (§7b.1) is unchanged and is still the strongest layer: `TemporaryFileSystem=/:ro` plus named binds, so `Bash` sees `/usr /etc /bin /sbin /lib /lib64 /srv/cc-agent` read-only and `/srv/cc-sandbox` + `/home/cc-agent` read-write, and **nothing else on the droplet** — not `/exec-fn`, not `data/`, not the container.
+- **The mount namespace** (§7b.1) is still the strongest layer, and was TIGHTENED when Bash landed: `TemporaryFileSystem=/:ro` plus named binds, so the process sees `/usr /bin /sbin /lib /lib64 /srv/cc-agent` read-only, a file-by-file slice of `/etc`, and `/srv/cc-sandbox` + `/home/cc-agent` read-write — **nothing else on the droplet**. Not `/exec-fn`, not `data/`, not the docker socket.
+
+  **`/etc` used to be bound wholesale**, which was the one place the allowlist went coarse. Once `Bash` was on that mattered: `/etc/cron.d/exec-fn-security` carries `SECURITY_OWNER_IP` — Wai's home IP, precisely the owner-identifying data `/security` is careful never to render — and `/etc/nginx` exposed the topology. Neither is a secret the way a key is, but neither belongs in reach of a page that fetches untrusted URLs. Now only `ssl` / `ca-certificates` (outbound TLS), `passwd` / `group`, `nsswitch.conf` / `hosts` / `resolv.conf` (name resolution) and `localtime` are bound. Verified in the live namespace: `/etc/cron.d`, `/etc/nginx`, `/etc/shadow` and `/exec-fn` are all absent; `/etc/shadow` and the letsencrypt private keys were already unreadable on permissions alone.
+
+  **The sandbox stays sealed, by decision.** Asked on 2026-09-13 whether /cc should see `/exec-fn`, Wai said no — keep it in the sandbox dir. Do not add a bind for the repo, `data/`, or the docker socket. If /cc says it cannot find a project, that is correct.
+
+  **Verify any unit change from INSIDE the namespace**, because running as `cc-agent` alone does not test it — `sudo` will not even start in there (no `/etc/sudoers`, which is the confinement working):
+
+  ```bash
+  PID=$(systemctl show -p MainPID --value cc-sidecar)
+  sudo nsenter -t "$PID" -m -S $(id -u cc-agent) -G $(id -g cc-agent) -- \
+    env HOME=/home/cc-agent node /srv/cc-agent/probe-tools.mjs
+  ```
+
+  The probe authenticates to api.anthropic.com, so it exercises DNS, TLS and OAuth and fails loudly if a bind is missing.
 - **`MemoryMax=700M`** on the unit means a runaway command kills the sidecar rather than inviting the global OOM killer to pick a victim by badness score (§17b).
 - **`settingSources: []`** stops the agent writing its own permission rules and having them honoured next turn. That was a hypothetical when it had no `Write`; it is now load-bearing.
 - **The tier.** `/cc` hands a shell to whoever reaches it, so admin-only is the whole of the access story — pinned by `tests/test_cc_admin_only.py`, which enumerates the routes from `routes_cc.py` rather than trusting a hand-written list.
