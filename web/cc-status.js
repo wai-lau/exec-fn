@@ -21,6 +21,8 @@ const CC_CTX_1M = 1000000;
 const CC_CTX_DEFAULT = 200000;
 // The subscription's short window, used to turn "1h20m left" into a gauge.
 const CC_FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
+// Pills per gauge, so one pill is 10%.
+const CC_BAR_PILLS = 10;
 
 const ccStatusState = { model: '', ctx: 0, base: 0, windows: {}, title: '' };
 
@@ -202,13 +204,18 @@ function ccSeg(cls, text, pct) {
   const el = document.createElement('span');
   el.className = cls;
   el.appendChild(document.createTextNode(text));
+  // TEN pills, the way /rd's calendar counts a day's load in dots rather than
+  // drawing a bar. Lit count rounds UP off zero: 4% is one pill, not none --
+  // an empty gauge has to mean nothing is there, not "not much".
   const bar = document.createElement('b');
   bar.className = 'cs-bar';
-  bar.style.setProperty('--cs-pct', Math.max(0, Math.min(100, Math.round(pct || 0))));
-  // The filled part is its own element rather than a background-size trick: the
-  // cells have to line up with the track's, and a gradient sized to the FILL
-  // would shift its lattice every time the number moved.
-  bar.appendChild(document.createElement('i'));
+  const p = Math.max(0, Math.min(100, pct || 0));
+  const lit = p > 0 ? Math.max(1, Math.round(p / 10)) : 0;
+  for (let i = 0; i < CC_BAR_PILLS; i++) {
+    const pill = document.createElement('i');
+    if (i < lit) pill.className = 'on';
+    bar.appendChild(pill);
+  }
   el.appendChild(bar);
   return el;
 }
