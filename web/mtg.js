@@ -1,7 +1,8 @@
 let messages = [];
 let streaming = false;
-// Chat pace: three times the tarot reader's. This page is read for an answer.
-const MTG_TYPE_SPEED = 3;
+// Chat pace: FOUR times the tarot reader's 1.25. This page is read for an
+// answer, and a typewriter the eye outruns is latency wearing a costume.
+const MTG_TYPE_SPEED = 5;
 let _sessionId = 'mtg_' + Date.now().toString(36);
 
 const terminal = document.getElementById('terminal');
@@ -118,7 +119,7 @@ async function streamResponse() {
   const {div, body, cur} = addStreamDiv();
   let fullText = '';
   // Reveal at a readable pace rather than in stream-sized bursts: /tarot's
-  // engine at SPEED 3 (typewriter.js).
+  // engine at SPEED 5 (typewriter.js).
   const tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
   let typing = null;
   const startTyper = () => {

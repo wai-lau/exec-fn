@@ -4,10 +4,10 @@
 // scope, so exec-bubble.js calls these by bare name like its own functions.
 'use strict';
 
-// Exec's reveal: /tarot's typewriter at SPEED 3 (typewriter.js), so a reply
+// Exec's reveal: /tarot's typewriter at SPEED 5 (typewriter.js), so a reply
 // arrives at a readable pace rather than in stream-sized bursts. The glue lives
 // here rather than in exec-bubble.js, which is at 484 of the 500-line cap.
-const EXEC_TYPE_SPEED = 3;
+const EXEC_TYPE_SPEED = 5;
 
 function execTyper(body, cur, termEl) {
   const tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
