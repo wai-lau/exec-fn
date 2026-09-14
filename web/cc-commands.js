@@ -84,6 +84,11 @@ async function runCommand(text) {
     // The context is back to the floor; the status bar caches its last value
     // and would otherwise keep showing the old conversation's.
     terminal.dispatchEvent(new CustomEvent('cc:conversation-new'));
+    // An empty terminal is the one moment the past is worth showing: what was
+    // just archived is one tap away instead of one remembered command, and the
+    // page opens on something rather than on nothing. Same rows /list draws --
+    // no `current` row now, since the pointer was just dropped.
+    await ccListSessions(CC_LIST_LIMIT);
   } catch {
     addMsg('sys warn', '[ could not start a new conversation ]');
   }
