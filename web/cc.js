@@ -254,7 +254,7 @@ function ccAppendReceipt(body, text) {
 }
 
 async function streamResponse(prompt, imgs) {
-  streaming = true;
+  streaming = true; ccResetTools();   // no call from a dead turn may pair here
   let { div, body, cur } = addStreamDiv();
   let fullText = '';
   let receipt = null;   // the turn/time footnote, appended after the settle
@@ -354,10 +354,10 @@ async function streamResponse(prompt, imgs) {
           if (data.text) { dropIfEmpty(); park(addMsg('think', data.text), cur); }
         } else if (data.type === 'tool') {
           dropIfEmpty();
-          park(addToolMsg(data.name, summarize(data.input)), cur);
+          park(ccQueueTool(addToolMsg(data.name, summarize(data.input))), cur);
         } else if (data.type === 'tool_result') {
-          const t = (data.text || '').trim();
-          if (t) { dropIfEmpty(); park(addMsg('out' + (data.isError ? ' err' : ''), clamp(t)), cur); }
+          const line = ccToolOut(data);
+          if (line) { dropIfEmpty(); park(line, cur); }
         } else if (data.type === 'done') {
           // Stashed, not rendered: `done` can arrive while the typer is still
           // revealing, and the settle pass below rebuilds innerHTML from

@@ -17,29 +17,31 @@
 // for /help, since the page never forwards it); /agents says it was removed.
 const CC_SDK_COMMANDS = new Set(['context', 'cost', 'usage', 'compact', 'model']);
 
+// Aliases share a row rather than getting one each. "/clear -- same as /new"
+// spends a line of a phone-width list saying nothing: the reader has to hold
+// two names to learn there is one behaviour. Listing them together says it in
+// the shape instead. Each entry is [names, what] and the names render joined.
 const CC_HELP = [
-  ['/new', 'end this conversation (archived first)'],
-  ['/clear', 'same as /new'],
-  ['/list', 'recent conversations, tap one to resume'],
-  ['/listall', 'every conversation'],
-  ['/back', 'the last conversation you were in'],
-  ['/help', 'this'],
-  ['/context', 'token usage of this conversation'],
-  ['/cost', 'subscription usage'],
-  ['/usage', 'same as /cost'],
-  ['/compact', 'summarise the conversation to free context'],
-  ['/model', 'show the model; /model <name> switches it'],
+  [['/new', '/clear'], 'end this conversation (archived first)'],
+  [['/list'], 'recent conversations, tap one to resume'],
+  [['/listall'], 'every conversation'],
+  [['/back'], 'the last conversation you were in'],
+  [['/help'], 'this list'],
+  [['/context'], 'token usage of this conversation'],
+  [['/cost', '/usage'], 'subscription usage against the plan'],
+  [['/compact'], 'summarise the conversation to free context'],
+  [['/model'], 'show the model; /model <name> switches it'],
 ];
 
 function ccHelp() {
   const box = document.createElement('div');
   box.className = 'msg cc-list';
-  for (const [name, what] of CC_HELP) {
+  for (const [names, what] of CC_HELP) {
     const row = document.createElement('div');
     row.className = 'cc-help-row';
     const cmd = document.createElement('span');
     cmd.className = 'cc-help-cmd';
-    cmd.textContent = name;
+    cmd.textContent = names.join(' · ');
     const desc = document.createElement('span');
     desc.className = 'cc-help-what';
     desc.textContent = what;

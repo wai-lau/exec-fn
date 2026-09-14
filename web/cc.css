@@ -15,6 +15,19 @@
    calls ARE the content, not incidental chatter. */
 .msg.tool { color: hsl(var(--green-hsl) / 0.45); font-size: var(--fs-2xs); }
 
+/* ONE line, always. A call's argument is a url or a bash line and routinely
+   wrapped to three rows, so a turn with four fetches read as a wall of
+   addresses with the answer somewhere past it. The body is the flex child that
+   clips (it already carries min-width:0), never the row -- the marker and the
+   parked cursor are siblings of it. */
+.msg.tool .msg-body { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Folded output makes the whole line the hit target, not the 1ch marker: this
+   page is driven from a phone. `-` while open, ASCII both ways so the glyph
+   stays exactly one character wide in the shared gutter. */
+.msg.tool.cc-fold { cursor: pointer; }
+.msg.tool.cc-fold.open::before { content: "-"; }
+
 /* `+` rather than the ⚡ this used to carry: every other line on every chat
    surface hangs a one-character ASCII marker in the shared 1ch gutter, and an
    emoji is about half a character wider than that — enough to push its own text
@@ -23,7 +36,10 @@
 .msg.tool b { color: hsl(var(--green-hsl) / 0.8); font-weight: var(--fw-bold); }
 
 /* Tool OUTPUT is reference material, not prose: dim, capped, independently
-   scrollable so a 500-line ls cannot bury the reply under it. */
+   scrollable so a 500-line ls cannot bury the reply under it. Hidden until the
+   tool line above it is tapped (cc-toolout.js); `20lh` is 20 of THIS block's
+   own lines, which is what the cap is actually about — the old 12rem was a
+   different number of lines at every font size. */
 .msg.out {
   white-space: pre-wrap; overflow-wrap: anywhere;
   font-size: var(--fs-2xs); line-height: var(--lh-tight);
@@ -32,7 +48,7 @@
 
   /* No marker of its own, so it indents to the shared body edge by hand. */
   margin-left: var(--chat-indent); padding-left: var(--space-2);
-  max-height: 12rem; overflow-y: auto;
+  max-height: 20lh; overflow-y: auto;
 }
 .msg.out.err { color: hsl(var(--pink-hsl)); border-left-color: hsl(var(--pink-hsl)); }
 
