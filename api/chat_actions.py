@@ -38,6 +38,13 @@ def _action_line(name: str, res: dict, inp: dict) -> str:
     }
     if name in simple:
         return simple[name]
+    if name == "archive_card":
+        line = f"archived (marked done) '{title}'"
+        # A recurring card clones its next occurrence on archive — that clone is
+        # the card now sitting in the ideas pool above, not a pre-existing double.
+        nxt = res.get("next_occurrence")
+        return line + (f" — it recurs, so its NEXT occurrence ({nxt}) was just created "
+                       "in the ideas pool by that archive" if nxt else "")
     if name == "create_card":
         where = "today's active tasks" if inp.get("column") == "hq" else "the ideas pool"
         return f"created a NEW card '{title}' — it now appears in {where} above because you just made it"

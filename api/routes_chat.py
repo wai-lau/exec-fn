@@ -11,7 +11,8 @@ from chat import _build_chat_system_prompt, _chat_tools
 from chat_store import _save_chat, assistant_content_blocks, sanitize_history_for_api
 from chat_tools import _handle_tool
 from helpers import DATA_DIR
-from monitor import schedule_monitor
+from monitor import MONITORED_TOOLS, schedule_monitor
+from monitor_sse import push_to_monitor
 
 router = APIRouter()
 
@@ -84,7 +85,14 @@ async def _dispatch_tools(blocks, tool_result_contents, actions_taken):
     """Run each tool_use block: stream a tool_call SSE event, collect its
     tool_result, record the action for the follow-up diff, and fire the debounced
     monitor on a completed sub-step (advance_chunk) — same channel as R&D/HQ
-    activity."""
+    activity.
+
+    Any tool that rewrote rd.json also pushes {cards_changed} at the end of the
+    round (the same relay the discord bot and nudge loop use): the exec panel
+    lives ON /rd and /hq, so a card it archives or exiles has to leave the board
+    the caller is looking at — otherwise the action reads as having done nothing.
+    """
+    board_changed = False
     for block in blocks:
         if block.type != "tool_use":
             continue
@@ -97,11 +105,16 @@ async def _dispatch_tools(blocks, tool_result_contents, actions_taken):
             # and skips _save_chat entirely — the turn (and any tool mutation
             # that already landed) vanishes with no error shown to Wai.
             result = {"error": f"tool failed: {e}"}
-        if block.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
+        ok = isinstance(result, dict) and result.get("ok")
+        if ok and block.name in MONITORED_TOOLS:
             schedule_monitor()
+        if ok and block.name != "update_context":   # everything else writes rd.json
+            board_changed = True
         actions_taken.append({"name": block.name, "input": block.input, "result": result})
         yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'input': block.input, 'result': result})}\n\n"
         tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
+    if board_changed:
+        await push_to_monitor({"cards_changed": True})
 
 
 @router.post("/api/chat")

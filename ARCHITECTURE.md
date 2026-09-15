@@ -225,7 +225,13 @@ itself (`PATCH /api/rd`). Three guards in `helpers.py` make that safe:
   holds one shared object; handing it out mutable would leak one thread's
   in-progress edits into another's snapshot.
 - **`_save_rd()` is an atomic replace** (tmp + rename), so a concurrent
-  reader never sees a truncated file.
+  reader never sees a truncated file. It also **pops rd.json out of the
+  `_load_json` mtime cache**: mtime granularity on this box is 1ms, so a save
+  landing in the same millisecond as the read that seeded the cache left the
+  stale PRE-save board being handed to the next load. Two quick cycles — a
+  chat tool archiving a card, then re-reading it — saw the card back in the
+  column it started in (found 2026-09-15 by `test_archive_card.py`, where a
+  second archive of the same card re-cloned its recurrence).
 
 Single-process invariant: uvicorn runs ONE worker (`--reload`), so a
 process-wide lock is sufficient; nothing outside the container writes rd.json.
@@ -1782,7 +1788,11 @@ A nudge ends on a question, and the question is the part Wai answers — so the 
 
 **Why one bracketed span**: that is already how Exec writes a sys note, and `exec-voice.js`'s `speak()` strips every `[...]` span before narrating — so the marker costs the voice path nothing and needs no second parser there.
 
-**The regex is anchored to the LAST line and requires a `|`** (`/\n[ \t]*\[([^[\]\n]*\|[^[\]\n]*)\][ \t]*$/`), so an ordinary `[bracketed]` sys note, a markdown link, or a stray bracket mid-sentence is never mistaken for a choice row. Options cap at 4.
+**The regex is anchored to the LAST line and requires a `|`** (`/\n[ \t]*(?:\*\*|__|\*|_)?\[([^[\]\n]*\|[^[\]\n]*)\](?:\*\*|__|\*|_)?\s*$/`), so an ordinary `[bracketed]` sys note, a markdown link, or a stray bracket mid-sentence is never mistaken for a choice row. Options cap at 4.
+
+**Emphasis around the row is tolerated, and so is trailing whitespace** — `**[Got everything | Not yet | On it now]**` parses. The model reaches for bold on a line that reads like a control, and the failure is silent in the worst way: the row prints as raw brackets, as prose, and Wai gets no buttons at all. Both prompts now say to write it PLAIN (`nudge_llm._TONE`, `chat._CHAT_STATIC_PREFIX`) **and** the parser forgives it — a format rule the model has to remember is one it will sometimes miss.
+
+**Every Exec reply is parsed, not just a nudge.** Exec asks Wai questions with a small answer set in ordinary turns too; `addMsg` parsed only the `probe` role, so those rows printed as brackets. Both paths now parse: the live stream re-renders the body without the row once the typewriter finishes (it has already typed it as prose) and attaches the buttons, and history replay goes through `addMsg`. A chat reply gets **answer buttons only, no card actions** — it carries no card id, and guessing one would archive the wrong card.
 
 Tapping an answer **sends that text as Wai's own message** — the same message she would have typed — so nothing server-side has to know the buttons exist: the exec chat already reads "done" as advancing the chunk and "not yet" as an answer rather than pushback (§15e).
 
@@ -1797,6 +1807,8 @@ Routing those through the model instead would spend a turn asking it to do somet
 **They are appended by the CLIENT, not written by the model.** They apply to every nudge, and a model that has to remember to offer them is one that will sometimes forget.
 
 **Only `{id, column}` is sent.** `PATCH /api/rd` merges by id, so every field the client does not own — above all the server-owned `nudge` block — is preserved. The server then does the rest on its own: clearing `scheduled_day` on exile, preserving it into archives (§8b), and reviving a recurring card. **Leaving hq also ends the nudge loop for that card**, since `_eligible` requires `column == "hq"` — nothing has to disarm it by hand.
+
+Exec can also do both itself now: **`archive_card`** (added 2026-09-15) is the chat-side twin of the dialog's archive button, alongside `exile_card`. The prompt used to say archiving was Wai's alone, so asked to mark a card done Exec answered that the lever lived on her side of the glass. It now archives on Wai's word — and only on her word about that specific card, never on its own read of the board. The handler keeps `scheduled_day`, resolves the nudge block, and clones a recurring card's next occurrence through `helpers.recurring_clone`, the same function `PATCH /api/rd` uses, so both archive paths revive identically. Pinned in `tests/test_archive_card.py` (which also asserts schema and handler map stay in sync in both directions).
 
 **This is why a nudge carries its card's id** and a monitor comment does not: `_fire_nudge` passes it to both `append_monitor_comment(text, card_id=…)` and `push_to_monitor({"comment": …, "card_id": …})`, monitor messages are preserved whole by `_save_chat`, `sanitize_history_for_api` drops them entirely so the key never reaches the API, and `GET /api/chat` returns the stream raw so a page reload still gets it. A monitor comment reads the whole board rather than one card, so it gets no actions.
 

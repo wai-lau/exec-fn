@@ -42,6 +42,7 @@ async def exec_reply(text: str) -> str:
     from chat import _build_chat_system_prompt
     from chat_store import _save_chat, assistant_content_blocks, get_chat, sanitize_history_for_api
     from chat_tools import _handle_tool
+    from monitor import MONITORED_TOOLS
     from nudge import clear_awaiting_focused
 
     # A DM is a reply to any focused awaiting nudge — pause the stall timer.
@@ -76,7 +77,7 @@ async def exec_reply(text: str) -> str:
             if b.type != "tool_use":
                 continue
             result = await asyncio.to_thread(_handle_tool, b.name, b.input)
-            if b.name == "advance_chunk" and isinstance(result, dict) and result.get("ok"):
+            if b.name in MONITORED_TOOLS and isinstance(result, dict) and result.get("ok"):
                 from monitor import schedule_monitor
                 schedule_monitor()
             actions_taken.append({"name": b.name, "input": b.input, "result": result})

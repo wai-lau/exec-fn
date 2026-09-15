@@ -203,6 +203,12 @@ def _init_monitor_ts() -> float:
 _monitor_last_comment_ts: float = _init_monitor_ts()
 
 
+# Exec chat tools whose success is the same event the board counts as
+# significant below: a finished sub-step, and a card leaving for archives/exile.
+# routes_chat + discord_bot fire the debounced monitor on these.
+MONITORED_TOOLS = {"advance_chunk", "archive_card", "exile_card"}
+
+
 def _entry_is_significant(e: dict) -> bool:
     if e.get("is_reminder"):
         return False
