@@ -32,7 +32,12 @@ window.execChoices = (function () {
   // Anchored to the LAST line and required to carry a '|', so an ordinary
   // [bracketed] sys note, a markdown link, or a stray bracket mid-sentence is
   // never mistaken for a choice row.
-  const RE = /\n[ \t]*\[([^[\]\n]*\|[^[\]\n]*)\][ \t]*$/;
+  //
+  // Emphasis around the row is tolerated (`**[a | b]**`) and so is trailing
+  // whitespace: the model reaches for bold on a line that reads like a control,
+  // and a row that misses by two asterisks doesn't degrade — it prints the raw
+  // brackets as prose and Wai gets no buttons at all, which is how it failed.
+  const RE = /\n[ \t]*(?:\*\*|__|\*|_)?\[([^[\]\n]*\|[^[\]\n]*)\](?:\*\*|__|\*|_)?\s*$/;
 
   function parse(text) {
     const m = typeof text === 'string' ? text.match(RE) : null;
