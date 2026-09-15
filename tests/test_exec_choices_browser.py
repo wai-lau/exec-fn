@@ -18,6 +18,13 @@ PARSE_CASES = [
     ('[ created: "thing" ]', '[ created: "thing" ]', []),
     ("See [the docs](https://x/y) first.", "See [the docs](https://x/y) first.", []),
     ("Trailing [one option]", "Trailing [one option]", []),
+    # The row the model actually wrote on 2026-09-15: bolded, and in an ordinary
+    # reply rather than a nudge. It printed as raw brackets with no buttons.
+    ("So - is that step done?\n\n**[Got everything | Not yet | On it now]**",
+     "So - is that step done?", ["Got everything", "Not yet", "On it now"]),
+    ("Single stars too.\n*[Yes | No]*", "Single stars too.", ["Yes", "No"]),
+    ("Trailing newline after the row.\n[Yes | No]\n",
+     "Trailing newline after the row.", ["Yes", "No"]),
 ]
 
 
@@ -67,6 +74,42 @@ def test_choice_row_parses_renders_and_sends(browser, admin_headers, base_url):
         assert res["after"] == 0, "the row is consumed by the tap"
         assert res["h"] >= 18, "buttons must be tappable, not hairlines"
         assert res["left"] > 0, "row is indented onto the message body's edge"
+    finally:
+        ctx.close()
+
+
+def test_ordinary_reply_gets_answer_buttons_but_no_card_actions(browser, admin_headers, base_url):
+    """Exec asks questions in normal replies too, not only in nudges — those rows
+    must render as buttons. They get NO done/exile actions: a chat reply carries
+    no card id, and guessing one would archive the wrong card."""
+    ctx = browser.new_context(extra_http_headers=admin_headers,
+                              viewport={"width": 430, "height": 932})
+    try:
+        pg = ctx.new_page()
+        pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
+        pg.wait_for_function("window.execChoices && document.getElementById('exec-term')",
+                             timeout=15000)
+        res = pg.evaluate(
+            """() => {
+              const term = document.getElementById('exec-term');
+              const sent = [];
+              const d = document.createElement('div');
+              d.className = 'msg assistant';
+              term.appendChild(d);
+              const p = window.execChoices.parse(
+                'Is that step done?\\n\\n**[Got everything | Not yet]**');
+              d.textContent = p.clean;
+              window.execChoices.attach(term, d, p.opts, (s) => sent.push(s), null);
+              const btns = [...term.querySelectorAll('.exec-choice')].map(b => b.textContent);
+              term.querySelector('.exec-choice').click();
+              return { btns, sent, body: d.textContent,
+                       acts: term.querySelectorAll('.exec-act').length };
+            }"""
+        )
+        assert res["btns"] == ["Got everything", "Not yet"]
+        assert res["acts"] == 0, "no card id -> no done/exile actions"
+        assert res["sent"] == ["Got everything"]
+        assert "[" not in res["body"], "the row is stripped from the message body"
     finally:
         ctx.close()
 

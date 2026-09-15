@@ -220,8 +220,14 @@
     const div = document.createElement('div');
     div.className = 'msg ' + role;
     // A nudge writes its answers as a trailing [a | b | c] line: strip it here,
-    // and exec-choices.js renders it as buttons under the message.
-    const choices = role === 'probe' && window.execChoices ? execChoices.parse(text) : null;
+    // and exec-choices.js renders it as buttons under the message. An ordinary
+    // Exec reply can end on the same row (it asks Wai questions with a small
+    // answer set all the time) — parsing only the nudge role is what left those
+    // printing as raw brackets with no buttons under them. `cardId` still comes
+    // from a nudge push alone, so a chat reply gets answer buttons and no
+    // done/exile card actions: nothing tells us WHICH card it is about.
+    const parseable = role === 'probe' || role === 'assistant';
+    const choices = parseable && window.execChoices ? execChoices.parse(text) : null;
     if (choices) text = choices.clean;
     if (role === 'user' || role === 'assistant' || role === 'probe') {
       // Exec turns get a clickable replay glyph (execVoice.mark, see exec-voice.js).
@@ -357,9 +363,9 @@
             fullText += data.delta;
             typer.push(fullText);
           } else if (data.type === 'tool_call') {
-            addMsg('sys', toolSysText(data.name, data.input || {}, data.result || {}));
+            addMsg('sys', execHistory.toolSysText(data.name, data.input || {}, data.result || {}));
             // notify card views (rd/hq/directives) to reload live
-            if (['create_card','exile_card','update_card','schedule_card'].includes(data.name)) {
+            if (['create_card','archive_card','exile_card','update_card','schedule_card'].includes(data.name)) {
               window.dispatchEvent(new CustomEvent('exec:cards-changed', { detail: { name: data.name } }));
             }
           } else if (data.type === 'done') {
@@ -370,6 +376,15 @@
       await typer.finish();
       cur.remove();
       if (fullText) {
+        // The typewriter has already typed any trailing [a | b | c] row as
+        // prose — re-render the body without it and hand the row to
+        // exec-choices, the same buttons a nudge gets.
+        const ch = window.execChoices ? execChoices.parse(fullText) : null;
+        if (ch && ch.opts.length) {
+          body.innerHTML = mdHtml(ch.clean);
+          execChoices.attach(termEl, streamDiv, ch.opts, sendText, null,
+                             function (t) { addMsg('sys', t); });
+        }
         messages.push({ role: 'assistant', content: fullText });
         if (window.execVoice) execVoice.speak(fullText);  // narrate Exec's reply
         if (window.execVoice) streamDiv.insertBefore(execVoice.mark('assistant', fullText), streamDiv.firstChild);
@@ -386,63 +401,15 @@
   }
 
   // ── history ───────────────────────────────────────────────────────────────
-  // Shared by the live stream + history restore so an unlisted tool falls
-  // through to the same generic sys line in both, instead of vanishing on reload.
-  function toolSysText(name, inp, res) {
-    if (name === 'create_card')   return '[ card added: ' + (res.title || inp.title || '') + ' ]';
-    if (name === 'exile_card')    return '[ exiled: "' + (res.title || inp.id || '') + '" ]';
-    if (name === 'update_card')   return '[ updated: ' + (res.title || inp.id || '') + ' ]';
-    if (name === 'schedule_card') return '[ scheduled "' + (res.title || '') + '" -> ' + (res.scheduled_day || 'unscheduled') + ' ]';
-    return '[ ' + name.replace(/_/g, ' ') + ': done ]';
-  }
-
-  function restoreMsg(m, toolResults) {
-    if (m.role === 'user') {
-      if (typeof m.content === 'string') addMsg('user', m.content);
-      else if (Array.isArray(m.content)) {
-        const text = m.content.filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('');
-        if (text) addMsg('user', text);
-      }
-    } else if (m.role === 'assistant') {
-      if (typeof m.content === 'string') {
-        addMsg('assistant', m.content);
-      } else if (Array.isArray(m.content)) {
-        const text = m.content.filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('\n').trim();
-        if (text) addMsg('assistant', text);
-        m.content.forEach(function (b) {
-          if (b.type !== 'tool_use') return;
-          addMsg('sys', toolSysText(b.name, b.input || {}, (toolResults && toolResults[b.id]) || {}));
-        });
-      }
-    }
-  }
-
+  // Replay lives in exec-bubble-history.js (500-line cap); the panel keeps the
+  // state it hands back.
   async function loadHistory() {
-    try {
-      const r = await fetch('/api/chat');
-      if (!r.ok) return;
-      const chat = await r.json();
-      if (!chat.messages || !chat.messages.length) return;
-      const allMsgs = chat.messages;
-      messages = allMsgs.filter(function (m) { return m.role !== 'monitor'; });
-      stage = chat.stage || 'planning';
-      const toolResults = {};
-      for (const m of messages) {
-        if (m.role === 'user' && Array.isArray(m.content)) {
-          for (const b of m.content) {
-            if (b.type === 'tool_result') {
-              try { toolResults[b.tool_use_id] = JSON.parse(b.content); } catch (_) {}
-            }
-          }
-        }
-      }
-      for (const m of allMsgs) {
-        if (m.role === 'monitor') addMsg('probe', m.content, m.card_id);
-        else restoreMsg(m, toolResults);
-      }
-      monitorTotal = allMsgs.filter(function (m) { return m.role === 'monitor'; }).length;
-      if (isOpen) markRead(); else recomputeUnread();
-    } catch (_) {}
+    const res = await execHistory.load(addMsg);
+    if (!res) return;
+    messages = res.messages;
+    stage = res.stage;
+    monitorTotal = res.monitorTotal;
+    if (isOpen) markRead(); else recomputeUnread();
   }
 
   // ── monitor stream ───────────────────────────────────────────────────────
