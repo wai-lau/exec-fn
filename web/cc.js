@@ -265,36 +265,79 @@ function ccAppendReceipt(body, text) {
   else body.appendChild(span);
 }
 
+/** The SSE body as a stream of parsed frames.
+ *
+ * A chunk boundary can split a frame anywhere, including mid-UTF-8, so the
+ * decoder streams and the buffer tail is carried to the next read. A line that
+ * does not parse is dropped rather than killing the turn behind it. */
+async function* ccFrames(body) {
+  const reader = body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const step = await reader.read();
+    if (step.done) return;
+    buf += dec.decode(step.value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      let data;
+      try { data = JSON.parse(line.slice(6)); } catch { continue; }
+      yield data;
+    }
+  }
+}
+
 async function streamResponse(prompt, imgs) {
   streaming = true; ccResetTools(); const signal = ccRunBegin();   // see cc-interrupt.js
   let { div, body, cur } = addStreamDiv();
   let fullText = '';
   let receipt = null;   // the turn/time footnote, appended after the settle
+  let settledBody = null;   // last prose bubble closed by a tool call — the
+                            // receipt hangs on it when the turn ends on a tool
 
-  // The assistant bubble is created up front to carry the typing dots. A tool
-  // call arriving before any prose would otherwise be appended AFTER an empty
-  // bubble; instead the empty one is dropped and a fresh bubble opens for the
-  // prose that follows, so the transcript stays in real order.
+  // The assistant bubble is created up front to carry the typing dots. Anything
+  // that is not prose (a tool call, a thought) CLOSES it: an empty bubble is
+  // dropped, one that already holds prose is settled, and either way the text
+  // that follows opens a fresh bubble underneath — so the transcript stays in
+  // real order and two messages never run together.
   // Idempotent, and that is the whole point: a turn routinely fires several of
   // these in a row (tool, tool_result, tool again -- the archive tools list
   // then read), and the first call sets div to null. Without the guard the
   // second one called .remove() on null and the turn died with "null is not an
   // object", losing the reply that was still streaming behind it.
-  const dropIfEmpty = () => {
+  const closeBubble = () => {
     if (!div) return;
     cur.remove();
-    if (!fullText) { div.remove(); div = null; tw.cancelled = true; }
-  };
-  const reopen = () => {
-    const s = addStreamDiv();
-    div = s.div; body = s.body; cur = s.cur;
+    if (fullText) {
+      // Prose already in this bubble: SETTLE it and let the next text open a
+      // fresh one UNDER the tool line. Appending the model's next message onto
+      // this one ran the two together with nothing between them ("...real
+      // numbers.**HG group coaching:**" — the join is invisible, so it reads as
+      // a missing space) and printed the continuation ABOVE the tool call it
+      // came after.
+      body.innerHTML = renderText(fullText);
+      ccRenderSvgBlocks(body);
+      settledBody = body;
+    } else {
+      div.remove();
+    }
+    div = null;
     fullText = '';
-    // A new bubble gets a new reveal. The old state object is cancelled rather
-    // than reused: a typer still running against it would otherwise keep
-    // writing into the bubble that was just closed.
+    // Cancel the reveal and hand the next bubble a fresh state object; leaving
+    // the old `typing` promise in place would hang the settle pass below, since
+    // a cancelled typer never calls onDone.
     tw.cancelled = true;
     tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
     typing = null;
+  };
+  // Only ever called with no open bubble, i.e. after closeBubble() — which has
+  // already cancelled the old reveal and installed a fresh state object, so a
+  // typer still running against the closed bubble can't write into this one.
+  const reopen = () => {
+    const s = addStreamDiv();
+    div = s.div; body = s.body; cur = s.cur;
   };
 
   // Reveal the reply at a readable pace instead of in stream-sized bursts --
@@ -335,53 +378,37 @@ async function streamResponse(prompt, imgs) {
       throw new Error(msg);
     }
 
-    const reader = r.body.getReader();
-    const dec = new TextDecoder();
-    let buf = '';
+    for await (const data of ccFrames(r.body)) {
+      // The status bar reads model / context / rate-limit windows off the
+      // same stream; it ignores everything else.
+      if (typeof ccStatusOn === 'function') ccStatusOn(data);
 
-    for (;;) {
-      const step = await reader.read();
-      if (step.done) break;
-      // A chunk boundary can split a frame anywhere, including mid-UTF-8, so the
-      // decoder streams and the buffer tail is carried to the next read.
-      buf += dec.decode(step.value, { stream: true });
-      const lines = buf.split('\n');
-      buf = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        let data;
-        try { data = JSON.parse(line.slice(6)); } catch { continue; }
-        // The status bar reads model / context / rate-limit windows off the
-        // same stream; it ignores everything else.
-        if (typeof ccStatusOn === 'function') ccStatusOn(data);
-
-        if (data.type === 'session') {
-          /* the sidecar owns the thread; nothing to track here */
-        } else if (data.type === 'text') {
-          if (!div) reopen();
-          fullText += data.text;
-          tw.buffered = fullText;
-          startTyper();
-        } else if (data.type === 'thinking') {
-          if (data.text) { dropIfEmpty(); park(addMsg('think', data.text), cur); }
-        } else if (data.type === 'tool') {
-          dropIfEmpty();
-          park(ccQueueTool(addToolMsg(data.name, summarize(data.input))), cur);
-        } else if (data.type === 'tool_result') {
-          const line = ccToolOut(data);
-          if (line) { dropIfEmpty(); park(line, cur); }
-        } else if (data.type === 'done') {
-          // Stashed, not rendered: `done` can arrive while the typer is still
-          // revealing, and the settle pass below rebuilds innerHTML from
-          // scratch -- appending here would be wiped a moment later.
-          receipt = ccDoneLine(data);
-        } else if (data.type === 'busy') {
-          dropIfEmpty();
-          addMsg('sys warn', '[ busy — one run at a time (memory ceiling); try again shortly ]');
-        } else if (data.type === 'error') {
-          dropIfEmpty();
-          addMsg('sys warn', '[ ' + (data.detail || 'error') + ' ]');
-        }
+      if (data.type === 'session') {
+        /* the sidecar owns the thread; nothing to track here */
+      } else if (data.type === 'text') {
+        if (!div) reopen();
+        fullText += data.text;
+        tw.buffered = fullText;
+        startTyper();
+      } else if (data.type === 'thinking') {
+        if (data.text) { closeBubble(); park(addMsg('think', data.text), cur); }
+      } else if (data.type === 'tool') {
+        closeBubble();
+        park(ccQueueTool(addToolMsg(data.name, summarize(data.input))), cur);
+      } else if (data.type === 'tool_result') {
+        const line = ccToolOut(data);
+        if (line) { closeBubble(); park(line, cur); }
+      } else if (data.type === 'done') {
+        // Stashed, not rendered: `done` can arrive while the typer is still
+        // revealing, and the settle pass below rebuilds innerHTML from
+        // scratch -- appending here would be wiped a moment later.
+        receipt = ccDoneLine(data);
+      } else if (data.type === 'busy') {
+        closeBubble();
+        addMsg('sys warn', '[ busy — one run at a time (memory ceiling); try again shortly ]');
+      } else if (data.type === 'error') {
+        closeBubble();
+        addMsg('sys warn', '[ ' + (data.detail || 'error') + ' ]');
       }
     }
     // Let the reveal catch up before settling: the final render is the markdown
@@ -389,15 +416,18 @@ async function streamResponse(prompt, imgs) {
     // still going would print the whole reply and then keep typing over it.
     tw.serverDone = true;
     if (typing) await typing;
-    let settled = null;
+    let settled = settledBody;
     if (div) {
       cur.remove();
       if (!fullText) div.remove();
       else { body.innerHTML = renderText(fullText); ccRenderSvgBlocks(body); settled = body; }
     }
+    ccFinishTools();   // a call whose result never came says so, rather than
+                       // sitting there as a line that does nothing when tapped
     if (receipt) ccAppendReceipt(settled, receipt);
   } catch (e) {
     tw.cancelled = true; if (div) { cur.remove(); if (!fullText) div.remove(); }
+    ccFinishTools();   // an interrupted run leaves calls unanswered; say so
     addMsg('sys warn', ccStopNote(e));
   }
 
