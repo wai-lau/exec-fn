@@ -131,6 +131,12 @@ def _save_rd(rd: dict):
         tmp = p.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(rd, indent=2))
         tmp.replace(p)
+        # Drop the mtime cache entry: mtime granularity here is 1ms, so a save
+        # landing in the same millisecond as the read that seeded the cache
+        # leaves the stale pre-save board being served to the next load — two
+        # quick cycles (a tool archiving a card, then re-reading it) would see
+        # the card back where it started. Popping forces a real re-read.
+        _json_cache.pop("rd", None)
 
 
 def _find_card(rd: dict, card_id: str) -> dict | None:
@@ -252,6 +258,41 @@ def _next_recurrence(due_iso: str, recur_type: str, today: date | None = None) -
         nxt = stepped
         guard += 1
     return nxt.isoformat()
+
+
+def recurring_clone(card: dict, all_cards: list) -> dict | None:
+    """The next occurrence of a card that was just archived, or None.
+
+    Shared by BOTH archive paths — `PATCH /api/rd` (board/dialog) and the Exec
+    `archive_card` tool — so a card archived through chat revives exactly like
+    one archived by hand. Returns None when the card doesn't recur, the next
+    date can't be computed, or an occurrence with that (title, date) already
+    exists: the dedupe that keeps a re-archive from stacking duplicates.
+    """
+    if not card.get("recur_type"):
+        return None
+    next_due = _next_recurrence(card.get("due_date") or "", card["recur_type"])
+    if not next_due:
+        return None
+    key = (card.get("title", "").lower(), next_due[:10])
+    if key in {(c.get("title", "").lower(), (c.get("due_date") or "")[:10]) for c in all_cards}:
+        return None
+    clone = copy.deepcopy(card)
+    # ms timestamp alone can collide when one patch archives two recurring
+    # cards in the same millisecond — step until the id is actually free.
+    ids = {c.get("id") for c in all_cards}
+    stamp = int(datetime.now(timezone.utc).timestamp() * 1000)
+    while f"card-{stamp}" in ids:
+        stamp += 1
+    clone["id"] = f"card-{stamp}"
+    clone["column"] = "rd"
+    clone["due_date"] = next_due
+    clone["scheduled_day"] = None
+    clone["order"] = min((c.get("order", 0) for c in all_cards if c.get("column") == "rd"), default=0) - 1
+    clone.pop("nudge", None)  # next occurrence starts its own loop
+    clone.pop("dir_start_min", None)
+    clone.pop("completed_late", None)  # don't inherit the prior occurrence's flag
+    return clone
 
 
 def _apply_context_update(action: str, note: str = "", match: str = "") -> dict:

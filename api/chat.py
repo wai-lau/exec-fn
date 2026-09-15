@@ -103,6 +103,8 @@ def _active_nudge_block(cards: list) -> str:
         "done' — IS Wai saying the step is done.\n"
         "- Wai says the current step is done -> call advance_chunk, mention only the "
         "next chunk it returns.\n"
+        "- Wai says the WHOLE task is done (not just this step) -> call archive_card, "
+        "not advance_chunk.\n"
         "- Wai says it is NOT done ('not yet', 'no') -> do NOT advance and do NOT treat "
         "that as pushback; just hand her the step's first physical move.\n"
         "- Wai gives feedback on the breakdown ('do X first', 'skip that part') -> "
@@ -131,6 +133,14 @@ _CHAT_STATIC_PREFIX = (
     "Your name is Exec. You are Wai's personal AI planning assistant. Wai has ADHD and uses this tool daily for executive function.\n"
     f"{EXEC_VOICE}\n"
     "FORMATTING: Markdown is allowed. Do not use Unicode emoji.\n"
+    "ANSWER BUTTONS: when you ask Wai a question with a small set of likely answers, put those "
+    "answers on a FINAL LINE OF ITS OWN as one bracketed, pipe-separated row — [Got everything | "
+    "Not yet | On it now]. Two or three, each at most four words, each phrased as WAI'S OWN reply "
+    "in her words (never an instruction or another question); the affirmative first, the honest "
+    "out last. They render as buttons she taps, and a tap sends that text as her message. "
+    "Write the row PLAIN — no bold, no asterisks, no backticks: it is parsed, not read, and an "
+    "emphasised row is prose. Nothing may follow it, and use it only for a real question — never "
+    "on a statement.\n"
     "Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
     "NEVER suggest that Wai block, schedule, or carve out time on a calendar — Exec IS Wai's calendar and scheduler. Schedule tasks here (schedule_card) or just talk about doing the work; never punt to an external calendar.\n"
     "CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
@@ -183,10 +193,12 @@ def _build_chat_system_prompt(stage: str = "planning", actions: list | None = No
             "Help Wai select tasks for today from the ideas pool or confirm existing selected tasks. "
             "Consider their available time and energy. Make specific suggestions with card IDs. "
             "Book cards (is_book, ongoing reads) are for reading only — do NOT select them for directives. "
-            "You can manage cards freely: create_card (new idea), exile_card (drop it), update_card (edit fields or progress notes), schedule_card (dates/deadlines). "
+            "You can manage cards freely: create_card (new idea), archive_card (done), exile_card (drop it), update_card (edit fields or progress notes), schedule_card (dates/deadlines). "
             "When Wai mentions working on or making progress on a task, call update_card with a timestamped note appended to the notes field. "
-            "COLUMN SEMANTICS: rd=upcoming ideas/backlog. hq=active working set (Wai manages this). archives=completed (Wai archives). exile=dropped. "
-            "Do NOT move cards to hq or archives — Wai does this manually. Only exile when explicitly dropped. "
+            "COLUMN SEMANTICS: rd=upcoming ideas/backlog. hq=active working set (Wai manages this). archives=completed. exile=dropped. "
+            "Do NOT move cards to hq — Wai does this manually. "
+            "When Wai says a task is DONE / finished / handled, call archive_card in that same response; when she drops one, call exile_card. "
+            "Both only on Wai's word about that specific card — never archive or exile on your own read of the board. "
             "Keep responses concise — this is a planning terminal, not a chat app."
         ),
         "done": "The plan is finalized. Sign off dry and clipped — no warmth, no fanfare. No more actions needed.",
@@ -240,8 +252,26 @@ def _chat_tools() -> list:
             },
         },
         {
+            "name": "archive_card",
+            "description": (
+                "Mark a card DONE — move it to archives. Use whenever Wai says a task is "
+                "finished, done, completed, handled, 'took care of it', or 'that's off my "
+                "plate'. Only on Wai's word that the whole task is done — never because the "
+                "last breakdown step was marked done, and never on your own initiative. "
+                "Keeps the day it was scheduled for (that's the record of when the work "
+                "happened) and, for a recurring card, creates the next occurrence."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Card ID."},
+                },
+                "required": ["id"],
+            },
+        },
+        {
             "name": "exile_card",
-            "description": "Move a card to exile (dropped / won't do). Use when Wai says they're dropping, skipping, or won't do something.",
+            "description": "Move a card to exile (dropped / won't do). Use when Wai says they're dropping, skipping, won't do, or no longer wants something — as opposed to having finished it (that's archive_card).",
             "input_schema": {
                 "type": "object",
                 "properties": {

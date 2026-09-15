@@ -1,6 +1,5 @@
 """JSON API routes: card CRUD, scheduling, profile/context, gcal, monitor +
 nudge control. HTML page routes live in routes_views.py."""
-import copy
 import html
 import json
 import time
@@ -16,7 +15,7 @@ from morning import build_morning
 from card_llm import classify_card, parse_date_natural
 from gcal import gcal_start_auth, gcal_complete_auth
 from helpers import (
-    DATA_DIR, _load_json, _append_rd_log_batch, _next_recurrence, get_rd_log,
+    DATA_DIR, _load_json, _append_rd_log_batch, recurring_clone, get_rd_log,
 )
 from monitor import schedule_monitor, flush_monitor, _entry_is_significant
 from monitor_sse import _monitor_subscribers, push_to_monitor
@@ -275,28 +274,17 @@ async def api_rd_patch(request: Request, source: str = "rd"):
 
         log_entries = _log_entries_for_patch(new_cards, old_cards, source)
 
-        # Recurring revival
+        # Recurring revival — the clone rules live in helpers.recurring_clone so
+        # the Exec archive_card tool revives identically. Dedupe sees the PRE-patch
+        # cards too (an occurrence being archived still carries its old due_date).
         revived = []
-        existing_titles_dates = {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in new_cards}
-        existing_titles_dates |= {(c.get("title","").lower(), (c.get("due_date") or "")[:10]) for c in old_cards.values()}
         for c in new_cards:
             old = old_cards.get(c.get("id"))
-            if (old and old.get("column") != "archives" and c.get("column") == "archives"
-                    and c.get("recur_type")):
-                next_due = _next_recurrence(c.get("due_date") or "", c["recur_type"])
-                key = (c.get("title","").lower(), (next_due or "")[:10])
-                if next_due and key not in existing_titles_dates:
-                    clone = copy.deepcopy(c)
-                    clone["id"] = f"card-{int(time.time() * 1000) + len(revived)}"
-                    clone["column"] = "rd"
-                    clone["due_date"] = next_due
-                    clone["scheduled_day"] = None
-                    clone["order"] = min((x.get("order", 0) for x in new_cards if x.get("column") == "rd"), default=0) - 1
-                    clone.pop("nudge", None)  # next occurrence starts its own loop
-                    clone.pop("dir_start_min", None)
-                    clone.pop("completed_late", None)  # don't inherit the prior occurrence's flag
+            if old and old.get("column") != "archives" and c.get("column") == "archives":
+                clone = recurring_clone(c, new_cards + list(old_cards.values()) + revived)
+                if clone:
                     revived.append(clone)
-                    log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "id": c["id"], "next_due": next_due})
+                    log_entries.append({"action": "revived", "title": c.get("title", c["id"]), "source": source, "id": c["id"], "next_due": clone["due_date"]})
 
         _recompute_node_deadlines(new_cards)
         _flag_triage(new_cards, old_cards)

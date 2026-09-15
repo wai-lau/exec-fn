@@ -4,7 +4,7 @@ from card_schedule import _RESCHED_GUARD_MSG, apply_schedule, nudge_resched_bloc
 from helpers import (
     _load_rd, _save_rd, _find_card, _RD_LOCK,
     _append_rd_log, _DEFAULT_MINUTES, _now_et,
-    _apply_context_update,
+    _apply_context_update, recurring_clone,
 )
 
 # Every tool below holds _RD_LOCK around its whole load-modify-save cycle:
@@ -76,6 +76,45 @@ def _tool_exile_card(input_: dict) -> dict:
         _save_rd(rd)
     _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col="exile")
     return {"ok": True, "id": card["id"], "title": card["title"], "column": "exile"}
+
+
+def _tool_archive_card(input_: dict) -> dict:
+    """Mark a card done — the chat-side twin of the card dialog's archive button.
+
+    Three things the board's own archive does, done here too: `scheduled_day` is
+    PRESERVED (it is the only record of the day the work happened, and /rd's
+    calendar counts archived cards on past days), an active nudge loop is put to
+    rest, and a recurring card revives its next occurrence (helpers.recurring_clone,
+    shared with PATCH /api/rd so both paths clone identically).
+    """
+    clone = None
+    with _RD_LOCK:
+        rd = _load_rd()
+        card = _find_card(rd, input_.get("id", ""))
+        if not card:
+            return {"error": f"Card not found: {input_.get('id')}"}
+        from_col = card.get("column")
+        if from_col == "archives":
+            return {"ok": True, "id": card["id"], "title": card["title"],
+                    "column": "archives", "note": "was already archived"}
+        card["column"] = "archives"
+        n = card.get("nudge")
+        if n:
+            n["stage"] = "resolved"
+            n["awaiting_reply"] = False
+            n["next_nudge_at"] = None
+        clone = recurring_clone(card, rd.get("cards", []))
+        if clone:
+            rd["cards"].append(clone)
+        _save_rd(rd)
+    _append_rd_log("moved", card["title"], source="Exec", from_col=from_col,
+                   to_col="archives", id=card["id"], category=card.get("category"))
+    result = {"ok": True, "id": card["id"], "title": card["title"], "column": "archives"}
+    if clone:
+        _append_rd_log("revived", card["title"], source="Exec", id=card["id"],
+                       next_due=clone["due_date"])
+        result["next_occurrence"] = clone["due_date"]
+    return result
 
 
 def _apply_reminder_flag(card: dict, input_: dict, changed: list) -> None:
@@ -301,7 +340,8 @@ def _tool_advance_chunk(input_: dict) -> dict:
                        step=node["label"], remaining=0)
         return {"ok": True, "id": card["id"], "completed_step": node["label"],
                 "all_steps_done": True,
-                "note": "All steps done. Do NOT archive — Wai archives manually."}
+                "note": "All steps done. Ask whether the task itself is finished; "
+                        "call archive_card only once Wai says so — never on your own."}
     remaining = sum(1 for nd in nodes if not nd.get("done"))
     _append_rd_log("advanced", card["title"], source="Exec",
                    step=node["label"], remaining=remaining)
@@ -311,6 +351,7 @@ def _tool_advance_chunk(input_: dict) -> dict:
 
 _TOOL_HANDLERS = {
     "create_card":                   _tool_create_card,
+    "archive_card":                  _tool_archive_card,
     "exile_card":                    _tool_exile_card,
     "update_card":                   _tool_update_card,
     "schedule_card":                 _tool_schedule_card,
