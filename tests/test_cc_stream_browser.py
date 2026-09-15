@@ -95,6 +95,68 @@ def _send(pg, text):
     pg.keyboard.press("Enter")
 
 
+_TOOL_TURN_SSE = (
+    'data: {"type":"text","text":"Getting real numbers."}\n\n'
+    'data: {"type":"tool","name":"WebFetch","input":{"url":"https://x/pricing"}}\n\n'
+    'data: {"type":"tool_result","text":""}\n\n'
+    'data: {"type":"text","text":"**HG group coaching:** 90 min weekly."}\n\n'
+    'data: {"type":"tool","name":"WebFetch","input":{"url":"https://x/other"}}\n\n'
+    'data: {"type":"done","turns":2,"ms":10}\n\n'
+)
+
+
+def test_text_after_a_tool_call_opens_its_own_bubble(browser, base_url, admin_headers):
+    """A reply that resumes after a tool call must not be glued onto the text
+    before it. Appending into the same bubble ran the two messages together with
+    nothing between them — read as a missing space after the period — and put
+    the continuation ABOVE the tool line it came after."""
+    ctx = browser.new_context(extra_http_headers=admin_headers)
+    try:
+        pg = ctx.new_page()
+        pg.route("**/marked.min.js", lambda r: r.fulfill(
+            status=200, content_type="application/javascript", body=_MARKED))
+        pg.route("**/api/cc/health*", _json_route({"ok": True, "busy": False, "authed": True}))
+        pg.route("**/api/cc/history*", _json_route({"sessionId": "t", "messages": []}))
+        pg.route("**/api/cc/title*", _json_route({"sessionId": "t", "title": "test"}))
+        pg.route("**/api/cc/limits*", _json_route({"ok": False}))
+        pg.route("**/api/cc/sessions*", _json_route({"current": "t", "sessions": []}))
+        pg.route("**/api/cc/query", lambda r: r.fulfill(
+            status=200, content_type="text/event-stream", body=_TOOL_TURN_SSE))
+        pg.goto(f"{base_url}/cc", wait_until="domcontentloaded")
+        pg.wait_for_selector("#msg-input", timeout=5000)
+        _send(pg, "prices?")
+        pg.wait_for_function(
+            "document.querySelectorAll('#terminal .msg.assistant').length === 2",
+            timeout=20000)
+
+        got = pg.evaluate("""() => {
+          const nodes = [...document.querySelectorAll('#terminal .msg')];
+          const cls = nodes.map(n => n.className.replace(' open', ''));
+          const tools = [...document.querySelectorAll('#terminal .msg.tool')];
+          tools.forEach(t => t.click());
+          return {
+            order: cls.filter(c => /assistant|tool|out/.test(c)),
+            bodies: [...document.querySelectorAll('#terminal .msg.assistant')]
+                      .map(n => n.textContent.trim()),
+            foldable: tools.map(t => t.classList.contains('cc-fold')),
+            outs: [...document.querySelectorAll('#terminal .msg.out')]
+                      .map(o => o.textContent.trim()),
+          };
+        }""")
+
+        assert got["order"][:4] == ["msg assistant", "msg tool cc-fold",
+                                   "msg out", "msg assistant"], \
+            "the resumed reply belongs under the tool call, in its own bubble"
+        assert got["bodies"][0].startswith("Getting real numbers.")
+        assert "HG group coaching" not in got["bodies"][0], \
+            "the second message must not be glued onto the first"
+        assert all(got["foldable"]), "every tool line expands to something"
+        assert got["outs"] == ["[ no output ]", "[ no result returned ]"], \
+            "an empty result and a call that never answered both say so"
+    finally:
+        ctx.close()
+
+
 def test_cursor_blinks_while_claude_is_working(open_cc):
     pg, _ = open_cc()
     _send(pg, "hello")

@@ -39,18 +39,8 @@ function ccResetTools() {
   _ccToolQueue = [];
 }
 
-/** Fold a tool_result frame under the call that produced it.
- *
- * Returns the line the blinking cursor should ride -- the TOOL line while the
- * block is folded away, since a cursor inside a hidden block reads as a page
- * that stopped -- or null when the result was empty and nothing was rendered.
- * The call is consumed either way. */
-function ccToolOut(data) {
-  const tool = ccTakeTool();
-  const t = (data.text || '').trim();
-  if (!t) return null;
-  const out = addMsg('out' + (data.isError ? ' err' : ''), clamp(t));
-  if (!tool) return out;
+/** Hang `out` under `tool` as its folded block. */
+function ccFold(tool, out) {
   tool.after(out);
   out.hidden = true;
   tool.classList.add('cc-fold');
@@ -58,5 +48,34 @@ function ccToolOut(data) {
     out.hidden = !out.hidden;
     tool.classList.toggle('open', !out.hidden);
   });
+}
+
+/** Fold a tool_result frame under the call that produced it.
+ *
+ * Returns the line the blinking cursor should ride -- the TOOL line while the
+ * block is folded away, since a cursor inside a hidden block reads as a page
+ * that stopped. The call is consumed either way.
+ *
+ * An EMPTY result still folds, saying so. It used to render nothing at all,
+ * which left the tool line without the `cc-fold` class or its click handler --
+ * so tapping it did nothing, with no way to tell an empty result from a broken
+ * page. That is how WebFetch read as unexpandable. */
+function ccToolOut(data) {
+  const tool = ccTakeTool();
+  const t = (data.text || '').trim();
+  const out = addMsg('out' + (data.isError ? ' err' : ''), t ? clamp(t) : '[ no output ]');
+  if (!tool) return out;
+  ccFold(tool, out);
   return tool;
+}
+
+/** End of turn: any call still waiting never got a result (an interrupt, an
+ *  error frame, a result the sidecar could not render). Say that under the
+ *  line instead of leaving it inert. */
+function ccFinishTools() {
+  for (const tool of _ccToolQueue) {
+    if (tool.classList.contains('cc-fold')) continue;
+    ccFold(tool, addMsg('out', '[ no result returned ]'));
+  }
+  _ccToolQueue = [];
 }

@@ -307,6 +307,39 @@ async function canUseTool(toolName, input) {
   return { behavior: "allow", updatedInput: input };
 }
 
+/** A tool_result's content as text the page can show.
+ *
+ * The shape varies by tool: a plain string, an array of {type:"text"} blocks,
+ * or -- the web tools among them -- structured blocks carrying no `text` field
+ * at all. That last shape joined to "" and the page dropped the result whole,
+ * so a WebFetch line had nothing folded under it and tapping it did nothing.
+ * Anything with no text of its own falls back to its JSON, which is at least
+ * readable, and an image block to a marker rather than a megabyte of base64.
+ *
+ * Capped: the page clamps what it displays anyway, and one unbounded result
+ * would otherwise cross the SSE relay whole on a 2GB box. */
+const RESULT_MAX = 20000;
+
+function resultText(content) {
+  let text;
+  if (typeof content === "string") text = content;
+  else if (Array.isArray(content)) {
+    text = content
+      .map((c) => {
+        if (typeof c === "string") return c;
+        if (typeof c?.text === "string") return c.text;
+        if (c?.type === "image") return "[image]";
+        try { return JSON.stringify(c); } catch { return ""; }
+      })
+      .filter(Boolean)
+      .join("\n");
+  } else if (content == null) text = "";
+  else {
+    try { text = JSON.stringify(content); } catch { text = ""; }
+  }
+  return text.length > RESULT_MAX ? text.slice(0, RESULT_MAX) + " \u2026" : text;
+}
+
 /** Flatten one SDK message into the small stable shape the browser renders.
  *
  * Written against both content-block shapes the SDK has shipped (`msg.message
@@ -372,14 +405,10 @@ function normalize(msg) {
     } else if (b.type === "tool_use") {
       out.push({ type: "tool", name: b.name, input: b.input });
     } else if (b.type === "tool_result") {
-      let text = b.content;
-      if (Array.isArray(text)) {
-        text = text.map((c) => (typeof c === "string" ? c : c?.text ?? "")).join("");
-      }
       out.push({
         type: "tool_result",
         isError: Boolean(b.is_error),
-        text: typeof text === "string" ? text : JSON.stringify(text ?? ""),
+        text: resultText(b.content),
       });
     }
   }
