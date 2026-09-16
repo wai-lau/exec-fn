@@ -47,6 +47,10 @@
 
 .msg-ts { color: rgba(255,255,255,0.18); font-size: var(--fs-2xs); }
 
+/* The question a tapped answer refers to (exec-choices.answerRef). Same rank
+   as the timestamp: addressing, not content. */
+.msg-ref { color: rgba(255,255,255,0.18); font-size: var(--fs-2xs); }
+
 /* ── roles ─────────────────────────────────────────────────────────────────
    Three ranks, by how much of the reader's attention the line has earned:
    assistant full green, user white (it is already known — it was just typed),

@@ -212,10 +212,10 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-bubble-drag.js?v=2"></script>'
                   '<script src="/exec-todos.js?v=3"></script>'
                   '<script src="/typewriter.js?v=7"></script>'
-                  '<script src="/exec-choices.js?v=4"></script>'
-                  '<script src="/exec-bubble-assets.js?v=10"></script>'
+                  '<script src="/exec-choices.js?v=5"></script>'
+                  '<script src="/exec-bubble-assets.js?v=11"></script>'
                   '<script src="/exec-bubble-history.js?v=1"></script>'
-                  '<script src="/exec-bubble.js?v=48"></script>')
+                  '<script src="/exec-bubble.js?v=49"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
