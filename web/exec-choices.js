@@ -51,15 +51,29 @@ window.execChoices = (function () {
 
   function strip(text) { return parse(text).clean; }
 
+  // Only the NEWEST nudge keeps live ANSWER buttons: an older question has been
+  // answered or overtaken, and tapping one would send an answer about a step Exec
+  // has since moved off. Replaying history walks oldest-first, so clearing on
+  // each attach() leaves the answers on the last nudge for free.
+  //
+  // CARD ACTIONS survive, and that is the whole difference: `done` on a card id
+  // means the same thing three nudges later — a finished task is finished. Wiping
+  // whole rows left a day that fired two nudges with exactly one tappable `done`,
+  // sitting under the newer card; tapping it archived THAT card and the earlier
+  // one still had to be archived by hand from the board. (2026-09-16: tapped
+  // `done` meaning "climbing", archived "Lyre poster".)
+  //
+  // A row stripped to nothing is removed, so a plain chat reply's answer row
+  // still disappears whole.
   function clear(termEl) {
     const rows = termEl.querySelectorAll('.exec-choice-row');
-    for (let i = 0; i < rows.length; i++) rows[i].remove();
+    for (let i = 0; i < rows.length; i++) {
+      const answers = rows[i].querySelectorAll('.exec-choice:not(.exec-act)');
+      for (let j = 0; j < answers.length; j++) answers[j].remove();
+      if (!rows[i].querySelector('.exec-choice')) rows[i].remove();
+    }
   }
 
-  // Only the NEWEST nudge keeps live buttons (clear() first): an older row is a
-  // question already answered or overtaken, and tapping one would send an answer
-  // about a step Exec has since moved off. Replaying history walks oldest-first,
-  // so this leaves the buttons on the last nudge for free.
   // Move the card the way its own dialog button would. Merge-by-id means the
   // {id, column} pair is the whole write; the server handles the rest (clearing
   // scheduled_day on exile, preserving it into archives, reviving a recurring

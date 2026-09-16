@@ -1,0 +1,10 @@
+# Installed to /etc/cron.d/exec-fn-ccprobe by claude-box/setup.sh.
+#
+# Re-probes the /cc tool sandbox when the Agent SDK version changes underneath
+# it. Version-gated, so a night the SDK did not move costs one file read and
+# exits; only a real bump spends an API call.
+#
+# 5:20 - after morning (4:30), graphify (5:00) and security (5:10), so the four
+# nightly jobs never contend on a 1967MB box.
+SHELL=/bin/bash
+20 5 * * * root /exec-fn/scripts/cc-probe-daily.sh

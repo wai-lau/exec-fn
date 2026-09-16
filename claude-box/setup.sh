@@ -43,6 +43,14 @@ fi
 
 sudo install -m 0644 /exec-fn/claude-box/cc-sidecar.service \
   /etc/systemd/system/cc-sidecar.service
+
+# The nightly SDK re-probe. Tracked and installed from here rather than hand-made
+# on the box like the security and graphify crons, which exist on the droplet and
+# nowhere else -- a rebuild loses those, and nobody would notice until a nightly
+# job had been silently absent for weeks.
+sudo install -m 0644 /exec-fn/claude-box/exec-fn-ccprobe.cron \
+  /etc/cron.d/exec-fn-ccprobe
+
 sudo systemctl daemon-reload
 echo "provisioned. next: one-time login (see claude-box/README.md), then:"
 echo "  sudo systemctl enable --now cc-sidecar"

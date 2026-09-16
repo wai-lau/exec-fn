@@ -1800,7 +1800,9 @@ A nudge ends on a question, and the question is the part Wai answers — so the 
 
 Tapping an answer **sends that text as Wai's own message** — the same message she would have typed — so nothing server-side has to know the buttons exist: the exec chat already reads "done" as advancing the chunk and "not yet" as an answer rather than pushback (§15e).
 
-**Only the NEWEST nudge keeps live buttons** (`attach` calls `clear` first). An older row is a question already answered or overtaken, and tapping one would send an answer about a step Exec has since moved off. Replaying history walks oldest-first, so this leaves the buttons on the last nudge for free.
+**Only the NEWEST nudge keeps live ANSWER buttons** (`attach` calls `clear` first). An older row is a question already answered or overtaken, and tapping one would send an answer about a step Exec has since moved off. Replaying history walks oldest-first, so this leaves the answers on the last nudge for free.
+
+**Card actions are the exception — `clear()` strips answer buttons only, never `done`/`exile`** (a row left with no buttons at all is then removed, so a plain chat reply's row still disappears whole). `done` on a card id means the same thing three nudges later: a finished task is finished, and the card is the unit, not the conversation. Removing whole rows meant a day that fired two nudges had exactly ONE tappable `done` — sitting under the NEWER card — so tapping it archived that card while the earlier one stayed on the board. Measured 2026-09-16: nudges at 14:00 (climbing) and 17:57 (Lyre poster); the 23:22:59 tap meant for climbing PATCHed `craft-lyre-poster` to archives, and climbing was archived by hand from /hq 22s later. A monitor comment (no opts, no card id) used to wipe the pending nudge's card actions the same way.
 
 #### Card actions are the exception, and are deliberately not messages
 
