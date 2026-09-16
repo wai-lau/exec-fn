@@ -61,8 +61,15 @@ EXEC_VOICE = (
 )
 
 
-def _focused_nudge_card(cards: list) -> dict | None:
-    """Most-recently-nudged card with an active nudge loop."""
+def _open_nudge_cards(cards: list) -> list:
+    """Every card with a live nudge loop, most-recently-nudged first.
+
+    More than one can be open at once — a day that fires two nudges asks two
+    real questions, and Wai answers them when she surfaces rather than in
+    arrival order. The panel keeps BOTH answer rows tappable and sends each
+    answer behind an `[answering: "..." card=<id>]` reference, so the model has
+    to be able to act on a card that is not the focused one.
+    """
     import nudge as _nudge
     from scheduler import logical_today_iso
     today = logical_today_iso()
@@ -71,9 +78,32 @@ def _focused_nudge_card(cards: list) -> dict | None:
         if _nudge._eligible(c, today)
         and (c.get("nudge") or {}).get("stage") in ("nudging", "awaiting", "stalled", "consequences")
     ]
-    if not active:
-        return None
-    return max(active, key=lambda c: (c["nudge"].get("last_nudge_at") or ""))
+    return sorted(active, key=lambda c: (c["nudge"].get("last_nudge_at") or ""), reverse=True)
+
+
+def _focused_nudge_card(cards: list) -> dict | None:
+    """Most-recently-nudged card with an active nudge loop."""
+    open_cards = _open_nudge_cards(cards)
+    return open_cards[0] if open_cards else None
+
+
+def _other_nudge_lines(cards: list, focused: dict) -> list:
+    """One line per OTHER open nudge: enough to resolve an `[answering: ...]`
+    reference to it and act, without spending the focused card's detail on all
+    of them."""
+    import nudge as _nudge
+    lines = []
+    for c in _open_nudge_cards(cards):
+        if c["id"] == focused["id"]:
+            continue
+        n = c["nudge"]
+        lines.append(
+            f"- '{c.get('title','')}' (id:{c['id']}) — current step: "
+            f"{_nudge.active_label(c)}; asked: {n.get('last_nudge_text')!r}"
+        )
+    if not lines:
+        return []
+    return ["OTHER OPEN NUDGES (each still awaiting an answer):"] + lines
 
 
 def _active_nudge_block(cards: list) -> str:
@@ -96,8 +126,14 @@ def _active_nudge_block(cards: list) -> str:
     ans = n.get("consequences", {}).get("answer")
     if ans:
         lines.append(f"- Wai's stated consequence if not done: {ans!r}")
+    lines.extend(_other_nudge_lines(cards, card))
     lines.append(
         "HANDLING (in this order):\n"
+        "- Wai's message may open with [answering: \"<the question>\" card=<id>]. That "
+        "reference is AUTHORITATIVE and was attached by the panel, not typed: it names "
+        "exactly which open question the answer belongs to. Act on THAT card — it is "
+        "often not the focused one above — and never re-ask a question it already "
+        "answers. A message with no such marker is about the focused nudge.\n"
         "- The nudge ASKS whether the current step is done (the loop has no completion "
         "data of its own), so a bare affirmative — 'yes', 'yep', 'did that', 'already "
         "done' — IS Wai saying the step is done.\n"
@@ -141,6 +177,11 @@ _CHAT_STATIC_PREFIX = (
     "Write the row PLAIN — no bold, no asterisks, no backticks: it is parsed, not read, and an "
     "emphasised row is prose. Nothing may follow it, and use it only for a real question — never "
     "on a statement.\n"
+    "ANSWER REFERENCES: several of your questions can be open at once — Wai answers them when "
+    "she surfaces, not in the order you asked — so every tapped answer arrives prefixed with "
+    "[answering: \"<the question>\" card=<id>]. The panel attaches that; Wai did not type it. "
+    "Treat it as authoritative about WHICH question is being answered and which card it concerns, "
+    "and never echo the marker or the id back to her.\n"
     "Never expose raw card IDs or internal formats in your responses — refer to tasks by title only.\n"
     "NEVER suggest that Wai block, schedule, or carve out time on a calendar — Exec IS Wai's calendar and scheduler. Schedule tasks here (schedule_card) or just talk about doing the work; never punt to an external calendar.\n"
     "CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"

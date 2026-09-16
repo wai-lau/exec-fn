@@ -1,22 +1,18 @@
 """Exec nudge choice-row behaviour (WebKit / playwright).
 
-Pins the split between the two kinds of button `exec-choices.js` renders under
-a nudge:
+EVERY open question stays tappable — answer buttons and card actions both —
+and a tapped answer carries a deterministic reference to the question it
+answers, so the model never has to guess which one a bare "Not yet" belongs to.
 
-  - ANSWER buttons (the model's trailing `[a | b | c]` row) are a reply about
-    ONE step, so only the NEWEST nudge keeps them — tapping an older one would
-    answer a question Exec has since moved off.
-  - CARD ACTIONS (`done` / `exile`) are about a card id, and a finished task is
-    still finished three nudges later, so they survive on EVERY nudge row.
-
-The second rule is the regression. `clear()` used to remove whole rows, so a
-day that fired two nudges ended with exactly one tappable `done` — under the
-NEWER card. On 2026-09-16 the tap meant for the 14:00 climbing nudge PATCHed
+This is the regression. `clear()` used to wipe every row but the newest, so a
+day that fired two nudges ended with exactly one tappable row — under the NEWER
+card. On 2026-09-16 the tap meant for the 14:00 climbing nudge PATCHed
 `craft-lyre-poster` to archives instead, and climbing had to be archived by
 hand from /hq 22 seconds later.
 
 Boundaries mocked, no LLM and no writes to the real board: /api/chat serves a
-canned two-nudge history, PATCH /api/rd is captured rather than applied.
+canned two-nudge history, PATCH /api/rd is captured rather than applied, and
+POST /api/chat is captured so a tapped answer's outgoing text can be read.
 
 Marked `browser` so the fast smoke step skips it.
 
@@ -73,9 +69,19 @@ def open_panel(browser, base_url, admin_headers):
                                           "flush(){},setVolume(){},elapsed:()=>0,"
                                           "audioDuration:()=>0,isUnlocked:()=>true,"
                                           "gestureUnlocked:()=>true})};"))
-        pg.route("**/api/chat",
-                 lambda r: r.fulfill(status=200, content_type="application/json",
-                                     body=json.dumps(_HISTORY)))
+        # GET replays the canned history; POST (a sent answer) is captured and
+        # answered with an empty SSE stream so the panel settles.
+        def _chat(route):
+            if route.request.method == "POST":
+                pg.evaluate("b => window.__sent.push(JSON.parse(b))",
+                            route.request.post_data)
+                route.fulfill(status=200, content_type="text/event-stream",
+                              body='data: {"type":"done","next_stage":"planning"}\n\n')
+            else:
+                route.fulfill(status=200, content_type="application/json",
+                              body=json.dumps(_HISTORY))
+
+        pg.route("**/api/chat", _chat)
 
         # Capture the card-action write instead of moving a real card.
         def _patch_rd(route):
@@ -87,7 +93,7 @@ def open_panel(browser, base_url, admin_headers):
                 route.continue_()
 
         pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
-        pg.evaluate("() => { window.__patched = []; }")
+        pg.evaluate("() => { window.__patched = []; window.__sent = []; }")
         pg.route("**/api/rd?source=Exec", _patch_rd)
         pg.wait_for_selector("#exec-bubble", timeout=5000)
         pg.click("#exec-bubble")
@@ -110,14 +116,31 @@ def _rows(pg):
         r => Array.from(r.querySelectorAll('.exec-choice'), b => b.textContent))""")
 
 
-def test_every_nudge_keeps_its_card_actions(open_panel):
-    """Both nudges stay actionable; only the newest keeps its answers."""
+def test_every_open_question_stays_tappable(open_panel):
+    """Both nudges keep their own answers AND their own card actions."""
     rows = _rows(open_panel())
-    assert len(rows) == 2, rows
-    # Older nudge: answers cleared, done/exile survive.
-    assert rows[0] == ["done", "exile"]
-    # Newest nudge: its own answers plus the card actions.
-    assert rows[1] == ["Got it", "Not yet", "done", "exile"]
+    assert rows == [
+        ["Packed", "Not yet", "done", "exile"],
+        ["Got it", "Not yet", "done", "exile"],
+    ]
+
+
+def test_answer_carries_a_reference_to_its_question(open_panel):
+    """A tapped answer names the question and the card it belongs to.
+
+    Both nudges offer a "Not yet" — the whole point of the reference is that
+    the two are distinguishable.
+    """
+    pg = open_panel()
+    pg.locator("#exec-term .exec-choice-row").nth(0).get_by_text("Not yet").click()
+    pg.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
+    sent = pg.evaluate("() => window.__sent")[0]["messages"]
+    text = sent[-1]["content"]
+    assert '[answering: "Packed yet?" card=card-climbing]' in text
+    assert text.endswith("Not yet")
+    # Answering retires that question's answers; its card actions and the OTHER
+    # question both stay live.
+    assert _rows(pg) == [["done", "exile"], ["Got it", "Not yet", "done", "exile"]]
 
 
 def test_older_done_patches_its_own_card(open_panel):

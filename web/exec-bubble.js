@@ -216,6 +216,35 @@
   }
 
   // ── message rendering ─────────────────────────────────────────────────────
+  // A tapped answer is sent behind a reference to the question it answers
+  // (exec-choices.answerRef) so several open questions can be answered in any
+  // order. It is addressed to the MODEL, so the panel shows only the human half
+  // — `re: "Packed yet?"` — and never the raw card id, which is noise to Wai and
+  // the one thing Exec itself is told never to print.
+  const REF_RE = /^\[answering:(?: "([^"]*)")?(?: card=\S+?)?\]\s*/;
+
+  // Trailing space inside the chip, so the gap survives without touching the
+  // shared .msg-ts rule (which /mtg and /cc render too).
+  function chip(cls, text) {
+    const s = document.createElement('span');
+    s.className = cls;
+    s.textContent = text + ' ';
+    return s;
+  }
+
+  function renderUserBody(body, text) {
+    const ts = text.match(/^(\[\S+ \S+ ET\])\s*/);
+    if (ts) { body.appendChild(chip('msg-ts', ts[1])); text = text.slice(ts[0].length); }
+    const ref = text.match(REF_RE);
+    if (ref) {
+      if (ref[1]) body.appendChild(chip('msg-ref', 're: \u201c' + ref[1] + '\u201d'));
+      text = text.slice(ref[0].length);
+    }
+    const rest = document.createElement('span');
+    rest.innerHTML = mdHtml(text);
+    body.appendChild(rest);
+  }
+
   function addMsg(role, text, cardId) {
     const div = document.createElement('div');
     div.className = 'msg ' + role;
@@ -235,10 +264,7 @@
       const body = document.createElement('div');
       body.className = 'msg-body';
       if (role === 'user') {
-        const m = text.match(/^(\[\S+ \S+ ET\])\s*/);
-        body.innerHTML = m
-          ? '<span class="msg-ts">' + m[1] + '</span> ' + mdHtml(text.slice(m[0].length))
-          : mdHtml(text);
+        renderUserBody(body, text);
       } else {
         body.innerHTML = mdHtml(text);
       }
@@ -247,7 +273,7 @@
       div.textContent = text;
     }
     termEl.appendChild(div);
-    if (choices) execChoices.attach(termEl, div, choices.opts, sendText, cardId, function (t) { addMsg('sys', t); });
+    if (choices) execChoices.attach(termEl, div, choices.opts, sendText, cardId, function (t) { addMsg('sys', t); }, text);
     termEl.scrollTop = termEl.scrollHeight;
     return div;
   }
@@ -326,7 +352,6 @@
   // answer IS the message Wai would have typed.
   function sendText(text) {
     if (streaming || !text) return;
-    if (window.execChoices) execChoices.clear(termEl);
     const ts = fmtTs();
     addMsg('user', ts + ' ' + text);
     messages.push({ role: 'user', content: ts + ' ' + text });
@@ -383,7 +408,7 @@
         if (ch && ch.opts.length) {
           body.innerHTML = mdHtml(ch.clean);
           execChoices.attach(termEl, streamDiv, ch.opts, sendText, null,
-                             function (t) { addMsg('sys', t); });
+                             function (t) { addMsg('sys', t); }, ch.clean);
         }
         messages.push({ role: 'assistant', content: fullText });
         if (window.execVoice) execVoice.speak(fullText);  // narrate Exec's reply
