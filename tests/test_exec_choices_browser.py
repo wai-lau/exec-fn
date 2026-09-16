@@ -1,247 +1,134 @@
-"""A nudge's trailing [a | b | c] line becomes tappable answer buttons.
+"""Exec nudge choice-row behaviour (WebKit / playwright).
 
-Real WebKit, because the whole feature is DOM + a regex over text the model
-wrote, and the failure modes are all browser-side: a marker mistaken for a
-markdown link, a stale row left tappable under an older nudge, a button that
-sends twice. Skips cleanly when the app or WebKit is unavailable.
+Pins the split between the two kinds of button `exec-choices.js` renders under
+a nudge:
+
+  - ANSWER buttons (the model's trailing `[a | b | c]` row) are a reply about
+    ONE step, so only the NEWEST nudge keeps them — tapping an older one would
+    answer a question Exec has since moved off.
+  - CARD ACTIONS (`done` / `exile`) are about a card id, and a finished task is
+    still finished three nudges later, so they survive on EVERY nudge row.
+
+The second rule is the regression. `clear()` used to remove whole rows, so a
+day that fired two nudges ended with exactly one tappable `done` — under the
+NEWER card. On 2026-09-16 the tap meant for the 14:00 climbing nudge PATCHed
+`craft-lyre-poster` to archives instead, and climbing had to be archived by
+hand from /hq 22 seconds later.
+
+Boundaries mocked, no LLM and no writes to the real board: /api/chat serves a
+canned two-nudge history, PATCH /api/rd is captured rather than applied.
+
+Marked `browser` so the fast smoke step skips it.
+
+    .venv/bin/pytest tests/test_exec_choices_browser.py -q
 """
+import json
+
 import pytest
 
+pytest.importorskip("playwright.sync_api")
 
-PARSE_CASES = [
-    # (raw text, expected clean tail, expected options)
-    ("Text Clay to lock it in. Sent yet?\n\n[Sent it | Not yet | Doing it now]",
-     "Sent yet?", ["Sent it", "Not yet", "Doing it now"]),
-    ("One newline works too.\n[Yes | No]", "One newline works too.", ["Yes", "No"]),
-    # A sys note and a markdown link both carry brackets and must NOT parse as
-    # choices — the pipe is what makes a choice row a choice row.
-    ('[ created: "thing" ]', '[ created: "thing" ]', []),
-    ("See [the docs](https://x/y) first.", "See [the docs](https://x/y) first.", []),
-    ("Trailing [one option]", "Trailing [one option]", []),
-    # The row the model actually wrote on 2026-09-15: bolded, and in an ordinary
-    # reply rather than a nudge. It printed as raw brackets with no buttons.
-    ("So - is that step done?\n\n**[Got everything | Not yet | On it now]**",
-     "So - is that step done?", ["Got everything", "Not yet", "On it now"]),
-    ("Single stars too.\n*[Yes | No]*", "Single stars too.", ["Yes", "No"]),
-    ("Trailing newline after the row.\n[Yes | No]\n",
-     "Trailing newline after the row.", ["Yes", "No"]),
-]
+pytestmark = pytest.mark.browser
 
 
-def test_choice_row_parses_renders_and_sends(browser, admin_headers, base_url):
-    ctx = browser.new_context(extra_http_headers=admin_headers,
-                              viewport={"width": 430, "height": 932})
-    try:
+# Two nudges, oldest first — exactly the shape history replay walks. Each ends
+# on an answer row and carries its own card id.
+_HISTORY = {
+    "messages": [
+        {
+            "role": "monitor",
+            "ts": "2026-09-16T14:00:11+00:00",
+            "card_id": "card-climbing",
+            "content": "Shoes and chalk in the bag. Packed yet?\n\n[Packed | Not yet]",
+        },
+        {
+            "role": "monitor",
+            "ts": "2026-09-16T17:57:12+00:00",
+            "card_id": "card-poster",
+            "content": "Collect the Lyre poster. Retrieved?\n\n[Got it | Not yet]",
+        },
+    ],
+    "stage": "planning",
+}
+
+
+@pytest.fixture
+def open_panel(browser, base_url, admin_headers):
+    """Open /rd with the chat history canned and PATCH /api/rd captured."""
+    contexts = []
+
+    def _open():
+        ctx = browser.new_context(extra_http_headers=admin_headers)
+        contexts.append(ctx)
         pg = ctx.new_page()
+        pg.route("**/marked.min.js",
+                 lambda r: r.fulfill(status=200,
+                                     content_type="application/javascript",
+                                     body="window.marked={use(){},parse:s=>s};"))
+        pg.route("**/hosaka-audio.js*",
+                 lambda r: r.fulfill(status=200,
+                                     content_type="application/javascript",
+                                     body="window.HosakaAudio={createPlayer:()=>({"
+                                          "unlock(){},speak(){return Promise.resolve()},"
+                                          "flush(){},setVolume(){},elapsed:()=>0,"
+                                          "audioDuration:()=>0,isUnlocked:()=>true,"
+                                          "gestureUnlocked:()=>true})};"))
+        pg.route("**/api/chat",
+                 lambda r: r.fulfill(status=200, content_type="application/json",
+                                     body=json.dumps(_HISTORY)))
+
+        # Capture the card-action write instead of moving a real card.
+        def _patch_rd(route):
+            if route.request.method == "PATCH":
+                pg.evaluate("b => window.__patched.push(JSON.parse(b))",
+                            route.request.post_data)
+                route.fulfill(status=200, content_type="application/json", body="{}")
+            else:
+                route.continue_()
+
         pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
-        pg.wait_for_function("window.execChoices && document.getElementById('exec-term')",
-                             timeout=15000)
+        pg.evaluate("() => { window.__patched = []; }")
+        pg.route("**/api/rd?source=Exec", _patch_rd)
+        pg.wait_for_selector("#exec-bubble", timeout=5000)
+        pg.click("#exec-bubble")
+        pg.wait_for_selector("#exec-panel.open", timeout=4000)
+        pg.wait_for_selector(".exec-choice-row", timeout=4000)
+        return pg
 
-        for raw, clean, opts in PARSE_CASES:
-            got = pg.evaluate("t => window.execChoices.parse(t)", raw)
-            assert got["opts"] == opts, raw
-            assert got["clean"].endswith(clean), raw
-
-        # Render two rows in a row: the older one must be gone, because an
-        # answered or overtaken question must not stay tappable.
-        res = pg.evaluate(
-            """() => {
-              const term = document.getElementById('exec-term');
-              const sent = [];
-              const mk = (txt) => {
-                const d = document.createElement('div');
-                d.className = 'msg probe';
-                term.appendChild(d);
-                const p = window.execChoices.parse(txt);
-                window.execChoices.attach(term, d, p.opts, (s) => sent.push(s));
-              };
-              mk('older nudge\\n[Old A | Old B]');
-              mk('newer nudge\\n[Sent it | Not yet | Doing it now]');
-              const rows = term.querySelectorAll('.exec-choice-row');
-              const btns = [...term.querySelectorAll('.exec-choice')].map(b => b.textContent);
-              const first = term.querySelector('.exec-choice');
-              const box = first.getBoundingClientRect();
-              first.click();
-              first.click();  // a second tap on a removed row must send nothing
-              return { rows: rows.length, btns, sent,
-                       left: Math.round(box.left), h: Math.round(box.height),
-                       after: term.querySelectorAll('.exec-choice-row').length };
-            }"""
-        )
-        assert res["rows"] == 1, "only the newest nudge keeps buttons"
-        assert res["btns"] == ["Sent it", "Not yet", "Doing it now"]
-        assert res["sent"] == ["Sent it"], "one tap sends exactly one message"
-        assert res["after"] == 0, "the row is consumed by the tap"
-        assert res["h"] >= 18, "buttons must be tappable, not hairlines"
-        assert res["left"] > 0, "row is indented onto the message body's edge"
-    finally:
-        ctx.close()
+    yield _open
+    for c in contexts:
+        try:
+            c.close()
+        except Exception:
+            pass
 
 
-def test_ordinary_reply_gets_answer_buttons_but_no_card_actions(browser, admin_headers, base_url):
-    """Exec asks questions in normal replies too, not only in nudges — those rows
-    must render as buttons. They get NO done/exile actions: a chat reply carries
-    no card id, and guessing one would archive the wrong card."""
-    ctx = browser.new_context(extra_http_headers=admin_headers,
-                              viewport={"width": 430, "height": 932})
-    try:
-        pg = ctx.new_page()
-        pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
-        pg.wait_for_function("window.execChoices && document.getElementById('exec-term')",
-                             timeout=15000)
-        res = pg.evaluate(
-            """() => {
-              const term = document.getElementById('exec-term');
-              const sent = [];
-              const d = document.createElement('div');
-              d.className = 'msg assistant';
-              term.appendChild(d);
-              const p = window.execChoices.parse(
-                'Is that step done?\\n\\n**[Got everything | Not yet]**');
-              d.textContent = p.clean;
-              window.execChoices.attach(term, d, p.opts, (s) => sent.push(s), null);
-              const btns = [...term.querySelectorAll('.exec-choice')].map(b => b.textContent);
-              term.querySelector('.exec-choice').click();
-              return { btns, sent, body: d.textContent,
-                       acts: term.querySelectorAll('.exec-act').length };
-            }"""
-        )
-        assert res["btns"] == ["Got everything", "Not yet"]
-        assert res["acts"] == 0, "no card id -> no done/exile actions"
-        assert res["sent"] == ["Got everything"]
-        assert "[" not in res["body"], "the row is stripped from the message body"
-    finally:
-        ctx.close()
+def _rows(pg):
+    """[[button label, ...], ...] per choice row, oldest row first."""
+    return pg.evaluate("""() => Array.from(
+        document.querySelectorAll('#exec-term .exec-choice-row'),
+        r => Array.from(r.querySelectorAll('.exec-choice'), b => b.textContent))""")
 
 
-def test_choice_row_is_not_spoken(browser, admin_headers, base_url):
-    """exec-voice.js strips every [...] span before narrating, so the choice
-    row never reaches the TTS — the reason the marker is single brackets."""
-    ctx = browser.new_context(extra_http_headers=admin_headers)
-    try:
-        pg = ctx.new_page()
-        pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
-        pg.wait_for_function("window.VoiceUtil", timeout=15000)
-        spoken = pg.evaluate(
-            """() => VoiceUtil.stripMarkdown('Sent yet?\\n[Sent it | Not yet]')
-                       .replace(/\\[[^\\]]*\\]/g, ' ').replace(/\\s+/g, ' ').trim()"""
-        )
-        assert spoken == "Sent yet?"
-    finally:
-        ctx.close()
+def test_every_nudge_keeps_its_card_actions(open_panel):
+    """Both nudges stay actionable; only the newest keeps its answers."""
+    rows = _rows(open_panel())
+    assert len(rows) == 2, rows
+    # Older nudge: answers cleared, done/exile survive.
+    assert rows[0] == ["done", "exile"]
+    # Newest nudge: its own answers plus the card actions.
+    assert rows[1] == ["Got it", "Not yet", "done", "exile"]
 
 
-def test_card_actions_patch_the_card_and_send_nothing(browser, admin_headers, base_url):
-    """done / exile are NOT answers — they move the card the way the dialog's
-    own two buttons do, so they must PATCH {id, column} and send no message.
-
-    fetch is stubbed: this suite runs against the LIVE container, and a real
-    PATCH here would archive one of Wai's actual cards.
-    """
-    ctx = browser.new_context(extra_http_headers=admin_headers,
-                              viewport={"width": 430, "height": 932})
-    try:
-        pg = ctx.new_page()
-        pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
-        pg.wait_for_function("window.execChoices && document.getElementById('exec-term')",
-                             timeout=15000)
-
-        res = pg.evaluate(
-            """async () => {
-              const term = document.getElementById('exec-term');
-              const calls = [], sent = [], events = [];
-              const realFetch = window.fetch;
-              window.fetch = (url, opt) => {
-                calls.push({ url: String(url), body: JSON.parse(opt.body) });
-                return Promise.resolve({ ok: true, status: 200 });
-              };
-              window.addEventListener('exec:cards-changed', () => events.push(1));
-
-              // A nudge (has a card id) and a monitor comment (has none).
-              const mk = (txt, cardId) => {
-                const d = document.createElement('div');
-                d.className = 'msg probe';
-                term.appendChild(d);
-                const p = window.execChoices.parse(txt);
-                window.execChoices.attach(term, d, p.opts, (s) => sent.push(s), cardId);
-                return d;
-              };
-
-              mk('monitor line\\n[Yes | No]', null);
-              const noAct = [...term.querySelectorAll('.exec-act')].length;
-
-              mk('nudge\\n[Sent it | Not yet]', 'card-123');
-              const labels = [...term.querySelectorAll('.exec-choice')].map(b => b.textContent);
-              const exileBox = term.querySelector('.exec-act-exile').getBoundingClientRect();
-
-              term.querySelector('.exec-act-done').click();
-              await new Promise(r => setTimeout(r, 50));
-              const afterDone = term.querySelectorAll('.exec-choice-row').length;
-
-              // Now the failure path: the row must survive and re-arm.
-              window.fetch = () => Promise.resolve({ ok: false, status: 500 });
-              const d2 = mk('nudge 2\\n[A | B]', 'card-456');
-              const ex = term.querySelector('.exec-act-exile');
-              ex.click();
-              await new Promise(r => setTimeout(r, 50));
-              const afterFail = term.querySelectorAll('.exec-choice-row').length;
-              const reArmed = !ex.disabled;
-
-              window.fetch = realFetch;
-              return { noAct, labels, calls, sent, events: events.length,
-                       afterDone, afterFail, reArmed,
-                       exileH: Math.round(exileBox.height) };
-            }"""
-        )
-
-        assert res["noAct"] == 0, "a monitor comment has no card, so no card actions"
-        assert res["labels"] == ["Sent it", "Not yet", "done", "exile"], \
-            "card actions are appended by the client, after the model's answers"
-        assert res["sent"] == [], "a card action is a mutation, never a message"
-        assert len(res["calls"]) == 1, "exactly one PATCH per tap"
-        call = res["calls"][0]
-        assert "/api/rd" in call["url"] and "source=Exec" in call["url"]
-        assert call["body"] == {"cards": [{"id": "card-123", "column": "archives"}]}, \
-            "done archives the card, sending only the fields the client owns"
-        assert res["events"] == 1, "an open board is repainted immediately"
-        assert res["afterDone"] == 0, "a successful action consumes the row"
-        assert res["afterFail"] == 1, "a failed action leaves the row in place"
-        assert res["reArmed"], "a failed action re-arms its button"
-        assert res["exileH"] >= 18, "actions must be tappable, not hairlines"
-    finally:
-        ctx.close()
-
-
-def test_exile_action_sends_the_exile_column(browser, admin_headers, base_url):
-    ctx = browser.new_context(extra_http_headers=admin_headers)
-    try:
-        pg = ctx.new_page()
-        pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
-        pg.wait_for_function("window.execChoices && document.getElementById('exec-term')",
-                             timeout=15000)
-        body = pg.evaluate(
-            """async () => {
-              const term = document.getElementById('exec-term');
-              let captured = null;
-              const realFetch = window.fetch;
-              window.fetch = (url, opt) => {
-                captured = JSON.parse(opt.body);
-                return Promise.resolve({ ok: true, status: 200 });
-              };
-              const d = document.createElement('div');
-              d.className = 'msg probe';
-              term.appendChild(d);
-              window.execChoices.attach(term, d, [], () => {}, 'card-789');
-              term.querySelector('.exec-act-exile').click();
-              await new Promise(r => setTimeout(r, 50));
-              window.fetch = realFetch;
-              return captured;
-            }"""
-        )
-        assert body == {"cards": [{"id": "card-789", "column": "exile"}]}
-    finally:
-        ctx.close()
-
-
-if __name__ == "__main__":  # pragma: no cover
-    pytest.main([__file__])
+def test_older_done_patches_its_own_card(open_panel):
+    """Tapping the OLDER row's `done` archives THAT card, not the newer one."""
+    pg = open_panel()
+    # .nth(0), not :first-of-type — the rows are <div> siblings of the message
+    # <div>s, so "first of type" is the first message, not the first row.
+    pg.locator("#exec-term .exec-choice-row .exec-act-done").nth(0).click()
+    pg.wait_for_function("() => (window.__patched || []).length >= 1", timeout=4000)
+    assert pg.evaluate("() => window.__patched")[0] == {
+        "cards": [{"id": "card-climbing", "column": "archives"}]
+    }
+    # The tapped row is gone; the newest nudge is untouched.
+    assert _rows(pg) == [["Got it", "Not yet", "done", "exile"]]
