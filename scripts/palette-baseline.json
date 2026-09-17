@@ -44,5 +44,43 @@
   ],
   "surface-hsl": [
     "1"
+  ],
+  "zb-band-hsl": [
+    "0",
+    "1"
+  ],
+  "zb-blue-hsl": [
+    "0.12",
+    "1"
+  ],
+  "zb-cyan-hsl": [
+    "0.12",
+    "1"
+  ],
+  "zb-green-hsl": [
+    "0.12",
+    "1"
+  ],
+  "zb-ink-hsl": [
+    "0.12",
+    "1"
+  ],
+  "zb-orange-hsl": [
+    "0.12",
+    "1"
+  ],
+  "zb-paper-hsl": [
+    "1"
+  ],
+  "zb-pink-hsl": [
+    "0.12",
+    "1"
+  ],
+  "zb-red-hsl": [
+    "1"
+  ],
+  "zb-violet-hsl": [
+    "0.12",
+    "1"
   ]
 }

@@ -28,7 +28,8 @@ from security import render_security, load_security_data
 
 # ── public: landing + auth ──────────────────────────────────────────────────
 
-_GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall", "/hosaka", "/graph", "/UI", "/security", "/printer"}
+_GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall", "/hosaka", "/graph", "/UI", "/security",
+                       "/printer", "/zombo"}
 
 
 def _safe_next(value: str, default: str = "/mtg") -> str:

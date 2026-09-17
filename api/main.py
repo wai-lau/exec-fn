@@ -25,6 +25,7 @@ import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-prox
 import routes_graph  # noqa: F401  — registers /graph (graphify viz, scrubbed + restyled)
 import routes_printer  # noqa: F401  — registers /printer + the ELEGOO printer reverse proxy
 import routes_cc     # noqa: F401  — registers /cc + the sandboxed Claude Code sidecar routes
+import routes_zombo  # noqa: F401  — registers /zombo (secret: gated, but linked from nowhere)
 
 # StaticFiles guesses MIME via mimetypes, which doesn't know woff2 -> it served
 # them as application/octet-stream. Register the real types so the preload
@@ -145,7 +146,8 @@ async def unauthorized_handler(request: Request, exc: HTTPException):
         # /printer matches EXACTLY: the page is guest-viewable, but its
         # sub-paths (the proxied SPA + file endpoints) are owner-only and must
         # bounce to the admin login, not the guest gate.
-        if path.startswith(("/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security", "/nightfall")) or path == "/printer":
+        if path.startswith(("/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security",
+                            "/nightfall", "/zombo")) or path == "/printer":
             return RedirectResponse(f"/guest?next={path}", status_code=302)
         if request.method == "GET" and path not in ("/", "/login", "/guest"):
             full = path + ("?" + request.url.query if request.url.query else "")

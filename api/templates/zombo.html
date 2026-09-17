@@ -1,0 +1,38 @@
+<!-- /zombo — the zombo.com Flash intro (1999).
+
+     #zb-flash is where Ruffle mounts the REAL movie, hotlinked from
+     welcometozombo.com (that host sends `access-control-allow-origin: *`, so
+     nothing copyrighted is mirrored into this repo). The .zb-stage beneath it
+     is a CSS reproduction — measured off frames of the same capture — which
+     paints instantly and stands down if and when Ruffle succeeds, so the page
+     is never a white rectangle waiting on a WASM download.
+
+     #zb-begin replaces Ruffle's own speaker button: the movie plays on arrival
+     and the click buys AUDIO, which is the only thing a browser withholds.
+
+     Unlinked from the nav and the landing wheel on purpose. -->
+<div id="zb-flash" aria-hidden="true"></div>
+
+<div class="zb-stage">
+  <div class="zb-band"></div>
+
+  <h1 class="zb-mark" aria-label="Zombo.com">
+    <span class="zb-l">Z</span><span class="zb-l">o</span><span class="zb-l">m</span
+    ><span class="zb-l">b</span><span class="zb-l">o</span><span class="zb-l">.</span
+    ><span class="zb-l">c</span><span class="zb-l">o</span><span class="zb-l">m</span>
+  </h1>
+
+  <p class="zb-line" id="zb-line" aria-live="polite"></p>
+
+  <div class="zb-flower" aria-hidden="true">
+    <span class="zb-petal"></span><span class="zb-petal"></span
+    ><span class="zb-petal"></span><span class="zb-petal"></span
+    ><span class="zb-petal"></span><span class="zb-petal"></span
+    ><span class="zb-petal zb-core"></span>
+  </div>
+</div>
+
+<div id="zb-begin" class="zb-begin" role="button" tabindex="0"
+     aria-label="click anywhere to begin the experience">
+  <p class="zb-begin-copy" id="zb-begin-copy"></p>
+</div>

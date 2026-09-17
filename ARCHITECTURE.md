@@ -1935,6 +1935,36 @@ Rebuilds cannot overlap (`fcntl.flock` on `graphify-out/.rebuild.lock`).
 
 Check pressure with `free -m` (watch **Swap used**, not just Mem) and `sudo dmesg -T | grep -i oom`.
 
+### 17e. The `--reload` poller was burning 44% of a core to watch 66 files
+
+Found 2026-09-16 while chasing "the box feels slow and laggy". It was not the cause of the lag (that was swap thrashing — below), but it was a permanent tax nobody had measured.
+
+**`uvicorn --reload` has two backends and picks silently.** With `watchfiles` installed it uses `WatchFilesReload` (inotify, event-driven, ~0% idle). Without it, it falls back to `StatReload`, which **polls**: `should_restart()` runs `reload_dir.rglob("*.py")` over every reload dir, `resolve()`s and `stat()`s each hit, then sleeps `reload_delay` (default **0.25s**) and does it again. `watchfiles` was never in `requirements.txt`, so this box had been polling since the day `--reload` was added. Uvicorn even warns that `--reload-include`/`--reload-exclude` "have no effect unless watchfiles is installed" — which is why an exclude was never the available fix.
+
+The cost came from what was in the tree, not the tree's purpose:
+
+| Subtree | Entries walked | Reason it was there |
+|---|---|---|
+| `/app/nightfall/nightfall-src` | **29,010** | rode along inside the `./nightfall-incident` bind mount |
+| `/app/graphify-out` | 1,398 | `:ro` mount, served by `/graph` |
+| `/app/data` | 742 | the data volume |
+| `/app/static` | 205 | `./web` |
+| everything else | ~2,800 | actual Python source |
+| **total** | **34,187** | to find **66 `.py` files** |
+
+Measured: **0.209s per pass on a 0.25s interval** — an ~84% duty cycle on one thread of a 2-core box, reported by `top` as 44-47% and by `ps` as 82 CPU-hours over the container's 8-day life.
+
+`nightfall-src/` is the game's SOURCE (354MB with `node_modules`). **Nothing at runtime reads it** — `routes_nightfall._NF_DIR` reads only `wai-head.js`, `wai-body.html`, `wai-save-sync.js`, `index.html` and `static/`, and `main.py` mounts `/app/nightfall` as `StaticFiles`; webpack runs on the host. It was pure walk cost.
+
+Two fixes, applied together:
+
+1. **`tmpfs: /app/nightfall/nightfall-src`** in `docker-compose.yml` — an empty tmpfs shadowing that one path. Docker mounts shallowest-first, so it lands on top of the `./nightfall-incident` bind; the host copy is untouched and webpack still builds against it. Walk: **34,187 → 5,184 entries**, CPU **44% → 8-12%**, verified with `/nightfall-game/index.html` and `bundle.css` both still 200.
+2. **`watchfiles` in `api/requirements.txt`** — switches the backend to inotify and takes the residual 8-12% to ~0. Needs a **rebuild**, so it does not apply until one runs.
+
+**Two traps for anyone touching this.** A bind mount cannot be partially excluded, so masking a subpath with a deeper mount is the only lever — `.dockerignore` governs the build context, not runtime binds. And after masking, `/app` holds **363 directories**, comfortably inside this box's `fs.inotify.max_user_watches` of 15,052; a future mount that re-inflates the tree would blow that budget and make `watchfiles` fail differently (and more quietly) than the poller did.
+
+**The rebuild is expensive for a vestigial reason.** `api/Dockerfile` stage 1 is `FROM golang:1.24-alpine`, which `git clone`s and `go build`s **rmapi** (a reMarkable API client). `rmapi` has **zero references** in any `.py`, `.sh`, `.js` or cron file in this repo — only the Dockerfile, the `rmapi-auth` volume, and mentions here. On a 2-core/1967MB box a cold `go build` is a real OOM risk, which is the whole reason the `watchfiles` rebuild is worth sequencing behind a memory cleanup rather than firing blind. Dropping that stage would make the image smaller and the rebuild cheap — deliberately NOT done here, since it is a separate decision.
+
 ### 17c. Every cron job writes where both sides can see it
 
 `data/cron/YYYY-MM-DD__<job>.log` (`morning`, `graphify`, `security`), read by `/debug`'s cron section through `GET /api/debug/cron`. **The data volume is the only filesystem both the container and the host can see, and a log nobody can see is how a nightly job fails quietly for weeks.**
@@ -2025,3 +2055,60 @@ A surface that builds its own marker ELEMENT — the Exec panel, whose mark is a
 **Density is the point of the merge**: `--lh-tight` (1.2, added to chrome.css for this), `--space-1` between messages, `--fs-2xs` sys lines. Sys moved from alpha 0.12 to **0.45** — at 0.12 it was legible only as a smudge, which is exactly how /cc's "not logged in" got read as a broken page.
 
 **Headless WebKit will not composite the panel's `backdrop-filter` into a screenshot.** `#exec-panel` is in the DOM, hit-tests on top, and paints nothing in the PNG. Neutralise it (`backdrop-filter:none`) in an injected style tag when verifying the panel, and **do not read a blank panel as a regression**.
+
+---
+
+## 19. `/zombo` — a secret page, and one third-party dependency
+
+The 1999 zombo.com Flash intro. **The real movie, not a copy of it**: `web/zombo-flash.js` loads the [Ruffle](https://ruffle.rs) Flash emulator from jsDelivr and points it at the `.swf` on **welcometozombo.com** ([Jonty/zombocom](https://github.com/Jonty/zombocom), which mirrors the original under Ruffle).
+
+**The `.swf` files are hotlinked, never vendored.** That host sends `access-control-allow-origin: *` on its page and on all three `.swf` files, so the visitor's browser fetches them from the host that already publishes them. Mirroring them would mean committing ~350KB of someone else's unlicensed Flash into this repo to serve from wai-lau.net, and there is no reason to: the CORS wildcard is that server saying yes to exactly this arrangement. **The tradeoff is that `/zombo` has a dependency no other page here has — somebody else's server.** That is what the fallback below is for.
+
+**It is unlinked on purpose.** No `_NAV_*` entry, no `_LANDING_HUE_ORDER` spoke, no link from any page: it is reached by typing the URL, which is the whole joke. **Unlisted is not a tier**, so it is still `guest_protected` (Turnstile), still in `_GUEST_NEXT_ALLOWED`, still in the 401 handler's guest prefix tuple, and still asserted in `tests/test_smoke.py`'s `GUEST_PAGES` — a page nobody links to is exactly the one that would rot into being wide open unnoticed.
+
+It lives in its own module, **`api/routes_zombo.py`**, built off the **bare shell** like `/recruiter` rather than through `_render_page`: the bottom nav and the five-layer CRT stack over a white 1999 Flash intro would defeat the only thing the page is. (It is also its own module because adding it to routes_views pushed that file to 502 lines and the refactor gate rejected the commit.)
+
+### The load path, and the two traps in it
+
+```
+zbFlashInit()  HEAD welcometozombo.com/welcomeclip.swf   ← is the host alive?
+     │ ok
+zbLoadRuffle() ← ~1MB of emulator WASM from jsDelivr
+     │
+zbFlashMount() player.load({url, base})
+     │ 'loadedmetadata'
+zbTakeOver()   hide the reproduction, hand the gesture to Ruffle
+```
+
+**1. `inrozxa.swf` is a 7.9KB LOADER, and it pulls the movie by a RELATIVE path.** Without Ruffle's `base` config it resolves that against *this* page — so the browser asked wai-lau.net for `/welcomeclip.swf`, got a 404, and played a blank 1360-frame white rectangle while `load()` resolved perfectly happily. `base: 'https://welcometozombo.com/'` is what sends the child fetches back to the host that has them.
+
+**2. `load()` resolves BEFORE `player.metadata` is populated.** Measured: at the promise's resolve `metadata` is `null`, and four seconds later it is `{550×400, 1360 frames}`. A version of this treated that empty metadata as failure and tore down a completely healthy player. The takeover is therefore gated on the player's **`loadedmetadata` event**, which is the actual signal that the movie is real and has dimensions — not on the promise, and never on a timer.
+
+The HEAD probe runs *first*, before the emulator is fetched, so a dead upstream costs one request instead of a megabyte. Failure needs no handler anywhere in this file: the fallback is already on screen.
+
+### The fallback, which is also the first paint
+
+`web/zombo.{css,js}` is a CSS reproduction of the same intro, measured off frames of a capture ("Zombo.com flash intro in 1999", Web Design Museum) with PIL rather than eyeballed. It paints immediately, so the page is never a white rectangle waiting on a WASM download, and it keeps running if the upstream host is gone. `zbTakeOver()` stands it down.
+
+| Element | Measured | How it is drawn |
+|---|---|---|
+| Wordmark | nine letters, hues sampled per glyph column | nine `<span>`s, coloured by `:nth-child` |
+| Header wash | green → paper by ~13% of frame | `--zb-band-hsl`, `linear-gradient` to alpha 0 |
+| Loader | 7 pastel circles, hexagon-around-one, petal ⌀ 11.5% of frame width | `--zb-dot`, `mix-blend-mode: multiply` |
+| Caption | the litany, black bold, every **Z** in red, at 63% of frame | `.zb-z`; `web/zombo-audio.js` speaks it |
+
+Its palette is a **deliberate departure from the site's**, the same call `/recruiter` makes with `--cv-*`: a period reproduction cannot be rendered in Ono-Sendai green. The `--zb-*-hsl` channel triples are defined in `web/zombo.css`'s `:root` (so `lint-colors` counts them as defined and every consumer stays on the `hsl(var(--X-hsl) / α)` form), every alpha is on the snap scale, and the tuples were registered with `lint-colors.py --update`.
+
+Three things bit while building it, all found by screenshotting WebKit at 430×932 and 1280×720:
+
+- **Flash scaled its stage as one unit; percentages of the viewport do not.** Every vertical position is a fraction of **`--zb-h` (`min(100vh, 155vw)`)**, not of the viewport, which otherwise stretched the intro's white void down the whole phone.
+- **The green band is measured off the LETTERS, not the frame.** The wordmark is width-bounded (`--zb-mark`) so nine letters still land on the capture's 61% of frame width on a phone — which makes the type shorter than a frame-sized band, and such a band swallowed the wordmark whole.
+- **The loader's paper-white box painted over the caption.** Its petals multiply, and a blend needs a backdrop, so `.zb-flower` carries `isolation: isolate` + an opaque background (invisible on a white page). Its bounds reach up past the caption's 63%, and being later in the DOM it won — leaving only the caption's first glyph visible. The caption takes `z-index: var(--z-raised)`.
+
+### One click, and it buys audio only
+
+The movie plays on arrival; **a click is required for AUDIO, which is the only thing a browser actually withholds.** Ruffle's own unmute control is a speaker button — chrome the intro never had — so it is suppressed (`unmuteOverlay: 'hidden'`) and `#zb-begin` takes its place: a transparent full-bleed overlay reading *click anywhere to begin the experience*, one character per `<span>`, cycling the wordmark's seven hues by `:nth-child(7n+k)`.
+
+The same overlay serves both paths — it unmutes Ruffle if the movie is up, and arms the reproduction's synthesised bed and voice if it is not. **An early click is carried over**: if the visitor clicks before Ruffle finishes loading, the gesture is spent on the fallback, so `zbTakeOver()` unmutes the player itself when it finds the overlay already dismissed. Without that the overlay is gone and there is nothing left to unmute with.
+
+There is deliberately **no mute button** — the page is meant to read as a 1999 artifact, and a UI control on top of it is not that. Tab mute is the escape hatch.
