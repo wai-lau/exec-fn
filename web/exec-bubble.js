@@ -74,14 +74,22 @@
     postEl = document.getElementById('exec-ipost');
     document.getElementById('exec-ph-close').addEventListener('click', closePanel);
     if (window.execVoice) execVoice.mountButton();
-    document.addEventListener('click', function (e) {
+    // Click-outside-to-close, decided in the CAPTURE phase -- a control that
+    // removes itself on tap (exec-choices' answer buttons) leaves a DETACHED
+    // target, which a bubble-phase containment test reads as 'outside'.
+    // Why it has to be capture: ARCHITECTURE.md §12.
+    let fromInside = false;
+    function markOrigin(e) {
+      fromInside = panel.contains(e.target) || bubble.contains(e.target);
+    }
+    function closeIfOutside() {
       if (!isOpen) return;
-      if (!panel.contains(e.target) && !bubble.contains(e.target)) closePanel();
-    });
-    document.addEventListener('touchend', function (e) {
-      if (!isOpen) return;
-      if (!panel.contains(e.target) && !bubble.contains(e.target)) closePanel();
-    });
+      if (!fromInside) closePanel();
+    }
+    document.addEventListener('click', markOrigin, true);
+    document.addEventListener('touchend', markOrigin, true);
+    document.addEventListener('click', closeIfOutside);
+    document.addEventListener('touchend', closeIfOutside);
   }
 
   // ── drag ──────────────────────────────────────────────────────────────────

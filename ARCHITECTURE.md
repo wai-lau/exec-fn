@@ -1584,6 +1584,28 @@ The reason is not layout preference: **the native root scrollbar is top-layer** 
 
 ---
 
+### Click-outside-to-close must be decided in the CAPTURE phase
+
+The Exec panel dismisses itself when a click lands outside it. The obvious way to write that is a bubble-phase listener on `document` asking `panel.contains(e.target)` — and it is wrong for any panel containing a control that removes itself.
+
+`document` is the LAST stop on the way up, so by the time the test runs the target's own handler has already executed. exec-choices' answer buttons call `retireAnswers()`, which removes every answer in the row **including the one just tapped**, synchronously. The target is then detached from the tree, `panel.contains()` is false, and the panel closes under the very tap that was meant for it — the user answers a nudge and the chat vanishes.
+
+So the origin is recorded on the way DOWN instead:
+
+```js
+let fromInside = false;
+function markOrigin(e) { fromInside = panel.contains(e.target) || bubble.contains(e.target); }
+function closeIfOutside() { if (isOpen && !fromInside) closePanel(); }
+document.addEventListener('click', markOrigin, true);   // capture: DOM still intact
+document.addEventListener('click', closeIfOutside);     // bubble: act on the flag
+```
+
+Capture reaches `document` before any handler can rewrite the DOM, so the node is still in the tree when it is tested. **This is a property of the mechanism, not of those particular buttons** — any control added later that detaches itself on tap is covered without touching this code.
+
+Two notes for anyone re-testing it. The panel element **spans the whole viewport** when open (it is a full-bleed element whose empty region passes clicks through), so there is no screen coordinate on `/rd` that is geometrically "outside" it — a click-outside test has to dispatch at a target the panel does not contain, not at an (x, y). And the regression is only visible if you assert the OLD predicate alongside the new behaviour: `panel.contains(e.target)` in a bubble listener reads **false** on that tap while the panel correctly stays open, which is what proves both halves at once.
+
+`exec-todos.js` does NOT hit this: its checkbox defers `li.remove()` by 180ms, so the removal lands well after the click has finished propagating.
+
 ## 13. The pre-commit hook suite
 
 Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
