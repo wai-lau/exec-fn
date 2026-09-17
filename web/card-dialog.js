@@ -3,18 +3,40 @@
   // Inject modal HTML once
   const html = `
 <style>
-.cd-ov { display:none; position:fixed; inset:0; z-index:50; background:hsl(var(--scrim-hsl) / 0.45); align-items:center; justify-content:center; }
+/* Sized to the VISIBLE viewport, not the layout one. iOS resolves vh against the
+   LARGE viewport (URL bar hidden), so a 90vh box centred in it puts its own
+   bottom -- the actions -- below what is actually on screen: the dialog looked
+   fine in every headless check, because headless has no browser chrome at all.
+   dvh tracks the real visible height; the vh line is the fallback under it.
+   The bottom padding keeps the box clear of the fixed nav, which paints at
+   --z-top and would otherwise cover the footer whatever its own height. */
+.cd-ov { display:none; position:fixed; left:0; right:0; top:0; height:100vh; z-index:50; background:hsl(var(--scrim-hsl) / 0.45); align-items:center; justify-content:center; padding:12px; padding-bottom:calc(var(--nav-h, 56px) + 12px); box-sizing:border-box; }
+@supports (height:100dvh) { .cd-ov { height:100dvh; } }
 .cd-ov.open { display:flex; }
-.cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.12); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:90vh; overflow-y:auto; }
-.cd-box::-webkit-scrollbar { width:8px; }
-.cd-box::-webkit-scrollbar-track { background:transparent; }
-.cd-box::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:999px; }
+/* The dialog is modal, but the floating Exec bubble sits at --z-bubble (8999),
+   far above this overlay's 50 -- so it rides on top of the scrim, and the
+   moment the actions became a pinned footer it was parked squarely on the
+   save button in the bottom-right corner. (No backticks in here: this whole
+   block is a JS template literal.) :has() keeps this order-independent; the bubble
+   and the overlay are both appended to <body> and neither owns the order. */
+body:has(.cd-ov.open) #exec-bubble { display:none !important; }
+.cd-box { background:hsl(var(--surface-hsl)); border:1px solid hsl(var(--green-hsl) / 0.12); border-radius:10px; padding:24px 28px; width:min(420px,92vw); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; max-height:100%; display:flex; flex-direction:column; overflow:hidden; }
+/* The CARD itself never scrolls -- .cd-body does. The actions used to be the
+   last thing inside one big scrolling box, so any card tall enough to hit the
+   cap (recurring + notes + a five-step breakdown does it) pushed exile/done/
+   chat/save out of reach and you had to scroll the card to find them. */
+.cd-body { flex:1 1 auto; min-height:0; overflow-y:auto; }
+.cd-body::-webkit-scrollbar { width:8px; }
+.cd-body::-webkit-scrollbar-track { background:transparent; }
+.cd-body::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:999px; }
+/* phones are the tight case: 48px of vertical padding is a breakdown step */
+@media (max-height:900px) { .cd-box { padding:16px 18px; } }
 .cd-box input[type=checkbox] { accent-color:currentColor; }
 .cd-box label { display:block; font-size:0.6rem; color:hsl(var(--green-hsl) / 0.45); margin:12px 0 3px; text-transform:uppercase; letter-spacing:0.1em; }
 .cd-box input,.cd-box select,.cd-box textarea { width:100%; background:rgba(255,255,255,0.03); border:1px solid hsl(var(--green-hsl) / 0.12); color:hsl(var(--green-hsl) / 1); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:16px; padding:5px 8px; box-sizing:border-box; resize:vertical; }
 .cd-box select option { background:#111; }
 .cd-box textarea { min-height:56px; }
-.cd-actions { display:flex; gap:8px; margin-top:18px; justify-content:space-between; align-items:center; }
+.cd-actions { display:flex; flex:0 0 auto; gap:8px; margin-top:0; padding-top:14px; justify-content:space-between; align-items:center; border-top:1px solid color-mix(in srgb, currentColor 20%, transparent); }
 .cd-btn { background:none; border:1px solid hsl(var(--green-hsl) / 0.45); color:hsl(var(--green-hsl) / 0.8); font-family:'Iosevka Mayukai Monolite',monospace; font-weight:500; font-size:0.78rem; padding:4px 12px; cursor:pointer; transition:all 0.2s; }
 .cd-btn:hover { border-color:hsl(var(--green-hsl) / 1); color:hsl(var(--green-hsl) / 1); }
 .cd-btn-exile { border-color:hsl(var(--orange-glow-hsl) / 0.6) !important; color:hsl(var(--orange-glow-hsl) / 0.8) !important; }
@@ -31,6 +53,7 @@
 </style>
 <div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
   <div class="cd-box">
+    <div class="cd-body">
     <label>title</label><input id="cd-title" type="text">
     <div style="display:flex;align-items:flex-start;gap:10px">
       <div style="flex:1;min-width:0">
@@ -108,6 +131,7 @@
       <button type="button" id="cd-recalc" class="cd-btn" style="letter-spacing:0;text-transform:none" onclick="cdRecalc()">recalculate</button>
     </label>
     <div id="cd-graph" style="display:none"></div>
+    </div>
     <div class="cd-actions">
       <div style="display:flex;gap:8px">
         <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
