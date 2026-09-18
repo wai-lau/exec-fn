@@ -1,66 +1,22 @@
-/* /zombo — the CSS reproduction's caption crawl, and the one gesture.
+/* /zombo — the begin line, and the one gesture.
  *
- * This file owns the FALLBACK — the reproduction measured off the capture — and
- * the single gesture. Until that click the page is ONLY the begin line: the
- * reproduction and the movie are both built but hidden, so the click reveals
- * and starts rather than unmuting something already on screen.
- * zombo-flash.js owns the real movie and calls zbTakeOver() if it lands.
+ * Until the click the page is white paper and this line. The click reveals the
+ * mounted movie and starts it with sound; zombo-flash.js owns the mount itself
+ * and hands the player over here via zbOnPlayerReady().
  *
- * The capture only ever shows one caption ("Sign Up For The NewZLetter"), but
- * the intro's whole substance is the litany the voice reads over the loader, so
- * the line under the loader cycles it. `show` is Title Case with every Z in red,
- * the one typographic rule the original applies; `say` is the line as the voice
- * pronounces it.
- *
- * Same global scope as zombo-audio.js, which owns the bed and the voice.
+ * There is no fallback any more. The page used to draw a CSS reproduction of
+ * the intro underneath (wordmark, loader, caption crawl) with a synthesised bed
+ * and voice; all of it was removed 2026-09-17 along with zombo-audio.js. If the
+ * movie cannot mount, the line says so — this page shows the real thing or it
+ * shows nothing.
  */
 
-var zbLines = [
-  { show: 'Welcome To Zombo.com', say: 'welcome, to zombo com' },
-  { show: 'This Is Zombo.com', say: 'this is zombo com' },
-  { show: 'Welcome', say: 'welcome' },
-  { show: 'You Can Do Anything At Zombo.com', say: 'you can do anything at zombo com' },
-  { show: 'Anything At All', say: 'anything at all' },
-  { show: 'The Only Limit Is Yourself', say: 'the only limit, is yourself' },
-  { show: 'Welcome To Zombo.com', say: 'welcome, to zombo com' },
-  { show: 'The Infinite Is Possible At Zombo.com', say: 'the infinite is possible at zombo com' },
-  { show: 'The Unattainable Is Unknown At Zombo.com', say: 'the unattainable is unknown at zombo com' },
-  { show: 'Sign Up For The NewZLetter', say: 'sign up, for the newzletter' },
-];
-
-var ZB_BEGIN_COPY = 'click anywhere to begin the experience';
-
-var zbLineEl = null;
-var zbAt = -1;
-var zbTimer = null;
-var zbLive = false;   // reproduction's audio armed (needs a gesture)
-var zbPlayer = null;  // the Ruffle player, once zombo-flash.js has one
-/* Bumped on every line change. A line's fade-out timer and its voice callback
- * both capture the value and bail if it moved, because arming the sound mid-
- * fade restarts the cycle — and without this the abandoned callback would keep
- * its own chain running alongside the new one, advancing the caption twice. */
-var zbGen = 0;
-
-/* Title Case line with every Z reddened, built as nodes rather than a markup
- * string so the caption can never be anything but text. */
-function zbPaint(text) {
-  zbLineEl.textContent = '';
-  text.split(/(Z)/).forEach(function (part) {
-    if (!part) return;
-    var node;
-    if (part === 'Z') {
-      node = document.createElement('span');
-      node.className = 'zb-z';
-      node.textContent = part;
-    } else {
-      node = document.createTextNode(part);
-    }
-    zbLineEl.appendChild(node);
-  });
-}
+var ZB_BEGIN_COPY = 'click Anywhere to Begin the.experience';
+var zbPlayer = null;    // the Ruffle player, once zombo-flash.js has one
+var zbClicked = false;  // the gesture is remembered, so a late mount can spend it
 
 /* One span per character so the CSS can cycle the wordmark's seven hues with
- * :nth-child — the overlay is the only other place the palette is spoken. */
+ * :nth-child. */
 function zbTint(el, text) {
   el.textContent = '';
   text.split('').forEach(function (ch) {
@@ -69,43 +25,6 @@ function zbTint(el, text) {
     s.textContent = ch;
     el.appendChild(s);
   });
-}
-
-/* Fade out, swap, fade in. The next advance is scheduled by whoever knows how
- * long the line lasts: the voice's own end event when sound is on, a fixed
- * cadence when it is off. */
-function zbShow(entry, holdMs) {
-  var gen = ++zbGen;
-  zbLineEl.classList.add('zb-out');
-  zbTimer = window.setTimeout(function () {
-    if (gen !== zbGen) return;
-    zbPaint(entry.show);
-    zbLineEl.classList.remove('zb-out');
-    if (!zbLive) {
-      zbTimer = window.setTimeout(zbAdvance, holdMs);
-      return;
-    }
-    zbSpeak(entry.say, function () {
-      if (gen !== zbGen) return;
-      zbTimer = window.setTimeout(zbAdvance, 900);
-    });
-  }, 450);
-}
-
-function zbAdvance() {
-  window.clearTimeout(zbTimer);
-  zbAt = (zbAt + 1) % zbLines.length;
-  zbShow(zbLines[zbAt], 3600);
-}
-
-/* Start the reproduction: its bed + voice, and the caption cycle. The VISUALS
- * run even when the synth will not — a refused AudioContext is no reason to
- * leave a blank page — so the caption is started unconditionally and zbLive
- * only records whether the voice is actually there to pace it. */
-function zbFallbackStart() {
-  if (zbAudioStart()) zbLive = true;
-  window.clearTimeout(zbTimer);
-  zbAdvance();
 }
 
 /* The movie is held (Ruffle autoplay 'off') until the gesture, so the one click
@@ -120,34 +39,70 @@ function zbPlay() {
   }
 }
 
-/* Ruffle got the real movie running, so the reproduction stands down: its
- * timers stop, its synth never starts, and its stage is hidden. If the visitor
- * already clicked, that gesture was spent on the fallback — carry it over, or
- * the overlay is gone and there is nothing left to unmute with. */
-function zbTakeOver() {
-  zbGen++;
-  window.clearTimeout(zbTimer);
-  zbLive = false;
-  zbAudioStop();
-  document.body.classList.add('zb-flashed');
-  if (document.body.classList.contains('zb-begun')) zbPlay();
+/* How many of the movie's own edge columns get stretched across each pillar.
+ * A few rather than one: a single column picks up whatever dithering happens to
+ * be on that pixel, a handful averages into the flat band the movie actually
+ * has there. */
+var ZB_SAMPLE = 6;
+
+/* Fill the pillars beside the fitted movie with the movie's own edge pixels, so
+ * the green header wash runs to the screen edges and keeps doing so as the
+ * movie animates. Ruffle renders into a canvas in its shadow root; this stretches
+ * a few columns of that canvas across each bar every frame. */
+function zbPaintBars() {
+  var root = zbPlayer && zbPlayer.shadowRoot;
+  var src = root && root.querySelector('canvas');
+  if (src && src.width > ZB_SAMPLE && src.height) {
+    [['zb-bar-l', 0], ['zb-bar-r', src.width - ZB_SAMPLE]].forEach(function (pair) {
+      var bar = document.getElementById(pair[0]);
+      if (!bar || !bar.clientWidth || !bar.clientHeight) return;
+      if (bar.width !== bar.clientWidth) bar.width = bar.clientWidth;
+      if (bar.height !== bar.clientHeight) bar.height = bar.clientHeight;
+      try {
+        bar.getContext('2d').drawImage(src, pair[1], 0, ZB_SAMPLE, src.height,
+                                       0, 0, bar.width, bar.height);
+      } catch (_e) {
+        // a tainted or unreadable backing buffer: leave the bar as paper
+      }
+    });
+  }
+  window.requestAnimationFrame(zbPaintBars);
 }
 
-/* The one gesture the page asks for. Before it the page is only this line —
- * no wordmark, no loader, no caption — so the click REVEALS and STARTS, rather
- * than just unmuting something already on screen. Whichever path is ready takes
- * it; if Ruffle lands later, zbTakeOver() swaps and plays. */
-function zbBegin() {
-  if (document.body.classList.contains('zb-begun')) return;
+function zbStart() {
   document.body.classList.add('zb-begun');
-  if (zbPlayer) zbPlay(); else zbFallbackStart();
+  zbPlay();
+  window.requestAnimationFrame(zbPaintBars);
+}
+
+/* The movie mounted. If the visitor already clicked, that gesture was spent on
+ * a page with nothing to start — spend it now, or nothing ever would. */
+function zbOnPlayerReady(player) {
+  zbPlayer = player;
+  if (zbClicked) zbStart();
+}
+
+/* The one gesture the page asks for. Clicking before the movie has mounted is
+ * not a no-op and not an error: the click is remembered, the line says what is
+ * happening, and zbOnPlayerReady() starts it the moment it lands. */
+function zbBegin() {
+  if (zbClicked) return;
+  zbClicked = true;
+  if (zbPlayer) {
+    zbStart();
+    return;
+  }
+  /* Blank, not a status line: at click time a missing player is equally a movie
+   * still downloading, so any wording would be a guess. The click is already
+   * remembered and zbOnPlayerReady() spends it the moment the movie lands. */
+  var copy = document.getElementById('zb-begin-copy');
+  if (copy) copy.textContent = '';
 }
 
 function zbInit() {
-  zbLineEl = document.getElementById('zb-line');
   var begin = document.getElementById('zb-begin');
   var copy = document.getElementById('zb-begin-copy');
-  if (!zbLineEl || !begin || !copy) return;
+  if (!begin || !copy) return;
   zbTint(copy, ZB_BEGIN_COPY);
   begin.addEventListener('click', zbBegin);
   begin.addEventListener('keydown', function (e) {

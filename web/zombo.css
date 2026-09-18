@@ -1,48 +1,36 @@
-/* /zombo — the zombo.com Flash intro (1999), rebuilt in CSS.
+/* /zombo — the mounted Flash movie, and the line that starts it.
  *
- * Every value below was measured off frames of the original capture
- * ("Zombo.com flash intro in 1999", Web Design Museum) rather than eyeballed:
- * the nine letter hues, the green header wash, the pastel loader cluster and
- * the caption's red Z. The page deliberately leaves the site palette — this is
- * a period reproduction, not a wai-lau.net surface — so it carries its own
- * `--zb-*-hsl` tokens the way /recruiter carries `--cv-*`. They live on :root
- * because html/body need them too, and the site tokens it also uses
- * (--fs-*, --fw-*, --space-*, --radius-*) come from chrome.css.
+ * Everything else was removed 2026-09-17. There used to be a CSS reproduction
+ * of the intro underneath this (wordmark, loader cluster, caption crawl) as a
+ * fallback for when the movie could not mount; it is gone, along with
+ * zombo-audio.js, which synthesised that fallback's bed and voice. What is left
+ * is the Ruffle mount and the begin overlay.
+ *
+ * The page keeps its own `--zb-*-hsl` tokens rather than the site palette, the
+ * way /recruiter keeps `--cv-*`: the begin line is written in the wordmark's
+ * own colours, and those are not Ono-Sendai green.
  */
 
 :root {
-  --zb-red-hsl:     0deg 100% 45%;    /* Z            e40000 */
-  --zb-orange-hsl:  37deg 100% 47%;   /* o, c         f09000 */
-  --zb-green-hsl:   120deg 100% 49%;  /* o            00fc00 */
-  --zb-cyan-hsl:    180deg 100% 49%;  /* o            00fcfc */
-  --zb-blue-hsl:    240deg 100% 45%;  /* m, ., m      0000e4 */
-  --zb-violet-hsl:  275deg 100% 47%;  /* b            8c00f0 */
-  --zb-pink-hsl:    330deg 100% 50%;  /* loader petal only */
-  --zb-band-hsl:    142deg 55% 54%;   /* header wash, fades to paper */
+  --zb-red-hsl:     0deg 100% 45%;
+  --zb-orange-hsl:  37deg 100% 47%;
+  --zb-green-hsl:   120deg 100% 49%;
+  --zb-cyan-hsl:    180deg 100% 49%;
+  --zb-blue-hsl:    240deg 100% 45%;
+  --zb-violet-hsl:  275deg 100% 47%;
+  --zb-pink-hsl:    330deg 100% 50%;
   --zb-paper-hsl:   0deg 0% 100%;
-  --zb-ink-hsl:     0deg 0% 0%;
 
-  /* Rounded, bubbly, and period-correct. iOS/macOS land on Chalkboard SE,
-   * Windows on Comic Sans; everything else falls back to the UI sans, which
-   * keeps the weight and loses only the bubble. */
-  --zb-face: 'Chalkboard SE', 'Comic Sans MS', 'Comic Neue', 'Trebuchet MS', system-ui, sans-serif;
+  /* The movie is 550x400. --zb-mh is the height it FITS at (never taller than
+   * the viewport, so nothing is ever cropped) and --zb-mt is the offset that
+   * centres it. Everything below is derived from these two, which is what keeps
+   * the band painted on the container lined up with the movie's own. */
+  --zb-mh: min(100vh, calc(100vw * 8 / 11));
+  --zb-mt: calc((100vh - var(--zb-mh)) / 2);
 
-  /* Flash scaled its whole stage as ONE unit, so every vertical position here
-   * is a fraction of --zb-h (the capture's frame height) rather than of the
-   * viewport. On a 16:9 window that is the window. On a tall phone it stops at
-   * 130vw, which keeps the composition's proportions instead of stretching the
-   * white void between the wordmark and the caption down the whole screen. */
+  /* The frame the type is measured against: the window on a 16:9 display, a
+   * 155vw box on a portrait phone so the line does not balloon. */
   --zb-h: min(100vh, 155vw);
-
-  /* wordmark size, hoisted to a token because the green band is measured off
-   * the LETTERS, not off the frame: in the capture the band fades out about
-   * halfway down them, so tying it to --zb-h alone swallowed the wordmark
-   * whole once the width cap shrank the type on a portrait phone. */
-  --zb-mark: min(calc(var(--zb-h) * 0.185), 11vw);
-
-  /* loader petal diameter: 11.5% of frame width in the capture, which on a
-   * 16:9 frame is 20% of its height. Held to both so it survives portrait. */
-  --zb-dot: min(11.5vw, calc(var(--zb-h) * 0.2));
 }
 
 /* the shell (web/index.html) centres a black login box; /zombo is its own page */
@@ -51,179 +39,86 @@ body {
   background: hsl(var(--zb-paper-hsl));
 }
 
-.zb-stage {
+/* ── the movie ────────────────────────────────────────────────────────────── */
+
+/* Ruffle mounts here. Held at opacity 0 until the click, and it must be OPACITY:
+ * `visibility: hidden` is inherited but a descendant can override it, and
+ * Ruffle's click-to-play overlay lives in the player's SHADOW DOM and sets
+ * `visibility: visible` on itself -- which put a large orange play button
+ * squarely on the begin line. Opacity composites the whole subtree and cannot
+ * be un-set from inside it. `display: none` is wrong too: the player measures
+ * itself against its real box, so it has to keep one. */
+
+#zb-flash {
   position: fixed;
   inset: 0;
   overflow: hidden;
   background: hsl(var(--zb-paper-hsl));
-  font-family: var(--zb-face);
+  opacity: 0;
+  pointer-events: none;
+
+  /* the movie fades UP as the line fades out; see body.zb-begun below */
+  transition: opacity 1.4s ease-in;
 }
 
-/* ── header wash ──────────────────────────────────────────────────────────── */
-
-/* Green at the very top bleeding to paper by ~13% of the frame. In the capture
- * the wordmark sits ON this, so the band is painted first and never clipped. */
-.zb-band {
+/* The pillars beside the fitted movie, filled by sampling the movie's own edge
+ * columns (zbPaintBars). A fixed gradient was the first attempt and is wrong in
+ * principle: it hardcodes what the first frames happen to look like, so it
+ * drifts the moment the movie animates. Stretching the real edge pixels stays
+ * correct for free -- green band at the top, paper below, whatever it does
+ * next. Behind the player in paint order, and never clickable. */
+.zb-bar {
   position: absolute;
-  inset: 0 0 auto;
-  height: calc(var(--zb-h) * 0.03 + var(--zb-mark) * 0.55);
-  background: linear-gradient(hsl(var(--zb-band-hsl)), hsl(var(--zb-band-hsl) / 0));
-}
-
-/* ── wordmark ─────────────────────────────────────────────────────────────── */
-
-.zb-mark {
-  position: absolute;
-  inset: calc(var(--zb-h) * 0.03) 0 auto;
-  margin: var(--space-0);
-  text-align: center;
-  font-family: var(--zb-face);
-  font-weight: var(--fw-bold);
-  font-size: var(--zb-mark);
-  line-height: var(--lh-none);
-  letter-spacing: var(--tracking-tight);
-  white-space: nowrap;
-}
-
-/* Each letter pops in on load, then never fully settles — the original's
- * letters breathe on a loop. `scale`/`rotate`/`translate` are the independent
- * transform properties, so the pop-in and the breathing don't overwrite each
- * other the way two `transform` keyframes would. */
-.zb-l {
-  display: inline-block;
-  transform-origin: 50% 80%;
-  animation:
-    zb-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
-    zb-bob 2.6s ease-in-out infinite;
-}
-
-.zb-l:nth-child(1) { color: hsl(var(--zb-red-hsl)); animation-delay: 0s, 0s; }
-.zb-l:nth-child(2) { color: hsl(var(--zb-orange-hsl)); animation-delay: 0.08s, -0.29s; }
-.zb-l:nth-child(3) { color: hsl(var(--zb-blue-hsl)); animation-delay: 0.16s, -0.58s; }
-.zb-l:nth-child(4) { color: hsl(var(--zb-violet-hsl)); animation-delay: 0.24s, -0.87s; }
-.zb-l:nth-child(5) { color: hsl(var(--zb-cyan-hsl)); animation-delay: 0.32s, -1.16s; }
-.zb-l:nth-child(6) { color: hsl(var(--zb-blue-hsl)); animation-delay: 0.4s, -1.45s; }
-.zb-l:nth-child(7) { color: hsl(var(--zb-orange-hsl)); animation-delay: 0.48s, -1.74s; }
-.zb-l:nth-child(8) { color: hsl(var(--zb-green-hsl)); animation-delay: 0.56s, -2.03s; }
-.zb-l:nth-child(9) { color: hsl(var(--zb-blue-hsl)); animation-delay: 0.64s, -2.32s; }
-
-@keyframes zb-drop {
-  from { opacity: 0; translate: 0 -0.45em; scale: 0.7; }
-  to { opacity: 1; translate: 0 0; scale: 1; }
-}
-
-@keyframes zb-bob {
-  0%, 100% { translate: 0 0; rotate: 0deg; }
-  50% { translate: 0 -0.05em; rotate: -1.5deg; }
-}
-
-/* ── caption ──────────────────────────────────────────────────────────────── */
-
-/* 63% down the frame in the capture, where "Sign Up For The NewZLetter" sits. */
-.zb-line {
-  position: absolute;
-  inset: calc(var(--zb-h) * 0.63) 0 auto;
-  margin: var(--space-0);
-  text-align: center;
-  font-family: var(--zb-face);
-  font-weight: var(--fw-bold);
-  font-size: min(calc(var(--zb-h) * 0.042), 2.8vw);
-  line-height: var(--lh-snug);
-  color: hsl(var(--zb-ink-hsl));
-  transition: opacity 0.45s ease;
-
-  /* The loader's bounds reach up past 63% and it carries an opaque paper
-   * background (the backdrop its petals multiply against), so on a 16:9 window
-   * it painted straight over this line — only the first glyph survived. The
-   * caption is the later element conceptually; make it the higher one. */
-  z-index: var(--z-raised);
-}
-
-.zb-line.zb-out { opacity: 0; }
-
-/* the one red letter in the caption, exactly as the capture has it */
-.zb-z { color: hsl(var(--zb-red-hsl)); }
-
-/* ── loader cluster ───────────────────────────────────────────────────────── */
-
-/* Six petals on a ring plus a grey core, multiplied over the paper so overlaps
- * darken the way the original's do. `isolation` + an explicit paper background
- * give the blend a white backdrop of its own; the page is white, so the box it
- * paints is invisible. Centre sits at 76% of the frame. */
-.zb-flower {
-  position: absolute;
-  top: calc(var(--zb-h) * 0.76);
-  left: 50%;
-  width: calc(var(--zb-dot) * 2.25);
-  height: calc(var(--zb-dot) * 2.25);
-  translate: -50% -50%;
-  isolation: isolate;
-  background: hsl(var(--zb-paper-hsl));
-  animation: zb-spin 24s linear infinite;
-}
-
-.zb-petal {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: var(--zb-dot);
-  height: var(--zb-dot);
-  border-radius: var(--radius-round);
-  mix-blend-mode: multiply;
-  animation: zb-breathe 3.4s ease-in-out infinite;
-}
-
-.zb-petal:nth-child(1) { transform: rotate(0deg) translateY(calc(var(--zb-dot) * -0.62)); background: hsl(var(--zb-violet-hsl) / 0.12); animation-delay: 0s; }
-.zb-petal:nth-child(2) { transform: rotate(60deg) translateY(calc(var(--zb-dot) * -0.62)); background: hsl(var(--zb-blue-hsl) / 0.12); animation-delay: -0.57s; }
-.zb-petal:nth-child(3) { transform: rotate(120deg) translateY(calc(var(--zb-dot) * -0.62)); background: hsl(var(--zb-green-hsl) / 0.12); animation-delay: -1.13s; }
-.zb-petal:nth-child(4) { transform: rotate(180deg) translateY(calc(var(--zb-dot) * -0.62)); background: hsl(var(--zb-cyan-hsl) / 0.12); animation-delay: -1.7s; }
-.zb-petal:nth-child(5) { transform: rotate(240deg) translateY(calc(var(--zb-dot) * -0.62)); background: hsl(var(--zb-pink-hsl) / 0.12); animation-delay: -2.27s; }
-.zb-petal:nth-child(6) { transform: rotate(300deg) translateY(calc(var(--zb-dot) * -0.62)); background: hsl(var(--zb-orange-hsl) / 0.12); animation-delay: -2.83s; }
-.zb-core { background: hsl(var(--zb-ink-hsl) / 0.12); animation-delay: -1.7s; }
-
-@keyframes zb-spin {
-  to { rotate: 360deg; }
-}
-
-@keyframes zb-breathe {
-  0%, 100% { scale: 1; opacity: 0.8; }
-  50% { scale: 1.14; opacity: 0.45; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .zb-l,
-  .zb-flower,
-  .zb-petal,
-  .zb-begin-copy { animation: none; }
-}
-
-/* ── the real movie ───────────────────────────────────────────────────────── */
-
-/* Where Ruffle mounts the hotlinked .swf. It sits UNDER the reproduction until
- * it actually loads — zombo.js sets .zb-flashed on <body> at that point, and
- * the reproduction stands down. Until then this is inert: a half-mounted player
- * must not eat the clicks the fallback is listening for. */
-#zb-flash {
-  position: fixed;
-  inset: 0;
-  background: hsl(var(--zb-paper-hsl));
+  top: var(--zb-mt);
+  width: calc((100% - min(100%, calc(var(--zb-mh) * 11 / 8))) / 2 + 1px);
+  height: var(--zb-mh);
   pointer-events: none;
 }
 
-#zb-flash > * {
-  width: 100%;
-  height: 100%;
+#zb-bar-l { left: 0; }
+#zb-bar-r { right: 0; }
+
+/* The player is sized to EXACTLY the fitted movie -- 11:8 at --zb-mh -- and
+ * centred. Two things follow from that. Nothing is ever cropped: --zb-mh is
+ * capped at the viewport height, so the loader cluster cannot fall off the
+ * bottom. And the player has no letterbox of its own, so the white it fills
+ * itself with stops at the movie's edges instead of covering the whole mount --
+ * which is what lets the band painted on #zb-flash show through beside it and
+ * run edge to edge.
+ *
+ * Ruffle's own scale modes were all worse: 'noBorder' covers by whichever axis
+ * needs it, which on a portrait phone is HEIGHT, cropping the wordmark to
+ * "mbo.co"; 'exactFit' stretches it ~2.4x vertically there; and
+ * backgroundColor 'transparent' breaks this movie's rendering outright. */
+#zb-flash > :not(.zb-bar) {
+  /* <ruffle-player> is a custom element, so it is inline unless told otherwise,
+   * and `margin: auto` does not centre an inline box -- the movie sat hard
+   * against the left edge with both pillars bunched on the right. */
+  display: block;
+  width: min(100%, calc(var(--zb-mh) * 11 / 8));
+  height: var(--zb-mh);
+  margin: var(--zb-mt) auto 0;
 }
 
-body.zb-begun.zb-flashed #zb-flash { pointer-events: auto; }
-body.zb-flashed .zb-stage { display: none; }
+/* dvh is the visible viewport on iOS, where vh is the LARGER one (URL bar
+ * hidden) and would size the movie to a box taller than the screen. */
+@supports (height: 100dvh) {
+  :root {
+    --zb-mh: min(100dvh, calc(100vw * 8 / 11));
+    --zb-mt: calc((100dvh - var(--zb-mh)) / 2);
+  }
+}
+
+body.zb-begun #zb-flash {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 /* ── begin overlay ────────────────────────────────────────────────────────── */
 
-/* Ruffle's own unmute control is a speaker button, which is chrome the intro
- * never had; `unmuteOverlay: 'hidden'` suppresses it and this takes its place.
- * Deliberately transparent: the movie plays underneath from the first frame and
- * the click buys AUDIO only. It serves the fallback identically. */
+/* Ruffle's own unmute control is a speaker button, chrome the intro never had;
+ * `unmuteOverlay: 'hidden'` suppresses it and this takes its place. Before the
+ * click it is the only thing on the page. */
 .zb-begin {
   position: fixed;
   inset: 0;
@@ -233,23 +128,44 @@ body.zb-flashed .zb-stage { display: none; }
   justify-content: center;
   padding: var(--space-10);
   cursor: pointer;
+
+  /* Faded, not hidden: `display` cannot be transitioned, so the overlay stays
+   * in the layout at opacity 0 and gives up its clicks instead. */
+  transition: opacity 1s ease-out;
 }
 
-body.zb-begun .zb-begin { display: none; }
+body.zb-begun .zb-begin {
+  opacity: 0;
+  pointer-events: none;
+}
 
 .zb-begin-copy {
   margin: var(--space-0);
   max-width: 90%;
   text-align: center;
-  font-family: var(--zb-face);
+  font-family: var(--font-mono);
   font-weight: var(--fw-bold);
   font-size: min(calc(var(--zb-h) * 0.05), 5vw);
   line-height: var(--lh-snug);
-
-  /* the paper halo is what keeps it legible over whatever frame is underneath */
-  text-shadow: 0 0 6px hsl(var(--zb-paper-hsl));
   animation: zb-beckon 2.2s ease-in-out infinite;
 }
+
+/* Each character is its own span, so it can be nudged off the baseline — the
+ * line reads as hand-set rather than typeset. Five offsets against seven hues
+ * means the pattern only repeats every 35 characters, i.e. never, at this
+ * length. `translate` needs the spans to be inline-block to take effect, and
+ * inline-block is exactly what eats the spaces: a span holding only " " has its
+ * whitespace collapsed to zero width, so the line ran together as one word.
+ * `white-space: pre` keeps each one its real width. */
+.zb-c {
+  display: inline-block;
+  white-space: pre;
+}
+.zb-c:nth-child(5n+1) { translate: 0 -0.07em; }
+.zb-c:nth-child(5n+2) { translate: 0 0.05em; }
+.zb-c:nth-child(5n+3) { translate: 0 -0.03em; }
+.zb-c:nth-child(5n+4) { translate: 0 0.08em; }
+.zb-c:nth-child(5n+5) { translate: 0 -0.05em; }
 
 /* zombo colours, cycled a letter at a time — the wordmark's own palette */
 .zb-c:nth-child(7n+1) { color: hsl(var(--zb-red-hsl)); }
@@ -265,21 +181,6 @@ body.zb-begun .zb-begin { display: none; }
   50% { opacity: 0.45; }
 }
 
-/* ── before the click ─────────────────────────────────────────────────────── */
-
-/* Until the click the page is white paper and the begin line, nothing else:
- * no wordmark, no loader, no caption. Both the emulator and the reproduction
- * are still BUILT underneath (the .swf is fetched and parsed, Ruffle just holds
- * it with autoplay off) so the click starts the movie instead of revealing one
- * already part-way through.
- *
- * OPACITY, not visibility: Ruffle's click-to-play overlay lives in the player's
- * SHADOW DOM and sets `visibility: visible` on itself, which beats an inherited
- * `hidden` and left a big orange play button sitting on the begin line. Opacity
- * composites the whole subtree and cannot be un-set from inside it. Not
- * `display:none` either — the player measures itself against its real box. */
-.zb-stage,
-#zb-flash { opacity: 0; }
-
-body.zb-begun .zb-stage,
-body.zb-begun #zb-flash { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .zb-begin-copy { animation: none; }
+}
