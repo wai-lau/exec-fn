@@ -22,6 +22,8 @@ ssh wai-root@wai-lau.net 'cd /exec-fn && git fetch origin && git reset --hard or
 
 **Auto-deploy is the expected workflow** (local claude) — the owner wants code changes pushed to the live droplet via the SSH deploy above (confirmed after weighing the outage risk); deploy yourself, don't hand the command back to run manually.
 
+**PYTHON DEPS ARE LOCKED.** `api/requirements.in` = the ~18 DIRECT deps, hand-edited, comments live here. `api/requirements.txt` = a **GENERATED full lock**, all 72 packages incl. transitives pinned `==`; the Dockerfile installs the lock and never the `.in`. Add or bump a dep by editing the `.in`, then `bash scripts/lock-requirements.sh` (fresh-resolves in a throwaway `python:3.12-slim`, same base as the image), then **rebuild and check a route** — a resolve verifies nothing. Why: unpinned, every rebuild re-resolved the whole tree, and on 2026-09-17 that moved `anthropic` + `mcp` onto **`httpx2`**, evaporating the transitive `httpx` that `api/auth.py` imports by name → `ModuleNotFoundError` at import → **502 on every route**. Both `httpx` and `httpx2` are in the lock on purpose. Anything `api/` imports by name gets its own line in the `.in` regardless of who else pulls it. **ARCHITECTURE.md §1**.
+
 **Rebuild only if** `Dockerfile`, `requirements.txt`, `entrypoint.sh`, or `exec-fn.cron` changed:
 ```bash
 docker compose up -d --build
