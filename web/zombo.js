@@ -11,19 +11,45 @@
  * shows nothing.
  */
 
-var ZB_BEGIN_COPY = 'click Anywhere to Begin the.experience';
+var ZB_BEGIN_COPY = 'click Anywhere to\nBegin the.experience';
 var zbPlayer = null;    // the Ruffle player, once zombo-flash.js has one
 var zbClicked = false;  // the gesture is remembered, so a late mount can spend it
 
-/* One span per character so the CSS can cycle the wordmark's seven hues with
- * :nth-child. */
+/* The wordmark's own colour sequence -- Z o m b o . c o m -- as an index, plus
+ * five baseline offsets so the line reads hand-set rather than typeset. Nine
+ * against five means the pair only repeats every 45 characters.
+ *
+ * Assigned as CLASSES from a running index, not by :nth-child. Two reasons, and
+ * the first one is a bug that shipped: a line BREAK is an element child too, so
+ * the moment the copy gained one every :nth-child cycle after it shifted by one
+ * and a handful of letters fell through every rule to the default ink -- the
+ * black letters. And a word wrapper (below) nests the spans, so they are no
+ * longer all siblings of one parent and the positional match breaks outright.
+ * An explicit index is immune to both. */
+var ZB_HUES = 9;
+var ZB_JITTERS = 5;
+
+/* Per-character spans, wrapped a word at a time. The wrapper is what stops a
+ * break landing mid-word: every character is its own inline-block, so without
+ * it the line wrapped between any two letters ("exp / erience"). */
 function zbTint(el, text) {
   el.textContent = '';
-  text.split('').forEach(function (ch) {
-    var s = document.createElement('span');
-    s.className = 'zb-c';
-    s.textContent = ch;
-    el.appendChild(s);
+  var i = 0;
+  text.split('\n').forEach(function (line, ln) {
+    if (ln) el.appendChild(document.createElement('br'));
+    line.split(' ').forEach(function (word, wn) {
+      if (wn) { el.appendChild(document.createTextNode(' ')); i += 1; }
+      var w = document.createElement('span');
+      w.className = 'zb-w';
+      word.split('').forEach(function (ch) {
+        var c = document.createElement('span');
+        c.className = 'zb-c zb-h' + (i % ZB_HUES) + ' zb-j' + (i % ZB_JITTERS);
+        c.textContent = ch;
+        w.appendChild(c);
+        i += 1;
+      });
+      el.appendChild(w);
+    });
   });
 }
 

@@ -18,15 +18,15 @@
   --zb-cyan-hsl:    180deg 100% 49%;
   --zb-blue-hsl:    240deg 100% 45%;
   --zb-violet-hsl:  275deg 100% 47%;
-  --zb-pink-hsl:    330deg 100% 50%;
   --zb-paper-hsl:   0deg 0% 100%;
 
-  /* The movie is 550x400. --zb-mh is the height it FITS at (never taller than
-   * the viewport, so nothing is ever cropped) and --zb-mt is the offset that
-   * centres it. Everything below is derived from these two, which is what keeps
-   * the band painted on the container lined up with the movie's own. */
+  /* The movie is 550x400. --zb-mh is the height it FITS at — never taller than
+   * the viewport, so the loader cluster can never fall off the bottom. The
+   * movie is pinned to the TOP of the screen, its green header wash sitting on
+   * the page's top edge, so any leftover height is spent below it and never
+   * split above. Everything else is derived from --zb-mh, which is what keeps
+   * the sampled pillars lined up with the movie's own edges. */
   --zb-mh: min(100vh, calc(100vw * 8 / 11));
-  --zb-mt: calc((100vh - var(--zb-mh)) / 2);
 
   /* The frame the type is measured against: the window on a 16:9 display, a
    * 155vw box on a portrait phone so the line does not balloon. */
@@ -69,7 +69,7 @@ body {
  * next. Behind the player in paint order, and never clickable. */
 .zb-bar {
   position: absolute;
-  top: var(--zb-mt);
+  top: 0;
   width: calc((100% - min(100%, calc(var(--zb-mh) * 11 / 8))) / 2 + 1px);
   height: var(--zb-mh);
   pointer-events: none;
@@ -97,7 +97,7 @@ body {
   display: block;
   width: min(100%, calc(var(--zb-mh) * 11 / 8));
   height: var(--zb-mh);
-  margin: var(--zb-mt) auto 0;
+  margin: 0 auto;
 }
 
 /* dvh is the visible viewport on iOS, where vh is the LARGER one (URL bar
@@ -105,7 +105,6 @@ body {
 @supports (height: 100dvh) {
   :root {
     --zb-mh: min(100dvh, calc(100vw * 8 / 11));
-    --zb-mt: calc((100dvh - var(--zb-mh)) / 2);
   }
 }
 
@@ -150,31 +149,41 @@ body.zb-begun .zb-begin {
   animation: zb-beckon 2.2s ease-in-out infinite;
 }
 
-/* Each character is its own span, so it can be nudged off the baseline — the
- * line reads as hand-set rather than typeset. Five offsets against seven hues
- * means the pattern only repeats every 35 characters, i.e. never, at this
- * length. `translate` needs the spans to be inline-block to take effect, and
- * inline-block is exactly what eats the spaces: a span holding only " " has its
- * whitespace collapsed to zero width, so the line ran together as one word.
- * `white-space: pre` keeps each one its real width. */
-.zb-c {
+/* Each character is its own span so it can be nudged off the baseline, and each
+ * WORD is wrapped so a line break can never land mid-word — every character
+ * being an inline-block, the line otherwise wrapped between any two letters
+ * ("exp / erience").
+ *
+ * The hue and jitter classes are assigned from a running index in zombo.js,
+ * never matched positionally. A line break is an element child too, so adding
+ * one shifted every positional cycle after it and dropped a handful of letters
+ * through to the default ink — the black letters — and the word wrapper nests
+ * the spans so they stop being siblings at all. */
+.zb-w {
   display: inline-block;
-  white-space: pre;
+  white-space: nowrap;
 }
-.zb-c:nth-child(5n+1) { translate: 0 -0.07em; }
-.zb-c:nth-child(5n+2) { translate: 0 0.05em; }
-.zb-c:nth-child(5n+3) { translate: 0 -0.03em; }
-.zb-c:nth-child(5n+4) { translate: 0 0.08em; }
-.zb-c:nth-child(5n+5) { translate: 0 -0.05em; }
 
-/* zombo colours, cycled a letter at a time — the wordmark's own palette */
-.zb-c:nth-child(7n+1) { color: hsl(var(--zb-red-hsl)); }
-.zb-c:nth-child(7n+2) { color: hsl(var(--zb-orange-hsl)); }
-.zb-c:nth-child(7n+3) { color: hsl(var(--zb-green-hsl)); }
-.zb-c:nth-child(7n+4) { color: hsl(var(--zb-cyan-hsl)); }
-.zb-c:nth-child(7n+5) { color: hsl(var(--zb-blue-hsl)); }
-.zb-c:nth-child(7n+6) { color: hsl(var(--zb-violet-hsl)); }
-.zb-c:nth-child(7n+7) { color: hsl(var(--zb-pink-hsl)); }
+.zb-c { display: inline-block; }
+
+.zb-j0 { translate: 0 -0.07em; }
+.zb-j1 { translate: 0 0.05em; }
+.zb-j2 { translate: 0 -0.03em; }
+.zb-j3 { translate: 0 0.08em; }
+.zb-j4 { translate: 0 -0.05em; }
+
+/* The wordmark's OWN sequence, in its own order — Z o m b o . c o m = red,
+ * orange, blue, violet, cyan, blue, orange, green, blue. Nine, with blue three
+ * times and orange twice: a sequence to repeat, not a palette to cycle evenly. */
+.zb-h0 { color: hsl(var(--zb-red-hsl)); }
+.zb-h1 { color: hsl(var(--zb-orange-hsl)); }
+.zb-h2 { color: hsl(var(--zb-blue-hsl)); }
+.zb-h3 { color: hsl(var(--zb-violet-hsl)); }
+.zb-h4 { color: hsl(var(--zb-cyan-hsl)); }
+.zb-h5 { color: hsl(var(--zb-blue-hsl)); }
+.zb-h6 { color: hsl(var(--zb-orange-hsl)); }
+.zb-h7 { color: hsl(var(--zb-green-hsl)); }
+.zb-h8 { color: hsl(var(--zb-blue-hsl)); }
 
 @keyframes zb-beckon {
   0%, 100% { opacity: 1; }
