@@ -175,6 +175,43 @@
   white-space: nowrap; user-select: none;
 }
 
+/* ── the mic ───────────────────────────────────────────────────────────────
+   The `$` prompt IS the mic (voice-input.js adds .mic once the speech API is
+   found), on /cc and in the Exec panel both. A separate button belongs at the
+   right end of the input line -- which is where the Exec bubble rests, and it
+   swallowed the taps. The prompt is already a one-character cell in the shared
+   gutter: no width, no collision, and the composer stays aligned with the
+   transcript. */
+#input-prompt.mic,
+#exec-prompt.mic { cursor: pointer; transition: color 0.15s; }
+
+#input-prompt.mic:hover,
+#exec-prompt.mic:hover { color: hsl(var(--green-hsl) / 0.8); }
+
+/* Listening reads as lit -- a mic that looks the same on as off is how you end
+   up talking to a page that stopped listening ten seconds ago. The glyph
+   carries it: `$` becomes `●`.
+
+   It does NOT pulse, and that is load-bearing rather than taste. Both surfaces
+   ride under the CRT stack, whose .cyber-blur and .cyber-crt panes are
+   backdrop-filters: a full-viewport readback with no partial invalidation,
+   cheap only while nothing beneath them animates. A one-character element
+   pulsing forever re-fires both panes every frame for the whole time the mic is
+   open -- reported as the page freezing while voice mode was on, and exactly
+   the trap chrome.css warns about for .cyber-scan. A colour change is one
+   repaint; an animation is one per frame, forever. */
+#input-prompt[data-live="true"],
+#exec-prompt[data-live="true"] { color: hsl(var(--green-hsl)); }
+
+/* Open, but discarding: a reply is streaming (or Exec is speaking it aloud) and
+   the mic cannot be paused (stop() needs no gesture, start() does, so a pause
+   would be one-way). Dimmed rather than lit, because a control that looks
+   identical either way is how you end up talking into a bin. */
+#input-prompt[data-drop="true"],
+#exec-prompt[data-drop="true"] { color: hsl(var(--green-hsl) / 0.45); }
+
+/* ── the composer, continued ─────────────────────────────────────────────── */
+
 #input-wrapper,
 #exec-iwrap { flex: 1; position: relative; display: flex; align-items: center; min-width: 0; }
 

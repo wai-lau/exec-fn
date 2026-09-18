@@ -64,3 +64,40 @@ function execMakeDraggable(el, onTap) {
 
   applyDefault();
 }
+
+// Restore the dragged-to position, and keep it on screen. Lives here with the
+// drag rather than in exec-bubble.js (500-line cap) — same stored key, same
+// nav-clearance rules as applyDefault above.
+function execRestorePosition(el) {
+  function navH() {
+    return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56;
+  }
+  function clampToViewport() {
+    const nh = navH();
+    const w = el.offsetWidth || 50;
+    const h = el.offsetHeight || 50;
+    const maxX = window.innerWidth - w;
+    const maxY = window.innerHeight - h - nh;
+    const r = el.getBoundingClientRect();
+    if (r.right < 0 || r.left > window.innerWidth || r.top > window.innerHeight || r.bottom < 0) {
+      el.style.left = el.style.top = '';
+      el.style.right = '14px';
+      el.style.bottom = (nh + 10) + 'px';
+    } else if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.top > maxY) {
+      el.style.right = el.style.bottom = '';
+      el.style.left = Math.max(0, Math.min(maxX, r.left)) + 'px';
+      el.style.top  = Math.max(0, Math.min(maxY, r.top)) + 'px';
+    }
+  }
+  try {
+    const s = JSON.parse(localStorage.getItem('exec-bpos') || 'null');
+    if (s && s.left && s.top) {
+      el.style.right = el.style.bottom = '';
+      el.style.left = s.left;
+      el.style.top  = s.top;
+    }
+  } catch (_) {}
+  // Clamp after restore in case the viewport shrank since the last visit.
+  requestAnimationFrame(clampToViewport);
+  window.addEventListener('resize', clampToViewport);
+}

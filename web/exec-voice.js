@@ -51,6 +51,15 @@ window.execVoice = (function () {
     return on;
   }
 
+  // Is an utterance playing (or still draining) right now? The panel mic
+  // (exec-mic.js) drops everything it hears while this is true -- otherwise it
+  // transcribes GLaDOS narrating Exec's reply and sends that back as Wai's next
+  // message. `speaking` stays true through the playout tail, not just the
+  // stream, which is exactly the window the microphone can hear.
+  function isSpeaking() {
+    return speaking;
+  }
+
   // Mute toggle: true = audible (volume = glados gain), false = silent.
   function setOn(v) {
     on = v;
@@ -79,6 +88,9 @@ window.execVoice = (function () {
     const remainMs = Math.max(0, (player.audioDuration() - player.elapsed()) * 1000);
     setTimeout(() => {
       speaking = false;
+      // The panel mic dims its dot while Exec talks; tell it the speaker is
+      // clear, or the dot stays dim until the next thing she says.
+      document.dispatchEvent(new Event("exec:voice-idle"));
       if (!on) { queue = []; return; }  // muted mid-queue — drop the backlog, don't resume it later
       const next = queue.shift();
       if (next) _doSpeak(next);
@@ -144,5 +156,5 @@ window.execVoice = (function () {
     return mk;
   }
 
-  return { speak, mark, setOn, isOn, ready, unlock, armUnlock, mountButton };
+  return { speak, mark, setOn, isOn, isSpeaking, ready, unlock, armUnlock, mountButton };
 })();
