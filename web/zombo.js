@@ -1,8 +1,10 @@
 /* /zombo — the CSS reproduction's caption crawl, and the one gesture.
  *
- * This file owns the FALLBACK: the reproduction measured off the capture, which
- * paints instantly so the page is never a white rectangle waiting on Ruffle's
- * WASM. zombo-flash.js owns the real movie and calls zbTakeOver() if it lands.
+ * This file owns the FALLBACK — the reproduction measured off the capture — and
+ * the single gesture. Until that click the page is ONLY the begin line: the
+ * reproduction and the movie are both built but hidden, so the click reveals
+ * and starts rather than unmuting something already on screen.
+ * zombo-flash.js owns the real movie and calls zbTakeOver() if it lands.
  *
  * The capture only ever shows one caption ("Sign Up For The NewZLetter"), but
  * the intro's whole substance is the litany the voice reads over the loader, so
@@ -96,20 +98,25 @@ function zbAdvance() {
   zbShow(zbLines[zbAt], 3600);
 }
 
-/* Arm the reproduction's own bed + voice, and switch the caption from a fixed
- * cadence to following the voice. */
-function zbArm() {
-  if (zbLive || !zbAudioStart()) return;
-  zbLive = true;
+/* Start the reproduction: its bed + voice, and the caption cycle. The VISUALS
+ * run even when the synth will not — a refused AudioContext is no reason to
+ * leave a blank page — so the caption is started unconditionally and zbLive
+ * only records whether the voice is actually there to pace it. */
+function zbFallbackStart() {
+  if (zbAudioStart()) zbLive = true;
   window.clearTimeout(zbTimer);
   zbAdvance();
 }
 
-function zbUnmute() {
+/* The movie is held (Ruffle autoplay 'off') until the gesture, so the one click
+ * has to both start it and buy it sound. */
+function zbPlay() {
   try {
-    if (zbPlayer && zbPlayer.unmuteAudio) zbPlayer.unmuteAudio();
+    if (!zbPlayer) return;
+    if (zbPlayer.play) zbPlayer.play();
+    if (zbPlayer.unmuteAudio) zbPlayer.unmuteAudio();
   } catch (_e) {
-    // an older Ruffle build without the method; its own gesture handling applies
+    // an older Ruffle build missing one of them; its own handling applies
   }
 }
 
@@ -123,15 +130,17 @@ function zbTakeOver() {
   zbLive = false;
   zbAudioStop();
   document.body.classList.add('zb-flashed');
-  if (document.body.classList.contains('zb-begun')) zbUnmute();
+  if (document.body.classList.contains('zb-begun')) zbPlay();
 }
 
-/* The one gesture the page asks for, and it buys audio only — the movie (or the
- * reproduction) has been running since load. */
+/* The one gesture the page asks for. Before it the page is only this line —
+ * no wordmark, no loader, no caption — so the click REVEALS and STARTS, rather
+ * than just unmuting something already on screen. Whichever path is ready takes
+ * it; if Ruffle lands later, zbTakeOver() swaps and plays. */
 function zbBegin() {
   if (document.body.classList.contains('zb-begun')) return;
   document.body.classList.add('zb-begun');
-  if (zbPlayer) zbUnmute(); else zbArm();
+  if (zbPlayer) zbPlay(); else zbFallbackStart();
 }
 
 function zbInit() {
@@ -140,7 +149,6 @@ function zbInit() {
   var copy = document.getElementById('zb-begin-copy');
   if (!zbLineEl || !begin || !copy) return;
   zbTint(copy, ZB_BEGIN_COPY);
-  zbAdvance();
   begin.addEventListener('click', zbBegin);
   begin.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); zbBegin(); }

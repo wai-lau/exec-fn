@@ -215,7 +215,7 @@ body {
   height: 100%;
 }
 
-body.zb-flashed #zb-flash { pointer-events: auto; }
+body.zb-begun.zb-flashed #zb-flash { pointer-events: auto; }
 body.zb-flashed .zb-stage { display: none; }
 
 /* ── begin overlay ────────────────────────────────────────────────────────── */
@@ -229,7 +229,7 @@ body.zb-flashed .zb-stage { display: none; }
   inset: 0;
   z-index: var(--z-overlay);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   padding: var(--space-10);
   cursor: pointer;
@@ -264,3 +264,22 @@ body.zb-begun .zb-begin { display: none; }
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
+
+/* ── before the click ─────────────────────────────────────────────────────── */
+
+/* Until the click the page is white paper and the begin line, nothing else:
+ * no wordmark, no loader, no caption. Both the emulator and the reproduction
+ * are still BUILT underneath (the .swf is fetched and parsed, Ruffle just holds
+ * it with autoplay off) so the click starts the movie instead of revealing one
+ * already part-way through.
+ *
+ * OPACITY, not visibility: Ruffle's click-to-play overlay lives in the player's
+ * SHADOW DOM and sets `visibility: visible` on itself, which beats an inherited
+ * `hidden` and left a big orange play button sitting on the begin line. Opacity
+ * composites the whole subtree and cannot be un-set from inside it. Not
+ * `display:none` either — the player measures itself against its real box. */
+.zb-stage,
+#zb-flash { opacity: 0; }
+
+body.zb-begun .zb-stage,
+body.zb-begun #zb-flash { opacity: 1; }

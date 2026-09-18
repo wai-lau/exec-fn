@@ -7,11 +7,11 @@
  * this repo, and there is no need — the visitor's browser fetches them from the
  * host that already publishes them.
  *
- * autoplay 'on' is the whole point of the config: the animation runs the moment
- * it loads, and a click is required for AUDIO only — the only thing a browser
- * actually withholds. Ruffle's own unmute control is a speaker BUTTON, chrome
- * the intro never had, so it is suppressed (`unmuteOverlay: 'hidden'`) and
- * #zb-begin takes its place.
+ * The movie is loaded but HELD (autoplay 'off'): until the click the page is
+ * only the begin line, and that click both starts playback and unmutes it.
+ * Ruffle's own unmute control is a speaker BUTTON, chrome the intro never had,
+ * so it is suppressed (`unmuteOverlay: 'hidden'`) and #zb-begin takes its
+ * place.
  */
 
 var ZB_BASE = 'https://welcometozombo.com/';
@@ -53,7 +53,10 @@ function zbFlashMount() {
 function zbLoadRuffle() {
   window.RufflePlayer = window.RufflePlayer || {};
   window.RufflePlayer.config = {
-    autoplay: 'on',
+    /* 'off', not 'on': the page shows only the begin line until the click, so
+     * the movie must START there rather than be revealed part-way through.
+     * zbPlay() in zombo.js does the play()+unmuteAudio() on that one gesture. */
+    autoplay: 'off',
     unmuteOverlay: 'hidden',
     splashScreen: false,
     salign: 'T',           // the original <embed> top-aligns the movie
