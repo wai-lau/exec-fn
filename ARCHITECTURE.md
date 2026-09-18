@@ -2132,9 +2132,9 @@ zbOnPlayerReady()  ← the click, if already made, is spent here
 
 ### Before the click, the page is one line
 
-Until the click the page is white paper and `#zb-begin`: *click Anywhere to Begin the.experience*, one `<span>` per character, cycling the wordmark's seven hues by `:nth-child(7n+k)` and nudged off the baseline by five offsets on `:nth-child(5n+k)` — five against seven means the pattern repeats every 35 characters, i.e. never at this length. Set in `--font-mono`, the site's body face.
+Until the click the page is white paper and `#zb-begin`: *click Anywhere to* / *Begin the.experience*, set in `--font-mono`, one `<span>` per character. Colour and jitter are **classes assigned from a running index** in `zbTint()` (`.zb-h0..8`, `.zb-j0..4`). The hue order is the wordmark's own sequence — Z o m b o . c o m = red, orange, blue, violet, cyan, blue, orange, green, blue — nine values with blue three times and orange twice, because it is a sequence to repeat rather than a palette to cycle evenly; nine against five offsets repeats only every 45 characters.
 
-**Two things that bite in that one rule.** `translate` only applies to the spans if they are `inline-block` — and `inline-block` is exactly what eats the spaces, since a span holding only `" "` has its whitespace collapsed to zero width and the whole line runs together as one word. `white-space: pre` keeps each one its real width.
+**Positional selectors were a bug that shipped.** A `<br>` is an element child too, so the moment the copy gained a line break every `:nth-child` cycle after it shifted by one and a handful of letters fell through every rule to the default ink — they rendered BLACK. The per-word wrapper compounds it: it nests the spans, so they are no longer siblings of one parent and a positional match fails outright. An explicit index is immune to both. Each **word** is wrapped (`.zb-w`, `white-space: nowrap`) because every character is an `inline-block`, so a line break could otherwise land between any two letters — it broke `exp / erience`.
 
 Ruffle runs `autoplay: 'off'` and `zbPlay()` does `play()` + `unmuteAudio()` together on that one gesture, so the click **starts** the movie rather than revealing one already part-way through. Ruffle's own unmute control is a speaker button — chrome the intro never had — so it is suppressed (`unmuteOverlay: 'hidden'`).
 
@@ -2144,7 +2144,7 @@ Ruffle runs `autoplay: 'off'` and `zbPlay()` does `play()` + `unmuteAudio()` tog
 
 ### Sizing: the movie FITS, and the pillars are sampled from it
 
-The movie is **550×400** and must never be cropped — the loader cluster falling off the bottom edge is the failure this sizing exists to prevent. So `--zb-mh` is `min(100dvh, calc(100vw * 8 / 11))`: the height it fits at, never taller than the viewport. `--zb-mt` centres the remainder. The player is sized to exactly that box (`width: min(100%, calc(var(--zb-mh) * 11 / 8))`) and centred.
+The movie is **550×400** and must never be cropped — the loader cluster falling off the bottom edge is the failure this sizing exists to prevent. So `--zb-mh` is `min(100dvh, calc(100vw * 8 / 11))`: the height it fits at, never taller than the viewport. The movie is **pinned to the top of the screen** — its green header wash is the page's top edge — so leftover height is spent below it and never split above. The player is sized to exactly that box (`width: min(100%, calc(var(--zb-mh) * 11 / 8))`) and centred.
 
 Two things are easy to get wrong there:
 

@@ -15,9 +15,9 @@ from fastapi.responses import HTMLResponse
 from routers import guest_protected
 from pages import _tmpl, _index_pages, _CHROME_LINK
 
-_ZOMBO_LINK = '<link rel="stylesheet" href="/zombo.css?v=3">'
+_ZOMBO_LINK = '<link rel="stylesheet" href="/zombo.css?v=4">'
 _ZOMBO_SCRIPTS = (
-    '<script src="/zombo.js?v=3"></script>'
+    '<script src="/zombo.js?v=4"></script>'
     '<script src="/zombo-flash.js?v=3"></script>'
 )
 
