@@ -1,16 +1,16 @@
-# Graph Report - exec-fn  (2026-09-18)
+# Graph Report - exec-fn  (2026-09-17)
 
 ## Corpus Check
-- 791 files · ~8,277,512 words
+- 790 files · ~8,275,300 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4571 nodes · 6727 edges · 590 communities (489 shown, 101 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 456 edges (avg confidence: 0.8)
+- 4585 nodes · 6759 edges · 586 communities (489 shown, 97 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 459 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d9cd31b5`
+- Built from commit: `0dd15202`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -430,10 +430,7 @@
 - [[_COMMUNITY_Community 578|Community 578]]
 - [[_COMMUNITY_Community 579|Community 579]]
 - [[_COMMUNITY_Community 580|Community 580]]
-- [[_COMMUNITY_Community 584|Community 584]]
 - [[_COMMUNITY_Community 585|Community 585]]
-- [[_COMMUNITY_Community 586|Community 586]]
-- [[_COMMUNITY_Community 588|Community 588]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `files` - 132 edges
@@ -452,11 +449,11 @@
   tests/test_exec_tool_rounds.py → api/chat_actions.py
 - `test_failed_action_is_not_reported_as_taken()` --calls--> `_actions_taken_block()`  [INFERRED]
   tests/test_exec_tool_rounds.py → api/chat_actions.py
+- `test_followup_tool_use_survives()` --calls--> `assistant_content_blocks()`  [INFERRED]
+  tests/test_exec_tool_rounds.py → api/chat_store.py
+- `test_non_text_tool_blocks_dropped()` --calls--> `assistant_content_blocks()`  [INFERRED]
+  tests/test_exec_tool_rounds.py → api/chat_store.py
 - `test_is_valid_slot()` --calls--> `is_valid_slot()`  [INFERRED]
-  tests/test_gamesave_store.py → api/gamesave_store.py
-- `test_guest_saves_live_under_the_guest_dir()` --calls--> `slot_path()`  [INFERRED]
-  tests/test_gamesave_store.py → api/gamesave_store.py
-- `test_hostile_guest_ids_cannot_escape_the_guest_dir()` --calls--> `slot_path()`  [INFERRED]
   tests/test_gamesave_store.py → api/gamesave_store.py
 
 ## Import Cycles
@@ -472,7 +469,7 @@
 - 3-file cycle: `nightfall-incident/nightfall-src/types/Netmap.ts -> nightfall-incident/nightfall-src/util/AudioShuffler.ts -> nightfall-incident/nightfall-src/types/index.ts -> nightfall-incident/nightfall-src/types/Netmap.ts`
 - 4-file cycle: `nightfall-incident/nightfall-src/types/GameStatus.ts -> nightfall-incident/nightfall-src/types/Netmap.ts -> nightfall-incident/nightfall-src/util/AudioShuffler.ts -> nightfall-incident/nightfall-src/types/index.ts -> nightfall-incident/nightfall-src/types/GameStatus.ts`
 
-## Communities (590 total, 101 thin omitted)
+## Communities (586 total, 97 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.11
@@ -491,8 +488,8 @@ Cohesion: 0.02
 Nodes (132): files, index.html, main.css, main.js, main.js.map, precache-manifest.c21b212684435fbbf3ba71e6c0fd3f4e.js, runtime-main.js, runtime-main.js.map (+124 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.11
-Nodes (25): Any, Path, Request, BaseModel, stream_chat(), api_tarot_chat(), api_tarot_draw(), api_tarot_save() (+17 more)
+Cohesion: 0.12
+Nodes (24): Any, Path, Request, BaseModel, api_tarot_chat(), api_tarot_draw(), api_tarot_save(), _atomic_write_json() (+16 more)
 
 ### Community 6 - "Tarot Core Framework"
 Cohesion: 0.11
@@ -503,8 +500,8 @@ Cohesion: 0.12
 Nodes (28): _now_et(), build_morning(), _morning_retrospective(), _prune_cron_logs(), _purge_stale_notes(), Keep a month of cron output and drop the rest.      One file per job per day is, Roll past-dated scheduled_day forward; auto-schedule rd cards due     within the, _roll_and_schedule() (+20 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.15
-Nodes (17): Path, Request, _err(), Two passes. Pass 1 (research) runs the tool loop with its prose discarded —, stream_chat(), api_mtg_chat(), api_mtg_rule(), _append_exchange() (+9 more)
+Cohesion: 0.09
+Nodes (30): Path, Request, _err(), Two passes. Pass 1 (research) runs the tool loop with its prose discarded —, stream_chat(), _attach_rulings(), _card_summary(), _keyword_rules() (+22 more)
 
 ### Community 9 - "MTG Rules Assistant"
 Cohesion: 0.07
@@ -528,7 +525,7 @@ Nodes (14): died_mid_utterance(), pick_upstream(), Route one utterance to its ba
 
 ### Community 14 - "Card Image Downloader"
 Cohesion: 0.02
-Nodes (78): creditValues, enemies, creditValues, enemies, creditValues, enemies, enemies, creditValues (+70 more)
+Nodes (80): creditValues, enemies, creditValues, enemies, creditValues, enemies, enemies, creditValues (+72 more)
 
 ### Community 15 - "Authentication"
 Cohesion: 0.07
@@ -556,7 +553,7 @@ Nodes (19): API endpoints, Chat surfaces (shared CSS), Cron, Discord bridge (`di
 
 ### Community 21 - "Community 21"
 Cohesion: 0.04
-Nodes (47): BAKED_EDGES, BAKED_TILES, BakedEdge, BakedTile, EDGE_DATA, OWNERS, TILE_ROWS, TILE_VIS (+39 more)
+Nodes (50): BAKED_EDGES, BAKED_TILES, BakedEdge, BakedTile, EDGE_DATA, OWNERS, TILE_ROWS, TILE_VIS (+42 more)
 
 ### Community 22 - "Morning Cron Script"
 Cohesion: 0.08
@@ -571,8 +568,8 @@ Cohesion: 0.11
 Nodes (20): _tool_update_context(), _advance_recurrence(), _append_rd_log_batch(), _apply_context_update(), _day_window(), _merge_cards(), _migrate_cards(), _next_recurrence() (+12 more)
 
 ### Community 25 - "Session Start Hook"
-Cohesion: 0.11
-Nodes (16): DatabattleConfig, BattleState, CreditProps, IStaticMenuOptions, options, StaticMenuProps, StaticMenuType, Tutorial (+8 more)
+Cohesion: 0.13
+Nodes (17): BattleState, CreditProps, ModalButton, ModalConfig, ModalProps, ModalState, Tutorial, CoordinateMap (+9 more)
 
 ### Community 26 - "GCal OAuth Setup"
 Cohesion: 0.21
@@ -635,8 +632,8 @@ Cohesion: 0.43
 Nodes (6): addTodo(), checkOff(), esc(), loadTodos(), renderItem(), startEdit()
 
 ### Community 49 - "Community 49"
-Cohesion: 0.14
-Nodes (5): UZ_IMAGE, attack(), slow(), IProgram, resolveImage()
+Cohesion: 0.15
+Nodes (4): attack(), slow(), IProgram, resolveImage()
 
 ### Community 59 - "Community 59"
 Cohesion: 0.06
@@ -647,16 +644,16 @@ Cohesion: 0.09
 Nodes (19): ARCHIVE_DIR, archiveSession(), BLOCKED_TOOLS, BUILTIN_TOOLS, CONTEXT_FILE, historyFor(), IDLE_TIMEOUT_MS, IMAGE_TYPES (+11 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.15
-Nodes (16): classify_card(), parse_date_natural(), Card-creation LLM helpers: classify a new card's category + importance, and pars, _active_nudge_block(), _build_chat_system_prompt(), _dedupe_context(), _focused_nudge_card(), _open_nudge_cards() (+8 more)
+Cohesion: 0.17
+Nodes (14): classify_card(), parse_date_natural(), Card-creation LLM helpers: classify a new card's category + importance, and pars, _active_nudge_block(), _build_chat_system_prompt(), _dedupe_context(), _focused_nudge_card(), _open_nudge_cards() (+6 more)
 
 ### Community 62 - "Community 62"
 Cohesion: 0.24
 Nodes (10): guest_context(), _others(), Presence-count behaviour (WebKit / playwright).  Proves the two rules of the /ho, The count currently rendered, asserting the wording as it reads it., Poll the rendered count until it reaches `want` (broadcast is async)., A WebKit context carrying the guest_session cookie a Turnstile solve sets., A missing presence module must not disable Speak.      mountPresence() runs in t, test_hosaka_excludes_self_and_counts_tarot() (+2 more)
 
 ### Community 63 - "Community 63"
-Cohesion: 0.05
-Nodes (48): Attack, BattleCAR, BattleDonut, BattleLMM, BattleQ1, BattleTANG, BitFlip, ButtonNormal (+40 more)
+Cohesion: 0.04
+Nodes (43): Attack, BattleCAR, BattleDonut, BattleLMM, BattleQ1, BattleTANG, BitFlip, ButtonNormal (+35 more)
 
 ### Community 64 - "Community 64"
 Cohesion: 0.20
@@ -672,7 +669,7 @@ Nodes (14): assignLanes(), attachBlockDrag(), createGroup(), currentStep(), fmtC
 
 ### Community 67 - "Community 67"
 Cohesion: 0.16
-Nodes (23): ALL_WAREZ_PRICES, App, AppProps, AppState, CurrentUI, BattleProps, Netmap3DProps, SerializableGameStatus (+15 more)
+Nodes (22): ALL_WAREZ_PRICES, App, AppProps, AppState, CurrentUI, BattleProps, Netmap3DProps, SerializableGameStatus (+14 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.40
@@ -711,8 +708,8 @@ Cohesion: 0.36
 Nodes (10): check_all(), check_staged(), main(), [(file, version)] -- every `<asset>?v=N` reference under api/., The `<asset>?v=N` pairs in a file as staged vs. as committed., Audit history: asset committed more recently than its ?v= last moved., ref_files(), refs_to() (+2 more)
 
 ### Community 78 - "Community 78"
-Cohesion: 0.12
-Nodes (20): _action_line(), _actions_taken_block(), _advance_line(), Action-diff block for the Exec follow-up turn.  After a tool round, `routes_chat, One human line describing an action just taken this turn. Fed to the     follow-, Diff of the tool actions taken this turn, appended to the volatile tail of     t, _sched_line(), assistant_content_blocks() (+12 more)
+Cohesion: 0.13
+Nodes (18): _action_line(), _actions_taken_block(), _advance_line(), Action-diff block for the Exec follow-up turn.  After a tool round, `routes_chat, One human line describing an action just taken this turn. Fed to the     follow-, Diff of the tool actions taken this turn, appended to the volatile tail of     t, _sched_line(), _Block (+10 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.04
@@ -735,8 +732,8 @@ Cohesion: 0.17
 Nodes (18): addMsg(), addStreamDiv(), addToolMsg(), announceState(), atBottom(), ccAppendReceipt(), ccDoneLine(), clamp() (+10 more)
 
 ### Community 84 - "Community 84"
-Cohesion: 0.07
-Nodes (17): CurrentPrograms, CurrentProgramsProps, CurrentProgramsState, ViewState, Dialogue, DialogueProps, DialogueState, GuideTextProps (+9 more)
+Cohesion: 0.06
+Nodes (28): ButtonBorder, ButtonColor, ButtonProps, CurrentPrograms, CurrentProgramsProps, CurrentProgramsState, ViewState, DialogueState (+20 more)
 
 ### Community 85 - "Community 85"
 Cohesion: 0.17
@@ -767,8 +764,8 @@ Cohesion: 0.13
 Nodes (15): 7. `/cc` — Claude Code in the browser, 7a. Topology, 7b-bis. The blast radius, honestly (2026-09-13), 7b-ter. The path gate, and the one tool it does not cover, 7b. The sandbox — three mechanisms, and they are NOT equally strong, 7c. Tools — what is granted, and the deliberate widening, 7d. The archive is three tools, not a filesystem, 7e. The persona is two halves (+7 more)
 
 ### Community 92 - "Community 92"
-Cohesion: 0.16
-Nodes (12): get_chat(), _msg_text_key(), Exec-chat persistence — the chat.json store, split out of chat.py.  chat.json is, Canonical (role, text) identity for ts-matching a stored/incoming     message, o, Flatten a stored/round-tripped conversation to a text-only, role-alternating, sanitize_history_for_api(), _save_chat(), api_chat() (+4 more)
+Cohesion: 0.15
+Nodes (14): assistant_content_blocks(), get_chat(), _msg_text_key(), Exec-chat persistence — the chat.json store, split out of chat.py.  chat.json is, An API message's text + tool_use blocks in storable dict form. Shared by     bot, Canonical (role, text) identity for ts-matching a stored/incoming     message, o, Flatten a stored/round-tripped conversation to a text-only, role-alternating, sanitize_history_for_api() (+6 more)
 
 ### Community 93 - "Community 93"
 Cohesion: 0.12
@@ -783,8 +780,8 @@ Cohesion: 0.04
 Nodes (44): dependencies, arraybuffer-loader, classnames, clone, csstype, localforage, react, react-dom (+36 more)
 
 ### Community 96 - "Community 96"
-Cohesion: 0.21
-Nodes (12): bulk_update_scheduled_days(), get_hq_log(), get_week_data(), log_hq_change(), _logical_today(), date, Yesterday if before 4:30 AM ET, matching client isoToday()., Return cards scheduled for 7 days starting from start_iso (default logical today (+4 more)
+Cohesion: 0.17
+Nodes (14): get_rd_log(), bulk_update_scheduled_days(), get_hq_log(), get_week_data(), log_hq_change(), _logical_today(), date, Yesterday if before 4:30 AM ET, matching client isoToday(). (+6 more)
 
 ### Community 102 - "Community 102"
 Cohesion: 0.08
@@ -804,15 +801,15 @@ Nodes (41): collectedCreditIDs, completedTutorial, firstClearNode, netmapStatus,
 
 ### Community 107 - "Community 107"
 Cohesion: 0.08
-Nodes (28): CARConfig, DonutConfig, LMMConfig, Q1Config, TANGConfig, netmap, positions, Descriptions (+20 more)
+Nodes (29): CARConfig, DonutConfig, LMMConfig, Q1Config, TANGConfig, netmap, Nodes, positions (+21 more)
 
 ### Community 108 - "Community 108"
-Cohesion: 0.07
-Nodes (19): AudioLoaderProps, AudioLoaderState, BattleIntro, BattleIntroProps, BattleIntroState, Button, ButtonBorder, ButtonColor (+11 more)
+Cohesion: 0.09
+Nodes (13): AudioLoaderProps, AudioLoaderState, BattleIntro, BattleIntroProps, BattleIntroState, Button, ButtonProps, TitleButton (+5 more)
 
 ### Community 109 - "Community 109"
-Cohesion: 0.09
-Nodes (20): buildUploadEntries(), CATEGORY_OF, CATEGORY_ORDER, EFFECTIVE_TIER, groupSortKey(), groupUploadEntries(), IDS_INDEX, PROGRAM_CATEGORIES (+12 more)
+Cohesion: 0.08
+Nodes (21): buildUploadEntries(), CATEGORY_OF, CATEGORY_ORDER, EFFECTIVE_TIER, groupSortKey(), groupUploadEntries(), IDS_INDEX, PROGRAM_CATEGORIES (+13 more)
 
 ### Community 110 - "Community 110"
 Cohesion: 0.10
@@ -827,24 +824,24 @@ Cohesion: 0.13
 Nodes (23): Re-root the SPA shell under PREFIX (base href + absolute asset paths)     and in, Patch the SPA's hard-coded printer-origin URLs to the proxy's routes., Rewrite the printer-origin URLs in a printer->browser SDCP text frame:     the M, rewrite_html(), rewrite_js(), rewrite_ws_text(), Unit tests for the /printer proxy rewrites (pure, no live app).  The fixtures ar, test_html_absolute_asset_paths_move_under_prefix() (+15 more)
 
 ### Community 113 - "Community 113"
-Cohesion: 0.13
-Nodes (13): AudioPlayer, AudioPlayerProps, AudioPlayerState, DecodedBuffer, LoaderState, AudioStatus, IAudioPlayer, IAudioSource (+5 more)
+Cohesion: 0.15
+Nodes (13): DatabattleConfig, AudioPlayer, AudioPlayerProps, AudioPlayerState, DecodedBuffer, LoaderState, AudioStatus, IAudioPlayer (+5 more)
 
 ### Community 114 - "Community 114"
-Cohesion: 0.21
-Nodes (7): _load_card_chapter(), load_framework(), _load_framework_file(), load_numerology_text(), load_suits_text(), lookup_card_meaning(), build_system()
+Cohesion: 0.17
+Nodes (8): stream_chat(), _load_card_chapter(), load_framework(), _load_framework_file(), load_numerology_text(), load_suits_text(), lookup_card_meaning(), build_system()
 
 ### Community 115 - "Community 115"
-Cohesion: 0.10
-Nodes (10): DisarrayD1, DisarrayF4, JoanaC6, KimoniRevisit, MinervaInitial, MinervaRevisit, TsumaraInitial, WintermutantD3 (+2 more)
+Cohesion: 0.11
+Nodes (9): JoanaC6, JoanaP4, MinervaInitial, SpinnerF1, SuperphreakIntro, SuperphreakQ1Win, TsumaraInitial, WintermutantL3 (+1 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.15
 Nodes (16): _baselined_values(), check(), _clean_text(), _fully_tokenized(), main(), _norm_decl(), padding/margin/gap/border-radius: each part must be a token, keyword,     non-sc, Return a reason string if this declaration uses a raw scale value.      `em` (fo (+8 more)
 
 ### Community 117 - "Community 117"
-Cohesion: 0.18
-Nodes (17): CoordinateFill, applyMaxSizeDelta(), applyMoveDelta(), BattleModel, creditIDAtCoordinate(), getWinner(), grownBody(), isFilled() (+9 more)
+Cohesion: 0.20
+Nodes (15): applyMaxSizeDelta(), applyMoveDelta(), creditIDAtCoordinate(), getWinner(), grownBody(), isFilled(), passableCells(), programByID() (+7 more)
 
 ### Community 118 - "Community 118"
 Cohesion: 0.23
@@ -863,8 +860,8 @@ Cohesion: 0.18
 Nodes (10): _index_pages(), Return (no_form, bare) variants of /app/static/index.html, re-read on change., guest_login_page(), _landing_html(), Public landing page: non-admin sections only, as a vertical carousel     wheel o, Public, auth-free résumé page for recruiters. Clean layout on the site     palet, recruiter_page(), /zombo -- the zombo.com Flash intro (1999), reproduced rather than embedded.  A (+2 more)
 
 ### Community 122 - "Community 122"
-Cohesion: 0.12
-Nodes (12): CacheControlMiddleware, Request, FastAPI entry point: app, lifespan, middleware, 401 redirects, wiring.  Routes l, unauthorized_handler(), The three top-level APIRouters, shared by every route module.  Defined here (not, emet_ask(), emet_recall(), emet_scope() (+4 more)
+Cohesion: 0.29
+Nodes (4): CacheControlMiddleware, Request, FastAPI entry point: app, lifespan, middleware, 401 redirects, wiring.  Routes l, unauthorized_handler()
 
 ### Community 123 - "Community 123"
 Cohesion: 0.11
@@ -883,20 +880,20 @@ Cohesion: 0.12
 Nodes (16): collectedCreditIDs, completedTutorial, firstClearNode, netmapStatus, lmm-clubcenter, lmm-techsupport, ph-prdatabase, smart-hq (+8 more)
 
 ### Community 127 - "Community 127"
-Cohesion: 0.13
-Nodes (9): JoanaF7, SuperphreakC1, SuperphreakP6, SuperphreakQ1Win, ZhangShanT2, ICharacter, IDialogueButton, IDialogueEntry (+1 more)
+Cohesion: 0.10
+Nodes (10): DisarrayD1, DisarrayL8, JoanaC5, JoanaF7, KimoniInitial, SpinnerP7, SuperphreakD5, SuperphreakL3 (+2 more)
 
 ### Community 128 - "Community 128"
-Cohesion: 0.24
-Nodes (14): AIController, getGreedyPath(), getNearest(), getPathToArea(), getPathToClosest(), getRangeFromArea(), sortBodyFromHead(), processMap() (+6 more)
+Cohesion: 0.26
+Nodes (13): AIController, getGreedyPath(), getNearest(), getPathToArea(), getPathToClosest(), getRangeFromArea(), sortBodyFromHead(), birdDistance (+5 more)
 
 ### Community 129 - "Community 129"
 Cohesion: 0.20
 Nodes (13): ccBaseNote(), ccBurned(), ccCtxWindow(), ccHue(), ccLimitsFetch(), ccSeg(), ccStateSave(), ccStatusOn() (+5 more)
 
 ### Community 130 - "Community 130"
-Cohesion: 0.12
-Nodes (16): Nodes, CreditDisplay(), CreditDisplayProps, HOVER_SOUNDS, Netmap3D(), ArrowScrollAPI, CameraControllerProps, secColor() (+8 more)
+Cohesion: 0.15
+Nodes (12): CreditDisplay(), CreditDisplayProps, HOVER_SOUNDS, Netmap3D(), ArrowScrollAPI, CameraControllerProps, ALL_DIRECTIONS, Direction (+4 more)
 
 ### Community 131 - "Community 131"
 Cohesion: 0.13
@@ -915,8 +912,8 @@ Cohesion: 0.12
 Nodes (15): CameraController, Component Structure, Context, Coordinate System, Corp Geometry Mapping, Design Decisions, Files Changed, Key Components (+7 more)
 
 ### Community 135 - "Community 135"
-Cohesion: 0.23
-Nodes (13): _attach_rulings(), _card_summary(), _keyword_rules(), _load_cards(), _load_rule_lines(), _load_rulings(), lookup_card(), lookup_rule() (+5 more)
+Cohesion: 0.47
+Nodes (5): emet_ask(), emet_recall(), emet_scope(), Request, Owner-only /emet page + JSON routes wrapping Wai's "emet" knowledge-graph MCP.
 
 ### Community 136 - "Community 136"
 Cohesion: 0.20
@@ -927,20 +924,20 @@ Cohesion: 0.15
 Nodes (9): public_status(), Read-only SDCP status listener for the printer.  The printer PUSHES a `sdcp/stat, Whitelist the pushed status down to what a public page may show. No     identifi, One shared read-only socket; latest push cached for every reader., Listen for pushes until nobody has read for _IDLE_STOP_S., Latest cached push, or None while the printer is unreachable. Waits         brie, _Status, printer_status_route() (+1 more)
 
 ### Community 138 - "Community 138"
-Cohesion: 0.16
-Nodes (8): FadingTile, GridProgram, GridProgramProps, GridProgramState, ProgramMenu, ProgramMenuProps, IGridActiveProgram, coordinateKey()
+Cohesion: 0.14
+Nodes (9): FadingTile, GridProgram, GridProgramProps, GridProgramState, UploadZone, UploadZoneProps, UZ_IMAGE, IGridActiveProgram (+1 more)
 
 ### Community 139 - "Community 139"
-Cohesion: 0.26
-Nodes (9): zbFlashInit(), zbFlashMount(), zbLoadRuffle(), zbBegin(), zbInit(), zbOnPlayerReady(), zbPlay(), zbStart() (+1 more)
+Cohesion: 0.14
+Nodes (24): zbAudioStart(), zbAudioStop(), zbBuildPad(), zbEmit(), zbEnv(), zbHat(), zbKick(), zbNoiseBuf() (+16 more)
 
 ### Community 140 - "Community 140"
-Cohesion: 0.40
-Nodes (5): True iff Cloudflare attests the Turnstile token. Empty token short-circuits, require_auth(), require_guest_auth(), verify_turnstile(), HTTPAuthorizationCredentials
+Cohesion: 0.20
+Nodes (8): True iff Cloudflare attests the Turnstile token. Empty token short-circuits, require_auth(), require_guest_auth(), verify_turnstile(), The three top-level APIRouters, shared by every route module.  Defined here (not, The /graph page — graphify's self-contained codebase viz, re-served.  graph.html, FastAPI, HTTPAuthorizationCredentials
 
 ### Community 141 - "Community 141"
-Cohesion: 0.17
-Nodes (9): __TODO__, ACTION_KEYS, battleStyle, GAME_KEYS, stageActionKeys, stageSelectors, TutorialProps, TutorialState (+1 more)
+Cohesion: 0.16
+Nodes (13): Clog, Heal, Zap, BitMan, DataDoctor, DataDoctorPro, Fiddle, Guru (+5 more)
 
 ### Community 142 - "Community 142"
 Cohesion: 0.26
@@ -960,23 +957,23 @@ Nodes (12): extends, rules, alpha-value-notation, color-function-notation, custo
 
 ### Community 146 - "Community 146"
 Cohesion: 0.25
-Nodes (5): Modal, ModalState, PopupConfig, PopupProps, WarezState
+Nodes (3): Hackerman, HackermanProps, HackermanState
 
 ### Community 147 - "Community 147"
 Cohesion: 0.33
 Nodes (11): u(), 2551(), 262(), 2935(), 3790(), 6510(), 7463(), i() (+3 more)
 
 ### Community 148 - "Community 148"
-Cohesion: 0.18
-Nodes (10): Disarray, Joana, Kimoni, Leo, Minerva, Spinner, Superphreak, Tsumara (+2 more)
+Cohesion: 0.12
+Nodes (15): Disarray, Joana, Kimoni, Leo, Minerva, Spinner, Superphreak, Tsumara (+7 more)
 
 ### Community 149 - "Community 149"
 Cohesion: 0.18
 Nodes (10): Audio, Battle engine, Build and deploy, Nightfall — Architecture, Repo layout, Runtime component architecture, Saves, Serving topology (+2 more)
 
 ### Community 150 - "Community 150"
-Cohesion: 0.11
-Nodes (17): bg-hsl, cyan-hsl, ember-hsl, gray-hsl, green-hsl, orange-glow-hsl, orange-hsl, pink-hsl (+9 more)
+Cohesion: 0.10
+Nodes (20): bg-hsl, cyan-hsl, ember-hsl, gray-hsl, green-hsl, orange-glow-hsl, orange-hsl, pink-hsl (+12 more)
 
 ### Community 151 - "Community 151"
 Cohesion: 0.24
@@ -1100,7 +1097,7 @@ Nodes (5): ADHD calibration, How to talk — CAVEMAN ULTRA, Standing preferences
 
 ### Community 181 - "Community 181"
 Cohesion: 0.08
-Nodes (17): Loader, LoaderProps, NOOP_PLAYER, SaveFileName, saveFileNames, Modal, ModalButton, ModalConfig (+9 more)
+Nodes (15): Landing, LandingProps, LandingState, Loader, LoaderProps, NOOP_PLAYER, SaveFileName, saveFileNames (+7 more)
 
 ### Community 183 - "Community 183"
 Cohesion: 0.33
@@ -1125,10 +1122,6 @@ Nodes (4): Courts, How to Read a Pip Card Without a Chapter, Numerology Across t
 ### Community 188 - "Community 188"
 Cohesion: 0.29
 Nodes (4): AttackAnimation, AttackAnimationProps, Offset, delay()
-
-### Community 189 - "Community 189"
-Cohesion: 0.33
-Nodes (3): Landing, LandingProps, LandingState
 
 ### Community 190 - "Community 190"
 Cohesion: 0.25
@@ -1639,12 +1632,16 @@ Cohesion: 0.50
 Nodes (3): exchanges, id, started_at
 
 ### Community 321 - "Community 321"
-Cohesion: 0.15
-Nodes (12): 10. The CRT effect stack (`_CRT_FX`), 10a. The invariant, 10b. Zoom-lock, 10c. Dimming on the dense pages, 1. Deployment, 1d. nginx — the `--reload` 502, and the body-size 413, 2. Module graph, 3. Morning pipeline + scheduling (+4 more)
+Cohesion: 0.22
+Nodes (8): 10. The CRT effect stack (`_CRT_FX`), 10a. The invariant, 10b. Zoom-lock, 10c. Dimming on the dense pages, 1. Deployment, 1d. nginx — the `--reload` 502, and the body-size 413, 2. Module graph, exec-fn — Architecture (UML, Mermaid)
+
+### Community 322 - "Community 322"
+Cohesion: 0.33
+Nodes (4): IStaticMenuOptions, options, StaticMenuProps, StaticMenuType
 
 ### Community 355 - "Community 355"
 Cohesion: 0.50
-Nodes (4): 19. `/zombo` — a secret page with one third-party dependency, Before the click, the page is one line, Sizing: the movie FITS, and the pillars are sampled from it, The load path, and the three traps in it
+Nodes (4): 19. `/zombo` — a secret page, and one third-party dependency, One click, and it buys audio only, The fallback, which is also the first paint, The load path, and the two traps in it
 
 ### Community 553 - "Community 553"
 Cohesion: 0.32
@@ -1679,8 +1676,8 @@ Cohesion: 0.36
 Nodes (9): actionButton(), answerRef(), attach(), clear(), parse(), question(), retireAnswers(), runAction() (+1 more)
 
 ### Community 562 - "Community 562"
-Cohesion: 0.29
-Nodes (7): 12. The bottom nav, 12a. A non-ASCII label needs machinery that is deliberately NOT present, 12b. Standalone launch (home-screen / installed web app), 12c. The Exec bubble is not a nav entry, 12d. Exec's voice, and the panel, 12e. Page scroll, Click-outside-to-close must be decided in the CAPTURE phase
+Cohesion: 0.33
+Nodes (6): 12. The bottom nav, 12a. A non-ASCII label needs machinery that is deliberately NOT present, 12b. Standalone launch (home-screen / installed web app), 12c. The Exec bubble is not a nav entry, 12d. Exec's voice, and the panel, 12e. Page scroll
 
 ### Community 563 - "Community 563"
 Cohesion: 0.33
@@ -1738,30 +1735,34 @@ Nodes (3): load(), restoreMsg(), toolSysText()
 Cohesion: 0.50
 Nodes (4): 14. `/tarot` — the reading surface, 14a. The status bar carries what the chat no longer says, 14b. Narration paces the typewriter, 14c. Ambient music, and why the level is measured
 
+### Community 577 - "Community 577"
+Cohesion: 0.50
+Nodes (4): 3. Morning pipeline + scheduling, 3a. Morning cron sequence, 3b. scheduler.py — the time model, rd.json concurrency — `helpers._RD_LOCK`
+
 ### Community 578 - "Community 578"
 Cohesion: 0.24
 Nodes (8): consult_oracle(), queueUpdate(), dropTarget(), isoToday(), tdClearPreview(), tdFinish(), tdMkPreview(), tdPlacePreview()
 
 ### Community 579 - "Community 579"
-Cohesion: 0.21
-Nodes (15): DataPack, UploadZoneProps, Coordinate, CoordinateArray, CoordinateMap, IGameAI, IGridActiveEntity, IGridEntity (+7 more)
+Cohesion: 0.25
+Nodes (13): DataPack, Coordinate, CoordinateArray, CoordinateFill, IGameAI, IGridActiveEntity, IGridEntity, ICredit (+5 more)
 
 ## Knowledge Gaps
-- **1542 isolated node(s):** `dead-file-guard.sh script`, `deploy-healthcheck.sh script`, `docs-commit-guard.sh script`, `git-stash-guard.sh script`, `session-context.sh script` (+1537 more)
+- **1543 isolated node(s):** `dead-file-guard.sh script`, `deploy-healthcheck.sh script`, `docs-commit-guard.sh script`, `git-stash-guard.sh script`, `session-context.sh script` (+1538 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **101 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **97 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `u()` connect `Community 147` to `Community 63`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `FastAPI` connect `Community 122` to `Community 0`, `Community 131`, `Community 132`, `Community 5`, `Tarot Core Framework`, `Community 8`, `Community 140`, `Community 85`, `Community 59`, `Community 92`, `Community 31`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `FastAPI` connect `Community 140` to `Community 0`, `Community 131`, `Community 132`, `Community 5`, `Tarot Core Framework`, `Community 135`, `Community 8`, `Community 85`, `Community 122`, `Community 59`, `Community 92`, `Community 31`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **Why does `2551()` connect `Community 147` to `Google Calendar Sync`, `Community 2`, `Community 19`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **What connects `One-off: restore scheduled_day on archived cards that lost it.  _apply_patch_sch`, `Remove heredoc bodies (and optionally quoted strings) from a command.`, `dead-file-guard.sh script` to the rest of the system?**
-  _1882 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1883 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.11462450592885376 - nodes in this community are weakly interconnected._
 - **Should `Tarot Major Arcana Meanings` be split into smaller, more focused modules?**
