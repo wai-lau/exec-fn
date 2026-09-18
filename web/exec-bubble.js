@@ -396,6 +396,13 @@
           }
         }
       }
+      // Speak as soon as the TEXT is final — the read loop above has just
+      // ended, so fullText is complete — rather than after the reveal. This
+      // used to sit below `await typer.finish()`, which is the whole typewriter
+      // run, so the voice only opened its mouth once the last character had
+      // landed and a long reply was read out to a screen that had finished
+      // saying it. The reveal and the narration now run together.
+      if (fullText && window.execVoice) execVoice.speak(fullText);
       await typer.finish();
       cur.remove();
       if (fullText) {
@@ -409,7 +416,7 @@
                              function (t) { addMsg('sys', t); }, ch.clean);
         }
         messages.push({ role: 'assistant', content: fullText });
-        if (window.execVoice) execVoice.speak(fullText);  // narrate Exec's reply
+        // the replay glyph, not the narration — that already started above
         if (window.execVoice) streamDiv.insertBefore(execVoice.mark('assistant', fullText), streamDiv.firstChild);
       }
     } catch (e) {
