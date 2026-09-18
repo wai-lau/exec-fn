@@ -15,11 +15,11 @@ from fastapi.responses import HTMLResponse
 from routers import guest_protected
 from pages import _tmpl, _index_pages, _CHROME_LINK
 
-_ZOMBO_LINK = '<link rel="stylesheet" href="/zombo.css?v=1">'
+_ZOMBO_LINK = '<link rel="stylesheet" href="/zombo.css?v=2">'
 _ZOMBO_SCRIPTS = (
-    '<script src="/zombo-audio.js?v=1"></script>'
-    '<script src="/zombo.js?v=1"></script>'
-    '<script src="/zombo-flash.js?v=1"></script>'
+    '<script src="/zombo-audio.js?v=2"></script>'
+    '<script src="/zombo.js?v=2"></script>'
+    '<script src="/zombo-flash.js?v=2"></script>'
 )
 
 # Ruffle's WASM is ~1MB and the .swf comes from a third host, so both DNS/TLS
