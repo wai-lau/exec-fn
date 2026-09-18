@@ -2137,6 +2137,16 @@ A surface that builds its own marker ELEMENT — the Exec panel, whose mark is a
 
 ---
 
+### The narration starts with the reveal, not after it
+
+`streamResponse()` in exec-bubble.js reads the SSE stream, pushes each delta into the typewriter, and then `await typer.finish()`. **`execVoice.speak(fullText)` must sit BEFORE that await**, right where the read loop ends and `fullText` is final.
+
+It used to sit after, among the settle-pass work — so the voice waited out the entire typewriter run and only began once the last character had landed. On a long reply that is the whole point of the narration gone: the screen has finished saying it. Measured with a stubbed stream at 430x932: speech at 740ms, reveal complete at 3396ms, i.e. **2656ms of silence that should have been narration**.
+
+Moving it earlier is safe in the other direction because **`speak()` is fire-and-forget** — it strips markdown and any `[bracketed]` row, opens the TTS socket and returns; nothing awaits it. Had it been blocking, putting it first would have delayed the text instead.
+
+`addMsg()` — the path nudges and monitor comments take — renders with `innerHTML` and no typewriter at all, so it speaks immediately and never had this bug. Only the streamed chat reply did.
+
 ## 19. `/zombo` — a secret page with one third-party dependency
 
 The 1999 zombo.com Flash intro, **the real movie**: `web/zombo-flash.js` loads the [Ruffle](https://ruffle.rs) emulator from jsDelivr and points it at the `.swf` on **welcometozombo.com** ([Jonty/zombocom](https://github.com/Jonty/zombocom)).
