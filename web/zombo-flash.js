@@ -41,9 +41,8 @@ function zbFlashMount() {
    * failure tore down a perfectly healthy player. The event is the signal that
    * the movie is real and has dimensions. */
   player.addEventListener('loadedmetadata', function () {
-    // zombo.js owns the reproduction, the overlay and the gesture
-    zbPlayer = player;
-    zbTakeOver();
+    // zombo.js owns the overlay, the gesture and the band behind the letterbox
+    zbOnPlayerReady(player);
   });
   player.load({ url: ZB_SWF, base: ZB_BASE }).catch(function () {
     player.remove();

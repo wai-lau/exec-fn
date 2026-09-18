@@ -15,11 +15,10 @@ from fastapi.responses import HTMLResponse
 from routers import guest_protected
 from pages import _tmpl, _index_pages, _CHROME_LINK
 
-_ZOMBO_LINK = '<link rel="stylesheet" href="/zombo.css?v=2">'
+_ZOMBO_LINK = '<link rel="stylesheet" href="/zombo.css?v=3">'
 _ZOMBO_SCRIPTS = (
-    '<script src="/zombo-audio.js?v=2"></script>'
-    '<script src="/zombo.js?v=2"></script>'
-    '<script src="/zombo-flash.js?v=2"></script>'
+    '<script src="/zombo.js?v=3"></script>'
+    '<script src="/zombo-flash.js?v=3"></script>'
 )
 
 # Ruffle's WASM is ~1MB and the .swf comes from a third host, so both DNS/TLS
@@ -28,15 +27,6 @@ _ZOMBO_PRECONNECT = (
     '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
     '<link rel="preconnect" href="https://welcometozombo.com" crossorigin>'
 )
-
-# a red Z on nothing -- the one letter the intro's caption picks out
-_ZOMBO_FAVICON = (
-    '<link rel="icon" href="data:image/svg+xml,'
-    "%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E"
-    "%3Ctext%20x='8'%20y='13.5'%20font-size='15'%20font-weight='bold'%20"
-    "text-anchor='middle'%20fill='%23e40000'%3EZ%3C/text%3E%3C/svg%3E\">"
-)
-
 
 @guest_protected.get("/zombo", response_class=HTMLResponse)
 async def zombo_page():
@@ -49,7 +39,5 @@ async def zombo_page():
     """
     _, bare = _index_pages()
     page = bare.replace("<title>wai-lau.net</title>", "<title>ZOMBO</title>", 1)
-    page = page.replace('<link rel="icon" type="image/png" href="favicon.png?v=3">',
-                        _ZOMBO_FAVICON, 1)
     page = page.replace("</head>", _ZOMBO_PRECONNECT + _CHROME_LINK + _ZOMBO_LINK + "</head>", 1)
     return page.replace("</body>", _tmpl("zombo.html") + _ZOMBO_SCRIPTS + "</body>", 1)

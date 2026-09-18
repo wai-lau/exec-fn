@@ -2080,17 +2080,17 @@ A surface that builds its own marker ELEMENT — the Exec panel, whose mark is a
 
 ---
 
-## 19. `/zombo` — a secret page, and one third-party dependency
+## 19. `/zombo` — a secret page with one third-party dependency
 
-The 1999 zombo.com Flash intro. **The real movie, not a copy of it**: `web/zombo-flash.js` loads the [Ruffle](https://ruffle.rs) Flash emulator from jsDelivr and points it at the `.swf` on **welcometozombo.com** ([Jonty/zombocom](https://github.com/Jonty/zombocom), which mirrors the original under Ruffle).
+The 1999 zombo.com Flash intro, **the real movie**: `web/zombo-flash.js` loads the [Ruffle](https://ruffle.rs) emulator from jsDelivr and points it at the `.swf` on **welcometozombo.com** ([Jonty/zombocom](https://github.com/Jonty/zombocom)).
 
-**The `.swf` files are hotlinked, never vendored.** That host sends `access-control-allow-origin: *` on its page and on all three `.swf` files, so the visitor's browser fetches them from the host that already publishes them. Mirroring them would mean committing ~350KB of someone else's unlicensed Flash into this repo to serve from wai-lau.net, and there is no reason to: the CORS wildcard is that server saying yes to exactly this arrangement. **The tradeoff is that `/zombo` has a dependency no other page here has — somebody else's server.** That is what the fallback below is for.
+**The `.swf` files are hotlinked, never vendored.** That host sends `access-control-allow-origin: *` on its page and on all three `.swf` files, so the visitor's browser fetches them from the host that already publishes them, and nothing of anyone else's is committed here. The cost is a dependency no other page has: somebody else's server.
 
-**It is unlinked on purpose.** No `_NAV_*` entry, no `_LANDING_HUE_ORDER` spoke, no link from any page: it is reached by typing the URL, which is the whole joke. **Unlisted is not a tier**, so it is still `guest_protected` (Turnstile), still in `_GUEST_NEXT_ALLOWED`, still in the 401 handler's guest prefix tuple, and still asserted in `tests/test_smoke.py`'s `GUEST_PAGES` — a page nobody links to is exactly the one that would rot into being wide open unnoticed.
+**The page is the movie and one line, and nothing else.** A CSS reproduction of the intro used to sit underneath as a fallback — wordmark, loader cluster, caption crawl, plus `zombo-audio.js` synthesising a bed and voice for it. All of it was deleted 2026-09-17. If the movie cannot mount, the page says so rather than drawing an imitation of it.
 
-It lives in its own module, **`api/routes_zombo.py`**, built off the **bare shell** like `/recruiter` rather than through `_render_page`: the bottom nav and the five-layer CRT stack over a white 1999 Flash intro would defeat the only thing the page is. (It is also its own module because adding it to routes_views pushed that file to 502 lines and the refactor gate rejected the commit.)
+**It is unlinked on purpose** — no `_NAV_*` entry, no `_LANDING_HUE_ORDER` spoke, no link from any page; it is reached by typing the URL. **Unlisted is not a tier**, so it is still `guest_protected` (Turnstile), still in `_GUEST_NEXT_ALLOWED`, still in the 401 handler's guest prefix tuple, and still asserted in `tests/test_smoke.py`'s `GUEST_PAGES`. It lives in `api/routes_zombo.py`, built off the **bare shell** like `/recruiter`: the bottom nav and the CRT stack over a white 1999 Flash intro would defeat the only thing the page is.
 
-### The load path, and the two traps in it
+### The load path, and the three traps in it
 
 ```
 zbFlashInit()  HEAD welcometozombo.com/welcomeclip.swf   ← is the host alive?
@@ -2099,42 +2099,46 @@ zbLoadRuffle() ← ~1MB of emulator WASM from jsDelivr
      │
 zbFlashMount() player.load({url, base})
      │ 'loadedmetadata'
-zbTakeOver()   hide the reproduction, hand the gesture to Ruffle
+zbOnPlayerReady()  ← the click, if already made, is spent here
 ```
 
-**1. `inrozxa.swf` is a 7.9KB LOADER, and it pulls the movie by a RELATIVE path.** Without Ruffle's `base` config it resolves that against *this* page — so the browser asked wai-lau.net for `/welcomeclip.swf`, got a 404, and played a blank 1360-frame white rectangle while `load()` resolved perfectly happily. `base: 'https://welcometozombo.com/'` is what sends the child fetches back to the host that has them.
+**1. `inrozxa.swf` is a 7.9KB LOADER that pulls the movie by a RELATIVE path.** Without Ruffle's `base` it resolves against *this* page, so the browser asked wai-lau.net for `/welcomeclip.swf`, got a 404, and played a blank 1360-frame white rectangle while `load()` resolved perfectly happily.
 
-**2. `load()` resolves BEFORE `player.metadata` is populated.** Measured: at the promise's resolve `metadata` is `null`, and four seconds later it is `{550×400, 1360 frames}`. A version of this treated that empty metadata as failure and tore down a completely healthy player. The takeover is therefore gated on the player's **`loadedmetadata` event**, which is the actual signal that the movie is real and has dimensions — not on the promise, and never on a timer.
+**2. `load()` resolves BEFORE `player.metadata` is populated.** Measured: `null` at the promise's resolve, `{550×400, 1360 frames}` four seconds later. A version of this read metadata there, treated the empty value as failure, and tore down a healthy player. The handover is gated on the **`loadedmetadata` event** — never the promise, never a timer.
 
-The HEAD probe runs *first*, before the emulator is fetched, so a dead upstream costs one request instead of a megabyte. Failure needs no handler anywhere in this file: the fallback is already on screen.
+**3. The HEAD probe runs FIRST**, before the emulator is fetched, so a dead upstream costs one request instead of a megabyte.
 
-### The fallback, which is also the first paint
+### Before the click, the page is one line
 
-`web/zombo.{css,js}` is a CSS reproduction of the same intro, measured off frames of a capture ("Zombo.com flash intro in 1999", Web Design Museum) with PIL rather than eyeballed. It paints immediately, so the page is never a white rectangle waiting on a WASM download, and it keeps running if the upstream host is gone. `zbTakeOver()` stands it down.
+Until the click the page is white paper and `#zb-begin`: *click Anywhere to Begin the.experience*, one `<span>` per character, cycling the wordmark's seven hues by `:nth-child(7n+k)` and nudged off the baseline by five offsets on `:nth-child(5n+k)` — five against seven means the pattern repeats every 35 characters, i.e. never at this length. Set in `--font-mono`, the site's body face.
 
-| Element | Measured | How it is drawn |
-|---|---|---|
-| Wordmark | nine letters, hues sampled per glyph column | nine `<span>`s, coloured by `:nth-child` |
-| Header wash | green → paper by ~13% of frame | `--zb-band-hsl`, `linear-gradient` to alpha 0 |
-| Loader | 7 pastel circles, hexagon-around-one, petal ⌀ 11.5% of frame width | `--zb-dot`, `mix-blend-mode: multiply` |
-| Caption | the litany, black bold, every **Z** in red, at 63% of frame | `.zb-z`; `web/zombo-audio.js` speaks it |
+**Two things that bite in that one rule.** `translate` only applies to the spans if they are `inline-block` — and `inline-block` is exactly what eats the spaces, since a span holding only `" "` has its whitespace collapsed to zero width and the whole line runs together as one word. `white-space: pre` keeps each one its real width.
 
-Its palette is a **deliberate departure from the site's**, the same call `/recruiter` makes with `--cv-*`: a period reproduction cannot be rendered in Ono-Sendai green. The `--zb-*-hsl` channel triples are defined in `web/zombo.css`'s `:root` (so `lint-colors` counts them as defined and every consumer stays on the `hsl(var(--X-hsl) / α)` form), every alpha is on the snap scale, and the tuples were registered with `lint-colors.py --update`.
+Ruffle runs `autoplay: 'off'` and `zbPlay()` does `play()` + `unmuteAudio()` together on that one gesture, so the click **starts** the movie rather than revealing one already part-way through. Ruffle's own unmute control is a speaker button — chrome the intro never had — so it is suppressed (`unmuteOverlay: 'hidden'`).
 
-Three things bit while building it, all found by screenshotting WebKit at 430×932 and 1280×720:
+**The pre-click hide is `opacity`, and it has to be.** `visibility: hidden` is inherited but a descendant can override it, and Ruffle's click-to-play overlay lives in the player's **shadow DOM** and sets `visibility: visible` on itself, which put a large orange play button squarely on the begin line. Opacity composites the whole subtree and cannot be un-set from inside. `display: none` is wrong too: the player measures itself against its real box.
 
-- **Flash scaled its stage as one unit; percentages of the viewport do not.** Every vertical position is a fraction of **`--zb-h` (`min(100vh, 155vw)`)**, not of the viewport, which otherwise stretched the intro's white void down the whole phone.
-- **The green band is measured off the LETTERS, not the frame.** The wordmark is width-bounded (`--zb-mark`) so nine letters still land on the capture's 61% of frame width on a phone — which makes the type shorter than a frame-sized band, and such a band swallowed the wordmark whole.
-- **The loader's paper-white box painted over the caption.** Its petals multiply, and a blend needs a backdrop, so `.zb-flower` carries `isolation: isolate` + an opaque background (invisible on a white page). Its bounds reach up past the caption's 63%, and being later in the DOM it won — leaving only the caption's first glyph visible. The caption takes `z-index: var(--z-raised)`.
+**Clicking before the movie has mounted is neither a no-op nor an error.** The click is remembered (`zbClicked`), the line changes to *loading zombo.com* — deliberately not "unreachable", because at click time a missing player is equally a movie still downloading and the page cannot tell them apart — and `zbOnPlayerReady()` starts it the moment it lands.
 
-### One click, and before it the page is only that line
+### Sizing: the movie FITS, and the pillars are sampled from it
 
-**Until the click the page is white paper and the begin line — nothing else.** No wordmark, no loader, no caption. Both the movie and the reproduction are fully BUILT underneath (the `.swf` is fetched and parsed; Ruffle just holds it) and both sit at `opacity: 0`, so the click **reveals and starts** rather than unmuting something the visitor has already been watching.
+The movie is **550×400** and must never be cropped — the loader cluster falling off the bottom edge is the failure this sizing exists to prevent. So `--zb-mh` is `min(100dvh, calc(100vw * 8 / 11))`: the height it fits at, never taller than the viewport. `--zb-mt` centres the remainder. The player is sized to exactly that box (`width: min(100%, calc(var(--zb-mh) * 11 / 8))`) and centred.
 
-Ruffle therefore runs `autoplay: 'off'`, and `zbPlay()` does `play()` + `unmuteAudio()` together on that one gesture. Its own unmute control is a speaker button — chrome the intro never had — so it is suppressed (`unmuteOverlay: 'hidden'`) and `#zb-begin` takes its place: a transparent full-bleed overlay reading *click anywhere to begin the experience*, one character per `<span>`, cycling the wordmark's seven hues by `:nth-child(7n+k)`.
+Two things are easy to get wrong there:
 
-**The pre-click hide is `opacity`, and it has to be.** `visibility: hidden` is inherited but a descendant can override it — and Ruffle's click-to-play overlay lives in the player's **shadow DOM** and sets `visibility: visible` on itself, which put a large orange play button squarely on the begin line. Opacity composites the whole subtree and cannot be un-set from inside it. `display: none` is also wrong here: the player measures itself against its real box, so it needs to keep one.
+- **`<ruffle-player>` is a custom element, so it is `inline` unless told otherwise**, and `margin: auto` does not centre an inline box. Without `display: block` the movie sits hard against the left edge with both pillars bunched on the right.
+- **The bars are children of `#zb-flash` too.** A `#zb-flash > *` sizing rule carries id specificity and beats `.zb-bar`, so the bars got sized as if each were the movie. The selector is `#zb-flash > :not(.zb-bar)`.
 
-The same overlay serves both paths — it starts and unmutes Ruffle if the movie is up, and starts the reproduction's caption crawl and synthesised bed if it is not. **An early click is carried over**: if the visitor clicks before Ruffle finishes loading, the gesture is spent on the fallback, so `zbTakeOver()` plays the movie itself when it finds the click already made. And `zbFallbackStart()` starts the caption **unconditionally**, recording only whether the synth came up — a refused AudioContext is no reason to show a blank page.
+Fitting the movie leaves **pillars** on any window wider than 11:8, and the movie's green header wash stops at its own edges. `zbPaintBars()` fills them by stretching `ZB_SAMPLE` (6) of the movie's own edge columns across each bar every frame, reading the canvas out of Ruffle's shadow root. A fixed CSS gradient was the first attempt and is wrong in principle — it hardcodes what the opening frames happen to look like and drifts the moment the movie animates. Stretching the real pixels stays correct for free.
 
-There is deliberately **no mute button** — the page is meant to read as a 1999 artifact, and a UI control on top of it is not that. Tab mute is the escape hatch.
+The alternatives were all measured and all worse:
+
+| Approach | Result |
+|---|---|
+| `scale: 'noBorder'` | covers by whichever axis needs it — on a portrait phone that is HEIGHT, cropping the wordmark to "mbo.co" |
+| `scale: 'exactFit'` | stretches ~2.4× vertically on a portrait phone |
+| `backgroundColor: 'transparent'` | breaks this movie's rendering outright — the whole page came back solid green |
+| width × 11:8, overflow at the bottom | band reaches the edges, but the loader cluster gets cropped on a short window |
+| **fit + sampled pillars** | nothing cropped, band edge to edge, and it tracks the movie |
+
+**What cannot be changed from here:** the spacing *inside* the movie — the gap between the wordmark and the loader cluster — is baked into the `.swf`. Only the framing of the whole movie is ours.
