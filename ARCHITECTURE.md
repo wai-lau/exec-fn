@@ -1606,6 +1606,10 @@ The link-bubble carries `.exec-under-fx` (`z-index: var(--z-bubble)` < the fx's 
 
 Bubble position persists in `localStorage` (`exec-bpos`), clamped to viewport. Unread monitor count shows as a badge on it.
 
+**While the panel is open the bubble is HIDDEN** (`body:has(#exec-panel.open) #exec-bubble { display: none }`, exec-bubble.css — the same rule the card dialog already applies for the same reason). It paints at `--z-max` and the panel at `--z-bubble`, so wherever it rests it is ABOVE the panel and swallows every tap inside its 50px circle — and the tap it swallows is `togglePanel()`, i.e. CLOSE. At phone width the panel is full-screen and the bubble's resting corner (right 14px, bottom `--nav-h + 10`) lands squarely on the tail of the last choice row and on the composer's `#exec-mute` / `#exec-ph-close`: measured at 430x932, bubble `366..416 x 807..857` over a choice row at `12..418 x 808..841`. So tapping the last answer of a nudge MINIMISED the panel instead of answering it (reported 2026-09-18). The bubble's job is to OPEN; the panel closes from its own `[x]`, or a tap outside where there is an outside — on a phone the panel covers the screen, so `[x]` is the close.
+
+The second half of the same failure is **WebKit touch adjustment**: a tap that lands on no clickable element snaps to the nearest one within ~10px, and the composer's `[x]` is a 29x19 target directly under the transcript's last line (`[x]` at `389..418 x 841..860` against a row ending at 841). `#exec-term` therefore carries `var(--space-2)` of BOTTOM padding as a tap guard, not as rhythm — without it a tap aimed at the last answer, landing a few px low, still closed the panel. Pinned by `tests/test_exec_bubble_overlap_browser.py` (WebKit, 430x932): nothing of the bubble may intersect the open panel, every choice button must be the topmost element at its own left/centre/right, and tapping the row's last answer must send it and leave the panel open.
+
 (The standalone `/directives` timeline page was removed — that timeline now lives in the hq today column.)
 
 ### 12d. Exec's voice, and the panel
