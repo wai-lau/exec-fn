@@ -75,6 +75,18 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   #exec-panel.open { transform: translateX(0); }
 }
 
+/* The bubble paints at --z-max, ABOVE the panel, so wherever it rests while
+   the panel is open it swallows every tap inside its 50px circle — and the tap
+   it swallows is togglePanel(), which CLOSES the panel. At phone width the
+   panel is full-screen and the bubble's resting corner (right 14px, bottom
+   --nav-h + 10) lands on the tail of the last choice row and on the composer's
+   mute/[x]: measured at 430x932, bubble 366..416 x 807..857 over a choice row
+   at 12..418 x 808..841, so tapping the last answer of a nudge MINIMISED the
+   panel instead of answering it (reported 2026-09-18). The bubble's job is to
+   OPEN; the panel closes from its own [x], or a tap outside where there is an
+   outside. Same rule the card dialog already applies (card-dialog.js). */
+body:has(#exec-panel.open) #exec-bubble { display: none; }
+
 /* No vertical padding: these sit ON the prompt line, and any of their own
    height makes the row taller than the text it is supposed to continue. */
 #exec-ph-close {
@@ -153,8 +165,13 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 }
 #exec-todo-input::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 
+/* The bottom padding is a TAP GUARD, not rhythm: the composer's [x] (close) and
+   mute are 19px targets directly under the transcript's last line, and WebKit
+   touch adjustment snaps a near-miss tap to the nearest clickable — so a tap
+   aimed at the last answer of a nudge, landing a few px low, closed the panel.
+   Measured: [x] at 389..418 x 841..860 against a choice row ending at 841. */
 #exec-term {
-  flex: 1; overflow-y: auto; padding: var(--space-3) var(--space-4) 0;
+  flex: 1; overflow-y: auto; padding: var(--space-3) var(--space-4) var(--space-2);
   font-size: var(--fs-sm); line-height: var(--lh-tight);
   color: hsl(var(--green-hsl) / 1);
   display: flex; flex-direction: column;
