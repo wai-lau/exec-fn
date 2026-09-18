@@ -1,31 +1,84 @@
-fastapi
-uvicorn
-# Without this, uvicorn --reload silently falls back to StatReload, which POLLS:
-# it rglob()s every reload dir for *.py every 0.25s and stats each hit. Installed,
-# uvicorn picks WatchFilesReload instead (inotify -- event-driven, ~0% idle CPU),
-# and --reload-include/--reload-exclude start working at all. Not optional here:
-# the poller was burning 44% of a core around the clock on a 2-core box.
-watchfiles
+# GENERATED -- DO NOT EDIT BY HAND. Edit api/requirements.in, then run:
+#     bash scripts/lock-requirements.sh
+#
+# A full lock: direct deps AND every transitive, pinned to the exact set
+# verified running in the container. Unpinned, each rebuild re-resolved the
+# whole tree -- which on 2026-09-17 swapped anthropic + mcp onto httpx2,
+# dropped the transitive httpx that api/auth.py imports by name, and 502'd
+# every route. Both httpx and httpx2 appear below on purpose: httpx2 is what
+# anthropic and mcp now want, httpx is what api/auth.py imports.
+#
+# Locked 2026-09-18 against python:3.12-slim.
 
-# DIRECTLY IMPORTED BY api/ -- declared even though something else also pulls them.
-# This list is not decoration: `httpx` is imported by auth.py and used to be a
-# transitive of anthropic + mcp, and on 2026-09-17 a rebuild resolved both to
-# versions that require **httpx2** instead. httpx vanished, main.py failed at
-# import, and every route 502'd. Nothing here is pinned, so a rebuild is free to
-# re-resolve the whole tree; anything api/ imports by name must be its own line.
-httpx
-pydantic
-starlette
-
-pillow
-reportlab
-python-multipart
-anthropic
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
-pymupdf
-icalendar
-websockets
-discord.py
-mcp
+aiohappyeyeballs==2.7.1
+aiohttp==3.14.3
+aiosignal==1.4.0
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anthropic==1.6.0
+anyio==4.15.1
+attrs==26.1.0
+certifi==2026.7.22
+cffi==2.1.1
+charset-normalizer==3.5.1
+click==8.5.0
+cryptography==50.0.1
+discord.py==2.7.1
+docstring_parser==0.18.0
+fastapi==0.141.1
+frozenlist==1.8.0
+google-api-core==2.38.0
+google-api-python-client==2.200.0
+google-auth-httplib2==0.4.2
+google-auth-oauthlib==1.4.1
+google-auth==2.58.0
+googleapis-common-protos==1.75.3
+h11==0.16.0
+httpcore2==2.13.0
+httpcore==1.0.9
+httplib2==0.32.0
+httpx2==2.13.0
+httpx==0.28.1
+icalendar==7.3.0
+idna==3.20
+jiter==0.17.0
+jsonschema-specifications==2025.9.1
+jsonschema==4.26.0
+mcp-types==2.2.0
+mcp==2.2.0
+multidict==6.8.0
+oauthlib==3.3.1
+opentelemetry-api==1.44.0
+pillow==12.3.0
+propcache==0.5.4
+proto-plus==1.28.4
+protobuf==7.36.2
+pyasn1==0.6.4
+pyasn1_modules==0.4.2
+pycparser==3.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+PyJWT==2.14.0
+pymupdf==1.28.2
+pyparsing==3.3.2
+python-dateutil==2.9.0.post0
+python-multipart==0.0.32
+referencing==0.37.0
+reportlab==5.0.1
+requests-oauthlib==2.0.0
+requests==2.34.2
+rpds-py==2026.6.3
+six==1.17.0
+sniffio==1.3.1
+sse-starlette==3.4.11
+starlette==1.6.0
+truststore==0.10.4
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+tzdata==2026.4
+uritemplate==4.2.0
+urllib3==2.8.0
+uvicorn==0.53.0
+watchfiles==1.2.0
+websockets==17.1
+yarl==1.25.1

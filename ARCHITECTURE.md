@@ -79,6 +79,31 @@ exact string, so an upstream edit would have broken the build silently. Removing
 the stage drops ~18MB of binary, the whole golang pull, the git clone, and that
 patch.
 
+**Python deps are locked, in two files.** `api/requirements.in` holds the ~18
+DIRECT dependencies and all the explanatory comments; `api/requirements.txt` is a
+**generated** full lock — every package including transitives, pinned `==`, 72 of
+them. The Dockerfile installs the lock and never the `.in`. Regenerate with
+`bash scripts/lock-requirements.sh`, which fresh-resolves inside a throwaway
+`python:3.12-slim` (the same base the image uses, so the pins match what the
+image will actually get rather than what the host happens to have), refuses to
+write an empty result, and prints the rebuild command — because **a resolve
+verifies nothing**.
+
+The lock exists because of a specific outage. Nothing was pinned, so every
+rebuild re-resolved the whole tree from scratch. On 2026-09-17 a rebuild resolved
+`anthropic` and `mcp` to versions requiring **`httpx2`** rather than `httpx` — and
+`api/auth.py` imports `httpx` **by name**, having only ever received it as a
+transitive. It vanished, `main.py` died at import, and every route 502'd. Both
+`httpx` and `httpx2` sit in the lock on purpose now: `httpx2` is what anthropic
+and mcp want, `httpx` is what `auth.py` imports.
+
+**The rule that falls out of it:** anything `api/` imports by name gets its own
+line in `requirements.in`, no matter who else happens to pull it in. An audit of
+every direct import against the declared set at the time found three such gaps —
+`httpx`, `pydantic` and `starlette`. (`fontTools` also showed as missing, but it
+belongs to `api/scripts/subset_cv_fonts.py`, a one-off font-subsetting script the
+app never imports — not a runtime dep.)
+
 **`rmapi-auth` is deliberately still mounted.** It holds a real authenticated
 reMarkable device token (`rmapi.conf`, 1.5KB, last written 2026-04-28), and
 re-pairing a device is a manual physical act. A declared-but-unmounted compose

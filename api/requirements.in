@@ -1,0 +1,45 @@
+# DIRECT dependencies only -- the ones api/ actually asks for. Edit THIS file.
+#
+# `requirements.txt` next to it is a LOCK: every package, transitives included,
+# pinned to the exact version verified running in the container. The Dockerfile
+# installs the lock, never this file. Regenerate with:
+#
+#     bash scripts/lock-requirements.sh
+#
+# Why a lock at all: nothing here used to be pinned, so each rebuild re-resolved
+# the whole tree from scratch. On 2026-09-17 that resolved `anthropic` and `mcp`
+# to versions requiring **httpx2** instead of httpx, the transitive httpx that
+# auth.py imports by name disappeared, main.py died at import, and every route
+# 502'd. An unpinned requirements file means the image you build today is not the
+# image you built last week, and nothing tells you which dependency moved.
+
+fastapi
+uvicorn
+starlette
+pydantic
+
+# Without this, uvicorn --reload silently falls back to StatReload, which POLLS:
+# it rglob()s every reload dir for *.py every 0.25s and stats each hit. Installed,
+# uvicorn picks WatchFilesReload instead (inotify -- event-driven, ~0% idle CPU),
+# and --reload-include/--reload-exclude start working at all. Not optional here:
+# the poller was burning 44% of a core around the clock on a 2-core box.
+watchfiles
+
+# Imported by name in auth.py. Do not assume anthropic or mcp still drag it in --
+# that assumption is exactly what caused the 2026-09-17 outage.
+httpx
+
+anthropic
+mcp
+discord.py
+
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+pillow
+reportlab
+pymupdf
+python-multipart
+icalendar
+websockets
