@@ -1,5 +1,22 @@
 fastapi
 uvicorn
+# Without this, uvicorn --reload silently falls back to StatReload, which POLLS:
+# it rglob()s every reload dir for *.py every 0.25s and stats each hit. Installed,
+# uvicorn picks WatchFilesReload instead (inotify -- event-driven, ~0% idle CPU),
+# and --reload-include/--reload-exclude start working at all. Not optional here:
+# the poller was burning 44% of a core around the clock on a 2-core box.
+watchfiles
+
+# DIRECTLY IMPORTED BY api/ -- declared even though something else also pulls them.
+# This list is not decoration: `httpx` is imported by auth.py and used to be a
+# transitive of anthropic + mcp, and on 2026-09-17 a rebuild resolved both to
+# versions that require **httpx2** instead. httpx vanished, main.py failed at
+# import, and every route 502'd. Nothing here is pinned, so a rebuild is free to
+# re-resolve the whole tree; anything api/ imports by name must be its own line.
+httpx
+pydantic
+starlette
+
 pillow
 reportlab
 python-multipart
@@ -7,7 +24,6 @@ anthropic
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
-git+https://github.com/ricklupton/rmscene.git
 pymupdf
 icalendar
 websockets

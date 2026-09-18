@@ -20,8 +20,27 @@ services:
       - ./graphify-out:/app/graphify-out:ro
       - ./mtg/data:/app/mtg/data
       - ./nightfall-incident:/app/nightfall
+      # KEPT ON PURPOSE though the rmapi binary is gone (2026-09-17). This volume
+      # holds a real authenticated reMarkable device token (`rmapi.conf`, last
+      # written 2026-04-28) -- re-pairing a device is a manual, physical act, so
+      # the token is not something to throw away to tidy a compose file. Left
+      # MOUNTED rather than merely declared, because a declared-but-unmounted
+      # compose volume counts as unused and `docker volume prune` would eat it.
+      # Costs ~1.5KB. Restore the feature by putting the builder stage back.
       - rmapi-auth:/root/.config/rmapi
       - gcal-auth:/root/.config/gcal
+    # nightfall-src/ is the GAME'S SOURCE tree (354MB, 29k entries incl. node_modules).
+    # Nothing at runtime reads it -- only the BUILT output is served (index.html,
+    # static/, wai-*.js, audio/), and webpack runs on the HOST, never in here. But it
+    # rode along inside the ./nightfall-incident bind mount, and uvicorn --reload
+    # rglob()s the whole /app tree looking for *.py, so those 29k entries were 85% of
+    # a walk that ran 4x a second: 0.21s per pass on a 0.25s interval = 44% of a core,
+    # permanently, for 8 days straight. An empty tmpfs over that one path masks it out
+    # of the container (34,187 entries walked -> 5,177) and costs 0 bytes, since
+    # nothing ever writes there. Docker mounts shallowest-first, so this lands ON TOP
+    # of the ./nightfall-incident bind above it; the host copy is untouched.
+    tmpfs:
+      - /app/nightfall/nightfall-src
 
   # Always-on GLaDOS voice (CPU Piper). Built separately from the hosaka repo:
   #   docker build -f ~/src/hosaka/Dockerfile.piper -t hosaka-piper:latest ~/src/hosaka
