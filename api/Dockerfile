@@ -1,17 +1,11 @@
-FROM golang:1.24-alpine AS rmapi-builder
-RUN apk add --no-cache git
-RUN git clone https://github.com/ddvk/rmapi.git /src && cd /src && go build -o /rmapi .
-
 FROM python:3.12-slim
+# git stays: api/tarot/scripts/download_cards.py shells out to `git clone` to fetch
+# the card images. curl is morning_cron.sh's POST to /api/morning; fonts-dejavu-core
+# backs reportlab/PIL text rendering.
 RUN apt-get update && apt-get install -y curl git fonts-dejavu-core cron && rm -rf /var/lib/apt/lists/*
-COPY --from=rmapi-builder /rmapi /usr/local/bin/rmapi
-RUN chmod +x /usr/local/bin/rmapi
-ENV RMAPI_FORCE_SCHEMA_VERSION=4
 WORKDIR /app
 COPY api/requirements.txt .
-RUN pip install -r requirements.txt && \
-    sed -i 's/        assert block_id == CrdtId(0, 0)/        # assert block_id == CrdtId(0, 0)  # relaxed: firmware changed this/' \
-    /usr/local/lib/python3.12/site-packages/rmscene/scene_stream.py
+RUN pip install -r requirements.txt
 COPY api/ .
 COPY web/ /app/static/
 RUN chmod +x /app/morning_cron.sh

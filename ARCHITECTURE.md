@@ -44,7 +44,8 @@ flowchart TB
       mtgd["./mtg/data to /app/mtg/data"]
       night["./nightfall-incident to /app/nightfall"]
       gcal["gcal-auth to /root/.config/gcal"]
-      rmapi["rmapi-auth to /root/.config/rmapi"]
+      rmapi["rmapi-auth to /root/.config/rmapi<br/>(token only -- binary removed)"]
+      nfsrc["tmpfs MASK over /app/nightfall/nightfall-src"]
     end
 
     uvicorn --- data
@@ -54,6 +55,7 @@ flowchart TB
     uvicorn --- night
     uvicorn --- gcal
     uvicorn --- rmapi
+    night -.masked by.-> nfsrc
   end
 
   browser -->|HTTPS 443| nginx
@@ -62,8 +64,28 @@ flowchart TB
 
 **Port chain:** `nginx :443 (SSL) -> localhost:8080 -> container:8080 (uvicorn)`
 
-**Image:** `python:3.12-slim`; rmapi Go binary pre-built from
-`golang:1.24-alpine`. No `EXPOSE`; port bound at compose level only.
+**Image:** `python:3.12-slim`, single stage. No `EXPOSE`; port bound at compose
+level only.
+
+**The reMarkable feature is gone (2026-09-17), and the build got cheap because of
+it.** The image used to open with `FROM golang:1.24-alpine AS rmapi-builder`,
+which `git clone`d and `go build`s [rmapi](https://github.com/ddvk/rmapi); pip
+then installed `rmscene` from git and the Dockerfile `sed -i`-patched one line of
+its site-package source. All of it was dead: **neither `rmapi` nor `rmscene` had a
+single reference in any `.py`, `.sh`, `.js` or cron file.** On a 2-core/1967MB box
+a cold `go build` is a genuine OOM risk, which made every rebuild something to
+schedule rather than just run — and the `sed` patch matched an upstream line by
+exact string, so an upstream edit would have broken the build silently. Removing
+the stage drops ~18MB of binary, the whole golang pull, the git clone, and that
+patch.
+
+**`rmapi-auth` is deliberately still mounted.** It holds a real authenticated
+reMarkable device token (`rmapi.conf`, 1.5KB, last written 2026-04-28), and
+re-pairing a device is a manual physical act. A declared-but-unmounted compose
+volume counts as unused, so `docker volume prune` would eat it — hence mounted,
+not merely declared. `RMAPI_FORCE_SCHEMA_VERSION` survives in `.env` as a no-op;
+it was dropped from the Dockerfile `ENV` and from `entrypoint.sh`'s `cron_env`
+filter.
 
 **Secrets** (`.env`): `API_KEY`, `ANTHROPIC_API_KEY`, `TURNSTILE_SITE_KEY`,
 `TURNSTILE_SECRET` (the guest gate is a Cloudflare Turnstile challenge, not a
@@ -1985,7 +2007,7 @@ Two fixes, applied together:
 
 **Two traps for anyone touching this.** A bind mount cannot be partially excluded, so masking a subpath with a deeper mount is the only lever — `.dockerignore` governs the build context, not runtime binds. And after masking, `/app` holds **363 directories**, comfortably inside this box's `fs.inotify.max_user_watches` of 15,052; a future mount that re-inflates the tree would blow that budget and make `watchfiles` fail differently (and more quietly) than the poller did.
 
-**The rebuild is expensive for a vestigial reason.** `api/Dockerfile` stage 1 is `FROM golang:1.24-alpine`, which `git clone`s and `go build`s **rmapi** (a reMarkable API client). `rmapi` has **zero references** in any `.py`, `.sh`, `.js` or cron file in this repo — only the Dockerfile, the `rmapi-auth` volume, and mentions here. On a 2-core/1967MB box a cold `go build` is a real OOM risk, which is the whole reason the `watchfiles` rebuild is worth sequencing behind a memory cleanup rather than firing blind. Dropping that stage would make the image smaller and the rebuild cheap — deliberately NOT done here, since it is a separate decision.
+**The rebuild used to be expensive for a vestigial reason, so it was made cheap first.** `api/Dockerfile` opened with `FROM golang:1.24-alpine`, which `git clone`d and `go build`s **rmapi**; `rmscene` came from git alongside it. Neither had a single reference in any `.py`, `.sh`, `.js` or cron file. On a 2-core/1967MB box a cold `go build` is a real OOM risk, so the `watchfiles` rebuild was blocked behind a decision that had nothing to do with `watchfiles`. Both were removed 2026-09-17 (see §1, *Image*) — the build is now one `python:3.12-slim` stage and a `pip install`, which is why `watchfiles` could land without waiting on a memory cleanup first.
 
 ### 17c. Every cron job writes where both sides can see it
 
