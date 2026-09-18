@@ -206,16 +206,20 @@ def _build_nav(active=None, guest=False):
     if guest:
         bubble = ''
     elif active in {"rd", "hq"}:
+        # voice-input.js + exec-mic.js are the panel's hands-free input: the same
+        # engine /cc runs, so the `$` prompt is the mic in both places.
         bubble = ('<script src="/hosaka-audio.js?v=5"></script>'
                   '<script src="/voice-util.js?v=1"></script>'
-                  '<script src="/exec-voice.js?v=4"></script>'
-                  '<script src="/exec-bubble-drag.js?v=2"></script>'
+                  '<script src="/exec-voice.js?v=5"></script>'
+                  '<script src="/exec-bubble-drag.js?v=3"></script>'
                   '<script src="/exec-todos.js?v=3"></script>'
                   '<script src="/typewriter.js?v=7"></script>'
                   '<script src="/exec-choices.js?v=5"></script>'
-                  '<script src="/exec-bubble-assets.js?v=12"></script>'
+                  '<script src="/voice-input.js?v=1"></script>'
+                  '<script src="/exec-mic.js?v=1"></script>'
+                  '<script src="/exec-bubble-assets.js?v=13"></script>'
                   '<script src="/exec-bubble-history.js?v=1"></script>'
-                  '<script src="/exec-bubble.js?v=50"></script>')
+                  '<script src="/exec-bubble.js?v=51"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -231,14 +235,14 @@ def _build_nav(active=None, guest=False):
         voice_pre = (
             '<script src="/hosaka-audio.js?v=5"></script>'
             '<script src="/voice-util.js?v=1"></script>'
-            '<script src="/exec-voice.js?v=4"></script>'
+            '<script src="/exec-voice.js?v=5"></script>'
         ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
         bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=24">'
                   '<div id="exec-bubble" class="exec-under-fx" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
-                  '<script src="/exec-bubble-drag.js?v=2"></script>'
+                  '<script src="/exec-bubble-drag.js?v=3"></script>'
                   '<script src="/exec-link.js?v=2"></script>'
                   + voice_listener)
     return nav + script + bubble

@@ -91,7 +91,10 @@ renderCaret();
 // on-load focus above can't summon it. Seat focus on the first interaction.
 (function () {
   const onFirst = e => {
-    if (e.target.closest('button, a, input, textarea, [contenteditable]')) {
+    // `.mic` is the `$` prompt: a SPAN, so it is not in the list of things that
+    // look like controls, and the preventDefault below ate the very first tap
+    // on it -- the mic only opened on the second try, from a cold page.
+    if (e.target.closest('button, a, input, textarea, [contenteditable], .mic')) {
       document.removeEventListener('pointerdown', onFirst, true);
       return;
     }

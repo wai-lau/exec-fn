@@ -26,7 +26,8 @@
         buildPanel();
         if (window.execBuildTodos) execBuildTodos(panel);
         wireInput();
-        restorePosition();
+        if (window.execMicInit) execMicInit(micHost());
+        execRestorePosition(bubble);
         // SSE connects only after history resolves, so a comment landing mid-fetch can't double-render.
         loadHistory().then(function () { handleExecParam(); connectMonitorStream(); });
       });
@@ -92,39 +93,6 @@
     document.addEventListener('touchend', closeIfOutside);
   }
 
-  // ── drag ──────────────────────────────────────────────────────────────────
-  function clampBubbleToViewport() {
-    const nh = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 56;
-    const w = bubble.offsetWidth || 50;
-    const h = bubble.offsetHeight || 50;
-    const maxX = window.innerWidth - w;
-    const maxY = window.innerHeight - h - nh;
-    const r = bubble.getBoundingClientRect();
-    if (r.right < 0 || r.left > window.innerWidth || r.top > window.innerHeight || r.bottom < 0) {
-      bubble.style.left = bubble.style.top = '';
-      bubble.style.right = '14px';
-      bubble.style.bottom = (nh + 10) + 'px';
-    } else if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.top > maxY) {
-      bubble.style.right = bubble.style.bottom = '';
-      bubble.style.left = Math.max(0, Math.min(maxX, r.left)) + 'px';
-      bubble.style.top  = Math.max(0, Math.min(maxY, r.top)) + 'px';
-    }
-  }
-
-  function restorePosition() {
-    try {
-      const s = JSON.parse(localStorage.getItem('exec-bpos') || 'null');
-      if (s && s.left && s.top) {
-        bubble.style.right = bubble.style.bottom = '';
-        bubble.style.left = s.left;
-        bubble.style.top  = s.top;
-      }
-    } catch (_) {}
-    // Clamp after restore in case viewport shrank since last visit
-    requestAnimationFrame(clampBubbleToViewport);
-    window.addEventListener('resize', clampBubbleToViewport);
-  }
-
   // ── open / close ──────────────────────────────────────────────────────────
   function togglePanel() { isOpen ? closePanel() : openPanel(); }
 
@@ -138,7 +106,13 @@
     fetch('/api/monitor/flush', { method: 'POST' }).catch(function () {});
   }
 
-  function closePanel() { isOpen = false; panel.classList.remove('open'); }
+  // Closing ends any voice session: a mic left open behind a hidden panel is
+  // one that keeps sending messages with nothing on screen to show for it.
+  function closePanel() {
+    isOpen = false;
+    panel.classList.remove('open');
+    if (window.execMicStop) execMicStop();
+  }
 
   // Open the bubble with the input prefilled (e.g. the card dialog's chat button).
   // Deferred a tick so the originating click finishes bubbling first — otherwise
@@ -167,7 +141,9 @@
   function armFirstGestureFocus() {
     var onFirst = function (e) {
       // Taps on a real control manage their own focus — let them through.
-      if (e.target.closest('button, a, input, textarea, [contenteditable]')) {
+      // `.mic` is the `$` prompt, a SPAN: without it the preventDefault below
+      // eats the first tap on the mic and it only opens on the second.
+      if (e.target.closest('button, a, input, textarea, [contenteditable], .mic')) {
         document.removeEventListener('pointerdown', onFirst, true);
         return;
       }
@@ -356,6 +332,20 @@
     sendText(text);
   }
 
+  // The panel mic (exec-mic.js, engine in voice-input.js) drives the composer
+  // from outside this closure: it needs the send path a typed message takes,
+  // and the two states whose audio must never become the next message — a reply
+  // still streaming, and Exec's GLaDOS voice playing that reply out loud.
+  function micHost() {
+    return {
+      prompt: document.getElementById('exec-prompt'),
+      send: sendMsg,
+      fill: function (t) { msgInput.textContent = t; renderCaret(); },
+      blur: function () { if (document.activeElement === msgInput) msgInput.blur(); },
+      busy: function () { return streaming || !!(window.execVoice && execVoice.isSpeaking()); },
+    };
+  }
+
   // Typing and tapping a nudge's choice button reach the same path, so a tapped
   // answer IS the message Wai would have typed.
   function sendText(text) {
@@ -431,6 +421,7 @@
       termEl.appendChild(errDiv);
     }
     streaming = false;
+    if (window.execMicReplyDone) execMicReplyDone();
   }
 
   // ── history ───────────────────────────────────────────────────────────────
