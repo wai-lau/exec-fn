@@ -48,12 +48,29 @@ _HISTORY = {
 }
 
 
+# An ordinary chat reply — no nudge, no card_id in any payload. The card it is
+# about is named in the row itself (`card=`), which is the only thing that can
+# tell the panel which card `done` would archive.
+_CHAT_HISTORY = {
+    "messages": [
+        {"role": "user", "ts": "2026-09-19T10:00:00+00:00", "content": "poster?"},
+        {
+            "role": "assistant",
+            "ts": "2026-09-19T10:00:04+00:00",
+            "content": "It has been sitting there since Tuesday. Picked up?"
+                       "\n\n[card=card-poster | Got it | Not yet]",
+        },
+    ],
+    "stage": "planning",
+}
+
+
 @pytest.fixture
 def open_panel(browser, base_url, admin_headers):
     """Open /rd with the chat history canned and PATCH /api/rd captured."""
     contexts = []
 
-    def _open():
+    def _open(history=_HISTORY):
         ctx = browser.new_context(extra_http_headers=admin_headers)
         contexts.append(ctx)
         pg = ctx.new_page()
@@ -79,7 +96,7 @@ def open_panel(browser, base_url, admin_headers):
                               body='data: {"type":"done","next_stage":"planning"}\n\n')
             else:
                 route.fulfill(status=200, content_type="application/json",
-                              body=json.dumps(_HISTORY))
+                              body=json.dumps(history))
 
         pg.route("**/api/chat", _chat)
 
@@ -155,3 +172,22 @@ def test_older_done_patches_its_own_card(open_panel):
     }
     # The tapped row is gone; the newest nudge is untouched.
     assert _rows(pg) == [["Got it", "Not yet", "done", "exile"]]
+
+
+def test_chat_reply_naming_a_card_gets_card_actions(open_panel):
+    """An ordinary reply carries no card_id — the `card=` cell supplies it.
+
+    The cell itself is never a button and never prose: the whole row is stripped
+    before the message renders, so the id stays out of Wai's sight.
+    """
+    pg = open_panel(_CHAT_HISTORY)
+    assert _rows(pg) == [["Got it", "Not yet", "done", "exile"]]
+    body = pg.text_content("#exec-term .msg.assistant .msg-body")
+    assert "card-poster" not in body and "[" not in body
+
+    pg.locator("#exec-term .exec-choice-row .exec-act-done").click()
+    pg.wait_for_function("() => (window.__patched || []).length >= 1", timeout=4000)
+    assert pg.evaluate("() => window.__patched")[0] == {
+        "cards": [{"id": "card-poster", "column": "archives"}]
+    }
+    assert _rows(pg) == []
