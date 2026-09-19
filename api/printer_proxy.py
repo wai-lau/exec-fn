@@ -66,7 +66,7 @@ _LAN_HTTP_RE = re.compile(r"http://(?:\d{1,3}\.){3}\d{1,3}(?::80)?/")
 # Site-side overrides for the proxied document (hide the SPA's top bar, …).
 # Served by the public static mount; an absolute path, so it must be injected
 # AFTER the root-absolute rewrite above or it would be re-rooted too.
-FRAME_CSS = '<link rel="stylesheet" href="/printer-frame.css?v=1">'
+FRAME_CSS = '<link rel="stylesheet" href="/printer-frame.css?v=3">'
 
 
 def rewrite_html(body: str) -> str:
@@ -105,7 +105,7 @@ def rewrite_kind(content_type: str) -> str | None:
 # every rewritten body so a browser holding a copy patched by OLDER rules
 # refetches instead of 304-ing on the printer's (unchanged) ETag -- the
 # printer never sees a conditional request; the proxy answers them itself.
-REWRITE_VERSION = "4"
+REWRITE_VERSION = "5"
 
 # Request headers forwarded to the printer. An ALLOWLIST: the session cookie
 # and the admin bearer must never reach the printer, and accept-encoding is

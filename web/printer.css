@@ -96,22 +96,45 @@ body { background: hsl(var(--bg-hsl)); }
   background: hsl(var(--bg-hsl));
 }
 
-/* The job strip: the vendor row's information, none of its controls. State
-   chip top-left, percent right, the timings and layer count beneath. It is a
+/* The job strip: the vendor row's information, none of its controls. It is a
    READOUT -- there is deliberately no pause/stop here, and no route a guest
-   could reach with one. */
+   could reach with one.
+
+   A CARD, centred under the feed (2026-09-19). It used to be a full-width grid
+   with the state hard left and the percent hard right, which on a phone put the
+   two numbers a whole screen-width apart with the picture's own edges between
+   them; as a card the readout is one object under another object, sized to its
+   own content, and the eye travels down rather than across. Same surface as the
+   document theme's .doc-card (green 0.12 over the page, matching border) so it
+   reads as the site's card and not a panel invented here -- one size down on
+   the radius and the padding, because this holds four values and .doc-card
+   holds a page. */
 .printer-job {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: start;
-  gap: var(--space-2) var(--space-5);
+  align-self: center;        /* centred under the feed, not stretched to it */
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background: hsl(var(--green-hsl) / 0.12);
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-3);
+  text-align: center;
   font-size: var(--fs-2xs);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
 }
 
+/* An idle printer renders the state chip alone: no card around one word. */
+.printer-job:not(:has(.pj-pct)) {
+  background: none;
+  border-color: transparent;
+  padding: 0;
+}
+
 .pj-state {
-  justify-self: start;
   padding: var(--space-px) var(--space-2);
   border: 1px solid hsl(var(--green-hsl) / 0.12);
   border-radius: var(--radius-1);
@@ -119,9 +142,6 @@ body { background: hsl(var(--bg-hsl)); }
 }
 
 .pj-pct {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: center;
   font-size: var(--fs-3xl);
   line-height: var(--lh-none);
   letter-spacing: var(--tracking-tight);
@@ -129,11 +149,14 @@ body { background: hsl(var(--bg-hsl)); }
 }
 .pj-pct-unit { font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide); }
 
+/* One pair per line. Side by side they are wider than the feed itself, and a
+   card as wide as the picture above it stops reading as a card and starts
+   reading as the picture's caption bar. */
 .pj-rows {
-  grid-column: 1;
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-5);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
 }
 .pj-pair { display: flex; gap: var(--space-2); }
 .pj-k { color: hsl(var(--green-hsl) / 0.45); }
