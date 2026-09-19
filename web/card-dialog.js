@@ -26,9 +26,24 @@ body:has(.cd-ov.open) #exec-bubble { display:none !important; }
    cap (recurring + notes + a five-step breakdown does it) pushed exile/done/
    chat/save out of reach and you had to scroll the card to find them. */
 .cd-body { flex:1 1 auto; min-height:0; overflow-y:auto; }
-.cd-body::-webkit-scrollbar { width:8px; }
-.cd-body::-webkit-scrollbar-track { background:transparent; }
-.cd-body::-webkit-scrollbar-thumb { background:color-mix(in srgb, currentColor 45%, transparent); border-radius:999px; }
+/* Every scrollbar inside the dialog is SILVER. The dialog is tinted to the
+   card's own colour (.cd-dark/.cd-bright, currentColor), and the page default
+   thumb is phosphor green -- so the notes box wore green on an orange card
+   while the body/graph bars wore whatever that card happened to be. One
+   neutral chrome across every card colour. */
+.cd-body::-webkit-scrollbar,
+.cd-box textarea::-webkit-scrollbar { width:8px; }
+.cd-body::-webkit-scrollbar-track,
+.cd-box textarea::-webkit-scrollbar-track { background:transparent; }
+.cd-body::-webkit-scrollbar-thumb,
+.cd-box textarea::-webkit-scrollbar-thumb { background:hsl(var(--gray-hsl) / 0.45); border-radius:999px; }
+/* Firefox (no ::-webkit-scrollbar): the global chrome.css rule sets the green
+   pair on * directly, so it must be beaten per-element, not by inheritance.
+   Guarded the same way chrome.css guards its own, or Chrome 121+ lets the
+   standard props override the webkit thumb above. */
+@supports not selector(::-webkit-scrollbar) {
+  .cd-box, .cd-box * { scrollbar-color: hsl(var(--gray-hsl) / 0.45) transparent; }
+}
 /* phones are the tight case: 48px of vertical padding is a breakdown step */
 @media (max-height:900px) { .cd-box { padding:16px 18px; } }
 .cd-box input[type=checkbox] { accent-color:currentColor; }
