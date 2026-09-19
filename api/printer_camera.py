@@ -32,8 +32,15 @@ CONTENT_TYPE = f"multipart/x-mixed-replace; boundary={BOUNDARY}"
 
 # Bounded so a public page can't turn the droplet into a broadcast station.
 MAX_VIEWERS = 16
-# Guests get ~2fps; the owner watches at whatever the printer pushes.
-GUEST_FRAME_INTERVAL = 0.5
+# Guests get ~5fps; the owner watches at whatever the printer pushes (~10).
+#
+# It was 2fps (0.5s) and read as broken rather than thrifty — a print head moves
+# far enough in half a second that the picture reads as a slideshow of
+# unrelated stills, which is the one thing a camera on a machine is for. 5fps is
+# where motion reads as motion. The cost is bandwidth and it is bounded twice
+# over: ~34KB a frame, so ~170KB/s per guest against the owner's ~340KB/s, and
+# MAX_VIEWERS caps the whole page at 16 streams however many people find it.
+GUEST_FRAME_INTERVAL = 0.2
 
 _CONNECT_TIMEOUT = httpx.Timeout(10.0, connect=4.0, read=30.0)
 _BACKOFF_MAX = 15.0

@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 from printer_proxy import (  # noqa: E402
-    REWRITE_VERSION, client_response_headers, not_modified, proxy_etag, rewrite_html,
+    FRAME_CSS, REWRITE_VERSION, client_response_headers, not_modified, proxy_etag, rewrite_html,
     rewrite_js, rewrite_kind, rewrite_ws_text, upstream_request_headers,
 )
 
@@ -44,8 +44,11 @@ def test_html_relative_paths_untouched():
 
 
 def test_html_injects_frame_overrides_once_unrerooted():
+    # Against FRAME_CSS itself, not a copy of its text: the ?v= is bumped
+    # whenever the override sheet changes, and a literal here turns every one of
+    # those bumps into a red suite for no defect.
     out = rewrite_html(INDEX)
-    assert out.count('<link rel="stylesheet" href="/printer-frame.css?v=1"></head>') == 1
+    assert out.count(FRAME_CSS + "</head>") == 1
     assert 'href="/printer/printer-frame.css' not in out  # injected after the re-root pass
 
 

@@ -8,3 +8,44 @@
    move up. `.section-header` is the in-flow wrapper around <app-header>. */
 .section-header:has(> app-header),
 app-header { display: none !important; }
+
+/* ── the scrollbar ─────────────────────────────────────────────────────────
+   The SPA document is its OWN document, so chrome.css's scrollbar pill never
+   reached it and the vendor's white system bar was the one piece of foreign
+   chrome left on /printer -- a bright strip down the right edge of an
+   otherwise green page.
+
+   chrome.css is deliberately NOT injected here (its globals would fight the
+   SPA's antd styles on every element), so the two tokens these rules need are
+   re-declared locally. They are the same values, and the rules below are
+   chrome.css's own: keep the two in step if the pill ever changes. */
+:root {
+  --green-hsl: 135 100% 50%;
+  --radius-pill: 999px;
+}
+
+/* `html ::-webkit-scrollbar`, not the bare pseudo chrome.css uses, and
+   !important on every declaration: the SPA ships its own grey scrollbar under
+   exactly that selector (styles.<hash>.css AND an Angular-injected inline copy
+   that lands after this link), so a bare `::-webkit-scrollbar` loses on
+   specificity to the stylesheet and on source order to the inline one. This
+   pair of hammers is what a vendor document costs. */
+html ::-webkit-scrollbar { width: 12px !important; height: 12px !important; background: transparent !important; }
+html ::-webkit-scrollbar-track { background: transparent !important; }
+html ::-webkit-scrollbar-track-piece { background: transparent !important; }
+html ::-webkit-scrollbar-corner { background: transparent !important; }
+html ::-webkit-scrollbar-button { display: none !important; width: 0 !important; height: 0 !important; }
+
+/* padded pill: the transparent border insets the thumb from the gutter edges
+   (background-clip keeps the fill inside the padding box) */
+html ::-webkit-scrollbar-thumb {
+  background: hsl(var(--green-hsl) / 0.45) !important;
+  border-radius: var(--radius-pill) !important;
+  border: 4px solid transparent !important;
+  background-clip: padding-box !important;
+}
+html ::-webkit-scrollbar-thumb:hover { background: hsl(var(--green-hsl) / 0.8) !important; background-clip: padding-box !important; }
+
+@supports not selector(::-webkit-scrollbar) {
+  html * { scrollbar-width: thin !important; scrollbar-color: hsl(var(--green-hsl) / 0.45) transparent !important; }
+}
