@@ -14,3 +14,8 @@ max-complexity = 10
 # code. Exempt ONLY the statement-density style rules; F (logic), W, and C901
 # (complexity) still apply.
 "api/security.py" = ["E701", "E702", "E731"]
+# scripts/security/refresh.py is the HOST-side log parser that FEEDS that page,
+# written in the same dense row-builder style (one-line guards, semicolon-packed
+# counters) over log lines. Same exemption, same reason, same limits: F, W and
+# C901 still apply. E401 is the one multi-import line at its top.
+"api/scripts/security/refresh.py" = ["E401", "E701", "E702", "E731"]
