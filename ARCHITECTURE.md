@@ -1859,6 +1859,23 @@ docker compose exec api python -m tarot.openings_gen refresh --n 1   # rotate th
 
 **`POST /api/tarot/warm` finishes the job.** The canned opening removes the synth from turn ONE; the querent's next turn still needs a live one, and under GPU mode `idle` the models load on demand. So the page fires a warm on open — fire-and-forget, server-side 300s cooldown so a reload storm is not GPU load — and the models load while the opening is being read.
 
+### 14e. The nightly voice check
+
+Narration fails **silently**: the page bails to the guessed-pace typewriter and reads fine, so a dead voice is only noticed the next time someone sits down for a reading. `api/tarot/openings_loop.py` checks it once a night at 05:45 ET — after morning (4:30), graphify (5:00), security (5:10) and the cc probe (5:20), so the five never contend for a 1967MB box.
+
+It is an **in-process asyncio loop, not a cron line** (same reason as the nudge loop: a baked `/etc/cron.d` entry needs an image rebuild to change, while this re-arms on the next `--reload`), and it writes `data/cron/YYYY-MM-DD__tarotvoice.log`, which `/debug` renders through `GET /api/debug/cron`. **The log is the stamp** — one file, written once, and the thing that proves it ran.
+
+The probe is a real one-line synth through the path a querent uses, not a port check. Its verdict:
+
+| Reading | Meaning |
+|---------|---------|
+| `OK first_audio=…` | the voice answered |
+| `OK SLOW …` | answered, but first audio took over 2.5s on a box that should be warm |
+| `voice down (mode=idle\|emo\|gone)` | hosaka-server is deliberately stopped — the expected state, not a fault (the same call `gpu_mode_client.effective_mode` makes from the other direction) |
+| `FAIL (mode=homo)` | the box claims loaded models and served nothing. This is the one worth shouting about |
+
+The same pass tops every hour back up to ten openings, which normally costs nothing because nothing is missing, and is skipped outright when there is no voice to render audio with.
+
 ---
 
 ## 15. The nudge loop (`nudge.py` + `nudge_deadlines.py` + `nudge_loop.py`)
