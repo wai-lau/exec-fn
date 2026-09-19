@@ -18,6 +18,7 @@ from starlette.datastructures import MutableHeaders
 
 from nudge_loop import _run_nudge_loop
 from discord_bot import _run_discord_bot
+from tarot.openings_loop import run_openings_loop
 from routers import public, protected, guest_protected
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
@@ -68,9 +69,14 @@ async def _lifespan(app: FastAPI):
     # Discord bridge — DMs nudges/monitor comments to Wai's phone and answers
     # DMs back. No-op unless DISCORD_BOT_TOKEN + DISCORD_USER_ID are set.
     discord_task = asyncio.create_task(_run_discord_bot())
+    # Nightly (05:45 ET): probe the reader's voice and top the pre-generated
+    # /tarot openings back up. In-process for the same reason as the nudge loop
+    # -- a baked cron line would need an image rebuild to change.
+    tarot_task = asyncio.create_task(run_openings_loop())
     yield
     nudge_task.cancel()
     discord_task.cancel()
+    tarot_task.cancel()
 
 
 app = FastAPI(lifespan=_lifespan)
