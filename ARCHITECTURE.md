@@ -661,7 +661,7 @@ bytes to the LAN":
 
 | Route | Owner | Guest | Why |
 |-------|-------|-------|-----|
-| `GET /printer` | SPA wrapper | camera + stats wrapper | same template, `data-readonly="1"` for guests |
+| `GET /printer` | SPA wrapper | camera + job strip | same template, `data-readonly="1"` for guests |
 | `ANY /printer/{path}` | full proxy | **401 → admin login** | the SPA, its file endpoints, uploads — every browser→printer HTTP path |
 | `WS /ws/printer` | SDCP relay | **1008** | the only browser→printer socket; it drives the machine |
 | `GET /printer/video` | ~10fps | ~2fps | one-way read, off the shared hub |
@@ -853,7 +853,9 @@ The iframe is **isolated on purpose**: the SPA's global antd CSS never touches c
 
 **The iframe fades in only on its `load` event** (`.printer-frame` is `opacity:0` until `printer.js` adds `.ready`) — the vendor SPA paints a white document before its app renders, so revealing it the instant `src` is set flashed white; now the page shows its own dark bg during the boot and the SPA fades in once painted.
 
-**The guest render is a different page, not a filtered one.** `printer_page()` marks it `data-readonly="1"` on `.printer` and `printer.js` then never mounts the SPA frame at all — belt to the route tiering's braces — showing `#printer-view` instead: the camera `<img>` plus a stats row polled from `/api/printer/status` every 3s.
+**The guest render is a different page, not a filtered one.** `printer_page()` marks it `data-readonly="1"` on `.printer` and `printer.js` then never mounts the SPA frame at all — belt to the route tiering's braces — showing `#printer-view` instead: the camera `<img>` plus ONE job strip (`#printer-job`) polled from `/api/printer/status` every 3s.
+
+**The guest page is the picture and the job, nothing else** (2026-09-19). The strip carries the same information as the vendor SPA's own print-job row — state chip, percent, elapsed/remaining, layer progress — and none of its controls: there is no pause/stop here, and no route a guest could reach with one (`/printer/{path}` and `WS /ws/printer` are owner-only, so the buttons would be decoration over a 401). Dropped with the same cut: the page chrome (`.printer-head`, hidden by `.printer[data-readonly="1"]`) — the lede and the online/offline chip were the wrapper talking about a machine the guest does not drive, and `#printer-offline` already says when it is down — and the nozzle/bed/chamber temps, which are telemetry rather than "what is it printing". Filename and thumbnail are absent for a different reason and stay absent: `public_status` never sends them (§6, tier matrix).
 
 **`printer.css` does NOT drop the CRT stack to `z-index:-1`** the way `/rd` and `/hq` do. It stays at `--z-modal` IN FRONT for BOTH tiers, so the printer's picture reads as a feed on a CRT (phosphor + scanlines + glass blur), the proxied vendor SPA included; the layers are `pointer-events:none` so the SPA stays clickable underneath.
 
