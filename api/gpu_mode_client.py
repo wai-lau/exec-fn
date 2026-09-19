@@ -3,7 +3,16 @@ the SSH reverse tunnel at 172.17.0.1:8124). Pure guard logic + thin async
 proxies; the route layer (routes_tts.py) owns auth + the active-audio-listener
 count (who would actually be cut off by a hosaka-killing switch)."""
 
+import os
+
 import httpx
+
+# Home-box gpu-mode switch, over the same SSH tunnel as the TTS upstream. Here
+# rather than in routes_tts.py because the nightly /tarot voice check
+# (tarot/openings_loop.py) reports the mode alongside its probe and must reach
+# the service without importing the route module to find out where it is.
+GPU_MODE_UPSTREAM = os.environ.get("GPU_MODE_UPSTREAM", "172.17.0.1:8124")
+GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
 
 _STOP_HOSAKA = {"emo", "idle"}  # actions that kill hosaka-server -> guard them
 
