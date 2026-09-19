@@ -208,7 +208,7 @@ def _build_nav(active=None, guest=False):
     elif active in {"rd", "hq"}:
         # voice-input.js + exec-mic.js are the panel's hands-free input: the same
         # engine /cc runs, so the `$` prompt is the mic in both places.
-        bubble = ('<script src="/hosaka-audio.js?v=5"></script>'
+        bubble = ('<script src="/hosaka-audio.js?v=6"></script>'
                   '<script src="/voice-util.js?v=1"></script>'
                   '<script src="/exec-voice.js?v=5"></script>'
                   '<script src="/exec-bubble-drag.js?v=3"></script>'
@@ -233,7 +233,7 @@ def _build_nav(active=None, guest=False):
         # link-bubble stays on those two — just without the voice scripts.
         want_voice = active not in {"tarot", "hosaka"}
         voice_pre = (
-            '<script src="/hosaka-audio.js?v=5"></script>'
+            '<script src="/hosaka-audio.js?v=6"></script>'
             '<script src="/voice-util.js?v=1"></script>'
             '<script src="/exec-voice.js?v=5"></script>'
         ) if want_voice else ''

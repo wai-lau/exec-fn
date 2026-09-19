@@ -7,11 +7,12 @@ from time import monotonic
 from typing import Any, AsyncGenerator, Literal
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from auth import SESSION_TOKEN
 from helpers import DATA_DIR
+from tarot import openings, voice_synth
 from tarot.agent import stream_chat
 from tarot.cards import CARDS, CARDS_BY_ID
 from tarot.prompt import build_system
@@ -240,6 +241,48 @@ async def api_tarot_chat(body: ChatBody, request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/api/tarot/opening")
+async def api_tarot_opening(hour: int | None = None):
+    """One of this hour's pre-generated opening turns, text + audio URL.
+
+    `hour` is the CLIENT's hour (tarot-opening.js sends it) so a querent outside
+    America/New_York still opens on their own light; it falls back to the
+    server's. `{"clip": null}` means the hour has no clips yet and the page
+    generates the opening live, exactly as it always did."""
+    h = datetime.now().hour if hour is None else hour
+    clip = openings.pick_clip(openings.load_index(), h)
+    if not clip:
+        return {"clip": None}
+    return {"clip": {"id": clip["id"], "text": clip["text"], "dur": clip.get("dur"),
+                     "audio": f"/api/tarot/opening/{clip['id']}.wav"}}
+
+
+@router.get("/api/tarot/opening/{clip_id}.wav")
+async def api_tarot_opening_audio(clip_id: str):
+    """The clip's rendered narration. The id shape is `h<HH>-<8 hex>` and is
+    validated before it touches the filesystem, so no traversal reaches the
+    data dir. Content-addressed by id -> cacheable forever."""
+    if not openings.clip_id_ok(clip_id):
+        raise HTTPException(404, "no such opening")
+    path = openings.clip_file(clip_id)
+    if not path.exists():
+        raise HTTPException(404, "no such opening")
+    return FileResponse(path, media_type="audio/wav", headers={
+        "Cache-Control": "public, max-age=31536000, immutable"})
+
+
+@router.post("/api/tarot/warm")
+async def api_tarot_warm(request: Request):
+    """Load the TTS models now, while the querent is reading the canned opening.
+
+    The opening needs no synth, but the reader's NEXT turn does, and under GPU
+    mode `idle` the models load on demand -- that cold load is the wait this
+    removes from the rest of the reading. Cooldown-guarded server-side, so a
+    reload storm is not GPU load."""
+    _rl_check(_client_ip(request))
+    return await voice_synth.warm(openings.VOICE, openings.BACKEND)
 
 
 class SaveBody(BaseModel):

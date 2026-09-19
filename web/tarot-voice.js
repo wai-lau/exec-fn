@@ -129,6 +129,43 @@ const tarotVoice = (() => {
     return ctl;
   }
 
+  // Narrate a PRE-RENDERED clip (the canned opening, tarot-opening.js) rather
+  // than synthesizing. Returns the same controller shape as speak(), so the
+  // typewriter paces off it with no idea which one it got.
+  function speakClip(arrayBuffer) {
+    const ctl = {
+      ended: false,
+      ok: true,
+      error: null,
+      elapsed: () => (player ? player.elapsed() : 0),
+      duration: () => (player ? player.audioDuration() : 0),
+    };
+    if (!arrayBuffer || !ready()) {
+      ctl.ok = false;
+      ctl.ended = true;
+      return ctl;
+    }
+    player.setVolume(on ? 1.0 : 0);
+    player
+      .speakBuffer({
+        data: arrayBuffer,
+        onStatus: (msg) => {
+          if (msg.type === "end") ctl.ended = true;
+          else if (msg.type === "error") {
+            ctl.ok = false;
+            ctl.ended = true;
+            ctl.error = msg.detail || "clip error";
+          }
+        },
+      })
+      .catch(() => {
+        ctl.ok = false;
+        ctl.ended = true;
+        ctl.error = "playback failed";
+      });
+    return ctl;
+  }
+
   function mount() {
     const controls = document.getElementById("spread-controls");
     if (!controls) return;
@@ -144,7 +181,7 @@ const tarotVoice = (() => {
     controls.insertBefore(btn, controls.firstChild);
   }
 
-  return { ready, speak, mount, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
+  return { ready, speak, speakClip, mount, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
 })();
 
 tarotVoice.mount();
