@@ -5,8 +5,14 @@
 //
 // Two modes, decided by the SERVER (data-readonly on .printer):
 //   owner    -- the proxied vendor SPA in an iframe, full control.
-//   readonly -- guests: the camera stream + the status the printer pushes.
-//               Nothing here can reach the machine; the control routes 401.
+//   readonly -- guests: the camera stream and ONE job strip under it, the same
+//               shape the vendor SPA's own print-job row has (state, percent,
+//               elapsed/remaining, layer progress) and nothing else: no page
+//               chrome, no temps, no filename or thumbnail (the payload has
+//               neither on purpose -- routes_printer), and NO pause/stop
+//               controls. Nothing here can reach the machine anyway; the
+//               control routes 401. Reshaped 2026-09-19 from a temps-and-all
+//               stat list.
 'use strict';
 
 (function () {
@@ -18,44 +24,44 @@
   const frame = document.getElementById('printer-frame');
   const view = document.getElementById('printer-view');
   const cam = document.getElementById('printer-cam');
-  const stats = document.getElementById('printer-stats');
+  const job = document.getElementById('printer-job');
   const offline = document.getElementById('printer-offline');
   const status = document.getElementById('printer-status');
   let online = null; // tri-state so the first poll always applies
   let seq = 0; // a slow, older poll must never overwrite a fresher answer
   let statusTimer = null;
 
+  // HH:MM:SS, the vendor strip's own format — a print runs in hours and the
+  // seconds are the only part that visibly moves between polls.
   function clock(s) {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    return h ? `${h}h ${m}m` : `${m}m`;
+    const n = Math.max(0, Math.round(s || 0));
+    const p = (v) => String(v).padStart(2, '0');
+    return `${p(Math.floor(n / 3600))}:${p(Math.floor((n % 3600) / 60))}:${p(n % 60)}`;
   }
 
-  function row(label, value) {
-    return `<div class="printer-stat"><dt>${label}</dt><dd>${value}</dd></div>`;
+  function pair(label, value) {
+    return `<div class="pj-pair"><span class="pj-k">${label}</span><span class="pj-v">${value}</span></div>`;
   }
 
-  function renderStats(d) {
-    if (!d.online) {
-      stats.innerHTML = row('state', 'unreachable');
+  function renderJob(d) {
+    const state = !d.online ? 'unreachable' : d.printing ? d.job_state : d.state;
+    const head = `<div class="pj-state">${state}</div>`;
+    if (!d.online || !d.printing) {
+      job.innerHTML = head;
       return;
     }
-    const rows = [row('state', d.printing ? d.job_state : d.state)];
-    if (d.printing) {
-      if (d.total_layers) rows.push(row('layer', `${d.layer} / ${d.total_layers}`));
-      rows.push(row('progress', `${d.progress}%`));
-      if (d.total_s) rows.push(row('elapsed', `${clock(d.elapsed_s)} / ${clock(d.total_s)}`));
-    }
-    rows.push(row('nozzle', `${d.nozzle}° / ${d.nozzle_target}°`));
-    rows.push(row('bed', `${d.bed}° / ${d.bed_target}°`));
-    rows.push(row('chamber', `${d.chamber}°`));
-    stats.innerHTML = rows.join('');
+    const rows = [pair('elapsed', clock(d.elapsed_s))];
+    if (d.total_s) rows.push(pair('remaining', clock(d.total_s - d.elapsed_s)));
+    if (d.total_layers) rows.push(pair('layer', `${d.layer} / ${d.total_layers}`));
+    job.innerHTML =
+      `${head}<div class="pj-pct">${Math.round(d.progress)}<span class="pj-pct-unit">%</span></div>` +
+      `<div class="pj-rows">${rows.join('')}</div>`;
   }
 
   async function pollStatus() {
     try {
       const r = await fetch('/api/printer/status', { cache: 'no-store' });
-      if (r.ok) renderStats(await r.json());
+      if (r.ok) renderJob(await r.json());
     } catch (_e) {
       /* the health poll owns the offline story; a dropped status read is noise */
     }

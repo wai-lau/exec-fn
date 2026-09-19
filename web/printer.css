@@ -68,7 +68,13 @@ body { background: hsl(var(--bg-hsl)); }
   border-radius: var(--radius-3);
 }
 
-/* read-only view: camera fills the height, stats wrap in a row beneath it */
+/* read-only view: the camera plus ONE job strip, nothing else. The page chrome
+   (lede + online chip) is hidden for guests -- it was the wrapper talking about
+   a printer they have no control over -- and the temps went with it
+   (2026-09-19). Offline still says so (.printer-offline), or the page would be
+   a blank rectangle. */
+.printer[data-readonly="1"] .printer-head { display: none; }
+
 .printer-view {
   flex: 1 1 0;
   min-height: 0;
@@ -78,8 +84,8 @@ body { background: hsl(var(--bg-hsl)); }
   gap: var(--space-3);
 }
 
-/* 16:9 stream in a tall column: size to the aspect and centre it, so the stats
-   sit under the picture instead of being pushed to the floor. */
+/* 16:9 stream in a tall column: size to the aspect and centre it in the
+   column rather than stretching it. */
 .printer-cam {
   flex: 0 1 auto;
   min-height: 0;
@@ -90,19 +96,48 @@ body { background: hsl(var(--bg-hsl)); }
   background: hsl(var(--bg-hsl));
 }
 
-.printer-stats {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
+/* The job strip: the vendor row's information, none of its controls. State
+   chip top-left, percent right, the timings and layer count beneath. It is a
+   READOUT -- there is deliberately no pause/stop here, and no route a guest
+   could reach with one. */
+.printer-job {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
   gap: var(--space-2) var(--space-5);
   font-size: var(--fs-2xs);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
 }
 
-.printer-stat { display: flex; gap: var(--space-2); }
-.printer-stat dt { color: hsl(var(--green-hsl) / 0.45); }
-.printer-stat dd { margin: 0; color: hsl(var(--green-hsl) / 0.8); }
+.pj-state {
+  justify-self: start;
+  padding: var(--space-px) var(--space-2);
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-1);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+
+.pj-pct {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-none);
+  letter-spacing: var(--tracking-tight);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+.pj-pct-unit { font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide); }
+
+.pj-rows {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+}
+.pj-pair { display: flex; gap: var(--space-2); }
+.pj-k { color: hsl(var(--green-hsl) / 0.45); }
+.pj-v { color: hsl(var(--green-hsl) / 0.8); }
 
 .printer-frame[hidden],
 .printer-view[hidden],
