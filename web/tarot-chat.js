@@ -165,7 +165,9 @@ async function resetAll() {
   terminal.innerHTML = '';
   renderSigCard();
   renderSpread();
-  autoTrigger(`[opened /tarot; no Significator yet, no spread; ${tarotTimeMarker()}]`);
+  // A reset lands on a fresh first turn, so it takes a canned opening too — a
+  // different one, since fetchClip re-picks at random.
+  startOpeningTurn(`[opened /tarot; no Significator yet, no spread; ${tarotTimeMarker()}]`, true);
 }
 
 function tarotTimeMarker() {
@@ -270,8 +272,14 @@ function showBeginHint() {
 }
 
 let _openingEv = null;
+// A FIRST turn (no Significator, no spread) is the one opening whose content is
+// only a function of the hour, so it can come from the pre-generated set
+// (tarot-opening.js). The other two openings answer a state the canned clips
+// know nothing about, so they stay live.
+let _openingCanned = false;
 if (!significator) {
   const tm = tarotTimeMarker();
+  _openingCanned = !spread;
   _openingEv = spread
     ? `[opened /tarot; no Significator yet (spread already drawn — Significator must be chosen before any reading continues); ${tm}]`
     : `[opened /tarot; no Significator yet, no spread; ${tm}]`;
@@ -279,26 +287,7 @@ if (!significator) {
   _openingEv = `[opened /tarot; Significator already chosen: ${significator.name}; no spread yet; ${tarotTimeMarker()}]`;
 }
 if (_openingEv) {
-  if (tarotVoice.wantsDeferredOpening()) {
-    // Voice on but not yet unlocked. START GENERATING NOW (don't wait for the
-    // click to start thinking) and HOLD only the reveal+voice until the first
-    // gesture unlocks audio -- so the click starts the reading with no LLM wait.
-    // While held, blank the reader cursor + input bar (body.opening-pending) so
-    // only the "tap to begin" hint shows; the gesture clears it and reveals both.
-    const clearHint = showBeginHint();
-    document.body.classList.add('opening-pending');
-    let openGate;
-    const gate = new Promise((res) => { openGate = res; });
-    tarotVoice.armOpeningUnlock(() => {
-      document.body.classList.remove('opening-pending');
-      clearHint();
-      openGate();
-    });
-    autoTrigger(_openingEv, gate);
-  } else {
-    // Voice off / already unlocked -> fires + reveals immediately.
-    autoTrigger(_openingEv);
-  }
+  startOpeningTurn(_openingEv, _openingCanned);
 } else {
   // No opening turn (returning mid-reading) -> still unlock on first gesture so
   // the next reader turn narrates.

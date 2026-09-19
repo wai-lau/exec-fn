@@ -74,11 +74,11 @@
     S.bufferedDur = 0;
   }
 
-  // Schedule one PCM chunk (Float32Array @ 24 kHz) right after the previous one.
-  function enqueuePCM(S, f32) {
-    if (!f32.length) return;
-    const buf = S.ctx.createBuffer(1, f32.length, SR);
-    buf.getChannelData(0).set(f32);
+  // Schedule one AudioBuffer right after the previous one. Shared by the
+  // streamed path (enqueuePCM, one chunk at a time) and the canned-clip path
+  // (speakBuffer, one whole utterance) so both keep the same playhead, the same
+  // gain node and the same elapsed()/audioDuration() clock.
+  function scheduleBuffer(S, buf) {
     const src = S.ctx.createBufferSource();
     src.buffer = buf;
     src.connect(S.gainNode);
@@ -95,6 +95,14 @@
       S.sources = S.sources.filter((x) => x !== src);
     };
     if (S.cur && S.cur.onChunk) S.cur.onChunk(S.bufferedDur);
+  }
+
+  // Schedule one PCM chunk (Float32Array @ 24 kHz) from the stream.
+  function enqueuePCM(S, f32) {
+    if (!f32.length) return;
+    const buf = S.ctx.createBuffer(1, f32.length, SR);
+    buf.getChannelData(0).set(f32);
+    scheduleBuffer(S, buf);
   }
 
   // Concurrent speak() calls (fire-and-forget callers like exec-voice.js carry
@@ -171,6 +179,30 @@
     );
   }
 
+  // Play an ALREADY-RENDERED clip (the pre-generated /tarot opening) instead of
+  // synthesizing one. No socket is opened -- there is nothing to synthesize --
+  // but everything downstream is the same path a streamed utterance takes: the
+  // iOS unlock, the silent-switch session, the gain node the mute button owns,
+  // and the playhead the typewriter paces off. {end} fires as soon as it is
+  // scheduled, because a file is fully buffered by definition.
+  async function speakBuffer(S, req) {
+    unlock(S);
+    if (S.ctx.state === "suspended") await S.ctx.resume();
+    flush(S);
+    S.cur = { onStatus: req.onStatus };
+    let buf;
+    try {
+      // decodeAudioData DETACHES the ArrayBuffer it is given; decode a copy so
+      // the caller's clip survives for a replay.
+      buf = await S.ctx.decodeAudioData(req.data.slice(0));
+    } catch {
+      if (S.cur && S.cur.onStatus) S.cur.onStatus({ type: "error", detail: "clip decode failed" });
+      return;
+    }
+    scheduleBuffer(S, buf);
+    if (S.cur && S.cur.onStatus) S.cur.onStatus({ type: "end" });
+  }
+
   function createPlayer(opts = {}) {
     const S = {
       ctx: null, gainNode: null, analyser: null, ws: null, _connecting: null,
@@ -187,6 +219,7 @@
     return {
       unlock: () => unlock(S),
       speak: (req) => speak(S, req),
+      speakBuffer: (req) => speakBuffer(S, req),
       flush: () => flush(S),
       setVolume(v) {
         S.volume = v;

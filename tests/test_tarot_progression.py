@@ -9,9 +9,12 @@ bar is usable again) and never freezes the page.
 
 They drive the real page in WebKit (iOS-engine parity — see the project memory),
 mocking only the boundaries: /api/tarot/chat (the SSE turn), the marked CDN (a
-no-op shim so reveal text == buffered text), and /tarot-voice.js (a controllable
-fake voice, to exercise the audio-failure / stall fallbacks without a TTS box).
-Nothing here hits the LLM or the hosaka WebSocket.
+no-op shim so reveal text == buffered text), /tarot-voice.js (a controllable
+fake voice, to exercise the audio-failure / stall fallbacks without a TTS box),
+and the two canned-opening endpoints — /api/tarot/opening (which answers "no
+clip" by default, so the turn under test is the LIVE one) and /api/tarot/warm
+(which must never reach the home GPU box from a test). Nothing here hits the
+LLM or the hosaka WebSocket.
 
 Marked `browser` so the general smoke step skips them (`-m "not browser"`) —
 playwright + WebKit are heavier than the HTTP suite. They DO run in pre-commit
@@ -24,7 +27,10 @@ test), so a hang/freeze can't ship. Run by hand with:
 Skips cleanly (like the smoke suite) when playwright isn't installed, the WebKit
 browser is absent, or the app isn't reachable.
 """
+import io
 import json
+import re
+import wave
 
 import pytest
 
@@ -55,6 +61,24 @@ def fulfill_sse(body: str):
     return handler
 
 
+def fulfill_json(payload: dict):
+    def handler(route):
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+    return handler
+
+
+def wav_bytes(seconds: float = 0.4) -> bytes:
+    """A real (silent) 24 kHz mono WAV — enough for the page to fetch and hand
+    to the voice layer, without a TTS box in the loop."""
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(24000)
+        w.writeframes(b"\x00\x00" * int(24000 * seconds))
+    return buf.getvalue()
+
+
 def fulfill_js(js: str):
     # Single-arg handler: playwright invokes route handlers as (route, request),
     # so a `js=...` default param would be clobbered by the request positional.
@@ -78,6 +102,8 @@ window.tarotVoice = {
   armPersistedUnlock: () => {},
   speak: () => ({ ok:false, ended:true, error:'stub voice fail',
                   elapsed:()=>0, duration:()=>0 }),
+  speakClip: () => ({ ok:false, ended:true, error:'stub clip fail',
+                      elapsed:()=>0, duration:()=>0 }),
 };
 """
 
@@ -92,6 +118,8 @@ window.tarotVoice = {
   armPersistedUnlock: () => {},
   speak: () => ({ ok:true, ended:false, error:null,
                   elapsed:()=>0, duration:()=>0 }),
+  speakClip: () => ({ ok:true, ended:false, error:null,
+                      elapsed:()=>0, duration:()=>0 }),
 };
 """
 
@@ -106,6 +134,8 @@ window.tarotVoice = {
   armPersistedUnlock: () => {},
   speak: () => ({ ok:true, ended:false, error:null,
                   elapsed:()=>0, duration:()=>1.5 }),
+  speakClip: () => ({ ok:true, ended:false, error:null,
+                      elapsed:()=>0, duration:()=>1.5 }),
 };
 """
 
@@ -136,10 +166,15 @@ def open_tarot(browser, base_url, admin_headers):
     the first gesture (browsers won't autoplay audio) — install routes BEFORE
     goto, then tap to begin the reading. The stub voices (voice_js) report no
     deferral, so for them the opening auto-fires and the tap is a harmless no-op.
+
+    `clip` is what /api/tarot/opening answers. None (the default) means "this
+    hour has no pre-generated opening", which is what puts the opening turn back
+    on the LIVE path every test below exercises; pass a dict to exercise the
+    canned path instead. `audio` is the body served for that clip's .wav.
     """
     contexts = []
 
-    def _open(chat_handler, *, voice_js=None, init_script=None):
+    def _open(chat_handler, *, voice_js=None, init_script=None, clip=None, audio=None):
         ctx = browser.new_context(
             extra_http_headers={"Authorization": admin_headers["Authorization"]})
         contexts.append(ctx)
@@ -147,6 +182,12 @@ def open_tarot(browser, base_url, admin_headers):
         pg.route("**/marked.min.js", _marked)
         if voice_js is not None:
             pg.route("**/tarot-voice.js*", fulfill_js(voice_js))
+        # Warming loads models on a home GPU box — never from a test.
+        pg.route("**/api/tarot/warm", fulfill_json({"ok": True, "skipped": "test"}))
+        pg.route(re.compile(r"/api/tarot/opening(\?|$)"), fulfill_json({"clip": clip}))
+        if audio is not None:
+            pg.route(re.compile(r"/api/tarot/opening/.*\.wav$"),
+                     lambda r: r.fulfill(status=200, content_type="audio/wav", body=audio))
         pg.route("**/api/tarot/chat", chat_handler)
         if init_script:
             pg.add_init_script(init_script)
@@ -265,4 +306,50 @@ def test_voice_midstream_stall_unblocks(open_tarot):
     settle(pg, timeout=12000)
     assert reader_text(pg) == "Frozen mid-stream."
     assert not any("voice unavailable" in n.lower() for n in sys_texts(pg))
+    assert_recovered(pg)
+
+
+# ── the canned opening (the pre-generated first turn) ───────────────────────
+CANNED = {
+    "id": "h03-9b499eeb",
+    "text": "A cassette in the deck, still rewound.\n\nWhat kept you up?",
+    "dur": 9.0,
+    "audio": "/api/tarot/opening/h03-9b499eeb.wav",
+}
+
+
+def test_canned_opening_reveals_without_an_llm_turn(open_tarot):
+    """The whole point: when the hour has a pre-generated opening, the first
+    turn costs no /api/tarot/chat round-trip (and no TTS synth) at all."""
+    called = []
+
+    def chat(route):
+        called.append(route.request.url)
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body=sse(txt("live turn")))
+
+    pg = open_tarot(chat, clip=CANNED, audio=wav_bytes())
+    settle(pg)
+    assert reader_text(pg).startswith("A cassette in the deck")
+    assert called == []
+    assert_recovered(pg)
+
+
+def test_canned_opening_survives_a_missing_clip_audio(open_tarot):
+    """The .wav never arrives (404). The text still reveals at the guessed pace
+    and the reading settles — a clip that cannot be narrated must not freeze the
+    page any more than a dead TTS box does."""
+    pg = open_tarot(fulfill_sse(sse(txt("unused"))), clip=CANNED)
+    settle(pg, timeout=15000)
+    assert reader_text(pg).startswith("A cassette in the deck")
+    assert_recovered(pg)
+
+
+def test_canned_opening_survives_failed_narration(open_tarot):
+    """The clip downloads but the voice layer refuses to play it (VOICE_FAIL's
+    speakClip). Same contract: reveal, settle, recover."""
+    pg = open_tarot(fulfill_sse(sse(txt("unused"))), voice_js=VOICE_FAIL,
+                    clip=CANNED, audio=wav_bytes())
+    settle(pg, timeout=15000)
+    assert reader_text(pg).startswith("A cassette in the deck")
     assert_recovered(pg)

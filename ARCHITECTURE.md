@@ -495,6 +495,24 @@ until audio starts, then reveals on a `charWeight` schedule normalized to
 the measured duration); on any audio failure it bails to a guessed-pace
 typewriter and logs a sys note. Exec is fire-and-forget (no typewriter).
 
+**A fourth path plays audio that was never synthesized here.** The
+pre-generated `/tarot` openings (§14d) are already-rendered WAVs, and
+`player.speakBuffer({data})` schedules one through the SAME `scheduleBuffer`
+the streamed chunks use — same playhead, same gain node (so the ♪ mute still
+works), same iOS unlock and silent-switch session, same `elapsed()` /
+`audioDuration()` clock, so the typewriter cannot tell which one it got. No
+socket is opened: there is nothing to synthesize. `{end}` fires the moment it
+is scheduled, because a file is fully buffered by definition. One trap:
+`decodeAudioData` **detaches** the ArrayBuffer it is handed, so it decodes a
+copy and the caller's clip survives a replay.
+
+**The other direction — synthesizing with no browser in the loop —** is
+`api/tarot/voice_synth.py`: it speaks the upstream's protocol directly
+(`ws://TTS_UPSTREAM/v1/audio/stream`, one JSON utterance in, `{start}` →
+float32 frames → `{end}` back) rather than going through `/ws/hosaka`, because
+there is no cookie to carry and no client to fan out to. Three callers: the
+opening generator, the nightly voice probe (§14e), and `POST /api/tarot/warm`.
+
 ### 4d. One utterance
 
 ```mermaid
@@ -622,6 +640,7 @@ Regression properties pinned in `tests/test_exec_tool_rounds.py`.
 | `card_llm` classify / parse-date | one-shot per card; no system / ~80-token volatile system |
 | `morning.py`, `chat._dedupe_context` | daily one-shot; prompt lives in the user message |
 | `gcal._haiku_classify_batch` | no system block; tiny instructions in the user message |
+| `tarot/openings_gen.generate_texts` | `voice_preamble()` ~1.5K < 4096; 24 calls, one per hour, minutes apart |
 
 **Verifying:** the response `usage` reports `cache_creation_input_tokens`
 (written this request, ~1.25x) and `cache_read_input_tokens` (served from
@@ -1804,6 +1823,41 @@ ffmpeg -i <out> -af volumedetect -f null -   # verify
 Then bump `?v=`.
 
 It loops via `el.loop=true` **plus** an `ended` handler that rewinds to 0 and replays — native loop can fail to restart a track seeked into a progressively-streamed m4a.
+
+### 14d. The opening turn is pre-generated — and why the first reading of a day was slow
+
+The reader's FIRST turn is the only turn whose content is a function of nothing but the clock: no history, no Significator, no spread — one or two lines of image for the room at this hour, a blank line, the first Phase 1 question. Generating it live cost an opus round-trip AND a TTS synth before the querent had typed a word, and on the first reading of a day that synth is a **cold** one: ~4.6s of model load against 0.36s loaded (measured 2026-09-10). That is the slow start.
+
+So ten openings per hour are generated ahead of time **with their narration already rendered**, and the page plays one at random for the hour it was opened in.
+
+| Piece | What |
+|-------|------|
+| `api/tarot/openings.py` | the store: `data/tarot_openings/index.json` + one `<id>.wav` per clip. The pure half (`pick_clip` / `clip_id_ok` / `shortfall`) takes the index as an argument, so `tests/test_tarot_openings.py` needs no filesystem |
+| `api/tarot/openings_gen.py` | generation + the CLI (`stats` / `backfill` / `refresh` / `check`) |
+| `api/tarot/voice_synth.py` | the server-side synth, §4c |
+| `GET /api/tarot/opening?hour=` | one random clip for that hour: `{id, text, dur, audio}`, or `{"clip": null}` |
+| `GET /api/tarot/opening/<id>.wav` | the narration, `immutable` (the id is content-unique) |
+| `web/tarot-opening.js` | `startOpeningTurn()` — the client half, replacing the opening block that used to sit inline at the end of tarot-chat.js |
+
+**The hour is the CLIENT's** (`new Date().getHours()`), so a querent outside America/New_York opens on their own light. The id shape `h<HH>-<8 hex>` is the whole traversal defence, since it is a path component — validated before it touches the filesystem, the same structural guarantee `gamesave_store` makes with its sha256 component.
+
+**Only the FIRST turn is canned** (`!significator && !spread`). The other two openings — a returning querent whose Significator is already set, one who left mid-spread — answer a state the clips know nothing about, so they stay live. And **every failure falls back to the live turn**: an hour with no clips, a failed fetch, a clip whose audio never lands.
+
+**The canned turn is otherwise indistinguishable.** It records the same `[opened /tarot; …]` marker, reveals through the same `createTypewriter`, and pushes the same `{role:'assistant'}` message onto `messages`, so the model continues the reading from its own first turn with no idea it did not write it.
+
+**The audio downloads during the hold.** The prefetch starts the moment the clip JSON lands, which is while the page is sitting on "tap anywhere to begin" waiting for the gesture that unlocks audio; the reveal then waits at most `TAROT_CLIP_WAIT_MS` (5s) for the buffer and otherwise types silently. Bounded, because a stalled fetch must not hold the reading.
+
+**WAV, deliberately.** 16-bit mono at 24 kHz is ~48KB/s, so an 8-13s opening is 400-600KB, fetched once and cached forever. The container has no encoder (ffmpeg is on the HOST only), and adding one would mean a new pinned dep and an image rebuild — a re-resolve of the whole lock, which is exactly how `httpx`/`httpx2` took the site down (§1) — to shrink a file served a handful of times a day. 240 clips ≈ 150MB in a gitignored data dir.
+
+**Generation is ONE opus call per HOUR, not per clip.** Asked for ten at a time the model varies them against each other instead of converging on the same lamp and the same siren; asked one at a time it would not. There is no `temperature` — it is **removed on opus 4.8** (the SDK raises `TypeError`, the API 400s), so the batch shape is also where the variety now comes from. The system prompt is `prompt.voice_preamble()` alone (~1.5K: the register and the time-of-day table) — the framework chapters and phase machinery do not apply before the querent has said a word, and at that size it is under opus's 4096-token minimum cacheable prefix, so there is deliberately no `cache_control` marker. An off-shape variant (no blank line, not ending in `?`, over 420 chars, echoing the marker) is **dropped, not repaired**: the next top-up fills the gap, and a bad opening would be frozen into audio and played for months.
+
+```bash
+docker compose exec api python -m tarot.openings_gen stats
+docker compose exec api python -m tarot.openings_gen backfill        # idempotent
+docker compose exec api python -m tarot.openings_gen refresh --n 1   # rotate the oldest
+```
+
+**`POST /api/tarot/warm` finishes the job.** The canned opening removes the synth from turn ONE; the querent's next turn still needs a live one, and under GPU mode `idle` the models load on demand. So the page fires a warm on open — fire-and-forget, server-side 300s cooldown so a reload storm is not GPU load — and the models load while the opening is being read.
 
 ---
 

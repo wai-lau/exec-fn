@@ -155,6 +155,15 @@ At ANY phase — during the Significator interview, during the query dialogue, m
 7. Formatting: markdown. No emoji. No hyperlinks of any kind, no special link syntax. Card names in **bold**. Concise paragraphs; do not pad."""
 
 
+def voice_preamble() -> str:
+    """The reader's voice + the first-turn/time-of-day rules, without the
+    framework or the phase machinery. openings_gen.py generates the canned
+    opening turns against exactly this much of the prompt -- a first turn needs
+    the register and the hour, and nothing else in here applies before the
+    querent has said a word."""
+    return _PREAMBLE
+
+
 @lru_cache(maxsize=8)
 def build_system(spread_type: str | None) -> str:
     framework = load_framework(spread_type)
