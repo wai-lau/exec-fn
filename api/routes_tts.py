@@ -9,7 +9,6 @@ handshake reliably on mobile."""
 
 import asyncio
 import json
-import os
 import time
 
 import httpx
@@ -18,19 +17,11 @@ from fastapi import HTTPException, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
-from gpu_mode_client import effective_mode, fetch_mode, needs_user_confirm, switch_mode
+from gpu_mode_client import (GPU_MODE_TOKEN, GPU_MODE_UPSTREAM, effective_mode, fetch_mode,
+                             needs_user_confirm, switch_mode)
 from pages import _render_page, _tmpl
 from routers import guest_protected, protected, public
-from tts_routing import died_mid_utterance, merge_voices, pick_upstream
-
-# Docker bridge gateway -> host loopback :8123 (the SSH tunnel to the home box).
-_UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
-# Always-on droplet-local piper (glados). Separate from the home GPU tunnel.
-_PIPER_UPSTREAM = os.environ.get("TTS_PIPER_UPSTREAM", "hosaka-piper:8123")
-# Home-box gpu-mode switch (homo/emo/idle), reached over the same SSH tunnel as
-# the TTS upstream. Owner-only; bearer-authed on the home side.
-_GPU_MODE_UPSTREAM = os.environ.get("GPU_MODE_UPSTREAM", "172.17.0.1:8124")
-_GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
+from tts_routing import PIPER_UPSTREAM, TTS_UPSTREAM, died_mid_utterance, merge_voices, pick_upstream
 
 # SSE fan-out for GPU-mode changes: every open /hosaka page subscribes so
 # a switch on one page reflects live on the others. Only actual switches are
@@ -78,7 +69,7 @@ async def tts_voices():
 
     # Concurrent: a slow/down home box must not stall the page-load behind its
     # full timeout (the piper side is local and fast). Mirrors tts_health.
-    piper_voices, home_voices = await asyncio.gather(safe(_PIPER_UPSTREAM), safe(_UPSTREAM))
+    piper_voices, home_voices = await asyncio.gather(safe(PIPER_UPSTREAM), safe(TTS_UPSTREAM))
     return JSONResponse(merge_voices(piper_voices, home_voices))
 
 
@@ -99,7 +90,7 @@ async def _live(upstream: str) -> bool:
 async def tts_health():
     """ok if EITHER upstream answers. Glados alone (home box down) is still ok;
     the UI greys out GPU voices but keeps glados live."""
-    home, piper = await asyncio.gather(_live(_UPSTREAM), _live(_PIPER_UPSTREAM))
+    home, piper = await asyncio.gather(_live(TTS_UPSTREAM), _live(PIPER_UPSTREAM))
     ok = home or piper
     return JSONResponse({"ok": ok, "home": home, "piper": piper}, status_code=200 if ok else 503)
 
@@ -109,7 +100,7 @@ async def _current_mode() -> str:
     is actually answering (see gpu_mode_client.effective_mode). Probed
     concurrently so the strip never waits out both timeouts in series."""
     reported, tts_live = await asyncio.gather(
-        fetch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN), _live(_UPSTREAM))
+        fetch_mode(GPU_MODE_UPSTREAM, GPU_MODE_TOKEN), _live(TTS_UPSTREAM))
     return effective_mode(reported, tts_live or time.monotonic() < _homo_until)
 
 
@@ -129,7 +120,7 @@ async def gpu_mode_post(request: Request):
         raise HTTPException(status_code=400, detail="bad action")
     if needs_user_confirm(action, len(_audio_conns), force):
         raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_audio_conns)})
-    mode = await switch_mode(_GPU_MODE_UPSTREAM, _GPU_MODE_TOKEN, action)
+    mode = await switch_mode(GPU_MODE_UPSTREAM, GPU_MODE_TOKEN, action)
     global _homo_until
     _homo_until = time.monotonic() + _HOMO_GRACE_S if mode == "homo" else 0.0
     await _broadcast_mode(mode)  # live-sync the other open /hosaka pages
@@ -278,7 +269,7 @@ async def _ws_dispatch(ws, conns, pumps):
         except Exception:
             await ws.send_text(json.dumps({"type": "error", "detail": "bad request json"}))
             continue
-        url = pick_upstream(req, _UPSTREAM, _PIPER_UPSTREAM)
+        url = pick_upstream(req, TTS_UPSTREAM, PIPER_UPSTREAM)
         if busy.get(url):
             # The client already flushed local playback for a new utterance while
             # the previous one on this same upstream connection is still generating

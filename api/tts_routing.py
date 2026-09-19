@@ -3,6 +3,17 @@
 Kept dependency-free so the dev venv (pytest + httpx, no fastapi) can import
 and unit-test it without dragging the whole app graph (auth/pages/routers ->
 anthropic, etc.). routes_tts.py imports these and keeps only the plumbing."""
+import os
+
+# Where the two voice backends live. Here rather than in routes_tts.py because
+# tarot/voice_synth.py synthesizes server-side (the pre-generated openings, the
+# nightly voice check) and must reach the same upstream without importing the
+# FastAPI route module to find out where it is.
+#
+# Docker bridge gateway -> host loopback :8123 (the SSH tunnel to the home box).
+TTS_UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
+# Always-on droplet-local piper (glados). Separate from the home GPU tunnel.
+PIPER_UPSTREAM = os.environ.get("TTS_PIPER_UPSTREAM", "hosaka-piper:8123")
 
 
 def pick_upstream(req, home: str, piper: str) -> str:
