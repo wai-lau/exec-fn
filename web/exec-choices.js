@@ -20,8 +20,17 @@
 // {id, column} write). Routing those through the model instead would spend a
 // turn asking it to do something the tap already decided, and could silently
 // not happen. They are appended by the CLIENT, not written by the model: they
-// apply to every nudge, and a model that has to remember to offer them is one
-// that will sometimes forget.
+// apply to every row that knows its card, and a model that has to remember to
+// offer them is one that will sometimes forget.
+//
+// EVERY question about a card gets them, not only a nudge. A nudge push carries
+// its card id in the payload; an ordinary chat reply carries none, so the model
+// names it IN THE ROW — `[card=card-123 | Got everything | Not yet]` — and the
+// `card=` cell is parsed out here rather than rendered as a button. That cell is
+// the one place Exec is allowed to write a raw id: the whole row is stripped
+// before the message renders, so it never reaches Wai's eyes or the narration.
+// Without it "is the poster picked up?" asked in chat offered no way to mark the
+// card done, which is the answer to that question about half the time.
 //
 // Only {id, column} is sent — PATCH /api/rd merges by id, so every field the
 // client does not own (above all the server-owned `nudge` block) is preserved.
@@ -31,24 +40,32 @@ window.execChoices = (function () {
     { label: 'done', column: 'archives' },
     { label: 'exile', column: 'exile' },
   ];
-  // Anchored to the LAST line and required to carry a '|', so an ordinary
-  // [bracketed] sys note, a markdown link, or a stray bracket mid-sentence is
-  // never mistaken for a choice row.
+  // Anchored to the LAST line, and required to carry a '|' OR to be a lone
+  // `card=` cell, so an ordinary [bracketed] sys note, a markdown link, or a
+  // stray bracket mid-sentence is never mistaken for a choice row. The lone
+  // form covers a question about a card that has no small answer set ("what do
+  // you want to do with it?"): no answer buttons, but done/exile still apply.
   //
   // Emphasis around the row is tolerated (`**[a | b]**`) and so is trailing
   // whitespace: the model reaches for bold on a line that reads like a control,
   // and a row that misses by two asterisks doesn't degrade — it prints the raw
   // brackets as prose and Wai gets no buttons at all, which is how it failed.
-  const RE = /\n[ \t]*(?:\*\*|__|\*|_)?\[([^[\]\n]*\|[^[\]\n]*)\](?:\*\*|__|\*|_)?\s*$/;
+  const RE = /\n[ \t]*(?:\*\*|__|\*|_)?\[([^[\]\n]*\|[^[\]\n]*|card=[^[\]\n|]+)\](?:\*\*|__|\*|_)?\s*$/;
+  const CARD_CELL = /^card\s*=\s*(\S+)$/;
 
   function parse(text) {
     const m = typeof text === 'string' ? text.match(RE) : null;
-    if (!m) return { clean: text, opts: [] };
-    const opts = m[1].split('|')
-      .map(function (s) { return s.trim(); })
-      .filter(Boolean)
-      .slice(0, 4);
-    return { clean: text.slice(0, m.index).trim(), opts: opts };
+    if (!m) return { clean: text, opts: [], cardId: null };
+    let cardId = null;
+    const opts = [];
+    m[1].split('|').forEach(function (raw) {
+      const cell = raw.trim();
+      if (!cell) return;
+      const c = cell.match(CARD_CELL);
+      if (c) { if (!cardId) cardId = c[1]; return; }
+      opts.push(cell);
+    });
+    return { clean: text.slice(0, m.index).trim(), opts: opts.slice(0, 4), cardId: cardId };
   }
 
   function strip(text) { return parse(text).clean; }
@@ -149,9 +166,10 @@ window.execChoices = (function () {
     return b;
   }
 
-  // `cardId` is present only on a nudge (a monitor comment is about the whole
-  // board, so it gets no card actions) — so a nudge's row offers that card's own
-  // done/exile actions and a monitor comment's does not. `asked` is the message
+  // `cardId` is whichever the caller resolved — the nudge push's id, else the
+  // `card=` cell the model wrote into the row — and its presence is the whole
+  // test for card actions. A monitor comment is about the board rather than one
+  // card, so it carries neither and gets none. `asked` is the message
   // the row hangs under, used to build the answer's reference. `note` prints a
   // sys line on failure. Callers hand us every row unconditionally; returning
   // null on an empty one keeps that check here instead of at each call site.

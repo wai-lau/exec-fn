@@ -15,6 +15,7 @@ this module fine (the `import discord` lives inside `_run_discord_bot`)."""
 import asyncio
 import json
 import os
+import re
 
 _MAX_LEN = 2000  # Discord per-message hard cap.
 _MAX_TOOL_ROUNDS = 3  # matches routes_chat: a follow-up may call another tool.
@@ -110,8 +111,31 @@ async def exec_reply(text: str) -> str:
     return reply_text or "[no reply]"
 
 
+# A trailing answer row can carry a `card=<id>` cell: the exec panel parses it
+# into that card's done/exile buttons and strips the whole row before rendering
+# (web/exec-choices.js). Discord has no buttons, so on the phone the cell is the
+# one raw card id Exec is allowed to write, shown to the one person it means
+# nothing to. Drop the cell here and keep the answers, which still read as a
+# hint at what to reply; a row left holding nothing else goes with it.
+_CARD_ROW = re.compile(r"(\n[ \t]*(?:\*\*|__|\*|_)?\[)([^\[\]\n]*)(\](?:\*\*|__|\*|_)?\s*)$")
+_CARD_CELL = re.compile(r"^\s*card\s*=\s*\S+\s*$")
+
+
+def strip_card_cell(text: str) -> str:
+    """Remove the `card=<id>` cell from a trailing [a | b] answer row."""
+    m = _CARD_ROW.search(text or "")
+    if not m:
+        return text
+    cells = [c for c in m.group(2).split("|") if not _CARD_CELL.match(c)]
+    kept = [c.strip() for c in cells if c.strip()]
+    if not kept:
+        return text[:m.start()].rstrip()
+    return text[:m.start(2)] + " | ".join(kept) + text[m.end(2):]
+
+
 async def _send_chunked(target, text: str) -> None:
     """Send text as one or more messages under Discord's 2000-char cap."""
+    text = strip_card_cell(text)
     for i in range(0, len(text) or 1, _MAX_LEN):
         await target.send(text[i:i + _MAX_LEN] or "[empty]")
 

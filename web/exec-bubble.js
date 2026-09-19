@@ -236,11 +236,13 @@
     // and exec-choices.js renders it as buttons under the message. An ordinary
     // Exec reply can end on the same row (it asks Wai questions with a small
     // answer set all the time) — parsing only the nudge role is what left those
-    // printing as raw brackets with no buttons under them. `cardId` still comes
-    // from a nudge push alone, so a chat reply gets answer buttons and no
-    // done/exile card actions: nothing tells us WHICH card it is about.
+    // printing as raw brackets with no buttons under them. A chat reply carries
+    // no card id in its payload, so a question about a card names it IN the row
+    // (`[card=... | a | b]`) and parse() hands it back; the push's id wins when
+    // both exist, being the one the server chose rather than the model.
     const parseable = role === 'probe' || role === 'assistant';
     const choices = parseable && window.execChoices ? execChoices.parse(text) : null;
+    if (choices) cardId = cardId || choices.cardId;
     if (choices) text = choices.clean;
     if (role === 'user' || role === 'assistant' || role === 'probe') {
       // Exec turns get a clickable replay glyph (execVoice.mark, see exec-voice.js).
@@ -410,9 +412,9 @@
         // prose — re-render the body without it and hand the row to
         // exec-choices, the same buttons a nudge gets.
         const ch = window.execChoices ? execChoices.parse(fullText) : null;
-        if (ch && ch.opts.length) {
+        if (ch && (ch.opts.length || ch.cardId)) {
           body.innerHTML = mdHtml(ch.clean);
-          execChoices.attach(termEl, streamDiv, ch.opts, sendText, null,
+          execChoices.attach(termEl, streamDiv, ch.opts, sendText, ch.cardId,
                              function (t) { addMsg('sys', t); }, ch.clean);
         }
         messages.push({ role: 'assistant', content: fullText });
