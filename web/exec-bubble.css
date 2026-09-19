@@ -196,6 +196,14 @@ body:has(#exec-panel.open) #exec-bubble { display: none; }
   padding-left: var(--chat-indent);
 }
 
+/* A nudge lands here too (addMsg('probe', ...)), and a nudge is exactly where a
+   link turns up -- "open the EI login". chat-msg.css colours `.msg.assistant a`
+   only, and `probe` is a panel-only role it never hears about, so the one line
+   in the transcript carrying a link was the one rendering in the browser's
+   default blue. Same cyan as a reply's links: they are the same thing. */
+.msg.probe a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: underline; }
+.msg.probe a:hover { color: hsl(var(--cyan-hsl) / 1); }
+
 #exec-input-area { flex-shrink: 0; padding: 0 var(--space-4) var(--space-2); background: transparent; }
 
 /* ONE TEXT LINE TALL, exactly like the messages above it -- the panel is meant

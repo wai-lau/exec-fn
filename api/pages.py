@@ -217,7 +217,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=5"></script>'
                   '<script src="/voice-input.js?v=1"></script>'
                   '<script src="/exec-mic.js?v=1"></script>'
-                  '<script src="/exec-bubble-assets.js?v=13"></script>'
+                  '<script src="/exec-bubble-assets.js?v=14"></script>'
                   '<script src="/exec-bubble-history.js?v=1"></script>'
                   '<script src="/exec-bubble.js?v=52"></script>')
     else:
@@ -238,7 +238,7 @@ def _build_nav(active=None, guest=False):
             '<script src="/exec-voice.js?v=5"></script>'
         ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=24">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=25">'
                   '<div id="exec-bubble" class="exec-under-fx" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
