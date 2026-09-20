@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "api/chat.py": {
-    "mtime": 1789853087.096562,
-    "ast_hash": "3a6ebc1d13dcee455931471053b58468",
+    "mtime": 1789601608.3550458,
+    "ast_hash": "4856268d86f22b1a395cbba4abe766ff",
     "semantic_hash": ""
   },
   "api/chat_tools.py": {
@@ -50,8 +50,8 @@
     "semantic_hash": ""
   },
   "api/main.py": {
-    "mtime": 1789853585.1646323,
-    "ast_hash": "f7a5ffeac95a8de57cd183ad5e1aaaee",
+    "mtime": 1789607815.5372362,
+    "ast_hash": "7c7386cf6269bf1d3899d9d317bd1257",
     "semantic_hash": ""
   },
   "api/monitor.py": {
@@ -130,13 +130,13 @@
     "semantic_hash": "655721d01c377144f00ce171d96140a3"
   },
   "api/tarot/prompt.py": {
-    "mtime": 1789853550.8504896,
-    "ast_hash": "34de4494612f611840420ce9e3d85324",
+    "mtime": 1789188203.7081187,
+    "ast_hash": "22371d710fcd679f056ef674e587b06e",
     "semantic_hash": ""
   },
   "api/tarot/routes.py": {
-    "mtime": 1789853592.8216643,
-    "ast_hash": "7a58f7ca974fd19f720cf5930652a046",
+    "mtime": 1789188203.7091186,
+    "ast_hash": "52fb7e28d5677c992bd9e50b2c9e509e",
     "semantic_hash": ""
   },
   "api/tarot/scripts/__init__.py": {
@@ -190,8 +190,8 @@
     "semantic_hash": "4ae54e3c672e41c84d45257f9fd6a827"
   },
   "web/card-dialog.js": {
-    "mtime": 1789852714.1820424,
-    "ast_hash": "32fded8d716c9dd9b1aa25a9eb2d9d81",
+    "mtime": 1789677499.9115753,
+    "ast_hash": "e389ebec4d969b2ff291d5e0486d03c4",
     "semantic_hash": ""
   },
   "web/card-style.js": {
@@ -200,18 +200,18 @@
     "semantic_hash": ""
   },
   "web/exec-bubble.js": {
-    "mtime": 1789853077.8755243,
-    "ast_hash": "a96ac35664aef4d0adf1d86ad15f44f8",
+    "mtime": 1789772730.9897244,
+    "ast_hash": "cdd7a20e64298f24e35c1a57cf66347e",
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1789854214.8832312,
-    "ast_hash": "8ebcc02c7f49948d6bce8ddd7ec5fb85",
+    "mtime": 1789772810.2700522,
+    "ast_hash": "ba00e87a458a8f868c70bc4fe997642b",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1789854214.8802311,
-    "ast_hash": "da99e3bf2eccbe079b225265dc91b2b9",
+    "mtime": 1789772810.2660522,
+    "ast_hash": "4bcaee1e322bea27100faef1b33eefc4",
     "semantic_hash": ""
   },
   "README.md": {
@@ -385,13 +385,13 @@
     "semantic_hash": ""
   },
   "api/templates/mtg.html": {
-    "mtime": 1789852425.7938616,
+    "mtime": 1789763170.8874738,
     "ast_hash": "00c69cd8fc1bd7166dd0b441f1450cd9",
     "semantic_hash": ""
   },
   "api/templates/tarot.html": {
-    "mtime": 1789853666.6129708,
-    "ast_hash": "6fe0903382f5dfc453a3e216c8e17c68",
+    "mtime": 1789763170.8884737,
+    "ast_hash": "e45b449381412927cb80c16091597405",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -880,8 +880,8 @@
     "semantic_hash": ""
   },
   "web/card-graph.js": {
-    "mtime": 1789852716.1680505,
-    "ast_hash": "b9c82ded6c3cabb7a99d5841d93c8f94",
+    "mtime": 1789188204.1421204,
+    "ast_hash": "9f106c737008ddfb73c7aa29f1b321ad",
     "semantic_hash": ""
   },
   "api/recalibration.py": {
@@ -935,8 +935,8 @@
     "semantic_hash": ""
   },
   "web/tarot-chat.js": {
-    "mtime": 1789853657.2039316,
-    "ast_hash": "c349be98ee4e0405146043be88f8d599",
+    "mtime": 1789188204.3861213,
+    "ast_hash": "640070e86d435f7c9f115ccc9b786e2d",
     "semantic_hash": ""
   },
   "web/tarot-view.js": {
@@ -945,8 +945,8 @@
     "semantic_hash": ""
   },
   "api/nudge_llm.py": {
-    "mtime": 1789852359.1015875,
-    "ast_hash": "7af2ae36b916fb912eaae0228d14e3cd",
+    "mtime": 1789456988.8889086,
+    "ast_hash": "cea2630d61c90f66357ed48b836ed508",
     "semantic_hash": ""
   },
   "api/monitor_sse.py": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1789853666.6139708,
-    "ast_hash": "4ccf87efee3d991f4b22c668b186954a",
+    "mtime": 1789772830.317135,
+    "ast_hash": "fbdee5492f0485bb1d8b1bfe21f803e7",
     "semantic_hash": ""
   },
   "api/routers.py": {
@@ -1055,8 +1055,8 @@
     "semantic_hash": ""
   },
   "api/routes_tts.py": {
-    "mtime": 1789853569.3115664,
-    "ast_hash": "fd591279cdbf51c20a766ca526c0af2a",
+    "mtime": 1789188203.7021186,
+    "ast_hash": "fe0eeea89e62c4785d6dfb116f3c02f9",
     "semantic_hash": ""
   },
   "web/tts.js": {
@@ -1065,8 +1065,8 @@
     "semantic_hash": ""
   },
   "api/templates/tts.html": {
-    "mtime": 1789853666.6129708,
-    "ast_hash": "736251f6a88885598466db2d1400d9a0",
+    "mtime": 1789188203.7121186,
+    "ast_hash": "7b2c0c01947e916be3116246ab600103",
     "semantic_hash": ""
   },
   "web/radar.png": {
@@ -1085,13 +1085,13 @@
     "semantic_hash": ""
   },
   "web/hosaka-audio.js": {
-    "mtime": 1789853632.460829,
-    "ast_hash": "805e7307750fef463f1a4ee595b50ece",
+    "mtime": 1789188204.375121,
+    "ast_hash": "61341b56c6cec1e8b2f646db1a139a5d",
     "semantic_hash": ""
   },
   "web/tarot-voice.js": {
-    "mtime": 1789853637.785851,
-    "ast_hash": "4ce4e7cf80ebde019f90ec45a29222a5",
+    "mtime": 1789188204.3881211,
+    "ast_hash": "221342dd80bbd22095128486037bc4b0",
     "semantic_hash": ""
   },
   "tts-box/tts-watchdog.sh": {
@@ -1125,8 +1125,8 @@
     "semantic_hash": ""
   },
   "tests/test_tarot_progression.py": {
-    "mtime": 1789853786.7754683,
-    "ast_hash": "241c5f752789488b8826283f01279959",
+    "mtime": 1789188204.07412,
+    "ast_hash": "8f1f9d0d5b1a6240208b6fa21bc40aad",
     "semantic_hash": ""
   },
   "web/tarot-music.js": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1789893004.8169105,
+    "mtime": 1789806604.4397957,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1789893007.4649217,
+    "mtime": 1789806611.3498247,
     "ast_hash": "6d5b10c0b461300cc23f36ff1175582a",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1789893028.254008,
-    "ast_hash": "efaf2138d4cab8854814c742215dc609",
+    "mtime": 1789806628.0218947,
+    "ast_hash": "ce0bfff1e86592502077109ea919b18f",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6195,8 +6195,8 @@
     "semantic_hash": ""
   },
   "api/templates/hq.html": {
-    "mtime": 1789852720.1520667,
-    "ast_hash": "974cf3af9cd7beec9eb0ba31384c345b",
+    "mtime": 1789677554.3197525,
+    "ast_hash": "c976d61956ed23c42e589117c3ba281c",
     "semantic_hash": ""
   },
   "web/rd.js": {
@@ -6205,8 +6205,8 @@
     "semantic_hash": ""
   },
   "api/templates/rd.html": {
-    "mtime": 1789852720.1530666,
-    "ast_hash": "f99c1d7c849949fa06cc74912e43f484",
+    "mtime": 1789677554.3207526,
+    "ast_hash": "7bcda5568a01822098f9ba727fef61aa",
     "semantic_hash": ""
   },
   "web/guest_login.js": {
@@ -6230,8 +6230,8 @@
     "semantic_hash": ""
   },
   "api/tts_routing.py": {
-    "mtime": 1789853527.0663905,
-    "ast_hash": "51ac429ba28ddd2780b900ec37628b57",
+    "mtime": 1789188203.7131186,
+    "ast_hash": "bde79d53aa50f7b944d5acc2c89c5708",
     "semantic_hash": ""
   },
   "tests/test_tts_routing.py": {
@@ -6255,8 +6255,8 @@
     "semantic_hash": ""
   },
   "api/gpu_mode_client.py": {
-    "mtime": 1789853563.7075431,
-    "ast_hash": "01c73e9ad3457aea4899d53a904519f3",
+    "mtime": 1789188203.6901186,
+    "ast_hash": "8463d38f86a82294beaafa5497ffd997",
     "semantic_hash": ""
   },
   "tests/test_gpu_mode_client.py": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1789809015.0296838,
+    "mtime": 1789722615.9293296,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1789809015.051684,
+    "mtime": 1789722615.9393296,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -6295,8 +6295,8 @@
     "semantic_hash": ""
   },
   "api/discord_bot.py": {
-    "mtime": 1789853104.4676325,
-    "ast_hash": "2884d2ed2226a52425f21bd7dfd0c887",
+    "mtime": 1789456849.4033523,
+    "ast_hash": "60104a4749a4ad64cb0d6ff0cf309223",
     "semantic_hash": ""
   },
   "api/chat_actions.py": {
@@ -6725,13 +6725,13 @@
     "semantic_hash": ""
   },
   "api/printer_camera.py": {
-    "mtime": 1789852674.3408797,
-    "ast_hash": "2e51595f4a050196a6f2b50f4fa842f0",
+    "mtime": 1789188203.6981187,
+    "ast_hash": "c96ec9938779f73282b7158600a71d9f",
     "semantic_hash": ""
   },
   "api/printer_proxy.py": {
-    "mtime": 1789852928.162915,
-    "ast_hash": "4768b24a258cf14a582bc16644c1addd",
+    "mtime": 1789188203.6981187,
+    "ast_hash": "c2345cace55819d401d93999fd1508d3",
     "semantic_hash": ""
   },
   "api/printer_status.py": {
@@ -6775,8 +6775,8 @@
     "semantic_hash": ""
   },
   "tests/test_printer_proxy.py": {
-    "mtime": 1789852992.474177,
-    "ast_hash": "de27523c2fd20bbbd4e61442a41c9179",
+    "mtime": 1789188204.07212,
+    "ast_hash": "b5dd44513a39e17496c21c4a1406aafe",
     "semantic_hash": ""
   },
   "tests/test_rd_lock.py": {
@@ -6805,8 +6805,8 @@
     "semantic_hash": ""
   },
   "web/printer.js": {
-    "mtime": 1789852037.8992586,
-    "ast_hash": "51d8326df42791b07912e18ae29e78a8",
+    "mtime": 1789188204.382121,
+    "ast_hash": "37a9070f7c3bcd447e4a8d869cde1495",
     "semantic_hash": ""
   },
   "web/ui.js": {
@@ -6815,8 +6815,8 @@
     "semantic_hash": ""
   },
   "api/templates/printer.html": {
-    "mtime": 1789852827.0415027,
-    "ast_hash": "913de79a03705ec102d03b50ecd50d2d",
+    "mtime": 1789188203.7111187,
+    "ast_hash": "a015e9d0c2bfcc8b2cf2876b824a825b",
     "semantic_hash": ""
   },
   "api/templates/ui.html": {
@@ -6960,8 +6960,8 @@
     "semantic_hash": ""
   },
   "web/exec-bubble-assets.js": {
-    "mtime": 1789852431.5958855,
-    "ast_hash": "8492a9ba3127473908132eb316cc317a",
+    "mtime": 1789763170.8944738,
+    "ast_hash": "537f142a8bf72db884beed02a6404a81",
     "semantic_hash": ""
   },
   ".claude/hooks/cmdscan.py": {
@@ -7030,7 +7030,7 @@
     "semantic_hash": ""
   },
   "api/templates/cc.html": {
-    "mtime": 1789852425.7938616,
+    "mtime": 1789763457.5656004,
     "ast_hash": "a4e6ad88fcbfe8474769fe4aca19174f",
     "semantic_hash": ""
   },
@@ -7215,8 +7215,8 @@
     "semantic_hash": ""
   },
   "tests/test_exec_choices_browser.py": {
-    "mtime": 1789853125.8667195,
-    "ast_hash": "7afc27a4b1080e6461d0b9e42d55ae53",
+    "mtime": 1789601625.542107,
+    "ast_hash": "9849f5686646398b38f69909522b22e6",
     "semantic_hash": ""
   },
   "web/cc-input.js": {
@@ -7235,8 +7235,8 @@
     "semantic_hash": ""
   },
   "web/exec-choices.js": {
-    "mtime": 1789853073.4055061,
-    "ast_hash": "6a43ab6ec5d7b19ff1f8cbff3277aa05",
+    "mtime": 1789601553.934853,
+    "ast_hash": "91f72c12a7add69294a83313633bd792",
     "semantic_hash": ""
   },
   "api/data/activity_log_20260915.json": {
@@ -7265,8 +7265,8 @@
     "semantic_hash": ""
   },
   "api/routes_zombo.py": {
-    "mtime": 1789852267.2392092,
-    "ast_hash": "c29845cb5862aa3bba4397b91e84c701",
+    "mtime": 1789700340.4659982,
+    "ast_hash": "55d71bc7fdda3e1b0fde07ca13398f9f",
     "semantic_hash": ""
   },
   "scripts/cc-probe-daily.sh": {
@@ -7275,8 +7275,8 @@
     "semantic_hash": ""
   },
   "web/zombo-flash.js": {
-    "mtime": 1789852262.5031896,
-    "ast_hash": "cc9d6658fd0e60e0dfcb67c20a415a19",
+    "mtime": 1789698834.5418184,
+    "ast_hash": "534b5a350b7a3beb7b07654b2806220f",
     "semantic_hash": ""
   },
   "web/zombo.js": {
@@ -7322,1801 +7322,6 @@
   "web/voice-input.js": {
     "mtime": 1789763213.5316396,
     "ast_hash": "0aa23d7d1f0121360b46d351b67d4b7b",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260920.json": {
-    "mtime": 1789867350.5152657,
-    "ast_hash": "62491e28ce6a0f7394ab51af383ed4a9",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/index.json": {
-    "mtime": 1789854228.3472865,
-    "ast_hash": "6ab05dc44dac494ed9a1d3f4e3bb8c1e",
-    "semantic_hash": ""
-  },
-  "api/tarot/openings.py": {
-    "mtime": 1789853503.8432934,
-    "ast_hash": "38a0100e84023985ac5f48a44db3db52",
-    "semantic_hash": ""
-  },
-  "api/tarot/openings_gen.py": {
-    "mtime": 1789853692.0510762,
-    "ast_hash": "af4fc65a47d81fb0b5cdbd4e295ed4e5",
-    "semantic_hash": ""
-  },
-  "api/tarot/openings_loop.py": {
-    "mtime": 1789853579.4136086,
-    "ast_hash": "c86bc78be57a49d1a986614b039e93ba",
-    "semantic_hash": ""
-  },
-  "api/tarot/voice_synth.py": {
-    "mtime": 1789853517.38035,
-    "ast_hash": "51c0e4054ffde302fd69ad87210594e2",
-    "semantic_hash": ""
-  },
-  "tests/test_exec_links_browser.py": {
-    "mtime": 1789852453.5909758,
-    "ast_hash": "8a1e241c49c872da4109bedce44dd063",
-    "semantic_hash": ""
-  },
-  "tests/test_tarot_openings.py": {
-    "mtime": 1789853767.7183895,
-    "ast_hash": "45c623ace90c946e92549bec1dcd2fe0",
-    "semantic_hash": ""
-  },
-  "web/tarot-opening.js": {
-    "mtime": 1789853959.4201808,
-    "ast_hash": "bf90c15f7215e1e71005865808cabc40",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-2a39ae18.wav": {
-    "mtime": 1789853758.886353,
-    "ast_hash": "d7bba5c70b45978d13f9365988dbc4fd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-51ddc388.wav": {
-    "mtime": 1789853756.0843415,
-    "ast_hash": "dec6fbe85829ab55826fb0375d09356f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-68a4d367.wav": {
-    "mtime": 1789853752.5393267,
-    "ast_hash": "1b59589e2bf08a5b11fde38aebc89598",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-724f9c7c.wav": {
-    "mtime": 1789853757.3183465,
-    "ast_hash": "49054d12e569b887c920a9af9ffc2b5b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-80cb4aa1.wav": {
-    "mtime": 1789853753.4723306,
-    "ast_hash": "bc8b41f3a0d8a57fa5143c6ed1b1465e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-82337fdd.wav": {
-    "mtime": 1789853758.1023498,
-    "ast_hash": "6ad509c580b41d246fff2b38569a9c43",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-8313177b.wav": {
-    "mtime": 1789853750.681319,
-    "ast_hash": "092687e0ab15c30032b7eea0c264d6e8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-bc1066ae.wav": {
-    "mtime": 1789853751.4973226,
-    "ast_hash": "2306b830f934d45abdfe9a4d252afdcd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-ed25a926.wav": {
-    "mtime": 1789853754.3683343,
-    "ast_hash": "592ac7c7ab313c31290d908bfb58f844",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h00-f011c43d.wav": {
-    "mtime": 1789853755.1863377,
-    "ast_hash": "ebfe750e74b9b87a3dfec1decbc13aa2",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-0cff6c62.wav": {
-    "mtime": 1789853774.1554163,
-    "ast_hash": "a952a67c7fa16a47827232366d11836f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-11bfe090.wav": {
-    "mtime": 1789853777.738431,
-    "ast_hash": "0ef886342ed1f064ffac4dfcc12f771a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-4ac397d6.wav": {
-    "mtime": 1789853782.133449,
-    "ast_hash": "ce01bd96f11681ef56f7d5bd4139c6ee",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-541491c9.wav": {
-    "mtime": 1789853779.4484382,
-    "ast_hash": "b13d6061dd1da7ca1d2c911cb122fb7d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-c31e95fb.wav": {
-    "mtime": 1789853775.9204235,
-    "ast_hash": "c14882f8bc8180f67ca50b2785733701",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-cb71bd1d.wav": {
-    "mtime": 1789853775.0854201,
-    "ast_hash": "6ee78376f76198bae6b0aec7d4988284",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-cfe48e31.wav": {
-    "mtime": 1789853780.3034415,
-    "ast_hash": "95b89c8cf5eff28998e7981f586a3109",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-d56adecc.wav": {
-    "mtime": 1789853778.5644345,
-    "ast_hash": "6b424642b41bf339c6e49dcd6b2e27bb",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-d6d077e5.wav": {
-    "mtime": 1789853781.1914454,
-    "ast_hash": "22be13f81a59b487e1c1aeabd9852b22",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h01-dfdec17a.wav": {
-    "mtime": 1789853776.9484277,
-    "ast_hash": "47508f144c569d7e9c5e22d5a5174ccc",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-04ac1378.wav": {
-    "mtime": 1789853799.531521,
-    "ast_hash": "49be98495644e4095bb84e35d7df9c5b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-1635434b.wav": {
-    "mtime": 1789853803.5995378,
-    "ast_hash": "fc595df4c277ad05c3991d30e5fb9926",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-37cf1f5b.wav": {
-    "mtime": 1789853800.3865247,
-    "ast_hash": "a5985e750f470d288b31b7b2ae5feed8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-60c6f52f.wav": {
-    "mtime": 1789853804.4965417,
-    "ast_hash": "52a0054cc1b1a6b7e8f370cff6f17e3f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-611b53ff.wav": {
-    "mtime": 1789853801.71053,
-    "ast_hash": "8a847c831e8038e486276e608ebf00de",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-61550f9e.wav": {
-    "mtime": 1789853797.6855135,
-    "ast_hash": "5d06749d70cd30bf018b85bcd378ba47",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-c997305b.wav": {
-    "mtime": 1789853802.7795346,
-    "ast_hash": "bbb70e760da427bb5948a578db4dd26b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-cd8fa4c5.wav": {
-    "mtime": 1789853796.5885088,
-    "ast_hash": "b2b1db69692c590021912c71734a0387",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-e1ced594.wav": {
-    "mtime": 1789853798.6135173,
-    "ast_hash": "09ca55d81aa59b9d731feee005f0f39c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h02-f2349d47.wav": {
-    "mtime": 1789853795.421504,
-    "ast_hash": "130d1193a4b6b400b01a36ac95dbc429",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-0f42736c.wav": {
-    "mtime": 1789853709.331148,
-    "ast_hash": "6e0311895fc680570c8d87c0580f1d21",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-44204b64.wav": {
-    "mtime": 1789853710.813154,
-    "ast_hash": "648ab689b3396941356a84466143c1d4",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-7eb4c074.wav": {
-    "mtime": 1789853711.9021585,
-    "ast_hash": "9858c6ddf3499e0b9cb03413eadeb0ba",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-8f2e1e57.wav": {
-    "mtime": 1789853712.9161627,
-    "ast_hash": "2e2421610070354eadc3528288dec447",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-9b499eeb.wav": {
-    "mtime": 1789853705.3271313,
-    "ast_hash": "34e92f16ff60f3b882bdf8ef75533531",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-9cea5ff6.wav": {
-    "mtime": 1789853709.9911506,
-    "ast_hash": "43f1e4d5486e3a763d8735f5edd32a84",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-bb6a2d27.wav": {
-    "mtime": 1789853708.4981444,
-    "ast_hash": "ff5b6ab6379aaa6f97bd5251e82879f4",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-df62d185.wav": {
-    "mtime": 1789853707.7251413,
-    "ast_hash": "6abd16a5727eaba3860e1bec9516a18d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-fd0f9331.wav": {
-    "mtime": 1789853706.0621343,
-    "ast_hash": "26e0d8d9b973ae5ed8832414d874f5c6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h03-fd1d8991.wav": {
-    "mtime": 1789853706.9211378,
-    "ast_hash": "592bc36a00c46ac43989c2ceaa0ae1c1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-29567408.wav": {
-    "mtime": 1789853822.003614,
-    "ast_hash": "4d6347735c61dff80f4be10f3528e116",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-3e1a752e.wav": {
-    "mtime": 1789853821.0686102,
-    "ast_hash": "749eb84a17729b88c7f85be8019cb4f6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-554d0a0c.wav": {
-    "mtime": 1789853819.4956036,
-    "ast_hash": "ef3a67f1b6b8fed3d06bc259c2382603",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-5d19ecc5.wav": {
-    "mtime": 1789853820.320607,
-    "ast_hash": "6221d8a5c5e874b44c67e302ac85f2d1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-5f6aa00e.wav": {
-    "mtime": 1789853824.7516253,
-    "ast_hash": "6ba38c74c5aad4ae98fe05ec162d244a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-69c208c8.wav": {
-    "mtime": 1789853817.5625956,
-    "ast_hash": "e493de42537206fc698ab7d8693d9c68",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-6bdeeaca.wav": {
-    "mtime": 1789853816.6195917,
-    "ast_hash": "375fcfa6bc3a535a37708a0622a03a9a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-8ebec550.wav": {
-    "mtime": 1789853822.8726175,
-    "ast_hash": "951b71ea20a53277050eef65b04bbf7b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-b6fa41c7.wav": {
-    "mtime": 1789853823.7936213,
-    "ast_hash": "084e8a8144490d5780e1b08103e19bcc",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h04-dc690298.wav": {
-    "mtime": 1789853818.5976,
-    "ast_hash": "58035fd072c75950792e9619356c390b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-092b84e1.wav": {
-    "mtime": 1789853840.9476922,
-    "ast_hash": "29da3e84ae198b042e31b32c82c1b659",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-0d6e67c8.wav": {
-    "mtime": 1789853842.6866994,
-    "ast_hash": "f916655960a4cdf59e20b86e6de8328f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-42466e4b.wav": {
-    "mtime": 1789853847.0317173,
-    "ast_hash": "5ead4d17a7f949fadc145842ee438b1b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-6764766f.wav": {
-    "mtime": 1789853839.0456843,
-    "ast_hash": "fb0055cba4f90ed4cb15983744c75cc0",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-a907b77f.wav": {
-    "mtime": 1789853844.4557066,
-    "ast_hash": "4b416f77b3664f8ee85d3d622027aebd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-b3750448.wav": {
-    "mtime": 1789853846.1367137,
-    "ast_hash": "d8262e5f1757e1776471c28bf2a413b6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-cc576471.wav": {
-    "mtime": 1789853843.545703,
-    "ast_hash": "d1f0690b620e2060e50a8f1541c3022b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-d8c88788.wav": {
-    "mtime": 1789853845.2807102,
-    "ast_hash": "6babf83d0ba450f7ea123ac7f2d50719",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-e2e2cb49.wav": {
-    "mtime": 1789853841.842696,
-    "ast_hash": "37185054fdca56887245b6009381e2ab",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h05-f40006cd.wav": {
-    "mtime": 1789853840.0696886,
-    "ast_hash": "de301bf4b5d71e8ce253fd6f50cf3f05",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-128c50e6.wav": {
-    "mtime": 1789853861.8727787,
-    "ast_hash": "5149bb52853a84bb1d45bdce7ce33d07",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-318b9332.wav": {
-    "mtime": 1789853863.5717857,
-    "ast_hash": "c6a60fa121a815b80a94886e176cee46",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-7748ad43.wav": {
-    "mtime": 1789853864.3537889,
-    "ast_hash": "4312196b07da3d81becfa28f1b9d0be8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-8cdd2835.wav": {
-    "mtime": 1789853865.3287928,
-    "ast_hash": "b633b439205ec407e47c99eb8c08007b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-8f0f9a43.wav": {
-    "mtime": 1789853862.7787824,
-    "ast_hash": "5ad27adaea166a086e27e12532899e5a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-8fd45d8f.wav": {
-    "mtime": 1789853860.3177722,
-    "ast_hash": "faa9567401493c3db61c1db83b06d107",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-90f0e884.wav": {
-    "mtime": 1789853866.082796,
-    "ast_hash": "bd693504cf43314075f5a40f26332e90",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-ba6a9c33.wav": {
-    "mtime": 1789853867.0808,
-    "ast_hash": "7d67588a015393f9543011a39db0de74",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-d7b93303.wav": {
-    "mtime": 1789853861.0737753,
-    "ast_hash": "d61662f380f0ac0be9e033dd923c1ae5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h06-dd394057.wav": {
-    "mtime": 1789853868.1478045,
-    "ast_hash": "2582bbdd040891d1d18aabd10cfdc19a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-2072f199.wav": {
-    "mtime": 1789853882.2328627,
-    "ast_hash": "7c04570d5a38baaf6697acaae0970e58",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-22b0b243.wav": {
-    "mtime": 1789853884.5998724,
-    "ast_hash": "01ef2e470c6bb02580bfb613a3df8f8d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-2da757d1.wav": {
-    "mtime": 1789853881.3068588,
-    "ast_hash": "907f33fe687da868b52b44d5bfb9a591",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-2f065908.wav": {
-    "mtime": 1789853886.0828786,
-    "ast_hash": "682e2030cffa9b5189873c1748afbf0f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-84baa072.wav": {
-    "mtime": 1789853883.1408663,
-    "ast_hash": "669153256a6b0de2c500f5ea937365f2",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-a6ceb199.wav": {
-    "mtime": 1789853886.895882,
-    "ast_hash": "49c761c33cabca5ae1bff2a50acac2e9",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-b0915c9b.wav": {
-    "mtime": 1789853880.420855,
-    "ast_hash": "fff0cb4eb52f170f8949e5ea42921292",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-c92a36d2.wav": {
-    "mtime": 1789853885.2898753,
-    "ast_hash": "dbf270f4901bdd10ed7556b52f73a8de",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-cb4a3c6e.wav": {
-    "mtime": 1789853883.815869,
-    "ast_hash": "e9123fb1c3333366bf7a5f4bf376f536",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h07-fc050f25.wav": {
-    "mtime": 1789853887.664885,
-    "ast_hash": "74b32ceb07e6367f0b933a58c499c335",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-15824c60.wav": {
-    "mtime": 1789853905.8689601,
-    "ast_hash": "db0126e2edca19db291d1d0042a2716b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-4f658044.wav": {
-    "mtime": 1789853902.940948,
-    "ast_hash": "b6a1d87a35e023fc66dce13e048e7363",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-7c368dac.wav": {
-    "mtime": 1789853899.270933,
-    "ast_hash": "9863a84c091b068d4a75d952506ec7ac",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-8f519a54.wav": {
-    "mtime": 1789853901.3479414,
-    "ast_hash": "d77bf36ed673e4f9d772f9f20cbf7efa",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-9e18ef1e.wav": {
-    "mtime": 1789853904.438954,
-    "ast_hash": "03b9dc8135bb11989ef40e06f5bf7b3d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-a4751ba0.wav": {
-    "mtime": 1789853900.5889382,
-    "ast_hash": "90b38a6b6330663a042187d6dfd75d84",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-bf4b4cf6.wav": {
-    "mtime": 1789853902.0959446,
-    "ast_hash": "a1a972370453a3820cc2cf4c7fc97b2a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-d32902a7.wav": {
-    "mtime": 1789853899.9519358,
-    "ast_hash": "07c97f2b23b4fac72ef606d410c49e3a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-eea527ab.wav": {
-    "mtime": 1789853905.1629572,
-    "ast_hash": "08ee82b9fc314c64f6392799ab369455",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h08-f123c1c4.wav": {
-    "mtime": 1789853903.7249513,
-    "ast_hash": "273e0e0ab22d8d353ff17a5e19d1f749",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-003f0312.wav": {
-    "mtime": 1789853930.1890604,
-    "ast_hash": "f7397fb9e5be089bedbba1583ef26b1c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-07617ed4.wav": {
-    "mtime": 1789853923.1050313,
-    "ast_hash": "22999ccb7a24ed821b2763444045120e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-12b477b8.wav": {
-    "mtime": 1789853928.0360515,
-    "ast_hash": "f514e5194eaa3dac993c569c51c6f235",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-3927c1a4.wav": {
-    "mtime": 1789853926.8160465,
-    "ast_hash": "f40599c4ea77742db8c78ce0a6ad9f63",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-4a652e91.wav": {
-    "mtime": 1789853922.117027,
-    "ast_hash": "43a9cdedd8377f3e23c1ca6369f11f75",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-528f122a.wav": {
-    "mtime": 1789853923.9770348,
-    "ast_hash": "fddaf217f75738201bd767dd70d796a8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-53bfa99e.wav": {
-    "mtime": 1789853929.0670557,
-    "ast_hash": "0fe22b6398574d5c5c4c499c90c4e45f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-553eaf27.wav": {
-    "mtime": 1789853924.8960385,
-    "ast_hash": "04ff0e3f250a7ba424de6e2180036eb6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-5a3d441a.wav": {
-    "mtime": 1789853921.132023,
-    "ast_hash": "11b199afb96c8a37a1c3ca7f8142d927",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h09-f42c921a.wav": {
-    "mtime": 1789853925.8020422,
-    "ast_hash": "0da22a0f66832d4339f6624d4c1e2c3f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-01d35e48.wav": {
-    "mtime": 1789853945.8201249,
-    "ast_hash": "e64d6cbcb9903d0f5ecc26efec6c5cb7",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-14cf2d88.wav": {
-    "mtime": 1789853947.3801312,
-    "ast_hash": "ce71418414a44cfd453f7f40e5481688",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-2f2adac9.wav": {
-    "mtime": 1789853945.0731218,
-    "ast_hash": "ecd9953fcb8bc1ac3317c8e7aaa28af1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-412b9f0d.wav": {
-    "mtime": 1789853948.755137,
-    "ast_hash": "7ff4c7c0471d65677f20de4bbb4e5d73",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-6decb3db.wav": {
-    "mtime": 1789853943.2941144,
-    "ast_hash": "8761f5ad3730719f03041e453d62b9cd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-8a4f6077.wav": {
-    "mtime": 1789853942.4891112,
-    "ast_hash": "a14807ab4d42208dcbe6a92044029df8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-aaffcf83.wav": {
-    "mtime": 1789853946.591128,
-    "ast_hash": "a949d59820daa6a6546befa28ea85ed1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-ca33e1f3.wav": {
-    "mtime": 1789853948.029134,
-    "ast_hash": "4c604fbafcf98d56ff6f7e7776de7a44",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-cfc2ae4b.wav": {
-    "mtime": 1789853944.2211182,
-    "ast_hash": "c19df28453da1e34f2995c4d9e6b80c3",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h10-f9ebb475.wav": {
-    "mtime": 1789853949.4361398,
-    "ast_hash": "2227f3a0fd93656b5bfd3a6a9350a1df",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-02b64990.wav": {
-    "mtime": 1789853965.5702062,
-    "ast_hash": "a5b734234fe3cc2b0b00a58d6ed43d96",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-07844aed.wav": {
-    "mtime": 1789853966.2752092,
-    "ast_hash": "0c4b5b79d96b0a1e351840ee8a1bf71d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-11dd4609.wav": {
-    "mtime": 1789853968.7592194,
-    "ast_hash": "5f6d251841984b703a137d43e525527d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-39097056.wav": {
-    "mtime": 1789853964.783203,
-    "ast_hash": "8e63d9d726999f832207e86c53441bca",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-3ca51119.wav": {
-    "mtime": 1789853967.0482123,
-    "ast_hash": "9ea10d96b60a534a31a8b1b0e17158f3",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-5aab9392.wav": {
-    "mtime": 1789853962.4291933,
-    "ast_hash": "e088067e01a13df7728d6a75924b6e3d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-8ecb4e40.wav": {
-    "mtime": 1789853964.0892,
-    "ast_hash": "2f4f6c32f297ee115010c755d3efa2b8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-b5805d55.wav": {
-    "mtime": 1789853963.1641963,
-    "ast_hash": "626bff57e810352aec9e2b12992407db",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-c1e420e3.wav": {
-    "mtime": 1789853968.0052161,
-    "ast_hash": "84ed9e0414f69c947b84d8ebb2c8c772",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h11-df739041.wav": {
-    "mtime": 1789853969.4952223,
-    "ast_hash": "9a9d470686418e76e37db017a1c71221",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-003ff7e0.wav": {
-    "mtime": 1789853988.4083002,
-    "ast_hash": "5d43577a5cf0bfa9c1d0cf33ad054e1f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-09fe2425.wav": {
-    "mtime": 1789853989.2423036,
-    "ast_hash": "9cf2cf49229036792e5f70ea214dd7f0",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-2caf8a7f.wav": {
-    "mtime": 1789853985.94029,
-    "ast_hash": "de3b07c2a1b2ada6b0f5444252a8f46a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-5aec8764.wav": {
-    "mtime": 1789853986.7932937,
-    "ast_hash": "b24bc1402677299362f484b2763e8920",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-63f47eaa.wav": {
-    "mtime": 1789853984.213283,
-    "ast_hash": "3e908892dd602d25b1abd3a67a7cad80",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-8005d02a.wav": {
-    "mtime": 1789853987.5502968,
-    "ast_hash": "c3846147edaed9957b7a91b7ccaecf9e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-a3b71f02.wav": {
-    "mtime": 1789853990.9623108,
-    "ast_hash": "b966b43bbdc4001bf653859c91e6ee5e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-b36b49a8.wav": {
-    "mtime": 1789853983.2062788,
-    "ast_hash": "c3d3e156c8d1206657340bd57aad37cc",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-d6fcdb9a.wav": {
-    "mtime": 1789853990.0853071,
-    "ast_hash": "68806c62508eca653b5e2108fa3bd392",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h12-e576db12.wav": {
-    "mtime": 1789853985.1172867,
-    "ast_hash": "4e0737191f7d8a03465dd66e38ac1996",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-01805c06.wav": {
-    "mtime": 1789854012.7904005,
-    "ast_hash": "2b68f659c08ecd782cbdb2342ac74063",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-19d735a5.wav": {
-    "mtime": 1789854008.8293843,
-    "ast_hash": "1394afafff949d794a664651b5caf58c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-1e88e7e8.wav": {
-    "mtime": 1789854015.2304106,
-    "ast_hash": "5c86bcf7ffe7d73af3f884e22363592f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-2cdfa3b7.wav": {
-    "mtime": 1789854017.008418,
-    "ast_hash": "24f41cd7e87e98e6f5b7f647f662076f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-2e539738.wav": {
-    "mtime": 1789854019.473428,
-    "ast_hash": "194089bc97dff237c6fc2e529290960e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-4bfde51b.wav": {
-    "mtime": 1789854021.129435,
-    "ast_hash": "0d2db4553612112e7782d4cc3832706d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-5b912a63.wav": {
-    "mtime": 1789854010.686392,
-    "ast_hash": "1809daf8cd46e79a0f2f3e7f09f93282",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-649247bf.wav": {
-    "mtime": 1789854006.0193727,
-    "ast_hash": "da77178531e5c8ce51ae1243c87e7559",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-684c3fb8.wav": {
-    "mtime": 1789854018.689425,
-    "ast_hash": "0bc35f65f1d63fed8a71f35021cedb7d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-69bb0f9e.wav": {
-    "mtime": 1789854017.8754215,
-    "ast_hash": "1461cb8d57798d6ff01dd03b79524712",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-7d912243.wav": {
-    "mtime": 1789854020.3364317,
-    "ast_hash": "6370a44991b47f38e1073b4f23705501",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-7dfb2630.wav": {
-    "mtime": 1789854016.1124144,
-    "ast_hash": "1d7e001a64a9c8b8c42274a8f020e137",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-88b8aa77.wav": {
-    "mtime": 1789854013.2524025,
-    "ast_hash": "79454761a6d807e8b949d57e2f9f4abf",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-8c3d73ef.wav": {
-    "mtime": 1789854005.1363692,
-    "ast_hash": "1deff957c4f140709912c085486e6a1c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-919efd4f.wav": {
-    "mtime": 1789854006.9693766,
-    "ast_hash": "2b39a8a6aa84c96c9ea4ce690bcca1ab",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-92d86156.wav": {
-    "mtime": 1789854008.023381,
-    "ast_hash": "75a836a24387bc73b4cb5974f14d8b0d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-aba89f18.wav": {
-    "mtime": 1789854009.8413885,
-    "ast_hash": "8ada448b2ac2d7f0502ccd4b666135b8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-bc2f5e2f.wav": {
-    "mtime": 1789854013.868405,
-    "ast_hash": "5f30ac75623564a52225c3fc50f902de",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-ca15c47b.wav": {
-    "mtime": 1789854011.7813964,
-    "ast_hash": "fe6acb82bf7fa9c4b0bf01b8a919779f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h13-dbc46ab8.wav": {
-    "mtime": 1789854014.294407,
-    "ast_hash": "cb2492f38d604434148271268fccbaf3",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-26edce04.wav": {
-    "mtime": 1789854037.0955007,
-    "ast_hash": "bc801da7c31a76dea6e3a90ba2f072ff",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-3efa3dbe.wav": {
-    "mtime": 1789854034.2914891,
-    "ast_hash": "6479998f547588d40df6ba4f3c631426",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-42de862f.wav": {
-    "mtime": 1789854037.8055036,
-    "ast_hash": "349213e6f7e570b26c653decba3ea5a4",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-51cc499b.wav": {
-    "mtime": 1789854028.2364643,
-    "ast_hash": "65ea278030dad729d569fd0444019e4d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-54aff03c.wav": {
-    "mtime": 1789854039.629511,
-    "ast_hash": "4623e178bbac4c3dc97a6ce5a35f41c5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-5825f8b1.wav": {
-    "mtime": 1789854033.2094846,
-    "ast_hash": "7cb04caeba01b8deb6edc9bc98412f5c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-687c8a3d.wav": {
-    "mtime": 1789854034.0584881,
-    "ast_hash": "8ddbfebbf4a0e7d65e2ec76988fcfed0",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-6e611004.wav": {
-    "mtime": 1789854036.3524976,
-    "ast_hash": "a552471a6f67ff3fb0c3b49668a1bc63",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-74863787.wav": {
-    "mtime": 1789854032.2114806,
-    "ast_hash": "d82285bf1eab67d6df0a49f28f04493b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-75282095.wav": {
-    "mtime": 1789854029.9774714,
-    "ast_hash": "a9a672fcbe0711d0875d07096da8fe8e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-8e0e0dd9.wav": {
-    "mtime": 1789854038.7335074,
-    "ast_hash": "7e98d8be3b09f2c3de5d9b268dbfaef9",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-9dfbf7f2.wav": {
-    "mtime": 1789854029.0084674,
-    "ast_hash": "20e732bac648274ff7b17d4341dd51aa",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-9fa9a44c.wav": {
-    "mtime": 1789854040.4065142,
-    "ast_hash": "240fb876b6fdf25b86f4d4140b4de7f7",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-a97b818c.wav": {
-    "mtime": 1789854031.7114785,
-    "ast_hash": "beca77f62927ca69744fc6f7dd995e05",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-b69672c3.wav": {
-    "mtime": 1789854035.3684936,
-    "ast_hash": "44d836165ec89205c3708d259a60c64f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-b74ea3fc.wav": {
-    "mtime": 1789854036.0774965,
-    "ast_hash": "1356e91508936d7d75b94949afe37abe",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-bf4aa4c9.wav": {
-    "mtime": 1789854030.884475,
-    "ast_hash": "4a978d5c1dff7b985dfa204787168ff5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-d058f430.wav": {
-    "mtime": 1789854033.1464844,
-    "ast_hash": "8fe03f620866f5a464637ac73080d267",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-e84ef1a0.wav": {
-    "mtime": 1789854027.3904607,
-    "ast_hash": "dbbe1dfc2955c5fd464846c8ee9831ed",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h14-fa0f16b4.wav": {
-    "mtime": 1789854035.0064921,
-    "ast_hash": "0842b857188ea6890d0b45fc74ea8fed",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-06f92404.wav": {
-    "mtime": 1789854052.3875635,
-    "ast_hash": "6174db7154babc586128c9aef210a6a4",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-0a7ff391.wav": {
-    "mtime": 1789854051.51156,
-    "ast_hash": "b644cfd6d0c4a2245f9324235c7ffe52",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-1662c715.wav": {
-    "mtime": 1789854054.6255727,
-    "ast_hash": "d652468030794ccc1576c61baf6e953c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-265ea771.wav": {
-    "mtime": 1789854063.2116082,
-    "ast_hash": "71cfe7460fb5226089447dab3890e19e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-2c793c30.wav": {
-    "mtime": 1789854058.6915896,
-    "ast_hash": "ce94037ff8eea9597f2a1672a3d970b7",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-2fd38194.wav": {
-    "mtime": 1789854050.3605552,
-    "ast_hash": "3a8dc23ecf9d73d2a83e8c9fc33df2b1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-498f5aec.wav": {
-    "mtime": 1789854059.8705943,
-    "ast_hash": "44d69ae2ac3cda3f31c48073043a021e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-5fe4f091.wav": {
-    "mtime": 1789854067.2386246,
-    "ast_hash": "b9c71b2cbedce7e101884e986649b2af",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-9dd38ab4.wav": {
-    "mtime": 1789854049.5215518,
-    "ast_hash": "ce9456e80ce102ce85d7e5abe2cf0b1d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-9fb6ca6b.wav": {
-    "mtime": 1789854066.14962,
-    "ast_hash": "d319f5e3cafd4c17ca036e6745debe8e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-a66671cc.wav": {
-    "mtime": 1789854056.7865818,
-    "ast_hash": "83acb7d4ce3e7c913bc016b9e5e888e5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-aba76540.wav": {
-    "mtime": 1789854054.178571,
-    "ast_hash": "c028a14caa75ebd7af82526c709c1921",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-af43a34d.wav": {
-    "mtime": 1789854055.2745755,
-    "ast_hash": "71c47ccc31ef47ed78f54df9918c972e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-b1af4c7b.wav": {
-    "mtime": 1789854064.2806125,
-    "ast_hash": "e379ac727500ea1327268c6b18ad483d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-b1ebf7fd.wav": {
-    "mtime": 1789854053.3455675,
-    "ast_hash": "422e7c42bf25aaf3131675dec85df0ab",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-b3b7f2e5.wav": {
-    "mtime": 1789854057.641585,
-    "ast_hash": "ed462c52afe2b4406160b35625c947dc",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-b9f6d31a.wav": {
-    "mtime": 1789854056.1165788,
-    "ast_hash": "ad9bc9216eb8e4d8384abfed1dabb3b7",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-e116b433.wav": {
-    "mtime": 1789854065.2276163,
-    "ast_hash": "eb5a22fd54d0bd5662de0b5e31806a15",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-ebb17b36.wav": {
-    "mtime": 1789854057.098583,
-    "ast_hash": "89ec4d8c59978be8c5d0f31340ad8f05",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h15-fd96a5f7.wav": {
-    "mtime": 1789854055.6755772,
-    "ast_hash": "6e1e496436c38ab027f61560f2ca0bd2",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-00c77e1f.wav": {
-    "mtime": 1789854085.9137015,
-    "ast_hash": "a308eeea7424a2f9374384495b003aa1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-048c559a.wav": {
-    "mtime": 1789854073.2336493,
-    "ast_hash": "b3374a05fa19628b4ca31ed5f7507c91",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-0495c8cc.wav": {
-    "mtime": 1789854077.4416666,
-    "ast_hash": "00dc512f331fd04ce186490e0e17580c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-05260a13.wav": {
-    "mtime": 1789854086.5867043,
-    "ast_hash": "b5c9fe558dec14fd4a8374f008ad6415",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-06539d27.wav": {
-    "mtime": 1789854087.2257068,
-    "ast_hash": "c1725e843da14893fb7063a29f7f0aa1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-07fe6f31.wav": {
-    "mtime": 1789854081.2556822,
-    "ast_hash": "63d580fdcd65bbe97d59b5eb00279a2a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-14b1430f.wav": {
-    "mtime": 1789854082.8266888,
-    "ast_hash": "68aa4713ddbdee5744281586d6d42663",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-212be370.wav": {
-    "mtime": 1789854079.1846738,
-    "ast_hash": "40387ac2409b10d083d292c4ac88a8e5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-2986261e.wav": {
-    "mtime": 1789854085.1506982,
-    "ast_hash": "f1f1fa5287a71f481971c91c65b271e5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-4cd0a2cf.wav": {
-    "mtime": 1789854079.991677,
-    "ast_hash": "cefe04290e0413fb7c41e554eeb1ab78",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-4f6d2fd1.wav": {
-    "mtime": 1789854083.5806918,
-    "ast_hash": "152b3fdbcc510532ef8bc143aaf389d6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-70afc782.wav": {
-    "mtime": 1789854076.553663,
-    "ast_hash": "975ff819bf20898a8ffb01dde38c56b4",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-7726c285.wav": {
-    "mtime": 1789854074.866656,
-    "ast_hash": "82dc7bb6212ac20a7624da8092c09c45",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-7b605fbf.wav": {
-    "mtime": 1789854084.384695,
-    "ast_hash": "a6cb10d8ac1c9c631d595a87040a17d0",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-8e602182.wav": {
-    "mtime": 1789854082.0386856,
-    "ast_hash": "c2c6b5b5cf862fac85d92c601105b0d6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-c468a288.wav": {
-    "mtime": 1789854074.0276525,
-    "ast_hash": "e7f8c613772b0ae059872faa55bdb364",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-db1a8375.wav": {
-    "mtime": 1789854075.596659,
-    "ast_hash": "86289c1af35a8f1e997829598aeb7654",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-e4736ebb.wav": {
-    "mtime": 1789854080.5876796,
-    "ast_hash": "2a14093d015e7d879437e7b39cc6fa5c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-ef998633.wav": {
-    "mtime": 1789854078.3926704,
-    "ast_hash": "cb90abd10ebc6c238ab6d2453d4d4390",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h16-f8af2c5a.wav": {
-    "mtime": 1789854072.427646,
-    "ast_hash": "3dee8aefa85ae742f587f027f460523e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-06f66fe8.wav": {
-    "mtime": 1789854098.0917516,
-    "ast_hash": "c28a896219597bb22f191b243a497394",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-07893336.wav": {
-    "mtime": 1789854103.7307746,
-    "ast_hash": "4a9d913266d1cd158bbe4e449aae37d1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-44da024a.wav": {
-    "mtime": 1789854093.3917322,
-    "ast_hash": "8ab500586f8c66229eac2467c50fd074",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-480b917a.wav": {
-    "mtime": 1789854101.0087636,
-    "ast_hash": "8df429f10696bc7864ef1528c73c7c67",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-4c045346.wav": {
-    "mtime": 1789854103.050772,
-    "ast_hash": "65c78c0634cbd5366f8e853fc2a59aa8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-5296998f.wav": {
-    "mtime": 1789854100.3317606,
-    "ast_hash": "f4abac31788df5fc9841e96a161ea116",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-5f944170.wav": {
-    "mtime": 1789854101.7067664,
-    "ast_hash": "63953d83f1460421b34437131d8fa96d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-68a5c21e.wav": {
-    "mtime": 1789854098.8407545,
-    "ast_hash": "1dd34dbc95561aea51c9e1cebb009820",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-722106d2.wav": {
-    "mtime": 1789854092.612729,
-    "ast_hash": "2063be5185cad5c3b0c606c8fd4e8670",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-7f6efa43.wav": {
-    "mtime": 1789854091.9527264,
-    "ast_hash": "f10d931e09fd23e0c96d94612637e71d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-8008d3f9.wav": {
-    "mtime": 1789854095.5947413,
-    "ast_hash": "3522d37c173f7dcff3474950508a1ed0",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-82749327.wav": {
-    "mtime": 1789854099.6027577,
-    "ast_hash": "d701c1f1519f2cda2603c66de66f6689",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-8ad0afed.wav": {
-    "mtime": 1789854097.1907477,
-    "ast_hash": "e1ce555443e37a1b8382429f4c8117ad",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-8c64a637.wav": {
-    "mtime": 1789854096.226744,
-    "ast_hash": "08a26116816bf6966820999d265e18ac",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-968c20ab.wav": {
-    "mtime": 1789854097.0587473,
-    "ast_hash": "eb1c12dd0bc88a71479ad7ee61a4408b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-b8791523.wav": {
-    "mtime": 1789854091.2787235,
-    "ast_hash": "cad7e3ed4c022418177f0679ff8b7943",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-bac7d826.wav": {
-    "mtime": 1789854102.369769,
-    "ast_hash": "a5d128b057e53ac10619db50a87bdd25",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-dff678bb.wav": {
-    "mtime": 1789854094.8767383,
-    "ast_hash": "745c4f9d620512fa5df7472ee9b68ddb",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-f99e9c7a.wav": {
-    "mtime": 1789854098.1277516,
-    "ast_hash": "102b8710b31782f25a15a20ba5dfbb48",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h17-fd916473.wav": {
-    "mtime": 1789854094.0947351,
-    "ast_hash": "f6160635f6018a8fd1ea25f31f2b85ca",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-013a06b4.wav": {
-    "mtime": 1789854123.1628544,
-    "ast_hash": "9773b5d13ed93a68be1a555b92bbe3d2",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-0c64372e.wav": {
-    "mtime": 1789854113.9468167,
-    "ast_hash": "e5325a99e97885a2b3b009b5fdc87bec",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-13dbee1e.wav": {
-    "mtime": 1789854122.1778505,
-    "ast_hash": "85581e31a322a2c3a93a6dff77df5187",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-1d3d126f.wav": {
-    "mtime": 1789854117.1568298,
-    "ast_hash": "5a703788cccdaf996924e25c4ae719af",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-28688e50.wav": {
-    "mtime": 1789854113.1978135,
-    "ast_hash": "e07060e88fcf421ff732a7cc79607f65",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-44b9eb91.wav": {
-    "mtime": 1789854118.7858365,
-    "ast_hash": "cc9116aa4b7d09c0da6e3533ef78e84f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-4962576c.wav": {
-    "mtime": 1789854117.903833,
-    "ast_hash": "21b6d8a23fec22d7fdfb069ff2bc2016",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-55b5e094.wav": {
-    "mtime": 1789854116.228826,
-    "ast_hash": "ac38e7caaf439be5e2ac17b97e2e3cc9",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-5faf66a4.wav": {
-    "mtime": 1789854112.4218104,
-    "ast_hash": "a427e4ecfcca646cd0d2b7619d1799e8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-62dae97c.wav": {
-    "mtime": 1789854120.9688456,
-    "ast_hash": "06f5a4741e35f8a354d49439d9759db2",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-661cf9dd.wav": {
-    "mtime": 1789854110.0438006,
-    "ast_hash": "12532a08ecb1f341385a6c8e249bc0d2",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-6a525382.wav": {
-    "mtime": 1789854125.8018653,
-    "ast_hash": "aee13b23597368ab0b28e773a722e2f7",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-774c3db0.wav": {
-    "mtime": 1789854124.960862,
-    "ast_hash": "b3695cb807e873191d8ddf045d80f031",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-b11054db.wav": {
-    "mtime": 1789854119.9598415,
-    "ast_hash": "f0194c45900d28aab92e26f3a7df1f0f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-bab5ea85.wav": {
-    "mtime": 1789854111.6408072,
-    "ast_hash": "8b030fbdfdd51c6ccf02c6bc74bf3d97",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-c23cac13.wav": {
-    "mtime": 1789854116.678828,
-    "ast_hash": "80b228bfd1bba743d6f71af9b90ecb4f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-c58ca97e.wav": {
-    "mtime": 1789854110.8928041,
-    "ast_hash": "008d23269b275006301b42dd0bcd958d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-c7b7b7ac.wav": {
-    "mtime": 1789854124.0648582,
-    "ast_hash": "9bf79202a245188f56f031bd646abe56",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-ce5f2a11.wav": {
-    "mtime": 1789854114.6738195,
-    "ast_hash": "ad0bc6bdede5cbda572e97202280986a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h18-de74b3d2.wav": {
-    "mtime": 1789854115.4198227,
-    "ast_hash": "175491879a0a4b91bcf95e0ac62f25e2",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-0245a6d6.wav": {
-    "mtime": 1789854133.1418955,
-    "ast_hash": "d4c258243f83d291761ffc06fea9d961",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-0cbbcb82.wav": {
-    "mtime": 1789854132.1118913,
-    "ast_hash": "00e27010e88f2caa82b7a540241ecbae",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-0d0d6d0d.wav": {
-    "mtime": 1789854137.620914,
-    "ast_hash": "64af1e48f7392545b42939dbf40100a5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-38bdda96.wav": {
-    "mtime": 1789854146.3359497,
-    "ast_hash": "aca248b5535f8cf995141b5dd1e9c638",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-4372c586.wav": {
-    "mtime": 1789854140.1529243,
-    "ast_hash": "feb9978d52ae6e5a5fdbdd194de92526",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-4cc49a10.wav": {
-    "mtime": 1789854141.7089307,
-    "ast_hash": "be6d213dc034f15d207e314e6069e977",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-4f45559f.wav": {
-    "mtime": 1789854136.9169111,
-    "ast_hash": "2c3555fb2af837160c4a8499c7a5ac7d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-56cf3f01.wav": {
-    "mtime": 1789854145.2979455,
-    "ast_hash": "c73a581b6e2cfc841ab226d2d02c6e0a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-5b8b124c.wav": {
-    "mtime": 1789854142.5559342,
-    "ast_hash": "3dafecb7afcfcd0567b02f85883ba66f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-626f794b.wav": {
-    "mtime": 1789854135.1019037,
-    "ast_hash": "1811f9e2878ab379823e7db6e3295d9b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-634ce225.wav": {
-    "mtime": 1789854134.0158992,
-    "ast_hash": "ceecf77ccf6fae5a4ac11ae07648b893",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-85dc63c2.wav": {
-    "mtime": 1789854139.1599202,
-    "ast_hash": "bb52cf8e46d012fe6f45da94ed92d184",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-931b887f.wav": {
-    "mtime": 1789854131.1448874,
-    "ast_hash": "a1193cccdf7b7a6efa1670dcd1a9f55d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-c45a2ac8.wav": {
-    "mtime": 1789854143.4119377,
-    "ast_hash": "d953390b34c7b64fffb0a6533a99d288",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-c5549171.wav": {
-    "mtime": 1789854144.4759421,
-    "ast_hash": "85a20563ad9d0529b6ffc43c2308068e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-cb30f95c.wav": {
-    "mtime": 1789854147.1649532,
-    "ast_hash": "5253dcc859a8dfd2ef0f9684ec9e480e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-ce1d7fcf.wav": {
-    "mtime": 1789854140.9319274,
-    "ast_hash": "6c6918c4b42400c2e8ba46e585c5b547",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-cf33428d.wav": {
-    "mtime": 1789854136.0139074,
-    "ast_hash": "9fe45b4389d0fa16b8791806c4aaede0",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-cf577781.wav": {
-    "mtime": 1789854138.6319182,
-    "ast_hash": "c2ce81002bd06ab2ffa2cf27d05cdbac",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h19-d0169b3f.wav": {
-    "mtime": 1789854130.2278836,
-    "ast_hash": "ee034f6ab0e7440679a3e21fc0126717",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-0f32af16.wav": {
-    "mtime": 1789854155.663988,
-    "ast_hash": "87575d96cd1aad0f1f796fbc0627e493",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-1e62d57a.wav": {
-    "mtime": 1789854161.1700108,
-    "ast_hash": "07cfb16da6b787d3a485b6f8b7709bdd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-30fee589.wav": {
-    "mtime": 1789854158.566,
-    "ast_hash": "b481c7150a786168e52fdb584bddc744",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-33c7642c.wav": {
-    "mtime": 1789854153.9089808,
-    "ast_hash": "fbce79baca1aa42694738c2294eafac0",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-3457b194.wav": {
-    "mtime": 1789854165.598029,
-    "ast_hash": "f268f233db4d05e137d3086a5269e44f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-3b4a78a0.wav": {
-    "mtime": 1789854159.6080043,
-    "ast_hash": "565eef1f33143ac4bcedb974de7c2512",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-5603fe12.wav": {
-    "mtime": 1789854163.7390213,
-    "ast_hash": "5b9c1d0f2f394728b9d02a771cb4c282",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-597e4ad3.wav": {
-    "mtime": 1789854166.4540324,
-    "ast_hash": "5653c31c9acd5429be43ebb07a6aaabf",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-5a0b8c8a.wav": {
-    "mtime": 1789854157.5319958,
-    "ast_hash": "f9e02a401acd60b3ac25e69616d8f913",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-5f510854.wav": {
-    "mtime": 1789854164.7330253,
-    "ast_hash": "442856522cfb087635068ebdcdb64384",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-91725451.wav": {
-    "mtime": 1789854154.8469846,
-    "ast_hash": "ba2c60556646105d54957470814e948b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-9c83fe7e.wav": {
-    "mtime": 1789854156.645992,
-    "ast_hash": "e9857a88efbbc78e533fd5d89298f417",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-9dc878ce.wav": {
-    "mtime": 1789854152.0889733,
-    "ast_hash": "4b8ad95c8f5286ecfaa1edda2d9e76c8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-adab10c9.wav": {
-    "mtime": 1789854162.964018,
-    "ast_hash": "9bbbc89fb74afe4fa9c1bab9bbee2ea5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-bca8eb92.wav": {
-    "mtime": 1789854161.4400117,
-    "ast_hash": "30c18789908908929f356c623172e744",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-c5c14ad6.wav": {
-    "mtime": 1789854152.8079762,
-    "ast_hash": "3eb47c71752afd55d24b510cb3d46093",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-ca4fd6bc.wav": {
-    "mtime": 1789854160.3980076,
-    "ast_hash": "d2073397730cb9cbe09ac45193a6f01e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-d685f139.wav": {
-    "mtime": 1789854162.224015,
-    "ast_hash": "38ae08b2b5ab91496aed4a5231be9918",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-edf3730e.wav": {
-    "mtime": 1789854159.8440053,
-    "ast_hash": "ed16b324283b66b09624b13f7e4099f9",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h20-ee228511.wav": {
-    "mtime": 1789854167.3560362,
-    "ast_hash": "3c96692a982d06e85af0ee4f97a31b3e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-0ca20dea.wav": {
-    "mtime": 1789854176.839075,
-    "ast_hash": "fc57889607d4f48898fc8e474784b7ee",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-1f50c962.wav": {
-    "mtime": 1789854178.4540818,
-    "ast_hash": "c5e858441bdeea8e81899e5d0dcb76fe",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-225ee516.wav": {
-    "mtime": 1789854174.2950647,
-    "ast_hash": "014ce22272822fbcd929bdfca2bb9ecd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-2486618c.wav": {
-    "mtime": 1789854183.1191008,
-    "ast_hash": "d774dda64c4da6baf00e09bf5e52afe4",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-287599ac.wav": {
-    "mtime": 1789854175.9400713,
-    "ast_hash": "2f5db2c68b2b0220a034d22b9b224be7",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-47baeb61.wav": {
-    "mtime": 1789854187.5701191,
-    "ast_hash": "9b09aae4e96c913f776753f1d81c41bd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-4c852e0d.wav": {
-    "mtime": 1789854181.1710927,
-    "ast_hash": "f0cd1985fa4ad4a6202f2a9b767d199e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-7d63490f.wav": {
-    "mtime": 1789854173.4230611,
-    "ast_hash": "428d94afd8cfc962ff8d9807faa5786f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-84dd1a28.wav": {
-    "mtime": 1789854185.601111,
-    "ast_hash": "01a1b80c0a9e2e278148858173a1dc5a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-917ad915.wav": {
-    "mtime": 1789854183.903104,
-    "ast_hash": "9fef723eeb445e3658c3968a4ca2d38b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-91f7ee6c.wav": {
-    "mtime": 1789854186.596115,
-    "ast_hash": "1666cd161c0ec23a1b840267bbfbd42c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-a0c30f5c.wav": {
-    "mtime": 1789854178.9820838,
-    "ast_hash": "a3d72acf33e0ff0927a950c84ff36b49",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-af942716.wav": {
-    "mtime": 1789854182.2800975,
-    "ast_hash": "6555bd938aae9e94b1467119c4633588",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-b2abc8c9.wav": {
-    "mtime": 1789854180.5710905,
-    "ast_hash": "1544aade03293e72bfeff742e1204b87",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-bebf3aaa.wav": {
-    "mtime": 1789854177.6490784,
-    "ast_hash": "a7f123395d29924d3f3db3b6d325c83b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-d24a2a5b.wav": {
-    "mtime": 1789854181.6050947,
-    "ast_hash": "8cd278858823a3c2d4c803140bd963f5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-e9911b5e.wav": {
-    "mtime": 1789854184.6731071,
-    "ast_hash": "239939d509374408ce68f6e68708c7eb",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-f38aad9d.wav": {
-    "mtime": 1789854180.1280885,
-    "ast_hash": "faa0ac87ef672a8e33885f9df0fa7153",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-f3a620f2.wav": {
-    "mtime": 1789854179.453086,
-    "ast_hash": "98d940521d43a01bffaabb6a0acddfad",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h21-f78c2f9a.wav": {
-    "mtime": 1789854175.1650681,
-    "ast_hash": "ae007514e606d402287b2409d33e79a5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-00476c86.wav": {
-    "mtime": 1789854207.3952005,
-    "ast_hash": "00f27c0df72f20213ce955ac0669a7f5",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-137060d5.wav": {
-    "mtime": 1789854208.1872036,
-    "ast_hash": "890c9c123d19f7e251b2374b803a0245",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-14fe9817.wav": {
-    "mtime": 1789854198.3851635,
-    "ast_hash": "89038eb0e2aede10d6f35c1f84c4d300",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-27c20e42.wav": {
-    "mtime": 1789854194.9411495,
-    "ast_hash": "7c7f6a92312bc178fbff2d83cf2f7379",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-45341c4f.wav": {
-    "mtime": 1789854208.9452069,
-    "ast_hash": "c62a296991aaad5a422b4d0a69d0c96e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-5bf6fa10.wav": {
-    "mtime": 1789854192.168138,
-    "ast_hash": "d5a6e52a63eda16c3c1133981f59d912",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-65f97958.wav": {
-    "mtime": 1789854199.99617,
-    "ast_hash": "c8377304f6d27a631e9550fc083e8a0e",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-7c9d98ce.wav": {
-    "mtime": 1789854202.3081796,
-    "ast_hash": "5af6526edc436857e42c3365d57f7c5b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-a357aded.wav": {
-    "mtime": 1789854197.50716,
-    "ast_hash": "d6068ede4f58711bdb795bdcca947327",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-a69e98ec.wav": {
-    "mtime": 1789854205.6081932,
-    "ast_hash": "87d00912e9023a0447de2b859ff2f1f1",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-afe02b99.wav": {
-    "mtime": 1789854194.092146,
-    "ast_hash": "1ff4132e77d6ff889087f74ac3785e47",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-c1102ea1.wav": {
-    "mtime": 1789854206.5781972,
-    "ast_hash": "b905533a17b913f396574612287e1ddd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-da59097e.wav": {
-    "mtime": 1789854203.168183,
-    "ast_hash": "380473c827a6912484a5663664ab2591",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-dc2ee1c1.wav": {
-    "mtime": 1789854204.82719,
-    "ast_hash": "ad9b2984fcced8fbcbeccbe3d0d3d67a",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-e0b71903.wav": {
-    "mtime": 1789854196.6231563,
-    "ast_hash": "40fbd15f9b419f09cdfcb7d11e0a264f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-e75faa41.wav": {
-    "mtime": 1789854201.2791755,
-    "ast_hash": "3e8614b02dfb35b4dff6079f5f7fdb20",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-ec3ef396.wav": {
-    "mtime": 1789854199.197167,
-    "ast_hash": "fd73dcde0a773e894766cc0566b8712f",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-eeac5f8e.wav": {
-    "mtime": 1789854193.1151419,
-    "ast_hash": "12125160a6c8de88454135c2470cb586",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-f0ba4428.wav": {
-    "mtime": 1789854203.9251862,
-    "ast_hash": "6b95e08da24f5fdc4bbe02b7bc7d89f6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h22-f16f04b2.wav": {
-    "mtime": 1789854195.827153,
-    "ast_hash": "5c74d7553faff830b5cc8b91c71479fb",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-0c292229.wav": {
-    "mtime": 1789854226.1652775,
-    "ast_hash": "bd4cd2bc29041ed4152fb4e81273f2ce",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-200bba1d.wav": {
-    "mtime": 1789854218.5452464,
-    "ast_hash": "d5f234a348a3d3f3d3c948c7c61120c8",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-20664b5e.wav": {
-    "mtime": 1789854223.4322662,
-    "ast_hash": "0a67e478180d391acd891bee6bb81f77",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-20ce8ee5.wav": {
-    "mtime": 1789854214.814231,
-    "ast_hash": "4136c7c64b7c4fcd3838d0d923bc5737",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-30f66e78.wav": {
-    "mtime": 1789854215.792235,
-    "ast_hash": "c3e4354693d6388455d94e7955f4da32",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-3d6272de.wav": {
-    "mtime": 1789854221.4992585,
-    "ast_hash": "758de6662fbc3db666394d25460b95cd",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-44794900.wav": {
-    "mtime": 1789854222.7802637,
-    "ast_hash": "ecebef814133fd0a2efe10d4f7095b3c",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-452f86c4.wav": {
-    "mtime": 1789854228.3432865,
-    "ast_hash": "ee8d0dbbea698277d52239e53ebabceb",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-47c46c1f.wav": {
-    "mtime": 1789854217.6602426,
-    "ast_hash": "4d07423c46f1a35efc38c9e34efc5d6b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-483f0c8c.wav": {
-    "mtime": 1789854224.7482717,
-    "ast_hash": "7d67fcfff0f078745093c9cab7709f71",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-50be9e10.wav": {
-    "mtime": 1789854225.500275,
-    "ast_hash": "3c242731dec75a72edbffa60781f3a25",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-545709f0.wav": {
-    "mtime": 1789854219.2742493,
-    "ast_hash": "cc58ee69b1b261d23ecc6d8282880125",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-71ba149d.wav": {
-    "mtime": 1789854226.9082806,
-    "ast_hash": "f90aaab921b91ffc78bf2dce9c960292",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-7c4d0865.wav": {
-    "mtime": 1789854220.6422548,
-    "ast_hash": "f36d9073a76b734ceb137148e4e16b5b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-a195c8dc.wav": {
-    "mtime": 1789854220.2512534,
-    "ast_hash": "f2f0b5f134a59e397fb2c3d97cbac8d6",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-a8dc54b9.wav": {
-    "mtime": 1789854223.807268,
-    "ast_hash": "ac9f19d230568e4bef9a2c8ab41bdc8b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-aa03ba4a.wav": {
-    "mtime": 1789854216.8722394,
-    "ast_hash": "9cd36bfc88d6c9bf74baf2963784c42d",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-d24ad68a.wav": {
-    "mtime": 1789854227.6642838,
-    "ast_hash": "c06bd86cdbdc81f59c8a0deffe1a6c7b",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-ee190643.wav": {
-    "mtime": 1789854221.7532594,
-    "ast_hash": "cba02a3b4c42e9b713ddcbdad9f65425",
-    "semantic_hash": ""
-  },
-  "api/data/tarot_openings/h23-ff72cd59.wav": {
-    "mtime": 1789854222.2802615,
-    "ast_hash": "2d50ba421098119aac521297eeb81fd4",
     "semantic_hash": ""
   }
 }
