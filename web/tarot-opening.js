@@ -32,6 +32,17 @@ const TarotOpening = (() => {
     fetch('/api/tarot/warm', {method: 'POST'}).catch(() => {});
   }
 
+  // Say it once, in the status bar, when the reader's voice cannot come: the
+  // home GPU box is unreachable, so every turn after this one reads in silence.
+  // Deliberately NOT the same words as streamResponse's "reader voice
+  // unavailable", which means a voice that tried and failed — this one never
+  // had a box to try.
+  function noteIfVoiceDown() {
+    if (tarotVoice.homeDown()) {
+      setStatus('[ reader voice offline — the reading continues in silence ]');
+    }
+  }
+
   // Start the download NOW: the page then sits on "tap anywhere to begin" while
   // it lands, so the tap plays instead of waiting.
   function prefetchAudio(url) {
@@ -98,7 +109,7 @@ const TarotOpening = (() => {
     return true;
   }
 
-  return {fetch: fetchClip, play, warmVoice};
+  return {fetch: fetchClip, play, warmVoice, noteIfVoiceDown};
 })();
 
 // The opening turn, canned where it can be and live where it cannot.
@@ -106,11 +117,17 @@ const TarotOpening = (() => {
 // querent whose Significator is already set, or one who left mid-spread) —
 // those have to be written against that state.
 async function startOpeningTurn(ev, canned) {
-  TarotOpening.warmVoice();
+  // Warm the models only if there are models to warm — with the home box down
+  // the POST is a round-trip into a dead tunnel. The probe also decides whether
+  // the reading gets the "voice offline" note once the opening has played.
+  tarotVoice.probeHome().then(up => { if (up) TarotOpening.warmVoice(); });
   const clipP = canned ? TarotOpening.fetch() : Promise.resolve(null);
   if (!tarotVoice.wantsDeferredOpening()) {
     // Audio already unlocked (or voice unusable) → reveal immediately.
-    return (await clipP) ? TarotOpening.play(ev, null) : autoTrigger(ev);
+    const clip = await clipP;
+    const ok = clip ? await TarotOpening.play(ev, null) : await autoTrigger(ev);
+    TarotOpening.noteIfVoiceDown();
+    return ok;
   }
   // Voice on but no gesture has unlocked audio yet. Fetch/generate NOW and hold
   // only the reveal + narration until the first gesture, so the tap starts the
@@ -125,5 +142,11 @@ async function startOpeningTurn(ev, canned) {
     clearHint();
     openGate();
   });
-  return (await clipP) ? TarotOpening.play(ev, gate) : autoTrigger(ev, gate);
+  const clip = await clipP;
+  // The canned opening narrates from a FILE, so it speaks even with the box
+  // down — which is why the note waits for it to finish. Silence starts at the
+  // querent's first answer, not here.
+  const ok = clip ? await TarotOpening.play(ev, gate) : await autoTrigger(ev, gate);
+  TarotOpening.noteIfVoiceDown();
+  return ok;
 }

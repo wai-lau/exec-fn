@@ -1859,6 +1859,12 @@ docker compose exec api python -m tarot.openings_gen refresh --n 1   # rotate th
 
 **`POST /api/tarot/warm` finishes the job.** The canned opening removes the synth from turn ONE; the querent's next turn still needs a live one, and under GPU mode `idle` the models load on demand. So the page fires a warm on open — fire-and-forget, server-side 300s cooldown so a reload storm is not GPU load — and the models load while the opening is being read.
 
+**When the home box is gone, the page says so — after the opening has spoken.** The reader's voice is `nicole` on the home GPU box; the droplet's own piper is always up but only speaks `glados`, which is Exec's voice, not the reader's. So with the box unreachable the reading is silent, and the page used to say nothing until the first turn had already failed mid-reading. `tarotVoice.probeHome()` (`GET /api/hosaka/health` — the same probe /hosaka polls for its "Wai's GPU offline" line, guest-safe) decides two things on load: the warm POST is skipped, since a round-trip into a dead tunnel warms nothing, and once the opening finishes the status bar reads `[ reader voice offline — the reading continues in silence ]`.
+
+**The note waits for the opening deliberately.** A canned opening narrates from a FILE, so it speaks even with the box down — the silence starts at the querent's first answer, not at load, and a note that contradicts the voice currently talking is worse than no note. Its wording is also deliberately NOT streamResponse's `reader voice unavailable`, which means a voice that tried and failed; this one never had a box to try. A querent returning mid-reading has no opening turn, so there it goes up straight away.
+
+`homeDown()` answers only once the probe has returned — an unprobed voice is not a voice known to be down, and a note that guesses is worse than no note.
+
 ### 14e. The nightly voice check
 
 Narration fails **silently**: the page bails to the guessed-pace typewriter and reads fine, so a dead voice is only noticed the next time someone sits down for a reading. `api/tarot/openings_loop.py` checks it once a night at 05:45 ET — after morning (4:30), graphify (5:00), security (5:10) and the cc probe (5:20), so the five never contend for a 1967MB box.

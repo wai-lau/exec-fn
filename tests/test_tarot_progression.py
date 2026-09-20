@@ -92,6 +92,11 @@ def fulfill_js(js: str):
 _marked = fulfill_js("window.marked={use(){},parse:s=>s};")
 
 
+# The stub voices below REPLACE tarot-voice.js wholesale, so each one has to
+# carry the module's whole surface — startOpeningTurn calls probeHome() and
+# homeDown() before a turn even begins, and a missing method throws there, not
+# where it is used. Add any new tarotVoice export to all three.
+
 # A fake voice whose narration FAILS immediately: streamResponse takes the audio
 # branch, the typewriter bails to the guessed pace, the reading still finishes.
 VOICE_FAIL = """
@@ -100,6 +105,8 @@ window.tarotVoice = {
   wantsDeferredOpening: () => false,
   armOpeningUnlock: () => {},
   armPersistedUnlock: () => {},
+  probeHome: () => Promise.resolve(true),
+  homeDown: () => false,
   speak: () => ({ ok:false, ended:true, error:'stub voice fail',
                   elapsed:()=>0, duration:()=>0 }),
   speakClip: () => ({ ok:false, ended:true, error:'stub clip fail',
@@ -116,6 +123,8 @@ window.tarotVoice = {
   wantsDeferredOpening: () => false,
   armOpeningUnlock: () => {},
   armPersistedUnlock: () => {},
+  probeHome: () => Promise.resolve(true),
+  homeDown: () => false,
   speak: () => ({ ok:true, ended:false, error:null,
                   elapsed:()=>0, duration:()=>0 }),
   speakClip: () => ({ ok:true, ended:false, error:null,
@@ -132,6 +141,8 @@ window.tarotVoice = {
   wantsDeferredOpening: () => false,
   armOpeningUnlock: () => {},
   armPersistedUnlock: () => {},
+  probeHome: () => Promise.resolve(true),
+  homeDown: () => false,
   speak: () => ({ ok:true, ended:false, error:null,
                   elapsed:()=>0, duration:()=>1.5 }),
   speakClip: () => ({ ok:true, ended:false, error:null,
@@ -167,6 +178,9 @@ def open_tarot(browser, base_url, admin_headers):
     goto, then tap to begin the reading. The stub voices (voice_js) report no
     deferral, so for them the opening auto-fires and the tap is a harmless no-op.
 
+    `home_voice` is what /api/hosaka/health reports for the home GPU box —
+    False is "the box that renders the reader's voice is unreachable".
+
     `clip` is what /api/tarot/opening answers. None (the default) means "this
     hour has no pre-generated opening", which is what puts the opening turn back
     on the LIVE path every test below exercises; pass a dict to exercise the
@@ -174,7 +188,8 @@ def open_tarot(browser, base_url, admin_headers):
     """
     contexts = []
 
-    def _open(chat_handler, *, voice_js=None, init_script=None, clip=None, audio=None):
+    def _open(chat_handler, *, voice_js=None, init_script=None, clip=None, audio=None,
+              home_voice=True):
         ctx = browser.new_context(
             extra_http_headers={"Authorization": admin_headers["Authorization"]})
         contexts.append(ctx)
@@ -184,6 +199,11 @@ def open_tarot(browser, base_url, admin_headers):
             pg.route("**/tarot-voice.js*", fulfill_js(voice_js))
         # Warming loads models on a home GPU box — never from a test.
         pg.route("**/api/tarot/warm", fulfill_json({"ok": True, "skipped": "test"}))
+        # The reader's-voice probe. Default UP: these run against the live app,
+        # whose home box may genuinely be down, and the "voice offline" note is
+        # latest-wins in the same status bar the other tests read.
+        pg.route("**/api/hosaka/health",
+                 fulfill_json({"ok": True, "home": home_voice, "piper": True}))
         pg.route(re.compile(r"/api/tarot/opening(\?|$)"), fulfill_json({"clip": clip}))
         if audio is not None:
             pg.route(re.compile(r"/api/tarot/opening/.*\.wav$"),
@@ -353,3 +373,23 @@ def test_canned_opening_survives_failed_narration(open_tarot):
     settle(pg, timeout=15000)
     assert reader_text(pg).startswith("A cassette in the deck")
     assert_recovered(pg)
+
+
+def test_voice_offline_is_stated_once_the_opening_has_spoken(open_tarot):
+    """Home box unreachable: the canned opening still narrates (it is a file),
+    and the status bar then says the rest of the reading is silent — rather
+    than leaving the querent to notice the voice never came back."""
+    pg = open_tarot(fulfill_sse(sse(txt("unused"))), clip=CANNED, audio=wav_bytes(),
+                    home_voice=False)
+    settle(pg)
+    pg.wait_for_function(
+        """() => (document.getElementById('tarot-statusline')||{}).innerText
+                 ?.includes('voice offline')""", timeout=5000)
+    assert reader_text(pg).startswith("A cassette in the deck")
+    assert_recovered(pg)
+
+
+def test_voice_up_says_nothing_about_being_offline(open_tarot):
+    pg = open_tarot(fulfill_sse(sse(txt("unused"))), clip=CANNED, audio=wav_bytes())
+    settle(pg)
+    assert not any("voice offline" in n.lower() for n in sys_texts(pg))

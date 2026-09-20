@@ -290,6 +290,8 @@ if (_openingEv) {
   startOpeningTurn(_openingEv, _openingCanned);
 } else {
   // No opening turn (returning mid-reading) -> still unlock on first gesture so
-  // the next reader turn narrates.
+  // the next reader turn narrates. Nothing is about to speak here, so if the
+  // reader's voice is down the note can go up straight away.
   tarotVoice.armPersistedUnlock();
+  tarotVoice.probeHome().then(() => TarotOpening.noteIfVoiceDown());
 }

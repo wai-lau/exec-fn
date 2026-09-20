@@ -129,6 +129,30 @@ const tarotVoice = (() => {
     return ctl;
   }
 
+  // Is the home GPU box -- which renders the READER's voice (nicole/kokoro) --
+  // actually answering? The droplet's own piper is always up but only speaks
+  // glados, which is Exec's voice, not the reader's: when the box is down the
+  // reading is silent, and the page should say so rather than let the querent
+  // wonder why the voice stopped. `/api/hosaka/health` is the same probe
+  // /hosaka polls for its "Wai's GPU offline" line, and works for guests.
+  let homeUp = null;  // null until probed -- never assume down before asking
+
+  async function probeHome() {
+    try {
+      const r = await fetch("/api/hosaka/health");
+      homeUp = !!(await r.json()).home;
+    } catch {
+      homeUp = false;
+    }
+    return homeUp;
+  }
+
+  // Answers only once the probe has come back: an unprobed voice is not a
+  // voice known to be down, and a note that guesses is worse than no note.
+  function homeDown() {
+    return homeUp === false;
+  }
+
   // Narrate a PRE-RENDERED clip (the canned opening, tarot-opening.js) rather
   // than synthesizing. Returns the same controller shape as speak(), so the
   // typewriter paces off it with no idea which one it got.
@@ -181,7 +205,7 @@ const tarotVoice = (() => {
     controls.insertBefore(btn, controls.firstChild);
   }
 
-  return { ready, speak, speakClip, mount, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
+  return { ready, speak, speakClip, probeHome, homeDown, mount, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
 })();
 
 tarotVoice.mount();
