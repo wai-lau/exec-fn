@@ -40,15 +40,20 @@ def _log_path(now: datetime):
 def _verdict(probe: dict, mode: str) -> str:
     """One line, leading with the word a tired reader needs to see first.
 
-    A failing probe under emo/idle/gone is hosaka-server deliberately stopped --
-    the expected state, not a fault (gpu_mode_client.effective_mode says the
-    same thing from the other direction). Under homo the box claims loaded
-    models and served nothing, which is the failure worth shouting about."""
+    Three ways to be quiet, and they are not the same thing. Under emo/idle
+    hosaka-server is deliberately stopped and a failing probe is the EXPECTED
+    state, not a fault (gpu_mode_client.effective_mode says the same from the
+    other direction). `gone` is not that: the box did not decline, it did not
+    answer at all -- it is asleep, off, or its reverse tunnel is down, and the
+    line says so rather than calling it a deliberate stop. Under homo the box
+    claims loaded models and served nothing, the failure worth shouting about."""
     if probe["ok"]:
         slow = "  SLOW" if (probe["first_ms"] or 0) > SLOW_MS else ""
         return (f"OK{slow}  first_audio={probe['first_ms']}ms total={probe['total_ms']}ms "
                 f"audio={probe['audio_s']}s")
-    if mode in ("gone", "idle", "emo"):
+    if mode == "gone":
+        return f"voice unreachable (mode=gone) -- home box or its tunnel is down: {probe['error']}"
+    if mode in ("idle", "emo"):
         return f"voice down (mode={mode}) -- hosaka-server stopped, expected: {probe['error']}"
     return f"FAIL (mode={mode}): {probe['error']}"
 
