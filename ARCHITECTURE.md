@@ -1877,7 +1877,8 @@ The probe is a real one-line synth through the path a querent uses, not a port c
 |---------|---------|
 | `OK first_audio=…` | the voice answered |
 | `OK SLOW …` | answered, but first audio took over 2.5s on a box that should be warm |
-| `voice down (mode=idle\|emo\|gone)` | hosaka-server is deliberately stopped — the expected state, not a fault (the same call `gpu_mode_client.effective_mode` makes from the other direction) |
+| `voice down (mode=idle\|emo)` | hosaka-server is deliberately stopped — the expected state, not a fault (the same call `gpu_mode_client.effective_mode` makes from the other direction) |
+| `voice unreachable (mode=gone)` | the box did not decline, it did not answer at all: asleep, off, or its reverse tunnel down. Not a deliberate stop, and saying so sends the reader looking in the right place |
 | `FAIL (mode=homo)` | the box claims loaded models and served nothing. This is the one worth shouting about |
 
 The same pass tops every hour back up to ten openings, which normally costs nothing because nothing is missing, and is skipped outright when there is no voice to render audio with.

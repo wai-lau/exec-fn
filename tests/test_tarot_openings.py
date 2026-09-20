@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 from tarot.openings import (clip_id_ok, drop_oldest, empty_index, hour_key,  # noqa: E402
                             pick_clip, shortfall, total_clips)
+from tarot.openings_loop import _verdict  # noqa: E402
 
 
 def _index(**hours):
@@ -95,3 +96,35 @@ def test_drop_oldest_drops_by_creation_order():
     dropped = drop_oldest(idx, 3, 2)
     assert dropped == [_clip(1)["id"], _clip(2)["id"]]
     assert [c["id"] for c in idx["hours"]["03"]] == [_clip(3)["id"]]
+
+
+# ── the nightly verdict: three ways to be quiet, not one ─────────────────────
+def _probe(ok=False, error="tts upstream unreachable", first_ms=None):
+    return {"ok": ok, "error": error, "first_ms": first_ms, "total_ms": 500, "audio_s": 2.2}
+
+
+def test_a_working_voice_reads_ok():
+    assert _verdict(_probe(ok=True, error=None, first_ms=362), "idle").startswith("OK  ")
+
+
+def test_slow_first_audio_is_flagged_but_still_ok():
+    """A synth that worked is not a failure — but 4s to first audio on a box
+    that should be warm is the cold load this whole feature exists to avoid."""
+    assert _verdict(_probe(ok=True, error=None, first_ms=4000), "homo").startswith("OK  SLOW")
+
+
+def test_a_deliberately_stopped_server_is_not_a_fault():
+    assert _verdict(_probe(), "idle").startswith("voice down (mode=idle)")
+    assert _verdict(_probe(), "emo").startswith("voice down (mode=emo)")
+
+
+def test_an_unreachable_box_is_reported_as_unreachable_not_as_stopped():
+    """`gone` means the box never answered — asleep, off, or its tunnel down.
+    Calling that a deliberate stop sends the reader looking in the wrong place."""
+    line = _verdict(_probe(), "gone")
+    assert line.startswith("voice unreachable (mode=gone)")
+    assert "tunnel" in line
+
+
+def test_homo_serving_nothing_is_the_loud_one():
+    assert _verdict(_probe(), "homo").startswith("FAIL (mode=homo)")
