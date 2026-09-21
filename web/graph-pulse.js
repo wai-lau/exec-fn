@@ -92,7 +92,11 @@ var graphPulse = (function () {
   var HALO_INNER = 1.5;
   var A_HALO_OUTER = 0.10;
   var A_HALO_INNER = 0.18;
-  var A_FILL = 0.55;
+  // A lit node is SOLID in the middle. The hexagon under it is bg-filled with a
+  // coloured border (the /emet look), so at 0.55 the additive fill only greyed
+  // that dark interior and the node read as outlined-brighter rather than lit.
+  // At 1 the centre clips to white and the halos ring it.
+  var A_FILL = 1;
   var A_STROKE = 0.95;
   var A_EDGE = 0.8;
   var EDGE_W = 1.6;

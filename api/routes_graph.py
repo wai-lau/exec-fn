@@ -43,7 +43,7 @@ _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=43">'
 # graph-pulse.js FIRST — same global scope, no modules, and graph-overlay.js's
 # wirePulse() calls into it.
 _GRAPH_OVERLAY_JS = (
-    '<script src="/graph-pulse.js?v=6"></script>'
+    '<script src="/graph-pulse.js?v=7"></script>'
     '<script src="/graph-overlay.js?v=44"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at

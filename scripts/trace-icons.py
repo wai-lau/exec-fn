@@ -50,10 +50,11 @@ OUT = ROOT / "web" / "icons"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from icon_contours import boundary_loops, drop_collinear  # noqa: E402
-from icon_mask import (  # noqa: E402
+from icon_config import (  # noqa: E402
     CENTRE_INK, GLYPH_ONLY, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, MAX_DIM,
-    SKIP, SKIP_PREFIX, ink_mask,
+    SKIP, SKIP_PREFIX,
 )
+from icon_mask import ink_mask  # noqa: E402
 
 BG_L = 0.0      # --bg-hsl lightness, in percent
 NEAR_L = 25.0   # a stroke within this many points of it gets L -> 100-L
