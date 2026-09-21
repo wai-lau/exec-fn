@@ -4,6 +4,11 @@ One `.svg` per icon PNG in `web/`, same basename. **Generated, not authored**:
 `python3 scripts/trace-icons.py` rebuilds every file in here from the PNGs.
 Edit the script, never these — a hand edit is gone on the next run.
 
+Three modules, split at the repo's 500-line cap: `scripts/icon_mask.py`
+decides which pixels are the drawing (and holds every per-icon table),
+`scripts/icon_contours.py` turns a pixel mask into closed loops, and
+`scripts/trace-icons.py` is colour, SVG emission and the CLI.
+
 Each source is a subject drawn in black linework on a flat coloured tile. That
 linework is what gets traced, pixel for pixel. An earlier pass drew lookalikes
 by hand instead and they were the wrong shapes wearing the right colours; the
@@ -65,6 +70,65 @@ The only per-icon decision. In order:
    that separates these two also misfiles several that were fine
    (`data-file`'s mask is 98% boundary pixels, identical to a real outline),
    and a wrong guess silently mangles a good icon.
+
+## Interior detail
+
+The outline pass alone finds only the darkest cluster, so everything an artist
+drew as flat colour rather than linework disappeared: the boss's mouth,
+data-doctor's cross, watchman's iris, wardenpp's cap badge, golem-stone's
+panels, the satellite's dish, the wizard's moon. Those are colour regions
+against their neighbours, so the boundaries BETWEEN regions are the missing
+lines. Three rules make that usable:
+
+- **Only inside the subject.** The detail pass runs on the pixels the tile
+  cannot reach from the image border without crossing the outline. Every one
+  of these icons casts a drop shadow, usually a dithered one, and it lies
+  outside the linework — so confining the pass keeps it out for free.
+- **Colour is quantised first** (`QUANT`, a 64-step per channel). These
+  sources SHADE BY DITHERING, and at full depth a stippled iris is never one
+  region, so no region clears the size floor and a shape the eye plainly sees
+  produces no line at all. `ICON_QUANT` raises the step for one icon: the
+  wizard's hat is a checkerboard of two purples that quantise apart at 64,
+  leaving two interleaved combs whose shared frontier is every second pixel —
+  the hat came out as solid speckle with the moon lost in it. At 128 they are
+  one shape.
+- **Small regions are MERGED, not dropped.** A region under the floor adopts
+  the neighbour it touches most. Dropping them was the first version and it
+  left watchman's iris and the wizard's moon as broken dashes, because a line
+  was inked only where both sides survived and every removed speck punched a
+  hole in the line running past it.
+
+Against the tile the ink always lands on the ART's side, whatever the
+luminance says — data-file's pages are near-white on orange, so the tile is
+the darker side, and a darker-side rule drew the silhouette onto the
+background where a "never ink the tile" guard then deleted it. Between two art
+colours the darker side still wins.
+
+`DETAIL_MIN_REGION` holds the per-icon floors, each measured from that icon's
+region table rather than guessed: `data-file` 28 (pages are 162/30/30px, its
+grey text blocks 26 and under — the floor keeps paper and drops typography),
+`watchman` 12, `wizard` 10.
+
+## Colour beyond the tile
+
+Two tables, both short and both deliberate:
+
+- `ICON_COLOUR` — an icon whose SUBJECT is not the colour of its tile.
+  `turbo`'s tile is the same blue as fiddle's and printer's, but the icon is a
+  lightning bolt and the bolt is yellow; `data-doctor`'s case is white on a
+  blue tile.
+- `ICON_ACCENT` — a second filled path in its own colour, for a feature whose
+  COLOUR IS ITS MEANING. `data-doctor`'s cross is red (a medical cross that
+  is not red is a plus sign) and re-centred on the case, since the source
+  paints it on an isometric face and lifted flat it just reads as crooked.
+  `wardenpp`'s two rank crosses are gold, across the three source shades that
+  make them up. `wizard`'s moon and stars are filled in the icon's own colour
+  (`None`) — outlining them draws a ring around a 10px crescent and nothing
+  at all around a 2px star.
+
+**A 27px source's interior detail does not resolve at 20px.** The nav shows
+the silhouette; the detail is what the icon has from roughly 40px up. That is
+a property of the source, not of the trace.
 
 ## The trace
 
