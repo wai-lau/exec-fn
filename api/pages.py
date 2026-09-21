@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=77">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=78">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -83,7 +83,7 @@ def _nav_icon(name: str, alt: str) -> str:
     carries `shape-rendering="crispEdges"`, which is what keeps the grid hard
     at a size 20/27 does not divide into. No `image-rendering:pixelated` --
     that is the raster knob and does nothing to an SVG."""
-    return f'<img src="/icons/{name}.svg?v=11" alt="{alt}" style="width:20px;height:20px;">'
+    return f'<img src="/icons/{name}.svg?v=12" alt="{alt}" style="width:20px;height:20px;">'
 
 
 _NAV_ICONS = {
@@ -143,7 +143,7 @@ def _build_nav(active=None, guest=False):
         # so the same-origin link interceptor below ignores it.
         "var _rf=document.createElement('a');_rf.id='nav-refresh';"
         "_rf.style.cursor='pointer';"
-        "_rf.innerHTML='<img src=\"/icons/firewall.svg?v=11\" alt=\"refresh\" "
+        "_rf.innerHTML='<img src=\"/icons/firewall.svg?v=12\" alt=\"refresh\" "
         "style=\"width:20px;height:20px;\">"
         "<span class=\"nav-label\">F5</span>';"
         "_rf.addEventListener('click',function(e){e.preventDefault();"
