@@ -40,10 +40,12 @@ from graph_style import (
 # CSS = vertical-left nav + vis-network config-panel theme; JS = the firing
 # overlay + zoom walls. Injected at serve time so they survive graph.html rebuilds.
 _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=43">'
-# graph-pulse.js FIRST — same global scope, no modules, and graph-overlay.js's
-# wirePulse() calls into it.
+# Order is the whole contract — same global scope, no modules. The draw half
+# defines `graphPulseDraw`, the model half reads it at construction time, and
+# graph-overlay.js starts the model.
 _GRAPH_OVERLAY_JS = (
-    '<script src="/graph-pulse.js?v=7"></script>'
+    '<script src="/graph-pulse-draw.js?v=1"></script>'
+    '<script src="/graph-pulse.js?v=8"></script>'
     '<script src="/graph-overlay.js?v=44"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at

@@ -1,13 +1,19 @@
-// /graph — the firing overlay. Loaded by the /graph route BEFORE graph-overlay.js
-// (same global scope, no modules), which wires it to hover and taps.
+// /graph — the firing overlay's MODEL half. Loaded by the /graph route after
+// graph-pulse-draw.js and before graph-overlay.js (same global scope, no
+// modules); graph-overlay.js starts it, graph-pulse-draw.js paints it.
 //
-// WHY THIS IS ITS OWN CANVAS. vis draws every node and every edge on each
+// The split is the 500-line cap taken at the honest seam: this file knows what a
+// cascade is and nothing about pixels; the draw file is the reverse. The state
+// handed over at init (`pos`, `litEdges`, `level`) is mutated in place here and
+// never reassigned, which is the contract that makes one handover enough.
+//
+// WHY A SEPARATE CANVAS AT ALL. vis draws every node and every edge on each
 // redraw, and a warm full redraw of this graph measured ~1.5s at 4561 nodes on
 // the droplet's headless WebKit. An animation that redrew vis per frame would be
 // the camera tour's 0.4 fps all over again, which is the exact thing the tour was
 // rebuilt to stop doing. So the layout is frozen, vis's canvas is left alone, and
-// a transparent canvas sits on top drawing ONLY what is currently lit — a few
-// dozen nodes and their edges. Cost per frame is O(lit), not O(graph).
+// a transparent canvas draws ONLY what is currently lit. Cost per frame is
+// O(lit), not O(graph).
 //
 // The frozen layout is what makes it cheap: world positions never move, so they
 // are read once and every frame is two multiplies per lit node. The camera can
@@ -25,7 +31,7 @@
 //
 // Everything fades rather than blinking off, and because size tracks degree, the
 // hubs are both the likeliest seeds and the longest-lit.
-/* global network, nodesDS, edgesDS */
+/* global network, nodesDS, edgesDS, graphPulseDraw */
 var graphPulse = (function () {
   'use strict';
 
@@ -72,6 +78,12 @@ var graphPulse = (function () {
   // difference — about half the seeds still land on small nodes and fizzle, which
   // is what makes the ones that bloom read as events.
   var SEED_POW = 2;
+  // The cloud is cut into a GRID x GRID lattice of positional squares, and an
+  // iteration takes EXTRA_SEEDS more nodes out of the SEED's own square. Three
+  // seeds scattered anywhere in a hairball read as three unrelated sparks; three
+  // inside one square read as a region waking up.
+  var GRID = 4;
+  var EXTRA_SEEDS = 2;
 
   // How long a node stays lit. Degree buys time, on the same argument as size:
   // the busy nodes are the ones worth looking at, so they hold the eye longer.
@@ -85,28 +97,13 @@ var graphPulse = (function () {
   // to linear on purpose: at 1.8 the light was gone before the eye had followed
   // the chain that lit it.
 
-  // Ink. Drawn with globalCompositeOperation 'lighter', so these stack into a
-  // bloom instead of painting over each other — two soft discs under a crisp
-  // hexagon is a cheaper glow than shadowBlur and does not cost per-node state.
-  var HALO_OUTER = 2.6;           // x node radius
-  var HALO_INNER = 1.5;
-  var A_HALO_OUTER = 0.10;
-  var A_HALO_INNER = 0.18;
-  // A lit node is SOLID in the middle. The hexagon under it is bg-filled with a
-  // coloured border (the /emet look), so at 0.55 the additive fill only greyed
-  // that dark interior and the node read as outlined-brighter rather than lit.
-  // At 1 the centre clips to white and the halos ring it.
-  var A_FILL = 1;
-  var A_STROKE = 0.95;
-  var A_EDGE = 0.8;
-  var EDGE_W = 1.6;
-
-  var cv = null, ctx = null, cw = 0, ch = 0, dpr = 1;
   var pos = {};                   // id -> {x, y, r, c} in world units, read once
   var deg = {};                   // id -> edge count
   var adj = {};                   // id -> [neighbour ids]
   var ids = [];                   // every node id, in cumulative-weight order
-  var cum = [];                   // prefix sums of size, for the weighted seed
+  var cum = [];                   // prefix sums of weight, for the seed draw
+  var cells = [];                 // GRID*GRID squares, each {ids, cum}
+  var cellOf = {};                // id -> square index
   var lit = {};                   // id -> {t0, dur}
   var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b}
   var live = [];                  // iterations in flight: {queue, seen, until}
@@ -137,59 +134,82 @@ var graphPulse = (function () {
         pos[id].y = world[id].y;
       }
     });
-    // Prefix sums over node size, so a seed can be drawn in proportion to size
-    // with one binary search instead of a scan or a reject loop.
-    var total = 0;
     ids = Object.keys(pos);
-    cum = ids.map(function (id) {
-      var w = Math.pow(pos[id].r, SEED_POW);
-      total += (deg[id] || 0) <= 1 ? w * TERMINAL_ODDS : w;
+    cum = weigh(ids);
+    partition();
+  }
+
+  // Seed weight: size to the SEED_POW, knocked down to TERMINAL_ODDS for a dead
+  // end. One function so the whole-graph draw and the per-square draws cannot
+  // drift apart — an unweighted square pick would bring back the halo of
+  // terminal nodes that TERMINAL_ODDS exists to remove.
+  function seedWeight(id) {
+    var w = Math.pow(pos[id].r, SEED_POW);
+    return (deg[id] || 0) <= 1 ? w * TERMINAL_ODDS : w;
+  }
+
+  // Prefix sums, so a weighted pick is one binary search rather than a scan or a
+  // reject loop.
+  function weigh(list) {
+    var total = 0;
+    return list.map(function (id) {
+      total += seedWeight(id);
       return total;
     });
   }
 
-  function seed() {
-    if (!ids.length) {
+  function pick(list, sums) {
+    if (!list.length || !sums[sums.length - 1]) {
       return null;
     }
-    var target = Math.random() * cum[cum.length - 1];
-    var lo = 0, hi = cum.length - 1;
+    var target = Math.random() * sums[sums.length - 1];
+    var lo = 0, hi = sums.length - 1;
     while (lo < hi) {
       var mid = (lo + hi) >> 1;
-      if (cum[mid] < target) {
+      if (sums[mid] < target) {
         lo = mid + 1;
       } else {
         hi = mid;
       }
     }
-    return ids[lo];
+    return list[lo];
   }
 
-  function makeCanvas() {
-    cv = document.createElement('canvas');
-    cv.id = 'gp-pulse';
-    document.body.appendChild(cv);
-    ctx = cv.getContext('2d');
-    resize();
-    window.addEventListener('resize', resize);
+  function seed() {
+    return pick(ids, cum);
   }
 
-  function resize() {
-    var host = document.getElementById('graph');
-    if (!host || !cv) {
-      return;
+  // Cut the node cloud's bounding box into a GRID x GRID lattice of squares and
+  // file every node under one. An iteration seeds its extras out of the SEED's
+  // OWN square, which is what keeps a burst local: the graph is a hairball, so
+  // three unrelated seeds anywhere in it read as three unrelated sparks, while
+  // three seeds inside one square read as a region waking up.
+  //
+  // Squares are POSITIONAL, not structural — they cut across communities on
+  // purpose. Spatial neighbours that share no edge still belong to the same part
+  // of the picture, and that is what the eye is following.
+  function partition() {
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    ids.forEach(function (id) {
+      var p = pos[id];
+      if (p.x < minX) { minX = p.x; }
+      if (p.x > maxX) { maxX = p.x; }
+      if (p.y < minY) { minY = p.y; }
+      if (p.y > maxY) { maxY = p.y; }
+    });
+    var w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
+    cells = [];
+    for (var i = 0; i < GRID * GRID; i++) {
+      cells.push({ ids: [], cum: [] });
     }
-    var r = host.getBoundingClientRect();
-    dpr = window.devicePixelRatio || 1;
-    cw = r.width;
-    ch = r.height;
-    cv.width = Math.round(cw * dpr);
-    cv.height = Math.round(ch * dpr);
-    cv.style.width = cw + 'px';
-    cv.style.height = ch + 'px';
-    cv.style.top = r.top + 'px';
-    cv.style.left = r.left + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ids.forEach(function (id) {
+      var col = Math.min(GRID - 1, Math.floor((pos[id].x - minX) / w * GRID));
+      var row = Math.min(GRID - 1, Math.floor((pos[id].y - minY) / h * GRID));
+      var n = row * GRID + col;
+      cellOf[id] = n;
+      cells[n].ids.push(id);
+    });
+    cells.forEach(function (c) { c.cum = weigh(c.ids); });
   }
 
   // ── firing ─────────────────────────────────────────────────────────────────
@@ -240,13 +260,29 @@ var graphPulse = (function () {
       return;
     }
     var it = { queue: [], seen: {}, until: now + ITER_LIFE };
-    it.seen[id] = 1;
-    fire(id, now);
-    spread(it, id, now);
+    ignite(it, id, now);
+    var cell = cells[cellOf[id]];
+    for (var k = 0; cell && k < EXTRA_SEEDS; k++) {
+      var extra = pick(cell.ids, cell.cum);
+      // Already lit by this iteration (its own seed, or the other extra) — skip
+      // rather than retry: a square with two nodes in it should stay a pair, not
+      // spin looking for a third that is not there.
+      if (extra !== null && !it.seen[extra]) {
+        ignite(it, extra, now);
+      }
+    }
     live.push(it);
     if (live.length > MAX_LIVE) {
       live.shift();
     }
+  }
+
+  // All the seeds of one iteration share its `seen` and its queue, so the three
+  // cascades merge into a single event instead of re-rolling each other's nodes.
+  function ignite(it, id, now) {
+    it.seen[id] = 1;
+    fire(id, now);
+    spread(it, id, now);
   }
 
   function spread(it, from, now) {
@@ -302,74 +338,6 @@ var graphPulse = (function () {
     }
   }
 
-  // ── drawing ────────────────────────────────────────────────────────────────
-
-  function hexagon(x, y, r) {
-    ctx.beginPath();
-    for (var i = 0; i < 6; i++) {
-      var a = i * Math.PI / 3;
-      var px = x + r * Math.cos(a), py = y + r * Math.sin(a);
-      if (i === 0) {
-        ctx.moveTo(px, py);
-      } else {
-        ctx.lineTo(px, py);
-      }
-    }
-    ctx.closePath();
-  }
-
-  // Alpha rides on ctx.globalAlpha over a flat white fill, never a colour string
-  // built per call: this runs per lit node per frame, and a fresh string 60 times
-  // a second per node is garbage for the collector to chase. It also keeps the
-  // one colour on this canvas to a single literal, which is what the palette lint
-  // wants to see.
-  var INK = '#ffffff';
-
-  function drawNode(p, a, scale, view) {
-    var x = (p.x - view.x) * scale + cw / 2;
-    var y = (p.y - view.y) * scale + ch / 2;
-    var r = Math.max(p.r * scale, 1.2);
-    if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
-      return;   // offscreen: the camera can be zoomed anywhere
-    }
-    ctx.globalAlpha = a * A_HALO_OUTER;
-    ctx.beginPath();
-    ctx.arc(x, y, r * HALO_OUTER, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = a * A_HALO_INNER;
-    ctx.beginPath();
-    ctx.arc(x, y, r * HALO_INNER, 0, Math.PI * 2);
-    ctx.fill();
-    hexagon(x, y, r);
-    ctx.globalAlpha = a * A_FILL;
-    ctx.fill();
-    ctx.globalAlpha = a * A_STROKE;
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
-  }
-
-  // The edge the activation travelled along, lit as the far end catches. Both its
-  // ends are lit by construction — it is drawn because something crossed it.
-  function drawEdges(now, scale, view) {
-    ctx.lineWidth = EDGE_W;
-    for (var k in litEdges) {
-      var e = litEdges[k];
-      var a = level(e, now);
-      if (a <= 0.01) {
-        continue;
-      }
-      var p = pos[e.a], q = pos[e.b];
-      if (!p || !q) {
-        continue;
-      }
-      ctx.globalAlpha = a * A_EDGE;
-      ctx.beginPath();
-      ctx.moveTo((p.x - view.x) * scale + cw / 2, (p.y - view.y) * scale + ch / 2);
-      ctx.lineTo((q.x - view.x) * scale + cw / 2, (q.y - view.y) * scale + ch / 2);
-      ctx.stroke();
-    }
-  }
-
   function levelsNow(now) {
     var out = {};
     for (var id in lit) {
@@ -379,24 +347,6 @@ var graphPulse = (function () {
       }
     }
     return out;
-  }
-
-  function draw(now) {
-    ctx.clearRect(0, 0, cw, ch);
-    var levels = levelsNow(now);
-    var scale = network.getScale();
-    var view = network.getViewPosition();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = INK;
-    ctx.strokeStyle = INK;
-    drawEdges(now, scale, view);
-    for (var id in levels) {
-      if (pos[id]) {
-        drawNode(pos[id], levels[id], scale, view);
-      }
-    }
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
   }
 
   var last = 0, idle = true;
@@ -416,10 +366,10 @@ var graphPulse = (function () {
     step(now);
     var busy = live.length || hasAny(lit) || hasAny(litEdges);
     if (busy) {
-      draw(now);
+      graphPulseDraw.paint(now, levelsNow(now));
       idle = false;
     } else if (!idle) {
-      ctx.clearRect(0, 0, cw, ch);   // one last frame to clear what was lit
+      graphPulseDraw.clear();   // one last frame to clear what was lit
       idle = true;
     }
     requestAnimationFrame(frame);
@@ -438,10 +388,9 @@ var graphPulse = (function () {
         return;
       }
       index();
-      makeCanvas();
+      graphPulseDraw.init(pos, litEdges, level);
       running = true;
       requestAnimationFrame(frame);
     },
-    resize: resize,
   };
 })();
