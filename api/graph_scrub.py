@@ -51,10 +51,20 @@ _GRAPH_REDACT_IDS = {
 #                              community in it, for a game that is a guest page
 #                              rather than a part of exec-fn's architecture.
 #                              Its BUILT output is what the site serves.
+#   api/data/                  the RUNTIME data dir — 786 nodes that are the JSON
+#                              KEY STRUCTURE of rd.json, the gamesaves, the cron
+#                              logs, cc_titles.json: `numCredits`, `netmapStatus`,
+#                              `at`, and bare uuids. Keys only, never values, so
+#                              it was never a leak — it is simply not
+#                              architecture, and a graph is a picture of
+#                              architecture. Data files are read BY the code the
+#                              graph is about; they have no structure of their
+#                              own worth drawing.
 _GRAPH_DROP_PREFIXES = (
     "api/tarot/book/",
     "web/vendor/",
     "nightfall-incident/nightfall-src/",
+    "api/data/",
 )
 
 # External library / framework symbols graphify lifts out of imports + type
