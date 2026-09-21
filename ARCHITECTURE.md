@@ -1634,6 +1634,7 @@ Two properties make the memo sound, and both are load-bearing:
 | `api/tarot/book/` | ~110 | the Pollack tarot reference — card meanings, numerology, frameworks. The tarot ENGINE stays; only the book goes |
 | `web/vendor/` | ~150 | the vendored vis-network bundle, one node per mangled minified name (`Kv()`, `_f()`, `Le()`). The `<script>` that loads the lib stays; only its parsed nodes go |
 | `nightfall-incident/nightfall-src/` | 1054 | the nightfall game's own React/TS source — a quarter of the whole graph and the single biggest community in it, for a game that is a guest PAGE rather than a part of exec-fn's architecture. Its BUILT output is what the site serves |
+| `api/data/` | 786 | the RUNTIME data dir — the JSON **key structure** of `rd.json`, the gamesaves, the cron logs, `cc_titles.json`: `numCredits`, `netmapStatus`, `at`, bare uuids. Keys only, never values, so it was never a leak — it is simply not architecture, and a graph is a picture of architecture. Data files are read BY the code the graph is about; they have no structure of their own worth drawing |
 
 The prefix drop also prunes `RAW_EDGES` touching those nodes, drops their now-empty `LEGEND` rows, and drops the `hyperedges` (shaded narrative clusters off the book, e.g. "First-row forces gathered into the Chariot's ego") that reference any removed node.
 
@@ -1641,7 +1642,7 @@ The vendored bundle is ALSO excluded at ingestion by the repo-root `.graphifyign
 
 Order matters twice: `_drop_graph_inferred_edges()` runs **before** the stats rewrite so the edge count is honest, and **before** `_drop_graph_orphan_nodes()` — an edge dropped later would orphan a node the orphan pass had already kept.
 
-Net: 4843 nodes / 7154 edges / 610 communities as emitted → **3508 / 4230 / 14** as served.
+Net: 4843 nodes / 7154 edges / 610 communities as emitted → **2722 / 3582 / 14** as served — 56% of the nodes and half the edges are somebody else's code, a reference text, a data file's key names, or a relationship graphify was only guessing at.
 
 ### 11c. Communities are re-derived by FEATURE, then CAPPED
 
@@ -1713,7 +1714,9 @@ A warm full redraw of the served graph, on the droplet's headless WebKit (no GPU
 | edges only (nodes hidden) | ~539 |
 | arrowheads disabled | ~1463 — **no saving; arrows stay** |
 
-Redraw cost tracks the primitive count almost linearly and splits roughly evenly between nodes and edges, which is why the answer to "rendering is slow" is *draw fewer things* (11b) rather than *draw them cheaper*. The next cut available, if it is ever wanted, is `api/data/` — 940 nodes that are the JSON key structure of runtime data files (no values, no prose: `numCredits`, `netmapStatus`, uuids), carrying no architectural meaning at all.
+Redraw cost tracks the primitive count almost linearly and splits roughly evenly between nodes and edges, which is why the answer to "rendering is slow" is *draw fewer things* (11b) rather than *draw them cheaper*. Those numbers were taken at 4561 nodes / 6501 edges; the graph is 2722 / 3582 now, so scale them by about 0.57.
+
+The cap makes `(other)` the second-largest community (444 nodes — the long tail of 38 small modules folded together). That is the cost of a cap and it is the right one: raising it to 22 only takes `(other)` to 285 while pushing the legend past what anyone reads, because the tail is genuinely long (52 buckets before the fold), not a handful of stragglers.
 
 ---
 
