@@ -113,16 +113,7 @@ function setStatus(text) {
 }
 
 function addStreamDiv() {
-  const div = document.createElement('div');
-  div.className = 'msg assistant';
-  const body = document.createElement('div');
-  body.className = 'msg-body';
-  const cur = document.createElement('span');
-  cur.className = 'reader-cursor';
-  body.appendChild(cur);
-  div.appendChild(body);
-  terminal.appendChild(div);
-  return {div, body, cur};
+  return chatStreamDiv(terminal, { className: 'reader-cursor' });
 }
 
 async function loadSpreadsMeta() {

@@ -38,21 +38,6 @@ function execRenderUserBody(body, text) {
   body.appendChild(rest);
 }
 
-/** The assistant bubble a turn streams into, carrying the blinking cursor. */
-function execStreamDiv(termEl) {
-  const div = document.createElement('div');
-  div.className = 'msg assistant';
-  const body = document.createElement('div');
-  body.className = 'msg-body';
-  const cur = document.createElement('span');
-  cur.id = 'exec-bc';
-  cur.innerHTML = '<span></span><span></span><span></span>';
-  body.appendChild(cur);
-  div.appendChild(body);
-  termEl.appendChild(div);
-  return { div: div, body: body, cur: cur };
-}
-
 function execFmtTs() {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',

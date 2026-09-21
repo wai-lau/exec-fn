@@ -116,18 +116,7 @@ function addToolMsg(name, arg) {
 }
 
 function addStreamDiv() {
-  const div = document.createElement('div');
-  div.className = 'msg assistant';
-  const body = document.createElement('div');
-  body.className = 'msg-body';
-  const cur = document.createElement('span');
-  cur.id = 'blinkcursor';
-  cur.innerHTML = '<span></span><span></span><span></span>';
-  body.appendChild(cur);
-  div.appendChild(body);
-  terminal.appendChild(div);
-  terminal.scrollTop = terminal.scrollHeight;
-  return { div, body, cur };
+  return chatStreamDiv(terminal, { id: 'blinkcursor', scroll: true });
 }
 
 function summarize(inp) {

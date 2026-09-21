@@ -276,5 +276,50 @@ window.VoiceInput = (function () {
     };
   }
 
-  return { supported, create };
+  /** Bind the engine to a composer: a prompt to tap and a box to fill.
+   *
+   * Three surfaces wire this engine and two of them are exactly this shape, so
+   * the shape lives here rather than three-quarters-identical in each binding.
+   * The Exec panel builds its composer inside a closure, so it passes its own
+   * fill/blur instead of ids; everything else is the same.
+   *
+   * `busy` is a LIST of predicates, OR'd. Every surface has at least two (a
+   * reply still streaming, its own narrator speaking out of the speaker Wai is
+   * holding), and a list of named reasons reads better than one long boolean.
+   *
+   * Returns null when the speech API is missing or the composer is not there:
+   * the caller wires nothing and the prompt stays an ordinary `$`. A missing
+   * API costs an affordance, never a dead control.
+   */
+  function bindComposer(o) {
+    const el = (v) => (typeof v === 'string' ? document.getElementById(v) : v);
+    const btn = el(o.btn);
+    const input = el(o.input);
+    if (!btn || !supported()) return null;
+    if (!input && !(o.fill && o.blur)) return null;
+    const busy = o.busy || [];
+    const mic = create({
+      btn: btn,
+      busy: () => busy.some((f) => !!f()),
+      send: o.send,
+      fill: o.fill || function (text) {
+        input.textContent = text;
+        if (o.afterFill) o.afterFill();
+      },
+      blur: o.blur || function () {
+        if (document.activeElement === input) input.blur();
+      },
+    });
+    // A reply finished: repaint, and re-arm on a browser that ends recognition
+    // per utterance.
+    if (o.replyDoneOn && o.replyDoneEvent) {
+      o.replyDoneOn.addEventListener(o.replyDoneEvent, () => mic.replyDone());
+    }
+    // The page stopped talking: the dot goes from dim (dropping what it hears)
+    // back to lit.
+    if (o.idleEvent) document.addEventListener(o.idleEvent, () => mic.paint());
+    return mic;
+  }
+
+  return { supported, create, bindComposer };
 })();

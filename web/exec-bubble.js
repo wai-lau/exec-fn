@@ -242,24 +242,17 @@
 
   // The render primitives live in exec-bubble-msg.js (the 500-line cap); they
   // need no panel state, so they take what little they use.
-  const addStreamDiv = () => execStreamDiv(termEl);
+  const addStreamDiv = () => chatStreamDiv(termEl, { id: 'exec-bc' });
   const fmtTs = execFmtTs;
 
   // ── input ─────────────────────────────────────────────────────────────────
-  function _caretOffset() {
-    const sel = window.getSelection();
-    if (!sel.rangeCount || !msgInput.contains(sel.anchorNode)) return msgInput.innerText.length;
-    const range = document.createRange();
-    range.selectNodeContents(msgInput);
-    range.setEnd(sel.anchorNode, sel.anchorOffset);
-    return range.toString().length;
-  }
-
+  // The caret mirror is shared (chat-dom.js). This copy was the one that never
+  // grew the try/catch the other three did -- a stale selection after a send
+  // throws IndexSizeError on WebKit, which is Wai's phone.
+  let caret = null;
   function renderCaret() {
-    const text = msgInput.innerText;
-    const pos = _caretOffset();
-    preEl.textContent = text.slice(0, pos);
-    postEl.textContent = text.slice(pos);
+    if (!caret) caret = chatCaret(msgInput, preEl, postEl);
+    caret.render();
   }
 
   function wireInput() {

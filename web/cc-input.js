@@ -18,28 +18,9 @@ const _pre = document.getElementById('input-pre');
 const _post = document.getElementById('input-post');
 const _inputCursor = document.getElementById('input-cursor');
 
-function _caretOffset() {
-  const sel = window.getSelection();
-  if (!sel.rangeCount || !_msgInput.contains(sel.anchorNode)) return _msgInput.innerText.length;
-  const range = document.createRange();
-  range.selectNodeContents(_msgInput);
-  // After clearing the input on submit, the stale selection offset can point past
-  // the emptied node — WebKit throws IndexSizeError where Chromium clamps.
-  // Falling back keeps renderCaret (hence sendMsg) from aborting.
-  try {
-    range.setEnd(sel.anchorNode, sel.anchorOffset);
-  } catch {
-    return _msgInput.innerText.length;
-  }
-  return range.toString().length;
-}
-
-function renderCaret() {
-  const text = _msgInput.innerText;
-  const pos = _caretOffset();
-  _pre.textContent = text.slice(0, pos);
-  _post.textContent = text.slice(pos);
-}
+// Shared with the other three transcripts — see chat-dom.js.
+const _caret = chatCaret(_msgInput, _pre, _post);
+const renderCaret = _caret.render;
 
 _msgInput.addEventListener('input', () => { renderCaret(); syncInputH(); });
 _msgInput.addEventListener('blur', () => { _inputCursor.style.display = 'none'; });
