@@ -71,6 +71,31 @@ body.gp-loaded #graph {
   opacity: 1;
 }
 
+/* The firing overlay (graph-pulse.js). Its own transparent canvas over vis's, so
+   an animation never costs a vis redraw. JS sizes and positions it to #graph's
+   own box, so the two stay welded through a resize; pointer-events:none is
+   load-bearing, since the canvas covers the graph and hover is what drives it.
+
+   IT MUST SIT ABOVE THE CRT STACK, and this is the most expensive rule in the
+   repo rediscovered (ARCHITECTURE.md §10): a backdrop-filter layer is a
+   full-viewport readback with no partial invalidation, cheap only while nothing
+   under it animates. At --z-raised this canvas was under .cyber-blur and
+   .cyber-crt, so every frame it drew re-fired both readbacks -- measured 1 fps,
+   with 1.5-second frames, on a canvas that draws a few dozen hexagons. Above
+   them it is 60. Same z as the nav, which is fine because the canvas is inset to
+   #graph's box and never reaches the nav's. */
+#gp-pulse {
+  position: fixed;
+  z-index: var(--z-top);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+body.gp-loaded #gp-pulse {
+  opacity: 1;
+}
+
 /* two independent collapsible overlay panels, anchored above the bottom nav */
 #gp-physics,
 #sidebar {
