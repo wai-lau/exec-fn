@@ -108,7 +108,7 @@ function mdHtml(t) { const r = execRenderer(); return marked.parse(t, r ? { rend
 function loadStyles(cb) {
   const existing = document.querySelector('link[data-exec-css]');
   if (existing) { cb(); return; }
-  const hrefs = ['/chat-msg.css?v=5', '/voice-ui.css?v=1', '/exec-bubble.css?v=26'];
+  const hrefs = ['/chat-msg.css?v=5', '/voice-ui.css?v=2', '/exec-bubble.css?v=26'];
   let left = hrefs.length;
   // One callback once BOTH have settled; a failed fetch still counts, so a CSS
   // 404 can never hang the panel.

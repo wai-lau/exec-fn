@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=73">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=74">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -87,9 +87,16 @@ _NAV_ICONS = {
     "cc":          '<img src="/seeker.png?v=1" alt="cc" style="width:20px;height:20px;image-rendering:pixelated;">',
 }
 
+# Fixed 3-char codes, with ONE glyph: /cc is the star the page already wears on
+# its composer's voice toggle, which is the mark Claude Code itself signs with.
+# A non-ASCII label cannot be drawn by the pixel nav font (04b25 is ASCII-only,
+# so it would fall back to whatever the OS offers, at whatever size that is), so
+# any label with a character outside ASCII is marked `glyph` below and re-fonted
+# to --font-mono in chrome.css. Detected, not listed: a second glyph label added
+# here is drawn correctly without anyone remembering this rule.
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
-    "debug": "DBG", "security": "BOT", "graph": "GPH", "cc": "CD", "ui": "UIX",
+    "debug": "DBG", "security": "BOT", "graph": "GPH", "cc": "✦", "ui": "UIX",
     "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "recruiter": "CV",
 }
 
@@ -101,7 +108,8 @@ def _build_nav(active=None, guest=False):
         cls = ' class="active"' if label == active else ""
         icon = _NAV_ICONS.get(label, label)
         text = _NAV_LABELS.get(label, label.lower())
-        links.append(f'<a href="{href}"{cls}>{icon}<span class="nav-label">{text}</span></a>')
+        lab_cls = "nav-label" if text.isascii() else "nav-label glyph"
+        links.append(f'<a href="{href}"{cls}>{icon}<span class="{lab_cls}">{text}</span></a>')
     nav = '<div class="exec-nav">' + "".join(links) + "</div>"
     script = (
         "<script>(function(){"
@@ -219,7 +227,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=6"></script>'
                   '<script src="/voice-input.js?v=2"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=15"></script>'
+                  '<script src="/exec-bubble-assets.js?v=16"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=2"></script>'
                   '<script src="/exec-bubble-history.js?v=1"></script>'

@@ -27,12 +27,26 @@
 .voice-mute[data-on="false"] { color: hsl(var(--green-hsl) / 0.12); }
 
 /* The glyph is a UI-font diamond in a mono bracket pair, so it needs its own
-   metrics to sit on the bracket baseline rather than above it. */
+   metrics to sit on the bracket baseline rather than above it.
+
+   It is drawn 1.3x by TRANSFORM, never by font-size, because this control sits
+   on a composer whose height is a published number. An inline-block's own
+   line-height IS its box height, so `font-size: 1.3em` made the glyph's box
+   (20.18px) taller than the line it sits on (18.62px) and every composer
+   carrying the star grew 1.56px: /cc's input bar measured 26.17 against
+   /mtg's 24.61, and /cc publishes that height as --input-h for #terminal to
+   sit above. A transform paints at 1.3x and occupies 1em, so the star is the
+   same size it always was and the bar is the same size as the ones without
+   one. (Measured 2026-09-21, WebKit 430x932.) */
 .voice-glyph {
   font-family: var(--font-ui);
-  font-size: 1.3em;
   line-height: var(--lh-none);
-  vertical-align: -0.08em;
+
+  /* -0.08em once, which cost the line 0.19px of descent it had no room for:
+     the box is 1em now that the size is a transform, so the same optical drop
+     off the bracket baseline is worth half as much. */
+  vertical-align: -0.04em;
   margin: 0 0.12em;
   display: inline-block;
+  transform: scale(1.3);
 }
