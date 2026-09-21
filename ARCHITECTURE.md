@@ -1607,7 +1607,7 @@ Guest-gated (Turnstile; it was public until 2026-07-03). A self-contained graphi
 - **`graph_scrub.py`** — privacy scrubs + node/edge drops (what survives)
 - **`graph_style.py`** — communities/colours, hexagons, tooltips, sizes, labels, the physics tune, the stats fixup (how what survives LOOKS)
 
-chrome.css, the cyber-fx bg, the bottom nav and `web/graph-overlay.{css,js}` are all injected at serve time for the same reason. Non-admins get the guest nav (the full nav links to login-gated pages); admins keep the full nav. Content-hash ETag + `no-cache`.
+chrome.css, the cyber-fx bg, the bottom nav and `web/graph-overlay.{css,js}` + `web/graph-pulse.js` are all injected at serve time for the same reason. Non-admins get the guest nav (the full nav links to login-gated pages); admins keep the full nav. Content-hash ETag + `no-cache`.
 
 ### 11a. Applied per request, COMPUTED once per artifact
 
@@ -1684,8 +1684,9 @@ All the array transforms use a **per-line anchored** array regex, because a non-
 
 1. **The tour, which is now a firing simulation** — `web/graph-pulse.js`, on its own canvas. See below.
 2. `patchInfoPanel()` wraps graph.html's global `showInfo()` so a redacted node (server `[redacted]` or `[ redacted ]`) gets its Type + Source blanked to "redacted" and its neighbors section removed. Community + Degree stay.
-3. `setupZoomLimits()` clamps zoom/pan with hard walls, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back).
-4. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
+3. `addToggle()` builds the node-info panel's collapse button — the only panel left, though the wiring still reads like it expects the pair it had.
+4. `setupZoomLimits()` clamps zoom/pan with hard walls, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back).
+5. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
 
 **The page opens `OPEN_ZOOM` (1.25×) inside a whole-graph fit.** The loading cover lifts on `stabilizationIterationsDone` (capped at `LOAD_CAP`, 120s) and re-fits first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas; the 1.25× then closes up the margin a bare fit leaves on the short axis, so the graph arrives filling the frame rather than sitting in the middle distance, with every node still on screen. The zoom-OUT wall had to be relaxed to admit that: it used to cap the viewport at half the node-cloud's area, which the opening fit violates on arrival. It is now the whole-graph fit scale × `FIT_MARGIN` (0.8).
 
@@ -1693,7 +1694,7 @@ All the array transforms use a **per-line anchored** array regex, because a non-
 
 The original overlay ran a **camera tour** — pick a random cluster every 10s, `network.focus()` its highest-degree node, and random-walk the gravitational constant to keep the layout "breathing" — behind a top-left **freeze | tour** segmented toggle. To do that it **re-enabled physics after graphify had already turned it off**, which left a 4.5k-node canvas running a force sim and redrawing every frame, forever. Measured: **0.4 fps, with 4.2-second frames**.
 
-What was wrong with it was the camera, not the cycling. Flying to a cluster shows you that cluster and throws away the graph it came from; you arrive somewhere with no idea where you are. So the tour cycles as before and lights its stop **in place**, and the freeze toggle is gone outright — physics off is the only state, and the physics configurator panel keeps its `enabled` checkbox (graph-overlay.css no longer hides checkbox rows) so the sim can be restarted by hand when a slider is worth watching.
+What was wrong with it was the camera, not the cycling. Flying to a cluster shows you that cluster and throws away the graph it came from; you arrive somewhere with no idea where you are. So the tour cycles as before and lights its stop **in place**, and the freeze toggle is gone outright — physics off is the only state. **The physics configurator panel went too** (2026-09-21), along with every `vis-configuration` rule that themed it: a strip of live sliders governs nothing once the sim is off for good, and a reload undoes whatever they were dragged to. The node-info panel on the right is the only panel left.
 
 #### `graph-pulse.js` — the firing overlay
 

@@ -1,5 +1,5 @@
 // /graph overlay behavior — injected by the /graph route (api/routes_graph.py).
-// Layout: graph canvas on top, physics + node-info panels collapsed at the edges.
+// Layout: graph canvas on top, the node-info panel collapsed at the right edge.
 //
 // The LAYOUT is deliberately still. graphify stabilises it once (physics params
 // are patched in server-side by graph_style._tune_graph_physics) and then
@@ -7,7 +7,9 @@
 // good. This file used to undo exactly that — re-enabling physics, flying a
 // camera from cluster to cluster, and random-walking gravity every 10s — which
 // left a 4.5k-node canvas redrawing every frame forever, measured at 0.4 fps
-// with 4.2s frames.
+// with 4.2s frames. The physics configurator panel went with it: a strip of live
+// sliders governs nothing once the sim is off for good and a reload would undo
+// whatever they were dragged to.
 //
 // The TOUR survived that; only its mechanism changed. It lives in
 // graph-pulse.js now — a transparent canvas over vis's, drawing only what is
@@ -66,48 +68,18 @@
     };
   }
 
-  // Physics column (bottom-left). vis renders the configurator into its inner
-  // body via configure.container, so it survives vis's internal re-renders. The
-  // panel keeps its `enabled` checkbox (see graph-overlay.css) — physics is off
-  // by default now, so restarting the sim is the one thing a slider needs.
-  function buildPhysicsColumn() {
-    // No custom header — vis renders its own "physics" group header inside.
-    var panel = document.createElement('div');
-    panel.id = 'gp-physics';
-    var body = document.createElement('div');
-    body.className = 'gp-panel-body';
-    panel.appendChild(body);
-    document.body.appendChild(panel);
-    return body;
-  }
-
-  // One always-visible toggle per panel (collapsed by default, so the button is
-  // the only thing shown until clicked). Opening one autocloses the other.
-  function addToggles() {
-    var specs = [
-      { cls: 'phys', body: 'gp-phys-open', open: '▾', closed: '▴' },
-      { cls: 'info', body: 'gp-info-open', open: '▸', closed: '◂' },
-    ];
-    var btns = {};
-    specs.forEach(function (s) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'gp-toggle gp-min-btn ' + s.cls;
-      btn.textContent = s.closed;
-      document.body.appendChild(btn);
-      btns[s.body] = btn;
-      btn.addEventListener('click', function () {
-        var open = document.body.classList.toggle(s.body);
-        btn.textContent = open ? s.open : s.closed;
-        if (open) {
-          specs.forEach(function (o) {
-            if (o.body !== s.body) {
-              document.body.classList.remove(o.body);
-              btns[o.body].textContent = o.closed;
-            }
-          });
-        }
-      });
+  // The node-info panel's toggle — always visible, and the only thing shown
+  // while the panel is closed. It had a twin on the physics panel until that
+  // panel was removed, which is why the wiring reads like it expects a pair.
+  function addToggle() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gp-toggle gp-min-btn info';
+    btn.textContent = '\u25c2';
+    document.body.appendChild(btn);
+    btn.addEventListener('click', function () {
+      var open = document.body.classList.toggle('gp-info-open');
+      btn.textContent = open ? '\u25b8' : '\u25c2';
     });
   }
 
@@ -260,17 +232,8 @@
       return;
     }
     patchInfoPanel();
-    network.setOptions({
-      configure: {
-        enabled: true,
-        filter: 'physics',
-        showButton: true,
-        container: buildPhysicsColumn(),
-      },
-    });
-    // physics collapses down (▾ open / ▴ collapsed); node info collapses right
-    // (▸ open / ◂ collapsed). Both start collapsed; opening one closes the other.
-    addToggles();
+    // node info collapses right (▸ open / ◂ collapsed), and starts collapsed.
+    addToggle();
     setupZoomLimits();
     // Open on the whole graph. graphify's stabilization already carries
     // fit:true, but it fits BEFORE our CSS has finished sizing the canvas, so
