@@ -51,8 +51,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from icon_contours import boundary_loops, drop_collinear  # noqa: E402
 from icon_mask import (  # noqa: E402
-    ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, MAX_DIM, SKIP, SKIP_PREFIX,
-    ink_mask,
+    CENTRE_INK, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, MAX_DIM, SKIP,
+    SKIP_PREFIX, ink_mask,
 )
 
 BG_L = 0.0      # --bg-hsl lightness, in percent
@@ -92,6 +92,30 @@ def glyph_pixels(spec, mask):
             width = spec["last"] if i == spec["count"] - 1 else spec["len"]
             out |= {(x0 + dx, y0 + i * spec["gap"]) for dx in range(width)}
         return out
+    if shape == "lens":
+        # An almond, as the overlap of two discs -- the shape an upper and a
+        # lower lid make between them. Half-width a and half-height b need
+        # discs of radius (a*a + b*b) / 2b, centred b - r above and below.
+        a, b = spec["a"], spec["b"]
+        r = (a * a + b * b) / (2 * b)
+        off = r - b
+
+        def inside(dx, dy):
+            return (dx * dx + (dy + off) ** 2 <= r * r
+                    and dx * dx + (dy - off) ** 2 <= r * r)
+
+        body = {(dx, dy) for dx in range(-a, a + 1) for dy in range(-b, b + 1)
+                if inside(dx, dy)}
+        rim = {(dx, dy) for dx, dy in body
+               if not all((dx + ex, dy + ey) in body
+                          for ex, ey in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
+        return {(cx + dx, cy + dy) for dx, dy in rim}
+    if shape == "crescent":
+        r, off = spec["r"], spec["off"]
+        return {(cx + dx, cy + dy)
+                for dx in range(-r, r + 1) for dy in range(-r, r + 1)
+                if dx * dx + dy * dy <= r * r
+                and (dx - off) ** 2 + dy * dy > r * r}
     if shape == "plus":
         arm, weight = spec["arm"], spec["weight"]
         half = weight // 2
@@ -124,9 +148,9 @@ def overlay_paths(stem, im, w, h, mask, ox, oy, colour):
     so a feature keeps its own colour instead of the icon's."""
     out = []
     for entry in ICON_ACCENT.get(stem, ()):
-        src, fill = entry[0], entry[1]
-        recentre = len(entry) > 2 and entry[2]
-        fill = fill or colour
+        src = entry["src"]
+        fill = entry.get("fill") or colour
+        recentre = entry.get("recentre", False)
         region = {(x, y) for y in range(h) for x in range(w)
                   if im.load()[x, y][:3] == src}
         if not region:
@@ -174,6 +198,14 @@ def trace(path: Path) -> str | None:
     side = max(w, h)
     ox = (side - w) // 2
     oy = (side - h) // 2
+    if path.stem in CENTRE_INK:
+        # Centre the DRAWING, not the image. Dropping a shadow otherwise
+        # leaves the subject where it sat with the shadow's space still
+        # reserved beside it.
+        xs = [x for x, _ in mask]
+        ys = [y for _, y in mask]
+        ox += (side - (min(xs) + max(xs) + 1)) // 2
+        oy += (side - (min(ys) + max(ys) + 1)) // 2
 
     d = []
     for loop in loops:

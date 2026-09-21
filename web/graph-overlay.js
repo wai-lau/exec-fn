@@ -1,14 +1,19 @@
 // /graph overlay behavior — injected by the /graph route (api/routes_graph.py).
 // Layout: graph canvas on top, physics + node-info panels collapsed at the edges.
 //
-// The page is DELIBERATELY STILL. graphify stabilises the layout once (physics
-// params are patched in server-side by graph_style._tune_graph_physics) and then
+// The LAYOUT is deliberately still. graphify stabilises it once (physics params
+// are patched in server-side by graph_style._tune_graph_physics) and then
 // graph.html's own `stabilizationIterationsDone` handler switches physics off for
-// good. This file used to undo exactly that — re-enabling physics, running a
-// camera tour, and random-walking gravity every 10s — which left a 4.5k-node
-// canvas redrawing every frame forever, measured at 0.4 fps with 4.2s frames.
-// What replaced the tour is `highlight()`: the camera never moves, and the
-// hovered node's whole COMMUNITY goes bold white instead.
+// good. This file used to undo exactly that — re-enabling physics, flying a
+// camera from cluster to cluster, and random-walking gravity every 10s — which
+// left a 4.5k-node canvas redrawing every frame forever, measured at 0.4 fps
+// with 4.2s frames.
+//
+// The TOUR survived that; only its mechanism changed. It still cycles, every
+// TOUR_MS, but it lights a community bold white where it sits instead of moving
+// the camera to it — so the graph stays whole and you keep your bearings while
+// the modules introduce themselves. Hovering or tapping takes it over
+// (`manual`); leaving hands it back.
 //
 // Everything that can be decided once per artifact (label font, long-label
 // redaction, dropping unconnected nodes) now happens server-side in
@@ -124,7 +129,8 @@
   var EDGE_WIDTH_ON = 3;
   var baseBorder = 2;       // resolved from the first drawn node at init
   var baseEdgeColor = null; // ditto for edges — RAW_EDGES colours are uniform
-  var commNodes = {};       // community id -> node ids
+  var commNodes = {};       // community id -> node ids (keys stringify; tourIds
+                            // pushes Number() back, because `show` compares ===
   var commEdges = {};       // community id -> edge ids with BOTH ends inside
   var commOf = {};          // node id -> community id
   var lit = null;           // the community currently highlighted
@@ -182,15 +188,10 @@
     });
   }
 
-  function highlight(nodeId) {
-    // Normalise "no community" to null BEFORE the compare — a full redraw costs
-    // ~1.5s on the slowest device that reaches this page, so the no-op case has
-    // to actually be a no-op.
-    var cid = nodeId !== null && nodeId !== undefined && commOf[nodeId] !== undefined
-      ? commOf[nodeId] : null;
+  function show(cid) {
     if (cid === lit) {
-      return;
-    }
+      return;   // a full redraw costs ~1.5s on the slowest device that reaches
+    }           // this page, so the no-op case has to actually be a no-op
     if (lit !== null) {
       paint(lit, false);
     }
@@ -201,14 +202,81 @@
     network.redraw();
   }
 
+  function highlight(nodeId) {
+    // Normalise "no community" to null BEFORE show() compares it against what is
+    // already lit, or hovering a community-less node costs a redraw to change
+    // nothing.
+    show(nodeId !== null && nodeId !== undefined && commOf[nodeId] !== undefined
+      ? commOf[nodeId] : null);
+  }
+
+  // ── the tour ──────────────────────────────────────────────────────────────
+  // One community at a time, in place. A community under TOUR_MIN nodes is
+  // skipped as a tour stop — two hexagons lighting up on the far edge reads as a
+  // rendering glitch, not as a module — though it still highlights on hover like
+  // any other.
+  var TOUR_MS = 8000;
+  var TOUR_MIN = 8;
+  var tourIds = [];
+  var tourTimer = null;
+  var manual = false;   // a hover/tap owns the highlight; the tour stands down
+
+  function tourStep() {
+    if (manual || tourIds.length < 2) {
+      return;
+    }
+    var next = lit;
+    while (next === lit) {
+      next = tourIds[Math.floor(Math.random() * tourIds.length)];
+    }
+    show(next);
+  }
+
+  function stopTour() {
+    if (tourTimer) {
+      clearInterval(tourTimer);
+      tourTimer = null;
+    }
+  }
+
+  function startTour() {
+    stopTour();
+    if (tourIds.length > 1) {
+      tourStep();
+      tourTimer = setInterval(tourStep, TOUR_MS);
+    }
+  }
+
+  function takeOver(nodeId) {
+    manual = true;
+    stopTour();
+    highlight(nodeId);
+  }
+
+  function handBack() {
+    manual = false;
+    show(null);
+    startTour();
+  }
+
   function wireHighlight() {
     indexCommunities();
-    network.on('hoverNode', function (p) { highlight(p.node); });
-    network.on('blurNode', function () { highlight(null); });
+    Object.keys(commNodes).forEach(function (c) {
+      if (commNodes[c].length >= TOUR_MIN) {
+        tourIds.push(Number(c));
+      }
+    });
+    network.on('hoverNode', function (p) { takeOver(p.node); });
+    network.on('blurNode', handBack);
     // Touch never hovers, so a tap has to do it too — and a tap on empty canvas
-    // clears, which is the only way back on a phone.
+    // hands the tour back, which is the only way out of a pinned community on a
+    // phone.
     network.on('click', function (p) {
-      highlight(p.nodes && p.nodes.length ? p.nodes[0] : null);
+      if (p.nodes && p.nodes.length) {
+        takeOver(p.nodes[0]);
+      } else {
+        handBack();
+      }
     });
   }
 
@@ -368,6 +436,7 @@
     network.once('stabilizationIterationsDone', function () {
       network.fit({ animation: false });
       cover.reveal();
+      startTour();
     });
     setTimeout(cover.reveal, LOAD_CAP);
   }

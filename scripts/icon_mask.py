@@ -56,9 +56,6 @@ ICON_GLYPH = {
         {"shape": "lines", "at": (8, 8), "len": 8, "count": 4, "gap": 3,
          "last": 5},
     ],
-    "data-doctor": [
-        {"shape": "plus", "arm": 5, "weight": 3, "fill": "#ff0000", "at": "ink"},
-    ],
     # The mouth is a 6px band of dark red at row 18 -- the one feature of the
     # face that is neither linework nor big enough to survive the floor that
     # calms the stippled skin, so it is drawn back in at its own position.
@@ -66,7 +63,16 @@ ICON_GLYPH = {
                        "gap": 0, "last": 6}],
     "boss-green": [{"shape": "lines", "at": (10, 18), "len": 6, "count": 1,
                     "gap": 0, "last": 6}],
+    # The moon, as a crescent rather than the handful of cells the source
+    # spends on it -- at 27px those read as a smudge beside the stars.
+    "wizard": [{"shape": "crescent", "r": 5, "off": 3, "fill": "#ffffff",
+                "at": (14, 13)}],
     "watchman": [
+        # The EYELIDS. The traced rim is the outside of the whole eye and
+        # reads as a ball; what makes it an eye is the almond the two lids
+        # make between them, which in the source is a soft tan-on-tan edge
+        # that no luminance rule finds.
+        {"shape": "lens", "a": 11, "b": 7, "at": (13, 12)},
         {"shape": "ring", "r": 6, "weight": 1, "at": (12, 12)},
         {"shape": "disc", "r": 3, "fill": "#2ade5a", "at": (12, 12)},
     ],
@@ -89,6 +95,10 @@ DETAIL_MIN_REGION = {
     # came out as a circle full of speckle, and at 8 only two marks survived.
     # 5 leaves the sclera, the iris and the pupil.
     "watchman": 12,
+    # Its two bodies are faceted like dice and the facets ARE the icon; each
+    # face is 10-17px and everything under that is dither, so the floor goes
+    # between them and the lines that survive are the edges of the solids.
+    "laser-satellite": 10,
     # The two boss portraits are stippled skin; at the default floor every
     # speck was a line and the face read as scribble.
     "boss-green": 22,
@@ -113,22 +123,39 @@ ICON_COLOUR = {"turbo": (255, 255, 85), "data-doctor": (255, 251, 240)}
 # dither, and every floor that left the mouth readable also left speckle
 # around it. Black linework only.
 NO_INTERIOR = {"watchman", "bitman", "printer"}
-# Icons where the black outline AROUND an accent is dropped from the main
-# mask. wardenpp's rank crosses are ringed in black in the source; inked with
-# the rest of the linework that ring renders in the icon's red and boxes each
-# gold cross in a colour it never had.
-ACCENT_STRIP_OUTLINE = {"wardenpp"}
+# Colours thrown away before anything else looks at the image. data-file's
+# drop shadow is a solid dark slab, not a dither, so no size or luminance rule
+# reaches it -- it traced as a fourth sheet behind the stack.
+DROP_COLOURS = {"data-file": ((51, 51, 59), (71, 61, 53), (137, 130, 119))}
+# Icons centred on their INK rather than on the image. Dropping a shadow
+# leaves the subject sitting where it sat with the shadow's space still
+# reserved around it.
+CENTRE_INK = {"data-file"}
 ICON_ACCENT = {
-    # The moon and the stars, filled WHITE -- outlining them draws a ring
-    # around a 10px crescent and nothing at all around a 2px star, and in the
-    # hat's own muted purple a white moon stops being a white moon.
-    "wizard": [((255, 251, 240), "#ffffff")],
+    # src: a source colour lifted out and painted in `fill` over the trace.
+    # strip: also drop the black ring the source drew AROUND those pixels.
+    "wizard": [{"src": (255, 251, 240), "fill": "#ffffff"}],
     # The two rank crosses are gold on a red cap, and gold is the whole point
-    # of a rank cross -- rendered in the tile's red they were just two more
-    # shapes. Three source shades make up each one.
-    "wardenpp": [((255, 255, 85), "#ffff55"),
-                 ((255, 255, 170), "#ffff55"),
-                 ((255, 191, 85), "#ffff55")],
+    # of a rank cross. Their source outline is stripped, or the ring renders
+    # in the icon's red and boxes each cross in a colour it never had.
+    "wardenpp": [{"src": c, "fill": "#ffff55", "strip": True}
+                 for c in ((255, 255, 85), (255, 255, 170), (255, 191, 85))],
+    # Its own red pixels, where the source put them. Drawing a clean plus
+    # instead was worse: the cross is painted on an isometric FACE, and a
+    # square one floating on that face reads as a sticker.
+    "data-doctor": [{"src": (255, 0, 0), "fill": "#ff0000"}],
+    # A Swiss army knife: red handle, and the 2.0 readout in white with its
+    # box outline stripped so the digits stand alone.
+    "hack2": [
+        *[{"src": c, "fill": "#ff2020"}
+          for c in ((255, 0, 0), (170, 0, 0), (127, 0, 0), (255, 16, 85))],
+        {"src": (255, 251, 240), "fill": "#ffffff", "strip": True},
+    ],
+    # What is IN the glassware -- the whole subject of a chemistry icon, and
+    # monochrome it was three empty vessels.
+    "fiddle": [{"src": c, "fill": "#%02x%02x%02x" % c}
+               for c in ((212, 255, 85), (42, 223, 85), (85, 9, 170),
+                         (170, 31, 255), (212, 31, 170), (255, 95, 255))],
 }
 
 
@@ -181,9 +208,11 @@ def ink_mask(im, stem=""):
     tile = tile_colour(px, w, h)
     tile_lum = relative_luminance(tile)
 
+    dropped = DROP_COLOURS.get(stem, ())
     others = [(relative_luminance(px[x, y][:3]), (x, y))
               for y in range(h) for x in range(w)
-              if px[x, y][3] > 8 and px[x, y][:3] != tile]
+              if px[x, y][3] > 8 and px[x, y][:3] != tile
+              and px[x, y][:3] not in dropped]
     if not others:
         return set(), tile
     floor = min(lum for lum, _ in others)
@@ -200,16 +229,18 @@ def ink_mask(im, stem=""):
     mask = outline
     if stem not in NO_INTERIOR:
         mask = mask | interior_detail(px, w, h, outline, floor_px, step)
-    if stem in ACCENT_STRIP_OUTLINE:
-        mask -= outline_around_accents(px, w, h, stem)
+    mask -= outline_around_accents(px, w, h, stem)
     return mask, tile
 
 
 def outline_around_accents(px, w, h, stem):
     """Ink pixels touching an accent's own pixels -- the ring the source drew
     around a feature that is about to be redrawn in its own colour."""
+    wanted = [a["src"] for a in ICON_ACCENT.get(stem, ()) if a.get("strip")]
+    if not wanted:
+        return set()
     accent = {(x, y) for y in range(h) for x in range(w)
-              if any(px[x, y][:3] == src for src, *_ in ICON_ACCENT.get(stem, ()))}
+              if px[x, y][:3] in wanted}
     touching = set()
     for (x, y) in accent:
         for dx in (-1, 0, 1):
