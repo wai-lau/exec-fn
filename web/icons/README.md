@@ -4,10 +4,13 @@ One `.svg` per icon PNG in `web/`, same basename. **Generated, not authored**:
 `python3 scripts/trace-icons.py` rebuilds every file in here from the PNGs.
 Edit the script, never these — a hand edit is gone on the next run.
 
-Three modules, split at the repo's 500-line cap: `scripts/icon_mask.py`
-decides which pixels are the drawing (and holds every per-icon table),
-`scripts/icon_contours.py` turns a pixel mask into closed loops, and
-`scripts/trace-icons.py` is colour, SVG emission and the CLI.
+Four modules, split at the repo's 500-line cap: `scripts/icon_config.py` holds
+the per-icon tables, `scripts/icon_mask.py` decides which pixels are the
+drawing, `scripts/icon_contours.py` turns a pixel mask into closed loops, and
+`scripts/trace-icons.py` is colour, SVG emission and the CLI. The tables are
+their own file because they are the part that GROWS — the algorithms are
+general, and what changes when an icon does not read is almost always an entry
+in that table rather than a rule.
 
 Each source is a subject drawn in black linework on a flat coloured tile. That
 linework is what gets traced, pixel for pixel. An earlier pass drew lookalikes
