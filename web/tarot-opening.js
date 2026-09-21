@@ -107,6 +107,7 @@ const TarotOpening = (() => {
     localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
     streaming = false;
     updateInputBarVisibility();
+    terminal.dispatchEvent(new CustomEvent('tarot:reply-done'));
     focusInput();
     return true;
   }

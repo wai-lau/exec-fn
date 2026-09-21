@@ -1,10 +1,11 @@
 """Hands-free chat input on BOTH surfaces (voice-input.js).
 
-One engine, two bindings — /cc's prompt (cc-mic.js) and the Exec panel's
-(exec-mic.js) — so both are exercised here: the `$` prompt becomes the control,
-and a final result sends the way Enter would. The panel adds the case /cc does
-not have: anything heard while Exec is TALKING is dropped rather than sent, or
-the panel transcribes its own GLaDOS narration and answers itself.
+One engine, three bindings — /cc's prompt (cc-mic.js), the Exec panel's
+(exec-mic.js) and /tarot's (tarot-mic.js) — so all three are exercised here:
+the `$` prompt becomes the control, and a final result sends the way Enter
+would. The panel and the reading table add the case /cc does not have: anything
+heard while the page is TALKING is dropped rather than sent, or the surface
+transcribes its own narration and answers itself.
 
 WebKit headless has no SpeechRecognition, so a fake one is installed before any
 page script runs; it is the same shape the engine drives (continuous session,
@@ -205,3 +206,113 @@ def test_closing_the_panel_ends_the_session(phone):
         "() => document.getElementById('exec-prompt').dataset.live === 'false'",
         timeout=4000)
     assert phone.evaluate("() => window.__rec.aborted === true")
+
+
+# ── /tarot: the reading table ──────────────────────────────────────────────
+# A player that records instead of streaming PCM, and hands the TEST the
+# utterance's terminal frame (__endLast) instead of sending it itself.
+#
+# The real upstream always ends an utterance -- and two layers synthesize one if
+# it dies mid-sentence (routes_tts.died_mid_utterance, hosaka-audio's onclose) --
+# so a fake that never ends would leave `speaking` true forever, which is not a
+# state the app can actually reach. Driving it by hand is what lets one test
+# clear the flag and another hold it true on purpose.
+_FAKE_HOSAKA = """
+window.__spoken = [];
+window.HosakaAudio = { createPlayer: function () {
+  var unlocked = false;
+  function arm(r) {
+    window.__endLast = function () { if (r && r.onStatus) r.onStatus({ type: "end" }); };
+  }
+  return {
+    unlock: function () { unlocked = true; },
+    speak: function (r) { window.__spoken.push(r); arm(r); return Promise.resolve(); },
+    speakBuffer: function (r) { arm(r); return Promise.resolve(); },
+    flush: function () {}, setVolume: function () {},
+    elapsed: function () { return 0; }, audioDuration: function () { return 0; },
+    isUnlocked: function () { return unlocked; },
+    gestureUnlocked: function () { return unlocked; },
+  };
+}};
+"""
+
+
+@pytest.fixture
+def tarot(browser, base_url, admin_headers):
+    # Wai's phone, and touch: the prompt is tapped, not clicked.
+    ctx = browser.new_context(extra_http_headers=admin_headers,
+                              viewport={"width": 430, "height": 932},
+                              has_touch=True, is_mobile=True)
+    pg = ctx.new_page()
+    # __sent must exist before ANY page script: the opening reader turn fires
+    # /api/tarot/chat during load, long before the fixture's own evaluate could
+    # create it.
+    pg.add_init_script(_FAKE_REC + "\nwindow.__sent = [];")
+    pg.route("**/marked.min.js",
+             lambda r: r.fulfill(status=200,
+                                 content_type="application/javascript",
+                                 body=_MARKED))
+    pg.route("**/hosaka-audio.js*",
+             lambda r: r.fulfill(status=200,
+                                 content_type="application/javascript",
+                                 body=_FAKE_HOSAKA))
+    # No canned opening in the test: the LIVE path is the one with a mic under it.
+    pg.route("**/api/tarot/opening*", _json_route({"clip": None}))
+    pg.route("**/api/tarot/warm", _json_route({"ok": True, "skipped": "test"}))
+    pg.route("**/api/hosaka/health", _json_route({"ok": True, "home": True, "piper": True}))
+
+    def _chat(route):
+        pg.evaluate("b => window.__sent.push(b)", route.request.post_data)
+        route.fulfill(status=200, content_type="text/event-stream",
+                      body='data: {"type":"text","delta":"The cards wait."}\n\n')
+
+    pg.route("**/api/tarot/chat", _chat)
+    pg.goto(f"{base_url}/tarot", wait_until="domcontentloaded")
+    # The opening turn is held for the first gesture when the voice is on; tap
+    # to start it, then let it settle so the mic is not "busy" on a live turn.
+    pg.mouse.click(200, 400)
+    pg.wait_for_function("() => typeof streaming !== 'undefined' && streaming === false",
+                         timeout=15000)
+    # End the opening's narration the way the upstream would, so the reader is
+    # not still "speaking" (which the mic reads as a moment to drop what it
+    # hears) for the rest of the fixture.
+    pg.evaluate("() => { if (window.__endLast) window.__endLast(); }")
+    pg.wait_for_function("() => tarotVoice.isSpeaking() === false", timeout=4000)
+    pg.evaluate("() => { window.__sent = []; }")
+    pg.wait_for_selector("#input-prompt.mic", timeout=5000)
+    yield pg
+    ctx.close()
+
+
+def _tarot_listen(pg):
+    pg.tap("#input-prompt")
+    pg.wait_for_function(
+        "() => document.getElementById('input-prompt').dataset.live === 'true'",
+        timeout=4000)
+
+
+def test_tarot_prompt_is_the_control(tarot):
+    """The reading table's `$` carries the mic too — same engine, same glyph."""
+    assert tarot.eval_on_selector("#input-prompt", "e => e.textContent") == "$"
+    _tarot_listen(tarot)
+    assert tarot.eval_on_selector("#input-prompt", "e => e.textContent") == "●"
+
+
+def test_tarot_final_result_sends_it(tarot):
+    """A finished utterance reaches /api/tarot/chat as the querent's answer."""
+    _tarot_listen(tarot)
+    tarot.evaluate("() => window.__rec.say('my work has been eating me', true)")
+    tarot.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
+    body = json.loads(tarot.evaluate("() => window.__sent")[0])
+    assert body["messages"][-1]["content"] == "my work has been eating me"
+
+
+def test_the_reader_talking_is_never_sent_back(tarot):
+    """The reader speaks over the same speaker the mic hears. Without the
+    isSpeaking() guard the page transcribes the reading and answers itself."""
+    _tarot_listen(tarot)
+    tarot.evaluate("() => tarotVoice.speak('The Tower falls in the third position.')")
+    tarot.wait_for_function("() => tarotVoice.isSpeaking() === true", timeout=4000)
+    tarot.evaluate("() => window.__rec.say('the tower falls in the third position', true)")
+    tarot.wait_for_timeout(700)
+    assert tarot.evaluate("() => window.__sent") == []

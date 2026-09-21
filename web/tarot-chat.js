@@ -27,6 +27,10 @@ function focusInput() {
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
   if (!_canType()) return;
+  // Not during a voice session: focusing the box is what raises the keyboard,
+  // shrinks the viewport and takes the spread with it -- for an input nobody is
+  // typing into. Same rule /cc follows (cc.js sendMsg).
+  if (typeof tarotMicActive === 'function' && tarotMicActive()) return;
   const tries = [0, 60, 180];
   for (const t of tries) {
     setTimeout(() => {
@@ -205,6 +209,7 @@ function _focusNow() {
   if (document.body.classList.contains('no-input')) return;
   if (cardZoom.classList.contains('open')) return;
   if (!_canType()) return;
+  if (typeof tarotMicActive === 'function' && tarotMicActive()) return;
   _msgInput.focus({preventScroll: true});
   if (document.activeElement === _msgInput) { _caretToEnd(); renderCaret(); }
 }
@@ -212,7 +217,10 @@ function _focusNow() {
   const onFirst = e => {
     // Taps on a real control (the input, a button/link, a card, the zoom) manage
     // their own focus — let them through.
-    if (e.target.closest('button, a, input, textarea, [contenteditable], #spread-area, #card-zoom')) {
+    // `#input-prompt` is the MIC and it is a <span>, so it matches none of the
+    // control selectors -- without it here, preventDefault() below eats the
+    // very first tap on it and the voice session takes two taps to start.
+    if (e.target.closest('button, a, input, textarea, [contenteditable], #input-prompt, #spread-area, #card-zoom')) {
       document.removeEventListener('pointerdown', onFirst, true);
       return;
     }

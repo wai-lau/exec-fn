@@ -84,15 +84,22 @@
     return text.replace(/\s+/g, " ").trim();
   }
 
-  // Advance the queue once the current utterance has finished PLAYING (not just
-  // finished streaming) — wait out whatever is still buffered ahead.
-  function finishThenNext(S) {
+  // The utterance has finished PLAYING (not just finished streaming) — wait out
+  // whatever is still buffered ahead, then drop the speaking flag and let
+  // anything queued go.
+  //
+  // This runs for EVERY narrator, queue or no queue. It used to be the queue's
+  // own drain, so a non-queueing surface (/tarot) left `speaking` true forever
+  // — which nothing read until its mic arrived and needed to know when the
+  // reader had stopped talking.
+  function finishUtterance(S) {
     const remainMs = Math.max(0, (S.player.audioDuration() - S.player.elapsed()) * 1000);
     setTimeout(() => {
       S.speaking = false;
       // The mics dim their dot while the page talks; tell them the speaker is
       // clear, or the dot stays dim until the next thing it says.
       if (S.idleEvent) document.dispatchEvent(new Event(S.idleEvent));
+      if (!S.queue) return;                   // a reader turn has nothing behind it
       if (!S.on) { S.queued = []; return; }   // turned off mid-queue: drop the backlog
       const next = S.queued.shift();
       if (next) doSpeak(S, next.text, next.ctl);
@@ -106,14 +113,14 @@
       ctl.ended = true;
       ctl.error = msg.detail || "tts error";
     }
-    if ((msg.type === "end" || msg.type === "error") && S.queue) finishThenNext(S);
+    if (msg.type === "end" || msg.type === "error") finishUtterance(S);
   }
 
   function fail(S, ctl, reason) {
     ctl.ok = false;
     ctl.ended = true;
     ctl.error = reason;
-    if (S.queue) finishThenNext(S);
+    finishUtterance(S);
   }
 
   function doSpeak(S, text, ctl) {

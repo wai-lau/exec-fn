@@ -364,7 +364,10 @@ async function sendMsg() {
   if (!text) return;
   input.textContent = '';
   renderCaret();
-  input.focus();
+  // Keep the keyboard up between typed messages -- but NOT during a voice
+  // session, where focusing the box raises a keyboard over the spread for an
+  // input nobody is typing into.
+  if (typeof tarotMicActive !== 'function' || !tarotMicActive()) input.focus();
   addMsg('user', text);
   messages.push({role: 'user', content: text});
   await streamResponse();
