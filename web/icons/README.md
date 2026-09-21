@@ -128,18 +128,40 @@ Two tables, both short and both deliberate:
 
 ## Drawn, not traced
 
-Five icons carry a `ICON_GLYPH` overlay: a shape rasterised onto the SAME
-pixel grid as the trace (so the result is still pixel art), painted over it.
-Each is there because the source shape cannot be traced into the thing it
-depicts, and each is named:
+`ICON_GLYPH` shapes are rasterised onto the SAME pixel grid as the trace, so
+the result is still pixel art, and painted over it. `GLYPH_ONLY` names the
+icons where the trace is discarded and the glyphs are the whole picture --
+`data-file`, `data-doctor` and `laser-satellite`, each of which was tuned
+several times and never read at icon size:
+
+| icon | drawn as | why the trace could not do it |
+|---|---|---|
+| `data-doctor` | case, handle, red cross, face-on | the source is isometric and paints the cross on one slanted FACE: five red cells smeared down-left, and a lumpy hexagon for the case |
+| `laser-satellite` | two hexagons with a pentagon face | its dice are faceted and the facets are dithered, so every floor either lost the facets or drew the dither with them |
+| `data-file` | three sheets + text rules | the sheets overlap in the source, so two of them only ever traced as the sliver that is not hidden -- a stack where two papers had no outline of their own. The back two are drawn as the part that SHOWS rather than as whole rectangles: three full rectangles cross each other's insides and put a sheet edge through the text |
+
+**Paper is not see-through.** A glyph marked `solid` blocks every glyph
+listed before it, so `data-file`'s sheets are three offsets rather than three
+hand-placed polylines: the top one is drawn whole and the two behind keep only
+the part it does not cover, which is the L-shaped sliver a real stack shows.
+Without it, three closed rectangles over each other are three wireframes, and
+every arrangement trades crossing lines against torn-looking edges.
+
+`DESPECKLE_OUTLINE` drops a lone ink pixel with fewer than two neighbours --
+the wizard's brim and cast shadow are dithered IN BLACK, so the speckle is in
+the linework where no interior rule reaches it. The test counts all EIGHT
+neighbours: a four-way version calls a diagonal outline speckle and deletes
+the whole hat.
+
+The rest are overlays on a trace that otherwise stands:
 
 | icon | glyph | why |
 |---|---|---|
-| `data-doctor` | red plus | the source paints its cross on an isometric FACE — in the pixels it is five red cells smeared down-left, a cross only to someone who already knows it is one |
+ the source paints its cross on an isometric FACE — in the pixels it is five red cells smeared down-left, a cross only to someone who already knows it is one |
 | `watchman` | eyelids, iris ring, green pupil | the eyeball traces as a clean ring, but the iris is dithered green-on-olive and the pupil is two dark cells, so the inside came out as scribble. Its interior pass is off (`NO_INTERIOR`) |
 | `boss-original`, `boss-green` | one mouth rule | a 6px band of dark red at row 18 — neither linework nor big enough to survive the floor that calms the stippled skin |
 | `wizard` | white crescent | the source spends a handful of cells on the moon, which at 27px is a smudge beside the stars |
-| `data-file` | four text rules | the source writes text as a GRID of little grey blocks, which at icon size is noise; dropped, the page was bare |
+| `data-file` | three sheets + four text rules | the source writes text as a GRID of little grey blocks, which at icon size is noise; dropped, the page was bare |
 
 `NO_INTERIOR` turns the interior pass off entirely for `watchman` and for
 `bitman`/`printer`, the same biting sphere, whose inside is nothing but dither
