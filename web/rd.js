@@ -215,16 +215,23 @@ function buildReminders() {
     el.addEventListener('click', () => { if (!dragging) openCardDialog(el.dataset.id, () => { load(); }, 'rd'); });
   });
   if (overflow.length) {
-    const first = bar.firstElementChild;
-    if (first) {
-      first.style.position = 'relative';
-      first.style.overflow = 'visible';
-      const btn = document.createElement('button');
-      btn.className = 'rem-overflow-btn';
-      btn.textContent = `+${overflow.length}`;
-      btn.onclick = (e) => { e.stopPropagation(); showRemOverflow(); };
-      first.appendChild(btn);
+    // +N on the topmost chip; if nothing is visible (every reminder is past the
+    // 30-day cutoff) host it on an empty chip, or the whole bar renders blank
+    // and the overflow is unreachable. Same rule as buildBooks().
+    let host = bar.firstElementChild;
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'rem-item';
+      host.style.minHeight = '28px';
+      bar.appendChild(host);
     }
+    host.style.position = 'relative';
+    host.style.overflow = 'visible';
+    const btn = document.createElement('button');
+    btn.className = 'rem-overflow-btn';
+    btn.textContent = `+${overflow.length}`;
+    btn.onclick = (e) => { e.stopPropagation(); showRemOverflow(); };
+    host.appendChild(btn);
   }
   _syncRemH();
 }
@@ -234,7 +241,9 @@ function showRemOverflow() {
     .sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1);
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 30);
   const cutoffIso = cutoff.toISOString().slice(0, 10);
-  const overflow = all.filter(c => c.due_date && c.due_date.slice(0, 10) > cutoffIso);
+  // same partition as buildReminders — a pinned reminder stays on the bar, so
+  // it must not also be counted into, and listed by, the overflow
+  const overflow = all.filter(c => !c.pinned_reminder && c.due_date && c.due_date.slice(0, 10) > cutoffIso);
   const modal = document.getElementById('rem-overflow-modal');
   document.getElementById('rem-overflow-list').innerHTML = overflow.map(c => {
     const color = chipStyle(c).color;
