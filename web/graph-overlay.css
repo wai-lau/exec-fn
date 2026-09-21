@@ -76,17 +76,18 @@ body.gp-loaded #graph {
    own box, so the two stay welded through a resize; pointer-events:none is
    load-bearing, since the canvas covers the graph and hover is what drives it.
 
-   IT MUST SIT ABOVE THE CRT STACK, and this is the most expensive rule in the
-   repo rediscovered (ARCHITECTURE.md §10): a backdrop-filter layer is a
-   full-viewport readback with no partial invalidation, cheap only while nothing
-   under it animates. At --z-raised this canvas was under .cyber-blur and
-   .cyber-crt, so every frame it drew re-fired both readbacks -- measured 1 fps,
-   with 1.5-second frames, on a canvas that draws a few dozen hexagons. Above
-   them it is 60. Same z as the nav, which is fine because the canvas is inset to
-   #graph's box and never reaches the nav's. */
+   It sits UNDER the CRT stack, deliberately: the glow is part of the picture and
+   should be behind the same glass and scanlines as the graph it belongs to.
+   That costs frames on a machine compositing in software -- measured on the
+   droplet's GPU-less headless WebKit, 2 fps under the stack against 18 with the
+   stack hidden, while our own canvas work measured 0ms either way (so the cost is
+   compositing five full-viewport layers, two of them backdrop-filters, not
+   anything this file draws). On hardware with a compositor it is a non-issue,
+   and looking right won the trade. See ARCHITECTURE.md §10 for why a
+   backdrop-filter over anything animated is expensive at all. */
 #gp-pulse {
   position: fixed;
-  z-index: var(--z-top);
+  z-index: var(--z-raised);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.8s ease;

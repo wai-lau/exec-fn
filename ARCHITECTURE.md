@@ -1681,7 +1681,7 @@ All the array transforms use a **per-line anchored** array regex, because a non-
 3. `setupZoomLimits()` clamps zoom/pan with hard walls, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back).
 4. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
 
-**The page opens fitted to the whole graph.** The loading cover lifts on `stabilizationIterationsDone` (capped at `LOAD_CAP`, 20s) and re-fits first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas. The zoom-OUT wall had to be relaxed to admit that: it used to cap the viewport at half the node-cloud's area, which the opening fit violates on arrival. It is now the whole-graph fit scale × `FIT_MARGIN` (0.8).
+**The page opens `OPEN_ZOOM` (1.25×) inside a whole-graph fit.** The loading cover lifts on `stabilizationIterationsDone` (capped at `LOAD_CAP`, 120s) and re-fits first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas; the 1.25× then closes up the margin a bare fit leaves on the short axis, so the graph arrives filling the frame rather than sitting in the middle distance, with every node still on screen. The zoom-OUT wall had to be relaxed to admit that: it used to cap the viewport at half the node-cloud's area, which the opening fit violates on arrival. It is now the whole-graph fit scale × `FIT_MARGIN` (0.8).
 
 #### The tour kept its job and lost its mechanism, twice
 
@@ -1695,23 +1695,31 @@ What was wrong with it was the camera, not the cycling. Flying to a cluster show
 
 The **frozen layout is what makes that possible**: world positions never move, so they are read once with `getPositions()` and each frame is two multiplies per lit node. Pan and zoom still work, because the transform is recomputed from vis's public `getScale()` / `getViewPosition()` every frame (`screen = (world − view) × scale + half-canvas`, which is vis's own transform) and the glow stays welded to the nodes. `#gp-pulse` sits at `--z-raised` — above the graph, below every panel — is `pointer-events: none` (it covers the graph, and hover is what drives it), and JS keeps it sized and positioned to `#graph`'s own box across resizes.
 
-The model, all of it deliberately stochastic so it reads as activity rather than as a slideshow:
+The model is a **spreading cascade**, not a region that lights up:
 
 | | |
 |---|---|
-| **Region** | one community goes active for `REGION_MS` 800ms ± `DWELL_JITTER` 40%, then the activity moves elsewhere. A community under `REGION_MIN` (8) is never a tour stop — two hexagons lighting on the far edge reads as a rendering glitch, not a module — but still lights in full when hovered |
-| **Which nodes** | not all of them. Each frame every unlit node in the region fires with probability `FIRE_HZ × weight(degree) × dt`, so a region is a third alight at any moment rather than solid |
-| **Degree buys odds** | `weight` = `DEG_FLOOR` (0.10) rising to 1 at `DEG_FULL` (10) edges. Hubs are the loud ones; a degree-1 leaf still flickers occasionally |
-| **Degree buys time** | `dur` = `DUR_MIN` 420ms + 55ms per edge (capped at 12), × a 0.6–1.4 random factor. Same argument as node size: the busy nodes are worth looking at longer |
-| **Fade, never blink** | `ATTACK_MS` 90ms rise, then `(1 − t)^DECAY_POW` (1.8) — falls away fast then lingers, like a phosphor trail. A node that was firing when its region went quiet **keeps fading on its own clock**, and that continuity is most of why the activity looks like it is travelling |
-| **Edges** | an edge lights only while **both** endpoints are lit, at the dimmer end's level — it comes up as the second end fires and dies with the first to go. Only intra-community edges, for the last `TRAIL_REGIONS` (3) regions, are even tested |
+| **Seed** | once every `ITER_MS` (1s) one node is picked at random, weighted by **size to the `SEED_POW`** (2) — a prefix-sum plus a binary search, so it is one lookup rather than a scan or a reject loop. Strictly proportional looked like nothing happening: 76% of nodes sit at the size floor with one edge, so 9 seeds in 10 landed on a leaf that lit itself, rolled its single neighbour and stopped |
+| **Spread** | the activation walks outward hop by hop. Each neighbour is queued at `HOP_MS` (110ms ± `HOP_JITTER` 30%) and, when its turn comes, lights with a probability set by **its own** size: `P_MIN` 0.55 at the floor rising to `P_MAX` 1 at the ceiling. The floor was 0.18 and the chains were too short to read as travelling — a spark, not a cascade; at 0.55 a chain through degree-1 nodes carries about two hops and anything with real degree keeps going. Sizes are geometric in degree, so this is a degree rule wearing the units it is drawn at |
+| **Dying out** | a node that fails its roll is **spent** — it does not light and nothing walks past it. That is the whole reason a cascade ends by itself instead of eating the graph every second. Branching is `degree × p`, so a seed on a leaf is a spark of two or three nodes and a seed on a hub blooms across a neighbourhood |
+| **Tried once** | `seen` is per-iteration, so however many neighbours reach a node, it is rolled for once. Without it a dense region re-rolls itself forever |
+| **Overlap** | each iteration gets `ITER_LIFE` (2s) and a new one starts every second, so a couple are always in flight and the graph never goes fully dark between them. `MAX_LIVE` (4) bounds the cost, because a hub bloom is hundreds of nodes |
+| **Degree buys time** | `dur` = `DUR_MIN` 1100ms + 130ms per edge (capped at 12), × a 0.6–1.4 random factor. Same argument as node size: the busy nodes are worth looking at longer |
+| **Fade, never blink** | `ATTACK_MS` 90ms rise, then `(1 − t)^DECAY_POW` (1.2) — close to linear on purpose. At 1.8 the light was gone before the eye had followed the chain that lit it |
+| **Edges** | the edge the activation **travelled along** lights as the far end catches, for `EDGE_DUR`. Both its ends are lit by construction — it is drawn because something crossed it |
 | **Ink** | two soft discs under a crisp hexagon, all under `globalCompositeOperation: 'lighter'`, which stacks them into a bloom. Cheaper than `shadowBlur` and needs no per-node state. Alpha rides on `ctx.globalAlpha` over one flat white `fillStyle` — never a colour string built per call, which at 60fps per node is garbage for the collector to chase (and it keeps the palette lint happy with a single literal) |
 
-**Hover or tap pins one whole community lit and steady**, and the stochastic firing stands down until release: the question a hover asks is *what is this module*, and an answer that flickers is a worse answer. Leaving, or tapping empty canvas, hands it back — on a phone that empty tap is the only way out of a pinned community.
+`SIZE_FLOOR`/`SIZE_CEIL` mirror `graph_style._size_graph_by_degree`'s range rather than being derived from the data, so one enormous outlier cannot flatten every other node onto `P_MIN`. If that range moves, move these with it.
+
+**Hovering deliberately does nothing to the canvas.** A hover used to pin the hovered node's whole community lit and steady, on the argument that a hover asks *what is this module* and a flickering answer is a worse one. In practice the animation stopping dead under the pointer was worse than the question it answered, so the cascade now runs uninterrupted and `pin`/`unpin` are gone. Clicking a node still opens the node-info panel — that is graph.html's own handler and has nothing to do with the canvas.
+
+**A frame with nothing lit skips its draw.** Cascades are sparse by design, so the page is idle a good part of the time, and a full-viewport canvas layer is not free even when it paints nothing — it is a composite of the whole viewport, and on this page that is five CRT layers, two of them `backdrop-filter`s. One clearing frame on the way into idle, then nothing until the next seed.
+
+**The canvas sits UNDER the CRT stack**, deliberately: the glow belongs behind the same glass and scanlines as the graph it is part of. That costs frames on a machine compositing in software — measured on the droplet's GPU-less headless WebKit at **2 fps under the stack against 18 with the stack hidden**, while *our own canvas work measured 0ms either way*. The cost is compositing full-viewport layers, not anything `graph-pulse.js` draws, so on hardware with a compositor it is a non-issue and looking right won the trade.
 
 #### Why nothing writes to the DataSets, or to `network.body` either
 
-The highlight that preceded the overlay mutated vis's drawn node objects and called `network.redraw()`. That was already the fast path — measured on the droplet's headless WebKit, for a ~30-node neighbourhood:
+An earlier hover-highlight mutated vis's drawn node objects and called `network.redraw()`. That was already the fast path — measured on the droplet's headless WebKit, for a ~30-node neighbourhood:
 
 | Path | Cost |
 |---|---|
