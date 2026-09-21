@@ -661,6 +661,21 @@ export function probeOptions() {
   return { ...sandboxOptions(), cwd: TITLE_SANDBOX, systemPrompt: "probe" };
 }
 
+// Every conversation this sandbox has ever had, newest first.
+//
+// `dir` is load-bearing, not a speedup. Without it listSessions is ACCOUNT-wide
+// and its `limit` applies BEFORE any cwd filter -- and the titler files a
+// session per title call into TITLE_SANDBOX, so the newest 100 account-wide
+// were 94 title sessions against 6 real ones (measured 2026-09-21), bottoming
+// the window out six days back. Everything older was invisible to /list AND to
+// /listall, which is meant to be all OF what the page holds. Scoped to the
+// sandbox's own project dir, the cap counts conversations only. The cwd filter
+// stays as a belt: `dir` pulls in git worktrees of that path by default.
+async function sandboxSessions() {
+  const all = await listSessions({ dir: SANDBOX, limit: 500 });
+  return all.filter((s) => s.cwd === SANDBOX);
+}
+
 const server = http.createServer(async (req, res) => {
   if (!isAuthed(req)) {
     res.writeHead(401, { "content-type": "application/json" });
@@ -680,15 +695,14 @@ const server = http.createServer(async (req, res) => {
   // SDK generates a summary per session (and honours a custom rename), which is
   // a far better name than the first thing that was typed -- "Crisis fragments
   // endgame" rather than "poe2, what are crisis fragments for? I'm like deep".
-  // Past conversations, so one can be picked back up. Scoped to THIS sandbox:
-  // listSessions is account-wide and would otherwise hand the page every
-  // session cc-agent has ever had, including any that were not /cc.
+  // Past conversations, so one can be picked back up. Scoped to THIS sandbox
+  // (sandboxSessions), or the page would be handed every session cc-agent has
+  // ever had, including the titler's.
   if (req.method === "GET" && req.url === "/sessions") {
     let rows = [];
     try {
-      const all = await listSessions({ limit: 100 });
+      const all = await sandboxSessions();
       rows = all
-        .filter((s) => s.cwd === SANDBOX)
         .map((s) => ({
           id: s.sessionId,
           title: s.customTitle || s.summary || s.firstPrompt || "",
@@ -725,8 +739,8 @@ const server = http.createServer(async (req, res) => {
     // session on the account by id, /cc or not.
     let known = false;
     try {
-      const all = await listSessions({ limit: 100 });
-      known = all.some((s) => s.sessionId === id && s.cwd === SANDBOX);
+      const all = await sandboxSessions();
+      known = all.some((s) => s.sessionId === id);
     } catch {
       known = false;
     }
