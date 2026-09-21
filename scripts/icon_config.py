@@ -95,15 +95,6 @@ ICON_GLYPH = {
     ],
     # The moon, as a crescent rather than the handful of cells the source
     # spends on it -- at 27px those read as a smudge beside the stars.
-    "watchman": [
-        # The EYELIDS. The traced rim is the outside of the whole eye and
-        # reads as a ball; what makes it an eye is the almond the two lids
-        # make between them, which in the source is a soft tan-on-tan edge
-        # that no luminance rule finds.
-        {"shape": "lens", "a": 11, "b": 7, "at": (13, 12)},
-        {"shape": "ring", "r": 6, "weight": 1, "at": (12, 12)},
-        {"shape": "disc", "r": 3, "fill": "#ffffff", "at": (12, 12)},
-    ],
 }
 # The one source with no drawn outline anywhere in it to trace. See
 # colour_edge_mask() for why this is a name and not a measurement.
@@ -193,6 +184,19 @@ ICON_ACCENT = {
     # away.
     "wizard": [{"src": (255, 251, 240), "fill": "#fffbf0"},
                {"src": (166, 202, 240), "fill": "#a6caf0"}],
+    # The eyeball in its OWN colours, the way hack2's blade keeps its steel.
+    # It was a drawn iris ring and a flat disc before, which is a diagram of
+    # an eye rather than the eye: the sclera, the olive iris, its green
+    # flecks and the lids are all shading, and shading is what makes the
+    # thing read. Every non-tile, non-ink colour is listed -- a cell no
+    # accent paints is a HOLE, which is how hack2's blade lost four pixels.
+    "watchman": [{"src": c, "fill": "#%02x%02x%02x" % c} for c in (
+        (255, 223, 85), (212, 95, 0), (255, 251, 240), (127, 127, 85),
+        (255, 223, 170), (255, 127, 85), (255, 159, 170), (127, 63, 0),
+        (205, 207, 255), (85, 63, 0), (160, 160, 164), (0, 159, 0),
+        (192, 220, 192), (255, 213, 255), (255, 95, 255), (255, 63, 0),
+        (255, 0, 0),
+    )],
     # The two rank crosses are gold on a red cap, and gold is the whole point
     # of a rank cross. Their source outline is stripped, or the ring renders
     # in the icon's red and boxes each cross in a colour it never had.
