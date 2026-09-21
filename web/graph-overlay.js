@@ -101,10 +101,10 @@
   // snapping back. vis-network has no node-count zoom bound, so translate the
   // intent into scale + pan bounds and clamp them in place on each USER
   // gesture:
-  //   - zoom OUT wall: the whole cloud fits, with a little air around it. The
-  //     page OPENS at that fit, so this wall has to admit it — it used to cap
-  //     the viewport at half the cloud's area, which the opening fit violated
-  //     on arrival.
+  //   - zoom OUT wall: the whole cloud CONTAINS, with a little air around it.
+  //     Deliberately looser than the cover the page opens at, so zooming out to
+  //     see every node at once is still allowed. It used to cap the viewport at
+  //     half the cloud's area, which the opening view violated on arrival.
   //   - zoom IN wall: viewport world-area >= 2 nodes' worth of area, so >= ~2
   //     nodes stay in frame  -> a maximum scale.
   //   - pan wall: the viewport centre is clamped to the node bounding box, so
@@ -112,8 +112,37 @@
   // Bounds are recomputed live from current node positions. Physics is off, so
   // they only actually change if a node is dragged.
   var MIN_VISIBLE = 2;
-  var FIT_MARGIN = 0.8;   // how far past a whole-graph fit you may still zoom out
-  var OPEN_ZOOM = 1.25;   // how far INSIDE the fit the page opens
+  var FIT_MARGIN = 0.8;   // how far past a whole-graph CONTAIN you may zoom out
+
+  // The node bounding box in world units, plus the two scales derived from it.
+  // Physics is off, so this only actually changes if a node is dragged.
+  function nodeBounds() {
+    var container = document.getElementById('graph');
+    var ids = nodesDS.getIds();
+    var pos = network.getPositions(ids);
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (var id in pos) {
+      var p = pos[id];
+      if (p.x < minX) { minX = p.x; }
+      if (p.x > maxX) { maxX = p.x; }
+      if (p.y < minY) { minY = p.y; }
+      if (p.y > maxY) { maxY = p.y; }
+    }
+    var w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
+    var cw = container.clientWidth, chh = container.clientHeight;
+    return {
+      minX: minX, maxX: maxX, minY: minY, maxY: maxY,
+      cx: (minX + maxX) / 2, cy: (minY + maxY) / 2,
+      n: ids.length,
+      vp: cw * chh,
+      w: w, h: h,
+      // CONTAIN: every node on screen, margin on the axis that is not limiting.
+      contain: Math.min(cw / w, chh / h),
+      // COVER: no margin on either axis, overflow on the one that is not
+      // limiting — a wallpaper's fill mode. This is what the page opens at.
+      cover: Math.max(cw / w, chh / h),
+    };
+  }
 
   function setupZoomLimits() {
     if (typeof network === 'undefined' || typeof nodesDS === 'undefined') {
@@ -123,33 +152,17 @@
     if (!container) {
       return;
     }
-    var liveIds = nodesDS.getIds();
-    if (liveIds.length <= MIN_VISIBLE) {
+    if (nodesDS.getIds().length <= MIN_VISIBLE) {
       return;
     }
     var clamping = false;   // re-entrancy guard for our own moveTo
 
-    // Live node bounding box + scale walls derived from it.
     function bounds() {
-      var pos = network.getPositions(liveIds);
-      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (var id in pos) {
-        var p = pos[id];
-        if (p.x < minX) { minX = p.x; }
-        if (p.x > maxX) { maxX = p.x; }
-        if (p.y < minY) { minY = p.y; }
-        if (p.y > maxY) { maxY = p.y; }
-      }
-      var w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
-      var vp = container.clientWidth * container.clientHeight;
-      // the scale at which the whole cloud fits the viewport
-      var fit = Math.min(container.clientWidth / w, container.clientHeight / h);
-      return {
-        minX: minX, maxX: maxX, minY: minY, maxY: maxY,
-        minScale: fit * FIT_MARGIN,
-        // viewport world-area = vp / scale^2; floor it at 2/n of the cloud area
-        maxScale: Math.sqrt(vp / (w * h * (MIN_VISIBLE / liveIds.length))),
-      };
+      var b = nodeBounds();
+      b.minScale = b.contain * FIT_MARGIN;
+      // viewport world-area = vp / scale^2; floor it at 2/n of the cloud area
+      b.maxScale = Math.sqrt(b.vp / (b.w * b.h * (MIN_VISIBLE / b.n)));
+      return b;
     }
 
     function clamp(v, lo, hi) {
@@ -242,11 +255,19 @@
       cover.progress(p && p.total ? p.iterations / p.total : 0);
     });
     network.once('stabilizationIterationsDone', function () {
-      network.fit({ animation: false });
-      // A bare fit leaves a margin on the short axis and puts the cloud in the
-      // middle distance; OPEN_ZOOM closes that up so the graph arrives filling
-      // the frame rather than sitting in it. Still every node on screen.
-      network.moveTo({ scale: network.getScale() * OPEN_ZOOM });
+      // Open on COVER, not contain — a wallpaper's fill mode. vis's own fit()
+      // is contain: it scales until the limiting axis fits and leaves the other
+      // one as empty margin, which on this near-square cloud in a wide window
+      // was two black bands and the graph sitting in the middle distance. Cover
+      // takes the scale from the OTHER axis instead, so neither edge has a gap
+      // and the graph runs off the limiting one. Centred on the node bounding
+      // box, so what overflows is shared evenly top and bottom (or left and
+      // right), never all at one end.
+      var b = nodeBounds();
+      network.moveTo({
+        scale: b.cover,
+        position: { x: b.cx, y: b.cy },
+      });
       cover.reveal();
       graphPulse.init();
       watchSleep();
