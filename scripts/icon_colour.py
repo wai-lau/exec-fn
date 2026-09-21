@@ -39,7 +39,7 @@ def colour_paths(px, w, h, tile, rim, ox, oy, path_for, stem=""):
     out = []
     for colour, pixels in sorted(groups.items(), key=lambda kv: -len(kv[1])):
         if colour == main_ink and stem in INNER_INK_KEPT:
-            outline, islands = split_outline(pixels)
+            outline, islands = split_outline(pixels, px, w, h, tile)
             for part, fill in ((outline, rim), (islands, "#%02x%02x%02x" % colour)):
                 d = path_for(part, ox, oy) if part else ""
                 if d:
@@ -53,11 +53,31 @@ def colour_paths(px, w, h, tile, rim, ox, oy, path_for, stem=""):
     return out
 
 
-def split_outline(pixels):
-    """(largest connected region, everything else) of an ink set.
+def split_outline(pixels, px, w, h, tile):
+    """(outline, interior marks) of an ink set.
 
-    The outline is one shape; marks drawn inside the subject in the same ink
-    are their own islands, and they are what this separates out."""
+    An ink region is INTERIOR when no pixel of it touches the tile or the
+    image edge. Eyes sit in the middle of a creature; an outline has the
+    background on one side of it by definition. On bug that test picks out
+    the two eyes and nothing else, from fourteen ink regions.
+
+    Two rules that look right and are not. SIZE: bug's eyes are 2px each, and
+    so are three fragments of its left edge. LARGEST REGION IS THE OUTLINE:
+    the dithering breaks that outline into fourteen pieces, so the largest is
+    one arc of the shell and every other piece -- edges, feet -- comes out as
+    an interior mark. That one was tried, and it painted the whole outline
+    black."""
+    outline, islands = set(), set()
+    for region in connected(pixels):
+        if on_background(region, px, w, h, tile):
+            outline |= region
+        else:
+            islands |= region
+    return outline, islands
+
+
+def connected(pixels):
+    """The 4-connected regions of a pixel set."""
     seen, regions = set(), []
     for start in pixels:
         if start in seen:
@@ -72,7 +92,16 @@ def split_outline(pixels):
             x, y = p
             stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
         regions.append(region)
-    if not regions:
-        return set(), set()
-    biggest = max(regions, key=len)
-    return biggest, set().union(*[r for r in regions if r is not biggest]) if len(regions) > 1 else set()
+    return regions
+
+
+def on_background(region, px, w, h, tile):
+    """True when any pixel of the region touches the tile or the image edge."""
+    for (x, y) in region:
+        if x == 0 or y == 0 or x == w - 1 or y == h - 1:
+            return True
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if (dx or dy) and px[x + dx, y + dy][:3] == tile:
+                    return True
+    return False
