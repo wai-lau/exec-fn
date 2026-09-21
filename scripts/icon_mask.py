@@ -22,8 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from icon_config import (  # noqa: E402
     DESPECKLE_OUTLINE, DETAIL_MIN_REGION, DROP_COLOURS, EDGE_DELTA,
-    EDGE_TRACED, ICON_ACCENT, ICON_QUANT, INK_BAND, MIN_REGION, NO_INTERIOR,
-    QUANT,
+    EDGE_TRACED, FILL_ENCLOSED, ICON_ACCENT, ICON_QUANT, INK_BAND, MIN_REGION,
+    NO_INTERIOR, QUANT,
 )
 
 
@@ -116,6 +116,8 @@ def ink_mask(im, stem=""):
     if stem in EDGE_TRACED:
         return colour_edge_mask(px, w, h, tile, floor_px, step), tile
     outline = {pt for lum, pt in others if lum <= floor + INK_BAND}
+    if stem in FILL_ENCLOSED:
+        return outline | filled_body(px, outline, w, h, None), tile
     mask = outline
     if stem not in NO_INTERIOR:
         mask = mask | interior_detail(px, w, h, outline, floor_px, step)
@@ -147,6 +149,37 @@ def outline_around_accents(px, w, h, stem):
                 for dy in range(-reach, reach + 1):
                     touching.add((x + dx, y + dy))
     return touching - accent
+
+
+def filled_body(px, outline, w, h, seeds):
+    """What the outline encloses -- by REGION, not by pixel.
+
+    `seeds` names the subject's own colours; an enclosed region is kept only
+    if it contains one. Filtering pixel by pixel instead punches holes: the
+    bolt's shading appears as single cells INSIDE its bright face as well as
+    in the band down its side, and dropping every dark cell leaves the bolt
+    moth-eaten. The band is its own enclosed region -- ink separates it -- so
+    dropping whole regions removes it and leaves the face solid."""
+    inside = enclosed_by(outline, w, h)
+    if not seeds:
+        return inside
+
+    keep, seen = set(), set()
+    for start in inside:
+        if start in seen:
+            continue
+        region, stack = set(), [start]
+        while stack:
+            p = stack.pop()
+            if p in seen or p not in inside:
+                continue
+            seen.add(p)
+            region.add(p)
+            x, y = p
+            stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+        if any(px[p][:3] in seeds for p in region):
+            keep |= region
+    return keep
 
 
 def enclosed_by(outline, w, h):

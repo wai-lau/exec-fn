@@ -19,6 +19,30 @@ SKIP = {"IMG_25419", "ped-logo"}
 # each judged by eye against their colour version and kept as they were.
 LINE_ART = {"turbo", "bitman", "printer", "wizard", "data-file", "data-doctor",
              "sentinel"}
+# Line-art icons whose subject is FILLED rather than outlined: the mask takes
+# everything the outline encloses as well as the outline itself. The drop
+# shadow lies OUTSIDE the linework, so it is excluded by construction rather
+# than by naming its colours.
+FILL_ENCLOSED = set()
+# ...and, where given, only the enclosed REGIONS containing one of these
+# colours. turbo's bolt is drawn two-tone: a bright face, and a darker orange
+# band down its side that ink separates into its own region and that reads as
+# a shadow welded to the bolt. Seeding on the bright colours keeps the face
+# (including the dark cells scattered INSIDE it) and drops the band.
+# What an icon's outline ENCLOSES, painted as its own path(s) under the
+# linework. `seeds` picks enclosed REGIONS by the colours they contain (None
+# takes all of them); region-wise rather than pixel-wise, because the shading
+# also appears as single cells inside a face and dropping every dark cell
+# leaves the shape moth-eaten.
+FILL_PAINT = {
+    # The bolt's bright face only. The darker band down its side is a region
+    # of its own (ink separates the two) and could equally be painted in the
+    # source's orange -- that was tried and reverted; the plain bolt is the
+    # one that reads.
+    "turbo": [{"seeds": ((255, 255, 85), (255, 223, 0)), "fill": "#ffff55"}],
+    # The sphere, darker than the gold rim so its mouth still reads.
+    "bitman": [{"seeds": None, "fill": "#8a6600"}],
+}
 SKIP_PREFIX = ("qr-",)
 MAX_DIM = 64      # big sources are nearest-downsampled before tracing
 INK_BAND = 0.015  # luminance band above the darkest ink, absolute
@@ -63,9 +87,12 @@ ICON_GLYPH = {
         # other is three wireframes, not a stack.
         {"shape": "rect", "at": (11, 11), "w": 14, "h": 18, "solid": True},
         {"shape": "rect", "at": (7, 7), "w": 14, "h": 18, "solid": True},
-        {"shape": "rect", "at": (3, 3), "w": 14, "h": 18, "solid": True},
+        # The front sheet is FILLED, so its rules have to go dark to be read
+        # at all -- and they are listed after it, since glyphs paint in order.
+        {"shape": "rect", "at": (3, 3), "w": 14, "h": 18, "solid": True,
+         "filled": True},
         {"shape": "lines", "at": (6, 8), "len": 8, "count": 4, "gap": 3,
-         "last": 5},
+         "last": 5, "fill": "#000000"},
     ],
     # The mouth is a 6px band of dark red at row 18 -- the one feature of the
     # face that is neither linework nor big enough to survive the floor that
@@ -80,7 +107,11 @@ ICON_GLYPH = {
     # whichever way the pixels are lifted out. Face-on, with a handle and a
     # real cross, it is a first-aid kit at a glance.
     "data-doctor": [
-        {"shape": "rect", "at": (3, 9), "w": 21, "h": 15, "round": 2},
+        # The case body is FILLED. The cross is listed after it and painted
+        # after it, so the fill does not swallow the one thing the icon is
+        # for; the handle above stays an outline, being a loop.
+        {"shape": "rect", "at": (3, 9), "w": 21, "h": 15, "round": 2,
+         "filled": True},
         {"shape": "rect", "at": (10, 5), "w": 7, "h": 5, "round": 1},
         {"shape": "plus", "arm": 4, "weight": 3, "fill": "#ff0000",
          "at": (13, 16)},
@@ -149,6 +180,8 @@ ICON_COLOUR = {
     # fiddle's and turbo's. It takes bitman's colour instead -- the same
     # biting sphere it IS, and the only nav slot that was a third blue.
     "printer": (182, 252, 0),
+    # The sphere's own gold, not the yellow-green tile it sat on.
+    "bitman": (255, 223, 0),
 }
 # A second path, filled, in its own colour: a feature that is not linework and
 # whose COLOUR is its meaning. A medical cross that is not red is a plus sign.

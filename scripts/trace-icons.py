@@ -52,10 +52,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from icon_contours import boundary_loops, drop_collinear  # noqa: E402
 from icon_colour import colour_paths  # noqa: E402
 from icon_config import (  # noqa: E402
-    CENTRE_INK, GLYPH_ONLY, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, LINE_ART,
-    MAX_DIM, SKIP, SKIP_PREFIX,
+    CENTRE_INK, FILL_PAINT, GLYPH_ONLY, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH,
+    LINE_ART, MAX_DIM, SKIP, SKIP_PREFIX,
 )
-from icon_mask import ink_mask, tile_colour  # noqa: E402
+from icon_mask import filled_body, ink_mask, tile_colour  # noqa: E402
 
 BG_L = 0.0      # --bg-hsl lightness, in percent
 NEAR_L = 25.0   # a stroke within this many points of it gets L -> 100-L
@@ -145,10 +145,15 @@ def glyph_solid(spec):
 def _rect(spec, cx, cy):
     x0, y0 = spec["at"]
     w, h = spec["w"], spec["h"]
-    out = ({(x0 + i, y0) for i in range(w)}
-           | {(x0 + i, y0 + h - 1) for i in range(w)}
-           | {(x0, y0 + i) for i in range(h)}
-           | {(x0 + w - 1, y0 + i) for i in range(h)})
+    if spec.get("filled"):
+        # The whole area, not just the border. Anything meant to sit ON a
+        # filled shape has to be listed AFTER it -- glyphs paint in order.
+        out = {(x0 + i, y0 + j) for i in range(w) for j in range(h)}
+    else:
+        out = ({(x0 + i, y0) for i in range(w)}
+               | {(x0 + i, y0 + h - 1) for i in range(w)}
+               | {(x0, y0 + i) for i in range(h)}
+               | {(x0 + w - 1, y0 + i) for i in range(h)})
     # `round`: cut each corner back by that Manhattan distance AND bridge the
     # gap it leaves. Cutting alone is not a rounded corner, it is a hole --
     # at r=2 the top edge restarts two pixels in and the side edge two pixels
@@ -324,6 +329,15 @@ def trace(path: Path) -> str | None:
         ox += (side - (min(xs) + max(xs) + 1)) // 2
         oy += (side - (min(ys) + max(ys) + 1)) // 2
 
+    # A body painted apart from its rim: the enclosed fill goes down first in
+    # its own colour, and the outline draws over it.
+    bodies = []
+    for spec in FILL_PAINT.get(path.stem, ()):
+        region = filled_body(im.load(), mask, w, h, spec["seeds"])
+        d_body = path_for(region, ox, oy) if region else ""
+        if d_body:
+            bodies.append(f'<path fill="{spec["fill"]}" d="{d_body}"/>')
+
     d = []
     for loop in loops:
         head, *rest = [(ox + x, oy + y) for x, y in drop_collinear(loop)]
@@ -341,7 +355,8 @@ def trace(path: Path) -> str | None:
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {side} {side}" '
         f'width="32" height="32" fill="{colour}" fill-rule="evenodd" '
         f'shape-rendering="crispEdges" aria-hidden="true">\n'
-        f'<path d="{"".join(d)}"/>\n' + ("".join(accents) + "\n" if accents else "")
+        + "".join(bodies)
+        + f'<path d="{"".join(d)}"/>\n' + ("".join(accents) + "\n" if accents else "")
         + '</svg>\n'
     )
 

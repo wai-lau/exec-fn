@@ -271,10 +271,10 @@
   background:
     repeating-linear-gradient(0deg,
       transparent 0,
-      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25) calc(2 * var(--crt-u)),
+      hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0.45) calc(2 * var(--crt-u)),
       transparent calc(4 * var(--crt-u))),
     radial-gradient(circle at 50% 45%,
-      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.06), transparent 70%);
+      hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0.06), transparent 70%);
 }
 
 /* 3. sweep beam. Also NO blend mode (was overlay, which on a dark backdrop only
@@ -284,9 +284,9 @@
 .cyber-scan {
   position: fixed; left: 0; right: 0; top: 0; width: 100vw; height: 480px; z-index: var(--z-modal); pointer-events: none;
   background: linear-gradient(
-    hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0) 0%,
-    hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.06) 50%,
-    hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0) 100%);
+    hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0) 0%,
+    hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0.06) 50%,
+    hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0) 100%);
   animation: cyber-sweep 7s linear infinite;
 }
 
@@ -327,7 +327,7 @@
    backdrop-filter trap). Dense boards halve it like the rest of the stack. */
 .cyber-crt {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
-  backdrop-filter: brightness(0.85) contrast(1.25);
+  backdrop-filter: brightness(0.85) contrast(1.5);
 }
 
 @media (prefers-reduced-motion: reduce) {
