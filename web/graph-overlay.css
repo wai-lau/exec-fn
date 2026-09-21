@@ -1,11 +1,3 @@
-/* /graph overlay styles — injected by the /graph route (api/main.py).
-   Layout: graph canvas fills the area above the bottom nav; the physics panel
-   (bottom-left, collapses down) and the node-info sidebar (bottom-right,
-   collapses right) are independent overlays, collapsed by default — only their
-   toggle buttons show until opened. vis renders the physics configurator into
-   #gp-physics via configure.container. chrome.css loads first (provides
-   --green-rgb, --surface-*, @font-face). */
-
 body {
   margin: 0 !important;
   height: 100vh !important;
@@ -97,60 +89,36 @@ body.gp-loaded #gp-pulse {
   opacity: 1;
 }
 
-/* two independent collapsible overlay panels, anchored above the bottom nav */
-#gp-physics,
+/* node info: full-height panel on the right, collapses RIGHT. Collapsed by
+   default. It was one of a pair once, sharing a block with the physics panel
+   along the bottom; with that gone the two halves are merged. */
 #sidebar {
   position: fixed !important;
+  top: 0;
+  right: 0;
   bottom: var(--nav-h, 56px);
   width: min(360px, 48%);
-  max-height: 70vh;
+  max-height: none;
   box-sizing: border-box;
   overflow-y: auto;
   z-index: 25;
   background: hsl(var(--surface-hsl)) !important;
-  font-family: var(--font-mono) !important;
-  transition: transform 0.2s ease;
-}
-
-/* physics: full-width strip along the bottom, half the page tall. Collapses
-   DOWN. Collapsed by default. */
-#gp-physics {
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: 50vh;
-  border-top: 1px solid hsl(var(--green-hsl) / 0.12);
-  overflow-x: hidden;
-  transform: translateY(120%);
-}
-
-body.gp-phys-open #gp-physics {
-  transform: none;
-}
-
-/* node info: full-height panel on the right, collapses RIGHT. Collapsed by default. */
-#sidebar {
-  top: 0;
-  right: 0;
-  max-height: none;
   border-left: 1px solid hsl(var(--green-hsl) / 0.12) !important;
   color: hsl(var(--green-hsl) / 0.8) !important;
+  font-family: var(--font-mono) !important;
   transform: translateX(120%);
+  transition: transform 0.2s ease;
 }
 
 body.gp-info-open #sidebar {
   transform: none;
 }
 
-/* per-panel toggle buttons — always visible; the only thing shown when collapsed */
+/* the panel toggle — always visible; the only thing shown when collapsed */
 .gp-toggle {
   position: fixed;
   bottom: calc(var(--nav-h, 56px) + 8px);
   z-index: 41;
-}
-
-.gp-toggle.phys {
-  left: 8px;
 }
 
 .gp-toggle.info {
@@ -159,30 +127,13 @@ body.gp-info-open #sidebar {
   bottom: auto;
 }
 
-/* bigger touch targets + readable config text on small screens */
+/* bigger touch targets on small screens */
 @media (width <= 640px) {
   .gp-toggle.gp-min-btn {
     width: 36px;
     height: 36px;
     font-size: var(--fs-xl);
   }
-
-  #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label,
-  #gp-physics .vis-configuration.vis-config-rangeinput,
-  #gp-physics select.vis-configuration {
-    font-size: var(--fs-sm) !important;
-  }
-}
-
-/* vis configurator renders inside #gp-physics — strip its own chrome */
-.vis-configuration-wrapper {
-  position: static !important;
-  width: auto !important;
-  max-height: none !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  font-family: var(--font-mono) !important;
 }
 
 /* ── panel header labels ────────────────────────────────────────────── */
@@ -252,160 +203,7 @@ body.gp-info-open #sidebar {
   background: hsl(var(--green-hsl) / 0.12) !important;
 }
 
-/* ── vis config rows + inputs: kill the blinding light backgrounds ──── */
-.vis-configuration.vis-config-item,
-.vis-configuration.vis-config-s2,
-.vis-configuration.vis-config-s3,
-.vis-configuration.vis-config-s4,
-.vis-configuration.vis-config-header {
-  background: hsl(var(--surface-hsl)) !important;
-}
-
-.vis-configuration.vis-config-item {
-  color: hsl(var(--green-hsl) / 0.8) !important;
-}
-
-.vis-configuration.vis-config-label {
-  color: hsl(var(--green-hsl) / 0.45) !important;
-}
-
-.vis-configuration .vis-config-rangeinput,
-.vis-configuration input[type="text"],
-.vis-configuration input[type="number"],
-.vis-configuration select {
-  background: hsl(var(--bg-hsl)) !important;
-  color: hsl(var(--green-hsl)) !important;
-  border: 1px solid hsl(var(--green-hsl) / 0.12) !important;
-}
-
-.vis-config-button,
-.vis-configuration.vis-config-button {
-  background: hsl(var(--bg-hsl)) !important;
-  color: hsl(var(--green-hsl)) !important;
-  border: 1px solid hsl(var(--green-hsl) / 0.45) !important;
-}
-
-.vis-configuration-popup {
-  background: hsl(var(--bg-hsl)) !important;
-  color: hsl(var(--green-hsl) / 0.8) !important;
-}
-
-/* ── narrow-column layout: label on its own line, slider below, gap ──── */
-
-/* Scope ONLY to slider rows (:has a range input). vis absolutely-positions the
-   children inside fixed-height rows; reset just those to flow vertically. The
-   "enabled" checkbox + solver select rows keep vis's default layout. */
-#gp-physics .vis-config-item:has(input.vis-config-range) {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  height: auto !important;
-  min-height: 0 !important;
-  margin: 0 0 var(--space-4) !important;
-  padding: var(--space-0-5) var(--space-2-5) !important;
-}
-
-/* vis indents items by nesting depth (s0-s5); flatten so every row lines up */
-#gp-physics .vis-config-s0,
-#gp-physics .vis-config-s1,
-#gp-physics .vis-config-s2,
-#gp-physics .vis-config-s3,
-#gp-physics .vis-config-s4,
-#gp-physics .vis-config-s5 {
-  margin-left: 0 !important;
-}
-
-#gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label {
-  position: static !important;
-  width: 100% !important;
-  height: auto !important;
-  box-sizing: border-box !important;
-  margin: 0 0 var(--space-px) !important;
-  padding: 0 !important;
-  font-size: var(--fs-2xs) !important;
-  line-height: var(--lh-snug) !important;
-  white-space: normal !important;
-}
-
-#gp-physics .vis-config-item:has(input.vis-config-range) input.vis-config-range {
-  position: static !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  margin: 0 !important;
-  box-sizing: border-box !important;
-}
-
-/* nothing in the physics column may exceed its width */
-#gp-physics,
-#gp-physics * {
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-/* Generate-Options button, its output text, and any divider line -> fit column */
-#gp-physics .vis-config-button,
-#gp-physics .vis-configuration.vis-config-button {
-  display: block !important;
-  width: 90% !important;
-  max-width: 90% !important;
-  margin: var(--space-2-5) auto !important;
-}
-
-#gp-physics pre,
-#gp-physics textarea,
-#gp-physics .vis-configuration-popup,
-#gp-physics .vis-configuration-code {
-  width: 90% !important;
-  max-width: 90% !important;
-  margin: 0 auto !important;
-  white-space: pre-wrap !important;
-  word-break: break-all !important;
-  overflow-wrap: anywhere !important;
-}
-
-#gp-physics hr,
-#gp-physics .vis-config-hr {
-  width: 90% !important;
-  margin: var(--space-2-5) auto !important;
-}
-
-#gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-rangeinput {
-  position: static !important;
-  width: 64px !important;
-  align-self: center !important;
-  margin: var(--space-1) 0 0 !important;
-  padding: var(--space-px) var(--space-1) !important;
-  font-size: var(--fs-2xs) !important;
-  box-sizing: border-box !important;
-  text-align: center !important;
-}
-
-/* hide group headers, section-label rows, and vis's native "enabled" checkbox
-   (replaced by our own inverted "freeze" control). */
-#gp-physics .vis-config-header,
-/* Keep the checkbox rows (physics `enabled`, `stabilization.enabled`): physics
-   is off once the layout settles, so turning the sim back on is the one control
-   a slider needs to mean anything. Prose-only rows still go. */
-#gp-physics .vis-config-item:not(:has(input), :has(select)) {
-  display: none !important;
-}
-
-#gp-physics select.vis-configuration {
-  width: 100% !important;
-  font-size: var(--fs-2xs) !important;
-}
-
-#gp-physics .vis-configuration.vis-config-header {
-  font-size: var(--fs-2xs) !important;
-  padding: var(--space-2) var(--space-2-5) !important;
-}
-
-/* breathing room above the first slider (theta) now that headers are hidden */
-#gp-physics .gp-panel-body {
-  padding-top: var(--space-4);
-}
-
+/* the small square toggle at the panel's own edge */
 .gp-bottom-toggle.gp-min-btn {
   width: 22px;
   height: 22px;
