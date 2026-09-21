@@ -2203,6 +2203,18 @@ A rejected push (the remote moved) is retried ONCE through a fetch + rebase, and
 
 ## 18. The typewriter and the shared chat surfaces
 
+### 18-0. What the four transcripts actually share
+
+| Shared | Where | Was |
+|--------|-------|-----|
+| the transcript look | `chat-msg.css` (+ `chat.css` / `chat-doc.css` / `chat-reader.css`) | three near-copies of forty lines |
+| the stream bubble + the caret mirror | **`chat-dom.js`** (`chatStreamDiv`, `chatCaret`) | four copies each |
+| the reveal | `typewriter.js` (`twGuess`, `twAudio`) | tarot-stream.js owned the audio half |
+| the voice | `voice-narrator.js` + `voice-ui.js` + `voice-util.js` | two hand-written narrators |
+| the mic | `voice-input.js` (engine **and** `bindComposer`) | one engine, three near-identical bindings |
+
+**The caret mirror is the argument for all of it.** Four surfaces drew the same drawn-caret, and after WebKit threw `IndexSizeError` on a stale selection — blanking the page mid-send — the fix landed in three of them. The panel kept the broken copy until the files were merged. A copy is a fix you will forget to apply.
+
 ### 18a. Every chat surface reveals character by character
 
 `web/typewriter.js`: a per-character delay where punctuation is a beat (`twCharWeight`: `.` 850ms, `\n` 1100, `,` 420, ` ` 110, else 65), divided by a speed multiplier.

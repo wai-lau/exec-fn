@@ -83,17 +83,7 @@ function addMsg(role, text) {
 }
 
 function addStreamDiv() {
-  const div = document.createElement('div');
-  div.className = 'msg assistant';
-  const body = document.createElement('div');
-  body.className = 'msg-body';
-  const cur = document.createElement('span');
-  cur.id = 'blinkcursor';
-  cur.innerHTML = '<span></span><span></span><span></span>';
-  body.appendChild(cur);
-  div.appendChild(body);
-  terminal.appendChild(div);
-  return {div, body, cur};
+  return chatStreamDiv(terminal, { id: 'blinkcursor' });
 }
 
 async function sendMsg() {
@@ -200,28 +190,9 @@ const _post = document.getElementById('input-post');
 const _inputCursor = document.getElementById('input-cursor');
 const _msgInput = document.getElementById('msg-input');
 
-function _caretOffset() {
-  const sel = window.getSelection();
-  if (!sel.rangeCount || !_msgInput.contains(sel.anchorNode)) return _msgInput.innerText.length;
-  const range = document.createRange();
-  range.selectNodeContents(_msgInput);
-  // After clearing the input (submit), the stale selection offset can point past
-  // the emptied node — WebKit throws IndexSizeError where Chromium clamps. Falling
-  // back keeps renderCaret (hence sendMsg) from aborting and blanking the page.
-  try {
-    range.setEnd(sel.anchorNode, sel.anchorOffset);
-  } catch {
-    return _msgInput.innerText.length;
-  }
-  return range.toString().length;
-}
-
-function renderCaret() {
-  const text = _msgInput.innerText;
-  const pos = _caretOffset();
-  _pre.textContent = text.slice(0, pos);
-  _post.textContent = text.slice(pos);
-}
+// Shared with the other three transcripts — see chat-dom.js.
+const _caret = chatCaret(_msgInput, _pre, _post);
+const renderCaret = _caret.render;
 
 _msgInput.addEventListener('input', () => {
   renderCaret();

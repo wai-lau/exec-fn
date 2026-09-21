@@ -23,16 +23,17 @@ let execMic = null;
 
 function execMicInit(host) {
   if (!host || !host.prompt) return;
-  if (!VoiceInput.supported()) return;    // no API: the prompt stays a plain `$`
-  execMic = VoiceInput.create({
+  // The panel builds its composer inside exec-bubble.js's closure, so it hands
+  // over accessors where /cc and /tarot hand over element ids. Everything else
+  // -- the drop rules, the idle repaint -- is the shared binding.
+  execMic = VoiceInput.bindComposer({
     btn: host.prompt,
-    busy: host.busy,
+    busy: [host.busy],
     send: host.send,
     fill: host.fill,
     blur: host.blur,
+    idleEvent: 'exec:voice-idle',
   });
-  // Exec stopped talking -- the dot goes from dim (dropping) back to lit.
-  document.addEventListener('exec:voice-idle', function () { execMic.paint(); });
 }
 
 /** Called by exec-bubble.js when a reply has finished streaming. Repaints the
