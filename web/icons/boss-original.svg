@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#fc6200" color="#fc6200" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 <!-- bespectacled portrait -->
 <ellipse cx="16" cy="13.4" rx="7.4" ry="8.2"/>
 <path d="M8.9 11C9.9 7.3 12.6 5.2 16 5.2s6.1 2.1 7.1 5.8"/>

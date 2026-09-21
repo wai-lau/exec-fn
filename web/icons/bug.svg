@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#84fc00" color="#84fc00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 <!-- beetle: shell, antennae, six legs -->
 <ellipse cx="16" cy="18" rx="6.5" ry="8.5"/>
 <path d="M16 9.6v16.8"/>
