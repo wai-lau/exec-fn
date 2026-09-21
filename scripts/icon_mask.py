@@ -22,7 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from icon_config import (  # noqa: E402
     DESPECKLE_OUTLINE, DETAIL_MIN_REGION, DROP_COLOURS, EDGE_DELTA,
-    EDGE_TRACED, FILL_ENCLOSED, ICON_ACCENT, ICON_QUANT, INK_BAND, MIN_REGION,
+    EDGE_TRACED, FILL_ENCLOSED, ICON_ACCENT, ICON_INK_BAND, ICON_QUANT,
+    INK_BAND, MIN_REGION,
     NO_INTERIOR, QUANT,
 )
 
@@ -116,6 +117,8 @@ def ink_mask(im, stem=""):
     if stem in EDGE_TRACED:
         return colour_edge_mask(px, w, h, tile, floor_px, step), tile
     outline = {pt for lum, pt in others if lum <= floor + INK_BAND}
+    outline |= detached_marks(others, outline, floor,
+                              ICON_INK_BAND.get(stem, INK_BAND))
     if stem in FILL_ENCLOSED:
         return outline | filled_body(px, outline, w, h, None), tile
     mask = outline
@@ -131,6 +134,25 @@ def ink_mask(im, stem=""):
         mask = {(x, y) for (x, y) in mask
                 if sum((x + dx, y + dy) in mask for dx, dy in near) >= 2}
     return mask, tile
+
+
+def detached_marks(others, outline, floor, band):
+    """Pixels the WIDENED ink band admits: near-black, and touching no base ink.
+
+    The same near-black an icon spends on a detached mark is usually also used
+    as shading welded along the outline -- on bug, two floating specks and
+    thirteen pixels of shadow. Taking the lot drew a dashed row under the eyes,
+    so the widening only reaches marks that stand alone."""
+    if band <= INK_BAND:
+        return set()
+    near = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if (dx, dy) != (0, 0)]
+    out = set()
+    for lum, pt in others:
+        if pt in outline or lum > floor + band:
+            continue
+        if not any((pt[0] + dx, pt[1] + dy) in outline for dx, dy in near):
+            out.add(pt)
+    return out
 
 
 def outline_around_accents(px, w, h, stem):
