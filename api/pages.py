@@ -28,7 +28,7 @@ _JSDELIVR_PAGES = {"rd", "hq", "mtg", "tarot", "cc"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
-_FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=6">'
+_FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=7">'
 
 # CRT ambient stack markup — the four fixed fx layers (see .cyber-* in
 # chrome.css). Shared by every page builder (_render_page, landing, graph) so the
@@ -83,7 +83,7 @@ def _nav_icon(name: str, alt: str) -> str:
     carries `shape-rendering="crispEdges"`, which is what keeps the grid hard
     at a size 20/27 does not divide into. No `image-rendering:pixelated` --
     that is the raster knob and does nothing to an SVG."""
-    return f'<img src="/icons/{name}.svg?v=6" alt="{alt}" style="width:20px;height:20px;">'
+    return f'<img src="/icons/{name}.svg?v=7" alt="{alt}" style="width:20px;height:20px;">'
 
 
 _NAV_ICONS = {
@@ -143,7 +143,7 @@ def _build_nav(active=None, guest=False):
         # so the same-origin link interceptor below ignores it.
         "var _rf=document.createElement('a');_rf.id='nav-refresh';"
         "_rf.style.cursor='pointer';"
-        "_rf.innerHTML='<img src=\"/icons/firewall.svg?v=6\" alt=\"refresh\" "
+        "_rf.innerHTML='<img src=\"/icons/firewall.svg?v=7\" alt=\"refresh\" "
         "style=\"width:20px;height:20px;\">"
         "<span class=\"nav-label\">F5</span>';"
         "_rf.addEventListener('click',function(e){e.preventDefault();"
@@ -231,22 +231,22 @@ def _build_nav(active=None, guest=False):
     elif active in {"rd", "hq"}:
         # voice-input.js + exec-mic.js are the panel's hands-free input: the same
         # engine /cc runs, so the `$` prompt is the mic in both places.
-        bubble = ('<script src="/hosaka-audio.js?v=6"></script>'
+        bubble = ('<script src="/hosaka-audio.js?v=7"></script>'
                   '<script src="/voice-util.js?v=2"></script>'
                   '<script src="/voice-narrator.js?v=2"></script>'
                   '<script src="/voice-ui.js?v=1"></script>'
-                  '<script src="/exec-voice.js?v=6"></script>'
-                  '<script src="/exec-bubble-drag.js?v=6"></script>'
-                  '<script src="/exec-todos.js?v=6"></script>'
+                  '<script src="/exec-voice.js?v=7"></script>'
+                  '<script src="/exec-bubble-drag.js?v=7"></script>'
+                  '<script src="/exec-todos.js?v=7"></script>'
                   '<script src="/typewriter.js?v=8"></script>'
-                  '<script src="/exec-choices.js?v=6"></script>'
+                  '<script src="/exec-choices.js?v=7"></script>'
                   '<script src="/voice-input.js?v=2"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
                   '<script src="/exec-bubble-assets.js?v=19"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=2"></script>'
                   '<script src="/exec-bubble-history.js?v=1"></script>'
-                  '<script src="/exec-bubble.js?v=66"></script>')
+                  '<script src="/exec-bubble.js?v=76"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -266,18 +266,18 @@ def _build_nav(active=None, guest=False):
         # still loads -- it runs after the template's copy and finds it.
         own_voice = active == "cc"
         voice_pre = (
-            '<script src="/hosaka-audio.js?v=6"></script>'
+            '<script src="/hosaka-audio.js?v=7"></script>'
             '<script src="/voice-util.js?v=2"></script>'
             '<script src="/voice-narrator.js?v=2"></script>'
             '<script src="/voice-ui.js?v=1"></script>'
-            '<script src="/exec-voice.js?v=6"></script>'
+            '<script src="/exec-voice.js?v=7"></script>'
         ) if (want_voice and not own_voice) else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
         bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=26">'
                   '<div id="exec-bubble" class="exec-under-fx" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
-                  '<script src="/exec-bubble-drag.js?v=6"></script>'
+                  '<script src="/exec-bubble-drag.js?v=7"></script>'
                   '<script src="/exec-link.js?v=2"></script>'
                   + voice_listener)
     return nav + script + bubble
