@@ -281,7 +281,7 @@ def colour_svg(im, stem):
     rim = stroke_colour(ICON_COLOUR.get(stem, tile))
     side = max(w, h)
     paths = colour_paths(px, w, h, tile, rim,
-                         (side - w) // 2, (side - h) // 2, path_for)
+                         (side - w) // 2, (side - h) // 2, path_for, stem)
     if not paths:
         return None
     return (

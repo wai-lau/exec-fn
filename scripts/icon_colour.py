@@ -17,11 +17,11 @@ Most icons read better this way and use it. Six do not, and stay on the
 line-art path (LINE_ART in icon_config.py): where a source is heavily dithered
 the full-colour trace reproduces the dither faithfully, and faithful is not
 always what an icon wants."""
-from icon_config import INK_BAND
+from icon_config import AS_INK, INK_BAND
 from icon_mask import colour_groups, ink_colours
 
 
-def colour_paths(px, w, h, tile, rim, ox, oy, path_for):
+def colour_paths(px, w, h, tile, rim, ox, oy, path_for, stem=""):
     """`<path>` strings for one icon, largest region first.
 
     `path_for` is passed in rather than imported to keep this module free of a
@@ -29,7 +29,7 @@ def colour_paths(px, w, h, tile, rim, ox, oy, path_for):
     groups = colour_groups(px, w, h, tile)
     if not groups:
         return []
-    ink = ink_colours(groups, INK_BAND)
+    ink = ink_colours(groups, INK_BAND) | set(AS_INK.get(stem, ()))
 
     out = []
     for colour, pixels in sorted(groups.items(), key=lambda kv: -len(kv[1])):
