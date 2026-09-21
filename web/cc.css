@@ -404,3 +404,7 @@ html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
   white-space: nowrap;
   opacity: 0.6;
 }
+
+/* The narrator toggle in the composer row. The control itself is the shared one
+   (voice-ui.css, .voice-mute) -- all /cc owns is where it sits, left of [x]. */
+#exec-mute { padding-left: var(--space-2); margin-left: var(--space-2); }

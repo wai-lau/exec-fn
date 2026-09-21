@@ -1,160 +1,74 @@
-// Exec chat narration. Speaks everything Exec says in the bubble — assistant
-// replies, monitor comments, and timed nudges — in the GLaDOS voice, over the
-// shared HosakaAudio core (same /ws/hosaka stream as /hosaka + /tarot). Wai's
-// own messages and bracketed sys notes are never spoken (the caller only hands
-// us Exec's turns, and we strip any [...] just in case).
+// Exec's voice — the binding, not the engine.
 //
-// Modeled on tarot-voice.js but simpler: there is no typewriter to pace, so
-// speak() just fires and forgets. Exposes window.execVoice for exec-bubble.js.
-const EXEC_VOICE_ID = "glados"; // upstream piper voice
-const EXEC_VOICE_BACKEND = "piper";
-// glados is peak-normalized to ~1.0 by the upstream (measured worst-case peak
-// ~1.013), so 0.95 is about as loud as it goes without clipping — a deliberate
-// step up from tts.js's 0.25 RMS-match trim, since Exec should be heard.
-const EXEC_VOICE_GAIN = 0.95;
-// glados's default piper pace reads slow for a nudge bark; 1.2x keeps the
-// deadpan but stops Exec from droning (piper maps speed -> 1/length_scale).
-const EXEC_VOICE_SPEED = 1.2;
-const EXEC_LS_VOICE = "exec.voice";
-
+// Speaks everything Exec says in the panel (assistant replies, monitor
+// comments, timed nudges) and everything /cc answers, in the GLaDOS voice. The
+// player, the on/off, the unlock dance and the queue are voice-narrator.js;
+// the button and the replay glyph are voice-ui.js. What is left here is the
+// configuration and the two surface helpers that call into them.
+//
+// GLADOS COMES FROM THIS BOX. `piper` routes to the always-on container on the
+// droplet (tts_routing.pick_upstream), not to the home GPU over the tunnel — so
+// Exec and /cc keep their voice with the home machine asleep. Only /tarot's
+// reader (nicole/kokoro) is the home box's, and only /tarot can lose it.
+//
+// Wai's own messages and bracketed sys notes are never spoken: the caller hands
+// over Exec's turns only, and stripBrackets removes any [...] that rides along.
+//
+// Every name here lives INSIDE the closure. Two pages load this file from two
+// places (a template and the nav injection), and a top-level `const` would make
+// the second evaluation throw "duplicate variable" and take the page's scripts
+// down with it.
 window.execVoice = (function () {
   "use strict";
-  let player = null;
-  // Audible by default; "0" in localStorage mutes. The mute only zeroes the
-  // player volume — Exec's turns still reach here either way.
-  let on = localStorage.getItem(EXEC_LS_VOICE) !== "0";
-  // player.speak() flushes any audio mid-flight, so an in-flight reply would
-  // get cut off by a monitor comment or replay tap arriving seconds later.
-  // Queue extra utterances and drain them once the current one finishes.
-  let speaking = false;
-  let queue = [];
 
-  function ensurePlayer() {
-    if (!player) player = HosakaAudio.createPlayer({ volume: on ? EXEC_VOICE_GAIN : 0 });
-    return player;
+  const EXEC_VOICE_ID = "glados";      // upstream piper voice, droplet-local
+  const EXEC_VOICE_BACKEND = "piper";
+  // glados is peak-normalized to ~1.0 by the upstream (measured worst-case peak
+  // ~1.013), so 0.95 is about as loud as it goes without clipping — a
+  // deliberate step up from tts.js's 0.25 RMS-match trim: Exec should be heard.
+  const EXEC_VOICE_GAIN = 0.95;
+  // glados's default piper pace reads slow for a nudge bark; 1.2x keeps the
+  // deadpan but stops Exec droning (piper maps speed -> 1/length_scale).
+  const EXEC_VOICE_SPEED = 1.2;
+  const EXEC_LS_VOICE = "exec.voice";
+
+  const n = VoiceNarrator.create({
+    voice: EXEC_VOICE_ID,
+    backend: EXEC_VOICE_BACKEND,
+    speed: EXEC_VOICE_SPEED,
+    gain: EXEC_VOICE_GAIN,
+    lsKey: EXEC_LS_VOICE,
+    // A monitor comment or a replay tap arriving mid-reply must not cut the
+    // reply off: player.speak() flushes, so extra utterances wait their turn.
+    queue: true,
+    stripBrackets: true,
+    // The mics dim their dot while Exec talks and light it again on this.
+    idleEvent: "exec:voice-idle",
+  });
+
+  // Build the on/off toggle for a surface to place: the panel drops it in its
+  // composer row, /cc in its input line. Same element, same state contract.
+  function button(opts) {
+    return VoiceUI.muteButton(n, Object.assign({
+      offTitle: "Turn Exec's voice off",
+      onTitle: "Turn Exec's voice on",
+    }, opts || {}));
   }
 
-  // A user gesture has unlocked audio. Gate on gestureUnlocked() (sticky), NOT
-  // isUnlocked() (live ctx.state) — the live state false-negatives on Windows
-  // Chrome right after a gesture; speak() resumes a suspended context anyway.
-  function ready() {
-    return !!player && player.gestureUnlocked();
-  }
-
-  // Unlock inside a real gesture (panel open / send / first interaction). iOS
-  // only unlocks audio when a buffer source starts within the gesture.
-  function unlock() {
-    ensurePlayer().unlock();
-  }
-
-  function isOn() {
-    return on;
-  }
-
-  // Is an utterance playing (or still draining) right now? The panel mic
-  // (exec-mic.js) drops everything it hears while this is true -- otherwise it
-  // transcribes GLaDOS narrating Exec's reply and sends that back as Wai's next
-  // message. `speaking` stays true through the playout tail, not just the
-  // stream, which is exactly the window the microphone can hear.
-  function isSpeaking() {
-    return speaking;
-  }
-
-  // Mute toggle: true = audible (volume = glados gain), false = silent.
-  function setOn(v) {
-    on = v;
-    localStorage.setItem(EXEC_LS_VOICE, v ? "1" : "0");
-    if (v) ensurePlayer().unlock(); // unmute is a gesture -> iOS unlock
-    if (player) player.setVolume(v ? EXEC_VOICE_GAIN : 0);
-  }
-
-  // Persisted-on across a reload leaves `on` true but no gesture has unlocked
-  // the player, so nothing speaks until the first interaction. Arm a one-shot
-  // unlock on the first tap/keypress anywhere (synchronous, in-gesture — iOS
-  // rule), so the next nudge/reply narrates without a manual toggle.
-  function armUnlock() {
-    function fire() {
-      document.removeEventListener("pointerdown", fire, true);
-      document.removeEventListener("keydown", fire, true);
-      ensurePlayer().unlock();
-    }
-    document.addEventListener("pointerdown", fire, true);
-    document.addEventListener("keydown", fire, true);
-  }
-
-  // Advance the queue once the current utterance has actually finished playing
-  // (not just finished streaming) — wait out whatever's still buffered ahead.
-  function _finishThenNext() {
-    const remainMs = Math.max(0, (player.audioDuration() - player.elapsed()) * 1000);
-    setTimeout(() => {
-      speaking = false;
-      // The panel mic dims its dot while Exec talks; tell it the speaker is
-      // clear, or the dot stays dim until the next thing she says.
-      document.dispatchEvent(new Event("exec:voice-idle"));
-      if (!on) { queue = []; return; }  // muted mid-queue — drop the backlog, don't resume it later
-      const next = queue.shift();
-      if (next) _doSpeak(next);
-    }, remainMs);
-  }
-
-  function _doSpeak(text) {
-    speaking = true;
-    player.setVolume(EXEC_VOICE_GAIN);
-    player
-      .speak({
-        input: text,
-        backend: EXEC_VOICE_BACKEND,
-        voice: EXEC_VOICE_ID,
-        params: { speed: EXEC_VOICE_SPEED },
-        onStatus: (msg) => { if (msg.type === "end" || msg.type === "error") _finishThenNext(); },
-      })
-      .catch(() => {
-        /* connection failed — stay silent, the text is already on screen */
-        _finishThenNext();
-      });
-  }
-
-  // Speak one of Exec's turns. No-op when muted, not-yet-unlocked, or empty
-  // after stripping markdown + any [bracketed] spans. Queues behind any
-  // utterance already playing instead of cutting it off.
-  function speak(md) {
-    if (!on || !ready()) return;
-    const text = VoiceUtil.stripMarkdown(md).replace(/\[[^\]]*\]/g, " ").replace(/\s+/g, " ").trim();
-    if (!text) return;
-    if (speaking) { queue.push(text); return; }
-    _doSpeak(text);
-  }
-
-  // Wire the panel's mute button (#exec-mute, built by exec-bubble.js) to the
-  // toggle + reflect state on it, and arm a one-shot unlock so a persisted-on
-  // voice narrates after the first interaction without a manual toggle.
-  function mountButton() {
-    var b = document.getElementById("exec-mute");
-    if (!b) return;
-    function sync() {
-      b.dataset.muted = on ? "false" : "true";
-      b.title = on ? "Mute Exec voice" : "Unmute Exec voice";
-      b.setAttribute("aria-pressed", String(on));
-    }
-    b.addEventListener("click", function () {
-      setOn(!on);
-      sync();
-    });
-    sync();
-    armUnlock();
-  }
-
-  // Clickable leading glyph for an Exec turn (assistant '>' / monitor-nudge
-  // '~'): tapping it re-speaks that message. The click is a user gesture, so it
-  // also unlocks audio on first use. Returns the span for exec-bubble.js to prepend.
+  // The clickable leading glyph for an Exec turn — tap to hear it again.
   function mark(role, text) {
-    var mk = document.createElement("span");
-    mk.className = "msg-mark";
-    mk.textContent = role === "probe" ? "~" : ">";
-    mk.title = "replay voice";
-    mk.addEventListener("click", function () { speak(text); });
-    return mk;
+    return VoiceUI.replayMark(n, role, text);
   }
 
-  return { speak, mark, setOn, isOn, isSpeaking, ready, unlock, armUnlock, mountButton };
+  return {
+    speak: n.speak,
+    ready: n.ready,
+    unlock: n.unlock,
+    armUnlock: n.armUnlock,
+    isOn: n.isOn,
+    setOn: n.setOn,
+    isSpeaking: n.isSpeaking,
+    button,
+    mark,
+  };
 })();

@@ -100,17 +100,9 @@ body:has(#exec-panel.open) #exec-bubble { display: none; }
 }
 #exec-ph-close:hover { color: hsl(var(--green-hsl) / 1); }
 
-#exec-mute {
-  flex-shrink: 0;
-  background: none; border: none;
-  cursor: pointer; color: hsl(var(--green-hsl) / 0.8);
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm); line-height: var(--lh-tight);
-  padding: 0 0 0 var(--space-2); margin-left: var(--space-2-5);
-  transition: color 0.15s;
-}
-#exec-mute:hover { color: hsl(var(--green-hsl) / 1); }
-#exec-mute[data-muted="true"] { color: hsl(var(--green-hsl) / 0.12); }
+/* The control itself is the shared one (voice-ui.css, .voice-mute); all the
+   panel owns is where it sits in the composer row. */
+#exec-mute { padding-left: var(--space-2); margin-left: var(--space-2-5); }
 
 /* ── todo list (panel top) ─────────────────────────────────────────────────
    Sizes to content, capped at half the panel; the list scrolls past the cap.
