@@ -25,6 +25,10 @@
 /* global network, nodesDS, graphPulse, showInfo */
 (function () {
   var OPEN_ZOOM_OUT = 0.75;   // applied to the cover scale on first open
+  // Lattice density: cells over the cloud's bounding box, per node. Above 1
+  // there is room for most nodes to land on their first choice; the rest walk
+  // outward. 4 keeps the walk short while still reading as a grid.
+  var CELLS_PER_NODE = 4;
   // A node is "redacted" when its label was blanked — server-side to
   // "[redacted]" (_redact_graph_nodes) or "[ redacted ]" (_label_graph_nodes,
   // for anything over 20 chars). For those, the node-info panel must not leak
@@ -139,6 +143,69 @@
 
   // The node bounding box in world units, plus the two scales derived from it.
   // Physics is off, so this only actually changes if a node is dragged.
+  // The nearest lattice point that nothing has claimed, searched ring by ring
+  // so the answer is the closest one and not merely an early one. Within a
+  // ring the candidates are compared on real distance, since a ring is a
+  // square and its corners are further off than its edges.
+  function nearestFree(taken, gx, gy) {
+    if (!taken[gx + ',' + gy]) {
+      return { x: gx, y: gy };
+    }
+    for (var r = 1; r < 256; r++) {
+      var best = null, bestD = Infinity;
+      for (var dx = -r; dx <= r; dx++) {
+        for (var dy = -r; dy <= r; dy++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) {
+            continue;                       // ring only, not the filled square
+          }
+          if (taken[(gx + dx) + ',' + (gy + dy)]) {
+            continue;
+          }
+          var d = dx * dx + dy * dy;
+          if (d < bestD) {
+            bestD = d;
+            best = { x: gx + dx, y: gy + dy };
+          }
+        }
+      }
+      if (best) {
+        return best;
+      }
+    }
+    return { x: gx, y: gy };
+  }
+
+  // Snap every node onto a regular lattice. Nodes are placed CENTRE-OUT: the
+  // crowded middle claims its own cells first, so the walk to a free point
+  // falls on the sparse rim where there is somewhere to go, instead of
+  // cascading through the core.
+  function snapToGrid() {
+    var b = nodeBounds();
+    var pos = network.getPositions();
+    var ids = Object.keys(pos);
+    var cell = Math.sqrt((b.w * b.h) / Math.max(ids.length * CELLS_PER_NODE, 1));
+    if (!isFinite(cell) || cell <= 0) {
+      return;
+    }
+    ids.sort(function (a, c) {
+      var pa = pos[a], pc = pos[c];
+      return ((pa.x - b.cx) * (pa.x - b.cx) + (pa.y - b.cy) * (pa.y - b.cy))
+           - ((pc.x - b.cx) * (pc.x - b.cx) + (pc.y - b.cy) * (pc.y - b.cy));
+    });
+
+    var taken = Object.create(null);
+    for (var i = 0; i < ids.length; i++) {
+      var p = pos[ids[i]];
+      var g = nearestFree(taken,
+        Math.round((p.x - b.minX) / cell),
+        Math.round((p.y - b.minY) / cell));
+      taken[g.x + ',' + g.y] = 1;
+      // moveNode, not a DataSet write: a bulk update fires vis's _dataUpdated
+      // cascade and rebuilds every physics body (7.4s against 1.07s).
+      network.moveNode(ids[i], b.minX + g.x * cell, b.minY + g.y * cell);
+    }
+  }
+
   function nodeBounds() {
     var container = document.getElementById('graph');
     var ids = nodesDS.getIds();
@@ -286,7 +353,8 @@
       // and the graph runs off the limiting one. Centred on the node bounding
       // box, so what overflows is shared evenly top and bottom (or left and
       // right), never all at one end.
-      var b = nodeBounds();
+      snapToGrid();
+      var b = nodeBounds();   // recomputed: the snap moved everything
       network.moveTo({
         // Cover, then out a quarter: cover alone runs the cloud right to both
         // edges, and a graph with no margin reads as cropped rather than as
