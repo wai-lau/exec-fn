@@ -3,14 +3,19 @@
 Same serve-time, survives-a-rebuild contract as graph_scrub (which holds the
 privacy scrubs + node/edge drops); this half is purely how the surviving graph
 LOOKS: community regrouping + colours, hexagon restyle, hover-tooltip removal,
-line-count-driven node sizes, and the header count fixup. Split out of
-graph_scrub.py to keep both under the 500-line cap.
+degree-driven node sizes, labels + node font, the one-shot physics tune, and
+the header count fixup. Split out of graph_scrub.py to keep both under the
+500-line cap.
+
+Anything that can be decided once per ARTIFACT belongs here rather than in
+graph-overlay.js. The overlay used to walk all ~4.7k nodes three times at load
+(set every font, redact every long label, hide every orphan) and each walk cost a
+whole-DataSet update plus the canvas redraw it triggers -- on the page's slowest
+few seconds. The same decisions made here ride in the bytes, which are memoised
+per artifact by routes_graph, so they cost nothing at all on a warm load.
 """
 import re
-import json
-import math
-from collections import Counter, defaultdict
-from pathlib import Path
+from collections import Counter
 
 from graph_scrub import _read_array, _sub_json_array
 
@@ -70,6 +75,13 @@ _COMMUNITY_COLORS = [
 # A logical module/feature with fewer than this many nodes folds into its
 # top-level dir bucket, so the legend isn't littered with 2-node modules.
 _MIN_COMMUNITY = 10
+# Hard ceiling on how many communities the page ever renders. The min-size fold
+# alone does not bound the count -- this repo yields 54 buckets at _MIN_COMMUNITY
+# and raising that threshold plateaus around 20, because the long tail is made of
+# whole top-level dirs, not small modules. So the count is CAPPED rather than
+# tuned: colour is only a legible encoding while a reader can hold the legend in
+# their head, and 28 palette entries past that point is 28 shades of noise.
+_MAX_COMMUNITIES = 14
 
 
 def _node_group_key(src) -> str:
@@ -123,7 +135,44 @@ def _node_color(hex_color: str) -> dict:
     }
 
 
-def _merge_graph_communities(page: str, min_size: int = _MIN_COMMUNITY) -> str:
+def _ranked(counts, n: int):
+    """The `n` biggest keys of a Counter, ties broken by name. Deterministic on
+    purpose: the rendered page is content-hash ETagged and memoised, so a tie
+    resolved by dict order would change the bytes across a restart for no
+    reason."""
+    ordered = sorted(counts.items(), key=lambda kc: (-kc[1], str(kc[0])))
+    return {k for k, _ in ordered[:n]}
+
+
+def _cap_communities(nodes, key_of, max_communities: int):
+    """Wrap `key_of` so it yields at most `max_communities` distinct keys. Two
+    folds, biggest-first, each applied only if the one before left too many: the
+    tail collapses into its top-level source dir, then whatever is still over the
+    cap collapses into a single "(other)" bucket. Returns `key_of` unchanged when
+    it is already inside the cap."""
+    counts = Counter(key_of(n) for n in nodes)
+    if len(counts) <= max_communities:
+        return key_of
+    keep = _ranked(counts, max_communities)
+
+    def dir_folded(n):
+        k = key_of(n)
+        return k if k in keep else _node_group_key(n.get("source_file"))
+
+    counts = Counter(dir_folded(n) for n in nodes)
+    if len(counts) <= max_communities:
+        return dir_folded
+    keep_dirs = _ranked(counts, max_communities - 1)
+
+    def other_folded(n):
+        k = dir_folded(n)
+        return k if k in keep_dirs else "(other)"
+
+    return other_folded
+
+
+def _merge_graph_communities(page: str, min_size: int = _MIN_COMMUNITY,
+                             max_communities: int = _MAX_COMMUNITIES) -> str:
     """Regroup nodes into logically-named, feature-based communities for the
     /graph page only, so color encodes real structure. graphify emits dozens of
     fine-grained communities but vis cycles a 10-color palette -> colors collide
@@ -131,19 +180,21 @@ def _merge_graph_communities(page: str, min_size: int = _MIN_COMMUNITY) -> str:
     module/feature (`_logical_key`: api/tarot/* + web/tarot-*.js -> "Tarot",
     api/nudge*.py -> "Nudge", ...); a feature smaller than `min_size` folds into
     its top-level dir bucket ("API"/"Web") so the legend isn't littered with
-    2-node modules. Every feature here is already <=150 nodes. Reassigns each
-    node's community/community_name/color and rebuilds LEGEND, biggest community
-    first. No-op if RAW_NODES absent. Supersedes the per-community rename pass."""
+    2-node modules, and `_cap_communities` then holds the total to
+    `max_communities` so the legend stays readable. Reassigns each node's
+    community/community_name/color and rebuilds LEGEND, biggest community first.
+    No-op if RAW_NODES absent. Supersedes the per-community rename pass."""
     nodes = _read_array(page, "RAW_NODES")
     if not nodes:
         return page
     fam_counts = Counter(_logical_key(n.get("source_file")) for n in nodes)
 
-    def key_of(n):
+    def fam_key(n):
         src = n.get("source_file")
         fam = _logical_key(src)
         return fam if fam_counts[fam] >= min_size else _node_group_key(src)
 
+    key_of = _cap_communities(nodes, fam_key, max_communities)
     key_counts = Counter(key_of(n) for n in nodes)
     order = [k for k, _ in sorted(key_counts.items(), key=lambda kc: (-kc[1], kc[0]))]
     cid_of = {k: i for i, k in enumerate(order)}
@@ -188,75 +239,109 @@ def _fix_graph_stats(page: str) -> str:
     )
 
 
-# vis-network node size range to map line counts into. Matches graphify's own
-# default spread (~10..40) so the rescale changes *what* drives size, not the
-# overall visual scale.
-_SIZE_MIN = 10.0
-_SIZE_MAX = 40.0
-_LOC_LINE_RE = re.compile(r"L(\d+)")
+# vis-network node size range. The floor is small on purpose: 56% of nodes sit at
+# degree 1, and 2.5k big hexagons is a wall of ink with no structure in it.
+_SIZE_MIN = 6.0
+_SIZE_MAX = 44.0
+# Size grows GEOMETRICALLY with degree — each extra edge multiplies rather than
+# adds — so a hub reads as a hub instead of as a slightly larger leaf. The old
+# sqrt-of-line-count scale did the opposite: it compressed the interesting end
+# flat. 1.14 is picked against this graph's own distribution (median degree 1,
+# p90 5, p99 21, max 171): it spends the whole 6..44 range on degrees 1-17, which
+# is where 97% of the nodes are, and saturates the long tail at the cap.
+_SIZE_GROWTH = 1.14
 
 
-def _loc_by_node_id(graph_json_path: "Path"):
-    """Approximate each node's line count from graph.json `source_location`
-    start lines (no file reads — most source files aren't mounted in the serving
-    container). Within a file, symbols are sorted by start line: a symbol's span
-    is the gap to the next symbol; the file node (label == basename) gets the
-    whole-file length (max start line). Returns {node_id: loc} or {} on any
-    failure (missing/unparseable graph.json) so the caller no-ops safely."""
-    try:
-        data = json.loads(Path(graph_json_path).read_text())
-        gnodes = data["nodes"]
-    except (OSError, ValueError, KeyError, TypeError):
-        return {}
-    starts, sources, labels = {}, {}, {}
-    for n in gnodes:
-        nid = n.get("id")
-        m = _LOC_LINE_RE.match(str(n.get("source_location") or ""))
-        if nid is None or not m:
-            continue
-        starts[nid] = int(m.group(1))
-        sources[nid] = n.get("source_file")
-        labels[nid] = n.get("label")
-    by_file = defaultdict(list)
-    for nid, start in starts.items():
-        if sources.get(nid):
-            by_file[sources[nid]].append((start, nid))
-    loc = {}
-    for src, entries in by_file.items():
-        entries.sort()
-        file_len = entries[-1][0]            # max start line ~ file length
-        base = src.rsplit("/", 1)[-1]
-        for i, (start, nid) in enumerate(entries):
-            if labels.get(nid) == base:      # the file node itself
-                loc[nid] = max(file_len, 1)
-            else:                            # symbol: span to the next def
-                nxt = entries[i + 1][0] if i + 1 < len(entries) else file_len
-                loc[nid] = max(nxt - start, 1)
-    return loc
-
-
-def _size_graph_by_loc(page: str, graph_json_path: "Path") -> str:
-    """Rescale RAW_NODES so node size tracks line count instead of graphify's
-    degree default. sqrt-compressed into _SIZE_MIN.._SIZE_MAX so a 460-line file
-    isn't 40x a one-liner. Nodes without a line span keep their existing size.
-    No-op if graph.json is unavailable or yields no spans."""
-    loc = _loc_by_node_id(graph_json_path)
-    if not loc:
-        return page
-    lo = math.sqrt(min(loc.values()))
-    hi = math.sqrt(max(loc.values()))
-    span = hi - lo
-
-    def _scale(value):
-        if span <= 0:
-            return (_SIZE_MIN + _SIZE_MAX) / 2
-        t = (math.sqrt(value) - lo) / span
-        return round(_SIZE_MIN + t * (_SIZE_MAX - _SIZE_MIN), 1)
-
+def _size_graph_by_degree(page: str) -> str:
+    """Rescale RAW_NODES so node size is exponential in the node's edge count,
+    capped at `_SIZE_MAX`. Reads the `degree` field, which
+    `_drop_graph_inferred_edges` has already recomputed against the surviving
+    edges — so this must run after the drops or hubs would be sized off edges the
+    page no longer draws. No-op if RAW_NODES is absent."""
     def _resize(nodes):
         for n in nodes:
-            if n.get("id") in loc:
-                n["size"] = _scale(loc[n["id"]])
+            d = max(int(n.get("degree") or 0), 1)
+            n["size"] = round(
+                min(_SIZE_MAX, _SIZE_MIN * _SIZE_GROWTH ** (d - 1)), 1
+            )
         return nodes
 
     return _sub_json_array(page, "RAW_NODES", _resize)
+
+
+# graphify emits `font: {"size": 0}` per node (labels off) and graph-overlay.js
+# used to turn them all on with a whole-DataSet update at load. Baked here
+# instead. The face must be the site mono -- canvas labels paint with whatever
+# the font stack resolves to, and the overlay repaints once document.fonts is
+# ready so the first paint isn't the fallback.
+_NODE_FONT = {"size": 12, "color": "#ffffff", "face": "Iosevka Mayukai Monolite"}
+# A label longer than this is a docstring-derived phrase rather than a symbol
+# name -- long enough to leak prose onto a guest-visible page, and far too long
+# to read on the canvas. Blanked, same as _redact_graph_nodes' hand-picked ids.
+_LABEL_MAX = 20
+
+
+def _label_graph_nodes(page: str) -> str:
+    """Give every node the site label font and blank any label over `_LABEL_MAX`
+    characters to "[ redacted ]". graph-overlay.js's `isRedacted` matches that
+    exact string (and the server-side "[redacted]") so the node-info panel still
+    withholds Type/Source/neighbours for them. No-op if RAW_NODES is absent."""
+    def _relabel(nodes):
+        for n in nodes:
+            if len(str(n.get("label") or "")) > _LABEL_MAX:
+                n["label"] = "[ redacted ]"
+            n["font"] = dict(_NODE_FONT)
+        return nodes
+
+    return _sub_json_array(page, "RAW_NODES", _relabel)
+
+
+# graphify's own physics block, matched as a whole so the replacement survives a
+# rebuild changing any value inside it. Anchored on the two-space indent it is
+# emitted at, and on the `interaction:` key that follows, so it can't run away
+# into the rest of the options literal.
+_PHYSICS_BLOCK_RE = re.compile(r"\n  physics: \{.*?\n  \},\n(?=  interaction:)", re.DOTALL)
+# One-shot layout, then still. The constants are graph-overlay.js's old tuned set
+# (it used to apply them AFTER graphify had already stabilised with its own,
+# which meant stabilising twice and then simulating forever); applying them here
+# means the single stabilisation pass produces the layout that is kept.
+# `damping` is high and `minVelocity` is coarse on purpose: this sim has one job,
+# to stop. theta 0.8 loosens the Barnes-Hut approximation -- on 4.5k nodes the
+# force error is invisible and the saving is not. `updateInterval` is small so
+# the run yields the main thread often: vis runs each interval's iterations in
+# one synchronous batch, and a batch the size of the whole run freezes the tab
+# (no timers, no progress bar, nothing to say the page is working).
+_PHYSICS_BLOCK = """
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      theta: 0.8,
+      gravitationalConstant: -628,
+      centralGravity: 0.025,
+      springLength: 30,
+      springConstant: 0.22,
+      damping: 0.9,
+      avoidOverlap: 1,
+    },
+    maxVelocity: 50,
+    minVelocity: 4,
+    stabilization: { enabled: true, iterations: 220, updateInterval: 20, fit: true },
+  },
+"""
+# Curved edges cost a bezier per edge per frame. At 6k edges that is the single
+# most expensive thing on the canvas, and it buys nothing a straight line doesn't
+# say. `selectionWidth: 3` is kept -- the hover highlight rides on it.
+_EDGE_SMOOTH = ("edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 }",
+                "edges: { smooth: false, selectionWidth: 3 }")
+
+
+def _tune_graph_physics(page: str) -> str:
+    """Replace graphify's physics block with a one-shot stabilisation, and
+    straighten the edges. graph.html's own `stabilizationIterationsDone` handler
+    then disables physics and the layout holds still -- which is the whole point:
+    a force sim that never idles is a canvas redraw every frame forever, and on
+    this graph that measured 0.4 fps. Each half no-ops if graphify stops emitting
+    what it matches."""
+    page = _PHYSICS_BLOCK_RE.sub(lambda _m: _PHYSICS_BLOCK, page, count=1)
+    return page.replace(_EDGE_SMOOTH[0], _EDGE_SMOOTH[1], 1)

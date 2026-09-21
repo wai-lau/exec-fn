@@ -1,91 +1,27 @@
-// /graph overlay behavior — injected by the /graph route (api/main.py).
-// Layout: graph canvas on top, physics + sidebar in the bottom half, one button
-// to hide both downward.
-// 1. Apply tuned physics defaults, keep physics ENABLED (graph.html disables it
-//    after stabilization — re-enable once).
-// 2. Force every node label visible and use the site font.
-// 3. Render the physics configurator into our own persistent #gp-physics column
-//    via configure.container so it never disappears across vis re-renders.
-// `network` and `nodesDS` are top-level consts in graph.html's classic script,
-// reachable here through the shared global lexical scope.
-/* global network, nodesDS, showInfo */
+// /graph overlay behavior — injected by the /graph route (api/routes_graph.py).
+// Layout: graph canvas on top, physics + node-info panels collapsed at the edges.
+//
+// The page is DELIBERATELY STILL. graphify stabilises the layout once (physics
+// params are patched in server-side by graph_style._tune_graph_physics) and then
+// graph.html's own `stabilizationIterationsDone` handler switches physics off for
+// good. This file used to undo exactly that — re-enabling physics, running a
+// camera tour, and random-walking gravity every 10s — which left a 4.5k-node
+// canvas redrawing every frame forever, measured at 0.4 fps with 4.2s frames.
+// What replaced the tour is `highlight()`: the camera never moves, and the
+// hovered node's whole COMMUNITY goes bold white instead.
+//
+// Everything that can be decided once per artifact (label font, long-label
+// redaction, dropping unconnected nodes) now happens server-side in
+// graph_style/graph_scrub, so nothing here walks the whole DataSet at load.
+//
+// `network`, `nodesDS` and `edgesDS` are top-level consts in graph.html's classic
+// script, reachable here through the shared global lexical scope.
+/* global network, nodesDS, edgesDS, showInfo */
 (function () {
-  var PHYSICS = {
-    enabled: true,
-    forceAtlas2Based: {
-      theta: 0.6,
-      gravitationalConstant: -628,
-      centralGravity: 0.025,
-      springLength: 30,
-      springConstant: 0.22,
-      damping: 0.95,
-      avoidOverlap: 1,
-    },
-    maxVelocity: 1,
-    minVelocity: 1,
-    solver: 'forceAtlas2Based',
-    // No wind: a constant force keeps avg node velocity above minVelocity
-    // forever, so the physics loop never idles -> CPU pegs and the graph goes
-    // laggy ("freaks out") after running a while. Breathing now comes only from
-    // the 10s gravity nudge, which lets the sim settle between pulses.
-  };
-
-  function showAllLabels() {
-    if (typeof nodesDS === 'undefined') {
-      return;
-    }
-    var updates = nodesDS.map(function (n) {
-      return {
-        id: n.id,
-        font: { size: 12, color: '#ffffff', face: 'Iosevka Mayukai Monolite' },
-      };
-    });
-    nodesDS.update(updates);
-    // canvas labels need the web font loaded before they paint — repaint once ready
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(function () {
-        network.redraw();
-      });
-    }
-  }
-
-  // Redact any node label longer than 20 chars — show "[ redacted ]" instead.
-  function redactLongLabels() {
-    if (typeof nodesDS === 'undefined') {
-      return;
-    }
-    var updates = [];
-    nodesDS.forEach(function (n) {
-      if (n.label && n.label.length > 20) {
-        updates.push({ id: n.id, label: '[ redacted ]' });
-      }
-    });
-    if (updates.length) {
-      nodesDS.update(updates);
-    }
-  }
-
-  // Hide orphaned nodes (no edges, _degree 0) by default — they clutter the
-  // periphery and carry no relationships.
-  function hideOrphans() {
-    if (typeof nodesDS === 'undefined') {
-      return;
-    }
-    var updates = [];
-    nodesDS.forEach(function (n) {
-      if (!n._degree) {
-        updates.push({ id: n.id, hidden: true });
-      }
-    });
-    if (updates.length) {
-      nodesDS.update(updates);
-    }
-  }
-
   // A node is "redacted" when its label was blanked — server-side to
-  // "[redacted]" (_redact_graph_nodes) or client-side to "[ redacted ]" (long
-  // labels, redactLongLabels above). For those, the node-info panel must not
-  // leak Type/Source or the neighbor list.
+  // "[redacted]" (_redact_graph_nodes) or "[ redacted ]" (_label_graph_nodes,
+  // for anything over 20 chars). For those, the node-info panel must not leak
+  // Type/Source or the neighbor list.
   function isRedacted(n) {
     return n && (n.label === '[ redacted ]' || n.label === '[redacted]');
   }
@@ -126,50 +62,10 @@
     };
   }
 
-  // Single either/or toggle: "freeze" (physics off, no camera tour) vs "tour"
-  // (physics on + camera tour). Mutually exclusive. Default = tour.
-  var modeToggle = null;
-  var mode = 'tour';
-
-  function makeControls() {
-    var row = document.createElement('div');
-    row.id = 'gp-controls';
-    row.className = 'gp-freeze';
-    var sw = document.createElement('div');
-    sw.className = 'gp-toggle-switch';
-    ['freeze', 'tour'].forEach(function (m) {
-      var seg = document.createElement('button');
-      seg.type = 'button';
-      seg.className = 'gp-seg' + (m === mode ? ' active' : '');
-      seg.dataset.mode = m;
-      seg.textContent = m;
-      seg.addEventListener('click', function () { setMode(m); });
-      sw.appendChild(seg);
-    });
-    modeToggle = sw;
-    row.appendChild(sw);
-    return row;
-  }
-
-  function setMode(m) {
-    mode = m;
-    if (modeToggle) {
-      modeToggle.querySelectorAll('.gp-seg').forEach(function (s) {
-        s.classList.toggle('active', s.dataset.mode === m);
-      });
-    }
-    network.setOptions({ physics: { enabled: m !== 'freeze' } });
-    setTour(m === 'tour');
-  }
-
-  // Programmatic physics toggle — used by the load settle pulse only. Does not
-  // touch the mode toggle (the pulse is transient; mode stays as selected).
-  function setFreeze(on) {
-    network.setOptions({ physics: { enabled: !on } });
-  }
-
   // Physics column (bottom-left). vis renders the configurator into its inner
-  // body via configure.container, so it survives vis's internal re-renders.
+  // body via configure.container, so it survives vis's internal re-renders. The
+  // panel keeps its `enabled` checkbox (see graph-overlay.css) — physics is off
+  // by default now, so restarting the sim is the one thing a slider needs.
   function buildPhysicsColumn() {
     // No custom header — vis renders its own "physics" group header inside.
     var panel = document.createElement('div');
@@ -178,9 +74,6 @@
     body.className = 'gp-panel-body';
     panel.appendChild(body);
     document.body.appendChild(panel);
-    // freeze/tour controls live in their own fixed top-left box, always visible
-    // (independent of the collapsible physics panel).
-    document.body.appendChild(makeControls());
     return body;
   }
 
@@ -214,117 +107,127 @@
     });
   }
 
-  // Camera tour: pick a random cluster, focus its highest-degree node, switch
-  // to another random cluster every 10s. Clusters with < 7 nodes are skipped.
-  // Toggled by the "tour:" checkbox.
-  var tourIds = [];
-  var tourTimer = null;
-  var gravBase = PHYSICS.forceAtlas2Based.gravitationalConstant;
-  var gravConst = gravBase;
-  var GRAV_BAND = 80;   // clamp the walk to +/-this around the base
+  // ── community highlight (what replaced the camera tour) ───────────────────
+  // Hover or tap any node and its WHOLE community — every node in it and every
+  // edge inside it — goes bold white. The camera never moves: the tour used to
+  // fly to a cluster and show you it alone; this shows you where that cluster
+  // lives in the graph you are already looking at.
+  //
+  // It writes to `network.body` and NEVER to the DataSets. A DataSet update
+  // fires vis's whole _dataUpdated cascade — visible-index rebuild, physics-body
+  // rebuild for all 4.5k nodes and 6.5k edges — which measured 5.7s against
+  // 1.0s for mutating the drawn objects and redrawing once. Leaving the DataSets
+  // pristine also makes them the restore source: clearing reads the original
+  // colour straight back out of them.
+  var WHITE = '#ffffff';
+  var BORDER_ON = 4;
+  var EDGE_WIDTH_ON = 3;
+  var baseBorder = 2;       // resolved from the first drawn node at init
+  var baseEdgeColor = null; // ditto for edges — RAW_EDGES colours are uniform
+  var commNodes = {};       // community id -> node ids
+  var commEdges = {};       // community id -> edge ids with BOTH ends inside
+  var commOf = {};          // node id -> community id
+  var lit = null;           // the community currently highlighted
 
-  // Random-walk the gravitational constant by [-20, 20] each refocus so the
-  // layout keeps breathing — but CLAMP it to a band around the base. Left
-  // unbounded it drifts hundreds off over an hour, destabilising physics into
-  // the laggy "freak out" the tour eventually hit.
-  function nudgeGravity() {
-    gravConst = Math.max(gravBase - GRAV_BAND,
-      Math.min(gravBase + GRAV_BAND, gravConst + Math.random() * 40 - 20));
-    network.setOptions({
-      physics: { forceAtlas2Based: { gravitationalConstant: gravConst } },
-    });
-  }
-
-  function focusRandomCluster() {
-    if (!tourIds.length) {
-      return;
-    }
-    nudgeGravity();
-    var id = tourIds[Math.floor(Math.random() * tourIds.length)];
-    network.focus(id, {
-      scale: 0.65,
-      animation: { duration: 1500, easingFunction: 'easeInOutQuad' },
-    });
-    network.selectNodes([id]);
-  }
-
-  function setTour(on) {
-    if (tourTimer) {
-      clearInterval(tourTimer);
-      tourTimer = null;
-    }
-    if (on && tourIds.length) {
-      focusRandomCluster();
-      tourTimer = setInterval(focusRandomCluster, 10000);
-    }
-  }
-
-  // How many distinct communities a node touches (itself + its neighbors).
-  // Cross-cluster hubs (> 2) are skipped as focus targets.
-  function clusterSpan(id, ownComm) {
-    var comms = {};
-    if (ownComm !== undefined && ownComm !== null) {
-      comms[ownComm] = 1;
-    }
-    network.getConnectedNodes(id).forEach(function (nid) {
-      var n = nodesDS.get(nid);
-      if (n && n._community !== undefined && n._community !== null) {
-        comms[n._community] = 1;
-      }
-    });
-    return Object.keys(comms).length;
-  }
-
-  function initTour() {
-    if (typeof nodesDS === 'undefined') {
-      return;
-    }
-    var groups = {}; // community -> { topId, topDeg, count }
+  function indexCommunities() {
     nodesDS.forEach(function (n) {
       var c = n._community;
-      var d = n._degree || 0;
       if (c === undefined || c === null) {
         return;
       }
-      if (!groups[c]) {
-        groups[c] = { topId: null, topDeg: -1, count: 0 };
-      }
-      groups[c].count += 1;
-      // a node spanning > 2 clusters is a bridge hub — never a focus target
-      if (clusterSpan(n.id, c) > 2) {
-        return;
-      }
-      if (d > groups[c].topDeg) {
-        groups[c].topDeg = d;
-        groups[c].topId = n.id;
+      commOf[n.id] = c;
+      (commNodes[c] = commNodes[c] || []).push(n.id);
+    });
+    edgesDS.forEach(function (e) {
+      var c = commOf[e.from];
+      if (c !== undefined && c === commOf[e.to]) {
+        (commEdges[c] = commEdges[c] || []).push(e.id);
       }
     });
-    tourIds = Object.keys(groups)
-      .filter(function (c) { return groups[c].count >= 7 && groups[c].topId; })
-      .map(function (c) { return groups[c].topId; });
-    // let the initial fit settle, then start the tour if its checkbox is on
-    setTimeout(function () {
-      if (mode === 'tour') {
-        setTour(true);
+    var firstNode = network.body.nodes[nodesDS.getIds()[0]];
+    if (firstNode) {
+      baseBorder = firstNode.options.borderWidth;
+    }
+    var firstEdge = network.body.edges[edgesDS.getIds()[0]];
+    if (firstEdge) {
+      baseEdgeColor = JSON.parse(JSON.stringify(firstEdge.options.color));
+    }
+  }
+
+  function paint(cid, on) {
+    (commNodes[cid] || []).forEach(function (id) {
+      var n = network.body.nodes[id];
+      if (!n) {
+        return;
       }
-    }, 2000);
+      var src = nodesDS.get(id);
+      n.setOptions(on
+        ? { borderWidth: BORDER_ON,
+          color: { background: src.color.background, border: WHITE,
+            highlight: { background: src.color.background, border: WHITE },
+            hover: { background: src.color.background, border: WHITE } } }
+        : { borderWidth: baseBorder, color: src.color });
+    });
+    (commEdges[cid] || []).forEach(function (id) {
+      var e = network.body.edges[id];
+      if (!e) {
+        return;
+      }
+      // inherit:false is the load-bearing half — left inheriting, the edge takes
+      // its colour from its endpoint node and ignores `color.color` entirely.
+      e.setOptions(on
+        ? { width: EDGE_WIDTH_ON,
+          color: { color: WHITE, inherit: false, opacity: 1 } }
+        : { width: edgesDS.get(id).width, color: baseEdgeColor });
+    });
+  }
+
+  function highlight(nodeId) {
+    // Normalise "no community" to null BEFORE the compare — a full redraw costs
+    // ~1.5s on the slowest device that reaches this page, so the no-op case has
+    // to actually be a no-op.
+    var cid = nodeId !== null && nodeId !== undefined && commOf[nodeId] !== undefined
+      ? commOf[nodeId] : null;
+    if (cid === lit) {
+      return;
+    }
+    if (lit !== null) {
+      paint(lit, false);
+    }
+    lit = cid;
+    if (lit !== null) {
+      paint(lit, true);
+    }
+    network.redraw();
+  }
+
+  function wireHighlight() {
+    indexCommunities();
+    network.on('hoverNode', function (p) { highlight(p.node); });
+    network.on('blurNode', function () { highlight(null); });
+    // Touch never hovers, so a tap has to do it too — and a tap on empty canvas
+    // clears, which is the only way back on a phone.
+    network.on('click', function (p) {
+      highlight(p.nodes && p.nodes.length ? p.nodes[0] : null);
+    });
   }
 
   // Hard zoom/pan walls: the camera STOPS at the threshold rather than
   // snapping back. vis-network has no node-count zoom bound, so translate the
   // intent into scale + pan bounds and clamp them in place on each USER
   // gesture:
-  //   - zoom OUT wall: viewport world-area <= half the node-cloud area, so at
-  //     most ~half the nodes are ever in frame  -> a minimum scale.
+  //   - zoom OUT wall: the whole cloud fits, with a little air around it. The
+  //     page OPENS at that fit, so this wall has to admit it — it used to cap
+  //     the viewport at half the cloud's area, which the opening fit violated
+  //     on arrival.
   //   - zoom IN wall: viewport world-area >= 2 nodes' worth of area, so >= ~2
   //     nodes stay in frame  -> a maximum scale.
   //   - pan wall: the viewport centre is clamped to the node bounding box, so
   //     the cloud can't be dragged off-screen.
-  // Bounds are recomputed live from current node positions (the layout keeps
-  // breathing). Programmatic camera moves (tour focus) send a zoom payload with
-  // params.pointer == null (vis zoom carries no `.event`) and are left alone.
+  // Bounds are recomputed live from current node positions. Physics is off, so
+  // they only actually change if a node is dragged.
   var MIN_VISIBLE = 2;
-  var MAX_VISIBLE_FRACTION = 0.5;
+  var FIT_MARGIN = 0.8;   // how far past a whole-graph fit you may still zoom out
 
   function setupZoomLimits() {
     if (typeof network === 'undefined' || typeof nodesDS === 'undefined') {
@@ -334,19 +237,13 @@
     if (!container) {
       return;
     }
-    var liveIds = [];
-    nodesDS.forEach(function (n) {
-      if (!n.hidden) {
-        liveIds.push(n.id);
-      }
-    });
-    if (liveIds.length <= MIN_VISIBLE / MAX_VISIBLE_FRACTION) {
+    var liveIds = nodesDS.getIds();
+    if (liveIds.length <= MIN_VISIBLE) {
       return;
     }
     var clamping = false;   // re-entrancy guard for our own moveTo
 
-    // Live node bounding box + scale walls derived from it. Recomputed each
-    // gesture so the walls track the breathing layout.
+    // Live node bounding box + scale walls derived from it.
     function bounds() {
       var pos = network.getPositions(liveIds);
       var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -357,15 +254,15 @@
         if (p.y < minY) { minY = p.y; }
         if (p.y > maxY) { maxY = p.y; }
       }
-      var area = Math.max((maxX - minX) * (maxY - minY), 1);
+      var w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
       var vp = container.clientWidth * container.clientHeight;
-      var n = liveIds.length;
-      // viewport world-area = vp / scale^2; cap it at half the cloud area
-      // (zoom-out wall) and floor it at 2/n of the cloud area (zoom-in wall).
+      // the scale at which the whole cloud fits the viewport
+      var fit = Math.min(container.clientWidth / w, container.clientHeight / h);
       return {
         minX: minX, maxX: maxX, minY: minY, maxY: maxY,
-        minScale: Math.sqrt(vp / (area * MAX_VISIBLE_FRACTION)),
-        maxScale: Math.sqrt(vp / (area * (MIN_VISIBLE / n))),
+        minScale: fit * FIT_MARGIN,
+        // viewport world-area = vp / scale^2; floor it at 2/n of the cloud area
+        maxScale: Math.sqrt(vp / (w * h * (MIN_VISIBLE / liveIds.length))),
       };
     }
 
@@ -380,7 +277,7 @@
       var b = bounds();
       var scale = network.getScale();
       var pos = network.getViewPosition();
-      var cs = clamp(scale, b.minScale, b.maxScale);
+      var cs = clamp(scale, b.minScale, Math.max(b.minScale, b.maxScale));
       var cx = clamp(pos.x, b.minX, b.maxX);
       var cy = clamp(pos.y, b.minY, b.maxY);
       if (cs === scale && cx === pos.x && cy === pos.y) {
@@ -394,7 +291,7 @@
     network.on('zoom', function (params) {
       // vis zoom payload is {direction, scale, pointer} -- no `.event` field
       // (only dragEnd carries one). User wheel/pinch sets pointer non-null;
-      // programmatic/keyboard/tour-focus zoom sends pointer:null -> skipped.
+      // programmatic/keyboard zoom sends pointer:null -> skipped.
       if (params && params.pointer) {
         clampView();
       }
@@ -407,8 +304,14 @@
     });
   }
 
-  // Cover the graph for 3s with a simple loading bar so the layout settles
-  // before the nodes are revealed.
+  // Cover the graph while the one stabilisation pass runs, then reveal the whole
+  // fitted graph at once. The bar tracks vis's real `stabilizationProgress` —
+  // the CSS keyframe it replaced ran for a flat 3s and then sat full while the
+  // layout kept settling, which is how a 20s cap came to lift the cover onto a
+  // blank canvas. LOAD_CAP is a failsafe against a `stabilizationIterationsDone`
+  // that never arrives, not a schedule.
+  var LOAD_CAP = 120000;
+
   function showLoading() {
     var overlay = document.createElement('div');
     overlay.id = 'gp-loading';
@@ -419,55 +322,54 @@
     track.appendChild(fill);
     overlay.appendChild(track);
     document.body.appendChild(overlay);
-    setTimeout(function () {
-      overlay.classList.add('gp-hide');
-      document.body.classList.add('gp-loaded');
-      setTimeout(function () { overlay.remove(); }, 800);
-    }, 3000);
+    var done = false;
+    return {
+      progress: function (frac) {
+        fill.style.width = Math.round(Math.min(1, Math.max(0, frac)) * 100) + '%';
+      },
+      reveal: function () {
+        if (done) {
+          return;
+        }
+        done = true;
+        fill.style.width = '100%';
+        overlay.classList.add('gp-hide');
+        document.body.classList.add('gp-loaded');
+        setTimeout(function () { overlay.remove(); }, 800);
+      },
+    };
   }
 
-  function go() {
+  function go(cover) {
     if (typeof network === 'undefined') {
-      setTimeout(go, 50);
+      setTimeout(function () { go(cover); }, 50);
       return;
     }
-    showAllLabels();
-    redactLongLabels();
-    hideOrphans();
     patchInfoPanel();
-    var physBody = buildPhysicsColumn();
-    network.setOptions({ physics: PHYSICS });
-    // settle fast (maxVelocity 200) while the 3s loading cover hides the graph,
-    // then drop back to the default 0.5s before the cover lifts.
-    network.setOptions({ physics: { maxVelocity: 200 } });
-    setTimeout(function () {
-      network.setOptions({ physics: { maxVelocity: PHYSICS.maxVelocity } });
-    }, 2500);
     network.setOptions({
       configure: {
         enabled: true,
         filter: 'physics',
         showButton: true,
-        container: physBody,
+        container: buildPhysicsColumn(),
       },
     });
     // physics collapses down (▾ open / ▴ collapsed); node info collapses right
     // (▸ open / ◂ collapsed). Both start collapsed; opening one closes the other.
     addToggles();
-    // graph.html disables physics once stabilization finishes (its own `once`
-    // handler). Re-enable it exactly once — `.once` avoids a re-stabilization loop.
-    network.once('stabilizationIterationsDone', function () {
-      network.setOptions({ physics: { enabled: true } });
-    });
-    // Freeze-then-unfreeze pulse after load (settles, then resumes physics).
-    setTimeout(function () {
-      setFreeze(true);
-      setTimeout(function () {
-        setFreeze(false);
-      }, 400);
-    }, 800);
-    initTour();
+    wireHighlight();
     setupZoomLimits();
+    // Open on the whole graph. graphify's stabilization already carries
+    // fit:true, but it fits BEFORE our CSS has finished sizing the canvas, so
+    // re-fit once the layout is final and the cover is about to lift.
+    network.on('stabilizationProgress', function (p) {
+      cover.progress(p && p.total ? p.iterations / p.total : 0);
+    });
+    network.once('stabilizationIterationsDone', function () {
+      network.fit({ animation: false });
+      cover.reveal();
+    });
+    setTimeout(cover.reveal, LOAD_CAP);
   }
 
   // Reload after the device wakes from sleep. While suspended, setInterval is
@@ -485,6 +387,5 @@
     }, 10000);
   })();
 
-  showLoading();
-  go();
+  go(showLoading());
 })();
