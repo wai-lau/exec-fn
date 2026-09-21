@@ -46,7 +46,7 @@ _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=43">'
 _GRAPH_OVERLAY_JS = (
     '<script src="/graph-pulse-draw.js?v=1"></script>'
     '<script src="/graph-pulse.js?v=8"></script>'
-    '<script src="/graph-overlay.js?v=45"></script>'
+    '<script src="/graph-overlay.js?v=47"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).

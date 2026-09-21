@@ -24,6 +24,7 @@
 // script, reachable here through the shared global lexical scope.
 /* global network, nodesDS, graphPulse, showInfo */
 (function () {
+  var OPEN_ZOOM_OUT = 0.75;   // applied to the cover scale on first open
   // A node is "redacted" when its label was blanked — server-side to
   // "[redacted]" (_redact_graph_nodes) or "[ redacted ]" (_label_graph_nodes,
   // for anything over 20 chars). For those, the node-info panel must not leak
@@ -38,11 +39,19 @@
   // showInfo in graph.html's click/focus handlers resolves to this global.
   function patchInfoPanel() {
     if (typeof showInfo !== 'function') {
+      // graph.html defines network before showInfo, so the first attempt lands
+      // too early. Bailing silently left every node click filling a panel that
+      // stayed shut -- wait for it instead.
+      setTimeout(patchInfoPanel, 50);
       return;
     }
     var orig = showInfo;
     window.showInfo = function (id) {
       orig(id);
+      // Clicking a node used to fill the panel while leaving it collapsed, so
+      // the click looked like it had done nothing and the answer only
+      // appeared after a second click on the toggle.
+      openInfo();
       var n = typeof nodesDS !== 'undefined' ? nodesDS.get(id) : null;
       if (!isRedacted(n)) {
         return;
@@ -71,12 +80,25 @@
   // The node-info panel's toggle — always visible, and the only thing shown
   // while the panel is closed. It had a twin on the physics panel until that
   // panel was removed, which is why the wiring reads like it expects a pair.
+  var infoBtn = null;
+
+  // Open the node-info panel and put its toggle in the matching state. The
+  // toggle owns the arrow glyph, so anything that opens the panel from
+  // elsewhere has to move it too or the control lies about what it will do.
+  function openInfo() {
+    document.body.classList.add('gp-info-open');
+    if (infoBtn) {
+      infoBtn.textContent = '\u25b8';
+    }
+  }
+
   function addToggle() {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'gp-toggle gp-min-btn info';
     btn.textContent = '\u25c2';
     document.body.appendChild(btn);
+    infoBtn = btn;
     btn.addEventListener('click', function () {
       var open = document.body.classList.toggle('gp-info-open');
       btn.textContent = open ? '\u25b8' : '\u25c2';
@@ -89,8 +111,9 @@
   // file only starts it. Hovering deliberately does NOT interrupt it — a hover
   // used to pin the hovered node's whole community lit and steady, and having the
   // animation stop dead under the pointer was worse than the question it answered.
-  // Clicking a node still opens the node-info panel, which is graph.html's own
-  // handler and nothing to do with the canvas.
+  // Clicking a node opens the node-info panel: graph.html's own handler fills
+  // it (showInfo) and the wrapper above slides it open. Nothing to do with the
+  // canvas.
   //
   // Nothing here writes to the DataSets OR to network.body. The old highlight
   // mutated the drawn node objects and called network.redraw(), which is one full
@@ -265,7 +288,10 @@
       // right), never all at one end.
       var b = nodeBounds();
       network.moveTo({
-        scale: b.cover,
+        // Cover, then out a quarter: cover alone runs the cloud right to both
+        // edges, and a graph with no margin reads as cropped rather than as
+        // filling the frame.
+        scale: b.cover * OPEN_ZOOM_OUT,
         position: { x: b.cx, y: b.cy },
       });
       cover.reveal();
