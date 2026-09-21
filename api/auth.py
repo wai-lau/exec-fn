@@ -17,6 +17,16 @@ SESSION_TOKEN = hashlib.sha256(f"session:{API_KEY}".encode()).hexdigest()
 # earns it by solving a Cloudflare Turnstile challenge at POST /guest.
 GUEST_SESSION_TOKEN = hashlib.sha256(f"guest:{TURNSTILE_SECRET}".encode()).hexdigest()
 
+# How long a login sticks. Both tokens above are DERIVED from server env, so they
+# already survive every restart — what was ending the session was the cookie
+# itself: set with no max-age, it is a browser-session cookie the browser drops
+# when its session ends (a phone evicting the tab, a standalone PWA being killed),
+# which reads as "the server logged me out". 400 days is the ceiling Chrome and
+# Safari clamp any cookie to, and the same value the nightfall `nf_save` cookie
+# already uses. Safari's 7-day ITP cap applies to script-written cookies, not to
+# these — they are HttpOnly, set by the server.
+SESSION_MAX_AGE = 400 * 86400
+
 _TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 bearer = HTTPBearer(auto_error=False)
