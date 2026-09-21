@@ -12,6 +12,13 @@ and emission). web/icons/README.md explains the rules in prose."""
 # The icon PNGs: everything in web/ that is a subject on a tile. Excluded by
 # name because they are not icons -- a photo, a wordmark, a QR code.
 SKIP = {"IMG_25419", "ped-logo"}
+# Icons that stay on the LINE-ART path. Everything else is traced in its own
+# colours (icon_colour.py), which reads better on most of the set -- but where
+# a source is heavily dithered the full-colour trace reproduces the dither
+# faithfully, and faithful is not always what an icon wants. These seven were
+# each judged by eye against their colour version and kept as they were.
+LINE_ART = {"turbo", "bitman", "printer", "wizard", "data-file", "data-doctor",
+             "sentinel"}
 SKIP_PREFIX = ("qr-",)
 MAX_DIM = 64      # big sources are nearest-downsampled before tracing
 INK_BAND = 0.015  # luminance band above the darkest ink, absolute

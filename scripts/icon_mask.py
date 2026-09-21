@@ -57,6 +57,28 @@ def tile_colour(px, w, h):
     return Counter(ring).most_common(1)[0][0]
 
 
+def colour_groups(px, w, h, tile):
+    """{colour: {(x, y)}} for every opaque pixel that is not the tile. The
+    full-colour mode's reading of the image (see icon_colour.py)."""
+    groups = {}
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a <= 8 or (r, g, b) == tile:
+                continue
+            groups.setdefault((r, g, b), set()).add((x, y))
+    return groups
+
+
+def ink_colours(colours, band):
+    """The colours making up the linework: the darkest, plus everything within
+    `band` luminance of it -- the colour-space twin of ink_mask's rule."""
+    if not colours:
+        return set()
+    floor = min(relative_luminance(c) for c in colours)
+    return {c for c in colours if relative_luminance(c) <= floor + band}
+
+
 def ink_mask(im, stem=""):
     """{(x, y)} of the pixels that make up the icon's linework.
 

@@ -12,6 +12,23 @@ their own file because they are the part that GROWS — the algorithms are
 general, and what changes when an icon does not read is almost always an entry
 in that table rather than a rule.
 
+**Two modes.** Fifteen icons are traced in their OWN COLOURS: the tile is
+dropped (which is what makes the file transparent) and every other colour is
+painted as itself, with the ink taking the tile's colour so each icon keeps a
+rim of the identity the tile used to carry. That is the default, and it is the
+better answer for most of the set — at 27px THE SHADING IS THE SHAPE, so
+painting the shading gives back exactly what the line-art mode spent a great
+deal of machinery trying to reconstruct.
+
+Seven stay on the LINE-ART path (`LINE_ART` in `icon_config.py`): `turbo`,
+`bitman`, `printer`, `wizard`, `data-file`, `data-doctor`, `sentinel`. Where a
+source is heavily dithered the full-colour trace reproduces the dither
+faithfully, and faithful is not always what an icon wants — these seven were
+each judged by eye against their colour version and kept. Everything below this line describes
+that path.
+
+---
+
 Each source is a subject drawn in black linework on a flat coloured tile. That
 linework is what gets traced, pixel for pixel. An earlier pass drew lookalikes
 by hand instead and they were the wrong shapes wearing the right colours; the
