@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- crested skull -->
+<path d="M23.4 15.2c0 3.3-1.7 6.1-4.2 7.3v2.7h-6.4v-2.7c-2.5-1.2-4.2-4-4.2-7.3a7.4 7.4 0 0 1 14.8 0z"/>
+<path d="M11.9 13.9 15 16.5l-3.1 2.3z"/>
+<path d="M20.1 13.9 17 16.5l3.1 2.3z"/>
+<path d="M14.5 21h3"/>
+<path d="M11 9.8C11 5.4 13.2 2.8 16 2.8s5 2.6 5 7"/>
+<path d="M11 9.8 8.3 5.4M21 9.8l2.7-4.4"/>
+<path d="M9.9 12.9 3.6 10.8c-.3 4.1 1.6 7.7 5.1 9.8"/>
+<path d="M22.1 12.9 28.4 10.8c.3 4.1-1.6 7.7-5.1 9.8"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- blade with version readout -->
+<path d="M13.2 17.2 25.5 4.5l2.8 2.8-12.3 12.7z"/>
+<path d="M13.2 17.2 16 20 9 27 6.2 24.2z"/>
+<path d="M12.2 16.2 17 21"/>
+<rect x="19" y="22" width="10" height="7" rx="1.5"/>
+<path d="M22 24.5v2M26 24.5v2"/>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- peaked cap with rank crosses -->
+<path d="M9 16.2v-3c0-3.9 3.1-6.8 7-6.8s7 2.9 7 6.8v3"/>
+<path d="M5.4 16.2h21.2"/>
+<path d="M5.4 16.2c0 2.8 4.7 4.4 10.6 4.4s10.6-1.6 10.6-4.4"/>
+<path d="M8.8 17.9c1.6 1.4 4.3 2.2 7.2 2.2s5.6-.8 7.2-2.2"/>
+<path d="M16 9.4 17.7 11.6 16 13.8 14.3 11.6z"/>
+<path d="M21 23.5v4M19 25.5h4"/>
+<path d="M27 23.5v4M25 25.5h4"/>
+</svg>
