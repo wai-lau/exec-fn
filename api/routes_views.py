@@ -21,7 +21,7 @@ from pages import (
     _NAV_HREFS, _NAV_ICONS, _NAV_LABELS,
 )
 from helpers import DATA_DIR
-from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, TURNSTILE_SITE_KEY, API_KEY, verify_turnstile
+from auth import SESSION_TOKEN, GUEST_SESSION_TOKEN, SESSION_MAX_AGE, TURNSTILE_SITE_KEY, API_KEY, verify_turnstile
 from routes_nightfall import build_nightfall_html, save_identity, set_guest_cookie
 from security import render_security, load_security_data
 
@@ -184,7 +184,8 @@ async def login(request: Request):
     if not secrets.compare_digest(key, API_KEY):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid key")
     resp = RedirectResponse(url=_safe_local_path(form.get("next", ""), "/rd"), status_code=303)
-    resp.set_cookie("session", SESSION_TOKEN, httponly=True, samesite="lax", secure=True)
+    resp.set_cookie("session", SESSION_TOKEN, max_age=SESSION_MAX_AGE,
+                    httponly=True, samesite="lax", secure=True)
     return resp
 
 
@@ -205,7 +206,8 @@ async def guest_login(request: Request):
     if not await verify_turnstile(token, request.headers.get("cf-connecting-ip")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Turnstile verification failed")
     resp = RedirectResponse(url=next_path, status_code=303)
-    resp.set_cookie("guest_session", GUEST_SESSION_TOKEN, httponly=True, samesite="lax", secure=True)
+    resp.set_cookie("guest_session", GUEST_SESSION_TOKEN, max_age=SESSION_MAX_AGE,
+                    httponly=True, samesite="lax", secure=True)
     return resp
 
 
