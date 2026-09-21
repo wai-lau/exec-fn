@@ -18,7 +18,7 @@ SKIP = {"IMG_25419", "ped-logo"}
 # faithfully, and faithful is not always what an icon wants. These seven were
 # each judged by eye against their colour version and kept as they were.
 LINE_ART = {"turbo", "bitman", "printer", "wizard", "data-file", "data-doctor",
-             "sentinel"}
+             "sentinel", "bug"}
 # Line-art icons whose subject is FILLED rather than outlined: the mask takes
 # everything the outline encloses as well as the outline itself. The drop
 # shadow lies OUTSIDE the linework, so it is excluded by construction rather
@@ -48,10 +48,20 @@ FILL_PAINT = {
     # The figure, a darker orange under its own orange rim -- the same
     # relation bitman's body has to its gold.
     "sentinel": [{"seeds": None, "fill": "#8a5200"}],
+    # The shell, the same relation again in green.
+    "bug": [{"seeds": None, "fill": "#4a8a00"}],
 }
 SKIP_PREFIX = ("qr-",)
 MAX_DIM = 64      # big sources are nearest-downsampled before tracing
-INK_BAND = 0.015  # luminance band above the darkest ink, absolute
+INK_BAND = 0.015
+# Per-icon widening of that band, for DETACHED marks only. bug's two floating
+# specks are #2a3f00 at luminance 0.042 -- linework by intent, but too far off
+# black for the default band, so the trace dropped them and the dome lost its
+# dots. Widening alone is not enough: that same colour is also used as shading
+# welded along the outline, fifteen pixels in all, and admitting the lot drew a
+# dashed row under the eyes. So the widened band only takes pixels that touch
+# no base ink -- the widening exists for marks that stand alone.
+ICON_INK_BAND = {"bug": 0.05}  # luminance band above the darkest ink, absolute
 MIN_AREA = 1.0    # px^2; smaller loops are dither speckle, not linework
 EDGE_DELTA = 40   # RGB distance that counts as a colour boundary
 MIN_REGION = 3    # px; a smaller interior colour run is dither, not a feature
@@ -172,21 +182,6 @@ DETAIL_MIN_REGION = {
     # keeps the hat, its dark band and the moon, and drops the noise.
     "wizard": 10,
 }
-# Colours a full-colour icon paints in its RIM colour rather than their own.
-# The ink is found as the darkest cluster, which is the right rule for the
-# linework proper but leaves anything drawn a shade lighter to fend for
-# itself: bug's two floating specks are #2a3f00, near-black, and on this
-# site's background they simply are not there. They belong with the outline.
-AS_INK = {"bug": ((42, 63, 0),)}
-
-# Full-colour icons whose INTERIOR ink keeps its own colour instead of taking
-# the rim. The ink is one colour but not one shape: the silhouette is a single
-# connected region and anything else drawn in it -- bug's two eyes -- is its
-# own island inside the subject. Painting every ink pixel in the rim turns
-# those islands the same bright green as the outline; this keeps the largest
-# region (the outline) on the rim and leaves the islands black.
-INNER_INK_KEPT = {"bug"}
-
 # An icon whose SUBJECT is not the colour of its tile. turbo's tile is the same
 # blue as fiddle's and printer's, but the icon is a lightning bolt and the bolt
 # is yellow; data-doctor's case is white on a blue tile. Both wear the

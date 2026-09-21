@@ -20,8 +20,8 @@ better answer for most of the set — at 27px THE SHADING IS THE SHAPE, so
 painting the shading gives back exactly what the line-art mode spent a great
 deal of machinery trying to reconstruct.
 
-Seven stay on the LINE-ART path (`LINE_ART` in `icon_config.py`): `turbo`,
-`bitman`, `printer`, `wizard`, `data-file`, `data-doctor`, `sentinel`. Where a
+Eight stay on the LINE-ART path (`LINE_ART` in `icon_config.py`): `turbo`,
+`bitman`, `printer`, `wizard`, `data-file`, `data-doctor`, `sentinel`, `bug`. Where a
 source is heavily dithered the full-colour trace reproduces the dither
 faithfully, and faithful is not always what an icon wants — these seven were
 each judged by eye against their colour version and kept. Everything below this line describes
