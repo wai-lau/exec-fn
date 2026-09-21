@@ -505,17 +505,37 @@ glyph and the toggle both surfaces mount; the home-box probe and the canned
 opening). The control itself is **`web/voice-ui.js` + `voice-ui.css`**: one
 `.voice-mute` element, one `data-on` contract, three placements.
 
-**The star is drawn by a TRANSFORM, never by `font-size`** (fixed 2026-09-21).
-`.voice-glyph` is an inline-block, and an inline-block's own line-height IS its
-box height — so `font-size: 1.3em` gave the glyph a 20.18px box on an 18.62px
-line and every composer carrying it grew 1.56px. Measured that day at 430x932:
-`/cc`'s input bar 26.17 against `/mtg`'s 24.61, and `/cc` publishes that bar's
-height as `--input-h` for `#terminal` to sit above, so the star was quietly
-eating a row of transcript on the page that has the least of it. `transform:
-scale(1.3)` paints the same size and occupies 1em; the optical drop off the
-bracket baseline halves to `-0.04em` with it (the old `-0.08em` cost the line
-0.19px of descent it had no room for). Both bars now measure 24.61. The same
-rule, for the same reason, sizes the nav's glyph label (§12).
+**The star is a CHARACTER in the bracket's own font, and a transform is the only
+thing that sizes it** (fixed 2026-09-21). It was a `--font-ui` star at
+`font-size: 1.3em` with `0.12em` side margins, and that cost this control both of
+a composer's published dimensions. **Height**: an inline-block's own line-height
+IS its box height, so a 20.18px box on an 18.62px line grew every composer
+carrying the star by 1.56px — `/cc`'s input bar measured 26.17 against `/mtg`'s
+24.61, and `/cc` publishes that bar as `--input-h` for `#terminal` to sit above,
+so the star was quietly eating a row of transcript on the page that has the
+least of it. **Width**: a 0.84em advance plus 0.24em of margin made `[✦]` nine
+pixels wider than the `[x]` beside it (38.28 against 29.28), on a one-line
+composer where the two read as a pair.
+
+Iosevka has this glyph and its advance IS the mono cell, so in `--font-mono` the
+star occupies exactly one character: three cells for `[✦]`, three for `[x]`,
+29.28px each, and the line box is a character's. The font supplies the geometry
+and `transform: scale(1.25)` only says how much of the cell the star fills — at
+the font's own size it read thin beside the bracket strokes (ink 6.67px →
+8.67px), and that is about as far as it goes: the gap to each bracket is down to
+1px against the `[x]`'s 2.33px. Layout is untouched at any factor, which is the
+whole reason the size lives in a transform. Both bars measure 24.61 and both
+controls 29.28. The nav's glyph label is sized the same way, for the same reason
+(§12).
+
+**`/tarot` overrides both the factor and the size**, in `tarot.css`
+(`.voice-mute.spread-btn .voice-glyph`). One mono cell is the right size next to
+an `[x]`; that page has no `[x]` — the star sits in a column of glyph buttons,
+`[↺]` at 1.7em and `[♪]` at 1.3em, both with real side margins — so the
+cell-sized star read tiny and touched its own brackets (ink 5.67px against the
+note's 10.67, 1px gaps against 4px). It takes the reset glyph's metrics plus the
+factor that brings a star's ink up to a note's: 10.33px, 3.33px gaps, and the
+same button height as `[↺]` by construction, since the box is the font-size.
 
 **OFF means off.** Before 2026-09-20 `/tarot`'s button was a volume mute that
 kept synthesizing and kept pacing the reveal to audio nobody could hear. Now
@@ -1573,55 +1593,119 @@ Guest-gated (Turnstile; it was public until 2026-07-03). A self-contained graphi
 `graph_page()` lives in **`routes_graph.py`** (split out of routes_views 2026-08-30 for the 500-line cap). The transforms split two ways:
 
 - **`graph_scrub.py`** — privacy scrubs + node/edge drops (what survives)
-- **`graph_style.py`** — communities/colours, hexagons, tooltips, sizes, the stats fixup (how what survives LOOKS)
+- **`graph_style.py`** — communities/colours, hexagons, tooltips, sizes, labels, the physics tune, the stats fixup (how what survives LOOKS)
 
-chrome.css, the cyber-fx bg, the bottom nav and `web/graph-overlay.{css,js}` (nav restyle + live physics panel) are all injected at serve time for the same reason. Non-admins get the guest nav (the full nav links to login-gated pages); admins keep the full nav. Content-hash ETag + `no-cache`.
+chrome.css, the cyber-fx bg, the bottom nav and `web/graph-overlay.{css,js}` are all injected at serve time for the same reason. Non-admins get the guest nav (the full nav links to login-gated pages); admins keep the full nav. Content-hash ETag + `no-cache`.
 
-### 11a. Drops, in order
+### 11a. Applied per request, COMPUTED once per artifact
+
+The pipeline chews a 3.6MB string through ten json round-trips. Measured on the droplet, that was **2.5–2.9s of CPU on every single page load** — the page's whole "slow to load" reputation, before a byte reached the browser (gzip takes the response to ~170KB, so the wire was never the problem).
+
+`_cached()` memoises the rendered bytes against the artifact's **`(st_mtime_ns, st_size)`**, one entry per auth tier, and clears the whole dict the moment that key changes. Warm TTFB is **0.13s**. The objection this answers — *"the graph is constantly regenerated, so it can't be cached"* — has the invalidation backwards: it is regenerated ONCE A DAY by the 05:00 cron, and an mtime key is correct at any rebuild frequency because the next request after a write misses. A stale render cannot outlive its source.
+
+Two properties make the memo sound, and both are load-bearing:
+
+- **`_render()` is pure.** Same artifact bytes in, same page bytes out. The community cap breaks size ties by NAME (`_ranked`) for exactly this reason — a tie resolved by dict order would change the ETag across a restart for no reason.
+- **The cold render runs off the event loop**, via `asyncio.to_thread` under an `asyncio.Lock`. A 3s blocking route body would stall every SSE stream and the nudge loop with it, and the lock means a reload landing two requests at once pays for one render.
+
+### 11b. Drops, in order
 
 | Function | Drops | Why |
 |---|---|---|
 | `_redact_graph_nodes()` | node summaries in `_GRAPH_REDACT_IDS` → `[redacted]` | a few leak internals (the bearer-auth scheme, the `EXEC_SAY_KEY` name) |
-| `_drop_graph_book_nodes()` | the Pollack tarot reference book (`api/tarot/book/`, ~110 nodes) | prefix `_GRAPH_DROP_SOURCE_PREFIX`, via `_sub_json_array()` |
+| `_drop_graph_prefixed_nodes()` | whole source trees under `_GRAPH_DROP_PREFIXES` | see below |
 | `_drop_graph_moltbook_nodes()` | the moltbook heartbeat plumbing (one read-only route node) | substring match on id/label/source |
-| `_drop_graph_vendor_nodes()` | the vendored vis-network bundle (`web/vendor/`), by prefix `_GRAPH_DROP_VENDOR_PREFIX` | ~150 minified function nodes like `Kv()`/`_f()` graphify parsed out of the blob — noise, not our code. The `<script>` that loads the lib stays; only its parsed nodes go |
 | `_drop_graph_library_nodes()` | external library/framework symbols | a code node with NO `source_file` (no in-repo definition) OR a label in `_GRAPH_LIB_LABELS` — `BaseModel`, `Request`, `WebSocket`, `FastAPI`, `Path`, `datetime`, … |
-| `_drop_graph_inferred_edges()` | the dashed INFERRED edges (~16% of edges, opacity 0.35) | keeps only solid EXTRACTED relationships; thins the physics/canvas load for a faster render |
+| `_drop_graph_inferred_edges()` | the dashed INFERRED edges (~16% of edges, opacity 0.35) | keeps only solid EXTRACTED relationships; also recomputes every node's baked `degree` against what survives |
+| `_drop_graph_orphan_nodes()` | every node no surviving edge touches | the overlay used to `hidden`-flag these client-side, which still parsed them, still built them into the DataSet and still walked them on every redraw |
 
-The book drop also prunes `RAW_EDGES` touching those nodes, drops their now-empty `LEGEND` rows ("Tarot Major Arcana Meanings" / "Tarot Core Framework" / "Celtic Cross Spread"), and drops the `hyperedges` (shaded narrative clusters off the book, e.g. "First-row forces gathered into the Chariot's ego") that reference any removed node. Tarot *engine* nodes stay.
+`_GRAPH_DROP_PREFIXES` is one tuple rather than three near-identical passes, because the argument is the same every time — graphify indexes what is on disk, and some of what is on disk is somebody else's code or a reference text:
 
-The vendored bundle is ALSO excluded at ingestion by the repo-root `.graphifyignore` (`**/vendor/`, `*.min.js`, … — graphify reads it each build), so fresh graphs never carry vendor nodes; `_drop_graph_vendor_nodes()` is the serve-time backstop for a stale/cached `graph.html` built before that landed.
+| Prefix | Nodes | Why |
+|---|---|---|
+| `api/tarot/book/` | ~110 | the Pollack tarot reference — card meanings, numerology, frameworks. The tarot ENGINE stays; only the book goes |
+| `web/vendor/` | ~150 | the vendored vis-network bundle, one node per mangled minified name (`Kv()`, `_f()`, `Le()`). The `<script>` that loads the lib stays; only its parsed nodes go |
+| `nightfall-incident/nightfall-src/` | 1054 | the nightfall game's own React/TS source — a quarter of the whole graph and the single biggest community in it, for a game that is a guest PAGE rather than a part of exec-fn's architecture. Its BUILT output is what the site serves |
 
-`_drop_graph_inferred_edges()` runs **before** the stats rewrite so the edge count is honest.
+The prefix drop also prunes `RAW_EDGES` touching those nodes, drops their now-empty `LEGEND` rows, and drops the `hyperedges` (shaded narrative clusters off the book, e.g. "First-row forces gathered into the Chariot's ego") that reference any removed node.
 
-### 11b. Communities are re-derived by FEATURE
+The vendored bundle is ALSO excluded at ingestion by the repo-root `.graphifyignore` (`**/vendor/`, `*.min.js`, … — graphify reads it each build), so fresh graphs never carry vendor nodes; the prefix is the serve-time backstop for a stale/cached `graph.html` built before that landed.
+
+Order matters twice: `_drop_graph_inferred_edges()` runs **before** the stats rewrite so the edge count is honest, and **before** `_drop_graph_orphan_nodes()` — an edge dropped later would orphan a node the orphan pass had already kept.
+
+Net: 4843 nodes / 7154 edges / 610 communities as emitted → **3508 / 4230 / 14** as served.
+
+### 11c. Communities are re-derived by FEATURE, then CAPPED
 
 **vis cycles only a 10-colour palette**, so graphify's dozens of fine-grained communities share colours and the clusters become indistinguishable colour-noise.
 
 `_merge_graph_communities()` regroups nodes into logically-named, FEATURE-based communities (`_logical_key`: `api/tarot/*` + `web/tarot-*.js` → "Tarot", `api/nudge*.py` → "Nudge", `api/graph_scrub` + `web/graph-overlay` → "Graph", …), giving each module its OWN distinct colour from `_COMMUNITY_COLORS` (Tableau-20 + Dark2 = 28 hues) and rebuilding `LEGEND` biggest-first, reassigning every node's `community`/`community_name`/`color`.
 
-A feature with fewer than `_MIN_COMMUNITY` (10) nodes folds into its top-level dir bucket ("API"/"Web") so the legend is not littered with 2-node modules. Every feature is already ≤150 nodes — the cross-layer merge is what splits the old per-dir API/Web blobs.
+A feature with fewer than `_MIN_COMMUNITY` (10) nodes folds into its top-level dir bucket ("API"/"Web") so the legend is not littered with 2-node modules.
 
-This supersedes the old per-community rename pass, and it is `/graph`-page-only: the raw `graph.json` / `GRAPH_REPORT.md` keep graphify's full community set.
+**That fold does not bound the count, and tuning the threshold does not either** — this repo yielded 54 buckets at `_MIN_COMMUNITY`, and raising the threshold plateaus around 20 because the long tail is made of whole top-level dirs, not small modules. So the count is **capped** instead: `_cap_communities()` keeps the `_MAX_COMMUNITIES` (14) biggest keys, folds the tail into its top-level source dir, and if that is still over the cap folds what remains into a single `(other)` bucket. Colour is only a legible encoding while a reader can hold the legend in their head; 28 shades past that point encode nothing.
 
-### 11c. Size, shape, tooltips, stats
+This is `/graph`-page-only: the raw `graph.json` / `GRAPH_REPORT.md` keep graphify's full community set.
 
-`_size_graph_by_loc()` rescales every node's `size` to track its line count (file node = whole-file lines, symbol = span to the next def), read from the sibling `graph.json`'s `source_location` start lines — **no source-file reads, since most are not mounted in the container** — sqrt-compressed into ~10..40. It uses a **per-line anchored** array regex, because a non-greedy `[.*?]` truncates at a `];` inside a node title.
+### 11d. Size, labels, shape, physics, stats
+
+`_size_graph_by_degree()` sizes each node **geometrically in its edge count** — `min(44, 6 × 1.14^(degree−1))` — so each extra edge multiplies rather than adds and a hub reads as a hub. It replaced `_size_graph_by_loc()` (sqrt of line count, ~10..40), which compressed the interesting end flat. The constants are picked against this graph's own distribution (median degree 1, p90 5, p99 21, max 171): the whole 6..44 range is spent on degrees 1–17, where 97% of the nodes are, and the long tail saturates at the cap. It reads the `degree` field **after** `_drop_graph_inferred_edges()` has recomputed it, or hubs would be sized off edges the page no longer draws.
+
+`_label_graph_nodes()` gives every node the site label font and blanks any label over 20 characters to `[ redacted ]`. Both used to be client-side walks of the whole DataSet at load; see 11e.
 
 `_restyle_graph_nodes()` renders nodes as **hexagons** (vis default is `dot`) with a bg-filled interior + community-coloured border — the /emet look, node fill `_GRAPH_BG` `#0f0f1a`, set in `_node_color()` — and repoints `showInfo()`'s neighbour-stripe colour from `.color.background` (now the page bg, invisible) to `.color.border`.
 
 `_drop_graph_tooltips()` strips `title:` from BOTH DataSet mappers (node + edge) so **nothing pops up on hover** — graphify puts a whole docstring-derived summary in `title`. The same text/metadata still reaches the click-through node-info panel, which reads `nodesDS`'s `label`/`_*` fields, never `title`. The regex targets the unquoted `title: x.title,`; `RAW_NODES`/`RAW_EDGES` carry it JSON-quoted, so the data arrays are untouched.
 
+`_tune_graph_physics()` replaces graphify's whole `physics:` block (matched as a unit, anchored on the `interaction:` key that follows, so it survives a value changing inside it) with a **one-shot** stabilisation: forceAtlas2 at `theta 0.8`, high damping, coarse `minVelocity`, 220 iterations, `fit: true`. graph.html's own `stabilizationIterationsDone` handler then switches physics **off for good**. It also straightens the edges (`smooth: false`) — a bezier per edge per frame was the most expensive thing on the canvas and says nothing a straight line doesn't.
+
 `_fix_graph_stats()` runs **last**, rewriting the `#stats` header — graphify bakes PRE-scrub node/edge/community counts — to the merged/dropped reality.
 
-### 11d. The client-side overlay
+All the array transforms use a **per-line anchored** array regex, because a non-greedy `[.*?]` truncates at a `];` inside a node title.
 
-`graph-overlay.js` does four things the server cannot:
+### 11e. The client-side overlay
 
-1. Redacts any node *label* over 20 chars to `[ redacted ]`.
-2. For any redacted node (server `[redacted]` or client `[ redacted ]`), `patchInfoPanel()` wraps graph.html's global `showInfo()` to blank the node-info Type + Source to "redacted" and remove the neighbors section. Community + Degree stay.
-3. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
-4. `setupZoomLimits()` clamps zoom/pan with hard walls so the viewport holds roughly between 2 and half the non-orphan nodes — translating that intent into min/max scale (viewport world-area vs. node-cloud area) plus a pan box (centre clamped to the node bounding box), recomputed live, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back). Programmatic camera moves (tour focus) are skipped (`zoom` params.event == null).
+`graph-overlay.js` is now only what the server cannot decide. The label font, the long-label redaction and the orphan hiding all moved into 11b/11d — each had been a walk of all ~4.7k nodes plus a whole-DataSet update, spent on the page's slowest few seconds.
+
+1. **Community highlight** — hover or tap any node and its WHOLE community (every node in it, every edge with both ends inside it) goes bold white. The camera never moves.
+2. `patchInfoPanel()` wraps graph.html's global `showInfo()` so a redacted node (server `[redacted]` or `[ redacted ]`) gets its Type + Source blanked to "redacted" and its neighbors section removed. Community + Degree stay.
+3. `setupZoomLimits()` clamps zoom/pan with hard walls, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back).
+4. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
+
+**The page opens fitted to the whole graph.** The loading cover lifts on `stabilizationIterationsDone` (capped at `LOAD_CAP`, 20s) and re-fits first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas. The zoom-OUT wall had to be relaxed to admit that: it used to cap the viewport at half the node-cloud's area, which the opening fit violates on arrival. It is now the whole-graph fit scale × `FIT_MARGIN` (0.8).
+
+#### What the tour was, and why the highlight replaced it
+
+The old overlay ran a **camera tour** — pick a random cluster every 10s, `network.focus()` its highest-degree node, and random-walk the gravitational constant to keep the layout "breathing" — and a top-left **freeze | tour** segmented toggle. To do that it **re-enabled physics after graphify had already turned it off**, which left a 4.5k-node canvas running a force sim and redrawing every frame, forever. Measured: **0.4 fps, with 4.2-second frames**. Both the tour and the freeze toggle are gone; physics off is now the only state, and the physics configurator panel keeps its `enabled` checkbox (graph-overlay.css no longer hides checkbox rows) so the sim can be restarted by hand when a slider is worth watching.
+
+#### The highlight writes to `network.body`, never to the DataSets
+
+This is the load-bearing implementation detail. Measured on the droplet's headless WebKit, for a ~30-item neighbourhood:
+
+| Path | Cost |
+|---|---|
+| `nodesDS.update()` + `edgesDS.update()` | **7.4s** |
+| direct `body.nodes[id].setOptions()` + one `network.redraw()` | **1.07s** |
+
+A DataSet write fires vis's whole `_dataUpdated` cascade — visible-index rebuild, **physics-body rebuild for all 4.5k nodes and 6.5k edges** — on a graph whose physics is switched off and will never run again. Mutating the drawn objects skips all of it. Leaving the DataSets pristine also makes them the restore source: clearing the highlight reads the original colour straight back out of them, so nothing has to be snapshotted per hover.
+
+Two details inside that: node `borderWidth` is a NETWORK-level option with no per-node field, so the baseline is read once off a drawn node (`body.nodes[id].options.borderWidth`) rather than saved as `undefined`; and the white edge colour must carry **`inherit: false`**, because an inheriting edge takes its colour from its endpoint node and ignores `color.color` entirely.
+
+`highlight()` normalises "no community" to `null` **before** comparing against what is already lit, because a full redraw costs ~1.5s on the slowest device that reaches this page and the no-op case has to actually be a no-op.
+
+#### What a redraw costs, and what that means
+
+A warm full redraw of the served graph, on the droplet's headless WebKit (no GPU, shared core — the pessimistic end; a phone or desktop is several times quicker):
+
+| | ms |
+|---|---|
+| first redraw after stabilisation (cold: label measurement, shape caching) | ~8300 |
+| warm redraw, nodes + edges | ~1500 |
+| nodes only (edges hidden) | ~717 |
+| edges only (nodes hidden) | ~539 |
+| arrowheads disabled | ~1463 — **no saving; arrows stay** |
+
+Redraw cost tracks the primitive count almost linearly and splits roughly evenly between nodes and edges, which is why the answer to "rendering is slow" is *draw fewer things* (11b) rather than *draw them cheaper*. The next cut available, if it is ever wanted, is `api/data/` — 940 nodes that are the JSON key structure of runtime data files (no values, no prose: `numCredits`, `netmapStatus`, uuids), carrying no architectural meaning at all.
 
 ---
 
@@ -1642,7 +1726,12 @@ Fixed to every page. Labels are **fixed 3-char codes** (`_NAV_LABELS`), with one
 | `3DP` | `/printer` | guest read-only / owner control |
 | `CV` | `/recruiter` | public |
 
-The guest-gated ones (`BOT`, `UIX`, `HSK`, `3DP`, `GPH`) appear in the guest nav too.
+The guest-gated ones (`BOT`, `UIX`, `HSK`, `3DP`, `GPH`) appear in the guest nav too. `GPH` only actually did from 2026-09-21: this table and CLAUDE.md had both said so while `_GUEST_NAV_LINKS` omitted it, so the public landing offered `/graph` to a visitor who then had no nav entry to leave by. Pinned now by `tests/test_landing_nav_parity.py`, which scrapes the rendered landing and the rendered guest nav and asserts the first is a subset of the second — both sides read out of the markup, never a hand-written list of sections, so a tenth section is covered the day it is added. One direction only: the nav may legitimately hold more (`/zombo` is unlinked on purpose, and the landing's own `admin` link is deliberately not a nav entry).
+
+### 12f. The nav icons are traced, not drawn
+
+The nav serves `web/icons/<name>.svg`, not the 27x27 PNG it was drawn from — at 20px the pixel art was mush, the tile colour reading while the art did not. Each SVG is that art's own black linework, **traced** by `scripts/trace-icons.py` and filled with the source tile's colour, so an `<img>` needs no styling and no `image-rendering:pixelated` (which would fight the antialiasing a 1px line needs at this size). The whole set is generated: edit the script, never `web/icons/*.svg`. Two things the tracer gets right that are easy to get wrong, and both were got wrong first — the ink is the DARKEST cluster rather than everything darker than the tile (every icon casts a drop shadow, often a dithered one, and the loose test fills the subject solid and turns the dither into thousands of one-pixel squares), and `data-file`/`data-doctor` are named exceptions because they are flat vector art with no outline anywhere in them, so their line is derived from where colour regions meet. Full rules, including the brightness inversion that keeps a near-black tile visible on this site's black: `web/icons/README.md`.
+
 
 ### 12a. The glyph label (`/cc`'s star)
 
@@ -1650,7 +1739,9 @@ The pixel nav font (`04b25`, `--font-pixel`) carries **106 glyphs, ASCII only**.
 
 **It is DETECTED, not listed.** `_build_nav` marks any label carrying a non-ASCII character (`text.isascii()`) as `nav-label glyph`, so a second glyph label is drawn correctly without anyone remembering this note. `.nav-label.glyph` re-fonts it to `--font-mono`, which HAS the glyph, and **must sit AFTER `.nav-label`** — the extra class is what wins on specificity, but the two `font-family` declarations would otherwise be one source-order edit away from fighting.
 
-**The size is a `transform`, never a `font-size`, because the label's box IS nav geometry.** At `--fs-2xs` the star's ink measures 9px against the pixel caps' 11.3px; a font-size that closed that gap would grow the span, the anchor and the nav bar under them. `scale(1.9)` paints the ink at 11.3px and leaves the 13.6px box alone — measured 2026-09-21 at 430x932 by clipping a screenshot per label and counting green rows at 3x DPR: letters ink 910.04–921.04, star 909.89–921.22. **Do not size this off canvas `measureText`**, which reports this glyph ~30% taller than it paints; the pixel count is the ground truth.
+**The size is a `transform`, never a `font-size`, because the label's box IS nav geometry.** At `--fs-2xs` the star's ink measures 6.1px; a font-size big enough to match the codes beside it would grow the span, the anchor and the nav bar under them. `scale(1.48)` paints bigger and leaves the 13.6px box alone.
+
+**The factor is set by WIDTH**: the star's ink is 9.0px, the same as the M of MTG two slots along, so it reads as one letter of the row rather than a symbol dropped into it. The star is square, so that also makes it 9.0px tall against the caps' 11.3px — width is the match, and one glyph cannot have both. Measured 2026-09-21 at 430x932 by clipping a screenshot per label and counting green pixels at 3x DPR (letters ink 910.04–921.04, star 911.09–919.76, centres 0.12px apart). **Do not size this off canvas `measureText`**, which reports this glyph ~30% off what it paints; the pixel count is the ground truth.
 
 The baseline nudge rides in the same transform (`translateY(0.3px) scale(1.9)`, translate FIRST so the scale does not multiply it) because `.exec-nav a` is a **flex column**: the label is a flex ITEM, already blockified (no `display` needed for the transform to apply) and `vertical-align` is inert on it — a `-0.05em` that did nothing was the first attempt.
 

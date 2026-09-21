@@ -445,14 +445,18 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
    HAS the glyph -- and this rule must stay AFTER the one above, which sets
    font-family at equal specificity on the class it shares.
 
-   Drawn 1.9x by TRANSFORM, not by font-size, because the label's box is nav
-   geometry: at --fs-2xs the star's ink measures 9px against the pixel caps'
-   11.3px, and a font-size that closed that gap would grow the span, the anchor
-   and the nav bar under it. A transform paints bigger and leaves the box where
-   it was, so the star's ink is the same height as the CV and MTG beside it. The
-   factor is measured ink against measured ink, at 3x DPR off a screenshot --
-   canvas text metrics report this glyph 30% taller than it paints. (Measured
-   2026-09-21, WebKit 430x932: letters ink rows 103-136, star 103-137.) */
+   Drawn 1.48x by TRANSFORM, not by font-size, because the label's box is nav
+   geometry: at --fs-2xs the star's ink measures 6.1px and a font-size big enough
+   to match the codes beside it would grow the span, the anchor and the nav bar
+   under them. A transform paints bigger and leaves the box where it was.
+
+   The factor is set by WIDTH: the star's ink is 9.0px, the same as the M of MTG
+   two slots along, so it reads as one letter of the row rather than a symbol
+   dropped into it. Being square, that puts it 9.0px tall against the caps'
+   11.3px -- width is the match that was asked for, and a glyph cannot have both.
+   Measured ink against measured ink, at 3x DPR off a screenshot clipped to each
+   label: canvas text metrics report this glyph 30% off what it paints, so the
+   pixel count is the only source. (2026-09-21, WebKit 430x932.) */
 .exec-nav .nav-label.glyph {
   font-family: var(--font-mono);
   line-height: var(--lh-none);
@@ -464,7 +468,7 @@ html.kb-open { --kb-anchor: var(--kb, 0px); }
      translateY FIRST so it is not multiplied by the scale after it -- two fonts
      disagree about where a baseline is, and the star's ink sat 0.6px above the
      caps beside it. */
-  transform: translateY(0.3px) scale(1.9);
+  transform: translateY(0.3px) scale(1.48);
 }
 
 

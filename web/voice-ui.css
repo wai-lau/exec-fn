@@ -26,27 +26,34 @@
    it is the only way back to a voice someone turned off two days ago. */
 .voice-mute[data-on="false"] { color: hsl(var(--green-hsl) / 0.12); }
 
-/* The glyph is a UI-font diamond in a mono bracket pair, so it needs its own
-   metrics to sit on the bracket baseline rather than above it.
+/* The glyph is a CHARACTER in the same mono face as the brackets around it, and
+   that is the whole of its sizing.
 
-   It is drawn 1.3x by TRANSFORM, never by font-size, because this control sits
-   on a composer whose height is a published number. An inline-block's own
-   line-height IS its box height, so `font-size: 1.3em` made the glyph's box
-   (20.18px) taller than the line it sits on (18.62px) and every composer
-   carrying the star grew 1.56px: /cc's input bar measured 26.17 against
-   /mtg's 24.61, and /cc publishes that height as --input-h for #terminal to
-   sit above. A transform paints at 1.3x and occupies 1em, so the star is the
-   same size it always was and the bar is the same size as the ones without
-   one. (Measured 2026-09-21, WebKit 430x932.) */
+   It was a system-ui star at `font-size: 1.3em` with side margins, which cost
+   this control BOTH of a composer's published dimensions. Height: an
+   inline-block's own line-height IS its box height, so the 20.18px box on an
+   18.62px line grew every composer carrying the star by 1.56px -- /cc's input
+   bar measured 26.17 against /mtg's 24.61, and /cc publishes that height as
+   --input-h for #terminal to sit above. Width: a 0.84em advance plus 0.24em of
+   margin made `[*]` nine pixels wider than the `[x]` beside it (38.28 against
+   29.28) on a one-line composer where they are meant to read as a pair.
+
+   Iosevka HAS this glyph, and its advance is the mono cell, so in --font-mono
+   the star occupies exactly one character: three cells for `[*]`, three for
+   `[x]`, 29.28px each, and the line box is a character's, not a scaled box's.
+   The font supplies the geometry; the transform only says how much of the cell
+   the star fills. 1.25x takes its ink from 6.67px to 8.67px -- a star at the
+   font's own size read thin beside the bracket strokes -- and that is about as
+   far as it goes: the gap to each bracket is down to 1px, against the `[x]`'s
+   2.33px. Layout is untouched at any factor, which is the point of doing it
+   here.
+
+   /tarot overrides the factor AND the size (tarot.css): that page's star sits in
+   a row of glyph buttons, not next to an `[x]`, so it is sized to them instead.
+   (Measured 2026-09-21, WebKit 430x932.) */
 .voice-glyph {
-  font-family: var(--font-ui);
+  font-family: var(--font-mono);
   line-height: var(--lh-none);
-
-  /* -0.08em once, which cost the line 0.19px of descent it had no room for:
-     the box is 1em now that the size is a transform, so the same optical drop
-     off the bracket baseline is worth half as much. */
-  vertical-align: -0.04em;
-  margin: 0 0.12em;
   display: inline-block;
-  transform: scale(1.3);
+  transform: scale(1.25);
 }
