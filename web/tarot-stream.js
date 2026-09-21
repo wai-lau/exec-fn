@@ -173,6 +173,10 @@ async function streamResponse(holdForGesture = null) {
   }
   streaming = false;
   updateInputBarVisibility();
+  // The turn is over. tarot-mic.js listens for this to re-arm a voice session;
+  // the event says only "a reader turn finished" and knows nothing about the
+  // microphone.
+  terminal.dispatchEvent(new CustomEvent('tarot:reply-done'));
   // draw the spread only now — after the reader stopped and the note printed
   if (pendingDeal) drawSpread('three', pendingDeal);
   else focusInput();

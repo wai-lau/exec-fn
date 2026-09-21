@@ -27,6 +27,9 @@ const tarotVoice = (() => {
     // No queue: a new reader turn REPLACES the last one. The reader speaks once
     // per turn, and a re-read should interrupt rather than stack up behind it.
     queue: false,
+    // The mic (tarot-mic.js) drops what it hears while the reader talks and
+    // lights its dot again on this.
+    idleEvent: "tarot:voice-idle",
   });
 
   // Is the home GPU box — which renders the reader's voice — actually
@@ -96,6 +99,7 @@ const tarotVoice = (() => {
     speak: n.speak,
     speakClip: n.speakClip,
     ready: n.ready,
+    isSpeaking: n.isSpeaking,
     isOn: n.isOn,
     setOn: n.setOn,
     probeHome,

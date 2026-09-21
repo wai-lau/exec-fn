@@ -210,7 +210,7 @@ def _build_nav(active=None, guest=False):
         # engine /cc runs, so the `$` prompt is the mic in both places.
         bubble = ('<script src="/hosaka-audio.js?v=6"></script>'
                   '<script src="/voice-util.js?v=2"></script>'
-                  '<script src="/voice-narrator.js?v=1"></script>'
+                  '<script src="/voice-narrator.js?v=2"></script>'
                   '<script src="/voice-ui.js?v=1"></script>'
                   '<script src="/exec-voice.js?v=6"></script>'
                   '<script src="/exec-bubble-drag.js?v=3"></script>'
@@ -244,7 +244,7 @@ def _build_nav(active=None, guest=False):
         voice_pre = (
             '<script src="/hosaka-audio.js?v=6"></script>'
             '<script src="/voice-util.js?v=2"></script>'
-            '<script src="/voice-narrator.js?v=1"></script>'
+            '<script src="/voice-narrator.js?v=2"></script>'
             '<script src="/voice-ui.js?v=1"></script>'
             '<script src="/exec-voice.js?v=6"></script>'
         ) if (want_voice and not own_voice) else ''
