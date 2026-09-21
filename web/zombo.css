@@ -57,8 +57,13 @@ body {
   opacity: 0;
   pointer-events: none;
 
-  /* the movie fades UP as the line fades out; see body.zb-begun below */
-  transition: opacity 1.4s ease-in;
+  /* The movie fades UP as the line fades out; see body.zb-begun below. Long
+   * (3.5s, from 1.4s) because the fade IS the transition into the thing — the
+   * movie is already playing underneath from the moment of the click, so a
+   * slow reveal opens on its green wash rather than cutting to it. Kept a
+   * ratio ahead of the overlay's own fade below so the line is gone before the
+   * movie is fully up, never the other way round. */
+  transition: opacity 3.5s ease-in;
 }
 
 /* The pillars beside the fitted movie, filled by sampling the movie's own edge
@@ -129,8 +134,11 @@ body.zb-begun #zb-flash {
   cursor: pointer;
 
   /* Faded, not hidden: `display` cannot be transitioned, so the overlay stays
-   * in the layout at opacity 0 and gives up its clicks instead. */
-  transition: opacity 1s ease-out;
+   * in the layout at opacity 0 and gives up its clicks instead. Stretched with
+   * the movie's fade (2.5s, from 1s) — the two are one cross-fade, and leaving
+   * this at a second against the movie's 3.5 left the page blank white in
+   * between. */
+  transition: opacity 2.5s ease-out;
 }
 
 body.zb-begun .zb-begin {

@@ -24,6 +24,56 @@ var ZB_SWF = ZB_BASE + 'inrozxa.swf';
 var ZB_CLIP = ZB_BASE + 'welcomeclip.swf';
 var ZB_RUFFLE = 'https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.6.0/ruffle.min.js';
 
+/* The ONE outbound link in the whole intro. "sign up for the newzletter" is a
+ * button in the LOADER swf (the movie itself carries no URL string at all --
+ * its type is drawn as glyph shapes), and it is a bare ActionGetURL to
+ * `http://www.zombo.com/join1.htm` with an empty target: plain HTTP, to a
+ * domain that has not served that page this century. Clicking it navigated the
+ * tab off this page to nothing.
+ *
+ * So the byte string is rewritten before Ruffle ever sees it, and it is done
+ * on the BYTES rather than by intercepting the navigation because Ruffle's web
+ * navigator reaches for `location.assign` on an empty target, and Location's
+ * members are [LegacyUnforgeable] -- own, non-configurable properties that
+ * cannot be patched from the page. Patching `window.open` would only cover the
+ * named-target case this link does not use.
+ *
+ * The replacement is the SAME LENGTH, which is the whole trick: the file is
+ * uncompressed (FWS), so an equal-length splice needs no ActionGetURL tag
+ * length, no DoAction length and no file-length header rewritten. The fragment
+ * is padding that happens to say where the visitor came from; the landing
+ * ignores it. Nothing of theirs is stored here -- the browser still fetches the
+ * file from the host that publishes it, and the edit lives in one ArrayBuffer
+ * for the life of the tab. */
+var ZB_LINK_FROM = 'http://www.zombo.com/join1.htm';
+var ZB_LINK_TO = 'https://wai-lau.net/#fromzombo';
+
+var zbSwfData = null;   // the patched loader, when the fetch + splice worked
+
+function zbFindBytes(bytes, text) {
+  var n = text.length;
+  var first = text.charCodeAt(0);
+  for (var i = 0; i + n <= bytes.length; i++) {
+    if (bytes[i] !== first) continue;
+    var k = 1;
+    while (k < n && bytes[i + k] === text.charCodeAt(k)) k += 1;
+    if (k === n) return i;
+  }
+  return -1;
+}
+
+/* Splice in place, or give back null so the caller falls back to letting Ruffle
+ * stream the file itself. A miss means the upstream file changed (recompressed,
+ * relinked); the dead link is a worse page than this one, not a broken one. */
+function zbPatchLink(buf) {
+  if (ZB_LINK_TO.length !== ZB_LINK_FROM.length) return null;
+  var bytes = new Uint8Array(buf);
+  var at = zbFindBytes(bytes, ZB_LINK_FROM);
+  if (at < 0) return null;
+  for (var k = 0; k < ZB_LINK_TO.length; k++) bytes[at + k] = ZB_LINK_TO.charCodeAt(k);
+  return buf;
+}
+
 function zbFlashMount() {
   var host = document.getElementById('zb-flash');
   var rp = window.RufflePlayer;
@@ -44,7 +94,14 @@ function zbFlashMount() {
     // zombo.js owns the overlay, the gesture and the band behind the letterbox
     zbOnPlayerReady(player);
   });
-  player.load({ url: ZB_SWF, base: ZB_BASE }).catch(function () {
+  /* `data` when the link was rewritten, `url` when it was not. A data load
+   * drops Ruffle's own swfUrl, so `base` stops being a refinement and becomes
+   * the only thing resolving the loader's relative pull of welcomeclip.swf --
+   * it was already required and is still the same value. */
+  var opts = zbSwfData
+    ? { data: zbSwfData, swfFileName: 'inrozxa.swf', base: ZB_BASE }
+    : { url: ZB_SWF, base: ZB_BASE };
+  player.load(opts).catch(function () {
     player.remove();
   });
 }
@@ -68,20 +125,34 @@ function zbLoadRuffle() {
   document.head.appendChild(s);
 }
 
+/* Pull the loader ourselves so its one outbound link can be rewritten (see
+ * ZB_LINK_TO). 7.9KB, and Ruffle would have fetched it a moment later anyway;
+ * anything that goes wrong here — the fetch, the CORS header, the splice —
+ * leaves zbSwfData null and Ruffle streams the original instead. */
+function zbFetchLoader() {
+  window.fetch(ZB_SWF, { mode: 'cors' }).then(function (r) {
+    return r.ok ? r.arrayBuffer() : null;
+  }).then(function (buf) {
+    if (buf) zbSwfData = zbPatchLink(buf);
+    zbLoadRuffle();
+  }).catch(function () { zbLoadRuffle(); });
+}
+
 /* Ask the upstream host for the clip BEFORE pulling ~1MB of Ruffle WASM. This
  * is the one part of the page that depends on somebody else's server staying
  * up, and a HEAD is the cheap, honest way to find out: if it answers, the whole
  * hotlink chain is healthy and the emulator is worth downloading; if it does
- * not, nothing is fetched and the CSS reproduction simply keeps running, which
- * it has been doing since the page painted. Failure needs no other handler.
+ * not, nothing else is fetched at all and the begin line is the page. It probes
+ * the CLIP and not the loader because the loader outliving the movie is the
+ * exact shape of the blank-white-rectangle bug. Failure needs no other handler.
  */
 function zbFlashInit() {
   try {
     window.fetch(ZB_CLIP, { method: 'HEAD', mode: 'cors' }).then(function (r) {
-      if (r.ok) zbLoadRuffle();
-    }).catch(function () { /* upstream down — the reproduction stands */ });
+      if (r.ok) zbFetchLoader();
+    }).catch(function () { /* upstream down — the begin line stands alone */ });
   } catch (_e) {
-    // no fetch(): leave the reproduction running rather than guess
+    // no fetch(): nothing to mount, and the page says so rather than guessing
   }
 }
 
