@@ -1828,6 +1828,8 @@ It loops via `el.loop=true` **plus** an `ended` handler that rewinds to 0 and re
 
 The reader's FIRST turn is the only turn whose content is a function of nothing but the clock: no history, no Significator, no spread — one or two lines of image for the room at this hour, a blank line, the first Phase 1 question. Generating it live cost an opus round-trip AND a TTS synth before the querent had typed a word, and on the first reading of a day that synth is a **cold** one: ~4.6s of model load against 0.36s loaded (measured 2026-09-10). That is the slow start.
 
+**And 4.6s is the mild version.** The first synth after the home box came back from being fully off measured **10.3s to first audio** (2026-09-20 — `OK SLOW` in the nightly log), with the next two at 704ms and 433ms on the same box, so the cold load is the whole of it and it is worse from a cold BOX than from an evicted model. A querent would have watched a blank terminal for ten seconds before the reader said a word.
+
 So ten openings per hour are generated ahead of time **with their narration already rendered**, and the page plays one at random for the hour it was opened in.
 
 | Piece | What |

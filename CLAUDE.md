@@ -53,7 +53,7 @@ docker compose up -d --build
 | Docker | Single container, `TZ=America/New_York` set in compose |
 | Cron | Inside container — fires `POST /api/morning` at 4:30 AM ET |
 
-**When testing TTS, switch the GPU to `homo` first** (`POST /api/hosaka/mode {"action":"homo"}`) — on `idle` the models load on demand and first-byte latency is ~4.6s of cold load, which reads as broken and hides the real number; loaded it is **0.36s** (measured 2026-09-10, nicole/kokoro).
+**When testing TTS, switch the GPU to `homo` first** (`POST /api/hosaka/mode {"action":"homo"}`) — on `idle` the models load on demand and first-byte latency is ~4.6s of cold load, which reads as broken and hides the real number; loaded it is **0.36s** (measured 2026-09-10, nicole/kokoro). From a box that was fully OFF the first synth is worse still: **10.3s** to first audio, with the next two at 704ms / 433ms (measured 2026-09-20).
 
 Models: `claude-opus-4-8` for reasoning, chat, voice, and the nudge graph; `claude-haiku-4-5` for two cheap classification calls — NL date-parse (`card_llm.parse_date_natural`) and gcal event batch-classify (`gcal._haiku_classify_batch`). `classify_card` stays on opus. Auth: `ANTHROPIC_API_KEY` in `.env` — these are pay-per-token API calls, NOT a Claude subscription.
 
