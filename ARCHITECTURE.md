@@ -505,6 +505,18 @@ glyph and the toggle both surfaces mount; the home-box probe and the canned
 opening). The control itself is **`web/voice-ui.js` + `voice-ui.css`**: one
 `.voice-mute` element, one `data-on` contract, three placements.
 
+**The star is drawn by a TRANSFORM, never by `font-size`** (fixed 2026-09-21).
+`.voice-glyph` is an inline-block, and an inline-block's own line-height IS its
+box height — so `font-size: 1.3em` gave the glyph a 20.18px box on an 18.62px
+line and every composer carrying it grew 1.56px. Measured that day at 430x932:
+`/cc`'s input bar 26.17 against `/mtg`'s 24.61, and `/cc` publishes that bar's
+height as `--input-h` for `#terminal` to sit above, so the star was quietly
+eating a row of transcript on the page that has the least of it. `transform:
+scale(1.3)` paints the same size and occupies 1em; the optical drop off the
+bracket baseline halves to `-0.04em` with it (the old `-0.08em` cost the line
+0.19px of descent it had no room for). Both bars now measure 24.61. The same
+rule, for the same reason, sizes the nav's glyph label (§12).
+
 **OFF means off.** Before 2026-09-20 `/tarot`'s button was a volume mute that
 kept synthesizing and kept pacing the reveal to audio nobody could hear. Now
 `speak()` returns a DEAD controller when the narrator is off — nothing
@@ -1615,11 +1627,11 @@ This supersedes the old per-community rename pass, and it is `/graph`-page-only:
 
 ## 12. The bottom nav
 
-Fixed to every page. Labels are all **fixed 3-char codes** (`_NAV_LABELS`).
+Fixed to every page. Labels are **fixed 3-char codes** (`_NAV_LABELS`), with one glyph: `/cc` wears the star (§12a).
 
 | Code | Route | Tier |
 |---|---|---|
-| `CD` | `/cc` | owner-only, FIRST slot |
+| `✦` | `/cc` | owner-only, FIRST slot |
 | `R&D` · `HQ` · `DBG` | `/rd` · `/hq` · `/debug` | owner |
 | `BOT` | `/security` | guest-gated |
 | `GPH` | `/graph` | guest-gated |
@@ -1632,11 +1644,17 @@ Fixed to every page. Labels are all **fixed 3-char codes** (`_NAV_LABELS`).
 
 The guest-gated ones (`BOT`, `UIX`, `HSK`, `3DP`, `GPH`) appear in the guest nav too.
 
-### 12a. A non-ASCII label needs machinery that is deliberately NOT present
+### 12a. The glyph label (`/cc`'s star)
 
-The pixel nav font (`04b25`, `--font-pixel`) carries **106 glyphs, ASCII only**. A symbol like `✦` (U+2726) has no glyph, so the implicit fallback picks a different face on every device.
+The pixel nav font (`04b25`, `--font-pixel`) carries **106 glyphs, ASCII only**. A symbol like `✦` (U+2726) has no glyph there, so the implicit fallback picks a different face on every device. `/cc` wears that star as of 2026-09-21 — the same one its own composer wears on the voice toggle — so the machinery this section used to say was absent is now present and exercised.
 
-It needs a marked class re-fonted to `--font-mono` (Iosevka has it) at a size step up, and **that rule must sit AFTER `.nav-label`** — both selectors weigh (0,2,0), so source order alone decides. A `nav-glyph` mechanism doing exactly this existed briefly for a `✦` label and was removed with it rather than left as an unexercised branch. Re-add it from this note if a glyph label ever returns.
+**It is DETECTED, not listed.** `_build_nav` marks any label carrying a non-ASCII character (`text.isascii()`) as `nav-label glyph`, so a second glyph label is drawn correctly without anyone remembering this note. `.nav-label.glyph` re-fonts it to `--font-mono`, which HAS the glyph, and **must sit AFTER `.nav-label`** — the extra class is what wins on specificity, but the two `font-family` declarations would otherwise be one source-order edit away from fighting.
+
+**The size is a `transform`, never a `font-size`, because the label's box IS nav geometry.** At `--fs-2xs` the star's ink measures 9px against the pixel caps' 11.3px; a font-size that closed that gap would grow the span, the anchor and the nav bar under them. `scale(1.9)` paints the ink at 11.3px and leaves the 13.6px box alone — measured 2026-09-21 at 430x932 by clipping a screenshot per label and counting green rows at 3x DPR: letters ink 910.04–921.04, star 909.89–921.22. **Do not size this off canvas `measureText`**, which reports this glyph ~30% taller than it paints; the pixel count is the ground truth.
+
+The baseline nudge rides in the same transform (`translateY(0.3px) scale(1.9)`, translate FIRST so the scale does not multiply it) because `.exec-nav a` is a **flex column**: the label is a flex ITEM, already blockified (no `display` needed for the transform to apply) and `vertical-align` is inert on it — a `-0.05em` that did nothing was the first attempt.
+
+One thing this does NOT fix: the glyph's box is 13.6px against the pixel labels' 13px (`--lh-none` × `--fs-2xs`, where 04b25's `normal` line-height resolves to 13), so that one anchor is 35.6px and the nav 56.59 rather than 56. Closing it needs a font-size token of 13px for one glyph — a near-duplicate scale step for 0.6px of nav height, deliberately not taken.
 
 ### 12b. Standalone launch (home-screen / installed web app)
 
