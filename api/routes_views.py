@@ -174,7 +174,11 @@ async def login_page(request: Request, next: str = ""):
     # injected directly -- this route reads the raw static file (needs the real
     # login form, which _index_pages() strips), so it can't reuse that helper.
     raw = _STATIC_INDEX.read_text().replace('<meta charset="UTF-8">', '<meta charset="UTF-8">' + _CHROME_LINK, 1)
-    return HTMLResponse(raw.replace("</head>", _APPLE_WEBAPP_META + "</head>", 1))
+    raw = raw.replace("</head>", _APPLE_WEBAPP_META + "</head>", 1)
+    # The CRT stack, same as every other page. The layers are fixed,
+    # pointer-events:none and painted at --z-modal, so they sit over the form
+    # without taking a click off it.
+    return HTMLResponse(raw.replace("</body>", _CRT_FX + "</body>", 1))
 
 
 @public.post("/login")
@@ -195,7 +199,7 @@ async def guest_login_page(next: str = "/mtg"):
     _, bare = _index_pages()
     page = bare.replace("</head>", _FONT_PRELOAD + _CHROME_LINK + "</head>", 1)
     body_insert = _tmpl("guest_login.html").replace("{next}", html.escape(next_safe, quote=True)).replace("{site_key}", html.escape(TURNSTILE_SITE_KEY, quote=True))
-    return page.replace("</body>", body_insert + "</body>", 1)
+    return page.replace("</body>", body_insert + _CRT_FX + "</body>", 1)
 
 
 @public.post("/guest")
