@@ -30,13 +30,17 @@ var graphPulse = (function () {
   'use strict';
 
   // ── the cascade model ──────────────────────────────────────────────────────
-  // One iteration per ITER_MS, each given ITER_LIFE to finish, so a couple are
-  // always in flight and the graph never goes fully dark between them.
-  // MAX_LIVE bounds the cost: a hub bloom can be hundreds of nodes, and four
-  // overlapping blooms is the most this canvas should ever be asked to draw.
-  var ITER_MS = 1000;
+  // One iteration per ITER_MS, each given ITER_LIFE to finish. Seeding is on a
+  // clock and NOTHING ELSE: it does not wait for the last cascade to finish or
+  // for the canvas to go dark, so at 500ms against a 2s life there are four in
+  // flight at any moment and they overlap on purpose. That overlap is what makes
+  // the graph look busy rather than metronomic.
+  var ITER_MS = 500;
   var ITER_LIFE = 2000;
-  var MAX_LIVE = 4;
+  // A safety bound, not the working number: four cascades is the steady state, so
+  // this has to sit above it or the cap would be quietly truncating the oldest
+  // live cascade every single tick.
+  var MAX_LIVE = 8;
   var HOP_MS = 110;               // delay per hop, jittered by HOP_JITTER — this
   var HOP_JITTER = 0.3;           // is what makes it travel rather than appear
 
