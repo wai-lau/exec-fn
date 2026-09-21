@@ -150,6 +150,9 @@ DETAIL_MIN_REGION = {
 ICON_COLOUR = {
     "turbo": (255, 255, 85),
     "data-doctor": (255, 251, 240),
+    # The papers are white in the source, and CV is a resume -- an orange
+    # stack of paper is a folder, a white one is a document.
+    "data-file": (255, 251, 240),
     # /printer wears 3DP in the nav, and its own tile is the same blue as
     # fiddle's and turbo's. It takes bitman's colour instead -- the same
     # biting sphere it IS, and the only nav slot that was a third blue.
