@@ -45,6 +45,9 @@ FILL_PAINT = {
     # same treatment -- it was the one still showing as a bare green ring.
     "bitman": [{"seeds": None, "fill": "#8a6600"}],
     "printer": [{"seeds": None, "fill": "#8a6600"}],
+    # The figure, a darker orange under its own orange rim -- the same
+    # relation bitman's body has to its gold.
+    "sentinel": [{"seeds": None, "fill": "#8a5200"}],
 }
 SKIP_PREFIX = ("qr-",)
 MAX_DIM = 64      # big sources are nearest-downsampled before tracing
@@ -175,6 +178,14 @@ DETAIL_MIN_REGION = {
 # itself: bug's two floating specks are #2a3f00, near-black, and on this
 # site's background they simply are not there. They belong with the outline.
 AS_INK = {"bug": ((42, 63, 0),)}
+
+# Full-colour icons whose INTERIOR ink keeps its own colour instead of taking
+# the rim. The ink is one colour but not one shape: the silhouette is a single
+# connected region and anything else drawn in it -- bug's two eyes -- is its
+# own island inside the subject. Painting every ink pixel in the rim turns
+# those islands the same bright green as the outline; this keeps the largest
+# region (the outline) on the rim and leaves the islands black.
+INNER_INK_KEPT = {"bug"}
 
 # An icon whose SUBJECT is not the colour of its tile. turbo's tile is the same
 # blue as fiddle's and printer's, but the icon is a lightning bolt and the bolt
