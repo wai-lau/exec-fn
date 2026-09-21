@@ -112,6 +112,20 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
    only the reading-room dressing is here -- off = dim, no pulse; on = full
    green + the btn-pulse glow the other spread buttons carry. */
 .voice-mute.spread-btn { animation:none; }
+
+/* The shared glyph rule (voice-ui.css) sizes the star to ONE MONO CELL, because
+   on /cc and in the Exec panel it has to measure the same as the `[x]` beside
+   it. Here it has no `[x]` beside it -- it has `[reset]` and `[music]`, two
+   glyph buttons at 1.7em/1.3em with real side margins -- so a one-cell star
+   read tiny and touched its own brackets (ink 5.67px against the note's 10.67,
+   gaps 1px against 4px). Sized to THAT row instead: the rst-glyph's metrics,
+   plus the scale that brings a star's ink up to a note's (10.33px, gaps 3.33).
+   Same button height as [reset] by construction, since the box is the font-size.
+   (Measured 2026-09-21, WebKit 430x932.) */
+.voice-mute.spread-btn .voice-glyph {
+  font-size:1.7em; margin:0 0.15em; vertical-align:-0.08em;
+  transform: scale(1.2);
+}
 .voice-mute[data-on="false"] { color:hsl(var(--green-hsl) / 0.45); text-shadow:none; }
 
 .voice-mute[data-on="true"]  {

@@ -8,7 +8,7 @@ from pathlib import Path
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=75">'
+_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=76">'
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -241,7 +241,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=6"></script>'
                   '<script src="/voice-input.js?v=2"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=18"></script>'
+                  '<script src="/exec-bubble-assets.js?v=19"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=2"></script>'
                   '<script src="/exec-bubble-history.js?v=1"></script>'
