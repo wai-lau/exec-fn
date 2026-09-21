@@ -170,7 +170,11 @@ NO_INTERIOR = {"watchman", "bitman", "printer", "wizard"}
 # Colours thrown away before anything else looks at the image. data-file's
 # drop shadow is a solid dark slab, not a dither, so no size or luminance rule
 # reaches it -- it traced as a fourth sheet behind the stack.
-DROP_COLOURS = {"data-file": ((51, 51, 59), (71, 61, 53), (137, 130, 119))}
+DROP_COLOURS = {
+    "data-file": ((51, 51, 59), (71, 61, 53), (137, 130, 119)),
+    # The navy the 2.0 readout is filled with, so the digits stand alone.
+    "hack2": ((42, 63, 85),),
+}
 # Icons centred on their INK rather than on the image. Dropping a shadow
 # leaves the subject sitting where it sat with the shadow's space still
 # reserved around it.
@@ -204,10 +208,18 @@ ICON_ACCENT = {
     "hack2": [
         *[{"src": c, "fill": "#ff2020"}
           for c in ((255, 0, 0), (170, 0, 0), (127, 0, 0), (255, 16, 85))],
-        # The 2.0 exactly as the source has it: white digits INSIDE the
-        # boxes it draws around them. Stripping those boxes left the digits
-        # floating and the readout stopped looking like a readout.
-        {"src": (255, 251, 240), "fill": "#ffffff"},
+        # The 2.0 as WHITE DIGITS ALONE. `strip` is a REACH, not a flag: the box
+        # sits two pixels off the digits once the navy filling it is dropped
+        # (below), so a one-pixel strip left its outer edge behind as a
+        # bracket around each numeral.
+        {"src": (255, 251, 240), "fill": "#ffffff", "strip": 2},
+        # The handle's five highlight cells. They are neither ink nor red, so
+        # without this they are holes in the red and read as black dots.
+        {"src": (255, 213, 255), "fill": "#ffd5ff"},
+        # The blade keeps its own steel, which is what tells it from the
+        # handle -- in one flat colour a knife is a wedge.
+        *[{"src": c, "fill": "#%02x%02x%02x" % c}
+          for c in ((85, 255, 255), (212, 255, 255), (85, 223, 255))],
     ],
     # What is IN the glassware -- the whole subject of a chemistry icon, and
     # monochrome it was three empty vessels.
@@ -302,16 +314,18 @@ def ink_mask(im, stem=""):
 def outline_around_accents(px, w, h, stem):
     """Ink pixels touching an accent's own pixels -- the ring the source drew
     around a feature that is about to be redrawn in its own colour."""
-    wanted = [a["src"] for a in ICON_ACCENT.get(stem, ()) if a.get("strip")]
+    wanted = [(a["src"], int(a["strip"])) for a in ICON_ACCENT.get(stem, ())
+              if a.get("strip")]
     if not wanted:
         return set()
-    accent = {(x, y) for y in range(h) for x in range(w)
-              if px[x, y][:3] in wanted}
-    touching = set()
-    for (x, y) in accent:
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                touching.add((x + dx, y + dy))
+    touching, accent = set(), set()
+    for src, reach in wanted:
+        own = {(x, y) for y in range(h) for x in range(w) if px[x, y][:3] == src}
+        accent |= own
+        for (x, y) in own:
+            for dx in range(-reach, reach + 1):
+                for dy in range(-reach, reach + 1):
+                    touching.add((x + dx, y + dy))
     return touching - accent
 
 

@@ -259,13 +259,19 @@
    the whole screen to re-blend whenever anything under it changes, and three of
    them cost 3x baseline frame time. Plain alpha at the same 0.45 is visually
    near-identical on a black ground — the stripe contrast comes from the
-   hard-light lines above, which is the ONE blend layer left. */
+   hard-light lines above, which is the ONE blend layer left.
+   Stripe alpha 0.45 -> 0.25 (2026-09-21): the green tint read heavy across
+   every page. One step DOWN the snap scale, not a freehand value -- an
+   off-scale alpha is lint-rejected, and rescaling these gradients is also
+   how the dense-board dimming was told not to do it (see crt-dim.css, which
+   dims with opacity for that reason). The two 0.06 glows are already the
+   lowest non-zero step on the scale and are left alone. */
 .cyber-bg {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   background:
     repeating-linear-gradient(0deg,
       transparent 0,
-      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.45) calc(2 * var(--crt-u)),
+      hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.25) calc(2 * var(--crt-u)),
       transparent calc(4 * var(--crt-u))),
     radial-gradient(circle at 50% 45%,
       hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l) / 0.06), transparent 70%);
@@ -315,11 +321,13 @@
    Kept below the animated sweep for the exact reason the glass is: its backdrop
    (bg + lines + blur + static content) never animates, so the compositor runs the
    brightness/contrast pass ONCE and re-composites the cached texture — idle
+   ...contrast 1.5 -> 1.25 (2026-09-21): it multiplies whatever green is left,
+   so dropping the stripe alone left the punch doing half the tinting. — idle
    per-frame readback cost 0. Over the sweep it would re-fire every frame (the
    backdrop-filter trap). Dense boards halve it like the rest of the stack. */
 .cyber-crt {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
-  backdrop-filter: brightness(0.85) contrast(1.5);
+  backdrop-filter: brightness(0.85) contrast(1.25);
 }
 
 @media (prefers-reduced-motion: reduce) {
