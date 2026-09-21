@@ -1,18 +1,28 @@
-# icons/ — traced SVG twins of the PNG icon set
+# icons/ — the PNG icon set's own pixels, as SVG
 
 One `.svg` per icon PNG in `web/`, same basename. **Generated, not authored**:
 `python3 scripts/trace-icons.py` rebuilds every file in here from the PNGs.
 Edit the script, never these — a hand edit is gone on the next run.
 
 Each source is a subject drawn in black linework on a flat coloured tile. That
-linework is what gets traced. An earlier pass drew lookalikes by hand instead
-and they were the wrong shapes wearing the right colours; the rule now is that
-no shape in here comes from anywhere but the pixels.
+linework is what gets traced, pixel for pixel. An earlier pass drew lookalikes
+by hand instead and they were the wrong shapes wearing the right colours; the
+rule now is that no shape in here comes from anywhere but the pixels, and no
+step smooths them afterwards.
 
 ## The contract
 
-- `viewBox="0 0 32 32"` for all of them, the source scaled to fit with one
-  unit of padding, so a 27x27 and a 32x32 source land the same size.
+- **It stays pixel art.** One source pixel is one viewBox unit, so the
+  viewBox is the source's own grid (`0 0 27 27`, and `0 0 64 64` for the
+  downsampled favicon), every coordinate in the path is an integer, and the
+  staircases are the point rather than something to sand off.
+- `shape-rendering="crispEdges"` on the root. Without it the renderer
+  antialiases every pixel edge that misses a device pixel — at the nav's 20px
+  that is all of them, since 20/27 is not a whole number — and hard pixel art
+  comes out a smudge. `image-rendering:pixelated` is the raster knob and does
+  nothing here; this is the vector one.
+- A non-square source (`bitman`, 27x26) is centred in a square viewBox, never
+  stretched to fill it.
 - One `<path>`, `fill-rule="evenodd"`, filled with a flat colour and no
   stroke. Every loop — outer edges and the holes inside them — is in that one
   path, and evenodd subtracts the holes without anyone tracking winding.
@@ -64,11 +74,11 @@ only at a corner the walk takes the sharpest clockwise turn, which keeps them
 two regions instead of welding them into one. Loops enclosing less than a
 pixel are dropped as dither speckle.
 
-Staircases are then cut down by a single Chaikin pass, after collapsing runs
-of collinear pixels so a long straight edge stays straight instead of being
-nibbled into a curve. Chaikin moves no point more than a quarter of a pixel,
-so the shape stays the source's. A second pass is visually indistinguishable
-at icon sizes and doubles the byte count, so there is one.
+Runs of collinear pixels are then collapsed, which is exact — dropping a
+redundant point in the middle of a straight edge moves nothing. That is the
+only reduction applied. An earlier version also ran Chaikin corner-cutting to
+round the staircases off; smoothing a pixel grid is the opposite of keeping
+it, and it cost 4x the bytes to do it (120KB for the set against 26KB).
 
 Sources over 64px are nearest-downsampled first (only `favicon`, at 261px):
 the art is flat colour, and at 20px nothing is lost that the viewBox would

@@ -79,10 +79,11 @@ def _nav_icon(name: str, alt: str) -> str:
     renders they were mush -- the tile read, the art did not. The SVG is that
     same art's black linework, traced (scripts/trace-icons.py) and filled with
     the tile's own colour, so an <img> is enough and nothing here styles it.
-    Deliberately no `image-rendering:pixelated`: these are vectors, and
-    pixelating them would fight the antialiasing that carries a 1px line at
-    this size."""
-    return f'<img src="/icons/{name}.svg?v=1" alt="{alt}" style="width:20px;height:20px;">'
+    It stays PIXEL ART: one source pixel is one viewBox unit and the file
+    carries `shape-rendering="crispEdges"`, which is what keeps the grid hard
+    at a size 20/27 does not divide into. No `image-rendering:pixelated` --
+    that is the raster knob and does nothing to an SVG."""
+    return f'<img src="/icons/{name}.svg?v=2" alt="{alt}" style="width:20px;height:20px;">'
 
 
 _NAV_ICONS = {
@@ -142,7 +143,7 @@ def _build_nav(active=None, guest=False):
         # so the same-origin link interceptor below ignores it.
         "var _rf=document.createElement('a');_rf.id='nav-refresh';"
         "_rf.style.cursor='pointer';"
-        "_rf.innerHTML='<img src=\"/icons/firewall.svg?v=1\" alt=\"refresh\" "
+        "_rf.innerHTML='<img src=\"/icons/firewall.svg?v=2\" alt=\"refresh\" "
         "style=\"width:20px;height:20px;\">"
         "<span class=\"nav-label\">F5</span>';"
         "_rf.addEventListener('click',function(e){e.preventDefault();"
