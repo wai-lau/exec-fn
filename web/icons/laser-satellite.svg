@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- satellite: dish, body, two panels -->
+<path d="M12.3 9.6a5 5 0 0 0 7.4 0z"/>
+<circle cx="16" cy="7.4" r="1" fill="currentColor" stroke="none"/>
+<rect x="12.5" y="12" width="7" height="9" rx="1.5"/>
+<rect x="2.5" y="13.5" width="8.5" height="6" rx="1"/>
+<rect x="21" y="13.5" width="8.5" height="6" rx="1"/>
+<path d="M6.75 13.5v6M25.25 13.5v6"/>
+</svg>

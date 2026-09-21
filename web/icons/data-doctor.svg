@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- isometric medical case with cross -->
+<path d="M16 4 27 10 16 16 5 10z"/>
+<path d="M5 10v11l11 6V16"/>
+<path d="M27 10v11l-11 6"/>
+<path d="M21.6 16.6v6.2"/>
+<path d="M18.6 19.5 24.6 16.2"/>
+</svg>

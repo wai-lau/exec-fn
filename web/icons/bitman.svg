@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- biting sphere -->
+<circle cx="16" cy="16" r="11.5"/>
+<path d="m8.6 18.4 2.9 3 2.9-3 2.9 3 2.9-3 2.9 3"/>
+<path d="M9.4 11.2A7.6 7.6 0 0 1 14.6 7"/>
+</svg>

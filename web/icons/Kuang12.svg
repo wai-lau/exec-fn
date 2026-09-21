@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- riveted blade -->
+<path d="M13.2 17.2 25.5 4.5l2.8 2.8-12.3 12.7z"/>
+<path d="M13.2 17.2 16 20 9 27 6.2 24.2z"/>
+<path d="M12.2 16.2 17 21"/>
+<circle cx="12.5" cy="20.7" r=".7" fill="currentColor" stroke="none"/>
+<circle cx="11.1" cy="22.1" r=".7" fill="currentColor" stroke="none"/>
+<circle cx="9.7" cy="23.5" r=".7" fill="currentColor" stroke="none"/>
+</svg>

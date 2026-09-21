@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- beetle: shell, antennae, six legs -->
+<ellipse cx="16" cy="18" rx="6.5" ry="8.5"/>
+<path d="M16 9.6v16.8"/>
+<circle cx="16" cy="7.5" r="3"/>
+<path d="M14 5.3 11.8 2.9M18 5.3l2.2-2.4"/>
+<path d="M9.7 12.4 4.8 9.5M9.5 18H4.2M9.7 23.6l-4.9 2.9"/>
+<path d="M22.3 12.4 27.2 9.5M22.5 18h5.3M22.3 23.6l4.9 2.9"/>
+</svg>

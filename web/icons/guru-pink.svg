@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<!-- spectacles -->
+<rect x="4.5" y="14.5" width="9.5" height="8.5" rx="2.5"/>
+<rect x="16.5" y="11.5" width="9.5" height="8.5" rx="2.5"/>
+<path d="M14 18 16.5 16.6"/>
+<path d="M26 12.8c2-.7 2.9-2.4 2.2-4.2"/>
+<path d="M4.5 19c-1.5-.4-2.2-1.7-1.6-3.2"/>
+</svg>
