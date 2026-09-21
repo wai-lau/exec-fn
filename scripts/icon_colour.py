@@ -17,7 +17,7 @@ Most icons read better this way and use it. Six do not, and stay on the
 line-art path (LINE_ART in icon_config.py): where a source is heavily dithered
 the full-colour trace reproduces the dither faithfully, and faithful is not
 always what an icon wants."""
-from icon_config import AS_INK, INK_BAND
+from icon_config import AS_INK, INK_BAND, INNER_INK_KEPT
 from icon_mask import colour_groups, ink_colours
 
 
@@ -30,12 +30,49 @@ def colour_paths(px, w, h, tile, rim, ox, oy, path_for, stem=""):
     if not groups:
         return []
     ink = ink_colours(groups, INK_BAND) | set(AS_INK.get(stem, ()))
+    # Only the ink colour that actually carries the OUTLINE is split into
+    # silhouette-plus-islands. The others are ink by adoption (AS_INK) and are
+    # small marks in their own right -- splitting them pits one speck against
+    # another and sends the loser back to a colour that is not there.
+    main_ink = max(ink, key=lambda c: len(groups[c]), default=None)
 
     out = []
     for colour, pixels in sorted(groups.items(), key=lambda kv: -len(kv[1])):
+        if colour == main_ink and stem in INNER_INK_KEPT:
+            outline, islands = split_outline(pixels)
+            for part, fill in ((outline, rim), (islands, "#%02x%02x%02x" % colour)):
+                d = path_for(part, ox, oy) if part else ""
+                if d:
+                    out.append(f'<path fill="{fill}" d="{d}"/>')
+            continue
         d = path_for(pixels, ox, oy)
         if not d:
             continue
         fill = rim if colour in ink else "#%02x%02x%02x" % colour
         out.append(f'<path fill="{fill}" d="{d}"/>')
     return out
+
+
+def split_outline(pixels):
+    """(largest connected region, everything else) of an ink set.
+
+    The outline is one shape; marks drawn inside the subject in the same ink
+    are their own islands, and they are what this separates out."""
+    seen, regions = set(), []
+    for start in pixels:
+        if start in seen:
+            continue
+        region, stack = set(), [start]
+        while stack:
+            p = stack.pop()
+            if p in seen or p not in pixels:
+                continue
+            seen.add(p)
+            region.add(p)
+            x, y = p
+            stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+        regions.append(region)
+    if not regions:
+        return set(), set()
+    biggest = max(regions, key=len)
+    return biggest, set().union(*[r for r in regions if r is not biggest]) if len(regions) > 1 else set()
