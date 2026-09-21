@@ -40,8 +40,11 @@ FILL_PAINT = {
     # source's orange -- that was tried and reverted; the plain bolt is the
     # one that reads.
     "turbo": [{"seeds": ((255, 255, 85), (255, 223, 0)), "fill": "#ffff55"}],
-    # The sphere, darker than the gold rim so its mouth still reads.
+    # The sphere, darker than the gold rim so its mouth still reads. printer
+    # is the SAME biting sphere and wears 3DP in the nav, so it takes the
+    # same treatment -- it was the one still showing as a bare green ring.
     "bitman": [{"seeds": None, "fill": "#8a6600"}],
+    "printer": [{"seeds": None, "fill": "#8a6600"}],
 }
 SKIP_PREFIX = ("qr-",)
 MAX_DIM = 64      # big sources are nearest-downsampled before tracing
@@ -166,6 +169,13 @@ DETAIL_MIN_REGION = {
     # keeps the hat, its dark band and the moon, and drops the noise.
     "wizard": 10,
 }
+# Colours a full-colour icon paints in its RIM colour rather than their own.
+# The ink is found as the darkest cluster, which is the right rule for the
+# linework proper but leaves anything drawn a shade lighter to fend for
+# itself: bug's two floating specks are #2a3f00, near-black, and on this
+# site's background they simply are not there. They belong with the outline.
+AS_INK = {"bug": ((42, 63, 0),)}
+
 # An icon whose SUBJECT is not the colour of its tile. turbo's tile is the same
 # blue as fiddle's and printer's, but the icon is a lightning bolt and the bolt
 # is yellow; data-doctor's case is white on a blue tile. Both wear the
@@ -179,8 +189,9 @@ ICON_COLOUR = {
     # /printer wears 3DP in the nav, and its own tile is the same blue as
     # fiddle's and turbo's. It takes bitman's colour instead -- the same
     # biting sphere it IS, and the only nav slot that was a third blue.
-    "printer": (182, 252, 0),
-    # The sphere's own gold, not the yellow-green tile it sat on.
+    # The sphere's own gold, not the yellow-green tile it sat on. printer is
+    # that same sphere, so it takes the gold too rather than the green.
+    "printer": (255, 223, 0),
     "bitman": (255, 223, 0),
 }
 # A second path, filled, in its own colour: a feature that is not linework and
