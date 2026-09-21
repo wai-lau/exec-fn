@@ -50,11 +50,12 @@ OUT = ROOT / "web" / "icons"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from icon_contours import boundary_loops, drop_collinear  # noqa: E402
+from icon_colour import colour_paths  # noqa: E402
 from icon_config import (  # noqa: E402
-    CENTRE_INK, GLYPH_ONLY, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, MAX_DIM,
-    SKIP, SKIP_PREFIX,
+    CENTRE_INK, GLYPH_ONLY, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, LINE_ART,
+    MAX_DIM, SKIP, SKIP_PREFIX,
 )
-from icon_mask import ink_mask  # noqa: E402
+from icon_mask import ink_mask, tile_colour  # noqa: E402
 
 BG_L = 0.0      # --bg-hsl lightness, in percent
 NEAR_L = 25.0   # a stroke within this many points of it gets L -> 100-L
@@ -267,6 +268,25 @@ def overlay_paths(stem, im, w, h, mask, ox, oy, colour):
             out.append(f'<path fill="{spec.get("fill") or colour}" d="{gd}"/>')
     return out
 
+def colour_svg(im, stem):
+    """The full-colour trace: the tile dropped, every other colour its own."""
+    w, h = im.size
+    px = im.load()
+    tile = tile_colour(px, w, h)
+    rim = stroke_colour(ICON_COLOUR.get(stem, tile))
+    side = max(w, h)
+    paths = colour_paths(px, w, h, tile, rim,
+                         (side - w) // 2, (side - h) // 2, path_for)
+    if not paths:
+        return None
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {side} {side}" '
+        f'width="32" height="32" fill-rule="evenodd" '
+        f'shape-rendering="crispEdges" aria-hidden="true">\n'
+        + "".join(paths) + "\n</svg>\n"
+    )
+
+
 def trace(path: Path) -> str | None:
     im = Image.open(path).convert("RGBA")
     if max(im.size) > MAX_DIM:
@@ -277,6 +297,8 @@ def trace(path: Path) -> str | None:
         im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))),
                        Image.NEAREST)
     w, h = im.size
+    if path.stem not in LINE_ART:
+        return colour_svg(im, path.stem)
     mask, tile = ink_mask(im, path.stem)
     if not mask:
         return None
