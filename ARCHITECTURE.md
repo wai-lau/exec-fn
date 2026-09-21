@@ -475,25 +475,46 @@ from `GET /api/hosaka/mode` on load.
 | `POST /api/hosaka/mode` | `protected` | owner only |
 | `GET /api/hosaka/mode/stream` | `protected` | owner only |
 
-### 4c. Three consumers of one audio core
+### 4c. Four consumers of one audio core — and one narrator above it
 
-All three share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`) — it
+All four share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`) — it
 owns the `AudioContext`, the iOS unlock dance, the `/ws/hosaka` socket, and
 playback of streamed **24 kHz float32 PCM** via scheduled
 `AudioBufferSourceNode`s. The upstream emits only `{start}` / coarse PCM
 blobs / `{end}` (no per-word timestamps), so any visual syncs to the
 *measured* audio duration.
 
-| Surface | Script | Voice | Backend |
-|---------|--------|-------|---------|
-| `/hosaka` SPEAK UI | `tts.js` | `charlie` (default) + full voice list | chatterbox + RVC |
-| `/tarot` reader | `tarot-voice.js` | `af_nicole` | kokoro |
-| Exec bubble | `exec-voice.js` / `exec-voice-listener.js` | `glados` | piper |
+| Surface | Script | Voice | Backend | Where that backend runs |
+|---------|--------|-------|---------|-------------------------|
+| `/hosaka` SPEAK UI | `tts.js` | `charlie` (default) + full list | chatterbox + RVC | home GPU box |
+| `/tarot` reader | `tarot-voice.js` | `nicole` | kokoro | **home GPU box** |
+| Exec panel + bubble | `exec-voice.js` / `exec-voice-listener.js` | `glados` | piper | **this droplet** |
+| `/cc` | `exec-voice.js` (same binding) | `glados` | piper | **this droplet** |
 
-The `/tarot` reader paces its typewriter to the audio clock (holds text
-until audio starts, then reveals on a `charWeight` schedule normalized to
-the measured duration); on any audio failure it bails to a guessed-pace
-typewriter and logs a sys note. Exec is fire-and-forget (no typewriter).
+**That last column is the difference that matters.** `pick_upstream` routes
+backend `piper` to the always-on container beside the app, so Exec and `/cc`
+keep their voice with the home machine asleep; only `/tarot` speaks from the
+tunnel, and only `/tarot` can lose its voice (§14d).
+
+Above the player sits **`web/voice-narrator.js`**, shared by the three
+narrating surfaces: player lifecycle, the persisted on/off, the unlock dance,
+the utterance queue, and the CONTROLLER (`elapsed()`, `duration()`, `ended`,
+`ok`) a typewriter paces to. `exec-voice.js` and `tarot-voice.js` are thin
+bindings over it — configuration plus what is genuinely theirs (the replay
+glyph and the toggle both surfaces mount; the home-box probe and the canned
+opening). The control itself is **`web/voice-ui.js` + `voice-ui.css`**: one
+`.voice-mute` element, one `data-on` contract, three placements.
+
+**OFF means off.** Before 2026-09-20 `/tarot`'s button was a volume mute that
+kept synthesizing and kept pacing the reveal to audio nobody could hear. Now
+`speak()` returns a DEAD controller when the narrator is off — nothing
+synthesized, no socket — and every caller reads that as "reveal at your own
+pace, now". One flag; no second state to keep in sync.
+
+Each narrating surface paces its typewriter to the audio clock and bails to the
+guessed pace on any failure (§18). `exec-voice-listener.js` (nudges and monitor
+comments on non-planning pages) is still fire-and-forget: there is no typewriter
+on those pages to pace.
 
 **A fourth path plays audio that was never synthesized here.** The
 pre-generated `/tarot` openings (§14d) are already-rendered WAVs, and
@@ -1801,9 +1822,9 @@ The pre-reading `begin-hint` ("tap anywhere to begin the reading") centers verti
 
 `tarot-chat.js` holds the text until audio starts (the reader "draws breath" behind a blinking cursor), then reveals characters on a `charWeight`-shaped schedule normalized to the measured audio duration — preserving punctuation pauses, with no drift, self-correcting off `player.elapsed()`.
 
-The ♪ button in `#spread-controls` is a **MUTE** (volume → 0); narration still streams and still paces the typewriter. Audio failure or not-yet-unlocked falls back to the guessed-pace typewriter.
+The ♪ button in `#spread-controls` is a real **ON/OFF** (2026-09-20; it was a volume mute). Off, nothing is synthesized and the reveal runs at the reader's own 1.25 — `wantsDeferredOpening()` also stops holding the opening for a gesture, since there is no audio to unlock and the hold would buy nothing. Audio failure or not-yet-unlocked lands in the same place.
 
-This is the one chat surface that does NOT use the shared `web/typewriter.js` engine for its main path — that engine is its SILENT fallback. See CLAUDE.md § *Typewriter*.
+Both paces now live in the shared `web/typewriter.js` (`twAudio` moved out of tarot-stream.js when the Exec panel and `/cc` got the same voice), and the reader is a binding: `createTypewriter` is a render target and a speed. See CLAUDE.md § *Typewriter*.
 
 ### 14c. Ambient music, and why the level is measured
 
@@ -2174,9 +2195,21 @@ A rejected push (the remote moved) is retried ONCE through a fetch + rebase, and
 
 ### 18a. Every chat surface reveals character by character
 
-`web/typewriter.js`, on the engine `/tarot` has always used for its SILENT fallback: a per-character delay where punctuation is a beat (`twCharWeight`: `.` 850ms, `\n` 1100, `,` 420, ` ` 110, else 65), divided by a speed multiplier.
+`web/typewriter.js`: a per-character delay where punctuation is a beat (`twCharWeight`: `.` 850ms, `\n` 1100, `,` 420, ` ` 110, else 65), divided by a speed multiplier.
 
 `/tarot` runs it at **1.25** — a reading is paced to be listened to. `/cc`, `/mtg` and the **Exec panel** run the same engine at **5**, because those are read for an answer, and **a typewriter that lags the eye is latency with a costume on**. Measured on a real /mtg reply: ~45 chars/sec at SPEED 2; the multiplier has gone 2 → 3 → 5 (2026-09-14) as the reveal kept reading slower than the eye, and at 5 the ordinary 65ms character is 13ms, still a reveal rather than a paste.
+
+### 18a-ii. With the voice on, the narrator sets the pace
+
+Those speeds are the SILENT pace (`twGuess`). When a surface is narrating, the reveal belongs to the voice: **`twAudio`** keeps the same per-character weights for shape but rescales the total to the measured utterance, so the words land as they are spoken. It was `/tarot`'s main path, living in tarot-stream.js; it moved into the shared engine on 2026-09-20 when the Exec panel and `/cc` got the same voice, and the three now differ only in render target and fallback speed.
+
+**Text buffers instead of typing while a voice is coming.** `push()` on a narrating surface does not start a reveal — typing at 5 under a voice finishes the answer before it has been read out, which is two versions of the same reply racing each other. The reveal starts when the utterance does.
+
+**Syntax costs ZERO reveal time** (`twWeights`). It is jumped in one frame (18b) *and* the narrator never says it — `VoiceUtil.stripMarkdown` drops fences, tables and markers before TTS. Charging time for a span the voice skips is what would put a long code block's worth of drift between the words on screen and the words in the air, which is `/cc`'s normal reply shape.
+
+**Every failure path ends at the guessed pace**, because a reveal that hangs freezes the page with the answer half-written: a dead controller (voice off, never unlocked, upstream gone) types immediately; `FIRST_AUDIO_MS` 12s covers a cold synth (10.3s measured off a box that had just come up — §14d — which is why the old 8s window was raised); `STALL_MS` 2.5s catches a stream that dies mid-utterance, with `el` capped at what was actually buffered so the watchdog cannot be defeated by a clock that keeps ticking after the audio stopped arriving.
+
+A surface whose utterance is QUEUED behind another (`voice-narrator.js` queues so a monitor comment cannot cut off a reply) takes the guessed pace instead: its audio may be a minute away, and `twAudio` would sit out its first-audio window and bail to the same place.
 
 ### 18b. Everything that is SYNTAX rather than prose is jumped
 

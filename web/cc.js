@@ -8,9 +8,6 @@
  * error. */
 
 let streaming = false;
-// Chat pace: FOUR times the tarot reader's 1.25. These pages are read for an
-// answer, and a typewriter the eye outruns is latency wearing a costume.
-const CC_TYPE_SPEED = 5;
 let pending = [];   // images pasted but not yet sent
 let _sending = false;   // mid-interrupt: a second Enter must not double-send
 
@@ -67,6 +64,16 @@ function atBottom() {
   return terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 60;
 }
 
+/** Wire the shared voice controls: the toggle in the composer, and a replay
+ *  glyph on anything Claude says. Both are the Exec panel's (voice-ui.js) --
+ *  /cc speaks in the same glados voice, from the same droplet-local piper. */
+function ccMountVoice() {
+  if (!window.execVoice) return;
+  const line = document.getElementById('input-line');
+  const newBtn = document.getElementById('cc-new');
+  if (line && newBtn) line.insertBefore(execVoice.button({ id: 'exec-mute' }), newBtn);
+}
+
 function addMsg(role, text, images) {
   // Only chase the tail when the reader is already there — yanking the view down
   // mid-scroll while a long tool result streams is the worst thing a transcript
@@ -81,6 +88,9 @@ function addMsg(role, text, images) {
     ccRenderSvgBlocks(body);
     addImages(body, images);
     div.appendChild(body);
+    // Tap the marker to hear it again. Prepended to the DIV, not the body, so a
+    // settle pass rebuilding innerHTML cannot wipe it.
+    if (role === 'assistant' && window.execVoice) div.appendChild(execVoice.mark(role, text));
   } else {
     div.textContent = text;
   }
@@ -292,6 +302,9 @@ async function* ccFrames(body) {
 async function streamResponse(prompt, imgs) {
   streaming = true; ccResetTools(); const signal = ccRunBegin();   // see cc-interrupt.js
   let { div, body, cur } = addStreamDiv();
+  // One typer per bubble (cc-reveal.js). It decides the pace: silent = the
+  // guessed 5x, voice on = the narrator's, spread across the measured audio.
+  let typer = ccTyper(body, cur);
   let fullText = '';
   let receipt = null;   // the turn/time footnote, appended after the settle
   let settledBody = null;   // last prose bubble closed by a tool call — the
@@ -319,18 +332,20 @@ async function streamResponse(prompt, imgs) {
       // came after.
       body.innerHTML = renderText(fullText);
       ccRenderSvgBlocks(body);
+      // Say it now rather than at the end of the turn: this prose is finished,
+      // the tool that closed it is about to run, and the voice reading it is
+      // what fills that wait. It queues behind anything already speaking.
+      if (window.execVoice) execVoice.speak(fullText);
       settledBody = body;
     } else {
       div.remove();
     }
     div = null;
     fullText = '';
-    // Cancel the reveal and hand the next bubble a fresh state object; leaving
-    // the old `typing` promise in place would hang the settle pass below, since
-    // a cancelled typer never calls onDone.
-    tw.cancelled = true;
-    tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
-    typing = null;
+    // Cancel this bubble's reveal; reopen() builds the next one its own typer.
+    // Leaving the old one running would let it write into the new bubble.
+    typer.cancel();
+    typer = null;
   };
   // Only ever called with no open bubble, i.e. after closeBubble() — which has
   // already cancelled the old reveal and installed a fresh state object, so a
@@ -338,27 +353,7 @@ async function streamResponse(prompt, imgs) {
   const reopen = () => {
     const s = addStreamDiv();
     div = s.div; body = s.body; cur = s.cur;
-  };
-
-  // Reveal the reply at a readable pace instead of in stream-sized bursts --
-  // the same engine /tarot uses, at SPEED 5 (typewriter.js). It never lags the
-  // stream by much: the weights are per character and the text is already here.
-  let tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
-  let typing = null;
-  const startTyper = () => {
-    if (typing) return;
-    typing = new Promise((resolve) => {
-      twGuess(tw, (shown) => {
-        body.innerHTML = renderText(shown);
-        // Swap in every diagram whose closing fence has already arrived. A
-        // finished SVG used to sit as raw markup until the WHOLE reply settled,
-        // so a picture the model had finished drawing was still scrolling past
-        // as source. Only CLOSED blocks: a half-written one would flicker.
-        ccRenderSvgBlocks(body, ccClosedSvgCount(shown));
-        (body.lastElementChild || body).appendChild(cur);
-        if (atBottom()) terminal.scrollTop = terminal.scrollHeight;
-      }, { speed: CC_TYPE_SPEED, onDone: resolve }).start();
-    });
+    typer = ccTyper(body, cur);
   };
 
   try {
@@ -388,8 +383,7 @@ async function streamResponse(prompt, imgs) {
       } else if (data.type === 'text') {
         if (!div) reopen();
         fullText += data.text;
-        tw.buffered = fullText;
-        startTyper();
+        typer.push(fullText);
       } else if (data.type === 'thinking') {
         if (data.text) { closeBubble(); park(addMsg('think', data.text), cur); }
       } else if (data.type === 'tool') {
@@ -414,8 +408,12 @@ async function streamResponse(prompt, imgs) {
     // Let the reveal catch up before settling: the final render is the markdown
     // pass that also swaps in SVG diagrams, and running it while the typer is
     // still going would print the whole reply and then keep typing over it.
-    tw.serverDone = true;
-    if (typing) await typing;
+    //
+    // The text is final HERE, which is the moment the voice can have it: speak
+    // before awaiting the reveal, never after, or a long answer is read aloud
+    // to a screen that finished saying it (measured at 2.7s of lag in the Exec
+    // panel, which is where that rule comes from).
+    if (typer) { typer.speakAndPace(fullText); await typer.done(); }
     let settled = settledBody;
     if (div) {
       cur.remove();
@@ -426,7 +424,8 @@ async function streamResponse(prompt, imgs) {
                        // sitting there as a line that does nothing when tapped
     if (receipt) ccAppendReceipt(settled, receipt);
   } catch (e) {
-    tw.cancelled = true; if (div) { cur.remove(); if (!fullText) div.remove(); }
+    if (typer) typer.cancel();
+    if (div) { cur.remove(); if (!fullText) div.remove(); }
     ccFinishTools();   // an interrupted run leaves calls unanswered; say so
     addMsg('sys warn', ccStopNote(e));
   }
@@ -436,6 +435,8 @@ async function streamResponse(prompt, imgs) {
   // event says only "a reply finished" and knows nothing about the microphone.
   terminal.dispatchEvent(new CustomEvent('cc:reply-done'));
 }
+
+ccMountVoice();
 
 (async () => {
   if (await announceState()) await loadHistory();

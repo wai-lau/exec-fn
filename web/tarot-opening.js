@@ -84,7 +84,9 @@ const TarotOpening = (() => {
     const st = {buffered: clip.text, displayed: '', serverDone: true, cancelled: false};
     const tw = createTypewriter(st, body, cur);
     if (gate) await gate;  // the first gesture — audio is unlocked by now
-    const wantsVoice = tarotVoice.ready();
+    // Narrator off → no clip audio and no waiting for it: the opening reveals
+    // at the reader's own pace like any other turn.
+    const wantsVoice = tarotVoice.isOn() && tarotVoice.ready();
     const buf = wantsVoice ? await waitAudio() : null;
     const ctl = buf ? tarotVoice.speakClip(buf) : null;
     if (ctl && ctl.ok) tw.audio(ctl);

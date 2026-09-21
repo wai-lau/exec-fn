@@ -64,7 +64,6 @@
             '<div id="exec-idisp"><span id="exec-ipre"></span><span id="exec-icursor"></span><span id="exec-ipost"></span></div>' +
             '<div id="exec-minput" contenteditable="true" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>' +
           '</div>' +
-          '<button id="exec-mute" title="Mute Exec voice">[<span class="exec-vglyph">&#10022;</span>]</button>' +
           '<button id="exec-ph-close">[x]</button>' +
         '</div>' +
       '</div>';
@@ -74,7 +73,13 @@
     preEl = document.getElementById('exec-ipre');
     postEl = document.getElementById('exec-ipost');
     document.getElementById('exec-ph-close').addEventListener('click', closePanel);
-    if (window.execVoice) execVoice.mountButton();
+    // The voice toggle is the shared control (voice-ui.js) — same element and
+    // same data-on contract as /tarot's and /cc's; only the placement is ours.
+    if (window.execVoice) {
+      const line = document.getElementById('exec-iline');
+      line.insertBefore(execVoice.button({ id: 'exec-mute' }),
+                        document.getElementById('exec-ph-close'));
+    }
     // Click-outside-to-close, decided in the CAPTURE phase -- a control that
     // removes itself on tap (exec-choices' answer buttons) leaves a DETACHED
     // target, which a bubble-phase containment test reads as 'outside'.
@@ -200,35 +205,6 @@
   }
 
   // ── message rendering ─────────────────────────────────────────────────────
-  // A tapped answer is sent behind a reference to the question it answers
-  // (exec-choices.answerRef) so several open questions can be answered in any
-  // order. It is addressed to the MODEL, so the panel shows only the human half
-  // — `re: "Packed yet?"` — and never the raw card id, which is noise to Wai and
-  // the one thing Exec itself is told never to print.
-  const REF_RE = /^\[answering:(?: "([^"]*)")?(?: card=\S+?)?\]\s*/;
-
-  // Trailing space inside the chip, so the gap survives without touching the
-  // shared .msg-ts rule (which /mtg and /cc render too).
-  function chip(cls, text) {
-    const s = document.createElement('span');
-    s.className = cls;
-    s.textContent = text + ' ';
-    return s;
-  }
-
-  function renderUserBody(body, text) {
-    const ts = text.match(/^(\[\S+ \S+ ET\])\s*/);
-    if (ts) { body.appendChild(chip('msg-ts', ts[1])); text = text.slice(ts[0].length); }
-    const ref = text.match(REF_RE);
-    if (ref) {
-      if (ref[1]) body.appendChild(chip('msg-ref', 're: \u201c' + ref[1] + '\u201d'));
-      text = text.slice(ref[0].length);
-    }
-    const rest = document.createElement('span');
-    rest.innerHTML = mdHtml(text);
-    body.appendChild(rest);
-  }
-
   function addMsg(role, text, cardId) {
     const div = document.createElement('div');
     div.className = 'msg ' + role;
@@ -250,7 +226,7 @@
       const body = document.createElement('div');
       body.className = 'msg-body';
       if (role === 'user') {
-        renderUserBody(body, text);
+        execRenderUserBody(body, text);
       } else {
         body.innerHTML = mdHtml(text);
       }
@@ -264,29 +240,10 @@
     return div;
   }
 
-  function addStreamDiv() {
-    const div = document.createElement('div');
-    div.className = 'msg assistant';
-    const body = document.createElement('div');
-    body.className = 'msg-body';
-    const cur = document.createElement('span');
-    cur.id = 'exec-bc';
-    cur.innerHTML = '<span></span><span></span><span></span>';
-    body.appendChild(cur);
-    div.appendChild(body);
-    termEl.appendChild(div);
-    return { div: div, body: body, cur: cur };
-  }
-
-  function fmtTs() {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      day: '2-digit', month: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false
-    }).formatToParts(new Date());
-    const get = function (t) { return parts.find(function (p) { return p.type === t; }).value; };
-    return '[' + get('day') + '/' + get('month') + ' ' + get('hour') + ':' + get('minute') + ' ET]';
-  }
+  // The render primitives live in exec-bubble-msg.js (the 500-line cap); they
+  // need no panel state, so they take what little they use.
+  const addStreamDiv = () => execStreamDiv(termEl);
+  const fmtTs = execFmtTs;
 
   // ── input ─────────────────────────────────────────────────────────────────
   function _caretOffset() {
@@ -363,7 +320,11 @@
     streaming = true;
     const { div: streamDiv, body, cur } = addStreamDiv();
     let fullText = '';
-    const typer = execTyper(body, cur, termEl);
+    // With the voice on and usable, the reveal is the narrator's to pace: the
+    // typer buffers instead of typing, and twAudio spreads the text across the
+    // measured utterance below.
+    const typer = execTyper(body, cur, termEl,
+                            () => !!(window.execVoice && execVoice.isOn() && execVoice.ready()));
     try {
       const r = await fetch('/api/chat', {
         method: 'POST',
@@ -403,9 +364,15 @@
       // used to sit below `await typer.finish()`, which is the whole typewriter
       // run, so the voice only opened its mouth once the last character had
       // landed and a long reply was read out to a screen that had finished
-      // saying it. The reveal and the narration now run together.
-      if (fullText && window.execVoice) execVoice.speak(fullText);
-      await typer.finish();
+      // saying it.
+      //
+      // The controller decides the pace from here: a live utterance reveals the
+      // text across it (typing at the narrator's speed), and a dead one — voice
+      // off, not unlocked, upstream unreachable — falls straight through to the
+      // guessed pace, which is also what finish() starts when nothing else has.
+      const vctl = fullText && window.execVoice ? execVoice.speak(fullText) : null;
+      if (vctl && vctl.ok) await typer.audio(vctl);
+      else await typer.finish();
       cur.remove();
       if (fullText) {
         // The typewriter has already typed any trailing [a | b | c] row as

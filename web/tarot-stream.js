@@ -3,100 +3,29 @@
 // as tarot-view.js / tarot-voice.js / tarot-chat.js (loaded in order via
 // <script>, not modules); only ever called at runtime by autoTrigger.
 
-// Reveal engine. Owns `st.displayed`; reads `st.buffered/serverDone/cancelled`
-// (a shared mutable state object so streamResponse can append text + cancel).
-// Returns { guessed, audio }:
-//   guessed()    SILENT mode — type one char at a time at the weighted pace.
-//   audio(ctl)   VOICE mode  — pace the reveal off the playback clock.
-// Punctuation weights set the SHAPE (dramatic pauses); in voice mode the total
-// is rescaled to the measured audio duration. Upstream {end} only means audio is
-// BUFFERED, so we stay synced to el/dur until playback actually finishes.
+// The reader's binding to the shared reveal engine (typewriter.js): both modes
+// live there now, since the Exec panel and /cc narrate with the same rules.
+// Only the render target and the reader's pace are tarot's.
+//
+//   guessed()   SILENT mode — the weighted per-character pace.
+//   audio(ctl)  VOICE mode  — the same weights rescaled to the measured audio,
+//               so the text lands with the voice saying it.
+//
+// The state object is shared and mutable by contract: the caller appends to
+// `buffered` and sets `serverDone`, the engine owns `displayed`.
 function createTypewriter(st, body, cur) {
-  // The reader's pace. The chat surfaces run the same engine at 2 -- see
-  // typewriter.js, which is where the weights and the silent loop now live.
+  // The reader's pace. The chat surfaces run the same engine at 5 -- a reading
+  // is paced to be listened to.
   const SPEED = 1.25;
-  const BASE_MS = 65;
-  const charWeight = (ch) => twCharWeight(ch, BASE_MS);
   function render() {
     body.innerHTML = renderText(st.displayed);
     (body.lastElementChild || body).appendChild(cur);
     terminal.scrollTop = terminal.scrollHeight;
   }
-  function guessed() {
-    twGuess(st, render, { speed: SPEED, baseMs: BASE_MS }).start();
-  }
-  function audio(ctl) {
-    const text = st.buffered;  // final by now (server stream complete)
-    const cum = new Array(text.length + 1);
-    cum[0] = 0;
-    for (let i = 0; i < text.length; i++) cum[i + 1] = cum[i] + charWeight(text[i]);
-    const totalW = cum[text.length] || 1;
-    const startWait = performance.now();
-    let lastProgress = -1, lastProgressAt = performance.now();
-    // TTS synthesizes for a while before the first PCM chunk streams — that
-    // silent gap is NOT a failure (kokoro can take a few seconds on the first
-    // utterance / a cold home box), so the pre-audio wait is generous. The old
-    // 2.5s watchdog fired in this gap and falsely reported the voice dead while
-    // it was merely slow to start. A stream that never streams still bails here.
-    const FIRST_AUDIO_MS = 8000;
-    // Once audio is flowing, a 2.5s freeze (playback clock OR buffer not moving)
-    // means the upstream stalled mid-stream → finish at the guessed pace.
-    const STALL_MS = 2500;
-    // Audio gave up (errored / never started / stalled): mark the controller
-    // failed so the outer wait loop exits, record the reason, finish at the
-    // guessed pace. NEVER leave the reveal hanging — that froze the page.
-    function bail(reason) {
-      ctl.ok = false;
-      ctl.ended = true;
-      if (!ctl.error) ctl.error = reason;
-      guessed();
-    }
-    function finishBrisk() {  // clean end, text still behind → mop up the tail
-      if (st.cancelled) return;
-      if (st.displayed.length >= text.length) return;
-      st.displayed = text.slice(0, st.displayed.length + 2);
-      render();
-      setTimeout(finishBrisk, 16);
-    }
-    function tick() {
-      if (st.cancelled) return;
-      if (!ctl.ok) { bail(ctl.error); return; }
-      const dur = ctl.duration();
-      const el = ctl.elapsed();
-      const started = dur > 0 || el > 0;
-      // Any forward motion (playback advancing OR more audio buffered) resets the
-      // stall clock — one watchdog covers both a frozen ctx and a dead upstream.
-      // `el` is the ctx clock since the utterance began and keeps climbing after
-      // the buffer drains, so a raw el+dur NEVER stops rising: an upstream that
-      // dies mid-utterance without {end}/{error} defeated this watchdog entirely
-      // and hung the reveal forever (frac clamps at 0.999, so the text also never
-      // finished). Capping el at what was actually buffered freezes the signal
-      // once playback catches up to a stream that stopped arriving.
-      const progress = Math.min(el, dur) + dur;
-      if (progress > lastProgress) { lastProgress = progress; lastProgressAt = performance.now(); }
-      const audioFinished = ctl.ended && dur > 0 && el >= dur;
-      if (!started) {
-        // Still buffering the first chunk — hold, don't read the flat clock as a stall.
-        if (ctl.ended) { bail('no audio'); return; }                          // ended, never made sound
-        if (performance.now() - startWait > FIRST_AUDIO_MS) { bail('no audio'); return; }
-      } else if (!audioFinished && performance.now() - lastProgressAt > STALL_MS) {
-        bail('no audio'); return;
-      }
-      if (dur > 0) {
-        let frac = Math.min(el / dur, audioFinished ? 1 : 0.999);
-        frac = Math.max(0, Math.min(1, frac));
-        const targetW = frac * totalW;
-        let n = st.displayed.length;
-        while (n < text.length && cum[n + 1] <= targetW) n++;
-        if (n !== st.displayed.length) { st.displayed = text.slice(0, n); render(); }
-      }
-      if (audioFinished && st.displayed.length >= text.length) return;
-      if (audioFinished) { finishBrisk(); return; }
-      requestAnimationFrame(tick);
-    }
-    tick();
-  }
-  return { guessed, audio };
+  return {
+    guessed: () => twGuess(st, render, { speed: SPEED }).start(),
+    audio: (ctl) => twAudio(st, render, ctl, { speed: SPEED }).start(),
+  };
 }
 
 // Apply one SSE tool_call. Pushes any held sys notes into `pendingSys`; returns
@@ -143,9 +72,14 @@ async function streamResponse(holdForGesture = null) {
   // Voice mode holds the text until audio starts (reader "draws breath"); silent
   // mode types as text arrives. A held opening (holdForGesture, pre-generated on
   // load) holds ALL reveal until the first gesture, so the click adds no LLM wait.
-  const voiceReady = tarotVoice.ready();
+  //
+  // `isOn()` is half the question now, not just `ready()`: with the narrator
+  // turned OFF there is no clock to pace to, so the reveal runs at the reader's
+  // own pace from the first character instead of waiting for a voice that is
+  // never coming.
+  const willNarrate = tarotVoice.isOn() && tarotVoice.ready();
   let voiceCtl = null;
-  if (!voiceReady && !holdForGesture) tw.guessed();
+  if (!willNarrate && !holdForGesture) tw.guessed();
 
   try {
     const r = await fetch('/api/tarot/chat', {
@@ -178,16 +112,15 @@ async function streamResponse(holdForGesture = null) {
     // Held opening: generation is done; wait for the first gesture (unlocks
     // audio) before revealing/narrating — no LLM round-trip on the click.
     if (holdForGesture) await holdForGesture;
-    const speakNow = holdForGesture ? tarotVoice.ready() : voiceReady;
+    const speakNow = holdForGesture ? (tarotVoice.isOn() && tarotVoice.ready()) : willNarrate;
     // Voice mode strips the trailing flip-invite BEFORE narrating so voice and
     // typewriter share the final text; silent mode strips after typing (below).
     if (speakNow && pendingDeal) st.buffered = stripDealInvite(st.buffered);
-    if (speakNow) {
-      voiceCtl = tarotVoice.speak(st.buffered);
-      tw.audio(voiceCtl);
-    } else if (holdForGesture) {
-      tw.guessed();  // gesture came but audio unusable → type now
-    }
+    if (speakNow) voiceCtl = tarotVoice.speak(st.buffered);
+    // A live utterance paces the reveal across itself; a DEAD controller (voice
+    // off, never unlocked, upstream gone) means type now, at the reader's pace.
+    if (voiceCtl && voiceCtl.ok) tw.audio(voiceCtl);
+    else if (holdForGesture || speakNow) tw.guessed();
     // wait for the reveal to catch up — and, in voice mode, for the voice to end
     while (
       st.displayed.length < st.buffered.length ||

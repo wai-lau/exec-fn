@@ -107,20 +107,16 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
   margin:0 0.15em; display:inline-block;
 }
 
-/* reader-voice toggle: shares the spread-btn body; state in [data-on]. Off =
-   dim, no pulse; on = full green + the shared btn-pulse glow. */
-.voice-btn { animation:none; }
-.voice-btn[data-on="false"] { color:hsl(var(--green-hsl) / 0.45); text-shadow:none; }
+/* reader-voice toggle: the SHARED control (voice-ui.css, .voice-mute + its
+   glyph metrics) wearing the spread-btn body. State is the shared [data-on];
+   only the reading-room dressing is here -- off = dim, no pulse; on = full
+   green + the btn-pulse glow the other spread buttons carry. */
+.voice-mute.spread-btn { animation:none; }
+.voice-mute[data-on="false"] { color:hsl(var(--green-hsl) / 0.45); text-shadow:none; }
 
-.voice-btn[data-on="true"]  {
+.voice-mute[data-on="true"]  {
   color:hsl(var(--green-hsl) / 1);
   animation:btn-pulse 2.6s ease-in-out infinite;
-}
-
-.voice-btn .voice-glyph {
-  font-family: var(--font-ui);
-  font-size:1.3em; line-height: var(--lh-none); vertical-align:-0.08em;
-  margin:0 0.12em; display:inline-block;
 }
 
 /* ambient-music toggle: same body as the voice toggle. Off = dim, no pulse;

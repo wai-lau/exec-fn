@@ -1,141 +1,41 @@
-// /tarot reader narration. Owns the voice toggle + a HosakaAudio player.
-// tarot-chat.js calls in during a reader turn to decide whether to narrate,
-// start TTS for the full reader text, and read the audio clock so the
-// typewriter paces to the actual voice (the upstream emits no word timings --
-// see hosaka-audio.js -- so we sync the typing to measured audio duration).
-const TAROT_VOICE = "nicole"; // reader voice (kokoro, realtime)
+// The reader's voice — the binding, not the engine.
+//
+// /tarot narrates in `nicole` on `kokoro`, which is the ONE voice in the app
+// that comes from the home GPU box over the SSH tunnel (Exec and /cc speak
+// glados from a container on this droplet). So this file owns the two things
+// that follow from that: the home-box probe, and the canned opening that speaks
+// from a file when the box is asleep.
+//
+// Everything else — the player, the on/off, the iOS unlock, the controller the
+// typewriter paces off — is voice-narrator.js, and the toggle is voice-ui.js.
+//
+// tarot-chat.js calls in during a reader turn to decide whether to narrate and
+// to get that controller; the upstream emits no word timings (see
+// hosaka-audio.js), so the reveal syncs to measured audio duration.
+const TAROT_VOICE = "nicole";   // reader voice (kokoro, home box)
+const TAROT_BACKEND = "kokoro";
 const LS_VOICE = "tarot.voice";
 
 const tarotVoice = (() => {
-  let player = null;
-  // The #voice-btn is a MUTE: narration is audible by default; the button only
-  // sets the player volume to 0 (and back). `on` = unmuted. localStorage "0" =
-  // muted, anything else audible.
-  let on = localStorage.getItem(LS_VOICE) !== "0";
-  let btn = null;
+  "use strict";
 
-  function ensurePlayer() {
-    if (!player) player = HosakaAudio.createPlayer();
-    return player;
-  }
+  const n = VoiceNarrator.create({
+    voice: TAROT_VOICE,
+    backend: TAROT_BACKEND,
+    speed: 1.0,
+    lsKey: LS_VOICE,
+    // No queue: a new reader turn REPLACES the last one. The reader speaks once
+    // per turn, and a re-read should interrupt rather than stack up behind it.
+    queue: false,
+  });
 
-  // Strip markdown so the voice reads prose, not asterisks (shared with
-  // exec-voice via voice-util.js). Runs on the reader's already-cleaned text
-  // (event markers never reach here).
-  const plain = (md) => VoiceUtil.stripMarkdown(md);
-
-  // A user gesture has unlocked the player. Narration plays whenever unlocked;
-  // the mute button only zeroes the volume (setOn), it does NOT gate narration.
-  // Gate on gestureUnlocked() (sticky "a gesture ran"), NOT isUnlocked() (live
-  // ctx.state): on Windows Chrome the live state can read non-running at this
-  // check even though playback works, which silently dropped the voice. speak()
-  // resumes a suspended context, so the sticky signal is the right gate.
-  function ready() {
-    return !!player && player.gestureUnlocked();
-  }
-
-  // The mute toggle: v=true unmuted (volume 1), v=false muted (volume 0). It does
-  // nothing but set the player volume -- narration still streams + paces either way.
-  function setOn(v) {
-    on = v;
-    localStorage.setItem(LS_VOICE, v ? "1" : "0");
-    if (btn) {
-      btn.dataset.on = v ? "true" : "false";
-      btn.setAttribute("aria-pressed", String(v));
-    }
-    if (v) ensurePlayer().unlock(); // unmute is a gesture -> iOS unlock
-    if (player) player.setVolume(v ? 1.0 : 0);
-  }
-
-  // Persisted-on across a reload: the toggle reads on but no gesture has unlocked
-  // the player, so ready() stays false and the reader is silent until the user
-  // re-clicks. Arm a one-shot unlock on the first real gesture (tap or keypress)
-  // -- it MUST run synchronously inside that gesture (iOS audio rule), so no
-  // load-time/setTimeout unlock here.
-  function armPersistedUnlock() {
-    function fire() {
-      document.removeEventListener("pointerdown", fire, true);
-      document.removeEventListener("keydown", fire, true);
-      ensurePlayer().unlock(); // synchronous, inside the gesture
-    }
-    document.addEventListener("pointerdown", fire, true);
-    document.addEventListener("keydown", fire, true);
-  }
-
-  // True when the opening reader turn should be pre-generated on load but its
-  // reveal+voice held until the first gesture: voice is on but no gesture has
-  // unlocked audio yet (browsers won't play audio pre-gesture). Voice off /
-  // already unlocked -> reveal immediately, no hold.
-  function wantsDeferredOpening() {
-    ensurePlayer();
-    return !player.gestureUnlocked();
-  }
-
-  // Arm a one-shot first gesture (tap/keypress) that unlocks audio and calls
-  // `onGesture` IN the gesture. The opening turn's reveal+voice are gated on this
-  // (generation already ran in the background) so the click starts the reading
-  // with no LLM wait. MUST unlock synchronously inside the gesture (iOS rule).
-  function armOpeningUnlock(onGesture) {
-    function go() {
-      document.removeEventListener("pointerdown", go, true);
-      document.removeEventListener("keydown", go, true);
-      ensurePlayer().unlock(); // synchronous, inside the gesture
-      if (onGesture) onGesture();
-    }
-    document.addEventListener("pointerdown", go, true);
-    document.addEventListener("keydown", go, true);
-  }
-
-  // Begin narrating `md`. Returns a controller the typewriter polls:
-  //   elapsed()  seconds of voice played
-  //   duration() seconds buffered so far (final once ended)
-  //   ended      true once upstream sent {end} (or errored)
-  //   ok         false if audio never started -> caller types at guessed pace
-  function speak(md) {
-    const ctl = {
-      ended: false,
-      ok: true,
-      error: null,
-      elapsed: () => (player ? player.elapsed() : 0),
-      duration: () => (player ? player.audioDuration() : 0),
-    };
-    const text = plain(md);
-    if (!text || !ready()) {
-      ctl.ok = false;
-      ctl.ended = true;
-      return ctl;
-    }
-    player.setVolume(on ? 1.0 : 0);
-    player
-      .speak({
-        input: text,
-        backend: "kokoro",
-        voice: TAROT_VOICE,
-        params: { speed: 1.0 },
-        onStatus: (msg) => {
-          if (msg.type === "end") ctl.ended = true;
-          else if (msg.type === "error") {
-            ctl.ok = false;
-            ctl.ended = true;
-            ctl.error = msg.detail || "tts error";
-          }
-        },
-      })
-      .catch(() => {
-        ctl.ok = false;
-        ctl.ended = true;
-        ctl.error = "connection failed";
-      });
-    return ctl;
-  }
-
-  // Is the home GPU box -- which renders the READER's voice (nicole/kokoro) --
-  // actually answering? The droplet's own piper is always up but only speaks
-  // glados, which is Exec's voice, not the reader's: when the box is down the
-  // reading is silent, and the page should say so rather than let the querent
-  // wonder why the voice stopped. `/api/hosaka/health` is the same probe
-  // /hosaka polls for its "Wai's GPU offline" line, and works for guests.
-  let homeUp = null;  // null until probed -- never assume down before asking
+  // Is the home GPU box — which renders the reader's voice — actually
+  // answering? The droplet's own piper is always up but only speaks glados,
+  // which is Exec's voice, not the reader's: when the box is down the reading
+  // is silent, and the page should say so rather than let the querent wonder.
+  // `/api/hosaka/health` is the same probe /hosaka polls for its "Wai's GPU
+  // offline" line, and works for guests.
+  let homeUp = null;  // null until probed — never assume down before asking
 
   async function probeHome() {
     try {
@@ -147,65 +47,64 @@ const tarotVoice = (() => {
     return homeUp;
   }
 
-  // Answers only once the probe has come back: an unprobed voice is not a
-  // voice known to be down, and a note that guesses is worse than no note.
+  // Answers only once the probe has come back: an unprobed voice is not a voice
+  // known to be down, and a note that guesses is worse than no note. Also false
+  // when the narrator is off — a voice nobody asked for cannot be missing.
   function homeDown() {
-    return homeUp === false;
+    return homeUp === false && n.isOn();
   }
 
-  // Narrate a PRE-RENDERED clip (the canned opening, tarot-opening.js) rather
-  // than synthesizing. Returns the same controller shape as speak(), so the
-  // typewriter paces off it with no idea which one it got.
-  function speakClip(arrayBuffer) {
-    const ctl = {
-      ended: false,
-      ok: true,
-      error: null,
-      elapsed: () => (player ? player.elapsed() : 0),
-      duration: () => (player ? player.audioDuration() : 0),
-    };
-    if (!arrayBuffer || !ready()) {
-      ctl.ok = false;
-      ctl.ended = true;
-      return ctl;
-    }
-    player.setVolume(on ? 1.0 : 0);
-    player
-      .speakBuffer({
-        data: arrayBuffer,
-        onStatus: (msg) => {
-          if (msg.type === "end") ctl.ended = true;
-          else if (msg.type === "error") {
-            ctl.ok = false;
-            ctl.ended = true;
-            ctl.error = msg.detail || "clip error";
-          }
-        },
-      })
-      .catch(() => {
-        ctl.ok = false;
-        ctl.ended = true;
-        ctl.error = "playback failed";
-      });
-    return ctl;
+  // Persisted-on across a reload: the toggle reads on but no gesture has
+  // unlocked the player, so the reader stays silent until the first interaction.
+  function armPersistedUnlock() {
+    n.armUnlock();
   }
 
+  // True when the opening reader turn should be prepared on load but its
+  // reveal+voice held until the first gesture: the narrator is ON and no
+  // gesture has unlocked audio yet (browsers will not play audio pre-gesture).
+  // Narrator off, or already unlocked → reveal immediately. With the voice off
+  // there is nothing to wait for, and holding the opening behind a tap that
+  // buys nothing is just a page that will not start.
+  function wantsDeferredOpening() {
+    return n.isOn() && !n.gestureUnlocked();
+  }
+
+  // Arm a one-shot first gesture that unlocks audio and then runs `onGesture`.
+  // The opening turn's reveal+voice are gated on it (the text is already here),
+  // so the tap starts the reading with no wait behind it.
+  function armOpeningUnlock(onGesture) {
+    n.armUnlock(onGesture);
+  }
+
+  // The reader's toggle, in the spread controls. Same element and the same
+  // `data-on` contract as the Exec panel's and /cc's (voice-ui.js);
+  // `.spread-btn` is tarot.css layering its own body and pulse over it.
   function mount() {
     const controls = document.getElementById("spread-controls");
     if (!controls) return;
-    btn = document.createElement("button");
-    btn.className = "spread-btn voice-btn";
-    btn.id = "voice-btn";
-    btn.title = "Mute reader voice";
-    btn.setAttribute("aria-label", "Mute reader voice");
-    btn.setAttribute("aria-pressed", String(on));
-    btn.dataset.on = on ? "true" : "false";
-    btn.innerHTML = '[<span class="voice-glyph">&#10022;</span>]';
-    btn.addEventListener("click", () => setOn(!on));
+    const btn = VoiceUI.muteButton(n, {
+      id: "voice-btn",
+      className: "spread-btn",
+      offTitle: "Turn the reader's voice off",
+      onTitle: "Turn the reader's voice on",
+    });
     controls.insertBefore(btn, controls.firstChild);
   }
 
-  return { ready, speak, speakClip, probeHome, homeDown, mount, armPersistedUnlock, wantsDeferredOpening, armOpeningUnlock };
+  return {
+    speak: n.speak,
+    speakClip: n.speakClip,
+    ready: n.ready,
+    isOn: n.isOn,
+    setOn: n.setOn,
+    probeHome,
+    homeDown,
+    mount,
+    armPersistedUnlock,
+    wantsDeferredOpening,
+    armOpeningUnlock,
+  };
 })();
 
 tarotVoice.mount();

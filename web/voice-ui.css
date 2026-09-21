@@ -1,0 +1,38 @@
+/* The shared narrator controls (voice-ui.js): the on/off toggle and the replay
+   glyph, on /tarot, the Exec panel and /cc.
+
+   DELIBERATELY POSITION-FREE — the same split chat-msg.css makes. This file
+   says what the control looks like and how its two states read; where it sits
+   (the panel composer, /cc's input line, tarot's control strip) belongs to the
+   page, and /tarot layers its own `.spread-btn` body and pulse over the same
+   element without touching anything here. */
+
+.voice-mute {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: hsl(var(--green-hsl) / 0.8);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-tight);
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.voice-mute:hover { color: hsl(var(--green-hsl) / 1); }
+
+/* Off is dim, not hidden: the control has to stay findable in the dark, since
+   it is the only way back to a voice someone turned off two days ago. */
+.voice-mute[data-on="false"] { color: hsl(var(--green-hsl) / 0.12); }
+
+/* The glyph is a UI-font diamond in a mono bracket pair, so it needs its own
+   metrics to sit on the bracket baseline rather than above it. */
+.voice-glyph {
+  font-family: var(--font-ui);
+  font-size: 1.3em;
+  line-height: var(--lh-none);
+  vertical-align: -0.08em;
+  margin: 0 0.12em;
+  display: inline-block;
+}
