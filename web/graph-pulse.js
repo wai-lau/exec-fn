@@ -14,43 +14,65 @@
 // still pan and zoom — the transform is recomputed from vis's own scale and view
 // position each frame, so the glow stays welded to the nodes.
 //
-// WHAT IT LOOKS LIKE. Brain activity: a region goes active, and inside it nodes
-// fire stochastically rather than all at once, weighted by degree — a node with
-// more edges fires more often and stays lit longer, so hubs read as the loud ones
-// and leaves flicker. Every node fades out on its own curve instead of blinking
-// off, and an edge only lights while BOTH its endpoints are lit, which is what
-// makes the activity look like it is travelling rather than blinking in place.
+// WHAT IT LOOKS LIKE. Brain activity, as a SPREADING CASCADE. Once a second a
+// seed node is picked at random, weighted by size, and the activation walks
+// outward hop by hop: each neighbour is tried after a short delay and lights with
+// a probability set by ITS OWN size, lighting the edge it arrived along. A
+// neighbour that fails its roll is spent and propagates nothing, so a cascade
+// dies out on its own — most are a spark of two or three nodes, and a seed that
+// lands on a hub blooms across a whole neighbourhood. Iterations overlap (one starts
+// every ITER_MS, each lives ~ITER_LIFE), so there are always a couple in flight.
+//
+// Everything fades rather than blinking off, and because size tracks degree, the
+// hubs are both the likeliest seeds and the longest-lit.
 /* global network, nodesDS, edgesDS */
 var graphPulse = (function () {
   'use strict';
 
-  // ── the firing model ───────────────────────────────────────────────────────
-  // A region is active for REGION_MS, jittered by DWELL_JITTER, and then the
-  // activity moves on. It is deliberately short: a stop that lingers is a
-  // slideshow, and what is worth watching is modules picking themselves out of
-  // the whole graph one after another.
-  var REGION_MS = 800;
-  var DWELL_JITTER = 0.4;         // dwell = REGION_MS * (1 +/- this)
-  var REGION_MIN = 8;             // a region smaller than this is skipped: two
-  // hexagons lighting up on the far edge reads as a rendering glitch, not a
-  // module. It still lights in full when hovered, like any other.
+  // ── the cascade model ──────────────────────────────────────────────────────
+  // One iteration per ITER_MS, each given ITER_LIFE to finish, so a couple are
+  // always in flight and the graph never goes fully dark between them.
+  // MAX_LIVE bounds the cost: a hub bloom can be hundreds of nodes, and four
+  // overlapping blooms is the most this canvas should ever be asked to draw.
+  var ITER_MS = 1000;
+  var ITER_LIFE = 2000;
+  var MAX_LIVE = 4;
+  var HOP_MS = 110;               // delay per hop, jittered by HOP_JITTER — this
+  var HOP_JITTER = 0.3;           // is what makes it travel rather than appear
 
-  // Firing odds per node per second, before the degree weight. Tuned so a region
-  // is busy without being solid: at ~2.2/s a 200-node region holds roughly a
-  // third of itself lit at any moment.
-  var FIRE_HZ = 2.2;
-  var DEG_FULL = 10;              // degree at which weight saturates
-  var DEG_FLOOR = 0.10;           // a degree-1 node still fires, rarely
+  // A neighbour lights with a probability set by ITS OWN size, mapped across the
+  // size range. Sizes are geometric in degree (graph_style._size_graph_by_degree),
+  // so this is a degree rule wearing the size it is drawn at. Branching is
+  // degree x p: at P_MIN a chain through degree-1 nodes carries about two hops
+  // before it dies, and anything with real degree keeps going. The floor was 0.18
+  // and the chains were too short to read as travelling -- a spark, not a
+  // cascade.
+  var P_MIN = 0.55;
+  var P_MAX = 1;
+  // The size range graph_style._size_graph_by_degree emits. Mirrored rather than
+  // derived from the data so one enormous outlier can't flatten everything else
+  // onto P_MIN; if that range moves, move these with it.
+  var SIZE_FLOOR = 12;
+  var SIZE_CEIL = 88;
+  // Seeds are drawn on size to the SEED_POW, not on size itself. Strictly
+  // proportional looks like nothing happening: 76% of nodes sit at the size
+  // floor with one edge, so 9 seeds in 10 landed on a leaf that lit itself, rolled
+  // its single neighbour at 0.18 and stopped. Squaring the weight splits the
+  // difference — about half the seeds still land on small nodes and fizzle, which
+  // is what makes the ones that bloom read as events.
+  var SEED_POW = 2;
 
   // How long a node stays lit. Degree buys time, on the same argument as size:
   // the busy nodes are the ones worth looking at, so they hold the eye longer.
-  var DUR_MIN = 420;
-  var DUR_PER_DEG = 55;
+  var DUR_MIN = 1100;
+  var DUR_PER_DEG = 130;
   var DUR_DEG_CAP = 12;
   var DUR_JITTER = 0.4;
+  var EDGE_DUR = 1100;
   var ATTACK_MS = 90;             // rise; the rest of the life is the fade
-  var DECAY_POW = 1.8;            // >1 = falls away fast then lingers, like a
-  // phosphor trail rather than a linear ramp
+  var DECAY_POW = 1.2;            // >1 = falls away faster than it lingers. Close
+  // to linear on purpose: at 1.8 the light was gone before the eye had followed
+  // the chain that lit it.
 
   // Ink. Drawn with globalCompositeOperation 'lighter', so these stack into a
   // bloom instead of painting over each other — two soft discs under a crisp
@@ -63,37 +85,36 @@ var graphPulse = (function () {
   var A_STROKE = 0.95;
   var A_EDGE = 0.8;
   var EDGE_W = 1.6;
-  var TRAIL_REGIONS = 3;          // regions whose edges are still worth testing,
-  // so a node still fading from the last region can keep its edge lit
 
   var cv = null, ctx = null, cw = 0, ch = 0, dpr = 1;
-  var pos = {};                   // id -> {x, y, r} in world units, read once
+  var pos = {};                   // id -> {x, y, r, c} in world units, read once
   var deg = {};                   // id -> edge count
-  var memb = {};                  // region id -> node ids
-  var intra = {};                 // region id -> [[from, to], ...]
+  var adj = {};                   // id -> [neighbour ids]
+  var ids = [];                   // every node id, in cumulative-weight order
+  var cum = [];                   // prefix sums of size, for the weighted seed
   var lit = {};                   // id -> {t0, dur}
-  var regions = [];               // tourable region ids
-  var recent = [];                // most recent first, capped at TRAIL_REGIONS
-  var region = null, pinned = null, nextSwitch = 0, running = false;
+  var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b}
+  var live = [];                  // iterations in flight: {queue, seen, until}
+  var nextIter = 0, running = false;
 
   function index() {
     nodesDS.forEach(function (n) {
       pos[n.id] = { x: 0, y: 0, r: n.size || 10 };
       deg[n.id] = 0;
-      var c = n._community;
-      if (c !== undefined && c !== null) {
-        (memb[c] = memb[c] || []).push(n.id);
-        pos[n.id].c = c;
-      }
+      adj[n.id] = [];
     });
     edgesDS.forEach(function (e) {
-      deg[e.from] = (deg[e.from] || 0) + 1;
-      deg[e.to] = (deg[e.to] || 0) + 1;
-      var a = pos[e.from], b = pos[e.to];
-      if (a && b && a.c !== undefined && a.c === b.c) {
-        (intra[a.c] = intra[a.c] || []).push([e.from, e.to]);
+      if (!adj[e.from] || !adj[e.to]) {
+        return;
       }
+      deg[e.from] += 1;
+      deg[e.to] += 1;
+      adj[e.from].push(e.to);
+      adj[e.to].push(e.from);
     });
+    // The layout is frozen, so world positions are read ONCE here. Losing this
+    // read is not a subtle failure: every node keeps x=0, y=0 and the whole
+    // cascade draws on top of itself in the dead centre of the screen.
     var world = network.getPositions(Object.keys(pos));
     Object.keys(pos).forEach(function (id) {
       if (world[id]) {
@@ -101,8 +122,31 @@ var graphPulse = (function () {
         pos[id].y = world[id].y;
       }
     });
-    regions = Object.keys(memb)
-      .filter(function (c) { return memb[c].length >= REGION_MIN; });
+    // Prefix sums over node size, so a seed can be drawn in proportion to size
+    // with one binary search instead of a scan or a reject loop.
+    var total = 0;
+    ids = Object.keys(pos);
+    cum = ids.map(function (id) {
+      total += Math.pow(pos[id].r, SEED_POW);
+      return total;
+    });
+  }
+
+  function seed() {
+    if (!ids.length) {
+      return null;
+    }
+    var target = Math.random() * cum[cum.length - 1];
+    var lo = 0, hi = cum.length - 1;
+    while (lo < hi) {
+      var mid = (lo + hi) >> 1;
+      if (cum[mid] < target) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    return ids[lo];
   }
 
   function makeCanvas() {
@@ -134,8 +178,12 @@ var graphPulse = (function () {
 
   // ── firing ─────────────────────────────────────────────────────────────────
 
-  function weight(id) {
-    return DEG_FLOOR + (1 - DEG_FLOOR) * Math.min(1, (deg[id] || 1) / DEG_FULL);
+  // A node's chance of catching the activation, from its own size. Sizes are
+  // geometric in degree, so this is a degree rule in the units it is drawn at.
+  function catchOdds(id) {
+    var r = pos[id].r;
+    var t = (r - SIZE_FLOOR) / Math.max(SIZE_CEIL - SIZE_FLOOR, 1);
+    return P_MIN + (P_MAX - P_MIN) * Math.max(0, Math.min(1, t));
   }
 
   function fire(id, now) {
@@ -144,9 +192,11 @@ var graphPulse = (function () {
     lit[id] = { t0: now, dur: base * (1 - DUR_JITTER + Math.random() * 2 * DUR_JITTER) };
   }
 
-  // 1 at the top of the attack, 0 when spent. Anything already fading keeps
-  // fading after its region goes quiet — that continuity is most of why this
-  // reads as activity travelling rather than a light switch.
+  function fireEdge(a, b, now) {
+    litEdges[a + '\u0000' + b] = { t0: now, dur: EDGE_DUR, a: a, b: b };
+  }
+
+  // 1 at the top of the attack, 0 when spent.
   function level(l, now) {
     var t = now - l.t0;
     if (t < 0 || t >= l.dur) {
@@ -158,44 +208,77 @@ var graphPulse = (function () {
     return Math.pow(1 - (t - ATTACK_MS) / (l.dur - ATTACK_MS), DECAY_POW);
   }
 
-  function nextRegion() {
-    if (regions.length < 2) {
-      return region;
-    }
-    var pick = region;
-    while (pick === region) {
-      pick = regions[Math.floor(Math.random() * regions.length)];
-    }
-    return pick;
+  function hopAt(now) {
+    return now + HOP_MS * (1 - HOP_JITTER + Math.random() * 2 * HOP_JITTER);
   }
 
-  function enterRegion(now) {
-    region = nextRegion();
-    recent.unshift(region);
-    if (recent.length > TRAIL_REGIONS) {
-      recent.pop();
+  // One iteration: a seed, then a frontier that walks outward. `seen` is
+  // per-iteration, so a node is TRIED once per cascade however many neighbours
+  // reach it — which is what stops a dense region from re-rolling itself forever.
+  function startIteration(now) {
+    var id = seed();
+    if (id === null) {
+      return;
     }
-    nextSwitch = now + REGION_MS
-      * (1 - DWELL_JITTER + Math.random() * 2 * DWELL_JITTER);
+    var it = { queue: [], seen: {}, until: now + ITER_LIFE };
+    it.seen[id] = 1;
+    fire(id, now);
+    spread(it, id, now);
+    live.push(it);
+    if (live.length > MAX_LIVE) {
+      live.shift();
+    }
   }
 
-  function step(now, dt) {
-    if (pinned !== null) {
-      return;   // a hover holds its whole community; nothing stochastic runs
-    }
-    if (now >= nextSwitch) {
-      enterRegion(now);
-    }
-    var ids = memb[region] || [];
-    for (var i = 0; i < ids.length; i++) {
-      var id = ids[i];
-      if (!lit[id] && Math.random() < FIRE_HZ * weight(id) * dt) {
-        fire(id, now);
+  function spread(it, from, now) {
+    var ns = adj[from] || [];
+    for (var i = 0; i < ns.length; i++) {
+      if (!it.seen[ns[i]]) {
+        it.seen[ns[i]] = 1;
+        it.queue.push({ id: ns[i], from: from, at: hopAt(now) });
       }
     }
-    for (var k in lit) {
-      if (now - lit[k].t0 >= lit[k].dur) {
-        delete lit[k];
+  }
+
+  // Everything due this frame is tried at once. A node that fails its roll is
+  // spent: it does not light, and nothing walks past it. That is the whole reason
+  // a cascade dies out on its own instead of eating the graph every second.
+  function advance(it, now) {
+    var keep = [];
+    for (var i = 0; i < it.queue.length; i++) {
+      var q = it.queue[i];
+      if (q.at > now) {
+        keep.push(q);
+        continue;
+      }
+      if (Math.random() < catchOdds(q.id)) {
+        fire(q.id, now);
+        fireEdge(q.from, q.id, now);
+        spread(it, q.id, now);
+      }
+    }
+    it.queue = keep;
+  }
+
+  function step(now) {
+    if (now >= nextIter) {
+      startIteration(now);
+      nextIter = now + ITER_MS;
+    }
+    for (var i = 0; i < live.length; i++) {
+      advance(live[i], now);
+    }
+    live = live.filter(function (it) {
+      return it.queue.length && now < it.until;
+    });
+    expire(lit, now);
+    expire(litEdges, now);
+  }
+
+  function expire(map, now) {
+    for (var k in map) {
+      if (now - map[k].t0 >= map[k].dur) {
+        delete map[k];
       }
     }
   }
@@ -246,39 +329,30 @@ var graphPulse = (function () {
     ctx.stroke();
   }
 
-  // An edge lights only while BOTH ends are lit, at the dimmer end's level — so
-  // it comes up as the second end fires and dies with the first to go.
-  function drawEdges(levels, scale, view) {
+  // The edge the activation travelled along, lit as the far end catches. Both its
+  // ends are lit by construction — it is drawn because something crossed it.
+  function drawEdges(now, scale, view) {
     ctx.lineWidth = EDGE_W;
-    var seen = {};
-    for (var r = 0; r < recent.length; r++) {
-      var list = intra[recent[r]] || [];
-      for (var i = 0; i < list.length; i++) {
-        var a = levels[list[i][0]], b = levels[list[i][1]];
-        if (!a || !b) {
-          continue;
-        }
-        var key = list[i][0] + '\u0000' + list[i][1];
-        if (seen[key]) {
-          continue;
-        }
-        seen[key] = 1;
-        var p = pos[list[i][0]], q = pos[list[i][1]];
-        ctx.globalAlpha = Math.min(a, b) * A_EDGE;
-        ctx.beginPath();
-        ctx.moveTo((p.x - view.x) * scale + cw / 2, (p.y - view.y) * scale + ch / 2);
-        ctx.lineTo((q.x - view.x) * scale + cw / 2, (q.y - view.y) * scale + ch / 2);
-        ctx.stroke();
+    for (var k in litEdges) {
+      var e = litEdges[k];
+      var a = level(e, now);
+      if (a <= 0.01) {
+        continue;
       }
+      var p = pos[e.a], q = pos[e.b];
+      if (!p || !q) {
+        continue;
+      }
+      ctx.globalAlpha = a * A_EDGE;
+      ctx.beginPath();
+      ctx.moveTo((p.x - view.x) * scale + cw / 2, (p.y - view.y) * scale + ch / 2);
+      ctx.lineTo((q.x - view.x) * scale + cw / 2, (q.y - view.y) * scale + ch / 2);
+      ctx.stroke();
     }
   }
 
   function levelsNow(now) {
     var out = {};
-    if (pinned !== null) {
-      (memb[pinned] || []).forEach(function (id) { out[id] = 1; });
-      return out;
-    }
     for (var id in lit) {
       var a = level(lit[id], now);
       if (a > 0.01) {
@@ -296,7 +370,7 @@ var graphPulse = (function () {
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = INK;
     ctx.strokeStyle = INK;
-    drawEdges(levels, scale, view);
+    drawEdges(now, scale, view);
     for (var id in levels) {
       if (pos[id]) {
         drawNode(pos[id], levels[id], scale, view);
@@ -306,17 +380,37 @@ var graphPulse = (function () {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  var last = 0;
+  var last = 0, idle = true;
 
+  // Skip the draw on a frame with nothing to show. Cascades are sparse by design,
+  // so the page is idle most of the time — and a full-viewport canvas layer that
+  // repaints every frame is not free even when it paints nothing: it is a
+  // composite of the whole viewport, and on this page that is five CRT layers,
+  // two of them backdrop-filters. Measured on the droplet's GPU-less headless
+  // WebKit, where the difference is the whole frame budget; on hardware with a
+  // compositor it is simply free battery.
   function frame(now) {
     if (!running) {
       return;
     }
-    var dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
     last = now;
-    step(now, dt);
-    draw(now);
+    step(now);
+    var busy = live.length || hasAny(lit) || hasAny(litEdges);
+    if (busy) {
+      draw(now);
+      idle = false;
+    } else if (!idle) {
+      ctx.clearRect(0, 0, cw, ch);   // one last frame to clear what was lit
+      idle = true;
+    }
     requestAnimationFrame(frame);
+  }
+
+  function hasAny(map) {
+    for (var k in map) {
+      return true;
+    }
+    return false;
   }
 
   return {
@@ -327,27 +421,7 @@ var graphPulse = (function () {
       index();
       makeCanvas();
       running = true;
-      enterRegion(performance.now());
       requestAnimationFrame(frame);
-    },
-    // Hover/tap: hold one whole community lit and steady. The question a hover
-    // asks is "what is this module", and an answer that flickers is a worse
-    // answer — so the stochastic firing stands down until it is released.
-    pin: function (nodeId) {
-      var c = pos[nodeId] ? pos[nodeId].c : undefined;
-      pinned = c === undefined ? null : c;
-      if (pinned !== null) {
-        recent = [pinned];
-        lit = {};
-      }
-    },
-    unpin: function () {
-      if (pinned === null) {
-        return;
-      }
-      pinned = null;
-      recent = [];
-      nextSwitch = 0;   // next frame picks a fresh region
     },
     resize: resize,
   };

@@ -112,28 +112,18 @@
   }
 
   // ── the tour ───────────────────────────────────────────────────────────────
-  // It lives in graph-pulse.js, on its own transparent canvas over vis's. All
-  // this file does is hand it the pointer: hover or tap pins one community lit
-  // and steady, leaving or tapping empty canvas releases it back to the firing
-  // simulation. On a phone that empty tap is the only way out of a pinned
-  // community.
+  // It lives in graph-pulse.js, on its own transparent canvas over vis's, and it
+  // is entirely self-driving: cascades seed themselves once a second and this
+  // file only starts it. Hovering deliberately does NOT interrupt it — a hover
+  // used to pin the hovered node's whole community lit and steady, and having the
+  // animation stop dead under the pointer was worse than the question it answered.
+  // Clicking a node still opens the node-info panel, which is graph.html's own
+  // handler and nothing to do with the canvas.
   //
-  // Nothing here writes to the DataSets OR to network.body any more. The old
-  // highlight mutated the drawn node objects and called network.redraw(), which
-  // is one full redraw of 2722 nodes per change — affordable at one hover, not at
-  // 60 frames a second. The overlay draws only what is lit.
-  function wirePulse() {
-    graphPulse.init();
-    network.on('hoverNode', function (p) { graphPulse.pin(p.node); });
-    network.on('blurNode', function () { graphPulse.unpin(); });
-    network.on('click', function (p) {
-      if (p.nodes && p.nodes.length) {
-        graphPulse.pin(p.nodes[0]);
-      } else {
-        graphPulse.unpin();
-      }
-    });
-  }
+  // Nothing here writes to the DataSets OR to network.body. The old highlight
+  // mutated the drawn node objects and called network.redraw(), which is one full
+  // redraw of 2722 nodes per change — affordable at one hover, not at 60 frames a
+  // second. The overlay draws only what is lit.
 
   // Hard zoom/pan walls: the camera STOPS at the threshold rather than
   // snapping back. vis-network has no node-count zoom bound, so translate the
@@ -151,6 +141,7 @@
   // they only actually change if a node is dragged.
   var MIN_VISIBLE = 2;
   var FIT_MARGIN = 0.8;   // how far past a whole-graph fit you may still zoom out
+  var OPEN_ZOOM = 1.25;   // how far INSIDE the fit the page opens
 
   function setupZoomLimits() {
     if (typeof network === 'undefined' || typeof nodesDS === 'undefined') {
@@ -289,8 +280,12 @@
     });
     network.once('stabilizationIterationsDone', function () {
       network.fit({ animation: false });
+      // A bare fit leaves a margin on the short axis and puts the cloud in the
+      // middle distance; OPEN_ZOOM closes that up so the graph arrives filling
+      // the frame rather than sitting in it. Still every node on screen.
+      network.moveTo({ scale: network.getScale() * OPEN_ZOOM });
       cover.reveal();
-      wirePulse();
+      graphPulse.init();
       watchSleep();
     });
     setTimeout(cover.reveal, LOAD_CAP);
