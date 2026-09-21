@@ -18,16 +18,18 @@ How the ink is found, which is the only per-icon decision here:
             art is the light thing on it -- favicon, a white skull. Then the
             ink is every non-tile pixel, i.e. the silhouette.
 
-The trace is marching squares over that mask: every pixel side facing a
-non-ink neighbour is a unit boundary edge, and the edges chain into closed
-loops. Loops are emitted into one path with fill-rule="evenodd", so a hole
-(the gap inside a padlock shackle) subtracts without caring about winding.
+The output is PIXEL ART, not a smoothed curve: marching squares over that
+mask, where every pixel side facing a non-ink neighbour is a unit boundary
+edge and the edges chain into closed loops. One source pixel is one viewBox
+unit, so every coordinate is an integer and the staircases are the point.
+Loops go into one path with fill-rule="evenodd", so a hole (the gap inside a
+padlock shackle) subtracts without anyone tracking winding, and
+shape-rendering="crispEdges" keeps the renderer from feathering the grid back
+into a smudge.
 
-Staircases are then cut down by Chaikin corner-cutting, which pulls each
-corner in toward its neighbours. It moves no point further than a quarter of
-a pixel, so the shape stays the source's -- "roughly match", not redraw. A
-run of collinear pixels is collapsed first, so a long straight edge stays
-straight instead of being nibbled into a curve.
+Runs of collinear pixels are collapsed, which is exact -- dropping a
+redundant point on a straight edge moves nothing. An earlier version also ran
+Chaikin corner-cutting over the result; that rounded the grid off and is gone.
 
 Colour: each icon's stroke is its own tile colour, and a tile too close to the
 site background (--bg-hsl, 0 0% 0%) has its HSL lightness inverted so it is
@@ -61,8 +63,7 @@ EDGE_TRACED = {"data-file", "data-doctor"}
 
 BG_L = 0.0      # --bg-hsl lightness, in percent
 NEAR_L = 25.0   # a stroke within this many points of it gets L -> 100-L
-VIEW = 32.0     # every icon is emitted into the same square viewBox
-PAD = 1.0       # viewBox units of breathing room on each side
+# No VIEW/PAD: the viewBox is the source's own pixel grid, one pixel per unit.
 
 
 def relative_luminance(rgb):
@@ -229,23 +230,6 @@ def drop_collinear(loop):
     return out or loop
 
 
-def chaikin(loop, iterations=1):
-    """Corner-cutting. Each pass replaces every corner with two points a
-    quarter and three quarters along its edges, so no point moves further
-    than a quarter of a pixel from the traced shape."""
-    pts = loop
-    for _ in range(iterations):
-        nxt = []
-        n = len(pts)
-        for i in range(n):
-            ax, ay = pts[i]
-            bx, by = pts[(i + 1) % n]
-            nxt.append((ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25))
-            nxt.append((ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75))
-        pts = nxt
-    return pts
-
-
 def stroke_colour(tile):
     """The tile colour, with its brightness inverted if it would vanish into
     the site background. Hue and saturation are left alone."""
@@ -274,24 +258,30 @@ def trace(path: Path) -> str | None:
     if not loops:
         return None
 
-    scale = (VIEW - 2 * PAD) / max(w, h)
-    ox = PAD + (VIEW - 2 * PAD - w * scale) / 2
-    oy = PAD + (VIEW - 2 * PAD - h * scale) / 2
-
-    def fmt(v):
-        return f"{v:.2f}".rstrip("0").rstrip(".")
+    # ONE SOURCE PIXEL = ONE VIEWBOX UNIT. The viewBox is the square that holds
+    # the image, so every coordinate in the path is an integer and the art
+    # keeps its grid instead of being resampled onto some other one. A
+    # non-square source (bitman, 27x26) is centred in that square rather than
+    # stretched to fill it.
+    side = max(w, h)
+    ox = (side - w) // 2
+    oy = (side - h) // 2
 
     d = []
     for loop in loops:
-        pts = chaikin(drop_collinear(loop))
-        head, *rest = [(ox + x * scale, oy + y * scale) for x, y in pts]
-        d.append("M" + fmt(head[0]) + " " + fmt(head[1])
-                 + "".join("L" + fmt(x) + " " + fmt(y) for x, y in rest) + "Z")
+        head, *rest = [(ox + x, oy + y) for x, y in drop_collinear(loop)]
+        d.append(f"M{head[0]} {head[1]}"
+                 + "".join(f"L{x} {y}" for x, y in rest) + "Z")
 
     colour = stroke_colour(tile)
+    # shape-rendering=crispEdges turns antialiasing off for this shape. Without
+    # it the renderer feathers every pixel edge that does not land on a device
+    # pixel -- which at the nav's 20px is all of them, since 20/27 is not a
+    # whole number -- and the result is a blurred smudge rather than pixel art.
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {fmt(VIEW)} {fmt(VIEW)}" '
-        f'width="32" height="32" fill="{colour}" fill-rule="evenodd" aria-hidden="true">\n'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {side} {side}" '
+        f'width="32" height="32" fill="{colour}" fill-rule="evenodd" '
+        f'shape-rendering="crispEdges" aria-hidden="true">\n'
         f'<path d="{"".join(d)}"/>\n</svg>\n'
     )
 
