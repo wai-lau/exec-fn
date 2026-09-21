@@ -8,9 +8,22 @@ stroke style.
 The style contract, which every file in here follows:
 
 - `viewBox="0 0 32 32"`, art kept inside x/y 3..29.
-- `fill="none"`, `stroke="currentColor"`, `stroke-width="1.8"`,
-  round caps and joins. The colour comes from the CSS `color` of
-  whatever mounts it, so one file works on every page's palette.
+- `fill="none"`, `stroke-width="1.8"`, round caps and joins. The
+  background is the page's -- there is no backdrop rect and the root
+  carries `fill="none"`, so every one of these is transparent.
+- The stroke is the SOURCE PNG's tile colour, sampled from its border
+  ring: the 27x27 art sat on a flat coloured square, and that square is
+  the icon's identity (fiddle's `#0090fc`, watchman's `#ff258a`). It is
+  written twice on the root, `stroke="..."` and `color="..."`, so the
+  `currentColor` dots below resolve to it too. Both are presentation
+  attributes, which lose to any CSS rule -- a consumer that wants the
+  page's own colour sets `stroke`/`color` in CSS and wins.
+- Two files depart from that rule, both because the literal answer is
+  invisible: `favicon.svg` takes the skull's white ink (`#ffffff`)
+  because its tile is pure black, and `golem-stone.svg` keeps its true
+  `#303033`, which reads on a light surface and all but vanishes on the
+  site's own black -- recolour it at the call site if it ever gets
+  mounted on a dark page.
 - Outline only. The one exception is a detail too small to stroke (an
   eye, a rivet, a dish feed): a circle of r <= 1.2 filled with
   `currentColor` and `stroke="none"`.
