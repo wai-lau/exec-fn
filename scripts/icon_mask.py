@@ -32,6 +32,45 @@ QUANT = 64        # channel step the detail passes see colours at -- see quant()
 # 128 they land in one bucket and the hat is one shape again, while the moon
 # (#fffbf0) still separates.
 ICON_QUANT = {"wizard": 128}
+# DRAWN, not traced -- the only two, and both because the source shape cannot
+# be traced into the thing it depicts:
+#
+#   data-doctor  its red cross is painted on an isometric FACE. In the pixels
+#                it is five red cells smeared down-left, a cross only to
+#                someone who already knows it is one; traced flat it reads as
+#                a bent smear wherever it is put.
+#   watchman     the eyeball traces as a clean ring, but the iris is dithered
+#                green-on-olive and the pupil is a couple of dark cells, so
+#                the inside came out as scribble. Its interior pass is off
+#                (NO_INTERIOR) and an iris ring and a green pupil are drawn.
+#
+# Each glyph rasterises onto the SAME pixel grid as the trace, so the result
+# is still pixel art. `at` is either "ink" (centre of the traced mask's
+# bounding box) or an explicit source-pixel coordinate.
+ICON_GLYPH = {
+    # The source writes its text as a GRID of little grey blocks, which at
+    # icon size is noise rather than text -- dropping them (DETAIL_MIN_REGION)
+    # left three bare sheets. A few horizontal rules inside the front page
+    # (its box is x 5..18, y 4..21) say "document" the way the blocks meant to.
+    "data-file": [
+        {"shape": "lines", "at": (8, 8), "len": 8, "count": 4, "gap": 3,
+         "last": 5},
+    ],
+    "data-doctor": [
+        {"shape": "plus", "arm": 5, "weight": 3, "fill": "#ff0000", "at": "ink"},
+    ],
+    # The mouth is a 6px band of dark red at row 18 -- the one feature of the
+    # face that is neither linework nor big enough to survive the floor that
+    # calms the stippled skin, so it is drawn back in at its own position.
+    "boss-original": [{"shape": "lines", "at": (10, 18), "len": 6, "count": 1,
+                       "gap": 0, "last": 6}],
+    "boss-green": [{"shape": "lines", "at": (10, 18), "len": 6, "count": 1,
+                    "gap": 0, "last": 6}],
+    "watchman": [
+        {"shape": "ring", "r": 6, "weight": 1, "at": (12, 12)},
+        {"shape": "disc", "r": 3, "fill": "#2ade5a", "at": (12, 12)},
+    ],
+}
 # The one source with no drawn outline anywhere in it to trace. See
 # colour_edge_mask() for why this is a name and not a measurement.
 # (data-doctor was here too until the interior pass existed -- it DOES carry a
@@ -50,6 +89,10 @@ DETAIL_MIN_REGION = {
     # came out as a circle full of speckle, and at 8 only two marks survived.
     # 5 leaves the sclera, the iris and the pupil.
     "watchman": 12,
+    # The two boss portraits are stippled skin; at the default floor every
+    # speck was a line and the face read as scribble.
+    "boss-green": 22,
+    "boss-original": 22,
     # The hat is dithered all over, and at the default every speck of it was a
     # line -- which buried the moon this icon is actually known by. Its
     # interior regions are 94 / 27 / 10 px and then nothing above 3, so 10
@@ -63,16 +106,23 @@ DETAIL_MIN_REGION = {
 ICON_COLOUR = {"turbo": (255, 255, 85), "data-doctor": (255, 251, 240)}
 # A second path, filled, in its own colour: a feature that is not linework and
 # whose COLOUR is its meaning. A medical cross that is not red is a plus sign.
+# Icons whose INTERIOR detail is suppressed: the source's inside is dither all
+# the way down and the traced boundaries read as scribble rather than as the
+# thing. What replaces it is a drawn glyph (ICON_GLYPH in trace-icons.py).
+# bitman and printer are the same biting sphere; its inside is nothing but
+# dither, and every floor that left the mouth readable also left speckle
+# around it. Black linework only.
+NO_INTERIOR = {"watchman", "bitman", "printer"}
+# Icons where the black outline AROUND an accent is dropped from the main
+# mask. wardenpp's rank crosses are ringed in black in the source; inked with
+# the rest of the linework that ring renders in the icon's red and boxes each
+# gold cross in a colour it never had.
+ACCENT_STRIP_OUTLINE = {"wardenpp"}
 ICON_ACCENT = {
-    # Centred on the case rather than left where the source drew it: the
-    # original paints the cross on an isometric FACE, so its pixels sit
-    # off-centre in the image, and lifted out of that shading into a flat
-    # trace it just reads as crooked.
-    "data-doctor": [((255, 0, 0), "#ff0000", True)],
-    # The moon and the stars. Outlining them draws a ring around a 10px
-    # crescent and nothing at all around a 2px star; filled, they read.
-    # None = fill in the icon's own colour.
-    "wizard": [((255, 251, 240), None)],
+    # The moon and the stars, filled WHITE -- outlining them draws a ring
+    # around a 10px crescent and nothing at all around a 2px star, and in the
+    # hat's own muted purple a white moon stops being a white moon.
+    "wizard": [((255, 251, 240), "#ffffff")],
     # The two rank crosses are gold on a red cap, and gold is the whole point
     # of a rank cross -- rendered in the tile's red they were just two more
     # shapes. Three source shades make up each one.
@@ -147,7 +197,25 @@ def ink_mask(im, stem=""):
     if stem in EDGE_TRACED:
         return colour_edge_mask(px, w, h, tile, floor_px, step), tile
     outline = {pt for lum, pt in others if lum <= floor + INK_BAND}
-    return outline | interior_detail(px, w, h, outline, floor_px, step), tile
+    mask = outline
+    if stem not in NO_INTERIOR:
+        mask = mask | interior_detail(px, w, h, outline, floor_px, step)
+    if stem in ACCENT_STRIP_OUTLINE:
+        mask -= outline_around_accents(px, w, h, stem)
+    return mask, tile
+
+
+def outline_around_accents(px, w, h, stem):
+    """Ink pixels touching an accent's own pixels -- the ring the source drew
+    around a feature that is about to be redrawn in its own colour."""
+    accent = {(x, y) for y in range(h) for x in range(w)
+              if any(px[x, y][:3] == src for src, *_ in ICON_ACCENT.get(stem, ()))}
+    touching = set()
+    for (x, y) in accent:
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                touching.add((x + dx, y + dy))
+    return touching - accent
 
 
 def enclosed_by(outline, w, h):

@@ -51,7 +51,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from icon_contours import boundary_loops, drop_collinear  # noqa: E402
 from icon_mask import (  # noqa: E402
-    ICON_ACCENT, ICON_COLOUR, MAX_DIM, SKIP, SKIP_PREFIX, ink_mask,
+    ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, MAX_DIM, SKIP, SKIP_PREFIX,
+    ink_mask,
 )
 
 BG_L = 0.0      # --bg-hsl lightness, in percent
@@ -70,9 +71,83 @@ def stroke_colour(tile):
     return "#%02x%02x%02x" % tuple(round(v * 255) for v in (rr, gg, bb))
 
 
-def px_of(im):
-    return im.load()
+def glyph_pixels(spec, mask):
+    """The pixel set for a DRAWN glyph, rasterised onto the source's own grid.
 
+    Kept on that grid on purpose: a glyph that is drawn with real geometry and
+    then scaled would be the one smooth thing in a set of pixel art."""
+    at = spec.get("at", "ink")
+    if at == "ink":
+        xs = [x for x, _ in mask]
+        ys = [y for _, y in mask]
+        cx, cy = (min(xs) + max(xs)) // 2, (min(ys) + max(ys)) // 2
+    else:
+        cx, cy = at
+
+    shape = spec["shape"]
+    if shape == "lines":
+        x0, y0 = spec["at"]
+        out = set()
+        for i in range(spec["count"]):
+            width = spec["last"] if i == spec["count"] - 1 else spec["len"]
+            out |= {(x0 + dx, y0 + i * spec["gap"]) for dx in range(width)}
+        return out
+    if shape == "plus":
+        arm, weight = spec["arm"], spec["weight"]
+        half = weight // 2
+        return {(cx + dx, cy + dy)
+                for dx in range(-arm, arm + 1)
+                for dy in range(-arm, arm + 1)
+                if abs(dx) <= half or abs(dy) <= half}
+    r = spec["r"]
+    inner = r - spec.get("weight", r)
+    return {(cx + dx, cy + dy)
+            for dx in range(-r, r + 1)
+            for dy in range(-r, r + 1)
+            if inner ** 2 <= dx * dx + dy * dy <= r * r}
+
+
+def path_for(pixels, ox, oy):
+    """One `d` string for a pixel set, as the same integer-grid loops the
+    trace itself emits."""
+    out = []
+    for loop in boundary_loops(pixels):
+        head, *rest = [(ox + x, oy + y) for x, y in drop_collinear(loop)]
+        out.append(f"M{head[0]} {head[1]}"
+                   + "".join(f"L{x} {y}" for x, y in rest) + "Z")
+    return "".join(out)
+
+
+def overlay_paths(stem, im, w, h, mask, ox, oy, colour):
+    """The paths painted OVER the trace: accents lifted out of the source by
+    colour, and glyphs drawn from scratch. Both sit on top of the main path,
+    so a feature keeps its own colour instead of the icon's."""
+    out = []
+    for entry in ICON_ACCENT.get(stem, ()):
+        src, fill = entry[0], entry[1]
+        recentre = len(entry) > 2 and entry[2]
+        fill = fill or colour
+        region = {(x, y) for y in range(h) for x in range(w)
+                  if im.load()[x, y][:3] == src}
+        if not region:
+            continue
+        dx = dy = 0
+        if recentre:
+            rx = [x for x, _ in region]
+            ry = [y for _, y in region]
+            mx = [x for x, _ in mask]
+            my = [y for _, y in mask]
+            dx = round(((min(mx) + max(mx)) - (min(rx) + max(rx))) / 2)
+            dy = round(((min(my) + max(my)) - (min(ry) + max(ry))) / 2)
+        ad = path_for({(x + dx, y + dy) for x, y in region}, ox, oy)
+        if ad:
+            out.append(f'<path fill="{fill}" d="{ad}"/>')
+
+    for spec in ICON_GLYPH.get(stem, ()):
+        gd = path_for(glyph_pixels(spec, mask), ox, oy)
+        if gd:
+            out.append(f'<path fill="{spec.get("fill") or colour}" d="{gd}"/>')
+    return out
 
 def trace(path: Path) -> str | None:
     im = Image.open(path).convert("RGBA")
@@ -108,31 +183,7 @@ def trace(path: Path) -> str | None:
 
     colour = stroke_colour(ICON_COLOUR.get(path.stem, tile))
 
-    # Accent paths are painted AFTER the main one, so they sit on top of it.
-    accents = []
-    for entry in ICON_ACCENT.get(path.stem, ()):
-        src, fill = entry[0], entry[1]
-        recentre = len(entry) > 2 and entry[2]
-        fill = fill or colour
-        region = {(x, y) for y in range(h) for x in range(w)
-                  if im.load()[x, y][:3] == src}
-        if not region:
-            continue
-        dx = dy = 0
-        if recentre:
-            rx = [x for x, _ in region]
-            ry = [y for _, y in region]
-            mx = [x for x, _ in mask]
-            my = [y for _, y in mask]
-            dx = round(((min(mx) + max(mx)) - (min(rx) + max(rx))) / 2)
-            dy = round(((min(my) + max(my)) - (min(ry) + max(ry))) / 2)
-        ad = []
-        for loop in boundary_loops(region):
-            head, *rest = [(ox + x + dx, oy + y + dy) for x, y in drop_collinear(loop)]
-            ad.append(f"M{head[0]} {head[1]}"
-                      + "".join(f"L{x} {y}" for x, y in rest) + "Z")
-        if ad:
-            accents.append(f'<path fill="{fill}" d="{"".join(ad)}"/>')
+    accents = overlay_paths(path.stem, im, w, h, mask, ox, oy, colour)
     # shape-rendering=crispEdges turns antialiasing off for this shape. Without
     # it the renderer feathers every pixel edge that does not land on a device
     # pixel -- which at the nav's 20px is all of them, since 20/27 is not a
