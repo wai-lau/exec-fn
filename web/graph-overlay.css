@@ -40,16 +40,13 @@ body {
   box-sizing: border-box;
 }
 
+/* Width is driven from vis's stabilizationProgress by graph-overlay.js, not by a
+   keyframe. A fixed 3s animation was a lie the moment the layout took longer
+   than 3s to settle, which on a big graph is every time. */
 #gp-loading .gp-load-fill {
   width: 0;
   height: 100%;
   background: #fff;
-  animation: gp-load 3s ease-out forwards;
-}
-
-@keyframes gp-load {
-  from { width: 0; }
-  to { width: 100%; }
 }
 
 /* nav: chrome.css default — horizontal bar pinned to the bottom. --nav-h is set
@@ -61,8 +58,8 @@ body {
 }
 
 /* graph canvas fills the whole area above the nav; panels overlay it.
-   Hidden (opacity 0) until the loading bar finishes — JS adds body.gp-loaded
-   at the 3s mark, which fades it in. */
+   Hidden (opacity 0) until the layout has settled — JS adds body.gp-loaded on
+   vis's stabilizationIterationsDone, which fades it in. */
 #graph {
   position: fixed !important;
   inset: 0 0 var(--nav-h, 56px) 0;
@@ -146,8 +143,7 @@ body.gp-info-open #sidebar {
 
   #gp-physics .vis-config-item:has(input.vis-config-range) .vis-config-label,
   #gp-physics .vis-configuration.vis-config-rangeinput,
-  #gp-physics select.vis-configuration,
-  .gp-freeze {
+  #gp-physics select.vis-configuration {
     font-size: var(--fs-sm) !important;
   }
 }
@@ -362,58 +358,11 @@ body.gp-info-open #sidebar {
 /* hide group headers, section-label rows, and vis's native "enabled" checkbox
    (replaced by our own inverted "freeze" control). */
 #gp-physics .vis-config-header,
-#gp-physics .vis-config-item:has(input[type="checkbox"]),
+/* Keep the checkbox rows (physics `enabled`, `stabilization.enabled`): physics
+   is off once the layout settles, so turning the sim back on is the one control
+   a slider needs to mean anything. Prose-only rows still go. */
 #gp-physics .vis-config-item:not(:has(input), :has(select)) {
   display: none !important;
-}
-
-/* freeze/tour toggles — fixed top-left, always visible */
-.gp-freeze {
-  position: fixed;
-  top: 8px;
-  left: 8px;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-2) var(--space-3);
-  font-family: var(--font-pixel);
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--tracking-wide);
-  color: hsl(var(--green-hsl) / 0.8);
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid hsl(var(--green-hsl) / 0.12);
-  border-radius: var(--radius-2);
-}
-
-/* segmented either/or switch: freeze | tour */
-.gp-toggle-switch {
-  display: inline-flex;
-  border: 1px solid hsl(var(--green-hsl) / 0.12);
-  border-radius: var(--radius-2);
-  overflow: hidden;
-}
-
-.gp-seg {
-  appearance: none;
-  border: 0;
-  margin: 0;
-  padding: var(--space-1-5) var(--space-4);
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: uppercase;
-  background: transparent;
-  color: hsl(var(--green-hsl) / 0.45);
-  cursor: pointer;
-}
-
-.gp-seg + .gp-seg {
-  border-left: 1px solid hsl(var(--green-hsl) / 0.12);
-}
-
-.gp-seg.active {
-  background: hsl(var(--green-hsl) / 0.8);
-  color: #0f0f1a;
 }
 
 #gp-physics select.vis-configuration {
