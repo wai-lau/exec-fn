@@ -239,15 +239,17 @@ def _fix_graph_stats(page: str) -> str:
     )
 
 
-# vis-network node size range. The floor is small on purpose: 56% of nodes sit at
-# degree 1, and 2.5k big hexagons is a wall of ink with no structure in it.
-_SIZE_MIN = 6.0
-_SIZE_MAX = 44.0
+# vis-network node size range, doubled from 6..44 on 2026-09-21: at the opening
+# whole-graph fit the hexagons were specks, and a node you cannot see is a node
+# nobody will hover. The ratio is what carries the meaning, so doubling both ends
+# keeps the encoding and only changes how much of the screen it spends.
+_SIZE_MIN = 12.0
+_SIZE_MAX = 88.0
 # Size grows GEOMETRICALLY with degree — each extra edge multiplies rather than
 # adds — so a hub reads as a hub instead of as a slightly larger leaf. The old
 # sqrt-of-line-count scale did the opposite: it compressed the interesting end
 # flat. 1.14 is picked against this graph's own distribution (median degree 1,
-# p90 5, p99 21, max 171): it spends the whole 6..44 range on degrees 1-17, which
+# p90 5, p99 21, max 171): it spends the whole range on degrees 1-17, which
 # is where 97% of the nodes are, and saturates the long tail at the cap.
 _SIZE_GROWTH = 1.14
 

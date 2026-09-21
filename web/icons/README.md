@@ -136,8 +136,9 @@ depicts, and each is named:
 | icon | glyph | why |
 |---|---|---|
 | `data-doctor` | red plus | the source paints its cross on an isometric FACE — in the pixels it is five red cells smeared down-left, a cross only to someone who already knows it is one |
-| `watchman` | iris ring + green pupil | the eyeball traces as a clean ring, but the iris is dithered green-on-olive and the pupil is two dark cells, so the inside came out as scribble. Its interior pass is off (`NO_INTERIOR`) |
+| `watchman` | eyelids, iris ring, green pupil | the eyeball traces as a clean ring, but the iris is dithered green-on-olive and the pupil is two dark cells, so the inside came out as scribble. Its interior pass is off (`NO_INTERIOR`) |
 | `boss-original`, `boss-green` | one mouth rule | a 6px band of dark red at row 18 — neither linework nor big enough to survive the floor that calms the stippled skin |
+| `wizard` | white crescent | the source spends a handful of cells on the moon, which at 27px is a smudge beside the stars |
 | `data-file` | four text rules | the source writes text as a GRID of little grey blocks, which at icon size is noise; dropped, the page was bare |
 
 `NO_INTERIOR` turns the interior pass off entirely for `watchman` and for
@@ -145,10 +146,17 @@ depicts, and each is named:
 — every floor that left its mouth readable also left speckle around it. Black
 linework only.
 
-`ACCENT_STRIP_OUTLINE` drops the black ring the source drew AROUND an accent:
-`wardenpp`'s rank crosses are outlined in the source, and inked with the rest
-of the linework that ring renders in the icon's red and boxes each gold cross
-in a colour it never had.
+An accent's `strip` drops the black ring the source drew AROUND those pixels:
+`wardenpp`'s rank crosses and `hack2`'s 2.0 readout are both boxed in the
+source, and inked with the rest of the linework that ring renders in the
+icon's own colour and puts the feature in a box it never had.
+
+`DROP_COLOURS` throws a colour away before anything else looks at the image —
+`data-file`'s drop shadow is a solid dark slab, not a dither, so no size or
+luminance rule reaches it and it traced as a fourth sheet. `CENTRE_INK` then
+centres that icon on its DRAWING rather than on the image, since dropping a
+shadow otherwise leaves the subject sitting where it sat with the shadow's
+space still reserved beside it.
 
 **A 27px source's interior detail does not resolve at 20px.** The nav shows
 the silhouette; the detail is what the icon has from roughly 40px up. That is

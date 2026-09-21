@@ -1658,7 +1658,7 @@ This is `/graph`-page-only: the raw `graph.json` / `GRAPH_REPORT.md` keep graphi
 
 ### 11d. Size, labels, shape, physics, stats
 
-`_size_graph_by_degree()` sizes each node **geometrically in its edge count** — `min(44, 6 × 1.14^(degree−1))` — so each extra edge multiplies rather than adds and a hub reads as a hub. It replaced `_size_graph_by_loc()` (sqrt of line count, ~10..40), which compressed the interesting end flat. The constants are picked against this graph's own distribution (median degree 1, p90 5, p99 21, max 171): the whole 6..44 range is spent on degrees 1–17, where 97% of the nodes are, and the long tail saturates at the cap. It reads the `degree` field **after** `_drop_graph_inferred_edges()` has recomputed it, or hubs would be sized off edges the page no longer draws.
+`_size_graph_by_degree()` sizes each node **geometrically in its edge count** — `min(88, 12 × 1.14^(degree−1))`, doubled from `min(44, 6 × …)` on 2026-09-21 because at the opening whole-graph fit the hexagons were specks, and a node you cannot see is a node nobody will hover — so each extra edge multiplies rather than adds and a hub reads as a hub. It replaced `_size_graph_by_loc()` (sqrt of line count, ~10..40), which compressed the interesting end flat. The growth factor is picked against this graph's own distribution (median degree 1, p90 5, p99 21, max 171): the whole range is spent on degrees 1–17, where 97% of the nodes are, and the long tail saturates at the cap. The ratio is what encodes degree, so doubling both ends changes only how much screen the encoding spends. It reads the `degree` field **after** `_drop_graph_inferred_edges()` has recomputed it, or hubs would be sized off edges the page no longer draws.
 
 `_label_graph_nodes()` gives every node the site label font and blanks any label over 20 characters to `[ redacted ]`. Both used to be client-side walks of the whole DataSet at load; see 11e.
 
@@ -1676,16 +1676,20 @@ All the array transforms use a **per-line anchored** array regex, because a non-
 
 `graph-overlay.js` is now only what the server cannot decide. The label font, the long-label redaction and the orphan hiding all moved into 11b/11d — each had been a walk of all ~4.7k nodes plus a whole-DataSet update, spent on the page's slowest few seconds.
 
-1. **Community highlight** — hover or tap any node and its WHOLE community (every node in it, every edge with both ends inside it) goes bold white. The camera never moves.
+1. **The tour** — every `TOUR_MS` (8s) a random community (≥ `TOUR_MIN` 8 nodes) goes bold white where it sits: every node in it, every edge with both ends inside it. **Hover or tap takes it over** (`manual` — the tour stands down and the hovered node's community is lit instead); leaving, or tapping empty canvas, hands it back. On a phone that tap is the only way out of a pinned community.
 2. `patchInfoPanel()` wraps graph.html's global `showInfo()` so a redacted node (server `[redacted]` or `[ redacted ]`) gets its Type + Source blanked to "redacted" and its neighbors section removed. Community + Degree stay.
 3. `setupZoomLimits()` clamps zoom/pan with hard walls, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back).
 4. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
 
 **The page opens fitted to the whole graph.** The loading cover lifts on `stabilizationIterationsDone` (capped at `LOAD_CAP`, 20s) and re-fits first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas. The zoom-OUT wall had to be relaxed to admit that: it used to cap the viewport at half the node-cloud's area, which the opening fit violates on arrival. It is now the whole-graph fit scale × `FIT_MARGIN` (0.8).
 
-#### What the tour was, and why the highlight replaced it
+#### The tour kept its job and lost its mechanism
 
-The old overlay ran a **camera tour** — pick a random cluster every 10s, `network.focus()` its highest-degree node, and random-walk the gravitational constant to keep the layout "breathing" — and a top-left **freeze | tour** segmented toggle. To do that it **re-enabled physics after graphify had already turned it off**, which left a 4.5k-node canvas running a force sim and redrawing every frame, forever. Measured: **0.4 fps, with 4.2-second frames**. Both the tour and the freeze toggle are gone; physics off is now the only state, and the physics configurator panel keeps its `enabled` checkbox (graph-overlay.css no longer hides checkbox rows) so the sim can be restarted by hand when a slider is worth watching.
+The old overlay ran a **camera tour** — pick a random cluster every 10s, `network.focus()` its highest-degree node, and random-walk the gravitational constant to keep the layout "breathing" — behind a top-left **freeze | tour** segmented toggle. To do that it **re-enabled physics after graphify had already turned it off**, which left a 4.5k-node canvas running a force sim and redrawing every frame, forever. Measured: **0.4 fps, with 4.2-second frames**.
+
+What was wrong with it was the camera, not the cycling. Flying to a cluster shows you that cluster and throws away the graph it came from; you arrive somewhere with no idea where you are. So the tour still cycles on the same kind of timer, and lights its stop **in place** instead — the whole graph stays on screen and the modules introduce themselves against it. The freeze toggle is gone outright: physics off is the only state, and the physics configurator panel keeps its `enabled` checkbox (graph-overlay.css no longer hides checkbox rows) so the sim can be restarted by hand when a slider is worth watching.
+
+A community under `TOUR_MIN` is skipped as a tour STOP — two hexagons lighting up on the far edge reads as a rendering glitch, not as a module — though it still highlights on hover like any other.
 
 #### The highlight writes to `network.body`, never to the DataSets
 
