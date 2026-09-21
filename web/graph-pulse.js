@@ -53,6 +53,13 @@ var graphPulse = (function () {
   // cascade.
   var P_MIN = 0.55;
   var P_MAX = 1;
+  // Terminal nodes -- degree 1, nothing past them -- are held well under the
+  // floor. They are 76% of this graph, and on the size curve they sit at the
+  // floor too, so at P_MIN every cascade dragged a halo of dead ends up with it:
+  // lights that go nowhere, drawn at the same weight as the chain they hang off.
+  // The same number scales their odds of being SEEDED, since a cascade that
+  // starts at a dead end can never be more than a single dot.
+  var TERMINAL_ODDS = 0.15;
   // The size range graph_style._size_graph_by_degree emits. Mirrored rather than
   // derived from the data so one enormous outlier can't flatten everything else
   // onto P_MIN; if that range moves, move these with it.
@@ -131,7 +138,8 @@ var graphPulse = (function () {
     var total = 0;
     ids = Object.keys(pos);
     cum = ids.map(function (id) {
-      total += Math.pow(pos[id].r, SEED_POW);
+      var w = Math.pow(pos[id].r, SEED_POW);
+      total += (deg[id] || 0) <= 1 ? w * TERMINAL_ODDS : w;
       return total;
     });
   }
@@ -185,6 +193,9 @@ var graphPulse = (function () {
   // A node's chance of catching the activation, from its own size. Sizes are
   // geometric in degree, so this is a degree rule in the units it is drawn at.
   function catchOdds(id) {
+    if ((deg[id] || 0) <= 1) {
+      return TERMINAL_ODDS;
+    }
     var r = pos[id].r;
     var t = (r - SIZE_FLOOR) / Math.max(SIZE_CEIL - SIZE_FLOOR, 1);
     return P_MIN + (P_MAX - P_MIN) * Math.max(0, Math.min(1, t));
