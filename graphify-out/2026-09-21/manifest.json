@@ -200,18 +200,18 @@
     "semantic_hash": ""
   },
   "web/exec-bubble.js": {
-    "mtime": 1789964258.4697134,
-    "ast_hash": "920e995afbc752e58b1f3f6b1985e7fb",
+    "mtime": 1789853077.8755243,
+    "ast_hash": "a96ac35664aef4d0adf1d86ad15f44f8",
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1789964679.4814973,
-    "ast_hash": "0cb525cf39e1ea5308481ad322d96396",
+    "mtime": 1789854214.8832312,
+    "ast_hash": "8ebcc02c7f49948d6bce8ddd7ec5fb85",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1789964679.4784973,
-    "ast_hash": "23cbe07e17adc2cb97b0a2d83a8aa1f1",
+    "mtime": 1789854214.8802311,
+    "ast_hash": "da99e3bf2eccbe079b225265dc91b2b9",
     "semantic_hash": ""
   },
   "README.md": {
@@ -385,13 +385,13 @@
     "semantic_hash": ""
   },
   "api/templates/mtg.html": {
-    "mtime": 1789964307.762925,
-    "ast_hash": "fea15e2004a0bb3153e74d0dab5c67a7",
+    "mtime": 1789852425.7938616,
+    "ast_hash": "00c69cd8fc1bd7166dd0b441f1450cd9",
     "semantic_hash": ""
   },
   "api/templates/tarot.html": {
-    "mtime": 1789964307.7619247,
-    "ast_hash": "4a42c116d50000653fb0956d0c03df84",
+    "mtime": 1789853666.6129708,
+    "ast_hash": "6fe0903382f5dfc453a3e216c8e17c68",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -930,18 +930,18 @@
     "semantic_hash": ""
   },
   "web/mtg.js": {
-    "mtime": 1789964258.4697134,
-    "ast_hash": "96d2d99950db57e7d7b6b03ec3478f9a",
+    "mtime": 1789358675.9508147,
+    "ast_hash": "399a88c1857d2972f50df7ac5fa29e36",
     "semantic_hash": ""
   },
   "web/tarot-chat.js": {
-    "mtime": 1789964249.3836744,
-    "ast_hash": "693b17a48b322f8b528fec8cc458b547",
+    "mtime": 1789853657.2039316,
+    "ast_hash": "c349be98ee4e0405146043be88f8d599",
     "semantic_hash": ""
   },
   "web/tarot-view.js": {
-    "mtime": 1789964240.746637,
-    "ast_hash": "30d2ed774c588206c2a0bbbd75b085ed",
+    "mtime": 1789188204.3881211,
+    "ast_hash": "9b04c100c3d7be013cbde36ba0c316e6",
     "semantic_hash": ""
   },
   "api/nudge_llm.py": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1789964691.824549,
-    "ast_hash": "40759ac71ceb9eaac3ccb5735d914071",
+    "mtime": 1789853666.6139708,
+    "ast_hash": "4ccf87efee3d991f4b22c668b186954a",
     "semantic_hash": ""
   },
   "api/routers.py": {
@@ -1090,8 +1090,8 @@
     "semantic_hash": ""
   },
   "web/tarot-voice.js": {
-    "mtime": 1789963506.805501,
-    "ast_hash": "12e77b7c0652766755287fd004c1152b",
+    "mtime": 1789853637.785851,
+    "ast_hash": "4ce4e7cf80ebde019f90ec45a29222a5",
     "semantic_hash": ""
   },
   "tts-box/tts-watchdog.sh": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": ""
   },
   "web/tarot-stream.js": {
-    "mtime": 1789963528.6365912,
-    "ast_hash": "d357bdf34f84505d7c80cd3bc72b0dac",
+    "mtime": 1789188204.3881211,
+    "ast_hash": "a80ae7d58e3c87037c6b51315289b495",
     "semantic_hash": ""
   },
   "scripts/lint-colors.py": {
@@ -1125,8 +1125,8 @@
     "semantic_hash": ""
   },
   "tests/test_tarot_progression.py": {
-    "mtime": 1789956637.1112537,
-    "ast_hash": "fa72db014b64fc0758eaa289b86225ad",
+    "mtime": 1789853786.7754683,
+    "ast_hash": "241c5f752789488b8826283f01279959",
     "semantic_hash": ""
   },
   "web/tarot-music.js": {
@@ -1140,13 +1140,13 @@
     "semantic_hash": ""
   },
   "web/exec-voice.js": {
-    "mtime": 1789956601.5561037,
-    "ast_hash": "8d8b7bef6b385b0962e1b49aa8f261ac",
+    "mtime": 1789763154.7474113,
+    "ast_hash": "469b2b3abaa243521c28c59c0beb46d7",
     "semantic_hash": ""
   },
   "web/voice-util.js": {
-    "mtime": 1789956906.1573877,
-    "ast_hash": "27f0c5bc7f690b31d9593f42cc85503f",
+    "mtime": 1789188204.4201212,
+    "ast_hash": "8071e2c49908e46da97a135ffa285f90",
     "semantic_hash": ""
   },
   "web/exec-voice-listener.js": {
@@ -1155,13 +1155,13 @@
     "semantic_hash": ""
   },
   "tests/test_exec_voice.py": {
-    "mtime": 1789956645.260288,
-    "ast_hash": "88cadaf9e85891ab293716a1843f0e44",
+    "mtime": 1789188204.07012,
+    "ast_hash": "30c8397492d72469eb24cff229658d14",
     "semantic_hash": ""
   },
   "tests/test_exec_voice_browser.py": {
-    "mtime": 1789956914.2624218,
-    "ast_hash": "392689b67d6faafef0643d3e6bf0ae02",
+    "mtime": 1789188204.07112,
+    "ast_hash": "1c8a4096f27c066a3e8818171ff1bef1",
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1789979403.1715758,
+    "mtime": 1789893004.8169105,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1789979405.8565865,
+    "mtime": 1789893007.4649217,
     "ast_hash": "6d5b10c0b461300cc23f36ff1175582a",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1789979432.7996943,
-    "ast_hash": "86216f544ae388512733fcb379d13596",
+    "mtime": 1789893028.254008,
+    "ast_hash": "efaf2138d4cab8854814c742215dc609",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1789895414.5738528,
+    "mtime": 1789809015.0296838,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1789895414.5858529,
+    "mtime": 1789809015.051684,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -6960,8 +6960,8 @@
     "semantic_hash": ""
   },
   "web/exec-bubble-assets.js": {
-    "mtime": 1789956532.6098132,
-    "ast_hash": "4869bfa8a22e7aef73a728e97357f62b",
+    "mtime": 1789852431.5958855,
+    "ast_hash": "8492a9ba3127473908132eb316cc317a",
     "semantic_hash": ""
   },
   ".claude/hooks/cmdscan.py": {
@@ -7025,13 +7025,13 @@
     "semantic_hash": ""
   },
   "web/cc.js": {
-    "mtime": 1789964240.7456372,
-    "ast_hash": "12c857d00936961390ab053474d4dd8c",
+    "mtime": 1789458152.459667,
+    "ast_hash": "4540fffcadbfae902f1682df9c9e17ef",
     "semantic_hash": ""
   },
   "api/templates/cc.html": {
-    "mtime": 1789964307.7619247,
-    "ast_hash": "c5fdd0531804f21f866b568b66c0c427",
+    "mtime": 1789852425.7938616,
+    "ast_hash": "a4e6ad88fcbfe8474769fe4aca19174f",
     "semantic_hash": ""
   },
   "claude-box/README.md": {
@@ -7065,8 +7065,8 @@
     "semantic_hash": ""
   },
   "api/data/cc_titles.json": {
-    "mtime": 1789963989.3745408,
-    "ast_hash": "9baeae79863feafa6698028a73cc090a",
+    "mtime": 1789763457.4406,
+    "ast_hash": "b8f50e93e5b1bb00d089bee59e77f976",
     "semantic_hash": ""
   },
   "api/data/mtg_sessions/mtg_mtwgpi33.json": {
@@ -7130,8 +7130,8 @@
     "semantic_hash": ""
   },
   "web/cc-mic.js": {
-    "mtime": 1789964297.8598824,
-    "ast_hash": "9a8c6fe599ff745b93b3e4e18718a470",
+    "mtime": 1789763118.8552725,
+    "ast_hash": "03758f600ee95dbefa7ea8d204c4b54a",
     "semantic_hash": ""
   },
   "web/cc-sessions.js": {
@@ -7155,8 +7155,8 @@
     "semantic_hash": ""
   },
   "web/typewriter.js": {
-    "mtime": 1789956228.7515318,
-    "ast_hash": "4aa6f9358ab94a2af7bc497de54fb04e",
+    "mtime": 1789358875.6274562,
+    "ast_hash": "9defe6221166fd9288a8016851c585c4",
     "semantic_hash": ""
   },
   "claude-box/cc-context.md": {
@@ -7220,8 +7220,8 @@
     "semantic_hash": ""
   },
   "web/cc-input.js": {
-    "mtime": 1789964249.3836744,
-    "ast_hash": "3eaf3b4bcbb27109ed0ddfc8d251e952",
+    "mtime": 1789763452.1005785,
+    "ast_hash": "2bfba30a2e8bc2147e0e7da32079c2e5",
     "semantic_hash": ""
   },
   "web/cc-interrupt.js": {
@@ -7310,18 +7310,18 @@
     "semantic_hash": ""
   },
   "tests/test_voice_input_browser.py": {
-    "mtime": 1789963935.8073025,
-    "ast_hash": "f6cb988a873ad514495ea1a2ccc0b2f9",
+    "mtime": 1789763398.7373672,
+    "ast_hash": "87905ca897aac55f62417b3d52da863f",
     "semantic_hash": ""
   },
   "web/exec-mic.js": {
-    "mtime": 1789964297.8608825,
-    "ast_hash": "5730e8cb9d0641dbbcb61f56a98d7678",
+    "mtime": 1789763164.1404476,
+    "ast_hash": "1443c426af77b8473d1ae5adfebbfe02",
     "semantic_hash": ""
   },
   "web/voice-input.js": {
-    "mtime": 1789964284.8868268,
-    "ast_hash": "8e2ae2a1cdf5a31ac34ee5423b4c589b",
+    "mtime": 1789763213.5316396,
+    "ast_hash": "0aa23d7d1f0121360b46d351b67d4b7b",
     "semantic_hash": ""
   },
   "api/data/activity_log_20260920.json": {
@@ -7345,8 +7345,8 @@
     "semantic_hash": ""
   },
   "api/tarot/openings_loop.py": {
-    "mtime": 1789926307.897173,
-    "ast_hash": "e5303c3c4284d973d894dfc2de0359e5",
+    "mtime": 1789853579.4136086,
+    "ast_hash": "c86bc78be57a49d1a986614b039e93ba",
     "semantic_hash": ""
   },
   "api/tarot/voice_synth.py": {
@@ -7360,13 +7360,13 @@
     "semantic_hash": ""
   },
   "tests/test_tarot_openings.py": {
-    "mtime": 1789926307.8981729,
-    "ast_hash": "0f0be9180bc192d596643f607908b8d3",
+    "mtime": 1789853767.7183895,
+    "ast_hash": "45c623ace90c946e92549bec1dcd2fe0",
     "semantic_hash": ""
   },
   "web/tarot-opening.js": {
-    "mtime": 1789963528.6375911,
-    "ast_hash": "b47134247f0c3101da2612c2d36d1d8b",
+    "mtime": 1789853959.4201808,
+    "ast_hash": "bf90c15f7215e1e71005865808cabc40",
     "semantic_hash": ""
   },
   "api/data/tarot_openings/h00-2a39ae18.wav": {
@@ -9117,41 +9117,6 @@
   "api/data/tarot_openings/h23-ff72cd59.wav": {
     "mtime": 1789854222.2802615,
     "ast_hash": "2d50ba421098119aac521297eeb81fd4",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260921.json": {
-    "mtime": 1789893004.8169105,
-    "ast_hash": "d751713988987e9331980363e24189ce",
-    "semantic_hash": ""
-  },
-  "web/cc-reveal.js": {
-    "mtime": 1789956510.9667218,
-    "ast_hash": "7ba955896536ea0032f5956a6a6d91e5",
-    "semantic_hash": ""
-  },
-  "web/chat-dom.js": {
-    "mtime": 1789964232.9506037,
-    "ast_hash": "20021ba1eaa84088cde48e6fb2cb9094",
-    "semantic_hash": ""
-  },
-  "web/exec-bubble-msg.js": {
-    "mtime": 1789964240.746637,
-    "ast_hash": "86e348273bdd8b94c873cabe663041ae",
-    "semantic_hash": ""
-  },
-  "web/tarot-mic.js": {
-    "mtime": 1789964297.8598824,
-    "ast_hash": "7390c2f3ebe8e106e7302f79bf6bbae9",
-    "semantic_hash": ""
-  },
-  "web/voice-narrator.js": {
-    "mtime": 1789963506.804501,
-    "ast_hash": "3b75049345256314c51194791231eaea",
-    "semantic_hash": ""
-  },
-  "web/voice-ui.js": {
-    "mtime": 1789956380.6201723,
-    "ast_hash": "40ff56b81e80a6407837abddf9829726",
     "semantic_hash": ""
   }
 }
