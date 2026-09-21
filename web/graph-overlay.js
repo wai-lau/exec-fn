@@ -9,11 +9,10 @@
 // left a 4.5k-node canvas redrawing every frame forever, measured at 0.4 fps
 // with 4.2s frames.
 //
-// The TOUR survived that; only its mechanism changed. It still cycles, every
-// TOUR_MS, but it lights a community bold white where it sits instead of moving
-// the camera to it — so the graph stays whole and you keep your bearings while
-// the modules introduce themselves. Hovering or tapping takes it over
-// (`manual`); leaving hands it back.
+// The TOUR survived that; only its mechanism changed. It lives in
+// graph-pulse.js now — a transparent canvas over vis's, drawing only what is
+// currently lit, so the graph stays whole and still while activity travels
+// across it. This file just hands it the pointer.
 //
 // Everything that can be decided once per artifact (label font, long-label
 // redaction, dropping unconnected nodes) now happens server-side in
@@ -21,7 +20,7 @@
 //
 // `network`, `nodesDS` and `edgesDS` are top-level consts in graph.html's classic
 // script, reachable here through the shared global lexical scope.
-/* global network, nodesDS, edgesDS, showInfo */
+/* global network, nodesDS, graphPulse, showInfo */
 (function () {
   // A node is "redacted" when its label was blanked — server-side to
   // "[redacted]" (_redact_graph_nodes) or "[ redacted ]" (_label_graph_nodes,
@@ -112,170 +111,26 @@
     });
   }
 
-  // ── community highlight (what replaced the camera tour) ───────────────────
-  // Hover or tap any node and its WHOLE community — every node in it and every
-  // edge inside it — goes bold white. The camera never moves: the tour used to
-  // fly to a cluster and show you it alone; this shows you where that cluster
-  // lives in the graph you are already looking at.
+  // ── the tour ───────────────────────────────────────────────────────────────
+  // It lives in graph-pulse.js, on its own transparent canvas over vis's. All
+  // this file does is hand it the pointer: hover or tap pins one community lit
+  // and steady, leaving or tapping empty canvas releases it back to the firing
+  // simulation. On a phone that empty tap is the only way out of a pinned
+  // community.
   //
-  // It writes to `network.body` and NEVER to the DataSets. A DataSet update
-  // fires vis's whole _dataUpdated cascade — visible-index rebuild, physics-body
-  // rebuild for all 4.5k nodes and 6.5k edges — which measured 5.7s against
-  // 1.0s for mutating the drawn objects and redrawing once. Leaving the DataSets
-  // pristine also makes them the restore source: clearing reads the original
-  // colour straight back out of them.
-  var WHITE = '#ffffff';
-  var BORDER_ON = 4;
-  var EDGE_WIDTH_ON = 3;
-  var baseBorder = 2;       // resolved from the first drawn node at init
-  var baseEdgeColor = null; // ditto for edges — RAW_EDGES colours are uniform
-  var commNodes = {};       // community id -> node ids (keys stringify; tourIds
-                            // pushes Number() back, because `show` compares ===
-  var commEdges = {};       // community id -> edge ids with BOTH ends inside
-  var commOf = {};          // node id -> community id
-  var lit = null;           // the community currently highlighted
-
-  function indexCommunities() {
-    nodesDS.forEach(function (n) {
-      var c = n._community;
-      if (c === undefined || c === null) {
-        return;
-      }
-      commOf[n.id] = c;
-      (commNodes[c] = commNodes[c] || []).push(n.id);
-    });
-    edgesDS.forEach(function (e) {
-      var c = commOf[e.from];
-      if (c !== undefined && c === commOf[e.to]) {
-        (commEdges[c] = commEdges[c] || []).push(e.id);
-      }
-    });
-    var firstNode = network.body.nodes[nodesDS.getIds()[0]];
-    if (firstNode) {
-      baseBorder = firstNode.options.borderWidth;
-    }
-    var firstEdge = network.body.edges[edgesDS.getIds()[0]];
-    if (firstEdge) {
-      baseEdgeColor = JSON.parse(JSON.stringify(firstEdge.options.color));
-    }
-  }
-
-  function paint(cid, on) {
-    (commNodes[cid] || []).forEach(function (id) {
-      var n = network.body.nodes[id];
-      if (!n) {
-        return;
-      }
-      var src = nodesDS.get(id);
-      n.setOptions(on
-        ? { borderWidth: BORDER_ON,
-          color: { background: src.color.background, border: WHITE,
-            highlight: { background: src.color.background, border: WHITE },
-            hover: { background: src.color.background, border: WHITE } } }
-        : { borderWidth: baseBorder, color: src.color });
-    });
-    (commEdges[cid] || []).forEach(function (id) {
-      var e = network.body.edges[id];
-      if (!e) {
-        return;
-      }
-      // inherit:false is the load-bearing half — left inheriting, the edge takes
-      // its colour from its endpoint node and ignores `color.color` entirely.
-      e.setOptions(on
-        ? { width: EDGE_WIDTH_ON,
-          color: { color: WHITE, inherit: false, opacity: 1 } }
-        : { width: edgesDS.get(id).width, color: baseEdgeColor });
-    });
-  }
-
-  function show(cid) {
-    if (cid === lit) {
-      return;   // a full redraw costs ~1.5s on the slowest device that reaches
-    }           // this page, so the no-op case has to actually be a no-op
-    if (lit !== null) {
-      paint(lit, false);
-    }
-    lit = cid;
-    if (lit !== null) {
-      paint(lit, true);
-    }
-    network.redraw();
-  }
-
-  function highlight(nodeId) {
-    // Normalise "no community" to null BEFORE show() compares it against what is
-    // already lit, or hovering a community-less node costs a redraw to change
-    // nothing.
-    show(nodeId !== null && nodeId !== undefined && commOf[nodeId] !== undefined
-      ? commOf[nodeId] : null);
-  }
-
-  // ── the tour ──────────────────────────────────────────────────────────────
-  // One community at a time, in place. A community under TOUR_MIN nodes is
-  // skipped as a tour stop — two hexagons lighting up on the far edge reads as a
-  // rendering glitch, not as a module — though it still highlights on hover like
-  // any other.
-  var TOUR_MS = 8000;
-  var TOUR_MIN = 8;
-  var tourIds = [];
-  var tourTimer = null;
-  var manual = false;   // a hover/tap owns the highlight; the tour stands down
-
-  function tourStep() {
-    if (manual || tourIds.length < 2) {
-      return;
-    }
-    var next = lit;
-    while (next === lit) {
-      next = tourIds[Math.floor(Math.random() * tourIds.length)];
-    }
-    show(next);
-  }
-
-  function stopTour() {
-    if (tourTimer) {
-      clearInterval(tourTimer);
-      tourTimer = null;
-    }
-  }
-
-  function startTour() {
-    stopTour();
-    if (tourIds.length > 1) {
-      tourStep();
-      tourTimer = setInterval(tourStep, TOUR_MS);
-    }
-  }
-
-  function takeOver(nodeId) {
-    manual = true;
-    stopTour();
-    highlight(nodeId);
-  }
-
-  function handBack() {
-    manual = false;
-    show(null);
-    startTour();
-  }
-
-  function wireHighlight() {
-    indexCommunities();
-    Object.keys(commNodes).forEach(function (c) {
-      if (commNodes[c].length >= TOUR_MIN) {
-        tourIds.push(Number(c));
-      }
-    });
-    network.on('hoverNode', function (p) { takeOver(p.node); });
-    network.on('blurNode', handBack);
-    // Touch never hovers, so a tap has to do it too — and a tap on empty canvas
-    // hands the tour back, which is the only way out of a pinned community on a
-    // phone.
+  // Nothing here writes to the DataSets OR to network.body any more. The old
+  // highlight mutated the drawn node objects and called network.redraw(), which
+  // is one full redraw of 2722 nodes per change — affordable at one hover, not at
+  // 60 frames a second. The overlay draws only what is lit.
+  function wirePulse() {
+    graphPulse.init();
+    network.on('hoverNode', function (p) { graphPulse.pin(p.node); });
+    network.on('blurNode', function () { graphPulse.unpin(); });
     network.on('click', function (p) {
       if (p.nodes && p.nodes.length) {
-        takeOver(p.nodes[0]);
+        graphPulse.pin(p.nodes[0]);
       } else {
-        handBack();
+        graphPulse.unpin();
       }
     });
   }
@@ -425,7 +280,6 @@
     // physics collapses down (▾ open / ▴ collapsed); node info collapses right
     // (▸ open / ◂ collapsed). Both start collapsed; opening one closes the other.
     addToggles();
-    wireHighlight();
     setupZoomLimits();
     // Open on the whole graph. graphify's stabilization already carries
     // fit:true, but it fits BEFORE our CSS has finished sizing the canvas, so
@@ -436,25 +290,35 @@
     network.once('stabilizationIterationsDone', function () {
       network.fit({ animation: false });
       cover.reveal();
-      startTour();
+      wirePulse();
+      watchSleep();
     });
     setTimeout(cover.reveal, LOAD_CAP);
   }
 
   // Reload after the device wakes from sleep. While suspended, setInterval is
   // paused; on wake the first tick fires far later than its period — a gap that
-  // big means we slept, and the physics/canvas come back wedged, so a fresh load
-  // is the clean recovery.
-  (function watchSleep() {
+  // big means we slept, and the canvas comes back wedged, so a fresh load is the
+  // clean recovery.
+  //
+  // It is ARMED ONLY AFTER the layout has settled, and the threshold is 60s, both
+  // because of the same false positive: stabilising this graph blocks the main
+  // thread in bursts, so on a slow device the interval was firing 30s+ late while
+  // the page was simply working, and the page reloaded itself — into another
+  // stabilisation, which tripped it again. Measured in headless WebKit on the
+  // droplet, where a load ran long enough to do exactly that.
+  var SLEEP_GAP = 60000;
+
+  function watchSleep() {
     var last = Date.now();
     setInterval(function () {
       var now = Date.now();
-      if (now - last > 30000) {   // tick >30s late => slept
+      if (now - last > SLEEP_GAP) {
         location.reload();
       }
       last = now;
     }, 10000);
-  })();
+  }
 
   go(showLoading());
 })();
