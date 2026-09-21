@@ -347,3 +347,31 @@ def _tune_graph_physics(page: str) -> str:
     what it matches."""
     page = _PHYSICS_BLOCK_RE.sub(lambda _m: _PHYSICS_BLOCK, page, count=1)
     return page.replace(_EDGE_SMOOTH[0], _EDGE_SMOOTH[1], 1)
+
+
+# graphify draws every edge at width 2 and opacity 0.7, inheriting its colour
+# from the node it leaves. At the zoom the page opens at that is a sub-pixel
+# hairline at two-thirds alpha, and the structure between the nodes -- which is
+# the thing a dependency graph is FOR -- read as a haze. Full alpha and a wider
+# line put it back. This is the UNLIT state only: the cascade paints its own lit
+# edges on graph-pulse.js's overlay canvas and never touches these values.
+_EDGE_OPACITY = 1.0
+_EDGE_WIDTH = 3
+
+
+def _brighten_graph_edges(page: str) -> str:
+    """Raise every RAW_EDGES entry to `_EDGE_OPACITY` / `_EDGE_WIDTH`. Colour is
+    left alone: vis inherits each edge's colour from its from-node, which is what
+    keeps the edge set reading as community-coloured rather than as grey. No-op if
+    RAW_EDGES is absent."""
+    def _brighten(edges):
+        for e in edges:
+            color = e.get("color")
+            if not isinstance(color, dict):
+                color = {}
+                e["color"] = color
+            color["opacity"] = _EDGE_OPACITY
+            e["width"] = _EDGE_WIDTH
+        return edges
+
+    return _sub_json_array(page, "RAW_EDGES", _brighten)

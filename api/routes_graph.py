@@ -32,7 +32,7 @@ from graph_scrub import (
 from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
     _merge_graph_communities, _fix_graph_stats, _size_graph_by_degree,
-    _tune_graph_physics,
+    _tune_graph_physics, _brighten_graph_edges,
 )
 
 
@@ -102,6 +102,8 @@ def _render(page: str, guest: bool) -> str:
     page = _label_graph_nodes(page)
     # Size nodes exponentially by edge count, so hubs read as hubs.
     page = _size_graph_by_degree(page)
+    # And make the UNLIT edges readable — they are the structure the page is for.
+    page = _brighten_graph_edges(page)
     # Header counts are baked pre-scrub; rewrite to the merged/dropped reality.
     page = _fix_graph_stats(page)
     # Disable vis-network's improvedLayout — the graph is too large for it to
