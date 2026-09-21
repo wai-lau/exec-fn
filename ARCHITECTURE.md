@@ -1688,7 +1688,11 @@ All the array transforms use a **per-line anchored** array regex, because a non-
 4. `setupZoomLimits()` clamps zoom/pan with hard walls, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back).
 5. Reloads the page when the device wakes from sleep (interval-gap >30s → `location.reload()`).
 
-**The page opens `OPEN_ZOOM` (1.25×) inside a whole-graph fit.** The loading cover lifts on `stabilizationIterationsDone` (capped at `LOAD_CAP`, 120s) and re-fits first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas; the 1.25× then closes up the margin a bare fit leaves on the short axis, so the graph arrives filling the frame rather than sitting in the middle distance, with every node still on screen. The zoom-OUT wall had to be relaxed to admit that: it used to cap the viewport at half the node-cloud's area, which the opening fit violates on arrival. It is now the whole-graph fit scale × `FIT_MARGIN` (0.8).
+**The page opens on COVER — a wallpaper's fill mode — not on a fit.** The loading cover lifts on `stabilizationIterationsDone` (capped at `LOAD_CAP`, 120s) and sets the camera first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas.
+
+vis's `fit()` is CONTAIN: it scales until the limiting axis fits and leaves the other as empty margin, which on this near-square cloud in a wide window was two black bands with the graph sitting in the middle distance. `nodeBounds()` returns both scales and the page takes **`cover`** = `max(W/w, H/h)`, so neither edge has a gap and the cloud runs off the axis that is not limiting. It is centred on the node bounding box, so the overflow is shared evenly rather than landing all at one end. Measured: 1280×744 opens at 0.0883, cloud width exactly 1.00× the window and height 1.80×; 430×876 opens at 0.0593, height exactly 1.00× and width 2.08×. A wide window fills to width and crops top/bottom; a phone fills to height and crops left/right.
+
+It replaced an `OPEN_ZOOM` of 1.25× applied on top of `fit()` — cover is already about 1.8× contain on a desktop window, so stacking the two would have over-cropped. The zoom-OUT wall stays on CONTAIN × `FIT_MARGIN` (0.8), deliberately looser than the cover the page opens at, so zooming out until every node is on screen at once is still allowed. It used to cap the viewport at half the node-cloud's area, which the opening view violates on arrival.
 
 #### The tour kept its job and lost its mechanism, twice
 
