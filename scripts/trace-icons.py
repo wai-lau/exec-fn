@@ -51,8 +51,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from icon_contours import boundary_loops, drop_collinear  # noqa: E402
 from icon_mask import (  # noqa: E402
-    CENTRE_INK, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, MAX_DIM, SKIP,
-    SKIP_PREFIX, ink_mask,
+    CENTRE_INK, GLYPH_ONLY, ICON_ACCENT, ICON_COLOUR, ICON_GLYPH, MAX_DIM,
+    SKIP, SKIP_PREFIX, ink_mask,
 )
 
 BG_L = 0.0      # --bg-hsl lightness, in percent
@@ -71,6 +71,27 @@ def stroke_colour(tile):
     return "#%02x%02x%02x" % tuple(round(v * 255) for v in (rr, gg, bb))
 
 
+def line_pixels(a, b):
+    """Bresenham between two grid points, endpoints included."""
+    (x0, y0), (x1, y1) = a, b
+    dx, dy = abs(x1 - x0), -abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx + dy
+    out = set()
+    while True:
+        out.add((x0, y0))
+        if (x0, y0) == (x1, y1):
+            return out
+        e2 = 2 * err
+        if e2 >= dy:
+            err += dy
+            x0 += sx
+        if e2 <= dx:
+            err += dx
+            y0 += sy
+
+
 def glyph_pixels(spec, mask):
     """The pixel set for a DRAWN glyph, rasterised onto the source's own grid.
 
@@ -84,51 +105,117 @@ def glyph_pixels(spec, mask):
     else:
         cx, cy = at
 
-    shape = spec["shape"]
-    if shape == "lines":
-        x0, y0 = spec["at"]
-        out = set()
-        for i in range(spec["count"]):
-            width = spec["last"] if i == spec["count"] - 1 else spec["len"]
-            out |= {(x0 + dx, y0 + i * spec["gap"]) for dx in range(width)}
-        return out
-    if shape == "lens":
-        # An almond, as the overlap of two discs -- the shape an upper and a
-        # lower lid make between them. Half-width a and half-height b need
-        # discs of radius (a*a + b*b) / 2b, centred b - r above and below.
-        a, b = spec["a"], spec["b"]
-        r = (a * a + b * b) / (2 * b)
-        off = r - b
+    return SHAPES[spec["shape"]](spec, cx, cy)
 
-        def inside(dx, dy):
-            return (dx * dx + (dy + off) ** 2 <= r * r
-                    and dx * dx + (dy - off) ** 2 <= r * r)
 
-        body = {(dx, dy) for dx in range(-a, a + 1) for dy in range(-b, b + 1)
-                if inside(dx, dy)}
-        rim = {(dx, dy) for dx, dy in body
-               if not all((dx + ex, dy + ey) in body
-                          for ex, ey in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
-        return {(cx + dx, cy + dy) for dx, dy in rim}
-    if shape == "crescent":
-        r, off = spec["r"], spec["off"]
-        return {(cx + dx, cy + dy)
-                for dx in range(-r, r + 1) for dy in range(-r, r + 1)
-                if dx * dx + dy * dy <= r * r
-                and (dx - off) ** 2 + dy * dy > r * r}
-    if shape == "plus":
-        arm, weight = spec["arm"], spec["weight"]
-        half = weight // 2
-        return {(cx + dx, cy + dy)
-                for dx in range(-arm, arm + 1)
-                for dy in range(-arm, arm + 1)
-                if abs(dx) <= half or abs(dy) <= half}
+def _poly(spec, cx, cy):
+    """A closed outline through explicit points, drawn with Bresenham so every
+    segment lands on whole pixels like the rest of the set."""
+    pts = [(cx + px, cy + py) for px, py in spec["points"]]
+    out = set()
+    last = len(pts) if spec.get("closed", True) else len(pts) - 1
+    for i in range(last):
+        out |= line_pixels(pts[i], pts[(i + 1) % len(pts)])
+    return out
+
+
+def _spokes(spec, cx, cy):
+    """Line segments from each inner point out to its matching outer one --
+    the edges that run from a solid's front face to its silhouette."""
+    out = set()
+    for (ix, iy), (ox_, oy_) in zip(spec["inner"], spec["outer"]):
+        out |= line_pixels((cx + ix, cy + iy), (cx + ox_, cy + oy_))
+    return out
+
+
+def glyph_solid(spec):
+    """The pixels a glyph BLOCKS, when it is marked `solid`.
+
+    Paper is not see-through. Without this the sheets behind the top one draw
+    straight across it and the stack reads as three wireframes rather than
+    three sheets."""
+    if not spec.get("solid"):
+        return set()
+    x0, y0 = spec["at"]
+    return {(x0 + i, y0 + j) for i in range(spec["w"]) for j in range(spec["h"])}
+
+
+def _rect(spec, cx, cy):
+    x0, y0 = spec["at"]
+    w, h = spec["w"], spec["h"]
+    out = ({(x0 + i, y0) for i in range(w)}
+           | {(x0 + i, y0 + h - 1) for i in range(w)}
+           | {(x0, y0 + i) for i in range(h)}
+           | {(x0 + w - 1, y0 + i) for i in range(h)})
+    # `round`: cut each corner back by that Manhattan distance AND bridge the
+    # gap it leaves. Cutting alone is not a rounded corner, it is a hole --
+    # at r=2 the top edge restarts two pixels in and the side edge two pixels
+    # down, with nothing joining them, so the outline reads as broken.
+    r = spec.get("round", 0)
+
+    def corners(i, j):
+        return ((x0 + i, y0 + j), (x0 + w - 1 - i, y0 + j),
+                (x0 + i, y0 + h - 1 - j), (x0 + w - 1 - i, y0 + h - 1 - j))
+
+    for i in range(r):
+        for j in range(r - i):
+            for pt in corners(i, j):
+                out.discard(pt)
+    for i in range(1, r):
+        out.update(corners(i, r - i))
+    return out
+
+
+def _lines(spec, cx, cy):
+    x0, y0 = spec["at"]
+    out = set()
+    for i in range(spec["count"]):
+        width = spec["last"] if i == spec["count"] - 1 else spec["len"]
+        out |= {(x0 + dx, y0 + i * spec["gap"]) for dx in range(width)}
+    return out
+
+
+def _lens(spec, cx, cy):
+    """An almond, as the overlap of two discs -- the shape an upper and a
+    lower lid make between them."""
+    a, b = spec["a"], spec["b"]
+    r = (a * a + b * b) / (2 * b)
+    off = r - b
+    body = {(dx, dy) for dx in range(-a, a + 1) for dy in range(-b, b + 1)
+            if dx * dx + (dy + off) ** 2 <= r * r
+            and dx * dx + (dy - off) ** 2 <= r * r}
+    rim = {(dx, dy) for dx, dy in body
+           if not all((dx + ex, dy + ey) in body
+                      for ex, ey in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
+    return {(cx + dx, cy + dy) for dx, dy in rim}
+
+
+def _plus(spec, cx, cy):
+    arm, half = spec["arm"], spec["weight"] // 2
+    return {(cx + dx, cy + dy)
+            for dx in range(-arm, arm + 1) for dy in range(-arm, arm + 1)
+            if abs(dx) <= half or abs(dy) <= half}
+
+
+def _crescent(spec, cx, cy):
+    r, off = spec["r"], spec["off"]
+    return {(cx + dx, cy + dy)
+            for dx in range(-r, r + 1) for dy in range(-r, r + 1)
+            if dx * dx + dy * dy <= r * r
+            and (dx - off) ** 2 + dy * dy > r * r}
+
+
+def _round(spec, cx, cy):
+    """A disc, or a ring when `weight` is less than the radius."""
     r = spec["r"]
     inner = r - spec.get("weight", r)
     return {(cx + dx, cy + dy)
-            for dx in range(-r, r + 1)
-            for dy in range(-r, r + 1)
+            for dx in range(-r, r + 1) for dy in range(-r, r + 1)
             if inner ** 2 <= dx * dx + dy * dy <= r * r}
+
+
+SHAPES = {"poly": _poly, "spokes": _spokes, "rect": _rect, "lines": _lines, "lens": _lens,
+          "plus": _plus, "crescent": _crescent, "ring": _round, "disc": _round}
 
 
 def path_for(pixels, ox, oy):
@@ -167,8 +254,14 @@ def overlay_paths(stem, im, w, h, mask, ox, oy, colour):
         if ad:
             out.append(f'<path fill="{fill}" d="{ad}"/>')
 
-    for spec in ICON_GLYPH.get(stem, ()):
-        gd = path_for(glyph_pixels(spec, mask), ox, oy)
+    specs = list(ICON_GLYPH.get(stem, ()))
+    # A glyph is hidden by every SOLID glyph listed after it, so the list runs
+    # back to front and a sheet in front cuts the one behind it.
+    for i, spec in enumerate(specs):
+        hidden = set()
+        for later in specs[i + 1:]:
+            hidden |= glyph_solid(later)
+        gd = path_for(glyph_pixels(spec, mask) - hidden, ox, oy)
         if gd:
             out.append(f'<path fill="{spec.get("fill") or colour}" d="{gd}"/>')
     return out
@@ -186,8 +279,9 @@ def trace(path: Path) -> str | None:
     mask, tile = ink_mask(im, path.stem)
     if not mask:
         return None
-    loops = boundary_loops(mask)
-    if not loops:
+    glyph_only = path.stem in GLYPH_ONLY
+    loops = [] if glyph_only else boundary_loops(mask)
+    if not loops and not glyph_only:
         return None
 
     # ONE SOURCE PIXEL = ONE VIEWBOX UNIT. The viewBox is the square that holds
@@ -198,7 +292,7 @@ def trace(path: Path) -> str | None:
     side = max(w, h)
     ox = (side - w) // 2
     oy = (side - h) // 2
-    if path.stem in CENTRE_INK:
+    if path.stem in CENTRE_INK and not glyph_only:
         # Centre the DRAWING, not the image. Dropping a shadow otherwise
         # leaves the subject where it sat with the shadow's space still
         # reserved beside it.

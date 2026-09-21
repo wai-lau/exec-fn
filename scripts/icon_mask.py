@@ -42,7 +42,7 @@ ICON_QUANT = {"wizard": 128}
 #   watchman     the eyeball traces as a clean ring, but the iris is dithered
 #                green-on-olive and the pupil is a couple of dark cells, so
 #                the inside came out as scribble. Its interior pass is off
-#                (NO_INTERIOR) and an iris ring and a green pupil are drawn.
+#                (NO_INTERIOR) and an iris ring and a white pupil are drawn.
 #
 # Each glyph rasterises onto the SAME pixel grid as the trace, so the result
 # is still pixel art. `at` is either "ink" (centre of the traced mask's
@@ -53,7 +53,17 @@ ICON_GLYPH = {
     # left three bare sheets. A few horizontal rules inside the front page
     # (its box is x 5..18, y 4..21) say "document" the way the blocks meant to.
     "data-file": [
-        {"shape": "lines", "at": (8, 8), "len": 8, "count": 4, "gap": 3,
+        # Three closed sheets, offset mostly sideways. The back two were open
+        # L-shapes at first -- only the part of each that is not hidden --
+        # which avoids crossing lines entirely but leaves two of the papers
+        # looking torn rather than stacked.
+        # Back to front. Each sheet is `solid`, so the one in front cuts it:
+        # paper is not see-through, and three whole rectangles drawn over each
+        # other is three wireframes, not a stack.
+        {"shape": "rect", "at": (11, 11), "w": 14, "h": 18, "solid": True},
+        {"shape": "rect", "at": (7, 7), "w": 14, "h": 18, "solid": True},
+        {"shape": "rect", "at": (3, 3), "w": 14, "h": 18, "solid": True},
+        {"shape": "lines", "at": (6, 8), "len": 8, "count": 4, "gap": 3,
          "last": 5},
     ],
     # The mouth is a 6px band of dark red at row 18 -- the one feature of the
@@ -63,10 +73,34 @@ ICON_GLYPH = {
                        "gap": 0, "last": 6}],
     "boss-green": [{"shape": "lines", "at": (10, 18), "len": 6, "count": 1,
                     "gap": 0, "last": 6}],
+    # A first-aid case, drawn face-on. The source draws it in isometric and
+    # paints the cross on one slanted FACE, so the cross is five cells smeared
+    # down-left and the case is a lumpy hexagon -- neither reads at icon size,
+    # whichever way the pixels are lifted out. Face-on, with a handle and a
+    # real cross, it is a first-aid kit at a glance.
+    "data-doctor": [
+        {"shape": "rect", "at": (3, 9), "w": 21, "h": 15, "round": 2},
+        {"shape": "rect", "at": (10, 5), "w": 7, "h": 5, "round": 1},
+        {"shape": "plus", "arm": 4, "weight": 3, "fill": "#ff0000",
+         "at": (13, 16)},
+    ],
+    # Two twelve-sided dice. The source draws them as faceted solids whose
+    # facets are dithered, so every floor either lost the facets or drew the
+    # dither with them; the shape is simple enough to state outright.
+    "laser-satellite": [
+        # Each die is a hexagonal silhouette, the pentagon of its front face,
+        # and the five edges running between them. Silhouette plus front face
+        # alone was too bare to be a solid -- those spokes are the other five
+        # faces, and without them it reads as a flat badge.
+        *[g for at in ((9, 17), (18, 9)) for g in (
+            {"shape": "poly", "at": at, "points": [(0, -7), (6, -3), (6, 4), (0, 7), (-6, 4), (-6, -3)]},
+            {"shape": "poly", "at": at, "points": [(0, -4), (4, -1), (2, 3), (-2, 3), (-4, -1)]},
+            {"shape": "spokes", "at": at, "inner": [(0, -4), (4, -1), (2, 3), (-2, 3), (-4, -1)],
+             "outer": [(0, -7), (6, -3), (6, 4), (-6, 4), (-6, -3)]},
+        )],
+    ],
     # The moon, as a crescent rather than the handful of cells the source
     # spends on it -- at 27px those read as a smudge beside the stars.
-    "wizard": [{"shape": "crescent", "r": 5, "off": 3, "fill": "#ffffff",
-                "at": (14, 13)}],
     "watchman": [
         # The EYELIDS. The traced rim is the outside of the whole eye and
         # reads as a ball; what makes it an eye is the almond the two lids
@@ -74,7 +108,7 @@ ICON_GLYPH = {
         # that no luminance rule finds.
         {"shape": "lens", "a": 11, "b": 7, "at": (13, 12)},
         {"shape": "ring", "r": 6, "weight": 1, "at": (12, 12)},
-        {"shape": "disc", "r": 3, "fill": "#2ade5a", "at": (12, 12)},
+        {"shape": "disc", "r": 3, "fill": "#ffffff", "at": (12, 12)},
     ],
 }
 # The one source with no drawn outline anywhere in it to trace. See
@@ -98,7 +132,7 @@ DETAIL_MIN_REGION = {
     # Its two bodies are faceted like dice and the facets ARE the icon; each
     # face is 10-17px and everything under that is dither, so the floor goes
     # between them and the lines that survive are the edges of the solids.
-    "laser-satellite": 10,
+    "laser-satellite": 14,
     # The two boss portraits are stippled skin; at the default floor every
     # speck was a line and the face read as scribble.
     "boss-green": 22,
@@ -113,7 +147,14 @@ DETAIL_MIN_REGION = {
 # blue as fiddle's and printer's, but the icon is a lightning bolt and the bolt
 # is yellow; data-doctor's case is white on a blue tile. Both wear the
 # subject's colour, not the backdrop's.
-ICON_COLOUR = {"turbo": (255, 255, 85), "data-doctor": (255, 251, 240)}
+ICON_COLOUR = {
+    "turbo": (255, 255, 85),
+    "data-doctor": (255, 251, 240),
+    # /printer wears 3DP in the nav, and its own tile is the same blue as
+    # fiddle's and turbo's. It takes bitman's colour instead -- the same
+    # biting sphere it IS, and the only nav slot that was a third blue.
+    "printer": (182, 252, 0),
+}
 # A second path, filled, in its own colour: a feature that is not linework and
 # whose COLOUR is its meaning. A medical cross that is not red is a plus sign.
 # Icons whose INTERIOR detail is suppressed: the source's inside is dither all
@@ -122,7 +163,7 @@ ICON_COLOUR = {"turbo": (255, 255, 85), "data-doctor": (255, 251, 240)}
 # bitman and printer are the same biting sphere; its inside is nothing but
 # dither, and every floor that left the mouth readable also left speckle
 # around it. Black linework only.
-NO_INTERIOR = {"watchman", "bitman", "printer"}
+NO_INTERIOR = {"watchman", "bitman", "printer", "wizard"}
 # Colours thrown away before anything else looks at the image. data-file's
 # drop shadow is a solid dark slab, not a dither, so no size or luminance rule
 # reaches it -- it traced as a fourth sheet behind the stack.
@@ -131,25 +172,39 @@ DROP_COLOURS = {"data-file": ((51, 51, 59), (71, 61, 53), (137, 130, 119))}
 # leaves the subject sitting where it sat with the shadow's space still
 # reserved around it.
 CENTRE_INK = {"data-file"}
+# Icons whose OUTLINE is despeckled: a lone ink pixel with fewer than two
+# neighbours of any of the eight is dropped. The wizard's brim and its cast shadow are
+# dithered in black, so the darkest-cluster pass picks up a dotted fringe that
+# no interior rule touches -- the speckle is IN the linework.
+DESPECKLE_OUTLINE = {"wizard"}
+# Icons drawn ENTIRELY from glyphs, the trace discarded. data-file's three
+# sheets overlap in the source, so two of them only ever traced as the sliver
+# of themselves that is not hidden -- a stack of papers where two papers have
+# no outline of their own. Drawn, each sheet is a whole sheet.
+GLYPH_ONLY = {"data-file", "data-doctor", "laser-satellite"}
 ICON_ACCENT = {
     # src: a source colour lifted out and painted in `fill` over the trace.
     # strip: also drop the black ring the source drew AROUND those pixels.
-    "wizard": [{"src": (255, 251, 240), "fill": "#ffffff"}],
+    # The moon is TWO colours -- a cream body and a pale blue edge, 16 and 11
+    # pixels -- and the same cream makes the stars. Both are taken where the
+    # source put them. A drawn crescent was tried instead and it was a white
+    # blob: at 27px the shading IS the shape, and one flat colour throws it
+    # away.
+    "wizard": [{"src": (255, 251, 240), "fill": "#fffbf0"},
+               {"src": (166, 202, 240), "fill": "#a6caf0"}],
     # The two rank crosses are gold on a red cap, and gold is the whole point
     # of a rank cross. Their source outline is stripped, or the ring renders
     # in the icon's red and boxes each cross in a colour it never had.
     "wardenpp": [{"src": c, "fill": "#ffff55", "strip": True}
                  for c in ((255, 255, 85), (255, 255, 170), (255, 191, 85))],
-    # Its own red pixels, where the source put them. Drawing a clean plus
-    # instead was worse: the cross is painted on an isometric FACE, and a
-    # square one floating on that face reads as a sticker.
-    "data-doctor": [{"src": (255, 0, 0), "fill": "#ff0000"}],
-    # A Swiss army knife: red handle, and the 2.0 readout in white with its
-    # box outline stripped so the digits stand alone.
+    # A Swiss army knife: red handle, and the 2.0 readout in white.
     "hack2": [
         *[{"src": c, "fill": "#ff2020"}
           for c in ((255, 0, 0), (170, 0, 0), (127, 0, 0), (255, 16, 85))],
-        {"src": (255, 251, 240), "fill": "#ffffff", "strip": True},
+        # The 2.0 exactly as the source has it: white digits INSIDE the
+        # boxes it draws around them. Stripping those boxes left the digits
+        # floating and the readout stopped looking like a readout.
+        {"src": (255, 251, 240), "fill": "#ffffff"},
     ],
     # What is IN the glassware -- the whole subject of a chemistry icon, and
     # monochrome it was three empty vessels.
@@ -230,6 +285,14 @@ def ink_mask(im, stem=""):
     if stem not in NO_INTERIOR:
         mask = mask | interior_detail(px, w, h, outline, floor_px, step)
     mask -= outline_around_accents(px, w, h, stem)
+    if stem in DESPECKLE_OUTLINE:
+        # EIGHT neighbours, not four. A diagonal run of pixels -- which is
+        # most of a hat brim -- has no orthogonal neighbours at all, so the
+        # four-way test called the whole outline speckle and deleted it.
+        near = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+                if (dx, dy) != (0, 0)]
+        mask = {(x, y) for (x, y) in mask
+                if sum((x + dx, y + dy) in mask for dx, dy in near) >= 2}
     return mask, tile
 
 
