@@ -19,22 +19,23 @@
   // sqrt(area / (n * this)) — so raising it makes the grid finer WITHOUT moving
   // the cloud's outline, and lowering it coarsens the same outline. It went 4 ->
   // 9 to give each part of the graph more points to land on, then 9 -> 7 ->
-  // 5.25 -> 3.9375 -> 2.953125 on request, a quarter off each time (x0.75).
+  // 5.25 -> 3.9375 -> 2.953125 -> 2.21484375 on request, a quarter off each
+  // time (x0.75). Every step coarsens the grid, so more nodes collide and walk.
   // Fractional is fine — it is a density, not a count of anything. Fewer points
   // means a coarser grid, and a coarser grid means more nodes landing on the
   // same cell and walking to a neighbour, which is what makes them clump.
-  var CELLS_PER_NODE = 2.953125;
+  var CELLS_PER_NODE = 2.21484375;
 
   // The nearest lattice point that nothing has claimed, searched ring by ring
   // so the answer is the closest one and not merely an early one. Within a
   // ring the candidates are compared on real distance, since a ring is a
   // square and its corners are further off than its edges.
-  function nearestFree(taken, gx, gy) {
+  function nearestFree(taken, gx, gy, cx, cy) {
     if (!taken[gx + ',' + gy]) {
       return { x: gx, y: gy };
     }
     for (var r = 1; r < 256; r++) {
-      var best = null, bestD = Infinity;
+      var best = null, bestD = Infinity, bestC = Infinity;
       for (var dx = -r; dx <= r; dx++) {
         for (var dy = -r; dy <= r; dy++) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) {
@@ -44,8 +45,20 @@
             continue;
           }
           var d = dx * dx + dy * dy;
-          if (d < bestD) {
+          // Distance to the cloud's CENTRE, used only to break ties. A ring
+          // offers several cells at the same real distance — the four
+          // orthogonals, then the diagonals — and which one a displaced node
+          // took used to be decided by loop order, which is west, then north,
+          // then south, then east, for every node on the board. Preferring the
+          // candidate nearer the centre spends collisions INWARD, filling the
+          // gaps the layout left, instead of growing a rim of pushed-out nodes.
+          // Strictly a tie-break: `d` still wins first, so nothing travels
+          // further from where the layout put it than it has to.
+          var ex = (gx + dx) - cx, ey = (gy + dy) - cy;
+          var c = ex * ex + ey * ey;
+          if (d < bestD || (d === bestD && c < bestC)) {
             bestD = d;
+            bestC = c;
             best = { x: gx + dx, y: gy + dy };
           }
         }
@@ -366,7 +379,9 @@ function placeTiles(tiles, box, target) {
       // That is the whole of "not squished".
       var g = nearestFree(taken,
         Math.round((p.x - minX) / cell),
-        Math.round((p.y - minY) / cell));
+        Math.round((p.y - minY) / cell),
+        (cx - minX) / cell,
+        (cy - minY) / cell);
       taken[g.x + ',' + g.y] = 1;
       var nx = minX + g.x * cell, ny = minY + g.y * cell;
       // Written straight onto the body, NOT through moveNode, and this is the
