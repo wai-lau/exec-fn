@@ -2515,6 +2515,8 @@ A rejected push (the remote moved) is retried ONCE through a fetch + rebase, and
 
 **The lock is held on FD 9** rather than by `exec flock`, because an exec'd flock replaces the shell and there would be nothing left to run the publish step.
 
+**graphify REFUSES to emit `graph.html` past a node ceiling, and a skip is not a failure** (2026-09-22). The default is **5000**; the repo crossed it (4151 nodes on 2026-09-11 -> **5057** on 2026-09-22) and the rebuild logged one `Skipped graph.html: ... too large for HTML viz` line, then went on to report `Rebuilt: 5057 nodes` and **exit 0**. So the nightly looked healthy while `/graph` served `404 graph.html not found` for the whole day. The bake then made it worse rather than catching it: `scripts/graph-layout.py` drives `/graph?relayout=1`, got the 404, and sat on `wait_for_function` for the **full 600s timeout** before failing non-fatally — ten minutes of headless WebKit on a 1967MB box, for nothing. `GRAPHIFY_VIZ_NODE_LIMIT=8000` is exported in the script, and the ceiling moves with the repo: the node count is growth, not a regression. **The RLIMIT is the real guard** — if the viz ever gets genuinely too big it must die of `MemoryError` and log it, which is loud, rather than be skipped into a 404, which is silent. Re-measured after: 5062 nodes emitted / **2781 served**, 31s rebuild, 54s bake.
+
 **The per-commit path is disabled by `GRAPHIFY_SKIP_HOOK=1` in `~/.zshenv`, not by deleting `.git/hooks/post-commit`** — that hook is untracked and `session-context.sh` reinstalls it, so a deleted hook comes back and an env var does not.
 
 ---
