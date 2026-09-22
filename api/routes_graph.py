@@ -36,7 +36,7 @@ from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
     _merge_graph_communities, _fix_graph_stats, _size_graph_by_degree,
     _tune_graph_physics, _brighten_graph_edges, _apply_graph_layout,
-    graph_layout_key, read_graph_layout,
+    graph_layout_key, read_graph_layout, read_graph_layout_tall,
 )
 
 
@@ -75,8 +75,8 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-pulse-draw.js?v=3"></script>'
     '<script src="/graph-pulse.js?v=20"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
-    '<script src="/graph-lattice.js?v=10"></script>'
-    '<script src="/graph-overlay.js?v=61"></script>'
+    '<script src="/graph-lattice.js?v=11"></script>'
+    '<script src="/graph-overlay.js?v=65"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -149,7 +149,7 @@ _PAYLOADS: dict[str, str] = {}
 _PAYLOAD_MAX = 6
 
 
-def _externalise_boot(page: str) -> tuple[str, str]:
+def _externalise_boot(page: str, extra: str = "") -> tuple[str, str]:
     """Lift graphify's inline <body> scripts into one deferred external file.
 
     Returns (page, payload). Runs FIRST, on the raw artifact, so the only inline
@@ -166,6 +166,7 @@ def _externalise_boot(page: str) -> tuple[str, str]:
     # The cover cannot otherwise tell a payload still on the wire from one
     # already running: both look like "network is undefined".
     payload = ("window.__GP_PAYLOAD_START = performance.now();\n;" + payload
+               + "\n;" + extra
                + "\n;window.__GP_PAYLOAD_MS = performance.now();\n")
     digest = hashlib.md5(payload.encode()).hexdigest()[:16]
     # NOT a <script defer src>. The cover fetches this itself (graph-cover.js)
@@ -265,6 +266,8 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # `relayout` is how the generator asks for that fallback on purpose.
     key = graph_layout_key(page)
     pos = None if relayout else read_graph_layout(_GRAPH_HTML.parent, key)
+    tall = None if relayout else read_graph_layout_tall(_GRAPH_HTML.parent, key)
+    tall_js = "window.GRAPH_LAYOUT_TALL=%s;" % json.dumps(tall) if tall else ""
     if pos:
         page = _apply_graph_layout(page, pos)
     # The overlay has to know: with physics off there is no
@@ -295,7 +298,10 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # fell back to ~30s of phone stabilisation) and the served payload was the
     # RAW, unredacted artifact. It reads the body's inline scripts, so it also
     # has to run before the </body> injections put ours there.
-    page, _ = _externalise_boot(page)
+    # The tall bake rides in the PAYLOAD, not the shell: the shell is 9KB and
+    # `no-cache`, so ~50KB of coordinates on it would be paid on every single
+    # load, while the payload is immutable-cached against its own content hash.
+    page, _ = _externalise_boot(page, tall_js)
     page = page.replace("</head>", _VIEWPORT_META + _APPLE_WEBAPP_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
     page = page.replace("</body>", _CRT_FX + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
     return _defer_scripts(page)
