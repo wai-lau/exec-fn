@@ -15,14 +15,12 @@
   // there is room for most nodes to land on their first choice; the rest walk
   // outward.
   //
-  // 9, up from 4: more points for each part of the graph to snap to. The cell
-  // is sqrt(area / (n * this)), so raising it makes the grid FINER without
-  // moving the cloud's outline — every node lands nearer where the layout
-  // actually put it, dense communities stop collapsing onto the same handful of
-  // cells, and `nearestFree` walks less because there is more free space beside
-  // each first choice. The lattice still reads as a lattice; it just quantises
-  // less of the layout away.
-  var CELLS_PER_NODE = 9;
+  // Points on the lattice are n x this, and the cell is
+  // sqrt(area / (n * this)) — so raising it makes the grid finer WITHOUT moving
+  // the cloud's outline, and lowering it coarsens the same outline. It went 4 ->
+  // 9 to give each part of the graph more points to land on, then 9 -> 7 on
+  // request: about a quarter fewer points (7/9 = 0.78), cell 97 -> 110.
+  var CELLS_PER_NODE = 7;
 
   // The nearest lattice point that nothing has claimed, searched ring by ring
   // so the answer is the closest one and not merely an early one. Within a

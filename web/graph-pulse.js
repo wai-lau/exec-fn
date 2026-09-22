@@ -125,10 +125,9 @@ var graphPulse = (function () {
   var nextIter = 0, running = false;
 
   // Indexing runs in PHASES, one per frame, timed, with the milliseconds left on
-  // the window for the cover to print. A thread that yields between phases is
-  // one a failsafe can still fire on — and a phase that is slow on a device
-  // nobody here can profile says so on that device. Measured here: 88ms all
-  // told, so this is insurance, not a hot path. ARCHITECTURE §11.
+  // the window for the cover to print: a thread that yields between them is one
+  // a failsafe can still fire on, and a phase that is slow on a device nobody
+  // here can profile says so there. 88ms all told — insurance, not a hot path.
   function index(done) {
     var t = {};
     var steps = [
@@ -308,7 +307,8 @@ var graphPulse = (function () {
   // outward walk a randomly seeded one gets, because the interesting thing about
   // a node is what it is connected to, and that is what the cascade draws.
   function startIteration(now, at) {
-    var id = (at === undefined || at === null) ? seed() : at;
+    var tapped = at !== undefined && at !== null;
+    var id = tapped ? at : seed();
     if (id === null || !pos[id]) {
       return;
     }
@@ -318,8 +318,10 @@ var graphPulse = (function () {
       queue: [], seen: {},
       until: now + ITER_LIFE + SEEDS_PER_ITER * SEED_STAGGER_MS,
     };
-    ignite(it, id, now);
-    var cell = cells[cellOf[id]];
+    // A tap guarantees its first hop, and seeds none of the extra draws below.
+    // Why both: ARCHITECTURE §11.
+    ignite(it, id, now, tapped);
+    var cell = tapped ? null : cells[cellOf[id]];
     var seeded = 1, tries = SEEDS_PER_ITER * SEED_TRIES;
     while (cell && seeded < SEEDS_PER_ITER && tries-- > 0) {
       var extra = pick(cell.ids, cell.cum);
@@ -344,18 +346,19 @@ var graphPulse = (function () {
 
   // All the seeds of one iteration share its `seen` and its queue, so the three
   // cascades merge into a single event instead of re-rolling each other's nodes.
-  function ignite(it, id, now) {
+  function ignite(it, id, now, force) {
     it.seen[id] = 1;
     fire(id, now);
-    spread(it, id, now);
+    spread(it, id, now, force);
   }
 
-  function spread(it, from, now) {
+  // `force`: this hop lights without rolling. First ring out of a tap only.
+  function spread(it, from, now, force) {
     var ns = adj[from] || [];
     for (var i = 0; i < ns.length; i++) {
       if (!it.seen[ns[i]]) {
         it.seen[ns[i]] = 1;
-        it.queue.push({ id: ns[i], from: from, at: hopAt(now) });
+        it.queue.push({ id: ns[i], from: from, at: hopAt(now), force: !!force });
       }
     }
   }
@@ -374,7 +377,7 @@ var graphPulse = (function () {
       if (q.seed) {
         fire(q.id, now);
         spread(it, q.id, now);
-      } else if (Math.random() < catchOdds(q.id)) {
+      } else if (q.force || Math.random() < catchOdds(q.id)) {
         fire(q.id, now);
         fireEdge(q.from, q.id, now);
         spread(it, q.id, now);
@@ -446,8 +449,7 @@ var graphPulse = (function () {
     requestAnimationFrame(frame);
   }
 
-  // Once, on the first painted frame. Nulled so a cascade every two seconds does
-  // not keep calling back for the life of the page.
+  // Once, on the first painted frame; nulled so later cascades do not call back.
   var onPainted = null;
 
   function firePainted() {
