@@ -71,10 +71,13 @@ var graphPulseDraw = (function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function hexagon(x, y, r) {
+  // The lit glyph follows the node's SHAPE, which carries its type: hexagon for
+  // code, triangle for a rationale, circle for a document. Lighting everything
+  // as a hexagon made a cascade say the wrong thing about what it was crossing.
+  function polygon(x, y, r, sides, turn) {
     ctx.beginPath();
-    for (var i = 0; i < 6; i++) {
-      var a = i * Math.PI / 3;
+    for (var i = 0; i < sides; i++) {
+      var a = turn + i * 2 * Math.PI / sides;
       var px = x + r * Math.cos(a), py = y + r * Math.sin(a);
       if (i === 0) {
         ctx.moveTo(px, py);
@@ -83,6 +86,22 @@ var graphPulseDraw = (function () {
       }
     }
     ctx.closePath();
+  }
+
+  function glyph(x, y, r, shape) {
+    if (shape === 'dot') {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      return;
+    }
+    if (shape === 'triangle') {
+      // Point up, matching vis: first vertex at -90 degrees, and a radius lifted
+      // a little because a triangle of the same circumradius reads smaller than
+      // the hexagon beside it.
+      polygon(x, y, r * 1.15, 3, -Math.PI / 2);
+      return;
+    }
+    polygon(x, y, r, 6, 0);
   }
 
   // Alpha rides on ctx.globalAlpha over a flat white fill, never a colour string
@@ -107,7 +126,7 @@ var graphPulseDraw = (function () {
     ctx.beginPath();
     ctx.arc(x, y, r * HALO_INNER, 0, Math.PI * 2);
     ctx.fill();
-    hexagon(x, y, r);
+    glyph(x, y, r, p.s);
     ctx.globalAlpha = a * A_FILL;
     ctx.fill();
     ctx.globalAlpha = a * A_STROKE;
