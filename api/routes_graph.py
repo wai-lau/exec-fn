@@ -43,7 +43,7 @@ from graph_style import (
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = the firing
 # overlay + zoom walls. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=46">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=47">'
 
 # The loading cover, as STATIC MARKUP at the top of <body>.
 #

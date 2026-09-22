@@ -42,6 +42,14 @@ body {
   width: 0;
   height: 100%;
   background: #fff;
+
+  /* The milestones are discrete — payload down, payload built, camera set, vis
+     painted — so the bar was jumping 35 -> 60 -> 75 -> 90 in hard steps. Easing
+     the WIDTH smooths how those land without inventing anything between them:
+     every step still starts at a real event, and the transition only decides how
+     the last one is drawn. A creep that fills the gaps would be the fixed-3s lie
+     this file already threw out once, in slower clothing. */
+  transition: width 280ms ease-out;
 }
 
 /* The cover is STATIC MARKUP at the top of <body> (routes_graph's _GRAPH_BOOT),
@@ -60,6 +68,11 @@ body {
    the far edge of its track. Move one and the other follows. */
 #gp-loading .gp-load-track.gp-indet .gp-load-fill {
   width: 35%;
+
+  /* No width transition while the marquee owns the bar: the segment is moved by
+     a transform, and easing its width at the same time makes the hand-off in and
+     out of indeterminate look like a stutter. */
+  transition: none;
   animation: gp-indet 1.1s ease-in-out infinite;
 }
 
