@@ -89,16 +89,19 @@ var graphPulseDraw = (function () {
   }
 
   function glyph(x, y, r, shape) {
+    // Triangles are lifted to 1.15x: at equal circumradius one reads smaller
+    // than the hexagon beside it, because it covers less of its own circle.
+    if (shape === 'triangle') {
+      polygon(x, y, r * 1.15, 3, -Math.PI / 2);   // point up, matching vis
+      return;
+    }
+    if (shape === 'triangleDown') {
+      polygon(x, y, r * 1.15, 3, Math.PI / 2);    // point down
+      return;
+    }
     if (shape === 'dot') {
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
-      return;
-    }
-    if (shape === 'triangle') {
-      // Point up, matching vis: first vertex at -90 degrees, and a radius lifted
-      // a little because a triangle of the same circumradius reads smaller than
-      // the hexagon beside it.
-      polygon(x, y, r * 1.15, 3, -Math.PI / 2);
       return;
     }
     polygon(x, y, r, 6, 0);

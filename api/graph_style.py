@@ -37,17 +37,20 @@ def _drop_graph_tooltips(page: str) -> str:
 # A node's shape says what KIND of thing it is, the way its colour says which
 # community it belongs to. Three types survive the scrubs, so three shapes.
 #
-# `dot` and not `circle`, though a dot IS the circle: vis splits its shapes into
-# two families. `circle`, `ellipse`, `box` and `text` draw the label INSIDE and
-# size themselves to it, ignoring `size` entirely; `dot`, `hexagon`, `triangle`,
-# `diamond`, `square` and `star` draw the label outside and take their size from
-# `size`. The node sizes here are geometric in degree (_size_graph_by_degree),
-# which is the graph's main encoding -- using `circle` would throw that away for
-# the documents and move their labels at the same time.
+# All three come from the same vis family, and that constraint is why `circle`
+# never appears here. vis splits its shapes in two: `circle`, `ellipse`, `box`
+# and `text` draw the label INSIDE and size themselves to it, ignoring `size`
+# entirely; `dot`, `hexagon`, `triangle`, `triangleDown`, `diamond`, `square` and
+# `star` draw the label outside and take their size from `size`. Node size here
+# is geometric in degree (_size_graph_by_degree), which is the graph's main
+# encoding, so a shape from the first family would discard it for every node of
+# that type and relocate its label in the same move. Documents were briefly
+# `dot`; `triangleDown` pairs them against the rationale triangle instead, which
+# reads as a related pair rather than three unrelated glyphs.
 _TYPE_SHAPES = {
     "code": "hexagon",
     "rationale": "triangle",
-    "document": "dot",
+    "document": "triangleDown",
 }
 
 
@@ -280,12 +283,21 @@ def _fix_graph_stats(page: str) -> str:
     )
 
 
-# vis-network node size range, doubled from 6..44 on 2026-09-21: at the opening
-# whole-graph fit the hexagons were specks, and a node you cannot see is a node
-# nobody will hover. The ratio is what carries the meaning, so doubling both ends
-# keeps the encoding and only changes how much of the screen it spends.
-_SIZE_MIN = 12.0
-_SIZE_MAX = 88.0
+# vis-network node size range: 6..44 until 2026-09-21, doubled to 12..88 because
+# at the opening whole-graph fit the hexagons were specks, and a node you cannot
+# see is a node nobody will hover; then x1.25 to 15..110 on request. BOTH ends
+# move together every time, and that is the rule rather than a coincidence: the
+# RATIO is what carries the meaning (size is geometric in degree, so a hub reads
+# as a hub), and scaling both ends keeps the encoding while changing only how
+# much of the screen it spends.
+#
+# _SIZE_MAX is now larger than the lattice cell (110 against 168 across, so 220
+# wide against a 168 step), which means the handful of biggest hubs overlap their
+# neighbouring cells. That is the intended trade at this size: those nodes are
+# the ones worth seeing from the opening zoom, and there are only a few of them —
+# the median degree is 1.
+_SIZE_MIN = 15.0
+_SIZE_MAX = 110.0
 # Size grows GEOMETRICALLY with degree — each extra edge multiplies rather than
 # adds — so a hub reads as a hub instead of as a slightly larger leaf. The old
 # sqrt-of-line-count scale did the opposite: it compressed the interesting end

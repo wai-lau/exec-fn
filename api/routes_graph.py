@@ -75,7 +75,7 @@ _GRAPH_OVERLAY_JS = (
     # The cover first: graph-overlay.js calls gpCover.show() on its own last
     # line, and the failure note has to exist before anything can need it.
     '<script src="/graph-cover.js?v=10"></script>'
-    '<script src="/graph-pulse-draw.js?v=4"></script>'
+    '<script src="/graph-pulse-draw.js?v=5"></script>'
     '<script src="/graph-pulse.js?v=21"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
     '<script src="/graph-lattice.js?v=13"></script>'
