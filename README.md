@@ -8,12 +8,6 @@ Three parts: a task board, a day-planner timeline, and a nudge loop that
 breaks a task into steps and prods you through them. One LLM pipeline
 handles the reasoning, the scheduling and the voice.
 
-[![A lattice of small coloured nodes on black, with white edges fanning out from a few bright hubs](docs/graph.webp)](https://wai-lau.net/graph)
-
-*[/graph](https://wai-lau.net/graph) draws the repo's own module graph off a
-nightly rebuild. Colour is community, shape is node type, size is degree. The
-white is a cascade firing outward from a node it picked.*
-
 ---
 
 ## What it does
@@ -49,3 +43,5 @@ white is a cascade firing outward from a node it picked.*
   server-side, and both hot-reload from a volume mount.
 
 > Personal project. Code is public to read, not packaged for reuse.
+
+[![The /graph page](docs/graph.webp)](https://wai-lau.net/graph)
