@@ -31,6 +31,15 @@ PY=/home/wai-root/.local/share/uv/tools/graphifyy/bin/python
 export PYTHONHASHSEED=0                      # deterministic community numbering
 export GRAPHIFY_REBUILD_MEMORY_LIMIT_MB=600  # RLIMIT_AS; see the note above
 export GRAPHIFY_REBUILD_TIMEOUT=1800
+# graphify REFUSES to emit graph.html past this many nodes and logs a skip that
+# is easy to miss -- which is exactly what happened on 2026-09-22: the repo
+# crossed the 5000 default (5057 nodes), graph.html was silently not written,
+# /graph 404'd all day, and the layout bake then sat on that 404 page until its
+# 600s playwright timeout. The node count is the repo's own growth, not a
+# regression, so the ceiling moves with it. The real guard is the RLIMIT above:
+# if the viz ever gets genuinely too big, it must die of MemoryError and log it
+# rather than be skipped into a 404.
+export GRAPHIFY_VIZ_NODE_LIMIT=8000
 
 mkdir -p "$(dirname "$LOG")"
 
