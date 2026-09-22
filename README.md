@@ -1,12 +1,12 @@
 # exec-fn
 
 **A self-hosted personal assistant that fights ADHD task-paralysis** —
-a FastAPI app where Claude runs the planning pipeline, voiced by GLaDOS.
+a FastAPI app where an LLM runs the planning pipeline, voiced by GLaDOS.
 Live at **[wai-lau.net](https://wai-lau.net)**.
 
 It is a task board, a day-planner timeline, and an autonomous "nudge"
 loop that breaks tasks into steps and prods you through them — wired to
-a single Claude pipeline that does the reasoning, scheduling, and voice.
+a single LLM pipeline that does the reasoning, scheduling, and voice.
 
 ---
 
@@ -26,7 +26,7 @@ a single Claude pipeline that does the reasoning, scheduling, and voice.
 | Layer | Tech |
 |-------|------|
 | Backend | FastAPI (Python 3.12), single composition root |
-| LLM | Claude (Opus for reasoning, Haiku for cheap classification) |
+| LLM | A hosted API — a large model for reasoning, a small one for cheap classification |
 | Frontend | Server-composed HTML + vanilla JS modules, no SPA framework |
 | Deploy | Docker (cron + uvicorn) behind nginx on a DigitalOcean droplet |
 | State | JSON files on a bind-mounted volume — no database |
