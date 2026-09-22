@@ -41,6 +41,30 @@ body {
   background: #fff;
 }
 
+/* The cover is STATIC MARKUP at the top of <body> (routes_graph's _GRAPH_BOOT),
+   not a div this file's JS appends at the end of one — the script tag sits after
+   2.2MB of inline vis bundle and RAW_NODES, so a cover built there cannot paint
+   until all of it has downloaded, parsed and RUN. That is the whole wait Wai was
+   looking at: a blank page, then a bar.
+
+   Which leaves a window where the bar is up and nothing can report progress yet,
+   so the fill runs an INDETERMINATE marquee until the first real number arrives.
+   That is not the fixed 3s fill this file replaced: a segment sliding claims only
+   "working", where a bar growing on a timer claims a fraction it does not have.
+   graph-overlay.js drops .gp-indet on its first progress call or at reveal.
+
+   translateX(286%) is (100/35)x — the distance that carries a 35%-wide fill off
+   the far edge of its track. Move one and the other follows. */
+#gp-loading .gp-load-track.gp-indet .gp-load-fill {
+  width: 35%;
+  animation: gp-indet 1.1s ease-in-out infinite;
+}
+
+@keyframes gp-indet {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(286%); }
+}
+
 /* nav: chrome.css default — horizontal bar pinned to the bottom. --nav-h is set
    by _build_nav's script (measured nav height). Keep it above the panels so they
    slide behind it, and above #gp-loading (z 100) so it stays visible during the

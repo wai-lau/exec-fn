@@ -301,19 +301,36 @@
   // that never arrives, not a schedule.
   var LOAD_CAP = 120000;
 
+  // The cover is ADOPTED, not built: routes_graph serves it as the first markup
+  // inside <body> (_GRAPH_BOOT) so it paints with the first chunk, where this
+  // file runs only after ~2.2MB of vis bundle + RAW_NODES has parsed — which is
+  // to say, after the entire wait the cover exists to explain. It is still
+  // created here when absent, so the file stands alone against any page that
+  // does not serve one.
+  //
+  // Until the first real number arrives the track keeps the .gp-indet marquee it
+  // was served with, so the bar is MOVING from the first frame; the first
+  // progress call (or reveal) switches it to the determinate fill.
   function showLoading() {
-    var overlay = document.createElement('div');
-    overlay.id = 'gp-loading';
-    var track = document.createElement('div');
-    track.className = 'gp-load-track';
-    var fill = document.createElement('div');
-    fill.className = 'gp-load-fill';
-    track.appendChild(fill);
-    overlay.appendChild(track);
-    document.body.appendChild(overlay);
+    var overlay = document.getElementById('gp-loading');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'gp-loading';
+      overlay.innerHTML = '<div class="gp-load-track gp-indet">' +
+        '<div class="gp-load-fill"></div></div>';
+      document.body.appendChild(overlay);
+    }
+    var track = overlay.querySelector('.gp-load-track');
+    var fill = overlay.querySelector('.gp-load-fill');
     var done = false;
+    function determinate() {
+      if (track) {
+        track.classList.remove('gp-indet');
+      }
+    }
     return {
       progress: function (frac) {
+        determinate();
         fill.style.width = Math.round(Math.min(1, Math.max(0, frac)) * 100) + '%';
       },
       reveal: function () {
@@ -321,6 +338,7 @@
           return;
         }
         done = true;
+        determinate();
         fill.style.width = '100%';
         overlay.classList.add('gp-hide');
         document.body.classList.add('gp-loaded');
