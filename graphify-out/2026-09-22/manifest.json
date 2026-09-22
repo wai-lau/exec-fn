@@ -15,8 +15,8 @@
     "semantic_hash": "6e676c441760ad1dbee0bae230c638c2"
   },
   "api/auth.py": {
-    "mtime": 1790023786.9082184,
-    "ast_hash": "9f13f1414d26d69e4fe1235abe4d2563",
+    "mtime": 1789188203.6831186,
+    "ast_hash": "cbd4699e51679201c1ccc6d1fdee0f04",
     "semantic_hash": ""
   },
   "api/chat.py": {
@@ -50,8 +50,8 @@
     "semantic_hash": ""
   },
   "api/main.py": {
-    "mtime": 1790054589.94584,
-    "ast_hash": "f82711909bb3ec019b2e94bc2c3f57eb",
+    "mtime": 1789853585.1646323,
+    "ast_hash": "f7a5ffeac95a8de57cd183ad5e1aaaee",
     "semantic_hash": ""
   },
   "api/monitor.py": {
@@ -60,8 +60,8 @@
     "semantic_hash": ""
   },
   "api/morning_cron.sh": {
-    "mtime": 1790051438.9971092,
-    "ast_hash": "20a84f813d9b6fca648ec31eab164a65",
+    "mtime": 1789188203.6931186,
+    "ast_hash": "629fb4edfe0cb9ba21cd5cf46e203047",
     "semantic_hash": ""
   },
   "api/mtg/__init__.py": {
@@ -205,13 +205,13 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1790062088.5328264,
-    "ast_hash": "9ed2689f12e51da4d8cb0becb68d8f83",
+    "mtime": 1789964679.4814973,
+    "ast_hash": "0cb525cf39e1ea5308481ad322d96396",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1790062744.76447,
-    "ast_hash": "4e365cdd9f5d4bd001690c58dfa0fd0e",
+    "mtime": 1789964679.4784973,
+    "ast_hash": "23cbe07e17adc2cb97b0a2d83a8aa1f1",
     "semantic_hash": ""
   },
   "README.md": {
@@ -385,13 +385,13 @@
     "semantic_hash": ""
   },
   "api/templates/mtg.html": {
-    "mtime": 1790036926.8898783,
-    "ast_hash": "125d258ec968bece7e35e31cd152f625",
+    "mtime": 1789964307.762925,
+    "ast_hash": "fea15e2004a0bb3153e74d0dab5c67a7",
     "semantic_hash": ""
   },
   "api/templates/tarot.html": {
-    "mtime": 1790037020.989339,
-    "ast_hash": "1640335b5ad2547ab80291bd4a385935",
+    "mtime": 1789964307.7619247,
+    "ast_hash": "4a42c116d50000653fb0956d0c03df84",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "web/tarot/card_back.jpg": {
-    "mtime": 1790036988.6601813,
-    "ast_hash": "3e4ac754c6a249dce3a8523b80ed2dcf",
+    "mtime": 1789188204.3911211,
+    "ast_hash": "d2d66b4da0f6da43996de942969afacd",
     "semantic_hash": ""
   },
   "web/tarot/cards/ace_of_cups.jpg": {
@@ -870,8 +870,8 @@
     "semantic_hash": ""
   },
   "web/graph-overlay.js": {
-    "mtime": 1790061817.1417365,
-    "ast_hash": "4cb568a670addf8c28f1bcf20cf5092e",
+    "mtime": 1789188204.3741212,
+    "ast_hash": "ddc9571a20f99164ffe5fa28afb24a56",
     "semantic_hash": ""
   },
   "api/nudge.py": {
@@ -895,8 +895,8 @@
     "semantic_hash": ""
   },
   "scripts/pre-commit": {
-    "mtime": 1790037028.6943767,
-    "ast_hash": "b9ffa4be455fb36a9b8dc9a0ad66c6d0",
+    "mtime": 1789188204.06812,
+    "ast_hash": "1028a662616eb5a22e098d5056224f4b",
     "semantic_hash": ""
   },
   "api/templates/guest_login.html": {
@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "web/tarot-view.js": {
-    "mtime": 1790037015.9593146,
-    "ast_hash": "b3c4b22153daaad0a0b6531559f8a7e8",
+    "mtime": 1789964240.746637,
+    "ast_hash": "30d2ed774c588206c2a0bbbd75b085ed",
     "semantic_hash": ""
   },
   "api/nudge_llm.py": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1790037697.7813709,
-    "ast_hash": "0bc1b88e3bbf79b5a415c3b5866c8f55",
+    "mtime": 1789964691.824549,
+    "ast_hash": "40759ac71ceb9eaac3ccb5735d914071",
     "semantic_hash": ""
   },
   "api/routers.py": {
@@ -975,8 +975,8 @@
     "semantic_hash": ""
   },
   "api/routes_views.py": {
-    "mtime": 1790031059.9024377,
-    "ast_hash": "134e555c4e6ee183934143c6aab9b359",
+    "mtime": 1789607809.0162103,
+    "ast_hash": "7022c647582f1d6fec08614e2c8fadba",
     "semantic_hash": ""
   },
   "api/nudge_deadlines.py": {
@@ -1025,8 +1025,8 @@
     "semantic_hash": ""
   },
   "api/graph_scrub.py": {
-    "mtime": 1790059260.578435,
-    "ast_hash": "43687264892a94bcec3863bdfb26d09b",
+    "mtime": 1789188203.6901186,
+    "ast_hash": "d9bd96273fc28b31ea5e5a99eba99cf7",
     "semantic_hash": ""
   },
   "web/exec-todos.js": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": ""
   },
   "web/tarot-stream.js": {
-    "mtime": 1790036926.8728783,
-    "ast_hash": "d142f6be615982b75fcd94d12973b9f9",
+    "mtime": 1789963528.6365912,
+    "ast_hash": "d357bdf34f84505d7c80cd3bc72b0dac",
     "semantic_hash": ""
   },
   "scripts/lint-colors.py": {
@@ -1125,8 +1125,8 @@
     "semantic_hash": ""
   },
   "tests/test_tarot_progression.py": {
-    "mtime": 1790037350.8569295,
-    "ast_hash": "be207f8550d335dbf8a1edeb95f7ecd2",
+    "mtime": 1789956637.1112537,
+    "ast_hash": "fa72db014b64fc0758eaa289b86225ad",
     "semantic_hash": ""
   },
   "web/tarot-music.js": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1790065804.1528845,
+    "mtime": 1789979403.1715758,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -1775,12 +1775,12 @@
     "semantic_hash": ""
   },
   "api/data/exec_todos.json": {
-    "mtime": 1790042238.4757664,
-    "ast_hash": "8966d434b9b90990c3f5d5ce989b517b",
+    "mtime": 1789772219.083608,
+    "ast_hash": "d04841902bb841a9752dc7f9035be91e",
     "semantic_hash": ""
   },
   "api/data/gamesave_save1.json": {
-    "mtime": 1790062914.3351526,
+    "mtime": 1789361402.007505,
     "ast_hash": "8e673ac279bc9d071c4579973d09a182",
     "semantic_hash": ""
   },
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1790065806.8508954,
+    "mtime": 1789979405.8565865,
     "ast_hash": "6d5b10c0b461300cc23f36ff1175582a",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1790065808.729903,
-    "ast_hash": "83073fb3e123bd36f86cb4bd0130bafd",
+    "mtime": 1789979432.7996943,
+    "ast_hash": "86216f544ae388512733fcb379d13596",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -2030,8 +2030,8 @@
     "semantic_hash": ""
   },
   "api/data/tarot_readings.json": {
-    "mtime": 1790036059.8422532,
-    "ast_hash": "d8362703ffa4553d5fb8443ef017c7ab",
+    "mtime": 1788067811.6117098,
+    "ast_hash": "22f9f88e7f5bf9fc6c0acd2b3f6a6e9d",
     "semantic_hash": ""
   },
   "nightfall-incident/asset-manifest.json": {
@@ -6200,13 +6200,13 @@
     "semantic_hash": ""
   },
   "web/rd.js": {
-    "mtime": 1790027318.6195831,
-    "ast_hash": "7a2628902b15120d04a76de774ef49ee",
+    "mtime": 1789188204.3841212,
+    "ast_hash": "2c18f8b28874d74e230750407a377ab3",
     "semantic_hash": ""
   },
   "api/templates/rd.html": {
-    "mtime": 1790027323.3146002,
-    "ast_hash": "0604e228fb47c172c23b39fbf923bfa1",
+    "mtime": 1789852720.1530666,
+    "ast_hash": "f99c1d7c849949fa06cc74912e43f484",
     "semantic_hash": ""
   },
   "web/guest_login.js": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1789981814.6056702,
+    "mtime": 1789895414.5738528,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1789981814.61367,
+    "mtime": 1789895414.5858529,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -6720,8 +6720,8 @@
     "semantic_hash": ""
   },
   "api/graph_style.py": {
-    "mtime": 1790062374.96998,
-    "ast_hash": "a676119f17354994145bb53ae69e5a94",
+    "mtime": 1789188203.6911185,
+    "ast_hash": "7e10142f566351174b7c1e496cfc47ac",
     "semantic_hash": ""
   },
   "api/printer_camera.py": {
@@ -6745,8 +6745,8 @@
     "semantic_hash": ""
   },
   "api/routes_graph.py": {
-    "mtime": 1790062704.3313072,
-    "ast_hash": "5927e50d2f78682639800be8b30e2485",
+    "mtime": 1789188203.7011187,
+    "ast_hash": "55cad91a8a4e285c31acc3e9fca2af95",
     "semantic_hash": ""
   },
   "api/routes_printer.py": {
@@ -6930,12 +6930,12 @@
     "semantic_hash": ""
   },
   "api/data/gamesave_save2.json": {
-    "mtime": 1790062914.3421526,
+    "mtime": 1789361402.0275052,
     "ast_hash": "696a4a2c3512dd3713b94b74bdb121bf",
     "semantic_hash": ""
   },
   "api/data/gamesave_save3.json": {
-    "mtime": 1790062914.3411527,
+    "mtime": 1789361402.023505,
     "ast_hash": "91b5617184d76b5cc30a02b5b781a0a5",
     "semantic_hash": ""
   },
@@ -6960,8 +6960,8 @@
     "semantic_hash": ""
   },
   "web/exec-bubble-assets.js": {
-    "mtime": 1790037697.7673707,
-    "ast_hash": "e104c67c0199d3e299aabde754772bd0",
+    "mtime": 1789956532.6098132,
+    "ast_hash": "4869bfa8a22e7aef73a728e97357f62b",
     "semantic_hash": ""
   },
   ".claude/hooks/cmdscan.py": {
@@ -7015,8 +7015,8 @@
     "semantic_hash": ""
   },
   "claude-box/server.mjs": {
-    "mtime": 1790040545.6581757,
-    "ast_hash": "efa1b6c0b62b265279ea52fad33c7037",
+    "mtime": 1789457826.2782643,
+    "ast_hash": "af2b8fe999fe36f695e5c8cb63d5353f",
     "semantic_hash": ""
   },
   "claude-box/setup.sh": {
@@ -7030,8 +7030,8 @@
     "semantic_hash": ""
   },
   "api/templates/cc.html": {
-    "mtime": 1790040652.0125492,
-    "ast_hash": "03ff9ec0f9c0d3765cff16e60d6b9844",
+    "mtime": 1789964307.7619247,
+    "ast_hash": "c5fdd0531804f21f866b568b66c0c427",
     "semantic_hash": ""
   },
   "claude-box/README.md": {
@@ -7065,8 +7065,8 @@
     "semantic_hash": ""
   },
   "api/data/cc_titles.json": {
-    "mtime": 1790035148.6871564,
-    "ast_hash": "ed701b8676cd6e24cd1e795e21805c84",
+    "mtime": 1789963989.3745408,
+    "ast_hash": "9baeae79863feafa6698028a73cc090a",
     "semantic_hash": ""
   },
   "api/data/mtg_sessions/mtg_mtwgpi33.json": {
@@ -7110,8 +7110,8 @@
     "semantic_hash": ""
   },
   "scripts/graphify-daily.sh": {
-    "mtime": 1790036950.9079964,
-    "ast_hash": "0031fdf41d9b87854cfa3a148899b519",
+    "mtime": 1789342081.079669,
+    "ast_hash": "f38079c6378d889b0524f04dcf7f1870",
     "semantic_hash": ""
   },
   "tests/test_admin_only.py": {
@@ -7155,8 +7155,8 @@
     "semantic_hash": ""
   },
   "web/typewriter.js": {
-    "mtime": 1790036926.8728783,
-    "ast_hash": "4e8ec9c24cedf610e8d3b6464b1b91bf",
+    "mtime": 1789956228.7515318,
+    "ast_hash": "4aa6f9358ab94a2af7bc497de54fb04e",
     "semantic_hash": ""
   },
   "claude-box/cc-context.md": {
@@ -7225,8 +7225,8 @@
     "semantic_hash": ""
   },
   "web/cc-interrupt.js": {
-    "mtime": 1790040643.3995185,
-    "ast_hash": "2e23a652bd84a41db8029404b903a3fb",
+    "mtime": 1789358688.908854,
+    "ast_hash": "7afd2c26abc64a82c6038d63f4312787",
     "semantic_hash": ""
   },
   "web/cc-toolout.js": {
@@ -7310,8 +7310,8 @@
     "semantic_hash": ""
   },
   "tests/test_voice_input_browser.py": {
-    "mtime": 1790035591.645004,
-    "ast_hash": "e379ab6ff4b00007dc1ba882400a8a1c",
+    "mtime": 1789963935.8073025,
+    "ast_hash": "f6cb988a873ad514495ea1a2ccc0b2f9",
     "semantic_hash": ""
   },
   "web/exec-mic.js": {
@@ -7320,8 +7320,8 @@
     "semantic_hash": ""
   },
   "web/voice-input.js": {
-    "mtime": 1790036184.9719913,
-    "ast_hash": "2f6b42a26ff074dd69c346726328d4bc",
+    "mtime": 1789964284.8868268,
+    "ast_hash": "8e2ae2a1cdf5a31ac34ee5423b4c589b",
     "semantic_hash": ""
   },
   "api/data/activity_log_20260920.json": {
@@ -9152,191 +9152,6 @@
   "web/voice-ui.js": {
     "mtime": 1789956380.6201723,
     "ast_hash": "40ff56b81e80a6407837abddf9829726",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260922.json": {
-    "mtime": 1790021683.5030415,
-    "ast_hash": "64c60e5b09c21acec95192c35a78bdbc",
-    "semantic_hash": ""
-  },
-  "api/data/mtg_sessions/mtg_muc5lbzk.json": {
-    "mtime": 1790050102.7902126,
-    "ast_hash": "8d950b0f1d69ad633a8bce2f44b00d7a",
-    "semantic_hash": ""
-  },
-  "api/graph_layout.py": {
-    "mtime": 1790062039.132628,
-    "ast_hash": "af3d73fb8d82635f008f6efed064e108",
-    "semantic_hash": ""
-  },
-  "scripts/graph-layout.py": {
-    "mtime": 1790059924.562157,
-    "ast_hash": "7df19082f1771bde2ab14d83f0af391f",
-    "semantic_hash": ""
-  },
-  "scripts/icon_colour.py": {
-    "mtime": 1790034788.5337245,
-    "ast_hash": "c0c6b11d0714c91bf4026b5d045811ea",
-    "semantic_hash": ""
-  },
-  "scripts/icon_config.py": {
-    "mtime": 1790034920.9182506,
-    "ast_hash": "de5e689701a51b7e3aa6a01013d74422",
-    "semantic_hash": ""
-  },
-  "scripts/icon_contours.py": {
-    "mtime": 1790027776.1792016,
-    "ast_hash": "09f3ed03c526f676bd50c075ebbcc621",
-    "semantic_hash": ""
-  },
-  "scripts/icon_mask.py": {
-    "mtime": 1790034956.1463904,
-    "ast_hash": "00a76c4fb0aa213711281a4b87dc04fc",
-    "semantic_hash": ""
-  },
-  "scripts/trace-icons.py": {
-    "mtime": 1790033279.891832,
-    "ast_hash": "382e4e10820303c835e103ddd6646848",
-    "semantic_hash": ""
-  },
-  "tests/test_landing_nav_parity.py": {
-    "mtime": 1790025534.5020912,
-    "ast_hash": "5bbd5b3ba8d69eb697b061b0d0c067ed",
-    "semantic_hash": ""
-  },
-  "web/graph-cover.js": {
-    "mtime": 1790057129.7865102,
-    "ast_hash": "292b06c80605563d1b97f85b16de4af8",
-    "semantic_hash": ""
-  },
-  "web/graph-lattice.js": {
-    "mtime": 1790062702.7203007,
-    "ast_hash": "37eb6a5be6b005ee8de056fcc60a3756",
-    "semantic_hash": ""
-  },
-  "web/graph-pulse-draw.js": {
-    "mtime": 1790062484.334421,
-    "ast_hash": "b25b276a69e851769462dc524dc4b80f",
-    "semantic_hash": ""
-  },
-  "web/graph-pulse.js": {
-    "mtime": 1790061946.0332541,
-    "ast_hash": "3a27897a49d5a1e0e0aaeec5b18341b2",
-    "semantic_hash": ""
-  },
-  "web/icons/README.md": {
-    "mtime": 1790034802.3637793,
-    "ast_hash": "2d35f69cd9a235a3148d21a572d204fd",
-    "semantic_hash": ""
-  },
-  "web/icons/Kuang12.svg": {
-    "mtime": 1790034789.0997267,
-    "ast_hash": "f28aa684f8a544cfd3bc304aee6cc45e",
-    "semantic_hash": ""
-  },
-  "web/icons/bitman.svg": {
-    "mtime": 1790034788.9607263,
-    "ast_hash": "06b07cae539623ae606f96d719edde28",
-    "semantic_hash": ""
-  },
-  "web/icons/boss-green.svg": {
-    "mtime": 1790034788.9837263,
-    "ast_hash": "66b761cda3cd676367ffb2bea14cb81f",
-    "semantic_hash": ""
-  },
-  "web/icons/boss-original.svg": {
-    "mtime": 1790034788.9947264,
-    "ast_hash": "6264d223b87961e289f6d5ccd1824d2c",
-    "semantic_hash": ""
-  },
-  "web/icons/bug.svg": {
-    "mtime": 1790034956.542392,
-    "ast_hash": "32a33e7cf332e9730ecae86489872aa8",
-    "semantic_hash": ""
-  },
-  "web/icons/data-doctor.svg": {
-    "mtime": 1790034789.0157263,
-    "ast_hash": "6358d5980a4637a8a354fe295257cfdc",
-    "semantic_hash": ""
-  },
-  "web/icons/data-file.svg": {
-    "mtime": 1790034789.0477266,
-    "ast_hash": "bcc40d0dfb069c9c9b049083c7ce1c54",
-    "semantic_hash": ""
-  },
-  "web/icons/favicon.svg": {
-    "mtime": 1790034789.0637267,
-    "ast_hash": "fcb234646432b2d6d9386431576130df",
-    "semantic_hash": ""
-  },
-  "web/icons/fiddle.svg": {
-    "mtime": 1790034789.0707266,
-    "ast_hash": "7979276d8fc0fe7b7a9f41ffb15959c7",
-    "semantic_hash": ""
-  },
-  "web/icons/firewall.svg": {
-    "mtime": 1790034789.0767267,
-    "ast_hash": "4c2cc2de03f565e6809a7baf46cefbf6",
-    "semantic_hash": ""
-  },
-  "web/icons/golem-stone.svg": {
-    "mtime": 1790034789.0827267,
-    "ast_hash": "8851694d44be9f9df82efa3d84e68784",
-    "semantic_hash": ""
-  },
-  "web/icons/guru-pink.svg": {
-    "mtime": 1790034789.0887268,
-    "ast_hash": "02964da572e784c5356e87287340782a",
-    "semantic_hash": ""
-  },
-  "web/icons/hack2.svg": {
-    "mtime": 1790034789.0937266,
-    "ast_hash": "4f31c45d5e1c3d7f4bd87c143acdc264",
-    "semantic_hash": ""
-  },
-  "web/icons/laser-satellite.svg": {
-    "mtime": 1790034789.1117268,
-    "ast_hash": "7360689910783a49436d3295cb768c95",
-    "semantic_hash": ""
-  },
-  "web/icons/printer.svg": {
-    "mtime": 1790034789.1237268,
-    "ast_hash": "06b07cae539623ae606f96d719edde28",
-    "semantic_hash": ""
-  },
-  "web/icons/radar.svg": {
-    "mtime": 1790034789.1287267,
-    "ast_hash": "b3530a28696ce98f89376a26538e5d07",
-    "semantic_hash": ""
-  },
-  "web/icons/seeker.svg": {
-    "mtime": 1790034789.135727,
-    "ast_hash": "abc354683e7672818c66b0e2117e42b8",
-    "semantic_hash": ""
-  },
-  "web/icons/sentinel.svg": {
-    "mtime": 1790034789.147727,
-    "ast_hash": "47957d2ba87c687499ae435fe4e65615",
-    "semantic_hash": ""
-  },
-  "web/icons/turbo.svg": {
-    "mtime": 1790034789.155727,
-    "ast_hash": "2eb75fb858b9b7e959bafdbf3a6bec3a",
-    "semantic_hash": ""
-  },
-  "web/icons/wardenpp.svg": {
-    "mtime": 1790034789.163727,
-    "ast_hash": "32f4ac9d0c503c6ee87baa3ee26f82b7",
-    "semantic_hash": ""
-  },
-  "web/icons/watchman.svg": {
-    "mtime": 1790034789.1787271,
-    "ast_hash": "606062087e64163a3e302eca048bedc7",
-    "semantic_hash": ""
-  },
-  "web/icons/wizard.svg": {
-    "mtime": 1790034789.1887271,
-    "ast_hash": "5a5ddbe09bdf488dee2ceec81497db4a",
     "semantic_hash": ""
   }
 }
