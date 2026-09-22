@@ -419,9 +419,13 @@ var graphPulse = (function () {
     return false;
   }
 
-  // Ambient seeding: on for a mouse, off for a finger. The rAF loop runs either
-  // way — see init.
+  // Ambient seeding: on unless a small screen is drawing a big graph — see init.
+  // The rAF loop runs either way, and an idle frame paints nothing, so nothing
+  // under the glass changes and the backdrop-filter readback never re-fires.
   var auto = true;
+  // Comfortably above the ~600 a phone is served, comfortably below the 2,722 a
+  // desktop gets.
+  var AMBIENT_MAX_NODES = 1200;
 
   return {
     // One cascade, seeded exactly where it was asked for. No-op until init has
@@ -435,20 +439,22 @@ var graphPulse = (function () {
       if (running || typeof network === 'undefined') {
         return;
       }
-      // On a phone the loop still runs, but nothing seeds it on its own. The
-      // cascade is the ONE animated layer here and it sits under the CRT
-      // stack's two backdrop-filter layers — §10's most expensive shape: a
-      // full-viewport readback with no partial invalidation, cheap only while
-      // nothing beneath it animates, ruinous when something does, because it
-      // re-fires every frame forever (2fps against 18 measured with the stack
-      // hidden; a phone reported the finished page as unclickable).
+      // Ambient seeding is gated on the SIZE of the graph, not on the kind of
+      // pointer. It was gated on `(pointer: coarse)` for one commit, which was
+      // the wrong lever twice over: what made the page expensive was 2,722
+      // nodes redrawing under two backdrop-filter layers, and what a phone was
+      // missing afterwards was the animation itself — the cascade is the thing
+      // this page is, not decoration on top of it.
       //
-      // What costs that is CONTINUOUS lighting, not the loop: an idle frame
-      // paints nothing, so nothing under the glass changes and the readback
-      // never re-fires. So ambient seeding is what a coarse pointer loses, and
-      // a TAP still lights the node it hit — deliberate, bounded, and the one
-      // thing a phone was actually asking the graph for.
-      auto = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      // A phone is now served ~600 nodes (routes_graph._prune_for_lite), which
+      // is well inside what it can light continuously, so the cascade runs
+      // there like anywhere else. The one case still worth refusing is a phone
+      // that asked for the FULL graph with ?full=1: 2,722 nodes lighting every
+      // frame under the glass is exactly the combination that froze it. A tap
+      // still seeds a cascade there, because that is bounded and asked for.
+      var many = Object.keys(pos).length > AMBIENT_MAX_NODES;
+      var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      auto = !(many && coarse);
       index();
       graphPulseDraw.init(pos, litEdges, level);
       running = true;
