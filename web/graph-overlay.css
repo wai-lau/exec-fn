@@ -68,6 +68,21 @@ body {
   to { transform: translateX(286%); }
 }
 
+/* The BUILD phase. The bar has a real position by then (the payload is down, so
+   it is at FETCHED) and must not lose it — but the main thread is about to block
+   solid, so a JS-driven bar would freeze and read as a hung page. Opacity is a
+   compositor property: it keeps breathing through a blocked main thread, which
+   is the one honest way to say "working, position known, duration not". */
+#gp-loading .gp-load-track.gp-build .gp-load-fill {
+  animation: gp-breathe 1.2s ease-in-out infinite;
+}
+
+@keyframes gp-breathe {
+  0% { opacity: 1; }
+  50% { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+
 /* What the cover says when the graph cannot be drawn, in place of the bar. It
    declares no colour — it inherits the page ink — so it adds nothing to the
    palette, and it exists because #graph is opacity 0 until gp-loaded: without a

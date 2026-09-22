@@ -269,9 +269,13 @@ var graphPulse = (function () {
   // One iteration: a seed, then a frontier that walks outward. `seen` is
   // per-iteration, so a node is TRIED once per cascade however many neighbours
   // reach it — which is what stops a dense region from re-rolling itself forever.
-  function startIteration(now) {
-    var id = seed();
-    if (id === null) {
+  // `pick` is a weighted draw; `at` is a node someone chose. They are the same
+  // iteration either way — a tapped node gets the burst, the stagger and the
+  // outward walk a randomly seeded one gets, because the interesting thing about
+  // a node is what it is connected to, and that is what the cascade draws.
+  function startIteration(now, at) {
+    var id = (at === undefined || at === null) ? seed() : at;
+    if (id === null || !pos[id]) {
       return;
     }
     // The life has to cover the stagger as well, or the last seeds would be
@@ -346,7 +350,10 @@ var graphPulse = (function () {
   }
 
   function step(now) {
-    if (now >= nextIter) {
+    // Seeding is on a clock and nothing else — never gated on whether anything
+    // is still lit — except for `auto`, which is what a coarse pointer turns
+    // off. Everything below still runs for a tap-seeded cascade.
+    if (auto && now >= nextIter) {
       startIteration(now);
       nextIter = now + ITER_MS;
     }
@@ -412,27 +419,36 @@ var graphPulse = (function () {
     return false;
   }
 
+  // Ambient seeding: on for a mouse, off for a finger. The rAF loop runs either
+  // way — see init.
+  var auto = true;
+
   return {
+    // One cascade, seeded exactly where it was asked for. No-op until init has
+    // indexed the graph, and on a node the index does not hold.
+    seed: function (id) {
+      if (running) {
+        startIteration(performance.now(), id);
+      }
+    },
     init: function () {
       if (running || typeof network === 'undefined') {
         return;
       }
-      // Not on a phone. The cascade is the ONE animated layer on this page, and
-      // it sits under the CRT stack's two backdrop-filter layers — which is the
-      // most expensive shape in this repo (ARCHITECTURE §10): a backdrop-filter
-      // is a full-viewport readback with no partial invalidation, cheap only
-      // while nothing beneath it animates, and ruinous when something does,
-      // because it re-fires every frame forever. On the droplet's headless
-      // WebKit that measured 2fps under the stack against 18 with it hidden,
-      // and a phone reported the finished page as unclickable — a main thread
-      // and compositor with nothing left for a tap.
+      // On a phone the loop still runs, but nothing seeds it on its own. The
+      // cascade is the ONE animated layer here and it sits under the CRT
+      // stack's two backdrop-filter layers — §10's most expensive shape: a
+      // full-viewport readback with no partial invalidation, cheap only while
+      // nothing beneath it animates, ruinous when something does, because it
+      // re-fires every frame forever (2fps against 18 measured with the stack
+      // hidden; a phone reported the finished page as unclickable).
       //
-      // The stack stays and the cascade goes, not the other way round: the
-      // stack is the site's look on every page, while this is /graph-only
-      // ambience that happens to be exactly what makes the stack expensive.
-      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
-        return;
-      }
+      // What costs that is CONTINUOUS lighting, not the loop: an idle frame
+      // paints nothing, so nothing under the glass changes and the readback
+      // never re-fires. So ambient seeding is what a coarse pointer loses, and
+      // a TAP still lights the node it hit — deliberate, bounded, and the one
+      // thing a phone was actually asking the graph for.
+      auto = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
       index();
       graphPulseDraw.init(pos, litEdges, level);
       running = true;

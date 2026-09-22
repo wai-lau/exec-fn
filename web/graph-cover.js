@@ -78,6 +78,9 @@
         line.textContent += ' (slower than usual)';
       }
     }
+    // Paint once now, not on the first tick: the line is created empty and the
+    // interval is 250ms away, which is a quarter second of blank under the bar.
+    paint();
     var tick = setInterval(paint, 250);
     function determinate() {
       if (track) {
@@ -95,6 +98,31 @@
       progress: function (frac) {
         determinate();
         fill.style.width = Math.round(Math.min(1, Math.max(0, frac)) * 100) + '%';
+      },
+      // Back to the marquee. Used for the BUILD, where there is no fraction to
+      // report and — the part that decides it — no main thread to report one
+      // with: the payload executes in one synchronous block, so a JS-driven
+      // width freezes where it stood, while a CSS transform keeps moving on the
+      // compositor. A frozen bar reads as a hung page; a moving one is the truth
+      // (working, duration unknown).
+      // The build: hold the width the download earned, and breathe instead of
+      // sliding. The marquee below is for the phase BEFORE there is a position
+      // to hold.
+      building: function (on) {
+        if (track) {
+          track.classList[on ? 'add' : 'remove']('gp-build');
+        }
+      },
+      indeterminate: function () {
+        // Clearing the inline width is half the switch, not tidying: the
+        // marquee's 35% segment lives in the stylesheet, and an inline
+        // width:100% left over from the download beats it — the bar then slides
+        // full-width across the track, which reads as a bar that finished and
+        // then started moving.
+        fill.style.width = '';
+        if (track) {
+          track.classList.add('gp-indet');
+        }
       },
       reveal: function () {
         if (done) {
@@ -131,9 +159,157 @@
     document.body.classList.add('gp-loaded');
   }
 
+  // ── the payload, fetched here so the bar can track bytes ──────────────────
+  //
+  // The page hands us a URL (window.GRAPH_BOOT_URL) instead of a <script defer
+  // src>, because a script tag reports nothing until it is finished: the bar
+  // could only guess. A streamed fetch gives a real fraction for the one phase
+  // that has one, and on a phone the download is exactly the phase worth
+  // watching.
+  //
+  // The bytes are handed back to the browser as a Blob <script src> rather than
+  // eval'd: same global scope as the inline block it replaced (the payload's
+  // top-level `const RAW_NODES` / `network` have to stay reachable from
+  // graph-overlay.js), and the browser still compiles it on its own path.
+  // Last resort. The page carries no <script src> for the payload any more, so
+  // every way of not getting one ends in a page with no graph — and the fetch
+  // path has more ways to fail on a real phone than it does in a headless
+  // browser here. If the payload has not RUN a while after we handed it over,
+  // hand it to the browser the ordinary way instead. Idempotent: the payload is
+  // immutable-cached, so the second request is a cache hit, and it re-runs
+  // nothing if the first copy did execute.
+  var RESCUE_MS = 25000;
+  var rescued = false;
+
+  function rescue(url) {
+    if (rescued || window.__GP_PAYLOAD_MS) {
+      return;
+    }
+    rescued = true;
+    var el = document.createElement('script');
+    el.src = url;
+    document.head.appendChild(el);
+  }
+
+  function inject(url, revoke, ondone) {
+    var el = document.createElement('script');
+    el.src = url;
+    // Dynamically inserted scripts are async by default; ordering against the
+    // deferred vis bundle is handled by waiting for DOMContentLoaded below, but
+    // this keeps insertion order among anything we add later.
+    el.async = false;
+    el.onload = function () {
+      if (revoke) {
+        URL.revokeObjectURL(url);
+      }
+      if (ondone) {
+        ondone();
+      }
+    };
+    el.onerror = function () {
+      rescue(window.GRAPH_BOOT_URL);
+    };
+    document.head.appendChild(el);
+  }
+
+  // vis-network is a DEFERRED script, so it has not run during parsing and the
+  // payload would throw on `vis.Network`. Every deferred script has run by
+  // DOMContentLoaded, which is therefore the earliest safe moment.
+  function whenParsed(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
+    }
+  }
+
+  // What the bar is a fraction OF. Bytes alone cannot answer that: measured in
+  // WebKit against this payload, the reader returns all 2,204,421 of them in ONE
+  // chunk, so a byte bar fires once, at 100%, and correlates with nothing. The
+  // download only reports progressively on a link slow enough to split it —
+  // which is exactly the phone this is for, and exactly not the loopback it gets
+  // tested on, so it cannot be the whole story either.
+  //
+  // So the bar is a fraction of the WORK, cut by what each phase actually costs
+  // (measured here: data ~1.4s, build ~1.1s, draw the remainder), and every step
+  // in it is a real thing finishing. Inside a phase it tracks bytes where the
+  // stream gives them and runs the marquee where it cannot — which is also the
+  // truth, since the build blocks the main thread solid and no JS-driven bar can
+  // move through it at all.
+  var FETCHED = 0.45;    // payload downloaded
+  var BUILT = 0.9;       // payload executed: DataSets + network constructed
+
+  function loadPayload(cover, url) {
+    window.__GP_BOOT_STARTED = 1;
+    var run = function (src, revoke) {
+      whenParsed(function () {
+        cover.progress(FETCHED);
+        cover.phase('building the graph');
+        cover.building(true);
+        // onload fires AFTER the script has executed, so it is the one honest
+        // marker for "the build is over" available from out here.
+        inject(src, revoke, function () {
+          cover.building(false);
+          cover.progress(BUILT);
+          cover.phase('drawing');
+        });
+      });
+    };
+    var plain = function () { run(url, false); };
+    if (!window.fetch || !window.ReadableStream || !window.URL || !URL.createObjectURL) {
+      return plain();
+    }
+    fetch(url, { credentials: 'same-origin' }).then(function (res) {
+      if (!res.ok || !res.body) {
+        throw new Error('boot ' + res.status);
+      }
+      // See the route: Content-Length is the GZIPPED size, the reader yields
+      // decoded bytes, so the real length rides in its own header.
+      var total = +(res.headers.get('x-payload-bytes') || 0);
+      var reader = res.body.getReader();
+      var chunks = [];
+      var got = 0;
+      return (function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) {
+            return chunks;
+          }
+          chunks.push(r.value);
+          got += r.value.length;
+          if (total) {
+            cover.progress(FETCHED * (got / total));
+          }
+          return pump();
+        });
+      })();
+    }).then(function (chunks) {
+      var blob = new Blob(chunks, { type: 'application/javascript' });
+      run(URL.createObjectURL(blob), true);
+    })['catch'](function () {
+      // A failed stream must not cost the page the graph — hand it back to the
+      // browser the ordinary way and lose only the progress.
+      plain();
+    });
+  }
+
+  // One controller, created as soon as this file is parsed. graph-overlay.js is
+  // deferred and calls show() much later; the bar has to be live before then,
+  // since the download it reports on starts here.
+  var shared = document.getElementById('gp-loading') ? showLoading() : null;
+
+  if (shared && window.GRAPH_BOOT_URL) {
+    loadPayload(shared, window.GRAPH_BOOT_URL);
+    setTimeout(function () { rescue(window.GRAPH_BOOT_URL); }, RESCUE_MS);
+  }
+
   window.gpCover = {
     CAP: LOAD_CAP,
-    show: showLoading,
+    show: function () {
+      if (!shared) {
+        shared = showLoading();
+      }
+      return shared;
+    },
     fail: fail,
   };
 })();

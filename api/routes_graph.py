@@ -41,7 +41,7 @@ from graph_style import (
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = the firing
 # overlay + zoom walls. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=45">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=46">'
 
 # The loading cover, as STATIC MARKUP at the top of <body>.
 #
@@ -69,10 +69,10 @@ _GRAPH_BOOT = (
 _GRAPH_OVERLAY_JS = (
     # The cover first: graph-overlay.js calls gpCover.show() on its own last
     # line, and the failure note has to exist before anything can need it.
-    '<script src="/graph-cover.js?v=1"></script>'
+    '<script src="/graph-cover.js?v=7"></script>'
     '<script src="/graph-pulse-draw.js?v=3"></script>'
-    '<script src="/graph-pulse.js?v=13"></script>'
-    '<script src="/graph-overlay.js?v=52"></script>'
+    '<script src="/graph-pulse.js?v=14"></script>'
+    '<script src="/graph-overlay.js?v=55"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -133,7 +133,13 @@ def _externalise_boot(page: str) -> tuple[str, str]:
     payload = ("window.__GP_PAYLOAD_START = performance.now();\n;" + payload
                + "\n;window.__GP_PAYLOAD_MS = performance.now();\n")
     digest = hashlib.md5(payload.encode()).hexdigest()[:16]
-    tag = '<script defer src="/graph/boot.js?v=%s"></script>' % digest
+    # NOT a <script defer src>. The cover fetches this itself (graph-cover.js)
+    # so the bar can track real BYTES — a script tag reports nothing until it is
+    # done, and on a phone the download is the part worth watching. The loader
+    # falls back to injecting the tag on any failure, and graph-overlay.js
+    # injects it too if the loader never ran at all.
+    tag = '<script>window.GRAPH_BOOT_URL=%s;</script>' % json.dumps(
+        "/graph/boot.js?v=%s" % digest)
     out, last = [], 0
     for i, block in enumerate(blocks):
         out.append(region[last:block.start()])
@@ -317,8 +323,13 @@ async def graph_boot(request: Request):
     if payload is None:
         return Response("// unknown graph payload\n", status_code=404,
                         media_type="application/javascript")
-    return Response(payload, media_type="application/javascript",
-                    headers={"Cache-Control": "public, max-age=31536000, immutable"})
+    return Response(payload, media_type="application/javascript", headers={
+        "Cache-Control": "public, max-age=31536000, immutable",
+        # The DECODED length. Content-Length is the gzipped one (GZipMiddleware
+        # is outside this), while a stream reader yields decoded bytes, so a bar
+        # driven off Content-Length would run to several hundred percent.
+        "X-Payload-Bytes": str(len(payload.encode())),
+    })
 
 
 @guest_protected.get("/graph", response_class=HTMLResponse)
