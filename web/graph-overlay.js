@@ -24,14 +24,18 @@
 // script, reachable here through the shared global lexical scope.
 /* global network, nodesDS, graphPulse, showInfo */
 (function () {
-  // 1.0: the opening view FILLS the window. It was 0.75 — a quarter out — back
+  // Multiplies the cover scale on first open. 0.75 once — a quarter OUT — back
   // when the cloud was square and the window was not, so cover cropped hard on
-  // the long axis and pulling out was how you got the shape back. The lattice is
-  // shaped to the viewport now, so cover and contain are the same number and
-  // there is nothing to pull back from: a quarter out is just a border of empty
-  // black. Edge nodes stay whole because nodeBounds pads the box by the largest
-  // node's radius, the bbox being built from node CENTRES.
-  var OPEN_ZOOM_OUT = 1;
+  // the long axis and pulling back was how you got the shape returned. The
+  // positions are stretched to the viewport now (graph-lattice.js), so cover and
+  // contain are the same number and there is nothing to pull back from; it went
+  // to 1 (fill exactly), and then to 1.2 on request — a fifth IN, which crops
+  // about a sixth off each axis in exchange for nodes big enough to read.
+  // Renamed with it: at 1.2 a constant called OPEN_ZOOM_OUT says the opposite of
+  // what it does. Edge nodes stay whole at 1 because nodeBounds pads the box by
+  // the largest node's radius (the bbox is built from node CENTRES); past 1 the
+  // crop is the point.
+  var OPEN_ZOOM = 1.2;
   // A node is "redacted" when its label was blanked — server-side to
   // "[redacted]" (_redact_graph_nodes) or "[ redacted ]" (_label_graph_nodes,
   // for anything over 20 chars). For those, the node-info panel must not leak
@@ -283,7 +287,7 @@
       network.moveTo({
         // Cover, which now fills the window exactly: the lattice is shaped to
         // the viewport, so there is no long axis left to overflow.
-        scale: b.cover * OPEN_ZOOM_OUT,
+        scale: b.cover * OPEN_ZOOM,
         position: { x: b.cx, y: b.cy },
       });
       cover.progress(gpCover.PLACED);

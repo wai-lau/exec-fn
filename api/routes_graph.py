@@ -29,6 +29,7 @@ from auth import SESSION_TOKEN
 from graph_scrub import (
     _redact_graph_nodes, _drop_graph_prefixed_nodes, _drop_graph_moltbook_nodes,
     _drop_graph_library_nodes, _drop_graph_inferred_edges, _drop_graph_orphan_nodes,
+    _drop_graph_small_islands,
     _read_array, _prune_graph_nodes,
 )
 from graph_style import (
@@ -75,7 +76,7 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-pulse.js?v=20"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
     '<script src="/graph-lattice.js?v=10"></script>'
-    '<script src="/graph-overlay.js?v=60"></script>'
+    '<script src="/graph-overlay.js?v=61"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -231,6 +232,10 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # Then the nodes nothing connects to any more — they drew nothing (the overlay
     # hid them) but were parsed, built and walked every frame regardless.
     page = _drop_graph_orphan_nodes(page)
+    # ...then the islands too small to be structure: a component of two or three
+    # is a couple of files that reference each other and nothing else, which
+    # reads as specks around the rim of the picture.
+    page = _drop_graph_small_islands(page)
     # Merge graphify's many fine-grained communities into feature-based groups and
     # cap the count (after the drops) so each gets a distinct, memorable colour —
     # 54 communities over a 28-colour palette is colour noise, not an encoding.

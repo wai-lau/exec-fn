@@ -264,6 +264,48 @@ def _drop_graph_moltbook_nodes(page: str) -> str:
     return _prune_graph_nodes(page, drop_ids)
 
 
+def _drop_graph_small_islands(page: str, min_size: int = 5) -> str:
+    """Drop every connected component with fewer than `min_size` nodes.
+
+    An island of two or three is a pair of files that reference each other and
+    nothing else in the codebase: true, and not structure. At the opening zoom
+    they read as specks scattered around the edge of the picture, and they cost
+    a payload entry, a DataSet row and a lattice cell each.
+
+    Must run AFTER `_drop_graph_inferred_edges` and `_drop_graph_orphan_nodes`:
+    dropping edges splits components, so an island measured before that pass is
+    not the island that gets served. Orphans are components of size 1, so this
+    subsumes them -- it runs after anyway, since the cheaper pass shrinks the
+    graph this one walks. No-op if RAW_NODES is absent."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
+        return page
+    ids = {n.get("id") for n in nodes}
+    adj: dict = {}
+    for e in _read_array(page, "RAW_EDGES") or []:
+        a, b = e.get("from"), e.get("to")
+        if a in ids and b in ids:
+            adj.setdefault(a, []).append(b)
+            adj.setdefault(b, []).append(a)
+    seen: set = set()
+    drop: set = set()
+    for start in ids:
+        if start in seen:
+            continue
+        seen.add(start)
+        stack, comp = [start], [start]
+        while stack:
+            cur = stack.pop()
+            for nb in adj.get(cur, ()):
+                if nb not in seen:
+                    seen.add(nb)
+                    stack.append(nb)
+                    comp.append(nb)
+        if len(comp) < min_size:
+            drop.update(comp)
+    return _prune_graph_nodes(page, drop)
+
+
 def _drop_graph_orphan_nodes(page: str) -> str:
     """Drop every node no surviving edge touches. graph-overlay.js used to hide
     these client-side (they cluttered the periphery and carry no relationships),
