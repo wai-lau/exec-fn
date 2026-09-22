@@ -64,26 +64,31 @@
     var b = nodeBounds();
     var pos = network.getPositions();
     var ids = Object.keys(pos);
-    // THE LATTICE IS SHAPED TO THE VIEWPORT. graphify's cloud comes out roughly
-    // square, and a square cloud on a phone is mostly off-screen: the camera
-    // opens on COVER, so at 430x932 the graph filled the height and ran 2.08x
-    // the width — you saw the middle strip of it and had to drag for the rest.
+    // THE LATTICE CHANGES DIMENSION, IT DOES NOT SQUISH.
     //
-    // The nodes are rescaled into a box of the viewport's aspect before they are
-    // snapped, and the box keeps the ORIGINAL AREA (W*H == b.w*b.h), so `cell`
-    // below is unchanged and the lattice stays exactly as dense as it was. Only
-    // the outline moves. Cover and contain then converge, and the opening view
-    // shows the whole graph on any screen instead of whichever strip of it the
-    // window happened to frame.
+    // The grid is shaped to the viewport by how many rows and columns it has —
+    // a tall screen gets a tall grid — and never by stretching one axis. Cell
+    // spacing is ONE number, `cell`, used on both axes, so the step between
+    // adjacent lattice points is identical horizontally and vertically.
     //
-    // It distorts distances, and that is the trade taken knowingly: this is a
-    // force layout, so a stretched axis stretches what the layout MEANT by
-    // distance. Against that, a phone was seeing less than half the picture.
+    // It did stretch, for one commit: positions were rescaled into a box of the
+    // viewport's aspect before snapping, which made the outline fit the screen
+    // and squashed everything inside it. The grid POINTS stayed square while the
+    // picture between them did not, which is the worst of both — a force layout
+    // says something by distance, and an axis scaled on its own rewrites it.
+    //
+    // So the map is uniform: one scale, `k`, for x and y alike. `k` is chosen so
+    // the cloud's own area fills the viewport-shaped grid's area, which is what
+    // lets the ROW AND COLUMN COUNT follow the window while the spacing between
+    // points, and the shape of everything standing on them, does not change.
     var aspect = b.vw / Math.max(b.vh, 1);
     var area = b.w * b.h;
-    var boxW = Math.sqrt(area * aspect);
-    var boxH = Math.sqrt(area / aspect);
-    var cell = Math.sqrt((boxW * boxH) / Math.max(ids.length * CELLS_PER_NODE, 1));
+    var gridW = Math.sqrt(area * aspect);
+    var gridH = Math.sqrt(area / aspect);
+    var cell = Math.sqrt((gridW * gridH) / Math.max(ids.length * CELLS_PER_NODE, 1));
+    // Uniform, area-preserving: the cloud covers as much of the grid as it did
+    // of its own bounding box, at its own proportions.
+    var k = Math.sqrt((gridW * gridH) / area);
     if (!isFinite(cell) || cell <= 0) {
       return;
     }
@@ -99,12 +104,11 @@
     var taken = Object.create(null);
     for (var i = 0; i < ids.length; i++) {
       var p = pos[ids[i]];
-      // Normalise into the bbox, out into the viewport-shaped box, then onto the
-      // lattice. The cells stay SQUARE — the reshape is in where a node lands,
-      // never in the spacing, or the nodes themselves would read as stretched.
+      // ONE scale on both axes, then onto the lattice. Nothing here treats x
+      // differently from y: that is the whole of "not squished".
       var g = nearestFree(taken,
-        Math.round(((p.x - b.minX) / b.w) * boxW / cell),
-        Math.round(((p.y - b.minY) / b.h) * boxH / cell));
+        Math.round((p.x - b.minX) * k / cell),
+        Math.round((p.y - b.minY) * k / cell));
       taken[g.x + ',' + g.y] = 1;
       var nx = b.minX + g.x * cell, ny = b.minY + g.y * cell;
       // Written straight onto the body, NOT through moveNode, and this is the
