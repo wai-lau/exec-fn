@@ -72,8 +72,8 @@ _GRAPH_OVERLAY_JS = (
     # line, and the failure note has to exist before anything can need it.
     '<script src="/graph-cover.js?v=7"></script>'
     '<script src="/graph-pulse-draw.js?v=3"></script>'
-    '<script src="/graph-pulse.js?v=15"></script>'
-    '<script src="/graph-overlay.js?v=55"></script>'
+    '<script src="/graph-pulse.js?v=16"></script>'
+    '<script src="/graph-overlay.js?v=56"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
