@@ -76,7 +76,7 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-pulse.js?v=20"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
     '<script src="/graph-lattice.js?v=13"></script>'
-    '<script src="/graph-overlay.js?v=65"></script>'
+    '<script src="/graph-overlay.js?v=66"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
