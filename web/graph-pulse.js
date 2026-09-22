@@ -135,7 +135,7 @@ var graphPulse = (function () {
         var all = nodesDS.get();
         for (var i = 0; i < all.length; i++) {
           var n = all[i];
-          pos[n.id] = { x: 0, y: 0, r: n.size || 10 };
+          pos[n.id] = { x: 0, y: 0, r: n.size || 10, s: n.shape };
           deg[n.id] = 0;
           adj[n.id] = [];
         }

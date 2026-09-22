@@ -35,7 +35,10 @@ from graph_scrub import (
 from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
     _merge_graph_communities, _fix_graph_stats, _size_graph_by_degree,
-    _tune_graph_physics, _brighten_graph_edges, _apply_graph_layout,
+    _brighten_graph_edges,
+)
+from graph_layout import (
+    _tune_graph_physics, _apply_graph_layout,
     graph_layout_key, read_graph_layout, read_graph_layout_tall,
 )
 
@@ -72,8 +75,8 @@ _GRAPH_OVERLAY_JS = (
     # The cover first: graph-overlay.js calls gpCover.show() on its own last
     # line, and the failure note has to exist before anything can need it.
     '<script src="/graph-cover.js?v=10"></script>'
-    '<script src="/graph-pulse-draw.js?v=3"></script>'
-    '<script src="/graph-pulse.js?v=20"></script>'
+    '<script src="/graph-pulse-draw.js?v=4"></script>'
+    '<script src="/graph-pulse.js?v=21"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
     '<script src="/graph-lattice.js?v=13"></script>'
     '<script src="/graph-overlay.js?v=66"></script>'
