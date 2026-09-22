@@ -14,8 +14,14 @@
   font-display: swap;
 }
 
+/* UNDER the CRT stack, on every page. The fx are five fixed layers at
+   --z-modal (chrome.css) and the bubble is chrome like the rest of it: behind
+   the glass and the scanlines is the in-the-screen look, and a bubble painting
+   over them was the one element sitting on top of the monitor. They are
+   pointer-events:none, so the tap still lands. It used to be --z-max with a
+   `.exec-under-fx` opt-in the link-bubble pages passed and rd/hq did not. */
 #exec-bubble {
-  position: fixed; z-index: var(--z-max);
+  position: fixed; z-index: var(--z-bubble);
   width: 50px; height: 50px; border-radius: 50%;
   background: hsl(var(--pink-hsl) / 0.12);
   outline: 1px solid hsl(var(--pink-hsl) / 0.8);
@@ -24,13 +30,6 @@
   cursor: pointer; touch-action: none; user-select: none;
   transition: background 0.15s, box-shadow 0.15s;
 }
-
-/* Link-bubble variant (non-planning pages, exec-link.js) sits UNDER the CRT fx
-   — behind the glass + scanlines — for the same in-the-screen look as the rest
-   of the chrome. The fx are pointer-events:none, so the tap still lands. On
-   rd/hq (the interactive chat bubble) the fx are at z-index:-1, so the default
-   --z-max keeps that bubble above them and this class isn't applied. */
-#exec-bubble.exec-under-fx { z-index: var(--z-bubble); }
 
 #exec-bubble:hover {
   background: hsl(var(--pink-hsl) / 0.25);
@@ -75,9 +74,11 @@ html.kb-open #exec-panel { height: var(--vvh, 100vh); }
   #exec-panel.open { transform: translateX(0); }
 }
 
-/* The bubble paints at --z-max, ABOVE the panel, so wherever it rests while
-   the panel is open it swallows every tap inside its 50px circle — and the tap
-   it swallows is togglePanel(), which CLOSES the panel. At phone width the
+/* The bubble and the panel are both at --z-bubble, so DOM order decides and
+   the bubble (injected by _build_nav, after nothing) can still land over the
+   panel: wherever it rests while the panel is open it swallows every tap
+   inside its 50px circle — and the tap it swallows is togglePanel(), which
+   CLOSES the panel. At phone width the
    panel is full-screen and the bubble's resting corner (right 14px, bottom
    --nav-h + 10) lands on the tail of the last choice row and on the composer's
    mute/[x]: measured at 430x932, bubble 366..416 x 807..857 over a choice row
