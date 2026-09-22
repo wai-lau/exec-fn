@@ -41,14 +41,35 @@ from graph_style import (
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = the firing
 # overlay + zoom walls. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=43">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=44">'
+
+# The loading cover, as STATIC MARKUP at the top of <body>.
+#
+# graph-overlay.js used to build it, and that script is injected before
+# </body> — i.e. after ~2.2MB of inline vis bundle and RAW_NODES (measured on
+# the served page: <body> at byte 4,546, RAW_NODES at 5,252, the overlay script
+# at the very end). None of that is a transfer cost — gzipped the whole page is
+# 133KB and warm TTFB is 0.12s — it is PARSE and EXECUTE, on the main thread,
+# before a cover built at the end of the document can exist. So the page showed
+# nothing at all for seconds and then a bar, which is the wrong way round: the
+# bar is the thing that explains the wait.
+#
+# Served up front it paints with the first chunk, styled by the stylesheet link
+# already in <head>, and it MOVES immediately — .gp-indet is an indeterminate
+# marquee, since at that point nothing can report a fraction yet. This is markup
+# and not one line of inline CSS/JS on purpose; the rules live in
+# web/graph-overlay.css with the rest of the cover.
+_GRAPH_BOOT = (
+    '<div id="gp-loading"><div class="gp-load-track gp-indet">'
+    '<div class="gp-load-fill"></div></div></div>'
+)
 # Order is the whole contract — same global scope, no modules. The draw half
 # defines `graphPulseDraw`, the model half reads it at construction time, and
 # graph-overlay.js starts the model.
 _GRAPH_OVERLAY_JS = (
     '<script src="/graph-pulse-draw.js?v=1"></script>'
     '<script src="/graph-pulse.js?v=12"></script>'
-    '<script src="/graph-overlay.js?v=49"></script>'
+    '<script src="/graph-overlay.js?v=50"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -67,6 +88,63 @@ _CACHE_KEY = None
 # its duration) and under a lock, so a reload that lands two requests at once
 # pays for one render rather than two.
 _CACHE_LOCK = asyncio.Lock()
+
+
+# Graphify emits its whole dataset as ONE ~2.1MB INLINE <script> at the top of
+# <body>, and an inline script cannot be deferred. So the browser parsed the
+# cover above, hit that block, and spent the next second EXECUTING it — with the
+# main thread busy there is no rendering opportunity, so the first paint landed
+# after it, measured at FCP 1304ms against a 129ms responseStart. None of that
+# is transfer: gzipped the page is 133KB. Serving those blocks as one external
+# `defer` file gives the parser a network wait to paint into, and the browser a
+# cacheable copy for the next visit.
+#
+# Order is preserved by deferring EVERY src script on the page (`_defer_scripts`):
+# deferred scripts run in document order, after the parse, so vis -> payload ->
+# crt-zoom -> pulse -> overlay is exactly the order they ran in before. The two
+# inline blocks that are NOT graphify's (the layout-key line in <head>, the nav
+# sizing script at the end) are untouched and depend on none of it.
+_PAYLOADS: dict[str, str] = {}
+# Two tiers x the current artifact, plus room for the previous one so a browser
+# that loads the HTML seconds before a nightly rebuild can still fetch the
+# payload its page asked for.
+_PAYLOAD_MAX = 6
+
+
+def _externalise_boot(page: str) -> tuple[str, str]:
+    """Lift graphify's inline <body> scripts into one deferred external file.
+
+    Returns (page, payload). Runs FIRST, on the raw artifact, so the only inline
+    body scripts it can see are graphify's own."""
+    start = page.find("<body>")
+    end = page.find("</body>", start)
+    if start < 0 or end < 0:
+        return page, ""
+    region = page[start:end]
+    blocks = list(re.finditer(r"<script>(.*?)</script>", region, re.S))
+    if not blocks:
+        return page, ""
+    payload = "\n;\n".join(b.group(1) for b in blocks)
+    digest = hashlib.md5(payload.encode()).hexdigest()[:16]
+    tag = '<script defer src="/graph/boot.js?v=%s"></script>' % digest
+    out, last = [], 0
+    for i, block in enumerate(blocks):
+        out.append(region[last:block.start()])
+        # The first one becomes the tag; the rest are already inside it.
+        out.append(tag if i == 0 else "")
+        last = block.end()
+    out.append(region[last:])
+    _PAYLOADS[digest] = payload
+    while len(_PAYLOADS) > _PAYLOAD_MAX:
+        _PAYLOADS.pop(next(iter(_PAYLOADS)))
+    return page[:start] + "".join(out) + page[end:], payload
+
+
+def _defer_scripts(page: str) -> str:
+    """Every same-origin src script deferred, so the parse can finish and paint
+    before any of them runs, in unchanged relative order."""
+    return re.sub(r'<script src="(/[^"]+)"></script>',
+                  r'<script defer src="\1"></script>', page)
 
 
 def _render(page: str, guest: bool, relayout: bool = False) -> str:
@@ -143,8 +221,19 @@ def _render(page: str, guest: bool, relayout: bool = False) -> str:
     page = _restyle_graph_nodes(page)
     # No hover tooltips — drop `title:` from both DataSet mappers.
     page = _drop_graph_tooltips(page)
+    # First thing in the body, so it is the first thing painted.
+    page = page.replace("<body>", "<body>" + _GRAPH_BOOT, 1)
+    # LAST, and that ordering is load-bearing twice over: every scrub, drop,
+    # merge and restyle above is a string edit on the inline node JSON, and the
+    # baked-layout key is a hash of it. Lifting the payload out first made all of
+    # them no-ops on a 9KB shell -- the layout key came back empty (so /graph
+    # fell back to ~30s of phone stabilisation) and the served payload was the
+    # RAW, unredacted artifact. It reads the body's inline scripts, so it also
+    # has to run before the </body> injections put ours there.
+    page, _ = _externalise_boot(page)
     page = page.replace("</head>", _VIEWPORT_META + _APPLE_WEBAPP_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
-    return page.replace("</body>", _CRT_FX + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
+    page = page.replace("</body>", _CRT_FX + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
+    return _defer_scripts(page)
 
 
 async def _cached(guest: bool):
@@ -167,6 +256,28 @@ def _build(guest: bool, relayout: bool = False):
     """Render + hash, off the event loop."""
     page = _render(_GRAPH_HTML.read_text(), guest, relayout)
     return page, '"%s"' % hashlib.md5(page.encode()).hexdigest()
+
+
+@guest_protected.get("/graph/boot.js")
+async def graph_boot(request: Request):
+    """Graphify's own body scripts, lifted out of the page (`_externalise_boot`).
+
+    Same tier as the page it belongs to. The `?v=` is a content hash, so the
+    bytes at a given URL never change and the browser is told so — the payload
+    is the one part of /graph that IS worth caching hard, since it is 2.1MB of
+    JS that changes once a day. A hash this process has never rendered renders
+    that tier once and looks again, which covers a restart between the HTML and
+    this fetch."""
+    digest = request.query_params.get("v", "")
+    payload = _PAYLOADS.get(digest)
+    if payload is None and _GRAPH_HTML.exists():
+        await _cached(request.cookies.get("session") != SESSION_TOKEN)
+        payload = _PAYLOADS.get(digest)
+    if payload is None:
+        return Response("// unknown graph payload\n", status_code=404,
+                        media_type="application/javascript")
+    return Response(payload, media_type="application/javascript",
+                    headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 @guest_protected.get("/graph", response_class=HTMLResponse)
