@@ -34227,7 +34227,7 @@
       "label": "XDG_RUNTIME_DIR",
       "file_type": "code",
       "source_file": "scripts/graphify-daily.sh",
-      "source_location": "L114",
+      "source_location": "L167",
       "metadata": {
         "language": "bash",
         "kind": "code"
@@ -34241,7 +34241,7 @@
       "label": "GIT_SSH_COMMAND",
       "file_type": "code",
       "source_file": "scripts/graphify-daily.sh",
-      "source_location": "L136",
+      "source_location": "L189",
       "metadata": {
         "language": "bash",
         "kind": "code"
@@ -48783,7 +48783,7 @@
       "label": "18. The typewriter and the shared chat surfaces",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2522",
+      "source_location": "L2524",
       "_origin": "ast",
       "id": "architecture_18_the_typewriter_and_the_shared_chat_surfaces",
       "community": 564,
@@ -48793,7 +48793,7 @@
       "label": "18-0. What the four transcripts actually share",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2524",
+      "source_location": "L2526",
       "_origin": "ast",
       "id": "architecture_18_0_what_the_four_transcripts_actually_share",
       "community": 564,
@@ -48803,7 +48803,7 @@
       "label": "18a. Every chat surface reveals character by character",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2536",
+      "source_location": "L2538",
       "_origin": "ast",
       "id": "architecture_18a_every_chat_surface_reveals_character_by_character",
       "community": 564,
@@ -48813,7 +48813,7 @@
       "label": "18a-ii. With the voice on, the narrator sets the pace",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2542",
+      "source_location": "L2544",
       "_origin": "ast",
       "id": "architecture_18a_ii_with_the_voice_on_the_narrator_sets_the_pace",
       "community": 564,
@@ -48823,7 +48823,7 @@
       "label": "18b. Everything that is SYNTAX rather than prose is jumped",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2556",
+      "source_location": "L2558",
       "_origin": "ast",
       "id": "architecture_18b_everything_that_is_syntax_rather_than_prose_is_jumped",
       "community": 564,
@@ -48833,7 +48833,7 @@
       "label": "18c. The waiting indicator is a solid blinking block",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2570",
+      "source_location": "L2572",
       "_origin": "ast",
       "id": "architecture_18c_the_waiting_indicator_is_a_solid_blinking_block",
       "community": 564,
@@ -48843,7 +48843,7 @@
       "label": "18d. Tarot's other mode is not shared",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2578",
+      "source_location": "L2580",
       "_origin": "ast",
       "id": "architecture_18d_tarot_s_other_mode_is_not_shared",
       "community": 564,
@@ -48853,7 +48853,7 @@
       "label": "18e. Four surfaces, one transcript look",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2586",
+      "source_location": "L2588",
       "_origin": "ast",
       "id": "architecture_18e_four_surfaces_one_transcript_look",
       "community": 564,
@@ -48863,7 +48863,7 @@
       "label": "The narration starts with the reveal, not after it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2609",
+      "source_location": "L2611",
       "_origin": "ast",
       "id": "architecture_the_narration_starts_with_the_reveal_not_after_it",
       "community": 564,
@@ -48873,7 +48873,7 @@
       "label": "18f. If Exec names a link, the link is tappable",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2621",
+      "source_location": "L2623",
       "_origin": "ast",
       "id": "architecture_18f_if_exec_names_a_link_the_link_is_tappable",
       "community": 564,
@@ -48883,7 +48883,7 @@
       "label": "19. `/zombo` \u2014 a secret page with one third-party dependency",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2638",
+      "source_location": "L2640",
       "_origin": "ast",
       "id": "architecture_19_zombo_a_secret_page_with_one_third_party_dependency",
       "community": 621,
@@ -48893,7 +48893,7 @@
       "label": "The load path, and the three traps in it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2648",
+      "source_location": "L2650",
       "_origin": "ast",
       "id": "architecture_the_load_path_and_the_three_traps_in_it",
       "community": 621,
@@ -48903,7 +48903,7 @@
       "label": "The one outbound link, and why it is rewritten in the bytes",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2666",
+      "source_location": "L2668",
       "_origin": "ast",
       "id": "architecture_the_one_outbound_link_and_why_it_is_rewritten_in_the_bytes",
       "community": 621,
@@ -48913,7 +48913,7 @@
       "label": "Before the click, the page is one line",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2676",
+      "source_location": "L2678",
       "_origin": "ast",
       "id": "architecture_before_the_click_the_page_is_one_line",
       "community": 621,
@@ -48923,7 +48923,7 @@
       "label": "Sizing: the movie FITS, and the pillars are sampled from it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2690",
+      "source_location": "L2692",
       "_origin": "ast",
       "id": "architecture_sizing_the_movie_fits_and_the_pillars_are_sampled_from_it",
       "community": 621,
@@ -53804,9 +53804,9 @@
       "source_file": "api/data/chat.json",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "data_chat",
-      "target": "data_chat_messages",
-      "confidence_score": 1.0
+      "target": "data_chat_messages"
     },
     {
       "relation": "contains",
@@ -53814,9 +53814,9 @@
       "source_file": "api/data/chat.json",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "data_chat",
-      "target": "data_chat_stage",
-      "confidence_score": 1.0
+      "target": "data_chat_stage"
     },
     {
       "relation": "contains",
@@ -53824,9 +53824,9 @@
       "source_file": "api/data/chat.json",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "data_chat",
-      "target": "data_chat_updated_at",
-      "confidence_score": 1.0
+      "target": "data_chat_updated_at"
     },
     {
       "relation": "contains",
@@ -104317,9 +104317,9 @@
       "source_file": "scripts/graphify-daily.sh",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_graphify_daily",
-      "target": "scripts_graphify_daily_graphify_viz_node_limit",
-      "confidence_score": 1.0
+      "target": "scripts_graphify_daily_graphify_viz_node_limit"
     },
     {
       "relation": "defines",
@@ -128984,5 +128984,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "0f1d78e6ca473db5cb30f861642cbe7dbee9f3dd"
+  "built_at_commit": "890b260950f9b71c466ef5c8a5d6ebd859025f76"
 }
