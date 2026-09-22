@@ -38,7 +38,9 @@ handles the reasoning, the scheduling and the voice.
   cap per function, and HTTP smoke tests over every route against the live
   container.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) has the Mermaid UML: deployment, the
-  module graph, and the morning pipeline sequence.
+  module graph, and the morning pipeline sequence. Fixed bugs and reversed
+  decisions live separately in [`ARCHAEOLOGY.md`](ARCHAEOLOGY.md), section
+  numbering shared between the two.
 - No SPA and no database. State is plain JSON, pages are composed
   server-side, and both hot-reload from a volume mount.
 

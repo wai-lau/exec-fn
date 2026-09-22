@@ -301,13 +301,13 @@ fi
 
 # Docs reminder (non-blocking): substantive source changed but docs not staged.
 # The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
-# naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md.
+# naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md / ARCHAEOLOGY.md.
 CHANGED=$(git diff --cached --name-only --diff-filter=ACMR || true)
 CODE_CHANGED=$(echo "$CHANGED" | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
-DOCS_CHANGED=$(echo "$CHANGED" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$' || true)
+DOCS_CHANGED=$(echo "$CHANGED" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$|^ARCHAEOLOGY\.md$' || true)
 if [ -n "$CODE_CHANGED" ] && [ -z "$DOCS_CHANGED" ]; then
   echo ""
-  echo "NOTE: source changed but CLAUDE.md / ARCHITECTURE.md not staged."
+  echo "NOTE: source changed but CLAUDE.md / ARCHITECTURE.md / ARCHAEOLOGY.md not staged."
   echo "      If routes, pipelines, schemas, data files, or naming changed, update them."
 fi
 
