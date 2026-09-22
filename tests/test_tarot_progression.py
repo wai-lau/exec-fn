@@ -312,10 +312,12 @@ def test_voice_failure_falls_back_to_text(open_tarot):
 def test_voice_stall_watchdog_unblocks(open_tarot):
     # Upstream connects but never streams a chunk (duration stays 0); the
     # first-audio grace bails to the guessed pace so the reveal still completes
-    # and, since zero audio ever played, flags the voice unavailable. Wide
-    # timeout: the bail waits out the (>2.5s) first-audio window.
+    # and, since zero audio ever played, flags the voice unavailable. The
+    # timeout has to clear typewriter.js's FIRST_AUDIO_MS (12s -- a cold kokoro
+    # measured 10.3s to first audio) plus the reveal that follows the bail; at
+    # the old 12000 this test timed out on the grace window itself.
     pg = open_tarot(fulfill_sse(sse(txt("Stalled but finishes."))), voice_js=VOICE_STALL)
-    settle(pg, timeout=12000)
+    settle(pg, timeout=20000)
     assert reader_text(pg) == "Stalled but finishes."
     assert any("voice unavailable" in n.lower() for n in sys_texts(pg))
     assert_recovered(pg)
