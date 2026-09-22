@@ -334,6 +334,11 @@
     }, gpCover.CAP);
   }
 
+  // How long the reveal will wait for the page to finish settling before it
+  // gives up and shows what there is. Long enough for a slow phone to paint two
+  // frames, short enough that nobody sits behind a cover over a finished graph.
+  var READY_CAP = 3000;
+
   function openView(cover) {
     {
       // Open on COVER, not contain — a wallpaper's fill mode. vis's own fit()
@@ -353,8 +358,33 @@
         scale: b.cover * OPEN_ZOOM_OUT,
         position: { x: b.cx, y: b.cy },
       });
-      cover.reveal();
-      graphPulse.init();
+      // The cover lifts when the page is FINISHED, not when the work is
+      // ordered. Two things had to land first and neither of them had:
+      // `moveTo` sets the camera but vis has not repainted at it yet, so the
+      // reveal used to uncover the PREVIOUS frame and the graph jumped into
+      // place afterwards; and graphPulse.init() only wires the model, so the
+      // first cascade lit a second or so into a page that was already on
+      // screen, which reads as a still graph that then twitches.
+      //
+      // So: wait for vis's own `afterDrawing` (the camera-correct frame is on
+      // screen), then for the pulse's first painted frame (the animation is
+      // running, not scheduled), and only then fade. READY_CAP is the floor
+      // under all of it — a reveal that never comes is far worse than one that
+      // comes a frame early, and both waits are for events that can be missed.
+      var lifted = false;
+      var lift = function () {
+        if (!lifted) {
+          lifted = true;
+          cover.reveal();
+        }
+      };
+      setTimeout(lift, READY_CAP);
+      network.once('afterDrawing', function () {
+        graphPulse.init(lift);
+      });
+      // moveTo above already queued the redraw that fires it; ask explicitly in
+      // case the camera did not actually change and vis had nothing to do.
+      network.redraw();
       // Tapping a node fires the same cascade the model seeds on its own, from
       // that node: the burst, the stagger, the outward walk, all of it — a node
       // is interesting for what it reaches, and the cascade is the thing that

@@ -404,12 +404,25 @@ var graphPulse = (function () {
     var busy = live.length || hasAny(lit) || hasAny(litEdges);
     if (busy) {
       graphPulseDraw.paint(now, levelsNow(now));
+      firePainted();
       idle = false;
     } else if (!idle) {
       graphPulseDraw.clear();   // one last frame to clear what was lit
       idle = true;
     }
     requestAnimationFrame(frame);
+  }
+
+  // Once, on the first painted frame. Nulled so a cascade every two seconds does
+  // not keep calling back for the life of the page.
+  var onPainted = null;
+
+  function firePainted() {
+    var cb = onPainted;
+    onPainted = null;
+    if (cb) {
+      cb();
+    }
   }
 
   function hasAny(map) {
@@ -435,7 +448,13 @@ var graphPulse = (function () {
         startIteration(performance.now(), id);
       }
     },
-    init: function () {
+    // `onReady` fires on the first frame this layer actually PAINTS — not when
+    // init returns, which is only the moment the model is wired. The cover waits
+    // on it, so "ready" means the animation is running on screen rather than
+    // scheduled to. Where nothing will ever paint by itself (`auto` off: a
+    // coarse pointer on the full graph) it fires immediately, or the cover would
+    // wait for a frame that is never coming.
+    init: function (onReady) {
       if (running || typeof network === 'undefined') {
         return;
       }
@@ -452,12 +471,24 @@ var graphPulse = (function () {
       // that asked for the FULL graph with ?full=1: 2,722 nodes lighting every
       // frame under the glass is exactly the combination that froze it. A tap
       // still seeds a cascade there, because that is bounded and asked for.
-      var many = Object.keys(pos).length > AMBIENT_MAX_NODES;
-      var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-      auto = !(many && coarse);
       index();
       graphPulseDraw.init(pos, litEdges, level);
       running = true;
+      onPainted = onReady || null;
+      // AFTER index(), which is what fills `pos`. Reading it before meant
+      // counting an empty object: `many` was always 0 > 1200, i.e. always
+      // false, so the one case this gate exists for — a coarse pointer on the
+      // full 2,722-node graph — was never actually gated. It only ever looked
+      // right because the lite variant had already made the common case cheap.
+      var many = Object.keys(pos).length > AMBIENT_MAX_NODES;
+      var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      auto = !(many && coarse);
+      // And after `onPainted` is assigned, or this fires into a null callback
+      // and the cover waits out its whole timeout instead of lifting now. There
+      // is no frame coming to fire it later: nothing seeds when auto is off.
+      if (!auto) {
+        firePainted();
+      }
       requestAnimationFrame(frame);
     },
   };
