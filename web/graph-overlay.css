@@ -121,18 +121,36 @@ body.gp-loaded #graph {
    own box, so the two stay welded through a resize; pointer-events:none is
    load-bearing, since the canvas covers the graph and hover is what drives it.
 
-   It sits UNDER the CRT stack, deliberately: the glow is part of the picture and
-   should be behind the same glass and scanlines as the graph it belongs to.
-   That costs frames on a machine compositing in software -- measured on the
-   droplet's GPU-less headless WebKit, 2 fps under the stack against 18 with the
-   stack hidden, while our own canvas work measured 0ms either way (so the cost is
-   compositing five full-viewport layers, two of them backdrop-filters, not
-   anything this file draws). On hardware with a compositor it is a non-issue,
-   and looking right won the trade. See ARCHITECTURE.md §10 for why a
-   backdrop-filter over anything animated is expensive at all. */
+   IT SITS ABOVE THE CRT STACK, and that reverses the decision this comment used
+   to record. The glow is part of the picture and belonged behind the same glass
+   and scanlines as the graph -- but a backdrop-filter has no partial
+   invalidation: it re-filters the WHOLE viewport whenever anything below it
+   changes. With the page's one animated layer underneath .cyber-blur and
+   .cyber-crt, every frame the cascade painted forced a full-viewport readback,
+   forever. See ARCHITECTURE.md §10, which states the rule this page was the
+   violation of.
+
+   Measured on the droplet's GPU-less headless WebKit: 2 fps under the stack
+   against 18 with the stack hidden, while our own canvas work measured 0ms
+   either way -- so the cost is compositing five full-viewport layers, two of
+   them backdrop-filters, not anything this file draws. That was written off as
+   "a non-issue on hardware with a compositor", and it is not: on a 430x932
+   phone at DPR 3 the screen stopped updating altogether. The loading cover
+   froze mid-fill at `drawing` with JS still running behind it, the 3s reveal
+   failsafe firing into a display that never repainted -- reported, reasonably,
+   as the page freezing.
+
+   At --z-modal the canvas composites OVER the filters, so nothing beneath them
+   ever changes and the readback never re-fires. It shares that token with the
+   fx layers and wins on DOM ORDER, which is not a coincidence to tidy away: the
+   fx divs ship in the HTML, this canvas is created by JS at init, so it is
+   always the later element. The nav stays above both at --z-top.
+
+   The cost is that the glow no longer sits behind the glass. An animation
+   nobody can see is a worse look than one composited a layer too high. */
 #gp-pulse {
   position: fixed;
-  z-index: var(--z-raised);
+  z-index: var(--z-modal);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.8s ease;
