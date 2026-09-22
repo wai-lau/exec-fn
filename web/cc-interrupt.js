@@ -7,12 +7,18 @@
  * the new one.
  *
  * There is NO interrupt endpoint, and none is needed: the sidecar already
- * aborts a run whose caller hangs up (`req.on("close")` -> AbortController, in
+ * aborts a run whose caller hangs up (`res.on("close")` -> AbortController, in
  * server.mjs — it was written so a browser that navigates away cannot leave a
  * CLI subprocess resident against MAX_CONCURRENT 1). Aborting the fetch here
  * hangs up through the whole chain: fetch -> Starlette cancels the streaming
  * generator -> httpx closes the upstream stream -> node sees `close` -> the SDK
  * query is aborted. One mechanism, already load-bearing, now reused.
+ *
+ * That listener sat on `req` until 2026-09-21, where it could never fire (a
+ * fully-read IncomingMessage emits no further `close`), so this whole file was
+ * hanging up into a sidecar that never heard it: the slot stayed held, the
+ * 4s `ccAwaitFree` below timed out, and the message that caused the interrupt
+ * came back `busy`.
  *
  * The slot is freed at the FAR end of that chain, so the new run cannot just be
  * fired: it would race the decrement and come back `busy`, i.e. the interrupt
