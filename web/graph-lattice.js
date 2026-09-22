@@ -18,9 +18,12 @@
   // Points on the lattice are n x this, and the cell is
   // sqrt(area / (n * this)) — so raising it makes the grid finer WITHOUT moving
   // the cloud's outline, and lowering it coarsens the same outline. It went 4 ->
-  // 9 to give each part of the graph more points to land on, then 9 -> 7 on
-  // request: about a quarter fewer points (7/9 = 0.78), cell 97 -> 110.
-  var CELLS_PER_NODE = 7;
+  // 9 to give each part of the graph more points to land on, then 9 -> 7 and
+  // 7 -> 5.25 on request, a quarter off each time (5.25/7 = 0.75 exactly).
+  // Fractional is fine — it is a density, not a count of anything. Fewer points
+  // means a coarser grid, and a coarser grid means more nodes landing on the
+  // same cell and walking to a neighbour, which is what makes them clump.
+  var CELLS_PER_NODE = 5.25;
 
   // The nearest lattice point that nothing has claimed, searched ring by ring
   // so the answer is the closest one and not merely an early one. Within a
@@ -244,16 +247,66 @@ function placeTiles(tiles, box, target) {
     }
   }
 
+  // Aspects the two bakes were stabilised at (scripts/graph-layout.py). Not a
+  // guess: the client picks whichever is NEARER its own viewport, on log
+  // distance so 0.5 and 2.0 sit the same distance from 1.
+  var BAKE_WIDE = 1.6;
+  var BAKE_TALL = 0.5;
+
+  // Swap in the tall bake when this window is closer to tall than to wide.
+  //
+  // The wide set is already baked into RAW_NODES, so there is nothing to do for
+  // a desktop; the tall set rides in the payload as GRAPH_LAYOUT_TALL and gets
+  // written over the positions here. Either way `stretchToViewport` still runs
+  // afterwards — it only has to cover the REMAINDER now (0.49 against a bake at
+  // 0.50, rather than against 1.6), which is the difference between a nudge and
+  // a distortion.
+  function useBakedAspect(pos, ids, aspect) {
+    var tall = window.GRAPH_LAYOUT_TALL;
+    if (!tall) {
+      return false;
+    }
+    var toTall = Math.abs(Math.log(aspect / BAKE_TALL));
+    var toWide = Math.abs(Math.log(aspect / BAKE_WIDE));
+    if (toTall >= toWide) {
+      return false;
+    }
+    var used = 0;
+    for (var i = 0; i < ids.length; i++) {
+      var p = tall[ids[i]];
+      if (p) {
+        pos[ids[i]].x = p[0];
+        pos[ids[i]].y = p[1];
+        used += 1;
+      }
+    }
+    // All or nothing: a half-applied layout puts the rest of the graph at
+    // coordinates from the other shape, which draws as two clouds overlapping.
+    return used === ids.length;
+  }
+
   function snapToGrid() {
     var b = nodeBounds();
     var pos = network.getPositions();
     var ids = Object.keys(pos);
+    // BEFORE anything reshapes them. This is what scripts/graph-layout.py bakes,
+    // so it has to be the layout as the PHYSICS left it — captured after the
+    // stretch (as it was until now), the bake stored a cloud already pulled to
+    // the bake window's 1.6, and every client then stretched that again to its
+    // own aspect. The final ratio still came out right, because the stretch
+    // recomputes from whatever bbox it is given, but the distortion compounded.
+    var preSnap = {};
+    for (var s0 = 0; s0 < ids.length; s0++) {
+      preSnap[ids[s0]] = [Math.round(pos[ids[s0]].x), Math.round(pos[ids[s0]].y)];
+    }
+    window.__GP_PRESNAP = preSnap;
     // Shape the CLOUD to the window first, by moving communities. Everything
     // below then works on an outline that already matches the screen, so the
     // snap itself needs no scaling at all — which is what keeps the spacing
     // uniform and the picture undistorted.
     var aspect = b.vw / Math.max(b.vh, 1);
     packCommunities(pos, ids, aspect);
+    useBakedAspect(pos, ids, aspect);
     stretchToViewport(pos, ids, aspect);
     // Bounds recomputed from the RESHAPED positions: `b` came from the network,
     // which has not been written to yet.
@@ -301,24 +354,6 @@ function placeTiles(tiles, box, target) {
       return ((pa.x - cx) * (pa.x - cx) + (pa.y - cy) * (pa.y - cy))
            - ((pc.x - cx) * (pc.x - cx) + (pc.y - cy) * (pc.y - cy));
     });
-
-    // The positions as the LAYOUT left them, before this function quantises
-    // anything, published for scripts/graph-layout.py to bake.
-    //
-    // The bake used to read `network.getPositions()` after `gp-loaded`, which is
-    // after this has run — so it stored an already-snapped lattice, and every
-    // later visit snapped that a SECOND time at whatever cell size was current.
-    // Two lattices at an incommensurate ratio beat against each other: baked at
-    // step 146 (CELLS_PER_NODE 4), re-snapped at 97 (CELLS_PER_NODE 9), 146/97
-    // is 1.505, so multiples of 146 land on cell indices 0, 2, 3, 5, 6, 8, 9 —
-    // alternating wide and narrow gaps, which renders as pairs, and pairs of
-    // pairs: evenly spaced groups of up to four. It looks like a deliberate
-    // arrangement and it is an artifact of rounding twice.
-    var preSnap = {};
-    for (var s0 = 0; s0 < ids.length; s0++) {
-      preSnap[ids[s0]] = [Math.round(pos[ids[s0]].x), Math.round(pos[ids[s0]].y)];
-    }
-    window.__GP_PRESNAP = preSnap;
 
     // vis's own node objects. Guarded rather than assumed: it is internal, and a
     // version that renames it falls back to moveNode and is merely slow.

@@ -262,6 +262,65 @@
   // the text and blocking in the same turn paints neither: the bar would sit
   // where it was through the one pause a visitor actually notices, which is
   // exactly what was reported — "fills almost immediately, then pauses".
+  // Centre the tapped node in what is LEFT of the window, not in the window.
+  //
+  // The node info panel covers the right-hand side, so vis centring on the
+  // canvas centre puts the node you just asked about underneath the thing that
+  // opened to tell you about it. The visible strip runs from 0 to (W - panel),
+  // whose middle sits half a panel LEFT of the canvas centre — so the camera
+  // moves half a panel RIGHT of the node, in world units, and the node lands in
+  // the middle of what you can actually see.
+  //
+  // Runs on the NEXT FRAME, so the pan and the panel move together. It waited
+  // 300ms once, on the assumption that the panel had to finish opening before it
+  // could be measured — it does not: the panel slides by `transform` and its
+  // width is 360 from the first frame, measured. The wait only meant the graph
+  // lurched into place after the panel had already arrived, and the 320ms pan
+  // was starting late enough to finish 2.4s after the click on a hub whose
+  // cascade was busy starving the animation frames. One frame is all it needs:
+  // long enough for the class that opens the panel to be set, short enough to be
+  // the same gesture. The 200ms matches `transition: transform 0.2s` on the
+  // panel itself, so the two arrive together.
+  function centreBesidePanel(id) {
+    requestAnimationFrame(function () {
+      var sb = document.getElementById('sidebar');
+      var host = document.getElementById('graph');
+      // Only offset for a panel that is actually out. Its width measures 360
+      // whether it is on screen or parked off it, so the class is the only
+      // honest test — and with no panel the node still centres, just in the
+      // whole window.
+      var open = document.body.classList.contains('gp-info-open');
+      var w = (open && sb) ? sb.getBoundingClientRect().width : 0;
+      var p = network.getPositions([id])[id];
+      var scale = network.getScale();
+      if (!p || !scale || !host) {
+        return;
+      }
+      // MEASURED, not computed from the node's world position. Working out
+      // "centre plus half a panel" open-loop assumes the node starts at the
+      // canvas centre, and it does not: graph.html's own click handler moves the
+      // camera too, so the correction landed 156px out. Ask where the node
+      // actually IS on screen, ask where it should be, and move the camera by
+      // the difference — which is right whatever else panned first.
+      var at = network.canvasToDOM(p);
+      var wantX = (host.clientWidth - w) / 2;
+      var wantY = host.clientHeight / 2;
+      var view = network.getViewPosition();
+      // NO animation, and that is not laziness. Every animated frame is a full
+      // vis redraw of 2,581 nodes — measured at ~100ms each — so a 200ms pan is
+      // two frames on a good day and, with a hub's cascade lighting at the same
+      // time, took 2.1s to arrive. An instant move costs ONE redraw and lands
+      // inside the panel's own 200ms slide, which is what "at the same time"
+      // actually needs.
+      network.moveTo({
+        position: {
+          x: view.x + (at.x - wantX) / scale,
+          y: view.y + (at.y - wantY) / scale,
+        },
+      });
+    });
+  }
+
   function openView(cover) {
     cover.phase('placing nodes');
     setTimeout(function () { placeAndOpen(cover); }, 0);
@@ -338,6 +397,9 @@
       // panel; vis takes both listeners.
       network.on('click', function (params) {
         if (params && params.nodes && params.nodes.length) {
+          // Camera first, cascade second: the cascade is hundreds of lit nodes
+          // on a hub and it competes for the same thread the pan needs.
+          centreBesidePanel(params.nodes[0]);
           graphPulse.seed(params.nodes[0]);
         }
       });

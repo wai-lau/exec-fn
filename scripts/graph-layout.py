@@ -41,62 +41,149 @@ def api_key() -> str:
     raise SystemExit("no API_KEY in %s" % ENV)
 
 
-def main() -> int:
-    from playwright.sync_api import sync_playwright
+# TWO BAKES, one per shape. vis has no per-axis gravity -- 9.1.9 offers
+# `centralGravity`, a single scalar toward one point, and nothing that pulls
+# harder on one axis -- so a stabilisation produces whatever aspect the forces
+# happen to settle at, once, for everyone. The shape is imposed instead by
+# NUDGING between stabilisation intervals: squeeze the cloud a few percent
+# toward the target aspect, let the next interval's springs relax against it,
+# repeat. What comes out is a layout the forces agreed to at that shape, which
+# is a different object from the same layout scaled afterwards -- edges
+# re-balance rather than being multiplied.
+#
+# Physics only ever runs here, so both runs are the cron job's time and nobody
+# waits on them. The client picks whichever bake is nearer its own viewport and
+# stretches away the small remainder (graph-lattice.js).
+_BAKES = (
+    ("pos", 1.60, 1440, 900),   # wide: the desktop shape, baked into RAW_NODES
+    ("tall", 0.50, 430, 932),   # tall: the phone shape, shipped in the payload
+)
 
-    t0 = time.time()
-    with sync_playwright() as pw:
-        browser = pw.webkit.launch()
+# Rate per interval. updateInterval is 20 against 300 iterations, so this fires
+# ~15 times; at 0.2 the correction compounds to ~96% of the way, which leaves
+# the springs the last word rather than the squeeze.
+_SHAPE_RATE = 0.2
+
+_SHAPE_JS = """
+window.__GP_SHAPE = %f;
+window.__GP_RATE = %f;
+(function () {
+  var iv = setInterval(function () {
+    if (typeof network === 'undefined' || !network.body) { return; }
+    clearInterval(iv);
+    network.on('stabilizationProgress', function () {
+      var nodes = network.body.nodes;
+      var ids = Object.keys(nodes);
+      var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (var i = 0; i < ids.length; i++) {
+        var n = nodes[ids[i]];
+        if (!n || typeof n.x !== 'number' || typeof n.y !== 'number') { continue; }
+        if (n.x < minX) { minX = n.x; }
+        if (n.x > maxX) { maxX = n.x; }
+        if (n.y < minY) { minY = n.y; }
+        if (n.y > maxY) { maxY = n.y; }
+      }
+      var w = maxX - minX, h = maxY - minY;
+      if (!(w > 0 && h > 0)) { return; }
+      /* (target / current) ^ rate, split evenly across the axes so the squeeze
+         preserves area and only the SHAPE moves. */
+      var f = Math.pow((window.__GP_SHAPE * h) / w, window.__GP_RATE);
+      var kx = Math.sqrt(f), ky = 1 / Math.sqrt(f);
+      var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      for (var j = 0; j < ids.length; j++) {
+        var m = nodes[ids[j]];
+        if (!m || typeof m.x !== 'number' || typeof m.y !== 'number') { continue; }
+        m.x = cx + (m.x - cx) * kx;
+        m.y = cy + (m.y - cy) * ky;
+      }
+    });
+  }, 10);
+})();
+"""
+
+_READ_JS = """() => {
+  const ids = nodesDS.getIds();
+  const pre = window.__GP_PRESNAP;
+  const pos = {};
+  if (pre) {
+    for (const id of ids) {
+      if (pre[id]) { pos[String(id)] = pre[id]; }
+    }
+  } else {
+    const p = network.getPositions(ids);
+    for (const id of ids) {
+      if (p[id]) { pos[String(id)] = [Math.round(p[id].x), Math.round(p[id].y)]; }
+    }
+  }
+  let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity;
+  for (const k in pos) {
+    const q = pos[k];
+    if (q[0] < a) { a = q[0]; }
+    if (q[0] > b) { b = q[0]; }
+    if (q[1] < c) { c = q[1]; }
+    if (q[1] > d) { d = q[1]; }
+  }
+  return { key: window.GRAPH_LAYOUT_KEY || '', pos: pos, presnap: !!pre,
+           aspect: (b - a) / Math.max(d - c, 1) };
+}"""
+
+
+def bake(pw, target: float, vw: int, vh: int):
+    """One stabilisation, shaped toward `target`, read back before the snap.
+
+    __GP_PRESNAP is the layout as the PHYSICS left it -- before graph-lattice.js
+    stretches or quantises anything. Reading network.getPositions() here would
+    bake the client's snap back into the file, which is the moire that produced
+    evenly spaced groups of four."""
+    browser = pw.webkit.launch()
+    try:
         ctx = browser.new_context(
-            viewport={"width": 1440, "height": 900},
+            viewport={"width": vw, "height": vh},
             extra_http_headers={"Authorization": "Bearer " + api_key()},
         )
+        ctx.add_init_script(_SHAPE_JS % (target, _SHAPE_RATE))
         pg = ctx.new_page()
         pg.goto(URL, wait_until="domcontentloaded", timeout=TIMEOUT_MS)
-        # gp-loaded is set by graph-overlay.js once the layout is final and the
-        # lattice snap has run — the same moment a visitor is shown the graph.
+        # gp-loaded is set once the layout is final and the snap has run -- the
+        # same moment a visitor is shown the graph.
         pg.wait_for_function(
             "document.body && document.body.classList.contains('gp-loaded')",
             timeout=TIMEOUT_MS,
         )
-        # __GP_PRESNAP is the layout BEFORE graph-lattice.js quantises it, and
-        # baking that rather than network.getPositions() is what stops the
-        # moire. getPositions() here returns post-snap coordinates, so the file
-        # held a lattice of its own; every later visit then snapped that a
-        # second time, at a cell size that no longer matched, and the two
-        # lattices beat -- baked at 146, re-snapped at 97, which renders as
-        # evenly spaced groups of up to four nodes. Snap once, at serve time,
-        # against whatever CELLS_PER_NODE is current. Falls back to the old
-        # read so a bake still works against a page without the export.
-        data = pg.evaluate(
-            """() => {
-              const ids = nodesDS.getIds();
-              const pre = window.__GP_PRESNAP;
-              const pos = {};
-              if (pre) {
-                for (const id of ids) {
-                  if (pre[id]) { pos[String(id)] = pre[id]; }
-                }
-              } else {
-                const p = network.getPositions(ids);
-                for (const id of ids) {
-                  if (p[id]) { pos[String(id)] = [Math.round(p[id].x), Math.round(p[id].y)]; }
-                }
-              }
-              return { key: window.GRAPH_LAYOUT_KEY || '', pos: pos, presnap: !!pre };
-            }"""
-        )
+        return pg.evaluate(_READ_JS)
+    finally:
         browser.close()
 
-    if not data.get("key") or len(data.get("pos") or {}) < 2:
-        print("FAIL no key or too few positions: %r" % (list(data)[:3],))
-        return 1
+
+def main() -> int:
+    from playwright.sync_api import sync_playwright
+
+    t0 = time.time()
+    out: dict = {}
+    with sync_playwright() as pw:
+        for field, target, vw, vh in _BAKES:
+            data = bake(pw, target, vw, vh)
+            if not data.get("key") or len(data.get("pos") or {}) < 2:
+                print("FAIL %s: no key or too few positions" % field)
+                return 1
+            if out.get("key") and out["key"] != data["key"]:
+                # Both runs must describe the same graph, or the client could
+                # pick a set of coordinates for an edge set that no longer is.
+                print("FAIL key drifted between bakes: %s vs %s"
+                      % (out["key"][:8], data["key"][:8]))
+                return 1
+            out["key"] = data["key"]
+            out["presnap"] = data["presnap"]
+            out[field] = data["pos"]
+            print("   %-4s target %.2f -> got %.2f  (%d nodes)"
+                  % (field, target, data["aspect"], len(data["pos"])))
+
     # Atomic, so a reader never sees a half-written layout.
     tmp = OUT.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(data, separators=(",", ":")))
+    tmp.write_text(json.dumps(out, separators=(",", ":")))
     tmp.replace(OUT)
     print("OK %d nodes, key %s, %.1fs, %d bytes"
-          % (len(data["pos"]), data["key"][:8], time.time() - t0, OUT.stat().st_size))
+          % (len(out["pos"]), out["key"][:8], time.time() - t0, OUT.stat().st_size))
     return 0
 
 
