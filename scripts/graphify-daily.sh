@@ -65,6 +65,12 @@ if ! flock -n 9; then
     exit 0
 fi
 
+# Stamped BEFORE the rebuild so the assert below can ask "did this run write it?"
+# rather than comparing graph.html against graph.json -- their relative write
+# order is graphify's business and a version bump could reverse it, which would
+# turn the assert into a nightly false positive.
+start_epoch=$(date +%s)
+
 "$PY" -c "
 import signal, sys, time
 from pathlib import Path
@@ -89,6 +95,53 @@ except Exception as exc:
 " >> "$LOG" 2>&1
 rebuilt=$?
 [ "$rebuilt" -eq 0 ] || exit "$rebuilt"
+
+# --- assert the artifact this whole job exists to produce -----------------
+#
+# graphify does NOT fail a rebuild that could not write graph.html. Past
+# GRAPHIFY_VIZ_NODE_LIMIT it logs one "Skipped graph.html" line, writes
+# graph.json + GRAPH_REPORT.md anyway, reports "Rebuilt: N nodes" and returns
+# SUCCESS. On 2026-09-22 the repo crossed the 5000 default and all three steps
+# downstream believed it:
+#
+#   - /graph served "404 graph.html not found" for the whole day;
+#   - the bake below drove that 404 page and sat on wait_for_function for its
+#     full 600s playwright timeout before failing "non-fatally" -- ten minutes
+#     of headless WebKit on a 1967MB box, for nothing;
+#   - and the publish step stages with `git add -A`, so it committed the
+#     DELETION of a tracked file and pushed it (0f1d78e, 307 deletions).
+#
+# That last one is why this sits ahead of BOTH of them and exits non-zero: a
+# rebuild that did not produce the file /graph serves is a failed rebuild, and
+# the one thing it must never do is get recorded as a green nightly and leave
+# the box. The previous graph.html is restored from git on the way out, because
+# /graph on yesterday's graph is a working page and 404 is not -- the same
+# argument the bake makes for itself two blocks down, where slow beats broken.
+VIZ=graphify-out/graph.html
+viz_epoch=$(stat -c %Y "$VIZ" 2>/dev/null || echo 0)
+if [ ! -s "$VIZ" ] || [ "$viz_epoch" -lt "$start_epoch" ]; then
+    log "FAILED: this run wrote no graphify-out/graph.html, and the rebuild above still reported success"
+    log "  grep the rebuild output in this log for 'Skipped graph.html' -- that is the only place graphify says so"
+    log "  most likely the node count passed GRAPHIFY_VIZ_NODE_LIMIT=$GRAPHIFY_VIZ_NODE_LIMIT; raise it here and re-run"
+    if git checkout -- "$VIZ" 2>>"$LOG" && [ -s "$VIZ" ]; then
+        log "  restored the committed graph.html; /graph serves a stale graph instead of a 404"
+    else
+        log "  and git has no copy to restore -- /graph IS A 404 until this is fixed by hand"
+    fi
+    log "  nothing baked, nothing committed, nothing pushed"
+    exit 1
+fi
+
+# The ceiling is a cliff with no warning on the approach, so measure the
+# approach: the node count is the repo's own growth and it only goes one way.
+nodes=$(grep -ao 'Rebuilt: [0-9]* nodes' "$LOG" | tail -1 | tr -dc '0-9')
+if [ -n "$nodes" ]; then
+    pct=$(( nodes * 100 / GRAPHIFY_VIZ_NODE_LIMIT ))
+    log "viz headroom: $nodes nodes, ${pct}% of the $GRAPHIFY_VIZ_NODE_LIMIT ceiling"
+    if [ "$pct" -ge 90 ]; then
+        log "  WARNING: within 10% of the ceiling -- raise GRAPHIFY_VIZ_NODE_LIMIT before it skips graph.html again"
+    fi
+fi
 
 # --- bake the layout -----------------------------------------------------
 #
