@@ -18,12 +18,12 @@
   // Points on the lattice are n x this, and the cell is
   // sqrt(area / (n * this)) — so raising it makes the grid finer WITHOUT moving
   // the cloud's outline, and lowering it coarsens the same outline. It went 4 ->
-  // 9 to give each part of the graph more points to land on, then 9 -> 7 and
-  // 7 -> 5.25 on request, a quarter off each time (5.25/7 = 0.75 exactly).
+  // 9 to give each part of the graph more points to land on, then 9 -> 7 ->
+  // 5.25 -> 3.9375 on request, a quarter off each time (x0.75 exactly).
   // Fractional is fine — it is a density, not a count of anything. Fewer points
   // means a coarser grid, and a coarser grid means more nodes landing on the
   // same cell and walking to a neighbour, which is what makes them clump.
-  var CELLS_PER_NODE = 5.25;
+  var CELLS_PER_NODE = 3.9375;
 
   // The nearest lattice point that nothing has claimed, searched ring by ring
   // so the answer is the closest one and not merely an early one. Within a
