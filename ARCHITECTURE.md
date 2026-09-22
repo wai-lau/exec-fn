@@ -2008,6 +2008,12 @@ Those used to be `.msg.sys` lines in the chat scrollback. Now `setStatus()` (tar
 
 The pre-reading `begin-hint` ("tap anywhere to begin the reading") centers vertically in the empty terminal — a `#terminal:has(.begin-hint)::before{flex:0}` neutralizes chat.css's bottom-anchoring flex spacer.
 
+### 14a-ii. The cards: the outline hugs the picture, and a turned card turns at once
+
+**The outline used to stand off the art.** A `.tarot-card` was a fixed `--card-w x --card-h` box (0.597 at phone size) with the image `object-fit: contain` inside it, and the 78 scans run 0.5545 (`strength`) to 0.5837 (`the_tower`), median **0.5714** — so no single box could fit them and every face was letterboxed by ~2px a side, while the zoom (`width:auto`, hence intrinsic) hugged its card exactly. The card now takes the HEIGHT and its width from the image (`width:auto` + `justify-self:center`, which is what makes a grid item shrink to fit rather than stretch to its column), and the image is sized `height: var(--card-h); width: auto` — measured gap 0.00px in both states at 430x932. `card_back.jpg` was **cropped 700x1200 -> 686x1200** (0.5833 -> 0.5717) so a flip does not resize the outline under the finger: face-down 73.7px, face-up 73.0px. The back also stops being `object-fit: fill` — it was stretched to a box it did not match. `#sig-card` gets the same hug the other way round: it must keep a box when EMPTY (the back is its background, not an `<img>`), so it carries `aspect-ratio: 686 / 1200` and the background fills it exactly.
+
+**A turned card paints face-up on the tap, before the turn that commits it.** The commit is still gated on the reader actually narrating — a dropped request has to leave the position retryable, and `nextPosition()` must not move past a card nobody read — but `flipCard` awaits the WHOLE turn (stream, voice and reveal), and the querent dismisses the zoom whenever she likes, usually mid-reading. Behind it the card she had just turned was still showing its back for the length of the reading. `paintFlipped()` sets `data-flipped`/`data-next` and the reversed rotation on that one element; `card.flipped` stays false, and a failed turn calls `renderSpread()`, which draws the back straight back over it. Pinned by `test_a_turned_card_shows_its_face_before_the_turn_ends` and `test_a_failed_turn_puts_the_card_back`.
+
 ### 14b. Narration paces the typewriter
 
 `tarot-voice.js`, AUDIBLE by default, works for full `session` AND `guest_session`. The reader's turn is spoken via hosaka (voice `nicole`), and the typewriter paces to **the actual audio clock**.
@@ -2416,6 +2422,8 @@ A rejected push (the remote moved) is retried ONCE through a fetch + rebase, and
 ### 18a-ii. With the voice on, the narrator sets the pace
 
 Those speeds are the SILENT pace (`twGuess`). When a surface is narrating, the reveal belongs to the voice: **`twAudio`** keeps the same per-character weights for shape but rescales the total to the measured utterance, so the words land as they are spoken. It was `/tarot`'s main path, living in tarot-stream.js; it moved into the shared engine on 2026-09-20 when the Exec panel and `/cc` got the same voice, and the three now differ only in render target and fallback speed.
+
+**The reveal can run AHEAD of the voice, by a constant offset** (`leadMs`, default 0; `/tarot` passes **350**). Exactly on the audio clock each word appears as it is said, which reads a beat late — the eye wants the word a moment before the ear gets it. The offset is added to the elapsed audio (`(el + leadS) / dur`), deliberately CONSTANT rather than a multiplier: a proportional lead is zero at the start and seconds ahead by the end of a long reading, which is a different effect (finishing early) than staying one step ahead. The bail paths are untouched — the lead only moves the target character, never the stall watchdogs.
 
 **Text buffers instead of typing while a voice is coming.** `push()` on a narrating surface does not start a reveal — typing at 5 under a voice finishes the answer before it has been read out, which is two versions of the same reply racing each other. The reveal starts when the utterance does.
 

@@ -181,7 +181,7 @@ function renderSpread() {
     if (rot) el.style.transform = `rotate(${rot}deg)`;
 
     const back = document.createElement('img');
-    back.className = 'back'; back.src = '/tarot/card_back.jpg?v=6'; back.alt = '';
+    back.className = 'back'; back.src = '/tarot/card_back.jpg?v=7'; back.alt = '';
     el.appendChild(back);
     const face = document.createElement('img');
     face.className = 'face'; face.src = card.image; face.alt = card.name;
@@ -219,6 +219,7 @@ async function flipCard(positionKey) {
   const posLabel = framePosLabel(card.position) || fallback;
   const orient = card.reversed ? 'reversed' : 'upright';
   openZoom(card.image, card.name + (card.reversed ? ' (reversed)' : ''), posLabel, card.reversed);
+  paintFlipped(card, meta && meta.positions.find(p => p.key === card.position));
   // Fire the reader turn immediately on flip — generate the response AND start the
   // voice/reveal as soon as the text is ready, WITHOUT waiting for the querent to
   // minimize. The card click is the audio-unlock gesture (document-capture
@@ -237,7 +238,27 @@ async function flipCard(positionKey) {
     localStorage.setItem(LS_SPREAD, JSON.stringify(spread));
     renderSpread();
     if (!wasLocked) renderSigCard();
+  } else {
+    renderSpread();   // the turn failed: take the optimistic face back off
   }
+}
+
+/* Paint one card face-up NOW, ahead of the turn that commits it.
+ *
+ * The COMMIT stays gated on the reader actually narrating (below) -- a dropped
+ * request has to leave the position retryable. But the zoom is dismissed
+ * whenever the querent likes, usually while the reading is still being read,
+ * and behind it the card she had just turned was still showing its back: the
+ * flip only reached the spread when the whole turn ended, voice and all. This
+ * is the PAINT alone; `card.flipped` is still false, and a failed turn calls
+ * renderSpread() which draws the back straight back over it. */
+function paintFlipped(card, posMeta) {
+  const el = spreadGrid.querySelector(`.tarot-card[data-position="${card.position}"]`);
+  if (!el) return;
+  el.dataset.flipped = 'true';
+  el.dataset.next = 'false';
+  const rot = (posMeta?.rotate || 0) + (card.reversed ? 180 : 0);
+  if (rot) el.style.transform = `rotate(${rot}deg)`;
 }
 
 function openZoom(src, name, position, reversed) {

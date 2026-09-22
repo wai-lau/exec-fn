@@ -144,6 +144,28 @@ def test_cc_final_result_sends_it(cc):
     assert "list the files here" in json.loads(cc.evaluate("() => window.__sent")[0])["prompt"]
 
 
+def test_a_pause_mid_sentence_does_not_send_half_of_it(cc):
+    """A final result is only the engine's guess that she stopped.
+
+    Thinking mid-sentence sounds exactly like finishing one, so the send waits
+    out a grace window (SEND_DELAY_MS) and anything heard inside it cancels the
+    send and joins what is already there — one message, not two.
+    """
+    cc.tap("#input-prompt")
+    cc.wait_for_function(
+        "() => document.getElementById('input-prompt').dataset.live === 'true'",
+        timeout=4000)
+    cc.evaluate("() => window.__rec.say('open the file', true)")
+    cc.wait_for_timeout(300)
+    assert cc.evaluate("() => window.__sent.length") == 0
+    cc.evaluate("() => window.__rec.say(' and read it out', true)")
+    cc.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
+    cc.wait_for_timeout(300)
+    sent = cc.evaluate("() => window.__sent")
+    assert len(sent) == 1
+    assert json.loads(sent[0])["prompt"] == "open the file and read it out"
+
+
 def _open(pg):
     pg.tap("#exec-bubble")
     pg.wait_for_selector("#exec-panel.open", timeout=4000)

@@ -231,7 +231,13 @@ def open_tarot(browser, base_url, admin_headers):
             pass
 
 
-def settle(pg, timeout=10000):
+# GENEROUS BY DEFAULT. These tests assert that a turn SETTLES, never how fast:
+# the box is 1967MB with two Claude sessions on it, and a second headless WebKit
+# elsewhere on the machine is enough to push a reveal past 10s. A tight timeout
+# here does not pin anything -- it just fails a healthy page under load, which
+# it did on three separate runs (happy_path, malformed_sse, the canned opening),
+# each passing on its own moments later.
+def settle(pg, timeout=20000):
     pg.wait_for_function(SETTLED, timeout=timeout)
 
 
@@ -328,10 +334,66 @@ def test_voice_midstream_stall_unblocks(open_tarot):
     # mid-stream freeze. The 2.5s stall watchdog bails to the guessed pace so the
     # reveal completes. Some audio buffered, so it is NOT flagged unavailable.
     pg = open_tarot(fulfill_sse(sse(txt("Frozen mid-stream."))), voice_js=VOICE_MIDSTALL)
-    settle(pg, timeout=12000)
+    settle(pg, timeout=20000)
     assert reader_text(pg) == "Frozen mid-stream."
     assert not any("voice unavailable" in n.lower() for n in sys_texts(pg))
     assert_recovered(pg)
+
+
+
+# ── the spread: turning a card ─────────────────────────────────────────────
+# A dealt three-card spread, straight into localStorage, with the narrator OFF
+# ("0") so the turn under test is the silent one and the reveal is not waiting
+# on a voice. The page reads exactly these three keys on load.
+def seeded_spread(flipped=()) -> str:
+    cards = [
+        {"position": "past", "card_id": "the_fool", "name": "The Fool",
+         "image": "/tarot/cards/the_fool.jpg", "reversed": False},
+        {"position": "present", "card_id": "the_tower", "name": "The Tower",
+         "image": "/tarot/cards/the_tower.jpg", "reversed": True},
+        {"position": "future", "card_id": "strength", "name": "Strength",
+         "image": "/tarot/cards/strength.jpg", "reversed": False},
+    ]
+    for c in cards:
+        c["flipped"] = c["position"] in flipped
+    spread = {"type": "three", "frame": "past_present_future", "cards": cards}
+    sig = {"card_id": "queen_of_cups", "name": "Queen of Cups",
+           "image": "/tarot/cards/queen_of_cups.jpg"}
+    return (f"localStorage.setItem('tarot.spread', {json.dumps(json.dumps(spread))});"
+            f"localStorage.setItem('tarot.significator', {json.dumps(json.dumps(sig))});"
+            "localStorage.setItem('tarot.voice', '0');")
+
+
+def test_a_turned_card_shows_its_face_before_the_turn_ends(open_tarot):
+    """The zoom is dismissed mid-reading, and the spread behind it must have
+    moved: the card paints face-up on the tap, while `flipped` is still
+    uncommitted (the commit waits for the reader to actually narrate it)."""
+    pg = open_tarot(fulfill_sse(sse(txt("The Fool steps off."))),
+                    init_script=seeded_spread())
+    settle(pg)                                   # the opening turn
+    pg.click(".tarot-card[data-position='past']")
+    pg.wait_for_function(
+        """() => {
+             const el = document.querySelector(".tarot-card[data-position='past']");
+             return el && el.dataset.flipped === 'true'
+                    && spread.cards[0].flipped === false;
+           }""",
+        timeout=4000)
+
+
+def test_a_failed_turn_puts_the_card_back(open_tarot):
+    """The paint is optimistic, so a turn that never narrates has to take it
+    back — otherwise the position reads as revealed and can never be retried."""
+    pg = open_tarot(lambda r: r.fulfill(status=500, content_type="text/plain", body="boom"),
+                    init_script=seeded_spread())
+    settle(pg)
+    pg.click(".tarot-card[data-position='past']")
+    pg.wait_for_function(
+        """() => {
+             const el = document.querySelector(".tarot-card[data-position='past']");
+             return el && el.dataset.flipped === 'false' && streaming === false;
+           }""",
+        timeout=8000)
 
 
 # ── the canned opening (the pre-generated first turn) ───────────────────────
@@ -365,7 +427,7 @@ def test_canned_opening_survives_a_missing_clip_audio(open_tarot):
     and the reading settles — a clip that cannot be narrated must not freeze the
     page any more than a dead TTS box does."""
     pg = open_tarot(fulfill_sse(sse(txt("unused"))), clip=CANNED)
-    settle(pg, timeout=15000)
+    settle(pg, timeout=25000)
     assert reader_text(pg).startswith("A cassette in the deck")
     assert_recovered(pg)
 
@@ -375,7 +437,7 @@ def test_canned_opening_survives_failed_narration(open_tarot):
     speakClip). Same contract: reveal, settle, recover."""
     pg = open_tarot(fulfill_sse(sse(txt("unused"))), voice_js=VOICE_FAIL,
                     clip=CANNED, audio=wav_bytes())
-    settle(pg, timeout=15000)
+    settle(pg, timeout=25000)
     assert reader_text(pg).startswith("A cassette in the deck")
     assert_recovered(pg)
 

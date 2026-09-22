@@ -154,6 +154,14 @@ function twWeights(text, baseMs) {
 function twAudio(state, render, ctl, opts) {
   const o = opts || {};
   const baseMs = o.baseMs || TW_BASE_MS;
+  // How far AHEAD of the voice the text runs, in ms of audio. A reveal exactly
+  // on the audio clock puts each word on screen as it is said, which reads a
+  // beat late: the eye wants the word a moment before the ear gets it. A
+  // CONSTANT offset, not a multiplier -- a proportional lead is zero at the
+  // start and seconds at the end of a long reading, which is a different
+  // effect (finishing early) rather than staying a step ahead. 0 keeps a
+  // surface exactly on the clock.
+  const leadS = (o.leadMs || 0) / 1000;
   const text = state.buffered;
   const cum = twWeights(text, baseMs);
   const totalW = cum[text.length] || 1;
@@ -213,7 +221,7 @@ function twAudio(state, render, ctl, opts) {
       bail('no audio'); return;
     }
     if (dur > 0) {
-      let frac = Math.min(el / dur, audioFinished ? 1 : 0.999);
+      let frac = Math.min((el + leadS) / dur, audioFinished ? 1 : 0.999);
       frac = Math.max(0, Math.min(1, frac));
       const targetW = frac * totalW;
       let n = state.displayed.length;

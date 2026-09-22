@@ -17,6 +17,11 @@ function createTypewriter(st, body, cur) {
   // The reader's pace. The chat surfaces run the same engine at 5 -- a reading
   // is paced to be listened to.
   const SPEED = 1.25;
+  // Voice mode runs the reveal this many ms of audio AHEAD of the narrator, so
+  // the words land a beat before they are spoken rather than exactly on them.
+  // Small on purpose: far enough to stop the text feeling like it is lagging
+  // the voice, near enough that they are still plainly the same sentence.
+  const LEAD_MS = 350;
   function render() {
     body.innerHTML = renderText(st.displayed);
     (body.lastElementChild || body).appendChild(cur);
@@ -24,7 +29,7 @@ function createTypewriter(st, body, cur) {
   }
   return {
     guessed: () => twGuess(st, render, { speed: SPEED }).start(),
-    audio: (ctl) => twAudio(st, render, ctl, { speed: SPEED }).start(),
+    audio: (ctl) => twAudio(st, render, ctl, { speed: SPEED, leadMs: LEAD_MS }).start(),
   };
 }
 
