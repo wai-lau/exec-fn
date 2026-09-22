@@ -351,8 +351,9 @@ var graphPulse = (function () {
 
   function step(now) {
     // Seeding is on a clock and nothing else — never gated on whether anything
-    // is still lit — except for `auto`, which is what a coarse pointer turns
-    // off. Everything below still runs for a tap-seeded cascade.
+    // is still lit. `auto` is the one switch, and nothing sets it false today;
+    // it stays as the seam a future gate would use, and as the reason a
+    // tap-seeded cascade still works when one does.
     if (auto && now >= nextIter) {
       startIteration(now);
       nextIter = now + ITER_MS;
@@ -432,13 +433,9 @@ var graphPulse = (function () {
     return false;
   }
 
-  // Ambient seeding: on unless a small screen is drawing a big graph — see init.
-  // The rAF loop runs either way, and an idle frame paints nothing, so nothing
-  // under the glass changes and the backdrop-filter readback never re-fires.
+  // Ambient seeding, always on — see init for the two gates this used to carry
+  // and why neither survived.
   var auto = true;
-  // Comfortably above the ~600 a phone is served, comfortably below the 2,722 a
-  // desktop gets.
-  var AMBIENT_MAX_NODES = 1200;
 
   return {
     // One cascade, seeded exactly where it was asked for. No-op until init has
@@ -458,37 +455,22 @@ var graphPulse = (function () {
       if (running || typeof network === 'undefined') {
         return;
       }
-      // Ambient seeding is gated on the SIZE of the graph, not on the kind of
-      // pointer. It was gated on `(pointer: coarse)` for one commit, which was
-      // the wrong lever twice over: what made the page expensive was 2,722
-      // nodes redrawing under two backdrop-filter layers, and what a phone was
-      // missing afterwards was the animation itself — the cascade is the thing
-      // this page is, not decoration on top of it.
+      // The cascade runs everywhere, on every graph size and every pointer.
       //
-      // A phone is now served ~600 nodes (routes_graph._prune_for_lite), which
-      // is well inside what it can light continuously, so the cascade runs
-      // there like anywhere else. The one case still worth refusing is a phone
-      // that asked for the FULL graph with ?full=1: 2,722 nodes lighting every
-      // frame under the glass is exactly the combination that froze it. A tap
-      // still seeds a cascade there, because that is bounded and asked for.
+      // It was gated twice and both gates are gone. First on `(pointer:
+      // coarse)`, to spare a phone 2,722 nodes lighting under two
+      // backdrop-filter layers — which turned the page off on exactly the
+      // device that then reported it as frozen, because a still graph reads as
+      // a dead one. Then on node COUNT, which only ever meant the same thing
+      // once phones stopped being served a smaller graph. The animation is what
+      // this page is; a gate that removes it is answering the wrong question.
+      // The cost was paid down where it actually sat: the DPR cap on this
+      // canvas, the payload off the critical path, and a reveal that waits for
+      // the first lit frame instead of racing it.
       index();
       graphPulseDraw.init(pos, litEdges, level);
       running = true;
       onPainted = onReady || null;
-      // AFTER index(), which is what fills `pos`. Reading it before meant
-      // counting an empty object: `many` was always 0 > 1200, i.e. always
-      // false, so the one case this gate exists for — a coarse pointer on the
-      // full 2,722-node graph — was never actually gated. It only ever looked
-      // right because the lite variant had already made the common case cheap.
-      var many = Object.keys(pos).length > AMBIENT_MAX_NODES;
-      var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-      auto = !(many && coarse);
-      // And after `onPainted` is assigned, or this fires into a null callback
-      // and the cover waits out its whole timeout instead of lifting now. There
-      // is no frame coming to fire it later: nothing seeds when auto is off.
-      if (!auto) {
-        firePainted();
-      }
       requestAnimationFrame(frame);
     },
   };
