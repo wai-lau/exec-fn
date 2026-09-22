@@ -166,6 +166,9 @@ var graphPulseDraw = (function () {
     clear: function () {
       ctx.clearRect(0, 0, cw, ch);
     },
+    // Also the whole of the woken-tab repair: a canvas comes back wedged from a
+    // suspend, and re-measuring the backing store is what graph-overlay.js used
+    // to spend a location.reload() on.
     resize: resize,
   };
 })();
