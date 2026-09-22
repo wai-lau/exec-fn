@@ -70,10 +70,12 @@ _GRAPH_BOOT = (
 _GRAPH_OVERLAY_JS = (
     # The cover first: graph-overlay.js calls gpCover.show() on its own last
     # line, and the failure note has to exist before anything can need it.
-    '<script src="/graph-cover.js?v=7"></script>'
+    '<script src="/graph-cover.js?v=9"></script>'
     '<script src="/graph-pulse-draw.js?v=3"></script>'
-    '<script src="/graph-pulse.js?v=16"></script>'
-    '<script src="/graph-overlay.js?v=56"></script>'
+    '<script src="/graph-pulse.js?v=17"></script>'
+    # Before the overlay: gpLattice.snap()/bounds() are called from openView.
+    '<script src="/graph-lattice.js?v=1"></script>'
+    '<script src="/graph-overlay.js?v=59"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -96,10 +98,6 @@ _GRAPH_HTML = Path("/app/graphify-out/graph.html")
 # halo, not the structure. It is a different picture, honestly — `?full=1`
 # overrides it for anyone who wants the whole thing on a phone anyway.
 _LITE_NODES = 600
-# iPad reports a desktop Safari UA and has the memory to match, so it is
-# deliberately not matched here.
-_MOBILE_UA = re.compile(r"iPhone|iPod|Android.+Mobile", re.I)
-
 
 def _prune_for_lite(page: str) -> str:
     """Keep the busiest _LITE_NODES nodes, and only the edges between them.
@@ -394,12 +392,17 @@ async def graph_page(request: Request):
             status_code=404,
         )
     guest = request.cookies.get("session") != SESSION_TOKEN
-    # A phone gets the lite graph (see _prune_for_lite) unless it asks for the
-    # whole thing. The nightly relayout run is never lite -- the bake has to
-    # cover every node, including the ones a phone will not be sent.
-    lite = bool(_MOBILE_UA.search(request.headers.get("user-agent", "")))
-    if request.query_params.get("full") == "1":
-        lite = False
+    # OPT-IN ONLY. This was served to phones by UA for a few hours, on the
+    # reasoning that 2,722 nodes is what froze iOS Safari -- and it did load a
+    # phone in a quarter of the payload. It is not the default because the whole
+    # graph is the point of the page: a codebase map with its leaves cut off is a
+    # different, smaller claim about the codebase, and deciding that for someone
+    # from their user-agent string is the wrong call to make on their behalf.
+    # The freeze was answered by the things that made the page cheaper without
+    # making it smaller (the deferred payload, the DPR cap, the reveal
+    # sequencing, the viewport-shaped lattice). `?lite=1` keeps the tested path
+    # for anyone who wants it.
+    lite = request.query_params.get("lite") == "1"
     # ?relayout=1 renders WITHOUT the baked layout, so the nightly generator can
     # stabilise a fresh one. Never cached: it exists to be run once a night.
     if request.query_params.get("relayout") == "1":

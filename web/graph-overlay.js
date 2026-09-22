@@ -24,11 +24,14 @@
 // script, reachable here through the shared global lexical scope.
 /* global network, nodesDS, graphPulse, showInfo */
 (function () {
-  var OPEN_ZOOM_OUT = 0.75;   // applied to the cover scale on first open
-  // Lattice density: cells over the cloud's bounding box, per node. Above 1
-  // there is room for most nodes to land on their first choice; the rest walk
-  // outward. 4 keeps the walk short while still reading as a grid.
-  var CELLS_PER_NODE = 4;
+  // 1.0: the opening view FILLS the window. It was 0.75 — a quarter out — back
+  // when the cloud was square and the window was not, so cover cropped hard on
+  // the long axis and pulling out was how you got the shape back. The lattice is
+  // shaped to the viewport now, so cover and contain are the same number and
+  // there is nothing to pull back from: a quarter out is just a border of empty
+  // black. Edge nodes stay whole because nodeBounds pads the box by the largest
+  // node's radius, the bbox being built from node CENTRES.
+  var OPEN_ZOOM_OUT = 1;
   // A node is "redacted" when its label was blanked — server-side to
   // "[redacted]" (_redact_graph_nodes) or "[ redacted ]" (_label_graph_nodes,
   // for anything over 20 chars). For those, the node-info panel must not leak
@@ -141,99 +144,6 @@
   var MIN_VISIBLE = 2;
   var FIT_MARGIN = 0.8;   // how far past a whole-graph CONTAIN you may zoom out
 
-  // The node bounding box in world units, plus the two scales derived from it.
-  // Physics is off, so this only actually changes if a node is dragged.
-  // The nearest lattice point that nothing has claimed, searched ring by ring
-  // so the answer is the closest one and not merely an early one. Within a
-  // ring the candidates are compared on real distance, since a ring is a
-  // square and its corners are further off than its edges.
-  function nearestFree(taken, gx, gy) {
-    if (!taken[gx + ',' + gy]) {
-      return { x: gx, y: gy };
-    }
-    for (var r = 1; r < 256; r++) {
-      var best = null, bestD = Infinity;
-      for (var dx = -r; dx <= r; dx++) {
-        for (var dy = -r; dy <= r; dy++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) {
-            continue;                       // ring only, not the filled square
-          }
-          if (taken[(gx + dx) + ',' + (gy + dy)]) {
-            continue;
-          }
-          var d = dx * dx + dy * dy;
-          if (d < bestD) {
-            bestD = d;
-            best = { x: gx + dx, y: gy + dy };
-          }
-        }
-      }
-      if (best) {
-        return best;
-      }
-    }
-    return { x: gx, y: gy };
-  }
-
-  // Snap every node onto a regular lattice. Nodes are placed CENTRE-OUT: the
-  // crowded middle claims its own cells first, so the walk to a free point
-  // falls on the sparse rim where there is somewhere to go, instead of
-  // cascading through the core.
-  function snapToGrid() {
-    var b = nodeBounds();
-    var pos = network.getPositions();
-    var ids = Object.keys(pos);
-    var cell = Math.sqrt((b.w * b.h) / Math.max(ids.length * CELLS_PER_NODE, 1));
-    if (!isFinite(cell) || cell <= 0) {
-      return;
-    }
-    ids.sort(function (a, c) {
-      var pa = pos[a], pc = pos[c];
-      return ((pa.x - b.cx) * (pa.x - b.cx) + (pa.y - b.cy) * (pa.y - b.cy))
-           - ((pc.x - b.cx) * (pc.x - b.cx) + (pc.y - b.cy) * (pc.y - b.cy));
-    });
-
-    var taken = Object.create(null);
-    for (var i = 0; i < ids.length; i++) {
-      var p = pos[ids[i]];
-      var g = nearestFree(taken,
-        Math.round((p.x - b.minX) / cell),
-        Math.round((p.y - b.minY) / cell));
-      taken[g.x + ',' + g.y] = 1;
-      // moveNode, not a DataSet write: a bulk update fires vis's _dataUpdated
-      // cascade and rebuilds every physics body (7.4s against 1.07s).
-      network.moveNode(ids[i], b.minX + g.x * cell, b.minY + g.y * cell);
-    }
-  }
-
-  function nodeBounds() {
-    var container = document.getElementById('graph');
-    var ids = nodesDS.getIds();
-    var pos = network.getPositions(ids);
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (var id in pos) {
-      var p = pos[id];
-      if (p.x < minX) { minX = p.x; }
-      if (p.x > maxX) { maxX = p.x; }
-      if (p.y < minY) { minY = p.y; }
-      if (p.y > maxY) { maxY = p.y; }
-    }
-    var w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
-    var cw = container.clientWidth, chh = container.clientHeight;
-    return {
-      minX: minX, maxX: maxX, minY: minY, maxY: maxY,
-      cx: (minX + maxX) / 2, cy: (minY + maxY) / 2,
-      n: ids.length,
-      vp: cw * chh,
-      w: w, h: h,
-      // CONTAIN: every node on screen, margin on the axis that is not limiting.
-      contain: Math.min(cw / w, chh / h),
-      // COVER: no margin on either axis, overflow on the one that is not
-      // limiting — a wallpaper's fill mode. This is what the page opens at.
-      cover: Math.max(cw / w, chh / h),
-    };
-  }
-
   function setupZoomLimits() {
     if (typeof network === 'undefined' || typeof nodesDS === 'undefined') {
       return;
@@ -248,7 +158,7 @@
     var clamping = false;   // re-entrancy guard for our own moveTo
 
     function bounds() {
-      var b = nodeBounds();
+      var b = gpLattice.bounds();
       b.minScale = b.contain * FIT_MARGIN;
       // viewport world-area = vp / scale^2; floor it at 2/n of the cloud area
       b.maxScale = Math.sqrt(b.vp / (b.w * b.h * (MIN_VISIBLE / b.n)));
@@ -339,7 +249,17 @@
   // frames, short enough that nobody sits behind a cover over a finished graph.
   var READY_CAP = 3000;
 
+  // The snap is the most expensive step left and it blocks the thread solid, so
+  // the phase is named and then a macrotask is YIELDED before it starts. Setting
+  // the text and blocking in the same turn paints neither: the bar would sit
+  // where it was through the one pause a visitor actually notices, which is
+  // exactly what was reported — "fills almost immediately, then pauses".
   function openView(cover) {
+    cover.phase('placing nodes');
+    setTimeout(function () { placeAndOpen(cover); }, 0);
+  }
+
+  function placeAndOpen(cover) {
     {
       // Open on COVER, not contain — a wallpaper's fill mode. vis's own fit()
       // is contain: it scales until the limiting axis fits and leaves the other
@@ -349,15 +269,20 @@
       // and the graph runs off the limiting one. Centred on the node bounding
       // box, so what overflows is shared evenly top and bottom (or left and
       // right), never all at one end.
-      snapToGrid();
-      var b = nodeBounds();   // recomputed: the snap moved everything
+      // Timed, and left on the window for the cover to read: this is one of
+      // the three numbers that say where a slow load went, and the only one
+      // measured on our side of the payload.
+      var t0 = performance.now();
+      gpLattice.snap();
+      window.__GP_PLACE_MS = performance.now() - t0;
+      var b = gpLattice.bounds();   // recomputed: the snap moved everything
       network.moveTo({
-        // Cover, then out a quarter: cover alone runs the cloud right to both
-        // edges, and a graph with no margin reads as cropped rather than as
-        // filling the frame.
+        // Cover, which now fills the window exactly: the lattice is shaped to
+        // the viewport, so there is no long axis left to overflow.
         scale: b.cover * OPEN_ZOOM_OUT,
         position: { x: b.cx, y: b.cy },
       });
+      cover.progress(gpCover.PLACED);
       // The cover lifts when the page is FINISHED, not when the work is
       // ordered. Two things had to land first and neither of them had:
       // `moveTo` sets the camera but vis has not repainted at it yet, so the
@@ -380,6 +305,10 @@
       };
       setTimeout(lift, READY_CAP);
       network.once('afterDrawing', function () {
+        // vis has painted the graph at the opening camera. What is left is the
+        // cascade lighting its first frame, which is the last 10%.
+        cover.progress(gpCover.DRAWN);
+        cover.phase('drawing');
         graphPulse.init(lift);
       });
       // moveTo above already queued the redraw that fires it; ask explicitly in

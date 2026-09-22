@@ -48,6 +48,9 @@
     if (end) {
       out += ' · build ' + ((end - start) / 1000).toFixed(1) + 's';
     }
+    if (window.__GP_PLACE_MS) {
+      out += ' · place ' + (window.__GP_PLACE_MS / 1000).toFixed(1) + 's';
+    }
     return out;
   }
 
@@ -131,6 +134,9 @@
         done = true;
         clearInterval(tick);
         determinate();
+        if (track) {
+          track.classList.remove('gp-build');
+        }
         fill.style.width = '100%';
         overlay.classList.add('gp-hide');
         document.body.classList.add('gp-loaded');
@@ -236,8 +242,18 @@
   // stream gives them and runs the marquee where it cannot — which is also the
   // truth, since the build blocks the main thread solid and no JS-driven bar can
   // move through it at all.
-  var FETCHED = 0.45;    // payload downloaded
-  var BUILT = 0.9;       // payload executed: DataSets + network constructed
+  // Re-weighted once the lite payload landed: a phone downloads ~30KB gzipped
+  // and builds 600 nodes, so both finish almost at once — the bar hit 90% in a
+  // blink and then sat there, which is what "fills immediately, then pauses"
+  // was. The pause is AFTER the build, and measuring it corrected the first
+  // guess: the lattice snap, suspected of being the long pole, measures 0.0s.
+  // What is actually in that gap is vis's first full draw at the new camera
+  // (every node, edge and label) and the pulse indexing the graph. So the last
+  // 40% is cut across those, and each step is still a real thing finishing.
+  var FETCHED = 0.35;    // payload downloaded
+  var BUILT = 0.6;       // payload executed: DataSets + network constructed
+  var PLACED = 0.75;     // snapped onto the lattice, camera set
+  var DRAWN = 0.9;       // vis has painted the graph at that camera
 
   function loadPayload(cover, url) {
     window.__GP_BOOT_STARTED = 1;
@@ -248,10 +264,11 @@
         cover.building(true);
         // onload fires AFTER the script has executed, so it is the one honest
         // marker for "the build is over" available from out here.
+        // Keeps BREATHING and keeps the phase: what follows is the snap, which
+        // blocks just as hard as the build did, and graph-overlay.js owns the
+        // phase text from here (it is the one that knows which step it is in).
         inject(src, revoke, function () {
-          cover.building(false);
           cover.progress(BUILT);
-          cover.phase('drawing');
         });
       });
     };
@@ -304,6 +321,10 @@
 
   window.gpCover = {
     CAP: LOAD_CAP,
+    // The two milestones graph-overlay.js owns: it is the file that knows when
+    // the camera is set and when vis has painted at it.
+    PLACED: PLACED,
+    DRAWN: DRAWN,
     show: function () {
       if (!shared) {
         shared = showLoading();
