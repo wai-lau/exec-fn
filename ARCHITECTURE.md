@@ -2371,13 +2371,15 @@ Two fixes, applied together:
 
 ### 17c. Every cron job writes where both sides can see it
 
-`data/cron/YYYY-MM-DD__<job>.log` (`morning`, `graphify`, `security`), read by `/debug`'s cron section through `GET /api/debug/cron`. **The data volume is the only filesystem both the container and the host can see, and a log nobody can see is how a nightly job fails quietly for weeks.**
+`data/cron/YYYY-MM-DD__<job>.log` (`morning`, `graphify`, `security`, `ccprobe`, `tarotvoice`), read by `/debug`'s cron section through `GET /api/debug/cron`. **The data volume is the only filesystem both the container and the host can see, and a log nobody can see is how a nightly job fails quietly for weeks.**
 
 **One file per JOB, not one per day**: the three writers are three different uids (container root, host root for the security refresh, host `wai-root` for graphify), and whoever created a shared daily file first would own it and lock the others out of appending.
 
 The host cron lines therefore `mkdir -p` the directory and escape the date as `$(date +\%F)` — **a bare `%` is a newline to crontab**.
 
 `morning_cron.sh` tees to both that file and `/var/log/exec-fn.log`, and reports **`${PIPESTATUS[0]}` rather than `$?`** — through a pipe `$?` is `tee`'s status, so the old line logged "exit 0" for every failed curl.
+
+**It did neither until 2026-09-22, and this section described a script that did not exist.** `DAY_LOG` was computed, `CRON_DIR` was created, and then nothing wrote to that path except the `API_KEY not set` branch: the POST and its status line were redirected straight to `/var/log/exec-fn.log`, inside the container, where `/debug` cannot reach them. So **no `__morning.log` was ever produced** — of the five nightly jobs, the one whose silent failure matters most was the only one invisible on the page built to catch exactly that, and the gap showed up only because the other four jobs' logs were sitting there next to it. Fixed by piping both lines through `tee -a "$DAY_LOG"`, which is also what makes the `${PIPESTATUS[0]}` rule above load-bearing rather than theoretical (measured in the rebuilt container against a 404: `PIPESTATUS[0]` = 22, `$?` = 0).
 
 `morning._prune_cron_logs` keeps 30 days, as a string compare on the filename — no `stat()` per file and no clock skew between writer and sweeper.
 
