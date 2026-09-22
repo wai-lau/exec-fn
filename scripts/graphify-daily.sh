@@ -81,6 +81,35 @@ except Exception as exc:
 rebuilt=$?
 [ "$rebuilt" -eq 0 ] || exit "$rebuilt"
 
+# --- bake the layout -----------------------------------------------------
+#
+# /graph's node layout is ~270 forceAtlas2 iterations over ~2700 nodes. Left to
+# the browser that is a few seconds on a desktop and measured around THIRTY on a
+# phone, on every single visit, for a layout that comes out the same every time.
+# So it is computed here, once, against the graph that was just rebuilt, and the
+# page serves the baked positions with physics switched off entirely.
+#
+# It drives a real vis-network in a headless browser (see scripts/graph-layout.py
+# for why), so it is capped like every other browser launch on this box -- a
+# WebKit start is 200-400MB against ~650MB free at rest, and the global OOM
+# killer picks by badness score rather than by culprit.
+#
+# A failure here is NOT fatal: the layout file simply stays as it was, its key no
+# longer matches the rebuilt graph, and every visitor falls back to stabilising
+# in the browser exactly as before. Slow is not broken, so this must never take
+# the nightly down with it.
+# cron has no session bus, so systemd-run --user cannot find one and the cap
+# would silently never apply -- it fails with "Failed to connect to bus: No
+# medium found" and the bake would take the failure branch every night. The
+# runtime dir is there, it is only unexported, so name it.
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if systemd-run --user --scope -q -p MemoryMax=700M \
+        "$REPO/.venv/bin/python" "$REPO/scripts/graph-layout.py" >> "$LOG" 2>&1; then
+    log "baked the graph layout"
+else
+    log "layout bake failed; /graph falls back to stabilising in the browser"
+fi
+
 # --- publish -------------------------------------------------------------
 #
 # graphify-out is a GENERATED artifact but a TRACKED one in this repo: /graph
