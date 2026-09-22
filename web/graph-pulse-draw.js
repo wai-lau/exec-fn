@@ -55,7 +55,11 @@ var graphPulseDraw = (function () {
       return;
     }
     var r = host.getBoundingClientRect();
-    dpr = window.devicePixelRatio || 1;
+    // Capped at 2. This is a glow layer, not text: the third row of pixels on a
+    // DPR-3 phone buys nothing visible and costs a 1290x2628 backing store
+    // (12.9MB) that is composited under the CRT stack every frame. At 2 it is
+    // 5.7MB for the same picture.
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
     cw = r.width;
     ch = r.height;
     cv.width = Math.round(cw * dpr);

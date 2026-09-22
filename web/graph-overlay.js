@@ -293,65 +293,15 @@
     });
   }
 
-  // Cover the graph while the one stabilisation pass runs, then reveal the whole
-  // fitted graph at once. The bar tracks vis's real `stabilizationProgress` —
-  // the CSS keyframe it replaced ran for a flat 3s and then sat full while the
-  // layout kept settling, which is how a 20s cap came to lift the cover onto a
-  // blank canvas. LOAD_CAP is a failsafe against a `stabilizationIterationsDone`
-  // that never arrives, not a schedule.
-  var LOAD_CAP = 120000;
-
-  // The cover is ADOPTED, not built: routes_graph serves it as the first markup
-  // inside <body> (_GRAPH_BOOT) so it paints with the first chunk, where this
-  // file runs only after ~2.2MB of vis bundle + RAW_NODES has parsed — which is
-  // to say, after the entire wait the cover exists to explain. It is still
-  // created here when absent, so the file stands alone against any page that
-  // does not serve one.
-  //
-  // Until the first real number arrives the track keeps the .gp-indet marquee it
-  // was served with, so the bar is MOVING from the first frame; the first
-  // progress call (or reveal) switches it to the determinate fill.
-  function showLoading() {
-    var overlay = document.getElementById('gp-loading');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'gp-loading';
-      overlay.innerHTML = '<div class="gp-load-track gp-indet">' +
-        '<div class="gp-load-fill"></div></div>';
-      document.body.appendChild(overlay);
-    }
-    var track = overlay.querySelector('.gp-load-track');
-    var fill = overlay.querySelector('.gp-load-fill');
-    var done = false;
-    function determinate() {
-      if (track) {
-        track.classList.remove('gp-indet');
-      }
-    }
-    return {
-      progress: function (frac) {
-        determinate();
-        fill.style.width = Math.round(Math.min(1, Math.max(0, frac)) * 100) + '%';
-      },
-      reveal: function () {
-        if (done) {
-          return;
-        }
-        done = true;
-        determinate();
-        fill.style.width = '100%';
-        overlay.classList.add('gp-hide');
-        document.body.classList.add('gp-loaded');
-        setTimeout(function () { overlay.remove(); }, 800);
-      },
-    };
-  }
-
   function go(cover) {
     if (typeof network === 'undefined') {
+      // The payload marks itself done, so the wait splits in two: still coming
+      // down the wire, or down and being turned into a graph.
+      cover.phase(window.__GP_PAYLOAD_MS ? 'building the graph' : 'fetching graph data');
       setTimeout(function () { go(cover); }, 50);
       return;
     }
+    cover.phase('drawing');
     patchInfoPanel();
     // node info collapses right (▸ open / ◂ collapsed), and starts collapsed.
     addToggle();
@@ -371,7 +321,16 @@
     } else {
       network.once('stabilizationIterationsDone', function () { openView(cover); });
     }
-    setTimeout(cover.reveal, LOAD_CAP);
+    // A cap that fires while the page is genuinely still working would replace a
+    // slow graph with a broken-looking one, so it only declares failure when
+    // nothing ever arrived; otherwise it lifts the cover on what there is.
+    setTimeout(function () {
+      if (typeof network === 'undefined') {
+        gpCover.fail('the graph did not load');
+      } else {
+        cover.reveal();
+      }
+    }, gpCover.CAP);
   }
 
   function openView(cover) {
@@ -423,5 +382,18 @@
     }, 10000);
   }
 
-  go(showLoading());
+  // Everything above is wired inside one call; if it throws — or if a script the
+  // page depends on never arrives — the reveal it was going to schedule never
+  // happens, and opacity 0 is forever. Both paths end at the same note.
+  var _cover = gpCover.show();
+  window.addEventListener('error', function (e) {
+    if (!document.body.classList.contains('gp-loaded')) {
+      gpCover.fail((e && e.message) || 'script error');
+    }
+  });
+  try {
+    go(_cover);
+  } catch (err) {
+    gpCover.fail((err && err.message) || 'script error');
+  }
 })();

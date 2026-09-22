@@ -1627,6 +1627,18 @@ The pipeline chews a 3.6MB string through ten json round-trips. Measured on the 
 
 **The bar moves from the first frame.** Until vis can report a real fraction there is nothing to report, so the track is served with `.gp-indet` — an indeterminate marquee — and `graph-overlay.js` adopts the existing element and drops that class on its first progress call or at reveal. A sliding segment claims only "working"; the fixed 3s fill this file replaced claimed a fraction it did not have.
 
+**A black /graph is a JS failure wearing a crash's clothes** (2026-09-22). `#graph` is `opacity: 0` until `body.gp-loaded` lifts it, so every path that does not reach `reveal()` shows the same thing: a black page. Reported from a phone as *nothing happens when I tap GPH, then the page goes black* — with the visuals turning up around three minutes later, which is what ruled out a crashed tab and made it a slow load nobody could see the inside of. The failsafe at the time was **120s**, so even the recovery was two minutes of black.
+
+The cover is now its own file, **`web/graph-cover.js`** (`gpCover`, split from graph-overlay.js at the 500-line cap, same global scope, loaded first). It is the one script on the page that is **not** deferred, and that is deliberate: deferred, it ran after the payload it exists to report on, and the phase line's first words were `drawing` — after the slow part had already happened. Parsed inline, it is live while the payload is still on the wire.
+
+What it reports:
+- **The phase**, named: `fetching graph data` -> `building the graph` -> `drawing`, with seconds once there are at least three of them (a counter that opens at 0s makes a fast load look like a stopwatch).
+- **The split the payload measures on itself.** `_externalise_boot` brackets the payload with `__GP_PAYLOAD_START`/`__GP_PAYLOAD_MS`, so the line reads `· data 0.9s · build 1.0s`. The marks are written BY the payload, which is the whole point: through the build the main thread is blocked solid and a ticking clock measures nothing, while two timestamps taken either side survive it.
+- **`(slower than usual)`** past 20s, and on a thrown error, or a payload that never arrives, `[ <reason> — reload to retry ]` with the cover lifted so the nav underneath is reachable. A global `error` listener and a `try/catch` around `go()` both land there, because opacity 0 is forever otherwise.
+- The hard cap is **180s** and only calls it failure when `network` never appeared; otherwise it lifts the cover on whatever there is. A cap that fires while the page is genuinely working replaces a slow graph with a broken-looking one.
+
+`#gp-pulse` caps its backing store at **DPR 2** in the same pass: on a DPR-3 phone it was a 1290x2628 buffer (12.9MB) composited under the CRT stack every frame, against 5.7MB for a picture that is a glow, not text. Measured warm after all of it, at 430x932 DPR 3: FCP **384ms**, revealed **2318ms**, no page errors.
+
 Two properties make the memo sound, and both are load-bearing:
 
 - **`_render()` is pure.** Same artifact bytes in, same page bytes out. The community cap breaks size ties by NAME (`_ranked`) for exactly this reason — a tie resolved by dict order would change the ETag across a restart for no reason.
