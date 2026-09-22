@@ -248,6 +248,10 @@
   // gives up and shows what there is. Long enough for a slow phone to paint two
   // frames, short enough that nobody sits behind a cover over a finished graph.
   var READY_CAP = 3000;
+  // From vis's first painted frame, how long the reveal will hold out for the
+  // cascade before showing the graph without it. Short: by here the page is
+  // drawn and correct, and the only thing still missing is the first spark.
+  var DRAWN_CAP = 800;
 
   // The snap is the most expensive step left and it blocks the thread solid, so
   // the phase is named and then a macrotask is YIELDED before it starts. Setting
@@ -309,6 +313,15 @@
         // cascade lighting its first frame, which is the last 10%.
         cover.progress(gpCover.DRAWN);
         cover.phase('drawing');
+        // Waiting for the first lit frame is still the intent — the page should
+        // arrive finished, not arrive and then twitch. But it is no longer the
+        // only way out: a phone froze between this line and that frame, with
+        // the cover up and even the 3s failsafe unable to fire, because a timer
+        // cannot run on a thread that never yields. graphPulse.index() now
+        // yields between phases so a timer CAN fire, and this second, shorter
+        // cap means the graph is on screen either way. Whichever lands first
+        // wins; lift is idempotent.
+        setTimeout(lift, DRAWN_CAP);
         graphPulse.init(lift);
       });
       // moveTo above already queued the redraw that fires it; ask explicitly in

@@ -13,8 +13,16 @@
 (function () {
   // Lattice density: cells over the cloud's bounding box, per node. Above 1
   // there is room for most nodes to land on their first choice; the rest walk
-  // outward. 4 keeps the walk short while still reading as a grid.
-  var CELLS_PER_NODE = 4;
+  // outward.
+  //
+  // 9, up from 4: more points for each part of the graph to snap to. The cell
+  // is sqrt(area / (n * this)), so raising it makes the grid FINER without
+  // moving the cloud's outline — every node lands nearer where the layout
+  // actually put it, dense communities stop collapsing onto the same handful of
+  // cells, and `nearestFree` walks less because there is more free space beside
+  // each first choice. The lattice still reads as a lattice; it just quantises
+  // less of the layout away.
+  var CELLS_PER_NODE = 9;
 
   // The nearest lattice point that nothing has claimed, searched ring by ring
   // so the answer is the closest one and not merely an early one. Within a
@@ -85,6 +93,9 @@
            - ((pc.x - b.cx) * (pc.x - b.cx) + (pc.y - b.cy) * (pc.y - b.cy));
     });
 
+    // vis's own node objects. Guarded rather than assumed: it is internal, and a
+    // version that renames it falls back to moveNode and is merely slow.
+    var bodyNodes = network.body && network.body.nodes;
     var taken = Object.create(null);
     for (var i = 0; i < ids.length; i++) {
       var p = pos[ids[i]];
@@ -95,9 +106,31 @@
         Math.round(((p.x - b.minX) / b.w) * boxW / cell),
         Math.round(((p.y - b.minY) / b.h) * boxH / cell));
       taken[g.x + ',' + g.y] = 1;
-      // moveNode, not a DataSet write: a bulk update fires vis's _dataUpdated
-      // cascade and rebuilds every physics body (7.4s against 1.07s).
-      network.moveNode(ids[i], b.minX + g.x * cell, b.minY + g.y * cell);
+      var nx = b.minX + g.x * cell, ny = b.minY + g.y * cell;
+      // Written straight onto the body, NOT through moveNode, and this is the
+      // difference between a page that loads and one reported as frozen.
+      //
+      // moveNode was already the cheap option against a DataSet write (a bulk
+      // update fires vis's _dataUpdated cascade and rebuilds every physics
+      // body: 7.4s against 1.07s). But it asks vis to REDRAW, once per node,
+      // and the draws it queues are not counted by the timer around this loop —
+      // `place` measured 0.0s while the redraws it had queued ran on for
+      // seconds afterwards. Measured on the served page: 160 draws, 16.1s of
+      // main thread, a median 93ms apart, 130 of them before the cover lifted.
+      // That is the block that made a phone look dead, and it is invisible from
+      // inside the function that causes it.
+      //
+      // The body is where moveNode writes anyway; doing it directly skips the
+      // emit, and ONE redraw after the loop paints the whole result.
+      if (bodyNodes && bodyNodes[ids[i]]) {
+        bodyNodes[ids[i]].x = nx;
+        bodyNodes[ids[i]].y = ny;
+      } else {
+        network.moveNode(ids[i], nx, ny);
+      }
+    }
+    if (bodyNodes) {
+      network.redraw();
     }
   }
 

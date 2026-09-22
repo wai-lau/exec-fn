@@ -51,6 +51,13 @@
     if (window.__GP_PLACE_MS) {
       out += ' · place ' + (window.__GP_PLACE_MS / 1000).toFixed(1) + 's';
     }
+    // Per-phase indexing milliseconds, printed raw. Ugly on purpose: this is
+    // the number that names which step is slow on a device nobody here can
+    // profile, and it is only ever on screen while the page is still loading.
+    var init = window.__GP_INIT_MS;
+    if (init) {
+      out += ' · idx ' + init.nodes + '/' + init.edges + '/' + init.pos + '/' + init.grid + 'ms';
+    }
     return out;
   }
 

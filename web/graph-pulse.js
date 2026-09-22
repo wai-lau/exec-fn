@@ -124,34 +124,68 @@ var graphPulse = (function () {
   var live = [];                  // iterations in flight: {queue, seen, until}
   var nextIter = 0, running = false;
 
-  function index() {
-    nodesDS.forEach(function (n) {
-      pos[n.id] = { x: 0, y: 0, r: n.size || 10 };
-      deg[n.id] = 0;
-      adj[n.id] = [];
-    });
-    edgesDS.forEach(function (e) {
-      if (!adj[e.from] || !adj[e.to]) {
+  // Indexing runs in PHASES, one per frame, timed, with the milliseconds left on
+  // the window for the cover to print. A thread that yields between phases is
+  // one a failsafe can still fire on — and a phase that is slow on a device
+  // nobody here can profile says so on that device. Measured here: 88ms all
+  // told, so this is insurance, not a hot path. ARCHITECTURE §11.
+  function index(done) {
+    var t = {};
+    var steps = [
+      ['nodes', function () {
+        var all = nodesDS.get();
+        for (var i = 0; i < all.length; i++) {
+          var n = all[i];
+          pos[n.id] = { x: 0, y: 0, r: n.size || 10 };
+          deg[n.id] = 0;
+          adj[n.id] = [];
+        }
+      }],
+      ['edges', function () {
+        var es = edgesDS.get();
+        for (var i = 0; i < es.length; i++) {
+          var e = es[i];
+          if (!adj[e.from] || !adj[e.to]) {
+            continue;
+          }
+          deg[e.from] += 1;
+          deg[e.to] += 1;
+          adj[e.from].push(e.to);
+          adj[e.to].push(e.from);
+        }
+      }],
+      // The layout is frozen, so world positions are read ONCE. Losing this read
+      // is not a subtle failure: every node keeps x=0, y=0 and the whole cascade
+      // draws on top of itself in the dead centre of the screen.
+      ['pos', function () {
+        ids = Object.keys(pos);
+        var world = network.getPositions(ids);
+        for (var i = 0; i < ids.length; i++) {
+          var w = world[ids[i]];
+          if (w) {
+            pos[ids[i]].x = w.x;
+            pos[ids[i]].y = w.y;
+          }
+        }
+      }],
+      ['grid', function () {
+        cum = weigh(ids);
+        partition();
+      }],
+    ];
+    var at = 0;
+    (function run() {
+      if (at >= steps.length) {
+        window.__GP_INIT_MS = t;
+        done();
         return;
       }
-      deg[e.from] += 1;
-      deg[e.to] += 1;
-      adj[e.from].push(e.to);
-      adj[e.to].push(e.from);
-    });
-    // The layout is frozen, so world positions are read ONCE here. Losing this
-    // read is not a subtle failure: every node keeps x=0, y=0 and the whole
-    // cascade draws on top of itself in the dead centre of the screen.
-    var world = network.getPositions(Object.keys(pos));
-    Object.keys(pos).forEach(function (id) {
-      if (world[id]) {
-        pos[id].x = world[id].x;
-        pos[id].y = world[id].y;
-      }
-    });
-    ids = Object.keys(pos);
-    cum = weigh(ids);
-    partition();
+      var step = steps[at++];
+      var t0 = performance.now();
+      step[1]();
+      t[step[0]] = Math.round(performance.now() - t0);
+      requestAnimationFrame(run);
+    })();
   }
 
   // Seed weight: size to the SEED_POW, knocked down to TERMINAL_ODDS for a dead
@@ -351,10 +385,8 @@ var graphPulse = (function () {
 
   function step(now) {
     // Seeding is on a clock and nothing else — never gated on whether anything
-    // is still lit. `auto` is the one switch, and nothing sets it false today;
-    // it stays as the seam a future gate would use, and as the reason a
-    // tap-seeded cascade still works when one does.
-    if (auto && now >= nextIter) {
+    // is still lit, which is what keeps one cascade always in flight.
+    if (now >= nextIter) {
       startIteration(now);
       nextIter = now + ITER_MS;
     }
@@ -433,9 +465,6 @@ var graphPulse = (function () {
     return false;
   }
 
-  // Ambient seeding, always on — see init for the two gates this used to carry
-  // and why neither survived.
-  var auto = true;
 
   return {
     // One cascade, seeded exactly where it was asked for. No-op until init has
@@ -448,30 +477,22 @@ var graphPulse = (function () {
     // `onReady` fires on the first frame this layer actually PAINTS — not when
     // init returns, which is only the moment the model is wired. The cover waits
     // on it, so "ready" means the animation is running on screen rather than
-    // scheduled to. Where nothing will ever paint by itself (`auto` off: a
-    // coarse pointer on the full graph) it fires immediately, or the cover would
-    // wait for a frame that is never coming.
+    // scheduled to.
     init: function (onReady) {
       if (running || typeof network === 'undefined') {
         return;
       }
-      // The cascade runs everywhere, on every graph size and every pointer.
-      //
-      // It was gated twice and both gates are gone. First on `(pointer:
-      // coarse)`, to spare a phone 2,722 nodes lighting under two
-      // backdrop-filter layers — which turned the page off on exactly the
-      // device that then reported it as frozen, because a still graph reads as
-      // a dead one. Then on node COUNT, which only ever meant the same thing
-      // once phones stopped being served a smaller graph. The animation is what
-      // this page is; a gate that removes it is answering the wrong question.
-      // The cost was paid down where it actually sat: the DPR cap on this
-      // canvas, the payload off the critical path, and a reveal that waits for
-      // the first lit frame instead of racing it.
-      index();
-      graphPulseDraw.init(pos, litEdges, level);
-      running = true;
+      // The cascade runs everywhere: every graph size, every pointer. It was
+      // gated twice — on `(pointer: coarse)`, then on node count — and both
+      // gates turned the animation off on the device that had reported the page
+      // as FROZEN, which a still graph reads as. ARCHITECTURE §11 has the whole
+      // history; the short version is that the cost was never here.
       onPainted = onReady || null;
-      requestAnimationFrame(frame);
+      index(function () {
+        graphPulseDraw.init(pos, litEdges, level);
+        running = true;
+        requestAnimationFrame(frame);
+      });
     },
   };
 })();

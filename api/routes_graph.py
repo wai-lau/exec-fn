@@ -42,7 +42,7 @@ from graph_style import (
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = the firing
 # overlay + zoom walls. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=47">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=46">'
 
 # The loading cover, as STATIC MARKUP at the top of <body>.
 #
@@ -70,12 +70,12 @@ _GRAPH_BOOT = (
 _GRAPH_OVERLAY_JS = (
     # The cover first: graph-overlay.js calls gpCover.show() on its own last
     # line, and the failure note has to exist before anything can need it.
-    '<script src="/graph-cover.js?v=9"></script>'
+    '<script src="/graph-cover.js?v=10"></script>'
     '<script src="/graph-pulse-draw.js?v=3"></script>'
-    '<script src="/graph-pulse.js?v=17"></script>'
+    '<script src="/graph-pulse.js?v=19"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
-    '<script src="/graph-lattice.js?v=1"></script>'
-    '<script src="/graph-overlay.js?v=59"></script>'
+    '<script src="/graph-lattice.js?v=2"></script>'
+    '<script src="/graph-overlay.js?v=60"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
