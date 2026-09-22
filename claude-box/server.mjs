@@ -553,8 +553,18 @@ async function handleQuery(req, res, body) {
   const controller = new AbortController();
   // A browser that navigates away must not leave a CLI subprocess resident --
   // at MAX_CONCURRENT 1 one orphan wedges every later request.
+  //
+  // The listener goes on `res`, NOT on `req`, and that is the whole mechanism:
+  // this handler runs AFTER readBody() has consumed the request to 'end', and a
+  // fully-read IncomingMessage never emits 'close' again. Measured on node
+  // v22 (2026-09-21): a client that hangs up mid-stream fires 'close' on the
+  // RESPONSE at the moment of the hangup and nothing at all on the request. On
+  // `req` the abort therefore never fired, so a hangup -- which is exactly what
+  // /cc's interrupt is (web/cc-interrupt.js) -- freed neither the slot nor the
+  // CLI subprocess, and every later send answered `busy` until the 10-minute
+  // idle timeout finally aborted the run.
   const onClose = () => controller.abort();
-  req.on("close", onClose);
+  res.on("close", onClose);
 
   let idle = setTimeout(() => controller.abort(), IDLE_TIMEOUT_MS);
   const touch = () => {
@@ -600,7 +610,7 @@ async function handleQuery(req, res, body) {
     });
   } finally {
     clearTimeout(idle);
-    req.off("close", onClose);
+    res.off("close", onClose);
     active -= 1;
     res.end();
   }
