@@ -344,7 +344,20 @@
     network.on('stabilizationProgress', function (p) {
       cover.progress(p && p.total ? p.iterations / p.total : 0);
     });
-    network.once('stabilizationIterationsDone', function () {
+    // With a BAKED layout there is no simulation, so stabilizationIterationsDone
+    // never fires — and that event is what reveals the page. The server says
+    // which case this is, because only it knows whether it found a layout for
+    // this graph. Deferred a tick so the caller has finished wiring up first.
+    if (window.GRAPH_LAYOUT_CACHED) {
+      setTimeout(function () { openView(cover); }, 0);
+    } else {
+      network.once('stabilizationIterationsDone', function () { openView(cover); });
+    }
+    setTimeout(cover.reveal, LOAD_CAP);
+  }
+
+  function openView(cover) {
+    {
       // Open on COVER, not contain — a wallpaper's fill mode. vis's own fit()
       // is contain: it scales until the limiting axis fits and leaves the other
       // one as empty margin, which on this near-square cloud in a wide window
@@ -365,8 +378,7 @@
       cover.reveal();
       graphPulse.init();
       watchSleep();
-    });
-    setTimeout(cover.reveal, LOAD_CAP);
+    }
   }
 
   // Reload after the device wakes from sleep. While suspended, setInterval is

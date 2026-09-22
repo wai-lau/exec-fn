@@ -38,10 +38,9 @@ var graphPulse = (function () {
   // ── the cascade model ──────────────────────────────────────────────────────
   // One iteration per ITER_MS, each given ITER_LIFE to finish. Seeding is on a
   // clock and NOTHING ELSE: it does not wait for the last cascade to finish or
-  // for the canvas to go dark, so at 500ms against a 2s life there are four in
-  // flight at any moment and they overlap on purpose. That overlap is what makes
-  // the graph look busy rather than metronomic.
-  var ITER_MS = 500;
+  // for the canvas to go dark. At 1s against a 2s life that is two overlapping,
+  // one arriving as the one before it is fading out.
+  var ITER_MS = 1000;
   var ITER_LIFE = 2000;
   // A safety bound, not the working number: four cascades is the steady state, so
   // this has to sit above it or the cap would be quietly truncating the oldest
@@ -79,19 +78,35 @@ var graphPulse = (function () {
   // is what makes the ones that bloom read as events.
   var SEED_POW = 2;
   // The cloud is cut into a GRID x GRID lattice of positional squares, and an
-  // iteration takes EXTRA_SEEDS more nodes out of the SEED's own square. Three
-  // seeds scattered anywhere in a hairball read as three unrelated sparks; three
-  // inside one square read as a region waking up.
+  // iteration lights SEEDS_PER_ITER nodes out of ONE of them. Seeds scattered
+  // anywhere in a hairball read as unrelated sparks; eight inside one square
+  // read as a region waking up.
   var GRID = 4;
-  var EXTRA_SEEDS = 2;
+  // Nodes lit at the START of an iteration, all from the one square: a burst,
+  // not a spark. The first is the weighted whole-graph draw that CHOOSES the
+  // square; the rest come out of that square, staggered. Each of them still
+  // spreads, so the burst is a starting condition and not the whole event.
+  var SEEDS_PER_ITER = 8;
+  // The seeds do not all land at once — one every SEED_STAGGER_MS. Eight
+  // hexagons appearing on the same frame reads as a flashbulb; the same eight
+  // arriving over 0.8s reads as a region coming awake, and it also gives the
+  // first seeds' own spread time to start before the last one has fired.
+  var SEED_STAGGER_MS = 100;
+  // Draws are weighted and with replacement, so eight draws do not give eight
+  // distinct nodes. Retry, but bounded — a square holding four nodes must not
+  // spin looking for a fifth.
+  var SEED_TRIES = 4;
 
   // How long a node stays lit. Degree buys time, on the same argument as size:
   // the busy nodes are the ones worth looking at, so they hold the eye longer.
-  var DUR_MIN = 1100;
-  var DUR_PER_DEG = 130;
+  // Slowed 50% on 2026-09-21 (from 1100 + 130/edge): the fade is sampled at the
+  // frame rate, so a longer fade is also more steps between lit and unlit, which
+  // is what the stepping looked like.
+  var DUR_MIN = 1650;
+  var DUR_PER_DEG = 195;
   var DUR_DEG_CAP = 12;
   var DUR_JITTER = 0.4;
-  var EDGE_DUR = 1100;
+  var EDGE_DUR = 1650;
   var ATTACK_MS = 90;             // rise; the rest of the life is the fade
   var DECAY_POW = 1.2;            // >1 = falls away faster than it lingers. Close
   // to linear on purpose: at 1.8 the light was gone before the eye had followed
@@ -259,16 +274,28 @@ var graphPulse = (function () {
     if (id === null) {
       return;
     }
-    var it = { queue: [], seen: {}, until: now + ITER_LIFE };
+    // The life has to cover the stagger as well, or the last seeds would be
+    // dropped before they ever fired.
+    var it = {
+      queue: [], seen: {},
+      until: now + ITER_LIFE + SEEDS_PER_ITER * SEED_STAGGER_MS,
+    };
     ignite(it, id, now);
     var cell = cells[cellOf[id]];
-    for (var k = 0; cell && k < EXTRA_SEEDS; k++) {
+    var seeded = 1, tries = SEEDS_PER_ITER * SEED_TRIES;
+    while (cell && seeded < SEEDS_PER_ITER && tries-- > 0) {
       var extra = pick(cell.ids, cell.cum);
-      // Already lit by this iteration (its own seed, or the other extra) — skip
-      // rather than retry: a square with two nodes in it should stay a pair, not
-      // spin looking for a third that is not there.
       if (extra !== null && !it.seen[extra]) {
-        ignite(it, extra, now);
+        // Claim it NOW so the remaining draws cannot pick it again, but light it
+        // later. `seed` marks it as not needing a roll when its turn comes: it
+        // was chosen, not caught, so it lights unconditionally and lights no
+        // edge — there is no edge it arrived along.
+        it.seen[extra] = 1;
+        it.queue.push({
+          id: extra, from: null, seed: true,
+          at: now + seeded * SEED_STAGGER_MS,
+        });
+        seeded += 1;
       }
     }
     live.push(it);
@@ -306,7 +333,10 @@ var graphPulse = (function () {
         keep.push(q);
         continue;
       }
-      if (Math.random() < catchOdds(q.id)) {
+      if (q.seed) {
+        fire(q.id, now);
+        spread(it, q.id, now);
+      } else if (Math.random() < catchOdds(q.id)) {
         fire(q.id, now);
         fireEdge(q.from, q.id, now);
         spread(it, q.id, now);

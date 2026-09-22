@@ -13,6 +13,7 @@ single load. The artifact it reads changes once a day (the 05:00 graphify cron),
 so the rendered bytes are memoised against its mtime+size — see `_cached`.
 """
 import re
+import json
 import asyncio
 import hashlib
 from pathlib import Path
@@ -32,7 +33,8 @@ from graph_scrub import (
 from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
     _merge_graph_communities, _fix_graph_stats, _size_graph_by_degree,
-    _tune_graph_physics, _brighten_graph_edges,
+    _tune_graph_physics, _brighten_graph_edges, _apply_graph_layout,
+    graph_layout_key, read_graph_layout,
 )
 
 
@@ -45,8 +47,8 @@ _GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=43">'
 # graph-overlay.js starts the model.
 _GRAPH_OVERLAY_JS = (
     '<script src="/graph-pulse-draw.js?v=1"></script>'
-    '<script src="/graph-pulse.js?v=8"></script>'
-    '<script src="/graph-overlay.js?v=48"></script>'
+    '<script src="/graph-pulse.js?v=12"></script>'
+    '<script src="/graph-overlay.js?v=49"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -67,7 +69,7 @@ _CACHE_KEY = None
 _CACHE_LOCK = asyncio.Lock()
 
 
-def _render(page: str, guest: bool) -> str:
+def _render(page: str, guest: bool, relayout: bool = False) -> str:
     """The whole serve-time pipeline: scrub, drop, restyle, inject chrome. Pure —
     same artifact bytes in, same page bytes out — which is what makes the memo
     above sound, and what lets the content-hash ETag stay stable across a
@@ -117,6 +119,25 @@ def _render(page: str, guest: bool) -> str:
     )
     # One stabilisation pass, then physics off for good, and straight edges.
     page = _tune_graph_physics(page)
+    # ...unless the layout is already baked. Stabilising measured ~30s on a
+    # phone, every visit, for a layout that is the same every time; scripts/
+    # graph-layout.py computes it nightly and this drops it straight in. The key
+    # is the graph itself, so a rebuild OR a change to our own drop/merge code
+    # invalidates it, and a miss simply falls back to stabilising in the browser.
+    # `relayout` is how the generator asks for that fallback on purpose.
+    key = graph_layout_key(page)
+    pos = None if relayout else read_graph_layout(_GRAPH_HTML.parent, key)
+    if pos:
+        page = _apply_graph_layout(page, pos)
+    # The overlay has to know: with physics off there is no
+    # stabilizationIterationsDone to wait for, and that event is what reveals
+    # the page.
+    page = page.replace(
+        "</head>",
+        "<script>window.GRAPH_LAYOUT_KEY=%s;window.GRAPH_LAYOUT_CACHED=%s;</script></head>"
+        % (json.dumps(key), "true" if pos else "false"),
+        1,
+    )
     # Hexagon nodes + bg-filled (coloured-outline) look, matching /emet; repoints
     # the neighbour-stripe colour to the border. After the merge so node colours exist.
     page = _restyle_graph_nodes(page)
@@ -142,9 +163,9 @@ async def _cached(guest: bool):
         return _CACHE[guest]
 
 
-def _build(guest: bool):
+def _build(guest: bool, relayout: bool = False):
     """Render + hash, off the event loop."""
-    page = _render(_GRAPH_HTML.read_text(), guest)
+    page = _render(_GRAPH_HTML.read_text(), guest, relayout)
     return page, '"%s"' % hashlib.md5(page.encode()).hexdigest()
 
 
@@ -160,7 +181,13 @@ async def graph_page(request: Request):
             "<pre>graph.html not found. Run /graphify to build it.</pre>",
             status_code=404,
         )
-    page, etag = await _cached(request.cookies.get("session") != SESSION_TOKEN)
+    guest = request.cookies.get("session") != SESSION_TOKEN
+    # ?relayout=1 renders WITHOUT the baked layout, so the nightly generator can
+    # stabilise a fresh one. Never cached: it exists to be run once a night.
+    if request.query_params.get("relayout") == "1":
+        page, etag = await asyncio.to_thread(_build, guest, True)
+    else:
+        page, etag = await _cached(guest)
     # /graph has no extension so the no-cache middleware skips it, and the route
     # body changes whenever /graphify regenerates graph.html. Tag the rendered
     # bytes with a content-hash ETag + no-cache so the browser revalidates every

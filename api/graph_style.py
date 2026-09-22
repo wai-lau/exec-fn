@@ -15,6 +15,9 @@ few seconds. The same decisions made here ride in the bytes, which are memoised
 per artifact by routes_graph, so they cost nothing at all on a warm load.
 """
 import re
+import json
+import hashlib
+from pathlib import Path
 from collections import Counter
 
 from graph_scrub import _read_array, _sub_json_array
@@ -308,7 +311,10 @@ _PHYSICS_BLOCK_RE = re.compile(r"\n  physics: \{.*?\n  \},\n(?=  interaction:)",
 # which meant stabilising twice and then simulating forever); applying them here
 # means the single stabilisation pass produces the layout that is kept.
 # `damping` is high and `minVelocity` is coarse on purpose: this sim has one job,
-# to stop. theta 0.8 loosens the Barnes-Hut approximation -- on 4.5k nodes the
+# to stop. 270 iterations, raised from 220 on 2026-09-21: the extra 50 are spent
+# under the loading cover, where they cost nothing anyone waits on deliberately,
+# and they buy a layout that has stopped moving rather than one still drifting
+# when it is frozen. theta 0.8 loosens the Barnes-Hut approximation -- on 4.5k nodes the
 # force error is invisible and the saving is not. `updateInterval` is small so
 # the run yields the main thread often: vis runs each interval's iterations in
 # one synchronous batch, and a batch the size of the whole run freezes the tab
@@ -328,7 +334,7 @@ _PHYSICS_BLOCK = """
     },
     maxVelocity: 50,
     minVelocity: 4,
-    stabilization: { enabled: true, iterations: 220, updateInterval: 20, fit: true },
+    stabilization: { enabled: true, iterations: 270, updateInterval: 20, fit: true },
   },
 """
 # Curved edges cost a bezier per edge per frame. At 6k edges that is the single
@@ -375,3 +381,82 @@ def _brighten_graph_edges(page: str) -> str:
         return edges
 
     return _sub_json_array(page, "RAW_EDGES", _brighten)
+
+
+# ── the baked layout ───────────────────────────────────────────────────────
+# Stabilising this graph is ~270 forceAtlas2 iterations over 2722 nodes. On a
+# desktop that is a few seconds under the loading cover; on a phone it measured
+# around THIRTY, every single visit, for a layout that is identical every time.
+# So it is computed once, out of band, and baked into the bytes — see
+# scripts/graph-layout.py, which drives a real vis-network in a headless browser
+# rather than reimplementing forceAtlas2 here, so the cached layout is exactly
+# the layout vis would have produced.
+#
+# The cache key is a hash of the GRAPH, not of the file it came from: sorted node
+# ids plus sorted edge pairs. That is what actually determines a layout, and it
+# changes both when graphify rebuilds AND when our own drop/merge code changes
+# what survives — "or when we update the code" — while staying identical across
+# the guest and admin renders, which differ only by their nav.
+_LAYOUT_FILE = "graph-layout.json"
+
+
+def _layout_key(nodes, edges) -> str:
+    h = hashlib.md5()
+    for nid in sorted(str(n.get("id")) for n in nodes):
+        h.update(nid.encode())
+        h.update(b"\x00")
+    h.update(b"\xff")
+    for pair in sorted("%s>%s" % (e.get("from"), e.get("to")) for e in edges):
+        h.update(pair.encode())
+        h.update(b"\x00")
+    return h.hexdigest()
+
+
+def graph_layout_key(page: str) -> str:
+    """The cache key for the graph as this page currently renders it, or "" if
+    the arrays are missing. Public: the generator script reads it back off the
+    rendered page so the writer and the reader cannot disagree about the key."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
+        return ""
+    return _layout_key(nodes, _read_array(page, "RAW_EDGES") or [])
+
+
+def read_graph_layout(graphify_dir, key: str):
+    """The baked positions for `key`, or None when there is no layout, it is for a
+    different graph, or it is unreadable. Every failure is a no-op that falls back
+    to stabilising in the browser, because a stale layout is worse than a slow
+    one: it would place nodes by an edge set that no longer exists."""
+    try:
+        data = json.loads((Path(graphify_dir) / _LAYOUT_FILE).read_text())
+    except (OSError, ValueError):
+        return None
+    if data.get("key") != key or not isinstance(data.get("pos"), dict):
+        return None
+    return data["pos"]
+
+
+def _apply_graph_layout(page: str, pos: dict) -> str:
+    """Bake `pos` into RAW_NODES as x/y, make vis carry those fields through to
+    the DataSet, and switch physics off entirely. Nodes with no cached position
+    keep none — vis drops them near the origin, which is visible and wrong, so
+    the caller only uses a layout that covers the graph it is for."""
+    def _place(nodes):
+        for n in nodes:
+            p = pos.get(str(n.get("id")))
+            if p:
+                n["x"], n["y"] = p[0], p[1]
+        return nodes
+
+    page = _sub_json_array(page, "RAW_NODES", _place)
+    # graphify's DataSet mapper lists its fields explicitly, so x/y would be
+    # dropped on the way in no matter what RAW_NODES carries.
+    page = page.replace(
+        "  id: n.id, label: n.label, color: n.color, size: n.size,",
+        "  id: n.id, label: n.label, color: n.color, size: n.size, x: n.x, y: n.y,",
+        1,
+    )
+    # No sim, no stabilisation: the positions ARE the layout.
+    return _PHYSICS_BLOCK_RE.sub(
+        lambda _m: "\n  physics: { enabled: false },\n", page, count=1
+    )
