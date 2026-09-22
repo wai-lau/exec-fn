@@ -295,9 +295,10 @@
 
   function go(cover) {
     if (typeof network === 'undefined') {
-      // The payload marks itself done, so the wait splits in two: still coming
-      // down the wire, or down and being turned into a graph.
-      cover.phase(window.__GP_PAYLOAD_MS ? 'building the graph' : 'fetching graph data');
+      // The phase text belongs to graph-cover.js's loader, which knows which
+      // half of the wait this is. Writing it from here too made it run
+      // BACKWARDS — 'building the graph' then 'fetching graph data' again —
+      // because this poll starts before the payload sets its done marker.
       setTimeout(function () { go(cover); }, 50);
       return;
     }
@@ -354,6 +355,16 @@
       });
       cover.reveal();
       graphPulse.init();
+      // Tapping a node fires the same cascade the model seeds on its own, from
+      // that node: the burst, the stagger, the outward walk, all of it — a node
+      // is interesting for what it reaches, and the cascade is the thing that
+      // draws what it reaches. graph.html's own handler still opens the node
+      // panel; vis takes both listeners.
+      network.on('click', function (params) {
+        if (params && params.nodes && params.nodes.length) {
+          graphPulse.seed(params.nodes[0]);
+        }
+      });
       watchWake();
     }
   }
@@ -402,6 +413,30 @@
         wake();
       }
     });
+  }
+
+  // graph-cover.js is now the bar AND the payload loader, so the page carries no
+  // <script src> for the payload at all. If that file never ran, nothing would
+  // fetch it and nothing would reveal — belt for both, before anything below
+  // assumes either.
+  if (window.GRAPH_BOOT_URL && !window.__GP_BOOT_STARTED) {
+    var boot = document.createElement('script');
+    boot.src = window.GRAPH_BOOT_URL;
+    document.head.appendChild(boot);
+  }
+  if (!window.gpCover) {
+    window.gpCover = {
+      CAP: 180000,
+      show: function () {
+        return {
+          phase: function () { return; },
+          progress: function () { return; },
+          indeterminate: function () { return; },
+          reveal: function () { document.body.classList.add('gp-loaded'); },
+        };
+      },
+      fail: function () { document.body.classList.add('gp-loaded'); },
+    };
   }
 
   // Everything above is wired inside one call; if it throws — or if a script the
