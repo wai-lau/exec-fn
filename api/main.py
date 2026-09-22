@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.datastructures import MutableHeaders
 
 from nudge_loop import _run_nudge_loop
+from routes_graph import run_graph_warm_loop
 from discord_bot import _run_discord_bot
 from tarot.openings_loop import run_openings_loop
 from routers import public, protected, guest_protected
@@ -66,6 +67,9 @@ _gzip.DEFAULT_EXCLUDED_CONTENT_TYPES = (
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     nudge_task = asyncio.create_task(_run_nudge_loop())
+    # /graph renders in 1.7-2.9s cold and the cache is per-process, so a
+    # restart otherwise hands that wait to whoever opens it next.
+    graph_warm_task = asyncio.create_task(run_graph_warm_loop())
     # Discord bridge — DMs nudges/monitor comments to Wai's phone and answers
     # DMs back. No-op unless DISCORD_BOT_TOKEN + DISCORD_USER_ID are set.
     discord_task = asyncio.create_task(_run_discord_bot())
@@ -75,6 +79,7 @@ async def _lifespan(app: FastAPI):
     tarot_task = asyncio.create_task(run_openings_loop())
     yield
     nudge_task.cancel()
+    graph_warm_task.cancel()
     discord_task.cancel()
     tarot_task.cancel()
 

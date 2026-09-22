@@ -354,32 +354,54 @@
       });
       cover.reveal();
       graphPulse.init();
-      watchSleep();
+      watchWake();
     }
   }
 
-  // Reload after the device wakes from sleep. While suspended, setInterval is
-  // paused; on wake the first tick fires far later than its period — a gap that
-  // big means we slept, and the canvas comes back wedged, so a fresh load is the
-  // clean recovery.
+  // A tab coming back from the background used to RELOAD the page: while it was
+  // suspended setInterval stopped, so a tick landing a minute late meant "we
+  // slept", and the canvas comes back wedged from a suspend.
   //
-  // It is ARMED ONLY AFTER the layout has settled, and the threshold is 60s, both
-  // because of the same false positive: stabilising this graph blocks the main
-  // thread in bursts, so on a slow device the interval was firing 30s+ late while
-  // the page was simply working, and the page reloaded itself — into another
-  // stabilisation, which tripped it again. Measured in headless WebKit on the
-  // droplet, where a load ran long enough to do exactly that.
-  var SLEEP_GAP = 60000;
-
-  function watchSleep() {
-    var last = Date.now();
-    setInterval(function () {
-      var now = Date.now();
-      if (now - last > SLEEP_GAP) {
-        location.reload();
+  // On a phone that recovery is worse than the fault. iOS freezes a backgrounded
+  // tab within seconds, so switching apps and returning ALWAYS tripped it, and a
+  // reload of /graph is a black page for the whole load (#graph is opacity 0
+  // until gp-loaded). Reported exactly that way: black page after going to
+  // another tab and coming back. The old comment even records the same shape of
+  // bug on the droplet — a reload landing in another stabilisation, which
+  // tripped it again.
+  //
+  // A wedged canvas does not need the document thrown away. Re-measure our own
+  // backing store and ask vis to redraw: same repair, no reload, no black page,
+  // and it hangs off `visibilitychange`, which is the event that actually means
+  // "you are back" — no interval, no 60s guess, and nothing to false-positive on
+  // a main thread that was merely busy.
+  function wake() {
+    try {
+      if (typeof graphPulseDraw !== 'undefined' && graphPulseDraw.resize) {
+        graphPulseDraw.resize();
       }
-      last = now;
-    }, 10000);
+      if (typeof network !== 'undefined') {
+        network.redraw();
+      }
+    } catch (err) {
+      // A redraw that throws is still not worth a reload — the page is readable
+      // either way, and reloading is the thing that cost a visible three
+      // minutes.
+    }
+  }
+
+  function watchWake() {
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) {
+        wake();
+      }
+    });
+    // bfcache restore: iOS serves the page back without firing visibilitychange.
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) {
+        wake();
+      }
+    });
   }
 
   // Everything above is wired inside one call; if it throws — or if a script the

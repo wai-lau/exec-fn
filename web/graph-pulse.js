@@ -417,6 +417,22 @@ var graphPulse = (function () {
       if (running || typeof network === 'undefined') {
         return;
       }
+      // Not on a phone. The cascade is the ONE animated layer on this page, and
+      // it sits under the CRT stack's two backdrop-filter layers — which is the
+      // most expensive shape in this repo (ARCHITECTURE §10): a backdrop-filter
+      // is a full-viewport readback with no partial invalidation, cheap only
+      // while nothing beneath it animates, and ruinous when something does,
+      // because it re-fires every frame forever. On the droplet's headless
+      // WebKit that measured 2fps under the stack against 18 with it hidden,
+      // and a phone reported the finished page as unclickable — a main thread
+      // and compositor with nothing left for a tap.
+      //
+      // The stack stays and the cascade goes, not the other way round: the
+      // stack is the site's look on every page, while this is /graph-only
+      // ambience that happens to be exactly what makes the stack expensive.
+      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+        return;
+      }
       index();
       graphPulseDraw.init(pos, litEdges, level);
       running = true;

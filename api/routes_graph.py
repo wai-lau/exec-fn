@@ -70,9 +70,9 @@ _GRAPH_OVERLAY_JS = (
     # The cover first: graph-overlay.js calls gpCover.show() on its own last
     # line, and the failure note has to exist before anything can need it.
     '<script src="/graph-cover.js?v=1"></script>'
-    '<script src="/graph-pulse-draw.js?v=2"></script>'
-    '<script src="/graph-pulse.js?v=12"></script>'
-    '<script src="/graph-overlay.js?v=51"></script>'
+    '<script src="/graph-pulse-draw.js?v=3"></script>'
+    '<script src="/graph-pulse.js?v=13"></script>'
+    '<script src="/graph-overlay.js?v=52"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -249,6 +249,32 @@ def _render(page: str, guest: bool, relayout: bool = False) -> str:
     page = page.replace("</head>", _VIEWPORT_META + _APPLE_WEBAPP_META + _FAVICON + _FONT_PRELOAD + _CHROME_LINK + _GRAPH_OVERLAY_CSS + "</head>", 1)
     page = page.replace("</body>", _CRT_FX + _build_nav("graph", guest=guest) + _GRAPH_OVERLAY_JS + "</body>", 1)
     return _defer_scripts(page)
+
+
+async def run_graph_warm_loop():
+    """Keep both tiers rendered, so no visitor ever pays the cold pipeline.
+
+    The render is 1.7-2.9s of CPU and the cache is per-PROCESS, so every restart
+    -- and `--reload` makes those routine -- parked that cost in front of
+    whoever opened /graph next. Reported as lag between tapping GPH and anything
+    happening at all, which is what it was: not the page, the response.
+
+    The same loop covers the 05:00 graphify rebuild, since it re-warms whenever
+    the artifact's (mtime_ns, size) changes rather than on a schedule of its
+    own. A failure here is never fatal: the route still renders on demand."""
+    seen = None
+    while True:
+        try:
+            if _GRAPH_HTML.exists():
+                st = _GRAPH_HTML.stat()
+                key = (st.st_mtime_ns, st.st_size)
+                if key != seen:
+                    for guest in (False, True):
+                        await _cached(guest)
+                    seen = key
+        except Exception:
+            pass
+        await asyncio.sleep(600)
 
 
 async def _cached(guest: bool):
