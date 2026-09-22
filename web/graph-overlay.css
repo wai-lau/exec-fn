@@ -12,6 +12,9 @@ body {
   inset: 0;
   z-index: var(--z-overlay);
   display: flex;
+
+  /* Column, because the phase line sits UNDER the bar. */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   pointer-events: none;
@@ -63,6 +66,17 @@ body {
 @keyframes gp-indet {
   from { transform: translateX(-100%); }
   to { transform: translateX(286%); }
+}
+
+/* What the cover says when the graph cannot be drawn, in place of the bar. It
+   declares no colour — it inherits the page ink — so it adds nothing to the
+   palette, and it exists because #graph is opacity 0 until gp-loaded: without a
+   line here, every failure is a black page that reads as a crashed tab. */
+#gp-loading .gp-load-note,
+#gp-loading .gp-load-phase {
+  font-size: var(--fs-2xs);
+  text-align: center;
+  padding: var(--space-3);
 }
 
 /* nav: chrome.css default — horizontal bar pinned to the bottom. --nav-h is set

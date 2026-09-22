@@ -41,7 +41,7 @@ from graph_style import (
 # /graph overlay assets live in web/ (graph-overlay.css/js) — not inline here.
 # CSS = vertical-left nav + vis-network config-panel theme; JS = the firing
 # overlay + zoom walls. Injected at serve time so they survive graph.html rebuilds.
-_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=44">'
+_GRAPH_OVERLAY_CSS = '<link rel="stylesheet" href="/graph-overlay.css?v=45">'
 
 # The loading cover, as STATIC MARKUP at the top of <body>.
 #
@@ -67,9 +67,12 @@ _GRAPH_BOOT = (
 # defines `graphPulseDraw`, the model half reads it at construction time, and
 # graph-overlay.js starts the model.
 _GRAPH_OVERLAY_JS = (
-    '<script src="/graph-pulse-draw.js?v=1"></script>'
+    # The cover first: graph-overlay.js calls gpCover.show() on its own last
+    # line, and the failure note has to exist before anything can need it.
+    '<script src="/graph-cover.js?v=1"></script>'
+    '<script src="/graph-pulse-draw.js?v=2"></script>'
     '<script src="/graph-pulse.js?v=12"></script>'
-    '<script src="/graph-overlay.js?v=50"></script>'
+    '<script src="/graph-overlay.js?v=51"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
 # desktop width and scales everything down (tiny buttons/text).
@@ -125,6 +128,10 @@ def _externalise_boot(page: str) -> tuple[str, str]:
     if not blocks:
         return page, ""
     payload = "\n;\n".join(b.group(1) for b in blocks)
+    # The cover cannot otherwise tell a payload still on the wire from one
+    # already running: both look like "network is undefined".
+    payload = ("window.__GP_PAYLOAD_START = performance.now();\n;" + payload
+               + "\n;window.__GP_PAYLOAD_MS = performance.now();\n")
     digest = hashlib.md5(payload.encode()).hexdigest()[:16]
     tag = '<script defer src="/graph/boot.js?v=%s"></script>' % digest
     out, last = [], 0
@@ -142,9 +149,17 @@ def _externalise_boot(page: str) -> tuple[str, str]:
 
 def _defer_scripts(page: str) -> str:
     """Every same-origin src script deferred, so the parse can finish and paint
-    before any of them runs, in unchanged relative order."""
-    return re.sub(r'<script src="(/[^"]+)"></script>',
+    before any of them runs, in unchanged relative order.
+
+    Except the cover. It is 4KB with no dependency on anything, and deferring it
+    put it BEHIND the payload it exists to report on: the phase line first
+    appeared at "drawing", i.e. after the slow part was already over. Parsed
+    inline it is live while the payload is still on the wire, and the payload's
+    own start/end marks survive the main thread being blocked in between."""
+    page = re.sub(r'<script src="(/[^"]+)"></script>',
                   r'<script defer src="\1"></script>', page)
+    return page.replace('<script defer src="/graph-cover.js',
+                        '<script src="/graph-cover.js')
 
 
 def _render(page: str, guest: bool, relayout: bool = False) -> str:
