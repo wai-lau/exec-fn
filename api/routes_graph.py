@@ -29,6 +29,7 @@ from auth import SESSION_TOKEN
 from graph_scrub import (
     _redact_graph_nodes, _drop_graph_prefixed_nodes, _drop_graph_moltbook_nodes,
     _drop_graph_library_nodes, _drop_graph_inferred_edges, _drop_graph_orphan_nodes,
+    _read_array, _prune_graph_nodes,
 )
 from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
@@ -79,6 +80,41 @@ _GRAPH_OVERLAY_JS = (
 _VIEWPORT_META = '<meta name="viewport" content="width=device-width, initial-scale=1">'
 
 _GRAPH_HTML = Path("/app/graphify-out/graph.html")
+
+# A PHONE GETS A SMALLER GRAPH.
+#
+# 2,722 nodes is a page a laptop draws and a phone dies on: Safari on iOS froze
+# solid on load -- not slow, FROZEN, with the nav bar unable to take a tap, which
+# is a main thread that never came back rather than a graph that was missing.
+# Every other lever tried first (first paint, the deferred payload, the DPR cap,
+# the pulse gate) made the WAIT better and none of them made the work smaller,
+# because the work is the graph.
+#
+# So a phone is served the busiest _LITE_NODES nodes and the edges among them.
+# Degree is the right ranking because this graph's whole shape is its hubs: the
+# tail is leaves that hang off one parent, and at the opening zoom they are the
+# halo, not the structure. It is a different picture, honestly — `?full=1`
+# overrides it for anyone who wants the whole thing on a phone anyway.
+_LITE_NODES = 600
+# iPad reports a desktop Safari UA and has the memory to match, so it is
+# deliberately not matched here.
+_MOBILE_UA = re.compile(r"iPhone|iPod|Android.+Mobile", re.I)
+
+
+def _prune_for_lite(page: str) -> str:
+    """Keep the busiest _LITE_NODES nodes, and only the edges between them.
+
+    Runs AFTER the baked layout has been applied, which is what lets it share
+    one layout with the full graph: positions are per node id, so the survivors
+    keep the coordinates they were baked at and the layout key still hashes the
+    FULL graph. Pruning first would change the key, miss the bake, and hand a
+    phone the ~30s browser stabilisation this all exists to avoid."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes or len(nodes) <= _LITE_NODES:
+        return page
+    ranked = sorted(nodes, key=lambda n: n.get("degree") or 0, reverse=True)
+    keep = {n.get("id") for n in ranked[:_LITE_NODES]}
+    return _prune_graph_nodes(page, [n.get("id") for n in nodes if n.get("id") not in keep])
 
 # Rendered pages by (artifact identity, guest) -> (html, etag). Two entries live
 # at a time, ~7MB; the whole dict is dropped the moment graphify writes a new
@@ -168,7 +204,7 @@ def _defer_scripts(page: str) -> str:
                         '<script src="/graph-cover.js')
 
 
-def _render(page: str, guest: bool, relayout: bool = False) -> str:
+def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) -> str:
     """The whole serve-time pipeline: scrub, drop, restyle, inject chrome. Pure —
     same artifact bytes in, same page bytes out — which is what makes the memo
     above sound, and what lets the content-hash ETag stay stable across a
@@ -237,6 +273,11 @@ def _render(page: str, guest: bool, relayout: bool = False) -> str:
         % (json.dumps(key), "true" if pos else "false"),
         1,
     )
+    if lite:
+        # After the layout, before the restyle: the survivors carry their baked
+        # x/y, and the header then has to be told what is actually left.
+        page = _prune_for_lite(page)
+        page = _fix_graph_stats(page)
     # Hexagon nodes + bg-filled (coloured-outline) look, matching /emet; repoints
     # the neighbour-stripe colour to the border. After the merge so node colours exist.
     page = _restyle_graph_nodes(page)
@@ -276,17 +317,21 @@ async def run_graph_warm_loop():
                 key = (st.st_mtime_ns, st.st_size)
                 if key != seen:
                     for guest in (False, True):
-                        await _cached(guest)
+                        for lite in (False, True):
+                            await _cached(guest, lite)
                     seen = key
         except Exception:
             pass
         await asyncio.sleep(600)
 
 
-async def _cached(guest: bool):
-    """The rendered page + its ETag for this tier, rendering only when the
+async def _cached(guest: bool, lite: bool = False):
+    """The rendered page + its ETag for this VARIANT, rendering only when the
     artifact on disk is not the one already in the cache. Keyed on mtime_ns+size
-    rather than a content hash so the check costs one stat, not a 3.6MB read."""
+    rather than a content hash so the check costs one stat, not a 3.6MB read.
+
+    The variant is (tier, lite): four entries at most, and a phone and a laptop
+    are served different graphs, so they cannot share one."""
     global _CACHE_KEY
     st = _GRAPH_HTML.stat()
     key = (st.st_mtime_ns, st.st_size)
@@ -294,14 +339,14 @@ async def _cached(guest: bool):
         if key != _CACHE_KEY:
             _CACHE.clear()
             _CACHE_KEY = key
-        if guest not in _CACHE:
-            _CACHE[guest] = await asyncio.to_thread(_build, guest)
-        return _CACHE[guest]
+        if (guest, lite) not in _CACHE:
+            _CACHE[(guest, lite)] = await asyncio.to_thread(_build, guest, False, lite)
+        return _CACHE[(guest, lite)]
 
 
-def _build(guest: bool, relayout: bool = False):
+def _build(guest: bool, relayout: bool = False, lite: bool = False):
     """Render + hash, off the event loop."""
-    page = _render(_GRAPH_HTML.read_text(), guest, relayout)
+    page = _render(_GRAPH_HTML.read_text(), guest, relayout, lite)
     return page, '"%s"' % hashlib.md5(page.encode()).hexdigest()
 
 
@@ -318,8 +363,12 @@ async def graph_boot(request: Request):
     digest = request.query_params.get("v", "")
     payload = _PAYLOADS.get(digest)
     if payload is None and _GRAPH_HTML.exists():
-        await _cached(request.cookies.get("session") != SESSION_TOKEN)
-        payload = _PAYLOADS.get(digest)
+        guest = request.cookies.get("session") != SESSION_TOKEN
+        for lite in (False, True):
+            await _cached(guest, lite)
+            payload = _PAYLOADS.get(digest)
+            if payload is not None:
+                break
     if payload is None:
         return Response("// unknown graph payload\n", status_code=404,
                         media_type="application/javascript")
@@ -345,12 +394,18 @@ async def graph_page(request: Request):
             status_code=404,
         )
     guest = request.cookies.get("session") != SESSION_TOKEN
+    # A phone gets the lite graph (see _prune_for_lite) unless it asks for the
+    # whole thing. The nightly relayout run is never lite -- the bake has to
+    # cover every node, including the ones a phone will not be sent.
+    lite = bool(_MOBILE_UA.search(request.headers.get("user-agent", "")))
+    if request.query_params.get("full") == "1":
+        lite = False
     # ?relayout=1 renders WITHOUT the baked layout, so the nightly generator can
     # stabilise a fresh one. Never cached: it exists to be run once a night.
     if request.query_params.get("relayout") == "1":
         page, etag = await asyncio.to_thread(_build, guest, True)
     else:
-        page, etag = await _cached(guest)
+        page, etag = await _cached(guest, lite)
     # /graph has no extension so the no-cache middleware skips it, and the route
     # body changes whenever /graphify regenerates graph.html. Tag the rendered
     # bytes with a content-hash ETag + no-cache so the browser revalidates every
