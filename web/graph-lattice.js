@@ -58,44 +58,87 @@
   // crowded middle claims its own cells first, so the walk to a free point
   // falls on the sparse rim where there is somewhere to go, instead of
   // cascading through the core.
-  // Pack the communities, as RIGID TILES, into a box shaped like the window.
+  // Shape the cloud to the window by moving COMMUNITIES, never by scaling
+  // anything that is drawn.
   //
-  // This is the only honest way to make a square-ish cloud fill a tall screen.
-  // vis's physics runs in WORLD coordinates and knows nothing about the
-  // viewport, so a layout baked in a tall browser window comes out exactly as
-  // square as one baked in a wide one — the window is not an input. And scaling
-  // an axis to fit is the squish: a force layout says something by distance.
+  // With one cell size on both axes, columns/rows is W/H of the node cloud — so
+  // matching the viewport ratio means the cloud's own box has to match it, and
+  // the cloud is roughly square. Scaling an axis is the squish. What can move
+  // without lying is a whole community: translate it as a unit and every
+  // distance INSIDE it survives exactly, which is where a force layout's meaning
+  // is densest.
   //
-  // What can move without lying is a whole community. Each one is translated as
-  // a unit — never scaled, never rotated — so every distance INSIDE a community,
-  // which is where the layout's meaning is densest, survives exactly. What
-  // changes is where the communities sit relative to each other, which
-  // forceAtlas2 had already decided fairly arbitrarily for a cloud with no
-  // boundary to respect.
-  //
-  // Shelf packing, tallest tile first, with the shelf width binary-searched
-  // until the packed height comes out at the target aspect. Fourteen tiles, so
-  // the search is free.
+  // The first version shelf-packed tiles tallest-first, which hit the ratio and
+  // dealt the communities out in size order — the same graph, unrecognisable.
+  // This one stretches the CENTROIDS to the target box and sets each community
+  // down rigidly on its new centroid: a community that was top-left is still
+  // top-left, just further from its neighbours. Then a few passes push
+  // overlapping tiles apart along whichever axis they overlap least.
+  // Lay the tiles out for a target aspect and report what came back. The two
+  // are not the same number: a tile has a width of its own, and separating
+  // overlaps inflates whichever axis was tight, so aiming at the viewport
+  // ratio lands short of it (0.68 against 0.49 on a phone, measured).
+function placeTiles(tiles, box, target) {
+    var boxW = Math.sqrt(box.areaSum * box.spread * target);
+    var boxH = boxW / target;
+    // CENTROIDS ONLY. The one anisotropic step in the whole file, and it moves
+    // no node relative to its own community — it decides where communities SIT.
+    for (var m = 0; m < tiles.length; m++) {
+      tiles[m].toX = ((tiles[m].cx - box.minX) / box.spanX) * (boxW - tiles[m].w) + tiles[m].w / 2;
+      tiles[m].toY = ((tiles[m].cy - box.minY) / box.spanY) * (boxH - tiles[m].h) + tiles[m].h / 2;
+    }
+    // Separate whatever still overlaps, along the shallower axis so a tile
+    // travels as little as possible from where the stretch put it.
+    for (var pass = 0; pass < 60; pass++) {
+      var moved = false;
+      for (var a = 0; a < tiles.length; a++) {
+        for (var b2 = a + 1; b2 < tiles.length; b2++) {
+          var t1 = tiles[a], t2 = tiles[b2];
+          var ox = (t1.w + t2.w) / 2 - Math.abs(t1.toX - t2.toX);
+          var oy = (t1.h + t2.h) / 2 - Math.abs(t1.toY - t2.toY);
+          if (ox <= 0 || oy <= 0) {
+            continue;
+          }
+          moved = true;
+          if (ox < oy) {
+            var sx = (t1.toX < t2.toX ? -1 : 1) * ox / 2;
+            t1.toX += sx;
+            t2.toX -= sx;
+          } else {
+            var sy = (t1.toY < t2.toY ? -1 : 1) * oy / 2;
+            t1.toY += sy;
+            t2.toY -= sy;
+          }
+        }
+      }
+      if (!moved) {
+        break;
+      }
+    }
+    var lo = { x: Infinity, y: Infinity }, hi = { x: -Infinity, y: -Infinity };
+    for (var r = 0; r < tiles.length; r++) {
+      lo.x = Math.min(lo.x, tiles[r].toX - tiles[r].w / 2);
+      hi.x = Math.max(hi.x, tiles[r].toX + tiles[r].w / 2);
+      lo.y = Math.min(lo.y, tiles[r].toY - tiles[r].h / 2);
+      hi.y = Math.max(hi.y, tiles[r].toY + tiles[r].h / 2);
+    }
+    return Math.max(hi.x - lo.x, 1) / Math.max(hi.y - lo.y, 1);
+  }
+
   function packCommunities(pos, ids, aspect) {
-    // OPT-IN, `?pack=1`. Packing rearranges where every community SITS — it is
-    // the same graph with its regions dealt out again, and that reads as a
-    // completely different picture even though nothing inside a community moved
-    // by a pixel. Whether that trade is worth a screen-shaped outline is a
-    // judgement about the drawing, not about the code, so it is not made here
-    // by default.
+    // OFF unless asked for: `?pack=1`. Moving communities hits the viewport
+    // ratio (measured 0.51 against a 0.49 phone) and changes where every region
+    // of the graph sits, which is not a trade to make on someone's behalf.
     if (!/[?&]pack=1/.test(location.search)) {
       return;
     }
     var meta = nodesDS.get();
     var group = Object.create(null);
     for (var i = 0; i < meta.length; i++) {
-      // `_community`, with the underscore: graphify's DataSet mapper renames the
-      // fields it carries over (`_community`, `_source_file`, `_degree`), and
-      // RAW_NODES's own `community` does not survive into it. Reading the
-      // unprefixed name found nothing, put every node in one group, and the
-      // packer returned early as a silent no-op — the outline came out
-      // unchanged, which looks exactly like the packing being wrong rather than
-      // absent. Both names are accepted so a mapper change cannot repeat it.
+      // `_community`, with the underscore: graphify's DataSet mapper renames
+      // what it carries over, and RAW_NODES's own `community` does not survive
+      // into it. Reading the unprefixed name put every node in one group and
+      // made this a silent no-op. Both names accepted so it cannot repeat.
       var raw = meta[i];
       var cid = raw._community === undefined ? raw.community : raw._community;
       var key = cid === undefined ? 'none' : String(cid);
@@ -118,59 +161,86 @@
       var t = group[k];
       t.w = Math.max(t.maxX - t.minX, 1);
       t.h = Math.max(t.maxY - t.minY, 1);
+      t.cx = (t.minX + t.maxX) / 2;
+      t.cy = (t.minY + t.maxY) / 2;
       areaSum += t.w * t.h;
       tiles.push(t);
     }
     if (tiles.length < 2) {
       return;
     }
-    tiles.sort(function (a, c) { return c.h - a.h; });
-    var gap = 3 * Math.sqrt(areaSum / Math.max(ids.length * CELLS_PER_NODE, 1));
-
-    // Lay the tiles out at a given shelf width and report the height used.
-    function layout(width, place) {
-      var x = 0, y = 0, shelf = 0, used = 0;
-      for (var i = 0; i < tiles.length; i++) {
-        var t = tiles[i];
-        if (x > 0 && x + t.w > width) {
-          y += shelf + gap;
-          x = 0;
-          shelf = 0;
-        }
-        if (place) {
-          t.atX = x;
-          t.atY = y;
-        }
-        x += t.w + gap;
-        shelf = Math.max(shelf, t.h);
-        used = Math.max(used, x - gap);
-      }
-      return { h: y + shelf, w: used };
+    var spread = 1.7;
+    var cloud = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    for (var c = 0; c < tiles.length; c++) {
+      cloud.minX = Math.min(cloud.minX, tiles[c].cx);
+      cloud.maxX = Math.max(cloud.maxX, tiles[c].cx);
+      cloud.minY = Math.min(cloud.minY, tiles[c].cy);
+      cloud.maxY = Math.max(cloud.maxY, tiles[c].cy);
     }
-
-    // Widen until the packed box is no taller than the target aspect wants.
-    var lo = Math.sqrt(areaSum * aspect) * 0.4, hi = Math.sqrt(areaSum * aspect) * 4;
-    for (var pass = 0; pass < 28; pass++) {
-      var mid = (lo + hi) / 2;
-      var got = layout(mid, false);
-      if (got.w / Math.max(got.h, 1) < aspect) {
-        lo = mid;
-      } else {
-        hi = mid;
+    var spanX = Math.max(cloud.maxX - cloud.minX, 1);
+    var spanY = Math.max(cloud.maxY - cloud.minY, 1);
+    // So aim, measure, correct. Four rounds of feeding the error back into the
+    // target converges on the viewport's ratio without a fudge factor, and
+    // fourteen tiles make each round free.
+    var box = { areaSum: areaSum, spread: spread, minX: cloud.minX, minY: cloud.minY,
+      spanX: spanX, spanY: spanY };
+    var aim = aspect;
+    for (var round = 0; round < 4; round++) {
+      var got = placeTiles(tiles, box, aim);
+      if (!isFinite(got) || got <= 0) {
+        break;
       }
+      aim *= aspect / got;
     }
-    layout(hi, true);
-
-    // Translation only: every node in a tile moves by the same vector, so the
-    // community arrives intact.
+    placeTiles(tiles, box, aim);
     for (var j = 0; j < tiles.length; j++) {
       var tile = tiles[j];
-      var dx = tile.atX - tile.minX, dy = tile.atY - tile.minY;
-      for (var n = 0; n < tile.ids.length; n++) {
-        var q = pos[tile.ids[n]];
-        q.x += dx;
-        q.y += dy;
+      var dx = tile.toX - tile.cx, dy = tile.toY - tile.cy;
+      for (var q2 = 0; q2 < tile.ids.length; q2++) {
+        var node = pos[tile.ids[q2]];
+        node.x += dx;
+        node.y += dy;
       }
+    }
+  }
+
+  // STRETCH THE POSITIONS to the window's shape, then let the caller snap them.
+  //
+  // Two different things get called "squished" and only one of them is, so to be
+  // exact about which: this scales x and y by different factors, so the PICTURE
+  // is reshaped — a force layout says something by distance and a stretched axis
+  // rewrites it. What it does not touch is the lattice. `cell` stays one number
+  // used on both axes, so the step between adjacent lattice points is identical
+  // horizontally and vertically; the grid gains rows or loses columns instead of
+  // changing its spacing.
+  //
+  // That is what makes cols/rows follow the viewport at all: with equal spacing
+  // the ratio IS the node cloud's own bounding box, so the cloud has to have the
+  // window's shape before the snap runs. Area is preserved (boxW*boxH == w*h),
+  // which leaves `cell` and the lattice's density exactly where they were.
+  //
+  // Skipped when `?pack=1` has already shaped the cloud by moving communities —
+  // the two answer the same question and stacking them would shape it twice.
+  function stretchToViewport(pos, ids, aspect) {
+    if (/[?&]pack=1/.test(location.search)) {
+      return;
+    }
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (var i = 0; i < ids.length; i++) {
+      var p = pos[ids[i]];
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y);
+      maxY = Math.max(maxY, p.y);
+    }
+    var w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
+    var area = w * h;
+    var kx = Math.sqrt(area * aspect) / w;
+    var ky = Math.sqrt(area / aspect) / h;
+    for (var j = 0; j < ids.length; j++) {
+      var q = pos[ids[j]];
+      q.x = minX + (q.x - minX) * kx;
+      q.y = minY + (q.y - minY) * ky;
     }
   }
 
@@ -182,8 +252,10 @@
     // below then works on an outline that already matches the screen, so the
     // snap itself needs no scaling at all — which is what keeps the spacing
     // uniform and the picture undistorted.
-    packCommunities(pos, ids, b.vw / Math.max(b.vh, 1));
-    // Bounds recomputed from the PACKED positions: `b` came from the network,
+    var aspect = b.vw / Math.max(b.vh, 1);
+    packCommunities(pos, ids, aspect);
+    stretchToViewport(pos, ids, aspect);
+    // Bounds recomputed from the RESHAPED positions: `b` came from the network,
     // which has not been written to yet.
     var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (var q = 0; q < ids.length; q++) {
