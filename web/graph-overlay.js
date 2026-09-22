@@ -64,11 +64,20 @@
       // appeared after a second click on the toggle.
       openInfo();
       var n = typeof nodesDS !== 'undefined' ? nodesDS.get(id) : null;
-      if (!isRedacted(n)) {
-        return;
-      }
       var content = document.getElementById('info-content');
-      if (!content) {
+      // The node's name IS the title: graph.html's fixed "Node Info" heading
+      // plus the label repeated as the body's first field rendered it twice.
+      var head = document.querySelector('#info-panel h3');
+      if (head && n && n.label) {
+        head.textContent = n.label;
+      }
+      var first = content ? content.querySelector('.field') : null;
+      // Matched, not indexed: generated markup, and a blind removal of field
+      // one deletes whatever moves into its place when graphify reorders.
+      if (first && n && (first.textContent || '').trim() === String(n.label).trim()) {
+        first.remove();
+      }
+      if (!isRedacted(n) || !content) {
         return;
       }
       content.querySelectorAll('.field').forEach(function (f) {
@@ -271,16 +280,10 @@
   // moves half a panel RIGHT of the node, in world units, and the node lands in
   // the middle of what you can actually see.
   //
-  // Runs on the NEXT FRAME, so the pan and the panel move together. It waited
-  // 300ms once, on the assumption that the panel had to finish opening before it
-  // could be measured — it does not: the panel slides by `transform` and its
-  // width is 360 from the first frame, measured. The wait only meant the graph
-  // lurched into place after the panel had already arrived, and the 320ms pan
-  // was starting late enough to finish 2.4s after the click on a hub whose
-  // cascade was busy starving the animation frames. One frame is all it needs:
-  // long enough for the class that opens the panel to be set, short enough to be
-  // the same gesture. The 200ms matches `transition: transform 0.2s` on the
-  // panel itself, so the two arrive together.
+  // NEXT FRAME, so the pan and the panel move together — long enough for the
+  // class that opens the panel to be set, short enough to be one gesture. It
+  // waited 300ms once and the graph lurched into place after the panel had
+  // already arrived. ARCHITECTURE §11.
   function centreBesidePanel(id) {
     requestAnimationFrame(function () {
       var sb = document.getElementById('sidebar');
