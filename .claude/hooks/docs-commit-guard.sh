@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse(Bash) guard: when a `git commit` stages API source (api/*.py or
-# api/templates/*.html) without staging CLAUDE.md / ARCHITECTURE.md, deny the
+# api/templates/*.html) without staging CLAUDE.md / ARCHITECTURE.md / ARCHAEOLOGY.md, deny the
 # tool call and tell Claude to update the docs first (or ack [skip-docs]).
 #
 # Only the agent-driven path: this is a Claude Code hook, so it fires when
@@ -45,10 +45,10 @@ staged="$(git diff --cached --name-only 2>/dev/null)"
 has_src="$(printf '%s\n' "$staged" | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)"
 [ -n "$has_src" ] || exit 0
 
-has_docs="$(printf '%s\n' "$staged" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$' || true)"
+has_docs="$(printf '%s\n' "$staged" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$|^ARCHAEOLOGY\.md$' || true)"
 [ -n "$has_docs" ] && exit 0
 
-reason="This commit stages API source (api/*.py or api/templates/*.html) but does not stage CLAUDE.md or ARCHITECTURE.md. Before committing: review the staged diff (git diff --cached) and, if routes / pipelines / schemas / data files / naming changed, update CLAUDE.md (and ARCHITECTURE.md if it exists) and \`git add\` them. If no docs change is warranted, add the literal token [skip-docs] to the commit message. Then re-run the commit."
+reason="This commit stages API source (api/*.py or api/templates/*.html) but does not stage CLAUDE.md, ARCHITECTURE.md or ARCHAEOLOGY.md. Before committing: review the staged diff (git diff --cached) and, if routes / pipelines / schemas / data files / naming changed, update CLAUDE.md (and ARCHITECTURE.md for present design, ARCHAEOLOGY.md for a fixed bug) and \`git add\` them. If no docs change is warranted, add the literal token [skip-docs] to the commit message. Then re-run the commit."
 
 if command -v jq >/dev/null 2>&1; then
   jq -n --arg r "$reason" \

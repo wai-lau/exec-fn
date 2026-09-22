@@ -487,7 +487,7 @@ var graphPulse = (function () {
       // The cascade runs everywhere: every graph size, every pointer. It was
       // gated twice — on `(pointer: coarse)`, then on node count — and both
       // gates turned the animation off on the device that had reported the page
-      // as FROZEN, which a still graph reads as. ARCHITECTURE §11 has the whole
+      // as FROZEN, which a still graph reads as. ARCHAEOLOGY §11 has the whole
       // history; the short version is that the cost was never here.
       onPainted = onReady || null;
       index(function () {
