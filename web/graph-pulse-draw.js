@@ -88,15 +88,47 @@ var graphPulseDraw = (function () {
     ctx.closePath();
   }
 
-  function glyph(x, y, r, shape) {
-    // Triangles are lifted to 1.15x: at equal circumradius one reads smaller
-    // than the hexagon beside it, because it covers less of its own circle.
+  // vis does NOT draw a triangle centred on the node. Its own code reads
+  //
+  //   triangle:     y += 0.275 * (size *= 1.15)
+  //   triangleDown: y -= 0.275 * (size *= 1.15)
+  //
+  // so the shape is scaled by 1.15 and then shifted off the node position by
+  // 0.275 of that — the node's point is not the triangle's centroid. Drawing a
+  // plain centred triangle here put the lit glyph a third of a radius away from
+  // the node underneath it, which is visible the moment anything lights up.
+  // These numbers are vis's, copied deliberately: the overlay has to agree with
+  // the renderer it is painting over, not with the geometry it would choose.
+  var TRI_SCALE = 1.15;
+  var TRI_SHIFT = 0.275;
+
+  function triCentre(y, r, shape) {
     if (shape === 'triangle') {
-      polygon(x, y, r * 1.15, 3, -Math.PI / 2);   // point up, matching vis
-      return;
+      return y + TRI_SHIFT * r * TRI_SCALE;
     }
     if (shape === 'triangleDown') {
-      polygon(x, y, r * 1.15, 3, Math.PI / 2);    // point down
+      return y - TRI_SHIFT * r * TRI_SCALE;
+    }
+    return y;
+  }
+
+  function triangle(x, y, r, down) {
+    var e = r * TRI_SCALE;
+    var c = 2 * e, half = c / 2;
+    var inr = Math.sqrt(3) / 6 * c;
+    var out = Math.sqrt(c * c - half * half);
+    var apex = down ? y + (out - inr) : y - (out - inr);
+    var base = down ? y - inr : y + inr;
+    ctx.beginPath();
+    ctx.moveTo(x, apex);
+    ctx.lineTo(x + half, base);
+    ctx.lineTo(x - half, base);
+    ctx.closePath();
+  }
+
+  function glyph(x, y, r, shape) {
+    if (shape === 'triangle' || shape === 'triangleDown') {
+      triangle(x, triCentre(y, r, shape), r, shape === 'triangleDown');
       return;
     }
     if (shape === 'dot') {
@@ -121,13 +153,16 @@ var graphPulseDraw = (function () {
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;   // offscreen: the camera can be zoomed anywhere
     }
+    // The halo follows the GLYPH, not the node point, or a triangle glows
+    // off-centre — the same offset, seen from the other side.
+    var gy = triCentre(y, r, p.s);
     ctx.globalAlpha = a * A_HALO_OUTER;
     ctx.beginPath();
-    ctx.arc(x, y, r * HALO_OUTER, 0, Math.PI * 2);
+    ctx.arc(x, gy, r * HALO_OUTER, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = a * A_HALO_INNER;
     ctx.beginPath();
-    ctx.arc(x, y, r * HALO_INNER, 0, Math.PI * 2);
+    ctx.arc(x, gy, r * HALO_INNER, 0, Math.PI * 2);
     ctx.fill();
     glyph(x, y, r, p.s);
     ctx.globalAlpha = a * A_FILL;
