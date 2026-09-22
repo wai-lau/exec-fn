@@ -285,19 +285,17 @@ def _fix_graph_stats(page: str) -> str:
 
 # vis-network node size range: 6..44 until 2026-09-21, doubled to 12..88 because
 # at the opening whole-graph fit the hexagons were specks, and a node you cannot
-# see is a node nobody will hover; then x1.25 to 15..110 on request. BOTH ends
-# move together every time, and that is the rule rather than a coincidence: the
-# RATIO is what carries the meaning (size is geometric in degree, so a hub reads
-# as a hub), and scaling both ends keeps the encoding while changing only how
-# much of the screen it spends.
+# see is a node nobody will hover. BOTH ends move together, and that is a rule
+# rather than a coincidence: the RATIO is what carries the meaning (size is
+# geometric in degree, so a hub reads as a hub), and scaling both ends keeps the
+# encoding while changing only how much of the screen it spends.
 #
-# _SIZE_MAX is now larger than the lattice cell (110 against 168 across, so 220
-# wide against a 168 step), which means the handful of biggest hubs overlap their
-# neighbouring cells. That is the intended trade at this size: those nodes are
-# the ones worth seeing from the opening zoom, and there are only a few of them —
-# the median degree is 1.
-_SIZE_MIN = 15.0
-_SIZE_MAX = 110.0
+# Tried at x1.25 (15..110) on 2026-09-22 and reverted the same day: too big. At
+# 110 the largest hubs measured 220 across against a 168 lattice step, so they
+# sat over their neighbours rather than in a cell of their own — which is the
+# ceiling this range has to respect while the lattice keeps getting coarser.
+_SIZE_MIN = 12.0
+_SIZE_MAX = 88.0
 # Size grows GEOMETRICALLY with degree — each extra edge multiplies rather than
 # adds — so a hub reads as a hub instead of as a slightly larger leaf. The old
 # sqrt-of-line-count scale did the opposite: it compressed the interesting end
