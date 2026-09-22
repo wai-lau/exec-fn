@@ -74,7 +74,7 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-pulse-draw.js?v=3"></script>'
     '<script src="/graph-pulse.js?v=19"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
-    '<script src="/graph-lattice.js?v=3"></script>'
+    '<script src="/graph-lattice.js?v=8"></script>'
     '<script src="/graph-overlay.js?v=60"></script>'
 )
 # graphify's graph.html has no viewport meta — without it mobile renders at
@@ -332,7 +332,19 @@ async def _cached(guest: bool, lite: bool = False):
     are served different graphs, so they cannot share one."""
     global _CACHE_KEY
     st = _GRAPH_HTML.stat()
-    key = (st.st_mtime_ns, st.st_size)
+    # The BAKED LAYOUT counts as part of the artifact, not just graph.html.
+    # Keying on graph.html alone had a day-long failure in it: the 05:00 cron
+    # rebuilds graphify (new graph.html, cache dropped) and only then runs
+    # scripts/graph-layout.py, so any visit in that window cached a render made
+    # WITHOUT a layout -- and nothing invalidated it until the next rebuild, a
+    # full day later, with every visitor paying the ~30s browser stabilisation
+    # the bake exists to remove. A re-bake by hand had the same problem.
+    try:
+        lst = (_GRAPH_HTML.parent / "graph-layout.json").stat()
+        layout = (lst.st_mtime_ns, lst.st_size)
+    except OSError:
+        layout = None
+    key = (st.st_mtime_ns, st.st_size, layout)
     async with _CACHE_LOCK:
         if key != _CACHE_KEY:
             _CACHE.clear()

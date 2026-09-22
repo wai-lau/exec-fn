@@ -59,15 +59,31 @@ def main() -> int:
             "document.body && document.body.classList.contains('gp-loaded')",
             timeout=TIMEOUT_MS,
         )
+        # __GP_PRESNAP is the layout BEFORE graph-lattice.js quantises it, and
+        # baking that rather than network.getPositions() is what stops the
+        # moire. getPositions() here returns post-snap coordinates, so the file
+        # held a lattice of its own; every later visit then snapped that a
+        # second time, at a cell size that no longer matched, and the two
+        # lattices beat -- baked at 146, re-snapped at 97, which renders as
+        # evenly spaced groups of up to four nodes. Snap once, at serve time,
+        # against whatever CELLS_PER_NODE is current. Falls back to the old
+        # read so a bake still works against a page without the export.
         data = pg.evaluate(
             """() => {
               const ids = nodesDS.getIds();
-              const p = network.getPositions(ids);
+              const pre = window.__GP_PRESNAP;
               const pos = {};
-              for (const id of ids) {
-                if (p[id]) { pos[String(id)] = [Math.round(p[id].x), Math.round(p[id].y)]; }
+              if (pre) {
+                for (const id of ids) {
+                  if (pre[id]) { pos[String(id)] = pre[id]; }
+                }
+              } else {
+                const p = network.getPositions(ids);
+                for (const id of ids) {
+                  if (p[id]) { pos[String(id)] = [Math.round(p[id].x), Math.round(p[id].y)]; }
+                }
               }
-              return { key: window.GRAPH_LAYOUT_KEY || '', pos: pos };
+              return { key: window.GRAPH_LAYOUT_KEY || '', pos: pos, presnap: !!pre };
             }"""
         )
         browser.close()
