@@ -311,9 +311,11 @@ _PHYSICS_BLOCK_RE = re.compile(r"\n  physics: \{.*?\n  \},\n(?=  interaction:)",
 # which meant stabilising twice and then simulating forever); applying them here
 # means the single stabilisation pass produces the layout that is kept.
 # `damping` is high and `minVelocity` is coarse on purpose: this sim has one job,
-# to stop. 325 iterations: 220 -> 270 on 2026-09-21, then 370, back to 300, and
-# +25 on 2026-09-22 — 370 bought nothing the eye could find for another 8s of
-# bake, so the useful range sits nearer 300 than 400.
+# to stop. 300 iterations, settled after walking the range on 2026-09-22: 270 ->
+# 370 -> 300 -> 325 -> 300. Nothing above 300 showed up in the picture, and the
+# aspect shaping does not care either — 325 moved the bakes by 0.06 and 0.01,
+# because what limits them is the springs pulling back against the squeeze
+# (_SHAPE_RATE in scripts/graph-layout.py), not how long the sim runs.
 # The whole run is spent inside the NIGHTLY BAKE now, not in front of a visitor
 # -- a normal serve gets physics off and the baked positions -- so the cost of
 # another hundred is about seven seconds of a cron job that already takes twenty,
@@ -340,7 +342,7 @@ _PHYSICS_BLOCK = """
     },
     maxVelocity: 50,
     minVelocity: 4,
-    stabilization: { enabled: true, iterations: 325, updateInterval: 20, fit: true },
+    stabilization: { enabled: true, iterations: 300, updateInterval: 20, fit: true },
   },
 """
 # Curved edges cost a bezier per edge per frame. At 6k edges that is the single
@@ -390,7 +392,7 @@ def _brighten_graph_edges(page: str) -> str:
 
 
 # ── the baked layout ───────────────────────────────────────────────────────
-# Stabilising this graph is ~325 forceAtlas2 iterations over 2581 nodes. On a
+# Stabilising this graph is ~300 forceAtlas2 iterations over 2581 nodes. On a
 # desktop that is a few seconds under the loading cover; on a phone it measured
 # around THIRTY, every single visit, for a layout that is identical every time.
 # So it is computed once, out of band, and baked into the bytes — see
