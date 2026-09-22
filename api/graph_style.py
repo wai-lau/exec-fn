@@ -311,10 +311,14 @@ _PHYSICS_BLOCK_RE = re.compile(r"\n  physics: \{.*?\n  \},\n(?=  interaction:)",
 # which meant stabilising twice and then simulating forever); applying them here
 # means the single stabilisation pass produces the layout that is kept.
 # `damping` is high and `minVelocity` is coarse on purpose: this sim has one job,
-# to stop. 270 iterations, raised from 220 on 2026-09-21: the extra 50 are spent
-# under the loading cover, where they cost nothing anyone waits on deliberately,
-# and they buy a layout that has stopped moving rather than one still drifting
-# when it is frozen. theta 0.8 loosens the Barnes-Hut approximation -- on 4.5k nodes the
+# to stop. 370 iterations: 220 -> 270 on 2026-09-21, then +100 on 2026-09-22.
+# The whole run is spent inside the NIGHTLY BAKE now, not in front of a visitor
+# -- a normal serve gets physics off and the baked positions -- so the cost of
+# another hundred is about seven seconds of a cron job that already takes twenty,
+# and what it buys is a layout that has finished moving rather than one frozen
+# mid-drift. Raising it does NOT invalidate anything on its own: graph_layout_key
+# hashes node ids and edge pairs, not coordinates, so the old bake still matches
+# by key and keeps being served until scripts/graph-layout.py is re-run. theta 0.8 loosens the Barnes-Hut approximation -- on 4.5k nodes the
 # force error is invisible and the saving is not. `updateInterval` is small so
 # the run yields the main thread often: vis runs each interval's iterations in
 # one synchronous batch, and a batch the size of the whole run freezes the tab
@@ -334,7 +338,7 @@ _PHYSICS_BLOCK = """
     },
     maxVelocity: 50,
     minVelocity: 4,
-    stabilization: { enabled: true, iterations: 270, updateInterval: 20, fit: true },
+    stabilization: { enabled: true, iterations: 370, updateInterval: 20, fit: true },
   },
 """
 # Curved edges cost a bezier per edge per frame. At 6k edges that is the single
@@ -384,7 +388,7 @@ def _brighten_graph_edges(page: str) -> str:
 
 
 # ── the baked layout ───────────────────────────────────────────────────────
-# Stabilising this graph is ~270 forceAtlas2 iterations over 2722 nodes. On a
+# Stabilising this graph is ~370 forceAtlas2 iterations over 2581 nodes. On a
 # desktop that is a few seconds under the loading cover; on a phone it measured
 # around THIRTY, every single visit, for a layout that is identical every time.
 # So it is computed once, out of band, and baked into the bytes — see
