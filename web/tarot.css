@@ -179,15 +179,26 @@ html.kb-open #tarot-status { transition: bottom 0.13s ease-out; }
   user-select:none;
 }
 
-.tarot-card { transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease; }
+/* THE OUTLINE HUGS THE PICTURE, because the picture does not fill a fixed box.
+   The box was --card-w x --card-h (0.597 at phone size) and the art is 0.5545
+   to 0.5837 -- no single box fits 78 differently-cropped scans, so `contain`
+   letterboxed every face and the outline stood ~2px off each side while the
+   zoom (width:auto, so intrinsic) hugged it exactly. The card is given the
+   HEIGHT and takes its width from the image, which is what the zoom already
+   did; `justify-self:center` is what makes a grid item shrink to fit instead
+   of stretching to its column. The back is cropped to the faces' median 0.5714
+   (was 0.5833) so a flip does not resize the outline under the finger. */
+.tarot-card {
+  width:auto; justify-self:center;
+  transition:outline-width 0.15s, outline-color 0.15s, transform 0.4s ease;
+}
 .tarot-card:hover { outline:2px solid hsl(var(--green-hsl) / 0.45); }
 
 .tarot-card img {
-  width:100%; height:100%; object-fit:contain;
+  height:var(--card-h); width:auto; object-fit:contain;
   border-radius: var(--radius-4);
   display:block;
 }
-.tarot-card img.back { object-fit:fill; }
 .tarot-card .card-label { display:none; }
 .tarot-card .face { display:none; }
 .tarot-card[data-flipped="true"] .back { display:none; }
@@ -239,8 +250,14 @@ body.opening-pending .msg.assistant { display:none; }
 /* Significator slot deltas (shares the card body rules above) */
 #sig-card {
   grid-column: 1;
+
+  /* Same hug as a spread card, by the other route: the slot has to keep a box
+     when it is EMPTY (the back is its background, not an <img>), so it takes
+     the back's own 686x1200 instead of --card-w and the background fills it
+     exactly rather than being stretched to a wider box. */
+  width:auto; aspect-ratio: 686 / 1200; justify-self:center;
   border:1px solid rgba(0,0,0,0.4);
-  background:hsl(var(--surface-hsl)) url('/tarot/card_back.jpg?v=6') center/100% 100% no-repeat;
+  background:hsl(var(--surface-hsl)) url('/tarot/card_back.jpg?v=7') center/100% 100% no-repeat;
   display:flex; align-items:center; justify-content:center;
 }
 #sig-card.set { background:#000; }

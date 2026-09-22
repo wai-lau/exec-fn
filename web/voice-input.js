@@ -54,6 +54,15 @@ window.VoiceInput = (function () {
   // Long enough for the reply to finish rendering, short enough to feel like a
   // conversation rather than a form.
   const REARM_MS = 350;
+  // A GRACE WINDOW after the recognizer calls an utterance final, before the
+  // message is actually sent. The engine's idea of "she stopped talking" is a
+  // short silence, and a short silence is also what thinking mid-sentence
+  // sounds like -- so a pause to find the next word sent half a thought and
+  // left the rest to arrive as a second message. Anything heard inside the
+  // window cancels the send and joins what is already there; the timer only
+  // restarts on the next final. The cost is a second of latency on every
+  // spoken turn, deliberately paid.
+  const SEND_DELAY_MS = 1000;
 
   function supported() {
     return window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -84,6 +93,31 @@ window.VoiceInput = (function () {
     try { s.opts.fill(text); } catch { /* composer gone */ }
   }
 
+  /** Drop a send that is waiting out the grace window. The text stays in the
+   *  composer -- a cancelled send is never a lost sentence. */
+  function unarm(s) {
+    clearTimeout(s.sendTimer);
+    s.sendTimer = 0;
+  }
+
+  /** Arm the send for SEND_DELAY_MS.
+   *
+   * `pending` is what has already been finalized, held here rather than read
+   * back off the composer, because the recognizer may END and be rebuilt
+   * inside the window (iOS ends one on silence) -- which resets `base` to 0
+   * and would otherwise lose everything said before the restart. */
+  function arm(s, text) {
+    unarm(s);
+    s.pending = text;
+    if (!text) return;
+    s.sendTimer = setTimeout(() => {
+      s.sendTimer = 0;
+      s.pending = '';
+      s.opts.send();
+      paint(s);
+    }, SEND_DELAY_MS);
+  }
+
   /** Tear the recognizer down completely.
    *
    * Handlers are detached first: an aborted instance still fires `end`, and a
@@ -104,6 +138,10 @@ window.VoiceInput = (function () {
   function stop(s) {
     s.mode = false;
     s.fails = 0;
+    // A session ended inside the grace window does NOT send. Tapping the mic
+    // off mid-window is the one gesture that plainly means "not that" -- the
+    // words stay in the composer, where Enter is one tap away.
+    arm(s, '');
     kill(s);
     setLive(s, false);
     paint(s);
@@ -120,6 +158,7 @@ window.VoiceInput = (function () {
       // costs nothing rather than sending half a sentence.
       if (busy(s)) {
         s.base = e.results.length;
+        arm(s, '');
         fill(s, '');
         paint(s);
         return;
@@ -137,12 +176,20 @@ window.VoiceInput = (function () {
         if (alt && alt.transcript) text += alt.transcript;
         if (res.isFinal) done = true;
       }
-      fill(s, text.trim());
-      // Sending happens HERE, not in onend: the recognizer is never stopped
-      // between turns, so there is no end to hang it off.
+      const heard = text.trim();
+      // Anything new heard inside the grace window means she is still talking:
+      // cancel the armed send. An EMPTY result event is not speech and must not
+      // cancel it, or an engine that emits one after a final would leave the
+      // utterance armed forever and nothing would ever send.
+      if (heard) unarm(s);
+      const shown = s.pending && heard ? `${s.pending} ${heard}` : s.pending || heard;
+      fill(s, shown);
+      // The send is ARMED here, not called: the recognizer is never stopped
+      // between turns, so there is no end to hang it off, and a final result is
+      // only the engine's guess that she has finished a sentence.
       if (done) {
         s.base = e.results.length;
-        if (text.trim()) { s.opts.send(); paint(s); }
+        arm(s, shown);
       }
     } catch {
       // A throw in here once killed the handler before it could send or stop,
@@ -258,7 +305,11 @@ window.VoiceInput = (function () {
     // `base` is the results already sent: with a continuous session e.results
     // KEEPS every result of the session, so without a floor each new utterance
     // would resend the whole conversation so far.
-    const s = { btn: opts.btn, opts, rec: null, on: false, timer: 0, base: 0, fails: 0, mode: false };
+    const s = {
+      btn: opts.btn, opts, rec: null, on: false, timer: 0, base: 0, fails: 0, mode: false,
+      // The armed-send timer and the finalized text it will send (see arm()).
+      sendTimer: 0, pending: '',
+    };
     s.btn.classList.add('mic');
     setLive(s, false);
     s.btn.addEventListener('click', () => toggle(s));
