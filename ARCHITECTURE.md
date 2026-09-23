@@ -1795,6 +1795,50 @@ The model is a **spreading cascade**, not a region that lights up:
 | **Fade, never blink** | `ATTACK_MS` 90ms rise, then `(1 − t)^DECAY_POW` (1.2) — close to linear on purpose. At 1.8 the light was gone before the eye had followed the chain that lit it |
 | **Edges** | the edge the activation **travelled along** lights as the far end catches, for `EDGE_DUR`. Both its ends are lit by construction — it is drawn because something crossed it |
 | **Ink** | two soft discs under a **solid** hexagon (`A_FILL` 1), all under `globalCompositeOperation: 'lighter'`, which stacks them into a bloom. The fill was 0.55 and the node read as outlined-brighter rather than lit: the hexagon beneath is bg-filled with a coloured border (the /emet look), so an additive half-alpha only greyed its dark interior. At 1 the centre clips to white and the halos ring it. Cheaper than `shadowBlur` and needs no per-node state. Alpha rides on `ctx.globalAlpha` over one flat white `fillStyle` — never a colour string built per call, which at 60fps per node is garbage for the collector to chase (and it keeps the palette lint happy with a single literal) |
+| **The saturated second layer** | a DUPLICATE of that whole pass — both halos, the glyph fill, the stroke, and the lit edge — drawn OVER the top in the node's own community colour with its saturation pushed up (`SAT_BOOST` 1.75, clamped at fully saturated), and living `SAT_MULT` (**3**) times as long. What you see is a white flash decaying into a long coloured afterglow |
+
+**The saturated layer only reads because it outlives the white one.** Under
+`'lighter'`, adding colour on top of a centre that has already clipped to white
+does nothing, so for its first third this layer is only a tint on the halo. Its
+point is the other two thirds: once the white envelope has run out the coloured
+pass is the only thing on the canvas. Drawing it UNDER the white instead would
+have been washed out for the whole overlap and identical afterwards, so over the
+top is both what was asked for and the only ordering that shows anything during
+the flash. Measured on the served page at 1000x800, nine seconds after seeding a
+hub — past the white pass's ~5.6s maximum — **31,924 of 33,072 lit pixels carry
+colour**, with a channel spread up to 235; before this layer the canvas drew one
+flat white and that count was zero.
+
+Three things keep it cheap, and each is the same rule the white pass already
+followed:
+
+- **The colour is computed ONCE per node**, at `index()` time, and cached on
+  `pos[id].c` (`graphPulseDraw.satInk`, hex -> HSL -> saturation x boost -> hex).
+  Per frame the draw half only ASSIGNS that cached string, so the file's ban on
+  building a colour per call still holds. A node with no colour falls back to the
+  white ink rather than vanishing.
+- **The envelope is the model's own `level`**, read against `dur * SAT_MULT`
+  through one reusable scratch record — never a second copy of `ATTACK_MS` and
+  `DECAY_POW`, which would be two fades to keep in sync, and no allocation per lit
+  node per frame.
+- **One geometry, two inks.** `drawNode` takes an alpha set, so the saturated pass
+  is the same path and the same shapes; there is no second copy of the halo maths
+  to drift.
+
+**What it costs, honestly.** A lit record now has to survive three times as long
+(`expire` asks `graphPulseDraw.totalLife(dur)` rather than holding the multiplier
+itself), so `hasAny(lit)` stays true roughly 3x longer and the canvas paints on
+about three times as many frames. On this page that matters more than the drawing
+does: the cascade is the one animated layer under the CRT stack's two
+`backdrop-filter` panes, which is the most expensive shape in this repo. The
+per-frame work is still O(lit) and still measured at ~0ms of canvas time; what
+went up is how much of the time the page is not idle.
+
+**`graph-pulse.js` was exactly at the 500-line cap when this landed**, which is
+why the whole layer lives in `graph-pulse-draw.js` and the model file carries only
+in-place edits: the cached ink on `pos`, the `totalLife` call in `expire`, and
+`lit` added to the `init` handover. `lit` meets the same mutated-in-place contract
+`pos` and `litEdges` already did — declared once, only ever keyed and deleted.
 
 `SIZE_FLOOR`/`SIZE_CEIL` mirror `graph_style._size_graph_by_degree`'s range rather than being derived from the data, so one enormous outlier cannot flatten every other node onto `P_MIN`. If that range moves, move these with it.
 
