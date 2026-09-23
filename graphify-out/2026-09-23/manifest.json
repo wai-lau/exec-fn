@@ -205,18 +205,18 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1790098464.5315785,
-    "ast_hash": "18947a844020c62778cd609e56eb7c88",
+    "mtime": 1790096603.6820366,
+    "ast_hash": "c72002cd334e0c8ab021d1c79c56eceb",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1790098446.2895048,
-    "ast_hash": "f61090111fba7c35e82c5cdcfa626371",
+    "mtime": 1790096613.8560772,
+    "ast_hash": "5321b8e1a47e8fcffb5a321d1821a048",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1790098464.5315785,
-    "ast_hash": "4c948d6dfd72620c9632b6a744d44e50",
+    "mtime": 1789188203.6801186,
+    "ast_hash": "e369e41bc1ff1469742f680f40eea0d5",
     "semantic_hash": ""
   },
   "api/requirements.txt": {
@@ -895,8 +895,8 @@
     "semantic_hash": ""
   },
   "scripts/pre-commit": {
-    "mtime": 1790098446.290505,
-    "ast_hash": "7e4687c22158f752209437cf1d253221",
+    "mtime": 1790037028.6943767,
+    "ast_hash": "b9ffa4be455fb36a9b8dc9a0ad66c6d0",
     "semantic_hash": ""
   },
   "api/templates/guest_login.html": {
@@ -1050,8 +1050,8 @@
     "semantic_hash": ""
   },
   ".claude/hooks/docs-commit-guard.sh": {
-    "mtime": 1790098446.2895048,
-    "ast_hash": "ecac04aa0c4e96b7b6e96babeee29515",
+    "mtime": 1789188203.6701186,
+    "ast_hash": "95ed115844811e9e0ead8b87e839bb18",
     "semantic_hash": ""
   },
   "api/routes_tts.py": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1790152204.7466958,
+    "mtime": 1790065804.1528845,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -1780,7 +1780,7 @@
     "semantic_hash": ""
   },
   "api/data/gamesave_save1.json": {
-    "mtime": 1790138164.36777,
+    "mtime": 1790062914.3351526,
     "ast_hash": "8e673ac279bc9d071c4579973d09a182",
     "semantic_hash": ""
   },
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1790152211.7047236,
-    "ast_hash": "12bc8b85c14d8fae6d74820adc3f5ab4",
+    "mtime": 1790065806.8508954,
+    "ast_hash": "6d5b10c0b461300cc23f36ff1175582a",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1790152217.3667462,
-    "ast_hash": "a44781e40bfdfd19ffe4c357fee67df9",
+    "mtime": 1790085140.1464298,
+    "ast_hash": "8451e5c079c1602a6e1210b6886c8893",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6745,8 +6745,8 @@
     "semantic_hash": ""
   },
   "api/routes_graph.py": {
-    "mtime": 1790098446.2815049,
-    "ast_hash": "6be47b097f17b953a41400a4d3794360",
+    "mtime": 1790062704.3313072,
+    "ast_hash": "5927e50d2f78682639800be8b30e2485",
     "semantic_hash": ""
   },
   "api/routes_printer.py": {
@@ -6930,12 +6930,12 @@
     "semantic_hash": ""
   },
   "api/data/gamesave_save2.json": {
-    "mtime": 1790138164.36977,
+    "mtime": 1790062914.3421526,
     "ast_hash": "696a4a2c3512dd3713b94b74bdb121bf",
     "semantic_hash": ""
   },
   "api/data/gamesave_save3.json": {
-    "mtime": 1790138164.37077,
+    "mtime": 1790062914.3411527,
     "ast_hash": "91b5617184d76b5cc30a02b5b781a0a5",
     "semantic_hash": ""
   },
@@ -9220,8 +9220,8 @@
     "semantic_hash": ""
   },
   "web/graph-pulse.js": {
-    "mtime": 1790098446.2815049,
-    "ast_hash": "ab05831535e1c3a09927d8caa88ee149",
+    "mtime": 1790061946.0332541,
+    "ast_hash": "3a27897a49d5a1e0e0aaeec5b18341b2",
     "semantic_hash": ""
   },
   "web/icons/README.md": {
@@ -9339,19 +9339,9 @@
     "ast_hash": "5a5ddbe09bdf488dee2ceec81497db4a",
     "semantic_hash": ""
   },
-  "api/data/activity_log_20260923.json": {
-    "mtime": 1790138520.5823226,
-    "ast_hash": "9de9f932b627ff1ff91cf912b3cfe01c",
-    "semantic_hash": ""
-  },
-  "ARCHAEOLOGY.md": {
-    "mtime": 1790098351.3741217,
-    "ast_hash": "e7c5ccdf14869b1eed7da636432becfe",
-    "semantic_hash": ""
-  },
-  "docs/graph.webp": {
-    "mtime": 1790097419.7623444,
-    "ast_hash": "611c2ec4002680be47d47080c3e59132",
+  "api/data/chat.json": {
+    "mtime": 1790085140.1484296,
+    "ast_hash": "9447e856fc7253b7a4145245c0ee6809",
     "semantic_hash": ""
   }
 }

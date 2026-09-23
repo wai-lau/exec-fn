@@ -500,7 +500,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_auth",
-      "community": 0,
+      "community": 6,
       "norm_label": "auth.py"
     },
     {
@@ -520,7 +520,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "api_auth_require_auth",
-      "community": 0,
+      "community": 6,
       "norm_label": "require_auth()"
     },
     {
@@ -530,7 +530,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "httpauthorizationcredentials",
-      "community": 0,
+      "community": 6,
       "norm_label": "httpauthorizationcredentials"
     },
     {
@@ -540,7 +540,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "api_auth_require_guest_auth",
-      "community": 0,
+      "community": 6,
       "norm_label": "require_guest_auth()"
     },
     {
@@ -1220,7 +1220,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "api_chat_store_sanitize_history_for_api",
-      "community": 85,
+      "community": 92,
       "norm_label": "sanitize_history_for_api()"
     },
     {
@@ -1240,7 +1240,7 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "api_chat_store_append_monitor_comment",
-      "community": 125,
+      "community": 92,
       "norm_label": "append_monitor_comment()"
     },
     {
@@ -1290,7 +1290,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "api_chat_store_rationale_49",
-      "community": 85,
+      "community": 92,
       "norm_label": "flatten a stored/round-tripped conversation to a text-only, role-alternating"
     },
     {
@@ -1300,7 +1300,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "api_chat_store_rationale_147",
-      "community": 125,
+      "community": 92,
       "norm_label": "append a monitor/nudge line.      a nudge is about one card, so it carries that"
     },
     {
@@ -2944,16 +2944,6 @@
       "norm_label": "activity_log_20260922.json"
     },
     {
-      "label": "activity_log_20260923.json",
-      "file_type": "code",
-      "source_file": "api/data/activity_log_20260923.json",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "data_activity_log_20260923",
-      "community": 628,
-      "norm_label": "activity_log_20260923.json"
-    },
-    {
       "label": "archive.json",
       "file_type": "code",
       "source_file": "api/data/archive.json",
@@ -3482,6 +3472,46 @@
       "id": "data_cc_titles_d844db08_45da_4e50_8d3f_00c927af6c2c_at",
       "community": 645,
       "norm_label": "at"
+    },
+    {
+      "label": "chat.json",
+      "file_type": "code",
+      "source_file": "api/data/chat.json",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "data_chat",
+      "community": 658,
+      "norm_label": "chat.json"
+    },
+    {
+      "label": "messages",
+      "file_type": "code",
+      "source_file": "api/data/chat.json",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "data_chat_messages",
+      "community": 658,
+      "norm_label": "messages"
+    },
+    {
+      "label": "stage",
+      "file_type": "code",
+      "source_file": "api/data/chat.json",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "data_chat_stage",
+      "community": 658,
+      "norm_label": "stage"
+    },
+    {
+      "label": "updated_at",
+      "file_type": "code",
+      "source_file": "api/data/chat.json",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "data_chat_updated_at",
+      "community": 658,
+      "norm_label": "updated_at"
     },
     {
       "label": "delta.json",
@@ -11060,7 +11090,7 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "api_discord_bot_run_discord_bot",
-      "community": 122,
+      "community": 85,
       "norm_label": "_run_discord_bot()"
     },
     {
@@ -11140,7 +11170,7 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "api_discord_bot_rationale_175",
-      "community": 122,
+      "community": 85,
       "norm_label": "lifespan task: connect the gateway, dm outbound comments, answer dms.      no-op"
     },
     {
@@ -11248,7 +11278,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_gamesave_store",
-      "community": 366,
+      "community": 59,
       "norm_label": "gamesave_store.py"
     },
     {
@@ -11258,7 +11288,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "api_gamesave_store_is_valid_slot",
-      "community": 362,
+      "community": 59,
       "norm_label": "is_valid_slot()"
     },
     {
@@ -11268,7 +11298,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "api_gamesave_store_new_guest_id",
-      "community": 366,
+      "community": 59,
       "norm_label": "new_guest_id()"
     },
     {
@@ -11278,7 +11308,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "api_gamesave_store_is_valid_guest_id",
-      "community": 366,
+      "community": 59,
       "norm_label": "is_valid_guest_id()"
     },
     {
@@ -11288,7 +11318,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "api_gamesave_store_guest_id_or_new",
-      "community": 366,
+      "community": 59,
       "norm_label": "guest_id_or_new()"
     },
     {
@@ -11298,7 +11328,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "api_gamesave_store_gid_hash",
-      "community": 366,
+      "community": 59,
       "norm_label": "_gid_hash()"
     },
     {
@@ -11338,7 +11368,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_gamesave_store_rationale_1",
-      "community": 366,
+      "community": 59,
       "norm_label": "per-caller /nightfall save-slot resolution -- stdlib only, no fastapi/httpx.  de"
     },
     {
@@ -11348,7 +11378,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "api_gamesave_store_rationale_58",
-      "community": 362,
+      "community": 59,
       "norm_label": "true iff `slot` is one of the three real save slots."
     },
     {
@@ -11358,7 +11388,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "api_gamesave_store_rationale_63",
-      "community": 366,
+      "community": 59,
       "norm_label": "mint an opaque, unguessable guest save id for the nf_save cookie."
     },
     {
@@ -11368,7 +11398,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "api_gamesave_store_rationale_68",
-      "community": 366,
+      "community": 59,
       "norm_label": "true iff `raw` looks like an id this server minted.      rejecting a malformed c"
     },
     {
@@ -11378,7 +11408,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "api_gamesave_store_rationale_84",
-      "community": 366,
+      "community": 59,
       "norm_label": "resolve the cookie to a usable id. returns (id, minted) -- `minted` true     whe"
     },
     {
@@ -11388,7 +11418,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "api_gamesave_store_rationale_93",
-      "community": 366,
+      "community": 59,
       "norm_label": "filesystem-safe stand-in for a guest id: 32 hex chars, always."
     },
     {
@@ -11558,7 +11588,7 @@
       "source_location": "L318",
       "_origin": "ast",
       "id": "api_gcal_import_gcal_cards",
-      "community": 16,
+      "community": 23,
       "norm_label": "import_gcal_cards()"
     },
     {
@@ -11608,7 +11638,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "api_gcal_rationale_319",
-      "community": 16,
+      "community": 23,
       "norm_label": "pull gcal events \u2192 classify with haiku \u2192 rd.json cards. deduplicates by gcal_id"
     },
     {
@@ -12958,7 +12988,7 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "httpexception",
-      "community": 0,
+      "community": 6,
       "norm_label": "httpexception"
     },
     {
@@ -13806,7 +13836,7 @@
       "source_location": "L223",
       "_origin": "ast",
       "id": "api_nudge_clear_awaiting_focused",
-      "community": 7,
+      "community": 16,
       "norm_label": "clear_awaiting_focused()"
     },
     {
@@ -13906,7 +13936,7 @@
       "source_location": "L224",
       "_origin": "ast",
       "id": "api_nudge_rationale_224",
-      "community": 7,
+      "community": 16,
       "norm_label": "user spoke in exec chat: mark the focused awaiting card replied-to so the     st"
     },
     {
@@ -14466,7 +14496,7 @@
       "source_location": "L289",
       "_origin": "ast",
       "id": "api_pages_index_pages",
-      "community": 153,
+      "community": 121,
       "norm_label": "_index_pages()"
     },
     {
@@ -14516,7 +14546,7 @@
       "source_location": "L290",
       "_origin": "ast",
       "id": "api_pages_rationale_290",
-      "community": 153,
+      "community": 121,
       "norm_label": "return (no_form, bare) variants of /app/static/index.html, re-read on change."
     },
     {
@@ -15026,7 +15056,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_recalibration",
-      "community": 6,
+      "community": 322,
       "norm_label": "recalibration.py"
     },
     {
@@ -15036,7 +15066,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "api_recalibration_load",
-      "community": 6,
+      "community": 322,
       "norm_label": "_load()"
     },
     {
@@ -15046,7 +15076,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "api_recalibration_save",
-      "community": 6,
+      "community": 322,
       "norm_label": "_save()"
     },
     {
@@ -15056,7 +15086,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "api_recalibration_factor_for",
-      "community": 6,
+      "community": 322,
       "norm_label": "factor_for()"
     },
     {
@@ -15066,7 +15096,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "api_recalibration_target",
-      "community": 6,
+      "community": 322,
       "norm_label": "_target()"
     },
     {
@@ -15076,7 +15106,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "api_recalibration_recalibrate",
-      "community": 6,
+      "community": 322,
       "norm_label": "recalibrate()"
     },
     {
@@ -15086,7 +15116,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_recalibration_rationale_1",
-      "community": 6,
+      "community": 322,
       "norm_label": "lateness recalibration.  consumes the `late` telemetry that lands on archive mov"
     },
     {
@@ -15096,7 +15126,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "api_recalibration_rationale_47",
-      "community": 6,
+      "community": 322,
       "norm_label": "lateness factor for a card's category (1.0 if unknown / never late)."
     },
     {
@@ -15106,7 +15136,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "api_recalibration_rationale_61",
-      "community": 6,
+      "community": 322,
       "norm_label": "per-completion target the ema pulls toward."
     },
     {
@@ -15116,7 +15146,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "api_recalibration_rationale_70",
-      "community": 6,
+      "community": 322,
       "norm_label": "fold a day's completions into the per-category factors. a completion is a     `m"
     },
     {
@@ -15156,7 +15186,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "api_routes_api_api_morning",
-      "community": 7,
+      "community": 6,
       "norm_label": "api_morning()"
     },
     {
@@ -15456,7 +15486,7 @@
       "source_location": "L440",
       "_origin": "ast",
       "id": "api_routes_api_api_gcal_auth",
-      "community": 23,
+      "community": 6,
       "norm_label": "api_gcal_auth()"
     },
     {
@@ -15466,7 +15496,7 @@
       "source_location": "L449",
       "_origin": "ast",
       "id": "api_routes_api_api_gcal_import_cards",
-      "community": 0,
+      "community": 6,
       "norm_label": "api_gcal_import_cards()"
     },
     {
@@ -15816,7 +15846,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "api_routes_chat_dispatch_tools",
-      "community": 125,
+      "community": 92,
       "norm_label": "_dispatch_tools()"
     },
     {
@@ -15846,7 +15876,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "api_routes_chat_rationale_85",
-      "community": 125,
+      "community": 92,
       "norm_label": "run each tool_use block: stream a tool_call sse event, collect its     tool_resu"
     },
     {
@@ -16126,7 +16156,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_routes_nightfall",
-      "community": 362,
+      "community": 59,
       "norm_label": "routes_nightfall.py"
     },
     {
@@ -16136,7 +16166,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "api_routes_nightfall_build_nightfall_html",
-      "community": 362,
+      "community": 59,
       "norm_label": "build_nightfall_html()"
     },
     {
@@ -16146,7 +16176,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "api_routes_nightfall_save_identity",
-      "community": 362,
+      "community": 59,
       "norm_label": "save_identity()"
     },
     {
@@ -16156,7 +16186,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "api_routes_nightfall_py_request",
-      "community": 362,
+      "community": 59,
       "norm_label": "request"
     },
     {
@@ -16166,7 +16196,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "api_routes_nightfall_set_guest_cookie",
-      "community": 362,
+      "community": 59,
       "norm_label": "set_guest_cookie()"
     },
     {
@@ -16176,7 +16206,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "api_routes_nightfall_py_response",
-      "community": 362,
+      "community": 59,
       "norm_label": "response"
     },
     {
@@ -16186,7 +16216,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "api_routes_nightfall_read_slot",
-      "community": 362,
+      "community": 59,
       "norm_label": "_read_slot()"
     },
     {
@@ -16196,7 +16226,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "api_routes_nightfall_py_path",
-      "community": 362,
+      "community": 59,
       "norm_label": "path"
     },
     {
@@ -16206,7 +16236,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "api_routes_nightfall_maybe_sweep",
-      "community": 362,
+      "community": 59,
       "norm_label": "_maybe_sweep()"
     },
     {
@@ -16216,7 +16246,7 @@
       "source_location": "L130",
       "_origin": "ast",
       "id": "api_routes_nightfall_api_gamesave_all",
-      "community": 362,
+      "community": 59,
       "norm_label": "api_gamesave_all()"
     },
     {
@@ -16226,7 +16256,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "api_routes_nightfall_api_gamesave_get",
-      "community": 362,
+      "community": 59,
       "norm_label": "api_gamesave_get()"
     },
     {
@@ -16236,7 +16266,7 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "api_routes_nightfall_api_gamesave_post",
-      "community": 362,
+      "community": 59,
       "norm_label": "api_gamesave_post()"
     },
     {
@@ -16246,7 +16276,7 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "api_routes_nightfall_api_gamesave_delete",
-      "community": 362,
+      "community": 59,
       "norm_label": "api_gamesave_delete()"
     },
     {
@@ -16256,7 +16286,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "api_routes_nightfall_rationale_68",
-      "community": 362,
+      "community": 59,
       "norm_label": "who is asking, for save-scoping purposes.      returns (guest_id, minted): `none"
     },
     {
@@ -16266,7 +16296,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "api_routes_nightfall_rationale_90",
-      "community": 362,
+      "community": 59,
       "norm_label": "stamp the guest's save id. long-lived on purpose: this is not an auth     creden"
     },
     {
@@ -16806,7 +16836,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_routes_views",
-      "community": 153,
+      "community": 0,
       "norm_label": "routes_views.py"
     },
     {
@@ -16826,7 +16856,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "api_routes_views_safe_local_path",
-      "community": 153,
+      "community": 0,
       "norm_label": "_safe_local_path()"
     },
     {
@@ -16836,7 +16866,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "api_routes_views_landing_html",
-      "community": 153,
+      "community": 121,
       "norm_label": "_landing_html()"
     },
     {
@@ -16846,7 +16876,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "api_routes_views_root",
-      "community": 153,
+      "community": 121,
       "norm_label": "root()"
     },
     {
@@ -16866,7 +16896,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "api_routes_views_recruiter_page",
-      "community": 153,
+      "community": 121,
       "norm_label": "recruiter_page()"
     },
     {
@@ -16876,7 +16906,7 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "api_routes_views_login_page",
-      "community": 153,
+      "community": 0,
       "norm_label": "login_page()"
     },
     {
@@ -16886,7 +16916,7 @@
       "source_location": "L185",
       "_origin": "ast",
       "id": "api_routes_views_login",
-      "community": 153,
+      "community": 0,
       "norm_label": "login()"
     },
     {
@@ -16896,7 +16926,7 @@
       "source_location": "L197",
       "_origin": "ast",
       "id": "api_routes_views_guest_login_page",
-      "community": 153,
+      "community": 0,
       "norm_label": "guest_login_page()"
     },
     {
@@ -16956,7 +16986,7 @@
       "source_location": "L247",
       "_origin": "ast",
       "id": "api_routes_views_ui_usage",
-      "community": 153,
+      "community": 0,
       "norm_label": "ui_usage()"
     },
     {
@@ -16976,7 +17006,7 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "api_routes_views_security_page",
-      "community": 153,
+      "community": 70,
       "norm_label": "security_page()"
     },
     {
@@ -17006,7 +17036,7 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "api_routes_views_nightfall_page",
-      "community": 362,
+      "community": 59,
       "norm_label": "nightfall_page()"
     },
     {
@@ -17016,7 +17046,7 @@
       "source_location": "L375",
       "_origin": "ast",
       "id": "api_routes_views_api_debug_logs",
-      "community": 153,
+      "community": 0,
       "norm_label": "api_debug_logs()"
     },
     {
@@ -17026,7 +17056,7 @@
       "source_location": "L394",
       "_origin": "ast",
       "id": "api_routes_views_api_debug_cron",
-      "community": 153,
+      "community": 0,
       "norm_label": "api_debug_cron()"
     },
     {
@@ -17036,7 +17066,7 @@
       "source_location": "L426",
       "_origin": "ast",
       "id": "api_routes_views_api_tarot_readings",
-      "community": 153,
+      "community": 0,
       "norm_label": "api_tarot_readings()"
     },
     {
@@ -17046,7 +17076,7 @@
       "source_location": "L440",
       "_origin": "ast",
       "id": "api_routes_views_api_mtg_log",
-      "community": 153,
+      "community": 0,
       "norm_label": "api_mtg_log()"
     },
     {
@@ -17066,7 +17096,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "api_routes_views_rationale_1",
-      "community": 153,
+      "community": 0,
       "norm_label": "html page routes + the read-only data gets that back them.  public landing/login"
     },
     {
@@ -17086,7 +17116,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "api_routes_views_rationale_41",
-      "community": 153,
+      "community": 0,
       "norm_label": "same-origin redirect guard: accept only a leading-slash relative path,     rejec"
     },
     {
@@ -17096,7 +17126,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "api_routes_views_rationale_108",
-      "community": 153,
+      "community": 121,
       "norm_label": "public landing page: non-admin sections only, as a vertical carousel     wheel o"
     },
     {
@@ -17106,7 +17136,7 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "api_routes_views_rationale_143",
-      "community": 153,
+      "community": 121,
       "norm_label": "public landing page (non-admin sections). logged-in admins skip it     and land"
     },
     {
@@ -17116,7 +17146,7 @@
       "source_location": "L152",
       "_origin": "ast",
       "id": "api_routes_views_rationale_152",
-      "community": 153,
+      "community": 121,
       "norm_label": "public, auth-free resume page for recruiters. clean layout on the site     palet"
     },
     {
@@ -17126,7 +17156,7 @@
       "source_location": "L168",
       "_origin": "ast",
       "id": "api_routes_views_rationale_168",
-      "community": 153,
+      "community": 0,
       "norm_label": "admin login screen. already-authed visitors skip it and land on their     redire"
     },
     {
@@ -17156,7 +17186,7 @@
       "source_location": "L248",
       "_origin": "ast",
       "id": "api_routes_views_rationale_248",
-      "community": 153,
+      "community": 0,
       "norm_label": "var(--x) occurrence counts + actually-used alphas per -hsl token +     usage sit"
     },
     {
@@ -17166,7 +17196,7 @@
       "source_location": "L395",
       "_origin": "ast",
       "id": "api_routes_views_rationale_395",
-      "community": 153,
+      "community": 0,
       "norm_label": "every cron job's output, one file per day per job.      three jobs write here an"
     },
     {
@@ -17176,7 +17206,7 @@
       "source_location": "L441",
       "_origin": "ast",
       "id": "api_routes_views_rationale_441",
-      "community": 153,
+      "community": 0,
       "norm_label": "every mtg session transcript, for the owner-only /debug viewer.      owner-only"
     },
     {
@@ -21812,7 +21842,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "audio_audiosources_todo",
-      "community": 63,
+      "community": 172,
       "norm_label": "__todo__"
     },
     {
@@ -21872,7 +21902,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "audio_audiosources_heal",
-      "community": 322,
+      "community": 63,
       "norm_label": "heal"
     },
     {
@@ -22102,7 +22132,7 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "audio_audiosources_zap",
-      "community": 322,
+      "community": 63,
       "norm_label": "zap"
     },
     {
@@ -22112,7 +22142,7 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "audio_audiosources_clog",
-      "community": 322,
+      "community": 63,
       "norm_label": "clog"
     },
     {
@@ -22202,7 +22232,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "bin_image_list",
-      "community": 181,
+      "community": 138,
       "norm_label": "image-list.ts"
     },
     {
@@ -22422,7 +22452,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "campaign_databattleaudioshuffleconfig",
-      "community": 181,
+      "community": 67,
       "norm_label": "databattleaudioshuffleconfig.ts"
     },
     {
@@ -22432,7 +22462,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "campaign_databattleaudioshuffleconfig_databattleconfig",
-      "community": 181,
+      "community": 67,
       "norm_label": "databattleconfig"
     },
     {
@@ -22442,7 +22472,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_disarray_d1",
-      "community": 127,
+      "community": 115,
       "norm_label": "disarray-d1.ts"
     },
     {
@@ -22452,7 +22482,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_disarray_d1_disarrayd1",
-      "community": 127,
+      "community": 115,
       "norm_label": "disarrayd1"
     },
     {
@@ -22462,7 +22492,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_disarray_f4",
-      "community": 382,
+      "community": 115,
       "norm_label": "disarray-f4.ts"
     },
     {
@@ -22472,7 +22502,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_disarray_f4_disarrayf4",
-      "community": 382,
+      "community": 115,
       "norm_label": "disarrayf4"
     },
     {
@@ -22522,7 +22552,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_disarray_l8",
-      "community": 127,
+      "community": 362,
       "norm_label": "disarray-l8.ts"
     },
     {
@@ -22532,7 +22562,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_disarray_l8_disarrayl8",
-      "community": 127,
+      "community": 362,
       "norm_label": "disarrayl8"
     },
     {
@@ -22602,7 +22632,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_index",
-      "community": 127,
+      "community": 115,
       "norm_label": "index.ts"
     },
     {
@@ -22632,7 +22662,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_joana_c5",
-      "community": 127,
+      "community": 366,
       "norm_label": "joana-c5.ts"
     },
     {
@@ -22642,7 +22672,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_joana_c5_joanac5",
-      "community": 127,
+      "community": 366,
       "norm_label": "joanac5"
     },
     {
@@ -22692,7 +22722,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_joana_p4",
-      "community": 115,
+      "community": 370,
       "norm_label": "joana-p4.ts"
     },
     {
@@ -22702,7 +22732,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_joana_p4_joanap4",
-      "community": 115,
+      "community": 370,
       "norm_label": "joanap4"
     },
     {
@@ -22712,7 +22742,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_kimoni_initial",
-      "community": 127,
+      "community": 374,
       "norm_label": "kimoni-initial.ts"
     },
     {
@@ -22722,7 +22752,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_kimoni_initial_kimoniinitial",
-      "community": 127,
+      "community": 374,
       "norm_label": "kimoniinitial"
     },
     {
@@ -22732,7 +22762,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_kimoni_revisit",
-      "community": 385,
+      "community": 115,
       "norm_label": "kimoni-revisit.ts"
     },
     {
@@ -22742,7 +22772,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_kimoni_revisit_kimonirevisit",
-      "community": 385,
+      "community": 115,
       "norm_label": "kimonirevisit"
     },
     {
@@ -22812,7 +22842,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_minerva_revisit",
-      "community": 388,
+      "community": 115,
       "norm_label": "minerva-revisit.ts"
     },
     {
@@ -22822,7 +22852,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_minerva_revisit_minervarevisit",
-      "community": 388,
+      "community": 115,
       "norm_label": "minervarevisit"
     },
     {
@@ -22852,7 +22882,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_spinner_f1",
-      "community": 115,
+      "community": 379,
       "norm_label": "spinner-f1.ts"
     },
     {
@@ -22862,7 +22892,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_spinner_f1_spinnerf1",
-      "community": 115,
+      "community": 379,
       "norm_label": "spinnerf1"
     },
     {
@@ -22932,7 +22962,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_spinner_p7",
-      "community": 127,
+      "community": 380,
       "norm_label": "spinner-p7.ts"
     },
     {
@@ -22942,7 +22972,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_spinner_p7_spinnerp7",
-      "community": 127,
+      "community": 380,
       "norm_label": "spinnerp7"
     },
     {
@@ -22952,7 +22982,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_c1",
-      "community": 577,
+      "community": 127,
       "norm_label": "superphreak-c1.ts"
     },
     {
@@ -22962,7 +22992,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_c1_superphreakc1",
-      "community": 577,
+      "community": 127,
       "norm_label": "superphreakc1"
     },
     {
@@ -23032,7 +23062,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_d5",
-      "community": 127,
+      "community": 382,
       "norm_label": "superphreak-d5.ts"
     },
     {
@@ -23042,7 +23072,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_d5_superphreakd5",
-      "community": 127,
+      "community": 382,
       "norm_label": "superphreakd5"
     },
     {
@@ -23132,7 +23162,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_intro",
-      "community": 115,
+      "community": 385,
       "norm_label": "superphreak-intro.ts"
     },
     {
@@ -23142,7 +23172,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_intro_superphreakintro",
-      "community": 115,
+      "community": 385,
       "norm_label": "superphreakintro"
     },
     {
@@ -23152,7 +23182,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_l3",
-      "community": 127,
+      "community": 388,
       "norm_label": "superphreak-l3.ts"
     },
     {
@@ -23162,7 +23192,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_l3_superphreakl3",
-      "community": 127,
+      "community": 388,
       "norm_label": "superphreakl3"
     },
     {
@@ -23192,7 +23222,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_l6",
-      "community": 127,
+      "community": 577,
       "norm_label": "superphreak-l6.ts"
     },
     {
@@ -23202,7 +23232,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_l6_superphreakl6",
-      "community": 127,
+      "community": 577,
       "norm_label": "superphreakl6"
     },
     {
@@ -23212,7 +23242,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_p6",
-      "community": 584,
+      "community": 127,
       "norm_label": "superphreak-p6.ts"
     },
     {
@@ -23222,7 +23252,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_p6_superphreakp6",
-      "community": 584,
+      "community": 127,
       "norm_label": "superphreakp6"
     },
     {
@@ -23252,7 +23282,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_q1_win",
-      "community": 115,
+      "community": 127,
       "norm_label": "superphreak-q1-win.ts"
     },
     {
@@ -23262,7 +23292,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_q1_win_superphreakq1win",
-      "community": 115,
+      "community": 127,
       "norm_label": "superphreakq1win"
     },
     {
@@ -23292,7 +23322,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_superphreak_t3",
-      "community": 127,
+      "community": 584,
       "norm_label": "superphreak-t3.ts"
     },
     {
@@ -23302,7 +23332,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_superphreak_t3_superphreakt3",
-      "community": 127,
+      "community": 584,
       "norm_label": "superphreakt3"
     },
     {
@@ -23372,7 +23402,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_wintermutant_d3",
-      "community": 586,
+      "community": 115,
       "norm_label": "wintermutant-d3.ts"
     },
     {
@@ -23382,7 +23412,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_wintermutant_d3_wintermutantd3",
-      "community": 586,
+      "community": 115,
       "norm_label": "wintermutantd3"
     },
     {
@@ -23392,7 +23422,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_wintermutant_l3",
-      "community": 115,
+      "community": 586,
       "norm_label": "wintermutant-l3.ts"
     },
     {
@@ -23402,7 +23432,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_wintermutant_l3_wintermutantl3",
-      "community": 115,
+      "community": 586,
       "norm_label": "wintermutantl3"
     },
     {
@@ -23472,7 +23502,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_wintermutant_t1",
-      "community": 623,
+      "community": 115,
       "norm_label": "wintermutant-t1.ts"
     },
     {
@@ -23482,7 +23512,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_wintermutant_t1_wintermutantt1",
-      "community": 623,
+      "community": 115,
       "norm_label": "wintermutantt1"
     },
     {
@@ -23512,7 +23542,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_zhangshan_t2",
-      "community": 624,
+      "community": 127,
       "norm_label": "zhangshan-t2.ts"
     },
     {
@@ -23522,7 +23552,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_zhangshan_t2_zhangshant2",
-      "community": 624,
+      "community": 127,
       "norm_label": "zhangshant2"
     },
     {
@@ -23532,7 +23562,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "dialogues_zhangshan_t4",
-      "community": 627,
+      "community": 115,
       "norm_label": "zhangshan-t4.ts"
     },
     {
@@ -23542,7 +23572,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "dialogues_zhangshan_t4_zhangshant4",
-      "community": 627,
+      "community": 115,
       "norm_label": "zhangshant4"
     },
     {
@@ -24792,7 +24822,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "levels_tutorial",
-      "community": 14,
+      "community": 172,
       "norm_label": "tutorial.ts"
     },
     {
@@ -24802,7 +24832,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "levels_tutorial_enemies",
-      "community": 14,
+      "community": 172,
       "norm_label": "enemies"
     },
     {
@@ -25012,7 +25042,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "campaign_netmap_nodes",
-      "community": 140,
+      "community": 107,
       "norm_label": "nodes"
     },
     {
@@ -25222,7 +25252,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "components_app_app",
-      "community": 67,
+      "community": 628,
       "norm_label": "app"
     },
     {
@@ -25232,7 +25262,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "components_app_app_constructor",
-      "community": 67,
+      "community": 628,
       "norm_label": ".constructor()"
     },
     {
@@ -25242,7 +25272,7 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "components_app_app_componentdidmount",
-      "community": 67,
+      "community": 628,
       "norm_label": ".componentdidmount()"
     },
     {
@@ -25252,7 +25282,7 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "components_app_app_componentdidupdate",
-      "community": 67,
+      "community": 628,
       "norm_label": ".componentdidupdate()"
     },
     {
@@ -25262,7 +25292,7 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "components_app_app_save",
-      "community": 67,
+      "community": 628,
       "norm_label": ".save()"
     },
     {
@@ -25512,7 +25542,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "components_battle_battlestate",
-      "community": 25,
+      "community": 623,
       "norm_label": "battlestate"
     },
     {
@@ -25522,7 +25552,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "components_battle_battle",
-      "community": 374,
+      "community": 25,
       "norm_label": "battle"
     },
     {
@@ -25532,7 +25562,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "components_battle_battle_constructor",
-      "community": 374,
+      "community": 25,
       "norm_label": ".constructor()"
     },
     {
@@ -25542,7 +25572,7 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "components_battle_battle_componentdidmount",
-      "community": 374,
+      "community": 25,
       "norm_label": ".componentdidmount()"
     },
     {
@@ -25552,7 +25582,7 @@
       "source_location": "L970",
       "_origin": "ast",
       "id": "components_battle_battle_componentwillunmount",
-      "community": 374,
+      "community": 25,
       "norm_label": ".componentwillunmount()"
     },
     {
@@ -25562,7 +25592,7 @@
       "source_location": "L1483",
       "_origin": "ast",
       "id": "components_battle_battle_render",
-      "community": 374,
+      "community": 25,
       "norm_label": ".render()"
     },
     {
@@ -25732,7 +25762,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_credit",
-      "community": 117,
+      "community": 623,
       "norm_label": "credit.tsx"
     },
     {
@@ -25742,7 +25772,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "components_credit_creditprops",
-      "community": 117,
+      "community": 623,
       "norm_label": "creditprops"
     },
     {
@@ -25752,7 +25782,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "components_credit_credit",
-      "community": 117,
+      "community": 623,
       "norm_label": "credit()"
     },
     {
@@ -25882,7 +25912,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_dialogue",
-      "community": 84,
+      "community": 67,
       "norm_label": "dialogue.tsx"
     },
     {
@@ -25892,7 +25922,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "components_dialogue_dialogueprops",
-      "community": 148,
+      "community": 67,
       "norm_label": "dialogueprops"
     },
     {
@@ -25902,7 +25932,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "components_dialogue_dialoguestate",
-      "community": 84,
+      "community": 67,
       "norm_label": "dialoguestate"
     },
     {
@@ -25962,7 +25992,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_gamecredits",
-      "community": 181,
+      "community": 138,
       "norm_label": "gamecredits.tsx"
     },
     {
@@ -25972,7 +26002,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "components_gamecredits_gamecredits",
-      "community": 181,
+      "community": 138,
       "norm_label": "gamecredits()"
     },
     {
@@ -26212,7 +26242,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_imageloader",
-      "community": 380,
+      "community": 190,
       "norm_label": "imageloader.tsx"
     },
     {
@@ -26222,7 +26252,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "components_imageloader_imageloaderprops",
-      "community": 380,
+      "community": 190,
       "norm_label": "imageloaderprops"
     },
     {
@@ -26232,7 +26262,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "components_imageloader_imageloaderstate",
-      "community": 380,
+      "community": 190,
       "norm_label": "imageloaderstate"
     },
     {
@@ -26352,7 +26382,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_loader",
-      "community": 181,
+      "community": 138,
       "norm_label": "loader.tsx"
     },
     {
@@ -26362,7 +26392,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "components_loader_noop_player",
-      "community": 181,
+      "community": 138,
       "norm_label": "noop_player"
     },
     {
@@ -26372,7 +26402,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "components_loader_savefilenames",
-      "community": 181,
+      "community": 138,
       "norm_label": "savefilenames"
     },
     {
@@ -26382,7 +26412,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "components_loader_savefilename",
-      "community": 181,
+      "community": 138,
       "norm_label": "savefilename"
     },
     {
@@ -26392,7 +26422,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "components_loader_loaderprops",
-      "community": 181,
+      "community": 138,
       "norm_label": "loaderprops"
     },
     {
@@ -26412,7 +26442,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "components_loader_loader",
-      "community": 181,
+      "community": 138,
       "norm_label": "loader"
     },
     {
@@ -26422,7 +26452,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "components_loader_loader_constructor",
-      "community": 181,
+      "community": 138,
       "norm_label": ".constructor()"
     },
     {
@@ -26432,7 +26462,7 @@
       "source_location": "L235",
       "_origin": "ast",
       "id": "components_loader_loader_render",
-      "community": 181,
+      "community": 138,
       "norm_label": ".render()"
     },
     {
@@ -26442,7 +26472,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_modal",
-      "community": 181,
+      "community": 25,
       "norm_label": "modal.tsx"
     },
     {
@@ -26452,7 +26482,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "components_modal_modalbutton",
-      "community": 181,
+      "community": 25,
       "norm_label": "modalbutton"
     },
     {
@@ -26462,7 +26492,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "components_modal_modalconfig",
-      "community": 181,
+      "community": 25,
       "norm_label": "modalconfig"
     },
     {
@@ -26472,7 +26502,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "components_modal_modalprops",
-      "community": 181,
+      "community": 25,
       "norm_label": "modalprops"
     },
     {
@@ -26482,7 +26512,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "components_modal_modalstate",
-      "community": 181,
+      "community": 25,
       "norm_label": "modalstate"
     },
     {
@@ -26492,7 +26522,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "components_modal_modal",
-      "community": 181,
+      "community": 25,
       "norm_label": "modal"
     },
     {
@@ -26502,7 +26532,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "components_modal_modal_constructor",
-      "community": 181,
+      "community": 25,
       "norm_label": ".constructor()"
     },
     {
@@ -26512,7 +26542,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "components_modal_modal_componentdidmount",
-      "community": 181,
+      "community": 25,
       "norm_label": ".componentdidmount()"
     },
     {
@@ -26522,7 +26552,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "components_modal_modal_render",
-      "community": 181,
+      "community": 25,
       "norm_label": ".render()"
     },
     {
@@ -26592,7 +26622,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "components_nodeinfo_nodeinfoprops",
-      "community": 84,
+      "community": 67,
       "norm_label": "nodeinfoprops"
     },
     {
@@ -26652,7 +26682,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "components_popup_modal",
-      "community": 379,
+      "community": 84,
       "norm_label": "modal"
     },
     {
@@ -26662,7 +26692,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "components_popup_modal_constructor",
-      "community": 379,
+      "community": 84,
       "norm_label": ".constructor()"
     },
     {
@@ -26672,7 +26702,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "components_popup_modal_componentdidmount",
-      "community": 379,
+      "community": 84,
       "norm_label": ".componentdidmount()"
     },
     {
@@ -26682,7 +26712,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "components_popup_modal_render",
-      "community": 379,
+      "community": 84,
       "norm_label": ".render()"
     },
     {
@@ -26722,7 +26752,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_programinfo",
-      "community": 84,
+      "community": 624,
       "norm_label": "programinfo.tsx"
     },
     {
@@ -26732,7 +26762,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "components_programinfo_programinfoprops",
-      "community": 84,
+      "community": 624,
       "norm_label": "programinfoprops"
     },
     {
@@ -26742,7 +26772,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "components_programinfo_programinfo",
-      "community": 84,
+      "community": 624,
       "norm_label": "programinfo"
     },
     {
@@ -26752,7 +26782,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "components_programinfo_programinfo_constructor",
-      "community": 84,
+      "community": 624,
       "norm_label": ".constructor()"
     },
     {
@@ -26762,7 +26792,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "components_programinfo_programinfo_render",
-      "community": 84,
+      "community": 624,
       "norm_label": ".render()"
     },
     {
@@ -26772,7 +26802,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_programmenu",
-      "community": 594,
+      "community": 84,
       "norm_label": "programmenu.tsx"
     },
     {
@@ -26792,7 +26822,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "components_programmenu_programmenu",
-      "community": 594,
+      "community": 84,
       "norm_label": "programmenu"
     },
     {
@@ -26802,7 +26832,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "components_programmenu_programmenu_constructor",
-      "community": 594,
+      "community": 84,
       "norm_label": ".constructor()"
     },
     {
@@ -26812,7 +26842,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "components_programmenu_programmenu_render",
-      "community": 594,
+      "community": 84,
       "norm_label": ".render()"
     },
     {
@@ -26852,7 +26882,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_saveselector",
-      "community": 84,
+      "community": 67,
       "norm_label": "saveselector.tsx"
     },
     {
@@ -26862,7 +26892,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "components_saveselector_saveselectorprops",
-      "community": 84,
+      "community": 67,
       "norm_label": "saveselectorprops"
     },
     {
@@ -26872,7 +26902,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "components_saveselector_saveselector",
-      "community": 84,
+      "community": 67,
       "norm_label": "saveselector()"
     },
     {
@@ -27002,7 +27032,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_tutorial",
-      "community": 63,
+      "community": 172,
       "norm_label": "tutorial.tsx"
     },
     {
@@ -27012,7 +27042,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "components_tutorial_tutorialprops",
-      "community": 63,
+      "community": 172,
       "norm_label": "tutorialprops"
     },
     {
@@ -27022,7 +27052,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "components_tutorial_tutorialstate",
-      "community": 63,
+      "community": 172,
       "norm_label": "tutorialstate"
     },
     {
@@ -27032,7 +27062,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "components_tutorial_battlestyle",
-      "community": 63,
+      "community": 172,
       "norm_label": "battlestyle"
     },
     {
@@ -27042,7 +27072,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "components_tutorial_stageselectors",
-      "community": 63,
+      "community": 172,
       "norm_label": "stageselectors"
     },
     {
@@ -27052,7 +27082,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "components_tutorial_stageactionkeys",
-      "community": 63,
+      "community": 172,
       "norm_label": "stageactionkeys"
     },
     {
@@ -27062,7 +27092,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "components_tutorial_game_keys",
-      "community": 63,
+      "community": 172,
       "norm_label": "game_keys"
     },
     {
@@ -27072,7 +27102,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "components_tutorial_action_keys",
-      "community": 63,
+      "community": 172,
       "norm_label": "action_keys"
     },
     {
@@ -27082,7 +27112,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "components_tutorial_allowedkeysfor",
-      "community": 63,
+      "community": 172,
       "norm_label": "allowedkeysfor()"
     },
     {
@@ -27092,7 +27122,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "components_tutorial_tutorial",
-      "community": 25,
+      "community": 623,
       "norm_label": "tutorial"
     },
     {
@@ -27102,7 +27132,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "components_tutorial_tutorial_constructor",
-      "community": 25,
+      "community": 623,
       "norm_label": ".constructor()"
     },
     {
@@ -27112,7 +27142,7 @@
       "source_location": "L249",
       "_origin": "ast",
       "id": "components_tutorial_tutorial_render",
-      "community": 25,
+      "community": 623,
       "norm_label": ".render()"
     },
     {
@@ -27182,7 +27212,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_uploadzone",
-      "community": 49,
+      "community": 657,
       "norm_label": "uploadzone.tsx"
     },
     {
@@ -27202,7 +27232,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "components_uploadzone_uz_image",
-      "community": 49,
+      "community": 657,
       "norm_label": "uz_image"
     },
     {
@@ -27602,7 +27632,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "netmap3d_netmapfloor_netmapfloorprops",
-      "community": 21,
+      "community": 67,
       "norm_label": "netmapfloorprops"
     },
     {
@@ -27882,7 +27912,7 @@
       "source_location": "L367",
       "_origin": "ast",
       "id": "netmap3d_netmapnode_netmapnode",
-      "community": 140,
+      "community": 21,
       "norm_label": "netmapnode()"
     },
     {
@@ -28042,7 +28072,7 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "components_uploadentries_groupuploadentries",
-      "community": 108,
+      "community": 109,
       "norm_label": "groupuploadentries()"
     },
     {
@@ -28052,7 +28082,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "db_gamestatus",
-      "community": 67,
+      "community": 138,
       "norm_label": "gamestatus.ts"
     },
     {
@@ -28062,7 +28092,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "db_gamestatus_program_id_aliases",
-      "community": 67,
+      "community": 138,
       "norm_label": "program_id_aliases"
     },
     {
@@ -28072,7 +28102,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "db_gamestatus_iserializablegamestatus",
-      "community": 67,
+      "community": 138,
       "norm_label": "iserializablegamestatus"
     },
     {
@@ -28082,7 +28112,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "db_gamestatus_serializablegamestatus",
-      "community": 67,
+      "community": 138,
       "norm_label": "serializablegamestatus"
     },
     {
@@ -28092,7 +28122,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "db_gamestatus_serializablegamestatus_constructor",
-      "community": 67,
+      "community": 138,
       "norm_label": ".constructor()"
     },
     {
@@ -28102,7 +28132,7 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "db_gamestatus_savegamestatus",
-      "community": 67,
+      "community": 138,
       "norm_label": "savegamestatus()"
     },
     {
@@ -28112,7 +28142,7 @@
       "source_location": "L130",
       "_origin": "ast",
       "id": "db_gamestatus_deletegamestatus",
-      "community": 67,
+      "community": 138,
       "norm_label": "deletegamestatus()"
     },
     {
@@ -28122,7 +28152,7 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "db_gamestatus_loadgamestatus",
-      "community": 67,
+      "community": 138,
       "norm_label": "loadgamestatus()"
     },
     {
@@ -28132,7 +28162,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "db_index",
-      "community": 67,
+      "community": 138,
       "norm_label": "index.ts"
     },
     {
@@ -28142,7 +28172,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "db_index_nightfalldb",
-      "community": 67,
+      "community": 138,
       "norm_label": "nightfalldb"
     },
     {
@@ -28732,7 +28762,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_bitman",
-      "community": 322,
+      "community": 63,
       "norm_label": "bitman.ts"
     },
     {
@@ -28742,7 +28772,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_bitman_bitman",
-      "community": 322,
+      "community": 63,
       "norm_label": "bitman"
     },
     {
@@ -28912,7 +28942,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_datadoctor",
-      "community": 322,
+      "community": 63,
       "norm_label": "datadoctor.ts"
     },
     {
@@ -28922,7 +28952,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_datadoctor_datadoctor",
-      "community": 322,
+      "community": 63,
       "norm_label": "datadoctor"
     },
     {
@@ -28932,7 +28962,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_datadoctorpro",
-      "community": 322,
+      "community": 63,
       "norm_label": "datadoctorpro.ts"
     },
     {
@@ -28942,7 +28972,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_datadoctorpro_datadoctorpro",
-      "community": 322,
+      "community": 63,
       "norm_label": "datadoctorpro"
     },
     {
@@ -28952,7 +28982,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_fiddle",
-      "community": 322,
+      "community": 63,
       "norm_label": "fiddle.ts"
     },
     {
@@ -28962,7 +28992,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_fiddle_fiddle",
-      "community": 322,
+      "community": 63,
       "norm_label": "fiddle"
     },
     {
@@ -29092,7 +29122,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_guru",
-      "community": 322,
+      "community": 63,
       "norm_label": "guru.ts"
     },
     {
@@ -29102,7 +29132,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_guru_guru",
-      "community": 322,
+      "community": 63,
       "norm_label": "guru"
     },
     {
@@ -29332,7 +29362,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_medic",
-      "community": 322,
+      "community": 63,
       "norm_label": "medic.ts"
     },
     {
@@ -29342,7 +29372,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_medic_medic",
-      "community": 322,
+      "community": 63,
       "norm_label": "medic"
     },
     {
@@ -29672,7 +29702,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_turbo",
-      "community": 322,
+      "community": 63,
       "norm_label": "turbo.ts"
     },
     {
@@ -29682,7 +29712,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_turbo_turbo",
-      "community": 322,
+      "community": 63,
       "norm_label": "turbo"
     },
     {
@@ -29692,7 +29722,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "programs_turbodx",
-      "community": 322,
+      "community": 63,
       "norm_label": "turbodx.ts"
     },
     {
@@ -29702,7 +29732,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "programs_turbodx_turbodx",
-      "community": 322,
+      "community": 63,
       "norm_label": "turbodx"
     },
     {
@@ -30532,7 +30562,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "types_audio_iaudiosource",
-      "community": 181,
+      "community": 67,
       "norm_label": "iaudiosource"
     },
     {
@@ -30632,7 +30662,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "types_coordinate_coordinatefill",
-      "community": 25,
+      "community": 623,
       "norm_label": "coordinatefill"
     },
     {
@@ -30642,7 +30672,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "types_dialogue",
-      "community": 148,
+      "community": 127,
       "norm_label": "dialogue.ts"
     },
     {
@@ -30652,7 +30682,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "types_dialogue_icharacter",
-      "community": 148,
+      "community": 127,
       "norm_label": "icharacter"
     },
     {
@@ -30662,7 +30692,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "types_dialogue_idialoguebutton",
-      "community": 148,
+      "community": 127,
       "norm_label": "idialoguebutton"
     },
     {
@@ -30672,7 +30702,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "types_dialogue_idialogueentry",
-      "community": 148,
+      "community": 127,
       "norm_label": "idialogueentry"
     },
     {
@@ -30682,7 +30712,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "types_dialogue_idialogue",
-      "community": 148,
+      "community": 67,
       "norm_label": "idialogue"
     },
     {
@@ -30802,7 +30832,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "types_level",
-      "community": 594,
+      "community": 623,
       "norm_label": "level.ts"
     },
     {
@@ -30812,7 +30842,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "types_level_iuploadzone",
-      "community": 594,
+      "community": 623,
       "norm_label": "iuploadzone"
     },
     {
@@ -30822,7 +30852,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "types_level_igridactiveuploadzone",
-      "community": 594,
+      "community": 623,
       "norm_label": "igridactiveuploadzone"
     },
     {
@@ -30832,7 +30862,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "types_level_icredit",
-      "community": 594,
+      "community": 623,
       "norm_label": "icredit"
     },
     {
@@ -30842,7 +30872,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "types_level_igridactivecredit",
-      "community": 117,
+      "community": 623,
       "norm_label": "igridactivecredit"
     },
     {
@@ -30872,7 +30902,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "types_netmap_nodetype",
-      "community": 84,
+      "community": 67,
       "norm_label": "nodetype"
     },
     {
@@ -30892,7 +30922,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "types_netmap_ibattlestyle",
-      "community": 67,
+      "community": 108,
       "norm_label": "ibattlestyle"
     },
     {
@@ -30932,7 +30962,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "types_netmap_netmapposition",
-      "community": 67,
+      "community": 140,
       "norm_label": "netmapposition"
     },
     {
@@ -30962,7 +30992,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "types_program",
-      "community": 594,
+      "community": 63,
       "norm_label": "program.ts"
     },
     {
@@ -30972,7 +31002,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "types_program_iactioncoordinator",
-      "community": 594,
+      "community": 63,
       "norm_label": "iactioncoordinator"
     },
     {
@@ -30982,7 +31012,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "types_program_validtarget",
-      "community": 322,
+      "community": 63,
       "norm_label": "validtarget"
     },
     {
@@ -30992,7 +31022,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "types_program_targetcolor",
-      "community": 322,
+      "community": 63,
       "norm_label": "targetcolor"
     },
     {
@@ -31002,7 +31032,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "types_program_programaction",
-      "community": 594,
+      "community": 624,
       "norm_label": "programaction"
     },
     {
@@ -31022,7 +31052,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "types_program_igridinitialprogram",
-      "community": 594,
+      "community": 25,
       "norm_label": "igridinitialprogram"
     },
     {
@@ -31192,7 +31222,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "util_audioshuffler",
-      "community": 181,
+      "community": 67,
       "norm_label": "audioshuffler.ts"
     },
     {
@@ -31202,7 +31232,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "util_audioshuffler_iaudioshuffleentry",
-      "community": 181,
+      "community": 67,
       "norm_label": "iaudioshuffleentry"
     },
     {
@@ -31462,7 +31492,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "util_battlelogic_battlemodel",
-      "community": 117,
+      "community": 623,
       "norm_label": "battlemodel"
     },
     {
@@ -31782,7 +31812,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "util_parsedialogue",
-      "community": 115,
+      "community": 127,
       "norm_label": "parsedialogue.ts"
     },
     {
@@ -31792,7 +31822,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "util_parsedialogue_charactersarray",
-      "community": 115,
+      "community": 127,
       "norm_label": "charactersarray"
     },
     {
@@ -31802,7 +31832,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "util_parsedialogue_parsedialogue",
-      "community": 115,
+      "community": 127,
       "norm_label": "parsedialogue()"
     },
     {
@@ -31882,7 +31912,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "util_processmap",
-      "community": 597,
+      "community": 594,
       "norm_label": "processmap.ts"
     },
     {
@@ -31892,7 +31922,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "util_processmap_processmap",
-      "community": 597,
+      "community": 594,
       "norm_label": "processmap()"
     },
     {
@@ -32022,7 +32052,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "util_util_matchflag",
-      "community": 140,
+      "community": 21,
       "norm_label": "matchflag()"
     },
     {
@@ -32042,7 +32072,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "util_util_delay",
-      "community": 579,
+      "community": 138,
       "norm_label": "delay()"
     },
     {
@@ -38154,7 +38184,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "tests_test_gamesave_store_test_new_guest_id_is_valid_and_unguessable",
-      "community": 366,
+      "community": 59,
       "norm_label": "test_new_guest_id_is_valid_and_unguessable()"
     },
     {
@@ -38164,7 +38194,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "tests_test_gamesave_store_test_guest_id_or_new_keeps_a_good_cookie",
-      "community": 366,
+      "community": 59,
       "norm_label": "test_guest_id_or_new_keeps_a_good_cookie()"
     },
     {
@@ -38174,7 +38204,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "tests_test_gamesave_store_test_guest_id_or_new_mints_on_junk",
-      "community": 366,
+      "community": 59,
       "norm_label": "test_guest_id_or_new_mints_on_junk()"
     },
     {
@@ -38184,7 +38214,7 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "tests_test_gamesave_store_test_junk_cookies_do_not_share_a_bucket",
-      "community": 366,
+      "community": 59,
       "norm_label": "test_junk_cookies_do_not_share_a_bucket()"
     },
     {
@@ -38284,7 +38314,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "tests_test_gamesave_store_rationale_147",
-      "community": 366,
+      "community": 59,
       "norm_label": "two callers sending different garbage each get a fresh id, so they don't     col"
     },
     {
@@ -47590,236 +47620,6 @@
       "norm_label": "zbinit()"
     },
     {
-      "label": "ARCHAEOLOGY.md",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "archaeology",
-      "community": 172,
-      "norm_label": "archaeology.md"
-    },
-    {
-      "label": "exec-fn \u2014 Archaeology",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "archaeology_exec_fn_archaeology",
-      "community": 172,
-      "norm_label": "exec-fn \u2014 archaeology"
-    },
-    {
-      "label": "1. Deployment",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L21",
-      "_origin": "ast",
-      "id": "archaeology_1_deployment",
-      "community": 172,
-      "norm_label": "1. deployment"
-    },
-    {
-      "label": "3. Morning pipeline + scheduling",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L50",
-      "_origin": "ast",
-      "id": "archaeology_3_morning_pipeline_scheduling",
-      "community": 172,
-      "norm_label": "3. morning pipeline + scheduling"
-    },
-    {
-      "label": "4. TTS (text-to-speech)",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L61",
-      "_origin": "ast",
-      "id": "archaeology_4_tts_text_to_speech",
-      "community": 172,
-      "norm_label": "4. tts (text-to-speech)"
-    },
-    {
-      "label": "5. LLM call sites + prompt caching",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L98",
-      "_origin": "ast",
-      "id": "archaeology_5_llm_call_sites_prompt_caching",
-      "community": 172,
-      "norm_label": "5. llm call sites + prompt caching"
-    },
-    {
-      "label": "6. Printer (ELEGOO Centauri Carbon)",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L106",
-      "_origin": "ast",
-      "id": "archaeology_6_printer_elegoo_centauri_carbon",
-      "community": 172,
-      "norm_label": "6. printer (elegoo centauri carbon)"
-    },
-    {
-      "label": "7. `/cc` \u2014 Claude Code in the browser",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L121",
-      "_origin": "ast",
-      "id": "archaeology_7_cc_claude_code_in_the_browser",
-      "community": 172,
-      "norm_label": "7. `/cc` \u2014 claude code in the browser"
-    },
-    {
-      "label": "8. `/rd` \u2014 the board and its month calendar",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L164",
-      "_origin": "ast",
-      "id": "archaeology_8_rd_the_board_and_its_month_calendar",
-      "community": 172,
-      "norm_label": "8. `/rd` \u2014 the board and its month calendar"
-    },
-    {
-      "label": "9. The landing page",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L176",
-      "_origin": "ast",
-      "id": "archaeology_9_the_landing_page",
-      "community": 172,
-      "norm_label": "9. the landing page"
-    },
-    {
-      "label": "10. The CRT effect stack (`_CRT_FX`)",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L184",
-      "_origin": "ast",
-      "id": "archaeology_10_the_crt_effect_stack_crt_fx",
-      "community": 172,
-      "norm_label": "10. the crt effect stack (`_crt_fx`)"
-    },
-    {
-      "label": "11. `/graph`",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L200",
-      "_origin": "ast",
-      "id": "archaeology_11_graph",
-      "community": 172,
-      "norm_label": "11. `/graph`"
-    },
-    {
-      "label": "The tour kept its job and lost its mechanism, twice",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L258",
-      "_origin": "ast",
-      "id": "archaeology_the_tour_kept_its_job_and_lost_its_mechanism_twice",
-      "community": 172,
-      "norm_label": "the tour kept its job and lost its mechanism, twice"
-    },
-    {
-      "label": "Why nothing writes to the DataSets, or to `network.body` either",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L264",
-      "_origin": "ast",
-      "id": "archaeology_why_nothing_writes_to_the_datasets_or_to_network_body_either",
-      "community": 172,
-      "norm_label": "why nothing writes to the datasets, or to `network.body` either"
-    },
-    {
-      "label": "What a redraw costs, and what that means",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L277",
-      "_origin": "ast",
-      "id": "archaeology_what_a_redraw_costs_and_what_that_means",
-      "community": 172,
-      "norm_label": "what a redraw costs, and what that means"
-    },
-    {
-      "label": "12. The bottom nav",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L293",
-      "_origin": "ast",
-      "id": "archaeology_12_the_bottom_nav",
-      "community": 172,
-      "norm_label": "12. the bottom nav"
-    },
-    {
-      "label": "13. The pre-commit hook suite",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L305",
-      "_origin": "ast",
-      "id": "archaeology_13_the_pre_commit_hook_suite",
-      "community": 172,
-      "norm_label": "13. the pre-commit hook suite"
-    },
-    {
-      "label": "14. `/tarot`",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L316",
-      "_origin": "ast",
-      "id": "archaeology_14_tarot",
-      "community": 172,
-      "norm_label": "14. `/tarot`"
-    },
-    {
-      "label": "15. The nudge loop",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L328",
-      "_origin": "ast",
-      "id": "archaeology_15_the_nudge_loop",
-      "community": 172,
-      "norm_label": "15. the nudge loop"
-    },
-    {
-      "label": "16. The Exec monitor",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L338",
-      "_origin": "ast",
-      "id": "archaeology_16_the_exec_monitor",
-      "community": 172,
-      "norm_label": "16. the exec monitor"
-    },
-    {
-      "label": "17. Memory is the scarce resource on this box",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L348",
-      "_origin": "ast",
-      "id": "archaeology_17_memory_is_the_scarce_resource_on_this_box",
-      "community": 172,
-      "norm_label": "17. memory is the scarce resource on this box"
-    },
-    {
-      "label": "18. The typewriter and the shared chat surfaces",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L385",
-      "_origin": "ast",
-      "id": "archaeology_18_the_typewriter_and_the_shared_chat_surfaces",
-      "community": 172,
-      "norm_label": "18. the typewriter and the shared chat surfaces"
-    },
-    {
-      "label": "19. `/zombo`",
-      "file_type": "document",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L395",
-      "_origin": "ast",
-      "id": "archaeology_19_zombo",
-      "community": 172,
-      "norm_label": "19. `/zombo`"
-    },
-    {
       "label": "ARCHITECTURE.md",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
@@ -47830,30 +47630,20 @@
       "norm_label": "architecture.md"
     },
     {
-      "label": "exec-fn \u2014 Architecture",
+      "label": "exec-fn \u2014 Architecture (UML, Mermaid)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "architecture_exec_fn_architecture",
+      "id": "architecture_exec_fn_architecture_uml_mermaid",
       "community": 321,
-      "norm_label": "exec-fn \u2014 architecture"
-    },
-    {
-      "label": "The diagrams",
-      "file_type": "document",
-      "source_file": "ARCHITECTURE.md",
-      "source_location": "L14",
-      "_origin": "ast",
-      "id": "architecture_the_diagrams",
-      "community": 321,
-      "norm_label": "the diagrams"
+      "norm_label": "exec-fn \u2014 architecture (uml, mermaid)"
     },
     {
       "label": "1. Deployment",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L33",
+      "source_location": "L17",
       "_origin": "ast",
       "id": "architecture_1_deployment",
       "community": 321,
@@ -47863,7 +47653,7 @@
       "label": "1d. nginx \u2014 the `--reload` 502, and the body-size 413",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L120",
+      "source_location": "L122",
       "_origin": "ast",
       "id": "architecture_1d_nginx_the_reload_502_and_the_body_size_413",
       "community": 321,
@@ -47873,7 +47663,7 @@
       "label": "2. Module graph",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L139",
+      "source_location": "L140",
       "_origin": "ast",
       "id": "architecture_2_module_graph",
       "community": 321,
@@ -47883,47 +47673,47 @@
       "label": "3. Morning pipeline + scheduling",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L218",
+      "source_location": "L219",
       "_origin": "ast",
       "id": "architecture_3_morning_pipeline_scheduling",
-      "community": 321,
+      "community": 627,
       "norm_label": "3. morning pipeline + scheduling"
     },
     {
       "label": "3a. Morning cron sequence",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L220",
+      "source_location": "L221",
       "_origin": "ast",
       "id": "architecture_3a_morning_cron_sequence",
-      "community": 321,
+      "community": 627,
       "norm_label": "3a. morning cron sequence"
     },
     {
       "label": "rd.json concurrency \u2014 `helpers._RD_LOCK`",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L257",
+      "source_location": "L258",
       "_origin": "ast",
       "id": "architecture_rd_json_concurrency_helpers_rd_lock",
-      "community": 321,
+      "community": 627,
       "norm_label": "rd.json concurrency \u2014 `helpers._rd_lock`"
     },
     {
       "label": "3b. scheduler.py \u2014 the time model",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L284",
+      "source_location": "L288",
       "_origin": "ast",
       "id": "architecture_3b_scheduler_py_the_time_model",
-      "community": 321,
+      "community": 627,
       "norm_label": "3b. scheduler.py \u2014 the time model"
     },
     {
       "label": "4. TTS (text-to-speech)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L329",
+      "source_location": "L332",
       "_origin": "ast",
       "id": "architecture_4_tts_text_to_speech",
       "community": 18,
@@ -47933,7 +47723,7 @@
       "label": "4a. Topology",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L338",
+      "source_location": "L341",
       "_origin": "ast",
       "id": "architecture_4a_topology",
       "community": 18,
@@ -47943,7 +47733,7 @@
       "label": "4b. Auth \u2014 now guest-or-full",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L399",
+      "source_location": "L402",
       "_origin": "ast",
       "id": "architecture_4b_auth_now_guest_or_full",
       "community": 18,
@@ -47953,7 +47743,7 @@
       "label": "4b-ii. GPU-mode owner control",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L413",
+      "source_location": "L416",
       "_origin": "ast",
       "id": "architecture_4b_ii_gpu_mode_owner_control",
       "community": 18,
@@ -47963,7 +47753,7 @@
       "label": "4c. Four consumers of one audio core \u2014 and one narrator above it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L463",
+      "source_location": "L478",
       "_origin": "ast",
       "id": "architecture_4c_four_consumers_of_one_audio_core_and_one_narrator_above_it",
       "community": 18,
@@ -47973,7 +47763,7 @@
       "label": "4d. One utterance",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L539",
+      "source_location": "L569",
       "_origin": "ast",
       "id": "architecture_4d_one_utterance",
       "community": 18,
@@ -47983,57 +47773,57 @@
       "label": "5. LLM call sites + prompt caching",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L565",
+      "source_location": "L594",
       "_origin": "ast",
       "id": "architecture_5_llm_call_sites_prompt_caching",
-      "community": 370,
+      "community": 321,
       "norm_label": "5. llm call sites + prompt caching"
     },
     {
       "label": "The one invariant",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L573",
+      "source_location": "L602",
       "_origin": "ast",
       "id": "architecture_the_one_invariant",
-      "community": 370,
+      "community": 321,
       "norm_label": "the one invariant"
     },
     {
       "label": "Cached sites",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L584",
+      "source_location": "L613",
       "_origin": "ast",
       "id": "architecture_cached_sites",
-      "community": 370,
+      "community": 321,
       "norm_label": "cached sites"
     },
     {
       "label": "Uncached (measured, left alone)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L658",
+      "source_location": "L687",
       "_origin": "ast",
       "id": "architecture_uncached_measured_left_alone",
-      "community": 370,
+      "community": 321,
       "norm_label": "uncached (measured, left alone)"
     },
     {
       "label": "5d. Where the marker goes",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L677",
+      "source_location": "L706",
       "_origin": "ast",
       "id": "architecture_5d_where_the_marker_goes",
-      "community": 370,
+      "community": 321,
       "norm_label": "5d. where the marker goes"
     },
     {
       "label": "6. Printer (ELEGOO Centauri Carbon) \u2014 two-tier reverse proxy",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L693",
+      "source_location": "L720",
       "_origin": "ast",
       "id": "architecture_6_printer_elegoo_centauri_carbon_two_tier_reverse_proxy",
       "community": 556,
@@ -48043,7 +47833,7 @@
       "label": "6a. Topology",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L724",
+      "source_location": "L751",
       "_origin": "ast",
       "id": "architecture_6a_topology",
       "community": 556,
@@ -48053,7 +47843,7 @@
       "label": "6b. Why rewrites, and which",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L769",
+      "source_location": "L796",
       "_origin": "ast",
       "id": "architecture_6b_why_rewrites_and_which",
       "community": 556,
@@ -48063,7 +47853,7 @@
       "label": "6c. Runtime shape",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L815",
+      "source_location": "L842",
       "_origin": "ast",
       "id": "architecture_6c_runtime_shape",
       "community": 556,
@@ -48073,7 +47863,7 @@
       "label": "6d. The tunnel and its env",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L875",
+      "source_location": "L906",
       "_origin": "ast",
       "id": "architecture_6d_the_tunnel_and_its_env",
       "community": 556,
@@ -48083,7 +47873,7 @@
       "label": "6e. The wrapper page",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L887",
+      "source_location": "L918",
       "_origin": "ast",
       "id": "architecture_6e_the_wrapper_page",
       "community": 556,
@@ -48093,7 +47883,7 @@
       "label": "6f. What gets rewritten, exactly",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L908",
+      "source_location": "L940",
       "_origin": "ast",
       "id": "architecture_6f_what_gets_rewritten_exactly",
       "community": 556,
@@ -48103,7 +47893,7 @@
       "label": "6g. The camera hub",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L935",
+      "source_location": "L967",
       "_origin": "ast",
       "id": "architecture_6g_the_camera_hub",
       "community": 556,
@@ -48113,7 +47903,7 @@
       "label": "7. `/cc` \u2014 Claude Code in the browser",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L955",
+      "source_location": "L988",
       "_origin": "ast",
       "id": "architecture_7_cc_claude_code_in_the_browser",
       "community": 91,
@@ -48123,7 +47913,7 @@
       "label": "7a. Topology",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L962",
+      "source_location": "L996",
       "_origin": "ast",
       "id": "architecture_7a_topology",
       "community": 91,
@@ -48133,7 +47923,7 @@
       "label": "7b. The sandbox \u2014 three mechanisms, and they are NOT equally strong",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L985",
+      "source_location": "L1019",
       "_origin": "ast",
       "id": "architecture_7b_the_sandbox_three_mechanisms_and_they_are_not_equally_strong",
       "community": 91,
@@ -48143,7 +47933,7 @@
       "label": "7b-bis. The blast radius, honestly (2026-09-13)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1007",
+      "source_location": "L1048",
       "_origin": "ast",
       "id": "architecture_7b_bis_the_blast_radius_honestly_2026_09_13",
       "community": 91,
@@ -48153,7 +47943,7 @@
       "label": "7b-ter. The path gate, and the one tool it does not cover",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1024",
+      "source_location": "L1067",
       "_origin": "ast",
       "id": "architecture_7b_ter_the_path_gate_and_the_one_tool_it_does_not_cover",
       "community": 91,
@@ -48163,7 +47953,7 @@
       "label": "7c. Tools \u2014 what is granted, and the deliberate widening",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1070",
+      "source_location": "L1114",
       "_origin": "ast",
       "id": "architecture_7c_tools_what_is_granted_and_the_deliberate_widening",
       "community": 91,
@@ -48173,7 +47963,7 @@
       "label": "7d. The archive is three tools, not a filesystem",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1087",
+      "source_location": "L1132",
       "_origin": "ast",
       "id": "architecture_7d_the_archive_is_three_tools_not_a_filesystem",
       "community": 91,
@@ -48183,7 +47973,7 @@
       "label": "7e. The persona is two halves",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1097",
+      "source_location": "L1142",
       "_origin": "ast",
       "id": "architecture_7e_the_persona_is_two_halves",
       "community": 91,
@@ -48193,7 +47983,7 @@
       "label": "7f. One continuing conversation \u2014 the SIDECAR owns the pointer",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1111",
+      "source_location": "L1156",
       "_origin": "ast",
       "id": "architecture_7f_one_continuing_conversation_the_sidecar_owns_the_pointer",
       "community": 91,
@@ -48203,7 +47993,7 @@
       "label": "7g. Commands (`web/cc-commands.js`, `web/cc-sessions.js`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1123",
+      "source_location": "L1168",
       "_origin": "ast",
       "id": "architecture_7g_commands_web_cc_commands_js_web_cc_sessions_js",
       "community": 91,
@@ -48213,7 +48003,7 @@
       "label": "7h. The status bar (`web/cc-status.js`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1147",
+      "source_location": "L1192",
       "_origin": "ast",
       "id": "architecture_7h_the_status_bar_web_cc_status_js",
       "community": 91,
@@ -48223,7 +48013,7 @@
       "label": "7i. The rolling title \u2014 two calls, with a deterministic floor",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1197",
+      "source_location": "L1243",
       "_origin": "ast",
       "id": "architecture_7i_the_rolling_title_two_calls_with_a_deterministic_floor",
       "community": 91,
@@ -48233,7 +48023,7 @@
       "label": "7j. The page",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1228",
+      "source_location": "L1275",
       "_origin": "ast",
       "id": "architecture_7j_the_page",
       "community": 91,
@@ -48243,7 +48033,7 @@
       "label": "7k. Hands-free input (`web/voice-input.js`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1259",
+      "source_location": "L1308",
       "_origin": "ast",
       "id": "architecture_7k_hands_free_input_web_voice_input_js",
       "community": 91,
@@ -48253,7 +48043,7 @@
       "label": "7l. Pictures \u2014 SVG out, screenshots in, zoom for both",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1295",
+      "source_location": "L1344",
       "_origin": "ast",
       "id": "architecture_7l_pictures_svg_out_screenshots_in_zoom_for_both",
       "community": 91,
@@ -48263,7 +48053,7 @@
       "label": "8. `/rd` \u2014 the board and its month calendar",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1324",
+      "source_location": "L1372",
       "_origin": "ast",
       "id": "architecture_8_rd_the_board_and_its_month_calendar",
       "community": 557,
@@ -48273,7 +48063,7 @@
       "label": "8a. The grid",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1328",
+      "source_location": "L1376",
       "_origin": "ast",
       "id": "architecture_8a_the_grid",
       "community": 557,
@@ -48283,7 +48073,7 @@
       "label": "8b. Dots \u2014 one per card, sized by importance",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1338",
+      "source_location": "L1386",
       "_origin": "ast",
       "id": "architecture_8b_dots_one_per_card_sized_by_importance",
       "community": 557,
@@ -48293,7 +48083,7 @@
       "label": "8c. Three date markers, one weight",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1358",
+      "source_location": "L1406",
       "_origin": "ast",
       "id": "architecture_8c_three_date_markers_one_weight",
       "community": 557,
@@ -48303,7 +48093,7 @@
       "label": "8d. Holidays are computed, not tabulated",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1368",
+      "source_location": "L1416",
       "_origin": "ast",
       "id": "architecture_8d_holidays_are_computed_not_tabulated",
       "community": 557,
@@ -48313,7 +48103,7 @@
       "label": "8e. Drag a card onto a day to schedule it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1376",
+      "source_location": "L1424",
       "_origin": "ast",
       "id": "architecture_8e_drag_a_card_onto_a_day_to_schedule_it",
       "community": 557,
@@ -48323,7 +48113,7 @@
       "label": "8f. Paging months, and the watermark",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1388",
+      "source_location": "L1436",
       "_origin": "ast",
       "id": "architecture_8f_paging_months_and_the_watermark",
       "community": 557,
@@ -48333,7 +48123,7 @@
       "label": "8g. Bar heights are observed, not measured once",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1405",
+      "source_location": "L1453",
       "_origin": "ast",
       "id": "architecture_8g_bar_heights_are_observed_not_measured_once",
       "community": 557,
@@ -48343,7 +48133,7 @@
       "label": "8h. The `+N` overflow needs a host, and the bar can be empty",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1413",
+      "source_location": "L1461",
       "_origin": "ast",
       "id": "architecture_8h_the_n_overflow_needs_a_host_and_the_bar_can_be_empty",
       "community": 557,
@@ -48353,7 +48143,7 @@
       "label": "9. The landing page \u2014 a ferris wheel, not a list",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1421",
+      "source_location": "L1471",
       "_origin": "ast",
       "id": "architecture_9_the_landing_page_a_ferris_wheel_not_a_list",
       "community": 565,
@@ -48363,7 +48153,7 @@
       "label": "9a. One angle drives everything",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1428",
+      "source_location": "L1479",
       "_origin": "ast",
       "id": "architecture_9a_one_angle_drives_everything",
       "community": 565,
@@ -48373,7 +48163,7 @@
       "label": "9b. `DTH = (\u03c0/2)/K` is the load-bearing choice",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1442",
+      "source_location": "L1493",
       "_origin": "ast",
       "id": "architecture_9b_dth_\u03c0_2_k_is_the_load_bearing_choice",
       "community": 565,
@@ -48383,7 +48173,7 @@
       "label": "9c. Spacing",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1452",
+      "source_location": "L1503",
       "_origin": "ast",
       "id": "architecture_9c_spacing",
       "community": 565,
@@ -48393,7 +48183,7 @@
       "label": "9d. The wheel genuinely turns",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1460",
+      "source_location": "L1511",
       "_origin": "ast",
       "id": "architecture_9d_the_wheel_genuinely_turns",
       "community": 565,
@@ -48403,7 +48193,7 @@
       "label": "9e. Three gesture details, all learned by failing",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1481",
+      "source_location": "L1532",
       "_origin": "ast",
       "id": "architecture_9e_three_gesture_details_all_learned_by_failing",
       "community": 565,
@@ -48413,7 +48203,7 @@
       "label": "10. The CRT effect stack (`_CRT_FX`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1496",
+      "source_location": "L1546",
       "_origin": "ast",
       "id": "architecture_10_the_crt_effect_stack_crt_fx",
       "community": 321,
@@ -48423,7 +48213,7 @@
       "label": "10a. The invariant",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1518",
+      "source_location": "L1569",
       "_origin": "ast",
       "id": "architecture_10a_the_invariant",
       "community": 321,
@@ -48433,7 +48223,7 @@
       "label": "10b. Zoom-lock",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1525",
+      "source_location": "L1583",
       "_origin": "ast",
       "id": "architecture_10b_zoom_lock",
       "community": 321,
@@ -48443,7 +48233,7 @@
       "label": "10c. Dimming on the dense pages",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1529",
+      "source_location": "L1587",
       "_origin": "ast",
       "id": "architecture_10c_dimming_on_the_dense_pages",
       "community": 321,
@@ -48453,7 +48243,7 @@
       "label": "11. `/graph` \u2014 serve-time transforms over a generated artifact",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1546",
+      "source_location": "L1603",
       "_origin": "ast",
       "id": "architecture_11_graph_serve_time_transforms_over_a_generated_artifact",
       "community": 571,
@@ -48463,7 +48253,7 @@
       "label": "11a. Applied per request, COMPUTED once per artifact",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1559",
+      "source_location": "L1616",
       "_origin": "ast",
       "id": "architecture_11a_applied_per_request_computed_once_per_artifact",
       "community": 571,
@@ -48473,7 +48263,7 @@
       "label": "11b. Drops, in order",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1648",
+      "source_location": "L1743",
       "_origin": "ast",
       "id": "architecture_11b_drops_in_order",
       "community": 571,
@@ -48483,7 +48273,7 @@
       "label": "11c. Communities are re-derived by FEATURE, then CAPPED",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1676",
+      "source_location": "L1771",
       "_origin": "ast",
       "id": "architecture_11c_communities_are_re_derived_by_feature_then_capped",
       "community": 571,
@@ -48493,7 +48283,7 @@
       "label": "11d. Size, labels, shape, physics, stats",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1688",
+      "source_location": "L1783",
       "_origin": "ast",
       "id": "architecture_11d_size_labels_shape_physics_stats",
       "community": 571,
@@ -48503,7 +48293,7 @@
       "label": "11e. The layout is baked, not stabilised in the browser",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1706",
+      "source_location": "L1801",
       "_origin": "ast",
       "id": "architecture_11e_the_layout_is_baked_not_stabilised_in_the_browser",
       "community": 571,
@@ -48513,27 +48303,57 @@
       "label": "11f. The client-side overlay",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1722",
+      "source_location": "L1817",
       "_origin": "ast",
       "id": "architecture_11f_the_client_side_overlay",
       "community": 571,
       "norm_label": "11f. the client-side overlay"
     },
     {
+      "label": "The tour kept its job and lost its mechanism, twice",
+      "file_type": "document",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L1833",
+      "_origin": "ast",
+      "id": "architecture_the_tour_kept_its_job_and_lost_its_mechanism_twice",
+      "community": 571,
+      "norm_label": "the tour kept its job and lost its mechanism, twice"
+    },
+    {
       "label": "`graph-pulse.js` + `graph-pulse-draw.js` \u2014 the firing overlay",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1735",
+      "source_location": "L1839",
       "_origin": "ast",
       "id": "architecture_graph_pulse_js_graph_pulse_draw_js_the_firing_overlay",
       "community": 571,
       "norm_label": "`graph-pulse.js` + `graph-pulse-draw.js` \u2014 the firing overlay"
     },
     {
+      "label": "Why nothing writes to the DataSets, or to `network.body` either",
+      "file_type": "document",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L1874",
+      "_origin": "ast",
+      "id": "architecture_why_nothing_writes_to_the_datasets_or_to_network_body_either",
+      "community": 571,
+      "norm_label": "why nothing writes to the datasets, or to `network.body` either"
+    },
+    {
+      "label": "What a redraw costs, and what that means",
+      "file_type": "document",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L1887",
+      "_origin": "ast",
+      "id": "architecture_what_a_redraw_costs_and_what_that_means",
+      "community": 571,
+      "norm_label": "what a redraw costs, and what that means"
+    },
+    {
       "label": "12. The bottom nav",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1776",
+      "source_location": "L1905",
       "_origin": "ast",
       "id": "architecture_12_the_bottom_nav",
       "community": 562,
@@ -48543,7 +48363,7 @@
       "label": "12f. The nav icons are traced, not drawn \u2014 and stay pixel art",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1795",
+      "source_location": "L1924",
       "_origin": "ast",
       "id": "architecture_12f_the_nav_icons_are_traced_not_drawn_and_stay_pixel_art",
       "community": 562,
@@ -48553,7 +48373,7 @@
       "label": "12a. The glyph label (`/cc`'s star)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1806",
+      "source_location": "L1935",
       "_origin": "ast",
       "id": "architecture_12a_the_glyph_label_cc_s_star",
       "community": 562,
@@ -48563,7 +48383,7 @@
       "label": "12b. Standalone launch (home-screen / installed web app)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1820",
+      "source_location": "L1949",
       "_origin": "ast",
       "id": "architecture_12b_standalone_launch_home_screen_installed_web_app",
       "community": 562,
@@ -48573,7 +48393,7 @@
       "label": "12c. The Exec bubble is not a nav entry",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1832",
+      "source_location": "L1961",
       "_origin": "ast",
       "id": "architecture_12c_the_exec_bubble_is_not_a_nav_entry",
       "community": 562,
@@ -48583,7 +48403,7 @@
       "label": "12d. Exec's voice, and the panel",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1849",
+      "source_location": "L1979",
       "_origin": "ast",
       "id": "architecture_12d_exec_s_voice_and_the_panel",
       "community": 562,
@@ -48593,7 +48413,7 @@
       "label": "12e. Page scroll",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1861",
+      "source_location": "L1991",
       "_origin": "ast",
       "id": "architecture_12e_page_scroll",
       "community": 562,
@@ -48603,7 +48423,7 @@
       "label": "Click-outside-to-close must be decided in the CAPTURE phase",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1872",
+      "source_location": "L2002",
       "_origin": "ast",
       "id": "architecture_click_outside_to_close_must_be_decided_in_the_capture_phase",
       "community": 562,
@@ -48613,7 +48433,7 @@
       "label": "13. The pre-commit hook suite",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1897",
+      "source_location": "L2024",
       "_origin": "ast",
       "id": "architecture_13_the_pre_commit_hook_suite",
       "community": 563,
@@ -48623,7 +48443,7 @@
       "label": "13a. The palette lint (`scripts/lint-colors.py`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1920",
+      "source_location": "L2047",
       "_origin": "ast",
       "id": "architecture_13a_the_palette_lint_scripts_lint_colors_py",
       "community": 563,
@@ -48633,7 +48453,7 @@
       "label": "13b. The scale lint (`scripts/lint-scale.py`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1935",
+      "source_location": "L2062",
       "_origin": "ast",
       "id": "architecture_13b_the_scale_lint_scripts_lint_scale_py",
       "community": 563,
@@ -48643,7 +48463,7 @@
       "label": "13c. The cache-bust lint (`scripts/lint-cachebust.py`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1953",
+      "source_location": "L2080",
       "_origin": "ast",
       "id": "architecture_13c_the_cache_bust_lint_scripts_lint_cachebust_py",
       "community": 563,
@@ -48653,7 +48473,7 @@
       "label": "13d. The admin-tier guard (`tests/test_admin_only.py`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1961",
+      "source_location": "L2088",
       "_origin": "ast",
       "id": "architecture_13d_the_admin_tier_guard_tests_test_admin_only_py",
       "community": 563,
@@ -48663,7 +48483,7 @@
       "label": "13e. The fixture-resolution check",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1973",
+      "source_location": "L2103",
       "_origin": "ast",
       "id": "architecture_13e_the_fixture_resolution_check",
       "community": 563,
@@ -48673,7 +48493,7 @@
       "label": "14. `/tarot` \u2014 the reading surface",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1984",
+      "source_location": "L2113",
       "_origin": "ast",
       "id": "architecture_14_tarot_the_reading_surface",
       "community": 585,
@@ -48683,7 +48503,7 @@
       "label": "14a. The status bar carries what the chat no longer says",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1988",
+      "source_location": "L2117",
       "_origin": "ast",
       "id": "architecture_14a_the_status_bar_carries_what_the_chat_no_longer_says",
       "community": 585,
@@ -48693,7 +48513,7 @@
       "label": "14a-ii. The cards: the outline hugs the picture, and a turned card turns at once",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2000",
+      "source_location": "L2129",
       "_origin": "ast",
       "id": "architecture_14a_ii_the_cards_the_outline_hugs_the_picture_and_a_turned_card_turns_at_once",
       "community": 585,
@@ -48703,7 +48523,7 @@
       "label": "14b. Narration paces the typewriter",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2006",
+      "source_location": "L2135",
       "_origin": "ast",
       "id": "architecture_14b_narration_paces_the_typewriter",
       "community": 585,
@@ -48713,7 +48533,7 @@
       "label": "14b-ii. The mic, and the reader it must not hear",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2016",
+      "source_location": "L2145",
       "_origin": "ast",
       "id": "architecture_14b_ii_the_mic_and_the_reader_it_must_not_hear",
       "community": 585,
@@ -48723,7 +48543,7 @@
       "label": "14c. Ambient music, and why the level is measured",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2026",
+      "source_location": "L2155",
       "_origin": "ast",
       "id": "architecture_14c_ambient_music_and_why_the_level_is_measured",
       "community": 585,
@@ -48733,7 +48553,7 @@
       "label": "14d. The opening turn is pre-generated \u2014 and why the first reading of a day was slow",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2045",
+      "source_location": "L2174",
       "_origin": "ast",
       "id": "architecture_14d_the_opening_turn_is_pre_generated_and_why_the_first_reading_of_a_day_was_slow",
       "community": 585,
@@ -48743,7 +48563,7 @@
       "label": "14e. The nightly voice check",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2087",
+      "source_location": "L2217",
       "_origin": "ast",
       "id": "architecture_14e_the_nightly_voice_check",
       "community": 585,
@@ -48753,7 +48573,7 @@
       "label": "15. The nudge loop (`nudge.py` + `nudge_deadlines.py` + `nudge_loop.py`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2108",
+      "source_location": "L2237",
       "_origin": "ast",
       "id": "architecture_15_the_nudge_loop_nudge_py_nudge_deadlines_py_nudge_loop_py",
       "community": 251,
@@ -48763,7 +48583,7 @@
       "label": "15a. Trigger and eligibility",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2112",
+      "source_location": "L2241",
       "_origin": "ast",
       "id": "architecture_15a_trigger_and_eligibility",
       "community": 251,
@@ -48773,7 +48593,7 @@
       "label": "15b. Everything in hq has a plan",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2126",
+      "source_location": "L2255",
       "_origin": "ast",
       "id": "architecture_15b_everything_in_hq_has_a_plan",
       "community": 251,
@@ -48783,7 +48603,7 @@
       "label": "15c. The breakdown UI",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2136",
+      "source_location": "L2265",
       "_origin": "ast",
       "id": "architecture_15c_the_breakdown_ui",
       "community": 251,
@@ -48793,7 +48613,7 @@
       "label": "15d. One nudge per step \u2014 no stall re-peel",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2146",
+      "source_location": "L2275",
       "_origin": "ast",
       "id": "architecture_15d_one_nudge_per_step_no_stall_re_peel",
       "community": 251,
@@ -48803,7 +48623,7 @@
       "label": "15e. A nudge ASKS whether the step is done; it never asserts that it isn't",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2153",
+      "source_location": "L2283",
       "_origin": "ast",
       "id": "architecture_15e_a_nudge_asks_whether_the_step_is_done_it_never_asserts_that_it_isn_t",
       "community": 251,
@@ -48813,7 +48633,7 @@
       "label": "15e-bis. Answering a nudge by tapping",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2173",
+      "source_location": "L2303",
       "_origin": "ast",
       "id": "architecture_15e_bis_answering_a_nudge_by_tapping",
       "community": 251,
@@ -48823,7 +48643,7 @@
       "label": "Card actions are the exception, and are deliberately not messages",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2211",
+      "source_location": "L2341",
       "_origin": "ast",
       "id": "architecture_card_actions_are_the_exception_and_are_deliberately_not_messages",
       "community": 251,
@@ -48833,7 +48653,7 @@
       "label": "15f. Due-date protection",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2229",
+      "source_location": "L2359",
       "_origin": "ast",
       "id": "architecture_15f_due_date_protection",
       "community": 251,
@@ -48843,7 +48663,7 @@
       "label": "15g. Lateness recalibration \u2014 built, and GATED OFF",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2235",
+      "source_location": "L2365",
       "_origin": "ast",
       "id": "architecture_15g_lateness_recalibration_built_and_gated_off",
       "community": 251,
@@ -48853,7 +48673,7 @@
       "label": "16. The Exec monitor (`monitor.py`)",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2248",
+      "source_location": "L2377",
       "_origin": "ast",
       "id": "architecture_16_the_exec_monitor_monitor_py",
       "community": 572,
@@ -48863,7 +48683,7 @@
       "label": "16a. What counts as significant",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2252",
+      "source_location": "L2381",
       "_origin": "ast",
       "id": "architecture_16a_what_counts_as_significant",
       "community": 572,
@@ -48873,7 +48693,7 @@
       "label": "16b. Timing",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2262",
+      "source_location": "L2391",
       "_origin": "ast",
       "id": "architecture_16b_timing",
       "community": 572,
@@ -48883,7 +48703,7 @@
       "label": "16c. chat.json is ONE chronological stream",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2274",
+      "source_location": "L2403",
       "_origin": "ast",
       "id": "architecture_16c_chat_json_is_one_chronological_stream",
       "community": 572,
@@ -48893,7 +48713,7 @@
       "label": "16d. The orphaned-`tool_use` 400, and its two fixes",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2280",
+      "source_location": "L2409",
       "_origin": "ast",
       "id": "architecture_16d_the_orphaned_tool_use_400_and_its_two_fixes",
       "community": 572,
@@ -48903,7 +48723,7 @@
       "label": "17. Memory is the scarce resource on this box",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2289",
+      "source_location": "L2421",
       "_origin": "ast",
       "id": "architecture_17_memory_is_the_scarce_resource_on_this_box",
       "community": 573,
@@ -48913,7 +48733,7 @@
       "label": "17a. What the pressure actually is",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2299",
+      "source_location": "L2431",
       "_origin": "ast",
       "id": "architecture_17a_what_the_pressure_actually_is",
       "community": 573,
@@ -48923,7 +48743,7 @@
       "label": "17b. The global OOM killer picks by badness score, not by culprit",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2307",
+      "source_location": "L2439",
       "_origin": "ast",
       "id": "architecture_17b_the_global_oom_killer_picks_by_badness_score_not_by_culprit",
       "community": 573,
@@ -48933,7 +48753,7 @@
       "label": "17e. The `--reload` poller was burning 44% of a core to watch 66 files",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2320",
+      "source_location": "L2458",
       "_origin": "ast",
       "id": "architecture_17e_the_reload_poller_was_burning_44_of_a_core_to_watch_66_files",
       "community": 573,
@@ -48943,7 +48763,7 @@
       "label": "17c. Every cron job writes where both sides can see it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2335",
+      "source_location": "L2488",
       "_origin": "ast",
       "id": "architecture_17c_every_cron_job_writes_where_both_sides_can_see_it",
       "community": 573,
@@ -48953,7 +48773,7 @@
       "label": "17d. The nightly graphify publishes its own output",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2348",
+      "source_location": "L2502",
       "_origin": "ast",
       "id": "architecture_17d_the_nightly_graphify_publishes_its_own_output",
       "community": 573,
@@ -48963,7 +48783,7 @@
       "label": "18. The typewriter and the shared chat surfaces",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2371",
+      "source_location": "L2524",
       "_origin": "ast",
       "id": "architecture_18_the_typewriter_and_the_shared_chat_surfaces",
       "community": 564,
@@ -48973,7 +48793,7 @@
       "label": "18-0. What the four transcripts actually share",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2373",
+      "source_location": "L2526",
       "_origin": "ast",
       "id": "architecture_18_0_what_the_four_transcripts_actually_share",
       "community": 564,
@@ -48983,7 +48803,7 @@
       "label": "18a. Every chat surface reveals character by character",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2385",
+      "source_location": "L2538",
       "_origin": "ast",
       "id": "architecture_18a_every_chat_surface_reveals_character_by_character",
       "community": 564,
@@ -48993,7 +48813,7 @@
       "label": "18a-ii. With the voice on, the narrator sets the pace",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2391",
+      "source_location": "L2544",
       "_origin": "ast",
       "id": "architecture_18a_ii_with_the_voice_on_the_narrator_sets_the_pace",
       "community": 564,
@@ -49003,7 +48823,7 @@
       "label": "18b. Everything that is SYNTAX rather than prose is jumped",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2405",
+      "source_location": "L2558",
       "_origin": "ast",
       "id": "architecture_18b_everything_that_is_syntax_rather_than_prose_is_jumped",
       "community": 564,
@@ -49013,7 +48833,7 @@
       "label": "18c. The waiting indicator is a solid blinking block",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2419",
+      "source_location": "L2572",
       "_origin": "ast",
       "id": "architecture_18c_the_waiting_indicator_is_a_solid_blinking_block",
       "community": 564,
@@ -49023,7 +48843,7 @@
       "label": "18d. Tarot's other mode is not shared",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2427",
+      "source_location": "L2580",
       "_origin": "ast",
       "id": "architecture_18d_tarot_s_other_mode_is_not_shared",
       "community": 564,
@@ -49033,7 +48853,7 @@
       "label": "18e. Four surfaces, one transcript look",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2435",
+      "source_location": "L2588",
       "_origin": "ast",
       "id": "architecture_18e_four_surfaces_one_transcript_look",
       "community": 564,
@@ -49043,7 +48863,7 @@
       "label": "The narration starts with the reveal, not after it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2458",
+      "source_location": "L2611",
       "_origin": "ast",
       "id": "architecture_the_narration_starts_with_the_reveal_not_after_it",
       "community": 564,
@@ -49053,7 +48873,7 @@
       "label": "18f. If Exec names a link, the link is tappable",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2469",
+      "source_location": "L2623",
       "_origin": "ast",
       "id": "architecture_18f_if_exec_names_a_link_the_link_is_tappable",
       "community": 564,
@@ -49063,7 +48883,7 @@
       "label": "19. `/zombo` \u2014 a secret page with one third-party dependency",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2489",
+      "source_location": "L2640",
       "_origin": "ast",
       "id": "architecture_19_zombo_a_secret_page_with_one_third_party_dependency",
       "community": 621,
@@ -49073,7 +48893,7 @@
       "label": "The load path, and the three traps in it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2498",
+      "source_location": "L2650",
       "_origin": "ast",
       "id": "architecture_the_load_path_and_the_three_traps_in_it",
       "community": 621,
@@ -49083,7 +48903,7 @@
       "label": "The one outbound link, and why it is rewritten in the bytes",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2516",
+      "source_location": "L2668",
       "_origin": "ast",
       "id": "architecture_the_one_outbound_link_and_why_it_is_rewritten_in_the_bytes",
       "community": 621,
@@ -49093,7 +48913,7 @@
       "label": "Before the click, the page is one line",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2526",
+      "source_location": "L2678",
       "_origin": "ast",
       "id": "architecture_before_the_click_the_page_is_one_line",
       "community": 621,
@@ -49103,7 +48923,7 @@
       "label": "Sizing: the movie FITS, and the pillars are sampled from it",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2540",
+      "source_location": "L2692",
       "_origin": "ast",
       "id": "architecture_sizing_the_movie_fits_and_the_pillars_are_sampled_from_it",
       "community": 621,
@@ -53977,6 +53797,36 @@
       "confidence_score": 1.0,
       "source": "data_cc_titles_d844db08_45da_4e50_8d3f_00c927af6c2c",
       "target": "data_cc_titles_d844db08_45da_4e50_8d3f_00c927af6c2c_title"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/data/chat.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "data_chat",
+      "target": "data_chat_messages"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/data/chat.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "data_chat",
+      "target": "data_chat_stage"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/data/chat.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "data_chat",
+      "target": "data_chat_updated_at"
     },
     {
       "relation": "contains",
@@ -126395,432 +126245,202 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "source": "archaeology",
-      "target": "archaeology_exec_fn_archaeology",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L184",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_10_the_crt_effect_stack_crt_fx",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L200",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_11_graph",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L293",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_12_the_bottom_nav",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L305",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_13_the_pre_commit_hook_suite",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L316",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_14_tarot",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L328",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_15_the_nudge_loop",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L338",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_16_the_exec_monitor",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L348",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_17_memory_is_the_scarce_resource_on_this_box",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L385",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_18_the_typewriter_and_the_shared_chat_surfaces",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L395",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_19_zombo",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L21",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_1_deployment",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L50",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_3_morning_pipeline_scheduling",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L61",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_4_tts_text_to_speech",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L98",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_5_llm_call_sites_prompt_caching",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L106",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_6_printer_elegoo_centauri_carbon",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L121",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_7_cc_claude_code_in_the_browser",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L164",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_8_rd_the_board_and_its_month_calendar",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L176",
-      "weight": 1.0,
-      "source": "archaeology_exec_fn_archaeology",
-      "target": "archaeology_9_the_landing_page",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L258",
-      "weight": 1.0,
-      "source": "archaeology_11_graph",
-      "target": "archaeology_the_tour_kept_its_job_and_lost_its_mechanism_twice",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L277",
-      "weight": 1.0,
-      "source": "archaeology_11_graph",
-      "target": "archaeology_what_a_redraw_costs_and_what_that_means",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHAEOLOGY.md",
-      "source_location": "L264",
-      "weight": 1.0,
-      "source": "archaeology_11_graph",
-      "target": "archaeology_why_nothing_writes_to_the_datasets_or_to_network_body_either",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "architecture",
-      "target": "architecture_exec_fn_architecture",
-      "confidence_score": 1.0
+      "target": "architecture_exec_fn_architecture_uml_mermaid"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1496",
+      "source_location": "L1389",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_10_the_crt_effect_stack_crt_fx",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_10_the_crt_effect_stack_crt_fx"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1546",
+      "source_location": "L1442",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_11_graph_serve_time_transforms_over_a_generated_artifact",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_11_graph_serve_time_transforms_over_a_generated_artifact"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1776",
+      "source_location": "L1503",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_12_the_bottom_nav",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_12_the_bottom_nav"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1897",
+      "source_location": "L1577",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_13_the_pre_commit_hook_suite",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_13_the_pre_commit_hook_suite"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1984",
+      "source_location": "L1666",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_14_tarot_the_reading_surface",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_14_tarot_the_reading_surface"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2108",
+      "source_location": "L1713",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_15_the_nudge_loop_nudge_py_nudge_deadlines_py_nudge_loop_py",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_15_the_nudge_loop_nudge_py_nudge_deadlines_py_nudge_loop_py"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2248",
+      "source_location": "L1825",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_16_the_exec_monitor_monitor_py",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_16_the_exec_monitor_monitor_py"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2289",
+      "source_location": "L1869",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_17_memory_is_the_scarce_resource_on_this_box",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_17_memory_is_the_scarce_resource_on_this_box"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2371",
+      "source_location": "L1938",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_18_the_typewriter_and_the_shared_chat_surfaces",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_18_the_typewriter_and_the_shared_chat_surfaces"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L2489",
+      "source_location": "L2130",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_19_zombo_a_secret_page_with_one_third_party_dependency",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_19_zombo_a_secret_page_with_one_third_party_dependency"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L33",
+      "source_location": "L17",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_1_deployment",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_1_deployment"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L139",
+      "source_location": "L75",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_2_module_graph",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_2_module_graph"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L218",
+      "source_location": "L154",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_3_morning_pipeline_scheduling",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_3_morning_pipeline_scheduling"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L329",
+      "source_location": "L261",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_4_tts_text_to_speech",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_4_tts_text_to_speech"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L565",
+      "source_location": "L403",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_5_llm_call_sites_prompt_caching",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_5_llm_call_sites_prompt_caching"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L693",
+      "source_location": "L595",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_6_printer_elegoo_centauri_carbon_two_tier_reverse_proxy",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_6_printer_elegoo_centauri_carbon_two_tier_reverse_proxy"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L955",
+      "source_location": "L855",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_7_cc_claude_code_in_the_browser",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_7_cc_claude_code_in_the_browser"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1324",
+      "source_location": "L1223",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_8_rd_the_board_and_its_month_calendar",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_8_rd_the_board_and_its_month_calendar"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L1421",
+      "source_location": "L1314",
       "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_9_the_landing_page_a_ferris_wheel_not_a_list",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "ARCHITECTURE.md",
-      "source_location": "L14",
-      "weight": 1.0,
-      "source": "architecture_exec_fn_architecture",
-      "target": "architecture_the_diagrams",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "architecture_exec_fn_architecture_uml_mermaid",
+      "target": "architecture_9_the_landing_page_a_ferris_wheel_not_a_list"
     },
     {
       "relation": "contains",
@@ -127391,6 +127011,36 @@
       "confidence_score": 1.0,
       "source": "architecture_11f_the_client_side_overlay",
       "target": "architecture_graph_pulse_js_graph_pulse_draw_js_the_firing_overlay"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L1833",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "architecture_11f_the_client_side_overlay",
+      "target": "architecture_the_tour_kept_its_job_and_lost_its_mechanism_twice"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L1887",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "architecture_11f_the_client_side_overlay",
+      "target": "architecture_what_a_redraw_costs_and_what_that_means"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L1874",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "architecture_11f_the_client_side_overlay",
+      "target": "architecture_why_nothing_writes_to_the_datasets_or_to_network_body_either"
     },
     {
       "relation": "contains",
@@ -129334,5 +128984,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c15ee77708c625f93bc5f9c5095f5a8f2a92ecbd"
+  "built_at_commit": "890b260950f9b71c466ef5c8a5d6ebd859025f76"
 }
