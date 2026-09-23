@@ -112,14 +112,14 @@ var graphPulse = (function () {
   // to linear on purpose: at 1.8 the light was gone before the eye had followed
   // the chain that lit it.
 
-  var pos = {};                   // id -> {x, y, r, c} in world units, read once
+  var pos = {};                   // id -> {x, y, r, s, c}; world units, read once
   var deg = {};                   // id -> edge count
   var adj = {};                   // id -> [neighbour ids]
   var ids = [];                   // every node id, in cumulative-weight order
   var cum = [];                   // prefix sums of weight, for the seed draw
   var cells = [];                 // GRID*GRID squares, each {ids, cum}
   var cellOf = {};                // id -> square index
-  var lit = {};                   // id -> {t0, dur}
+  var lit = {};                   // id -> {t0, dur}; kept for totalLife(dur)
   var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b}
   var live = [];                  // iterations in flight: {queue, seen, until}
   var nextIter = 0, running = false;
@@ -135,7 +135,7 @@ var graphPulse = (function () {
         var all = nodesDS.get();
         for (var i = 0; i < all.length; i++) {
           var n = all[i];
-          pos[n.id] = { x: 0, y: 0, r: n.size || 10, s: n.shape };
+          pos[n.id] = { x: 0, y: 0, r: n.size || 10, s: n.shape, c: graphPulseDraw.satInk(n.color && n.color.border) };
           deg[n.id] = 0;
           adj[n.id] = [];
         }
@@ -405,7 +405,7 @@ var graphPulse = (function () {
 
   function expire(map, now) {
     for (var k in map) {
-      if (now - map[k].t0 >= map[k].dur) {
+      if (now - map[k].t0 >= graphPulseDraw.totalLife(map[k].dur)) {
         delete map[k];
       }
     }
@@ -491,7 +491,7 @@ var graphPulse = (function () {
       // history; the short version is that the cost was never here.
       onPainted = onReady || null;
       index(function () {
-        graphPulseDraw.init(pos, litEdges, level);
+        graphPulseDraw.init(pos, lit, litEdges, level);
         running = true;
         requestAnimationFrame(frame);
       });

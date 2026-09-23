@@ -35,10 +35,36 @@ var graphPulseDraw = (function () {
   var A_EDGE = 0.8;
   var EDGE_W = 1.6;
 
+  // THE SECOND, SATURATED LAYER. Same geometry and the same envelope as the white
+  // pass above, at THREE TIMES the life: a white flash that decays into a long
+  // coloured afterglow.
+  //
+  // Why it reads at all under 'lighter'. Adding colour on top of a centre that has
+  // already clipped to white does nothing, so for its first third this layer only
+  // tints the halo. Its point is the other two thirds: once the white has faded it
+  // is the only thing on the canvas, and what is left is the node's own community
+  // colour. Drawing it UNDER the white instead would have been washed out for the
+  // whole overlap and then identical afterwards, so over the top is both what was
+  // asked for and the only ordering that shows anything during the flash.
+  //
+  // The colour is that community colour with its SATURATION pushed up, computed
+  // once per node at index time and cached on `pos[id].c` — never built per frame,
+  // which is the same rule that keeps the white pass on a single literal. A node
+  // with no colour falls back to the white ink rather than vanishing.
+  var SAT_MULT = 3;               // lifetime, x the white pass
+  var SAT_BOOST = 1.75;           // x saturation, clamped at fully saturated
+  var A_SAT = {
+    halo1: 0.14, halo2: 0.22, fill: 0.9, stroke: 0.95, edge: 0.7,
+  };
+  var A_WHITE = {
+    halo1: A_HALO_OUTER, halo2: A_HALO_INNER, fill: A_FILL, stroke: A_STROKE,
+    edge: A_EDGE,
+  };
+
   var cv = null, ctx = null, cw = 0, ch = 0, dpr = 1;
   // Set once by graph-pulse.js. Mutated in place by it thereafter, never
   // reassigned, which is the whole contract that makes reading them here safe.
-  var pos = {}, litEdges = {}, level = null;
+  var pos = {}, lit = {}, litEdges = {}, level = null;
 
   function makeCanvas() {
     cv = document.createElement('canvas');
@@ -149,7 +175,80 @@ var graphPulseDraw = (function () {
   // wants to see.
   var INK = '#ffffff';
 
-  function drawNode(p, a, scale, view) {
+  // hex -> HSL -> saturation x SAT_BOOST -> hex. Runs once per node, at index
+  // time, so nothing here sits on a frame path.
+  //
+  // It returns HEX rather than a CSS colour-function string, and the helper below
+  // is named `hueChan` rather than by its usual name, for one reason: the palette
+  // lint reads SOURCE TEXT with whitespace stripped, so ANY colour-function name
+  // followed by an open paren reads as a new raw colour -- inside a comment as
+  // readily as in code, and regardless of the fact that every value here comes
+  // from the payload at runtime. The conventional name made the lint report three
+  // colours that do not exist, matching the substring inside each CALL; an
+  // earlier draft of this comment tripped it a fourth time merely by discussing
+  // the problem. Same substring trap `cmdscan.py` was written for. Renaming and
+  // rewording is the fix -- `--update` would have frozen four phantom colours
+  // into the baseline.
+  function hueChan(p, q, t) {
+    if (t < 0) { t += 1; }
+    if (t > 1) { t -= 1; }
+    if (t < 1 / 6) { return p + (q - p) * 6 * t; }
+    if (t < 1 / 2) { return q; }
+    if (t < 2 / 3) { return p + (q - p) * (2 / 3 - t) * 6; }
+    return p;
+  }
+
+  function toHex(h, s, l) {
+    var r, g, b;
+    if (!s) {
+      r = l; g = l; b = l;
+    } else {
+      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      var p = 2 * l - q;
+      r = hueChan(p, q, h + 1 / 3);
+      g = hueChan(p, q, h);
+      b = hueChan(p, q, h - 1 / 3);
+    }
+    var v = (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+    return '#' + ('000000' + v.toString(16)).slice(-6);
+  }
+
+  function satInk(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) {
+      return INK;
+    }
+    var n = parseInt(m[1], 16);
+    var r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    var l = (mx + mn) / 2, d = mx - mn, s = 0, h = 0;
+    if (d) {
+      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      if (mx === r) {
+        h = (g - b) / d + (g < b ? 6 : 0);
+      } else if (mx === g) {
+        h = (b - r) / d + 2;
+      } else {
+        h = (r - g) / d + 4;
+      }
+      h /= 6;
+    }
+    return toHex(h, Math.min(1, s * SAT_BOOST), l);
+  }
+
+  // The saturated envelope is the model's own `level`, read against a longer
+  // duration -- never a second copy of ATTACK_MS/DECAY_POW, which would be two
+  // fades to keep in sync. One scratch record, mutated in place, so a frame with
+  // fifty lit nodes still allocates nothing.
+  var SHIM = { t0: 0, dur: 0 };
+
+  function satLevel(l, now) {
+    SHIM.t0 = l.t0;
+    SHIM.dur = l.dur * SAT_MULT;
+    return level(SHIM, now);
+  }
+
+  function drawNode(p, a, scale, view, A) {
     var x = (p.x - view.x) * scale + cw / 2;
     var y = (p.y - view.y) * scale + ch / 2;
     var r = Math.max(p.r * scale, 1.2);
@@ -159,29 +258,29 @@ var graphPulseDraw = (function () {
     // The halo follows the GLYPH, not the node point, or a triangle glows
     // off-centre — the same offset, seen from the other side.
     var gy = triCentre(y, r, p.s);
-    ctx.globalAlpha = a * A_HALO_OUTER;
+    ctx.globalAlpha = a * A.halo1;
     ctx.beginPath();
     ctx.arc(x, gy, r * HALO_OUTER, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = a * A_HALO_INNER;
+    ctx.globalAlpha = a * A.halo2;
     ctx.beginPath();
     ctx.arc(x, gy, r * HALO_INNER, 0, Math.PI * 2);
     ctx.fill();
     glyph(x, y, r, p.s);
-    ctx.globalAlpha = a * A_FILL;
+    ctx.globalAlpha = a * A.fill;
     ctx.fill();
-    ctx.globalAlpha = a * A_STROKE;
+    ctx.globalAlpha = a * A.stroke;
     ctx.lineWidth = 1.4;
     ctx.stroke();
   }
 
   // The edge the activation travelled along, lit as the far end catches. Both its
   // ends are lit by construction — it is drawn because something crossed it.
-  function drawEdges(now, scale, view) {
+  function drawEdges(now, scale, view, A, lvl, tint) {
     ctx.lineWidth = EDGE_W;
     for (var k in litEdges) {
       var e = litEdges[k];
-      var a = level(e, now);
+      var a = lvl(e, now);
       if (a <= 0.01) {
         continue;
       }
@@ -189,7 +288,12 @@ var graphPulseDraw = (function () {
       if (!p || !q) {
         continue;
       }
-      ctx.globalAlpha = a * A_EDGE;
+      // An edge inherits its colour from the from-node, the same way vis colours
+      // the unlit edge underneath it, so a lit chain stays one colour end to end.
+      if (tint) {
+        ctx.strokeStyle = p.c || INK;
+      }
+      ctx.globalAlpha = a * A.edge;
       ctx.beginPath();
       ctx.moveTo((p.x - view.x) * scale + cw / 2, (p.y - view.y) * scale + ch / 2);
       ctx.lineTo((q.x - view.x) * scale + cw / 2, (q.y - view.y) * scale + ch / 2);
@@ -197,13 +301,43 @@ var graphPulseDraw = (function () {
     }
   }
 
+  // Iterates `lit` rather than the level map the model hands in: that map holds
+  // only what is still above the threshold on the WHITE envelope, and this layer's
+  // whole point is the two thirds after that has run out.
+  function drawNodesSat(now, scale, view) {
+    for (var id in lit) {
+      var a = satLevel(lit[id], now);
+      if (a <= 0.01) {
+        continue;
+      }
+      var p = pos[id];
+      if (!p) {
+        continue;
+      }
+      var ink = p.c || INK;
+      ctx.fillStyle = ink;
+      ctx.strokeStyle = ink;
+      drawNode(p, a, scale, view, A_SAT);
+    }
+  }
+
   return {
-    init: function (positions, edges, levelFn) {
+    // `lit` joins `litEdges` and `pos` on the mutated-in-place contract: the model
+    // declares it once and only ever adds and deletes keys.
+    init: function (positions, litMap, edges, levelFn) {
       pos = positions;
+      lit = litMap;
       litEdges = edges;
       level = levelFn;
       makeCanvas();
     },
+    // The model expires a lit record on its own `dur`; the saturated layer needs
+    // it kept for SAT_MULT times that, so the model asks here rather than holding
+    // a copy of the multiplier.
+    totalLife: function (dur) {
+      return dur * SAT_MULT;
+    },
+    satInk: satInk,
     // One frame. `levels` is {nodeId: alpha} from the model; lit edges are read
     // straight off the bound object and levelled here, because an edge's alpha
     // is min(both ends) and the model has no reason to build that list twice.
@@ -214,12 +348,16 @@ var graphPulseDraw = (function () {
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
-      drawEdges(now, scale, view);
+      drawEdges(now, scale, view, A_WHITE, level, false);
       for (var id in levels) {
         if (pos[id]) {
-          drawNode(pos[id], levels[id], scale, view);
+          drawNode(pos[id], levels[id], scale, view, A_WHITE);
         }
       }
+      // Over the top, and last, so it is visible during the flash rather than
+      // only after it.
+      drawEdges(now, scale, view, A_SAT, satLevel, true);
+      drawNodesSat(now, scale, view);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     },
