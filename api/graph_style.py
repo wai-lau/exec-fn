@@ -44,12 +44,18 @@ def _drop_graph_tooltips(page: str) -> str:
 # `star` draw the label outside and take their size from `size`. Node size here
 # is geometric in degree (_size_graph_by_degree), which is the graph's main
 # encoding, so a shape from the first family would discard it for every node of
-# that type and relocate its label in the same move. Documents were briefly
-# `dot`; `triangleDown` pairs them against the rationale triangle instead, which
-# reads as a related pair rather than three unrelated glyphs.
+# that type and relocate its label in the same move.
+#
+# The assignment was REASSIGNED on 2026-09-23: rotated one step
+# (hexagon -> triangleDown -> triangle -> hexagon), then the two triangle
+# directions were swapped back. Net against what came before, `code` and
+# `rationale` traded shapes and `document` kept its downward triangle. The
+# pairing argument is untouched by either move: the two triangle directions still
+# read as a related pair against the one hexagon, which is the whole reason `dot`
+# is not in this table.
 _TYPE_SHAPES = {
-    "code": "hexagon",
-    "rationale": "triangle",
+    "code": "triangle",
+    "rationale": "hexagon",
     "document": "triangleDown",
 }
 
@@ -58,7 +64,8 @@ def _shape_graph_nodes_by_type(page: str) -> str:
     """Give every node a `shape` from its file_type, and make vis carry it.
 
     The global `nodes: { shape: ... }` above is the default for anything this
-    misses, so an unknown type stays a hexagon rather than vanishing."""
+    misses. It tracks the majority type (so an unknown type draws like `code`,
+    which is what it did when both were hexagons) rather than vanishing."""
     def _shape(nodes):
         for n in nodes:
             shape = _TYPE_SHAPES.get(n.get("file_type"))
@@ -78,14 +85,14 @@ def _shape_graph_nodes_by_type(page: str) -> str:
 
 
 def _restyle_graph_nodes(page: str) -> str:
-    """Render nodes as hexagons (matching /emet) instead of vis's default dots,
+    """Replace vis's default dots with the per-type shapes in `_TYPE_SHAPES`,
     and bump the border so the bg-filled outline reads. Also repoint the node-info
     neighbour stripe from .color.background (now the page bg, invisible) to
     .color.border (the community colour). String tweaks on graphify's emitted JS,
     so they survive a /graphify rebuild."""
     page = page.replace(
         "nodes: { shape: 'dot', borderWidth: 1.5 }",
-        "nodes: { shape: 'hexagon', borderWidth: 2 }",
+        "nodes: { shape: 'triangle', borderWidth: 2 }",
         1,
     )
     page = _shape_graph_nodes_by_type(page)

@@ -997,7 +997,7 @@ Know which is which before trusting one.
    `disallowedTools` stays as belt, and to keep built-ins out of CONTEXT — a tool the model can see, calls, and is refused on burns a turn and reads as the assistant being broken.
 
 
-   > After any `@anthropic-ai/claude-agent-sdk` bump, run the probe and confirm `TOOL COUNT: 5` with no `UNEXPECTED` line:
+   > After any `@anthropic-ai/claude-agent-sdk` bump, run the probe and confirm `TOOL COUNT: 14` with no `UNEXPECTED` line:
    >
    > ```bash
    > systemd-run --user --scope -p MemoryMax=700M \
@@ -1069,7 +1069,9 @@ What still bounds it:
 
 ### 7c. Tools — what is granted, and the deliberate widening
 
-It runs with **five tools and one MCP server, all of them ours** — `WebSearch`, `WebFetch`, and the three `mcp__archive__*` tools, the only names in `ALLOWED_TOOLS` — plus an explicit `systemPrompt` replacing Claude Code's coding-CLI preset, and `cwd` on an empty confined dir.
+It runs with **14 tools and one MCP server, all of them ours** — the 11 built-ins in `BUILTIN_TOOLS` (`Read`, `Write`, `Edit`, `NotebookEdit`, `Bash`, `BashOutput`, `KillShell`, `Glob`, `Grep`, `WebSearch`, `WebFetch`) plus the three `mcp__archive__*` tools, which together are the only names in `ALLOWED_TOOLS` — plus an explicit `systemPrompt` replacing Claude Code's coding-CLI preset, and `cwd` on a confined scratch dir.
+
+**Count it from `server.mjs`, never from a doc.** This section said "five tools" and `TOOL COUNT: 5` long after the page became a full agent, and CLAUDE.md said 12; the source says 11 + 3. `BUILTIN_TOOLS` is what is passed to the SDK as `tools`, the archive names arrive through `mcpServers`, and `ALLOWED_TOOLS` is the concatenation — so the number a probe prints is the length of that list and nothing else.
 
 
 **This is a deliberate widening of the sandbox, not an oversight.** `WebFetch` is a real exfiltration channel — a fetched page is untrusted text that can try to steer the model into putting conversation content into a follow-up URL — and Wai enabled it weighing exactly that.
@@ -1593,6 +1595,41 @@ What it reports:
 
 **Community packing is opt-in at `?pack=1`.** Each of the 14 communities moves as a RIGID tile — translation only, never scaling — shelf-packed into a box of the viewport's aspect, because vis's physics runs in world coordinates and ignores the viewport entirely (baking in a tall window changes nothing) and scaling an axis is the squish. Measured at 430x932: **117 columns x 218 rows**, step 350 on both axes, cloud aspect 0.53 against a 0.50 viewport. Off by default: nothing inside a community moves by a pixel, but where the communities sit relative to each other is dealt out again, and it reads as a different graph. `cell` is sized from the cloud BEFORE packing — the gaps between tiles are empty space, and letting them coarsen the grid took the step from 97 to 350, which is exactly what makes nodes collide and clump.
 
+
+**Shape carries a node's TYPE, colour carries its community.** Reassigned on
+2026-09-23: `code` (2,078, 74%) is an **upward** triangle, `rationale` (462, 16%)
+a **hexagon**, and `document` (262, 9%) a **downward** triangle (`_TYPE_SHAPES`
+and `_shape_graph_nodes_by_type` in graph_style.py). It got there in two steps —
+rotated one place (hexagon -> triangleDown -> triangle -> hexagon), then the two
+triangle directions swapped back — so the net effect against the previous table
+is that `code` and `rationale` traded shapes while `document` kept its downward
+triangle. The two triangle directions still read as a related pair against the
+one hexagon, which is the argument the table was built on and the reason `dot`
+is not in it.
+
+**There is no `circle` in the set, and that is a constraint rather than a taste.**
+vis splits its shapes into two families: `circle`, `ellipse`, `box` and `text`
+draw the label INSIDE and size themselves to it, ignoring `size` entirely, while
+`dot`, `hexagon`, `triangle`, `triangleDown`, `diamond`, `square` and `star` draw
+the label outside and take their size from `size`. Node size here is geometric in
+degree, which is the graph's primary encoding, so a shape from the first family
+would discard it for every node of that type and relocate its label in the same
+move.
+
+The per-node `shape` must be named in graphify's DataSet mapper or it is dropped
+on the way in — the same explicit-field trap as the baked x/y — and the global
+`nodes: { shape: ... }` stays as the fallback for a type this misses. That global
+tracks the MAJORITY type (`triangleDown` now, `hexagon` before the rotation), so
+an unknown type has always drawn like `code`.
+
+The cascade's lit glyph follows the shape too (`glyph()` in
+graph-pulse-draw.js), since lighting everything as one shape made a cascade
+misdescribe what it was crossing. Both triangle directions draw at 1.15x radius
+and shifted off the node point, because **that is what vis itself does**
+(`triangle: y += 0.275 * (size *= 1.15)`, `triangleDown: y -= 0.275 * …`): the
+overlay has to agree with the renderer it paints over, not with the geometry it
+would choose. The mapping lives in graph_style.py alone; graph-pulse-draw.js
+draws whatever shape a node arrives with, so a future rotation touches one table.
 
 **`api/graph_layout.py` is the physics and the bake**, split from graph_style.py at the 500-line cap along a real seam: what is left there decides how the graph LOOKS, and what moved decides where its nodes SIT. The pairing is the point — `_tune_graph_physics` is the sim that computes a layout and `_apply_graph_layout` is what makes that sim unnecessary for every visitor after the first.
 

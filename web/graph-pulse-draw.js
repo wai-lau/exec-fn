@@ -71,9 +71,12 @@ var graphPulseDraw = (function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  // The lit glyph follows the node's SHAPE, which carries its type: hexagon for
-  // code, triangle for a rationale, circle for a document. Lighting everything
-  // as a hexagon made a cascade say the wrong thing about what it was crossing.
+  // The lit glyph follows the node's SHAPE, which carries its type: an UPWARD
+  // triangle for code, a hexagon for a rationale, a DOWNWARD triangle for a
+  // document (graph_style._TYPE_SHAPES owns that mapping; this file only has to
+  // draw whatever shape a node arrives with, so a reassignment there touches
+  // nothing here). Lighting everything as one shape made a cascade say the wrong
+  // thing about what it was crossing.
   function polygon(x, y, r, sides, turn) {
     ctx.beginPath();
     for (var i = 0; i < sides; i++) {
