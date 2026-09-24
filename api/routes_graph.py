@@ -78,7 +78,7 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-ink.js?v=1"></script>'
     '<script src="/graph-pulse-draw.js?v=14"></script>'
     '<script src="/graph-seed.js?v=3"></script>'
-    '<script src="/graph-bands.js?v=1"></script>'
+    '<script src="/graph-bands.js?v=2"></script>'
     '<script src="/graph-source.js?v=1"></script>'
     '<script src="/graph-lit.js?v=1"></script>'
     '<script src="/graph-bias.js?v=2"></script>'
