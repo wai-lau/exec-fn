@@ -77,6 +77,7 @@ var graphAudio = (function () {
   // and the picture looks intentional -- while X still carries no audio meaning,
   // which is what "ignore left and right" asked for.
   var X_STEP = 0.07;              // per fire, as a fraction of the width
+  var X_HOME = 0.5;               // and where it starts: the middle
 
   // How many starting points a beat gets. Level is judged against a DECAYING PEAK
   // rather than an absolute number, because a shared tab and a microphone across a
@@ -122,7 +123,11 @@ var graphAudio = (function () {
   var hist = [], histI = 0, lastBeat = 0;
   var rms = 0, hold = 0, peak = PEAK_FLOOR, loud = 0, amp = 0;
   // Inverted on purpose: the first reading seeds both ends.
-  var centLo = 1, centHi = 0, xWalk = Math.random();
+  // The walk STARTS CENTRED. It began at Math.random(), which can land hard left
+  // or hard right, so the first bars of a track drifted in from an edge for no
+  // reason -- and the reflecting bound means an edge start also spends its first
+  // steps bouncing rather than wandering. 0.5 has neither problem.
+  var centLo = 1, centHi = 0, xWalk = X_HOME;
 
   // ── the control, reached through a shim ──────────────────────────────────
   // Guarded so the analysis runs with no UI present at all, which is what a test
@@ -317,7 +322,7 @@ var graphAudio = (function () {
     graphBands.detach();
     hist = []; histI = 0; lastBeat = 0;
     rms = 0; hold = 0; peak = PEAK_FLOOR; loud = 0; amp = 0;
-    centLo = 1; centHi = 0; xWalk = Math.random();
+    centLo = 1; centHi = 0; xWalk = X_HOME;
     graphTempo.reset();
     paint();
     say(msg === '' ? '' : (msg || 'ambient'));
