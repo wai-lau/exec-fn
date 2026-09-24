@@ -104,7 +104,7 @@ var graphPulse = (function () {
 
   // The lit envelopes and their two registers live in graph-lit.js.
 
-  var pos = {};                   // id -> {x, y, r, s, c}; world units, read once
+  var pos = {};                   // id -> {x, y, r, s, c, e}; world units, read once
   var deg = {};                   // id -> edge count
   var adj = {};                   // id -> [neighbour ids]
   var live = [];                  // iterations in flight: {queue, seen, until}
@@ -186,16 +186,35 @@ var graphPulse = (function () {
         // that runs before `getPositions`, so every node is still at 0,0 and every
         // edge would measure zero.
         var es = edgesDS.get(), total = 0, n = 0;
+        var sum = {}, cnt = {};
         for (i = 0; i < es.length; i++) {
           var a = pos[es[i].from], b = pos[es[i].to];
           if (!a || !b) {
             continue;
           }
           var dx = a.x - b.x, dy = a.y - b.y;
-          total += Math.sqrt(dx * dx + dy * dy);
+          var len = Math.sqrt(dx * dx + dy * dy);
+          total += len;
           n++;
+          sum[es[i].from] = (sum[es[i].from] || 0) + len;
+          cnt[es[i].from] = (cnt[es[i].from] || 0) + 1;
+          sum[es[i].to] = (sum[es[i].to] || 0) + len;
+          cnt[es[i].to] = (cnt[es[i].to] || 0) + 1;
         }
         edgeRef = n ? total / n : 0;
+        // Each node's OWN mean connected edge length, normalised against twice the
+        // graph's mean so an average node sits at 0.5 -- the same convention the
+        // per-hop bias uses, so one LENGTH_BIAS governs both and they cannot
+        // disagree about what "long" means. A node with no edges reads 0.5, i.e.
+        // no opinion, rather than 0, which would read as "shortest possible" and
+        // make every isolated node a high-pitch magnet.
+        var ids2 = Object.keys(pos);
+        for (i = 0; i < ids2.length; i++) {
+          var k = ids2[i];
+          pos[k].e = cnt[k] && edgeRef
+            ? Math.min(1, (sum[k] / cnt[k]) / (2 * edgeRef))
+            : 0.5;
+        }
       }],
       ['grid', function () {
         graphSeed.index(pos, deg, TERMINAL_ODDS);
