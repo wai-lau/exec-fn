@@ -35,7 +35,7 @@ from graph_scrub import (
 from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
     _merge_graph_communities, _fix_graph_stats, _size_graph_by_degree,
-    _brighten_graph_edges,
+    _hide_graph_edges,
 )
 from graph_layout import (
     _tune_graph_physics, _apply_graph_layout,
@@ -75,12 +75,13 @@ _GRAPH_OVERLAY_JS = (
     # The cover first: graph-overlay.js calls gpCover.show() on its own last
     # line, and the failure note has to exist before anything can need it.
     '<script src="/graph-cover.js?v=10"></script>'
-    '<script src="/graph-pulse-draw.js?v=8"></script>'
+    '<script src="/graph-pulse-draw.js?v=10"></script>'
     '<script src="/graph-seed.js?v=1"></script>'
-    '<script src="/graph-pulse.js?v=25"></script>'
+    '<script src="/graph-glow.js?v=2"></script>'
+    '<script src="/graph-pulse.js?v=29"></script>'
     '<script src="/graph-tempo.js?v=1"></script>'
-    '<script src="/graph-audio.js?v=3"></script>'
-    '<script src="/graph-audio-ui.js?v=1"></script>'
+    '<script src="/graph-audio.js?v=4"></script>'
+    '<script src="/graph-audio-ui.js?v=2"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
     '<script src="/graph-lattice.js?v=14"></script>'
     '<script src="/graph-overlay.js?v=67"></script>'
@@ -253,7 +254,7 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # Size nodes exponentially by edge count, so hubs read as hubs.
     page = _size_graph_by_degree(page)
     # And make the UNLIT edges readable — they are the structure the page is for.
-    page = _brighten_graph_edges(page)
+    page = _hide_graph_edges(page)
     # Header counts are baked pre-scrub; rewrite to the merged/dropped reality.
     page = _fix_graph_stats(page)
     # Disable vis-network's improvedLayout — the graph is too large for it to

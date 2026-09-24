@@ -51,7 +51,6 @@ var graphPulseDraw = (function () {
   // once per node at index time and cached on `pos[id].c` — never built per frame,
   // which is the same rule that keeps the white pass on a single literal. A node
   // with no colour falls back to the white ink rather than vanishing.
-  var SAT_MULT = 3;               // lifetime, x the white pass
   var SAT_BOOST = 1.75;           // x saturation, clamped at fully saturated
   var A_SAT = {
     halo1: 0.14, halo2: 0.22, fill: 0.9, stroke: 0.95, edge: 0.7,
@@ -64,7 +63,8 @@ var graphPulseDraw = (function () {
   var cv = null, ctx = null, cw = 0, ch = 0, dpr = 1;
   // Set once by graph-pulse.js. Mutated in place by it thereafter, never
   // reassigned, which is the whole contract that makes reading them here safe.
-  var pos = {}, lit = {}, litEdges = {}, level = null;
+  var pos = {}, lit = {}, litEdges = {}, level = null, satLevel = null;
+  var chargeN = {}, chargeE = {};
 
   function makeCanvas() {
     cv = document.createElement('canvas');
@@ -236,18 +236,6 @@ var graphPulseDraw = (function () {
     return toHex(h, Math.min(1, s * SAT_BOOST), l);
   }
 
-  // The saturated envelope is the model's own `level`, read against a longer
-  // duration -- never a second copy of ATTACK_MS/DECAY_POW, which would be two
-  // fades to keep in sync. One scratch record, mutated in place, so a frame with
-  // fifty lit nodes still allocates nothing.
-  var SHIM = { t0: 0, dur: 0 };
-
-  function satLevel(l, now) {
-    SHIM.t0 = l.t0;
-    SHIM.dur = l.dur * SAT_MULT;
-    return level(SHIM, now);
-  }
-
   function drawNode(p, a, scale, view, A) {
     var x = (p.x - view.x) * scale + cw / 2;
     var y = (p.y - view.y) * scale + ch / 2;
@@ -301,6 +289,67 @@ var graphPulseDraw = (function () {
     }
   }
 
+  // THE ACCUMULATED OPACITY, drawn UNDER both flash passes. This is graph-glow.js's
+  // charge: how opaque a node has become over a track, draining on a rate set by
+  // the audio level rather than on the cascade's couple of seconds.
+  //
+  // No halos here, deliberately. Late in a loud track this pass can cover a large
+  // part of the graph, so it is the one that has to stay cheap — a glyph fill and
+  // a stroke and nothing else, where a lit node pays for two soft discs as well.
+  var A_CHARGE = { fill: 0.75, stroke: 0.85 };
+
+  function drawCharge(scale, view) {
+    for (var id in chargeN) {
+      var a = chargeN[id];
+      if (a <= 0.02) {
+        continue;
+      }
+      var p = pos[id];
+      if (!p) {
+        continue;
+      }
+      var x = (p.x - view.x) * scale + cw / 2;
+      var y = (p.y - view.y) * scale + ch / 2;
+      if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
+        continue;
+      }
+      var r = Math.max(p.r * scale, 1.2);
+      var ink = p.c || INK;
+      ctx.fillStyle = ink;
+      ctx.strokeStyle = ink;
+      glyph(x, y, r, p.s);
+      ctx.globalAlpha = a * A_CHARGE.fill;
+      ctx.fill();
+      ctx.globalAlpha = a * A_CHARGE.stroke;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    }
+  }
+
+  // The charge map is keyed by the model's own "a\0b" edge key and carries only a
+  // number, so the endpoints are read back out of the key rather than duplicated
+  // into every entry.
+  function drawChargeEdges(scale, view) {
+    ctx.lineWidth = EDGE_W;
+    for (var k in chargeE) {
+      var a = chargeE[k];
+      if (a <= 0.02) {
+        continue;
+      }
+      var cut = k.indexOf('\u0000');
+      var p = pos[k.slice(0, cut)], q = pos[k.slice(cut + 1)];
+      if (!p || !q) {
+        continue;
+      }
+      ctx.strokeStyle = p.c || INK;
+      ctx.globalAlpha = a * A_SAT.edge;
+      ctx.beginPath();
+      ctx.moveTo((p.x - view.x) * scale + cw / 2, (p.y - view.y) * scale + ch / 2);
+      ctx.lineTo((q.x - view.x) * scale + cw / 2, (q.y - view.y) * scale + ch / 2);
+      ctx.stroke();
+    }
+  }
+
   // Iterates `lit` rather than the level map the model hands in: that map holds
   // only what is still above the threshold on the WHITE envelope, and this layer's
   // whole point is the two thirds after that has run out.
@@ -324,18 +373,21 @@ var graphPulseDraw = (function () {
   return {
     // `lit` joins `litEdges` and `pos` on the mutated-in-place contract: the model
     // declares it once and only ever adds and deletes keys.
-    init: function (positions, litMap, edges, levelFn) {
+    init: function (positions, litMap, edges, levelFn, satLevelFn, cn, ce) {
       pos = positions;
       lit = litMap;
       litEdges = edges;
+      // BOTH envelopes are the model's. They used to be one function here plus a
+      // scratch record with a multiplied duration; one place deciding how long
+      // anything glows is worth more than saving the argument.
       level = levelFn;
+      satLevel = satLevelFn;
+      // The charge maps, on the same mutated-in-place contract as everything else
+      // handed over here: graph-glow.js declares them once and only ever adds and
+      // deletes keys.
+      chargeN = cn;
+      chargeE = ce;
       makeCanvas();
-    },
-    // The model expires a lit record on its own `dur`; the saturated layer needs
-    // it kept for SAT_MULT times that, so the model asks here rather than holding
-    // a copy of the multiplier.
-    totalLife: function (dur) {
-      return dur * SAT_MULT;
     },
     satInk: satInk,
     // One frame. `levels` is {nodeId: alpha} from the model; lit edges are read
@@ -348,6 +400,10 @@ var graphPulseDraw = (function () {
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
+      // Accumulation first, at the bottom: it is the slow picture the fast passes
+      // flash on top of.
+      drawChargeEdges(scale, view);
+      drawCharge(scale, view);
       drawEdges(now, scale, view, A_WHITE, level, false);
       for (var id in levels) {
         if (pos[id]) {

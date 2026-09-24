@@ -98,8 +98,25 @@ var graphPulse = (function () {
   var DUR_PER_DEG = 195;
   var DUR_DEG_CAP = 12;
   var DUR_JITTER = 0.4;
-  var EDGE_DUR = 1650;
-  var ATTACK_MS = 90;             // rise; the rest of the life is the fade
+  // EVERY EDGE EFFECT FADES FASTER THAN A NODE'S. 900 against a node's 1845 at
+  // minimum (DUR_MIN + DUR_PER_DEG, before jitter) and 3990 at the degree cap, so
+  // an edge is roughly half the quickest node and a quarter of the slowest.
+  //
+  // The reason is what each one MEANS. A node is a place and it stays a place; an
+  // edge is a crossing, an event with a direction, and once the activation has
+  // arrived the edge has already said what it had to say. Holding it as long as
+  // its endpoints turns the picture into a wireframe that happens to have bright
+  // corners, instead of nodes lighting up with the paths between them flickering
+  // past. The charge drains faster too (graph-glow.js, EDGE_FADE).
+  var EDGE_DUR = 900;
+  // The saturated second pass outlives the white flash by this much. It lives
+  // here, with the rest of the lifetime arithmetic, rather than in the draw half
+  // which only needs to be handed a level function.
+  var SAT_MULT = 3;
+  // 280, from 90. The decay below is the same as it ever was, but the RISE was a
+  // pop, and with a charge layer accumulating underneath it was the only fast
+  // edge left on screen -- so it was the whole of what read as flicker.
+  var ATTACK_MS = 280;            // rise; the rest of the life is the fade
   var DECAY_POW = 1.2;            // >1 = falls away faster than it lingers. Close
   // to linear on purpose: at 1.8 the light was gone before the eye had followed
   // the chain that lit it.
@@ -107,10 +124,29 @@ var graphPulse = (function () {
   var pos = {};                   // id -> {x, y, r, s, c}; world units, read once
   var deg = {};                   // id -> edge count
   var adj = {};                   // id -> [neighbour ids]
-  var lit = {};                   // id -> {t0, dur}; kept for totalLife(dur)
+  var lit = {};                   // id -> {t0, dur}
   var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b}
   var live = [];                  // iterations in flight: {queue, seen, until}
-  var nextIter = 0, running = false;
+  var nextIter = 0, running = false, lastFrame = 0;
+
+  // graph-glow.js is loaded before this file — and this working tree is edited
+  // LIVE, so for a few seconds after a change a browser can be handed a new
+  // graph-pulse.js alongside a page shell whose <script> tags predate its new
+  // dependency. That happened, and was reported as `graphGlow not defined`.
+  //
+  // The failure mode is what makes the guard worth it: an unguarded call does not
+  // cost the accumulation, it THROWS inside the rAF callback and takes the entire
+  // cascade with it, so the page goes still. A no-op shim degrades to "no charge
+  // layer" instead, which is the old look and nobody's emergency.
+  var NO_GLOW = {
+    bump: function () {}, bumpEdge: function () {}, step: function () {},
+    nodes: function () { return {}; }, edges: function () { return {}; },
+    charged: function () { return 0; },
+  };
+
+  function glow() {
+    return typeof graphGlow !== 'undefined' ? graphGlow : NO_GLOW;
+  }
 
   // Indexing runs in PHASES, one per frame, timed, with the milliseconds left on
   // the window for the cover to print: a thread that yields between them is one
@@ -187,14 +223,22 @@ var graphPulse = (function () {
     return P_MIN + (P_MAX - P_MIN) * Math.max(0, Math.min(1, t));
   }
 
+  // Two things happen on a hit and they are deliberately different. The LIT
+  // EFFECT is reset -- a fresh `t0`, the flash re-fires, unchanged timings. The
+  // CHARGE is topped up, never reset, and drains on a rate set by the audio level
+  // (graph-glow.js). So the flash keeps saying "something happened here" while the
+  // opacity underneath only climbs, which is what builds a picture over a track.
   function fire(id, now) {
     var d = Math.min(deg[id] || 1, DUR_DEG_CAP);
     var base = DUR_MIN + DUR_PER_DEG * d;
     lit[id] = { t0: now, dur: base * (1 - DUR_JITTER + Math.random() * 2 * DUR_JITTER) };
+    glow().bump(id);
   }
 
   function fireEdge(a, b, now) {
-    litEdges[a + '\u0000' + b] = { t0: now, dur: EDGE_DUR, a: a, b: b };
+    var k = a + '\u0000' + b;
+    litEdges[k] = { t0: now, dur: EDGE_DUR, a: a, b: b };
+    glow().bumpEdge(k);
   }
 
   // 1 at the top of the attack, 0 when spent.
@@ -207,6 +251,21 @@ var graphPulse = (function () {
       return t / ATTACK_MS;
     }
     return Math.pow(1 - (t - ATTACK_MS) / (l.dur - ATTACK_MS), DECAY_POW);
+  }
+
+  // The saturated pass behind it: the same shape over SAT_MULT times the life.
+  // It used to be built in the draw half from a scratch record with a multiplied
+  // duration; both envelopes are the model's now, so there is one place that
+  // decides how long anything glows.
+  function satLevel(l, now) {
+    var t = now - l.t0, dur = l.dur * SAT_MULT;
+    if (t < 0 || t >= dur) {
+      return 0;
+    }
+    if (t < ATTACK_MS) {
+      return t / ATTACK_MS;
+    }
+    return Math.pow(1 - (t - ATTACK_MS) / (dur - ATTACK_MS), DECAY_POW);
   }
 
   function hopAt(now) {
@@ -320,7 +379,7 @@ var graphPulse = (function () {
 
   function expire(map, now) {
     for (var k in map) {
-      if (now - map[k].t0 >= graphPulseDraw.totalLife(map[k].dur)) {
+      if (now - map[k].t0 >= map[k].dur * SAT_MULT) {
         delete map[k];
       }
     }
@@ -350,9 +409,17 @@ var graphPulse = (function () {
     if (!running) {
       return;
     }
+    // Drain the accumulated opacity. Its rate is the audio level, which is why it
+    // is graph-glow.js's business rather than a constant here.
+    glow().step(lastFrame ? now - lastFrame : 0);
+    lastFrame = now;
     last = now;
     step(now);
-    var busy = live.length || hasAny(lit) || hasAny(litEdges);
+    // graphGlow.charged() is part of this: the accumulated opacity outlives every
+    // cascade by design, and without it an idle frame would clear the canvas and
+    // throw away the picture a whole track had built.
+    var busy = live.length || hasAny(lit) || hasAny(litEdges)
+      || glow().charged() > 0;
     if (busy) {
       graphPulseDraw.paint(now, levelsNow(now));
       firePainted();
@@ -406,7 +473,8 @@ var graphPulse = (function () {
       // history; the short version is that the cost was never here.
       onPainted = onReady || null;
       index(function () {
-        graphPulseDraw.init(pos, lit, litEdges, level);
+        graphPulseDraw.init(pos, lit, litEdges, level, satLevel,
+          glow().nodes(), glow().edges());
         running = true;
         requestAnimationFrame(frame);
       });

@@ -1866,34 +1866,81 @@ The cap makes `(other)` the second-largest community (444 nodes — the long tai
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md).
 
 ---
-#### A node is invisible until something lights it
+#### Two glows: the flash, and the opacity it leaves behind
 
-**Every node draws at `opacity: 0`** (`_restyle_graph_nodes`), so the graph carries
-no node ink of its own: what is on screen at any moment is what has recently
-fired. The lit state is entirely the overlay's — a node rises to full in
-`ATTACK_MS` (90ms) and then decays on `(1 - t)^DECAY_POW`, with the saturated
-second pass running three times as long behind it, so "lit to 100% then decay" is
-the envelope that was already there.
+**These are separate mechanisms on purpose**, and conflating them was wrong in
+both directions — the accumulation on the cascade's timings never accumulates,
+and the cascade on the accumulation's timings smears into a permanent wash and
+stops reading as movement.
 
-**`opacity: 0` rather than a transparent colour or `hidden: true`**, and the
-difference is not cosmetic. It zeroes only the DRAWN alpha:
+| | what it is | how it fades |
+|---|---|---|
+| **the lit effect** (`graph-pulse.js`) | the cascade: a white flash and a coloured afterglow | WALL CLOCK, unchanged — `DUR_MIN` 1650 + 195/edge, `SAT_MULT` 3 behind it |
+| **the charge** (`graph-glow.js`) | how OPAQUE a node has become | a RATE set by the audio level |
 
-- the colour objects stay intact, so the node-info panel's neighbour stripe still
-  has a community colour to read (a transparent `border` would have blanked it);
-- the node keeps its `size`, which is what the cascade's glyph radius is derived
-  from;
-- vis still HIT-TESTS it, so tapping a node still opens its panel and seeds a
-  cascade. `hidden: true` would have taken both of those away.
+**The charge is what makes a song build the picture.** Every hit adds `GAIN`
+(0.22, so about five hits to full) and never resets, and it drains exponentially
+at `FADE_LOUD` 110s per full drain at peak level, `FADE_SILENT` 1.6s at silence,
+`FADE_AMBIENT` 2.0s with no audio at all. Loud, it barely moves; in the two or
+three seconds of quiet between tracks it clears. A fixed half-life cannot express
+that — the same number is an eternity across a chorus and gone in a gap.
 
-Measured on the served page at 1200x744: nodes contribute **~17,600 ink pixels**
-at full opacity and **0** at zero.
+The level it follows is **smoothed** (`graphAudio.loudness()`, an envelope
+follower at 0.97/frame). Instantaneous RMS is near zero between two kicks, so an
+unsmoothed level would drain the charge in the gaps INSIDE a bar and undo the
+accumulation entirely.
 
-**Edges are NOT affected and still draw at full strength** — `_brighten_graph_edges`
-puts them at opacity 1.0 / width 3, which is 139,228 ink pixels on that same
-canvas, so the structure remains visible as a web while the nodes blink on it.
-Worth knowing if that ever wants changing: graphify writes a per-edge `color`
-object, so a global `edges: { color: { opacity } }` is outranked and does nothing
-(measured — a runtime override moved the ink count by zero).
+**The charge pass draws UNDER both flash passes and carries no halos.** Late in a
+loud track it can cover a large part of the graph, so it is the one pass that has
+to stay cheap: a glyph fill and a stroke, where a lit node also pays for two soft
+discs. `dt` is capped at 100ms, because a backgrounded tab returns with a huge one
+and that gap was not silence, it was nobody looking.
+
+**Every edge effect fades faster than a node's, both of them.** The lit edge is
+`EDGE_DUR` 900 against a node's 1845 at minimum and 3990 at the degree cap, and
+the edge charge drains at `EDGE_FADE` 0.45 of the node fade time — about 2.2x
+faster.
+
+The reason is what each one MEANS. A node is a place and it stays a place; an edge
+is a crossing, an event with a direction, and once the activation has arrived the
+edge has already said what it had to say. Held as long as its endpoints, the
+picture becomes a wireframe that happens to have bright corners, instead of nodes
+lighting up with the paths between them flickering past — and over a long track
+an equally-accumulating edge set ends as a solid web with the nodes lost inside
+it. Measured, ambient: charged edges sit below charged nodes at every sample
+(72/97, 114/147, 137/178, 160/208, 221/275).
+
+**`graphGlow.charged()` is part of the idle check.** The accumulated opacity
+outlives every cascade by design, so without it an idle frame would clear the
+canvas and throw away the picture a whole track had built.
+
+**The unlit baseline is `_NODE_OPACITY` 0.2 for nodes AND edges.** `opacity`
+scales only the DRAWN alpha, which is why it beats a transparent colour or
+`hidden: true`: the colour objects stay intact so the node-info panel's neighbour
+stripe still has a community colour to read, the node keeps the `size` the
+cascade's glyph radius derives from, and vis still HIT-TESTS it, so a tap still
+opens the panel and seeds a cascade. It was **0 for an afternoon and that was too
+far** — with nothing drawn between cascades there was nothing for a lit node to be
+lit AGAINST, and the page read as empty rather than dark. Edge opacity has to be
+written PER EDGE, since graphify emits a `color` object on every `RAW_EDGES` entry
+and a global `edges: { color: { opacity } }` is outranked (measured: a runtime
+override moved the canvas ink by exactly zero). Unlit, at 1200x744: **121,177 ink
+pixels**.
+
+**`ATTACK_MS` went 90 -> 280.** The decay is the same as it ever was, but the RISE
+was a pop, and with a charge layer accumulating underneath it the rise is the only
+fast edge left on screen — so it was the whole of what read as flicker.
+
+**Every `graphGlow` call goes through a no-op shim** (`glow()` in graph-pulse.js).
+This tree is edited LIVE, so for a few seconds after a change a browser can be
+handed a new graph-pulse.js beside a page shell whose `<script>` tags predate its
+new dependency — which happened, and was reported as `graphGlow not defined`. The
+failure mode is what makes the guard worth having: an unguarded call does not cost
+the accumulation, it THROWS inside the rAF callback and takes the whole cascade
+with it, so the page goes still.
+
+Measured, ambient: lit pixels **25 -> 22,767** and charged nodes **1 -> 168** over
+7s, accumulating rather than sawtoothing.
 
 #### Audio: `graph-audio.js` + `graph-audio-ui.js` + `graph-tempo.js`
 
