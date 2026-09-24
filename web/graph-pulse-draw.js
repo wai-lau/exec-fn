@@ -223,22 +223,32 @@ var graphPulseDraw = (function () {
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;
     }
-    var gr = Math.max(p.r * scale, 1.2);
-    graphGlyph.path(x, y, gr, p.s, p.t);
-    ctx.fill();
-    // AND AGAIN UNROTATED, whenever this node has been turned. vis drew the node
-    // on ITS canvas, a layer down, at the original angle — we cannot reach those
-    // pixels, so a rotated overlay glyph left the unrotated one showing through
-    // beside it as a GHOST TRIANGLE. Covering both orientations hides it.
+    // ONE SHAPE — the node's CURRENT orientation, and nothing else.
     //
-    // It costs nothing visually: the fill is the page background over the page
-    // background, so the extra area is invisible against it. What it does cost is a
-    // slightly wider occlusion footprint at a rotated node, which is the union of
-    // the two orientations rather than one of them.
-    if (p.t) {
-      graphGlyph.path(x, y, gr, p.s, 0);
-      ctx.fill();
-    }
+    // It briefly filled the UNROTATED orientation as well, to cover the copy vis
+    // draws on its own canvas a layer down at the original angle. The reasoning was
+    // that the extra area costs nothing, "being the page background over the page
+    // background". That was wrong, and visibly so: this fill does not land on the
+    // PAGE, it lands on the node's own HALO, which is a disc 2.6x the glyph radius
+    // drawn on this canvas a few passes earlier. So the fill cuts a HOLE in that
+    // halo, and the hole is shaped like whatever was filled — the union of an up-
+    // and a down-triangle is a hexagram, and a hexagram-shaped hole in a glowing
+    // disc is exactly what "the node shapes are doubled up after rotation" looks
+    // like. Reported twice.
+    //
+    // Filling one shape makes the hole match the outline drawn on top of it, which
+    // is the only self-consistent answer available from this canvas.
+    //
+    // WHAT THAT LEAVES, stated because it is not nothing: vis's unrotated copy is
+    // still under the halo wherever it sticks out past the rotated glyph, so a
+    // faint ghost of its border can show there. It cannot be erased from here —
+    // vis's canvas is a layer down and, with physics off, STATIC, so re-orienting
+    // its copy would mean forcing a full redraw (~100ms on this graph) on every
+    // rotation, which is once a beat. Its fill is the page colour and its border
+    // alpha is 0.2, and the halo paints additively over both, so what remains is a
+    // hairline rather than a second shape.
+    graphGlyph.path(x, y, Math.max(p.r * scale, 1.2), p.s, p.t);
+    ctx.fill();
   }
 
   function eachDrawn(scale, view, bigOnly) {

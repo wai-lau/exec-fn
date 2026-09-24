@@ -199,6 +199,33 @@ The `.cyber-crt` punch was tuned 2026-08-31 from `brightness(1.03) contrast(1.1)
 
 ## 11. `/graph`
 
+**Punching two orientations cut a hexagram out of the halo (2026-09-24).** Reported twice, the
+second time as *why are the node shapes still doubled up after rotation*.
+
+A node that turns before throwing a wavefront is drawn rotated by the overlay, while vis draws its
+own copy at the original angle on a canvas a layer down that the overlay cannot erase. The fix
+attempted was to fill BOTH orientations in the opaque punch, so the rotated fill would cover vis's
+copy too, and the commit justified the extra area as costing nothing "being the page background over
+the page background".
+
+That sentence was the whole error, and it survived a round of fixing the page background because the
+background was genuinely also wrong. The punch does not land on the page. It lands on the node's own
+HALO — two soft discs out to 2.6x the glyph radius, drawn on this same canvas a few passes earlier —
+so the fill cuts a hole in the glow, and the hole is shaped like exactly what was filled. An up- and
+a down-triangle about one centre make a hexagram, and a hexagram-shaped hole in a glowing disc reads
+as two triangles. Looking at a zoomed screenshot with the CRT layers hidden showed it in one glance,
+after two rounds of reasoning about it had produced two wrong answers.
+
+Punching one shape — the node's current orientation — makes the hole match the outline drawn over
+it. What it leaves is vis's copy still sitting under the halo where it protrudes, which is a hairline
+of a 0.2-alpha border under an additive glow rather than a second shape. Removing that too would
+mean re-orienting vis's own node, and with physics off vis's canvas is static, so that is a full
+redraw of the graph (~100ms) on every rotation, once a beat. Not worth it.
+
+Verified structurally rather than by eye, because eyes had already been wrong twice here: wrap
+`graphGlyph.path`, record the `turn` every glyph is built with over a frame, and check that no node
+appears at two orientations. Zero turn is now absent from a frame entirely.
+
 **The node fill was never the page background, and it showed up as duplicated nodes
 (2026-09-24).** Reported as *the nodes themselves are duplicated, not the waves*.
 
