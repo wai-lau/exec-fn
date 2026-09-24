@@ -259,7 +259,28 @@ var graphTempo = (function () {
       return beatN % BEATS_PER_BAR;
     },
     isDownbeat: function () {
-      return period > 0 && (beatN % BEATS_PER_BAR) === 0;
+      // The LOCK_MIN gate belongs here as much as it does on onBeat, hopMs and
+      // bpm, and its absence was a real inconsistency: those three all refuse to
+      // answer without a believed lock while this one accented a bar off a bare
+      // `period > 0` -- a full-strength pulse on a bar the page did not believe in.
+      return period > 0 && conf >= LOCK_MIN && (beatN % BEATS_PER_BAR) === 0;
+    },
+
+    // HOW MUCH BAR ACCENT THIS MOMENT HAS EARNED, 0..1. Confidence was measured
+    // every second and reached nothing but the text readout, so the picture
+    // asserted exactly the same certainty about a bar it had half-guessed as about
+    // one it was sure of.
+    //
+    // Rescaled from LOCK_MIN rather than from 0, which is the honest reading: a
+    // correlation of 0.22 is the threshold at which this file stops calling a
+    // number noise, not the point at which it is confident. So a just-locked bar
+    // earns no accent at all and one the autocorrelation is certain of earns the
+    // whole of it, with everything between scaled by actual belief.
+    barAccent: function () {
+      if (period <= 0 || conf < LOCK_MIN || (beatN % BEATS_PER_BAR) !== 0) {
+        return 0;
+      }
+      return Math.min(1, Math.max(0, (conf - LOCK_MIN) / (1 - LOCK_MIN)));
     },
 
     // A hop delay that is a MUSICAL subdivision rather than a constant. The
