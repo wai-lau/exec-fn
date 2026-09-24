@@ -31,10 +31,13 @@ var graphSeed = (function () {
   // of those seams and needs no bookkeeping at all. The layout is frozen, so one
   // pass over ~2.8k nodes is a few hundred microseconds, a few times a second.
   var NEAR_POOL = 64;             // nearest candidates considered
+  var NEAR_MAX = 320;             // ceiling on a level-scaled pool
+  var NEAR_AT = 24;               // candidates around an audio-chosen place
   var NEAR_SOFT = 0.6;            // distance falloff, as a fraction of the pool's
                                   // own radius: nearer is likelier, not mandatory
 
   var pos = {}, deg = {}, ids = [], cum = [], terminal = 0.15;
+  var box = { x0: 0, y0: 0, w: 1, h: 1 };
 
   // Size to the SEED_POW, knocked down to TERMINAL_ODDS for a dead end. ONE
   // function, so the whole-graph draw and the proximity draws cannot drift apart —
@@ -82,6 +85,17 @@ var graphSeed = (function () {
       terminal = terminalOdds;
       ids = Object.keys(pos);
       cum = weigh(ids);
+      // The cloud's bounding box, so an audio feature can name a PLACE. Computed
+      // once, because the layout is frozen.
+      var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (var i = 0; i < ids.length; i++) {
+        var p = pos[ids[i]];
+        if (p.x < x0) { x0 = p.x; }
+        if (p.x > x1) { x1 = p.x; }
+        if (p.y < y0) { y0 = p.y; }
+        if (p.y > y1) { y1 = p.y; }
+      }
+      box = { x0: x0, y0: y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
     },
 
     // A seed from anywhere in the graph, weighted by size.
@@ -89,19 +103,27 @@ var graphSeed = (function () {
       return pick(ids, cum);
     },
 
-    // The nearest NEAR_POOL nodes to `from`, weighted by seedWeight AND by
-    // closeness. One pass keeping a small sorted array: almost every node fails
-    // the first comparison against the current worst, so this is ~n compares
-    // rather than a sort of the whole graph.
-    near: function (from) {
-      var p0 = pos[from], idl = [], dl = [], worst = Infinity;
+    // A seed near a FRACTIONAL POSITION in the cloud, 0..1 on each axis. This is
+    // what lets the audio choose WHERE. Without it every cascade seeds uniformly
+    // at random, so the spatial pattern is noise and two different songs at the
+    // same tempo and level produce statistically identical pictures.
+    //
+    // Deliberately NOT "the single nearest node": the same feature value would
+    // then light the same node every time, which reads as one blinking lamp
+    // rather than a region answering. The nearest NEAR_AT candidates are drawn
+    // from on the usual size weighting, so a sustained tone wanders inside its
+    // own neighbourhood instead of pinning.
+    at: function (fx, fy) {
+      if (!ids.length) {
+        return null;
+      }
+      var tx = box.x0 + Math.min(1, Math.max(0, fx)) * box.w;
+      var ty = box.y0 + Math.min(1, Math.max(0, fy)) * box.h;
+      var idl = [], dl = [], worst = Infinity;
       for (var i = 0; i < ids.length; i++) {
         var id = ids[i];
-        if (id === from) {
-          continue;
-        }
-        var dx = pos[id].x - p0.x, dy = pos[id].y - p0.y, d = dx * dx + dy * dy;
-        if (idl.length === NEAR_POOL && d >= worst) {
+        var dx = pos[id].x - tx, dy = pos[id].y - ty, d = dx * dx + dy * dy;
+        if (idl.length === NEAR_AT && d >= worst) {
           continue;
         }
         var k = idl.length;
@@ -109,7 +131,39 @@ var graphSeed = (function () {
           idl[k] = idl[k - 1]; dl[k] = dl[k - 1]; k--;
         }
         idl[k] = id; dl[k] = d;
-        if (idl.length > NEAR_POOL) {
+        if (idl.length > NEAR_AT) {
+          idl.pop(); dl.pop();
+        }
+        worst = dl[idl.length - 1];
+      }
+      return pick(idl, weigh(idl));
+    },
+
+    // The nearest NEAR_POOL nodes to `from`, weighted by seedWeight AND by
+    // closeness. One pass keeping a small sorted array: almost every node fails
+    // the first comparison against the current worst, so this is ~n compares
+    // rather than a sort of the whole graph.
+    near: function (from, want) {
+      // The pool size is an ARGUMENT now. Fixed at 64, a huge hit covered exactly
+      // the same area as a small one and only the number of lit nodes changed --
+      // and a count is far less legible than an area, so loud now reads as WIDER.
+      var cap = Math.max(8, Math.min(NEAR_MAX, want || NEAR_POOL));
+      var p0 = pos[from], idl = [], dl = [], worst = Infinity;
+      for (var i = 0; i < ids.length; i++) {
+        var id = ids[i];
+        if (id === from) {
+          continue;
+        }
+        var dx = pos[id].x - p0.x, dy = pos[id].y - p0.y, d = dx * dx + dy * dy;
+        if (idl.length === cap && d >= worst) {
+          continue;
+        }
+        var k = idl.length;
+        while (k > 0 && dl[k - 1] > d) {
+          idl[k] = idl[k - 1]; dl[k] = dl[k - 1]; k--;
+        }
+        idl[k] = id; dl[k] = d;
+        if (idl.length > cap) {
           idl.pop(); dl.pop();
         }
         worst = dl[idl.length - 1];

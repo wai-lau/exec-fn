@@ -53,11 +53,21 @@ def _drop_graph_tooltips(page: str) -> str:
 # pairing argument is untouched by either move: the two triangle directions still
 # read as a related pair against the one hexagon, which is the whole reason `dot`
 # is not in this table.
-# The UNLIT baseline for both nodes and edges: a fifth of full, so the structure
-# of the graph stays legible between cascades while leaving the overlay four
-# fifths of the range to light into. It was 0 for an afternoon and that was too
-# far — with nothing drawn at all there was nothing for a lit node to be lit
-# AGAINST, and the page read as empty rather than as dark.
+# The UNLIT baseline: a fifth of full, so the structure of the graph stays
+# legible between cascades while leaving the overlay four fifths of the range to
+# light into. It was 0 for an afternoon and that was too far — with nothing drawn
+# at all there was nothing for a lit node to be lit AGAINST, and the page read as
+# empty rather than as dark.
+#
+# It is the alpha of the node's BORDER and of the edges, NEVER of the node's
+# FILL. The fill is the page background at full opacity, which is what makes a
+# node OCCLUDE the edges behind it rather than letting them cross through it, so
+# an edge arrives at a port instead of passing over a smudge. vis draws edges
+# first and nodes second, so the fill lands on top by construction.
+#
+# This is why the node's `opacity` option is no longer used for the baseline:
+# `opacity` scales the whole node, fill included, and a translucent fill cannot
+# occlude anything.
 _NODE_OPACITY = 0.2
 
 _TYPE_SHAPES = {
@@ -113,8 +123,7 @@ def _restyle_graph_nodes(page: str) -> str:
     """
     page = page.replace(
         "nodes: { shape: 'dot', borderWidth: 1.5 }",
-        "nodes: { shape: '%s', borderWidth: 2, opacity: %s }"
-        % (_TYPE_SHAPES["code"], _NODE_OPACITY),
+        "nodes: { shape: '%s', borderWidth: 2 }" % _TYPE_SHAPES["code"],
         1,
     )
     page = _shape_graph_nodes_by_type(page)
@@ -196,14 +205,29 @@ def _friendly_dir(key: str) -> str:
 _GRAPH_BG = "#0f0f1a"
 
 
+def _rgba(hex_color: str, alpha: float) -> str:
+    """`#rrggbb` -> an `rgba()` string. The node BORDER carries its own alpha now,
+    because the baseline cannot be the node's `opacity` option: that scales the
+    fill too, and the fill has to stay opaque to occlude edges."""
+    h = (hex_color or "").lstrip("#")
+    if len(h) != 6:
+        return hex_color
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return "rgba(%d,%d,%d,%s)" % (r, g, b, alpha)
+
+
 def _node_color(hex_color: str) -> dict:
     """vis-network per-node color object in graphify's shape — bg-filled interior
     + the community colour as the border (matches /emet). On select the border
     flashes white; bg never changes, so the hexagon stays a clean outline."""
     return {
+        # Opaque, always: this is what occludes the edges behind the node.
         "background": _GRAPH_BG,
-        "border": hex_color,
+        "border": _rgba(hex_color, _NODE_OPACITY),
         "highlight": {"background": _GRAPH_BG, "border": "#ffffff"},
+        # The FULL-strength community colour is kept here. Nothing renders it
+        # (hover is not enabled), but the node-info panel's neighbour stripe
+        # reads a colour off this object and a 0.2 border would dim that too.
         "hover": {"background": _GRAPH_BG, "border": hex_color},
     }
 
