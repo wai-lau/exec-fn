@@ -30,7 +30,7 @@
 // costs is the cascades it fires; this page's animation is the one layer under
 // the CRT stack's two backdrop-filter panes, so MIN_GAP_MS here and the model's
 // own MAX_LIVE are what bound it.
-/* global graphPulse, graphTempo, graphAudioUI, graphBands, graphSeed */
+/* global graphPulse, graphTempo, graphAudioUI, graphBands, graphSeed, graphSource */
 var graphAudio = (function () {
   'use strict';
 
@@ -115,14 +115,7 @@ var graphAudio = (function () {
   // beats.
   var LOUD_FALL = 0.97;           // per frame; ~1.5s from full to nothing at 60fps
 
-  // All three processors OFF on purpose. Echo cancellation, auto gain and noise
-  // suppression exist to make a voice call intelligible, and every one of them
-  // works by flattening the transients a beat IS — autoGainControl in particular
-  // will quietly normalise a track's dynamics away. raVe passes a bare
-  // `{audio: true}` and inherits the processed chain, which is the wrong signal.
-  var RAW = { echoCancellation: false, autoGainControl: false, noiseSuppression: false };
-
-  var LOOPBACK = /monitor of|stereo mix|loopback|what ?u ?hear|blackhole|soundflower|vb-?audio|voicemeeter/i;
+  // Capture and device selection live in graph-source.js.
 
   var on = false, ctx = null, stream = null;
   var raf = 0, el = null;
@@ -178,8 +171,11 @@ var graphAudio = (function () {
     return Math.round(n);
   }
 
-  // Centroid -> 0..1 of the graph's height, against its own observed range.
-  function placeY(c) {
+  // Centroid -> 0..1 against its own observed range: 0 is the lowest pitch this
+  // material has shown, 1 the highest. ONE window, shared by the height mapping
+  // and by the cascade's edge-length bias, so the two cannot disagree about what
+  // counts as "low" for the track that is actually playing.
+  function pitchNorm(c) {
     if (c < centLo) {
       centLo = c;
     }
@@ -192,8 +188,12 @@ var graphAudio = (function () {
       centHi -= span * CENT_RELAX;
     }
     span = Math.max(centHi - centLo, CENT_MIN_SPAN);
-    var n = Math.min(1, Math.max(0, (c - centLo) / span));
-    return 1 - n;                 // bright sounds belong at the TOP
+    return Math.min(1, Math.max(0, (c - centLo) / span));
+  }
+
+  // Screen Y. Inverted, because bright sounds belong at the TOP.
+  function placeY(c) {
+    return 1 - pitchNorm(c);
   }
 
   // A reflecting random walk: it drifts, and it turns back at the edges rather
@@ -357,129 +357,53 @@ var graphAudio = (function () {
     raf = requestAnimationFrame(tick);
   }
 
-  function nameOf(d) {
-    return (d && d.label) || '';
-  }
-
-  function fromStream(s, label) {
-    listen(function (c) { return c.createMediaStreamSource(s); }, label, s, false);
-  }
-
-  function inputs() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-      return Promise.resolve([]);
+  // One place turns a descriptor from graph-source.js into a running analysis.
+  function open(d) {
+    listen(function (c) {
+      return d.el ? c.createMediaElementSource(d.el)
+        : c.createMediaStreamSource(d.stream);
+    }, d.label, d.stream, d.audible);
+    if (d.el) {
+      el = d.el;
+      d.el.play().catch(function () { stop('could not play that file'); });
     }
-    return navigator.mediaDevices.enumerateDevices().then(function (ds) {
-      return ds.filter(function (d) { return d.kind === 'audioinput'; });
-    }).catch(function () { return []; });
   }
 
-  function useDevice(dev) {
-    var want = {
-      echoCancellation: false, autoGainControl: false, noiseSuppression: false,
-    };
-    if (dev && dev.deviceId) {
-      want.deviceId = { exact: dev.deviceId };
+  // The wording is this layer's business, not graph-source.js's: it rejects with
+  // a `why` tag and nothing else, so the same failure can be phrased differently
+  // here without touching the capture code.
+  var WHY = {
+    denied: 'microphone blocked for this site',
+    'no-device': 'no microphone available',
+    'no-share-audio': 'no audio in that share — pick a tab and tick "share tab audio"',
+    failed: 'capture failed',
+  };
+
+  function refuse(e) {
+    var why = (e && e.why) || 'failed';
+    if (why === 'cancelled') {
+      return;                     // an ordinary dismissal says nothing
     }
-    navigator.mediaDevices.getUserMedia({ audio: want }).then(function (s) {
-      var n = nameOf(dev) || 'default microphone';
-      fromStream(s, 'in: ' + n + (LOOPBACK.test(n) ? '  (speaker output)' : ''));
-    }).catch(function (e) {
-      stop(e && e.name === 'NotAllowedError'
-        ? 'microphone blocked for this site' : 'could not open that input');
-    });
-  }
-
-  // The "just work" path: the loopback device if the machine has one, else the
-  // default mic. Device LABELS are empty until a capture permission has been
-  // granted, which is why this opens a stream FIRST and may then re-open on a
-  // better device — enumerating up front returns a list of anonymous ids.
-  function auto() {
-    var md = navigator.mediaDevices;
-    if (!md || !md.getUserMedia) {
-      stop('no audio source available');
-      return;
-    }
-    md.getUserMedia({ audio: RAW }).then(function (s) {
-      return inputs().then(function (ds) {
-        var hit = null;
-        for (var i = 0; i < ds.length; i++) {
-          if (LOOPBACK.test(nameOf(ds[i]))) {
-            hit = ds[i];
-            break;
-          }
-        }
-        if (!hit) {
-          fromStream(s, 'in: default microphone');
-          return;
-        }
-        // Two live captures is two recording indicators for one feature.
-        s.getTracks().forEach(function (t) { t.stop(); });
-        useDevice(hit);
-      });
-    }).catch(function (e) {
-      stop(e && e.name === 'NotAllowedError'
-        ? 'microphone blocked for this site' : 'no microphone available');
-    });
-  }
-
-  function share() {
-    // Chrome will not do audio-only: video must be requested, and the video track
-    // is stopped the moment it arrives so nothing is captured or encoded.
-    navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-      .then(function (s) {
-        s.getVideoTracks().forEach(function (t) { t.stop(); });
-        if (!s.getAudioTracks().length) {
-          // The picker appears whether or not "share tab audio" is ticked, so this
-          // is the likeliest outcome by far and it must not read as a broken
-          // feature.
-          s.getTracks().forEach(function (t) { t.stop(); });
-          on = false;
-          paint();
-          say('no audio in that share — pick a tab and tick "share tab audio"', true);
-          return;
-        }
-        fromStream(s, 'in: shared tab audio');
-      })
-      .catch(function (e) {
-        // A cancelled picker is ordinary and silent. Any OTHER error is ours and
-        // must say so: this catch covers the whole then() chain, so a bug in
-        // listen() would otherwise be reported as a cancelled share while the page
-        // sat there doing nothing.
-        if (e && (e.name === 'NotAllowedError' || e.name === 'AbortError')) {
-          return;
-        }
-        on = false;
-        paint();
-        say('capture failed: ' + ((e && (e.name || e.message)) || 'unknown'), true);
-      });
-  }
-
-  // raVe's other source, and the one that needs no permission at all: the page
-  // PLAYS the file, so the analyser sees the signal exactly — no room, no
-  // re-recording, no picker.
-  function playFile(f) {
-    if (on) {
-      stop('');
-    }
-    el = new Audio();
-    el.src = URL.createObjectURL(f);
-    el.loop = true;
-    listen(function (c) { return c.createMediaElementSource(el); },
-      'in: ' + f.name, null, true);
-    el.play().catch(function () { stop('could not play that file'); });
+    on = false;
+    paint();
+    say(WHY[why] || WHY.failed, true);
   }
 
   return {
     driving: driving,
     isOn: function () { return on; },
     // The four ways in, for the control.
-    share: share,
-    auto: auto,
-    use: useDevice,
-    inputs: inputs,
-    playFile: playFile,
-    isLoopback: function (n) { return LOOPBACK.test(n || ''); },
+    share: function () { graphSource.share().then(open).catch(refuse); },
+    auto: function () { graphSource.auto().then(open).catch(refuse); },
+    use: function (d) { graphSource.use(d).then(open).catch(refuse); },
+    inputs: graphSource.inputs,
+    playFile: function (f) {
+      if (on) {
+        stop('');
+      }
+      open(graphSource.file(f));
+    },
+    isLoopback: graphSource.isLoopback,
     off: function () { stop(); },
     // The continuous term, raVe's half of this: bass RMS, 0..1, for anything that
     // wants to scale with loudness rather than fire on a beat.
@@ -488,6 +412,12 @@ var graphAudio = (function () {
     // Smoothed 0..1: what the cascade's fade rate follows.
     loudness: function () { return on ? loud : 0; },
     seeds: function () { return on ? seedsForLevel(performance.now()) : 0; },
+    // 0 = the lowest pitch this material has shown, 1 = the highest. The cascade
+    // reads it to bias which EDGES it prefers; 0.5 with nothing playing, so a
+    // silent page gets no bias in either direction.
+    pitch: function () {
+      return on ? pitchNorm(graphBands.read().centroid) : 0.5;
+    },
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },
     stats: function () { return graphTempo.stats(); },
