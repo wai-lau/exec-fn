@@ -1971,6 +1971,41 @@ with it, so the page goes still.
 Measured, ambient: lit pixels **25 -> 22,767** and charged nodes **1 -> 168** over
 7s, accumulating rather than sawtoothing.
 
+#### A lit node is an OUTLINE and a HALO, never a fill
+
+Its interior stays BLACK -- the page background, opaque -- however brightly it is
+lit. `A_FILL` was 1, so the centre clipped to white and the halos ringed it; that
+reads as a blob at any real brightness, it buries the SHAPE (which carries the
+node's type) under its own glow, and it throws away the thing that made the unlit
+graph legible in the first place.
+
+**That forces the pass order, and the order is the whole of the implementation.**
+Three groups, each forced by the one before it:
+
+1. **all edges** — charge, white, sat. They used to interleave with the node
+   passes, so a later edge pass drew over an earlier node pass and edges crossed
+   the very glyphs they were arriving at. Every edge pass is TINTED, never white:
+   an edge belongs to a community and its colour says which, so it varies in
+   saturation and never in hue.
+2. **all halos** — while the interiors are still open, because halos are additive
+   discs that spill inside the glyph.
+3. **one opaque black fill over every node**, which occludes both the edges behind
+   it and the halo that just spilled inside it.
+4. **all outlines**, on top of the black. This is what a lit node actually is.
+
+A fill after the halos erases them; an outline before the fill is erased by it.
+That is why `nodeHalos` and `nodeStroke` are two functions rather than one, and
+why `satNodes` is called twice a frame with a different one each time.
+
+The background colour is read off graphify's own `color.background` (captured at
+index time, handed over by `graphPulseDraw.setBg`) rather than written here as a
+second literal.
+
+Verified on the served page: opaque background-coloured pixels appear on the
+overlay and grow with the cascade (97 -> 118 -> 139 over 3s), with no page errors.
+The count is small because at the opening zoom most glyphs are a few pixels
+across; the hubs are where an interior is visible.
+
 #### Audio: `graph-audio.js` + `graph-audio-ui.js` + `graph-tempo.js`
 
 **Desktop only, opt-in, three files on two real seams**: capture and analysis
@@ -2074,6 +2109,31 @@ filtering out everything above 200Hz divides the signal by ~128: measured, a kic
 peaked at **6.7 of 255** — sitting ON the silence floor, so onsets fired by luck
 and the phase lock had almost nothing to lock to. Summed over the passed band
 alone, the same kick peaks at **252**.
+
+**PITCH DECIDES HEIGHT; X IS RANDOM, deliberately.** `graphSeed.at(fx, fy)` maps a
+fractional position in the node cloud to a node and `graphPulse.seedAt()` lights
+the region around it. The centroid drives Y, inverted so bright sounds sit at the
+top, through a window that ADAPTS to the material: the raw centroid uses only a
+narrow slice of its 60Hz..8kHz log range and sits mid-range, so mapping it
+straight put every cascade in a band across the centre. The window expands
+instantly to admit a new value and contracts slowly (`CENT_RELAX`) toward what the
+music is actually doing, with `CENT_MIN_SPAN` as a floor so a steady tone cannot
+divide by nothing.
+
+**Pan drove X for one commit and was wrong twice over.** A mixed track sits near
+centre, so `(pan + 1) / 2` was ~0.5 almost always; combined with the un-normalised
+centroid the result was a VERTICAL COLUMN, with most of the graph never lighting
+at all. Pan is still measured (`graphBands`, for the readout) and deliberately
+unused: left-and-right carries nothing. Random X is not a placeholder — it is what
+makes the whole width available, so height stays the one axis that MEANS
+something and nothing competes with it for the eye.
+
+`at()` draws from the nearest `NEAR_AT` (24) candidates rather than the single
+nearest node: the same feature value would otherwise light the same node every
+time, which reads as one blinking lamp rather than a region answering. Verified
+that the lookup itself spans the graph — across `fx` 0..1 it returns 11 distinct
+nodes over 18,011 world units, and across `fy` 10 nodes over 10,071 — so the
+column was the input values and never the lookup.
 
 **Loudness chooses how many nodes wake**: `SEEDS_MIN` 4 to `SEEDS_MAX` 20, passed
 as the count to `graphPulse.seed()`, judged against a DECAYING PEAK rather than an

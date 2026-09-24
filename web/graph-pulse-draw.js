@@ -15,7 +15,7 @@
 // dozen hexagons and their edges — so a frame is O(lit), not O(graph). Measured
 // at 0ms of canvas work per frame; what a frame costs on this page is
 // compositing, and that is the CRT stack's doing, not this file's.
-/* global network */
+/* global network, graphInk */
 var graphPulseDraw = (function () {
   'use strict';
 
@@ -26,11 +26,6 @@ var graphPulseDraw = (function () {
   var HALO_INNER = 1.5;
   var A_HALO_OUTER = 0.10;
   var A_HALO_INNER = 0.18;
-  // A lit node is SOLID in the middle. The hexagon under it is bg-filled with a
-  // coloured border (the /emet look), so at 0.55 the additive fill only greyed
-  // that dark interior and the node read as outlined-brighter rather than lit.
-  // At 1 the centre clips to white and the halos ring it.
-  var A_FILL = 1;
   var A_STROKE = 0.95;
   var A_EDGE = 0.8;
   var EDGE_W = 1.6;
@@ -51,12 +46,11 @@ var graphPulseDraw = (function () {
   // once per node at index time and cached on `pos[id].c` — never built per frame,
   // which is the same rule that keeps the white pass on a single literal. A node
   // with no colour falls back to the white ink rather than vanishing.
-  var SAT_BOOST = 1.75;           // x saturation, clamped at fully saturated
   var A_SAT = {
-    halo1: 0.14, halo2: 0.22, fill: 0.9, stroke: 0.95, edge: 0.7,
+    halo1: 0.14, halo2: 0.22, stroke: 0.95, edge: 0.7,
   };
   var A_WHITE = {
-    halo1: A_HALO_OUTER, halo2: A_HALO_INNER, fill: A_FILL, stroke: A_STROKE,
+    halo1: A_HALO_OUTER, halo2: A_HALO_INNER, stroke: A_STROKE,
     edge: A_EDGE,
   };
 
@@ -177,70 +171,24 @@ var graphPulseDraw = (function () {
   // a second per node is garbage for the collector to chase. It also keeps the
   // one colour on this canvas to a single literal, which is what the palette lint
   // wants to see.
-  var INK = '#ffffff';
+  // Colour conversion lives in graph-ink.js.
+  var INK = graphInk.WHITE;
 
-  // hex -> HSL -> saturation x SAT_BOOST -> hex. Runs once per node, at index
-  // time, so nothing here sits on a frame path.
+  // A LIT NODE IS AN OUTLINE AND A HALO. Its interior stays BLACK -- the page
+  // background, opaque -- however brightly it is lit.
   //
-  // It returns HEX rather than a CSS colour-function string, and the helper below
-  // is named `hueChan` rather than by its usual name, for one reason: the palette
-  // lint reads SOURCE TEXT with whitespace stripped, so ANY colour-function name
-  // followed by an open paren reads as a new raw colour -- inside a comment as
-  // readily as in code, and regardless of the fact that every value here comes
-  // from the payload at runtime. The conventional name made the lint report three
-  // colours that do not exist, matching the substring inside each CALL; an
-  // earlier draft of this comment tripped it a fourth time merely by discussing
-  // the problem. Same substring trap `cmdscan.py` was written for. Renaming and
-  // rewording is the fix -- `--update` would have frozen four phantom colours
-  // into the baseline.
-  function hueChan(p, q, t) {
-    if (t < 0) { t += 1; }
-    if (t > 1) { t -= 1; }
-    if (t < 1 / 6) { return p + (q - p) * 6 * t; }
-    if (t < 1 / 2) { return q; }
-    if (t < 2 / 3) { return p + (q - p) * (2 / 3 - t) * 6; }
-    return p;
-  }
-
-  function toHex(h, s, l) {
-    var r, g, b;
-    if (!s) {
-      r = l; g = l; b = l;
-    } else {
-      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      var p = 2 * l - q;
-      r = hueChan(p, q, h + 1 / 3);
-      g = hueChan(p, q, h);
-      b = hueChan(p, q, h - 1 / 3);
-    }
-    var v = (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
-    return '#' + ('000000' + v.toString(16)).slice(-6);
-  }
-
-  function satInk(hex) {
-    var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
-    if (!m) {
-      return INK;
-    }
-    var n = parseInt(m[1], 16);
-    var r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
-    var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-    var l = (mx + mn) / 2, d = mx - mn, s = 0, h = 0;
-    if (d) {
-      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
-      if (mx === r) {
-        h = (g - b) / d + (g < b ? 6 : 0);
-      } else if (mx === g) {
-        h = (b - r) / d + 2;
-      } else {
-        h = (r - g) / d + 4;
-      }
-      h /= 6;
-    }
-    return toHex(h, Math.min(1, s * SAT_BOOST), l);
-  }
-
-  function drawNode(p, a, scale, view, A) {
+  // It used to fill: `A_FILL` was 1 so the centre clipped to white and the halos
+  // ringed it. That reads as a blob at any real brightness, it buries the SHAPE
+  // (which carries the node's type) under its own glow, and a filled node loses
+  // the thing that made the unlit graph legible in the first place. So the fill is
+  // gone and the interior is punched out instead.
+  //
+  // Which forces the pass ORDER, and it is the whole of why these are two
+  // functions rather than one: halos first (they are additive and spill inside
+  // the glyph), then the opaque black fill over every node at once, then the
+  // outlines. A fill after the halos erases them; an outline before the fill gets
+  // erased by it.
+  function nodeHalos(p, a, scale, view, A) {
     var x = (p.x - view.x) * scale + cw / 2;
     var y = (p.y - view.y) * scale + ch / 2;
     var r = Math.max(p.r * scale, 1.2);
@@ -258,9 +206,16 @@ var graphPulseDraw = (function () {
     ctx.beginPath();
     ctx.arc(x, gy, r * HALO_INNER, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  function nodeStroke(p, a, scale, view, A) {
+    var x = (p.x - view.x) * scale + cw / 2;
+    var y = (p.y - view.y) * scale + ch / 2;
+    var r = Math.max(p.r * scale, 1.2);
+    if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
+      return;
+    }
     glyph(x, y, r, p.s);
-    ctx.globalAlpha = a * A.fill;
-    ctx.fill();
     ctx.globalAlpha = a * A.stroke;
     ctx.lineWidth = 1.4;
     ctx.stroke();
@@ -300,7 +255,7 @@ var graphPulseDraw = (function () {
   // No halos here, deliberately. Late in a loud track this pass can cover a large
   // part of the graph, so it is the one that has to stay cheap — a glyph fill and
   // a stroke and nothing else, where a lit node pays for two soft discs as well.
-  var A_CHARGE = { fill: 0.75, stroke: 0.85 };
+  var A_CHARGE = { stroke: 0.85 };   // outline only: the interior stays black
 
   // EVERY node the overlay draws gets its glyph filled with the page background
   // FIRST, opaque, before any glow goes on top. That is what makes a node occlude
@@ -343,7 +298,7 @@ var graphPulseDraw = (function () {
     ctx.strokeStyle = INK;
   }
 
-  function drawCharge(scale, view) {
+  function chargeOutlines(scale, view) {
     for (var id in chargeN) {
       var a = chargeN[id];
       if (a <= 0.02) {
@@ -360,11 +315,8 @@ var graphPulseDraw = (function () {
       }
       var r = Math.max(p.r * scale, 1.2);
       var ink = p.c || INK;
-      ctx.fillStyle = ink;
       ctx.strokeStyle = ink;
       glyph(x, y, r, p.s);
-      ctx.globalAlpha = a * A_CHARGE.fill;
-      ctx.fill();
       ctx.globalAlpha = a * A_CHARGE.stroke;
       ctx.lineWidth = 1.4;
       ctx.stroke();
@@ -398,7 +350,9 @@ var graphPulseDraw = (function () {
   // Iterates `lit` rather than the level map the model hands in: that map holds
   // only what is still above the threshold on the WHITE envelope, and this layer's
   // whole point is the two thirds after that has run out.
-  function drawNodesSat(now, scale, view) {
+  // Called twice a frame, once for the halos and once for the outlines, because
+  // the opaque black fill has to land between them.
+  function satNodes(now, scale, view, fn) {
     for (var id in lit) {
       var a = satLevel(lit[id], now);
       if (a <= 0.01) {
@@ -411,7 +365,7 @@ var graphPulseDraw = (function () {
       var ink = p.c || INK;
       ctx.fillStyle = ink;
       ctx.strokeStyle = ink;
-      drawNode(p, a, scale, view, A_SAT);
+      fn(p, a, scale, view, A_SAT);
     }
   }
 
@@ -434,7 +388,7 @@ var graphPulseDraw = (function () {
       chargeE = ce;
       makeCanvas();
     },
-    satInk: satInk,
+    satInk: graphInk.sat,
     setBg: function (c) { BG = c || BG; },
     // One frame. `levels` is {nodeId: alpha} from the model; lit edges are read
     // straight off the bound object and levelled here, because an edge's alpha
@@ -446,29 +400,48 @@ var graphPulseDraw = (function () {
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
-      // ALL EDGES FIRST, THEN ALL NODES. The passes used to interleave
-      // (charge-edges, charge-nodes, white-edges, white-nodes, ...), so a later
-      // edge pass drew straight over an earlier node pass and edges crossed the
-      // very glyphs they were supposed to be arriving at.
+      // ALL EDGES, THEN ALL NODES -- and inside the nodes, HALOS then a black
+      // FILL then OUTLINES. Three orderings, each forced by the one before it.
+      //
+      // Edges before nodes: the passes used to interleave (charge-edges,
+      // charge-nodes, white-edges, white-nodes, ...), so a later edge pass drew
+      // straight over an earlier node pass and edges crossed the very glyphs they
+      // were supposed to be arriving at.
       //
       // Edges are TINTED on every pass, never white: an edge belongs to a
       // community and its colour says which, so it may vary in saturation but
-      // never in hue. Nodes keep their white core on purpose -- a lit node
-      // clipping to white IS the flash -- but an edge has no core to clip.
+      // never in hue.
+      ctx.fillStyle = INK;
+      ctx.strokeStyle = INK;
       drawChargeEdges(scale, view);
       drawEdges(now, scale, view, A_WHITE, level, true);
       drawEdges(now, scale, view, A_SAT, satLevel, true);
 
-      // Then the nodes: an opaque background fill to occlude those edges, and
-      // every glow on top of it.
-      punchNodes(scale, view);
-      drawCharge(scale, view);
-      for (var id in levels) {
+      // Halos next, while the interiors are still open: they are additive discs
+      // and they spill inside the glyph, which the black fill is about to cover.
+      ctx.fillStyle = INK;
+      ctx.strokeStyle = INK;
+      var id;
+      for (id in levels) {
         if (pos[id]) {
-          drawNode(pos[id], levels[id], scale, view, A_WHITE);
+          nodeHalos(pos[id], levels[id], scale, view, A_WHITE);
         }
       }
-      drawNodesSat(now, scale, view);
+      satNodes(now, scale, view, nodeHalos);
+
+      // Every node's interior goes BLACK, opaque, in one pass: it occludes the
+      // edges behind it AND the halo that just spilled inside it.
+      punchNodes(scale, view);
+
+      // Outlines last, on top of the black. This is what a lit node actually IS.
+      chargeOutlines(scale, view);
+      ctx.strokeStyle = INK;
+      for (id in levels) {
+        if (pos[id]) {
+          nodeStroke(pos[id], levels[id], scale, view, A_WHITE);
+        }
+      }
+      satNodes(now, scale, view, nodeStroke);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     },
