@@ -15,7 +15,7 @@
 // dozen hexagons and their edges — so a frame is O(lit), not O(graph). Measured
 // at 0ms of canvas work per frame; what a frame costs on this page is
 // compositing, and that is the CRT stack's doing, not this file's.
-/* global network, graphInk */
+/* global network, graphInk, graphAudio */
 var graphPulseDraw = (function () {
   'use strict';
 
@@ -29,6 +29,38 @@ var graphPulseDraw = (function () {
   var A_STROKE = 0.95;
   var A_EDGE = 0.8;
   var EDGE_W = 1.6;
+
+  // TWO OF THESE BREATHE WITH THE SOUND, and until now none of them did. Every
+  // number on this canvas was a literal, so a peak and a whisper drew identically
+  // sized, identically weighted marks and the ONLY thing the music changed was how
+  // many of them there were. Count is one channel and it saturates at SEEDS_MAX
+  // long before music stops getting louder.
+  //
+  // They are driven on DELIBERATELY DIFFERENT TIMESCALES, which is the whole point
+  // of having two:
+  //
+  //   the HALO follows `bloom` -- amp x (1 - sharpness), peak-held ~80ms. That is
+  //   per-KICK: the picture swells on a low hit and does not on a hat, because the
+  //   low end is the part you feel and a bloom is the visual answer to it.
+  //
+  //   the EDGE WEIGHT follows `loudness` -- the envelope follower, ~1.5s to fall.
+  //   That is per-PASSAGE: the web thickens through a chorus and thins through a
+  //   breakdown, a slow structural change rather than a flicker.
+  //
+  // A single term driving both would make them say the same thing twice, and the
+  // fast one would win.
+  var HALO_SWELL = 0.55;          // halo radius: up to 1.55x on a full low hit
+  var EDGE_SWELL = 0.6;           // lit edge width: up to 1.6x through a loud part
+
+  // The STROKE is deliberately NOT in that list. The outline is what a lit node IS
+  // -- it carries the shape, which carries the node's type -- and a weight that
+  // moved with the music would blur the one mark on this canvas that has to stay
+  // readable. The halo around it is the part that is allowed to breathe.
+
+  // Recomputed once per frame at the top of paint(), never per node: they are
+  // properties of the MOMENT, not of any particular node, and reading the audio
+  // once per lit node would be the same number fetched a hundred times.
+  var haloK = 1, edgeW = EDGE_W;
 
   // THE SECOND, SATURATED LAYER. Same geometry and the same envelope as the white
   // pass above, at THREE TIMES the life: a white flash that decays into a long
@@ -200,11 +232,11 @@ var graphPulseDraw = (function () {
     var gy = triCentre(y, r, p.s);
     ctx.globalAlpha = a * A.halo1;
     ctx.beginPath();
-    ctx.arc(x, gy, r * HALO_OUTER, 0, Math.PI * 2);
+    ctx.arc(x, gy, r * HALO_OUTER * haloK, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = a * A.halo2;
     ctx.beginPath();
-    ctx.arc(x, gy, r * HALO_INNER, 0, Math.PI * 2);
+    ctx.arc(x, gy, r * HALO_INNER * haloK, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -224,7 +256,7 @@ var graphPulseDraw = (function () {
   // The edge the activation travelled along, lit as the far end catches. Both its
   // ends are lit by construction — it is drawn because something crossed it.
   function drawEdges(now, scale, view, A, lvl, tint) {
-    ctx.lineWidth = EDGE_W;
+    ctx.lineWidth = edgeW;
     for (var k in litEdges) {
       var e = litEdges[k];
       var a = lvl(e, now);
@@ -327,7 +359,7 @@ var graphPulseDraw = (function () {
   // number, so the endpoints are read back out of the key rather than duplicated
   // into every entry.
   function drawChargeEdges(scale, view) {
-    ctx.lineWidth = EDGE_W;
+    ctx.lineWidth = edgeW;
     for (var k in chargeE) {
       var a = chargeE[k];
       if (a <= 0.02) {
@@ -396,6 +428,14 @@ var graphPulseDraw = (function () {
     paint: function (now, levels) {
       var scale = network.getScale();
       var view = network.getViewPosition();
+      // Guarded like every other audio read on this page: the tree is edited live,
+      // so a file can reach a browser a moment before its dependency's script tag
+      // does, and an unguarded read inside the rAF takes the whole canvas down
+      // rather than costing a feature. With nothing listening both collapse to the
+      // literals they were.
+      var au = typeof graphAudio !== 'undefined' && graphAudio.isOn() ? graphAudio : null;
+      haloK = 1 + HALO_SWELL * (au ? au.bloom() : 0);
+      edgeW = EDGE_W * (1 + EDGE_SWELL * (au ? au.loudness() : 0));
       ctx.clearRect(0, 0, cw, ch);
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = INK;
