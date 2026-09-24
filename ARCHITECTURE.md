@@ -1781,9 +1781,9 @@ The model is a **spreading cascade**, not a region that lights up:
 
 | | |
 |---|---|
-| **Squares** | the node cloud's bounding box is cut into a `GRID`×`GRID` (4×4 = **16**) lattice of POSITIONAL squares, each with its own weighted prefix sum. They cut across communities on purpose: spatial neighbours that share no edge still belong to the same part of the picture, and that is what the eye is following |
+| **Proximity** | extras are drawn from the **64 nearest nodes to the first seed** (`NEAR_POOL`, `graphSeed.near`), weighted by `seedWeight` AND by closeness. It is spatial rather than structural on purpose: neighbours that share no edge still belong to the same part of the picture, and that is what the eye follows. The falloff is measured against the POOL'S OWN radius (`NEAR_SOFT` 0.6), so it behaves the same in a dense community as on the sparse rim |
 | **Seed** | once every `ITER_MS` (2s) one node is picked at random, weighted by **size to the `SEED_POW`** (2) — a prefix-sum plus a binary search, so it is one lookup rather than a scan or a reject loop. Strictly proportional looked like nothing happening: 76% of nodes sit at the size floor with one edge, so 9 seeds in 10 landed on a leaf that lit itself, rolled its single neighbour and stopped |
-| **The burst** | the iteration lights `SEEDS_PER_ITER` (8) nodes in all, the rest drawn out of **the first seed's own square** on the same weight. Seeds scattered anywhere in a hairball read as unrelated sparks; eight inside one square read as a region waking up. Draws are weighted and with replacement, so they will not all be distinct — `SEED_TRIES` (4 per wanted seed) bounds the retrying, because a square holding four nodes must not spin looking for a fifth |
+| **The burst** | the iteration lights `SEEDS_PER_ITER` (8) nodes by default — a caller may ask for more, bounded by `MAX_SEEDS` (24) — the rest drawn out of **the first seed's proximity pool** on the same weight. Seeds scattered anywhere in a hairball read as unrelated sparks; eight inside one square read as a region waking up. Draws are weighted and with replacement, so they will not all be distinct — `SEED_TRIES` (4 per wanted seed) bounds the retrying, because a pool that cannot yield another distinct node must not spin looking for one |
 | **Stagger** | the burst arrives one seed every `SEED_STAGGER_MS` (100ms), not all on one frame — eight hexagons on the same frame reads as a flashbulb, the same eight over 0.8s reads as a region coming awake, and the early seeds' own spread is already under way before the last one fires. A staggered seed is claimed in `seen` immediately (so the remaining draws cannot pick it again) but queued for later, flagged `seed: true`: when its turn comes it lights **unconditionally and lights no edge**, because it was chosen rather than caught and there is no edge it arrived along. `until` covers the stagger as well, or the last seeds would be dropped before firing |
 | **One event** | every seed shares the iteration's `seen` and queue, so the burst and everything spreading from it merge into a single cascade rather than re-rolling each other's nodes |
 | **Spread** | the activation walks outward hop by hop. Each neighbour is queued at `HOP_MS` (110ms ± `HOP_JITTER` 30%) and, when its turn comes, lights with a probability set by **its own** size: `P_MIN` 0.55 at the floor rising to `P_MAX` 1 at the ceiling. The floor was 0.18 and the chains were too short to read as travelling — a spark, not a cascade; at 0.55 a chain through degree-1 nodes carries about two hops and anything with real degree keeps going. Sizes are geometric in degree, so this is a degree rule wearing the units it is drawn at |
@@ -1839,6 +1839,18 @@ why the whole layer lives in `graph-pulse-draw.js` and the model file carries on
 in-place edits: the cached ink on `pos`, the `totalLife` call in `expire`, and
 `lit` added to the `init` handover. `lit` meets the same mutated-in-place contract
 `pos` and `litEdges` already did — declared once, only ever keyed and deleted.
+
+**`graph-seed.js` is WHERE a cascade starts; `graph-pulse.js` is what happens
+next.** The seam is real rather than an accident of size: choosing the nodes that
+light first carries all the weighting and the spatial reasoning, while the
+cascade owns the queue, the hop timing, the catch rolls and the envelopes. It was
+split out when proximity seeding took graph-pulse.js past the 500-line cap —
+which is the cap working as intended, a signal that a file has come to hold too
+much, answered with a seam rather than with a smaller design or shorter comments.
+
+`TERMINAL_ODDS` is passed INTO `graphSeed.index()` rather than declared there,
+because the same number governs catching on the other side of the seam and one
+constant with two definitions is a constant waiting to disagree with itself.
 
 `SIZE_FLOOR`/`SIZE_CEIL` mirror `graph_style._size_graph_by_degree`'s range rather than being derived from the data, so one enormous outlier cannot flatten every other node onto `P_MIN`. If that range moves, move these with it.
 

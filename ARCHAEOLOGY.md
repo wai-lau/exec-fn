@@ -290,6 +290,20 @@ Redraw cost tracks the primitive count almost linearly and splits roughly evenly
 
 ---
 
+**Seeds were drawn from a 16-square positional lattice until 2026-09-24.**
+`partition()` cut the node cloud's bounding box into a `GRID`x`GRID` (4x4)
+lattice, filed every node under one square at index time with its own weighted
+prefix sum, and an iteration drew its extra seeds from the FIRST seed's own
+square. It was cheap and it quantised, in three ways that all have the same
+shape: a seed near a boundary could only draw inward, two seeds a pixel apart on
+either side of a boundary got completely disjoint pools, and the same 16 regions
+recurred for the life of the page. Replaced by a draw over the 64 nearest nodes
+to the seed, which has no seams and needs no bookkeeping — the layout is frozen,
+so one pass over ~2.8k nodes costs a few hundred microseconds a few times a
+second. `GRID`, `cells`, `cellOf` and `partition()` went with it.
+
+---
+
 ## 12. The bottom nav
 
 Current design: [ARCHITECTURE.md §12](ARCHITECTURE.md).

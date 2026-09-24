@@ -70,23 +70,15 @@ var graphPulse = (function () {
   // onto P_MIN; if that range moves, move these with it.
   var SIZE_FLOOR = 12;
   var SIZE_CEIL = 88;
-  // Seeds are drawn on size to the SEED_POW, not on size itself. Strictly
-  // proportional looks like nothing happening: 76% of nodes sit at the size
-  // floor with one edge, so 9 seeds in 10 landed on a leaf that lit itself, rolled
-  // its single neighbour at 0.18 and stopped. Squaring the weight splits the
-  // difference — about half the seeds still land on small nodes and fizzle, which
-  // is what makes the ones that bloom read as events.
-  var SEED_POW = 2;
-  // The cloud is cut into a GRID x GRID lattice of positional squares, and an
-  // iteration lights SEEDS_PER_ITER nodes out of ONE of them. Seeds scattered
-  // anywhere in a hairball read as unrelated sparks; eight inside one square
-  // read as a region waking up.
-  var GRID = 4;
   // Nodes lit at the START of an iteration, all from the one square: a burst,
   // not a spark. The first is the weighted whole-graph draw that CHOOSES the
   // square; the rest come out of that square, staggered. Each of them still
   // spreads, so the burst is a starting condition and not the whole event.
   var SEEDS_PER_ITER = 8;
+  // A caller may ask for more than SEEDS_PER_ITER — graph-audio.js does, scaling
+  // with how loud the bar is. Bounded here so a runaway level cannot ask for a
+  // thousand starting points on one frame.
+  var MAX_SEEDS = 24;
   // The seeds do not all land at once — one every SEED_STAGGER_MS. Eight
   // hexagons appearing on the same frame reads as a flashbulb; the same eight
   // arriving over 0.8s reads as a region coming awake, and it also gives the
@@ -115,10 +107,6 @@ var graphPulse = (function () {
   var pos = {};                   // id -> {x, y, r, s, c}; world units, read once
   var deg = {};                   // id -> edge count
   var adj = {};                   // id -> [neighbour ids]
-  var ids = [];                   // every node id, in cumulative-weight order
-  var cum = [];                   // prefix sums of weight, for the seed draw
-  var cells = [];                 // GRID*GRID squares, each {ids, cum}
-  var cellOf = {};                // id -> square index
   var lit = {};                   // id -> {t0, dur}; kept for totalLife(dur)
   var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b}
   var live = [];                  // iterations in flight: {queue, seen, until}
@@ -157,7 +145,7 @@ var graphPulse = (function () {
       // is not a subtle failure: every node keeps x=0, y=0 and the whole cascade
       // draws on top of itself in the dead centre of the screen.
       ['pos', function () {
-        ids = Object.keys(pos);
+        var ids = Object.keys(pos);
         var world = network.getPositions(ids);
         for (var i = 0; i < ids.length; i++) {
           var w = world[ids[i]];
@@ -168,8 +156,7 @@ var graphPulse = (function () {
         }
       }],
       ['grid', function () {
-        cum = weigh(ids);
-        partition();
+        graphSeed.index(pos, deg, TERMINAL_ODDS);
       }],
     ];
     var at = 0;
@@ -185,79 +172,6 @@ var graphPulse = (function () {
       t[step[0]] = Math.round(performance.now() - t0);
       requestAnimationFrame(run);
     })();
-  }
-
-  // Seed weight: size to the SEED_POW, knocked down to TERMINAL_ODDS for a dead
-  // end. One function so the whole-graph draw and the per-square draws cannot
-  // drift apart — an unweighted square pick would bring back the halo of
-  // terminal nodes that TERMINAL_ODDS exists to remove.
-  function seedWeight(id) {
-    var w = Math.pow(pos[id].r, SEED_POW);
-    return (deg[id] || 0) <= 1 ? w * TERMINAL_ODDS : w;
-  }
-
-  // Prefix sums, so a weighted pick is one binary search rather than a scan or a
-  // reject loop.
-  function weigh(list) {
-    var total = 0;
-    return list.map(function (id) {
-      total += seedWeight(id);
-      return total;
-    });
-  }
-
-  function pick(list, sums) {
-    if (!list.length || !sums[sums.length - 1]) {
-      return null;
-    }
-    var target = Math.random() * sums[sums.length - 1];
-    var lo = 0, hi = sums.length - 1;
-    while (lo < hi) {
-      var mid = (lo + hi) >> 1;
-      if (sums[mid] < target) {
-        lo = mid + 1;
-      } else {
-        hi = mid;
-      }
-    }
-    return list[lo];
-  }
-
-  function seed() {
-    return pick(ids, cum);
-  }
-
-  // Cut the node cloud's bounding box into a GRID x GRID lattice of squares and
-  // file every node under one. An iteration seeds its extras out of the SEED's
-  // OWN square, which is what keeps a burst local: the graph is a hairball, so
-  // three unrelated seeds anywhere in it read as three unrelated sparks, while
-  // three seeds inside one square read as a region waking up.
-  //
-  // Squares are POSITIONAL, not structural — they cut across communities on
-  // purpose. Spatial neighbours that share no edge still belong to the same part
-  // of the picture, and that is what the eye is following.
-  function partition() {
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    ids.forEach(function (id) {
-      var p = pos[id];
-      if (p.x < minX) { minX = p.x; }
-      if (p.x > maxX) { maxX = p.x; }
-      if (p.y < minY) { minY = p.y; }
-      if (p.y > maxY) { maxY = p.y; }
-    });
-    var w = Math.max(maxX - minX, 1), h = Math.max(maxY - minY, 1);
-    cells = [];
-    for (var i = 0; i < GRID * GRID; i++) {
-      cells.push({ ids: [], cum: [] });
-    }
-    ids.forEach(function (id) {
-      var col = Math.min(GRID - 1, Math.floor((pos[id].x - minX) / w * GRID));
-      var row = Math.min(GRID - 1, Math.floor((pos[id].y - minY) / h * GRID));
-      var n = row * GRID + col;
-      cellOf[id] = n;
-      cells[n].ids.push(id);
-    });
-    cells.forEach(function (c) { c.cum = weigh(c.ids); });
   }
 
   // ── firing ─────────────────────────────────────────────────────────────────
@@ -306,9 +220,10 @@ var graphPulse = (function () {
   // iteration either way — a tapped node gets the burst, the stagger and the
   // outward walk a randomly seeded one gets, because the interesting thing about
   // a node is what it is connected to, and that is what the cascade draws.
-  function startIteration(now, at) {
+  function startIteration(now, at, count) {
     var tapped = at !== undefined && at !== null;
-    var id = tapped ? at : seed();
+    var want = Math.max(1, Math.min(MAX_SEEDS, count || SEEDS_PER_ITER));
+    var id = tapped ? at : graphSeed.any();
     if (id === null || !pos[id]) {
       return;
     }
@@ -316,15 +231,15 @@ var graphPulse = (function () {
     // dropped before they ever fired.
     var it = {
       queue: [], seen: {},
-      until: now + ITER_LIFE + SEEDS_PER_ITER * SEED_STAGGER_MS,
+      until: now + ITER_LIFE + want * SEED_STAGGER_MS,
     };
     // A tap guarantees its first hop, and seeds none of the extra draws below.
     // Why both: ARCHITECTURE §11.
     ignite(it, id, now, tapped);
-    var cell = tapped ? null : cells[cellOf[id]];
-    var seeded = 1, tries = SEEDS_PER_ITER * SEED_TRIES;
-    while (cell && seeded < SEEDS_PER_ITER && tries-- > 0) {
-      var extra = pick(cell.ids, cell.cum);
+    var pool = tapped ? null : graphSeed.near(id);
+    var seeded = 1, tries = want * SEED_TRIES;
+    while (pool && seeded < want && tries-- > 0) {
+      var extra = graphSeed.from(pool);
       if (extra !== null && !it.seen[extra]) {
         // Claim it NOW so the remaining draws cannot pick it again, but light it
         // later. `seed` marks it as not needing a roll when its turn comes: it
@@ -471,9 +386,9 @@ var graphPulse = (function () {
   return {
     // One cascade, seeded exactly where it was asked for. No-op until init has
     // indexed the graph, and on a node the index does not hold.
-    seed: function (id) {
+    seed: function (id, count) {
       if (running) {
-        startIteration(performance.now(), id);
+        startIteration(performance.now(), id, count);
       }
     },
     // `onReady` fires on the first frame this layer actually PAINTS — not when
