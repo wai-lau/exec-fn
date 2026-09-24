@@ -42,6 +42,7 @@
   --cv-pink-dk:   hsl(340deg 71% 42%);   /* pink CTA hover */
   --cv-rule:      hsl(140deg 18% 88%);   /* hairline dividers */
   --cv-chip:      hsl(135deg 42% 94%);   /* skill chip fill */
+  --cv-accent:    var(--cv-ink);         /* headings/roles: plain ink in light, brand green in dark */
 }
 
 /* dark mode: flip the page-local tokens to a green-on-black terminal, the same
@@ -62,9 +63,11 @@ html.cv-dark {
   --cv-pink-dk:   hsl(340deg 85% 78%);   /* pink CTA hover */
   --cv-rule:      hsl(135deg 30% 16%);   /* hairline dividers */
   --cv-chip:      hsl(135deg 40% 11%);   /* skill chip fill */
+  --cv-accent:    var(--cv-green);
 }
 
 html.cv-dark .cv {
+  font-family: var(--font-mono);  /* dark keeps the terminal face; light is --font-doc */
   box-shadow: 0 0 0 1px hsl(135deg 100% 50% / 0.06), 0 0 50px hsl(135deg 100% 50% / 0.05);
   text-shadow: 0 0 2px hsl(135deg 100% 50% / 0.12);
 }
@@ -104,7 +107,7 @@ body::-webkit-scrollbar { display: none; }
   box-shadow: 0 1px 2px hsl(150deg 14% 15% / 0.05), 0 10px 34px hsl(150deg 14% 15% / 0.07);
   padding: 52px clamp(28px, 6vw, 60px) 44px;
   color: var(--cv-ink);
-  font-family: var(--font-mono);
+  font-family: var(--font-doc);
   font-weight: var(--fw-normal);
   font-size: var(--fs-xl);
   line-height: var(--lh-relaxed);
@@ -137,7 +140,7 @@ body::-webkit-scrollbar { display: none; }
 
 .cv a { color: var(--cv-cyan); text-decoration: none; }
 .cv a:hover { text-decoration: underline; }
-.cv strong { color: var(--cv-green); font-weight: var(--fw-bold); }
+.cv strong { color: var(--cv-accent); font-weight: var(--fw-bold); }
 
 /* ── header ───────────────────────────────────────────────────────────── */
 .cv-head {
@@ -173,10 +176,9 @@ body::-webkit-scrollbar { display: none; }
 }
 
 .cv-title {
-  color: var(--cv-green);
+  color: var(--cv-ink-soft);
   font-size: var(--fs-xl);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--tracking-wide);
+  font-weight: var(--fw-normal);
   margin-bottom: var(--space-3);
 }
 
@@ -220,11 +222,17 @@ body::-webkit-scrollbar { display: none; }
   border-radius: var(--radius-3);
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
   text-decoration: none;
   transition: background 0.18s;
 }
+
+/* the footer sits outside .cv, so it takes the page face itself */
+.cv-download,
+.cv-contact { font-family: var(--font-doc); }
+
+html.cv-dark .cv-download,
+html.cv-dark .cv-contact { font-family: var(--font-mono); }
+html.cv-dark .cv-resume { letter-spacing: var(--tracking-wide); text-transform: uppercase; }
 
 .cv-resume:hover {
   background: var(--cv-cyan-dk);
@@ -260,7 +268,8 @@ html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: trans
 
 /* the bold lead-in keeps the original headline size; only the rest of the
    blurb drops to bullet size */
-.cv-summary b { font-size: var(--fs-xl); }
+.cv-summary b { font-weight: var(--fw-bold); }
+html.cv-dark .cv-summary b { font-size: var(--fs-xl); }
 
 /* during the type-out the real blurb is hidden but stays in flow, reserving the
    final height so nothing below it bounces; recruiter.js paints the animated
@@ -302,8 +311,8 @@ html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: trans
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-mega);
-  color: var(--cv-green);
+  letter-spacing: var(--tracking-wide);
+  color: var(--cv-accent);
   margin: var(--space-10) 0 var(--space-7);
   padding-bottom: var(--space-2-5);
   border-bottom: 1px solid var(--cv-rule);
@@ -320,7 +329,7 @@ html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: trans
   margin-bottom: var(--space-1-5);
 }
 .cv-co { color: var(--cv-ink); font-weight: var(--fw-bold); font-size: var(--fs-xl); }
-.cv-role { color: var(--cv-green); font-size: var(--fs-xl); font-weight: var(--fw-bold); }
+.cv-role { color: var(--cv-accent); font-size: var(--fs-xl); font-weight: var(--fw-normal); }
 
 /* Education head runs at the bullet size (--fs-sm), smaller than the job heads (requested) */
 .cv-edu-head .cv-co,
@@ -353,10 +362,9 @@ html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: trans
 }
 
 .cv-group {
-  color: var(--cv-green-dim);
+  color: var(--cv-ink-soft);
   font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-mega);
+  font-weight: var(--fw-bold);
   margin: var(--space-6) 0 var(--space-2-5);
 }
 .cv ul { list-style: none; }
@@ -371,10 +379,10 @@ html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: trans
 }
 
 .cv-job li::before {
-  content: "▸";
+  content: "•";
   position: absolute;
   left: 0;
-  color: var(--cv-green-dim);
+  color: var(--cv-ink-soft);
 }
 
 /* ── skills (chips) ───────────────────────────────────────────────────── */
@@ -383,22 +391,41 @@ html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: trans
 .cv-skillrow { display: grid; grid-template-columns: 130px 1fr; gap: var(--space-5); align-items: start; }
 
 .cv-skillrow dt {
-  color: var(--cv-green);
+  color: var(--cv-accent);
+  font-weight: var(--fw-bold);
   font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
   padding-top: var(--space-2);
 }
-.cv-skillrow dd { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* light: skills read as a plain comma list (gap + comma below), no pills */
+.cv-skillrow dd { display: flex; flex-wrap: wrap; gap: 0 var(--space-1-5); padding-top: var(--space-2); }
 
 .cv-chip {
-  background: var(--cv-chip);
-  color: var(--cv-green);
+  color: var(--cv-ink);
   font-size: var(--fs-sm);
-  padding: var(--space-1-5) var(--space-3);
-  border-radius: var(--radius-2);
   white-space: nowrap;
 }
+
+/* the comma between skills; dark swaps it back for pills */
+.cv-chip:not(:last-child)::after { content: ","; }
+
+/* dark: the terminal look keeps its monospace face, spaced caps and pills */
+html.cv-dark .cv h2,
+html.cv-dark .cv-group { text-transform: uppercase; letter-spacing: var(--tracking-mega); }
+html.cv-dark .cv-group { color: var(--cv-green-dim); font-weight: var(--fw-normal); }
+html.cv-dark .cv-title { color: var(--cv-green); font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); }
+html.cv-dark .cv-role { font-weight: var(--fw-bold); }
+html.cv-dark .cv-job li::before { content: "▸"; color: var(--cv-green-dim); }
+html.cv-dark .cv-skillrow dt { font-weight: var(--fw-normal); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
+html.cv-dark .cv-skillrow dd { gap: var(--space-2); padding-top: 0; }
+
+html.cv-dark .cv-chip {
+  background: var(--cv-chip);
+  color: var(--cv-green);
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: var(--radius-2);
+}
+html.cv-dark .cv-chip::after { content: none; }
 
 /* ── footer ───────────────────────────────────────────────────────────── */
 
