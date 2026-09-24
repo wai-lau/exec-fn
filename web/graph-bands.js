@@ -11,9 +11,15 @@
 //
 // So the analyser is unfiltered now and the bands are taken from its bins:
 //
-//   bass    30-200Hz    onsets and tempo, as before
-//   mid     200-2000    the body of most music
-//   treble  2000-8000   hats, snare transients, air
+//   bass    onsets and tempo, as before
+//   mid     the body of most music
+//   treble  hats, snare transients, air
+//
+// THE CROSSOVERS BETWEEN THEM ARE NOT FIXED. They are re-cut every couple of
+// seconds at the equal-energy thirds of a slowly-averaged spectrum, so what counts
+// as bass is what is bass FOR THIS MATERIAL. Fixed at 200Hz and 2kHz they were
+// fine for a typical mix and useless either side of it: a dark master has almost
+// nothing above 2kHz, so one of the three inputs read ~0 for the whole song.
 //
 // plus three things no single band can say:
 //
@@ -35,6 +41,26 @@ var graphBands = (function () {
   // thread, so the cost is not ours to pay.
   var FFT = 4096;
   var SIDE_FFT = 1024;            // per-channel, level only: no spectrum needed
+  // THE CROSSOVERS MOVE. They were fixed at 200Hz and 2kHz, which is fine for a
+  // typical mix and useless for anything else: a dark-mastered track has almost
+  // nothing above 2kHz, so its treble band read ~0 for the whole song and one of
+  // the three inputs was simply dead. The same in reverse for a thin, bright mix,
+  // where everything piled into `treb` and the bass band said nothing.
+  //
+  // So the splits are placed at EQUAL-ENERGY THIRDS of a slowly-averaged
+  // spectrum: whatever the material, each band carries about a third of what is
+  // actually there, and all three stay informative. Recomputed every RECALC_MS
+  // from an EMA, never per frame — a crossover that moved at frame rate would
+  // make "bass" mean something different from one beat to the next.
+  var SPAN = [20, 12000];         // the range the thirds are taken over
+  // CLAMPS, and they are not decoration. Tempo runs on the bass band, so if the
+  // lower split drifted up into the mids the beat detector would start tracking
+  // a vocal; and a split that collapsed toward either end would leave a band
+  // empty again, which is the problem this is solving.
+  var SPLIT1 = [80, 400];         // bass | mid
+  var SPLIT2 = [1000, 6000];      // mid  | treble
+  var RECALC_MS = 2000;
+  var AVG_A = 0.003;              // EMA per frame: ~5s of history
   var BANDS = {
     bass: [30, 200],
     mid: [200, 2000],
@@ -45,6 +71,7 @@ var graphBands = (function () {
   var ana = null, anaL = null, anaR = null;
   var freq = null, prev = null, wave = null, sideL = null, sideR = null;
   var range = {}, perBin = 0;
+  var avg = null, lastCalc = 0, split1 = 200, split2 = 2000;
 
   // One object, mutated in place and read by the caller — never a fresh one per
   // frame, which at 60fps is garbage for the collector to chase.
@@ -57,6 +84,41 @@ var graphBands = (function () {
       lo: Math.max(1, Math.floor(loHz / perBin)),
       hi: Math.min(freq.length - 1, Math.ceil(hiHz / perBin)),
     };
+  }
+
+  // Equal-energy thirds over SPAN, from the averaged spectrum. Returns nothing;
+  // it moves `split1`/`split2` and rebuilds the bin ranges.
+  function recut() {
+    var lo = Math.max(1, Math.floor(SPAN[0] / perBin));
+    var hi = Math.min(avg.length - 1, Math.ceil(SPAN[1] / perBin));
+    var total = 0, i;
+    for (i = lo; i <= hi; i++) {
+      total += avg[i];
+    }
+    if (total <= 0) {
+      return;                     // silence has no thirds
+    }
+    var run = 0, a = 0, b = 0;
+    for (i = lo; i <= hi; i++) {
+      run += avg[i];
+      if (!a && run >= total / 3) {
+        a = i * perBin;
+      }
+      if (!b && run >= total * 2 / 3) {
+        b = i * perBin;
+        break;
+      }
+    }
+    split1 = Math.min(SPLIT1[1], Math.max(SPLIT1[0], a || split1));
+    split2 = Math.min(SPLIT2[1], Math.max(SPLIT2[0], b || split2));
+    // Ordering is enforced rather than assumed: clamping two values independently
+    // can cross them, and a band with hi < lo reads as silence forever.
+    if (split2 <= split1) {
+      split2 = Math.min(SPLIT2[1], split1 * 2);
+    }
+    range.bass = bins(BANDS.bass[0], split1);
+    range.mid = bins(split1, split2);
+    range.treb = bins(split2, BANDS.treb[1]);
   }
 
   function bandLevel(r) {
@@ -92,6 +154,8 @@ var graphBands = (function () {
       freq = new Uint8Array(ana.frequencyBinCount);
       prev = new Uint8Array(ana.frequencyBinCount);
       wave = new Uint8Array(ana.fftSize);
+      avg = new Float32Array(ana.frequencyBinCount);
+      lastCalc = 0; split1 = 200; split2 = 2000;
       src.connect(ana);
 
       perBin = ctx.sampleRate / 2 / ana.frequencyBinCount;
@@ -120,10 +184,16 @@ var graphBands = (function () {
     },
 
     detach: function () {
-      ana = null; anaL = null; anaR = null;
+      ana = null; anaL = null; anaR = null; avg = null;
       freq = null; prev = null; wave = null; sideL = null; sideR = null;
       out.bass = 0; out.mid = 0; out.treb = 0; out.rms = 0;
       out.flux = 0; out.centroid = 0.5; out.pan = 0;
+    },
+
+    // Where the splits currently sit, for the readout and for checking that they
+    // actually move with the material.
+    crossovers: function () {
+      return { bass_mid: Math.round(split1), mid_treble: Math.round(split2) };
     },
 
     // One frame. Returns the same mutated object every time.
@@ -132,6 +202,18 @@ var graphBands = (function () {
         return out;
       }
       ana.getByteFrequencyData(freq);
+
+      // The slow average the crossovers are cut from. It is deliberately a
+      // different timescale from everything else here: the bands react per frame,
+      // where what COUNTS as a band should change over a song, not over a bar.
+      var now = performance.now();
+      for (var k = 0; k < freq.length; k++) {
+        avg[k] += (freq[k] - avg[k]) * AVG_A;
+      }
+      if (now - lastCalc >= RECALC_MS) {
+        lastCalc = now;
+        recut();
+      }
 
       out.bass = bandLevel(range.bass);
       out.mid = bandLevel(range.mid);
