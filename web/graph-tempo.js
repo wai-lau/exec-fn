@@ -15,7 +15,16 @@ var graphTempo = (function () {
   var QUIET_MS = 4000;            // no onset for this long and the lock lapses
   var ENV_HZ = 50;
   var ENV_MS = 1000 / ENV_HZ;
-  var ENV_N = 300;                // 6s of history: ~6 beats at 60bpm
+  // 12s of history, up from 6. THE WINDOW IS THE STABILITY: 6 seconds is only
+  // about twelve beats at 120bpm, and on that little evidence noise moves the
+  // autocorrelation peak from one estimate to the next, so the reported tempo
+  // wandered. Twice the window is twice the beats agreeing before anything is
+  // believed.
+  var ENV_N = 600;
+  // ...but estimating starts at 6s rather than waiting for the full window, so
+  // the first lock is no slower than it was. The window only has to be FULL for
+  // the estimate to be at its steadiest, not for it to exist.
+  var ENV_MIN = 300;
   var BPM_MIN = 60, BPM_MAX = 180;
   var TEMPO_MS = 1000;            // re-estimate this often
   var LOCK_MIN = 0.22;            // correlation below this is not a tempo
@@ -24,9 +33,17 @@ var graphTempo = (function () {
   var BEAT_DIV = 1;               // iterations per beat: the "fraction of the bpm"
   var PLL_PULL = 0.25;            // how hard a real onset drags the grid onto it
   var PLL_WINDOW = 0.25;          // ...and how far off it may be to count, in beats
+  // A ROLLING VOTE on top of the longer window. Each re-estimate is one ballot and
+  // the MEDIAN of the last VOTE_N wins, so a single bad second cannot move the
+  // reported tempo at all — it has to out-vote the last eight. Median rather than
+  // mean because a wrong estimate is usually wrong by a whole octave, and an
+  // average of 120 and 60 is 90, which is neither.
+  var VOTE_N = 8;
+  var PERIOD_TOL = 0.03;          // ignore a change smaller than this
 
   var env = [], envI = 0, envAcc = 0, envAt = 0;
   var period = 0, nextFire = 0, lastTempo = 0, conf = 0, lastOnset = 0;
+  var votes = [];
 
   function bpmOf(lag) {
     return 60000 / (lag * ENV_MS);
@@ -70,7 +87,7 @@ var graphTempo = (function () {
   function retempo(now) {
     lastTempo = now;
     var x = envSeries(), i;
-    if (x.length < ENV_N) {
+    if (x.length < ENV_MIN) {
       return;
     }
     var mean = 0;
@@ -128,13 +145,26 @@ var graphTempo = (function () {
       best = corr[half];
     }
     conf = best;
-    if (best >= LOCK_MIN && bestLag) {
-      var p = bestLag * ENV_MS;
-      // Only re-anchor on a REAL change. Rewriting the period every second with
-      // the same number would restart the grid every second, which is audible as
-      // the one thing this is supposed to fix.
-      if (!period || Math.abs(p - period) > period * 0.03) {
-        period = p;
+    if (best < LOCK_MIN || !bestLag) {
+      return;
+    }
+
+    votes.push(bestLag);
+    if (votes.length > VOTE_N) {
+      votes.shift();
+    }
+    var sorted = votes.slice().sort(function (x1, x2) { return x1 - x2; });
+    var p = sorted[sorted.length >> 1] * ENV_MS;
+
+    // Only move on a REAL change, and DO NOT reset the phase when it moves. The
+    // old line set `nextFire = now`, which threw the grid's alignment away every
+    // time the estimate wobbled by 3% — so the beat kept restarting from whatever
+    // instant the estimate happened to land on. phaseLock() drags the grid onto
+    // real onsets and `fires()` resyncs anything wildly stale, so phase looks
+    // after itself and the period can change underneath it.
+    if (!period || Math.abs(p - period) > period * PERIOD_TOL) {
+      period = p;
+      if (!nextFire) {
         nextFire = now;
       }
     }
@@ -158,87 +188,11 @@ var graphTempo = (function () {
     }
   }
 
-  function tick() {
-    if (!on) {
-      return;
-    }
-    raf = requestAnimationFrame(tick);
-    ana.getByteFrequencyData(freq);
-    var sum = 0, i;
-    for (i = 0; i < freq.length; i++) {
-      sum += freq[i];
-    }
-    var energy = sum / freq.length;
-
-    // Time domain as well, the way raVe reads both: RMS of the lowpassed signal
-    // is the honest loudness of the bass, where the binned average is a spectrum
-    // shape. This is what decides how MANY nodes a beat wakes.
-    ana.getByteTimeDomainData(wave);
-    var acc = 0;
-    for (i = 0; i < wave.length; i++) {
-      var v = (wave[i] - 128) / 128;
-      acc += v * v;
-    }
-    rms = Math.sqrt(acc / wave.length);
-    peak = Math.max(rms, peak * PEAK_DECAY);
-
-    var now = performance.now();
-    pushEnv(now, energy);
-
-    // The onset threshold is the LOCAL average, not a fixed number, so it follows
-    // a quiet room or a loud one with no sensitivity setting to get wrong.
-    var mean = 0;
-    for (i = 0; i < hist.length; i++) {
-      mean += hist[i];
-    }
-    mean = hist.length ? mean / hist.length : 0;
-
-    var onset = hist.length >= HIST_N && energy > FLOOR && mean > 0
-      && energy > mean * SENS && (now - lastBeat) > MIN_GAP_MS;
-    if (onset) {
-      lastBeat = now;
-      phaseLock(now);
-    }
-    if (now - lastTempo >= TEMPO_MS) {
-      retempo(now);
-    }
-
-    if (locked(now)) {
-      // On the grid: steady, and phase-locked to the kicks by phaseLock(). This
-      // is the point of measuring tempo at all — raw onset firing is jittery and
-      // drops a beat whenever one kick is quieter than the running average.
-      var step = period / BEAT_DIV;
-      // A backgrounded tab resumes with `now` far ahead. Resync instead of firing
-      // the whole gap: cascades last ~2s, so the page would otherwise spend a
-      // minute catching up on beats nobody heard.
-      if (now - nextFire > step * 4) {
-        nextFire = now;
-      }
-      var guard = 0;
-      while (now >= nextFire && guard++ < 4) {
-        fire();
-        nextFire += step;
-      }
-    } else if (onset) {
-      // No tempo yet, or the music stopped: fall back to firing on what is
-      // actually heard, which is where this started.
-      fire();
-    }
-
-    // Written AFTER the test: a loud frame folded in first raises the very
-    // average it is about to be compared against, and the beat tests itself away.
-    if (hist.length < HIST_N) {
-      hist.push(energy);
-    } else {
-      hist[histI] = energy;
-      histI = (histI + 1) % HIST_N;
-    }
-  }
-
   return {
     reset: function () {
       env = []; envI = 0; envAcc = 0; envAt = 0;
       period = 0; nextFire = 0; lastTempo = 0; conf = 0; lastOnset = 0;
+      votes = [];
     },
     // One envelope sample per frame. Also runs the re-estimate on its own clock,
     // so the caller does not have to keep one.
@@ -303,7 +257,9 @@ var graphTempo = (function () {
       mean = x.length ? mean / x.length : 0;
       for (i = 0; i < x.length; i++) { v += (x[i] - mean) * (x[i] - mean); }
       return {
-        n: x.length, need: ENV_N, mean: +mean.toFixed(3),
+        n: x.length, need: ENV_N, votes: votes.length,
+        spread: votes.length ? Math.max.apply(null, votes) - Math.min.apply(null, votes) : 0,
+        mean: +mean.toFixed(3),
         peak: +peak.toFixed(3), variance: +v.toFixed(3),
         period: Math.round(period), conf: +conf.toFixed(3),
       };

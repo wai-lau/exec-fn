@@ -2033,6 +2033,36 @@ then measures **120**, period exactly 500ms. A weighting nudge cannot do this
 job: it only re-ranks candidates that already compete, and at half tempo the two
 are genuinely equally periodic.
 
+**Three things stabilise the reported tempo, and the window is only one.** It
+wandered because a 6s envelope is about twelve beats at 120bpm, and on that little
+evidence noise moves the autocorrelation peak from one estimate to the next.
+
+- **The window is 12s** (`ENV_N` 600), twice the beats agreeing before anything is
+  believed. Estimating still STARTS at 6s (`ENV_MIN`), so the first lock is no
+  slower than it was — the window has to be full for the estimate to be at its
+  steadiest, not for it to exist.
+- **A rolling vote sits on top of it.** Each re-estimate is one ballot and the
+  MEDIAN of the last `VOTE_N` (8) wins, so a single bad second cannot move the
+  answer at all: it has to out-vote the other seven. Median rather than mean
+  because a wrong estimate is usually wrong by a whole OCTAVE, and the average of
+  120 and 60 is 90, which is neither.
+- **A period change no longer resets the phase.** The old line set
+  `nextFire = now` whenever the estimate moved by 3%, which threw the grid's
+  alignment away and restarted the beat from whatever instant the wobble landed
+  on — so the thing that was supposed to make the beat steady was itself the
+  jitter. `phaseLock()` drags the grid onto real onsets and `fires()` resyncs
+  anything wildly stale, so phase looks after itself while the period changes
+  underneath it.
+
+`stats()` reports `votes` and their `spread`, because "is it stable" is a question
+about the spread and not about the number.
+
+**77 lines of dead code came out of graph-tempo.js in the same change**: a
+duplicate of graph-audio.js's `tick()`, left behind when the file was split. It
+referenced `hist`, `HIST_N`, `FLOOR` and `fire()`, none of which exist here, and
+survived because it was never called — `node --check` only parses, and `no-undef`
+is off for `web/**` since those files share one global scope by design.
+
 **Phase comes from real onsets, not from the autocorrelation**, which yields a
 period and says nothing about where the beats sit. A detected onset drags the
 grid onto it (`PLL_PULL` 0.25) rather than restarting it, so the beat is both the
