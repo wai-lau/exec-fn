@@ -40,6 +40,36 @@ var graphGlyph = (function () {
   // life of the page: this file draws on the overlay and nothing else.
   var ctx = null;
 
+  // ROTATION IS DONE IN THE POINTS, never with ctx.rotate/save/restore. A canvas
+  // transform would have to wrap the path build AND the caller's stroke, and the
+  // contract here is that this file leaves a path current for someone else to
+  // stroke or fill — so a transform would leak out of it. Rotating the vertices
+  // keeps the whole thing pure arithmetic and costs a sin and a cos per shape.
+  function spin(pts, x, y, turn) {
+    if (!turn) {
+      return pts;
+    }
+    var c = Math.cos(turn), s = Math.sin(turn);
+    for (var i = 0; i < pts.length; i++) {
+      var dx = pts[i][0] - x, dy = pts[i][1] - y;
+      pts[i][0] = x + dx * c - dy * s;
+      pts[i][1] = y + dx * s + dy * c;
+    }
+    return pts;
+  }
+
+  function trace(pts) {
+    ctx.beginPath();
+    for (var i = 0; i < pts.length; i++) {
+      if (i === 0) {
+        ctx.moveTo(pts[i][0], pts[i][1]);
+      } else {
+        ctx.lineTo(pts[i][0], pts[i][1]);
+      }
+    }
+    ctx.closePath();
+  }
+
   function polygon(x, y, r, sides, turn) {
     ctx.beginPath();
     for (var i = 0; i < sides; i++) {
@@ -54,18 +84,14 @@ var graphGlyph = (function () {
     ctx.closePath();
   }
 
-  function triangle(x, y, r, down) {
+  function triangle(x, y, r, down, turn) {
     var e = r * TRI_SCALE;
     var c = 2 * e, half = c / 2;
     var inr = Math.sqrt(3) / 6 * c;
     var out = Math.sqrt(c * c - half * half);
     var apex = down ? y + (out - inr) : y - (out - inr);
     var base = down ? y - inr : y + inr;
-    ctx.beginPath();
-    ctx.moveTo(x, apex);
-    ctx.lineTo(x + half, base);
-    ctx.lineTo(x - half, base);
-    ctx.closePath();
+    trace(spin([[x, apex], [x + half, base], [x - half, base]], x, y, turn));
   }
 
   return {
@@ -94,8 +120,8 @@ var graphGlyph = (function () {
     // The triangle gets 1.15x the radius from TRI_SCALE, which is vis's number
     // rather than a taste: at equal circumradius a triangle reads smaller than the
     // hexagon beside it, and vis already compensates.
-    path: function (x, y, r, shape) {
-      return this.at(x, this.centre(y, r, shape), r, shape);
+    path: function (x, y, r, shape, turn) {
+      return this.at(x, this.centre(y, r, shape), r, shape, turn);
     },
 
     // The same path about an EXPLICIT glyph centre, for a caller that has to keep
@@ -107,9 +133,21 @@ var graphGlyph = (function () {
     // it instead of expanding around it. Taking the centre once at the node's own
     // radius and growing about that is concentric, which is what a wave is. A
     // hexagon and a dot are unaffected either way, `centre` returning `y` for both.
-    at: function (x, gy, r, shape) {
+    // `turn` is radians about the glyph centre, and it is what a node is rotated
+    // by the instant before it throws a wave — graph-ring.js writes the angle onto
+    // the node's own position record as `pos[id].t`, and graph-pulse-draw.js hands
+    // it to EVERY pass that draws that glyph: the outline, the interior clear and
+    // the opaque punch. All three have to agree, or a rotated node's cleared
+    // interior no longer lines up with its own outline. The halo is exempt, being
+    // a circle, and so is `centre` — vis's offset is a vertical shift belonging to
+    // the unrotated shape, and the glyph spins about the centre rather than
+    // carrying it around.
+    //
+    // A circle ignores the angle and a hexagon has 60-degree symmetry, so in
+    // practice it is the triangles that visibly spin — which is 83% of the graph.
+    at: function (x, gy, r, shape, turn) {
       if (shape === 'triangle' || shape === 'triangleDown') {
-        triangle(x, gy, r, shape === 'triangleDown');
+        triangle(x, gy, r, shape === 'triangleDown', turn);
         return;
       }
       if (shape === 'dot') {
@@ -119,7 +157,7 @@ var graphGlyph = (function () {
       }
       // Anything this does not recognise draws as the hexagon, which is
       // graph_style's own global default for a type it has no shape for.
-      polygon(x, gy, r, 6, 0);
+      polygon(x, gy, r, 6, turn || 0);
     },
   };
 })();

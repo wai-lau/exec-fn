@@ -199,6 +199,33 @@ The `.cyber-crt` punch was tuned 2026-08-31 from `brightness(1.03) contrast(1.1)
 
 ## 11. `/graph`
 
+**`setBg('transparent')` silently switched off node occlusion (2026-09-24).** Reported as *the
+centre of big nodes is getting bright*.
+
+`graph-pulse-draw.js` reads the page background off real node data rather than holding a second
+literal — `graphPulseDraw.setBg(n.color.background)` — guarded by `if (n.color.background)`. That
+guard was correct until `graph_geometry._unocclude_small_nodes` started writing the string
+`"transparent"` onto every node under the size percentile, which at `_OCCLUDE_PCTL` 0.80 is four
+fifths of them. `"transparent"` is TRUTHY, so the guard accepted it and whichever node the index
+loop visited last decided the value. `BG` became `"transparent"`, `punchNodes` filled with it,
+`source-over` with a fully transparent fill paints nothing, and the pass that makes a node occlude
+the edges behind it became a silent no-op.
+
+The symptom pointed away from the cause. Nothing looked broken at small nodes — they are not
+supposed to occlude — and the visible failure was at the HUBS, whose lit edges all converge on one
+point, so with no opaque fill over them they summed under `'lighter'` into a bright core. It read as
+a glow bug, not as a missing fill.
+
+Two things fixed it. `setBg` now rejects `transparent` as well as empty, and it is the SINGLE gate —
+`graph-pulse.js` passes the value straight through instead of holding a second opinion about which
+values are acceptable. Verified by sampling the canvas pixel at the centre of the largest hub with
+40 neighbours lit and their edges fired: `[15, 15, 26, 255]`, exactly `#0f0f1a` at full opacity.
+
+The general lesson is about DATA whose meaning changed under a reader that was written before it: a
+falsy check is not a validity check, and a sentinel added at one end of a pipeline needs every
+consumer re-read, not just the one that motivated it.
+
+
 Current design: [ARCHITECTURE.md §11](ARCHITECTURE.md).
 
 **The first thing painted is the loading bar** (2026-09-22). Two things stood between a visitor and that bar, and only one of them was obvious. The cover was built by `graph-overlay.js`, which is injected before `</body>`; serving it as static markup at the top of `<body>` (`_GRAPH_BOOT`) fixes the document ORDER but not the paint, because graphify emits its entire dataset as one ~2.1MB **inline** `<script>` right after it. An inline script cannot carry `defer`, and a script executing is a main thread with no rendering opportunity in it — so the browser parsed the cover and then sat in that block for a second before painting anything at all. Measured on the served page: `responseStart` 129ms, **first-contentful-paint 1304ms**, and none of the gap is transfer (133KB gzipped).

@@ -79,8 +79,8 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-ink.js?v=1"></script>'
     # The shapes, before the file that strokes and fills them: graph-pulse-draw.js
     # binds the context to graphGlyph as it makes the canvas.
-    '<script src="/graph-glyph.js?v=2"></script>'
-    '<script src="/graph-pulse-draw.js?v=18"></script>'
+    '<script src="/graph-glyph.js?v=3"></script>'
+    '<script src="/graph-pulse-draw.js?v=21"></script>'
     '<script src="/graph-seed.js?v=3"></script>'
     '<script src="/graph-bands.js?v=2"></script>'
     # The adaptive windows, before graph-audio.js folds a frame through them and
@@ -89,11 +89,11 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-source.js?v=1"></script>'
     '<script src="/graph-lit.js?v=5"></script>'
     '<script src="/graph-bias.js?v=3"></script>'
-    '<script src="/graph-glow.js?v=4"></script>'
+    '<script src="/graph-glow.js?v=5"></script>'
     # The wavefront: its own register, envelopes and pixels. graph-pulse-draw.js
     # binds its context and decides where in the paint order it runs.
-    '<script src="/graph-ring.js?v=1"></script>'
-    '<script src="/graph-pulse.js?v=36"></script>'
+    '<script src="/graph-ring.js?v=4"></script>'
+    '<script src="/graph-pulse.js?v=37"></script>'
     '<script src="/graph-tempo.js?v=5"></script>'
     '<script src="/graph-audio.js?v=17"></script>'
     '<script src="/graph-audio-ui.js?v=3"></script>'
@@ -271,7 +271,7 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # Only the big nodes keep the opaque interior that stops an edge at them —
     # AFTER the sizing, which is what this reads to decide. The threshold comes back
     # out because the overlay has to gate its own layers on the SAME number.
-    page, occlude_min = _unocclude_small_nodes(page)
+    page, size_cuts = _unocclude_small_nodes(page)
     # And make the UNLIT edges readable — they are the structure the page is for.
     page = _hide_graph_edges(page)
     # Header counts are baked pre-scrub; rewrite to the merged/dropped reality.
@@ -303,13 +303,15 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     page = page.replace(
         "</head>",
         "<script>window.GRAPH_LAYOUT_KEY=%s;window.GRAPH_LAYOUT_CACHED=%s;"
-        # The size a node has to BEAT to occlude its edges, throw a wavefront, or
-        # punch its interior black on the lit layer. Computed once, server side,
-        # from the real size distribution and shipped — three layers gate on it and
-        # a second implementation of the percentile is a second chance to disagree
-        # about the node sitting exactly on the boundary.
-        "window.GRAPH_OCCLUDE_MIN=%s;</script></head>"
-        % (json.dumps(key), "true" if pos else "false", json.dumps(occlude_min)),
+        # The sizes a node has to BEAT: one to be SOLID (occlude its edges, punch
+        # its interior black on the lit layer), a HIGHER one to throw a wavefront.
+        # Two percentiles of the same real distribution, computed once server side
+        # and shipped — several layers gate on them, and a percentile recomputed in
+        # JS is a second chance to disagree about a node sitting exactly on a
+        # boundary.
+        "window.GRAPH_OCCLUDE_MIN=%s;window.GRAPH_WAVE_MIN=%s;</script></head>"
+        % (json.dumps(key), "true" if pos else "false",
+           json.dumps(size_cuts["occlude"]), json.dumps(size_cuts["wave"])),
         1,
     )
     if lite:

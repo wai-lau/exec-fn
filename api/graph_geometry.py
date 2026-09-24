@@ -100,21 +100,45 @@ def _size_graph_by_degree(page: str) -> str:
 # ones". A percentile is a statement about this graph's own distribution and it
 # stays true as the repo grows, where any fixed size becomes wrong the moment the
 # degree distribution shifts under it.
+#
+# It went to 0.80 briefly on 2026-09-24 and back to 0.90 the same day. The move was
+# a DIAGNOSTIC, not a tuning: the centre of every big node had gone bright and
+# widening the solid set was a way to see whether the threshold was at fault. It
+# was not — the cause was `setBg` accepting the string "transparent" and turning
+# the whole occlusion pass into a no-op (ARCHAEOLOGY.md §11). Worth recording
+# because the measurement it produced is still useful: because sizes are GEOMETRIC,
+# a tenth of a step down the distribution is a small step down in SIZE, so 0.90 ->
+# 0.80 moved the cut only 20.3 -> 15.6 while more than doubling the solid set,
+# 261 -> 573 nodes.
 _OCCLUDE_PCTL = 0.90
 
+# AND A SECOND, HIGHER CUT FOR THE WAVEFRONT. The two started as one number and
+# are kept apart on purpose even while they hold the SAME VALUE, because they
+# answer different questions about the same distribution: being solid is "big
+# enough that an edge should stop here", where throwing a front is an EVENT, and at
+# 300x one of them fills the screen. They have already been moved independently
+# once and will be again, so collapsing them into one constant would only have to
+# be undone.
+#
+# Both are shipped to the client (`GRAPH_OCCLUDE_MIN`, `GRAPH_WAVE_MIN`) rather
+# than re-derived there, for the reason either one alone would be: a percentile
+# recomputed in JS is a second chance to disagree about the node sitting exactly on
+# a boundary.
+_WAVE_PCTL = 0.90
 
-def _occlude_threshold(sizes) -> float:
-    """The `_OCCLUDE_PCTL` percentile of `sizes`, nearest-rank — a node occludes
-    when it is LARGER than this, so the returned value is the last one excluded.
+
+def _pctl(ordered, pctl: float) -> float:
+    """The `pctl` percentile of an ALREADY-SORTED list, nearest-rank — a node
+    qualifies when it is LARGER than this, so the value returned is the last one
+    excluded.
 
     Nearest-rank rather than interpolated on purpose: an interpolated percentile
-    invents a size no node has, and this number is shipped to the client and
-    compared against real sizes on two more layers. A value from the actual set
+    invents a size no node has, and these numbers are shipped to the client and
+    compared against real sizes on three more layers. A value from the actual set
     cannot land between two nodes differently in Python and in JS."""
-    ordered = sorted(sizes)
     if not ordered:
         return 0.0
-    return ordered[min(int(len(ordered) * _OCCLUDE_PCTL), len(ordered) - 1)]
+    return ordered[min(int(len(ordered) * pctl), len(ordered) - 1)]
 
 
 # vis hands `color.background` straight to a canvas `fillStyle`# vis hands `color.background` straight to a canvas `fillStyle`, so the CSS keyword
@@ -140,11 +164,13 @@ def _unocclude_small_nodes(page: str):
     carries the full-strength community colour that graph-pulse.js reads for its
     saturated ink, and clearing that would take the afterglow's colour with it. No-op
     if RAW_NODES is absent."""
-    found = {"thr": 0.0}
+    found = {"occlude": 0.0, "wave": 0.0}
 
     def _clear(nodes):
-        thr = _occlude_threshold(float(node.get("size") or 0) for node in nodes)
-        found["thr"] = thr
+        ordered = sorted(float(node.get("size") or 0) for node in nodes)
+        thr = _pctl(ordered, _OCCLUDE_PCTL)
+        found["occlude"] = thr
+        found["wave"] = _pctl(ordered, _WAVE_PCTL)
         for node in nodes:
             if float(node.get("size") or 0) > thr:
                 continue
@@ -158,4 +184,4 @@ def _unocclude_small_nodes(page: str):
                     sub["background"] = _NO_FILL
         return nodes
 
-    return _sub_json_array(page, "RAW_NODES", _clear), found["thr"]
+    return _sub_json_array(page, "RAW_NODES", _clear), found
