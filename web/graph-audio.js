@@ -338,6 +338,10 @@ var graphAudio = (function () {
     // 0..1, how much bar accent this instant has earned: a downbeat, scaled by how
     // much the tempo lock is believed. 0 with nothing listening.
     accent: function () { return on ? graphTempo.barAccent() : 0; },
+    // Where the adaptive band splits currently sit, for the readout. null when
+    // nothing is listening, so the line has nothing to append rather than a pair
+    // of stale numbers that read as a measurement.
+    crossovers: function () { return on ? graphBands.crossovers() : null; },
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },
     stats: function () { return graphTempo.stats(); },
