@@ -2150,6 +2150,38 @@ graph (mean edge 715), with the shortest 5% at 194 and the longest 2% at 2584:
 | high pitch | 0.40x | **1.44x** |
 | no audio | 1.00 | — |
 
+**Pitch biases WHICH NODES a cascade starts on, by the same rule**
+(`graphBias.node`). A high pitch prefers nodes whose own edges are SHORT —
+tightly connected, locally busy — and a low pitch prefers nodes that reach a long
+way. So pitch decides not only how far the activation travels but where it is
+willing to begin, and the two agree by construction: both read `LENGTH_BIAS` and
+both measure length against twice the graph's mean.
+
+`pos[id].e` is a node's own mean connected edge length, normalised at index time.
+A node with no edges reads **0.5 — no opinion — rather than 0**, which would read
+as "shortest possible" and make every isolated node a high-pitch magnet.
+
+It is applied in the draws that happen PER CASCADE (`graphSeed.at`,
+`graphSeed.near`), not in the index-time `cum` that `any()` uses: that one is the
+ambient path and is precomputed once for the whole graph, so it cannot carry a
+live reading. Measured, with a tight node at mean edge 194 and a far-reaching one
+at 2135: high pitch 1.44x / 0.40x, low pitch 0.56x / 1.60x, 1.00 with no audio.
+
+**EVERY LENGTH MEASUREMENT IS ALREADY IN VIEWPORT-SHAPED SPACE, and that is worth
+knowing before anyone "fixes" it.** `graph-lattice.js` stretches the layout to the
+viewport BEFORE `graphPulse.index()` reads positions, so the coordinates in `pos`
+already carry the window's shape; normalising against the graph's own mean then
+makes the bias scale-invariant. Measured at 430x932 and 1400x900: the cloud aspect
+tracks the viewport (0.509 -> 1.656), while the mean edge as a fraction of the
+cloud diagonal holds at 0.0319 vs 0.0313 and the length distribution holds to
+within ~6% (p50/mean 0.761 vs 0.813, p98/mean 3.56 vs 3.77).
+
+The residual difference is correct rather than error: the stretch is ANISOTROPIC,
+so on a tall phone a vertical edge genuinely is relatively longer on screen, and
+the bias should follow that. One caveat that is pre-existing and not from this
+work: a window RESIZE does not re-run the stretch, so the cloud keeps the aspect
+it was laid out at until the page is reloaded.
+
 **`web/graph-source.js` holds capture and device selection**, on the seam
 graph-audio.js's own header already described: acquiring a stream is a different
 subject from analysing one. Nothing in it touches an AudioContext or an analyser —

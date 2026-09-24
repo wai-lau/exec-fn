@@ -74,6 +74,26 @@ var graphBias = (function () {
       return Math.round(base * (1 + EXTENT_GAIN * loud()));
     },
 
+    // WHICH NODES a cascade starts on, by the same rule. A high pitch prefers
+    // nodes whose own edges are SHORT -- tightly connected, locally busy -- and a
+    // low pitch prefers nodes that reach a long way. So pitch decides not only how
+    // far the activation travels but where it is willing to begin, and the two
+    // agree by construction: both read `LENGTH_BIAS` and both measure length
+    // against twice the graph's mean.
+    //
+    // `pos[id].e` is the node's own mean connected edge length, normalised at
+    // index time. A node with no edges reads 0.5 -- no opinion -- rather than 0,
+    // which would read as "shortest possible" and make every isolated node a
+    // high-pitch magnet.
+    node: function (id) {
+      var p = pos[id];
+      if (!p || p.e === undefined) {
+        return 1;
+      }
+      var lowness = 1 - pitch();
+      return 1 + LENGTH_BIAS * (2 * lowness - 1) * (2 * p.e - 1);
+    },
+
     // Both terms are centred on 0, so their product is POSITIVE when they agree
     // (a low pitch crossing a long edge, or a high pitch staying short) and
     // negative when they do not. That is the whole mapping in one line.

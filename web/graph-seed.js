@@ -6,6 +6,8 @@
 // with all the weighting and the spatial reasoning in it. graph-pulse.js keeps
 // the cascade — the queue, the hop timing, the catch rolls, the envelopes.
 //
+// /* global graphBias */ — read through a guard, never required.
+//
 // The split happened when proximity seeding pushed graph-pulse.js past the
 // 500-line cap. The cap is a signal that a file has come to hold too much, and
 // the answer to it is a seam, never a smaller design or shorter comments.
@@ -54,6 +56,25 @@ var graphSeed = (function () {
     var total = 0;
     return list.map(function (id) {
       total += seedWeight(id);
+      return total;
+    });
+  }
+
+  // The audio's opinion about a node, or 1 with nothing listening. Guarded like
+  // every other cross-file read on this page: an unguarded call would take the
+  // cascade down rather than cost a preference.
+  function bias(id) {
+    return typeof graphBias !== 'undefined' && graphBias.node
+      ? graphBias.node(id) : 1;
+  }
+
+  // Prefix sums including the live audio bias. Used by the draws that happen PER
+  // CASCADE (`at`, `near`); `any()` keeps the index-time `cum`, because that one
+  // is the ambient path and is precomputed once for the whole graph.
+  function weighLive(list) {
+    var total = 0;
+    return list.map(function (id) {
+      total += seedWeight(id) * bias(id);
       return total;
     });
   }
@@ -136,7 +157,7 @@ var graphSeed = (function () {
         }
         worst = dl[idl.length - 1];
       }
-      return pick(idl, weigh(idl));
+      return pick(idl, weighLive(idl));
     },
 
     // The nearest NEAR_POOL nodes to `from`, weighted by seedWeight AND by
@@ -174,7 +195,7 @@ var graphSeed = (function () {
       // which is the quantisation the squares had, wearing different clothes.
       var span = dl[dl.length - 1] || 1, total = 0;
       var cums = idl.map(function (id, n) {
-        total += seedWeight(id) / (1 + NEAR_SOFT * (dl[n] / span));
+        total += seedWeight(id) * bias(id) / (1 + NEAR_SOFT * (dl[n] / span));
         return total;
       });
       return { ids: idl, cum: cums };
