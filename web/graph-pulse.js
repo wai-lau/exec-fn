@@ -78,12 +78,19 @@ var graphPulse = (function () {
   // A caller may ask for more than SEEDS_PER_ITER — graph-audio.js does, scaling
   // with how loud the bar is. Bounded here so a runaway level cannot ask for a
   // thousand starting points on one frame.
-  var MAX_SEEDS = 24;
+  // Raised with BEAT_BOOST: a full-level hit on the beat asks for 2.5x the
+  // amplitude count, and clamping that back to 24 would have thrown the boost away
+  // at exactly the moments it exists for.
+  var MAX_SEEDS = 48;
   // The seeds do not all land at once — one every SEED_STAGGER_MS. Eight
   // hexagons appearing on the same frame reads as a flashbulb; the same eight
   // arriving over 0.8s reads as a region coming awake, and it also gives the
   // first seeds' own spread time to start before the last one has fired.
   var SEED_STAGGER_MS = 100;
+  // ...but the whole burst fits inside this, however many seeds it holds. 100ms
+  // each reads as a region waking up at 8 seeds; at 48 it would be 4.8s and span
+  // several beats, which is a different thing entirely.
+  var SEED_WINDOW_MS = 800;
   // Draws are weighted and with replacement, so eight draws do not give eight
   // distinct nodes. Retry, but bounded — a square holding four nodes must not
   // spin looking for a fifth.
@@ -290,12 +297,17 @@ var graphPulse = (function () {
     // dropped before they ever fired.
     var it = {
       queue: [], seen: {},
-      until: now + ITER_LIFE + want * SEED_STAGGER_MS,
+      until: now + ITER_LIFE + want * Math.min(SEED_STAGGER_MS, SEED_WINDOW_MS / Math.max(1, want)),
     };
     // A tap guarantees its first hop, and seeds none of the extra draws below.
     // Why both: ARCHITECTURE §11.
     ignite(it, id, now, tapped);
     var pool = tapped ? null : graphSeed.near(id);
+    // The stagger is a WINDOW, not a fixed gap per seed. At 100ms each, a 48-seed
+    // burst would take 4.8s to fire and span several beats -- so a big burst
+    // packs tighter instead of lasting longer, and a burst stays one event
+    // however many nodes it lights.
+    var stagger = Math.min(SEED_STAGGER_MS, SEED_WINDOW_MS / Math.max(1, want));
     var seeded = 1, tries = want * SEED_TRIES;
     while (pool && seeded < want && tries-- > 0) {
       var extra = graphSeed.from(pool);
@@ -307,7 +319,7 @@ var graphPulse = (function () {
         it.seen[extra] = 1;
         it.queue.push({
           id: extra, from: null, seed: true,
-          at: now + seeded * SEED_STAGGER_MS,
+          at: now + seeded * stagger,
         });
         seeded += 1;
       }

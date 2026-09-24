@@ -49,6 +49,16 @@ var graphAudio = (function () {
   // judged against its own loudest moment for the rest of its life.
   var SEEDS_MIN = 4, SEEDS_MAX = 20;
   var PEAK_DECAY = 0.999;
+  // Amplitude and rhythm are MULTIPLIED, not added. Loud ON the beat is the moment
+  // worth spending the graph on, and neither term says that alone: a loud
+  // off-grid noise is a noise, and a quiet tick exactly on the grid is a tick.
+  // Their product is the only thing that means "the track just landed".
+  //
+  // The boost applies on top of the amplitude count, so a full-level hit dead on
+  // the beat asks for BEAT_BOOST times what its loudness alone would have bought.
+  // It is scaled BY the amplitude as well, so an on-beat whisper gets no boost —
+  // otherwise every grid point would bloom regardless of what was played on it.
+  var BEAT_BOOST = 2.5;
 
   // A SMOOTHED loudness, for anything that needs "is the music playing" rather
   // than "how loud is this instant". Instantaneous RMS is near zero between two
@@ -105,9 +115,11 @@ var graphAudio = (function () {
     return on;
   }
 
-  function seedsForLevel() {
-    var norm = peak > 0 ? Math.min(1, rms / peak) : 0;
-    return SEEDS_MIN + Math.round(norm * (SEEDS_MAX - SEEDS_MIN));
+  function seedsForLevel(now) {
+    var amp = peak > 0 ? Math.min(1, rms / peak) : 0;
+    var beat = graphTempo.onBeat(now);
+    var boost = 1 + (BEAT_BOOST - 1) * amp * beat;
+    return Math.round((SEEDS_MIN + amp * (SEEDS_MAX - SEEDS_MIN)) * boost);
   }
 
   function fire() {
@@ -117,7 +129,7 @@ var graphAudio = (function () {
     // No id, deliberately: graphPulse.seed(id) is the smaller TAPPED cascade,
     // while no id lets the model take its own weighted draw and run a full burst.
     // The COUNT is where the loudness lands.
-    graphPulse.seed(null, seedsForLevel());
+    graphPulse.seed(null, seedsForLevel(performance.now()));
     var u = ui();
     if (u) {
       u.flash();
@@ -394,7 +406,7 @@ var graphAudio = (function () {
     level: function () { return on ? rms : 0; },
     // Smoothed 0..1: what the cascade's fade rate follows.
     loudness: function () { return on ? loud : 0; },
-    seeds: function () { return on ? seedsForLevel() : 0; },
+    seeds: function () { return on ? seedsForLevel(performance.now()) : 0; },
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },
     stats: function () { return graphTempo.stats(); },

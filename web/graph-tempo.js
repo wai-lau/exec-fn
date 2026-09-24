@@ -275,6 +275,17 @@ var graphTempo = (function () {
     locked: function (now) {
       return period > 0 && conf >= LOCK_MIN && (now - lastOnset) < QUIET_MS;
     },
+    // 1 exactly on a grid point, 0 exactly between two, and 1 whenever there is
+    // no lock at all — with no tempo the page is firing on raw onsets, which are
+    // on the beat by construction, so an unlocked reading must not be a penalty.
+    onBeat: function (now) {
+      if (!period || conf < LOCK_MIN) {
+        return 1;
+      }
+      var err = now - nextFire;
+      err -= period * Math.round(err / period);     // fold to the nearest beat
+      return Math.max(0, 1 - Math.abs(err) / (period / 2));
+    },
     bpm: function () {
       return period && conf >= LOCK_MIN ? Math.round(60000 / period) : 0;
     },

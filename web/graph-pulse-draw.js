@@ -404,7 +404,14 @@ var graphPulseDraw = (function () {
       // flash on top of.
       drawChargeEdges(scale, view);
       drawCharge(scale, view);
-      drawEdges(now, scale, view, A_WHITE, level, false);
+      // TINTED, not white. An edge is drawn by three additive passes, and while
+      // this one stroked #ffffff an edge travelled white -> community colour as
+      // the flash faded under the coloured passes behind it. That is a HUE change
+      // over time, and an edge should only ever vary in saturation: it belongs to
+      // a community and its colour says which. Nodes keep their white core on
+      // purpose — a lit node clipping to white IS the flash — but an edge has no
+      // core to clip, only a line whose colour is its meaning.
+      drawEdges(now, scale, view, A_WHITE, level, true);
       for (var id in levels) {
         if (pos[id]) {
           drawNode(pos[id], levels[id], scale, view, A_WHITE);

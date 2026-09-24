@@ -1896,6 +1896,35 @@ to stay cheap: a glyph fill and a stroke, where a lit node also pays for two sof
 discs. `dt` is capped at 100ms, because a backgrounded tab returns with a huge one
 and that gap was not silence, it was nobody looking.
 
+**AMPLITUDE AND RHYTHM ARE MULTIPLIED, not added.** The seed count is
+`(SEEDS_MIN + amp * range) * (1 + (BEAT_BOOST - 1) * amp * beat)`, where `amp` is
+loudness against the decaying peak and `beat` is `graphTempo.onBeat(now)` — 1 on
+a grid point, 0 exactly between two. Loud ON the beat is the moment worth
+spending the graph on, and neither term says that alone: a loud off-grid noise is
+a noise, and a quiet tick exactly on the grid is a tick. Their product is the only
+thing that means *the track just landed*.
+
+The boost is scaled BY the amplitude as well as by the beat, so an on-beat
+whisper gets none of it — otherwise every grid point would bloom regardless of
+what was played on it. With no tempo lock `onBeat` returns **1**, never 0: with no
+grid the page is firing on raw onsets, which are on the beat by construction, so
+an unlocked reading must not be a penalty.
+
+`MAX_SEEDS` went 24 -> **48** to leave the boost somewhere to go, and the stagger
+became a WINDOW rather than a fixed gap (`SEED_WINDOW_MS` 800, so
+`stagger = min(SEED_STAGGER_MS, WINDOW / want)`). At 100ms each a 48-seed burst
+would take 4.8s to fire and span several beats; a big burst now packs tighter
+instead of lasting longer, so it stays ONE event however many nodes it lights.
+
+**An edge only ever varies in SATURATION, never in hue.** All three of its passes
+are tinted from the from-node. The white flash pass used to stroke `#ffffff` for
+edges, so an edge travelled white -> community colour as the flash faded under the
+coloured passes behind it — a hue change over time. Nodes keep their white core
+deliberately, because a lit node clipping to white IS the flash; an edge has no
+core to clip, only a line whose colour is which community it belongs to. Measured
+after: neutral (white/grey) ink is **1.7-8% of lit pixels** and is the node cores
+alone.
+
 **Every edge effect fades faster than a node's, both of them.** The lit edge is
 `EDGE_DUR` 900 against a node's 1845 at minimum and 3990 at the degree cap, and
 the edge charge drains at `EDGE_FADE` 0.45 of the node fade time — about 2.2x
