@@ -69,13 +69,7 @@ var graphPulse = (function () {
   // (4.1). Both are deliberately gentle: branching is degree x p, so reach
   // compounds, and a pool that grows too fast turns a loud bar into the whole
   // graph at once.
-  // Both cut hard after the picture read as noise. REACH compounds (branching is
-  // degree x p, so a small rise carries a chain much further) and EXTENT was
-  // taking the pool to 320 nodes, which is not a burst, it is a region the size of
-  // the argument. A cascade has to be able to DIE for the next one to mean
-  // anything.
-  var REACH_GAIN = 0.18;
-  var EXTENT_GAIN = 0.8;
+  // The audio biases (reach, extent, edge length) live in graph-bias.js.
   // The size range graph_style._size_graph_by_degree emits. Mirrored rather than
   // derived from the data so one enormous outlier can't flatten everything else
   // onto P_MIN; if that range moves, move these with it.
@@ -115,6 +109,7 @@ var graphPulse = (function () {
   var adj = {};                   // id -> [neighbour ids]
   var live = [];                  // iterations in flight: {queue, seen, until}
   var nextIter = 0, running = false, lastFrame = 0;
+  var edgeRef = 0;                // mean edge length, for the pitch bias
 
   // graph-glow.js is loaded before this file — and this working tree is edited
   // LIVE, so for a few seconds after a change a browser can be handed a new
@@ -130,16 +125,6 @@ var graphPulse = (function () {
     nodes: function () { return {}; }, edges: function () { return {}; },
     charged: function () { return 0; },
   };
-
-  // Loudness, 0..1, or 0 with nothing listening. Guarded the same way the glow is
-  // and for the same reason: this tree is edited live, and an unguarded read
-  // inside the rAF takes the whole cascade down rather than costing a feature.
-  function loud() {
-    if (typeof graphAudio === 'undefined' || !graphAudio.isOn()) {
-      return 0;
-    }
-    return graphAudio.loudness();
-  }
 
   function beat() {
     return typeof graphTempo !== 'undefined' ? graphTempo : null;
@@ -196,6 +181,21 @@ var graphPulse = (function () {
             pos[ids[i]].y = w.y;
           }
         }
+        // The mean edge length, which the pitch bias measures against. It has to
+        // be taken HERE and not with the rest of the edge indexing two steps up:
+        // that runs before `getPositions`, so every node is still at 0,0 and every
+        // edge would measure zero.
+        var es = edgesDS.get(), total = 0, n = 0;
+        for (i = 0; i < es.length; i++) {
+          var a = pos[es[i].from], b = pos[es[i].to];
+          if (!a || !b) {
+            continue;
+          }
+          var dx = a.x - b.x, dy = a.y - b.y;
+          total += Math.sqrt(dx * dx + dy * dy);
+          n++;
+        }
+        edgeRef = n ? total / n : 0;
       }],
       ['grid', function () {
         graphSeed.index(pos, deg, TERMINAL_ODDS);
@@ -232,7 +232,7 @@ var graphPulse = (function () {
     // changed was how many nodes lit at once, never how far the activation got.
     // Branching is degree x p, so a small push here is a large change in how far
     // a chain carries -- which is why the gain is modest.
-    return Math.min(1, p * (1 + REACH_GAIN * loud()));
+    return graphBias.reach(p);
   }
 
   // The hop delay is a MUSICAL subdivision when there is a tempo to divide, and
@@ -276,7 +276,7 @@ var graphPulse = (function () {
     // EXTENT follows the level: a loud hit covers more ground, not just more
     // nodes inside the same 64.
     var pool = tapped ? null
-      : graphSeed.near(id, Math.round(64 * (1 + EXTENT_GAIN * loud())));
+      : graphSeed.near(id, graphBias.pool(64));
     // The stagger is a WINDOW, not a fixed gap per seed. At 100ms each, a 48-seed
     // burst would take 4.8s to fire and span several beats -- so a big burst
     // packs tighter instead of lasting longer, and a burst stays one event
@@ -337,7 +337,7 @@ var graphPulse = (function () {
       if (q.seed) {
         graphLit.fire(q.id, now);
         spread(it, q.id, now);
-      } else if (q.force || Math.random() < catchOdds(q.id)) {
+      } else if (q.force || Math.random() < catchOdds(q.id) * graphBias.length(q.from, q.id)) {
         graphLit.fire(q.id, now);
         graphLit.fireEdge(q.from, q.id, now);
         spread(it, q.id, now);
@@ -440,6 +440,7 @@ var graphPulse = (function () {
       onPainted = onReady || null;
       index(function () {
         graphLit.index(deg);
+        graphBias.index(pos, edgeRef);
         graphPulseDraw.init(pos, graphLit.nodes(), graphLit.edges(),
           graphLit.level, graphLit.satLevel, glow().nodes(), glow().edges());
         running = true;

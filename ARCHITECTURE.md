@@ -2120,6 +2120,53 @@ instantly to admit a new value and contracts slowly (`CENT_RELAX`) toward what t
 music is actually doing, with `CENT_MIN_SPAN` as a floor so a steady tone cannot
 divide by nothing.
 
+**PITCH ALSO BIASES WHICH EDGES A CASCADE PREFERS** (`graphBias.length`). A low
+pitch is a long wavelength, so it travels: the cascade favours LONG edges and
+sweeps across the picture. A high pitch stays close and the activation stays
+local. The mapping is symmetric — the opposite holds at the other end rather than
+one end being special.
+
+Both terms are centred on 0, so their product is positive when they AGREE (low
+pitch crossing a long edge, or high pitch staying short) and negative when they do
+not. That is the whole thing in one line:
+
+```
+1 + LENGTH_BIAS * (2 * lowness - 1) * (2 * longness - 1)
+```
+
+`longness` is measured against TWICE the mean edge length, so an average edge sits
+at 0.5 and only a genuinely long one reaches 1. The mean is taken AFTER the
+layout's positions are read, not with the rest of the edge indexing — that step
+runs before `getPositions`, when every node is still at 0,0 and every edge would
+measure zero.
+
+It MULTIPLIES the catch odds rather than replacing them: degree still decides most
+of whether a node catches and this leans on the result. Measured on the served
+graph (mean edge 715), with the shortest 5% at 194 and the longest 2% at 2584:
+
+| | long edge | short edge |
+|---|---|---|
+| low pitch | **1.60x** | 0.56x |
+| high pitch | 0.40x | **1.44x** |
+| no audio | 1.00 | — |
+
+**`web/graph-source.js` holds capture and device selection**, on the seam
+graph-audio.js's own header already described: acquiring a stream is a different
+subject from analysing one. Nothing in it touches an AudioContext or an analyser —
+each entry point resolves to a plain `{stream, el, label, audible}` and the caller
+wires the audio graph.
+
+It rejects with a `why` TAG rather than a message (`denied`, `no-device`,
+`cancelled`, `no-share-audio`, `failed`), because the wording is the UI layer's
+business and the capture code should not be choosing it. `cancelled` is the one
+that deliberately says nothing: dismissing a picker is not an error.
+
+**`web/graph-bias.js` holds all three audio biases** — reach, extent and edge
+length — because *how the audio bends the cascade* is a different subject from
+*what a cascade is*, and graph-pulse.js was carrying both. Every read is guarded,
+so with nothing listening each bias returns its neutral value and the ambient
+animation behaves exactly as it did before any of this existed.
+
 **X WALKS, it does not teleport.** Independent random X per beat was what read as
 "too random": every beat landed somewhere unrelated to the last, so a sequence of
 beats was a scatter rather than a movement. A reflecting random walk (`X_STEP`
