@@ -405,10 +405,11 @@ var graphPulseDraw = (function () {
       // Edges are TINTED on every pass, never white: an edge belongs to a
       // community and its colour says which, so it may vary in saturation but
       // never in hue.
-      // THE SPILLING EFFECTS GO FIRST -- the wavefront and the halos -- because a
-      // node's interior is cleared of them before anything else is drawn. Under
-      // 'lighter' every additive layer COMMUTES, so moving these above the edges
-      // costs nothing visually and buys the ordering the two opaque passes need.
+      // HALOS FIRST, because a node's interior is cleared of their spill before
+      // anything else is drawn. Under 'lighter' additive layers COMMUTE, so what
+      // the order actually decides is where the three NON-additive passes land:
+      // the destination-out clear, the opaque punch, and the source-atop front.
+      // The six-pass order and what each step forces: CLAUDE.md §/graph.
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
       var id;
@@ -425,15 +426,10 @@ var graphPulseDraw = (function () {
       // show through a small node.
       clearNodes(scale, view);
 
-      // THEN the edges, so they cross a node that does not occlude them.
-      ctx.fillStyle = INK;
-      ctx.strokeStyle = INK;
-      graphGlow.drawEdges(scale, view, cw, ch, edgeW, A_SAT.edge);
-      drawEdges(now, scale, view, A_WHITE, level, true);
-      drawEdges(now, scale, view, A_SAT, satLevel, true);
-
-      // And the BIG nodes go opaque over the top of them, which is the occlusion
-      // rule: an edge arrives AT a hub rather than crossing it.
+      // THE BIG NODES GO OPAQUE, which is the occlusion rule. It used to have to
+      // come AFTER the edges to do that; now the edges come last and paint
+      // UNDERNEATH instead, so this can happen here and leave a canvas holding
+      // nothing but nodes for the wavefront to land on.
       punchNodes(scale, view);
 
       // Outlines last, on top of the black. This is what a lit node actually IS.
@@ -462,6 +458,30 @@ var graphPulseDraw = (function () {
       // that is neither shows nothing there, because vis's copy of that node is a
       // layer down and unreachable for compositing.
       graphRing.draw(now, scale, view, cw, ch);
+
+      // THE EDGES GO LAST, AND THEY PAINT UNDERNEATH — `destination-over`, which
+      // draws the source beneath what is already there rather than over it. That
+      // is what lets the wavefront above be restricted to NODES: with the edges
+      // drawn first, `source-atop` landed the front on every lit edge it crossed
+      // as well, and the front is meant to sweep over the nodes, not light up the
+      // wiring.
+      //
+      // Occlusion survives the move for free, and by a better mechanism than
+      // before. A big node's interior is already opaque by this point, so an edge
+      // painting underneath simply does not appear there — an edge arrives AT a hub
+      // rather than crossing it. A small node's interior was CLEARED to transparent
+      // by `clearNodes`, so an edge does show through it, which is the rule
+      // `_unocclude_small_nodes` exists for.
+      //
+      // The one real cost: where an edge crosses a halo it now composites BENEATH
+      // the glow instead of adding to it, so it reads slightly dimmer there than it
+      // used to. That is the trade for the front not touching it at all.
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.fillStyle = INK;
+      ctx.strokeStyle = INK;
+      graphGlow.drawEdges(scale, view, cw, ch, edgeW, A_SAT.edge);
+      drawEdges(now, scale, view, A_WHITE, level, true);
+      drawEdges(now, scale, view, A_SAT, satLevel, true);
 
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';

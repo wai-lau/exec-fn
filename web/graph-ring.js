@@ -158,20 +158,48 @@ var graphRing = (function () {
   // of the current window and short of the next, where a full-period gap would
   // swallow the following beat whenever the phase lock ran a few ms late.
   var BEAT_GAP = 0.5;
-  // With no tempo there is no beat to be one-per, so this is the floor that stops
-  // the ambient animation stroking a 300x triangle on every hit.
-  var BEAT_FALLBACK_MS = 420;
-  // A safety bound, not a design input, and since the one-per-beat gate it is a
-  // long way from binding: at 120bpm with a ~2.6s life only about five fronts are
-  // ever in flight. It is here so a pathological case cannot put a thousand
-  // stroked 300x paths on a single frame.
-  var MAX_LIVE = 24;
+  // With no tempo there is no beat to be one-per, so this stands in for the period
+  // and stops the ambient animation stroking a 300x triangle on every hit.
+  var BEAT_FALLBACK_MS = 840;
+
+  // AND A FRONT NEVER OUTLIVES ITS BEAT. One release per beat was not enough on its
+  // own: the nominal life is a couple of seconds and beats are half a second apart,
+  // so about five fronts were in flight at any moment and the picture showed them
+  // NESTED — two and three triangles at different scales, read as a doubled shape.
+  //
+  // Clamping the life to one beat makes the release rate and the lifetime the same
+  // number, so one front completes its whole 1 -> GROW sweep and is gone before the
+  // next is thrown. That also means the sweep gets FASTER with the tempo, which is
+  // the right way round: the front is the beat, so it should last exactly one.
+  //
+  // MAX_LIVE below stops being the thing that bounds the count -- this is.
+  // A pure safety bound now. With the life clamped to one beat and one release per
+  // beat, the count is structurally one; this only exists so a pathological case
+  // cannot put a thousand stroked 300x paths on a single frame.
+  var MAX_LIVE = 4;
 
   // STROKED, NEVER FILLED. A filled copy at GROW times the node's radius is a disc
   // the size of a neighbourhood, and a dozen of them would be the graph
   // disappearing under its own glow. An outline is a FRONT: it says where the wave
   // has reached, which is the whole of what it has to say.
   var A_RING = 0.55;
+
+  // THE FRONT IS NEUTRAL, AND IT IS NOT THE NODE'S COMMUNITY COLOUR. It was, and
+  // under `source-atop` a coloured stroke REPLACES what it lands on rather than
+  // adding to it — so a front sweeping a node rewrote that node's hue, which is
+  // its community and the one thing on this page colour is spoken for.
+  //
+  // White imposes no hue, so what a front changes is luminance. `'luminosity'` is
+  // the blend mode that would say this exactly — keep the destination's hue and
+  // saturation, take the source's brightness — and it CANNOT be used here: there is
+  // one `globalCompositeOperation` slot and `source-atop` already holds it, which
+  // is what confines the front to the nodes in the first place. Between "only on
+  // the nodes" and "only the luminance channel", the restriction is worth more, and
+  // a white source recovers most of the second for nothing.
+  //
+  // The residue, stated rather than hidden: compositing white OVER a colour lightens
+  // it toward white, so a node desaturates a little as it brightens. Adding would
+  // preserve saturation better, and adding is `'lighter'` — the same occupied slot.
 
   // `pos` is graph-pulse.js's position map, handed over at index time so this file
   // can read a node's own radius without a second copy of the size rule.
@@ -193,9 +221,16 @@ var graphRing = (function () {
   // Half a beat in milliseconds. `hopMs` is a SIXTEENTH (period / 4), which is the
   // only public window onto the period, so a beat is four of them — and it returns
   // 0 with no lock, which is what selects the fallback.
-  function beatGap() {
+  // One beat in milliseconds. `hopMs` is a SIXTEENTH (period / 4), the only public
+  // window onto the period, so a beat is four of them — and it returns 0 with no
+  // lock, which is what selects the fallback.
+  function beatMs() {
     var hop = typeof graphTempo !== 'undefined' ? graphTempo.hopMs() : 0;
-    return hop > 0 ? hop * 4 * BEAT_GAP : BEAT_FALLBACK_MS;
+    return hop > 0 ? hop * 4 : BEAT_FALLBACK_MS;
+  }
+
+  function beatGap() {
+    return beatMs() * BEAT_GAP;
   }
 
   // 0 with no audio, which leaves a front at its nominal GROW.
@@ -240,7 +275,9 @@ var graphRing = (function () {
       var turn = TURNS[Math.floor(Math.random() * TURNS.length)];
       p.t = turn;
       waves.push({
-        id: id, t0: now, dur: DUR_BASE + DUR_PER_R * p.r,
+        id: id, t0: now,
+        // Never longer than the beat that threw it, or fronts nest.
+        dur: Math.min(DUR_BASE + DUR_PER_R * p.r, beatMs()),
         grow: GROW * (1 + BLOOM_GROW * bloom()),
         turn: turn,
       });
@@ -312,7 +349,8 @@ var graphRing = (function () {
         // The centre is taken at the node's OWN radius and held while the radius
         // grows, so the front expands concentrically instead of walking off the
         // node that threw it. That is the whole reason graphGlyph.at exists.
-        ctx.strokeStyle = p.c || ink;
+        // Neutral, never `p.c`: colour on this page means community.
+        ctx.strokeStyle = ink;
         ctx.globalAlpha = a * A_RING;
         // Linear in the front's own size, so the triangle scales stroke and all.
         ctx.lineWidth = W_AT_NODE * (big / Math.max(r, 0.001));
