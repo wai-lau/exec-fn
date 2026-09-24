@@ -199,6 +199,13 @@ var graphNorm = (function () {
     // 0 = as bass-weighted as this material gets, 1 = as treble-weighted.
     sharpness: function () { return sharp; },
 
+    // THE LOW END IS WHAT YOU FEEL, and it is the one thing on this page with an
+    // obvious visual answer: the picture should SWELL on a kick and not on a hat.
+    // Both terms are needed and neither says it alone -- a loud hat is loud and
+    // should not bloom, and a quiet bass note is bass and should not either. Their
+    // product is the only thing that means "something landed in the low end".
+    bloom: function () { return amp * (1 - sharp); },
+
     // Centroid -> 0..1 against its own observed range: 0 is the lowest pitch this
     // material has shown, 1 the highest. ONE window, shared by the height mapping
     // and by the cascade's edge-length bias, so the two cannot disagree about what

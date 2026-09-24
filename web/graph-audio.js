@@ -331,6 +331,9 @@ var graphAudio = (function () {
     // nothing listening, which is the exact centre of the mapping that reads it, so
     // silence bends no timing in either direction.
     sharpness: function () { return on ? graphNorm.sharpness() : 0.5; },
+    // 0..1, how much low end just landed. 0 with nothing listening, so the draw
+    // half's swell multipliers all collapse to 1.
+    bloom: function () { return on ? graphNorm.bloom() : 0; },
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },
     stats: function () { return graphTempo.stats(); },
