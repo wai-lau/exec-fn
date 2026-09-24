@@ -15,7 +15,7 @@
 // dozen hexagons and their edges — so a frame is O(lit), not O(graph). Measured
 // at 0ms of canvas work per frame; what a frame costs on this page is
 // compositing, and that is the CRT stack's doing, not this file's.
-/* global network, graphInk, graphAudio, graphGlyph */
+/* global network, graphInk, graphAudio, graphGlyph, graphRing */
 var graphPulseDraw = (function () {
   'use strict';
 
@@ -30,45 +30,47 @@ var graphPulseDraw = (function () {
   var A_EDGE = 0.8;
   var EDGE_W = 1.6;
 
-  // TWO OF THESE BREATHE WITH THE SOUND, and until now none of them did. Every
-  // number on this canvas was a literal, so a peak and a whisper drew identically
-  // sized, identically weighted marks and the ONLY thing the music changed was how
-  // many of them there were. Count is one channel and it saturates at SEEDS_MAX
+  // THE LIT EDGE WEIGHT BREATHES, and it is the only thing on this canvas that
+  // does. Every number here was a literal once, so a peak and a whisper drew
+  // identically weighted marks and the ONLY thing the music changed was how many
+  // of them there were -- one channel, and the one that saturates at SEEDS_MAX
   // long before music stops getting louder.
   //
-  // They are driven on DELIBERATELY DIFFERENT TIMESCALES, which is the whole point
-  // of having two:
+  // It follows `loudness`, the envelope follower, ~1.5s to fall. That is
+  // per-PASSAGE: the web thickens through a chorus and thins through a breakdown,
+  // a slow structural change rather than a flicker.
   //
-  //   the HALO follows `bloom` -- amp x (1 - sharpness), peak-held ~80ms. That is
-  //   per-KICK: the picture swells on a low hit and does not on a hat, because the
-  //   low end is the part you feel and a bloom is the visual answer to it.
-  //
-  //   the EDGE WEIGHT follows `loudness` -- the envelope follower, ~1.5s to fall.
-  //   That is per-PASSAGE: the web thickens through a chorus and thins through a
-  //   breakdown, a slow structural change rather than a flicker.
-  //
-  // A single term driving both would make them say the same thing twice, and the
-  // fast one would win.
-  var HALO_SWELL = 0.55;          // halo radius: up to 1.55x on a full low hit
+  // THE NODE HALO USED TO PULSE TOO and deliberately no longer does. It followed
+  // `bloom` (amp x (1 - sharpness), peak-held ~80ms), so the whole picture swelled
+  // on every low hit. That per-KICK pulse now drives the WAVEFRONT instead
+  // (graph-ring.js, BLOOM_GROW): one triangle thrown off a hub carries the kick
+  // outward, where a halo swelling on every lit node made the entire graph throb
+  // in place and said nothing about where anything happened. The halo is back to a
+  // fixed radius and the kick is a thing that travels.
   var EDGE_SWELL = 0.6;           // lit edge width: up to 1.6x through a loud part
 
-  // The STROKE is deliberately NOT in that list. The outline is what a lit node IS
-  // -- it carries the shape, which carries the node's type -- and a weight that
-  // moved with the music would blur the one mark on this canvas that has to stay
-  // readable. The halo around it is the part that is allowed to breathe.
+  // The STROKE is deliberately not in that list either. The outline is what a lit
+  // node IS -- it carries the shape, which carries the node's type -- and a weight
+  // that moved with the music would blur the one mark on this canvas that has to
+  // stay readable.
 
-  // Recomputed once per frame at the top of paint(), never per node: they are
-  // properties of the MOMENT, not of any particular node, and reading the audio
-  // once per lit node would be the same number fetched a hundred times.
-  var haloK = 1, edgeW = EDGE_W;
+  // Recomputed once per frame at the top of paint(), never per node: a property of
+  // the MOMENT, not of any particular node, and reading the audio once per lit node
+  // would be the same number fetched a hundred times.
+  var edgeW = EDGE_W;
 
-  // ONLY THE BIG NODES OCCLUDE. MIRRORS graph_style._OCCLUDE_MIN (_SIZE_MAX / 2)
-  // and the two must move together: that file clears the opaque interior on the
-  // UNLIT layer and this one skips the same nodes on the LIT layer, so a node that
-  // occludes in one and not the other reads as a rendering bug. It is a WORLD size
-  // (`pos[id].r` is graphify's own `size`, 12..88), never a drawn pixel radius —
-  // whether a node occludes is a property of the node, not of the current zoom.
-  var OCCLUDE_MIN = 44;
+  // ONLY THE BIG NODES OCCLUDE, and WHICH ONES IS THE SERVER'S ANSWER — shipped as
+  // `window.GRAPH_OCCLUDE_MIN`, the 90th percentile of the real size distribution
+  // that graph_style computed while clearing the fill on the UNLIT layer. This file
+  // skips the same nodes on the LIT layer, and graph-ring.js throws waves off the
+  // same set: one number, three layers, because a node that occludes in one and not
+  // another reads as a rendering bug rather than as a rule.
+  //
+  // It is a WORLD size (`pos[id].r` is graphify's own `size`, 12..88), never a drawn
+  // pixel radius — whether a node occludes is a property of the node, not of the
+  // current zoom.
+  var OCCLUDE_FALLBACK = 20;
+  var occludeMin = OCCLUDE_FALLBACK;
 
   // THE SECOND, SATURATED LAYER. Same geometry and the same envelope as the white
   // pass above, at THREE TIMES the life: a white flash that decays into a long
@@ -112,6 +114,11 @@ var graphPulseDraw = (function () {
     // One context for the life of the page, handed over once — the same handover
     // contract `init` uses for the state the model mutates in place.
     graphGlyph.bind(ctx);
+    graphRing.bind(ctx, INK);
+    // Resolved once, here, rather than at evaluation time: the head injection has
+    // certainly run by the time the model builds the canvas.
+    var v = window.GRAPH_OCCLUDE_MIN;
+    occludeMin = typeof v === 'number' && v > 0 ? v : OCCLUDE_FALLBACK;
     resize();
     window.addEventListener('resize', resize);
   }
@@ -179,11 +186,11 @@ var graphPulseDraw = (function () {
     var gy = graphGlyph.centre(y, r, p.s);
     ctx.globalAlpha = a * A.halo1;
     ctx.beginPath();
-    ctx.arc(x, gy, r * HALO_OUTER * haloK, 0, Math.PI * 2);
+    ctx.arc(x, gy, r * HALO_OUTER, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = a * A.halo2;
     ctx.beginPath();
-    ctx.arc(x, gy, r * HALO_INNER * haloK, 0, Math.PI * 2);
+    ctx.arc(x, gy, r * HALO_INNER, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -257,9 +264,6 @@ var graphPulseDraw = (function () {
   // Double-filling a node that is both charged and lit costs nothing -- the same
   // opaque colour twice -- so there is no need to build the union first.
   function fillGlyph(p, scale, view) {
-    if (p.r <= OCCLUDE_MIN) {
-      return;                   // small: the edges behind it show through
-    }
     var x = (p.x - view.x) * scale + cw / 2;
     var y = (p.y - view.y) * scale + ch / 2;
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
@@ -269,6 +273,43 @@ var graphPulseDraw = (function () {
     ctx.fill();
   }
 
+  function eachDrawn(scale, view, bigOnly) {
+    var id;
+    for (id in chargeN) {
+      if (pos[id] && !(bigOnly && pos[id].r <= occludeMin)) {
+        fillGlyph(pos[id], scale, view);
+      }
+    }
+    for (id in lit) {
+      if (pos[id] && !(bigOnly && pos[id].r <= occludeMin)) {
+        fillGlyph(pos[id], scale, view);
+      }
+    }
+  }
+
+  // THE INTERIOR OF EVERY NODE IS CLEARED OF THIS CANVAS'S OWN GLOW, and it is
+  // done with `destination-out` rather than by filling with the background colour.
+  // That distinction is the whole of why this is a separate pass from the punch
+  // below.
+  //
+  // An OPAQUE bg fill hides everything underneath it — including vis's canvas,
+  // which is a layer down and carries the UNLIT graph. Using one here would mask
+  // the unlit edges behind every lit node, undoing `_unocclude_small_nodes` for
+  // exactly the nodes a cascade is touching. `destination-out` instead ERASES the
+  // overlay's own accumulated pixels inside the glyph, so the halo and the
+  // wavefront stop at a node's edge while vis's own node and edges show through it
+  // untouched.
+  function clearNodes(scale, view) {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.globalAlpha = 1;
+    eachDrawn(scale, view, false);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = INK;
+    ctx.strokeStyle = INK;
+  }
+
+  // And a BIG node goes OPAQUE, which is what hides the edges behind it — ours and
+  // vis's both. Only the big ones, on the shipped percentile.
   function punchNodes(scale, view) {
     if (!BG) {
       return;
@@ -276,17 +317,7 @@ var graphPulseDraw = (function () {
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
     ctx.fillStyle = BG;
-    var id;
-    for (id in chargeN) {
-      if (pos[id]) {
-        fillGlyph(pos[id], scale, view);
-      }
-    }
-    for (id in lit) {
-      if (pos[id]) {
-        fillGlyph(pos[id], scale, view);
-      }
-    }
+    eachDrawn(scale, view, true);
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = INK;
     ctx.strokeStyle = INK;
@@ -396,7 +427,6 @@ var graphPulseDraw = (function () {
       // rather than costing a feature. With nothing listening both collapse to the
       // literals they were.
       var au = typeof graphAudio !== 'undefined' && graphAudio.isOn() ? graphAudio : null;
-      haloK = 1 + HALO_SWELL * (au ? au.bloom() : 0);
       edgeW = EDGE_W * (1 + EDGE_SWELL * (au ? au.loudness() : 0));
       ctx.clearRect(0, 0, cw, ch);
       ctx.globalCompositeOperation = 'lighter';
@@ -413,16 +443,13 @@ var graphPulseDraw = (function () {
       // Edges are TINTED on every pass, never white: an edge belongs to a
       // community and its colour says which, so it may vary in saturation but
       // never in hue.
+      // THE SPILLING EFFECTS GO FIRST -- the wavefront and the halos -- because a
+      // node's interior is cleared of them before anything else is drawn. Under
+      // 'lighter' every additive layer COMMUTES, so moving these above the edges
+      // costs nothing visually and buys the ordering the two opaque passes need.
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
-      drawChargeEdges(scale, view);
-      drawEdges(now, scale, view, A_WHITE, level, true);
-      drawEdges(now, scale, view, A_SAT, satLevel, true);
-
-      // Halos next, while the interiors are still open: they are additive discs
-      // and they spill inside the glyph, which the black fill is about to cover.
-      ctx.fillStyle = INK;
-      ctx.strokeStyle = INK;
+      graphRing.draw(now, scale, view, cw, ch);
       var id;
       for (id in levels) {
         if (pos[id]) {
@@ -431,9 +458,21 @@ var graphPulseDraw = (function () {
       }
       satNodes(now, scale, view, nodeHalos);
 
-      // Every BIG node's interior goes BLACK, opaque, in one pass: it occludes
-      // the edges behind it AND the halo that just spilled inside it. The small
-      // ones are skipped, which is what lets an edge cross them.
+      // EVERY node's interior is now cleared of this canvas's glow, so a halo and
+      // a 50x wavefront both stop at a node's edge instead of washing over it.
+      // Erased, not painted: vis's own unlit graph is a layer down and must still
+      // show through a small node.
+      clearNodes(scale, view);
+
+      // THEN the edges, so they cross a node that does not occlude them.
+      ctx.fillStyle = INK;
+      ctx.strokeStyle = INK;
+      drawChargeEdges(scale, view);
+      drawEdges(now, scale, view, A_WHITE, level, true);
+      drawEdges(now, scale, view, A_SAT, satLevel, true);
+
+      // And the BIG nodes go opaque over the top of them, which is the occlusion
+      // rule: an edge arrives AT a hub rather than crossing it.
       punchNodes(scale, view);
 
       // Outlines last, on top of the black. This is what a lit node actually IS.

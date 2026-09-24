@@ -18,6 +18,9 @@ import re
 from collections import Counter
 
 from graph_scrub import _read_array, _sub_json_array
+# Shape lives with the other node geometry; _restyle_graph_nodes still sets the
+# GLOBAL default shape from this table, so it reads it from there.
+from graph_geometry import _TYPE_SHAPES, _shape_graph_nodes_by_type
 
 # vis renders a node/edge's `title` as a hover tooltip (graphify puts the whole
 # docstring-derived summary there). Drop the field where the DataSets are built,
@@ -69,37 +72,6 @@ def _drop_graph_tooltips(page: str) -> str:
 # `opacity` scales the whole node, fill included, and a translucent fill cannot
 # occlude anything.
 _NODE_OPACITY = 0.2
-
-_TYPE_SHAPES = {
-    "code": "triangle",
-    "rationale": "hexagon",
-    "document": "triangleDown",
-}
-
-
-def _shape_graph_nodes_by_type(page: str) -> str:
-    """Give every node a `shape` from its file_type, and make vis carry it.
-
-    The global `nodes: { shape: ... }` above is the default for anything this
-    misses. It tracks the majority type (so an unknown type draws like `code`,
-    which is what it did when both were hexagons) rather than vanishing."""
-    def _shape(nodes):
-        for n in nodes:
-            shape = _TYPE_SHAPES.get(n.get("file_type"))
-            if shape:
-                n["shape"] = shape
-        return nodes
-
-    page = _sub_json_array(page, "RAW_NODES", _shape)
-    # Same explicit-field trap as the baked x/y: graphify's DataSet mapper lists
-    # what it carries, so a `shape` on RAW_NODES is dropped on the way in unless
-    # it is named here too.
-    return page.replace(
-        "  id: n.id, label: n.label, color: n.color, size: n.size,",
-        "  id: n.id, label: n.label, color: n.color, size: n.size, shape: n.shape,",
-        1,
-    )
-
 
 def _restyle_graph_nodes(page: str) -> str:
     """Replace vis's default dots with the per-type shapes in `_TYPE_SHAPES`, and
@@ -337,103 +309,6 @@ def _fix_graph_stats(page: str) -> str:
         rf"&middot; {communities} communities\g<2>",
         page, count=1, flags=re.DOTALL,
     )
-
-
-# vis-network node size range: 6..44 until 2026-09-21, doubled to 12..88 because
-# at the opening whole-graph fit the hexagons were specks, and a node you cannot
-# see is a node nobody will hover. BOTH ends move together, and that is a rule
-# rather than a coincidence: the RATIO is what carries the meaning (size is
-# geometric in degree, so a hub reads as a hub), and scaling both ends keeps the
-# encoding while changing only how much of the screen it spends.
-#
-# Tried at x1.25 (15..110) on 2026-09-22 and reverted the same day: too big. At
-# 110 the largest hubs measured 220 across against a 168 lattice step, so they
-# sat over their neighbours rather than in a cell of their own — which is the
-# ceiling this range has to respect while the lattice keeps getting coarser.
-_SIZE_MIN = 12.0
-_SIZE_MAX = 88.0
-# Size grows GEOMETRICALLY with degree — each extra edge multiplies rather than
-# adds — so a hub reads as a hub instead of as a slightly larger leaf. The old
-# sqrt-of-line-count scale did the opposite: it compressed the interesting end
-# flat. 1.14 is picked against this graph's own distribution (median degree 1,
-# p90 5, p99 21, max 171): it spends the whole range on degrees 1-17, which
-# is where 97% of the nodes are, and saturates the long tail at the cap.
-_SIZE_GROWTH = 1.14
-
-
-def _size_graph_by_degree(page: str) -> str:
-    """Rescale RAW_NODES so node size is exponential in the node's edge count,
-    capped at `_SIZE_MAX`. Reads the `degree` field, which
-    `_drop_graph_inferred_edges` has already recomputed against the surviving
-    edges — so this must run after the drops or hubs would be sized off edges the
-    page no longer draws. No-op if RAW_NODES is absent."""
-    def _resize(nodes):
-        for n in nodes:
-            d = max(int(n.get("degree") or 0), 1)
-            n["size"] = round(
-                min(_SIZE_MAX, _SIZE_MIN * _SIZE_GROWTH ** (d - 1)), 1
-            )
-        return nodes
-
-    return _sub_json_array(page, "RAW_NODES", _resize)
-
-
-# ONLY THE BIG NODES OCCLUDE THEIR EDGES. An opaque interior is what makes an edge
-# stop AT a node rather than cross over it, and every node had one — including the
-# degree-1 leaves, which are 76% of this graph and sit at the size floor. At the
-# opening zoom those are specks, so what the rule actually bought was a notch cut
-# out of the single edge running into each of them: the structure between nodes
-# read as broken rather than as arriving somewhere.
-#
-# Half the largest a node can be, so the threshold moves with `_SIZE_MAX` rather
-# than being a number to keep in sync. Sizes are geometric in degree, so this lands
-# at degree 11 and up.
-#
-# THE OVERLAY MIRRORS THIS (`OCCLUDE_MIN` in graph-pulse-draw.js) and the two must
-# move together — it punches the same interiors on its own canvas for the lit pass,
-# and a node that occludes in one layer and not the other reads as a rendering bug.
-#
-# The trade, which is real and which one opaque fill cannot avoid: that same fill
-# is also what punches out the HALO spilling inside a lit glyph. A small node's
-# interior therefore now carries its own faint glow (the halo alphas, never the
-# retired `A_FILL`) instead of staying black. Letting an edge through and blocking
-# a halo are the same pixel asked for two different things.
-_OCCLUDE_MIN = _SIZE_MAX / 2
-
-# vis hands `color.background` straight to a canvas `fillStyle`, so the CSS keyword
-# is enough and fills nothing under `source-over`. Deliberately not an `rgba()`
-# string with a zero alpha: the palette lint reads source text with the whitespace
-# stripped and any colour-function name followed by a paren reports as a new raw
-# colour, comment or code.
-_NO_FILL = "transparent"
-
-
-def _unocclude_small_nodes(page: str) -> str:
-    """Clear the opaque interior on every node at or under `_OCCLUDE_MIN`, so the
-    edges behind it show through instead of stopping at it.
-
-    MUST RUN AFTER `_size_graph_by_degree`: the decision reads `size`, and the
-    colour objects are built back in `_merge_graph_communities`, which runs before
-    sizes exist. Reading `degree` here instead would duplicate the size formula and
-    let the two drift. Only the three `background` keys are touched — `hover.border`
-    carries the full-strength community colour that graph-pulse.js reads for its
-    saturated ink, and clearing that would take the afterglow's colour with it. No-op
-    if RAW_NODES is absent."""
-    def _clear(nodes):
-        for node in nodes:
-            if float(node.get("size") or 0) > _OCCLUDE_MIN:
-                continue
-            colour = node.get("color")
-            if not isinstance(colour, dict):
-                continue
-            colour["background"] = _NO_FILL
-            for state in ("highlight", "hover"):
-                sub = colour.get(state)
-                if isinstance(sub, dict):
-                    sub["background"] = _NO_FILL
-        return nodes
-
-    return _sub_json_array(page, "RAW_NODES", _clear)
 
 
 # graphify emits `font: {"size": 0}` per node (labels off) and graph-overlay.js

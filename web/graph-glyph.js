@@ -95,18 +95,31 @@ var graphGlyph = (function () {
     // rather than a taste: at equal circumradius a triangle reads smaller than the
     // hexagon beside it, and vis already compensates.
     path: function (x, y, r, shape) {
+      return this.at(x, this.centre(y, r, shape), r, shape);
+    },
+
+    // The same path about an EXPLICIT glyph centre, for a caller that has to keep
+    // the centre FIXED while it changes the radius.
+    //
+    // graph-ring.js is why this exists. vis's triangle offset is proportional to
+    // SIZE (see TRI_SHIFT), so a growing triangle drawn through `path` walks down
+    // the screen as it grows — the wavefront would drift off the node that threw
+    // it instead of expanding around it. Taking the centre once at the node's own
+    // radius and growing about that is concentric, which is what a wave is. A
+    // hexagon and a dot are unaffected either way, `centre` returning `y` for both.
+    at: function (x, gy, r, shape) {
       if (shape === 'triangle' || shape === 'triangleDown') {
-        triangle(x, this.centre(y, r, shape), r, shape === 'triangleDown');
+        triangle(x, gy, r, shape === 'triangleDown');
         return;
       }
       if (shape === 'dot') {
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.arc(x, gy, r, 0, Math.PI * 2);
         return;
       }
       // Anything this does not recognise draws as the hexagon, which is
       // graph_style's own global default for a type it has no shape for.
-      polygon(x, y, r, 6, 0);
+      polygon(x, gy, r, 6, 0);
     },
   };
 })();
