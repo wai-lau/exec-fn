@@ -69,8 +69,13 @@ var graphPulse = (function () {
   // (4.1). Both are deliberately gentle: branching is degree x p, so reach
   // compounds, and a pool that grows too fast turns a loud bar into the whole
   // graph at once.
-  var REACH_GAIN = 0.45;
-  var EXTENT_GAIN = 3;
+  // Both cut hard after the picture read as noise. REACH compounds (branching is
+  // degree x p, so a small rise carries a chain much further) and EXTENT was
+  // taking the pool to 320 nodes, which is not a burst, it is a region the size of
+  // the argument. A cascade has to be able to DIE for the next one to mean
+  // anything.
+  var REACH_GAIN = 0.18;
+  var EXTENT_GAIN = 0.8;
   // The size range graph_style._size_graph_by_degree emits. Mirrored rather than
   // derived from the data so one enormous outlier can't flatten everything else
   // onto P_MIN; if that range moves, move these with it.
@@ -84,10 +89,11 @@ var graphPulse = (function () {
   // A caller may ask for more than SEEDS_PER_ITER — graph-audio.js does, scaling
   // with how loud the bar is. Bounded here so a runaway level cannot ask for a
   // thousand starting points on one frame.
-  // Raised with BEAT_BOOST: a full-level hit on the beat asks for 2.5x the
-  // amplitude count, and clamping that back to 24 would have thrown the boost away
-  // at exactly the moments it exists for.
-  var MAX_SEEDS = 48;
+  // 20. It was 48 to leave BEAT_BOOST somewhere to go, but with the seed range
+  // itself cut to 2..8 the ceiling only has to clear a boosted downbeat, and a
+  // burst that lights fifty nodes at once is a flashbulb rather than a region
+  // waking up.
+  var MAX_SEEDS = 20;
   // The seeds do not all land at once — one every SEED_STAGGER_MS. Eight
   // hexagons appearing on the same frame reads as a flashbulb; the same eight
   // arriving over 0.8s reads as a region coming awake, and it also gives the
