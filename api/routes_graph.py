@@ -80,7 +80,7 @@ _GRAPH_OVERLAY_JS = (
     # The shapes, before the file that strokes and fills them: graph-pulse-draw.js
     # binds the context to graphGlyph as it makes the canvas.
     '<script src="/graph-glyph.js?v=3"></script>'
-    '<script src="/graph-pulse-draw.js?v=21"></script>'
+    '<script src="/graph-pulse-draw.js?v=23"></script>'
     '<script src="/graph-seed.js?v=3"></script>'
     '<script src="/graph-bands.js?v=2"></script>'
     # The adaptive windows, before graph-audio.js folds a frame through them and
@@ -92,7 +92,7 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-glow.js?v=5"></script>'
     # The wavefront: its own register, envelopes and pixels. graph-pulse-draw.js
     # binds its context and decides where in the paint order it runs.
-    '<script src="/graph-ring.js?v=4"></script>'
+    '<script src="/graph-ring.js?v=6"></script>'
     '<script src="/graph-pulse.js?v=37"></script>'
     '<script src="/graph-tempo.js?v=5"></script>'
     '<script src="/graph-audio.js?v=17"></script>'
