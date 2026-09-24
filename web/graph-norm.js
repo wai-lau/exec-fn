@@ -121,15 +121,48 @@ var graphNorm = (function () {
   var X_HOME = 0.5;
 
   var rms = 0, hold = 0, peak = PEAK_FLOOR, loud = 0, amp = 0;
-  var hist = [], histI = 0, ratio = 1;
+  // PREALLOCATED, and never grown. This was a plain array pushed into until it
+  // reached HIST_N, which reallocates its backing store as it grows and hands the
+  // collector the old one each time. It is a fixed-size ring now, written in place.
+  var hist = new Float32Array(HIST_N), histN = 0, histI = 0, ratio = 1;
+  // The scratch the median is taken in. Sorting `hist` itself would destroy the
+  // ring's order; `set` between two same-length typed arrays allocates nothing, and
+  // sorting 45 floats a frame is not measurable.
+  var sortBuf = new Float32Array(HIST_N);
   // Inverted on purpose: the first reading seeds both ends.
   var centLo = 1, centHi = 0;
   var sharpLo = 1, sharpHi = 0, sharp = 0.5;
   var xWalk = X_HOME, xVel = X_STEP;
 
+  // THE ONSET THRESHOLD IS A RUNNING MEDIAN, not a mean. A mean is dragged up by
+  // the very transients it is supposed to be a baseline for, so one loud hit raises
+  // the bar for the next few frames and swallows a second hit arriving behind it --
+  // and in a dense passage the mean sits so high that nothing clears it. The median
+  // is the middle of the recent past and is unmoved by a handful of outliers, which
+  // is exactly what a baseline should be.
+  //
+  // Only answered on a FULL history, so the zeros in an unfilled ring cannot drag
+  // the middle down. Nothing fires before then anyway -- `ready()` says so.
+  function fluxMedian() {
+    if (histN < HIST_N) {
+      return 0;
+    }
+    sortBuf.set(hist);
+    sortBuf.sort();
+    return sortBuf[HIST_N >> 1];
+  }
+
+  // The adaptive window's OUT-PARAMS. `window_` used to return `{lo, hi, v}`, a
+  // fresh object on every call -- and `pitch()` is called once per catch roll, so
+  // that was dozens of short-lived objects a frame for the collector to chase. At
+  // 60fps allocation is what reads as jitter, and it reads as jitter in the AUDIO
+  // rather than in the code, which is the worst place to look for it.
+  var wLo = 0, wHi = 0;
+
   // One window, three call sites. Expands instantly, contracts slowly, and cannot
   // collapse past `floor` -- which is what stops a steady tone dividing by ~0 and
-  // reporting wild swings on a signal that is not moving.
+  // reporting wild swings on a signal that is not moving. Returns the normalised
+  // value and leaves the moved bounds in `wLo`/`wHi`.
   function window_(v, lo, hi, relax, floor) {
     if (v < lo) {
       lo = v;
@@ -143,7 +176,9 @@ var graphNorm = (function () {
       hi -= span * relax;
     }
     span = Math.max(hi - lo, floor);
-    return { lo: lo, hi: hi, v: Math.min(1, Math.max(0, (v - lo) / span)) };
+    wLo = lo;
+    wHi = hi;
+    return Math.min(1, Math.max(0, (v - lo) / span));
   }
 
   return {
@@ -163,23 +198,18 @@ var graphNorm = (function () {
       // The local average of FLUX, not a fixed number, so the onset threshold
       // follows a quiet room or a loud one with no sensitivity setting to get
       // wrong.
-      var mean = 0, i;
-      for (i = 0; i < hist.length; i++) {
-        mean += hist[i];
-      }
-      mean = hist.length ? mean / hist.length : 0;
+      var mid = fluxMedian();
       // Peak-held on the same ~80ms envelope as the level, and for the same reason:
       // a cascade seeded a frame or two after the transient must still see it.
-      ratio = Math.max(mean > 0 ? b.flux / mean : 1, 1 + (ratio - 1) * HOLD_FALL);
+      ratio = Math.max(mid > 0 ? b.flux / mid : 1, 1 + (ratio - 1) * HOLD_FALL);
 
       // Folded in AFTER the ratio is taken: a loud frame folded in first raises the
-      // very average it is about to be compared against, and the beat tests itself
+      // very baseline it is about to be compared against, and the beat tests itself
       // away.
-      if (hist.length < HIST_N) {
-        hist.push(b.flux);
-      } else {
-        hist[histI] = b.flux;
-        histI = (histI + 1) % HIST_N;
+      hist[histI] = b.flux;
+      histI = (histI + 1) % HIST_N;
+      if (histN < HIST_N) {
+        histN += 1;
       }
 
       // TIMBRE steps ONCE PER FRAME, here, rather than on every read -- a
@@ -190,13 +220,14 @@ var graphNorm = (function () {
       // interesting happening.
       var tot = b.bass + b.mid + b.treb;
       if (tot > 0) {
-        var w = window_(b.treb / tot, sharpLo, sharpHi, SHARP_RELAX, SHARP_MIN_SPAN);
-        sharpLo = w.lo; sharpHi = w.hi; sharp = w.v;
+        sharp = window_(b.treb / tot, sharpLo, sharpHi, SHARP_RELAX, SHARP_MIN_SPAN);
+        sharpLo = wLo;
+        sharpHi = wHi;
       }
     },
 
     // Enough history to judge an onset against.
-    ready: function () { return hist.length >= HIST_N; },
+    ready: function () { return histN >= HIST_N; },
     // Flux against its own local average. The onset test thresholds it; `hit`
     // reports how far past the threshold it went.
     fluxRatio: function () { return ratio; },
@@ -227,9 +258,10 @@ var graphNorm = (function () {
     // and by the cascade's edge-length bias, so the two cannot disagree about what
     // counts as "low" for the track that is actually playing.
     pitch: function (c) {
-      var w = window_(c, centLo, centHi, CENT_RELAX, CENT_MIN_SPAN);
-      centLo = w.lo; centHi = w.hi;
-      return w.v;
+      var v = window_(c, centLo, centHi, CENT_RELAX, CENT_MIN_SPAN);
+      centLo = wLo;
+      centHi = wHi;
+      return v;
     },
 
     // Screen Y. Inverted, because bright sounds belong at the TOP.
@@ -266,7 +298,7 @@ var graphNorm = (function () {
 
     reset: function () {
       rms = 0; hold = 0; peak = PEAK_FLOOR; loud = 0; amp = 0;
-      hist = []; histI = 0; ratio = 1;
+      hist.fill(0); histN = 0; histI = 0; ratio = 1;
       centLo = 1; centHi = 0;
       sharpLo = 1; sharpHi = 0; sharp = 0.5;
       xWalk = X_HOME; xVel = X_STEP;

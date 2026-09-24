@@ -68,6 +68,33 @@ var graphBands = (function () {
   };
   var CENT_LO = 60, CENT_HI = 8000;
 
+  // THE ANALYSER'S dB WINDOW, set rather than left at the default. `getByteFrequencyData`
+  // is already dB-scaled and clamped to `minDecibels`..`maxDecibels`, and the
+  // defaults are -100..-30 — a 70dB window whose TOP is -30, so anything from a
+  // normally-mastered track pins at 255 and the loud half of the music is one flat
+  // value. -90..-10 puts the ceiling where recorded music actually peaks and drops
+  // the floor below room noise, so the byte range is spent on the part that moves.
+  var MIN_DB = -90, MAX_DB = -10;
+
+  // A NOISE GATE, because SILENCE MUST BE STILL. Dither, room noise and the
+  // analyser's own floor all sit a hair above zero, so an ungated band twitches
+  // forever and a quiet page looks broken rather than quiet. Below the gate a band
+  // reads exactly 0; at and above it the value passes through unscaled, so the gate
+  // costs nothing but the noise.
+  var GATE = 0.02;
+
+  // ASYMMETRIC SMOOTHING, and this is the one that makes the bands feel alive.
+  // `smoothingTimeConstant` is SYMMETRIC — the same constant for a rise and a fall —
+  // so any value big enough to settle the noise also rounds the attack off every
+  // hit, which is why it is set to 0 here and the smoothing is done per band
+  // instead. Fast up, slow down: a hit arrives on the frame it happens, and what
+  // follows is a decay rather than a collapse.
+  //
+  // It is applied to the CONSUMED bands only. `bassRaw` below stays unsmoothed
+  // because graph-tempo.js autocorrelates it, and an envelope with a slow release
+  // smears exactly the periodicity the autocorrelation is looking for.
+  var ATTACK = 0.6, RELEASE = 0.08;
+
   var ana = null, anaL = null, anaR = null;
   var freq = null, prev = null, wave = null, sideL = null, sideR = null;
   var range = {}, perBin = 0;
@@ -76,8 +103,16 @@ var graphBands = (function () {
   // One object, mutated in place and read by the caller — never a fresh one per
   // frame, which at 60fps is garbage for the collector to chase.
   var out = {
-    bass: 0, mid: 0, treb: 0, rms: 0, flux: 0, centroid: 0.5, pan: 0,
+    bass: 0, mid: 0, treb: 0, bassRaw: 0,
+    rms: 0, flux: 0, centroid: 0.5, pan: 0,
   };
+
+  // Gate, then follow. Gating the TARGET rather than the output means silence
+  // decays down to nothing on the release curve instead of snapping to it.
+  function follow(now, was) {
+    var target = now < GATE ? 0 : now;
+    return was + (target - was) * (target > was ? ATTACK : RELEASE);
+  }
 
   function bins(loHz, hiHz) {
     return {
@@ -151,6 +186,8 @@ var graphBands = (function () {
       // 0, against the default 0.8: averaging across frames is precisely what
       // onset detection must not do, because the frame-to-frame JUMP is the beat.
       ana.smoothingTimeConstant = 0;
+      ana.minDecibels = MIN_DB;
+      ana.maxDecibels = MAX_DB;
       freq = new Uint8Array(ana.frequencyBinCount);
       prev = new Uint8Array(ana.frequencyBinCount);
       wave = new Uint8Array(ana.fftSize);
@@ -186,7 +223,7 @@ var graphBands = (function () {
     detach: function () {
       ana = null; anaL = null; anaR = null; avg = null;
       freq = null; prev = null; wave = null; sideL = null; sideR = null;
-      out.bass = 0; out.mid = 0; out.treb = 0; out.rms = 0;
+      out.bass = 0; out.mid = 0; out.treb = 0; out.bassRaw = 0; out.rms = 0;
       out.flux = 0; out.centroid = 0.5; out.pan = 0;
     },
 
@@ -215,9 +252,12 @@ var graphBands = (function () {
         recut();
       }
 
-      out.bass = bandLevel(range.bass);
-      out.mid = bandLevel(range.mid);
-      out.treb = bandLevel(range.treb);
+      // RAW for the tempo detector, smoothed for everything else. Same band, two
+      // consumers that want opposite things from it.
+      out.bassRaw = bandLevel(range.bass);
+      out.bass = follow(out.bassRaw, out.bass);
+      out.mid = follow(bandLevel(range.mid), out.mid);
+      out.treb = follow(bandLevel(range.treb), out.treb);
 
       // Spectral flux: POSITIVE changes only. A falling bin is a sound ending,
       // which is not an onset, and counting it would make every decay look like
