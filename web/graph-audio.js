@@ -175,7 +175,9 @@ var graphAudio = (function () {
     var now = performance.now();
     // Tempo on BASS energy: a kick's periodicity is the clearest thing in most
     // music, where flux is periodic at every subdivision at once.
-    graphTempo.push(now, b.bass * 255);
+    // `bassRaw`, never the smoothed band: an envelope with a slow release smears
+    // the periodicity the autocorrelation exists to find.
+    graphTempo.push(now, b.bassRaw * 255);
 
     // The onset threshold is the LOCAL average of FLUX, not a fixed number, so it
     // follows a quiet room or a loud one with no sensitivity setting to get wrong.

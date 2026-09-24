@@ -85,12 +85,12 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-glyph.js?v=3"></script>'
     '<script src="/graph-pulse-draw.js?v=26"></script>'
     '<script src="/graph-seed.js?v=3"></script>'
-    '<script src="/graph-bands.js?v=2"></script>'
+    '<script src="/graph-bands.js?v=3"></script>'
     # The adaptive windows, before graph-audio.js folds a frame through them and
     # before graph-lit.js reads a hit's strength back out.
-    '<script src="/graph-norm.js?v=3"></script>'
+    '<script src="/graph-norm.js?v=4"></script>'
     '<script src="/graph-source.js?v=1"></script>'
-    '<script src="/graph-lit.js?v=5"></script>'
+    '<script src="/graph-lit.js?v=6"></script>'
     '<script src="/graph-bias.js?v=3"></script>'
     '<script src="/graph-glow.js?v=6"></script>'
     # The wavefront: its own register, envelopes and pixels. graph-pulse-draw.js
@@ -98,7 +98,7 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-ring.js?v=8"></script>'
     '<script src="/graph-pulse.js?v=37"></script>'
     '<script src="/graph-tempo.js?v=5"></script>'
-    '<script src="/graph-audio.js?v=17"></script>'
+    '<script src="/graph-audio.js?v=18"></script>'
     '<script src="/graph-audio-ui.js?v=3"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
     '<script src="/graph-lattice.js?v=14"></script>'

@@ -97,6 +97,7 @@ var graphLit = (function () {
   var lit = {};                   // id -> {t0, dur, g}
   var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b, g}
   var deg = {};                   // id -> edge count, for DUR_PER_DEG
+  var lvl = {};                   // id -> alpha, reused every frame, never rebuilt
 
   // Guarded for the same reason graph-pulse.js guards it: this tree is edited
   // live, so a file can reach a browser a moment before its dependency's script
@@ -229,15 +230,24 @@ var graphLit = (function () {
     },
 
     // {id: alpha} for everything still worth drawing on the white pass.
+    //
+    // ONE MAP, REUSED. This built a fresh object every frame, plus a key per lit
+    // node -- so at 60fps with a few hundred nodes lit it was the largest source of
+    // garbage on the page, and GC pauses on an audio-driven animation read as jitter
+    // in the SOUND rather than in the code. Stale keys are deleted instead, which is
+    // strictly less churn than a new object and its keys.
     levels: function (now) {
-      var out = {};
-      for (var id in lit) {
-        var a = this.level(lit[id], now);
+      var id, a;
+      for (id in lvl) {
+        delete lvl[id];
+      }
+      for (id in lit) {
+        a = this.level(lit[id], now);
         if (a > 0.01) {
-          out[id] = a;
+          lvl[id] = a;
         }
       }
-      return out;
+      return lvl;
     },
 
     busy: function () {
