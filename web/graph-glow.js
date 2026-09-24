@@ -70,11 +70,14 @@ var graphGlow = (function () {
   return {
     // Every hit tops a node up rather than resetting it: that is the difference
     // between accumulating and merely being re-lit.
-    bump: function (id) {
-      nodes[id] = Math.min(1, (nodes[id] || 0) + GAIN);
+    // `gain` is 0..1, how hard the hit that caused this was (graph-lit.js reads it
+    // off graphAudio). Defaulted to 1 so the ambient animation, which knows
+    // nothing about hits, charges exactly as it always did.
+    bump: function (id, gain) {
+      nodes[id] = Math.min(1, (nodes[id] || 0) + GAIN * (gain === undefined ? 1 : gain));
     },
-    bumpEdge: function (key) {
-      edges[key] = Math.min(1, (edges[key] || 0) + GAIN);
+    bumpEdge: function (key, gain) {
+      edges[key] = Math.min(1, (edges[key] || 0) + GAIN * (gain === undefined ? 1 : gain));
     },
     // Exponential, so the drain is a RATE and has no edge to it. `dt` is capped
     // because a backgrounded tab returns with a huge one, and that gap was not

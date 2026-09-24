@@ -47,6 +47,23 @@ var graphAudio = (function () {
   // clearest thing in most music, and flux is periodic at every subdivision at
   // once, which is exactly what an autocorrelation should not be fed.
 
+  // HOW HARD THE HIT LANDED, which the onset test was throwing away. `onset` is a
+  // boolean -- flux over SENS x the local average -- so a snare at three times the
+  // average and one barely over the line produced exactly the same picture. The
+  // RATIO is already computed on the way to that boolean and it is the one thing
+  // on this page that says how hard something was struck.
+  //
+  // It is deliberately a SEPARATE channel from `amp`. Amplitude decides HOW MANY
+  // nodes a beat lights; strength decides HOW BRIGHTLY each one lights. Two
+  // different facts about the sound on two different visual channels beats having
+  // both drive the same one, which is what made a quiet passage and a peak differ
+  // only in node count -- and count saturates at SEEDS_MAX long before music does.
+  var HIT_SPAN = 2.6;             // ratio at or above this is a maximal hit
+  // Never zero: a sustained passage sits near ratio 1 and it is still playing.
+  // A floor of 0 would make everything between the transients invisible, which is
+  // a worse misreport than a flat picture.
+  var HIT_FLOOR = 0.45;
+
   // A ~80ms PEAK HOLD on loudness. `rms` was read on the one frame a fire
   // happened, and with grid firing that instant can land in a trough between two
   // transients -- so a loud beat could be counted quiet. The hold means the count
@@ -122,6 +139,9 @@ var graphAudio = (function () {
   var raf = 0, el = null;
   var hist = [], histI = 0, lastBeat = 0;
   var rms = 0, hold = 0, peak = PEAK_FLOOR, loud = 0, amp = 0;
+  // Held on the same ~80ms envelope as `hold`, and for the same reason: a cascade
+  // seeded a frame or two after the transient must still see the transient.
+  var ratio = 1;
   // Inverted on purpose: the first reading seeds both ends.
   // The walk STARTS CENTRED. It began at Math.random(), which can land hard left
   // or hard right, so the first bars of a track drifted in from an edge for no
@@ -271,6 +291,10 @@ var graphAudio = (function () {
     }
     mean = hist.length ? mean / hist.length : 0;
 
+    // The same ratio the onset test is about to reduce to a boolean, kept as a
+    // number and peak-held so it survives the frame it happened on.
+    ratio = Math.max(mean > 0 ? b.flux / mean : 1, 1 + (ratio - 1) * HOLD_FALL);
+
     var onset = hist.length >= HIST_N && b.flux > FLUX_FLOOR && mean > 0
       && b.flux > mean * SENS && (now - lastBeat) > MIN_GAP_MS;
     if (onset) {
@@ -322,7 +346,7 @@ var graphAudio = (function () {
     graphBands.detach();
     hist = []; histI = 0; lastBeat = 0;
     rms = 0; hold = 0; peak = PEAK_FLOOR; loud = 0; amp = 0;
-    centLo = 1; centHi = 0; xWalk = X_HOME;
+    centLo = 1; centHi = 0; xWalk = X_HOME; ratio = 1;
     graphTempo.reset();
     paint();
     say(msg === '' ? '' : (msg || 'ambient'));
@@ -422,6 +446,16 @@ var graphAudio = (function () {
     // silent page gets no bias in either direction.
     pitch: function () {
       return on ? pitchNorm(graphBands.read().centroid) : 0.5;
+    },
+    // 0..1: how hard the most recent transient landed, for anything that wants to
+    // draw a hit BRIGHTER rather than draw more of them. 1 with nothing listening,
+    // so the ambient animation is unchanged by its existence.
+    hit: function () {
+      if (!on) {
+        return 1;
+      }
+      var t = (ratio - 1) / (HIT_SPAN - 1);
+      return HIT_FLOOR + (1 - HIT_FLOOR) * Math.min(1, Math.max(0, t));
     },
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },

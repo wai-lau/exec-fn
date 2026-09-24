@@ -14,7 +14,7 @@
 // file is the FLASH (wall-clock, a couple of seconds, the thing that reads as
 // activity travelling), and graph-glow.js is the CHARGE (how opaque a node has
 // become, draining on a rate set by the audio level). Every hit does both.
-/* global graphGlow */
+/* global graphGlow, graphAudio */
 var graphLit = (function () {
   'use strict';
 
@@ -48,8 +48,17 @@ var graphLit = (function () {
   // to linear on purpose: at 1.8 the light was gone before the eye had followed
   // the chain that lit it.
 
-  var lit = {};                   // id -> {t0, dur}
-  var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b}
+  // HOW HARD THE HIT WAS, as a multiplier on the whole envelope. Everything on
+  // this canvas used to be drawn at exactly one brightness: a peak and a whisper
+  // lit their nodes identically and differed only in HOW MANY, which is a single
+  // channel doing the work of two and one that saturates at SEEDS_MAX.
+  //
+  // It is read at FIRE time, per node, not captured once per cascade -- so a
+  // cascade still travelling while the music swells brightens along its length,
+  // and one crossing a decay dims. That is more of the sound on screen, not less,
+  // and it is the same rate graph-glow.js already reads the level at.
+  var lit = {};                   // id -> {t0, dur, g}
+  var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b, g}
   var deg = {};                   // id -> edge count, for DUR_PER_DEG
 
   // Guarded for the same reason graph-pulse.js guards it: this tree is edited
@@ -58,6 +67,12 @@ var graphLit = (function () {
   // feature.
   function glow() {
     return typeof graphGlow !== 'undefined' ? graphGlow : null;
+  }
+
+  // 1 with nothing listening, so every number below is unchanged when the audio
+  // is off and the ambient animation looks exactly as it did.
+  function hit() {
+    return typeof graphAudio !== 'undefined' ? graphAudio.hit() : 1;
   }
 
   return {
@@ -73,22 +88,29 @@ var graphLit = (function () {
     fire: function (id, now) {
       var d = Math.min(deg[id] || 1, DUR_DEG_CAP);
       var base = DUR_MIN + DUR_PER_DEG * d;
+      var h = hit();
       lit[id] = {
         t0: now,
         dur: base * (1 - DUR_JITTER + Math.random() * 2 * DUR_JITTER),
+        g: h,
       };
       var g = glow();
       if (g) {
-        g.bump(id);
+        // The CHARGE takes the strength too, so a soft passage builds the picture
+        // slowly and a hard one builds it fast. Accumulation that ignored how hard
+        // each hit was would say every track arrives at the same place at the same
+        // rate, which is the flattening this whole change is undoing.
+        g.bump(id, h);
       }
     },
 
     fireEdge: function (a, b, now) {
       var k = a + '\u0000' + b;
-      litEdges[k] = { t0: now, dur: EDGE_DUR, a: a, b: b };
+      var h = hit();
+      litEdges[k] = { t0: now, dur: EDGE_DUR, a: a, b: b, g: h };
       var g = glow();
       if (g) {
-        g.bumpEdge(k);
+        g.bumpEdge(k, h);
       }
     },
 
@@ -98,10 +120,11 @@ var graphLit = (function () {
       if (t < 0 || t >= l.dur) {
         return 0;
       }
+      var g = l.g === undefined ? 1 : l.g;
       if (t < ATTACK_MS) {
-        return t / ATTACK_MS;
+        return g * t / ATTACK_MS;
       }
-      return Math.pow(1 - (t - ATTACK_MS) / (l.dur - ATTACK_MS), DECAY_POW);
+      return g * Math.pow(1 - (t - ATTACK_MS) / (l.dur - ATTACK_MS), DECAY_POW);
     },
 
     // The saturated pass behind it: the same shape over SAT_MULT times the life.
@@ -112,10 +135,11 @@ var graphLit = (function () {
       if (t < 0 || t >= dur) {
         return 0;
       }
+      var g = l.g === undefined ? 1 : l.g;
       if (t < ATTACK_MS) {
-        return t / ATTACK_MS;
+        return g * t / ATTACK_MS;
       }
-      return Math.pow(1 - (t - ATTACK_MS) / (dur - ATTACK_MS), DECAY_POW);
+      return g * Math.pow(1 - (t - ATTACK_MS) / (dur - ATTACK_MS), DECAY_POW);
     },
 
     // A record is kept for the SATURATED life, which is the longer of the two.
