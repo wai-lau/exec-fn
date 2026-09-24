@@ -40,10 +40,17 @@ var graphTempo = (function () {
   // average of 120 and 60 is 90, which is neither.
   var VOTE_N = 8;
   var PERIOD_TOL = 0.03;          // ignore a change smaller than this
+  // onBeat was LINEAR across the half-period, which made almost everything read
+  // as "somewhat on beat" and blunted the multiplier that depends on it. Squared,
+  // a quarter-beat off is worth 0.25 instead of 0.5, so the term discriminates.
+  var ONBEAT_POW = 2;
+  // Music is hierarchical and the visuals were flat: beat 3 looked exactly like
+  // the downbeat. Beats are counted so the caller can accent the bar.
+  var BEATS_PER_BAR = 4;
 
   var env = [], envI = 0, envAcc = 0, envAt = 0;
   var period = 0, nextFire = 0, lastTempo = 0, conf = 0, lastOnset = 0;
-  var votes = [];
+  var votes = [], beatN = 0;
 
   function bpmOf(lag) {
     return 60000 / (lag * ENV_MS);
@@ -192,7 +199,7 @@ var graphTempo = (function () {
     reset: function () {
       env = []; envI = 0; envAcc = 0; envAt = 0;
       period = 0; nextFire = 0; lastTempo = 0; conf = 0; lastOnset = 0;
-      votes = [];
+      votes = []; beatN = 0;
     },
     // One envelope sample per frame. Also runs the re-estimate on its own clock,
     // so the caller does not have to keep one.
@@ -222,6 +229,7 @@ var graphTempo = (function () {
       }
       while (now >= nextFire && n < 4) {
         nextFire += step;
+        beatN++;
         n++;
       }
       return n;
@@ -238,7 +246,28 @@ var graphTempo = (function () {
       }
       var err = now - nextFire;
       err -= period * Math.round(err / period);     // fold to the nearest beat
-      return Math.max(0, 1 - Math.abs(err) / (period / 2));
+      var lin = Math.max(0, 1 - Math.abs(err) / (period / 2));
+      return Math.pow(lin, ONBEAT_POW);
+    },
+
+    // Which beat of the bar the last fire was, and whether it was the downbeat.
+    // The count is only as good as the phase lock, which is why nothing here
+    // claims to know where bar ONE is -- only that every fourth fire is the same
+    // position in the bar as the one four before it. That is enough to accent a
+    // pulse; it is not enough to claim a time signature.
+    beatInBar: function () {
+      return beatN % BEATS_PER_BAR;
+    },
+    isDownbeat: function () {
+      return period > 0 && (beatN % BEATS_PER_BAR) === 0;
+    },
+
+    // A hop delay that is a MUSICAL subdivision rather than a constant. The
+    // cascade spread at a fixed 110ms, which is unrelated to whatever is playing,
+    // so the travel itself was arrhythmic even when the seeding was on the grid.
+    // A sixteenth is short enough to read as travel and long enough to be felt.
+    hopMs: function () {
+      return period > 0 && conf >= LOCK_MIN ? period / 4 : 0;
     },
     bpm: function () {
       return period && conf >= LOCK_MIN ? Math.round(60000 / period) : 0;

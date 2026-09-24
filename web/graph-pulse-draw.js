@@ -65,6 +65,10 @@ var graphPulseDraw = (function () {
   // reassigned, which is the whole contract that makes reading them here safe.
   var pos = {}, lit = {}, litEdges = {}, level = null, satLevel = null;
   var chargeN = {}, chargeE = {};
+  // The page background, read off a real node rather than written as a literal:
+  // it is graphify's own `color.background` and this file has no business
+  // holding a second copy of it.
+  var BG = null;
 
   function makeCanvas() {
     cv = document.createElement('canvas');
@@ -298,6 +302,47 @@ var graphPulseDraw = (function () {
   // a stroke and nothing else, where a lit node pays for two soft discs as well.
   var A_CHARGE = { fill: 0.75, stroke: 0.85 };
 
+  // EVERY node the overlay draws gets its glyph filled with the page background
+  // FIRST, opaque, before any glow goes on top. That is what makes a node occlude
+  // the edges behind it: an edge should arrive AT a node, not cross over it. vis
+  // already does this for the unlit layer by drawing edges before nodes with an
+  // opaque fill; this is the same rule for the lit one.
+  //
+  // Double-filling a node that is both charged and lit costs nothing -- the same
+  // opaque colour twice -- so there is no need to build the union first.
+  function fillGlyph(p, scale, view) {
+    var x = (p.x - view.x) * scale + cw / 2;
+    var y = (p.y - view.y) * scale + ch / 2;
+    if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
+      return;
+    }
+    glyph(x, y, Math.max(p.r * scale, 1.2), p.s);
+    ctx.fill();
+  }
+
+  function punchNodes(scale, view) {
+    if (!BG) {
+      return;
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = BG;
+    var id;
+    for (id in chargeN) {
+      if (pos[id]) {
+        fillGlyph(pos[id], scale, view);
+      }
+    }
+    for (id in lit) {
+      if (pos[id]) {
+        fillGlyph(pos[id], scale, view);
+      }
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = INK;
+    ctx.strokeStyle = INK;
+  }
+
   function drawCharge(scale, view) {
     for (var id in chargeN) {
       var a = chargeN[id];
@@ -390,6 +435,7 @@ var graphPulseDraw = (function () {
       makeCanvas();
     },
     satInk: satInk,
+    setBg: function (c) { BG = c || BG; },
     // One frame. `levels` is {nodeId: alpha} from the model; lit edges are read
     // straight off the bound object and levelled here, because an edge's alpha
     // is min(both ends) and the model has no reason to build that list twice.
@@ -400,26 +446,28 @@ var graphPulseDraw = (function () {
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
-      // Accumulation first, at the bottom: it is the slow picture the fast passes
-      // flash on top of.
+      // ALL EDGES FIRST, THEN ALL NODES. The passes used to interleave
+      // (charge-edges, charge-nodes, white-edges, white-nodes, ...), so a later
+      // edge pass drew straight over an earlier node pass and edges crossed the
+      // very glyphs they were supposed to be arriving at.
+      //
+      // Edges are TINTED on every pass, never white: an edge belongs to a
+      // community and its colour says which, so it may vary in saturation but
+      // never in hue. Nodes keep their white core on purpose -- a lit node
+      // clipping to white IS the flash -- but an edge has no core to clip.
       drawChargeEdges(scale, view);
-      drawCharge(scale, view);
-      // TINTED, not white. An edge is drawn by three additive passes, and while
-      // this one stroked #ffffff an edge travelled white -> community colour as
-      // the flash faded under the coloured passes behind it. That is a HUE change
-      // over time, and an edge should only ever vary in saturation: it belongs to
-      // a community and its colour says which. Nodes keep their white core on
-      // purpose — a lit node clipping to white IS the flash — but an edge has no
-      // core to clip, only a line whose colour is its meaning.
       drawEdges(now, scale, view, A_WHITE, level, true);
+      drawEdges(now, scale, view, A_SAT, satLevel, true);
+
+      // Then the nodes: an opaque background fill to occlude those edges, and
+      // every glow on top of it.
+      punchNodes(scale, view);
+      drawCharge(scale, view);
       for (var id in levels) {
         if (pos[id]) {
           drawNode(pos[id], levels[id], scale, view, A_WHITE);
         }
       }
-      // Over the top, and last, so it is visible during the flash rather than
-      // only after it.
-      drawEdges(now, scale, view, A_SAT, satLevel, true);
       drawNodesSat(now, scale, view);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';

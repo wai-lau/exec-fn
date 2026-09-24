@@ -65,6 +65,12 @@ var graphPulse = (function () {
   // The same number scales their odds of being SEEDED, since a cascade that
   // starts at a dead end can never be more than a single dot.
   var TERMINAL_ODDS = 0.15;
+  // How much the audio level raises the catch odds (4.2) and widens the seed pool
+  // (4.1). Both are deliberately gentle: branching is degree x p, so reach
+  // compounds, and a pool that grows too fast turns a loud bar into the whole
+  // graph at once.
+  var REACH_GAIN = 0.45;
+  var EXTENT_GAIN = 3;
   // The size range graph_style._size_graph_by_degree emits. Mirrored rather than
   // derived from the data so one enormous outlier can't flatten everything else
   // onto P_MIN; if that range moves, move these with it.
@@ -96,43 +102,11 @@ var graphPulse = (function () {
   // spin looking for a fifth.
   var SEED_TRIES = 4;
 
-  // How long a node stays lit. Degree buys time, on the same argument as size:
-  // the busy nodes are the ones worth looking at, so they hold the eye longer.
-  // Slowed 50% on 2026-09-21 (from 1100 + 130/edge): the fade is sampled at the
-  // frame rate, so a longer fade is also more steps between lit and unlit, which
-  // is what the stepping looked like.
-  var DUR_MIN = 1650;
-  var DUR_PER_DEG = 195;
-  var DUR_DEG_CAP = 12;
-  var DUR_JITTER = 0.4;
-  // EVERY EDGE EFFECT FADES FASTER THAN A NODE'S. 900 against a node's 1845 at
-  // minimum (DUR_MIN + DUR_PER_DEG, before jitter) and 3990 at the degree cap, so
-  // an edge is roughly half the quickest node and a quarter of the slowest.
-  //
-  // The reason is what each one MEANS. A node is a place and it stays a place; an
-  // edge is a crossing, an event with a direction, and once the activation has
-  // arrived the edge has already said what it had to say. Holding it as long as
-  // its endpoints turns the picture into a wireframe that happens to have bright
-  // corners, instead of nodes lighting up with the paths between them flickering
-  // past. The charge drains faster too (graph-glow.js, EDGE_FADE).
-  var EDGE_DUR = 900;
-  // The saturated second pass outlives the white flash by this much. It lives
-  // here, with the rest of the lifetime arithmetic, rather than in the draw half
-  // which only needs to be handed a level function.
-  var SAT_MULT = 3;
-  // 280, from 90. The decay below is the same as it ever was, but the RISE was a
-  // pop, and with a charge layer accumulating underneath it was the only fast
-  // edge left on screen -- so it was the whole of what read as flicker.
-  var ATTACK_MS = 280;            // rise; the rest of the life is the fade
-  var DECAY_POW = 1.2;            // >1 = falls away faster than it lingers. Close
-  // to linear on purpose: at 1.8 the light was gone before the eye had followed
-  // the chain that lit it.
+  // The lit envelopes and their two registers live in graph-lit.js.
 
   var pos = {};                   // id -> {x, y, r, s, c}; world units, read once
   var deg = {};                   // id -> edge count
   var adj = {};                   // id -> [neighbour ids]
-  var lit = {};                   // id -> {t0, dur}
-  var litEdges = {};              // "a\u0000b" -> {t0, dur, a, b}
   var live = [];                  // iterations in flight: {queue, seen, until}
   var nextIter = 0, running = false, lastFrame = 0;
 
@@ -151,6 +125,20 @@ var graphPulse = (function () {
     charged: function () { return 0; },
   };
 
+  // Loudness, 0..1, or 0 with nothing listening. Guarded the same way the glow is
+  // and for the same reason: this tree is edited live, and an unguarded read
+  // inside the rAF takes the whole cascade down rather than costing a feature.
+  function loud() {
+    if (typeof graphAudio === 'undefined' || !graphAudio.isOn()) {
+      return 0;
+    }
+    return graphAudio.loudness();
+  }
+
+  function beat() {
+    return typeof graphTempo !== 'undefined' ? graphTempo : null;
+  }
+
   function glow() {
     return typeof graphGlow !== 'undefined' ? graphGlow : NO_GLOW;
   }
@@ -166,7 +154,12 @@ var graphPulse = (function () {
         var all = nodesDS.get();
         for (var i = 0; i < all.length; i++) {
           var n = all[i];
-          pos[n.id] = { x: 0, y: 0, r: n.size || 10, s: n.shape, c: graphPulseDraw.satInk(n.color && n.color.border) };
+          pos[n.id] = { x: 0, y: 0, r: n.size || 10, s: n.shape, c: graphPulseDraw.satInk(n.color && n.color.hover && n.color.hover.border) };
+          if (n.color && n.color.background) {
+            // The page background, for the opaque fill that makes a node occlude
+            // the edges behind it. Read off the data, never a second literal.
+            graphPulseDraw.setBg(n.color.background);
+          }
           deg[n.id] = 0;
           adj[n.id] = [];
         }
@@ -227,56 +220,24 @@ var graphPulse = (function () {
     }
     var r = pos[id].r;
     var t = (r - SIZE_FLOOR) / Math.max(SIZE_CEIL - SIZE_FLOOR, 1);
-    return P_MIN + (P_MAX - P_MIN) * Math.max(0, Math.min(1, t));
+    var p = P_MIN + (P_MAX - P_MIN) * Math.max(0, Math.min(1, t));
+    // REACH follows the level. These odds were fixed, so every cascade died at
+    // the same distance however loud the music was: the only thing loudness
+    // changed was how many nodes lit at once, never how far the activation got.
+    // Branching is degree x p, so a small push here is a large change in how far
+    // a chain carries -- which is why the gain is modest.
+    return Math.min(1, p * (1 + REACH_GAIN * loud()));
   }
 
-  // Two things happen on a hit and they are deliberately different. The LIT
-  // EFFECT is reset -- a fresh `t0`, the flash re-fires, unchanged timings. The
-  // CHARGE is topped up, never reset, and drains on a rate set by the audio level
-  // (graph-glow.js). So the flash keeps saying "something happened here" while the
-  // opacity underneath only climbs, which is what builds a picture over a track.
-  function fire(id, now) {
-    var d = Math.min(deg[id] || 1, DUR_DEG_CAP);
-    var base = DUR_MIN + DUR_PER_DEG * d;
-    lit[id] = { t0: now, dur: base * (1 - DUR_JITTER + Math.random() * 2 * DUR_JITTER) };
-    glow().bump(id);
-  }
-
-  function fireEdge(a, b, now) {
-    var k = a + '\u0000' + b;
-    litEdges[k] = { t0: now, dur: EDGE_DUR, a: a, b: b };
-    glow().bumpEdge(k);
-  }
-
-  // 1 at the top of the attack, 0 when spent.
-  function level(l, now) {
-    var t = now - l.t0;
-    if (t < 0 || t >= l.dur) {
-      return 0;
-    }
-    if (t < ATTACK_MS) {
-      return t / ATTACK_MS;
-    }
-    return Math.pow(1 - (t - ATTACK_MS) / (l.dur - ATTACK_MS), DECAY_POW);
-  }
-
-  // The saturated pass behind it: the same shape over SAT_MULT times the life.
-  // It used to be built in the draw half from a scratch record with a multiplied
-  // duration; both envelopes are the model's now, so there is one place that
-  // decides how long anything glows.
-  function satLevel(l, now) {
-    var t = now - l.t0, dur = l.dur * SAT_MULT;
-    if (t < 0 || t >= dur) {
-      return 0;
-    }
-    if (t < ATTACK_MS) {
-      return t / ATTACK_MS;
-    }
-    return Math.pow(1 - (t - ATTACK_MS) / (dur - ATTACK_MS), DECAY_POW);
-  }
-
+  // The hop delay is a MUSICAL subdivision when there is a tempo to divide, and
+  // the old constant otherwise. At a flat 110ms the cascade travelled at a rate
+  // unrelated to whatever was playing, so even with the seeding perfectly on the
+  // grid the SPREAD was arrhythmic -- the one part of the animation the eye
+  // actually follows.
   function hopAt(now) {
-    return now + HOP_MS * (1 - HOP_JITTER + Math.random() * 2 * HOP_JITTER);
+    var b = beat();
+    var base = (b && b.hopMs()) || HOP_MS;
+    return now + base * (1 - HOP_JITTER + Math.random() * 2 * HOP_JITTER);
   }
 
   // One iteration: a seed, then a frontier that walks outward. `seen` is
@@ -286,10 +247,14 @@ var graphPulse = (function () {
   // iteration either way — a tapped node gets the burst, the stagger and the
   // outward walk a randomly seeded one gets, because the interesting thing about
   // a node is what it is connected to, and that is what the cascade draws.
-  function startIteration(now, at, count) {
-    var tapped = at !== undefined && at !== null;
+  function startIteration(now, at, count, burst) {
+    // `burst` separates the two reasons to name an id. A TAP wants its first hop
+    // guaranteed and no extra seeds -- it is one node someone asked about. An
+    // AUDIO-CHOSEN PLACE wants the full burst around it, because the place is the
+    // answer and the burst is what makes it read as a region.
+    var tapped = at !== undefined && at !== null && !burst;
     var want = Math.max(1, Math.min(MAX_SEEDS, count || SEEDS_PER_ITER));
-    var id = tapped ? at : graphSeed.any();
+    var id = at !== undefined && at !== null ? at : graphSeed.any();
     if (id === null || !pos[id]) {
       return;
     }
@@ -302,7 +267,10 @@ var graphPulse = (function () {
     // A tap guarantees its first hop, and seeds none of the extra draws below.
     // Why both: ARCHITECTURE §11.
     ignite(it, id, now, tapped);
-    var pool = tapped ? null : graphSeed.near(id);
+    // EXTENT follows the level: a loud hit covers more ground, not just more
+    // nodes inside the same 64.
+    var pool = tapped ? null
+      : graphSeed.near(id, Math.round(64 * (1 + EXTENT_GAIN * loud())));
     // The stagger is a WINDOW, not a fixed gap per seed. At 100ms each, a 48-seed
     // burst would take 4.8s to fire and span several beats -- so a big burst
     // packs tighter instead of lasting longer, and a burst stays one event
@@ -334,7 +302,7 @@ var graphPulse = (function () {
   // cascades merge into a single event instead of re-rolling each other's nodes.
   function ignite(it, id, now, force) {
     it.seen[id] = 1;
-    fire(id, now);
+    graphLit.fire(id, now);
     spread(it, id, now, force);
   }
 
@@ -361,11 +329,11 @@ var graphPulse = (function () {
         continue;
       }
       if (q.seed) {
-        fire(q.id, now);
+        graphLit.fire(q.id, now);
         spread(it, q.id, now);
       } else if (q.force || Math.random() < catchOdds(q.id)) {
-        fire(q.id, now);
-        fireEdge(q.from, q.id, now);
+        graphLit.fire(q.id, now);
+        graphLit.fireEdge(q.from, q.id, now);
         spread(it, q.id, now);
       }
     }
@@ -385,27 +353,7 @@ var graphPulse = (function () {
     live = live.filter(function (it) {
       return it.queue.length && now < it.until;
     });
-    expire(lit, now);
-    expire(litEdges, now);
-  }
-
-  function expire(map, now) {
-    for (var k in map) {
-      if (now - map[k].t0 >= map[k].dur * SAT_MULT) {
-        delete map[k];
-      }
-    }
-  }
-
-  function levelsNow(now) {
-    var out = {};
-    for (var id in lit) {
-      var a = level(lit[id], now);
-      if (a > 0.01) {
-        out[id] = a;
-      }
-    }
-    return out;
+    graphLit.expire(now);
   }
 
   var last = 0, idle = true;
@@ -430,10 +378,9 @@ var graphPulse = (function () {
     // graphGlow.charged() is part of this: the accumulated opacity outlives every
     // cascade by design, and without it an idle frame would clear the canvas and
     // throw away the picture a whole track had built.
-    var busy = live.length || hasAny(lit) || hasAny(litEdges)
-      || glow().charged() > 0;
+    var busy = live.length || graphLit.busy() || glow().charged() > 0;
     if (busy) {
-      graphPulseDraw.paint(now, levelsNow(now));
+      graphPulseDraw.paint(now, graphLit.levels(now));
       firePainted();
       idle = false;
     } else if (!idle) {
@@ -454,13 +401,6 @@ var graphPulse = (function () {
     }
   }
 
-  function hasAny(map) {
-    for (var k in map) {
-      return true;
-    }
-    return false;
-  }
-
 
   return {
     // One cascade, seeded exactly where it was asked for. No-op until init has
@@ -468,6 +408,14 @@ var graphPulse = (function () {
     seed: function (id, count) {
       if (running) {
         startIteration(performance.now(), id, count);
+      }
+    },
+    // A cascade at a PLACE the caller chose, with the full burst around it. This
+    // is the audio's entry: graphSeed.at() turns a spectral feature into a node
+    // and this lights the region around it.
+    seedAt: function (id, count) {
+      if (running && id !== null && id !== undefined) {
+        startIteration(performance.now(), id, count, true);
       }
     },
     // `onReady` fires on the first frame this layer actually PAINTS — not when
@@ -485,8 +433,9 @@ var graphPulse = (function () {
       // history; the short version is that the cost was never here.
       onPainted = onReady || null;
       index(function () {
-        graphPulseDraw.init(pos, lit, litEdges, level, satLevel,
-          glow().nodes(), glow().edges());
+        graphLit.index(deg);
+        graphPulseDraw.init(pos, graphLit.nodes(), graphLit.edges(),
+          graphLit.level, graphLit.satLevel, glow().nodes(), glow().edges());
         running = true;
         requestAnimationFrame(frame);
       });

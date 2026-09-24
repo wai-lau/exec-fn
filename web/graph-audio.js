@@ -30,17 +30,32 @@
 // costs is the cascades it fires; this page's animation is the one layer under
 // the CRT stack's two backdrop-filter panes, so MIN_GAP_MS here and the model's
 // own MAX_LIVE are what bound it.
-/* global graphPulse, graphTempo, graphAudioUI */
+/* global graphPulse, graphTempo, graphAudioUI, graphBands, graphSeed */
 var graphAudio = (function () {
   'use strict';
 
-  var FFT = 1024;                 // post-lowpass the band is narrow; 512 bins is plenty
-  var CUT_HZ = 200;               // lowpass: the kick band, and nothing above it
-  var CUT_Q = 0.7;                // gentle, no resonant peak inventing beats
   var HIST_N = 45;                // ~0.75s of frames = the LOCAL average
-  var SENS = 1.32;                // onset = energy over SENS x that average
-  var FLOOR = 6;                  // 0..255; under this it counts as silence
+  var SENS = 1.32;                // onset = flux over SENS x that average
+  var FLUX_FLOOR = 0.002;         // under this the room counts as silent
   var MIN_GAP_MS = 190;           // debounce -> a ~315bpm ceiling
+  // ONSETS ARE SPECTRAL FLUX now, not band energy. An energy rise misses an onset
+  // that changes timbre without getting louder, and it re-triggers on sustained
+  // bass; flux is the sum of POSITIVE bin-to-bin changes, which is the standard
+  // onset function and costs one extra pass over bins we already have.
+  //
+  // TEMPO still runs on BASS energy, deliberately: a kick's periodicity is the
+  // clearest thing in most music, and flux is periodic at every subdivision at
+  // once, which is exactly what an autocorrelation should not be fed.
+
+  // A ~80ms PEAK HOLD on loudness. `rms` was read on the one frame a fire
+  // happened, and with grid firing that instant can land in a trough between two
+  // transients -- so a loud beat could be counted quiet. The hold means the count
+  // reflects the HIT rather than the sampling moment.
+  var HOLD_FALL = 0.78;
+
+  // Music is hierarchical and the visuals were flat: beat 3 looked exactly like
+  // the downbeat. The bar gets an accent.
+  var DOWNBEAT_BOOST = 1.6;
 
   // How many starting points a beat gets. Level is judged against a DECAYING PEAK
   // rather than an absolute number, because a shared tab and a microphone across a
@@ -48,7 +63,13 @@ var graphAudio = (function () {
   // is loud FOR THIS SOURCE. The peak decays so a track that gets quieter is not
   // judged against its own loudest moment for the rest of its life.
   var SEEDS_MIN = 4, SEEDS_MAX = 20;
-  var PEAK_DECAY = 0.999;
+  // 0.99995, from 0.999. The old value fell to 1/e in about 17 seconds, so a quiet
+  // intro renormalised to "full" within seconds and the DROP did not look like a
+  // drop -- the track's dynamic arc, which is the most legible thing in music, was
+  // being removed by the AGC. At this rate the reference spans minutes, so the
+  // loud parts of a track read as loud RELATIVE TO THE TRACK.
+  var PEAK_DECAY = 0.99995;
+  var PEAK_FLOOR = 0.02;          // so silence cannot divide by nothing
   // Amplitude and rhythm are MULTIPLIED, not added. Loud ON the beat is the moment
   // worth spending the graph on, and neither term says that alone: a loud
   // off-grid noise is a noise, and a quiet tick exactly on the grid is a tick.
@@ -78,9 +99,10 @@ var graphAudio = (function () {
 
   var LOOPBACK = /monitor of|stereo mix|loopback|what ?u ?hear|blackhole|soundflower|vb-?audio|voicemeeter/i;
 
-  var on = false, ctx = null, stream = null, ana = null, freq = null, wave = null;
-  var raf = 0, el = null, binHi = 0;
-  var hist = [], histI = 0, lastBeat = 0, rms = 0, peak = 0.02, loud = 0;
+  var on = false, ctx = null, stream = null;
+  var raf = 0, el = null;
+  var hist = [], histI = 0, lastBeat = 0;
+  var rms = 0, hold = 0, peak = PEAK_FLOOR, loud = 0, amp = 0;
 
   // ── the control, reached through a shim ──────────────────────────────────
   // Guarded so the analysis runs with no UI present at all, which is what a test
@@ -116,20 +138,34 @@ var graphAudio = (function () {
   }
 
   function seedsForLevel(now) {
-    var amp = peak > 0 ? Math.min(1, rms / peak) : 0;
     var beat = graphTempo.onBeat(now);
     var boost = 1 + (BEAT_BOOST - 1) * amp * beat;
-    return Math.round((SEEDS_MIN + amp * (SEEDS_MAX - SEEDS_MIN)) * boost);
+    var n = (SEEDS_MIN + amp * (SEEDS_MAX - SEEDS_MIN)) * boost;
+    // The bar gets an accent. Counting beats is only as good as the phase lock and
+    // nothing here claims to know where bar ONE is -- only that every fourth fire
+    // is the same position in the bar as the one four before it, which is enough
+    // to put a pulse in the picture.
+    if (graphTempo.isDownbeat()) {
+      n *= DOWNBEAT_BOOST;
+    }
+    return Math.round(n);
   }
 
   function fire() {
     if (typeof graphPulse === 'undefined') {
       return;
     }
-    // No id, deliberately: graphPulse.seed(id) is the smaller TAPPED cascade,
-    // while no id lets the model take its own weighted draw and run a full burst.
-    // The COUNT is where the loudness lands.
-    graphPulse.seed(null, seedsForLevel(performance.now()));
+    // WHERE, not just how many. Seeding used to be a uniform random draw over the
+    // whole graph, so the spatial pattern was noise and two different songs at the
+    // same tempo and level produced statistically identical pictures.
+    //
+    // pan -> X and brightness -> Y, because both readings are already spatial
+    // metaphors the eye accepts without being told: left is left, and a spectrum
+    // is drawn with the low end at the bottom. Centroid is INVERTED for that
+    // reason -- bright sounds belong at the top.
+    var b = graphBands.read();
+    var id = graphSeed.at((b.pan + 1) / 2, 1 - b.centroid);
+    graphPulse.seedAt(id, seedsForLevel(performance.now()));
     var u = ui();
     if (u) {
       u.flash();
@@ -144,44 +180,32 @@ var graphAudio = (function () {
     }
     raf = requestAnimationFrame(tick);
 
-    // Only the bins the lowpass actually passes. Averaging all 512 of them after
-    // filtering everything above CUT_HZ divides the signal by ~128: measured, a
-    // kick peaked at 6.7 of 255, which sits ON the silence FLOOR and made onsets
-    // fire only by luck — so the phase lock had almost nothing to lock to. With
-    // the band alone the same kick peaks at 252.
-    ana.getByteFrequencyData(freq);
-    var sum = 0, i;
-    for (i = 0; i <= binHi; i++) {
-      sum += freq[i];
-    }
-    var energy = sum / (binHi + 1);
+    var b = graphBands.read();
+    rms = b.rms;
 
-    // Time domain as well, the way raVe reads both: RMS of the lowpassed signal
-    // is the honest loudness of the bass, where the binned average is a spectrum
-    // shape. This is what decides how MANY nodes a beat wakes.
-    ana.getByteTimeDomainData(wave);
-    var acc = 0;
-    for (i = 0; i < wave.length; i++) {
-      var v = (wave[i] - 128) / 128;
-      acc += v * v;
-    }
-    rms = Math.sqrt(acc / wave.length);
-    peak = Math.max(rms, peak * PEAK_DECAY);
-    loud = Math.max(peak > 0 ? Math.min(1, rms / peak) : 0, loud * LOUD_FALL);
+    // PEAK HOLD, then the slow reference. `hold` is what the seed count reads, so
+    // a fire landing between two transients still sees the hit; `peak` spans
+    // minutes, so a track's own dynamics survive instead of being normalised flat.
+    hold = Math.max(rms, hold * HOLD_FALL);
+    peak = Math.max(rms, Math.max(PEAK_FLOOR, peak * PEAK_DECAY));
+    amp = Math.min(1, hold / peak);
+    loud = Math.max(amp, loud * LOUD_FALL);
 
     var now = performance.now();
-    graphTempo.push(now, energy);
+    // Tempo on BASS energy: a kick's periodicity is the clearest thing in most
+    // music, where flux is periodic at every subdivision at once.
+    graphTempo.push(now, b.bass * 255);
 
-    // The onset threshold is the LOCAL average, not a fixed number, so it follows
-    // a quiet room or a loud one with no sensitivity setting to get wrong.
-    var mean = 0;
+    // The onset threshold is the LOCAL average of FLUX, not a fixed number, so it
+    // follows a quiet room or a loud one with no sensitivity setting to get wrong.
+    var mean = 0, i;
     for (i = 0; i < hist.length; i++) {
       mean += hist[i];
     }
     mean = hist.length ? mean / hist.length : 0;
 
-    var onset = hist.length >= HIST_N && energy > FLOOR && mean > 0
-      && energy > mean * SENS && (now - lastBeat) > MIN_GAP_MS;
+    var onset = hist.length >= HIST_N && b.flux > FLUX_FLOOR && mean > 0
+      && b.flux > mean * SENS && (now - lastBeat) > MIN_GAP_MS;
     if (onset) {
       lastBeat = now;
       graphTempo.onset(now);
@@ -204,9 +228,9 @@ var graphAudio = (function () {
     // Written AFTER the test: a loud frame folded in first raises the very
     // average it is about to be compared against, and the beat tests itself away.
     if (hist.length < HIST_N) {
-      hist.push(energy);
+      hist.push(b.flux);
     } else {
-      hist[histI] = energy;
+      hist[histI] = b.flux;
       histI = (histI + 1) % HIST_N;
     }
   }
@@ -227,8 +251,10 @@ var graphAudio = (function () {
     if (ctx) {
       ctx.close();
     }
-    stream = null; ctx = null; ana = null; freq = null; wave = null;
-    hist = []; histI = 0; lastBeat = 0; rms = 0; peak = 0.02; loud = 0;
+    stream = null; ctx = null;
+    graphBands.detach();
+    hist = []; histI = 0; lastBeat = 0;
+    rms = 0; hold = 0; peak = PEAK_FLOOR; loud = 0; amp = 0;
     graphTempo.reset();
     paint();
     say(msg === '' ? '' : (msg || 'ambient'));
@@ -241,23 +267,14 @@ var graphAudio = (function () {
     if (ctx.state === 'suspended' && ctx.resume) {
       ctx.resume();
     }
-    var lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = CUT_HZ;
-    lp.Q.value = CUT_Q;
-    ana = ctx.createAnalyser();
-    ana.fftSize = FFT;
-    // Default 0.8 averages across frames, which is precisely what onset detection
-    // must not do: the frame-to-frame JUMP is the beat.
-    ana.smoothingTimeConstant = 0;
-    freq = new Uint8Array(ana.frequencyBinCount);
-    wave = new Uint8Array(ana.fftSize);
-    var perBin = ctx.sampleRate / 2 / ana.frequencyBinCount;
-    binHi = Math.max(2, Math.min(ana.frequencyBinCount - 1, Math.ceil(CUT_HZ / perBin)));
-
+    // NO LOWPASS. There was one at 200Hz, and it meant everything above that was
+    // discarded before analysis: a snare, a hat, a vocal, a lead and a chord
+    // change were all invisible, and -- worse, because it is a misreport rather
+    // than a limitation -- "loudness" was BASS loudness, so a bright loud passage
+    // with no low end read as quiet and got fewer seeds and a faster decay.
+    // graph-bands.js takes the full spectrum and splits it.
     var src = make(ctx);
-    src.connect(lp);
-    lp.connect(ana);
+    graphBands.attach(ctx, src);
     // A CAPTURED stream must never reach the speakers — that is feedback, and on
     // a loopback device it is feedback into its own source. A file WE are playing
     // is the opposite case: createMediaElementSource reroutes the element's output
@@ -404,6 +421,7 @@ var graphAudio = (function () {
     // The continuous term, raVe's half of this: bass RMS, 0..1, for anything that
     // wants to scale with loudness rather than fire on a beat.
     level: function () { return on ? rms : 0; },
+    bands: function () { return graphBands.read(); },
     // Smoothed 0..1: what the cascade's fade rate follows.
     loudness: function () { return on ? loud : 0; },
     seeds: function () { return on ? seedsForLevel(performance.now()) : 0; },
