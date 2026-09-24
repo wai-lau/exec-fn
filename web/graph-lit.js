@@ -14,7 +14,7 @@
 // file is the FLASH (wall-clock, a couple of seconds, the thing that reads as
 // activity travelling), and graph-glow.js is the CHARGE (how opaque a node has
 // become, draining on a rate set by the audio level). Every hit does both.
-/* global graphGlow, graphAudio */
+/* global graphGlow, graphAudio, graphRing */
 var graphLit = (function () {
   'use strict';
 
@@ -106,6 +106,14 @@ var graphLit = (function () {
     return typeof graphGlow !== 'undefined' ? graphGlow : null;
   }
 
+  // The wavefront, on the same guarded shim. `fire` is the ONE place a node hit is
+  // announced, which is the whole reason the ring hangs off here rather than off
+  // graph-pulse.js: that file calls `fire` from three separate sites, and a fourth
+  // thing to remember at each of them is a fourth thing to forget at one of them.
+  function ring() {
+    return typeof graphRing !== 'undefined' ? graphRing : null;
+  }
+
   // 1 with nothing listening, so every number below is unchanged when the audio
   // is off and the ambient animation looks exactly as it did.
   function hit() {
@@ -152,6 +160,13 @@ var graphLit = (function () {
         // each hit was would say every track arrives at the same place at the same
         // rate, which is the flattening this whole change is undoing.
         g.bump(id, h);
+      }
+      // And a BIG node throws a wave. graphRing decides whether this node is one
+      // of the big ones — it holds the threshold and reads the node's own radius,
+      // so this file needs no second copy of either.
+      var rg = ring();
+      if (rg) {
+        rg.fire(id, now);
       }
     },
 

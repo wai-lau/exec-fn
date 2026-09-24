@@ -34,10 +34,10 @@ from graph_scrub import (
 )
 from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
-    _merge_graph_communities, _fix_graph_stats, _size_graph_by_degree,
-    _unocclude_small_nodes,
+    _merge_graph_communities, _fix_graph_stats,
     _hide_graph_edges,
 )
+from graph_geometry import _size_graph_by_degree, _unocclude_small_nodes
 from graph_layout import (
     _tune_graph_physics, _apply_graph_layout,
     graph_layout_key, read_graph_layout, read_graph_layout_tall,
@@ -79,18 +79,21 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-ink.js?v=1"></script>'
     # The shapes, before the file that strokes and fills them: graph-pulse-draw.js
     # binds the context to graphGlyph as it makes the canvas.
-    '<script src="/graph-glyph.js?v=1"></script>'
-    '<script src="/graph-pulse-draw.js?v=16"></script>'
+    '<script src="/graph-glyph.js?v=2"></script>'
+    '<script src="/graph-pulse-draw.js?v=18"></script>'
     '<script src="/graph-seed.js?v=3"></script>'
     '<script src="/graph-bands.js?v=2"></script>'
     # The adaptive windows, before graph-audio.js folds a frame through them and
     # before graph-lit.js reads a hit's strength back out.
     '<script src="/graph-norm.js?v=2"></script>'
     '<script src="/graph-source.js?v=1"></script>'
-    '<script src="/graph-lit.js?v=4"></script>'
+    '<script src="/graph-lit.js?v=5"></script>'
     '<script src="/graph-bias.js?v=3"></script>'
     '<script src="/graph-glow.js?v=4"></script>'
-    '<script src="/graph-pulse.js?v=35"></script>'
+    # The wavefront: its own register, envelopes and pixels. graph-pulse-draw.js
+    # binds its context and decides where in the paint order it runs.
+    '<script src="/graph-ring.js?v=1"></script>'
+    '<script src="/graph-pulse.js?v=36"></script>'
     '<script src="/graph-tempo.js?v=5"></script>'
     '<script src="/graph-audio.js?v=17"></script>'
     '<script src="/graph-audio-ui.js?v=3"></script>'
@@ -266,8 +269,9 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # Size nodes exponentially by edge count, so hubs read as hubs.
     page = _size_graph_by_degree(page)
     # Only the big nodes keep the opaque interior that stops an edge at them —
-    # AFTER the sizing, which is what this reads to decide.
-    page = _unocclude_small_nodes(page)
+    # AFTER the sizing, which is what this reads to decide. The threshold comes back
+    # out because the overlay has to gate its own layers on the SAME number.
+    page, occlude_min = _unocclude_small_nodes(page)
     # And make the UNLIT edges readable — they are the structure the page is for.
     page = _hide_graph_edges(page)
     # Header counts are baked pre-scrub; rewrite to the merged/dropped reality.
@@ -298,8 +302,14 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # the page.
     page = page.replace(
         "</head>",
-        "<script>window.GRAPH_LAYOUT_KEY=%s;window.GRAPH_LAYOUT_CACHED=%s;</script></head>"
-        % (json.dumps(key), "true" if pos else "false"),
+        "<script>window.GRAPH_LAYOUT_KEY=%s;window.GRAPH_LAYOUT_CACHED=%s;"
+        # The size a node has to BEAT to occlude its edges, throw a wavefront, or
+        # punch its interior black on the lit layer. Computed once, server side,
+        # from the real size distribution and shipped — three layers gate on it and
+        # a second implementation of the percentile is a second chance to disagree
+        # about the node sitting exactly on the boundary.
+        "window.GRAPH_OCCLUDE_MIN=%s;</script></head>"
+        % (json.dumps(key), "true" if pos else "false", json.dumps(occlude_min)),
         1,
     )
     if lite:

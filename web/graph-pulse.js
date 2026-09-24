@@ -31,7 +31,7 @@
 //
 // Everything fades rather than blinking off, and because size tracks degree, the
 // hubs are both the likeliest seeds and the longest-lit.
-/* global network, nodesDS, edgesDS, graphPulseDraw */
+/* global network, nodesDS, edgesDS, graphPulseDraw, graphRing */
 var graphPulse = (function () {
   'use strict';
 
@@ -132,6 +132,22 @@ var graphPulse = (function () {
 
   function glow() {
     return typeof graphGlow !== 'undefined' ? graphGlow : NO_GLOW;
+  }
+
+  // The wavefront, on the same no-op shim as the charge above and for the same
+  // reason: this tree is edited live, so a new graph-pulse.js can reach a browser
+  // before its dependency's script tag does, and an unguarded call throws inside
+  // the rAF and takes the whole cascade down rather than costing one effect.
+  var NO_RING = {
+    index: function () {}, fire: function () {}, expire: function () {},
+    live: function () { return []; },
+    phase: function () { return 1; }, scale: function () { return 1; },
+    fade: function () { return 0; },
+    busy: function () { return false; }, reset: function () {},
+  };
+
+  function ring() {
+    return typeof graphRing !== 'undefined' ? graphRing : NO_RING;
   }
 
   // Indexing runs in PHASES, one per frame, timed, with the milliseconds left on
@@ -379,6 +395,7 @@ var graphPulse = (function () {
       return it.queue.length && now < it.until;
     });
     graphLit.expire(now);
+    ring().expire(now);
   }
 
   var last = 0, idle = true;
@@ -403,7 +420,10 @@ var graphPulse = (function () {
     // graphGlow.charged() is part of this: the accumulated opacity outlives every
     // cascade by design, and without it an idle frame would clear the canvas and
     // throw away the picture a whole track had built.
-    var busy = live.length || graphLit.busy() || glow().charged() > 0;
+    // A wave outlives the flash that threw it on a big node, so it is part of this
+    // too: without it an idle frame would clear the canvas mid-expansion.
+    var busy = live.length || graphLit.busy() || glow().charged() > 0
+      || ring().busy();
     if (busy) {
       graphPulseDraw.paint(now, graphLit.levels(now));
       firePainted();
@@ -460,6 +480,9 @@ var graphPulse = (function () {
       index(function () {
         graphLit.index(deg);
         graphBias.index(pos, edgeRef);
+        // The wavefront reads a node's own radius off `pos` to decide whether it is
+        // one of the big ones, so it is handed the same map.
+        ring().index(pos);
         graphPulseDraw.init(pos, graphLit.nodes(), graphLit.edges(),
           graphLit.level, graphLit.satLevel, glow().nodes(), glow().edges());
         running = true;
