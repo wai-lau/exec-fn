@@ -85,7 +85,7 @@ _GRAPH_OVERLAY_JS = (
     '<script src="/graph-glow.js?v=3"></script>'
     '<script src="/graph-pulse.js?v=35"></script>'
     '<script src="/graph-tempo.js?v=4"></script>'
-    '<script src="/graph-audio.js?v=10"></script>'
+    '<script src="/graph-audio.js?v=11"></script>'
     '<script src="/graph-audio-ui.js?v=2"></script>'
     # Before the overlay: gpLattice.snap()/bounds() are called from openView.
     '<script src="/graph-lattice.js?v=14"></script>'
