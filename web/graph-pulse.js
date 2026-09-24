@@ -389,7 +389,7 @@ var graphPulse = (function () {
   function step(now) {
     // Seeding is on a clock and nothing else — never gated on whether anything
     // is still lit, which is what keeps one cascade always in flight.
-    if (now >= nextIter) {
+    if (now >= nextIter && !(window.graphAudio && graphAudio.driving(now))) {
       startIteration(now);
       nextIter = now + ITER_MS;
     }

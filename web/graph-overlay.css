@@ -275,3 +275,47 @@ body.gp-info-open #sidebar {
   height: 22px;
 }
 
+
+/* ── the audio-reactive toggle (desktop only; web/graph-audio.js) ─────── */
+#gp-audio {
+  left: 8px;
+
+  /* 04b25 is ASCII-only and has no musical note, so this one control takes the
+     mono face — the same trick and the same reason as the nav's star glyph. */
+  font-family: var(--font-mono);
+}
+
+#gp-audio[data-on="1"] {
+  color: hsl(var(--green-hsl));
+  border-color: hsl(var(--green-hsl));
+  background: hsl(var(--green-hsl) / 0.12);
+}
+
+/* Lit for FLASH_MS on each detected onset: the control is also the readout that
+   says the analysis is hearing something, which is otherwise unknowable. */
+#gp-audio.gp-beat {
+  background: hsl(var(--green-hsl) / 0.45);
+}
+
+#gp-audio-note {
+  position: fixed;
+  left: 8px;
+  bottom: calc(var(--nav-h, 56px) + 36px);
+  z-index: 41;
+  max-width: min(70vw, 340px);
+  padding: var(--space-1) var(--space-2);
+  background: hsl(var(--surface-hsl));
+
+  /* 0.12, not a new step: green already spends its 4 allowed alphas
+     (0.12/0.45/0.8/1) and a note's border does not justify a fifth. */
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-1);
+  color: hsl(var(--green-hsl) / 0.8);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-2xs);
+  line-height: var(--lh-tight);
+}
+
+#gp-audio-note[hidden] {
+  display: none;
+}
