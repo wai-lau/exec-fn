@@ -113,30 +113,15 @@ body::-webkit-scrollbar { display: none; }
   line-height: var(--lh-relaxed);
 }
 
-/* dark-mode toggle, pinned top-right of the card; tokens make it adapt to both
-   themes */
+/* dark-mode toggle: the third pill in the footer row, right of wai-lau.net.
+   Wears .cv-resume + .cv-site (outline pill) from the markup; this only adds
+   what a <button> doesn't inherit. Plain-text label: a glyph from a fallback
+   font grows the pill taller than its neighbours. */
 .cv-theme {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: inline-flex;
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--cv-rule);
-  color: var(--cv-ink-soft);
   font-family: inherit;
-  font-size: var(--fs-sm);
-  line-height: var(--lh-none);
-  padding: var(--space-1-5) var(--space-3);
-  border-radius: var(--radius-2);
+  line-height: inherit;
   cursor: pointer;
-  transition: color 0.18s, border-color 0.18s;
-  z-index: 3;
 }
-.cv-theme:hover { color: var(--cv-green); border-color: var(--cv-green-dim); }
-
-/* the moon/sun glyph itself, 3x the frame symbols around it */
-.cv-theme .cv-glyph { font-size: 3em; line-height: var(--lh-none); }
 
 .cv a { color: var(--cv-cyan); text-decoration: none; }
 .cv a:hover { text-decoration: underline; }
@@ -257,6 +242,16 @@ html.cv-dark .cv-site {
   padding: var(--space-3) var(--space-8);
 }
 html.cv-dark .cv-site:hover { background: var(--cv-pink-dk); border-color: transparent; }
+
+/* dark: the toggle stays an outline so the pink wai-lau.net pill keeps the
+   emphasis */
+html.cv-dark .cv-theme {
+  background: transparent;
+  color: var(--cv-cyan);
+  border-color: var(--cv-cyan);
+  padding: calc(var(--space-3) - 2px) calc(var(--space-8) - 2px);
+}
+html.cv-dark .cv-theme:hover { background: transparent; color: var(--cv-cyan-dk); border-color: var(--cv-cyan-dk); }
 
 /* ── summary ──────────────────────────────────────────────────────────── */
 .cv-summary {

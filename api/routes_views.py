@@ -84,7 +84,7 @@ _LANDING_DESCS = {
     "recruiter": "Everyone needs a plug.",
     "security": "Someone's watching.",
 }
-_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=26">'
+_RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=27">'
 
 # preload the two Latin-subset woff2 weights so they download in parallel with
 # the CSS instead of after it (font fetch is otherwise gated on CSS parse). Both
@@ -159,7 +159,7 @@ async def recruiter_page():
                         _RECRUITER_FAVICON, 1)
     page = page.replace("</head>",
                         _RECRUITER_FONT_PRELOAD + _CHROME_LINK + _RECRUITER_LINK + "</head>", 1)
-    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=20"></script>'
+    body = _tmpl("recruiter.html") + '<script src="/recruiter.js?v=21"></script>'
     return page.replace("</body>", body + "</body>", 1)
 
 
