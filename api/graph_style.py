@@ -208,7 +208,8 @@ _GRAPH_BG = "#0f0f1a"
 def _rgba(hex_color: str, alpha: float) -> str:
     """`#rrggbb` -> an `rgba()` string. The node BORDER carries its own alpha now,
     because the baseline cannot be the node's `opacity` option: that scales the
-    fill too, and the fill has to stay opaque to occlude edges."""
+    fill too, and a fill has to stay opaque to occlude edges — which, since
+    `_unocclude_small_nodes`, only the big ones do."""
     h = (hex_color or "").lstrip("#")
     if len(h) != 6:
         return hex_color
@@ -221,7 +222,9 @@ def _node_color(hex_color: str) -> dict:
     + the community colour as the border (matches /emet). On select the border
     flashes white; bg never changes, so the hexagon stays a clean outline."""
     return {
-        # Opaque, always: this is what occludes the edges behind the node.
+        # Opaque here for every node; `_unocclude_small_nodes` clears it again on
+        # the small ones once sizes exist. This is the fill that occludes the
+        # edges behind a node.
         "background": _GRAPH_BG,
         "border": _rgba(hex_color, _NODE_OPACITY),
         "highlight": {"background": _GRAPH_BG, "border": "#ffffff"},
@@ -373,6 +376,64 @@ def _size_graph_by_degree(page: str) -> str:
         return nodes
 
     return _sub_json_array(page, "RAW_NODES", _resize)
+
+
+# ONLY THE BIG NODES OCCLUDE THEIR EDGES. An opaque interior is what makes an edge
+# stop AT a node rather than cross over it, and every node had one — including the
+# degree-1 leaves, which are 76% of this graph and sit at the size floor. At the
+# opening zoom those are specks, so what the rule actually bought was a notch cut
+# out of the single edge running into each of them: the structure between nodes
+# read as broken rather than as arriving somewhere.
+#
+# Half the largest a node can be, so the threshold moves with `_SIZE_MAX` rather
+# than being a number to keep in sync. Sizes are geometric in degree, so this lands
+# at degree 11 and up.
+#
+# THE OVERLAY MIRRORS THIS (`OCCLUDE_MIN` in graph-pulse-draw.js) and the two must
+# move together — it punches the same interiors on its own canvas for the lit pass,
+# and a node that occludes in one layer and not the other reads as a rendering bug.
+#
+# The trade, which is real and which one opaque fill cannot avoid: that same fill
+# is also what punches out the HALO spilling inside a lit glyph. A small node's
+# interior therefore now carries its own faint glow (the halo alphas, never the
+# retired `A_FILL`) instead of staying black. Letting an edge through and blocking
+# a halo are the same pixel asked for two different things.
+_OCCLUDE_MIN = _SIZE_MAX / 2
+
+# vis hands `color.background` straight to a canvas `fillStyle`, so the CSS keyword
+# is enough and fills nothing under `source-over`. Deliberately not an `rgba()`
+# string with a zero alpha: the palette lint reads source text with the whitespace
+# stripped and any colour-function name followed by a paren reports as a new raw
+# colour, comment or code.
+_NO_FILL = "transparent"
+
+
+def _unocclude_small_nodes(page: str) -> str:
+    """Clear the opaque interior on every node at or under `_OCCLUDE_MIN`, so the
+    edges behind it show through instead of stopping at it.
+
+    MUST RUN AFTER `_size_graph_by_degree`: the decision reads `size`, and the
+    colour objects are built back in `_merge_graph_communities`, which runs before
+    sizes exist. Reading `degree` here instead would duplicate the size formula and
+    let the two drift. Only the three `background` keys are touched — `hover.border`
+    carries the full-strength community colour that graph-pulse.js reads for its
+    saturated ink, and clearing that would take the afterglow's colour with it. No-op
+    if RAW_NODES is absent."""
+    def _clear(nodes):
+        for node in nodes:
+            if float(node.get("size") or 0) > _OCCLUDE_MIN:
+                continue
+            colour = node.get("color")
+            if not isinstance(colour, dict):
+                continue
+            colour["background"] = _NO_FILL
+            for state in ("highlight", "hover"):
+                sub = colour.get(state)
+                if isinstance(sub, dict):
+                    sub["background"] = _NO_FILL
+        return nodes
+
+    return _sub_json_array(page, "RAW_NODES", _clear)
 
 
 # graphify emits `font: {"size": 0}` per node (labels off) and graph-overlay.js
