@@ -83,7 +83,7 @@ _GRAPH_OVERLAY_JS = (
     # that asks it for a context.
     '<script src="/graph-surface.js?v=1"></script>'
     '<script src="/graph-glyph.js?v=3"></script>'
-    '<script src="/graph-pulse-draw.js?v=24"></script>'
+    '<script src="/graph-pulse-draw.js?v=25"></script>'
     '<script src="/graph-seed.js?v=3"></script>'
     '<script src="/graph-bands.js?v=2"></script>'
     # The adaptive windows, before graph-audio.js folds a frame through them and
