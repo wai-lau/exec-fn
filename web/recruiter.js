@@ -232,6 +232,10 @@
       var dark = !de.classList.contains('cv-dark');
       applyTheme(dark);
       try { localStorage.setItem('cv-theme', dark ? 'dark' : 'light'); } catch (_) {}
+      // the toggle lives in the footer; the switch is seen (and dark's type-out
+      // plays) at the top, so go back there
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
     });
   }
 })();
