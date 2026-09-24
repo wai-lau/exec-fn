@@ -15,6 +15,7 @@ var graphAudioUI = (function () {
   'use strict';
 
   var FLASH_MS = 110;
+  var SEP = '   \u00b7   ';      // the one separator the live line is built from
   var btn = null, note = null, noteT = 0, flashT = 0, menu = null;
   var srcLabel = '', liveT = 0;
 
@@ -44,9 +45,29 @@ var graphAudioUI = (function () {
     }
   }
 
-  // Source + detected tempo. The BPM is polled rather than pushed because it is
-  // the product of a once-a-second estimate, not an event, and a readout that
-  // updates on its own schedule cannot be wired to the wrong one.
+  // A frequency, short enough to sit on one line beside everything else: 118, or
+  // 1.4k once it passes a thousand. Nothing here needs Hz to the digit -- the
+  // question the number answers is "have the splits moved", and 118 against 1.4k
+  // answers it where 118.37 against 1404.9 only makes the line longer.
+  function hz(v) {
+    return v < 1000 ? String(v) : (Math.round(v / 100) / 10) + 'k';
+  }
+
+  // WHERE THE BAND SPLITS CURRENTLY SIT. They are re-cut every couple of seconds
+  // to the equal-energy thirds of what is playing, and that is otherwise entirely
+  // invisible: the picture changes because of them, never shows them. A dark track
+  // and a bright one produce visibly different numbers here, which is the one
+  // cheap way to tell the analysis is tracking the material rather than sitting on
+  // its defaults.
+  function bands() {
+    var c = graphAudio.crossovers();
+    return c ? SEP + hz(c.bass_mid) + ' / ' + hz(c.mid_treble) + ' Hz' : '';
+  }
+
+  // Source + detected tempo + the live band splits. All of it is POLLED rather
+  // than pushed because every part is the product of a periodic estimate, not an
+  // event, and a readout that updates on its own schedule cannot be wired to the
+  // wrong one.
   function liveLine() {
     if (!note || !graphAudio.isOn()) {
       return;
@@ -54,8 +75,9 @@ var graphAudioUI = (function () {
     var bpm = graphAudio.bpm();
     // 0 means no lock: say so rather than showing a stale number or a zero, both
     // of which read as a measurement.
-    note.textContent = srcLabel + (bpm ? '   \u00b7   ' + bpm + ' bpm'
-      : '   \u00b7   finding the beat\u2026');
+    note.textContent = srcLabel
+      + (bpm ? SEP + bpm + ' bpm' : SEP + 'finding the beat\u2026')
+      + bands();
     note.hidden = false;
   }
 
