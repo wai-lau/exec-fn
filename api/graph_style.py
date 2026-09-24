@@ -53,6 +53,13 @@ def _drop_graph_tooltips(page: str) -> str:
 # pairing argument is untouched by either move: the two triangle directions still
 # read as a related pair against the one hexagon, which is the whole reason `dot`
 # is not in this table.
+# The UNLIT baseline for both nodes and edges: a fifth of full, so the structure
+# of the graph stays legible between cascades while leaving the overlay four
+# fifths of the range to light into. It was 0 for an afternoon and that was too
+# far — with nothing drawn at all there was nothing for a lit node to be lit
+# AGAINST, and the page read as empty rather than as dark.
+_NODE_OPACITY = 0.2
+
 _TYPE_SHAPES = {
     "code": "triangle",
     "rationale": "hexagon",
@@ -86,25 +93,28 @@ def _shape_graph_nodes_by_type(page: str) -> str:
 
 def _restyle_graph_nodes(page: str) -> str:
     """Replace vis's default dots with the per-type shapes in `_TYPE_SHAPES`, and
-    draw every node at ZERO OPACITY so the graph is dark until something lights it.
-    Also repoint the node-info neighbour stripe from .color.background (the page bg,
-    invisible) to .color.border (the community colour). String tweaks on graphify's
-    emitted JS, so they survive a /graphify rebuild.
+    draw every node at `_NODE_OPACITY` so the unlit graph sits well back and the
+    cascade is what reads. Also repoint the node-info neighbour stripe from
+    .color.background (the page bg, invisible) to .color.border (the community
+    colour). String tweaks on graphify's emitted JS, so they survive a rebuild.
 
-    `opacity: 0` is the right knob rather than a transparent colour or `hidden`.
-    It zeroes only the DRAWN alpha: the colour objects stay intact, so the panel's
-    neighbour stripe still has a community colour to read, the node keeps its
-    `size` (which the cascade's glyph radius is derived from), and vis still
-    HIT-TESTS it — `hidden: true` would have made a node unclickable, taking the
-    node-info panel and the tap-to-seed cascade with it, and a transparent border
+    **`opacity` is the right knob rather than a transparent colour or `hidden`.**
+    It scales only the DRAWN alpha: the colour objects stay intact, so the panel's
+    neighbour stripe still has a community colour to read; the node keeps its
+    `size`, which the cascade's glyph radius is derived from; and vis still
+    HIT-TESTS it, so a tap still opens the node-info panel and seeds a cascade.
+    `hidden: true` would have taken both of those away, and a transparent border
     would have blanked the stripe.
 
-    The lit state is the overlay's job (graph-pulse-draw.js): a node rises to full
-    in ATTACK_MS and then decays, so what is on screen at any moment is what has
-    recently fired and nothing else."""
+    **0.2 rather than 0**, changed the same day it was first set to 0: at zero the
+    page held no structure at all between cascades, so there was nothing for the
+    lit nodes to be lit AGAINST. A fifth of full keeps the shape of the graph
+    legible and still leaves the overlay four fifths of the range to light into.
+    """
     page = page.replace(
         "nodes: { shape: 'dot', borderWidth: 1.5 }",
-        "nodes: { shape: 'triangle', borderWidth: 2, opacity: 0 }",
+        "nodes: { shape: '%s', borderWidth: 2, opacity: %s }"
+        % (_TYPE_SHAPES["code"], _NODE_OPACITY),
         1,
     )
     page = _shape_graph_nodes_by_type(page)
@@ -368,21 +378,26 @@ def _label_graph_nodes(page: str) -> str:
     return _sub_json_array(page, "RAW_NODES", _relabel)
 
 
-# graphify draws every edge at width 2 and opacity 0.7, inheriting its colour
-# from the node it leaves. At the zoom the page opens at that is a sub-pixel
-# hairline at two-thirds alpha, and the structure between the nodes -- which is
-# the thing a dependency graph is FOR -- read as a haze. Full alpha and a wider
-# line put it back. This is the UNLIT state only: the cascade paints its own lit
-# edges on graph-pulse.js's overlay canvas and never touches these values.
-_EDGE_OPACITY = 1.0
+# An edge sits at the same unlit baseline as a node and brightens when a cascade
+# crosses it. The cascade paints lit edges on graph-pulse.js's overlay canvas.
+#
+# This has to be written PER EDGE. graphify emits a `color` object on every
+# RAW_EDGES entry, so a global `edges: { color: { opacity } }` is outranked and
+# does nothing at all — measured, a runtime override moved the canvas ink count by
+# exactly zero. Colour is still left alone: vis inherits each edge's colour from
+# the node it leaves, which is what makes a lit chain read as community-coloured.
+#
+# `_EDGE_WIDTH` is kept even though a zero-opacity line draws nothing, because it
+# is the unlit width should the structure ever want showing again — and because the
+# overlay's lit edge has its own `EDGE_W`, so the two are not the same number.
+_EDGE_OPACITY = _NODE_OPACITY
 _EDGE_WIDTH = 3
 
 
-def _brighten_graph_edges(page: str) -> str:
-    """Raise every RAW_EDGES entry to `_EDGE_OPACITY` / `_EDGE_WIDTH`. Colour is
-    left alone: vis inherits each edge's colour from its from-node, which is what
-    keeps the edge set reading as community-coloured rather than as grey. No-op if
-    RAW_EDGES is absent."""
+def _hide_graph_edges(page: str) -> str:
+    """Set every RAW_EDGES entry to `_EDGE_OPACITY` / `_EDGE_WIDTH`. Named for what
+    it does now: at opacity 0 the unlit edge draws nothing, and the cascade's
+    overlay is the only thing that ever shows one. No-op if RAW_EDGES is absent."""
     def _brighten(edges):
         for e in edges:
             color = e.get("color")

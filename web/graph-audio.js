@@ -50,6 +50,15 @@ var graphAudio = (function () {
   var SEEDS_MIN = 4, SEEDS_MAX = 20;
   var PEAK_DECAY = 0.999;
 
+  // A SMOOTHED loudness, for anything that needs "is the music playing" rather
+  // than "how loud is this instant". Instantaneous RMS is near zero between two
+  // kicks, so the cascade's fade clock — which decays fast when quiet — would
+  // race away in the gaps inside a bar and undo the whole point. This is an
+  // envelope follower: every kick tops it back up, and it takes about 1.5s of real
+  // silence to fall away, which is the gap between tracks and not the gap between
+  // beats.
+  var LOUD_FALL = 0.97;           // per frame; ~1.5s from full to nothing at 60fps
+
   // All three processors OFF on purpose. Echo cancellation, auto gain and noise
   // suppression exist to make a voice call intelligible, and every one of them
   // works by flattening the transients a beat IS — autoGainControl in particular
@@ -61,7 +70,7 @@ var graphAudio = (function () {
 
   var on = false, ctx = null, stream = null, ana = null, freq = null, wave = null;
   var raf = 0, el = null, binHi = 0;
-  var hist = [], histI = 0, lastBeat = 0, rms = 0, peak = 0.02;
+  var hist = [], histI = 0, lastBeat = 0, rms = 0, peak = 0.02, loud = 0;
 
   // ── the control, reached through a shim ──────────────────────────────────
   // Guarded so the analysis runs with no UI present at all, which is what a test
@@ -146,6 +155,7 @@ var graphAudio = (function () {
     }
     rms = Math.sqrt(acc / wave.length);
     peak = Math.max(rms, peak * PEAK_DECAY);
+    loud = Math.max(peak > 0 ? Math.min(1, rms / peak) : 0, loud * LOUD_FALL);
 
     var now = performance.now();
     graphTempo.push(now, energy);
@@ -206,7 +216,7 @@ var graphAudio = (function () {
       ctx.close();
     }
     stream = null; ctx = null; ana = null; freq = null; wave = null;
-    hist = []; histI = 0; lastBeat = 0; rms = 0; peak = 0.02;
+    hist = []; histI = 0; lastBeat = 0; rms = 0; peak = 0.02; loud = 0;
     graphTempo.reset();
     paint();
     say(msg === '' ? '' : (msg || 'ambient'));
@@ -382,6 +392,8 @@ var graphAudio = (function () {
     // The continuous term, raVe's half of this: bass RMS, 0..1, for anything that
     // wants to scale with loudness rather than fire on a beat.
     level: function () { return on ? rms : 0; },
+    // Smoothed 0..1: what the cascade's fade rate follows.
+    loudness: function () { return on ? loud : 0; },
     seeds: function () { return on ? seedsForLevel() : 0; },
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },

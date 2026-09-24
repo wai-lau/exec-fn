@@ -16,6 +16,7 @@ var graphAudioUI = (function () {
 
   var FLASH_MS = 110;
   var btn = null, note = null, noteT = 0, flashT = 0, menu = null;
+  var srcLabel = '', liveT = 0;
 
   // Desktop only, by decision. No control where it could not work, rather than a
   // control that explains itself after being tapped.
@@ -28,6 +29,11 @@ var graphAudioUI = (function () {
     if (!note) {
       return;
     }
+    // A sticky message IS the source name, so it is remembered: the live line is
+    // rebuilt from it every half second to hang the detected tempo off it.
+    if (sticky) {
+      srcLabel = msg || '';
+    }
     note.textContent = msg || '';
     note.hidden = !msg;
     clearTimeout(noteT);
@@ -38,7 +44,27 @@ var graphAudioUI = (function () {
     }
   }
 
+  // Source + detected tempo. The BPM is polled rather than pushed because it is
+  // the product of a once-a-second estimate, not an event, and a readout that
+  // updates on its own schedule cannot be wired to the wrong one.
+  function liveLine() {
+    if (!note || !graphAudio.isOn()) {
+      return;
+    }
+    var bpm = graphAudio.bpm();
+    // 0 means no lock: say so rather than showing a stale number or a zero, both
+    // of which read as a measurement.
+    note.textContent = srcLabel + (bpm ? '   \u00b7   ' + bpm + ' bpm'
+      : '   \u00b7   finding the beat\u2026');
+    note.hidden = false;
+  }
+
   function paint(on) {
+    clearInterval(liveT);
+    if (on) {
+      liveLine();
+      liveT = setInterval(liveLine, 500);
+    }
     if (!btn) {
       return;
     }
