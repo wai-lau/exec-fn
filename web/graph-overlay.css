@@ -299,8 +299,13 @@ body.gp-info-open #sidebar {
 
 #gp-audio-note {
   position: fixed;
+
+  /* TOP left. It sat above the button at the bottom, which put the readout in the
+     same corner as the control and left it to be read past the nav. Top-left is
+     the one free corner on this page: the node-info toggle owns top-right, the
+     nav owns the bottom edge, and the music button owns bottom-left. */
+  top: 8px;
   left: 8px;
-  bottom: calc(var(--nav-h, 56px) + 36px);
   z-index: 41;
   max-width: min(70vw, 340px);
   padding: var(--space-1) var(--space-2);
