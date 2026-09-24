@@ -55,7 +55,10 @@ var graphAudio = (function () {
   // owning them, and the exports at the bottom are the page's one door onto them.
 
   // Music is hierarchical and the visuals were flat: beat 3 looked exactly like
-  // the downbeat. The bar gets an accent.
+  // the downbeat. The bar gets an accent -- scaled by how much the tempo lock is
+  // BELIEVED (graphTempo.barAccent), so the page accents a bar exactly as much as
+  // it thinks there is one, instead of asserting the same certainty about a bar it
+  // half-guessed as about one it is sure of.
   var DOWNBEAT_BOOST = 1.6;
 
   // How many starting points a beat gets. Level is judged against a DECAYING PEAK
@@ -126,10 +129,8 @@ var graphAudio = (function () {
     // The bar gets an accent. Counting beats is only as good as the phase lock and
     // nothing here claims to know where bar ONE is -- only that every fourth fire
     // is the same position in the bar as the one four before it, which is enough
-    // to put a pulse in the picture.
-    if (graphTempo.isDownbeat()) {
-      n *= DOWNBEAT_BOOST;
-    }
+    // to put a pulse in the picture. How MUCH of a pulse is the lock's confidence.
+    n *= 1 + (DOWNBEAT_BOOST - 1) * graphTempo.barAccent();
     return Math.round(n);
   }
 
@@ -334,6 +335,9 @@ var graphAudio = (function () {
     // 0..1, how much low end just landed. 0 with nothing listening, so the draw
     // half's swell multipliers all collapse to 1.
     bloom: function () { return on ? graphNorm.bloom() : 0; },
+    // 0..1, how much bar accent this instant has earned: a downbeat, scaled by how
+    // much the tempo lock is believed. 0 with nothing listening.
+    accent: function () { return on ? graphTempo.barAccent() : 0; },
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },
     stats: function () { return graphTempo.stats(); },

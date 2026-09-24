@@ -24,6 +24,18 @@ var graphBias = (function () {
   var REACH_GAIN = 0.18;
   var EXTENT_GAIN = 0.8;
 
+  // A BAR BOUNDARY IS A DIFFERENT EVENT, SO IT GETS A DIFFERENT VERB. The downbeat
+  // accent was count and nothing else -- slightly more dots in the same place -- so
+  // the most legible hierarchy in music was rendered as a quantity. On the bar the
+  // cascade also TRAVELS further, which reads as the activation sweeping rather
+  // than merely as more of it.
+  //
+  // Small, and for the reason REACH_GAIN is small: branching is degree x p, so
+  // reach compounds and a modest rise carries a chain much further than the number
+  // suggests. This one also arrives once every four beats, so it is a periodic
+  // pulse in how far things get rather than a constant lift.
+  var DOWN_REACH = 0.15;
+
   // PITCH BIASES EDGE LENGTH. A low pitch is a long wavelength, so it travels:
   // the cascade prefers LONG edges and sweeps across the picture. A high pitch
   // stays close and the activation stays local. The mapping is symmetric, so the
@@ -51,6 +63,11 @@ var graphBias = (function () {
     return on() ? graphAudio.pitch() : 0.5;
   }
 
+  // 0..1 on the bar, 0 everywhere else and 0 with nothing playing.
+  function accent() {
+    return on() ? graphAudio.accent() : 0;
+  }
+
   return {
     // `meanEdge` is measured after the layout's positions are read, not with the
     // rest of the edge indexing: that runs before getPositions, when every node is
@@ -63,9 +80,11 @@ var graphBias = (function () {
     loud: loud,
     pitch: pitch,
 
-    // Catch odds, leaned on by the level: loud cascades travel further.
+    // Catch odds, leaned on by the level: loud cascades travel further. And on the
+    // bar, further again -- so a downbeat is something the activation DOES, not
+    // just more of what it was already doing.
     reach: function (p) {
-      return Math.min(1, p * (1 + REACH_GAIN * loud()));
+      return Math.min(1, p * (1 + REACH_GAIN * loud() + DOWN_REACH * accent()));
     },
 
     // Seed-pool size, leaned on by the level: loud reads as WIDER, not merely
