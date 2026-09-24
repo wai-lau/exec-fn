@@ -319,3 +319,41 @@ body.gp-info-open #sidebar {
 #gp-audio-note[hidden] {
   display: none;
 }
+
+/* the source picker — which input is live is not guessable from outside */
+#gp-audio-menu {
+  position: fixed;
+  left: 8px;
+  bottom: calc(var(--nav-h, 56px) + 36px);
+
+  /* 41, same as .gp-toggle: the menu sits ABOVE the button rather than over it,
+     so it needs no layer of its own — and z-index is freeze-governed. */
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  max-width: min(80vw, 380px);
+  padding: var(--space-1);
+  background: hsl(var(--surface-hsl));
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-1);
+}
+
+#gp-audio-menu .gp-src {
+  padding: var(--space-1) var(--space-2);
+  overflow: hidden;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  color: hsl(var(--green-hsl) / 0.8);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  line-height: var(--lh-tight);
+}
+
+#gp-audio-menu .gp-src:hover {
+  color: hsl(var(--green-hsl));
+  background: hsl(var(--green-hsl) / 0.12);
+}

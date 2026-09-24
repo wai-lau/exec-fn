@@ -1,39 +1,36 @@
-// /graph — the cascade, timed to whatever is playing. DESKTOP ONLY, by decision.
+// /graph — capture and analysis: where the sound comes from, and what a beat is
+// worth. DESKTOP ONLY, by decision. The control that drives it is
+// graph-audio-ui.js; the tempo arithmetic is graph-tempo.js.
 //
-// WHERE THE AUDIO COMES FROM, which is the whole design. A page cannot read the
-// device's audio output on iOS at all, and Safari/Firefox do not put audio on a
-// getDisplayMedia stream either. Chrome and Edge on the desktop DO: picking a tab
-// with "share tab audio" (or a whole screen on Windows) hands over the real
-// output. So that is the primary source, and it is the only one that works with
-// headphones on.
+// WHERE THE AUDIO COMES FROM, which is the whole design.
 //
-// The MICROPHONE is the fallback, not the first choice. It hears the room, so it
-// needs speakers, and it picks up everything else in the room with them. It is
-// kept because it is the only source that exists at all where getDisplayMedia
-// carries no audio.
+// A page cannot read the device's audio OUTPUT directly. There is no system-audio
+// capture on iOS at all, and Safari and Firefox put no audio on a getDisplayMedia
+// stream either. What IS available, in rough order of how good the signal is:
 //
-// The single most common failure is a real one and is reported as such: Chrome
-// shows the picker whether or not "share tab audio" is ticked, and an unticked
-// box hands back a stream with a video track and NO audio. That looks exactly
-// like a broken feature, so it is named.
+//   1. A local FILE, played by the page itself. No permission, no picker, no
+//      room: createMediaElementSource sees the exact signal. This is raVe's
+//      Playlist.js (`this.audio.src = song.blob`). Drop a file on the page.
+//   2. A SHARED TAB on Chrome/Edge desktop, which is the real output of whatever
+//      is playing in it and works with headphones on.
+//   3. A LOOPBACK input device, if the machine has one — PulseAudio's
+//      "Monitor of ...", Stereo Mix on Windows, BlackHole or Loopback on macOS.
+//      These are the speaker output wearing a microphone's clothes, so they need
+//      no share prompt. There is no web API for them: they exist only where the
+//      machine has been set up for it, which is why they are offered and never
+//      assumed.
+//   4. The MICROPHONE, which hears the room. Needs speakers, and hears everything
+//      else in the room with them. This is raVe's Microphone.js.
 //
-// WHAT raVe DOES, AND WHERE THIS DIFFERS (github.com/ajm13/raVe). raVe is the
-// reference for this kind of thing and it does NOT detect beats: it runs the
-// signal through a BiquadFilter chain into an AnalyserNode, reads both frequency
-// and time-domain data, and maps amplitude continuously onto ring geometry —
-// waveforms drawn, not events fired. That works because its output is a shape it
-// redraws every frame. Ours is a CASCADE, which is a discrete thing that starts
-// somewhere and spreads, so it needs a moment to start ON. Hence onsets decide
-// WHEN and raVe's continuous amplitude decides HOW MUCH. The filter-before-the-
-// analyser is taken from raVe directly: a lowpass does in the audio thread what
-// summing FFT bins does badly on the main one.
+// NOTHING LIGHTS UP WHEN IT IS QUIET. While capture is on, the model's ambient
+// self-seeding stays off even in silence — see `driving()`.
 //
 // COST. Off, this file does nothing: no context, no stream, no rAF. On, it is one
 // rAF plus two small reads per frame, with the FFT on the audio thread. What
-// actually costs is the cascades it fires — this page's animation is the one
-// layer under the CRT stack's two backdrop-filter panes — and that is bounded by
-// MIN_GAP_MS here and by the model's own MAX_LIVE.
-/* global graphPulse */
+// costs is the cascades it fires; this page's animation is the one layer under
+// the CRT stack's two backdrop-filter panes, so MIN_GAP_MS here and the model's
+// own MAX_LIVE are what bound it.
+/* global graphPulse, graphTempo, graphAudioUI */
 var graphAudio = (function () {
   'use strict';
 
@@ -42,86 +39,105 @@ var graphAudio = (function () {
   var CUT_Q = 0.7;                // gentle, no resonant peak inventing beats
   var HIST_N = 45;                // ~0.75s of frames = the LOCAL average
   var SENS = 1.32;                // onset = energy over SENS x that average
-  var BIG = 1.9;                  // and a second cascade over BIG x it
   var FLOOR = 6;                  // 0..255; under this it counts as silence
   var MIN_GAP_MS = 190;           // debounce -> a ~315bpm ceiling
-  var QUIET_MS = 4000;            // silent this long and the ambient clock resumes
-  var FLASH_MS = 110;
+
+  // How many starting points a beat gets. Level is judged against a DECAYING PEAK
+  // rather than an absolute number, because a shared tab and a microphone across a
+  // room arrive at wildly different amplitudes and neither is wrong; what matters
+  // is loud FOR THIS SOURCE. The peak decays so a track that gets quieter is not
+  // judged against its own loudest moment for the rest of its life.
+  var SEEDS_MIN = 4, SEEDS_MAX = 20;
+  var PEAK_DECAY = 0.999;
+
+  // All three processors OFF on purpose. Echo cancellation, auto gain and noise
+  // suppression exist to make a voice call intelligible, and every one of them
+  // works by flattening the transients a beat IS — autoGainControl in particular
+  // will quietly normalise a track's dynamics away. raVe passes a bare
+  // `{audio: true}` and inherits the processed chain, which is the wrong signal.
+  var RAW = { echoCancellation: false, autoGainControl: false, noiseSuppression: false };
+
+  var LOOPBACK = /monitor of|stereo mix|loopback|what ?u ?hear|blackhole|soundflower|vb-?audio|voicemeeter/i;
 
   var on = false, ctx = null, stream = null, ana = null, freq = null, wave = null;
-  var raf = 0, btn = null, note = null, noteT = 0, flash = 0;
-  var hist = [], histI = 0, lastBeat = 0, rms = 0;
+  var raf = 0, el = null, binHi = 0;
+  var hist = [], histI = 0, lastBeat = 0, rms = 0, peak = 0.02;
 
-  function desktop() {
-    return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)
-      && !window.matchMedia('(pointer: coarse)').matches;
-  }
-
-  // The model's ambient clock asks this before seeding on its own. Enabled is not
-  // enough: once the music stops — track ended, tab muted, someone walked away —
-  // the page has to hand back to the ambient clock rather than sit still, because
-  // a motionless graph is the one thing this page must never look like.
-  function driving(now) {
-    return on && (now - lastBeat) < QUIET_MS;
+  // ── the control, reached through a shim ──────────────────────────────────
+  // Guarded so the analysis runs with no UI present at all, which is what a test
+  // harness wants.
+  function ui() {
+    return typeof graphAudioUI !== 'undefined' ? graphAudioUI : null;
   }
 
   function say(msg, sticky) {
-    if (!note) {
-      return;
-    }
-    note.textContent = msg || '';
-    note.hidden = !msg;
-    clearTimeout(noteT);
-    if (msg && !sticky) {
-      noteT = setTimeout(function () { say(''); }, 4000);
+    var u = ui();
+    if (u) {
+      u.say(msg, sticky);
     }
   }
 
   function paint() {
-    if (!btn) {
-      return;
+    var u = ui();
+    if (u) {
+      u.paint(on);
     }
-    btn.setAttribute('data-on', on ? '1' : '0');
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.title = on ? 'Listening — the graph lights on the beat'
-      : 'Light the graph in time with what is playing';
   }
 
-  function beat(over) {
+  // ── what the model asks ──────────────────────────────────────────────────
+
+  // The ambient clock asks this before seeding on its own, and while capture is ON
+  // the answer is always yes — even in silence. NOTHING SHOULD LIGHT UP WHEN IT IS
+  // QUIET: handing back to the self-seeding animation during a gap would look
+  // exactly like the audio still driving it, which is worse than a dark graph
+  // because it is a lie about what the page is doing. Turning the control off is
+  // what restores ambient.
+  function driving() {
+    return on;
+  }
+
+  function seedsForLevel() {
+    var norm = peak > 0 ? Math.min(1, rms / peak) : 0;
+    return SEEDS_MIN + Math.round(norm * (SEEDS_MAX - SEEDS_MIN));
+  }
+
+  function fire() {
     if (typeof graphPulse === 'undefined') {
       return;
     }
-    // No argument, deliberately. graphPulse.seed(id) is the TAPPED cascade: it
-    // guarantees its first hop and draws none of the extra seeds. With no id the
-    // model takes its own weighted draw and runs the full ambient burst — eight
-    // seeds from one square, staggered — which is the thing worth putting on a
-    // beat. raVe's continuous term lands here: a louder onset spends more.
-    graphPulse.seed();
-    if (over > BIG) {
-      graphPulse.seed();
-    }
-    if (btn) {
-      btn.classList.add('gp-beat');
-      clearTimeout(flash);
-      flash = setTimeout(function () { btn.classList.remove('gp-beat'); }, FLASH_MS);
+    // No id, deliberately: graphPulse.seed(id) is the smaller TAPPED cascade,
+    // while no id lets the model take its own weighted draw and run a full burst.
+    // The COUNT is where the loudness lands.
+    graphPulse.seed(null, seedsForLevel());
+    var u = ui();
+    if (u) {
+      u.flash();
     }
   }
+
+  // ── the frame ────────────────────────────────────────────────────────────
 
   function tick() {
     if (!on) {
       return;
     }
     raf = requestAnimationFrame(tick);
+
+    // Only the bins the lowpass actually passes. Averaging all 512 of them after
+    // filtering everything above CUT_HZ divides the signal by ~128: measured, a
+    // kick peaked at 6.7 of 255, which sits ON the silence FLOOR and made onsets
+    // fire only by luck — so the phase lock had almost nothing to lock to. With
+    // the band alone the same kick peaks at 252.
     ana.getByteFrequencyData(freq);
     var sum = 0, i;
-    for (i = 0; i < freq.length; i++) {
+    for (i = 0; i <= binHi; i++) {
       sum += freq[i];
     }
-    var energy = sum / freq.length;
+    var energy = sum / (binHi + 1);
 
     // Time domain as well, the way raVe reads both: RMS of the lowpassed signal
     // is the honest loudness of the bass, where the binned average is a spectrum
-    // shape. It is what a beat's strength is scaled against.
+    // shape. This is what decides how MANY nodes a beat wakes.
     ana.getByteTimeDomainData(wave);
     var acc = 0;
     for (i = 0; i < wave.length; i++) {
@@ -129,21 +145,41 @@ var graphAudio = (function () {
       acc += v * v;
     }
     rms = Math.sqrt(acc / wave.length);
+    peak = Math.max(rms, peak * PEAK_DECAY);
 
+    var now = performance.now();
+    graphTempo.push(now, energy);
+
+    // The onset threshold is the LOCAL average, not a fixed number, so it follows
+    // a quiet room or a loud one with no sensitivity setting to get wrong.
     var mean = 0;
     for (i = 0; i < hist.length; i++) {
       mean += hist[i];
     }
     mean = hist.length ? mean / hist.length : 0;
 
-    var now = performance.now();
-    if (hist.length >= HIST_N && energy > FLOOR && mean > 0
-        && energy > mean * SENS && (now - lastBeat) > MIN_GAP_MS) {
+    var onset = hist.length >= HIST_N && energy > FLOOR && mean > 0
+      && energy > mean * SENS && (now - lastBeat) > MIN_GAP_MS;
+    if (onset) {
       lastBeat = now;
-      beat(energy / mean);
+      graphTempo.onset(now);
     }
 
-    // Written AFTER the test: a loud frame folded in first would raise the very
+    var n = graphTempo.fires(now);
+    if (n) {
+      // On the grid: steady, and phase-locked to the kicks. This is the point of
+      // measuring tempo at all — raw onset firing is jittery and drops a beat
+      // whenever one kick is quieter than the running average.
+      while (n-- > 0) {
+        fire();
+      }
+    } else if (onset && !graphTempo.locked(now)) {
+      // No tempo yet: fall back to firing on what is actually heard, which is
+      // where this started.
+      fire();
+    }
+
+    // Written AFTER the test: a loud frame folded in first raises the very
     // average it is about to be compared against, and the beat tests itself away.
     if (hist.length < HIST_N) {
       hist.push(energy);
@@ -153,28 +189,30 @@ var graphAudio = (function () {
     }
   }
 
+  // ── opening and closing a source ─────────────────────────────────────────
+
   function stop(msg) {
     on = false;
     cancelAnimationFrame(raf);
-    clearTimeout(flash);
-    if (btn) {
-      btn.classList.remove('gp-beat');
-    }
     if (stream) {
       stream.getTracks().forEach(function (t) { t.stop(); });
+    }
+    if (el) {
+      el.pause();
+      URL.revokeObjectURL(el.src);   // or the blob is held for the life of the tab
+      el = null;
     }
     if (ctx) {
       ctx.close();
     }
     stream = null; ctx = null; ana = null; freq = null; wave = null;
-    hist = []; histI = 0; lastBeat = 0; rms = 0;
+    hist = []; histI = 0; lastBeat = 0; rms = 0; peak = 0.02;
+    graphTempo.reset();
     paint();
-    say(msg || 'ambient');
+    say(msg === '' ? '' : (msg || 'ambient'));
   }
 
-  // source -> lowpass -> analyser. Never to ctx.destination: the graph is not
-  // meant to play the audio back at itself.
-  function listen(s, label) {
+  function listen(make, label, s, audible) {
     stream = s;
     var AC = window.AudioContext || window.webkitAudioContext;
     ctx = new AC();
@@ -192,37 +230,91 @@ var graphAudio = (function () {
     ana.smoothingTimeConstant = 0;
     freq = new Uint8Array(ana.frequencyBinCount);
     wave = new Uint8Array(ana.fftSize);
-    ctx.createMediaStreamSource(stream).connect(lp).connect(ana);
+    var perBin = ctx.sampleRate / 2 / ana.frequencyBinCount;
+    binHi = Math.max(2, Math.min(ana.frequencyBinCount - 1, Math.ceil(CUT_HZ / perBin)));
 
-    // Chrome's own "stop sharing" ends the track, not the page's button.
-    stream.getAudioTracks().forEach(function (t) {
-      t.addEventListener('ended', function () { stop('sharing ended'); });
-    });
-
+    var src = make(ctx);
+    src.connect(lp);
+    lp.connect(ana);
+    // A CAPTURED stream must never reach the speakers — that is feedback, and on
+    // a loopback device it is feedback into its own source. A file WE are playing
+    // is the opposite case: createMediaElementSource reroutes the element's output
+    // into the graph, so without this the page goes silent.
+    if (audible) {
+      src.connect(ctx.destination);
+    }
+    if (stream) {
+      // Chrome's own "stop sharing", or a device being unplugged.
+      stream.getAudioTracks().forEach(function (t) {
+        t.addEventListener('ended', function () { stop('capture ended'); });
+      });
+    }
     on = true;
     paint();
-    say(label);
+    say(label, true);   // sticky: the note is the readout of WHICH input is live
     raf = requestAnimationFrame(tick);
   }
 
-  function mic(why) {
+  function nameOf(d) {
+    return (d && d.label) || '';
+  }
+
+  function fromStream(s, label) {
+    listen(function (c) { return c.createMediaStreamSource(s); }, label, s, false);
+  }
+
+  function inputs() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      return Promise.resolve([]);
+    }
+    return navigator.mediaDevices.enumerateDevices().then(function (ds) {
+      return ds.filter(function (d) { return d.kind === 'audioinput'; });
+    }).catch(function () { return []; });
+  }
+
+  function useDevice(dev) {
+    var want = {
+      echoCancellation: false, autoGainControl: false, noiseSuppression: false,
+    };
+    if (dev && dev.deviceId) {
+      want.deviceId = { exact: dev.deviceId };
+    }
+    navigator.mediaDevices.getUserMedia({ audio: want }).then(function (s) {
+      var n = nameOf(dev) || 'default microphone';
+      fromStream(s, 'in: ' + n + (LOOPBACK.test(n) ? '  (speaker output)' : ''));
+    }).catch(function (e) {
+      stop(e && e.name === 'NotAllowedError'
+        ? 'microphone blocked for this site' : 'could not open that input');
+    });
+  }
+
+  // The "just work" path: the loopback device if the machine has one, else the
+  // default mic. Device LABELS are empty until a capture permission has been
+  // granted, which is why this opens a stream FIRST and may then re-open on a
+  // better device — enumerating up front returns a list of anonymous ids.
+  function auto() {
     var md = navigator.mediaDevices;
     if (!md || !md.getUserMedia) {
-      stop(why || 'no audio source available');
+      stop('no audio source available');
       return;
     }
-    // All three OFF on purpose. Echo cancellation, auto gain and noise
-    // suppression exist to make a voice call intelligible, and every one of them
-    // works by flattening the transients a beat IS — autoGainControl will quietly
-    // normalise a track's dynamics away. raVe passes a bare `{audio: true}` and
-    // inherits whatever the browser defaults to; on a mic that is the processed
-    // chain, which is the wrong signal for this.
-    md.getUserMedia({
-      audio: {
-        echoCancellation: false, autoGainControl: false, noiseSuppression: false,
-      },
-    }).then(function (s) {
-      listen(s, 'listening to the room (microphone)');
+    md.getUserMedia({ audio: RAW }).then(function (s) {
+      return inputs().then(function (ds) {
+        var hit = null;
+        for (var i = 0; i < ds.length; i++) {
+          if (LOOPBACK.test(nameOf(ds[i]))) {
+            hit = ds[i];
+            break;
+          }
+        }
+        if (!hit) {
+          fromStream(s, 'in: default microphone');
+          return;
+        }
+        // Two live captures is two recording indicators for one feature.
+        s.getTracks().forEach(function (t) { t.stop(); });
+        useDevice(hit);
+      });
     }).catch(function (e) {
       stop(e && e.name === 'NotAllowedError'
         ? 'microphone blocked for this site' : 'no microphone available');
@@ -236,66 +328,63 @@ var graphAudio = (function () {
       .then(function (s) {
         s.getVideoTracks().forEach(function (t) { t.stop(); });
         if (!s.getAudioTracks().length) {
-          // The picker appears whether or not the box is ticked, so this is the
-          // likeliest outcome by far and it must not read as a broken feature.
+          // The picker appears whether or not "share tab audio" is ticked, so this
+          // is the likeliest outcome by far and it must not read as a broken
+          // feature.
           s.getTracks().forEach(function (t) { t.stop(); });
-          say('no audio in that share — pick a tab and tick "share tab audio"', true);
           on = false;
           paint();
+          say('no audio in that share — pick a tab and tick "share tab audio"', true);
           return;
         }
-        listen(s, 'listening to the shared tab');
+        fromStream(s, 'in: shared tab audio');
       })
-      .catch(function () {
-        // Cancelled the picker, or a browser that puts no audio on this stream.
-        mic('share cancelled');
+      .catch(function (e) {
+        // A cancelled picker is ordinary and silent. Any OTHER error is ours and
+        // must say so: this catch covers the whole then() chain, so a bug in
+        // listen() would otherwise be reported as a cancelled share while the page
+        // sat there doing nothing.
+        if (e && (e.name === 'NotAllowedError' || e.name === 'AbortError')) {
+          return;
+        }
+        on = false;
+        paint();
+        say('capture failed: ' + ((e && (e.name || e.message)) || 'unknown'), true);
       });
   }
 
-  function toggle() {
+  // raVe's other source, and the one that needs no permission at all: the page
+  // PLAYS the file, so the analyser sees the signal exactly — no room, no
+  // re-recording, no picker.
+  function playFile(f) {
     if (on) {
-      stop();
-    } else if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-      share();
-    } else {
-      mic();
+      stop('');
     }
+    el = new Audio();
+    el.src = URL.createObjectURL(f);
+    el.loop = true;
+    listen(function (c) { return c.createMediaElementSource(el); },
+      'in: ' + f.name, null, true);
+    el.play().catch(function () { stop('could not play that file'); });
   }
 
   return {
     driving: driving,
+    isOn: function () { return on; },
+    // The four ways in, for the control.
+    share: share,
+    auto: auto,
+    use: useDevice,
+    inputs: inputs,
+    playFile: playFile,
+    isLoopback: function (n) { return LOOPBACK.test(n || ''); },
+    off: function () { stop(); },
     // The continuous term, raVe's half of this: bass RMS, 0..1, for anything that
     // wants to scale with loudness rather than fire on a beat.
-    level: function () {
-      return on ? rms : 0;
-    },
-    // Built here rather than in graph-overlay.js so the whole feature — control,
-    // permission, capture, analysis and seeding — is one file to read or delete.
-    init: function () {
-      if (btn || !desktop()) {
-        return;   // no control where it cannot work; see the header
-      }
-      btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'gp-audio';
-      btn.className = 'gp-toggle gp-min-btn';
-      // A musical note is not in 04b25, which is ASCII-only, so this one control
-      // is re-fonted to --font-mono. Same rule and reason as the nav's star.
-      btn.textContent = '♪';
-      btn.addEventListener('click', toggle);
-      note = document.createElement('div');
-      note.id = 'gp-audio-note';
-      note.hidden = true;
-      document.body.appendChild(btn);
-      document.body.appendChild(note);
-      paint();
-    },
+    level: function () { return on ? rms : 0; },
+    seeds: function () { return on ? seedsForLevel() : 0; },
+    bpm: function () { return on ? graphTempo.bpm() : 0; },
+    confidence: function () { return on ? graphTempo.confidence() : 0; },
+    stats: function () { return graphTempo.stats(); },
   };
 })();
-
-// Self-starting, so this feature is genuinely one file: graph-overlay.js does not
-// mention it and does not have to. The script is deferred, so the body exists by
-// the time this runs, and init() only BUILDS the control — no audio context, no
-// stream and no permission prompt until it is tapped. It sits at z-index 41,
-// below the loading cover, so it cannot appear over a page that is still loading.
-graphAudio.init();

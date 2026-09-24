@@ -1866,6 +1866,95 @@ The cap makes `(other)` the second-largest community (444 nodes — the long tai
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md).
 
 ---
+#### Audio: `graph-audio.js` + `graph-audio-ui.js` + `graph-tempo.js`
+
+**Desktop only, opt-in, three files on two real seams**: capture and analysis
+(`graph-audio.js`), the control and the source picker (`graph-audio-ui.js`), and
+the tempo arithmetic (`graph-tempo.js`, which is handed onset-energy samples and
+answers *how fast, and when is the next one* — it knows nothing about
+microphones or cascades). The UI half is reached through three guarded functions
+(`say` / `paint` / `flash`), so the analysis runs with no UI present at all,
+which is what a test harness wants.
+
+**Where the audio comes from, best signal first.** A page cannot read the
+device's audio OUTPUT directly: there is no system-audio capture on iOS at all,
+and Safari and Firefox put no audio on a `getDisplayMedia` stream either.
+
+| Source | Prompt | Notes |
+|---|---|---|
+| a local **file**, dropped on the page | none at all | the page PLAYS it, so `createMediaElementSource` sees the exact signal. raVe's `Playlist.js` |
+| a **shared tab** (Chrome/Edge desktop) | share picker | the real output; works with headphones on |
+| a **loopback input** — "Monitor of …", Stereo Mix, BlackHole | mic permission | the speaker output wearing a microphone's clothes. There is no web API for it: it exists only where the machine was set up that way, so it is offered and never assumed |
+| the **microphone** | mic permission | hears the room. raVe's `Microphone.js` |
+
+**The live source is named, and chosen from a picker.** Which input is running is
+not guessable from the outside — a monitor device, a headset mic and a shared tab
+look identical on screen and sound nothing alike to the analysis — so the note is
+sticky while capturing and says which one it got. Device LABELS are blank until a
+capture permission exists, which is why the menu offers `list inputs…` rather
+than a column of anonymous ids, and why `auto` opens a stream first and only then
+re-opens on a better device.
+
+**Nothing lights up when it is quiet.** `driving()` returns `on`; being enabled is
+the whole test. Handing back to the ambient self-seeding during a silent gap
+would look exactly like the audio still driving it, which is worse than a dark
+graph because it is a lie about what the page is doing. Verified by forcing the
+flag: 0 lit pixels for 24s straight.
+
+**TWO TRANSFORMS, and only the first one touches pitch.** The `AnalyserNode` FFT
+runs on the AUDIO and is a frequency transform, but its output collapses
+immediately to ONE number — the mean energy in bins `0..binHi`, i.e. 0-200Hz — so
+it serves as a bass-loudness meter, and nothing downstream ever sees which note
+is playing. The SECOND transform runs over TIME, on the onset envelope: its axis
+is seconds and its peaks are in BPM, not Hz. Pitch is only a means of measuring
+loudness over time; the rhythm is in how that loudness REPEATS.
+
+**Tempo is autocorrelation of the onset envelope**, which is the Fourier answer
+computed directly — Wiener-Khinchin makes autocorrelation the inverse transform
+of the power spectrum, so the lag peaking here is the frequency an FFT of the
+envelope would peak at. There is no native FFT for an arbitrary array
+(`AnalyserNode` only transforms live audio), and 34 lags over 300 samples once a
+second costs nothing. The envelope is resampled onto a fixed 50Hz grid so a lag
+converts to a tempo exactly at any frame rate, and each bucket keeps its MAXIMUM:
+a kick is a transient, and averaging it with the 19ms either side of it is how
+you lose the thing you are looking for.
+
+**Octave correction is not optional.** A periodic kick pattern correlates just as
+well at HALF its tempo — every other beat still lines up — and the half is the
+longer lag, which on a noisy envelope often edges ahead. Measured against a
+120bpm click track, the raw winner was **61**, reported with high confidence. The
+winner is now explicitly offered its double (`OCT_KEEP` 0.7), and the same track
+then measures **120**, period exactly 500ms. A weighting nudge cannot do this
+job: it only re-ranks candidates that already compete, and at half tempo the two
+are genuinely equally periodic.
+
+**Phase comes from real onsets, not from the autocorrelation**, which yields a
+period and says nothing about where the beats sit. A detected onset drags the
+grid onto it (`PLL_PULL` 0.25) rather than restarting it, so the beat is both the
+right length and on the kicks.
+
+**Energy is measured over the passed band only.** The chain is
+`source -> lowpass(200Hz) -> analyser`, and averaging all 512 bins after
+filtering out everything above 200Hz divides the signal by ~128: measured, a kick
+peaked at **6.7 of 255** — sitting ON the silence floor, so onsets fired by luck
+and the phase lock had almost nothing to lock to. Summed over the passed band
+alone, the same kick peaks at **252**.
+
+**Loudness chooses how many nodes wake**: `SEEDS_MIN` 4 to `SEEDS_MAX` 20, passed
+as the count to `graphPulse.seed()`, judged against a DECAYING PEAK rather than an
+absolute number — a shared tab and a mic across a room arrive at wildly different
+amplitudes and neither is wrong.
+
+**A beat seeds with NO argument**: `graphPulse.seed(id)` is the smaller TAPPED
+cascade, while no id lets the model take its own weighted draw and run the full
+burst.
+
+`smoothingTimeConstant` is **0** against the default 0.8, because averaging across
+frames is precisely what onset detection must not do — the frame-to-frame jump IS
+the beat. And a silent 6s window no longer clobbers a good lock: that is silence,
+not a wrong answer.
+
+
 ## 12. The bottom nav
 
 Fixed to every page. Labels are **fixed 3-char codes** (`_NAV_LABELS`), with one glyph: `/cc` wears the star (§12a).
