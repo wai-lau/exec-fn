@@ -199,6 +199,34 @@ The `.cyber-crt` punch was tuned 2026-08-31 from `brightness(1.03) contrast(1.1)
 
 ## 11. `/graph`
 
+**Node rotation was removed after three attempts (2026-09-24).** "Get rid of the shape rotation
+it's fucked."
+
+The feature was: the instant before a big node throws a wavefront, turn its shape a quarter, half or
+three quarters. The obstacle was never the rotation itself — it is a few lines of vertex arithmetic —
+but that vis draws its OWN copy of every node, at the original angle, on a canvas one layer below
+the overlay. The overlay cannot erase that canvas, and with physics off vis never redraws it, so the
+copy is baked. Re-orienting it would mean forcing a full redraw of the graph, about 100ms, on every
+rotation — once a beat.
+
+So every attempt was a way of COVERING vis's copy, and each failed on the same fact in a different
+disguise:
+
+1. Fill both orientations in the opaque punch. The punch runs after the halos, so it cut a hole in
+   the glow instead of covering anything, and the union of an up- and a down-triangle is a hexagram.
+   Reported as doubled shapes.
+2. Fill only the rotated orientation. No hole, but vis's copy then showed wherever it protruded past
+   the rotated glyph — a visible rim of its own border, not the hairline that reasoning predicted,
+   because the border is 2px wide and CENTRED on its path so a pixel of it lies outside the glyph
+   that was supposed to contain it.
+3. Fill the unrotated orientation FIRST, before the halos, so the halo paints over the cover rather
+   than being cut by it. This is actually correct and would have worked. It was abandoned because
+   the feature had by then cost three rounds and the owner called it.
+
+Worth keeping for the general shape: an effect that needs two layers to agree is only as good as the
+layer you do not control. The wavefront's own rotation stayed, and costs nothing, precisely because
+nothing on vis's canvas corresponds to it.
+
 **Punching two orientations cut a hexagram out of the halo (2026-09-24).** Reported twice, the
 second time as *why are the node shapes still doubled up after rotation*.
 

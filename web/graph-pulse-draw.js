@@ -113,7 +113,8 @@ var graphPulseDraw = (function () {
   // knows about alpha, charge and paint order stops and one that only builds
   // paths begins. `graphGlyph.path` leaves a path current; `graphGlyph.centre`
   // answers where the glyph actually sits, for the passes that draw round things.
-  // `p.t` is the node's rotation and every glyph pass hands it on — see graph-glyph.js.
+  // Its `turn` argument is used by the WAVEFRONT only — a node is always drawn at
+  // the angle vis drew it at, or the two layers disagree (graph-ring.js).
 
   // Alpha rides on ctx.globalAlpha over a flat white fill, never a colour string
   // built per call: this runs per lit node per frame, and a fresh string 60 times
@@ -164,7 +165,7 @@ var graphPulseDraw = (function () {
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;
     }
-    graphGlyph.path(x, y, r, p.s, p.t);
+    graphGlyph.path(x, y, r, p.s);
     ctx.globalAlpha = a * A.stroke;
     ctx.lineWidth = 1.4;
     ctx.stroke();
@@ -223,31 +224,16 @@ var graphPulseDraw = (function () {
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;
     }
-    // ONE SHAPE — the node's CURRENT orientation, and nothing else.
+    // ONE SHAPE, at the one orientation vis drew it at — so this fill lands exactly
+    // on vis's own copy of the node and the two layers agree.
     //
-    // It briefly filled the UNROTATED orientation as well, to cover the copy vis
-    // draws on its own canvas a layer down at the original angle. The reasoning was
-    // that the extra area costs nothing, "being the page background over the page
-    // background". That was wrong, and visibly so: this fill does not land on the
-    // PAGE, it lands on the node's own HALO, which is a disc 2.6x the glyph radius
-    // drawn on this canvas a few passes earlier. So the fill cuts a HOLE in that
-    // halo, and the hole is shaped like whatever was filled — the union of an up-
-    // and a down-triangle is a hexagram, and a hexagram-shaped hole in a glowing
-    // disc is exactly what "the node shapes are doubled up after rotation" looks
-    // like. Reported twice.
-    //
-    // Filling one shape makes the hole match the outline drawn on top of it, which
-    // is the only self-consistent answer available from this canvas.
-    //
-    // WHAT THAT LEAVES, stated because it is not nothing: vis's unrotated copy is
-    // still under the halo wherever it sticks out past the rotated glyph, so a
-    // faint ghost of its border can show there. It cannot be erased from here —
-    // vis's canvas is a layer down and, with physics off, STATIC, so re-orienting
-    // its copy would mean forcing a full redraw (~100ms on this graph) on every
-    // rotation, which is once a beat. Its fill is the page colour and its border
-    // alpha is 0.2, and the halo paints additively over both, so what remains is a
-    // hairline rather than a second shape.
-    graphGlyph.path(x, y, Math.max(p.r * scale, 1.2), p.s, p.t);
+    // They briefly did not: a node used to TURN before throwing a wavefront, which
+    // left vis's unrotated copy showing beside the overlay's rotated one. Both
+    // attempts to cover it failed for the same reason wearing two faces — the
+    // opaque fill that hides vis's copy also cuts a hole in the node's own halo,
+    // and where it was trimmed back to avoid the hole it left a rim of vis's
+    // border. The rotation was removed instead. ARCHAEOLOGY.md §11.
+    graphGlyph.path(x, y, Math.max(p.r * scale, 1.2), p.s);
     ctx.fill();
   }
 

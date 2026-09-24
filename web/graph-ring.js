@@ -94,19 +94,24 @@ var graphRing = (function () {
   // 0 with nothing listening, so ambient fronts are exactly GROW.
   var BLOOM_GROW = 0.6;           // extent: up to 1.6x on a full low hit
 
-  // A NODE SNAPS ROUND THE INSTANT BEFORE IT THROWS. A quarter, a half or three
-  // quarters of a turn, drawn at random — never 0, because the point is that the
-  // glyph visibly MOVES on the frame it fires, and never a small angle, because a
-  // few degrees on a triangle reads as a rendering wobble rather than as an event.
+  // THE FRONT LEAVES AT A RANDOM QUARTER TURN. A quarter, a half or three quarters,
+  // never 0 — the point is that consecutive fronts do not stack into one stencil —
+  // and never a small angle, because a few degrees on a triangle reads as a
+  // rendering wobble rather than as a choice.
   //
-  // It is written onto the node's own position record (`pos[id].t`), so every pass
-  // that draws that glyph picks it up — halo centre, outline, the interior clear
-  // and the punch — and the front is drawn at the same angle, so the wave leaves
-  // the shape it came from already aligned with it.
+  // THE NODE ITSELF NO LONGER TURNS, and that is a removal rather than an
+  // oversight. It did, written onto `pos[id].t` and picked up by every pass that
+  // drew the glyph, and it could not be made clean: vis draws its OWN copy of each
+  // node at the original angle, on a canvas a layer down that this overlay cannot
+  // erase, and with physics off that canvas is STATIC — so re-orienting vis's copy
+  // means forcing a full redraw of the graph (~100ms) on every rotation, once a
+  // beat, which is not affordable.
   //
-  // The rotation PERSISTS after the wave dies. It is a rotation of the node, not an
-  // animation on it, and re-rolling on the next wave is what keeps a hub from
-  // looking like it is vibrating in place.
+  // Covering the copy instead was tried twice and failed twice for the same reason
+  // in two different disguises: the opaque fill that hides it also cuts a hole in
+  // the node's halo, and left an orange rim of vis's own border where it did not.
+  // ARCHAEOLOGY.md §11 has both. A front has no counterpart on vis's canvas, so its
+  // rotation costs nothing and stays.
   var TURNS = [Math.PI / 2, Math.PI, 3 * Math.PI / 2];
 
   // A BIGGER NODE THROWS A SLOWER WAVE. Same argument as degree buying flash time:
@@ -294,11 +299,9 @@ var graphRing = (function () {
         return;                   // this beat has already thrown one
       }
       lastRelease = now;
-      // The node turns FIRST, on this frame, before the front it is about to throw
-      // is ever drawn. Written onto the shared position record so every pass that
-      // draws this glyph agrees about which way it is facing.
+      // The angle belongs to the FRONT alone — nothing is written back onto the
+      // node, which is what keeps the overlay's glyph in agreement with vis's.
       var turn = TURNS[Math.floor(Math.random() * TURNS.length)];
-      p.t = turn;
       waves.push({
         id: id, t0: now,
         // Never longer than the beat that threw it, or fronts nest.
