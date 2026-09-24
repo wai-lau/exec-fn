@@ -2120,6 +2120,22 @@ instantly to admit a new value and contracts slowly (`CENT_RELAX`) toward what t
 music is actually doing, with `CENT_MIN_SPAN` as a floor so a steady tone cannot
 divide by nothing.
 
+**X WALKS, it does not teleport.** Independent random X per beat was what read as
+"too random": every beat landed somewhere unrelated to the last, so a sequence of
+beats was a scatter rather than a movement. A reflecting random walk (`X_STEP`
+0.07 of the width per fire, turning back at the edges rather than wrapping — a
+wrap would teleport across the whole picture, which is the behaviour being
+removed) keeps successive beats near each other, so the eye follows a travelling
+locus. X still carries no audio meaning, which is what "ignore left and right"
+asked for; it simply stops jumping.
+
+**And the burst got much smaller**, because volume was the other half of the same
+complaint. Seeds 4..20 -> **2..8**, `MAX_SEEDS` 48 -> **20**, `EXTENT_GAIN` 3 ->
+**0.8** (the pool was reaching 320 nodes, which is not a burst but a region the
+size of the argument) and `REACH_GAIN` 0.45 -> **0.18**, which matters most
+because branching is `degree x p` and so reach COMPOUNDS. A cascade has to be able
+to die for the next one to mean anything.
+
 **Pan drove X for one commit and was wrong twice over.** A mixed track sits near
 centre, so `(pan + 1) / 2` was ~0.5 almost always; combined with the un-normalised
 centroid the result was a VERTICAL COLUMN, with most of the graph never lighting

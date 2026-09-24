@@ -70,12 +70,24 @@ var graphAudio = (function () {
   var CENT_RELAX = 0.0008;        // per frame, toward the observed range
   var CENT_MIN_SPAN = 0.06;       // floor, so a steady tone cannot divide by ~0
 
+  // X WALKS, it does not teleport. Independent random X per beat is the thing
+  // that read as "too random": every beat landed somewhere unrelated to the last,
+  // so a sequence of beats was a scatter rather than a movement. A random WALK
+  // keeps successive beats near each other, so the eye follows a travelling locus
+  // and the picture looks intentional -- while X still carries no audio meaning,
+  // which is what "ignore left and right" asked for.
+  var X_STEP = 0.07;              // per fire, as a fraction of the width
+
   // How many starting points a beat gets. Level is judged against a DECAYING PEAK
   // rather than an absolute number, because a shared tab and a microphone across a
   // room arrive at wildly different amplitudes and neither is wrong; what matters
   // is loud FOR THIS SOURCE. The peak decays so a track that gets quieter is not
   // judged against its own loudest moment for the rest of its life.
-  var SEEDS_MIN = 4, SEEDS_MAX = 20;
+  // 2..8, down from 4..20. With BEAT_BOOST and DOWNBEAT_BOOST on top, the old
+  // range asked for up to 80 seeds on a loud downbeat (clamped to 48), which with
+  // a wide pool lit a large fraction of the graph every beat -- and a burst that
+  // covers everything says nothing about anything.
+  var SEEDS_MIN = 2, SEEDS_MAX = 8;
   // 0.99995, from 0.999. The old value fell to 1/e in about 17 seconds, so a quiet
   // intro renormalised to "full" within seconds and the DROP did not look like a
   // drop -- the track's dynamic arc, which is the most legible thing in music, was
@@ -117,7 +129,7 @@ var graphAudio = (function () {
   var hist = [], histI = 0, lastBeat = 0;
   var rms = 0, hold = 0, peak = PEAK_FLOOR, loud = 0, amp = 0;
   // Inverted on purpose: the first reading seeds both ends.
-  var centLo = 1, centHi = 0;
+  var centLo = 1, centHi = 0, xWalk = Math.random();
 
   // ── the control, reached through a shim ──────────────────────────────────
   // Guarded so the analysis runs with no UI present at all, which is what a test
@@ -184,6 +196,19 @@ var graphAudio = (function () {
     return 1 - n;                 // bright sounds belong at the TOP
   }
 
+  // A reflecting random walk: it drifts, and it turns back at the edges rather
+  // than wrapping, because wrapping would teleport across the whole picture and
+  // that is the behaviour being removed.
+  function placeX() {
+    xWalk += (Math.random() * 2 - 1) * X_STEP;
+    if (xWalk < 0) {
+      xWalk = -xWalk;
+    } else if (xWalk > 1) {
+      xWalk = 2 - xWalk;
+    }
+    return xWalk;
+  }
+
   function fire() {
     if (typeof graphPulse === 'undefined') {
       return;
@@ -201,7 +226,7 @@ var graphAudio = (function () {
     // so height stays the one axis that MEANS something: a rising line climbs the
     // picture, and nothing competes with it for the eye.
     var b = graphBands.read();
-    var id = graphSeed.at(Math.random(), placeY(b.centroid));
+    var id = graphSeed.at(placeX(), placeY(b.centroid));
     graphPulse.seedAt(id, seedsForLevel(performance.now()));
     var u = ui();
     if (u) {
@@ -292,7 +317,7 @@ var graphAudio = (function () {
     graphBands.detach();
     hist = []; histI = 0; lastBeat = 0;
     rms = 0; hold = 0; peak = PEAK_FLOOR; loud = 0; amp = 0;
-    centLo = 1; centHi = 0;
+    centLo = 1; centHi = 0; xWalk = Math.random();
     graphTempo.reset();
     paint();
     say(msg === '' ? '' : (msg || 'ambient'));
