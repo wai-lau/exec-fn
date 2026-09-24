@@ -97,7 +97,23 @@ var graphNorm = (function () {
   // successive beats near each other, so the eye follows a travelling locus and the
   // picture looks intentional -- while X still carries no audio meaning, which is
   // what "ignore left and right" asked for.
-  var X_STEP = 0.07;              // per fire, as a fraction of the width
+  var X_STEP = 0.09;              // per fire, as a fraction of the width
+  // AND IT CARRIES MOMENTUM, which is the difference between wandering and
+  // diffusing. An independent step per fire is a pure random walk, and a pure
+  // random walk goes nowhere: its expected displacement is zero and its typical
+  // distance grows only as the square root of the number of steps, so it doubles
+  // back on itself constantly and SITS in one region for long stretches. That is
+  // not a tuning problem — no step size fixes it, because a bigger step just
+  // jitters harder in the same place.
+  //
+  // So the direction persists and only TURNS a little each fire. `X_TURN` is how
+  // much of the base speed can be added to the velocity per step, and the speed is
+  // held between a floor and a ceiling: the floor is what stops it stalling when
+  // two turns happen to cancel, and the ceiling stops a run of same-sign turns
+  // building up into a teleport.
+  var X_TURN = 0.45;
+  var X_SLOW = 0.55;              // x X_STEP: never slower than this
+  var X_FAST = 2.0;               // x X_STEP: never faster
   // The walk STARTS CENTRED. It began at Math.random(), which can land hard left or
   // hard right, so the first bars of a track drifted in from an edge for no reason
   // -- and the reflecting bound means an edge start also spends its first steps
@@ -109,7 +125,7 @@ var graphNorm = (function () {
   // Inverted on purpose: the first reading seeds both ends.
   var centLo = 1, centHi = 0;
   var sharpLo = 1, sharpHi = 0, sharp = 0.5;
-  var xWalk = X_HOME;
+  var xWalk = X_HOME, xVel = X_STEP;
 
   // One window, three call sites. Expands instantly, contracts slowly, and cannot
   // collapse past `floor` -- which is what stops a steady tone dividing by ~0 and
@@ -219,15 +235,25 @@ var graphNorm = (function () {
     // Screen Y. Inverted, because bright sounds belong at the TOP.
     placeY: function (c) { return 1 - this.pitch(c); },
 
-    // A reflecting random walk: it drifts, and it turns back at the edges rather
-    // than wrapping, because wrapping would teleport across the whole picture and
-    // that is the behaviour being removed.
+    // A reflecting walk WITH MOMENTUM: it keeps going the way it was going, turns
+    // by a little each fire, and bounces off the edges rather than wrapping —
+    // wrapping would teleport across the whole picture, which is the behaviour this
+    // walk exists to remove.
+    //
+    // Reflection flips the VELOCITY as well as the position. Without that the walk
+    // arrives at an edge still travelling into it and spends step after step being
+    // pushed back to almost the same place, which looks exactly like being stuck.
     placeX: function () {
-      xWalk += (Math.random() * 2 - 1) * X_STEP;
+      xVel += (Math.random() * 2 - 1) * X_TURN * X_STEP;
+      var dir = xVel < 0 ? -1 : 1, speed = Math.abs(xVel);
+      xVel = dir * Math.min(Math.max(speed, X_STEP * X_SLOW), X_STEP * X_FAST);
+      xWalk += xVel;
       if (xWalk < 0) {
         xWalk = -xWalk;
+        xVel = -xVel;
       } else if (xWalk > 1) {
         xWalk = 2 - xWalk;
+        xVel = -xVel;
       }
       return xWalk;
     },
@@ -243,7 +269,7 @@ var graphNorm = (function () {
       hist = []; histI = 0; ratio = 1;
       centLo = 1; centHi = 0;
       sharpLo = 1; sharpHi = 0; sharp = 0.5;
-      xWalk = X_HOME;
+      xWalk = X_HOME; xVel = X_STEP;
     },
   };
 })();

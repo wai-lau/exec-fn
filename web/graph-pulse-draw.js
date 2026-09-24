@@ -15,7 +15,8 @@
 // dozen hexagons and their edges — so a frame is O(lit), not O(graph). Measured
 // at 0ms of canvas work per frame; what a frame costs on this page is
 // compositing, and that is the CRT stack's doing, not this file's.
-/* global network, graphInk, graphAudio, graphGlyph, graphRing, graphGlow */
+/* global network, graphInk, graphAudio, graphGlyph, graphRing, graphGlow,
+   graphSurface */
 var graphPulseDraw = (function () {
   'use strict';
 
@@ -96,55 +97,15 @@ var graphPulseDraw = (function () {
     edge: A_EDGE,
   };
 
-  var cv = null, ctx = null, cw = 0, ch = 0, dpr = 1;
+  var ctx = null, cw = 0, ch = 0;
   // Set once by graph-pulse.js. Mutated in place by it thereafter, never
   // reassigned, which is the whole contract that makes reading them here safe.
   var pos = {}, lit = {}, litEdges = {}, level = null, satLevel = null;
   var chargeN = {}, chargeE = {};
-  // The page background, read off a real node rather than written as a literal:
-  // it is graphify's own `color.background` and this file has no business
-  // holding a second copy of it.
-  var BG = null;
-
-  function makeCanvas() {
-    cv = document.createElement('canvas');
-    cv.id = 'gp-pulse';
-    document.body.appendChild(cv);
-    ctx = cv.getContext('2d');
-    // One context for the life of the page, handed over once — the same handover
-    // contract `init` uses for the state the model mutates in place.
-    graphGlyph.bind(ctx);
-    graphRing.bind(ctx, INK);
-    graphGlow.bind(ctx, INK);
-    // Resolved once, here, rather than at evaluation time: the head injection has
-    // certainly run by the time the model builds the canvas.
-    var v = window.GRAPH_OCCLUDE_MIN;
-    occludeMin = typeof v === 'number' && v > 0 ? v : OCCLUDE_FALLBACK;
-    resize();
-    window.addEventListener('resize', resize);
-  }
-
-  function resize() {
-    var host = document.getElementById('graph');
-    if (!host || !cv) {
-      return;
-    }
-    var r = host.getBoundingClientRect();
-    // Capped at 2. This is a glow layer, not text: the third row of pixels on a
-    // DPR-3 phone buys nothing visible and costs a 1290x2628 backing store
-    // (12.9MB) that is composited under the CRT stack every frame. At 2 it is
-    // 5.7MB for the same picture.
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    cw = r.width;
-    ch = r.height;
-    cv.width = Math.round(cw * dpr);
-    cv.height = Math.round(ch * dpr);
-    cv.style.width = cw + 'px';
-    cv.style.height = ch + 'px';
-    cv.style.top = r.top + 'px';
-    cv.style.left = r.left + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
+  // THE CANVAS, its backing store and the real page background live in
+  // graph-surface.js. `ctx`/`cw`/`ch` above are kept current by the callback it
+  // calls on create and on every resize, so the passes read locals rather than
+  // paying an accessor per lit node per frame.
 
   // THE SHAPES LIVE IN graph-glyph.js, which reproduces vis's own geometry --
   // including the offset that stops a triangle's glow sitting off the node it
@@ -318,12 +279,13 @@ var graphPulseDraw = (function () {
   // And a BIG node goes OPAQUE, which is what hides the edges behind it — ours and
   // vis's both. Only the big ones, on the shipped percentile.
   function punchNodes(scale, view) {
-    if (!BG) {
+    var bg = graphSurface.bg();
+    if (!bg) {
       return;
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    ctx.fillStyle = BG;
+    ctx.fillStyle = bg;
     eachDrawn(scale, view, true);
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = INK;
@@ -369,14 +331,26 @@ var graphPulseDraw = (function () {
       // deletes keys.
       chargeN = cn;
       chargeE = ce;
-      makeCanvas();
+      ctx = graphSurface.create(function (context, width, height) {
+        ctx = context;
+        cw = width;
+        ch = height;
+      });
+      // One context for the life of the page, handed to each effect that owns its
+      // own pixels — the same handover contract `init` itself uses for the state
+      // the model mutates in place.
+      graphGlyph.bind(ctx);
+      graphRing.bind(ctx, INK);
+      graphGlow.bind(ctx, INK);
+      // Resolved here rather than at evaluation time: the head injection has
+      // certainly run by the time the model builds the canvas.
+      var v = window.GRAPH_OCCLUDE_MIN;
+      occludeMin = typeof v === 'number' && v > 0 ? v : OCCLUDE_FALLBACK;
     },
     satInk: graphInk.sat,
-    // REJECTS `transparent`, not merely empty: four fifths of the nodes carry that
-    // exact string (graph_geometry._unocclude_small_nodes) and it is TRUTHY, so a
-    // falsy-only guard sets a background that paints nothing and turns the
-    // occlusion pass into a silent no-op. Incident: ARCHAEOLOGY.md §11.
-    setBg: function (c) { BG = (c && c !== 'transparent') ? c : BG; },
+    // Only a FALLBACK now — graph-surface.js reads the real page background
+    // first, and rejects `transparent` for the reason recorded there.
+    setBg: graphSurface.setBg,
     // One frame. `levels` is {nodeId: alpha} from the model; lit edges are read
     // straight off the bound object and levelled here, because an edge's alpha
     // is min(both ends) and the model has no reason to build that list twice.
@@ -489,9 +463,6 @@ var graphPulseDraw = (function () {
     clear: function () {
       ctx.clearRect(0, 0, cw, ch);
     },
-    // Also the whole of the woken-tab repair: a canvas comes back wedged from a
-    // suspend, and re-measuring the backing store is what graph-overlay.js used
-    // to spend a location.reload() on.
-    resize: resize,
+    resize: graphSurface.resize,
   };
 })();

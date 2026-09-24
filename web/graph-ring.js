@@ -31,7 +31,7 @@
 // percentile of the sizes (`_OCCLUDE_PCTL`, the top fifth as of 2026-09-24), so
 // most nodes are not that. Every node throwing one would be the whole picture
 // pulsing at once, which says nothing about anywhere.
-/* global graphGlyph, graphTempo, graphAudio */
+/* global graphGlyph, graphTempo, graphAudio, graphSurface */
 var graphRing = (function () {
   'use strict';
 
@@ -209,6 +209,31 @@ var graphRing = (function () {
   // the camera and the paint order, and calls `draw` at the point in that order
   // where a wavefront belongs.
   var ctx = null, ink = '#ffffff';
+  // The scratch layer the front is drawn on before being masked and blended
+  // across. Made once, re-sized with the surface, and device-pixel sized because
+  // it is masked against the main canvas.
+  var lay = null, lctx = null;
+
+  function layer(w, h) {
+    var main = graphSurface.canvas();
+    if (!main) {
+      return null;
+    }
+    if (!lay) {
+      lay = document.createElement('canvas');
+      lctx = lay.getContext('2d');
+    }
+    if (lay.width !== main.width || lay.height !== main.height) {
+      lay.width = main.width;
+      lay.height = main.height;
+    }
+    var dpr = graphSurface.dpr();
+    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    lctx.clearRect(0, 0, w, h);
+    lctx.globalCompositeOperation = 'source-over';
+    lctx.globalAlpha = 1;
+    return lctx;
+  }
 
   // Guarded like every other cross-file read on this page: the tree is edited
   // live, so a file can reach a browser a moment before its dependency's script
@@ -317,12 +342,18 @@ var graphRing = (function () {
     // the layout is frozen but the view is not, so scale and position are
     // recomputed every frame by the file that owns them.
     draw: function (now, scale, view, w, h) {
-      if (!ctx) {
+      if (!ctx || !waves.length) {
+        return;                   // nothing to draw, and no layer to pay for
+      }
+      var g = layer(w, h);
+      if (!g) {
         return;
       }
-      // ONLY WHERE THE CANVAS ALREADY HAS SOMETHING. See graph-pulse-draw.js's
-      // call site for why this is `source-atop` rather than a blend mode.
-      ctx.globalCompositeOperation = 'source-atop';
+      var drew = false;
+      // graphGlyph builds paths on whatever context it holds, so it is pointed at
+      // the scratch layer for the duration and handed back after. One bind, not
+      // one per wave.
+      graphGlyph.bind(g);
       for (var i = 0; i < waves.length; i++) {
         var wave = waves[i];
         var p = pos[wave.id];
@@ -349,17 +380,40 @@ var graphRing = (function () {
         // The centre is taken at the node's OWN radius and held while the radius
         // grows, so the front expands concentrically instead of walking off the
         // node that threw it. That is the whole reason graphGlyph.at exists.
-        // Neutral, never `p.c`: colour on this page means community.
-        ctx.strokeStyle = ink;
-        ctx.globalAlpha = a * A_RING;
+        // The blend reads only this colour's SATURATION and discards its hue, so
+        // the node's own saturated community ink serves — and no new literal is
+        // needed, which the palette lint cares about.
+        g.strokeStyle = p.c || ink;
+        g.globalAlpha = a * A_RING;
         // Linear in the front's own size, so the triangle scales stroke and all.
-        ctx.lineWidth = W_AT_NODE * (big / Math.max(r, 0.001));
+        g.lineWidth = W_AT_NODE * (big / Math.max(r, 0.001));
         // ONE shape for every front, at the angle the node snapped to as it fired,
         // and the centre is taken at the NODE's shape so the triangle leaves from
         // exactly where its own glyph sits.
         graphGlyph.at(x, graphGlyph.centre(y, r, p.s), big, SHAPE, wave.turn);
-        ctx.stroke();
+        g.stroke();
+        drew = true;
       }
+      graphGlyph.bind(ctx);
+      if (!drew) {
+        return;
+      }
+      // MASK the front down to the pixels the main canvas already has, then carry
+      // it across as a saturation blend. Both drawImage calls run on the IDENTITY
+      // transform: the layer is device-pixel sized, so a dpr-scaled copy would land
+      // at twice the size.
+      var main = graphSurface.canvas();
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'destination-in';
+      g.drawImage(main, 0, 0);
+
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'saturation';
+      ctx.drawImage(lay, 0, 0);
+      ctx.restore();
       ctx.globalCompositeOperation = 'lighter';
     },
 

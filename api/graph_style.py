@@ -172,9 +172,27 @@ def _friendly_dir(key: str) -> str:
     return " ".join(words) or key
 
 
-# graph.html body bg. Node interiors fill with this so the community colour reads
-# as the hexagon OUTLINE only (the /emet look: bg-filled node, coloured border).
-_GRAPH_BG = "#0f0f1a"
+# THE PAGE BACKGROUND, and it has to be the REAL one. Node interiors fill with it
+# so the community colour reads as the OUTLINE only (the /emet look: bg-filled
+# node, coloured border), and so that a node OCCLUDES the edges behind it.
+#
+# It was `#0f0f1a` — graphify's own body colour, which this comment used to call
+# "graph.html body bg" and which stopped being true the moment /graph started
+# injecting chrome.css. This site's `--bg-hsl` is `0 0% 0%`: the page is measured
+# pure black. So every node interior was painting a dark NAVY shape onto a black
+# page, visible rather than invisible, and the overlay's own punch inherited the
+# same wrong colour through the node data.
+#
+# What that looked like: once a node could be ROTATED before throwing a wavefront,
+# the overlay punched BOTH orientations to cover vis's unrotated copy — correct,
+# and free only if the fill is genuinely the page colour. At navy-on-black it was
+# not free: the union of an up- and a down-triangle showed as a visible shape and
+# was reported as the nodes being DUPLICATED. ARCHAEOLOGY.md §11.
+#
+# Keep this equal to `--bg-hsl` in web/chrome.css. The overlay now reads the real
+# computed background first and only falls back to this, but vis's own unlit layer
+# has nothing to fall back to.
+_GRAPH_BG = "#000000"
 
 
 def _rgba(hex_color: str, alpha: float) -> str:

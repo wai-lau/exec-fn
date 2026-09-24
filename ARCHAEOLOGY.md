@@ -199,6 +199,34 @@ The `.cyber-crt` punch was tuned 2026-08-31 from `brightness(1.03) contrast(1.1)
 
 ## 11. `/graph`
 
+**The node fill was never the page background, and it showed up as duplicated nodes
+(2026-09-24).** Reported as *the nodes themselves are duplicated, not the waves*.
+
+`graph_style._GRAPH_BG` was `#0f0f1a`, and the comment above it called that "graph.html body bg".
+That was true of graphify's own emitted page and stopped being true the moment `/graph` started
+injecting chrome.css over it. This site's `--bg-hsl` is `0 0% 0%` — measured `rgb(0, 0, 0)`, pure
+black — so the fill was a dark NAVY, and every node interior it painted was a visible shape on a
+black page rather than a hole in the overlay.
+
+It went unnoticed for as long as it did because a single navy triangle behind a coloured outline
+just looks like a node. What made it visible was the rotation: a node that turns before throwing a
+wavefront has BOTH orientations filled, because vis draws its own unrotated copy on a lower canvas
+that the overlay cannot erase, so the only way to hide that copy is to cover it. The union of an up-
+and a down-triangle is a hexagram — invisible if the fill matches the page, and two overlapping
+triangles if it does not. The claim in that commit that punching both orientations "costs nothing
+visually, being the page background over the page background" was exactly right and exactly the
+assumption that was false.
+
+Fixed at both ends. `_GRAPH_BG` is `#000000` for vis's unlit layer, which has nothing to fall back
+on, and `web/graph-surface.js` reads the overlay's fill from `getComputedStyle(document.body)` —
+which cannot drift the way a literal or a data field can, because it IS the thing being matched.
+Verified by sampling the canvas pixel at the centre of the largest hub: `[0, 0, 0, 255]`, where it
+had been `[15, 15, 26]`.
+
+Both incidents on this value have the same shape: a fill that must equal something else was stored
+as its own copy of that something, and the copy went stale in a different way each time. The
+occlusion pass is only correct when it reads the thing it is trying to match.
+
 **`setBg('transparent')` silently switched off node occlusion (2026-09-24).** Reported as *the
 centre of big nodes is getting bright*.
 
