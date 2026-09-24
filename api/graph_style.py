@@ -85,14 +85,26 @@ def _shape_graph_nodes_by_type(page: str) -> str:
 
 
 def _restyle_graph_nodes(page: str) -> str:
-    """Replace vis's default dots with the per-type shapes in `_TYPE_SHAPES`,
-    and bump the border so the bg-filled outline reads. Also repoint the node-info
-    neighbour stripe from .color.background (now the page bg, invisible) to
-    .color.border (the community colour). String tweaks on graphify's emitted JS,
-    so they survive a /graphify rebuild."""
+    """Replace vis's default dots with the per-type shapes in `_TYPE_SHAPES`, and
+    draw every node at ZERO OPACITY so the graph is dark until something lights it.
+    Also repoint the node-info neighbour stripe from .color.background (the page bg,
+    invisible) to .color.border (the community colour). String tweaks on graphify's
+    emitted JS, so they survive a /graphify rebuild.
+
+    `opacity: 0` is the right knob rather than a transparent colour or `hidden`.
+    It zeroes only the DRAWN alpha: the colour objects stay intact, so the panel's
+    neighbour stripe still has a community colour to read, the node keeps its
+    `size` (which the cascade's glyph radius is derived from), and vis still
+    HIT-TESTS it — `hidden: true` would have made a node unclickable, taking the
+    node-info panel and the tap-to-seed cascade with it, and a transparent border
+    would have blanked the stripe.
+
+    The lit state is the overlay's job (graph-pulse-draw.js): a node rises to full
+    in ATTACK_MS and then decays, so what is on screen at any moment is what has
+    recently fired and nothing else."""
     page = page.replace(
         "nodes: { shape: 'dot', borderWidth: 1.5 }",
-        "nodes: { shape: 'triangle', borderWidth: 2 }",
+        "nodes: { shape: 'triangle', borderWidth: 2, opacity: 0 }",
         1,
     )
     page = _shape_graph_nodes_by_type(page)
