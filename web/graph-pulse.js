@@ -124,6 +124,8 @@ var graphPulse = (function () {
     bump: function () {}, bumpEdge: function () {}, step: function () {},
     nodes: function () { return {}; }, edges: function () { return {}; },
     charged: function () { return 0; },
+    bind: function () {}, index: function () {},
+    drawEdges: function () {}, drawOutlines: function () {},
   };
 
   function beat() {
@@ -162,11 +164,11 @@ var graphPulse = (function () {
         for (var i = 0; i < all.length; i++) {
           var n = all[i];
           pos[n.id] = { x: 0, y: 0, r: n.size || 10, s: n.shape, c: graphPulseDraw.satInk(n.color && n.color.hover && n.color.hover.border) };
-          if (n.color && n.color.background) {
-            // The page background, for the opaque fill that makes a node occlude
-            // the edges behind it. Read off the data, never a second literal.
-            graphPulseDraw.setBg(n.color.background);
-          }
+          // The page background, for the opaque fill that makes a node occlude
+          // the edges behind it. Read off the data, never a second literal —
+          // and `setBg` owns which values it will accept, so there is no second
+          // opinion about that here.
+          graphPulseDraw.setBg(n.color && n.color.background);
           deg[n.id] = 0;
           adj[n.id] = [];
         }
@@ -483,6 +485,7 @@ var graphPulse = (function () {
         // The wavefront reads a node's own radius off `pos` to decide whether it is
         // one of the big ones, so it is handed the same map.
         ring().index(pos);
+        glow().index(pos);
         graphPulseDraw.init(pos, graphLit.nodes(), graphLit.edges(),
           graphLit.level, graphLit.satLevel, glow().nodes(), glow().edges());
         running = true;

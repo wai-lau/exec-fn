@@ -19,7 +19,7 @@
 // FADE_LOUD seconds at peak level and FADE_SILENT at silence, so the same charge
 // is an eternity across a chorus and gone in a gap. A fixed half-life cannot say
 // that.
-/* global graphAudio */
+/* global graphAudio, graphGlyph */
 var graphGlow = (function () {
   'use strict';
 
@@ -38,6 +38,27 @@ var graphGlow = (function () {
   var EDGE_FADE = 0.45;
 
   var nodes = {}, edges = {};
+  // The canvas and the layout, handed over once. graph-pulse-draw.js still owns
+  // the context, the camera and the paint ORDER — it calls the two passes below at
+  // the two different points in that order where they belong, which is the thing
+  // that genuinely has to be decided globally.
+  //
+  // THE PIXELS LIVE HERE for the same reason graph-ring.js's do: this is an effect
+  // with its own register and two passes over it, and nothing in those passes is
+  // shared with anything else on the canvas. graph-lit.js is the counter-example
+  // that keeps the split honest — its flash feeds five passes, so it stays a model
+  // a draw half reads.
+  var ctx = null, ink = '#ffffff', pos = {};
+
+  // THE ACCUMULATED OPACITY, drawn UNDER both flash passes. This is graph-glow.js's
+  // charge: how opaque a node has become over a track, draining on a rate set by
+  // the audio level rather than on the cascade's couple of seconds.
+  //
+  // No halos here, deliberately. Late in a loud track this pass can cover a large
+  // part of the graph, so it is the one that has to stay cheap — a glyph fill and
+  // a stroke and nothing else, where a lit node pays for two soft discs as well.
+  var A_CHARGE = { stroke: 0.85 };   // outline only: the interior stays black
+
 
   // 0..1 from the audio, or null when nothing is listening. graphAudio smooths it
   // with an envelope follower, which matters here: instantaneous RMS is near zero
@@ -67,7 +88,78 @@ var graphGlow = (function () {
     }
   }
 
+  function outlines(scale, view, w, h) {
+    for (var id in nodes) {
+      var a = nodes[id];
+      if (a <= 0.02) {
+        continue;
+      }
+      var p = pos[id];
+      if (!p) {
+        continue;
+      }
+      var x = (p.x - view.x) * scale + w / 2;
+      var y = (p.y - view.y) * scale + h / 2;
+      if (x < -40 || y < -40 || x > w + 40 || y > h + 40) {
+        continue;
+      }
+      var r = Math.max(p.r * scale, 1.2);
+      ctx.strokeStyle = p.c || ink;
+      graphGlyph.path(x, y, r, p.s, p.t);
+      ctx.globalAlpha = a * A_CHARGE.stroke;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    }
+  }
+
+  // The charge map is keyed by the model's own "a\0b" edge key and carries only a
+  // number, so the endpoints are read back out of the key rather than duplicated
+  // into every entry.
+  function chargeEdges(scale, view, w, h, width, edgeAlpha) {
+    ctx.lineWidth = width;
+    for (var k in edges) {
+      var a = edges[k];
+      if (a <= 0.02) {
+        continue;
+      }
+      var cut = k.indexOf('\u0000');
+      var p = pos[k.slice(0, cut)], q = pos[k.slice(cut + 1)];
+      if (!p || !q) {
+        continue;
+      }
+      ctx.strokeStyle = p.c || ink;
+      ctx.globalAlpha = a * edgeAlpha;
+      ctx.beginPath();
+      ctx.moveTo((p.x - view.x) * scale + w / 2, (p.y - view.y) * scale + h / 2);
+      ctx.lineTo((q.x - view.x) * scale + w / 2, (q.y - view.y) * scale + h / 2);
+      ctx.stroke();
+    }
+  }
+
   return {
+    bind: function (context, fallbackInk) {
+      ctx = context;
+      ink = fallbackInk || ink;
+    },
+
+    index: function (positions) { pos = positions; },
+
+    // The two passes, called by graph-pulse-draw.js at the two points in the paint
+    // order where a charge belongs: the edges with the other edges, the outlines
+    // with the other outlines. `width` and `edgeAlpha` arrive from there so the
+    // charge cannot drift out of step with the flash it sits under.
+    drawEdges: function (scale, view, w, h, width, edgeAlpha) {
+      if (ctx) {
+        chargeEdges(scale, view, w, h, width, edgeAlpha);
+      }
+    },
+
+    drawOutlines: function (scale, view, w, h) {
+      if (ctx) {
+        outlines(scale, view, w, h);
+      }
+    },
+
     // Every hit tops a node up rather than resetting it: that is the difference
     // between accumulating and merely being re-lit.
     // `gain` is 0..1, how hard the hit that caused this was (graph-lit.js reads it

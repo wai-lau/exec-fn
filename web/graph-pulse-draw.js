@@ -15,7 +15,7 @@
 // dozen hexagons and their edges — so a frame is O(lit), not O(graph). Measured
 // at 0ms of canvas work per frame; what a frame costs on this page is
 // compositing, and that is the CRT stack's doing, not this file's.
-/* global network, graphInk, graphAudio, graphGlyph, graphRing */
+/* global network, graphInk, graphAudio, graphGlyph, graphRing, graphGlow */
 var graphPulseDraw = (function () {
   'use strict';
 
@@ -60,7 +60,7 @@ var graphPulseDraw = (function () {
   var edgeW = EDGE_W;
 
   // ONLY THE BIG NODES OCCLUDE, and WHICH ONES IS THE SERVER'S ANSWER — shipped as
-  // `window.GRAPH_OCCLUDE_MIN`, the 90th percentile of the real size distribution
+  // `window.GRAPH_OCCLUDE_MIN`, a percentile of the real size distribution
   // that graph_style computed while clearing the fill on the UNLIT layer. This file
   // skips the same nodes on the LIT layer, and graph-ring.js throws waves off the
   // same set: one number, three layers, because a node that occludes in one and not
@@ -115,6 +115,7 @@ var graphPulseDraw = (function () {
     // contract `init` uses for the state the model mutates in place.
     graphGlyph.bind(ctx);
     graphRing.bind(ctx, INK);
+    graphGlow.bind(ctx, INK);
     // Resolved once, here, rather than at evaluation time: the head injection has
     // certainly run by the time the model builds the canvas.
     var v = window.GRAPH_OCCLUDE_MIN;
@@ -151,6 +152,7 @@ var graphPulseDraw = (function () {
   // knows about alpha, charge and paint order stops and one that only builds
   // paths begins. `graphGlyph.path` leaves a path current; `graphGlyph.centre`
   // answers where the glyph actually sits, for the passes that draw round things.
+  // `p.t` is the node's rotation and every glyph pass hands it on — see graph-glyph.js.
 
   // Alpha rides on ctx.globalAlpha over a flat white fill, never a colour string
   // built per call: this runs per lit node per frame, and a fresh string 60 times
@@ -201,7 +203,7 @@ var graphPulseDraw = (function () {
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;
     }
-    graphGlyph.path(x, y, r, p.s);
+    graphGlyph.path(x, y, r, p.s, p.t);
     ctx.globalAlpha = a * A.stroke;
     ctx.lineWidth = 1.4;
     ctx.stroke();
@@ -234,15 +236,6 @@ var graphPulseDraw = (function () {
     }
   }
 
-  // THE ACCUMULATED OPACITY, drawn UNDER both flash passes. This is graph-glow.js's
-  // charge: how opaque a node has become over a track, draining on a rate set by
-  // the audio level rather than on the cascade's couple of seconds.
-  //
-  // No halos here, deliberately. Late in a loud track this pass can cover a large
-  // part of the graph, so it is the one that has to stay cheap — a glyph fill and
-  // a stroke and nothing else, where a lit node pays for two soft discs as well.
-  var A_CHARGE = { stroke: 0.85 };   // outline only: the interior stays black
-
   // A BIG node the overlay draws gets its glyph filled with the page background
   // FIRST, opaque, before any glow goes on top. That is what makes it occlude the
   // edges behind it: an edge should arrive AT a hub, not cross over it. vis does
@@ -269,8 +262,22 @@ var graphPulseDraw = (function () {
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;
     }
-    graphGlyph.path(x, y, Math.max(p.r * scale, 1.2), p.s);
+    var gr = Math.max(p.r * scale, 1.2);
+    graphGlyph.path(x, y, gr, p.s, p.t);
     ctx.fill();
+    // AND AGAIN UNROTATED, whenever this node has been turned. vis drew the node
+    // on ITS canvas, a layer down, at the original angle — we cannot reach those
+    // pixels, so a rotated overlay glyph left the unrotated one showing through
+    // beside it as a GHOST TRIANGLE. Covering both orientations hides it.
+    //
+    // It costs nothing visually: the fill is the page background over the page
+    // background, so the extra area is invisible against it. What it does cost is a
+    // slightly wider occlusion footprint at a rotated node, which is the union of
+    // the two orientations rather than one of them.
+    if (p.t) {
+      graphGlyph.path(x, y, gr, p.s, 0);
+      ctx.fill();
+    }
   }
 
   function eachDrawn(scale, view, bigOnly) {
@@ -323,55 +330,6 @@ var graphPulseDraw = (function () {
     ctx.strokeStyle = INK;
   }
 
-  function chargeOutlines(scale, view) {
-    for (var id in chargeN) {
-      var a = chargeN[id];
-      if (a <= 0.02) {
-        continue;
-      }
-      var p = pos[id];
-      if (!p) {
-        continue;
-      }
-      var x = (p.x - view.x) * scale + cw / 2;
-      var y = (p.y - view.y) * scale + ch / 2;
-      if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
-        continue;
-      }
-      var r = Math.max(p.r * scale, 1.2);
-      var ink = p.c || INK;
-      ctx.strokeStyle = ink;
-      graphGlyph.path(x, y, r, p.s);
-      ctx.globalAlpha = a * A_CHARGE.stroke;
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-    }
-  }
-
-  // The charge map is keyed by the model's own "a\0b" edge key and carries only a
-  // number, so the endpoints are read back out of the key rather than duplicated
-  // into every entry.
-  function drawChargeEdges(scale, view) {
-    ctx.lineWidth = edgeW;
-    for (var k in chargeE) {
-      var a = chargeE[k];
-      if (a <= 0.02) {
-        continue;
-      }
-      var cut = k.indexOf('\u0000');
-      var p = pos[k.slice(0, cut)], q = pos[k.slice(cut + 1)];
-      if (!p || !q) {
-        continue;
-      }
-      ctx.strokeStyle = p.c || INK;
-      ctx.globalAlpha = a * A_SAT.edge;
-      ctx.beginPath();
-      ctx.moveTo((p.x - view.x) * scale + cw / 2, (p.y - view.y) * scale + ch / 2);
-      ctx.lineTo((q.x - view.x) * scale + cw / 2, (q.y - view.y) * scale + ch / 2);
-      ctx.stroke();
-    }
-  }
-
   // Iterates `lit` rather than the level map the model hands in: that map holds
   // only what is still above the threshold on the WHITE envelope, and this layer's
   // whole point is the two thirds after that has run out.
@@ -414,7 +372,11 @@ var graphPulseDraw = (function () {
       makeCanvas();
     },
     satInk: graphInk.sat,
-    setBg: function (c) { BG = c || BG; },
+    // REJECTS `transparent`, not merely empty: four fifths of the nodes carry that
+    // exact string (graph_geometry._unocclude_small_nodes) and it is TRUTHY, so a
+    // falsy-only guard sets a background that paints nothing and turns the
+    // occlusion pass into a silent no-op. Incident: ARCHAEOLOGY.md §11.
+    setBg: function (c) { BG = (c && c !== 'transparent') ? c : BG; },
     // One frame. `levels` is {nodeId: alpha} from the model; lit edges are read
     // straight off the bound object and levelled here, because an edge's alpha
     // is min(both ends) and the model has no reason to build that list twice.
@@ -449,7 +411,6 @@ var graphPulseDraw = (function () {
       // costs nothing visually and buys the ordering the two opaque passes need.
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
-      graphRing.draw(now, scale, view, cw, ch);
       var id;
       for (id in levels) {
         if (pos[id]) {
@@ -467,7 +428,7 @@ var graphPulseDraw = (function () {
       // THEN the edges, so they cross a node that does not occlude them.
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
-      drawChargeEdges(scale, view);
+      graphGlow.drawEdges(scale, view, cw, ch, edgeW, A_SAT.edge);
       drawEdges(now, scale, view, A_WHITE, level, true);
       drawEdges(now, scale, view, A_SAT, satLevel, true);
 
@@ -476,7 +437,7 @@ var graphPulseDraw = (function () {
       punchNodes(scale, view);
 
       // Outlines last, on top of the black. This is what a lit node actually IS.
-      chargeOutlines(scale, view);
+      graphGlow.drawOutlines(scale, view, cw, ch);
       ctx.strokeStyle = INK;
       for (id in levels) {
         if (pos[id]) {
@@ -484,6 +445,24 @@ var graphPulseDraw = (function () {
         }
       }
       satNodes(now, scale, view, nodeStroke);
+
+      // THE WAVEFRONT GOES LAST, and it is the one pass that is not additive. It
+      // draws `source-atop`, so it paints ONLY where this canvas already has
+      // pixels — the nodes and their glow — and not across the empty space
+      // between them. Under 'lighter' it was a bright line sweeping the void,
+      // which is the thing it should not be.
+      //
+      // `multiply` was the other candidate and does not do this on its own: a
+      // blend mode still composites onto a transparent destination, so the stroke
+      // would keep showing over the gaps. Restricting WHERE a thing paints is
+      // `source-atop`'s job, not a blend function's.
+      //
+      // The cost is honest and worth naming: this canvas only holds the nodes it
+      // has drawn, which is the lit and charged ones. A front passing over a node
+      // that is neither shows nothing there, because vis's copy of that node is a
+      // layer down and unreachable for compositing.
+      graphRing.draw(now, scale, view, cw, ch);
+
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     },

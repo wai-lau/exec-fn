@@ -25,24 +25,28 @@
 // caught mid-bar threw a front that had nothing to do with anything audible — the
 // effect read as random where it is meant to read as the music landing.
 //
-// ONLY THE BIG NODES DO THIS, on the same threshold that decides which nodes
-// occlude their edges. That is deliberate rather than a reuse of a handy number: a
-// wave says "something important happened here", and the threshold is the 90th
-// percentile of the sizes, so nine nodes in ten are not that. Every node throwing
-// one would be the whole picture pulsing at once, which says nothing about
-// anywhere.
+// ONLY THE BIGGEST NODES DO THIS, on a HIGHER cut than the one that decides which
+// nodes occlude their edges. That is deliberate rather than a reuse of a handy number: a
+// wave says "something important happened here", and the threshold is a
+// percentile of the sizes (`_OCCLUDE_PCTL`, the top fifth as of 2026-09-24), so
+// most nodes are not that. Every node throwing one would be the whole picture
+// pulsing at once, which says nothing about anywhere.
 /* global graphGlyph, graphTempo, graphAudio */
 var graphRing = (function () {
   'use strict';
 
-  // WHAT COUNTS AS BIG IS THE SERVER'S ANSWER, shipped as
-  // `window.GRAPH_OCCLUDE_MIN`: the percentile of the real size distribution that
-  // graph_style computed while deciding which nodes occlude their edges. Three
-  // layers gate on that one number — the unlit fill, the lit punch and this — and
-  // they are one answer to "is this node one of the big ones". A second
-  // implementation of the percentile here would be a second chance to disagree
-  // about the node sitting exactly on the boundary, and a node that occludes but
-  // throws no wave reads as a bug rather than as a rule.
+  // WHAT COUNTS AS BIG ENOUGH TO THROW IS THE SERVER'S ANSWER, shipped as
+  // `window.GRAPH_WAVE_MIN` — a HIGHER cut than `GRAPH_OCCLUDE_MIN`, and
+  // deliberately its own number. The two were one for a while and came apart
+  // because they answer different questions about the same distribution: being
+  // SOLID is "big enough that an edge should stop here" (the top fifth), where
+  // throwing a front is an EVENT, and at 300x one of them fills the screen (the
+  // top tenth).
+  //
+  // Read, never recomputed. A percentile derived again here would be a second
+  // chance to disagree with the server about the node sitting exactly on the
+  // boundary. Falls back to the occlusion cut, then to a literal, so a missing
+  // global degrades to "too many waves" rather than to none.
   var MIN_R_FALLBACK = 20;
   var minR = MIN_R_FALLBACK;
 
@@ -53,11 +57,28 @@ var graphRing = (function () {
   // three ways, and the upward triangle is what 74% of the graph wears anyway.
   var SHAPE = 'triangle';
 
-  // How far the front travels, as a multiple of the node's own radius. At 50 the
-  // largest node's front reaches on the order of twenty lattice steps, so it
-  // crosses a good part of the picture rather than ringing its own neighbourhood
-  // — which is what earns it being released only on a beat and only from a hub.
-  var GROW = 50;
+  // How far the front travels, as a multiple of the node's own radius. At 300 the
+  // largest node's front passes well off every edge of the screen before it is
+  // spent, so the effect is the triangle sweeping THROUGH the view rather than
+  // expanding inside it. Only affordable because the gates below make it rare:
+  // one per beat, from a hub.
+  var GROW = 300;
+
+  // THE STROKE SCALES WITH THE SHAPE, STRICTLY PROPORTIONALLY, and that is the
+  // whole of what makes this read as ZOOMING IN on the triangle rather than as a
+  // ring expanding away from a node. Scaling a stroked shape scales its stroke
+  // too; a constant width, or one that thins as it grows, is the giveaway that the
+  // thing is being redrawn larger rather than approached.
+  //
+  // `W_AT_NODE` is therefore NOT a free constant: it is `nodeStroke`'s own
+  // lineWidth in graph-pulse-draw.js, so at scale 1 the front IS the node's
+  // outline and every frame after is that same outline, nearer. Move the two
+  // together or the illusion breaks at the instant it starts.
+  //
+  // It ends very wide by construction — 1.4px out to 420px at GROW 300 — and that
+  // width is the zoom, not a bug. The alpha reaches nothing over the same span, so
+  // the last stretch is a wide faint wash rather than a heavy band.
+  var W_AT_NODE = 1.4;
 
   // THE KICK'S PULSE LIVES HERE NOW. It used to swell the halo on every lit node
   // (graph-pulse-draw.js's old HALO_SWELL), which made the whole picture throb in
@@ -72,6 +93,21 @@ var graphRing = (function () {
   //
   // 0 with nothing listening, so ambient fronts are exactly GROW.
   var BLOOM_GROW = 0.6;           // extent: up to 1.6x on a full low hit
+
+  // A NODE SNAPS ROUND THE INSTANT BEFORE IT THROWS. A quarter, a half or three
+  // quarters of a turn, drawn at random — never 0, because the point is that the
+  // glyph visibly MOVES on the frame it fires, and never a small angle, because a
+  // few degrees on a triangle reads as a rendering wobble rather than as an event.
+  //
+  // It is written onto the node's own position record (`pos[id].t`), so every pass
+  // that draws that glyph picks it up — halo centre, outline, the interior clear
+  // and the punch — and the front is drawn at the same angle, so the wave leaves
+  // the shape it came from already aligned with it.
+  //
+  // The rotation PERSISTS after the wave dies. It is a rotation of the node, not an
+  // animation on it, and re-rolling on the next wave is what keeps a hub from
+  // looking like it is vibrating in place.
+  var TURNS = [Math.PI / 2, Math.PI, 3 * Math.PI / 2];
 
   // A BIGGER NODE THROWS A SLOWER WAVE. Same argument as degree buying flash time:
   // the wave is proportionally larger, so at a fixed duration it would also be
@@ -112,15 +148,23 @@ var graphRing = (function () {
   // when nothing is listening.
   var ON_BEAT_MIN = 0.6;
 
-  // A node hit twice inside this keeps the wave it has instead of starting a
-  // second one on top of it. Past it, waves DO stack -- a hub caught by three
-  // cascades in a bar should read as three waves, which is the honest picture, and
-  // concentric fronts are what that looks like.
-  var MIN_GAP_MS = 260;
-  // A safety bound, not a design input. A tenth of the graph can throw one, but a
-  // cascade only lights a few dozen nodes and only the big ones among those throw,
-  // so this is not reached in ordinary play — it is here so a pathological burst
-  // cannot put a thousand stroked paths on one frame.
+  // ONE FRONT PER BEAT, ACROSS THE WHOLE GRAPH — a global gate, not a per-node
+  // one. A beat lights several seeds at once and more than one of them can be a
+  // hub, so the old per-node rule let a single beat throw several fronts and the
+  // accent became a strobe. At 300x especially, one is the whole point.
+  //
+  // The gap is HALF a beat, not a whole one: the on-beat window is about a fifth of
+  // a beat wide (ON_BEAT_MIN below), so half a period is comfortably past the end
+  // of the current window and short of the next, where a full-period gap would
+  // swallow the following beat whenever the phase lock ran a few ms late.
+  var BEAT_GAP = 0.5;
+  // With no tempo there is no beat to be one-per, so this is the floor that stops
+  // the ambient animation stroking a 300x triangle on every hit.
+  var BEAT_FALLBACK_MS = 420;
+  // A safety bound, not a design input, and since the one-per-beat gate it is a
+  // long way from binding: at 120bpm with a ~2.6s life only about five fronts are
+  // ever in flight. It is here so a pathological case cannot put a thousand
+  // stroked 300x paths on a single frame.
   var MAX_LIVE = 24;
 
   // STROKED, NEVER FILLED. A filled copy at GROW times the node's radius is a disc
@@ -128,16 +172,11 @@ var graphRing = (function () {
   // disappearing under its own glow. An outline is a FRONT: it says where the wave
   // has reached, which is the whole of what it has to say.
   var A_RING = 0.55;
-  var RING_W = 2.2;
-  // The line THINS as it grows: a front spread over a longer circumference has the
-  // same energy in more of it. Alongside the fade, this is what stops the largest,
-  // faintest rings reading as hard geometry.
-  var W_FALL = 0.6;
 
   // `pos` is graph-pulse.js's position map, handed over at index time so this file
   // can read a node's own radius without a second copy of the size rule.
   var pos = {};
-  var waves = [], lastAt = {};
+  var waves = [], lastRelease = -1e9;
   // The canvas, handed over once by graph-pulse-draw.js — which owns the context,
   // the camera and the paint order, and calls `draw` at the point in that order
   // where a wavefront belongs.
@@ -151,6 +190,14 @@ var graphRing = (function () {
     return typeof graphTempo !== 'undefined' ? graphTempo.onBeat(now) : 1;
   }
 
+  // Half a beat in milliseconds. `hopMs` is a SIXTEENTH (period / 4), which is the
+  // only public window onto the period, so a beat is four of them — and it returns
+  // 0 with no lock, which is what selects the fallback.
+  function beatGap() {
+    var hop = typeof graphTempo !== 'undefined' ? graphTempo.hopMs() : 0;
+    return hop > 0 ? hop * 4 * BEAT_GAP : BEAT_FALLBACK_MS;
+  }
+
   // 0 with no audio, which leaves a front at its nominal GROW.
   function bloom() {
     return typeof graphAudio !== 'undefined' && graphAudio.isOn()
@@ -161,11 +208,14 @@ var graphRing = (function () {
     index: function (positions) {
       pos = positions;
       waves = [];
-      lastAt = {};
+      lastRelease = -1e9;
       // Resolved here rather than at evaluation time: this file is a classic
       // script and the head injection has certainly run by the time the model
       // indexes, where module-evaluation order is a thing to get wrong.
-      var v = window.GRAPH_OCCLUDE_MIN;
+      var v = window.GRAPH_WAVE_MIN;
+      if (typeof v !== 'number' || !(v > 0)) {
+        v = window.GRAPH_OCCLUDE_MIN;
+      }
       minR = typeof v === 'number' && v > 0 ? v : MIN_R_FALLBACK;
     },
 
@@ -180,13 +230,19 @@ var graphRing = (function () {
       if (onBeat(now) < ON_BEAT_MIN) {
         return;                   // not on the beat
       }
-      if (lastAt[id] !== undefined && now - lastAt[id] < MIN_GAP_MS) {
-        return;
+      if (now - lastRelease < beatGap()) {
+        return;                   // this beat has already thrown one
       }
-      lastAt[id] = now;
+      lastRelease = now;
+      // The node turns FIRST, on this frame, before the front it is about to throw
+      // is ever drawn. Written onto the shared position record so every pass that
+      // draws this glyph agrees about which way it is facing.
+      var turn = TURNS[Math.floor(Math.random() * TURNS.length)];
+      p.t = turn;
       waves.push({
         id: id, t0: now, dur: DUR_BASE + DUR_PER_R * p.r,
         grow: GROW * (1 + BLOOM_GROW * bloom()),
+        turn: turn,
       });
       if (waves.length > MAX_LIVE) {
         waves.shift();
@@ -227,6 +283,9 @@ var graphRing = (function () {
       if (!ctx) {
         return;
       }
+      // ONLY WHERE THE CANVAS ALREADY HAS SOMETHING. See graph-pulse-draw.js's
+      // call site for why this is `source-atop` rather than a blend mode.
+      ctx.globalCompositeOperation = 'source-atop';
       for (var i = 0; i < waves.length; i++) {
         var wave = waves[i];
         var p = pos[wave.id];
@@ -255,15 +314,18 @@ var graphRing = (function () {
         // node that threw it. That is the whole reason graphGlyph.at exists.
         ctx.strokeStyle = p.c || ink;
         ctx.globalAlpha = a * A_RING;
-        ctx.lineWidth = RING_W * (1 - W_FALL * t);
-        // ONE shape for every front, and the centre is taken at the NODE's shape
-        // so the triangle starts exactly where the node's own glyph sits.
-        graphGlyph.at(x, graphGlyph.centre(y, r, p.s), big, SHAPE);
+        // Linear in the front's own size, so the triangle scales stroke and all.
+        ctx.lineWidth = W_AT_NODE * (big / Math.max(r, 0.001));
+        // ONE shape for every front, at the angle the node snapped to as it fired,
+        // and the centre is taken at the NODE's shape so the triangle leaves from
+        // exactly where its own glyph sits.
+        graphGlyph.at(x, graphGlyph.centre(y, r, p.s), big, SHAPE, wave.turn);
         ctx.stroke();
       }
+      ctx.globalCompositeOperation = 'lighter';
     },
 
     busy: function () { return waves.length > 0; },
-    reset: function () { waves = []; lastAt = {}; },
+    reset: function () { waves = []; lastRelease = -1e9; },
   };
 })();
