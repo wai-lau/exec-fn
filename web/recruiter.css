@@ -115,13 +115,17 @@ body::-webkit-scrollbar { display: none; }
 
 /* dark-mode toggle: the third pill in the footer row, right of wai-lau.net.
    Wears .cv-resume + .cv-site (outline pill) from the markup; this only adds
-   what a <button> doesn't inherit. Plain-text label: a glyph from a fallback
-   font grows the pill taller than its neighbours. */
+   what a <button> doesn't inherit. */
 .cv-theme {
   font-family: inherit;
   line-height: inherit;
   cursor: pointer;
 }
+
+/* the moon/sun glyph, bigger than the kaomoji frame around it; line-height 0
+   keeps it out of the line box, or it grows the pill ~7px taller than its
+   neighbours */
+.cv-theme .cv-glyph { font-size: 1.6em; line-height: 0; }
 
 .cv a { color: var(--cv-cyan); text-decoration: none; }
 .cv a:hover { text-decoration: underline; }

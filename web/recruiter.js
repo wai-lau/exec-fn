@@ -220,7 +220,7 @@
     if (dark && !typer) typer = startTyping();
     else if (!dark && typer) { stopTyping(typer); typer = null; }
     if (btn) {
-      btn.textContent = dark ? 'Light mode' : 'Dark mode';
+      btn.innerHTML = '⋆₊<span class="cv-glyph">' + (dark ? '☼' : '⏾') + '</span>⁺₊⋆';
     }
   }
 
