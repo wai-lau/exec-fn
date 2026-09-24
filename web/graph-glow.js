@@ -105,7 +105,7 @@ var graphGlow = (function () {
       }
       var r = Math.max(p.r * scale, 1.2);
       ctx.strokeStyle = p.c || ink;
-      graphGlyph.path(x, y, r, p.s, p.t);
+      graphGlyph.path(x, y, r, p.s);
       ctx.globalAlpha = a * A_CHARGE.stroke;
       ctx.lineWidth = 1.4;
       ctx.stroke();
