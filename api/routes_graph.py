@@ -83,7 +83,7 @@ _GRAPH_OVERLAY_JS = (
     # before graph-lit.js reads a hit's strength back out.
     '<script src="/graph-norm.js?v=2"></script>'
     '<script src="/graph-source.js?v=1"></script>'
-    '<script src="/graph-lit.js?v=3"></script>'
+    '<script src="/graph-lit.js?v=4"></script>'
     '<script src="/graph-bias.js?v=3"></script>'
     '<script src="/graph-glow.js?v=4"></script>'
     '<script src="/graph-pulse.js?v=35"></script>'

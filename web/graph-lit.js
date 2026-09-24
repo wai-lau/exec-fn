@@ -22,9 +22,18 @@ var graphLit = (function () {
   // the busy nodes are the ones worth looking at, so they hold the eye longer.
   // Slowed 50% on 2026-09-21 (from 1100 + 130/edge): the fade is sampled at the
   // frame rate, so a longer fade is also more steps between lit and unlit, which
-  // is what the stepping looked like.
-  var DUR_MIN = 1650;
-  var DUR_PER_DEG = 195;
+  // is what the stepping looked like. Lengthened by half again on 2026-09-24, on
+  // request -- so 1100 + 130 originally, then 1650 + 195, now these.
+  //
+  // THE COST IS FRAMES, NOT DRAWING. A longer life keeps `lit` non-empty for
+  // longer, so the canvas paints on more frames, and this canvas is the one
+  // ANIMATED layer under the CRT stack's two backdrop-filter panes -- the most
+  // expensive shape in this repo. Per frame the work is unchanged (O(lit), and the
+  // extra nodes are at low alpha); what grows is how many frames there are. That
+  // is the trade being accepted here, and it is the reason this pair is not simply
+  // doubled.
+  var DUR_MIN = 2500;
+  var DUR_PER_DEG = 290;
   var DUR_DEG_CAP = 12;
   var DUR_JITTER = 0.4;
   // EVERY EDGE EFFECT FADES FASTER THAN A NODE'S. 900 against a node's 1845 at
@@ -59,9 +68,22 @@ var graphLit = (function () {
   // nothing listening, so every timing here is unchanged when the audio is off.
   var DUR_SHARP = 0.55;           // life:   1.55x at the bass end, 0.45x at treble
   var ATT_SHARP = 0.6;            // attack: 448ms at the bass end, 112ms at treble
-  var DECAY_POW = 1.2;            // >1 = falls away faster than it lingers. Close
-  // to linear on purpose: at 1.8 the light was gone before the eye had followed
-  // the chain that lit it.
+  // THE FADE'S SHAPE, and it is a separate knob from the fade's LENGTH above.
+  // Below 1 the curve is concave: the node HOLDS most of its brightness through
+  // the first half of its life and spends the fall at the end, where above 1 it
+  // drops away immediately and spends its life dim. Both change how long a node
+  // looks lit; only this one changes it without adding frames.
+  //
+  // The whole history runs one way: 1.8 -> 1.2 -> 0.85. At 1.8 the light was gone
+  // before the eye had followed the chain that lit it. At 1.2, near-linear, a node
+  // was at 43% of its brightness by the halfway point; at 0.85 it is at 55% and
+  // reads as still lit rather than as already going.
+  //
+  // It cannot go much lower. As the exponent falls the END of the curve steepens
+  // (its slope runs away at the last instant), so far enough down the fade stops
+  // being a fade and becomes a hold that switches off. At 0.85 the last stretch is
+  // travelling between alphas of about 0.09 and 0, which is invisible anyway.
+  var DECAY_POW = 0.85;
 
   // HOW HARD THE HIT WAS, as a multiplier on the whole envelope. Everything on
   // this canvas used to be drawn at exactly one brightness: a peak and a whisper
