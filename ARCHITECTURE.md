@@ -1866,6 +1866,35 @@ The cap makes `(other)` the second-largest community (444 nodes — the long tai
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md).
 
 ---
+#### A node is invisible until something lights it
+
+**Every node draws at `opacity: 0`** (`_restyle_graph_nodes`), so the graph carries
+no node ink of its own: what is on screen at any moment is what has recently
+fired. The lit state is entirely the overlay's — a node rises to full in
+`ATTACK_MS` (90ms) and then decays on `(1 - t)^DECAY_POW`, with the saturated
+second pass running three times as long behind it, so "lit to 100% then decay" is
+the envelope that was already there.
+
+**`opacity: 0` rather than a transparent colour or `hidden: true`**, and the
+difference is not cosmetic. It zeroes only the DRAWN alpha:
+
+- the colour objects stay intact, so the node-info panel's neighbour stripe still
+  has a community colour to read (a transparent `border` would have blanked it);
+- the node keeps its `size`, which is what the cascade's glyph radius is derived
+  from;
+- vis still HIT-TESTS it, so tapping a node still opens its panel and seeds a
+  cascade. `hidden: true` would have taken both of those away.
+
+Measured on the served page at 1200x744: nodes contribute **~17,600 ink pixels**
+at full opacity and **0** at zero.
+
+**Edges are NOT affected and still draw at full strength** — `_brighten_graph_edges`
+puts them at opacity 1.0 / width 3, which is 139,228 ink pixels on that same
+canvas, so the structure remains visible as a web while the nodes blink on it.
+Worth knowing if that ever wants changing: graphify writes a per-edge `color`
+object, so a global `edges: { color: { opacity } }` is outranked and does nothing
+(measured — a runtime override moved the ink count by zero).
+
 #### Audio: `graph-audio.js` + `graph-audio-ui.js` + `graph-tempo.js`
 
 **Desktop only, opt-in, three files on two real seams**: capture and analysis
