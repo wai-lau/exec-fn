@@ -15,7 +15,7 @@
 // dozen hexagons and their edges — so a frame is O(lit), not O(graph). Measured
 // at 0ms of canvas work per frame; what a frame costs on this page is
 // compositing, and that is the CRT stack's doing, not this file's.
-/* global network, graphInk, graphAudio */
+/* global network, graphInk, graphAudio, graphGlyph */
 var graphPulseDraw = (function () {
   'use strict';
 
@@ -62,6 +62,14 @@ var graphPulseDraw = (function () {
   // once per lit node would be the same number fetched a hundred times.
   var haloK = 1, edgeW = EDGE_W;
 
+  // ONLY THE BIG NODES OCCLUDE. MIRRORS graph_style._OCCLUDE_MIN (_SIZE_MAX / 2)
+  // and the two must move together: that file clears the opaque interior on the
+  // UNLIT layer and this one skips the same nodes on the LIT layer, so a node that
+  // occludes in one and not the other reads as a rendering bug. It is a WORLD size
+  // (`pos[id].r` is graphify's own `size`, 12..88), never a drawn pixel radius —
+  // whether a node occludes is a property of the node, not of the current zoom.
+  var OCCLUDE_MIN = 44;
+
   // THE SECOND, SATURATED LAYER. Same geometry and the same envelope as the white
   // pass above, at THREE TIMES the life: a white flash that decays into a long
   // coloured afterglow.
@@ -101,6 +109,9 @@ var graphPulseDraw = (function () {
     cv.id = 'gp-pulse';
     document.body.appendChild(cv);
     ctx = cv.getContext('2d');
+    // One context for the life of the page, handed over once — the same handover
+    // contract `init` uses for the state the model mutates in place.
+    graphGlyph.bind(ctx);
     resize();
     window.addEventListener('resize', resize);
   }
@@ -127,76 +138,12 @@ var graphPulseDraw = (function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  // The lit glyph follows the node's SHAPE, which carries its type: an UPWARD
-  // triangle for code, a hexagon for a rationale, a DOWNWARD triangle for a
-  // document (graph_style._TYPE_SHAPES owns that mapping; this file only has to
-  // draw whatever shape a node arrives with, so a reassignment there touches
-  // nothing here). Lighting everything as one shape made a cascade say the wrong
-  // thing about what it was crossing.
-  function polygon(x, y, r, sides, turn) {
-    ctx.beginPath();
-    for (var i = 0; i < sides; i++) {
-      var a = turn + i * 2 * Math.PI / sides;
-      var px = x + r * Math.cos(a), py = y + r * Math.sin(a);
-      if (i === 0) {
-        ctx.moveTo(px, py);
-      } else {
-        ctx.lineTo(px, py);
-      }
-    }
-    ctx.closePath();
-  }
-
-  // vis does NOT draw a triangle centred on the node. Its own code reads
-  //
-  //   triangle:     y += 0.275 * (size *= 1.15)
-  //   triangleDown: y -= 0.275 * (size *= 1.15)
-  //
-  // so the shape is scaled by 1.15 and then shifted off the node position by
-  // 0.275 of that — the node's point is not the triangle's centroid. Drawing a
-  // plain centred triangle here put the lit glyph a third of a radius away from
-  // the node underneath it, which is visible the moment anything lights up.
-  // These numbers are vis's, copied deliberately: the overlay has to agree with
-  // the renderer it is painting over, not with the geometry it would choose.
-  var TRI_SCALE = 1.15;
-  var TRI_SHIFT = 0.275;
-
-  function triCentre(y, r, shape) {
-    if (shape === 'triangle') {
-      return y + TRI_SHIFT * r * TRI_SCALE;
-    }
-    if (shape === 'triangleDown') {
-      return y - TRI_SHIFT * r * TRI_SCALE;
-    }
-    return y;
-  }
-
-  function triangle(x, y, r, down) {
-    var e = r * TRI_SCALE;
-    var c = 2 * e, half = c / 2;
-    var inr = Math.sqrt(3) / 6 * c;
-    var out = Math.sqrt(c * c - half * half);
-    var apex = down ? y + (out - inr) : y - (out - inr);
-    var base = down ? y - inr : y + inr;
-    ctx.beginPath();
-    ctx.moveTo(x, apex);
-    ctx.lineTo(x + half, base);
-    ctx.lineTo(x - half, base);
-    ctx.closePath();
-  }
-
-  function glyph(x, y, r, shape) {
-    if (shape === 'triangle' || shape === 'triangleDown') {
-      triangle(x, triCentre(y, r, shape), r, shape === 'triangleDown');
-      return;
-    }
-    if (shape === 'dot') {
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      return;
-    }
-    polygon(x, y, r, 6, 0);
-  }
+  // THE SHAPES LIVE IN graph-glyph.js, which reproduces vis's own geometry --
+  // including the offset that stops a triangle's glow sitting off the node it
+  // belongs to. Split out at the 500-line cap, at the seam where a file that
+  // knows about alpha, charge and paint order stops and one that only builds
+  // paths begins. `graphGlyph.path` leaves a path current; `graphGlyph.centre`
+  // answers where the glyph actually sits, for the passes that draw round things.
 
   // Alpha rides on ctx.globalAlpha over a flat white fill, never a colour string
   // built per call: this runs per lit node per frame, and a fresh string 60 times
@@ -229,7 +176,7 @@ var graphPulseDraw = (function () {
     }
     // The halo follows the GLYPH, not the node point, or a triangle glows
     // off-centre — the same offset, seen from the other side.
-    var gy = triCentre(y, r, p.s);
+    var gy = graphGlyph.centre(y, r, p.s);
     ctx.globalAlpha = a * A.halo1;
     ctx.beginPath();
     ctx.arc(x, gy, r * HALO_OUTER * haloK, 0, Math.PI * 2);
@@ -247,7 +194,7 @@ var graphPulseDraw = (function () {
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;
     }
-    glyph(x, y, r, p.s);
+    graphGlyph.path(x, y, r, p.s);
     ctx.globalAlpha = a * A.stroke;
     ctx.lineWidth = 1.4;
     ctx.stroke();
@@ -289,21 +236,36 @@ var graphPulseDraw = (function () {
   // a stroke and nothing else, where a lit node pays for two soft discs as well.
   var A_CHARGE = { stroke: 0.85 };   // outline only: the interior stays black
 
-  // EVERY node the overlay draws gets its glyph filled with the page background
-  // FIRST, opaque, before any glow goes on top. That is what makes a node occlude
-  // the edges behind it: an edge should arrive AT a node, not cross over it. vis
-  // already does this for the unlit layer by drawing edges before nodes with an
-  // opaque fill; this is the same rule for the lit one.
+  // A BIG node the overlay draws gets its glyph filled with the page background
+  // FIRST, opaque, before any glow goes on top. That is what makes it occlude the
+  // edges behind it: an edge should arrive AT a hub, not cross over it. vis does
+  // the same for the unlit layer by drawing edges before nodes with an opaque
+  // fill; this is that rule for the lit one.
+  //
+  // SMALL NODES ARE SKIPPED (`OCCLUDE_MIN`). They are 76% of this graph and sit at
+  // the size floor, so all the fill bought them was a notch cut out of the one
+  // edge running in — the structure between nodes read as broken rather than as
+  // arriving somewhere.
+  //
+  // Which costs them the other thing this pass does, and the two cannot both be
+  // had from one opaque fill: it is also what punches out the halo spilling inside
+  // a lit glyph, so a small node's interior now carries its own faint glow instead
+  // of staying black. Letting an edge through and blocking a halo are the same
+  // pixel asked for opposite things. The big nodes -- the ones whose interior is
+  // large enough on screen for a glow to read as a FILL -- keep it black.
   //
   // Double-filling a node that is both charged and lit costs nothing -- the same
   // opaque colour twice -- so there is no need to build the union first.
   function fillGlyph(p, scale, view) {
+    if (p.r <= OCCLUDE_MIN) {
+      return;                   // small: the edges behind it show through
+    }
     var x = (p.x - view.x) * scale + cw / 2;
     var y = (p.y - view.y) * scale + ch / 2;
     if (x < -40 || y < -40 || x > cw + 40 || y > ch + 40) {
       return;
     }
-    glyph(x, y, Math.max(p.r * scale, 1.2), p.s);
+    graphGlyph.path(x, y, Math.max(p.r * scale, 1.2), p.s);
     ctx.fill();
   }
 
@@ -348,7 +310,7 @@ var graphPulseDraw = (function () {
       var r = Math.max(p.r * scale, 1.2);
       var ink = p.c || INK;
       ctx.strokeStyle = ink;
-      glyph(x, y, r, p.s);
+      graphGlyph.path(x, y, r, p.s);
       ctx.globalAlpha = a * A_CHARGE.stroke;
       ctx.lineWidth = 1.4;
       ctx.stroke();
@@ -469,8 +431,9 @@ var graphPulseDraw = (function () {
       }
       satNodes(now, scale, view, nodeHalos);
 
-      // Every node's interior goes BLACK, opaque, in one pass: it occludes the
-      // edges behind it AND the halo that just spilled inside it.
+      // Every BIG node's interior goes BLACK, opaque, in one pass: it occludes
+      // the edges behind it AND the halo that just spilled inside it. The small
+      // ones are skipped, which is what lets an edge cross them.
       punchNodes(scale, view);
 
       // Outlines last, on top of the black. This is what a lit node actually IS.

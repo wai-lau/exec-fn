@@ -35,6 +35,7 @@ from graph_scrub import (
 from graph_style import (
     _restyle_graph_nodes, _drop_graph_tooltips, _label_graph_nodes,
     _merge_graph_communities, _fix_graph_stats, _size_graph_by_degree,
+    _unocclude_small_nodes,
     _hide_graph_edges,
 )
 from graph_layout import (
@@ -76,7 +77,10 @@ _GRAPH_OVERLAY_JS = (
     # line, and the failure note has to exist before anything can need it.
     '<script src="/graph-cover.js?v=10"></script>'
     '<script src="/graph-ink.js?v=1"></script>'
-    '<script src="/graph-pulse-draw.js?v=15"></script>'
+    # The shapes, before the file that strokes and fills them: graph-pulse-draw.js
+    # binds the context to graphGlyph as it makes the canvas.
+    '<script src="/graph-glyph.js?v=1"></script>'
+    '<script src="/graph-pulse-draw.js?v=16"></script>'
     '<script src="/graph-seed.js?v=3"></script>'
     '<script src="/graph-bands.js?v=2"></script>'
     # The adaptive windows, before graph-audio.js folds a frame through them and
@@ -261,6 +265,9 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     page = _label_graph_nodes(page)
     # Size nodes exponentially by edge count, so hubs read as hubs.
     page = _size_graph_by_degree(page)
+    # Only the big nodes keep the opaque interior that stops an edge at them —
+    # AFTER the sizing, which is what this reads to decide.
+    page = _unocclude_small_nodes(page)
     # And make the UNLIT edges readable — they are the structure the page is for.
     page = _hide_graph_edges(page)
     # Header counts are baked pre-scrub; rewrite to the merged/dropped reality.
