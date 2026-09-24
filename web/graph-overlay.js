@@ -24,18 +24,15 @@
 // script, reachable here through the shared global lexical scope.
 /* global network, nodesDS, graphPulse, showInfo */
 (function () {
-  // Multiplies the cover scale on first open. 0.75 once — a quarter OUT — back
-  // when the cloud was square and the window was not, so cover cropped hard on
-  // the long axis and pulling back was how you got the shape returned. The
-  // positions are stretched to the viewport now (graph-lattice.js), so cover and
-  // contain are the same number and there is nothing to pull back from; it went
-  // to 1 (fill exactly), and then to 1.2 on request — a fifth IN, which crops
-  // about a sixth off each axis in exchange for nodes big enough to read.
-  // Renamed with it: at 1.2 a constant called OPEN_ZOOM_OUT says the opposite of
-  // what it does. Edge nodes stay whole at 1 because nodeBounds pads the box by
-  // the largest node's radius (the bbox is built from node CENTRES); past 1 the
-  // crop is the point.
-  var OPEN_ZOOM = 1.2;
+  // The opening scale is no longer its own number. It was 0.75 (a quarter OUT,
+  // back when the cloud was square and cover cropped hard on the long axis), then
+  // 1 once graph-lattice.js shaped the positions to the viewport and made cover
+  // and contain the same, then 1.2 on request — a fifth IN, cropping about a
+  // sixth off each axis for nodes big enough to read. It now opens at the
+  // FURTHEST the zoom walls allow instead: `contain * FIT_MARGIN`, the identical
+  // expression setupZoomLimits clamps to, so the opening view and the outward
+  // wall cannot drift apart into a page that opens past where it will let you
+  // return to. ARCHAEOLOGY §11 has the earlier values.
   // A node is "redacted" when its label was blanked — server-side to
   // "[redacted]" (_redact_graph_nodes) or "[ redacted ]" (_label_graph_nodes,
   // for anything over 20 chars). For those, the node-info panel must not leak
@@ -347,9 +344,11 @@
       window.__GP_PLACE_MS = performance.now() - t0;
       var b = gpLattice.bounds();   // recomputed: the snap moved everything
       network.moveTo({
-        // Cover, which now fills the window exactly: the lattice is shaped to
-        // the viewport, so there is no long axis left to overflow.
-        scale: b.cover * OPEN_ZOOM,
+        // The page opens at the FURTHEST ZOOM THE WALLS ALLOW, which is the same
+        // number setupZoomLimits clamps to: contain x FIT_MARGIN. Opening at the
+        // limit means the whole graph is on screen on arrival, with the margin
+        // the wall already reserves, and the first gesture can only go inward.
+        scale: b.contain * FIT_MARGIN,
         position: { x: b.cx, y: b.cy },
       });
       cover.progress(gpCover.PLACED);
