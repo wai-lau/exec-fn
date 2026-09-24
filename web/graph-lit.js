@@ -44,6 +44,21 @@ var graphLit = (function () {
   // pop, and with a charge layer accumulating underneath it was the only fast
   // edge left on screen -- so it was the whole of what read as flicker.
   var ATTACK_MS = 280;            // rise; the rest of the life is the fade
+  // TIMBRE BENDS BOTH OF THOSE. A hat and a kick are equally loud transients at
+  // equally valid moments and they used to draw the same flash; the only thing
+  // that told them apart was where they landed. graphAudio.sharpness() is 0 when
+  // the sound is as bass-weighted as this material gets and 1 when it is as
+  // treble-weighted, so the multiplier `1 + K * (1 - 2 * sharp)` runs from 1+K at
+  // the bass end through exactly 1 at the middle to 1-K at the treble end.
+  //
+  // Sharp reads SHORT and FAST: a hat is a click, and a click that swells over
+  // 280ms and hangs for two seconds is not a click. Broad reads LONG and SLOW: a
+  // kick is a body, and the eye should have time to see it arrive.
+  //
+  // The centre being exactly 1 is what makes this free: sharpness returns 0.5 with
+  // nothing listening, so every timing here is unchanged when the audio is off.
+  var DUR_SHARP = 0.55;           // life:   1.55x at the bass end, 0.45x at treble
+  var ATT_SHARP = 0.6;            // attack: 448ms at the bass end, 112ms at treble
   var DECAY_POW = 1.2;            // >1 = falls away faster than it lingers. Close
   // to linear on purpose: at 1.8 the light was gone before the eye had followed
   // the chain that lit it.
@@ -75,6 +90,15 @@ var graphLit = (function () {
     return typeof graphAudio !== 'undefined' ? graphAudio.hit() : 1;
   }
 
+  // 0.5 -- dead centre, every multiplier 1 -- with nothing listening.
+  function sharpness() {
+    return typeof graphAudio !== 'undefined' ? graphAudio.sharpness() : 0.5;
+  }
+
+  function bend(k, sharp) {
+    return 1 + k * (1 - 2 * sharp);
+  }
+
   return {
     index: function (degrees) {
       deg = degrees;
@@ -88,11 +112,16 @@ var graphLit = (function () {
     fire: function (id, now) {
       var d = Math.min(deg[id] || 1, DUR_DEG_CAP);
       var base = DUR_MIN + DUR_PER_DEG * d;
-      var h = hit();
+      var h = hit(), sh = sharpness();
       lit[id] = {
         t0: now,
-        dur: base * (1 - DUR_JITTER + Math.random() * 2 * DUR_JITTER),
+        dur: base * (1 - DUR_JITTER + Math.random() * 2 * DUR_JITTER)
+          * bend(DUR_SHARP, sh),
         g: h,
+        // The attack is stored per record rather than read at draw time: it is a
+        // property of the sound that caused THIS flash, and a node lit by a kick
+        // should keep swelling slowly even if a hat lands while it is still rising.
+        at: ATTACK_MS * bend(ATT_SHARP, sh),
       };
       var g = glow();
       if (g) {
@@ -106,8 +135,11 @@ var graphLit = (function () {
 
     fireEdge: function (a, b, now) {
       var k = a + '\u0000' + b;
-      var h = hit();
-      litEdges[k] = { t0: now, dur: EDGE_DUR, a: a, b: b, g: h };
+      var h = hit(), sh = sharpness();
+      litEdges[k] = {
+        t0: now, dur: EDGE_DUR * bend(DUR_SHARP, sh), a: a, b: b, g: h,
+        at: ATTACK_MS * bend(ATT_SHARP, sh),
+      };
       var g = glow();
       if (g) {
         g.bumpEdge(k, h);
@@ -121,10 +153,11 @@ var graphLit = (function () {
         return 0;
       }
       var g = l.g === undefined ? 1 : l.g;
-      if (t < ATTACK_MS) {
-        return g * t / ATTACK_MS;
+      var att = l.at === undefined ? ATTACK_MS : l.at;
+      if (t < att) {
+        return g * t / att;
       }
-      return g * Math.pow(1 - (t - ATTACK_MS) / (l.dur - ATTACK_MS), DECAY_POW);
+      return g * Math.pow(1 - (t - att) / (l.dur - att), DECAY_POW);
     },
 
     // The saturated pass behind it: the same shape over SAT_MULT times the life.
@@ -136,10 +169,11 @@ var graphLit = (function () {
         return 0;
       }
       var g = l.g === undefined ? 1 : l.g;
-      if (t < ATTACK_MS) {
-        return g * t / ATTACK_MS;
+      var att = l.at === undefined ? ATTACK_MS : l.at;
+      if (t < att) {
+        return g * t / att;
       }
-      return g * Math.pow(1 - (t - ATTACK_MS) / (dur - ATTACK_MS), DECAY_POW);
+      return g * Math.pow(1 - (t - att) / (dur - att), DECAY_POW);
     },
 
     // A record is kept for the SATURATED life, which is the longer of the two.
