@@ -57,6 +57,19 @@ var graphAudio = (function () {
   // the downbeat. The bar gets an accent.
   var DOWNBEAT_BOOST = 1.6;
 
+  // PITCH DECIDES HEIGHT, and the mapping ADAPTS to the material. A raw centroid
+  // maps to almost nothing: its log range is 60Hz..8kHz but any real track uses a
+  // narrow slice of that, sitting near the middle, so mapping it straight onto the
+  // graph's height put every cascade in a band across the centre and left most of
+  // the picture permanently dark.
+  //
+  // The window expands INSTANTLY to admit a new value and contracts SLOWLY toward
+  // whatever the music is actually doing, so the full height gets used whatever
+  // the material is -- and a track that genuinely narrows its range narrows its
+  // band rather than being stretched to fill the screen forever.
+  var CENT_RELAX = 0.0008;        // per frame, toward the observed range
+  var CENT_MIN_SPAN = 0.06;       // floor, so a steady tone cannot divide by ~0
+
   // How many starting points a beat gets. Level is judged against a DECAYING PEAK
   // rather than an absolute number, because a shared tab and a microphone across a
   // room arrive at wildly different amplitudes and neither is wrong; what matters
@@ -103,6 +116,8 @@ var graphAudio = (function () {
   var raf = 0, el = null;
   var hist = [], histI = 0, lastBeat = 0;
   var rms = 0, hold = 0, peak = PEAK_FLOOR, loud = 0, amp = 0;
+  // Inverted on purpose: the first reading seeds both ends.
+  var centLo = 1, centHi = 0;
 
   // ── the control, reached through a shim ──────────────────────────────────
   // Guarded so the analysis runs with no UI present at all, which is what a test
@@ -151,20 +166,42 @@ var graphAudio = (function () {
     return Math.round(n);
   }
 
+  // Centroid -> 0..1 of the graph's height, against its own observed range.
+  function placeY(c) {
+    if (c < centLo) {
+      centLo = c;
+    }
+    if (c > centHi) {
+      centHi = c;
+    }
+    var span = centHi - centLo;
+    if (span > CENT_MIN_SPAN) {
+      centLo += span * CENT_RELAX;
+      centHi -= span * CENT_RELAX;
+    }
+    span = Math.max(centHi - centLo, CENT_MIN_SPAN);
+    var n = Math.min(1, Math.max(0, (c - centLo) / span));
+    return 1 - n;                 // bright sounds belong at the TOP
+  }
+
   function fire() {
     if (typeof graphPulse === 'undefined') {
       return;
     }
-    // WHERE, not just how many. Seeding used to be a uniform random draw over the
-    // whole graph, so the spatial pattern was noise and two different songs at the
-    // same tempo and level produced statistically identical pictures.
+    // PITCH DECIDES HEIGHT. X IS RANDOM, DELIBERATELY.
     //
-    // pan -> X and brightness -> Y, because both readings are already spatial
-    // metaphors the eye accepts without being told: left is left, and a spectrum
-    // is drawn with the low end at the bottom. Centroid is INVERTED for that
-    // reason -- bright sounds belong at the top.
+    // Pan drove X for one commit and it was wrong twice over: a mixed track sits
+    // near centre, so `(pan + 1) / 2` was ~0.5 almost always, and with the raw
+    // centroid also sitting mid-range every cascade seeded within a few nodes of
+    // the middle -- a vertical column with most of the graph never lighting at
+    // all. Pan is still MEASURED (graphBands, for the readout) and deliberately
+    // not used here; left-and-right carries nothing.
+    //
+    // Random X is not a placeholder. It is what makes the whole width available,
+    // so height stays the one axis that MEANS something: a rising line climbs the
+    // picture, and nothing competes with it for the eye.
     var b = graphBands.read();
-    var id = graphSeed.at((b.pan + 1) / 2, 1 - b.centroid);
+    var id = graphSeed.at(Math.random(), placeY(b.centroid));
     graphPulse.seedAt(id, seedsForLevel(performance.now()));
     var u = ui();
     if (u) {
@@ -255,6 +292,7 @@ var graphAudio = (function () {
     graphBands.detach();
     hist = []; histI = 0; lastBeat = 0;
     rms = 0; hold = 0; peak = PEAK_FLOOR; loud = 0; amp = 0;
+    centLo = 1; centHi = 0;
     graphTempo.reset();
     paint();
     say(msg === '' ? '' : (msg || 'ambient'));
@@ -428,5 +466,10 @@ var graphAudio = (function () {
     bpm: function () { return on ? graphTempo.bpm() : 0; },
     confidence: function () { return on ? graphTempo.confidence() : 0; },
     stats: function () { return graphTempo.stats(); },
+    // The observed centroid window, for checking the height mapping is
+    // actually using the graph rather than a band across its middle.
+    centroidRange: function () {
+      return { lo: +centLo.toFixed(3), hi: +centHi.toFixed(3) };
+    },
   };
 })();
