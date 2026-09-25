@@ -219,6 +219,8 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 
 Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`.
 
+**Every Exec turn is TWO PASSES** (`api/chat_passes.py`, web + Discord): **ACT** (tools on, its text DISCARDED, tool rounds until it stops) then **REPLY** (`tool_choice: none`, streamed, reports only what the tool results show). A reply that finds a requested action missing answers `[redo: …]` instead — never shown, sent back to the act pass as an `[auto-check, not from Wai]` note (stripped before save), at most 2 times. Why: history is flattened without tool calls, so a single pass learned to SAY "Added X" without calling anything (2026-09-24, Nick/Jesse cards that never existed, with an invented card id). Cost: ~9s to first text on an action turn vs ~2s on a question. **ARCHITECTURE.md §5**.
+
 | Tool | What |
 |------|------|
 | `create_card` | Add card. Default column `rd`; pass `column="hq"` for today. If `due_date` given, runs `_apply_schedule` → `scheduler.schedule_to_day()` (rd→hq on due day if in window, overdue clamped to today; `dir_start_min` for today). |

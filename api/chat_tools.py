@@ -8,7 +8,7 @@ from helpers import (
 )
 
 # Every tool below holds _RD_LOCK around its whole load-modify-save cycle:
-# these run on real OS threads (asyncio.to_thread in routes_chat), parallel to
+# these run on real OS threads (asyncio.to_thread in chat_passes), parallel to
 # the nudge-loop scans and sync-def routes, so an unlocked cycle can silently
 # lose the other thread's write. LLM calls stay OUTSIDE the lock.
 
