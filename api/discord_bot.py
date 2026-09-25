@@ -13,37 +13,22 @@ Disabled (a clean no-op) unless DISCORD_BOT_TOKEN + DISCORD_USER_ID are set,
 so dev/tests without the token — and without `discord.py` installed — import
 this module fine (the `import discord` lives inside `_run_discord_bot`)."""
 import asyncio
-import json
 import os
 import re
 
 _MAX_LEN = 2000  # Discord per-message hard cap.
-_MAX_TOOL_ROUNDS = 3  # matches routes_chat: a follow-up may call another tool.
-
-_tools_cache = None
-
-
-def _tools():
-    """Build the Exec chat tools once (mirrors routes_chat's module-level build)."""
-    global _tools_cache
-    if _tools_cache is None:
-        from chat import _chat_tools
-        _tools_cache = _chat_tools()
-    return _tools_cache
 
 
 async def exec_reply(text: str) -> str:
     """Run one Exec turn for an inbound DM and return the reply text.
 
-    Mirrors routes_chat.generate() but non-streaming: load the shared history,
-    bounded tool rounds, then persist via _save_chat so the web bubble sees it. The
-    sync helpers (prompt build, tool handlers, file I/O) go through to_thread so
-    a DM turn never stalls the shared event loop."""
+    Same two-pass turn as the web bubble (chat_passes.run_turn), collected
+    rather than streamed: load the shared history, run it, then persist via
+    _save_chat so the web bubble sees it. run_turn pushes {cards_changed} itself
+    when a tool rewrites rd.json, so an open web board follows the phone."""
     import anthropic
-    from chat import _build_chat_system_prompt
-    from chat_store import _save_chat, assistant_content_blocks, get_chat, sanitize_history_for_api
-    from chat_tools import _handle_tool
-    from monitor import MONITORED_TOOLS
+    from chat_passes import run_turn
+    from chat_store import _save_chat, get_chat, sanitize_history_for_api
     from nudge import clear_awaiting_focused
 
     # A DM is a reply to any focused awaiting nudge — pause the stall timer.
@@ -57,57 +42,11 @@ async def exec_reply(text: str) -> str:
     messages = sanitize_history_for_api(
         list(chat.get("messages", [])) + [{"role": "user", "content": text}]
     )
-    system = await asyncio.to_thread(_build_chat_system_prompt, "planning")
-    tools = _tools()
-    client = anthropic.AsyncAnthropic()
-
-    final = await client.messages.create(
-        model="claude-opus-4-8", max_tokens=1024,
-        system=system, tools=tools, messages=messages,
-    )
-    all_messages = messages + [{"role": "assistant", "content": assistant_content_blocks(final)}]
-    reply_text = "".join(b.text for b in final.content if b.type == "text")
-
-    # Tool rounds, bounded — mirrors the web bubble. A follow-up may itself call a
-    # tool (an exile right after a create); keeping only its text dropped that
-    # tool_use, so Exec announced an action it never performed.
-    actions_taken = []
-    for _ in range(_MAX_TOOL_ROUNDS):
-        tool_results = []
-        for b in final.content:
-            if b.type != "tool_use":
-                continue
-            result = await asyncio.to_thread(_handle_tool, b.name, b.input)
-            if b.name in MONITORED_TOOLS and isinstance(result, dict) and result.get("ok"):
-                from monitor import schedule_monitor
-                schedule_monitor()
-            actions_taken.append({"name": b.name, "input": b.input, "result": result})
-            tool_results.append({
-                "type": "tool_result", "tool_use_id": b.id, "content": json.dumps(result),
-            })
-        if not tool_results:
-            break
-        all_messages.append({"role": "user", "content": tool_results})
-        # Rebuild the follow-up system fresh WITH this turn's action diff — same
-        # fix as the web bubble: the follow-up reads the refreshed board as the
-        # result of its own action, not a phantom pre-existing/duplicate card.
-        system2 = await asyncio.to_thread(_build_chat_system_prompt, "planning", actions_taken)
-        final = await client.messages.create(
-            model="claude-opus-4-8", max_tokens=512,
-            system=system2, tools=tools, messages=all_messages,
-        )
-        content = assistant_content_blocks(final)
-        if content:
-            all_messages.append({"role": "assistant", "content": content})
-        cont = "".join(b.text for b in final.content if b.type == "text")
-        if cont:
-            reply_text = (reply_text + "\n\n" + cont).strip()
-
-    await asyncio.to_thread(_save_chat, all_messages, "planning")
-    # A card-mutating tool ran on the phone -> refresh any open web board live.
-    if any(a["name"] != "update_context" for a in actions_taken):
-        from monitor_sse import push_to_monitor
-        await push_to_monitor({"cards_changed": True})
+    reply_text = ""
+    async for ev in run_turn(anthropic.AsyncAnthropic(), messages, "planning"):
+        if ev["type"] == "final":
+            reply_text = ev["text"]
+            await asyncio.to_thread(_save_chat, ev["messages"], "planning")
     return reply_text or "[no reply]"
 
 

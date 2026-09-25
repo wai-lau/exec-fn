@@ -7,64 +7,16 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from chat import _build_chat_system_prompt, _chat_tools
-from chat_store import _save_chat, assistant_content_blocks, sanitize_history_for_api
-from chat_tools import _handle_tool
+from chat_passes import run_turn
+from chat_store import _save_chat, sanitize_history_for_api
 from helpers import DATA_DIR
-from monitor import MONITORED_TOOLS, schedule_monitor
-from monitor_sse import push_to_monitor
 
 router = APIRouter()
-
-
-_CHAT_TOOLS = _chat_tools()
-
-# Tool rounds per user turn. A follow-up may call another tool (an exile after a
-# create); this caps the chain so a model looping on tools can't spin forever.
-_MAX_TOOL_ROUNDS = 3
 
 
 class ChatBody(BaseModel):
     messages: List[dict] = []
     stage: str = "planning"
-
-
-async def _stream_tool_followup(client, all_messages: list, tools: list, system: str, out: list | None = None):
-    """Stream the follow-up assistant turn after tool results, appending its FULL
-    content (text AND any tool_use) to `all_messages` and putting the final API
-    message in `out` so the caller can run another tool round.
-
-    The follow-up is offered `tools`, so it can answer a tool result by calling
-    another tool — Exec saying "I'll exile the duplicate" and then doing it. That
-    tool_use used to be dropped on the floor: only the text was kept, nothing was
-    dispatched, and the announced action silently never happened."""
-    cont_text = ""
-    final2 = None
-    try:
-        async with client.messages.stream(
-            model="claude-opus-4-8",
-            max_tokens=512,
-            system=system,
-            tools=tools,
-            messages=all_messages,
-        ) as stream2:
-            async for text in stream2.text_stream:
-                cont_text += text
-                yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-            final2 = await stream2.get_final_message()
-    except Exception:
-        pass
-    if final2 is not None:
-        content = assistant_content_blocks(final2)
-    else:
-        # stream died mid-turn: keep whatever text arrived, run no tool round
-        content = [{"type": "text", "text": cont_text}] if cont_text else []
-    if content:
-        all_messages.append({"role": "assistant", "content": content})
-    if out is not None:
-        out.append(final2)
-
-
 
 
 @router.get("/api/chat")
@@ -79,42 +31,6 @@ def api_chat_clear():
     if p.exists():
         p.unlink()
     return {"ok": True}
-
-
-async def _dispatch_tools(blocks, tool_result_contents, actions_taken):
-    """Run each tool_use block: stream a tool_call SSE event, collect its
-    tool_result, record the action for the follow-up diff, and fire the debounced
-    monitor on a completed sub-step (advance_chunk) — same channel as R&D/HQ
-    activity.
-
-    Any tool that rewrote rd.json also pushes {cards_changed} at the end of the
-    round (the same relay the discord bot and nudge loop use): the exec panel
-    lives ON /rd and /hq, so a card it archives or exiles has to leave the board
-    the caller is looking at — otherwise the action reads as having done nothing.
-    """
-    board_changed = False
-    for block in blocks:
-        if block.type != "tool_use":
-            continue
-        try:
-            result = await asyncio.to_thread(_handle_tool, block.name, block.input)
-        except Exception as e:
-            # A tool handler can raise on a malformed LLM-supplied argument
-            # (e.g. non-numeric prep_time). Left uncaught, this propagates out
-            # of the async generator, aborts the whole SSE response mid-turn,
-            # and skips _save_chat entirely — the turn (and any tool mutation
-            # that already landed) vanishes with no error shown to Wai.
-            result = {"error": f"tool failed: {e}"}
-        ok = isinstance(result, dict) and result.get("ok")
-        if ok and block.name in MONITORED_TOOLS:
-            schedule_monitor()
-        if ok and block.name != "update_context":   # everything else writes rd.json
-            board_changed = True
-        actions_taken.append({"name": block.name, "input": block.input, "result": result})
-        yield f"data: {json.dumps({'type': 'tool_call', 'name': block.name, 'input': block.input, 'result': result})}\n\n"
-        tool_result_contents.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result)})
-    if board_changed:
-        await push_to_monitor({"cards_changed": True})
 
 
 @router.post("/api/chat")
@@ -133,65 +49,15 @@ async def api_chat(body: ChatBody):
     await asyncio.to_thread(clear_awaiting_focused)
 
     async def generate():
+        # Two passes, ACT then REPLY — see chat_passes. The event shapes are the
+        # SSE frames the panel already reads (text / tool_call), plus a final.
         client = anthropic.AsyncAnthropic()
-        system_prompt = _build_chat_system_prompt(stage)
-        tools = _CHAT_TOOLS
-        next_stage = stage
-        full_text = ""
-        final = None
-
-        try:
-            async with client.messages.stream(
-                model="claude-opus-4-8",
-                max_tokens=1024,
-                system=system_prompt,
-                tools=tools,
-                messages=messages,
-            ) as stream:
-                async for text in stream.text_stream:
-                    full_text += text
-                    yield f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
-                final = await stream.get_final_message()
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'text', 'delta': f'[error: {e}]'})}\n\n"
-            yield f"data: {json.dumps({'type': 'done', 'next_stage': stage})}\n\n"
-            return
-
-        all_messages = messages + [{"role": "assistant", "content": assistant_content_blocks(final)}]
-        actions_taken = []
-        any_text = bool(full_text)
-
-        # Tool rounds. Each round dispatches the pending turn's tool_use blocks,
-        # then streams a follow-up that may itself call a tool — so an action the
-        # model announces in the follow-up ("I'll exile the duplicate") actually
-        # runs. Bounded by _MAX_TOOL_ROUNDS so a tool-calling loop can't spin.
-        for _ in range(_MAX_TOOL_ROUNDS):
-            if final is None:
+        async for ev in run_turn(client, messages, stage):
+            if ev["type"] == "final":
+                _save_chat(ev["messages"], stage)
                 break
-            tool_result_contents = []
-            async for chunk in _dispatch_tools(final.content, tool_result_contents, actions_taken):
-                yield chunk
-            if not tool_result_contents:
-                break
-            all_messages.append({"role": "user", "content": tool_result_contents})
-            if any_text:
-                yield f"data: {json.dumps({'type': 'text', 'delta': '\n\n'})}\n\n"
-            # Rebuild the follow-up system prompt WITH this turn's action diff, so
-            # the model reads the refreshed board (now carrying any just-created
-            # card) as the result of its own action — not a phantom duplicate.
-            followup_system = _build_chat_system_prompt(next_stage, actions=actions_taken)
-            out = []
-            async for chunk in _stream_tool_followup(client, all_messages, tools, followup_system, out):
-                yield chunk
-            final = out[0] if out else None
-            any_text = any(
-                b.get("type") == "text" and b.get("text")
-                for b in (all_messages[-1].get("content") or [])
-                if isinstance(b, dict)
-            ) if all_messages[-1].get("role") == "assistant" else any_text
-
-        _save_chat(all_messages, next_stage)
-        yield f"data: {json.dumps({'type': 'done', 'next_stage': next_stage})}\n\n"
+            yield f"data: {json.dumps(ev)}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'next_stage': stage})}\n\n"
 
     return StreamingResponse(
         generate(),

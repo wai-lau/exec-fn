@@ -1,6 +1,6 @@
 """Action-diff block for the Exec follow-up turn.
 
-After a tool round, `routes_chat`/`discord_bot` rebuild the system prompt so the
+After a tool round, `chat_passes` rebuilds the system prompt so the
 follow-up turn sees the refreshed board — which now carries any card the turn
 just created. Without a record of what it just did, the model misreads its own
 new card (now sitting in the ideas pool) as a pre-existing one and reports a

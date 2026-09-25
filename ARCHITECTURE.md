@@ -613,7 +613,7 @@ flowchart LR
 | `tarot/agent.py` `stream_chat` | opus-4-8 | `build_system(spread_type)` + `TOOLS` | ~8.7K / ~13.4K | every turn of a reading |
 | `mtg/agent.py` pass 1 | opus-4-8 | `SYSTEM` + `TOOLS` | ~6.6K | across research tool-loop iterations + cross-question |
 | `mtg/agent.py` pass 2 | opus-4-8 | `SYSTEM` (no tools) | ~5.9K | cross-question only (separate prefix from pass 1) |
-| `routes_chat` `/api/chat` + `_stream_tool_followup` | opus-4-8 | `_CHAT_STATIC_PREFIX` + `_chat_tools()` | ~5.2K | every exec turn; follow-up reads what the main turn wrote |
+| `chat_passes.run_turn` (act + reply passes) | opus-4-8 | `_CHAT_STATIC_PREFIX` + `_chat_tools()` | ~5.2K | every exec pass; each pass reads what the first wrote |
 
 **Exec restructure:** the tools alone (~3.5K) are under 4096, so the static
 text is what lifts the prefix over the floor. `_build_chat_system_prompt`
@@ -630,21 +630,40 @@ TOOK** block (rendered by `chat_actions._actions_taken_block` from the dispatche
 `{name, input, result}` list) to the **volatile tail**, so the model reads the
 refreshed board as the result of its own action rather than reporting a phantom
 duplicate. Marked only in the volatile tail → the cached static prefix stays
-byte-stable. Threaded through both follow-up paths (`routes_chat._dispatch_tools`
-collects the actions; `discord_bot.exec_reply` rebuilds `system2` with them).
+byte-stable. `chat_passes._dispatch` collects the actions; every act round and
+the reply pass rebuild the system prompt with them.
 
-**Tool rounds are a bounded LOOP, not one shot** (`_MAX_TOOL_ROUNDS` = 3, in both
-`routes_chat` and `discord_bot`). The follow-up turn is handed the tools, so it
-can answer a tool result by calling another tool — an exile right after a create.
-Both paths used to keep only the follow-up's TEXT: any `tool_use` it emitted was
-dropped on the floor, never dispatched and never stored, so Exec could announce
-an action ("I'll exile the duplicate") that provably never happened — observed
-2026-09-02, with `rd.json` holding one card and the activity log holding no
-exile. `chat_store.assistant_content_blocks` is the shared helper that preserves
-text + `tool_use` from an API message; each round dispatches the pending turn's
-tool_use blocks, appends the results, and streams the next turn with a REBUILT
-action diff (cumulative across rounds). A stream that dies mid-follow-up keeps
-whatever text arrived and ends the loop.
+**An Exec turn is TWO PASSES — ACT, then REPLY** (`api/chat_passes.py`, 2026-09-24;
+shared by `routes_chat` and `discord_bot`, which only stream or collect its events).
+It replaced a single pass that acted and talked in one response, and learned to
+talk INSTEAD of acting: history reaches the model flattened (see §16 —
+`sanitize_history_for_api` strips every past `tool_use`), so it reads dozens of its
+own turns saying "Added X" with no tool call beside them. Observed: "hang out with
+Nick" / "hang out with Jesse" answered "Added ... to the ideas pool", no tool
+called, and an invented `card=` id in the answer row — past a static-prefix rule
+already saying, in capitals, never to describe an action without the tool.
+
+- **Pass 1, ACT** — tools on, `messages.create` (not streamed), and **its text is
+  discarded**; only its `tool_use` blocks are kept in the conversation. Tool
+  rounds loop until it stops calling tools (`_MAX_ACT_ROUNDS` 4), the action diff
+  rebuilt each round. A message needing no action gets no tool and no text.
+- **Pass 2, REPLY** — the same tools but **`tool_choice: none`**, so it can only
+  describe; it sees every tool_result plus ACTIONS YOU JUST TOOK, and it is the
+  only pass streamed to Wai. If Wai asked for something that is MISSING it
+  answers `[redo: <the action>]` instead, which is **held back, never shown**
+  (the opening is buffered only until it can no longer be the start of `[redo:`),
+  attached to the closing user message as an `[auto-check, not from Wai]` text
+  block, and pass 1 runs again. `_MAX_REDOS` 2; the last reply pass is not offered
+  the redo and must say plainly what was not done. `strip_notes` removes the
+  auto-check blocks before `_save_chat`, or they replay as Wai's words.
+- **Cost**: an action turn is now one extra non-streamed call before any text —
+  measured live **8.6-9.3s to first text** on a create, against **2.3s** on a
+  question (act pass calls nothing and returns at once). Both passes carry the same
+  tools + static block, so the second reads the cache the first wrote.
+
+`chat_store.assistant_content_blocks` still converts an API message to storable
+text + `tool_use` dicts. Pinned by `tests/test_chat_passes.py` (fake client:
+act text never shown, redo hidden and re-run, bounded, notes not saved).
 
 **Activity-log entries carry the card `id`** (`_log_entries_for_patch`:
 created/moved/updated/deleted, plus `revived`), and `_build_chat_system_prompt`
@@ -685,7 +704,7 @@ The marker always goes on a byte-stable block, and the volatile part must live s
 - **Exec chat** (`chat._build_chat_system_prompt`) returns a **TWO-block** system list: block 1 is `_CHAT_STATIC_PREFIX` (identity + `EXEC_VOICE` + global rules) carrying the marker, block 2 the volatile tail (TODAY, activity log, card lists, schedule, context, active-nudge block) carrying none. With the exec tools the cached prefix is ~5.2K.
 
 
-  Both `routes_chat` call sites (main stream and `_stream_tool_followup`) build the identical static block, so the follow-up turn reads the cache the main turn wrote. The follow-up passes `_build_chat_system_prompt(stage, actions=…)` — an **ACTIONS YOU JUST TOOK** block (built by `chat_actions._actions_taken_block` from the turn's dispatched `{name,input,result}` list) appended to the volatile tail, **with the marker staying on block 1 so the cached prefix is byte-stable**.
+  Every pass of `chat_passes.run_turn` (act rounds and the reply) builds the identical static block, so each reads the cache the first wrote. Every pass after the first tool round passes `_build_chat_system_prompt(stage, actions=…)` — an **ACTIONS YOU JUST TOOK** block (built by `chat_actions._actions_taken_block` from the turn's dispatched `{name,input,result}` list) appended to the volatile tail, **with the marker staying on block 1 so the cached prefix is byte-stable**.
 
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §5](ARCHAEOLOGY.md).
 
