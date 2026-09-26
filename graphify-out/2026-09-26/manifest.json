@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1790411404.2954838,
+    "mtime": 1790325004.4634912,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -1775,8 +1775,8 @@
     "semantic_hash": ""
   },
   "api/data/exec_todos.json": {
-    "mtime": 1790351873.5819302,
-    "ast_hash": "6e2d7263790c77248909c54aaee3614b",
+    "mtime": 1790309228.0821373,
+    "ast_hash": "ad515555f011e4b6c212365da2fba60c",
     "semantic_hash": ""
   },
   "api/data/gamesave_save1.json": {
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1790411406.7384934,
+    "mtime": 1790325008.1725066,
     "ast_hash": "0bfeb51f49810e874f6d413bd359ac2f",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1790411404.4184844,
-    "ast_hash": "faaf05ad6e1486f141c6991985b485a9",
+    "mtime": 1790325039.194635,
+    "ast_hash": "64194a1e38d66a03921ea2b18678ce38",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1790327415.083637,
+    "mtime": 1790241016.104304,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1790327415.0916371,
+    "mtime": 1790241016.114304,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -7065,8 +7065,8 @@
     "semantic_hash": ""
   },
   "api/data/cc_titles.json": {
-    "mtime": 1790358351.9572754,
-    "ast_hash": "e0f3e49117f8df696474d137e1791990",
+    "mtime": 1790292786.2536674,
+    "ast_hash": "c9946f250001146c157398ab5b53ac3e",
     "semantic_hash": ""
   },
   "api/data/mtg_sessions/mtg_mtwgpi33.json": {
@@ -9429,6 +9429,11 @@
     "ast_hash": "424a5ab0ce8910e19571aef39175d56e",
     "semantic_hash": ""
   },
+  "api/data/chat.json": {
+    "mtime": 1790325005.0124934,
+    "ast_hash": "d7b8afaec5759af0a468d82eeb7116b7",
+    "semantic_hash": ""
+  },
   "api/data/mtg_sessions/mtg_mufxvbgt.json": {
     "mtime": 1790278785.6517131,
     "ast_hash": "2171045bdd37ac626c80d303408da89c",
@@ -9457,11 +9462,6 @@
   "web/graph-surface.js": {
     "mtime": 1790276383.1360626,
     "ast_hash": "fd38223a4177902753cf2b842390c3e8",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260926.json": {
-    "mtime": 1790383408.8173375,
-    "ast_hash": "fde8158674573486138d9a6f680f4798",
     "semantic_hash": ""
   }
 }
