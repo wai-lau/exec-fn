@@ -149,6 +149,25 @@ async def printer_video(request: Request):
     )
 
 
+@public.get(f"{PREFIX}/frame")
+async def printer_frame(request: Request, after: int = 0):
+    """ONE camera frame newer than `after`, for the guest view's pull loop
+    (printer_camera: pushed MJPEG backs up in socket buffers on a slow link and
+    the picture falls seconds behind; one frame per request cannot). Same tier
+    as /printer/video and on the `public` router for the same reason. 204 =
+    nothing new within the wait, ask again; the seq rides in X-Frame-Seq."""
+    if not _has_view_access(request):
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+    if not camera.can_admit():
+        return JSONResponse({"ok": False, "detail": "too many viewers"}, status_code=503)
+    got = await camera.next_frame(after)
+    if got is None:
+        return Response(status_code=204, headers={"Cache-Control": "no-store"})
+    seq, jpeg = got
+    return Response(jpeg, media_type="image/jpeg",
+                    headers={"Cache-Control": "no-store", "X-Frame-Seq": str(seq)})
+
+
 @protected.api_route(PREFIX + "/{path:path}", methods=_PROXY_METHODS)
 async def printer_proxy(path: str, request: Request):
     """Reverse proxy for the SPA shell, its hashed assets, i18n, and the

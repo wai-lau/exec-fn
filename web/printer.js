@@ -67,14 +67,67 @@
     }
   }
 
+  // The camera is PULLED one frame at a time, never streamed: a pushed MJPEG
+  // body queues in socket buffers on any link slower than the stream and the
+  // picture falls seconds behind (measured 7s and climbing at 100KB/s). Asking
+  // for the next frame only once the last has landed means nothing can queue —
+  // a slow link gets fewer frames, never older ones. The server paces guests to
+  // ~5fps however fast this asks. See api/printer_camera.py.
+  let camOn = false;
+  let camLoop = null;
+  let camUrl = null;
+
+  const pause = (ms) => new Promise((res) => setTimeout(res, ms));
+
+  async function showFrame(blob) {
+    const url = URL.createObjectURL(blob);
+    const next = new Image();
+    next.src = url;
+    try {
+      await next.decode(); // swap only a decoded frame, or the <img> flickers
+    } catch (_e) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    if (!camOn) return URL.revokeObjectURL(url);
+    cam.src = url;
+    if (camUrl) URL.revokeObjectURL(camUrl);
+    camUrl = url;
+  }
+
+  async function pullFrames() {
+    let seq = 0;
+    while (camOn && !document.hidden) {
+      let r;
+      try {
+        r = await fetch(`/printer/frame?after=${seq}`, { cache: 'no-store' });
+      } catch (_e) {
+        await pause(1000);
+        continue;
+      }
+      if (r.status === 200) {
+        seq = Number(r.headers.get('X-Frame-Seq')) || 0;
+        await showFrame(await r.blob());
+      } else if (r.status !== 204) {
+        await pause(r.status === 503 ? 3000 : 1000); // full / camera down
+      }
+    }
+    camLoop = null;
+  }
+
+  function camStart() {
+    camOn = true;
+    if (!camLoop && !document.hidden) camLoop = pullFrames();
+  }
+
   function applyReadonly(ok) {
     view.hidden = !ok;
     if (ok) {
-      cam.src = '/printer/video';
+      camStart();
       pollStatus();
       statusTimer = statusTimer || setInterval(pollStatus, STATUS_MS);
     } else {
-      cam.removeAttribute('src'); // release the viewer slot, don't just hide it
+      camOn = false; // the loop ends on its next turn, releasing the slot
       clearInterval(statusTimer);
       statusTimer = null;
     }
@@ -127,6 +180,8 @@
   poll();
   setInterval(poll, POLL_MS);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) poll();
+    if (document.hidden) return; // the pull loop stops itself while hidden
+    poll();
+    if (camOn) camStart();
   });
 })();
