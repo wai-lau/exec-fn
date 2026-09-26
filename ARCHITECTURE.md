@@ -2317,7 +2317,7 @@ Detected by `navigator.standalone` or `display-mode: standalone` in the `_build_
 
 The nav reflows to **two rows** with one empty icon-cell of padding on each side (`html.standalone .exec-nav` in chrome.css; cell width = W/(per-row+2)).
 
-Standalone also appends a **refresh** nav item (`#nav-refresh`, `firewall.png` padlock icon, last slot, labelled `F5`) — created in JS only when the standalone class is added (counted before `--per-row`), with no href so the link interceptor skips it, and a click handler that hard-reloads via `location.reload()`. There is no browser chrome to reload from in a home-screen launch.
+Standalone also appends a **refresh** nav item (`#nav-refresh`, `firewall.png` padlock icon, last slot, labelled `F5`) — created in JS only when the standalone class is added (counted before `--per-row`), with no href so the link interceptor skips it, and a click handler that hard-reloads via `location.reload()`. There is no browser chrome to reload from in a home-screen launch. **The guest nav renders it server-side in every mode** (`_REFRESH_ITEM` in pages.py, 2026-09-26): a guest is the visitor likeliest to be on a phone watching a page that has stopped updating, with no idea a reload is the fix. The standalone script checks for `#nav-refresh` before appending, so a guest's home-screen launch still shows exactly one.
 
 The nav script also tracks the live nav height via a `ResizeObserver` (→ `--nav-h`, taller in two-row mode so pages reserving it do not hide content behind the nav) and, in standalone, intercepts same-origin link taps → `location.href` (prevents Safari kick-out).
 
