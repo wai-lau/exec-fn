@@ -728,7 +728,8 @@ bytes to the LAN":
 | `GET /printer` | SPA wrapper | camera + job strip | same template, `data-readonly="1"` for guests |
 | `ANY /printer/{path}` | full proxy | **401 → admin login** | the SPA, its file endpoints, uploads — every browser→printer HTTP path |
 | `WS /ws/printer` | SDCP relay | **1008** | the only browser→printer socket; it drives the machine |
-| `GET /printer/video` | ~10fps | ~2fps | one-way read, off the shared hub |
+| `GET /printer/video` | ~10fps | ~5fps | one-way read, off the shared hub (the vendor SPA's `<img>`) |
+| `GET /printer/frame` | ✓ | ~5fps | ONE JPEG per request — the guest view's pull loop (§6g) |
 | `GET /api/printer/status` | ✓ | ✓ | one-way read; the printer pushes it unasked |
 | `GET /api/printer/health` | ✓ | ✓ | one-way liveness GET |
 
@@ -958,6 +959,8 @@ On the socket, printer→browser text frames pass `rewrite_ws_text`, which turns
 The printer accepts only ~4 concurrent streams, so a 1:1 relay stopped scaling the moment the page went public. The hub holds **ONE** upstream stream however many browsers watch: it demuxes the upstream parts into whole JPEG frames (`Content-Length`-framed), keeps the latest, and re-muxes a fresh multipart body per viewer (own boundary `--printerframe`) starting from that frame, so a joiner paints instantly instead of catching half a frame.
 
 Each viewer has a one-frame queue and drops what it cannot keep up with, so a slow viewer never stalls the upstream. Guests are throttled to `GUEST_FRAME_INTERVAL` **0.2s (~5fps / ~170KB/s** vs the owner's ~10fps / ~340KB/s), viewers cap at `MAX_VIEWERS` 16 (503 past that), and the upstream is dropped 10s after the last viewer leaves.
+
+**The guest view PULLS; it is not pushed to** (2026-09-26, reported as "the printer page is super laggy"). Two measured causes. **(1)** A strict `gap < interval` throttle against a ~100ms upstream skipped the frame landing at 199ms, so "5fps" was **3.3fps** of 300ms gaps; both throttles now accept a frame from `_SLACK` 0.75 of the interval on. **(2)** A pushed MJPEG body is only as fresh as the slowest buffer between the hub and the screen. The one-frame queue bounds OUR side; once written, a frame sits in uvicorn's transport, nginx and two kernel socket buffers, none of which drop anything — so on a link a little slower than the stream latency grew **without bound** (client reading at 100KB/s: 3.5s median, **7s and climbing** after 25s). `GET /printer/frame?after=<seq>` returns ONE JPEG newer than `seq` (long-poll up to `PULL_WAIT_S` 5s, 204 = ask again, seq in `X-Frame-Seq`), and `printer.js` asks for the next only once the last has landed and decoded (`img.decode()` before the swap, or the `<img>` flickers). Nothing can queue, so a slow link gets fewer frames, never older ones: same 100KB/s client, **~380ms flat**; a fast one **4.99fps** at ~7ms. Guests share ONE server-side sample (`_promote`), so polling faster than the page does buys nothing. Pullers count against `MAX_VIEWERS`, and the upstream stays up while anyone pulled within `_IDLE_STOP_S` (`_wanted()`). The MJPEG body stays for the owner's vendor SPA. Pinned by `tests/test_printer_camera.py` (pacing under jitter, the pull contract, and a live 4s pull asserting ~5fps with no hole).
 
 
 **The hub RECONNECTS instead of ending.** An `<img>` never re-requests a dead MJPEG stream, so on upstream end/stall (>30s silence, tunnel restart) it re-dials with 1→15s backoff and keeps feeding the SAME open viewer responses — the viewer bodies are ours, so a changed upstream boundary no longer matters.
