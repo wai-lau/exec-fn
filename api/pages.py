@@ -116,6 +116,16 @@ _NAV_LABELS = {
 }
 
 
+# The nav's refresh item, server-rendered. No href, so the standalone link
+# interceptor ignores it; a one-line onclick is the inline handler the
+# no-inline-JS rule allows.
+_REFRESH_ITEM = (
+    '<a id="nav-refresh" style="cursor:pointer" onclick="location.reload()">'
+    '<img src="/icons/firewall.svg?v=16" alt="refresh" style="width:20px;height:20px;">'
+    '<span class="nav-label">F5</span></a>'
+)
+
+
 def _build_nav(active=None, guest=False):
     links = []
     for label in (_GUEST_NAV_LINKS if guest else _NAV_LINKS):
@@ -125,6 +135,13 @@ def _build_nav(active=None, guest=False):
         text = _NAV_LABELS.get(label, label.lower())
         lab_cls = "nav-label" if text.isascii() else "nav-label glyph"
         links.append(f'<a href="{href}"{cls}>{icon}<span class="{lab_cls}">{text}</span></a>')
+    if guest:
+        # The guest nav carries the refresh item in EVERY mode, not only the
+        # standalone launch the script below adds it for: a guest is the visitor
+        # most likely to be on a phone looking at a page that has stopped
+        # updating (a camera, a game), with no idea a reload is the fix. Same
+        # id, so the standalone branch sees it and does not append a second.
+        links.append(_REFRESH_ITEM)
     nav = '<div class="exec-nav">' + "".join(links) + "</div>"
     script = (
         "<script>(function(){"
@@ -141,13 +158,14 @@ def _build_nav(active=None, guest=False):
         # (firewall icon, last slot) that hard-reloads the current page. Appended
         # before the --per-row count so the two-row reflow includes it. No href,
         # so the same-origin link interceptor below ignores it.
+        "if(!document.getElementById('nav-refresh')){"
         "var _rf=document.createElement('a');_rf.id='nav-refresh';"
         "_rf.style.cursor='pointer';"
         "_rf.innerHTML='<img src=\"/icons/firewall.svg?v=16\" alt=\"refresh\" "
         "style=\"width:20px;height:20px;\">"
         "<span class=\"nav-label\">F5</span>';"
         "_rf.addEventListener('click',function(e){e.preventDefault();"
-        "location.reload();});_nav.appendChild(_rf);"
+        "location.reload();});_nav.appendChild(_rf);}"
         "_nav.style.setProperty('--per-row',"
         "Math.ceil(_nav.querySelectorAll('a').length/2));}}"
         "function _snh(){var n=document.querySelector('.exec-nav');"
