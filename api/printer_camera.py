@@ -25,9 +25,9 @@ transport, nginx and two kernel socket buffers, none of which drop anything.
 On a link a little slower than the stream (measured: a client reading at
 100KB/s against ~185KB/s of guest frames) latency grew without bound — 3.5s
 median, 7s and climbing after 25s — which is what "the printer page is super
-laggy" was. `next_frame()` serves ONE frame per request, and the client asks
-for the next only once the last has arrived, so nothing can queue: latency is
-one transfer plus a round trip however slow the link, and a slow link simply
+laggy" was. `next_frame()` serves ONE frame per request, and the client keeps
+only PULL_DEPTH requests in flight, so nothing can queue: latency is bounded
+by PULL_DEPTH transfers however slow the link, and a slow link simply
 gets fewer frames. Guests share ONE server-side sample of the stream
 (`_promote`), so however fast a guest polls it can never see more than
 GUEST_FRAME_INTERVAL allows. The MJPEG body stays for the owner's vendor SPA,
@@ -47,15 +47,22 @@ CONTENT_TYPE = f"multipart/x-mixed-replace; boundary={BOUNDARY}"
 
 # Bounded so a public page can't turn the droplet into a broadcast station.
 MAX_VIEWERS = 16
-# Guests get ~5fps; the owner watches at whatever the printer pushes (~10).
+# Guests get the printer's full rate (~10fps), same as the owner. This is now a
+# CEILING, not a throttle: it only bites if a firmware ever pushes faster.
 #
-# It was 2fps (0.5s) and read as broken rather than thrifty — a print head moves
-# far enough in half a second that the picture reads as a slideshow of
-# unrelated stills, which is the one thing a camera on a machine is for. 5fps is
-# where motion reads as motion. The cost is bandwidth and it is bounded twice
-# over: ~34KB a frame, so ~170KB/s per guest against the owner's ~340KB/s, and
-# MAX_VIEWERS caps the whole page at 16 streams however many people find it.
-GUEST_FRAME_INTERVAL = 0.2
+# History: 2fps (0.5s) read as a slideshow; 5fps (0.2s) still read as laggy on
+# a phone next to the owner's 10 (reported 2026-09-26, iOS Safari AND Chrome) —
+# a print head is the fastest-moving thing in frame and half the frames is half
+# the motion. Bandwidth is ~34KB a frame, so ~340KB/s per guest, and
+# MAX_VIEWERS caps the page at 16 viewers however many people find it; the home
+# uplink carries ONE stream regardless (the hub), so a guest costs droplet
+# egress only.
+GUEST_FRAME_INTERVAL = 0.1
+# The guest page keeps this many pulls in flight (web/printer.js). One at a time
+# caps a phone at 1/(RTT + transfer) — ~5fps at a 100ms round trip, whatever
+# the camera does — so the next request is already waiting when a frame lands.
+# Latency stays bounded: at most PULL_DEPTH frames can be in transit.
+PULL_DEPTH = 2
 
 _CONNECT_TIMEOUT = httpx.Timeout(10.0, connect=4.0, read=30.0)
 _BACKOFF_MAX = 15.0
@@ -187,7 +194,9 @@ class _Camera:
 
     # ── viewers ─────────────────────────────────────────────────────────────
     def can_admit(self) -> bool:
-        return self.viewers < MAX_VIEWERS
+        # A pulling guest holds up to PULL_DEPTH requests at once; count the
+        # guest, not the requests, or the cap would halve for pullers.
+        return len(self._subs) + -(-self._pulling // PULL_DEPTH) < MAX_VIEWERS
 
     async def next_frame(self, after: int, wait: float = PULL_WAIT_S) -> tuple[int, bytes] | None:
         """One guest frame newer than `after` (the seq the caller already has),
