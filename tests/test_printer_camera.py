@@ -1,11 +1,15 @@
 """The printer camera hub (api/printer_camera.py): guest pacing and the pull API.
 
-Two regressions this pins, both measured on the live page 2026-09-26:
+Regressions this pins, all measured on the live page 2026-09-26:
   - "5fps" guests got 3.3fps: a strict `gap < interval` throttle skipped the
     frame landing at 199ms of a 200ms interval, so every other gap was 300ms.
   - a slow guest fell seconds behind: pushed MJPEG queues in socket buffers the
     hub cannot see. Guests now pull one frame per request (`next_frame`), which
-    cannot queue, and share ONE server-side 5fps sample however fast they ask.
+    cannot queue, and share ONE server-side sample however fast they ask.
+  - still laggy on an iPhone (Safari and Chrome): guests were capped at 5fps
+    against the owner's 10, and one pull at a time capped a phone at
+    1/(RTT + transfer). Guests now get the full rate with PULL_DEPTH pulls in
+    flight; the live test below runs AS A GUEST at a phone's round trip.
 """
 
 import asyncio
@@ -17,7 +21,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 import printer_camera  # noqa: E402
-from printer_camera import GUEST_FRAME_INTERVAL, _Camera  # noqa: E402
+from printer_camera import GUEST_FRAME_INTERVAL, PULL_DEPTH, _Camera  # noqa: E402
 
 UPSTREAM_FPS = 10  # what the Centauri Carbon pushes
 
@@ -51,25 +55,38 @@ def _jittered_gaps(n, seed=7):
     return [1 / UPSTREAM_FPS + rng.uniform(-0.005, 0.005) for _ in range(n)]
 
 
-def test_guest_sample_is_a_true_5fps_under_jitter(cam, clock):
-    promoted = []
-    for i, gap in enumerate(_jittered_gaps(200)):
+def _promoted(cam, clock, n=200):
+    out = []
+    for i, gap in enumerate(_jittered_gaps(n)):
         clock.t += gap
         before = cam._guest_seq
         cam._publish(b"f%d" % i)
         if cam._guest_seq != before:
-            promoted.append(clock.t)
+            out.append(clock.t)
+    return out
+
+
+def test_guests_get_every_upstream_frame(cam, clock):
+    """The guest sample is the printer's full rate, not a fraction of it."""
+    promoted = _promoted(cam, clock)
+    assert len(promoted) == 200
+
+
+def test_guest_ceiling_under_jitter_skips_no_extra_frame(cam, clock, monkeypatch):
+    """Were the ceiling ever to bite (interval 2x the upstream's), it must
+    pass every other frame and never leave a 3-frame hole."""
+    monkeypatch.setattr(printer_camera, "GUEST_FRAME_INTERVAL", 0.2)
+    promoted = _promoted(cam, clock)
     gaps = [b - a for a, b in zip(promoted, promoted[1:])]
     fps = len(gaps) / (promoted[-1] - promoted[0])
-    assert 1 / GUEST_FRAME_INTERVAL * 0.95 <= fps <= 1 / GUEST_FRAME_INTERVAL * 1.05
-    # Every other upstream frame, never every third: no 300ms hole.
-    assert max(gaps) < GUEST_FRAME_INTERVAL + 0.05
+    assert 4.75 <= fps <= 5.25
+    assert max(gaps) < 0.25
 
 
-def test_mjpeg_guest_throttle_is_a_true_5fps_under_jitter(cam, clock):
+def test_mjpeg_throttle_is_a_true_5fps_under_jitter(cam, clock):
     """The pushed body's own throttle carries the same slack."""
     async def run():
-        gen = cam.frames(min_interval=GUEST_FRAME_INTERVAL)
+        gen = cam.frames(min_interval=0.2)
         sent = []
         first = asyncio.ensure_future(gen.__anext__())
         await asyncio.sleep(0)
@@ -90,7 +107,7 @@ def test_mjpeg_guest_throttle_is_a_true_5fps_under_jitter(cam, clock):
 
     sent = asyncio.run(run())
     gaps = [b - a for a, b in zip(sent, sent[1:])]
-    assert max(gaps) < GUEST_FRAME_INTERVAL + 0.05
+    assert max(gaps) < 0.25
     assert len(sent) >= 55  # 12s of upstream at 5fps, less the first frame
 
 
@@ -118,9 +135,10 @@ def test_pull_times_out_to_none_not_a_stale_repeat(cam, clock):
     assert asyncio.run(cam.next_frame(after=1, wait=0.01)) is None
 
 
-def test_polling_fast_cannot_beat_the_guest_rate(cam, clock):
-    """Upstream at 10fps, a guest asking as fast as it likes: it still sees
-    only the shared sample, i.e. every other frame."""
+def test_polling_fast_cannot_beat_the_guest_rate(cam, clock, monkeypatch):
+    """A guest asking as fast as it likes still sees only the shared sample."""
+    monkeypatch.setattr(printer_camera, "GUEST_FRAME_INTERVAL", 0.2)
+
     async def run():
         seen, seq = [], 0
         for i in range(40):
@@ -135,18 +153,24 @@ def test_polling_fast_cannot_beat_the_guest_rate(cam, clock):
     assert len(asyncio.run(run())) == 20
 
 
-def test_pullers_count_against_the_viewer_cap(cam, clock, monkeypatch):
-    monkeypatch.setattr(printer_camera, "MAX_VIEWERS", 1)
+def test_a_pipelined_guest_counts_once_against_the_cap(cam, clock, monkeypatch):
+    monkeypatch.setattr(printer_camera, "MAX_VIEWERS", 2)
 
     async def run():
-        waiter = asyncio.ensure_future(cam.next_frame(after=0, wait=5))
+        one_guest = [asyncio.ensure_future(cam.next_frame(after=0, wait=5))
+                     for _ in range(PULL_DEPTH)]
+        await asyncio.sleep(0)
+        room_for_second = cam.can_admit()
+        second = asyncio.ensure_future(cam.next_frame(after=0, wait=5))
         await asyncio.sleep(0)
         full = not cam.can_admit()
-        waiter.cancel()
-        return full
+        for f in one_guest + [second]:
+            f.cancel()
+        await asyncio.sleep(0)
+        return room_for_second, full
 
-    assert asyncio.run(run())
-    assert cam.can_admit()  # a cancelled pull releases its slot
+    assert asyncio.run(run()) == (True, True)
+    assert cam.can_admit()  # cancelled pulls release their slots
 
 
 def test_upstream_stays_wanted_between_pulls_then_lets_go(cam, clock):
@@ -182,19 +206,51 @@ def test_frame_route_serves_a_guest_one_jpeg_with_its_seq(client, guest_cookie):
     assert "content-encoding" not in r.headers  # a JPEG is never re-gzipped
 
 
-def test_guest_pull_loop_is_smooth(client, guest_cookie):
-    """What the page does, for 4s: ask for the next frame the moment the last
-    lands. Must hold ~5fps with no hole a moving print head would show, and
-    every frame must be fresh (the pull loop cannot queue)."""
+def test_guest_on_a_phone_round_trip_gets_the_full_rate(guest_cookie):
+    """What web/printer.js does, AS A GUEST, over the public edge, with a
+    phone's round trip added (150ms, split either side of each request):
+    PULL_DEPTH pulls in flight, each asking for the frame after the last one
+    asked for. Must hold near the camera's ~10fps with no visible hole, and
+    every frame must arrive fresh."""
+    import threading
     import time
-    _printer_up(client, guest_cookie)
-    seq, got, t0 = 0, [], time.monotonic()
-    while time.monotonic() - t0 < 4.0:
-        r = client.get(f"/printer/frame?after={seq}", headers=guest_cookie)
-        if r.status_code == 200:
-            seq = int(r.headers["x-frame-seq"])
-            got.append(time.monotonic())
+
+    import httpx
+    from conftest import BASE_URL
+    RTT = 0.15
+    with httpx.Client(base_url=BASE_URL, timeout=15.0) as c:
+        if c.get("/api/printer/health", headers=guest_cookie).status_code != 200:
+            pytest.skip("printer / home tunnel offline — no camera to measure")
+        lock = threading.Lock()
+        state = {"asked": 0, "shown": 0}
+        got, t0 = [], time.monotonic()
+
+        def worker():
+            while time.monotonic() - t0 < 5.0:
+                with lock:
+                    after = state["asked"]
+                    if after:
+                        state["asked"] += 1
+                time.sleep(RTT / 2)
+                r = c.get(f"/printer/frame?after={after}", headers=guest_cookie)
+                time.sleep(RTT / 2)
+                with lock:
+                    if r.status_code != 200:
+                        state["asked"] = state["shown"]
+                        continue
+                    seq = int(r.headers["x-frame-seq"])
+                    state["asked"] = max(state["asked"], seq)
+                    if seq > state["shown"]:
+                        state["shown"] = seq
+                        got.append(time.monotonic())
+
+        threads = [threading.Thread(target=worker) for _ in range(PULL_DEPTH)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    got = got[3:]  # the first pulls both take the frame already there
     gaps = [b - a for a, b in zip(got, got[1:])]
     fps = len(gaps) / (got[-1] - got[0])
-    assert fps >= 1 / GUEST_FRAME_INTERVAL * 0.85, f"{fps:.2f}fps"
-    assert max(gaps) < GUEST_FRAME_INTERVAL * 1.75, f"max gap {max(gaps) * 1000:.0f}ms"
+    assert fps >= 1 / GUEST_FRAME_INTERVAL * 0.8, f"{fps:.2f}fps"
+    assert max(gaps) < 0.3, f"max gap {max(gaps) * 1000:.0f}ms"

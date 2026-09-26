@@ -67,19 +67,24 @@
     }
   }
 
-  // The camera is PULLED one frame at a time, never streamed: a pushed MJPEG
+  // The camera is PULLED one frame per request, never streamed: a pushed MJPEG
   // body queues in socket buffers on any link slower than the stream and the
-  // picture falls seconds behind (measured 7s and climbing at 100KB/s). Asking
-  // for the next frame only once the last has landed means nothing can queue —
-  // a slow link gets fewer frames, never older ones. The server paces guests to
-  // ~5fps however fast this asks. See api/printer_camera.py.
+  // picture falls seconds behind (measured 7s and climbing at 100KB/s).
+  // PULL_DEPTH requests stay in flight, each asking for the frame after the
+  // one the last request asked for, so the next frame is already on its way
+  // when one lands — one at a time capped a phone at 1/(RTT + transfer), ~5fps
+  // at a 100ms round trip. At most PULL_DEPTH frames are ever in transit, so
+  // latency stays bounded. See api/printer_camera.py.
+  const PULL_DEPTH = 2;
   let camOn = false;
-  let camLoop = null;
+  let camLoops = 0;
   let camUrl = null;
+  let shown = 0; // seq on screen
+  let asked = 0; // highest `after` requested; 0 = first pull, take what's there
 
   const pause = (ms) => new Promise((res) => setTimeout(res, ms));
 
-  async function showFrame(blob) {
+  async function showFrame(seq, blob) {
     const url = URL.createObjectURL(blob);
     const next = new Image();
     next.src = url;
@@ -89,35 +94,45 @@
       URL.revokeObjectURL(url);
       return;
     }
-    if (!camOn) return URL.revokeObjectURL(url);
+    // A later frame may have decoded first on the other pull: never go back.
+    if (!camOn || seq <= shown) return URL.revokeObjectURL(url);
+    shown = seq;
     cam.src = url;
     if (camUrl) URL.revokeObjectURL(camUrl);
     camUrl = url;
   }
 
   async function pullFrames() {
-    let seq = 0;
+    camLoops++;
     while (camOn && !document.hidden) {
+      const after = asked;
+      if (asked) asked++; // the other pull waits for the frame after this one
       let r;
       try {
-        r = await fetch(`/printer/frame?after=${seq}`, { cache: 'no-store' });
+        r = await fetch(`/printer/frame?after=${after}`, { cache: 'no-store' });
       } catch (_e) {
+        asked = shown;
         await pause(1000);
         continue;
       }
       if (r.status === 200) {
-        seq = Number(r.headers.get('X-Frame-Seq')) || 0;
-        await showFrame(await r.blob());
-      } else if (r.status !== 204) {
+        const seq = Number(r.headers.get('X-Frame-Seq')) || 0;
+        if (seq > asked) asked = seq; // fell behind (or first pull): skip ahead
+        await showFrame(seq, await r.blob());
+      } else if (r.status === 204) {
+        asked = shown; // nothing new: re-ask from what's on screen
+      } else {
+        asked = shown;
         await pause(r.status === 503 ? 3000 : 1000); // full / camera down
       }
     }
-    camLoop = null;
+    camLoops--;
   }
 
   function camStart() {
     camOn = true;
-    if (!camLoop && !document.hidden) camLoop = pullFrames();
+    if (document.hidden) return;
+    while (camLoops < PULL_DEPTH) pullFrames();
   }
 
   function applyReadonly(ok) {
