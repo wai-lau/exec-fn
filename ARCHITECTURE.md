@@ -3461,7 +3461,7 @@ case-blind, so this changed no key and merged no voter; it only stopped
 first-typed casing making one person look like two.
 
 **A name sealed by another key locks the page** (`ndvSyncLock`): calendar, Ask
-and Reserve go grey and `inert`, the caption reads `NOT <name>'s seal of
+and Commit go grey and `inert`, the caption reads `NOT <name>'s seal of
 approval` with the word "passphrase" in Ember (the palette's error colour), and only the identity fields and the faces stay live. Editing the
 name to one nobody holds re-derives the key and unlocks it.
 
@@ -3527,14 +3527,14 @@ and the server 400s one. The seal caption follows the name field:
 `"<name>'s seal of approval"`. **A disabled submit always says why** in the
 line under it (`ndvWhyNot`: no name, unusable name, name sealed by another
 key, no key in this browser, key still being made, sealing) -- a greyed button
-with no reason reads as broken. The Ask box is a 4-row textarea so its example
-hint shows whole, and sits BELOW submit with its own cyan outlined `ask Noodle`
-button and its own status line -- asking must never be mistaken for sealing a
-vote. Enter in the box asks too.
+with no reason reads as broken. The Ask box is a 5-row textarea so its example
+hint shows whole, and sits BELOW Commit with its own cyan outlined `ask` button
+to its RIGHT and its own status line -- asking must never be mistaken for
+sealing a vote. Enter is a newline; only the button asks.
 
-**The button reads `Reserve`, and `Reserve*` with "* unsaved changes" above it
+**The button reads `Commit`, and `Commit*` with "* unsaved changes" above it
 whenever the calendar differs from what the server holds for THIS key**
-(`ndvDirty`; for someone who has not reserved yet, any pick at all).
+(`ndvDirty`; for someone who has not committed yet, any pick at all).
 
 **Nothing leaves the browser until a button is pressed.** Besides the identity,
 the rest of the form -- calendar picks and the Ask text -- is a per-poll DRAFT
@@ -3546,8 +3546,8 @@ key. **Every ask starts from a blank calendar** -- the answer replaces the grid
 outright and the text stays in the box, so a question is tweaked and re-asked
 rather than stacked on the last answer.
 
-**Your own dots are live.** The voter's own column (at their reserved position,
-or last if they have not reserved) is a `self` column that shows the CURRENT
+**Your own dots are live.** The voter's own column (at their committed position,
+or last if they have not committed) is a `self` column that shows the CURRENT
 selection, so tapping a half both lights its background (dark = unavailable,
 lit = available, all dark by default) and adds or removes your dot. A missing
 dot means unavailable, for everyone. **The header's mixed ✓/✗ pair always

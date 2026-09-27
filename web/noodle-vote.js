@@ -50,7 +50,7 @@ function ndvStatus(msg, kind) {
   el.dataset.kind = kind || '';
 }
 
-var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on reserve)';
+var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on commit)';
 var NDV_SIGN_DONE = 'sign(your availability, key) ──> sealed';
 
 function ndvDeriveLine(salt, tail) {
@@ -78,7 +78,7 @@ function ndvWhyNot() {
 }
 
 // Unsaved = the calendar differs from what the server holds for THIS key
-// (nothing, for someone who has not reserved yet).
+// (nothing, for someone who has not committed yet).
 function ndvDirty() {
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;
@@ -87,10 +87,10 @@ function ndvDirty() {
 }
 
 function ndvSyncSubmit(busy) {
-  var why = busy ? 'reserving...' : ndvWhyNot(), dirty = ndvDirty();
+  var why = busy ? 'committing...' : ndvWhyNot(), dirty = ndvDirty();
   var btn = ndv$('nd-submit');
   btn.disabled = !!why;
-  btn.textContent = dirty ? 'Reserve*' : 'Reserve';
+  btn.textContent = dirty ? 'Commit*' : 'Commit';
   ndv$('nd-dirty').hidden = !dirty;
   ndv$('nd-why').textContent = why;
   ndvSyncLock();
@@ -98,7 +98,7 @@ function ndvSyncSubmit(busy) {
 
 // A name sealed by ANOTHER key locks everything but the identity fields (and
 // the faces, which are a way to pick a different name): the calendar, its
-// toggles, Ask and Reserve go grey and inert. Editing the name to one nobody
+// toggles, Ask and Commit go grey and inert. Editing the name to one nobody
 // holds re-derives the key and unlocks it -- NDV.blocked is recomputed then.
 function ndvSyncLock() {
   var locked = !!NDV.blocked;
@@ -115,11 +115,11 @@ function ndvRefreshBinding(pub) {
   var self = { self: true, ink: NDV.seal ? NDV.seal.ink : null };
   (NDV.poll ? NDV.poll.voters : []).forEach(function (v) {
     if (norm && window.noodleNormName(v.name) === norm) mine = v;
-    // your own reserved column shows your LIVE picks instead of the stored vote
+    // your own committed column shows your LIVE picks instead of the stored vote
     if (pub && v.pub === pub) cols.push(self);
     else cols.push({ slots: new Set(v.slots), ink: NDV.seals[v.pub] ? NDV.seals[v.pub].ink : null });
   });
-  if (cols.indexOf(self) < 0) cols.push(self); // not reserved yet: last column
+  if (cols.indexOf(self) < 0) cols.push(self); // not committed yet: last column
   NDV.cal.setOthers(cols);
   window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub);
   // the blocking name, for the reason under submit (ndvWhyNot)
@@ -129,7 +129,7 @@ function ndvRefreshBinding(pub) {
     ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
     if (NDV.hasDraft) {
-      ndvStatus('welcome back, ' + mine.name + '. your unsaved changes are kept -- reserve to seal them.');
+      ndvStatus('welcome back, ' + mine.name + '. your unsaved changes are kept -- commit to seal them.');
     } else {
       NDV.cal.setSel(new Set(mine.slots));
       ndvStatus('welcome back, ' + mine.name + '. your picks are loaded.');
@@ -253,14 +253,14 @@ async function ndvSubmit() {
   try {
     var sig = await NDV.kdf.sign(text);
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
-    if (!res.ok) { ndvStatus(res.data.error || 'could not reserve', 'err'); return; }
+    if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); return; }
     ndvClearDraft();
     ndvTeach('key', NDV_SIGN_DONE);
     ndvApproved(NDV.seal);
     await ndvLoadPoll();
-    ndvStatus('reserved. come back with the same name and passphrase to change it.');
+    ndvStatus('committed. come back with the same name and passphrase to change it.');
   } catch (e) {
-    ndvStatus('could not reserve: ' + e.message, 'err');
+    ndvStatus('could not commit: ' + e.message, 'err');
   } finally {
     ndvSyncSubmit();
   }
