@@ -27,6 +27,10 @@ body.noodle {
 }
 
 .nd-card {
+  /* no backing card: the page sits straight on the background */
+  border: 0;
+  background: none;
+  box-shadow: none;
   width: min(620px, calc(100vw - var(--space-6)));
   box-sizing: border-box;
   margin: var(--space-6) auto var(--space-10);
@@ -298,21 +302,11 @@ body.noodle {
 
 .nd-card input::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 
-/* ── the host's panel: dates + split, shown to the host (or anyone, on a
-   fresh poll -- whoever saves first hosts) ─────────────────────────────── */
-.nd-hostpanel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-8);
-  padding: var(--space-4);
-  border: 1px dashed hsl(var(--orange-hsl) / 0.45);
-  border-radius: var(--radius-2);
-}
-.nd-hostpanel[hidden] { display: none; }
+/* the host's split switch, right under the calendar (noodle-host.js) */
 .nd-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); }
 .nd-card .nd-check input { width: auto; }
-.nd-hostpanel .nd-ask-go { align-self: flex-start; }
+.nd-split { margin-top: var(--space-3); }
+.nd-split[hidden] { display: none; }
 
 .nd-face-rm {
   margin-top: var(--space-1);

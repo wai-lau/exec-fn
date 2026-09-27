@@ -1,10 +1,11 @@
 // Noodle calendar controller. The calendar is ENDLESS: it opens on this week
-// and appends weeks as a sentinel under the grid scrolls into view -- unless
-// the voter has CROPPED it to a span (noodle-crop.js), which renders exactly
-// that span and loads nothing more. Past days are greyed and inert. Classes
-// are repainted in place on every change so scroll position never jumps.
+// and appends weeks as a sentinel under the grid scrolls into view. The
+// host's CROP (noodle-crop.js) greys every day outside it; a guest's calendar
+// renders ONLY the crop (no `endless`), the host's always stays endless so
+// the crop handles can be dragged anywhere. Past days are greyed and inert.
+// Classes are repainted in place on every change so scroll never jumps.
 //
-// opts: {halves, crop: {from, to} | null, onChange(sel)}
+// opts: {halves, crop: {from, to} | null, endless, onChange(sel), onRows()}
 // api:  setSel(Set), getSel(), setOthers([{slots:Set, ink} | {self:true, ink}]),
 //       setAllowed(Set | null, prune), rows(), weekOf(row), more(), scroller
 
@@ -12,17 +13,65 @@ var NDC_FIRST = 12;   // weeks rendered up front
 var NDC_MORE = 8;     // weeks appended each time the sentinel shows
 var NDC_MAX = 160;    // ~3 years: past this, stop (a slot that far out is refused anyway)
 
-// The big month number behind the grid follows whichever week row is at the
-// scroller's vertical middle; a year that is not this year shows under it.
-function ndcMonthWatcher(scroller, mark) {
-  var thisYear = String(new Date().getFullYear());
-  return new IntersectionObserver(function (entries) {
-    entries.forEach(function (en) {
-      if (!en.isIntersecting) return;
-      var y = en.target.dataset.year; // digits from our own row markup, never user text
-      mark.innerHTML = en.target.dataset.month + (y !== thisYear ? '<small>' + y + '</small>' : '');
-    });
-  }, { root: scroller, rootMargin: '-50% 0px -50% 0px' });
+// Each month's big blurred number sits BEHIND ITS OWN WEEKS and scrolls with
+// them -- unlike /rd's single fixed watermark -- with the 4-digit year under
+// it whenever that is not this year. A week belongs to the month of its
+// Wednesday (the row's data-month), so a month is a run of rows.
+function ndcPaintMarks(grid) {
+  var thisYear = String(new Date().getFullYear()), runs = [];
+  grid.querySelectorAll('.nd-mmark').forEach(function (m) { m.remove(); });
+  grid.querySelectorAll('.nd-wk').forEach(function (w) {
+    var last = runs[runs.length - 1], key = w.dataset.year + w.dataset.month;
+    if (last && last.key === key) last.end = w; else runs.push({ key: key, start: w, end: w });
+  });
+  runs.forEach(function (r) {
+    // only a month COMPLETELY VISIBLE in the calendar gets one: its 1st and
+    // its last day both drawn (greyed or not) -- not the part-month we open
+    // in, nor one whose weeks are still loading or cut off
+    var y = r.start.dataset.year, mo = r.start.dataset.month;
+    var lastDay = new Date(+y, +mo, 0).getDate();
+    if (!grid.querySelector('.nd-d[data-day="' + y + '-' + mo + '-01"]') ||
+        !grid.querySelector('.nd-d[data-day="' + y + '-' + mo + '-' + lastDay + '"]')) return;
+    var m = document.createElement('div');
+    m.className = 'nd-mmark';
+    m.setAttribute('aria-hidden', 'true');
+    m.style.top = r.start.offsetTop + 'px';
+    m.style.height = (r.end.offsetTop + r.end.offsetHeight - r.start.offsetTop) + 'px';
+    // digits from our own row markup, never user text
+    m.innerHTML = r.start.dataset.month + (y !== thisYear ? '<small>' + y + '</small>' : '');
+    grid.appendChild(m);
+  });
+}
+
+// Month boundaries: ONE stroked path per boundary, on the centre line of the
+// 5px gaps between cells. Built from per-cell bars first, and half-transparent
+// bars that meet overlap: every corner and step doubled into a brighter chip.
+// A single path has real corners and nothing to overlap. When the 1st falls
+// mid-week (column k) the line steps: along the bottom of that week under
+// the old month's days, up between columns k-1 and k, along its top after.
+function ndcPaintBoundaries(grid) {
+  var old = grid.querySelector('.nd-mlines');
+  if (old) old.remove();
+  var W = grid.clientWidth, d = '', G = 2.5;   // G: half the gap, its centre
+  grid.querySelectorAll('.nd-d[data-day$="-01"]').forEach(function (first) {
+    var row = first.previousElementSibling, k = 0;
+    while (row && !row.classList.contains('nd-wk')) { row = row.previousElementSibling; k++; }
+    var top = first.offsetTop - G, bot = first.offsetTop + first.offsetHeight - G;
+    if (k === 0) { d += 'M0 ' + top + 'H' + W; return; }
+    var x = first.offsetLeft - G;
+    d += 'M0 ' + bot + 'H' + x + 'V' + top + 'H' + W;
+  });
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'nd-mlines');
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', grid.scrollHeight);
+  svg.innerHTML = '<path d="' + d + '"/>';
+  grid.appendChild(svg);
+}
+
+function ndcPaintMonths(grid) {
+  ndcPaintMarks(grid);
+  ndcPaintBoundaries(grid);
 }
 
 // Every group button shows the MODE's tool -- pencil (fill in) or eraser
@@ -68,16 +117,16 @@ function NoodleCal(wrap, opts) {
   var P = window.NoodleCalParts, T = window.NoodleToggle;
   var today = P.iso(new Date()), crop = opts.crop || null;
   var bound = { from: crop && crop.from > today ? crop.from : today, to: crop ? crop.to : null };
+  var endless = !!opts.endless || !crop;
   var weeks = [], groups = { cols: [[], [], [], [], [], [], []], rows: [] }, cells = [];
   var sel = new Set(), others = [], allowed = null, mode = 'fill';
   var codes = new Set(P.codes(opts.halves));
 
-  wrap.innerHTML = '<div class="nd-mark" aria-hidden="true"></div><div class="nd-scroll">' +
+  wrap.innerHTML = '<div class="nd-scroll">' +
     '<div class="nd-grid' + (opts.halves ? '' : ' single') + '">' + P.headHtml() + '</div>' +
     '<div class="nd-more-weeks" aria-hidden="true"></div></div>';
   var scroller = wrap.querySelector('.nd-scroll');
   var grid = wrap.querySelector('.nd-grid');
-  var months = ndcMonthWatcher(scroller, wrap.querySelector('.nd-mark'));
 
   function offered(slots) {
     return allowed ? slots.filter(function (s) { return allowed.has(s); }) : slots;
@@ -103,17 +152,18 @@ function NoodleCal(wrap, opts) {
   }
 
   function addWeeks(n) {
-    var from = weeks.length ? P.addDays(weeks[weeks.length - 1][0], 7) : P.sunday(bound.from);
-    var fresh = P.weeksFrom(from, n).filter(function (wk) { return !bound.to || wk[0] <= bound.to; });
+    var from = weeks.length ? P.addDays(weeks[weeks.length - 1][0], 7) : P.sunday(endless ? today : bound.from);
+    var fresh = P.weeksFrom(from, n).filter(function (wk) { return endless || wk[0] <= bound.to; });
     if (!fresh.length) return;
     grid.insertAdjacentHTML('beforeend', fresh.map(function (wk, i) {
       return P.rowHtml(wk, weeks.length + i, bound, today);
     }).join(''));
     fresh.forEach(function (wk) { weeks.push(wk); P.groupAdd(groups, wk, bound, opts.halves); });
     cells = Array.from(grid.querySelectorAll('.nd-d'));
-    grid.querySelectorAll('.nd-wk:not([data-seen])').forEach(function (w) { w.dataset.seen = '1'; months.observe(w); });
     paint();
     paintDots();
+    ndcPaintMonths(grid);
+    if (opts.onRows) opts.onRows();
   }
 
   function change(next) {
@@ -141,13 +191,13 @@ function NoodleCal(wrap, opts) {
   }
 
   grid.addEventListener('click', onTap);
-  addWeeks(crop ? NDC_MAX : NDC_FIRST);
-  if (!crop) {
+  addWeeks(endless ? NDC_FIRST : NDC_MAX);
+  if (endless) {
     new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting && weeks.length < NDC_MAX) addWeeks(NDC_MORE);
     }, { root: scroller, rootMargin: '0px 0px 300px 0px' }).observe(wrap.querySelector('.nd-more-weeks'));
   }
-  new ResizeObserver(paintDots).observe(scroller);
+  new ResizeObserver(function () { paintDots(); ndcPaintMonths(grid); }).observe(scroller);
 
   return {
     scroller: scroller,
@@ -168,7 +218,7 @@ function NoodleCal(wrap, opts) {
     },
     rows: function () { return Array.from(grid.querySelectorAll('.nd-wk')); },
     weekOf: function (r) { return weeks[r]; },
-    more: function () { if (!crop && weeks.length < NDC_MAX) addWeeks(NDC_MORE); },
+    more: function () { if (endless && weeks.length < NDC_MAX) addWeeks(NDC_MORE); },
   };
 }
 

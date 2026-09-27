@@ -82,6 +82,7 @@ function ndvWhyNot() {
 // (nothing, for someone who has not committed yet).
 function ndvDirty() {
   if (!NDV.cal) return false;
+  if (NDV.pendingHalves != null) return true;   // an unsaved split
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;
   for (var s of sel) if (!saved.has(s)) return true;
@@ -132,6 +133,9 @@ function ndvRefreshBinding(pub) {
   }
   window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub, iHost);
   if (window.ndhSync) window.ndhSync(pub);
+  // becoming (or ceasing to be) the host changes the calendar: endless with
+  // crop handles, or just the crop. ndvEnsureCal returns at once if not.
+  if (!NDV.inEnsure) { NDV.inEnsure = true; ndvEnsureCal(); NDV.inEnsure = false; }
   // the blocking name, for the reason under submit (ndvWhyNot)
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
   NDV.saved = mine && pub && mine.pub === pub ? new Set(mine.slots) : new Set();
@@ -258,6 +262,11 @@ async function ndvSubmit() {
   ndvSyncSubmit(true);
   var name = ndv$('nd-name').value, slots = Array.from(NDV.cal.getSel()).sort();
   var ts = Date.now() + NDV.skew;
+  // a pending split goes first (it converts every stored vote); the vote is
+  // then signed strictly newer, as the server's replay check demands
+  var split = await ndhCommitSplit(ts);
+  if (!split.ok) { ndvStatus(split.data.error || 'could not save the split', 'err'); ndvSyncSubmit(); return; }
+  if (NDV.pendingHalves != null) { NDV.pendingHalves = null; ts += 1; }
   // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
   var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
   try {
@@ -276,33 +285,28 @@ async function ndvSubmit() {
   }
 }
 
-// The crop the calendar shows: the HOST's crop (the first and last week
-// anyone can pick, saved on the poll) narrowed by this guest's own view crop
-// (this browser only). A guest crop outside the host's is ignored.
-function ndvCrop() {
-  var p = NDV.poll && NDV.poll.crop, l = NDV.crop;
-  // While a crop is being EDITED the calendar opens one level wider so the
-  // handles can be dragged past the current edges: endless for the host,
-  // the host's range for a guest (whose own crop may never leave it).
-  if (window.NDX && NDX.editing) return ndxIsHost() ? null : p || null;
-  if (!p || !l) return p || l || null;
-  var c = { from: l.from > p.from ? l.from : p.from, to: l.to < p.to ? l.to : p.to };
-  return c.from <= c.to ? c : p;
-}
-
-// The calendar is endless unless cropped; what shapes it is the poll's SPLIT
-// (whole days or midday + night) and the crop above. Rebuilt only when one of
-// those changes (or when forced); picks survive a rebuild.
+// The calendar is endless; what shapes it is the poll's SPLIT (whole days or
+// midday + night) and the HOST's crop: a guest's calendar is just the crop,
+// the host's stays endless with the crop handles on it (noodle-crop.js) and
+// the days outside greyed. Rebuilt only when one of those changes (or when
+// forced), keeping picks and the scroll position.
 function ndvEnsureCal(force) {
   var p = NDV.poll;
   if (!p) return;
-  var c = ndvCrop(), key = p.halves + '|' + (c ? c.from + '..' + c.to : '');
+  var host = window.ndxIsHost ? window.ndxIsHost() : false, c = p.crop;
+  var halves = window.ndhHalves ? window.ndhHalves() : p.halves;
+  var key = halves + '|' + host + '|' + (c ? c.from + '..' + c.to : '');
   if (key === NDV.calKey && !force) return;
   var keep = NDV.cal ? NDV.cal.getSel() : null;
+  var scroll = NDV.cal ? NDV.cal.scroller.scrollTop : 0;
   NDV.calKey = key;
-  NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: p.halves, crop: c, onChange: ndvSaveDraft });
+  NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: halves, crop: c, endless: host,
+    onChange: ndvSaveDraft, onRows: function () { if (window.ndxSync) window.ndxSync(); } });
   if (keep) NDV.cal.setSel(keep); else ndvRestoreDraft();
-  if (window.ndxSync) window.ndxSync(); // crop / uncrop buttons follow the crop, reloads included
+  // grow back to where the reader was (a rebuild starts with a few weeks)
+  for (var i = 0; i < 20 && NDV.cal.scroller.scrollHeight < scroll + NDV.cal.scroller.clientHeight; i++) NDV.cal.more();
+  NDV.cal.scroller.scrollTop = scroll;
+  if (window.ndxSync) window.ndxSync();
   if (NDV.poll) ndvRefreshBinding(ndvReady() ? NDV.kdf.pub() : null);
 }
 
@@ -322,7 +326,6 @@ function ndvInit() {
   var root = ndv$('noodle');
   if (!root || !root.dataset.slug) return;
   NDV.slug = root.dataset.slug;
-  NDV.crop = window.ndxLoad ? window.ndxLoad() : null;
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
   ndv$('nd-ask').addEventListener('input', ndvSaveDraft);
   NDV.kdf = window.NoodleKdf({
