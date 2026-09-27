@@ -1198,6 +1198,18 @@ Pairing is **FIFO, not by id**: the sidecar flattens `tool_use`/`tool_result` bl
 
 **Text that resumes after a tool call opens its OWN bubble.** The bubble is settled (markdown pass + SVG swap) and closed, and the reveal state is replaced with a fresh object — a cancelled typer never calls `onDone`, so leaving the old `typing` promise would hang the settle pass. The receipt hangs on the last settled body when a turn ends on a tool. Pinned in `tests/test_cc_stream_browser.py`.
 
+### 7c-bis. Exec's card tools, relayed to the container (2026-09-27)
+
+Phase 1 of the /cc + Exec merge (`docs/plan-exec-cc-merge.md`). The agent gets Exec's ten card tools as `mcp__exec__*`, served by a second in-process MCP server, `claude-box/exec-tools.mjs`. The tools themselves stay in Python inside the container, next to `rd.json` and `_RD_LOCK`; the sidecar only relays. A second implementation in node would be a second copy of every scheduling rule.
+
+- **Two lists.** `EXEC_TOOLS` in exec-tools.mjs is the hand-written ALLOWLIST (same rule as `BUILTIN_TOOLS`: a tool the container starts serving does not reach the model until someone adds its name). The SCHEMAS are fetched from `GET /api/exec/tools`, which returns `chat._chat_tools()` — the definitions the in-container chat path already uses — and converted with zod 4's `z.fromJSONSchema`. A tool is exposed only when it is in both. Re-read at the start of every run (`refreshExecSchemas`), keeping the last good set if the container is mid-`--reload`; the exec server is simply absent until schemas have loaded once.
+- **The call.** `POST /api/exec/tool/{name}` (api/routes_exec.py) → `exec_tools.run_tool`, the ONE place a tool call's side effects are decided (monitor debounce, board-changed verdict), shared with `chat_passes._dispatch` so the two paths cannot drift. The route pushes `{cards_changed}` so an open board moves mid-reply. A failure comes back as `{error: …}` text, never an exception, so the model reports a failed action instead of claiming it.
+- **Auth is the sidecar token, and only it.** Both routes are on `public` with an in-handler `hmac.compare_digest` against `CC_SIDECAR_TOKEN` — the caller has no cookie. Deliberately NOT the admin `API_KEY`: the agent has Bash, so anything the sidecar holds must be assumed readable by it, and this token reaches nothing the agent could not already do through the MCP tools. Admin and guest credentials are refused (pinned by `tests/test_routes_exec.py`).
+- **The token is stripped from the CLI's environment** (`childEnv()` → the SDK `env` option). It only needs to live in the node process, where the MCP relays run; before this, the agent's Bash inherited the whole unit environment. Verified live: `env | grep -c CC_SIDECAR_TOKEN` inside the agent's Bash returns 0 while `/proc/<pid>/environ` of the unit still holds it.
+- **Reachability.** The unit has no `PrivateNetwork`, so `127.0.0.1:8080` (the container's published port) is reachable from its namespace — checked with `nsenter` into the running unit (`EXEC_API_URL` overrides).
+- **Probe.** `scripts/cc-probe-daily.sh` now sources `/etc/cc-sidecar.env` as root and passes the token with `sudo --preserve-env`, never on the command line; without it the exec server is absent and the probe measures a smaller sandbox than the one serving traffic. Measured 2026-09-27: 22 tools on a cold probe (24 allowed; `BashOutput`/`KillShell` are conditional), no `UNEXPECTED`. `setup.sh` installs exec-tools.mjs.
+- **End-to-end check** (2026-09-27): a real SDK turn called `mcp__exec__update_card` on a non-existent id and got `{"error":"Card not found: card-doesnotexist"}` back from the container — agent → MCP → container → rd.json → agent, with nothing written.
+
 ### 7d. The archive is three tools, not a filesystem
 
 `claude-box/archive-tools.mjs` (2026-09-11): `list_conversations`, `search_conversations`, `read_conversation`, served by an in-process `createSdkMcpServer` named `archive` — the ONE entry in `mcpServers`, so `strictMcpConfig` still drops the account's claude.ai connectors.
@@ -3529,8 +3541,10 @@ the rest of the form -- calendar picks and the Ask text -- is a per-poll DRAFT
 in localStorage (`noodle.draft.<slug>`), written on every change. A draft
 outranks the submitted vote when the page reopens (it is the newer of the two;
 the status says the changes are kept), and a successful submit clears it. Submit
-sends exactly `{name, pub, slots, ts, sig}`; Ask sends its text, the current
-picks and the public key. `tests/test_noodle_browser.py` pins both: no POST
+sends exactly `{name, pub, slots, ts, sig}`; Ask sends its text and the public
+key. **Every ask starts from a blank calendar** -- the answer replaces the grid
+outright and the text stays in the box, so a question is tweaked and re-asked
+rather than stacked on the last answer. `tests/test_noodle_browser.py` pins both: no POST
 before a button, the exact submit keys, the passphrase in no request.
 
 **The calendar** (`noodle-cal.js` geometry + `noodle-cal-view.js` controller,

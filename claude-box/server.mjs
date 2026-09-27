@@ -26,6 +26,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { query, getSessionInfo, getSessionMessages, listSessions } from "@anthropic-ai/claude-agent-sdk";
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
+import { execServer, refreshExecSchemas, EXEC_TOOL_NAMES } from "./exec-tools.mjs";
 import { usage } from "./usage.mjs";
 import { generateTitle } from "./title-gen.mjs";
 import { checkToolPaths } from "./sandbox-paths.mjs";
@@ -95,7 +96,7 @@ const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp
 // built-in tools, so anything not named here never enters the model's context
 // at all -- including a tool that ships in a future SDK, which is the whole
 // class of bug a denylist cannot cover. BUILTIN_TOOLS is the built-in half of
-// ALLOWED_TOOLS; the archive tools arrive separately, through mcpServers.
+// ALLOWED_TOOLS; the archive and Exec tools arrive separately, through mcpServers.
 //
 // BLOCKED_TOOLS stays as belt, and to keep the built-ins out of CONTEXT (a tool
 // the model can see, calls, and gets refused on burns a turn and reads as the
@@ -131,7 +132,7 @@ const BUILTIN_TOOLS = [
   "Glob", "Grep",
   "WebSearch", "WebFetch",
 ];
-export const ALLOWED_TOOLS = [...BUILTIN_TOOLS, ...ARCHIVE_TOOL_NAMES];
+export const ALLOWED_TOOLS = [...BUILTIN_TOOLS, ...ARCHIVE_TOOL_NAMES, ...EXEC_TOOL_NAMES];
 const BLOCKED_TOOLS = [
   // Asks the harness to put a question to the user. There is no such channel
   // here -- the page streams one answer -- so a call is a dead end by
@@ -573,6 +574,9 @@ async function handleQuery(req, res, body) {
   };
 
   try {
+    // Exec's card-tool schemas come from the container; re-read per run so a
+    // schema change lands without restarting the unit (keeps the last good set).
+    await refreshExecSchemas();
     const options = {
       ...sandboxOptions(),
       systemPrompt: buildSystemPrompt(),
@@ -649,11 +653,18 @@ export function sandboxOptions() {
     // strictMcpConfig means "only the servers named in mcpServers". That is
     // what drops the account's claude.ai connectors (Gmail / Calendar /
     // Drive): they leave the model's context entirely instead of sitting
-    // there connected and merely refused at call time. The ONE server named
-    // is ours and runs in this process -- three read-only tools over the
-    // archive directory, which is not a filesystem and reaches nothing else.
-    mcpServers: { archive: archiveServer(ARCHIVE_DIR) },
+    // there connected and merely refused at call time. Both servers named are
+    // ours and run in this process: `archive` is three read-only tools over the
+    // archive directory, which is not a filesystem and reaches nothing else;
+    // `exec` relays Exec's card tools to the container (exec-tools.mjs), and is
+    // absent until its schemas have loaded once.
+    mcpServers: mcpServers(),
     strictMcpConfig: true,
+    // The CLI subprocess -- and so the agent's Bash -- gets this unit's
+    // environment MINUS the sidecar token. The token only needs to live in THIS
+    // process (the MCP relays run here), and left in the child's environment
+    // any `env` in Bash would print it.
+    env: childEnv(),
     // Third layer, not the first: it never sees a harness tool (measured).
     canUseTool,
     maxTurns: MAX_TURNS,
@@ -663,6 +674,19 @@ export function sandboxOptions() {
     // could write its own permission rules and have them honoured next turn.
     settingSources: [],
   };
+}
+
+function mcpServers() {
+  const servers = { archive: archiveServer(ARCHIVE_DIR) };
+  const exec = execServer();
+  if (exec) servers.exec = exec;
+  return servers;
+}
+
+function childEnv() {
+  const env = { ...process.env };
+  delete env.CC_SIDECAR_TOKEN;
+  return env;
 }
 
 // The probe runs one throwaway turn in its own cwd, so it never files a session

@@ -31,8 +31,7 @@ import json
 
 from chat import _build_chat_system_prompt, _chat_tools
 from chat_store import assistant_content_blocks
-from chat_tools import _handle_tool
-from monitor import MONITORED_TOOLS, schedule_monitor
+from exec_tools import run_tool
 from monitor_sse import push_to_monitor
 
 MODEL = "claude-opus-4-8"
@@ -118,17 +117,9 @@ async def _dispatch(uses: list, actions: list):
     results = []
     board_changed = False
     for b in uses:
-        try:
-            result = await asyncio.to_thread(_handle_tool, b.name, b.input)
-        except Exception as e:
-            # A handler can raise on a malformed model-supplied argument; left
-            # uncaught it would abort the turn after a mutation already landed.
-            result = {"error": f"tool failed: {e}"}
-        ok = isinstance(result, dict) and result.get("ok")
-        if ok and b.name in MONITORED_TOOLS:
-            schedule_monitor()
-        if ok and b.name != "update_context":   # everything else writes rd.json
-            board_changed = True
+        # run_tool owns the side effects (monitor debounce) and never raises.
+        result, changed = await run_tool(b.name, b.input)
+        board_changed = board_changed or changed
         actions.append({"name": b.name, "input": b.input, "result": result})
         results.append({"type": "tool_result", "tool_use_id": b.id, "content": json.dumps(result)})
         yield {"type": "tool_call", "name": b.name, "input": b.input, "result": result}

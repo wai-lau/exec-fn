@@ -22,7 +22,7 @@ shared conversation. A new chat starts every morning at 4:30.
 
 ## Phases
 
-1. **Exec's card tools in the sidecar.** `claude-box/exec-tools.mjs`, an in-process MCP server like `archive-tools.mjs`. Each tool calls owner-only `POST /api/exec/tool/{name}` (runs `chat_tools._handle_tool`), authenticated with the sidecar's shared secret. Schemas served once from `chat._chat_tools()` via `GET /api/exec/tools`. Update `ALLOWED_TOOLS` and the probe (14 -> 25).
+1. **Exec's card tools in the sidecar.** `claude-box/exec-tools.mjs`, an in-process MCP server like `archive-tools.mjs`. Each tool calls owner-only `POST /api/exec/tool/{name}` (runs `chat_tools._handle_tool`), authenticated with the sidecar's shared secret. Schemas served once from `chat._chat_tools()` via `GET /api/exec/tools`. Update `ALLOWED_TOOLS` and the probe (14 -> 24; a cold probe shows 22). **Done 2026-09-27.**
 2. **Personality.** `EXEC_VOICE` + `_CHAT_STATIC_PREFIX` become the sidecar system prompt. The per-turn context (today, the board, open nudges) is built by the container and put at the top of each user message, so the system prompt stays byte-stable.
 3. **Exec panel on the sidecar.** `exec-bubble.js` -> `/api/exec/query` (adds the per-turn block, relays `/api/cc/query`); history from `/api/cc/history`; tool frames hidden in the panel. Retire `chat_passes.py` after first reproducing the fake-"Added X" failure against the SDK path.
 4. **Daily new chat.** The 4:30 morning run calls the sidecar's `/new` instead of clearing `chat.json`. Past days stay in `/list`. Discord inbound off.
