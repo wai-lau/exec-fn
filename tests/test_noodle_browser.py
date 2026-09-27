@@ -65,11 +65,14 @@ def test_same_name_other_passphrase_is_blocked(browser, base_url, noodle_slug):
         assert page.inner_text("#nd-seal-cap") == f"NOT {NAME}'s seal of approval"
         assert page.evaluate("document.getElementById('nd-cal').inert")
         assert page.evaluate("document.querySelector('.nd-ask').inert")
+        label = "getComputedStyle(document.getElementById('nd-pass-label')).color"
+        locked_colour = page.evaluate(label)
         # a name nobody holds unlocks everything again
         page.fill("#nd-name", "smoke unique name")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
         assert not page.evaluate("document.getElementById('nd-cal').inert")
         assert page.inner_text("#nd-seal-cap") == "smoke unique name's seal of approval"
+        assert page.evaluate(label) != locked_colour, "the passphrase label must lose its warning colour"
     finally:
         page.close()
 
