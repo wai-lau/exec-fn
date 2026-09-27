@@ -376,17 +376,17 @@ def test_changing_the_passphrase_hands_the_name_to_the_new_key(browser, base_url
                                timeout=20000)
         return not page.is_disabled("#nd-submit")
 
-    def change(new):
+    def change(new, via="#nd-submit"):
         page.wait_for_function("!document.querySelector('#nd-rekey').hidden", timeout=10000)
         assert page.inner_text("#nd-rekey") == "change"
         page.click("#nd-rekey")
         assert page.get_attribute("#nd-pass", "placeholder") == "new passphrase"
         assert page.input_value("#nd-pass") == "" and page.is_disabled("#nd-name")
-        assert page.inner_text("#nd-rekey") == "cancel"
+        assert page.inner_text("#nd-rekey") == "\u2717" and page.inner_text("#nd-rekey-ok") == "\u2713"
         page.fill("#nd-pass", new)
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
         assert page.inner_text("#nd-submit") == "Commit*"
-        page.click("#nd-submit")
+        page.click(via)   # the check beside the field commits, the same as Commit
         page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
                                timeout=20000)
         assert page.get_attribute("#nd-pass", "placeholder") == "empty for no passphrase"
@@ -400,7 +400,8 @@ def test_changing_the_passphrase_hands_the_name_to_the_new_key(browser, base_url
         if not page.evaluate("NDV.mine"):
             page.click("#nd-submit")   # first run: commit so there is a name to change
             page.wait_for_function("NDV.mine", timeout=10000)
-        change(two)
+        change(two, via="#nd-rekey-ok")
+        assert page.is_hidden("#nd-rekey-ok")
         page.reload()
         page.wait_for_function("document.querySelector('#nd-pass').value", timeout=5000)
         assert page.input_value("#nd-pass") == two, "the committed passphrase is the remembered one"

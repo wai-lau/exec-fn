@@ -23,8 +23,15 @@ function ndrAs(pub) { return NDR.active && pub ? NDR.oldPub : pub; }
 function ndrSync() {
   var btn = ndr$('nd-rekey');
   if (!btn) return;
+  var ok = ndr$('nd-rekey-ok');
   btn.hidden = !NDR.active && !NDV.mine;
-  btn.textContent = NDR.active ? 'cancel' : 'change';
+  // mid-change: a cross (cancel) and a check (commit, the same as Commit)
+  btn.textContent = NDR.active ? '\u2717' : 'change';
+  btn.classList.toggle('glyph', NDR.active);
+  btn.setAttribute('aria-label', NDR.active ? 'cancel the passphrase change' : 'change passphrase');
+  btn.title = NDR.active ? 'cancel' : '';
+  ok.hidden = !NDR.active;
+  ok.disabled = ndv$('nd-submit').disabled;
 }
 
 function ndrLabel(on) {
@@ -91,6 +98,7 @@ async function ndrCommit(ts) {
 (function () {
   if (!ndr$('nd-rekey')) return;
   ndr$('nd-rekey').addEventListener('click', ndrClick);
+  ndr$('nd-rekey-ok').addEventListener('click', function () { ndvSubmit(); });
   window.ndrAs = ndrAs;
   window.ndrSync = ndrSync;
   window.ndrCommit = ndrCommit;

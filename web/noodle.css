@@ -10,12 +10,12 @@
    would stop lining up. unicode-range keeps ASCII on the site's face. */
 @font-face {
   font-family: 'Noodle Glyphs';
-  src: url('/fonts/noodle-seal.woff2?v=3') format('woff2');
+  src: url('/fonts/noodle-seal.woff2?v=4') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
   unicode-range: U+00B0, U+00B7, U+0298, U+02C6, U+03C9, U+0434, U+1D17, U+1D54, U+1D55,
-    U+2022, U+203F, U+2200, U+2299, U+2500, U+25BD, U+25C9, U+25D5, U+F12D, U+F765;
+    U+2022, U+203F, U+2200, U+2299, U+2500, U+25BD, U+25C9, U+25D5, U+2713, U+2717, U+F12D, U+F765;
 }
 
 body.noodle {
@@ -83,11 +83,14 @@ body.noodle {
   background: transparent;
   color: hsl(var(--green-hsl) / 1);
   font: inherit;
+  font-family: 'Noodle Glyphs', var(--font-mono);   /* the check and cross live there */
   font-size: var(--fs-2xs);
   letter-spacing: var(--tracking-wide);
   cursor: pointer;
 }
 .nd-rekey[hidden] { display: none; }
+.nd-rekey.glyph { font-size: var(--fs-sm); letter-spacing: 0; }
+.nd-rekey:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
 
 .nd-card input, .nd-card textarea {
   box-sizing: border-box;
