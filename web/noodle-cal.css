@@ -243,6 +243,11 @@
 /* outside the poll window: kept so months keep their shape, but inert */
 .nd-d.out { cursor: default; background-image: none; }
 .nd-d.out .nd-n { color: hsl(var(--gray-hsl) / 0.45); font-weight: var(--fw-normal); }
+
+/* A day nobody can pick is STRUCK, not only greyed: past, outside the crop
+   (what the host sees on the endless calendar), or not offered by the host
+   (what a guest sees). Grey alone read as merely quiet. */
+.nd-d.out .nd-n, .nd-d.shut .nd-n { text-decoration: line-through; }
 .nd-d.out .nd-dots { visibility: hidden; }
 
 .nd-d.today::after {

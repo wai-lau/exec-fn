@@ -3622,7 +3622,7 @@ a two-stroke grip (the only part that catches a pointer, so no tap on a day is
 swallowed). Drop a line and the calendar is cropped HERE, marked unsaved
 (`NDV.pendingCrop`, read through `ndhCrop()`); Commit sends it with the split in
 one signed `/settings` before the vote (`ndhCommitSettings`) -- so cropping needs
-no passphrase, only Commit does. Days outside are greyed, and the cropped-off
+no passphrase, only Commit does. Days outside are greyed AND struck through (as are past days and, for a guest, days the host did not offer: `.out`/`.shut`), and the cropped-off
 region is SHADED (`.nd-shade`, `backdrop-filter: grayscale(1) brightness(0.55)`)
 so a month watermark the line cuts reads half green, half grey; cheap because
 nothing under it animates. Headless WebKit does not composite backdrop-filter
