@@ -116,8 +116,3 @@ def test_half_hit_test_follows_the_30deg_line(x, y, half):
     # a 100x60 cell, centre (50,30). On the line at x=80: y = 30 - 30*tan30 = 12.7,
     # so (80,25) is BELOW it (night) -- a 45deg split would have called it midday.
     assert cal(f"return M.half({x},{y},100,60)") == half
-
-
-def test_heat_steps():
-    assert [cal(f"return M.heatStep({n},6)") for n in (0, 1, 2, 3, 4, 5, 6)] == [0, 1, 2, 2, 3, 3, 4]
-    assert cal("return M.heatStep(3,0)") == 0

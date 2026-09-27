@@ -44,7 +44,7 @@ TS_SKEW_MS = 120_000
 # ── ask noodle (Claude Haiku) ───────────────────────────────────────────────
 ASK_MODEL = "claude-haiku-4-5"
 ASK_MAX_CHARS = 280
-ASK_MAX_TOKENS = 400
+ASK_MAX_TOKENS = 4096   # one reasoned line per date: ~15 tokens x up to 120 days
 ASK_POLL_CAP = 60        # total calls per poll, ever
 ASK_VOTER_CAP = 6        # per voter public key, per poll
 ASK_IP_CAP = 10          # per client IP ...

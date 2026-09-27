@@ -28,7 +28,12 @@ function b64(buf) {
 async function derive(m) {
   var t0 = performance.now();
   var seed = await self.hashwasm.argon2id({
-    password: m.pass, salt: m.salt, parallelism: m.p, iterations: m.t,
+    // hash-wasm refuses an empty password, and an empty passphrase is allowed
+    // (the page warns it can be impersonated): it becomes one NUL byte, which
+    // no text input can produce, so it collides with no typed passphrase and
+    // every non-empty one derives exactly as before.
+    password: m.pass === '' ? new Uint8Array([0]) : m.pass,
+    salt: m.salt, parallelism: m.p, iterations: m.t,
     memorySize: m.m, hashLength: m.len, outputType: 'binary',
   });
   var pk8 = new Uint8Array(PKCS8_PREFIX.length + seed.length);

@@ -3456,9 +3456,24 @@ Recovery is owner-only, server-side:
 key and the next signer re-binds it (slots and dot column kept).
 
 **Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
-(`select_slots`, `block` an enum), `max_tokens` 400. The output is clamped to
-the window and anything malformed is DISCARDED (`slots.clamp_slots`); the result
-only fills the grid for review, never submits. Budgets are spent BEFORE the call
+(`select_slots`) whose answer is **one line per window date, decided one date at
+a time**: `"2026-10-13 Tuesday: never tuesdays -> -"`, verdict `m`/`n`/`mn`/`-`
+parsed off the end by `ask._pairs`. Two earlier shapes failed, both measured: a
+list of `{date, block}` objects blew `max_tokens` 400 on a whole-window answer
+(`stop_reason: max_tokens`, the tool input arrived as `{}`, and the grid silently
+filled with nothing), and two flat date lists let the model state the rule right
+in its reasoning and then list Tuesdays and even days anyway. Per-date lines took
+"every odd day, never tuesdays, night if prime, morning unless a stat holiday"
+from 27 slots with 19 wrong to 21 with 2 wrong (it calls 1 prime), and two
+plainer queries to exact. `ASK_MAX_TOKENS` is 4096 (~15 tokens x up to 120
+dates); a truncated answer now raises `llm.Truncated` -> 422 "try it in parts"
+instead of an empty grid. Each prompt date carries weekday, day of month,
+parity and any **Quebec statutory holiday** (`noodle/holidays.py`, a Python
+mirror of `web/qc-holidays.js` pinned against it for 2024-2060 by
+`tests/test_noodle_holidays.py`). anthropic 1.6.0 rejects `temperature`, so a
+genuinely ambiguous sentence can read two ways across runs. The output is
+clamped to the window and anything malformed is DISCARDED (`slots.clamp_slots`);
+the result only fills the grid for review, never submits. Budgets are spent BEFORE the call
 under the store lock: `ASK_POLL_CAP` 60 per poll, `ASK_VOTER_CAP` 6 per public
 key, `ASK_IP_CAP` 10/hour per IP (in memory), input capped at 280 chars (refused
 without spending). A spent budget disables the input with a note; the grid
@@ -3466,6 +3481,27 @@ keeps working. The prompt lists every window date as `YYYY-MM-DD Weekday the N`
 — without the day-of-month the model rounded "except the 23rd" onto a nearby
 weekday. (It still reads "every Thursday except the 23rd" as that week's
 Thursday; the voter reviews the grid before anything is signed.)
+
+**One page.** There is no separate results page (`/noodle/<slug>/results`
+301s to the vote page): the calendar's dots ARE the results, and the roster
+under the calendar (`web/noodle-roster.js`) lists every voter with their seal,
+`(you)` marking the row whose key this browser holds (by key, never by name).
+Each voter's dots wear their seal's ink, so a column in the grid matches a name
+by colour.
+
+**The form is remembered in localStorage (`noodle.identity`), deliberately NOT
+a cookie**: a cookie rides on every request, which would send the passphrase to
+the server. **An empty passphrase is allowed** — the name alone then decides the
+key, and a warning under the fields says anyone typing that name can change the
+vote. hash-wasm refuses an empty password, so the worker hashes one NUL byte in
+its place (no text input can produce it; every non-empty passphrase derives as
+before). An empty name is never allowed: no key is derived without a valid name
+and the server 400s one. The seal caption follows the name field:
+`"<name>'s seal of approval"`. **A disabled submit always says why** in the
+line under it (`ndvWhyNot`: no name, unusable name, name sealed by another
+key, no key in this browser, key still being made, sealing) -- a greyed button
+with no reason reads as broken. The Ask box is a 4-row textarea so its example
+hint shows whole; Enter still asks.
 
 **The calendar** (`noodle-cal.js` geometry + `noodle-cal-view.js` controller,
 styles `noodle-cal.css`) is ONE continuous vertical scroller of Sunday-first

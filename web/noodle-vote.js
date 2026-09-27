@@ -3,7 +3,12 @@
 // browser: it goes to the key worker (noodle-kdf-worker.js) and nowhere else;
 // the server receives the public key, the slots and a signature over them.
 
-var NDV = { poll: null, cal: null, kdf: null, skew: 0, blocked: false, salt: '' };
+var NDV = { poll: null, cal: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {} };
+
+// Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
+// rides along on every request, which would send the passphrase to the server
+// -- the one thing this page promises never happens. Per browser, all polls.
+var NDV_STORE = 'noodle.identity';
 
 function ndv$(id) { return document.getElementById(id); }
 
@@ -18,7 +23,7 @@ var NDV_SIGN_DONE = 'sign(your availability, key) ──> sealed';
 
 function ndvDeriveLine(salt, tail) {
   var k = NDV.kdfCfg, pass = ndv$('nd-pass').value;
-  return 'argon2id("' + (pass || '<passphrase>') + '", ' + salt.slice(0, 12) + '.., m=' +
+  return 'argon2id("' + pass + '", ' + salt.slice(0, 12) + '.., m=' +
     (k.m / 1024) + 'MiB, t=' + k.t + ', p=' + k.p + ') \u2500\u2500> ' + tail;
 }
 
@@ -28,8 +33,22 @@ function ndvTeach(tail, signLine) {
 
 function ndvReady() { return !!NDV.kdf && NDV.kdf.ready(); }
 
-function ndvSyncSubmit() {
-  ndv$('nd-submit').disabled = NDV.blocked || !ndvReady();
+// Why submit cannot be pressed right now, or '' when it can. A disabled
+// button with no reason reads as broken.
+function ndvWhyNot() {
+  var raw = ndv$('nd-name').value;
+  if (!raw.trim()) return 'enter your name first.';
+  if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used.';
+  if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase.';
+  if (NDV.keyError) return 'this browser could not make a key.';
+  if (!ndvReady()) return 'making your key...';
+  return '';
+}
+
+function ndvSyncSubmit(busy) {
+  var why = busy ? 'sealing...' : ndvWhyNot();
+  ndv$('nd-submit').disabled = !!why;
+  ndv$('nd-why').textContent = why;
 }
 
 // Which voter (if any) the typed name already belongs to, and everyone else
@@ -38,12 +57,14 @@ function ndvRefreshBinding(pub) {
   var norm = window.noodleNormName(ndv$('nd-name').value), mine = null, others = [];
   (NDV.poll ? NDV.poll.voters : []).forEach(function (v) {
     if (norm && window.noodleNormName(v.name) === norm) mine = v;
-    else others.push({ slots: new Set(v.slots) });
+    else others.push({ slots: new Set(v.slots), hue: NDV.seals[v.pub] ? NDV.seals[v.pub].hue : null });
   });
   NDV.cal.setOthers(others);
-  NDV.blocked = !!(mine && mine.pub && pub && mine.pub !== pub);
+  window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub);
+  // the blocking name, for the reason under submit (ndvWhyNot)
+  NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
   if (NDV.blocked) {
-    ndvStatus('"' + mine.name + '" is already sealed with a different passphrase.', 'err');
+    ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
     NDV.cal.setSel(new Set(mine.slots));
     ndvStatus('welcome back, ' + mine.name + '. your picks are loaded.');
@@ -72,8 +93,42 @@ async function ndvOnDerived(d) {
   if (window.ndaLoadBudget) window.ndaLoadBudget(d.pub);
 }
 
+function ndvSaveIdentity() {
+  try {
+    localStorage.setItem(NDV_STORE, JSON.stringify({ name: ndv$('nd-name').value, pass: ndv$('nd-pass').value }));
+  } catch (e) { /* storage blocked: the form just is not remembered */ }
+}
+
+function ndvRestoreIdentity() {
+  try {
+    var id = JSON.parse(localStorage.getItem(NDV_STORE) || 'null');
+    if (id && typeof id.name === 'string') {
+      ndv$('nd-name').value = id.name;
+      ndv$('nd-pass').value = typeof id.pass === 'string' ? id.pass : '';
+      return true;
+    }
+  } catch (e) { /* unreadable or blocked: start empty */ }
+  return false;
+}
+
+// "<name>'s seal of approval", following the name field as it is typed.
+function ndvSealCaption() {
+  var name = ndv$('nd-name').value.trim().split(/\s+/).join(' ');
+  ndv$('nd-seal-cap').textContent = (name ? name + "'s" : 'your') + ' seal of approval';
+}
+
+// No passphrase = the name alone decides the key, so say so plainly.
+function ndvWarnEmpty() {
+  var open = !!window.noodleNormName(ndv$('nd-name').value) && !ndv$('nd-pass').value;
+  ndv$('nd-warn').hidden = !open;
+}
+
 function ndvOnIdentityInput() {
-  NDV.blocked = false;
+  ndvSaveIdentity();
+  ndvWarnEmpty();
+  ndvSealCaption();
+  NDV.blocked = '';
+  NDV.keyError = false;
   NDV.kdf.input(ndv$('nd-name').value, ndv$('nd-pass').value);
   if (NDV.poll) ndvRefreshBinding(null);
 }
@@ -98,8 +153,8 @@ async function ndvPost(path, body) {
 }
 
 async function ndvSubmit() {
-  if (!ndvReady() || NDV.blocked) return;
-  ndv$('nd-submit').disabled = true;
+  if (ndvWhyNot()) return;
+  ndvSyncSubmit(true);
   var name = ndv$('nd-name').value, slots = Array.from(NDV.cal.getSel()).sort();
   var ts = Date.now() + NDV.skew;
   // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
@@ -126,6 +181,7 @@ async function ndvLoadPoll() {
   var served = Date.parse(r.headers.get('date') || '');
   if (!isNaN(served)) NDV.skew = served - Date.now();
   NDV.poll = await r.json();
+  NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   ndvRefreshBinding(ndvReady() ? NDV.kdf.pub() : null);
 }
 
@@ -141,6 +197,8 @@ function ndvInit() {
     slug: NDV.slug, kdf: NDV.kdfCfg, workerUrl: root.dataset.worker,
     onStart: ndvOnStart, onDerived: ndvOnDerived,
     onError: function (msg) {
+      NDV.keyError = true;
+      ndvSyncSubmit();
       ndvStatus('could not make a key in this browser (' + msg + '). a current Safari, Chrome or Firefox is needed.', 'err');
     },
   });
@@ -150,6 +208,7 @@ function ndvInit() {
   ndvTeach('key', NDV_SIGN_WAIT);
   ndvSyncSubmit();
   ndvLoadPoll();
+  if (ndvRestoreIdentity()) ndvOnIdentityInput();
 }
 
 ndvInit();

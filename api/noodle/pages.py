@@ -46,15 +46,6 @@ def vote_page(poll: dict) -> str:
     return _page(f"noodle: {poll['title']}", body)
 
 
-def results_page(poll: dict) -> str:
-    body = _fill(
-        _tmpl("noodle-results.html"),
-        SLUG=html.escape(poll["slug"], quote=True),
-        TITLE=html.escape(poll["title"]),
-    )
-    return _page(f"noodle results: {poll['title']}", body)
-
-
 def admin_page() -> str:
     body = _fill(_tmpl("noodle-admin.html"), MAX_DAYS=str(config.MAX_WINDOW_DAYS))
     return _page("noodle", body)

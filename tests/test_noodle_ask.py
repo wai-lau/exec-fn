@@ -28,7 +28,7 @@ def env(monkeypatch, tmp_path):
     def fake(system, user):
         calls.append((system, user))
         return fake.reply
-    fake.reply = {"slots": [{"date": "2026-10-02", "block": "night"}]}
+    fake.reply = {"days": ["2026-10-01 Thursday: no -> -", "2026-10-02 Friday: friday night -> n"]}
     monkeypatch.setattr(llm, "call", fake)
     slug = store.create("t", "2026-10-01", "2026-10-10", "x")["slug"]
     return {"ask": ask, "config": config, "slug": slug, "calls": calls, "fake": fake}
@@ -53,19 +53,23 @@ def test_valid_output_fills_and_counts(env):
 
 
 def test_output_clamped_to_window_and_invalid_discarded(env):
-    env["fake"].reply = {"slots": [
-        {"date": "2026-09-30", "block": "night"},    # before window
-        {"date": "2026-10-11", "block": "midday"},   # after window
-        {"date": "2026-10-03", "block": "evening"},  # not a block
-        {"date": "Oct 4", "block": "midday"},        # not a date
-        "2026-10-05:m",                              # wrong shape
-        {"date": "2026-10-06", "block": "midday"},   # the one good slot
-        {"date": "2026-10-06", "block": "midday"},   # duplicate
+    env["fake"].reply = {"days": [
+        "2026-09-30 Wednesday: before the window -> mn",
+        "2026-10-11 Sunday: after the window -> m",
+        "2026-10-03 Saturday: not a verdict -> evening",
+        "Oct 4: not a date -> m",
+        "2026-10-05 Monday: no arrow m",
+        {"date": "2026-10-06", "block": "midday"},
+        "2026-10-06 Tuesday: ok -> m",
+        "2026-10-06 Tuesday: duplicate -> m",
+        "2026-10-07 Wednesday: both -> mn",
+        "2026-10-08 Thursday: neither -> -",
     ]}
-    assert go(env)["slots"] == ["2026-10-06:m"]
+    assert go(env)["slots"] == ["2026-10-06:m", "2026-10-07:m", "2026-10-07:n"]
 
 
-@pytest.mark.parametrize("reply", [None, {}, {"slots": "all"}, {"slots": [1, 2]}, "junk"])
+@pytest.mark.parametrize("reply", [None, {}, {"days": "all"}, {"days": [1, 2]}, "junk",
+                                   {"slots": [{"date": "2026-10-02", "block": "night"}]}])
 def test_schema_invalid_output_discarded(env, reply):
     env["fake"].reply = reply
     assert go(env)["slots"] == []
@@ -120,15 +124,41 @@ def test_model_failure_still_spends_and_reports(env):
     assert e.status == 502 and e.remaining == env["config"].ASK_VOTER_CAP - 1
 
 
+def test_truncated_answer_is_an_error_not_an_empty_grid(env):
+    """A partial tool call (stop_reason max_tokens) arrives as {} -- parsing it
+    silently filled the grid with nothing. It must say so instead."""
+    def cut(system, user):
+        raise env["ask"].llm.Truncated()
+    env["ask"].llm.call = cut
+    e = status(env)
+    assert e.status == 422 and e.remaining == env["config"].ASK_VOTER_CAP - 1
+
+
+def test_prompt_labels_every_date(env):
+    go(env)
+    system = env["calls"][0][0]
+    assert "2026-10-01 Thursday the 1 (odd)" in system
+    assert "2026-10-10 Saturday the 10 (even)" in system
+
+
+def test_prompt_names_quebec_holidays(env, monkeypatch):
+    from noodle import store
+    slug = store.create("h", "2026-10-10", "2026-10-14", "x")["slug"]
+    env["ask"].ask(slug, {"text": "x", "pub": _pub(9), "current": []}, "192.0.2.1")
+    assert "2026-10-12 Monday the 12 (even) (Quebec statutory holiday: Action de grace)" in env["calls"][-1][0]
+
+
 def test_current_selection_is_validated_and_sent(env):
     go(env, current=["2026-10-01:m"])
     assert "2026-10-01:m" in env["calls"][0][0]
     assert status(env, current=["2026-12-01:m"]).status == 400
 
 
-def test_client_uses_small_max_tokens_and_forced_tool():
+def test_client_bounds_tokens_and_forces_the_tool():
     from noodle import config, llm
-    assert config.ASK_MAX_TOKENS <= 512
-    assert llm.SLOT_TOOL["input_schema"]["properties"]["slots"]["items"]["properties"]["block"]["enum"] == ["midday", "night"]
+    # one reasoned line per date (~15 tokens) for the longest window must fit
+    assert 15 * config.MAX_WINDOW_DAYS <= config.ASK_MAX_TOKENS <= 4096
+    assert llm.SLOT_TOOL["input_schema"]["required"] == ["days"]
     src = Path(llm.__file__).read_text()
     assert "max_tokens=config.ASK_MAX_TOKENS" in src and '"type": "tool"' in src
+    assert 'stop_reason == "max_tokens"' in src

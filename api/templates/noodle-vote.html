@@ -1,4 +1,4 @@
-<main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-start="{{START}}" data-end="{{END}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=1">
+<main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-start="{{START}}" data-end="{{END}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=2">
   <h1 class="nd-title">{{TITLE}}</h1>
 
   <section class="nd-id">
@@ -10,9 +10,10 @@
     </div>
     <div class="nd-seal-box">
       <pre id="nd-seal" class="nd-seal" aria-label="your seal"></pre>
-      <span class="nd-seal-cap">your seal of approval</span>
+      <span id="nd-seal-cap" class="nd-seal-cap">your seal of approval</span>
     </div>
   </section>
+  <p id="nd-warn" class="nd-warn" hidden>no passphrase: anyone who types this name gets the same key, and can change your vote.</p>
 
   <pre id="nd-teach" class="nd-teach" aria-live="polite"></pre>
   <p class="nd-note">your passphrase is not sent to the server. this browser turns it into a key, and only the public half of that key (plus a signature) ever leaves it.</p>
@@ -22,12 +23,16 @@
 
   <div class="nd-ask">
     <label for="nd-ask" class="nd-ask-label">or ask Noodle</label>
-    <input id="nd-ask" type="text" maxlength="{{ASK_MAX}}" autocomplete="off" placeholder="every thursday night except the 23rd">
+    <textarea id="nd-ask" rows="4" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="every odd day of the month, never tuesdays, only at night if it's a prime number day, and only in the morning if it isn't a stat holiday in Quebec"></textarea>
   </div>
 
   <p id="nd-status" class="nd-status" aria-live="polite"></p>
   <button id="nd-submit" type="button" class="nd-submit">submit</button>
-  <a class="nd-results-link" href="/noodle/{{SLUG}}/results">see results</a>
+  <p id="nd-why" class="nd-why" aria-live="polite"></p>
+
+  <h2 class="doc-h2 nd-voters-h">voters</h2>
+  <p class="nd-dim">each voter is one column of dots in the calendar, in their seal's colour: top dot midday, bottom dot night.</p>
+  <ul id="nd-voters" class="nd-voters"></ul>
 </main>
 
 <div id="nd-approved" class="nd-approved" hidden>
@@ -38,9 +43,10 @@
 </div>
 
 <script src="/noodle-toggle.js?v=1"></script>
-<script src="/noodle-seal.js?v=2"></script>
-<script src="/noodle-cal.js?v=1"></script>
-<script src="/noodle-cal-view.js?v=1"></script>
-<script src="/noodle-kdf.js?v=1"></script>
-<script src="/noodle-vote.js?v=2"></script>
+<script src="/noodle-seal.js?v=3"></script>
+<script src="/noodle-cal.js?v=2"></script>
+<script src="/noodle-cal-view.js?v=2"></script>
+<script src="/noodle-kdf.js?v=2"></script>
+<script src="/noodle-roster.js?v=2"></script>
+<script src="/noodle-vote.js?v=6"></script>
 <script src="/noodle-ask.js?v=1"></script>

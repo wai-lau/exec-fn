@@ -2,8 +2,8 @@
 // repaints classes in place on every change so the scroll position and the
 // sticky header never jump.
 //
-// opts: {start, end, readonly, caption (element|null), onChange(sel), onDay(iso)}
-// api:  setSel(Set), setOthers([{slots:Set}]), setHeat(Map slot->n, total)
+// opts: {start, end, caption (element|null), onChange(sel)}
+// api:  setSel(Set), getSel(), setOthers([{slots:Set, hue}])
 
 // The big month number behind the grid follows whichever week row is at the
 // scroller's vertical middle.
@@ -33,11 +33,11 @@ function NoodleCal(wrap, opts) {
   var P = window.NoodleCalParts, T = window.NoodleToggle;
   var weeks = P.weeks(opts.start, opts.end);
   var groups = P.groups(weeks, opts.start, opts.end);
-  var sel = new Set(), others = [], heat = null;
+  var sel = new Set(), others = [];
 
   wrap.innerHTML = '<div class="nd-mark" aria-hidden="true"></div>' +
-    '<div class="nd-scroll"><div class="nd-grid' + (opts.readonly ? ' ro' : '') + '">' +
-    P.gridHtml(weeks, opts.start, opts.end, opts.readonly) + '</div></div>';
+    '<div class="nd-scroll"><div class="nd-grid">' +
+    P.gridHtml(weeks, opts.start, opts.end) + '</div></div>';
   var scroller = wrap.querySelector('.nd-scroll');
   var grid = wrap.querySelector('.nd-grid');
   var mark = wrap.querySelector('.nd-mark');
@@ -68,12 +68,7 @@ function NoodleCal(wrap, opts) {
       var iso = c.dataset.day;
       c.classList.toggle('mid', sel.has(iso + ':m'));
       c.classList.toggle('nit', sel.has(iso + ':n'));
-      if (heat) {
-        c.dataset.hm = P.heatStep(heat.counts.get(iso + ':m'), heat.total);
-        c.dataset.hn = P.heatStep(heat.counts.get(iso + ':n'), heat.total);
-      }
     });
-    if (opts.readonly) return;
     grid.querySelectorAll('.nd-hd[data-col], .nd-wk').forEach(function (el) {
       paintToggle(el, groupOf(el));
     });
@@ -100,14 +95,13 @@ function NoodleCal(wrap, opts) {
   function onTap(e) {
     var set = e.target.closest('[data-set]'), tg = e.target.closest('.nd-tg');
     var cell = e.target.closest('.nd-d');
-    if ((set || tg) && !opts.readonly) {
+    if (set || tg) {
       var g = groupOf(e.target);
       if (!g || !g.slots.length) return;
       var st = T.groupState(g.slots, sel);
       change(T.apply(g.slots, sel, set ? set.dataset.set : T.clickAction(st)));
       say(g.el);
     } else if (cell && !cell.classList.contains('out')) {
-      if (opts.readonly) { if (opts.onDay) opts.onDay(cell.dataset.day); return; }
       var r = cell.getBoundingClientRect();
       var slot = cell.dataset.day + ':' + P.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight);
       var next = new Set(sel);
@@ -131,7 +125,6 @@ function NoodleCal(wrap, opts) {
     setSel: function (s) { sel = new Set(s); paint(); },
     getSel: function () { return new Set(sel); },
     setOthers: function (o) { others = o; paintDots(); },
-    setHeat: function (counts, total) { heat = { counts: counts, total: total }; paint(); },
   };
 }
 

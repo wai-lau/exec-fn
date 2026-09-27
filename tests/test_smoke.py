@@ -211,12 +211,13 @@ def test_printer_video_streams_for_guest(client, guest_cookie):
 
 # ── noodle: public by unguessable link, owner-only to create ───────────────────
 def test_noodle_poll_pages_are_public(client, noodle_slug):
-    for path in (f"/noodle/{noodle_slug}", f"/noodle/{noodle_slug}/results"):
-        r = client.get(path, headers=HTML_ACCEPT)
-        assert r.status_code == 200, f"{path} -> {r.status_code}"
-        assert _is_page(r)
-        assert "noindex" in r.headers.get("x-robots-tag", "")
-    assert 'data-kdf=' in client.get(f"/noodle/{noodle_slug}").text
+    r = client.get(f"/noodle/{noodle_slug}", headers=HTML_ACCEPT)
+    assert r.status_code == 200 and _is_page(r)
+    assert "noindex" in r.headers.get("x-robots-tag", "")
+    assert 'data-kdf=' in r.text and 'id="nd-voters"' in r.text
+    # results moved onto the vote page; old links redirect there
+    r = client.get(f"/noodle/{noodle_slug}/results", headers=HTML_ACCEPT)
+    assert r.status_code == 301 and r.headers["location"] == f"/noodle/{noodle_slug}"
 
 
 def test_noodle_poll_json_is_public_and_holds_no_budget(client, noodle_slug):

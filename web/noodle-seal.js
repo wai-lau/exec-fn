@@ -15,8 +15,8 @@
 // is in web/fonts/noodle-seal.woff2 (advance == 'M', checked by
 // tests/test_noodle_glyphs.py) -- no emoji, no variation selectors.
 //
-// ONE implementation: the vote page and the results page both render seals
-// here, so a seal can never differ between the two.
+// ONE implementation: the voter's own seal and every seal in the roster are
+// rendered here, so a seal can never differ between the two.
 
 var ND_BORDER = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
 var ND_EYES = [

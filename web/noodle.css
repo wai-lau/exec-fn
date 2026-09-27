@@ -64,7 +64,7 @@ body.noodle {
   color: hsl(var(--green-hsl) / 0.45);
 }
 
-.nd-card input {
+.nd-card input, .nd-card textarea {
   box-sizing: border-box;
   width: 100%;
   padding: var(--space-2) var(--space-3);
@@ -75,8 +75,8 @@ body.noodle {
   font: inherit;
   font-size: max(16px, var(--fs-sm)); /* under 16px iOS zooms the page on focus */
 }
-.nd-card input:focus { outline: none; border-color: hsl(var(--green-hsl) / 1); }
-.nd-card input:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); }
+.nd-card input:focus, .nd-card textarea:focus { outline: none; border-color: hsl(var(--green-hsl) / 1); }
+.nd-card input:disabled, .nd-card textarea:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); }
 
 .nd-seal-box {
   display: flex;
@@ -86,7 +86,8 @@ body.noodle {
 }
 
 .nd-seal-cap {
-  max-width: 7ch;
+  max-width: 11ch;
+  overflow-wrap: anywhere;
   font-size: var(--fs-2xs);
   color: hsl(var(--green-hsl) / 0.45);
 }
@@ -146,6 +147,8 @@ body.noodle {
 
 /* ── ask noodle, status, submit ─────────────────────────────────────────── */
 .nd-ask { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin: var(--space-6) 0 0; }
+.nd-card textarea { resize: none; line-height: var(--lh-snug); }
+.nd-card textarea::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 .nd-ask-label { font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
 
 .nd-status { min-height: 1lh; margin: var(--space-4) 0; text-align: center; font-size: var(--fs-2xs); }
@@ -166,7 +169,12 @@ body.noodle {
 }
 .nd-submit:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); background: transparent; cursor: default; }
 
-.nd-results-link { display: block; margin-top: var(--space-6); text-align: center; font-size: var(--fs-2xs); }
+.nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
+
+.nd-voters-h { margin-top: var(--space-10); }
+
+/* the empty-passphrase warning sits right under the fields it is about */
+.nd-warn { margin: var(--space-3) 0 0; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl) / 0.8); }
 
 /* "approved by" + the seal, over everything for a moment after a submit */
 .nd-approved {
