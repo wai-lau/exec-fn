@@ -344,8 +344,7 @@ def test_the_host_drags_the_crop_lines_and_commit_saves_them(browser, base_url, 
         page.mouse.down()
         page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2 + dy, steps=8)
         page.mouse.up()
-        page.wait_for_timeout(300)
-        assert page.inner_text("#nd-submit") == "Commit*", "a crop is unsaved until Commit"
+        page.wait_for_function("document.querySelector('#nd-submit').textContent === 'Commit*'", timeout=5000)
         page.click("#nd-submit")
         page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
                                timeout=10000)
@@ -441,7 +440,9 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         page.wait_for_function("NDV.mine", timeout=20000)   # the old key re-derives, then locks again
         assert page.is_disabled("#nd-pass")
         assert page.inner_text("#nd-submit") == "Commit"
-        assert errors == []
+        # this test RELOADS mid-flight on purpose: a request cut off by its own
+        # reload is WebKit's 'Load failed', not a page bug
+        assert [e for e in errors if not e.startswith("Load failed")] == []
     finally:
         page.close()
 

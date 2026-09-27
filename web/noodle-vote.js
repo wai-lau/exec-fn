@@ -196,7 +196,9 @@ var NDV_BLANK = '__could_be_you__';
 function ndvBlankSeal() {
   var k = 'noodle.blankSeal', id = null;
   try { id = localStorage.getItem(k); } catch (e) { /* blocked: a fresh one each load */ }
-  if (!id) {
+  // a seed is 32 bytes (64 hex); a shorter one (an early version stored 16)
+  // reads past its end in the seal and throws, so it is replaced
+  if (!/^[0-9a-f]{64}$/.test(id || '')) {
     id = Array.from(crypto.getRandomValues(new Uint8Array(32)), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
     try { localStorage.setItem(k, id); } catch (e) { /* not kept */ }
   }
@@ -432,11 +434,20 @@ function ndvInit() {
   ndv$('nd-voters').addEventListener('click', ndvPickFace);
   ndv$('nd-pass').addEventListener('input', ndvOnIdentityInput);
   ndv$('nd-submit').addEventListener('click', ndvSubmit);
-  ndv$('nd-banner').addEventListener('click', function () { ndvBanner(''); });
+  // any promise nobody caught (a request cut off by a reload is WebKit's
+  // 'Load failed') is an error like any other: to the banner, not the console
+  window.addEventListener('unhandledrejection', function (e) {
+    ndvStatus('something failed: ' + ((e.reason && e.reason.message) || e.reason), 'err');
+    e.preventDefault();
+  });
   ndvTeach('', NDV_SIGN_WAIT);
   ndvSyncSubmit();
   // a reload mid-fetch rejects it ('Load failed'); say so rather than throw
-  ndvLoadPoll().catch(function (e) { ndvStatus('could not load the poll (' + e.message + ')', 'err'); });
+  ndvLoadPoll().catch(function (e) {
+    // where, too: a bare message is all a report from someone else's phone carries
+    var at = String(e.stack || '').split('\n').slice(1, 2).join('').trim();
+    ndvStatus('could not load the poll (' + e.message + (at ? ' ' + at : '') + ')', 'err');
+  });
   if (ndvRestoreIdentity()) ndvOnIdentityInput();
 }
 

@@ -44,7 +44,7 @@
   position: relative;
   z-index: var(--z-raised);
   max-height: min(62dvh, 560px);   /* until JS caps it to 6 weeks (ndcCapHeight) */
-  overflow-y: auto;
+  overflow: hidden auto;   /* never sideways: a month watermark overhangs the grid */
   overscroll-behavior: contain;
 }
 
@@ -52,7 +52,7 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: 32px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 40px repeat(7, minmax(0, 1fr));
 
   /* 'Noodle Glyphs' first: the toggle icons (U+F765 / U+F12D) live only in
      noodle-seal.woff2, and the site face has none -- with --font-mono alone
@@ -93,6 +93,7 @@
   font-size: var(--fs-2xs);
   font-weight: var(--fw-normal);
   color: hsl(var(--green-hsl) / 0.45);
+  cursor: pointer;   /* the whole cell is its group's button (onTap) */
 }
 
 .nd-hd {
@@ -156,7 +157,7 @@
 /* centred by ink, then set along the slash (it rises to the right): the
    bucket a little left above it, the eraser a little right below it */
 .nd-mode .ic.fill { top: 2px; transform: translateX(calc(-50% - 0.125em - 2px)); }
-.nd-mode .ic.clear { bottom: 2px; transform: translateX(calc(-50% - 0.287em + 4px)); }
+.nd-mode .ic.clear { bottom: 5px; transform: translateX(calc(-50% - 0.287em + 4px)); }
 
 .nd-mode[data-mode="fill"] .fill,
 .nd-mode[data-mode="clear"] .clear { color: hsl(var(--green-hsl) / 1); }
@@ -200,26 +201,27 @@
 .nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
 .nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }
 
-/* Month boundaries: one stroked path each (noodle-cal-view.js
-   ndcPaintBoundaries), the same 2px weight as the crop line, green and
-   stepped. Per-cell bars came first, and half-transparent bars that meet
-   overlap -- every corner doubled into a brighter chip. Level with the frozen
-   week column (--z-raised) and later in the DOM, so it runs on across it;
-   still under the frozen header. */
-.nd-mlines {
+/* Month boundaries: 2px segments INSIDE the cells, on the centre of the 5px
+   gap (noodle-cal-view.js ndcPaintBoundaries): -3.5px puts a 2px line
+   across the middle of a 5px border. Every day cell's right and bottom
+   borders ARE the gaps, so a segment runs over its own border and one pixel
+   into the next cell's, OVERLAPPING the next segment -- joins between
+   translucent pieces showed as seams and chips, so the ink is OPAQUE: full
+   green dimmed by a filter to the old 0.45-over-black tone, where an overlap
+   is invisible. The ends overhang by the line's reach (-3.5px) to close the
+   step's corners. */
+.nd-ml {
   position: absolute;
-  top: 0;
-  left: 0;
-  z-index: var(--z-raised);
-  overflow: visible;
   pointer-events: none;
+  background: hsl(var(--green-hsl) / 1);
+  filter: brightness(0.45);
 }
-
-.nd-mlines path {
-  fill: none;
-  stroke: hsl(var(--green-hsl) / 0.45);
-  stroke-width: 2px;
-}
+.nd-ml.t { top: -3.5px; left: 0; right: -6px; height: 2px; }
+.nd-ml.b { bottom: -3.5px; left: 0; right: -6px; height: 2px; }
+.nd-ml.t.start { left: -3.5px; }
+.nd-ml.b.end { right: -3.5px; }
+.nd-ml.v { top: -3.5px; bottom: -3.5px; left: -3.5px; width: 2px; }
+.nd-wk .nd-ml { right: 0; }   /* the week column has no right border */
 
 .nd-n {
   position: relative;
