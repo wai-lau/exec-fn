@@ -49,7 +49,7 @@ CHROME = "web/chrome.css"
 SNAP_SCALE = {0.0, 0.06, 0.12, 0.25, 0.45, 0.6, 0.8, 1.0}
 
 # Page-local `--*-hsl` accents allowed outside chrome.css (deliberate, recorded).
-LOCAL_ACCENTS = {"ember-hsl"}
+LOCAL_ACCENTS = {"ember-hsl", "seal-hsl"}  # seal-hsl: Noodle's per-voter ink, set from the key
 
 # Same file set + extraction as the /api/color/usage endpoint (routes_views.py):
 # templates + web (the /app/static mount) + main.py, chrome.css :root stripped,

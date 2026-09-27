@@ -106,13 +106,11 @@ body.noodle {
 }
 .nd-seal.pending { opacity: 0.25; }
 
-/* the ink is picked from the key (noodle-seal.js, byte 20): the palette's
-   five hues, each at an alpha the palette already uses for it */
-.nd-seal.nd-hue-0 { color: hsl(var(--green-hsl) / 0.8); }
-.nd-seal.nd-hue-1 { color: hsl(var(--cyan-hsl) / 0.8); }
-.nd-seal.nd-hue-2 { color: hsl(var(--orange-hsl) / 1); }
-.nd-seal.nd-hue-3 { color: hsl(var(--orange-glow-hsl) / 0.8); }
-.nd-seal.nd-hue-4 { color: hsl(var(--pink-hsl) / 0.8); }
+/* The ink comes from the key (noodle-seal.js ndInk): ANY hue, with a
+   lightness floor so it always reads on black. --seal-hsl is set inline per
+   seal (.inked marks one that has it), a page-local accent -- LOCAL_ACCENTS
+   in scripts/lint-colors.py. Without a key the seal keeps the pink above. */
+.nd-seal.inked { color: hsl(var(--seal-hsl) / 1); }
 .nd-seal.sm { min-height: 0; font-size: var(--fs-2xs); }
 
 /* Wax: pressed down hard, a small rebound, then settled a little askew. */

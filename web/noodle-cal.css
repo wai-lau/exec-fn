@@ -199,12 +199,8 @@
   outline: 1px solid hsl(var(--bg-hsl) / 1);
 }
 
-/* a voter's dots wear their seal's ink (noodle-seal.js picks it from the key) */
-.nd-dots i.on.nd-hue-0 { background: hsl(var(--green-hsl) / 0.8); }
-.nd-dots i.on.nd-hue-1 { background: hsl(var(--cyan-hsl) / 0.8); }
-.nd-dots i.on.nd-hue-2 { background: hsl(var(--orange-hsl) / 1); }
-.nd-dots i.on.nd-hue-3 { background: hsl(var(--orange-glow-hsl) / 0.8); }
-.nd-dots i.on.nd-hue-4 { background: hsl(var(--pink-hsl) / 0.8); }
+/* a voter's dots wear their seal's ink: --seal-hsl, set inline per dot */
+.nd-dots i.on[style] { background: hsl(var(--seal-hsl) / 1); }
 
 /* more voters than fit: the same hollow silver ring /rd uses */
 .nd-more {

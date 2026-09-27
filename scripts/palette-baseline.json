@@ -42,6 +42,9 @@
   "scrim-hsl": [
     "0.45"
   ],
+  "seal-hsl": [
+    "1"
+  ],
   "surface-hsl": [
     "1"
   ],

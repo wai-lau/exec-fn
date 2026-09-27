@@ -29,7 +29,8 @@ function ndrRender(el, voters, seals, myPub) {
     var you = !!myPub && v.pub === myPub;
     return '<li><button type="button" class="nd-face' + (you ? ' you' : '') + '" data-name="' +
       ndrEsc(v.name) + '" title="' + v.slots.length + ' slots">' +
-      '<pre class="nd-seal xs' + (seal ? ' nd-hue-' + seal.hue : '') + '">' + ndrEsc(seal ? seal.text : '') +
+      '<pre class="nd-seal xs' + (seal ? ' inked" style="--seal-hsl:' + seal.ink + '"' : '"') + '>' +
+      ndrEsc(seal ? seal.text : '') +
       '</pre><span class="nd-face-name">' + ndrEsc(v.name) + '</span></button></li>';
   }).join('');
 }
