@@ -3567,13 +3567,13 @@ before a button, the exact submit keys, the passphrase in no request.
 
 **The calendar** (`noodle-cal.js` geometry + `noodle-cal-view.js` controller,
 styles `noodle-cal.css`) is ONE continuous vertical scroller of Sunday-first
-weeks spanning whole months, in /rd's visual language (5px rules, bold padded
+weeks -- only the weeks the window touches, no padding rows -- in /rd's visual language (5px rules, bold padded
 dates, cyan weekends, blurred month watermark that follows the row at the
 scroller's middle). Each day cell holds only its number and dots; its background
 is split by a 30deg `/` (a 330deg hard-stop gradient), top-left = midday,
 bottom-right = night, and a tap is hit-tested against the SAME line (`ndHalf`).
 Month boundaries are per-cell `.mr`/`.mb` rules, so the line steps around a month
-that ends mid-week. Out-of-window days stay drawn, greyed and inert. **Dots: every
+that ends mid-week. Days of those weeks outside the window stay drawn, greyed and inert. **Dots: every
 other voter owns one fixed column** (vote order), top dot midday, bottom dot
 night, a gap where not free — one person reads as one vertical line through the
 grid; overflow gets /rd's hollow ring.

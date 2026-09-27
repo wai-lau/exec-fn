@@ -91,10 +91,12 @@ def cal(expr):
     return js(expr, "noodle-cal.js", "NoodleCalParts")
 
 
-def test_weeks_span_whole_months_sunday_first():
+def test_weeks_are_the_minimum_sunday_first():
     w = cal("return M.weeks('2026-10-14','2026-11-03')")
-    assert w[0][0] == "2026-09-27" and w[0][4] == "2026-10-01"   # Oct 1 2026 is a Thursday
-    assert w[-1][-1] == "2026-12-05"                              # Nov 30 is a Monday
+    assert w[0][0] == "2026-10-11" and w[0][3] == "2026-10-14"   # Oct 14 2026 is a Wednesday
+    assert w[-1][0] == "2026-11-01" and w[-1][-1] == "2026-11-07"
+    assert len(w) == 4
+    assert cal("return M.weeks('2026-10-11','2026-10-17').length") == 1
     assert all(len(r) == 7 for r in w)
     flat = [d for r in w for d in r]
     assert len(flat) == len(set(flat))

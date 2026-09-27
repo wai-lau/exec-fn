@@ -7,9 +7,8 @@
 // bottom-right half is night -- and a tap is hit-tested against that same
 // line (ndHalf), so the half you see is the half you get.
 //
-// The grid spans whole months (1st of the window's first month to the last
-// day of its last month); days outside the window are drawn greyed and inert
-// so every month keeps its shape. Month boundaries are a bright stepped line
+// The grid spans only the weeks the window touches -- no padding rows; the
+// days of those weeks that fall outside the window are drawn greyed and inert. Month boundaries are a bright stepped line
 // made of per-cell right/bottom rules (.mr/.mb), following the real edge.
 //
 // Dots: every voter -- you included -- owns ONE fixed column of dots, the same
@@ -38,11 +37,11 @@ function ndHalf(x, y, w, h) {
   return dy < -dx * ND_TAN30 ? 'm' : 'n';
 }
 
-// Weeks covering whole months of the window, Sunday-first.
+// The MINIMUM weeks: Sunday of the week holding the first day, through
+// Saturday of the week holding the last. Days of those weeks outside the
+// window are drawn greyed; no whole-month padding rows.
 function ndWeeks(start, end) {
-  var s = ndDate(start), e = ndDate(end);
-  var first = new Date(s.getFullYear(), s.getMonth(), 1, 12);
-  var last = new Date(e.getFullYear(), e.getMonth() + 1, 0, 12);
+  var first = ndDate(start), last = ndDate(end);
   first.setDate(first.getDate() - first.getDay());
   last.setDate(last.getDate() + (6 - last.getDay()));
   var weeks = [], d = new Date(first);
