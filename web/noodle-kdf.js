@@ -9,12 +9,13 @@
 // than one runs -- a change mid-derive TERMINATES the worker (Argon2 cannot be
 // interrupted from outside) and a generation counter drops anything stale.
 
-// Must match noodle/slots.py normalize_name() exactly (it salts the KDF).
+// Must match noodle/slots.py normalize_name() exactly (it salts the KDF):
+// ASCII letters, digits and spaces only, lowercased.
 function noodleNormName(raw) {
   var s = String(raw || '').normalize('NFKC');
   if (/[\p{Cc}\p{Cf}]/u.test(s)) return null;
   s = s.split(/\s+/).filter(Boolean).join(' ').toLowerCase();
-  if (!s || Array.from(s).length > 40) return null;
+  if (!s || Array.from(s).length > 40 || !/^[a-z0-9 ]+$/.test(s)) return null;
   return s;
 }
 

@@ -61,3 +61,6 @@ def test_case_and_width_collapse_to_one_identity():
     assert py("José") == py("José")
     assert py("ЅІЈ") != py("SIJ")    # lookalikes are NOT merged
     assert py("a​b") is None and py("   ") is None
+    # letters, digits and spaces only
+    assert py("Jane Doe 2") == "jane doe 2"
+    assert py("jane.doe") is None and py("José") is None and py("ΟΔΟΣ") is None
