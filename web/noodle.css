@@ -444,3 +444,16 @@ body.noodle {
   50% { content: '..'; }
   75% { content: '...'; }
 }
+
+/* the poll's link + copy button, under Commit */
+.nd-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-2xs);
+}
+.nd-share .nd-url { overflow-wrap: anywhere; color: hsl(var(--green-hsl) / 0.8); }
+.nd-share .nd-rekey { margin-left: 0; }
