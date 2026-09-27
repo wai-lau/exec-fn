@@ -157,7 +157,6 @@ async function ndvOnDerived(d) {
   NDV.seal = await window.NoodleSeal.seal(d.pub);
   window.NoodleSeal.stamp(seal, NDV.seal);
   ndvRefreshBinding(d.pub);
-  if (window.ndaLoadBudget) window.ndaLoadBudget(d.pub);
 }
 
 function ndvSaveIdentity() {

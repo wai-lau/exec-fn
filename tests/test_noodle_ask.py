@@ -1,8 +1,9 @@
-"""Ask Noodle: the model is faked (noodle.llm.call), so these pin the caps,
-the schema validation and the window clamp without spending a token.
+"""Ask Noodle: the model is faked (noodle.llm.call), so these pin the rate
+limits, the schema validation and the window clamp without spending a token.
 
-Every budget is a config constant; the tests read them from config rather
-than hard-coding numbers, so retuning a cap cannot silently skip a test.
+Limits are ROLLING WINDOWS, never lifetime caps. Every rate is a config
+constant the tests read, and time is a monkeypatched clock, so a window
+refilling is tested directly rather than slept through.
 """
 import base64
 import sys
@@ -22,7 +23,9 @@ def _pub(i: int) -> str:
 def env(monkeypatch, tmp_path):
     from noodle import ask, config, llm, store
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
-    ask._ip_hits.clear()
+    ask._hits.clear()
+    clock = [1000.0]
+    monkeypatch.setattr(ask.time, "monotonic", lambda: clock[0])
     calls = []
 
     def fake(system, user):
@@ -31,7 +34,7 @@ def env(monkeypatch, tmp_path):
     fake.reply = {"days": ["2026-10-01 Thursday: no -> -", "2026-10-02 Friday: friday night -> n"]}
     monkeypatch.setattr(llm, "call", fake)
     slug = store.create("t", "2026-10-01", "2026-10-10", "x")["slug"]
-    return {"ask": ask, "config": config, "slug": slug, "calls": calls, "fake": fake}
+    return {"ask": ask, "config": config, "slug": slug, "calls": calls, "fake": fake, "clock": clock}
 
 
 def go(env, text="thursday night", pub=None, ip="203.0.113.1", current=None):
@@ -45,10 +48,9 @@ def status(env, **kw):
     return e.value
 
 
-def test_valid_output_fills_and_counts(env):
+def test_valid_output_fills(env):
     out = go(env)
-    assert out["slots"] == ["2026-10-02:n"]
-    assert out["remaining"] == env["config"].ASK_VOTER_CAP - 1
+    assert out == {"slots": ["2026-10-02:n"]}
     assert len(env["calls"]) == 1
 
 
@@ -88,27 +90,39 @@ def test_needs_a_key(env):
     assert env["calls"] == []
 
 
-def test_per_voter_cap(env):
-    cap = env["config"].ASK_VOTER_CAP
-    for i in range(cap):
+def test_voter_rate_limits_then_refills(env):
+    c = env["config"]
+    for i in range(c.ASK_VOTER_RATE):
         go(env, ip=f"198.51.100.{i}")
     e = status(env, ip="198.51.100.250")
-    assert e.status == 429 and e.remaining == 0
-    assert len(env["calls"]) == cap
+    assert e.status == 429 and e.retry_after == c.ASK_VOTER_WINDOW_S
+    assert "try again in" in e.msg
     go(env, pub=_pub(2), ip="198.51.100.251")    # someone else still can
+    env["clock"][0] += c.ASK_VOTER_WINDOW_S      # the window rolls on...
+    go(env, ip="198.51.100.252")                  # ...and they can ask again: no lifetime cap
+    assert len(env["calls"]) == c.ASK_VOTER_RATE + 2
 
 
-def test_per_poll_cap(env, monkeypatch):
-    monkeypatch.setattr(env["config"], "ASK_POLL_CAP", 3)
+def test_retry_after_is_the_time_until_the_oldest_ask_expires(env):
+    c = env["config"]
+    for i in range(c.ASK_VOTER_RATE):
+        go(env, ip=f"198.51.100.{i}")
+        env["clock"][0] += 10
+    assert status(env, ip="198.51.100.200").retry_after == c.ASK_VOTER_WINDOW_S - 10 * c.ASK_VOTER_RATE
+
+
+def test_poll_rate(env, monkeypatch):
+    monkeypatch.setattr(env["config"], "ASK_POLL_RATE", 3)
     for i in range(3):
         go(env, pub=_pub(10 + i), ip=f"198.51.100.{i}")
-    e = status(env, pub=_pub(50), ip="198.51.100.99")
-    assert e.status == 429 and e.remaining == 0
-    assert len(env["calls"]) == 3
+    assert status(env, pub=_pub(50), ip="198.51.100.99").status == 429
+    env["clock"][0] += env["config"].ASK_POLL_WINDOW_S
+    go(env, pub=_pub(50), ip="198.51.100.99")
+    assert len(env["calls"]) == 4
 
 
-def test_per_ip_cap(env, monkeypatch):
-    monkeypatch.setattr(env["config"], "ASK_IP_CAP", 2)
+def test_ip_rate(env, monkeypatch):
+    monkeypatch.setattr(env["config"], "ASK_IP_RATE", 2)
     go(env, pub=_pub(1))
     go(env, pub=_pub(2))
     assert status(env, pub=_pub(3)).status == 429
@@ -116,12 +130,27 @@ def test_per_ip_cap(env, monkeypatch):
     assert len(env["calls"]) == 3
 
 
-def test_model_failure_still_spends_and_reports(env):
+def test_ip_allowance_covers_one_voters_own(env):
+    c = env["config"]
+    per_hour = c.ASK_VOTER_RATE * (c.ASK_IP_WINDOW_S // c.ASK_VOTER_WINDOW_S)
+    assert c.ASK_IP_RATE >= c.ASK_VOTER_RATE, "one voter must not trip their own IP first"
+    assert per_hour >= c.ASK_VOTER_RATE
+
+
+def test_a_limited_ask_does_not_count(env, monkeypatch):
+    monkeypatch.setattr(env["config"], "ASK_POLL_RATE", 1)
+    go(env, pub=_pub(1))
+    for _ in range(5):
+        status(env, pub=_pub(2))                # refused asks are not recorded...
+    env["clock"][0] += env["config"].ASK_POLL_WINDOW_S
+    go(env, pub=_pub(2))                        # ...so the window refills on time
+
+
+def test_model_failure_reports(env):
     def boom(system, user):
         raise RuntimeError("upstream down")
     env["ask"].llm.call = boom
-    e = status(env)
-    assert e.status == 502 and e.remaining == env["config"].ASK_VOTER_CAP - 1
+    assert status(env).status == 502
 
 
 def test_truncated_answer_is_an_error_not_an_empty_grid(env):
@@ -130,8 +159,7 @@ def test_truncated_answer_is_an_error_not_an_empty_grid(env):
     def cut(system, user):
         raise env["ask"].llm.Truncated()
     env["ask"].llm.call = cut
-    e = status(env)
-    assert e.status == 422 and e.remaining == env["config"].ASK_VOTER_CAP - 1
+    assert status(env).status == 422
 
 
 def test_prompt_labels_every_date(env):

@@ -3496,11 +3496,16 @@ mirror of `web/qc-holidays.js` pinned against it for 2024-2060 by
 `tests/test_noodle_holidays.py`). anthropic 1.6.0 rejects `temperature`, so a
 genuinely ambiguous sentence can read two ways across runs. The output is
 clamped to the window and anything malformed is DISCARDED (`slots.clamp_slots`);
-the result only fills the grid for review, never submits. Budgets are spent BEFORE the call
-under the store lock: `ASK_POLL_CAP` 60 per poll, `ASK_VOTER_CAP` 6 per public
-key, `ASK_IP_CAP` 10/hour per IP (in memory), input capped at 280 chars (refused
-without spending). A spent budget disables the input with a note; the grid
-keeps working. The prompt lists every window date as `YYYY-MM-DD Weekday the N`
+the result only fills the grid for review, never submits. **Limits are RATE
+limits, never lifetime caps** (a lifetime cap left a busy poll's box reading
+"Noodle is out of answers" for good): rolling windows, all in memory, checked
+and recorded under one lock BEFORE the call -- `ASK_VOTER_RATE` 10 per 10 min
+per voter key, `ASK_POLL_RATE` 60/hour per poll, `ASK_IP_RATE` 60/hour per IP
+(kept at or above a voter's own allowance, or one person on one connection trips
+the IP first). A refused ask is not recorded, so a window refills on time. A 429
+carries `retry_after` (and a `Retry-After` header); the page counts it down on
+Ask's status line and hands the button back by itself. Input is capped at 280
+chars (refused without counting). The grid keeps working throughout. The prompt lists every window date as `YYYY-MM-DD Weekday the N`
 — without the day-of-month the model rounded "except the 23rd" onto a nearby
 weekday. (It still reads "every Thursday except the 23rd" as that week's
 Thursday; the voter reviews the grid before anything is signed.)

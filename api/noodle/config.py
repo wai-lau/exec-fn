@@ -45,7 +45,10 @@ TS_SKEW_MS = 120_000
 ASK_MODEL = "claude-haiku-4-5"
 ASK_MAX_CHARS = 280
 ASK_MAX_TOKENS = 4096   # one reasoned line per date: ~15 tokens x up to 120 days
-ASK_POLL_CAP = 60        # total calls per poll, ever
-ASK_VOTER_CAP = 6        # per voter public key, per poll
-ASK_IP_CAP = 10          # per client IP ...
+# Rate limits, never lifetime caps: `RATE` asks per rolling `WINDOW_S` seconds.
+ASK_VOTER_RATE = 10      # per voter public key, per poll ...
+ASK_VOTER_WINDOW_S = 600  # ... per 10 minutes
+ASK_POLL_RATE = 60       # per poll, everyone together ...
+ASK_POLL_WINDOW_S = 3600  # ... per hour
+ASK_IP_RATE = 60         # per client IP (>= a voter's own allowance) ...
 ASK_IP_WINDOW_S = 3600   # ... per this many seconds (in memory)

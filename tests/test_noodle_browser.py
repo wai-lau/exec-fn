@@ -226,3 +226,24 @@ def test_enter_in_ask_is_a_newline_not_a_question(browser, base_url, noodle_slug
         assert ask["x"] >= box["x"] + box["width"], "the ask button sits to the right of the box"
     finally:
         page.close()
+
+
+def test_a_rate_limit_counts_down_and_gives_the_button_back(browser, base_url, noodle_slug):
+    """A 429 is a pause, not an end: the status counts retry_after down and the
+    ask button comes back by itself. The 429 is stubbed so no model is called."""
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.route("**/ask", lambda route: route.fulfill(
+            status=429, content_type="application/json",
+            body='{"error": "Noodle needs a breather -- try again in 2s", "retry_after": 2}'))
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", "smoke ratelimit")
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        page.fill("#nd-ask", "fridays")
+        page.click("#nd-ask-go")
+        page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('try again in')")
+        assert page.is_disabled("#nd-ask-go")
+        page.wait_for_function("!document.querySelector('#nd-ask-go').disabled", timeout=5000)
+        assert page.inner_text("#nd-ask-status") == ""
+    finally:
+        page.close()

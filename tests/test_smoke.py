@@ -225,7 +225,7 @@ def test_noodle_poll_json_is_public_and_holds_no_budget(client, noodle_slug):
     assert r.status_code == 200
     body = r.json()
     assert {"slug", "start", "end", "voters"} <= set(body)
-    assert "ask" not in body and body["ask_remaining"] is None
+    assert "ask" not in body and "ask_remaining" not in body
 
 
 @pytest.mark.parametrize("slug", ["A" * 22, "short", "..%2F..%2Fetc%2Fpasswd", "A" * 23])
