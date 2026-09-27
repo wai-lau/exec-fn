@@ -281,6 +281,10 @@ async function ndvSubmit() {
 // (this browser only). A guest crop outside the host's is ignored.
 function ndvCrop() {
   var p = NDV.poll && NDV.poll.crop, l = NDV.crop;
+  // While a crop is being EDITED the calendar opens one level wider so the
+  // handles can be dragged past the current edges: endless for the host,
+  // the host's range for a guest (whose own crop may never leave it).
+  if (window.NDX && NDX.editing) return ndxIsHost() ? null : p || null;
   if (!p || !l) return p || l || null;
   var c = { from: l.from > p.from ? l.from : p.from, to: l.to < p.to ? l.to : p.to };
   return c.from <= c.to ? c : p;

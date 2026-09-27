@@ -3569,7 +3569,11 @@ narrowing it drops picks outside it from every vote, and on a fresh poll saving
 it claims the host role. **A guest crops only their own view**, kept in
 localStorage (`noodle.crop.<slug>`) and intersected with the host's
 (`ndvCrop`), so it can never widen it; a guest's `uncrop` returns to the host's
-range. With no host crop the calendar is endless. Ask Noodle can crop ("just
+range. With no host crop the calendar is endless. **Editing a crop opens the calendar one level wider** (`ndvCrop` while
+`NDX.editing`): endless for the host, the host's range for a guest -- a cropped
+calendar renders only the cropped weeks, so without this there was nothing past
+the edges to drag onto and a crop could only ever shrink. The handles land on
+the current crop (`ndxRowOf` loads weeks until they exist); `cancel` goes back. Ask Noodle can crop ("just
 show me october"): the tool may return `crop`, applied as the host's for a
 host and as a view for a guest; Noodle's horizon is the crop in view, never
 outside the host's, else today + `VIEW_DEFAULT_DAYS`, and a guest's horizon is
