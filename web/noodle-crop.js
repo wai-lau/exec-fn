@@ -80,6 +80,9 @@ function ndxPlace() {
   NDX.a = Math.min(NDX.a, NDX.b);   // a rebuild can leave a stale index behind
   var t = box.querySelector('.nd-crop-h.top'), b = box.querySelector('.nd-crop-h.bot');
   t.style.top = rows[NDX.a].offsetTop + 'px';
+  // on the FIRST week the gap above is the frozen header's own border, which
+  // covers anything drawn there -- the line moves just inside the row instead
+  t.classList.toggle('first', NDX.a === 0);
   b.style.top = (rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight) + 'px';
   b.title = NDX.open ? 'no last week yet -- drag to set one' : 'last week';
   t.title = 'first week';

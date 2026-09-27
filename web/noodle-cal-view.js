@@ -104,8 +104,8 @@ function ndcPaintButtons(grid, mode, groupOf, offered) {
   });
   // the corner shows BOTH tools, "pencil / eraser", the current one bright
   var b = grid.querySelector('.nd-mode'), other = T.flipMode(mode);
-  // (the "/" between them is drawn by CSS, like a split day cell's)
-  b.innerHTML = '<i class="fill">' + NDC_ICON.fill + '</i><i class="clear">' + NDC_ICON.clear + '</i>';
+  b.innerHTML = '<i class="fill">' + NDC_ICON.fill + '</i><b class="sep">/</b><i class="clear">' +
+    NDC_ICON.clear + '</i>';
   b.dataset.mode = mode;
   b.title = 'switch every button to ' + (other === 'fill' ? 'fill in' : 'clear');
   b.setAttribute('aria-label', b.title);

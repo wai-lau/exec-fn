@@ -133,30 +133,25 @@
    offered) shows no button */
 .nd-grid .nd-tg:disabled { visibility: hidden; }
 
-/* the corner: flips every button between pencil and eraser. It shows BOTH,
-   "pencil / eraser", the current tool bright and the other dim. */
+/* the corner: flips every button between pencil and eraser. No box: the two
+   tools stacked with a short slash between them, the current one bright. */
 .nd-grid .nd-mode {
-  position: relative;
-  width: 26px;
-  height: 40px;
-  padding: 0;
-  border: 1px solid hsl(var(--green-hsl) / 0.45);
-  border-radius: var(--radius-1);
-
-  /* the "/" between the two tools, the same diagonal a split day cell has */
-  background: linear-gradient(to bottom right, transparent calc(50% - 0.5px),
-    hsl(var(--green-hsl) / 0.45) calc(50% - 0.5px), hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
-    transparent calc(50% + 0.5px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-0-5);
+  padding: var(--space-0-5);
   color: hsl(var(--green-hsl) / 0.45);
-  font-size: calc(var(--fs-2xs) * 0.7);
+  font-size: calc(var(--fs-2xs) * 0.85);
   line-height: var(--lh-none);
 }
 
-/* stacked: pencil above the diagonal, eraser below; the current tool bright.
-   (The icons draw ~2 cells wide from their origin, so they start left.) */
-.nd-mode i { position: absolute; left: 4px; font-style: normal; }
-.nd-mode .fill { top: 4px; }
-.nd-mode .clear { bottom: 4px; }
+/* the icons draw about two cells wide from their origin: a box that wide
+   centres the ink rather than the origin */
+.nd-mode i { display: block; width: 1.9em; font-style: normal; }
+
+/* the font's own "/" -- a rotated 1px rule antialiased into a smudge */
+.nd-mode .sep { font-weight: var(--fw-normal); line-height: var(--lh-none); }
 
 .nd-mode[data-mode="fill"] .fill,
 .nd-mode[data-mode="clear"] .clear { color: hsl(var(--green-hsl) / 1); }
@@ -332,6 +327,8 @@
   /* into the centre of the gap above the row, where the month line runs */
   transform: translateY(-3.5px);
 }
+
+.nd-grid .nd-crop-h.top.first { transform: translateY(1px); }
 
 .nd-grid .nd-crop-h.bot {
   align-items: flex-end;

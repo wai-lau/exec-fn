@@ -3618,8 +3618,10 @@ both halves, unsplitting keeps a day only where both halves were picked. Polls
 from before this carry no `halves` key and read as split. The row/column
 buttons are a MODE (pencil = fill, eraser = clear) flipped by the calendar's
 top-left corner, never a reading of the cells. The corner shows BOTH tools
-stacked, pencil over eraser, split by the same diagonal a split day cell has,
-the current tool bright.
+stacked, pencil / eraser (the font's own "/": a rotated 1px rule antialiased
+into a smudge), no box, the current tool bright. A crop starting at the first
+week draws its top line just INSIDE that row: the gap above it is the frozen
+header's own border, which covers anything drawn there.
 
 **The host.** Whoever commits FIRST hosts the poll (`votes.host_of`: vote order
 0), and the halves they pick are the only ones anyone else may pick. Enforced on
