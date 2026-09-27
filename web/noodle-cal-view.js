@@ -87,11 +87,11 @@ function ndcPaintMonths(grid) {
   ndcPaintBoundaries(grid);
 }
 
-// Every group button shows the MODE's tool -- pencil (fill in) or eraser
-// (clear) -- whatever its cells hold; the corner shows the OTHER tool and
-// flips them all. Glyphs are Font Awesome U+F040 / U+F12D from the Nerd Font
-// build of the site's face, shipped in noodle-seal.woff2.
-var NDC_ICON = { fill: '', clear: '' };
+// Every group button shows the MODE's tool -- a paint bucket (fill in) or an
+// eraser (clear) -- whatever its cells hold; the corner shows both and flips
+// them all. Glyphs are Nerd Font icons from the site's face: U+F765
+// (format-color-fill) and U+F12D (Font Awesome eraser), in noodle-seal.woff2.
+var NDC_ICON = { fill: '\uf765', clear: '\uf12d' };
 
 function ndcPaintButtons(grid, mode, groupOf, offered) {
   var T = window.NoodleToggle;
@@ -102,10 +102,10 @@ function ndcPaintButtons(grid, mode, groupOf, offered) {
     btn.title = label;
     btn.disabled = !offered(g.slots).length;
   });
-  // the corner shows BOTH tools, "pencil / eraser", the current one bright
+  // the corner shows BOTH tools, "fill / eraser", the current one bright
   var b = grid.querySelector('.nd-mode'), other = T.flipMode(mode);
-  b.innerHTML = '<i class="fill">' + NDC_ICON.fill + '</i><b class="sep">/</b><i class="clear">' +
-    NDC_ICON.clear + '</i>';
+  // split by the same 30deg hairline a split day cell has (noodle-cal.css)
+  b.innerHTML = '<i class="fill">' + NDC_ICON.fill + '</i><i class="clear">' + NDC_ICON.clear + '</i>';
   b.dataset.mode = mode;
   b.title = 'switch every button to ' + (other === 'fill' ? 'fill in' : 'clear');
   b.setAttribute('aria-label', b.title);

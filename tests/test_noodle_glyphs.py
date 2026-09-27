@@ -132,7 +132,7 @@ def test_the_calendar_toggle_icons_actually_render(browser, base_url, noodle_slu
         info = page.evaluate("""() => {
           // the corner switch is always shown; a group button only when it has
           // something to change -- measure the switch, it carries the same icons
-          const b = document.querySelector('.nd-corner .nd-mode');
+          const b = document.querySelector('.nd-corner .nd-mode i.fill');
           const c = document.createElement('canvas').getContext('2d');
           c.font = getComputedStyle(b).font;
           const m = c.measureText(b.textContent);
@@ -143,5 +143,5 @@ def test_the_calendar_toggle_icons_actually_render(browser, base_url, noodle_slu
     finally:
         page.close()
     assert "Noodle Glyphs" in info["fam"], info
-    assert info["text"] in ("\uf040", "\uf12d"), info
+    assert info["text"] in ("\uf765", "\uf12d"), info
     assert info["loaded"] and info["ink"] > 1, f"toggle icon draws no ink: {info}"

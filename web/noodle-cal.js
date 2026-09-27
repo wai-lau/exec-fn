@@ -67,7 +67,7 @@ function ndOpen(iso, bound) {
 }
 
 function ndHeadHtml() {
-  // the corner flips every row/column button between pencil and eraser
+  // the corner flips every row/column button between fill and eraser
   var h = '<div class="nd-hd nd-corner"><button type="button" class="nd-mode"></button></div>';
   ND_DOW.forEach(function (n, c) {
     h += '<div class="nd-hd" data-col="' + c + '">' +
