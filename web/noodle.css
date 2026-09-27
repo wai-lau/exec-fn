@@ -200,7 +200,25 @@ body.noodle {
 .nd-ask-label { font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
 
 .nd-status { min-height: 1lh; margin: var(--space-4) 0; text-align: center; font-size: var(--fs-2xs); }
-.nd-status[data-kind="err"] { color: hsl(var(--orange-glow-hsl) / 0.8); }
+
+/* Every ERROR lands here, pinned to the top of the page, not beside whatever
+   raised it: a status line under Commit or Ask is off screen as often as not.
+   It stays until tapped or until the next message replaces it. */
+.nd-banner {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid hsl(var(--orange-glow-hsl) / 0.8);
+  border-radius: var(--radius-2);
+  background: hsl(var(--bg-hsl) / 1);
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+  font-size: var(--fs-2xs);
+  text-align: center;
+  cursor: pointer;
+}
+.nd-banner[hidden] { display: none; }
 
 .nd-submit {
   display: block;
@@ -275,7 +293,6 @@ body.noodle {
 
 /* ── "are you one of these guys?" -- faces, five to a row, name under ──── */
 .nd-who { margin: 0 0 var(--space-8); }
-.nd-who-h { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); font-weight: var(--fw-normal); color: hsl(var(--green-hsl) / 0.8); }
 
 .nd-faces {
   display: grid;

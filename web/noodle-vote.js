@@ -45,10 +45,19 @@ function ndvClearDraft() {
 
 function ndv$(id) { return document.getElementById(id); }
 
+// Errors go to the banner at the top of the page (ndvBanner); everything
+// else to the status line above the calendar. A new message of either kind
+// replaces an old error; clearing the status line ('') does not, since the
+// page clears it on every reload of the poll.
 function ndvStatus(msg, kind) {
-  var el = ndv$('nd-status');
+  if (kind === 'err') { ndvBanner(msg); msg = ''; } else if (msg) ndvBanner('');
+  ndv$('nd-status').textContent = msg || '';
+}
+
+function ndvBanner(msg) {
+  var el = ndv$('nd-banner');
   el.textContent = msg || '';
-  el.dataset.kind = kind || '';
+  el.hidden = !msg;
 }
 
 var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on commit)';
@@ -358,6 +367,7 @@ function ndvInit() {
   ndv$('nd-voters').addEventListener('click', ndvPickFace);
   ndv$('nd-pass').addEventListener('input', ndvOnIdentityInput);
   ndv$('nd-submit').addEventListener('click', ndvSubmit);
+  ndv$('nd-banner').addEventListener('click', function () { ndvBanner(''); });
   ndvTeach('key', NDV_SIGN_WAIT);
   ndvSyncSubmit();
   ndvLoadPoll();
