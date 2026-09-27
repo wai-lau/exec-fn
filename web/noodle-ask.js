@@ -1,6 +1,7 @@
 // Ask Noodle: free text -> a filled-in grid for the voter to REVIEW. Never
-// submits -- and it has its OWN button, below submit, so asking can never be
-// mistaken for sealing a vote. Enter in the box asks too. Needs the voter's key first, because the per-voter budget is
+// submits -- and it has its OWN button, beside the box and below Commit, so
+// asking can never be mistaken for sealing a vote. Enter is a newline: the
+// box is multi-line on purpose, so only the button asks. Needs the voter's key first, because the per-voter budget is
 // counted against their public key. When a budget is spent the input is
 // disabled with a short note; the grid keeps working.
 
@@ -51,7 +52,7 @@ async function ndaAsk() {
     } else {
       NDV.cal.setSel(new Set(res.data.slots));
       ndvSaveDraft();
-      ndaStatus('Noodle filled in ' + res.data.slots.length + ' slots. check the calendar, then reserve.');
+      ndaStatus('Noodle filled in ' + res.data.slots.length + ' slots. check the calendar, then commit.');
     }
     if (res.data.remaining === 0) ndaSpent(NDA_SPENT);
   } catch (e) {
@@ -65,9 +66,6 @@ async function ndaAsk() {
 (function () {
   var el = document.getElementById('nd-ask');
   if (!el) return;
-  el.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); ndaAsk(); }
-  });
   el.addEventListener('input', ndaSync);
   nda$('nd-ask-go').addEventListener('click', ndaAsk);
   ndaSync(); // a restored draft may already hold text

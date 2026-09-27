@@ -30,7 +30,11 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
 
         seal = page.inner_text("#nd-seal").split("\n")
         assert len(seal) == 6 and all(len(row) == 9 for row in seal), seal
-        assert any(c.startswith('nd-hue-') for c in page.get_attribute('#nd-seal', 'class').split())
+        # ink is any hue from the key, carried as --seal-hsl "<h> <s>% <l>%" with l >= 62
+        assert "inked" in page.get_attribute("#nd-seal", "class").split()
+        ink = page.evaluate("document.getElementById('nd-seal').style.getPropertyValue('--seal-hsl')")
+        h, sat, light = ink.split()
+        assert 0 <= int(h) < 360 and 60 <= int(sat[:-1]) <= 100 and 62 <= int(light[:-1]) <= 82
         teach = page.inner_text("#nd-teach")
         assert teach.startswith("argon2id(") and "m=64MiB" in teach
 
@@ -42,7 +46,7 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         assert ("mid" in cell.get_attribute("class")) != was_mid, "top-left tap must flip MIDDAY"
 
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('reserved')",
+        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
                                timeout=10000)
         voters = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")["voters"]
         mine = [v for v in voters if v["name"].lower() == NAME]
@@ -141,7 +145,7 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         page.mouse.click(box["x"] + box["width"] * 0.85, box["y"] + box["height"] * 0.85)
         page.fill("#nd-ask", "draft text")
         picked = cell.get_attribute("class")
-        assert page.inner_text("#nd-submit") == "Reserve*" and page.is_visible("#nd-dirty")
+        assert page.inner_text("#nd-submit") == "Commit*" and page.is_visible("#nd-dirty")
         assert sent == [], f"nothing may leave before submit: {sent}"
 
         page.reload()
@@ -150,14 +154,14 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         assert page.input_value("#nd-ask") == "draft text"
 
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('reserved')",
+        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
                                timeout=10000)
         import json
         votes = [json.loads(b) for u, b in sent if u.endswith("/vote")]
         assert len(votes) == 1 and set(votes[0]) == {"name", "pub", "slots", "ts", "sig"}
         assert all(PASS not in (b or "") for _, b in sent), "passphrase left the browser"
         assert page.evaluate(f"localStorage.getItem('noodle.draft.{noodle_slug}')") is None
-        assert page.inner_text("#nd-submit") == "Reserve" and not page.is_visible("#nd-dirty")
+        assert page.inner_text("#nd-submit") == "Commit" and not page.is_visible("#nd-dirty")
     finally:
         ctx.close()
 
@@ -200,5 +204,25 @@ def test_your_taps_light_the_half_and_add_your_dot(browser, base_url, noodle_slu
         page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.2)
         assert "mid" not in cell.get_attribute("class")
         assert cell.locator(".nd-dots i.on").count() == before
+    finally:
+        page.close()
+
+
+def test_enter_in_ask_is_a_newline_not_a_question(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", "smoke enter")
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        asked = []
+        page.on("request", lambda r: asked.append(r.url) if r.url.endswith("/ask") else None)
+        page.click("#nd-ask")
+        page.keyboard.type("fridays")
+        page.keyboard.press("Enter")
+        page.keyboard.type("nights")
+        page.wait_for_timeout(300)
+        assert page.input_value("#nd-ask") == "fridays\nnights" and asked == []
+        ask, box = page.locator("#nd-ask-go").bounding_box(), page.locator("#nd-ask").bounding_box()
+        assert ask["x"] >= box["x"] + box["width"], "the ask button sits to the right of the box"
     finally:
         page.close()

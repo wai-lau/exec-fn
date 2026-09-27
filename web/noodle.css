@@ -146,10 +146,15 @@ body.noodle {
 /* ── ask noodle, status, submit ─────────────────────────────────────────── */
 .nd-ask { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin: var(--space-8) 0 0; }
 
-/* Ask's own button: cyan and outlined, a different weight from submit's solid
+/* the box and its button side by side, button to the right */
+.nd-ask-row { display: flex; gap: var(--space-2); align-items: stretch; width: 100%; }
+.nd-ask-row textarea { flex: 1; min-width: 0; }
+
+/* Ask's own button: cyan and outlined, a different weight from Commit's solid
    green, so the two can never be taken for one another */
 .nd-ask-go {
-  padding: var(--space-2) var(--space-7);
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid hsl(var(--cyan-hsl) / 0.8);
   border-radius: var(--radius-2);
   background: transparent;
