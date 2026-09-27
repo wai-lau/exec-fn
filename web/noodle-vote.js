@@ -35,6 +35,7 @@ function ndvRestoreDraft() {
     if (Array.isArray(d.slots)) NDV.cal.setSel(new Set(d.slots));
     if (typeof d.ask === 'string') ndv$('nd-ask').value = d.ask;
     NDV.hasDraft = true;
+    NDV.draftRestored = true;   // the host default must not overwrite a draft someone left
   } catch (e) { /* unreadable: start clean */ }
 }
 
@@ -103,6 +104,7 @@ function ndvDirty() {
   if (!NDV.cal) return false;
   if (NDV.pendingHalves != null) return true;   // an unsaved split
   if (NDV.pendingCrop !== undefined) return true;   // an unsaved crop
+  if (NDV.pendingTitle !== undefined) return true;  // an unsaved title
   if (window.NDR && NDR.active) return true;    // an unsaved new name or passphrase
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;
@@ -189,7 +191,7 @@ function ndvRefreshBinding(pub) {
 // guest picks from. Only for a host with nothing committed and no draft --
 // once, never over their own choices.
 function ndvHostDefault() {
-  if (NDV.defaulted || !NDV.cal || NDV.hasDraft || NDV.mine || !window.ndxIsHost || !window.ndxIsHost()) return;
+  if (NDV.defaulted || !NDV.cal || NDV.draftRestored || NDV.mine || !window.ndxIsHost || !window.ndxIsHost()) return;
   var rows = NDV.cal.rows();
   if (!rows.length || !window.NDX) return;
   NDV.defaulted = true;
@@ -378,7 +380,7 @@ async function ndvSubmit() {
     if (!rk.ok) { ndvStatus(rk.data.error || 'could not make the change', 'err'); return; }
     if (rk.did) ts += 1;
     var set = await ndhCommitSettings(ts);
-    if (!set.ok) { ndvStatus(set.data.error || 'could not save the split or crop', 'err'); return; }
+    if (!set.ok) { ndvStatus(set.data.error || 'could not save the split, crop or title', 'err'); return; }
     if (set.sent) ts += 1;
     // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
     var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });

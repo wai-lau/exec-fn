@@ -1,21 +1,27 @@
 """Ask Noodle: free text -> slot selections, via Haiku, behind RATE limits.
 
-Rolling windows, never a lifetime cap: a busy moment makes Noodle say "try
-again in N seconds" and the box comes back by itself. Three windows, all in
-memory (a restart forgets them, which only ever errs toward answering): per
-voter key, per poll, per client IP.
+Noodle works on the PAGE's state, never the server's: the page sends the days
+it can pick right now (its crop, the host's offer, what is loaded) and whether
+days are split, and the rules are applied to exactly those. This module never
+reads or writes a poll -- a stored crop, split or host offer can be older than
+what the voter is looking at, and answering from it filled days the page had
+greyed and missed the ones it showed (pinned by test_noodle_ask.py).
 
-The model only ever SUGGESTS: its output is validated against a strict schema,
-clamped to the poll window, and handed back to fill the grid. Nothing is
-stored as a vote and nothing is signed here.
+Rolling windows, never a lifetime cap: a busy moment makes Noodle say "try
+again in N seconds" and the box comes back by itself. Two windows, in memory
+(a restart forgets them, which only ever errs toward answering): per poll,
+per client IP.
+
+The model only ever SUGGESTS: its output is validated against a strict schema
+and handed back to fill the grid. Nothing is stored and nothing is signed.
 """
 import math
-from datetime import date, timedelta
+from datetime import date
 import threading
 import time
 from collections import defaultdict, deque
 
-from noodle import config, holidays, llm, rules, sig, slots, store, votes
+from noodle import config, holidays, llm, rules, slots, store
 
 _hits: dict[str, deque] = defaultdict(deque)
 _LOCK = threading.Lock()
@@ -29,9 +35,10 @@ class AskError(Exception):
         self.status, self.msg, self.retry_after = status, msg, retry_after
 
 
-def _windows(slug: str, pub: str, ip: str) -> list[tuple[str, int, int]]:
+def _windows(slug: str, ip: str) -> list[tuple[str, int, int]]:
+    # per poll and per IP only: asking needs no name, so there is no person to
+    # count (a key is free to mint anyway -- a per-key limit limited nothing)
     return [
-        ("voter:" + slug + ":" + pub, config.ASK_VOTER_RATE, config.ASK_VOTER_WINDOW_S),
         ("poll:" + slug, config.ASK_POLL_RATE, config.ASK_POLL_WINDOW_S),
         ("ip:" + ip, config.ASK_IP_RATE, config.ASK_IP_WINDOW_S),
     ]
@@ -45,12 +52,12 @@ def _wait(key: str, rate: int, window: int, now: float) -> float:
     return 0.0 if len(q) < rate else q[0] + window - now
 
 
-def _take(slug: str, pub: str, ip: str, now: float) -> None:
+def _take(slug: str, ip: str, now: float) -> None:
     """Record one ask against every window, or raise 429 with the LONGEST wait
     among the full ones. Check-then-record under one lock, so two concurrent
     asks cannot both slip into the last place in a window."""
     global _calls
-    wins = _windows(slug, pub, ip)
+    wins = _windows(slug, ip)
     with _LOCK:
         wait = max(_wait(k, r, w, now) for k, r, w in wins)
         if wait > 0:
@@ -64,31 +71,17 @@ def _take(slug: str, pub: str, ip: str, now: float) -> None:
                 del _hits[k]
 
 
-def _view(body: dict) -> list:
-    """The dates Noodle considers: the voter's crop if the page sent one (at
-    most VIEW_MAX_DAYS), else today onward for VIEW_DEFAULT_DAYS. The calendar
-    itself is endless, so this is only Noodle's horizon, never the poll's."""
-    view = body.get("view") if isinstance(body.get("view"), dict) else {}
+def _dates(body: dict) -> list:
+    """The days the PAGE says can be picked: ISO dates, at most VIEW_MAX_DAYS."""
+    raw = body.get("dates")
+    if not isinstance(raw, list) or not raw:
+        raise AskError(400, "there is nothing on this calendar to fill")
+    if len(raw) > config.VIEW_MAX_DAYS:
+        raise AskError(400, f"at most {config.VIEW_MAX_DAYS} days at a time -- crop the calendar first")
     try:
-        s, e = slots.parse_window(view.get("from"), view.get("to"), config.VIEW_MAX_DAYS)
+        return sorted({date.fromisoformat(d) for d in raw})
     except (TypeError, ValueError):
-        s = date.today()
-        e = s + timedelta(days=config.VIEW_DEFAULT_DAYS - 1)
-    return [s + timedelta(days=i) for i in range((e - s).days + 1)]
-
-
-def _horizon(poll: dict, body: dict, host) -> list:
-    """The dates Noodle may fill: the voter's view, never outside the host's
-    crop -- and for a guest (`host` given), exactly the host's offered days."""
-    if host:
-        offered = sorted({s[:10] for s in host[1]["slots"]})
-        if offered:
-            return [date.fromisoformat(d) for d in offered]
-    dates = _view(body)
-    if poll.get("from"):
-        inside = [d for d in dates if poll["from"] <= d.isoformat() <= poll["to"]]
-        dates = inside or _view({"view": {"from": poll["from"], "to": poll["to"]}})
-    return dates
+        raise AskError(400, "bad date") from None
 
 
 def _crop(out) -> dict | None:
@@ -115,7 +108,8 @@ def _prompt(dates: list) -> str:
         f"midday and night. The dates in view are:\n{days}\n\n"
         "Do NOT decide dates yourself: write rules and code applies them to every "
         "date. Rules run in order on an EMPTY calendar. Prefer weekday / day / "
-        "holiday conditions; when a rule depends on a property of the day number "
+        "holiday conditions (holiday_within / holiday_since for days BEFORE or AFTER "
+        "a holiday, e.g. the weekend before a long weekend); when a rule depends on a property of the day number "
         "(odd, prime, Fibonacci, ...), list the matching day numbers 1-31 in a "
         '"day" condition. Use "date" only for specific dates. If they give no '
         "block, use both; day / daytime / morning / afternoon / lunch mean midday, "
@@ -128,24 +122,17 @@ def _prompt(dates: list) -> str:
 
 
 def ask(slug: str, body: dict, ip: str) -> dict:
-    text, pub = body.get("text"), body.get("pub")
+    text = body.get("text")
+    if not store.valid_slug(slug):   # its SHAPE only: the poll itself is never read
+        raise AskError(404, "no such poll")
     if not isinstance(text, str) or not text.strip():
         raise AskError(400, "say something first")
     if len(text) > config.ASK_MAX_CHARS:
         raise AskError(400, f"keep it under {config.ASK_MAX_CHARS} characters")
-    try:
-        sig.b64d(pub, 32)
-    except ValueError:
-        raise AskError(400, "enter your name and passphrase first") from None
-    try:
-        poll = store.load(slug)
-    except KeyError:
-        raise AskError(404, "no such poll") from None
-    host = votes.host_of(poll)
-    guest = bool(host and host[1]["pub"] != pub)
-    dates = _horizon(poll, body, host if guest else None)
+    dates = _dates(body)
+    halves = body.get("halves") is True
 
-    _take(slug, pub, ip, time.monotonic())
+    _take(slug, ip, time.monotonic())
     try:
         out = llm.call(_prompt(dates), text.strip())
     except llm.Truncated:
@@ -154,11 +141,8 @@ def ask(slug: str, body: dict, ip: str) -> dict:
         raise AskError(502, "Noodle could not answer just now") from None
     out = out if isinstance(out, dict) else {}
     picked, dropped = rules.apply(out.get("rules"), dates)
-    if not poll.get("halves", True):
-        # an unsplit poll: a day is picked if the words put either half on it
+    if not halves:
+        # an unsplit calendar: a day is picked if the words put either half on it
         picked = sorted({f"{s[:10]}:d" for s in picked})
-    if guest:
-        offered = set(host[1]["slots"])
-        picked = [s for s in picked if s in offered]
     reading = out.get("reading") if isinstance(out.get("reading"), str) else ""
     return {"slots": picked, "reading": reading[:400], "dropped": dropped, "crop": _crop(out)}

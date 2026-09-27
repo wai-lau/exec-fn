@@ -3503,12 +3503,27 @@ server does not know yet); a crop is local until Commit, so it needs no key.
 The whole Commit runs inside one try, so a request cut off mid-way (a reload:
 WebKit's `Load failed`) lands in the banner instead of an unhandled rejection.
 
+**Ask Noodle works on the PAGE's state, never the server's.** The page sends
+the days it can pick right now (`ndaDays`: the host's crop lines, else every
+loaded day not past, not outside the crop and -- for a guest -- offered by the
+host) plus whether days are split; `noodle/ask.py` applies the rules to exactly
+those and NEVER reads or writes a poll (only the slug's shape is checked, for
+the rate key). The page then clamps the answer to its own offer again. Why: it
+used to load the poll, and a stored crop / split / host offer is older than the
+screen -- a host whose key was still deriving was taken for a guest and clamped
+to the host's SAVED days, filling 0. Pinned by
+`test_noodle_never_touches_the_poll` (every store function patched to raise).
+An answer REPLACES the grid, except one that fills nothing: then the picks
+stay and the page says nothing matched. No name is needed to ask.
+
 **Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
 (`select_slots`) that returns **a one-sentence `reading` and an ordered list of
 RULES -- never dates**. `noodle/rules.py` applies the rules to every window date
 in code: `{"action": add|remove, "blocks": [...], "where": <cond>}` on an empty
 calendar, conditions `every` / `weekday` / `day` (day of month) / `month` /
-`date` / `holiday` / `all` / `any` / `not`, nesting bounded, and an invalid rule
+`date` / `holiday` / `holiday_within` n / `holiday_since` n (a holiday in the
+next / previous 1..14 days: "the weekend before a long weekend") / `all` /
+`any` / `not`, nesting bounded, and an invalid rule
 DROPPED (counted, reported) rather than guessed at. Why: every earlier shape
 asked the model to judge each date itself -- first as `{date, block}` objects
 (blew `max_tokens`), then per-date verdict lines -- which is ~50 small
@@ -3527,10 +3542,9 @@ day/morning/afternoon to midday and evening/night to night. `ASK_MAX_TOKENS` is
 the grid for review, never submits. **Limits are RATE
 limits, never lifetime caps** (a lifetime cap left a busy poll's box reading
 "Noodle is out of answers" for good): rolling windows, all in memory, checked
-and recorded under one lock BEFORE the call -- `ASK_VOTER_RATE` 10 per 10 min
-per voter key, `ASK_POLL_RATE` 60/hour per poll, `ASK_IP_RATE` 60/hour per IP
-(kept at or above a voter's own allowance, or one person on one connection trips
-the IP first). A refused ask is not recorded, so a window refills on time. A 429
+and recorded under one lock BEFORE the call -- `ASK_POLL_RATE` 60/hour per
+poll and `ASK_IP_RATE` 60/hour per IP. There is no per-person window: asking
+needs no name, and a key is free to mint, so a per-key limit limited nothing. A refused ask is not recorded, so a window refills on time. A 429
 carries `retry_after` (and a `Retry-After` header); the page counts it down on
 Ask's status line and hands the button back by itself. Input is capped at 280
 chars (refused without counting). The grid keeps working throughout. The prompt lists every window date as `YYYY-MM-DD Weekday the N`
@@ -3562,6 +3576,13 @@ when tapped) wearing a placeholder seal made once from 32 random bytes kept in
 localStorage (`noodle.blankSeal`), so it is the same face every visit -- and mid change your own face already wears the new seal. The rows
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
+
+**Owner page** (`/noodle`): creating a poll goes straight to it; each poll has
+a delete button that asks first (`DELETE /api/noodle-polls/{slug}`, owner-only,
+`store.delete`).
+
+**Lines are 2px** throughout Noodle (borders, the dotted box, the split slash):
+1px hairlines broke up under the CRT scanlines.
 
 **Chrome.** The shell carries the site's CRT stack written out (Noodle cannot
 import pages.py's `_CRT_FX`), dimmed with `crt-dim.css` like the other dense
@@ -3656,7 +3677,11 @@ widths and zooms (fractional DPR, e.g. Windows at 175%) the line drifted a
 device pixel or two off its gap. A segment is laid out with the box whose
 border it sits on, so it snaps with it. The ink is OPAQUE (full green dimmed by
 `filter: brightness(0.45)`, the old 0.45-over-black tone) so neighbouring
-pieces can overlap by a pixel -- translucent joins showed as seams. Ask Noodle can crop for a host.
+pieces can overlap by a pixel -- translucent joins showed as seams. Ask Noodle can crop for a host. A fresh poll starts cropped to this week
+and the next two (`NDX_SPAN`), pending so the host's first Commit saves it; days
+a drag brings INTO the crop start available for the host. The host can also
+RETITLE the poll by tapping the title (contenteditable); like the split and the
+crop it is sent with Commit, as an optional signed `title` in `/settings`.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
 
 **The host's calendar is the offer.** A host with nothing committed and no

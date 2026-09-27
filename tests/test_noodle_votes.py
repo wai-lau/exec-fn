@@ -185,3 +185,15 @@ def test_an_empty_offer_leaves_nothing_to_pick(mods):
     guest = Ed25519PrivateKey.generate()
     assert err(mods, signed(mods, guest, "Guest", ["2026-10-01:m"], NOW + 1), NOW + 1) == 400
     submit(mods, signed(mods, guest, "Guest", [], NOW + 2), now=NOW + 2)
+
+
+def test_a_deleted_poll_is_gone(tmp_path, monkeypatch):
+    from noodle import config, store
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    slug = store.create("bye", "2026-09-27T00:00:00")["slug"]
+    assert store.delete(slug) is True
+    assert store.delete(slug) is False
+    with pytest.raises(KeyError):
+        store.load(slug)
+    with pytest.raises(KeyError):
+        store.delete("../etc/passwd")

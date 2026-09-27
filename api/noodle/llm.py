@@ -37,6 +37,8 @@ SLOT_TOOL = {
                                 'Exactly one key: {"every": true} | {"weekday": ["friday"]} | '
                                 '{"day": [day-of-month ints]} | {"month": [ints]} | '
                                 '{"date": ["YYYY-MM-DD"]} | {"holiday": true} | '
+                                '{"holiday_within": n} (a holiday in the next n days) | '
+                                '{"holiday_since": n} (a holiday in the previous n days) | '
                                 '{"all": [conds]} | {"any": [conds]} | {"not": cond}'),
                         },
                     },

@@ -122,7 +122,7 @@
   /* (.nd-grid-scoped to outrank the .nd-grid button reset above); symmetric
      padding: the icon inside is centred by its INK (.ic, below) */
   padding: 0 0.55em;
-  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border: 2px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-1);
   font-size: var(--fs-2xs);
   line-height: var(--lh-snug);
@@ -143,10 +143,10 @@
   height: 40px;
   padding: 0;
   background-image: linear-gradient(330deg,
-    transparent calc(50% - 0.5px),
-    hsl(var(--green-hsl) / 0.45) calc(50% - 0.5px),
-    hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
-    transparent calc(50% + 0.5px));
+    transparent calc(50% - 1px),
+    hsl(var(--green-hsl) / 0.45) calc(50% - 1px),
+    hsl(var(--green-hsl) / 0.45) calc(50% + 1px),
+    transparent calc(50% + 1px));
   color: hsl(var(--green-hsl) / 0.45);
   font-size: calc(var(--fs-2xs) * 0.85);
   line-height: var(--lh-none);
@@ -184,10 +184,10 @@
      filled half never tints the grid rules. */
   background-clip: padding-box;
   background-image: linear-gradient(330deg,
-    var(--bot) calc(50% - 0.5px),
-    hsl(var(--green-hsl) / 0.45) calc(50% - 0.5px),
-    hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
-    var(--top) calc(50% + 0.5px));
+    var(--bot) calc(50% - 1px),
+    hsl(var(--green-hsl) / 0.45) calc(50% - 1px),
+    hsl(var(--green-hsl) / 0.45) calc(50% + 1px),
+    var(--top) calc(50% + 1px));
   -webkit-tap-highlight-color: transparent;
 }
 .nd-d.eow { border-right: none; }
@@ -264,7 +264,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid hsl(var(--orange-hsl) / 1);   /* today: the crop line's colour */
+  border: 2px solid hsl(var(--orange-hsl) / 1);   /* today: the crop line's colour */
   pointer-events: none;
 }
 
@@ -288,7 +288,7 @@
 
 .nd-dots i.on {
   background: hsl(var(--green-hsl) / 1);
-  outline: 1px solid hsl(var(--bg-hsl) / 1);
+  outline: 2px solid hsl(var(--bg-hsl) / 1);
 }
 
 /* a voter's dots wear their seal's ink: --seal-hsl, set inline per dot */
@@ -301,7 +301,7 @@
   box-sizing: border-box;
   width: 4px;
   height: 4px;
-  border: 1px solid hsl(var(--gray-hsl) / 0.45);
+  border: 2px solid hsl(var(--gray-hsl) / 0.45);
   border-radius: var(--radius-pill);
 }
 

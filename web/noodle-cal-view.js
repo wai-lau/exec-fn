@@ -134,6 +134,14 @@ function ndcOpenSlots(grid, from, to, halves) {
   return out;
 }
 
+// The days a voter can pick on THIS page right now (loaded, not past, inside
+// the crop, and -- for a guest -- offered by the host): what Ask Noodle works on.
+function ndcPickableDays(grid, from, to) {
+  return Array.from(grid.querySelectorAll('.nd-d:not(.out):not(.shut)')).map(function (c) {
+    return c.dataset.day;
+  }).filter(function (d) { return (!from || d >= from) && (!to || d <= to); });
+}
+
 function ndcSlotAt(cell, e, halves) {
   var r = cell.getBoundingClientRect();
   return cell.dataset.day + ':' + (halves
@@ -294,7 +302,8 @@ function NoodleCal(wrap, opts) {
       paintDots();
     },
     getSel: function () { return new Set(sel); },
-    openSlots: function (from, to) { return ndcOpenSlots(grid, from, to, opts.halves); },
+    openSlots: function (a, b) { return ndcOpenSlots(grid, a, b, opts.halves); }, pickableDays: function (a, b) { return ndcPickableDays(grid, a, b); },
+    clamp: function (list) { return offered(list); },   // to what this page may pick
     setOthers: function (o) { others = o; paintDots(); },
     setAllowed: function (a, prune) {
       allowed = a ? new Set(a) : null;

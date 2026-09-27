@@ -140,7 +140,7 @@ def test_storage_touches_only_its_own_dir(noodle_env, monkeypatch):
     body = _sign(key, slug, "Ada", ["2026-10-01:m"], now)
     votes.submit(slug, body)
     votes.submit(slug, _sign(key, slug, "Ada", ["2026-10-02:n"], now + 1))
-    ask.ask(slug, {"text": "thursday night", "pub": body["pub"], "current": []}, "203.0.113.9")
+    ask.ask(slug, {"text": "thursday night", "dates": ["2026-10-01"]}, "203.0.113.9")
     store.all_polls()
     votes.reset_voter(slug, "ada")
 

@@ -12,7 +12,7 @@
 // setPointerCapture -- a rebuilt subtree otherwise eats the gesture.
 
 var NDX = { a: 0, b: 0, open: true, drag: null, moved: false };
-var NDX_OPEN_ROW = 11;   // with no crop yet, the bottom line waits under week 12
+var NDX_SPAN = 2;   // with no crop yet: this week and the next two
 window.NDX = NDX;
 
 function ndx$(id) { return document.getElementById(id); }
@@ -56,7 +56,13 @@ function ndxFromPoll() {
   if (!rows.length) return;
   NDX.a = Math.max(ndxTopMin(), c ? ndxRowOf(c.from, 0) : 0);
   NDX.open = !c;
-  NDX.b = c ? ndxRowOf(c.to, rows.length - 1) : Math.min(NDX_OPEN_ROW, rows.length - 1);
+  NDX.b = c ? ndxRowOf(c.to, rows.length - 1) : Math.min(ndxTopMin() + NDX_SPAN, rows.length - 1);
+  // a FRESH poll starts cropped to those three weeks: pending, so the host's
+  // first Commit saves it with everything else
+  if (!c && NDV.poll && !NDV.poll.voters.length && NDV.pendingCrop === undefined) {
+    NDV.pendingCrop = { from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] };
+    setTimeout(function () { ndvEnsureCal(true); }, 0);   // not from inside the rebuild that called us
+  }
 }
 
 // Show / hide / place the handles. Called whenever the calendar is rebuilt,
@@ -112,6 +118,7 @@ function ndxDown(e) {
   e.preventDefault();
   NDX.drag = h.dataset.h;
   NDX.moved = false;
+  NDX.before = { from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] };
   // WebKit still starts a text selection off the MOUSE events a cancelled
   // pointerdown leaves behind, and drags it across the page with the handle
   document.body.classList.add('nd-dragging');
@@ -144,7 +151,20 @@ async function ndxUp() {
   document.body.classList.remove('nd-dragging');
   if (!NDX.moved) return;
   NDX.b = Math.min(NDX.b, NDV.cal.rows().length - 1);
-  await ndxSave({ from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] });
+  var crop = { from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] };
+  await ndxSave(crop);
+  // days the drag brings IN start available: the host is offering them.
+  // Collected AFTER the rebuild -- before it they are still marked outside.
+  var added = Array.from(NDV.cal.openSlots(crop.from, crop.to)).filter(function (s) {
+    var d = s.slice(0, 10);
+    return d < NDX.before.from || d > NDX.before.to;
+  });
+  if (added.length) {
+    var sel = NDV.cal.getSel();
+    added.forEach(function (s) { sel.add(s); });
+    NDV.cal.setSel(sel);
+    ndvSaveDraft();
+  }
 }
 
 async function ndxSave(crop) {
