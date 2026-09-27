@@ -111,12 +111,16 @@ function ndvSyncLock() {
 // Which voter (if any) the typed name already belongs to, and everyone else
 // as dot columns. A name sealed by a different key blocks submit.
 function ndvRefreshBinding(pub) {
-  var norm = window.noodleNormName(ndv$('nd-name').value), mine = null, others = [];
+  var norm = window.noodleNormName(ndv$('nd-name').value), mine = null, cols = [];
+  var self = { self: true, hue: NDV.seal ? NDV.seal.hue : null };
   (NDV.poll ? NDV.poll.voters : []).forEach(function (v) {
     if (norm && window.noodleNormName(v.name) === norm) mine = v;
-    else others.push({ slots: new Set(v.slots), hue: NDV.seals[v.pub] ? NDV.seals[v.pub].hue : null });
+    // your own reserved column shows your LIVE picks instead of the stored vote
+    if (pub && v.pub === pub) cols.push(self);
+    else cols.push({ slots: new Set(v.slots), hue: NDV.seals[v.pub] ? NDV.seals[v.pub].hue : null });
   });
-  NDV.cal.setOthers(others);
+  if (cols.indexOf(self) < 0) cols.push(self); // not reserved yet: last column
+  NDV.cal.setOthers(cols);
   window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub);
   // the blocking name, for the reason under submit (ndvWhyNot)
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
@@ -139,6 +143,7 @@ function ndvRefreshBinding(pub) {
 function ndvOnStart(info) {
   ndvSyncSubmit();
   var seal = ndv$('nd-seal');
+  NDV.seal = null;
   if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('key', NDV_SIGN_WAIT); return; }
   NDV.salt = info.salt;
   seal.classList.add('pending');

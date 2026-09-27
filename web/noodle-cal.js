@@ -12,9 +12,9 @@
 // so every month keeps its shape. Month boundaries are a bright stepped line
 // made of per-cell right/bottom rules (.mr/.mb), following the real edge.
 //
-// Dots: every other voter owns ONE fixed column of dots, the same position in
-// every cell (by vote order) -- top dot = free at midday, bottom dot = free at
-// night, a gap where they are not. So one person reads as one vertical line
+// Dots: every voter -- you included -- owns ONE fixed column of dots, the same
+// position in every cell (by vote order): top dot midday, bottom dot night,
+// no dot where not free. So one person reads as one vertical line
 // of dots all the way down the grid.
 
 var ND_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -105,14 +105,17 @@ function ndDotsFit(cell, count) {
   return count > fit ? { shown: fit - 1, more: true } : { shown: count, more: false };
 }
 
-function ndDotsHtml(iso, others, fit) {
+// A dot in the voter's seal ink where they are free that half, a GAP where not
+// -- the gap keeps the column's position, so a column reads as one person all
+// the way down. A `self` column shows the live selection `sel` rather than a
+// stored vote, so your own dots follow your taps.
+function ndDotsHtml(iso, cols, fit, sel) {
   var h = '';
   for (var i = 0; i < fit.shown; i++) {
-    var s = others[i].slots;
-    // each voter's dots wear their seal's ink (noodle.css .nd-dots .nd-hue-*)
-    var on = ' class="on' + (others[i].hue == null ? '' : ' nd-hue-' + others[i].hue) + '"';
-    h += '<i' + (s.has(iso + ':m') ? on : '') + '></i>' +
-      '<i' + (s.has(iso + ':n') ? on : '') + '></i>';
+    var c = cols[i], s = c.self ? sel : c.slots;
+    var lit = ' class="on' + (c.hue == null ? '' : ' nd-hue-' + c.hue) + '"';
+    h += '<i' + (s.has(iso + ':m') ? lit : '') + '></i>' +
+      '<i' + (s.has(iso + ':n') ? lit : '') + '></i>';
   }
   return fit.more ? h + '<b class="nd-more"></b>' : h;
 }

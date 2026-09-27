@@ -148,10 +148,11 @@ def test_prompt_names_quebec_holidays(env, monkeypatch):
     assert "2026-10-12 Monday the 12 (even) (Quebec statutory holiday: Action de grace)" in env["calls"][-1][0]
 
 
-def test_current_selection_is_validated_and_sent(env):
+def test_every_ask_starts_from_a_blank_calendar(env):
+    # a client's current picks are neither sent nor read: the answer replaces the grid
     go(env, current=["2026-10-01:m"])
-    assert "2026-10-01:m" in env["calls"][0][0]
-    assert status(env, current=["2026-12-01:m"]).status == 400
+    assert "2026-10-01:m" not in env["calls"][0][0]
+    assert "starting from nothing selected" in env["calls"][0][0]
 
 
 def test_client_bounds_tokens_and_forces_the_tool():

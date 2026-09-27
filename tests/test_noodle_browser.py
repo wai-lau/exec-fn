@@ -175,3 +175,30 @@ def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
         assert page.get_attribute("#nd-pass", "placeholder") == "empty for no passphrase"
     finally:
         page.close()
+
+
+def test_your_taps_light_the_half_and_add_your_dot(browser, base_url, noodle_slug):
+    """Dark half = unavailable, lit = available, all dark by default; a tap
+    also adds (or removes) YOUR dot in your own column."""
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", "smoke dots")
+        page.fill("#nd-pass", "p")
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        cell = page.locator(".nd-d:not(.out)").nth(5)
+        cell.scroll_into_view_if_needed()
+        cls = cell.get_attribute("class")
+        assert "mid" not in cls and "nit" not in cls, "every half starts dark"
+        before = cell.locator(".nd-dots i.on").count()
+        box = cell.bounding_box()
+        page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.2)
+        assert "mid" in cell.get_attribute("class")
+        assert cell.locator(".nd-dots i.on").count() == before + 1
+        page.wait_for_timeout(600)   # not a double-click
+        box = cell.bounding_box()
+        page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.2)
+        assert "mid" not in cell.get_attribute("class")
+        assert cell.locator(".nd-dots i.on").count() == before
+    finally:
+        page.close()

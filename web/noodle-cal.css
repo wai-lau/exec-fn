@@ -102,9 +102,13 @@
 .nd-wk[data-state="on"] > .nd-tg { background: none; color: hsl(var(--green-hsl) / 1); }
 
 /* explicit all-on / all-off, only while the group is mixed */
-.nd-mx { display: none; gap: var(--space-0-5); }
+
+/* The pair's space is ALWAYS reserved (visibility, not display): the header is
+   sticky, so a header that grew when a column went mixed slid down over the
+   first visible row -- and the next tap on that row landed on the header. */
+.nd-mx { display: flex; gap: var(--space-0-5); visibility: hidden; }
 .nd-wk .nd-mx { flex-direction: column; }
-[data-state="mixed"] > .nd-mx { display: flex; }
+[data-state="mixed"] > .nd-mx { visibility: visible; }
 
 .nd-mx button {
   padding: 0 var(--space-0-5);
@@ -173,8 +177,8 @@
   pointer-events: none;
 }
 
-/* Other voters: ONE fixed column per person, the same position in every
-   cell -- top dot midday, bottom dot night, a gap where they are not free.
+/* Voters, you included: ONE fixed column per person, the same position in
+   every cell -- top dot midday, bottom dot night, NO dot where not free.
    Sizes mirror ND_DOT / ND_DOT_GAP in noodle-cal.js (5px, --space-1). */
 .nd-dots {
   display: grid;
@@ -187,6 +191,7 @@
   margin-top: var(--space-1-5);
   overflow: hidden;
 }
+
 .nd-dots i { width: 5px; height: 5px; border-radius: var(--radius-pill); }
 
 .nd-dots i.on {
