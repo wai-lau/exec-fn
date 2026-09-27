@@ -55,10 +55,11 @@ async function ndaAsk() {
     // outright, and the text stays in the box so it can be tweaked and re-asked
     // the voter's crop is also Noodle's horizon; without one it looks ahead
     // from today (the calendar itself is endless)
-    var res = await ndvPost('/ask', { text: text, pub: NDV.kdf.pub(), view: ndvCrop() || undefined });
+    // the host's crop is Noodle's horizon too; without one it looks ahead
+    var res = await ndvPost('/ask', { text: text, pub: NDV.kdf.pub(), view: (NDV.poll && NDV.poll.crop) || undefined });
     if (res.ok) {
-      // "just show me october": the host's crop for a host, a guest's own view
-      if (res.data.crop && window.ndxApply) await window.ndxApply(res.data.crop);
+      // "just the next three weeks": the host can crop by asking; a guest cannot
+      if (res.data.crop && window.ndxIsHost && window.ndxIsHost()) await window.ndxSave(res.data.crop);
       if (NDV.cal) NDV.cal.setSel(new Set(res.data.slots));
       ndvSaveDraft();
       // the reading is how Noodle understood the words -- shown first, so an

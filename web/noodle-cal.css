@@ -9,29 +9,34 @@
   margin-top: var(--space-6);
 }
 
-/* The month you are looking at, big and faint BEHIND the grid (the grid is
-   transparent, so it shows through the cells); it follows the week row at
-   the scroller's middle. A plain filter blur -- nothing under it animates. */
-.nd-mark {
+/* Each month's number, big and faint BEHIND ITS OWN WEEKS (noodle-cal-view.js
+   ndcPaintMonths): it scrolls with them, unlike /rd's single fixed watermark,
+   and a year that is not this year sits under it. Behind the cells (the grid
+   isolates, so -1 stays inside it); left of it is the sticky week column. */
+.nd-mmark {
   position: absolute;
-  inset: 0;
-  z-index: 0;
+  left: 32px;
+  right: 0;
+  z-index: -1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   font-family: var(--font-mono);
   font-weight: var(--fw-bold);
-  font-size: min(200px, 40vw);
+  font-size: min(160px, 34vw);
   line-height: var(--lh-none);
-  color: hsl(var(--green-hsl) / 0.12);
+  color: hsl(var(--green-hsl) / 0.45);
+
+  /* dimmed by opacity, not a new colour step: the palette has none between
+     0.12 and 0.45 and an unrequested alpha is not added (lint-colors.py) */
+  opacity: 0.6;
   filter: blur(var(--blur-xs));
   pointer-events: none;
   user-select: none;
 }
-
-/* the year, 4 digits under the month -- only when it is not this year */
-.nd-mark small { font-size: 0.32em; }
+.nd-mmark small { font-size: 0.32em; }
 
 .nd-scroll {
   position: relative;
@@ -43,6 +48,7 @@
 
 .nd-grid {
   position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: 32px repeat(7, minmax(0, 1fr));
 
@@ -175,19 +181,26 @@
 .nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
 .nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }
 
-/* Month boundary: a bar laid OVER the dim 5px border on the side facing the
-   other month, so the line steps around a month that ends mid-week. Bars, not
-   border colours: where a bright border met a dim one CSS mitred the corner
-   into a diagonal chip. The right bar also reaches UP into the corner above,
-   which is where the line turns at each step. */
-.nd-edge-b, .nd-edge-r {
+/* Month boundaries: one stroked path each (noodle-cal-view.js
+   ndcPaintBoundaries), the same 2px weight as the crop line, green and
+   stepped. Per-cell bars came first, and half-transparent bars that meet
+   overlap -- every corner doubled into a brighter chip. Level with the frozen
+   week column (--z-raised) and later in the DOM, so it runs on across it;
+   still under the frozen header. */
+.nd-mlines {
   position: absolute;
-  background: hsl(var(--green-hsl) / 0.45);
+  top: 0;
+  left: 0;
+  z-index: var(--z-raised);
+  overflow: visible;
   pointer-events: none;
 }
-.nd-edge-b { left: 0; right: -5px; bottom: -5px; height: 5px; }
-.nd-edge-r { top: -5px; bottom: -5px; right: -5px; width: 5px; }
-.nd-d.eow .nd-edge-b { right: 0; }
+
+.nd-mlines path {
+  fill: none;
+  stroke: hsl(var(--green-hsl) / 0.45);
+  stroke-width: 2px;
+}
 
 .nd-n {
   position: relative;
@@ -256,26 +269,30 @@
 }
 
 
-/* ── crop (noodle-crop.js): anyone trims the endless calendar to a span ──── */
-.nd-cal-bar { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-6); }
-.nd-cal-bar + .nd-cal-wrap { margin-top: var(--space-2); }
+/* ── crop (noodle-crop.js): the host's first and last week, always shown to
+   the host as two handles on the grid; the days outside are greyed ───── */
 
-.nd-cropbox { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; }
-.nd-crop-dim { position: absolute; left: 0; right: 0; background: hsl(var(--bg-hsl) / 0.45); }
-.nd-crop-dim.top { top: 0; }
-.nd-crop-dim.bot { bottom: 0; }
+/* Above the day cells -- including weeks loaded AFTER it, which come later in
+   the DOM and at z auto painted over its grips, so a drag landed on a day --
+   and UNDER the frozen header (z-sticky). Level with the week column
+   (z-raised) but starting right of it, so they never overlap. */
+.nd-cropbox { position: absolute; inset: 0 0 0 32px; z-index: var(--z-raised); pointer-events: none; }
 
+/* A THIN line on the crop edge; the grip strokes (below) are the only part
+   that catches a pointer. */
 .nd-grid .nd-crop-h {
   position: absolute;
   left: 0;
   right: 0;
-  transform: translateY(-50%);
-  padding: var(--space-1) 0;
-  background: hsl(var(--orange-hsl) / 1);
-  color: hsl(var(--bg-hsl) / 1);
-  font-size: var(--fs-2xs);
-  pointer-events: auto;
-  cursor: ns-resize;
+  display: flex;
+  justify-content: center;
+  height: 22px;
+  padding: 0;
+  background: none;
+
+  /* only the outer GRIP stroke catches pointers (below): a grab area over the
+     first/last week swallowed taps on those days */
+  pointer-events: none;
   touch-action: none;
   user-select: none;
 
@@ -283,6 +300,46 @@
      WebKit (iOS) honours only the prefixed form; see rd.css #rd-calendar. */
   -webkit-user-select: none;
 }
+
+.nd-grid .nd-crop-h.top {
+  align-items: flex-start;
+  border-top: 2px solid hsl(var(--orange-hsl) / 1);
+
+  /* into the centre of the gap above the row, where the month line runs */
+  transform: translateY(-3.5px);
+}
+
+.nd-grid .nd-crop-h.bot {
+  align-items: flex-end;
+  border-bottom: 2px solid hsl(var(--orange-hsl) / 1);
+  transform: translateY(calc(-100% - 1.5px));
+}
+
+/* The grip: two short strokes across the crop line -- one outside the crop,
+   one inside -- the universal "drag me", with no box and no text. Only the
+   strokes catch pointers (with small margins); the rest of the line lets
+   taps through to the days under it. */
+.nd-crop-h .grip {
+  position: absolute;
+  left: 50%;
+  width: 20px;
+  height: 2px;
+  background: hsl(var(--orange-hsl) / 1);
+  transform: translateX(-50%);
+
+  /* both strokes grab: the outer one is under the frozen header whenever
+     the crop starts at the first week shown, and then only the inner one is */
+  pointer-events: auto;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.nd-crop-h .grip.out::after { content: ''; position: absolute; inset: -12px -16px; }
+.nd-crop-h .grip.in::after { content: ''; position: absolute; inset: -6px -16px; }
+.nd-crop-h.top .grip.out { top: -7px; }
+.nd-crop-h.top .grip.in { top: 3px; }
+.nd-crop-h.bot .grip.out { bottom: -7px; }
+.nd-crop-h.bot .grip.in { bottom: 3px; }
 
 /* while a crop handle is dragged nothing on the page may be selected */
 body.nd-dragging {

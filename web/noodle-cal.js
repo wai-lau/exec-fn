@@ -9,7 +9,7 @@
 //
 // The grid is endless (weeks load as it scrolls) unless the voter has CROPPED
 // it to a span; past days and days outside the crop are greyed and inert.
-// Month boundaries are a stepped line of bars (.nd-edge-b/.nd-edge-r).
+// Month boundaries are one stepped SVG path each (noodle-cal-view.js).
 //
 // Dots: every voter -- you included -- owns ONE fixed column of dots, the same
 // position in every cell (by vote order): top dot midday, bottom dot night,
@@ -80,20 +80,15 @@ function ndRowHtml(wk, r, bound, today) {
   var h = '<div class="nd-wk" data-row="' + r + '" data-month="' + wk[3].slice(5, 7) +
     '" data-year="' + wk[3].slice(0, 4) + '"><button type="button" class="nd-tg"></button></div>';
   wk.forEach(function (iso, c) {
-    var mo = iso.slice(5, 7), cls = ['nd-d'];
+    var cls = ['nd-d'];
     if (!ndOpen(iso, bound)) cls.push('out');
     if (c === 0 || c === 6) cls.push('we');
     if (c === 6) cls.push('eow');
     if (iso === today) cls.push('today');
-    if (ndAddDays(iso, 7).slice(5, 7) !== mo) cls.push('mb');
-    if (c < 6 && wk[c + 1].slice(5, 7) !== mo) cls.push('mr');
-    // month-boundary bars are ELEMENTS over the (uniformly dim) borders, not a
-    // border colour: two border colours meeting at a corner get mitred, which
-    // drew a diagonal chip at every step of the line
-    var edges = (cls.indexOf('mb') >= 0 ? '<b class="nd-edge-b"></b>' : '') +
-      (cls.indexOf('mr') >= 0 ? '<b class="nd-edge-r"></b>' : '');
+    // (month boundaries are drawn over the grid as ONE path each --
+    // noodle-cal-view.js ndcPaintMonths -- not per cell)
     h += '<div class="' + cls.join(' ') + '" data-day="' + iso + '">' +
-      '<span class="nd-n">' + iso.slice(8) + '</span><div class="nd-dots"></div>' + edges + '</div>';
+      '<span class="nd-n">' + iso.slice(8) + '</span><div class="nd-dots"></div></div>';
   });
   return h;
 }

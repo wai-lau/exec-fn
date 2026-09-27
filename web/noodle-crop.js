@@ -1,121 +1,24 @@
-// Noodle crop: trim the endless calendar to a span of weeks, like cropping a
-// picture -- a handle at the top and one at the bottom, dragged over the week
-// rows, everything outside dimmed.
-//
-// The HOST's crop is the poll's: saved (signed) on the server, it is the first
-// and last week ANYONE can pick. A guest crops too, but only their own view,
-// kept in this browser and never wider than the host's. `uncrop` clears
-// whichever one is yours. Ask Noodle can crop the same way (ndxApply).
+// Noodle crop: the HOST sets the first and last week anyone can pick, like
+// cropping a picture. No button -- for the host (and anyone on a fresh poll,
+// where the first to act becomes host) two thin lines sit on the calendar all
+// the time: one on the top edge of the first week, one on the bottom edge
+// of the last, each with a two-stroke grip across it. Drag one, let go,
+// and the crop is saved (signed, with the split) for everyone. Guests never
+// see them: their calendar is simply the crop.
 //
 // Gesture surface rules from /rd's calendar (rd.css): touch-action:none and
 // user-select:none on the handles, pointermove/up on WINDOW, no
 // setPointerCapture -- a rebuilt subtree otherwise eats the gesture.
 
-var NDX = { editing: false, a: 0, b: 3, drag: null };
+var NDX = { a: 0, b: 0, open: true, drag: null, moved: false };
+var NDX_OPEN_ROW = 11;   // with no crop yet, the bottom line waits under week 12
 window.NDX = NDX;
 
 function ndx$(id) { return document.getElementById(id); }
-function ndxKey() { return 'noodle.crop.' + NDV.slug; }
-
-function ndxLoad() {
-  try {
-    var c = JSON.parse(localStorage.getItem(ndxKey()) || 'null');
-    return c && typeof c.from === 'string' && typeof c.to === 'string' ? c : null;
-  } catch (e) { return null; }
-}
 
 function ndxIsHost() {
   var pub = ndvReady() ? NDV.kdf.pub() : null, role = window.ndhRole ? window.ndhRole(pub) : 'guest';
   return role === 'host' || role === 'fresh';
-}
-
-// Set (or clear, with null) YOUR crop: the host's goes to the poll, signed --
-// on a fresh poll that claims it -- and a guest's stays in this browser.
-async function ndxApply(crop) {
-  NDX.editing = false;
-  if (ndxIsHost()) {
-    if (!ndvReady()) { ndvStatus('enter your name first -- the host sets the crop for everyone.'); ndxSync(); return; }
-    var res = await ndhSend('/settings', { kind: 'settings', halves: NDV.poll.halves,
-      from: crop ? crop.from : null, to: crop ? crop.to : null });
-    if (!res.ok) { ndvStatus(res.data.error || 'could not save the crop', 'err'); ndxSync(); return; }
-    await ndvLoadPoll();
-  } else {
-    try {
-      if (crop) localStorage.setItem(ndxKey(), JSON.stringify(crop));
-      else localStorage.removeItem(ndxKey());
-    } catch (e) { /* storage blocked: the crop lasts until reload */ }
-    NDV.crop = crop;
-  }
-  ndvEnsureCal(true);
-  ndxSync();
-}
-
-function ndxSync() {
-  ndx$('nd-crop').textContent = NDX.editing ? 'done' : 'crop';
-  var mine = ndxIsHost() ? NDV.poll && NDV.poll.crop : NDV.crop;
-  ndx$('nd-uncrop').hidden = NDX.editing || !mine;
-  ndx$('nd-crop').title = ndxIsHost() ? 'set the first and last week for everyone' : 'narrow your own view';
-  ndx$('nd-crop-cancel').hidden = !NDX.editing;
-  var wrap = ndx$('nd-cal');
-  wrap.classList.toggle('cropping', NDX.editing);
-  var box = wrap.querySelector('.nd-cropbox');
-  if (!NDX.editing) { if (box) box.remove(); return; }
-  if (!box) {
-    box = document.createElement('div');
-    box.className = 'nd-cropbox';
-    box.innerHTML = '<div class="nd-crop-dim top"></div><div class="nd-crop-dim bot"></div>' +
-      '<button type="button" class="nd-crop-h top" data-h="a" aria-label="first week">── first week ──</button>' +
-      '<button type="button" class="nd-crop-h bot" data-h="b" aria-label="last week">── last week ──</button>';
-    wrap.querySelector('.nd-grid').appendChild(box);
-    box.addEventListener('pointerdown', ndxDown);
-  }
-  ndxPlace();
-}
-
-// Put the handles on the top edge of row a and the bottom edge of row b.
-function ndxPlace() {
-  var rows = NDV.cal.rows(), box = ndx$('nd-cal').querySelector('.nd-cropbox');
-  if (!box || !rows.length) return;
-  NDX.b = Math.min(NDX.b, rows.length - 1);
-  NDX.a = Math.min(NDX.a, NDX.b);   // a rebuild can leave a stale index behind
-  var top = rows[NDX.a].offsetTop, bot = rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight;
-  box.querySelector('.nd-crop-h.top').style.top = top + 'px';
-  box.querySelector('.nd-crop-h.bot').style.top = bot + 'px';
-  box.querySelector('.nd-crop-dim.top').style.height = top + 'px';
-  box.querySelector('.nd-crop-dim.bot').style.top = bot + 'px';
-}
-
-function ndxDown(e) {
-  var h = e.target.closest('.nd-crop-h');
-  if (!h) return;
-  e.preventDefault();
-  NDX.drag = h.dataset.h;
-  // WebKit still starts a text selection off the MOUSE events a cancelled
-  // pointerdown leaves behind, and drags it across the page with the handle
-  document.body.classList.add('nd-dragging');
-}
-
-// The row boundary nearest the pointer; dragging the bottom handle near the
-// end of what is loaded loads more (the calendar is endless).
-function ndxMove(e) {
-  if (!NDX.drag) return;
-  var rows = NDV.cal.rows(), grid = ndx$('nd-cal').querySelector('.nd-grid');
-  var y = e.clientY - grid.getBoundingClientRect().top, best = 0, gap = Infinity;
-  // top handle: nearest row TOP; bottom handle: nearest row BOTTOM
-  rows.forEach(function (r, i) {
-    var edge = NDX.drag === 'a' ? r.offsetTop : r.offsetTop + r.offsetHeight;
-    if (Math.abs(edge - y) < gap) { gap = Math.abs(edge - y); best = i; }
-  });
-  if (NDX.drag === 'a') NDX.a = Math.min(best, NDX.b); else NDX.b = Math.max(best, NDX.a);
-  var sc = NDV.cal.scroller, r = sc.getBoundingClientRect();
-  if (e.clientY > r.bottom - 30) { sc.scrollTop += 24; if (NDX.b >= rows.length - 2) NDV.cal.more(); }
-  if (e.clientY < r.top + 60) sc.scrollTop -= 24;
-  ndxPlace();
-}
-
-function ndxUp() {
-  NDX.drag = null;
-  document.body.classList.remove('nd-dragging');
 }
 
 // The row index holding `iso` (loading more weeks until it is there).
@@ -132,35 +35,114 @@ function ndxRowOf(iso, fallback) {
   return fallback;
 }
 
-function ndxToggle() {
-  if (!NDX.editing) {
-    var cur = ndxIsHost() ? NDV.poll && NDV.poll.crop : ndvCrop();
-    NDX.editing = true;
-    ndvEnsureCal(true);   // re-render one level wider (ndvCrop), so edges can move out
-    NDX.a = cur ? ndxRowOf(cur.from, 0) : 0;
-    NDX.b = cur ? ndxRowOf(cur.to, NDX.a + 3) : Math.min(3, NDV.cal.rows().length - 1);
+// Put the handles where the poll's crop is. With no crop the bottom one sits
+// under week 12 and says there is no end yet -- it must NOT follow the last
+// loaded week: weeks load as the grid scrolls, and a line that runs away as
+// you reach for it cannot be grabbed.
+function ndxFromPoll() {
+  var c = NDV.poll && NDV.poll.crop, rows = NDV.cal ? NDV.cal.rows() : [];
+  if (!rows.length) return;
+  NDX.a = c ? ndxRowOf(c.from, 0) : 0;
+  NDX.open = !c;
+  NDX.b = c ? ndxRowOf(c.to, rows.length - 1) : Math.min(NDX_OPEN_ROW, rows.length - 1);
+}
+
+// Show / hide / place the handles. Called whenever the calendar is rebuilt,
+// grows, or the poll reloads.
+function ndxSync() {
+  var wrap = ndx$('nd-cal'), grid = wrap && wrap.querySelector('.nd-grid');
+  if (!grid || !NDV.cal) return;
+  var box = grid.querySelector('.nd-cropbox');
+  if (!ndxIsHost()) { if (box) box.remove(); return; }
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'nd-cropbox';
+    // two short strokes across each line (outside + inside the crop) are
+    // the grip; no box, no text -- the aria-label says what it is
+    box.innerHTML = '<button type="button" class="nd-crop-h top" data-h="a" aria-label="drag: first week">' +
+      '<i class="grip out"></i><i class="grip in"></i></button>' +
+      '<button type="button" class="nd-crop-h bot" data-h="b" aria-label="drag: last week">' +
+      '<i class="grip in"></i><i class="grip out"></i></button>';
+    grid.appendChild(box);
+    box.addEventListener('pointerdown', ndxDown);
+  }
+  if (!NDX.drag) ndxFromPoll();
+  ndxPlace();
+}
+
+function ndxPlace() {
+  var rows = NDV.cal.rows(), box = ndx$('nd-cal').querySelector('.nd-cropbox');
+  if (!box || !rows.length) return;
+  NDX.b = Math.min(NDX.b, rows.length - 1);
+  NDX.a = Math.min(NDX.a, NDX.b);   // a rebuild can leave a stale index behind
+  var t = box.querySelector('.nd-crop-h.top'), b = box.querySelector('.nd-crop-h.bot');
+  t.style.top = rows[NDX.a].offsetTop + 'px';
+  b.style.top = (rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight) + 'px';
+  b.title = NDX.open ? 'no last week yet -- drag to set one' : 'last week';
+  t.title = 'first week';
+}
+
+function ndxDown(e) {
+  var h = e.target.closest('.nd-crop-h');
+  if (!h) return;
+  e.preventDefault();
+  NDX.drag = h.dataset.h;
+  NDX.moved = false;
+  // WebKit still starts a text selection off the MOUSE events a cancelled
+  // pointerdown leaves behind, and drags it across the page with the handle
+  document.body.classList.add('nd-dragging');
+}
+
+// The row edge nearest the pointer: top handle -> a row TOP, bottom handle ->
+// a row BOTTOM. Dragging near the scroller's end scrolls and loads more.
+function ndxMove(e) {
+  if (!NDX.drag) return;
+  var rows = NDV.cal.rows(), grid = ndx$('nd-cal').querySelector('.nd-grid');
+  var y = e.clientY - grid.getBoundingClientRect().top, best = 0, gap = Infinity;
+  rows.forEach(function (r, i) {
+    var edge = NDX.drag === 'a' ? r.offsetTop : r.offsetTop + r.offsetHeight;
+    if (Math.abs(edge - y) < gap) { gap = Math.abs(edge - y); best = i; }
+  });
+  if (NDX.drag === 'a') NDX.a = Math.min(best, NDX.b);
+  else { NDX.b = Math.max(best, NDX.a); NDX.open = false; }
+  NDX.moved = true;
+  var sc = NDV.cal.scroller, r = sc.getBoundingClientRect();
+  if (e.clientY > r.bottom - 30) { sc.scrollTop += 24; if (NDX.b >= rows.length - 2) NDV.cal.more(); }
+  if (e.clientY < r.top + 60) sc.scrollTop -= 24;
+  ndxPlace();
+}
+
+// Letting go saves the crop for everyone -- signed, as the host (on a fresh
+// poll this is what makes you host).
+async function ndxUp() {
+  if (!NDX.drag) return;
+  NDX.drag = null;
+  document.body.classList.remove('nd-dragging');
+  if (!NDX.moved) return;
+  NDX.b = Math.min(NDX.b, NDV.cal.rows().length - 1);
+  await ndxSave({ from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] });
+}
+
+async function ndxSave(crop) {
+  if (!ndvReady()) {
+    ndvStatus('enter your name first -- the host sets the crop for everyone.');
     ndxSync();
-    var rows = NDV.cal.rows();
-    if (rows[NDX.a]) NDV.cal.scroller.scrollTop = rows[NDX.a].offsetTop - 40;
     return;
   }
-  ndxApply({ from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] });
+  var res = await ndhSend('/settings', { kind: 'settings', halves: NDV.poll.halves,
+    from: crop ? crop.from : null, to: crop ? crop.to : null });
+  if (!res.ok) ndvStatus(res.data.error || 'could not save the crop', 'err');
+  await ndvLoadPoll();
+  ndvEnsureCal(true);   // regrey around the new crop, keeping the scroll
 }
 
 (function () {
-  if (!ndx$('nd-crop')) return;
-  ndx$('nd-crop').addEventListener('click', ndxToggle);
-  ndx$('nd-uncrop').addEventListener('click', function () { ndxApply(null); });
-  ndx$('nd-crop-cancel').addEventListener('click', function () {
-    NDX.editing = false;
-    ndvEnsureCal(true);   // back to the cropped calendar
-    ndxSync();
-  });
+  if (!ndx$('nd-cal')) return;
   window.addEventListener('pointermove', ndxMove);
-  window.addEventListener('selectstart', function (e) { if (NDX.drag) e.preventDefault(); });
   window.addEventListener('pointerup', ndxUp);
   window.addEventListener('pointercancel', ndxUp);
-  window.ndxLoad = ndxLoad;
-  window.ndxApply = ndxApply;
+  window.addEventListener('selectstart', function (e) { if (NDX.drag) e.preventDefault(); });
   window.ndxSync = ndxSync;
+  window.ndxSave = ndxSave;
+  window.ndxIsHost = ndxIsHost;
 })();

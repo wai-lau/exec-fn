@@ -65,14 +65,11 @@ def test_weeks_run_from_a_sunday_and_go_on():
     assert w[2][6] == "2027-01-16" and all(len(r) == 7 for r in w)
 
 
-def test_a_row_knows_its_month_edges_without_the_next_row():
-    # Oct 2026 ends on a Saturday: the week of Oct 25 has a bottom edge under
-    # every day (the day below is November) and no right edge inside it
-    html = cal("return M.rowHtml(M.weeksFrom('2026-10-25', 1)[0], 0, {from: '2026-01-01', to: null}, 'x')")
-    assert html.count("nd-edge-b") == 7 and html.count("nd-edge-r") == 0
-    # the week of Sep 27 steps: Sep 27-30 then Oct 1 -> a right edge on the 30th
-    html = cal("return M.rowHtml(M.weeksFrom('2026-09-27', 1)[0], 0, {from: '2026-01-01', to: null}, 'x')")
-    assert html.count("nd-edge-r") == 1 and 'data-year="2026"' in html
+def test_a_row_carries_its_month_and_year_for_the_watermark():
+    html = cal("return M.rowHtml(M.weeksFrom('2026-12-27', 1)[0], 0, {from: '2026-01-01', to: null}, 'x')")
+    # a week belongs to the month of its Wednesday: Dec 30 2026
+    assert 'data-month="12"' in html and 'data-year="2026"' in html
+    assert "nd-edge" not in html   # boundaries are one SVG path, drawn by the view
 
 
 def test_past_days_and_days_outside_a_crop_are_out():

@@ -289,40 +289,25 @@ def test_a_non_host_can_only_pick_what_the_host_offered(browser, base_url, noodl
         page.close()
 
 
-def test_the_calendar_is_endless_and_anyone_can_crop_it(browser, base_url, noodle_slug):
-    """No date range: weeks load as the grid scrolls. Crop trims the VIEW to a
-    span (kept in this browser, per poll); uncrop goes back to endless."""
-    ctx = browser.new_context(viewport={"width": 430, "height": 932})
-    page = ctx.new_page()
+def test_the_calendar_is_endless_and_guests_get_no_crop(browser, base_url, noodle_slug):
+    """No poll dates: weeks load as the grid scrolls. The crop is the HOST's
+    alone -- a guest (here: no key yet, on a poll that has a host) sees no
+    crop handles and no crop button."""
+    page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.locator(".nd-wk").first.wait_for()
-        rows = lambda: page.locator(".nd-wk").count()  # noqa: E731
-        start = rows()
+        assert page.locator(".nd-crop-h").count() == 0 and page.locator("#nd-crop").count() == 0
+        poll = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")
+        if poll.get("crop"):
+            return   # a host-cropped calendar is finite by design
+        start = page.locator(".nd-wk").count()
         for _ in range(4):
             page.evaluate("const s = document.querySelector('.nd-scroll'); s.scrollTop = s.scrollHeight")
             page.wait_for_timeout(400)
-        assert rows() > start, "scrolling to the bottom must load more weeks"
-
-        page.evaluate("document.querySelector('.nd-scroll').scrollTop = 0")
-        page.click("#nd-crop")
-        handle = page.locator(".nd-crop-h.bot").bounding_box()
-        page.mouse.move(handle["x"] + 20, handle["y"] + handle["height"] / 2)
-        page.mouse.down()
-        page.mouse.move(handle["x"] + 20, handle["y"] + 150, steps=6)
-        page.mouse.up()
-        assert page.evaluate("window.getSelection().toString()") == "", "a drag must not select text"
-        page.click("#nd-crop")   # done
-        cropped = rows()
-        stored = page.evaluate(f"JSON.parse(localStorage.getItem('noodle.crop.{noodle_slug}'))")
-        assert 1 <= cropped <= 12 and stored["from"] <= stored["to"]
-        page.reload()
-        page.locator(".nd-wk").first.wait_for()
-        assert rows() == cropped, "a crop survives a reload"
-        page.click("#nd-uncrop")
-        assert rows() > cropped
+        assert page.locator(".nd-wk").count() > start, "scrolling to the bottom must load more weeks"
     finally:
-        ctx.close()
+        page.close()
 
 
 @pytest.fixture(scope="module")
@@ -341,19 +326,23 @@ def crop_slug(base_url):
         return c.post("/api/noodle-polls", headers=auth, json={"title": "__smoke_crop__"}).json()["slug"]
 
 
-def test_the_host_can_drag_a_crop_past_its_current_edges(browser, base_url, crop_slug):
+def test_the_host_drags_the_crop_lines_and_each_drop_saves(browser, base_url, crop_slug):
+    """The host always has two lines on the calendar; dropping one saves the
+    crop for everyone, and a line can be dragged past the current edge."""
     page = browser.new_page(viewport={"width": 430, "height": 932})
 
     def drag(which, dy):
-        h = page.locator(f".nd-crop-h.{which}")
+        # only the OUTER grip stroke is grabbable: the rest of the line lets
+        # taps through to the days under it
+        h = page.locator(f".nd-crop-h.{which} .grip.out")
         h.scroll_into_view_if_needed()
+        page.wait_for_timeout(200)
         b = h.bounding_box()
-        page.mouse.move(b["x"] + 20, b["y"] + b["height"] / 2)
+        page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2)
         page.mouse.down()
-        page.mouse.move(b["x"] + 20, b["y"] + b["height"] / 2 + dy, steps=8)
+        page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2 + dy, steps=8)
         page.mouse.up()
-
-    def crop():
+        page.wait_for_timeout(1500)
         return page.evaluate(f"fetch('/api/noodle/{crop_slug}').then(r => r.json())")["crop"]
 
     try:
@@ -361,18 +350,11 @@ def test_the_host_can_drag_a_crop_past_its_current_edges(browser, base_url, crop
         page.fill("#nd-name", "smoke crop host")
         page.fill("#nd-pass", "crop host pass")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
-        page.click("#nd-crop")
-        drag("top", 160)            # a narrow crop first
-        page.click("#nd-crop")
-        page.wait_for_function(f"fetch('/api/noodle/{crop_slug}').then(r => r.json()).then(p => !!p.crop)")
-        first = crop()
-        page.click("#nd-crop")      # edit again: the calendar opens WIDER than the crop
-        assert page.locator(".nd-wk").count() > 4
-        drag("top", -300)
-        drag("bot", 250)
-        page.click("#nd-crop")
-        page.wait_for_timeout(1500)
-        wider = crop()
-        assert wider["from"] < first["from"] and wider["to"] > first["to"], (first, wider)
+        assert page.locator(".nd-crop-h .grip.out").count() == 2, "each line shows a grip"
+        first = drag("bot", -250)
+        assert first and first["from"] <= first["to"]
+        wider = drag("bot", 300)
+        assert wider["to"] > first["to"], (first, wider)
+        assert page.evaluate("window.getSelection().toString()") == "", "a drag must not select text"
     finally:
         page.close()
