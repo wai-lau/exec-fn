@@ -61,7 +61,7 @@ body.noodle {
 
 .nd-field { display: flex; flex-direction: column; gap: var(--space-1); }
 
-.nd-field span {
+.nd-field > span:not(.nd-pass-row) {
   font-size: var(--fs-2xs);
   letter-spacing: var(--tracking-wide);
   color: hsl(var(--green-hsl) / 0.45);
@@ -70,6 +70,24 @@ body.noodle {
 /* "(remember this)" beside the passphrase label: there is no recovery but
    the owner's reset, so the one thing to keep is said where it is typed */
 .nd-field .nd-remember { color: hsl(var(--green-hsl) / 1); }
+
+/* the passphrase and its "change" button, side by side (noodle-rekey.js) */
+.nd-pass-row { display: flex; gap: var(--space-2); align-items: stretch; }
+.nd-pass-row input { flex: 1; min-width: 0; }
+
+.nd-rekey {
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: hsl(var(--green-hsl) / 1);
+  font: inherit;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+}
+.nd-rekey[hidden] { display: none; }
 
 .nd-card input, .nd-card textarea {
   box-sizing: border-box;

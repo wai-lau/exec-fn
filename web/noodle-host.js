@@ -79,6 +79,7 @@ async function ndhCommitSplit(ts) {
 async function ndhRemove(e) {
   var btn = e.target.closest('.nd-face-rm');
   if (!btn || !ndvReady()) return;
+  if (window.NDR && NDR.active) { ndvStatus('commit your new passphrase first.'); return; }
   var who = btn.dataset.name;
   if (!window.confirm('remove ' + who + ' and their vote?')) return;
   var res = await ndhSend('/remove', { kind: 'remove', target: who });

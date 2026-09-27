@@ -3414,6 +3414,7 @@ flowchart LR
     ask --> llm["llm.py<br/>Haiku, forced tool"]
     ask --> store
     reset["reset.py<br/>owner key reset (CLI)"] --> votes
+    r --> rekey["rekey.py<br/>old key signs new"]
   end
 
   subgraph browser["browser (passphrase never leaves)"]
@@ -3477,6 +3478,25 @@ signature, skew) run before the lock, and a rejected vote never writes.
 Recovery is owner-only, server-side:
 `sudo docker compose exec api python -m noodle.reset <slug> "<name>"` blanks the
 key and the next signer re-binds it (slots and dot column kept).
+
+**Changing a passphrase is the old key signing the new one** (`noodle/rekey.py`,
+`POST /api/noodle/{slug}/rekey`, `web/noodle-rekey.js`). The name is bound to a
+key and the key IS the passphrase, so a change is a re-bind only the current
+key may make: `canonical_action(kind="rekey", name, poll, ts, newpub)` signed by
+the OLD key, sent with the old `pub`; the server checks it is that name's bound
+key and strictly newer, then stores `newpub` (slots, order and host role all
+kept -- the host is whoever holds order 0, not a key). The `change` button sits
+right of the passphrase field only once the passphrase is right (`NDV.mine`).
+Tapping it keeps the old passphrase IN MEMORY, clears the field, sets the hint
+to `new passphrase`, disables the name (a new name is a new identity, not a
+change) and spawns a second KDF worker to re-derive the old key, since the main
+one now derives the new. Until Commit **nothing is sent or remembered**:
+`ndrAs` makes the page answer as the old key (binding, host role, Ask's `pub`),
+`ndvSaveIdentity` skips, so a reload brings the old passphrase back. Commit
+sends the rekey at `ts`, then the split and vote under the new key at `ts+1`...;
+the crop and remove refuse mid-change (they would be signed by a key the server
+does not know yet). The button then reads `cancel`, which restores the old
+passphrase untouched.
 
 **Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
 (`select_slots`) that returns **a one-sentence `reading` and an ordered list of

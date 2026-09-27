@@ -56,7 +56,7 @@ async function ndaAsk() {
     // the voter's crop is also Noodle's horizon; without one it looks ahead
     // from today (the calendar itself is endless)
     // the host's crop is Noodle's horizon too; without one it looks ahead
-    var res = await ndvPost('/ask', { text: text, pub: NDV.kdf.pub(), view: (NDV.poll && NDV.poll.crop) || undefined });
+    var res = await ndvPost('/ask', { text: text, pub: ndvPub(), view: (NDV.poll && NDV.poll.crop) || undefined });
     if (res.ok) {
       // "just the next three weeks": the host can crop by asking; a guest cannot
       if (res.data.crop && window.ndxIsHost && window.ndxIsHost()) await window.ndxSave(res.data.crop);

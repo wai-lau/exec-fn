@@ -66,6 +66,12 @@ function ndvTeach(tail, signLine) {
 
 function ndvReady() { return !!NDV.kdf && NDV.kdf.ready(); }
 
+// This voter's key as the server knows it (the old one mid passphrase change).
+function ndvPub() {
+  var p = ndvReady() ? NDV.kdf.pub() : null;
+  return window.ndrAs ? window.ndrAs(p) : p;
+}
+
 // Why submit cannot be pressed right now, or '' when it can. A disabled
 // button with no reason reads as broken.
 function ndvWhyNot() {
@@ -83,6 +89,7 @@ function ndvWhyNot() {
 function ndvDirty() {
   if (!NDV.cal) return false;
   if (NDV.pendingHalves != null) return true;   // an unsaved split
+  if (window.NDR && NDR.active) return true;    // an unsaved new passphrase
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;
   for (var s of sel) if (!saved.has(s)) return true;
@@ -114,6 +121,7 @@ function ndvSyncLock() {
 // Which voter (if any) the typed name already belongs to, and everyone else
 // as dot columns. A name sealed by a different key blocks submit.
 function ndvRefreshBinding(pub) {
+  if (window.ndrAs) pub = window.ndrAs(pub);   // mid passphrase change: still the old key
   var norm = window.noodleNormName(ndv$('nd-name').value), mine = null, cols = [];
   var self = { self: true, ink: NDV.seal ? NDV.seal.ink : null };
   (NDV.poll ? NDV.poll.voters : []).forEach(function (v) {
@@ -138,7 +146,8 @@ function ndvRefreshBinding(pub) {
   if (!NDV.inEnsure) { NDV.inEnsure = true; ndvEnsureCal(); NDV.inEnsure = false; }
   // the blocking name, for the reason under submit (ndvWhyNot)
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
-  NDV.saved = mine && pub && mine.pub === pub ? new Set(mine.slots) : new Set();
+  NDV.mine = !!(mine && pub && mine.pub === pub);
+  NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
   if (NDV.blocked) {
     ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
@@ -152,6 +161,7 @@ function ndvRefreshBinding(pub) {
     ndvStatus('');
   }
   ndvSyncSubmit();
+  if (window.ndrSync) window.ndrSync();
 }
 
 function ndvOnStart(info) {
@@ -174,6 +184,7 @@ async function ndvOnDerived(d) {
 }
 
 function ndvSaveIdentity() {
+  if (window.NDR && NDR.active) return;   // the new passphrase is kept only once committed
   try {
     localStorage.setItem(NDV_STORE, JSON.stringify({ name: ndv$('nd-name').value, pass: ndv$('nd-pass').value }));
   } catch (e) { /* storage blocked: the form just is not remembered */ }
@@ -231,7 +242,7 @@ function ndvOnIdentityInput() {
 // the passphrase -- the one thing only they know.
 function ndvPickFace(e) {
   var face = e.target.closest('.nd-face');
-  if (!face) return;
+  if (!face || (window.NDR && NDR.active)) return;
   ndv$('nd-name').value = face.dataset.name;
   ndvOnIdentityInput();
   ndv$('nd-pass').focus();
@@ -264,6 +275,9 @@ async function ndvSubmit() {
   var ts = Date.now() + NDV.skew;
   // a pending split goes first (it converts every stored vote); the vote is
   // then signed strictly newer, as the server's replay check demands
+  var rk = await ndrCommit(ts);   // a new passphrase first: the rest is signed by it
+  if (!rk.ok) { ndvStatus(rk.data.error || 'could not change the passphrase', 'err'); ndvSyncSubmit(); return; }
+  if (rk.did) ts += 1;
   var split = await ndhCommitSplit(ts);
   if (!split.ok) { ndvStatus(split.data.error || 'could not save the split', 'err'); ndvSyncSubmit(); return; }
   if (NDV.pendingHalves != null) { NDV.pendingHalves = null; ts += 1; }
@@ -309,7 +323,7 @@ function ndvEnsureCal(force) {
   for (var i = 0; i < 20 && NDV.cal.scroller.scrollHeight < scroll + NDV.cal.scroller.clientHeight; i++) NDV.cal.more();
   NDV.cal.scroller.scrollTop = scroll;
   if (window.ndxSync) window.ndxSync();
-  if (NDV.poll) ndvRefreshBinding(ndvReady() ? NDV.kdf.pub() : null);
+  if (NDV.poll) ndvRefreshBinding(ndvPub());
 }
 
 async function ndvLoadPoll() {
@@ -321,7 +335,7 @@ async function ndvLoadPoll() {
   NDV.poll = await r.json();
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   ndvEnsureCal();
-  ndvRefreshBinding(ndvReady() ? NDV.kdf.pub() : null);
+  ndvRefreshBinding(ndvPub());
 }
 
 function ndvInit() {
@@ -349,4 +363,5 @@ function ndvInit() {
   if (ndvRestoreIdentity()) ndvOnIdentityInput();
 }
 
+window.ndvOnIdentityInput = ndvOnIdentityInput;
 ndvInit();
