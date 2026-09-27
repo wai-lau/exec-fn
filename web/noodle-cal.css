@@ -118,10 +118,9 @@
    height -- a header that grew slid over the first visible row and swallowed
    the next tap on it. */
 .nd-grid .nd-tg {
-  /* (.nd-grid-scoped to outrank the .nd-grid button reset above)
-     the fill/eraser icons claim one cell but DRAW about two, rightward from
-     their origin -- so the box is widened on the right to hold the ink */
-  padding: 0 1em 0 0.35em;
+  /* (.nd-grid-scoped to outrank the .nd-grid button reset above); symmetric
+     padding: the icon inside is centred by its INK (.ic, below) */
+  padding: 0 0.55em;
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-1);
   font-size: var(--fs-2xs);
@@ -152,9 +151,12 @@
   line-height: var(--lh-none);
 }
 
-.nd-mode i { position: absolute; left: 3px; font-style: normal; }
-.nd-mode .fill { top: 2px; }
-.nd-mode .clear { bottom: 2px; }
+.nd-mode .ic { position: absolute; left: 50%; }
+
+/* centred by ink, then set along the slash (it rises to the right): the
+   bucket a little left above it, the eraser a little right below it */
+.nd-mode .ic.fill { top: 2px; transform: translateX(calc(-50% - 0.125em - 2px)); }
+.nd-mode .ic.clear { bottom: 2px; transform: translateX(calc(-50% - 0.287em + 4px)); }
 
 .nd-mode[data-mode="fill"] .fill,
 .nd-mode[data-mode="clear"] .clear { color: hsl(var(--green-hsl) / 1); }
@@ -371,3 +373,14 @@ body.nd-dragging {
   /* stylelint-disable-next-line property-no-vendor-prefix -- WebKit only reads this */
   -webkit-user-select: none;
 }
+
+/* ── the tool icons, VISUALLY centred ──────────────────────────────────────
+   Both claim one cell (0.5em) but draw their ink to the right of it,
+   measured off the font: bucket U+F765 ink 0..0.75em, eraser U+F12D 0..1.07em.
+   Each is shifted left by (ink centre - advance centre) so the INK, not the
+   character box, sits in the middle. The bucket is drawn 1.2x -- its ink
+   area is 1/1.44 of the eraser's -- so the two read as the same size. */
+.ic { display: inline-block; font-style: normal; line-height: var(--lh-none); }
+.ic.fill { font-size: 1.2em; }
+.nd-tg .ic.fill { transform: translate(-0.125em, 1px); }   /* its ink sits 1px high */
+.nd-tg .ic.clear { transform: translateX(-0.287em); }

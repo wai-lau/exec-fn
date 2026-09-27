@@ -3620,7 +3620,12 @@ buttons are a MODE (paint bucket = fill, eraser = clear) flipped by the calendar
 top-left corner, never a reading of the cells. The corner shows BOTH tools
 stacked, bucket above and eraser below EXACTLY a split day cell's slash (the
 same 330deg hairline through the centre), equally far from it, no box, the
-current tool bright. A crop starting at the first
+current tool bright, set along the slope (bucket left, eraser right). **Every
+tool icon is centred by its INK**: both glyphs claim one cell (0.5em) but draw
+right of it (bucket 0..0.75em, eraser 0..1.07em, measured off the font), so
+each is shifted left by ink-centre minus advance-centre (`.ic`), and the bucket
+is drawn 1.2x -- its ink area is 1/1.44 of the eraser's -- so both read the
+same size. A crop starting at the first
 week draws its top line just INSIDE that row: the gap above it is the frozen
 header's own border, which covers anything drawn there.
 
