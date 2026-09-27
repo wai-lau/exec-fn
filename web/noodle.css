@@ -260,6 +260,8 @@ body.noodle {
   list-style: none;
 }
 
+.nd-faces li { display: flex; flex-direction: column; align-items: center; }
+
 .nd-face {
   display: flex;
   flex-direction: column;
@@ -295,6 +297,36 @@ body.noodle {
 .nd-seal.xs { min-width: 9ch; min-height: 6lh; font-size: calc(var(--fs-2xs) * 0.8); }
 
 .nd-card input::placeholder { color: hsl(var(--green-hsl) / 0.45); }
+
+/* ── the host's panel: dates + split, shown to the host (or anyone, on a
+   fresh poll -- whoever saves first hosts) ─────────────────────────────── */
+.nd-hostpanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-8);
+  padding: var(--space-4);
+  border: 1px dashed hsl(var(--orange-hsl) / 0.45);
+  border-radius: var(--radius-2);
+}
+.nd-hostpanel[hidden] { display: none; }
+.nd-host-dates { display: flex; gap: var(--space-4); }
+.nd-host-dates .nd-field { flex: 1; min-width: 0; }
+.nd-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); }
+.nd-card .nd-check input { width: auto; }
+.nd-hostpanel .nd-ask-go { align-self: flex-start; }
+
+.nd-face-rm {
+  margin-top: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid hsl(var(--orange-glow-hsl) / 0.8);
+  border-radius: var(--radius-1);
+  background: none;
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+  font: inherit;
+  font-size: var(--fs-2xs);
+  cursor: pointer;
+}
 
 /* ── owner list ─────────────────────────────────────────────────────────── */
 .nd-polls { list-style: none; margin: 0 0 var(--space-6); padding: 0; }

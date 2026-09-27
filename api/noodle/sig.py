@@ -35,3 +35,11 @@ def verify(pub_b64: str, sig_b64: str, message: bytes) -> bool:
         return True
     except (ValueError, InvalidSignature):
         return False
+
+
+def canonical_action(**fields) -> bytes:
+    """Bytes a host signs for a SETTINGS or REMOVE action. The `kind` field is
+    what stops a signed vote from ever being replayed as one of these (and vice
+    versa): a vote's canonical form has no `kind` key at all."""
+    assert "kind" in fields
+    return json.dumps(fields, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")

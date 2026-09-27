@@ -2,7 +2,8 @@
 // repaints classes in place on every change so the scroll position and the
 // sticky header never jump.
 //
-// opts: {start, end, onChange(sel)}
+// opts: {start, end, halves, onChange(sel)} -- halves: split into midday +
+//       night (two triangles a day) or one whole-day slot
 // api:  setSel(Set), getSel(), setOthers([{slots:Set, ink} | {self:true, ink}]),
 //       setAllowed(Set | null) -- the host's offered halves; null = everything
 
@@ -30,11 +31,36 @@ function ndcOpenAtWindow(scroller, grid, cells) {
   if (document.fonts) document.fonts.ready.then(go);
 }
 
+// Every group button shows the MODE's tool -- pencil (fill in) or eraser
+// (clear) -- whatever its cells hold; the corner shows the OTHER tool and
+// flips them all. Glyphs are Font Awesome U+F040 / U+F12D from the Nerd Font
+// build of the site's face, shipped in noodle-seal.woff2.
+var NDC_ICON = { fill: '\uf040', clear: '\uf12d' };
+
+function ndcPaintButtons(grid, mode, groupOf, offered) {
+  var T = window.NoodleToggle;
+  grid.querySelectorAll('.nd-hd[data-col], .nd-wk').forEach(function (el) {
+    var g = groupOf(el), label = T.label(g.subject, mode), btn = el.querySelector('.nd-tg');
+    btn.textContent = NDC_ICON[mode];
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+    btn.disabled = !offered(g.slots).length;
+  });
+  var b = grid.querySelector('.nd-mode'), other = T.flipMode(mode);
+  b.textContent = NDC_ICON[other];
+  b.title = 'switch every button to ' + (other === 'fill' ? 'fill in' : 'clear');
+  b.setAttribute('aria-label', b.title);
+  grid.dataset.mode = mode;
+}
+
 function NoodleCal(wrap, opts) {
   var P = window.NoodleCalParts, T = window.NoodleToggle;
   var weeks = P.weeks(opts.start, opts.end);
-  var groups = P.groups(weeks, opts.start, opts.end);
-  var sel = new Set(), others = [], allowed = null;
+  var groups = P.groups(weeks, opts.start, opts.end, opts.halves);
+  // every slot this calendar can hold; anything else handed to setSel (a
+  // draft from before the host changed the dates or the split) is dropped
+  var valid = new Set([].concat.apply([], groups.rows));
+  var sel = new Set(), others = [], allowed = null, mode = 'fill';
 
   // Only the host's halves are on offer to everyone else: a group's toggle
   // acts on those alone, and a tap on any other half does nothing.
@@ -43,7 +69,7 @@ function NoodleCal(wrap, opts) {
   }
 
   wrap.innerHTML = '<div class="nd-mark" aria-hidden="true"></div>' +
-    '<div class="nd-scroll"><div class="nd-grid">' +
+    '<div class="nd-scroll"><div class="nd-grid' + (opts.halves ? '' : ' single') + '">' +
     P.gridHtml(weeks, opts.start, opts.end) + '</div></div>';
   var scroller = wrap.querySelector('.nd-scroll');
   var grid = wrap.querySelector('.nd-grid');
@@ -60,38 +86,25 @@ function NoodleCal(wrap, opts) {
     return null;
   }
 
-  // One button: a PENCIL when the group is all off (fills it all in), an
-  // ERASER otherwise (clears it). Font Awesome glyphs from the Nerd Font build
-  // of the site's face (U+F040, U+F12D), shipped in noodle-seal.woff2.
-  function paintToggle(el, g) {
-    var st = T.groupState(offered(g.slots), sel), label = T.label(g.subject, st);
-    el.dataset.state = st;
-    var btn = el.querySelector('.nd-tg');
-    btn.textContent = st === 'off' ? '\uf040' : '\uf12d';
-    btn.setAttribute('aria-label', label);
-    btn.title = label;
-    btn.disabled = st === 'none';
-  }
-
   function paint() {
     cells.forEach(function (c) {
       var iso = c.dataset.day;
-      c.classList.toggle('mid', sel.has(iso + ':m'));
-      c.classList.toggle('nit', sel.has(iso + ':n'));
-      var noM = !!allowed && !allowed.has(iso + ':m'), noN = !!allowed && !allowed.has(iso + ':n');
+      // unsplit: the whole day is one slot, drawn across both triangles
+      var m = opts.halves ? iso + ':m' : iso + ':d', n = opts.halves ? iso + ':n' : iso + ':d';
+      c.classList.toggle('mid', sel.has(m));
+      c.classList.toggle('nit', sel.has(n));
+      var noM = !!allowed && !allowed.has(m), noN = !!allowed && !allowed.has(n);
       c.classList.toggle('no-m', noM);
       c.classList.toggle('no-n', noN);
       c.classList.toggle('shut', noM && noN);
     });
-    grid.querySelectorAll('.nd-hd[data-col], .nd-wk').forEach(function (el) {
-      paintToggle(el, groupOf(el));
-    });
+    ndcPaintButtons(grid, mode, groupOf, offered);
   }
 
   function paintDots() {
     var fit = P.dotsFit(cells[0], others.length);
     cells.forEach(function (c) {
-      c.querySelector('.nd-dots').innerHTML = others.length ? P.dotsHtml(c.dataset.day, others, fit, sel) : '';
+      c.querySelector('.nd-dots').innerHTML = others.length ? P.dotsHtml(c.dataset.day, others, fit, sel, opts.halves) : '';
     });
   }
 
@@ -103,15 +116,19 @@ function NoodleCal(wrap, opts) {
   }
 
   function onTap(e) {
-    var tg = e.target.closest('.nd-tg');
+    var tg = e.target.closest('.nd-tg'), flip = e.target.closest('.nd-mode');
     var cell = e.target.closest('.nd-d');
-    if (tg) {
+    if (flip) {
+      mode = T.flipMode(mode);
+      paint();
+    } else if (tg) {
       var g = groupOf(e.target), on = g ? offered(g.slots) : [];
       if (!on.length) return;
-      change(T.apply(on, sel, T.clickAction(T.groupState(on, sel))));
+      change(T.apply(on, sel, T.modeAction(mode)));
     } else if (cell && !cell.classList.contains('out')) {
       var r = cell.getBoundingClientRect();
-      var slot = cell.dataset.day + ':' + P.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight);
+      var slot = cell.dataset.day + ':' + (opts.halves
+        ? P.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight) : 'd');
       if (allowed && !allowed.has(slot)) return;
       var next = new Set(sel);
       if (next.has(slot)) next.delete(slot); else next.add(slot);
@@ -129,7 +146,11 @@ function NoodleCal(wrap, opts) {
   paint();
 
   return {
-    setSel: function (s) { sel = new Set(s); paint(); paintDots(); },
+    setSel: function (s) {
+      sel = new Set(Array.from(s).filter(function (x) { return valid.has(x); }));
+      paint();
+      paintDots();
+    },
     getSel: function () { return new Set(sel); },
     setOthers: function (o) { others = o; paintDots(); },
     // With `prune`, picks outside the offer are dropped (a host who withdraws

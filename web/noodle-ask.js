@@ -55,7 +55,7 @@ async function ndaAsk() {
     // outright, and the text stays in the box so it can be tweaked and re-asked
     var res = await ndvPost('/ask', { text: text, pub: NDV.kdf.pub() });
     if (res.ok) {
-      NDV.cal.setSel(new Set(res.data.slots));
+      if (NDV.cal) NDV.cal.setSel(new Set(res.data.slots));
       ndvSaveDraft();
       // the reading is how Noodle understood the words -- shown first, so an
       // ambiguous sentence read the other way is visible before it is committed

@@ -11,7 +11,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
-from noodle import ask, config, pages, slots, store, votes
+from noodle import ask, config, host, pages, store, votes
 
 router = APIRouter()
 owner_router = APIRouter()
@@ -85,6 +85,26 @@ async def noodle_vote(slug: str, request: Request):
     return {"ok": True, "name": rec["name"], "slots": rec["slots"]}
 
 
+async def _signed(fn, slug: str, request: Request):
+    body = await _json_body(request, config.BODY_MAX_VOTE)
+    try:
+        return await asyncio.to_thread(fn, slug, body)
+    except votes.VoteError as e:
+        return JSONResponse({"error": e.msg}, status_code=e.status)
+
+
+@router.post("/api/noodle/{slug}/settings")
+async def noodle_settings(slug: str, request: Request):
+    """Host only (the first to save it claims the poll): dates + split."""
+    return await _signed(host.settings, slug, request)
+
+
+@router.post("/api/noodle/{slug}/remove")
+async def noodle_remove(slug: str, request: Request):
+    """Host only: remove a guest and their vote."""
+    return await _signed(host.remove, slug, request)
+
+
 @router.post("/api/noodle/{slug}/ask")
 async def noodle_ask(slug: str, request: Request):
     body = await _json_body(request, config.BODY_MAX_ASK)
@@ -105,20 +125,17 @@ async def noodle_admin_page():
 @owner_router.get("/api/noodle-polls")
 async def noodle_list():
     polls = await asyncio.to_thread(store.all_polls)
-    return {"polls": [{"slug": p["slug"], "title": p["title"], "start": p["start"],
-                       "end": p["end"], "voters": len(p["voters"])} for p in polls]}
+    return {"polls": [{"slug": p["slug"], "title": p["title"], "start": p.get("start"),
+                       "end": p.get("end"), "voters": len(p["voters"])} for p in polls]}
 
 
 @owner_router.post("/api/noodle-polls")
 async def noodle_create(request: Request):
     body = await _json_body(request, config.BODY_MAX_CREATE)
+    # a title and nothing else: the dates are the host's to set
     title = " ".join(str(body.get("title", "")).split())
     if not title or len(title) > config.TITLE_MAX:
         raise HTTPException(400, f"title must be 1-{config.TITLE_MAX} characters")
-    try:
-        slots.parse_window(str(body.get("start")), str(body.get("end")))
-    except ValueError as e:
-        raise HTTPException(400, str(e)) from None
     now = datetime.now().isoformat(timespec="seconds")
-    poll = await asyncio.to_thread(store.create, title, body["start"], body["end"], now)
+    poll = await asyncio.to_thread(store.create, title, now)
     return {"slug": poll["slug"], "url": f"/noodle/{poll['slug']}"}

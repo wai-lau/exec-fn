@@ -38,8 +38,6 @@ def vote_page(poll: dict) -> str:
         _tmpl("noodle-vote.html"),
         SLUG=html.escape(poll["slug"], quote=True),
         TITLE=html.escape(poll["title"]),
-        START=html.escape(poll["start"], quote=True),
-        END=html.escape(poll["end"], quote=True),
         KDF=_kdf_attrs(),
         ASK_MAX=str(config.ASK_MAX_CHARS),
     )
@@ -61,7 +59,10 @@ def public_poll(poll: dict) -> dict:
     voters = sorted(poll["voters"].items(), key=lambda kv: kv[1]["order"])
     return {
         "slug": poll["slug"], "title": poll["title"],
-        "start": poll["start"], "end": poll["end"],
+        "start": poll.get("start"), "end": poll.get("end"),
+        # split into midday + night, or one slot a day; polls from before the
+        # host could choose were all split, so a missing key means split
+        "halves": poll.get("halves", True),
         "voters": [{"name": key, "pub": v["pub"], "slots": v["slots"],
                     "order": v["order"]} for key, v in voters],
         # the first to commit hosts: their halves are the only ones on offer

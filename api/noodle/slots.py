@@ -1,13 +1,14 @@
 """Pure helpers: names, date windows and slot strings. No I/O.
 
-A slot is "YYYY-MM-DD:m" (midday) or "YYYY-MM-DD:n" (night). No clock times.
+A slot is "YYYY-MM-DD:m" (midday) / "YYYY-MM-DD:n" (night) in a SPLIT poll, or
+"YYYY-MM-DD:d" (the whole day) in an unsplit one. No clock times.
 """
 import unicodedata
 from datetime import date, timedelta
 
 from noodle import config
 
-_CODES = set(config.BLOCK_CODES.values())
+_CODES = set(config.BLOCK_CODES.values()) | {config.DAY_CODE}
 
 
 def normalize_name(raw: str) -> str:
@@ -27,7 +28,13 @@ def normalize_name(raw: str) -> str:
     return s
 
 
-def parse_window(start: str, end: str) -> tuple[date, date]:
+def codes(halves: bool) -> set[str]:
+    return set(config.BLOCK_CODES.values()) if halves else {config.DAY_CODE}
+
+
+def parse_window(start, end) -> tuple[date, date]:
+    if not start or not end:
+        raise ValueError("the host has not set the dates yet")
     s, e = date.fromisoformat(start), date.fromisoformat(end)
     if e < s:
         raise ValueError("window ends before it starts")
@@ -50,7 +57,7 @@ def parse_slot(slot: str) -> tuple[date, str]:
     return date.fromisoformat(slot[:10]), code
 
 
-def clean_slots(slots, start: str, end: str) -> list[str]:
+def clean_slots(slots, start: str, end: str, halves: bool = True) -> list[str]:
     """Validate a client's slot list: every slot well-formed and inside the
     window. Returns them sorted + deduped (the canonical order the signature
     covers). Raises ValueError on anything out of bounds -- a vote is never
@@ -61,8 +68,11 @@ def clean_slots(slots, start: str, end: str) -> list[str]:
     if len(slots) > 2 * ((e - s).days + 1):
         raise ValueError("too many slots")
     out = set()
+    allowed = codes(halves)
     for slot in slots:
-        d, _ = parse_slot(slot)
+        d, code = parse_slot(slot)
+        if code not in allowed:
+            raise ValueError(f"{slot}: this poll's days are {'split' if halves else 'not split'}")
         if not s <= d <= e:
             raise ValueError(f"{slot} is outside the poll window")
         out.add(slot)
@@ -86,3 +96,20 @@ def clamp_slots(pairs, start: str, end: str) -> list[str]:
         if code and s <= d <= e:
             out.add(f"{d.isoformat()}:{code}")
     return sorted(out)
+
+
+def convert(slots_: list[str], halves: bool) -> list[str]:
+    """Re-express picks when the host splits or unsplits the days. Splitting:
+    a whole day becomes both halves. Unsplitting: a day survives only if BOTH
+    halves were picked -- the cautious direction, since someone free at midday
+    alone is not free all day."""
+    if halves:
+        return sorted({f"{s[:10]}:{c}" for s in slots_ if s.endswith(":d") for c in "mn"}
+                      | {s for s in slots_ if not s.endswith(":d")})
+    have = set(slots_)
+    return sorted({f"{s[:10]}:d" for s in slots_
+                   if s.endswith(":d") or {f"{s[:10]}:m", f"{s[:10]}:n"} <= have})
+
+
+def within(slots_: list[str], start: str, end: str) -> list[str]:
+    return [s for s in slots_ if start <= s[:10] <= end]

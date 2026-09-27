@@ -11,6 +11,9 @@ from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from noodle_helpers import make_poll  # noqa: E402
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
 pytest.importorskip("anthropic")
 
@@ -34,7 +37,7 @@ def env(monkeypatch, tmp_path):
     fake.reply = {"reading": "Friday nights.",
                   "rules": [{"action": "add", "blocks": ["night"], "where": {"weekday": ["friday"]}}]}
     monkeypatch.setattr(llm, "call", fake)
-    slug = store.create("t", "2026-10-01", "2026-10-10", "x")["slug"]
+    slug = make_poll(store, "t", "2026-10-01", "2026-10-10")
     return {"ask": ask, "config": config, "slug": slug, "calls": calls, "fake": fake, "clock": clock}
 
 
@@ -180,7 +183,7 @@ def test_prompt_lists_every_date_and_forbids_deciding_them(env):
 
 def test_prompt_names_quebec_holidays(env, monkeypatch):
     from noodle import store
-    slug = store.create("h", "2026-10-10", "2026-10-14", "x")["slug"]
+    slug = make_poll(store, "h", "2026-10-10", "2026-10-14")
     env["ask"].ask(slug, {"text": "x", "pub": _pub(9), "current": []}, "192.0.2.1")
     assert "2026-10-12 Monday (Quebec statutory holiday: Action de grace)" in env["calls"][-1][0]
 

@@ -1,10 +1,8 @@
 """Noodle's header/row toggle rules (web/noodle-toggle.js) and calendar
 geometry (web/noodle-cal.js), unit-tested in isolation through node.
 
-Rules under test (ONE button per group):
-  click: all off -> all on (check); all on OR mixed -> all off (cross)
-  label: all off "Available X" / on or mixed "Not available X"
-  out-of-window days never belong to a group
+Rules under test: the group buttons are a MODE (pencil = fill, eraser =
+clear), flipped all at once by the corner -- never a reading of the cells.
 """
 import json
 import os
@@ -31,58 +29,27 @@ def js(expr: str, module: str = "noodle-toggle.js", glob: str = "NoodleToggle"):
 G = '["a:m","a:n","b:m","b:n"]'
 
 
-@pytest.mark.parametrize("sel,state", [
-    ('["a:m","a:n","b:m","b:n"]', "on"),
-    ("[]", "off"),
-    ('["a:m"]', "mixed"),
-    ('["a:m","a:n","b:m","zz:m"]', "mixed"),   # a slot outside the group does not count
-])
-def test_group_state(sel, state):
-    assert js(f"return M.groupState({G}, new Set({sel}))") == state
+@pytest.mark.parametrize("mode,action", [("fill", "on"), ("clear", "off")])
+def test_a_button_does_what_its_MODE_says_whatever_the_cells_hold(mode, action):
+    assert js(f"return M.modeAction({json.dumps(mode)})") == action
+    for sel in ("[]", "['a:m']", G):   # empty, mixed, full: never consulted
+        got = js(f"return [...M.apply({G}, new Set({sel}), M.modeAction({json.dumps(mode)}))].sort()")
+        assert got == (["a:m", "a:n", "b:m", "b:n"] if action == "on" else [])
 
 
-def test_empty_group_is_inert():
-    assert js("return M.groupState([], new Set(['a:m']))") == "none"
-    assert js("return M.label('Wednesdays', 'none')") == ""
+def test_the_corner_flips_the_mode_back_and_forth():
+    assert js("return [M.flipMode('fill'), M.flipMode('clear'), M.flipMode(M.flipMode('fill'))]") == \
+        ["clear", "fill", "fill"]
 
 
-@pytest.mark.parametrize("state,action", [("on", "off"), ("off", "on"), ("mixed", "off")])
-def test_click_rule(state, action):
-    assert js(f"return M.clickAction({json.dumps(state)})") == action
+def test_apply_leaves_other_slots_and_does_not_mutate():
+    assert js(f"const s=new Set(['x:n']); const r=M.apply({G}, s, 'on'); return [[...s], r.has('x:n')]") == [["x:n"], True]
 
 
-def test_click_applies_to_whole_group_and_leaves_others():
-    on = js(f"return [...M.apply({G}, new Set(['a:m','x:n']), 'on')].sort()")
-    assert on == ["a:m", "a:n", "b:m", "b:n", "x:n"]
-    off = js(f"return [...M.apply({G}, new Set(['a:m','b:n','x:n']), 'off')]")
-    assert off == ["x:n"]
-
-
-def test_apply_does_not_mutate_input():
-    assert js(f"const s=new Set(['a:m']); M.apply({G}, s, 'on'); return [...s]") == ["a:m"]
-
-
-@pytest.mark.parametrize("state,label", [
-    ("on", "Not available Wednesdays"),
-    ("off", "Available Wednesdays"),
-    ("mixed", "Not available Wednesdays"),
-])
-def test_column_labels(state, label):
-    assert js(f"return M.label(M.colSubject(3), {json.dumps(state)})") == label
-
-
-def test_row_labels():
-    assert js("return M.label(M.rowSubject('2026-03-01'), 'on')") == "Not available week of Mar 1"
-    assert js("return M.label(M.rowSubject('2026-03-01'), 'off')") == "Available week of Mar 1"
-    assert js("return M.label(M.rowSubject('2026-03-01'), 'mixed')") == "Not available week of Mar 1"
-
-
-def test_full_cycle_from_mixed():
-    # mixed -> click -> all off -> click -> all on -> click -> all off
-    r = js(f"""let s=new Set(['a:m']); const out=[];
-      for (let i=0;i<3;i++) {{ s=M.apply({G}, s, M.clickAction(M.groupState({G}, s)));
-        out.push(M.groupState({G}, s)); }} return out""")
-    assert r == ["off", "on", "off"]
+@pytest.mark.parametrize("mode,label", [("fill", "Available Wednesdays"), ("clear", "Not available Wednesdays")])
+def test_labels_name_the_action(mode, label):
+    assert js(f"return M.label(M.colSubject(3), {json.dumps(mode)})") == label
+    assert js(f"return M.label(M.rowSubject('2026-03-01'), {json.dumps(mode)})").endswith("week of Mar 1")
 
 
 # ── calendar geometry ─────────────────────────────────────────────────────
@@ -102,7 +69,7 @@ def test_weeks_are_the_minimum_sunday_first():
 
 
 def test_groups_hold_only_in_window_slots():
-    g = cal("const w=M.weeks('2026-10-14','2026-10-16'); return M.groups(w,'2026-10-14','2026-10-16')")
+    g = cal("const w=M.weeks('2026-10-14','2026-10-16'); return M.groups(w,'2026-10-14','2026-10-16',true)")
     assert g["cols"][3] == ["2026-10-14:m", "2026-10-14:n"]   # the one in-window Wednesday
     assert g["cols"][0] == []
     assert sum(len(r) for r in g["rows"]) == 6

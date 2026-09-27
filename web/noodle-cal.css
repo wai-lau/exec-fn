@@ -116,7 +116,22 @@
   line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 1);
 }
-.nd-grid [data-state="none"] > .nd-tg { visibility: hidden; }
+
+/* a group with nothing it could change (out of window, or nothing the host
+   offered) shows no button */
+.nd-grid .nd-tg:disabled { visibility: hidden; }
+
+/* the corner: flips every button above between pencil and eraser. Filled, so
+   it reads as the switch rather than as one more group button. */
+.nd-grid .nd-mode {
+  padding: 0 1em 0 0.35em;
+  border-radius: var(--radius-1);
+  background: hsl(var(--green-hsl) / 0.8);
+  color: hsl(var(--bg-hsl) / 1);
+  font-size: var(--fs-2xs);
+  line-height: var(--lh-snug);
+}
+.nd-corner { justify-content: flex-end; padding-bottom: var(--space-2); }
 
 /* ── a day: its number, its dots, two halves split at 30deg ─────────────── */
 .nd-d {
@@ -146,6 +161,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 .nd-d.eow { border-right: none; }
+
+/* Unsplit (the default): a day is ONE slot, so no diagonal -- the whole cell
+   takes the day's fill (--top and --bot are always equal here), and each
+   voter gets one dot a day, not two. */
+.nd-grid.single .nd-d { background-image: linear-gradient(var(--top), var(--top)); }
+.nd-grid.single .nd-dots { grid-template-rows: 4px; }
 
 .nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
 .nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }

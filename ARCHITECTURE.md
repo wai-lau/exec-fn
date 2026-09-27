@@ -3554,6 +3554,17 @@ key. **Every ask starts from a blank calendar** -- the answer replaces the grid
 outright and the text stays in the box, so a question is tweaked and re-asked
 rather than stacked on the last answer.
 
+**Host actions** (`noodle/host.py`, signed over `sig.canonical_action`, whose
+`kind` field keeps a vote and an action from ever being swapped):
+`POST /settings` sets the dates and whether days are SPLIT into midday + night
+-- on a fresh poll the first to save it claims the host role -- and
+`POST /remove` deletes a guest and their vote (never the host). New polls are
+created with a title only and start UNSPLIT: one whole-day slot per day, code
+`d`; splitting turns a picked day into both halves, unsplitting keeps a day only
+where both halves were picked. Polls from before this carry no `halves` key
+and read as split. The row/column buttons are a MODE (pencil = fill, eraser =
+clear) flipped by the calendar's top-left corner, never a reading of the cells.
+
 **The host.** Whoever commits FIRST hosts the poll (`votes.host_of`: vote order
 0), and the halves they pick are the only ones anyone else may pick. Enforced on
 the server (a guest vote with an un-offered slot is a 400, and Ask's answer is

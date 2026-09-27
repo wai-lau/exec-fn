@@ -102,6 +102,8 @@ def ask(slug: str, body: dict, ip: str) -> dict:
         poll = store.load(slug)
     except KeyError:
         raise AskError(404, "no such poll") from None
+    if not poll.get("start"):
+        raise AskError(409, "the host has not set the dates yet")
 
     _take(slug, pub, ip, time.monotonic())
     try:
@@ -113,6 +115,9 @@ def ask(slug: str, body: dict, ip: str) -> dict:
     out = out if isinstance(out, dict) else {}
     picked, dropped = rules.apply(out.get("rules"),
                                   slots.window_dates(poll["start"], poll["end"]))
+    if not poll.get("halves", True):
+        # an unsplit poll: a day is picked if the words put either half on it
+        picked = sorted({f"{s[:10]}:d" for s in picked})
     # anyone but the host can only have what the host offered
     host = votes.host_of(poll)
     if host and host[1]["pub"] != pub:

@@ -20,6 +20,9 @@ from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from noodle_helpers import make_poll  # noqa: E402
+
 API = Path(__file__).resolve().parent.parent / "api"
 sys.path.insert(0, str(API))
 
@@ -131,8 +134,8 @@ def test_storage_touches_only_its_own_dir(noodle_env, monkeypatch):
     monkeypatch.setattr(llm, "call", lambda system, user: {"reading": "x", "rules": [
         {"action": "add", "blocks": ["night"], "where": {"date": ["2026-10-01"]}}]})
 
-    poll = store.create("audit", "2026-10-01", "2026-10-07", "2026-09-27T00:00:00")
-    slug, key = poll["slug"], Ed25519PrivateKey.generate()
+    slug = make_poll(store, "audit", "2026-10-01", "2026-10-07")
+    key = Ed25519PrivateKey.generate()
     now = votes.now_ms()
     body = _sign(key, slug, "Ada", ["2026-10-01:m"], now)
     votes.submit(slug, body)

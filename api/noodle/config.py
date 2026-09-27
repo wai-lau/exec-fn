@@ -20,6 +20,9 @@ NAME_MAX = 40
 MAX_WINDOW_DAYS = 120
 BLOCKS = ("midday", "night")
 BLOCK_CODES = {"midday": "m", "night": "n"}
+# A poll is either SPLIT (midday + night per day, codes m/n) or not (one slot
+# per day, code d -- the default for new polls; the host can split it).
+DAY_CODE = "d"
 
 # ── request bodies (bytes) ───────────────────────────────────────────────────
 BODY_MAX_CREATE = 1024
