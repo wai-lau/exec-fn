@@ -66,8 +66,8 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["cc", "rd", "hq", "debug", "security", "graph", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "recruiter"]
-_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "cc": "/cc", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "recruiter": "/recruiter"}
+_NAV_LINKS = ["cc", "rd", "hq", "debug", "security", "graph", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "noodle", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "cc": "/cc", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "noodle": "/noodle", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["security", "graph", "nightfall", "mtg", "tarot", "hosaka", "printer", "ui", "recruiter"]
 
@@ -98,6 +98,7 @@ _NAV_ICONS = {
     "tarot":       _nav_icon("watchman", "tarot"),
     "hosaka":      _nav_icon("radar", "hosaka"),
     "printer":     _nav_icon("printer", "printer"),
+    "noodle":      _nav_icon("buzzbomb", "noodle"),
     "recruiter":   _nav_icon("data-file", "recruiter"),
     "cc":          _nav_icon("seeker", "cc"),
 }
@@ -112,7 +113,7 @@ _NAV_ICONS = {
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
     "debug": "DBG", "security": "BOT", "graph": "GPH", "cc": "✦", "ui": "UIX",
-    "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "recruiter": "CV",
+    "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "noodle": "NDL", "recruiter": "CV",
 }
 
 
