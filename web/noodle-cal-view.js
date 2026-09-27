@@ -14,11 +14,10 @@ var NDC_MORE = 8;     // weeks appended each time the sentinel shows
 var NDC_MAX = 160;    // ~3 years: past this, stop (a slot that far out is refused anyway)
 
 // Each month's big blurred number sits BEHIND ITS OWN WEEKS and scrolls with
-// them -- unlike /rd's single fixed watermark -- with the 4-digit year under
-// it whenever that is not this year. A week belongs to the month of its
+// them -- unlike /rd's single fixed watermark. A week belongs to the month of its
 // Wednesday (the row's data-month), so a month is a run of rows.
 function ndcPaintMarks(grid) {
-  var thisYear = String(new Date().getFullYear()), runs = [];
+  var runs = [];
   grid.querySelectorAll('.nd-mmark').forEach(function (m) { m.remove(); });
   grid.querySelectorAll('.nd-wk').forEach(function (w) {
     var last = runs[runs.length - 1], key = w.dataset.year + w.dataset.month;
@@ -37,8 +36,7 @@ function ndcPaintMarks(grid) {
     m.setAttribute('aria-hidden', 'true');
     m.style.top = r.start.offsetTop + 'px';
     m.style.height = (r.end.offsetTop + r.end.offsetHeight - r.start.offsetTop) + 'px';
-    // digits from our own row markup, never user text
-    m.innerHTML = r.start.dataset.month + (y !== thisYear ? '<small>' + y + '</small>' : '');
+    m.textContent = r.start.dataset.month;
     grid.appendChild(m);
   });
 }
@@ -111,6 +109,31 @@ function ndcSlotAt(cell, e, halves) {
   var r = cell.getBoundingClientRect();
   return cell.dataset.day + ':' + (halves
     ? window.NoodleCalParts.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight) : 'd');
+}
+
+// Load more weeks whenever the bottom is near. An IntersectionObserver alone
+// stalls: it fires only when the sentinel's visibility CHANGES, so if a batch
+// lands and the sentinel is still in view (a fast fling, a tall screen) it
+// never fires again. The scroll check loads however the bottom was reached.
+// The window shows at most NDC_VISIBLE weeks (plus the frozen header): the
+// cap is MEASURED -- a row's height follows the font and the width -- and
+// re-measured on resize, since a fixed height would clip a row mid-way.
+var NDC_VISIBLE = 6;
+
+function ndcCapHeight(scroller, grid) {
+  var head = grid.querySelector('.nd-hd'), row = grid.querySelector('.nd-wk');
+  if (!head || !row) return;
+  scroller.style.maxHeight = (head.offsetHeight + NDC_VISIBLE * row.offsetHeight) + 'px';
+}
+
+function ndcWireLoader(scroller, sentinel, more) {
+  var nearEnd = function () {
+    if (scroller.scrollTop + scroller.clientHeight > scroller.scrollHeight - 300) more();
+  };
+  scroller.addEventListener('scroll', nearEnd, { passive: true });
+  new IntersectionObserver(function (entries) {
+    if (entries[0].isIntersecting) nearEnd();
+  }, { root: scroller, rootMargin: '0px 0px 300px 0px' }).observe(sentinel);
 }
 
 function NoodleCal(wrap, opts) {
@@ -193,11 +216,12 @@ function NoodleCal(wrap, opts) {
   grid.addEventListener('click', onTap);
   addWeeks(endless ? NDC_FIRST : NDC_MAX);
   if (endless) {
-    new IntersectionObserver(function (entries) {
-      if (entries[0].isIntersecting && weeks.length < NDC_MAX) addWeeks(NDC_MORE);
-    }, { root: scroller, rootMargin: '0px 0px 300px 0px' }).observe(wrap.querySelector('.nd-more-weeks'));
+    ndcWireLoader(scroller, wrap.querySelector('.nd-more-weeks'), function () {
+      if (weeks.length < NDC_MAX) addWeeks(NDC_MORE);
+    });
   }
-  new ResizeObserver(function () { paintDots(); ndcPaintMonths(grid); }).observe(scroller);
+  ndcCapHeight(scroller, grid);
+  new ResizeObserver(function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid); }).observe(scroller);
 
   return {
     scroller: scroller,

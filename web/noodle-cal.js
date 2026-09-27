@@ -83,6 +83,8 @@ function ndRowHtml(wk, r, bound, today) {
     var cls = ['nd-d'];
     if (!ndOpen(iso, bound)) cls.push('out');
     if (c === 0 || c === 6) cls.push('we');
+    // /rd's computed holidays (web/qc-holidays.js, a browser script)
+    if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(ndDate(iso))) cls.push('hol');
     if (c === 6) cls.push('eow');
     if (iso === today) cls.push('today');
     // (month boundaries are drawn over the grid as ONE path each --

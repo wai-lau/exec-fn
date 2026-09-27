@@ -299,10 +299,12 @@ function ndvEnsureCal(force) {
   if (key === NDV.calKey && !force) return;
   var keep = NDV.cal ? NDV.cal.getSel() : null;
   var scroll = NDV.cal ? NDV.cal.scroller.scrollTop : 0;
+  // days the crop now leaves out are deselected, as the server drops them
+  if (keep && c) keep = new Set(Array.from(keep).filter(function (s) { return c.from <= s.slice(0, 10) && s.slice(0, 10) <= c.to; }));
   NDV.calKey = key;
   NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: halves, crop: c, endless: host,
     onChange: ndvSaveDraft, onRows: function () { if (window.ndxSync) window.ndxSync(); } });
-  if (keep) NDV.cal.setSel(keep); else ndvRestoreDraft();
+  if (keep) { NDV.cal.setSel(keep); ndvSaveDraft(); } else ndvRestoreDraft();
   // grow back to where the reader was (a rebuild starts with a few weeks)
   for (var i = 0; i < 20 && NDV.cal.scroller.scrollHeight < scroll + NDV.cal.scroller.clientHeight; i++) NDV.cal.more();
   NDV.cal.scroller.scrollTop = scroll;
