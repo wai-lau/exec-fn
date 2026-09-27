@@ -3494,8 +3494,8 @@ one now derives the new. Until Commit **nothing is sent or remembered**:
 `ndrAs` makes the page answer as the old key (binding, host role, Ask's `pub`),
 `ndvSaveIdentity` skips, so a reload brings the old passphrase back. Commit
 sends the rekey at `ts`, then the split and vote under the new key at `ts+1`...;
-the crop and remove refuse mid-change (they would be signed by a key the server
-does not know yet). Mid-change the button becomes a cross (cancel: restores the
+remove refuses mid-change (it would be signed by a key the server does not know
+yet); a crop is local until Commit, so it needs no key at all. Mid-change the button becomes a cross (cancel: restores the
 old passphrase untouched) with a check beside it that commits exactly as Commit
 does (`ndvSubmit`), greyed whenever Commit is. Both glyphs (U+2717, U+2713) were
 added to `noodle-seal.woff2`, re-cut from the Medium Mayukai TTF with
@@ -3591,7 +3591,14 @@ every vote, and on a fresh poll setting it claims the host role. There is no
 crop button: the host's calendar is always ENDLESS, with a thin orange line on
 the top edge of the first week and the bottom edge of the last, each crossed by
 a two-stroke grip (the only part that catches a pointer, so no tap on a day is
-swallowed). Drop a line and it saves; days outside are greyed. With no crop the
+swallowed). Drop a line and the calendar is cropped HERE, marked unsaved
+(`NDV.pendingCrop`, read through `ndhCrop()`); Commit sends it with the split in
+one signed `/settings` before the vote (`ndhCommitSettings`) -- so cropping needs
+no passphrase, only Commit does. Days outside are greyed, and the cropped-off
+region is SHADED (`.nd-shade`, `backdrop-filter: grayscale(1) brightness(0.55)`)
+so a month watermark the line cuts reads half green, half grey; cheap because
+nothing under it animates. Headless WebKit does not composite backdrop-filter
+into screenshots -- verify the shade in Chromium. With no crop the
 bottom line waits under week 12 (never following the loaded end: a line that
 runs away as weeks load cannot be grabbed). Guests see no lines, and their
 calendar is just the host's crop. Crop lines sit on the centre of the 5px gap

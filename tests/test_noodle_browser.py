@@ -326,9 +326,10 @@ def crop_slug(base_url):
         return c.post("/api/noodle-polls", headers=auth, json={"title": "__smoke_crop__"}).json()["slug"]
 
 
-def test_the_host_drags_the_crop_lines_and_each_drop_saves(browser, base_url, crop_slug):
-    """The host always has two lines on the calendar; dropping one saves the
-    crop for everyone, and a line can be dragged past the current edge."""
+def test_the_host_drags_the_crop_lines_and_commit_saves_them(browser, base_url, crop_slug):
+    """The host always has two lines on the calendar; a drop crops the page
+    locally and Commit saves it for everyone. A line can
+    be dragged past the current edge, and the cropped-off weeks are shaded."""
     page = browser.new_page(viewport={"width": 430, "height": 932})
 
     def drag(which, dy):
@@ -342,7 +343,11 @@ def test_the_host_drags_the_crop_lines_and_each_drop_saves(browser, base_url, cr
         page.mouse.down()
         page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2 + dy, steps=8)
         page.mouse.up()
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(300)
+        assert page.inner_text("#nd-submit") == "Commit*", "a crop is unsaved until Commit"
+        page.click("#nd-submit")
+        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+                               timeout=10000)
         return page.evaluate(f"fetch('/api/noodle/{crop_slug}').then(r => r.json())")["crop"]
 
     try:
@@ -353,6 +358,7 @@ def test_the_host_drags_the_crop_lines_and_each_drop_saves(browser, base_url, cr
         assert page.locator(".nd-crop-h .grip.out").count() == 2, "each line shows a grip"
         first = drag("bot", -250)
         assert first and first["from"] <= first["to"]
+        assert page.locator(".nd-shade.bot").is_visible(), "the weeks below the crop are shaded"
         wider = drag("bot", 300)
         assert wider["to"] > first["to"], (first, wider)
         assert page.evaluate("window.getSelection().toString()") == "", "a drag must not select text"

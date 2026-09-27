@@ -4,10 +4,10 @@
 // a vote, over a canonical object that carries a `kind` field (noodle/sig.py
 // canonical_action) so a vote can never be replayed as an action or back.
 //
-// The SPLIT is a checkbox under the calendar: ticking it re-renders the
-// calendar at once (the picks converted the way the server converts them),
+// The SPLIT (a checkbox under the calendar) and the CROP (noodle-crop.js) are
+// both local until Commit: changing either re-renders the calendar at once,
 // marks the page unsaved, and is sent with Commit -- settings first, then the
-// vote (ndvSubmit).
+// vote (ndvSubmit). Only Commit needs the right passphrase.
 
 function ndh$(id) { return document.getElementById(id); }
 
@@ -21,6 +21,12 @@ function ndhRole(pub) {
 // The split this page is showing: the host's unsaved choice, else the poll's.
 function ndhHalves() {
   return NDV.pendingHalves != null ? NDV.pendingHalves : !!(NDV.poll && NDV.poll.halves);
+}
+
+// The crop this page is showing: the host's unsaved drag, else the poll's.
+// undefined = nothing pending (null would mean "pending: no crop").
+function ndhCrop() {
+  return NDV.pendingCrop !== undefined ? NDV.pendingCrop : (NDV.poll && NDV.poll.crop) || null;
 }
 
 function ndhSync(pub) {
@@ -68,12 +74,16 @@ async function ndhSend(path, fields, ts) {
   return ndvPost(path, body);
 }
 
-// The pending split, sent as part of Commit. Keeps the crop as it is.
-async function ndhCommitSplit(ts) {
-  if (NDV.pendingHalves == null) return { ok: true };
-  var c = NDV.poll && NDV.poll.crop;
-  return ndhSend('/settings', { kind: 'settings', halves: NDV.pendingHalves,
+// The pending split and crop, sent together as part of Commit -- so neither
+// needs the passphrase until then. -> {ok, sent}; sent = the next request
+// needs a newer ts.
+async function ndhCommitSettings(ts) {
+  if (NDV.pendingHalves == null && NDV.pendingCrop === undefined) return { ok: true };
+  var c = ndhCrop();
+  var res = await ndhSend('/settings', { kind: 'settings', halves: ndhHalves(),
     from: c ? c.from : null, to: c ? c.to : null }, ts);
+  if (res.ok) { NDV.pendingHalves = null; NDV.pendingCrop = undefined; res.sent = true; }
+  return res;
 }
 
 async function ndhRemove(e) {
@@ -95,4 +105,5 @@ async function ndhRemove(e) {
   window.ndhSync = ndhSync;
   window.ndhRole = ndhRole;
   window.ndhHalves = ndhHalves;
+  window.ndhCrop = ndhCrop;
 })();
