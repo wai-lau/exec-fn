@@ -10,3 +10,6 @@ httpx
 #   .venv/bin/playwright install webkit
 #   .venv/bin/pytest tests/test_tarot_progression.py -q
 playwright
+cryptography
+fonttools
+brotli

@@ -130,3 +130,24 @@ def browser(_playwright):
         pytest.skip(f"WebKit not installed (run: .venv/bin/playwright install webkit): {e}")
     yield b
     b.close()
+
+
+# ── a live Noodle poll for the smoke + browser tests ─────────────────────────
+# ONE reusable poll titled __smoke__, created on first need and found again
+# after that, so repeated runs don't pile test polls into the owner's list.
+NOODLE_SMOKE_TITLE = "__smoke__"
+
+
+@pytest.fixture(scope="session")
+def noodle_slug(base_url) -> str:
+    if not API_KEY:
+        pytest.skip("API_KEY not set (env or .env) -- cannot create a Noodle poll")
+    auth = {"Authorization": f"Bearer {API_KEY}"}
+    with httpx.Client(base_url=base_url, timeout=15.0) as c:
+        for p in c.get("/api/noodle-polls", headers=auth).json()["polls"]:
+            if p["title"] == NOODLE_SMOKE_TITLE:
+                return p["slug"]
+        r = c.post("/api/noodle-polls", headers=auth,
+                   json={"title": NOODLE_SMOKE_TITLE, "start": "2026-10-01", "end": "2026-11-15"})
+        r.raise_for_status()
+        return r.json()["slug"]

@@ -147,6 +147,7 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | `/tarot` | Tarot reading (guest auth), five-phase flow (§ *Tarot reading flow*), state in `localStorage`, no server persistence. The first reader turn is pre-generated per hour (`web/tarot-opening.js`, `api/tarot/openings*.py`, `data/tarot_openings/`); `/api/tarot/warm` loads models meanwhile. Narration `nicole` comes from the home box — the one voice that can go offline, and the page says so. Chat holds only reader/querent prose; sys notes go to the `#tarot-status` bar (`isHiddenLine()`). Mic via `tarot-mic.js`. `web/tarot-ambient.m4a` is gitignored and **the server holds the only copy**; set its level by measuring dBFS. **ARCHITECTURE.md §14**. |
 | `/zombo` | **SECRET + guest-gated** — unlisted is not a tier (still in `_GUEST_NEXT_ALLOWED`, the 401 prefix tuple, `GUEST_PAGES`). The real 1999 Flash intro via Ruffle, **hotlinked** from welcometozombo.com, never vendored (`web/zombo-flash.js`, `api/routes_zombo.py`). Traps: Ruffle needs `base`; hand over on `loadedmetadata`, never `load()`; colour/jitter by class from a running index, never `:nth-child`. The newsletter link is rewritten in the loader's bytes at equal length. **ARCHITECTURE.md §19**. |
 | `/recruiter` | **Public.** Static résumé (`recruiter_page()`, `templates/recruiter.html`, `web/recruiter.css`), light theme on page-local `--cv-*` tokens, no nav. Dark toggle (`#cv-theme`) → terminal look with the full 5-layer CRT stack and the summary type-out (dark only). **ARCHITECTURE.md §20g**. |
+| `/noodle/<slug>` | **Public by unguessable link; `/noodle` (create/list) owner-only.** Standalone Doodle-style poll, package `api/noodle/`, state `data/noodle/polls/`. **Imports no other app module** (pinned by `tests/test_noodle_isolation.py`); the owner tier comes from `routers.py` mounting `owner_router` on `protected`. Passphrase -> Argon2id (worker) -> Ed25519, signed votes; every non-ASCII glyph single-width via `web/fonts/noodle-seal.woff2`. Owner key reset: `docker compose exec api python -m noodle.reset <slug> "<name>"`. **ARCHITECTURE.md §21**. |
 
 ### API endpoints
 
@@ -215,6 +216,10 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | GET | `/printer/frame` | Guest-or-full. ONE camera JPEG newer than `?after=<seq>` (long-poll ≤5s; 204 = ask again; seq in `X-Frame-Seq`) off the shared hub's guest sample (~10fps) — the guest view's pull loop, which cannot queue and so cannot lag. Same `public`-router + in-handler tier as `/printer/video`. |
 | GET | `/printer/video` | Guest-or-full MJPEG relay (the owner SPA's `<img>`), on the `public` router with an in-handler tier check. |
 | WS | `/ws/printer` | SDCP control-socket relay to the printer's `:3030/websocket` — the ONLY browser→printer channel, and it stays owner-only. Public route, but closes (1008) unless the FULL `session` cookie matches (no guest tier — it drives the machine); 1011 when the printer/tunnel is down (the SPA retries). Printer→browser text frames get their `VideoUrl` rewritten to `/printer/video`. |
+| GET | `/api/noodle/{slug}` | Public. Poll window + voters (name, pub, slots); `?pub=` adds `ask_remaining`. **ARCHITECTURE.md §21**. |
+| POST | `/api/noodle/{slug}/vote` | Public. Signed `{name, pub, slots, ts, sig}`; 403 wrong key/bad sig, 409 replay, 413 over 8KB. |
+| POST | `/api/noodle/{slug}/ask` | Public. Haiku text -> slots, clamped to the window, never submits; per-poll/voter/IP caps in `noodle/config.py`. |
+| GET/POST | `/api/noodle-polls` | **Owner-only.** List / create polls (`{title, start, end}`). |
 
 ### Exec chat tools (bubble overlay)
 

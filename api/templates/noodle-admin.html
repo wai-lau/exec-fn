@@ -1,0 +1,15 @@
+<main class="doc-card nd-card" id="noodle-admin">
+  <h1 class="nd-title">noodle</h1>
+  <form id="nd-create" class="nd-create">
+    <label class="nd-field"><span>title</span><input name="title" required maxlength="80"></label>
+    <label class="nd-field"><span>from</span><input name="start" type="date" required></label>
+    <label class="nd-field"><span>to</span><input name="end" type="date" required></label>
+    <button type="submit" class="nd-submit">create poll</button>
+    <p class="nd-dim">window up to {{MAX_DAYS}} days. the link is the only key to vote, so share it only with the people it is for.</p>
+    <p id="nd-msg" class="nd-status"></p>
+  </form>
+  <h2 class="doc-h2">polls</h2>
+  <ul id="nd-polls" class="nd-polls"></ul>
+</main>
+
+<script src="/noodle-admin.js?v=1"></script>

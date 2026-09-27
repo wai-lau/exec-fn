@@ -27,6 +27,8 @@ Nine Mermaid views, generated from source (`api/*.py`, `docker-compose.yml`,
 6. [Printer](#6-printer-elegoo-centauri-carbon--two-tier-reverse-proxy) — the
    two-tier reverse proxy
 7. [`/cc`](#7-cc--claude-code-in-the-browser) — the sidecar topology
+8. [Noodle](#21-noodle--an-isolated-scheduling-poll) — the isolated poll and
+   where the passphrase stops
 
 ---
 
@@ -3368,3 +3370,142 @@ PATCH `/api/rd` — Update rd.json (source query param: rd/Exec/hq/dirs). Atomic
 
 **The card dialog NEVER scrolls itself** (`web/card-dialog.js`, shared by rd/hq/dirs): `.cd-box` is a flex column with `overflow:hidden`, `.cd-body` is the only scroller (`flex:1; min-height:0`), and `.cd-actions` (exile/done/chat/save) is a pinned footer — they used to be the last thing inside one big scrolling box, so a tall card (recurring + notes + a 5-step breakdown) pushed them out of reach. Three things keep the footer on screen and each was a separate bug: the overlay is sized to **`dvh`, not `vh`** (iOS resolves `vh` against the LARGE viewport, so a `90vh` box centred in it drops its own bottom below the visible area — invisible to headless WebKit, which has no browser chrome at all; check **430x700** as well as 430x932); the overlay pads by `var(--nav-h, 56px)` because the nav paints at `--z-top` over the overlay's `z-index:50`; and `body:has(.cd-ov.open) #exec-bubble` is hidden, since at `--z-bubble` it floats over the scrim and parks on **save**. **Every scrollbar inside the dialog is SILVER** (`--gray-hsl / 0.45`, on `.cd-body`, the notes `textarea` and card-graph's `.cg-scroll`) — the dialog is tinted to the CARD's colour (`.cd-dark`/`.cd-bright` + `currentColor`) and the cards are every colour, so a `currentColor` thumb changed hue per card and the unstyled `textarea` fell through to chrome.css's phosphor-green page default (green bar on an orange card). Firefox needs `.cd-box, .cd-box *`, not inheritance — the global rule sets `scrollbar-color` on `*` directly — and stays inside the same `@supports not selector(::-webkit-scrollbar)` guard chrome.css uses, or Chrome 121+ lets the standard prop override the webkit thumb. The dialog's CSS lives in a JS template literal — **no backticks in its comments**.
 
+
+---
+## 21. Noodle — an isolated scheduling poll
+
+A Doodle-style poll at `/noodle/<slug>`: slots are `(date, midday|night)`, no
+clock times. **Fully standalone**: the `api/noodle/` package imports stdlib,
+fastapi, pydantic, `anthropic` and `cryptography` only, and has its own state
+dir, its own HTML shell (no nav, no Exec bubble, no CRT, nothing voiced) and its
+own routes. It links `/chrome.css` for the palette + scale tokens only.
+
+```mermaid
+flowchart LR
+  subgraph app["rest of the app (never imported by Noodle)"]
+    routers["routers.py<br/>(composition root)"]
+    auth["auth.py"]
+    planner["helpers / chat / nudge / morning / tts ..."]
+  end
+  routers -->|"include_router on public"| r["noodle.routes.router"]
+  routers -->|"include_router on protected"| o["noodle.routes.owner_router"]
+  routers --- auth
+
+  subgraph noodle["api/noodle/ (isolated)"]
+    r --> votes["votes.py<br/>bind + verify + replay"]
+    r --> ask["ask.py<br/>budgets"]
+    r --> pages["pages.py<br/>own shell"]
+    o --> store
+    votes --> sig["sig.py<br/>Ed25519 verify"]
+    votes --> slots["slots.py"]
+    votes --> store["store.py<br/>data/noodle/polls/*.json"]
+    ask --> llm["llm.py<br/>Haiku, forced tool"]
+    ask --> store
+    reset["reset.py<br/>owner key reset (CLI)"] --> votes
+  end
+
+  subgraph browser["browser (passphrase never leaves)"]
+    worker["noodle-kdf-worker.js<br/>Argon2id -> Ed25519 seed<br/>non-extractable key"]
+    page["noodle-vote.js / noodle-cal*.js / noodle-seal.js"]
+    page -->|"pass, salt"| worker
+    worker -->|"pub, signature"| page
+  end
+  page -->|"{name, pub, slots, ts, sig}"| r
+```
+
+**Access.** Poll pages + JSON are on `public`: holding the link
+(`secrets.token_urlsafe(16)`, 22 chars) is the only access control for voting,
+and the slug is validated to exactly that shape before it becomes a path. Creating
+and listing polls (`/noodle`, `/api/noodle-polls`) is owner-only **because
+`routers.py` mounts `owner_router` on `protected`** — Noodle itself carries no
+auth and imports none; `tests/test_admin_only.py` enumerates those routes like
+any other. Bodies are capped (`BODY_MAX_*`, checked on the declared length and
+on the bytes read). Pages send `noindex` + `Referrer-Policy: no-referrer`, so a
+slug does not leak through a Referer header.
+
+**Identity: passphrase -> key -> seal.** `web/noodle-kdf.js` debounces 1s after
+typing stops, then the worker runs Argon2id (vendored hash-wasm 4.12.0,
+`web/vendor/`, MIT — vendored rather than CDN because it sits between the
+passphrase and the key). Salt = `SHA-256(slug + NUL + normalized name)[:16]`, so
+the same name + passphrase give the same key on any device and a different key
+per poll. Only one derive ever runs: a change mid-derive TERMINATES the worker
+(Argon2 cannot be interrupted) and a generation counter drops stale results. The
+32-byte output is an Ed25519 seed, wrapped in the fixed RFC 8410 PKCS#8 prefix
+because WebCrypto has no raw-seed import; the key kept for signing is
+**non-extractable**, and an extractable copy exists only long enough to read the
+public half out of its JWK. Params live in `noodle/config.py` (`KDF_*`) and
+reach the page as `data-kdf`, so page and config cannot disagree. m=64MiB t=2
+p=1 measured ~360ms in node on the droplet and ~560-680ms in headless WebKit on
+it; retune `KDF_T` after measuring on a phone.
+
+**Name normalization must match byte for byte** in `slots.normalize_name` and
+`noodleNormName` (NFKC, Cc/Cf rejected, whitespace collapsed, lowercase), since
+the browser salts with it and the server binds by it.
+
+**Votes.** First submission for `(poll, normalized name)` binds that name to the
+public key; every later one must verify under the same key. The signed bytes are
+`json.dumps({name, poll, slots, ts}, sort_keys, compact, ensure_ascii=False)`,
+which noodle-vote.js reproduces by writing the keys in sorted order into
+`JSON.stringify`. `ts` must be within `TS_SKEW_MS` (120s) of server time AND
+strictly newer than the last accepted one — so a replay inside the window still
+fails. The page reads the server clock from the `Date` header, so a phone whose
+clock is minutes off still signs a fresh `ts`. Stateless checks (shape, window,
+signature, skew) run before the lock, and a rejected vote never writes.
+Recovery is owner-only, server-side:
+`sudo docker compose exec api python -m noodle.reset <slug> "<name>"` blanks the
+key and the next signer re-binds it (slots and dot column kept).
+
+**Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
+(`select_slots`, `block` an enum), `max_tokens` 400. The output is clamped to
+the window and anything malformed is DISCARDED (`slots.clamp_slots`); the result
+only fills the grid for review, never submits. Budgets are spent BEFORE the call
+under the store lock: `ASK_POLL_CAP` 60 per poll, `ASK_VOTER_CAP` 6 per public
+key, `ASK_IP_CAP` 10/hour per IP (in memory), input capped at 280 chars (refused
+without spending). A spent budget disables the input with a note; the grid
+keeps working. The prompt lists every window date as `YYYY-MM-DD Weekday the N`
+— without the day-of-month the model rounded "except the 23rd" onto a nearby
+weekday. (It still reads "every Thursday except the 23rd" as that week's
+Thursday; the voter reviews the grid before anything is signed.)
+
+**The calendar** (`noodle-cal.js` geometry + `noodle-cal-view.js` controller,
+styles `noodle-cal.css`) is ONE continuous vertical scroller of Sunday-first
+weeks spanning whole months, in /rd's visual language (5px rules, bold padded
+dates, cyan weekends, blurred month watermark that follows the row at the
+scroller's middle). Each day cell holds only its number and dots; its background
+is split by a 30deg `/` (a 330deg hard-stop gradient), top-left = midday,
+bottom-right = night, and a tap is hit-tested against the SAME line (`ndHalf`).
+Month boundaries are per-cell `.mr`/`.mb` rules, so the line steps around a month
+that ends mid-week. Out-of-window days stay drawn, greyed and inert. **Dots: every
+other voter owns one fixed column** (vote order), top dot midday, bottom dot
+night, a gap where not free — one person reads as one vertical line through the
+grid; overflow gets /rd's hollow ring.
+
+**Toggles** (`noodle-toggle.js`, pure): a weekday column or week row covers both
+halves of its in-window days. All on -> off, anything else -> on. The label names
+the action ("Not available Wednesdays" / "Available week of Mar 1", "+ (except)"
+when mixed), and only a mixed group shows the explicit ✓/✗. The cells show
+`Wed` / a state mark; the full sentence is the `aria-label` and the caption line
+under the grid.
+
+**The seal** (`noodle-seal.js`, the ONE implementation — vote and results pages
+both render seals from pubkeys client-side): `SHA-256(pub)`; bytes 0-15 pick the
+16 border cells from the 32 ASCII punctuation marks (256/32, no modulo bias),
+byte 16 an eye pair (16), byte 17 a mouth (8). Rendered 5x5 with spaces. **Every
+non-ASCII glyph Noodle draws is single-width**: the site's woff2 is a 126-glyph
+ASCII subset with none of them, so `web/fonts/noodle-seal.woff2` (4.7KB, cut from
+the full Mayukai TTF) carries exactly the extras under the family
+`'Noodle Glyphs'` with a `unicode-range`. `tests/test_noodle_glyphs.py` scans
+every Noodle source (literals and `\uXXXX` escapes) and fails on a glyph missing
+from that font, one whose advance is not `M`'s, any emoji or variation selector,
+or a `unicode-range` that drifts from the font — then measures the RENDERED width
+of each in WebKit.
+
+**Tests.** `test_noodle_isolation.py` (AST import graph against the DERIVED set
+of app modules; a runtime audit wrapping open/replace/mkdir/scandir/mkstemp over
+a full create->vote->edit->ask->reset cycle), `test_noodle_votes.py` (unsigned,
+wrong key, tampered, replayed, skewed, out-of-window), `test_noodle_ask.py`
+(every cap, the clamp, schema discard; model faked), `test_noodle_toggle.py`
+(toggle rules + the 30deg hit test, through node), `test_noodle_browser.py`
+(WebKit derives, signs, server verifies — as a fixed voter on the shared
+`__smoke__` poll so runs edit rather than accumulate), and smoke rows in
+`test_smoke.py`.

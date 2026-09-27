@@ -31,6 +31,10 @@ httpx
 
 anthropic
 mcp
+
+# Imported by name in noodle/sig.py (Ed25519 vote signatures). Already in the
+# lock as a transitive of the google auth stack; declared so it cannot vanish.
+cryptography
 discord.py
 
 google-api-python-client

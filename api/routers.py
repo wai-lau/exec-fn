@@ -10,6 +10,8 @@ from routes_nightfall import game_router as nightfall_game
 from routes_chat import router as chat_router
 from mtg.routes import router as mtg_router
 from tarot.routes import router as tarot_router
+from noodle.routes import router as noodle_router
+from noodle.routes import owner_router as noodle_owner_router
 
 public = APIRouter()
 protected = APIRouter(dependencies=[Depends(require_auth)])
@@ -25,3 +27,8 @@ guest_protected.include_router(nightfall_game)
 protected.include_router(chat_router)
 guest_protected.include_router(mtg_router)
 guest_protected.include_router(tarot_router)
+# Noodle is standalone and carries no auth of its own: its poll pages are open
+# to anyone holding the unguessable link, and creating a poll is owner-only
+# because THIS file mounts that router on `protected`. Noodle never imports auth.
+public.include_router(noodle_router)
+protected.include_router(noodle_owner_router)

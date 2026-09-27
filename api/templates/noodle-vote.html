@@ -1,0 +1,46 @@
+<main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-start="{{START}}" data-end="{{END}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=1">
+  <h1 class="nd-title">{{TITLE}}</h1>
+
+  <section class="nd-id">
+    <div class="nd-fields">
+      <label class="nd-field"><span>name</span>
+        <input id="nd-name" type="text" autocomplete="username" autocapitalize="words" spellcheck="false" maxlength="40"></label>
+      <label class="nd-field"><span>passphrase</span>
+        <input id="nd-pass" type="password" autocomplete="current-password" spellcheck="false"></label>
+    </div>
+    <div class="nd-seal-box">
+      <pre id="nd-seal" class="nd-seal" aria-label="your seal"></pre>
+      <span class="nd-seal-cap">your seal of approval</span>
+    </div>
+  </section>
+
+  <pre id="nd-teach" class="nd-teach" aria-live="polite"></pre>
+  <p class="nd-note">your passphrase is not sent to the server. this browser turns it into a key, and only the public half of that key (plus a signature) ever leaves it.</p>
+
+  <div id="nd-cal" class="nd-cal-wrap"></div>
+  <p id="nd-caption" class="nd-caption" aria-live="polite"></p>
+
+  <div class="nd-ask">
+    <label for="nd-ask" class="nd-ask-label">or ask Noodle</label>
+    <input id="nd-ask" type="text" maxlength="{{ASK_MAX}}" autocomplete="off" placeholder="every thursday night except the 23rd">
+  </div>
+
+  <p id="nd-status" class="nd-status" aria-live="polite"></p>
+  <button id="nd-submit" type="button" class="nd-submit">submit</button>
+  <a class="nd-results-link" href="/noodle/{{SLUG}}/results">see results</a>
+</main>
+
+<div id="nd-approved" class="nd-approved" hidden>
+  <div class="nd-approved-card">
+    <span class="nd-approved-by">approved by</span>
+    <pre class="nd-seal"></pre>
+  </div>
+</div>
+
+<script src="/noodle-toggle.js?v=1"></script>
+<script src="/noodle-seal.js?v=1"></script>
+<script src="/noodle-cal.js?v=1"></script>
+<script src="/noodle-cal-view.js?v=1"></script>
+<script src="/noodle-kdf.js?v=1"></script>
+<script src="/noodle-vote.js?v=1"></script>
+<script src="/noodle-ask.js?v=1"></script>
