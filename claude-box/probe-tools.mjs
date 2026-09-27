@@ -21,6 +21,7 @@
 // deliberately or leave it out; it is already blocked by `tools`.
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { probeOptions, ALLOWED_TOOLS } from "./server.mjs";
+import { refreshExecSchemas } from "./exec-tools.mjs";
 
 const EXPECTED = new Set(ALLOWED_TOOLS);
 
@@ -33,6 +34,10 @@ async function main() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60_000);
   let init = null;
+
+  // Load Exec's schemas first, exactly as a real run does, or the probe would
+  // measure a sandbox without the exec server in it.
+  await refreshExecSchemas();
 
   try {
     const it = query({

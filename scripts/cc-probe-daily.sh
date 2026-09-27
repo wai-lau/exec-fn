@@ -63,7 +63,18 @@ if [[ "$VERSION" == "$PREV" && "$FORCE" != "--force" ]]; then
 fi
 
 say "sdk ${PREV:-<none>} -> $VERSION -- probing"
-OUT="$(sudo -u cc-agent -H timeout 180 node "$PROBE" 2>&1)"
+# The probe needs the unit's CC_SIDECAR_TOKEN to load Exec's card-tool schemas
+# from the container (claude-box/exec-tools.mjs); without it the exec server is
+# absent and the probe measures a smaller sandbox than the one serving traffic.
+# Read as root (this script's user) and passed by --preserve-env, never on the
+# command line where ps would show it.
+if [[ -r /etc/cc-sidecar.env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  . /etc/cc-sidecar.env
+  set +a
+fi
+OUT="$(sudo --preserve-env=CC_SIDECAR_TOKEN,EXEC_API_URL -u cc-agent -H timeout 180 node "$PROBE" 2>&1)"
 RC=$?
 printf '%s\n' "$OUT" >>"$LOG"
 
