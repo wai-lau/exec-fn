@@ -3568,8 +3568,11 @@ dates, cyan weekends, blurred month watermark that follows the row at the
 scroller's middle). Each day cell holds only its number and dots; its background
 is split by a 30deg `/` (a 330deg hard-stop gradient), top-left = midday,
 bottom-right = night, and a tap is hit-tested against the SAME line (`ndHalf`).
-Month boundaries are per-cell `.mr`/`.mb` rules, so the line steps around a month
-that ends mid-week. Days of those weeks outside the window stay drawn, greyed and inert. **Dots: every
+Month boundaries are 5px BARS (`.nd-edge-b` / `.nd-edge-r`, green 0.45) laid over
+the uniformly dim borders of `.mb`/`.mr` cells, so the line steps around a month
+that ends mid-week. Not border colours: where a bright border met a dim one CSS
+mitred the corner into a diagonal chip at every step; the right bar reaches up
+into the corner above, which is where the line turns. Days of those weeks outside the window stay drawn, greyed and inert. **Dots: every
 other voter owns one fixed column** (vote order), top dot midday, bottom dot
 night, a gap where not free — one person reads as one vertical line through the
 grid; dots are 4px with a 2px gap so seven columns fit a phone-width cell, overflow gets /rd's hollow ring, and YOUR column is never the one cut (it takes the last visible place).

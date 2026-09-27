@@ -71,8 +71,13 @@ function ndGridHtml(weeks, start, end) {
       if (iso === today) cls.push('today');
       if (weeks[r + 1] && weeks[r + 1][c].slice(5, 7) !== mo) cls.push('mb');
       if (c < 6 && wk[c + 1].slice(5, 7) !== mo) cls.push('mr');
+      // month-boundary bars are ELEMENTS over the (uniformly dim) borders, not a
+      // border colour: two border colours meeting at a corner get mitred, which
+      // drew a diagonal chip at every step of the line
+      var edges = (cls.indexOf('mb') >= 0 ? '<b class="nd-edge-b"></b>' : '') +
+        (cls.indexOf('mr') >= 0 ? '<b class="nd-edge-r"></b>' : '');
       h += '<div class="' + cls.join(' ') + '" data-day="' + iso + '">' +
-        '<span class="nd-n">' + iso.slice(8) + '</span><div class="nd-dots"></div></div>';
+        '<span class="nd-n">' + iso.slice(8) + '</span><div class="nd-dots"></div>' + edges + '</div>';
     });
   });
   return h;

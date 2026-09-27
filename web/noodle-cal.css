@@ -150,10 +150,19 @@
 .nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
 .nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }
 
-/* month boundary: the rule on the side facing the other month turns bright,
-   so the line steps around a month that ends mid-week */
-.nd-d.mr { border-right-color: hsl(var(--green-hsl) / 0.8); }
-.nd-d.mb { border-bottom-color: hsl(var(--green-hsl) / 0.8); }
+/* Month boundary: a bar laid OVER the dim 5px border on the side facing the
+   other month, so the line steps around a month that ends mid-week. Bars, not
+   border colours: where a bright border met a dim one CSS mitred the corner
+   into a diagonal chip. The right bar also reaches UP into the corner above,
+   which is where the line turns at each step. */
+.nd-edge-b, .nd-edge-r {
+  position: absolute;
+  background: hsl(var(--green-hsl) / 0.45);
+  pointer-events: none;
+}
+.nd-edge-b { left: 0; right: -5px; bottom: -5px; height: 5px; }
+.nd-edge-r { top: -5px; bottom: -5px; right: -5px; width: 5px; }
+.nd-d.eow .nd-edge-b { right: 0; }
 
 .nd-n {
   position: relative;
