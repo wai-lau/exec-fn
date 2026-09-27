@@ -51,13 +51,18 @@ function ndcPaintMarks(grid) {
 function ndcPaintBoundaries(grid) {
   var old = grid.querySelector('.nd-mlines');
   if (old) old.remove();
+  // Measured with getBoundingClientRect, not offsetLeft/Top: the columns are
+  // 1fr, so cells sit on fractional pixels and offset* rounds them -- the
+  // step then missed the centre of the gap by up to a pixel.
   var W = grid.clientWidth, d = '', G = 2.5;   // G: half the gap, its centre
+  var g = grid.getBoundingClientRect();
   grid.querySelectorAll('.nd-d[data-day$="-01"]').forEach(function (first) {
     var row = first.previousElementSibling, k = 0;
     while (row && !row.classList.contains('nd-wk')) { row = row.previousElementSibling; k++; }
-    var top = first.offsetTop - G, bot = first.offsetTop + first.offsetHeight - G;
+    var r = first.getBoundingClientRect(), y0 = r.top - g.top;
+    var top = y0 - G, bot = y0 + r.height - G;
     if (k === 0) { d += 'M0 ' + top + 'H' + W; return; }
-    var x = first.offsetLeft - G;
+    var x = r.left - g.left - G;
     d += 'M0 ' + bot + 'H' + x + 'V' + top + 'H' + W;
   });
   var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -248,7 +253,11 @@ function NoodleCal(wrap, opts) {
     });
   }
   ndcCapHeight(scroller, grid);
-  new ResizeObserver(function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid); }).observe(scroller);
+  // the GRID too: a scrollbar arriving narrows the grid inside an unchanged
+  // scroller, and month lines drawn before that sat right of their gaps
+  var ro = new ResizeObserver(function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid); });
+  ro.observe(scroller);
+  ro.observe(grid);
 
   return {
     scroller: scroller,
