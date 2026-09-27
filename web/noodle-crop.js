@@ -2,8 +2,9 @@
 // cropping a picture. No button -- for the host (and anyone on a fresh poll,
 // where the first to act becomes host) two thin lines sit on the calendar all
 // the time: one on the top edge of the first week, one on the bottom edge
-// of the last, each with a two-stroke grip across it. Drag one, let go,
-// and the crop is saved (signed, with the split) for everyone. Guests never
+// of the last, each with a two-stroke grip across it. Drag one, let go, and
+// the calendar is cropped here; Commit saves it (signed, with the split) for
+// everyone -- so no passphrase is needed to crop, only to commit. Guests never
 // see them: their calendar is simply the crop.
 //
 // Gesture surface rules from /rd's calendar (rd.css): touch-action:none and
@@ -40,7 +41,7 @@ function ndxRowOf(iso, fallback) {
 // loaded week: weeks load as the grid scrolls, and a line that runs away as
 // you reach for it cannot be grabbed.
 function ndxFromPoll() {
-  var c = NDV.poll && NDV.poll.crop, rows = NDV.cal ? NDV.cal.rows() : [];
+  var c = ndhCrop(), rows = NDV.cal ? NDV.cal.rows() : [];
   if (!rows.length) return;
   NDX.a = c ? ndxRowOf(c.from, 0) : 0;
   NDX.open = !c;
@@ -59,7 +60,8 @@ function ndxSync() {
     box.className = 'nd-cropbox';
     // two short strokes across each line (outside + inside the crop) are
     // the grip; no box, no text -- the aria-label says what it is
-    box.innerHTML = '<button type="button" class="nd-crop-h top" data-h="a" aria-label="drag: first week">' +
+    box.innerHTML = '<div class="nd-shade top"></div><div class="nd-shade bot"></div>' +
+      '<button type="button" class="nd-crop-h top" data-h="a" aria-label="drag: first week">' +
       '<i class="grip out"></i><i class="grip in"></i></button>' +
       '<button type="button" class="nd-crop-h bot" data-h="b" aria-label="drag: last week">' +
       '<i class="grip in"></i><i class="grip out"></i></button>';
@@ -84,6 +86,11 @@ function ndxPlace() {
   // covers anything drawn there -- the line moves just inside the row instead
   t.classList.toggle('first', NDX.a === 0);
   b.style.top = (rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight) + 'px';
+  // the shades end where the lines are drawn: in the middle of the row gap
+  var lo = box.querySelector('.nd-shade.top'), hi = box.querySelector('.nd-shade.bot');
+  lo.style.height = (NDX.a === 0 ? 0 : rows[NDX.a].offsetTop - 2.5) + 'px';
+  hi.style.top = (rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight - 2.5) + 'px';
+  hi.hidden = NDX.open;   // no last week yet: nothing is cropped off below
   b.title = NDX.open ? 'no last week yet -- drag to set one' : 'last week';
   t.title = 'first week';
 }
@@ -118,8 +125,8 @@ function ndxMove(e) {
   ndxPlace();
 }
 
-// Letting go saves the crop for everyone -- signed, as the host (on a fresh
-// poll this is what makes you host).
+// Letting go crops the calendar HERE; Commit saves it for everyone, signed
+// as the host (on a fresh poll that is what makes you host).
 async function ndxUp() {
   if (!NDX.drag) return;
   NDX.drag = null;
@@ -130,21 +137,9 @@ async function ndxUp() {
 }
 
 async function ndxSave(crop) {
-  if (window.NDR && NDR.active) {
-    ndvStatus('commit your new passphrase first -- the crop is signed with it.');
-    ndxSync();
-    return;
-  }
-  if (!ndvReady()) {
-    ndvStatus('enter your name first -- the host sets the crop for everyone.');
-    ndxSync();
-    return;
-  }
-  var res = await ndhSend('/settings', { kind: 'settings', halves: NDV.poll.halves,
-    from: crop ? crop.from : null, to: crop ? crop.to : null });
-  if (!res.ok) ndvStatus(res.data.error || 'could not save the crop', 'err');
-  await ndvLoadPoll();
+  NDV.pendingCrop = crop;
   ndvEnsureCal(true);   // regrey around the new crop, keeping the scroll
+  ndvSaveDraft();       // marks it unsaved
 }
 
 (function () {

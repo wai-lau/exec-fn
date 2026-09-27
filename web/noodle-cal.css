@@ -301,6 +301,20 @@
    weeks loaded after it once painted over its grips and ate the drag. */
 .nd-cropbox { position: absolute; inset: 0; z-index: var(--z-raised); pointer-events: none; }
 
+/* What the crop leaves out, shaded: everything under a panel -- cells, the
+   week column, the month watermark -- goes monochrome and dim, so a watermark
+   the crop line cuts reads half green, half grey. A backdrop-filter is cheap
+   here: nothing under it animates, so the texture is read once per scroll. */
+.nd-shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  backdrop-filter: grayscale(1) brightness(0.55);
+}
+.nd-shade.top { top: 0; }
+.nd-shade.bot { bottom: 0; }
+.nd-shade[hidden] { display: none; }
+
 /* A THIN line on the crop edge; the grip strokes (below) are the only part
    that catches a pointer. */
 .nd-grid .nd-crop-h {

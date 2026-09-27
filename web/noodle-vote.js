@@ -89,6 +89,7 @@ function ndvWhyNot() {
 function ndvDirty() {
   if (!NDV.cal) return false;
   if (NDV.pendingHalves != null) return true;   // an unsaved split
+  if (NDV.pendingCrop !== undefined) return true;   // an unsaved crop
   if (window.NDR && NDR.active) return true;    // an unsaved new passphrase
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;
@@ -273,14 +274,14 @@ async function ndvSubmit() {
   ndvSyncSubmit(true);
   var name = ndv$('nd-name').value, slots = Array.from(NDV.cal.getSel()).sort();
   var ts = Date.now() + NDV.skew;
-  // a pending split goes first (it converts every stored vote); the vote is
-  // then signed strictly newer, as the server's replay check demands
+  // a pending split/crop goes first (it converts every stored vote); the
+  // vote is then signed strictly newer, as the server's replay check demands
   var rk = await ndrCommit(ts);   // a new passphrase first: the rest is signed by it
   if (!rk.ok) { ndvStatus(rk.data.error || 'could not change the passphrase', 'err'); ndvSyncSubmit(); return; }
   if (rk.did) ts += 1;
-  var split = await ndhCommitSplit(ts);
-  if (!split.ok) { ndvStatus(split.data.error || 'could not save the split', 'err'); ndvSyncSubmit(); return; }
-  if (NDV.pendingHalves != null) { NDV.pendingHalves = null; ts += 1; }
+  var set = await ndhCommitSettings(ts);
+  if (!set.ok) { ndvStatus(set.data.error || 'could not save the split or crop', 'err'); ndvSyncSubmit(); return; }
+  if (set.sent) ts += 1;
   // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
   var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
   try {
@@ -307,7 +308,7 @@ async function ndvSubmit() {
 function ndvEnsureCal(force) {
   var p = NDV.poll;
   if (!p) return;
-  var host = window.ndxIsHost ? window.ndxIsHost() : false, c = p.crop;
+  var host = window.ndxIsHost ? window.ndxIsHost() : false, c = window.ndhCrop ? window.ndhCrop() : p.crop;
   var halves = window.ndhHalves ? window.ndhHalves() : p.halves;
   var key = halves + '|' + host + '|' + (c ? c.from + '..' + c.to : '');
   if (key === NDV.calKey && !force) return;
