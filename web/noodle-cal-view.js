@@ -97,7 +97,7 @@ function ndcPaintButtons(grid, mode, groupOf, offered) {
   var T = window.NoodleToggle;
   grid.querySelectorAll('.nd-hd[data-col], .nd-wk').forEach(function (el) {
     var g = groupOf(el), label = T.label(g.subject, mode), btn = el.querySelector('.nd-tg');
-    btn.textContent = NDC_ICON[mode];
+    btn.innerHTML = '<i class="ic ' + mode + '">' + NDC_ICON[mode] + '</i>';
     btn.setAttribute('aria-label', label);
     btn.title = label;
     btn.disabled = !offered(g.slots).length;
@@ -105,7 +105,7 @@ function ndcPaintButtons(grid, mode, groupOf, offered) {
   // the corner shows BOTH tools, "fill / eraser", the current one bright
   var b = grid.querySelector('.nd-mode'), other = T.flipMode(mode);
   // split by the same 30deg hairline a split day cell has (noodle-cal.css)
-  b.innerHTML = '<i class="fill">' + NDC_ICON.fill + '</i><i class="clear">' + NDC_ICON.clear + '</i>';
+  b.innerHTML = '<i class="ic fill">' + NDC_ICON.fill + '</i><i class="ic clear">' + NDC_ICON.clear + '</i>';
   b.dataset.mode = mode;
   b.title = 'switch every button to ' + (other === 'fill' ? 'fill in' : 'clear');
   b.setAttribute('aria-label', b.title);
