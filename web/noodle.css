@@ -139,7 +139,7 @@ body.noodle {
    property beats the inline value, and the stamp keyframes read these too. */
 .nd-teach-box .nd-seal {
   grid-column: 2;
-  margin-left: 2ch;
+  margin-left: 5ch;
   font-size: calc(var(--fs-2xs) * 0.8);   /* the voter row's size (.xs) */
 
   --seal-dx: 0 !important;
@@ -171,7 +171,7 @@ body.noodle {
 .nd-teach-box {
   display: grid;
   grid-template-columns: auto auto;
-  gap: var(--space-2) 0;   /* across: the seal's own 2ch margin is the gap */
+  gap: var(--space-2) 0;   /* across: the seal's own 5ch margin is the gap */
   align-items: center;
   justify-content: center;   /* recipe + seal as ONE group, centred in the box */
   margin: var(--space-6) 0;
@@ -408,7 +408,7 @@ body.noodle {
 /* The argon2id line's arrow: a shaft of box-drawing dashes that fills the
    line, clipped, then the head -- it fills the recipe's width, which ends
    2ch short of the seal (.nd-seal-box's margin). */
-.nd-arrow-line { display: flex; align-items: baseline; }
+.nd-arrow-line { display: flex; align-items: baseline; margin-right: -3ch; }   /* the arrow reaches 2ch from the seal, into the 5ch gap */
 .nd-arrow-line > span:first-child { flex: 0 1 auto; min-width: 0; }
 
 .nd-arrow {

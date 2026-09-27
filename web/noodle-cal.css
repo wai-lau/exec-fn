@@ -264,7 +264,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid hsl(var(--green-hsl) / 0.8);
+  border: 1px solid hsl(var(--orange-hsl) / 1);   /* today: the crop line's colour */
   pointer-events: none;
 }
 
@@ -373,6 +373,22 @@
    one inside -- the universal "drag me", with no box and no text. Only the
    strokes catch pointers (with small margins); the rest of the line lets
    taps through to the days under it. */
+.nd-crop-h::before {
+  /* the WHOLE line is grabbable, not only the grip: a 12px strip centred on
+     it. Thin enough to cost a tap on a day nothing -- it sits over the gap
+     between weeks, 3.5px into the cells either side */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  pointer-events: auto;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.nd-crop-h.top::before { top: -7px; }
+.nd-crop-h.bot::before { bottom: -7px; }
+
 .nd-crop-h .grip {
   position: absolute;
   left: 50%;
