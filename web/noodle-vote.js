@@ -148,7 +148,7 @@ function ndvRefreshBinding(pub) {
     else if (changing && typed && window.noodleNormName(v.name) === typed) NDV.taken = typed;
     // your own committed column shows your LIVE picks instead of the stored vote
     if (pub && v.pub === pub) cols.push(self);
-    else cols.push({ slots: new Set(v.slots), ink: NDV.seals[v.pub] ? NDV.seals[v.pub].ink : null });
+    else cols.push({ slots: ndvShown(v.slots), ink: NDV.seals[v.pub] ? NDV.seals[v.pub].ink : null });
   });
   if (cols.indexOf(self) < 0) cols.push(self); // not committed yet: last column
   // The host sets the dates; everyone else picks only from the host's slots.
@@ -217,6 +217,15 @@ function ndvBlankSeal() {
   }
   // the seal is drawn from 32 fingerprint bytes; these simply ARE them
   return window.NoodleSeal.fromFp(new Uint8Array(id.match(/../g).map(function (h) { return parseInt(h, 16); })));
+}
+
+// A stored vote as the page shows it: under an unsaved split change it is
+// converted the way the server will convert it on Commit (a whole day counts
+// as BOTH halves), so nobody's dots vanish when the box is ticked.
+function ndvShown(slots) {
+  var set = new Set(slots);
+  return window.ndhHalves && window.ndhHalves() !== !!(NDV.poll && NDV.poll.halves)
+    ? ndhConvert(set, window.ndhHalves()) : set;
 }
 
 // The voters, plus -- for a key that has not committed under this name yet --
