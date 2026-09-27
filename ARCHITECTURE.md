@@ -3587,10 +3587,19 @@ gap centre like the crop line, green, stepping where a month ends mid-week, and
 running on across the frozen week column. Per-cell bars came first; half-
 transparent bars that meet overlap, and every corner doubled into a brighter
 chip. **Each month's blurred number sits behind its own weeks** and scrolls with
-them (`ndcPaintMarks`), with the 4-digit year under it when it is not this
-year -- and only for a month COMPLETELY drawn (its 1st and last day both in the
-grid, greyed or not), so not the part-month we open in or one still loading.
-Dimmed with `opacity`, since the palette has no step between 0.12 and 0.45.
+them (`ndcPaintMarks`) -- only for a month COMPLETELY drawn (its 1st and last
+day both in the grid, greyed or unavailable ones included), so not the
+part-month we open in or one still loading. No year. Dimmed with `opacity`,
+since the palette has no step between 0.12 and 0.45. Quebec statutory holidays
+are pink, exactly as /rd (`.hol`, from the same `web/qc-holidays.js`, a browser
+script -- Noodle's Python keeps its own mirror). The scroller shows at most 6
+weeks: the cap is measured from a real row (`ndcCapHeight`), not guessed. More
+weeks load when the bottom is near, by a scroll check as well as the
+sentinel's IntersectionObserver: the observer fires only on a visibility
+CHANGE, so a batch landing with the sentinel still in view stalled loading for
+good. When the host's crop moves, picks outside it are deselected at once, as
+the server drops them. Seals draw their eyes and mouth bold, the border
+regular (the face characters are wrapped in `<b>`).
 
 **Host actions** (`noodle/host.py`, signed over `sig.canonical_action`, whose
 `kind` field keeps a vote and an action from ever being swapped):

@@ -105,13 +105,14 @@ body.noodle {
   min-width: 9ch;
   min-height: 6lh;
   font-family: 'Noodle Glyphs', var(--font-mono);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-normal);
   line-height: var(--lh-none);
   color: hsl(var(--pink-hsl) / 0.8);
   white-space: pre;
   transform: translate(var(--seal-dx, 0), var(--seal-dy, 0)) rotate(var(--seal-rot, 0deg));
 }
 .nd-seal.pending { opacity: 0.25; }
+.nd-seal b { font-weight: var(--fw-bold); }   /* the face: eyes + mouth */
 
 /* The ink comes from the key (noodle-seal.js ndInk): ANY hue, with a
    lightness floor so it always reads on black. --seal-hsl is set inline per

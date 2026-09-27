@@ -47,23 +47,31 @@ function ndSealFromFp(fp) {
   for (var i = 0; i < 18; i++) b.push(ND_BORDER[fp[i] % 32]);
   var eye = ND_EYES[fp[18] % ND_EYES.length];
   var mouth = ND_MOUTHS[fp[19] % ND_MOUTHS.length];
+  var F = function (c) { return { face: c }; };   // eyes + mouth: drawn bold
   var rows = [
     [b[0], b[1], b[2], b[3], b[4]],
     [b[5], ' ', ' ', ' ', b[6]],
-    [b[7], eye[0], ' ', eye[1], b[8]],
-    [b[9], ' ', mouth, ' ', b[10]],
+    [b[7], F(eye[0]), ' ', F(eye[1]), b[8]],
+    [b[9], ' ', F(mouth), ' ', b[10]],
     [b[11], ' ', ' ', ' ', b[12]],
     [b[13], b[14], b[15], b[16], b[17]],
   ];
+  var esc = function (c) { return c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   return {
-    text: rows.map(function (r) { return r.join(' '); }).join('\n'),
+    text: rows.map(function (r) {
+      return r.map(function (c) { return c.face || c; }).join(' ');
+    }).join('\n'),
+    // the same grid as markup, the face in <b>: the border stays regular
+    html: rows.map(function (r) {
+      return r.map(function (c) { return c.face ? '<b>' + esc(c.face) + '</b>' : esc(c); }).join(' ');
+    }).join('\n'),
     ink: ndInk(fp),
   };
 }
 
 // Put a seal on an element: its text and its ink.
 function ndPaint(el, seal) {
-  el.textContent = seal ? seal.text : '';
+  el.innerHTML = seal ? seal.html : '';   // our own escaped markup (ndSealFromFp)
   if (seal) el.style.setProperty('--seal-hsl', seal.ink);
   else el.style.removeProperty('--seal-hsl');
   el.classList.toggle('inked', !!seal);

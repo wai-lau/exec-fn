@@ -10,8 +10,7 @@
 }
 
 /* Each month's number, big and faint BEHIND ITS OWN WEEKS (noodle-cal-view.js
-   ndcPaintMonths): it scrolls with them, unlike /rd's single fixed watermark,
-   and a year that is not this year sits under it. Behind the cells (the grid
+   ndcPaintMonths): it scrolls with them, unlike /rd's single fixed watermark. Behind the cells (the grid
    isolates, so -1 stays inside it); left of it is the sticky week column. */
 .nd-mmark {
   position: absolute;
@@ -36,12 +35,11 @@
   pointer-events: none;
   user-select: none;
 }
-.nd-mmark small { font-size: 0.32em; }
 
 .nd-scroll {
   position: relative;
   z-index: var(--z-raised);
-  max-height: min(62dvh, 560px);
+  max-height: min(62dvh, 560px);   /* until JS caps it to 6 weeks (ndcCapHeight) */
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -210,6 +208,10 @@
   text-shadow: 0 0 3px hsl(var(--bg-hsl) / 1), 0 0 6px hsl(var(--bg-hsl) / 1);
 }
 .nd-d.we .nd-n { color: hsl(var(--cyan-hsl) / 0.8); }
+
+/* Quebec statutory holiday: pink, exactly as /rd (rd.css .cal-d.hol), after
+   the weekend rule so a holiday on a weekend wins -- the louder fact */
+.nd-d.hol .nd-n { color: hsl(var(--pink-hsl) / 0.8); }
 
 /* Not offered by the host: that half is darker and ignores taps; a day with
    neither half offered reads like one outside the window. */
