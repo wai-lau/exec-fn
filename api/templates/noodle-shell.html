@@ -11,8 +11,16 @@
 <link rel="stylesheet" href="/chrome.css?v=79">
 <link rel="stylesheet" href="/noodle.css?v=45">
 <link rel="stylesheet" href="/noodle-cal.css?v=54">
+<link rel="stylesheet" href="/crt-dim.css?v=1">
 </head>
 <body class="noodle">
 {{BODY}}
+<!-- the site's CRT stack (pages.py _CRT_FX), written out here: Noodle imports
+     no app module, so it cannot take the constant. Paint order is load-bearing:
+     bg, lines, blur, crt, scan (ARCHITECTURE.md section 10). -->
+<div class="cyber-bg"></div><div class="cyber-lines"></div>
+<div class="cyber-blur"></div><div class="cyber-crt"></div>
+<div class="cyber-scan"></div>
+<script src="/crt-zoom.js?v=2"></script>
 </body>
 </html>

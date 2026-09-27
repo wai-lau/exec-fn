@@ -3563,6 +3563,12 @@ localStorage (`noodle.blankSeal`), so it is the same face every visit -- and mid
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
+**Chrome.** The shell carries the site's CRT stack written out (Noodle cannot
+import pages.py's `_CRT_FX`), dimmed with `crt-dim.css` like the other dense
+pages. The owner nav has an `NDL` entry to `/noodle` with the Buzzbomb icon,
+traced by `scripts/trace-icons.py` from `web/buzzbomb.png` (the nightfall
+program art) like every other nav icon.
+
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever
 raised it was off screen as often as not. It stays until replaced by the next
