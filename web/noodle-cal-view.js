@@ -3,7 +3,7 @@
 // sticky header never jump.
 //
 // opts: {start, end, caption (element|null), onChange(sel)}
-// api:  setSel(Set), getSel(), setOthers([{slots:Set, hue}])
+// api:  setSel(Set), getSel(), setOthers([{slots:Set, hue} | {self:true, hue}])
 
 // The big month number behind the grid follows whichever week row is at the
 // scroller's vertical middle.
@@ -77,7 +77,7 @@ function NoodleCal(wrap, opts) {
   function paintDots() {
     var fit = P.dotsFit(cells[0], others.length);
     cells.forEach(function (c) {
-      c.querySelector('.nd-dots').innerHTML = others.length ? P.dotsHtml(c.dataset.day, others, fit) : '';
+      c.querySelector('.nd-dots').innerHTML = others.length ? P.dotsHtml(c.dataset.day, others, fit, sel) : '';
     });
   }
 
@@ -89,6 +89,7 @@ function NoodleCal(wrap, opts) {
   function change(next) {
     sel = next;
     paint();
+    paintDots(); // your own column follows your taps
     if (opts.onChange) opts.onChange(new Set(sel));
   }
 
@@ -122,7 +123,7 @@ function NoodleCal(wrap, opts) {
   paint();
 
   return {
-    setSel: function (s) { sel = new Set(s); paint(); },
+    setSel: function (s) { sel = new Set(s); paint(); paintDots(); },
     getSel: function () { return new Set(sel); },
     setOthers: function (o) { others = o; paintDots(); },
   };

@@ -43,14 +43,13 @@ async function ndaAsk() {
   ndaSync();
   ndaStatus('Noodle is reading...');
   try {
-    var res = await ndvPost('/ask', {
-      text: text, pub: NDV.kdf.pub(), current: Array.from(NDV.cal.getSel()).sort(),
-    });
+    // every ask starts from a BLANK calendar: the answer replaces the grid
+    // outright, and the text stays in the box so it can be tweaked and re-asked
+    var res = await ndvPost('/ask', { text: text, pub: NDV.kdf.pub() });
     if (!res.ok) {
       ndaStatus(res.data.error || 'Noodle could not answer', 'err');
     } else {
       NDV.cal.setSel(new Set(res.data.slots));
-      nda$('nd-ask').value = '';
       ndvSaveDraft();
       ndaStatus('Noodle filled in ' + res.data.slots.length + ' slots. check the calendar, then reserve.');
     }

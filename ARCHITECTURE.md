@@ -3544,7 +3544,17 @@ the status says the changes are kept), and a successful submit clears it. Submit
 sends exactly `{name, pub, slots, ts, sig}`; Ask sends its text and the public
 key. **Every ask starts from a blank calendar** -- the answer replaces the grid
 outright and the text stays in the box, so a question is tweaked and re-asked
-rather than stacked on the last answer. `tests/test_noodle_browser.py` pins both: no POST
+rather than stacked on the last answer.
+
+**Your own dots are live.** The voter's own column (at their reserved position,
+or last if they have not reserved) is a `self` column that shows the CURRENT
+selection, so tapping a half both lights its background (dark = unavailable,
+lit = available, all dark by default) and adds or removes your dot. A missing
+dot means unavailable, for everyone. **The header's mixed ✓/✗ pair always
+reserves its space** (`visibility`, never `display`): the header is sticky, and
+when a column went mixed it grew, slid over the first visible row, and the next
+tap on that row landed on the header instead -- measured as 1 of 3 taps
+registering. `tests/test_noodle_browser.py` pins both: no POST
 before a button, the exact submit keys, the passphrase in no request.
 
 **The calendar** (`noodle-cal.js` geometry + `noodle-cal-view.js` controller,
