@@ -53,21 +53,16 @@ function ndWeeks(start, end) {
   return weeks;
 }
 
-function ndMixHtml() {
-  return '<span class="nd-mx"><button type="button" data-set="on" aria-label="all available">✓</button>' +
-    '<button type="button" data-set="off" aria-label="none available">✗</button></span>';
-}
-
 function ndGridHtml(weeks, start, end) {
   var today = ndIso(new Date());
   var h = '<div class="nd-hd nd-corner"></div>';
   ND_DOW.forEach(function (n, c) {
     h += '<div class="nd-hd" data-col="' + c + '">' +
-      '<button type="button" class="nd-tg">' + n + '</button>' + ndMixHtml() + '</div>';
+      '<span class="nd-hd-name">' + n + '</span><button type="button" class="nd-tg"></button></div>';
   });
   weeks.forEach(function (wk, r) {
     h += '<div class="nd-wk" data-row="' + r + '" data-month="' + wk[3].slice(5, 7) + '">' +
-      '<button type="button" class="nd-tg"></button>' + ndMixHtml() + '</div>';
+      '<button type="button" class="nd-tg"></button></div>';
     wk.forEach(function (iso, c) {
       var mo = iso.slice(5, 7), cls = ['nd-d'];
       if (iso < start || iso > end) cls.push('out');

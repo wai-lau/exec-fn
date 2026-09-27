@@ -53,13 +53,14 @@ function NoodleCal(wrap, opts) {
     return null;
   }
 
+  // one button: ✓ when the group is all off (turns it all on), ✗ otherwise
   function paintToggle(el, g) {
     var st = T.groupState(g.slots, sel), label = T.label(g.subject, st);
     el.dataset.state = st;
     var btn = el.querySelector('.nd-tg');
+    btn.textContent = st === 'off' ? '\u2713' : '\u2717';
     btn.setAttribute('aria-label', label);
     btn.title = label;
-    if (el.classList.contains('nd-wk')) btn.textContent = st === 'on' ? '■' : '□';
     btn.disabled = st === 'none';
   }
 
@@ -89,13 +90,13 @@ function NoodleCal(wrap, opts) {
   }
 
   function onTap(e) {
-    var set = e.target.closest('[data-set]'), tg = e.target.closest('.nd-tg');
+    var tg = e.target.closest('.nd-tg');
     var cell = e.target.closest('.nd-d');
-    if (set || tg) {
+    if (tg) {
       var g = groupOf(e.target);
       if (!g || !g.slots.length) return;
       var st = T.groupState(g.slots, sel);
-      change(T.apply(g.slots, sel, set ? set.dataset.set : T.clickAction(st)));
+      change(T.apply(g.slots, sel, T.clickAction(st)));
     } else if (cell && !cell.classList.contains('out')) {
       var r = cell.getBoundingClientRect();
       var slot = cell.dataset.day + ':' + P.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight);

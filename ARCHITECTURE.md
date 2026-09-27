@@ -3558,11 +3558,7 @@ rather than stacked on the last answer.
 or last if they have not committed) is a `self` column that shows the CURRENT
 selection, so tapping a half both lights its background (dark = unavailable,
 lit = available, all dark by default) and adds or removes your dot. A missing
-dot means unavailable, for everyone. **The header's mixed ✓/✗ pair always
-reserves its space** (`visibility`, never `display`): the header is sticky, and
-when a column went mixed it grew, slid over the first visible row, and the next
-tap on that row landed on the header instead -- measured as 1 of 3 taps
-registering. `tests/test_noodle_browser.py` pins both: no POST
+dot means unavailable, for everyone. `tests/test_noodle_browser.py` pins both: no POST
 before a button, the exact submit keys, the passphrase in no request.
 
 **The calendar** (`noodle-cal.js` geometry + `noodle-cal-view.js` controller,
@@ -3579,11 +3575,15 @@ night, a gap where not free — one person reads as one vertical line through th
 grid; dots are 4px with a 2px gap so seven columns fit a phone-width cell, overflow gets /rd's hollow ring, and YOUR column is never the one cut (it takes the last visible place).
 
 **Toggles** (`noodle-toggle.js`, pure): a weekday column or week row covers both
-halves of its in-window days. All on -> off, anything else -> on. The label names
-the action ("Not available Wednesdays" / "Available week of Mar 1", "+ (except)"
-when mixed), and only a mixed group shows the explicit ✓/✗. The cells show
-`Wed` / a state mark; the full sentence is the toggle's `aria-label` and hover
-`title` only -- a caption line under the grid was removed as noise.
+halves of its in-window days, and has ONE button. All off -> the button is a
+check and turns the group all on; all on OR mixed -> a cross that turns it all
+off. (An earlier version filled a mixed group on click and grew a separate
+check/cross pair for it; one button per group reads at a glance.) The action
+sentence ("Available Wednesdays" / "Not available week of Mar 1") is the
+button's `aria-label` and hover `title` only. The button box is identical in
+every state, so the sticky header never changes height -- a header that grew
+slid over the first visible row and swallowed the next tap on it (measured: 1
+of 3 taps registering).
 
 **The seal** (`noodle-seal.js`, the ONE implementation — vote and results pages
 both render seals from pubkeys client-side): `SHA-256(pub)`; bytes 0-17 pick the
