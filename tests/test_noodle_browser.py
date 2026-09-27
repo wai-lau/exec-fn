@@ -192,19 +192,27 @@ def test_your_taps_light_the_half_and_add_your_dot(browser, base_url, noodle_slu
         page.fill("#nd-name", "smoke dots")
         page.fill("#nd-pass", "p")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
-        cell = page.locator(".nd-d:not(.out)").nth(5)
+        # a non-host can only light what the host offered: tap one of those
+        poll = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")
+        offered = sorted(poll["voters"][0]["slots"] if poll["voters"] else [])
+        if poll["voters"] and not offered:
+            pytest.skip("the smoke poll's host offers nothing")
+        day, half = offered[0].split(":") if offered else (None, "m")
+        cell = (page.locator(f".nd-d[data-day='{day}']") if day
+                else page.locator(".nd-d:not(.out)").nth(5))
+        lit, fy = ("mid", 0.15) if half == "m" else ("nit", 0.85)
         cell.scroll_into_view_if_needed()
         cls = cell.get_attribute("class")
         assert "mid" not in cls and "nit" not in cls, "every half starts dark"
         before = cell.locator(".nd-dots i.on").count()
         box = cell.bounding_box()
-        page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.2)
-        assert "mid" in cell.get_attribute("class")
+        page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * fy)
+        assert lit in cell.get_attribute("class")
         assert cell.locator(".nd-dots i.on").count() == before + 1
         page.wait_for_timeout(600)   # not a double-click
         box = cell.bounding_box()
-        page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.2)
-        assert "mid" not in cell.get_attribute("class")
+        page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * fy)
+        assert lit not in cell.get_attribute("class")
         assert cell.locator(".nd-dots i.on").count() == before
     finally:
         page.close()
@@ -247,5 +255,35 @@ def test_a_rate_limit_counts_down_and_gives_the_button_back(browser, base_url, n
         assert page.is_disabled("#nd-ask-go")
         page.wait_for_function("!document.querySelector('#nd-ask-go').disabled", timeout=5000)
         assert page.inner_text("#nd-ask-status") == ""
+    finally:
+        page.close()
+
+
+def test_a_non_host_can_only_pick_what_the_host_offered(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        poll = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")
+        if not poll["voters"]:
+            pytest.skip("no host on the smoke poll yet")
+        offered = set(poll["voters"][0]["slots"])
+        page.fill("#nd-name", "smoke guest")
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+
+        def tap(day, half):
+            cell = page.locator(f".nd-d[data-day='{day}']")
+            cell.scroll_into_view_if_needed()
+            b = cell.bounding_box()
+            page.mouse.click(b["x"] + b["width"] * 0.5, b["y"] + b["height"] * (0.15 if half == "m" else 0.85))
+            page.wait_for_timeout(600)
+            return ("mid" if half == "m" else "nit") in cell.get_attribute("class")
+
+        days = page.evaluate("[...document.querySelectorAll('.nd-d:not(.out)')].map(c => c.dataset.day)")
+        closed = next(f"{d}:m" for d in days if f"{d}:m" not in offered)
+        assert not tap(*closed.split(":")), "an un-offered half must not take a tap"
+        assert "no-m" in page.get_attribute(f".nd-d[data-day='{closed[:10]}']", "class")
+        if offered:
+            day, half = sorted(offered)[0].split(":")
+            assert tap(day, half), "an offered half must"
     finally:
         page.close()

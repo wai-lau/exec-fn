@@ -224,7 +224,7 @@ def test_noodle_poll_json_is_public_and_holds_no_budget(client, noodle_slug):
     r = client.get(f"/api/noodle/{noodle_slug}")
     assert r.status_code == 200
     body = r.json()
-    assert {"slug", "start", "end", "voters"} <= set(body)
+    assert {"slug", "start", "end", "voters", "host"} <= set(body)
     assert "ask" not in body and "ask_remaining" not in body
 
 

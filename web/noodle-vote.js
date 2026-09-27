@@ -121,6 +121,10 @@ function ndvRefreshBinding(pub) {
   });
   if (cols.indexOf(self) < 0) cols.push(self); // not committed yet: last column
   NDV.cal.setOthers(cols);
+  // The first to commit hosts; everyone else picks only from the host's
+  // halves. The host (by KEY) and whoever votes first get the whole window.
+  var host = NDV.poll && NDV.poll.voters.length ? NDV.poll.voters[0] : null;
+  NDV.cal.setAllowed(host && !(pub && host.pub === pub) ? host.slots : null, !!pub);
   window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub);
   // the blocking name, for the reason under submit (ndvWhyNot)
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';

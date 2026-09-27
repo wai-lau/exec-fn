@@ -173,6 +173,13 @@
 }
 .nd-d.we .nd-n { color: hsl(var(--cyan-hsl) / 0.8); }
 
+/* Not offered by the host: that half is darker and ignores taps; a day with
+   neither half offered reads like one outside the window. */
+.nd-d.no-m { --top: hsl(var(--bg-hsl) / 0.45); }
+.nd-d.no-n { --bot: hsl(var(--bg-hsl) / 0.45); }
+.nd-d.shut { cursor: default; }
+.nd-d.shut .nd-n { color: hsl(var(--gray-hsl) / 0.45); font-weight: var(--fw-normal); }
+
 /* outside the poll window: kept so months keep their shape, but inert */
 .nd-d.out { cursor: default; background-image: none; }
 .nd-d.out .nd-n { color: hsl(var(--gray-hsl) / 0.45); font-weight: var(--fw-normal); }

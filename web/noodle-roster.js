@@ -31,7 +31,8 @@ function ndrRender(el, voters, seals, myPub) {
       ndrEsc(v.name) + '" title="' + v.slots.length + ' slots">' +
       '<pre class="nd-seal xs' + (seal ? ' inked" style="--seal-hsl:' + seal.ink + '"' : '"') + '>' +
       ndrEsc(seal ? seal.text : '') +
-      '</pre><span class="nd-face-name">' + ndrEsc(v.name) + '</span></button></li>';
+      '</pre><span class="nd-face-name">' + ndrEsc(v.name) + '</span>' +
+      (v.order === 0 ? '<span class="nd-face-host">host</span>' : '') + '</button></li>';
   }).join('');
 }
 

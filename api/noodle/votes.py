@@ -15,6 +15,15 @@ def now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def host_of(poll: dict) -> tuple[str, dict] | None:
+    """The poll's HOST: whoever committed first (vote order 0). The halves
+    they pick are the only ones anyone else may pick. None before any vote."""
+    voters = poll.get("voters") or {}
+    if not voters:
+        return None
+    return min(voters.items(), key=lambda kv: kv[1]["order"])
+
+
 def submit(slug: str, body: dict, now: int | None = None) -> dict:
     """Validate + store one vote. Returns the stored voter record.
 
@@ -46,6 +55,11 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
             raise VoteError(403, "that name is sealed with a different passphrase")
         if prev and ts <= prev["ts"]:
             raise VoteError(409, "stale or replayed submission")
+        host = host_of(poll)
+        if host and host[0] != key:
+            offered = set(host[1]["slots"])
+            if not set(picked) <= offered:
+                raise VoteError(400, "only the times the host offered can be picked")
         rec = {
             # the NORMALIZED name is the one shown too: it is the identity, and
             # showing first-typed casing made "Wai" and "wai" look like two people

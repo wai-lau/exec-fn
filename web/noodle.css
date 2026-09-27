@@ -277,6 +277,8 @@ body.noodle {
 .nd-face:hover, .nd-face:focus-visible { border-color: hsl(var(--green-hsl) / 0.45); outline: none; }
 .nd-face.you { border-color: hsl(var(--green-hsl) / 0.8); }
 
+.nd-face-host { font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); letter-spacing: var(--tracking-wide); }
+
 .nd-face-name {
   max-width: 100%;
   overflow: hidden;
