@@ -179,20 +179,21 @@
 
 /* Voters, you included: ONE fixed column per person, the same position in
    every cell -- top dot midday, bottom dot night, NO dot where not free.
-   Sizes mirror ND_DOT / ND_DOT_GAP in noodle-cal.js (5px, --space-1). */
+   Sizes mirror ND_DOT / ND_DOT_GAP in noodle-cal.js (4px, --space-0-5): small
+   enough for seven columns in a phone-width cell. */
 .nd-dots {
   display: grid;
   grid-auto-flow: column;
-  grid-template-rows: 5px 5px;
-  grid-auto-columns: 5px;
-  gap: var(--space-1);
+  grid-template-rows: 4px 4px;
+  grid-auto-columns: 4px;
+  gap: var(--space-0-5);
   justify-content: center;
-  height: calc(10px + var(--space-1));
+  height: calc(8px + var(--space-0-5));
   margin-top: var(--space-1-5);
   overflow: hidden;
 }
 
-.nd-dots i { width: 5px; height: 5px; border-radius: var(--radius-pill); }
+.nd-dots i { width: 4px; height: 4px; border-radius: var(--radius-pill); }
 
 .nd-dots i.on {
   background: hsl(var(--green-hsl) / 1);
@@ -207,8 +208,8 @@
   grid-row: 1 / span 2;
   align-self: center;
   box-sizing: border-box;
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border: 1px solid hsl(var(--gray-hsl) / 0.45);
   border-radius: var(--radius-pill);
 }

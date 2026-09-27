@@ -3516,7 +3516,7 @@ Thursday; the voter reviews the grid before anything is signed.)
 **One page.** There is no separate results page (`/noodle/<slug>/results`
 301s to the vote page): the calendar's dots ARE the results, and the roster
 at the TOP of the page (`web/noodle-roster.js`, "are you one of these guys?")
-shows every voter as a small face with their name under it, four to a row;
+shows every voter as a small face with their name under it, five to a row;
 tapping one fills the name field and moves focus to the passphrase. The face
 whose key this browser holds is outlined (by key, never by name). Small seals
 keep a fixed 9x6 box, so a voter whose key was reset (no seal yet) still lines
@@ -3532,7 +3532,7 @@ vote. hash-wasm refuses an empty password, so the worker hashes one NUL byte in
 its place (no text input can produce it; every non-empty passphrase derives as
 before). An empty name is never allowed: no key is derived without a valid name
 and the server 400s one. The seal caption follows the name field:
-`"<name>'s seal of approval"`. **A disabled submit always says why** in the
+`"<name>'s seal of approval"`. The popup after a commit is green and reads `approved by <name>` over the seal. **A disabled submit always says why** in the
 line under it (`ndvWhyNot`: no name, unusable name, name sealed by another
 key, no key in this browser, key still being made, sealing) -- a greyed button
 with no reason reads as broken. The Ask box is a 5-row textarea so its example
@@ -3576,7 +3576,7 @@ Month boundaries are per-cell `.mr`/`.mb` rules, so the line steps around a mont
 that ends mid-week. Days of those weeks outside the window stay drawn, greyed and inert. **Dots: every
 other voter owns one fixed column** (vote order), top dot midday, bottom dot
 night, a gap where not free — one person reads as one vertical line through the
-grid; overflow gets /rd's hollow ring.
+grid; dots are 4px with a 2px gap so seven columns fit a phone-width cell, overflow gets /rd's hollow ring, and YOUR column is never the one cut (it takes the last visible place).
 
 **Toggles** (`noodle-toggle.js`, pure): a weekday column or week row covers both
 halves of its in-window days. All on -> off, anything else -> on. The label names

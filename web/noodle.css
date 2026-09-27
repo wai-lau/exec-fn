@@ -228,12 +228,12 @@ body.noodle {
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-8) var(--space-10);
-  border: 1px solid hsl(var(--pink-hsl) / 0.8);
+  border: 1px solid hsl(var(--green-hsl) / 0.8);
   border-radius: var(--radius-4);
   background: hsl(var(--bg-hsl) / 1);
   font-family: 'Noodle Glyphs', var(--font-mono);
 }
-.nd-approved-by { font-size: var(--fs-2xs); letter-spacing: var(--tracking-mega); color: hsl(var(--pink-hsl) / 0.8); }
+.nd-approved-by { font-size: var(--fs-2xs); letter-spacing: var(--tracking-mega); color: hsl(var(--green-hsl) / 1); }
 .nd-approved.show { animation: nd-fade 2200ms ease-in-out both; }
 .nd-approved.show .nd-seal { animation: nd-stamp 520ms 250ms ease-out both; }
 
@@ -244,13 +244,13 @@ body.noodle {
   100% { opacity: 0; }
 }
 
-/* ── "are you one of these guys?" -- faces, four to a row, name under ──── */
+/* ── "are you one of these guys?" -- faces, five to a row, name under ──── */
 .nd-who { margin: 0 0 var(--space-8); }
 .nd-who-h { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); font-weight: var(--fw-normal); color: hsl(var(--green-hsl) / 0.8); }
 
 .nd-faces {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-3);
   margin: 0;
   padding: 0;
@@ -283,7 +283,7 @@ body.noodle {
   color: hsl(var(--green-hsl) / 1);
 }
 
-/* small enough that four faces fit a phone-width row */
+/* small enough that five faces fit a phone-width row */
 
 /* a fixed 9x6 box: a voter whose key the owner reset has no seal yet, and
    their name must still sit on the same line as everyone else's */
