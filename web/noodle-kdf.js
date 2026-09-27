@@ -88,6 +88,7 @@ function NoodleKdf(opts) {
   spawn();
   return {
     input: input, sign: sign,
+    stop: function () { gen++; clearTimeout(timer); worker.terminate(); },
     ready: function () { return !!(current && current.pub) && !busy; },
     pub: function () { return current && current.pub; },
   };

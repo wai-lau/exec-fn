@@ -259,3 +259,15 @@ def test_noodle_ask_refuses_before_spending(client, noodle_slug):
     r = client.post(f"/api/noodle/{noodle_slug}/ask", content=b"{" + b" " * 2000 + b"}",
                     headers={"Content-Type": "application/json"})
     assert r.status_code == 413
+
+
+@pytest.mark.parametrize("path", ["settings", "remove", "rekey"])
+def test_noodle_signed_actions_refuse_junk_without_writing(client, noodle_slug, path):
+    before = client.get(f"/api/noodle/{noodle_slug}").json()["voters"]
+    body = {"name": "smoke", "pub": "A" * 43, "ts": 1, "sig": "x", "halves": False,
+            "target": "x", "newpub": "A" * 43}
+    assert client.post(f"/api/noodle/{noodle_slug}/{path}", json=body).status_code == 400
+    r = client.post(f"/api/noodle/{noodle_slug}/{path}", content=b"x" * 9000,
+                    headers={"Content-Type": "application/json"})
+    assert r.status_code == 413
+    assert client.get(f"/api/noodle/{noodle_slug}").json()["voters"] == before

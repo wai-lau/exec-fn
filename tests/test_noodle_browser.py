@@ -358,3 +358,60 @@ def test_the_host_drags_the_crop_lines_and_each_drop_saves(browser, base_url, cr
         assert page.evaluate("window.getSelection().toString()") == "", "a drag must not select text"
     finally:
         page.close()
+
+
+def test_changing_the_passphrase_hands_the_name_to_the_new_key(browser, base_url, noodle_slug):
+    """Right passphrase -> a 'change' button; tap it, type a new one, commit:
+    the OLD key signs the new one over, and only the new one opens the name.
+    Changed there and back, so the shared poll keeps one fixed voter."""
+    name, one, two = "smoke rekey", "rekey pass one", "rekey pass two"
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+
+    def sealed(pw):
+        page.fill("#nd-pass", pw)
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled"
+                               " || document.querySelector('#nd-why').textContent.includes('different')",
+                               timeout=20000)
+        return not page.is_disabled("#nd-submit")
+
+    def change(new):
+        page.wait_for_function("!document.querySelector('#nd-rekey').hidden", timeout=10000)
+        assert page.inner_text("#nd-rekey") == "change"
+        page.click("#nd-rekey")
+        assert page.get_attribute("#nd-pass", "placeholder") == "new passphrase"
+        assert page.input_value("#nd-pass") == "" and page.is_disabled("#nd-name")
+        assert page.inner_text("#nd-rekey") == "cancel"
+        page.fill("#nd-pass", new)
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        assert page.inner_text("#nd-submit") == "Commit*"
+        page.click("#nd-submit")
+        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+                               timeout=20000)
+        assert page.get_attribute("#nd-pass", "placeholder") == "empty for no passphrase"
+
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", name)
+        if not sealed(one):
+            assert sealed(two), "the rekey voter is sealed with neither passphrase"
+            change(one)   # a previous run stopped half way: put it back first
+        if not page.evaluate("NDV.mine"):
+            page.click("#nd-submit")   # first run: commit so there is a name to change
+            page.wait_for_function("NDV.mine", timeout=10000)
+        change(two)
+        page.reload()
+        page.wait_for_function("document.querySelector('#nd-pass').value", timeout=5000)
+        assert page.input_value("#nd-pass") == two, "the committed passphrase is the remembered one"
+        assert not sealed(one), "the old passphrase no longer opens the name"
+        assert sealed(two)
+        change(one)
+        # cancel puts the old passphrase back untouched
+        page.wait_for_function("!document.querySelector('#nd-rekey').hidden", timeout=10000)
+        page.click("#nd-rekey")
+        page.click("#nd-rekey")
+        assert page.input_value("#nd-pass") == one and not page.is_disabled("#nd-name")
+        assert errors == []
+    finally:
+        page.close()

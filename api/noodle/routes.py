@@ -11,7 +11,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
-from noodle import ask, config, host, pages, store, votes
+from noodle import ask, config, host, pages, rekey, store, votes
 
 router = APIRouter()
 owner_router = APIRouter()
@@ -103,6 +103,12 @@ async def noodle_settings(slug: str, request: Request):
 async def noodle_remove(slug: str, request: Request):
     """Host only: remove a guest and their vote."""
     return await _signed(host.remove, slug, request)
+
+
+@router.post("/api/noodle/{slug}/rekey")
+async def noodle_rekey(slug: str, request: Request):
+    """Any voter: change their passphrase (the old key signs the new one)."""
+    return await _signed(rekey.rekey, slug, request)
 
 
 @router.post("/api/noodle/{slug}/ask")

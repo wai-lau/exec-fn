@@ -17,7 +17,7 @@ window.NDX = NDX;
 function ndx$(id) { return document.getElementById(id); }
 
 function ndxIsHost() {
-  var pub = ndvReady() ? NDV.kdf.pub() : null, role = window.ndhRole ? window.ndhRole(pub) : 'guest';
+  var pub = ndvPub(), role = window.ndhRole ? window.ndhRole(pub) : 'guest';
   return role === 'host' || role === 'fresh';
 }
 
@@ -130,6 +130,11 @@ async function ndxUp() {
 }
 
 async function ndxSave(crop) {
+  if (window.NDR && NDR.active) {
+    ndvStatus('commit your new passphrase first -- the crop is signed with it.');
+    ndxSync();
+    return;
+  }
   if (!ndvReady()) {
     ndvStatus('enter your name first -- the host sets the crop for everyone.');
     ndxSync();
