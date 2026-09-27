@@ -146,7 +146,23 @@ body.noodle {
 }
 
 /* ── ask noodle, status, submit ─────────────────────────────────────────── */
-.nd-ask { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin: var(--space-6) 0 0; }
+.nd-ask { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin: var(--space-8) 0 0; }
+
+/* Ask's own button: cyan and outlined, a different weight from submit's solid
+   green, so the two can never be taken for one another */
+.nd-ask-go {
+  padding: var(--space-2) var(--space-7);
+  border: 1px solid hsl(var(--cyan-hsl) / 0.8);
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: hsl(var(--cyan-hsl) / 0.8);
+  font: inherit;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+}
+.nd-ask-go:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
+.nd-ask .nd-status { margin: 0; }
 .nd-card textarea { resize: none; line-height: var(--lh-snug); }
 .nd-card textarea::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 .nd-ask-label { font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }

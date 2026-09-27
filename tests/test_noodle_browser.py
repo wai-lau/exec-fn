@@ -110,3 +110,38 @@ def test_empty_name_cannot_submit(browser, base_url, noodle_slug):
         assert page.inner_text("#nd-seal-cap") == "your seal of approval"
     finally:
         page.close()
+
+
+def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base_url, noodle_slug):
+    """Picks and the Ask box live in localStorage until submit; the submit
+    request carries exactly {name, pub, slots, ts, sig} -- never the passphrase."""
+    ctx = browser.new_context(viewport={"width": 430, "height": 932})
+    page = ctx.new_page()
+    sent = []
+    page.on("request", lambda r: sent.append((r.url, r.post_data)) if r.method == "POST" else None)
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        _ready(page)
+        cell = page.locator(".nd-d:not(.out)").nth(1)
+        cell.scroll_into_view_if_needed()
+        box = cell.bounding_box()
+        page.mouse.click(box["x"] + box["width"] * 0.85, box["y"] + box["height"] * 0.85)
+        page.fill("#nd-ask", "draft text")
+        picked = cell.get_attribute("class")
+        assert sent == [], f"nothing may leave before submit: {sent}"
+
+        page.reload()
+        _ready(page)
+        assert page.locator(".nd-d:not(.out)").nth(1).get_attribute("class") == picked
+        assert page.input_value("#nd-ask") == "draft text"
+
+        page.click("#nd-submit")
+        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('sealed')",
+                               timeout=10000)
+        import json
+        votes = [json.loads(b) for u, b in sent if u.endswith("/vote")]
+        assert len(votes) == 1 and set(votes[0]) == {"name", "pub", "slots", "ts", "sig"}
+        assert all(PASS not in (b or "") for _, b in sent), "passphrase left the browser"
+        assert page.evaluate(f"localStorage.getItem('noodle.draft.{noodle_slug}')") is None
+    finally:
+        ctx.close()
