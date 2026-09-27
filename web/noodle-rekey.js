@@ -36,7 +36,7 @@ function ndrSync() {
 
 function ndrLabel(on) {
   var pass = ndr$('nd-pass');
-  pass.placeholder = on ? 'new passphrase' : 'empty for no passphrase';
+  pass.placeholder = on ? 'new passphrase' : 'no passphrase';
   ndr$('nd-name').disabled = on;   // a new name is a different identity, not a change
 }
 

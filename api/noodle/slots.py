@@ -3,6 +3,7 @@
 A slot is "YYYY-MM-DD:m" (midday) / "YYYY-MM-DD:n" (night) in a SPLIT poll, or
 "YYYY-MM-DD:d" (the whole day) in an unsplit one. No clock times.
 """
+import re
 import unicodedata
 from datetime import date, timedelta
 
@@ -11,10 +12,15 @@ from noodle import config
 _CODES = set(config.BLOCK_CODES.values()) | {config.DAY_CODE}
 
 
+_NAME_OK = re.compile(r"[a-z0-9 ]+")
+
+
 def normalize_name(raw: str) -> str:
     """The identity a name binds to. Must match noodleNormName() in
     web/noodle-kdf.js byte for byte, because the browser salts the KDF with it.
-    NFKC, control/format chars rejected, whitespace collapsed, lowercased."""
+    NFKC, whitespace collapsed, lowercased -- and then only ASCII letters,
+    digits and spaces are accepted (the page strips anything else as it is
+    typed), which also retires every Unicode case-folding difference."""
     if not isinstance(raw, str):
         raise ValueError("name must be text")
     s = unicodedata.normalize("NFKC", raw)
@@ -23,6 +29,8 @@ def normalize_name(raw: str) -> str:
     s = " ".join(s.split()).lower()
     if not s:
         raise ValueError("name is empty")
+    if not _NAME_OK.fullmatch(s):
+        raise ValueError("name may only have letters, digits and spaces")
     if len(s) > config.NAME_MAX:
         raise ValueError("name too long")
     return s

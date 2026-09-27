@@ -229,16 +229,25 @@ function ndvWarnEmpty() {
 // key is salted with, and the server binds by, the normalized name), so this
 // changes no key and merges no one -- it just stops "Wai" and "wai" looking
 // like two different people.
-function ndvLowercaseName() {
-  var el = ndv$('nd-name'), low = el.value.toLowerCase();
-  if (low === el.value) return;
-  var a = el.selectionStart, b = el.selectionEnd;
-  el.value = low;
-  if (a != null && low.length === el.value.length) el.setSelectionRange(a, b);
+function ndvCleanFields() {
+  ndvKeepOnly(ndv$('nd-name'), true);
+  ndvKeepOnly(ndv$('nd-pass'), false);
+}
+
+// Name and passphrase take ASCII letters, digits and spaces only (the server
+// refuses any other name); anything else is dropped as it is typed, keeping
+// the caret where it was.
+function ndvKeepOnly(el, lower) {
+  var v = el.value.replace(/[^A-Za-z0-9 ]/g, '');
+  if (lower) v = v.toLowerCase();
+  if (v === el.value) return;
+  var cut = el.value.length - v.length, a = el.selectionStart;
+  el.value = v;
+  if (a != null) el.setSelectionRange(Math.max(0, a - cut), Math.max(0, a - cut));
 }
 
 function ndvOnIdentityInput() {
-  ndvLowercaseName();
+  ndvCleanFields();
   ndvSaveIdentity();
   ndvWarnEmpty();
   ndvSealCaption();

@@ -3452,7 +3452,9 @@ p=1 measured ~360ms in node on the droplet and ~560-680ms in headless WebKit on
 it; retune `KDF_T` after measuring on a phone.
 
 **Name normalization must match byte for byte** in `slots.normalize_name` and
-`noodleNormName` (NFKC, Cc/Cf rejected, whitespace collapsed, lowercase), since
+`noodleNormName` (NFKC, Cc/Cf rejected, whitespace collapsed, lowercase, then
+**ASCII letters, digits and spaces only** -- the page strips anything else from
+the name AND the passphrase as it is typed; hints `jane doe` / `no passphrase`), since
 the browser salts with it and the server binds by it; `tests/test_noodle_names.py`
 runs both over the known divergence points (final sigma, dotted I, sharp s,
 fullwidth, ligatures, combining accents, odd whitespace, format chars) and

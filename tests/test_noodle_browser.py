@@ -178,7 +178,7 @@ def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
         face.click()
         assert page.input_value("#nd-name") == name
         assert page.evaluate("document.activeElement.id") == "nd-pass"
-        assert page.get_attribute("#nd-pass", "placeholder") == "empty for no passphrase"
+        assert page.get_attribute("#nd-pass", "placeholder") == "no passphrase"
     finally:
         page.close()
 
@@ -395,7 +395,7 @@ def test_changing_the_passphrase_hands_the_name_to_the_new_key(browser, base_url
         page.click(via)   # the check beside the field commits, the same as Commit
         page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
                                timeout=20000)
-        assert page.get_attribute("#nd-pass", "placeholder") == "empty for no passphrase"
+        assert page.get_attribute("#nd-pass", "placeholder") == "no passphrase"
 
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
@@ -420,5 +420,19 @@ def test_changing_the_passphrase_hands_the_name_to_the_new_key(browser, base_url
         page.click("#nd-rekey")
         assert page.input_value("#nd-pass") == one and not page.is_disabled("#nd-name")
         assert errors == []
+    finally:
+        page.close()
+
+
+def test_name_and_passphrase_keep_only_letters_digits_and_spaces(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        assert page.get_attribute("#nd-name", "placeholder") == "jane doe"
+        assert page.get_attribute("#nd-pass", "placeholder") == "no passphrase"
+        page.type("#nd-name", "Jane.Doe-2!")
+        page.type("#nd-pass", "p@ss w0rd?")
+        assert page.input_value("#nd-name") == "janedoe2"
+        assert page.input_value("#nd-pass") == "pss w0rd"
     finally:
         page.close()
