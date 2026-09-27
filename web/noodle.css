@@ -187,6 +187,17 @@ body.noodle {
 
 .nd-dirty { margin: 0 0 var(--space-2); text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
 
+/* locked: the typed name is sealed by another key (noodle-vote.js ndvSyncLock).
+   Everything that would act on that name goes grey; the fields above stay live. */
+.nd-locked .nd-cal-wrap,
+.nd-locked .nd-ask,
+.nd-locked .nd-submit {
+  opacity: 0.45;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+.nd-locked .nd-seal-cap { color: hsl(var(--orange-glow-hsl) / 0.8); }
+
 .nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
 
 /* the empty-passphrase warning sits right under the fields it is about */

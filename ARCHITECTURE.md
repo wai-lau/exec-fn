@@ -3440,7 +3440,18 @@ it; retune `KDF_T` after measuring on a phone.
 
 **Name normalization must match byte for byte** in `slots.normalize_name` and
 `noodleNormName` (NFKC, Cc/Cf rejected, whitespace collapsed, lowercase), since
-the browser salts with it and the server binds by it.
+the browser salts with it and the server binds by it; `tests/test_noodle_names.py`
+runs both over the known divergence points (final sigma, dotted I, sharp s,
+fullwidth, ligatures, combining accents, odd whitespace, format chars) and
+checks lookalike scripts are NOT merged. **Names are lowercased as typed**, and
+the normalized name is what is stored and shown -- identity was already
+case-blind, so this changed no key and merged no voter; it only stopped
+first-typed casing making one person look like two.
+
+**A name sealed by another key locks the page** (`ndvSyncLock`): calendar, Ask
+and Reserve go grey and `inert`, the caption reads `NOT <name>'s seal of
+approval`, and only the identity fields and the faces stay live. Editing the
+name to one nobody holds re-derives the key and unlocks it.
 
 **Votes.** First submission for `(poll, normalized name)` binds that name to the
 public key; every later one must verify under the same key. The signed bytes are

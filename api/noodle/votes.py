@@ -47,7 +47,9 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
         if prev and ts <= prev["ts"]:
             raise VoteError(409, "stale or replayed submission")
         rec = {
-            "name": prev["name"] if prev else slots.display_name(name),
+            # the NORMALIZED name is the one shown too: it is the identity, and
+            # showing first-typed casing made "Wai" and "wai" look like two people
+            "name": key,
             "pub": pub, "slots": picked, "ts": ts,
             "order": prev["order"] if prev else len(voters),
         }

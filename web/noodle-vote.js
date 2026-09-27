@@ -93,6 +93,19 @@ function ndvSyncSubmit(busy) {
   btn.textContent = dirty ? 'Reserve*' : 'Reserve';
   ndv$('nd-dirty').hidden = !dirty;
   ndv$('nd-why').textContent = why;
+  ndvSyncLock();
+}
+
+// A name sealed by ANOTHER key locks everything but the identity fields (and
+// the faces, which are a way to pick a different name): the calendar, its
+// toggles, Ask and Reserve go grey and inert. Editing the name to one nobody
+// holds re-derives the key and unlocks it -- NDV.blocked is recomputed then.
+function ndvSyncLock() {
+  var locked = !!NDV.blocked;
+  ndv$('noodle').classList.toggle('nd-locked', locked);
+  ndv$('nd-cal').inert = locked;
+  ndv$('nd-ask').closest('.nd-ask').inert = locked;
+  ndvSealCaption();
 }
 
 // Which voter (if any) the typed name already belongs to, and everyone else
@@ -163,7 +176,8 @@ function ndvRestoreIdentity() {
 // "<name>'s seal of approval", following the name field as it is typed.
 function ndvSealCaption() {
   var name = ndv$('nd-name').value.trim().split(/\s+/).join(' ');
-  ndv$('nd-seal-cap').textContent = (name ? name + "'s" : 'your') + ' seal of approval';
+  var who = name ? name + "'s" : 'your';
+  ndv$('nd-seal-cap').textContent = (NDV.blocked ? 'NOT ' : '') + who + ' seal of approval';
 }
 
 // No passphrase = the name alone decides the key, so say so plainly.
@@ -172,7 +186,20 @@ function ndvWarnEmpty() {
   ndv$('nd-warn').hidden = !open;
 }
 
+// Names are lowercase as they are typed. Identity was ALREADY case-blind (the
+// key is salted with, and the server binds by, the normalized name), so this
+// changes no key and merges no one -- it just stops "Wai" and "wai" looking
+// like two different people.
+function ndvLowercaseName() {
+  var el = ndv$('nd-name'), low = el.value.toLowerCase();
+  if (low === el.value) return;
+  var a = el.selectionStart, b = el.selectionEnd;
+  el.value = low;
+  if (a != null && low.length === el.value.length) el.setSelectionRange(a, b);
+}
+
 function ndvOnIdentityInput() {
+  ndvLowercaseName();
   ndvSaveIdentity();
   ndvWarnEmpty();
   ndvSealCaption();

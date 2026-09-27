@@ -27,11 +27,6 @@ def normalize_name(raw: str) -> str:
     return s
 
 
-def display_name(raw: str) -> str:
-    """What gets shown: the typed name, NFKC'd and whitespace-collapsed, case kept."""
-    return " ".join(unicodedata.normalize("NFKC", raw).split())
-
-
 def parse_window(start: str, end: str) -> tuple[date, date]:
     s, e = date.fromisoformat(start), date.fromisoformat(end)
     if e < s:
