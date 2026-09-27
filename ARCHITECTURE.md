@@ -3581,6 +3581,9 @@ into the name row, and a gap would be added around it too.
 a delete button that asks first (`DELETE /api/noodle-polls/{slug}`, owner-only,
 `store.delete`).
 
+**The page scrolls in `.page-scroll`** (chrome.css), not the document: a
+root scrollbar is top-layer and paints over the CRT stack.
+
 **Lines are 2px** throughout Noodle (borders, the dotted box, the split slash):
 1px hairlines broke up under the CRT scanlines.
 

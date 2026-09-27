@@ -112,7 +112,6 @@ body.noodle {
 .nd-seal-cap {
   grid-column: 1 / -1;
   justify-self: end;
-  max-width: 14ch;
   text-align: right;
   overflow-wrap: anywhere;
   font-size: var(--fs-2xs);
