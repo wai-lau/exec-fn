@@ -6,6 +6,7 @@
 .nd-cal-wrap {
   position: relative;
   isolation: isolate;
+  padding: 0 var(--space-2);   /* a little air either side of the grid */
   margin-top: var(--space-6);
 }
 
@@ -274,11 +275,12 @@
 /* ── crop (noodle-crop.js): the host's first and last week, always shown to
    the host as two handles on the grid; the days outside are greyed ───── */
 
-/* Above the day cells -- including weeks loaded AFTER it, which come later in
-   the DOM and at z auto painted over its grips, so a drag landed on a day --
-   and UNDER the frozen header (z-sticky). Level with the week column
-   (z-raised) but starting right of it, so they never overlap. */
-.nd-cropbox { position: absolute; inset: 0 0 0 32px; z-index: var(--z-raised); pointer-events: none; }
+/* Across the whole row, over the frozen week column like the month line and
+   UNDER the frozen header (z-sticky): level with the week column (z-raised)
+   and kept LAST in the grid (noodle-crop.js re-appends it as weeks load), so
+   at an equal z it paints over the column and every day cell -- cells of
+   weeks loaded after it once painted over its grips and ate the drag. */
+.nd-cropbox { position: absolute; inset: 0; z-index: var(--z-raised); pointer-events: none; }
 
 /* A THIN line on the crop edge; the grip strokes (below) are the only part
    that catches a pointer. */
