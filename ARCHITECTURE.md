@@ -3520,7 +3520,7 @@ shows every voter as a small face with their name under it, five to a row;
 tapping one fills the name field and moves focus to the passphrase. The face
 whose key this browser holds is outlined (by key, never by name). Small seals
 keep a fixed 9x6 box, so a voter whose key was reset (no seal yet) still lines
-up. The passphrase field's hint reads "empty for no passphrase".
+up. The passphrase field's hint reads "empty for no passphrase", and its label carries a bright "(remember this)" -- there is no recovery but the owner's reset.
 Each voter's dots wear their seal's ink, so a column in the grid matches a name
 by colour.
 
