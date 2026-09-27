@@ -202,6 +202,7 @@ body.noodle {
 
 .nd-locked .nd-seal-cap,
 .nd-locked #nd-pass-label { color: hsl(var(--orange-glow-hsl) / 0.8); }
+.nd-locked .nd-seal-cap { font-weight: var(--fw-bold); }
 
 .nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
 
