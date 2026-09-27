@@ -68,6 +68,7 @@ def test_same_name_other_passphrase_is_blocked(browser, base_url, noodle_slug):
             "document.querySelector('#nd-why').textContent.includes('different passphrase')", timeout=20000)
         assert page.is_disabled("#nd-submit")
         assert page.inner_text("#nd-seal-cap") == f"NOT {NAME}'s seal of approval"
+        assert page.evaluate("getComputedStyle(document.getElementById('nd-seal-cap')).fontWeight") == "700"
         assert page.evaluate("document.getElementById('nd-cal').inert")
         assert page.evaluate("document.querySelector('.nd-ask').inert")
         label = "getComputedStyle(document.getElementById('nd-pass-label')).color"
