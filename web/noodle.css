@@ -310,8 +310,6 @@ body.noodle {
   border-radius: var(--radius-2);
 }
 .nd-hostpanel[hidden] { display: none; }
-.nd-host-dates { display: flex; gap: var(--space-4); }
-.nd-host-dates .nd-field { flex: 1; min-width: 0; }
 .nd-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); }
 .nd-card .nd-check input { width: auto; }
 .nd-hostpanel .nd-ask-go { align-self: flex-start; }

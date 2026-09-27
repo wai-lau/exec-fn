@@ -25,18 +25,16 @@
 
   <section id="nd-hostpanel" class="nd-hostpanel" hidden>
     <h2 id="nd-host-h" class="nd-who-h"></h2>
-    <div class="nd-host-dates">
-      <label class="nd-field"><span>from</span><input id="nd-h-start" type="date"></label>
-      <label class="nd-field"><span>to</span><input id="nd-h-end" type="date"></label>
-    </div>
     <label class="nd-check"><input id="nd-h-split" type="checkbox"> split each day into midday and night</label>
-    <button id="nd-h-save" type="button" class="nd-ask-go">save dates</button>
+    <button id="nd-h-save" type="button" class="nd-ask-go">save</button>
     <p id="nd-h-status" class="nd-status" aria-live="polite"></p>
   </section>
 
-  <p id="nd-undated" class="nd-status">waiting for the host to pick the dates.</p>
-
-  <div id="nd-when" hidden>
+  <div class="nd-cal-bar">
+    <button id="nd-crop" type="button" class="nd-ask-go">crop</button>
+    <button id="nd-crop-cancel" type="button" class="nd-ask-go" hidden>cancel</button>
+    <button id="nd-uncrop" type="button" class="nd-ask-go" hidden>uncrop</button>
+  </div>
   <div id="nd-cal" class="nd-cal-wrap"></div>
 
   <p id="nd-status" class="nd-status" aria-live="polite"></p>
@@ -52,7 +50,6 @@
     </div>
     <p id="nd-ask-status" class="nd-status" aria-live="polite"></p>
   </div>
-  </div>
 </main>
 
 <div id="nd-approved" class="nd-approved" hidden>
@@ -64,10 +61,11 @@
 
 <script src="/noodle-toggle.js?v=3"></script>
 <script src="/noodle-seal.js?v=4"></script>
-<script src="/noodle-cal.js?v=10"></script>
-<script src="/noodle-cal-view.js?v=10"></script>
+<script src="/noodle-cal.js?v=11"></script>
+<script src="/noodle-cal-view.js?v=11"></script>
 <script src="/noodle-kdf.js?v=2"></script>
 <script src="/noodle-roster.js?v=7"></script>
-<script src="/noodle-vote.js?v=19"></script>
-<script src="/noodle-ask.js?v=9"></script>
-<script src="/noodle-host.js?v=2"></script>
+<script src="/noodle-crop.js?v=2"></script>
+<script src="/noodle-vote.js?v=21"></script>
+<script src="/noodle-ask.js?v=10"></script>
+<script src="/noodle-host.js?v=3"></script>

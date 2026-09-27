@@ -1,8 +1,8 @@
 """What only the HOST may do, each as a signed action.
 
-The host is whoever acts first on a fresh poll: saving the settings (the date
-range, and whether days are split into midday + night) claims the poll, making
-that name + key vote order 0. After that only the same key can change the
+The host is whoever acts first on a fresh poll: committing a vote, or saving
+the settings (whether days are split into midday + night), claims the poll,
+making that name + key vote order 0. After that only the same key can change the
 settings or remove a guest.
 
 Signed like a vote (Ed25519 over canonical JSON, server-clock skew window,
@@ -43,31 +43,26 @@ def _as_host(poll: dict, key: str, pub: str, ts: int) -> dict:
 
 
 def settings(slug: str, body: dict, now: int | None = None) -> dict:
-    """Set the date range and split. On a fresh poll this CLAIMS it."""
+    """Split the days into midday + night, or not. On a fresh poll this CLAIMS
+    it. (There are no dates to set: the calendar is endless.)"""
     now = now_ms() if now is None else now
-    start, end, halves = body.get("start"), body.get("end"), body.get("halves")
+    halves = body.get("halves")
     if not isinstance(halves, bool):
         raise VoteError(400, "halves must be true or false")
-    try:
-        slots.parse_window(start, end)
-    except (TypeError, ValueError) as e:
-        raise VoteError(400, str(e)) from None
-    key, pub, ts = _check(slug, body, {"kind": "settings", "start": start, "end": end,
-                                       "halves": halves}, now)
+    key, pub, ts = _check(slug, body, {"kind": "settings", "halves": halves}, now)
     try:
         with store.edit(slug) as poll:
             if not poll["voters"]:
                 poll["voters"][key] = {"name": key, "pub": pub, "slots": [], "ts": ts, "order": 0}
             else:
                 _as_host(poll, key, pub, ts)
-            was_split = poll.get("halves", True)
-            for v in poll["voters"].values():
-                picks = slots.convert(v["slots"], halves) if halves != was_split else v["slots"]
-                v["slots"] = slots.within(picks, start, end)
-            poll.update(start=start, end=end, halves=halves)
+            if halves != poll.get("halves", True):
+                for v in poll["voters"].values():
+                    v["slots"] = slots.convert(v["slots"], halves)
+            poll["halves"] = halves
     except KeyError:
         raise VoteError(404, "no such poll") from None
-    return {"start": start, "end": end, "halves": halves}
+    return {"halves": halves}
 
 
 def remove(slug: str, body: dict, now: int | None = None) -> dict:

@@ -57,22 +57,39 @@ def cal(expr):
     return js(expr, "noodle-cal.js", "NoodleCalParts")
 
 
-def test_weeks_are_the_minimum_sunday_first():
-    w = cal("return M.weeks('2026-10-14','2026-11-03')")
-    assert w[0][0] == "2026-10-11" and w[0][3] == "2026-10-14"   # Oct 14 2026 is a Wednesday
-    assert w[-1][0] == "2026-11-01" and w[-1][-1] == "2026-11-07"
-    assert len(w) == 4
-    assert cal("return M.weeks('2026-10-11','2026-10-17').length") == 1
-    assert all(len(r) == 7 for r in w)
-    flat = [d for r in w for d in r]
-    assert len(flat) == len(set(flat))
+def test_weeks_run_from_a_sunday_and_go_on():
+    assert cal("return M.sunday('2026-10-14')") == "2026-10-11"
+    assert cal("return M.sunday('2026-10-11')") == "2026-10-11"
+    w = cal("return M.weeksFrom('2026-12-27', 3)")
+    assert w[0] == [f"2026-12-{d}" for d in range(27, 32)] + ["2027-01-01", "2027-01-02"]
+    assert w[2][6] == "2027-01-16" and all(len(r) == 7 for r in w)
 
 
-def test_groups_hold_only_in_window_slots():
-    g = cal("const w=M.weeks('2026-10-14','2026-10-16'); return M.groups(w,'2026-10-14','2026-10-16',true)")
-    assert g["cols"][3] == ["2026-10-14:m", "2026-10-14:n"]   # the one in-window Wednesday
-    assert g["cols"][0] == []
-    assert sum(len(r) for r in g["rows"]) == 6
+def test_a_row_knows_its_month_edges_without_the_next_row():
+    # Oct 2026 ends on a Saturday: the week of Oct 25 has a bottom edge under
+    # every day (the day below is November) and no right edge inside it
+    html = cal("return M.rowHtml(M.weeksFrom('2026-10-25', 1)[0], 0, {from: '2026-01-01', to: null}, 'x')")
+    assert html.count("nd-edge-b") == 7 and html.count("nd-edge-r") == 0
+    # the week of Sep 27 steps: Sep 27-30 then Oct 1 -> a right edge on the 30th
+    html = cal("return M.rowHtml(M.weeksFrom('2026-09-27', 1)[0], 0, {from: '2026-01-01', to: null}, 'x')")
+    assert html.count("nd-edge-r") == 1 and 'data-year="2026"' in html
+
+
+def test_past_days_and_days_outside_a_crop_are_out():
+    html = cal("return M.rowHtml(M.weeksFrom('2026-10-11', 1)[0], 0, {from: '2026-10-13', to: '2026-10-15'}, 'x')")
+    days = __import__("re").findall(r'class="([^"]*)" data-day="([\d-]+)"', html)
+    assert [d for cls, d in days if "out" not in cls] == ["2026-10-13", "2026-10-14", "2026-10-15"]
+
+
+def test_groups_grow_week_by_week_and_hold_only_open_slots():
+    g = cal("""const g={cols:[[],[],[],[],[],[],[]],rows:[]}, b={from:'2026-10-14',to:null};
+      M.weeksFrom('2026-10-11', 2).forEach(w => M.groupAdd(g, w, b, false)); return g""")
+    assert g["cols"][3] == ["2026-10-14:d", "2026-10-21:d"]    # Wednesdays, both loaded weeks
+    assert g["cols"][0] == ["2026-10-18:d"]                    # the 11th is before 'from'
+    assert [len(r) for r in g["rows"]] == [4, 7]
+    split = cal("""const g={cols:[[],[],[],[],[],[],[]],rows:[]};
+      M.groupAdd(g, M.weeksFrom('2026-10-11',1)[0], {from:'2026-10-17',to:null}, true); return g.rows[0]""")
+    assert split == ["2026-10-17:m", "2026-10-17:n"]
 
 
 @pytest.mark.parametrize("x,y,half", [

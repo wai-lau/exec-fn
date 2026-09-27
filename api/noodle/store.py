@@ -68,15 +68,16 @@ def edit(slug: str):
 
 
 def create(title: str, now_iso: str) -> dict:
-    """A new poll has a title and nothing else: the dates and whether days are
-    split are the HOST's to set (noodle/host.py), and new polls start unsplit."""
+    """A new poll has a title and nothing else. It has no date range (the
+    calendar is endless; the host's picks decide what is on offer), and it
+    starts unsplit -- one slot a day -- until the host splits it."""
     with _LOCK:
         while True:
             slug = secrets.token_urlsafe(config.SLUG_BYTES)
             if valid_slug(slug) and not _path(slug).exists():
                 break
         poll = {
-            "slug": slug, "title": title, "start": None, "end": None, "halves": False,
+            "slug": slug, "title": title, "halves": False,
             "created_at": now_iso, "voters": {},
         }
         _write(_path(slug), poll)

@@ -17,7 +17,12 @@ SLUG_LEN = 22
 # ── poll shape ───────────────────────────────────────────────────────────────
 TITLE_MAX = 80
 NAME_MAX = 40
-MAX_WINDOW_DAYS = 120
+# There is no date range on a poll: the calendar is endless and the host's
+# picks decide what is on offer. These only bound what a request may carry.
+MAX_SLOTS = 800                  # per vote
+SLOT_YEARS_AHEAD = 3             # no slot further out than this
+VIEW_MAX_DAYS = 186              # the longest range Ask Noodle will consider
+VIEW_DEFAULT_DAYS = 91           # ... and the one it uses with no crop
 BLOCKS = ("midday", "night")
 BLOCK_CODES = {"midday": "m", "night": "n"}
 # A poll is either SPLIT (midday + night per day, codes m/n) or not (one slot

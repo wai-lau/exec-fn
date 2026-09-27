@@ -12,8 +12,7 @@ async function ndmList() {
   var d = await r.json();
   document.getElementById('nd-polls').innerHTML = d.polls.map(function (p) {
     return '<li><a href="/noodle/' + p.slug + '">' + ndmEsc(p.title) + '</a> ' +
-      '<span class="nd-dim">' + (p.start ? p.start + ' .. ' + p.end : 'dates not set yet') +
-      ' / ' + p.voters + ' voters</span></li>';
+      '<span class="nd-dim">' + p.voters + ' voters</span></li>';
   }).join('') || '<li class="nd-dim">no polls yet</li>';
 }
 

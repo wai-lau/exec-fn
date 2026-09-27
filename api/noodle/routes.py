@@ -95,7 +95,7 @@ async def _signed(fn, slug: str, request: Request):
 
 @router.post("/api/noodle/{slug}/settings")
 async def noodle_settings(slug: str, request: Request):
-    """Host only (the first to save it claims the poll): dates + split."""
+    """Host only (the first to save it claims the poll): split or not."""
     return await _signed(host.settings, slug, request)
 
 
@@ -125,8 +125,7 @@ async def noodle_admin_page():
 @owner_router.get("/api/noodle-polls")
 async def noodle_list():
     polls = await asyncio.to_thread(store.all_polls)
-    return {"polls": [{"slug": p["slug"], "title": p["title"], "start": p.get("start"),
-                       "end": p.get("end"), "voters": len(p["voters"])} for p in polls]}
+    return {"polls": [{"slug": p["slug"], "title": p["title"], "voters": len(p["voters"])} for p in polls]}
 
 
 @owner_router.post("/api/noodle-polls")

@@ -32,14 +32,16 @@ def codes(halves: bool) -> set[str]:
     return set(config.BLOCK_CODES.values()) if halves else {config.DAY_CODE}
 
 
-def parse_window(start, end) -> tuple[date, date]:
+def parse_window(start, end, max_days: int | None = None) -> tuple[date, date]:
+    """A date range -- only ever a VIEW now (a crop, Ask's horizon), never a
+    limit on the poll."""
     if not start or not end:
-        raise ValueError("the host has not set the dates yet")
+        raise ValueError("a range needs both ends")
     s, e = date.fromisoformat(start), date.fromisoformat(end)
     if e < s:
-        raise ValueError("window ends before it starts")
-    if (e - s).days + 1 > config.MAX_WINDOW_DAYS:
-        raise ValueError(f"window longer than {config.MAX_WINDOW_DAYS} days")
+        raise ValueError("range ends before it starts")
+    if max_days and (e - s).days + 1 > max_days:
+        raise ValueError(f"range longer than {max_days} days")
     return s, e
 
 
@@ -57,44 +59,27 @@ def parse_slot(slot: str) -> tuple[date, str]:
     return date.fromisoformat(slot[:10]), code
 
 
-def clean_slots(slots, start: str, end: str, halves: bool = True) -> list[str]:
-    """Validate a client's slot list: every slot well-formed and inside the
-    window. Returns them sorted + deduped (the canonical order the signature
-    covers). Raises ValueError on anything out of bounds -- a vote is never
-    silently trimmed, since the voter signed exactly what they sent."""
+def clean_slots(slots, halves: bool = True, today: date | None = None) -> list[str]:
+    """Validate a client's slot list: every slot well-formed, of this poll's
+    kind (whole days, or midday/night), and not absurdly far out. There is no
+    window -- the calendar is endless. Returns them sorted + deduped (the
+    canonical order the signature covers). Raises ValueError rather than
+    trimming: the voter signed exactly what they sent."""
     if not isinstance(slots, list):
         raise ValueError("slots must be a list")
-    s, e = parse_window(start, end)
-    if len(slots) > 2 * ((e - s).days + 1):
+    if len(slots) > config.MAX_SLOTS:
         raise ValueError("too many slots")
+    today = today or date.today()
+    last = date(today.year + config.SLOT_YEARS_AHEAD, today.month, min(today.day, 28))
     out = set()
     allowed = codes(halves)
     for slot in slots:
         d, code = parse_slot(slot)
         if code not in allowed:
             raise ValueError(f"{slot}: this poll's days are {'split' if halves else 'not split'}")
-        if not s <= d <= e:
-            raise ValueError(f"{slot} is outside the poll window")
+        if d.year < 2020 or d > last:
+            raise ValueError(f"{slot} is out of range")
         out.add(slot)
-    return sorted(out)
-
-
-def clamp_slots(pairs, start: str, end: str) -> list[str]:
-    """Model output -> slots. Unlike clean_slots this DISCARDS anything invalid
-    or outside the window rather than refusing: the model is a suggestion box,
-    the voter reviews the grid before anything is signed."""
-    s, e = parse_window(start, end)
-    out = set()
-    for p in pairs if isinstance(pairs, list) else []:
-        if not isinstance(p, dict):
-            continue
-        code = config.BLOCK_CODES.get(p.get("block"))
-        try:
-            d = date.fromisoformat(str(p.get("date", "")))
-        except ValueError:
-            continue
-        if code and s <= d <= e:
-            out.add(f"{d.isoformat()}:{code}")
     return sorted(out)
 
 
@@ -110,6 +95,3 @@ def convert(slots_: list[str], halves: bool) -> list[str]:
     return sorted({f"{s[:10]}:d" for s in slots_
                    if s.endswith(":d") or {f"{s[:10]}:m", f"{s[:10]}:n"} <= have})
 
-
-def within(slots_: list[str], start: str, end: str) -> list[str]:
-    return [s for s in slots_ if start <= s[:10] <= end]
