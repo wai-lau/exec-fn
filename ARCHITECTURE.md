@@ -3571,9 +3571,11 @@ a two-stroke grip (the only part that catches a pointer, so no tap on a day is
 swallowed). Drop a line and it saves; days outside are greyed. With no crop the
 bottom line waits under week 12 (never following the loaded end: a line that
 runs away as weeks load cannot be grabbed). Guests see no lines, and their
-calendar is just the host's crop. Crop lines sit on the centre of the 5px gap,
-above the day cells (including weeks loaded later -- at z auto those painted
-over the grips) and under both frozen strips. Ask Noodle can crop for a host.
+calendar is just the host's crop. Crop lines sit on the centre of the 5px gap
+and run across the whole row, OVER the frozen week column (like the month
+line) and under the frozen header: the box is at the week column's z and kept
+last in the grid, re-appended as weeks load -- at an equal z the later element
+paints on top, and cells of weeks loaded after it once painted over its grips. Ask Noodle can crop for a host.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
 
 **The split** is a checkbox under the calendar, host only: ticking it

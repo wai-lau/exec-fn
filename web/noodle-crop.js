@@ -66,6 +66,9 @@ function ndxSync() {
     grid.appendChild(box);
     box.addEventListener('pointerdown', ndxDown);
   }
+  // kept LAST in the grid: at the week column's z it paints over the column
+  // (and the weeks loaded since) only if it comes after them in the DOM
+  if (box !== grid.lastElementChild) grid.appendChild(box);
   if (!NDX.drag) ndxFromPoll();
   ndxPlace();
 }
