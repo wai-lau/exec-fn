@@ -64,6 +64,10 @@ body.noodle {
   color: hsl(var(--green-hsl) / 0.45);
 }
 
+/* "(remember this)" beside the passphrase label: there is no recovery but
+   the owner's reset, so the one thing to keep is said where it is typed */
+.nd-field .nd-remember { color: hsl(var(--green-hsl) / 1); }
+
 .nd-card input, .nd-card textarea {
   box-sizing: border-box;
   width: 100%;
