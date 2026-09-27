@@ -1,9 +1,11 @@
-// Noodle crop: anyone can trim the endless calendar to a span of weeks, like
-// cropping a picture -- a handle at the top and one at the bottom, dragged
-// over the week rows, everything outside dimmed. `done` keeps the span (in
-// this browser only, per poll: a VIEW, never a limit on the poll) and the
-// calendar re-renders just those weeks; `uncrop` goes back to endless. Ask
-// Noodle can set it too ("just show me october") through ndxApply.
+// Noodle crop: trim the endless calendar to a span of weeks, like cropping a
+// picture -- a handle at the top and one at the bottom, dragged over the week
+// rows, everything outside dimmed.
+//
+// The HOST's crop is the poll's: saved (signed) on the server, it is the first
+// and last week ANYONE can pick. A guest crops too, but only their own view,
+// kept in this browser and never wider than the host's. `uncrop` clears
+// whichever one is yours. Ask Noodle can crop the same way (ndxApply).
 //
 // Gesture surface rules from /rd's calendar (rd.css): touch-action:none and
 // user-select:none on the handles, pointermove/up on WINDOW, no
@@ -21,21 +23,37 @@ function ndxLoad() {
   } catch (e) { return null; }
 }
 
-// Set (or clear, with null) the crop and rebuild the calendar around it.
-function ndxApply(crop) {
-  try {
-    if (crop) localStorage.setItem(ndxKey(), JSON.stringify(crop));
-    else localStorage.removeItem(ndxKey());
-  } catch (e) { /* storage blocked: the crop lasts until reload */ }
-  NDV.crop = crop;
+function ndxIsHost() {
+  var pub = ndvReady() ? NDV.kdf.pub() : null, role = window.ndhRole ? window.ndhRole(pub) : 'guest';
+  return role === 'host' || role === 'fresh';
+}
+
+// Set (or clear, with null) YOUR crop: the host's goes to the poll, signed --
+// on a fresh poll that claims it -- and a guest's stays in this browser.
+async function ndxApply(crop) {
   NDX.editing = false;
+  if (ndxIsHost()) {
+    if (!ndvReady()) { ndvStatus('enter your name first -- the host sets the crop for everyone.'); ndxSync(); return; }
+    var res = await ndhSend('/settings', { kind: 'settings', halves: NDV.poll.halves,
+      from: crop ? crop.from : null, to: crop ? crop.to : null });
+    if (!res.ok) { ndvStatus(res.data.error || 'could not save the crop', 'err'); ndxSync(); return; }
+    await ndvLoadPoll();
+  } else {
+    try {
+      if (crop) localStorage.setItem(ndxKey(), JSON.stringify(crop));
+      else localStorage.removeItem(ndxKey());
+    } catch (e) { /* storage blocked: the crop lasts until reload */ }
+    NDV.crop = crop;
+  }
   ndvEnsureCal(true);
   ndxSync();
 }
 
 function ndxSync() {
   ndx$('nd-crop').textContent = NDX.editing ? 'done' : 'crop';
-  ndx$('nd-uncrop').hidden = NDX.editing || !NDV.crop;
+  var mine = ndxIsHost() ? NDV.poll && NDV.poll.crop : NDV.crop;
+  ndx$('nd-uncrop').hidden = NDX.editing || !mine;
+  ndx$('nd-crop').title = ndxIsHost() ? 'set the first and last week for everyone' : 'narrow your own view';
   ndx$('nd-crop-cancel').hidden = !NDX.editing;
   var wrap = ndx$('nd-cal');
   wrap.classList.toggle('cropping', NDX.editing);

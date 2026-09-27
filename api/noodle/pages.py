@@ -62,6 +62,8 @@ def public_poll(poll: dict) -> dict:
         # split into midday + night, or one slot a day; polls from before the
         # host could choose were all split, so a missing key means split
         "halves": poll.get("halves", True),
+        # the host's crop: the first and last day anyone can pick (null: endless)
+        "crop": {"from": poll["from"], "to": poll["to"]} if poll.get("from") else None,
         "voters": [{"name": key, "pub": v["pub"], "slots": v["slots"],
                     "order": v["order"]} for key, v in voters],
         # the first to commit hosts: their halves are the only ones on offer

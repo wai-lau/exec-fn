@@ -24,6 +24,14 @@ def host_of(poll: dict) -> tuple[str, dict] | None:
     return min(voters.items(), key=lambda kv: kv[1]["order"])
 
 
+def _in_crop(poll: dict, picked: list[str]) -> list[str]:
+    """The host's crop is the first and last day anyone can pick."""
+    lo, hi = poll.get("from"), poll.get("to")
+    if lo and any(not lo <= s[:10] <= hi for s in picked):
+        raise ValueError("a picked day is outside the host's crop")
+    return picked
+
+
 def submit(slug: str, body: dict, now: int | None = None) -> dict:
     """Validate + store one vote. Returns the stored voter record.
 
@@ -37,7 +45,7 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
     try:
         key = slots.normalize_name(name)
         poll = store.load(slug)
-        picked = slots.clean_slots(body.get("slots"), poll.get("halves", True))
+        picked = _in_crop(poll, slots.clean_slots(body.get("slots"), poll.get("halves", True)))
     except KeyError:
         raise VoteError(404, "no such poll") from None
     except ValueError as e:

@@ -42,14 +42,28 @@ def _as_host(poll: dict, key: str, pub: str, ts: int) -> dict:
     return rec
 
 
+def _crop(body: dict) -> tuple[str | None, str | None]:
+    """The host's crop: the first and last day on offer, or (None, None) for an
+    uncropped, endless calendar. Both ends or neither."""
+    lo, hi = body.get("from"), body.get("to")
+    if lo is None and hi is None:
+        return None, None
+    try:
+        slots.parse_window(lo, hi, 3 * 366)
+    except (TypeError, ValueError) as e:
+        raise VoteError(400, f"crop: {e}") from None
+    return lo, hi
+
+
 def settings(slug: str, body: dict, now: int | None = None) -> dict:
-    """Split the days into midday + night, or not. On a fresh poll this CLAIMS
-    it. (There are no dates to set: the calendar is endless.)"""
+    """The host's poll settings: split the days or not, and the CROP -- the
+    first and last week anyone can pick. On a fresh poll saving these CLAIMS it."""
     now = now_ms() if now is None else now
     halves = body.get("halves")
     if not isinstance(halves, bool):
         raise VoteError(400, "halves must be true or false")
-    key, pub, ts = _check(slug, body, {"kind": "settings", "halves": halves}, now)
+    lo, hi = _crop(body)
+    key, pub, ts = _check(slug, body, {"kind": "settings", "halves": halves, "from": lo, "to": hi}, now)
     try:
         with store.edit(slug) as poll:
             if not poll["voters"]:
@@ -59,10 +73,14 @@ def settings(slug: str, body: dict, now: int | None = None) -> dict:
             if halves != poll.get("halves", True):
                 for v in poll["voters"].values():
                     v["slots"] = slots.convert(v["slots"], halves)
-            poll["halves"] = halves
+            if lo:
+                # narrowing the crop takes days outside it off everyone's vote
+                for v in poll["voters"].values():
+                    v["slots"] = [x for x in v["slots"] if lo <= x[:10] <= hi]
+            poll.update(halves=halves, **{"from": lo, "to": hi})
     except KeyError:
         raise VoteError(404, "no such poll") from None
-    return {"halves": halves}
+    return {"halves": halves, "from": lo, "to": hi}
 
 
 def remove(slug: str, body: dict, now: int | None = None) -> dict:

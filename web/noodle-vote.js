@@ -276,14 +276,23 @@ async function ndvSubmit() {
   }
 }
 
-// The calendar is endless; what shapes it is the poll's SPLIT (whole days or
-// midday + night, the host's choice, changeable while this page is open) and
-// this voter's own CROP (noodle-crop.js). Rebuilt only when one of those
-// changes (or when forced); picks survive a rebuild.
+// The crop the calendar shows: the HOST's crop (the first and last week
+// anyone can pick, saved on the poll) narrowed by this guest's own view crop
+// (this browser only). A guest crop outside the host's is ignored.
+function ndvCrop() {
+  var p = NDV.poll && NDV.poll.crop, l = NDV.crop;
+  if (!p || !l) return p || l || null;
+  var c = { from: l.from > p.from ? l.from : p.from, to: l.to < p.to ? l.to : p.to };
+  return c.from <= c.to ? c : p;
+}
+
+// The calendar is endless unless cropped; what shapes it is the poll's SPLIT
+// (whole days or midday + night) and the crop above. Rebuilt only when one of
+// those changes (or when forced); picks survive a rebuild.
 function ndvEnsureCal(force) {
   var p = NDV.poll;
   if (!p) return;
-  var c = NDV.crop, key = p.halves + '|' + (c ? c.from + '..' + c.to : '');
+  var c = ndvCrop(), key = p.halves + '|' + (c ? c.from + '..' + c.to : '');
   if (key === NDV.calKey && !force) return;
   var keep = NDV.cal ? NDV.cal.getSel() : null;
   NDV.calKey = key;

@@ -54,7 +54,9 @@ async function ndhSave() {
   if (p && p.voters.length > 1 && halves !== p.halves &&
       !window.confirm('this changes the calendar for everyone who has voted. go ahead?')) return;
   ndhStatus('saving...');
-  var res = await ndhSend('/settings', { kind: 'settings', halves: halves });
+  var c = p && p.crop;   // saving the split keeps the crop as it is
+  var res = await ndhSend('/settings', { kind: 'settings', halves: halves,
+    from: c ? c.from : null, to: c ? c.to : null });
   if (!res.ok) { ndhStatus(res.data.error || 'could not save', 'err'); return; }
   NDH.touched = false;
   ndhStatus('saved.');
