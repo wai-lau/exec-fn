@@ -45,7 +45,7 @@ def vote_page(poll: dict) -> str:
 
 
 def admin_page() -> str:
-    body = _fill(_tmpl("noodle-admin.html"), MAX_DAYS=str(config.MAX_WINDOW_DAYS))
+    body = _tmpl("noodle-admin.html")
     return _page("noodle", body)
 
 
@@ -59,7 +59,6 @@ def public_poll(poll: dict) -> dict:
     voters = sorted(poll["voters"].items(), key=lambda kv: kv[1]["order"])
     return {
         "slug": poll["slug"], "title": poll["title"],
-        "start": poll.get("start"), "end": poll.get("end"),
         # split into midday + night, or one slot a day; polls from before the
         # host could choose were all split, so a missing key means split
         "halves": poll.get("halves", True),

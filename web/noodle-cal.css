@@ -17,6 +17,7 @@
   inset: 0;
   z-index: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
@@ -28,6 +29,9 @@
   pointer-events: none;
   user-select: none;
 }
+
+/* the year, 4 digits under the month -- only when it is not this year */
+.nd-mark small { font-size: 0.32em; }
 
 .nd-scroll {
   position: relative;
@@ -251,3 +255,39 @@
   border-radius: var(--radius-pill);
 }
 
+
+/* ── crop (noodle-crop.js): anyone trims the endless calendar to a span ──── */
+.nd-cal-bar { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-6); }
+.nd-cal-bar + .nd-cal-wrap { margin-top: var(--space-2); }
+
+.nd-cropbox { position: absolute; inset: 0; z-index: var(--z-sticky); pointer-events: none; }
+.nd-crop-dim { position: absolute; left: 0; right: 0; background: hsl(var(--bg-hsl) / 0.45); }
+.nd-crop-dim.top { top: 0; }
+.nd-crop-dim.bot { bottom: 0; }
+
+.nd-grid .nd-crop-h {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  padding: var(--space-1) 0;
+  background: hsl(var(--orange-hsl) / 1);
+  color: hsl(var(--bg-hsl) / 1);
+  font-size: var(--fs-2xs);
+  pointer-events: auto;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix --
+     WebKit (iOS) honours only the prefixed form; see rd.css #rd-calendar. */
+  -webkit-user-select: none;
+}
+
+/* while a crop handle is dragged nothing on the page may be selected */
+body.nd-dragging {
+  user-select: none;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix -- WebKit only reads this */
+  -webkit-user-select: none;
+}

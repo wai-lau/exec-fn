@@ -42,8 +42,8 @@ def env(monkeypatch, tmp_path):
 
 
 def go(env, text="thursday night", pub=None, ip="203.0.113.1", current=None):
-    return env["ask"].ask(env["slug"], {"text": text, "pub": pub or _pub(1),
-                                        "current": current or []}, ip)
+    return env["ask"].ask(env["slug"], {"text": text, "pub": pub or _pub(1), "current": current or [],
+                                        "view": {"from": "2026-10-01", "to": "2026-10-10"}}, ip)
 
 
 def status(env, **kw):
@@ -54,11 +54,12 @@ def status(env, **kw):
 
 def test_valid_output_fills(env):
     out = go(env)
-    assert out == {"slots": ["2026-10-02:n", "2026-10-09:n"], "reading": "Friday nights.", "dropped": 0}
+    assert out == {"slots": ["2026-10-02:n", "2026-10-09:n"], "reading": "Friday nights.",
+                   "dropped": 0, "crop": None}
     assert len(env["calls"]) == 1
 
 
-def test_rules_apply_only_inside_the_window_and_bad_rules_are_dropped(env):
+def test_rules_apply_only_inside_the_view_and_bad_rules_are_dropped(env):
     env["fake"].reply = {"reading": "x", "rules": [
         {"action": "add", "blocks": ["midday"], "where": {"date": ["2026-09-30", "2026-10-06"]}},
         {"action": "add", "blocks": ["night"], "where": {"weekday": ["funday"]}},       # bad
@@ -155,7 +156,28 @@ def test_a_non_host_only_gets_what_the_host_offered(env):
     env["fake"].reply = {"reading": "all", "rules": [
         {"action": "add", "blocks": ["midday", "night"], "where": {"every": True}}]}
     assert go(env, pub=_pub(1))["slots"] == ["2026-10-02:n"]          # a guest: trimmed
-    assert len(go(env, pub=_pub(9), ip="198.51.100.7")["slots"]) == 20  # the host: all of it
+    assert len(go(env, pub=_pub(9), ip="198.51.100.7")["slots"]) == 20  # the host: the whole view
+
+
+@pytest.mark.parametrize("crop,want", [
+    ({"from": "2026-10-01", "to": "2026-10-31"}, {"from": "2026-10-01", "to": "2026-10-31"}),
+    ({"from": "2026-10-31", "to": "2026-10-01"}, None),     # backwards
+    ({"from": "october", "to": "2026-10-31"}, None),         # not a date
+    ({"from": "2026-01-01", "to": "2030-01-01"}, None),      # absurdly long
+    ("october", None), (None, None),
+])
+def test_noodle_can_crop_the_view_but_only_validly(env, crop, want):
+    env["fake"].reply = {"reading": "x", "rules": [], "crop": crop}
+    assert go(env)["crop"] == want
+
+
+def test_without_a_view_noodle_looks_from_today(env):
+    from datetime import date, timedelta
+    env["ask"].ask(env["slug"], {"text": "fridays", "pub": _pub(3)}, "192.0.2.9")
+    system = env["calls"][-1][0]
+    last = date.today() + timedelta(days=env["config"].VIEW_DEFAULT_DAYS - 1)
+    assert date.today().isoformat() in system and last.isoformat() in system
+    assert (last + timedelta(days=1)).isoformat() + " " not in system
 
 
 def test_model_failure_reports(env):

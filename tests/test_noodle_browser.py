@@ -287,3 +287,39 @@ def test_a_non_host_can_only_pick_what_the_host_offered(browser, base_url, noodl
             assert tap(day, half), "an offered half must"
     finally:
         page.close()
+
+
+def test_the_calendar_is_endless_and_anyone_can_crop_it(browser, base_url, noodle_slug):
+    """No date range: weeks load as the grid scrolls. Crop trims the VIEW to a
+    span (kept in this browser, per poll); uncrop goes back to endless."""
+    ctx = browser.new_context(viewport={"width": 430, "height": 932})
+    page = ctx.new_page()
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.locator(".nd-wk").first.wait_for()
+        rows = lambda: page.locator(".nd-wk").count()  # noqa: E731
+        start = rows()
+        for _ in range(4):
+            page.evaluate("const s = document.querySelector('.nd-scroll'); s.scrollTop = s.scrollHeight")
+            page.wait_for_timeout(400)
+        assert rows() > start, "scrolling to the bottom must load more weeks"
+
+        page.evaluate("document.querySelector('.nd-scroll').scrollTop = 0")
+        page.click("#nd-crop")
+        handle = page.locator(".nd-crop-h.bot").bounding_box()
+        page.mouse.move(handle["x"] + 20, handle["y"] + handle["height"] / 2)
+        page.mouse.down()
+        page.mouse.move(handle["x"] + 20, handle["y"] + 150, steps=6)
+        page.mouse.up()
+        assert page.evaluate("window.getSelection().toString()") == "", "a drag must not select text"
+        page.click("#nd-crop")   # done
+        cropped = rows()
+        stored = page.evaluate(f"JSON.parse(localStorage.getItem('noodle.crop.{noodle_slug}'))")
+        assert 1 <= cropped <= 12 and stored["from"] <= stored["to"]
+        page.reload()
+        page.locator(".nd-wk").first.wait_for()
+        assert rows() == cropped, "a crop survives a reload"
+        page.click("#nd-uncrop")
+        assert rows() > cropped
+    finally:
+        ctx.close()

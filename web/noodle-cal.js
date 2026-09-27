@@ -7,9 +7,9 @@
 // bottom-right half is night -- and a tap is hit-tested against that same
 // line (ndHalf), so the half you see is the half you get.
 //
-// The grid spans only the weeks the window touches -- no padding rows; the
-// days of those weeks that fall outside the window are drawn greyed and inert. Month boundaries are a bright stepped line
-// made of per-cell right/bottom rules (.mr/.mb), following the real edge.
+// The grid is endless (weeks load as it scrolls) unless the voter has CROPPED
+// it to a span; past days and days outside the crop are greyed and inert.
+// Month boundaries are a stepped line of bars (.nd-edge-b/.nd-edge-r).
 //
 // Dots: every voter -- you included -- owns ONE fixed column of dots, the same
 // position in every cell (by vote order): top dot midday, bottom dot night,
@@ -37,69 +37,80 @@ function ndHalf(x, y, w, h) {
   return dy < -dx * ND_TAN30 ? 'm' : 'n';
 }
 
-// The MINIMUM weeks: Sunday of the week holding the first day, through
-// Saturday of the week holding the last. Days of those weeks outside the
-// window are drawn greyed; no whole-month padding rows.
-function ndWeeks(start, end) {
-  var first = ndDate(start), last = ndDate(end);
-  first.setDate(first.getDate() - first.getDay());
-  last.setDate(last.getDate() + (6 - last.getDay()));
-  var weeks = [], d = new Date(first);
-  while (d <= last) {
+// The calendar is ENDLESS: weeks are generated from a starting Sunday and more
+// are appended as the grid scrolls (noodle-cal-view.js). A row knows its own
+// month edges without its neighbour being rendered -- the day below is just
+// seven days on -- so an appended row needs no fix-up of the one above it.
+function ndAddDays(iso, n) {
+  var d = ndDate(iso);
+  d.setDate(d.getDate() + n);
+  return ndIso(d);
+}
+
+function ndSunday(iso) {
+  return ndAddDays(iso, -ndDate(iso).getDay());
+}
+
+function ndWeeksFrom(sunday, n) {
+  var weeks = [];
+  for (var w = 0; w < n; w++) {
     var wk = [];
-    for (var i = 0; i < 7; i++) { wk.push(ndIso(d)); d.setDate(d.getDate() + 1); }
+    for (var i = 0; i < 7; i++) wk.push(ndAddDays(sunday, w * 7 + i));
     weeks.push(wk);
   }
   return weeks;
 }
 
-function ndGridHtml(weeks, start, end) {
-  var today = ndIso(new Date());
+// A day is usable when it is not in the past and inside the voter's crop.
+function ndOpen(iso, bound) {
+  return iso >= bound.from && (!bound.to || iso <= bound.to);
+}
+
+function ndHeadHtml() {
   // the corner flips every row/column button between pencil and eraser
   var h = '<div class="nd-hd nd-corner"><button type="button" class="nd-mode"></button></div>';
   ND_DOW.forEach(function (n, c) {
     h += '<div class="nd-hd" data-col="' + c + '">' +
       '<span class="nd-hd-name">' + n + '</span><button type="button" class="nd-tg"></button></div>';
   });
-  weeks.forEach(function (wk, r) {
-    h += '<div class="nd-wk" data-row="' + r + '" data-month="' + wk[3].slice(5, 7) + '">' +
-      '<button type="button" class="nd-tg"></button></div>';
-    wk.forEach(function (iso, c) {
-      var mo = iso.slice(5, 7), cls = ['nd-d'];
-      if (iso < start || iso > end) cls.push('out');
-      if (c === 0 || c === 6) cls.push('we');
-      if (c === 6) cls.push('eow');
-      if (iso === today) cls.push('today');
-      if (weeks[r + 1] && weeks[r + 1][c].slice(5, 7) !== mo) cls.push('mb');
-      if (c < 6 && wk[c + 1].slice(5, 7) !== mo) cls.push('mr');
-      // month-boundary bars are ELEMENTS over the (uniformly dim) borders, not a
-      // border colour: two border colours meeting at a corner get mitred, which
-      // drew a diagonal chip at every step of the line
-      var edges = (cls.indexOf('mb') >= 0 ? '<b class="nd-edge-b"></b>' : '') +
-        (cls.indexOf('mr') >= 0 ? '<b class="nd-edge-r"></b>' : '');
-      h += '<div class="' + cls.join(' ') + '" data-day="' + iso + '">' +
-        '<span class="nd-n">' + iso.slice(8) + '</span><div class="nd-dots"></div>' + edges + '</div>';
-    });
+  return h;
+}
+
+function ndRowHtml(wk, r, bound, today) {
+  var h = '<div class="nd-wk" data-row="' + r + '" data-month="' + wk[3].slice(5, 7) +
+    '" data-year="' + wk[3].slice(0, 4) + '"><button type="button" class="nd-tg"></button></div>';
+  wk.forEach(function (iso, c) {
+    var mo = iso.slice(5, 7), cls = ['nd-d'];
+    if (!ndOpen(iso, bound)) cls.push('out');
+    if (c === 0 || c === 6) cls.push('we');
+    if (c === 6) cls.push('eow');
+    if (iso === today) cls.push('today');
+    if (ndAddDays(iso, 7).slice(5, 7) !== mo) cls.push('mb');
+    if (c < 6 && wk[c + 1].slice(5, 7) !== mo) cls.push('mr');
+    // month-boundary bars are ELEMENTS over the (uniformly dim) borders, not a
+    // border colour: two border colours meeting at a corner get mitred, which
+    // drew a diagonal chip at every step of the line
+    var edges = (cls.indexOf('mb') >= 0 ? '<b class="nd-edge-b"></b>' : '') +
+      (cls.indexOf('mr') >= 0 ? '<b class="nd-edge-r"></b>' : '');
+    h += '<div class="' + cls.join(' ') + '" data-day="' + iso + '">' +
+      '<span class="nd-n">' + iso.slice(8) + '</span><div class="nd-dots"></div>' + edges + '</div>';
   });
   return h;
 }
 
-// Slot groups for the toggles: in-window slots only.
 // The slot codes a day has: midday + night in a SPLIT poll, one whole-day
 // slot otherwise (the default for new polls; the host can split them).
 function ndCodes(halves) { return halves ? ['m', 'n'] : ['d']; }
 
-function ndGroups(weeks, start, end, halves) {
-  var cols = [[], [], [], [], [], [], []], rows = [], codes = ndCodes(halves);
-  weeks.forEach(function (wk) {
-    var row = [];
-    wk.forEach(function (iso, c) {
-      if (iso < start || iso > end) return;
-      codes.forEach(function (k) { cols[c].push(iso + ':' + k); row.push(iso + ':' + k); });
-    });
-    rows.push(row);
+// Add one week's usable slots to the toggle groups (a column's group grows as
+// rows are appended: "every Wednesday" means every Wednesday LOADED).
+function ndGroupAdd(groups, wk, bound, halves) {
+  var row = [], codes = ndCodes(halves);
+  wk.forEach(function (iso, c) {
+    if (!ndOpen(iso, bound)) return;
+    codes.forEach(function (k) { groups.cols[c].push(iso + ':' + k); row.push(iso + ':' + k); });
   });
-  return { cols: cols, rows: rows };
+  groups.rows.push(row);
 }
 
 // How many dot columns fit a cell; one is given up to the overflow ring.
@@ -133,7 +144,8 @@ function ndDotsHtml(iso, cols, fit, sel, halves) {
 }
 
 if (typeof window !== 'undefined') {
-  window.NoodleCalParts = { iso: ndIso, date: ndDate, half: ndHalf, weeks: ndWeeks,
-    gridHtml: ndGridHtml, groups: ndGroups, codes: ndCodes,
+  window.NoodleCalParts = { iso: ndIso, date: ndDate, half: ndHalf, addDays: ndAddDays,
+    sunday: ndSunday, weeksFrom: ndWeeksFrom, open: ndOpen, headHtml: ndHeadHtml,
+    rowHtml: ndRowHtml, groupAdd: ndGroupAdd, codes: ndCodes,
     dotsFit: ndDotsFit, dotsHtml: ndDotsHtml };
 }

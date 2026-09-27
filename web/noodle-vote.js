@@ -73,7 +73,6 @@ function ndvWhyNot() {
   if (!raw.trim()) return 'enter your name first.';
   if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used.';
   if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase.';
-  if (!NDV.cal) return 'the host has not picked the dates yet.';
   if (NDV.keyError) return 'this browser could not make a key.';
   if (!ndvReady()) return 'making your key...';
   return '';
@@ -277,22 +276,21 @@ async function ndvSubmit() {
   }
 }
 
-// The calendar is built from the POLL, not the page: the host sets the dates
-// and the split, and may change them while this page is open. Rebuilt only
-// when they change; picks survive a rebuild where the new calendar has room.
-function ndvEnsureCal() {
-  var p = NDV.poll, key = p && p.start ? p.start + '|' + p.end + '|' + p.halves : '';
-  ndv$('nd-when').hidden = !key;
-  ndv$('nd-undated').hidden = !!key;
-  if (key === NDV.calKey) return;
+// The calendar is endless; what shapes it is the poll's SPLIT (whole days or
+// midday + night, the host's choice, changeable while this page is open) and
+// this voter's own CROP (noodle-crop.js). Rebuilt only when one of those
+// changes (or when forced); picks survive a rebuild.
+function ndvEnsureCal(force) {
+  var p = NDV.poll;
+  if (!p) return;
+  var c = NDV.crop, key = p.halves + '|' + (c ? c.from + '..' + c.to : '');
+  if (key === NDV.calKey && !force) return;
   var keep = NDV.cal ? NDV.cal.getSel() : null;
   NDV.calKey = key;
-  NDV.cal = null;
-  if (!key) return;
-  NDV.cal = window.NoodleCal(ndv$('nd-cal'), {
-    start: p.start, end: p.end, halves: p.halves, onChange: ndvSaveDraft,
-  });
+  NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: p.halves, crop: c, onChange: ndvSaveDraft });
   if (keep) NDV.cal.setSel(keep); else ndvRestoreDraft();
+  if (window.ndxSync) window.ndxSync(); // crop / uncrop buttons follow the crop, reloads included
+  if (NDV.poll) ndvRefreshBinding(ndvReady() ? NDV.kdf.pub() : null);
 }
 
 async function ndvLoadPoll() {
@@ -311,6 +309,7 @@ function ndvInit() {
   var root = ndv$('noodle');
   if (!root || !root.dataset.slug) return;
   NDV.slug = root.dataset.slug;
+  NDV.crop = window.ndxLoad ? window.ndxLoad() : null;
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
   ndv$('nd-ask').addEventListener('input', ndvSaveDraft);
   NDV.kdf = window.NoodleKdf({

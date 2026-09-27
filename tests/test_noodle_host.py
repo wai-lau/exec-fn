@@ -1,8 +1,9 @@
-"""The host's signed actions (noodle/host.py): claiming a fresh poll by setting
-its dates, changing dates / the split, and removing guests.
+"""The host's signed actions (noodle/host.py): claiming a fresh poll, splitting
+or unsplitting its days, and removing guests.
 
-The host is whoever saves the settings first on a poll with no dates; after
-that only the same key can act. Actions are signed over a canonical form with
+The host is whoever acts first on a fresh poll (a vote, or saving the
+settings); after that only the same key can act. There are no dates to set --
+the calendar is endless. Actions are signed over a canonical form with
 a `kind` field, so a vote signature can never be replayed as an action.
 """
 import base64
@@ -34,11 +35,9 @@ def pub(k):
     return _b64(k.public_key().public_bytes_raw())
 
 
-def settings(m, k, name, start, end, halves, ts=NOW):
-    fields = {"kind": "settings", "start": start, "end": end, "halves": halves}
-    msg = m["sig"].canonical_action(name=name, poll=m["slug"], ts=ts, **fields)
-    return {"name": name, "pub": pub(k), "ts": ts, "sig": _b64(k.sign(msg)),
-            "start": start, "end": end, "halves": halves}
+def settings(m, k, name, halves, ts=NOW):
+    msg = m["sig"].canonical_action(name=name, poll=m["slug"], ts=ts, kind="settings", halves=halves)
+    return {"name": name, "pub": pub(k), "ts": ts, "sig": _b64(k.sign(msg)), "halves": halves}
 
 
 def remove(m, k, name, target, ts):
@@ -58,39 +57,41 @@ def fails(fn, *a, **kw):
     return e.value.status
 
 
-def test_a_fresh_poll_has_no_dates_and_nobody_can_vote(m):
+def test_a_fresh_poll_is_unsplit_and_the_first_vote_hosts(m):
     poll = m["store"].load(m["slug"])
-    assert poll["start"] is None and poll["halves"] is False
+    assert poll["halves"] is False and "start" not in poll
     k = Ed25519PrivateKey.generate()
-    assert fails(m["votes"].submit, m["slug"], vote(m, k, "a", [], NOW), now=NOW) == 400
+    m["votes"].submit(m["slug"], vote(m, k, "a", ["2027-03-04:d"], NOW), now=NOW)
+    assert m["votes"].host_of(m["store"].load(m["slug"]))[0] == "a"
 
 
 def test_first_to_save_settings_hosts(m):
     h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
-    m["host"].settings(m["slug"], settings(m, h, "Host", "2026-10-01", "2026-10-07", False), now=NOW)
+    m["host"].settings(m["slug"], settings(m, h, "Host", True), now=NOW)
     poll = m["store"].load(m["slug"])
-    assert poll["start"] == "2026-10-01" and poll["voters"]["host"]["order"] == 0
+    assert poll["halves"] is True and poll["voters"]["host"]["order"] == 0
     # someone else cannot change it, even with a valid signature of their own
     assert fails(m["host"].settings, m["slug"],
-                 settings(m, g, "guest", "2026-10-01", "2026-10-30", True, NOW + 1), now=NOW + 1) == 403
+                 settings(m, g, "guest", True, NOW + 1), now=NOW + 1) == 403
     # the host can, with a newer timestamp only
-    m["host"].settings(m["slug"], settings(m, h, "host", "2026-10-02", "2026-10-09", True, NOW + 2), now=NOW + 2)
+    m["host"].settings(m["slug"], settings(m, h, "host", True, NOW + 2), now=NOW + 2)
     assert fails(m["host"].settings, m["slug"],
-                 settings(m, h, "host", "2026-10-02", "2026-10-09", True, NOW + 2), now=NOW + 2) == 409
+                 settings(m, h, "host", True, NOW + 2), now=NOW + 2) == 409
 
 
 def test_bad_settings_are_refused(m):
     h = Ed25519PrivateKey.generate()
-    for start, end in (("2026-10-07", "2026-10-01"), ("2026-10-01", "2027-06-01"), ("", "2026-10-01")):
-        assert fails(m["host"].settings, m["slug"], settings(m, h, "h", start, end, False), now=NOW) == 400
-    body = settings(m, h, "h", "2026-10-01", "2026-10-07", False)
+    body = settings(m, h, "h", False)
+    body["halves"] = "yes"
+    assert fails(m["host"].settings, m["slug"], body, now=NOW) == 400
+    body = settings(m, h, "h", False)
     body["halves"] = True   # tampered after signing
     assert fails(m["host"].settings, m["slug"], body, now=NOW) == 403
 
 
 def test_unsplit_polls_take_whole_days_only(m):
     h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-01", "2026-10-07", False), now=NOW)
+    m["host"].settings(m["slug"], settings(m, h, "h", False), now=NOW)
     assert fails(m["votes"].submit, m["slug"], vote(m, h, "h", ["2026-10-02:m"], NOW + 1), now=NOW + 1) == 400
     m["votes"].submit(m["slug"], vote(m, h, "h", ["2026-10-02:d", "2026-10-03:d"], NOW + 2), now=NOW + 2)
     rec = m["votes"].submit(m["slug"], vote(m, g, "g", ["2026-10-03:d"], NOW + 3), now=NOW + 3)
@@ -99,31 +100,23 @@ def test_unsplit_polls_take_whole_days_only(m):
 
 def test_splitting_and_unsplitting_convert_everyones_picks(m):
     h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-01", "2026-10-07", False), now=NOW)
+    m["host"].settings(m["slug"], settings(m, h, "h", False), now=NOW)
     m["votes"].submit(m["slug"], vote(m, h, "h", ["2026-10-02:d", "2026-10-03:d"], NOW + 1), now=NOW + 1)
     m["votes"].submit(m["slug"], vote(m, g, "g", ["2026-10-03:d"], NOW + 2), now=NOW + 2)
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-01", "2026-10-07", True, NOW + 3), now=NOW + 3)
+    m["host"].settings(m["slug"], settings(m, h, "h", True, NOW + 3), now=NOW + 3)
     v = m["store"].load(m["slug"])["voters"]
     assert v["h"]["slots"] == ["2026-10-02:m", "2026-10-02:n", "2026-10-03:m", "2026-10-03:n"]
     assert v["g"]["slots"] == ["2026-10-03:m", "2026-10-03:n"]
     m["votes"].submit(m["slug"], vote(m, g, "g", ["2026-10-03:m"], NOW + 4), now=NOW + 4)
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-01", "2026-10-07", False, NOW + 5), now=NOW + 5)
+    m["host"].settings(m["slug"], settings(m, h, "h", False, NOW + 5), now=NOW + 5)
     v = m["store"].load(m["slug"])["voters"]
     assert v["h"]["slots"] == ["2026-10-02:d", "2026-10-03:d"]
     assert v["g"]["slots"] == [], "midday alone is not the whole day"
 
 
-def test_narrowing_the_dates_drops_picks_outside(m):
-    h = Ed25519PrivateKey.generate()
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-01", "2026-10-07", False), now=NOW)
-    m["votes"].submit(m["slug"], vote(m, h, "h", ["2026-10-01:d", "2026-10-06:d"], NOW + 1), now=NOW + 1)
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-03", "2026-10-09", False, NOW + 2), now=NOW + 2)
-    assert m["store"].load(m["slug"])["voters"]["h"]["slots"] == ["2026-10-06:d"]
-
-
 def test_the_host_removes_a_guest_and_only_the_host_can(m):
     h, g, x = (Ed25519PrivateKey.generate() for _ in range(3))
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-01", "2026-10-07", False), now=NOW)
+    m["host"].settings(m["slug"], settings(m, h, "h", False), now=NOW)
     m["votes"].submit(m["slug"], vote(m, g, "g", [], NOW + 1), now=NOW + 1)
     m["votes"].submit(m["slug"], vote(m, x, "x", [], NOW + 2), now=NOW + 2)
     assert fails(m["host"].remove, m["slug"], remove(m, g, "g", "x", NOW + 3), now=NOW + 3) == 403
@@ -137,7 +130,7 @@ def test_the_host_removes_a_guest_and_only_the_host_can(m):
 
 def test_a_vote_signature_is_not_an_action_signature(m):
     h = Ed25519PrivateKey.generate()
-    m["host"].settings(m["slug"], settings(m, h, "h", "2026-10-01", "2026-10-07", False), now=NOW)
+    m["host"].settings(m["slug"], settings(m, h, "h", False), now=NOW)
     v = vote(m, h, "h", [], NOW + 1)
     body = dict(v, target="h")
     assert fails(m["host"].remove, m["slug"], body, now=NOW + 1) == 403

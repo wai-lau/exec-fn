@@ -1,6 +1,7 @@
-// Noodle host controls. The host is whoever FIRST saves the dates on a fresh
-// poll; after that the same key alone can change the dates / the split and
-// remove guests. Each action is signed like a vote, over a canonical object
+// Noodle host controls. The host is whoever acts FIRST on a fresh poll (a
+// commit, or saving the split here); after that the same key alone can split
+// or unsplit the days and remove guests. There are no dates to set: the
+// calendar is endless, and each voter crops their own view. Each action is signed like a vote, over a canonical object
 // that carries a `kind` field (noodle/sig.py canonical_action) so a vote can
 // never be replayed as an action or the other way round.
 
@@ -28,12 +29,8 @@ function ndhSync(pub) {
   panel.hidden = role === 'guest';
   if (panel.hidden || !p) return;
   ndh$('nd-host-h').textContent = role === 'host' ? "you're hosting"
-    : 'nobody has picked the dates yet -- pick them and you host this poll';
-  if (!NDH.touched) {
-    ndh$('nd-h-start').value = p.start || '';
-    ndh$('nd-h-end').value = p.end || '';
-    ndh$('nd-h-split').checked = !!p.halves && !!p.start;
-  }
+    : "nobody is here yet -- whoever commits (or saves this) first hosts the poll";
+  if (!NDH.touched) ndh$('nd-h-split').checked = !!p.halves;
 }
 
 // Keys in sorted order: the same bytes json.dumps(sort_keys=True) builds.
@@ -53,14 +50,11 @@ async function ndhSend(path, fields) {
 
 async function ndhSave() {
   if (!ndvReady()) { ndhStatus('enter your name first -- the host is whoever saves this.'); return; }
-  var start = ndh$('nd-h-start').value, end = ndh$('nd-h-end').value;
-  var halves = ndh$('nd-h-split').checked;
-  if (!start || !end) { ndhStatus('pick both dates.'); return; }
-  var p = NDV.poll;
-  if (p && p.voters.length > 1 && (halves !== p.halves || start > p.start || end < p.end) &&
+  var halves = ndh$('nd-h-split').checked, p = NDV.poll;
+  if (p && p.voters.length > 1 && halves !== p.halves &&
       !window.confirm('this changes the calendar for everyone who has voted. go ahead?')) return;
   ndhStatus('saving...');
-  var res = await ndhSend('/settings', { kind: 'settings', start: start, end: end, halves: halves });
+  var res = await ndhSend('/settings', { kind: 'settings', halves: halves });
   if (!res.ok) { ndhStatus(res.data.error || 'could not save', 'err'); return; }
   NDH.touched = false;
   ndhStatus('saved.');
@@ -80,9 +74,7 @@ async function ndhRemove(e) {
 
 (function () {
   if (!ndh$('nd-hostpanel')) return;
-  ['nd-h-start', 'nd-h-end', 'nd-h-split'].forEach(function (id) {
-    ndh$(id).addEventListener('input', function () { NDH.touched = true; });
-  });
+  ndh$('nd-h-split').addEventListener('input', function () { NDH.touched = true; });
   ndh$('nd-h-save').addEventListener('click', ndhSave);
   ndh$('nd-voters').addEventListener('click', ndhRemove);
   window.ndhSync = ndhSync;

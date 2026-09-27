@@ -43,6 +43,14 @@ SLOT_TOOL = {
                     "required": ["action", "blocks", "where"],
                 },
             },
+            "crop": {
+                "type": "object",
+                "description": ("ONLY when they ask to see or limit the calendar to a span "
+                                "('just october', 'the next three weeks'): the first and last "
+                                "date to show. Omit otherwise."),
+                "properties": {"from": {"type": "string"}, "to": {"type": "string"}},
+                "required": ["from", "to"],
+            },
         },
         "required": ["reading", "rules"],
     },

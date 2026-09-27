@@ -115,12 +115,17 @@ def test_clock_skew_rejected(mods):
     assert err(mods, signed(mods, k, "Ada", [], NOW + config.TS_SKEW_MS + 1)) == 400
 
 
-def test_out_of_window_and_malformed_slots_rejected(mods):
+def test_malformed_and_absurd_slots_rejected(mods):
+    """No window any more -- the calendar is endless -- but a slot must be well
+    formed, of the poll's kind, and not absurdly far out."""
     k = Ed25519PrivateKey.generate()
-    for bad in (["2026-09-30:m"], ["2026-10-11:n"], ["2026-10-01:x"], ["2026-10-1:m"], "nope"):
+    for bad in (["2019-12-31:m"], ["2099-10-11:n"], ["2026-10-01:x"], ["2026-10-1:m"], "nope",
+                ["2026-10-01:d"]):   # a split poll takes m/n, never whole days
         body = signed(mods, k, "Ada", ["2026-10-01:m"], NOW)
         body["slots"] = bad
         assert err(mods, body) == 400, bad
+    ok = signed(mods, k, "Ada", ["2027-06-30:n", "2026-12-01:m"], NOW)   # far ahead is fine
+    assert submit(mods, ok)["slots"] == ["2026-12-01:m", "2027-06-30:n"]
 
 
 def test_bad_name_and_unknown_poll(mods):

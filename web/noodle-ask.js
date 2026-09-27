@@ -53,8 +53,11 @@ async function ndaAsk() {
   try {
     // every ask starts from a BLANK calendar: the answer replaces the grid
     // outright, and the text stays in the box so it can be tweaked and re-asked
-    var res = await ndvPost('/ask', { text: text, pub: NDV.kdf.pub() });
+    // the voter's crop is also Noodle's horizon; without one it looks ahead
+    // from today (the calendar itself is endless)
+    var res = await ndvPost('/ask', { text: text, pub: NDV.kdf.pub(), view: NDV.crop || undefined });
     if (res.ok) {
+      if (res.data.crop && window.ndxApply) window.ndxApply(res.data.crop); // "just show me october"
       if (NDV.cal) NDV.cal.setSel(new Set(res.data.slots));
       ndvSaveDraft();
       // the reading is how Noodle understood the words -- shown first, so an
