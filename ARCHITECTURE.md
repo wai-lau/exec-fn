@@ -3591,7 +3591,10 @@ transparent bars that meet overlap, and every corner doubled into a brighter
 chip. **Each month's blurred number sits behind its own weeks** and scrolls with
 them (`ndcPaintMarks`) -- only for a month COMPLETELY drawn (its 1st and last
 day both in the grid, greyed or unavailable ones included), so not the
-part-month we open in or one still loading. No year. Dimmed with `opacity`,
+part-month we open in or one still loading. No year. GREEN when at least one
+of its days is available (not past, inside the crop, offered by the host),
+GREY when none is (`ndcTintMarks`, re-run on every paint, since the host's
+offer changes availability without any week being added). Dimmed with `opacity`,
 since the palette has no step between 0.12 and 0.45. Quebec statutory holidays
 are pink, exactly as /rd (`.hol`, from the same `web/qc-holidays.js`, a browser
 script -- Noodle's Python keeps its own mirror). The scroller shows at most 6

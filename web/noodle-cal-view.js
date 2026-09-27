@@ -37,6 +37,7 @@ function ndcPaintMarks(grid) {
     m.style.top = r.start.offsetTop + 'px';
     m.style.height = (r.end.offsetTop + r.end.offsetHeight - r.start.offsetTop) + 'px';
     m.textContent = r.start.dataset.month;
+    m.dataset.ym = y + '-' + mo;
     grid.appendChild(m);
   });
 }
@@ -67,8 +68,20 @@ function ndcPaintBoundaries(grid) {
   grid.appendChild(svg);
 }
 
+// A month's watermark is GREEN when at least one of its days is available
+// (not past, inside the crop, offered by the host) and GREY when none is.
+// Re-run on every paint: the host's offer can change availability without
+// any week being added.
+function ndcTintMarks(grid) {
+  grid.querySelectorAll('.nd-mmark').forEach(function (m) {
+    var open = grid.querySelector('.nd-d[data-day^="' + m.dataset.ym + '-"]:not(.out):not(.shut)');
+    m.classList.toggle('closed', !open);
+  });
+}
+
 function ndcPaintMonths(grid) {
   ndcPaintMarks(grid);
+  ndcTintMarks(grid);
   ndcPaintBoundaries(grid);
 }
 
@@ -165,6 +178,7 @@ function NoodleCal(wrap, opts) {
   function paint() {
     cells.forEach(function (c) { ndcCellPaint(c, sel, allowed, opts.halves); });
     ndcPaintButtons(grid, mode, groupOf, offered);
+    ndcTintMarks(grid);
   }
 
   function paintDots() {

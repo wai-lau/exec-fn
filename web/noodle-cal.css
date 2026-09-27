@@ -37,6 +37,9 @@
   user-select: none;
 }
 
+/* a month with no day available (past, outside the crop, not offered) */
+.nd-mmark.closed { color: hsl(var(--gray-hsl) / 0.45); }
+
 .nd-scroll {
   position: relative;
   z-index: var(--z-raised);
