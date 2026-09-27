@@ -65,7 +65,9 @@ function ndcPaintBoundaries(grid) {
   svg.setAttribute('width', W);
   svg.setAttribute('height', grid.scrollHeight);
   svg.innerHTML = '<path d="' + d + '"/>';
-  grid.appendChild(svg);
+  // always BEFORE the crop lines: at the same z the later one paints on top,
+  // and where the two coincide the crop line must win
+  grid.insertBefore(svg, grid.querySelector('.nd-cropbox'));
 }
 
 // A month's watermark is GREEN when at least one of its days is available
@@ -100,8 +102,11 @@ function ndcPaintButtons(grid, mode, groupOf, offered) {
     btn.title = label;
     btn.disabled = !offered(g.slots).length;
   });
+  // the corner shows BOTH tools, "pencil / eraser", the current one bright
   var b = grid.querySelector('.nd-mode'), other = T.flipMode(mode);
-  b.textContent = NDC_ICON[other];
+  // (the "/" between them is drawn by CSS, like a split day cell's)
+  b.innerHTML = '<i class="fill">' + NDC_ICON.fill + '</i><i class="clear">' + NDC_ICON.clear + '</i>';
+  b.dataset.mode = mode;
   b.title = 'switch every button to ' + (other === 'fill' ? 'fill in' : 'clear');
   b.setAttribute('aria-label', b.title);
 }

@@ -3575,7 +3575,9 @@ calendar is just the host's crop. Crop lines sit on the centre of the 5px gap
 and run across the whole row, OVER the frozen week column (like the month
 line) and under the frozen header: the box is at the week column's z and kept
 last in the grid, re-appended as weeks load -- at an equal z the later element
-paints on top, and cells of weeks loaded after it once painted over its grips. Ask Noodle can crop for a host.
+paints on top, and cells of weeks loaded after it once painted over its grips.
+The month path is always inserted BEFORE the crop box for the same reason:
+where the two lines coincide, the crop line must win. Ask Noodle can crop for a host.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
 
 **The split** is a checkbox under the calendar, host only: ticking it
@@ -3615,7 +3617,9 @@ UNSPLIT: one whole-day slot per day, code `d`; splitting turns a picked day into
 both halves, unsplitting keeps a day only where both halves were picked. Polls
 from before this carry no `halves` key and read as split. The row/column
 buttons are a MODE (pencil = fill, eraser = clear) flipped by the calendar's
-top-left corner, never a reading of the cells.
+top-left corner, never a reading of the cells. The corner shows BOTH tools
+stacked, pencil over eraser, split by the same diagonal a split day cell has,
+the current tool bright.
 
 **The host.** Whoever commits FIRST hosts the poll (`votes.host_of`: vote order
 0), and the halves they pick are the only ones anyone else may pick. Enforced on
