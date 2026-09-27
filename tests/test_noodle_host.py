@@ -173,3 +173,23 @@ def test_only_the_host_crops_and_a_crop_must_make_sense(m):
     body = settings(m, h, "h", False, NOW + 3, ("2026-10-01", "2026-10-31"))
     body["to"] = "2026-12-31"   # tampered after signing
     assert fails(m["host"].settings, m["slug"], body, now=NOW + 3) == 403
+
+
+def test_the_host_retitles_the_poll(m):
+    h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+
+    def titled(k, name, title, ts):
+        msg = m["sig"].canonical_action(name=name, poll=m["slug"], ts=ts, kind="settings", halves=False,
+                                        title=title, **{"from": None, "to": None})
+        return {"name": name, "pub": pub(k), "ts": ts, "sig": _b64(k.sign(msg)), "halves": False,
+                "from": None, "to": None, "title": title}
+    m["host"].settings(m["slug"], titled(h, "h", "  Board   games ", NOW), now=NOW)
+    assert m["store"].load(m["slug"])["title"] == "Board games"
+    assert fails(m["host"].settings, m["slug"], titled(g, "g", "mine now", NOW + 1), now=NOW + 1) == 403
+    assert fails(m["host"].settings, m["slug"], titled(h, "h", " ", NOW + 2), now=NOW + 2) == 400
+    body = titled(h, "h", "fine", NOW + 3)
+    body["title"] = "swapped"   # after signing
+    assert fails(m["host"].settings, m["slug"], body, now=NOW + 3) == 403
+    # without a title the settings leave it alone
+    m["host"].settings(m["slug"], settings(m, h, "h", False, NOW + 4), now=NOW + 4)
+    assert m["store"].load(m["slug"])["title"] == "Board games"

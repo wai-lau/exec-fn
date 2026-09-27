@@ -1,6 +1,6 @@
 <main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=2">
   <p id="nd-banner" class="nd-banner" role="alert" hidden></p>
-  <h1 class="nd-title">{{TITLE}}</h1>
+  <h1 id="nd-title" class="nd-title" spellcheck="false">{{TITLE}}</h1>
 
   <section id="nd-who" class="nd-who" hidden>
     <ul id="nd-voters" class="nd-faces"></ul>
@@ -35,8 +35,8 @@
   <div class="nd-ask">
     <label for="nd-ask" class="nd-ask-label">or ask Noodle</label>
     <div class="nd-ask-row">
-      <textarea id="nd-ask" rows="5" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="every odd day of the month, never tuesdays, only at night if it's a prime number day, and only in the morning if it isn't a stat holiday in Quebec"></textarea>
-      <button id="nd-ask-go" type="button" class="nd-ask-go" disabled>ask</button>
+      <textarea id="nd-ask" rows="5" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="every odd day of the month&#10;never tuesdays&#10;only at night if it's a prime number day&#10;only in the morning if it isn't a stat holiday in Quebec"></textarea>
+      <button id="nd-ask-go" type="button" class="nd-ask-go" disabled>help me</button>
     </div>
     <p id="nd-ask-status" class="nd-status" aria-live="polite"></p>
   </div>
@@ -53,11 +53,11 @@
 <script src="/noodle-toggle.js?v=3"></script>
 <script src="/noodle-seal.js?v=5"></script>
 <script src="/noodle-cal.js?v=15"></script>
-<script src="/noodle-cal-view.js?v=34"></script>
+<script src="/noodle-cal-view.js?v=35"></script>
 <script src="/noodle-kdf.js?v=4"></script>
 <script src="/noodle-roster.js?v=12"></script>
-<script src="/noodle-crop.js?v=12"></script>
-<script src="/noodle-vote.js?v=43"></script>
-<script src="/noodle-ask.js?v=15"></script>
-<script src="/noodle-host.js?v=7"></script>
+<script src="/noodle-crop.js?v=14"></script>
+<script src="/noodle-vote.js?v=45"></script>
+<script src="/noodle-ask.js?v=17"></script>
+<script src="/noodle-host.js?v=8"></script>
 <script src="/noodle-rekey.js?v=4"></script>

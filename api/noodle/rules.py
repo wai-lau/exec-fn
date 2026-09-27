@@ -19,13 +19,17 @@ A condition (<cond>) is ONE of:
   {"month": [10, 11]}              by month number
   {"date": ["2026-10-23", ...]}    exact dates
   {"holiday": true}                Quebec statutory holidays
+  {"holiday_within": 3}            a holiday falls within the NEXT n days
+                                   (1..14, not counting the day itself) --
+                                   "the weekend before a long weekend"
+  {"holiday_since": 3}             a holiday fell within the PREVIOUS n days
   {"all": [<cond>, ...]}           every sub-condition holds
   {"any": [<cond>, ...]}           at least one holds
   {"not": <cond>}                  the sub-condition does not hold
 Anything else makes that RULE invalid; an invalid rule is dropped, never
 guessed at, and the others still apply.
 """
-from datetime import date
+from datetime import date, timedelta
 
 from noodle import config, holidays
 
@@ -70,6 +74,14 @@ def _combine(key):
     return run
 
 
+def _near(sign):
+    def run(v, d, depth):
+        if not isinstance(v, int) or isinstance(v, bool) or not 1 <= v <= 14:
+            raise BadRule("a whole number of days, 1..14")
+        return any(holidays.holiday_name(d + timedelta(days=sign * i)) for i in range(1, v + 1))
+    return run
+
+
 _TESTS = {
     "every": lambda v, d, depth: v is True,
     "weekday": _weekday,
@@ -77,6 +89,8 @@ _TESTS = {
     "month": lambda v, d, depth: d.month in _ints(v, 1, 12),
     "date": lambda v, d, depth: d in _dates(v),
     "holiday": lambda v, d, depth: (holidays.holiday_name(d) is not None) == (v is True),
+    "holiday_within": _near(1),
+    "holiday_since": _near(-1),
     "all": _combine("all"),
     "any": _combine("any"),
     "not": lambda v, d, depth: not matches(v, d, depth + 1),

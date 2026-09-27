@@ -220,10 +220,10 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | WS | `/ws/printer` | SDCP control-socket relay to the printer's `:3030/websocket` — the ONLY browser→printer channel, and it stays owner-only. Public route, but closes (1008) unless the FULL `session` cookie matches (no guest tier — it drives the machine); 1011 when the printer/tunnel is down (the SPA retries). Printer→browser text frames get their `VideoUrl` rewritten to `/printer/video`. |
 | GET | `/api/noodle/{slug}` | Public. Poll window + voters (name, pub, slots). **ARCHITECTURE.md §21**. |
 | POST | `/api/noodle/{slug}/vote` | Public. Signed `{name, pub, slots, ts, sig}`; 403 wrong key/bad sig, 409 replay, 413 over 8KB. |
-| POST | `/api/noodle/{slug}/ask` | Public. Haiku text -> a `reading` + RULES, applied to every date by code (`noodle/rules.py`) -> slots, clamped to the window, never submits; 422 if truncated; rolling rate limits (429 + `retry_after`, never a lifetime cap) in `noodle/config.py`. |
+| POST | `/api/noodle/{slug}/ask` | Public, no name needed. `{text, dates, halves}` from the PAGE -> Haiku `reading` + RULES applied by code (`noodle/rules.py`) to exactly those dates; **never reads or writes a poll**; never submits; 422 if truncated; rolling rate limits per poll + per IP (429 + `retry_after`, never a lifetime cap) in `noodle/config.py`. |
 | POST | `/api/noodle/{slug}/settings`, `/remove` | Public, **host-signed** (`noodle/host.py`): split days or not + the CROP (first/last day anyone can pick; the first to act claims host), remove a guest. Host-only; the host drags crop lines on an always-endless calendar, guests just see the crop. |
 | POST | `/api/noodle/{slug}/rekey` | Public, signed by the voter's OLD key: new passphrase and/or name (`noodle/rekey.py`). **ARCHITECTURE.md §21**. |
-| GET/POST | `/api/noodle-polls` | **Owner-only.** List / create polls (`{title}` only). |
+| GET/POST/DELETE | `/api/noodle-polls`, `/api/noodle-polls/{slug}` | **Owner-only.** List / create (`{title}` only) / delete polls. |
 
 ### Exec chat tools (bubble overlay)
 

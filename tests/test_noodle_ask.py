@@ -1,5 +1,6 @@
 """Ask Noodle: the model is faked (noodle.llm.call), so these pin the rate
-limits, the schema validation and the window clamp without spending a token.
+limits and the schema validation without spending a token -- and that Noodle
+works on the PAGE's state alone: it never reads or writes a poll.
 
 Limits are ROLLING WINDOWS, never lifetime caps. Every rate is a config
 constant the tests read, and time is a monkeypatched clock, so a window
@@ -41,9 +42,12 @@ def env(monkeypatch, tmp_path):
     return {"ask": ask, "config": config, "slug": slug, "calls": calls, "fake": fake, "clock": clock}
 
 
-def go(env, text="thursday night", pub=None, ip="203.0.113.1", current=None):
-    return env["ask"].ask(env["slug"], {"text": text, "pub": pub or _pub(1), "current": current or [],
-                                        "view": {"from": "2026-10-01", "to": "2026-10-10"}}, ip)
+OCT = [f"2026-10-{d:02d}" for d in range(1, 11)]
+
+
+def go(env, text="thursday night", pub=None, ip="203.0.113.1", current=None, dates=None, halves=True):
+    return env["ask"].ask(env["slug"], {"text": text, "pub": pub, "current": current or [],
+                                        "dates": OCT if dates is None else dates, "halves": halves}, ip)
 
 
 def status(env, **kw):
@@ -87,30 +91,24 @@ def test_input_length_cap_spends_nothing(env):
     assert go(env, text="x" * cap)["slots"]
 
 
-def test_needs_a_key(env):
-    assert status(env, pub="not-a-key").status == 400
-    assert env["calls"] == []
+def test_needs_no_name(env):
+    # asking needs no key at all: without one the asker is simply not the host
+    assert go(env, pub="not-a-key")["slots"]
+    assert go(env, pub=None)["slots"]
 
 
-def test_voter_rate_limits_then_refills(env):
+def test_there_is_no_per_person_limit(env):
+    assert not hasattr(env["config"], "ASK_VOTER_RATE")
+
+
+def test_retry_after_is_the_time_until_the_oldest_ask_expires(env, monkeypatch):
     c = env["config"]
-    for i in range(c.ASK_VOTER_RATE):
-        go(env, ip=f"198.51.100.{i}")
-    e = status(env, ip="198.51.100.250")
-    assert e.status == 429 and e.retry_after == c.ASK_VOTER_WINDOW_S
-    assert "try again in" in e.msg
-    go(env, pub=_pub(2), ip="198.51.100.251")    # someone else still can
-    env["clock"][0] += c.ASK_VOTER_WINDOW_S      # the window rolls on...
-    go(env, ip="198.51.100.252")                  # ...and they can ask again: no lifetime cap
-    assert len(env["calls"]) == c.ASK_VOTER_RATE + 2
-
-
-def test_retry_after_is_the_time_until_the_oldest_ask_expires(env):
-    c = env["config"]
-    for i in range(c.ASK_VOTER_RATE):
+    monkeypatch.setattr(c, "ASK_POLL_RATE", 3)
+    for i in range(3):
         go(env, ip=f"198.51.100.{i}")
         env["clock"][0] += 10
-    assert status(env, ip="198.51.100.200").retry_after == c.ASK_VOTER_WINDOW_S - 10 * c.ASK_VOTER_RATE
+    e = status(env, ip="198.51.100.200")
+    assert e.status == 429 and e.retry_after == c.ASK_POLL_WINDOW_S - 30 and "try again in" in e.msg
 
 
 def test_poll_rate(env, monkeypatch):
@@ -132,13 +130,6 @@ def test_ip_rate(env, monkeypatch):
     assert len(env["calls"]) == 3
 
 
-def test_ip_allowance_covers_one_voters_own(env):
-    c = env["config"]
-    per_hour = c.ASK_VOTER_RATE * (c.ASK_IP_WINDOW_S // c.ASK_VOTER_WINDOW_S)
-    assert c.ASK_IP_RATE >= c.ASK_VOTER_RATE, "one voter must not trip their own IP first"
-    assert per_hour >= c.ASK_VOTER_RATE
-
-
 def test_a_limited_ask_does_not_count(env, monkeypatch):
     monkeypatch.setattr(env["config"], "ASK_POLL_RATE", 1)
     go(env, pub=_pub(1))
@@ -148,15 +139,29 @@ def test_a_limited_ask_does_not_count(env, monkeypatch):
     go(env, pub=_pub(2))                        # ...so the window refills on time
 
 
-def test_a_non_host_only_gets_what_the_host_offered(env):
+def test_noodle_never_touches_the_poll(env, monkeypatch):
+    """Noodle answers from what the PAGE sends -- never the stored poll, whose
+    crop, split or host offer can be older than the screen."""
     from noodle import store
-    with store.edit(env["slug"]) as poll:
-        poll["voters"]["host"] = {"name": "host", "pub": _pub(9), "slots": ["2026-10-02:n"],
-                                  "ts": 1, "order": 0}
+
+    def forbidden(*a, **k):
+        raise AssertionError("Ask Noodle touched the stored poll")
+    for name in ("load", "edit", "create", "delete", "all_polls", "_write"):
+        monkeypatch.setattr(store, name, forbidden)
     env["fake"].reply = {"reading": "all", "rules": [
         {"action": "add", "blocks": ["midday", "night"], "where": {"every": True}}]}
-    assert go(env, pub=_pub(1))["slots"] == ["2026-10-02:n"]          # a guest: trimmed
-    assert len(go(env, pub=_pub(9), ip="198.51.100.7")["slots"]) == 20  # the host: the whole view
+    out = go(env, dates=["2026-10-02", "2026-10-05"])
+    assert out["slots"] == ["2026-10-02:m", "2026-10-02:n", "2026-10-05:m", "2026-10-05:n"]
+    assert go(env, dates=["2026-10-02"], halves=False)["slots"] == ["2026-10-02:d"]
+
+
+def test_only_the_days_the_page_sent(env):
+    go(env, dates=["2026-10-04", "2026-10-06"])
+    system = env["calls"][-1][0]
+    assert "2026-10-04 " in system and "2026-10-06 " in system and "2026-10-05 " not in system
+    assert status(env, dates=[]).status == 400
+    assert status(env, dates=["october"]).status == 400
+    assert status(env, dates=[f"2026-{m:02d}-01" for m in range(1, 13)] * 20).status == 400
 
 
 @pytest.mark.parametrize("crop,want", [
@@ -169,25 +174,6 @@ def test_a_non_host_only_gets_what_the_host_offered(env):
 def test_noodle_can_crop_the_view_but_only_validly(env, crop, want):
     env["fake"].reply = {"reading": "x", "rules": [], "crop": crop}
     assert go(env)["crop"] == want
-
-
-def test_without_a_view_noodle_looks_from_today(env):
-    from datetime import date, timedelta
-    env["ask"].ask(env["slug"], {"text": "fridays", "pub": _pub(3)}, "192.0.2.9")
-    system = env["calls"][-1][0]
-    last = date.today() + timedelta(days=env["config"].VIEW_DEFAULT_DAYS - 1)
-    assert date.today().isoformat() in system and last.isoformat() in system
-    assert (last + timedelta(days=1)).isoformat() + " " not in system
-
-
-def test_noodle_never_looks_outside_the_hosts_crop(env):
-    from noodle import store
-    with store.edit(env["slug"]) as poll:
-        poll["from"], poll["to"] = "2026-10-04", "2026-10-06"
-    go(env)   # view Oct 1-10
-    system = env["calls"][-1][0]
-    assert "2026-10-04 " in system and "2026-10-06 " in system
-    assert "2026-10-03 " not in system and "2026-10-07 " not in system
 
 
 def test_model_failure_reports(env):
@@ -214,9 +200,7 @@ def test_prompt_lists_every_date_and_forbids_deciding_them(env):
 
 
 def test_prompt_names_quebec_holidays(env, monkeypatch):
-    from noodle import store
-    slug = make_poll(store, "h", "2026-10-10", "2026-10-14")
-    env["ask"].ask(slug, {"text": "x", "pub": _pub(9), "current": []}, "192.0.2.1")
+    go(env, dates=["2026-10-10", "2026-10-12", "2026-10-14"])
     assert "2026-10-12 Monday (Quebec statutory holiday: Action de grace)" in env["calls"][-1][0]
 
 

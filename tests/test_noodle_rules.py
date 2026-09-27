@@ -83,3 +83,16 @@ def test_nesting_is_bounded():
         cond = {"not": {"not": cond}}
     picked, dropped = rules.apply([{"action": "add", "blocks": ["night"], "where": cond}], DATES)
     assert picked == [] and dropped == 1
+
+
+def test_days_before_and_after_a_holiday():
+    from datetime import date, timedelta
+    from noodle import rules
+    ds = [date(2026, 10, 1) + timedelta(days=i) for i in range(20)]   # Thanksgiving: Mon 12 Oct
+    weekend_before = {"all": [{"weekday": ["saturday", "sunday"]}, {"holiday_within": 3}]}
+    picked, dropped = rules.apply([{"action": "add", "blocks": ["night"], "where": weekend_before}], ds)
+    assert picked == ["2026-10-10:n", "2026-10-11:n"] and dropped == 0
+    picked, _ = rules.apply([{"action": "add", "blocks": ["night"], "where": {"holiday_since": 1}}], ds)
+    assert picked == ["2026-10-13:n"]
+    _, dropped = rules.apply([{"action": "add", "blocks": ["night"], "where": {"holiday_within": 40}}], ds)
+    assert dropped == 1

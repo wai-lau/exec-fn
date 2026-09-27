@@ -240,6 +240,10 @@ def test_noodle_create_is_owner_only(client, guest_cookie):
     r = client.post("/api/noodle-polls", json=body, headers={**guest_cookie, "Accept": "application/json"})
     assert r.status_code == 401
     assert client.get("/api/noodle-polls").status_code == 401
+    # deleting is the owner's alone too, and a guest must not even learn if a slug exists
+    assert client.delete(f"/api/noodle-polls/{'A' * 22}").status_code == 401
+    r = client.delete(f"/api/noodle-polls/{'A' * 22}", headers={**guest_cookie, "Accept": "application/json"})
+    assert r.status_code == 401
 
 
 def test_noodle_rejects_bad_votes_without_writing(client, noodle_slug):

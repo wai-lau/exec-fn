@@ -84,6 +84,17 @@ def create(title: str, now_iso: str) -> dict:
         return poll
 
 
+def delete(slug: str) -> bool:
+    """Remove a poll for good (the owner's call). False if there was none."""
+    with _LOCK:
+        path = _path(slug)
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            return False
+        return True
+
+
 def all_polls() -> list[dict]:
     out = []
     for p in sorted(polls_dir().glob("*.json")):

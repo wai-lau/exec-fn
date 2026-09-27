@@ -144,3 +144,15 @@ async def noodle_create(request: Request):
     now = datetime.now().isoformat(timespec="seconds")
     poll = await asyncio.to_thread(store.create, title, now)
     return {"slug": poll["slug"], "url": f"/noodle/{poll['slug']}"}
+
+
+@owner_router.delete("/api/noodle-polls/{slug}")
+async def noodle_delete(slug: str):
+    """Delete a poll and every vote in it. The owner page asks first."""
+    try:
+        gone = await asyncio.to_thread(store.delete, slug)
+    except KeyError:
+        gone = False
+    if not gone:
+        raise HTTPException(404, "no such poll")
+    return {"ok": True}

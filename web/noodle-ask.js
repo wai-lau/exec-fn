@@ -3,9 +3,11 @@
 // asking can never be mistaken for sealing a vote. Enter is a newline: the
 // box is multi-line on purpose, so only the button asks.
 //
-// Needs the voter's key first (the per-voter rate window is counted against
-// it). Limits are RATE limits, never a lifetime cap: a 429 carries
-// retry_after, the button counts it down and comes back by itself.
+// Noodle works on THIS PAGE's state, never the server's: it is sent the days
+// the page can pick right now (the host's crop lines, or a guest's offered
+// days) and the split, and its answer is clamped to the page's offer again.
+// No name needed. Limits are RATE limits (per poll, per IP), never a lifetime
+// cap: a 429 carries retry_after, the button counts it down and comes back.
 
 var NDA = { busy: false, until: 0, tick: null };
 
@@ -43,30 +45,40 @@ function ndaBackOff(secs) {
   NDA.tick = setInterval(step, 1000);
 }
 
+// The days Noodle may fill: the host's crop lines (the calendar is endless
+// for them), else everything this page can pick. Capped to the server's view.
+function ndaDays() {
+  var from = null, to = null;
+  if (window.ndxIsHost && window.ndxIsHost() && window.NDX && NDV.cal.rows().length) {
+    from = NDV.cal.weekOf(NDX.a)[0];
+    to = NDV.cal.weekOf(Math.min(NDX.b, NDV.cal.rows().length - 1))[6];
+  }
+  return NDV.cal ? NDV.cal.pickableDays(from, to).slice(0, 186) : [];
+}
+
 async function ndaAsk() {
   var text = nda$('nd-ask').value.trim();
   if (!text || NDA.busy || ndaWaiting()) return;
-  if (!ndvReady()) { ndaStatus('enter your name first -- Noodle counts questions per person.'); return; }
   NDA.busy = true;
   ndaSync();
   ndaStatus('Noodle is reading...');
   try {
-    // every ask starts from a BLANK calendar: the answer replaces the grid
-    // outright, and the text stays in the box so it can be tweaked and re-asked
-    // the voter's crop is also Noodle's horizon; without one it looks ahead
-    // from today (the calendar itself is endless)
-    // the host's crop is Noodle's horizon too; without one it looks ahead
-    var res = await ndvPost('/ask', { text: text, pub: ndvPub(), view: ndhCrop() || undefined });
+    var res = await ndvPost('/ask', { text: text, dates: ndaDays(), halves: ndhHalves() });
     if (res.ok) {
       // "just the next three weeks": the host can crop by asking; a guest cannot
       if (res.data.crop && window.ndxIsHost && window.ndxIsHost()) await window.ndxSave(res.data.crop);
-      if (NDV.cal) NDV.cal.setSel(new Set(res.data.slots));
-      ndvSaveDraft();
+      var got = NDV.cal ? NDV.cal.clamp(res.data.slots) : [];
+      // an answer REPLACES the grid (every ask starts blank, and the text stays
+      // in the box to be tweaked) -- unless it filled nothing: then the picks
+      // stay, since wiping a calendar to show "no match" loses real work
+      if (got.length) { NDV.cal.setSel(new Set(got)); ndvSaveDraft(); }
+      res.data.slots = got;
       // the reading is how Noodle understood the words -- shown first, so an
       // ambiguous sentence read the other way is visible before it is committed
       var skipped = res.data.dropped ? ' (' + res.data.dropped + ' unusable rule(s) skipped)' : '';
-      ndaStatus('Noodle read that as: ' + (res.data.reading || '(no summary)') + ' -- ' +
-        res.data.slots.length + ' slots filled' + skipped + '. check the calendar, then commit.');
+      ndaStatus('Noodle read that as: ' + (res.data.reading || '(no summary)') + ' -- ' + (got.length
+        ? got.length + ' slots filled' + skipped + '. check the calendar, then commit.'
+        : 'nothing on this calendar matched' + skipped + ', so your picks are unchanged.'));
     } else if (res.data.retry_after) {
       ndaBackOff(res.data.retry_after);
     } else {

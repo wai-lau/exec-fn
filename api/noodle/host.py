@@ -55,15 +55,31 @@ def _crop(body: dict) -> tuple[str | None, str | None]:
     return lo, hi
 
 
+def _title(body: dict) -> tuple[str | None, str | None]:
+    """The title rides along only when the host changed it: (as sent, cleaned)."""
+    title = body.get("title")
+    if title is None:
+        return None, None
+    clean = " ".join(title.split()) if isinstance(title, str) else ""
+    if not clean or len(clean) > config.TITLE_MAX:
+        raise VoteError(400, f"title must be 1-{config.TITLE_MAX} characters")
+    return title, clean
+
+
 def settings(slug: str, body: dict, now: int | None = None) -> dict:
-    """The host's poll settings: split the days or not, and the CROP -- the
-    first and last week anyone can pick. On a fresh poll saving these CLAIMS it."""
+    """The host's poll settings: split the days or not, the CROP -- the first
+    and last week anyone can pick -- and, optionally, the poll's TITLE. On a
+    fresh poll saving these CLAIMS it."""
     now = now_ms() if now is None else now
     halves = body.get("halves")
     if not isinstance(halves, bool):
         raise VoteError(400, "halves must be true or false")
     lo, hi = _crop(body)
-    key, pub, ts = _check(slug, body, {"kind": "settings", "halves": halves, "from": lo, "to": hi}, now)
+    fields = {"kind": "settings", "halves": halves, "from": lo, "to": hi}
+    title, clean = _title(body)
+    if title is not None:
+        fields["title"] = title   # signed as sent
+    key, pub, ts = _check(slug, body, fields, now)
     try:
         with store.edit(slug) as poll:
             if not poll["voters"]:
@@ -78,6 +94,8 @@ def settings(slug: str, body: dict, now: int | None = None) -> dict:
                 for v in poll["voters"].values():
                     v["slots"] = [x for x in v["slots"] if lo <= x[:10] <= hi]
             poll.update(halves=halves, **{"from": lo, "to": hi})
+            if title is not None:
+                poll["title"] = clean
     except KeyError:
         raise VoteError(404, "no such poll") from None
     return {"halves": halves, "from": lo, "to": hi}

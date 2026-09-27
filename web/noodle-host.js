@@ -78,12 +78,36 @@ async function ndhSend(path, fields, ts) {
 // needs the passphrase until then. -> {ok, sent}; sent = the next request
 // needs a newer ts.
 async function ndhCommitSettings(ts) {
-  if (NDV.pendingHalves == null && NDV.pendingCrop === undefined) return { ok: true };
-  var c = ndhCrop();
-  var res = await ndhSend('/settings', { kind: 'settings', halves: ndhHalves(),
-    from: c ? c.from : null, to: c ? c.to : null }, ts);
-  if (res.ok) { NDV.pendingHalves = null; NDV.pendingCrop = undefined; res.sent = true; }
+  if (NDV.pendingHalves == null && NDV.pendingCrop === undefined && NDV.pendingTitle === undefined) return { ok: true };
+  var c = ndhCrop(), f = { kind: 'settings', halves: ndhHalves(), from: c ? c.from : null, to: c ? c.to : null };
+  if (NDV.pendingTitle !== undefined) f.title = NDV.pendingTitle;
+  var res = await ndhSend('/settings', f, ts);
+  if (res.ok) { NDV.pendingHalves = null; NDV.pendingCrop = undefined; NDV.pendingTitle = undefined; res.sent = true; }
   return res;
+}
+
+// The TITLE: the host taps it and types; Enter (or tapping away) ends the
+// edit, and like the split and the crop it is sent with Commit.
+function ndhTitleTap() {
+  var el = ndh$('nd-title'), pub = ndvReady() ? ndvPub() : null, role = ndhRole(pub);
+  if ((role !== 'host' && role !== 'fresh') || el.isContentEditable) return;
+  el.contentEditable = 'plaintext-only';
+  el.focus();
+}
+
+function ndhTitleEdit() {
+  var t = ndh$('nd-title').textContent.split(/\s+/).filter(Boolean).join(' ');
+  NDV.pendingTitle = t && t !== NDV.poll.title ? t : undefined;
+  ndvSaveDraft();   // marks it unsaved
+}
+
+function ndhTitleDone(e) {
+  var el = ndh$('nd-title');
+  if (e.type === 'keydown' && e.key !== 'Enter') return;
+  if (e.type === 'keydown') e.preventDefault();
+  el.contentEditable = 'false';
+  if (!el.textContent.trim()) { el.textContent = NDV.poll.title; ndhTitleEdit(); }
+  el.blur();
 }
 
 async function ndhRemove(e) {
@@ -102,6 +126,11 @@ async function ndhRemove(e) {
   if (!ndh$('nd-split')) return;
   ndh$('nd-split').addEventListener('change', ndhSplitChange);
   ndh$('nd-voters').addEventListener('click', ndhRemove);
+  var t = ndh$('nd-title');
+  t.addEventListener('click', ndhTitleTap);
+  t.addEventListener('input', ndhTitleEdit);
+  t.addEventListener('keydown', ndhTitleDone);
+  t.addEventListener('blur', ndhTitleDone);
   window.ndhSync = ndhSync;
   window.ndhRole = ndhRole;
   window.ndhHalves = ndhHalves;
