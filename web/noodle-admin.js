@@ -13,8 +13,7 @@ async function ndmList() {
   document.getElementById('nd-polls').innerHTML = d.polls.map(function (p) {
     var url = location.origin + '/noodle/' + p.slug;
     return '<li><a href="/noodle/' + p.slug + '">' + ndmEsc(p.title) + '</a> ' +
-      '<span class="nd-dim">' + p.start + ' .. ' + p.end + ' / ' + p.voters + ' voters</span> ' +
-      '<a class="nd-dim" href="/noodle/' + p.slug + '/results">results</a>' +
+      '<span class="nd-dim">' + p.start + ' .. ' + p.end + ' / ' + p.voters + ' voters</span>' +
       '<input class="nd-link" readonly value="' + ndmEsc(url) + '"></li>';
   }).join('') || '<li class="nd-dim">no polls yet</li>';
 }

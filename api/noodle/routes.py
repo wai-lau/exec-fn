@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from noodle import ask, config, pages, slots, store, votes
 
@@ -62,9 +62,12 @@ async def noodle_vote_page(slug: str):
     return HTMLResponse(pages.vote_page(_poll_or_404(slug)), headers=_PRIVATE_PAGE)
 
 
-@router.get("/noodle/{slug}/results", response_class=HTMLResponse)
+@router.get("/noodle/{slug}/results")
 async def noodle_results_page(slug: str):
-    return HTMLResponse(pages.results_page(_poll_or_404(slug)), headers=_PRIVATE_PAGE)
+    # Results live on the vote page now (the calendar's dots + the roster);
+    # links shared before that still land somewhere.
+    _poll_or_404(slug)
+    return RedirectResponse(f"/noodle/{slug}", status_code=301)
 
 
 @router.get("/api/noodle/{slug}")

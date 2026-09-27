@@ -70,7 +70,9 @@ function NoodleKdf(opts) {
     gen++;
     current = null;
     clearTimeout(timer);
-    if (!noodleNormName(name) || !pass) { opts.onStart(null); return; }
+    // an empty passphrase is allowed -- the name alone then decides the key,
+    // so anyone typing the name gets it (the page says so)
+    if (!noodleNormName(name)) { opts.onStart(null); return; }
     var myGen = gen;
     timer = setTimeout(function () { run(name, pass, myGen); }, opts.kdf.debounce);
   }

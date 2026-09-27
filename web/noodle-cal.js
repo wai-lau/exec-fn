@@ -59,17 +59,16 @@ function ndMixHtml() {
     '<button type="button" data-set="off" aria-label="none available">✗</button></span>';
 }
 
-function ndGridHtml(weeks, start, end, readonly) {
+function ndGridHtml(weeks, start, end) {
   var today = ndIso(new Date());
   var h = '<div class="nd-hd nd-corner"></div>';
   ND_DOW.forEach(function (n, c) {
     h += '<div class="nd-hd" data-col="' + c + '">' +
-      (readonly ? '<span class="nd-tg">' + n + '</span>'
-        : '<button type="button" class="nd-tg">' + n + '</button>' + ndMixHtml()) + '</div>';
+      '<button type="button" class="nd-tg">' + n + '</button>' + ndMixHtml() + '</div>';
   });
   weeks.forEach(function (wk, r) {
     h += '<div class="nd-wk" data-row="' + r + '" data-month="' + wk[3].slice(5, 7) + '">' +
-      (readonly ? '' : '<button type="button" class="nd-tg"></button>' + ndMixHtml()) + '</div>';
+      '<button type="button" class="nd-tg"></button>' + ndMixHtml() + '</div>';
     wk.forEach(function (iso, c) {
       var mo = iso.slice(5, 7), cls = ['nd-d'];
       if (iso < start || iso > end) cls.push('out');
@@ -99,13 +98,6 @@ function ndGroups(weeks, start, end) {
   return { cols: cols, rows: rows };
 }
 
-function ndHeatStep(n, total) {
-  if (!n || !total) return 0;
-  if (n >= total) return 4;
-  var r = n / total;
-  return r < 1 / 3 ? 1 : r < 2 / 3 ? 2 : 3;
-}
-
 // How many dot columns fit a cell; one is given up to the overflow ring.
 function ndDotsFit(cell, count) {
   var w = cell ? cell.clientWidth - 2 * ND_DOT_GAP : 0;
@@ -117,14 +109,16 @@ function ndDotsHtml(iso, others, fit) {
   var h = '';
   for (var i = 0; i < fit.shown; i++) {
     var s = others[i].slots;
-    h += '<i' + (s.has(iso + ':m') ? ' class="on"' : '') + '></i>' +
-      '<i' + (s.has(iso + ':n') ? ' class="on"' : '') + '></i>';
+    // each voter's dots wear their seal's ink (noodle.css .nd-dots .nd-hue-*)
+    var on = ' class="on' + (others[i].hue == null ? '' : ' nd-hue-' + others[i].hue) + '"';
+    h += '<i' + (s.has(iso + ':m') ? on : '') + '></i>' +
+      '<i' + (s.has(iso + ':n') ? on : '') + '></i>';
   }
   return fit.more ? h + '<b class="nd-more"></b>' : h;
 }
 
 if (typeof window !== 'undefined') {
   window.NoodleCalParts = { iso: ndIso, date: ndDate, half: ndHalf, weeks: ndWeeks,
-    gridHtml: ndGridHtml, groups: ndGroups, heatStep: ndHeatStep,
+    gridHtml: ndGridHtml, groups: ndGroups,
     dotsFit: ndDotsFit, dotsHtml: ndDotsHtml };
 }

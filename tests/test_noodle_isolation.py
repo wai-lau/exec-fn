@@ -128,7 +128,7 @@ def test_storage_touches_only_its_own_dir(noodle_env, monkeypatch):
         audit.paths.append(os.path.abspath(k.get("dir") or tempfile.gettempdir()))
         return real_mkstemp(*a, **k)
     monkeypatch.setattr(tempfile, "mkstemp", mkstemp)
-    monkeypatch.setattr(llm, "call", lambda system, user: {"slots": [{"date": "2026-10-01", "block": "night"}]})
+    monkeypatch.setattr(llm, "call", lambda system, user: {"days": ["2026-10-01 Thursday: yes -> n"]})
 
     poll = store.create("audit", "2026-10-01", "2026-10-07", "2026-09-27T00:00:00")
     slug, key = poll["slug"], Ed25519PrivateKey.generate()

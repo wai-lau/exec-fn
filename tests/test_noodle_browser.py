@@ -58,7 +58,55 @@ def test_same_name_other_passphrase_is_blocked(browser, base_url, noodle_slug):
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", NAME.upper())
         page.fill("#nd-pass", "not the passphrase")
-        page.wait_for_function("document.querySelector('#nd-status').dataset.kind === 'err'", timeout=20000)
+        page.wait_for_function(
+            "document.querySelector('#nd-why').textContent.includes('different passphrase')", timeout=20000)
         assert page.is_disabled("#nd-submit")
+    finally:
+        page.close()
+
+
+def test_form_is_remembered_locally_never_in_a_cookie(browser, base_url, noodle_slug):
+    ctx = browser.new_context(viewport={"width": 430, "height": 932})
+    page = ctx.new_page()
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        _ready(page)
+        assert page.inner_text("#nd-seal-cap") == "smoke bot's seal of approval"
+        assert page.inner_text("#nd-why") == ""   # enabled: no reason shown
+        # the roster is on this page now, and voters' dots wear their seal's ink
+        assert page.locator("#nd-voters .nd-voter").count() >= 1
+        page.reload()
+        assert page.input_value("#nd-name") == NAME
+        assert page.input_value("#nd-pass") == PASS
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        assert all(PASS not in c["value"] for c in ctx.cookies()), "passphrase must never be a cookie"
+    finally:
+        ctx.close()
+
+
+def test_empty_passphrase_is_allowed_with_a_warning(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", "smoke nopass")
+        page.fill("#nd-pass", "")
+        assert page.is_visible("#nd-warn")
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        page.fill("#nd-pass", "x")
+        assert not page.is_visible("#nd-warn")
+    finally:
+        page.close()
+
+
+def test_empty_name_cannot_submit(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", "   ")
+        page.fill("#nd-pass", "something")
+        page.wait_for_timeout(2500)
+        assert page.is_disabled("#nd-submit")
+        assert page.inner_text("#nd-why") == "enter your name first."
+        assert page.inner_text("#nd-seal-cap") == "your seal of approval"
     finally:
         page.close()

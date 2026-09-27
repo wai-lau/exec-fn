@@ -146,16 +146,6 @@
 .nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
 .nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }
 
-/* results: each half's heat, stepped on the palette's alpha scale */
-.nd-d[data-hm="1"] { --top: hsl(var(--green-hsl) / 0.12); }
-.nd-d[data-hm="2"] { --top: hsl(var(--green-hsl) / 0.45); }
-.nd-d[data-hm="3"] { --top: hsl(var(--green-hsl) / 0.8); }
-.nd-d[data-hm="4"] { --top: hsl(var(--green-hsl) / 1); }
-.nd-d[data-hn="1"] { --bot: hsl(var(--green-hsl) / 0.12); }
-.nd-d[data-hn="2"] { --bot: hsl(var(--green-hsl) / 0.45); }
-.nd-d[data-hn="3"] { --bot: hsl(var(--green-hsl) / 0.8); }
-.nd-d[data-hn="4"] { --bot: hsl(var(--green-hsl) / 1); }
-
 /* month boundary: the rule on the side facing the other month turns bright,
    so the line steps around a month that ends mid-week */
 .nd-d.mr { border-right-color: hsl(var(--green-hsl) / 0.8); }
@@ -203,6 +193,13 @@
   background: hsl(var(--green-hsl) / 1);
   outline: 1px solid hsl(var(--bg-hsl) / 1);
 }
+
+/* a voter's dots wear their seal's ink (noodle-seal.js picks it from the key) */
+.nd-dots i.on.nd-hue-0 { background: hsl(var(--green-hsl) / 0.8); }
+.nd-dots i.on.nd-hue-1 { background: hsl(var(--cyan-hsl) / 0.8); }
+.nd-dots i.on.nd-hue-2 { background: hsl(var(--orange-hsl) / 1); }
+.nd-dots i.on.nd-hue-3 { background: hsl(var(--orange-glow-hsl) / 0.8); }
+.nd-dots i.on.nd-hue-4 { background: hsl(var(--pink-hsl) / 0.8); }
 
 /* more voters than fit: the same hollow silver ring /rd uses */
 .nd-more {
