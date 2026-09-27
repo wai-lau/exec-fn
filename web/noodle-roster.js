@@ -30,7 +30,7 @@ function ndrRender(el, voters, seals, myPub, canRemove) {
     var seal = seals[v.pub];
     var you = !!myPub && v.pub === myPub;
     return '<li><button type="button" class="nd-face' + (you ? ' you' : '') + (v.pending ? ' pending' : '') + '" data-name="' +
-      ndrEsc(v.name) + '" title="' + v.slots.length + ' slots">' +
+      (v.blank ? '' : ndrEsc(v.name)) + '"' + (v.blank ? '' : ' title="' + v.slots.length + ' slots"') + '>' +
       '<pre class="nd-seal xs' + (seal ? ' inked" style="--seal-hsl:' + seal.ink + '"' : '"') + '>' +
       (seal ? seal.html : '') +   // already escaped, face in <b> (noodle-seal.js)
       '</pre><span class="nd-face-name">' + ndrEsc(v.name) + '</span>' +
