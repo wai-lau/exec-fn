@@ -50,13 +50,8 @@ body.noodle {
 
 .nd-dim { color: hsl(var(--gray-hsl) / 0.45); font-size: var(--fs-2xs); }
 
-/* ── identity: name + passphrase, seal to the right ──────────────────────── */
-.nd-id {
-  display: flex;
-  gap: var(--space-6);
-  align-items: center;
-  justify-content: space-between;
-}
+/* ── identity: name + passphrase (the seal is in the teaching box) ───────── */
+.nd-id { display: flex; }
 .nd-fields { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; min-width: 0; }
 
 .nd-field { display: flex; flex-direction: column; gap: var(--space-1); }
@@ -153,23 +148,29 @@ body.noodle {
 }
 
 /* ── the teaching panel ─────────────────────────────────────────────────── */
-.nd-teach {
-  margin: var(--space-6) 0 var(--space-1);
+
+/* The dotted box: the derivation on the left, its arrow pointing at the
+   seal it produced on the right. */
+.nd-teach-box {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin: var(--space-6) 0;
   padding: var(--space-2-5) var(--space-3);
   border: 1px dashed hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-2);
+}
+
+.nd-teach {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   font-family: 'Noodle Glyphs', var(--font-mono);
   font-size: var(--fs-2xs);
   line-height: var(--lh-snug);
   color: hsl(var(--cyan-hsl) / 0.8);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-.nd-note {
-  margin: 0 0 var(--space-6);
-  font-size: var(--fs-2xs);
-  color: hsl(var(--green-hsl) / 0.45);
 }
 
 /* ── ask noodle, status, submit ─────────────────────────────────────────── */
