@@ -44,7 +44,7 @@ TS_SKEW_MS = 120_000
 # ── ask noodle (Claude Haiku) ───────────────────────────────────────────────
 ASK_MODEL = "claude-haiku-4-5"
 ASK_MAX_CHARS = 280
-ASK_MAX_TOKENS = 4096   # one reasoned line per date: ~15 tokens x up to 120 days
+ASK_MAX_TOKENS = 1024   # a reading + a handful of rules; dates are applied by code
 # Rate limits, never lifetime caps: `RATE` asks per rolling `WINDOW_S` seconds.
 ASK_VOTER_RATE = 10      # per voter public key, per poll ...
 ASK_VOTER_WINDOW_S = 600  # ... per 10 minutes

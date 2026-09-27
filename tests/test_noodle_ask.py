@@ -31,7 +31,8 @@ def env(monkeypatch, tmp_path):
     def fake(system, user):
         calls.append((system, user))
         return fake.reply
-    fake.reply = {"days": ["2026-10-01 Thursday: no -> -", "2026-10-02 Friday: friday night -> n"]}
+    fake.reply = {"reading": "Friday nights.",
+                  "rules": [{"action": "add", "blocks": ["night"], "where": {"weekday": ["friday"]}}]}
     monkeypatch.setattr(llm, "call", fake)
     slug = store.create("t", "2026-10-01", "2026-10-10", "x")["slug"]
     return {"ask": ask, "config": config, "slug": slug, "calls": calls, "fake": fake, "clock": clock}
@@ -50,31 +51,28 @@ def status(env, **kw):
 
 def test_valid_output_fills(env):
     out = go(env)
-    assert out == {"slots": ["2026-10-02:n"]}
+    assert out == {"slots": ["2026-10-02:n", "2026-10-09:n"], "reading": "Friday nights.", "dropped": 0}
     assert len(env["calls"]) == 1
 
 
-def test_output_clamped_to_window_and_invalid_discarded(env):
-    env["fake"].reply = {"days": [
-        "2026-09-30 Wednesday: before the window -> mn",
-        "2026-10-11 Sunday: after the window -> m",
-        "2026-10-03 Saturday: not a verdict -> evening",
-        "Oct 4: not a date -> m",
-        "2026-10-05 Monday: no arrow m",
-        {"date": "2026-10-06", "block": "midday"},
-        "2026-10-06 Tuesday: ok -> m",
-        "2026-10-06 Tuesday: duplicate -> m",
-        "2026-10-07 Wednesday: both -> mn",
-        "2026-10-08 Thursday: neither -> -",
+def test_rules_apply_only_inside_the_window_and_bad_rules_are_dropped(env):
+    env["fake"].reply = {"reading": "x", "rules": [
+        {"action": "add", "blocks": ["midday"], "where": {"date": ["2026-09-30", "2026-10-06"]}},
+        {"action": "add", "blocks": ["night"], "where": {"weekday": ["funday"]}},       # bad
+        {"action": "add", "blocks": ["evening"], "where": {"every": True}},             # bad
+        {"action": "wipe", "blocks": ["night"], "where": {"every": True}},              # bad
+        {"action": "add", "blocks": ["night"], "where": {"day": [7]}},
     ]}
-    assert go(env)["slots"] == ["2026-10-06:m", "2026-10-07:m", "2026-10-07:n"]
+    out = go(env)
+    assert out["slots"] == ["2026-10-06:m", "2026-10-07:n"] and out["dropped"] == 3
 
 
-@pytest.mark.parametrize("reply", [None, {}, {"days": "all"}, {"days": [1, 2]}, "junk",
-                                   {"slots": [{"date": "2026-10-02", "block": "night"}]}])
+@pytest.mark.parametrize("reply", [None, {}, {"rules": "all"}, {"rules": [1, 2]}, "junk",
+                                   {"days": ["2026-10-02 Friday: yes -> n"]}])
 def test_schema_invalid_output_discarded(env, reply):
     env["fake"].reply = reply
-    assert go(env)["slots"] == []
+    out = go(env)
+    assert out["slots"] == [] and out["reading"] == ""
 
 
 def test_input_length_cap_spends_nothing(env):
@@ -162,32 +160,32 @@ def test_truncated_answer_is_an_error_not_an_empty_grid(env):
     assert status(env).status == 422
 
 
-def test_prompt_labels_every_date(env):
+def test_prompt_lists_every_date_and_forbids_deciding_them(env):
     go(env)
     system = env["calls"][0][0]
-    assert "2026-10-01 Thursday the 1 (odd)" in system
-    assert "2026-10-10 Saturday the 10 (even)" in system
+    assert "2026-10-01 Thursday" in system and "2026-10-10 Saturday" in system
+    assert "Do NOT decide dates yourself" in system
 
 
 def test_prompt_names_quebec_holidays(env, monkeypatch):
     from noodle import store
     slug = store.create("h", "2026-10-10", "2026-10-14", "x")["slug"]
     env["ask"].ask(slug, {"text": "x", "pub": _pub(9), "current": []}, "192.0.2.1")
-    assert "2026-10-12 Monday the 12 (even) (Quebec statutory holiday: Action de grace)" in env["calls"][-1][0]
+    assert "2026-10-12 Monday (Quebec statutory holiday: Action de grace)" in env["calls"][-1][0]
 
 
 def test_every_ask_starts_from_a_blank_calendar(env):
     # a client's current picks are neither sent nor read: the answer replaces the grid
     go(env, current=["2026-10-01:m"])
     assert "2026-10-01:m" not in env["calls"][0][0]
-    assert "starting from nothing selected" in env["calls"][0][0]
+    assert "on an EMPTY calendar" in env["calls"][0][0]
 
 
 def test_client_bounds_tokens_and_forces_the_tool():
     from noodle import config, llm
-    # one reasoned line per date (~15 tokens) for the longest window must fit
-    assert 15 * config.MAX_WINDOW_DAYS <= config.ASK_MAX_TOKENS <= 4096
-    assert llm.SLOT_TOOL["input_schema"]["required"] == ["days"]
+    # a reading plus a few rules: small, whatever the window length
+    assert config.ASK_MAX_TOKENS <= 2048
+    assert llm.SLOT_TOOL["input_schema"]["required"] == ["reading", "rules"]
     src = Path(llm.__file__).read_text()
     assert "max_tokens=config.ASK_MAX_TOKENS" in src and '"type": "tool"' in src
     assert 'stop_reason == "max_tokens"' in src
