@@ -2,9 +2,8 @@
 //
 // fp = SHA-256(raw 32-byte public key). Bytes 0-17 pick the 18 border cells
 // from the 32 ASCII punctuation marks (256/32 = 8, so no modulo bias); byte 18
-// picks a matched eye pair (16 of them), byte 19 a mouth (8), byte 20 the ink
-// (one of the palette's 5 hues -- a hue derived freely from the key would be a
-// new colour on every seal, which the palette lint exists to refuse). Interior:
+// picks a matched eye pair (16 of them), byte 19 a mouth (8), bytes 20-23 the
+// ink. Interior:
 //   row 1: blank blank blank
 //   row 2: eye   blank eye
 //   row 3: blank mouth blank
@@ -27,10 +26,22 @@ var ND_EYES = [
 ];
 var ND_MOUTHS = ['ω', '▽', '_', '‿', 'ᴗ', '∀', 'ᵕ', 'д'];
 
-// .nd-hue-0..4 in noodle.css: green, cyan, marigold, ember, pink
-var ND_HUES = 5;
+// The ink is NOT a palette colour: any hue at all, from the key. Only the
+// lightness has a floor, so every seal stays readable on the black page (at
+// 62% even pure blue reads clearly; hue alone decides nothing about
+// brightness, so the floor is on lightness, not hue). The value is the
+// channel triple the page-local --seal-hsl token takes (noodle.css).
+var ND_INK_L = [62, 82];   // lightness %, min..max
+var ND_INK_S = [60, 100];  // saturation %, min..max
 
-// -> {text, hue}
+function ndInk(fp) {
+  var hue = ((fp[20] << 8) | fp[21]) % 360;
+  var sat = ND_INK_S[0] + fp[22] % (ND_INK_S[1] - ND_INK_S[0] + 1);
+  var light = ND_INK_L[0] + fp[23] % (ND_INK_L[1] - ND_INK_L[0] + 1);
+  return hue + ' ' + sat + '% ' + light + '%';
+}
+
+// -> {text, ink}
 function ndSealFromFp(fp) {
   var b = [];
   for (var i = 0; i < 18; i++) b.push(ND_BORDER[fp[i] % 32]);
@@ -46,14 +57,16 @@ function ndSealFromFp(fp) {
   ];
   return {
     text: rows.map(function (r) { return r.join(' '); }).join('\n'),
-    hue: fp[20] % ND_HUES,
+    ink: ndInk(fp),
   };
 }
 
 // Put a seal on an element: its text and its ink.
 function ndPaint(el, seal) {
   el.textContent = seal ? seal.text : '';
-  for (var i = 0; i < ND_HUES; i++) el.classList.toggle('nd-hue-' + i, !!seal && seal.hue === i);
+  if (seal) el.style.setProperty('--seal-hsl', seal.ink);
+  else el.style.removeProperty('--seal-hsl');
+  el.classList.toggle('inked', !!seal);
 }
 
 function ndB64ToBytes(s) {

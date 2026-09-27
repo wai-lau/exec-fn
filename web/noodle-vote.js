@@ -112,12 +112,12 @@ function ndvSyncLock() {
 // as dot columns. A name sealed by a different key blocks submit.
 function ndvRefreshBinding(pub) {
   var norm = window.noodleNormName(ndv$('nd-name').value), mine = null, cols = [];
-  var self = { self: true, hue: NDV.seal ? NDV.seal.hue : null };
+  var self = { self: true, ink: NDV.seal ? NDV.seal.ink : null };
   (NDV.poll ? NDV.poll.voters : []).forEach(function (v) {
     if (norm && window.noodleNormName(v.name) === norm) mine = v;
     // your own reserved column shows your LIVE picks instead of the stored vote
     if (pub && v.pub === pub) cols.push(self);
-    else cols.push({ slots: new Set(v.slots), hue: NDV.seals[v.pub] ? NDV.seals[v.pub].hue : null });
+    else cols.push({ slots: new Set(v.slots), ink: NDV.seals[v.pub] ? NDV.seals[v.pub].ink : null });
   });
   if (cols.indexOf(self) < 0) cols.push(self); // not reserved yet: last column
   NDV.cal.setOthers(cols);

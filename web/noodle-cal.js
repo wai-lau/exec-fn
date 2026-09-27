@@ -113,7 +113,7 @@ function ndDotsHtml(iso, cols, fit, sel) {
   var h = '';
   for (var i = 0; i < fit.shown; i++) {
     var c = cols[i], s = c.self ? sel : c.slots;
-    var lit = ' class="on' + (c.hue == null ? '' : ' nd-hue-' + c.hue) + '"';
+    var lit = ' class="on"' + (c.ink ? ' style="--seal-hsl:' + c.ink + '"' : '');
     h += '<i' + (s.has(iso + ':m') ? lit : '') + '></i>' +
       '<i' + (s.has(iso + ':n') ? lit : '') + '></i>';
   }

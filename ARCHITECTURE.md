@@ -3580,11 +3580,16 @@ under the grid.
 **The seal** (`noodle-seal.js`, the ONE implementation — vote and results pages
 both render seals from pubkeys client-side): `SHA-256(pub)`; bytes 0-17 pick the
 18 border cells from the 32 ASCII punctuation marks (256/32, no modulo bias),
-byte 18 an eye pair (16), byte 19 a mouth (8), byte 20 the ink. Rendered 5 wide x
-6 tall with spaces (blank row, eyes, mouth, blank row inside the border). The ink
-is one of the palette's FIVE hues (`.nd-hue-0..4`: green, cyan, marigold, ember,
-pink, each at an alpha already in the baseline) — a hue derived continuously from
-the key would be a new colour per seal, which the palette lint exists to refuse.
+byte 18 an eye pair (16), byte 19 a mouth (8), bytes 20-23 the ink.
+Rendered 5 wide x 6 tall with spaces (blank row, eyes, mouth, blank row inside
+the border). **The ink is deliberately OFF the UI palette**: any hue (bytes
+20-21 mod 360), saturation 60-100%, and a lightness FLOOR of 62% (to 82%) so
+every seal reads on black -- the floor is on lightness because hue alone says
+nothing about brightness. It reaches CSS as the page-local token `--seal-hsl`
+(registered in `LOCAL_ACCENTS` in `scripts/lint-colors.py`, baseline pair
+`seal-hsl / 1`), set inline per seal and per dot as bare channel numbers, so no
+colour-function literal ever appears in source; `.inked` marks a seal that has
+one. The same ink colours that voter's dots.
 The passphrase field is plain text and the teaching line shows it verbatim: it is
 the voter's own screen, and it still never leaves the browser. **Every
 non-ASCII glyph Noodle draws is single-width**: the site's woff2 is a 126-glyph
