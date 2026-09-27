@@ -9,12 +9,16 @@
 <link rel="preload" href="/fonts/iosevka-500.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/noodle-seal.woff2?v=4" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/chrome.css?v=79">
-<link rel="stylesheet" href="/noodle.css?v=48">
+<link rel="stylesheet" href="/noodle.css?v=49">
 <link rel="stylesheet" href="/noodle-cal.css?v=55">
 <link rel="stylesheet" href="/crt-dim.css?v=1">
 </head>
 <body class="noodle">
+<!-- the page scrolls in a fixed wrapper, not the document: a root scrollbar is
+     top-layer and painted over the CRT stack (chrome.css .page-scroll) -->
+<div class="page-scroll">
 {{BODY}}
+</div>
 <!-- the site's CRT stack (pages.py _CRT_FX), written out here: Noodle imports
      no app module, so it cannot take the constant. Paint order is load-bearing:
      bg, lines, blur, crt, scan (ARCHITECTURE.md section 10). -->
