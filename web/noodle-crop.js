@@ -36,6 +36,17 @@ function ndxRowOf(iso, fallback) {
   return fallback;
 }
 
+// The highest row the top line may sit on: this week's. The week drawn above
+// it (noodle-cal-view.js ndcFirstSunday) is all past, never offered.
+function ndxTopMin() {
+  var iso = window.NoodleCalParts.iso(new Date()), rows = NDV.cal.rows();
+  for (var r = 0; r < rows.length; r++) {
+    var wk = NDV.cal.weekOf(r);
+    if (wk[0] <= iso && iso <= wk[6]) return r;
+  }
+  return 0;
+}
+
 // Put the handles where the poll's crop is. With no crop the bottom one sits
 // under week 12 and says there is no end yet -- it must NOT follow the last
 // loaded week: weeks load as the grid scrolls, and a line that runs away as
@@ -43,7 +54,7 @@ function ndxRowOf(iso, fallback) {
 function ndxFromPoll() {
   var c = ndhCrop(), rows = NDV.cal ? NDV.cal.rows() : [];
   if (!rows.length) return;
-  NDX.a = c ? ndxRowOf(c.from, 0) : 0;
+  NDX.a = Math.max(ndxTopMin(), c ? ndxRowOf(c.from, 0) : 0);
   NDX.open = !c;
   NDX.b = c ? ndxRowOf(c.to, rows.length - 1) : Math.min(NDX_OPEN_ROW, rows.length - 1);
 }
@@ -79,16 +90,16 @@ function ndxPlace() {
   var rows = NDV.cal.rows(), box = ndx$('nd-cal').querySelector('.nd-cropbox');
   if (!box || !rows.length) return;
   NDX.b = Math.min(NDX.b, rows.length - 1);
-  NDX.a = Math.min(NDX.a, NDX.b);   // a rebuild can leave a stale index behind
+  NDX.a = Math.max(ndxTopMin(), Math.min(NDX.a, NDX.b));   // a rebuild can leave a stale index behind
   var t = box.querySelector('.nd-crop-h.top'), b = box.querySelector('.nd-crop-h.bot');
   t.style.top = rows[NDX.a].offsetTop + 'px';
   // on the FIRST week the gap above is the frozen header's own border, which
   // covers anything drawn there -- the line moves just inside the row instead
-  t.classList.toggle('first', NDX.a === 0);
+  t.classList.toggle('first', NDX.a === 0);   // (only when this week is the top row: a guest's crop)
   b.style.top = (rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight) + 'px';
   // the shades end where the lines are drawn: in the middle of the row gap
   var lo = box.querySelector('.nd-shade.top'), hi = box.querySelector('.nd-shade.bot');
-  lo.style.height = (NDX.a === 0 ? 0 : rows[NDX.a].offsetTop - 2.5) + 'px';
+  lo.style.height = (NDX.a === 0 ? 0 : rows[NDX.a].offsetTop - 2.5) + 'px';   // shades the past week too
   hi.style.top = (rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight - 2.5) + 'px';
   hi.hidden = NDX.open;   // no last week yet: nothing is cropped off below
   b.title = NDX.open ? 'no last week yet -- drag to set one' : 'last week';
@@ -116,7 +127,7 @@ function ndxMove(e) {
     var edge = NDX.drag === 'a' ? r.offsetTop : r.offsetTop + r.offsetHeight;
     if (Math.abs(edge - y) < gap) { gap = Math.abs(edge - y); best = i; }
   });
-  if (NDX.drag === 'a') NDX.a = Math.min(best, NDX.b);
+  if (NDX.drag === 'a') NDX.a = Math.max(ndxTopMin(), Math.min(best, NDX.b));
   else { NDX.b = Math.max(best, NDX.a); NDX.open = false; }
   NDX.moved = true;
   var sc = NDV.cal.scroller, r = sc.getBoundingClientRect();

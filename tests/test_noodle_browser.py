@@ -450,7 +450,14 @@ def test_a_new_name_shows_its_face_among_the_voters(browser, base_url, noodle_sl
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
+        # no name yet: a blank seat says there is room, and tapping it fills nothing
+        page.wait_for_selector(".nd-face.pending", timeout=10000)
+        assert page.inner_text(".nd-face.pending .nd-face-name") == "could be you"
+        page.click(".nd-face.pending")
+        assert page.input_value("#nd-name") == ""
         page.fill("#nd-name", "smoke newcomer")
+        page.wait_for_function("document.querySelector('.nd-face.pending .nd-face-name').textContent"
+                               " === 'smoke newcomer'", timeout=20000)
         page.wait_for_selector(".nd-face.pending", timeout=20000)
         assert page.inner_text(".nd-face.pending .nd-face-name") == "smoke newcomer"
         first = page.inner_text(".nd-face.pending .nd-seal")

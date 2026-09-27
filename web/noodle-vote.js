@@ -196,6 +196,10 @@ function ndvRenderRoster(pub, iHost, typed) {
     seals = Object.assign({}, seals);
     seals[pub] = NDV.seal;
     voters = voters.concat([{ name: typed, pub: pub, slots: [], order: voters.length, pending: true }]);
+  } else if (!NDV.mine && !NDV.blocked) {
+    // no seal yet (no name, or the key still deriving): a seat saying so
+    voters = voters.concat([{ name: 'could be you', pub: '', slots: [], order: voters.length,
+      pending: true, blank: true }]);
   }
   window.NoodleRoster.render(ndv$('nd-voters'), voters, seals, pub, iHost);
 }
@@ -287,7 +291,7 @@ function ndvOnIdentityInput() {
 // the passphrase -- the one thing only they know.
 function ndvPickFace(e) {
   var face = e.target.closest('.nd-face');
-  if (!face || (window.NDR && NDR.active)) return;
+  if (!face || !face.dataset.name || (window.NDR && NDR.active)) return;   // 'could be you' fills nothing
   ndv$('nd-name').value = face.dataset.name;
   ndvOnIdentityInput();
   ndv$('nd-pass').focus();

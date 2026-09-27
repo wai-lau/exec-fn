@@ -3553,7 +3553,8 @@ this identifier`. While the passphrase is right (`NDV.mine`) it is LOCKED
 (greyed) and each field gets a `change` button (noodle-rekey.js, see the
 passphrase-change paragraph); a new name nobody holds shows your face among
 the voters with a dashed outline (`.nd-face.pending`), redrawn as the seal
-changes, and mid change your own face already wears the new seal. The rows
+changes -- and with no seal yet the same seat reads `could be you` (blank, fills
+nothing when tapped) until a name is typed and committed -- and mid change your own face already wears the new seal. The rows
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
@@ -3626,7 +3627,10 @@ no passphrase, only Commit does. Days outside are greyed AND struck through (as 
 region is SHADED (`.nd-shade`, `backdrop-filter: grayscale(1) brightness(0.55)`)
 so a month watermark the line cuts reads half green, half grey; cheap because
 nothing under it animates. Headless WebKit does not composite backdrop-filter
-into screenshots -- verify the shade in Chromium. With no crop the
+into screenshots -- verify the shade in Chromium. The calendar starts one week EARLY: when the first week would be this week, the
+week before it is drawn too (all past, struck), so today is never the top row
+(`ndcFirstSunday`); the top crop line can never go above this week
+(`ndxTopMin`). With no crop the
 bottom line waits under week 12 (never following the loaded end: a line that
 runs away as weeks load cannot be grabbed). Guests see no lines, and their
 calendar is just the host's crop. Crop lines sit on the centre of the 5px gap
