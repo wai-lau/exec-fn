@@ -133,17 +133,34 @@
    offered) shows no button */
 .nd-grid .nd-tg:disabled { visibility: hidden; }
 
-/* the corner: flips every button above between pencil and eraser. Filled, so
-   it reads as the switch rather than as one more group button. */
+/* the corner: flips every button between pencil and eraser. It shows BOTH,
+   "pencil / eraser", the current tool bright and the other dim. */
 .nd-grid .nd-mode {
-  padding: 0 1em 0 0.35em;
+  position: relative;
+  width: 26px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-1);
-  background: hsl(var(--green-hsl) / 0.8);
-  color: hsl(var(--bg-hsl) / 1);
-  font-size: var(--fs-2xs);
-  line-height: var(--lh-snug);
+
+  /* the "/" between the two tools, the same diagonal a split day cell has */
+  background: linear-gradient(to bottom right, transparent calc(50% - 0.5px),
+    hsl(var(--green-hsl) / 0.45) calc(50% - 0.5px), hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px));
+  color: hsl(var(--green-hsl) / 0.45);
+  font-size: calc(var(--fs-2xs) * 0.7);
+  line-height: var(--lh-none);
 }
-.nd-corner { justify-content: flex-end; padding-bottom: var(--space-2); }
+
+/* stacked: pencil above the diagonal, eraser below; the current tool bright.
+   (The icons draw ~2 cells wide from their origin, so they start left.) */
+.nd-mode i { position: absolute; left: 4px; font-style: normal; }
+.nd-mode .fill { top: 4px; }
+.nd-mode .clear { bottom: 4px; }
+
+.nd-mode[data-mode="fill"] .fill,
+.nd-mode[data-mode="clear"] .clear { color: hsl(var(--green-hsl) / 1); }
+.nd-corner { justify-content: flex-end; padding-bottom: var(--space-1-5); }
 
 /* ── a day: its number, its dots, two halves split at 30deg ─────────────── */
 .nd-d {
