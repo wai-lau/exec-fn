@@ -3488,9 +3488,15 @@ when mixed), and only a mixed group shows the explicit ✓/✗. The cells show
 under the grid.
 
 **The seal** (`noodle-seal.js`, the ONE implementation — vote and results pages
-both render seals from pubkeys client-side): `SHA-256(pub)`; bytes 0-15 pick the
-16 border cells from the 32 ASCII punctuation marks (256/32, no modulo bias),
-byte 16 an eye pair (16), byte 17 a mouth (8). Rendered 5x5 with spaces. **Every
+both render seals from pubkeys client-side): `SHA-256(pub)`; bytes 0-17 pick the
+18 border cells from the 32 ASCII punctuation marks (256/32, no modulo bias),
+byte 18 an eye pair (16), byte 19 a mouth (8), byte 20 the ink. Rendered 5 wide x
+6 tall with spaces (blank row, eyes, mouth, blank row inside the border). The ink
+is one of the palette's FIVE hues (`.nd-hue-0..4`: green, cyan, marigold, ember,
+pink, each at an alpha already in the baseline) — a hue derived continuously from
+the key would be a new colour per seal, which the palette lint exists to refuse.
+The passphrase field is plain text and the teaching line shows it verbatim: it is
+the voter's own screen, and it still never leaves the browser. **Every
 non-ASCII glyph Noodle draws is single-width**: the site's woff2 is a 126-glyph
 ASCII subset with none of them, so `web/fonts/noodle-seal.woff2` (4.7KB, cut from
 the full Mayukai TTF) carries exactly the extras under the family

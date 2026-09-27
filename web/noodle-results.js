@@ -11,7 +11,9 @@ function ndrEsc(s) {
 }
 
 function ndrVoterHtml(v) {
-  return '<li class="nd-voter"><pre class="nd-seal sm">' + ndrEsc(NDR.seals[v.pub] || '') +
+  var seal = NDR.seals[v.pub];
+  return '<li class="nd-voter"><pre class="nd-seal sm' + (seal ? ' nd-hue-' + seal.hue : '') + '">' +
+    ndrEsc(seal ? seal.text : '') +
     '</pre><span class="nd-vname">' + ndrEsc(v.name) + '</span>' +
     '<span class="nd-vcount">' + v.slots.length + ' slots</span></li>';
 }
@@ -40,7 +42,7 @@ async function ndrInit() {
     v.slots.forEach(function (s) { counts.set(s, (counts.get(s) || 0) + 1); });
   });
   await Promise.all(NDR.poll.voters.map(async function (v) {
-    NDR.seals[v.pub] = v.pub ? await window.NoodleSeal.seal(v.pub) : '';
+    NDR.seals[v.pub] = await window.NoodleSeal.seal(v.pub);
   }));
   var cal = window.NoodleCal(document.getElementById('nd-cal'), {
     start: NDR.poll.start, end: NDR.poll.end, readonly: true, onDay: ndrDay,

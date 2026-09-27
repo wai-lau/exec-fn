@@ -17,9 +17,9 @@ var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on submit)';
 var NDV_SIGN_DONE = 'sign(your availability, key) ──> sealed';
 
 function ndvDeriveLine(salt, tail) {
-  var k = NDV.kdfCfg;
-  return 'argon2id(••••••••, ' + salt.slice(0, 12) + '.., m=' +
-    (k.m / 1024) + 'MiB, t=' + k.t + ', p=' + k.p + ') ──> ' + tail;
+  var k = NDV.kdfCfg, pass = ndv$('nd-pass').value;
+  return 'argon2id("' + (pass || '<passphrase>') + '", ' + salt.slice(0, 12) + '.., m=' +
+    (k.m / 1024) + 'MiB, t=' + k.t + ', p=' + k.p + ') \u2500\u2500> ' + tail;
 }
 
 function ndvTeach(tail, signLine) {
@@ -56,7 +56,7 @@ function ndvRefreshBinding(pub) {
 function ndvOnStart(info) {
   ndvSyncSubmit();
   var seal = ndv$('nd-seal');
-  if (!info) { NDV.salt = ''; seal.textContent = ''; ndvTeach('key', NDV_SIGN_WAIT); return; }
+  if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('key', NDV_SIGN_WAIT); return; }
   NDV.salt = info.salt;
   seal.classList.add('pending');
   ndvTeach('...', NDV_SIGN_WAIT);
@@ -66,7 +66,8 @@ async function ndvOnDerived(d) {
   ndvTeach('key  (' + d.ms + ' ms)', NDV_SIGN_WAIT);
   var seal = ndv$('nd-seal');
   seal.classList.remove('pending');
-  window.NoodleSeal.stamp(seal, await window.NoodleSeal.seal(d.pub));
+  NDV.seal = await window.NoodleSeal.seal(d.pub);
+  window.NoodleSeal.stamp(seal, NDV.seal);
   ndvRefreshBinding(d.pub);
   if (window.ndaLoadBudget) window.ndaLoadBudget(d.pub);
 }
@@ -79,7 +80,7 @@ function ndvOnIdentityInput() {
 
 function ndvApproved(seal) {
   var ov = ndv$('nd-approved');
-  ov.querySelector('.nd-seal').textContent = seal;
+  window.NoodleSeal.paint(ov.querySelector('.nd-seal'), seal);
   ov.hidden = false;
   ov.classList.remove('show');
   void ov.offsetWidth;
@@ -108,7 +109,7 @@ async function ndvSubmit() {
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
     if (!res.ok) { ndvStatus(res.data.error || 'submit failed', 'err'); return; }
     ndvTeach('key', NDV_SIGN_DONE);
-    ndvApproved(ndv$('nd-seal').textContent);
+    ndvApproved(NDV.seal);
     await ndvLoadPoll();
     ndvStatus('sealed. come back with the same name and passphrase to change it.');
   } catch (e) {
