@@ -3561,23 +3561,28 @@ years; past days are greyed), and what is on offer is exactly what the host
 picks. The server bounds a vote only by kind, count (`MAX_SLOTS`) and distance
 (`SLOT_YEARS_AHEAD`). A weekday column's button acts on the weeks LOADED.
 
-**Crop is a view, for everyone** (`web/noodle-crop.js`): a `crop` button puts
-two handles over the grid, snapping to week rows, with everything outside
-dimmed; `done` keeps the span in localStorage (`noodle.crop.<slug>`) and the
-calendar renders just those weeks, `uncrop` goes back to endless. It never
-limits the poll. Ask Noodle can set it ("just show me october"): the tool may
-return `crop` {from, to}, validated server-side and applied by the page; the
-crop is also Noodle's horizon (`view`), else today + `VIEW_DEFAULT_DAYS`, and a
-guest's horizon is the host's offered days. Dragging a handle blocks text
-selection (`body.nd-dragging`, `selectstart`): WebKit starts a selection off
-the mouse events a cancelled pointerdown leaves behind. Handles follow /rd's
-gesture rules (window listeners, no pointer capture). The month watermark shows
-the 4-digit year under the month number whenever it is not this year.
+**The crop** (`web/noodle-crop.js`): a `crop` button puts two handles over the
+grid, snapping to week rows, everything outside dimmed. **The HOST's crop is the
+poll's**: saved signed through `POST /settings` (with the split), it is the
+first and last day ANYONE can pick -- a vote with a day outside it is a 400,
+narrowing it drops picks outside it from every vote, and on a fresh poll saving
+it claims the host role. **A guest crops only their own view**, kept in
+localStorage (`noodle.crop.<slug>`) and intersected with the host's
+(`ndvCrop`), so it can never widen it; a guest's `uncrop` returns to the host's
+range. With no host crop the calendar is endless. Ask Noodle can crop ("just
+show me october"): the tool may return `crop`, applied as the host's for a
+host and as a view for a guest; Noodle's horizon is the crop in view, never
+outside the host's, else today + `VIEW_DEFAULT_DAYS`, and a guest's horizon is
+the host's offered days. Dragging a handle blocks text selection
+(`body.nd-dragging`, `selectstart`): WebKit starts a selection off the mouse
+events a cancelled pointerdown leaves behind. Handles follow /rd's gesture
+rules (window listeners, no pointer capture). The month watermark shows the
+4-digit year under the month number whenever it is not this year.
 
 **Host actions** (`noodle/host.py`, signed over `sig.canonical_action`, whose
 `kind` field keeps a vote and an action from ever being swapped):
-`POST /settings` splits the days into midday + night or not -- on a fresh poll
-the first to save it claims host, as does the first commit -- and
+`POST /settings` sets the split (midday + night or whole days) and the crop --
+on a fresh poll the first to save it claims host, as does the first commit -- and
 `POST /remove` deletes a guest and their vote (never the host). New polls start
 UNSPLIT: one whole-day slot per day, code `d`; splitting turns a picked day into
 both halves, unsplitting keeps a day only where both halves were picked. Polls

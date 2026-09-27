@@ -77,6 +77,20 @@ def _view(body: dict) -> list:
     return [s + timedelta(days=i) for i in range((e - s).days + 1)]
 
 
+def _horizon(poll: dict, body: dict, host) -> list:
+    """The dates Noodle may fill: the voter's view, never outside the host's
+    crop -- and for a guest (`host` given), exactly the host's offered days."""
+    if host:
+        offered = sorted({s[:10] for s in host[1]["slots"]})
+        if offered:
+            return [date.fromisoformat(d) for d in offered]
+    dates = _view(body)
+    if poll.get("from"):
+        inside = [d for d in dates if poll["from"] <= d.isoformat() <= poll["to"]]
+        dates = inside or _view({"view": {"from": poll["from"], "to": poll["to"]}})
+    return dates
+
+
 def _crop(out) -> dict | None:
     c = out.get("crop") if isinstance(out.get("crop"), dict) else None
     try:
@@ -129,11 +143,7 @@ def ask(slug: str, body: dict, ip: str) -> dict:
         raise AskError(404, "no such poll") from None
     host = votes.host_of(poll)
     guest = bool(host and host[1]["pub"] != pub)
-    dates = _view(body)
-    if guest:
-        # a guest can only have what the host offered: those are the dates
-        offered_days = {s[:10] for s in host[1]["slots"]}
-        dates = [date.fromisoformat(d) for d in sorted(offered_days)] or dates
+    dates = _horizon(poll, body, host if guest else None)
 
     _take(slug, pub, ip, time.monotonic())
     try:

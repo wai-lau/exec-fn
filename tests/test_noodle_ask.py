@@ -180,6 +180,16 @@ def test_without_a_view_noodle_looks_from_today(env):
     assert (last + timedelta(days=1)).isoformat() + " " not in system
 
 
+def test_noodle_never_looks_outside_the_hosts_crop(env):
+    from noodle import store
+    with store.edit(env["slug"]) as poll:
+        poll["from"], poll["to"] = "2026-10-04", "2026-10-06"
+    go(env)   # view Oct 1-10
+    system = env["calls"][-1][0]
+    assert "2026-10-04 " in system and "2026-10-06 " in system
+    assert "2026-10-03 " not in system and "2026-10-07 " not in system
+
+
 def test_model_failure_reports(env):
     def boom(system, user):
         raise RuntimeError("upstream down")

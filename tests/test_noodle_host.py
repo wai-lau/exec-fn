@@ -35,9 +35,12 @@ def pub(k):
     return _b64(k.public_key().public_bytes_raw())
 
 
-def settings(m, k, name, halves, ts=NOW):
-    msg = m["sig"].canonical_action(name=name, poll=m["slug"], ts=ts, kind="settings", halves=halves)
-    return {"name": name, "pub": pub(k), "ts": ts, "sig": _b64(k.sign(msg)), "halves": halves}
+def settings(m, k, name, halves, ts=NOW, crop=(None, None)):
+    lo, hi = crop
+    msg = m["sig"].canonical_action(name=name, poll=m["slug"], ts=ts, kind="settings",
+                                    halves=halves, **{"from": lo, "to": hi})
+    return {"name": name, "pub": pub(k), "ts": ts, "sig": _b64(k.sign(msg)), "halves": halves,
+            "from": lo, "to": hi}
 
 
 def remove(m, k, name, target, ts):
@@ -134,3 +137,39 @@ def test_a_vote_signature_is_not_an_action_signature(m):
     v = vote(m, h, "h", [], NOW + 1)
     body = dict(v, target="h")
     assert fails(m["host"].remove, m["slug"], body, now=NOW + 1) == 403
+
+
+# ── the host's crop: the first and last day anyone can pick ─────────────────────
+def test_the_hosts_crop_bounds_every_vote(m):
+    h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+    m["host"].settings(m["slug"], settings(m, h, "h", False, NOW, ("2026-10-04", "2026-10-17")), now=NOW)
+    assert m["store"].load(m["slug"])["from"] == "2026-10-04"
+    assert fails(m["votes"].submit, m["slug"], vote(m, h, "h", ["2026-10-18:d"], NOW + 1), now=NOW + 1) == 400
+    m["votes"].submit(m["slug"], vote(m, h, "h", ["2026-10-05:d", "2026-10-12:d"], NOW + 2), now=NOW + 2)
+    m["votes"].submit(m["slug"], vote(m, g, "g", ["2026-10-12:d"], NOW + 3), now=NOW + 3)
+
+
+def test_narrowing_the_crop_drops_picks_outside_and_uncropping_keeps_the_rest(m):
+    h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+    m["votes"].submit(m["slug"], vote(m, h, "h", ["2026-10-05:d", "2026-11-20:d"], NOW), now=NOW)
+    m["votes"].submit(m["slug"], vote(m, g, "g", ["2026-11-20:d"], NOW + 1), now=NOW + 1)
+    m["host"].settings(m["slug"], settings(m, h, "h", False, NOW + 2, ("2026-10-01", "2026-10-31")), now=NOW + 2)
+    v = m["store"].load(m["slug"])["voters"]
+    assert v["h"]["slots"] == ["2026-10-05:d"] and v["g"]["slots"] == []
+    m["host"].settings(m["slug"], settings(m, h, "h", False, NOW + 3), now=NOW + 3)
+    poll = m["store"].load(m["slug"])
+    assert poll["from"] is None and poll["voters"]["h"]["slots"] == ["2026-10-05:d"]
+
+
+def test_only_the_host_crops_and_a_crop_must_make_sense(m):
+    h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+    m["votes"].submit(m["slug"], vote(m, h, "h", [], NOW), now=NOW)
+    body = settings(m, g, "g", False, NOW + 1, ("2026-10-01", "2026-10-31"))
+    assert fails(m["host"].settings, m["slug"], body, now=NOW + 1) == 403
+    for lo, hi in (("2026-10-31", "2026-10-01"), ("2026-10-01", None), ("oct", "2026-10-31"),
+                   ("2026-01-01", "2030-01-01")):
+        body = settings(m, h, "h", False, NOW + 2, (lo, hi))
+        assert fails(m["host"].settings, m["slug"], body, now=NOW + 2) == 400, (lo, hi)
+    body = settings(m, h, "h", False, NOW + 3, ("2026-10-01", "2026-10-31"))
+    body["to"] = "2026-12-31"   # tampered after signing
+    assert fails(m["host"].settings, m["slug"], body, now=NOW + 3) == 403
