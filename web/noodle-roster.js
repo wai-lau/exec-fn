@@ -18,7 +18,7 @@ async function ndrSeals(voters) {
   return out;
 }
 
-// "are you one of these guys?": a grid of faces, name under each, four to a
+// "are you one of these guys?": a grid of faces, name under each, five to a
 // row. Tapping one fills the name field (noodle-vote.js). myPub is the key this
 // browser holds now -- the "you" mark follows the KEY, not the name, or typing
 // someone else's name would mark their face as yours.

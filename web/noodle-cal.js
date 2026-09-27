@@ -18,7 +18,7 @@
 
 var ND_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 var ND_TAN30 = Math.tan(Math.PI / 6);
-var ND_DOT = 5, ND_DOT_GAP = 3; // px; mirrors .nd-dots in noodle.css
+var ND_DOT = 4, ND_DOT_GAP = 2; // px; mirrors .nd-dots in noodle-cal.css (4px, --space-0-5)
 
 function ndIso(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
@@ -109,9 +109,13 @@ function ndDotsFit(cell, count) {
 // the way down. A `self` column shows the live selection `sel` rather than a
 // stored vote, so your own dots follow your taps.
 function ndDotsHtml(iso, cols, fit, sel) {
-  var h = '';
-  for (var i = 0; i < fit.shown; i++) {
-    var c = cols[i], s = c.self ? sel : c.slots;
+  var h = '', shown = cols.slice(0, fit.shown);
+  // when columns overflow, YOUR column is never the one cut: it takes the
+  // last visible place, the rest stay in vote order
+  var mine = cols.find(function (c) { return c.self; });
+  if (fit.more && mine && shown.indexOf(mine) < 0 && shown.length) shown[shown.length - 1] = mine;
+  for (var i = 0; i < shown.length; i++) {
+    var c = shown[i], s = c.self ? sel : c.slots;
     var lit = ' class="on"' + (c.ink ? ' style="--seal-hsl:' + c.ink + '"' : '');
     h += '<i' + (s.has(iso + ':m') ? lit : '') + '></i>' +
       '<i' + (s.has(iso + ':n') ? lit : '') + '></i>';
