@@ -3495,8 +3495,11 @@ one now derives the new. Until Commit **nothing is sent or remembered**:
 `ndvSaveIdentity` skips, so a reload brings the old passphrase back. Commit
 sends the rekey at `ts`, then the split and vote under the new key at `ts+1`...;
 the crop and remove refuse mid-change (they would be signed by a key the server
-does not know yet). The button then reads `cancel`, which restores the old
-passphrase untouched.
+does not know yet). Mid-change the button becomes a cross (cancel: restores the
+old passphrase untouched) with a check beside it that commits exactly as Commit
+does (`ndvSubmit`), greyed whenever Commit is. Both glyphs (U+2717, U+2713) were
+added to `noodle-seal.woff2`, re-cut from the Medium Mayukai TTF with
+`pyftsubset --flavor=woff2` over the `unicode-range` list.
 
 **Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
 (`select_slots`) that returns **a one-sentence `reading` and an ordered list of

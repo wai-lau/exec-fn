@@ -104,6 +104,7 @@ function ndvSyncSubmit(busy) {
   ndv$('nd-dirty').hidden = !dirty;
   ndv$('nd-why').textContent = why;
   ndvSyncLock();
+  if (window.ndrSync) window.ndrSync();
 }
 
 // A name sealed by ANOTHER key locks everything but the identity fields (and
@@ -161,7 +162,6 @@ function ndvRefreshBinding(pub) {
     ndvStatus('');
   }
   ndvSyncSubmit();
-  if (window.ndrSync) window.ndrSync();
 }
 
 function ndvOnStart(info) {
