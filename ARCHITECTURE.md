@@ -3598,8 +3598,8 @@ of its days is available (not past, inside the crop, offered by the host),
 GREY when none is (`ndcTintMarks`, re-run on every paint, since the host's
 offer changes availability without any week being added). Dimmed with `opacity`,
 since the palette has no step between 0.12 and 0.45. Quebec statutory holidays
-are pink, exactly as /rd (`.hol`, from the same `web/qc-holidays.js`, a browser
-script -- Noodle's Python keeps its own mirror). The scroller shows at most 6
+are coloured like weekends (cyan; `.hol`, from /rd's `web/qc-holidays.js`, a
+browser script -- Noodle's Python keeps its own mirror). The scroller shows at most 6
 weeks: the cap is measured from a real row (`ndcCapHeight`), not guessed. More
 weeks load when the bottom is near, by a scroll check as well as the
 sentinel's IntersectionObserver: the observer fires only on a visibility
@@ -3616,10 +3616,11 @@ save it claims host, as does the first commit -- and
 UNSPLIT: one whole-day slot per day, code `d`; splitting turns a picked day into
 both halves, unsplitting keeps a day only where both halves were picked. Polls
 from before this carry no `halves` key and read as split. The row/column
-buttons are a MODE (pencil = fill, eraser = clear) flipped by the calendar's
+buttons are a MODE (paint bucket = fill, eraser = clear) flipped by the calendar's
 top-left corner, never a reading of the cells. The corner shows BOTH tools
-stacked, pencil / eraser (the font's own "/": a rotated 1px rule antialiased
-into a smudge), no box, the current tool bright. A crop starting at the first
+stacked, bucket above and eraser below EXACTLY a split day cell's slash (the
+same 330deg hairline through the centre), equally far from it, no box, the
+current tool bright. A crop starting at the first
 week draws its top line just INSIDE that row: the gap above it is the frozen
 header's own border, which covers anything drawn there.
 
@@ -3662,7 +3663,7 @@ grid; dots are 4px with a 2px gap so seven columns fit a phone-width cell, overf
 **Toggles** (`noodle-toggle.js`, pure): a weekday column or week row covers both
 halves of its in-window days, and has ONE button. All off -> a PENCIL that
 fills the group in; all on OR mixed -> an ERASER that clears it. The icons are
-Font Awesome glyphs from the Nerd Font build of the site's face (U+F040 pencil,
+Nerd Font glyphs from the site's face (U+F765 format-color-fill,
 U+F12D eraser), shipped in `noodle-seal.woff2`. They claim one cell but DRAW
 about two, rightward from their origin, so the button box is widened on the
 right to hold the ink -- harmless here because a toggle is a standalone button,

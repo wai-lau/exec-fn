@@ -54,7 +54,7 @@
   display: grid;
   grid-template-columns: 32px repeat(7, minmax(0, 1fr));
 
-  /* 'Noodle Glyphs' first: the toggle icons (U+F040 / U+F12D) live only in
+  /* 'Noodle Glyphs' first: the toggle icons (U+F765 / U+F12D) live only in
      noodle-seal.woff2, and the site face has none -- with --font-mono alone
      they rendered as nothing at all */
   font-family: 'Noodle Glyphs', var(--font-mono);
@@ -112,14 +112,14 @@
 
 .nd-hd-name { line-height: var(--lh-none); }
 
-/* ONE button per weekday column and per week row: a pencil when the group is
+/* ONE button per weekday column and per week row: a paint bucket when the group is
    all off (fills it all in), an eraser when any of it is on (clears it).
    The box is identical in every state, so the sticky header never changes
    height -- a header that grew slid over the first visible row and swallowed
    the next tap on it. */
 .nd-grid .nd-tg {
   /* (.nd-grid-scoped to outrank the .nd-grid button reset above)
-     the pencil/eraser icons claim one cell but DRAW about two, rightward from
+     the fill/eraser icons claim one cell but DRAW about two, rightward from
      their origin -- so the box is widened on the right to hold the ink */
   padding: 0 1em 0 0.35em;
   border: 1px solid hsl(var(--green-hsl) / 0.45);
@@ -133,25 +133,28 @@
    offered) shows no button */
 .nd-grid .nd-tg:disabled { visibility: hidden; }
 
-/* the corner: flips every button between pencil and eraser. No box: the two
-   tools stacked with a short slash between them, the current one bright. */
+/* the corner: flips every button between fill and eraser. No box: the two
+   tools, the current one bright, split by EXACTLY a split day cell's slash --
+   the same 330deg hard-stop hairline through the centre -- with the icons the
+   same distance above and below it. */
 .nd-grid .nd-mode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-0-5);
-  padding: var(--space-0-5);
+  position: relative;
+  width: 28px;
+  height: 40px;
+  padding: 0;
+  background-image: linear-gradient(330deg,
+    transparent calc(50% - 0.5px),
+    hsl(var(--green-hsl) / 0.45) calc(50% - 0.5px),
+    hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px));
   color: hsl(var(--green-hsl) / 0.45);
   font-size: calc(var(--fs-2xs) * 0.85);
   line-height: var(--lh-none);
 }
 
-/* the icons draw about two cells wide from their origin: a box that wide
-   centres the ink rather than the origin */
-.nd-mode i { display: block; width: 1.9em; font-style: normal; }
-
-/* the font's own "/" -- a rotated 1px rule antialiased into a smudge */
-.nd-mode .sep { font-weight: var(--fw-normal); line-height: var(--lh-none); }
+.nd-mode i { position: absolute; left: 3px; font-style: normal; }
+.nd-mode .fill { top: 2px; }
+.nd-mode .clear { bottom: 2px; }
 
 .nd-mode[data-mode="fill"] .fill,
 .nd-mode[data-mode="clear"] .clear { color: hsl(var(--green-hsl) / 1); }
@@ -225,9 +228,8 @@
 }
 .nd-d.we .nd-n { color: hsl(var(--cyan-hsl) / 0.8); }
 
-/* Quebec statutory holiday: pink, exactly as /rd (rd.css .cal-d.hol), after
-   the weekend rule so a holiday on a weekend wins -- the louder fact */
-.nd-d.hol .nd-n { color: hsl(var(--pink-hsl) / 0.8); }
+/* Quebec statutory holiday: coloured like a weekend -- a day off is a day off */
+.nd-d.hol .nd-n { color: hsl(var(--cyan-hsl) / 0.8); }
 
 /* Not offered by the host: that half is darker and ignores taps; a day with
    neither half offered reads like one outside the window. */
