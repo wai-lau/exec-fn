@@ -57,7 +57,11 @@ async function ndaAsk() {
     if (res.ok) {
       NDV.cal.setSel(new Set(res.data.slots));
       ndvSaveDraft();
-      ndaStatus('Noodle filled in ' + res.data.slots.length + ' slots. check the calendar, then commit.');
+      // the reading is how Noodle understood the words -- shown first, so an
+      // ambiguous sentence read the other way is visible before it is committed
+      var skipped = res.data.dropped ? ' (' + res.data.dropped + ' unusable rule(s) skipped)' : '';
+      ndaStatus('Noodle read that as: ' + (res.data.reading || '(no summary)') + ' -- ' +
+        res.data.slots.length + ' slots filled' + skipped + '. check the calendar, then commit.');
     } else if (res.data.retry_after) {
       ndaBackOff(res.data.retry_after);
     } else {

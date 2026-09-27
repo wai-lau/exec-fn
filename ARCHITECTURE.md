@@ -3479,24 +3479,27 @@ Recovery is owner-only, server-side:
 key and the next signer re-binds it (slots and dot column kept).
 
 **Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
-(`select_slots`) whose answer is **one line per window date, decided one date at
-a time**: `"2026-10-13 Tuesday: never tuesdays -> -"`, verdict `m`/`n`/`mn`/`-`
-parsed off the end by `ask._pairs`. Two earlier shapes failed, both measured: a
-list of `{date, block}` objects blew `max_tokens` 400 on a whole-window answer
-(`stop_reason: max_tokens`, the tool input arrived as `{}`, and the grid silently
-filled with nothing), and two flat date lists let the model state the rule right
-in its reasoning and then list Tuesdays and even days anyway. Per-date lines took
-"every odd day, never tuesdays, night if prime, morning unless a stat holiday"
-from 27 slots with 19 wrong to 21 with 2 wrong (it calls 1 prime), and two
-plainer queries to exact. `ASK_MAX_TOKENS` is 4096 (~15 tokens x up to 120
-dates); a truncated answer now raises `llm.Truncated` -> 422 "try it in parts"
-instead of an empty grid. Each prompt date carries weekday, day of month,
-parity and any **Quebec statutory holiday** (`noodle/holidays.py`, a Python
-mirror of `web/qc-holidays.js` pinned against it for 2024-2060 by
-`tests/test_noodle_holidays.py`). anthropic 1.6.0 rejects `temperature`, so a
-genuinely ambiguous sentence can read two ways across runs. The output is
-clamped to the window and anything malformed is DISCARDED (`slots.clamp_slots`);
-the result only fills the grid for review, never submits. **Limits are RATE
+(`select_slots`) that returns **a one-sentence `reading` and an ordered list of
+RULES -- never dates**. `noodle/rules.py` applies the rules to every window date
+in code: `{"action": add|remove, "blocks": [...], "where": <cond>}` on an empty
+calendar, conditions `every` / `weekday` / `day` (day of month) / `month` /
+`date` / `holiday` / `all` / `any` / `not`, nesting bounded, and an invalid rule
+DROPPED (counted, reported) rather than guessed at. Why: every earlier shape
+asked the model to judge each date itself -- first as `{date, block}` objects
+(blew `max_tokens`), then per-date verdict lines -- which is ~50 small
+arithmetic problems per answer, and some always slipped: on a phone, "friday
+nights, days that are prime and fibonacci all day, day if stat holiday" lit the
+9th/15th/25th/27th and missed the 8th and 11th. As rules the model lists
+`{"day": [2, 3, 5, 13]}` ONCE and code does the checking, so the grid is exact
+for whatever the rules say; 2-3s per ask against 5-9s. **The `reading` is shown
+to the voter** ("Noodle read that as: ...") because the remaining failure is
+ambiguous English ("prime and fibonacci": both or either?), which only the
+voter can judge. The prompt lists the window's dates (for explicit ones like
+"the 23rd") with Quebec holidays (`noodle/holidays.py`, a Python mirror of
+`web/qc-holidays.js` pinned by `tests/test_noodle_holidays.py`), and maps
+day/morning/afternoon to midday and evening/night to night. `ASK_MAX_TOKENS` is
+1024; a truncated answer raises `llm.Truncated` -> 422. The result only fills
+the grid for review, never submits. **Limits are RATE
 limits, never lifetime caps** (a lifetime cap left a busy poll's box reading
 "Noodle is out of answers" for good): rolling windows, all in memory, checked
 and recorded under one lock BEFORE the call -- `ASK_VOTER_RATE` 10 per 10 min

@@ -5,29 +5,46 @@ from noodle import config
 
 _client = None
 
-# One line per window date, decided ONE DATE AT A TIME:
-#   "2026-10-13 tue: never tuesdays -> -"
-# Returning two date LISTS instead let the model state the rule correctly and
-# then list dates that broke it (Tuesdays and even days in an "odd days, never
-# Tuesdays" answer, measured): writing each date's own reason next to its
-# verdict is what makes it actually look at that date. Code parses the verdict
-# off the end of each line (ask._pairs), so the reasoning costs nothing to trust.
+# The model writes RULES, not dates (noodle/rules.py applies them). Judging
+# each date itself put it through ~50 small arithmetic problems per answer and
+# some always slipped; a rule like {"day": [2, 3, 5, 13]} asks it to list a
+# number set ONCE, and code does the checking. `reading` is its one-sentence
+# restatement of what it understood, shown to the voter, so a misreading of
+# ambiguous wording ("prime and fibonacci": both? either?) is visible.
 SLOT_TOOL = {
     "name": "select_slots",
-    "description": "Decide every listed date, one line each, in order.",
+    "description": "Restate the availability in one sentence, then express it as ordered rules.",
     "input_schema": {
         "type": "object",
         "properties": {
-            "days": {
+            "reading": {
+                "type": "string",
+                "description": ("One plain sentence of what you understood, naming any number "
+                                "sets you used, e.g. 'Friday nights, plus all day on days that are "
+                                "both prime and Fibonacci (2, 3, 5, 13)'."),
+            },
+            "rules": {
                 "type": "array",
-                "items": {"type": "string"},
-                "description": (
-                    'One entry per listed date: "<YYYY-MM-DD> <weekday>: <why, a few '
-                    'words> -> <verdict>", verdict one of m (midday), n (night), '
-                    'mn (both), - (neither).'),
+                "description": "Applied in order to an EMPTY calendar: add unions, remove subtracts.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["add", "remove"]},
+                        "blocks": {"type": "array", "items": {"type": "string", "enum": ["midday", "night"]}},
+                        "where": {
+                            "type": "object",
+                            "description": (
+                                'Exactly one key: {"every": true} | {"weekday": ["friday"]} | '
+                                '{"day": [day-of-month ints]} | {"month": [ints]} | '
+                                '{"date": ["YYYY-MM-DD"]} | {"holiday": true} | '
+                                '{"all": [conds]} | {"any": [conds]} | {"not": cond}'),
+                        },
+                    },
+                    "required": ["action", "blocks", "where"],
+                },
             },
         },
-        "required": ["days"],
+        "required": ["reading", "rules"],
     },
 }
 
