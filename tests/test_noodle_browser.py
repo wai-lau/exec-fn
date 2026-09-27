@@ -57,10 +57,19 @@ def test_same_name_other_passphrase_is_blocked(browser, base_url, noodle_slug):
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", NAME.upper())
+        assert page.input_value("#nd-name") == NAME   # lowercased as typed
         page.fill("#nd-pass", "not the passphrase")
         page.wait_for_function(
             "document.querySelector('#nd-why').textContent.includes('different passphrase')", timeout=20000)
         assert page.is_disabled("#nd-submit")
+        assert page.inner_text("#nd-seal-cap") == f"NOT {NAME}'s seal of approval"
+        assert page.evaluate("document.getElementById('nd-cal').inert")
+        assert page.evaluate("document.querySelector('.nd-ask').inert")
+        # a name nobody holds unlocks everything again
+        page.fill("#nd-name", "smoke unique name")
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        assert not page.evaluate("document.getElementById('nd-cal').inert")
+        assert page.inner_text("#nd-seal-cap") == "smoke unique name's seal of approval"
     finally:
         page.close()
 

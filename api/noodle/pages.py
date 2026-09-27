@@ -55,10 +55,13 @@ def public_poll(poll: dict) -> dict:
     """What anyone holding the link may see: window, and each voter's name,
     public key and slots. Never a budget counter, never anything secret (the
     server holds no secret -- the passphrase never arrives)."""
-    voters = sorted(poll["voters"].values(), key=lambda v: v["order"])
+    # The name shown is the voter's KEY (the normalized name), not whatever
+    # casing a vote stored before names were lowercased -- one identity, one
+    # spelling.
+    voters = sorted(poll["voters"].items(), key=lambda kv: kv[1]["order"])
     return {
         "slug": poll["slug"], "title": poll["title"],
         "start": poll["start"], "end": poll["end"],
-        "voters": [{"name": v["name"], "pub": v["pub"], "slots": v["slots"],
-                    "order": v["order"]} for v in voters],
+        "voters": [{"name": key, "pub": v["pub"], "slots": v["slots"],
+                    "order": v["order"]} for key, v in voters],
     }

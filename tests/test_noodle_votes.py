@@ -52,7 +52,7 @@ def test_first_vote_binds_and_same_key_edits(mods):
     rec = submit(mods, signed(mods, k, "Ada", ["2026-10-02:n", "2026-10-01:m"], NOW))
     assert rec["slots"] == ["2026-10-01:m", "2026-10-02:n"]
     rec = submit(mods, signed(mods, k, "ada ", ["2026-10-03:m"], NOW + 5), now=NOW + 5)
-    assert rec["slots"] == ["2026-10-03:m"] and rec["name"] == "Ada" and rec["order"] == 0
+    assert rec["slots"] == ["2026-10-03:m"] and rec["name"] == "ada" and rec["order"] == 0
     assert len(mods["store"].load(mods["slug"])["voters"]) == 1
 
 
