@@ -12,6 +12,7 @@
 // setPointerCapture -- a rebuilt subtree otherwise eats the gesture.
 
 var NDX = { editing: false, a: 0, b: 3, drag: null };
+window.NDX = NDX;
 
 function ndx$(id) { return document.getElementById(id); }
 function ndxKey() { return 'noodle.crop.' + NDV.slug; }
@@ -76,6 +77,7 @@ function ndxPlace() {
   var rows = NDV.cal.rows(), box = ndx$('nd-cal').querySelector('.nd-cropbox');
   if (!box || !rows.length) return;
   NDX.b = Math.min(NDX.b, rows.length - 1);
+  NDX.a = Math.min(NDX.a, NDX.b);   // a rebuild can leave a stale index behind
   var top = rows[NDX.a].offsetTop, bot = rows[NDX.b].offsetTop + rows[NDX.b].offsetHeight;
   box.querySelector('.nd-crop-h.top').style.top = top + 'px';
   box.querySelector('.nd-crop-h.bot').style.top = bot + 'px';
@@ -116,12 +118,30 @@ function ndxUp() {
   document.body.classList.remove('nd-dragging');
 }
 
+// The row index holding `iso` (loading more weeks until it is there).
+function ndxRowOf(iso, fallback) {
+  for (var guard = 0; guard < 40; guard++) {
+    var rows = NDV.cal.rows();
+    for (var r = 0; r < rows.length; r++) {
+      var wk = NDV.cal.weekOf(r);
+      if (wk[0] <= iso && iso <= wk[6]) return r;
+    }
+    if (!rows.length || NDV.cal.weekOf(rows.length - 1)[6] >= iso) return fallback;
+    NDV.cal.more();
+  }
+  return fallback;
+}
+
 function ndxToggle() {
   if (!NDX.editing) {
+    var cur = ndxIsHost() ? NDV.poll && NDV.poll.crop : ndvCrop();
     NDX.editing = true;
-    NDX.a = 0;
-    NDX.b = Math.min(3, NDV.cal.rows().length - 1);
+    ndvEnsureCal(true);   // re-render one level wider (ndvCrop), so edges can move out
+    NDX.a = cur ? ndxRowOf(cur.from, 0) : 0;
+    NDX.b = cur ? ndxRowOf(cur.to, NDX.a + 3) : Math.min(3, NDV.cal.rows().length - 1);
     ndxSync();
+    var rows = NDV.cal.rows();
+    if (rows[NDX.a]) NDV.cal.scroller.scrollTop = rows[NDX.a].offsetTop - 40;
     return;
   }
   ndxApply({ from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] });
@@ -131,7 +151,11 @@ function ndxToggle() {
   if (!ndx$('nd-crop')) return;
   ndx$('nd-crop').addEventListener('click', ndxToggle);
   ndx$('nd-uncrop').addEventListener('click', function () { ndxApply(null); });
-  ndx$('nd-crop-cancel').addEventListener('click', function () { NDX.editing = false; ndxSync(); });
+  ndx$('nd-crop-cancel').addEventListener('click', function () {
+    NDX.editing = false;
+    ndvEnsureCal(true);   // back to the cropped calendar
+    ndxSync();
+  });
   window.addEventListener('pointermove', ndxMove);
   window.addEventListener('selectstart', function (e) { if (NDX.drag) e.preventDefault(); });
   window.addEventListener('pointerup', ndxUp);

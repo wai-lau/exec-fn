@@ -323,3 +323,56 @@ def test_the_calendar_is_endless_and_anyone_can_crop_it(browser, base_url, noodl
         assert rows() > cropped
     finally:
         ctx.close()
+
+
+@pytest.fixture(scope="module")
+def crop_slug(base_url):
+    """A poll of its own: this test sets a HOST crop, which would bound every
+    other test on the shared __smoke__ poll. Reused across runs by title."""
+    import httpx
+    from conftest import API_KEY
+    if not API_KEY:
+        pytest.skip("API_KEY not set")
+    auth = {"Authorization": f"Bearer {API_KEY}"}
+    with httpx.Client(base_url=base_url, timeout=15.0) as c:
+        for p in c.get("/api/noodle-polls", headers=auth).json()["polls"]:
+            if p["title"] == "__smoke_crop__":
+                return p["slug"]
+        return c.post("/api/noodle-polls", headers=auth, json={"title": "__smoke_crop__"}).json()["slug"]
+
+
+def test_the_host_can_drag_a_crop_past_its_current_edges(browser, base_url, crop_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+
+    def drag(which, dy):
+        h = page.locator(f".nd-crop-h.{which}")
+        h.scroll_into_view_if_needed()
+        b = h.bounding_box()
+        page.mouse.move(b["x"] + 20, b["y"] + b["height"] / 2)
+        page.mouse.down()
+        page.mouse.move(b["x"] + 20, b["y"] + b["height"] / 2 + dy, steps=8)
+        page.mouse.up()
+
+    def crop():
+        return page.evaluate(f"fetch('/api/noodle/{crop_slug}').then(r => r.json())")["crop"]
+
+    try:
+        page.goto(f"{base_url}/noodle/{crop_slug}")
+        page.fill("#nd-name", "smoke crop host")
+        page.fill("#nd-pass", "crop host pass")
+        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        page.click("#nd-crop")
+        drag("top", 160)            # a narrow crop first
+        page.click("#nd-crop")
+        page.wait_for_function(f"fetch('/api/noodle/{crop_slug}').then(r => r.json()).then(p => !!p.crop)")
+        first = crop()
+        page.click("#nd-crop")      # edit again: the calendar opens WIDER than the crop
+        assert page.locator(".nd-wk").count() > 4
+        drag("top", -300)
+        drag("bot", 250)
+        page.click("#nd-crop")
+        page.wait_for_timeout(1500)
+        wider = crop()
+        assert wider["from"] < first["from"] and wider["to"] > first["to"], (first, wider)
+    finally:
+        page.close()
