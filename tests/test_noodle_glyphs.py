@@ -116,3 +116,30 @@ def test_rendered_glyphs_are_one_cell_wide(browser, base_url, noodle_slug):
         page.close()
     off = {g: round(r, 3) for g, r in widths.items() if abs(r - 1) > 0.01}
     assert not off, f"rendered wider/narrower than one cell: {json.dumps(off, ensure_ascii=False)}"
+
+
+@pytest.mark.browser
+def test_the_calendar_toggle_icons_actually_render(browser, base_url, noodle_slug):
+    """The icons exist ONLY in noodle-seal.woff2. When the grid's font stack
+    left out 'Noodle Glyphs' they rendered as nothing -- invisible buttons --
+    while every font-metric check above still passed. So measure the INK of the
+    real toggle button, in the real calendar."""
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.locator(".nd-hd .nd-tg").first.wait_for()
+        page.evaluate("document.fonts.ready")
+        info = page.evaluate("""() => {
+          const b = document.querySelector('.nd-hd .nd-tg');
+          const c = document.createElement('canvas').getContext('2d');
+          c.font = getComputedStyle(b).font;
+          const m = c.measureText(b.textContent);
+          return {fam: getComputedStyle(b).fontFamily, text: b.textContent,
+                  ink: m.actualBoundingBoxRight + m.actualBoundingBoxLeft,
+                  loaded: document.fonts.check('16px "Noodle Glyphs"', b.textContent)};
+        }""")
+    finally:
+        page.close()
+    assert "Noodle Glyphs" in info["fam"], info
+    assert info["text"] in ("\uf040", "\uf12d"), info
+    assert info["loaded"] and info["ink"] > 1, f"toggle icon draws no ink: {info}"

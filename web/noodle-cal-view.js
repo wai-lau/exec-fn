@@ -53,12 +53,14 @@ function NoodleCal(wrap, opts) {
     return null;
   }
 
-  // one button: ✓ when the group is all off (turns it all on), ✗ otherwise
+  // One button: a PENCIL when the group is all off (fills it all in), an
+  // ERASER otherwise (clears it). Font Awesome glyphs from the Nerd Font build
+  // of the site's face (U+F040, U+F12D), shipped in noodle-seal.woff2.
   function paintToggle(el, g) {
     var st = T.groupState(g.slots, sel), label = T.label(g.subject, st);
     el.dataset.state = st;
     var btn = el.querySelector('.nd-tg');
-    btn.textContent = st === 'off' ? '\u2713' : '\u2717';
+    btn.textContent = st === 'off' ? '\uf040' : '\uf12d';
     btn.setAttribute('aria-label', label);
     btn.title = label;
     btn.disabled = st === 'none';

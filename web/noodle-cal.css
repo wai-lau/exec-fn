@@ -40,8 +40,12 @@
 .nd-grid {
   position: relative;
   display: grid;
-  grid-template-columns: 28px repeat(7, minmax(0, 1fr));
-  font-family: var(--font-mono);
+  grid-template-columns: 32px repeat(7, minmax(0, 1fr));
+
+  /* 'Noodle Glyphs' first: the toggle icons (U+F040 / U+F12D) live only in
+     noodle-seal.woff2, and the site face has none -- with --font-mono alone
+     they rendered as nothing at all */
+  font-family: 'Noodle Glyphs', var(--font-mono);
   font-size: calc(var(--fs-sm) * 1.5);
   font-weight: var(--fw-bold);
   line-height: var(--lh-none);
@@ -96,20 +100,23 @@
 
 .nd-hd-name { line-height: var(--lh-none); }
 
-/* ONE button per weekday column and per week row: a check when the group is
-   all off (turns it all on), a cross when any of it is on (turns it all off).
+/* ONE button per weekday column and per week row: a pencil when the group is
+   all off (fills it all in), an eraser when any of it is on (clears it).
    The box is identical in every state, so the sticky header never changes
    height -- a header that grew slid over the first visible row and swallowed
    the next tap on it. */
-.nd-tg {
-  padding: 0 var(--space-1);
+.nd-grid .nd-tg {
+  /* (.nd-grid-scoped to outrank the .nd-grid button reset above)
+     the pencil/eraser icons claim one cell but DRAW about two, rightward from
+     their origin -- so the box is widened on the right to hold the ink */
+  padding: 0 1em 0 0.35em;
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-1);
   font-size: var(--fs-2xs);
   line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 1);
 }
-[data-state="none"] > .nd-tg { visibility: hidden; }
+.nd-grid [data-state="none"] > .nd-tg { visibility: hidden; }
 
 /* ── a day: its number, its dots, two halves split at 30deg ─────────────── */
 .nd-d {

@@ -3575,9 +3575,16 @@ night, a gap where not free — one person reads as one vertical line through th
 grid; dots are 4px with a 2px gap so seven columns fit a phone-width cell, overflow gets /rd's hollow ring, and YOUR column is never the one cut (it takes the last visible place).
 
 **Toggles** (`noodle-toggle.js`, pure): a weekday column or week row covers both
-halves of its in-window days, and has ONE button. All off -> the button is a
-check and turns the group all on; all on OR mixed -> a cross that turns it all
-off. (An earlier version filled a mixed group on click and grew a separate
+halves of its in-window days, and has ONE button. All off -> a PENCIL that
+fills the group in; all on OR mixed -> an ERASER that clears it. The icons are
+Font Awesome glyphs from the Nerd Font build of the site's face (U+F040 pencil,
+U+F12D eraser), shipped in `noodle-seal.woff2`. They claim one cell but DRAW
+about two, rightward from their origin, so the button box is widened on the
+right to hold the ink -- harmless here because a toggle is a standalone button,
+not text that must align. **The grid's font stack must name 'Noodle Glyphs'
+first**: with `--font-mono` alone the icons rendered as nothing (the site face
+has none), while every font-metric test still passed; `test_noodle_glyphs.py`
+now checks the real toggle button's computed font and ink. (An earlier version filled a mixed group on click and grew a separate
 check/cross pair for it; one button per group reads at a glance.) The action
 sentence ("Available Wednesdays" / "Not available week of Mar 1") is the
 button's `aria-label` and hover `title` only. The button box is identical in
