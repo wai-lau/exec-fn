@@ -42,7 +42,7 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         assert ("mid" in cell.get_attribute("class")) != was_mid, "top-left tap must flip MIDDAY"
 
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('sealed')",
+        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('reserved')",
                                timeout=10000)
         voters = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")["voters"]
         mine = [v for v in voters if v["name"].lower() == NAME]
@@ -128,6 +128,7 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         page.mouse.click(box["x"] + box["width"] * 0.85, box["y"] + box["height"] * 0.85)
         page.fill("#nd-ask", "draft text")
         picked = cell.get_attribute("class")
+        assert page.inner_text("#nd-submit") == "Reserve*" and page.is_visible("#nd-dirty")
         assert sent == [], f"nothing may leave before submit: {sent}"
 
         page.reload()
@@ -136,12 +137,13 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         assert page.input_value("#nd-ask") == "draft text"
 
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('sealed')",
+        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('reserved')",
                                timeout=10000)
         import json
         votes = [json.loads(b) for u, b in sent if u.endswith("/vote")]
         assert len(votes) == 1 and set(votes[0]) == {"name", "pub", "slots", "ts", "sig"}
         assert all(PASS not in (b or "") for _, b in sent), "passphrase left the browser"
         assert page.evaluate(f"localStorage.getItem('noodle.draft.{noodle_slug}')") is None
+        assert page.inner_text("#nd-submit") == "Reserve" and not page.is_visible("#nd-dirty")
     finally:
         ctx.close()

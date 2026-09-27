@@ -52,7 +52,7 @@ async function ndaAsk() {
       NDV.cal.setSel(new Set(res.data.slots));
       nda$('nd-ask').value = '';
       ndvSaveDraft();
-      ndaStatus('Noodle filled in ' + res.data.slots.length + ' slots. check the calendar, then submit.');
+      ndaStatus('Noodle filled in ' + res.data.slots.length + ' slots. check the calendar, then reserve.');
     }
     if (res.data.remaining === 0) ndaSpent(NDA_SPENT);
   } catch (e) {

@@ -3505,6 +3505,10 @@ hint shows whole, and sits BELOW submit with its own cyan outlined `ask Noodle`
 button and its own status line -- asking must never be mistaken for sealing a
 vote. Enter in the box asks too.
 
+**The button reads `Reserve`, and `Reserve*` with "* unsaved changes" above it
+whenever the calendar differs from what the server holds for THIS key**
+(`ndvDirty`; for someone who has not reserved yet, any pick at all).
+
 **Nothing leaves the browser until a button is pressed.** Besides the identity,
 the rest of the form -- calendar picks and the Ask text -- is a per-poll DRAFT
 in localStorage (`noodle.draft.<slug>`), written on every change. A draft

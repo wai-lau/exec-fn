@@ -3,7 +3,8 @@
 // browser: it goes to the key worker (noodle-kdf-worker.js) and nowhere else;
 // the server receives the public key, the slots and a signature over them.
 
-var NDV = { poll: null, cal: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {} };
+var NDV = { poll: null, cal: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {},
+  saved: new Set() };
 
 // Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
 // rides along on every request, which would send the passphrase to the server
@@ -23,6 +24,7 @@ function ndvSaveDraft() {
     }));
     NDV.hasDraft = true;
   } catch (e) { /* storage blocked: nothing is remembered */ }
+  ndvSyncSubmit();
 }
 
 function ndvRestoreDraft() {
@@ -48,7 +50,7 @@ function ndvStatus(msg, kind) {
   el.dataset.kind = kind || '';
 }
 
-var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on submit)';
+var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on reserve)';
 var NDV_SIGN_DONE = 'sign(your availability, key) ──> sealed';
 
 function ndvDeriveLine(salt, tail) {
@@ -75,9 +77,21 @@ function ndvWhyNot() {
   return '';
 }
 
+// Unsaved = the calendar differs from what the server holds for THIS key
+// (nothing, for someone who has not reserved yet).
+function ndvDirty() {
+  var sel = NDV.cal.getSel(), saved = NDV.saved;
+  if (sel.size !== saved.size) return true;
+  for (var s of sel) if (!saved.has(s)) return true;
+  return false;
+}
+
 function ndvSyncSubmit(busy) {
-  var why = busy ? 'sealing...' : ndvWhyNot();
-  ndv$('nd-submit').disabled = !!why;
+  var why = busy ? 'reserving...' : ndvWhyNot(), dirty = ndvDirty();
+  var btn = ndv$('nd-submit');
+  btn.disabled = !!why;
+  btn.textContent = dirty ? 'Reserve*' : 'Reserve';
+  ndv$('nd-dirty').hidden = !dirty;
   ndv$('nd-why').textContent = why;
 }
 
@@ -93,11 +107,12 @@ function ndvRefreshBinding(pub) {
   window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub);
   // the blocking name, for the reason under submit (ndvWhyNot)
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
+  NDV.saved = mine && pub && mine.pub === pub ? new Set(mine.slots) : new Set();
   if (NDV.blocked) {
     ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
     if (NDV.hasDraft) {
-      ndvStatus('welcome back, ' + mine.name + '. your unsubmitted changes are kept -- submit to seal them.');
+      ndvStatus('welcome back, ' + mine.name + '. your unsaved changes are kept -- reserve to seal them.');
     } else {
       NDV.cal.setSel(new Set(mine.slots));
       ndvStatus('welcome back, ' + mine.name + '. your picks are loaded.');
@@ -196,14 +211,14 @@ async function ndvSubmit() {
   try {
     var sig = await NDV.kdf.sign(text);
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
-    if (!res.ok) { ndvStatus(res.data.error || 'submit failed', 'err'); return; }
+    if (!res.ok) { ndvStatus(res.data.error || 'could not reserve', 'err'); return; }
     ndvClearDraft();
     ndvTeach('key', NDV_SIGN_DONE);
     ndvApproved(NDV.seal);
     await ndvLoadPoll();
-    ndvStatus('sealed. come back with the same name and passphrase to change it.');
+    ndvStatus('reserved. come back with the same name and passphrase to change it.');
   } catch (e) {
-    ndvStatus('submit failed: ' + e.message, 'err');
+    ndvStatus('could not reserve: ' + e.message, 'err');
   } finally {
     ndvSyncSubmit();
   }
