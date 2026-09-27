@@ -60,18 +60,20 @@ function ndvBanner(msg) {
   el.hidden = !msg;
 }
 
-var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on commit)';
-var NDV_SIGN_DONE = 'sign(your availability, key) ──> sealed';
+var NDV_SIGN_WAIT = 'commit() ──> stamp(availabilities, seal)';
+var NDV_SIGN_DONE = 'commit() ──> stamp(availabilities, seal) ──> sealed';
 
-// Ends in an arrow: what it points at is the seal beside the text.
-function ndvDeriveLine(salt, tail) {
-  var k = NDV.kdfCfg, pass = ndv$('nd-pass').value;
-  return 'argon2id("' + pass + '", ' + salt.slice(0, 12) + '.., m=' +
-    (k.m / 1024) + 'MiB, t=' + k.t + ', p=' + k.p + ') \u2500\u2500>' + (tail ? ' ' + tail : '');
-}
-
+// The recipe, not the values: the salt ties the key to the name and the
+// poll, so one passphrase gives a different key to every name in every poll.
+// The argon2id line's arrow STRETCHES to two spaces short of the seal beside
+// the box (.nd-arrow), so it points at the face the passphrase produced.
 function ndvTeach(tail, signLine) {
-  ndv$('nd-teach').textContent = ndvDeriveLine(NDV.salt || '<salt>', tail) + '\n' + signLine;
+  var el = ndv$('nd-teach');
+  el.innerHTML = '<div>salt = sha256(poll, name)</div>' +
+    '<div class="nd-arrow-line"><span>seal = argon2id(passphrase, salt)' + (tail ? ' ' + tail : '') + '</span>' +
+    '<span class="nd-arrow" aria-hidden="true"><span class="nd-arrow-shaft"></span>&gt;</span></div>' +
+    '<div class="nd-sign"></div>';
+  el.querySelector('.nd-sign').textContent = signLine;
 }
 
 function ndvReady() { return !!NDV.kdf && NDV.kdf.ready(); }
@@ -89,6 +91,7 @@ function ndvWhyNot() {
   if (!raw.trim()) return 'enter your name first.';
   if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used.';
   if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase.';
+  if (NDV.taken) return '"' + NDV.taken + '" is already taken.';
   if (NDV.keyError) return 'this browser could not make a key.';
   if (!ndvReady()) return 'making your key...';
   return '';
@@ -100,7 +103,7 @@ function ndvDirty() {
   if (!NDV.cal) return false;
   if (NDV.pendingHalves != null) return true;   // an unsaved split
   if (NDV.pendingCrop !== undefined) return true;   // an unsaved crop
-  if (window.NDR && NDR.active) return true;    // an unsaved new passphrase
+  if (window.NDR && NDR.active) return true;    // an unsaved new name or passphrase
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;
   for (var s of sel) if (!saved.has(s)) return true;
@@ -133,11 +136,16 @@ function ndvSyncLock() {
 // Which voter (if any) the typed name already belongs to, and everyone else
 // as dot columns. A name sealed by a different key blocks submit.
 function ndvRefreshBinding(pub) {
-  if (window.ndrAs) pub = window.ndrAs(pub);   // mid passphrase change: still the old key
-  var norm = window.noodleNormName(ndv$('nd-name').value), mine = null, cols = [];
+  if (window.ndrAs) pub = window.ndrAs(pub);   // mid change: still the old key
+  var typed = window.noodleNormName(ndv$('nd-name').value), mine = null, cols = [];
+  var changing = !!(window.NDR && NDR.active);
+  // mid change the page is still the OLD name; the typed one is the new name
+  var norm = changing ? window.noodleNormName(NDR.oldName) : typed;
+  NDV.taken = '';
   var self = { self: true, ink: NDV.seal ? NDV.seal.ink : null };
   (NDV.poll ? NDV.poll.voters : []).forEach(function (v) {
     if (norm && window.noodleNormName(v.name) === norm) mine = v;
+    else if (changing && typed && window.noodleNormName(v.name) === typed) NDV.taken = typed;
     // your own committed column shows your LIVE picks instead of the stored vote
     if (pub && v.pub === pub) cols.push(self);
     else cols.push({ slots: new Set(v.slots), ink: NDV.seals[v.pub] ? NDV.seals[v.pub].ink : null });
@@ -151,7 +159,6 @@ function ndvRefreshBinding(pub) {
     NDV.cal.setOthers(cols);
     NDV.cal.setAllowed(host && !iHost ? host.slots : null, !!pub);
   }
-  window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub, iHost);
   if (window.ndhSync) window.ndhSync(pub);
   // becoming (or ceasing to be) the host changes the calendar: endless with
   // crop handles, or just the crop. ndvEnsureCal returns at once if not.
@@ -160,6 +167,7 @@ function ndvRefreshBinding(pub) {
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
   NDV.mine = !!(mine && pub && mine.pub === pub);
   NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
+  ndvRenderRoster(pub, iHost, typed);
   if (NDV.blocked) {
     ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
@@ -175,6 +183,23 @@ function ndvRefreshBinding(pub) {
   ndvSyncSubmit();
 }
 
+// The voters, plus -- for a key that has not committed under this name yet --
+// YOUR face as it would join them, redrawn whenever the seal changes. Mid
+// change (noodle-rekey.js) your own face already wears the NEW seal and name.
+function ndvRenderRoster(pub, iHost, typed) {
+  var voters = NDV.poll ? NDV.poll.voters : [], seals = NDV.seals;
+  if (NDV.mine && window.NDR && NDR.active && NDV.seal && ndvReady()) {
+    seals = Object.assign({}, seals);
+    seals[pub] = NDV.seal;
+    voters = voters.map(function (v) { return v.pub === pub && typed ? Object.assign({}, v, { name: typed }) : v; });
+  } else if (pub && typed && NDV.seal && !NDV.mine && !NDV.blocked) {
+    seals = Object.assign({}, seals);
+    seals[pub] = NDV.seal;
+    voters = voters.concat([{ name: typed, pub: pub, slots: [], order: voters.length, pending: true }]);
+  }
+  window.NoodleRoster.render(ndv$('nd-voters'), voters, seals, pub, iHost);
+}
+
 function ndvOnStart(info) {
   ndvSyncSubmit();
   var seal = ndv$('nd-seal');
@@ -182,7 +207,7 @@ function ndvOnStart(info) {
   if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('', NDV_SIGN_WAIT); return; }
   NDV.salt = info.salt;
   seal.classList.add('pending');
-  ndvTeach('...', NDV_SIGN_WAIT);
+  ndvTeach('', NDV_SIGN_WAIT);
 }
 
 async function ndvOnDerived(d) {
@@ -293,17 +318,18 @@ async function ndvSubmit() {
   ndvSyncSubmit(true);
   var name = ndv$('nd-name').value, slots = Array.from(NDV.cal.getSel()).sort();
   var ts = Date.now() + NDV.skew;
-  // a pending split/crop goes first (it converts every stored vote); the
-  // vote is then signed strictly newer, as the server's replay check demands
-  var rk = await ndrCommit(ts);   // a new passphrase first: the rest is signed by it
-  if (!rk.ok) { ndvStatus(rk.data.error || 'could not change the passphrase', 'err'); ndvSyncSubmit(); return; }
-  if (rk.did) ts += 1;
-  var set = await ndhCommitSettings(ts);
-  if (!set.ok) { ndvStatus(set.data.error || 'could not save the split or crop', 'err'); ndvSyncSubmit(); return; }
-  if (set.sent) ts += 1;
-  // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
-  var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
   try {
+    // a new name/passphrase first (the rest is signed by it), then a pending
+    // split/crop (it converts every stored vote); each request is signed
+    // strictly newer, as the server's replay check demands
+    var rk = await ndrCommit(ts);
+    if (!rk.ok) { ndvStatus(rk.data.error || 'could not make the change', 'err'); return; }
+    if (rk.did) ts += 1;
+    var set = await ndhCommitSettings(ts);
+    if (!set.ok) { ndvStatus(set.data.error || 'could not save the split or crop', 'err'); return; }
+    if (set.sent) ts += 1;
+    // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
+    var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
     var sig = await NDV.kdf.sign(text);
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
     if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); return; }
@@ -380,7 +406,8 @@ function ndvInit() {
   ndv$('nd-banner').addEventListener('click', function () { ndvBanner(''); });
   ndvTeach('', NDV_SIGN_WAIT);
   ndvSyncSubmit();
-  ndvLoadPoll();
+  // a reload mid-fetch rejects it ('Load failed'); say so rather than throw
+  ndvLoadPoll().catch(function (e) { ndvStatus('could not load the poll (' + e.message + ')', 'err'); });
   if (ndvRestoreIdentity()) ndvOnIdentityInput();
 }
 

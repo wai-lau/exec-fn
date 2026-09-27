@@ -1,56 +1,62 @@
-// Changing your passphrase. The name is bound to the key its first commit was
-// signed with, and the key IS the passphrase -- so a new passphrase means the
-// OLD key signing the NEW public key over to the name (noodle/rekey.py).
+// Changing your name or passphrase. A name is bound to the key its first
+// commit was signed with, and the key is derived from the name AND the
+// passphrase -- so either change means the OLD key signing a NEW public key
+// (and the new name) over to the record (noodle/rekey.py).
 //
-// The button sits right of the passphrase field, only once the passphrase is
-// right (the name is committed under this very key). Tapping it keeps the old
-// passphrase in memory, clears the field and asks for the new one; a second
-// worker re-derives the old key meanwhile so it can still sign. Until Commit
-// nothing is sent and nothing is remembered: the page still answers as the old
-// key (ndrAs), the identity is not saved, and a reload brings the old
-// passphrase back. Commit sends the rekey FIRST, then the split and the vote
-// under the new key (ndvSubmit).
+// While the passphrase is the right one it is greyed and locked, and each
+// field has a "change" button. Tapping one keeps the old name + passphrase in
+// memory and unlocks that field (the passphrase is cleared, "new passphrase");
+// the button becomes a cross that puts the old value back. A second worker
+// re-derives the old key meanwhile so it can still sign. Commit carries the
+// change -- there is no separate confirm. Until then nothing is sent and
+// nothing is remembered: the page still answers as the old key (ndrAs), the
+// identity is not saved, and a reload brings the old one back. Commit sends
+// the rekey FIRST, then the split and the vote under the new key (ndvSubmit).
 
-var NDR = { active: false, oldPass: '', oldPub: null, keeper: null, keeperPub: null };
+var NDR = { active: false, name: false, pass: false, oldName: '', oldPass: '', oldPub: null,
+  keeper: null, keeperPub: null };
 window.NDR = NDR;
+
+var NDR_FIELDS = {
+  name: { input: 'nd-name', btn: 'nd-rename', hint: 'please help the host know who you are', newHint: 'new name' },
+  pass: { input: 'nd-pass', btn: 'nd-rekey', hint: 'please remember this identifier', newHint: 'new passphrase' },
+};
 
 function ndr$(id) { return document.getElementById(id); }
 
 // The key the SERVER knows this voter by: the old one until the change commits.
 function ndrAs(pub) { return NDR.active && pub ? NDR.oldPub : pub; }
 
-// Shown while changing, or when the typed passphrase is the right one.
+// "change" once the passphrase is right; a cross while that field is changing.
+// The passphrase itself is locked while right and not being changed.
 function ndrSync() {
-  var btn = ndr$('nd-rekey');
-  if (!btn) return;
-  var ok = ndr$('nd-rekey-ok');
-  btn.hidden = !NDR.active && !NDV.mine;
-  // mid-change: a cross (cancel) and a check (commit, the same as Commit)
-  btn.textContent = NDR.active ? '\u2717' : 'change';
-  btn.classList.toggle('glyph', NDR.active);
-  btn.setAttribute('aria-label', NDR.active ? 'cancel the passphrase change' : 'change passphrase');
-  btn.title = NDR.active ? 'cancel' : '';
-  ok.hidden = !NDR.active;
-  ok.disabled = ndv$('nd-submit').disabled;
-}
-
-function ndrLabel(on) {
-  var pass = ndr$('nd-pass');
-  pass.placeholder = on ? 'new passphrase' : 'no passphrase';
-  ndr$('nd-name').disabled = on;   // a new name is a different identity, not a change
+  if (!ndr$('nd-rekey')) return;
+  Object.keys(NDR_FIELDS).forEach(function (k) {
+    var f = NDR_FIELDS[k], btn = ndr$(f.btn), on = NDR[k];
+    btn.hidden = !on && !NDV.mine;
+    btn.textContent = on ? '✗' : 'change';
+    btn.classList.toggle('glyph', on);
+    btn.setAttribute('aria-label', (on ? 'cancel the ' : 'change your ') + (k === 'name' ? 'name' : 'passphrase'));
+    btn.title = on ? 'cancel' : '';
+    ndr$(f.input).placeholder = on ? f.newHint : f.hint;
+  });
+  ndr$('nd-pass').disabled = !!NDV.mine && !NDR.pass;
 }
 
 function ndrStop() {
   if (NDR.keeper) NDR.keeper.stop();
   NDR.keeper = null;
   NDR.keeperPub = null;
-  NDR.active = false;
-  ndrLabel(false);
+  NDR.active = NDR.name = NDR.pass = false;
 }
 
-function ndrStart() {
+// The first change of either field remembers who you were and starts
+// re-deriving that key; a second field joins the same change.
+function ndrBegin() {
+  if (NDR.active) return;
   var root = ndr$('noodle'), cfg = Object.assign({}, NDV.kdfCfg, { debounce: 0 });
   NDR.active = true;
+  NDR.oldName = ndr$('nd-name').value;
   NDR.oldPass = ndr$('nd-pass').value;
   NDR.oldPub = NDV.kdf.pub();
   NDR.keeperPub = new Promise(function (resolve, reject) {
@@ -58,47 +64,58 @@ function ndrStart() {
       onStart: function () {}, onDerived: function (d) { resolve(d.pub); }, onError: reject });
   });
   NDR.keeperPub.catch(function () {});   // surfaced at Commit, not as an unhandled rejection
-  NDR.keeper.input(ndr$('nd-name').value, NDR.oldPass);
-  ndrLabel(true);
-  ndr$('nd-pass').value = '';
+  NDR.keeper.input(NDR.oldName, NDR.oldPass);
+}
+
+function ndrStart(k) {
+  ndrBegin();
+  NDR[k] = true;
+  var el = ndr$(NDR_FIELDS[k].input);
+  el.disabled = false;
+  if (k === 'pass') el.value = '';
   window.ndvOnIdentityInput();
-  ndr$('nd-pass').focus();
+  el.focus();
+  if (k === 'name') el.select();
 }
 
-function ndrCancel() {
-  var pass = NDR.oldPass;
-  ndrStop();
-  ndr$('nd-pass').value = pass;
+function ndrCancel(k) {
+  var old = k === 'name' ? NDR.oldName : NDR.oldPass;
+  NDR[k] = false;
+  if (!NDR.name && !NDR.pass) ndrStop();
+  ndr$(NDR_FIELDS[k].input).value = old;
   window.ndvOnIdentityInput();
 }
 
-function ndrClick() {
-  if (NDR.active) ndrCancel(); else ndrStart();
+function ndrClick(k) {
+  return function () { if (NDR[k]) ndrCancel(k); else ndrStart(k); };
 }
 
-// Part of Commit: hand the name to the new key, signed by the old one.
-// -> {ok, did} ; did = a rekey was sent, so the next request needs a newer ts.
+// Part of Commit: hand the record to the new key (and name), signed by the
+// old key. -> {ok, did} ; did = a rekey was sent, so the next request needs a
+// newer ts.
 async function ndrCommit(ts) {
   if (!NDR.active) return { ok: true };
-  var newpub = NDV.kdf.pub(), name = ndr$('nd-name').value;
-  if (newpub === NDR.oldPub) { ndrStop(); return { ok: true }; }   // same passphrase typed again
+  var newpub = NDV.kdf.pub(), newname = ndr$('nd-name').value, name = NDR.oldName;
+  if (newpub === NDR.oldPub) { ndrStop(); return { ok: true }; }   // the same name and passphrase again
   try {
     if ((await NDR.keeperPub) !== NDR.oldPub) throw new Error('the old key did not re-derive');
-    var sig = await NDR.keeper.sign(ndhCanon({ kind: 'rekey', name: name, newpub: newpub, poll: NDV.slug, ts: ts }));
-    var res = await ndvPost('/rekey', { name: name, pub: NDR.oldPub, ts: ts, sig: sig, newpub: newpub });
+    var sig = await NDR.keeper.sign(ndhCanon({ kind: 'rekey', name: name, newname: newname,
+      newpub: newpub, poll: NDV.slug, ts: ts }));
+    var res = await ndvPost('/rekey', { name: name, pub: NDR.oldPub, ts: ts, sig: sig,
+      newpub: newpub, newname: newname });
     if (!res.ok) return res;
   } catch (e) {
-    return { ok: false, data: { error: 'could not change the passphrase: ' + e.message } };
+    return { ok: false, data: { error: 'could not make the change: ' + e.message } };
   }
   ndrStop();
-  ndvSaveIdentity();   // only now does the new passphrase become the remembered one
+  ndvSaveIdentity();   // only now does the new name/passphrase become the remembered one
   return { ok: true, did: true };
 }
 
 (function () {
   if (!ndr$('nd-rekey')) return;
-  ndr$('nd-rekey').addEventListener('click', ndrClick);
-  ndr$('nd-rekey-ok').addEventListener('click', function () { ndvSubmit(); });
+  ndr$('nd-rekey').addEventListener('click', ndrClick('pass'));
+  ndr$('nd-rename').addEventListener('click', ndrClick('name'));
   window.ndrAs = ndrAs;
   window.ndrSync = ndrSync;
   window.ndrCommit = ndrCommit;

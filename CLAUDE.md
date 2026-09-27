@@ -222,6 +222,7 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | POST | `/api/noodle/{slug}/vote` | Public. Signed `{name, pub, slots, ts, sig}`; 403 wrong key/bad sig, 409 replay, 413 over 8KB. |
 | POST | `/api/noodle/{slug}/ask` | Public. Haiku text -> a `reading` + RULES, applied to every date by code (`noodle/rules.py`) -> slots, clamped to the window, never submits; 422 if truncated; rolling rate limits (429 + `retry_after`, never a lifetime cap) in `noodle/config.py`. |
 | POST | `/api/noodle/{slug}/settings`, `/remove` | Public, **host-signed** (`noodle/host.py`): split days or not + the CROP (first/last day anyone can pick; the first to act claims host), remove a guest. Host-only; the host drags crop lines on an always-endless calendar, guests just see the crop. |
+| POST | `/api/noodle/{slug}/rekey` | Public, signed by the voter's OLD key: new passphrase and/or name (`noodle/rekey.py`). **ARCHITECTURE.md §21**. |
 | GET/POST | `/api/noodle-polls` | **Owner-only.** List / create polls (`{title}` only). |
 
 ### Exec chat tools (bubble overlay)
