@@ -48,6 +48,7 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         page.click("#nd-submit")
         page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
                                timeout=10000)
+        assert page.inner_text(".nd-approved-by") == f"approved by {NAME}"
         voters = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")["voters"]
         mine = [v for v in voters if v["name"].lower() == NAME]
         assert len(mine) == 1 and mine[0]["pub"]

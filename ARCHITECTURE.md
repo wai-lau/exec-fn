@@ -3582,8 +3582,8 @@ grid; overflow gets /rd's hollow ring.
 halves of its in-window days. All on -> off, anything else -> on. The label names
 the action ("Not available Wednesdays" / "Available week of Mar 1", "+ (except)"
 when mixed), and only a mixed group shows the explicit ✓/✗. The cells show
-`Wed` / a state mark; the full sentence is the `aria-label` and the caption line
-under the grid.
+`Wed` / a state mark; the full sentence is the toggle's `aria-label` and hover
+`title` only -- a caption line under the grid was removed as noise.
 
 **The seal** (`noodle-seal.js`, the ONE implementation — vote and results pages
 both render seals from pubkeys client-side): `SHA-256(pub)`; bytes 0-17 pick the

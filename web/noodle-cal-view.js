@@ -2,7 +2,7 @@
 // repaints classes in place on every change so the scroll position and the
 // sticky header never jump.
 //
-// opts: {start, end, caption (element|null), onChange(sel)}
+// opts: {start, end, onChange(sel)}
 // api:  setSel(Set), getSel(), setOthers([{slots:Set, hue} | {self:true, hue}])
 
 // The big month number behind the grid follows whichever week row is at the
@@ -81,11 +81,6 @@ function NoodleCal(wrap, opts) {
     });
   }
 
-  function say(el) {
-    var g = el && groupOf(el);
-    if (opts.caption && g) opts.caption.textContent = T.label(g.subject, T.groupState(g.slots, sel));
-  }
-
   function change(next) {
     sel = next;
     paint();
@@ -101,7 +96,6 @@ function NoodleCal(wrap, opts) {
       if (!g || !g.slots.length) return;
       var st = T.groupState(g.slots, sel);
       change(T.apply(g.slots, sel, set ? set.dataset.set : T.clickAction(st)));
-      say(g.el);
     } else if (cell && !cell.classList.contains('out')) {
       var r = cell.getBoundingClientRect();
       var slot = cell.dataset.day + ':' + P.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight);
@@ -112,8 +106,6 @@ function NoodleCal(wrap, opts) {
   }
 
   grid.addEventListener('click', onTap);
-  grid.addEventListener('pointerover', function (e) { if (e.target.closest('.nd-tg, [data-set]')) say(e.target); });
-  grid.addEventListener('focusin', function (e) { say(e.target); });
 
   ndcWatchMonth(scroller, grid, mark);
   new ResizeObserver(paintDots).observe(scroller);
