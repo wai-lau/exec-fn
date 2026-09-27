@@ -11,10 +11,8 @@ async function ndmList() {
   if (!r.ok) return;
   var d = await r.json();
   document.getElementById('nd-polls').innerHTML = d.polls.map(function (p) {
-    var url = location.origin + '/noodle/' + p.slug;
     return '<li><a href="/noodle/' + p.slug + '">' + ndmEsc(p.title) + '</a> ' +
-      '<span class="nd-dim">' + p.start + ' .. ' + p.end + ' / ' + p.voters + ' voters</span>' +
-      '<input class="nd-link" readonly value="' + ndmEsc(url) + '"></li>';
+      '<span class="nd-dim">' + p.start + ' .. ' + p.end + ' / ' + p.voters + ' voters</span></li>';
   }).join('') || '<li class="nd-dim">no polls yet</li>';
 }
 
@@ -27,7 +25,7 @@ async function ndmCreate(e) {
   });
   var d = await r.json().catch(function () { return {}; });
   if (!r.ok) { msg.textContent = d.detail || 'could not create'; return; }
-  msg.textContent = 'created: ' + location.origin + d.url;
+  msg.innerHTML = 'created: <a href="' + d.url + '">' + ndmEsc(f.title.value || 'the poll') + '</a>';
   f.reset();
   ndmList();
 }
@@ -36,8 +34,5 @@ async function ndmCreate(e) {
   var form = document.getElementById('nd-create');
   if (!form) return;
   form.addEventListener('submit', ndmCreate);
-  document.getElementById('nd-polls').addEventListener('focusin', function (e) {
-    if (e.target.classList.contains('nd-link')) e.target.select();
-  });
   ndmList();
 })();
