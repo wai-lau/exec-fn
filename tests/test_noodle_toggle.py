@@ -1,9 +1,9 @@
 """Noodle's header/row toggle rules (web/noodle-toggle.js) and calendar
 geometry (web/noodle-cal.js), unit-tested in isolation through node.
 
-Rules under test:
-  click: all on -> all off; partial or empty -> all on
-  label: all on "Not available X" / all off "Available X" / mixed "Available X (except)"
+Rules under test (ONE button per group):
+  click: all off -> all on (check); all on OR mixed -> all off (cross)
+  label: all off "Available X" / on or mixed "Not available X"
   out-of-window days never belong to a group
 """
 import json
@@ -46,7 +46,7 @@ def test_empty_group_is_inert():
     assert js("return M.label('Wednesdays', 'none')") == ""
 
 
-@pytest.mark.parametrize("state,action", [("on", "off"), ("off", "on"), ("mixed", "on")])
+@pytest.mark.parametrize("state,action", [("on", "off"), ("off", "on"), ("mixed", "off")])
 def test_click_rule(state, action):
     assert js(f"return M.clickAction({json.dumps(state)})") == action
 
@@ -65,7 +65,7 @@ def test_apply_does_not_mutate_input():
 @pytest.mark.parametrize("state,label", [
     ("on", "Not available Wednesdays"),
     ("off", "Available Wednesdays"),
-    ("mixed", "Available Wednesdays (except)"),
+    ("mixed", "Not available Wednesdays"),
 ])
 def test_column_labels(state, label):
     assert js(f"return M.label(M.colSubject(3), {json.dumps(state)})") == label
@@ -74,16 +74,15 @@ def test_column_labels(state, label):
 def test_row_labels():
     assert js("return M.label(M.rowSubject('2026-03-01'), 'on')") == "Not available week of Mar 1"
     assert js("return M.label(M.rowSubject('2026-03-01'), 'off')") == "Available week of Mar 1"
-    assert js("return M.label(M.rowSubject('2026-03-01'), 'mixed')") == \
-        "Available week of Mar 1 (except)"
+    assert js("return M.label(M.rowSubject('2026-03-01'), 'mixed')") == "Not available week of Mar 1"
 
 
 def test_full_cycle_from_mixed():
-    # mixed -> click -> all on -> click -> all off -> click -> all on
+    # mixed -> click -> all off -> click -> all on -> click -> all off
     r = js(f"""let s=new Set(['a:m']); const out=[];
       for (let i=0;i<3;i++) {{ s=M.apply({G}, s, M.clickAction(M.groupState({G}, s)));
         out.push(M.groupState({G}, s)); }} return out""")
-    assert r == ["on", "off", "on"]
+    assert r == ["off", "on", "off"]
 
 
 # ── calendar geometry ─────────────────────────────────────────────────────

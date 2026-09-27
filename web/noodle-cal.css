@@ -94,29 +94,22 @@
   border-bottom: 5px solid hsl(var(--green-hsl) / 0.12);
 }
 
-.nd-tg { padding: 0 var(--space-1); border-radius: var(--radius-1); }
-[data-state="on"] > .nd-tg { background: hsl(var(--green-hsl) / 0.8); color: hsl(var(--bg-hsl) / 1); }
-[data-state="off"] > .nd-tg { color: hsl(var(--green-hsl) / 0.45); }
-[data-state="mixed"] > .nd-tg { color: hsl(var(--green-hsl) / 1); }
-[data-state="none"] > .nd-tg { color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
-.nd-wk[data-state="on"] > .nd-tg { background: none; color: hsl(var(--green-hsl) / 1); }
+.nd-hd-name { line-height: var(--lh-none); }
 
-/* explicit all-on / all-off, only while the group is mixed */
-
-/* The pair's space is ALWAYS reserved (visibility, not display): the header is
-   sticky, so a header that grew when a column went mixed slid down over the
-   first visible row -- and the next tap on that row landed on the header. */
-.nd-mx { display: flex; gap: var(--space-0-5); visibility: hidden; }
-.nd-wk .nd-mx { flex-direction: column; }
-[data-state="mixed"] > .nd-mx { visibility: visible; }
-
-.nd-mx button {
-  padding: 0 var(--space-0-5);
+/* ONE button per weekday column and per week row: a check when the group is
+   all off (turns it all on), a cross when any of it is on (turns it all off).
+   The box is identical in every state, so the sticky header never changes
+   height -- a header that grew slid over the first visible row and swallowed
+   the next tap on it. */
+.nd-tg {
+  padding: 0 var(--space-1);
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-1);
   font-size: var(--fs-2xs);
+  line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 1);
 }
+[data-state="none"] > .nd-tg { visibility: hidden; }
 
 /* ── a day: its number, its dots, two halves split at 30deg ─────────────── */
 .nd-d {

@@ -5,11 +5,11 @@
 // column or one week row. Out-of-window days never count: a partly-outside
 // week is "all on" when every day it can hold is on.
 //
-// Click rule: all on -> all off; anything else (partial or empty) -> all on.
+// ONE button per group. Click rule: all off -> all on (the button shows a
+// check); all on OR mixed -> all off (the button shows a cross).
 // Labels describe the ACTION the click will take:
-//   all on  -> "Not available Wednesdays"
-//   all off -> "Available Wednesdays"
-//   mixed   -> "Available Wednesdays (except)", plus explicit on/off buttons.
+//   all off       -> "Available Wednesdays"
+//   on or mixed   -> "Not available Wednesdays"
 
 var ND_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -25,9 +25,9 @@ function ndGroupState(slots, sel) {
   return on === 0 ? 'off' : 'mixed';
 }
 
-// What a plain click does from this state.
+// What the one button does from this state.
 function ndClickAction(state) {
-  return state === 'on' ? 'off' : 'on';
+  return state === 'off' ? 'on' : 'off';
 }
 
 // Returns a NEW Set with every slot of the group switched on or off.
@@ -41,8 +41,7 @@ function ndApply(slots, sel, action) {
 
 function ndLabel(subject, state) {
   if (state === 'none') return '';
-  var base = (state === 'on' ? 'Not available ' : 'Available ') + subject;
-  return state === 'mixed' ? base + ' (except)' : base;
+  return (ndClickAction(state) === 'on' ? 'Available ' : 'Not available ') + subject;
 }
 
 function ndColSubject(dow) {
