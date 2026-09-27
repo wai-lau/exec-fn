@@ -29,7 +29,8 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         _ready(page)
 
         seal = page.inner_text("#nd-seal").split("\n")
-        assert len(seal) == 5 and all(len(row) == 9 for row in seal), seal
+        assert len(seal) == 6 and all(len(row) == 9 for row in seal), seal
+        assert any(c.startswith('nd-hue-') for c in page.get_attribute('#nd-seal', 'class').split())
         teach = page.inner_text("#nd-teach")
         assert teach.startswith("argon2id(") and "m=64MiB" in teach
 
