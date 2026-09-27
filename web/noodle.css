@@ -179,7 +179,7 @@ body.noodle {
   font-family: 'Noodle Glyphs', var(--font-mono);
   font-size: var(--fs-2xs);
   line-height: var(--lh-snug);
-  color: hsl(var(--cyan-hsl) / 0.8);
+  color: hsl(var(--green-hsl) / 0.8);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
