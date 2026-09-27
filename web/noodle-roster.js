@@ -28,7 +28,7 @@ function ndrRender(el, voters, seals, myPub, canRemove) {
   el.closest('.nd-who').hidden = !voters.length;
   el.innerHTML = voters.map(function (v) {
     var seal = seals[v.pub];
-    var you = !!myPub && v.pub === myPub;
+    var you = v.pending || (!!myPub && v.pub === myPub);   // your seat, committed or not
     return '<li><button type="button" class="nd-face' + (you ? ' you' : '') + (v.pending ? ' pending' : '') + '" data-name="' +
       (v.blank ? '' : ndrEsc(v.name)) + '"' + (v.blank ? '' : ' title="' + v.slots.length + ' slots"') + '>' +
       '<pre class="nd-seal xs' + (seal ? ' inked" style="--seal-hsl:' + seal.ink + '"' : '"') + '>' +

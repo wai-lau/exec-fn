@@ -42,37 +42,32 @@ function ndcPaintMarks(grid) {
   });
 }
 
-// Month boundaries: ONE stroked path per boundary, on the centre line of the
-// 5px gaps between cells. Built from per-cell bars first, and half-transparent
-// bars that meet overlap: every corner and step doubled into a brighter chip.
-// A single path has real corners and nothing to overlap. When the 1st falls
-// mid-week (column k) the line steps: along the bottom of that week under
-// the old month's days, up between columns k-1 and k, along its top after.
+// Month boundaries: a green step line through the GAPS between cells --
+// under the last week of the old month, up the gap before the 1st, over the
+// first week of the new one. Drawn as small segments INSIDE the cells
+// (<i class="nd-ml b|v|t">), not one SVG over the grid: the gaps are the
+// cells' own 5px borders, and a separate layer rounds independently of them,
+// so at some widths and zooms (fractional DPR) it drifted a device pixel or
+// two off the gap. A segment is laid out with the very box whose border it
+// sits on, so it snaps with it. Segments TILE -- none overlap, since the
+// colour is translucent and an overlap reads as a brighter chip.
 function ndcPaintBoundaries(grid) {
-  var old = grid.querySelector('.nd-mlines');
-  if (old) old.remove();
-  // Measured with getBoundingClientRect, not offsetLeft/Top: the columns are
-  // 1fr, so cells sit on fractional pixels and offset* rounds them -- the
-  // step then missed the centre of the gap by up to a pixel.
-  var W = grid.clientWidth, d = '', G = 2.5;   // G: half the gap, its centre
-  var g = grid.getBoundingClientRect();
+  grid.querySelectorAll('.nd-ml').forEach(function (el) { el.remove(); });
+  function mark(el, kind) { el.insertAdjacentHTML('beforeend', '<i class="nd-ml ' + kind + '" aria-hidden="true"></i>'); }
   grid.querySelectorAll('.nd-d[data-day$="-01"]').forEach(function (first) {
     var row = first.previousElementSibling, k = 0;
     while (row && !row.classList.contains('nd-wk')) { row = row.previousElementSibling; k++; }
-    var r = first.getBoundingClientRect(), y0 = r.top - g.top;
-    var top = y0 - G, bot = y0 + r.height - G;
-    if (k === 0) { d += 'M0 ' + top + 'H' + W; return; }
-    var x = r.left - g.left - G;
-    d += 'M0 ' + bot + 'H' + x + 'V' + top + 'H' + W;
+    if (!row) return;
+    var days = [], el = row.nextElementSibling;
+    for (var i = 0; i < 7 && el; i++, el = el.nextElementSibling) days.push(el);
+    if (k === 0) { mark(row, 't'); days.forEach(function (d) { mark(d, 't'); }); return; }
+    mark(row, 'b');
+    days.forEach(function (d, i) {
+      if (i < k) mark(d, i === k - 1 ? 'b end' : 'b');
+      else mark(d, i === k ? 't start' : 't');
+    });
+    mark(first, 'v');
   });
-  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('class', 'nd-mlines');
-  svg.setAttribute('width', W);
-  svg.setAttribute('height', grid.scrollHeight);
-  svg.innerHTML = '<path d="' + d + '"/>';
-  // always BEFORE the crop lines: at the same z the later one paints on top,
-  // and where the two coincide the crop line must win
-  grid.insertBefore(svg, grid.querySelector('.nd-cropbox'));
 }
 
 // A month's watermark is GREEN when at least one of its days is available
@@ -167,6 +162,23 @@ function ndcFirstSunday(P, from, today) {
   return s === P.sunday(today) ? P.addDays(s, -7) : s;
 }
 
+// fn() whenever any of els changes WIDTH -- never on height alone: the
+// repaint itself resizes the scroller's height (ndcCapHeight), and reacting
+// to that looped ("ResizeObserver loop completed with undelivered
+// notifications").
+function ndcOnWidth(els, fn) {
+  var seen = new WeakMap();
+  var ro = new ResizeObserver(function (entries) {
+    var changed = entries.some(function (en) {
+      var w = en.contentRect.width, was = seen.get(en.target);
+      seen.set(en.target, w);
+      return was !== w;
+    });
+    if (changed) fn();
+  });
+  els.forEach(function (el) { ro.observe(el); });
+}
+
 function NoodleCal(wrap, opts) {
   var P = window.NoodleCalParts, T = window.NoodleToggle;
   var today = P.iso(new Date()), crop = opts.crop || null;
@@ -229,12 +241,15 @@ function NoodleCal(wrap, opts) {
   }
 
   function onTap(e) {
-    var tg = e.target.closest('.nd-tg'), cell = e.target.closest('.nd-d');
-    if (e.target.closest('.nd-mode')) {
+    // a group's WHOLE header or week-column cell is its button, not just the
+    // drawn box inside it (a 28px target in a column of phone-sized cells)
+    var head = e.target.closest('.nd-hd:not(.nd-corner), .nd-wk'), cell = e.target.closest('.nd-d');
+    var tg = e.target.closest('.nd-tg') || (head && head.querySelector('.nd-tg'));
+    if (e.target.closest('.nd-corner')) {
       mode = T.flipMode(mode);
       paint();
     } else if (tg) {
-      var on = offered(groupOf(e.target).slots);
+      var on = offered(groupOf(tg).slots);
       if (on.length) change(T.apply(on, sel, T.modeAction(mode)));
     } else if (cell && !cell.classList.contains('out')) {
       var slot = ndcSlotAt(cell, e, opts.halves);
@@ -255,9 +270,7 @@ function NoodleCal(wrap, opts) {
   ndcCapHeight(scroller, grid);
   // the GRID too: a scrollbar arriving narrows the grid inside an unchanged
   // scroller, and month lines drawn before that sat right of their gaps
-  var ro = new ResizeObserver(function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid); });
-  ro.observe(scroller);
-  ro.observe(grid);
+  ndcOnWidth([scroller, grid], function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid); });
 
   return {
     scroller: scroller,

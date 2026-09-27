@@ -3540,11 +3540,12 @@ Thursday; the voter reviews the grid before anything is signed.)
 
 **The dotted box** is the recipe, never the values -- `salt = sha256(poll,
 name)`, `seal = argon2id(passphrase, salt) ──>`, `commit() ──> stamp(
-availabilities, seal)` -- with the seal (caption under it) to the RIGHT. The
-argon2id line's arrow is a clipped shaft of U+2500 that STRETCHES to exactly
-2ch short of the seal (`.nd-arrow`; the box has no gap, that margin is the
-gap), and the seal box is left-aligned so a wide caption cannot push the seal
-off the arrow's end. Inside the box the seal sits SQUARE: the stamp's random
+availabilities, seal)` -- recipe and seal centred as ONE group, the seal at the
+voter row's size with its caption right-aligned under it. The argon2id line's
+arrow is a clipped shaft of U+2500 that FILLS whatever width the recipe's
+longest line leaves (`contain: inline-size`, so the fill itself never widens
+the recipe); the seal box's 2ch margin is the gap, so the arrow ends exactly
+2ch short of the seal. Inside the box the seal sits SQUARE: the stamp's random
 tilt vars are zeroed with `!important` custom properties, which beat the
 inline ones noodle-seal.js sets.
 
@@ -3562,8 +3563,8 @@ into the name row, and a gap would be added around it too.
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever
-raised it was off screen as often as not. It stays until tapped or replaced by
-the next message; clearing the status line does not clear it, since the page
+raised it was off screen as often as not. It stays until replaced by the next
+message (tapping does not close it, and its text is selectable, for copying); clearing the status line does not clear it, since the page
 does that on every poll reload. Everything else (welcome back, committed) is
 the status line directly ABOVE the calendar.
 
@@ -3640,8 +3641,14 @@ and run across the whole row, OVER the frozen week column (like the month
 line) and under the frozen header: the box is at the week column's z and kept
 last in the grid, re-appended as weeks load -- at an equal z the later element
 paints on top, and cells of weeks loaded after it once painted over its grips.
-The month path is always inserted BEFORE the crop box for the same reason:
-where the two lines coincide, the crop line must win. Ask Noodle can crop for a host.
+**Month lines are segments INSIDE the cells** (`<i class="nd-ml b|v|t">`,
+`ndcPaintBoundaries`), not one SVG over the grid: the gaps are the cells' own
+5px borders, and a separate layer rounds independently of them, so at some
+widths and zooms (fractional DPR, e.g. Windows at 175%) the line drifted a
+device pixel or two off its gap. A segment is laid out with the box whose
+border it sits on, so it snaps with it. The ink is OPAQUE (full green dimmed by
+`filter: brightness(0.45)`, the old 0.45-over-black tone) so neighbouring
+pieces can overlap by a pixel -- translucent joins showed as seams. Ask Noodle can crop for a host.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
 
 **The split** is a checkbox under the calendar, host only: ticking it
