@@ -61,7 +61,8 @@ async function ndaAsk() {
   if (!text || NDA.busy || ndaWaiting()) return;
   NDA.busy = true;
   ndaSync();
-  ndaStatus('Noodle is reading...');
+  ndaStatus('Noodling');
+  nda$('nd-ask-status').classList.add('nd-noodling');   // the dots are CSS
   try {
     var res = await ndvPost('/ask', { text: text, dates: ndaDays(), halves: ndhHalves() });
     if (res.ok) {
@@ -87,6 +88,7 @@ async function ndaAsk() {
   } catch (e) {
     ndaStatus('Noodle could not be reached', 'err');
   } finally {
+    nda$('nd-ask-status').classList.remove('nd-noodling');
     NDA.busy = false;
     ndaSync();
   }

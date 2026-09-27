@@ -34,8 +34,12 @@ def test_the_host_drags_the_crop_lines_and_commit_saves_them(browser, base_url, 
         # taps through to the days under it
         h = page.locator(f".nd-crop-h.{which} .grip.out")
         h.scroll_into_view_if_needed()
-        page.wait_for_timeout(200)
-        b = h.bounding_box()
+        # scrolling can lazy-load weeks, which re-places the line: wait until
+        # the grip holds still before aiming at it
+        b, prev = h.bounding_box(), None
+        while b != prev:
+            page.wait_for_timeout(250)
+            prev, b = b, h.bounding_box()
         page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2)
         page.mouse.down()
         page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2 + dy, steps=8)
@@ -94,7 +98,7 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         page.wait_for_function(f"!document.querySelector('#{btn}').hidden", timeout=10000)
         assert page.inner_text(f"#{btn}") == "change"
         page.click(f"#{btn}")
-        assert page.inner_text(f"#{btn}") == "\u2717"
+        assert page.inner_text(f"#{btn}") == "undo"
         assert not page.is_disabled(f"#{field}")
         page.fill(f"#{field}", new)
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
@@ -126,6 +130,14 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         assert fresh(name, two)
         change("nd-name", "nd-rename", renamed)
         assert fresh(renamed, two)
+        # mid change the roster keeps YOUR face (typed name), never the empty seat
+        page.click("#nd-rename")
+        page.fill("#nd-name", "smoke midway")
+        page.wait_for_function("[...document.querySelectorAll('.nd-face-name')].some(e => e.textContent === 'smoke midway')",
+                               timeout=5000)
+        assert page.locator(".nd-face-name", has_text="could be you").count() == 0
+        page.click("#nd-rename")   # cancel
+        page.wait_for_function("NDV.mine", timeout=20000)
         change("nd-name", "nd-rename", name)
         change("nd-pass", "nd-rekey", one)
         # the cross puts the old value back untouched

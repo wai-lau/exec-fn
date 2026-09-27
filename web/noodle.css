@@ -428,3 +428,20 @@ body.noodle {
   outline: none;
   border-bottom: 2px dashed hsl(var(--green-hsl) / 0.45);
 }
+
+/* "Noodling..." while Ask waits: the dots count up 0-3 and loop, in one
+   element's ::after -- no timer to leak if the request never returns */
+.nd-noodling::after {
+  display: inline-block;
+  width: 3ch;
+  text-align: left;
+  content: '';
+  animation: nd-dots 1.2s steps(1, end) infinite;
+}
+
+@keyframes nd-dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}

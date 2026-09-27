@@ -6,7 +6,7 @@
 // While the passphrase is the right one it is greyed and locked, and each
 // field has a "change" button. Tapping one keeps the old name + passphrase in
 // memory and unlocks that field (the passphrase is cleared, "new passphrase");
-// the button becomes a cross that puts the old value back. A second worker
+// the button becomes UNDO, which puts the old value back. A second worker
 // re-derives the old key meanwhile so it can still sign. Commit carries the
 // change -- there is no separate confirm. Until then nothing is sent and
 // nothing is remembered: the page still answers as the old key (ndrAs), the
@@ -25,19 +25,18 @@ var NDR_FIELDS = {
 function ndr$(id) { return document.getElementById(id); }
 
 // The key the SERVER knows this voter by: the old one until the change commits.
-function ndrAs(pub) { return NDR.active && pub ? NDR.oldPub : pub; }
+// (Even while the new key is still deriving: the page never stops being you.)
+function ndrAs(pub) { return NDR.active ? NDR.oldPub : pub; }
 
-// "change" once the passphrase is right; a cross while that field is changing.
+// "change" once the passphrase is right; "undo" while that field is changing.
 // The passphrase itself is locked while right and not being changed.
 function ndrSync() {
   if (!ndr$('nd-rekey')) return;
   Object.keys(NDR_FIELDS).forEach(function (k) {
     var f = NDR_FIELDS[k], btn = ndr$(f.btn), on = NDR[k];
     btn.hidden = !on && !NDV.mine;
-    btn.textContent = on ? '✗' : 'change';
-    btn.classList.toggle('glyph', on);
+    btn.textContent = on ? 'undo' : 'change';
     btn.setAttribute('aria-label', (on ? 'cancel the ' : 'change your ') + (k === 'name' ? 'name' : 'passphrase'));
-    btn.title = on ? 'cancel' : '';
     ndr$(f.input).placeholder = on ? f.newHint : f.hint;
   });
   ndr$('nd-pass').disabled = !!NDV.mine && !NDR.pass;
