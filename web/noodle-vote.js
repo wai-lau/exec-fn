@@ -168,6 +168,7 @@ function ndvRefreshBinding(pub) {
   NDV.mine = !!(mine && pub && mine.pub === pub);
   NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
   ndvRenderRoster(pub, iHost, typed);
+  ndvHostDefault();
   if (NDV.blocked) {
     ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
@@ -181,6 +182,18 @@ function ndvRefreshBinding(pub) {
     ndvStatus('');
   }
   ndvSyncSubmit();
+}
+
+// A HOST starts with every day inside the crop AVAILABLE, and unpicks what
+// is not: offering most of a range is the common case, and it is what every
+// guest picks from. Only for a host with nothing committed and no draft --
+// once, never over their own choices.
+function ndvHostDefault() {
+  if (NDV.defaulted || !NDV.cal || NDV.hasDraft || NDV.mine || !window.ndxIsHost || !window.ndxIsHost()) return;
+  var rows = NDV.cal.rows();
+  if (!rows.length || !window.NDX) return;
+  NDV.defaulted = true;
+  NDV.cal.setSel(NDV.cal.openSlots(NDV.cal.weekOf(NDX.a)[0], NDV.cal.weekOf(Math.min(NDX.b, rows.length - 1))[6]));
 }
 
 // Does the typed name belong to a voter already? (Then it is not a new seat.)

@@ -123,6 +123,17 @@ function ndcCellPaint(c, sel, allowed, halves) {
   c.classList.toggle('shut', noM && noN);
 }
 
+// Every pickable slot (not past, not outside the crop) on a day from..to.
+function ndcOpenSlots(grid, from, to, halves) {
+  var out = new Set();
+  grid.querySelectorAll('.nd-d:not(.out)').forEach(function (c) {
+    var d = c.dataset.day;
+    if (d < from || d > to) return;
+    if (halves) { out.add(d + ':m'); out.add(d + ':n'); } else out.add(d + ':d');
+  });
+  return out;
+}
+
 function ndcSlotAt(cell, e, halves) {
   var r = cell.getBoundingClientRect();
   return cell.dataset.day + ':' + (halves
@@ -189,7 +200,7 @@ function NoodleCal(wrap, opts) {
   var codes = new Set(P.codes(opts.halves));
 
   wrap.innerHTML = '<div class="nd-scroll">' +
-    '<div class="nd-grid' + (opts.halves ? '' : ' single') + '">' + P.headHtml() + '</div>' +
+    '<div class="nd-grid' + (opts.halves ? '' : ' single') + (opts.endless ? ' host' : '') + '">' + P.headHtml() + '</div>' +
     '<div class="nd-more-weeks" aria-hidden="true"></div></div>';
   var scroller = wrap.querySelector('.nd-scroll');
   var grid = wrap.querySelector('.nd-grid');
@@ -283,6 +294,7 @@ function NoodleCal(wrap, opts) {
       paintDots();
     },
     getSel: function () { return new Set(sel); },
+    openSlots: function (from, to) { return ndcOpenSlots(grid, from, to, opts.halves); },
     setOthers: function (o) { others = o; paintDots(); },
     setAllowed: function (a, prune) {
       allowed = a ? new Set(a) : null;

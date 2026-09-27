@@ -102,18 +102,17 @@ body.noodle {
 .nd-card input:focus, .nd-card textarea:focus { outline: none; border-color: hsl(var(--green-hsl) / 1); }
 .nd-card input:disabled, .nd-card textarea:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); }
 
-.nd-seal-box {
-  display: flex;
-  flex-direction: column;   /* caption UNDER the seal: the derivation needs the width */
-  align-items: flex-start;  /* seal hard left, so the arrow ends exactly 2ch short of it */
-  gap: var(--space-2);
-  flex: 0 0 auto;
-  margin-left: 2ch;   /* the arrow ends exactly here (and so does the longest line) */
-}
+/* The seal and its caption join the dotted box's grid directly: the seal in
+   the second column, the caption on a row of its own under everything,
+   RIGHT-aligned -- so the seal's column is only as wide as the seal, its
+   right edge and the caption's line up, and the arrow runs to 2ch short of
+   the seal whatever the caption's width. */
+.nd-seal-box { display: contents; }
 
 .nd-seal-cap {
+  grid-column: 1 / -1;
+  justify-self: end;
   max-width: 14ch;
-  align-self: stretch;
   text-align: right;
   overflow-wrap: anywhere;
   font-size: var(--fs-2xs);
@@ -139,6 +138,8 @@ body.noodle {
    nudge (noodle-seal.js, set inline) are zeroed -- !important on a custom
    property beats the inline value, and the stamp keyframes read these too. */
 .nd-teach-box .nd-seal {
+  grid-column: 2;
+  margin-left: 2ch;
   font-size: calc(var(--fs-2xs) * 0.8);   /* the voter row's size (.xs) */
 
   --seal-dx: 0 !important;
@@ -168,8 +169,9 @@ body.noodle {
 /* The dotted box: the derivation on the left, its arrow pointing at the
    seal it produced on the right. */
 .nd-teach-box {
-  display: flex;
-  gap: 0;   /* the seal box's 2ch margin is the gap */
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--space-2) 0;   /* across: the seal's own 2ch margin is the gap */
   align-items: center;
   justify-content: center;   /* recipe + seal as ONE group, centred in the box */
   margin: var(--space-6) 0;

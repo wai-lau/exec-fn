@@ -3541,7 +3541,9 @@ Thursday; the voter reviews the grid before anything is signed.)
 **The dotted box** is the recipe, never the values -- `salt = sha256(poll,
 name)`, `seal = argon2id(passphrase, salt) ──>`, `commit() ──> stamp(
 availabilities, seal)` -- recipe and seal centred as ONE group, the seal at the
-voter row's size with its caption right-aligned under it. The argon2id line's
+voter row's size with its caption on a row of its own, right-aligned to the
+seal's right edge (the box is a 2-column grid, `.nd-seal-box` is `display:
+contents`). The argon2id line's
 arrow is a clipped shaft of U+2500 that FILLS whatever width the recipe's
 longest line leaves (`contain: inline-size`, so the fill itself never widens
 the recipe); the seal box's 2ch margin is the gap, so the arrow ends exactly
@@ -3650,6 +3652,12 @@ border it sits on, so it snaps with it. The ink is OPAQUE (full green dimmed by
 `filter: brightness(0.45)`, the old 0.45-over-black tone) so neighbouring
 pieces can overlap by a pixel -- translucent joins showed as seams. Ask Noodle can crop for a host.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
+
+**The host's calendar is the offer.** A host with nothing committed and no
+draft starts with EVERY open day inside the crop picked (`ndvHostDefault`,
+once, never over their own choices) and unpicks what is not on offer; on the
+host's grid (`.nd-grid.host`) a day NOT picked is grey and struck, like a
+shut one -- nobody can pick it.
 
 **The split** is a checkbox under the calendar, host only: ticking it
 re-renders the grid at once (picks converted exactly as the server converts

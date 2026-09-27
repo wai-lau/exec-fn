@@ -250,6 +250,14 @@
    (what the host sees on the endless calendar), or not offered by the host
    (what a guest sees). Grey alone read as merely quiet. */
 .nd-d.out .nd-n, .nd-d.shut .nd-n { text-decoration: line-through; }
+
+/* The HOST's calendar is the offer itself: a day they have not picked is a
+   day nobody can pick, so it reads the same as one that is shut. */
+.nd-grid.host .nd-d:not(.mid, .nit) .nd-n {
+  color: hsl(var(--gray-hsl) / 0.45);
+  font-weight: var(--fw-normal);
+  text-decoration: line-through;
+}
 .nd-d.out .nd-dots { visibility: hidden; }
 
 .nd-d.today::after {
