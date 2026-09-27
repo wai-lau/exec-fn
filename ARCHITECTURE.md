@@ -3450,7 +3450,7 @@ first-typed casing making one person look like two.
 
 **A name sealed by another key locks the page** (`ndvSyncLock`): calendar, Ask
 and Reserve go grey and `inert`, the caption reads `NOT <name>'s seal of
-approval`, and only the identity fields and the faces stay live. Editing the
+approval` with the word "passphrase" in Ember (the palette's error colour), and only the identity fields and the faces stay live. Editing the
 name to one nobody holds re-derives the key and unlocks it.
 
 **Votes.** First submission for `(poll, normalized name)` binds that name to the

@@ -196,7 +196,9 @@ body.noodle {
   filter: grayscale(1);
   pointer-events: none;
 }
-.nd-locked .nd-seal-cap { color: hsl(var(--orange-glow-hsl) / 0.8); }
+
+.nd-locked .nd-seal-cap,
+.nd-locked #nd-pass-label { color: hsl(var(--orange-glow-hsl) / 0.8); }
 
 .nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
 
@@ -241,7 +243,6 @@ body.noodle {
 /* ── "are you one of these guys?" -- faces, four to a row, name under ──── */
 .nd-who { margin: 0 0 var(--space-8); }
 .nd-who-h { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); font-weight: var(--fw-normal); color: hsl(var(--green-hsl) / 0.8); }
-.nd-who-note { margin: var(--space-3) 0 0; text-align: center; }
 
 .nd-faces {
   display: grid;
