@@ -1,8 +1,8 @@
 <main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=2">
+  <p id="nd-banner" class="nd-banner" role="alert" title="tap to dismiss" hidden></p>
   <h1 class="nd-title">{{TITLE}}</h1>
 
   <section id="nd-who" class="nd-who" hidden>
-    <h2 class="nd-who-h">are you one of these guys?</h2>
     <ul id="nd-voters" class="nd-faces"></ul>
   </section>
 
@@ -23,10 +23,10 @@
   <pre id="nd-teach" class="nd-teach" aria-live="polite"></pre>
   <p class="nd-note">your passphrase is not sent to the server. this browser turns it into a key, and only the public half of that key (plus a signature) ever leaves it.</p>
 
+  <p id="nd-status" class="nd-status" aria-live="polite"></p>
   <div id="nd-cal" class="nd-cal-wrap"></div>
   <label id="nd-split-row" class="nd-check nd-split" hidden><input id="nd-split" type="checkbox"> split each day into midday and night</label>
 
-  <p id="nd-status" class="nd-status" aria-live="polite"></p>
   <p id="nd-dirty" class="nd-dirty" hidden>* unsaved changes</p>
   <button id="nd-submit" type="button" class="nd-submit">Commit</button>
   <p id="nd-why" class="nd-why" aria-live="polite"></p>
@@ -54,9 +54,9 @@
 <script src="/noodle-cal.js?v=15"></script>
 <script src="/noodle-cal-view.js?v=27"></script>
 <script src="/noodle-kdf.js?v=3"></script>
-<script src="/noodle-roster.js?v=8"></script>
+<script src="/noodle-roster.js?v=9"></script>
 <script src="/noodle-crop.js?v=11"></script>
-<script src="/noodle-vote.js?v=29"></script>
-<script src="/noodle-ask.js?v=14"></script>
+<script src="/noodle-vote.js?v=30"></script>
+<script src="/noodle-ask.js?v=15"></script>
 <script src="/noodle-host.js?v=7"></script>
 <script src="/noodle-rekey.js?v=2"></script>

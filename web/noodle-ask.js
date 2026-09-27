@@ -11,10 +11,10 @@ var NDA = { busy: false, until: 0, tick: null };
 
 function nda$(id) { return document.getElementById(id); }
 
+// Errors go to the page's banner (ndvBanner), like every other error.
 function ndaStatus(msg, kind) {
-  var el = nda$('nd-ask-status');
-  el.textContent = msg || '';
-  el.dataset.kind = kind || '';
+  if (kind === 'err') { ndvBanner(msg); msg = ''; } else if (msg) ndvBanner('');
+  nda$('nd-ask-status').textContent = msg || '';
 }
 
 function ndaWaiting() { return NDA.until > Date.now(); }

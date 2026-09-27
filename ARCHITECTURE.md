@@ -3536,9 +3536,16 @@ chars (refused without counting). The grid keeps working throughout. The prompt 
 weekday. (It still reads "every Thursday except the 23rd" as that week's
 Thursday; the voter reviews the grid before anything is signed.)
 
+**Messages.** Every ERROR goes to one banner pinned to the top of the page
+(`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever
+raised it was off screen as often as not. It stays until tapped or replaced by
+the next message; clearing the status line does not clear it, since the page
+does that on every poll reload. Everything else (welcome back, committed) is
+the status line directly ABOVE the calendar.
+
 **One page.** There is no separate results page (`/noodle/<slug>/results`
 301s to the vote page): the calendar's dots ARE the results, and the roster
-at the TOP of the page (`web/noodle-roster.js`, "are you one of these guys?")
+at the TOP of the page (`web/noodle-roster.js`, no heading)
 shows every voter as a small face with their name under it, five to a row;
 tapping one fills the name field and moves focus to the passphrase. The face
 whose key this browser holds is outlined (by key, never by name). Small seals
