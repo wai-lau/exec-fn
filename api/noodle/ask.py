@@ -1,35 +1,67 @@
-"""Ask Noodle: free text -> slot selections, via Haiku, inside hard budgets.
+"""Ask Noodle: free text -> slot selections, via Haiku, behind RATE limits.
+
+Rolling windows, never a lifetime cap: a busy moment makes Noodle say "try
+again in N seconds" and the box comes back by itself. Three windows, all in
+memory (a restart forgets them, which only ever errs toward answering): per
+voter key, per poll, per client IP.
 
 The model only ever SUGGESTS: its output is validated against a strict schema,
 clamped to the poll window, and handed back to fill the grid. Nothing is
 stored as a vote and nothing is signed here.
 """
+import math
 import re
+import threading
 import time
 from collections import defaultdict, deque
 
 from noodle import config, holidays, llm, sig, slots, store
 
-_ip_hits: dict[str, deque] = defaultdict(deque)
+_hits: dict[str, deque] = defaultdict(deque)
+_LOCK = threading.Lock()
+_SWEEP_EVERY = 500
+_calls = 0
 
 
 class AskError(Exception):
-    def __init__(self, status: int, msg: str, remaining: int | None = None):
+    def __init__(self, status: int, msg: str, retry_after: int | None = None):
         super().__init__(msg)
-        self.status, self.msg, self.remaining = status, msg, remaining
+        self.status, self.msg, self.retry_after = status, msg, retry_after
 
 
-def _remaining(poll: dict, pub: str) -> int:
-    a = poll["ask"]
-    return max(0, min(config.ASK_POLL_CAP - a["total"],
-                      config.ASK_VOTER_CAP - a["by_voter"].get(pub, 0)))
+def _windows(slug: str, pub: str, ip: str) -> list[tuple[str, int, int]]:
+    return [
+        ("voter:" + slug + ":" + pub, config.ASK_VOTER_RATE, config.ASK_VOTER_WINDOW_S),
+        ("poll:" + slug, config.ASK_POLL_RATE, config.ASK_POLL_WINDOW_S),
+        ("ip:" + ip, config.ASK_IP_RATE, config.ASK_IP_WINDOW_S),
+    ]
 
 
-def _ip_ok(ip: str, now: float) -> bool:
-    q = _ip_hits[ip]
-    while q and q[0] < now - config.ASK_IP_WINDOW_S:
+def _wait(key: str, rate: int, window: int, now: float) -> float:
+    """Seconds until `key` may ask again; 0 when it may ask now."""
+    q = _hits[key]
+    while q and q[0] <= now - window:
         q.popleft()
-    return len(q) < config.ASK_IP_CAP
+    return 0.0 if len(q) < rate else q[0] + window - now
+
+
+def _take(slug: str, pub: str, ip: str, now: float) -> None:
+    """Record one ask against every window, or raise 429 with the LONGEST wait
+    among the full ones. Check-then-record under one lock, so two concurrent
+    asks cannot both slip into the last place in a window."""
+    global _calls
+    wins = _windows(slug, pub, ip)
+    with _LOCK:
+        wait = max(_wait(k, r, w, now) for k, r, w in wins)
+        if wait > 0:
+            secs = max(1, math.ceil(wait))
+            raise AskError(429, f"Noodle needs a breather -- try again in {secs}s", secs)
+        for k, _, _ in wins:
+            _hits[k].append(now)
+        _calls += 1
+        if _calls % _SWEEP_EVERY == 0:
+            for k in [k for k, q in _hits.items() if not q or q[-1] <= now - config.ASK_POLL_WINDOW_S]:
+                del _hits[k]
 
 
 def _prompt(poll: dict) -> str:
@@ -70,10 +102,6 @@ def _pairs(out) -> list:
     return pairs
 
 
-def budget(slug: str, pub: str) -> int:
-    return _remaining(store.load(slug), pub)
-
-
 def ask(slug: str, body: dict, ip: str) -> dict:
     text, pub = body.get("text"), body.get("pub")
     if not isinstance(text, str) or not text.strip():
@@ -85,29 +113,15 @@ def ask(slug: str, body: dict, ip: str) -> dict:
     except ValueError:
         raise AskError(400, "enter your name and passphrase first") from None
     try:
-        store.load(slug)
+        poll = store.load(slug)
     except KeyError:
         raise AskError(404, "no such poll") from None
 
-    now = time.monotonic()
-    # Spend the budget BEFORE the call, under the lock: two concurrent asks
-    # cannot both squeeze through the last unit.
-    with store.edit(slug) as poll:
-        if _remaining(poll, pub) <= 0:
-            raise AskError(429, "Noodle is out of answers for this poll", 0)
-        if not _ip_ok(ip, now):
-            raise AskError(429, "too many questions from here, try later",
-                           _remaining(poll, pub))
-        poll["ask"]["total"] += 1
-        poll["ask"]["by_voter"][pub] = poll["ask"]["by_voter"].get(pub, 0) + 1
-        _ip_hits[ip].append(now)
-        left = _remaining(poll, pub)
-
+    _take(slug, pub, ip, time.monotonic())
     try:
         out = llm.call(_prompt(poll), text.strip())
     except llm.Truncated:
-        raise AskError(422, "that was too much to fill in at once -- try it in parts", left) from None
+        raise AskError(422, "that was too much to fill in at once -- try it in parts") from None
     except Exception:
-        raise AskError(502, "Noodle could not answer just now", left) from None
-    picked = slots.clamp_slots(_pairs(out), poll["start"], poll["end"])
-    return {"slots": picked, "remaining": left}
+        raise AskError(502, "Noodle could not answer just now") from None
+    return {"slots": slots.clamp_slots(_pairs(out), poll["start"], poll["end"])}

@@ -71,11 +71,8 @@ async def noodle_results_page(slug: str):
 
 
 @router.get("/api/noodle/{slug}")
-async def noodle_poll(slug: str, pub: str = ""):
-    poll = _poll_or_404(slug)
-    out = pages.public_poll(poll)
-    out["ask_remaining"] = ask._remaining(poll, pub) if pub else None
-    return JSONResponse(out, headers=_NO_STORE)
+async def noodle_poll(slug: str):
+    return JSONResponse(pages.public_poll(_poll_or_404(slug)), headers=_NO_STORE)
 
 
 @router.post("/api/noodle/{slug}/vote")
@@ -94,8 +91,9 @@ async def noodle_ask(slug: str, request: Request):
     try:
         return await asyncio.to_thread(ask.ask, slug, body, _client_ip(request))
     except ask.AskError as e:
-        return JSONResponse({"error": e.msg, "remaining": e.remaining},
-                            status_code=e.status)
+        headers = {"Retry-After": str(e.retry_after)} if e.retry_after else None
+        return JSONResponse({"error": e.msg, "retry_after": e.retry_after},
+                            status_code=e.status, headers=headers)
 
 
 # ── owner only (mounted on the protected tier by routers.py) ───────────────

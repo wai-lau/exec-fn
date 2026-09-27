@@ -218,9 +218,9 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | GET | `/printer/frame` | Guest-or-full. ONE camera JPEG newer than `?after=<seq>` (long-poll ≤5s; 204 = ask again; seq in `X-Frame-Seq`) off the shared hub's guest sample (~10fps) — the guest view's pull loop, which cannot queue and so cannot lag. Same `public`-router + in-handler tier as `/printer/video`. |
 | GET | `/printer/video` | Guest-or-full MJPEG relay (the owner SPA's `<img>`), on the `public` router with an in-handler tier check. |
 | WS | `/ws/printer` | SDCP control-socket relay to the printer's `:3030/websocket` — the ONLY browser→printer channel, and it stays owner-only. Public route, but closes (1008) unless the FULL `session` cookie matches (no guest tier — it drives the machine); 1011 when the printer/tunnel is down (the SPA retries). Printer→browser text frames get their `VideoUrl` rewritten to `/printer/video`. |
-| GET | `/api/noodle/{slug}` | Public. Poll window + voters (name, pub, slots); `?pub=` adds `ask_remaining`. **ARCHITECTURE.md §21**. |
+| GET | `/api/noodle/{slug}` | Public. Poll window + voters (name, pub, slots). **ARCHITECTURE.md §21**. |
 | POST | `/api/noodle/{slug}/vote` | Public. Signed `{name, pub, slots, ts, sig}`; 403 wrong key/bad sig, 409 replay, 413 over 8KB. |
-| POST | `/api/noodle/{slug}/ask` | Public. Haiku text -> one verdict line per date -> slots, clamped to the window, never submits; 422 if truncated; caps in `noodle/config.py`. |
+| POST | `/api/noodle/{slug}/ask` | Public. Haiku text -> one verdict line per date -> slots, clamped to the window, never submits; 422 if truncated; rolling rate limits (429 + `retry_after`, never a lifetime cap) in `noodle/config.py`. |
 | GET/POST | `/api/noodle-polls` | **Owner-only.** List / create polls (`{title, start, end}`). |
 
 ### Exec chat tools (bubble overlay)

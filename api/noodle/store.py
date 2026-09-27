@@ -76,7 +76,6 @@ def create(title: str, start: str, end: str, now_iso: str) -> dict:
         poll = {
             "slug": slug, "title": title, "start": start, "end": end,
             "created_at": now_iso, "voters": {},
-            "ask": {"total": 0, "by_voter": {}},
         }
         _write(_path(slug), poll)
         return poll
