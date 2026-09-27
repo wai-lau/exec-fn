@@ -223,8 +223,9 @@ function ndvPickFace(e) {
   ndv$('nd-pass').focus();
 }
 
-function ndvApproved(seal) {
+function ndvApproved(seal, name) {
   var ov = ndv$('nd-approved');
+  ov.querySelector('.nd-approved-by').textContent = 'approved by ' + name;
   window.NoodleSeal.paint(ov.querySelector('.nd-seal'), seal);
   ov.hidden = false;
   ov.classList.remove('show');
@@ -255,7 +256,7 @@ async function ndvSubmit() {
     if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); return; }
     ndvClearDraft();
     ndvTeach('key', NDV_SIGN_DONE);
-    ndvApproved(NDV.seal);
+    ndvApproved(NDV.seal, window.noodleNormName(name));
     await ndvLoadPoll();
     ndvStatus('committed. come back with the same name and passphrase to change it.');
   } catch (e) {
@@ -282,7 +283,7 @@ function ndvInit() {
   NDV.slug = root.dataset.slug;
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
   NDV.cal = window.NoodleCal(ndv$('nd-cal'), {
-    start: root.dataset.start, end: root.dataset.end, caption: ndv$('nd-caption'),
+    start: root.dataset.start, end: root.dataset.end,
     onChange: ndvSaveDraft,
   });
   ndvRestoreDraft();

@@ -213,10 +213,3 @@
   border-radius: var(--radius-pill);
 }
 
-.nd-caption {
-  min-height: 1lh;
-  margin: var(--space-2) 0 0;
-  text-align: center;
-  font-size: var(--fs-2xs);
-  color: hsl(var(--cyan-hsl) / 0.8);
-}
