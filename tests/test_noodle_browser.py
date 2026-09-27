@@ -74,7 +74,8 @@ def test_form_is_remembered_locally_never_in_a_cookie(browser, base_url, noodle_
         assert page.inner_text("#nd-seal-cap") == "smoke bot's seal of approval"
         assert page.inner_text("#nd-why") == ""   # enabled: no reason shown
         # the roster is on this page now, and voters' dots wear their seal's ink
-        assert page.locator("#nd-voters .nd-voter").count() >= 1
+        assert page.locator("#nd-voters .nd-face").count() >= 1
+        assert page.is_visible("#nd-who")
         page.reload()
         assert page.input_value("#nd-name") == NAME
         assert page.input_value("#nd-pass") == PASS
@@ -147,3 +148,18 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         assert page.inner_text("#nd-submit") == "Reserve" and not page.is_visible("#nd-dirty")
     finally:
         ctx.close()
+
+
+def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        face = page.locator("#nd-voters .nd-face").first
+        face.wait_for(timeout=10000)
+        name = face.get_attribute("data-name")
+        face.click()
+        assert page.input_value("#nd-name") == name
+        assert page.evaluate("document.activeElement.id") == "nd-pass"
+        assert page.get_attribute("#nd-pass", "placeholder") == "empty for no passphrase"
+    finally:
+        page.close()

@@ -189,8 +189,6 @@ body.noodle {
 
 .nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
 
-.nd-voters-h { margin-top: var(--space-10); }
-
 /* the empty-passphrase warning sits right under the fields it is about */
 .nd-warn { margin: var(--space-3) 0 0; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl) / 0.8); }
 
@@ -229,14 +227,56 @@ body.noodle {
   100% { opacity: 0; }
 }
 
-/* ── results + owner lists ──────────────────────────────────────────────── */
-.nd-voters, .nd-polls { list-style: none; margin: 0 0 var(--space-6); padding: 0; }
-.nd-voter { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2) 0; }
-.nd-vname { flex: 1; color: hsl(var(--green-hsl) / 1); }
-.nd-vcount, .nd-none { font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
-.nd-day { margin: var(--space-6) 0; }
-.nd-dayh { margin: 0 0 var(--space-4); font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 1); }
+/* ── "are you one of these guys?" -- faces, four to a row, name under ──── */
+.nd-who { margin: 0 0 var(--space-8); }
+.nd-who-h { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); font-weight: var(--fw-normal); color: hsl(var(--green-hsl) / 0.8); }
+.nd-who-note { margin: var(--space-3) 0 0; text-align: center; }
 
+.nd-faces {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nd-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-2) 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-2);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.nd-face:hover, .nd-face:focus-visible { border-color: hsl(var(--green-hsl) / 0.45); outline: none; }
+.nd-face.you { border-color: hsl(var(--green-hsl) / 0.8); }
+
+.nd-face-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 1);
+}
+
+/* small enough that four faces fit a phone-width row */
+
+/* a fixed 9x6 box: a voter whose key the owner reset has no seal yet, and
+   their name must still sit on the same line as everyone else's */
+.nd-seal.xs { min-width: 9ch; min-height: 6lh; font-size: calc(var(--fs-2xs) * 0.8); }
+
+.nd-card input::placeholder { color: hsl(var(--green-hsl) / 0.45); }
+
+/* ── owner list ─────────────────────────────────────────────────────────── */
+.nd-polls { list-style: none; margin: 0 0 var(--space-6); padding: 0; }
 .nd-create { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-10); }
 .nd-polls li { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); }
 .nd-polls .nd-link { font-size: var(--fs-2xs); }

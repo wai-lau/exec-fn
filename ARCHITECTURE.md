@@ -3484,8 +3484,12 @@ Thursday; the voter reviews the grid before anything is signed.)
 
 **One page.** There is no separate results page (`/noodle/<slug>/results`
 301s to the vote page): the calendar's dots ARE the results, and the roster
-under the calendar (`web/noodle-roster.js`) lists every voter with their seal,
-`(you)` marking the row whose key this browser holds (by key, never by name).
+at the TOP of the page (`web/noodle-roster.js`, "are you one of these guys?")
+shows every voter as a small face with their name under it, four to a row;
+tapping one fills the name field and moves focus to the passphrase. The face
+whose key this browser holds is outlined (by key, never by name). Small seals
+keep a fixed 9x6 box, so a voter whose key was reset (no seal yet) still lines
+up. The passphrase field's hint reads "empty for no passphrase".
 Each voter's dots wear their seal's ink, so a column in the grid matches a name
 by colour.
 

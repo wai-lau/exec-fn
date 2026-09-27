@@ -1,12 +1,18 @@
 <main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-start="{{START}}" data-end="{{END}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=2">
   <h1 class="nd-title">{{TITLE}}</h1>
 
+  <section id="nd-who" class="nd-who" hidden>
+    <h2 class="nd-who-h">are you one of these guys?</h2>
+    <ul id="nd-voters" class="nd-faces"></ul>
+    <p class="nd-dim nd-who-note">each one is a column of dots in the calendar, in their seal's colour: top dot midday, bottom dot night.</p>
+  </section>
+
   <section class="nd-id">
     <div class="nd-fields">
       <label class="nd-field"><span>name</span>
         <input id="nd-name" type="text" autocomplete="username" autocapitalize="words" spellcheck="false" maxlength="40"></label>
       <label class="nd-field"><span>passphrase</span>
-        <input id="nd-pass" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
+        <input id="nd-pass" type="text" placeholder="empty for no passphrase" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
     </div>
     <div class="nd-seal-box">
       <pre id="nd-seal" class="nd-seal" aria-label="your seal"></pre>
@@ -32,10 +38,6 @@
     <button id="nd-ask-go" type="button" class="nd-ask-go" disabled>ask Noodle</button>
     <p id="nd-ask-status" class="nd-status" aria-live="polite"></p>
   </div>
-
-  <h2 class="doc-h2 nd-voters-h">voters</h2>
-  <p class="nd-dim">each voter is one column of dots in the calendar, in their seal's colour: top dot midday, bottom dot night.</p>
-  <ul id="nd-voters" class="nd-voters"></ul>
 </main>
 
 <div id="nd-approved" class="nd-approved" hidden>
@@ -50,6 +52,6 @@
 <script src="/noodle-cal.js?v=2"></script>
 <script src="/noodle-cal-view.js?v=2"></script>
 <script src="/noodle-kdf.js?v=2"></script>
-<script src="/noodle-roster.js?v=2"></script>
-<script src="/noodle-vote.js?v=8"></script>
+<script src="/noodle-roster.js?v=3"></script>
+<script src="/noodle-vote.js?v=9"></script>
 <script src="/noodle-ask.js?v=3"></script>
