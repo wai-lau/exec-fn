@@ -14,7 +14,7 @@ from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 # Public — no auth, must render. Only the front doors + login bootstrap stay open.
 PUBLIC_PAGES = ["/", "/recruiter", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
-PROTECTED_PAGES = ["/rd", "/hq", "/debug"]
+PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/noodle"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
 # /graph, /UI, /security, /nightfall moved public->guest 2026-07-03; /printer
 # owner->guest 2026-08-30 (READ-ONLY for guests — see the tier tests below).
@@ -207,3 +207,54 @@ def test_printer_video_streams_for_guest(client, guest_cookie):
         for chunk in r.iter_bytes():
             assert chunk.startswith(b"--printerframe")
             break
+
+
+# ── noodle: public by unguessable link, owner-only to create ───────────────────
+def test_noodle_poll_pages_are_public(client, noodle_slug):
+    for path in (f"/noodle/{noodle_slug}", f"/noodle/{noodle_slug}/results"):
+        r = client.get(path, headers=HTML_ACCEPT)
+        assert r.status_code == 200, f"{path} -> {r.status_code}"
+        assert _is_page(r)
+        assert "noindex" in r.headers.get("x-robots-tag", "")
+    assert 'data-kdf=' in client.get(f"/noodle/{noodle_slug}").text
+
+
+def test_noodle_poll_json_is_public_and_holds_no_budget(client, noodle_slug):
+    r = client.get(f"/api/noodle/{noodle_slug}")
+    assert r.status_code == 200
+    body = r.json()
+    assert {"slug", "start", "end", "voters"} <= set(body)
+    assert "ask" not in body and body["ask_remaining"] is None
+
+
+@pytest.mark.parametrize("slug", ["A" * 22, "short", "..%2F..%2Fetc%2Fpasswd", "A" * 23])
+def test_noodle_unknown_or_malformed_slug_404s(client, slug):
+    assert client.get(f"/noodle/{slug}", headers=HTML_ACCEPT).status_code == 404
+    assert client.get(f"/api/noodle/{slug}").status_code == 404
+
+
+def test_noodle_create_is_owner_only(client, guest_cookie):
+    body = {"title": "x", "start": "2026-10-01", "end": "2026-10-02"}
+    assert client.post("/api/noodle-polls", json=body).status_code == 401
+    r = client.post("/api/noodle-polls", json=body, headers={**guest_cookie, "Accept": "application/json"})
+    assert r.status_code == 401
+    assert client.get("/api/noodle-polls").status_code == 401
+
+
+def test_noodle_rejects_bad_votes_without_writing(client, noodle_slug):
+    before = client.get(f"/api/noodle/{noodle_slug}").json()["voters"]
+    r = client.post(f"/api/noodle/{noodle_slug}/vote",
+                    json={"name": "smoke", "pub": "A" * 43, "slots": [], "ts": 1, "sig": "x"})
+    assert r.status_code == 400   # ts far from server time: refused before any key check
+    r = client.post(f"/api/noodle/{noodle_slug}/vote", content=b"x" * 9000,
+                    headers={"Content-Type": "application/json"})
+    assert r.status_code == 413
+    assert client.get(f"/api/noodle/{noodle_slug}").json()["voters"] == before
+
+
+def test_noodle_ask_refuses_before_spending(client, noodle_slug):
+    r = client.post(f"/api/noodle/{noodle_slug}/ask", json={"text": "fridays", "pub": "nope"})
+    assert r.status_code == 400
+    r = client.post(f"/api/noodle/{noodle_slug}/ask", content=b"{" + b" " * 2000 + b"}",
+                    headers={"Content-Type": "application/json"})
+    assert r.status_code == 413

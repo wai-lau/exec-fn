@@ -1,0 +1,224 @@
+/* Noodle's calendar grid -- the same visual language as /rd's month calendar
+   (rd.css: 5px green rules on right + bottom, big bold zero-padded dates, cyan
+   weekends, a faint blurred month number behind the grid, stadium dots), made
+   continuous and two-halved. Built by noodle-cal.js + noodle-cal-view.js. */
+
+.nd-cal-wrap {
+  position: relative;
+  isolation: isolate;
+  margin-top: var(--space-6);
+}
+
+/* The month you are looking at, big and faint BEHIND the grid (the grid is
+   transparent, so it shows through the cells); it follows the week row at
+   the scroller's middle. A plain filter blur -- nothing under it animates. */
+.nd-mark {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: var(--fw-bold);
+  font-size: min(200px, 40vw);
+  line-height: var(--lh-none);
+  color: hsl(var(--green-hsl) / 0.12);
+  filter: blur(var(--blur-xs));
+  pointer-events: none;
+  user-select: none;
+}
+
+.nd-scroll {
+  position: relative;
+  z-index: var(--z-raised);
+  max-height: min(62dvh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.nd-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px repeat(7, minmax(0, 1fr));
+  font-family: var(--font-mono);
+  font-size: calc(var(--fs-sm) * 1.5);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-none);
+  color: hsl(var(--green-hsl) / 0.8);
+  text-shadow: none;
+  touch-action: manipulation;
+  user-select: none;
+
+  /* stylelint-disable-next-line property-no-vendor-prefix --
+     WebKit (iOS) honours only the prefixed form; see rd.css #rd-calendar. */
+  -webkit-user-select: none;
+}
+
+.nd-grid button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── frozen weekday header + week-toggle column ─────────────────────────── */
+.nd-hd, .nd-wk {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  background: hsl(var(--bg-hsl) / 1);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-normal);
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+.nd-hd {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  padding: var(--space-2) 0;
+  border-bottom: 5px solid hsl(var(--green-hsl) / 0.12);
+}
+
+.nd-wk {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-raised);
+  border-bottom: 5px solid hsl(var(--green-hsl) / 0.12);
+}
+
+.nd-tg { padding: 0 var(--space-1); border-radius: var(--radius-1); }
+[data-state="on"] > .nd-tg { background: hsl(var(--green-hsl) / 0.8); color: hsl(var(--bg-hsl) / 1); }
+[data-state="off"] > .nd-tg { color: hsl(var(--green-hsl) / 0.45); }
+[data-state="mixed"] > .nd-tg { color: hsl(var(--green-hsl) / 1); }
+[data-state="none"] > .nd-tg { color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
+.nd-wk[data-state="on"] > .nd-tg { background: none; color: hsl(var(--green-hsl) / 1); }
+
+/* explicit all-on / all-off, only while the group is mixed */
+.nd-mx { display: none; gap: var(--space-0-5); }
+.nd-wk .nd-mx { flex-direction: column; }
+[data-state="mixed"] > .nd-mx { display: flex; }
+
+.nd-mx button {
+  padding: 0 var(--space-0-5);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-1);
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 1);
+}
+
+/* ── a day: its number, its dots, two halves split at 30deg ─────────────── */
+.nd-d {
+  --top: transparent;
+  --bot: transparent;
+
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--space-2) 0 var(--space-1-5);
+  text-align: center;
+  cursor: pointer;
+  border-right: 5px solid hsl(var(--green-hsl) / 0.12);
+  border-bottom: 5px solid hsl(var(--green-hsl) / 0.12);
+
+  /* The split. 330deg points the gradient up-left, so its hard edge at 50%
+     is a "/" through the centre at 30deg to the horizontal: --top fills the
+     upper-left (midday), --bot the lower-right (night). noodle-cal.js ndHalf
+     hit-tests a tap against this same line. Clipped to the padding box so a
+     filled half never tints the grid rules. */
+  background-clip: padding-box;
+  background-image: linear-gradient(330deg,
+    var(--bot) calc(50% - 0.5px),
+    hsl(var(--green-hsl) / 0.45) calc(50% - 0.5px),
+    hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
+    var(--top) calc(50% + 0.5px));
+  -webkit-tap-highlight-color: transparent;
+}
+.nd-d.eow { border-right: none; }
+
+.nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
+.nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }
+
+/* results: each half's heat, stepped on the palette's alpha scale */
+.nd-d[data-hm="1"] { --top: hsl(var(--green-hsl) / 0.12); }
+.nd-d[data-hm="2"] { --top: hsl(var(--green-hsl) / 0.45); }
+.nd-d[data-hm="3"] { --top: hsl(var(--green-hsl) / 0.8); }
+.nd-d[data-hm="4"] { --top: hsl(var(--green-hsl) / 1); }
+.nd-d[data-hn="1"] { --bot: hsl(var(--green-hsl) / 0.12); }
+.nd-d[data-hn="2"] { --bot: hsl(var(--green-hsl) / 0.45); }
+.nd-d[data-hn="3"] { --bot: hsl(var(--green-hsl) / 0.8); }
+.nd-d[data-hn="4"] { --bot: hsl(var(--green-hsl) / 1); }
+
+/* month boundary: the rule on the side facing the other month turns bright,
+   so the line steps around a month that ends mid-week */
+.nd-d.mr { border-right-color: hsl(var(--green-hsl) / 0.8); }
+.nd-d.mb { border-bottom-color: hsl(var(--green-hsl) / 0.8); }
+
+.nd-n {
+  position: relative;
+  display: block;
+
+  /* a black halo keeps the date legible over a bright half */
+  text-shadow: 0 0 3px hsl(var(--bg-hsl) / 1), 0 0 6px hsl(var(--bg-hsl) / 1);
+}
+.nd-d.we .nd-n { color: hsl(var(--cyan-hsl) / 0.8); }
+
+/* outside the poll window: kept so months keep their shape, but inert */
+.nd-d.out { cursor: default; background-image: none; }
+.nd-d.out .nd-n { color: hsl(var(--gray-hsl) / 0.45); font-weight: var(--fw-normal); }
+.nd-d.out .nd-dots { visibility: hidden; }
+
+.nd-d.today::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid hsl(var(--green-hsl) / 0.8);
+  pointer-events: none;
+}
+
+/* Other voters: ONE fixed column per person, the same position in every
+   cell -- top dot midday, bottom dot night, a gap where they are not free.
+   Sizes mirror ND_DOT / ND_DOT_GAP in noodle-cal.js (5px, --space-1). */
+.nd-dots {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: 5px 5px;
+  grid-auto-columns: 5px;
+  gap: var(--space-1);
+  justify-content: center;
+  height: calc(10px + var(--space-1));
+  margin-top: var(--space-1-5);
+  overflow: hidden;
+}
+.nd-dots i { width: 5px; height: 5px; border-radius: var(--radius-pill); }
+
+.nd-dots i.on {
+  background: hsl(var(--green-hsl) / 1);
+  outline: 1px solid hsl(var(--bg-hsl) / 1);
+}
+
+/* more voters than fit: the same hollow silver ring /rd uses */
+.nd-more {
+  grid-row: 1 / span 2;
+  align-self: center;
+  box-sizing: border-box;
+  width: 5px;
+  height: 5px;
+  border: 1px solid hsl(var(--gray-hsl) / 0.45);
+  border-radius: var(--radius-pill);
+}
+
+.nd-caption {
+  min-height: 1lh;
+  margin: var(--space-2) 0 0;
+  text-align: center;
+  font-size: var(--fs-2xs);
+  color: hsl(var(--cyan-hsl) / 0.8);
+}
