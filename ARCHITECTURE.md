@@ -3481,27 +3481,27 @@ Recovery is owner-only, server-side:
 `sudo docker compose exec api python -m noodle.reset <slug> "<name>"` blanks the
 key and the next signer re-binds it (slots and dot column kept).
 
-**Changing a passphrase is the old key signing the new one** (`noodle/rekey.py`,
-`POST /api/noodle/{slug}/rekey`, `web/noodle-rekey.js`). The name is bound to a
-key and the key IS the passphrase, so a change is a re-bind only the current
-key may make: `canonical_action(kind="rekey", name, poll, ts, newpub)` signed by
-the OLD key, sent with the old `pub`; the server checks it is that name's bound
-key and strictly newer, then stores `newpub` (slots, order and host role all
-kept -- the host is whoever holds order 0, not a key). The `change` button sits
-right of the passphrase field only once the passphrase is right (`NDV.mine`).
-Tapping it keeps the old passphrase IN MEMORY, clears the field, sets the hint
-to `new passphrase`, disables the name (a new name is a new identity, not a
-change) and spawns a second KDF worker to re-derive the old key, since the main
-one now derives the new. Until Commit **nothing is sent or remembered**:
-`ndrAs` makes the page answer as the old key (binding, host role, Ask's `pub`),
-`ndvSaveIdentity` skips, so a reload brings the old passphrase back. Commit
-sends the rekey at `ts`, then the split and vote under the new key at `ts+1`...;
-remove refuses mid-change (it would be signed by a key the server does not know
-yet); a crop is local until Commit, so it needs no key at all. Mid-change the button becomes a cross (cancel: restores the
-old passphrase untouched) with a check beside it that commits exactly as Commit
-does (`ndvSubmit`), greyed whenever Commit is. Both glyphs (U+2717, U+2713) were
-added to `noodle-seal.woff2`, re-cut from the Medium Mayukai TTF with
-`pyftsubset --flavor=woff2` over the `unicode-range` list.
+**Changing a name or passphrase is the old key signing the new one**
+(`noodle/rekey.py`, `POST /api/noodle/{slug}/rekey`, `web/noodle-rekey.js`).
+The key is derived from the name AND the passphrase (the name salts it), so
+either change is a re-bind only the current key may make:
+`canonical_action(kind="rekey", name, poll, ts, newpub, newname)` signed by the
+OLD key, sent with the old `pub` and old name; the server checks it is that
+name's bound key and strictly newer, refuses a new name someone else holds
+(409), then stores `newpub` and MOVES the record to the new name (slots, order
+and host role all kept -- the host is whoever holds order 0). Each field gets a
+`change` button once the passphrase is right; tapping one keeps the old name +
+passphrase IN MEMORY, unlocks that field (the passphrase is cleared, hint `new
+passphrase`/`new name`) and spawns a second KDF worker to re-derive the old key.
+The button becomes a cross that restores the old value; there is no separate
+confirm -- **Commit carries the change**. Until then nothing is sent or
+remembered: `ndrAs` makes the page answer as the old key (binding, host role,
+Ask's `pub`), `ndvSaveIdentity` skips, so a reload brings the old identity back.
+Commit sends the rekey at `ts`, then the split/crop and the vote under the new
+key at `ts+1`...; remove refuses mid-change (it would be signed by a key the
+server does not know yet); a crop is local until Commit, so it needs no key.
+The whole Commit runs inside one try, so a request cut off mid-way (a reload:
+WebKit's `Load failed`) lands in the banner instead of an unhandled rejection.
 
 **Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
 (`select_slots`) that returns **a one-sentence `reading` and an ordered list of
@@ -3538,10 +3538,24 @@ chars (refused without counting). The grid keeps working throughout. The prompt 
 weekday. (It still reads "every Thursday except the 23rd" as that week's
 Thursday; the voter reviews the grid before anything is signed.)
 
-**The dotted box** holds the derivation (`argon2id(...) ──>`, no timing) with
-the voter's seal and its caption to the RIGHT, so the arrow points at the face
-the passphrase produced; the name and passphrase fields run full width above it.
-The note about the passphrase never leaving the browser was removed.
+**The dotted box** is the recipe, never the values -- `salt = sha256(poll,
+name)`, `seal = argon2id(passphrase, salt) ──>`, `commit() ──> stamp(
+availabilities, seal)` -- with the seal (caption under it) to the RIGHT. The
+argon2id line's arrow is a clipped shaft of U+2500 that STRETCHES to exactly
+2ch short of the seal (`.nd-arrow`; the box has no gap, that margin is the
+gap), and the seal box is left-aligned so a wide caption cannot push the seal
+off the arrow's end. Inside the box the seal sits SQUARE: the stamp's random
+tilt vars are zeroed with `!important` custom properties, which beat the
+inline ones noodle-seal.js sets.
+
+**Fields.** Hints `please help the host know who you are` / `please remember
+this identifier`. While the passphrase is right (`NDV.mine`) it is LOCKED
+(greyed) and each field gets a `change` button (noodle-rekey.js, see the
+passphrase-change paragraph); a new name nobody holds shows your face among
+the voters with a dashed outline (`.nd-face.pending`), redrawn as the seal
+changes, and mid change your own face already wears the new seal. The rows
+use a margin, not flex `gap`: a password manager injects a zero-width element
+into the name row, and a gap would be added around it too.
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever

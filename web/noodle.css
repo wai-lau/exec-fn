@@ -62,16 +62,17 @@ body.noodle {
   color: hsl(var(--green-hsl) / 0.45);
 }
 
-/* "(remember this)" beside the passphrase label: there is no recovery but
-   the owner's reset, so the one thing to keep is said where it is typed */
-.nd-field .nd-remember { color: hsl(var(--green-hsl) / 1); }
 
 /* the passphrase and its "change" button, side by side (noodle-rekey.js) */
-.nd-pass-row { display: flex; gap: var(--space-2); align-items: stretch; }
+
+/* no flex gap: a password manager injects a zero-width element into the name
+   row and a gap would be added around it too, pushing only that field in */
+.nd-pass-row { display: flex; align-items: stretch; }
 .nd-pass-row input { flex: 1; min-width: 0; }
 
 .nd-rekey {
   flex: 0 0 auto;
+  margin-left: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-2);
@@ -103,13 +104,14 @@ body.noodle {
 
 .nd-seal-box {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;   /* caption UNDER the seal: the derivation needs the width */
+  align-items: flex-start;  /* seal hard left, so the arrow ends exactly 2ch short of it */
+  gap: var(--space-2);
   flex: 0 0 auto;
 }
 
 .nd-seal-cap {
-  max-width: 11ch;
+  max-width: 14ch;
   overflow-wrap: anywhere;
   font-size: var(--fs-2xs);
   color: hsl(var(--green-hsl) / 0.45);
@@ -129,6 +131,15 @@ body.noodle {
 }
 .nd-seal.pending { opacity: 0.25; }
 .nd-seal b { font-weight: var(--fw-bold); }   /* the face: eyes + mouth */
+
+/* In the dotted box the seal sits square: the stamp's random tilt and
+   nudge (noodle-seal.js, set inline) are zeroed -- !important on a custom
+   property beats the inline value, and the stamp keyframes read these too. */
+.nd-teach-box .nd-seal {
+  --seal-dx: 0 !important;
+  --seal-dy: 0 !important;
+  --seal-rot: 0deg !important;
+}
 
 /* The ink comes from the key (noodle-seal.js ndInk): ANY hue, with a
    lightness floor so it always reads on black. --seal-hsl is set inline per
@@ -153,7 +164,7 @@ body.noodle {
    seal it produced on the right. */
 .nd-teach-box {
   display: flex;
-  gap: var(--space-3);
+  gap: 0;   /* the arrow's own margin is the gap (.nd-arrow) */
   align-items: center;
   margin: var(--space-6) 0;
   padding: var(--space-2-5) var(--space-3);
@@ -206,8 +217,10 @@ body.noodle {
    raised it: a status line under Commit or Ask is off screen as often as not.
    It stays until tapped or until the next message replaces it. */
 .nd-banner {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-4);
+  right: var(--space-4);
   z-index: var(--z-sticky);
   margin: 0 0 var(--space-4);
   padding: var(--space-2) var(--space-3);
@@ -322,6 +335,7 @@ body.noodle {
 }
 .nd-face:hover, .nd-face:focus-visible { border-color: hsl(var(--green-hsl) / 0.45); outline: none; }
 .nd-face.you { border-color: hsl(var(--green-hsl) / 0.8); }
+.nd-face.pending { border-style: dashed; }   /* your face, not committed yet */
 
 .nd-face-host { font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); letter-spacing: var(--tracking-wide); }
 
@@ -364,3 +378,12 @@ body.noodle {
 .nd-polls { list-style: none; margin: 0 0 var(--space-6); padding: 0; }
 .nd-create { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-10); }
 .nd-polls li { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid hsl(var(--green-hsl) / 0.12); }
+
+/* The argon2id line's arrow: a shaft of box-drawing dashes that fills the
+   line, clipped, then the head -- ending two spaces short of the seal (the
+   box has no gap of its own; this margin IS the gap). */
+.nd-arrow-line { display: flex; align-items: baseline; }
+.nd-arrow-line > span:first-child { flex: 0 1 auto; min-width: 0; }
+.nd-arrow { display: flex; flex: 1 0 3ch; min-width: 3ch; margin: 0 2ch 0 1ch; overflow: hidden; white-space: nowrap; }
+.nd-arrow-shaft { flex: 1; overflow: hidden; }
+.nd-arrow-shaft::before { content: '\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500'; }

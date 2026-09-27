@@ -34,9 +34,12 @@ def vote(m, k, name, slots, ts):
     return {"name": name, "pub": pub(k), "slots": slots, "ts": ts, "sig": _b64(k.sign(msg))}
 
 
-def rekey(m, old, new, name, ts):
-    msg = m["sig"].canonical_action(name=name, poll=m["slug"], ts=ts, kind="rekey", newpub=pub(new))
-    return {"name": name, "pub": pub(old), "ts": ts, "sig": _b64(old.sign(msg)), "newpub": pub(new)}
+def rekey(m, old, new, name, ts, newname=None):
+    newname = newname or name
+    msg = m["sig"].canonical_action(name=name, poll=m["slug"], ts=ts, kind="rekey", newpub=pub(new),
+                                    newname=newname)
+    return {"name": name, "pub": pub(old), "ts": ts, "sig": _b64(old.sign(msg)), "newpub": pub(new),
+            "newname": newname}
 
 
 def fails(fn, *a, **kw):
@@ -77,6 +80,9 @@ def test_only_the_holder_rekeys_and_never_twice(m):
     body["newpub"] = pub(x)   # swapped after signing
     assert fails(m["rekey"].rekey, m["slug"], body, now=NOW + 2) == 403
     body = rekey(m, old, new, "a", NOW + 2)
+    body["newname"] = "b"   # renamed after signing
+    assert fails(m["rekey"].rekey, m["slug"], body, now=NOW + 2) == 403
+    body = rekey(m, old, new, "a", NOW + 2)
     body["newpub"] = "nope"
     assert fails(m["rekey"].rekey, m["slug"], body, now=NOW + 2) == 400
     assert fails(m["rekey"].rekey, m["slug"], rekey(m, old, new, "a", NOW), now=NOW) == 409
@@ -87,5 +93,19 @@ def test_only_the_holder_rekeys_and_never_twice(m):
 def test_a_vote_signature_is_not_a_rekey(m):
     old, new = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
     m["votes"].submit(m["slug"], vote(m, old, "a", [], NOW), now=NOW)
-    body = dict(vote(m, old, "a", [], NOW + 1), newpub=pub(new))
+    body = dict(vote(m, old, "a", [], NOW + 1), newpub=pub(new), newname="a")
     assert fails(m["rekey"].rekey, m["slug"], body, now=NOW + 1) == 403
+
+
+def test_a_rename_moves_the_vote_and_keeps_its_place(m):
+    old, new, g = (Ed25519PrivateKey.generate() for _ in range(3))
+    m["votes"].submit(m["slug"], vote(m, old, "a", ["2027-03-04:d"], NOW), now=NOW)
+    m["votes"].submit(m["slug"], vote(m, g, "g", [], NOW + 1), now=NOW + 1)
+    assert fails(m["rekey"].rekey, m["slug"], rekey(m, old, new, "a", NOW + 2, "G"), now=NOW + 2) == 409
+    assert fails(m["rekey"].rekey, m["slug"], rekey(m, old, new, "a", NOW + 2, "a.b"), now=NOW + 2) == 400
+    m["rekey"].rekey(m["slug"], rekey(m, old, new, "a", NOW + 3, "Jane Doe"), now=NOW + 3)
+    v = m["store"].load(m["slug"])["voters"]
+    assert set(v) == {"jane doe", "g"}
+    assert v["jane doe"]["order"] == 0 and v["jane doe"]["slots"] == ["2027-03-04:d"]
+    assert v["jane doe"]["name"] == "jane doe" and v["jane doe"]["pub"] == pub(new)
+    m["votes"].submit(m["slug"], vote(m, new, "jane doe", [], NOW + 4), now=NOW + 4)
