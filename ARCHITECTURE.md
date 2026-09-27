@@ -3501,7 +3501,18 @@ and the server 400s one. The seal caption follows the name field:
 line under it (`ndvWhyNot`: no name, unusable name, name sealed by another
 key, no key in this browser, key still being made, sealing) -- a greyed button
 with no reason reads as broken. The Ask box is a 4-row textarea so its example
-hint shows whole; Enter still asks.
+hint shows whole, and sits BELOW submit with its own cyan outlined `ask Noodle`
+button and its own status line -- asking must never be mistaken for sealing a
+vote. Enter in the box asks too.
+
+**Nothing leaves the browser until a button is pressed.** Besides the identity,
+the rest of the form -- calendar picks and the Ask text -- is a per-poll DRAFT
+in localStorage (`noodle.draft.<slug>`), written on every change. A draft
+outranks the submitted vote when the page reopens (it is the newer of the two;
+the status says the changes are kept), and a successful submit clears it. Submit
+sends exactly `{name, pub, slots, ts, sig}`; Ask sends its text, the current
+picks and the public key. `tests/test_noodle_browser.py` pins both: no POST
+before a button, the exact submit keys, the passphrase in no request.
 
 **The calendar** (`noodle-cal.js` geometry + `noodle-cal-view.js` controller,
 styles `noodle-cal.css`) is ONE continuous vertical scroller of Sunday-first

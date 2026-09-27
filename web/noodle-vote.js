@@ -10,6 +10,36 @@ var NDV = { poll: null, cal: null, kdf: null, skew: 0, blocked: '', keyError: fa
 // -- the one thing this page promises never happens. Per browser, all polls.
 var NDV_STORE = 'noodle.identity';
 
+// The rest of the form -- calendar picks not yet submitted, and the Ask box --
+// is a DRAFT kept per poll (key + slug). A draft outranks the submitted vote
+// when the page reopens, since it is the newer of the two; a successful
+// submit clears it, because the server copy is then the current one.
+function ndvDraftKey() { return 'noodle.draft.' + NDV.slug; }
+
+function ndvSaveDraft() {
+  try {
+    localStorage.setItem(ndvDraftKey(), JSON.stringify({
+      slots: Array.from(NDV.cal.getSel()).sort(), ask: ndv$('nd-ask').value,
+    }));
+    NDV.hasDraft = true;
+  } catch (e) { /* storage blocked: nothing is remembered */ }
+}
+
+function ndvRestoreDraft() {
+  try {
+    var d = JSON.parse(localStorage.getItem(ndvDraftKey()) || 'null');
+    if (!d) return;
+    if (Array.isArray(d.slots)) NDV.cal.setSel(new Set(d.slots));
+    if (typeof d.ask === 'string') ndv$('nd-ask').value = d.ask;
+    NDV.hasDraft = true;
+  } catch (e) { /* unreadable: start clean */ }
+}
+
+function ndvClearDraft() {
+  try { localStorage.removeItem(ndvDraftKey()); } catch (e) { /* ignore */ }
+  NDV.hasDraft = false;
+}
+
 function ndv$(id) { return document.getElementById(id); }
 
 function ndvStatus(msg, kind) {
@@ -66,8 +96,12 @@ function ndvRefreshBinding(pub) {
   if (NDV.blocked) {
     ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
-    NDV.cal.setSel(new Set(mine.slots));
-    ndvStatus('welcome back, ' + mine.name + '. your picks are loaded.');
+    if (NDV.hasDraft) {
+      ndvStatus('welcome back, ' + mine.name + '. your unsubmitted changes are kept -- submit to seal them.');
+    } else {
+      NDV.cal.setSel(new Set(mine.slots));
+      ndvStatus('welcome back, ' + mine.name + '. your picks are loaded.');
+    }
   } else {
     ndvStatus('');
   }
@@ -163,6 +197,7 @@ async function ndvSubmit() {
     var sig = await NDV.kdf.sign(text);
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
     if (!res.ok) { ndvStatus(res.data.error || 'submit failed', 'err'); return; }
+    ndvClearDraft();
     ndvTeach('key', NDV_SIGN_DONE);
     ndvApproved(NDV.seal);
     await ndvLoadPoll();
@@ -192,7 +227,10 @@ function ndvInit() {
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
   NDV.cal = window.NoodleCal(ndv$('nd-cal'), {
     start: root.dataset.start, end: root.dataset.end, caption: ndv$('nd-caption'),
+    onChange: ndvSaveDraft,
   });
+  ndvRestoreDraft();
+  ndv$('nd-ask').addEventListener('input', ndvSaveDraft);
   NDV.kdf = window.NoodleKdf({
     slug: NDV.slug, kdf: NDV.kdfCfg, workerUrl: root.dataset.worker,
     onStart: ndvOnStart, onDerived: ndvOnDerived,
