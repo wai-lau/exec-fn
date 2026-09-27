@@ -311,4 +311,19 @@ if [ -n "$CODE_CHANGED" ] && [ -z "$DOCS_CHANGED" ]; then
   echo "      If routes, pipelines, schemas, data files, or naming changed, update them."
 fi
 
+# CLAUDE.md size cap (blocking). Claude Code stops loading memory files past
+# 150k chars; CLAUDE.md hit 211k on 2026-09-27 by accretion — every commit
+# appended its measurements to an existing row. It is an index: detail lives in
+# ARCHITECTURE.md. Checks the STAGED blob, so an unstaged trim can't mask it.
+CLAUDE_MD_MAX=140000
+if echo "$CHANGED" | grep -qx 'CLAUDE.md'; then
+  CLAUDE_MD_LEN=$(git show :CLAUDE.md | wc -m)
+  if [ "$CLAUDE_MD_LEN" -gt "$CLAUDE_MD_MAX" ]; then
+    echo ""
+    echo "CLAUDE.md is $CLAUDE_MD_LEN chars (cap $CLAUDE_MD_MAX) — commit blocked."
+    echo "Move detail into ARCHITECTURE.md and leave a one-line pointer in CLAUDE.md."
+    exit 1
+  fi
+fi
+
 exit 0
