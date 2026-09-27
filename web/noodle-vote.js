@@ -63,10 +63,11 @@ function ndvBanner(msg) {
 var NDV_SIGN_WAIT = 'sign(your availability, key) ──> (on commit)';
 var NDV_SIGN_DONE = 'sign(your availability, key) ──> sealed';
 
+// Ends in an arrow: what it points at is the seal beside the text.
 function ndvDeriveLine(salt, tail) {
   var k = NDV.kdfCfg, pass = ndv$('nd-pass').value;
   return 'argon2id("' + pass + '", ' + salt.slice(0, 12) + '.., m=' +
-    (k.m / 1024) + 'MiB, t=' + k.t + ', p=' + k.p + ') \u2500\u2500> ' + tail;
+    (k.m / 1024) + 'MiB, t=' + k.t + ', p=' + k.p + ') \u2500\u2500>' + (tail ? ' ' + tail : '');
 }
 
 function ndvTeach(tail, signLine) {
@@ -178,14 +179,14 @@ function ndvOnStart(info) {
   ndvSyncSubmit();
   var seal = ndv$('nd-seal');
   NDV.seal = null;
-  if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('key', NDV_SIGN_WAIT); return; }
+  if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('', NDV_SIGN_WAIT); return; }
   NDV.salt = info.salt;
   seal.classList.add('pending');
   ndvTeach('...', NDV_SIGN_WAIT);
 }
 
 async function ndvOnDerived(d) {
-  ndvTeach('key  (' + d.ms + ' ms)', NDV_SIGN_WAIT);
+  ndvTeach('', NDV_SIGN_WAIT);
   var seal = ndv$('nd-seal');
   seal.classList.remove('pending');
   NDV.seal = await window.NoodleSeal.seal(d.pub);
@@ -307,7 +308,7 @@ async function ndvSubmit() {
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
     if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); return; }
     ndvClearDraft();
-    ndvTeach('key', NDV_SIGN_DONE);
+    ndvTeach('', NDV_SIGN_DONE);
     ndvApproved(NDV.seal, window.noodleNormName(name));
     await ndvLoadPoll();
     ndvStatus('committed. come back with the same name and passphrase to change it.');
@@ -377,7 +378,7 @@ function ndvInit() {
   ndv$('nd-pass').addEventListener('input', ndvOnIdentityInput);
   ndv$('nd-submit').addEventListener('click', ndvSubmit);
   ndv$('nd-banner').addEventListener('click', function () { ndvBanner(''); });
-  ndvTeach('key', NDV_SIGN_WAIT);
+  ndvTeach('', NDV_SIGN_WAIT);
   ndvSyncSubmit();
   ndvLoadPoll();
   if (ndvRestoreIdentity()) ndvOnIdentityInput();

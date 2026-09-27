@@ -13,15 +13,16 @@
       <label class="nd-field"><span class="nd-field-h"><span id="nd-pass-label">passphrase</span> <span class="nd-remember">(remember this)</span></span>
         <span class="nd-pass-row"><input id="nd-pass" type="text" placeholder="no passphrase" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"><button id="nd-rekey" type="button" class="nd-rekey" hidden>change</button><button id="nd-rekey-ok" type="button" class="nd-rekey glyph" aria-label="commit the new passphrase" title="commit the new passphrase" hidden>&#x2713;</button></span></label>
     </div>
+  </section>
+  <p id="nd-warn" class="nd-warn" hidden>no passphrase: anyone who types this name gets the same key, and can change your vote.</p>
+
+  <div class="nd-teach-box">
+    <pre id="nd-teach" class="nd-teach" aria-live="polite"></pre>
     <div class="nd-seal-box">
       <pre id="nd-seal" class="nd-seal" aria-label="your seal"></pre>
       <span id="nd-seal-cap" class="nd-seal-cap">your seal of approval</span>
     </div>
-  </section>
-  <p id="nd-warn" class="nd-warn" hidden>no passphrase: anyone who types this name gets the same key, and can change your vote.</p>
-
-  <pre id="nd-teach" class="nd-teach" aria-live="polite"></pre>
-  <p class="nd-note">your passphrase is not sent to the server. this browser turns it into a key, and only the public half of that key (plus a signature) ever leaves it.</p>
+  </div>
 
   <p id="nd-status" class="nd-status" aria-live="polite"></p>
   <div id="nd-cal" class="nd-cal-wrap"></div>
@@ -56,7 +57,7 @@
 <script src="/noodle-kdf.js?v=4"></script>
 <script src="/noodle-roster.js?v=9"></script>
 <script src="/noodle-crop.js?v=11"></script>
-<script src="/noodle-vote.js?v=31"></script>
+<script src="/noodle-vote.js?v=32"></script>
 <script src="/noodle-ask.js?v=15"></script>
 <script src="/noodle-host.js?v=7"></script>
 <script src="/noodle-rekey.js?v=3"></script>

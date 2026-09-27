@@ -3538,6 +3538,11 @@ chars (refused without counting). The grid keeps working throughout. The prompt 
 weekday. (It still reads "every Thursday except the 23rd" as that week's
 Thursday; the voter reviews the grid before anything is signed.)
 
+**The dotted box** holds the derivation (`argon2id(...) ──>`, no timing) with
+the voter's seal and its caption to the RIGHT, so the arrow points at the face
+the passphrase produced; the name and passphrase fields run full width above it.
+The note about the passphrase never leaving the browser was removed.
+
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever
 raised it was off screen as often as not. It stays until tapped or replaced by
