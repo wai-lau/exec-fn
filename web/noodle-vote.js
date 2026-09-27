@@ -3,7 +3,7 @@
 // browser: it goes to the key worker (noodle-kdf-worker.js) and nowhere else;
 // the server receives the public key, the slots and a signature over them.
 
-var NDV = { poll: null, cal: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {},
+var NDV = { poll: null, cal: null, calKey: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {},
   saved: new Set() };
 
 // Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
@@ -18,6 +18,7 @@ var NDV_STORE = 'noodle.identity';
 function ndvDraftKey() { return 'noodle.draft.' + NDV.slug; }
 
 function ndvSaveDraft() {
+  if (!NDV.cal) return;
   try {
     localStorage.setItem(ndvDraftKey(), JSON.stringify({
       slots: Array.from(NDV.cal.getSel()).sort(), ask: ndv$('nd-ask').value,
@@ -72,6 +73,7 @@ function ndvWhyNot() {
   if (!raw.trim()) return 'enter your name first.';
   if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used.';
   if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase.';
+  if (!NDV.cal) return 'the host has not picked the dates yet.';
   if (NDV.keyError) return 'this browser could not make a key.';
   if (!ndvReady()) return 'making your key...';
   return '';
@@ -80,6 +82,7 @@ function ndvWhyNot() {
 // Unsaved = the calendar differs from what the server holds for THIS key
 // (nothing, for someone who has not committed yet).
 function ndvDirty() {
+  if (!NDV.cal) return false;
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;
   for (var s of sel) if (!saved.has(s)) return true;
@@ -120,12 +123,16 @@ function ndvRefreshBinding(pub) {
     else cols.push({ slots: new Set(v.slots), ink: NDV.seals[v.pub] ? NDV.seals[v.pub].ink : null });
   });
   if (cols.indexOf(self) < 0) cols.push(self); // not committed yet: last column
-  NDV.cal.setOthers(cols);
-  // The first to commit hosts; everyone else picks only from the host's
-  // halves. The host (by KEY) and whoever votes first get the whole window.
+  // The host sets the dates; everyone else picks only from the host's slots.
+  // The host (by KEY) gets the whole window.
   var host = NDV.poll && NDV.poll.voters.length ? NDV.poll.voters[0] : null;
-  NDV.cal.setAllowed(host && !(pub && host.pub === pub) ? host.slots : null, !!pub);
-  window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub);
+  var iHost = !!(host && pub && host.pub === pub);
+  if (NDV.cal) {
+    NDV.cal.setOthers(cols);
+    NDV.cal.setAllowed(host && !iHost ? host.slots : null, !!pub);
+  }
+  window.NoodleRoster.render(ndv$('nd-voters'), NDV.poll ? NDV.poll.voters : [], NDV.seals, pub, iHost);
+  if (window.ndhSync) window.ndhSync(pub);
   // the blocking name, for the reason under submit (ndvWhyNot)
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
   NDV.saved = mine && pub && mine.pub === pub ? new Set(mine.slots) : new Set();
@@ -134,7 +141,7 @@ function ndvRefreshBinding(pub) {
   } else if (mine && pub && mine.pub === pub) {
     if (NDV.hasDraft) {
       ndvStatus('welcome back, ' + mine.name + '. your unsaved changes are kept -- commit to seal them.');
-    } else {
+    } else if (NDV.cal) {
       NDV.cal.setSel(new Set(mine.slots));
       ndvStatus('welcome back, ' + mine.name + '. your picks are loaded.');
     }
@@ -270,6 +277,24 @@ async function ndvSubmit() {
   }
 }
 
+// The calendar is built from the POLL, not the page: the host sets the dates
+// and the split, and may change them while this page is open. Rebuilt only
+// when they change; picks survive a rebuild where the new calendar has room.
+function ndvEnsureCal() {
+  var p = NDV.poll, key = p && p.start ? p.start + '|' + p.end + '|' + p.halves : '';
+  ndv$('nd-when').hidden = !key;
+  ndv$('nd-undated').hidden = !!key;
+  if (key === NDV.calKey) return;
+  var keep = NDV.cal ? NDV.cal.getSel() : null;
+  NDV.calKey = key;
+  NDV.cal = null;
+  if (!key) return;
+  NDV.cal = window.NoodleCal(ndv$('nd-cal'), {
+    start: p.start, end: p.end, halves: p.halves, onChange: ndvSaveDraft,
+  });
+  if (keep) NDV.cal.setSel(keep); else ndvRestoreDraft();
+}
+
 async function ndvLoadPoll() {
   var r = await fetch('/api/noodle/' + NDV.slug, { cache: 'no-store' });
   // The server's clock, from the Date header: a phone whose clock is minutes
@@ -278,6 +303,7 @@ async function ndvLoadPoll() {
   if (!isNaN(served)) NDV.skew = served - Date.now();
   NDV.poll = await r.json();
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
+  ndvEnsureCal();
   ndvRefreshBinding(ndvReady() ? NDV.kdf.pub() : null);
 }
 
@@ -286,11 +312,6 @@ function ndvInit() {
   if (!root || !root.dataset.slug) return;
   NDV.slug = root.dataset.slug;
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
-  NDV.cal = window.NoodleCal(ndv$('nd-cal'), {
-    start: root.dataset.start, end: root.dataset.end,
-    onChange: ndvSaveDraft,
-  });
-  ndvRestoreDraft();
   ndv$('nd-ask').addEventListener('input', ndvSaveDraft);
   NDV.kdf = window.NoodleKdf({
     slug: NDV.slug, kdf: NDV.kdfCfg, workerUrl: root.dataset.worker,

@@ -55,7 +55,8 @@ function ndWeeks(start, end) {
 
 function ndGridHtml(weeks, start, end) {
   var today = ndIso(new Date());
-  var h = '<div class="nd-hd nd-corner"></div>';
+  // the corner flips every row/column button between pencil and eraser
+  var h = '<div class="nd-hd nd-corner"><button type="button" class="nd-mode"></button></div>';
   ND_DOW.forEach(function (n, c) {
     h += '<div class="nd-hd" data-col="' + c + '">' +
       '<span class="nd-hd-name">' + n + '</span><button type="button" class="nd-tg"></button></div>';
@@ -84,13 +85,17 @@ function ndGridHtml(weeks, start, end) {
 }
 
 // Slot groups for the toggles: in-window slots only.
-function ndGroups(weeks, start, end) {
-  var cols = [[], [], [], [], [], [], []], rows = [];
+// The slot codes a day has: midday + night in a SPLIT poll, one whole-day
+// slot otherwise (the default for new polls; the host can split them).
+function ndCodes(halves) { return halves ? ['m', 'n'] : ['d']; }
+
+function ndGroups(weeks, start, end, halves) {
+  var cols = [[], [], [], [], [], [], []], rows = [], codes = ndCodes(halves);
   weeks.forEach(function (wk) {
     var row = [];
     wk.forEach(function (iso, c) {
       if (iso < start || iso > end) return;
-      [iso + ':m', iso + ':n'].forEach(function (s) { cols[c].push(s); row.push(s); });
+      codes.forEach(function (k) { cols[c].push(iso + ':' + k); row.push(iso + ':' + k); });
     });
     rows.push(row);
   });
@@ -108,7 +113,7 @@ function ndDotsFit(cell, count) {
 // -- the gap keeps the column's position, so a column reads as one person all
 // the way down. A `self` column shows the live selection `sel` rather than a
 // stored vote, so your own dots follow your taps.
-function ndDotsHtml(iso, cols, fit, sel) {
+function ndDotsHtml(iso, cols, fit, sel, halves) {
   var h = '', shown = cols.slice(0, fit.shown);
   // when columns overflow, YOUR column is never the one cut: it takes the
   // last visible place, the rest stay in vote order
@@ -117,14 +122,18 @@ function ndDotsHtml(iso, cols, fit, sel) {
   for (var i = 0; i < shown.length; i++) {
     var c = shown[i], s = c.self ? sel : c.slots;
     var lit = ' class="on"' + (c.ink ? ' style="--seal-hsl:' + c.ink + '"' : '');
-    h += '<i' + (s.has(iso + ':m') ? lit : '') + '></i>' +
-      '<i' + (s.has(iso + ':n') ? lit : '') + '></i>';
+    if (halves) {
+      h += '<i' + (s.has(iso + ':m') ? lit : '') + '></i>' +
+        '<i' + (s.has(iso + ':n') ? lit : '') + '></i>';
+    } else {
+      h += '<i' + (s.has(iso + ':d') ? lit : '') + '></i>'; // one dot a day
+    }
   }
   return fit.more ? h + '<b class="nd-more"></b>' : h;
 }
 
 if (typeof window !== 'undefined') {
   window.NoodleCalParts = { iso: ndIso, date: ndDate, half: ndHalf, weeks: ndWeeks,
-    gridHtml: ndGridHtml, groups: ndGroups,
+    gridHtml: ndGridHtml, groups: ndGroups, codes: ndCodes,
     dotsFit: ndDotsFit, dotsHtml: ndDotsHtml };
 }

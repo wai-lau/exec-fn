@@ -37,7 +37,8 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
     try:
         key = slots.normalize_name(name)
         poll = store.load(slug)
-        picked = slots.clean_slots(body.get("slots"), poll["start"], poll["end"])
+        picked = slots.clean_slots(body.get("slots"), poll.get("start"), poll.get("end"),
+                                   poll.get("halves", True))
     except KeyError:
         raise VoteError(404, "no such poll") from None
     except ValueError as e:

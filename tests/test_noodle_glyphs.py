@@ -127,10 +127,12 @@ def test_the_calendar_toggle_icons_actually_render(browser, base_url, noodle_slu
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
-        page.locator(".nd-hd .nd-tg").first.wait_for()
+        page.locator(".nd-corner .nd-mode").wait_for()
         page.evaluate("document.fonts.ready")
         info = page.evaluate("""() => {
-          const b = document.querySelector('.nd-hd .nd-tg');
+          // the corner switch is always shown; a group button only when it has
+          // something to change -- measure the switch, it carries the same icons
+          const b = document.querySelector('.nd-corner .nd-mode');
           const c = document.createElement('canvas').getContext('2d');
           c.font = getComputedStyle(b).font;
           const m = c.measureText(b.textContent);

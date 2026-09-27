@@ -1,33 +1,27 @@
 // Noodle header/row toggle rules -- pure, no DOM, unit-tested through node
 // (tests/test_noodle_toggle.py).
 //
-// A group is every IN-WINDOW slot (both halves of each day) under one weekday
-// column or one week row. Out-of-window days never count: a partly-outside
-// week is "all on" when every day it can hold is on.
+// A group is every IN-WINDOW slot under one weekday column or one week row
+// (out-of-window days never count).
 //
-// ONE button per group. Click rule: all off -> all on (the button shows a
-// check); all on OR mixed -> all off (the button shows a cross).
-// Labels describe the ACTION the click will take:
-//   all off       -> "Available Wednesdays"
-//   on or mixed   -> "Not available Wednesdays"
+// The buttons are a MODE, not a reading of the cells: every row/column button
+// shows the same tool -- a PENCIL (fill the group in) or an ERASER (clear it)
+// -- and the calendar's top-left corner flips all of them between the two.
+// What a button does never depends on what its cells currently hold.
 
 var ND_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 var ND_WEEKDAYS = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays',
   'Thursdays', 'Fridays', 'Saturdays'];
+var ND_MODES = ['fill', 'clear'];
 
-// 'on' | 'off' | 'mixed' | 'none' (a group with no in-window slots is inert)
-function ndGroupState(slots, sel) {
-  if (!slots.length) return 'none';
-  var on = 0;
-  for (var i = 0; i < slots.length; i++) if (sel.has(slots[i])) on++;
-  if (on === slots.length) return 'on';
-  return on === 0 ? 'off' : 'mixed';
+// What a group button does in this mode.
+function ndModeAction(mode) {
+  return mode === 'clear' ? 'off' : 'on';
 }
 
-// What the one button does from this state.
-function ndClickAction(state) {
-  return state === 'off' ? 'on' : 'off';
+function ndFlipMode(mode) {
+  return mode === 'clear' ? 'fill' : 'clear';
 }
 
 // Returns a NEW Set with every slot of the group switched on or off.
@@ -39,9 +33,8 @@ function ndApply(slots, sel, action) {
   return next;
 }
 
-function ndLabel(subject, state) {
-  if (state === 'none') return '';
-  return (ndClickAction(state) === 'on' ? 'Available ' : 'Not available ') + subject;
+function ndLabel(subject, mode) {
+  return (ndModeAction(mode) === 'on' ? 'Available ' : 'Not available ') + subject;
 }
 
 function ndColSubject(dow) {
@@ -55,8 +48,8 @@ function ndRowSubject(iso) {
 }
 
 var NoodleToggle = {
-  groupState: ndGroupState, clickAction: ndClickAction, apply: ndApply,
+  modeAction: ndModeAction, flipMode: ndFlipMode, apply: ndApply,
   label: ndLabel, colSubject: ndColSubject, rowSubject: ndRowSubject,
-  MONTHS: ND_MONTHS,
+  MONTHS: ND_MONTHS, MODES: ND_MODES,
 };
 if (typeof window !== 'undefined') window.NoodleToggle = NoodleToggle;

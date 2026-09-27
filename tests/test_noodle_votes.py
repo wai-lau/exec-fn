@@ -11,6 +11,9 @@ from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from noodle_helpers import make_poll  # noqa: E402
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
 pytest.importorskip("cryptography")
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey  # noqa: E402
@@ -22,8 +25,7 @@ NOW = 1_790_000_000_000
 def mods(monkeypatch, tmp_path):
     from noodle import config, sig, slots, store, votes
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
-    poll = store.create("t", "2026-10-01", "2026-10-10", "2026-09-27T00:00:00")
-    return {"slug": poll["slug"], "sig": sig, "slots": slots, "store": store, "votes": votes}
+    return {"slug": make_poll(store, "t", "2026-10-01", "2026-10-10"), "sig": sig, "slots": slots, "store": store, "votes": votes}
 
 
 def _b64(b: bytes) -> str:
@@ -93,7 +95,7 @@ def test_tampered_slots_rejected(mods):
 
 def test_signature_for_another_poll_rejected(mods):
     k = Ed25519PrivateKey.generate()
-    other = mods["store"].create("u", "2026-10-01", "2026-10-10", "x")["slug"]
+    other = make_poll(mods["store"], "u", "2026-10-01", "2026-10-10")
     assert err(mods, signed(mods, k, "Ada", ["2026-10-01:m"], NOW, slug=other)) == 403
 
 
