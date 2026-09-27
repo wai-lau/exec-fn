@@ -453,8 +453,16 @@ def test_a_new_name_shows_its_face_among_the_voters(browser, base_url, noodle_sl
         # no name yet: a blank seat says there is room, and tapping it fills nothing
         page.wait_for_selector(".nd-face.pending", timeout=10000)
         assert page.inner_text(".nd-face.pending .nd-face-name") == "could be you"
+        blank = page.inner_text(".nd-face.pending .nd-seal")
+        assert blank.strip(), "the placeholder seat wears a seal"
         page.click(".nd-face.pending")
         assert page.input_value("#nd-name") == ""
+        page.reload()   # the placeholder seal is kept, not rerolled
+        page.wait_for_selector(".nd-face.pending", timeout=10000)
+        assert page.inner_text(".nd-face.pending .nd-seal") == blank
+        # a voter's name (still deriving, or wrong passphrase) is not a new seat
+        page.fill("#nd-name", "smoke bot")
+        page.wait_for_function("!document.querySelector('.nd-face.pending')", timeout=5000)
         page.fill("#nd-name", "smoke newcomer")
         page.wait_for_function("document.querySelector('.nd-face.pending .nd-face-name').textContent"
                                " === 'smoke newcomer'", timeout=20000)
