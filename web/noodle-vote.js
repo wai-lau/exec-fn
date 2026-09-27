@@ -182,6 +182,16 @@ function ndvOnIdentityInput() {
   if (NDV.poll) ndvRefreshBinding(null);
 }
 
+// Tapping a face fills the name field with that voter's name, then moves on to
+// the passphrase -- the one thing only they know.
+function ndvPickFace(e) {
+  var face = e.target.closest('.nd-face');
+  if (!face) return;
+  ndv$('nd-name').value = face.dataset.name;
+  ndvOnIdentityInput();
+  ndv$('nd-pass').focus();
+}
+
 function ndvApproved(seal) {
   var ov = ndv$('nd-approved');
   window.NoodleSeal.paint(ov.querySelector('.nd-seal'), seal);
@@ -256,6 +266,7 @@ function ndvInit() {
     },
   });
   ndv$('nd-name').addEventListener('input', ndvOnIdentityInput);
+  ndv$('nd-voters').addEventListener('click', ndvPickFace);
   ndv$('nd-pass').addEventListener('input', ndvOnIdentityInput);
   ndv$('nd-submit').addEventListener('click', ndvSubmit);
   ndvTeach('key', NDV_SIGN_WAIT);
