@@ -3493,7 +3493,7 @@ and host role all kept -- the host is whoever holds order 0). Each field gets a
 `change` button once the passphrase is right; tapping one keeps the old name +
 passphrase IN MEMORY, unlocks that field (the passphrase is cleared, hint `new
 passphrase`/`new name`) and spawns a second KDF worker to re-derive the old key.
-The button becomes a cross that restores the old value; there is no separate
+The button becomes `undo`, which restores the old value; there is no separate
 confirm -- **Commit carries the change**. Until then nothing is sent or
 remembered: `ndrAs` makes the page answer as the old key (binding, host role,
 Ask's `pub`), `ndvSaveIdentity` skips, so a reload brings the old identity back.

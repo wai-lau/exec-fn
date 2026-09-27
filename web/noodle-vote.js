@@ -235,9 +235,11 @@ function ndvShown(slots) {
 // change (noodle-rekey.js) your own face already wears the NEW seal and name.
 function ndvRenderRoster(pub, iHost, typed) {
   var voters = NDV.poll ? NDV.poll.voters : [], seals = NDV.seals;
-  if (NDV.mine && window.NDR && NDR.active && NDV.seal && ndvReady()) {
+  if (NDV.mine && window.NDR && NDR.active) {
+    // mid change: your own face, with the name being typed and the newest seal
+    // (the last one while the next derives) -- never the empty seat
     seals = Object.assign({}, seals);
-    seals[pub] = NDV.seal;
+    if (NDV.seal || NDV.lastSeal) seals[pub] = NDV.seal || NDV.lastSeal;
     voters = voters.map(function (v) { return v.pub === pub && typed ? Object.assign({}, v, { name: typed }) : v; });
   } else if (pub && typed && NDV.seal && !NDV.mine && !NDV.blocked) {
     seals = Object.assign({}, seals);
@@ -257,6 +259,7 @@ function ndvRenderRoster(pub, iHost, typed) {
 function ndvOnStart(info) {
   ndvSyncSubmit();
   var seal = ndv$('nd-seal');
+  if (NDV.seal) NDV.lastSeal = NDV.seal;
   NDV.seal = null;
   if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('', NDV_SIGN_WAIT); return; }
   NDV.salt = info.salt;
