@@ -3554,6 +3554,19 @@ key. **Every ask starts from a blank calendar** -- the answer replaces the grid
 outright and the text stays in the box, so a question is tweaked and re-asked
 rather than stacked on the last answer.
 
+**The host.** Whoever commits FIRST hosts the poll (`votes.host_of`: vote order
+0), and the halves they pick are the only ones anyone else may pick. Enforced on
+the server (a guest vote with an un-offered slot is a 400, and Ask's answer is
+trimmed to the offer for anyone but the host, by key) and drawn on the page:
+un-offered halves are darker (`.no-m`/`.no-n`, the page background at 0.45) and
+ignore taps, a day with neither half offered greys out (`.shut`), and a row or
+column button acts on offered halves only. The host's face carries a `host`
+tag, and the host changes their own offer freely. If the host withdraws a half,
+a guest's stored pick there is dropped from their calendar on load, so their
+next commit sheds it -- but ONLY once their key is known (`setAllowed(..,
+prune)`): before that the page cannot tell the host from a guest, and pruning
+early destroyed the host's own restored draft.
+
 **Your own dots are live.** The voter's own column (at their committed position,
 or last if they have not committed) is a `self` column that shows the CURRENT
 selection, so tapping a half both lights its background (dark = unavailable,

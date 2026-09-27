@@ -64,4 +64,6 @@ def public_poll(poll: dict) -> dict:
         "start": poll["start"], "end": poll["end"],
         "voters": [{"name": key, "pub": v["pub"], "slots": v["slots"],
                     "order": v["order"]} for key, v in voters],
+        # the first to commit hosts: their halves are the only ones on offer
+        "host": voters[0][0] if voters else None,
     }

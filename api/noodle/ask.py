@@ -14,7 +14,7 @@ import threading
 import time
 from collections import defaultdict, deque
 
-from noodle import config, holidays, llm, rules, sig, slots, store
+from noodle import config, holidays, llm, rules, sig, slots, store, votes
 
 _hits: dict[str, deque] = defaultdict(deque)
 _LOCK = threading.Lock()
@@ -113,5 +113,10 @@ def ask(slug: str, body: dict, ip: str) -> dict:
     out = out if isinstance(out, dict) else {}
     picked, dropped = rules.apply(out.get("rules"),
                                   slots.window_dates(poll["start"], poll["end"]))
+    # anyone but the host can only have what the host offered
+    host = votes.host_of(poll)
+    if host and host[1]["pub"] != pub:
+        offered = set(host[1]["slots"])
+        picked = [s for s in picked if s in offered]
     reading = out.get("reading") if isinstance(out.get("reading"), str) else ""
     return {"slots": picked, "reading": reading[:400], "dropped": dropped}

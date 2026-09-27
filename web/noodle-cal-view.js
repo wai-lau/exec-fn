@@ -3,7 +3,8 @@
 // sticky header never jump.
 //
 // opts: {start, end, onChange(sel)}
-// api:  setSel(Set), getSel(), setOthers([{slots:Set, hue} | {self:true, hue}])
+// api:  setSel(Set), getSel(), setOthers([{slots:Set, ink} | {self:true, ink}]),
+//       setAllowed(Set | null) -- the host's offered halves; null = everything
 
 // The big month number behind the grid follows whichever week row is at the
 // scroller's vertical middle.
@@ -33,7 +34,13 @@ function NoodleCal(wrap, opts) {
   var P = window.NoodleCalParts, T = window.NoodleToggle;
   var weeks = P.weeks(opts.start, opts.end);
   var groups = P.groups(weeks, opts.start, opts.end);
-  var sel = new Set(), others = [];
+  var sel = new Set(), others = [], allowed = null;
+
+  // Only the host's halves are on offer to everyone else: a group's toggle
+  // acts on those alone, and a tap on any other half does nothing.
+  function offered(slots) {
+    return allowed ? slots.filter(function (s) { return allowed.has(s); }) : slots;
+  }
 
   wrap.innerHTML = '<div class="nd-mark" aria-hidden="true"></div>' +
     '<div class="nd-scroll"><div class="nd-grid">' +
@@ -57,7 +64,7 @@ function NoodleCal(wrap, opts) {
   // ERASER otherwise (clears it). Font Awesome glyphs from the Nerd Font build
   // of the site's face (U+F040, U+F12D), shipped in noodle-seal.woff2.
   function paintToggle(el, g) {
-    var st = T.groupState(g.slots, sel), label = T.label(g.subject, st);
+    var st = T.groupState(offered(g.slots), sel), label = T.label(g.subject, st);
     el.dataset.state = st;
     var btn = el.querySelector('.nd-tg');
     btn.textContent = st === 'off' ? '\uf040' : '\uf12d';
@@ -71,6 +78,10 @@ function NoodleCal(wrap, opts) {
       var iso = c.dataset.day;
       c.classList.toggle('mid', sel.has(iso + ':m'));
       c.classList.toggle('nit', sel.has(iso + ':n'));
+      var noM = !!allowed && !allowed.has(iso + ':m'), noN = !!allowed && !allowed.has(iso + ':n');
+      c.classList.toggle('no-m', noM);
+      c.classList.toggle('no-n', noN);
+      c.classList.toggle('shut', noM && noN);
     });
     grid.querySelectorAll('.nd-hd[data-col], .nd-wk').forEach(function (el) {
       paintToggle(el, groupOf(el));
@@ -95,13 +106,13 @@ function NoodleCal(wrap, opts) {
     var tg = e.target.closest('.nd-tg');
     var cell = e.target.closest('.nd-d');
     if (tg) {
-      var g = groupOf(e.target);
-      if (!g || !g.slots.length) return;
-      var st = T.groupState(g.slots, sel);
-      change(T.apply(g.slots, sel, T.clickAction(st)));
+      var g = groupOf(e.target), on = g ? offered(g.slots) : [];
+      if (!on.length) return;
+      change(T.apply(on, sel, T.clickAction(T.groupState(on, sel))));
     } else if (cell && !cell.classList.contains('out')) {
       var r = cell.getBoundingClientRect();
       var slot = cell.dataset.day + ':' + P.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight);
+      if (allowed && !allowed.has(slot)) return;
       var next = new Set(sel);
       if (next.has(slot)) next.delete(slot); else next.add(slot);
       change(next);
@@ -121,6 +132,16 @@ function NoodleCal(wrap, opts) {
     setSel: function (s) { sel = new Set(s); paint(); paintDots(); },
     getSel: function () { return new Set(sel); },
     setOthers: function (o) { others = o; paintDots(); },
+    // With `prune`, picks outside the offer are dropped (a host who withdraws
+    // a half takes it off everyone's calendar), reported through onChange like
+    // a tap. Without it the offer is only DRAWN: before the voter's key is
+    // known the page cannot tell the host from a guest, and pruning then
+    // destroyed the host's own restored draft.
+    setAllowed: function (a, prune) {
+      allowed = a ? new Set(a) : null;
+      var kept = allowed ? new Set(Array.from(sel).filter(function (s) { return allowed.has(s); })) : sel;
+      if (prune && kept.size !== sel.size) change(kept); else paint();
+    },
   };
 }
 

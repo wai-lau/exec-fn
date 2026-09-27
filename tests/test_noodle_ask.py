@@ -144,6 +144,17 @@ def test_a_limited_ask_does_not_count(env, monkeypatch):
     go(env, pub=_pub(2))                        # ...so the window refills on time
 
 
+def test_a_non_host_only_gets_what_the_host_offered(env):
+    from noodle import store
+    with store.edit(env["slug"]) as poll:
+        poll["voters"]["host"] = {"name": "host", "pub": _pub(9), "slots": ["2026-10-02:n"],
+                                  "ts": 1, "order": 0}
+    env["fake"].reply = {"reading": "all", "rules": [
+        {"action": "add", "blocks": ["midday", "night"], "where": {"every": True}}]}
+    assert go(env, pub=_pub(1))["slots"] == ["2026-10-02:n"]          # a guest: trimmed
+    assert len(go(env, pub=_pub(9), ip="198.51.100.7")["slots"]) == 20  # the host: all of it
+
+
 def test_model_failure_reports(env):
     def boom(system, user):
         raise RuntimeError("upstream down")

@@ -154,3 +154,27 @@ def test_slug_shape_guards_the_filesystem(mods):
         assert not store.valid_slug(bad)
         with pytest.raises(KeyError):
             store.load(bad)
+
+
+# ── the host: whoever commits first; their halves are the only ones on offer ──
+def test_first_voter_hosts_and_others_pick_only_what_they_offered(mods):
+    host, guest = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+    submit(mods, signed(mods, host, "Host", ["2026-10-01:m", "2026-10-02:n"], NOW))
+    assert err(mods, signed(mods, guest, "Guest", ["2026-10-01:n"], NOW + 1), NOW + 1) == 400
+    rec = submit(mods, signed(mods, guest, "Guest", ["2026-10-02:n"], NOW + 2), now=NOW + 2)
+    assert rec["slots"] == ["2026-10-02:n"]
+    assert mods["votes"].host_of(mods["store"].load(mods["slug"]))[0] == "host"
+
+
+def test_the_host_can_change_their_offer_freely(mods):
+    host = Ed25519PrivateKey.generate()
+    submit(mods, signed(mods, host, "Host", ["2026-10-01:m"], NOW))
+    rec = submit(mods, signed(mods, host, "HOST", ["2026-10-05:n", "2026-10-06:m"], NOW + 1), now=NOW + 1)
+    assert rec["slots"] == ["2026-10-05:n", "2026-10-06:m"]
+
+
+def test_an_empty_offer_leaves_nothing_to_pick(mods):
+    submit(mods, signed(mods, Ed25519PrivateKey.generate(), "Host", [], NOW))
+    guest = Ed25519PrivateKey.generate()
+    assert err(mods, signed(mods, guest, "Guest", ["2026-10-01:m"], NOW + 1), NOW + 1) == 400
+    submit(mods, signed(mods, guest, "Guest", [], NOW + 2), now=NOW + 2)
