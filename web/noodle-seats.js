@@ -67,7 +67,11 @@ function ndvRenderRoster(pub, iHost, typed) {
   voters = voters.map(function (v) {
     return typed && !v.pending && window.noodleNormName(v.name) === typed ? Object.assign({}, v, { picked: true }) : v;
   });
-  window.NoodleRoster.render(ndv$('nd-voters'), voters, seals, pub, iHost);
+  // a host alone on the poll gets the how-to where the guests will appear
+  var alone = window.ndxIsHost && window.ndxIsHost() && !(NDV.poll ? NDV.poll.voters : []).some(function (v) {
+    return v.pub !== pub;
+  });
+  window.NoodleRoster.render(ndv$('nd-voters'), voters, seals, pub, iHost, alone);
 }
 
 // The first and last day the host offers, or null before they offer any.

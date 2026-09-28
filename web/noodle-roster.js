@@ -24,7 +24,16 @@ async function ndrSeals(voters) {
 // browser holds now -- the "you" mark follows the KEY, not the name, or typing
 // someone else's name would mark their face as yours. A `pending` voter is
 // this browser's own face before it has committed (noodle-vote.js).
-function ndrRender(el, voters, seals, myPub, canRemove) {
+// What a host alone on the poll is shown where the guests will appear.
+var NDR_HOWTO = '<li class="nd-howto"><ol>' +
+  '<li>tap the title to name your poll</li>' +
+  '<li>drag the orange lines to your first and last week</li>' +
+  '<li>tap the times you are free (a bucket fills a whole row or column)</li>' +
+  '<li>commit, then copy the link and send it to your guests</li>' +
+  '<li>they pick from your times; their dots appear on your calendar</li>' +
+  '</ol></li>';
+
+function ndrRender(el, voters, seals, myPub, canRemove, howto) {
   el.closest('.nd-who').hidden = !voters.length;
   el.innerHTML = voters.map(function (v) {
     var seal = seals[v.pub];
@@ -39,7 +48,7 @@ function ndrRender(el, voters, seals, myPub, canRemove) {
       // the host (and only the host) can remove a guest, and their vote with them
       (canRemove && v.order !== 0 && !v.pending ? '<button type="button" class="nd-face-rm" data-name="' +
         ndrEsc(v.name) + '">remove</button>' : '') + '</li>';
-  }).join('');
+  }).join('') + (howto ? NDR_HOWTO : '');
 }
 
 window.NoodleRoster = { seals: ndrSeals, render: ndrRender };

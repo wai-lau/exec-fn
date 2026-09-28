@@ -3577,7 +3577,7 @@ localStorage (`noodle.blankSeal`), so it is the same face every visit -- and mid
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
-**Owner page** (`/noodle`): one `create poll` button (no title to type -- the poll starts as `new poll` and the host renames it by tapping the title) that goes straight to the new poll; the polls are a table (poll, voters, created); each poll has
+**Owner page** (`/noodle`): one `create poll` button (no title to type -- the poll starts as `untitled noodle` and the host renames it by tapping the title) that goes straight to the new poll; the polls are a table (poll, voters, created); each poll has
 a delete button that asks first (`DELETE /api/noodle-polls/{slug}`, owner-only,
 `store.delete`).
 
@@ -3588,6 +3588,12 @@ refused): the link is the only key to the poll, so sharing it is the next
 thing a host does.
 
 A guest's name in the voter row wraps onto as many lines as it needs; the host's stays on one line, since the `host` label sits under it.
+
+**A host alone on the poll** gets a numbered how-to in the voter row where
+the guests' faces will go (`NDR_HOWTO`, noodle-roster.js): name the poll,
+drag the lines, tap your times, commit and send the link, watch the dots. The
+split checkbox sits at the top right of the calendar; new polls are titled
+`untitled noodle`.
 
 **The page scrolls in `.page-scroll`** (chrome.css), not the document: a
 root scrollbar is top-layer and paints over the CRT stack.
