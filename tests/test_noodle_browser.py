@@ -328,8 +328,10 @@ def test_the_calendar_is_endless_and_guests_get_no_crop(browser, base_url, noodl
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.locator(".nd-wk").first.wait_for()
-        assert page.locator(".nd-crop-h").count() == 0 and page.locator("#nd-crop").count() == 0
         poll = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")
+        if not poll["voters"]:
+            pytest.skip("no host on this session's poll yet (run alone): the visitor would be the host")
+        assert page.locator(".nd-crop-h").count() == 0 and page.locator("#nd-crop").count() == 0
         if poll.get("crop"):
             return   # a host-cropped calendar is finite by design
         start = page.locator(".nd-wk").count()
