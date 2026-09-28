@@ -534,7 +534,6 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 
 /* the foot of a poll page: back to the noodle home, to start another */
 .nd-top-box { width: fit-content; margin: var(--space-10) auto 0; }
-.nd-top-h { margin: 0 0 var(--space-1); font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 
 .nd-top {
   list-style: none;
@@ -581,6 +580,10 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
    picks are seen by everyone on the poll */
 .nd-pick-note { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); }
 .nd-as-host .nd-pick-note { display: none; }   /* guests only: the host is setting the offer, not picking from it */
+
+/* and only once the calendar takes taps (ndvSyncLock): hidden, not removed,
+   so the calendar does not jump when it unlocks */
+.nd-off .nd-pick-note { visibility: hidden; }
 
 /* wording that differs for the host and a guest (.nd-as-host, noodle-host.js) */
 .nd-host-only { display: none; }

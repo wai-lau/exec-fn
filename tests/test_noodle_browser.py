@@ -438,8 +438,9 @@ def test_the_passphrase_is_remembered_per_poll_and_name(browser, base_url, noodl
 
 
 def test_the_top_dates_rank_and_line_up(browser, base_url, noodle_slug):
-    """The five slots most voters are free for, soonest first on a tie; a sun
-    or moon only on a split poll; every row's dots start at the same x."""
+    """Every slot a non-host voter picked (cols[0] is the host), most voters
+    first, soonest on a tie; a sun or moon only on a split poll; every row's
+    dots start at the same x."""
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
@@ -450,24 +451,37 @@ def test_the_top_dates_rank_and_line_up(browser, base_url, noodle_slug):
           const B = {slots: new Set([d(3)+':m', d(2)+':n', d(-1)+':m']), ink: '200 80% 70%'};
           window.ndtRender([A, B, {self: true, ink: null}], new Set([d(3)+':m']));
           const el = document.getElementById('nd-top');
-          return {hidden: el.parentNode.hidden, label: el.parentNode.querySelector('.nd-top-h').textContent, rows: [...el.children].map(li => ({
+          return {hidden: el.parentNode.hidden, rows: [...el.children].map(li => ({
             text: li.textContent,
             x: li.querySelector('.nd-top-dots').getBoundingClientRect().left,
             on: [...li.querySelectorAll('.nd-top-dots i')].map(i => i.classList.contains('on'))}))};
         }""")
-        assert not rows["hidden"] and rows["label"] == "top 5 (soonest)"
+        assert not rows["hidden"]
         r = rows["rows"]
-        assert len(r) == 5
-        assert [x["on"] for x in r[:2]] == [[True, True, True], [True, True, False]]   # 3 voters, then 2
-        assert r[2]["on"] == [True, False, False]                                      # ties: soonest first
+        # A is the host: its four slots nobody else picked are not results
+        assert [x["on"] for x in r] == [[True, True, True], [True, True, False]]   # 3 voters, then 2
         assert r[0]["text"][0] == "" and r[1]["text"][0] == ""             # sun midday, moon night
         assert len({round(x["x"], 1) for x in r}) == 1, "dots do not line up"
         assert all(":" in x["text"] and len(x["text"].split(":")[0]) == len(r[0]["text"].split(":")[0]) for x in r)
         # a whole-day poll: no glyph
         text = page.evaluate("""() => {
           const P = window.NoodleCalParts, d = P.addDays(P.iso(new Date()), 2);
-          window.ndtRender([{slots: new Set([d+':d']), ink: null}], new Set());
+          window.ndtRender([{slots: new Set([d+':d']), ink: null}, {self: true, ink: null}], new Set([d+':d']));
           return document.getElementById('nd-top').textContent; }""")
         assert text[0] not in "\uf185\uf186" and text.endswith(": ")
+    finally:
+        page.close()
+
+
+def test_the_pick_note_shows_only_once_unlocked(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.wait_for_function("NDV.poll ? 1 : 0")
+        vis = "getComputedStyle(document.querySelector('.nd-pick-note')).visibility"
+        page.evaluate("document.getElementById('noodle').classList.add('nd-off')")
+        assert page.evaluate(vis) == "hidden"
+        page.evaluate("document.getElementById('noodle').classList.remove('nd-off')")
+        assert page.evaluate(vis) == "visible"
     finally:
         page.close()

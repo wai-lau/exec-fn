@@ -1,5 +1,6 @@
-// noodle's TOP DATES: the five slots most voters are free for, soonest first
-// on a tie, drawn above "make another noodle". One text row per slot --
+// noodle's TOP DATES: every slot at least one GUEST picked (the host's own
+// offer alone is not a result), most voters first, soonest first on a tie,
+// drawn above "make another noodle". One text row per slot --
 // "<glyph> tue dd/mm/yyyy: " then the voters' dots -- and every row the same
 // width, so the dots line up in columns like the calendar's: each voter owns
 // one fixed column (vote order, in their seal ink), a gap where not free.
@@ -7,7 +8,6 @@
 // Awesome U+F185 / U+F186 from noodle-seal.woff2, text glyphs, not emoji);
 // they ink about two cells, so they sit in a fixed two-cell box (noodle.css).
 
-var NDT_TOP = 5;
 var NDT_DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 var NDT_GLYPH = { m: '', n: '' };
 
@@ -20,19 +20,21 @@ function ndtDate(iso) {
 
 // cols as the calendar has them (noodle-vote.js ndvRefreshBinding): a stored
 // vote's {slots}, or YOUR {self} column, which reads the live selection.
-// -> [{slot, cols: [bool per column]}], best first, only slots someone picked.
+// cols[0] is always the HOST (vote order; on a fresh poll it is your own
+// column, the host-to-be). -> [{slot, cols: [bool per column]}], best first.
 function ndtRank(cols, sel, today, crop) {
-  var count = new Map();
-  cols.forEach(function (c) {
+  var count = new Map(), guests = new Set();
+  cols.forEach(function (c, i) {
     (c.self ? sel : c.slots).forEach(function (s) {
       var d = s.slice(0, 10);
       if (d < today || (crop && (d < crop.from || d > crop.to))) return;
       count.set(s, (count.get(s) || 0) + 1);
+      if (i > 0) guests.add(s);
     });
   });
-  return Array.from(count.keys()).sort(function (a, b) {
+  return Array.from(guests).sort(function (a, b) {
     return count.get(b) - count.get(a) || (a < b ? -1 : 1);   // a tie goes to the soonest
-  }).slice(0, NDT_TOP).map(function (s) {
+  }).map(function (s) {
     return { slot: s, cols: cols.map(function (c) { return (c.self ? sel : c.slots).has(s); }) };
   });
 }
