@@ -74,7 +74,8 @@ def _tool_exile_card(input_: dict) -> dict:
         if n and n.get("stage") == "consequences":
             n["consequences"]["decision"] = "delete"
         _save_rd(rd)
-    _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col="exile")
+    _append_rd_log("moved", card["title"], source="Exec", from_col=from_col, to_col="exile",
+                   id=card["id"], category=card.get("category"))
     return {"ok": True, "id": card["id"], "title": card["title"], "column": "exile"}
 
 
