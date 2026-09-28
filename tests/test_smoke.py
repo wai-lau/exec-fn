@@ -227,7 +227,7 @@ def test_noodle_poll_page_has_a_link_preview(client, noodle_slug):
     assert f'<meta property="og:url" content="https://wai-lau.net/noodle/{noodle_slug}">' in r.text
     assert 'content="https://wai-lau.net/noodle-card.jpg?v=' in r.text
     assert 'name="twitter:card" content="summary_large_image"' in r.text
-    assert '<meta name="theme-color" content="#00ff40">' in r.text
+    assert '<meta name="theme-color" content="#000">' in r.text
     img = client.get("/noodle-card.jpg")
     assert img.status_code == 200 and img.headers["content-type"] == "image/jpeg"
 
