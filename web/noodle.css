@@ -284,7 +284,7 @@ body.noodle {
 /* "NOT <name>'s seal of approval" is bold */
 .nd-locked .nd-seal-cap { font-weight: var(--fw-bold); }
 
-.nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
+.nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl) / 0.8); }   /* why Commit is off: always the error red */
 
 /* the empty-passphrase warning sits right under the fields it is about */
 .nd-warn { margin: var(--space-3) 0 0; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl) / 0.8); }
