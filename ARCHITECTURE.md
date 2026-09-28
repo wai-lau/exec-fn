@@ -3585,7 +3585,7 @@ this identifier`. While the passphrase is right (`NDV.mine`) it is LOCKED
 passphrase-change paragraph); a new name nobody holds shows your face among
 the voters with a dashed outline (`.nd-face.pending`), redrawn as the seal
 changes -- and while the typed name matches no voter AND there is no seal yet
-(none typed, or still deriving) the seat reads `could be you` (fills nothing
+(none typed, or still deriving) the seat reads `you` (fills nothing
 when tapped) wearing a placeholder seal made once from 32 random bytes kept in
 localStorage (`noodle.blankSeal.<slug>`), so it is the same face every visit -- and mid change your own face already wears the new seal. The rows
 use a margin, not flex `gap`: a password manager injects a zero-width element

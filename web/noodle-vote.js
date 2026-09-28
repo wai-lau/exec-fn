@@ -322,7 +322,7 @@ function ndvOnIdentityInput() {
 // the passphrase -- the one thing only they know.
 function ndvPickFace(e) {
   var face = e.target.closest('.nd-face');
-  if (!face || !face.dataset.name || (window.NDR && NDR.active)) return;   // 'could be you' fills nothing
+  if (!face || !face.dataset.name || (window.NDR && NDR.active)) return;   // the blank 'you' seat fills nothing
   ndv$('nd-name').value = face.dataset.name;
   ndvOnIdentityInput();
   ndv$('nd-pass').focus();
