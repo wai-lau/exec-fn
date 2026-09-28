@@ -387,3 +387,19 @@ def test_the_same_question_reapplies_the_last_answer(browser, base_url, noodle_s
         assert "help how? type in box pls" in page.inner_text("#nd-ask-status")
     finally:
         page.close()
+
+
+def test_the_ask_text_is_kept_per_poll_and_name(browser, base_url, noodle_slug):
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", "smoke asker two")
+        page.wait_for_function("!document.getElementById('noodle').classList.contains('nd-off')", timeout=20000)
+        page.fill("#nd-ask", "fridays after work")
+        page.reload()
+        page.fill("#nd-name", "smoke asker two")
+        page.wait_for_function("document.getElementById('nd-ask').value === 'fridays after work'", timeout=20000)
+        page.fill("#nd-name", "smoke someone else")   # another name: its own (empty) text
+        page.wait_for_function("document.getElementById('nd-ask').value === ''", timeout=20000)
+    finally:
+        page.close()

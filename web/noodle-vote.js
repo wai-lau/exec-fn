@@ -6,65 +6,6 @@
 var NDV = { poll: null, cal: null, calKey: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {},
   saved: new Set() };
 
-// Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
-// rides along on every request, which would send the passphrase to the server
-// -- the one thing this page promises never happens. The ONE thing kept across
-// polls (who you are travels with you); everything else is per poll.
-function ndvIdentityKey() { return 'noodle.identity'; }
-
-// The rest of the form -- calendar picks not yet submitted, and the Ask box --
-// is a DRAFT kept per poll AND per NAME (not the passphrase): keyed by the
-// poll's slug and the normalized name, so one person's unsaved picks never
-// appear under another's name, nor on another poll. No name, no draft.
-// A draft outranks the submitted vote when the page reopens, since it is the
-// newer of the two; a successful submit clears it.
-function ndvDraftKey() {
-  // mid name change the draft stays with the name it was made under
-  var raw = window.NDR && NDR.active ? NDR.oldName : ndv$('nd-name').value;
-  var name = window.noodleNormName(raw);
-  return name ? 'noodle.draft.' + NDV.slug + '.' + name : null;
-}
-
-function ndvSaveDraft() {
-  var k = ndvDraftKey();
-  if (!NDV.cal || !k) { ndvSyncSubmit(); return; }
-  try {
-    localStorage.setItem(k, JSON.stringify({
-      slots: Array.from(NDV.cal.getSel()).sort(), ask: ndv$('nd-ask').value,
-    }));
-    NDV.hasDraft = true;
-  } catch (e) { /* storage blocked: nothing is remembered */ }
-  ndvSyncSubmit();
-}
-
-function ndvRestoreDraft() {
-  var k = ndvDraftKey();
-  if (!k) return;
-  try {
-    var d = JSON.parse(localStorage.getItem(k) || 'null');
-    if (!d) return;
-    // the Ask text comes back on its own; picks only when there are some -- an
-    // EMPTY list is not a draft, and would hide the voter's stored vote
-    if (typeof d.ask === 'string') ndv$('nd-ask').value = d.ask;
-    if (!(Array.isArray(d.slots) && d.slots.length)) return;
-    NDV.cal.setSel(new Set(d.slots));
-    NDV.hasDraft = true;
-  } catch (e) { /* unreadable: start clean */ }
-}
-
-// After a Commit the server copy IS the current one, so EVERY draft this poll
-// holds goes -- any identity's, not just the key in use now: a stale draft
-// left under another key (an earlier name, a pre-change passphrase) would
-// otherwise beat the saved picks the next time that seal matched.
-function ndvClearDraft() {
-  var prefix = 'noodle.draft.' + NDV.slug + '.';
-  try {
-    Object.keys(localStorage).filter(function (k) { return k.indexOf(prefix) === 0; })
-      .forEach(function (k) { localStorage.removeItem(k); });
-  } catch (e) { /* storage blocked: nothing was kept */ }
-  NDV.hasDraft = false;
-}
-
 function ndv$(id) { return document.getElementById(id); }
 
 // Errors go to the banner at the top of the page (ndvBanner). Anything else
@@ -209,7 +150,7 @@ function ndvRefreshBinding(pub) {
     NDV.draftFor = dk;
     NDV.hasDraft = false;
     if (!NDV.mine) NDV.cal.setSel(new Set());
-    ndv$('nd-ask').value = '';   // the Ask text is per identity too
+    ndvRestoreAsk();   // the Ask text is per name too
     ndvRestoreDraft();
   }
   ndvRenderRoster(pub, iHost, typed);
@@ -243,25 +184,6 @@ async function ndvOnDerived(d) {
   NDV.seal = await window.NoodleSeal.seal(d.pub);
   window.NoodleSeal.stamp(seal, NDV.seal);
   ndvRefreshBinding(d.pub);
-}
-
-function ndvSaveIdentity() {
-  if (window.NDR && NDR.active) return;   // the new passphrase is kept only once committed
-  try {
-    localStorage.setItem(ndvIdentityKey(), JSON.stringify({ name: ndv$('nd-name').value, pass: ndv$('nd-pass').value }));
-  } catch (e) { /* storage blocked: the form just is not remembered */ }
-}
-
-function ndvRestoreIdentity() {
-  try {
-    var id = JSON.parse(localStorage.getItem(ndvIdentityKey()) || 'null');
-    if (id && typeof id.name === 'string') {
-      ndv$('nd-name').value = id.name;
-      ndv$('nd-pass').value = typeof id.pass === 'string' ? id.pass : '';
-      return true;
-    }
-  } catch (e) { /* unreadable or blocked: start empty */ }
-  return false;
 }
 
 // "<name>'s seal of approval", following the name field as it is typed.
@@ -461,7 +383,7 @@ function ndvInit() {
   NDV.slug = root.dataset.slug;
   NDV.draft = root.dataset.draft || '';
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
-  ndv$('nd-ask').addEventListener('input', ndvSaveDraft);
+  ndv$('nd-ask').addEventListener('input', ndvSaveAsk);
   NDV.kdf = window.NoodleKdf({
     slug: NDV.slug, kdf: NDV.kdfCfg, workerUrl: root.dataset.worker,
     onStart: ndvOnStart, onDerived: ndvOnDerived,
