@@ -71,20 +71,36 @@ let prompt = "";
 
 /** Re-read Exec's system prompt from the container. Never throws. */
 export async function refreshExecPrompt() {
-  if (!TOKEN) return prompt;
+  if (!TOKEN) {
+    promptStatus("no CC_SIDECAR_TOKEN");
+    return prompt;
+  }
   try {
     const r = await fetch(`${API}/api/exec/prompt`, {
       headers: { "x-cc-token": TOKEN },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    if (r.ok) {
-      const body = await r.json();
-      if (typeof body.prompt === "string" && body.prompt.trim()) prompt = body.prompt.trim();
+    const body = r.ok ? await r.json() : {};
+    if (typeof body.prompt === "string" && body.prompt.trim()) {
+      prompt = body.prompt.trim();
+      promptStatus(`loaded ${prompt.length} chars`);
+    } else {
+      promptStatus(`exec-fn answered ${r.status}`);
     }
-  } catch {
-    /* keep the last good prompt */
+  } catch (e) {
+    promptStatus(`unreachable: ${e?.message || e}`);   // keep the last good prompt
   }
   return prompt;
+}
+
+// Logged on CHANGE only, to the unit's journal: whether the agent is really
+// Exec cannot be read off the model (it confabulates its own prompt), so this
+// line is the ground truth -- `journalctl -u cc-sidecar | grep exec-prompt`.
+let lastStatus = "";
+function promptStatus(s) {
+  if (s === lastStatus) return;
+  lastStatus = s;
+  console.log(`exec-prompt: ${s}${prompt ? "" : " (agent has NO Exec prompt)"}`);
 }
 
 // The per-turn block exec-fn puts in front of each of Wai's messages

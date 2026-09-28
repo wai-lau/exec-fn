@@ -1224,7 +1224,7 @@ Reads come back in 40K-char slices with a `from=` offset to continue. The system
 
 Since phase 2 of the merge (2026-09-28) the agent IS Exec. `buildSystemPrompt()` joins, in order:
 
-1. **Exec's static prompt** — `chat._CHAT_STATIC_PREFIX` (identity, the GLaDOS `EXEC_VOICE`, the link / answer-button / card-id rules), fetched per run from `GET /api/exec/prompt` (sidecar token only, `api/exec_context.py`) by `refreshExecPrompt()` in exec-tools.mjs, last good copy kept across a failed fetch. One source, so the panel and /cc cannot drift.
+1. **Exec's static prompt** — `chat._CHAT_STATIC_PREFIX` (identity, the GLaDOS `EXEC_VOICE`, the link / answer-button / card-id rules), fetched per run from `GET /api/exec/prompt` (sidecar token only, `api/exec_context.py`) by `refreshExecPrompt()` in exec-tools.mjs, last good copy kept across a failed fetch. One source, so the panel and /cc cannot drift. **Whether it loaded is logged to the unit's journal on every change** (`journalctl -u cc-sidecar | grep exec-prompt` → `loaded N chars`, or why not). Do NOT ask the agent to quote its prompt: on 2026-09-28 it confidently "quoted" a prompt two versions old while the new one was loaded.
 2. `SYSTEM_PROMPT` in `server.mjs` — the page's operating rules (sandbox, archive, web, SVG) and what the `<exec-context>` block is. It no longer says "You are Claude": Exec's prompt forbids naming Claude, and two identities in one prompt is a coin flip per turn.
 3. **`claude-box/cc-context.md`** — who Wai is and her ADHD calibration (inattentive, high-masking, so the answer names the smallest concrete first action). The caveman-ultra section was removed: Exec's voice replaces it.
 
