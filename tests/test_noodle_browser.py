@@ -176,6 +176,7 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         assert page.locator(".nd-d:not(.out)").nth(1).get_attribute("class") == picked
         assert page.input_value("#nd-ask") == "draft text"
 
+        page.evaluate(f"localStorage.setItem('noodle.draft.{noodle_slug}.STALE', '{{\"slots\":[\"2027-01-01:d\"]}}')")
         page.evaluate("NDV.committed = 0")
 
         page.click("#nd-submit")
@@ -186,6 +187,9 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         assert len(votes) == 1 and set(votes[0]) == {"name", "pub", "slots", "ts", "sig"}
         assert all(PASS not in (b or "") for _, b in sent), "passphrase left the browser"
         assert page.evaluate("localStorage.getItem(ndvDraftKey())") is None   # per poll AND identity
+        # and every OTHER draft this poll held is gone too (a stale one would
+        # beat the saved picks the next time its seal matched)
+        assert page.evaluate(f"Object.keys(localStorage).filter(k => k.startsWith('noodle.draft.{noodle_slug}.')).length") == 0
         assert page.inner_text("#nd-submit") == "Commit" and not page.is_visible("#nd-dirty")
     finally:
         ctx.close()
