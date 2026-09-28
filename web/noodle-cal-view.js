@@ -96,17 +96,21 @@ var NDC_ICON = { fill: '\uf765', clear: '\uf12d' };
 function ndcPaintButtons(grid, mode, groupOf, offered) {
   var T = window.NoodleToggle;
   grid.querySelectorAll('.nd-hd[data-col], .nd-wk').forEach(function (el) {
-    var g = groupOf(el), label = T.label(g.subject, mode), btn = el.querySelector('.nd-tg');
+    var g = groupOf(el), btn = el.querySelector('.nd-tg');
+    // no tool chosen yet: no row/column buttons at all (disabled = hidden)
+    if (!mode) { btn.innerHTML = ''; btn.disabled = true; return; }
+    var label = T.label(g.subject, mode);
     btn.innerHTML = '<i class="ic ' + mode + '">' + NDC_ICON[mode] + '</i>';
     btn.setAttribute('aria-label', label);
     btn.title = label;
     btn.disabled = !offered(g.slots).length;
   });
   // the corner shows BOTH tools, "fill / eraser", the current one bright
-  var b = grid.querySelector('.nd-mode'), other = T.flipMode(mode);
+  // it starts OFF (both dim, no tool): the first tap picks fill
+  var b = grid.querySelector('.nd-mode'), other = mode ? T.flipMode(mode) : 'fill';
   // split by the same 30deg hairline a split day cell has (noodle-cal.css)
   b.innerHTML = '<i class="ic fill">' + NDC_ICON.fill + '</i><i class="ic clear">' + NDC_ICON.clear + '</i>';
-  b.dataset.mode = mode;
+  b.dataset.mode = mode || 'off';
   b.title = 'switch every button to ' + (other === 'fill' ? 'fill in' : 'clear');
   b.setAttribute('aria-label', b.title);
 }
@@ -204,7 +208,7 @@ function NoodleCal(wrap, opts) {
   var bound = { from: crop && crop.from > today ? crop.from : today, to: crop ? crop.to : null };
   var endless = !!opts.endless || !crop;
   var weeks = [], groups = { cols: [[], [], [], [], [], [], []], rows: [] }, cells = [];
-  var sel = new Set(), others = [], allowed = null, mode = 'fill';
+  var sel = new Set(), others = [], allowed = null, mode = null;   // no tool until the corner is tapped
   var codes = new Set(P.codes(opts.halves));
 
   wrap.innerHTML = '<div class="nd-scroll">' +
@@ -265,9 +269,9 @@ function NoodleCal(wrap, opts) {
     var head = e.target.closest('.nd-hd:not(.nd-corner), .nd-wk'), cell = e.target.closest('.nd-d');
     var tg = e.target.closest('.nd-tg') || (head && head.querySelector('.nd-tg'));
     if (e.target.closest('.nd-corner')) {
-      mode = T.flipMode(mode);
+      mode = mode ? T.flipMode(mode) : 'fill';
       paint();
-    } else if (tg) {
+    } else if (tg && mode) {
       var on = offered(groupOf(tg).slots);
       if (on.length) change(T.apply(on, sel, T.modeAction(mode)));
     } else if (cell && !cell.classList.contains('out')) {

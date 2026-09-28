@@ -125,7 +125,6 @@ function ndvSyncSubmit(busy) {
   var btn = ndv$('nd-submit');
   btn.disabled = !!why;
   btn.textContent = dirty ? 'Commit*' : 'Commit';
-  // said twice: under the title (seen first) and under Commit (where it is acted on)
   document.querySelectorAll('.nd-dirty').forEach(function (el) { el.hidden = !dirty; });
   ndv$('nd-why').textContent = why;
   ndvSyncLock();
@@ -383,6 +382,10 @@ function ndvEnsureCal(force) {
   // days the crop now leaves out are deselected, as the server drops them
   if (keep && c) keep = new Set(Array.from(keep).filter(function (s) { return c.from <= s.slice(0, 10) && s.slice(0, 10) <= c.to; }));
   NDV.calKey = key;
+  // the split box lives INSIDE the grid (noodle-host.js ndhPlaceSplit); take it
+  // out first, or rebuilding the grid would destroy it with the old rows
+  var slot = ndv$('nd-split-slot');
+  if (slot && slot.parentNode !== ndv$('noodle')) ndv$('nd-cal').before(slot);
   NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: halves, crop: c, endless: host,
     onChange: ndvSaveDraft, onRows: function () { if (window.ndxSync) window.ndxSync(); } });
   // a rebuild carries the picks over; it is not an edit, so it saves no draft

@@ -33,6 +33,20 @@ function ndhSync(pub) {
   var role = ndhRole(pub), row = ndh$('nd-split-row');
   row.hidden = role === 'guest';
   ndh$('nd-split').checked = ndhHalves();
+  ndhPlaceSplit();
+}
+
+// The split box sits on the calendar's FIRST row -- the past week drawn above
+// today, which nobody can pick, so it is free space -- centred, and inside the
+// grid so it scrolls with it. The slot spans the row but takes no taps; only
+// the box and its words do.
+function ndhPlaceSplit() {
+  var slot = ndh$('nd-split-slot'), grid = document.querySelector('#nd-cal .nd-grid');
+  var rows = NDV.cal ? NDV.cal.rows() : [];
+  if (!grid || !rows.length) return;
+  if (slot.parentNode !== grid) grid.appendChild(slot);
+  slot.style.top = rows[0].offsetTop + 'px';
+  slot.style.height = rows[0].offsetHeight + 'px';
 }
 
 // Re-express picks when the split flips -- the same rule as noodle/slots.py
@@ -137,6 +151,7 @@ async function ndhRemove(e) {
   t.addEventListener('keydown', ndhTitleDone);
   t.addEventListener('blur', ndhTitleDone);
   window.ndhSync = ndhSync;
+  window.addEventListener('resize', ndhPlaceSplit);
   window.ndhRole = ndhRole;
   window.ndhHalves = ndhHalves;
   window.ndhCrop = ndhCrop;
