@@ -26,7 +26,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { query, getSessionInfo, getSessionMessages, listSessions } from "@anthropic-ai/claude-agent-sdk";
 import { archiveServer, ARCHIVE_TOOL_NAMES } from "./archive-tools.mjs";
-import { execServer, refreshExecSchemas, EXEC_TOOL_NAMES } from "./exec-tools.mjs";
+import {
+  execServer, refreshExecSchemas, refreshExecPrompt, stripExecContext, EXEC_TOOL_NAMES,
+} from "./exec-tools.mjs";
 import { usage } from "./usage.mjs";
 import { generateTitle } from "./title-gen.mjs";
 import { checkToolPaths } from "./sandbox-paths.mjs";
@@ -162,8 +164,14 @@ const BLOCKED_TOOLS = [
 // anything" line is GONE -- it was true when the page had two web tools and is
 // now actively wrong, and a model told it has no filesystem will not use the
 // one it has.
+//
+// Since phase 2 of docs/plan-exec-cc-merge.md the agent IS Exec: its identity
+// and voice come first, from the container (refreshExecPrompt), and this block
+// is only the page's operating rules. So it no longer says "You are Claude" --
+// Exec's prompt forbids naming Claude, and two identities in one prompt is a
+// coin flip on every turn.
 const SYSTEM_PROMPT = [
-  "You are Claude, talking with Wai through a personal chat page she built.",
+  "Wai talks to you through a personal chat page she built.",
   "She drives this the way she drives a terminal Claude Code session -- often",
   "from a phone -- so it is both ordinary conversation AND real work.",
   "You have a real sandbox: Read, Write, Edit, Bash, Glob and Grep all work.",
@@ -202,6 +210,13 @@ const SYSTEM_PROMPT = [
   "the background transparent, and never rely on dark-on-dark. Do not set width",
   "or height on the svg element - give it a viewBox and it scales to fit a",
   "phone. You still cannot produce photographs or raster images of any kind.",
+  // The block exec_context.wrap puts in front of every message. Old copies stay
+  // in the thread, so it has to be told the newest one is the truth.
+  "Each of Wai's messages opens with an <exec-context> block the page attaches:",
+  "today's date and time, the board, the activity log, open nudges and known",
+  "context. She did not type it. The block on her LATEST message is the current",
+  "state and overrides anything earlier in the conversation. Never quote or echo",
+  "it back. Exec's card tools are the mcp__exec__* tools.",
 ].join(" ");
 
 // Wai's own standing context: who she is, how she wants to be spoken to. It sits
@@ -213,18 +228,20 @@ const SYSTEM_PROMPT = [
 // filesystem here, that would be tokens on every turn buying nothing.
 const CONTEXT_FILE = new URL("./cc-context.md", import.meta.url);
 
-/** The full system prompt: the operating rules above plus Wai's context.
+/** The full system prompt: Exec, the operating rules above, Wai's context.
  *
- * Byte-stable across turns (same file, same bytes), which is what lets the
- * prefix cache instead of being re-read at full price every message. */
-function buildSystemPrompt() {
+ * Byte-stable across turns (same prompt, same file, same bytes), which is what
+ * lets the prefix cache instead of being re-read at full price every message.
+ * Everything per-turn rides in the user message instead (exec_context.wrap). */
+async function buildSystemPrompt() {
   let context = "";
   try {
     context = fs.readFileSync(CONTEXT_FILE, "utf8").trim();
   } catch {
     /* absent or unreadable degrades to the base prompt -- never a failed run */
   }
-  return context ? `${SYSTEM_PROMPT}\n\n${context}` : SYSTEM_PROMPT;
+  const exec = await refreshExecPrompt();
+  return [exec, SYSTEM_PROMPT, context].filter(Boolean).join("\n\n");
 }
 
 // ONE continuing conversation, owned by the SERVER.
@@ -448,6 +465,7 @@ async function historyFor(sessionId) {
         }
       }
     }
+    if (role === "user") text = stripExecContext(text);
     text = text.trim();
     if ((!text && !images.length) || text.startsWith("<command-name>")) continue;
     const ts = typeof m.timestamp === "string" ? m.timestamp : "";
@@ -579,7 +597,7 @@ async function handleQuery(req, res, body) {
     await refreshExecSchemas();
     const options = {
       ...sandboxOptions(),
-      systemPrompt: buildSystemPrompt(),
+      systemPrompt: await buildSystemPrompt(),
       abortController: controller,
     };
     // The client does not choose the conversation -- the pointer does, so every

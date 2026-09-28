@@ -1220,9 +1220,15 @@ Containment is enforced TWICE per call — the id must match `^[A-Za-z0-9_:-]+$`
 
 Reads come back in 40K-char slices with a `from=` offset to continue. The system prompt tells it to search the archive rather than claim it has no memory.
 
-### 7e. The persona is two halves
+### 7e. The persona is three parts, and the board rides in the message
 
-`SYSTEM_PROMPT` in `server.mjs` (the operating rules — no tools, no repo, and the SVG-drawing affordance) plus **`claude-box/cc-context.md`**, appended by `buildSystemPrompt()` — who Wai is, her ADHD calibration (inattentive, high-masking, so generic ADHD advice misses and the answer has to name the smallest concrete first action), and caveman-ultra delivery.
+Since phase 2 of the merge (2026-09-28) the agent IS Exec. `buildSystemPrompt()` joins, in order:
+
+1. **Exec's static prompt** — `chat._CHAT_STATIC_PREFIX` (identity, the GLaDOS `EXEC_VOICE`, the link / answer-button / card-id rules), fetched per run from `GET /api/exec/prompt` (sidecar token only, `api/exec_context.py`) by `refreshExecPrompt()` in exec-tools.mjs, last good copy kept across a failed fetch. One source, so the panel and /cc cannot drift.
+2. `SYSTEM_PROMPT` in `server.mjs` — the page's operating rules (sandbox, archive, web, SVG) and what the `<exec-context>` block is. It no longer says "You are Claude": Exec's prompt forbids naming Claude, and two identities in one prompt is a coin flip per turn.
+3. **`claude-box/cc-context.md`** — who Wai is and her ADHD calibration (inattentive, high-masking, so the answer names the smallest concrete first action). The caveman-ultra section was removed: Exec's voice replaces it.
+
+**The system prompt must stay byte-stable** or the prefix stops caching, so nothing dated or per-board goes in it. Instead `/api/cc/query` prepends `exec_context.wrap()` to Wai's message: an `<exec-context>…</exec-context>` block holding `chat._turn_context("planning")` — TODAY, the activity log, selected tasks, ideas pool, 7-day schedule, known context, open nudges — the same tail the in-container chat puts in its unmarked second system block. The prompt tells the agent the block on the LATEST message overrides older ones (they stay in the thread). The block is stored with the turn by the SDK, so `historyFor()` strips it (`stripExecContext`) — history replay, the rolling title and the archive all see only what Wai typed. **The tag is a contract**: `exec_context.OPEN/CLOSE` ↔ `CONTEXT_BLOCK` in exec-tools.mjs, pinned from the Python side by `tests/test_exec_context.py`. Cost: the board (~1–3K tokens) is re-sent in every user turn and accumulates in the thread until the 4:30 new-chat (phase 4) or compaction.
 
 It is read **per run**, so an edit lands with no restart — but it reads `/srv/cc-agent/cc-context.md`. **Editing the repo copy alone changes nothing**; reinstall it:
 

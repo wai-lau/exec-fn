@@ -207,7 +207,11 @@ _CHAT_STATIC_PREFIX = (
 )
 
 
-def _build_chat_system_prompt(stage: str = "planning", actions: list | None = None) -> list:
+def _turn_context(stage: str = "planning", actions: list | None = None) -> str:
+    """Everything Exec needs that changes per turn: today, the board, the log,
+    known context, open nudges. The in-container chat puts it in an unmarked
+    second system block; the sidecar gets it at the top of the user message
+    (exec_context.wrap) -- either way it stays out of the cached prefix."""
     ctx = _load_json("profile", {"notes": []})
     rd = _load_rd()
 
@@ -262,10 +266,7 @@ def _build_chat_system_prompt(stage: str = "planning", actions: list | None = No
 
     now = _now_et()
     today_str = f"{now.strftime('%A, %B')} {now.day}, {now.year} {now.strftime('%H:%M')} ET"
-    # Volatile tail — everything that changes per request. Sits AFTER the cached
-    # static prefix block so it never invalidates it. Marker goes only on the
-    # static block above; this block carries none.
-    volatile = (
+    return (
         f"TODAY: {today_str}\n\n"
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
@@ -277,10 +278,15 @@ def _build_chat_system_prompt(stage: str = "planning", actions: list | None = No
         f"{_active_nudge_block(cards)}"
         f"{_actions_taken_block(actions)}"
     )
+
+
+def _build_chat_system_prompt(stage: str = "planning", actions: list | None = None) -> list:
+    # Volatile tail AFTER the cached static prefix block so it never invalidates
+    # it. Marker goes only on the static block; the tail carries none.
     return [
         {"type": "text", "text": _CHAT_STATIC_PREFIX,
          "cache_control": {"type": "ephemeral"}},
-        {"type": "text", "text": volatile},
+        {"type": "text", "text": _turn_context(stage, actions)},
     ]
 
 

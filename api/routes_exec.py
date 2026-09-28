@@ -15,6 +15,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from chat import _chat_tools
+from exec_context import system_prompt
 from exec_tools import run_tool
 from monitor_sse import push_to_monitor
 from routers import public
@@ -32,6 +33,14 @@ async def exec_tool_schemas(request: Request):
     if not _authed(request):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     return {"tools": _chat_tools()}
+
+
+@public.get("/api/exec/prompt")
+async def exec_prompt(request: Request):
+    """Exec's static system prompt for the sidecar (exec_context.py)."""
+    if not _authed(request):
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+    return {"prompt": system_prompt()}
 
 
 @public.post("/api/exec/tool/{name}")

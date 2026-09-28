@@ -64,6 +64,39 @@ export async function refreshExecSchemas() {
   return schemas;
 }
 
+// Exec's static system prompt (api/exec_context.py), kept the same way as the
+// schemas: last good copy survives a failed refresh, so a container restart
+// never turns Exec back into a bare assistant mid-conversation.
+let prompt = "";
+
+/** Re-read Exec's system prompt from the container. Never throws. */
+export async function refreshExecPrompt() {
+  if (!TOKEN) return prompt;
+  try {
+    const r = await fetch(`${API}/api/exec/prompt`, {
+      headers: { "x-cc-token": TOKEN },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (r.ok) {
+      const body = await r.json();
+      if (typeof body.prompt === "string" && body.prompt.trim()) prompt = body.prompt.trim();
+    }
+  } catch {
+    /* keep the last good prompt */
+  }
+  return prompt;
+}
+
+// The per-turn block exec-fn puts in front of each of Wai's messages
+// (exec_context.wrap). Stored with the turn, so it is stripped wherever the
+// transcript is shown or archived. Same tag as exec_context.OPEN/CLOSE.
+const CONTEXT_BLOCK = /^\s*<exec-context>[\s\S]*?<\/exec-context>\s*/;
+
+/** A user turn as Wai typed it, without the board state riding in front. */
+export function stripExecContext(text) {
+  return typeof text === "string" ? text.replace(CONTEXT_BLOCK, "") : text;
+}
+
 async function call(name, input) {
   try {
     const r = await fetch(`${API}/api/exec/tool/${encodeURIComponent(name)}`, {

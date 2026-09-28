@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 import cc_client
 import cc_title
+import exec_context
 from pages import _render_page, _tmpl
 from routers import protected
 
@@ -124,6 +125,9 @@ async def cc_query(request: Request):
         return JSONResponse({"error": f"at most {_MAX_IMAGES} images"}, status_code=413)
     if any(len((im or {}).get("data") or "") > _MAX_IMAGE_B64 for im in images):
         return JSONResponse({"error": "image too large"}, status_code=413)
+    # The agent is Exec: it needs the board as it is NOW, every turn. The
+    # length check above is on Wai's words only; the block is ours.
+    prompt = await exec_context.wrap(prompt)
     return StreamingResponse(
         cc_client.stream_query(prompt, images),
         media_type="text/event-stream",
