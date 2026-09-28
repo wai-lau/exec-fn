@@ -179,7 +179,7 @@ def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
         face.click()
         assert page.input_value("#nd-name") == name
         assert page.evaluate("document.activeElement.id") == "nd-pass"
-        want = "please enter your passphrase" if page.evaluate("NDV.held") else "you'll need this to make changes"
+        want = "please enter your passphrase" if page.evaluate("NDV.held") else "you'll need this to change your vote"
         assert page.get_attribute("#nd-pass", "placeholder") == want
     finally:
         page.close()
