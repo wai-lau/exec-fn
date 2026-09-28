@@ -3702,8 +3702,10 @@ typed on that poll -- or, where that name has none yet, the last one it used
 on any poll, `noodle.lastpass.<name>` -- never over one typed by hand); only the last NAME
 (`noodle.identity`) travels between polls.
 
-**Top dates** (`web/noodle-top.js`, `#nd-top-box` labelled "top 5 (soonest)", above the underlined "make another noodle" link):
-the five slots most voters are free for, a tie going to the soonest, from the
+**Top dates** (`web/noodle-top.js`, `#nd-top-box`, no label, above the underlined "make another noodle" link):
+EVERY slot at least one voter other than the host picked (the host's offer
+alone is not a result; `cols[0]` is always the host), most voters first, a tie
+going to the soonest, from the
 calendar's own dot columns (`NDV.cols`, your live picks included, past days and
 days outside the crop left out). One row per slot, `<glyph> tue dd/mm/yyyy: `
 then the dots, one fixed column per voter in seal ink, so the dots line up
@@ -3728,7 +3730,8 @@ is greyed (past, shut, unpicked by the host): grey wins. The foot link reads
 (`.nd-as-host`). A guest's
 calendar starts at its first offered week (the past week above today is the
 host's, where the split box sits), and "please select your availabilities
-(public)" under the dotted box is for guests only.
+(public)" under the dotted box is for guests only, and only once the
+calendar is unlocked (`.nd-off`; `visibility`, so nothing jumps).
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever
