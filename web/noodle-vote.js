@@ -106,15 +106,15 @@ function ndvPub() {
 // button with no reason reads as broken.
 function ndvWhyNot() {
   var raw = ndv$('nd-name').value;
-  if (!raw.trim()) return 'enter your name first.';
-  if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used.';
-  if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase.';
-  if (NDV.taken) return '"' + NDV.taken + '" is already taken.';
-  if (NDV.keyError) return 'this browser could not make a key.';
+  if (!raw.trim()) return 'enter your name first';
+  if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used';
+  if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase';
+  if (NDV.taken) return '"' + NDV.taken + '" is already taken';
+  if (NDV.keyError) return 'this browser could not make a key';
   if (!ndvReady()) return 'making your key...';
   // the host's picks ARE the offer: committing none would leave guests nothing
   if (window.ndxIsHost && window.ndxIsHost() && NDV.cal && !NDV.cal.getSel().size) {
-    return 'pick at least one available time -- guests can only pick from yours.';
+    return 'pick at least one available time, guests can only pick from yours';
   }
   return '';
 }

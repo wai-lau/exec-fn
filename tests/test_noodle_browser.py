@@ -146,7 +146,7 @@ def test_empty_name_cannot_submit(browser, base_url, noodle_slug):
         page.fill("#nd-pass", "something")
         page.wait_for_timeout(2500)
         assert page.is_disabled("#nd-submit")
-        assert page.inner_text("#nd-why") == "enter your name first."
+        assert page.inner_text("#nd-why") == "enter your name first"
         assert page.inner_text("#nd-seal-cap") == "your seal of approval"
     finally:
         page.close()
