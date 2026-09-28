@@ -1,5 +1,5 @@
 // noodle's SEATS: who the voter row shows and how -- the host's default offer,
-// the "could be you" seat and its kept seal, a typed name's owner, your own
+// the "you" seat and its kept seal, a typed name's owner, your own
 // face mid change -- plus a stored vote as the page shows it and the span a
 // guest's calendar covers. Split from noodle-vote.js at the 500-line cap (same
 // global scope; loaded before it and only called once it has run).
@@ -11,7 +11,7 @@ function ndvNameTaken(typed) {
   });
 }
 
-// The "could be you" seat's seal: random, made ONCE per browser per poll and
+// The "you" seat's seal: random, made ONCE per browser per poll and
 // kept, so the placeholder face is the same every visit instead of reshuffling.
 var NDV_BLANK = '__could_be_you__';
 function ndvBlankSeal() {
@@ -50,7 +50,7 @@ function ndvRenderRoster(pub, iHost, typed) {
   } else if (typed && !ndvNameTaken(typed)) {
     // a NEW name: its face joins the row at once and keeps it while the key
     // computes -- the last seal stands in until the next is made, so the seat
-    // never blinks back to "could be you"
+    // never blinks back to "you"
     var seal = (pub && NDV.seal) || NDV.lastSeal || NDV.blankSeal;
     seals = Object.assign({}, seals);
     seals[NDV_BLANK] = seal;
@@ -60,7 +60,7 @@ function ndvRenderRoster(pub, iHost, typed) {
     // placeholder seal
     seals = Object.assign({}, seals);
     seals[NDV_BLANK] = NDV.blankSeal;
-    voters = voters.concat([{ name: 'could be you', pub: NDV_BLANK, slots: [], order: voters.length,
+    voters = voters.concat([{ name: 'you', pub: NDV_BLANK, slots: [], order: voters.length,
       pending: true, blank: true }]);
   }
   // the typed name's owner is SELECTED too, before any key says it is you

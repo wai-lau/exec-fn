@@ -87,7 +87,7 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         page.reload()
         page.fill("#nd-name", nm)
         page.fill("#nd-pass", pw)
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled"
+        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')"
                                " || document.querySelector('#nd-why').textContent.includes('different')",
                                timeout=20000)
         return page.evaluate("NDV.mine")
@@ -117,7 +117,11 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
                 if fresh(nm, pw):
                     break
             else:
-                page.click("#nd-submit")   # first run: commit so there is a vote to change
+                # first run: commit so there is a vote to change (a host must offer something)
+                page.evaluate("ndxIsHost() && !NDV.cal.getSel().size && (NDV.cal.setSel(new Set("
+                              "[...NDV.cal.openSlots('0', '9')].slice(0, 1))), ndvSaveDraft())")
+                page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+                page.click("#nd-submit")
                 page.wait_for_function("NDV.mine", timeout=10000)
             if page.input_value("#nd-name") != name:
                 change("nd-name", "nd-rename", name)
@@ -140,7 +144,7 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         page.fill("#nd-name", "smoke midway")
         page.wait_for_function("[...document.querySelectorAll('.nd-face-name')].some(e => e.textContent === 'smoke midway')",
                                timeout=5000)
-        assert page.locator(".nd-face-name", has_text="could be you").count() == 0
+        assert page.locator(".nd-face.pending[data-name='']").count() == 0   # never the empty "you" seat
         page.click("#nd-rename")   # cancel
         page.wait_for_function("NDV.mine", timeout=20000)
         change("nd-name", "nd-rename", name)
@@ -166,7 +170,7 @@ def test_a_new_name_shows_its_face_among_the_voters(browser, base_url, noodle_sl
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         # no name yet: a blank seat says there is room, and tapping it fills nothing
         page.wait_for_selector(".nd-face.pending", timeout=10000)
-        assert page.inner_text(".nd-face.pending .nd-face-name") == "could be you"
+        assert page.inner_text(".nd-face.pending .nd-face-name") == "you"
         blank = page.inner_text(".nd-face.pending .nd-seal")
         assert blank.strip(), "the placeholder seat wears a seal"
         page.click(".nd-face.pending")
