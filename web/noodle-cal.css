@@ -239,6 +239,11 @@
 .nd-d.no-m { --top: hsl(var(--bg-hsl) / 0.45); }
 .nd-d.no-n { --bot: hsl(var(--bg-hsl) / 0.45); }
 .nd-d.shut { cursor: default; }
+
+/* today: its date in the crop lines' yellow (no box, no circle) -- placed
+   BEFORE the grey rules on purpose: a day that is shut, past or unpicked stays
+   grey even when it is today */
+.nd-d.today .nd-n { color: hsl(var(--orange-hsl) / 1); }
 .nd-d.shut .nd-n { color: hsl(var(--gray-hsl) / 0.45); font-weight: var(--fw-normal); }
 
 /* outside the poll window: kept so months keep their shape, but inert */
@@ -280,9 +285,6 @@
 /* read-only until the key is yours (noodle-vote.js ndvSyncLock) */
 .nd-readonly .nd-d, .nd-readonly .nd-hd, .nd-readonly .nd-wk { cursor: default; }
 
-/* today: the DATE in the crop lines' yellow -- no box, no circle. By id, so
-   it stays yellow over the grey of a struck or unpicked day */
-#nd-cal .nd-d.today .nd-n { color: hsl(var(--orange-hsl) / 1); }
 
 /* Voters, you included: ONE fixed column per person, the same position in
    every cell -- top dot midday, bottom dot night, NO dot where not free.
