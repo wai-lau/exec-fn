@@ -53,3 +53,17 @@ def test_the_secret_is_kept_private(d):
     drafts.token("A" * 22)
     mode = (config.DATA_DIR / "secret.key").stat().st_mode & 0o777
     assert mode == 0o600
+
+
+
+def test_starting_drafts_is_rate_limited_per_ip(d, monkeypatch):
+    drafts, store = d
+    from noodle import config
+    monkeypatch.setattr(config, "NEW_RATE", 2)
+    drafts._starts.clear()
+    drafts.new_for("203.0.113.1", now=0)
+    drafts.new_for("203.0.113.1", now=1)
+    with pytest.raises(drafts.TooFast):
+        drafts.new_for("203.0.113.1", now=2)
+    drafts.new_for("203.0.113.2", now=2)                      # another address is fine
+    drafts.new_for("203.0.113.1", now=config.NEW_WINDOW_S + 1)  # and the window rolls on

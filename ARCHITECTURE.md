@@ -3591,8 +3591,15 @@ localStorage (`noodle.blankSeal.<slug>`), so it is the same face every visit -- 
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
+**`/noodle` is PUBLIC** (on the landing wheel and the guest nav): anyone may
+start a poll -- `POST /api/noodle-polls/new` is public, rate-limited per client
+IP (`NEW_RATE` 20 an hour, `drafts.new_for`), and stores nothing. What stays
+owner-only is the poll LIST, creating by API and deleting (`owner_router`, on
+the protected tier): a guest's `/noodle` page shows only the create button,
+since the list request 401s and the section stays hidden.
+
 **A new poll is a DRAFT until the host commits** (`noodle/drafts.py`).
-`create poll` stores nothing: `POST /api/noodle-polls/new` (owner-only) returns
+`create poll` stores nothing: `POST /api/noodle-polls/new` returns
 a fresh slug and a token -- an HMAC of that slug under `NOODLE_SECRET`, else a
 32-byte `DATA_DIR/secret.key` (0600) made on first use -- and the page opens
 at `/noodle/<slug>?t=<token>` with an empty poll standing in. The host's first

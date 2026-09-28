@@ -14,6 +14,9 @@ import hashlib
 import hmac
 import os
 import secrets
+import threading
+import time
+from collections import defaultdict, deque
 from datetime import datetime
 
 from noodle import config, store
@@ -53,6 +56,28 @@ def new() -> dict:
         slug = secrets.token_urlsafe(config.SLUG_BYTES)
         if store.valid_slug(slug) and not store.exists(slug):
             return {"slug": slug, "token": token(slug)}
+
+
+class TooFast(Exception):
+    pass
+
+
+_starts: dict[str, deque] = defaultdict(deque)
+_START_LOCK = threading.Lock()
+
+
+def new_for(ip: str, now: float | None = None) -> dict:
+    """new(), at most NEW_RATE per NEW_WINDOW_S per client IP: the page that
+    starts polls is public, and a draft is a poll anyone holding it may create."""
+    now = time.monotonic() if now is None else now
+    with _START_LOCK:
+        q = _starts[ip]
+        while q and q[0] <= now - config.NEW_WINDOW_S:
+            q.popleft()
+        if len(q) >= config.NEW_RATE:
+            raise TooFast(f"too many new polls -- try again in {int(q[0] + config.NEW_WINDOW_S - now) + 1}s")
+        q.append(now)
+    return new()
 
 
 def ensure(slug: str, body: dict) -> None:

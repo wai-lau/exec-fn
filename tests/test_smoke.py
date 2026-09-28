@@ -14,7 +14,7 @@ from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 # Public — no auth, must render. Only the front doors + login bootstrap stay open.
 PUBLIC_PAGES = ["/", "/recruiter", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
-PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/noodle"]
+PROTECTED_PAGES = ["/rd", "/hq", "/debug"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
 # /graph, /UI, /security, /nightfall moved public->guest 2026-07-03; /printer
 # owner->guest 2026-08-30 (READ-ONLY for guests — see the tier tests below).
@@ -277,10 +277,20 @@ def test_noodle_signed_actions_refuse_junk_without_writing(client, noodle_slug, 
     assert client.get(f"/api/noodle/{noodle_slug}").json()["voters"] == before
 
 
-def test_noodle_drafts_need_the_owners_token(client, guest_cookie):
+def test_noodle_drafts_need_their_token(client):
     slug = "B" * 22
     assert client.get(f"/noodle/{slug}", headers=HTML_ACCEPT).status_code == 404
     assert client.get(f"/noodle/{slug}?t=nope", headers=HTML_ACCEPT).status_code == 404
-    assert client.post("/api/noodle-polls/new").status_code == 401
-    r = client.post("/api/noodle-polls/new", headers={**guest_cookie, "Accept": "application/json"})
-    assert r.status_code == 401
+    # starting a draft is public (it stores nothing) and gives a working page
+    d = client.post("/api/noodle-polls/new").json()
+    assert client.get(d["url"], headers=HTML_ACCEPT).status_code == 200
+    assert client.get(f"/api/noodle/{d['slug']}").status_code == 404, "a draft stores nothing"
+
+
+def test_noodle_page_is_public_but_its_poll_list_is_owner_only(client, guest_cookie):
+    r = client.get("/noodle", headers=HTML_ACCEPT)
+    assert r.status_code == 200 and "create poll" in r.text
+    for headers in ({}, {**guest_cookie, "Accept": "application/json"}):
+        assert client.get("/api/noodle-polls", headers=headers).status_code == 401
+        assert client.post("/api/noodle-polls", json={"title": "x"}, headers=headers).status_code == 401
+        assert client.delete(f"/api/noodle-polls/{'A' * 22}", headers=headers).status_code == 401
