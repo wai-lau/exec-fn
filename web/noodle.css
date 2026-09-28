@@ -19,12 +19,14 @@
 }
 
 body.noodle {
-  --nav-h: 0px;
-
   margin: 0;
   background: hsl(var(--bg-hsl) / 1);
   font-family: 'Noodle Glyphs', var(--font-mono);
 }
+
+/* no nav bar on a poll page; the /noodle page carries the site's
+   (.with-nav), whose script keeps --nav-h live on the root */
+body.noodle:not(.with-nav) { --nav-h: 0px; }
 
 .nd-card {
   /* no backing card: the page sits straight on the background */
@@ -519,7 +521,7 @@ body.noodle {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 100dvh;
+  min-height: calc(100dvh - var(--nav-h, 0px));   /* the screen above the nav bar */
   margin-block: 0;
 }
 #noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }

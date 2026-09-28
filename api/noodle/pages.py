@@ -45,9 +45,23 @@ def vote_page(poll: dict, draft: str = "") -> str:
     return _page(f"noodle: {poll['title']}", body)
 
 
-def admin_page() -> str:
-    body = _tmpl("noodle-admin.html")
-    return _page("noodle", body)
+# The site's nav bar, HANDED IN by the app (routers.py set_nav): noodle
+# imports no app module, so it cannot build the nav itself -- the composition
+# root gives it a function (request -> markup) instead. Unset, no nav.
+_nav = None
+
+
+def set_nav(fn) -> None:
+    global _nav
+    _nav = fn
+
+
+def admin_page(request=None) -> str:
+    page = _page("noodle", _tmpl("noodle-admin.html"))
+    if _nav and request is not None:
+        page = page.replace('<body class="noodle">', '<body class="noodle with-nav">', 1)
+        page = page.replace("</body>", _nav(request) + "</body>", 1)
+    return page
 
 
 def public_poll(poll: dict) -> dict:

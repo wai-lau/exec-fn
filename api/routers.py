@@ -12,6 +12,8 @@ from mtg.routes import router as mtg_router
 from tarot.routes import router as tarot_router
 from noodle.routes import router as noodle_router
 from noodle.routes import owner_router as noodle_owner_router
+from noodle.routes import guest_router as noodle_guest_router
+from noodle import pages as noodle_pages
 
 public = APIRouter()
 protected = APIRouter(dependencies=[Depends(require_auth)])
@@ -32,3 +34,14 @@ guest_protected.include_router(tarot_router)
 # because THIS file mounts that router on `protected`. Noodle never imports auth.
 public.include_router(noodle_router)
 protected.include_router(noodle_owner_router)
+guest_protected.include_router(noodle_guest_router)
+
+
+def _noodle_nav(request):
+    # the owner gets the owner's nav, anyone else the guest's (as /mtg does)
+    from auth import SESSION_TOKEN
+    from pages import _build_nav
+    return _build_nav("noodle", guest=request.cookies.get("session") != SESSION_TOKEN)
+
+
+noodle_pages.set_nav(_noodle_nav)

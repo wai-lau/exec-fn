@@ -21,7 +21,7 @@ PROTECTED_PAGES = ["/rd", "/hq", "/debug"]
 # /zombo is UNLINKED (no nav entry, no landing spoke) but still gated: unlisted
 # is not a tier, so it is asserted here like every other guest page.
 GUEST_PAGES = ["/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security", "/nightfall",
-               "/printer", "/zombo"]
+               "/printer", "/zombo", "/noodle"]
 
 
 def _is_page(r) -> bool:
@@ -277,18 +277,20 @@ def test_noodle_signed_actions_refuse_junk_without_writing(client, noodle_slug, 
     assert client.get(f"/api/noodle/{noodle_slug}").json()["voters"] == before
 
 
-def test_noodle_drafts_need_their_token(client):
+def test_noodle_drafts_need_their_token(client, guest_cookie):
     slug = "B" * 22
     assert client.get(f"/noodle/{slug}", headers=HTML_ACCEPT).status_code == 404
     assert client.get(f"/noodle/{slug}?t=nope", headers=HTML_ACCEPT).status_code == 404
-    # starting a draft is public (it stores nothing) and gives a working page
-    d = client.post("/api/noodle-polls/new").json()
+    # starting a draft is behind Turnstile (the guest tier), stores nothing,
+    # and gives a working page -- which, by its token, needs no gate itself
+    assert client.post("/api/noodle-polls/new").status_code == 401
+    d = client.post("/api/noodle-polls/new", headers=guest_cookie).json()
     assert client.get(d["url"], headers=HTML_ACCEPT).status_code == 200
     assert client.get(f"/api/noodle/{d['slug']}").status_code == 404, "a draft stores nothing"
 
 
-def test_noodle_page_is_public_but_its_poll_list_is_owner_only(client, guest_cookie):
-    r = client.get("/noodle", headers=HTML_ACCEPT)
+def test_noodle_page_is_guest_tier_but_its_poll_list_is_owner_only(client, guest_cookie):
+    r = client.get("/noodle", headers={**guest_cookie, **HTML_ACCEPT})
     assert r.status_code == 200 and "create poll" in r.text
     for headers in ({}, {**guest_cookie, "Accept": "application/json"}):
         assert client.get("/api/noodle-polls", headers=headers).status_code == 401
