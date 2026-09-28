@@ -239,6 +239,7 @@ function ndvKeepOnly(el, lower) {
 
 function ndvOnIdentityInput() {
   ndvCleanFields();
+  ndvOfferPass();
   ndvSaveIdentity();
   ndvWarnEmpty();
   ndvSealCaption();

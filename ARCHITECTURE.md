@@ -3696,9 +3696,10 @@ Commit leaves alone) -- per poll AND per NAME -- not the passphrase -- keyed by 
 normalized name, and a different identity starts clean rather than
 inheriting what was on screen; a Commit deletes EVERY draft the poll holds, any
 identity's -- a stale one under an earlier key beat the saved picks when its
-seal next matched), `noodle.blankSeal.<slug>` -- except
-`noodle.identity` (name + passphrase), the one thing that travels between
-polls.
+seal next matched), `noodle.blankSeal.<slug>` -- and
+`noodle.pass.<slug>.<name>` (the passphrase, filled back in when that name is
+typed on that poll, never over one typed by hand); only the last NAME
+(`noodle.identity`) travels between polls.
 
 There is no status line above the calendar any more (welcome back /
 committed / removed said nothing the page did not already show): errors go to
