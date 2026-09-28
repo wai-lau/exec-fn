@@ -215,7 +215,7 @@ body.noodle {
 .nd-ask .nd-status { margin: 0; }
 .nd-card textarea { resize: none; line-height: var(--lh-snug); }
 .nd-card textarea::placeholder { color: hsl(var(--green-hsl) / 0.45); }
-.nd-ask-label { font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
+.nd-ask-label { font-size: var(--fs-sm); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
 
 .nd-status { min-height: 1lh; margin: var(--space-4) 0; text-align: center; font-size: var(--fs-2xs); }
 
