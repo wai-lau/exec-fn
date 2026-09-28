@@ -315,9 +315,10 @@ def test_the_polls_link_sits_under_commit_with_a_copy_button(browser, base_url, 
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
-        assert page.inner_text("#nd-url") == f"{base_url}/noodle/{noodle_slug}"
+        assert page.input_value("#nd-url") == f"{base_url}/noodle/{noodle_slug}"
+        assert page.get_attribute("#nd-url", "readonly") is not None
+        assert page.inner_text("#nd-copy") == "\uf0c5"   # the copy icon
         page.click("#nd-copy")
-        page.wait_for_function("['copied', 'selected'].includes(document.querySelector('#nd-copy').textContent)",
-                               timeout=3000)
+        page.wait_for_function("document.querySelector('#nd-copy').textContent === '\\u2713'", timeout=3000)
     finally:
         page.close()
