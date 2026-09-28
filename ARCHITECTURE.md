@@ -3714,17 +3714,16 @@ border it sits on, so it snaps with it. The ink is OPAQUE BLUE (full cyan dimmed
 by `filter: brightness(0.7)` -- blue so a month edge never reads as a crop or a
 pick) so neighbouring
 pieces can overlap by a pixel -- translucent joins showed as seams. Ask noodle can crop for a host. A fresh poll starts cropped to this week
-and the next two (`NDX_SPAN`), pending so the host's first Commit saves it; days
-a drag brings INTO the crop start available for the host. The host can also
+and the next two (`NDX_SPAN`), pending so the host's first Commit saves it (nothing
+in it picked). The host can also
 RETITLE the poll by tapping the title (contenteditable); like the split and the
 crop it is sent with Commit, as an optional signed `title` in `/settings`.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
 
 **The host's calendar is the offer**, so the host cannot Commit with nothing
-picked (the reason shows under Commit). A host with nothing committed and no
-draft starts with EVERY open day inside the crop picked (`ndvHostDefault`,
-once, never over their own choices) and unpicks what is not on offer; on the
-host's grid (`.nd-grid.host`) a day NOT picked is grey and struck, like a
+picked (the reason shows under Commit). Every cell starts UNAVAILABLE, for the
+host too (a pre-filled offer was tried and dropped: the host picks what to
+offer); on the host's grid (`.nd-grid.host`) a day NOT picked is grey and struck, like a
 shut one -- nobody can pick it.
 
 **The split** is a checkbox under the calendar, host only: ticking it

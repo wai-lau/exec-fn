@@ -4,18 +4,6 @@
 // guest's calendar covers. Split from noodle-vote.js at the 500-line cap (same
 // global scope; loaded before it and only called once it has run).
 
-// A HOST starts with every day inside the crop AVAILABLE, and unpicks what
-// is not: offering most of a range is the common case, and it is what every
-// guest picks from. Only for a host with nothing committed and no draft --
-// once, never over their own choices.
-function ndvHostDefault() {
-  if (NDV.defaulted || !NDV.cal || NDV.draftRestored || NDV.mine || !window.ndxIsHost || !window.ndxIsHost()) return;
-  var rows = NDV.cal.rows();
-  if (!rows.length || !window.NDX) return;
-  NDV.defaulted = true;
-  NDV.cal.setSel(NDV.cal.openSlots(NDV.cal.weekOf(NDX.a)[0], NDV.cal.weekOf(Math.min(NDX.b, rows.length - 1))[6]));
-}
-
 // Does the typed name belong to a voter already? (Then it is not a new seat.)
 function ndvNameTaken(typed) {
   return !!typed && (NDV.poll ? NDV.poll.voters : []).some(function (v) {

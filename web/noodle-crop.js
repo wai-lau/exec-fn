@@ -119,7 +119,6 @@ function ndxDown(e) {
   e.preventDefault();
   NDX.drag = h.dataset.h;
   NDX.moved = false;
-  NDX.before = { from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] };
   // WebKit still starts a text selection off the MOUSE events a cancelled
   // pointerdown leaves behind, and drags it across the page with the handle
   document.body.classList.add('nd-dragging');
@@ -157,18 +156,6 @@ async function ndxUp() {
   ndxPlace();
   var crop = { from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] };
   await ndxSave(crop);
-  // days the drag brings IN start available: the host is offering them.
-  // Collected AFTER the rebuild -- before it they are still marked outside.
-  var added = Array.from(NDV.cal.openSlots(crop.from, crop.to)).filter(function (s) {
-    var d = s.slice(0, 10);
-    return d < NDX.before.from || d > NDX.before.to;
-  });
-  if (added.length) {
-    var sel = NDV.cal.getSel();
-    added.forEach(function (s) { sel.add(s); });
-    NDV.cal.setSel(sel);
-    ndvSaveDraft();
-  }
 }
 
 async function ndxSave(crop) {

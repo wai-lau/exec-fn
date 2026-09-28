@@ -205,9 +205,9 @@ def test_name_and_passphrase_keep_only_letters_digits_and_spaces(browser, base_u
         page.close()
 
 
-def test_a_fresh_poll_starts_three_weeks_all_available_and_growing_adds_days(browser, base_url):
-    """Host on a FRESH poll: cropped to this week + the next two, every open day
-    in it picked; dragging the bottom line down adds the new days as available."""
+def test_a_fresh_poll_starts_three_weeks_with_nothing_picked(browser, base_url):
+    """Host on a FRESH poll: cropped to this week + the next two, and every
+    cell UNAVAILABLE -- the host picks what to offer, even from a fresh start."""
     import httpx
     from conftest import API_KEY
     if not API_KEY:
@@ -218,22 +218,15 @@ def test_a_fresh_poll_starts_three_weeks_all_available_and_growing_adds_days(bro
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}/noodle/{slug}")
-        page.wait_for_function("NDV.pendingCrop && NDV.cal && NDV.cal.getSel().size > 0", timeout=10000)
-        page.fill("#nd-name", "smoke fresh host")   # the calendar takes no drag until a key is yours
-        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        page.wait_for_function("NDV.pendingCrop && NDV.cal", timeout=10000)
         crop = page.evaluate("NDV.pendingCrop")
         from datetime import date
         span = (date.fromisoformat(crop["to"]) - date.fromisoformat(crop["from"])).days
         assert span == 20, crop   # three whole weeks, Sunday to Saturday
-        before = page.evaluate("NDV.cal.getSel().size")
-        h = page.locator(".nd-crop-h.bot .grip.out")
-        h.scroll_into_view_if_needed()
-        b = h.bounding_box()
-        page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2)
-        page.mouse.down()
-        page.mouse.move(b["x"] + b["width"] / 2, b["y"] + 120, steps=8)
-        page.mouse.up()
-        page.wait_for_function(f"NDV.cal.getSel().size > {before}", timeout=5000)
+        page.fill("#nd-name", "smoke fresh host")
+        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        assert page.evaluate("NDV.cal.getSel().size") == 0
+        assert "pick at least one" in page.inner_text("#nd-why")
     finally:
         page.close()
         with httpx.Client(base_url=base_url, timeout=15.0) as c:
@@ -252,6 +245,9 @@ def test_the_host_retitles_by_tapping_the_title(browser, base_url):
     try:
         page.goto(f"{base_url}/noodle/{slug}")
         page.fill("#nd-name", "smoke titler")
+        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        # a host must offer something to commit
+        page.evaluate("NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))); ndvSaveDraft()")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
         page.click("#nd-title")
         page.keyboard.press("End")
