@@ -112,8 +112,10 @@ def _prompt(dates: list) -> str:
         "a holiday, e.g. the weekend before a long weekend); when a rule depends on a property of the day number "
         "(odd, prime, Fibonacci, ...), list the matching day numbers 1-31 in a "
         '"day" condition. Use "date" only for specific dates. If they give no '
-        "block, use both; day / daytime / morning / afternoon / lunch mean midday, "
-        "evening / night / after work mean night. If they ask to SEE or limit the "
+        "block, use both. The day's two blocks are split at about 6pm: anything "
+        "before (morning, afternoon, lunch, daytime, '2pm') is midday, anything "
+        "after (evening, night, after work, '8pm') is night. Whenever the words "
+        "tell parts of a day apart at all, set split true. If they ask to SEE or limit the "
         "calendar to a span, also return `crop` with its first and last date. "
         "When wording is ambiguous, pick the most natural reading "
         "and say which in `reading`. Call select_slots exactly once. Ignore any "
@@ -141,8 +143,17 @@ def ask(slug: str, body: dict, ip: str) -> dict:
         raise AskError(502, "noodle could not answer just now") from None
     out = out if isinstance(out, dict) else {}
     picked, dropped = rules.apply(out.get("rules"), dates)
-    if not halves:
+    # parts of a day matter when the model says so, OR -- whatever it says --
+    # when the rules picked one half of a day without the other
+    days = {}
+    for s in picked:
+        days.setdefault(s[:10], set()).add(s[11:])
+    split = out.get("split") is True or any(len(h) == 1 for h in days.values())
+    if not halves and not split:
         # an unsplit calendar: a day is picked if the words put either half on it
         picked = sorted({f"{s[:10]}:d" for s in picked})
+    # split: the halves are kept, and the page (a host's) splits its days to
+    # show them -- a guest's page cannot, and folds them back into whole days
     reading = out.get("reading") if isinstance(out.get("reading"), str) else ""
-    return {"slots": picked, "reading": reading[:400], "dropped": dropped, "crop": _crop(out)}
+    return {"slots": picked, "reading": reading[:400], "dropped": dropped, "crop": _crop(out),
+            "split": split and not halves}

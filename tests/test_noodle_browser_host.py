@@ -262,3 +262,31 @@ def test_the_host_retitles_by_tapping_the_title(browser, base_url):
         page.close()
         with httpx.Client(base_url=base_url, timeout=15.0) as c:
             c.delete(f"/api/noodle-polls/{slug}", headers=auth)
+
+
+def test_an_answer_with_parts_of_a_day_splits_the_hosts_calendar(browser, base_url):
+    import json
+    import httpx
+    from conftest import API_KEY
+    if not API_KEY:
+        pytest.skip("API_KEY not set")
+    auth = {"Authorization": f"Bearer {API_KEY}"}
+    with httpx.Client(base_url=base_url, timeout=15.0) as c:
+        slug = c.post("/api/noodle-polls", headers=auth, json={"title": "__smoke_split__"}).json()["slug"]
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{slug}")
+        page.fill("#nd-name", "smoke splitter")
+        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        day = page.evaluate("[...NDV.cal.openSlots('0', '9')][0].slice(0, 10)")
+        page.route("**/ask", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(
+            {"slots": [f"{day}:n"], "reading": "nights", "dropped": 0, "crop": None, "split": True})))
+        page.fill("#nd-ask", "that night only")
+        page.click("#nd-ask-go")
+        page.wait_for_function("document.getElementById('nd-split').checked", timeout=5000)
+        cls = page.get_attribute(f".nd-d[data-day='{day}']", "class")
+        assert "nit" in cls and "mid" not in cls, cls
+    finally:
+        page.close()
+        with httpx.Client(base_url=base_url, timeout=15.0) as c:
+            c.delete(f"/api/noodle-polls/{slug}", headers=auth)

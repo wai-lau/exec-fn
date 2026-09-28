@@ -59,7 +59,7 @@ def status(env, **kw):
 def test_valid_output_fills(env):
     out = go(env)
     assert out == {"slots": ["2026-10-02:n", "2026-10-09:n"], "reading": "Friday nights.",
-                   "dropped": 0, "crop": None}
+                   "dropped": 0, "crop": None, "split": False}
     assert len(env["calls"]) == 1
 
 
@@ -219,3 +219,28 @@ def test_client_bounds_tokens_and_forces_the_tool():
     src = Path(llm.__file__).read_text()
     assert "max_tokens=config.ASK_MAX_TOKENS" in src and '"type": "tool"' in src
     assert 'stop_reason == "max_tokens"' in src
+
+
+
+def test_parts_of_a_day_split_the_calendar(env):
+    env["fake"].reply = {"reading": "friday nights", "split": True, "rules": [
+        {"action": "add", "blocks": ["night"], "where": {"weekday": ["friday"]}}]}
+    out = go(env, halves=False)
+    assert out["split"] is True and out["slots"] == ["2026-10-02:n", "2026-10-09:n"]
+    env["fake"].reply = {"reading": "fridays", "rules": [
+        {"action": "add", "blocks": ["midday", "night"], "where": {"weekday": ["friday"]}}]}
+    out = go(env, halves=False, ip="198.51.100.3")
+    assert out["split"] is False and out["slots"] == ["2026-10-02:d", "2026-10-09:d"]
+
+
+def test_the_prompt_splits_the_day_at_six(env):
+    go(env)
+    assert "about 6pm" in env["calls"][-1][0]
+
+
+
+def test_one_half_of_a_day_splits_even_without_the_flag(env):
+    env["fake"].reply = {"reading": "friday nights", "rules": [
+        {"action": "add", "blocks": ["night"], "where": {"weekday": ["friday"]}}]}
+    out = go(env, halves=False, ip="198.51.100.4")
+    assert out["split"] is True and out["slots"] == ["2026-10-02:n", "2026-10-09:n"]

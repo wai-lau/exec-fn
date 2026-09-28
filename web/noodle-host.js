@@ -34,6 +34,15 @@ function ndhSync(pub) {
   row.hidden = role === 'guest';
   ndh$('nd-split').checked = ndhHalves();
   ndhPlaceSplit();
+  ndhTitleMarks(role);
+}
+
+// The title's host-only marks: the dotted "you can edit me" line, and a red
+// squiggle while it is still the placeholder.
+function ndhTitleMarks(role) {
+  var t = ndh$('nd-title'), host = role === 'host' || role === 'fresh';
+  t.classList.toggle('editable', host);
+  t.classList.toggle('untitled', host && t.textContent.trim() === 'untitled noodle');
 }
 
 // The split box sits on the calendar's FIRST row -- the past week drawn above
@@ -117,6 +126,7 @@ function ndhTitleTap() {
 function ndhTitleEdit() {
   var t = ndh$('nd-title').textContent.split(/\s+/).filter(Boolean).join(' ');
   NDV.pendingTitle = t && t !== NDV.poll.title ? t : undefined;
+  ndhTitleMarks(ndhRole(ndvReady() ? ndvPub() : null));
   ndvSaveDraft();   // marks it unsaved
 }
 

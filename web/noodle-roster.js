@@ -28,7 +28,7 @@ async function ndrSeals(voters) {
 var NDR_HOWTO = '<li class="nd-howto"><p>since you are first, you are the <b>host</b></p>' +
   '<p>your <b>name</b> and <b>passphrase</b> confirm your identity as the host</p>' +
   '<p><em>only the dates you pick are available for picking</em></p>' +
-  '<p>remember to <em>commit</em> your changes and share the link :)</p></li>';
+  '<p>remember to <b>commit</b> your changes and share the link :)</p></li>';
 
 function ndrRender(el, voters, seals, myPub, canRemove, howto) {
   el.closest('.nd-who').hidden = !voters.length;

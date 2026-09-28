@@ -313,6 +313,7 @@ body.noodle {
   font-family: 'Noodle Glyphs', var(--font-mono);
 }
 .nd-approved-by { font-size: var(--fs-2xs); letter-spacing: var(--tracking-mega); color: hsl(var(--green-hsl) / 1); }
+.nd-approved-note { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 .nd-approved.show { animation: nd-fade 2200ms ease-in-out both; }
 .nd-approved.show .nd-seal { animation: nd-stamp 520ms 250ms ease-out both; }
 
@@ -469,10 +470,19 @@ body.noodle {
 .nd-arrow-shaft::before { content: '\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500'; }
 
 /* the host may retitle the poll: tap it (noodle-host.js ndhTitleTap) */
-.nd-title[contenteditable="plaintext-only"], .nd-title[contenteditable="true"] {
-  outline: none;
+
+/* for the HOST the title is editable, and says so: a dotted line only a few
+   characters wider than the title itself (noodle-host.js marks .editable);
+   still "untitled noodle", it gets a red squiggle like a misspelling */
+.nd-title.editable {
+  width: fit-content;
+  margin-inline: auto;
+  padding: 0 1.5ch;
   border-bottom: 2px dashed hsl(var(--green-hsl) / 0.45);
+  cursor: text;
 }
+.nd-title.untitled { text-decoration: underline wavy hsl(var(--orange-glow-hsl) / 0.8); text-underline-offset: 0.2em; }
+.nd-title[contenteditable="plaintext-only"], .nd-title[contenteditable="true"] { outline: none; }
 
 /* "Noodling..." while Ask waits: the dots count up 0-3 and loop, in one
    element's ::after -- no timer to leak if the request never returns */

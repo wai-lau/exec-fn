@@ -3503,6 +3503,20 @@ server does not know yet); a crop is local until Commit, so it needs no key.
 The whole Commit runs inside one try, so a request cut off mid-way (a reload:
 WebKit's `Load failed`) lands in the banner instead of an unhandled rejection.
 
+**Ask splits the days when the words do.** The day's halves split at about
+6pm (before: morning / afternoon / lunch = midday; after: evening / night =
+night). The answer carries `split: true` when the model says the words tell
+parts of a day apart OR -- deterministically, whatever the model says -- when
+the rules picked one half of a day without the other; the halves are then kept
+and a HOST's page ticks the split box (`ndhSplitChange`) before filling the
+grid. A guest's page cannot split, so each half folds back into its whole day.
+
+**Host-only title marks and copy.** The host's title carries a dotted line
+only a few characters wider than it (`.nd-title.editable`) and, while it still
+reads `untitled noodle`, a red squiggle. The host's Commit copies the poll's
+link, started in the tap itself (Safari refuses a clipboard write after the
+awaits), and the approval popup adds `link copied to clipboard`.
+
 **Ask noodle works on the PAGE's state, never the server's.** The page sends
 the days it can pick right now (`ndaDays`: the host's crop lines, else every
 loaded day not past, not outside the crop and -- for a guest -- offered by the
