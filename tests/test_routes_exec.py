@@ -23,6 +23,7 @@ def _tok() -> dict:
 
 @pytest.mark.parametrize("path,method", [
     ("/api/exec/tools", "GET"),
+    ("/api/exec/prompt", "GET"),
     ("/api/exec/tool/update_card", "POST"),
 ])
 def test_closed_without_the_token(client, path, method, admin_headers, admin_cookie, guest_cookie):
@@ -56,3 +57,13 @@ def test_unknown_tool_and_bad_bodies(client):
     assert r.status_code == 400
     r = client.post("/api/exec/tool/update_card", headers=_tok(), json=["a", "list"])
     assert r.status_code == 400
+
+
+def test_prompt_is_exec_and_byte_stable(client):
+    # The sidecar's system prompt must not change turn to turn or it stops
+    # caching: nothing dated, no board state -- that rides in the user message.
+    a = client.get("/api/exec/prompt", headers=_tok()).json()["prompt"]
+    b = client.get("/api/exec/prompt", headers=_tok()).json()["prompt"]
+    assert a == b
+    assert "Your name is Exec" in a and "GLaDOS" in a
+    assert "TODAY:" not in a and "CURRENTLY SELECTED TASKS:\n" not in a
