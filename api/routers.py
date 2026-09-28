@@ -44,4 +44,10 @@ def _noodle_nav(request):
     return _build_nav("noodle", guest=request.cookies.get("session") != SESSION_TOKEN)
 
 
+def _noodle_owner(request):
+    from auth import SESSION_TOKEN
+    return request.cookies.get("session") == SESSION_TOKEN
+
+
 noodle_pages.set_nav(_noodle_nav)
+noodle_pages.set_owner(_noodle_owner)

@@ -71,8 +71,29 @@ def set_nav(fn) -> None:
     _nav = fn
 
 
+# Whether a request is the OWNER's, handed in the same way (request -> bool).
+# Unset, nobody is.
+_is_owner = None
+
+
+def set_owner(fn) -> None:
+    global _is_owner
+    _is_owner = fn
+
+
+# The demo video, for everyone BUT the owner (who has the poll list there
+# instead). web/noodle-demo.mp4 is gitignored: the server holds the only copy.
+# It has no sound (the file carries no audio track), so it AUTOPLAYS, muted and
+# looping, inline -- browsers allow that without a tap. No controls inline: a
+# tap opens it fullscreen (noodle-admin.js ndmDemo).
+_DEMO = ('<video class="nd-demo" src="/noodle-demo.mp4?v=3" autoplay muted loop playsinline '
+         'aria-label="noodle demo, tap for fullscreen"></video>')
+
+
 def admin_page(request=None) -> str:
-    page = _page("noodle", _tmpl("noodle-admin.html"), _og("noodle", "", "/noodle"))
+    owner = bool(_is_owner and request is not None and _is_owner(request))
+    body = _fill(_tmpl("noodle-admin.html"), DEMO="" if owner else _DEMO)
+    page = _page("noodle", body, _og("noodle", "", "/noodle"))
     if _nav and request is not None:
         page = page.replace('<body class="noodle">', '<body class="noodle with-nav">', 1)
         page = page.replace("</body>", _nav(request) + "</body>", 1)

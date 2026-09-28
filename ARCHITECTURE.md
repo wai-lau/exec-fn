@@ -3708,6 +3708,18 @@ typed on that poll -- or, where that name has none yet, the last one it used
 on any poll, `noodle.lastpass.<name>` -- never over one typed by hand); only the last NAME
 (`noodle.identity`) travels between polls.
 
+**Demo video** (`/noodle`, guests only -- the owner has the poll list there;
+`pages._DEMO`, owner decided server-side by `set_owner` from routers.py):
+`web/noodle-demo.mp4`, gitignored (the server holds the only copy; the
+original is `~/noodle-demo-original.mp4` on the droplet). Cropped of its black
+bars to 720x1040, x264 CRF 26, audio stripped, `+faststart`: 56MB -> 2.6MB. It
+AUTOPLAYS `muted loop playsinline`; a tap opens it fullscreen with native
+controls (`noodle-admin.js ndmDemo`; iPhone has only `webkitEnterFullscreen`).
+It sits ABOVE the CRT stack (`z-index: --z-top`), which takes two unstackings on
+that page: `.page-scroll` is `position:fixed` (always a stacking context) so it
+goes static and the document scrolls, and `.doc-card`'s `z-index` goes `auto`.
+Verified by swapping the video for a white box: no scanlines on it.
+
 **Link preview** (Open Graph, `pages._og`): every noodle page carries
 `og:title` (the poll title), `og:description` (its note, else "pick the times
 you're free"), `og:image` = the fixed dark card `web/noodle-card.jpg` (1200x630;
