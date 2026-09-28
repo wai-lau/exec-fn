@@ -61,8 +61,18 @@ function ndaDays() {
 // Fill the grid from an answer (fresh, or the last one re-applied).
 async function ndaApply(d) {
   // "just the next three weeks": the host can crop by asking; a guest cannot
-  if (d.crop && window.ndxIsHost && window.ndxIsHost()) await window.ndxSave(d.crop);
-  var got = NDV.cal ? NDV.cal.clamp(d.slots) : [];
+  var host = window.ndxIsHost && window.ndxIsHost();
+  if (d.crop && host) await window.ndxSave(d.crop);
+  var slots = d.slots;
+  // the words told parts of a day apart: a host's calendar splits its days to
+  // show them; a guest's cannot, so each half folds back into its whole day
+  if (d.split && host && !ndhHalves()) {
+    nda$('nd-split').checked = true;
+    ndhSplitChange();
+  } else if (d.split) {
+    slots = Array.from(new Set(slots.map(function (s) { return s.slice(0, 10) + ':d'; })));
+  }
+  var got = NDV.cal ? NDV.cal.clamp(slots) : [];
   // an answer REPLACES the grid (every ask starts blank, and the text stays
   // in the box to be tweaked) -- unless it filled nothing: then the picks
   // stay, since wiping a calendar to show "no match" loses real work

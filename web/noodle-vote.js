@@ -308,9 +308,10 @@ function ndvPickFace(e) {
   ndv$('nd-pass').focus();
 }
 
-function ndvApproved(seal, name) {
+function ndvApproved(seal, name, copied) {
   var ov = ndv$('nd-approved');
   ov.querySelector('.nd-approved-by').textContent = 'approved by ' + name;
+  ov.querySelector('.nd-approved-note').hidden = !copied;
   window.NoodleSeal.paint(ov.querySelector('.nd-seal'), seal);
   ov.hidden = false;
   ov.classList.remove('show');
@@ -330,6 +331,13 @@ async function ndvPost(path, body) {
 
 async function ndvSubmit() {
   if (ndvWhyNot()) return;
+  // the HOST's commit copies the poll's link for sending. Started HERE, in the
+  // tap itself: Safari refuses a clipboard write that comes after the awaits
+  // below (the tap's permission has lapsed by then)
+  var copying = window.ndxIsHost && window.ndxIsHost() && navigator.clipboard
+    ? navigator.clipboard.writeText(location.origin + '/noodle/' + NDV.slug).then(function () { return true; },
+      function () { return false; })
+    : Promise.resolve(false);
   ndvSyncSubmit(true);
   var name = ndv$('nd-name').value, slots = Array.from(NDV.cal.getSel()).sort();
   var ts = Date.now() + NDV.skew;
@@ -353,7 +361,7 @@ async function ndvSubmit() {
     if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); await ndvLoadPoll(); return; }
     ndvClearDraft();
     ndvTeach('', NDV_SIGN_DONE);
-    ndvApproved(NDV.seal, window.noodleNormName(name));
+    ndvApproved(NDV.seal, window.noodleNormName(name), await copying);
     await ndvLoadPoll();
     ndvStatus('committed. come back with the same name and passphrase to change it.');
   } catch (e) {

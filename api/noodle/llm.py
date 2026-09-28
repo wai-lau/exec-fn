@@ -45,6 +45,12 @@ SLOT_TOOL = {
                     "required": ["action", "blocks", "where"],
                 },
             },
+            "split": {
+                "type": "boolean",
+                "description": ("true when the words distinguish PARTS of a day (morning, afternoon, "
+                                "lunch, evening, night, 'after 7pm', ...): the calendar then splits "
+                                "each day in two. Omit or false otherwise."),
+            },
             "crop": {
                 "type": "object",
                 "description": ("ONLY when they ask to see or limit the calendar to a span "
