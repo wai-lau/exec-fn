@@ -259,6 +259,12 @@
 }
 .nd-d.out .nd-dots { visibility: hidden; }
 
+/* a guest's split day with only ONE half offered: the closed half is tinted
+   red, so it reads as not-yours before it is tapped (a wholly closed day is
+   already struck) */
+.nd-grid:not(.host) .nd-d.no-m:not(.shut) { --top: hsl(var(--orange-glow-hsl) / 0.25); }
+.nd-grid:not(.host) .nd-d.no-n:not(.shut) { --bot: hsl(var(--orange-glow-hsl) / 0.25); }
+
 /* a guest sees no votes on a day they cannot pick (struck: the host did not
    offer it) -- a tally on a closed day only reads as a choice */
 .nd-grid:not(.host) .nd-d.shut .nd-dots { visibility: hidden; }

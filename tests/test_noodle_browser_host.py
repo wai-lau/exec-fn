@@ -45,8 +45,9 @@ def test_the_host_drags_the_crop_lines_and_commit_saves_them(browser, base_url, 
         page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2 + dy, steps=8)
         page.mouse.up()
         page.wait_for_function("document.querySelector('#nd-submit').textContent === 'Commit*'", timeout=5000)
+        page.evaluate("NDV.committed = 0")
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+        page.wait_for_function("NDV.committed > 0",
                                timeout=10000)
         return page.evaluate(f"fetch('/api/noodle/{crop_slug}').then(r => r.json())")["crop"]
 
@@ -93,8 +94,9 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
 
     def commit():
         assert page.inner_text("#nd-submit") == "Commit*"
+        page.evaluate("NDV.committed = 0")
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+        page.wait_for_function("NDV.committed > 0",
                                timeout=20000)
 
     def change(field, btn, new):
@@ -254,8 +256,9 @@ def test_the_host_retitles_by_tapping_the_title(browser, base_url):
         page.keyboard.type(" renamed")
         page.keyboard.press("Enter")
         assert page.inner_text("#nd-submit") == "Commit*"
+        page.evaluate("NDV.committed = 0")
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+        page.wait_for_function("NDV.committed > 0",
                                timeout=20000)
         assert page.evaluate(f"fetch('/api/noodle/{slug}').then(r => r.json())")["title"] == "__smoke_title__ renamed"
     finally:
@@ -311,8 +314,9 @@ def test_a_draft_poll_is_created_by_the_hosts_first_commit(browser, base_url):
         page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
         page.evaluate("NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))); ndvSaveDraft()")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        page.evaluate("NDV.committed = 0")
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+        page.wait_for_function("NDV.committed > 0",
                                timeout=20000)
         assert page.url.endswith(f"/noodle/{slug}"), "the token leaves the address once the poll exists"
         poll = page.evaluate(f"fetch('/api/noodle/{slug}').then(r => r.json())")

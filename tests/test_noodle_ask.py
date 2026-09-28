@@ -108,7 +108,7 @@ def test_retry_after_is_the_time_until_the_oldest_ask_expires(env, monkeypatch):
         go(env, ip=f"198.51.100.{i}")
         env["clock"][0] += 10
     e = status(env, ip="198.51.100.200")
-    assert e.status == 429 and e.retry_after == c.ASK_POLL_WINDOW_S - 30 and "try again in" in e.msg
+    assert e.status == 429 and e.retry_after == c.ASK_POLL_WINDOW_S - 30 and "too fast, wait" in e.msg
 
 
 def test_poll_rate(env, monkeypatch):

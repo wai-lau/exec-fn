@@ -65,8 +65,9 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         assert ("mid" in cell.get_attribute("class")) != was_mid, "top-left tap must flip MIDDAY"
 
         _can_commit(page)
+        page.evaluate("NDV.committed = 0")
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+        page.wait_for_function("NDV.committed > 0",
                                timeout=10000)
         assert page.inner_text(".nd-approved-by") == f"approved by {NAME}"
         voters = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")["voters"]
@@ -175,14 +176,16 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         assert page.locator(".nd-d:not(.out)").nth(1).get_attribute("class") == picked
         assert page.input_value("#nd-ask") == "draft text"
 
+        page.evaluate("NDV.committed = 0")
+
         page.click("#nd-submit")
-        page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
+        page.wait_for_function("NDV.committed > 0",
                                timeout=10000)
         import json
         votes = [json.loads(b) for u, b in sent if u.endswith("/vote")]
         assert len(votes) == 1 and set(votes[0]) == {"name", "pub", "slots", "ts", "sig"}
         assert all(PASS not in (b or "") for _, b in sent), "passphrase left the browser"
-        assert page.evaluate(f"localStorage.getItem('noodle.draft.{noodle_slug}')") is None
+        assert page.evaluate("localStorage.getItem(ndvDraftKey())") is None   # per poll AND identity
         assert page.inner_text("#nd-submit") == "Commit" and not page.is_visible("#nd-dirty")
     finally:
         ctx.close()
@@ -272,7 +275,7 @@ def test_a_rate_limit_counts_down_and_help_stays_pressable(browser, base_url, no
         _can_commit(page)
         page.fill("#nd-ask", "fridays")
         page.click("#nd-ask-go")
-        page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('try again in')")
+        page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('too fast')")
         assert not page.is_disabled("#nd-ask-go")
         page.wait_for_function("document.querySelector('#nd-ask-status').textContent === ''", timeout=5000)
     finally:
@@ -375,6 +378,6 @@ def test_the_same_question_reapplies_the_last_answer(browser, base_url, noodle_s
         page.fill("#nd-ask", "")
         assert not page.is_disabled("#nd-ask-go")
         page.click("#nd-ask-go")
-        assert "say something first" in page.inner_text("#nd-ask-status")
+        assert "help how? type in box pls" in page.inner_text("#nd-ask-status")
     finally:
         page.close()
