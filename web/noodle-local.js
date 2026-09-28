@@ -1,13 +1,24 @@
-// noodle's BROWSER STORAGE: who you are (name + passphrase, the one thing
-// kept across polls), and per poll AND per name: the calendar draft (picks +
-// a host's unsaved title) and the Ask text. Split from noodle-vote.js at the 500-line cap -- same global scope,
+// noodle's BROWSER STORAGE: the last NAME you used (the one thing kept across
+// polls), and per poll AND per name: the passphrase, the calendar draft
+// (picks + a host's unsaved title / note) and the Ask text. Split from noodle-vote.js at the 500-line cap -- same global scope,
 // loaded before it and only called once it has run.
 
 // Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
 // rides along on every request, which would send the passphrase to the server
-// -- the one thing this page promises never happens. The ONE thing kept across
-// polls (who you are travels with you); everything else is per poll.
+// -- the one thing this page promises never happens. The last NAME is kept
+// across polls; the PASSPHRASE is kept per poll and per name
+// (noodle.pass.<slug>.<name>), so it is offered back only where it was used.
 function ndvIdentityKey() { return 'noodle.identity'; }
+
+function ndvPassKey(raw) {
+  var name = window.noodleNormName(raw);
+  return name ? 'noodle.pass.' + NDV.slug + '.' + name : null;
+}
+
+function ndvStoredPass(raw) {
+  var k = ndvPassKey(raw);
+  try { return k ? localStorage.getItem(k) : null; } catch (e) { return null; }
+}
 
 // The rest of the form -- calendar picks not yet submitted, and the Ask box --
 // is a DRAFT kept per poll AND per NAME (not the passphrase): keyed by the
@@ -90,8 +101,10 @@ function ndvClearDraft() {
 
 function ndvSaveIdentity() {
   if (window.NDR && NDR.active) return;   // the new passphrase is kept only once committed
+  var name = ndv$('nd-name').value, k = ndvPassKey(name);
   try {
-    localStorage.setItem(ndvIdentityKey(), JSON.stringify({ name: ndv$('nd-name').value, pass: ndv$('nd-pass').value }));
+    localStorage.setItem(ndvIdentityKey(), JSON.stringify({ name: name }));   // no passphrase here any more
+    if (k) localStorage.setItem(k, ndv$('nd-pass').value);
   } catch (e) { /* storage blocked: the form just is not remembered */ }
 }
 
@@ -100,9 +113,23 @@ function ndvRestoreIdentity() {
     var id = JSON.parse(localStorage.getItem(ndvIdentityKey()) || 'null');
     if (id && typeof id.name === 'string') {
       ndv$('nd-name').value = id.name;
-      ndv$('nd-pass').value = typeof id.pass === 'string' ? id.pass : '';
+      ndv$('nd-pass').value = ndvStoredPass(id.name) || '';
+      NDV.autoPass = ndv$('nd-pass').value;
+      NDV.lastName = window.noodleNormName(id.name);
       return true;
     }
   } catch (e) { /* unreadable or blocked: start empty */ }
   return false;
+}
+
+// Typing a name used before ON THIS POLL fills its passphrase back in --
+// but only over an empty field or one this same rule filled, never over a
+// passphrase the voter typed themselves.
+function ndvOfferPass() {
+  var name = window.noodleNormName(ndv$('nd-name').value), pass = ndv$('nd-pass');
+  if (name === NDV.lastName || (window.NDR && NDR.active) || pass.disabled) return;
+  NDV.lastName = name;
+  if (pass.value && pass.value !== NDV.autoPass) return;
+  pass.value = ndvStoredPass(ndv$('nd-name').value) || '';
+  NDV.autoPass = pass.value;
 }
