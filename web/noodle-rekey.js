@@ -40,7 +40,7 @@ function ndrSync() {
     btn.setAttribute('aria-label', (on ? 'cancel the ' : 'change your ') + (k === 'name' ? 'name' : 'passphrase'));
     ndr$(f.input).placeholder = on ? f.newHint : f.hint ||
       // a name already on the poll is being UNLOCKED; a new one is being made
-      (NDV.held ? 'please enter your passphrase' : "you'll need this to make changes");
+      (NDV.held ? 'please enter your passphrase' : "you'll need this to change your vote");
   });
   ndr$('nd-pass').disabled = !!NDV.mine && !NDR.pass;
 }
