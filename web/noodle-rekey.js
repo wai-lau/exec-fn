@@ -18,9 +18,9 @@ var NDR = { active: false, name: false, pass: false, oldName: '', oldPass: '', o
 window.NDR = NDR;
 
 var NDR_FIELDS = {
-  name: { input: 'nd-name', btn: 'nd-rename', hint: 'please help the host know who you are', newHint: 'new name' },
-  // the passphrase hint depends on whose name it is (see ndrSync)
-  pass: { input: 'nd-pass', btn: 'nd-rekey', hint: null, newHint: 'new passphrase' },
+  // both hints depend on who is typing -- the host or a guest (see ndrHint)
+  name: { input: 'nd-name', btn: 'nd-rename', newHint: 'new name' },
+  pass: { input: 'nd-pass', btn: 'nd-rekey', newHint: 'new passphrase' },
 };
 
 function ndr$(id) { return document.getElementById(id); }
@@ -38,11 +38,18 @@ function ndrSync() {
     btn.hidden = !on && !NDV.mine;
     btn.textContent = on ? 'undo' : 'change';
     btn.setAttribute('aria-label', (on ? 'cancel the ' : 'change your ') + (k === 'name' ? 'name' : 'passphrase'));
-    ndr$(f.input).placeholder = on ? f.newHint : f.hint ||
-      // a name already on the poll is being UNLOCKED; a new one is being made
-      (NDV.held ? 'please enter your passphrase' : "you'll need this to change your vote");
+    ndr$(f.input).placeholder = on ? f.newHint : ndrHint(k);
   });
   ndr$('nd-pass').disabled = !!NDV.mine && !NDR.pass;
+}
+
+// The resting hint for a field. A name already on the poll is being UNLOCKED;
+// otherwise it is being made -- and the host is told what is at stake for them.
+function ndrHint(k) {
+  var host = window.ndxIsHost && window.ndxIsHost();
+  if (k === 'name') return host ? 'how shall the guests address you, host?' : 'please help the host know who you are';
+  if (NDV.held) return 'please enter your passphrase';
+  return host ? "you'll NEED to remember this to control the poll" : "you'll need this to change your vote";
 }
 
 function ndrStop() {

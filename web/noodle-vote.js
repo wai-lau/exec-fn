@@ -78,8 +78,8 @@ function ndvBanner(msg) {
   el.hidden = !msg;
 }
 
-var NDV_SIGN_WAIT = 'commit() ──> stamp(availabilities, seal)';
-var NDV_SIGN_DONE = 'commit() ──> stamp(availabilities, seal) ──> sealed';
+var NDV_SIGN_WAIT = 'commit ──> stamp(data, seal)';
+var NDV_SIGN_DONE = 'commit ──> stamp(data, seal) ──> sealed';
 
 // The recipe, not the values: the salt ties the key to the name and the
 // poll, so one passphrase gives a different key to every name in every poll.

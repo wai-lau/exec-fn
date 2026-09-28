@@ -99,6 +99,9 @@ body.noodle {
   font: inherit;
   font-size: max(16px, var(--fs-sm)); /* under 16px iOS zooms the page on focus */
 }
+
+/* every hint (placeholder) is grey, so it never reads as something typed */
+.nd-card input::placeholder, .nd-card textarea::placeholder { color: hsl(var(--gray-hsl) / 0.45); }
 .nd-card input:focus, .nd-card textarea:focus { outline: none; border-color: hsl(var(--green-hsl) / 1); }
 .nd-card input:disabled, .nd-card textarea:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); }
 
@@ -510,3 +513,15 @@ body.noodle {
    Its ink runs 0..1em against a 0.5em cell: 0.25em back puts it in the middle */
 .nd-copy-ic { display: inline-block; font-style: normal; transform: translateX(-0.25em); }
 .nd-share .nd-rekey { font-family: 'Noodle Glyphs', var(--font-mono); font-size: var(--fs-sm); letter-spacing: 0; }
+
+/* the public /noodle page (no poll list: a guest, or before it loads): the
+   title and the create button sit in the middle of the screen */
+#noodle-admin:has(#nd-owner[hidden]) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100dvh;
+  margin-block: 0;
+}
+#noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }
