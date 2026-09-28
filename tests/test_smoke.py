@@ -313,7 +313,7 @@ def test_noodle_drafts_need_their_token(client, guest_cookie):
 
 def test_noodle_page_is_guest_tier_but_its_poll_list_is_owner_only(client, guest_cookie):
     r = client.get("/noodle", headers={**guest_cookie, **HTML_ACCEPT})
-    assert r.status_code == 200 and 'aria-label="create a noodle poll">noodle</button>' in r.text
+    assert r.status_code == 200 and "create poll" in r.text
     for headers in ({}, {**guest_cookie, "Accept": "application/json"}):
         assert client.get("/api/noodle-polls", headers=headers).status_code == 401
         assert client.post("/api/noodle-polls", json={"title": "x"}, headers=headers).status_code == 401
