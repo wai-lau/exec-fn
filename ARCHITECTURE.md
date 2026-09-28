@@ -3702,6 +3702,15 @@ typed on that poll -- or, where that name has none yet, the last one it used
 on any poll, `noodle.lastpass.<name>` -- never over one typed by hand); only the last NAME
 (`noodle.identity`) travels between polls.
 
+**Link preview** (Open Graph, `pages._og`): every noodle page carries
+`og:title` (the poll title), `og:description` (its note, else "pick the times
+you're free"), `og:image` = the fixed dark card `web/noodle-card.jpg` (1200x630;
+the site icon it fell back to is white on transparent, drawn white-on-white by
+Messenger), `og:url`, and `twitter:card summary_large_image`. Absolute urls, so
+the origin is `config.ORIGIN` (`NOODLE_ORIGIN`, default `https://wai-lau.net`).
+Meta caches a preview for weeks: re-scrape a shared link in Facebook's Sharing
+Debugger. Bump `OG_IMAGE`'s `?v=` when the card changes.
+
 **Top dates** (`web/noodle-top.js`, `#nd-top-box`, no label, above the underlined "make another noodle" link):
 EVERY slot at least one voter other than the host picked (the host's offer
 alone is not a result; `cols[0]` is always the host), most voters first, a tie
