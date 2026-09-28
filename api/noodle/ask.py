@@ -162,6 +162,13 @@ def ask(slug: str, body: dict, ip: str) -> dict:
         picked = sorted({f"{s[:10]}:d" for s in picked})
     # split: the halves are kept, and the page (a host's) splits its days to
     # show them -- a guest's page cannot, and folds them back into whole days
+    # A crop is also a LIMIT on the answer. "Only October 16 to 25: weekday
+    # evenings..." came back as a crop plus rules that ran on every date --
+    # and only a HOST's page applies a crop, so a guest got every weekday
+    # evening in view. The slots never leave the span noodle itself named.
+    crop = _crop(out)
+    if crop:
+        picked = [s for s in picked if crop["from"] <= s[:10] <= crop["to"]]
     reading = out.get("reading") if isinstance(out.get("reading"), str) else ""
-    return {"slots": picked, "reading": reading[:400], "dropped": dropped, "crop": _crop(out),
+    return {"slots": picked, "reading": reading[:400], "dropped": dropped, "crop": crop,
             "split": split and not halves}
