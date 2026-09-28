@@ -81,7 +81,12 @@ function ndvSyncSubmit(busy) {
   var btn = ndv$('nd-submit');
   btn.disabled = !!why;
   btn.textContent = dirty ? 'Commit*' : 'Commit';
-  document.querySelectorAll('.nd-dirty').forEach(function (el) { el.hidden = !dirty; });
+  // unsaved -> "* unsaved changes"; nothing unsaved on a committed vote ->
+  // "all changes saved"; nothing committed yet -> no line at all
+  var el = ndv$('nd-dirty');
+  el.hidden = !dirty && !NDV.mine;
+  el.textContent = dirty ? '* unsaved changes' : 'all changes saved';
+  el.classList.toggle('saved', !dirty);
   ndv$('nd-why').textContent = why;
   ndvSyncLock();
   if (window.ndrSync) window.ndrSync();

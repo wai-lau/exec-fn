@@ -261,6 +261,7 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 .nd-submit:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); background: transparent; cursor: default; }
 
 .nd-dirty { margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
+.nd-dirty.saved { color: hsl(var(--gray-hsl) / 0.45); }   /* all changes saved: quiet */
 
 /* locked: the typed name is sealed by another key (noodle-vote.js ndvSyncLock).
    Everything that would act on that name goes grey; the fields above stay live. */
