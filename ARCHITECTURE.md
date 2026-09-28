@@ -3673,9 +3673,21 @@ name lets the next signer claim host (the reset is owner-only and
 deliberate); one process-wide lock for all polls (no correctness issue);
 the passphrase is shown in the clear (deliberate: it is proofread).
 
-**Browser storage is per poll** -- `noodle.draft.<slug>` (unsaved picks + Ask
-text), `noodle.blankSeal.<slug>` -- except `noodle.identity` (name +
-passphrase), the one thing that travels between polls.
+**Browser storage is per poll** -- `noodle.draft.<slug>.<pub>` (unsaved picks +
+Ask text, per poll AND per identity: keyed by the voter's public key, restored
+only once the key is made, and a different identity starts clean rather than
+inheriting what was on screen), `noodle.blankSeal.<slug>` -- except
+`noodle.identity` (name + passphrase), the one thing that travels between
+polls.
+
+There is no status line above the calendar any more (welcome back /
+committed / removed said nothing the page did not already show): errors go to
+the banner, and everything else just clears a stale one. Mid name/passphrase
+change the host can still remove a guest -- the removal is signed by the OLD
+key, which the page keeps alive for the change. The host's commit copies the
+link but never waits on the clipboard more than 800ms (headless Chrome left
+the write pending forever). A guest's split day with only one half offered
+tints the closed half red (ember 0.25).
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever

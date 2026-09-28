@@ -13,15 +13,21 @@ var NDV = { poll: null, cal: null, calKey: null, kdf: null, skew: 0, blocked: ''
 function ndvIdentityKey() { return 'noodle.identity'; }
 
 // The rest of the form -- calendar picks not yet submitted, and the Ask box --
-// is a DRAFT kept per poll (key + slug). A draft outranks the submitted vote
-// when the page reopens, since it is the newer of the two; a successful
-// submit clears it, because the server copy is then the current one.
-function ndvDraftKey() { return 'noodle.draft.' + NDV.slug; }
+// is a DRAFT kept per poll AND per identity: keyed by the poll's slug and the
+// voter's public key (name + passphrase), so one person's unsaved picks never
+// appear under another's name, nor on another poll. No key yet, no draft.
+// A draft outranks the submitted vote when the page reopens, since it is the
+// newer of the two; a successful submit clears it.
+function ndvDraftKey() {
+  var pub = ndvPub();
+  return pub ? 'noodle.draft.' + NDV.slug + '.' + pub : null;
+}
 
 function ndvSaveDraft() {
-  if (!NDV.cal) return;
+  var k = ndvDraftKey();
+  if (!NDV.cal || !k) { ndvSyncSubmit(); return; }
   try {
-    localStorage.setItem(ndvDraftKey(), JSON.stringify({
+    localStorage.setItem(k, JSON.stringify({
       slots: Array.from(NDV.cal.getSel()).sort(), ask: ndv$('nd-ask').value,
     }));
     NDV.hasDraft = true;
@@ -30,33 +36,31 @@ function ndvSaveDraft() {
 }
 
 function ndvRestoreDraft() {
+  var k = ndvDraftKey();
+  if (!k) return;
   try {
-    var d = JSON.parse(localStorage.getItem(ndvDraftKey()) || 'null');
-    // an EMPTY draft is not one: a rebuild used to save those, and one would
-    // hide the voter's stored vote on every return
+    var d = JSON.parse(localStorage.getItem(k) || 'null');
+    // an EMPTY draft is not one: it would hide the voter's stored vote
     if (!d || !(Array.isArray(d.slots) && d.slots.length)) return;
     NDV.cal.setSel(new Set(d.slots));
     if (typeof d.ask === 'string') ndv$('nd-ask').value = d.ask;
     NDV.hasDraft = true;
-    NDV.draftRestored = true;   // the host default must not overwrite a draft someone left
   } catch (e) { /* unreadable: start clean */ }
 }
 
 function ndvClearDraft() {
-  try { localStorage.removeItem(ndvDraftKey()); } catch (e) { /* ignore */ }
+  var k = ndvDraftKey();
+  try { if (k) localStorage.removeItem(k); } catch (e) { /* ignore */ }
   NDV.hasDraft = false;
-  NDV.draftRestored = false;
 }
 
 function ndv$(id) { return document.getElementById(id); }
 
-// Errors go to the banner at the top of the page (ndvBanner); everything
-// else to the status line above the calendar. A new message of either kind
-// replaces an old error; clearing the status line ('') does not, since the
-// page clears it on every reload of the poll.
+// Errors go to the banner at the top of the page (ndvBanner). Anything else
+// only clears an old error: the chatty status line above the calendar (welcome
+// back, committed, ...) said nothing the page did not already show, and went.
 function ndvStatus(msg, kind) {
-  if (kind === 'err') { ndvBanner(msg); msg = ''; } else if (msg) ndvBanner('');
-  ndv$('nd-status').textContent = msg || '';
+  if (kind === 'err') ndvBanner(msg); else if (msg) ndvBanner('');
 }
 
 function ndvBanner(msg) {
@@ -187,6 +191,15 @@ function ndvRefreshBinding(pub) {
   NDV.mine = !!(mine && pub && mine.pub === pub);
   NDV.held = !!(mine && mine.pub);   // the typed name belongs to someone
   NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
+  // a NEW identity (its key just made): its own draft if it left one, else a
+  // clean calendar -- never the picks the previous identity had on screen
+  var dk = ndvDraftKey();
+  if (dk && dk !== NDV.draftFor && NDV.cal) {
+    NDV.draftFor = dk;
+    NDV.hasDraft = false;
+    if (!NDV.mine) NDV.cal.setSel(new Set());
+    ndvRestoreDraft();
+  }
   ndvRenderRoster(pub, iHost, typed);
   if (NDV.blocked) {
     ndvStatus('');
@@ -367,9 +380,13 @@ async function ndvSubmit() {
       history.replaceState(null, '', '/noodle/' + NDV.slug);
     }
     ndvTeach('', NDV_SIGN_DONE);
-    ndvApproved(NDV.seal, window.noodleNormName(name), await copying);
+    // never let the clipboard hold a commit up: some browsers leave the write
+    // pending forever (no focus, no permission) -- 800ms, then carry on
+    var copied = await Promise.race([copying, new Promise(function (r) { setTimeout(r, 800, false); })]);
+    ndvApproved(NDV.seal, window.noodleNormName(name), copied);
     await ndvLoadPoll();
-    ndvStatus('committed. come back with the same name and passphrase to change it.');
+    ndvStatus('committed.');   // (clears a stale error)
+    NDV.committed = (NDV.committed || 0) + 1;   // tests wait on this
   } catch (e) {
     ndvStatus('could not commit: ' + e.message, 'err');
   } finally {

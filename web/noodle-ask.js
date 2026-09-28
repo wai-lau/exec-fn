@@ -39,7 +39,7 @@ function ndaBackOff(secs) {
       clearInterval(NDA.tick);
       ndaStatus('');
     } else {
-      ndaStatus('noodle needs a breather -- try again in ' + left + 's');
+      ndaStatus('too fast, wait ' + left + 's =_=');
     }
     ndaSync();
   }
@@ -88,13 +88,13 @@ async function ndaApply(d) {
 async function ndaAsk() {
   var text = nda$('nd-ask').value.trim();
   if (NDA.busy) return;
-  if (!text) { ndaStatus('say something first -- what times suit you?'); return; }
+  if (!text) { ndaStatus('help how? type in box pls'); return; }
   // the same question again: its answer again, no second trip to the model
   if (NDA.last && NDA.last.text === text) { await ndaApply(NDA.last.data); return; }
   if (ndaWaiting()) { ndaBackOff(Math.ceil((NDA.until - Date.now()) / 1000)); return; }
   NDA.busy = true;
   ndaSync();
-  ndaStatus('Noodling');
+  ndaStatus('noodling');
   nda$('nd-ask-status').classList.add('nd-noodling');   // the dots are CSS
   try {
     var res = await ndvPost('/ask', { text: text, dates: ndaDays(), halves: ndhHalves() });

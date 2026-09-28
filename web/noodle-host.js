@@ -89,10 +89,15 @@ function ndhCanon(o) {
 }
 
 async function ndhSend(path, fields, ts) {
-  var name = ndv$('nd-name').value;
+  // mid name/passphrase change the server still knows the OLD key, so an
+  // action taken meanwhile (removing a guest) is signed with that one -- the
+  // page keeps it alive for exactly this (noodle-rekey.js)
+  var old = window.NDR && NDR.active, name = old ? NDR.oldName : ndv$('nd-name').value;
+  if (old && (await NDR.keeperPub) !== NDR.oldPub) return { ok: false, data: { error: 'the old key did not re-derive' } };
+  var signer = old ? NDR.keeper : NDV.kdf;
   ts = ts || Date.now() + NDV.skew;
-  var sig = await NDV.kdf.sign(ndhCanon(Object.assign({ name: name, poll: NDV.slug, ts: ts }, fields)));
-  var body = Object.assign({ name: name, pub: NDV.kdf.pub(), ts: ts, sig: sig }, fields);
+  var sig = await signer.sign(ndhCanon(Object.assign({ name: name, poll: NDV.slug, ts: ts }, fields)));
+  var body = Object.assign({ name: name, pub: old ? NDR.oldPub : NDV.kdf.pub(), ts: ts, sig: sig }, fields);
   delete body.kind; // the server supplies it: a body cannot choose which action it signs
   return ndvPost(path, body);
 }
@@ -142,13 +147,11 @@ function ndhTitleDone(e) {
 async function ndhRemove(e) {
   var btn = e.target.closest('.nd-face-rm');
   if (!btn || !ndvReady()) return;
-  if (window.NDR && NDR.active) { ndvStatus('commit your new passphrase first.'); return; }
   var who = btn.dataset.name;
   if (!window.confirm('remove ' + who + ' and their vote?')) return;
   var res = await ndhSend('/remove', { kind: 'remove', target: who });
   if (!res.ok) { ndvStatus(res.data.error || 'could not remove', 'err'); return; }
-  await ndvLoadPoll(); // first: a reload rewrites the status line
-  ndvStatus(who + ' was removed.');
+  await ndvLoadPoll();
 }
 
 (function () {

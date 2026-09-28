@@ -62,7 +62,7 @@ def _take(slug: str, ip: str, now: float) -> None:
         wait = max(_wait(k, r, w, now) for k, r, w in wins)
         if wait > 0:
             secs = max(1, math.ceil(wait))
-            raise AskError(429, f"noodle needs a breather -- try again in {secs}s", secs)
+            raise AskError(429, f"too fast, wait {secs}s =_=", secs)
         for k, _, _ in wins:
             _hits[k].append(now)
         _calls += 1
