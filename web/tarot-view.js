@@ -203,8 +203,11 @@ async function flipCard(positionKey) {
   if (!spread) return;
   const card = spread.cards.find(c => c.position === positionKey);
   if (!card) return;
-  if (card.flipped) {
-    // Already revealed → zoom it
+  // Revealed → zoom it. "Revealed" includes PAINTED (paintFlipped): during
+  // the turn that commits a flip, card.flipped is still false, and the tap
+  // used to fall through to the `streaming` guard and do nothing.
+  const el = spreadGrid.querySelector(`.tarot-card[data-position="${positionKey}"]`);
+  if (card.flipped || el?.dataset.flipped === 'true') {
     const meta = spreadsMeta && spreadsMeta[spread.type];
     const fallback = (meta && meta.positions.find(p => p.key === card.position)?.label) || card.position;
     const posLabel = framePosLabel(card.position) || fallback;
