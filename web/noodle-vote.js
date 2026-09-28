@@ -13,14 +13,16 @@ var NDV = { poll: null, cal: null, calKey: null, kdf: null, skew: 0, blocked: ''
 function ndvIdentityKey() { return 'noodle.identity'; }
 
 // The rest of the form -- calendar picks not yet submitted, and the Ask box --
-// is a DRAFT kept per poll AND per identity: keyed by the poll's slug and the
-// voter's public key (name + passphrase), so one person's unsaved picks never
-// appear under another's name, nor on another poll. No key yet, no draft.
+// is a DRAFT kept per poll AND per NAME (not the passphrase): keyed by the
+// poll's slug and the normalized name, so one person's unsaved picks never
+// appear under another's name, nor on another poll. No name, no draft.
 // A draft outranks the submitted vote when the page reopens, since it is the
 // newer of the two; a successful submit clears it.
 function ndvDraftKey() {
-  var pub = ndvPub();
-  return pub ? 'noodle.draft.' + NDV.slug + '.' + pub : null;
+  // mid name change the draft stays with the name it was made under
+  var raw = window.NDR && NDR.active ? NDR.oldName : ndv$('nd-name').value;
+  var name = window.noodleNormName(raw);
+  return name ? 'noodle.draft.' + NDV.slug + '.' + name : null;
 }
 
 function ndvSaveDraft() {
@@ -200,8 +202,8 @@ function ndvRefreshBinding(pub) {
   NDV.mine = !!(mine && pub && mine.pub === pub);
   NDV.held = !!(mine && mine.pub);   // the typed name belongs to someone
   NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
-  // a NEW identity (its key just made): its own draft if it left one, else a
-  // clean calendar -- never the picks the previous identity had on screen
+  // a NEW name: its own draft if it left one, else a clean calendar -- never
+  // the picks the previous name had on screen
   var dk = ndvDraftKey();
   if (dk && dk !== NDV.draftFor && NDV.cal) {
     NDV.draftFor = dk;
