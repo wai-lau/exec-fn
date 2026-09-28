@@ -3590,9 +3590,10 @@ thing a host does.
 A guest's name in the voter row wraps onto as many lines as it needs; the host's stays on one line, since the `host` label sits under it.
 
 **A host alone on the poll** gets a numbered how-to in the voter row where
-the guests' faces will go (`NDR_HOWTO`, noodle-roster.js): "Welcome Host!"
-and five steps -- name + passphrase, title, crop lines, single dates, the
-bucket/eraser. The
+the guests' faces will go (`NDR_HOWTO`, noodle-roster.js): "Welcome Host!",
+six steps -- name + passphrase, title, crop lines, single dates, the bucket/
+eraser (the real icons, inline), Commit -- and a reminder in orange that
+guests can only pick what the host marks available. The
 split checkbox sits at the top right of the calendar; new polls are titled
 `untitled noodle`.
 

@@ -351,6 +351,11 @@ body.noodle {
 }
 .nd-howto-h { margin: 0 0 var(--space-1); color: hsl(var(--green-hsl) / 1); }
 .nd-howto ol { margin: 0; padding-left: 2ch; }
+
+/* the calendar's own tool icons, inline: each draws about a cell further
+   right than it claims, so it is given that room after it */
+.nd-howto .ic { margin-right: 0.5em; }
+.nd-howto-note { margin: var(--space-2) 0 0; color: hsl(var(--orange-hsl) / 1); }
 .nd-howto ol li { display: list-item; }
 
 .nd-face {
