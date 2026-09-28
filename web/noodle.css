@@ -553,3 +553,7 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 .nd-subnote.editable { border-bottom: 2px dashed hsl(var(--green-hsl) / 0.45); cursor: text; }
 .nd-subnote.editable:empty::before { content: 'add a note'; color: hsl(var(--gray-hsl) / 0.45); }
 .nd-subnote[contenteditable="plaintext-only"], .nd-subnote[contenteditable="true"] { outline: none; }
+
+/* under the dotted box, above the calendar: what to do with it, and that the
+   picks are seen by everyone on the poll */
+.nd-pick-note { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); }
