@@ -1,4 +1,4 @@
-// Noodle roster: everyone who has voted, with their seals, at the TOP of the
+// noodle roster: everyone who has voted, with their seals, at the TOP of the
 // vote page (there is no separate results page -- the calendar's dots ARE the
 // results). Each voter's seal ink is also their dot colour, so a
 // column of dots in the grid can be matched to a name here by colour.
@@ -28,7 +28,7 @@ function ndrRender(el, voters, seals, myPub, canRemove) {
   el.closest('.nd-who').hidden = !voters.length;
   el.innerHTML = voters.map(function (v) {
     var seal = seals[v.pub];
-    var you = v.pending || (!!myPub && v.pub === myPub);   // your seat, committed or not
+    var you = v.pending || v.picked || (!!myPub && v.pub === myPub);   // your seat, committed, or named
     return '<li><button type="button" class="nd-face' + (you ? ' you' : '') + (v.pending ? ' pending' : '') +
       (v.order === 0 ? ' host' : '') + '" data-name="' +
       (v.blank ? '' : ndrEsc(v.name)) + '"' + (v.blank ? '' : ' title="' + v.slots.length + ' slots"') + '>' +

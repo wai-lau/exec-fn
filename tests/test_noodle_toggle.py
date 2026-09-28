@@ -1,4 +1,4 @@
-"""Noodle's header/row toggle rules (web/noodle-toggle.js) and calendar
+"""noodle's header/row toggle rules (web/noodle-toggle.js) and calendar
 geometry (web/noodle-cal.js), unit-tested in isolation through node.
 
 Rules under test: the group buttons are a MODE (pencil = fill, eraser =

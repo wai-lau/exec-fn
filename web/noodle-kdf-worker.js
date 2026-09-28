@@ -1,4 +1,4 @@
-// Noodle's key worker. Runs Argon2id (hash-wasm, vendored -- web/vendor/,
+// noodle's key worker. Runs Argon2id (hash-wasm, vendored -- web/vendor/,
 // MIT) off the main thread so typing never stutters, and holds the resulting
 // Ed25519 private key as a NON-EXTRACTABLE CryptoKey. The passphrase and the
 // private key never leave this worker; only the public key and signatures do.

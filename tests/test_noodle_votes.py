@@ -1,4 +1,4 @@
-"""Noodle's signed votes: first submission binds a name to a public key; every
+"""noodle's signed votes: first submission binds a name to a public key; every
 later one must be signed by that key and newer than the last.
 
 Covers the required rejections -- unsigned edit, wrong key, tampered slots,
@@ -197,3 +197,50 @@ def test_a_deleted_poll_is_gone(tmp_path, monkeypatch):
         store.load(slug)
     with pytest.raises(KeyError):
         store.delete("../etc/passwd")
+
+
+
+def test_the_host_dropping_a_time_drops_it_from_every_guest(tmp_path, monkeypatch):
+    import base64
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from noodle import config, sig, store, votes
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    slug = store.create("t", "2026-09-27T00:00:00")["slug"]
+    now = 1_790_000_000_000
+
+    def vote(k, name, slots, ts):
+        msg = sig.canonical(slug, name, sorted(slots), ts)
+        return {"name": name, "pub": base64.b64encode(k.public_key().public_bytes_raw()).decode(),
+                "slots": slots, "ts": ts, "sig": base64.b64encode(k.sign(msg)).decode()}
+    h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+    votes.submit(slug, vote(h, "h", ["2027-03-04:d", "2027-03-05:d"], now), now=now)
+    votes.submit(slug, vote(g, "g", ["2027-03-04:d", "2027-03-05:d"], now + 1), now=now + 1)
+    votes.submit(slug, vote(h, "h", ["2027-03-05:d"], now + 2), now=now + 2)
+    assert store.load(slug)["voters"]["g"]["slots"] == ["2027-03-05:d"]
+
+
+def test_the_crop_is_rechecked_inside_the_lock(tmp_path, monkeypatch):
+    """A vote checked against the crop BEFORE the lock must still be refused if
+    the crop narrowed before it was written."""
+    import base64
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from noodle import config, sig, store, votes
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    slug = store.create("t", "2026-09-27T00:00:00")["slug"]
+    now = 1_790_000_000_000
+    k = Ed25519PrivateKey.generate()
+    msg = sig.canonical(slug, "a", ["2027-03-20:d"], now)
+    body = {"name": "a", "pub": base64.b64encode(k.public_key().public_bytes_raw()).decode(),
+            "slots": ["2027-03-20:d"], "ts": now, "sig": base64.b64encode(k.sign(msg)).decode()}
+    real_edit = store.edit
+
+    def narrowing_edit(s):   # a host narrows the crop between the check and the write
+        with store._LOCK:
+            p = store.load(s)
+            p["from"], p["to"] = "2027-03-01", "2027-03-10"
+            store._write(store._path(s), p)
+        return real_edit(s)
+    monkeypatch.setattr(store, "edit", narrowing_edit)
+    with pytest.raises(votes.VoteError) as e:
+        votes.submit(slug, body, now=now)
+    assert e.value.status == 400

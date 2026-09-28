@@ -1,4 +1,4 @@
-"""Noodle's persistence: one JSON file per poll under config.DATA_DIR/polls.
+"""noodle's persistence: one JSON file per poll under config.DATA_DIR/polls.
 
 Every read-modify-write holds _LOCK around the whole cycle and every write is
 an atomic tmp+rename, so a crash mid-write leaves the old file intact. The
@@ -41,6 +41,8 @@ def _write(path: Path, data: dict) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=1)
+            f.flush()
+            os.fsync(f.fileno())   # on disk before the rename makes it the poll
         os.replace(tmp, path)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)

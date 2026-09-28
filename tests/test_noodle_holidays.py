@@ -1,4 +1,4 @@
-"""noodle/holidays.py is a Python MIRROR of web/qc-holidays.js (Noodle may not
+"""noodle/holidays.py is a Python MIRROR of web/qc-holidays.js (noodle may not
 import the app). Pin the two against each other, year by year, through node."""
 import json
 import os

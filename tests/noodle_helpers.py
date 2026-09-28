@@ -1,4 +1,4 @@
-"""Shared Noodle test helpers."""
+"""Shared noodle test helpers."""
 
 def make_poll(store, title, start, end, halves=True):
     """A poll with its dates already set, as a host would have left it."""

@@ -1,5 +1,5 @@
-"""Ask Noodle: the model is faked (noodle.llm.call), so these pin the rate
-limits and the schema validation without spending a token -- and that Noodle
+"""Ask noodle: the model is faked (noodle.llm.call), so these pin the rate
+limits and the schema validation without spending a token -- and that noodle
 works on the PAGE's state alone: it never reads or writes a poll.
 
 Limits are ROLLING WINDOWS, never lifetime caps. Every rate is a config
@@ -140,12 +140,12 @@ def test_a_limited_ask_does_not_count(env, monkeypatch):
 
 
 def test_noodle_never_touches_the_poll(env, monkeypatch):
-    """Noodle answers from what the PAGE sends -- never the stored poll, whose
+    """noodle answers from what the PAGE sends -- never the stored poll, whose
     crop, split or host offer can be older than the screen."""
     from noodle import store
 
     def forbidden(*a, **k):
-        raise AssertionError("Ask Noodle touched the stored poll")
+        raise AssertionError("Ask noodle touched the stored poll")
     for name in ("load", "edit", "create", "delete", "all_polls", "_write"):
         monkeypatch.setattr(store, name, forbidden)
     env["fake"].reply = {"reading": "all", "rules": [

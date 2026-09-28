@@ -1,4 +1,4 @@
-"""Noodle in the real engine (WebKit = iOS), the HOST and IDENTITY flows: the
+"""noodle in the real engine (WebKit = iOS), the HOST and IDENTITY flows: the
 crop lines, a fresh poll's defaults, retitling, and changing a name or
 passphrase. Split from test_noodle_browser.py at the 500-line cap.
 """
@@ -7,20 +7,20 @@ import pytest
 pytestmark = pytest.mark.browser
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def crop_slug(base_url):
-    """A poll of its own: this test sets a HOST crop, which would bound every
-    other test on the shared __smoke__ poll. Reused across runs by title."""
+    """A poll of its OWN, made for this test and deleted after: the crop test
+    must be the host, and on a shared poll whoever acted first already is."""
     import httpx
     from conftest import API_KEY
     if not API_KEY:
         pytest.skip("API_KEY not set")
     auth = {"Authorization": f"Bearer {API_KEY}"}
     with httpx.Client(base_url=base_url, timeout=15.0) as c:
-        for p in c.get("/api/noodle-polls", headers=auth).json()["polls"]:
-            if p["title"] == "__smoke_crop__":
-                return p["slug"]
-        return c.post("/api/noodle-polls", headers=auth, json={"title": "__smoke_crop__"}).json()["slug"]
+        slug = c.post("/api/noodle-polls", headers=auth, json={"title": "__smoke_crop__"}).json()["slug"]
+    yield slug
+    with httpx.Client(base_url=base_url, timeout=15.0) as c:
+        c.delete(f"/api/noodle-polls/{slug}", headers=auth)
 
 
 def test_the_host_drags_the_crop_lines_and_commit_saves_them(browser, base_url, crop_slug):
@@ -54,6 +54,9 @@ def test_the_host_drags_the_crop_lines_and_commit_saves_them(browser, base_url, 
         page.goto(f"{base_url}/noodle/{crop_slug}")
         page.fill("#nd-name", "smoke crop host")
         page.fill("#nd-pass", "crop host pass")
+        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        # a host must offer something to commit: give this one the first open time
+        page.evaluate("NDV.cal.getSel().size || (NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))), ndvSaveDraft())")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
         assert page.locator(".nd-crop-h .grip.out").count() == 2, "each line shows a grip"
         first = drag("bot", -250)
@@ -121,7 +124,7 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         # right passphrase: locked, with a change button beside each field
         assert page.is_disabled("#nd-pass")
         change("nd-pass", "nd-rekey", two)
-        assert page.get_attribute("#nd-pass", "placeholder") == "please remember this identifier"
+        assert page.get_attribute("#nd-pass", "placeholder") == "please enter your passphrase"   # a held name
         assert page.is_disabled("#nd-pass"), "the new passphrase locks once committed"
         page.reload()
         page.wait_for_function("NDV.mine", timeout=20000)
@@ -170,8 +173,10 @@ def test_a_new_name_shows_its_face_among_the_voters(browser, base_url, noodle_sl
         page.wait_for_selector(".nd-face.pending", timeout=10000)
         assert page.inner_text(".nd-face.pending .nd-seal") == blank
         # a voter's name (still deriving, or wrong passphrase) is not a new seat
-        page.fill("#nd-name", "smoke bot")
-        page.wait_for_function("!document.querySelector('.nd-face.pending')", timeout=5000)
+        taken = page.evaluate("NDV.poll.voters.length ? NDV.poll.voters[0].name : null")
+        if taken:   # the shared poll may have been recreated empty
+            page.fill("#nd-name", taken)
+            page.wait_for_function("!document.querySelector('.nd-face.pending')", timeout=5000)
         page.fill("#nd-name", "smoke newcomer")
         page.wait_for_function("document.querySelector('.nd-face.pending .nd-face-name').textContent"
                                " === 'smoke newcomer'", timeout=20000)
@@ -191,7 +196,7 @@ def test_name_and_passphrase_keep_only_letters_digits_and_spaces(browser, base_u
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         assert page.get_attribute("#nd-name", "placeholder") == "please help the host know who you are"
-        assert page.get_attribute("#nd-pass", "placeholder") == "please remember this identifier"
+        assert page.get_attribute("#nd-pass", "placeholder") == "you'll need this to make changes"
         page.type("#nd-name", "Jane.Doe-2!")
         page.type("#nd-pass", "p@ss w0rd?")
         assert page.input_value("#nd-name") == "janedoe2"
@@ -214,6 +219,8 @@ def test_a_fresh_poll_starts_three_weeks_all_available_and_growing_adds_days(bro
     try:
         page.goto(f"{base_url}/noodle/{slug}")
         page.wait_for_function("NDV.pendingCrop && NDV.cal && NDV.cal.getSel().size > 0", timeout=10000)
+        page.fill("#nd-name", "smoke fresh host")   # the calendar takes no drag until a key is yours
+        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
         crop = page.evaluate("NDV.pendingCrop")
         from datetime import date
         span = (date.fromisoformat(crop["to"]) - date.fromisoformat(crop["from"])).days

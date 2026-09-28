@@ -1,8 +1,8 @@
-/* Noodle -- the standalone scheduling poll. Page chrome, identity + seal,
-   Ask Noodle, submit, results lists and the owner form. The calendar grid is
+/* noodle -- the standalone scheduling poll. Page chrome, identity + seal,
+   Ask noodle, submit, results lists and the owner form. The calendar grid is
    in noodle-cal.css.
 
-   Every non-ASCII glyph Noodle draws (seal eyes + mouths, the teaching
+   Every non-ASCII glyph noodle draws (seal eyes + mouths, the teaching
    panel's bullets and rule, the toggle marks) comes from ONE subset of the
    site's own Iosevka, each checked single-width (tests/test_noodle_glyphs.py).
    The site's woff2 is a 126-glyph subset without them, so they would
@@ -104,9 +104,8 @@ body.noodle {
 
 /* The seal and its caption join the dotted box's grid directly: the seal in
    the second column, the caption on a row of its own under everything,
-   RIGHT-aligned -- so the seal's column is only as wide as the seal, its
-   right edge and the caption's line up, and the arrow runs to 2ch short of
-   the seal whatever the caption's width. */
+   RIGHT-aligned under the seal -- so the seal's column is only as wide as the
+   seal and the arrow runs to it whatever the caption's width. */
 .nd-seal-box { display: contents; }
 
 .nd-seal-cap {
@@ -257,7 +256,8 @@ body.noodle {
 }
 .nd-submit:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); background: transparent; cursor: default; }
 
-.nd-dirty { margin: 0 0 var(--space-2); text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
+.nd-dirty { margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
+.nd-dirty-top { margin: calc(-1 * var(--space-2)) 0 var(--space-4); }   /* tucked under the title */
 
 /* locked: the typed name is sealed by another key (noodle-vote.js ndvSyncLock).
    Everything that would act on that name goes grey; the fields above stay live. */
@@ -269,8 +269,19 @@ body.noodle {
   pointer-events: none;
 }
 
+/* OFF: not yours to edit yet (no name, a key still computing, or a voter's
+   name without its passphrase) -- the same grey, but the calendar still
+   SCROLLS, so the results can be read (noodle-vote.js ndvSyncLock) */
+.nd-off .nd-cal-wrap,
+.nd-off .nd-ask {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
 .nd-locked .nd-seal-cap,
 .nd-locked #nd-pass-label { color: hsl(var(--orange-glow-hsl) / 0.8); }
+
+/* "NOT <name>'s seal of approval" is bold */
 .nd-locked .nd-seal-cap { font-weight: var(--fw-bold); }
 
 .nd-why { min-height: 1lh; margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--gray-hsl) / 0.45); }
@@ -402,9 +413,12 @@ body.noodle {
 }
 
 /* ── owner list ─────────────────────────────────────────────────────────── */
-.nd-polls { list-style: none; margin: 0 0 var(--space-6); padding: 0; }
+.nd-polls { width: 100%; margin: 0 0 var(--space-6); border-collapse: collapse; font-size: var(--fs-2xs); }
 .nd-create { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-10); }
-.nd-polls li { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding: var(--space-3) 0; border-bottom: 2px solid hsl(var(--green-hsl) / 0.12); }
+.nd-polls th, .nd-polls td { padding: var(--space-3) var(--space-2); border-bottom: 2px solid hsl(var(--green-hsl) / 0.12); text-align: left; }
+.nd-polls th { color: hsl(var(--green-hsl) / 0.45); font-weight: var(--fw-normal); }
+.nd-polls td:last-child { text-align: right; }
+.nd-polls .nd-face-rm { margin: 0; }
 
 /* The argon2id line's arrow: a shaft of box-drawing dashes that fills the
    line, clipped, then the head -- it fills the recipe's width, which ends
@@ -449,7 +463,10 @@ body.noodle {
 
 /* the poll's link, as text in a read-only box, + copy button, under Commit */
 .nd-share { margin: var(--space-3) 0 0; }
+.nd-share[hidden] { display: none; }
 .nd-card .nd-share .nd-url { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 
-/* the copy button is an icon (U+F0C5, in noodle-seal.woff2); a check once copied */
+/* the copy button is an icon (U+F0C5, in noodle-seal.woff2); a check once copied.
+   Its ink runs 0..1em against a 0.5em cell: 0.25em back puts it in the middle */
+.nd-copy-ic { display: inline-block; font-style: normal; transform: translateX(-0.25em); }
 .nd-share .nd-rekey { font-family: 'Noodle Glyphs', var(--font-mono); font-size: var(--fs-sm); letter-spacing: 0; }

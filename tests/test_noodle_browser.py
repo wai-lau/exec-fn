@@ -1,4 +1,4 @@
-"""Noodle in the real engine (WebKit = iOS): the browser derives the key
+"""noodle in the real engine (WebKit = iOS): the browser derives the key
 (Argon2id in a worker -> Ed25519), signs, and the SERVER verifies -- the one
 place a byte of disagreement between noodle-vote.js's JSON.stringify and
 noodle/sig.py's canonical() would show.
@@ -70,14 +70,14 @@ def test_same_name_other_passphrase_is_blocked(browser, base_url, noodle_slug):
         assert page.is_disabled("#nd-submit")
         assert page.inner_text("#nd-seal-cap") == f"NOT {NAME}'s seal of approval"
         assert page.evaluate("getComputedStyle(document.getElementById('nd-seal-cap')).fontWeight") == "700"
-        assert page.evaluate("document.getElementById('nd-cal').inert")
+        assert page.evaluate("document.getElementById('nd-cal').classList.contains('nd-readonly')")
         assert page.evaluate("document.querySelector('.nd-ask').inert")
         label = "getComputedStyle(document.getElementById('nd-pass-label')).color"
         locked_colour = page.evaluate(label)
         # a name nobody holds unlocks everything again
         page.fill("#nd-name", "smoke unique name")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
-        assert not page.evaluate("document.getElementById('nd-cal').inert")
+        assert not page.evaluate("document.getElementById('nd-cal').classList.contains('nd-readonly')")
         assert page.inner_text("#nd-seal-cap") == "smoke unique name's seal of approval"
         assert page.evaluate(label) != locked_colour, "the passphrase label must lose its warning colour"
     finally:
@@ -179,7 +179,8 @@ def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
         face.click()
         assert page.input_value("#nd-name") == name
         assert page.evaluate("document.activeElement.id") == "nd-pass"
-        assert page.get_attribute("#nd-pass", "placeholder") == "please remember this identifier"
+        want = "please enter your passphrase" if page.evaluate("NDV.held") else "you'll need this to make changes"
+        assert page.get_attribute("#nd-pass", "placeholder") == want
     finally:
         page.close()
 
@@ -239,23 +240,22 @@ def test_enter_in_ask_is_a_newline_not_a_question(browser, base_url, noodle_slug
         page.close()
 
 
-def test_a_rate_limit_counts_down_and_gives_the_button_back(browser, base_url, noodle_slug):
-    """A 429 is a pause, not an end: the status counts retry_after down and the
-    ask button comes back by itself. The 429 is stubbed so no model is called."""
+def test_a_rate_limit_counts_down_and_help_stays_pressable(browser, base_url, noodle_slug):
+    """A 429 is a pause, not an end: the status counts retry_after down and
+    clears by itself, and the button is never disabled for it. Stubbed."""
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.route("**/ask", lambda route: route.fulfill(
             status=429, content_type="application/json",
-            body='{"error": "Noodle needs a breather -- try again in 2s", "retry_after": 2}'))
+            body='{"error": "noodle needs a breather -- try again in 2s", "retry_after": 2}'))
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", "smoke ratelimit")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
         page.fill("#nd-ask", "fridays")
         page.click("#nd-ask-go")
         page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('try again in')")
-        assert page.is_disabled("#nd-ask-go")
-        page.wait_for_function("!document.querySelector('#nd-ask-go').disabled", timeout=5000)
-        assert page.inner_text("#nd-ask-status") == ""
+        assert not page.is_disabled("#nd-ask-go")
+        page.wait_for_function("document.querySelector('#nd-ask-status').textContent === ''", timeout=5000)
     finally:
         page.close()
 
@@ -279,13 +279,15 @@ def test_a_non_host_can_only_pick_what_the_host_offered(browser, base_url, noodl
             page.wait_for_timeout(600)
             return ("mid" if half == "m" else "nit") in cell.get_attribute("class")
 
+        code = "m" if poll["halves"] else "d"   # an unsplit day is one slot, drawn as both halves
         days = page.evaluate("[...document.querySelectorAll('.nd-d:not(.out)')].map(c => c.dataset.day)")
-        closed = next(f"{d}:m" for d in days if f"{d}:m" not in offered)
-        assert not tap(*closed.split(":")), "an un-offered half must not take a tap"
-        assert "no-m" in page.get_attribute(f".nd-d[data-day='{closed[:10]}']", "class")
+        closed = next((d for d in days if f"{d}:{code}" not in offered), None)
+        if closed:
+            assert not tap(closed, "m"), "an un-offered time must not take a tap"
+            assert "no-m" in page.get_attribute(f".nd-d[data-day='{closed}']", "class")
         if offered:
             day, half = sorted(offered)[0].split(":")
-            assert tap(day, half), "an offered half must"
+            assert tap(day, "m" if half == "d" else half), "an offered time must"
     finally:
         page.close()
 
@@ -315,10 +317,45 @@ def test_the_polls_link_sits_under_commit_with_a_copy_button(browser, base_url, 
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.wait_for_function("NDV.poll", timeout=10000)
+        if not page.evaluate("NDV.poll.voters.length && NDV.poll.voters[0].slots.length"):
+            assert page.is_hidden("#nd-share"), "no link until the host has offered something"
+            pytest.skip("the shared poll has no host offer yet")
         assert page.input_value("#nd-url") == f"{base_url}/noodle/{noodle_slug}"
         assert page.get_attribute("#nd-url", "readonly") is not None
         assert page.inner_text("#nd-copy") == "\uf0c5"   # the copy icon
         page.click("#nd-copy")
         page.wait_for_function("document.querySelector('#nd-copy').textContent === '\\u2713'", timeout=3000)
+    finally:
+        page.close()
+
+
+
+def test_the_same_question_reapplies_the_last_answer(browser, base_url, noodle_slug):
+    """An unchanged question does not ask again: the last answer is re-applied.
+    The model is stubbed; the stub counts how often it is reached."""
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    calls = []
+
+    def answer(route):
+        calls.append(1)
+        route.fulfill(status=200, content_type="application/json",
+                      body='{"slots": [], "reading": "nothing", "dropped": 0, "crop": null}')
+    try:
+        page.route("**/ask", answer)
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.fill("#nd-name", "smoke asker")   # Ask is off until a key is yours
+        page.wait_for_function("!document.getElementById('noodle').classList.contains('nd-off')", timeout=20000)
+        page.fill("#nd-ask", "fridays")
+        page.click("#nd-ask-go")
+        page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('read that as')")
+        page.evaluate("document.querySelector('#nd-ask-status').textContent = ''")
+        page.click("#nd-ask-go")
+        page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('read that as')")
+        assert len(calls) == 1, "the same question must not be asked twice"
+        page.fill("#nd-ask", "")
+        assert not page.is_disabled("#nd-ask-go")
+        page.click("#nd-ask-go")
+        assert "say something first" in page.inner_text("#nd-ask-status")
     finally:
         page.close()

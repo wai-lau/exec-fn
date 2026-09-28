@@ -1,4 +1,4 @@
-// Main-thread side of Noodle's key derivation.
+// Main-thread side of noodle's key derivation.
 //
 // Passphrase -> Argon2id (in noodle-kdf-worker.js) -> Ed25519 seed. The salt
 // is SHA-256(poll slug + NUL + normalized name), so the same name and

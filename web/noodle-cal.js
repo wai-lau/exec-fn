@@ -1,4 +1,4 @@
-// Noodle's calendar: ONE continuous grid of weeks, scrolling vertically.
+// noodle's calendar: ONE continuous grid of weeks, scrolling vertically.
 //
 // 8 columns: a sticky week-toggle column, then Sun..Sat (Sunday first, like
 // /rd's month calendar). The weekday header is sticky at the top. Each day

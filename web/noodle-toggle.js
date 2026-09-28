@@ -1,4 +1,4 @@
-// Noodle header/row toggle rules -- pure, no DOM, unit-tested through node
+// noodle header/row toggle rules -- pure, no DOM, unit-tested through node
 // (tests/test_noodle_toggle.py).
 //
 // A group is every IN-WINDOW slot under one weekday column or one week row

@@ -1,4 +1,4 @@
-// Noodle host controls. The host is whoever acts FIRST on a fresh poll (a
+// noodle host controls. The host is whoever acts FIRST on a fresh poll (a
 // commit, or a crop); after that the same key alone can split the days, crop
 // the calendar (noodle-crop.js) and remove guests. Each action is signed like
 // a vote, over a canonical object that carries a `kind` field (noodle/sig.py
@@ -93,6 +93,11 @@ function ndhTitleTap() {
   if ((role !== 'host' && role !== 'fresh') || el.isContentEditable) return;
   el.contentEditable = 'plaintext-only';
   el.focus();
+  // the whole title selected: a placeholder like "click me to name me" is typed over
+  var r = document.createRange();
+  r.selectNodeContents(el);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(r);
 }
 
 function ndhTitleEdit() {

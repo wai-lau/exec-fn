@@ -1,10 +1,10 @@
-"""Every Noodle knob in one place. The KDF block is shipped to the browser as
+"""Every noodle knob in one place. The KDF block is shipped to the browser as
 data-* attributes, so the page and this file cannot disagree."""
 import os
 from pathlib import Path
 
 # ── storage ──────────────────────────────────────────────────────────────────
-# Noodle's ONE directory. Nothing outside it is ever read or written
+# noodle's ONE directory. Nothing outside it is ever read or written
 # (tests/test_noodle_isolation.py audits every open/replace).
 DATA_DIR = Path(os.environ.get("NOODLE_DIR", "/app/data/noodle"))
 
@@ -21,7 +21,7 @@ NAME_MAX = 40
 # picks decide what is on offer. These only bound what a request may carry.
 MAX_SLOTS = 800                  # per vote
 SLOT_YEARS_AHEAD = 3             # no slot further out than this
-VIEW_MAX_DAYS = 186              # the longest range Ask Noodle will consider
+VIEW_MAX_DAYS = 186              # the longest range Ask noodle will consider
 VIEW_DEFAULT_DAYS = 91           # ... and the one it uses with no crop
 BLOCKS = ("midday", "night")
 BLOCK_CODES = {"midday": "m", "night": "n"}

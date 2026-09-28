@@ -1,5 +1,5 @@
-"""Quebec statutory holidays, for Ask Noodle's date list ("...unless it's a
-stat holiday"). A Python MIRROR of web/qc-holidays.js -- Noodle may not import
+"""Quebec statutory holidays, for Ask noodle's date list ("...unless it's a
+stat holiday"). A Python MIRROR of web/qc-holidays.js -- noodle may not import
 the app, and the rules are formulas, so they are restated here and pinned
 against the JS by tests/test_noodle_holidays.py. Same list, same judgement
 calls (Good Friday rather than Easter Monday; no Remembrance Day, Boxing Day,

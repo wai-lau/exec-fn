@@ -1,4 +1,4 @@
-/* Noodle's calendar grid -- the same visual language as /rd's month calendar
+/* noodle's calendar grid -- the same visual language as /rd's month calendar
    (rd.css: 5px green rules on right + bottom, big bold zero-padded dates, cyan
    weekends, a faint blurred month number behind the grid, stadium dots), made
    continuous and two-halved. Built by noodle-cal.js + noodle-cal-view.js. */
@@ -207,14 +207,13 @@
    borders ARE the gaps, so a segment runs over its own border and one pixel
    into the next cell's, OVERLAPPING the next segment -- joins between
    translucent pieces showed as seams and chips, so the ink is OPAQUE: full
-   green dimmed by a filter to the old 0.45-over-black tone, where an overlap
-   is invisible. The ends overhang by the line's reach (-3.5px) to close the
+   cyan dimmed by a filter, where an overlap is invisible. The ends overhang by the line's reach (-3.5px) to close the
    step's corners. */
 .nd-ml {
   position: absolute;
   pointer-events: none;
-  background: hsl(var(--green-hsl) / 1);
-  filter: brightness(0.45);
+  background: hsl(var(--cyan-hsl) / 1);   /* blue, so a month edge never reads as a crop or a pick */
+  filter: brightness(0.7);
 }
 .nd-ml.t { top: -3.5px; left: 0; right: -6px; height: 2px; }
 .nd-ml.b { bottom: -3.5px; left: 0; right: -6px; height: 2px; }
@@ -259,6 +258,13 @@
   text-decoration: line-through;
 }
 .nd-d.out .nd-dots { visibility: hidden; }
+
+/* a guest sees no votes on a day they cannot pick (struck: the host did not
+   offer it) -- a tally on a closed day only reads as a choice */
+.nd-grid:not(.host) .nd-d.shut .nd-dots { visibility: hidden; }
+
+/* read-only until the key is yours (noodle-vote.js ndvSyncLock) */
+.nd-readonly .nd-d, .nd-readonly .nd-hd, .nd-readonly .nd-wk { cursor: default; }
 
 .nd-d.today::after {
   content: '';
