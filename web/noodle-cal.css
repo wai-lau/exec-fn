@@ -259,11 +259,19 @@
 }
 .nd-d.out .nd-dots { visibility: hidden; }
 
-/* a guest's split day with only ONE half offered: the closed half is tinted
-   red, so it reads as not-yours before it is tapped (a wholly closed day is
-   already struck) */
-.nd-grid:not(.host) .nd-d.no-m:not(.shut) { --top: hsl(var(--orange-glow-hsl) / 0.25); }
-.nd-grid:not(.host) .nd-d.no-n:not(.shut) { --bot: hsl(var(--orange-glow-hsl) / 0.25); }
+/* A GUEST's calendar draws what they may pick as SHAPES, not the host's split
+   line: each half the host offers is a right-angled triangle inset 2px from
+   the lines around it (midday top-left, night bottom-right), a whole day one
+   inset rectangle -- and a half not offered simply has no shape. Unpicked it
+   is a faint fill, picked the full one; taps follow the same diagonal
+   (noodle-cal-view.js ndcSlotAt). */
+.nd-tri { display: none; position: absolute; inset: 2px; pointer-events: none; background: hsl(var(--green-hsl) / 0.12); }
+.nd-grid:not(.host) .nd-d { background-image: none; }
+.nd-grid:not(.host) .nd-dots { position: relative; }
+.nd-grid:not(.host, .single) .nd-d:not(.out, .no-m) .nd-tri.m { display: block; clip-path: polygon(0 0, calc(100% - 4px) 0, 0 calc(100% - 4px)); }
+.nd-grid:not(.host, .single) .nd-d:not(.out, .no-n) .nd-tri.n { display: block; clip-path: polygon(100% 100%, 4px 100%, 100% 4px); }
+.nd-grid.single:not(.host) .nd-d:not(.out, .shut) .nd-tri.d { display: block; }
+.nd-d.mid .nd-tri.m, .nd-d.nit .nd-tri.n, .nd-d.mid .nd-tri.d { background: hsl(var(--green-hsl) / 0.45); }
 
 /* a guest sees no votes on a day they cannot pick (struck: the host did not
    offer it) -- a tally on a closed day only reads as a choice */
@@ -272,11 +280,18 @@
 /* read-only until the key is yours (noodle-vote.js ndvSyncLock) */
 .nd-readonly .nd-d, .nd-readonly .nd-hd, .nd-readonly .nd-wk { cursor: default; }
 
-.nd-d.today::after {
+/* today: a CIRCLE round the date -- a box round the whole cell read as one
+   more crop/selection rectangle */
+.nd-d.today .nd-n::after {
   content: '';
   position: absolute;
-  inset: 0;
-  border: 2px solid hsl(var(--orange-hsl) / 1);   /* today: the crop line's colour */
+  top: 50%;
+  left: 50%;
+  width: 1.45em;
+  height: 1.45em;
+  border: 2px solid hsl(var(--orange-hsl) / 1);
+  border-radius: var(--radius-pill);
+  transform: translate(-50%, -50%);
   pointer-events: none;
 }
 

@@ -90,6 +90,8 @@ function ndRowHtml(wk, r, bound, today) {
     // (month boundaries are drawn over the grid as ONE path each --
     // noodle-cal-view.js ndcPaintMonths -- not per cell)
     h += '<div class="' + cls.join(' ') + '" data-day="' + iso + '">' +
+      // a guest's pickable halves are drawn as shapes (noodle-cal.css .nd-tri)
+      '<i class="nd-tri m"></i><i class="nd-tri n"></i><i class="nd-tri d"></i>' +
       '<span class="nd-n">' + iso.slice(8) + '</span><div class="nd-dots"></div></div>';
   });
   return h;
