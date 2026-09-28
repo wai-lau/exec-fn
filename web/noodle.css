@@ -557,3 +557,4 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 /* under the dotted box, above the calendar: what to do with it, and that the
    picks are seen by everyone on the poll */
 .nd-pick-note { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); }
+.nd-as-host .nd-pick-note { display: none; }   /* guests only: the host is setting the offer, not picking from it */

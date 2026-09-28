@@ -186,12 +186,13 @@ function ndcWireLoader(scroller, sentinel, more) {
   }, { root: scroller, rootMargin: '0px 0px 300px 0px' }).observe(sentinel);
 }
 
-// The first week drawn. When it would be THIS week, the week before it is
-// drawn too (all past, all greyed): today is then never the top row, so the
-// calendar reads as continuing from somewhere rather than starting cold.
-function ndcFirstSunday(P, from, today) {
-  var s = P.sunday(from);
-  return s === P.sunday(today) ? P.addDays(s, -7) : s;
+// The first week drawn. The HOST's endless calendar starts a week EARLY: the
+// past week above today (all greyed) holds the split box and keeps today off
+// the top row. A guest's starts at its first offered week, nothing above.
+function ndcFirstSunday(P, endless, from, today) {
+  if (!endless) return P.sunday(from);
+  var s = P.sunday(today);
+  return P.addDays(s, -7);
 }
 
 // fn() whenever any of els changes WIDTH -- never on height alone: the
@@ -251,7 +252,7 @@ function NoodleCal(wrap, opts) {
   }
 
   function addWeeks(n) {
-    var from = weeks.length ? P.addDays(weeks[weeks.length - 1][0], 7) : ndcFirstSunday(P, endless ? today : bound.from, today);
+    var from = weeks.length ? P.addDays(weeks[weeks.length - 1][0], 7) : ndcFirstSunday(P, endless, bound.from, today);
     var fresh = P.weeksFrom(from, n).filter(function (wk) { return endless || wk[0] <= bound.to; });
     if (!fresh.length) return;
     grid.insertAdjacentHTML('beforeend', fresh.map(function (wk, i) {

@@ -3710,7 +3710,10 @@ the write pending forever). A guest's calendar draws what they may pick as SHAPE
 line: each offered half a right-angled triangle inset 2px (midday top-left,
 night bottom-right), a whole day an inset rectangle, and nothing where the host
 offered nothing; guest taps follow the triangles' diagonal (`ndcSlotAt`). Today
-is an orange circle round the date, not a box round the cell.
+is a faint green circle round the date, not a box round the cell. A guest's
+calendar starts at its first offered week (the past week above today is the
+host's, where the split box sits), and "please select your availabilities
+(public)" under the dotted box is for guests only.
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever

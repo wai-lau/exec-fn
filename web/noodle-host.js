@@ -41,6 +41,7 @@ function ndhSync(pub) {
 // squiggle while it is still the placeholder.
 function ndhTitleMarks(role) {
   var t = ndh$('nd-title'), n = ndh$('nd-note'), host = role === 'host' || role === 'fresh';
+  ndh$('noodle').classList.toggle('nd-as-host', host);   // host-only / guest-only bits (noodle.css)
   t.classList.toggle('editable', host);
   t.classList.toggle('untitled', host && t.textContent.trim() === 'untitled noodle');
   // the NOTE under it wears the same "you can edit me" line
