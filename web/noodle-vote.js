@@ -40,10 +40,12 @@ function ndvRestoreDraft() {
   if (!k) return;
   try {
     var d = JSON.parse(localStorage.getItem(k) || 'null');
-    // an EMPTY draft is not one: it would hide the voter's stored vote
-    if (!d || !(Array.isArray(d.slots) && d.slots.length)) return;
-    NDV.cal.setSel(new Set(d.slots));
+    if (!d) return;
+    // the Ask text comes back on its own; picks only when there are some -- an
+    // EMPTY list is not a draft, and would hide the voter's stored vote
     if (typeof d.ask === 'string') ndv$('nd-ask').value = d.ask;
+    if (!(Array.isArray(d.slots) && d.slots.length)) return;
+    NDV.cal.setSel(new Set(d.slots));
     NDV.hasDraft = true;
   } catch (e) { /* unreadable: start clean */ }
 }
@@ -198,6 +200,7 @@ function ndvRefreshBinding(pub) {
     NDV.draftFor = dk;
     NDV.hasDraft = false;
     if (!NDV.mine) NDV.cal.setSel(new Set());
+    ndv$('nd-ask').value = '';   // the Ask text is per identity too
     ndvRestoreDraft();
   }
   ndvRenderRoster(pub, iHost, typed);

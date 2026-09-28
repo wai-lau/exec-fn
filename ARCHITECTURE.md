@@ -3686,8 +3686,11 @@ the banner, and everything else just clears a stale one. Mid name/passphrase
 change the host can still remove a guest -- the removal is signed by the OLD
 key, which the page keeps alive for the change. The host's commit copies the
 link but never waits on the clipboard more than 800ms (headless Chrome left
-the write pending forever). A guest's split day with only one half offered
-tints the closed half red (ember 0.25).
+the write pending forever). A guest's calendar draws what they may pick as SHAPES instead of the split
+line: each offered half a right-angled triangle inset 2px (midday top-left,
+night bottom-right), a whole day an inset rectangle, and nothing where the host
+offered nothing; guest taps follow the triangles' diagonal (`ndcSlotAt`). Today
+is an orange circle round the date, not a box round the cell.
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever

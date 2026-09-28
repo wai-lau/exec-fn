@@ -147,9 +147,14 @@ function ndcPickableDays(grid, from, to) {
 }
 
 function ndcSlotAt(cell, e, halves) {
-  var r = cell.getBoundingClientRect();
-  return cell.dataset.day + ':' + (halves
-    ? window.NoodleCalParts.half(e.clientX - r.left, e.clientY - r.top, cell.clientWidth, cell.clientHeight) : 'd');
+  var r = cell.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  if (!halves) return cell.dataset.day + ':d';
+  // a guest taps the TRIANGLES, split by the cell's diagonal (noodle-cal.css
+  // .nd-tri); the host, the 30deg split line
+  var guest = !cell.closest('.nd-grid').classList.contains('host');
+  var half = guest ? (x / r.width + y / r.height < 1 ? 'm' : 'n')
+    : window.NoodleCalParts.half(x, y, cell.clientWidth, cell.clientHeight);
+  return cell.dataset.day + ':' + half;
 }
 
 // Load more weeks whenever the bottom is near. An IntersectionObserver alone
