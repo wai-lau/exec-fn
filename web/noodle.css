@@ -527,6 +527,31 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 }
 #noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }
 
+/* the demo video (guests only, pages.py _DEMO), under the create button and
+   ABOVE the CRT stack. .page-scroll is position:fixed, which always makes a
+   stacking context, so nothing inside it can rise over the CRT (z-modal):
+   on this page the wrapper goes static and the document scrolls instead; and
+   .doc-card's z-index (chrome.css) is a stacking context too, so it goes auto. */
+.page-scroll:has(.nd-demo) { position: static; overflow: visible; padding-bottom: var(--nav-h); }
+.doc-card:has(.nd-demo) { z-index: auto; }
+
+/* the empty status line under the button would push the video down */
+.nd-create #nd-msg:empty { display: none; }
+
+.nd-demo {
+  position: relative;
+  z-index: var(--z-top);
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 70dvh;
+  aspect-ratio: 720 / 1040;
+  margin: var(--space-6) auto 0;   /* = the title-to-button gap */
+  border-radius: var(--radius-4);
+  background: hsl(var(--bg-hsl) / 1);
+  cursor: pointer;   /* a tap opens it fullscreen (noodle-admin.js) */
+}
+
 /* the site nav on /noodle: the other pages' shell sizes it border-box, and
    without that its standalone side padding was ADDED to its full width -- a
    516px bar on a 430px phone, both rows pushed off the right edge */

@@ -232,6 +232,16 @@ def test_noodle_poll_page_has_a_link_preview(client, noodle_slug):
     assert img.status_code == 200 and img.headers["content-type"] == "image/jpeg"
 
 
+def test_noodle_demo_video_is_for_guests_only(client, guest_cookie, admin_cookie):
+    """/noodle: guests get the autoplaying demo under create poll; the owner
+    (who has the poll list there) does not."""
+    g = client.get("/noodle", headers=guest_cookie)
+    assert g.status_code == 200 and 'class="nd-demo"' in g.text
+    assert "autoplay muted loop playsinline" in g.text
+    o = client.get("/noodle", headers=admin_cookie)
+    assert o.status_code == 200 and "nd-demo" not in o.text
+
+
 def test_noodle_poll_json_is_public_and_holds_no_budget(client, noodle_slug):
     r = client.get(f"/api/noodle/{noodle_slug}")
     assert r.status_code == 200
