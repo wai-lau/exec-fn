@@ -32,7 +32,7 @@ var NDR_HOWTO = '<li class="nd-howto"><p class="nd-howto-h">Welcome Host!</p><ol
   '<li>tap individual dates for finer selection</li>' +
   '<li>(optional) <i class="ic fill" aria-label="bucket">\uf765</i>/<i class="ic clear" aria-label="eraser">\uf12d</i> ' +
     'fills entire rows/columns (click top left of calendar to toggle)</li>' +
-  '<li>Commit your changes</li>' +
+  '<li>Commit your changes and share the link!</li>' +
   '</ol><p class="nd-howto-note">Remember: your guests can only pick from dates where you, the host, mark as available!</p></li>';
 
 function ndrRender(el, voters, seals, myPub, canRemove, howto) {
