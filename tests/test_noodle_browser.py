@@ -53,7 +53,7 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         assert 0 <= int(h) < 360 and 60 <= int(sat[:-1]) <= 100 and 62 <= int(light[:-1]) <= 82
         teach = page.inner_text("#nd-teach")
         assert teach.startswith("salt = sha256(poll, name)\nseal = argon2id(passphrase, salt)")
-        assert "commit() ──> stamp(availabilities, seal)" in teach
+        assert "commit ──> stamp(data, seal)" in teach
 
         # an open day other than the one a host is offering (flipping that one
         # off would leave nothing to commit)
@@ -205,7 +205,9 @@ def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
         face.click()
         assert page.input_value("#nd-name") == name
         assert page.evaluate("document.activeElement.id") == "nd-pass"
-        want = "please enter your passphrase" if page.evaluate("NDV.held") else "you'll need this to change your vote"
+        want = ("please enter your passphrase" if page.evaluate("NDV.held") else
+                "you'll NEED to remember this to control the poll" if page.evaluate("ndxIsHost()") else
+                "you'll need this to change your vote")
         assert page.get_attribute("#nd-pass", "placeholder") == want
     finally:
         page.close()

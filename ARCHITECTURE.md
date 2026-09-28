@@ -3567,8 +3567,8 @@ weekday. (It still reads "every Thursday except the 23rd" as that week's
 Thursday; the voter reviews the grid before anything is signed.)
 
 **The dotted box** is the recipe, never the values -- `salt = sha256(poll,
-name)`, `seal = argon2id(passphrase, salt) ──>`, `commit() ──> stamp(
-availabilities, seal)` -- recipe and seal centred as ONE group, the seal at the
+name)`, `seal = argon2id(passphrase, salt) ──>`, `commit ──> stamp(data,
+seal)` -- recipe and seal centred as ONE group, the seal at the
 voter row's size with its caption on a row of its own, right-aligned under
 the seal (the box is a 2-column grid, `.nd-seal-box` is `display:
 contents`). The argon2id line's
