@@ -1,4 +1,5 @@
 from chat_actions import _actions_taken_block
+from exec_board import board_sections
 from helpers import _load_json, _load_rd, _now_et, get_rd_log, _parse_json
 
 
@@ -199,7 +200,7 @@ _CHAT_STATIC_PREFIX = (
     "Never expose raw card IDs or internal formats in your responses — refer to tasks by title only. "
     "The card= cell of an answer row is the sole exception (it is parsed, not read).\n"
     "NEVER suggest that Wai block, schedule, or carve out time on a calendar — Exec IS Wai's calendar and scheduler. Schedule tasks here (schedule_card) or just talk about doing the work; never punt to an external calendar.\n"
-    "CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed in CURRENTLY SELECTED TASKS or IDEAS POOL. Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
+    "CRITICAL: When calling any tool that takes a card id, you MUST use ONLY the exact ids listed on the board (CURRENTLY SELECTED TASKS, IDEAS POOL, ARCHIVED or EXILED IN THE LAST 7 DAYS). Never invent, guess, or construct card ids. If you cannot find the card in the lists, say so.\n"
     "Never state that a card is selected or on the active board unless it appears under CURRENTLY SELECTED TASKS. Do not invent or assume task status.\n"
     "When you create or schedule a card in this same turn, describe it as the action you just took ('added it', 'scheduled it for Friday'). Never say it is 'already showing', 'already on the schedule', or otherwise imply it existed before you acted — it appears because you just created it.\n"
     "CRITICAL: NEVER describe taking an action without calling the tool. If you say you will create a card, move a card, update context, or do anything else — you MUST call the tool in that same response. Describing the action is not the action.\n"
@@ -216,8 +217,6 @@ def _turn_context(stage: str = "planning", actions: list | None = None) -> str:
     rd = _load_rd()
 
     cards = rd.get("cards", [])
-    selected = sorted([c for c in cards if c.get("column") == "hq"], key=lambda c: c.get("order", 0))
-    ideas = sorted([c for c in cards if c.get("column") == "rd"], key=lambda c: c.get("order", 0))
 
     ctx_text = "\n".join(f"- [{n.get('date','')}] {n['note']}" for n in ctx.get("notes", [])) or "None."
     rd_log_entries = get_rd_log(limit=20)
@@ -230,14 +229,6 @@ def _turn_context(stage: str = "planning", actions: list | None = None) -> str:
         + (f" ({e.get('from_col','?')} → {e.get('to_col','?')})" if e['action'] == 'moved' else "")
         + (f" [id:{e['id']}]" if e.get('id') else "")
         for e in reversed(rd_log_entries)
-    ) or "None."
-    selected_text = "\n".join(
-        f"- id:{c['id']} [{c.get('size','idea')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
-        for c in selected
-    ) or "None."
-    ideas_text = "\n".join(
-        f"- id:{c['id']} [{c.get('size','idea')}] {c['title']} ({c.get('category','')}): {c.get('notes','')}"
-        for c in ideas[:15]
     ) or "None."
 
     from datetime import date, timedelta
@@ -271,8 +262,7 @@ def _turn_context(stage: str = "planning", actions: list | None = None) -> str:
         f"STAGE: {stage.upper()}\n"
         f"INSTRUCTION: {stage_instructions.get(stage, stage_instructions['planning'])}\n\n"
         f"ACTIVITY LOG (today):\n{rd_log_text}\n\n"
-        f"CURRENTLY SELECTED TASKS:\n{selected_text}\n\n"
-        f"IDEAS POOL (top 15):\n{ideas_text}\n\n"
+        f"{board_sections(cards)}\n\n"
         f"7-DAY SCHEDULE (scheduled_day assignments this week):\n{scheduled_text}\n\n"
         f"KNOWN CONTEXT:\n{ctx_text}"
         f"{_active_nudge_block(cards)}"
