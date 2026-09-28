@@ -3706,7 +3706,9 @@ on any poll, `noodle.lastpass.<name>` -- never over one typed by hand); only the
 `og:title` (the poll title), `og:description` (its note, else "pick the times
 you're free"), `og:image` = the fixed dark card `web/noodle-card.jpg` (1200x630;
 the site icon it fell back to is white on transparent, drawn white-on-white by
-Messenger), `og:url`, and `twitter:card summary_large_image`. Absolute urls, so
+Messenger), `og:url`, and `twitter:card summary_large_image`; `theme-color` `#00ff40` (= `--green-hsl`,
+the one raw hex in the shell, baselined) colours Discord's embed stripe. Discord has
+no re-scrape tool: a throwaway `?1` on the link fetches it fresh. Absolute urls, so
 the origin is `config.ORIGIN` (`NOODLE_ORIGIN`, default `https://wai-lau.net`).
 Meta caches a preview for weeks: re-scrape a shared link in Facebook's Sharing
 Debugger. Bump `OG_IMAGE`'s `?v=` when the card changes.
