@@ -27,7 +27,7 @@ function ndvSaveDraft() {
   if (!NDV.cal || !k) { ndvSyncSubmit(); return; }
   try {
     localStorage.setItem(k, JSON.stringify({ slots: Array.from(NDV.cal.getSel()).sort(),
-      title: NDV.pendingTitle }));   // a host's unsaved retitle (noodle-host.js)
+      title: NDV.pendingTitle, note: NDV.pendingNote }));   // a host's unsaved title / note (noodle-host.js)
     NDV.hasDraft = true;
   } catch (e) { /* storage blocked: nothing is remembered */ }
   ndvSyncSubmit();
@@ -40,9 +40,14 @@ function ndvRestoreDraft() {
     var d = JSON.parse(localStorage.getItem(k) || 'null');
     if (!d) return;
     // an unsaved title comes back on its own (only a host ever has one)
-    if (typeof d.title === 'string' && d.title && window.ndxIsHost && window.ndxIsHost()) {
+    var host = window.ndxIsHost && window.ndxIsHost();
+    if (typeof d.title === 'string' && d.title && host) {
       NDV.pendingTitle = d.title;
       ndv$('nd-title').textContent = d.title;
+    }
+    if (typeof d.note === 'string' && host) {
+      NDV.pendingNote = d.note;
+      ndv$('nd-note').textContent = d.note;
     }
     // an EMPTY list is not a draft, and would hide the voter's stored vote
     if (!(Array.isArray(d.slots) && d.slots.length)) return;

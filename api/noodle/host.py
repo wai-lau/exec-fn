@@ -66,6 +66,17 @@ def _title(body: dict) -> tuple[str | None, str | None]:
     return title, clean
 
 
+def _note(body: dict) -> tuple[str | None, str | None]:
+    """The host's note under the title, when changed: (as sent, cleaned). An
+    empty note is allowed -- it clears it."""
+    note = body.get("note")
+    if note is None:
+        return None, None
+    if not isinstance(note, str) or len(note) > config.NOTE_MAX:
+        raise VoteError(400, f"note must be at most {config.NOTE_MAX} characters")
+    return note, note.strip()
+
+
 def settings(slug: str, body: dict, now: int | None = None) -> dict:
     """The host's poll settings: split the days or not, the CROP -- the first
     and last week anyone can pick -- and, optionally, the poll's TITLE. On a
@@ -76,9 +87,10 @@ def settings(slug: str, body: dict, now: int | None = None) -> dict:
         raise VoteError(400, "halves must be true or false")
     lo, hi = _crop(body)
     fields = {"kind": "settings", "halves": halves, "from": lo, "to": hi}
-    title, clean = _title(body)
-    if title is not None:
-        fields["title"] = title   # signed as sent
+    # the optional texts ride along only when the host changed them, signed as
+    # sent and stored cleaned
+    texts = {k: v for k, v in (("title", _title(body)), ("note", _note(body))) if v[0] is not None}
+    fields.update({k: sent for k, (sent, _) in texts.items()})
     key, pub, ts = _check(slug, body, fields, now)
     try:
         with store.edit(slug) as poll:
@@ -94,8 +106,7 @@ def settings(slug: str, body: dict, now: int | None = None) -> dict:
                 for v in poll["voters"].values():
                     v["slots"] = [x for x in v["slots"] if lo <= x[:10] <= hi]
             poll.update(halves=halves, **{"from": lo, "to": hi})
-            if title is not None:
-                poll["title"] = clean
+            poll.update({k: clean for k, (_, clean) in texts.items()})
     except KeyError:
         raise VoteError(404, "no such poll") from None
     return {"halves": halves, "from": lo, "to": hi}

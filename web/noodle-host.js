@@ -40,9 +40,11 @@ function ndhSync(pub) {
 // The title's host-only marks: the dotted "you can edit me" line, and a red
 // squiggle while it is still the placeholder.
 function ndhTitleMarks(role) {
-  var t = ndh$('nd-title'), host = role === 'host' || role === 'fresh';
+  var t = ndh$('nd-title'), n = ndh$('nd-note'), host = role === 'host' || role === 'fresh';
   t.classList.toggle('editable', host);
   t.classList.toggle('untitled', host && t.textContent.trim() === 'untitled noodle');
+  // the NOTE under it wears the same "you can edit me" line
+  n.classList.toggle('editable', host);
 }
 
 // The split box sits on the calendar's FIRST row -- the past week drawn above
@@ -106,42 +108,64 @@ async function ndhSend(path, fields, ts) {
 // needs the passphrase until then. -> {ok, sent}; sent = the next request
 // needs a newer ts.
 async function ndhCommitSettings(ts) {
-  if (NDV.pendingHalves == null && NDV.pendingCrop === undefined && NDV.pendingTitle === undefined) return { ok: true };
+  if (NDV.pendingHalves == null && NDV.pendingCrop === undefined && NDV.pendingTitle === undefined &&
+      NDV.pendingNote === undefined) return { ok: true };
   var c = ndhCrop(), f = { kind: 'settings', halves: ndhHalves(), from: c ? c.from : null, to: c ? c.to : null };
   if (NDV.pendingTitle !== undefined) f.title = NDV.pendingTitle;
+  if (NDV.pendingNote !== undefined) f.note = NDV.pendingNote;
   var res = await ndhSend('/settings', f, ts);
-  if (res.ok) { NDV.pendingHalves = null; NDV.pendingCrop = undefined; NDV.pendingTitle = undefined; res.sent = true; }
+  if (res.ok) {
+    NDV.pendingHalves = null; NDV.pendingCrop = undefined; NDV.pendingTitle = undefined; NDV.pendingNote = undefined;
+    res.sent = true;
+  }
   return res;
 }
 
-// The TITLE: the host taps it and types; Enter (or tapping away) ends the
-// edit, and like the split and the crop it is sent with Commit.
-function ndhTitleTap() {
-  var el = ndh$('nd-title'), pub = ndvReady() ? ndvPub() : null, role = ndhRole(pub);
-  if ((role !== 'host' && role !== 'fresh') || el.isContentEditable) return;
-  el.contentEditable = 'plaintext-only';
-  el.focus();
-  // the whole title selected: a placeholder like "click me to name me" is typed over
-  var r = document.createRange();
-  r.selectNodeContents(el);
-  window.getSelection().removeAllRanges();
-  window.getSelection().addRange(r);
+// The TITLE and the NOTE under it, one mechanism: the host taps one and types;
+// Enter (or tapping away) ends the edit, and like the split and the crop it
+// is sent with Commit. The title may not be emptied (it snaps back); the note
+// may (that clears it).
+var NDH_TEXT = {
+  title: { el: 'nd-title', pending: 'pendingTitle', empty: false },
+  note: { el: 'nd-note', pending: 'pendingNote', empty: true },
+};
+
+function ndhTextTap(k) {
+  return function () {
+    var el = ndh$(NDH_TEXT[k].el), role = ndhRole(ndvReady() ? ndvPub() : null);
+    if ((role !== 'host' && role !== 'fresh') || el.isContentEditable) return;
+    el.contentEditable = 'plaintext-only';
+    el.focus();
+    // all of it selected: a placeholder like "untitled noodle" is typed over
+    var r = document.createRange();
+    r.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(r);
+  };
 }
 
-function ndhTitleEdit() {
-  var t = ndh$('nd-title').textContent.split(/\s+/).filter(Boolean).join(' ');
-  NDV.pendingTitle = t && t !== NDV.poll.title ? t : undefined;
-  ndhTitleMarks(ndhRole(ndvReady() ? ndvPub() : null));
-  ndvSaveDraft();   // marks it unsaved
+function ndhTextEdit(k) {
+  return function () {
+    var t = ndh$(NDH_TEXT[k].el).textContent.split(/\s+/).filter(Boolean).join(' ');
+    var saved = NDV.poll[k] || '';
+    NDV[NDH_TEXT[k].pending] = (t || NDH_TEXT[k].empty) && t !== saved ? t : undefined;
+    ndhTitleMarks(ndhRole(ndvReady() ? ndvPub() : null));
+    ndvSaveDraft();   // marks it unsaved
+  };
 }
 
-function ndhTitleDone(e) {
-  var el = ndh$('nd-title');
-  if (e.type === 'keydown' && e.key !== 'Enter') return;
-  if (e.type === 'keydown') e.preventDefault();
-  el.contentEditable = 'false';
-  if (!el.textContent.trim()) { el.textContent = NDV.poll.title; ndhTitleEdit(); }
-  el.blur();
+function ndhTextDone(k) {
+  return function (e) {
+    var el = ndh$(NDH_TEXT[k].el);
+    if (e.type === 'keydown' && e.key !== 'Enter') return;
+    if (e.type === 'keydown') e.preventDefault();
+    el.contentEditable = 'false';
+    if (!el.textContent.trim()) {
+      el.textContent = NDH_TEXT[k].empty ? '' : NDV.poll[k];
+      ndhTextEdit(k)();
+    }
+    el.blur();
+  };
 }
 
 async function ndhRemove(e) {
@@ -158,11 +182,13 @@ async function ndhRemove(e) {
   if (!ndh$('nd-split')) return;
   ndh$('nd-split').addEventListener('change', ndhSplitChange);
   ndh$('nd-voters').addEventListener('click', ndhRemove);
-  var t = ndh$('nd-title');
-  t.addEventListener('click', ndhTitleTap);
-  t.addEventListener('input', ndhTitleEdit);
-  t.addEventListener('keydown', ndhTitleDone);
-  t.addEventListener('blur', ndhTitleDone);
+  Object.keys(NDH_TEXT).forEach(function (k) {
+    var t = ndh$(NDH_TEXT[k].el);
+    t.addEventListener('click', ndhTextTap(k));
+    t.addEventListener('input', ndhTextEdit(k));
+    t.addEventListener('keydown', ndhTextDone(k));
+    t.addEventListener('blur', ndhTextDone(k));
+  });
   window.ndhSync = ndhSync;
   window.addEventListener('resize', ndhPlaceSplit);
   window.ndhRole = ndhRole;
