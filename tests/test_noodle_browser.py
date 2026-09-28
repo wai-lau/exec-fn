@@ -190,7 +190,7 @@ def test_draft_is_local_until_submit_then_only_signed_data_is_sent(browser, base
         # and every OTHER draft this poll held is gone too (a stale one would
         # beat the saved picks the next time its seal matched)
         assert page.evaluate(f"Object.keys(localStorage).filter(k => k.startsWith('noodle.draft.{noodle_slug}.')).length") == 0
-        assert page.inner_text("#nd-submit") == "Commit" and not page.is_visible("#nd-dirty")
+        assert page.inner_text("#nd-submit") == "Commit" and page.inner_text("#nd-dirty") == "all changes saved"
     finally:
         ctx.close()
 
