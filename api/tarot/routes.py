@@ -17,6 +17,7 @@ from tarot.agent import stream_chat
 from tarot.cards import CARDS, CARDS_BY_ID
 from tarot.prompt import build_system
 from tarot.spreads import SPREADS
+from tarot.state_echo import scrub_state_echo
 
 router = APIRouter()
 
@@ -128,12 +129,14 @@ def _build_spread_preamble(spread: SpreadContext | None, phase1_count: int | Non
             lines.append(
                 f"[State: Phase 1 turn count = {phase1_count} of {_PHASE1_MIN} minimum. "
                 f"You may NOT call `set_significator` yet. Your response MUST be a single open Phase 1 question (≤30 words). "
-                f"The exit clause does not activate until count >= {_PHASE1_MIN}.]"
+                f"The exit clause does not activate until count >= {_PHASE1_MIN}. "
+                f"This note is private: never quote or repeat it.]"
             )
         else:
             lines.append(
                 f"[State: Phase 1 turn count = {phase1_count} (>= {_PHASE1_MIN} minimum). "
-                f"Exit clause is now eligible — if the picture is solid, take the exit turn now: declare the court card, call `set_significator`, ask the Phase 2 opening question.]"
+                f"Exit clause is now eligible — if the picture is solid, take the exit turn now: declare the court card, call `set_significator`, ask the Phase 2 opening question. "
+                f"This note is private: never quote or repeat it.]"
             )
     if spread.type is None:
         return "\n".join(lines) if lines else None
@@ -160,6 +163,7 @@ async def _stream(spread: SpreadContext | None, messages: list) -> AsyncGenerato
     spread_type = spread.type if spread else None
     system = build_system(spread_type)
 
+    messages = scrub_state_echo(messages)
     full_messages = list(messages)
     phase1_count = _count_phase1_answers(messages) if (spread is None or not spread.significator) else None
     preamble = _build_spread_preamble(spread, phase1_count=phase1_count)

@@ -2673,6 +2673,8 @@ Those used to be `.msg.sys` lines in the chat scrollback. Now `setStatus()` (tar
 
 **The deal turn's last two lines are likewise unrendered.** `drawSpread` still pushes the `[drew a … spread; N cards face-down]` state record and the frontend-owned flip invite ("When you're ready, turn the **Situation**.") into `messages` — the model needs the deal state and its own invite for continuity — but neither reaches the scrollback, so the chat ends on "…let me set the cards." with the face-down cards saying the rest. `isHiddenLine()` (tarot-view.js) is the shared predicate, and `tarot-chat.js`'s reload replay skips the same two, so a refresh cannot resurrect them.
 
+**The reader's `[State: …]` note never reaches the querent.** `routes._build_spread_preamble` hands the model a per-turn Phase 1 turn-count note; the model sometimes parroted it as its reply's first line ("[State: Phase 1 turn count = 5.] You've said enough…", 2026-09-27). The note now says it is private, and `tarot/state_echo.py` is the guarantee: `StateEchoFilter` swallows a leading `[State: …]` per round in `agent.stream_chat` (holding text only while it could still be that prefix), and `scrub_state_echo` strips it from stored reader turns in incoming history, since an echo left in localStorage teaches the reader to keep echoing. Pinned by `tests/test_tarot_state_echo.py`.
+
 The pre-reading `begin-hint` ("tap anywhere to begin the reading") centers vertically in the empty terminal — a `#terminal:has(.begin-hint)::before{flex:0}` neutralizes chat.css's bottom-anchoring flex spacer.
 
 ### 14a-ii. The cards: the outline hugs the picture, and a turned card turns at once
