@@ -166,7 +166,11 @@ function ndcSlotAt(cell, e, halves) {
 // re-measured on resize, since a fixed height would clip a row mid-way.
 var NDC_VISIBLE = 6;
 
-function ndcCapHeight(scroller, grid) {
+// Only an ENDLESS calendar (the host's) is capped to NDC_VISIBLE weeks and
+// scrolls; a bounded one -- a guest's, just the host's offer -- shows every
+// week at once, with no scroll inside the page's own.
+function ndcCapHeight(scroller, grid, endless) {
+  if (!endless) { scroller.style.maxHeight = 'none'; return; }
   var head = grid.querySelector('.nd-hd'), row = grid.querySelector('.nd-wk');
   if (!head || !row) return;
   scroller.style.maxHeight = (head.offsetHeight + NDC_VISIBLE * row.offsetHeight) + 'px';
@@ -295,10 +299,10 @@ function NoodleCal(wrap, opts) {
       if (weeks.length < NDC_MAX) addWeeks(NDC_MORE);
     });
   }
-  ndcCapHeight(scroller, grid);
+  ndcCapHeight(scroller, grid, endless);
   // the GRID too: a scrollbar arriving narrows the grid inside an unchanged
   // scroller, and month lines drawn before that sat right of their gaps
-  ndcOnWidth([scroller, grid], function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid); });
+  ndcOnWidth([scroller, grid], function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid, endless); });
 
   return {
     scroller: scroller,

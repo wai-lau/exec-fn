@@ -3673,7 +3673,9 @@ caption claims `<name>'s seal of approval` only once the seal is made and is
 that name's (`checking the seal...` meanwhile); the passphrase label reads
 `(required)` for a name already on the poll, `(optional)` for a new one, and
 its hint `please enter your passphrase` / `you'll need this to change your vote`.
-A guest's calendar covers only the weeks the host offered (never endless),
+A guest's calendar covers only the weeks the host offered (never endless) and
+shows them ALL at once -- no scroll inside the page (`ndcCapHeight` caps only
+the host's endless calendar to six weeks),
 and a guest sees no vote dots on a day the host did not offer.
 
 **Reviewed adversarially (2026-09-27)** and fixed: the crop is re-checked
