@@ -1,4 +1,4 @@
-"""Noodle's HTML. Its own shell (api/templates/noodle-shell.html), NOT the
+"""noodle's HTML. Its own shell (api/templates/noodle-shell.html), NOT the
 site's page composer -- no nav, no Exec bubble, no CRT stack, and no import of
 the app's pages module. It links /chrome.css only for the palette + scale
 tokens, which are CSS, not code."""

@@ -1,4 +1,4 @@
-// Noodle owner page: create a poll (a title; creating goes straight to it),
+// noodle owner page: create a poll (a title; creating goes straight to it),
 // list the polls, delete one (asked first -- it takes every vote with it).
 
 function ndmEsc(s) {
@@ -12,19 +12,21 @@ async function ndmList() {
   if (!r.ok) return;
   var d = await r.json();
   document.getElementById('nd-polls').innerHTML = d.polls.map(function (p) {
-    return '<li><a href="/noodle/' + p.slug + '">' + ndmEsc(p.title) + '</a> ' +
-      '<span class="nd-dim">' + p.voters + ' voters</span> ' +
-      '<button type="button" class="nd-face-rm nd-del" data-slug="' + p.slug + '" data-title="' +
-      ndmEsc(p.title) + '">delete</button></li>';
-  }).join('') || '<li class="nd-dim">no polls yet</li>';
+    return '<tr><td><a href="/noodle/' + p.slug + '">' + ndmEsc(p.title) + '</a></td>' +
+      '<td>' + p.voters + '</td>' +
+      '<td>' + ndmEsc(String(p.created_at || '').slice(0, 16).replace('T', ' ')) + '</td>' +
+      '<td><button type="button" class="nd-face-rm nd-del" data-slug="' + p.slug + '" data-title="' +
+      ndmEsc(p.title) + '">delete</button></td></tr>';
+  }).join('') || '<tr><td colspan="4" class="nd-dim">no polls yet</td></tr>';
 }
 
 async function ndmCreate(e) {
   e.preventDefault();
-  var f = e.target, msg = document.getElementById('nd-msg');
+  var msg = document.getElementById('nd-msg');
   var r = await fetch('/api/noodle-polls', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: f.title.value }),
+    // no title to type: the host names it by tapping the title on the poll
+    body: JSON.stringify({ title: 'click me to name me' }),
   });
   var d = await r.json().catch(function () { return {}; });
   if (!r.ok) { msg.textContent = d.detail || 'could not create'; return; }

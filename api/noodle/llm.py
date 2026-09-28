@@ -1,4 +1,4 @@
-"""The minimal Haiku client Ask Noodle uses. Swappable in tests (`call`)."""
+"""The minimal Haiku client Ask noodle uses. Swappable in tests (`call`)."""
 import anthropic
 
 from noodle import config

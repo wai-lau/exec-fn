@@ -1,6 +1,7 @@
-<main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=2">
+<main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=3">
   <p id="nd-banner" class="nd-banner" role="alert" hidden></p>
   <h1 id="nd-title" class="nd-title" spellcheck="false">{{TITLE}}</h1>
+  <p class="nd-dirty nd-dirty-top" hidden>* unsaved changes</p>
 
   <section id="nd-who" class="nd-who" hidden>
     <ul id="nd-voters" class="nd-faces"></ul>
@@ -10,11 +11,11 @@
     <div class="nd-fields">
       <label class="nd-field"><span>name</span>
         <span class="nd-pass-row"><input id="nd-name" type="text" placeholder="please help the host know who you are" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="40"><button id="nd-rename" type="button" class="nd-rekey" hidden>change</button></span></label>
-      <label class="nd-field"><span class="nd-field-h"><span id="nd-pass-label">passphrase</span></span>
-        <span class="nd-pass-row"><input id="nd-pass" type="text" placeholder="please remember this identifier" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"><button id="nd-rekey" type="button" class="nd-rekey" hidden>change</button></span></label>
+      <label class="nd-field"><span class="nd-field-h"><span id="nd-pass-label">passphrase (optional)</span></span>
+        <span class="nd-pass-row"><input id="nd-pass" type="text" maxlength="128" placeholder="you'll need this to make changes" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"><button id="nd-rekey" type="button" class="nd-rekey" hidden>change</button></span></label>
     </div>
   </section>
-  <p id="nd-warn" class="nd-warn" hidden>no passphrase: anyone who types this name gets the same key, and can change your vote.</p>
+  <p id="nd-warn" class="nd-warn" hidden>no passphrase: anyone can change your vote</p>
 
   <div class="nd-teach-box">
     <div id="nd-teach" class="nd-teach" aria-live="polite"></div>
@@ -23,18 +24,18 @@
       <span id="nd-seal-cap" class="nd-seal-cap">your seal of approval</span>
     </div>
   </div>
+  <p id="nd-why" class="nd-why" aria-live="polite"></p>
 
   <p id="nd-status" class="nd-status" aria-live="polite"></p>
   <div id="nd-cal" class="nd-cal-wrap"></div>
   <label id="nd-split-row" class="nd-check nd-split" hidden><input id="nd-split" type="checkbox"> split each day into halves</label>
 
-  <p id="nd-dirty" class="nd-dirty" hidden>* unsaved changes</p>
   <button id="nd-submit" type="button" class="nd-submit">Commit</button>
-  <p id="nd-why" class="nd-why" aria-live="polite"></p>
-  <div class="nd-share nd-pass-row"><input id="nd-url" class="nd-url" type="text" readonly aria-label="link to this poll"><button id="nd-copy" type="button" class="nd-rekey" aria-label="copy link" title="copy link"></button></div>
+  <p id="nd-dirty" class="nd-dirty" hidden>* unsaved changes</p>
+  <div id="nd-share" class="nd-share nd-pass-row" hidden><input id="nd-url" class="nd-url" type="text" readonly aria-label="link to this poll"><button id="nd-copy" type="button" class="nd-rekey" aria-label="copy link" title="copy link"></button></div>
 
   <div class="nd-ask">
-    <label for="nd-ask" class="nd-ask-label">or ask Noodle</label>
+    <label for="nd-ask" class="nd-ask-label">or ask noodle</label>
     <div class="nd-ask-row">
       <textarea id="nd-ask" rows="5" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="every odd day of the month&#10;never tuesdays&#10;only at night if it's a prime number day&#10;only in the morning if it isn't a stat holiday in Quebec"></textarea>
       <button id="nd-ask-go" type="button" class="nd-ask-go" disabled>help me</button>
@@ -51,15 +52,16 @@
 </div>
 
 <script src="/qc-holidays.js?v=1"></script>
-<script src="/noodle-toggle.js?v=3"></script>
+<script src="/noodle-toggle.js?v=4"></script>
 <script src="/noodle-seal.js?v=5"></script>
-<script src="/noodle-cal.js?v=15"></script>
-<script src="/noodle-cal-view.js?v=35"></script>
-<script src="/noodle-kdf.js?v=4"></script>
-<script src="/noodle-roster.js?v=13"></script>
-<script src="/noodle-crop.js?v=14"></script>
-<script src="/noodle-vote.js?v=47"></script>
-<script src="/noodle-ask.js?v=18"></script>
-<script src="/noodle-host.js?v=8"></script>
-<script src="/noodle-rekey.js?v=6"></script>
-<script src="/noodle-share.js?v=3"></script>
+<script src="/noodle-cal.js?v=16"></script>
+<script src="/noodle-cal-view.js?v=36"></script>
+<script src="/noodle-kdf.js?v=5"></script>
+<script src="/noodle-roster.js?v=14"></script>
+<script src="/noodle-crop.js?v=16"></script>
+<script src="/noodle-seats.js?v=2"></script>
+<script src="/noodle-vote.js?v=55"></script>
+<script src="/noodle-ask.js?v=20"></script>
+<script src="/noodle-host.js?v=9"></script>
+<script src="/noodle-rekey.js?v=7"></script>
+<script src="/noodle-share.js?v=4"></script>

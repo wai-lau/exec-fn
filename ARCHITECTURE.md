@@ -27,7 +27,7 @@ Nine Mermaid views, generated from source (`api/*.py`, `docker-compose.yml`,
 6. [Printer](#6-printer-elegoo-centauri-carbon--two-tier-reverse-proxy) — the
    two-tier reverse proxy
 7. [`/cc`](#7-cc--claude-code-in-the-browser) — the sidecar topology
-8. [Noodle](#21-noodle--an-isolated-scheduling-poll) — the isolated poll and
+8. [noodle](#21-noodle--an-isolated-scheduling-poll) — the isolated poll and
    where the passphrase stops
 
 ---
@@ -3384,7 +3384,7 @@ PATCH `/api/rd` — Update rd.json (source query param: rd/Exec/hq/dirs). Atomic
 
 
 ---
-## 21. Noodle — an isolated scheduling poll
+## 21. noodle — an isolated scheduling poll
 
 A Doodle-style poll at `/noodle/<slug>`: slots are `(date, midday|night)`, no
 clock times. **Fully standalone**: the `api/noodle/` package imports stdlib,
@@ -3394,7 +3394,7 @@ own routes. It links `/chrome.css` for the palette + scale tokens only.
 
 ```mermaid
 flowchart LR
-  subgraph app["rest of the app (never imported by Noodle)"]
+  subgraph app["rest of the app (never imported by noodle)"]
     routers["routers.py<br/>(composition root)"]
     auth["auth.py"]
     planner["helpers / chat / nudge / morning / tts ..."]
@@ -3430,7 +3430,7 @@ flowchart LR
 (`secrets.token_urlsafe(16)`, 22 chars) is the only access control for voting,
 and the slug is validated to exactly that shape before it becomes a path. Creating
 and listing polls (`/noodle`, `/api/noodle-polls`) is owner-only **because
-`routers.py` mounts `owner_router` on `protected`** — Noodle itself carries no
+`routers.py` mounts `owner_router` on `protected`** — noodle itself carries no
 auth and imports none; `tests/test_admin_only.py` enumerates those routes like
 any other. Bodies are capped (`BODY_MAX_*`, checked on the declared length and
 on the bytes read). Pages send `noindex` + `Referrer-Policy: no-referrer`, so a
@@ -3503,7 +3503,7 @@ server does not know yet); a crop is local until Commit, so it needs no key.
 The whole Commit runs inside one try, so a request cut off mid-way (a reload:
 WebKit's `Load failed`) lands in the banner instead of an unhandled rejection.
 
-**Ask Noodle works on the PAGE's state, never the server's.** The page sends
+**Ask noodle works on the PAGE's state, never the server's.** The page sends
 the days it can pick right now (`ndaDays`: the host's crop lines, else every
 loaded day not past, not outside the crop and -- for a guest -- offered by the
 host) plus whether days are split; `noodle/ask.py` applies the rules to exactly
@@ -3516,7 +3516,7 @@ to the host's SAVED days, filling 0. Pinned by
 An answer REPLACES the grid, except one that fills nothing: then the picks
 stay and the page says nothing matched. No name is needed to ask.
 
-**Ask Noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
+**Ask noodle.** `llm.call` is one `claude-haiku-4-5` request with a FORCED tool
 (`select_slots`) that returns **a one-sentence `reading` and an ordered list of
 RULES -- never dates**. `noodle/rules.py` applies the rules to every window date
 in code: `{"action": add|remove, "blocks": [...], "where": <cond>}` on an empty
@@ -3532,7 +3532,7 @@ nights, days that are prime and fibonacci all day, day if stat holiday" lit the
 9th/15th/25th/27th and missed the 8th and 11th. As rules the model lists
 `{"day": [2, 3, 5, 13]}` ONCE and code does the checking, so the grid is exact
 for whatever the rules say; 2-3s per ask against 5-9s. **The `reading` is shown
-to the voter** ("Noodle read that as: ...") because the remaining failure is
+to the voter** ("noodle read that as: ...") because the remaining failure is
 ambiguous English ("prime and fibonacci": both or either?), which only the
 voter can judge. The prompt lists the window's dates (for explicit ones like
 "the 23rd") with Quebec holidays (`noodle/holidays.py`, a Python mirror of
@@ -3541,7 +3541,7 @@ day/morning/afternoon to midday and evening/night to night. `ASK_MAX_TOKENS` is
 1024; a truncated answer raises `llm.Truncated` -> 422. The result only fills
 the grid for review, never submits. **Limits are RATE
 limits, never lifetime caps** (a lifetime cap left a busy poll's box reading
-"Noodle is out of answers" for good): rolling windows, all in memory, checked
+"noodle is out of answers" for good): rolling windows, all in memory, checked
 and recorded under one lock BEFORE the call -- `ASK_POLL_RATE` 60/hour per
 poll and `ASK_IP_RATE` 60/hour per IP. There is no per-person window: asking
 needs no name, and a key is free to mint, so a per-key limit limited nothing. A refused ask is not recorded, so a window refills on time. A 429
@@ -3555,8 +3555,8 @@ Thursday; the voter reviews the grid before anything is signed.)
 **The dotted box** is the recipe, never the values -- `salt = sha256(poll,
 name)`, `seal = argon2id(passphrase, salt) ──>`, `commit() ──> stamp(
 availabilities, seal)` -- recipe and seal centred as ONE group, the seal at the
-voter row's size with its caption on a row of its own, right-aligned to the
-seal's right edge (the box is a 2-column grid, `.nd-seal-box` is `display:
+voter row's size with its caption on a row of its own, right-aligned under
+the seal (the box is a 2-column grid, `.nd-seal-box` is `display:
 contents`). The argon2id line's
 arrow is a clipped shaft of U+2500 that FILLS whatever width the recipe's
 longest line leaves (`contain: inline-size`, so the fill itself never widens
@@ -3577,11 +3577,12 @@ localStorage (`noodle.blankSeal`), so it is the same face every visit -- and mid
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
-**Owner page** (`/noodle`): creating a poll goes straight to it; each poll has
+**Owner page** (`/noodle`): one `create poll` button (no title to type -- the poll starts as `new poll` and the host renames it by tapping the title) that goes straight to the new poll; the polls are a table (poll, voters, created); each poll has
 a delete button that asks first (`DELETE /api/noodle-polls/{slug}`, owner-only,
 `store.delete`).
 
-**The poll's link** sits under Commit as TEXT in a read-only box (not a link) with a copy-icon button (U+F0C5, added to `noodle-seal.woff2`; a check once copied)
+**The poll's link** (shown only once the host has committed at least one
+available time -- before that there is nothing to share) sits under Commit as TEXT in a read-only box (not a link) with a copy-icon button (U+F0C5, added to `noodle-seal.woff2`; a check once copied)
 (`web/noodle-share.js`; falls back to selecting the link where the clipboard is
 refused): the link is the only key to the poll, so sharing it is the next
 thing a host does.
@@ -3591,14 +3592,38 @@ A guest's name in the voter row wraps onto as many lines as it needs; the host's
 **The page scrolls in `.page-scroll`** (chrome.css), not the document: a
 root scrollbar is top-layer and paints over the CRT stack.
 
-**Lines are 2px** throughout Noodle (borders, the dotted box, the split slash):
+**Lines are 2px** throughout noodle (borders, the dotted box, the split slash):
 1px hairlines broke up under the CRT scanlines.
 
-**Chrome.** The shell carries the site's CRT stack written out (Noodle cannot
+**Chrome.** The shell carries the site's CRT stack written out (noodle cannot
 import pages.py's `_CRT_FX`), dimmed with `crt-dim.css` like the other dense
 pages. The owner nav has an `NDL` entry to `/noodle` with the Buzzbomb icon,
 traced by `scripts/trace-icons.py` from `web/buzzbomb.png` (the nightfall
 program art) like every other nav icon.
+
+**Read-only until the key is yours.** The calendar and Ask take no input
+until the key is made AND, for a name already on the poll, it is that name's
+(`ndvSyncLock`): they go grey (`.nd-off`) but the calendar still SCROLLS (no
+`inert` -- taps and crop drags check `.nd-readonly`). Typing a voter's name
+used to flash the grid editable for the second the key took to derive. The
+caption claims `<name>'s seal of approval` only once the seal is made and is
+that name's (`checking the seal...` meanwhile); the passphrase label reads
+`(required)` for a name already on the poll, `(optional)` for a new one, and
+its hint `please enter your passphrase` / `you'll need this to make changes`.
+A guest's calendar covers only the weeks the host offered (never endless),
+and a guest sees no vote dots on a day the host did not offer.
+
+**Reviewed adversarially (2026-09-27)** and fixed: the crop is re-checked
+INSIDE the lock (the pre-lock check read a copy a concurrent narrowing could
+stale); a host dropping a time drops it from every guest's vote (the dots
+showed agreement on times no longer offered); every refused Commit step
+reloads the poll (a lost host race or a moved crop otherwise failed the same
+way forever); `fsync` before the rename; passphrase capped at 128 chars; a
+calendar rebuild no longer saves an empty "draft" that hid a returning
+voter's stored picks. Known and accepted: an owner key-reset of the HOST's
+name lets the next signer claim host (the reset is owner-only and
+deliberate); one process-wide lock for all polls (no correctness issue);
+the passphrase is shown in the clear (deliberate: it is proofread).
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever
@@ -3685,16 +3710,18 @@ paints on top, and cells of weeks loaded after it once painted over its grips.
 5px borders, and a separate layer rounds independently of them, so at some
 widths and zooms (fractional DPR, e.g. Windows at 175%) the line drifted a
 device pixel or two off its gap. A segment is laid out with the box whose
-border it sits on, so it snaps with it. The ink is OPAQUE (full green dimmed by
-`filter: brightness(0.45)`, the old 0.45-over-black tone) so neighbouring
-pieces can overlap by a pixel -- translucent joins showed as seams. Ask Noodle can crop for a host. A fresh poll starts cropped to this week
+border it sits on, so it snaps with it. The ink is OPAQUE BLUE (full cyan dimmed
+by `filter: brightness(0.7)` -- blue so a month edge never reads as a crop or a
+pick) so neighbouring
+pieces can overlap by a pixel -- translucent joins showed as seams. Ask noodle can crop for a host. A fresh poll starts cropped to this week
 and the next two (`NDX_SPAN`), pending so the host's first Commit saves it; days
 a drag brings INTO the crop start available for the host. The host can also
 RETITLE the poll by tapping the title (contenteditable); like the split and the
 crop it is sent with Commit, as an optional signed `title` in `/settings`.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
 
-**The host's calendar is the offer.** A host with nothing committed and no
+**The host's calendar is the offer**, so the host cannot Commit with nothing
+picked (the reason shows under Commit). A host with nothing committed and no
 draft starts with EVERY open day inside the crop picked (`ndvHostDefault`,
 once, never over their own choices) and unpicks what is not on offer; on the
 host's grid (`.nd-grid.host`) a day NOT picked is grey and struck, like a
@@ -3719,7 +3746,7 @@ GREY when none is (`ndcTintMarks`, re-run on every paint, since the host's
 offer changes availability without any week being added). Dimmed with `opacity`,
 since the palette has no step between 0.12 and 0.45. Quebec statutory holidays
 are coloured like weekends (cyan; `.hol`, from /rd's `web/qc-holidays.js`, a
-browser script -- Noodle's Python keeps its own mirror). The scroller shows at most 6
+browser script -- noodle's Python keeps its own mirror). The scroller shows at most 6
 weeks: the cap is measured from a real row (`ndcCapHeight`), not guessed. More
 weeks load when the bottom is near, by a scroll check as well as the
 sentinel's IntersectionObserver: the observer fires only on a visibility
@@ -3818,11 +3845,11 @@ colour-function literal ever appears in source; `.inked` marks a seal that has
 one. The same ink colours that voter's dots.
 The passphrase field is plain text and the teaching line shows it verbatim: it is
 the voter's own screen, and it still never leaves the browser. **Every
-non-ASCII glyph Noodle draws is single-width**: the site's woff2 is a 126-glyph
+non-ASCII glyph noodle draws is single-width**: the site's woff2 is a 126-glyph
 ASCII subset with none of them, so `web/fonts/noodle-seal.woff2` (4.7KB, cut from
 the full Mayukai TTF) carries exactly the extras under the family
 `'Noodle Glyphs'` with a `unicode-range`. `tests/test_noodle_glyphs.py` scans
-every Noodle source (literals and `\uXXXX` escapes) and fails on a glyph missing
+every noodle source (literals and `\uXXXX` escapes) and fails on a glyph missing
 from that font, one whose advance is not `M`'s, any emoji or variation selector,
 or a `unicode-range` that drifts from the font — then measures the RENDERED width
 of each in WebKit.

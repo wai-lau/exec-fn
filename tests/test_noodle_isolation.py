@@ -1,4 +1,4 @@
-"""Noodle is standalone: it imports no other app module, and its storage
+"""noodle is standalone: it imports no other app module, and its storage
 touches only its own directory.
 
 1. Import graph -- every `import`/`from` in api/noodle/** is parsed (AST, not
@@ -67,11 +67,11 @@ def test_noodle_imports_no_app_module():
             top = mod.split(".")[0]
             if top in app:
                 bad.append(f"{f.relative_to(API)}:{line} imports {mod}")
-    assert not bad, "Noodle must stay standalone:\n" + "\n".join(bad)
+    assert not bad, "noodle must stay standalone:\n" + "\n".join(bad)
 
 
 def test_nothing_named_or_voiced_as_exec():
-    """No Exec persona, no GLaDOS, no TTS anywhere in Noodle's surface."""
+    """No Exec persona, no GLaDOS, no TTS anywhere in noodle's surface."""
     roots = [API / "noodle", API / "templates", API.parent / "web"]
     files = [p for r in roots for p in r.rglob("*") if p.is_file()
              and p.name.startswith(("noodle", "__init__", "config", "ask", "llm", "pages",
@@ -147,5 +147,5 @@ def test_storage_touches_only_its_own_dir(noodle_env, monkeypatch):
     assert audit.paths, "audit recorded nothing -- the wrappers are not in the path"
     root = os.path.abspath(noodle_env)
     outside = [p for p in audit.paths if not (p == root or p.startswith(root + os.sep))]
-    assert not outside, f"Noodle touched paths outside its dir: {outside}"
+    assert not outside, f"noodle touched paths outside its dir: {outside}"
     assert all(p.parent.name == "polls" for p in noodle_env.rglob("*.json"))

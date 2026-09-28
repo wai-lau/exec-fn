@@ -1,5 +1,5 @@
-// Noodle voter page: identity -> key -> seal, the calendar, and the signed
-// submit (Ask Noodle lives in noodle-ask.js). The passphrase never leaves the
+// noodle voter page: identity -> key -> seal, the calendar, and the signed
+// submit (Ask noodle lives in noodle-ask.js). The passphrase never leaves the
 // browser: it goes to the key worker (noodle-kdf-worker.js) and nowhere else;
 // the server receives the public key, the slots and a signature over them.
 
@@ -31,8 +31,10 @@ function ndvSaveDraft() {
 function ndvRestoreDraft() {
   try {
     var d = JSON.parse(localStorage.getItem(ndvDraftKey()) || 'null');
-    if (!d) return;
-    if (Array.isArray(d.slots)) NDV.cal.setSel(new Set(d.slots));
+    // an EMPTY draft is not one: a rebuild used to save those, and one would
+    // hide the voter's stored vote on every return
+    if (!d || !(Array.isArray(d.slots) && d.slots.length)) return;
+    NDV.cal.setSel(new Set(d.slots));
     if (typeof d.ask === 'string') ndv$('nd-ask').value = d.ask;
     NDV.hasDraft = true;
     NDV.draftRestored = true;   // the host default must not overwrite a draft someone left
@@ -42,6 +44,7 @@ function ndvRestoreDraft() {
 function ndvClearDraft() {
   try { localStorage.removeItem(ndvDraftKey()); } catch (e) { /* ignore */ }
   NDV.hasDraft = false;
+  NDV.draftRestored = false;
 }
 
 function ndv$(id) { return document.getElementById(id); }
@@ -95,6 +98,10 @@ function ndvWhyNot() {
   if (NDV.taken) return '"' + NDV.taken + '" is already taken.';
   if (NDV.keyError) return 'this browser could not make a key.';
   if (!ndvReady()) return 'making your key...';
+  // the host's picks ARE the offer: committing none would leave guests nothing
+  if (window.ndxIsHost && window.ndxIsHost() && NDV.cal && !NDV.cal.getSel().size) {
+    return 'pick at least one available time -- guests can only pick from yours.';
+  }
   return '';
 }
 
@@ -117,7 +124,8 @@ function ndvSyncSubmit(busy) {
   var btn = ndv$('nd-submit');
   btn.disabled = !!why;
   btn.textContent = dirty ? 'Commit*' : 'Commit';
-  ndv$('nd-dirty').hidden = !dirty;
+  // said twice: under the title (seen first) and under Commit (where it is acted on)
+  document.querySelectorAll('.nd-dirty').forEach(function (el) { el.hidden = !dirty; });
   ndv$('nd-why').textContent = why;
   ndvSyncLock();
   if (window.ndrSync) window.ndrSync();
@@ -127,11 +135,18 @@ function ndvSyncSubmit(busy) {
 // the faces, which are a way to pick a different name): the calendar, its
 // toggles, Ask and Commit go grey and inert. Editing the name to one nobody
 // holds re-derives the key and unlocks it -- NDV.blocked is recomputed then.
+// And whether the calendar and Ask take input at all: only once the key is
+// made AND, for a name already on the poll, it is that name's key. Before
+// that the calendar is read-only -- it still SCROLLS (so no `inert`), but taps
+// and crop drags do nothing (.nd-readonly, checked by noodle-cal-view.js and
+// noodle-crop.js). Typing a voter's name used to flash the grid editable for
+// the second the key took to derive.
 function ndvSyncLock() {
-  var locked = !!NDV.blocked;
+  var locked = !!NDV.blocked, open = ndvReady() && !locked && !(NDV.held && !NDV.mine);
   ndv$('noodle').classList.toggle('nd-locked', locked);
-  ndv$('nd-cal').inert = locked;
-  ndv$('nd-ask').closest('.nd-ask').inert = locked;
+  ndv$('noodle').classList.toggle('nd-off', !open);
+  ndv$('nd-cal').classList.toggle('nd-readonly', !open);
+  ndv$('nd-ask').closest('.nd-ask').inert = !open;
   ndvSealCaption();
 }
 
@@ -162,12 +177,15 @@ function ndvRefreshBinding(pub) {
     NDV.cal.setAllowed(host && !iHost ? host.slots : null, !!pub);
   }
   if (window.ndhSync) window.ndhSync(pub);
+  // the link is worth sharing only once the host has offered something
+  ndv$('nd-share').hidden = !(host && host.slots.length);
   // becoming (or ceasing to be) the host changes the calendar: endless with
   // crop handles, or just the crop. ndvEnsureCal returns at once if not.
   if (!NDV.inEnsure) { NDV.inEnsure = true; ndvEnsureCal(); NDV.inEnsure = false; }
   // the blocking name, for the reason under submit (ndvWhyNot)
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
   NDV.mine = !!(mine && pub && mine.pub === pub);
+  NDV.held = !!(mine && mine.pub);   // the typed name belongs to someone
   NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
   ndvRenderRoster(pub, iHost, typed);
   ndvHostDefault();
@@ -184,76 +202,6 @@ function ndvRefreshBinding(pub) {
     ndvStatus('');
   }
   ndvSyncSubmit();
-}
-
-// A HOST starts with every day inside the crop AVAILABLE, and unpicks what
-// is not: offering most of a range is the common case, and it is what every
-// guest picks from. Only for a host with nothing committed and no draft --
-// once, never over their own choices.
-function ndvHostDefault() {
-  if (NDV.defaulted || !NDV.cal || NDV.draftRestored || NDV.mine || !window.ndxIsHost || !window.ndxIsHost()) return;
-  var rows = NDV.cal.rows();
-  if (!rows.length || !window.NDX) return;
-  NDV.defaulted = true;
-  NDV.cal.setSel(NDV.cal.openSlots(NDV.cal.weekOf(NDX.a)[0], NDV.cal.weekOf(Math.min(NDX.b, rows.length - 1))[6]));
-}
-
-// Does the typed name belong to a voter already? (Then it is not a new seat.)
-function ndvNameTaken(typed) {
-  return !!typed && (NDV.poll ? NDV.poll.voters : []).some(function (v) {
-    return window.noodleNormName(v.name) === typed;
-  });
-}
-
-// The "could be you" seat's seal: random, made ONCE per browser and kept, so
-// the placeholder face is the same every visit instead of reshuffling.
-var NDV_BLANK = '__could_be_you__';
-function ndvBlankSeal() {
-  var k = 'noodle.blankSeal', id = null;
-  try { id = localStorage.getItem(k); } catch (e) { /* blocked: a fresh one each load */ }
-  // a seed is 32 bytes (64 hex); a shorter one (an early version stored 16)
-  // reads past its end in the seal and throws, so it is replaced
-  if (!/^[0-9a-f]{64}$/.test(id || '')) {
-    id = Array.from(crypto.getRandomValues(new Uint8Array(32)), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-    try { localStorage.setItem(k, id); } catch (e) { /* not kept */ }
-  }
-  // the seal is drawn from 32 fingerprint bytes; these simply ARE them
-  return window.NoodleSeal.fromFp(new Uint8Array(id.match(/../g).map(function (h) { return parseInt(h, 16); })));
-}
-
-// A stored vote as the page shows it: under an unsaved split change it is
-// converted the way the server will convert it on Commit (a whole day counts
-// as BOTH halves), so nobody's dots vanish when the box is ticked.
-function ndvShown(slots) {
-  var set = new Set(slots);
-  return window.ndhHalves && window.ndhHalves() !== !!(NDV.poll && NDV.poll.halves)
-    ? ndhConvert(set, window.ndhHalves()) : set;
-}
-
-// The voters, plus -- for a key that has not committed under this name yet --
-// YOUR face as it would join them, redrawn whenever the seal changes. Mid
-// change (noodle-rekey.js) your own face already wears the NEW seal and name.
-function ndvRenderRoster(pub, iHost, typed) {
-  var voters = NDV.poll ? NDV.poll.voters : [], seals = NDV.seals;
-  if (NDV.mine && window.NDR && NDR.active) {
-    // mid change: your own face, with the name being typed and the newest seal
-    // (the last one while the next derives) -- never the empty seat
-    seals = Object.assign({}, seals);
-    if (NDV.seal || NDV.lastSeal) seals[pub] = NDV.seal || NDV.lastSeal;
-    voters = voters.map(function (v) { return v.pub === pub && typed ? Object.assign({}, v, { name: typed }) : v; });
-  } else if (pub && typed && NDV.seal && !NDV.mine && !NDV.blocked) {
-    seals = Object.assign({}, seals);
-    seals[pub] = NDV.seal;
-    voters = voters.concat([{ name: typed, pub: pub, slots: [], order: voters.length, pending: true }]);
-  } else if (!(pub && NDV.seal) && !ndvNameTaken(typed) && NDV.blankSeal) {
-    // an unmatched name with no seal yet (none typed, or the key still
-    // deriving): a seat saying so, wearing this browser's placeholder seal
-    seals = Object.assign({}, seals);
-    seals[NDV_BLANK] = NDV.blankSeal;
-    voters = voters.concat([{ name: 'could be you', pub: NDV_BLANK, slots: [], order: voters.length,
-      pending: true, blank: true }]);
-  }
-  window.NoodleRoster.render(ndv$('nd-voters'), voters, seals, pub, iHost);
 }
 
 function ndvOnStart(info) {
@@ -296,16 +244,27 @@ function ndvRestoreIdentity() {
 }
 
 // "<name>'s seal of approval", following the name field as it is typed.
+// It claims the seal only once the seal is MADE and is that name's: while
+// the key computes, or for a voter's name not yet unlocked, it says so.
 function ndvSealCaption() {
-  var name = ndv$('nd-name').value.trim().split(/\s+/).join(' ');
-  var who = name ? name + "'s" : 'your';
-  ndv$('nd-seal-cap').textContent = (NDV.blocked ? 'NOT ' : '') + who + ' seal of approval';
+  var name = ndv$('nd-name').value.trim().split(/\s+/).join(' '), cap = ndv$('nd-seal-cap');
+  if (NDV.blocked) cap.textContent = 'NOT ' + name + "'s seal of approval";
+  else if (!name) cap.textContent = 'your seal of approval';
+  else if (!ndvReady() || (NDV.held && !NDV.mine)) cap.textContent = 'checking the seal...';
+  else cap.textContent = name + "'s seal of approval";
+  // the passphrase is a choice for a new name, and the key to an existing one
+  ndv$('nd-pass-label').textContent = 'passphrase (' + (NDV.held ? 'required' : 'optional') + ')';
+  ndvWarnEmpty();   // who you are decides what the empty-passphrase warning says
 }
 
 // No passphrase = the name alone decides the key, so say so plainly.
+// For the HOST it is worse: the host's key runs the whole poll.
 function ndvWarnEmpty() {
-  var open = !!window.noodleNormName(ndv$('nd-name').value) && !ndv$('nd-pass').value;
-  ndv$('nd-warn').hidden = !open;
+  var open = !!window.noodleNormName(ndv$('nd-name').value) && !ndv$('nd-pass').value, el = ndv$('nd-warn');
+  el.hidden = !open;
+  el.textContent = window.ndxIsHost && window.ndxIsHost()
+    ? 'no passphrase: anyone can change the entire poll, what a chaotic host'
+    : 'no passphrase: anyone can change your vote';
 }
 
 // Names are lowercase as they are typed. Identity was ALREADY case-blind (the
@@ -380,16 +339,19 @@ async function ndvSubmit() {
     // split/crop (it converts every stored vote); each request is signed
     // strictly newer, as the server's replay check demands
     var rk = await ndrCommit(ts);
-    if (!rk.ok) { ndvStatus(rk.data.error || 'could not make the change', 'err'); return; }
+    if (!rk.ok) { ndvStatus(rk.data.error || 'could not make the change', 'err'); await ndvLoadPoll(); return; }
     if (rk.did) ts += 1;
     var set = await ndhCommitSettings(ts);
-    if (!set.ok) { ndvStatus(set.data.error || 'could not save the split, crop or title', 'err'); return; }
+    if (!set.ok) { ndvStatus(set.data.error || 'could not save the split, crop or title', 'err'); await ndvLoadPoll(); return; }
     if (set.sent) ts += 1;
     // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
     var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
+    // (every failure above reloads the poll: a refusal usually means someone
+    // else changed it -- took the host role, moved the crop -- and the page
+    // must show that rather than let the same Commit fail again)
     var sig = await NDV.kdf.sign(text);
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
-    if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); return; }
+    if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); await ndvLoadPoll(); return; }
     ndvClearDraft();
     ndvTeach('', NDV_SIGN_DONE);
     ndvApproved(NDV.seal, window.noodleNormName(name));
@@ -411,6 +373,8 @@ function ndvEnsureCal(force) {
   var p = NDV.poll;
   if (!p) return;
   var host = window.ndxIsHost ? window.ndxIsHost() : false, c = window.ndhCrop ? window.ndhCrop() : p.crop;
+  // a GUEST's calendar is only the weeks the host offered: never endless
+  if (!host) c = ndvOfferSpan(p) || c;
   var halves = window.ndhHalves ? window.ndhHalves() : p.halves;
   var key = halves + '|' + host + '|' + (c ? c.from + '..' + c.to : '');
   if (key === NDV.calKey && !force) return;
@@ -421,7 +385,9 @@ function ndvEnsureCal(force) {
   NDV.calKey = key;
   NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: halves, crop: c, endless: host,
     onChange: ndvSaveDraft, onRows: function () { if (window.ndxSync) window.ndxSync(); } });
-  if (keep) { NDV.cal.setSel(keep); ndvSaveDraft(); } else ndvRestoreDraft();
+  // a rebuild carries the picks over; it is not an edit, so it saves no draft
+  // (an empty one saved here used to beat the voter's stored vote on return)
+  if (keep) NDV.cal.setSel(keep); else ndvRestoreDraft();
   // grow back to where the reader was (a rebuild starts with a few weeks)
   for (var i = 0; i < 20 && NDV.cal.scroller.scrollHeight < scroll + NDV.cal.scroller.clientHeight; i++) NDV.cal.more();
   NDV.cal.scroller.scrollTop = scroll;

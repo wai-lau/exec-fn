@@ -1,10 +1,10 @@
-"""Every non-ASCII character Noodle can put on screen is single-width in the
+"""Every non-ASCII character noodle can put on screen is single-width in the
 monospace face, and none is an emoji.
 
 The seal is a 5x5 character grid and only reads as a square face if every
 cell is exactly one column wide. The site's own woff2 is a 126-glyph ASCII
-subset, so Noodle ships web/fonts/noodle-seal.woff2 with the extras. This
-pins, over EVERY Noodle source file (literal characters and \\uXXXX escapes
+subset, so noodle ships web/fonts/noodle-seal.woff2 with the extras. This
+pins, over EVERY noodle source file (literal characters and \\uXXXX escapes
 alike):
   - each non-ASCII codepoint is in noodle-seal.woff2,
   - its advance equals 'M' in the full Mayukai face it was cut from,
@@ -66,7 +66,7 @@ def test_sources_found():
 
 def test_no_emoji_or_variation_selectors():
     bad = {hex(cp): f for cp, f in used_codepoints().items() if _emoji(cp)}
-    assert not bad, f"emoji / variation selectors in Noodle: {bad}"
+    assert not bad, f"emoji / variation selectors in noodle: {bad}"
 
 
 def test_every_glyph_is_in_the_noodle_font():

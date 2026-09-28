@@ -32,6 +32,35 @@ def _in_crop(poll: dict, picked: list[str]) -> list[str]:
     return picked
 
 
+def _admit(poll: dict, prev, key: str, pub: str, ts: int, picked: list[str]):
+    """The checks that need the poll AS IT IS NOW (inside the lock). Returns
+    the host, as (name, record) or None."""
+    # an empty pub is a key the owner reset: the next signer re-binds it
+    if prev and prev["pub"] and prev["pub"] != pub:
+        raise VoteError(403, "that name is sealed with a different passphrase")
+    if prev and ts <= prev["ts"]:
+        raise VoteError(409, "stale or replayed submission")
+    # the crop again: the check before the lock read a copy a concurrent
+    # narrowing can have made stale
+    try:
+        _in_crop(poll, picked)
+    except ValueError as e:
+        raise VoteError(400, str(e)) from None
+    host = host_of(poll)
+    if host and host[0] != key and not set(picked) <= set(host[1]["slots"]):
+        raise VoteError(400, "only the times the host offered can be picked")
+    return host
+
+
+def _trim_guests(voters: dict, host_key: str, offer: list[str]) -> None:
+    """The HOST's picks are the offer: a time they drop is gone from every
+    guest's vote too, or the dots would show agreement on it."""
+    keep = set(offer)
+    for k, v in voters.items():
+        if k != host_key:
+            v["slots"] = [s for s in v["slots"] if s in keep]
+
+
 def submit(slug: str, body: dict, now: int | None = None) -> dict:
     """Validate + store one vote. Returns the stored voter record.
 
@@ -58,16 +87,7 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
     with store.edit(slug) as poll:
         voters = poll["voters"]
         prev = voters.get(key)
-        # an empty pub is a key the owner reset: the next signer re-binds it
-        if prev and prev["pub"] and prev["pub"] != pub:
-            raise VoteError(403, "that name is sealed with a different passphrase")
-        if prev and ts <= prev["ts"]:
-            raise VoteError(409, "stale or replayed submission")
-        host = host_of(poll)
-        if host and host[0] != key:
-            offered = set(host[1]["slots"])
-            if not set(picked) <= offered:
-                raise VoteError(400, "only the times the host offered can be picked")
+        host = _admit(poll, prev, key, pub, ts, picked)
         rec = {
             # the NORMALIZED name is the one shown too: it is the identity, and
             # showing first-typed casing made "Wai" and "wai" look like two people
@@ -76,6 +96,8 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
             "order": prev["order"] if prev else len(voters),
         }
         voters[key] = rec
+        if not host or host[0] == key:
+            _trim_guests(voters, key, picked)
     return rec
 
 

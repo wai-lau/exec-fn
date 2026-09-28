@@ -19,7 +19,8 @@ window.NDR = NDR;
 
 var NDR_FIELDS = {
   name: { input: 'nd-name', btn: 'nd-rename', hint: 'please help the host know who you are', newHint: 'new name' },
-  pass: { input: 'nd-pass', btn: 'nd-rekey', hint: 'please remember this identifier', newHint: 'new passphrase' },
+  // the passphrase hint depends on whose name it is (see ndrSync)
+  pass: { input: 'nd-pass', btn: 'nd-rekey', hint: null, newHint: 'new passphrase' },
 };
 
 function ndr$(id) { return document.getElementById(id); }
@@ -37,7 +38,9 @@ function ndrSync() {
     btn.hidden = !on && !NDV.mine;
     btn.textContent = on ? 'undo' : 'change';
     btn.setAttribute('aria-label', (on ? 'cancel the ' : 'change your ') + (k === 'name' ? 'name' : 'passphrase'));
-    ndr$(f.input).placeholder = on ? f.newHint : f.hint;
+    ndr$(f.input).placeholder = on ? f.newHint : f.hint ||
+      // a name already on the poll is being UNLOCKED; a new one is being made
+      (NDV.held ? 'please enter your passphrase' : "you'll need this to make changes");
   });
   ndr$('nd-pass').disabled = !!NDV.mine && !NDR.pass;
 }

@@ -1,4 +1,4 @@
-// Noodle crop: the HOST sets the first and last week anyone can pick, like
+// noodle crop: the HOST sets the first and last week anyone can pick, like
 // cropping a picture. No button -- for the host (and anyone on a fresh poll,
 // where the first to act becomes host) two thin lines sit on the calendar all
 // the time: one on the top edge of the first week, one on the bottom edge
@@ -96,7 +96,8 @@ function ndxPlace() {
   var rows = NDV.cal.rows(), box = ndx$('nd-cal').querySelector('.nd-cropbox');
   if (!box || !rows.length) return;
   NDX.b = Math.min(NDX.b, rows.length - 1);
-  NDX.a = Math.max(ndxTopMin(), Math.min(NDX.a, NDX.b));   // a rebuild can leave a stale index behind
+  NDX.a = Math.min(NDX.a, NDX.b);   // a rebuild can leave a stale index behind
+  if (!NDX.drag) NDX.a = Math.max(ndxTopMin(), NDX.a);   // at rest, never above this week
   var t = box.querySelector('.nd-crop-h.top'), b = box.querySelector('.nd-crop-h.bot');
   t.style.top = rows[NDX.a].offsetTop + 'px';
   // on the FIRST week the gap above is the frozen header's own border, which
@@ -114,7 +115,7 @@ function ndxPlace() {
 
 function ndxDown(e) {
   var h = e.target.closest('.nd-crop-h');
-  if (!h) return;
+  if (!h || ndx$('nd-cal').classList.contains('nd-readonly')) return;
   e.preventDefault();
   NDX.drag = h.dataset.h;
   NDX.moved = false;
@@ -134,7 +135,8 @@ function ndxMove(e) {
     var edge = NDX.drag === 'a' ? r.offsetTop : r.offsetTop + r.offsetHeight;
     if (Math.abs(edge - y) < gap) { gap = Math.abs(edge - y); best = i; }
   });
-  if (NDX.drag === 'a') NDX.a = Math.max(ndxTopMin(), Math.min(best, NDX.b));
+  // the top line may be DRAGGED above this week, but lands back on it (ndxUp)
+  if (NDX.drag === 'a') NDX.a = Math.min(best, NDX.b);
   else { NDX.b = Math.max(best, NDX.a); NDX.open = false; }
   NDX.moved = true;
   var sc = NDV.cal.scroller, r = sc.getBoundingClientRect();
@@ -151,6 +153,8 @@ async function ndxUp() {
   document.body.classList.remove('nd-dragging');
   if (!NDX.moved) return;
   NDX.b = Math.min(NDX.b, NDV.cal.rows().length - 1);
+  NDX.a = Math.max(ndxTopMin(), NDX.a);   // snap back: nothing before this week is offered
+  ndxPlace();
   var crop = { from: NDV.cal.weekOf(NDX.a)[0], to: NDV.cal.weekOf(NDX.b)[6] };
   await ndxSave(crop);
   // days the drag brings IN start available: the host is offering them.

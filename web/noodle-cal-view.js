@@ -1,4 +1,4 @@
-// Noodle calendar controller. The calendar is ENDLESS: it opens on this week
+// noodle calendar controller. The calendar is ENDLESS: it opens on this week
 // and appends weeks as a sentinel under the grid scrolls into view. The
 // host's CROP (noodle-crop.js) greys every day outside it; a guest's calendar
 // renders ONLY the crop (no `endless`), the host's always stays endless so
@@ -135,7 +135,7 @@ function ndcOpenSlots(grid, from, to, halves) {
 }
 
 // The days a voter can pick on THIS page right now (loaded, not past, inside
-// the crop, and -- for a guest -- offered by the host): what Ask Noodle works on.
+// the crop, and -- for a guest -- offered by the host): what Ask noodle works on.
 function ndcPickableDays(grid, from, to) {
   return Array.from(grid.querySelectorAll('.nd-d:not(.out):not(.shut)')).map(function (c) {
     return c.dataset.day;
@@ -279,7 +279,7 @@ function NoodleCal(wrap, opts) {
     }
   }
 
-  grid.addEventListener('click', onTap);
+  grid.addEventListener('click', function (e) { if (!wrap.classList.contains('nd-readonly')) onTap(e); });   // not your key yet: look, don't touch
   addWeeks(endless ? NDC_FIRST : NDC_MAX);
   if (endless) {
     ndcWireLoader(scroller, wrap.querySelector('.nd-more-weeks'), function () {

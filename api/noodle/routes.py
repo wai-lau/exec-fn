@@ -1,8 +1,8 @@
-"""Noodle's routes, on two plain routers with NO auth of their own.
+"""noodle's routes, on two plain routers with NO auth of their own.
 
 `router` is mounted on the site's `public` tier and `owner_router` on its
 `protected` (admin-only) tier -- by routers.py, the composition root. That is
-how only the owner creates polls without Noodle importing the app's auth.
+how only the owner creates polls without noodle importing the app's auth.
 """
 import asyncio
 import json
@@ -131,7 +131,8 @@ async def noodle_admin_page():
 @owner_router.get("/api/noodle-polls")
 async def noodle_list():
     polls = await asyncio.to_thread(store.all_polls)
-    return {"polls": [{"slug": p["slug"], "title": p["title"], "voters": len(p["voters"])} for p in polls]}
+    return {"polls": [{"slug": p["slug"], "title": p["title"], "voters": len(p["voters"]),
+                       "created_at": p.get("created_at", "")} for p in polls]}
 
 
 @owner_router.post("/api/noodle-polls")

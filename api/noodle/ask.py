@@ -1,13 +1,13 @@
-"""Ask Noodle: free text -> slot selections, via Haiku, behind RATE limits.
+"""Ask noodle: free text -> slot selections, via Haiku, behind RATE limits.
 
-Noodle works on the PAGE's state, never the server's: the page sends the days
+noodle works on the PAGE's state, never the server's: the page sends the days
 it can pick right now (its crop, the host's offer, what is loaded) and whether
 days are split, and the rules are applied to exactly those. This module never
 reads or writes a poll -- a stored crop, split or host offer can be older than
 what the voter is looking at, and answering from it filled days the page had
 greyed and missed the ones it showed (pinned by test_noodle_ask.py).
 
-Rolling windows, never a lifetime cap: a busy moment makes Noodle say "try
+Rolling windows, never a lifetime cap: a busy moment makes noodle say "try
 again in N seconds" and the box comes back by itself. Two windows, in memory
 (a restart forgets them, which only ever errs toward answering): per poll,
 per client IP.
@@ -62,7 +62,7 @@ def _take(slug: str, ip: str, now: float) -> None:
         wait = max(_wait(k, r, w, now) for k, r, w in wins)
         if wait > 0:
             secs = max(1, math.ceil(wait))
-            raise AskError(429, f"Noodle needs a breather -- try again in {secs}s", secs)
+            raise AskError(429, f"noodle needs a breather -- try again in {secs}s", secs)
         for k, _, _ in wins:
             _hits[k].append(now)
         _calls += 1
@@ -138,7 +138,7 @@ def ask(slug: str, body: dict, ip: str) -> dict:
     except llm.Truncated:
         raise AskError(422, "that was too much to fill in at once -- try it in parts") from None
     except Exception:
-        raise AskError(502, "Noodle could not answer just now") from None
+        raise AskError(502, "noodle could not answer just now") from None
     out = out if isinstance(out, dict) else {}
     picked, dropped = rules.apply(out.get("rules"), dates)
     if not halves:

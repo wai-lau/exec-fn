@@ -1,4 +1,4 @@
-"""Ask Noodle's rule language, and the code that applies it.
+"""Ask noodle's rule language, and the code that applies it.
 
 The model does NOT decide dates. It translates the voter's words into a short
 ordered list of rules, and this module applies them to every date in the
