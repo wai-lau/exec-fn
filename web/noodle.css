@@ -525,3 +525,8 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
   margin-block: 0;
 }
 #noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }
+
+/* the site nav on /noodle: the other pages' shell sizes it border-box, and
+   without that its standalone side padding was ADDED to its full width -- a
+   516px bar on a 430px phone, both rows pushed off the right edge */
+.noodle .exec-nav { box-sizing: border-box; }
