@@ -50,6 +50,9 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
   text-align: center;
 }
 
+/* the /noodle page's name: big and glowing (the landing's title glow) */
+.nd-brand { font-size: var(--fs-3xl); text-shadow: 0 0 10px hsl(var(--green-hsl) / 0.8); }
+
 .nd-dim { color: hsl(var(--gray-hsl) / 0.45); font-size: var(--fs-2xs); }
 
 /* ── identity: name + passphrase (the seal is in the teaching box) ───────── */
