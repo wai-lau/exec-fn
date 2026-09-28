@@ -26,7 +26,7 @@ async function ndmCreate(e) {
   var r = await fetch('/api/noodle-polls', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     // no title to type: the host names it by tapping the title on the poll
-    body: JSON.stringify({ title: 'click me to name me' }),
+    body: JSON.stringify({ title: 'untitled noodle' }),
   });
   var d = await r.json().catch(function () { return {}; });
   if (!r.ok) { msg.textContent = d.detail || 'could not create'; return; }

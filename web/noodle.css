@@ -338,6 +338,20 @@ body.noodle {
 
 .nd-faces li { display: flex; flex-direction: column; align-items: center; }
 
+/* a host alone on the poll: the how-to fills the rest of the row, where the
+   guests' faces will go */
+.nd-faces li.nd-howto {
+  grid-column: span 4;
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border: 2px dashed hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+.nd-howto ol { margin: 0; padding-left: 2ch; }
+.nd-howto ol li { display: list-item; }
+
 .nd-face {
   display: flex;
   flex-direction: column;
@@ -378,7 +392,8 @@ body.noodle {
 
 /* the host's split switch, right under the calendar (noodle-host.js) */
 .nd-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); cursor: pointer; }
-.nd-split { justify-content: center; margin-top: var(--space-3); }
+.nd-split { justify-content: flex-end; margin: 0 0 var(--space-2); }   /* top right of the calendar */
+.nd-cal-wrap { margin-bottom: var(--space-6); }   /* room between the calendar and Commit */
 
 /* The checkbox drawn like the page's fields: a green-outlined square on the
    page black, and when ticked a solid square INSET in it (the fill is clipped
