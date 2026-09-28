@@ -9,7 +9,8 @@ function ndmEsc(s) {
 
 async function ndmList() {
   var r = await fetch('/api/noodle-polls', { cache: 'no-store' });
-  if (!r.ok) return;
+  if (!r.ok) return;   // not the owner: the list stays hidden (it is owner-only server-side too)
+  document.getElementById('nd-owner').hidden = false;
   var d = await r.json();
   document.getElementById('nd-polls').innerHTML = d.polls.map(function (p) {
     return '<tr><td><a href="/noodle/' + p.slug + '">' + ndmEsc(p.title) + '</a></td>' +

@@ -58,3 +58,7 @@ ASK_POLL_RATE = 60       # per poll, everyone together ...
 ASK_POLL_WINDOW_S = 3600  # ... per hour
 ASK_IP_RATE = 60         # per client IP ...
 ASK_IP_WINDOW_S = 3600   # ... per this many seconds (in memory)
+
+# Starting a poll (the public /noodle page): drafts per client IP.
+NEW_RATE = 20
+NEW_WINDOW_S = 3600

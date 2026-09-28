@@ -129,10 +129,26 @@ async def noodle_ask(slug: str, request: Request):
                             status_code=e.status, headers=headers)
 
 
-# ── owner only (mounted on the protected tier by routers.py) ───────────────
-@owner_router.get("/noodle", response_class=HTMLResponse)
+@router.get("/noodle", response_class=HTMLResponse)
 async def noodle_admin_page():
+    """PUBLIC: anyone may start a poll. The list of polls on it is owner-only
+    (GET /api/noodle-polls, below) -- a guest's page simply never shows it."""
     return HTMLResponse(pages.admin_page(), headers=_NO_STORE)
+
+
+@router.post("/api/noodle-polls/new")
+async def noodle_new(request: Request):
+    """PUBLIC: a DRAFT poll -- a fresh slug and its token, NOTHING stored; the
+    host's first commit creates it (drafts.py). Rate-limited per IP, since
+    every draft is a poll someone may create."""
+    try:
+        d = await asyncio.to_thread(drafts.new_for, _client_ip(request))
+    except drafts.TooFast as e:
+        return JSONResponse({"detail": str(e)}, status_code=429)
+    return {"slug": d["slug"], "url": f"/noodle/{d['slug']}?t={d['token']}"}
+
+
+# ── owner only (mounted on the protected tier by routers.py) ───────────────
 
 
 @owner_router.get("/api/noodle-polls")
@@ -152,14 +168,6 @@ async def noodle_create(request: Request):
     now = datetime.now().isoformat(timespec="seconds")
     poll = await asyncio.to_thread(store.create, title, now)
     return {"slug": poll["slug"], "url": f"/noodle/{poll['slug']}"}
-
-
-@owner_router.post("/api/noodle-polls/new")
-async def noodle_new():
-    """A DRAFT poll: a fresh slug and its token, NOTHING stored -- the host's
-    first commit creates it (drafts.py)."""
-    d = await asyncio.to_thread(drafts.new)
-    return {"slug": d["slug"], "url": f"/noodle/{d['slug']}?t={d['token']}"}
 
 
 @owner_router.delete("/api/noodle-polls/{slug}")

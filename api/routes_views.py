@@ -56,7 +56,7 @@ _LANDING_SCRIPT = '<script src="/landing-wheel.js?v=10"></script>'
 # toward what follows) -> hosaka 50° (amber radar) -> graph 171° (teal) ->
 # nightfall 194° (cyan) -> printer 206° (blue bitman tile) -> ui 226° (blue) ->
 # mtg 261° (purple) -> tarot 351° (pink).
-_LANDING_HUE_ORDER = ["recruiter", "security", "hosaka", "graph", "nightfall", "printer", "ui", "mtg", "tarot"]
+_LANDING_HUE_ORDER = ["recruiter", "security", "hosaka", "graph", "nightfall", "noodle", "printer", "ui", "mtg", "tarot"]
 
 # The name each section goes by, shown under its nav code. Not the code and not
 # a sentence -- the thing's own title. One per _LANDING_HUE_ORDER section.
@@ -70,6 +70,7 @@ _LANDING_BLURBS = {
     "tarot": "Seventy-Eight Gates",
     "recruiter": "Résumé",
     "security": "Crawlers",
+    "noodle": "noodle",
 }
 
 # One plain line under each title saying what the thing actually is.
@@ -83,6 +84,7 @@ _LANDING_DESCS = {
     "tarot": "Introspection from chaos.",
     "recruiter": "Everyone needs a plug.",
     "security": "Someone's watching.",
+    "noodle": "Find a time everyone can make.",
 }
 _RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=29">'
 
