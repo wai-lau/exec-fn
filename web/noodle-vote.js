@@ -188,7 +188,6 @@ function ndvRefreshBinding(pub) {
   NDV.held = !!(mine && mine.pub);   // the typed name belongs to someone
   NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
   ndvRenderRoster(pub, iHost, typed);
-  ndvHostDefault();
   if (NDV.blocked) {
     ndvStatus('');
   } else if (mine && pub && mine.pub === pub) {
