@@ -3597,6 +3597,14 @@ guests can only pick what the host marks available. The
 split checkbox sits at the top right of the calendar; new polls are titled
 `untitled noodle`.
 
+**Row/column tools start OFF**: the corner shows both icons dim and no
+row/column button exists until the corner is tapped once (then fill; again,
+clear). **The split box sits on the calendar's first row** -- the past week
+above today, which nobody can pick -- centred, moved INSIDE the grid so it
+scrolls with it (`ndhPlaceSplit`), and moved back out before every rebuild or
+the rebuild destroys it (that shipped for a few minutes: "Cannot set
+properties of null"). The host's how-to is four short lines, centred.
+
 **The page scrolls in `.page-scroll`** (chrome.css), not the document: a
 root scrollbar is top-layer and paints over the CRT stack.
 

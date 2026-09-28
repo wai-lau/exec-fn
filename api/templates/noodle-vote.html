@@ -1,7 +1,6 @@
 <main class="doc-card nd-card" id="noodle" data-slug="{{SLUG}}" data-kdf="{{KDF}}" data-worker="/noodle-kdf-worker.js?v=3">
   <p id="nd-banner" class="nd-banner" role="alert" hidden></p>
   <h1 id="nd-title" class="nd-title" spellcheck="false">{{TITLE}}</h1>
-  <p class="nd-dirty nd-dirty-top" hidden>* unsaved changes</p>
 
   <section id="nd-who" class="nd-who" hidden>
     <ul id="nd-voters" class="nd-faces"></ul>
@@ -26,7 +25,7 @@
   </div>
 
   <p id="nd-status" class="nd-status" aria-live="polite"></p>
-  <label id="nd-split-row" class="nd-check nd-split" hidden><input id="nd-split" type="checkbox"> split each day into halves</label>
+  <div id="nd-split-slot" class="nd-split-slot"><label id="nd-split-row" class="nd-check nd-split" hidden><input id="nd-split" type="checkbox"> split each day into halves</label></div>
   <div id="nd-cal" class="nd-cal-wrap"></div>
 
   <p id="nd-why" class="nd-why" aria-live="polite"></p>
@@ -37,7 +36,7 @@
   <div class="nd-ask">
     <label for="nd-ask" class="nd-ask-label">or ask noodle</label>
     <div class="nd-ask-row">
-      <textarea id="nd-ask" rows="5" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="every odd day of the month&#10;never tuesdays&#10;only at night if it's a prime number day&#10;only in the morning if it isn't a stat holiday in Quebec"></textarea>
+      <textarea id="nd-ask" rows="5" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="only available every odd day of the month&#10;never tuesdays&#10;and also, at night on stat holidays&#10;oh and, next monday, I'm free all day"></textarea>
       <button id="nd-ask-go" type="button" class="nd-ask-go" disabled>help me</button>
     </div>
     <p id="nd-ask-status" class="nd-status" aria-live="polite"></p>
@@ -55,13 +54,13 @@
 <script src="/noodle-toggle.js?v=4"></script>
 <script src="/noodle-seal.js?v=5"></script>
 <script src="/noodle-cal.js?v=16"></script>
-<script src="/noodle-cal-view.js?v=36"></script>
+<script src="/noodle-cal-view.js?v=37"></script>
 <script src="/noodle-kdf.js?v=5"></script>
-<script src="/noodle-roster.js?v=19"></script>
+<script src="/noodle-roster.js?v=20"></script>
 <script src="/noodle-crop.js?v=17"></script>
 <script src="/noodle-seats.js?v=5"></script>
-<script src="/noodle-vote.js?v=57"></script>
+<script src="/noodle-vote.js?v=59"></script>
 <script src="/noodle-ask.js?v=20"></script>
-<script src="/noodle-host.js?v=9"></script>
+<script src="/noodle-host.js?v=10"></script>
 <script src="/noodle-rekey.js?v=8"></script>
 <script src="/noodle-share.js?v=4"></script>

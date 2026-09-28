@@ -25,15 +25,10 @@ async function ndrSeals(voters) {
 // someone else's name would mark their face as yours. A `pending` voter is
 // this browser's own face before it has committed (noodle-vote.js).
 // What a host alone on the poll is shown where the guests will appear.
-var NDR_HOWTO = '<li class="nd-howto"><p class="nd-howto-h">Welcome Host!</p><ol>' +
-  '<li>pick a name and passphrase</li>' +
-  '<li>(optional) tap title to name your creation</li>' +
-  '<li>drag orange lines to make rough date selection</li>' +
-  '<li>tap individual dates for finer selection</li>' +
-  '<li>(optional) <i class="ic fill" aria-label="bucket">\uf765</i>/<i class="ic clear" aria-label="eraser">\uf12d</i> ' +
-    'fills entire rows/columns (click top left of calendar to toggle)</li>' +
-  '<li>Commit your changes and share the link!</li>' +
-  '</ol><p class="nd-howto-note">Remember: your guests can only pick from dates where you, the host, mark as available!</p></li>';
+var NDR_HOWTO = '<li class="nd-howto"><p>since you are first, you are the <b>host</b></p>' +
+  '<p>your <b>name</b> and <b>passphrase</b> confirm your identity as the host</p>' +
+  '<p><em>only the dates you pick are available for picking</em></p>' +
+  '<p>remember to <em>commit</em> your changes and share the link :)</p></li>';
 
 function ndrRender(el, voters, seals, myPub, canRemove, howto) {
   el.closest('.nd-who').hidden = !voters.length;
