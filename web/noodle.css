@@ -531,3 +531,7 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
    without that its standalone side padding was ADDED to its full width -- a
    516px bar on a 430px phone, both rows pushed off the right edge */
 .noodle .exec-nav { box-sizing: border-box; }
+
+/* the foot of a poll page: back to the noodle home, to start another */
+.nd-another { margin: var(--space-10) 0 0; text-align: center; font-size: var(--fs-2xs); }
+.nd-another a { color: hsl(var(--green-hsl) / 0.8); }
