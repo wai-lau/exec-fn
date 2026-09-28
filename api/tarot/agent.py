@@ -2,7 +2,24 @@ import asyncio
 import json
 from typing import AsyncGenerator
 
+from tarot.state_echo import StateEchoFilter
 from tarot.tools import TOOL_FNS, TOOLS
+
+
+async def _round_text(stream) -> AsyncGenerator[str, None]:
+    """One round's text, minus any parroted `[State: ...]` note."""
+    echo = StateEchoFilter()
+    async for raw in stream.text_stream:
+        text = echo.feed(raw)
+        if text:
+            yield text
+    tail = echo.flush()
+    if tail:
+        yield tail
+
+
+def _text_evt(text: str) -> str:
+    return f"data: {json.dumps({'type': 'text', 'delta': text})}\n\n"
 
 
 async def stream_chat(messages: list, system: str) -> AsyncGenerator[str, None]:
@@ -29,14 +46,12 @@ async def stream_chat(messages: list, system: str) -> AsyncGenerator[str, None]:
                 tools=TOOLS,
                 messages=messages,
             ) as stream:
-                async for text in stream.text_stream:
+                async for text in _round_text(stream):
                     if not round_started and had_text:
-                        sep = json.dumps({"type": "text", "delta": "\n\n"})
-                        yield f"data: {sep}\n\n"
+                        yield _text_evt("\n\n")
                     round_started = True
                     had_text = True
-                    payload = json.dumps({"type": "text", "delta": text})
-                    yield f"data: {payload}\n\n"
+                    yield _text_evt(text)
                 final = await stream.get_final_message()
         except Exception as e:
             err = json.dumps({"type": "text", "delta": f"[error: {e}]"})
