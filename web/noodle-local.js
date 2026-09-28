@@ -7,7 +7,8 @@
 // rides along on every request, which would send the passphrase to the server
 // -- the one thing this page promises never happens. The last NAME is kept
 // across polls; the PASSPHRASE is kept per poll and per name
-// (noodle.pass.<slug>.<name>), so it is offered back only where it was used.
+// (noodle.pass.<slug>.<name>), with the name's last-used one as the fallback
+// on a poll where that name has none yet.
 function ndvIdentityKey() { return 'noodle.identity'; }
 
 function ndvPassKey(raw) {
@@ -15,9 +16,14 @@ function ndvPassKey(raw) {
   return name ? 'noodle.pass.' + NDV.slug + '.' + name : null;
 }
 
+// This poll's passphrase for the name; failing that, the LAST one that name
+// used on any poll (noodle.lastpass.<name>) -- so a new poll opens ready.
 function ndvStoredPass(raw) {
-  var k = ndvPassKey(raw);
-  try { return k ? localStorage.getItem(k) : null; } catch (e) { return null; }
+  var k = ndvPassKey(raw), name = window.noodleNormName(raw);
+  try {
+    var here = k ? localStorage.getItem(k) : null;
+    return here !== null ? here : (name ? localStorage.getItem('noodle.lastpass.' + name) : null);
+  } catch (e) { return null; }
 }
 
 // The rest of the form -- calendar picks not yet submitted, and the Ask box --
@@ -104,7 +110,10 @@ function ndvSaveIdentity() {
   var name = ndv$('nd-name').value, k = ndvPassKey(name);
   try {
     localStorage.setItem(ndvIdentityKey(), JSON.stringify({ name: name }));   // no passphrase here any more
-    if (k) localStorage.setItem(k, ndv$('nd-pass').value);
+    if (k) {
+      localStorage.setItem(k, ndv$('nd-pass').value);
+      localStorage.setItem('noodle.lastpass.' + window.noodleNormName(name), ndv$('nd-pass').value);
+    }
   } catch (e) { /* storage blocked: the form just is not remembered */ }
 }
 

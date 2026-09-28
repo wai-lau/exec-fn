@@ -424,5 +424,14 @@ def test_the_passphrase_is_remembered_per_poll_and_name(browser, base_url, noodl
         page.fill("#nd-pass", "typed by hand")
         page.fill("#nd-name", "smoke rememberer2")   # a hand-typed passphrase is never replaced
         assert page.input_value("#nd-pass") == "typed by hand"
+        # nothing saved for the name on THIS poll: the last passphrase that NAME
+        # used anywhere ("typed by hand" was typed under it above)
+        page.evaluate(f"localStorage.removeItem('noodle.pass.{noodle_slug}.smoke rememberer')")
+        page.fill("#nd-pass", "")
+        page.fill("#nd-name", "smoke rememberer")
+        assert page.input_value("#nd-pass") == "typed by hand"
+        page.fill("#nd-pass", "")
+        page.fill("#nd-name", "smoke never seen")    # a name never used: still empty
+        assert page.input_value("#nd-pass") == ""
     finally:
         page.close()
