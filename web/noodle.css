@@ -349,6 +349,7 @@ body.noodle {
   font-size: var(--fs-2xs);
   color: hsl(var(--green-hsl) / 0.8);
 }
+.nd-howto-h { margin: 0 0 var(--space-1); color: hsl(var(--green-hsl) / 1); }
 .nd-howto ol { margin: 0; padding-left: 2ch; }
 .nd-howto ol li { display: list-item; }
 
