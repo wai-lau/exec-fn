@@ -16,7 +16,7 @@ The model only ever SUGGESTS: its output is validated against a strict schema
 and handed back to fill the grid. Nothing is stored and nothing is signed.
 """
 import math
-from datetime import date
+from datetime import date, timedelta
 import threading
 import time
 from collections import defaultdict, deque
@@ -102,9 +102,17 @@ def _prompt(dates: list) -> str:
         return f"{d.isoformat()} {d.strftime('%A')}" + (
             f" (Quebec statutory holiday: {hol})" if hol else "")
     days = "\n".join(line(d) for d in dates)
+    # Relative days are RESOLVED here, not left to the model: it once read
+    # "next monday" as the 29th -- a Tuesday -- and re-added a day the
+    # "never tuesdays" rule had removed. Named out, it copies instead of counts.
+    today = date.today()
+    ahead = [today + timedelta(days=i) for i in range(1, 8)]
+    named = "; ".join(f"next {d.strftime('%A').lower()} = {d.isoformat()}" for d in ahead)
     return (
         "You turn a person's free-text availability into rules for a scheduling "
-        f"poll. Today is {date.today().isoformat()}. Each day has two blocks: "
+        f"poll. Today is {today.strftime('%A')} {today.isoformat()} (\"today\"); "
+        f"\"tomorrow\" = {(today + timedelta(days=1)).isoformat()}; {named}. Use these "
+        "exact dates for any relative day -- never work one out yourself. Each day has two blocks: "
         f"midday and night. The dates in view are:\n{days}\n\n"
         "Do NOT decide dates yourself: write rules and code applies them to every "
         "date. Rules run in order on an EMPTY calendar. Prefer weekday / day / "

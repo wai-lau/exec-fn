@@ -33,10 +33,11 @@ def _kdf_attrs() -> str:
     return html.escape(json.dumps(kdf), quote=True)
 
 
-def vote_page(poll: dict) -> str:
+def vote_page(poll: dict, draft: str = "") -> str:
     body = _fill(
         _tmpl("noodle-vote.html"),
         SLUG=html.escape(poll["slug"], quote=True),
+        DRAFT=html.escape(draft, quote=True),
         TITLE=html.escape(poll["title"]),
         KDF=_kdf_attrs(),
         ASK_MAX=str(config.ASK_MAX_CHARS),

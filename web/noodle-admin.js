@@ -23,13 +23,11 @@ async function ndmList() {
 async function ndmCreate(e) {
   e.preventDefault();
   var msg = document.getElementById('nd-msg');
-  var r = await fetch('/api/noodle-polls', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    // no title to type: the host names it by tapping the title on the poll
-    body: JSON.stringify({ title: 'untitled noodle' }),
-  });
+  // nothing is stored yet: a fresh slug and its token, and the poll page opens
+  // as a draft that the host's first commit creates (noodle/drafts.py)
+  var r = await fetch('/api/noodle-polls/new', { method: 'POST' });
   var d = await r.json().catch(function () { return {}; });
-  if (!r.ok) { msg.textContent = d.detail || 'could not create'; return; }
+  if (!r.ok) { msg.textContent = d.detail || 'could not start a poll'; return; }
   location.href = d.url;   // straight to the new poll
 }
 

@@ -11,7 +11,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
-from noodle import ask, config, host, pages, rekey, store, votes
+from noodle import ask, config, drafts, host, pages, rekey, store, votes
 
 router = APIRouter()
 owner_router = APIRouter()
@@ -58,7 +58,11 @@ def _poll_or_404(slug: str) -> dict:
 
 # ── public: anyone holding the link ─────────────────────────────────────────
 @router.get("/noodle/{slug}", response_class=HTMLResponse)
-async def noodle_vote_page(slug: str):
+async def noodle_vote_page(slug: str, t: str | None = None):
+    # a DRAFT: no poll yet, but the owner's token for this slug (drafts.py)
+    if not store.exists(slug) and drafts.valid(slug, t):
+        return HTMLResponse(pages.vote_page({"slug": slug, "title": drafts.UNTITLED}, draft=t),
+                            headers=_PRIVATE_PAGE)
     return HTMLResponse(pages.vote_page(_poll_or_404(slug)), headers=_PRIVATE_PAGE)
 
 
@@ -78,6 +82,7 @@ async def noodle_poll(slug: str):
 @router.post("/api/noodle/{slug}/vote")
 async def noodle_vote(slug: str, request: Request):
     body = await _json_body(request, config.BODY_MAX_VOTE)
+    await asyncio.to_thread(drafts.ensure, slug, body)   # a draft's first commit writes it
     try:
         rec = await asyncio.to_thread(votes.submit, slug, body)
     except votes.VoteError as e:
@@ -87,6 +92,8 @@ async def noodle_vote(slug: str, request: Request):
 
 async def _signed(fn, slug: str, request: Request):
     body = await _json_body(request, config.BODY_MAX_VOTE)
+    if fn is host.settings:
+        await asyncio.to_thread(drafts.ensure, slug, body)   # a draft's first commit writes it
     try:
         return await asyncio.to_thread(fn, slug, body)
     except votes.VoteError as e:
@@ -145,6 +152,14 @@ async def noodle_create(request: Request):
     now = datetime.now().isoformat(timespec="seconds")
     poll = await asyncio.to_thread(store.create, title, now)
     return {"slug": poll["slug"], "url": f"/noodle/{poll['slug']}"}
+
+
+@owner_router.post("/api/noodle-polls/new")
+async def noodle_new():
+    """A DRAFT poll: a fresh slug and its token, NOTHING stored -- the host's
+    first commit creates it (drafts.py)."""
+    d = await asyncio.to_thread(drafts.new)
+    return {"slug": d["slug"], "url": f"/noodle/{d['slug']}?t={d['token']}"}
 
 
 @owner_router.delete("/api/noodle-polls/{slug}")

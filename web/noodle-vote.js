@@ -321,6 +321,8 @@ function ndvApproved(seal, name, copied) {
 }
 
 async function ndvPost(path, body) {
+  // a draft's token rides along (never signed): the first commit creates the poll
+  if (NDV.draft) body = Object.assign({ draft: NDV.draft }, body);
   var r = await fetch('/api/noodle/' + NDV.slug + path, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
@@ -360,6 +362,10 @@ async function ndvSubmit() {
     var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
     if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); await ndvLoadPoll(); return; }
     ndvClearDraft();
+    if (NDV.draft) {   // the poll exists now: its plain link is the one to keep
+      NDV.draft = '';
+      history.replaceState(null, '', '/noodle/' + NDV.slug);
+    }
     ndvTeach('', NDV_SIGN_DONE);
     ndvApproved(NDV.seal, window.noodleNormName(name), await copying);
     await ndvLoadPoll();
@@ -412,7 +418,11 @@ async function ndvLoadPoll() {
   // off would otherwise have every signature refused as stale.
   var served = Date.parse(r.headers.get('date') || '');
   if (!isNaN(served)) NDV.skew = served - Date.now();
-  NDV.poll = await r.json();
+  // a DRAFT (no poll stored yet, drafts.py): an empty poll stands in until the
+  // host's first commit creates the real one
+  NDV.poll = r.status === 404 && NDV.draft
+    ? { slug: NDV.slug, title: 'untitled noodle', halves: false, crop: null, voters: [], host: null }
+    : await r.json();
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   if (!NDV.blankSeal) NDV.blankSeal = ndvBlankSeal();
   ndvEnsureCal();
@@ -423,6 +433,7 @@ function ndvInit() {
   var root = ndv$('noodle');
   if (!root || !root.dataset.slug) return;
   NDV.slug = root.dataset.slug;
+  NDV.draft = root.dataset.draft || '';
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
   ndv$('nd-ask').addEventListener('input', ndvSaveDraft);
   NDV.kdf = window.NoodleKdf({

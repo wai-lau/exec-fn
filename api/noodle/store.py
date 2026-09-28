@@ -69,20 +69,34 @@ def edit(slug: str):
         _write(_path(slug), poll)
 
 
+def exists(slug: str) -> bool:
+    return valid_slug(slug) and _path(slug).exists()
+
+
 def create(title: str, now_iso: str) -> dict:
-    """A new poll has a title and nothing else. It has no date range (the
-    calendar is endless; the host's picks decide what is on offer), and it
-    starts unsplit -- one slot a day -- until the host splits it."""
+    """A new poll on a fresh slug (see create_at)."""
     with _LOCK:
         while True:
             slug = secrets.token_urlsafe(config.SLUG_BYTES)
             if valid_slug(slug) and not _path(slug).exists():
-                break
+                return create_at(slug, title, now_iso)
+
+
+def create_at(slug: str, title: str, now_iso: str) -> dict:
+    """A new poll has a title and nothing else. It has no date range (the
+    calendar is endless; the host's picks decide what is on offer), and it
+    starts unsplit -- one slot a day -- until the host splits it. On a slug
+    that is already a poll, that poll is returned untouched (two first
+    commits racing each other create it once)."""
+    with _LOCK:
+        path = _path(slug)
+        if path.exists():
+            return load(slug)
         poll = {
             "slug": slug, "title": title, "halves": False,
             "created_at": now_iso, "voters": {},
         }
-        _write(_path(slug), poll)
+        _write(path, poll)
         return poll
 
 
