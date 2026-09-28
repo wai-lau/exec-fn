@@ -3702,6 +3702,16 @@ typed on that poll -- or, where that name has none yet, the last one it used
 on any poll, `noodle.lastpass.<name>` -- never over one typed by hand); only the last NAME
 (`noodle.identity`) travels between polls.
 
+**Top dates** (`web/noodle-top.js`, `#nd-top-box` labelled "top 5 (soonest)", above the underlined "make another noodle" link):
+the five slots most voters are free for, a tie going to the soonest, from the
+calendar's own dot columns (`NDV.cols`, your live picks included, past days and
+days outside the crop left out). One row per slot, `<glyph> tue dd/mm/yyyy: `
+then the dots, one fixed column per voter in seal ink, so the dots line up
+under each other. The glyph is only on a split poll: sun U+F185 = midday, moon
+U+F186 = night (Font Awesome, in `noodle-seal.woff2`, never the emoji moons
+U+1F31x). They ink about two cells, so they sit in a fixed `2ch` box. Redrawn
+by `ndvRefreshBinding` and on every tap (`ndvSaveDraft`).
+
 There is no status line above the calendar any more (welcome back /
 committed / removed said nothing the page did not already show): errors go to
 the banner, and everything else just clears a stale one. Mid name/passphrase

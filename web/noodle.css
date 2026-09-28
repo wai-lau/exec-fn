@@ -10,12 +10,12 @@
    would stop lining up. unicode-range keeps ASCII on the site's face. */
 @font-face {
   font-family: 'Noodle Glyphs';
-  src: url('/fonts/noodle-seal.woff2?v=5') format('woff2');
+  src: url('/fonts/noodle-seal.woff2?v=6') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
   unicode-range: U+00B0, U+00B7, U+0298, U+02C6, U+03C9, U+0434, U+1D17, U+1D54, U+1D55,
-    U+2022, U+203F, U+2200, U+2299, U+2500, U+25BD, U+25C9, U+25D5, U+2713, U+2717, U+F0C5, U+F12D, U+F765;
+    U+2022, U+203F, U+2200, U+2299, U+2500, U+25BD, U+25C9, U+25D5, U+2713, U+2717, U+F0C5, U+F12D, U+F185, U+F186, U+F765;
 }
 
 body.noodle {
@@ -533,8 +533,31 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 .noodle .exec-nav { box-sizing: border-box; }
 
 /* the foot of a poll page: back to the noodle home, to start another */
-.nd-another { margin: var(--space-10) 0 0; text-align: center; font-size: var(--fs-2xs); }
-.nd-another a { color: hsl(var(--green-hsl) / 0.8); }
+.nd-top-box { width: fit-content; margin: var(--space-10) auto 0; }
+.nd-top-h { margin: 0 0 var(--space-1); font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
+
+.nd-top {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+
+/* every row the same width, so the dots start in one column: the date is
+   fixed-length text in a monospace face, and the glyph (which inks about two
+   cells) gets a fixed two-cell box */
+.nd-top li { display: flex; align-items: center; gap: var(--space-1); white-space: pre; }
+.nd-top-glyph { display: inline-block; width: 2ch; }
+
+/* the calendar's dots, one fixed column per voter (noodle-cal.css .nd-dots) */
+.nd-top-dots { display: inline-flex; gap: var(--space-0-5); }
+.nd-top-dots i { width: 4px; height: 4px; border-radius: var(--radius-pill); }
+.nd-top-dots i.on { background: hsl(var(--green-hsl) / 1); }
+.nd-top-dots i.on[style] { background: hsl(var(--seal-hsl) / 1); }
+
+.nd-another { margin: var(--space-6) 0 0; text-align: center; font-size: var(--fs-2xs); }
+.nd-another a { color: hsl(var(--green-hsl) / 0.8); text-decoration: underline; }   /* reads as a link */
 
 /* the host's NOTE under the title: the title's own mechanism (noodle-host.js
    NDH_TEXT) -- dotted line for the host, tap to edit, sent with Commit. Empty,
