@@ -201,17 +201,14 @@ function ndvRefreshBinding(pub) {
     ndvRestoreDraft();
   }
   ndvRenderRoster(pub, iHost, typed);
-  if (NDV.blocked) {
-    ndvStatus('');
-  } else if (mine && pub && mine.pub === pub) {
-    if (NDV.hasDraft) {
-      ndvStatus('welcome back, ' + mine.name + '. your unsaved changes are kept -- commit to seal them.');
-    } else if (NDV.cal) {
-      NDV.cal.setSel(new Set(mine.slots));
-      ndvStatus('welcome back, ' + mine.name + '. your picks are loaded.');
-    }
-  } else {
-    ndvStatus('');
+  // your seal matches: your SAVED picks fill the calendar (unless this identity
+  // left unsaved changes) -- and the first time it matches, they are pulled
+  // fresh from the server, since the copy loaded with the page may be older
+  // than a vote made since from another device
+  if (NDV.mine && !NDV.hasDraft && NDV.cal) NDV.cal.setSel(new Set(mine.slots));
+  if (NDV.mine && dk && NDV.pulledFor !== dk) {
+    NDV.pulledFor = dk;
+    ndvLoadPoll();
   }
   ndvSyncSubmit();
 }
