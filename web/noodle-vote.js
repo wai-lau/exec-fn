@@ -136,6 +136,8 @@ function ndvRefreshBinding(pub) {
   var iHost = !!(host && pub && host.pub === pub);
   if (NDV.cal) {
     NDV.cal.setOthers(cols);
+    NDV.cols = cols;
+    if (window.ndtRender) window.ndtRender(cols, NDV.cal.getSel());   // the top dates (noodle-top.js)
     NDV.cal.setAllowed(host && !iHost ? host.slots : null, !!pub);
   }
   if (window.ndhSync) window.ndhSync(pub);

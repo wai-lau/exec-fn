@@ -41,6 +41,7 @@ function ndvDraftKey() {
 
 function ndvSaveDraft() {
   var k = ndvDraftKey();
+  if (NDV.cal && window.ndtRender) window.ndtRender(NDV.cols, NDV.cal.getSel());   // your taps move the top dates
   if (!NDV.cal || !k) { ndvSyncSubmit(); return; }
   try {
     localStorage.setItem(k, JSON.stringify({ slots: Array.from(NDV.cal.getSel()).sort(),
