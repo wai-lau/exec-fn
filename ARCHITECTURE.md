@@ -3710,7 +3710,10 @@ the write pending forever). A guest's calendar draws what they may pick as SHAPE
 line: each offered half a right-angled triangle inset 2px (midday top-left,
 night bottom-right), a whole day an inset rectangle, and nothing where the host
 offered nothing; guest taps follow the triangles' diagonal (`ndcSlotAt`). Today
-is its date in the crop lines' yellow -- no box, no circle. A guest's
+is its date in the crop lines' yellow -- no box, no circle -- unless the day
+is greyed (past, shut, unpicked by the host): grey wins. The foot link reads
+`make another noodle` for the host, `make your own noodle` for a guest
+(`.nd-as-host`). A guest's
 calendar starts at its first offered week (the past week above today is the
 host's, where the split box sits), and "please select your availabilities
 (public)" under the dotted box is for guests only.

@@ -558,3 +558,8 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
    picks are seen by everyone on the poll */
 .nd-pick-note { margin: 0 0 var(--space-4); text-align: center; font-size: var(--fs-sm); color: hsl(var(--green-hsl) / 0.8); }
 .nd-as-host .nd-pick-note { display: none; }   /* guests only: the host is setting the offer, not picking from it */
+
+/* wording that differs for the host and a guest (.nd-as-host, noodle-host.js) */
+.nd-host-only { display: none; }
+.nd-as-host .nd-host-only { display: inline; }
+.nd-as-host .nd-guest-only { display: none; }
