@@ -66,11 +66,16 @@ async function ndaApply(d) {
   var slots = d.slots;
   // the words told parts of a day apart: a host's calendar splits its days to
   // show them; a guest's cannot, so each half folds back into its whole day
-  if (d.split && host && !ndhHalves()) {
-    nda$('nd-split').checked = true;
-    ndhSplitChange();
-  } else if (d.split) {
-    slots = Array.from(new Set(slots.map(function (s) { return s.slice(0, 10) + ':d'; })));
+  // (only when the calendar is not split ALREADY -- a re-applied answer finds
+  // it split by the first time round, and folding its halves then matched
+  // nothing: "help me" on an unchanged question did nothing)
+  if (d.split && !ndhHalves()) {
+    if (host) {
+      nda$('nd-split').checked = true;
+      ndhSplitChange();
+    } else {
+      slots = Array.from(new Set(slots.map(function (s) { return s.slice(0, 10) + ':d'; })));
+    }
   }
   var got = NDV.cal ? NDV.cal.clamp(slots) : [];
   // an answer REPLACES the grid (every ask starts blank, and the text stays

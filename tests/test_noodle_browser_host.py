@@ -289,6 +289,11 @@ def test_an_answer_with_parts_of_a_day_splits_the_hosts_calendar(browser, base_u
         page.wait_for_function("document.getElementById('nd-split').checked", timeout=5000)
         cls = page.get_attribute(f".nd-d[data-day='{day}']", "class")
         assert "nit" in cls and "mid" not in cls, cls
+        # the same question again re-applies the answer on the now-split calendar
+        page.evaluate("NDV.cal.setSel(new Set())")
+        page.click("#nd-ask-go")
+        page.wait_for_function(f"document.querySelector(\".nd-d[data-day='{day}']\").classList.contains('nit')",
+                               timeout=5000)
     finally:
         page.close()
         with httpx.Client(base_url=base_url, timeout=15.0) as c:
