@@ -223,7 +223,7 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | POST | `/api/noodle/{slug}/ask` | Public, no name needed. `{text, dates, halves}` from the PAGE -> Haiku `reading` + RULES applied by code (`noodle/rules.py`) to exactly those dates; **never reads or writes a poll**; never submits; 422 if truncated; rolling rate limits per poll + per IP (429 + `retry_after`, never a lifetime cap) in `noodle/config.py`. |
 | POST | `/api/noodle/{slug}/settings`, `/remove` | Public, **host-signed** (`noodle/host.py`): split days or not + the CROP (first/last day anyone can pick; the first to act claims host), remove a guest. Host-only; the host drags crop lines on an always-endless calendar, guests just see the crop. |
 | POST | `/api/noodle/{slug}/rekey` | Public, signed by the voter's OLD key: new passphrase and/or name (`noodle/rekey.py`). **ARCHITECTURE.md §21**. |
-| GET/POST/DELETE | `/api/noodle-polls`, `/api/noodle-polls/{slug}` | **Owner-only.** List / create (`{title}` only) / delete polls. |
+| GET/POST/DELETE | `/api/noodle-polls`, `/api/noodle-polls/new`, `/api/noodle-polls/{slug}` | **Owner-only.** List / create (`{title}`) / start a DRAFT (slug + token, nothing stored; the host's first commit creates it -- `noodle/drafts.py`) / delete. |
 
 ### Exec chat tools (bubble overlay)
 

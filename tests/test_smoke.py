@@ -275,3 +275,12 @@ def test_noodle_signed_actions_refuse_junk_without_writing(client, noodle_slug, 
                     headers={"Content-Type": "application/json"})
     assert r.status_code == 413
     assert client.get(f"/api/noodle/{noodle_slug}").json()["voters"] == before
+
+
+def test_noodle_drafts_need_the_owners_token(client, guest_cookie):
+    slug = "B" * 22
+    assert client.get(f"/noodle/{slug}", headers=HTML_ACCEPT).status_code == 404
+    assert client.get(f"/noodle/{slug}?t=nope", headers=HTML_ACCEPT).status_code == 404
+    assert client.post("/api/noodle-polls/new").status_code == 401
+    r = client.post("/api/noodle-polls/new", headers={**guest_cookie, "Accept": "application/json"})
+    assert r.status_code == 401

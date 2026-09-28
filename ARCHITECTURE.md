@@ -3591,7 +3591,25 @@ localStorage (`noodle.blankSeal.<slug>`), so it is the same face every visit -- 
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
-**Owner page** (`/noodle`): one `create poll` button (no title to type -- the poll starts as `untitled noodle` and the host renames it by tapping the title) that goes straight to the new poll; the polls are a table (poll, voters, created); each poll has
+**A new poll is a DRAFT until the host commits** (`noodle/drafts.py`).
+`create poll` stores nothing: `POST /api/noodle-polls/new` (owner-only) returns
+a fresh slug and a token -- an HMAC of that slug under `NOODLE_SECRET`, else a
+32-byte `DATA_DIR/secret.key` (0600) made on first use -- and the page opens
+at `/noodle/<slug>?t=<token>` with an empty poll standing in. The host's first
+commit (settings or vote) carries the token as an unsigned `draft` field and
+`drafts.ensure` writes the poll (`store.create_at`, idempotent under the lock)
+before the signed request is handled; the page then drops `?t=` from the
+address. An abandoned draft leaves nothing, and no one can mint a poll on a
+slug of their choosing: without the owner's token for that exact slug nothing
+is created (a bad token is a plain 404). The link to share appears only once
+the poll exists with the host's offer.
+
+**Ask resolves relative days in code**: the prompt states today's weekday,
+tomorrow, and `next <weekday> = <date>` for the coming seven days -- the model
+once read "next monday" as the 29th (a Tuesday) and re-added a day the "never
+tuesdays" rule had just removed.
+
+**Owner page** (`/noodle`): one `create poll` button (no title to type -- the draft starts as `untitled noodle` and the host renames it by tapping the title) that goes straight to the draft; the polls are a table (poll, voters, created); each poll has
 a delete button that asks first (`DELETE /api/noodle-polls/{slug}`, owner-only,
 `store.delete`).
 

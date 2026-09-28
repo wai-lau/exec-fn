@@ -244,3 +244,14 @@ def test_one_half_of_a_day_splits_even_without_the_flag(env):
         {"action": "add", "blocks": ["night"], "where": {"weekday": ["friday"]}}]}
     out = go(env, halves=False, ip="198.51.100.4")
     assert out["split"] is True and out["slots"] == ["2026-10-02:n", "2026-10-09:n"]
+
+
+
+def test_relative_days_are_named_for_the_model(env):
+    from datetime import date, timedelta
+    go(env)
+    system = env["calls"][-1][0]
+    today = date.today()
+    monday = today + timedelta(days=(0 - today.weekday()) % 7 or 7)
+    assert f"next monday = {monday.isoformat()}" in system
+    assert today.strftime("%A") in system
