@@ -8,6 +8,12 @@ from pathlib import Path
 # (tests/test_noodle_isolation.py audits every open/replace).
 DATA_DIR = Path(os.environ.get("NOODLE_DIR", "/app/data/noodle"))
 
+# Link previews (Open Graph) need ABSOLUTE urls, and the page is rendered with
+# no request in hand, so the public origin is configuration.
+ORIGIN = os.environ.get("NOODLE_ORIGIN", "https://wai-lau.net")
+OG_IMAGE = "/noodle-card.jpg?v=1"   # web/noodle-card.jpg, 1200x630
+OG_DESC = "pick the times you're free"
+
 # secrets.token_urlsafe(16) -> 22 chars of [A-Za-z0-9_-]. The slug IS the
 # access control for voting, so it is validated to exactly this shape before
 # it is ever used as a path component.

@@ -220,6 +220,17 @@ def test_noodle_poll_pages_are_public(client, noodle_slug):
     assert r.status_code == 301 and r.headers["location"] == f"/noodle/{noodle_slug}"
 
 
+def test_noodle_poll_page_has_a_link_preview(client, noodle_slug):
+    """Open Graph tags (Messenger etc.): absolute urls, the fixed dark card."""
+    r = client.get(f"/noodle/{noodle_slug}", headers=HTML_ACCEPT)
+    assert '<meta property="og:title" content="__smoke__">' in r.text
+    assert f'<meta property="og:url" content="https://wai-lau.net/noodle/{noodle_slug}">' in r.text
+    assert 'content="https://wai-lau.net/noodle-card.jpg?v=' in r.text
+    assert 'name="twitter:card" content="summary_large_image"' in r.text
+    img = client.get("/noodle-card.jpg")
+    assert img.status_code == 200 and img.headers["content-type"] == "image/jpeg"
+
+
 def test_noodle_poll_json_is_public_and_holds_no_budget(client, noodle_slug):
     r = client.get(f"/api/noodle/{noodle_slug}")
     assert r.status_code == 200

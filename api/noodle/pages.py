@@ -23,8 +23,21 @@ def _fill(text: str, **values: str) -> str:
     return re.sub(r"\{\{(\w+)\}\}", lambda m: values.get(m.group(1), m.group(0)), text)
 
 
-def _page(title: str, body: str) -> str:
-    return _fill(_tmpl("noodle-shell.html"), TITLE=html.escape(title), BODY=body)
+# The LINK PREVIEW (Open Graph; what Messenger, iMessage, Discord, Slack draw
+# under a pasted link): the poll's title, its note (or a default), and one
+# fixed dark card -- the site icon it fell back to is white on transparent,
+# which a light preview draws white on white. Scrapers cache it for weeks.
+def _og(title: str, desc: str, path: str) -> str:
+    tags = [("og:title", title), ("og:description", desc or config.OG_DESC),
+            ("og:image", config.ORIGIN + config.OG_IMAGE), ("og:image:width", "1200"),
+            ("og:image:height", "630"), ("og:url", config.ORIGIN + path),
+            ("og:type", "website"), ("og:site_name", "noodle")]
+    out = [f'<meta property="{k}" content="{html.escape(v, quote=True)}">' for k, v in tags]
+    return "\n".join(out + ['<meta name="twitter:card" content="summary_large_image">'])
+
+
+def _page(title: str, body: str, og: str = "") -> str:
+    return _fill(_tmpl("noodle-shell.html"), TITLE=html.escape(title), OG=og, BODY=body)
 
 
 def _kdf_attrs() -> str:
@@ -43,7 +56,8 @@ def vote_page(poll: dict, draft: str = "") -> str:
         KDF=_kdf_attrs(),
         ASK_MAX=str(config.ASK_MAX_CHARS),
     )
-    return _page(f"noodle: {poll['title']}", body)
+    og = _og(poll["title"], poll.get("note", ""), "/noodle/" + poll["slug"])
+    return _page(f"noodle: {poll['title']}", body, og)
 
 
 # The site's nav bar, HANDED IN by the app (routers.py set_nav): noodle
@@ -58,7 +72,7 @@ def set_nav(fn) -> None:
 
 
 def admin_page(request=None) -> str:
-    page = _page("noodle", _tmpl("noodle-admin.html"))
+    page = _page("noodle", _tmpl("noodle-admin.html"), _og("noodle", "", "/noodle"))
     if _nav and request is not None:
         page = page.replace('<body class="noodle">', '<body class="noodle with-nav">', 1)
         page = page.replace("</body>", _nav(request) + "</body>", 1)
