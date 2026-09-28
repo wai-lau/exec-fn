@@ -139,15 +139,18 @@ NOODLE_SMOKE_TITLE = "__smoke__"
 
 
 @pytest.fixture(scope="session")
-def noodle_slug(base_url) -> str:
+def noodle_slug(base_url):
+    """A FRESH poll for this test session, deleted after it. It used to be one
+    shared "__smoke__" poll found by title, and every run inherited the last
+    run's state -- who hosted it, what was offered -- so tests failed or passed
+    by the order they last ran in."""
     if not API_KEY:
-        pytest.skip("API_KEY not set (env or .env) -- cannot create a Noodle poll")
+        pytest.skip("API_KEY not set (env or .env) -- cannot create a noodle poll")
     auth = {"Authorization": f"Bearer {API_KEY}"}
     with httpx.Client(base_url=base_url, timeout=15.0) as c:
-        for p in c.get("/api/noodle-polls", headers=auth).json()["polls"]:
-            if p["title"] == NOODLE_SMOKE_TITLE:
-                return p["slug"]
-        r = c.post("/api/noodle-polls", headers=auth,
-                   json={"title": NOODLE_SMOKE_TITLE, "start": "2026-10-01", "end": "2026-11-15"})
+        r = c.post("/api/noodle-polls", headers=auth, json={"title": NOODLE_SMOKE_TITLE})
         r.raise_for_status()
-        return r.json()["slug"]
+        slug = r.json()["slug"]
+    yield slug
+    with httpx.Client(base_url=base_url, timeout=15.0) as c:
+        c.delete(f"/api/noodle-polls/{slug}", headers=auth)
