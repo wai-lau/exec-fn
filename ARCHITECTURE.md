@@ -3676,7 +3676,9 @@ the passphrase is shown in the clear (deliberate: it is proofread).
 **Browser storage is per poll** -- `noodle.draft.<slug>.<pub>` (unsaved picks +
 Ask text, per poll AND per identity: keyed by the voter's public key, restored
 only once the key is made, and a different identity starts clean rather than
-inheriting what was on screen), `noodle.blankSeal.<slug>` -- except
+inheriting what was on screen; a Commit deletes EVERY draft the poll holds, any
+identity's -- a stale one under an earlier key beat the saved picks when its
+seal next matched), `noodle.blankSeal.<slug>` -- except
 `noodle.identity` (name + passphrase), the one thing that travels between
 polls.
 

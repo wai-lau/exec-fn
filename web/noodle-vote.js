@@ -50,9 +50,16 @@ function ndvRestoreDraft() {
   } catch (e) { /* unreadable: start clean */ }
 }
 
+// After a Commit the server copy IS the current one, so EVERY draft this poll
+// holds goes -- any identity's, not just the key in use now: a stale draft
+// left under another key (an earlier name, a pre-change passphrase) would
+// otherwise beat the saved picks the next time that seal matched.
 function ndvClearDraft() {
-  var k = ndvDraftKey();
-  try { if (k) localStorage.removeItem(k); } catch (e) { /* ignore */ }
+  var prefix = 'noodle.draft.' + NDV.slug + '.';
+  try {
+    Object.keys(localStorage).filter(function (k) { return k.indexOf(prefix) === 0; })
+      .forEach(function (k) { localStorage.removeItem(k); });
+  } catch (e) { /* storage blocked: nothing was kept */ }
   NDV.hasDraft = false;
 }
 
