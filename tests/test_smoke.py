@@ -215,6 +215,8 @@ def test_noodle_poll_pages_are_public(client, noodle_slug):
     assert r.status_code == 200 and _is_page(r)
     assert "noindex" in r.headers.get("x-robots-tag", "")
     assert 'data-kdf=' in r.text and 'id="nd-voters"' in r.text
+    # the feedback mailto sits under the make-another link
+    assert r.text.index("make your own noodle") < r.text.index('href="mailto:wl.wailau@gmail.com?subject=noodle')
     # results moved onto the vote page; old links redirect there
     r = client.get(f"/noodle/{noodle_slug}/results", headers=HTML_ACCEPT)
     assert r.status_code == 301 and r.headers["location"] == f"/noodle/{noodle_slug}"

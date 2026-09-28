@@ -3764,7 +3764,8 @@ offered nothing; guest taps follow the triangles' diagonal (`ndcSlotAt`). Today
 is its date in the crop lines' yellow -- no box, no circle -- unless the day
 is greyed (past, shut, unpicked by the host): grey wins. The foot link reads
 `make another noodle` for the host, `make your own noodle` for a guest
-(`.nd-as-host`). A guest's
+(`.nd-as-host`). Under it, for everyone, "please file bug reports and suggestions" is a
+`mailto:` (the address `/recruiter` already publishes) with the subject filled in. A guest's
 calendar starts at its first offered week (the past week above today is the
 host's, where the split box sits), and "please select your availabilities
 (public)" under the dotted box is for guests only, and only once the
