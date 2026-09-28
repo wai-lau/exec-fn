@@ -1,7 +1,9 @@
 """noodle's routes, on two plain routers with NO auth of their own.
 
-`router` is mounted on the site's `public` tier and `owner_router` on its
-`protected` (admin-only) tier -- by routers.py, the composition root. That is
+`router` is mounted on the site's `public` tier (a poll, by its link),
+`guest_router` on the Turnstile-gated guest tier (starting a poll) and
+`owner_router` on the `protected` (admin-only) tier (the poll list) -- by
+routers.py, the composition root. That is
 how only the owner creates polls without noodle importing the app's auth.
 """
 import asyncio
@@ -14,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from noodle import ask, config, drafts, host, pages, rekey, store, votes
 
 router = APIRouter()
+guest_router = APIRouter()   # mounted on the site's Turnstile-gated guest tier
 owner_router = APIRouter()
 
 _NO_STORE = {"Cache-Control": "no-store"}
@@ -129,16 +132,16 @@ async def noodle_ask(slug: str, request: Request):
                             status_code=e.status, headers=headers)
 
 
-@router.get("/noodle", response_class=HTMLResponse)
-async def noodle_admin_page():
-    """PUBLIC: anyone may start a poll. The list of polls on it is owner-only
+@guest_router.get("/noodle", response_class=HTMLResponse)
+async def noodle_admin_page(request: Request):
+    """GUEST tier (behind Cloudflare Turnstile): any guest may start a poll. The list of polls on it is owner-only
     (GET /api/noodle-polls, below) -- a guest's page simply never shows it."""
-    return HTMLResponse(pages.admin_page(), headers=_NO_STORE)
+    return HTMLResponse(pages.admin_page(request), headers=_NO_STORE)
 
 
-@router.post("/api/noodle-polls/new")
+@guest_router.post("/api/noodle-polls/new")
 async def noodle_new(request: Request):
-    """PUBLIC: a DRAFT poll -- a fresh slug and its token, NOTHING stored; the
+    """GUEST tier: a DRAFT poll -- a fresh slug and its token, NOTHING stored; the
     host's first commit creates it (drafts.py). Rate-limited per IP, since
     every draft is a poll someone may create."""
     try:

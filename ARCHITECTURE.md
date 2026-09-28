@@ -3591,12 +3591,18 @@ localStorage (`noodle.blankSeal.<slug>`), so it is the same face every visit -- 
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
-**`/noodle` is PUBLIC** (on the landing wheel and the guest nav): anyone may
-start a poll -- `POST /api/noodle-polls/new` is public, rate-limited per client
+**`/noodle` is on the GUEST tier** (behind Cloudflare Turnstile, like /mtg; on
+the landing wheel and the guest nav): any guest may start a poll --
+`POST /api/noodle-polls/new` is guest-tier too (`guest_router`), rate-limited per client
 IP (`NEW_RATE` 20 an hour, `drafts.new_for`), and stores nothing. What stays
 owner-only is the poll LIST, creating by API and deleting (`owner_router`, on
 the protected tier): a guest's `/noodle` page shows only the create button,
-since the list request 401s and the section stays hidden.
+since the list request 401s and the section stays hidden. The page carries
+the site's nav bar, HANDED IN by the app: `routers.py` registers
+`noodle.pages.set_nav(fn)` (request -> markup, owner or guest nav by the
+session cookie), because noodle may not import `pages.py` itself. Poll links
+(`/noodle/<slug>`) stay public -- they are what a host sends -- and carry no
+nav.
 
 **A new poll is a DRAFT until the host commits** (`noodle/drafts.py`).
 `create poll` stores nothing: `POST /api/noodle-polls/new` returns
