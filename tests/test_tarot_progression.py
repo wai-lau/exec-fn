@@ -381,6 +381,29 @@ def test_a_turned_card_shows_its_face_before_the_turn_ends(open_tarot):
         timeout=4000)
 
 
+def test_a_turned_card_zooms_again_while_its_turn_is_still_running(open_tarot):
+    """Flip, dismiss the zoom, tap the card again mid-turn: it must zoom. The
+    card is only PAINTED until the turn commits, and the tap used to fall into
+    the `streaming` guard and do nothing (the last card most of all)."""
+    calls = []
+
+    def handler(route):
+        calls.append(route)
+        if len(calls) == 1:                      # the opening turn
+            fulfill_sse(sse(txt("Sit.")))(route)
+        # the card's turn is left hanging: streaming stays true
+
+    pg = open_tarot(handler, init_script=seeded_spread(flipped=("past", "present")))
+    settle(pg)
+    pg.click(".tarot-card[data-position='future']")
+    pg.wait_for_selector("#card-zoom.open", timeout=4000)
+    pg.click("#card-zoom")
+    pg.wait_for_function("() => !document.querySelector('#card-zoom').classList.contains('open')"
+                         " && streaming === true", timeout=4000)
+    pg.click(".tarot-card[data-position='future']")
+    pg.wait_for_selector("#card-zoom.open", timeout=4000)
+
+
 def test_a_failed_turn_puts_the_card_back(open_tarot):
     """The paint is optimistic, so a turn that never narrates has to take it
     back — otherwise the position reads as revealed and can never be retried."""
