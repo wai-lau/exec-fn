@@ -289,7 +289,7 @@
   left: 50%;
   width: 1.45em;
   height: 1.45em;
-  border: 2px solid hsl(var(--green-hsl) / 1);
+  border: 2px solid hsl(var(--green-hsl) / 0.45);   /* faint: it marks the day, it is not a pick */
   border-radius: var(--radius-pill);
   transform: translate(-50%, -50%);
   pointer-events: none;
