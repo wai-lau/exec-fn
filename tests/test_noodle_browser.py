@@ -206,7 +206,7 @@ def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
         assert page.input_value("#nd-name") == name
         assert page.evaluate("document.activeElement.id") == "nd-pass"
         want = ("please enter your passphrase" if page.evaluate("NDV.held") else
-                "you'll NEED to remember this to control the poll" if page.evaluate("ndxIsHost()") else
+                "you'll NEED to remember this" if page.evaluate("ndxIsHost()") else
                 "you'll need this to change your vote")
         assert page.get_attribute("#nd-pass", "placeholder") == want
     finally:
