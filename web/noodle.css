@@ -217,7 +217,6 @@ body.noodle {
 .nd-ask-go:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
 .nd-ask .nd-status { margin: 0; }
 .nd-card textarea { resize: none; line-height: var(--lh-snug); }
-.nd-card textarea::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 .nd-ask-label { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.8); }
 
 .nd-status { min-height: 1lh; margin: var(--space-4) 0; text-align: center; font-size: var(--fs-2xs); }
@@ -396,7 +395,6 @@ body.noodle {
    their name must still sit on the same line as everyone else's */
 .nd-seal.xs { min-width: 9ch; min-height: 6lh; font-size: calc(var(--fs-2xs) * 0.8); }
 
-.nd-card input::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 
 /* the host's split switch, right under the calendar (noodle-host.js) */
 .nd-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); cursor: pointer; }
