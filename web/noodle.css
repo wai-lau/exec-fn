@@ -51,7 +51,9 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 }
 
 /* the /noodle page's name: big and glowing (the landing's title glow) */
-.nd-brand { font-size: var(--fs-3xl); text-shadow: 0 0 10px hsl(var(--green-hsl) / 0.8); }
+
+/* Courier New: a system face (Windows, macOS, iOS); elsewhere Courier, then any mono */
+.nd-brand { margin-bottom: var(--space-2-5); font-family: var(--font-courier); font-size: var(--fs-3xl); line-height: var(--lh-none); text-shadow: 0 0 10px hsl(var(--green-hsl) / 0.8); }
 
 .nd-dim { color: hsl(var(--gray-hsl) / 0.45); font-size: var(--fs-2xs); }
 
@@ -538,6 +540,11 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 .page-scroll:has(.nd-demo) { position: static; overflow: visible; padding-bottom: var(--nav-h); }
 .doc-card:has(.nd-demo) { z-index: auto; }
 
+/* and the page never scrolls: the card is exactly the screen above the nav,
+   and the video (a flex item) shrinks to whatever the title and button leave */
+html:has(.nd-demo), body:has(.nd-demo) { overflow: hidden; overscroll-behavior: none; }
+#noodle-admin:has(.nd-demo) { height: calc(100dvh - var(--nav-h, 0px)); overflow: hidden; }
+
 /* the empty status line under the button would push the video down */
 .nd-create #nd-msg:empty { display: none; }
 
@@ -547,8 +554,9 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
   display: block;
   width: auto;
   max-width: 100%;
-  max-height: 70dvh;
-  aspect-ratio: 700 / 1040;
+  min-height: 0;
+  flex: 0 1 auto;
+  aspect-ratio: 694 / 1040;
   object-fit: cover;   /* never letterbox: a box off the file's ratio by a hair drew black side bars */
   margin: var(--space-6) auto 0;
   border-radius: var(--radius-4);
