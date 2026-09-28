@@ -8,8 +8,9 @@ var NDV = { poll: null, cal: null, calKey: null, kdf: null, skew: 0, blocked: ''
 
 // Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
 // rides along on every request, which would send the passphrase to the server
-// -- the one thing this page promises never happens. Per browser, all polls.
-var NDV_STORE = 'noodle.identity';
+// -- the one thing this page promises never happens. The ONE thing kept across
+// polls (who you are travels with you); everything else is per poll.
+function ndvIdentityKey() { return 'noodle.identity'; }
 
 // The rest of the form -- calendar picks not yet submitted, and the Ask box --
 // is a DRAFT kept per poll (key + slug). A draft outranks the submitted vote
@@ -226,13 +227,13 @@ async function ndvOnDerived(d) {
 function ndvSaveIdentity() {
   if (window.NDR && NDR.active) return;   // the new passphrase is kept only once committed
   try {
-    localStorage.setItem(NDV_STORE, JSON.stringify({ name: ndv$('nd-name').value, pass: ndv$('nd-pass').value }));
+    localStorage.setItem(ndvIdentityKey(), JSON.stringify({ name: ndv$('nd-name').value, pass: ndv$('nd-pass').value }));
   } catch (e) { /* storage blocked: the form just is not remembered */ }
 }
 
 function ndvRestoreIdentity() {
   try {
-    var id = JSON.parse(localStorage.getItem(NDV_STORE) || 'null');
+    var id = JSON.parse(localStorage.getItem(ndvIdentityKey()) || 'null');
     if (id && typeof id.name === 'string') {
       ndv$('nd-name').value = id.name;
       ndv$('nd-pass').value = typeof id.pass === 'string' ? id.pass : '';

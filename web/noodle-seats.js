@@ -11,11 +11,11 @@ function ndvNameTaken(typed) {
   });
 }
 
-// The "could be you" seat's seal: random, made ONCE per browser and kept, so
-// the placeholder face is the same every visit instead of reshuffling.
+// The "could be you" seat's seal: random, made ONCE per browser per poll and
+// kept, so the placeholder face is the same every visit instead of reshuffling.
 var NDV_BLANK = '__could_be_you__';
 function ndvBlankSeal() {
-  var k = 'noodle.blankSeal', id = null;
+  var k = 'noodle.blankSeal.' + NDV.slug, id = null;   // per poll, like all of noodle's storage
   try { id = localStorage.getItem(k); } catch (e) { /* blocked: a fresh one each load */ }
   // a seed is 32 bytes (64 hex); a shorter one (an early version stored 16)
   // reads past its end in the seal and throws, so it is replaced

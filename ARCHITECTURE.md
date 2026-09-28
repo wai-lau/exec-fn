@@ -3573,7 +3573,7 @@ the voters with a dashed outline (`.nd-face.pending`), redrawn as the seal
 changes -- and while the typed name matches no voter AND there is no seal yet
 (none typed, or still deriving) the seat reads `could be you` (fills nothing
 when tapped) wearing a placeholder seal made once from 32 random bytes kept in
-localStorage (`noodle.blankSeal`), so it is the same face every visit -- and mid change your own face already wears the new seal. The rows
+localStorage (`noodle.blankSeal.<slug>`), so it is the same face every visit -- and mid change your own face already wears the new seal. The rows
 use a margin, not flex `gap`: a password manager injects a zero-width element
 into the name row, and a gap would be added around it too.
 
@@ -3632,6 +3632,10 @@ voter's stored picks. Known and accepted: an owner key-reset of the HOST's
 name lets the next signer claim host (the reset is owner-only and
 deliberate); one process-wide lock for all polls (no correctness issue);
 the passphrase is shown in the clear (deliberate: it is proofread).
+
+**Browser storage is per poll** -- `noodle.draft.<slug>` (unsaved picks + Ask
+text), `noodle.blankSeal.<slug>` -- except `noodle.identity` (name +
+passphrase), the one thing that travels between polls.
 
 **Messages.** Every ERROR goes to one banner pinned to the top of the page
 (`#nd-banner`, `ndvBanner`; Ask's errors too) -- a status line beside whatever
