@@ -233,7 +233,7 @@ def test_noodle_poll_page_has_a_link_preview(client, noodle_slug):
 
 
 def test_noodle_demo_video_is_for_guests_only(client, guest_cookie, admin_cookie):
-    """/noodle: guests get the autoplaying demo under create poll; the owner
+    """/noodle: guests get the autoplaying demo under the create button; the owner
     (who has the poll list there) does not."""
     g = client.get("/noodle", headers=guest_cookie)
     assert g.status_code == 200 and 'class="nd-demo"' in g.text
@@ -313,7 +313,7 @@ def test_noodle_drafts_need_their_token(client, guest_cookie):
 
 def test_noodle_page_is_guest_tier_but_its_poll_list_is_owner_only(client, guest_cookie):
     r = client.get("/noodle", headers={**guest_cookie, **HTML_ACCEPT})
-    assert r.status_code == 200 and "create poll" in r.text
+    assert r.status_code == 200 and 'aria-label="create a noodle poll">noodle</button>' in r.text
     for headers in ({}, {**guest_cookie, "Accept": "application/json"}):
         assert client.get("/api/noodle-polls", headers=headers).status_code == 401
         assert client.post("/api/noodle-polls", json={"title": "x"}, headers=headers).status_code == 401

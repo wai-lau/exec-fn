@@ -3712,7 +3712,9 @@ on any poll, `noodle.lastpass.<name>` -- never over one typed by hand); only the
 `pages._DEMO`, owner decided server-side by `set_owner` from routers.py):
 `web/noodle-demo.mp4`, gitignored (the server holds the only copy; the
 original is `~/noodle-demo-original.mp4` on the droplet). Cropped of its black
-bars to 720x1040, x264 CRF 26, audio stripped, `+faststart`: 56MB -> 2.6MB. It
+bars and the recording's page scrollbar to 700x1040 (`crop=700:1040:8:120`), x264
+CRF 26, audio stripped, `+faststart`: 56MB -> 2.6MB. The page has no title; the
+create button just reads `noodle`. It
 AUTOPLAYS `muted loop playsinline`; a tap opens it fullscreen with native
 controls (`noodle-admin.js ndmDemo`; iPhone has only `webkitEnterFullscreen`).
 It sits ABOVE the CRT stack (`z-index: --z-top`), which takes two unstackings on

@@ -545,8 +545,9 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
   width: auto;
   max-width: 100%;
   max-height: 70dvh;
-  aspect-ratio: 720 / 1040;
-  margin: var(--space-6) auto 0;   /* = the title-to-button gap */
+  aspect-ratio: 700 / 1040;
+  object-fit: cover;   /* never letterbox: a box off the file's ratio by a hair drew black side bars */
+  margin: var(--space-6) auto 0;
   border-radius: var(--radius-4);
   background: hsl(var(--bg-hsl) / 1);
   cursor: pointer;   /* a tap opens it fullscreen (noodle-admin.js) */
