@@ -17,7 +17,23 @@ NAME, PASS = "smoke bot", "a fixed smoke passphrase"
 def _ready(page):
     page.fill("#nd-name", NAME)
     page.fill("#nd-pass", PASS)
+    page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')"
+                           " || document.querySelector('#nd-why').textContent.includes('different')", timeout=20000)
+    _offer_one(page)
     page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+
+
+def _can_commit(page):
+    page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+    _offer_one(page)
+    page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+
+
+def _offer_one(page):
+    """A host must offer something to commit; on a shared poll that may have
+    been recreated empty, the test voter can be the host."""
+    page.evaluate("ndxIsHost() && !NDV.cal.getSel().size && "
+                  "(NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))), ndvSaveDraft())")
 
 
 def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
@@ -39,13 +55,16 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         assert teach.startswith("salt = sha256(poll, name)\nseal = argon2id(passphrase, salt)")
         assert "commit() ──> stamp(availabilities, seal)" in teach
 
-        cell = page.query_selector(".nd-d:not(.out)")
+        # an open day other than the one a host is offering (flipping that one
+        # off would leave nothing to commit)
+        cell = page.query_selector_all(".nd-d:not(.out):not(.shut)")[1]
         cell.scroll_into_view_if_needed()
         box = cell.bounding_box()
         was_mid = "mid" in (cell.get_attribute("class") or "")
         page.mouse.click(box["x"] + box["width"] * 0.15, box["y"] + box["height"] * 0.15)
         assert ("mid" in cell.get_attribute("class")) != was_mid, "top-left tap must flip MIDDAY"
 
+        _can_commit(page)
         page.click("#nd-submit")
         page.wait_for_function("document.querySelector('#nd-status').textContent.startsWith('committed')",
                                timeout=10000)
@@ -76,7 +95,7 @@ def test_same_name_other_passphrase_is_blocked(browser, base_url, noodle_slug):
         locked_colour = page.evaluate(label)
         # a name nobody holds unlocks everything again
         page.fill("#nd-name", "smoke unique name")
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        _can_commit(page)
         assert not page.evaluate("document.getElementById('nd-cal').classList.contains('nd-readonly')")
         assert page.inner_text("#nd-seal-cap") == "smoke unique name's seal of approval"
         assert page.evaluate(label) != locked_colour, "the passphrase label must lose its warning colour"
@@ -98,7 +117,7 @@ def test_form_is_remembered_locally_never_in_a_cookie(browser, base_url, noodle_
         page.reload()
         assert page.input_value("#nd-name") == NAME
         assert page.input_value("#nd-pass") == PASS
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        _can_commit(page)
         assert all(PASS not in c["value"] for c in ctx.cookies()), "passphrase must never be a cookie"
     finally:
         ctx.close()
@@ -111,7 +130,7 @@ def test_empty_passphrase_is_allowed_with_a_warning(browser, base_url, noodle_sl
         page.fill("#nd-name", "smoke nopass")
         page.fill("#nd-pass", "")
         assert page.is_visible("#nd-warn")
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        _can_commit(page)
         page.fill("#nd-pass", "x")
         assert not page.is_visible("#nd-warn")
     finally:
@@ -193,7 +212,7 @@ def test_your_taps_light_the_half_and_add_your_dot(browser, base_url, noodle_slu
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", "smoke dots")
         page.fill("#nd-pass", "p")
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        _can_commit(page)
         # a non-host can only light what the host offered: tap one of those
         poll = page.evaluate(f"fetch('/api/noodle/{noodle_slug}').then(r => r.json())")
         offered = sorted(poll["voters"][0]["slots"] if poll["voters"] else [])
@@ -225,7 +244,7 @@ def test_enter_in_ask_is_a_newline_not_a_question(browser, base_url, noodle_slug
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", "smoke enter")
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        _can_commit(page)
         asked = []
         page.on("request", lambda r: asked.append(r.url) if r.url.endswith("/ask") else None)
         page.click("#nd-ask")
@@ -250,7 +269,7 @@ def test_a_rate_limit_counts_down_and_help_stays_pressable(browser, base_url, no
             body='{"error": "noodle needs a breather -- try again in 2s", "retry_after": 2}'))
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", "smoke ratelimit")
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        _can_commit(page)
         page.fill("#nd-ask", "fridays")
         page.click("#nd-ask-go")
         page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('try again in')")
@@ -269,7 +288,7 @@ def test_a_non_host_can_only_pick_what_the_host_offered(browser, base_url, noodl
             pytest.skip("no host on the smoke poll yet")
         offered = set(poll["voters"][0]["slots"])
         page.fill("#nd-name", "smoke guest")
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
+        _can_commit(page)
 
         def tap(day, half):
             cell = page.locator(f".nd-d[data-day='{day}']")
