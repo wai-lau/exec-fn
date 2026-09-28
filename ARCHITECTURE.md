@@ -3581,10 +3581,12 @@ into the name row, and a gap would be added around it too.
 a delete button that asks first (`DELETE /api/noodle-polls/{slug}`, owner-only,
 `store.delete`).
 
-**The poll's link** sits under Commit with a `copy link` button
+**The poll's link** sits under Commit as TEXT in a read-only box (not a link) with a copy-icon button (U+F0C5, added to `noodle-seal.woff2`; a check once copied)
 (`web/noodle-share.js`; falls back to selecting the link where the clipboard is
 refused): the link is the only key to the poll, so sharing it is the next
 thing a host does.
+
+A guest's name in the voter row wraps onto as many lines as it needs; the host's stays on one line, since the `host` label sits under it.
 
 **The page scrolls in `.page-scroll`** (chrome.css), not the document: a
 root scrollbar is top-layer and paints over the CRT stack.
