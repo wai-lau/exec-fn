@@ -535,3 +535,21 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 /* the foot of a poll page: back to the noodle home, to start another */
 .nd-another { margin: var(--space-10) 0 0; text-align: center; font-size: var(--fs-2xs); }
 .nd-another a { color: hsl(var(--green-hsl) / 0.8); }
+
+/* the host's NOTE under the title: the title's own mechanism (noodle-host.js
+   NDH_TEXT) -- dotted line for the host, tap to edit, sent with Commit. Empty,
+   a guest sees nothing and the host a grey "add a note" to tap */
+.nd-subnote {
+  width: fit-content;
+  max-width: 100%;
+  margin: calc(-1 * var(--space-4)) auto var(--space-6);
+  padding: 0 1.5ch;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+.nd-subnote:empty:not(.editable) { display: none; }
+.nd-subnote.editable { border-bottom: 2px dashed hsl(var(--green-hsl) / 0.45); cursor: text; }
+.nd-subnote.editable:empty::before { content: 'add a note'; color: hsl(var(--gray-hsl) / 0.45); }
+.nd-subnote[contenteditable="plaintext-only"], .nd-subnote[contenteditable="true"] { outline: none; }

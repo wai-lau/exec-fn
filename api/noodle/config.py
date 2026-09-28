@@ -62,3 +62,6 @@ ASK_IP_WINDOW_S = 3600   # ... per this many seconds (in memory)
 # Starting a poll (the public /noodle page): drafts per client IP.
 NEW_RATE = 20
 NEW_WINDOW_S = 3600
+
+# The host's note under the poll's title.
+NOTE_MAX = 280

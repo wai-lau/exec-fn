@@ -193,3 +193,19 @@ def test_the_host_retitles_the_poll(m):
     # without a title the settings leave it alone
     m["host"].settings(m["slug"], settings(m, h, "h", False, NOW + 4), now=NOW + 4)
     assert m["store"].load(m["slug"])["title"] == "Board games"
+
+
+
+def test_the_host_writes_a_note_and_can_clear_it(m):
+    h = Ed25519PrivateKey.generate()
+
+    def noted(note, ts):
+        msg = m["sig"].canonical_action(name="h", poll=m["slug"], ts=ts, kind="settings", halves=False,
+                                        note=note, **{"from": None, "to": None})
+        return {"name": "h", "pub": pub(h), "ts": ts, "sig": _b64(h.sign(msg)), "halves": False,
+                "from": None, "to": None, "note": note}
+    m["host"].settings(m["slug"], noted("  bring snacks ", NOW), now=NOW)
+    assert m["store"].load(m["slug"])["note"] == "bring snacks"
+    assert fails(m["host"].settings, m["slug"], noted("x" * 281, NOW + 1), now=NOW + 1) == 400
+    m["host"].settings(m["slug"], noted("", NOW + 2), now=NOW + 2)
+    assert m["store"].load(m["slug"])["note"] == ""

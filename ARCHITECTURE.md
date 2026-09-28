@@ -3804,7 +3804,11 @@ pieces can overlap by a pixel -- translucent joins showed as seams. Ask noodle c
 and the next two (`NDX_SPAN`), pending so the host's first Commit saves it (nothing
 in it picked). The host can also
 RETITLE the poll by tapping the title (contenteditable); like the split and the
-crop it is sent with Commit, as an optional signed `title` in `/settings`.
+crop it is sent with Commit, as an optional signed `title` in `/settings`. A
+NOTE under the title (`poll.note`, at most `NOTE_MAX` 280, may be emptied) uses
+the very same mechanism (`NDH_TEXT` in noodle-host.js: tap, select-all, Enter,
+dotted line, pending + unsaved, kept in the per-name draft, signed `note` in
+`/settings`); empty, the host sees a grey `add a note` and a guest nothing.
 Dragging blocks text selection (`body.nd-dragging`, `selectstart`).
 
 **The host's calendar is the offer**, so the host cannot Commit with nothing

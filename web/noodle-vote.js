@@ -69,6 +69,7 @@ function ndvDirty() {
   if (NDV.pendingHalves != null) return true;   // an unsaved split
   if (NDV.pendingCrop !== undefined) return true;   // an unsaved crop
   if (NDV.pendingTitle !== undefined) return true;  // an unsaved title
+  if (NDV.pendingNote !== undefined) return true;   // an unsaved note
   if (window.NDR && NDR.active) return true;    // an unsaved new name or passphrase
   var sel = NDV.cal.getSel(), saved = NDV.saved;
   if (sel.size !== saved.size) return true;

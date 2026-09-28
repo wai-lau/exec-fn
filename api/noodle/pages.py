@@ -39,6 +39,7 @@ def vote_page(poll: dict, draft: str = "") -> str:
         SLUG=html.escape(poll["slug"], quote=True),
         DRAFT=html.escape(draft, quote=True),
         TITLE=html.escape(poll["title"]),
+        NOTE=html.escape(poll.get("note", "")),
         KDF=_kdf_attrs(),
         ASK_MAX=str(config.ASK_MAX_CHARS),
     )
@@ -73,7 +74,7 @@ def public_poll(poll: dict) -> dict:
     # spelling.
     voters = sorted(poll["voters"].items(), key=lambda kv: kv[1]["order"])
     return {
-        "slug": poll["slug"], "title": poll["title"],
+        "slug": poll["slug"], "title": poll["title"], "note": poll.get("note", ""),
         # split into midday + night, or one slot a day; polls from before the
         # host could choose were all split, so a missing key means split
         "halves": poll.get("halves", True),

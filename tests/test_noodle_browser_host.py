@@ -269,6 +269,16 @@ def test_the_host_retitles_by_tapping_the_title(browser, base_url):
         page.wait_for_function("NDV.committed > 0",
                                timeout=20000)
         assert page.evaluate(f"fetch('/api/noodle/{slug}').then(r => r.json())")["title"] == "__smoke_title__ renamed"
+        # the note under it: the same mechanism
+        assert page.inner_text("#nd-note") == "" and "editable" in page.get_attribute("#nd-note", "class")
+        page.click("#nd-note")
+        page.keyboard.type("bring snacks")
+        page.keyboard.press("Enter")
+        assert page.inner_text("#nd-submit") == "Commit*"
+        page.evaluate("NDV.committed = 0")
+        page.click("#nd-submit")
+        page.wait_for_function("NDV.committed > 0", timeout=20000)
+        assert page.evaluate(f"fetch('/api/noodle/{slug}').then(r => r.json())")["note"] == "bring snacks"
     finally:
         page.close()
         with httpx.Client(base_url=base_url, timeout=15.0) as c:
