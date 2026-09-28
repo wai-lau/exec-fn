@@ -3689,7 +3689,8 @@ deliberate); one process-wide lock for all polls (no correctness issue);
 the passphrase is shown in the clear (deliberate: it is proofread).
 
 **Browser storage is per poll** -- `noodle.draft.<slug>.<name>` (unsaved picks +
-Ask text, per poll AND per NAME -- not the passphrase -- keyed by the
+a host's unsaved title) and `noodle.ask.<slug>.<name>` (the Ask text, which a
+Commit leaves alone) -- per poll AND per NAME -- not the passphrase -- keyed by the
 normalized name, and a different identity starts clean rather than
 inheriting what was on screen; a Commit deletes EVERY draft the poll holds, any
 identity's -- a stale one under an earlier key beat the saved picks when its
