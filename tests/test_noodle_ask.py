@@ -176,6 +176,14 @@ def test_noodle_can_crop_the_view_but_only_validly(env, crop, want):
     assert go(env)["crop"] == want
 
 
+def test_a_crop_limits_the_slots_too(env):
+    """ "Only the 3rd to the 6th: friday nights" -- a guest's page never
+    applies the crop, so the answer itself must stay inside it."""
+    env["fake"].reply = {"reading": "x", "crop": {"from": "2026-10-03", "to": "2026-10-06"}, "rules": [
+        {"action": "add", "blocks": ["night"], "where": {"weekday": ["friday", "saturday"]}}]}
+    assert go(env)["slots"] == ["2026-10-03:n"]   # not the 2nd, 9th or 10th
+
+
 def test_model_failure_reports(env):
     def boom(system, user):
         raise RuntimeError("upstream down")

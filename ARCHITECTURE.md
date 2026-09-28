@@ -3739,6 +3739,14 @@ the origin is `config.ORIGIN` (`NOODLE_ORIGIN`, default `https://wai-lau.net`).
 Meta caches a preview for weeks: re-scrape a shared link in Facebook's Sharing
 Debugger. Bump `OG_IMAGE`'s `?v=` when the card changes.
 
+**Ask's crop is also a limit.** When noodle reads a span ("only October 16 to
+25: ...") it returns `crop`, which only a HOST's page applies -- and its rules
+still ran on every date in view, so a guest got every matching day in the
+calendar. `ask.ask` now drops any slot outside the crop it returns
+(`test_a_crop_limits_the_slots_too`). On an UNSPLIT poll a guest's halves still
+fold into whole days, so "weekday evenings or weekends" lights every day of the
+span: each one has a free part.
+
 **Top dates** (`web/noodle-top.js`, `#nd-top-box`, no label, above the underlined "make another noodle" link):
 EVERY slot at least one voter other than the host picked (the host's offer
 alone is not a result; `cols[0]` is always the host), most voters first, a tie
