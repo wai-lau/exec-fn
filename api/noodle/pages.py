@@ -86,7 +86,7 @@ def set_owner(fn) -> None:
 # It has no sound (the file carries no audio track), so it AUTOPLAYS, muted and
 # looping, inline -- browsers allow that without a tap. No controls inline: a
 # tap opens it fullscreen (noodle-admin.js ndmDemo).
-_DEMO = ('<video class="nd-demo" src="/noodle-demo.mp4?v=4" autoplay muted loop playsinline '
+_DEMO = ('<video class="nd-demo" src="/noodle-demo.mp4?v=5" autoplay muted loop playsinline '
          'aria-label="noodle demo, tap for fullscreen"></video>')
 
 

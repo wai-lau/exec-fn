@@ -142,6 +142,7 @@
   --font-bit:    'BitLight', monospace;                  /* nightfall-adjacent */
   --font-ui:     system-ui, sans-serif;                  /* tarot reader UI */
   --font-doc:    'Helvetica Neue', helvetica, arial, sans-serif;  /* recruiter light page: plain résumé face */
+  --font-courier: 'Courier New', courier, monospace;   /* noodle's name on /noodle (a system face) */
 
   /* ── Type: size (rem) — 4 steps; fluid clamp() sizes stay bespoke ─────── */
   --fs-2xs:   0.85rem;   /* meta / dim labels — +3pt (0.25rem) 2026-08-31 */
