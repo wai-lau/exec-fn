@@ -263,9 +263,9 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-mic.js?v=2"></script>'
                   '<script src="/exec-bubble-assets.js?v=20"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
-                  '<script src="/exec-bubble-msg.js?v=2"></script>'
-                  '<script src="/exec-bubble-history.js?v=1"></script>'
-                  '<script src="/exec-bubble.js?v=76"></script>')
+                  '<script src="/exec-bubble-msg.js?v=3"></script>'
+                  '<script src="/exec-bubble-history.js?v=3"></script>'
+                  '<script src="/exec-bubble.js?v=77"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +

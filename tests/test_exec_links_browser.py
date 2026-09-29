@@ -16,7 +16,7 @@ Three properties:
     so chat-msg.css's `.msg.assistant a` never reached it and it fell through
     to the UA's default blue.
 
-Boundaries mocked, no LLM and no board writes: /api/chat serves a canned
+Boundaries mocked, no LLM and no board writes: /api/cc/exec-history serves a canned
 history, marked is stubbed with a link-only parser that honours the renderer
 option (the real one is a CDN fetch).
 
@@ -52,16 +52,16 @@ _HISTORY = {
             "role": "monitor",
             "ts": "2026-09-19T09:00:00+00:00",
             "card_id": "card-ei",
-            "content": f"Fifteen minutes, biweekly. [The EI login]({_LOGIN_URL}) is open in one tap.",
+            "text": f"Fifteen minutes, biweekly. [The EI login]({_LOGIN_URL}) is open in one tap.",
         },
         {
             "role": "monitor",
             "ts": "2026-09-19T09:01:00+00:00",
             "card_id": "card-ei",
-            "content": "[Nothing doing](javascript:alert(1)) is not a link.",
+            "text": "[Nothing doing](javascript:alert(1)) is not a link.",
         },
     ],
-    "stage": "planning",
+    "monitorTotal": 0,
 }
 
 
@@ -82,7 +82,7 @@ def panel(browser, base_url, admin_headers):
                                       "flush(){},setVolume(){},elapsed:()=>0,"
                                       "audioDuration:()=>0,isUnlocked:()=>true,"
                                       "gestureUnlocked:()=>true})};"))
-    pg.route("**/api/chat",
+    pg.route("**/api/cc/exec-history",
              lambda r: r.fulfill(status=200, content_type="application/json",
                                  body=json.dumps(_HISTORY)))
     pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")

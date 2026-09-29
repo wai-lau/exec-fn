@@ -4,8 +4,6 @@
 
   // ── state ─────────────────────────────────────────────────────────────────
   let isOpen = false;
-  let messages = [];
-  let stage = 'planning';
   let streaming = false;
   let monitorTotal = 0;          // monitor notifications known this session
 
@@ -179,10 +177,6 @@
     if (params.get('exec') !== 'open') return;
     openPanel();
     armFirstGestureFocus();
-    var last = messages[messages.length - 1];
-    if (last && last.role === 'user' && typeof last.content === 'string' && !streaming) {
-      streamResponse();
-    }
   }
 
   // ── unread badge ──────────────────────────────────────────────────────────
@@ -302,27 +296,57 @@
   // answer IS the message Wai would have typed.
   function sendText(text) {
     if (streaming || !text) return;
-    const ts = fmtTs();
-    addMsg('user', ts + ' ' + text);
-    messages.push({ role: 'user', content: ts + ' ' + text });
-    streamResponse();
+    addMsg('user', fmtTs() + ' ' + text);
+    streamResponse(text);
   }
 
   // ── stream response ───────────────────────────────────────────────────────
-  async function streamResponse() {
+  // Since phase 3 of docs/plan-exec-cc-merge.md the panel talks to the /cc
+  // sidecar: the server owns the thread, so only Wai's words are sent, and the
+  // container puts the board in front of them (exec_context.wrap). The frames
+  // are the sidecar's own vocabulary (session/text/thinking/tool/tool_result/
+  // done/busy/error); only text and Exec's card tools reach the panel -- a web
+  // search or a Bash call is /cc's business, not a line on the board.
+  const EXEC_TOOL = 'mcp__exec__';
+
+  // One frame. `st` carries the reply so far and the tool calls still waiting
+  // for their result (results arrive in call order).
+  function onFrame(data, st, typer) {
+    if (data.type === 'text') {
+      // Each assistant message is a whole block; a reply that resumes after a
+      // tool call is a second block of the same answer.
+      st.text += (st.text ? '\n\n' : '') + data.text;
+      typer.push(st.text);
+    } else if (data.type === 'tool') {
+      st.pending.push(data);
+    } else if (data.type === 'tool_result') {
+      const call = st.pending.shift();
+      if (!call || call.name.indexOf(EXEC_TOOL) !== 0) return;
+      let res = {};
+      try { res = JSON.parse(data.text) || {}; } catch (_) { /* not JSON: generic line */ }
+      addMsg('sys', execHistory.toolSysText(call.name.slice(EXEC_TOOL.length), call.input || {}, res));
+    } else if (data.type === 'busy') {
+      // One run at a time on the sidecar: /cc (or a slow panel turn) holds it.
+      throw new Error('busy -- /cc is mid-run, send again in a moment');
+    } else if (data.type === 'error') {
+      throw new Error(data.detail || 'run failed');
+    }
+  }
+
+  async function streamResponse(prompt) {
     streaming = true;
     const { div: streamDiv, body, cur } = addStreamDiv();
-    let fullText = '';
+    const st = { text: '', pending: [] };
     // With the voice on and usable, the reveal is the narrator's to pace: the
     // typer buffers instead of typing, and twAudio spreads the text across the
     // measured utterance below.
     const typer = execTyper(body, cur, termEl,
                             () => !!(window.execVoice && execVoice.isOn() && execVoice.ready()));
     try {
-      const r = await fetch('/api/chat', {
+      const r = await fetch('/api/cc/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messages, stage: stage }),
+        body: JSON.stringify({ prompt: prompt }),
       });
       if (!r.ok) throw new Error(await r.text());
       const reader = r.body.getReader();
@@ -338,20 +362,10 @@
           if (!line.startsWith('data: ')) continue;
           let data;
           try { data = JSON.parse(line.slice(6)); } catch (_) { continue; }
-          if (data.type === 'text') {
-            fullText += data.delta;
-            typer.push(fullText);
-          } else if (data.type === 'tool_call') {
-            addMsg('sys', execHistory.toolSysText(data.name, data.input || {}, data.result || {}));
-            // notify card views (rd/hq/directives) to reload live
-            if (['create_card','archive_card','exile_card','update_card','schedule_card'].includes(data.name)) {
-              window.dispatchEvent(new CustomEvent('exec:cards-changed', { detail: { name: data.name } }));
-            }
-          } else if (data.type === 'done') {
-            stage = data.next_stage;
-          }
+          onFrame(data, st, typer);
         }
       }
+      const fullText = st.text;
       // Speak as soon as the TEXT is final — the read loop above has just
       // ended, so fullText is complete — rather than after the reveal. This
       // used to sit below `await typer.finish()`, which is the whole typewriter
@@ -377,7 +391,6 @@
           execChoices.attach(termEl, streamDiv, ch.opts, sendText, ch.cardId,
                              function (t) { addMsg('sys', t); }, ch.clean);
         }
-        messages.push({ role: 'assistant', content: fullText });
         // the replay glyph, not the narration — that already started above
         if (window.execVoice) streamDiv.insertBefore(execVoice.mark('assistant', fullText), streamDiv.firstChild);
       }
@@ -399,8 +412,6 @@
   async function loadHistory() {
     const res = await execHistory.load(addMsg);
     if (!res) return;
-    messages = res.messages;
-    stage = res.stage;
     monitorTotal = res.monitorTotal;
     if (isOpen) markRead(); else recomputeUnread();
   }

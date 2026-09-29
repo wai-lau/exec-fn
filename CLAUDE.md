@@ -162,7 +162,8 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | GET | `/api/context` | Returns profile.json (alias of `/api/profile`) |
 | GET | `/api/profile` | Returns profile.json |
 | PATCH | `/api/context` | Replace profile.json `notes` field. Atomic write. |
-| GET/POST/DELETE | `/api/chat` | Exec chat history (planning SSE). |
+| GET/POST/DELETE | `/api/chat` | Legacy Exec chat (chat.json + two-pass SSE). The panel left it in phase 3; Discord inbound still uses the two-pass path until phase 4. |
+| GET | `/api/cc/exec-history` | **Owner-only.** The panel's replay: `{messages:[{role user/assistant/monitor, text, ts, card_id?}], monitorTotal}` — the /cc thread + chat.json pushes, by time (`exec_panel.py`). **ARCHITECTURE.md §7f**. |
 | GET | `/api/todos` | Exec-panel scratch todo list (`exec_todos.json`): `{items:[{id,text}]}`. |
 | POST | `/api/todos` | Add a todo. Body `{text}` → appends `{id,text}`, returns the item. 400 on empty. |
 | PATCH | `/api/todos/{id}` | Edit a todo's text. Body `{text}` → updates in place, returns the item. 400 on empty, 404 on unknown id. Tap the item text in the exec panel to inline-edit (Enter/blur commits, Escape reverts). |
@@ -231,7 +232,9 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 
 Bound in `chat_tools._TOOL_HANDLERS`; schemas in `chat._chat_tools()`. Exec sees every rd + hq card and the archives/exile moves of the last 7 days (`exec_board.py`, **ARCHITECTURE.md §7e**).
 
-**Every Exec turn is TWO PASSES** (`api/chat_passes.py`, web + Discord): **ACT** (tools on, its text DISCARDED, tool rounds until it stops) then **REPLY** (`tool_choice: none`, streamed, reports only what the tool results show). A reply that finds a requested action missing answers `[redo: …]` instead — never shown, sent back to the act pass as an `[auto-check, not from Wai]` note (stripped before save), at most 2 times. Why: history is flattened without tool calls, so a single pass learned to SAY "Added X" without calling anything (2026-09-24, Nick/Jesse cards that never existed, with an invented card id). Cost: ~9s to first text on an action turn vs ~2s on a question. **ARCHITECTURE.md §5**.
+**The Exec panel runs on the /cc sidecar** since 2026-09-28 (phase 3): it posts Wai's words to `/api/cc/query` and replays `/api/cc/exec-history` (the /cc thread + chat.json's nudges/comments by time) — one conversation behind both doors; the SDK keeps real tool calls in the thread, so no two-pass guard there. **ARCHITECTURE.md §7f**.
+
+**Every Discord Exec turn is TWO PASSES** (`api/chat_passes.py`; the web panel used it until phase 3): **ACT** (tools on, its text DISCARDED, tool rounds until it stops) then **REPLY** (`tool_choice: none`, streamed, reports only what the tool results show). A reply that finds a requested action missing answers `[redo: …]` instead — never shown, sent back to the act pass as an `[auto-check, not from Wai]` note (stripped before save), at most 2 times. Why: history is flattened without tool calls, so a single pass learned to SAY "Added X" without calling anything (2026-09-24, Nick/Jesse cards that never existed, with an invented card id). Cost: ~9s to first text on an action turn vs ~2s on a question. **ARCHITECTURE.md §5**.
 
 | Tool | What |
 |------|------|

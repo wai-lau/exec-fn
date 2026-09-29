@@ -19,6 +19,7 @@ change it in both places.
 import asyncio
 
 from chat import _CHAT_STATIC_PREFIX, _turn_context
+from exec_panel import recent_pushes
 
 OPEN = "<exec-context>"
 CLOSE = "</exec-context>"
@@ -32,4 +33,7 @@ async def wrap(prompt: str) -> str:
     """Wai's message with the current board state in front of it. Reads rd.json
     and profile.json, so it runs off the event loop."""
     ctx = await asyncio.to_thread(_turn_context, "planning")
+    pushes = await asyncio.to_thread(recent_pushes)
+    if pushes:
+        ctx = f"{ctx}\n\n{pushes}"
     return f"{OPEN}\n{ctx}\n{CLOSE}\n\n{prompt}"

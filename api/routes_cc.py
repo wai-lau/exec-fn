@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 import cc_client
 import cc_title
 import exec_context
+import exec_panel
 from pages import _render_page, _tmpl
 from routers import protected
 
@@ -101,6 +102,13 @@ async def cc_history():
     lives on the sidecar, not the page, so a reload resumes rather than starting
     over (it used to start over every single load)."""
     return JSONResponse(await cc_client.history())
+
+
+@protected.get("/api/cc/exec-history")
+async def exec_history():
+    """The Exec panel's replay: the /cc thread with nudges and monitor comments
+    interleaved by time (exec_panel.py). Owner-only like the thread it reads."""
+    return JSONResponse(await exec_panel.merged_history())
 
 
 @protected.post("/api/cc/new")

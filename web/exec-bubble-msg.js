@@ -38,12 +38,14 @@ function execRenderUserBody(body, text) {
   body.appendChild(rest);
 }
 
-function execFmtTs() {
+// `when` defaults to now; replay passes the stored turn's time so a reloaded
+// message wears the same chip it had live.
+function execFmtTs(when) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
     day: '2-digit', month: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false
-  }).formatToParts(new Date());
+  }).formatToParts(when || new Date());
   const get = function (t) { return parts.find(function (p) { return p.type === t; }).value; };
   return '[' + get('day') + '/' + get('month') + ' ' + get('hour') + ':' + get('minute') + ' ET]';
 }
