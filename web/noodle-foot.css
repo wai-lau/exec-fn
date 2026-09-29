@@ -24,7 +24,21 @@
 .nd-top-dots i.on { background: hsl(var(--green-hsl) / 1); }
 .nd-top-dots i.on[style] { background: hsl(var(--seal-hsl) / 1); }
 
-.nd-another { margin: var(--space-6) 0 0; text-align: center; font-size: var(--fs-2xs); }
-.nd-another a { color: hsl(var(--green-hsl) / 0.8); text-decoration: underline; }   /* reads as a link */
-.nd-another:not(.nd-feedback) { font-size: var(--fs-xl); font-weight: var(--fw-bold); }   /* the "or ask noodle" size */
-.nd-another.nd-feedback { margin-top: var(--space-4); }   /* under it: the mailto (the address /recruiter already shows) */
+/* "make another noodle" (host) / "make your own noodle" (guest), and under
+   it the feedback mailto (the address /recruiter already shows): LINKS drawn
+   as smaller Commit buttons (noodle-actions.css .nd-submit) */
+.nd-another { margin: var(--space-6) 0 0; text-align: center; }
+.nd-another.nd-feedback { margin-top: var(--space-4); }
+
+.nd-another a {
+  display: inline-block;
+  padding: var(--space-2) var(--space-6);
+  border: 2px solid hsl(var(--green-hsl) / 1);
+  border-radius: var(--radius-2);
+  background: hsl(var(--green-hsl) / 0.12);
+  color: hsl(var(--green-hsl) / 1);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-wide);
+  text-decoration: none;
+}

@@ -3753,7 +3753,8 @@ one-column-per-voter dot row matching the calendar's column order.
 
 Foot: "make another noodle" (host) / "make your own noodle" (guest), then
 a `mailto:` bug-report link — driven by one class, `.nd-as-host`
-(`ndhTitleMarks`), never per-string branching.
+(`ndhTitleMarks`), never per-string branching. Both stay LINKS but are drawn
+as smaller Commit buttons (`noodle-foot.css .nd-another a`, `--fs-2xs`).
 
 ### 21g. Browser storage
 
