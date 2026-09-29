@@ -6,7 +6,7 @@
 // Classes are repainted in place on every change so scroll never jumps.
 //
 // opts: {halves, crop: {from, to} | null, endless, onChange(sel), onRows()}
-// api:  setSel(Set), getSel(), setOthers([{slots:Set, ink} | {self:true, ink}]),
+// api:  setSel(Set), getSel(), setOthers([{slots:Set, ink} | {self:true, ink}]), destroy(),
 //       setAllowed(Set | null, prune), rows(), weekOf(row), more(), scroller
 
 var NDC_FIRST = 12;   // weeks rendered up front
@@ -181,9 +181,11 @@ function ndcWireLoader(scroller, sentinel, more) {
     if (scroller.scrollTop + scroller.clientHeight > scroller.scrollHeight - 300) more();
   };
   scroller.addEventListener('scroll', nearEnd, { passive: true });
-  new IntersectionObserver(function (entries) {
+  var io = new IntersectionObserver(function (entries) {
     if (entries[0].isIntersecting) nearEnd();
-  }, { root: scroller, rootMargin: '0px 0px 300px 0px' }).observe(sentinel);
+  }, { root: scroller, rootMargin: '0px 0px 300px 0px' });
+  io.observe(sentinel);
+  return io;
 }
 
 // The first week drawn. The HOST's endless calendar starts a week EARLY: the
@@ -210,6 +212,19 @@ function ndcOnWidth(els, fn) {
     if (changed) fn();
   });
   els.forEach(function (el) { ro.observe(el); });
+  return ro;
+}
+
+// The calendar's observers: the endless one's week loader (more = null for a
+// bounded calendar) and the width watcher -- on the GRID too, since a
+// scrollbar arriving narrows the grid inside an unchanged scroller, and month
+// lines drawn before that sat right of their gaps. Returned so destroy() can
+// disconnect them: else every rebuild (a split flip, a crop drag) kept its
+// old grid alive for the page's life.
+function ndcWatch(scroller, grid, more, onWidth) {
+  var obs = [ndcOnWidth([scroller, grid], onWidth)];
+  if (more) obs.push(ndcWireLoader(scroller, scroller.querySelector('.nd-more-weeks'), more));
+  return obs;
 }
 
 function NoodleCal(wrap, opts) {
@@ -295,15 +310,9 @@ function NoodleCal(wrap, opts) {
 
   grid.addEventListener('click', function (e) { if (!wrap.classList.contains('nd-readonly')) onTap(e); });   // not your key yet: look, don't touch
   addWeeks(endless ? NDC_FIRST : NDC_MAX);
-  if (endless) {
-    ndcWireLoader(scroller, wrap.querySelector('.nd-more-weeks'), function () {
-      if (weeks.length < NDC_MAX) addWeeks(NDC_MORE);
-    });
-  }
+  var observers = ndcWatch(scroller, grid, endless && function () { if (weeks.length < NDC_MAX) addWeeks(NDC_MORE); },
+    function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid, endless); });
   ndcCapHeight(scroller, grid, endless);
-  // the GRID too: a scrollbar arriving narrows the grid inside an unchanged
-  // scroller, and month lines drawn before that sat right of their gaps
-  ndcOnWidth([scroller, grid], function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid, endless); });
 
   return {
     scroller: scroller,
@@ -327,6 +336,7 @@ function NoodleCal(wrap, opts) {
     rows: function () { return Array.from(grid.querySelectorAll('.nd-wk')); },
     weekOf: function (r) { return weeks[r]; },
     more: function () { if (endless && weeks.length < NDC_MAX) addWeeks(NDC_MORE); },
+    destroy: function () { observers.forEach(function (o) { o.disconnect(); }); },   // before a rebuild replaces it
   };
 }
 
