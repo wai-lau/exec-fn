@@ -219,6 +219,35 @@ def test_the_host_dropping_a_time_drops_it_from_every_guest(tmp_path, monkeypatc
     assert store.load(slug)["voters"]["g"]["slots"] == ["2027-03-05:d"]
 
 
+def test_the_split_is_rechecked_inside_the_lock(tmp_path, monkeypatch):
+    """A host flipping the split between a vote's check and its write converts
+    every stored vote; the vote, in the old format, must be refused -- written,
+    it would become the offer and trim every guest's picks to nothing."""
+    import base64
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from noodle import config, sig, store, votes
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    slug = store.create("t", "2026-09-27T00:00:00")["slug"]
+    now = 1_790_000_000_000
+    k = Ed25519PrivateKey.generate()
+    msg = sig.canonical(slug, "a", ["2027-03-20:d"], now)
+    body = {"name": "a", "pub": base64.b64encode(k.public_key().public_bytes_raw()).decode(),
+            "slots": ["2027-03-20:d"], "ts": now, "sig": base64.b64encode(k.sign(msg)).decode()}
+    assert store.load(slug).get("halves") is False
+    real_edit = store.edit
+
+    def splitting_edit(s):   # the host splits the days between the check and the write
+        with store._LOCK:
+            p = store.load(s)
+            p["halves"] = True
+            store._write(store._path(s), p)
+        return real_edit(s)
+    monkeypatch.setattr(store, "edit", splitting_edit)
+    with pytest.raises(votes.VoteError) as e:
+        votes.submit(slug, body, now=now)
+    assert e.value.status == 409
+
+
 def test_the_crop_is_rechecked_inside_the_lock(tmp_path, monkeypatch):
     """A vote checked against the crop BEFORE the lock must still be refused if
     the crop narrowed before it was written."""
