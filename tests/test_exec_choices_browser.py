@@ -10,9 +10,9 @@ card. On 2026-09-16 the tap meant for the 14:00 climbing nudge PATCHed
 `craft-lyre-poster` to archives instead, and climbing had to be archived by
 hand from /hq 22 seconds later.
 
-Boundaries mocked, no LLM and no writes to the real board: /api/chat serves a
+Boundaries mocked, no LLM and no writes to the real board: /api/cc/exec-history serves a
 canned two-nudge history, PATCH /api/rd is captured rather than applied, and
-POST /api/chat is captured so a tapped answer's outgoing text can be read.
+POST /api/cc/query is captured so a tapped answer's outgoing text can be read.
 
 Marked `browser` so the fast smoke step skips it.
 
@@ -35,16 +35,16 @@ _HISTORY = {
             "role": "monitor",
             "ts": "2026-09-16T14:00:11+00:00",
             "card_id": "card-climbing",
-            "content": "Shoes and chalk in the bag. Packed yet?\n\n[Packed | Not yet]",
+            "text": "Shoes and chalk in the bag. Packed yet?\n\n[Packed | Not yet]",
         },
         {
             "role": "monitor",
             "ts": "2026-09-16T17:57:12+00:00",
             "card_id": "card-poster",
-            "content": "Collect the Lyre poster. Retrieved?\n\n[Got it | Not yet]",
+            "text": "Collect the Lyre poster. Retrieved?\n\n[Got it | Not yet]",
         },
     ],
-    "stage": "planning",
+    "monitorTotal": 0,
 }
 
 
@@ -53,15 +53,15 @@ _HISTORY = {
 # tell the panel which card `done` would archive.
 _CHAT_HISTORY = {
     "messages": [
-        {"role": "user", "ts": "2026-09-19T10:00:00+00:00", "content": "poster?"},
+        {"role": "user", "ts": "2026-09-19T10:00:00+00:00", "text": "poster?"},
         {
             "role": "assistant",
             "ts": "2026-09-19T10:00:04+00:00",
-            "content": "It has been sitting there since Tuesday. Picked up?"
+            "text": "It has been sitting there since Tuesday. Picked up?"
                        "\n\n[card=card-poster | Got it | Not yet]",
         },
     ],
-    "stage": "planning",
+    "monitorTotal": 0,
 }
 
 
@@ -93,12 +93,13 @@ def open_panel(browser, base_url, admin_headers):
                 pg.evaluate("b => window.__sent.push(JSON.parse(b))",
                             route.request.post_data)
                 route.fulfill(status=200, content_type="text/event-stream",
-                              body='data: {"type":"done","next_stage":"planning"}\n\n')
+                              body='data: {"type":"done"}\n\n')
             else:
                 route.fulfill(status=200, content_type="application/json",
                               body=json.dumps(history))
 
-        pg.route("**/api/chat", _chat)
+        pg.route("**/api/cc/exec-history", _chat)
+        pg.route("**/api/cc/query", _chat)
 
         # Capture the card-action write instead of moving a real card.
         def _patch_rd(route):
@@ -151,8 +152,7 @@ def test_answer_carries_a_reference_to_its_question(open_panel):
     pg = open_panel()
     pg.locator("#exec-term .exec-choice-row").nth(0).get_by_text("Not yet").click()
     pg.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
-    sent = pg.evaluate("() => window.__sent")[0]["messages"]
-    text = sent[-1]["content"]
+    text = pg.evaluate("() => window.__sent")[0]["prompt"]
     assert '[answering: "Packed yet?" card=card-climbing]' in text
     assert text.endswith("Not yet")
     # Answering retires that question's answers; its card actions and the OTHER

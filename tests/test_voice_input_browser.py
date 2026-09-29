@@ -41,7 +41,7 @@ class FakeRec {
 window.webkitSpeechRecognition = FakeRec;
 """
 
-_HISTORY = {"messages": [], "stage": "planning"}
+_HISTORY = {"messages": [], "monitorTotal": 0}
 
 _MARKED = "window.marked={use(){},parse:s=>s,Renderer:function(){}};"
 
@@ -79,12 +79,13 @@ def phone(browser, base_url, admin_headers):
             pg.evaluate("b => window.__sent.push(JSON.parse(b))",
                         route.request.post_data)
             route.fulfill(status=200, content_type="text/event-stream",
-                          body='data: {"type":"done","next_stage":"planning"}\n\n')
+                          body='data: {"type":"done"}\n\n')
         else:
             route.fulfill(status=200, content_type="application/json",
                           body=json.dumps(_HISTORY))
 
-    pg.route("**/api/chat", _chat)
+    pg.route("**/api/cc/exec-history", _chat)
+    pg.route("**/api/cc/query", _chat)
     pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
     pg.evaluate("() => { window.__sent = []; }")
     pg.wait_for_selector("#exec-bubble", timeout=5000)
@@ -197,11 +198,11 @@ def test_tapping_the_prompt_opens_a_session(phone):
 
 
 def test_a_final_result_sends_it(phone):
-    """What she said reaches /api/chat as the message she would have typed."""
+    """What she said reaches /api/cc/query as the message she would have typed."""
     _listen(phone)
     phone.evaluate("() => window.__rec.say('archive the climbing card', true)")
     phone.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
-    sent = phone.evaluate("() => window.__sent")[0]["messages"][-1]["content"]
+    sent = phone.evaluate("() => window.__sent")[0]["prompt"]
     assert sent.endswith("archive the climbing card")
 
 

@@ -10,7 +10,7 @@ or TTS box:
   - /hosaka-audio.js is replaced by a fake `HosakaAudio` whose player records
     every speak() request into window.__execSpoken (so no /ws/hosaka, no home
     GPU box dependency — same trick as the tarot fake voice).
-  - /api/chat streams a canned SSE reply.
+  - /api/cc/query streams a canned SSE reply (history is empty).
   - the marked CDN is a no-op shim.
 
 Marked `browser` so the fast smoke step skips it; runs in pre-commit as a
@@ -70,8 +70,8 @@ window.HosakaAudio = {
 
 # One assistant turn: bold markdown that must be flattened before TTS.
 _REPLY_SSE = (
-    'data: {"type":"text","delta":"Oh. It is **you**."}\n\n'
-    'data: {"type":"done","next_stage":"planning"}\n\n'
+    'data: {"type":"text","text":"Oh. It is **you**."}\n\n'
+    'data: {"type":"done"}\n\n'
 )
 
 
@@ -88,7 +88,10 @@ def open_rd(browser, base_url, admin_headers):
         pg = ctx.new_page()
         pg.route("**/hosaka-audio.js*", fulfill_js(_FAKE_HOSAKA))
         pg.route("**/marked.min.js", _marked)
-        pg.route("**/api/chat", fulfill_sse(chat_sse))
+        pg.route("**/api/cc/exec-history",
+                 lambda r: r.fulfill(status=200, content_type="application/json",
+                                     body='{"messages":[],"monitorTotal":0}'))
+        pg.route("**/api/cc/query", fulfill_sse(chat_sse))
         pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
         pg.wait_for_selector("#exec-bubble", timeout=5000)
         return pg

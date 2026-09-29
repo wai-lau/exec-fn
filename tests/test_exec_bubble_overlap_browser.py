@@ -33,11 +33,11 @@ _HISTORY = {
             "role": "monitor",
             "ts": "2026-09-18T14:00:11+00:00",
             "card_id": "card-climbing",
-            "content": "Shoes and chalk in the bag. Packed yet?\n\n"
+            "text": "Shoes and chalk in the bag. Packed yet?\n\n"
                        "[Sent it | Not yet | Doing it now]",
         },
     ],
-    "stage": "planning",
+    "monitorTotal": 0,
 }
 
 
@@ -66,12 +66,13 @@ def phone(browser, base_url, admin_headers):
             pg.evaluate("b => window.__sent.push(JSON.parse(b))",
                         route.request.post_data)
             route.fulfill(status=200, content_type="text/event-stream",
-                          body='data: {"type":"done","next_stage":"planning"}\n\n')
+                          body='data: {"type":"done"}\n\n')
         else:
             route.fulfill(status=200, content_type="application/json",
                           body=json.dumps(_HISTORY))
 
-    pg.route("**/api/chat", _chat)
+    pg.route("**/api/cc/exec-history", _chat)
+    pg.route("**/api/cc/query", _chat)
     pg.goto(f"{base_url}/rd", wait_until="domcontentloaded")
     pg.evaluate("() => { window.__sent = []; }")
     pg.wait_for_selector("#exec-bubble", timeout=5000)
@@ -114,7 +115,7 @@ def test_tapping_the_last_answer_sends_it(phone):
     _open(phone)
     phone.locator("#exec-term .exec-choice-row .exec-choice").nth(2).tap()
     phone.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
-    sent = phone.evaluate("() => window.__sent")[0]["messages"][-1]["content"]
+    sent = phone.evaluate("() => window.__sent")[0]["prompt"]
     assert sent.endswith("Doing it now")
     assert phone.eval_on_selector("#exec-panel", "e => e.classList.contains('open')"), \
         "tapping an answer closed the panel"
