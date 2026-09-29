@@ -1,7 +1,8 @@
-// noodle's BROWSER STORAGE: the last NAME you used (the one thing kept across
-// polls), and per poll AND per name: the passphrase, the calendar draft
-// (picks + a host's unsaved title / note) and the Ask text. Split from noodle-vote.js at the 500-line cap -- same global scope,
-// loaded before it and only called once it has run.
+// noodle's BROWSER STORAGE (localStorage, never a cookie): the last NAME you
+// used (kept across polls); per poll AND per name the passphrase (with the
+// name's last-used one as the fallback), the calendar draft (picks + a host's
+// unsaved title / note) and the Ask text. Same global scope as
+// noodle-vote.js; loaded before it, called once it has run.
 
 // Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
 // rides along on every request, which would send the passphrase to the server

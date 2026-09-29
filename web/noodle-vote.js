@@ -1,7 +1,13 @@
-// noodle voter page: identity -> key -> seal, the calendar, and the signed
-// submit (Ask noodle lives in noodle-ask.js). The passphrase never leaves the
-// browser: it goes to the key worker (noodle-kdf-worker.js) and nowhere else;
-// the server receives the public key, the slots and a signature over them.
+// noodle voter page, the CORE: the page state (NDV), the banner, which voter
+// the typed name and key are (ndvRefreshBinding), the calendar (ndvEnsureCal),
+// loading the poll, and ndvInit -- which runs as this file loads, so every
+// other noodle-*.js it calls is loaded BEFORE it (noodle-vote.html). The rest:
+// noodle-identity.js (fields + key + seal), noodle-commit.js (Commit),
+// noodle-roster.js (the voters row), noodle-storage.js (localStorage),
+// noodle-ask.js, noodle-host.js, noodle-rekey.js, noodle-crop.js, noodle-top.js.
+// The passphrase never leaves the browser: it goes to the key worker
+// (noodle-kdf-worker.js) and nowhere else; the server receives the public key,
+// the slots and a signature over them.
 
 var NDV = { poll: null, cal: null, calKey: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {},
   saved: new Set() };
@@ -21,76 +27,12 @@ function ndvBanner(msg) {
   el.hidden = !msg;
 }
 
-var NDV_SIGN_WAIT = 'commit ──> stamp(data, seal)';
-var NDV_SIGN_DONE = 'commit ──> stamp(data, seal) ──> sealed';
-
-// The recipe, not the values: the salt ties the key to the name and the
-// poll, so one passphrase gives a different key to every name in every poll.
-// The argon2id line's arrow STRETCHES to two spaces short of the seal beside
-// the box (.nd-arrow), so it points at the face the passphrase produced.
-function ndvTeach(tail, signLine) {
-  var el = ndv$('nd-teach');
-  el.innerHTML = '<div>salt = sha256(poll, name)</div>' +
-    '<div class="nd-arrow-line"><span>seal = argon2id(passphrase, salt)' + (tail ? ' ' + tail : '') + '</span>' +
-    '<span class="nd-arrow" aria-hidden="true"><span class="nd-arrow-shaft"></span>&gt;</span></div>' +
-    '<div class="nd-sign"></div>';
-  el.querySelector('.nd-sign').textContent = signLine;
-}
-
 function ndvReady() { return !!NDV.kdf && NDV.kdf.ready(); }
 
 // This voter's key as the server knows it (the old one mid passphrase change).
 function ndvPub() {
   var p = ndvReady() ? NDV.kdf.pub() : null;
   return window.ndrAs ? window.ndrAs(p) : p;
-}
-
-// Why submit cannot be pressed right now, or '' when it can. A disabled
-// button with no reason reads as broken.
-function ndvWhyNot() {
-  var raw = ndv$('nd-name').value;
-  if (!raw.trim()) return 'enter your name first';
-  if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used';
-  if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase';
-  if (NDV.taken) return '"' + NDV.taken + '" is already taken';
-  if (NDV.keyError) return 'this browser could not make a key';
-  if (!ndvReady()) return 'making your key...';
-  // the host's picks ARE the offer: committing none would leave guests nothing
-  if (window.ndxIsHost && window.ndxIsHost() && NDV.cal && !NDV.cal.getSel().size) {
-    return 'pick at least one available time, guests can only pick from yours';
-  }
-  return '';
-}
-
-// Unsaved = the calendar differs from what the server holds for THIS key
-// (nothing, for someone who has not committed yet).
-function ndvDirty() {
-  if (!NDV.cal) return false;
-  if (NDV.pendingHalves != null) return true;   // an unsaved split
-  if (NDV.pendingCrop !== undefined) return true;   // an unsaved crop
-  if (NDV.pendingTitle !== undefined) return true;  // an unsaved title
-  if (NDV.pendingNote !== undefined) return true;   // an unsaved note
-  if (window.NDR && NDR.active) return true;    // an unsaved new name or passphrase
-  var sel = NDV.cal.getSel(), saved = NDV.saved;
-  if (sel.size !== saved.size) return true;
-  for (var s of sel) if (!saved.has(s)) return true;
-  return false;
-}
-
-function ndvSyncSubmit(busy) {
-  var why = busy ? 'committing...' : ndvWhyNot(), dirty = ndvDirty();
-  var btn = ndv$('nd-submit');
-  btn.disabled = !!why;
-  btn.textContent = dirty ? 'Commit*' : 'Commit';
-  // unsaved -> "* unsaved changes"; nothing unsaved on a committed vote ->
-  // "all changes saved"; nothing committed yet -> no line at all
-  var el = ndv$('nd-dirty');
-  el.hidden = !dirty && !NDV.mine;
-  el.textContent = dirty ? '* unsaved changes' : 'all changes saved';
-  el.classList.toggle('saved', !dirty);
-  ndv$('nd-why').textContent = why;
-  ndvSyncLock();
-  if (window.ndrSync) window.ndrSync();
 }
 
 // A name sealed by ANOTHER key locks everything but the identity fields (and
@@ -174,103 +116,19 @@ function ndvRefreshBinding(pub) {
   ndvSyncSubmit();
 }
 
-function ndvOnStart(info) {
-  ndvSyncSubmit();
-  var seal = ndv$('nd-seal');
-  if (NDV.seal) NDV.lastSeal = NDV.seal;
-  NDV.seal = null;
-  if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('', NDV_SIGN_WAIT); return; }
-  NDV.salt = info.salt;
-  seal.classList.add('pending');
-  ndvTeach('', NDV_SIGN_WAIT);
+// A stored vote as the page shows it: under an unsaved split change it is
+// converted the way the server will convert it on Commit (a whole day counts
+// as BOTH halves), so nobody's dots vanish when the box is ticked.
+function ndvShown(slots) {
+  var set = new Set(slots);
+  return window.ndhHalves && window.ndhHalves() !== !!(NDV.poll && NDV.poll.halves)
+    ? ndhConvert(set, window.ndhHalves()) : set;
 }
 
-async function ndvOnDerived(d) {
-  ndvTeach('', NDV_SIGN_WAIT);
-  var seal = ndv$('nd-seal');
-  seal.classList.remove('pending');
-  NDV.seal = await window.NoodleSeal.seal(d.pub);
-  window.NoodleSeal.stamp(seal, NDV.seal);
-  ndvRefreshBinding(d.pub);
-}
-
-// "<name>'s seal of approval", following the name field as it is typed.
-// It claims the seal only once the seal is MADE and is that name's: while
-// the key computes, or for a voter's name not yet unlocked, it says so.
-function ndvSealCaption() {
-  var name = ndv$('nd-name').value.trim().split(/\s+/).join(' '), cap = ndv$('nd-seal-cap');
-  if (NDV.blocked) cap.textContent = 'NOT ' + name + "'s seal of approval";
-  else if (!name) cap.textContent = 'your seal of approval';
-  else if (!ndvReady() || (NDV.held && !NDV.mine)) cap.textContent = 'checking the seal...';
-  else cap.textContent = name + "'s seal of approval";
-  // the passphrase is a choice for a new name, and the key to an existing one
-  ndv$('nd-pass-label').textContent = 'passphrase (' + (NDV.held ? 'required' : 'optional') + ')';
-  ndvWarnEmpty();   // who you are decides what the empty-passphrase warning says
-}
-
-// No passphrase = the name alone decides the key, so say so plainly.
-// For the HOST it is worse: the host's key runs the whole poll.
-function ndvWarnEmpty() {
-  var open = !!window.noodleNormName(ndv$('nd-name').value) && !ndv$('nd-pass').value, el = ndv$('nd-warn');
-  el.hidden = !open;
-  el.textContent = window.ndxIsHost && window.ndxIsHost()
-    ? 'no passphrase: anyone can change the entire poll, what a chaotic host'
-    : 'no passphrase: anyone can change your vote';
-}
-
-// Names are lowercase as they are typed. Identity was ALREADY case-blind (the
-// key is salted with, and the server binds by, the normalized name), so this
-// changes no key and merges no one -- it just stops "Wai" and "wai" looking
-// like two different people.
-function ndvCleanFields() {
-  ndvKeepOnly(ndv$('nd-name'), true);
-  ndvKeepOnly(ndv$('nd-pass'), false);
-}
-
-// Name and passphrase take ASCII letters, digits and spaces only (the server
-// refuses any other name); anything else is dropped as it is typed, keeping
-// the caret where it was.
-function ndvKeepOnly(el, lower) {
-  var v = el.value.replace(/[^A-Za-z0-9 ]/g, '');
-  if (lower) v = v.toLowerCase();
-  if (v === el.value) return;
-  var cut = el.value.length - v.length, a = el.selectionStart;
-  el.value = v;
-  if (a != null) el.setSelectionRange(Math.max(0, a - cut), Math.max(0, a - cut));
-}
-
-function ndvOnIdentityInput() {
-  ndvCleanFields();
-  ndvOfferPass();
-  ndvSaveIdentity();
-  ndvWarnEmpty();
-  ndvSealCaption();
-  NDV.blocked = '';
-  NDV.keyError = false;
-  NDV.kdf.input(ndv$('nd-name').value, ndv$('nd-pass').value);
-  if (NDV.poll) ndvRefreshBinding(null);
-}
-
-// Tapping a face fills the name field with that voter's name, then moves on to
-// the passphrase -- the one thing only they know.
-function ndvPickFace(e) {
-  var face = e.target.closest('.nd-face');
-  if (!face || !face.dataset.name || (window.NDR && NDR.active)) return;   // the blank 'you' seat fills nothing
-  ndv$('nd-name').value = face.dataset.name;
-  ndvOnIdentityInput();
-  ndv$('nd-pass').focus();
-}
-
-function ndvApproved(seal, name, copied) {
-  var ov = ndv$('nd-approved');
-  ov.querySelector('.nd-approved-by').textContent = 'approved by ' + name;
-  ov.querySelector('.nd-approved-note').hidden = !copied;
-  window.NoodleSeal.paint(ov.querySelector('.nd-seal'), seal);
-  ov.hidden = false;
-  ov.classList.remove('show');
-  void ov.offsetWidth;
-  ov.classList.add('show');
-  setTimeout(function () { ov.hidden = true; ov.classList.remove('show'); }, 2200);
+// The first and last day the host offers, or null before they offer any.
+function ndvOfferSpan(p) {
+  var days = p.voters.length ? p.voters[0].slots.map(function (s) { return s.slice(0, 10); }).sort() : [];
+  return days.length ? { from: days[0], to: days[days.length - 1] } : null;
 }
 
 async function ndvPost(path, body) {
@@ -282,56 +140,6 @@ async function ndvPost(path, body) {
   var d;
   try { d = await r.json(); } catch (e) { d = { error: 'request failed (' + r.status + ')' }; }
   return { ok: r.ok, data: d };
-}
-
-async function ndvSubmit() {
-  if (ndvWhyNot()) return;
-  // the HOST's commit copies the poll's link for sending. Started HERE, in the
-  // tap itself: Safari refuses a clipboard write that comes after the awaits
-  // below (the tap's permission has lapsed by then)
-  var copying = window.ndxIsHost && window.ndxIsHost() && navigator.clipboard
-    ? navigator.clipboard.writeText(location.origin + '/noodle/' + NDV.slug).then(function () { return true; },
-      function () { return false; })
-    : Promise.resolve(false);
-  ndvSyncSubmit(true);
-  var name = ndv$('nd-name').value, slots = Array.from(NDV.cal.getSel()).sort();
-  var ts = Date.now() + NDV.skew;
-  try {
-    // a new name/passphrase first (the rest is signed by it), then a pending
-    // split/crop (it converts every stored vote); each request is signed
-    // strictly newer, as the server's replay check demands
-    var rk = await ndrCommit(ts);
-    if (!rk.ok) { ndvStatus(rk.data.error || 'could not make the change', 'err'); await ndvLoadPoll(); return; }
-    if (rk.did) ts += 1;
-    var set = await ndhCommitSettings(ts);
-    if (!set.ok) { ndvStatus(set.data.error || 'could not save the split, crop or title', 'err'); await ndvLoadPoll(); return; }
-    if (set.sent) ts += 1;
-    // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
-    var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
-    // (every failure above reloads the poll: a refusal usually means someone
-    // else changed it -- took the host role, moved the crop -- and the page
-    // must show that rather than let the same Commit fail again)
-    var sig = await NDV.kdf.sign(text);
-    var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
-    if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); await ndvLoadPoll(); return; }
-    ndvClearDraft();
-    if (NDV.draft) {   // the poll exists now: its plain link is the one to keep
-      NDV.draft = '';
-      history.replaceState(null, '', '/noodle/' + NDV.slug);
-    }
-    ndvTeach('', NDV_SIGN_DONE);
-    // never let the clipboard hold a commit up: some browsers leave the write
-    // pending forever (no focus, no permission) -- 800ms, then carry on
-    var copied = await Promise.race([copying, new Promise(function (r) { setTimeout(r, 800, false); })]);
-    ndvApproved(NDV.seal, window.noodleNormName(name), copied);
-    await ndvLoadPoll();
-    ndvStatus('committed.');   // (clears a stale error)
-    NDV.committed = (NDV.committed || 0) + 1;   // tests wait on this
-  } catch (e) {
-    ndvStatus('could not commit: ' + e.message, 'err');
-  } finally {
-    ndvSyncSubmit();
-  }
 }
 
 // The calendar is endless; what shapes it is the poll's SPLIT (whole days or

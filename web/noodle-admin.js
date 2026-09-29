@@ -1,23 +1,17 @@
 // noodle owner page: create a poll (a title; creating goes straight to it),
 // list the polls, delete one (asked first -- it takes every vote with it).
 
-function ndmEsc(s) {
-  return String(s).replace(/[&<>"']/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
-}
-
 async function ndmList() {
   var r = await fetch('/api/noodle-polls', { cache: 'no-store' });
   if (!r.ok) return;   // not the owner: the list stays hidden (it is owner-only server-side too)
   document.getElementById('nd-owner').hidden = false;
   var d = await r.json();
   document.getElementById('nd-polls').innerHTML = d.polls.map(function (p) {
-    return '<tr><td><a href="/noodle/' + p.slug + '">' + ndmEsc(p.title) + '</a></td>' +
+    return '<tr><td><a href="/noodle/' + p.slug + '">' + window.noodleEsc(p.title) + '</a></td>' +
       '<td>' + p.voters + '</td>' +
-      '<td>' + ndmEsc(String(p.created_at || '').slice(0, 16).replace('T', ' ')) + '</td>' +
+      '<td>' + window.noodleEsc(String(p.created_at || '').slice(0, 16).replace('T', ' ')) + '</td>' +
       '<td><button type="button" class="nd-face-rm nd-del" data-slug="' + p.slug + '" data-title="' +
-      ndmEsc(p.title) + '">delete</button></td></tr>';
+      window.noodleEsc(p.title) + '">delete</button></td></tr>';
   }).join('') || '<tr><td colspan="4" class="nd-dim">no polls yet</td></tr>';
 }
 
