@@ -1,0 +1,54 @@
+/* noodle: the /noodle page -- the owner's poll table, and for guests the
+   centred title + create button + demo video, above the CRT, never scrolling. */
+
+/* ── owner list ─────────────────────────────────────────────────────────── */
+.nd-polls { width: 100%; margin: 0 0 var(--space-6); border-collapse: collapse; font-size: var(--fs-2xs); }
+.nd-create { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-10); }
+.nd-polls th, .nd-polls td { padding: var(--space-3) var(--space-2); border-bottom: 2px solid hsl(var(--green-hsl) / 0.12); text-align: left; }
+.nd-polls th { color: hsl(var(--green-hsl) / 0.45); font-weight: var(--fw-normal); }
+.nd-polls td:last-child { text-align: right; }
+.nd-polls .nd-face-rm { margin: 0; }
+
+/* the public /noodle page (no poll list: a guest, or before it loads): the
+   title and the create button sit in the middle of the screen */
+#noodle-admin:has(#nd-owner[hidden]) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100dvh - var(--nav-h, 0px));   /* the screen above the nav bar */
+  margin-block: 0;
+}
+#noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }
+
+/* the demo video (guests only, pages.py _DEMO), under the create button and
+   ABOVE the CRT stack. .page-scroll is position:fixed, which always makes a
+   stacking context, so nothing inside it can rise over the CRT (z-modal):
+   on this page the wrapper goes static and the document scrolls instead; and
+   .doc-card's z-index (chrome.css) is a stacking context too, so it goes auto. */
+.page-scroll:has(.nd-demo) { position: static; overflow: visible; padding-bottom: var(--nav-h); }
+.doc-card:has(.nd-demo) { z-index: auto; }
+
+/* and the page never scrolls: the card is exactly the screen above the nav,
+   and the video (a flex item) shrinks to whatever the title and button leave */
+html:has(.nd-demo), body:has(.nd-demo) { overflow: hidden; overscroll-behavior: none; }
+#noodle-admin:has(.nd-demo) { height: calc(100dvh - var(--nav-h, 0px)); overflow: hidden; }
+
+/* the empty status line under the button would push the video down */
+.nd-create #nd-msg:empty { display: none; }
+
+.nd-demo {
+  position: relative;
+  z-index: var(--z-top);
+  display: block;
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  flex: 0 1 auto;
+  aspect-ratio: 694 / 1040;
+  object-fit: cover;   /* never letterbox: a box off the file's ratio by a hair drew black side bars */
+  margin: var(--space-6) auto 0;
+  border-radius: var(--radius-4);
+  background: hsl(var(--bg-hsl) / 1);
+  cursor: pointer;   /* a tap opens it fullscreen (noodle-admin.js) */
+}

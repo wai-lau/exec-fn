@@ -1,0 +1,164 @@
+/* noodle: acting on the poll -- Ask noodle (noodle-ask.js), the status and
+   error banner, Commit with its why-not / unsaved lines, the locked + off
+   states (ndvSyncLock), the "approved by" stamp, and the share-link box. */
+
+/* ── ask noodle, status, submit ─────────────────────────────────────────── */
+.nd-ask { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin: var(--space-8) 0 0; }
+
+/* the box and its button side by side, button to the right */
+.nd-ask-row { display: flex; gap: var(--space-2); align-items: stretch; width: 100%; }
+.nd-ask-row textarea { flex: 1; min-width: 0; }
+
+/* Ask's own button: green like the page, but OUTLINED where Commit is solid,
+   so the two can never be taken for one another */
+.nd-ask-go {
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-4);
+  border: 2px solid hsl(var(--green-hsl) / 0.8);
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: hsl(var(--green-hsl) / 1);
+  font: inherit;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+}
+.nd-ask-go:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
+.nd-ask .nd-status { margin: 0; }
+.nd-card textarea { resize: none; line-height: var(--lh-snug); }
+.nd-ask-label { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.8); }
+
+.nd-status { min-height: 1lh; margin: var(--space-4) 0; text-align: center; font-size: var(--fs-2xs); }
+
+/* Every ERROR lands here, pinned to the top of the page, not beside whatever
+   raised it: a status line under Commit or Ask is off screen as often as not.
+   It stays until the next message replaces it; its text is selectable, so
+   an error can be copied into a report. */
+.nd-banner {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-4);
+  right: var(--space-4);
+  z-index: var(--z-sticky);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid hsl(var(--orange-glow-hsl) / 0.8);
+  border-radius: var(--radius-2);
+  background: hsl(var(--bg-hsl) / 1);
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+  font-size: var(--fs-2xs);
+  text-align: center;
+  user-select: text;
+}
+.nd-banner[hidden] { display: none; }
+
+.nd-submit {
+  display: block;
+  margin: 0 auto;
+  padding: var(--space-2-5) var(--space-10);
+  border: 2px solid hsl(var(--green-hsl) / 1);
+  border-radius: var(--radius-2);
+  background: hsl(var(--green-hsl) / 0.12);
+  color: hsl(var(--green-hsl) / 1);
+  font: inherit;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+}
+.nd-submit:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); background: transparent; cursor: default; }
+
+.nd-dirty { margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
+.nd-dirty.saved { color: hsl(var(--gray-hsl) / 0.45); }   /* all changes saved: quiet */
+
+/* locked: the typed name is sealed by another key (noodle-vote.js ndvSyncLock).
+   Everything that would act on that name goes grey; the fields above stay live. */
+.nd-locked .nd-cal-wrap,
+.nd-locked .nd-ask,
+.nd-locked .nd-submit {
+  opacity: 0.45;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+/* OFF: not yours to edit yet (no name, a key still computing, or a voter's
+   name without its passphrase) -- the same grey, but the calendar still
+   SCROLLS, so the results can be read (noodle-vote.js ndvSyncLock) */
+.nd-off .nd-cal-wrap,
+.nd-off .nd-ask {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.nd-locked .nd-seal-cap,
+.nd-locked #nd-pass-label { color: hsl(var(--orange-glow-hsl) / 0.8); }
+
+/* "NOT <name>'s seal of approval" is bold */
+.nd-locked .nd-seal-cap { font-weight: var(--fw-bold); }
+
+.nd-why { min-height: 1lh; margin: 0 0 var(--space-2); text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl) / 0.8); }   /* why Commit is off: always the error red */
+
+/* the empty-passphrase warning sits right under the fields it is about */
+.nd-warn { margin: var(--space-3) 0 0; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl) / 0.8); }
+
+/* "approved by" + the seal, over everything for a moment after a submit */
+.nd-approved {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--scrim-hsl) / 0.45);
+  pointer-events: none;
+}
+.nd-approved[hidden] { display: none; }
+
+.nd-approved-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-10);
+  border: 2px solid hsl(var(--green-hsl) / 0.8);
+  border-radius: var(--radius-4);
+  background: hsl(var(--bg-hsl) / 1);
+  font-family: 'Noodle Glyphs', var(--font-mono);
+}
+.nd-approved-by { font-size: var(--fs-2xs); letter-spacing: var(--tracking-mega); color: hsl(var(--green-hsl) / 1); }
+.nd-approved-note { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
+.nd-approved.show { animation: nd-fade 2200ms ease-in-out both; }
+.nd-approved.show .nd-seal { animation: nd-stamp 520ms 250ms ease-out both; }
+
+@keyframes nd-fade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* "Noodling..." while Ask waits: the dots count up 0-3 and loop, in one
+   element's ::after -- no timer to leak if the request never returns */
+.nd-noodling::after {
+  display: inline-block;
+  width: 3ch;
+  text-align: left;
+  content: '';
+  animation: nd-dots 1.2s steps(1, end) infinite;
+}
+
+@keyframes nd-dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* the poll's link, as text in a read-only box, + copy button, under Commit */
+.nd-share { margin: var(--space-3) 0 0; }
+.nd-share[hidden] { display: none; }
+.nd-card .nd-share .nd-url { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
+
+/* the copy button is an icon (U+F0C5, in noodle-seal.woff2); a check once copied.
+   Its ink runs 0..1em against a 0.5em cell: 0.25em back puts it in the middle */
+.nd-copy-ic { display: inline-block; font-style: normal; transform: translateX(-0.25em); }
+.nd-share .nd-rekey { font-family: 'Noodle Glyphs', var(--font-mono); font-size: var(--fs-sm); letter-spacing: 0; }
