@@ -3708,6 +3708,11 @@ voter's stored picks. Known and accepted: an owner key-reset of the HOST's
 name lets the next signer claim host (the reset is owner-only and
 deliberate); one process-wide lock for all polls (no correctness issue);
 the passphrase is shown in the clear (deliberate: it is proofread).
+**Again (2026-09-29):** the SPLIT is re-checked inside the lock too
+(`votes._admit`, 409): a host flipping it between a vote's check and write
+converted every stored vote, the old-format vote became the offer, and
+trimming the guests against it emptied them all
+(`test_the_split_is_rechecked_inside_the_lock`).
 
 **Browser storage is per poll** -- `noodle.draft.<slug>.<name>` (unsaved picks +
 a host's unsaved title) and `noodle.ask.<slug>.<name>` (the Ask text, which a

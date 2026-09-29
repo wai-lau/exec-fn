@@ -46,6 +46,12 @@ def _admit(poll: dict, prev, key: str, pub: str, ts: int, picked: list[str]):
         _in_crop(poll, picked)
     except ValueError as e:
         raise VoteError(400, str(e)) from None
+    # and the split: the slot codes were checked against a pre-lock copy too.
+    # A host flipping the split in between converts every stored vote; a vote
+    # written in the OLD format would then be the offer, and trimming the
+    # guests against it would empty every one of them.
+    if picked and {s[11:] for s in picked} - slots.codes(poll.get("halves", True)):
+        raise VoteError(409, "the poll's days were just split or joined -- look again and resubmit")
     host = host_of(poll)
     if host and host[0] != key and not set(picked) <= set(host[1]["slots"]):
         raise VoteError(400, "only the times the host offered can be picked")
