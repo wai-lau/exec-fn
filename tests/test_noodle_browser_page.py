@@ -192,3 +192,44 @@ def test_the_pick_note_shows_only_once_unlocked(browser, base_url, noodle_slug):
         assert page.evaluate(vis) == "visible"
     finally:
         page.close()
+
+
+def test_past_days_are_unavailable(browser, base_url, noodle_slug):
+    """A pick on a day gone by is dropped: never drawn, never sent again, and
+    a stored one is not an unsaved change."""
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.wait_for_function("NDV.cal && NDV.poll ? 1 : 0")
+        got = page.evaluate("""() => {
+          const P = window.NoodleCalParts, t = P.iso(new Date());
+          const past = P.addDays(t, -1), soon = P.addDays(t, 2), k = NDV.poll.halves ? ':m' : ':d';
+          NDV.cal.setSel(new Set([past + k, soon + k]));
+          return {sel: [...NDV.cal.getSel()], present: [...ndvPresent([past + k, soon + k])], soon: soon + k};
+        }""")
+        assert got["sel"] == [got["soon"]] and got["present"] == [got["soon"]]
+    finally:
+        page.close()
+
+
+def test_month_names_stay_over_rows_loaded_later(browser, base_url, noodle_slug):
+    """Names share the week column's z, so DOM order decides: after every row
+    (weeks loaded later once covered "october"), before the crop box (whose
+    shade must dim them)."""
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{noodle_slug}")
+        page.wait_for_function("NDV.cal && NDV.poll ? 1 : 0")
+        page.evaluate("NDV.cal.more(); NDV.cal.more()")   # a no-op on a bounded (guest) calendar
+        page.wait_for_timeout(300)
+        order = page.evaluate("""() => {
+          const k = [...document.querySelector('.nd-grid').children];
+          const at = sel => k.map((e, i) => e.matches(sel) ? i : -1).filter(i => i >= 0);
+          return {rows: at('.nd-wk'), names: at('.nd-mlabel'), box: at('.nd-cropbox'),
+                  texts: [...document.querySelectorAll('.nd-mlabel')].map(m => m.textContent)};
+        }""")
+        assert order["names"] and min(order["names"]) > max(order["rows"]), order
+        assert not order["box"] or order["box"][0] > max(order["names"]), order
+        assert all(order["texts"]), order
+    finally:
+        page.close()

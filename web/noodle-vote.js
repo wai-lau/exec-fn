@@ -92,7 +92,7 @@ function ndvRefreshBinding(pub) {
   NDV.blocked = mine && mine.pub && pub && mine.pub !== pub ? mine.name : '';
   NDV.mine = !!(mine && pub && mine.pub === pub);
   NDV.held = !!(mine && mine.pub);   // the typed name belongs to someone
-  NDV.saved = NDV.mine ? new Set(mine.slots) : new Set();
+  NDV.saved = NDV.mine ? ndvPresent(mine.slots) : new Set();
   // a NEW name: its own draft if it left one, else a clean calendar -- never
   // the picks the previous name had on screen
   var dk = ndvDraftKey();
@@ -123,6 +123,13 @@ function ndvShown(slots) {
   var set = new Set(slots);
   return window.ndhHalves && window.ndhHalves() !== !!(NDV.poll && NDV.poll.halves)
     ? ndhConvert(set, window.ndhHalves()) : set;
+}
+
+// Slots from today on: a past day is unavailable (the calendar drops it too,
+// NoodleCal setSel), so a stored pick on one is not an unsaved change.
+function ndvPresent(slots) {
+  var today = window.NoodleCalParts.iso(new Date());
+  return new Set(slots.filter(function (s) { return s.slice(0, 10) >= today; }));
 }
 
 // The first and last day the host offers, or null before they offer any.

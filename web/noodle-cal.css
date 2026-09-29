@@ -26,7 +26,8 @@ html:has(#nd-cal)::-webkit-scrollbar { display: none; }
    (noodle-cal-view.js ndcPaintLabels), spanning its own weeks and scrolling
    with them. Bright, at the split box's size (--fs-2xs), reading bottom to
    top like /hq's day spines. Over the sticky week column and under the
-   crop's shade: same z as both, inserted between them in the DOM. */
+   crop's shade: same z as both, so DOM order does it -- every row, then the
+   names, then the crop box (ndcPaintLabels keeps that on each repaint). */
 .nd-mlabel {
   position: absolute;
   left: 40px;
