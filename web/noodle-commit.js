@@ -41,6 +41,8 @@ function ndvSyncSubmit(busy) {
   var btn = ndv$('nd-submit');
   btn.disabled = !!why;
   btn.textContent = dirty ? 'Commit*' : 'Commit';
+  btn.classList.toggle('dirty', dirty);   // yellow: there is something to commit
+  btn.classList.toggle('clean', !dirty);  // dark: nothing new to commit
   // unsaved -> "* unsaved changes"; nothing unsaved on a committed vote ->
   // "all changes saved"; nothing committed yet -> no line at all
   var el = ndv$('nd-dirty');

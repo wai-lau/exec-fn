@@ -42,3 +42,7 @@
   letter-spacing: var(--tracking-wide);
   text-decoration: none;
 }
+
+/* The poll link is the bigger of the two: between Commit and the bug button --
+   Commit's type size on a tighter pad (no font step sits between 2xs and sm). */
+.nd-another:not(.nd-feedback) a { padding: var(--space-2) var(--space-8); font-size: var(--fs-sm); }

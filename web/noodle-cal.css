@@ -277,18 +277,34 @@ html:has(#nd-cal)::-webkit-scrollbar { display: none; }
 .nd-d.out .nd-dots { visibility: hidden; }
 
 /* A GUEST's calendar draws what they may pick as SHAPES, not the host's split
-   line: each half the host offers is a right-angled triangle inset 2px from
-   the lines around it (midday top-left, night bottom-right), a whole day one
-   inset rectangle -- and a half not offered simply has no shape. Unpicked it
-   is a faint fill, picked the full one; taps follow the same diagonal
-   (noodle-cal-view.js ndcSlotAt). */
-.nd-tri { display: none; position: absolute; inset: 2px; pointer-events: none; background: hsl(var(--green-hsl) / 0.12); }
+   line: each half the host offers is a right-angled triangle (midday top-left,
+   night bottom-right), a whole day one rectangle -- and a half not offered
+   simply has no shape. OFFERED reads as a bright green ring in the 2px inset
+   gap around the shape, with no fill (Wai, 2026-09-29: a bright background
+   said "available" too loudly); PICKED adds the fill inside it. Taps follow
+   the same diagonal (noodle-cal-view.js ndcSlotAt).
+
+   ::before is the ring, ::after the fill. The ring is a clip-path polygon with
+   a hole (evenodd: outer shape, then inner) because a triangle cannot carry a
+   border or box-shadow -- its own clip-path would cut them off. The inner
+   shape is exactly the old inset-2px triangle/rectangle, so the fill lands
+   where it always did. */
+.nd-tri { display: none; position: absolute; inset: 0; pointer-events: none; }
+.nd-tri::before, .nd-tri::after { content: ''; position: absolute; inset: 0; }
+.nd-tri::before { background: hsl(var(--green-hsl) / 0.8); }
+.nd-tri::after { display: none; background: hsl(var(--green-hsl) / 0.45); }
+.nd-tri.d::before { clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, 2px 2px, 2px calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 2px, 2px 2px); }
+.nd-tri.d::after { inset: 2px; }
+.nd-tri.m::before { clip-path: polygon(evenodd, 0 0, calc(100% - 2px) 0, 0 calc(100% - 2px), 0 0, 2px 2px, 2px calc(100% - 6px), calc(100% - 6px) 2px, 2px 2px); }
+.nd-tri.m::after { clip-path: polygon(2px 2px, calc(100% - 6px) 2px, 2px calc(100% - 6px)); }
+.nd-tri.n::before { clip-path: polygon(evenodd, 100% 100%, 2px 100%, 100% 2px, 100% 100%, calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 6px, 6px calc(100% - 2px), calc(100% - 2px) calc(100% - 2px)); }
+.nd-tri.n::after { clip-path: polygon(calc(100% - 2px) calc(100% - 2px), 6px calc(100% - 2px), calc(100% - 2px) 6px); }
 .nd-grid:not(.host) .nd-d { background-image: none; }
 .nd-grid:not(.host) .nd-dots { position: relative; }
-.nd-grid:not(.host, .single) .nd-d:not(.out, .no-m) .nd-tri.m { display: block; clip-path: polygon(0 0, calc(100% - 4px) 0, 0 calc(100% - 4px)); }
-.nd-grid:not(.host, .single) .nd-d:not(.out, .no-n) .nd-tri.n { display: block; clip-path: polygon(100% 100%, 4px 100%, 100% 4px); }
+.nd-grid:not(.host, .single) .nd-d:not(.out, .no-m) .nd-tri.m { display: block; }
+.nd-grid:not(.host, .single) .nd-d:not(.out, .no-n) .nd-tri.n { display: block; }
 .nd-grid.single:not(.host) .nd-d:not(.out, .shut) .nd-tri.d { display: block; }
-.nd-d.mid .nd-tri.m, .nd-d.nit .nd-tri.n, .nd-d.mid .nd-tri.d { background: hsl(var(--green-hsl) / 0.45); }
+.nd-d.mid .nd-tri.m::after, .nd-d.nit .nd-tri.n::after, .nd-d.mid .nd-tri.d::after { display: block; }
 
 /* a guest sees no votes on a day they cannot pick (struck: the host did not
    offer it) -- a tally on a closed day only reads as a choice */
