@@ -56,8 +56,10 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         assert "commit ──> stamp(data, seal)" in teach
 
         # an open day other than the one a host is offering (flipping that one
-        # off would leave nothing to commit)
-        cell = page.query_selector_all(".nd-d:not(.out):not(.shut)")[1]
+        # off would leave nothing to commit), a WEEK down: the first open row
+        # carries the host's crop line, whose grab handle sits mid-row -- on a
+        # Wednesday the tap caught the handle and toggled nothing
+        cell = page.query_selector_all(".nd-d:not(.out):not(.shut)")[8]
         cell.scroll_into_view_if_needed()
         box = cell.bounding_box()
         was_mid = "mid" in (cell.get_attribute("class") or "")
