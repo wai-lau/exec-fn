@@ -1,0 +1,163 @@
+/* noodle: the identity block -- name + passphrase fields and their change
+   buttons (noodle-rekey.js), the seal (noodle-seal.js), and the dotted
+   teaching box with its derivation arrow. */
+
+/* ── identity: name + passphrase (the seal is in the teaching box) ───────── */
+.nd-id { display: flex; }
+.nd-fields { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; min-width: 0; }
+
+.nd-field { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.nd-field > span:not(.nd-pass-row) {
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+/* the passphrase and its "change" button, side by side (noodle-rekey.js) */
+
+/* no flex gap: a password manager injects a zero-width element into the name
+   row and a gap would be added around it too, pushing only that field in */
+.nd-pass-row { display: flex; align-items: stretch; }
+.nd-pass-row input { flex: 1; min-width: 0; }
+
+.nd-rekey {
+  flex: 0 0 auto;
+  margin-left: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: hsl(var(--green-hsl) / 1);
+  font: inherit;
+  font-family: 'Noodle Glyphs', var(--font-mono);   /* the check and cross live there */
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+}
+.nd-rekey[hidden] { display: none; }
+.nd-rekey.glyph { font-size: var(--fs-sm); letter-spacing: 0; }
+.nd-rekey:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
+
+.nd-card input, .nd-card textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+  background: hsl(var(--bg-hsl) / 1);
+  color: hsl(var(--green-hsl) / 1);
+  font: inherit;
+  font-size: max(16px, var(--fs-sm)); /* under 16px iOS zooms the page on focus */
+}
+
+/* every hint (placeholder) is grey, so it never reads as something typed */
+.nd-card input::placeholder, .nd-card textarea::placeholder { color: hsl(var(--gray-hsl) / 0.45); }
+.nd-card input:focus, .nd-card textarea:focus { outline: none; border-color: hsl(var(--green-hsl) / 1); }
+.nd-card input:disabled, .nd-card textarea:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); }
+
+/* The seal and its caption join the dotted box's grid directly: the seal in
+   the second column, the caption on a row of its own under everything,
+   RIGHT-aligned under the seal -- so the seal's column is only as wide as the
+   seal and the arrow runs to it whatever the caption's width. */
+.nd-seal-box { display: contents; }
+
+.nd-seal-cap {
+  grid-column: 1 / -1;
+  justify-self: end;
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 0.45);
+}
+
+/* The seal: 6 lines of 5 characters with a space between each. */
+.nd-seal {
+  margin: 0;
+  min-width: 9ch;
+  min-height: 6lh;
+  font-family: 'Noodle Glyphs', var(--font-mono);
+  font-weight: var(--fw-normal);
+  line-height: var(--lh-none);
+  color: hsl(var(--pink-hsl) / 0.8);
+  white-space: pre;
+  transform: translate(var(--seal-dx, 0), var(--seal-dy, 0)) rotate(var(--seal-rot, 0deg));
+}
+.nd-seal.pending { opacity: 0.25; }
+.nd-seal b { font-weight: var(--fw-bold); }   /* the face: eyes + mouth */
+
+/* In the dotted box the seal sits square: the stamp's random tilt and
+   nudge (noodle-seal.js, set inline) are zeroed -- !important on a custom
+   property beats the inline value, and the stamp keyframes read these too. */
+.nd-teach-box .nd-seal {
+  grid-column: 2;
+  margin-left: 5ch;
+  font-size: calc(var(--fs-2xs) * 0.8);   /* the voter row's size (.xs) */
+
+  --seal-dx: 0 !important;
+  --seal-dy: 0 !important;
+  --seal-rot: 0deg !important;
+}
+
+/* The ink comes from the key (noodle-seal.js ndInk): ANY hue, with a
+   lightness floor so it always reads on black. --seal-hsl is set inline per
+   seal (.inked marks one that has it), a page-local accent -- LOCAL_ACCENTS
+   in scripts/lint-colors.py. Without a key the seal keeps the pink above. */
+.nd-seal.inked { color: hsl(var(--seal-hsl) / 1); }
+.nd-seal.sm { min-height: 0; font-size: var(--fs-2xs); }
+
+/* Wax: pressed down hard, a small rebound, then settled a little askew. */
+.nd-seal.stamp { animation: nd-stamp 420ms ease-out; }
+
+@keyframes nd-stamp {
+  0% { opacity: 0; transform: scale(1.6) rotate(0deg); }
+  45% { opacity: 1; transform: scale(0.88) rotate(var(--seal-rot, 0deg)); }
+  70% { transform: translate(var(--seal-dx, 0), var(--seal-dy, 0)) scale(1.04) rotate(var(--seal-rot, 0deg)); }
+  100% { transform: translate(var(--seal-dx, 0), var(--seal-dy, 0)) scale(1) rotate(var(--seal-rot, 0deg)); }
+}
+
+/* ── the teaching panel ─────────────────────────────────────────────────── */
+
+/* The dotted box: the derivation on the left, its arrow pointing at the
+   seal it produced on the right. */
+.nd-teach-box {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--space-2) 0;   /* across: the seal's own 5ch margin is the gap */
+  align-items: center;
+  justify-content: center;   /* recipe + seal as ONE group, centred in the box */
+  margin: var(--space-6) 0;
+  padding: var(--space-2-5) var(--space-3);
+  border: 2px dashed hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+}
+
+.nd-teach {
+  flex: 0 1 auto;   /* as wide as its longest line, no wider */
+  min-width: 0;
+  margin: 0;
+  font-family: 'Noodle Glyphs', var(--font-mono);
+  font-size: var(--fs-2xs);
+  line-height: var(--lh-snug);
+  color: hsl(var(--green-hsl) / 0.8);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The argon2id line's arrow: a shaft of box-drawing dashes that fills the
+   line, clipped, then the head -- it fills the recipe's width, which ends
+   2ch short of the seal (.nd-seal-box's margin). */
+.nd-arrow-line { display: flex; align-items: baseline; margin-right: -3ch; }   /* the arrow reaches 2ch from the seal, into the 5ch gap */
+.nd-arrow-line > span:first-child { flex: 0 1 auto; min-width: 0; }
+
+.nd-arrow {
+  display: flex;
+  flex: 1 0 3ch;
+  min-width: 3ch;
+  margin-left: 1ch;
+  overflow: hidden;
+  white-space: nowrap;
+  contain: inline-size;   /* its dash fill must not widen the recipe: it FILLS what the text leaves */
+}
+.nd-arrow-shaft { flex: 1; overflow: hidden; }
+.nd-arrow-shaft::before { content: '\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500'; }

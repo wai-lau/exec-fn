@@ -1,0 +1,82 @@
+/* noodle: the voters -- faces with their seals, five to a row, the host's
+   how-to beside a lone host, and the host's remove buttons. */
+
+/* ── "are you one of these guys?" -- faces, five to a row, name under ──── */
+.nd-who { margin: 0 0 var(--space-8); }
+
+.nd-faces {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nd-faces li { display: flex; flex-direction: column; align-items: center; }
+
+/* a host alone on the poll: the how-to fills the rest of the row, where the
+   guests' faces will go */
+.nd-faces li.nd-howto {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* centred both ways in the space beside the host's face */
+  align-self: stretch;
+  padding: var(--space-2) var(--space-3);
+  border: 2px dashed hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+.nd-howto p { margin: 0 0 var(--space-1); text-align: center; }
+.nd-howto p:last-child { margin: 0; }
+.nd-howto b { color: hsl(var(--green-hsl) / 1); }
+
+.nd-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-2) 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-2);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.nd-face:hover, .nd-face:focus-visible { border-color: hsl(var(--green-hsl) / 0.45); outline: none; }
+.nd-face.you { border-color: hsl(var(--green-hsl) / 0.8); }
+
+.nd-face-host { font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); letter-spacing: var(--tracking-wide); }
+
+.nd-face-name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 1);
+}
+
+/* a guest's name wraps onto as many lines as it needs; the HOST's stays on
+   one (ellipsised), since the host label already sits under it */
+.nd-face.host .nd-face-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* small enough that five faces fit a phone-width row */
+
+/* a fixed 9x6 box: a voter whose key the owner reset has no seal yet, and
+   their name must still sit on the same line as everyone else's */
+.nd-seal.xs { min-width: 9ch; min-height: 6lh; font-size: calc(var(--fs-2xs) * 0.8); }
+
+.nd-face-rm {
+  margin-top: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 2px solid hsl(var(--orange-glow-hsl) / 0.8);
+  border-radius: var(--radius-1);
+  background: none;
+  color: hsl(var(--orange-glow-hsl) / 0.8);
+  font: inherit;
+  font-size: var(--fs-2xs);
+  cursor: pointer;
+}

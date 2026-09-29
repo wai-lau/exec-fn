@@ -1,0 +1,38 @@
+/* noodle: the host's split switch, drawn on the calendar's first row
+   (noodle-host.js ndhPlaceSplit), and the checkbox look it uses. */
+
+/* the host's split switch, right under the calendar (noodle-host.js) */
+.nd-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); cursor: pointer; }
+
+.nd-split-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.nd-split { width: fit-content; padding: var(--space-1) var(--space-2); background: hsl(var(--bg-hsl) / 1); pointer-events: auto; }   /* only the box + words toggle it; black so the struck dates do not show through */
+.nd-cal-wrap { margin-bottom: var(--space-6); }   /* room between the calendar and Commit */
+
+/* The checkbox drawn like the page's fields: a green-outlined square on the
+   page black, and when ticked a solid square INSET in it (the fill is clipped
+   to the content box, the padding is the black ring) -- no glyph needed. */
+.nd-card .nd-check input {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0;
+  padding: var(--space-0-5);
+  border: 2px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-1);
+  background: hsl(var(--bg-hsl) / 1);
+  background-clip: content-box;
+  cursor: pointer;
+}
+.nd-card .nd-check input:checked { border-color: hsl(var(--green-hsl) / 1); background-color: hsl(var(--green-hsl) / 1); }
+.nd-card .nd-check input:focus-visible { border-color: hsl(var(--green-hsl) / 1); }
+.nd-split[hidden] { display: none; }

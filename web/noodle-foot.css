@@ -1,0 +1,30 @@
+/* noodle: the foot of a poll page -- the top dates (noodle-top.js), "make
+   another noodle" and the feedback mailto. */
+
+/* the foot of a poll page: back to the noodle home, to start another */
+.nd-top-box { width: fit-content; margin: var(--space-10) auto 0; }
+
+.nd-top {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 0.8);
+}
+
+/* every row the same width, so the dots start in one column: the date is
+   fixed-length text in a monospace face, and the glyph (which inks about two
+   cells) gets a fixed two-cell box */
+.nd-top li { display: flex; align-items: center; gap: var(--space-1); white-space: pre; }
+.nd-top-glyph { display: inline-block; width: 2ch; }
+
+/* the calendar's dots, one fixed column per voter (noodle-cal.css .nd-dots) */
+.nd-top-dots { display: inline-flex; gap: var(--space-0-5); }
+.nd-top-dots i { width: 4px; height: 4px; border-radius: var(--radius-pill); }
+.nd-top-dots i.on { background: hsl(var(--green-hsl) / 1); }
+.nd-top-dots i.on[style] { background: hsl(var(--seal-hsl) / 1); }
+
+.nd-another { margin: var(--space-6) 0 0; text-align: center; font-size: var(--fs-2xs); }
+.nd-another a { color: hsl(var(--green-hsl) / 0.8); text-decoration: underline; }   /* reads as a link */
+.nd-another:not(.nd-feedback) { font-size: var(--fs-xl); font-weight: var(--fw-bold); }   /* the "or ask noodle" size */
+.nd-another.nd-feedback { margin-top: var(--space-4); }   /* under it: the mailto (the address /recruiter already shows) */
