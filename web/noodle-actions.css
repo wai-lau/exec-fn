@@ -65,6 +65,14 @@
   letter-spacing: var(--tracking-wide);
   cursor: pointer;
 }
+
+/* Three states, three looks (Wai, 2026-09-29): Commit* = something to commit,
+   in the crop lines' yellow; plain Commit = nothing new, a DARK green that is
+   still green (the button works, it just has nothing to say); disabled =
+   can't commit at all, grey (below, so it wins). No yellow fill: Marigold's
+   palette steps are 0.45 and 1 only. */
+.nd-submit.dirty { border-color: hsl(var(--orange-hsl) / 1); color: hsl(var(--orange-hsl) / 1); background: transparent; }
+.nd-submit.clean { border-color: hsl(var(--green-hsl) / 0.45); color: hsl(var(--green-hsl) / 0.45); background: transparent; }
 .nd-submit:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); background: transparent; cursor: default; }
 
 .nd-dirty { margin: var(--space-2) 0 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
