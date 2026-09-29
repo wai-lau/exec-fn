@@ -4,10 +4,12 @@
 
   // ── state ─────────────────────────────────────────────────────────────────
   let isOpen = false;
-  let streaming = false;
   let monitorTotal = 0;          // monitor notifications known this session
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
+  // The transcript itself -- rendering, the stream, commands, history -- is the
+  // exec-term.js family's (shared global scope). This file is the shell: the
+  // bubble, the panel, the unread badge, the composer and the monitor feed.
   let bubble, badge, panel, termEl, msgInput, preEl, postEl;
 
   // ── boot ──────────────────────────────────────────────────────────────────
@@ -23,6 +25,8 @@
         buildBubble();
         buildPanel();
         if (window.execBuildTodos) execBuildTodos(panel);
+        // The status bar goes on top of the todos: it is about the session.
+        execStatusMount(panel);
         wireInput();
         if (window.execMicInit) execMicInit(micHost());
         execRestorePosition(bubble);
@@ -67,6 +71,8 @@
       '</div>';
     document.body.appendChild(panel);
     termEl = document.getElementById('exec-term');
+    execTermEl = termEl;
+    execZoomBind(termEl);
     msgInput = document.getElementById('exec-minput');
     preEl = document.getElementById('exec-ipre');
     postEl = document.getElementById('exec-ipost');
@@ -199,45 +205,9 @@
   }
 
   // ── message rendering ─────────────────────────────────────────────────────
-  function addMsg(role, text, cardId) {
-    const div = document.createElement('div');
-    div.className = 'msg ' + role;
-    // A nudge writes its answers as a trailing [a | b | c] line: strip it here,
-    // and exec-choices.js renders it as buttons under the message. An ordinary
-    // Exec reply can end on the same row (it asks Wai questions with a small
-    // answer set all the time) — parsing only the nudge role is what left those
-    // printing as raw brackets with no buttons under them. A chat reply carries
-    // no card id in its payload, so a question about a card names it IN the row
-    // (`[card=... | a | b]`) and parse() hands it back; the push's id wins when
-    // both exist, being the one the server chose rather than the model.
-    const parseable = role === 'probe' || role === 'assistant';
-    const choices = parseable && window.execChoices ? execChoices.parse(text) : null;
-    if (choices) cardId = cardId || choices.cardId;
-    if (choices) text = choices.clean;
-    if (role === 'user' || role === 'assistant' || role === 'probe') {
-      // Exec turns get a clickable replay glyph (execVoice.mark, see exec-voice.js).
-      if ((role === 'assistant' || role === 'probe') && window.execVoice) div.appendChild(execVoice.mark(role, text));
-      const body = document.createElement('div');
-      body.className = 'msg-body';
-      if (role === 'user') {
-        execRenderUserBody(body, text);
-      } else {
-        body.innerHTML = mdHtml(text);
-      }
-      div.appendChild(body);
-    } else {
-      div.textContent = text;
-    }
-    termEl.appendChild(div);
-    if (choices) execChoices.attach(termEl, div, choices.opts, sendText, cardId, function (t) { addMsg('sys', t); }, text);
-    termEl.scrollTop = termEl.scrollHeight;
-    return div;
-  }
-
-  // The render primitives live in exec-bubble-msg.js (the 500-line cap); they
-  // need no panel state, so they take what little they use.
-  const addStreamDiv = () => chatStreamDiv(termEl, { id: 'exec-bc' });
-  const fmtTs = execFmtTs;
+  // execAddMsg (exec-term.js) is the one renderer; the monitor feed below and
+  // exec-choices' sys lines use it like everything else.
+  const addMsg = (role, text, cardId) => execAddMsg(role, text, { cardId: cardId });
 
   // ── input ─────────────────────────────────────────────────────────────────
   // The caret mirror is shared (chat-dom.js). This copy was the one that never
@@ -266,16 +236,35 @@
     msgInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
     });
+    msgInput.addEventListener('paste', onPaste);
   }
 
+  // A screenshot paste carries an image FILE: shrink it and queue it above the
+  // composer (exec-images.js). Anything else is pasted as PLAIN text -- rich
+  // HTML drags in inline colours invisible on the dark panel.
+  function onPaste(e) {
+    const cd = e.clipboardData || window.clipboardData;
+    e.preventDefault();
+    const files = Array.from(cd.files || []).filter(function (f) { return f.type.startsWith('image/'); });
+    if (files.length) {
+      Promise.all(files.slice(0, 4).map(execShrink)).then(function (list) {
+        for (const im of list) if (im && execPending.length < 4) execPending.push(im);
+        execThumbStrip();
+      });
+      return;
+    }
+    document.execCommand('insertText', false, cd.getData('text/plain'));
+    renderCaret();
+  }
+
+  // Sending while a turn runs is allowed: it interrupts it (exec-interrupt.js).
   function sendMsg() {
-    if (streaming) return;
     const text = msgInput.innerText.trim();
-    if (!text) return;
+    if (!text && !execPending.length) return;
     msgInput.textContent = '';
     renderCaret();
     msgInput.focus();
-    sendText(text);
+    execSendText(text);
   }
 
   // The panel mic (exec-mic.js, engine in voice-input.js) drives the composer
@@ -288,129 +277,16 @@
       send: sendMsg,
       fill: function (t) { msgInput.textContent = t; renderCaret(); },
       blur: function () { if (document.activeElement === msgInput) msgInput.blur(); },
-      busy: function () { return streaming || !!(window.execVoice && execVoice.isSpeaking()); },
+      busy: function () { return execStreaming || !!(window.execVoice && execVoice.isSpeaking()); },
     };
   }
 
-  // Typing and tapping a nudge's choice button reach the same path, so a tapped
-  // answer IS the message Wai would have typed.
-  function sendText(text) {
-    if (streaming || !text) return;
-    addMsg('user', fmtTs() + ' ' + text);
-    streamResponse(text);
-  }
-
-  // ── stream response ───────────────────────────────────────────────────────
-  // Since phase 3 of docs/plan-exec-cc-merge.md the panel talks to the /cc
-  // sidecar: the server owns the thread, so only Wai's words are sent, and the
-  // container puts the board in front of them (exec_context.wrap). The frames
-  // are the sidecar's own vocabulary (session/text/thinking/tool/tool_result/
-  // done/busy/error); only text and Exec's card tools reach the panel -- a web
-  // search or a Bash call is /cc's business, not a line on the board.
-  const EXEC_TOOL = 'mcp__exec__';
-
-  // One frame. `st` carries the reply so far and the tool calls still waiting
-  // for their result (results arrive in call order).
-  function onFrame(data, st, typer) {
-    if (data.type === 'text') {
-      // Each assistant message is a whole block; a reply that resumes after a
-      // tool call is a second block of the same answer.
-      st.text += (st.text ? '\n\n' : '') + data.text;
-      typer.push(st.text);
-    } else if (data.type === 'tool') {
-      st.pending.push(data);
-    } else if (data.type === 'tool_result') {
-      const call = st.pending.shift();
-      if (!call || call.name.indexOf(EXEC_TOOL) !== 0) return;
-      let res = {};
-      try { res = JSON.parse(data.text) || {}; } catch (_) { /* not JSON: generic line */ }
-      addMsg('sys', execHistory.toolSysText(call.name.slice(EXEC_TOOL.length), call.input || {}, res));
-    } else if (data.type === 'busy') {
-      // One run at a time on the sidecar: /cc (or a slow panel turn) holds it.
-      throw new Error('busy -- /cc is mid-run, send again in a moment');
-    } else if (data.type === 'error') {
-      throw new Error(data.detail || 'run failed');
-    }
-  }
-
-  async function streamResponse(prompt) {
-    streaming = true;
-    const { div: streamDiv, body, cur } = addStreamDiv();
-    const st = { text: '', pending: [] };
-    // With the voice on and usable, the reveal is the narrator's to pace: the
-    // typer buffers instead of typing, and twAudio spreads the text across the
-    // measured utterance below.
-    const typer = execTyper(body, cur, termEl,
-                            () => !!(window.execVoice && execVoice.isOn() && execVoice.ready()));
-    try {
-      const r = await fetch('/api/cc/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt }),
-      });
-      if (!r.ok) throw new Error(await r.text());
-      const reader = r.body.getReader();
-      const dec = new TextDecoder();
-      let buf = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          let data;
-          try { data = JSON.parse(line.slice(6)); } catch (_) { continue; }
-          onFrame(data, st, typer);
-        }
-      }
-      const fullText = st.text;
-      // Speak as soon as the TEXT is final — the read loop above has just
-      // ended, so fullText is complete — rather than after the reveal. This
-      // used to sit below `await typer.finish()`, which is the whole typewriter
-      // run, so the voice only opened its mouth once the last character had
-      // landed and a long reply was read out to a screen that had finished
-      // saying it.
-      //
-      // The controller decides the pace from here: a live utterance reveals the
-      // text across it (typing at the narrator's speed), and a dead one — voice
-      // off, not unlocked, upstream unreachable — falls straight through to the
-      // guessed pace, which is also what finish() starts when nothing else has.
-      const vctl = fullText && window.execVoice ? execVoice.speak(fullText) : null;
-      if (vctl && vctl.ok) await typer.audio(vctl);
-      else await typer.finish();
-      cur.remove();
-      if (fullText) {
-        // The typewriter has already typed any trailing [a | b | c] row as
-        // prose — re-render the body without it and hand the row to
-        // exec-choices, the same buttons a nudge gets.
-        const ch = window.execChoices ? execChoices.parse(fullText) : null;
-        if (ch && (ch.opts.length || ch.cardId)) {
-          body.innerHTML = mdHtml(ch.clean);
-          execChoices.attach(termEl, streamDiv, ch.opts, sendText, ch.cardId,
-                             function (t) { addMsg('sys', t); }, ch.clean);
-        }
-        // the replay glyph, not the narration — that already started above
-        if (window.execVoice) streamDiv.insertBefore(execVoice.mark('assistant', fullText), streamDiv.firstChild);
-      }
-    } catch (e) {
-      cur.remove();
-      const errDiv = document.createElement('div');
-      errDiv.className = 'msg sys';
-      errDiv.style.color = 'hsl(var(--orange-glow-hsl) / 0.6)';
-      errDiv.textContent = '[error: ' + e.message + ']';
-      termEl.appendChild(errDiv);
-    }
-    streaming = false;
-    if (window.execMicReplyDone) execMicReplyDone();
-  }
-
   // ── history ───────────────────────────────────────────────────────────────
-  // Replay lives in exec-bubble-history.js (500-line cap); the panel keeps the
-  // state it hands back.
+  // Replay lives in exec-term.js (the sidecar is checked first, so a logged-out
+  // or offline agent says so); the panel keeps the unread count it hands back.
   async function loadHistory() {
-    const res = await execHistory.load(addMsg);
+    await execAnnounceState();
+    const res = await execLoadHistory();
     if (!res) return;
     monitorTotal = res.monitorTotal;
     if (isOpen) markRead(); else recomputeUnread();

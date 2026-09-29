@@ -1,4 +1,4 @@
-/* /cc — a tool result, folded into the call that produced it.
+/* Exec panel — a tool result, folded into the call that produced it.
  *
  * A tool call is ONE line. Its output hangs under it, collapsed, and the `+`
  * already in the gutter is the affordance: it flips to `-` while the block is
@@ -6,7 +6,7 @@
  * pseudo-element is not a thumb, and this page is driven from a phone.
  *
  * Open, the block shows at most 20 lines and scrolls inside itself (`20lh`,
- * measured against the block's own line-height in cc.css), so a 500-line `ls`
+ * measured against the block's own line-height in exec-term.css), so a 500-line `ls`
  * or a fetched page cannot bury the reply under it. That cap used to be the
  * block's whole story: every result rendered expanded, and a turn with four
  * fetches pushed the answer several screens down.
@@ -17,33 +17,34 @@
  * waiting call falls back to a standalone block, open, rather than vanishing.
  */
 
-let _ccToolQueue = [];
+let _execToolQueue = [];
 
 /** Remember a tool line as awaiting its result. Returns the line (so the caller
- *  can still park the cursor on it). */
-function ccQueueTool(div) {
-  _ccToolQueue.push(div);
+ *  can still park the cursor on it). A card tool queues `{cardTool, input}`
+ *  instead: it has no line until its receipt. */
+function execQueueTool(div) {
+  _execToolQueue.push(div);
   return div;
 }
 
 /** The call this result belongs to, or null. Consumed even when the result is
  *  empty and nothing gets rendered -- a call left in the queue would pair the
  *  NEXT result with the wrong line. */
-function ccTakeTool() {
-  return _ccToolQueue.shift() || null;
+function execTakeTool() {
+  return _execToolQueue.shift() || null;
 }
 
 /** Every turn starts with an empty queue: a call whose result never arrived
  *  (an aborted run, an error frame) must not swallow the next turn's first. */
-function ccResetTools() {
-  _ccToolQueue = [];
+function execResetTools() {
+  _execToolQueue = [];
 }
 
 /** Hang `out` under `tool` as its folded block. */
-function ccFold(tool, out) {
+function execFold(tool, out) {
   tool.after(out);
   out.hidden = true;
-  tool.classList.add('cc-fold');
+  tool.classList.add('exec-fold');
   tool.addEventListener('click', () => {
     out.hidden = !out.hidden;
     tool.classList.toggle('open', !out.hidden);
@@ -57,25 +58,32 @@ function ccFold(tool, out) {
  * that stopped. The call is consumed either way.
  *
  * An EMPTY result still folds, saying so. It used to render nothing at all,
- * which left the tool line without the `cc-fold` class or its click handler --
+ * which left the tool line without the `exec-fold` class or its click handler --
  * so tapping it did nothing, with no way to tell an empty result from a broken
  * page. That is how WebFetch read as unexpandable. */
-function ccToolOut(data) {
-  const tool = ccTakeTool();
+function execToolOut(data) {
+  const tool = execTakeTool();
+  // One of Exec's own card tools: not a line with output but a receipt about
+  // the card, built from the result (execCardReceipt, exec-term.js).
+  if (tool && tool.cardTool) {
+    let res = {};
+    try { res = JSON.parse(data.text) || {}; } catch { /* not JSON: generic receipt */ }
+    return execAddMsg('sys', execCardReceipt(tool.cardTool, tool.input || {}, res));
+  }
   const t = (data.text || '').trim();
-  const out = addMsg('out' + (data.isError ? ' err' : ''), t ? clamp(t) : '[ no output ]');
+  const out = execAddMsg('out' + (data.isError ? ' err' : ''), t ? execClamp(t) : '[ no output ]');
   if (!tool) return out;
-  ccFold(tool, out);
+  execFold(tool, out);
   return tool;
 }
 
 /** End of turn: any call still waiting never got a result (an interrupt, an
  *  error frame, a result the sidecar could not render). Say that under the
  *  line instead of leaving it inert. */
-function ccFinishTools() {
-  for (const tool of _ccToolQueue) {
-    if (tool.classList.contains('cc-fold')) continue;
-    ccFold(tool, addMsg('out', '[ no result returned ]'));
+function execFinishTools() {
+  for (const tool of _execToolQueue) {
+    if (tool.cardTool || tool.classList.contains('exec-fold')) continue;
+    execFold(tool, execAddMsg('out', '[ no result returned ]'));
   }
-  _ccToolQueue = [];
+  _execToolQueue = [];
 }

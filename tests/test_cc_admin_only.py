@@ -1,4 +1,4 @@
-"""/cc is admin-only, and that must never quietly stop being true.
+"""The Claude Code sidecar routes (/api/cc/*) are admin-only, and that must never quietly stop being true.
 
 `tests/test_admin_only.py` already enumerates every `protected` route and checks
 the tier generically. This file is deliberately narrower and louder: it is about
@@ -70,7 +70,7 @@ def _refused(resp) -> bool:
 # ── the scan must be sound, or every test below passes vacuously ─────────────
 def test_scan_found_the_cc_routes():
     paths = {p for _, _, p in CC_ROUTES}
-    for known in ("/cc", "/api/cc/query", "/api/cc/history", "/api/cc/health"):
+    for known in ("/api/cc/query", "/api/cc/history", "/api/cc/health", "/api/cc/exec-history"):
         assert known in paths, f"{known} missing — the routes_cc.py scan is broken"
     assert len(CC_ROUTES) >= 8, f"only {len(CC_ROUTES)} /cc routes parsed — scan is broken"
 
@@ -93,7 +93,7 @@ def test_every_cc_path_starts_at_cc():
     """A route declared in routes_cc.py that does not live under /cc would be
     admin-tiered by this file's contract while nothing here actually checks it."""
     for _, m, p in CC_ROUTES:
-        assert p == "/cc" or p.startswith("/api/cc/"), f"unexpected path {m} {p}"
+        assert p.startswith("/api/cc/"), f"unexpected path {m} {p}"
 
 
 # ── and the observable half, against the live app ────────────────────────────
@@ -126,9 +126,10 @@ def test_cc_query_post_is_refused_for_a_guest(client, guest_cookie, path):
 
 def test_the_admin_can_still_reach_cc(client, admin_headers):
     """A route that refused EVERYONE would pass every check above while being
-    broken, so the tier is only proven by the owner still getting in."""
-    r = client.get("/cc", headers=admin_headers, timeout=15.0)
-    assert r.status_code == 200, f"admin got {r.status_code} on /cc — the page is down"
+    broken, so the tier is only proven by the owner still getting in. (The /cc
+    page is gone -- folded into the Exec panel -- so this is the health route.)"""
+    r = client.get("/api/cc/health", headers=admin_headers, timeout=15.0)
+    assert r.status_code == 200, f"admin got {r.status_code} on /api/cc/health"
 
 
 def test_mutating_routes_are_covered_structurally():

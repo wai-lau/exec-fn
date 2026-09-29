@@ -40,13 +40,19 @@ def _pushes() -> list:
 async def merged_history() -> dict:
     """{messages:[{role, text, ts, card_id?}], monitorTotal} oldest first.
 
-    role is `user` / `assistant` (the sidecar thread) or `monitor` (a push).
-    Images are dropped: the panel has no image rendering, and a phone photo in
-    the payload would be dead weight on every panel load. monitorTotal counts
+    role is `user` / `assistant` (the sidecar thread) or `monitor` (a push); a
+    user turn carries its pasted `images` too, so a reload keeps the picture the
+    words were about. monitorTotal counts
     chat.json's pushes, which is what the unread badge has always counted."""
     thread = (await cc_client.history()).get("messages") or []
-    rows = [{"role": m["role"], "text": m.get("text") or "", "ts": m.get("ts") or ""}
-            for m in thread if m.get("role") in ("user", "assistant") and m.get("text")]
+    rows = []
+    for m in thread:
+        if m.get("role") not in ("user", "assistant") or not (m.get("text") or m.get("images")):
+            continue
+        row = {"role": m["role"], "text": m.get("text") or "", "ts": m.get("ts") or ""}
+        if m.get("images"):
+            row["images"] = m["images"]
+        rows.append(row)
     pushes = _pushes()
     for m in pushes:
         row = {"role": "monitor", "text": m.get("content") or "", "ts": m.get("ts") or ""}

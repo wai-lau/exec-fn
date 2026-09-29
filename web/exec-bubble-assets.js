@@ -1,59 +1,9 @@
 // Asset loaders for the exec bubble: the lazy marked.js fetch, the markdown
-// sanitiser that pairs with it, and the exec-bubble.css injection. Split out of
+// sanitiser that pairs with it, and the stylesheet injection. (The reveal moved
+// to exec-stream.js.) Split out of
 // exec-bubble.js (500-line cap); loaded immediately before it, same global
 // scope, so exec-bubble.js calls these by bare name like its own functions.
 'use strict';
-
-// Exec's reveal: /tarot's typewriter at SPEED 5 (typewriter.js), so a reply
-// arrives at a readable pace rather than in stream-sized bursts. The glue lives
-// here rather than in exec-bubble.js, which is at 484 of the 500-line cap.
-const EXEC_TYPE_SPEED = 5;
-
-function execTyper(body, cur, termEl, hold) {
-  const tw = { buffered: '', displayed: '', serverDone: false, cancelled: false };
-  let typing = null;
-  function render(shown) {
-    body.innerHTML = mdHtml(shown);
-    (body.lastElementChild || body).appendChild(cur);
-    termEl.scrollTop = termEl.scrollHeight;
-  }
-  function start() {
-    if (typing) return typing;
-    typing = new Promise((resolve) => {
-      twGuess(tw, render, { speed: EXEC_TYPE_SPEED, onDone: resolve }).start();
-    });
-    return typing;
-  }
-  // Hand the reveal to the voice: the same weights, rescaled to the measured
-  // audio, so the words land as they are spoken. Only valid once the text is
-  // final -- which is why the caller speaks at the end of the read loop, not
-  // per delta.
-  function audio(ctl) {
-    tw.serverDone = true;
-    if (typing) return typing;          // already revealing at the guessed pace
-    typing = new Promise((resolve) => {
-      twAudio(tw, render, ctl, { speed: EXEC_TYPE_SPEED, onDone: resolve }).start();
-    });
-    return typing;
-  }
-  // Wait for the reveal to catch up before the caller settles the bubble. Also
-  // STARTS it if nothing has: with the voice on, push() deliberately buffers
-  // without revealing, so a turn whose narration never happened (the voice went
-  // dead between the check and the utterance) would otherwise settle a bubble
-  // that had never shown a character.
-  function finish() {
-    tw.serverDone = true;
-    return start();
-  }
-  // While the voice is on and usable, text is BUFFERED but not revealed -- the
-  // reveal belongs to the narrator, and a guessed pace started here would race
-  // ahead and finish before the voice opened its mouth.
-  function push(text) {
-    tw.buffered = text;
-    if (!(hold && hold())) start();
-  }
-  return { push, audio, finish };
-}
 
 // ── marked lazy-load ────────────────────────────────────────────────────────
 function loadMarked(cb) {
@@ -99,16 +49,16 @@ function mdHtml(t) { const r = execRenderer(); return marked.parse(t, r ? { rend
 // Load the stylesheets and invoke cb once they have applied (or failed).
 // Callers wait on this before building the panel so it never paints unstyled.
 //
-// THREE files, in this order: chat-msg.css is the transcript vocabulary shared
-// with /mtg, /cc and /tarot, voice-ui.css is the narrator control shared with
-// /tarot and /cc, and exec-bubble.css is the panel chrome that
-// overrides it. Order is the cascade here -- both are appended to <head> with
+// FOUR files, in this order: chat-msg.css is the transcript vocabulary shared
+// with /mtg and /tarot, voice-ui.css is the narrator control shared with
+// /tarot, exec-term.css is the agent transcript (tools, diagrams, images, the
+// status bar), and exec-bubble.css is the panel chrome that overrides them. Order is the cascade here -- both are appended to <head> with
 // equal specificity, so a swap would hand the pages' rules the last word over
 // the panel's.
 function loadStyles(cb) {
   const existing = document.querySelector('link[data-exec-css]');
   if (existing) { cb(); return; }
-  const hrefs = ['/chat-msg.css?v=6', '/voice-ui.css?v=4', '/exec-bubble.css?v=27'];
+  const hrefs = ['/chat-msg.css?v=6', '/voice-ui.css?v=4', '/exec-term.css?v=1', '/exec-bubble.css?v=28'];
   let left = hrefs.length;
   // One callback once BOTH have settled; a failed fetch still counts, so a CSS
   // 404 can never hang the panel.

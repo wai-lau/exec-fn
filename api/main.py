@@ -26,7 +26,7 @@ import routes_api    # noqa: F401  — registers JSON routes on the shared route
 import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
 import routes_graph  # noqa: F401  — registers /graph (graphify viz, scrubbed + restyled)
 import routes_printer  # noqa: F401  — registers /printer + the ELEGOO printer reverse proxy
-import routes_cc     # noqa: F401  — registers /cc + the sandboxed Claude Code sidecar routes
+import routes_cc     # noqa: F401  — registers the sandboxed Claude Code sidecar routes (/api/cc/*)
 import routes_zombo  # noqa: F401  — registers /zombo (secret: gated, but linked from nowhere)
 import routes_exec   # noqa: F401  — registers /api/exec/tool* (the sidecar runs Exec's card tools here)
 

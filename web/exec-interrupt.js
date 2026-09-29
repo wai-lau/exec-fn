@@ -1,4 +1,4 @@
-/* /cc — send while a run is in flight: the new message INTERRUPTS the old one.
+/* Exec panel — send while a run is in flight: the new message INTERRUPTS the old one.
  *
  * The page used to drop the keystroke entirely (`if (streaming) return`), which
  * is the wrong half of the terminal idiom it copies: a terminal lets you type
@@ -17,33 +17,33 @@
  * That listener sat on `req` until 2026-09-21, where it could never fire (a
  * fully-read IncomingMessage emits no further `close`), so this whole file was
  * hanging up into a sidecar that never heard it: the slot stayed held, the
- * 4s `ccAwaitFree` below timed out, and the message that caused the interrupt
+ * 4s `execAwaitFree` below timed out, and the message that caused the interrupt
  * came back `busy`.
  *
  * The slot is freed at the FAR end of that chain, so the new run cannot just be
  * fired: it would race the decrement and come back `busy`, i.e. the interrupt
- * would eat the message that caused it. `ccInterrupt()` therefore waits for the
+ * would eat the message that caused it. `execInterrupt()` therefore waits for the
  * sidecar to actually report itself free before returning.
  */
 
-let _ccAbort = null;        // AbortController of the run in flight, else null
-let _ccEnded = null;        // resolves when that run's handler has unwound
-let _ccEndedResolve = null;
-let _ccInterrupted = false;
+let _execAbort = null;        // AbortController of the run in flight, else null
+let _execEnded = null;        // resolves when that run's handler has unwound
+let _execEndedResolve = null;
+let _execInterrupted = false;
 
 /** Arm a run. Returns the signal `streamResponse` hands to fetch(). */
-function ccRunBegin() {
-  _ccAbort = new AbortController();
-  _ccInterrupted = false;
-  _ccEnded = new Promise((resolve) => { _ccEndedResolve = resolve; });
-  return _ccAbort.signal;
+function execRunBegin() {
+  _execAbort = new AbortController();
+  _execInterrupted = false;
+  _execEnded = new Promise((resolve) => { _execEndedResolve = resolve; });
+  return _execAbort.signal;
 }
 
 /** The run's handler has unwound (settled, errored or aborted). */
-function ccRunEnd() {
-  _ccAbort = null;
-  if (_ccEndedResolve) _ccEndedResolve();
-  _ccEndedResolve = null;
+function execRunEnd() {
+  _execAbort = null;
+  if (_execEndedResolve) _execEndedResolve();
+  _execEndedResolve = null;
 }
 
 /** Stop the run in flight, and do not return until the next one can start.
@@ -54,17 +54,17 @@ function ccRunEnd() {
  * its slot free. Gives up waiting after `ms` rather than swallowing the
  * message -- a sidecar that never frees the slot answers `busy`, which the page
  * already renders as a line. */
-async function ccInterrupt(ms) {
-  if (!_ccAbort) return false;
-  _ccInterrupted = true;
-  _ccAbort.abort();
-  await _ccEnded;
-  await ccAwaitFree(ms || 4000);
+async function execInterrupt(ms) {
+  if (!_execAbort) return false;
+  _execInterrupted = true;
+  _execAbort.abort();
+  await _execEnded;
+  await execAwaitFree(ms || 4000);
   return true;
 }
 
 /** Poll the sidecar until it reports no run in flight. */
-async function ccAwaitFree(ms) {
+async function execAwaitFree(ms) {
   const until = Date.now() + ms;
   for (;;) {
     try {
@@ -81,7 +81,7 @@ async function ccAwaitFree(ms) {
  *  just asked for -- so it gets its own quiet line and the partial reply above
  *  it is left standing, the way a terminal leaves the output of a job it was
  *  told to stop. */
-function ccStopNote(err) {
-  if (_ccInterrupted || (err && err.name === 'AbortError')) return '[ interrupted ]';
+function execStopNote(err) {
+  if (_execInterrupted || (err && err.name === 'AbortError')) return '[ interrupted ]';
   return '[ ' + ((err && err.message) || 'error') + ' ]';
 }

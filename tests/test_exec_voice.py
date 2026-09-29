@@ -9,9 +9,6 @@ assert the right `<script src>` tags are present/absent per auth + page tier.
 
   - planning pages (/rd, /hq): full panel voice (exec-voice.js +
     exec-bubble.js).
-  - /cc: the same glados voice for its own replies, loaded by its OWN template
-    (cc.js mounts the shared control at load, before the nav injection runs) —
-    so the injection must NOT add a second copy.
   - other non-planning pages (/debug, /UI): the listener (exec-voice-listener.js
     + exec-voice.js) on the link-bubble, no panel.
   - /tarot + /hosaka: link-bubble only, NO exec voice (tarot has its own reader
@@ -24,7 +21,7 @@ undefined without them.
 import pytest
 
 PLANNING = ["/rd", "/hq"]
-SPEAKING = ["/rd", "/hq", "/cc"]     # pages that narrate their own replies
+SPEAKING = ["/rd", "/hq"]            # pages that narrate their own replies
 LISTENER = ["/debug", "/UI"]         # non-planning, voice via listener
 EXCLUDED = ["/tarot", "/hosaka"]     # link-bubble, no voice
 
@@ -82,10 +79,10 @@ def test_speaking_pages_load_the_shared_narrator(client, admin_cookie, path):
     assert "/exec-voice.js" in html
 
 
-@pytest.mark.parametrize("path", ["/cc", "/tarot"])
+@pytest.mark.parametrize("path", ["/tarot"])
 def test_pages_with_an_inline_control_link_its_stylesheet(client, admin_cookie, path):
-    """/cc and /tarot place the toggle in their own markup, so they link the
-    shared stylesheet. The PANEL injects it at runtime instead
+    """/tarot places the toggle in its own markup, so it links the shared
+    stylesheet. The PANEL injects it at runtime instead
     (exec-bubble-assets.js), because the panel itself is built there."""
     assert "/voice-ui.css" in _body(client, path, admin_cookie)
 
@@ -95,18 +92,18 @@ def test_the_panel_injects_the_control_stylesheet(client, admin_cookie, path):
     assert "/exec-bubble-assets.js" in _body(client, path, admin_cookie)
 
 
-def test_cc_loads_the_voice_exactly_once(client, admin_cookie):
-    """The nav injection also carries the voice stack. /cc loads it in its own
-    template (cc.js needs it at load), so a second copy would re-evaluate
-    exec-voice.js and throw `duplicate variable` — taking the page with it."""
-    html = _body(client, "/cc", admin_cookie)
-    assert html.count("/exec-voice.js") == 1
-    assert html.count("/voice-narrator.js") == 1
+def test_the_panel_loads_the_voice_exactly_once(client, admin_cookie):
+    """A second copy re-evaluates exec-voice.js and throws `duplicate variable`,
+    taking the page with it. (/cc used to load its own copy; it is gone.)"""
+    for path in PLANNING:
+        html = _body(client, path, admin_cookie)
+        assert html.count("/exec-voice.js") == 1
+        assert html.count("/voice-narrator.js") == 1
 
 
-def test_cc_speaks_and_paces_with_the_shared_engine(client, admin_cookie):
-    html = _body(client, "/cc", admin_cookie)
-    assert "/cc-reveal.js" in html       # the typer that picks guessed vs audio
+def test_the_panel_speaks_and_paces_with_the_shared_engine(client, admin_cookie):
+    html = _body(client, "/hq", admin_cookie)
+    assert "/exec-stream.js" in html     # the typer that picks guessed vs audio
     assert "/typewriter.js" in html      # twGuess + twAudio live here
 
 

@@ -1221,6 +1221,17 @@ Phase 3 of the merge. The panel on `/rd` + `/hq` (`web/exec-bubble.js`) POSTs `{
 - **Gone from the panel:** the client-held `messages`/`stage`, and `?exec=open` re-sending a trailing user message (nothing queues one any more). `/api/chat` still exists for Discord.
 - Pinned in WebKit: `tests/test_exec_panel_stream_browser.py` (receipts vs hidden tools, joined blocks, prompt = words only, busy); the five older panel suites mock `/api/cc/exec-history` + `/api/cc/query`.
 
+### 7g. /cc folded into the Exec panel (2026-09-29)
+
+Once the panel ran on the sidecar (§7f) the two were one agent behind two doors, and Wai asked for one door. `/cc` (page, template, nav `✦`, `web/cc*.{js,css}`, `tests/test_cc_stream_browser.py`) is gone and returns 404; the `/api/cc/*` routes stay -- they are the sidecar's, and the panel is their client. The NDL nav entry took `/cc`'s `seeker` icon.
+
+**Everything the page did, the panel now does**, by the same code renamed into the panel's family (shared global scope, loaded in this order by `_build_nav`): `exec-svg` (```svg blocks rendered, sanitised) · `exec-zoom` (tap-to-zoom, bound to `#exec-term` at panel build) · `exec-images` (paste → shrink to 1568px → thumbs above the composer, sent as bare base64) · `exec-toolout` (a tool call is ONE line, its output folded under it, FIFO-paired; an Exec card tool queues `{cardTool, input}` and renders a receipt instead) · `exec-status` (the status bar, mounted at the TOP of the panel by `execStatusMount`, in its flow rather than fixed; localStorage keys `exec.status`/`exec.ctxbase`) · `exec-sessions` + `exec-commands` (`/new` `/clear` `/list` `/listall` `/back` `/help`; the SDK's `/context` `/cost` `/usage` `/compact` `/model` pass through) · `exec-interrupt` (sending while a turn runs aborts it and waits for the sidecar's slot) · `exec-term` (the renderer `execAddMsg`, history replay, the send path) · `exec-stream` (the typer and the turn: a bubble per prose block, closed by any tool/thought, cursor parked on the last line). `exec-bubble.js` is now only the shell: bubble, panel, todos, badge, composer, monitor feed. CSS: `exec-term.css`, injected by `loadStyles` between `chat-msg.css` and `exec-bubble.css`.
+
+- **One cursor per turn.** `/cc`'s code re-parked the closed bubble's cursor on the tool line and never removed it when the next bubble opened; `execBubbles().open()` and `execSettle` now drop it wherever it is.
+- **Replay keeps images** (`exec_panel.merged_history` passes a user turn's `images`); tool lines stay live-only (the SDK transcript keeps text).
+- **Known, inherited:** a multi-call turn's `done.ctxTokens` is the SUM across its API calls, so ctx% can read 100% after a tool-using turn (measured 2026-09-29: 133K real on a 200K window). The status bar shows what the sidecar reports.
+- Pinned in WebKit by `tests/test_exec_panel_stream_browser.py` (receipt vs tool line, bubble-per-block order, folds + empty/missing results, cursor blink + cleanup, interrupt, busy, /help without a query). The fixture turns voice OFF: the audio stub's clock never advances, so a reveal paced to it never ends.
+
 ### 7d. The archive is three tools, not a filesystem
 
 `claude-box/archive-tools.mjs` (2026-09-11): `list_conversations`, `search_conversations`, `read_conversation`, served by an in-process `createSdkMcpServer` named `archive` — the ONE entry in `mcpServers`, so `strictMcpConfig` still drops the account's claude.ai connectors.

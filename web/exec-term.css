@@ -1,11 +1,8 @@
-/* /cc — sandboxed Claude Code, on the shared chat terminal.
-   chat.css (shell), chat-msg.css (transcript vocabulary) and chat-doc.css
-   (document palette) do the general work; this file is only what an AGENT
-   transcript needs on top — tool lines, tool output, pasted images, diagrams.
-
-   The bespoke composer this replaced is gone, and with it the Exec-bubble
-   collision it had -- #input-bar is full-width and its send affordance is the
-   Enter key, so nothing sits under the bubble's bottom-right resting spot. */
+/* The Exec panel's agent transcript -- what /cc's page carried until it folded
+   into the panel (2026-09-29): tool lines and their folded output, thoughts,
+   pasted images, SVG diagrams and their zoom, the conversation picker, the
+   turn footnote and the status bar. chat-msg.css is the shared vocabulary under
+   it and exec-bubble.css the panel chrome over it (loadStyles order). */
 
 /* ── agent transcript ───────────────────────────────────────────────────── */
 
@@ -22,11 +19,11 @@
    parked cursor are siblings of it. */
 .msg.tool .msg-body { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Folded output makes the whole line the hit target, not the 1ch marker: this
-   page is driven from a phone. `-` while open, ASCII both ways so the glyph
+/* Folded output makes the whole line the hit target, not the 1ch marker: the panel is
+   driven from a phone. `-` while open, ASCII both ways so the glyph
    stays exactly one character wide in the shared gutter. */
-.msg.tool.cc-fold { cursor: pointer; }
-.msg.tool.cc-fold.open::before { content: "-"; }
+.msg.tool.exec-fold { cursor: pointer; }
+.msg.tool.exec-fold.open::before { content: "-"; }
 
 /* `+` rather than the ⚡ this used to carry: every other line on every chat
    surface hangs a one-character ASCII marker in the shared 1ch gutter, and an
@@ -37,7 +34,7 @@
 
 /* Tool OUTPUT is reference material, not prose: dim, capped, independently
    scrollable so a 500-line ls cannot bury the reply under it. Hidden until the
-   tool line above it is tapped (cc-toolout.js); `20lh` is 20 of THIS block's
+   tool line above it is tapped (exec-toolout.js); `20lh` is 20 of THIS block's
    own lines, which is what the cap is actually about — the old 12rem was a
    different number of lines at every font size. */
 .msg.out {
@@ -65,33 +62,26 @@
 
 /* ── pasted images ──────────────────────────────────────────────────────── */
 
-/* Thumbnails sit ABOVE the input line inside #input-bar, so the composer grows
-   upward and the terminal (pinned to --input-h) re-anchors itself.
-   #input-bar is a flex ROW, so a plain child would sit BESIDE the input line
-   instead: `flex: 1 0 100%` + `order: -1` makes it take a full row of its own,
-   above. #input-bar needs flex-wrap for that row to exist at all. */
-#input-bar { flex-wrap: wrap; }
-
-#cc-thumbs {
-  flex: 1 0 100%; order: -1;
+/* Thumbnails sit ABOVE the input line, inside #exec-input-area (a column), so
+   the composer grows upward and the transcript gives up the room. */
+#exec-thumbs {
   display: flex; gap: var(--space-2); flex-wrap: wrap;
   padding: var(--space-2) 0 0;
 }
 
 /* `display: flex` above OUTRANKS the UA stylesheet's `[hidden] {display:none}`,
-   so an empty strip stayed a zero-width flex ITEM and #input-bar's gap shoved
-   the whole input line 10px right of the transcript -- the reported offset.
-   Hidden has to be restated at this specificity to win. */
-#cc-thumbs[hidden] { display: none; }
-.cc-thumb { position: relative; flex: 0 0 auto; }
+   so an empty strip would stay a flex item taking room. Hidden has to be
+   restated at this specificity to win. */
+#exec-thumbs[hidden] { display: none; }
+.exec-thumb { position: relative; flex: 0 0 auto; }
 
-.cc-thumb img {
+.exec-thumb img {
   height: 44px; width: auto; max-width: 88px; object-fit: cover;
   border: 1px solid hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-2);
   display: block;
 }
 
-.cc-thumb button {
+.exec-thumb button {
   position: absolute; top: -6px; right: -6px;
   width: 18px; height: 18px;
 
@@ -105,9 +95,9 @@
 /* In the transcript. Capped by VIEWPORT height as well as width: a tall
    screenshot at 100% width would otherwise push the reply it is about clean
    off the screen on a phone. */
-.cc-imgs { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
+.exec-imgs { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
 
-.cc-imgs img {
+.exec-imgs img {
   max-width: 100%; max-height: 40vh; width: auto; border-radius: var(--radius-2);
   border: 1px solid hsl(var(--green-hsl) / 0.12); display: block;
 }
@@ -115,46 +105,46 @@
 /* ── SVG diagrams ───────────────────────────────────────────────────────── */
 
 /* Claude cannot make raster images but writes clean SVG, so a ```svg block is
-   the one route a picture takes back from the model (cc-svg.js sanitises and
+   the one route a picture takes back from the model (exec-svg.js sanitises and
    swaps it in). The svg's authored width/height are stripped there, so it
    scales to the column instead of forcing a horizontal scroll on a phone. */
-.cc-svg {
+.exec-svg {
   margin: var(--space-3) 0;
   padding: var(--space-3);
   border: 1px solid hsl(var(--green-hsl) / 0.12);
   border-radius: var(--radius-2);
   overflow-x: auto;
 }
-.cc-svg svg { max-width: 100%; height: auto; display: block; }
+.exec-svg svg { max-width: 100%; height: auto; display: block; }
 
 /* Source kept, collapsed: a diagram is usually something to tweak, and
    discarding the markup would mean asking the model to draw it again. */
-.cc-svg-src { margin: calc(var(--space-3) * -1) 0 var(--space-3); }
+.exec-svg-src { margin: calc(var(--space-3) * -1) 0 var(--space-3); }
 
-.cc-svg-src summary {
+.exec-svg-src summary {
   cursor: pointer; list-style: none;
   font-size: var(--fs-2xs); letter-spacing: var(--tracking-wide);
   text-transform: uppercase; color: hsl(var(--green-hsl) / 0.45);
 }
-.cc-svg-src summary::-webkit-details-marker { display: none; }
-.cc-svg-src summary::before { content: "▸ "; }
-.cc-svg-src[open] summary::before { content: "▾ "; }
-.cc-svg-src pre { max-height: 16rem; overflow: auto; }
+.exec-svg-src summary::-webkit-details-marker { display: none; }
+.exec-svg-src summary::before { content: "▸ "; }
+.exec-svg-src[open] summary::before { content: "▾ "; }
+.exec-svg-src pre { max-height: 16rem; overflow: auto; }
 
 /* ── zoomable pictures ──────────────────────────────────────────────────── */
 
 /* A diagram authored for a page, scaled into a 430px column, puts its axis
    labels at about 6px with scanlines across them -- the part most worth
-   reading is the part you cannot read. Tapping one opens cc-zoom.js's
+   reading is the part you cannot read. Tapping one opens exec-zoom.js's
    overlay. */
-.cc-svg, .cc-imgs img { cursor: zoom-in; }
+.exec-svg, .exec-imgs img { cursor: zoom-in; }
 
 /* UNDER the cyber-* layers (--z-modal), like the rest of the chrome: the
    picture is on the screen, not in front of it, so the scanlines and the glass
    cross it the way they cross everything else. The fx are pointer-events:none,
    so every gesture still lands. Opaque, so the transcript underneath does not
    read through. */
-#cc-zoom {
+#exec-zoom {
   position: fixed; inset: 0; z-index: var(--z-bubble);
   background: hsl(var(--bg-hsl));
   overflow: hidden; touch-action: none;
@@ -169,7 +159,7 @@
   -webkit-user-select: none;
 }
 
-#cc-zoom-pan {
+#exec-zoom-pan {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   padding: var(--space-5);
@@ -181,7 +171,7 @@
    about a sixth of the height it could have used. max-height catches the tall
    ones -- an svg with a viewBox has an intrinsic ratio, so the cap shrinks it
    without distorting. */
-#cc-zoom-pan > svg {
+#exec-zoom-pan > svg {
   width: 100%; height: auto; max-height: 100%;
 
   /* An outermost svg clips to its viewBox by default, and a model routinely
@@ -190,60 +180,32 @@
      READ the thing. Showing the overflow beats cropping it. */
   overflow: visible;
 }
-#cc-zoom-pan > img { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
+#exec-zoom-pan > img { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
 
-#cc-zoom-x {
+#exec-zoom-x {
   position: absolute; top: var(--space-3); right: var(--space-4);
   background: none; border: none; cursor: pointer;
   color: hsl(var(--green-hsl) / 0.8);
   font-family: var(--font-mono); font-size: var(--fs-sm);
   padding: var(--space-2);
 }
-#cc-zoom-x:hover { color: hsl(var(--green-hsl)); }
-
-/* The mic lives in chat-msg.css now — the `$` prompt is the control on /cc AND
-   in the Exec panel, and one rule set covers both ids the way every other
-   composer rule already does. */
+#exec-zoom-x:hover { color: hsl(var(--green-hsl)); }
 
 /* ── status bar ─────────────────────────────────────────────────────────── */
 
-/* The Claude Code status line, as it actually renders in Wai's terminal --
-   same two rows, same fields, same colours, read off
-   ~/.claude/statusline-command.sh rather than approximated:
-
-     line 1   the metrics on the page's own black -- ctx bright white, base
-              grey, 5h pink, its reset mint, 7d cyan. On their own line the
-              colours survive; they are unreadable on a bright band.
-     line 2   the conversation's title on a full-width hash-coloured band,
-              black text, sitting directly above the transcript it names.
-
-   FIXED, and moved onto <body> by cc-status.js: _render_page wraps this page in
-   a scrolling .page-scroll, and a bar meant to outlast every scroll has no
-   business inside the thing being scrolled. */
-#cc-status {
-  position: fixed; left: 0; right: 0; z-index: var(--z-sticky);
-
-  /* Anchored to the VISUAL viewport, not the layout one. A soft keyboard
-     shrinks the visual viewport and offsets it (iOS standalone also scrolls the
-     document), while a position:fixed top:0 stays pinned to the layout viewport
-     -- which is how the bar ended up above the screen the moment the keyboard
-     opened. --vvt is vv.offsetTop, published on every page by the nav script,
-     and is what #exec-panel anchors to for the same reason. */
-  top: var(--vvt, 0);
-
-  /* TWO rows, and it reads better than the merged one did: the band gets the
-     whole width and the metrics get a line they never have to compete for. A
-     single row meant the title was truncated to whatever the ~330px of numbers
-     left over, which on a phone is almost nothing. No padding of its own --
-     each row carries its own. */
-  display: block;
-  padding: 0;
+/* The Claude Code status line, as it renders in Wai's terminal (read off
+   ~/.claude/statusline-command.sh, not approximated): the metrics on the
+   panel's black -- ctx white, base grey, 5h pink, its reset mint, 7d cyan --
+   then the conversation's title on a full-width hash-coloured band. In the
+   panel's own flow at its top, so it slides in and out with the panel. */
+#exec-status {
+  flex-shrink: 0;
   background: hsl(var(--bg-hsl));
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
-  font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
+  font-size: var(--fs-2xs); line-height: var(--lh-tight);
 }
 
-/* The hue is set per-title by cc-status.js (--cs-hue); 95% / 60% are the
+/* The hue is set per-title by exec-status.js (--cs-hue); 95% / 60% are the
    saturation and lightness the shell script's hls_to_rgb call uses. It hugs its
    text so the metrics can sit beside it in their own colours -- white, mint and
    cyan are illegible on a bright band. */
@@ -252,7 +214,7 @@
    leaves a strip of dead black beside it. */
 
 /* `display: block` loses to the UA's [hidden] only if restated -- same trap
-   #cc-thumbs hit. */
+   #exec-thumbs hit. */
 .cs-title[hidden] { display: none; }
 
 .cs-title {
@@ -309,57 +271,26 @@
 .cs-reset { color: #afffaf; }
 .cs-7d { color: #00cdcd; }
 
-/* The transcript starts below the bar. chat-doc.css pins #terminal with
-   !important, so this restates the whole inset rather than only the top. */
-#terminal { inset: calc(var(--vvt, 0px) + var(--cc-status-h, 42px)) 0 calc(var(--kb-anchor) + var(--input-h, 48px)) !important; }
-
-/* Same short glide the composer and transcript use: iOS settles the keyboard in
-   several steps (QuickType bar, accessory bar, predictive text toggling), and
-   each step would otherwise snap the bar. */
-html.kb-open #cc-status,
-html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
-
-/* Exec's own [x], same mono, same 0.8 green lifting to 1, at the same right
-   end of the input line -- Exec's closes the panel, this one does what /new
-   does: ends the conversation, archived first.
-
-   The Exec bubble rests on this corner and will swallow a tap until it is
-   dragged off; that is the bubble's nature (it is draggable, and where it sits
-   is Wai's choice), not a reason to put this control somewhere it isn't.
-
-   `flex-shrink: 0` and the left padding keep it off the caret: the input
-   beside it grows with the text. */
-#cc-new {
-  flex-shrink: 0;
-  background: none; border: none; cursor: pointer;
-  color: hsl(var(--green-hsl) / 0.8);
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm); line-height: var(--lh-tight);
-  padding: 0 0 0 var(--space-2); margin-left: var(--space-2-5);
-  transition: color 0.15s;
-}
-#cc-new:hover { color: hsl(var(--green-hsl) / 1); }
-
 /* ── the /list picker ───────────────────────────────────────────────────── */
 
-/* Tappable rows, not a numbered list to type an index from: this page is used
+/* Tappable rows, not a numbered list to type an index from: the panel is used
    one-handed, where reading a list and then typing "/resume 3" means the
    keyboard covers the thing being read from. */
-.cc-list { display: flex; flex-direction: column; padding-left: var(--chat-indent); }
+.exec-list { display: flex; flex-direction: column; padding-left: var(--chat-indent); }
 
-.cc-sess {
+.exec-sess {
   display: flex; align-items: baseline; gap: var(--space-2);
   background: none; border: none; cursor: pointer; text-align: left;
   padding: var(--space-0-5) 0;
   font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
   color: hsl(var(--green-hsl) / 0.8);
 }
-.cc-sess:hover { color: hsl(var(--green-hsl)); }
+.exec-sess:hover { color: hsl(var(--green-hsl)); }
 
 /* The one you are already in is a label, not a destination. */
-.cc-sess.current { color: hsl(var(--green-hsl) / 0.45); cursor: default; }
+.exec-sess.current { color: hsl(var(--green-hsl) / 0.45); cursor: default; }
 
-.cc-sess-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exec-sess-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Hued like the status bar's title band, from the same hash -- a conversation
    keeps its colour from the row you tap to the band you land on. TEXT, not a
@@ -367,21 +298,21 @@ html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
    list of names, not a set of buttons competing for the eye. The timestamp
    beside it stays green, so the hue marks the NAME and the row still reads as
    part of this page. */
-.cc-sess-title.hued { color: hsl(var(--cs-hue, 135deg) 95% 60%); }
+.exec-sess-title.hued { color: hsl(var(--cs-hue, 135deg) 95% 60%); }
 
 /* The one you are already in keeps its hue but steps back with the rest of the
    row -- it is a label, not a destination. */
-.cc-sess.current .cc-sess-title.hued { opacity: 0.45; }
-.cc-sess-when { flex-shrink: 0; color: hsl(var(--green-hsl) / 0.45); }
+.exec-sess.current .exec-sess-title.hued { opacity: 0.45; }
+.exec-sess-when { flex-shrink: 0; color: hsl(var(--green-hsl) / 0.45); }
 
 /* /help — the same row shape as the conversation picker, since both are a
    short list of things you can type or tap. */
-.cc-help-row {
+.exec-help-row {
   display: flex; gap: var(--space-3);
   font-size: var(--fs-2xs); line-height: var(--lh-tight);
 }
-.cc-help-cmd { flex: 0 0 auto; min-width: 5rem; color: hsl(var(--green-hsl)); }
-.cc-help-what { color: hsl(var(--green-hsl) / 0.45); }
+.exec-help-cmd { flex: 0 0 auto; min-width: 5rem; color: hsl(var(--green-hsl)); }
+.exec-help-what { color: hsl(var(--green-hsl) / 0.45); }
 
 /* The turn/time footnote, hung on the end of the reply rather than given a row
    of its own. Same dim sys colour and size, so it reads as a margin note on the
@@ -397,14 +328,10 @@ html.kb-open #terminal { transition: top 0.13s ease-out, inset 0.13s ease-out; }
    lint's 4-step cap (0.12/0.45/0.8/1), so a new alpha would be rejected, and
    opacity is governed by neither lint (the crt-dim precedent). Measured against
    the CRT stack at 430x932 -- 0.5 starts losing the glyphs to the scanlines. */
-.cc-receipt {
+.exec-receipt {
   margin-left: var(--space-3);
   font-size: var(--fs-2xs);
   color: hsl(var(--green-hsl) / 0.45);
   white-space: nowrap;
   opacity: 0.6;
 }
-
-/* The narrator toggle in the composer row. The control itself is the shared one
-   (voice-ui.css, .voice-mute) -- all /cc owns is where it sits, left of [x]. */
-#exec-mute { padding-left: var(--space-2); margin-left: var(--space-2); }
