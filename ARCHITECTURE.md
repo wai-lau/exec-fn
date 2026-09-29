@@ -1212,6 +1212,10 @@ Phase 1 of the /cc + Exec merge (`docs/plan-exec-cc-merge.md`). The agent gets E
 
 ### 7f. The Exec panel on the sidecar (2026-09-28)
 
+**Reply length is decided per message** (`LENGTH` in `chat._CHAT_STATIC_PREFIX`, 2026-09-29): a confirmation, yes/no or single fact gets one line; one action gets one line reporting it; only an open question earns more. No second commentary paragraph, no "Meanwhile…" pivot to other cards, the GLaDOS jab rides inside the answer. Wai asked for replies "more directly correlated to the question" after answers kept growing a quip paragraph and an unrelated-card nudge. Measured after: a yes/no came back in 41 words (first word "Yes"), "what should I focus on" in 66.
+
+**A busy sidecar waits instead of failing** (`cc_client.stream_query`, 2026-09-29). The sidecar runs one turn at a time; a send that hits its 429 now polls every 0.5s for up to `CC_BUSY_WAIT` (300s) and emits one `{"type":"waiting"}` frame (the panel ignores it and keeps its cursor up). Only a slot held past that answers `busy`. Measured: two sends 1s apart -> the first done in 14.1s, the second `waiting` then done at 20.0s, where it used to come straight back busy.
+
 Phase 3 of the merge. The panel on `/rd` + `/hq` (`web/exec-bubble.js`) POSTs `{prompt}` — Wai's words only — to `/api/cc/query`, which adds the `<exec-context>` block (§7e) and relays the sidecar's frames. So the panel and `/cc` are one thread; the sidecar runs one turn at a time, and a panel send while `/cc` is mid-run gets a `busy` frame, shown as a sys line.
 
 - **Frames.** `text` blocks are whole assistant messages; a reply that resumes after a tool call is a second block of the SAME answer (joined with a blank line). `tool` → `tool_result` pairs arrive in call order (`st.pending` FIFO). Only `mcp__exec__*` calls leave a receipt (`execHistory.toolSysText`, `[ … failed: … ]` on an `{error}` result); a web search or Bash call leaves nothing on the board's panel. Board refresh needs nothing client-side: `/api/exec/tool/*` already pushes `{cards_changed}` over the monitor SSE.
