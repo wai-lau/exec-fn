@@ -9,7 +9,8 @@
 //
 // The grid is endless (weeks load as it scrolls) unless the voter has CROPPED
 // it to a span; past days and days outside the crop are greyed and inert.
-// Month boundaries are one stepped SVG path each (noodle-cal-view.js).
+// Month boundaries are 2px segments inside the cells (noodle-cal-view.js
+// ndcPaintBoundaries), laid out with the borders they sit on.
 //
 // Dots: every voter -- you included -- owns ONE fixed column of dots, the same
 // position in every cell (by vote order): top dot midday, bottom dot night,

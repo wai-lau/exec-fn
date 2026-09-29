@@ -10,6 +10,7 @@
 // cap: a 429 carries retry_after, the button counts it down and comes back.
 
 var NDA = { busy: false, until: 0, tick: null, last: null };   // last: {text, data}
+var NDA_MAX_DAYS = 186;   // = noodle/config.py VIEW_MAX_DAYS: more days in one ask is a 400
 
 function nda$(id) { return document.getElementById(id); }
 
@@ -55,7 +56,7 @@ function ndaDays() {
     from = NDV.cal.weekOf(NDX.a)[0];
     to = NDV.cal.weekOf(Math.min(NDX.b, NDV.cal.rows().length - 1))[6];
   }
-  return NDV.cal ? NDV.cal.pickableDays(from, to).slice(0, 186) : [];
+  return NDV.cal ? NDV.cal.pickableDays(from, to).slice(0, NDA_MAX_DAYS) : [];
 }
 
 // Fill the grid from an answer (fresh, or the last one re-applied).
