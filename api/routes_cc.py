@@ -1,4 +1,6 @@
-"""Owner-only /cc page + routes fronting the sandboxed Claude Code sidecar.
+"""Owner-only routes fronting the sandboxed Claude Code sidecar -- the agent the
+Exec panel runs on. (They were the /cc page's until it folded into the panel on
+2026-09-29; the page is gone, the /api/cc/* paths stay.)
 
 OWNER-ONLY IS LOAD-BEARING, and more so than on any other route here. The
 sidecar hands whoever reaches it a shell with Write and Bash inside
@@ -11,13 +13,12 @@ Sidecar transport, sandboxing and the one-time login live in
 /exec-fn/claude-box/README.md."""
 
 from fastapi import Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 import cc_client
 import cc_title
 import exec_context
 import exec_panel
-from pages import _render_page, _tmpl
 from routers import protected
 
 # The sidecar reads the whole body into memory before parsing; clamp here too so
@@ -28,11 +29,6 @@ from routers import protected
 _MAX_PROMPT = 32_000
 _MAX_IMAGES = 4
 _MAX_IMAGE_B64 = 5 * 1024 * 1024
-
-
-@protected.get("/cc", response_class=HTMLResponse)
-async def cc_page():
-    return _render_page("cc", _tmpl("cc.html"))
 
 
 @protected.get("/api/cc/health")

@@ -1,9 +1,9 @@
-/* Pasted images on /cc: downscale on the way in, thumbnails above the composer,
+/* Pasted images in the Exec panel: downscale on the way in, thumbnails above the composer,
  * and the rendered row in the transcript.
  *
- * Split out of cc.js at the 500-line cap. Loaded BEFORE it, same global scope,
- * so these read `pending` and call syncInputH() by bare name -- both live in
- * cc.js and are only ever touched from a user action, long after it has run.
+ * Split out of exec-bubble.js at the 500-line cap. Loaded BEFORE it, same global scope,
+ * so these read `execPending` and call syncInputH() by bare name -- both live in
+ * exec-bubble.js and are only ever touched from a user action, long after it has run.
  */
 'use strict';
 
@@ -13,7 +13,7 @@
  * buys nothing and costs everything: a raw phone photo is 3-4MB crossing a
  * 1967MB box that has already been OOM-killed once tonight. Resized, the same
  * photo arrives ~200KB. JPEG unless the source has alpha worth keeping. */
-function shrink(file) {
+function execShrink(file) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -36,33 +36,33 @@ function shrink(file) {
   });
 }
 
-function thumbStrip() {
-  let el = document.getElementById('cc-thumbs');
+function execThumbStrip() {
+  let el = document.getElementById('exec-thumbs');
   if (!el) {
     el = document.createElement('div');
-    el.id = 'cc-thumbs';
-    document.getElementById('input-bar').prepend(el);
+    el.id = 'exec-thumbs';
+    document.getElementById('exec-input-area').prepend(el);
   }
   el.innerHTML = '';
-  pending.forEach((im, i) => {
+  execPending.forEach((im, i) => {
     const w = document.createElement('span');
-    w.className = 'cc-thumb';
+    w.className = 'exec-thumb';
     const g = document.createElement('img');
     g.src = im.url; g.alt = 'pasted image';
     const x = document.createElement('button');
     x.type = 'button'; x.textContent = '×'; x.title = 'remove';
-    x.addEventListener('click', () => { pending.splice(i, 1); thumbStrip(); syncInputH(); });
+    x.addEventListener('click', () => { execPending.splice(i, 1); execThumbStrip(); });
     w.appendChild(g); w.appendChild(x);
     el.appendChild(w);
   });
-  el.hidden = !pending.length;
-  syncInputH();
+  el.hidden = !execPending.length;
+ 
 }
 
-function addImages(div, images) {
+function execAddImages(div, images) {
   if (!images || !images.length) return;
   const row = document.createElement('div');
-  row.className = 'cc-imgs';
+  row.className = 'exec-imgs';
   for (const im of images) {
     const g = document.createElement('img');
     g.src = im.url || `data:${im.media_type};base64,${im.data}`;

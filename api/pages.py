@@ -24,7 +24,7 @@ _FONT_PRELOAD = (
 _JSDELIVR_PRECONNECT = (
     '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
 )
-_JSDELIVR_PAGES = {"rd", "hq", "mtg", "tarot", "cc"}
+_JSDELIVR_PAGES = {"rd", "hq", "mtg", "tarot"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
@@ -66,8 +66,8 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["cc", "rd", "hq", "debug", "security", "graph", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "noodle", "recruiter"]
-_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "cc": "/cc", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "noodle": "/noodle", "recruiter": "/recruiter"}
+_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "ui", "nightfall", "mtg", "tarot", "hosaka", "printer", "noodle", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "ui": "/UI", "nightfall": "/nightfall", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "noodle": "/noodle", "recruiter": "/recruiter"}
 
 _GUEST_NAV_LINKS = ["security", "graph", "nightfall", "mtg", "tarot", "hosaka", "printer", "ui", "noodle", "recruiter"]
 
@@ -98,21 +98,19 @@ _NAV_ICONS = {
     "tarot":       _nav_icon("watchman", "tarot"),
     "hosaka":      _nav_icon("radar", "hosaka"),
     "printer":     _nav_icon("printer", "printer"),
-    "noodle":      _nav_icon("buzzbomb", "noodle"),
+    # The seeker was /cc's until that page folded into the Exec panel (2026-09-29).
+    "noodle":      _nav_icon("seeker", "noodle"),
     "recruiter":   _nav_icon("data-file", "recruiter"),
-    "cc":          _nav_icon("seeker", "cc"),
 }
 
-# Fixed 3-char codes, with ONE glyph: /cc is the star the page already wears on
-# its composer's voice toggle, which is the mark Claude Code itself signs with.
-# A non-ASCII label cannot be drawn by the pixel nav font (04b25 is ASCII-only,
+# Fixed 3-char codes. A non-ASCII label cannot be drawn by the pixel nav font (04b25 is ASCII-only,
 # so it would fall back to whatever the OS offers, at whatever size that is), so
 # any label with a character outside ASCII is marked `glyph` below and re-fonted
 # to --font-mono in chrome.css. Detected, not listed: a second glyph label added
 # here is drawn correctly without anyone remembering this rule.
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
-    "debug": "DBG", "security": "BOT", "graph": "GPH", "cc": "✦", "ui": "UIX",
+    "debug": "DBG", "security": "BOT", "graph": "GPH", "ui": "UIX",
     "nightfall": "12AM", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "noodle": "NDL", "recruiter": "CV",
 }
 
@@ -249,7 +247,7 @@ def _build_nav(active=None, guest=False):
         bubble = ''
     elif active in {"rd", "hq"}:
         # voice-input.js + exec-mic.js are the panel's hands-free input: the same
-        # engine /cc runs, so the `$` prompt is the mic in both places.
+        # engine /tarot runs, so the `$` prompt is the mic.
         bubble = ('<script src="/hosaka-audio.js?v=7"></script>'
                   '<script src="/voice-util.js?v=2"></script>'
                   '<script src="/voice-narrator.js?v=2"></script>'
@@ -261,11 +259,23 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=7"></script>'
                   '<script src="/voice-input.js?v=3"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=21"></script>'
+                  '<script src="/exec-bubble-assets.js?v=22"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=3"></script>'
-                  '<script src="/exec-bubble-history.js?v=3"></script>'
-                  '<script src="/exec-bubble.js?v=77"></script>')
+                  # The agent transcript (the /cc page until it folded in, 2026-09-29):
+                  # modules first, then exec-term (rendering, history, send),
+                  # exec-stream (the turn), and the shell last.
+                  '<script src="/exec-svg.js?v=1"></script>'
+                  '<script src="/exec-zoom.js?v=1"></script>'
+                  '<script src="/exec-images.js?v=1"></script>'
+                  '<script src="/exec-toolout.js?v=1"></script>'
+                  '<script src="/exec-status.js?v=1"></script>'
+                  '<script src="/exec-sessions.js?v=1"></script>'
+                  '<script src="/exec-commands.js?v=1"></script>'
+                  '<script src="/exec-interrupt.js?v=1"></script>'
+                  '<script src="/exec-term.js?v=1"></script>'
+                  '<script src="/exec-stream.js?v=2"></script>'
+                  '<script src="/exec-bubble.js?v=78"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -278,21 +288,15 @@ def _build_nav(active=None, guest=False):
         # reader voice would clash) and /hosaka (the TTS page itself). The
         # link-bubble stays on those two — just without the voice scripts.
         want_voice = active not in {"tarot", "hosaka"}
-        # /cc loads the voice stack in its OWN template: cc.js mounts the shared
-        # toggle and reads execVoice at load time, and this injection lands
-        # after the page's scripts. Injecting it here too re-evaluates
-        # exec-voice.js and throws "duplicate variable". The listener below
-        # still loads -- it runs after the template's copy and finds it.
-        own_voice = active == "cc"
         voice_pre = (
             '<script src="/hosaka-audio.js?v=7"></script>'
             '<script src="/voice-util.js?v=2"></script>'
             '<script src="/voice-narrator.js?v=2"></script>'
             '<script src="/voice-ui.js?v=1"></script>'
             '<script src="/exec-voice.js?v=7"></script>'
-        ) if (want_voice and not own_voice) else ''
+        ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=27">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=28">'
                   '<div id="exec-bubble" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +

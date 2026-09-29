@@ -1,11 +1,11 @@
-/* /cc — render the SVG diagrams Claude writes, safely.
+/* Exec panel — render the SVG diagrams Claude writes, safely.
  *
  * Claude cannot produce raster images, but it writes clean SVG, so a ```svg
  * fenced block is the one way a picture can come BACK from the model. This file
  * turns those blocks into rendered diagrams.
  *
- * Loaded before cc.js and shares its global scope (the hq-*.js / tarot-*.js
- * idiom) — cc.js was already at 468 of the 500-line cap.
+ * Loaded before exec-bubble.js and shares its global scope (the hq-*.js / tarot-*.js
+ * idiom) — exec-bubble.js was already at 468 of the 500-line cap.
  *
  * THE SANITISER IS NOT OPTIONAL. The markdown path uses innerHTML, so raw SVG
  * would execute: <script> runs, on* handlers fire, <foreignObject> smuggles in
@@ -15,7 +15,7 @@
  * screenshot. So this is an ALLOWLIST: anything not named here is dropped,
  * which fails closed when the SVG spec grows a new element. */
 
-const CC_SVG_TAGS = new Set([
+const EXEC_SVG_TAGS = new Set([
   'svg', 'g', 'defs', 'title', 'desc', 'symbol', 'use',
   'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon',
   'text', 'tspan', 'textPath',
@@ -28,10 +28,10 @@ const CC_SVG_TAGS = new Set([
 // Deliberately absent: script, foreignObject (arbitrary HTML), image and a
 // (external fetch / navigation), animate* (not needed for a diagram).
 
-const CC_SVG_MAX_BYTES = 256 * 1024;
-const CC_SVG_MAX_NODES = 3000;
+const EXEC_SVG_MAX_BYTES = 256 * 1024;
+const EXEC_SVG_MAX_NODES = 3000;
 
-function ccSvgCleanAttrs(el) {
+function execSvgCleanAttrs(el) {
   for (const attr of Array.from(el.attributes)) {
     const name = attr.name.toLowerCase();
     const value = attr.value;
@@ -52,8 +52,8 @@ function ccSvgCleanAttrs(el) {
 
 /** Parse, strip, and return a safe <svg> element — or null if it cannot be
  *  made safe. Null means "leave the code block alone", never "render anyway". */
-function ccSanitizeSvg(src) {
-  if (!src || src.length > CC_SVG_MAX_BYTES) return null;
+function execSanitizeSvg(src) {
+  if (!src || src.length > EXEC_SVG_MAX_BYTES) return null;
   let doc;
   try {
     doc = new DOMParser().parseFromString(src, 'image/svg+xml');
@@ -67,13 +67,13 @@ function ccSanitizeSvg(src) {
   let seen = 0;
   const walk = (node) => {
     for (const child of Array.from(node.children)) {
-      if (++seen > CC_SVG_MAX_NODES) { child.remove(); continue; }
-      if (!CC_SVG_TAGS.has(child.nodeName)) { child.remove(); continue; }
-      ccSvgCleanAttrs(child);
+      if (++seen > EXEC_SVG_MAX_NODES) { child.remove(); continue; }
+      if (!EXEC_SVG_TAGS.has(child.nodeName)) { child.remove(); continue; }
+      execSvgCleanAttrs(child);
       walk(child);
     }
   };
-  ccSvgCleanAttrs(svg);
+  execSvgCleanAttrs(svg);
   walk(svg);
 
   // Scale to the column instead of its authored pixel width — a 620px diagram
@@ -101,7 +101,7 @@ function ccSanitizeSvg(src) {
  * half-written markup either sanitises to nothing (and flickers) or, worse,
  * parses as a partial drawing that is then replaced a frame later. The closing
  * fence is the only honest signal that a block is done. */
-function ccClosedSvgCount(src) {
+function execClosedSvgCount(src) {
   let open = null;
   let count = 0;
   for (const line of String(src || '').split('\n')) {
@@ -123,18 +123,18 @@ function ccClosedSvgCount(src) {
 /* Sanitising is not free and the typer rebuilds innerHTML every frame, so a
  * finished diagram would be re-parsed sixty times a second for the rest of the
  * reply. Keyed by the exact source text, which is stable once the block closes. */
-const _ccSvgCache = new Map();
-function ccSanitizeSvgCached(text) {
-  if (_ccSvgCache.has(text)) return _ccSvgCache.get(text);
-  const svg = ccSanitizeSvg(text);
-  if (_ccSvgCache.size > 24) _ccSvgCache.clear();   // a transcript, not a store
-  _ccSvgCache.set(text, svg);
+const _execSvgCache = new Map();
+function execSanitizeSvgCached(text) {
+  if (_execSvgCache.has(text)) return _execSvgCache.get(text);
+  const svg = execSanitizeSvg(text);
+  if (_execSvgCache.size > 24) _execSvgCache.clear();   // a transcript, not a store
+  _execSvgCache.set(text, svg);
   return svg;
 }
 
-/* @param limit  render at most this many blocks (see ccClosedSvgCount).
+/* @param limit  render at most this many blocks (see execClosedSvgCount).
  *               Omitted = every svg block, for a settled or replayed message. */
-function ccRenderSvgBlocks(root, limit) {
+function execRenderSvgBlocks(root, limit) {
   if (!root) return;
   let done = 0;
   for (const code of Array.from(root.querySelectorAll('code'))) {
@@ -144,16 +144,16 @@ function ccRenderSvgBlocks(root, limit) {
     if (!looksSvg) continue;
     if (limit != null && done >= limit) break;
     done += 1;
-    const svg = ccSanitizeSvgCached(code.textContent.trim());
+    const svg = execSanitizeSvgCached(code.textContent.trim());
     if (!svg) continue;   // unparseable or unsafe: leave the code block visible
 
     const pre = code.closest('pre') || code;
     const wrap = document.createElement('div');
-    wrap.className = 'cc-svg';
+    wrap.className = 'exec-svg';
     wrap.appendChild(document.importNode(svg, true));
 
     const det = document.createElement('details');
-    det.className = 'cc-svg-src';
+    det.className = 'exec-svg-src';
     const sum = document.createElement('summary');
     sum.textContent = 'svg source';
     det.appendChild(sum);

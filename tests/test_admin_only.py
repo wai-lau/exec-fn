@@ -200,7 +200,7 @@ def _get(client, path, headers):
 def test_scan_found_the_admin_tier():
     assert len(ADMIN) >= 30, f"admin scan found only {len(ADMIN)} routes — scan is broken"
     assert len(ADMIN_GET) >= 15, f"only {len(ADMIN_GET)} admin GETs — scan is broken"
-    for known in [("GET", "/cc"), ("GET", "/rd"), ("GET", "/hq"), ("GET", "/debug"),
+    for known in [("GET", "/rd"), ("GET", "/hq"), ("GET", "/debug"),
                   ("POST", "/api/cc/query"), ("GET", "/api/rd")]:
         assert known in TIERS["protected"], f"{known} missing from admin scan"
 

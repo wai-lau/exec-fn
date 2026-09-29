@@ -22,6 +22,8 @@ shared conversation. A new chat starts every morning at 4:30.
 
 ## Phases
 
+(2026-09-29, beyond the plan: the `/cc` page itself was removed and its features moved into the Exec panel — ARCHITECTURE.md §7g. "Two doors" is now one.)
+
 1. **Exec's card tools in the sidecar.** `claude-box/exec-tools.mjs`, an in-process MCP server like `archive-tools.mjs`. Each tool calls owner-only `POST /api/exec/tool/{name}` (runs `chat_tools._handle_tool`), authenticated with the sidecar's shared secret. Schemas served once from `chat._chat_tools()` via `GET /api/exec/tools`. Update `ALLOWED_TOOLS` and the probe (14 -> 24; a cold probe shows 22). **Done 2026-09-27.**
 2. **Personality.** `EXEC_VOICE` + `_CHAT_STATIC_PREFIX` become the sidecar system prompt. The per-turn context (today, the board, open nudges) is built by the container and put at the top of each user message, so the system prompt stays byte-stable. **Done 2026-09-28** (`api/exec_context.py`, `GET /api/exec/prompt`, `<exec-context>` block stripped by the sidecar's `historyFor`).
 3. **Exec panel on the sidecar.** `exec-bubble.js` -> `/api/exec/query` (adds the per-turn block, relays `/api/cc/query`); history from `/api/cc/history`; tool frames hidden in the panel. Retire `chat_passes.py` after first reproducing the fake-"Added X" failure against the SDK path. **Done 2026-09-28** — panel on `/api/cc/query` + `/api/cc/exec-history` (the per-turn block was already added by `/api/cc/query`, so no `/api/exec/query`); the repro did NOT reproduce (both action turns made real calls), so the panel has no two-pass guard; `chat_passes.py` stays for Discord until phase 4.

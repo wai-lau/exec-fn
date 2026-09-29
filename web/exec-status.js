@@ -1,16 +1,14 @@
-/* The /cc status bar — the same numbers the Claude Code status line shows in a
- * terminal, in the same shape, pinned to the top of the page.
+/* The Exec panel's status bar -- the same numbers the Claude Code status line
+ * shows in a terminal, in the same shape, at the top of the panel. (It was the
+ * /cc page's until that page folded into the panel, 2026-09-29.)
  *
  * Everything here is REPORTED by the sidecar, never estimated: the model comes
  * from the SDK's init frame, the context size from the input side of the last
  * result (prompt + cache reads), and the 5h / 7d windows from the subscription's
- * own rate_limit_event. A status line that guessed would be worse than none.
+ * usage endpoint. A status line that guessed would be worse than none.
  *
- * It is FIXED, outside #terminal, so scrolling the transcript never takes it
- * away -- the numbers it carries are about the session, not about the part of
- * the conversation currently on screen.
- *
- * Loaded before cc.js, same global scope; cc.js hands it every SSE frame.
+ * Loaded before exec-bubble.js, same global scope; the stream hands it every
+ * SSE frame (execStatusOn) and the panel mounts it (execStatusMount).
  */
 'use strict';
 
@@ -18,71 +16,71 @@
 // rest sit at 200K. Wrong only if a model ships with a new window and this is
 // not updated -- at which point the percentage is off, not the page.
 const CC_CTX_1M = 1000000;
-const CC_CTX_DEFAULT = 200000;
+const EXEC_CTX_DEFAULT = 200000;
 // The subscription's short window, used to turn "1h20m left" into a gauge.
-const CC_FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
+const EXEC_FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
 
-const ccStatusState = { model: '', ctx: 0, base: 0, windows: {}, title: '' };
+const execStatusState = { model: '', ctx: 0, base: 0, windows: {}, title: '' };
 
 // The statusline script's definition, mirrored: `base` is the SMALLEST total
 // input ever observed -- system prompt + tools + standing context, the floor a
 // conversation can never go below -- and it persists, because the first turn
 // after a /new is the only time you see it cleanly. localStorage here is the
 // analogue of the script's ~/.claude/cache/statusline_baseline_global.
-const CC_BASE_KEY = 'cc.ctxbase';
+const EXEC_BASE_KEY = 'exec.ctxbase';
 // EVERY slot is cached, not just base. The model arrives with the first reply,
 // the windows with the first fetch and the context with the first result -- so
 // a freshly opened page had an empty bar until it was spoken to, which reads as
 // broken rather than as waiting. The cache is a first paint, replaced by live
 // numbers the moment any of them land.
-const CC_STATE_KEY = 'cc.status';
+const EXEC_STATE_KEY = 'exec.status';
 // How long a cached paint is worth showing before the page would rather show
 // nothing. Long enough to cover a night, short enough that a figure from a
 // different week never appears.
-const CC_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const EXEC_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
-function ccStateLoad() {
+function execStateLoad() {
   try {
-    const raw = JSON.parse(localStorage.getItem(CC_STATE_KEY) || '{}');
+    const raw = JSON.parse(localStorage.getItem(EXEC_STATE_KEY) || '{}');
     if (!raw || typeof raw !== 'object') return;
     // A cached number is a first paint, not a fact. Anything older than the TTL
     // is dropped whole rather than shown: a context figure from yesterday's
     // conversation is not "slightly stale", it is about something else.
-    if (!raw.at || Date.now() - raw.at > CC_CACHE_TTL_MS) return;
-    ccStatusState.model = raw.model || '';
-    ccStatusState.ctx = raw.ctx || 0;
-    ccStatusState.title = raw.title || '';
+    if (!raw.at || Date.now() - raw.at > EXEC_CACHE_TTL_MS) return;
+    execStatusState.model = raw.model || '';
+    execStatusState.ctx = raw.ctx || 0;
+    execStatusState.title = raw.title || '';
     const wins = raw.windows && typeof raw.windows === 'object' ? raw.windows : {};
     // A window whose reset has already passed has rolled over; its utilization
     // describes a period that is finished, so it goes rather than misinforms.
     const now = Date.now() / 1000;
     for (const [k, w] of Object.entries(wins)) {
-      if (w && (!w.resetsAt || w.resetsAt > now)) ccStatusState.windows[k] = w;
+      if (w && (!w.resetsAt || w.resetsAt > now)) execStatusState.windows[k] = w;
     }
   } catch { /* unreadable or private mode: start empty */ }
 }
 
-function ccStateSave() {
+function execStateSave() {
   try {
-    localStorage.setItem(CC_STATE_KEY, JSON.stringify({
+    localStorage.setItem(EXEC_STATE_KEY, JSON.stringify({
       at: Date.now(),
-      model: ccStatusState.model,
-      ctx: ccStatusState.ctx,
-      title: ccStatusState.title,
-      windows: ccStatusState.windows,
+      model: execStatusState.model,
+      ctx: execStatusState.ctx,
+      title: execStatusState.title,
+      windows: execStatusState.windows,
     }));
   } catch { /* private mode: the bar just does not survive a reload */ }
 }
 
-function ccBaseLoad() {
-  try { return parseInt(localStorage.getItem(CC_BASE_KEY) || '0', 10) || 0; } catch { return 0; }
+function execBaseLoad() {
+  try { return parseInt(localStorage.getItem(EXEC_BASE_KEY) || '0', 10) || 0; } catch { return 0; }
 }
 
-function ccBaseNote(total) {
+function execBaseNote(total) {
   if (!total) return;
-  if (!ccStatusState.base || total < ccStatusState.base) {
-    ccStatusState.base = total;
-    try { localStorage.setItem(CC_BASE_KEY, String(total)); } catch { /* private mode */ }
+  if (!execStatusState.base || total < execStatusState.base) {
+    execStatusState.base = total;
+    try { localStorage.setItem(EXEC_BASE_KEY, String(total)); } catch { /* private mode */ }
   }
 }
 
@@ -92,7 +90,7 @@ function ccBaseNote(total) {
  * md5 and the browser has no md5 (SubtleCrypto is SHA-only), so this is FNV-1a
  * -- same behaviour, and the exact hue for a given title will not match the
  * terminal's. */
-function ccHue(text) {
+function execHue(text) {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);
@@ -101,12 +99,12 @@ function ccHue(text) {
   return h % 360;
 }
 
-function ccCtxWindow(model) {
-  return /\[1m\]/i.test(model || '') ? CC_CTX_1M : CC_CTX_DEFAULT;
+function execCtxWindow(model) {
+  return /\[1m\]/i.test(model || '') ? CC_CTX_1M : EXEC_CTX_DEFAULT;
 }
 
 /** 7320000 -> `2h02m`, 540000 -> `9m`. The CLI shows time-to-reset the same way. */
-function ccUntil(ms) {
+function execUntil(ms) {
   if (!ms || ms <= 0) return '';
   const mins = Math.round(ms / 60000);
   const h = Math.floor(mins / 60);
@@ -119,15 +117,15 @@ function ccUntil(ms) {
  * is called "Crisis fragments endgame" rather than "poe2, what are crisis
  * fragments for? I'm like deep into e…". Absent on a brand-new conversation,
  * which is what the transcript fallback below is for. */
-async function ccTitleFetch() {
+async function execTitleFetch() {
   try {
     const r = await fetch('/api/cc/title', { cache: 'no-store' });
     if (!r.ok) return;
     const j = await r.json();
-    if (j && j.title && j.title !== ccStatusState.title) {
-      ccStatusState.title = j.title;
-      ccStateSave();
-      ccStatusRender();
+    if (j && j.title && j.title !== execStatusState.title) {
+      execStatusState.title = j.title;
+      execStateSave();
+      execStatusRender();
     }
   } catch { /* offline: the opening line still titles it */ }
 }
@@ -136,10 +134,10 @@ async function ccTitleFetch() {
  *
  * Falls through user -> assistant: a conversation that opens with a pasted
  * screenshot and no words has an empty first user message, and titling that
- * `/cc` says nothing when the reply right under it does. */
-function ccStatusTitle() {
-  if (ccStatusState.title) return ccStatusState.title.slice(0, 48);
-  for (const sel of ['#terminal .msg.user .msg-body', '#terminal .msg.assistant .msg-body']) {
+ * nothing says nothing when the reply right under it does. */
+function execStatusTitle() {
+  if (execStatusState.title) return execStatusState.title.slice(0, 48);
+  for (const sel of ['#exec-term .msg.user .msg-body', '#exec-term .msg.assistant .msg-body']) {
     const el = document.querySelector(sel);
     const text = el ? el.textContent.trim().replace(/\s+/g, ' ') : '';
     if (text) return text.slice(0, 48);
@@ -147,15 +145,15 @@ function ccStatusTitle() {
   return '';   // nothing said yet -- no title, rather than a stand-in
 }
 
-function ccStatusRender() {
-  const bar = document.getElementById('cc-status');
+function execStatusRender() {
+  const bar = document.getElementById('exec-status');
   if (!bar) return;
-  const title = ccStatusTitle();
-  bar.style.setProperty('--cs-hue', ccHue(title) + 'deg');
+  const title = execStatusTitle();
+  bar.style.setProperty('--cs-hue', execHue(title) + 'deg');
   // Row 1 is the conversation's title and nothing else -- and with no title
   // there is no row: a full-width band of colour saying nothing is louder than
   // anything else on the page. It comes back the moment the conversation has a
-  // first line, and --cc-status-h is observed, so the transcript re-anchors.
+  // first line.
   const el = bar.querySelector('.cs-title');
   el.textContent = title;
   el.hidden = !title;
@@ -170,35 +168,35 @@ function ccStatusRender() {
   // jump as numbers arrive, and an absent ctx reads as broken rather than as
   // "no reply yet" -- so a missing value is 0, not a missing box. The model and
   // the path are not among them: the model is still tracked (it decides which
-  // context window ctx% is measured against) but naming it on a page called
-  // /cc said nothing.
-  const win = ccCtxWindow(ccStatusState.model);
-  const five = ccStatusState.windows.five_hour || {};
-  const seven = ccStatusState.windows.seven_day || ccStatusState.windows.seven_day_opus || {};
+  // context window ctx% is measured against) but naming it in Exec's own
+  // panel says nothing.
+  const win = execCtxWindow(execStatusState.model);
+  const five = execStatusState.windows.five_hour || {};
+  const seven = execStatusState.windows.seven_day || execStatusState.windows.seven_day_opus || {};
   const pctOf = (n) => (n ? Math.min(100, Math.round((n / win) * 100)) : 0);
 
-  // Each box also carries its own little gauge (ccSeg's third argument): a bar
+  // Each box also carries its own little gauge (execSeg's third argument): a bar
   // is read at a glance where a two-digit number has to be read. The reset box
   // gauges the window it counts down -- how much of the 5h has BURNED, so all
   // five bars mean the same thing (more filled = less left) instead of one of
   // them running backwards.
-  meta.appendChild(ccSeg('cs-ctx', 'ctx:' + pctOf(ccStatusState.ctx) + '%', pctOf(ccStatusState.ctx)));
-  meta.appendChild(ccSeg('cs-base', '(base:' + pctOf(ccStatusState.base) + '%)', pctOf(ccStatusState.base)));
-  meta.appendChild(ccSeg('cs-5h', '5h:' + Math.round(five.pct || 0) + '%', five.pct || 0));
+  meta.appendChild(execSeg('cs-ctx', 'ctx:' + pctOf(execStatusState.ctx) + '%', pctOf(execStatusState.ctx)));
+  meta.appendChild(execSeg('cs-base', '(base:' + pctOf(execStatusState.base) + '%)', pctOf(execStatusState.base)));
+  meta.appendChild(execSeg('cs-5h', '5h:' + Math.round(five.pct || 0) + '%', five.pct || 0));
   const left = five.resetsAt ? five.resetsAt * 1000 - Date.now() : 0;
-  meta.appendChild(ccSeg('cs-reset', '(' + (five.resetsAt ? ccUntil(left) || '0m' : '0m') + ')', ccBurned(left)));
-  meta.appendChild(ccSeg('cs-7d', '7d:' + Math.round(seven.pct || 0) + '%', seven.pct || 0));
+  meta.appendChild(execSeg('cs-reset', '(' + (five.resetsAt ? execUntil(left) || '0m' : '0m') + ')', execBurned(left)));
+  meta.appendChild(execSeg('cs-7d', '7d:' + Math.round(seven.pct || 0) + '%', seven.pct || 0));
 }
 
 /** How much of the 5h window is gone, as a percentage, from the time left on
  *  it. No reset time means nothing is known, which reads as an empty bar rather
  *  than a full one -- an unknown must never look like an alarm. */
-function ccBurned(msLeft) {
+function execBurned(msLeft) {
   if (!msLeft || msLeft <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round(100 - (msLeft / CC_FIVE_HOUR_MS) * 100)));
+  return Math.max(0, Math.min(100, Math.round(100 - (msLeft / EXEC_FIVE_HOUR_MS) * 100)));
 }
 
-function ccSeg(cls, text, pct) {
+function execSeg(cls, text, pct) {
   const el = document.createElement('span');
   el.className = cls;
   el.appendChild(document.createTextNode(text));
@@ -222,91 +220,75 @@ function ccSeg(cls, text, pct) {
  * declares a rate_limit_event it never emits, so the sidecar asks the same
  * endpoint the CLI does. Fetched on load and after each reply, and cached a
  * minute server-side -- these move in percent-points per hour. */
-async function ccLimitsFetch() {
+async function execLimitsFetch() {
   try {
     const r = await fetch('/api/cc/limits', { cache: 'no-store' });
     if (!r.ok) return;
     const j = await r.json();
     if (!j || !j.ok) return;     // logged out or unreachable: show nothing
-    if (j.five_hour) ccStatusState.windows.five_hour = j.five_hour;
-    if (j.seven_day) ccStatusState.windows.seven_day = j.seven_day;
-    if (j.seven_day_opus) ccStatusState.windows.seven_day_opus = j.seven_day_opus;
-    ccStateSave();
-    ccStatusRender();
+    if (j.five_hour) execStatusState.windows.five_hour = j.five_hour;
+    if (j.seven_day) execStatusState.windows.seven_day = j.seven_day;
+    if (j.seven_day_opus) execStatusState.windows.seven_day_opus = j.seven_day_opus;
+    execStateSave();
+    execStatusRender();
   } catch { /* offline: the bar simply omits them */ }
 }
 
 /** Every SSE frame passes through here; only three carry status. */
-function ccStatusOn(data) {
+function execStatusOn(data) {
   if (!data) return;
-  if (data.type === 'session' && data.model) ccStatusState.model = data.model;
+  if (data.type === 'session' && data.model) execStatusState.model = data.model;
   else if (data.type === 'done' && data.ctxTokens) {
-    ccStatusState.ctx = data.ctxTokens;
-    ccBaseNote(data.ctxTokens);
+    execStatusState.ctx = data.ctxTokens;
+    execBaseNote(data.ctxTokens);
   }
   else if (data.type === 'limits' && data.kind) {
-    ccStatusState.windows[data.kind] = { pct: data.pct, resetsAt: data.resetsAt };
+    execStatusState.windows[data.kind] = { pct: data.pct, resetsAt: data.resetsAt };
   } else return;
-  ccStateSave();
-  ccStatusRender();
-}
-
-/* Publish the bar's real height so #terminal can start exactly below it.
-   Measured, not assumed: the meta line wraps at narrow widths and the bit
-   webfont re-wraps the title with no resize event firing -- the same reason
-   --nav-h and --cal-h are observed rather than hard-coded. */
-function ccStatusMeasure() {
-  const bar = document.getElementById('cc-status');
-  if (!bar) return;
-  // OUT of .page-scroll and onto <body>. _render_page wraps a non-full_height
-  // page's content in a fixed, scrolling wrapper, and a bar that is meant to
-  // outlast every scroll has no business inside the thing being scrolled --
-  // reported as having to scroll up to see it.
-  if (bar.parentElement !== document.body) document.body.appendChild(bar);
-  const set = () => document.documentElement.style.setProperty(
-    '--cc-status-h', Math.ceil(bar.getBoundingClientRect().height) + 'px');
-  set();
-  if (window.ResizeObserver) new ResizeObserver(set).observe(bar);
-  window.addEventListener('resize', set);
+  execStateSave();
+  execStatusRender();
 }
 
 /* The title comes from the transcript, which arrives asynchronously: the bar
- * renders long before /api/cc/history has replayed a single line, so a one-shot
+ * renders long before the history has replayed a single line, so a one-shot
  * render titles every conversation empty. Watch until there is something to
- * read, then stop -- the title is the conversation's FIRST line and cannot
- * change once it exists. */
-function ccStatusWatchTitle() {
-  const term = document.getElementById('terminal');
-  if (!term || !window.MutationObserver) return;
+ * read, then stop. */
+function execStatusWatchTitle() {
+  if (!execTermEl || !window.MutationObserver) return;
   const obs = new MutationObserver(() => {
-    ccStatusRender();
-    if (ccStatusTitle()) obs.disconnect();
+    execStatusRender();
+    if (execStatusTitle()) obs.disconnect();
   });
-  obs.observe(term, { childList: true, subtree: true });
+  obs.observe(execTermEl, { childList: true, subtree: true });
 }
 
-ccStateLoad();
-ccStatusState.base = ccBaseLoad();
-ccStatusRender();
-ccStatusMeasure();
-ccStatusWatchTitle();
-ccLimitsFetch();
-ccTitleFetch();
-// A turn is the only thing that moves these, so refresh when one ends rather
-// than on a timer.
-document.addEventListener('DOMContentLoaded', () => {
-  const term = document.getElementById('terminal');
-  if (!term) return;
-  term.addEventListener('cc:reply-done', ccLimitsFetch);
-  term.addEventListener('cc:reply-done', ccTitleFetch);
+/** Build the bar at the top of the panel and start it. Called by
+ *  exec-bubble.js once the panel exists; everything above is inert until then.
+ *  In the panel's own flow, not fixed: the panel is the thing that scrolls in
+ *  and out, and the bar goes with it. */
+function execStatusMount(panel) {
+  const bar = document.createElement('div');
+  bar.id = 'exec-status';
+  bar.innerHTML = '<span class="cs-meta"></span><span class="cs-title"></span>';
+  panel.insertBefore(bar, panel.firstChild);
+  execStateLoad();
+  execStatusState.base = execBaseLoad();
+  execStatusRender();
+  execStatusWatchTitle();
+  execLimitsFetch();
+  execTitleFetch();
+  // A turn is the only thing that moves these, so refresh when one ends rather
+  // than on a timer.
+  execTermEl.addEventListener('exec:reply-done', execLimitsFetch);
+  execTermEl.addEventListener('exec:reply-done', execTitleFetch);
   // A cleared conversation is back at the floor. base and the windows survive
   // (they are account-wide, not conversation-wide); the context does not.
-  term.addEventListener('cc:conversation-new', () => {
-    ccStatusState.ctx = 0;
-    ccStatusState.title = '';
-    ccStateSave();
-    ccStatusRender();
+  execTermEl.addEventListener('exec:conversation-new', () => {
+    execStatusState.ctx = 0;
+    execStatusState.title = '';
+    execStateSave();
+    execStatusRender();
   });
-});
-// The reset countdown is only true at the moment it is drawn.
-setInterval(ccStatusRender, 60000);
+  // The reset countdown is only true at the moment it is drawn.
+  setInterval(execStatusRender, 60000);
+}
