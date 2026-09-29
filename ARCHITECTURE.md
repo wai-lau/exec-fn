@@ -3645,7 +3645,12 @@ correctness issue, just no cross-poll write parallelism.
 `ndDotsHtml`/etc, as `window.NoodleCalParts`) + `noodle-cal-view.js`
 (`NoodleCal()`, the stateful controller), styled by `noodle-cal.css`. ONE
 continuous vertical scroller of Sunday-first weeks, /rd's visual language
-(5px rules, bold dates, cyan weekends, a blurred month watermark).
+(5px rules, bold dates, cyan weekends). **The calendar sits ABOVE the CRT
+stack** (`.nd-cal-wrap` at `--z-top`): on a poll page `.page-scroll` goes
+static (the document scrolls, its scrollbar hidden) and the card's z-index
+goes auto -- both were stacking contexts it could not rise out of -- and the
+banner + "approved by" stamp go to `--z-max` so the calendar never covers
+them.
 
 **Endless unless bounded by a crop.** Opens on `NDC_FIRST`=12 weeks, appends
 `NDC_MORE`=8 as a sentinel scrolls into view — via both a `scroll` listener
@@ -3670,22 +3675,22 @@ as one vertical line down the grid. Your own column is a `self` entry
 showing your LIVE selection, not your last-saved vote. Overflow gets /rd's
 hollow ring; your own column is never the one cut.
 
-**Month boundaries are 2px segments drawn INSIDE the cells**
-(`<i class="nd-ml b|v|t">`, `ndcPaintBoundaries`), **not** one SVG path
-over the grid: a separate overlay layer rounds independently of the cells'
-own 5px-border gaps, drifting a pixel off at some zooms/DPRs, where a
-segment laid out against the very box whose border it sits on snaps with
-it instead. Segments deliberately OVERHANG (to close each step's corner)
-and so overlap adjacent ones by a pixel; the ink is OPAQUE (cyan dimmed by
-`filter: brightness(0.7)`, reading as blue so a month edge is never
-confused with a crop/pick) so that overlap is invisible. Two comments
-inside `web/noodle-cal.js` itself still describe "one stepped SVG path" —
-stale, left as found.
+**Months: a name and a shade, no divider line.** Each month's name runs
+vertically in the week column, right of the fill/erase buttons
+(`ndcPaintLabels`, `.nd-mlabel`; the column is 56px = 40px of buttons + 16px
+of name), spanning its own run of weeks (a week belongs to its Wednesday's
+month): the longest of `october 2026` / `october` / `oct` that fits the run
+with `NDC_LABEL_SLACK`=16px to spare, re-fitted once `document.fonts.ready`
+(measured in the narrower fallback font, "september 2026" overran into the
+header). Labels are inserted BEFORE `.nd-cropbox`: same z, so DOM order puts
+them over the week column but under the crop's shade. Even months' cells
+carry `.alt` (`noodle-cal.js`): a `::after` of the rules' own green 0.12 laid
+twice, behind the cell's fill -- brighter than the rules so they still show,
+no new colour step (0.06 was too close to black to tell months apart). This
+replaced a blurred month-number watermark behind the cells and a stepped
+month divider line.
 
-Each month's blurred watermark (`ndcPaintMarks`) sits behind its own weeks
-and scrolls with them, drawn only once that month is COMPLETELY present —
-GREEN if at least one of its days is available, GREY otherwise
-(`ndcTintMarks`, re-run every paint). Quebec statutory holidays tint like
+Quebec statutory holidays tint like
 weekends (`.hol`, from /rd's `qc-holidays.js`; `noodle/holidays.py` mirrors
 it).
 

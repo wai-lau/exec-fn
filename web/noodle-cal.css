@@ -3,48 +3,60 @@
    weekends, a faint blurred month number behind the grid, stadium dots), made
    continuous and two-halved. Built by noodle-cal.js + noodle-cal-view.js. */
 
+/* The calendar sits ABOVE the CRT stack (--z-modal), like /noodle's demo
+   video (noodle-admin.css): the two stacking contexts in its way go -- the
+   fixed .page-scroll wrapper goes static (the document scrolls instead, its
+   scrollbar hidden) and the card's z-index goes auto. The error banner and
+   the "approved by" stamp then go to --z-max (noodle-actions.css), or the
+   calendar would cover them. */
+.page-scroll:has(#nd-cal) { position: static; overflow: visible; }
+.doc-card:has(#nd-cal) { z-index: auto; }
+html:has(#nd-cal) { scrollbar-width: none; }
+html:has(#nd-cal)::-webkit-scrollbar { display: none; }
+
 .nd-cal-wrap {
   position: relative;
+  z-index: var(--z-top);
   isolation: isolate;
   padding: 0 var(--space-2);   /* a little air either side of the grid */
   margin-top: var(--space-6);
 }
 
-/* Each month's number, big and faint BEHIND ITS OWN WEEKS (noodle-cal-view.js
-   ndcPaintMonths): it scrolls with them, unlike /rd's single fixed watermark. Behind the cells (the grid
-   isolates, so -1 stays inside it); left of it is the sticky week column. */
-.nd-mmark {
+/* Each month's NAME, vertical, right of the week column's fill/erase buttons
+   (noodle-cal-view.js ndcPaintLabels), spanning its own weeks and scrolling
+   with them. Bright, at the split box's size (--fs-2xs), reading bottom to
+   top like /hq's day spines. Over the sticky week column and under the
+   crop's shade: same z as both, inserted between them in the DOM. */
+.nd-mlabel {
   position: absolute;
-  left: 32px;
-  right: 0;
-  z-index: -1;
+  left: 40px;
+  width: 16px;
+  z-index: var(--z-raised);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-family: var(--font-mono);
-  font-weight: var(--fw-bold);
-  font-size: min(160px, 34vw);
-  line-height: var(--lh-none);
-  color: hsl(var(--green-hsl) / 0.45);
-
-  /* dimmed by opacity, not a new colour step: the palette has none between
-     0.12 and 0.45 and an unrequested alpha is not added (lint-colors.py) */
-  opacity: 0.6;
-  filter: blur(var(--blur-xs));
   pointer-events: none;
   user-select: none;
 }
 
-/* a month with no day available (past, outside the crop, not offered) */
-.nd-mmark.closed { color: hsl(var(--gray-hsl) / 0.45); }
+.nd-mlabel span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-normal);
+  line-height: var(--lh-none);
+  color: hsl(var(--green-hsl) / 1);
+}
 
 .nd-scroll {
   position: relative;
   z-index: var(--z-raised);
   max-height: min(62dvh, 560px);   /* until JS caps it to 6 weeks (ndcCapHeight) */
-  overflow: hidden auto;   /* never sideways: a month watermark overhangs the grid */
+  overflow: hidden auto;   /* never sideways */
   overscroll-behavior: contain;
 }
 
@@ -52,7 +64,7 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: 40px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 56px repeat(7, minmax(0, 1fr));   /* the week column: 40px of buttons + 16px of month name */
 
   /* 'Noodle Glyphs' first: the toggle icons (U+F765 / U+F12D) live only in
      noodle-seal.woff2, and the site face has none -- with --font-mono alone
@@ -163,6 +175,10 @@
 .nd-mode[data-mode="clear"] .clear { color: hsl(var(--green-hsl) / 1); }
 .nd-corner { justify-content: flex-end; padding-bottom: var(--space-1-5); }
 
+/* the week column's right 16px is the month name's (.nd-mlabel): the buttons
+   and the corner centre in the 40px left of it */
+.nd-wk, .nd-corner { padding-right: var(--space-6); }
+
 /* ── a day: its number, its dots, two halves split at 30deg ─────────────── */
 .nd-d {
   --top: transparent;
@@ -201,26 +217,22 @@
 .nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
 .nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }
 
-/* Month boundaries: 2px segments INSIDE the cells, on the centre of the 5px
-   gap (noodle-cal-view.js ndcPaintBoundaries): -3.5px puts a 2px line
-   across the middle of a 5px border. Every day cell's right and bottom
-   borders ARE the gaps, so a segment runs over its own border and one pixel
-   into the next cell's, OVERLAPPING the next segment -- joins between
-   translucent pieces showed as seams and chips, so the ink is OPAQUE: full
-   cyan dimmed by a filter, where an overlap is invisible. The ends overhang by the line's reach (-3.5px) to close the
-   step's corners. */
-.nd-ml {
+/* Months alternate their shade (noodle-cal.js puts .alt on even months), so
+   a month reads as a block without a divider line. The second shade is the
+   grid rules' own green 0.12 laid TWICE (~0.23): still dark, but brighter
+   than the rules, so they read as dark lines inside it -- and no new colour
+   step (lint-colors.py). Half of one layer (0.06) was too close to black to
+   tell the months apart. Inside the borders, BEHIND the cell's own fill:
+   z -1 lands in the grid's isolated stack, under every cell's background, so
+   a picked half still paints over it. */
+.nd-d.alt::after {
+  content: '';
   position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12)), hsl(var(--green-hsl) / 0.12);
   pointer-events: none;
-  background: hsl(var(--cyan-hsl) / 1);   /* blue, so a month edge never reads as a crop or a pick */
-  filter: brightness(0.7);
 }
-.nd-ml.t { top: -3.5px; left: 0; right: -6px; height: 2px; }
-.nd-ml.b { bottom: -3.5px; left: 0; right: -6px; height: 2px; }
-.nd-ml.t.start { left: -3.5px; }
-.nd-ml.b.end { right: -3.5px; }
-.nd-ml.v { top: -3.5px; bottom: -3.5px; left: -3.5px; width: 2px; }
-.nd-wk .nd-ml { right: 0; }   /* the week column has no right border */
 
 .nd-n {
   position: relative;
@@ -335,8 +347,7 @@
 .nd-cropbox { position: absolute; inset: 0; z-index: var(--z-raised); pointer-events: none; }
 
 /* What the crop leaves out, shaded: everything under a panel -- cells, the
-   week column, the month watermark -- goes monochrome and dim, so a watermark
-   the crop line cuts reads half green, half grey. A backdrop-filter is cheap
+   week column, the month names -- goes monochrome and dim. A backdrop-filter is cheap
    here: nothing under it animates, so the texture is read once per scroll. */
 .nd-shade {
   position: absolute;
