@@ -261,7 +261,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=7"></script>'
                   '<script src="/voice-input.js?v=3"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=20"></script>'
+                  '<script src="/exec-bubble-assets.js?v=21"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=3"></script>'
                   '<script src="/exec-bubble-history.js?v=3"></script>'
