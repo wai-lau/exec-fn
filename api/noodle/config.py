@@ -25,7 +25,11 @@ TITLE_MAX = 80
 NAME_MAX = 40
 # There is no date range on a poll: the calendar is endless and the host's
 # picks decide what is on offer. These only bound what a request may carry.
-MAX_SLOTS = 800                  # per vote
+# Per vote. NOT the binding limit through the API: BODY_MAX_VOTE (below) caps
+# the whole request first, at roughly 500 slots (~15 bytes each plus the name,
+# key and signature). This is the second guard, for any caller that skips the
+# body cap -- raise BODY_MAX_VOTE alone and this starts to matter.
+MAX_SLOTS = 800
 SLOT_YEARS_AHEAD = 3             # no slot further out than this
 VIEW_MAX_DAYS = 186              # the longest range Ask noodle will consider
 VIEW_DEFAULT_DAYS = 91           # ... and the one it uses with no crop
