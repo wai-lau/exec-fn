@@ -91,8 +91,11 @@
 .msg.assistant p:last-child { margin-bottom: 0; }
 .msg.assistant strong { color: hsl(var(--green-hsl) / 1); font-weight: var(--fw-bold); }
 .msg.assistant em { color: hsl(var(--green-hsl) / 0.8); font-style: italic; }
-.msg.assistant a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: underline; }
-.msg.assistant a:hover { color: hsl(var(--cyan-hsl) / 1); }
+
+/* A link Wai pastes is the same thing as a link Exec names: same cyan. The
+   user line used to fall through to the browser's default blue. */
+.msg.assistant a, .msg.user a { color: hsl(var(--cyan-hsl) / 0.8); text-decoration: underline; }
+.msg.assistant a:hover, .msg.user a:hover { color: hsl(var(--cyan-hsl) / 1); }
 
 .msg.assistant code {
   background: hsl(var(--green-hsl) / 0.12);
