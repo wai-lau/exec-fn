@@ -10,12 +10,11 @@ old or new. A new NAME is the same operation: the key is salted with the name,
 so renaming also means a new key, and the record moves to the new name
 (slots, order and so the host role all kept).
 
-Same envelope as a host action (host._check: skew window, signature), then the
+Same envelope as a host action (votes.check_action: skew window, signature), then the
 voter's own replay check: strictly newer than their last signed request.
 """
 from noodle import sig, slots, store
-from noodle.host import _check
-from noodle.votes import VoteError, now_ms
+from noodle.votes import VoteError, check_action, now_ms
 
 
 def rekey(slug: str, body: dict, now: int | None = None) -> dict:
@@ -29,7 +28,7 @@ def rekey(slug: str, body: dict, now: int | None = None) -> dict:
         newkey = slots.normalize_name(newname)
     except ValueError as e:
         raise VoteError(400, f"new name: {e}") from None
-    key, pub, ts = _check(slug, body, {"kind": "rekey", "newpub": newpub, "newname": newname}, now)
+    key, pub, ts = check_action(slug, body, {"kind": "rekey", "newpub": newpub, "newname": newname}, now)
     try:
         with store.edit(slug) as poll:
             rec = poll["voters"].get(key)

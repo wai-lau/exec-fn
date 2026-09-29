@@ -15,6 +15,26 @@ def now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def check_action(slug: str, body: dict, fields: dict, now: int) -> tuple[str, str, int]:
+    """The envelope every signed ACTION shares (host settings/remove, rekey):
+    name + ts shape, the clock-skew window, and the Ed25519 signature over
+    sig.canonical_action -> (normalized name, pub, ts). Who may act is the
+    caller's check (host._as_host, rekey's binding)."""
+    name, pub, signature, ts = (body.get(k) for k in ("name", "pub", "sig", "ts"))
+    if not isinstance(name, str) or not isinstance(ts, int) or isinstance(ts, bool):
+        raise VoteError(400, "name and ts are required")
+    try:
+        key = slots.normalize_name(name)
+    except ValueError as e:
+        raise VoteError(400, str(e)) from None
+    if abs(now - ts) > config.TS_SKEW_MS:
+        raise VoteError(400, "timestamp too far from server time")
+    msg = sig.canonical_action(name=name, poll=slug, ts=ts, **fields)
+    if not sig.verify(pub, signature, msg):
+        raise VoteError(403, "signature does not match")
+    return key, pub, ts
+
+
 def host_of(poll: dict) -> tuple[str, dict] | None:
     """The poll's HOST: whoever committed first (vote order 0). The halves
     they pick are the only ones anyone else may pick. None before any vote."""
