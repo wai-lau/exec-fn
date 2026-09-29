@@ -61,15 +61,19 @@ function ndhPlaceSplit() {
   slot.style.height = rows[0].offsetHeight + 'px';
 }
 
-// Re-express picks when the split flips -- the same rule as noodle/slots.py
-// convert(): a whole day becomes both halves; halves become a whole day only
-// where BOTH were picked (free at midday alone is not free all day).
+// Re-express picks when the split flips -- EXACTLY noodle/slots.py convert()
+// (pinned by tests/test_noodle_convert.py): a whole day becomes both halves;
+// halves become a whole day only where BOTH were picked (free at midday alone
+// is not free all day). A slot already in the target form is kept as is.
 function ndhConvert(sel, halves) {
   var out = new Set();
   sel.forEach(function (s) {
     var day = s.slice(0, 10), k = s.slice(11);
-    if (halves && k === 'd') { out.add(day + ':m'); out.add(day + ':n'); }
-    if (!halves && k !== 'd' && sel.has(day + ':m') && sel.has(day + ':n')) out.add(day + ':d');
+    if (halves) {
+      if (k === 'd') { out.add(day + ':m'); out.add(day + ':n'); } else out.add(s);
+    } else if (k === 'd' || (sel.has(day + ':m') && sel.has(day + ':n'))) {
+      out.add(day + ':d');
+    }
   });
   return out;
 }
