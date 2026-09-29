@@ -163,7 +163,7 @@ function execOnFrame(data, t) {
     return execDoneLine(data);
   } else if (data.type === 'busy') {
     t.close();
-    execAddMsg('sys warn', '[ busy — one run at a time; send again shortly ]');
+    execAddMsg('sys warn', '[ agent still busy after 5 min — send again ]');
   } else if (data.type === 'error') {
     t.close();
     execAddMsg('sys warn', '[ ' + (data.detail || 'error') + ' ]');

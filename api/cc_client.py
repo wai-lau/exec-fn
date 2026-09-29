@@ -12,8 +12,10 @@ stopped), busy (MAX_CONCURRENT is 1 -- a memory ceiling, not politeness), or
 logged out (cc-agent's subscription OAuth expired). None of those are 500s --
 the page renders the state and stays usable."""
 
+import asyncio
 import json
 import os
+import time
 
 import httpx
 
@@ -25,6 +27,10 @@ _TOKEN = os.environ.get("CC_SIDECAR_TOKEN", "")
 # own idle timeout is the clamp, and nginx's proxy_read_timeout is 3600s.
 _HEALTH_TIMEOUT = float(os.environ.get("CC_HEALTH_TIMEOUT", "3"))
 _CONNECT_TIMEOUT = float(os.environ.get("CC_CONNECT_TIMEOUT", "3"))
+# How long a send waits for the sidecar's single run slot before giving up
+# busy, and how often it asks. A normal turn is seconds to a couple of minutes.
+_BUSY_WAIT_S = float(os.environ.get("CC_BUSY_WAIT", "300"))
+_BUSY_POLL_S = 0.5
 
 
 def _headers() -> dict:
@@ -198,23 +204,44 @@ async def stream_query(prompt: str, images: list | None = None):
     # connect fails fast; read is unbounded because an agent turn legitimately
     # runs long and the sidecar already enforces its own idle timeout.
     timeout = httpx.Timeout(None, connect=_CONNECT_TIMEOUT)
+    # The sidecar runs ONE turn at a time (memory). A second send used to come
+    # straight back `busy`, which Wai then had to notice and resend -- reported
+    # 2026-09-29 as "make it not do that". Now it WAITS for the slot, polling,
+    # up to _BUSY_WAIT_S; the page keeps its cursor up and sees one `waiting`
+    # frame. Only a slot held past that (a runaway run) still answers busy.
+    deadline = time.monotonic() + _BUSY_WAIT_S
+    waited = False
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            async with client.stream(
-                "POST", f"{_CC_URL}/query", headers=_headers(), json=body
-            ) as r:
-                if r.status_code == 429:
+            while True:
+                async with client.stream(
+                    "POST", f"{_CC_URL}/query", headers=_headers(), json=body
+                ) as r:
+                    if r.status_code != 429:
+                        async for frame in _relay(r):
+                            yield frame
+                        return
+                    await r.aread()
+                if time.monotonic() >= deadline:
                     yield _frame({"type": "busy", "detail": "a run is already in flight"})
                     return
-                if r.status_code != 200:
-                    await r.aread()
-                    yield _frame({"type": "error", "detail": f"sidecar {r.status_code}"})
-                    return
-                async for line in r.aiter_lines():
-                    if line.startswith("data: "):
-                        yield (line + "\n\n").encode()
+                if not waited:
+                    waited = True
+                    yield _frame({"type": "waiting"})
+                await asyncio.sleep(_BUSY_POLL_S)
     except Exception as exc:
         yield _frame({"type": "error", "detail": f"sidecar unreachable: {exc}"})
+
+
+async def _relay(r):
+    """A sidecar response that is not a 429, as SSE frames."""
+    if r.status_code != 200:
+        await r.aread()
+        yield _frame({"type": "error", "detail": f"sidecar {r.status_code}"})
+        return
+    async for line in r.aiter_lines():
+        if line.startswith("data: "):
+            yield (line + "\n\n").encode()
 
 
 def _frame(event: dict) -> bytes:

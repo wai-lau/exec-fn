@@ -274,7 +274,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-commands.js?v=1"></script>'
                   '<script src="/exec-interrupt.js?v=1"></script>'
                   '<script src="/exec-term.js?v=1"></script>'
-                  '<script src="/exec-stream.js?v=2"></script>'
+                  '<script src="/exec-stream.js?v=3"></script>'
                   '<script src="/exec-bubble.js?v=78"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
