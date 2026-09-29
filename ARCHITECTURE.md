@@ -3682,8 +3682,13 @@ of name), spanning its own run of weeks (a week belongs to its Wednesday's
 month): the longest of `october 2026` / `october` / `oct` that fits the run
 with `NDC_LABEL_SLACK`=16px to spare, re-fitted once `document.fonts.ready`
 (measured in the narrower fallback font, "september 2026" overran into the
-header). Labels are inserted BEFORE `.nd-cropbox`: same z, so DOM order puts
-them over the week column but under the crop's shade. Even months' cells
+header). Names share the week column's z and the crop box's, so DOM ORDER
+decides, and every repaint keeps it rows -> names -> `.nd-cropbox` (append
+the names, then move the box last): weeks loaded later once put their black
+week cells over "october", and a box before the names left them undimmed.
+**Past days are unavailable**: `NoodleCal.setSel` drops any slot before
+today and `ndvPresent` drops them from the saved copy (so a stored past pick
+is no unsaved change); the next Commit clears them from the stored vote. Even months' cells
 carry `.alt` (`noodle-cal.js`): a `::after` of the rules' own green 0.12 laid
 twice, behind the cell's fill -- brighter than the rules so they still show,
 no new colour step (0.06 was too close to black to tell months apart). This

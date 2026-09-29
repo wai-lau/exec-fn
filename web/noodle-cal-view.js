@@ -33,6 +33,11 @@ function ndcPaintLabels(grid) {
     var last = runs[runs.length - 1], key = w.dataset.year + w.dataset.month;
     if (last && last.key === key) last.end = w; else runs.push({ key: key, start: w, end: w });
   });
+  // Names share the week column's z (and the crop box's), so DOM ORDER
+  // decides: after EVERY row -- weeks loaded later appended their rows after
+  // the names, and their black week cells hid "october" -- and before the
+  // crop box, whose shade must dim them. Hence append, then move the box last.
+  var box = grid.querySelector('.nd-cropbox');
   runs.forEach(function (r) {
     var name = NDC_MONTHS[+r.start.dataset.month - 1];
     var m = document.createElement('div');
@@ -41,9 +46,7 @@ function ndcPaintLabels(grid) {
     m.style.top = r.start.offsetTop + 'px';
     m.style.height = (r.end.offsetTop + r.end.offsetHeight - r.start.offsetTop) + 'px';
     m.innerHTML = '<span></span>';
-    // BEFORE the crop box: at the same z, DOM order decides, so a name sits
-    // over the week column but UNDER the crop's shade panels (noodle-crop.js)
-    grid.insertBefore(m, grid.querySelector('.nd-cropbox'));
+    grid.appendChild(m);
     var span = m.firstChild, room = m.clientHeight;
     // with room to spare: a label that only just fit ran into the header
     // once the site font (wider than the fallback it was measured in) loaded
@@ -52,6 +55,7 @@ function ndcPaintLabels(grid) {
       return span.offsetHeight <= room - NDC_LABEL_SLACK;
     });
   });
+  if (box) grid.appendChild(box);
 }
 
 function ndcPaintMonths(grid) {
@@ -292,8 +296,11 @@ function NoodleCal(wrap, opts) {
     // A draft or a stored vote may hold slots in weeks not loaded yet: they
     // are KEPT (only the kind -- whole day vs halves -- is checked), so nothing
     // picked is lost just because it is further down than anyone scrolled.
+    // PAST days are dropped: a day gone by is unavailable, whatever was picked
+    // on it (ndvPresent drops them from the saved copy too, so this is not an
+    // unsaved change; the next Commit drops them from the stored vote).
     setSel: function (s) {
-      sel = new Set(Array.from(s).filter(function (x) { return codes.has(x.slice(11)); }));
+      sel = new Set(Array.from(s).filter(function (x) { return codes.has(x.slice(11)) && x.slice(0, 10) >= today; }));
       paint();
       paintDots();
     },
