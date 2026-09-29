@@ -141,13 +141,7 @@ body:has(#exec-panel.open) #exec-bubble { display: none; }
 
 #exec-todo-add {
   flex-shrink: 0; display: flex; align-items: center;
-  padding: var(--space-2) var(--space-4); gap: var(--chat-gutter-gap);
-}
-
-#exec-todo-prompt {
-  color: hsl(var(--green-hsl) / 0.45); font-size: var(--fs-sm);
-  flex: 0 0 var(--chat-gutter);
-  white-space: nowrap; user-select: none;
+  padding: var(--space-0-5) var(--space-4) var(--space-2);
 }
 
 #exec-todo-input {

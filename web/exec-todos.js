@@ -139,14 +139,16 @@
     if (!panel || document.getElementById('exec-todos')) return;
     var sec = document.createElement('div');
     sec.id = 'exec-todos';
+    // The add row sits UNDER the list, right above the divider, and reads as the
+    // next empty row: its placeholder carries the same `[ ]` the rows start
+    // with, so it lines up with them instead of hanging off a `+` gutter.
     sec.innerHTML =
+      '<ul id="exec-todo-list"></ul>' +
       '<div id="exec-todo-add">' +
-        '<span id="exec-todo-prompt">+</span>' +
         '<input id="exec-todo-input" type="text" autocomplete="off" ' +
           'autocorrect="off" autocapitalize="off" spellcheck="false" ' +
-          'placeholder="add a todo...">' +
-      '</div>' +
-      '<ul id="exec-todo-list"></ul>';
+          'placeholder="[ ] add a note...">' +
+      '</div>';
     panel.insertBefore(sec, panel.firstChild);
     listEl = sec.querySelector('#exec-todo-list');
     inputEl = sec.querySelector('#exec-todo-input');
