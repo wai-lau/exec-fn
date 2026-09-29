@@ -9,8 +9,8 @@
 //
 // The grid is endless (weeks load as it scrolls) unless the voter has CROPPED
 // it to a span; past days and days outside the crop are greyed and inert.
-// Month boundaries are 2px segments inside the cells (noodle-cal-view.js
-// ndcPaintBoundaries), laid out with the borders they sit on.
+// Months alternate their cells' shade (.alt on even months) and carry their
+// name in the week column (noodle-cal-view.js ndcPaintLabels).
 //
 // Dots: every voter -- you included -- owns ONE fixed column of dots, the same
 // position in every cell (by vote order): top dot midday, bottom dot night,
@@ -88,6 +88,7 @@ function ndRowHtml(wk, r, bound, today) {
     if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(ndDate(iso))) cls.push('hol');
     if (c === 6) cls.push('eow');
     if (iso === today) cls.push('today');
+    if (+iso.slice(5, 7) % 2 === 0) cls.push('alt');   // months alternate their shade
     // (month boundaries are drawn over the grid as ONE path each --
     // noodle-cal-view.js ndcPaintMonths -- not per cell)
     h += '<div class="' + cls.join(' ') + '" data-day="' + iso + '">' +

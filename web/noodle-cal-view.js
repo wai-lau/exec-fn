@@ -13,79 +13,49 @@ var NDC_FIRST = 12;   // weeks rendered up front
 var NDC_MORE = 8;     // weeks appended each time the sentinel shows
 var NDC_MAX = 160;    // ~3 years: past this, stop (a slot that far out is refused anyway)
 
-// Each month's big blurred number sits BEHIND ITS OWN WEEKS and scrolls with
-// them -- unlike /rd's single fixed watermark. A week belongs to the month of its
-// Wednesday (the row's data-month), so a month is a run of rows.
-function ndcPaintMarks(grid) {
+// Each month's NAME, vertical, in the week column right of the fill/erase
+// buttons, spanning its own run of weeks (a week belongs to the month of its
+// Wednesday, the row's data-month) and scrolling with them. The longest of
+// "october 2026" / "october" / "oct" that fits the run's height; a one-week
+// run still gets "oct". It replaced a big blurred month NUMBER behind the
+// cells, which read as decoration, not as the month. Months also alternate
+// their cells' shade (.nd-d.alt, noodle-cal.js) -- the month divider line
+// that did that job is gone.
+var NDC_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
+  'september', 'october', 'november', 'december'];
+
+var NDC_LABEL_SLACK = 16;   // px a month name keeps clear of its band's ends
+
+function ndcPaintLabels(grid) {
   var runs = [];
-  grid.querySelectorAll('.nd-mmark').forEach(function (m) { m.remove(); });
+  grid.querySelectorAll('.nd-mlabel').forEach(function (m) { m.remove(); });
   grid.querySelectorAll('.nd-wk').forEach(function (w) {
     var last = runs[runs.length - 1], key = w.dataset.year + w.dataset.month;
     if (last && last.key === key) last.end = w; else runs.push({ key: key, start: w, end: w });
   });
   runs.forEach(function (r) {
-    // only a month COMPLETELY VISIBLE in the calendar gets one: its 1st and
-    // its last day both drawn (greyed or not) -- not the part-month we open
-    // in, nor one whose weeks are still loading or cut off
-    var y = r.start.dataset.year, mo = r.start.dataset.month;
-    var lastDay = new Date(+y, +mo, 0).getDate();
-    if (!grid.querySelector('.nd-d[data-day="' + y + '-' + mo + '-01"]') ||
-        !grid.querySelector('.nd-d[data-day="' + y + '-' + mo + '-' + lastDay + '"]')) return;
+    var name = NDC_MONTHS[+r.start.dataset.month - 1];
     var m = document.createElement('div');
-    m.className = 'nd-mmark';
+    m.className = 'nd-mlabel';
     m.setAttribute('aria-hidden', 'true');
     m.style.top = r.start.offsetTop + 'px';
     m.style.height = (r.end.offsetTop + r.end.offsetHeight - r.start.offsetTop) + 'px';
-    m.textContent = r.start.dataset.month;
-    m.dataset.ym = y + '-' + mo;
-    grid.appendChild(m);
-  });
-}
-
-// Month boundaries: a green step line through the GAPS between cells --
-// under the last week of the old month, up the gap before the 1st, over the
-// first week of the new one. Drawn as small segments INSIDE the cells
-// (<i class="nd-ml b|v|t">), not one SVG over the grid: the gaps are the
-// cells' own 5px borders, and a separate layer rounds independently of them,
-// so at some widths and zooms (fractional DPR) it drifted a device pixel or
-// two off the gap. A segment is laid out with the very box whose border it
-// sits on, so it snaps with it. The ink is opaque cyan dimmed by a filter
-// (noodle-cal.css .nd-ml), so the ends overhang and overlap freely without
-// a brighter chip where they meet.
-function ndcPaintBoundaries(grid) {
-  grid.querySelectorAll('.nd-ml').forEach(function (el) { el.remove(); });
-  function mark(el, kind) { el.insertAdjacentHTML('beforeend', '<i class="nd-ml ' + kind + '" aria-hidden="true"></i>'); }
-  grid.querySelectorAll('.nd-d[data-day$="-01"]').forEach(function (first) {
-    var row = first.previousElementSibling, k = 0;
-    while (row && !row.classList.contains('nd-wk')) { row = row.previousElementSibling; k++; }
-    if (!row) return;
-    var days = [], el = row.nextElementSibling;
-    for (var i = 0; i < 7 && el; i++, el = el.nextElementSibling) days.push(el);
-    if (k === 0) { mark(row, 't'); days.forEach(function (d) { mark(d, 't'); }); return; }
-    mark(row, 'b');
-    days.forEach(function (d, i) {
-      if (i < k) mark(d, i === k - 1 ? 'b end' : 'b');
-      else mark(d, i === k ? 't start' : 't');
+    m.innerHTML = '<span></span>';
+    // BEFORE the crop box: at the same z, DOM order decides, so a name sits
+    // over the week column but UNDER the crop's shade panels (noodle-crop.js)
+    grid.insertBefore(m, grid.querySelector('.nd-cropbox'));
+    var span = m.firstChild, room = m.clientHeight;
+    // with room to spare: a label that only just fit ran into the header
+    // once the site font (wider than the fallback it was measured in) loaded
+    [name + ' ' + r.start.dataset.year, name, name.slice(0, 3)].some(function (t) {
+      span.textContent = t;
+      return span.offsetHeight <= room - NDC_LABEL_SLACK;
     });
-    mark(first, 'v');
-  });
-}
-
-// A month's watermark is GREEN when at least one of its days is available
-// (not past, inside the crop, offered by the host) and GREY when none is.
-// Re-run on every paint: the host's offer can change availability without
-// any week being added.
-function ndcTintMarks(grid) {
-  grid.querySelectorAll('.nd-mmark').forEach(function (m) {
-    var open = grid.querySelector('.nd-d[data-day^="' + m.dataset.ym + '-"]:not(.out):not(.shut)');
-    m.classList.toggle('closed', !open);
   });
 }
 
 function ndcPaintMonths(grid) {
-  ndcPaintMarks(grid);
-  ndcTintMarks(grid);
-  ndcPaintBoundaries(grid);
+  ndcPaintLabels(grid);
 }
 
 // Every group button shows the MODE's tool -- a paint bucket (fill in) or an
@@ -257,7 +227,6 @@ function NoodleCal(wrap, opts) {
   function paint() {
     cells.forEach(function (c) { ndcCellPaint(c, sel, allowed, opts.halves); });
     ndcPaintButtons(grid, mode, groupOf, offered);
-    ndcTintMarks(grid);
   }
 
   function paintDots() {
@@ -314,6 +283,9 @@ function NoodleCal(wrap, opts) {
   var observers = ndcWatch(scroller, grid, endless && function () { if (weeks.length < NDC_MAX) addWeeks(NDC_MORE); },
     function () { paintDots(); ndcPaintMonths(grid); ndcCapHeight(scroller, grid, endless); });
   ndcCapHeight(scroller, grid, endless);
+  // the month names were measured in whatever font was ready; fit them again
+  // once the site's own has loaded (it is wider)
+  if (document.fonts) document.fonts.ready.then(function () { ndcPaintMonths(grid); });
 
   return {
     scroller: scroller,
