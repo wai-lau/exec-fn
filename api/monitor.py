@@ -119,8 +119,15 @@ def _build_context() -> tuple[str, str, str, str]:
     return ctx_text, hq_text, books_text, sched_text
 
 
+def _by_exec(e: dict) -> bool:
+    """Logged inside one of Exec's own tool calls (helpers.LOG_ACTOR). Exec
+    already reported it in its reply, so the monitor neither triggers on it nor
+    mentions it."""
+    return e.get("actor") == "exec"
+
+
 def _is_commentable(e: dict) -> bool:
-    if e.get("is_reminder"):
+    if e.get("is_reminder") or _by_exec(e):
         return False
     action = e.get("action", "")
     if action == "moved" and e.get("to_col") in ("archives", "exile"):
@@ -133,7 +140,7 @@ def _is_commentable(e: dict) -> bool:
 
 
 async def generate_encouragement(batch_start_ts: float) -> str:
-    recent = _recent_entries(batch_start_ts)
+    recent = [e for e in _recent_entries(batch_start_ts) if not _by_exec(e)]
     if not recent:
         return ""
 
@@ -203,14 +210,8 @@ def _init_monitor_ts() -> float:
 _monitor_last_comment_ts: float = _init_monitor_ts()
 
 
-# Exec chat tools whose success is the same event the board counts as
-# significant below: a finished sub-step, and a card leaving for archives/exile.
-# chat_passes fires the debounced monitor on these.
-MONITORED_TOOLS = {"advance_chunk", "archive_card", "exile_card"}
-
-
 def _entry_is_significant(e: dict) -> bool:
-    if e.get("is_reminder"):
+    if e.get("is_reminder") or _by_exec(e):
         return False
     action = e.get("action", "")
     if action == "moved" and e.get("to_col") in _SIGNIFICANT_TO_COLS:

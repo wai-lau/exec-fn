@@ -81,7 +81,6 @@ def _stub(monkeypatch):
     monkeypatch.setattr(chat_passes, "_system", system)
     monkeypatch.setattr(chat_passes, "push_to_monitor", push)
     # Tool dispatch lives in exec_tools.run_tool (shared with the sidecar route).
-    monkeypatch.setattr(exec_tools, "schedule_monitor", lambda: None)
     monkeypatch.setattr(exec_tools, "_handle_tool",
                         lambda name, inp: {"ok": True, "id": "card-1", "title": inp.get("title")})
 

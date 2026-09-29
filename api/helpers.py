@@ -1,3 +1,4 @@
+import contextvars
 import copy
 import json
 import re
@@ -188,6 +189,14 @@ _ACTIVITY_LOG = DATA_DIR / "activity_log.json"
 _RD_LOG = _ACTIVITY_LOG  # alias kept for pipeline.py archival
 
 
+# Who is making the change, when it is not Wai. Set by exec_tools.run_tool for
+# the length of one Exec tool call, so every entry that call logs is stamped
+# `actor: "exec"` -- the monitor must not comment on Exec's own actions (it has
+# already said what it did in its reply). NOT the same as `source`: the panel's
+# done/exile buttons log source=Exec too, and those are Wai's taps.
+LOG_ACTOR: contextvars.ContextVar = contextvars.ContextVar("rd_log_actor", default=None)
+
+
 def _append_rd_log(action: str, title: str, source: str = "rd", **extra):
     _append_rd_log_batch([{"action": action, "title": title, "source": source, **extra}])
 
@@ -197,8 +206,9 @@ def _append_rd_log_batch(entries: list[dict]):
         return
     log = json.loads(_ACTIVITY_LOG.read_text()) if _ACTIVITY_LOG.exists() else []
     now = datetime.now(timezone.utc).isoformat()
+    actor = LOG_ACTOR.get()
     for e in entries:
-        log.append({"ts": now, **e})
+        log.append({"ts": now, **e, **({"actor": actor} if actor else {})})
     tmp = _ACTIVITY_LOG.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(log[-500:]))
     tmp.replace(_ACTIVITY_LOG)
