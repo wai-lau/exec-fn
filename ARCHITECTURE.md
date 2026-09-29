@@ -2972,6 +2972,8 @@ Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an ind
 
 ## 16. The Exec monitor (`monitor.py`)
 
+**Exec's own changes never trigger a comment** (2026-09-29). Once the panel moved onto the sidecar, Wai saw Exec call `advance_chunk`, report it, then a minute later comment on its own step ("One message sent. Three steps... still waiting"). Every activity-log entry written during one Exec tool call is stamped `actor: "exec"` — `exec_tools.run_tool` runs the handler through `_as_exec`, which sets the `helpers.LOG_ACTOR` contextvar INSIDE the worker thread (so it cannot leak onto another request) and `_append_rd_log_batch` copies it onto each entry. `_is_commentable`, `_entry_is_significant` and `generate_encouragement`'s activity list all skip those entries. The old `MONITORED_TOOLS` hook that scheduled the monitor after a tool call is gone. The marker is `actor`, NOT `source`: the panel's done/exile buttons PATCH `/api/rd?source=Exec`, and those are Wai's taps — they still earn a comment. Pinned by `tests/test_monitor_actor.py`.
+
 Unsolicited comments after significant card activity, in Exec's GLaDOS voice (`EXEC_VOICE`, shared with chat) — backhanded observations rather than warm encouragement.
 
 ### 16a. What counts as significant
