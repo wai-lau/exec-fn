@@ -3712,7 +3712,10 @@ the passphrase is shown in the clear (deliberate: it is proofread).
 (`votes._admit`, 409): a host flipping it between a vote's check and write
 converted every stored vote, the old-format vote became the offer, and
 trimming the guests against it emptied them all
-(`test_the_split_is_rechecked_inside_the_lock`).
+(`test_the_split_is_rechecked_inside_the_lock`). And `NoodleCal().destroy()`
+disconnects the calendar's Resize/IntersectionObservers (`ndcWatch`) before
+`ndvEnsureCal` rebuilds it -- each split flip or crop drag used to leave the
+old ones, and the detached grid they held, alive for the page's life.
 
 **Browser storage is per poll** -- `noodle.draft.<slug>.<name>` (unsaved picks +
 a host's unsaved title) and `noodle.ask.<slug>.<name>` (the Ask text, which a

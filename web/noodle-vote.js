@@ -357,6 +357,7 @@ function ndvEnsureCal(force) {
   // out first, or rebuilding the grid would destroy it with the old rows
   var slot = ndv$('nd-split-slot');
   if (slot && slot.parentNode !== ndv$('noodle')) ndv$('nd-cal').before(slot);
+  if (NDV.cal) NDV.cal.destroy();   // its observers, or they outlive the old grid
   NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: halves, crop: c, endless: host,
     onChange: ndvSaveDraft, onRows: function () { if (window.ndxSync) window.ndxSync(); } });
   // a rebuild carries the picks over; it is not an edit, so it saves no draft
