@@ -128,7 +128,7 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
 
 
 def reset_voter(slug: str, raw_name: str) -> bool:
-    """Owner recovery (scripts/noodle-reset-voter.py): forget a name's key so
+    """Owner recovery (`python -m noodle.reset`, noodle/reset.py): forget a name's key so
     its next submission binds afresh. Keeps the voter's column position."""
     key = slots.normalize_name(raw_name)
     with store.edit(slug) as poll:

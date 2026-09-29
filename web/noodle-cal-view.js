@@ -49,8 +49,9 @@ function ndcPaintMarks(grid) {
 // cells' own 5px borders, and a separate layer rounds independently of them,
 // so at some widths and zooms (fractional DPR) it drifted a device pixel or
 // two off the gap. A segment is laid out with the very box whose border it
-// sits on, so it snaps with it. Segments TILE -- none overlap, since the
-// colour is translucent and an overlap reads as a brighter chip.
+// sits on, so it snaps with it. The ink is opaque cyan dimmed by a filter
+// (noodle-cal.css .nd-ml), so the ends overhang and overlap freely without
+// a brighter chip where they meet.
 function ndcPaintBoundaries(grid) {
   grid.querySelectorAll('.nd-ml').forEach(function (el) { el.remove(); });
   function mark(el, kind) { el.insertAdjacentHTML('beforeend', '<i class="nd-ml ' + kind + '" aria-hidden="true"></i>'); }

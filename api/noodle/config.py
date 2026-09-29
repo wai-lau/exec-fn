@@ -31,8 +31,7 @@ NAME_MAX = 40
 # body cap -- raise BODY_MAX_VOTE alone and this starts to matter.
 MAX_SLOTS = 800
 SLOT_YEARS_AHEAD = 3             # no slot further out than this
-VIEW_MAX_DAYS = 186              # the longest range Ask noodle will consider
-VIEW_DEFAULT_DAYS = 91           # ... and the one it uses with no crop
+VIEW_MAX_DAYS = 186              # the longest range Ask noodle will consider (web/noodle-ask.js ndaDays caps to the same)
 BLOCKS = ("midday", "night")
 BLOCK_CODES = {"midday": "m", "night": "n"}
 # A poll is either SPLIT (midday + night per day, codes m/n) or not (one slot
