@@ -195,33 +195,14 @@
 
 /* The Claude Code status line, as it renders in Wai's terminal (read off
    ~/.claude/statusline-command.sh, not approximated): the metrics on the
-   panel's black -- ctx white, base grey, 5h pink, its reset mint, 7d cyan --
-   then the conversation's title on a full-width hash-coloured band. In the
+   panel's black -- ctx white, base grey, 5h pink, its reset mint, 7d cyan.
+   (The conversation-title band below it was dropped 2026-09-30.) In the
    panel's own flow at its top, so it slides in and out with the panel. */
 #exec-status {
   flex-shrink: 0;
   background: hsl(var(--bg-hsl));
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-size: var(--fs-2xs); line-height: var(--lh-tight);
-}
-
-/* The hue is set per-title by exec-status.js (--cs-hue); 95% / 60% are the
-   saturation and lightness the shell script's hls_to_rgb call uses. It hugs its
-   text so the metrics can sit beside it in their own colours -- white, mint and
-   cyan are illegible on a bright band. */
-
-/* Full width: the band is the page's own header, and a title that hugs its text
-   leaves a strip of dead black beside it. */
-
-/* `display: block` loses to the UA's [hidden] only if restated -- same trap
-   #exec-thumbs hit. */
-.cs-title[hidden] { display: none; }
-
-.cs-title {
-  display: block;
-  background: hsl(var(--cs-hue, 135deg) 95% 60%); color: #000;
-  padding: var(--space-1) var(--space-3);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 /* Five equal columns, each value centred in its own. A flex row sized every box
@@ -292,12 +273,10 @@
 
 .exec-sess-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Hued like the status bar's title band, from the same hash -- a conversation
-   keeps its colour from the row you tap to the band you land on. TEXT, not a
-   filled band: twenty filled rows would be a paint chart, and the picker is a
-   list of names, not a set of buttons competing for the eye. The timestamp
-   beside it stays green, so the hue marks the NAME and the row still reads as
-   part of this page. */
+/* Each conversation keeps its own hue (execHue: a hash of its title), so a
+   name reads as the same conversation every time the picker opens. TEXT, not
+   a filled band: twenty filled rows would be a paint chart. The timestamp
+   stays green, so the hue marks only the NAME. */
 .exec-sess-title.hued { color: hsl(var(--cs-hue, 135deg) 95% 60%); }
 
 /* The one you are already in keeps its hue but steps back with the rest of the

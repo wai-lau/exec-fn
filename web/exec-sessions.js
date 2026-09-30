@@ -50,9 +50,7 @@ async function execResumeSession(id, title) {
     }
     // The pointer moved; everything on screen belongs to the old thread.
     execTermEl.textContent = '';
-    if (typeof execStatusState === 'object') execStatusState.title = title || '';
     await execLoadHistory();
-    if (typeof execTitleFetch === 'function') execTitleFetch();
     if (typeof execStatusRender === 'function') execStatusRender();
   } catch {
     execAddMsg('sys warn', '[ could not switch conversation ]');
@@ -112,10 +110,9 @@ async function execListSessions(limit) {
     const name = document.createElement('span');
     name.className = 'exec-sess-title';
     name.textContent = s.title || '(untitled)';
-    // A conversation keeps its colour: the same FNV hash the status bar's title
-    // band uses (execHue, exec-status.js), so the row you tap and the band you land
-    // on are the same hue. Only a TITLED row is hued -- an untitled one has
-    // nothing to hash, and the bar shows it no band either.
+    // A conversation keeps its colour (execHue, exec-status.js: an FNV hash of
+    // the title), the same hue every time the picker opens. Only a TITLED row is
+    // hued -- an untitled one has nothing to hash.
     if (s.title && typeof execHue === 'function') {
       name.classList.add('hued');
       name.style.setProperty('--cs-hue', execHue(s.title) + 'deg');
