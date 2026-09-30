@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "api/chat.py": {
-    "mtime": 1790714980.164466,
-    "ast_hash": "2305423d5122f4fc9a4b5cdba11c9e98",
+    "mtime": 1790620148.9963114,
+    "ast_hash": "bfe1552c251a539bfa208b71094f9796",
     "semantic_hash": ""
   },
   "api/chat_tools.py": {
@@ -45,18 +45,18 @@
     "semantic_hash": ""
   },
   "api/helpers.py": {
-    "mtime": 1790701413.0401015,
-    "ast_hash": "64d3cd2bc2c9d93bc81228f1a7aa4505",
+    "mtime": 1789456958.9687893,
+    "ast_hash": "f5f90b36f3926c0008c52fe58b4d7557",
     "semantic_hash": ""
   },
   "api/main.py": {
-    "mtime": 1790712704.1619911,
-    "ast_hash": "7a0d87148bff204aaeb7749c6369bf85",
+    "mtime": 1790565599.8661182,
+    "ast_hash": "84701f74dc05cb306eb1a6efdf249f9b",
     "semantic_hash": ""
   },
   "api/monitor.py": {
-    "mtime": 1790701413.0431015,
-    "ast_hash": "b09b8c58b4f9ab1abafa2bbe844ea1bb",
+    "mtime": 1790307003.1403356,
+    "ast_hash": "41677ce23dfebfee7e32ab749e22fa5f",
     "semantic_hash": ""
   },
   "api/morning_cron.sh": {
@@ -200,18 +200,18 @@
     "semantic_hash": ""
   },
   "web/exec-bubble.js": {
-    "mtime": 1790711286.18003,
-    "ast_hash": "2ed22f03517cfd5638c3ad16b8421de7",
+    "mtime": 1790644635.4685903,
+    "ast_hash": "a23e539dc54a0c7e865f54421a5075e1",
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1790747292.869481,
-    "ast_hash": "2aa3a77b79558d182604f22d05e369e3",
+    "mtime": 1790645063.2505739,
+    "ast_hash": "f4cfb1834828a56ae13d957ee9c711c4",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1790715755.7305336,
-    "ast_hash": "be02d7a6572fd8dac08311e4c3694a28",
+    "mtime": 1790645063.252574,
+    "ast_hash": "19359d66a93e57da1df57002064f6934",
     "semantic_hash": ""
   },
   "README.md": {
@@ -385,13 +385,13 @@
     "semantic_hash": ""
   },
   "api/templates/mtg.html": {
-    "mtime": 1790710311.0160258,
-    "ast_hash": "55f5fd0a49746f5aae0d52643c5e2947",
+    "mtime": 1790036926.8898783,
+    "ast_hash": "125d258ec968bece7e35e31cd152f625",
     "semantic_hash": ""
   },
   "api/templates/tarot.html": {
-    "mtime": 1790710311.0150259,
-    "ast_hash": "40f04190b78052a2b0b1a87b72d794d6",
+    "mtime": 1790566432.2165334,
+    "ast_hash": "42f368a527d250be267a049774aaf348",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1790747255.9353287,
-    "ast_hash": "1f451a92c10eb8e345bbe1fa6736bb1d",
+    "mtime": 1790645058.1045501,
+    "ast_hash": "6396b9c7f5229e73b1becdffab105e28",
     "semantic_hash": ""
   },
   "api/routers.py": {
@@ -1030,8 +1030,8 @@
     "semantic_hash": ""
   },
   "web/exec-todos.js": {
-    "mtime": 1790715828.5508316,
-    "ast_hash": "1bc20bd410dbbd5944adec2b899b73d2",
+    "mtime": 1789188204.1571202,
+    "ast_hash": "d8103b407cc2b9abf70b1606d41e8158",
     "semantic_hash": ""
   },
   "tests/conftest.py": {
@@ -1155,13 +1155,13 @@
     "semantic_hash": ""
   },
   "tests/test_exec_voice.py": {
-    "mtime": 1790712729.0011432,
-    "ast_hash": "bf1520829cabe033ec868363325e1065",
+    "mtime": 1789956645.260288,
+    "ast_hash": "88cadaf9e85891ab293716a1843f0e44",
     "semantic_hash": ""
   },
   "tests/test_exec_voice_browser.py": {
-    "mtime": 1790713036.968885,
-    "ast_hash": "86496de3c167e8fd60f6af3336c74300",
+    "mtime": 1790645063.2445738,
+    "ast_hash": "1b98db925e5c8bb5ed62f5c1d2045a43",
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1790757009.395417,
+    "mtime": 1790670605.8061912,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1790757012.1794286,
-    "ast_hash": "f7cbbcbbd82336eefd08a3ff2efb1949",
+    "mtime": 1790670609.8662076,
+    "ast_hash": "b91d3056b15355cadae44c2936d46924",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1790757038.796538,
-    "ast_hash": "86d93045bcffe0497d38bf1ebf6b1a08",
+    "mtime": 1790670620.47425,
+    "ast_hash": "4269f695aa5c84901fd832c0fe7fc139",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -2030,8 +2030,8 @@
     "semantic_hash": ""
   },
   "api/data/tarot_readings.json": {
-    "mtime": 1790751263.638289,
-    "ast_hash": "6aa3e46243183f617f244ad41ebea436",
+    "mtime": 1790036059.8422532,
+    "ast_hash": "d8362703ffa4553d5fb8443ef017c7ab",
     "semantic_hash": ""
   },
   "nightfall-incident/asset-manifest.json": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1790673018.2543833,
+    "mtime": 1790586616.1640165,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1790673018.2653835,
+    "mtime": 1790586616.1770165,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -6960,8 +6960,8 @@
     "semantic_hash": ""
   },
   "web/exec-bubble-assets.js": {
-    "mtime": 1790747255.939329,
-    "ast_hash": "0bbe97d649453ce0a414b199becc38b5",
+    "mtime": 1790037697.7673707,
+    "ast_hash": "e104c67c0199d3e299aabde754772bd0",
     "semantic_hash": ""
   },
   ".claude/hooks/cmdscan.py": {
@@ -6995,8 +6995,8 @@
     "semantic_hash": ""
   },
   "api/cc_client.py": {
-    "mtime": 1790715038.4286857,
-    "ast_hash": "fee5b5f371ef6a4e79716c5a7376faf4",
+    "mtime": 1789320704.2749476,
+    "ast_hash": "45b4037b76764694f762cf3ba684c472",
     "semantic_hash": ""
   },
   "api/data/activity_log_20260908.json": {
@@ -7005,8 +7005,8 @@
     "semantic_hash": ""
   },
   "api/routes_cc.py": {
-    "mtime": 1790712704.1609912,
-    "ast_hash": "f984d965910028e797e6d759e1038565",
+    "mtime": 1790645063.240574,
+    "ast_hash": "d144aaa52e73548ff328fd4e67162722",
     "semantic_hash": ""
   },
   "claude-box/package.json": {
@@ -7022,6 +7022,16 @@
   "claude-box/setup.sh": {
     "mtime": 1790493963.0608408,
     "ast_hash": "6932a56c4a9a43451bb82f261cb08725",
+    "semantic_hash": ""
+  },
+  "web/cc.js": {
+    "mtime": 1789964240.7456372,
+    "ast_hash": "12c857d00936961390ab053474d4dd8c",
+    "semantic_hash": ""
+  },
+  "api/templates/cc.html": {
+    "mtime": 1790040652.0125492,
+    "ast_hash": "03ff9ec0f9c0d3765cff16e60d6b9844",
     "semantic_hash": ""
   },
   "claude-box/README.md": {
@@ -7055,8 +7065,8 @@
     "semantic_hash": ""
   },
   "api/data/cc_titles.json": {
-    "mtime": 1790747185.631039,
-    "ast_hash": "2f1f764c371a2f5112117d4b1580ef1d",
+    "mtime": 1790644936.2989855,
+    "ast_hash": "2bbeffca9ee61129e77c3fbb8e8c2d97",
     "semantic_hash": ""
   },
   "api/data/mtg_sessions/mtg_mtwgpi33.json": {
@@ -7105,8 +7115,43 @@
     "semantic_hash": ""
   },
   "tests/test_admin_only.py": {
-    "mtime": 1790712735.4551826,
-    "ast_hash": "a02a1286a4ea11cf9af764b43eaaa58e",
+    "mtime": 1789188204.06912,
+    "ast_hash": "8843c38d85a2ec592e7c2c360e5d844f",
+    "semantic_hash": ""
+  },
+  "web/cc-commands.js": {
+    "mtime": 1789361860.6005313,
+    "ast_hash": "5c13cf95ce0185890994a2cc7b6c5164",
+    "semantic_hash": ""
+  },
+  "web/cc-images.js": {
+    "mtime": 1789188204.1431203,
+    "ast_hash": "95540d328f33d5a90ed3908def377e3d",
+    "semantic_hash": ""
+  },
+  "web/cc-mic.js": {
+    "mtime": 1789964297.8598824,
+    "ast_hash": "9a8c6fe599ff745b93b3e4e18718a470",
+    "semantic_hash": ""
+  },
+  "web/cc-sessions.js": {
+    "mtime": 1789364421.5036087,
+    "ast_hash": "1a58eacc71c2858e1495eaf8ef5ae298",
+    "semantic_hash": ""
+  },
+  "web/cc-status.js": {
+    "mtime": 1789361695.9137466,
+    "ast_hash": "abda1d5d26da67a1c7954e25c4bb5480",
+    "semantic_hash": ""
+  },
+  "web/cc-svg.js": {
+    "mtime": 1789321162.521441,
+    "ast_hash": "796abc6631fe13638424f1429f624975",
+    "semantic_hash": ""
+  },
+  "web/cc-zoom.js": {
+    "mtime": 1789188204.1451204,
+    "ast_hash": "54d1a98fffb8fdf78f79e521f276d474",
     "semantic_hash": ""
   },
   "web/typewriter.js": {
@@ -7155,8 +7200,8 @@
     "semantic_hash": ""
   },
   "tests/test_cc_admin_only.py": {
-    "mtime": 1790712777.7174358,
-    "ast_hash": "521137ccfd5857b2bfa57f363730d5d2",
+    "mtime": 1789354409.1365225,
+    "ast_hash": "37e16479c2ade4464309dd95c189c464",
     "semantic_hash": ""
   },
   "tests/test_cc_sandbox_paths.py": {
@@ -7164,9 +7209,29 @@
     "ast_hash": "436c25d63d5bcd7277318410261f8452",
     "semantic_hash": ""
   },
+  "tests/test_cc_stream_browser.py": {
+    "mtime": 1789457885.5955024,
+    "ast_hash": "f06e11e2688805e81e379443c0f90641",
+    "semantic_hash": ""
+  },
   "tests/test_exec_choices_browser.py": {
     "mtime": 1790645063.245574,
     "ast_hash": "a34e953c4f5f28e9d6da62c40c1134d2",
+    "semantic_hash": ""
+  },
+  "web/cc-input.js": {
+    "mtime": 1789964249.3836744,
+    "ast_hash": "3eaf3b4bcbb27109ed0ddfc8d251e952",
+    "semantic_hash": ""
+  },
+  "web/cc-interrupt.js": {
+    "mtime": 1790040643.3995185,
+    "ast_hash": "2e23a652bd84a41db8029404b903a3fb",
+    "semantic_hash": ""
+  },
+  "web/cc-toolout.js": {
+    "mtime": 1789458152.463667,
+    "ast_hash": "f600b948c9e94e8c49f245e8878bc6ca",
     "semantic_hash": ""
   },
   "web/exec-choices.js": {
@@ -7182,6 +7247,11 @@
   "tests/test_archive_card.py": {
     "mtime": 1789456880.686477,
     "ast_hash": "e6f194c56b3b2f21694e2665090a84c6",
+    "semantic_hash": ""
+  },
+  "web/exec-bubble-history.js": {
+    "mtime": 1790645063.2415738,
+    "ast_hash": "83aa638f978014af2ab5391c6d7483b1",
     "semantic_hash": ""
   },
   "api/data/activity_log_20260916.json": {
@@ -9054,6 +9124,11 @@
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
+  "web/cc-reveal.js": {
+    "mtime": 1789956510.9667218,
+    "ast_hash": "7ba955896536ea0032f5956a6a6d91e5",
+    "semantic_hash": ""
+  },
   "web/chat-dom.js": {
     "mtime": 1789964232.9506037,
     "ast_hash": "20021ba1eaa84088cde48e6fb2cb9094",
@@ -9270,8 +9345,8 @@
     "semantic_hash": ""
   },
   "ARCHAEOLOGY.md": {
-    "mtime": 1790715640.0450625,
-    "ast_hash": "d7252dafd2a26289d2674a3eca7d7f85",
+    "mtime": 1790277584.3198388,
+    "ast_hash": "2b2f49a88e121de30ec737b06c6dcc49",
     "semantic_hash": ""
   },
   "docs/graph.webp": {
@@ -9365,8 +9440,8 @@
     "semantic_hash": ""
   },
   "tests/test_chat_passes.py": {
-    "mtime": 1790701430.3051662,
-    "ast_hash": "dc11ca1b14cc3ebff014f79806b9192e",
+    "mtime": 1790494110.2774544,
+    "ast_hash": "92f17f900a15aad709f6dcedd83656dd",
     "semantic_hash": ""
   },
   "web/graph-glyph.js": {
@@ -9395,13 +9470,13 @@
     "semantic_hash": ""
   },
   "api/exec_tools.py": {
-    "mtime": 1790701413.0411017,
-    "ast_hash": "b90860b42d28e4ab3f7e20ffc55743f8",
+    "mtime": 1790493886.985523,
+    "ast_hash": "7dbb9ef164ef624f1fd4394983176496",
     "semantic_hash": ""
   },
   "api/noodle/__init__.py": {
-    "mtime": 1790715731.327434,
-    "ast_hash": "a7abd89a3139bcdb55fadcc86f753f65",
+    "mtime": 1790557385.7606804,
+    "ast_hash": "88fc17c854deb96cb40cba9dc2c02064",
     "semantic_hash": ""
   },
   "api/noodle/ask.py": {
@@ -9410,8 +9485,8 @@
     "semantic_hash": ""
   },
   "api/noodle/config.py": {
-    "mtime": 1790715731.3294342,
-    "ast_hash": "2114cc3662db7b1eaa2282547e3dda8d",
+    "mtime": 1790614532.0832121,
+    "ast_hash": "73f3f32369fdde45ec048cc1ea7c91e5",
     "semantic_hash": ""
   },
   "api/noodle/holidays.py": {
@@ -9460,8 +9535,8 @@
     "semantic_hash": ""
   },
   "api/noodle/votes.py": {
-    "mtime": 1790715731.328434,
-    "ast_hash": "ef286b496acaa31d731b2468cbd2f95f",
+    "mtime": 1790557679.8969793,
+    "ast_hash": "73c1b08681a75b29684ceae85deb9344",
     "semantic_hash": ""
   },
   "api/routes_exec.py": {
@@ -9480,8 +9555,8 @@
     "semantic_hash": ""
   },
   "tests/test_noodle_browser.py": {
-    "mtime": 1790714098.1499345,
-    "ast_hash": "ff8c0ba9c57ba1414d6f5ceaa6fa00b9",
+    "mtime": 1790614226.586922,
+    "ast_hash": "045659ae5b2c8d8996111ff42f14e226",
     "semantic_hash": ""
   },
   "tests/test_noodle_glyphs.py": {
@@ -9515,8 +9590,8 @@
     "semantic_hash": ""
   },
   "tests/test_noodle_votes.py": {
-    "mtime": 1790711074.5753047,
-    "ast_hash": "6ab6b5aba1437c338f196a5ce19ceaa3",
+    "mtime": 1790557385.7816806,
+    "ast_hash": "f2c10be7e8923acbb798315196d9de40",
     "semantic_hash": ""
   },
   "tests/test_printer_camera.py": {
@@ -9530,23 +9605,23 @@
     "semantic_hash": ""
   },
   "web/noodle-admin.js": {
-    "mtime": 1790713077.8901005,
-    "ast_hash": "012d31a608dc9a936bd474a108a561b3",
+    "mtime": 1790621520.3529296,
+    "ast_hash": "8dfd065194c6de0256bca12a9dd18857",
     "semantic_hash": ""
   },
   "web/noodle-ask.js": {
-    "mtime": 1790715731.3324342,
-    "ast_hash": "dab0a4526936d19cfadf0d5ca1a5538d",
+    "mtime": 1790563504.2491462,
+    "ast_hash": "332b27236696228e53753c9397800ed0",
     "semantic_hash": ""
   },
   "web/noodle-cal-view.js": {
-    "mtime": 1790724748.8064063,
-    "ast_hash": "dcaeb9750c2ed3128724895aa9bb8c59",
+    "mtime": 1790611038.2627943,
+    "ast_hash": "888ba03e34be79607e598cd1da709810",
     "semantic_hash": ""
   },
   "web/noodle-cal.js": {
-    "mtime": 1790716706.3332734,
-    "ast_hash": "cfabdc53b20ded7ca4f68cd6a047cc88",
+    "mtime": 1790563145.33274,
+    "ast_hash": "8cf1d8c32111ab6a002e31506e5f875a",
     "semantic_hash": ""
   },
   "web/noodle-kdf-worker.js": {
@@ -9560,8 +9635,8 @@
     "semantic_hash": ""
   },
   "web/noodle-roster.js": {
-    "mtime": 1790713077.8891006,
-    "ast_hash": "8d74a96ed290116e59620351acb6eda4",
+    "mtime": 1790563973.4030082,
+    "ast_hash": "ba2e8246e5f155ea1fce9d872bd8337c",
     "semantic_hash": ""
   },
   "web/noodle-seal.js": {
@@ -9575,28 +9650,28 @@
     "semantic_hash": ""
   },
   "web/noodle-vote.js": {
-    "mtime": 1790724422.867141,
-    "ast_hash": "89664226f7904291f7f1e6fb8e337cfe",
+    "mtime": 1790612944.2073028,
+    "ast_hash": "1841ba151671e9ac9ae0a5964a660838",
     "semantic_hash": ""
   },
   "api/templates/noodle-admin.html": {
-    "mtime": 1790713105.6662452,
-    "ast_hash": "c3f210d8da22b7a2ab26fc37e298d8dd",
+    "mtime": 1790622222.7412372,
+    "ast_hash": "6acf6ef8a30d4068ad371cd9cb3644b4",
     "semantic_hash": ""
   },
   "api/templates/noodle-shell.html": {
-    "mtime": 1790724748.8134062,
-    "ast_hash": "9b42cd939fa145ce34b7683a98a5fe7f",
+    "mtime": 1790622990.6875324,
+    "ast_hash": "804a6073590c166e878e80c64bfa9747",
     "semantic_hash": ""
   },
   "api/templates/noodle-vote.html": {
-    "mtime": 1790724748.8134062,
-    "ast_hash": "de628368253c4c6fb5f308dc94627985",
+    "mtime": 1790622894.7601275,
+    "ast_hash": "7b2b43347819af2ca198a226b5f6a33d",
     "semantic_hash": ""
   },
   "docs/plan-exec-cc-merge.md": {
-    "mtime": 1790712810.9766312,
-    "ast_hash": "70440d4ac6d5829543de8c79f303f48a",
+    "mtime": 1790645063.2505739,
+    "ast_hash": "48f4fd335ec47d56ec2da10d1cb7a748",
     "semantic_hash": ""
   },
   "api/data/activity_log_20260928.json": {
@@ -9605,7 +9680,7 @@
     "semantic_hash": ""
   },
   "api/data/noodle/polls/164ELIlxlJjEgBCdgxQ3jg.json": {
-    "mtime": 1790716301.1467807,
+    "mtime": 1790630193.1930683,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -9615,13 +9690,13 @@
     "semantic_hash": ""
   },
   "api/noodle/host.py": {
-    "mtime": 1790713001.8926976,
-    "ast_hash": "3bcafbbf35f27e1ad18fae74ff513a88",
+    "mtime": 1790610713.7364562,
+    "ast_hash": "96c27350c1a55eec945b2a68a3e2dcb1",
     "semantic_hash": ""
   },
   "api/noodle/rekey.py": {
-    "mtime": 1790713001.8966978,
-    "ast_hash": "396f07a925fd47aa216f207b1e8b1696",
+    "mtime": 1790546967.8177323,
+    "ast_hash": "939e532bba4a888e6e39ecf85c7c6846",
     "semantic_hash": ""
   },
   "api/tarot/state_echo.py": {
@@ -9630,8 +9705,8 @@
     "semantic_hash": ""
   },
   "tests/noodle_helpers.py": {
-    "mtime": 1790714091.1999035,
-    "ast_hash": "27e4201e0b8de5021bafafd32d0b126f",
+    "mtime": 1790557385.7856805,
+    "ast_hash": "ae8e7ff82c93460a53851d208300b587",
     "semantic_hash": ""
   },
   "tests/test_noodle_browser_host.py": {
@@ -9665,13 +9740,23 @@
     "semantic_hash": ""
   },
   "web/noodle-host.js": {
-    "mtime": 1790713784.4935155,
-    "ast_hash": "63a6dfad9e97d4ebef6364dc2f471be5",
+    "mtime": 1790611025.776743,
+    "ast_hash": "4a7c87ff965690a9c424e60019689584",
+    "semantic_hash": ""
+  },
+  "web/noodle-local.js": {
+    "mtime": 1790612944.2073028,
+    "ast_hash": "84790c505bbbb4e836f5517a399486d2",
     "semantic_hash": ""
   },
   "web/noodle-rekey.js": {
     "mtime": 1790569522.1935031,
     "ast_hash": "d785d828a28dad501bb0c8ac721ee55d",
+    "semantic_hash": ""
+  },
+  "web/noodle-seats.js": {
+    "mtime": 1790565327.8042474,
+    "ast_hash": "768737d2c23302bf0aab554c1ed4b858",
     "semantic_hash": ""
   },
   "web/noodle-share.js": {
@@ -9695,7 +9780,7 @@
     "semantic_hash": ""
   },
   "api/data/noodle/polls/ahhiJH2G39kTgAPx_S_j-w.json": {
-    "mtime": 1790717670.3123229,
+    "mtime": 1790629925.0671346,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -9710,8 +9795,8 @@
     "semantic_hash": ""
   },
   "api/exec_panel.py": {
-    "mtime": 1790712673.9808033,
-    "ast_hash": "3a37be689ddcf3517c71af1865410ead",
+    "mtime": 1790644595.5624049,
+    "ast_hash": "63a6a8fe2342654823e80a51cd3f18f3",
     "semantic_hash": ""
   },
   "tests/test_exec_board.py": {
@@ -9725,8 +9810,8 @@
     "semantic_hash": ""
   },
   "tests/test_exec_panel_stream_browser.py": {
-    "mtime": 1790712562.8090801,
-    "ast_hash": "04701858e2bbecef113c2df875a3143c",
+    "mtime": 1790645063.242574,
+    "ast_hash": "e70a38a85450e8eb83a4f4472f8d0a56",
     "semantic_hash": ""
   },
   "web/noodle-top.js": {
@@ -9742,96 +9827,6 @@
   "web/noodle-demo.mp4": {
     "mtime": 1790622484.1483767,
     "ast_hash": "89a39c20e133115c3b5e06b89501a93c",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20260930.json": {
-    "mtime": 1790751248.231226,
-    "ast_hash": "54469d7af16fdf14393cead5da7e791d",
-    "semantic_hash": ""
-  },
-  "tests/test_monitor_actor.py": {
-    "mtime": 1790701430.3201663,
-    "ast_hash": "a02c2371d44532a3ce98c267b9afbd95",
-    "semantic_hash": ""
-  },
-  "tests/test_noodle_browser_page.py": {
-    "mtime": 1790724762.5634599,
-    "ast_hash": "76695c0e7d8202f26e4697c11bbf6b94",
-    "semantic_hash": ""
-  },
-  "tests/test_noodle_convert.py": {
-    "mtime": 1790713783.2255096,
-    "ast_hash": "f15bec94d9d69265ca7926fea42e6fd3",
-    "semantic_hash": ""
-  },
-  "web/exec-commands.js": {
-    "mtime": 1790711219.788797,
-    "ast_hash": "6b2bd73b82e6252f4b43ac592265b98b",
-    "semantic_hash": ""
-  },
-  "web/exec-images.js": {
-    "mtime": 1790711219.781797,
-    "ast_hash": "1cef3983568dda2dff0be75c1a0da9f2",
-    "semantic_hash": ""
-  },
-  "web/exec-interrupt.js": {
-    "mtime": 1790711219.791797,
-    "ast_hash": "40c4bea9373e9af809a679433ea56acc",
-    "semantic_hash": ""
-  },
-  "web/exec-sessions.js": {
-    "mtime": 1790747264.7503653,
-    "ast_hash": "b0e35b6d244bff8aec68362d9cba12c7",
-    "semantic_hash": ""
-  },
-  "web/exec-status.js": {
-    "mtime": 1790747248.218297,
-    "ast_hash": "7ec85497463acc16673832eb2c28fe5a",
-    "semantic_hash": ""
-  },
-  "web/exec-stream.js": {
-    "mtime": 1790715049.4607275,
-    "ast_hash": "ff3cc8f1592764ab83887c4e4606f54c",
-    "semantic_hash": ""
-  },
-  "web/exec-svg.js": {
-    "mtime": 1790711219.770797,
-    "ast_hash": "7459fa6642236e9ac75373eab9266b0d",
-    "semantic_hash": ""
-  },
-  "web/exec-term.js": {
-    "mtime": 1790711199.001725,
-    "ast_hash": "40be2baf36862a2ad01617aba9d304be",
-    "semantic_hash": ""
-  },
-  "web/exec-toolout.js": {
-    "mtime": 1790711219.8817973,
-    "ast_hash": "d0efb600007e2b7b58e94880c21e4703",
-    "semantic_hash": ""
-  },
-  "web/exec-zoom.js": {
-    "mtime": 1790711219.774797,
-    "ast_hash": "9d45dfe51158438e35059e94d26ba7bd",
-    "semantic_hash": ""
-  },
-  "web/noodle-commit.js": {
-    "mtime": 1790717578.9839902,
-    "ast_hash": "8e9b72343e0a18d6035e7a3991dbf8a9",
-    "semantic_hash": ""
-  },
-  "web/noodle-esc.js": {
-    "mtime": 1790713077.8901005,
-    "ast_hash": "ad5f47d72470ef2cf6280116b0ec3df0",
-    "semantic_hash": ""
-  },
-  "web/noodle-identity.js": {
-    "mtime": 1790713077.8891006,
-    "ast_hash": "881ee8c0e759242426e8486990ea3f9a",
-    "semantic_hash": ""
-  },
-  "web/noodle-storage.js": {
-    "mtime": 1790713114.896293,
-    "ast_hash": "682c9841fdf5e2c8427d7563cd110091",
     "semantic_hash": ""
   }
 }
