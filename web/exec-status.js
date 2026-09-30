@@ -20,7 +20,7 @@ const EXEC_CTX_DEFAULT = 200000;
 // The subscription's short window, used to turn "1h20m left" into a gauge.
 const EXEC_FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
 
-const execStatusState = { model: '', ctx: 0, base: 0, windows: {}, title: '' };
+const execStatusState = { model: '', ctx: 0, base: 0, windows: {} };
 
 // The statusline script's definition, mirrored: `base` is the SMALLEST total
 // input ever observed -- system prompt + tools + standing context, the floor a
@@ -49,7 +49,6 @@ function execStateLoad() {
     if (!raw.at || Date.now() - raw.at > EXEC_CACHE_TTL_MS) return;
     execStatusState.model = raw.model || '';
     execStatusState.ctx = raw.ctx || 0;
-    execStatusState.title = raw.title || '';
     const wins = raw.windows && typeof raw.windows === 'object' ? raw.windows : {};
     // A window whose reset has already passed has rolled over; its utilization
     // describes a period that is finished, so it goes rather than misinforms.
@@ -66,7 +65,6 @@ function execStateSave() {
       at: Date.now(),
       model: execStatusState.model,
       ctx: execStatusState.ctx,
-      title: execStatusState.title,
       windows: execStatusState.windows,
     }));
   } catch { /* private mode: the bar just does not survive a reload */ }
@@ -84,7 +82,7 @@ function execBaseNote(total) {
   }
 }
 
-/* Title hue, the way the terminal's status line does it: a hash of the title
+/* A conversation's hue (the /list rows, exec-sessions.js), the way the terminal's status line colours a title: a hash of the title
  * modulo 360, at high saturation and mid lightness, so a conversation keeps its
  * colour and two conversations rarely share one. The shell script hashes with
  * md5 and the browser has no md5 (SubtleCrypto is SHA-only), so this is FNV-1a
@@ -112,55 +110,19 @@ function execUntil(ms) {
   return h ? h + 'h' + String(m).padStart(2, '0') + 'm' : m + 'm';
 }
 
-/* The conversation's GENERATED title -- what the CLI's own status line shows.
- * The SDK writes a summary per session and honours a rename, so a conversation
- * is called "Crisis fragments endgame" rather than "poe2, what are crisis
- * fragments for? I'm like deep into e…". Absent on a brand-new conversation,
- * which is what the transcript fallback below is for. */
-async function execTitleFetch() {
-  try {
-    const r = await fetch('/api/cc/title', { cache: 'no-store' });
-    if (!r.ok) return;
-    const j = await r.json();
-    if (j && j.title && j.title !== execStatusState.title) {
-      execStatusState.title = j.title;
-      execStateSave();
-      execStatusRender();
-    }
-  } catch { /* offline: the opening line still titles it */ }
-}
-
-/** The conversation's own opening line, which is what it is "about".
- *
- * Falls through user -> assistant: a conversation that opens with a pasted
- * screenshot and no words has an empty first user message, and titling that
- * nothing says nothing when the reply right under it does. */
-function execStatusTitle() {
-  if (execStatusState.title) return execStatusState.title.slice(0, 48);
-  for (const sel of ['#exec-term .msg.user .msg-body', '#exec-term .msg.assistant .msg-body']) {
-    const el = document.querySelector(sel);
-    const text = el ? el.textContent.trim().replace(/\s+/g, ' ') : '';
-    if (text) return text.slice(0, 48);
-  }
-  return '';   // nothing said yet -- no title, rather than a stand-in
+/* The conversation's generated title is NOT shown in the panel (Wai, 2026-09-30:
+ * the band was dropped). It is still asked for after each reply, because the
+ * request is what generates and caches it server-side (cc_title.py), and /list
+ * names conversations by that cache -- without it a row would fall back to the
+ * SDK's summary, which is the <exec-context> board block the turn opened with. */
+async function execTitleRefresh() {
+  try { await fetch('/api/cc/title', { cache: 'no-store' }); } catch { /* /list keeps its last name */ }
 }
 
 function execStatusRender() {
   const bar = document.getElementById('exec-status');
   if (!bar) return;
-  const title = execStatusTitle();
-  bar.style.setProperty('--cs-hue', execHue(title) + 'deg');
-  // Row 1 is the conversation's title and nothing else -- and with no title
-  // there is no row: a full-width band of colour saying nothing is louder than
-  // anything else on the page. It comes back the moment the conversation has a
-  // first line.
-  const el = bar.querySelector('.cs-title');
-  el.textContent = title;
-  el.hidden = !title;
-
-  // Built as spans, not one string: each field carries its own colour, the way
-  // the terminal's line does. The model leads row 2 in the title's own hue --
-  // it belongs with the metrics, not competing with the title above.
+  // Each field carries its own colour, the way the terminal's line does.
   const meta = bar.querySelector('.cs-meta');
   meta.textContent = '';
   // FIVE boxes, always all five, in the same order every time: ctx, base, 5h,
@@ -249,19 +211,6 @@ function execStatusOn(data) {
   execStatusRender();
 }
 
-/* The title comes from the transcript, which arrives asynchronously: the bar
- * renders long before the history has replayed a single line, so a one-shot
- * render titles every conversation empty. Watch until there is something to
- * read, then stop. */
-function execStatusWatchTitle() {
-  if (!execTermEl || !window.MutationObserver) return;
-  const obs = new MutationObserver(() => {
-    execStatusRender();
-    if (execStatusTitle()) obs.disconnect();
-  });
-  obs.observe(execTermEl, { childList: true, subtree: true });
-}
-
 /** Build the bar at the top of the panel and start it. Called by
  *  exec-bubble.js once the panel exists; everything above is inert until then.
  *  In the panel's own flow, not fixed: the panel is the thing that scrolls in
@@ -269,23 +218,20 @@ function execStatusWatchTitle() {
 function execStatusMount(panel) {
   const bar = document.createElement('div');
   bar.id = 'exec-status';
-  bar.innerHTML = '<span class="cs-meta"></span><span class="cs-title"></span>';
+  bar.innerHTML = '<span class="cs-meta"></span>';
   panel.insertBefore(bar, panel.firstChild);
   execStateLoad();
   execStatusState.base = execBaseLoad();
   execStatusRender();
-  execStatusWatchTitle();
   execLimitsFetch();
-  execTitleFetch();
   // A turn is the only thing that moves these, so refresh when one ends rather
   // than on a timer.
   execTermEl.addEventListener('exec:reply-done', execLimitsFetch);
-  execTermEl.addEventListener('exec:reply-done', execTitleFetch);
+  execTermEl.addEventListener('exec:reply-done', execTitleRefresh);
   // A cleared conversation is back at the floor. base and the windows survive
   // (they are account-wide, not conversation-wide); the context does not.
   execTermEl.addEventListener('exec:conversation-new', () => {
     execStatusState.ctx = 0;
-    execStatusState.title = '';
     execStateSave();
     execStatusRender();
   });
