@@ -181,12 +181,8 @@ function resolveColors() {
 const TOWERS = {
   rapid:   { name: "Rapid",   ab: "RPD", color: "cyan",   cost: 15,  dmg: 4,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "pink",   cost: 40,  dmg: 14, rate: 1.2,  range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  nuke:    { name: "Nuke",    ab: "NUK", color: "glow",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 50,  dmg: 0,  rate: 1.2,  range: 190, blurb: "Slows three enemies at once.", up: "slow strength" },
-  pusher:  { name: "Pusher",  ab: "PSH", color: "green",  cost: 60,  dmg: 4,  rate: 0.5,  range: 175, blurb: "Knocks enemies back along the spiral.", up: "push distance" },
-  stopper: { name: "Stopper", ab: "STP", color: "pink",   cost: 70,  dmg: 3,  rate: 0.45, range: 185, blurb: "Freezes one enemy in place.", up: "stun time" },
-  reaper:  { name: "Reaper",  ab: "RPR", color: "glow",   cost: 120, dmg: 45, rate: 0.7,  range: 200, blurb: "Its kills may grant you a life.", up: "life chance" },
-  gold:    { name: "Gold",    ab: "GLD", color: "orange", cost: 45,  dmg: 2,  rate: 0.9,  range: 190, blurb: "Marks enemies for a bigger bounty.", up: "bounty mark" },
+  ray:     { name: "Ray",     ab: "RAY", color: "glow",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 5;
@@ -214,12 +210,8 @@ function towerStats(t) {
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.2 * L); break;
     case "chain": s.chains = 2 + L; break;
-    case "nuke": s.crit = 0.1 + 0.08 * L; break;
+    case "ray": s.crit = 0.1 + 0.08 * L; break;
     case "slower": s.slow = Math.min(0.8, 0.35 + 0.09 * L); s.targets = 3; break;
-    case "pusher": s.push = 45 + 20 * L; break;
-    case "stopper": s.stun = 0.6 + 0.3 * L; break;
-    case "reaper": s.life = 0.04 + 0.02 * L; break;
-    case "gold": s.mark = 2 + 0.5 * L; break;
   }
   if (G.power.RNG > 0) s.range *= 1.3;
   if (G.power.DAM > 0) s.dmg *= 1.6;

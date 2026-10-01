@@ -4010,6 +4010,11 @@ sparks on big hits. **Shots are hit-scan, drawn as plain beams/rings/sparks** (a
 tracer + lightning pass was tried and reverted by the owner); each effect holds
 full opacity for the first half of its life, then fades.
 
+**Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RAY
+Ray (the former Nuke: big hits, slow reload, crit ×3). Pusher, Stopper,
+Reaper and Gold were removed with their stats, effects and sounds; enemy
+`stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
+
 **Rules in one place:** enemies follow their spiral by arc length `s` (Pusher
 subtracts from `s`); a leak costs 1 life (boss 5). The next-wave countdown (`WAVE_GAP = 15`s) runs only while the field is
 clear (`waveClear()`: no live enemies, no queued spawns); sending early is

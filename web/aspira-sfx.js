@@ -61,12 +61,8 @@ const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * 
 const SFX = {
   rapid:   () => tone({ type: "square", f0: 1400, f1: 900, dur: 0.03, vol: 0.08 }),
   chain:   () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
-  nuke:    () => { tone({ f0: 260, f1: 90, dur: 0.3, vol: 0.22 }); noise({ dur: 0.25, vol: 0.15, freq: 900, q: 0.8 }); },
+  ray:     () => { tone({ f0: 260, f1: 90, dur: 0.3, vol: 0.22 }); noise({ dur: 0.25, vol: 0.15, freq: 900, q: 0.8 }); },
   slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
-  pusher:  () => tone({ type: "triangle", f0: 220, f1: 90, dur: 0.12, vol: 0.3 }),
-  stopper: () => notes([1320, 1760], 0.03, { dur: 0.12, vol: 0.09 }),
-  reaper:  () => tone({ type: "sawtooth", f0: 180, f1: 110, dur: 0.2, vol: 0.12 }),
-  gold:    () => tone({ type: "triangle", f0: 1900, f1: 2400, dur: 0.06, vol: 0.1 }),
   kill:    () => tone({ type: "triangle", f0: 520, f1: 1040, dur: 0.07, vol: 0.16 }),
   leak:    () => tone({ type: "sawtooth", f0: 110, f1: 60, dur: 0.4, vol: 0.3 }),
   wave:    () => notes([440, 554, 659], 0.07, { type: "triangle", dur: 0.12, vol: 0.18 }),
@@ -77,7 +73,7 @@ const SFX = {
   over:    () => notes([392, 330, 262, 196], 0.18, { type: "triangle", dur: 0.32, vol: 0.25 }),
 };
 // minimum seconds between two plays of the same sound
-const GAP = { rapid: 0.06, chain: 0.07, kill: 0.04, gold: 0.08, slower: 0.1, leak: 0.15 };
+const GAP = { rapid: 0.06, chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.15 };
 
 function sfx(name) {
   if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !SFX[name]) return;
