@@ -179,10 +179,10 @@ function resolveColors() {
 }
 
 const TOWERS = {
-  rapid:   { name: "Rapid",   ab: "RPD", color: "cyan",   cost: 15,  dmg: 4,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
-  chain:   { name: "Chain",   ab: "CHN", color: "pink",   cost: 40,  dmg: 14, rate: 1.2,  range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
+  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 15,  dmg: 4,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
+  chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1.2,  range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 50,  dmg: 0,  rate: 1.2,  range: 190, blurb: "Slows three enemies at once.", up: "slow strength" },
-  ray:     { name: "Ray",     ab: "RAY", color: "glow",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  ray:     { name: "Ray",     ab: "RAY", color: "pink",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 15;
