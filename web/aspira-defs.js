@@ -183,7 +183,7 @@ function resolveColors() {
 const TOWERS = {
   rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3.5, rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1,    range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 1.2,  range: 190, blurb: "Slows and nicks five enemies at once. Armored enemies ignore the slow; shields halve it and block the damage.", up: "slow strength" },
+  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 1.2,  range: 190, blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge. Armored enemies ignore the slow; shields halve it.", up: "slow strength" },
   reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 80, rate: 0.3,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
