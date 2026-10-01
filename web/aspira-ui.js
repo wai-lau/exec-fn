@@ -7,8 +7,8 @@ function setText(el, v) { v = String(v); if (el.textContent !== v) el.textConten
 // ---------- placement / input ----------
 function canPlace(x, y) {
   const r = Math.hypot(x - CX, y - CY);
-  if (r > BUILD_R - 20 || r < CORE_R + 24) return false;
-  return !G.towers.some(t => Math.hypot(t.x - x, t.y - y) < 40);
+  if (r > BUILD_R - 20 || r < CORE_R + 42) return false;
+  return !G.towers.some(t => Math.hypot(t.x - x, t.y - y) < 80);
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
@@ -21,7 +21,7 @@ function placeTower(p) {
   G.money -= b.cost;
   const t = { id: G.id++, kind: ui.build, x: p.x, y: p.y, lvl: 1, cd: 0, mode: "close", spent: b.cost };
   G.towers.push(t);
-  ring(t.x, t.y, 30, b.color);
+  ring(t.x, t.y, 60, b.color);
   // one tower per pick: placing ends placing mode and selects the new tower
   ui.build = null; ui.sel = t.id;
 }
@@ -31,7 +31,7 @@ cv.addEventListener("pointerdown", ev => {
   if (G.over) return;
   const p = toWorld(ev);
   ui.hover = p;
-  const hit = G.towers.find(t => Math.abs(t.x - p.x) < 22 && Math.abs(t.y - p.y) < 22);
+  const hit = G.towers.find(t => Math.abs(t.x - p.x) < 40 && Math.abs(t.y - p.y) < 40);
   if (hit) { ui.sel = hit.id; ui.build = null; }
   else if (ui.build) placeTower(p);
   else ui.sel = null;
@@ -85,7 +85,7 @@ function inspectTower(el, t) {
   button($("asp-acts"), "asp-primary", maxed ? "max level" : "upgrade " + b.up + " · " + upCost(t), () => {
     if (t.lvl >= MAX_LVL || G.money < upCost(t)) return;
     const c = upCost(t); G.money -= c; t.spent += c; t.lvl++;
-    ring(t.x, t.y, 34, b.color); refreshPanels();
+    ring(t.x, t.y, 64, b.color); refreshPanels();
   }, "asp-up");
   button($("asp-acts"), "", "sell · " + sellValue(t), () => {
     G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null; refreshPanels();

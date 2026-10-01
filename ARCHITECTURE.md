@@ -3909,7 +3909,10 @@ area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient
 over `--bg-hsl`), never `backdrop-filter`, which would re-read the animated
 canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
 the decks, or the phone sheet covers Start. Placing a tower ends placing mode
-and selects the new tower. No API, no server
+and selects the new tower. Towers draw 72 units square (owner doubled them), so placement
+keeps 80 between towers and 42 off the core: ~9-12 fit in the disc. Board
+text (hour labels, lane numerals, lives, floats, banner) is drawn large and
+near-opaque; deck text is HTML and unaffected. No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
 
 **Client** — four same-global-scope files, loaded in order:

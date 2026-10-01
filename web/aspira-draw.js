@@ -68,7 +68,9 @@ function drawGraticule() {
   }
   for (let h = 0; h < 24; h += 2) {
     const a = h * Math.PI / 12 - Math.PI / 2;
-    text(h + "h", CX + Math.cos(a) * 466, CY + Math.sin(a) * 466, 11, "grid");
+    ctx.globalAlpha = 0.8;
+    text(h + "h", CX + Math.cos(a) * 460, CY + Math.sin(a) * 460, 18, "green");
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -98,9 +100,9 @@ function drawLanes() {
     }
     // a small circle where the lane crosses the rim, catalogue numeral inside it
     const p0 = path.rim, a = Math.atan2(p0.y - CY, p0.x - CX);
-    ctx.globalAlpha = col ? 0.7 : 0.3; ctx.lineWidth = 1;
+    ctx.globalAlpha = col ? 1 : 0.7; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
-    text(ROMAN[i], CX + Math.cos(a) * 448, CY + Math.sin(a) * 448, 12, col || "cyan");
+    text(ROMAN[i], CX + Math.cos(a) * 436, CY + Math.sin(a) * 436, 20, col || "cyan");
   });
   ctx.globalAlpha = 1;
 }
@@ -117,17 +119,17 @@ function drawBoard() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
   ctx.strokeStyle = COL.orange; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(CX, CY, CORE_R * pulse, 0, 6.283); ctx.stroke();
-  text(G.lives, CX, CY + 1, 24, "orange");
+  text(G.lives, CX, CY + 2, 36, "orange");
 }
 
 function drawTower(t, ghost) {
   const b = TOWERS[t.kind];
   ctx.globalAlpha = ghost ? 0.55 : 1;
   ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.roundRect(t.x - 18, t.y - 18, 36, 36, 6); ctx.fill(); ctx.stroke();
-  text(b.ab, t.x, t.y - 3, 12, b.color);
+  ctx.beginPath(); ctx.roundRect(t.x - 36, t.y - 36, 72, 72, 10); ctx.fill(); ctx.stroke();
+  text(b.ab, t.x, t.y - 6, 24, b.color);
   ctx.fillStyle = COL[b.color];
-  for (let i = 0; i < t.lvl; i++) ctx.fillRect(t.x - 12 + i * 5.6, t.y + 9, 3.5, 3.5);
+  for (let i = 0; i < t.lvl; i++) ctx.fillRect(t.x - 24 + i * 11.2, t.y + 18, 7, 7);
   ctx.globalAlpha = 1;
 }
 
@@ -166,7 +168,7 @@ function drawFx() {
     } else if (f.k === "spark") {
       ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
     } else if (f.k === "text") {
-      text(f.text, f.x, f.y, 18, f.color);
+      text(f.text, f.x, f.y, 28, f.color);
     }
   }
   ctx.globalAlpha = 1;
@@ -189,8 +191,8 @@ function render() {
   drawFx();
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
-    text(bannerText, CX, 60, 30, "orange");
+    text(bannerText, CX, 70, 44, "orange");
     ctx.globalAlpha = 1;
   }
-  if (ui.paused && !G.over && G.started) text("paused", CX, CY - 100, 40, "green");
+  if (ui.paused && !G.over && G.started) text("paused", CX, CY - BUILD_R - 40, 56, "green");
 }
