@@ -3970,7 +3970,8 @@ swatches styled from chrome.css tokens; `resolveColors()` reads their computed
 literal.
 
 **The board is FIXED, not random** (owner's call), drawn as a star chart:
-graduated rim (no hour labels), polar graticule, a star field seeded once and replicated
+graduated rim (no hour labels), a sparse polar graticule (3 rings at
+125/250/375, owner thinned it from 8), a star field seeded once and replicated
 into six mirror/rotation wedges, lanes as fine orbit lines numbered I–XII.
 Twelve Archimedean spirals start OFF-SCREEN (`R0 = 760`, past the canvas
 corners; markers/numerals sit where each lane crosses the rim, `path.rim`),
