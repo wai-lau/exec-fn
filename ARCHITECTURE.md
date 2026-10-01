@@ -3966,11 +3966,10 @@ all the way to the core (`R1 = CORE_R`); towers and enemies never collide, so
 building on a lane is allowed; lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
 the same turn count, and the six pairs climb `PAIR_TURNS = [3, 4, 5, 6, 7, 8]`
 (owner: min 3 full turns, max 8). The odd pairs (4, 6, 8 turns) are ELLIPTICAL:
-`ellipse()` stretches them along their own mirror axis by
-`1 + 1.2·((r−R1)/(R0−R1))^0.6` (owner asked for more elliptical; ~1.66×
-at r=300), full at the off-screen start, round at the core,
-so pair symmetry holds and every lane still starts off-screen and ends on the
-core. Each lane has `pace = (len / shortest)^0.6`
+`ellipse()` stretches them along their own mirror axis by a CONSTANT
+`1 + 0.7` (owner: an ellipse must not round off toward the core; an earlier
+falloff did). They spiral in to `R1 / 1.7` so the stretched end still lands
+inside the core; the minor axis still starts at `R0`, off-screen. Each lane has `pace = (len / shortest)^0.6`
 multiplying enemy speed and Pusher distance, so the longest lane takes ~1.4×
 as long as the shortest rather than ~2.5×. **Every tower goes inside the
 central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges

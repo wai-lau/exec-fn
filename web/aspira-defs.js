@@ -53,14 +53,14 @@ const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
 const PACE_EXP = 0.6;
 const PATHS = [];
 
-// Stretch a point along axis `ax` by 1 + stretch * ((r - R1) / (R0 - R1))^0.6:
-// full ellipse at the off-screen start, a circle at the core, so an elliptical
-// lane still enters from beyond every edge and still ends on the core. The 0.6
-// power keeps the stretch strong well inside the rim, not only off-screen.
-const ELLIPSE = 1.2, ELLIPSE_EXP = 0.6;
-function ellipse(x, y, r, ax, stretch) {
+// Stretch a point along axis `ax` by a CONSTANT 1 + stretch, so an elliptical
+// lane keeps its shape all the way in (owner: it must not round off). To still
+// end on the core, an elliptical lane spirals in to R1 / (1 + stretch): even
+// its stretched end point lands inside the core.
+const ELLIPSE = 0.7;
+function ellipse(x, y, ax, stretch) {
   const c = Math.cos(ax), sn = Math.sin(ax);
-  const u = (x * c + y * sn) * (1 + stretch * Math.pow(Math.max(0, (r - R1) / (R0 - R1)), ELLIPSE_EXP)), v = -x * sn + y * c;
+  const u = (x * c + y * sn) * (1 + stretch), v = -x * sn + y * c;
   return { x: CX + u * c - v * sn, y: CY + u * sn + v * c, s: 0 };
 }
 
@@ -70,12 +70,12 @@ function buildSpiral(i) {
   // odd pairs are elliptical: stretched along the pair's own mirror axis, so
   // the pair stays symmetric; ax = that axis, stretch = 0 for round pairs
   const ax = (((i >> 1) * 2 + 1) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
-  const stretch = (i >> 1) % 2 ? ELLIPSE : 0;
+  const stretch = (i >> 1) % 2 ? ELLIPSE : 0, rEnd = R1 / (1 + stretch);
   const pts = [];
   let prev = null, acc = 0;
   for (let k = 0; k <= steps; k++) {
-    const t = k / steps, r = R0 - (R0 - R1) * t, a = a0 + dir * turns * Math.PI * 2 * t;
-    const p = ellipse(r * Math.cos(a), r * Math.sin(a), r, ax, stretch);
+    const t = k / steps, r = R0 - (R0 - rEnd) * t, a = a0 + dir * turns * Math.PI * 2 * t;
+    const p = ellipse(r * Math.cos(a), r * Math.sin(a), ax, stretch);
     if (prev) acc += Math.hypot(p.x - prev.x, p.y - prev.y);
     p.s = acc; pts.push(p); prev = p;
   }
