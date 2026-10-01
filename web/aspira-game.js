@@ -226,7 +226,7 @@ function addScore(n) {
 // Chain lightning hops one enemy at a time with HOP_DELAY (game seconds)
 // between jumps, so the arc visibly crawls through a pack. The first hit is
 // instant; live chains are advanced by stepChains() from step().
-const HOP_DELAY = 0.2;
+const HOP_DELAY = 0.5;
 let chains = [];
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
