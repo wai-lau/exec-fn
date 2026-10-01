@@ -3926,10 +3926,14 @@ Clicking a tower opens its stats in a POPUP pinned beside it on the board
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
 Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
-proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Draw order: board, ranges, enemies, shots, TOWERS (on top of their
-own effects), build ghost, floating text, banner. Every hit floats a small damage number (14,
-0.6s, jittered); a kill floats `+N` credits. Lane numerals sit on an
-even ring at each lane's nominal 30° slot. Speed settings 1/2/3 run the sim at 3/4.5/6× the original base
+proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Non-lane strokes (graticule, rim ticks, build ring, hex grid, core, towers,
+ranges, enemy outlines) are drawn heavy (2-3.5); lanes stay fine. The CRT
+stack is cut to 0.4 opacity on this page (rules in aspira.css; it loads only
+here). Draw order: board, ranges, enemies, shots, TOWERS (on top of their
+own effects), build ghost, floating text, banner. Every hit floats a damage number (size 22,
+1.2s, jittered); a kill floats `+N` credits (size 30, 2s). Lane numerals sit on an
+even ring at each lane's nominal 30° slot: full size/opacity in the riding
+type's colour while in use, small (20) and faint (0.3) when idle. Speed settings 1/2/3 run the sim at 3/4.5/6× the original base
 (`SPEED_MULT`; owner made the old 3× the default), labelled 1×/1.5×/2×.
 Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
@@ -3953,7 +3957,7 @@ swatches styled from chrome.css tokens; `resolveColors()` reads their computed
 literal.
 
 **The board is FIXED, not random** (owner's call), drawn as a star chart:
-graduated hour rim, polar graticule, a star field seeded once and replicated
+graduated rim (no hour labels), polar graticule, a star field seeded once and replicated
 into six mirror/rotation wedges, lanes as fine orbit lines numbered I–XII.
 Twelve Archimedean spirals start OFF-SCREEN (`R0 = 760`, past the canvas
 corners; markers/numerals sit where each lane crosses the rim, `path.rim`),
@@ -3976,7 +3980,9 @@ share a lane, and 5n rotates the set each wave). Lanes in use (live enemies or
 queued spawns, `activeLanes()`) are drawn in that type's colour (0.45 alpha, faint
 glow; owner found brighter too vibrant); idle lanes drop to 0.08.
 
-**Shots are hit-scan, drawn as plain beams/rings/sparks** (a louder glow +
+**Effects scale with damage** (`dmgMag`: ~0.9 for 4 dmg, ~2.3 for 80, cap
+3): beam core width + a glow underlay, an impact flash/ring per hit, and
+sparks on big hits. **Shots are hit-scan, drawn as plain beams/rings/sparks** (a louder glow +
 tracer + lightning pass was tried and reverted by the owner); each effect holds
 full opacity for the first half of its life, then fades.
 

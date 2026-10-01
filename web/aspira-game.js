@@ -116,8 +116,12 @@ function pickTargets(t, st, count) {
 function damage(e, amt, t) {
   if (e.dead) return;
   e.hp -= amt;
+  // impact flash sized and lit by the damage; big hits also throw sparks
+  const m = dmgMag(amt), col = t ? TOWERS[t.kind].color : "orange";
+  fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.15 + 0.08 * m });
+  if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
   // small, short-lived damage number, jittered so rapid hits don't stack
-  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), "green", 14, 0.6);
+  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), "green", 22, 1.2);
   if (e.hp <= 0) kill(e, t);
 }
 
@@ -127,7 +131,7 @@ function kill(e, t) {
   const b = Math.round(e.bounty * mul);
   G.money += b;
   sfx("kill");
-  float(e.x, e.y - 30, "+" + b, "orange", 22, 1.0);
+  float(e.x, e.y - 30, "+" + b, "orange", 30, 2.0);
   addScore(b * 10);
   G.charge = Math.min(POWER_FULL, G.charge + (e.type === "boss" ? 6 : 1));
   burst(e.x, e.y, ENEMIES[e.type].color, e.type === "boss" ? 40 : 14);
@@ -156,7 +160,7 @@ function addScore(n) {
 function fireChain(t, st, e) {
   const hit = new Set([e.id]), col = TOWERS[t.kind].color;
   let cur = e, dmg = st.dmg;
-  beam(t, e, col, 0.15); damage(e, dmg, t);
+  beam(t, e, col, 0.15, 1.5, dmg); damage(e, dmg, t);
   for (let i = 0; i < st.chains; i++) {
     let nxt = null, nd = 90 * 90;
     for (const o of G.enemies) {
@@ -165,7 +169,7 @@ function fireChain(t, st, e) {
       if (d < nd) { nd = d; nxt = o; }
     }
     if (!nxt) break;
-    dmg *= 0.75; hit.add(nxt.id); beam(cur, nxt, col, 0.15); damage(nxt, dmg, t); cur = nxt;
+    dmg *= 0.75; hit.add(nxt.id); beam(cur, nxt, col, 0.15, 1.5, dmg); damage(nxt, dmg, t); cur = nxt;
   }
 }
 
@@ -188,29 +192,29 @@ function fire(t, st) {
     case "chain": fireChain(t, st, e); break;
     case "nuke": {
       const crit = Math.random() < st.crit;
-      beam(t, e, col, 0.25, crit ? 5 : 3);
+      beam(t, e, col, 0.25, crit ? 5 : 3, st.dmg * (crit ? 3 : 1));
       ring(e.x, e.y, crit ? 40 : 24, col);
       if (crit) float(e.x, e.y - 20, "CRIT", col, 16);
       damage(e, st.dmg * (crit ? 3 : 1), t);
       break;
     }
     case "pusher":
-      beam(t, e, col, 0.2, 3);
+      beam(t, e, col, 0.2, 3, st.dmg);
       e.s = Math.max(0, e.s - st.push * PATHS[e.pi].pace * (boss ? 0.4 : 1));
       damage(e, st.dmg, t);
       break;
     case "stopper":
-      beam(t, e, col, 0.2);
+      beam(t, e, col, 0.2, 1.5, st.dmg);
       e.stunT = Math.max(e.stunT, st.stun * (boss ? 0.4 : 1));
       damage(e, st.dmg, t);
       break;
     case "gold":
-      beam(t, e, col, 0.15);
+      beam(t, e, col, 0.15, 1.5, st.dmg);
       e.markT = 5; e.markMul = Math.max(e.markMul, st.mark);
       damage(e, st.dmg, t);
       break;
     default:
-      beam(t, e, col, t.kind === "rapid" ? 0.06 : 0.15, t.kind === "reaper" ? 3 : 1.5);
+      beam(t, e, col, t.kind === "rapid" ? 0.06 : 0.15, t.kind === "reaper" ? 3 : 1.5, st.dmg);
       damage(e, st.dmg, t);
   }
   return true;
@@ -232,7 +236,12 @@ function usePower(code) {
 }
 
 // ---------- fx ----------
-function beam(a, b, color, life, w = 1.5) { fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w }); }
+// Effect magnitude from damage: ~0.9 for a 4-damage tick, ~2.3 for an 80
+// hit, capped at 3 (a big crit). 0 for no damage (the Slower's beam).
+const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
+function beam(a, b, color, life, w = 1.5, dmg = 0) {
+  fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg) });
+}
 function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
 function float(x, y, text, color, size = 28, life = 1.1) { fx.push({ k: "text", x, y, text, color, t: 0, life, size }); }
 function burst(x, y, color, n) {

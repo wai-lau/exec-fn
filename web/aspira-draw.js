@@ -45,7 +45,7 @@ function text(str, x, y, size, color) {
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 
 function drawGraticule() {
-  ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+  ctx.strokeStyle = COL.grid; ctx.lineWidth = 2;
   ctx.globalAlpha = 0.5;
   for (let r = 100; r <= 450; r += 50) { ctx.beginPath(); ctx.arc(CX, CY, r, 0, 6.283); ctx.stroke(); }
   for (let h = 0; h < 24; h++) {
@@ -55,7 +55,7 @@ function drawGraticule() {
     ctx.lineTo(CX + Math.cos(a) * 480, CY + Math.sin(a) * 480);
     ctx.stroke();
   }
-  // graduated rim: a tick per degree, longer every 5, hour labels every 2h
+  // graduated rim: a tick per degree, longer every 5 (no hour labels: owner)
   ctx.globalAlpha = 1;
   ctx.beginPath(); ctx.arc(CX, CY, 482, 0, 6.283); ctx.stroke();
   ctx.beginPath(); ctx.arc(CX, CY, 494, 0, 6.283); ctx.stroke();
@@ -65,12 +65,6 @@ function drawGraticule() {
     ctx.moveTo(CX + Math.cos(a) * 482, CY + Math.sin(a) * 482);
     ctx.lineTo(CX + Math.cos(a) * (482 + len), CY + Math.sin(a) * (482 + len));
     ctx.stroke();
-  }
-  for (let h = 0; h < 24; h += 2) {
-    const a = h * Math.PI / 12 - Math.PI / 2;
-    ctx.globalAlpha = 0.8;
-    text(h + "h", CX + Math.cos(a) * 460, CY + Math.sin(a) * 460, 18, "green");
-    ctx.globalAlpha = 1;
   }
 }
 
@@ -105,12 +99,15 @@ function drawLanes() {
     ctx.setLineDash([]);
     // a small circle where the lane crosses the rim, catalogue numeral inside it
     const p0 = path.rim, a = Math.atan2(p0.y - CY, p0.x - CX);
-    ctx.globalAlpha = col ? 1 : 0.7; ctx.lineWidth = 1;
+    ctx.globalAlpha = col ? 1 : 0.7; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
     // numerals sit on an even ring at each lane's nominal 30-degree slot, not
     // at the rim crossing: elliptical lanes cross the rim too close to others
     const na = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
-    text(ROMAN[i], CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, 30, col || "cyan");
+    // in use: full size and opacity in the riding type's colour; idle: small, faint
+    ctx.globalAlpha = col ? 1 : 0.3;
+    text(ROMAN[i], CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, col ? 30 : 20, col || "cyan");
+    ctx.globalAlpha = 1;
   });
   ctx.globalAlpha = 1;
 }
@@ -121,12 +118,12 @@ function drawBoard() {
   drawLanes();
   drawCells();
   // the build disc: the chart's inner field, dashed boundary
-  ctx.strokeStyle = COL.orange; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.6;
+  ctx.strokeStyle = COL.orange; ctx.lineWidth = 3; ctx.globalAlpha = 0.6;
   ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.arc(CX, CY, BUILD_R, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
   ctx.globalAlpha = 1;
   // the core, drawn as a sun symbol: circle with a centre dot
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
-  ctx.strokeStyle = COL.orange; ctx.lineWidth = 2;
+  ctx.strokeStyle = COL.orange; ctx.lineWidth = 3.5;
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false); ctx.stroke();
   text(G.lives, CX, CY + 2, 28, "orange");
 }
@@ -136,7 +133,7 @@ function drawBoard() {
 function drawTower(t, ghost) {
   const b = TOWERS[t.kind], c = CELLS[t.cell], k = 0.88;
   ctx.globalAlpha = ghost ? 0.55 : 1;
-  ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineWidth = 2; ctx.lineJoin = "round";
+  ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineWidth = 3.5; ctx.lineJoin = "round";
   ctx.beginPath();
   c.pts.forEach((p, i) => {
     const x = c.x + (p.x - c.x) * k, y = c.y + (p.y - c.y) * k;
@@ -150,7 +147,7 @@ function drawTower(t, ghost) {
 }
 
 function drawCells() {
-  ctx.strokeStyle = COL.orange; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = COL.orange; ctx.lineWidth = 2; ctx.globalAlpha = 0.3;
   ctx.beginPath();
   for (const c of CELLS) {
     c.pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
@@ -164,7 +161,7 @@ function drawCells() {
 function drawRange(x, y, r, color, dim = false) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
   ctx.fillStyle = COL[color]; ctx.globalAlpha = dim ? 0.025 : 0.08; ctx.fill();
-  ctx.strokeStyle = COL[color]; ctx.globalAlpha = dim ? 0.35 : 0.75; ctx.lineWidth = dim ? 1.2 : 2; ctx.stroke();
+  ctx.strokeStyle = COL[color]; ctx.globalAlpha = dim ? 0.35 : 0.75; ctx.lineWidth = dim ? 2 : 3.5; ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
@@ -178,11 +175,11 @@ function drawEnemy(e) {
   // full at the core), still dimmed by lost HP
   const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));
   ctx.globalAlpha = (0.1 + 0.9 * near) * (0.7 + 0.3 * f);
-  ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = 3; ctx.stroke();
   ctx.globalAlpha = 1;
   if (e.stunT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283);
-    ctx.strokeStyle = COL.pink; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = COL.pink; ctx.lineWidth = 2.5; ctx.stroke();
   }
   if (e.markT > 0) {
     ctx.fillStyle = COL.orange; ctx.beginPath(); ctx.arc(e.x + size, e.y - size, 4, 0, 6.283); ctx.fill();
@@ -198,8 +195,20 @@ function drawFx(pass) {
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
     if (f.k === "beam") {
-      ctx.strokeStyle = COL[f.color]; ctx.lineWidth = f.w + 1;
-      ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+      // glow underlay + core, both widening with the damage behind the shot
+      ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2);
+      if (f.m) {
+        const a = ctx.globalAlpha;
+        ctx.globalAlpha = a * 0.22; ctx.lineWidth = (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
+        ctx.globalAlpha = a;
+      }
+      ctx.lineWidth = (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
+    } else if (f.k === "hit") {
+      const a = ctx.globalAlpha, rr = f.r * (0.5 + 0.5 * (1 - k));
+      ctx.fillStyle = COL[f.color]; ctx.globalAlpha = a * 0.3;
+      ctx.beginPath(); ctx.arc(f.x, f.y, rr, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = COL[f.color]; ctx.globalAlpha = a; ctx.lineWidth = 1 + f.m * 0.6; ctx.stroke();
     } else if (f.k === "ring") {
       ctx.strokeStyle = COL[f.color]; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.5), 0, 6.283); ctx.stroke();

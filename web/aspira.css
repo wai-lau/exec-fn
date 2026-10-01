@@ -167,6 +167,14 @@
 
 .asp-pop[hidden] { display: none; } /* .asp-deck's display:flex beats the UA [hidden] rule */
 
+/* CRT stack well below even crt-dim.css's reduced strength: a fast board of
+   fine lines and small shapes is unreadable under full scanlines. aspira.css
+   loads only on /aspira, so these global selectors touch no other page.
+   Opacity, not rescaled alphas, for the same palette-lint reason as crt-dim. */
+.cyber-bg, .cyber-lines, .cyber-scan { opacity: 0.4; }
+.cyber-blur { backdrop-filter: blur(calc(var(--blur-2xs) * 0.4)); }
+.cyber-crt { backdrop-filter: brightness(0.95) contrast(1.15); }
+
 /* palette swatches the canvas reads its colours from (aspira-defs.js) */
 .asp-sw { display: none; }
 .asp-sw.bg { color: hsl(var(--bg-hsl)); }
