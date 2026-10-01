@@ -4056,7 +4056,10 @@ base stats grow per level in `towerStats`. Mods: `dmg/rate/range/arcRange`
 multiply, `crit/arcs/targets/slow` add, anything else is a behaviour flag the
 shot code reads (`shred`, `dot`, `splash`, `stun`, `hitSlow`, `everyN`,
 `bossMul`, `aura`, `chillStop`, `brittle`, `all`, `sap`, `siphon`, `critMul`,
-`critBelow`, `pierce`). The popup shows one button per option at a branch
+`critBelow`, `pierce`). LEVEL 15 is the SUPER form: the final form's mods are
+intensified by `superMods` (multipliers `^1.6`, additive bonuses x2, each
+behaviour value by its own rule in `SUPER_KEYS`/`SUPER_FIELDS`), and the tower
+is titled "Super <form>". The popup shows one button per option at a branch
 point. On the board a tower shows its level as CONCENTRIC LAYERS all the way
 round: one outer hex ring per 5 levels (L15 = 3 rings), the outermost always
 at the usual cell size (`TOWER_K`) while the main hex shrinks a `LAYER_STEP`

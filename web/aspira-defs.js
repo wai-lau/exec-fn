@@ -233,7 +233,10 @@ function towerStats(t, noAura = false) {
   if (t.path != null) {
     const p = UPGRADES[t.kind][t.path];
     applyMods(s, p.mods);
-    if (t.form != null) applyMods(s, p.finals[t.form].mods);
+    if (t.form != null) {
+      const fm = p.finals[t.form].mods;
+      applyMods(s, t.lvl >= MAX_LVL ? superMods(fm) : fm); // L15: super form
+    }
   }
   if (s.slow) s.slow = Math.min(0.85, s.slow);
   if (!noAura) {
