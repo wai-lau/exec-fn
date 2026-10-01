@@ -16,6 +16,8 @@ function newGame() {
 let G = newGame();
 
 // ---------- waves ----------
+const WAVE_GAP = 15;
+const waveClear = () => G.enemies.length === 0 && G.spawns.length === 0;
 function makeWave(n) {
   const count = Math.min(10 + Math.floor(n * 0.5), 28), m = n % 4, list = [];
   for (let i = 0; i < count; i++) {
@@ -43,7 +45,7 @@ function sendWave() {
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
   sfx("wave");
   G.spawns.push({ n: G.wave, list: makeWave(G.wave), lanes: laneMap(G.wave), idx: 0, timer: 0 });
-  G.nextIn = 22;
+  G.nextIn = WAVE_GAP;
   G.started = true;
 }
 
@@ -278,8 +280,12 @@ function stepEnemies(dt) {
 function step(dt) {
   if (G.over || !G.started) return;
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
-  G.nextIn -= dt;
-  if (G.nextIn <= 0) sendWave();
+  // the countdown to the next wave only runs once the field is clear:
+  // nothing alive, nothing still queued to spawn
+  if (waveClear()) {
+    G.nextIn -= dt;
+    if (G.nextIn <= 0) sendWave();
+  }
   stepSpawns(dt);
   stepEnemies(dt);
   if (G.over) return;

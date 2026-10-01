@@ -143,7 +143,10 @@ function updateHud() {
     btn.classList.toggle("on", ui.build === k);
   }
   const send = $("asp-send");
-  setText(send, G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " · " + Math.max(0, Math.ceil(G.nextIn)) + "s");
+  const label = G.wave === 0 ? "send wave 1"
+    : waveClear() ? "send wave " + (G.wave + 1) + " · " + Math.max(0, Math.ceil(G.nextIn)) + "s"
+    : "send wave " + (G.wave + 1) + " early";
+  setText(send, label);
   send.disabled = G.over;
   $("asp-sp-pause").classList.toggle("on", ui.paused);
   setText($("asp-mute"), muted ? "sound off" : "sound on");
