@@ -61,7 +61,13 @@ const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * 
 const SFX = {
   rapid:   () => tone({ type: "square", f0: 1400, f1: 900, dur: 0.03, vol: 0.08 }),
   chain:   () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
-  reaper:  () => { tone({ f0: 260, f1: 90, dur: 0.3, vol: 0.22 }); noise({ dur: 0.25, vol: 0.15, freq: 900, q: 0.8 }); },
+  // RPR: a spacey laser - a long falling sine, a detuned shimmer under it,
+  // and a faint echo, instead of a thump
+  reaper:  () => {
+    tone({ f0: 1600, f1: 180, dur: 0.45, vol: 0.12 });
+    tone({ type: "triangle", f0: 1618, f1: 183, dur: 0.45, vol: 0.05 });
+    tone({ f0: 1600, f1: 180, dur: 0.45, vol: 0.035, delay: 0.14 });
+  },
   slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
   kill:    () => tone({ type: "triangle", f0: 520, f1: 1040, dur: 0.07, vol: 0.16 }),
   leak:    () => tone({ type: "sawtooth", f0: 110, f1: 60, dur: 0.4, vol: 0.3 }),
