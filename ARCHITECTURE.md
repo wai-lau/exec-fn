@@ -3922,7 +3922,9 @@ literal.
 **The board is FIXED, not random** (owner's call), drawn as a star chart:
 graduated hour rim, polar graticule, a star field seeded once and replicated
 into six mirror/rotation wedges, lanes as fine orbit lines numbered I–XII.
-Twelve Archimedean spirals enter every 30° and run through the build disc
+Twelve Archimedean spirals start OFF-SCREEN (`R0 = 760`, past the canvas
+corners; markers/numerals sit where each lane crosses the rim, `path.rim`),
+spaced every 30°, and run through the build disc
 all the way to the core (`R1 = CORE_R`); towers and enemies never collide, so
 building on a lane is allowed; lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
 the same turn count, and the six pairs climb `PAIR_TURNS = [1, 2, 3, 4, 5, 6]`

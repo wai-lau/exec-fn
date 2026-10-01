@@ -84,8 +84,8 @@ function drawLanes() {
     } else {
       ctx.globalAlpha = 0.08; ctx.lineWidth = 1; ctx.stroke();
     }
-    // a small circle at entry, catalogue numeral just outside it
-    const p0 = path.pts[0], a = Math.atan2(p0.y - CY, p0.x - CX);
+    // a small circle where the lane crosses the rim, catalogue numeral inside it
+    const p0 = path.rim, a = Math.atan2(p0.y - CY, p0.x - CX);
     ctx.globalAlpha = col ? 0.7 : 0.3; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
     text(ROMAN[i], CX + Math.cos(a) * 448, CY + Math.sin(a) * 448, 12, col || "cyan");
