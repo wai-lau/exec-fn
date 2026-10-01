@@ -2,13 +2,25 @@
 // fades are globalAlpha, never a colour with its own alpha.
 
 const cv = document.getElementById("asp-cv"), ctx = cv.getContext("2d");
-let scale = 1;
+// The canvas fills the screen; the camera fits the 1000-unit chart into the
+// part of it the floating decks leave open (left of the side deck on wide
+// screens, above the bottom sheet on phones). cam is in device pixels.
+const cam = { k: 1, ox: 0, oy: 0 };
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
-  scale = cv.width / W;
+  const side = document.querySelector(".asp-side").getBoundingClientRect();
+  const head = document.querySelector(".asp-head").getBoundingClientRect();
+  const wide = side.top - r.top < r.height / 3;
+  const x0 = 0, y0 = head.bottom - r.top;
+  const x1 = wide ? side.left - r.left : r.width, y1 = wide ? r.height : side.top - r.top;
+  const k = Math.min(x1 - x0, y1 - y0) / W;
+  cam.k = k * dpr;
+  cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
+  cam.oy = (y0 + (y1 - y0 - W * k) / 2) * dpr;
 }
 new ResizeObserver(resize).observe(cv);
+new ResizeObserver(resize).observe(document.querySelector(".asp-side"));
 
 function poly(x, y, r, n, rot, star) {
   ctx.beginPath();
@@ -94,7 +106,6 @@ function drawLanes() {
 }
 
 function drawBoard() {
-  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, W);
   drawGraticule();
   drawStars();
   drawLanes();
@@ -162,7 +173,9 @@ function drawFx() {
 }
 
 function render() {
-  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
   drawBoard();
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
   if (sel) drawRange(sel.x, sel.y, towerStats(sel).range, TOWERS[sel.kind].color);

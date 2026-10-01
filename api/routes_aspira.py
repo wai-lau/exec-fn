@@ -17,4 +17,4 @@ from pages import _render_page, _tmpl
 
 @protected.get("/aspira", response_class=HTMLResponse)
 async def aspira_page():
-    return _render_page("aspira", _tmpl("aspira.html"))
+    return _render_page("aspira", _tmpl("aspira.html"), full_height=True)

@@ -11,8 +11,8 @@ function canPlace(x, y) {
   return !G.towers.some(t => Math.hypot(t.x - x, t.y - y) < 40);
 }
 function toWorld(ev) {
-  const r = cv.getBoundingClientRect();
-  return { x: (ev.clientX - r.left) / r.width * W, y: (ev.clientY - r.top) / r.height * W };
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  return { x: ((ev.clientX - r.left) * dpr - cam.ox) / cam.k, y: ((ev.clientY - r.top) * dpr - cam.oy) / cam.k };
 }
 function placeTower(p) {
   const b = TOWERS[ui.build];
@@ -22,6 +22,8 @@ function placeTower(p) {
   const t = { id: G.id++, kind: ui.build, x: p.x, y: p.y, lvl: 1, cd: 0, mode: "close", spent: b.cost };
   G.towers.push(t);
   ring(t.x, t.y, 30, b.color);
+  // one tower per pick: placing ends placing mode and selects the new tower
+  ui.build = null; ui.sel = t.id;
 }
 cv.addEventListener("pointermove", ev => { ui.hover = toWorld(ev); });
 cv.addEventListener("pointerleave", () => { ui.hover = null; });
@@ -98,7 +100,7 @@ function refreshPanels() {
     const b = TOWERS[ui.build];
     el.innerHTML = '<h3>Placing</h3><div class="name">' + b.name + " · " + b.cost + "</div>" +
       '<p class="asp-hint">' + b.blurb + " Upgrades improve " + b.up + ".</p>" +
-      '<p class="asp-hint">Tap inside the central ring. Tap the button again to stop placing.</p>';
+      '<p class="asp-hint">Tap inside the central ring. Placing one ends placing mode.</p>';
     return;
   }
   el.innerHTML = '<h3>Inspector</h3><p class="asp-hint">Pick a tower to build, or tap one on the field.</p>' +

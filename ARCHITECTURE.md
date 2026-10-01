@@ -3901,7 +3901,15 @@ renders the nav with nothing marked active. Linked from nowhere; reached by
 URL. A web take on the spiral tower-defence genre (Android "Spira Defence" /
 "Spira 2" as the reference for mechanics only; all code and art original).
 
-**Route** `api/routes_aspira.py` → `templates/aspira.html`. No API, no server
+**Route** `api/routes_aspira.py` → `templates/aspira.html`, `full_height`:
+the canvas fills the screen above the nav and the HUD + decks float over it
+(deck on the right ≥900px, a fixed 42% bottom sheet below). The camera
+(`cam` in aspira-draw.js, device pixels) fits the 1000-unit chart into the
+area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient
+over `--bg-hsl`), never `backdrop-filter`, which would re-read the animated
+canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
+the decks, or the phone sheet covers Start. Placing a tower ends placing mode
+and selects the new tower. No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
 
 **Client** — four same-global-scope files, loaded in order:
@@ -3927,10 +3935,10 @@ corners; markers/numerals sit where each lane crosses the rim, `path.rim`),
 spaced every 30°, and run through the build disc
 all the way to the core (`R1 = CORE_R`); towers and enemies never collide, so
 building on a lane is allowed; lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
-the same turn count, and the six pairs climb `PAIR_TURNS = [1, 2, 3, 4, 5, 6]`
-(owner: min 1 full turn, max 6). A 6-turn lane is ~6× longer, so each lane
-has `pace = (len / shortest)^0.6` multiplying enemy speed and Pusher distance:
-the longest lane takes ~2× as long, not 6×. **Every tower goes inside the
+the same turn count, and the six pairs climb `PAIR_TURNS = [3, 4, 5, 6, 7, 8]`
+(owner: min 3 full turns, max 8). Each lane has `pace = (len / shortest)^0.6`
+multiplying enemy speed and Pusher distance, so the longest lane takes ~1.4×
+as long as the shortest rather than ~2.5×. **Every tower goes inside the
 central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges
 were raised (~+60%) to reach the lanes. **Each enemy TYPE owns one lane per wave**: type k of wave n rides lane
 `(n·5 + k·7) % 12` (`laneMap`; 7 is coprime with 12, so a wave's types never

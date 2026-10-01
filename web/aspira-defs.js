@@ -2,14 +2,15 @@
 // powers. Same-global-scope files, loaded in order:
 // aspira-defs -> aspira-game -> aspira-draw -> aspira-ui. ARCHITECTURE.md §22.
 
-// World is a fixed 1000x1000 square; the canvas scales it to fit.
+// World is a fixed 1000x1000 chart; the camera (aspira-draw.js) fits it into
+// whatever part of the full-screen canvas the decks leave open.
 const W = 1000, CX = 500, CY = 500, CORE_R = 46;
 const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 
 // Twelve spirals, one entering every 30 degrees around the rim. A FIXED
 // layout, the same every game: lanes come in mirror pairs (2j, 2j+1) that wind
 // in opposite directions with the same turn count, so each pair is symmetric
-// about its own axis, and the six pairs climb from 1 full turn to 6 round the
+// about its own axis, and the six pairs climb from 3 full turns to 8 round the
 // clock (PAIR_TURNS). Archimedean (even spacing) from R0 in to the core.
 // R0 sits past the canvas corners (707 from centre), so every lane starts
 // off-screen and enemies drift in from beyond the chart; RIM_R is the chart's
@@ -18,9 +19,9 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
 const BUILD_R = 190;
-const PAIR_TURNS = [1, 2, 3, 4, 5, 6];
-// A 6-turn lane is ~6x longer than a 1-turn one. Enemies on it move faster
-// (pace = (len / shortest)^0.6) so it takes ~2x as long, not 6x.
+const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
+// An 8-turn lane is ~2.5x longer than a 3-turn one. Enemies on it move
+// faster (pace = (len / shortest)^0.6) so it takes ~1.4x as long, not 2.5x.
 const PACE_EXP = 0.6;
 const PATHS = [];
 
@@ -57,8 +58,8 @@ const STARS = (function starField() {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
   const axis = -Math.PI / 3, out = [];
-  for (let n = 0; n < 48; n++) {
-    const r = BUILD_R + 12 + Math.sqrt(rand()) * (470 - BUILD_R - 12);
+  for (let n = 0; n < 190; n++) {
+    const r = BUILD_R + 12 + Math.sqrt(rand()) * (1100 - BUILD_R - 12);
     const th = axis + rand() * Math.PI / 3, m = Math.pow(rand(), 3) * 2.2 + 0.5;
     for (const base of [th, 2 * axis - th]) {
       for (let k = 0; k < 3; k++) {
