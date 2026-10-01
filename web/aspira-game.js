@@ -41,6 +41,7 @@ function sendWave() {
   if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green"); }
   G.wave++;
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
+  sfx("wave");
   G.spawns.push({ n: G.wave, list: makeWave(G.wave), lanes: laneMap(G.wave), idx: 0, timer: 0 });
   G.nextIn = 22;
   G.started = true;
@@ -123,12 +124,13 @@ function kill(e, t) {
   const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1);
   const b = Math.round(e.bounty * mul);
   G.money += b;
+  sfx("kill");
   float(e.x, e.y - 30, "+" + b, "orange", 22, 1.0);
   addScore(b * 10);
   G.charge = Math.min(POWER_FULL, G.charge + (e.type === "boss" ? 6 : 1));
   burst(e.x, e.y, ENEMIES[e.type].color, e.type === "boss" ? 40 : 14);
   if (t && t.kind === "reaper" && Math.random() < towerStats(t).life) {
-    G.lives++; float(e.x, e.y - 18, "+1 life", "glow");
+    G.lives++; sfx("life"); float(e.x, e.y - 18, "+1 life", "glow");
   }
   if (e.type === "bonus") bonusDrop(e);
 }
@@ -144,7 +146,7 @@ function bonusDrop(e) {
 function addScore(n) {
   G.score += n * (G.power.SCR > 0 ? 2 : 1);
   while (G.score >= G.nextLifeAt) {
-    G.lives++; banner("extra life");
+    G.lives++; sfx("life"); banner("extra life");
     G.nextLifeAt = G.nextLifeAt < 100000 ? 100000 : G.nextLifeAt + 100000;
   }
 }
@@ -265,6 +267,7 @@ function stepEnemies(dt) {
     if (e.s >= PATHS[e.pi].len) {
       e.dead = true;
       G.lives -= e.type === "boss" ? 5 : 1;
+      sfx("leak");
       ring(e.x, e.y, 40, "pink", 0.5);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }
@@ -284,7 +287,9 @@ function step(dt) {
     t.cd -= dt;
     if (t.cd > 0) continue;
     const st = towerStats(t);
-    t.cd = fire(t, st) ? 1 / st.rate : 0.05;
+    const fired = fire(t, st);
+    if (fired) sfx(t.kind);
+    t.cd = fired ? 1 / st.rate : 0.05;
   }
   G.enemies = G.enemies.filter(e => !e.dead);
 }
@@ -301,6 +306,7 @@ function stepFx(dt) {
 
 function gameOver() {
   G.over = true;
+  sfx("over");
   if (G.score > best.score) best.score = G.score;
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}

@@ -23,6 +23,7 @@ function placeTower(p) {
   const c = CELLS[ci];
   const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: "close", spent: b.cost };
   G.towers.push(t);
+  sfx("build");
   ring(t.x, t.y, 60, b.color);
   // one tower per pick: placing ends placing mode and selects the new tower
   ui.build = null; ui.sel = t.id;
@@ -62,6 +63,7 @@ KINDS.forEach((k, i) => {
   }, "asp-sp-" + v);
 });
 $("asp-send").onclick = sendWave;
+button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
 const EXTRA = {
   rapid: st => ["Rate", st.rate.toFixed(1) + "/s"], chain: st => ["Arcs", st.chains],
@@ -81,6 +83,7 @@ function upgradeTower(t) {
   if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
   const c = upCost(t);
   G.money -= c; t.spent += c; t.lvl++;
+  sfx("up");
   ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
 }
 
@@ -102,7 +105,8 @@ function inspectTower(el, t) {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
   button($("asp-acts"), "", "sell · " + sellValue(t), () => {
-    G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null; refreshPanels();
+    G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null;
+    sfx("sell"); refreshPanels();
   });
 }
 
@@ -142,6 +146,7 @@ function updateHud() {
   setText(send, G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " · " + Math.max(0, Math.ceil(G.nextIn)) + "s");
   send.disabled = G.over;
   $("asp-sp-pause").classList.toggle("on", ui.paused);
+  setText($("asp-mute"), muted ? "sound off" : "sound on");
   for (const v of [1, 2, 3]) $("asp-sp-" + v).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
@@ -175,6 +180,7 @@ document.addEventListener("keydown", ev => {
   if (ev.target.closest("input, textarea, [contenteditable]")) return;
   if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
   if (["1", "2", "3"].includes(ev.key)) { ui.speed = Number(ev.key); ui.paused = false; }
+  else if (ev.key === "m" || ev.key === "M") setMuted(!muted);
   else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; }
   else if (ev.key === "Tab") { ev.preventDefault(); if ($("asp-ov").hidden) sendWave(); }
   else if (ev.key === "u" || ev.key === "U") upgradeTower(ui.sel && G.towers.find(x => x.id === ui.sel));

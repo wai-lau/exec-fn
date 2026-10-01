@@ -172,7 +172,7 @@ function drawEnemy(e) {
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
   // full at the core), still dimmed by lost HP
   const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));
-  ctx.globalAlpha = (0.25 + 0.75 * near) * (0.5 + 0.5 * f);
+  ctx.globalAlpha = (0.1 + 0.9 * near) * (0.7 + 0.3 * f);
   ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = 2; ctx.stroke();
   ctx.globalAlpha = 1;
   if (e.stunT > 0) {

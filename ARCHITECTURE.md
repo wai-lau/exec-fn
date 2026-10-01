@@ -3923,18 +3923,19 @@ Clicking a tower opens its stats in a POPUP pinned beside it on the board
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
 Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
-proximity to the core (0.25 at/beyond the rim → 1 at the core, × HP). Every hit floats a small damage number (14,
+proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Every hit floats a small damage number (14,
 0.6s, jittered); a kill floats `+N` credits. Lane numerals sit on an
 even ring at each lane's nominal 30° slot. Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
 
-**Client** — four same-global-scope files, loaded in order:
+**Client** — five same-global-scope files, loaded in order (defs, sfx, game, draw, ui):
 
 | File | Holds |
 |------|-------|
 | `web/aspira-defs.js` | world geometry (1000×1000; twelve spirals `PATHS` with per-lane `pace`, `pathAt(pi, s)` by binary search; `BUILD_R` disc; `STARS`), `TOWERS`/`ENEMIES`/`POWERS` tables, `towerStats()`, `COL` |
+| `web/aspira-sfx.js` | synthesised WebAudio sound effects (`sfx(name)`): one per tower shot, kill, leak, wave, build/upgrade/sell, life, game over; context created on first gesture; per-sound minimum gap + 24-voice cap; mute persisted in `localStorage["aspira.mute"]` (button + M) |
 | `web/aspira-game.js` | state `G`, waves, economy, targeting (`MODE_KEY`), combat, fx, `step()` |
 | `web/aspira-draw.js` | canvas render |
 | `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
