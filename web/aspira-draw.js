@@ -85,6 +85,9 @@ function drawStars() {
 
 // Lanes in use this wave are drawn bright in the colour of the enemy type
 // riding them; idle lanes drop to a faint trace.
+// one stroke style per mirror pair (both lanes of a pair match, so the
+// pair symmetry holds): solid, dotted, dashed, dash-dot, fine dots, long dash
+const LANE_DASH = [[], [0.1, 7], [12, 7], [16, 5, 0.1, 5], [0.1, 4], [28, 9]];
 function drawLanes() {
   const live = activeLanes();
   ctx.lineJoin = "round";
@@ -92,12 +95,14 @@ function drawLanes() {
     const col = live.get(i);
     ctx.strokeStyle = COL[col || "cyan"];
     ctx.beginPath(); path.pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.setLineDash(LANE_DASH[i >> 1]); ctx.lineCap = "round";
     if (col) {
-      ctx.globalAlpha = 0.06; ctx.lineWidth = 6; ctx.stroke();
-      ctx.globalAlpha = 0.45; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.globalAlpha = 0.03; ctx.lineWidth = 6; ctx.stroke();
+      ctx.globalAlpha = 0.3; ctx.lineWidth = 1.4; ctx.stroke();
     } else {
-      ctx.globalAlpha = 0.08; ctx.lineWidth = 1; ctx.stroke();
+      ctx.globalAlpha = 0.05; ctx.lineWidth = 1.2; ctx.stroke();
     }
+    ctx.setLineDash([]);
     // a small circle where the lane crosses the rim, catalogue numeral inside it
     const p0 = path.rim, a = Math.atan2(p0.y - CY, p0.x - CX);
     ctx.globalAlpha = col ? 1 : 0.7; ctx.lineWidth = 1;
@@ -122,14 +127,14 @@ function drawBoard() {
   // the core, drawn as a sun symbol: circle with a centre dot
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
   ctx.strokeStyle = COL.orange; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(CX, CY, CORE_R * pulse, 0, 6.283); ctx.stroke();
-  text(G.lives, CX, CY + 2, 36, "orange");
+  poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false); ctx.stroke();
+  text(G.lives, CX, CY + 2, 28, "orange");
 }
 
-// A tower is its cell's triangle, inset a little so neighbours read apart;
+// A tower is its cell's hexagon, inset a little so neighbours read apart;
 // label at the centroid, level pips beneath it.
 function drawTower(t, ghost) {
-  const b = TOWERS[t.kind], c = CELLS[t.cell], k = 0.86;
+  const b = TOWERS[t.kind], c = CELLS[t.cell], k = 0.88;
   ctx.globalAlpha = ghost ? 0.55 : 1;
   ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineWidth = 2; ctx.lineJoin = "round";
   ctx.beginPath();
@@ -148,7 +153,7 @@ function drawCells() {
   ctx.strokeStyle = COL.orange; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
   ctx.beginPath();
   for (const c of CELLS) {
-    ctx.moveTo(c.pts[0].x, c.pts[0].y); ctx.lineTo(c.pts[1].x, c.pts[1].y); ctx.lineTo(c.pts[2].x, c.pts[2].y);
+    c.pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
     ctx.closePath();
   }
   ctx.stroke(); ctx.globalAlpha = 1;
@@ -184,8 +189,11 @@ function drawEnemy(e) {
   }
 }
 
-function drawFx() {
+// Two passes so towers sit on top of their own shots but under the numbers:
+// pass "shots" draws beams/rings/sparks, pass "text" draws floating numbers.
+function drawFx(pass) {
   for (const f of fx) {
+    if ((f.k === "text") !== (pass === "text")) continue;
     // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
@@ -212,15 +220,16 @@ function render() {
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
   for (const t of G.towers) if (t !== sel) drawRange(t.x, t.y, towerStats(t).range, TOWERS[t.kind].color, true);
   if (sel) drawRange(sel.x, sel.y, towerStats(sel).range, TOWERS[sel.kind].color);
-  for (const t of G.towers) drawTower(t);
   for (const e of G.enemies) drawEnemy(e);
+  drawFx("shots");
+  for (const t of G.towers) drawTower(t);
   const hc = ui.build && ui.hover ? cellAt(ui.hover.x, ui.hover.y) : -1;
   if (hc >= 0) {
     const b = TOWERS[ui.build], c = CELLS[hc];
     drawRange(c.x, c.y, b.range * (G.power.RNG > 0 ? 1.3 : 1), canPlace(hc) ? b.color : "pink");
     drawTower({ kind: ui.build, cell: hc, lvl: 1 }, true);
   }
-  drawFx();
+  drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
     text(bannerText, CX, 70, 44, "orange");

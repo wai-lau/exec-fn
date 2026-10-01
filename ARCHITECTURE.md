@@ -3909,13 +3909,16 @@ area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient
 over `--bg-hsl`), never `backdrop-filter`, which would re-read the animated
 canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
 the decks, or the phone sheet covers Start. Placing a tower ends placing mode
-and selects the new tower. The build disc is TESSELLATED into equilateral triangles (`CELLS`,
-side `CELL_L = 72`, lattice vertex on the core centre so the grid is six-fold
-symmetric; a cell exists only if all 3 corners are inside `BUILD_R` and out
-of the core: 36 cells). A tower IS a triangle: it fills one cell, snaps to
-the cell tapped (`cellAt`, point-in-triangle), and its position is the cell
-centroid. No enemy is a triangle (owner's rule: triangles mean towers), so
-fast enemies are pentagons. Board
+and selects the new tower. The build disc is TESSELLATED into pointy-top HEXAGONS (`CELLS`,
+circumradius `CELL_S = 32`; the centre hex IS the core, `CORE_R = 34`, and
+three rings around it give 36 cells inside `BUILD_R = 200`). A tower IS a
+hexagon: it fills one cell, snaps to the cell tapped (`cellAt`,
+point-in-convex-polygon), and its position is the cell centre. No enemy
+shares the towers' shape (owner's rule), so tough enemies are heptagons and
+fast ones pentagons (triangle towers came first; hexagons replaced them).
+Lanes are quiet (0.3 alpha in use, 0.05 idle) and each mirror pair has its
+own stroke (`LANE_DASH`: solid, dotted, dashed, dash-dot, fine dots, long
+dash). Board
 text (hour labels, lane numerals, lives, floats, banner) is drawn large and
 near-opaque; deck text is HTML and unaffected.
 Clicking a tower opens its stats in a POPUP pinned beside it on the board
@@ -3923,7 +3926,8 @@ Clicking a tower opens its stats in a POPUP pinned beside it on the board
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
 Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
-proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Every hit floats a small damage number (14,
+proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Draw order: board, ranges, enemies, shots, TOWERS (on top of their
+own effects), build ghost, floating text, banner. Every hit floats a small damage number (14,
 0.6s, jittered); a kill floats `+N` credits. Lane numerals sit on an
 even ring at each lane's nominal 30° slot. Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
