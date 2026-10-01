@@ -116,7 +116,7 @@ function drawBoard() {
   drawGraticule();
   drawStars();
   drawLanes();
-  drawCells();
+  if (ui.build) drawCells(); // the hex grid shows only while placing a tower
   // the build disc: the chart's inner field, dashed boundary
   ctx.strokeStyle = COL.orange; ctx.lineWidth = 3; ctx.globalAlpha = 0.6;
   ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.arc(CX, CY, BUILD_R, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
