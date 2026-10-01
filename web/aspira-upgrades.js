@@ -25,7 +25,9 @@ const UPGRADES = {
     ] },
   ],
   chain: [
-    { name: "Conductor", desc: "+2 arcs", mods: { arcs: 2 }, finals: [
+    // base hop reach (50) only spans packed swarms; Conductor buys the reach to
+    // chain through ordinary trains (spaced ~48-67), turning CHN into an all-rounder
+    { name: "Conductor", desc: "+2 arcs, arcs reach 50% further (chain through trains)", mods: { arcs: 2, arcRange: 1.5 }, finals: [
       { name: "Storm", desc: "+3 arcs, arcs lose less damage", mods: { arcs: 3, arcFall: 0.9 } },
       { name: "Tesla", desc: "arcs jump 70% further", mods: { arcRange: 1.7 } },
     ] },
