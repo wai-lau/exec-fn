@@ -281,12 +281,18 @@ function fireSlower(t, st) {
 // Ray: one roll for crit per shot; Assassin always crits low-HP targets.
 // Lance forms pierce every enemy within `wide` of the beam, losing `fall`
 // of the damage per enemy passed through.
+// RPR's beam is drawn on through its target to well past the screen edge
+// (owner); damage still only lands where the shot logic says it does.
+function farPoint(t, e) {
+  const dx = e.x - t.x, dy = e.y - t.y, len = Math.hypot(dx, dy) || 1;
+  return { x: t.x + dx / len * 4000, y: t.y + dy / len * 4000 };
+}
 function fireRay(t, st, e) {
   const col = TOWERS[t.kind].color, crit = Math.random() < st.crit;
   const mulFor = o => (crit || (st.critBelow && o.hp / o.max < st.critBelow) ? st.critMul : 1);
   if (!st.pierce) {
     const m = mulFor(e), d = shotDamage(t, st, e, st.dmg) * m;
-    beam(t, e, col, 0.25, m > 1 ? 5 : 3, d);
+    beam(t, farPoint(t, e), col, 0.25, m > 1 ? 5 : 3, d);
     if (m > 1) float(e.x, e.y - 20, "CRIT", col, 16);
     damage(e, d, t); onHit(e, t, st, d);
     return;
@@ -298,7 +304,7 @@ function fireRay(t, st, e) {
     const px = o.x - t.x, py = o.y - t.y, along = px * ux + py * uy;
     return along >= 0 && along <= st.range && Math.abs(px * uy - py * ux) <= st.pierce.wide;
   }).sort((a, b) => ((a.x - t.x) * ux + (a.y - t.y) * uy) - ((b.x - t.x) * ux + (b.y - t.y) * uy));
-  beam(t, end, col, 0.25, st.pierce.wide > 20 ? 7 : 3, st.dmg);
+  beam(t, farPoint(t, end), col, 0.25, st.pierce.wide > 20 ? 7 : 3, st.dmg);
   let base = st.dmg;
   for (const o of inLine) {
     const m = mulFor(o), d = shotDamage(t, st, o, base) * m;
