@@ -7,7 +7,10 @@ routers.py, the composition root. That is
 how only the owner creates polls without noodle importing the app's auth.
 """
 import asyncio
+import hashlib
+import hmac
 import json
+import os
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request
@@ -42,6 +45,18 @@ async def _json_body(request: Request, cap: int) -> dict:
     if not isinstance(data, dict):
         raise HTTPException(400, "body must be an object")
     return data
+
+
+# Same exemption token as auth.RATE_EXEMPT_TOKEN, derived here because noodle
+# imports no other app module (test_noodle_isolation). Never exempt when
+# API_KEY is unset: the hash of an empty key would be public knowledge.
+_KEY = os.environ.get("API_KEY", "")
+_RL_EXEMPT = hashlib.sha256(f"ratelimit-exempt:{_KEY}".encode()).hexdigest() if _KEY else None
+
+
+def _rate_exempt(request: Request) -> bool:
+    got = request.headers.get("x-ratelimit-exempt", "")
+    return bool(_RL_EXEMPT and got) and hmac.compare_digest(got, _RL_EXEMPT)
 
 
 def _client_ip(request: Request) -> str:
@@ -125,7 +140,7 @@ async def noodle_rekey(slug: str, request: Request):
 async def noodle_ask(slug: str, request: Request):
     body = await _json_body(request, config.BODY_MAX_ASK)
     try:
-        return await asyncio.to_thread(ask.ask, slug, body, _client_ip(request))
+        return await asyncio.to_thread(ask.ask, slug, body, _client_ip(request), _rate_exempt(request))
     except ask.AskError as e:
         headers = {"Retry-After": str(e.retry_after)} if e.retry_after else None
         return JSONResponse({"error": e.msg, "retry_after": e.retry_after},
@@ -145,7 +160,10 @@ async def noodle_new(request: Request):
     host's first commit creates it (drafts.py). Rate-limited per IP, since
     every draft is a poll someone may create."""
     try:
-        d = await asyncio.to_thread(drafts.new_for, _client_ip(request))
+        if _rate_exempt(request):
+            d = await asyncio.to_thread(drafts.new)
+        else:
+            d = await asyncio.to_thread(drafts.new_for, _client_ip(request))
     except drafts.TooFast as e:
         return JSONResponse({"detail": str(e)}, status_code=429)
     return {"slug": d["slug"], "url": f"/noodle/{d['slug']}?t={d['token']}"}

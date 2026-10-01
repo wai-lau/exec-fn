@@ -131,7 +131,7 @@ def _prompt(dates: list) -> str:
     )
 
 
-def ask(slug: str, body: dict, ip: str) -> dict:
+def ask(slug: str, body: dict, ip: str, exempt: bool = False) -> dict:
     text = body.get("text")
     if not store.valid_slug(slug):   # its SHAPE only: the poll itself is never read
         raise AskError(404, "no such poll")
@@ -142,7 +142,8 @@ def ask(slug: str, body: dict, ip: str) -> dict:
     dates = _dates(body)
     halves = body.get("halves") is True
 
-    _take(slug, ip, time.monotonic())
+    if not exempt:  # the test suite's rate-limit exemption (routes._rate_exempt)
+        _take(slug, ip, time.monotonic())
     try:
         out = llm.call(_prompt(dates), text.strip())
     except llm.Truncated:

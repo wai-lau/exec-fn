@@ -12,6 +12,14 @@ TURNSTILE_SITE_KEY = os.environ["TURNSTILE_SITE_KEY"]
 TURNSTILE_SECRET = os.environ["TURNSTILE_SECRET"]
 
 SESSION_TOKEN = hashlib.sha256(f"session:{API_KEY}".encode()).hexdigest()
+# Requests carrying x-ratelimit-exempt: <this> skip the per-IP rate limiters
+# (tarot/mtg chat, noodle drafts/ask). Only the test suite on this box sends
+# it: tests must never fail because a busy hour of runs spent the limit.
+RATE_EXEMPT_TOKEN = hashlib.sha256(f"ratelimit-exempt:{API_KEY}".encode()).hexdigest()
+
+
+def rate_exempt(request) -> bool:
+    return hmac.compare_digest(request.headers.get("x-ratelimit-exempt", ""), RATE_EXEMPT_TOKEN)
 # Guest cookie value. Derived from the Turnstile secret now that the shared
 # GUEST_KEY is gone — a fixed, server-only token a browser can't forge. A guest
 # earns it by solving a Cloudflare Turnstile challenge at POST /guest.

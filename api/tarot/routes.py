@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from auth import SESSION_TOKEN
+from auth import SESSION_TOKEN, rate_exempt
 from helpers import DATA_DIR
 from tarot import openings, voice_synth
 from tarot.agent import stream_chat
@@ -239,7 +239,8 @@ def _cap_messages(messages: list) -> list:
 
 @router.post("/api/tarot/chat")
 async def api_tarot_chat(body: ChatBody, request: Request):
-    _rl_check(_client_ip(request))
+    if not rate_exempt(request):
+        _rl_check(_client_ip(request))
     return StreamingResponse(
         _stream(body.spread, _cap_messages(body.messages)),
         media_type="text/event-stream",
@@ -285,7 +286,8 @@ async def api_tarot_warm(request: Request):
     mode `idle` the models load on demand -- that cold load is the wait this
     removes from the rest of the reading. Cooldown-guarded server-side, so a
     reload storm is not GPU load."""
-    _rl_check(_client_ip(request))
+    if not rate_exempt(request):
+        _rl_check(_client_ip(request))
     return await voice_synth.warm(openings.VOICE, openings.BACKEND)
 
 
