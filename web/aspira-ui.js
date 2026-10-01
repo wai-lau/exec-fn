@@ -5,10 +5,10 @@ const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
 
 // ---------- placement / input ----------
-function canPlace(x, y) {
-  const r = Math.hypot(x - CX, y - CY);
-  if (r > BUILD_R - 20 || r < CORE_R + 42) return false;
-  return !G.towers.some(t => Math.hypot(t.x - x, t.y - y) < 80);
+// Towers snap to the triangular cells of the build disc (CELLS in
+// aspira-defs.js); a cell holds at most one tower.
+function canPlace(ci) {
+  return ci >= 0 && !G.towers.some(t => t.cell === ci);
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
@@ -16,10 +16,12 @@ function toWorld(ev) {
 }
 function placeTower(p) {
   const b = TOWERS[ui.build];
-  if (!canPlace(p.x, p.y)) { float(p.x, p.y, "blocked", "pink"); return; }
+  const ci = cellAt(p.x, p.y);
+  if (!canPlace(ci)) { float(p.x, p.y, "blocked", "pink"); return; }
   if (G.money < b.cost) { float(p.x, p.y, "need " + b.cost, "pink"); return; }
   G.money -= b.cost;
-  const t = { id: G.id++, kind: ui.build, x: p.x, y: p.y, lvl: 1, cd: 0, mode: "close", spent: b.cost };
+  const c = CELLS[ci];
+  const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: "close", spent: b.cost };
   G.towers.push(t);
   ring(t.x, t.y, 60, b.color);
   // one tower per pick: placing ends placing mode and selects the new tower
@@ -31,7 +33,7 @@ cv.addEventListener("pointerdown", ev => {
   if (G.over) return;
   const p = toWorld(ev);
   ui.hover = p;
-  const hit = G.towers.find(t => Math.abs(t.x - p.x) < 40 && Math.abs(t.y - p.y) < 40);
+  const ci = cellAt(p.x, p.y), hit = ci >= 0 && G.towers.find(t => t.cell === ci);
   if (hit) { ui.sel = hit.id; ui.build = null; }
   else if (ui.build) placeTower(p);
   else ui.sel = null;
@@ -119,7 +121,7 @@ function refreshPanels() {
     return;
   }
   el.innerHTML = '<h3>Inspector</h3><p class="asp-hint">Pick a tower to build, or tap one on the field.</p>' +
-    '<p class="asp-hint">Squares are standard, triangles fast, hexagons tough. Stars drop a bonus. ' +
+    '<p class="asp-hint">Squares are standard, pentagons fast, hexagons tough. Stars drop a bonus. ' +
     "An octagon boss comes every 8th wave and costs 5 lives if it lands.</p>" +
     '<p class="asp-hint">Every 8 waves pays a bonus. Extra lives at 50,000 points and every 100,000 after.</p>';
 }

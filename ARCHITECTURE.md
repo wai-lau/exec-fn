@@ -3909,8 +3909,13 @@ area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient
 over `--bg-hsl`), never `backdrop-filter`, which would re-read the animated
 canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
 the decks, or the phone sheet covers Start. Placing a tower ends placing mode
-and selects the new tower. Towers draw 72 units square (owner doubled them), so placement
-keeps 80 between towers and 42 off the core: ~9-12 fit in the disc. Board
+and selects the new tower. The build disc is TESSELLATED into equilateral triangles (`CELLS`,
+side `CELL_L = 72`, lattice vertex on the core centre so the grid is six-fold
+symmetric; a cell exists only if all 3 corners are inside `BUILD_R` and out
+of the core: 36 cells). A tower IS a triangle: it fills one cell, snaps to
+the cell tapped (`cellAt`, point-in-triangle), and its position is the cell
+centroid. No enemy is a triangle (owner's rule: triangles mean towers), so
+fast enemies are pentagons. Board
 text (hour labels, lane numerals, lives, floats, banner) is drawn large and
 near-opaque; deck text is HTML and unaffected.
 Clicking a tower opens its stats in a POPUP pinned beside it on the board
