@@ -272,12 +272,13 @@ function drawFx(pass) {
       // glow underlay + core, both widening with the damage behind the shot
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2);
+      const wm = f.slim ? 0.5 : 1; // slim (RPR): half the width, brighter glow
       if (f.m) {
         const a = ctx.globalAlpha;
-        ctx.globalAlpha = a * 0.22; ctx.lineWidth = (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
+        ctx.globalAlpha = a * (f.slim ? 0.45 : 0.22); ctx.lineWidth = wm * (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
         ctx.globalAlpha = a;
       }
-      ctx.lineWidth = (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
+      ctx.lineWidth = wm * (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
     } else if (f.k === "hit") {
       const a = ctx.globalAlpha, rr = f.r * (0.5 + 0.5 * (1 - k));
       ctx.fillStyle = COL[f.color]; ctx.globalAlpha = a * 0.3;

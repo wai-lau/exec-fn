@@ -286,7 +286,7 @@ function fireRay(t, st, e) {
   const mulFor = o => (crit || (st.critBelow && o.hp / o.max < st.critBelow) ? st.critMul : 1);
   if (!st.pierce) {
     const m = mulFor(e), d = shotDamage(t, st, e, st.dmg) * m;
-    beam(t, e, col, 0.25, m > 1 ? 5 : 3, d);
+    beam(t, e, col, 0.25, m > 1 ? 5 : 3, d, true);
     if (m > 1) float(e.x, e.y - 20, "CRIT", col, 16);
     damage(e, d, t); onHit(e, t, st, d);
     return;
@@ -298,7 +298,7 @@ function fireRay(t, st, e) {
     const px = o.x - t.x, py = o.y - t.y, along = px * ux + py * uy;
     return along >= 0 && along <= st.range && Math.abs(px * uy - py * ux) <= st.pierce.wide;
   }).sort((a, b) => ((a.x - t.x) * ux + (a.y - t.y) * uy) - ((b.x - t.x) * ux + (b.y - t.y) * uy));
-  beam(t, end, col, 0.25, st.pierce.wide > 20 ? 7 : 3, st.dmg);
+  beam(t, end, col, 0.25, st.pierce.wide > 20 ? 7 : 3, st.dmg, true);
   let base = st.dmg;
   for (const o of inLine) {
     const m = mulFor(o), d = shotDamage(t, st, o, base) * m;
@@ -342,8 +342,9 @@ function usePower(code) {
 // Effect magnitude from damage: ~0.9 for a 4-damage tick, ~2.3 for an 80
 // hit, capped at 3 (a big crit). 0 for no damage (the Slower's beam).
 const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
-function beam(a, b, color, life, w = 1.5, dmg = 0) {
-  fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg) });
+// slim: RPR's beam - half the width, brighter glow (owner)
+function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false) {
+  fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg), slim });
 }
 function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
