@@ -52,7 +52,7 @@ const UPGRADES = {
       { name: "Siphon", desc: "slowed enemies pay +50% bounty", mods: { siphon: 1.5 } },
     ] },
   ],
-  ray: [
+  reaper: [
     { name: "Focus", desc: "+15% crit chance", mods: { crit: 0.15 }, finals: [
       { name: "Executioner", desc: "crits deal x6 instead of x3", mods: { critMul: 6 } },
       { name: "Assassin", desc: "always crits enemies under 30% HP", mods: { critBelow: 0.3 } },

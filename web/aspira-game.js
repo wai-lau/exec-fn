@@ -259,7 +259,7 @@ function fire(t, st) {
   if (!targets.length) return false;
   t.shots = (t.shots || 0) + 1;
   if (t.kind === "chain") { fireChain(t, st, targets[0]); return true; }
-  if (t.kind === "ray") { fireRay(t, st, targets[0]); return true; }
+  if (t.kind === "reaper") { fireRay(t, st, targets[0]); return true; }
   const col = TOWERS[t.kind].color;
   for (const e of targets) {
     const d = shotDamage(t, st, e, st.dmg);

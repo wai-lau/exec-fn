@@ -182,7 +182,7 @@ const TOWERS = {
   rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 15,  dmg: 4,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1.2,  range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 50,  dmg: 0,  rate: 1.2,  range: 190, blurb: "Slows three enemies at once.", up: "slow strength" },
-  ray:     { name: "Ray",     ab: "RAY", color: "pink",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 15;
@@ -216,7 +216,7 @@ function towerStats(t, noAura = false) {
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
     case "chain": s.arcs = 2 + Math.floor(L / 4); break;
-    case "ray": s.crit = 0.1 + 0.015 * L; break;
+    case "reaper": s.crit = 0.1 + 0.015 * L; break;
     case "slower": s.slow = 0.35 + 0.02 * L; s.targets = 3; break;
   }
   if (t.path != null) {
