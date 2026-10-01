@@ -77,6 +77,36 @@ function applyMods(s, mods) {
   }
 }
 
+// LEVEL 15 = SUPER FORM (owner): the final form "concentrates further" —
+// its own mods are intensified, so the tower becomes a super version of what
+// it already is. Multipliers compound (v^1.6: Sniper's half fire rate goes
+// slower still, its x3 damage far higher); additive bonuses double; each
+// behaviour value is pushed by its own rule below. Booleans stay as they are.
+const SUPER_POW = 1.6;
+const boost = v => 1 + (v - 1) * 2; // for "x1.5 bonus" style multipliers
+const SUPER_KEYS = {
+  critMul: v => v * 1.5, critBelow: v => Math.min(0.6, v * 1.5), sap: v => v * 2, chillStop: v => v * 2,
+  siphon: boost, brittle: boost, aura: boost, bossMul: v => v * 1.5,
+};
+const SUPER_FIELDS = {
+  p: v => Math.min(0.9, v * 1.6), t: v => v * 1.5, frac: v => v * 1.5, r: v => v * 1.3,
+  mul: boost, n: v => Math.max(2, v - 1), f: v => Math.min(0.8, v * 1.5),
+  fall: v => Math.min(1, v + (1 - v) * 0.5), wide: v => v * 1.5,
+};
+function superMods(mods) {
+  const out = {};
+  for (const [k, v] of Object.entries(mods)) {
+    if (MUL_MODS.includes(k)) out[k] = Math.pow(v, SUPER_POW);
+    else if (ADD_MODS.includes(k)) out[k] = v * 2;
+    else if (SUPER_KEYS[k]) out[k] = SUPER_KEYS[k](v);
+    else if (v && typeof v === "object") {
+      out[k] = {};
+      for (const [f, x] of Object.entries(v)) out[k][f] = SUPER_FIELDS[f] ? SUPER_FIELDS[f](x) : x;
+    } else out[k] = v;
+  }
+  return out;
+}
+
 // the choice the NEXT upgrade requires, if any: the step onto level 5 picks
 // the path, the step onto level 10 the final form (owner)
 function pendingChoice(t) {
@@ -89,5 +119,6 @@ function towerTitle(t) {
   const b = TOWERS[t.kind];
   if (t.path == null) return b.name;
   const p = UPGRADES[t.kind][t.path];
-  return t.form == null ? b.name + " · " + p.name : p.finals[t.form].name;
+  if (t.form == null) return b.name + " · " + p.name;
+  return (t.lvl >= MAX_LVL ? "Super " : "") + p.finals[t.form].name;
 }

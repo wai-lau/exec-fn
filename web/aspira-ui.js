@@ -126,7 +126,9 @@ function inspectTower(el, t) {
     });
   } else {
     button($("asp-upbox"), "asp-primary asp-up-big",
-      maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t) + " (U)", () => upgradeTower(t), "asp-up");
+      maxed ? "max level" : t.lvl + 1 === MAX_LVL && t.form != null
+        ? "→ L15 super " + UPGRADES[t.kind][t.path].finals[t.form].name + " · " + upCost(t) + " (U)"
+        : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t) + " (U)", () => upgradeTower(t), "asp-up");
   }
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
