@@ -151,15 +151,19 @@ function cellPath(c, k = 1) {
   ctx.closePath();
 }
 
-// Shown only while placing: every FREE cell is tinted green so it is obvious
-// where a tower can go (phones have no hover); occupied cells stay faint.
+// Shown only while placing, and only NEAR THE CURSOR: each cell's opacity is
+// (1 - d / 2 tiles)^2, full under the pointer and gone two tiles out. Free
+// cells are green, occupied ones orange.
 function drawCells() {
+  if (!ui.hover) return;
   ctx.lineWidth = 2;
   CELLS.forEach((c, ci) => {
+    const w = Math.pow(Math.max(0, 1 - Math.hypot(c.x - ui.hover.x, c.y - ui.hover.y) / (2 * TILE)), 2);
+    if (w <= 0.01) return;
     const free = canPlace(ci);
     cellPath(c, 0.94);
-    if (free) { ctx.fillStyle = COL.green; ctx.globalAlpha = 0.1; ctx.fill(); }
-    ctx.strokeStyle = COL[free ? "green" : "orange"]; ctx.globalAlpha = free ? 0.55 : 0.15; ctx.stroke();
+    if (free) { ctx.fillStyle = COL.green; ctx.globalAlpha = 0.15 * w; ctx.fill(); }
+    ctx.strokeStyle = COL[free ? "green" : "orange"]; ctx.globalAlpha = (free ? 0.8 : 0.4) * w; ctx.stroke();
   });
   ctx.globalAlpha = 1;
 }
@@ -241,7 +245,7 @@ function drawFx(pass) {
 // build, a pink cell and cross when it would not (occupied, or too few
 // credits), and a bare pink cross off the grid.
 function drawPlacement() {
-  const hc = cellAt(ui.hover.x, ui.hover.y), b = TOWERS[ui.build];
+  const hc = snapCell(ui.hover.x, ui.hover.y), b = TOWERS[ui.build];
   if (hc < 0) { drawBlocked(ui.hover.x, ui.hover.y, 12); return; }
   const c = CELLS[hc];
   if (canPlace(hc) && G.money >= b.cost) {

@@ -3913,8 +3913,10 @@ and selects the new tower; a FAILED placement (blocked cell, too few credits)
 ends placing mode too. The build disc is TESSELLATED into pointy-top HEXAGONS (`CELLS`,
 circumradius `CELL_S = 32`; the centre hex IS the core, `CORE_R = 34`, and
 three rings around it give 36 cells inside `BUILD_R = 200`). The grid is drawn ONLY while placing a tower (`ui.build`). While
-placing, every FREE cell is tinted green (phones have no hover); the cell
-under the pointer shows the tower ghost + range when the tap would build, or a
+placing, cells show only NEAR THE CURSOR (opacity `(1 - d/2 tiles)^2`, gone
+two tiles out; free = green, occupied = orange); placement SNAPS to the cell
+under the point or the nearest centre within one tile (`snapCell`). The
+hovered cell shows the tower ghost + range when the tap would build, or a
 pink cell and cross when it would not (occupied / too few credits); off the
 grid the pointer shows a pink cross. No boundary circle is drawn
 around the build disc (owner removed the dashed ring). A tower IS a
