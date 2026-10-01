@@ -227,11 +227,8 @@ const HOP_DELAY = 0.2;
 let chains = [];
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
-  // shields GROUND the arc (owner): a shielded first target takes the hit as
-  // usual (one charge) but the chain goes no further
-  const grounded = e.shield > 0;
   beam(t, e, col, 0.15, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
-  if (!grounded && st.arcs > 0) chains.push({ t, st, col, cur: e, hit: new Set([e.id]), dmg, left: st.arcs, timer: HOP_DELAY });
+  if (st.arcs > 0) chains.push({ t, st, col, cur: e, hit: new Set([e.id]), dmg, left: st.arcs, timer: HOP_DELAY });
 }
 
 function hopChain(c) {
@@ -243,9 +240,6 @@ function hopChain(c) {
     if (d < nd) { nd = d; nxt = o; }
   }
   if (!nxt) return false;
-  // a hop onto a shielded enemy is grounded: it ends the chain there and
-  // strips no charge, so CHN cannot do RPD's job
-  if (nxt.shield > 0) { beam(c.cur, nxt, col, 0.15, 1.5, 0); ring(nxt.x, nxt.y, 14, "cyan", 0.25); return false; }
   const prevBoss = st.bossMul && c.cur.type === "boss" ? st.bossMul : 1;
   c.dmg = shotDamage(t, st, nxt, c.dmg * st.arcFall / prevBoss);
   c.hit.add(nxt.id); beam(c.cur, nxt, col, 0.15, 1.5, c.dmg);
