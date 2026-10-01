@@ -271,7 +271,8 @@ function drawFx(pass) {
     if (f.k === "beam") {
       // glow underlay + core, both widening with the damage behind the shot
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2);
+      // a following beam reads its endpoints live from the tower/enemy it joins
+      ctx.beginPath(); ctx.moveTo(f.a ? f.a.x : f.x1, f.a ? f.a.y : f.y1); ctx.lineTo(f.b ? f.b.x : f.x2, f.b ? f.b.y : f.y2);
       const wm = f.slim ? 0.5 : 1; // slim (RPR): half the width, brighter glow
       if (f.m) {
         const a = ctx.globalAlpha;

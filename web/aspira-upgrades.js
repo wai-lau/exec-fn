@@ -33,7 +33,8 @@ const UPGRADES = {
     ] },
     { name: "Overload", desc: "+50% damage", mods: { dmg: 1.5 }, finals: [
       { name: "Capacitor", desc: "every 4th shot deals x4", mods: { everyN: { n: 4, mul: 4 } } },
-      { name: "EMP", desc: "x2.5 damage to bosses", mods: { bossMul: 2.5 } },
+      // was "x2.5 to bosses"; bosses were removed, so EMP now targets armor (placeholder)
+      { name: "EMP", desc: "x2.5 damage to armored enemies", mods: { armorMul: 2.5 } },
     ] },
     { name: "Shock", desc: "15% chance to stun 0.3s", mods: { stun: { p: 0.15, t: 0.3 } }, finals: [
       { name: "Paralyze", desc: "35% chance to stun 0.6s", mods: { stun: { p: 0.35, t: 0.6 } } },
@@ -88,7 +89,7 @@ const SUPER_POW = 1.6;
 const boost = v => 1 + (v - 1) * 2; // for "x1.5 bonus" style multipliers
 const SUPER_KEYS = {
   critMul: v => v * 1.5, critBelow: v => Math.min(0.6, v * 1.5), sap: v => v * 2, chillStop: v => v * 2,
-  siphon: boost, brittle: boost, aura: boost, bossMul: v => v * 1.5,
+  siphon: boost, brittle: boost, aura: boost, armorMul: v => v * 1.5,
 };
 const SUPER_FIELDS = {
   p: v => Math.min(0.9, v * 1.6), t: v => v * 1.5, frac: v => v * 1.5, r: v => v * 1.3,

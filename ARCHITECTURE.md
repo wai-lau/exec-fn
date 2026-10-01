@@ -4031,7 +4031,9 @@ full opacity for the first half of its life, then fades.
 
 Tower colours (owner): RPD [Chatsubo] (the Social hue, via
 `--cat-social-h/s/l`), CHN [Marigold] orange, SLW [Hack] cyan, RPR [Lizzie's]
-pink. RPR's beam is drawn SLIM: half the width of other beams with a doubled
+pink. Beams FOLLOW: each keeps its endpoint objects and is redrawn between them
+while it lasts, so it tracks a moving enemy — except RPD's 0.06s tracers.
+CHN beams last 0.6s and RPR beams 0.9s (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's beam is drawn SLIM: half the width of other beams with a doubled
 glow alpha, so it reads thinner but brighter. **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
 Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy
@@ -4044,14 +4046,15 @@ during the wait) (`chains`, advanced by `stepChains`), so the arc visibly crawls
 charge; the owner reversed an earlier "shields ground the arc" rule), kept
 in check by FIRE RATE: CHN must stay under 1/5 of RPD's rate (1.0 vs 6) and
 RPR slower still (0.2). SHAPE SHOWS SPEED: triangle fastest (fast),
-square (swarm), pentagon (normal / shielded / armored), hexagon slowest and
-for BOSSES ONLY. Enemies do not spin: one corner always points along
+square (swarm), pentagon (normal / shielded / armored), no hexagon enemies
+(hexagons are the towers; BOSSES WERE REMOVED, owner 2026-10-01). Enemies do not spin: one corner always points along
 the lane (nose first). Swarms read by small size + 3x count and wander off the lane
 on a small loop (`jit`). Shield (`5 + wave/3` HITS absorbed regardless of
 size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
 thick outline. Waves rotate themes `norm, swarm, fast, shield, armor, mixed`
-(`WAVE_THEMES`). Bonus stars unchanged; Regenerating was proposed and dropped.
+(`WAVE_THEMES`). Bonus stars unchanged; Regenerating was proposed and dropped; bosses removed
+(CHN's EMP final now hits armored enemies x2.5 as a placeholder).
 
 **Balance target** (owner): every tower has exactly one each of ✓✓✓ ✓✓ ✓ ✗
 ✗✗ ✗✗✗ across Normal/Swarm/Fast/Shielded/Armored/Boss:
