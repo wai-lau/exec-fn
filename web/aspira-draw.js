@@ -89,9 +89,10 @@ function drawStars() {
 // pair symmetry holds): solid, dotted, dashed, dash-dot, fine dots, long dash
 const LANE_DASH = [[], [0.1, 7], [12, 7], [16, 5, 0.1, 5], [0.1, 4], [28, 9]];
 // Lane STROKES go to an offscreen layer that is then masked by a radial
-// gradient, so a lane's opacity is proportional to its distance from the core
-// (clear at the centre, full at the rim and beyond) — the dense inner coils
-// fade instead of cluttering the build area. Labels are drawn unmasked.
+// gradient: full at the centre, fading linearly to nothing just beyond the
+// white rim (LANE_FADE_R), so lanes do not trail across the open sky.
+// Labels are drawn unmasked.
+const LANE_FADE_R = 550; // just past the rim circle (482-494)
 const laneCv = document.createElement("canvas"), lctx = laneCv.getContext("2d");
 function drawLaneStrokes(live) {
   if (laneCv.width !== cv.width || laneCv.height !== cv.height) { laneCv.width = cv.width; laneCv.height = cv.height; }
@@ -112,8 +113,8 @@ function drawLaneStrokes(live) {
   });
   lctx.setLineDash([]);
   // mask: only alpha matters under destination-in, so transparent -> bg works
-  const g = lctx.createRadialGradient(CX, CY, 0, CX, CY, RIM_R);
-  g.addColorStop(0, "transparent"); g.addColorStop(1, COL.bg);
+  const g = lctx.createRadialGradient(CX, CY, 0, CX, CY, LANE_FADE_R);
+  g.addColorStop(0, COL.bg); g.addColorStop(1, "transparent");
   lctx.globalCompositeOperation = "destination-in"; lctx.globalAlpha = 1; lctx.fillStyle = g;
   lctx.fillRect(CX - 4000, CY - 4000, 8000, 8000);
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(laneCv, 0, 0); ctx.restore();
