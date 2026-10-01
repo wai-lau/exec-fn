@@ -10,9 +10,10 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 // layout, the same every game: lanes come in mirror pairs (2j, 2j+1) that wind
 // in opposite directions with the same turn count, so each pair is symmetric
 // about its own axis, and the six pairs climb from 1 full turn to 12 round the
-// clock (PAIR_TURNS). Archimedean (even spacing) from R0 in to R1.
-const N_PATHS = 12, R0 = 470, R1 = 215;
-// Every tower stands inside the central disc; the spirals end at its edge.
+// clock (PAIR_TURNS). Archimedean (even spacing) from R0 in to the core.
+const N_PATHS = 12, R0 = 470, R1 = CORE_R;
+// Every tower stands inside the central disc. The spirals run through it to
+// the core; towers and enemies never collide, so building on a lane is fine.
 const BUILD_R = 190;
 const PAIR_TURNS = [1, 2, 4, 6, 9, 12];
 // A 12-turn lane is ~12x longer than a 1-turn one. Enemies on it move faster

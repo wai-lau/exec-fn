@@ -3922,8 +3922,9 @@ literal.
 **The board is FIXED, not random** (owner's call), drawn as a star chart:
 graduated hour rim, polar graticule, a star field seeded once and replicated
 into six mirror/rotation wedges, lanes as fine orbit lines numbered I–XII.
-Twelve Archimedean spirals enter every 30° and end at the build ring
-(`R1 = 215`); lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
+Twelve Archimedean spirals enter every 30° and run through the build disc
+all the way to the core (`R1 = CORE_R`); towers and enemies never collide, so
+building on a lane is allowed; lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
 the same turn count, and the six pairs climb `PAIR_TURNS = [1, 2, 4, 6, 9, 12]`
 (owner: min 1 full turn, max 12). A 12-turn lane is ~12× longer, so each lane
 has `pace = (len / shortest)^0.6` multiplying enemy speed and Pusher distance:
