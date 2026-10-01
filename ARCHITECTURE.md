@@ -4042,8 +4042,8 @@ RPD Shield✓✓✓ Fast✓✓ Normal✓ Swarm✗ Boss✗✗ Armor✗✗✗;
 CHN Swarm✓✓✓ Normal✓✓ Fast✓ Shield✗ Armor✗✗ Boss✗✗✗;
 SLW Fast✓✓✓ Boss✓✓ Swarm✓ Normal✗ Shield✗✗ Armor✗✗✗;
 RPR Armor✓✓✓ Boss✓✓ Normal✓ Fast✗ Shield✗✗ Swarm✗✗✗.
-ALL towers cost 40 to build (owner). Tuned by: RPD 3 dmg, CHN 3 base hops /
-110 hop reach, SLW 5 targets, 5 dmg per pulse (blocked by a standing shield,
+ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, CHN 3 base hops /
+110 hop reach / 55% per-hop falloff, SLW 5 targets, 1.5 dmg per pulse (blocked by a standing shield,
 cut by armor) and bosses CAN be slowed, RPR 0.30 shots/s; slow resistances in `applySlow`: armored enemies are IMMUNE to slow,
 a standing shield HALVES it. Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
