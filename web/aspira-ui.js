@@ -1,5 +1,8 @@
 // /aspira — DOM: HUD, build/inspect/power decks, input, overlay, main loop.
 
+// ui.speed is a setting (1/2/3); SPEED_MULT turns it into simulation rate.
+// Setting 1 is the old 3x (owner: the old base was too slow); 3 is ~2x that.
+const SPEED_MULT = { 1: 3, 2: 4.5, 3: 6 };
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
@@ -57,7 +60,7 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name;
 });
-[["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"]].forEach(([v, label]) => {
+[["pause", "pause"], [1, "1×"], [2, "1.5×"], [3, "2×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
   }, "asp-sp-" + v);
@@ -198,7 +201,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {
-    let left = dt * ui.speed;
+    let left = dt * SPEED_MULT[ui.speed];
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
   }
   render(); updateHud(); placePop();
