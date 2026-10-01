@@ -61,7 +61,7 @@ const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * 
 const SFX = {
   rapid:   () => tone({ type: "square", f0: 1400, f1: 900, dur: 0.03, vol: 0.08 }),
   chain:   () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
-  nuke:    () => { tone({ f0: 170, f1: 40, dur: 0.45, vol: 0.55 }); noise({ dur: 0.35, vol: 0.3, freq: 400, q: 0.7 }); },
+  nuke:    () => { tone({ f0: 260, f1: 90, dur: 0.3, vol: 0.22 }); noise({ dur: 0.25, vol: 0.15, freq: 900, q: 0.8 }); },
   slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
   pusher:  () => tone({ type: "triangle", f0: 220, f1: 90, dur: 0.12, vol: 0.3 }),
   stopper: () => notes([1320, 1760], 0.03, { dur: 0.12, vol: 0.09 }),
