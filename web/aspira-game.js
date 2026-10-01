@@ -4,9 +4,12 @@ let fx = [];
 let best = { score: 0, wave: 0 };
 try { best = JSON.parse(localStorage.getItem("aspira.best")) || best; } catch (_e) {}
 
+// TESTING: the owner asked to start rich while designing; the real start is 100
+const START_MONEY = 10000;
+
 function newGame() {
   return {
-    money: 100, lives: 20, score: 0, wave: 0, interest: 0.03,
+    money: START_MONEY, lives: 20, score: 0, wave: 0, interest: 0.03,
     towers: [], enemies: [], spawns: [], nextIn: 0, started: false, over: false,
     power: { SCR: 0, RNG: 0, MNY: 0, DAM: 0 }, charge: 0,
     nextLifeAt: 50000, id: 1,
