@@ -235,6 +235,8 @@ function fireChain(t, st, e) {
   if (st.arcs > 0) chains.push({ t, st, col, cur: e, hit: new Set([e.id]), dmg, left: st.arcs, timer: HOP_DELAY });
 }
 
+// c.cur is the enemy OBJECT, so this measures from its position now — after
+// the hop delay it has moved on (or lies where it died) — not where it was hit
 function hopChain(c) {
   const { t, st, col } = c;
   let nxt = null, nd = st.arcRange * st.arcRange;

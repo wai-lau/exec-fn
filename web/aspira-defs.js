@@ -225,7 +225,9 @@ function towerStats(t, noAura = false) {
   };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
-    case "chain": s.arcs = 5 + Math.floor(L / 4); break;
+    // hop reach = half the tower's range (owner), measured each hop from where
+    // the last-hit enemy is NOW, after the hop delay
+    case "chain": s.arcs = 5 + Math.floor(L / 4); s.arcRange = s.range * 0.5; break;
     case "reaper": s.crit = 0.1 + 0.015 * L; break;
     case "slower": s.slow = 0.35 + 0.02 * L; s.targets = 5; break;
   }

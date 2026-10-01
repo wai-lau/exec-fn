@@ -4063,8 +4063,10 @@ CHN Swarm✓✓✓ Normal✓✓ Fast✓ Shield✗ Armor✗✗ Boss✗✗✗;
 SLW Fast✓✓✓ Boss✓✓ Swarm✓ Normal✗ Shield✗✗ Armor✗✗✗;
 RPR Armor✓✓✓ Boss✓✓ Normal✓ Fast✗ Shield✗✗ Swarm✗✗✗.
 Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
-per-hop falloff, BASE hop reach 50 — spans packed swarms only; the Conductor
-path (+50% reach, Tesla more) is how CHN learns to chain through trains; spawn spacing is a lever — swarm gap 0.12s
+per-hop falloff, hop reach = HALF the tower's range (111 at L1, growing
+with level; owner — 50 was far too short), measured each hop from the
+last-hit enemy's CURRENT position after the hop delay; Conductor +50%, Tesla
+more; spawn spacing is a lever — swarm gap 0.12s
 (~11 apart, inside hop reach), normal/shield/armor 0.8s and fast 0.5s (~60+
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
