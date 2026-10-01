@@ -65,8 +65,13 @@ function cellAt(x, y) {
   }));
 }
 const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
-// Winding density rises toward the core: angle = turns * 2pi * t^SPIRAL_P.
-const SPIRAL_P = 2.2;
+// Winding is driven by the lane's PITCH (its angle off straight-in), not by
+// angle-vs-t: theta(t) = turns * 2pi * F(t) / F(1) with F' = t^TANGENT_Q / r(t).
+// The pitch then grows smoothly from 0 (tan pitch ~ t^q), so the lane leaves
+// its straight lead-in with no hook, and the 1/r term packs the coils tighter
+// toward the core. (An earlier angle = t^2.2 hooked ~50 deg right after the
+// lead-in: at r ~ 700 even a slow angle rate is a big sideways speed.)
+const TANGENT_Q = 2;
 // An 8-turn lane is ~2.5x longer than a 3-turn one. Enemies on it move
 // faster (pace = (len / shortest)^0.6) so it takes ~1.4x as long, not 2.5x.
 const PACE_EXP = 0.6;
@@ -103,10 +108,13 @@ function buildSpiral(i) {
     p.s = acc; pts.push(p); prev = p;
   }
   let lead = 0;
+  const F = [0];
+  for (let k = 1; k <= steps; k++) {
+    const tm = (k - 0.5) / steps, rm = R0 - (R0 - rEnd) * tm;
+    F.push(F[k - 1] + Math.pow(tm, TANGENT_Q) / rm);
+  }
   for (let k = 0; k <= steps; k++) {
-    // angle grows as t^SPIRAL_P: almost straight in from far out, winding
-    // tighter toward the core, but a finite total (no orbiting forever)
-    const t = k / steps, r = R0 - (R0 - rEnd) * t, a = a0 + dir * turns * Math.PI * 2 * Math.pow(t, SPIRAL_P);
+    const t = k / steps, r = R0 - (R0 - rEnd) * t, a = a0 + dir * turns * Math.PI * 2 * F[k] / F[steps];
     const p = ellipse(r * Math.cos(a), r * Math.sin(a), ax, stretch);
     if (prev) acc += Math.hypot(p.x - prev.x, p.y - prev.y);
     if (k === 0) lead = acc;
