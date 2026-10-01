@@ -1,43 +1,78 @@
-// /aspira — tower defence on a spiral. Definitions: the path, towers, enemies,
+// /aspira — tower defence on twelve spirals. Definitions: the path, towers, enemies,
 // powers. Same-global-scope files, loaded in order:
 // aspira-defs -> aspira-game -> aspira-draw -> aspira-ui. ARCHITECTURE.md §22.
 
 // World is a fixed 1000x1000 square; the canvas scales it to fit.
-const W = 1000, CX = 500, CY = 500, R0 = 470, R1 = 62, TURNS = 2.6, CORE_R = 46;
+const W = 1000, CX = 500, CY = 500, CORE_R = 46;
 const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 
-// Archimedean spiral from the rim (s = 0) to the core (s = PATHLEN), sampled
-// densely enough that linear interpolation between samples is invisible.
-const PATH = [];
-let PATHLEN = 0;
-(function buildPath() {
-  const T = TURNS * Math.PI * 2;
+// Twelve spirals, one entering every 30 degrees around the rim. A FIXED
+// layout, the same every game: lanes come in mirror pairs (2j, 2j+1) that wind
+// in opposite directions with the same turn count, so each pair is symmetric
+// about its own axis, and the six pairs climb from 1 full turn to 12 round the
+// clock (PAIR_TURNS). Archimedean (even spacing) from R0 in to R1.
+const N_PATHS = 12, R0 = 470, R1 = 215;
+// Every tower stands inside the central disc; the spirals end at its edge.
+const BUILD_R = 190;
+const PAIR_TURNS = [1, 2, 4, 6, 9, 12];
+// A 12-turn lane is ~12x longer than a 1-turn one. Enemies on it move faster
+// (pace = (len / shortest)^0.6) so it takes ~4x as long, not 12x.
+const PACE_EXP = 0.6;
+const PATHS = [];
+
+function buildSpiral(i) {
+  const a0 = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
+  const dir = i % 2 ? 1 : -1, turns = PAIR_TURNS[i >> 1], steps = 160 * turns + 240;
+  const pts = [];
   let prev = null, acc = 0;
-  for (let t = 0; t <= T; t += 0.004) {
-    const r = R0 - (R0 - R1) * t / T, a = t - Math.PI / 2;
+  for (let k = 0; k <= steps; k++) {
+    const t = k / steps, r = R0 - (R0 - R1) * t, a = a0 + dir * turns * Math.PI * 2 * t;
     const p = { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a), s: 0 };
     if (prev) acc += Math.hypot(p.x - prev.x, p.y - prev.y);
-    p.s = acc; PATH.push(p); prev = p;
+    p.s = acc; pts.push(p); prev = p;
   }
-  PATHLEN = acc;
-})();
-
-function pathAt(s) {
-  if (s <= 0) return PATH[0];
-  if (s >= PATHLEN) return PATH[PATH.length - 1];
-  let lo = 0, hi = PATH.length - 1;
-  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (PATH[m].s <= s) lo = m; else hi = m; }
-  const a = PATH[lo], b = PATH[hi], f = (s - a.s) / (b.s - a.s || 1);
-  return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+  return { pts, len: acc, turns, pace: 1 };
 }
 
-function distToPath(x, y) {
-  let d = Infinity;
-  for (let i = 0; i < PATH.length; i += 3) {
-    const p = PATH[i], q = (p.x - x) ** 2 + (p.y - y) ** 2;
-    if (q < d) d = q;
+for (let i = 0; i < N_PATHS; i++) PATHS.push(buildSpiral(i));
+{
+  const shortest = Math.min(...PATHS.map(p => p.len));
+  for (const p of PATHS) p.pace = Math.pow(p.len / shortest, PACE_EXP);
+}
+
+// Background stars for the chart, symmetric like the lanes: one 60-degree
+// wedge between two mirror axes is seeded (identical every load), then
+// reflected and rotated by 120 degrees into all six wedges.
+const STARS = (function starField() {
+  let a = 20261001;
+  const rand = () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), a | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const axis = -Math.PI / 3, out = [];
+  for (let n = 0; n < 48; n++) {
+    const r = BUILD_R + 12 + Math.sqrt(rand()) * (470 - BUILD_R - 12);
+    const th = axis + rand() * Math.PI / 3, m = Math.pow(rand(), 3) * 2.2 + 0.5;
+    for (const base of [th, 2 * axis - th]) {
+      for (let k = 0; k < 3; k++) {
+        const ang = base + k * Math.PI * 2 / 3;
+        out.push({ x: CX + r * Math.cos(ang), y: CY + r * Math.sin(ang), m });
+      }
+    }
   }
-  return Math.sqrt(d);
+  return out;
+})();
+
+function pathAt(pi, s) {
+  const { pts, len } = PATHS[pi];
+  if (s <= 0) return pts[0];
+  if (s >= len) return pts[pts.length - 1];
+  let lo = 0, hi = pts.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m].s <= s) lo = m; else hi = m; }
+  const a = pts[lo], b = pts[hi], f = (s - a.s) / (b.s - a.s || 1);
+  return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
 }
 
 // Colours are palette KEYS, resolved at boot from the hidden swatches in
@@ -50,14 +85,14 @@ function resolveColors() {
 }
 
 const TOWERS = {
-  rapid:   { name: "Rapid",   ab: "RPD", color: "cyan",   cost: 15,  dmg: 4,  rate: 6,    range: 140, blurb: "Cheap, quick, long reach.", up: "fire rate" },
-  chain:   { name: "Chain",   ab: "CHN", color: "pink",   cost: 40,  dmg: 14, rate: 1.2,  range: 115, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  nuke:    { name: "Nuke",    ab: "NUK", color: "glow",   cost: 80,  dmg: 80, rate: 0.35, range: 165, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
-  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 50,  dmg: 0,  rate: 1.2,  range: 120, blurb: "Slows three enemies at once.", up: "slow strength" },
-  pusher:  { name: "Pusher",  ab: "PSH", color: "green",  cost: 60,  dmg: 4,  rate: 0.5,  range: 110, blurb: "Knocks enemies back along the spiral.", up: "push distance" },
-  stopper: { name: "Stopper", ab: "STP", color: "pink",   cost: 70,  dmg: 3,  rate: 0.45, range: 115, blurb: "Freezes one enemy in place.", up: "stun time" },
-  reaper:  { name: "Reaper",  ab: "RPR", color: "glow",   cost: 120, dmg: 45, rate: 0.7,  range: 125, blurb: "Its kills may grant you a life.", up: "life chance" },
-  gold:    { name: "Gold",    ab: "GLD", color: "orange", cost: 45,  dmg: 2,  rate: 0.9,  range: 125, blurb: "Marks enemies for a bigger bounty.", up: "bounty mark" },
+  rapid:   { name: "Rapid",   ab: "RPD", color: "cyan",   cost: 15,  dmg: 4,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
+  chain:   { name: "Chain",   ab: "CHN", color: "pink",   cost: 40,  dmg: 14, rate: 1.2,  range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
+  nuke:    { name: "Nuke",    ab: "NUK", color: "glow",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 50,  dmg: 0,  rate: 1.2,  range: 190, blurb: "Slows three enemies at once.", up: "slow strength" },
+  pusher:  { name: "Pusher",  ab: "PSH", color: "green",  cost: 60,  dmg: 4,  rate: 0.5,  range: 175, blurb: "Knocks enemies back along the spiral.", up: "push distance" },
+  stopper: { name: "Stopper", ab: "STP", color: "pink",   cost: 70,  dmg: 3,  rate: 0.45, range: 185, blurb: "Freezes one enemy in place.", up: "stun time" },
+  reaper:  { name: "Reaper",  ab: "RPR", color: "glow",   cost: 120, dmg: 45, rate: 0.7,  range: 200, blurb: "Its kills may grant you a life.", up: "life chance" },
+  gold:    { name: "Gold",    ab: "GLD", color: "orange", cost: 45,  dmg: 2,  rate: 0.9,  range: 190, blurb: "Marks enemies for a bigger bounty.", up: "bounty mark" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 5;

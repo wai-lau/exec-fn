@@ -3908,7 +3908,7 @@ state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
 
 | File | Holds |
 |------|-------|
-| `web/aspira-defs.js` | world geometry (1000×1000, Archimedean spiral `PATH` sampled at 0.004 rad, `pathAt(s)` by binary search), `TOWERS`/`ENEMIES`/`POWERS` tables, `towerStats()`, `COL` |
+| `web/aspira-defs.js` | world geometry (1000×1000; twelve spirals `PATHS` with per-lane `pace`, `pathAt(pi, s)` by binary search; `BUILD_R` disc; `STARS`), `TOWERS`/`ENEMIES`/`POWERS` tables, `towerStats()`, `COL` |
 | `web/aspira-game.js` | state `G`, waves, economy, targeting (`MODE_KEY`), combat, fx, `step()` |
 | `web/aspira-draw.js` | canvas render |
 | `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
@@ -3919,7 +3919,20 @@ swatches styled from chrome.css tokens; `resolveColors()` reads their computed
 `globalAlpha`. Keeps the page inside the palette lint without a single raw
 literal.
 
-**Rules in one place:** enemies follow the spiral by arc length `s` (Pusher
+**The board is FIXED, not random** (owner's call), drawn as a star chart:
+graduated hour rim, polar graticule, a star field seeded once and replicated
+into six mirror/rotation wedges, lanes as fine orbit lines numbered I–XII.
+Twelve Archimedean spirals enter every 30° and end at the build ring
+(`R1 = 215`); lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
+the same turn count, and the six pairs climb `PAIR_TURNS = [1, 2, 4, 6, 9, 12]`
+(owner: min 1 full turn, max 12). A 12-turn lane is ~12× longer, so each lane
+has `pace = (len / shortest)^0.6` multiplying enemy speed and Pusher distance:
+the longest lane takes ~4× as long, not 12×. **Every tower goes inside the
+central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges
+were raised (~+60%) to reach the lanes. Spawns rotate lanes:
+`(wave·7 + i·5) % 12` (5 is coprime with 12, so a wave fans round the rim).
+
+**Rules in one place:** enemies follow their spiral by arc length `s` (Pusher
 subtracts from `s`); a leak costs 1 life (boss 5). Interest is paid on credits
 held at the moment a wave is SENT (3% base, +1% from bonuses); sending early
 pays the countdown's remaining seconds. Every 8th wave brings a boss and the

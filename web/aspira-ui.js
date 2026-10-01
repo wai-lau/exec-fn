@@ -6,9 +6,8 @@ function setText(el, v) { v = String(v); if (el.textContent !== v) el.textConten
 
 // ---------- placement / input ----------
 function canPlace(x, y) {
-  if (x < 22 || y < 22 || x > W - 22 || y > W - 22) return false;
-  if (Math.hypot(x - CX, y - CY) < CORE_R + 30) return false;
-  if (distToPath(x, y) < 40) return false;
+  const r = Math.hypot(x - CX, y - CY);
+  if (r > BUILD_R - 20 || r < CORE_R + 24) return false;
   return !G.towers.some(t => Math.hypot(t.x - x, t.y - y) < 40);
 }
 function toWorld(ev) {
@@ -99,7 +98,7 @@ function refreshPanels() {
     const b = TOWERS[ui.build];
     el.innerHTML = '<h3>Placing</h3><div class="name">' + b.name + " · " + b.cost + "</div>" +
       '<p class="asp-hint">' + b.blurb + " Upgrades improve " + b.up + ".</p>" +
-      '<p class="asp-hint">Tap open ground between the spiral arms. Tap the button again to stop placing.</p>';
+      '<p class="asp-hint">Tap inside the central ring. Tap the button again to stop placing.</p>';
     return;
   }
   el.innerHTML = '<h3>Inspector</h3><p class="asp-hint">Pick a tower to build, or tap one on the field.</p>' +

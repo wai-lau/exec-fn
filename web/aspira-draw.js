@@ -27,24 +27,76 @@ function text(str, x, y, size, color) {
   ctx.fillText(str, x, y);
 }
 
+// The board is drawn as a star chart: a graduated rim in hours, a polar
+// graticule, a fixed star field, and the twelve lanes as fine orbit lines
+// numbered at their entry like a chart's catalogue labels.
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+
+function drawGraticule() {
+  ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.5;
+  for (let r = 100; r <= 450; r += 50) { ctx.beginPath(); ctx.arc(CX, CY, r, 0, 6.283); ctx.stroke(); }
+  for (let h = 0; h < 24; h++) {
+    const a = h * Math.PI / 12 - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(CX + Math.cos(a) * BUILD_R, CY + Math.sin(a) * BUILD_R);
+    ctx.lineTo(CX + Math.cos(a) * 480, CY + Math.sin(a) * 480);
+    ctx.stroke();
+  }
+  // graduated rim: a tick per degree, longer every 5, hour labels every 2h
+  ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.arc(CX, CY, 482, 0, 6.283); ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX, CY, 494, 0, 6.283); ctx.stroke();
+  for (let d = 0; d < 360; d++) {
+    const a = d * Math.PI / 180 - Math.PI / 2, len = d % 15 === 0 ? 12 : d % 5 === 0 ? 7 : 3;
+    ctx.beginPath();
+    ctx.moveTo(CX + Math.cos(a) * 482, CY + Math.sin(a) * 482);
+    ctx.lineTo(CX + Math.cos(a) * (482 + len), CY + Math.sin(a) * (482 + len));
+    ctx.stroke();
+  }
+  for (let h = 0; h < 24; h += 2) {
+    const a = h * Math.PI / 12 - Math.PI / 2;
+    text(h + "h", CX + Math.cos(a) * 466, CY + Math.sin(a) * 466, 11, "grid");
+  }
+}
+
+function drawStars() {
+  ctx.fillStyle = COL.cyan;
+  for (const st of STARS) {
+    ctx.globalAlpha = Math.min(1, 0.25 + st.m * 0.3);
+    ctx.beginPath(); ctx.arc(st.x, st.y, st.m, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawLanes() {
+  ctx.strokeStyle = COL.cyan; ctx.lineWidth = 1; ctx.lineJoin = "round";
+  PATHS.forEach((path, i) => {
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath(); path.pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.stroke();
+    // a small circle at entry, catalogue numeral just outside it
+    const p0 = path.pts[0], a = Math.atan2(p0.y - CY, p0.x - CX);
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
+    text(ROMAN[i], CX + Math.cos(a) * 448, CY + Math.sin(a) * 448, 12, "cyan");
+  });
+}
+
 function drawBoard() {
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, W);
-  ctx.strokeStyle = COL.grid; ctx.lineWidth = 1; ctx.globalAlpha = 0.25;
-  for (let r = 80; r < 500; r += 70) { ctx.beginPath(); ctx.arc(CX, CY, r, 0, 6.283); ctx.stroke(); }
-  for (let i = 0; i < 12; i++) {
-    const a = i * Math.PI / 6;
-    ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(CX + Math.cos(a) * 500, CY + Math.sin(a) * 500); ctx.stroke();
-  }
-  ctx.lineCap = "round"; ctx.lineJoin = "round";
-  ctx.beginPath(); PATH.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-  ctx.strokeStyle = COL.orange; ctx.globalAlpha = 0.08; ctx.lineWidth = 44; ctx.stroke();
-  ctx.globalAlpha = 0.4; ctx.lineWidth = 1.5; ctx.setLineDash([6, 10]); ctx.stroke(); ctx.setLineDash([]);
+  drawGraticule();
+  drawStars();
+  drawLanes();
+  // the build disc: the chart's inner field, dashed boundary
+  ctx.strokeStyle = COL.orange; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.6;
+  ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.arc(CX, CY, BUILD_R, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
   ctx.globalAlpha = 1;
+  // the core, drawn as a sun symbol: circle with a centre dot
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
-  poly(CX, CY, CORE_R * pulse, 8, Math.PI / 8, false);
-  ctx.fillStyle = COL.orange; ctx.globalAlpha = 0.12; ctx.fill(); ctx.globalAlpha = 1;
-  ctx.strokeStyle = COL.orange; ctx.lineWidth = 2.5; ctx.stroke();
-  text(G.lives, CX, CY + 1, 26, "orange");
+  ctx.strokeStyle = COL.orange; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(CX, CY, CORE_R * pulse, 0, 6.283); ctx.stroke();
+  text(G.lives, CX, CY + 1, 24, "orange");
 }
 
 function drawTower(t, ghost) {

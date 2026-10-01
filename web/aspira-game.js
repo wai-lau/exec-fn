@@ -53,17 +53,19 @@ function blockBonus() {
   else { G.lives += 3; banner("bonus +3 lives"); }
 }
 
-function spawnEnemy(type, n) {
-  const d = ENEMIES[type];
+// Lanes rotate by wave so each one sees traffic; the step of 5 is coprime
+// with 12, so consecutive spawns land on lanes spread round the rim.
+function spawnEnemy(type, n, i) {
+  const d = ENEMIES[type], pi = (n * 7 + i * 5) % N_PATHS, p0 = PATHS[pi].pts[0];
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
   G.enemies.push({
-    id: G.id++, type, hp, max: hp, s: 0, x: PATH[0].x, y: PATH[0].y, rot: Math.random() * 6,
+    id: G.id++, type, hp, max: hp, pi, s: 0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
 }
 
 // ---------- combat ----------
-const effSpeed = e => ENEMIES[e.type].speed * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
+const effSpeed = e => ENEMIES[e.type].speed * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
 const MODE_KEY = {
   close: a => a.d,
@@ -164,7 +166,7 @@ function fire(t, st) {
     }
     case "pusher":
       beam(t, e, col, 0.2, 3);
-      e.s = Math.max(0, e.s - st.push * (boss ? 0.4 : 1));
+      e.s = Math.max(0, e.s - st.push * PATHS[e.pi].pace * (boss ? 0.4 : 1));
       damage(e, st.dmg, t);
       break;
     case "stopper":
@@ -217,8 +219,8 @@ function stepSpawns(dt) {
   for (const w of G.spawns) {
     w.timer -= dt;
     while (w.timer <= 0 && w.idx < w.list.length) {
-      const type = w.list[w.idx++];
-      spawnEnemy(type, w.n);
+      const type = w.list[w.idx];
+      spawnEnemy(type, w.n, w.idx++);
       w.timer += type === "fast" ? 0.35 : type === "boss" ? 1.2 : 0.55;
     }
   }
@@ -233,11 +235,11 @@ function stepEnemies(dt) {
     if (e.markT > 0) e.markT -= dt; else e.markMul = 1;
     e.s += effSpeed(e) * dt;
     e.rot += dt * (e.stunT > 0 ? 0 : 1.5);
-    const p = pathAt(e.s); e.x = p.x; e.y = p.y;
-    if (e.s >= PATHLEN) {
+    const p = pathAt(e.pi, e.s); e.x = p.x; e.y = p.y;
+    if (e.s >= PATHS[e.pi].len) {
       e.dead = true;
       G.lives -= e.type === "boss" ? 5 : 1;
-      ring(CX, CY, 70, "pink", 0.5);
+      ring(e.x, e.y, 40, "pink", 0.5);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }
   }
