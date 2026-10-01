@@ -4036,6 +4036,18 @@ peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
 thick outline. Waves rotate themes `norm, swarm, fast, shield, armor, mixed`
 (`WAVE_THEMES`). Bonus stars unchanged; Regenerating was proposed and dropped.
 
+**Balance target** (owner): every tower has exactly one each of ✓✓✓ ✓✓ ✓ ✗
+✗✗ ✗✗✗ across Normal/Swarm/Fast/Shielded/Armored/Boss:
+RPD Shield✓✓✓ Fast✓✓ Normal✓ Swarm✗ Boss✗✗ Armor✗✗✗;
+CHN Swarm✓✓✓ Normal✓✓ Fast✓ Shield✗ Armor✗✗ Boss✗✗✗;
+SLW Fast✓✓✓ Boss✓✓ Swarm✓ Normal✗ Shield✗✗ Armor✗✗✗;
+RPR Armor✓✓✓ Boss✓✓ Normal✓ Fast✗ Shield✗✗ Swarm✗✗✗.
+ALL towers cost 40 to build (owner). Tuned by: RPD 3 dmg, CHN 3 base hops /
+110 hop reach, SLW 5 targets, 5 dmg per pulse (blocked by a standing shield,
+cut by armor) and bosses CAN be slowed, RPR 0.30 shots/s; slow resistances in `applySlow`: armored enemies are IMMUNE to slow,
+a standing shield HALVES it. Ratings are judged from L1 time-to-kill against
+wave-6 enemies, not from playtesting.
+
 **Upgrade tree** (`web/aspira-upgrades.js`, pure data + `applyMods`): every
 tower goes to level 15. The L5→6 upgrade picks one of 3 PATHS, the L10→11
 upgrade one of that path's 2 FINAL FORMS (6 finals per tower); between those,
