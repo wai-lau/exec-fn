@@ -230,7 +230,15 @@ function drawEnemy(e) {
   // full at the core), still dimmed by lost HP
   const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));
   ctx.globalAlpha = (0.1 + 0.9 * near) * (0.7 + 0.3 * f);
-  ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = 3; ctx.stroke();
+  // armor = a thick outline
+  ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = e.armor ? 6.5 : 3; ctx.stroke();
+  // shield = up to 3 concentric outlines of the same shape, peeling off as
+  // its hits are used up
+  if (e.shield > 0) {
+    const rings = Math.ceil(3 * e.shield / e.shieldMax);
+    ctx.lineWidth = 1.8;
+    for (let r = 1; r <= rings; r++) { poly(e.x, e.y, size + 5 * r, d.sides, e.rot, false); ctx.stroke(); }
+  }
   ctx.globalAlpha = 1;
   if (e.stunT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283);

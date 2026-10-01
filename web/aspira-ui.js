@@ -152,8 +152,8 @@ function refreshPanels() {
     return;
   }
   el.innerHTML = '<h3>Inspector</h3><p class="asp-hint">Pick a tower to build, or tap one on the field.</p>' +
-    '<p class="asp-hint">Squares are standard, triangles fast, heptagons tough. Stars drop a bonus. ' +
-    "An octagon boss comes every 8th wave and costs 5 lives if it lands.</p>" +
+    '<p class="asp-hint">Fewer sides = faster: triangles are fastest, hexagons (bosses) slowest. Swarms are small and many (CHN), triangles fast (SLW), stacked outlines are shields (RPD), thick outlines armor (RPR). Stars drop a bonus. ' +
+    "A hexagon boss comes every 8th wave and costs 5 lives if it lands.</p>" +
     '<p class="asp-hint">Every 8 waves pays a bonus. Extra lives at 50,000 points and every 100,000 after.</p>';
 }
 
