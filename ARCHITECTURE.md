@@ -3930,8 +3930,16 @@ the same turn count, and the six pairs climb `PAIR_TURNS = [1, 2, 4, 6, 9, 12]`
 has `pace = (len / shortest)^0.6` multiplying enemy speed and Pusher distance:
 the longest lane takes ~4× as long, not 12×. **Every tower goes inside the
 central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges
-were raised (~+60%) to reach the lanes. Spawns rotate lanes:
-`(wave·7 + i·5) % 12` (5 is coprime with 12, so a wave fans round the rim).
+were raised (~+60%) to reach the lanes. **Each enemy TYPE owns one lane per wave**: type k of wave n rides lane
+`(n·5 + k·7) % 12` (`laneMap`; 7 is coprime with 12, so a wave's types never
+share a lane, and 5n rotates the set each wave). Lanes in use (live enemies or
+queued spawns, `activeLanes()`) are drawn bright in that type's colour with a
+soft glow; idle lanes drop to 0.12 alpha.
+
+**Shots are hit-scan but drawn loud**: additive (`lighter`) three-layer
+strokes (glow/body/core), lifetimes ~2x, a muzzle ring at the tower, a flash +
+sparks at impact; Rapid fires a travelling tracer (`bolt`), Chain draws jagged
+lightning whose offsets are fixed at creation so it does not shimmer.
 
 **Rules in one place:** enemies follow their spiral by arc length `s` (Pusher
 subtracts from `s`); a leak costs 1 life (boss 5). Interest is paid on credits
