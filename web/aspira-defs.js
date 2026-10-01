@@ -185,7 +185,7 @@ const TOWERS = {
   ray:     { name: "Ray",     ab: "RAY", color: "glow",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
-const MAX_LVL = 5;
+const MAX_LVL = 15;
 const RANGE_BONUS = 1.2;
 const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", "Fast"]];
 
@@ -203,19 +203,38 @@ const POWERS = [
 ];
 const POWER_FULL = 30, POWER_TIME = 10;
 
-function towerStats(t) {
+// Base stats grow every level (1..15); the chosen path's mods and then the
+// final form's mods (aspira-upgrades.js) stack on top. A Spotter in range
+// adds its aura; noAura stops the aura lookup recursing into other towers.
+function towerStats(t, noAura = false) {
   const b = TOWERS[t.kind], L = t.lvl - 1;
   // RANGE_BONUS: every tower reaches 20% further than its table value (owner)
-  const s = { dmg: b.dmg * Math.pow(1.4, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.06 * L) };
+  const s = {
+    dmg: b.dmg * Math.pow(1.17, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.03 * L),
+    targets: 1, critMul: 3, arcRange: 90, arcFall: 0.75,
+  };
   switch (t.kind) {
-    case "rapid": s.rate = b.rate * (1 + 0.2 * L); break;
-    case "chain": s.chains = 2 + L; break;
-    case "ray": s.crit = 0.1 + 0.08 * L; break;
-    case "slower": s.slow = Math.min(0.8, 0.35 + 0.09 * L); s.targets = 3; break;
+    case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
+    case "chain": s.arcs = 2 + Math.floor(L / 4); break;
+    case "ray": s.crit = 0.1 + 0.015 * L; break;
+    case "slower": s.slow = 0.35 + 0.02 * L; s.targets = 3; break;
+  }
+  if (t.path != null) {
+    const p = UPGRADES[t.kind][t.path];
+    applyMods(s, p.mods);
+    if (t.form != null) applyMods(s, p.finals[t.form].mods);
+  }
+  if (s.slow) s.slow = Math.min(0.85, s.slow);
+  if (!noAura) {
+    for (const u of G.towers) {
+      if (u === t) continue;
+      const us = towerStats(u, true);
+      if (us.aura && Math.hypot(u.x - t.x, u.y - t.y) <= us.range) s.dmg *= us.aura;
+    }
   }
   if (G.power.RNG > 0) s.range *= 1.3;
   if (G.power.DAM > 0) s.dmg *= 1.6;
   return s;
 }
-const upCost = t => Math.round(TOWERS[t.kind].cost * (0.7 + 0.5 * t.lvl));
+const upCost = t => Math.round(TOWERS[t.kind].cost * (0.6 + 0.35 * t.lvl));
 const sellValue = t => Math.floor(t.spent * 0.7);

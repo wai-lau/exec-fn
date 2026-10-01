@@ -1,0 +1,92 @@
+// /aspira — the upgrade tree. Every tower goes to level 15: at level 5 the
+// next upgrade picks one of three PATHS, at level 10 one of that path's two
+// FINAL FORMS (3 paths x 2 forms = 6 finals per tower). Levels in between
+// grow the base stats (towerStats in aspira-defs.js).
+//
+// mods are applied by applyMods(): dmg/rate/range/arcRange multiply,
+// crit/arcs/targets/slow add, everything else is a behaviour flag read by
+// the shot code in aspira-game.js. A final form's mods stack on its path's.
+
+const BRANCH_LVL = 5, FINAL_LVL = 10;
+
+const UPGRADES = {
+  rapid: [
+    { name: "Overclock", desc: "+50% fire rate", mods: { rate: 1.5 }, finals: [
+      { name: "Gatling", desc: "fire rate x1.8", mods: { rate: 1.8 } },
+      { name: "Twin", desc: "hits two targets per shot", mods: { targets: 1 } },
+    ] },
+    { name: "Scope", desc: "+30% range and damage", mods: { range: 1.3, dmg: 1.3 }, finals: [
+      { name: "Sniper", desc: "damage x3, range +20%, half fire rate", mods: { dmg: 3, rate: 0.5, range: 1.2 } },
+      { name: "Spotter", desc: "towers in its range deal +20%", mods: { aura: 1.2 } },
+    ] },
+    { name: "Shred", desc: "hit enemies take +20% damage for 2s", mods: { shred: { mul: 1.2, t: 2 } }, finals: [
+      { name: "Acid", desc: "hits also poison: 60% more over 3s", mods: { dot: { frac: 0.6, t: 3 } } },
+      { name: "Flechette", desc: "hits splash 40% within a short radius", mods: { splash: { r: 50, frac: 0.4 } } },
+    ] },
+  ],
+  chain: [
+    { name: "Conductor", desc: "+2 arcs", mods: { arcs: 2 }, finals: [
+      { name: "Storm", desc: "+3 arcs, arcs lose less damage", mods: { arcs: 3, arcFall: 0.9 } },
+      { name: "Tesla", desc: "arcs jump 70% further", mods: { arcRange: 1.7 } },
+    ] },
+    { name: "Overload", desc: "+50% damage", mods: { dmg: 1.5 }, finals: [
+      { name: "Capacitor", desc: "every 4th shot deals x4", mods: { everyN: { n: 4, mul: 4 } } },
+      { name: "EMP", desc: "x2.5 damage to bosses", mods: { bossMul: 2.5 } },
+    ] },
+    { name: "Shock", desc: "15% chance to stun 0.3s", mods: { stun: { p: 0.15, t: 0.3 } }, finals: [
+      { name: "Paralyze", desc: "35% chance to stun 0.6s", mods: { stun: { p: 0.35, t: 0.6 } } },
+      { name: "Static", desc: "every hit slows 30% for 1.5s", mods: { hitSlow: { f: 0.3, t: 1.5 } } },
+    ] },
+  ],
+  slower: [
+    { name: "Frost", desc: "+15% slow", mods: { slow: 0.15 }, finals: [
+      { name: "Deep Freeze", desc: "newly slowed enemies freeze 0.5s", mods: { chillStop: 0.5 } },
+      { name: "Brittle", desc: "slowed enemies take +30% damage", mods: { brittle: 1.3 } },
+    ] },
+    { name: "Spread", desc: "+3 targets", mods: { targets: 3 }, finals: [
+      { name: "Blizzard", desc: "slows everything in range", mods: { all: true } },
+      { name: "Glacier", desc: "+40% range", mods: { range: 1.4 } },
+    ] },
+    { name: "Sap", desc: "each pulse deals 2% max HP", mods: { sap: 0.02 }, finals: [
+      { name: "Wither", desc: "each pulse deals 5% max HP", mods: { sap: 0.05 } },
+      { name: "Siphon", desc: "slowed enemies pay +50% bounty", mods: { siphon: 1.5 } },
+    ] },
+  ],
+  ray: [
+    { name: "Focus", desc: "+15% crit chance", mods: { crit: 0.15 }, finals: [
+      { name: "Executioner", desc: "crits deal x6 instead of x3", mods: { critMul: 6 } },
+      { name: "Assassin", desc: "always crits enemies under 30% HP", mods: { critBelow: 0.3 } },
+    ] },
+    { name: "Lance", desc: "pierces every enemy in line, -30% each", mods: { pierce: { fall: 0.7, wide: 14 } }, finals: [
+      { name: "Piercer", desc: "piercing loses no damage", mods: { pierce: { fall: 1, wide: 14 } } },
+      { name: "Wide Beam", desc: "beam three times wider", mods: { pierce: { fall: 0.8, wide: 42 } } },
+    ] },
+    { name: "Charge", desc: "damage x1.8, -30% fire rate", mods: { dmg: 1.8, rate: 0.7 }, finals: [
+      { name: "Supernova", desc: "hits explode for 50% in a wide radius", mods: { splash: { r: 90, frac: 0.5 } } },
+      { name: "Annihilator", desc: "damage x2 again", mods: { dmg: 2, rate: 0.85 } },
+    ] },
+  ],
+};
+
+const MUL_MODS = ["dmg", "rate", "range", "arcRange"], ADD_MODS = ["crit", "arcs", "targets", "slow"];
+function applyMods(s, mods) {
+  for (const [k, v] of Object.entries(mods)) {
+    if (MUL_MODS.includes(k)) s[k] = (s[k] ?? 1) * v;
+    else if (ADD_MODS.includes(k)) s[k] = (s[k] ?? 0) + v;
+    else s[k] = v;
+  }
+}
+
+// the choice an upgrade from this level requires, if any
+function pendingChoice(t) {
+  if (t.lvl === BRANCH_LVL && t.path == null) return "path";
+  if (t.lvl === FINAL_LVL && t.form == null) return "form";
+  return null;
+}
+
+function towerTitle(t) {
+  const b = TOWERS[t.kind];
+  if (t.path == null) return b.name;
+  const p = UPGRADES[t.kind][t.path];
+  return t.form == null ? b.name + " · " + p.name : p.finals[t.form].name;
+}
