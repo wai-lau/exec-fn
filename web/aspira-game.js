@@ -41,7 +41,7 @@ function sendWave() {
   if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green"); }
   G.wave++;
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
-  G.spawns.push({ n: G.wave, list: makeWave(G.wave), idx: 0, timer: 0 });
+  G.spawns.push({ n: G.wave, list: makeWave(G.wave), lanes: laneMap(G.wave), idx: 0, timer: 0 });
   G.nextIn = 22;
   G.started = true;
 }
@@ -53,10 +53,33 @@ function blockBonus() {
   else { G.lives += 3; banner("bonus +3 lives"); }
 }
 
-// Lanes rotate by wave so each one sees traffic; the step of 5 is coprime
-// with 12, so consecutive spawns land on lanes spread round the rim.
-function spawnEnemy(type, n, i) {
-  const d = ENEMIES[type], pi = (n * 7 + i * 5) % N_PATHS, p0 = PATHS[pi].pts[0];
+// Each enemy TYPE in a wave owns one lane for that wave. Type k of wave n
+// takes lane (n*5 + k*7) % 12: 7 is coprime with 12, so the (up to five)
+// types of one wave always land on five different lanes, and 5n rotates the
+// whole set round the rim from wave to wave.
+const TYPE_ORDER = Object.keys(ENEMIES);
+function laneMap(n) {
+  const out = {};
+  TYPE_ORDER.forEach((type, k) => { out[type] = (n * 5 + k * 7) % N_PATHS; });
+  return out;
+}
+
+// Lanes in use right now (live enemies or spawns still queued), with the
+// colour of the type using them; feeds the lane highlight in aspira-draw.js.
+function activeLanes() {
+  const out = new Map();
+  for (const e of G.enemies) if (!out.has(e.pi)) out.set(e.pi, ENEMIES[e.type].color);
+  for (const w of G.spawns) {
+    for (let i = w.idx; i < w.list.length; i++) {
+      const pi = w.lanes[w.list[i]];
+      if (!out.has(pi)) out.set(pi, ENEMIES[w.list[i]].color);
+    }
+  }
+  return out;
+}
+
+function spawnEnemy(type, n, pi) {
+  const d = ENEMIES[type], p0 = PATHS[pi].pts[0];
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
   G.enemies.push({
     id: G.id++, type, hp, max: hp, pi, s: 0, x: p0.x, y: p0.y, rot: Math.random() * 6,
@@ -126,7 +149,7 @@ function addScore(n) {
 function fireChain(t, st, e) {
   const hit = new Set([e.id]), col = TOWERS[t.kind].color;
   let cur = e, dmg = st.dmg;
-  beam(t, e, col, 0.15); damage(e, dmg, t);
+  beam(t, e, col, 0.15, 2.5, true); damage(e, dmg, t);
   for (let i = 0; i < st.chains; i++) {
     let nxt = null, nd = 90 * 90;
     for (const o of G.enemies) {
@@ -135,7 +158,7 @@ function fireChain(t, st, e) {
       if (d < nd) { nd = d; nxt = o; }
     }
     if (!nxt) break;
-    dmg *= 0.75; hit.add(nxt.id); beam(cur, nxt, col, 0.15); damage(nxt, dmg, t); cur = nxt;
+    dmg *= 0.75; hit.add(nxt.id); beam(cur, nxt, col, 0.15, 2, true); damage(nxt, dmg, t); cur = nxt;
   }
 }
 
@@ -159,7 +182,7 @@ function fire(t, st) {
     case "nuke": {
       const crit = Math.random() < st.crit;
       beam(t, e, col, 0.25, crit ? 5 : 3);
-      ring(e.x, e.y, crit ? 40 : 24, col);
+      ring(e.x, e.y, crit ? 70 : 40, col, 0.5);
       if (crit) float(e.x, e.y - 20, "CRIT", col);
       damage(e, st.dmg * (crit ? 3 : 1), t);
       break;
@@ -179,8 +202,12 @@ function fire(t, st) {
       e.markT = 5; e.markMul = Math.max(e.markMul, st.mark);
       damage(e, st.dmg, t);
       break;
+    case "rapid":
+      bolt(t, e, col);
+      damage(e, st.dmg, t);
+      break;
     default:
-      beam(t, e, col, t.kind === "rapid" ? 0.06 : 0.15, t.kind === "reaper" ? 3 : 1.5);
+      beam(t, e, col, 0.15, t.kind === "reaper" ? 3.5 : 2);
       damage(e, st.dmg, t);
   }
   return true;
@@ -202,13 +229,38 @@ function usePower(code) {
 }
 
 // ---------- fx ----------
-function beam(a, b, color, life, w = 1.5) { fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w }); }
+// Shots are hit-scan, but drawn loud: every beam lingers ~2x its old life,
+// flashes a ring at the muzzle and throws sparks at the impact. Chain beams
+// are jagged lightning (offsets fixed at creation so they do not shimmer).
+function beam(a, b, color, life, w = 1.5, jag = false) {
+  const f = { k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life: life * 2 + 0.08, w };
+  if (jag) {
+    const nx = -(b.y - a.y), ny = b.x - a.x, len = Math.hypot(nx, ny) || 1;
+    f.pts = [];
+    for (let i = 1; i < 6; i++) {
+      const off = (Math.random() - 0.5) * 26;
+      f.pts.push({ x: a.x + (b.x - a.x) * i / 6 + nx / len * off, y: a.y + (b.y - a.y) * i / 6 + ny / len * off });
+    }
+  }
+  fx.push(f);
+  if (a.lvl) fx.push({ k: "ring", x: a.x, y: a.y, r: 26, color, t: 0, life: 0.18 });
+  impact(b.x, b.y, color, Math.min(8, 2 + w * 1.5));
+}
+// a tracer bolt that visibly travels from tower to target (rapid-fire)
+function bolt(a, b, color) {
+  fx.push({ k: "bolt", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life: 0.14 });
+  impact(b.x, b.y, color, 2);
+}
+function impact(x, y, color, n) {
+  fx.push({ k: "flash", x, y, r: 6 + n * 1.5, color, t: 0, life: 0.2 });
+  burst(x, y, color, Math.round(n));
+}
 function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
 function float(x, y, text, color) { fx.push({ k: "text", x, y, text, color, t: 0, life: 1.1 }); }
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {
-    const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
-    fx.push({ k: "spark", x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, color, t: 0, life: 0.4 + Math.random() * 0.3 });
+    const a = Math.random() * 6.283, v = 60 + Math.random() * 160;
+    fx.push({ k: "spark", x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, color, t: 0, life: 0.35 + Math.random() * 0.35 });
   }
 }
 let bannerText = "", bannerT = 0;
@@ -219,8 +271,8 @@ function stepSpawns(dt) {
   for (const w of G.spawns) {
     w.timer -= dt;
     while (w.timer <= 0 && w.idx < w.list.length) {
-      const type = w.list[w.idx];
-      spawnEnemy(type, w.n, w.idx++);
+      const type = w.list[w.idx++];
+      spawnEnemy(type, w.n, w.lanes[type]);
       w.timer += type === "fast" ? 0.35 : type === "boss" ? 1.2 : 0.55;
     }
   }
