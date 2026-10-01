@@ -211,28 +211,47 @@ function addScore(n) {
   }
 }
 
+// Chain lightning hops one enemy at a time with HOP_DELAY (game seconds)
+// between jumps, so the arc visibly crawls through a pack. The first hit is
+// instant; live chains are advanced by stepChains() from step().
+const HOP_DELAY = 0.2;
+let chains = [];
 function fireChain(t, st, e) {
-  const hit = new Set([e.id]), col = TOWERS[t.kind].color;
-  let cur = e, dmg = shotDamage(t, st, e, st.dmg);
+  const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   // shields GROUND the arc (owner): a shielded first target takes the hit as
   // usual (one charge) but the chain goes no further
   const grounded = e.shield > 0;
   beam(t, e, col, 0.15, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
-  if (grounded) return;
-  for (let i = 0; i < st.arcs; i++) {
-    let nxt = null, nd = st.arcRange * st.arcRange;
-    for (const o of G.enemies) {
-      if (o.dead || hit.has(o.id)) continue;
-      const d = (o.x - cur.x) ** 2 + (o.y - cur.y) ** 2;
-      if (d < nd) { nd = d; nxt = o; }
-    }
-    if (!nxt) break;
-    // a hop onto a shielded enemy is grounded: it ends the chain there and
-    // strips no charge, so CHN cannot do RPD's job
-    if (nxt.shield > 0) { beam(cur, nxt, col, 0.15, 1.5, 0); ring(nxt.x, nxt.y, 14, "cyan", 0.25); break; }
-    dmg = shotDamage(t, st, nxt, dmg * st.arcFall / (st.bossMul && cur.type === "boss" ? st.bossMul : 1));
-    hit.add(nxt.id); beam(cur, nxt, col, 0.15, 1.5, dmg); damage(nxt, dmg, t); onHit(nxt, t, st, dmg); cur = nxt;
+  if (!grounded && st.arcs > 0) chains.push({ t, st, col, cur: e, hit: new Set([e.id]), dmg, left: st.arcs, timer: HOP_DELAY });
+}
+
+function hopChain(c) {
+  const { t, st, col } = c;
+  let nxt = null, nd = st.arcRange * st.arcRange;
+  for (const o of G.enemies) {
+    if (o.dead || c.hit.has(o.id)) continue;
+    const d = (o.x - c.cur.x) ** 2 + (o.y - c.cur.y) ** 2;
+    if (d < nd) { nd = d; nxt = o; }
   }
+  if (!nxt) return false;
+  // a hop onto a shielded enemy is grounded: it ends the chain there and
+  // strips no charge, so CHN cannot do RPD's job
+  if (nxt.shield > 0) { beam(c.cur, nxt, col, 0.15, 1.5, 0); ring(nxt.x, nxt.y, 14, "cyan", 0.25); return false; }
+  const prevBoss = st.bossMul && c.cur.type === "boss" ? st.bossMul : 1;
+  c.dmg = shotDamage(t, st, nxt, c.dmg * st.arcFall / prevBoss);
+  c.hit.add(nxt.id); beam(c.cur, nxt, col, 0.15, 1.5, c.dmg);
+  damage(nxt, c.dmg, t); onHit(nxt, t, st, c.dmg);
+  c.cur = nxt;
+  return --c.left > 0;
+}
+
+function stepChains(dt) {
+  chains = chains.filter(c => {
+    c.timer -= dt;
+    if (c.timer > 0) return true;
+    c.timer += HOP_DELAY;
+    return hopChain(c);
+  });
 }
 
 function fireSlower(t, st) {
@@ -377,6 +396,7 @@ function step(dt) {
   }
   stepSpawns(dt);
   stepEnemies(dt);
+  stepChains(dt);
   if (G.over) return;
   for (const t of G.towers) {
     t.cd -= dt;
