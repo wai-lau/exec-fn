@@ -53,13 +53,14 @@ const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
 const PACE_EXP = 0.6;
 const PATHS = [];
 
-// Stretch a point along axis `ax` by 1 + stretch * (r - R1) / (R0 - R1): full
-// ellipse at the off-screen start, a circle at the core, so an elliptical lane
-// still enters from beyond every edge and still ends on the core.
-const ELLIPSE = 0.45;
+// Stretch a point along axis `ax` by 1 + stretch * ((r - R1) / (R0 - R1))^0.6:
+// full ellipse at the off-screen start, a circle at the core, so an elliptical
+// lane still enters from beyond every edge and still ends on the core. The 0.6
+// power keeps the stretch strong well inside the rim, not only off-screen.
+const ELLIPSE = 1.2, ELLIPSE_EXP = 0.6;
 function ellipse(x, y, r, ax, stretch) {
   const c = Math.cos(ax), sn = Math.sin(ax);
-  const u = (x * c + y * sn) * (1 + stretch * (r - R1) / (R0 - R1)), v = -x * sn + y * c;
+  const u = (x * c + y * sn) * (1 + stretch * Math.pow(Math.max(0, (r - R1) / (R0 - R1)), ELLIPSE_EXP)), v = -x * sn + y * c;
   return { x: CX + u * c - v * sn, y: CY + u * sn + v * c, s: 0 };
 }
 
