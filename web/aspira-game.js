@@ -137,7 +137,7 @@ function damage(e, amt, t, quiet = false) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.2 });
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "white", 22, 1.2); // all of it soaked
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 22, 1.2); // all of it soaked: dim grey, like armor
     return;
   }
   if (e.shredT > 0) amt *= e.shredMul;
