@@ -56,6 +56,7 @@
   --surface-hsl:         0 0% 0%;       /* [Smoked Glass] Where dialogs and popups surface from nothing. */
   --scrim-hsl:           0 0% 0%;       /* [Smoked Glass] Frosted dark you read the room through—behind the nav, behind the modals. */
   --gray-hsl:            0 0% 78%;      /* [Silver] Thin chrome. The hours ticking down the timeline. */
+  --white-hsl:           0 0% 100%;     /* [White] /aspira's stars and damage numbers (owner asked for white). */
 
   /* ── Category cards (base H S% L% channels per category — same units as
         the palette tokens; size variants = calc offsets from the base,

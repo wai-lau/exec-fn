@@ -67,15 +67,16 @@ function laneMap(n) {
   return out;
 }
 
-// Lanes in use right now (live enemies or spawns still queued), with the
-// colour of the type using them; feeds the lane highlight in aspira-draw.js.
+// Lanes in use right now (live enemies or spawns still queued): lane ->
+// { color, n } with the riding type's colour and its wave number; feeds the
+// lane highlight and the wave:track labels in aspira-draw.js.
 function activeLanes() {
   const out = new Map();
-  for (const e of G.enemies) if (!out.has(e.pi)) out.set(e.pi, ENEMIES[e.type].color);
+  for (const e of G.enemies) if (!out.has(e.pi)) out.set(e.pi, { color: ENEMIES[e.type].color, n: e.n });
   for (const w of G.spawns) {
     for (let i = w.idx; i < w.list.length; i++) {
       const pi = w.lanes[w.list[i]];
-      if (!out.has(pi)) out.set(pi, ENEMIES[w.list[i]].color);
+      if (!out.has(pi)) out.set(pi, { color: ENEMIES[w.list[i]].color, n: w.n });
     }
   }
   return out;
@@ -85,7 +86,7 @@ function spawnEnemy(type, n, pi) {
   const d = ENEMIES[type], p0 = PATHS[pi].pts[0];
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
   G.enemies.push({
-    id: G.id++, type, hp, max: hp, pi, s: 0, x: p0.x, y: p0.y, rot: Math.random() * 6,
+    id: G.id++, type, n, hp, max: hp, pi, s: 0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
 }
@@ -121,7 +122,7 @@ function damage(e, amt, t) {
   fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.15 + 0.08 * m });
   if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
   // small, short-lived damage number, jittered so rapid hits don't stack
-  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), "green", 22, 1.2);
+  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), "white", 22, 1.2);
   if (e.hp <= 0) kill(e, t);
 }
 

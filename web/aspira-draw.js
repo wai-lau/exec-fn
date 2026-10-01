@@ -42,7 +42,13 @@ function text(str, x, y, size, color) {
 // The board is drawn as a star chart: a graduated rim in hours, a polar
 // graticule, a fixed star field, and the twelve lanes as fine orbit lines
 // numbered at their entry like a chart's catalogue labels.
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+function roman(n) {
+  const T = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"],
+    [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+  let out = "";
+  for (const [v, r] of T) while (n >= v) { out += r; n -= v; }
+  return out || "0";
+}
 
 function drawGraticule() {
   ctx.strokeStyle = COL.grid; ctx.lineWidth = 2;
@@ -69,7 +75,7 @@ function drawGraticule() {
 }
 
 function drawStars() {
-  ctx.fillStyle = COL.cyan;
+  ctx.fillStyle = COL.white;
   for (const st of STARS) {
     ctx.globalAlpha = Math.min(1, 0.25 + st.m * 0.3);
     ctx.beginPath(); ctx.arc(st.x, st.y, st.m, 0, 6.283); ctx.fill();
@@ -86,7 +92,7 @@ function drawLanes() {
   const live = activeLanes();
   ctx.lineJoin = "round";
   PATHS.forEach((path, i) => {
-    const col = live.get(i);
+    const use = live.get(i), col = use && use.color;
     ctx.strokeStyle = COL[col || "cyan"];
     ctx.beginPath(); path.pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
     ctx.setLineDash(LANE_DASH[i >> 1]); ctx.lineCap = "round";
@@ -106,7 +112,9 @@ function drawLanes() {
     const na = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
     // in use: full size and opacity in the riding type's colour; idle: small, faint
     ctx.globalAlpha = col ? 1 : 0.3;
-    text(ROMAN[i], CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, col ? 30 : 20, col || "cyan");
+    // label = wave:track in roman (owner): the riding wave, else the current one
+    const label = roman(use ? use.n : Math.max(1, G.wave)) + ":" + roman(i + 1);
+    text(label, CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, col ? 30 : 20, col || "cyan");
     ctx.globalAlpha = 1;
   });
   ctx.globalAlpha = 1;
@@ -114,7 +122,6 @@ function drawLanes() {
 
 function drawBoard() {
   drawGraticule();
-  drawStars();
   drawLanes();
   if (ui.build) drawCells(); // the hex grid shows only while placing a tower
   // the core, drawn as a sun symbol: circle with a centre dot
@@ -265,6 +272,8 @@ function render() {
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
   for (const t of G.towers) if (t !== sel) drawRange(t.x, t.y, towerStats(t).range, TOWERS[t.kind].color, true);
   if (sel) drawRange(sel.x, sel.y, towerStats(sel).range, TOWERS[sel.kind].color);
+  // stars go on top of lanes and range fills, which would otherwise tint them
+  drawStars();
   for (const e of G.enemies) drawEnemy(e);
   drawFx("shots");
   for (const t of G.towers) drawTower(t);

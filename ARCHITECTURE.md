@@ -3938,12 +3938,15 @@ Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
 proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Non-lane strokes (graticule, rim ticks, hex grid, core, towers,
 ranges, enemy outlines) are drawn heavy (2-3.5); lanes stay fine. The CRT
 stack is cut to 0.4 opacity on this page (rules in aspira.css; it loads only
-here). Draw order: board, ranges, enemies, shots, TOWERS (on top of their
-own effects), build ghost, floating text, banner. Every hit floats a damage number (size 22,
-1.2s, jittered); a kill floats `+N` credits (size 30, 2s). Lane numerals sit on an
+here). Draw order: board, ranges, STARS (after lanes + range fills, which used to
+tint them), enemies, shots, TOWERS (on top of their
+own effects), build ghost, floating text, banner. Stars and damage numbers are WHITE (`--white-hsl`, added to chrome.css
+for this). Every hit floats a damage number (size 22,
+1.2s, jittered); a kill floats `+N` credits (size 30, 2s). Lane labels read `wave:track` in roman (`X:X` = wave 10 on track 10; the
+riding wave while in use, else the current wave) and sit on an
 even ring at each lane's nominal 30° slot: full size/opacity in the riding
-type's colour while in use, small (20) and faint (0.3) when idle. Speed settings 1/2/3 run the sim at 3/4.5/6× the original base
-(`SPEED_MULT`; owner made the old 3× the default), labelled 1×/1.5×/2×.
+type's colour while in use, small (20) and faint (0.3) when idle. Speed settings 1/2/3 run the sim at 3/6/9× the original base
+(`SPEED_MULT`; owner made the old 3× the default), labelled 1×/2×/3×.
 Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
@@ -4003,8 +4006,8 @@ held at the moment a wave is SENT (3% base, +1% from bonuses); sending early
 pays the countdown's remaining seconds. Every 8th wave brings a boss and the
 next send pays a rotating bonus (lives / credits / interest). Kills fill the
 power bar (30); one press spends it on SCR/RNG/MNY/DAM (10s) or FRZ/BOM
-(instant). Extra lives at 50,000 points then every 100,000. Leaving the tab
-pauses.
+(instant). Extra lives at 50,000 points then every 100,000. The game does NOT pause on focus loss (owner); a hidden tab still
+freezes because the browser stops animation frames.
 
 **Trap:** `.asp-ov { display:flex }` beats the UA `[hidden]` rule, so
 `.asp-ov[hidden] { display:none }` is load-bearing — without it the overlay
