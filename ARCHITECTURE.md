@@ -4024,10 +4024,10 @@ Reaper and Gold were removed with their stats, effects and sounds; enemy
 
 **Enemies have one counter tower each** (owner): Swarm → CHN, Fast → SLW,
 Shielded → RPD, Armored → RPR. Chain lightning hops one enemy at a time, `HOP_DELAY = 0.2` game seconds
-apart (`chains`, advanced by `stepChains`), so the arc visibly crawls. Shields GROUND chain lightning: a CHN
-hop onto a shielded enemy ends the chain there and strips no charge, and a
-shielded first target stops the chain after its (normal) hit, so CHN cannot
-strip shields across a pack. SHAPE SHOWS SPEED: triangle fastest (fast),
+apart (`chains`, advanced by `stepChains`), so the arc visibly crawls. Chain hops DO pop shields (each hop strips a
+charge; the owner reversed an earlier "shields ground the arc" rule), kept
+in check by FIRE RATE: CHN must stay under 1/5 of RPD's rate (1.0 vs 6) and
+RPR slower still (0.3). SHAPE SHOWS SPEED: triangle fastest (fast),
 square (swarm), pentagon (normal / shielded / armored), hexagon slowest and
 for BOSSES ONLY. Enemies do not spin: one corner always points along
 the lane (nose first). Swarms read by small size + 3x count and wander off the lane
