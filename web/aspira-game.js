@@ -164,7 +164,7 @@ function onHit(e, t, st, amt) {
   if (st.shred) { e.shredMul = Math.max(e.shredT > 0 ? e.shredMul : 1, st.shred.mul); e.shredT = st.shred.t; }
   if (st.dot) { e.dotDps = Math.max(e.dotT > 0 ? e.dotDps : 0, amt * st.dot.frac / st.dot.t); e.dotT = st.dot.t; e.dotSrc = t; }
   if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t * (e.type === "boss" ? 0.4 : 1));
-  if (st.hitSlow) { e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, st.hitSlow.f); e.slowT = Math.max(e.slowT, st.hitSlow.t); }
+  if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t);
   if (st.splash) {
     ring(e.x, e.y, st.splash.r, TOWERS[t.kind].color, 0.3);
     for (const o of G.enemies) {
@@ -172,6 +172,15 @@ function onHit(e, t, st, amt) {
       if (Math.hypot(o.x - e.x, o.y - e.y) <= st.splash.r) damage(o, amt * st.splash.frac, t, true);
     }
   }
+}
+
+// Slow resistances (owner's balance grid): armored enemies are immune, a
+// standing shield halves the slow. Returns whether any slow landed.
+function applySlow(e, f, dur) {
+  if (e.armor) return false;
+  if (e.shield > 0) f *= 0.5;
+  e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, f); e.slowT = Math.max(e.slowT, dur);
+  return true;
 }
 
 // damage for one shot at one enemy: boss bonus and the every-Nth-shot charge
@@ -258,12 +267,16 @@ function fireSlower(t, st) {
   // unslowed enemies first, so three towers do not all chill the same three
   const cands = pickTargets(t, st, 9999).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.all ? 9999 : st.targets);
   for (const e of cands) {
-    if (st.chillStop && !(e.slowT > 0)) e.stunT = Math.max(e.stunT, st.chillStop * (e.type === "boss" ? 0.4 : 1));
-    e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, st.slow); e.slowT = 2.5;
+    const fresh = !(e.slowT > 0);
+    if (!applySlow(e, st.slow, 2.5)) { beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, 0); continue; }
+    if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop * (e.type === "boss" ? 0.4 : 1));
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
-    beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, st.sap ? e.max * st.sap : 0);
-    if (st.sap) damage(e, e.max * st.sap, t);
+    // each pulse also nicks: st.dmg (+ Sap's % max HP); a standing shield
+    // blocks it outright and keeps its charges, so SLW cannot strip shields
+    const nick = st.dmg + (st.sap ? e.max * st.sap : 0);
+    beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, nick);
+    if (nick > 0 && !(e.shield > 0)) damage(e, nick, t);
   }
   return cands.length > 0;
 }

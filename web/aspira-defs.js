@@ -181,10 +181,10 @@ function resolveColors() {
 }
 
 const TOWERS = {
-  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 15,  dmg: 4,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
+  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1.2,  range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 50,  dmg: 0,  rate: 1.2,  range: 190, blurb: "Slows three enemies at once.", up: "slow strength" },
-  reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 80,  dmg: 80, rate: 0.35, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 5,  rate: 1.2,  range: 190, blurb: "Slows and nicks five enemies at once. Armored enemies ignore the slow; shields halve it and block the damage.", up: "slow strength" },
+  reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 80, rate: 0.3,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 15;
@@ -222,13 +222,13 @@ function towerStats(t, noAura = false) {
   // RANGE_BONUS: every tower reaches 20% further than its table value (owner)
   const s = {
     dmg: b.dmg * Math.pow(1.17, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.03 * L),
-    targets: 1, critMul: 3, arcRange: 90, arcFall: 0.75,
+    targets: 1, critMul: 3, arcRange: 110, arcFall: 0.75,
   };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
-    case "chain": s.arcs = 2 + Math.floor(L / 4); break;
+    case "chain": s.arcs = 3 + Math.floor(L / 4); break;
     case "reaper": s.crit = 0.1 + 0.015 * L; break;
-    case "slower": s.slow = 0.35 + 0.02 * L; s.targets = 3; break;
+    case "slower": s.slow = 0.35 + 0.02 * L; s.targets = 5; break;
   }
   if (t.path != null) {
     const p = UPGRADES[t.kind][t.path];
