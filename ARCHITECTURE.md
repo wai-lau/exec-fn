@@ -4027,7 +4027,7 @@ Shielded → RPD, Armored → RPR. Chain lightning hops one enemy at a time, `HO
 apart (`chains`, advanced by `stepChains`), so the arc visibly crawls. Chain hops DO pop shields (each hop strips a
 charge; the owner reversed an earlier "shields ground the arc" rule), kept
 in check by FIRE RATE: CHN must stay under 1/5 of RPD's rate (1.0 vs 6) and
-RPR slower still (0.3). SHAPE SHOWS SPEED: triangle fastest (fast),
+RPR slower still (0.2). SHAPE SHOWS SPEED: triangle fastest (fast),
 square (swarm), pentagon (normal / shielded / armored), hexagon slowest and
 for BOSSES ONLY. Enemies do not spin: one corner always points along
 the lane (nose first). Swarms read by small size + 3x count and wander off the lane
@@ -4045,7 +4045,7 @@ SLW Fast✓✓✓ Boss✓✓ Swarm✓ Normal✗ Shield✗✗ Armor✗✗✗;
 RPR Armor✓✓✓ Boss✓✓ Normal✓ Fast✗ Shield✗✗ Swarm✗✗✗.
 ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, CHN 3 base hops /
 110 hop reach / 55% per-hop falloff, SLW 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
-charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 0.30 shots/s; slow resistances in `applySlow`: armored enemies are IMMUNE to slow,
+charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 120 dmg at 0.20 shots/s (was 80 at 0.30; same 24 dps, slower beat — owner); slow resistances in `applySlow`: armored enemies are IMMUNE to slow,
 a standing shield HALVES it. Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
 
