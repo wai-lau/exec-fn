@@ -449,7 +449,8 @@ function stepFx(dt) {
     if (f.k === "spark") { f.x += f.vx * dt; f.y += f.vy * dt; }
     if (f.k === "text") f.y -= f.vy * dt;
   }
-  fx = fx.filter(f => f.t < f.life);
+  // a beam ends the moment the enemy it points at dies (owner)
+  fx = fx.filter(f => f.t < f.life && !(f.k === "beam" && f.b && f.b.dead));
   if (bannerT > 0) bannerT -= dt;
 }
 
