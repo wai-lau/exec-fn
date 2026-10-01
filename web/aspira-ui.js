@@ -52,7 +52,7 @@ KINDS.forEach((k, i) => {
   const b = TOWERS[k];
   const btn = button($("asp-build"), "asp-tw " + b.color,
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
-  btn.title = b.name + " (" + (i + 1) + ")";
+  btn.title = b.name;
 });
 [["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
@@ -171,8 +171,8 @@ $("asp-ov-btn").onclick = () => {
 
 document.addEventListener("keydown", ev => {
   if (ev.target.closest("input, textarea, [contenteditable]")) return;
-  const n = parseInt(ev.key, 10);
-  if (n >= 1 && n <= KINDS.length) selectBuild(KINDS[n - 1]);
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (["1", "2", "3"].includes(ev.key)) { ui.speed = Number(ev.key); ui.paused = false; }
   else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; }
   else if (ev.key === "Tab") { ev.preventDefault(); if ($("asp-ov").hidden) sendWave(); }
   else if (ev.key === "u" || ev.key === "U") upgradeTower(ui.sel && G.towers.find(x => x.id === ui.sel));

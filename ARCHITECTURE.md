@@ -3918,7 +3918,7 @@ Clicking a tower opens its stats in a POPUP pinned beside it on the board
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
 Enemies shrink (to 45%) and fade as they lose HP. Lane numerals sit on an
-even ring at each lane's nominal 30° slot. Keys: 1-8 build, U upgrade, Space pause, Tab next wave, Esc cancel. The
+even ring at each lane's nominal 30° slot. Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
