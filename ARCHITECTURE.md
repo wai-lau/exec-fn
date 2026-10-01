@@ -3929,7 +3929,9 @@ Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
 proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Draw order: board, ranges, enemies, shots, TOWERS (on top of their
 own effects), build ghost, floating text, banner. Every hit floats a small damage number (14,
 0.6s, jittered); a kill floats `+N` credits. Lane numerals sit on an
-even ring at each lane's nominal 30° slot. Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
+even ring at each lane's nominal 30° slot. Speed settings 1/2/3 run the sim at 3/4.5/6× the original base
+(`SPEED_MULT`; owner made the old 3× the default), labelled 1×/1.5×/2×.
+Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
