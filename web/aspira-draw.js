@@ -57,7 +57,7 @@ function drawGraticule() {
   for (let h = 0; h < 24; h++) {
     const a = h * Math.PI / 12 - Math.PI / 2;
     ctx.beginPath();
-    ctx.moveTo(CX + Math.cos(a) * BUILD_R, CY + Math.sin(a) * BUILD_R);
+    ctx.moveTo(CX + Math.cos(a) * INNER_R, CY + Math.sin(a) * INNER_R);
     ctx.lineTo(CX + Math.cos(a) * 480, CY + Math.sin(a) * 480);
     ctx.stroke();
   }
@@ -320,5 +320,5 @@ function render() {
     text(bannerText, CX, 70, 44, "orange");
     ctx.globalAlpha = 1;
   }
-  if (ui.paused && !G.over && G.started) text("paused", CX, CY - BUILD_R - 40, 56, "green");
+  if (ui.paused && !G.over && G.started) text("paused", CX, CY - INNER_R - 40, 56, "green");
 }

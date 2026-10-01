@@ -18,19 +18,22 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
-// Towers build on BUILD_RINGS hex rings around the core; BUILD_R is the
-// outer edge of the last ring (its farthest corner), which the stars and the
-// graticule keep clear of.
-const CELL_S = 32, BUILD_RINGS = 4;
-const BUILD_R = Math.ceil(BUILD_RINGS * Math.sqrt(3) * CELL_S + CELL_S);
+// Towers build anywhere inside the chart's rim (owner): every hex cell whose
+// corners all sit within BUILD_R, just inside the white rim circle.
+const CELL_S = 32;
+const BUILD_R = RIM_R - 6;
+// the graticule spokes and the star field start out here (no longer tied to
+// the build area, which now spans the whole chart)
+const INNER_R = 220;
 
 // The build disc is tessellated into pointy-top hexagons on a lattice whose
 // centre hex IS the core, so the grid has the chart's six-fold symmetry.
-// BUILD_RINGS rings around it (6 + 12 + 18 + 24 = 60 cells at 4); each
+// every lattice cell inside BUILD_R around it (~270 cells); each
 // tower fills exactly one cell. CELL_S = hex circumradius (= core radius).
 const CELLS = (function buildCells() {
   const w = Math.sqrt(3) * CELL_S, out = [];
-  for (let r = -4; r <= 4; r++) for (let q = -4; q <= 4; q++) {
+  const span = Math.ceil(BUILD_R / (1.5 * CELL_S)) + 1;
+  for (let r = -span; r <= span; r++) for (let q = -2 * span; q <= 2 * span; q++) {
     if (q === 0 && r === 0) continue; // the core
     const x = CX + w * (q + r / 2), y = CY + 1.5 * CELL_S * r;
     const pts = [];
@@ -38,8 +41,7 @@ const CELLS = (function buildCells() {
       const a = Math.PI / 6 + k * Math.PI / 3;
       pts.push({ x: x + CELL_S * Math.cos(a), y: y + CELL_S * Math.sin(a) });
     }
-    // axial hex distance from the core = which ring the cell is on
-    if ((Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 <= BUILD_RINGS) out.push({ pts, x, y });
+    if (pts.every(p => Math.hypot(p.x - CX, p.y - CY) <= BUILD_R)) out.push({ pts, x, y });
   }
   return out;
 })();
@@ -147,7 +149,7 @@ const STARS = (function starField() {
   };
   const axis = -Math.PI / 3, out = [];
   for (let n = 0; n < 190; n++) {
-    const r = BUILD_R + 12 + Math.sqrt(rand()) * (1100 - BUILD_R - 12);
+    const r = INNER_R + Math.sqrt(rand()) * (1100 - INNER_R);
     const th = axis + rand() * Math.PI / 3, m = Math.pow(rand(), 3) * 2.2 + 0.5;
     for (const base of [th, 2 * axis - th]) {
       for (let k = 0; k < 3; k++) {
