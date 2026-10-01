@@ -181,9 +181,9 @@ function resolveColors() {
 }
 
 const TOWERS = {
-  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3,  rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
+  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3.5, rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1.2,  range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 5,  rate: 1.2,  range: 190, blurb: "Slows and nicks five enemies at once. Armored enemies ignore the slow; shields halve it and block the damage.", up: "slow strength" },
+  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 1.2,  range: 190, blurb: "Slows and nicks five enemies at once. Armored enemies ignore the slow; shields halve it and block the damage.", up: "slow strength" },
   reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 80, rate: 0.3,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
@@ -222,7 +222,7 @@ function towerStats(t, noAura = false) {
   // RANGE_BONUS: every tower reaches 20% further than its table value (owner)
   const s = {
     dmg: b.dmg * Math.pow(1.17, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.03 * L),
-    targets: 1, critMul: 3, arcRange: 110, arcFall: 0.75,
+    targets: 1, critMul: 3, arcRange: 110, arcFall: 0.55,
   };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
