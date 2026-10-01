@@ -4022,7 +4022,8 @@ Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
 
 **Enemies have one counter tower each** (owner): Swarm → CHN, Fast → SLW,
-Shielded → RPD, Armored → RPR. Shields GROUND chain lightning: a CHN
+Shielded → RPD, Armored → RPR. Chain lightning hops one enemy at a time, `HOP_DELAY = 0.2` game seconds
+apart (`chains`, advanced by `stepChains`), so the arc visibly crawls. Shields GROUND chain lightning: a CHN
 hop onto a shielded enemy ends the chain there and strips no charge, and a
 shielded first target stops the chain after its (normal) hit, so CHN cannot
 strip shields across a pack. SHAPE SHOWS SPEED: triangle fastest (fast),
