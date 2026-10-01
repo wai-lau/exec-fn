@@ -3920,8 +3920,9 @@ grid the pointer shows a pink cross. No boundary circle is drawn
 around the build disc (owner removed the dashed ring). A tower IS a
 hexagon: it fills one cell, snaps to the cell tapped (`cellAt`,
 point-in-convex-polygon), and its position is the cell centre. No enemy
-shares the towers' shape (owner's rule), so tough enemies are heptagons and
-fast ones pentagons (triangle towers came first; hexagons replaced them).
+shares the towers' shape (owner's rule), so tough enemies are heptagons; fast
+enemies are triangles again now that towers are hexagons (they were pentagons
+while towers were triangles).
 Lanes are quiet (0.3 alpha in use, 0.05 idle) and each mirror pair has its
 own stroke (`LANE_DASH`: solid, dotted, dashed, dash-dot, fine dots, long
 dash). Board
