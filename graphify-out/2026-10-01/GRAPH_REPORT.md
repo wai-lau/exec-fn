@@ -1,16 +1,16 @@
-# Graph Report - exec-fn  (2026-10-01)
+# Graph Report - exec-fn  (2026-09-30)
 
 ## Corpus Check
-- 920 files · ~8,492,498 words
+- 919 files · ~8,492,495 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6030 nodes · 9114 edges · 749 communities (606 shown, 143 thin omitted)
+- 6029 nodes · 9114 edges · 748 communities (605 shown, 143 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 653 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e8c40786`
+- Built from commit: `c1a5087f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -614,7 +614,7 @@
 - 3-file cycle: `nightfall-incident/nightfall-src/types/Netmap.ts -> nightfall-incident/nightfall-src/util/AudioShuffler.ts -> nightfall-incident/nightfall-src/types/index.ts -> nightfall-incident/nightfall-src/types/Netmap.ts`
 - 4-file cycle: `nightfall-incident/nightfall-src/types/GameStatus.ts -> nightfall-incident/nightfall-src/types/Netmap.ts -> nightfall-incident/nightfall-src/util/AudioShuffler.ts -> nightfall-incident/nightfall-src/types/index.ts -> nightfall-incident/nightfall-src/types/GameStatus.ts`
 
-## Communities (749 total, 143 thin omitted)
+## Communities (748 total, 143 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.14
@@ -2286,10 +2286,10 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `FastAPI` connect `Community 122` to `Community 131`, `Community 132`, `Community 5`, `Tarot Core Framework`, `Community 8`, `Community 686`, `Community 622`, `Community 153`, `Community 59`, `Community 92`, `Community 605`, `Community 31`?**
   _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `_render()` connect `Community 612` to `Community 385`, `Community 617`, `MTG Rules Assistant`, `Community 121`, `Community 605`, `Community 574`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **Why does `u()` connect `Community 147` to `Community 63`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `_render()` connect `Community 612` to `Community 385`, `Community 617`, `MTG Rules Assistant`, `Community 121`, `Community 605`, `Community 574`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **What connects `One-off: restore scheduled_day on archived cards that lost it.  _apply_patch_sch`, `Remove heredoc bodies (and optionally quoted strings) from a command.`, `dead-file-guard.sh script` to the rest of the system?**
   _2332 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
