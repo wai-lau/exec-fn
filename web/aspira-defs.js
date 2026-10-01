@@ -183,7 +183,7 @@ function resolveColors() {
 const TOWERS = {
   rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3.5, rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1,    range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 1.2,  range: 190, blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge. Armored enemies ignore the slow; shields halve it.", up: "slow strength" },
+  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 0.8,  range: 190, blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge. Armored enemies ignore the slow; shields halve it.", up: "slow strength" },
   reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 120, rate: 0.2, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
@@ -200,7 +200,7 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 // shield shows as concentric outlines, armor as a thick outline (drawEnemy).
 const ENEMIES = {
   fast:   { sides: 3, hp: 0.6,  speed: 135, bounty: 0.8, size: 12, color: "orange" },
-  swarm:  { sides: 4, hp: 0.22, speed: 95,  bounty: 0.3, size: 6,  color: "white" },
+  swarm:  { sides: 4, hp: 0.12, speed: 95,  bounty: 0.3, size: 6,  color: "white" },
   norm:   { sides: 5, hp: 1,    speed: 80,  bounty: 1,   size: 13, color: "green" },
   shield: { sides: 5, hp: 0.9,  speed: 75,  bounty: 1.6, size: 13, color: "cyan", shield: 5 },
   armor:  { sides: 5, hp: 1.6,  speed: 60,  bounty: 2,   size: 15, color: "pink", armor: 6 },
@@ -222,11 +222,11 @@ function towerStats(t, noAura = false) {
   // RANGE_BONUS: every tower reaches 20% further than its table value (owner)
   const s = {
     dmg: b.dmg * Math.pow(1.17, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.03 * L),
-    targets: 1, critMul: 3, arcRange: 110, arcFall: 0.55,
+    targets: 1, critMul: 3, arcRange: 70, arcFall: 0.8,
   };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
-    case "chain": s.arcs = 3 + Math.floor(L / 4); break;
+    case "chain": s.arcs = 5 + Math.floor(L / 4); break;
     case "reaper": s.crit = 0.1 + 0.015 * L; break;
     case "slower": s.slow = 0.35 + 0.02 * L; s.targets = 5; break;
   }
