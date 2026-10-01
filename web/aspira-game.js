@@ -39,10 +39,10 @@ function sendWave() {
   if (G.wave > 0 && G.nextIn > 0) {
     const early = Math.ceil(G.nextIn);
     G.money += early; addScore(early * 10);
-    float(CX, CY - 80, "+" + early + " early", "orange");
+    float(CX, CY - 80, "+" + early + " early", "orange", 28, 11, 1, 3);
   }
   const gain = Math.floor(G.money * G.interest);
-  if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green"); }
+  if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 11, 1, 3); }
   G.wave++;
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
   sfx("wave");
@@ -349,7 +349,8 @@ function beam(a, b, color, life, w = 1.5, dmg = 0) {
   fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg) });
 }
 function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
-function float(x, y, text, color, size = 28, life = 1.1, alpha = 1) { fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha }); }
+// vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
+function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30) { fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy }); }
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
@@ -426,7 +427,7 @@ function stepFx(dt) {
   for (const f of fx) {
     f.t += dt;
     if (f.k === "spark") { f.x += f.vx * dt; f.y += f.vy * dt; }
-    if (f.k === "text") f.y -= 30 * dt;
+    if (f.k === "text") f.y -= f.vy * dt;
   }
   fx = fx.filter(f => f.t < f.life);
   if (bannerT > 0) bannerT -= dt;
