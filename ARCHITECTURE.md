@@ -4017,7 +4017,8 @@ full opacity for the first half of its life, then fades.
 
 Tower colours (owner): RPD [Chatsubo] (the Social hue, via
 `--cat-social-h/s/l`), CHN [Marigold] orange, SLW [Hack] cyan, RPR [Lizzie's]
-pink. **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
+pink. RPR's beam is drawn SLIM: half the width of other beams with a doubled
+glow alpha, so it reads thinner but brighter. **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
 Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
