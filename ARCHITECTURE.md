@@ -4018,6 +4018,17 @@ Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Sto
 Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
 
+**Enemies have one counter tower each** (owner): Swarm → CHN, Fast → SLW,
+Shielded → RPD, Armored → RPR. SHAPE SHOWS SPEED: triangle fastest (fast),
+square (swarm), pentagon (normal / shielded / armored), hexagon slowest and
+for BOSSES ONLY. Enemies do not spin: one corner always points along
+the lane (nose first). Swarms read by small size + 3x count and wander off the lane
+on a small loop (`jit`). Shield (`5 + wave/3` HITS absorbed regardless of
+size; poison/splash bounce off) draws as up to 3 concentric outlines that
+peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
+thick outline. Waves rotate themes `norm, swarm, fast, shield, armor, mixed`
+(`WAVE_THEMES`). Bonus stars unchanged; Regenerating was proposed and dropped.
+
 **Upgrade tree** (`web/aspira-upgrades.js`, pure data + `applyMods`): every
 tower goes to level 15. The L5→6 upgrade picks one of 3 PATHS, the L10→11
 upgrade one of that path's 2 FINAL FORMS (6 finals per tower); between those,

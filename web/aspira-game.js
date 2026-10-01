@@ -18,13 +18,15 @@ let G = newGame();
 // ---------- waves ----------
 const WAVE_GAP = 15;
 const waveClear = () => G.enemies.length === 0 && G.spawns.length === 0;
+// Waves rotate through themes so each counter tower gets its moment; waves
+// 1-6 introduce them in order. Swarm waves are three times as many enemies.
+const WAVE_THEMES = ["norm", "swarm", "fast", "shield", "armor", "mixed"];
+const MIXED = ["norm", "swarm", "swarm", "fast", "shield", "armor"];
 function makeWave(n) {
-  const count = Math.min(10 + Math.floor(n * 0.5), 28), m = n % 4, list = [];
-  for (let i = 0; i < count; i++) {
-    let type = m === 1 ? "norm" : m === 2 ? "fast" : m === 3 ? "hard" : ["norm", "fast", "hard"][i % 3];
-    if (n < 3 && type === "hard") type = "norm";
-    list.push(type);
-  }
+  const theme = WAVE_THEMES[(n - 1) % WAVE_THEMES.length], list = [];
+  let count = Math.min(10 + Math.floor(n * 0.5), 28);
+  if (theme === "swarm") count = Math.min(count * 3, 70);
+  for (let i = 0; i < count; i++) list.push(theme === "mixed" ? MIXED[i % MIXED.length] : theme);
   if (n >= 3) list[Math.floor(Math.random() * count)] = "bonus";
   if (n % 8 === 0) list.push("boss");
   return list;
@@ -94,7 +96,11 @@ function entryS(pi) {
 function spawnEnemy(type, n, pi) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0);
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
+  const shield = d.shield ? d.shield + Math.floor(n / 3) : 0;
   G.enemies.push({
+    armor: d.armor ? d.armor * (1 + 0.12 * (n - 1)) : 0, shield, shieldMax: shield,
+    // swarm members wander off the lane line on their own small loop
+    jit: type === "swarm" ? 6 + Math.random() * 14 : 0, ph: Math.random() * 6.283,
     id: G.id++, type, n, hp, max: hp, pi, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
@@ -126,8 +132,17 @@ function pickTargets(t, st, count) {
 // quiet: no flash or number (poison ticks, splash), so they do not spam
 function damage(e, amt, t, quiet = false) {
   if (e.dead) return;
+  // a shield eats one whole HIT, whatever its size (poison/splash just bounce)
+  if (e.shield > 0) {
+    if (quiet) return;
+    e.shield--;
+    fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.2 });
+    return;
+  }
   if (e.shredT > 0) amt *= e.shredMul;
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
+  // armor takes a flat bite out of every hit (never below 10% of it)
+  if (e.armor && !quiet) amt = Math.max(amt * 0.1, amt - e.armor);
   e.hp -= amt;
   if (!quiet) {
     // impact flash sized and lit by the damage; big hits also throw sparks
@@ -308,7 +323,7 @@ function stepSpawns(dt) {
     while (w.timer <= 0 && w.idx < w.list.length) {
       const type = w.list[w.idx++];
       spawnEnemy(type, w.n, w.lanes[type]);
-      w.timer += type === "fast" ? 0.35 : type === "boss" ? 1.2 : 0.55;
+      w.timer += type === "swarm" ? 0.12 : type === "fast" ? 0.35 : type === "boss" ? 1.2 : 0.55;
     }
   }
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
@@ -323,8 +338,11 @@ function stepEnemies(dt) {
     if (e.shredT > 0) e.shredT -= dt;
     if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
     e.s += effSpeed(e) * dt;
-    e.rot += dt * (e.stunT > 0 ? 0 : 1.5);
     const p = pathAt(e.pi, e.s); e.x = p.x; e.y = p.y;
+    // no free spin: one corner points along the lane, nose first
+    const ahead = pathAt(e.pi, e.s + 3);
+    if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
+    if (e.jit) { e.ph += dt * 2.2; e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
     if (e.s >= PATHS[e.pi].len) {
       e.dead = true;
       G.lives -= e.type === "boss" ? 5 : 1;
