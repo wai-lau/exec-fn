@@ -1,0 +1,143 @@
+/* /aspira — the site's green terminal look: chrome.css tokens only, panels in
+   the .doc-card idiom (green 0.12 fill + hairline). Square playfield, control
+   deck beside it on wide screens, under it on phones. */
+
+#asp {
+  position: relative;
+  z-index: var(--z-raised);
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-inline: var(--space-6);
+  padding-block: var(--space-4) calc(var(--nav-h, 64px) + var(--space-8));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: hsl(var(--green-hsl));
+  font-family: var(--font-mono);
+}
+
+.asp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2-5) var(--space-7); }
+
+.asp-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-mega);
+  text-transform: uppercase;
+  color: hsl(var(--orange-hsl));
+}
+.asp-stats { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); font-variant-numeric: tabular-nums; }
+.asp-stat { display: flex; gap: var(--space-2); align-items: baseline; }
+.asp-stat b { font-size: var(--fs-2xs); font-weight: var(--fw-normal); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
+.asp-stat span { font-weight: var(--fw-bold); }
+
+.asp-main { display: grid; grid-template-columns: 1fr; gap: var(--space-4); }
+
+@media (width >= 900px) {
+  .asp-main { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+}
+
+.asp-board { position: relative; width: 100%; aspect-ratio: 1; margin: 0 auto; min-width: 0; }
+
+@media (width >= 900px) {
+  .asp-board { max-width: calc(100dvh - var(--nav-h, 64px) - 90px); }
+}
+
+#asp-cv {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-3);
+  touch-action: manipulation;
+  cursor: crosshair;
+  background: hsl(var(--bg-hsl));
+}
+
+.asp-ov {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  text-align: center;
+  background: hsl(var(--scrim-hsl) / 0.45);
+  border-radius: var(--radius-3);
+}
+.asp-ov[hidden] { display: none; }
+.asp-ov h2 { margin: 0; font-size: var(--fs-3xl); letter-spacing: var(--tracking-mega); text-transform: uppercase; color: hsl(var(--orange-hsl)); }
+.asp-ov p { margin: 0; max-width: 36ch; line-height: var(--lh-snug); }
+
+.asp-side { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+.asp-deck {
+  background: hsl(var(--green-hsl) / 0.12);
+  border: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.asp-deck h3 {
+  margin: 0;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-mega);
+  text-transform: uppercase;
+}
+
+.asp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
+.asp-grid.six { grid-template-columns: repeat(6, 1fr); }
+.asp-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.asp-row > button { flex: 1; }
+
+#asp button {
+  font: inherit;
+  color: hsl(var(--green-hsl));
+  background: hsl(var(--bg-hsl) / 0.45);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+  padding: var(--space-2-5) var(--space-2);
+  cursor: pointer;
+}
+#asp button:hover:not(:disabled) { border-color: hsl(var(--green-hsl)); }
+#asp button:focus-visible { outline: 1px solid hsl(var(--orange-hsl)); outline-offset: var(--space-px); }
+#asp button:disabled { opacity: 0.45; cursor: not-allowed; }
+#asp button.asp-primary { border-color: hsl(var(--orange-hsl)); color: hsl(var(--orange-hsl)); font-weight: var(--fw-bold); }
+#asp button.on { background: hsl(var(--green-hsl) / 0.12); border-color: currentcolor; }
+
+#asp .asp-tw { display: flex; flex-direction: column; align-items: center; gap: var(--space-0-5); padding-inline: var(--space-0-5); }
+.asp-tw .ab { font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); }
+.asp-tw .c { font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; }
+#asp .asp-tw.cyan { color: hsl(var(--cyan-hsl)); }
+#asp .asp-tw.pink { color: hsl(var(--pink-hsl)); }
+#asp .asp-tw.glow { color: hsl(var(--orange-glow-hsl)); }
+#asp .asp-tw.green { color: hsl(var(--green-hsl)); }
+#asp .asp-tw.orange { color: hsl(var(--orange-hsl)); }
+
+#asp-inspect { min-height: 120px; line-height: var(--lh-snug); }
+#asp-inspect .name { font-weight: var(--fw-bold); }
+#asp-inspect dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
+#asp-inspect dt { color: hsl(var(--green-hsl) / 0.45); }
+#asp-inspect dd { margin: 0; }
+.asp-hint { margin: 0; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.8); }
+
+.asp-bar { height: 6px; background: hsl(var(--bg-hsl) / 0.45); border-radius: var(--radius-1); overflow: hidden; }
+.asp-bar i { display: block; height: 100%; width: 0; background: hsl(var(--orange-hsl)); }
+#asp button.asp-pw { font-weight: var(--fw-bold); padding-inline: var(--space-0-5); }
+#asp button.asp-pw.live { border-color: hsl(var(--cyan-hsl)); color: hsl(var(--cyan-hsl)); }
+
+/* palette swatches the canvas reads its colours from (aspira-defs.js) */
+.asp-sw { display: none; }
+.asp-sw.bg { color: hsl(var(--bg-hsl)); }
+.asp-sw.grid { color: hsl(var(--gray-hsl) / 0.45); }
+.asp-sw.green { color: hsl(var(--green-hsl)); }
+.asp-sw.cyan { color: hsl(var(--cyan-hsl)); }
+.asp-sw.orange { color: hsl(var(--orange-hsl)); }
+.asp-sw.glow { color: hsl(var(--orange-glow-hsl)); }
+.asp-sw.pink { color: hsl(var(--pink-hsl)); }

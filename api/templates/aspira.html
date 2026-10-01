@@ -1,0 +1,52 @@
+<link rel="stylesheet" href="/aspira.css?v=3">
+<div id="asp">
+  <header class="asp-head">
+    <h1 class="asp-title">aspira</h1>
+    <div class="asp-stats">
+      <div class="asp-stat"><b>LIVES</b><span id="asp-lives"></span></div>
+      <div class="asp-stat"><b>CREDITS</b><span id="asp-money"></span></div>
+      <div class="asp-stat"><b>INTEREST</b><span id="asp-int"></span></div>
+      <div class="asp-stat"><b>WAVE</b><span id="asp-wave"></span></div>
+      <div class="asp-stat"><b>SCORE</b><span id="asp-score"></span></div>
+      <div class="asp-stat"><b>BEST</b><span id="asp-best"></span></div>
+    </div>
+  </header>
+  <div class="asp-main">
+    <div class="asp-board">
+      <canvas id="asp-cv" aria-label="Playfield"></canvas>
+      <div class="asp-ov" id="asp-ov">
+        <h2 id="asp-ov-title">aspira</h2>
+        <p id="asp-ov-text">Polygons spiral in toward your core. Build towers between the arms of the spiral. Credits you hold when a wave is sent earn interest.</p>
+        <button class="asp-primary" id="asp-ov-btn">Start</button>
+      </div>
+    </div>
+    <div class="asp-side">
+      <section class="asp-deck">
+        <h3>Build</h3>
+        <div class="asp-grid" id="asp-build"></div>
+      </section>
+      <section class="asp-deck" id="asp-inspect"></section>
+      <section class="asp-deck">
+        <h3>Power <span id="asp-pw-state"></span></h3>
+        <div class="asp-bar"><i id="asp-pw-bar"></i></div>
+        <div class="asp-grid six" id="asp-powers"></div>
+      </section>
+      <section class="asp-deck">
+        <div class="asp-row"><button class="asp-primary" id="asp-send">Send wave</button></div>
+        <div class="asp-row" id="asp-speed"></div>
+        <p class="asp-hint">Tap a tower type, then tap open ground. Tap a built tower to upgrade, sell or retarget. Keys: 1-8 build, space send, P pause, Esc cancel.</p>
+      </section>
+    </div>
+  </div>
+  <span class="asp-sw bg" data-asp-sw="bg"></span>
+  <span class="asp-sw grid" data-asp-sw="grid"></span>
+  <span class="asp-sw green" data-asp-sw="green"></span>
+  <span class="asp-sw cyan" data-asp-sw="cyan"></span>
+  <span class="asp-sw orange" data-asp-sw="orange"></span>
+  <span class="asp-sw glow" data-asp-sw="glow"></span>
+  <span class="asp-sw pink" data-asp-sw="pink"></span>
+</div>
+<script src="/aspira-defs.js?v=1"></script>
+<script src="/aspira-game.js?v=2"></script>
+<script src="/aspira-draw.js?v=1"></script>
+<script src="/aspira-ui.js?v=2"></script>
