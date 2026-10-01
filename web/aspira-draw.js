@@ -278,6 +278,7 @@ function drawFx(pass) {
     } else if (f.k === "spark") {
       ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
     } else if (f.k === "text") {
+      ctx.globalAlpha *= f.alpha ?? 1;
       text(f.text, f.x, f.y, f.size, f.color);
     }
   }
