@@ -214,7 +214,11 @@ function addScore(n) {
 function fireChain(t, st, e) {
   const hit = new Set([e.id]), col = TOWERS[t.kind].color;
   let cur = e, dmg = shotDamage(t, st, e, st.dmg);
+  // shields GROUND the arc (owner): a shielded first target takes the hit as
+  // usual (one charge) but the chain goes no further
+  const grounded = e.shield > 0;
   beam(t, e, col, 0.15, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
+  if (grounded) return;
   for (let i = 0; i < st.arcs; i++) {
     let nxt = null, nd = st.arcRange * st.arcRange;
     for (const o of G.enemies) {
@@ -223,6 +227,9 @@ function fireChain(t, st, e) {
       if (d < nd) { nd = d; nxt = o; }
     }
     if (!nxt) break;
+    // a hop onto a shielded enemy is grounded: it ends the chain there and
+    // strips no charge, so CHN cannot do RPD's job
+    if (nxt.shield > 0) { beam(cur, nxt, col, 0.15, 1.5, 0); ring(nxt.x, nxt.y, 14, "cyan", 0.25); break; }
     dmg = shotDamage(t, st, nxt, dmg * st.arcFall / (st.bossMul && cur.type === "boss" ? st.bossMul : 1));
     hit.add(nxt.id); beam(cur, nxt, col, 0.15, 1.5, dmg); damage(nxt, dmg, t); onHit(nxt, t, st, dmg); cur = nxt;
   }

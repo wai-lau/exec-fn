@@ -4022,7 +4022,10 @@ Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
 
 **Enemies have one counter tower each** (owner): Swarm → CHN, Fast → SLW,
-Shielded → RPD, Armored → RPR. SHAPE SHOWS SPEED: triangle fastest (fast),
+Shielded → RPD, Armored → RPR. Shields GROUND chain lightning: a CHN
+hop onto a shielded enemy ends the chain there and strips no charge, and a
+shielded first target stops the chain after its (normal) hit, so CHN cannot
+strip shields across a pack. SHAPE SHOWS SPEED: triangle fastest (fast),
 square (swarm), pentagon (normal / shielded / armored), hexagon slowest and
 for BOSSES ONLY. Enemies do not spin: one corner always points along
 the lane (nose first). Swarms read by small size + 3x count and wander off the lane
