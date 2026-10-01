@@ -28,6 +28,7 @@ import routes_graph  # noqa: F401  — registers /graph (graphify viz, scrubbed 
 import routes_printer  # noqa: F401  — registers /printer + the ELEGOO printer reverse proxy
 import routes_cc     # noqa: F401  — registers the sandboxed Claude Code sidecar routes (/api/cc/*)
 import routes_zombo  # noqa: F401  — registers /zombo (secret: gated, but linked from nowhere)
+import routes_aspira  # noqa: F401  — registers /aspira (owner-only game; not a nav entry)
 import routes_exec   # noqa: F401  — registers /api/exec/tool* (the sidecar runs Exec's card tools here)
 
 # StaticFiles guesses MIME via mimetypes, which doesn't know woff2 -> it served

@@ -3892,3 +3892,42 @@ failed by the order they last ran in.
 - No in-app password recovery by design: a forgotten passphrase is a
   forgotten key. Only the owner's `python -m noodle.reset` CLI re-opens a
   name for a fresh bind.
+
+## 22. /aspira — spiral tower defence
+
+Owner-only (`protected`), carried by the bottom nav but **not a nav entry**:
+no `aspira` key in pages.py's nav tables, so `_render_page("aspira", …)`
+renders the nav with nothing marked active. Linked from nowhere; reached by
+URL. A web take on the spiral tower-defence genre (Android "Spira Defence" /
+"Spira 2" as the reference for mechanics only; all code and art original).
+
+**Route** `api/routes_aspira.py` → `templates/aspira.html`. No API, no server
+state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
+
+**Client** — four same-global-scope files, loaded in order:
+
+| File | Holds |
+|------|-------|
+| `web/aspira-defs.js` | world geometry (1000×1000, Archimedean spiral `PATH` sampled at 0.004 rad, `pathAt(s)` by binary search), `TOWERS`/`ENEMIES`/`POWERS` tables, `towerStats()`, `COL` |
+| `web/aspira-game.js` | state `G`, waves, economy, targeting (`MODE_KEY`), combat, fx, `step()` |
+| `web/aspira-draw.js` | canvas render |
+| `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
+
+**Colours never live in the JS.** The template carries hidden `.asp-sw`
+swatches styled from chrome.css tokens; `resolveColors()` reads their computed
+`color` once at boot into `COL`, and every fade on the canvas is
+`globalAlpha`. Keeps the page inside the palette lint without a single raw
+literal.
+
+**Rules in one place:** enemies follow the spiral by arc length `s` (Pusher
+subtracts from `s`); a leak costs 1 life (boss 5). Interest is paid on credits
+held at the moment a wave is SENT (3% base, +1% from bonuses); sending early
+pays the countdown's remaining seconds. Every 8th wave brings a boss and the
+next send pays a rotating bonus (lives / credits / interest). Kills fill the
+power bar (30); one press spends it on SCR/RNG/MNY/DAM (10s) or FRZ/BOM
+(instant). Extra lives at 50,000 points then every 100,000. Leaving the tab
+pauses.
+
+**Trap:** `.asp-ov { display:flex }` beats the UA `[hidden]` rule, so
+`.asp-ov[hidden] { display:none }` is load-bearing — without it the overlay
+never leaves and swallows every tap on the board.
