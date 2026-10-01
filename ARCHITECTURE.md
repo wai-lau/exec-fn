@@ -3911,7 +3911,8 @@ canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
 the decks, or the phone sheet covers Start. Placing a tower ends placing mode
 and selects the new tower. The build disc is TESSELLATED into pointy-top HEXAGONS (`CELLS`,
 circumradius `CELL_S = 32`; the centre hex IS the core, `CORE_R = 34`, and
-three rings around it give 36 cells inside `BUILD_R = 200`). The grid is drawn ONLY while placing a tower (`ui.build`). A tower IS a
+three rings around it give 36 cells inside `BUILD_R = 200`). The grid is drawn ONLY while placing a tower (`ui.build`). No boundary circle is drawn
+around the build disc (owner removed the dashed ring). A tower IS a
 hexagon: it fills one cell, snaps to the cell tapped (`cellAt`,
 point-in-convex-polygon), and its position is the cell centre. No enemy
 shares the towers' shape (owner's rule), so tough enemies are heptagons and
@@ -3926,7 +3927,7 @@ Clicking a tower opens its stats in a POPUP pinned beside it on the board
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
 Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
-proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Non-lane strokes (graticule, rim ticks, build ring, hex grid, core, towers,
+proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Non-lane strokes (graticule, rim ticks, hex grid, core, towers,
 ranges, enemy outlines) are drawn heavy (2-3.5); lanes stay fine. The CRT
 stack is cut to 0.4 opacity on this page (rules in aspira.css; it loads only
 here). Draw order: board, ranges, enemies, shots, TOWERS (on top of their
