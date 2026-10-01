@@ -3981,7 +3981,10 @@ the same turn count, and the six pairs climb `PAIR_TURNS = [3, 4, 5, 6, 7, 8]`
 (owner: min 3 full turns, max 8). Winding is NOT even: the angle advances as `t^2.2`
 (`SPIRAL_P`), so lanes run nearly straight in from far out and coil tighter
 toward the core while keeping a finite turn count. Each lane's stroke is a
-Path2D built once (`path.p2d`). The odd pairs (4, 6, 8 turns) are ELLIPTICAL:
+Path2D built once (`path.p2d`). Every lane has a straight radial LEAD-IN from
+`LEAD_R = 2400` to `R0` (on wide screens a lane used to visibly begin in open
+space); enemies spawn where their lane enters the visible area (`entryS`,
+from the camera), and pace ignores the lead-in. The odd pairs (4, 6, 8 turns) are ELLIPTICAL:
 `ellipse()` stretches them along their own mirror axis by a CONSTANT
 `1 + 0.7` (owner: an ellipse must not round off toward the core; an earlier
 falloff did). They spiral in to `R1 / 1.7` so the stretched end still lands
