@@ -94,13 +94,12 @@ function drawLanes() {
   PATHS.forEach((path, i) => {
     const use = live.get(i), col = use && use.color;
     ctx.strokeStyle = COL[col || "cyan"];
-    ctx.beginPath(); path.pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
     ctx.setLineDash(LANE_DASH[i >> 1]); ctx.lineCap = "round";
     if (col) {
-      ctx.globalAlpha = 0.03; ctx.lineWidth = 6; ctx.stroke();
-      ctx.globalAlpha = 0.3; ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.globalAlpha = 0.03; ctx.lineWidth = 6; ctx.stroke(path.p2d);
+      ctx.globalAlpha = 0.3; ctx.lineWidth = 1.4; ctx.stroke(path.p2d);
     } else {
-      ctx.globalAlpha = 0.05; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.globalAlpha = 0.05; ctx.lineWidth = 1.2; ctx.stroke(path.p2d);
     }
     ctx.setLineDash([]);
     // a small circle where the lane crosses the rim, catalogue numeral inside it
