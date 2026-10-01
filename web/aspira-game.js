@@ -266,11 +266,11 @@ function fireSlower(t, st) {
     if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop * (e.type === "boss" ? 0.4 : 1));
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
-    // each pulse also nicks: st.dmg (+ Sap's % max HP); a standing shield
-    // blocks it outright and keeps its charges, so SLW cannot strip shields
+    // each pulse also nicks: st.dmg (+ Sap's % max HP); it is a real hit, so
+    // it pops one shield charge per enemy touched (owner)
     const nick = st.dmg + (st.sap ? e.max * st.sap : 0);
     beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, nick);
-    if (nick > 0 && !(e.shield > 0)) damage(e, nick, t);
+    if (nick > 0) damage(e, nick, t);
   }
   return cands.length > 0;
 }
