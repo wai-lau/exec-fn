@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/aspira.css?v=5">
+<link rel="stylesheet" href="/aspira.css?v=8">
 <div id="asp">
   <header class="asp-head">
     <h1 class="asp-title">aspira</h1>
@@ -14,6 +14,7 @@
   <div class="asp-main">
     <div class="asp-board">
       <canvas id="asp-cv" aria-label="Playfield"></canvas>
+      <div class="asp-deck asp-pop" id="asp-pop" hidden></div>
       <div class="asp-ov" id="asp-ov">
         <h2 id="asp-ov-title">aspira</h2>
         <p id="asp-ov-text">Polygons spiral in toward your core along twelve paths. Build towers inside the central ring; they fire outward at the lanes. Credits you hold when a wave is sent earn interest.</p>
@@ -27,14 +28,9 @@
       </section>
       <section class="asp-deck" id="asp-inspect"></section>
       <section class="asp-deck">
-        <h3>Power <span id="asp-pw-state"></span></h3>
-        <div class="asp-bar"><i id="asp-pw-bar"></i></div>
-        <div class="asp-grid six" id="asp-powers"></div>
-      </section>
-      <section class="asp-deck">
         <div class="asp-row"><button class="asp-primary" id="asp-send">Send wave</button></div>
         <div class="asp-row" id="asp-speed"></div>
-        <p class="asp-hint">Tap a tower type, then tap open ground. Tap a built tower to upgrade, sell or retarget. Keys: 1-8 build, space send, P pause, Esc cancel.</p>
+        <p class="asp-hint">Tap a tower type, then tap open ground. Tap a built tower to upgrade, sell or retarget. Keys: 1-8 build, U upgrade, space pause, tab next wave, Esc cancel.</p>
       </section>
     </div>
   </div>
@@ -47,6 +43,6 @@
   <span class="asp-sw pink" data-asp-sw="pink"></span>
 </div>
 <script src="/aspira-defs.js?v=12"></script>
-<script src="/aspira-game.js?v=9"></script>
-<script src="/aspira-draw.js?v=12"></script>
-<script src="/aspira-ui.js?v=7"></script>
+<script src="/aspira-game.js?v=10"></script>
+<script src="/aspira-draw.js?v=14"></script>
+<script src="/aspira-ui.js?v=10"></script>

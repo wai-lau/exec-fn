@@ -54,9 +54,6 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name + " (" + (i + 1) + ")";
 });
-POWERS.forEach(([code, label]) => {
-  button($("asp-powers"), "asp-pw", code, () => usePower(code), "asp-pw-" + code).title = label;
-});
 [["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
@@ -71,31 +68,49 @@ const EXTRA = {
   reaper: st => ["Life", Math.round(st.life * 100) + "%"], gold: st => ["Bounty", "×" + st.mark.toFixed(1)],
 };
 
+// One stat row: "now" alone at max level, "now -> next" when an upgrade
+// would change it, so the payoff of the upgrade is visible before buying it.
+function statRow(label, now, next) {
+  const arrow = next !== null && next !== now ? ' <span class="asp-next">→ ' + next + "</span>" : "";
+  return "<dt>" + label + "</dt><dd>" + now + arrow + "</dd>";
+}
+
+function upgradeTower(t) {
+  if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
+  const c = upCost(t);
+  G.money -= c; t.spent += c; t.lvl++;
+  ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
+}
+
 function inspectTower(el, t) {
-  const b = TOWERS[t.kind], st = towerStats(t), maxed = t.lvl >= MAX_LVL, extra = EXTRA[t.kind](st);
+  const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL;
+  const st = towerStats(t), nx = maxed ? null : towerStats({ ...t, lvl: t.lvl + 1 });
+  const ex = EXTRA[t.kind](st), exN = nx && EXTRA[t.kind](nx);
   el.innerHTML =
-    '<h3>Selected</h3><div class="name">' + b.name + " · L" + t.lvl + "</div>" +
-    '<p class="asp-hint">' + b.blurb + "</p>" +
-    "<dl>" + (b.dmg ? "<dt>Damage</dt><dd>" + Math.round(st.dmg) + "</dd>" : "") +
-    "<dt>Range</dt><dd>" + Math.round(st.range) + "</dd><dt>" + extra[0] + "</dt><dd>" + extra[1] + "</dd></dl>" +
-    '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>';
+    '<div class="name">' + b.name + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
+    '<div id="asp-upbox"></div>' +
+    "<dl>" + (b.dmg ? statRow("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
+    statRow("Range", Math.round(st.range), nx && Math.round(nx.range)) +
+    statRow(ex[0], ex[1], exN && exN[1]) + "</dl>" +
+    '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>' +
+    '<p class="asp-hint">' + b.blurb + "</p>";
+  button($("asp-upbox"), "asp-primary asp-up-big",
+    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t) + " (U)", () => upgradeTower(t), "asp-up");
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
-  button($("asp-acts"), "asp-primary", maxed ? "max level" : "upgrade " + b.up + " · " + upCost(t), () => {
-    if (t.lvl >= MAX_LVL || G.money < upCost(t)) return;
-    const c = upCost(t); G.money -= c; t.spent += c; t.lvl++;
-    ring(t.x, t.y, 64, b.color); refreshPanels();
-  }, "asp-up");
   button($("asp-acts"), "", "sell · " + sellValue(t), () => {
     G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null; refreshPanels();
   });
 }
 
+// A selected tower's stats live in a popup pinned beside it on the board,
+// never in the side deck; placePop() re-anchors it every frame.
 function refreshPanels() {
-  const el = $("asp-inspect");
+  const el = $("asp-inspect"), pop = $("asp-pop");
   const t = ui.sel && G.towers.find(x => x.id === ui.sel);
-  if (t) { inspectTower(el, t); return; }
+  pop.hidden = !t;
+  if (t) { inspectTower(pop, t); placePop(); }
   if (ui.build) {
     const b = TOWERS[ui.build];
     el.innerHTML = '<h3>Placing</h3><div class="name">' + b.name + " · " + b.cost + "</div>" +
@@ -121,14 +136,6 @@ function updateHud() {
     btn.disabled = G.money < TOWERS[k].cost && ui.build !== k;
     btn.classList.toggle("on", ui.build === k);
   }
-  const full = G.charge >= POWER_FULL;
-  $("asp-pw-bar").style.width = (G.charge / POWER_FULL * 100) + "%";
-  setText($("asp-pw-state"), full ? "· ready" : "");
-  for (const [code] of POWERS) {
-    const btn = $("asp-pw-" + code);
-    btn.disabled = !full || G.over || !G.started;
-    btn.classList.toggle("live", (G.power[code] || 0) > 0);
-  }
   const send = $("asp-send");
   setText(send, G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " · " + Math.max(0, Math.ceil(G.nextIn)) + "s");
   send.disabled = G.over;
@@ -136,6 +143,19 @@ function updateHud() {
   for (const v of [1, 2, 3]) $("asp-sp-" + v).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
+}
+
+function placePop() {
+  const pop = $("asp-pop"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
+  if (pop.hidden || !t) return;
+  const dpr = window.devicePixelRatio || 1, cw = cv.clientWidth, ch = cv.clientHeight;
+  const sx = (cam.ox + t.x * cam.k) / dpr, sy = (cam.oy + t.y * cam.k) / dpr, half = 40 * cam.k / dpr;
+  const w = pop.offsetWidth, h = pop.offsetHeight, gap = 12;
+  // right of the tower if it fits, else left; vertically centred, kept on screen
+  let x = sx + half + gap;
+  if (x + w > cw - 8) x = sx - half - gap - w;
+  const y = Math.max(8, Math.min(ch - h - 8, sy - h / 2));
+  pop.style.left = Math.max(8, x) + "px"; pop.style.top = y + "px";
 }
 
 // ---------- overlay ----------
@@ -153,8 +173,9 @@ document.addEventListener("keydown", ev => {
   if (ev.target.closest("input, textarea, [contenteditable]")) return;
   const n = parseInt(ev.key, 10);
   if (n >= 1 && n <= KINDS.length) selectBuild(KINDS[n - 1]);
-  else if (ev.key === " ") { ev.preventDefault(); if ($("asp-ov").hidden) sendWave(); }
-  else if (ev.key === "p" || ev.key === "P") ui.paused = !ui.paused;
+  else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; }
+  else if (ev.key === "Tab") { ev.preventDefault(); if ($("asp-ov").hidden) sendWave(); }
+  else if (ev.key === "u" || ev.key === "U") upgradeTower(ui.sel && G.towers.find(x => x.id === ui.sel));
   else if (ev.key === "Escape") { ui.build = null; ui.sel = null; refreshPanels(); }
 });
 // leaving the tab pauses: a wave should not eat the core while nobody watches
@@ -169,7 +190,7 @@ function frame(now) {
     let left = dt * ui.speed;
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
   }
-  render(); updateHud();
+  render(); updateHud(); placePop();
   requestAnimationFrame(frame);
 }
 

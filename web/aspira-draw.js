@@ -133,10 +133,12 @@ function drawTower(t, ghost) {
   ctx.globalAlpha = 1;
 }
 
-function drawRange(x, y, r, color) {
+// Every tower's reach is always drawn faintly; the selected tower (and the
+// build ghost) draws at full strength. dim = the faint pass.
+function drawRange(x, y, r, color, dim = false) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
-  ctx.fillStyle = COL[color]; ctx.globalAlpha = 0.08; ctx.fill();
-  ctx.strokeStyle = COL[color]; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = COL[color]; ctx.globalAlpha = dim ? 0.025 : 0.08; ctx.fill();
+  ctx.strokeStyle = COL[color]; ctx.globalAlpha = dim ? 0.35 : 0.75; ctx.lineWidth = dim ? 1.2 : 2; ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
@@ -180,6 +182,7 @@ function render() {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
   drawBoard();
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
+  for (const t of G.towers) if (t !== sel) drawRange(t.x, t.y, towerStats(t).range, TOWERS[t.kind].color, true);
   if (sel) drawRange(sel.x, sel.y, towerStats(sel).range, TOWERS[sel.kind].color);
   for (const t of G.towers) drawTower(t);
   for (const e of G.enemies) drawEnemy(e);

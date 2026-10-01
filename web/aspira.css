@@ -122,6 +122,16 @@
 #asp button:focus-visible { outline: 1px solid hsl(var(--orange-hsl)); outline-offset: var(--space-px); }
 #asp button:disabled { opacity: 0.45; cursor: not-allowed; }
 #asp button.asp-primary { border-color: hsl(var(--orange-hsl)); color: hsl(var(--orange-hsl)); font-weight: var(--fw-bold); }
+
+#asp button.asp-up-big {
+  width: 100%;
+  padding-block: var(--space-4);
+  font-size: var(--fs-xl);
+  letter-spacing: var(--tracking-wide);
+  background: hsl(var(--orange-glow-hsl) / 0.25);
+}
+.asp-next { color: hsl(var(--orange-hsl)); font-weight: var(--fw-bold); }
+
 #asp button.on { background: hsl(var(--green-hsl) / 0.12); border-color: currentcolor; }
 
 #asp .asp-tw { display: flex; flex-direction: column; align-items: center; gap: var(--space-0-5); padding-inline: var(--space-0-5); }
@@ -134,16 +144,26 @@
 #asp .asp-tw.orange { color: hsl(var(--orange-hsl)); }
 
 #asp-inspect { min-height: 120px; line-height: var(--lh-snug); }
-#asp-inspect .name { font-weight: var(--fw-bold); }
-#asp-inspect dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
-#asp-inspect dt { color: hsl(var(--green-hsl) / 0.45); }
-#asp-inspect dd { margin: 0; }
+#asp-inspect .name, .asp-pop .name { font-weight: var(--fw-bold); }
+.asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
+.asp-pop dt { color: hsl(var(--green-hsl) / 0.45); }
+.asp-pop dd { margin: 0; }
 .asp-hint { margin: 0; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.8); }
 
 .asp-bar { height: 6px; background: hsl(var(--bg-hsl) / 0.45); border-radius: var(--radius-1); overflow: hidden; }
 .asp-bar i { display: block; height: 100%; width: 0; background: hsl(var(--orange-hsl)); }
 #asp button.asp-pw { font-weight: var(--fw-bold); padding-inline: var(--space-0-5); }
 #asp button.asp-pw.live { border-color: hsl(var(--cyan-hsl)); color: hsl(var(--cyan-hsl)); }
+
+/* the selected tower's stats, pinned beside it on the board (aspira-ui.js) */
+.asp-pop {
+  position: absolute;
+  z-index: var(--z-raised);
+  width: 300px;
+  max-width: calc(100% - 16px);
+  line-height: var(--lh-snug);
+  border-color: hsl(var(--green-hsl) / 0.45);
+}
 
 /* palette swatches the canvas reads its colours from (aspira-defs.js) */
 .asp-sw { display: none; }
