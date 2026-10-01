@@ -4023,8 +4023,9 @@ Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
 
 **Enemies have one counter tower each** (owner): Swarm → CHN, Fast → SLW,
-Shielded → RPD, Armored → RPR. Chain lightning hops one enemy at a time, `HOP_DELAY = 0.2` game seconds
-apart (`chains`, advanced by `stepChains`), so the arc visibly crawls. Chain hops DO pop shields (each hop strips a
+Shielded → RPD, Armored → RPR. Chain lightning hops one enemy at a time, `HOP_DELAY = 0.5` game seconds
+apart (owner raised it from 0.2; moving enemies can drift out of hop reach
+during the wait) (`chains`, advanced by `stepChains`), so the arc visibly crawls. Chain hops DO pop shields (each hop strips a
 charge; the owner reversed an earlier "shields ground the arc" rule), kept
 in check by FIRE RATE: CHN must stay under 1/5 of RPD's rate (1.0 vs 6) and
 RPR slower still (0.2). SHAPE SHOWS SPEED: triangle fastest (fast),
