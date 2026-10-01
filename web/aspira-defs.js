@@ -145,6 +145,7 @@ const TOWERS = {
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 5;
+const RANGE_BONUS = 1.2;
 const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", "Fast"]];
 
 const ENEMIES = {
@@ -163,7 +164,8 @@ const POWER_FULL = 30, POWER_TIME = 10;
 
 function towerStats(t) {
   const b = TOWERS[t.kind], L = t.lvl - 1;
-  const s = { dmg: b.dmg * Math.pow(1.4, L), rate: b.rate, range: b.range * (1 + 0.06 * L) };
+  // RANGE_BONUS: every tower reaches 20% further than its table value (owner)
+  const s = { dmg: b.dmg * Math.pow(1.4, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.06 * L) };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.2 * L); break;
     case "chain": s.chains = 2 + L; break;

@@ -3909,9 +3909,14 @@ area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient
 over `--bg-hsl`), never `backdrop-filter`, which would re-read the animated
 canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
 the decks, or the phone sheet covers Start. Placing a tower ends placing mode
-and selects the new tower. The build disc is TESSELLATED into pointy-top HEXAGONS (`CELLS`,
+and selects the new tower; a FAILED placement (blocked cell, too few credits)
+ends placing mode too. The build disc is TESSELLATED into pointy-top HEXAGONS (`CELLS`,
 circumradius `CELL_S = 32`; the centre hex IS the core, `CORE_R = 34`, and
-three rings around it give 36 cells inside `BUILD_R = 200`). The grid is drawn ONLY while placing a tower (`ui.build`). No boundary circle is drawn
+three rings around it give 36 cells inside `BUILD_R = 200`). The grid is drawn ONLY while placing a tower (`ui.build`). While
+placing, every FREE cell is tinted green (phones have no hover); the cell
+under the pointer shows the tower ghost + range when the tap would build, or a
+pink cell and cross when it would not (occupied / too few credits); off the
+grid the pointer shows a pink cross. No boundary circle is drawn
 around the build disc (owner removed the dashed ring). A tower IS a
 hexagon: it fills one cell, snaps to the cell tapped (`cellAt`,
 point-in-convex-polygon), and its position is the cell centre. No enemy
@@ -3974,7 +3979,8 @@ inside the core; the minor axis still starts at `R0`, off-screen. Each lane has 
 multiplying enemy speed and Pusher distance, so the longest lane takes ~1.4×
 as long as the shortest rather than ~2.5×. **Every tower goes inside the
 central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges
-were raised (~+60%) to reach the lanes. **Each enemy TYPE owns one lane per wave**: type k of wave n rides lane
+were raised (~+60%) to reach the lanes, then a further `RANGE_BONUS = 1.2`
+for every tower. **Each enemy TYPE owns one lane per wave**: type k of wave n rides lane
 `(n·5 + k·7) % 12` (`laneMap`; 7 is coprime with 12, so a wave's types never
 share a lane, and 5n rotates the set each wave). Lanes in use (live enemies or
 queued spawns, `activeLanes()`) are drawn in that type's colour (0.45 alpha, faint

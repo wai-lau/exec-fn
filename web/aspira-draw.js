@@ -142,13 +142,33 @@ function drawTower(t, ghost) {
   ctx.globalAlpha = 1;
 }
 
-function drawCells() {
-  ctx.strokeStyle = COL.orange; ctx.lineWidth = 2; ctx.globalAlpha = 0.3;
+function cellPath(c, k = 1) {
   ctx.beginPath();
-  for (const c of CELLS) {
-    c.pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.closePath();
-  }
+  c.pts.forEach((p, i) => {
+    const x = c.x + (p.x - c.x) * k, y = c.y + (p.y - c.y) * k;
+    if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+  });
+  ctx.closePath();
+}
+
+// Shown only while placing: every FREE cell is tinted green so it is obvious
+// where a tower can go (phones have no hover); occupied cells stay faint.
+function drawCells() {
+  ctx.lineWidth = 2;
+  CELLS.forEach((c, ci) => {
+    const free = canPlace(ci);
+    cellPath(c, 0.94);
+    if (free) { ctx.fillStyle = COL.green; ctx.globalAlpha = 0.1; ctx.fill(); }
+    ctx.strokeStyle = COL[free ? "green" : "orange"]; ctx.globalAlpha = free ? 0.55 : 0.15; ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// pink cross: "can't place here"
+function drawBlocked(x, y, r) {
+  ctx.strokeStyle = COL.pink; ctx.lineWidth = 3.5; ctx.globalAlpha = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r);
   ctx.stroke(); ctx.globalAlpha = 1;
 }
 
@@ -217,6 +237,22 @@ function drawFx(pass) {
   ctx.globalAlpha = 1;
 }
 
+// The ghost under the pointer: tower + range in its colour when the tap would
+// build, a pink cell and cross when it would not (occupied, or too few
+// credits), and a bare pink cross off the grid.
+function drawPlacement() {
+  const hc = cellAt(ui.hover.x, ui.hover.y), b = TOWERS[ui.build];
+  if (hc < 0) { drawBlocked(ui.hover.x, ui.hover.y, 12); return; }
+  const c = CELLS[hc];
+  if (canPlace(hc) && G.money >= b.cost) {
+    drawRange(c.x, c.y, towerStats({ kind: ui.build, lvl: 1 }).range, b.color);
+    drawTower({ kind: ui.build, cell: hc, lvl: 1 }, true);
+    return;
+  }
+  cellPath(c, 0.94); ctx.fillStyle = COL.pink; ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1;
+  drawBlocked(c.x, c.y, 14);
+}
+
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -228,12 +264,7 @@ function render() {
   for (const e of G.enemies) drawEnemy(e);
   drawFx("shots");
   for (const t of G.towers) drawTower(t);
-  const hc = ui.build && ui.hover ? cellAt(ui.hover.x, ui.hover.y) : -1;
-  if (hc >= 0) {
-    const b = TOWERS[ui.build], c = CELLS[hc];
-    drawRange(c.x, c.y, b.range * (G.power.RNG > 0 ? 1.3 : 1), canPlace(hc) ? b.color : "pink");
-    drawTower({ kind: ui.build, cell: hc, lvl: 1 }, true);
-  }
+  if (ui.build && ui.hover) drawPlacement();
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
