@@ -202,8 +202,8 @@ function showOverlay(title, body, btn) {
 }
 $("asp-ov-btn").onclick = () => {
   if (G.over) { G = newGame(); fx = []; ui.sel = null; ui.build = null; refreshPanels(); }
+  // Start only closes the intro: build first, then send wave 1 (button/Tab)
   $("asp-ov").hidden = true;
-  if (!G.started) sendWave();
 };
 
 document.addEventListener("keydown", ev => {

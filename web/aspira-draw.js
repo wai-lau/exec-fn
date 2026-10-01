@@ -166,8 +166,14 @@ function drawTower(t, ghost) {
     if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
   });
   ctx.closePath(); ctx.fill(); ctx.stroke();
-  text(b.ab, c.x, c.y - 5, 15, b.color);
-  text(String(t.lvl), c.x, c.y + 11, 12, b.color); // level 1-15
+  // level: one extra (inner) outline per 5 levels reached, and dots for the
+  // levels toward the next outline (L7 = 2 outlines + 2 dots, L15 = 4 outlines)
+  const tiers = Math.floor(t.lvl / 5), dots = t.lvl % 5;
+  ctx.lineWidth = 1.6;
+  for (let r = 1; r <= tiers; r++) { cellPath(c, k - 0.09 * r); ctx.stroke(); }
+  text(b.ab, c.x, c.y - 4, 13, b.color);
+  ctx.fillStyle = COL[b.color];
+  for (let i = 0; i < dots; i++) ctx.fillRect(c.x - 8 + i * 4.6, c.y + 6, 3, 3);
   ctx.globalAlpha = 1;
 }
 
