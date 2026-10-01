@@ -196,6 +196,17 @@ document.addEventListener("keydown", ev => {
 });
 
 // ---------- loop ----------
+// FPS for the HUD: frames counted over half-second windows, not per frame,
+// so the number is readable rather than a flicker.
+const fps = { frames: 0, since: performance.now() };
+function tickFps(now) {
+  fps.frames++;
+  if (now - fps.since >= 500) {
+    setText($("asp-fps"), Math.round(fps.frames * 1000 / (now - fps.since)));
+    fps.frames = 0; fps.since = now;
+  }
+}
+
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -204,7 +215,7 @@ function frame(now) {
     let left = dt * SPEED_MULT[ui.speed];
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
   }
-  render(); updateHud(); placePop();
+  render(); updateHud(); placePop(); tickFps(now);
   requestAnimationFrame(frame);
 }
 
