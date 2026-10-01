@@ -4031,7 +4031,8 @@ full opacity for the first half of its life, then fades.
 
 Tower colours (owner): RPD [Chatsubo] (the Social hue, via
 `--cat-social-h/s/l`), CHN [Marigold] orange, SLW [Hack] cyan, RPR [Lizzie's]
-pink. Beams FOLLOW: each keeps its endpoint objects and is redrawn between them
+pink. SLW draws CONTINUOUS tethers (`t.links`, `drawTethers`) to the enemies it
+last pulsed, tracking them every frame; damage/slow still land per pulse. Beams FOLLOW: each keeps its endpoint objects and is redrawn between them
 while it lasts, so it tracks a moving enemy — except RPD's 0.06s tracers.
 CHN beams last 0.6s and RPR beams 0.9s (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's beam is drawn SLIM: half the width of other beams with a doubled
 glow alpha, so it reads thinner but brighter. **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR

@@ -276,16 +276,18 @@ function stepChains(dt) {
 function fireSlower(t, st) {
   // unslowed enemies first, so three towers do not all chill the same three
   const cands = pickTargets(t, st, 9999).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.all ? 9999 : st.targets);
+  // SLW draws CONTINUOUS tethers to the enemies it last pulsed (drawTethers),
+  // not per-pulse beams; the slow and nick still land once per pulse
+  t.links = cands;
   for (const e of cands) {
     const fresh = !(e.slowT > 0);
-    if (!applySlow(e, st.slow, 2.5)) { beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, 0); continue; }
+    if (!applySlow(e, st.slow, 2.5)) continue;
     if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop);
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
     // each pulse also nicks: st.dmg (+ Sap's % max HP); it is a real hit, so
     // it pops one shield charge per enemy touched (owner)
     const nick = st.dmg + (st.sap ? e.max * st.sap : 0);
-    beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, nick);
     if (nick > 0) damage(e, nick, t);
   }
   return cands.length > 0;
@@ -322,7 +324,7 @@ function fireRay(t, st, e) {
 }
 
 function fire(t, st) {
-  if (t.kind === "slower") return fireSlower(t, st);
+  if (t.kind === "slower") { const hit = fireSlower(t, st); if (!hit) t.links = []; return hit; }
   const targets = pickTargets(t, st, st.targets);
   if (!targets.length) return false;
   t.shots = (t.shots || 0) + 1;

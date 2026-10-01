@@ -314,6 +314,26 @@ function drawPlacement() {
   drawBlocked(c.x, c.y, 14);
 }
 
+// SLW's continuous tethers: a live beam from each Slower to every enemy it
+// is holding, redrawn each frame so it tracks them; it drops when the enemy
+// dies or leaves range. A slow shimmer keeps it reading as a held effect.
+function drawTethers() {
+  const shimmer = 0.75 + 0.25 * Math.sin(performance.now() / 160);
+  ctx.lineCap = "round";
+  for (const t of G.towers) {
+    if (t.kind !== "slower" || !t.links || !t.links.length) continue;
+    const r = towerStats(t, true).range, col = COL[TOWERS[t.kind].color];
+    for (const e of t.links) {
+      if (e.dead || Math.hypot(e.x - t.x, e.y - t.y) > r) continue;
+      ctx.strokeStyle = col;
+      ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(e.x, e.y);
+      ctx.globalAlpha = 0.15 * shimmer; ctx.lineWidth = 6; ctx.stroke();
+      ctx.globalAlpha = 0.7 * shimmer; ctx.lineWidth = 1.6; ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -325,6 +345,7 @@ function render() {
   // stars go on top of lanes and range fills, which would otherwise tint them
   drawStars();
   for (const e of G.enemies) drawEnemy(e);
+  drawTethers();
   drawFx("shots");
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
