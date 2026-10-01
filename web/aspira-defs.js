@@ -4,7 +4,7 @@
 
 // World is a fixed 1000x1000 chart; the camera (aspira-draw.js) fits it into
 // whatever part of the full-screen canvas the decks leave open.
-const W = 1000, CX = 500, CY = 500, CORE_R = 46;
+const W = 1000, CX = 500, CY = 500, CORE_R = 34;
 const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 
 // Twelve spirals, one entering every 30 degrees around the rim. A FIXED
@@ -18,36 +18,34 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
-const BUILD_R = 190;
+const BUILD_R = 200;
 
-// The build disc is tessellated into equilateral triangles on a lattice with a
-// vertex at the core's centre, so the grid has the same six-fold symmetry as
-// the chart. A cell exists when all three corners lie inside BUILD_R and none
-// inside the core; each tower fills exactly one cell. CELL_L = side length.
-const CELL_L = 72;
+// The build disc is tessellated into pointy-top hexagons on a lattice whose
+// centre hex IS the core, so the grid has the chart's six-fold symmetry.
+// Three rings around it (6 + 12 + 18 = 36 cells) fit inside BUILD_R; each
+// tower fills exactly one cell. CELL_S = hex circumradius (= core radius).
+const CELL_S = 32;
 const CELLS = (function buildCells() {
-  const h = CELL_L * Math.sqrt(3) / 2, n = Math.ceil(BUILD_R / h) + 2, out = [];
-  const v = (i, j) => ({ x: CX + (i + j / 2) * CELL_L, y: CY + j * h });
-  const inside = p => {
-    const r = Math.hypot(p.x - CX, p.y - CY);
-    return r <= BUILD_R + 1 && r >= CORE_R;
-  };
-  for (let j = -n; j <= n; j++) for (let i = -2 * n; i <= 2 * n; i++) {
-    for (const pts of [[v(i, j), v(i + 1, j), v(i, j + 1)], [v(i + 1, j), v(i + 1, j + 1), v(i, j + 1)]]) {
-      if (!pts.every(inside)) continue;
-      out.push({ pts, x: (pts[0].x + pts[1].x + pts[2].x) / 3, y: (pts[0].y + pts[1].y + pts[2].y) / 3 });
+  const w = Math.sqrt(3) * CELL_S, out = [];
+  for (let r = -4; r <= 4; r++) for (let q = -4; q <= 4; q++) {
+    if (q === 0 && r === 0) continue; // the core
+    const x = CX + w * (q + r / 2), y = CY + 1.5 * CELL_S * r;
+    const pts = [];
+    for (let k = 0; k < 6; k++) {
+      const a = Math.PI / 6 + k * Math.PI / 3;
+      pts.push({ x: x + CELL_S * Math.cos(a), y: y + CELL_S * Math.sin(a) });
     }
+    if (pts.every(p => Math.hypot(p.x - CX, p.y - CY) <= BUILD_R + 1)) out.push({ pts, x, y });
   }
   return out;
 })();
 
 function cellAt(x, y) {
-  const sign = (p, a, b) => (p.x - b.x) * (a.y - b.y) - (a.x - b.x) * (p.y - b.y);
-  const p = { x, y };
-  return CELLS.findIndex(({ pts: [a, b, c] }) => {
-    const d1 = sign(p, a, b), d2 = sign(p, b, c), d3 = sign(p, c, a);
-    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
-  });
+  // inside a convex cell = on the same side of every edge
+  return CELLS.findIndex(({ pts }) => pts.every((p, k) => {
+    const q = pts[(k + 1) % pts.length];
+    return (q.x - p.x) * (y - p.y) - (q.y - p.y) * (x - p.x) >= 0;
+  }));
 }
 const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
 // An 8-turn lane is ~2.5x longer than a 3-turn one. Enemies on it move
@@ -151,7 +149,7 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 const ENEMIES = {
   norm:  { sides: 4, hp: 1,   speed: 80,  bounty: 1,   size: 13, color: "green" },
   fast:  { sides: 5, hp: 0.6, speed: 135, bounty: 0.8, size: 12, color: "orange" },
-  hard:  { sides: 6, hp: 2.6, speed: 55,  bounty: 2,   size: 15, color: "pink" },
+  hard:  { sides: 7, hp: 2.6, speed: 55,  bounty: 2,   size: 15, color: "pink" },
   bonus: { sides: 5, hp: 1.4, speed: 100, bounty: 3,   size: 14, color: "cyan", star: true },
   boss:  { sides: 8, hp: 14,  speed: 45,  bounty: 15,  size: 24, color: "glow" },
 };
