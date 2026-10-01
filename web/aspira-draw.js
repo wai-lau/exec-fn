@@ -88,22 +88,46 @@ function drawStars() {
 // one stroke style per mirror pair (both lanes of a pair match, so the
 // pair symmetry holds): solid, dotted, dashed, dash-dot, fine dots, long dash
 const LANE_DASH = [[], [0.1, 7], [12, 7], [16, 5, 0.1, 5], [0.1, 4], [28, 9]];
+// Lane STROKES go to an offscreen layer that is then masked by a radial
+// gradient, so a lane's opacity is proportional to its distance from the core
+// (clear at the centre, full at the rim and beyond) — the dense inner coils
+// fade instead of cluttering the build area. Labels are drawn unmasked.
+const laneCv = document.createElement("canvas"), lctx = laneCv.getContext("2d");
+function drawLaneStrokes(live) {
+  if (laneCv.width !== cv.width || laneCv.height !== cv.height) { laneCv.width = cv.width; laneCv.height = cv.height; }
+  lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.globalCompositeOperation = "source-over";
+  lctx.clearRect(0, 0, laneCv.width, laneCv.height);
+  lctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
+  lctx.lineJoin = "round"; lctx.lineCap = "round";
+  PATHS.forEach((path, i) => {
+    const use = live.get(i), col = use && use.color;
+    lctx.strokeStyle = COL[col || "cyan"];
+    lctx.setLineDash(LANE_DASH[i >> 1]);
+    if (col) {
+      lctx.globalAlpha = 0.03; lctx.lineWidth = 6; lctx.stroke(path.p2d);
+      lctx.globalAlpha = 0.3; lctx.lineWidth = 1.4; lctx.stroke(path.p2d);
+    } else {
+      lctx.globalAlpha = 0.05; lctx.lineWidth = 1.2; lctx.stroke(path.p2d);
+    }
+  });
+  lctx.setLineDash([]);
+  // mask: only alpha matters under destination-in, so transparent -> bg works
+  const g = lctx.createRadialGradient(CX, CY, 0, CX, CY, RIM_R);
+  g.addColorStop(0, "transparent"); g.addColorStop(1, COL.bg);
+  lctx.globalCompositeOperation = "destination-in"; lctx.globalAlpha = 1; lctx.fillStyle = g;
+  lctx.fillRect(CX - 4000, CY - 4000, 8000, 8000);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(laneCv, 0, 0); ctx.restore();
+}
+
 function drawLanes() {
   const live = activeLanes();
-  ctx.lineJoin = "round";
+  drawLaneStrokes(live);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
   PATHS.forEach((path, i) => {
     const use = live.get(i), col = use && use.color;
     ctx.strokeStyle = COL[col || "cyan"];
-    ctx.setLineDash(LANE_DASH[i >> 1]); ctx.lineCap = "round";
-    if (col) {
-      ctx.globalAlpha = 0.03; ctx.lineWidth = 6; ctx.stroke(path.p2d);
-      ctx.globalAlpha = 0.3; ctx.lineWidth = 1.4; ctx.stroke(path.p2d);
-    } else {
-      ctx.globalAlpha = 0.05; ctx.lineWidth = 1.2; ctx.stroke(path.p2d);
-    }
-    ctx.setLineDash([]);
-    // a small circle where the lane crosses the rim, catalogue numeral inside it
-    const p0 = path.rim, a = Math.atan2(p0.y - CY, p0.x - CX);
+    // a small circle where the lane crosses the rim
+    const p0 = path.rim;
     ctx.globalAlpha = col ? 1 : 0.7; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
     // numerals sit on an even ring at each lane's nominal 30-degree slot, not
@@ -114,7 +138,6 @@ function drawLanes() {
     // label = wave:track in roman (owner): the riding wave, else the current one
     const label = roman(use ? use.n : Math.max(1, G.wave)) + ":" + roman(i + 1);
     text(label, CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, col ? 30 : 20, col || "cyan");
-    ctx.globalAlpha = 1;
   });
   ctx.globalAlpha = 1;
 }

@@ -3978,9 +3978,14 @@ spaced every 30°, and run through the build disc
 all the way to the core (`R1 = CORE_R`); towers and enemies never collide, so
 building on a lane is allowed; lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
 the same turn count, and the six pairs climb `PAIR_TURNS = [3, 4, 5, 6, 7, 8]`
-(owner: min 3 full turns, max 8). Winding is NOT even: the angle advances as `t^2.2`
-(`SPIRAL_P`), so lanes run nearly straight in from far out and coil tighter
-toward the core while keeping a finite turn count. Each lane's stroke is a
+(owner: min 3 full turns, max 8). Winding is driven by PITCH, not angle-vs-t:
+`theta = turns·2π·F(t)/F(1)`, `F' = t^2/r` (`TANGENT_Q`). The angle off
+straight-in grows smoothly from 0, so lanes leave the lead-in with no hook,
+and the 1/r term coils them tighter toward the core. (`angle = t^2.2` was
+tried first: it hooked ~50° right after the lead-in, because at r ≈ 700 even
+a slow angle rate is a large sideways speed.) Lane strokes are drawn to an
+offscreen layer masked by a radial gradient (clear at the centre, full at the
+rim), so lane opacity is proportional to distance from the core. Each lane's stroke is a
 Path2D built once (`path.p2d`). Every lane has a straight radial LEAD-IN from
 `LEAD_R = 2400` to `R0` (on wide screens a lane used to visibly begin in open
 space); enemies spawn where their lane enters the visible area (`entryS`,
