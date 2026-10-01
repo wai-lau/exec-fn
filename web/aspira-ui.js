@@ -1,8 +1,9 @@
 // /aspira — DOM: HUD, build/inspect/power decks, input, overlay, main loop.
 
 // ui.speed is a setting (1/2/3); SPEED_MULT turns it into simulation rate.
-// Setting 1 is the old 3x (owner: the old base was too slow); 3 is ~2x that.
-const SPEED_MULT = { 1: 3, 2: 4.5, 3: 6 };
+// Setting 1 is the old 3x (owner: the old base was too slow); 2 and 3 are
+// exactly 2x and 3x that.
+const SPEED_MULT = { 1: 3, 2: 6, 3: 9 };
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
@@ -61,7 +62,7 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name;
 });
-[["pause", "pause"], [1, "1×"], [2, "1.5×"], [3, "2×"]].forEach(([v, label]) => {
+[["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
   }, "asp-sp-" + v);
@@ -193,8 +194,6 @@ document.addEventListener("keydown", ev => {
   else if (ev.key === "u" || ev.key === "U") upgradeTower(ui.sel && G.towers.find(x => x.id === ui.sel));
   else if (ev.key === "Escape") { ui.build = null; ui.sel = null; refreshPanels(); }
 });
-// leaving the tab pauses: a wave should not eat the core while nobody watches
-document.addEventListener("visibilitychange", () => { if (document.hidden) ui.paused = true; });
 
 // ---------- loop ----------
 let last = performance.now();

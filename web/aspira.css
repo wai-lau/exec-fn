@@ -184,3 +184,4 @@
 .asp-sw.orange { color: hsl(var(--orange-hsl)); }
 .asp-sw.glow { color: hsl(var(--orange-glow-hsl)); }
 .asp-sw.pink { color: hsl(var(--pink-hsl)); }
+.asp-sw.white { color: hsl(var(--white-hsl)); }
