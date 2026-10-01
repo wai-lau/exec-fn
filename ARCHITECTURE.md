@@ -3912,7 +3912,14 @@ the decks, or the phone sheet covers Start. Placing a tower ends placing mode
 and selects the new tower. Towers draw 72 units square (owner doubled them), so placement
 keeps 80 between towers and 42 off the core: ~9-12 fit in the disc. Board
 text (hour labels, lane numerals, lives, floats, banner) is drawn large and
-near-opaque; deck text is HTML and unaffected. No API, no server
+near-opaque; deck text is HTML and unaffected.
+Clicking a tower opens its stats in a POPUP pinned beside it on the board
+(`#asp-pop`, re-anchored every frame by `placePop()`), never in the side deck:
+a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
+range circle is always drawn faintly; the selected one at full strength.
+Keys: 1-8 build, U upgrade, Space pause, Tab next wave, Esc cancel. The
+POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
+unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
 
 **Client** — four same-global-scope files, loaded in order:

@@ -134,7 +134,7 @@ function bonusDrop(e) {
   const r = Math.floor(Math.random() * 4);
   if (r === 0) { addScore(2000); float(e.x, e.y - 18, "+2000", "cyan"); }
   else if (r === 1) { G.lives++; float(e.x, e.y - 18, "+1 life", "cyan"); }
-  else if (r === 2) { G.charge = POWER_FULL; float(e.x, e.y - 18, "power full", "cyan"); }
+  else if (r === 2) { const c = 20 + e.bounty * 5; G.money += c; float(e.x, e.y - 18, "+" + c + " credits", "cyan"); }
   else { G.interest += 0.005; float(e.x, e.y - 18, "+0.5% interest", "cyan"); }
 }
 
