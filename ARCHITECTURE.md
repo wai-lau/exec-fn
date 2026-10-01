@@ -4034,7 +4034,8 @@ Tower colours (owner): RPD [Chatsubo] (the Social hue, via
 pink. SLW draws CONTINUOUS tethers (`t.links`, `drawTethers`) to the enemies it
 last pulsed, tracking them every frame; damage/slow still land per pulse. Beams FOLLOW: each keeps its endpoint objects and is redrawn between them
 while it lasts, so it tracks a moving enemy — except RPD's 0.06s tracers.
-CHN beams last 0.6s and RPR beams 0.9s (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's beam is drawn SLIM: half the width of other beams with a doubled
+CHN beams last 0.6s and RPR beams 9s (owner: 10x), every RPR beam
+(pierce included) tracking its primary target (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's beam is drawn SLIM: half the width of other beams with a doubled
 glow alpha, so it reads thinner but brighter. **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
 Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy

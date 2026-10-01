@@ -227,7 +227,7 @@ function addScore(n) {
 // instant; live chains are advanced by stepChains() from step().
 const HOP_DELAY = 0.5;
 // CHN and RPR beams linger (owner: "much longer"), tracking their targets
-const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 0.9;
+const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 9; // RPR: 10x its old 0.9s (owner)
 let chains = [];
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
@@ -313,7 +313,8 @@ function fireRay(t, st, e) {
     const px = o.x - t.x, py = o.y - t.y, along = px * ux + py * uy;
     return along >= 0 && along <= st.range && Math.abs(px * uy - py * ux) <= st.pierce.wide;
   }).sort((a, b) => ((a.x - t.x) * ux + (a.y - t.y) * uy) - ((b.x - t.x) * ux + (b.y - t.y) * uy));
-  beam(t, end, col, RAY_BEAM_LIFE, st.pierce.wide > 20 ? 7 : 3, st.dmg, true);
+  // drawn to (and tracking) the primary target; the pierce damage used `end`
+  beam(t, e, col, RAY_BEAM_LIFE, st.pierce.wide > 20 ? 7 : 3, st.dmg, true);
   let base = st.dmg;
   for (const o of inLine) {
     const m = mulFor(o), d = shotDamage(t, st, o, base) * m;
