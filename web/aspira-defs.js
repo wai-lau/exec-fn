@@ -70,6 +70,10 @@ const SPIRAL_P = 2.2;
 // An 8-turn lane is ~2.5x longer than a 3-turn one. Enemies on it move
 // faster (pace = (len / shortest)^0.6) so it takes ~1.4x as long, not 2.5x.
 const PACE_EXP = 0.6;
+// Straight radial lead-in from LEAD_R to R0 ahead of every spiral, so on a
+// wide screen a lane never visibly BEGINS in open space. The spiral leaves R0
+// pointing straight outward (angle ~ t^2.2), so the join has no kink.
+const LEAD_R = 2400;
 const PATHS = [];
 
 // Stretch a point along axis `ax` by a CONSTANT 1 + stretch, so an elliptical
@@ -92,25 +96,34 @@ function buildSpiral(i) {
   const stretch = (i >> 1) % 2 ? ELLIPSE : 0, rEnd = R1 / (1 + stretch);
   const pts = [];
   let prev = null, acc = 0;
+  for (let k = 0; k < 40; k++) {
+    const r = LEAD_R - (LEAD_R - R0) * k / 40;
+    const p = ellipse(r * Math.cos(a0), r * Math.sin(a0), ax, stretch);
+    if (prev) acc += Math.hypot(p.x - prev.x, p.y - prev.y);
+    p.s = acc; pts.push(p); prev = p;
+  }
+  let lead = 0;
   for (let k = 0; k <= steps; k++) {
     // angle grows as t^SPIRAL_P: almost straight in from far out, winding
     // tighter toward the core, but a finite total (no orbiting forever)
     const t = k / steps, r = R0 - (R0 - rEnd) * t, a = a0 + dir * turns * Math.PI * 2 * Math.pow(t, SPIRAL_P);
     const p = ellipse(r * Math.cos(a), r * Math.sin(a), ax, stretch);
     if (prev) acc += Math.hypot(p.x - prev.x, p.y - prev.y);
+    if (k === 0) lead = acc;
     p.s = acc; pts.push(p); prev = p;
   }
   const rim = pts.find(p => Math.hypot(p.x - CX, p.y - CY) <= RIM_R);
   // the lane never changes, so its stroke path is built once (drawLanes)
   const p2d = new Path2D();
   pts.forEach((p, k) => (k ? p2d.lineTo(p.x, p.y) : p2d.moveTo(p.x, p.y)));
-  return { pts, len: acc, turns, pace: 1, rim, ellip: stretch > 0, p2d };
+  return { pts, len: acc, lead, turns, pace: 1, rim, ellip: stretch > 0, p2d };
 }
 
 for (let i = 0; i < N_PATHS; i++) PATHS.push(buildSpiral(i));
 {
-  const shortest = Math.min(...PATHS.map(p => p.len));
-  for (const p of PATHS) p.pace = Math.pow(p.len / shortest, PACE_EXP);
+  // pace from the spiral alone: the lead-in is the same length for every lane
+  const spiralLen = p => p.len - p.lead, shortest = Math.min(...PATHS.map(spiralLen));
+  for (const p of PATHS) p.pace = Math.pow(spiralLen(p) / shortest, PACE_EXP);
 }
 
 // Background stars for the chart, symmetric like the lanes: one 60-degree

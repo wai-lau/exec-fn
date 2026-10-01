@@ -82,11 +82,20 @@ function activeLanes() {
   return out;
 }
 
+// Enemies appear where their lane enters the visible area (plus a margin),
+// not at the far end of the lead-in, so none spend ages travelling unseen.
+function entryS(pi) {
+  const m = 60, x0 = -cam.ox / cam.k - m, y0 = -cam.oy / cam.k - m;
+  const x1 = (cv.width - cam.ox) / cam.k + m, y1 = (cv.height - cam.oy) / cam.k + m;
+  const p = PATHS[pi].pts.find(q => q.x >= x0 && q.x <= x1 && q.y >= y0 && q.y <= y1);
+  return p ? p.s : 0;
+}
+
 function spawnEnemy(type, n, pi) {
-  const d = ENEMIES[type], p0 = PATHS[pi].pts[0];
+  const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0);
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
   G.enemies.push({
-    id: G.id++, type, n, hp, max: hp, pi, s: 0, x: p0.x, y: p0.y, rot: Math.random() * 6,
+    id: G.id++, type, n, hp, max: hp, pi, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
 }
