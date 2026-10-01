@@ -114,6 +114,7 @@ function drawBoard() {
   drawGraticule();
   drawStars();
   drawLanes();
+  drawCells();
   // the build disc: the chart's inner field, dashed boundary
   ctx.strokeStyle = COL.orange; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.6;
   ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.arc(CX, CY, BUILD_R, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
@@ -125,15 +126,32 @@ function drawBoard() {
   text(G.lives, CX, CY + 2, 36, "orange");
 }
 
+// A tower is its cell's triangle, inset a little so neighbours read apart;
+// label at the centroid, level pips beneath it.
 function drawTower(t, ghost) {
-  const b = TOWERS[t.kind];
+  const b = TOWERS[t.kind], c = CELLS[t.cell], k = 0.86;
   ctx.globalAlpha = ghost ? 0.55 : 1;
-  ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.roundRect(t.x - 36, t.y - 36, 72, 72, 10); ctx.fill(); ctx.stroke();
-  text(b.ab, t.x, t.y - 6, 24, b.color);
+  ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineWidth = 2; ctx.lineJoin = "round";
+  ctx.beginPath();
+  c.pts.forEach((p, i) => {
+    const x = c.x + (p.x - c.x) * k, y = c.y + (p.y - c.y) * k;
+    if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+  });
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  text(b.ab, c.x, c.y - 3, 15, b.color);
   ctx.fillStyle = COL[b.color];
-  for (let i = 0; i < t.lvl; i++) ctx.fillRect(t.x - 24 + i * 11.2, t.y + 18, 7, 7);
+  for (let i = 0; i < t.lvl; i++) ctx.fillRect(c.x - 11 + i * 4.8, c.y + 8, 3.2, 3.2);
   ctx.globalAlpha = 1;
+}
+
+function drawCells() {
+  ctx.strokeStyle = COL.orange; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
+  ctx.beginPath();
+  for (const c of CELLS) {
+    ctx.moveTo(c.pts[0].x, c.pts[0].y); ctx.lineTo(c.pts[1].x, c.pts[1].y); ctx.lineTo(c.pts[2].x, c.pts[2].y);
+    ctx.closePath();
+  }
+  ctx.stroke(); ctx.globalAlpha = 1;
 }
 
 // Every tower's reach is always drawn faintly; the selected tower (and the
@@ -193,10 +211,11 @@ function render() {
   if (sel) drawRange(sel.x, sel.y, towerStats(sel).range, TOWERS[sel.kind].color);
   for (const t of G.towers) drawTower(t);
   for (const e of G.enemies) drawEnemy(e);
-  if (ui.build && ui.hover) {
-    const ok = canPlace(ui.hover.x, ui.hover.y), b = TOWERS[ui.build];
-    drawRange(ui.hover.x, ui.hover.y, b.range * (G.power.RNG > 0 ? 1.3 : 1), ok ? b.color : "pink");
-    drawTower({ kind: ui.build, x: ui.hover.x, y: ui.hover.y, lvl: 1 }, true);
+  const hc = ui.build && ui.hover ? cellAt(ui.hover.x, ui.hover.y) : -1;
+  if (hc >= 0) {
+    const b = TOWERS[ui.build], c = CELLS[hc];
+    drawRange(c.x, c.y, b.range * (G.power.RNG > 0 ? 1.3 : 1), canPlace(hc) ? b.color : "pink");
+    drawTower({ kind: ui.build, cell: hc, lvl: 1 }, true);
   }
   drawFx();
   if (bannerT > 0) {

@@ -19,6 +19,36 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
 const BUILD_R = 190;
+
+// The build disc is tessellated into equilateral triangles on a lattice with a
+// vertex at the core's centre, so the grid has the same six-fold symmetry as
+// the chart. A cell exists when all three corners lie inside BUILD_R and none
+// inside the core; each tower fills exactly one cell. CELL_L = side length.
+const CELL_L = 72;
+const CELLS = (function buildCells() {
+  const h = CELL_L * Math.sqrt(3) / 2, n = Math.ceil(BUILD_R / h) + 2, out = [];
+  const v = (i, j) => ({ x: CX + (i + j / 2) * CELL_L, y: CY + j * h });
+  const inside = p => {
+    const r = Math.hypot(p.x - CX, p.y - CY);
+    return r <= BUILD_R + 1 && r >= CORE_R;
+  };
+  for (let j = -n; j <= n; j++) for (let i = -2 * n; i <= 2 * n; i++) {
+    for (const pts of [[v(i, j), v(i + 1, j), v(i, j + 1)], [v(i + 1, j), v(i + 1, j + 1), v(i, j + 1)]]) {
+      if (!pts.every(inside)) continue;
+      out.push({ pts, x: (pts[0].x + pts[1].x + pts[2].x) / 3, y: (pts[0].y + pts[1].y + pts[2].y) / 3 });
+    }
+  }
+  return out;
+})();
+
+function cellAt(x, y) {
+  const sign = (p, a, b) => (p.x - b.x) * (a.y - b.y) - (a.x - b.x) * (p.y - b.y);
+  const p = { x, y };
+  return CELLS.findIndex(({ pts: [a, b, c] }) => {
+    const d1 = sign(p, a, b), d2 = sign(p, b, c), d3 = sign(p, c, a);
+    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+  });
+}
 const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
 // An 8-turn lane is ~2.5x longer than a 3-turn one. Enemies on it move
 // faster (pace = (len / shortest)^0.6) so it takes ~1.4x as long, not 2.5x.
@@ -120,7 +150,7 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 
 const ENEMIES = {
   norm:  { sides: 4, hp: 1,   speed: 80,  bounty: 1,   size: 13, color: "green" },
-  fast:  { sides: 3, hp: 0.6, speed: 135, bounty: 0.8, size: 12, color: "orange" },
+  fast:  { sides: 5, hp: 0.6, speed: 135, bounty: 0.8, size: 12, color: "orange" },
   hard:  { sides: 6, hp: 2.6, speed: 55,  bounty: 2,   size: 15, color: "pink" },
   bonus: { sides: 5, hp: 1.4, speed: 100, bounty: 3,   size: 14, color: "cyan", star: true },
   boss:  { sides: 8, hp: 14,  speed: 45,  bounty: 15,  size: 24, color: "glow" },
