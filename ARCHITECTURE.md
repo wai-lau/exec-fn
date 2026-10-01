@@ -3984,8 +3984,9 @@ straight-in grows smoothly from 0, so lanes leave the lead-in with no hook,
 and the 1/r term coils them tighter toward the core. (`angle = t^2.2` was
 tried first: it hooked ~50° right after the lead-in, because at r ≈ 700 even
 a slow angle rate is a large sideways speed.) Lane strokes are drawn to an
-offscreen layer masked by a radial gradient (clear at the centre, full at the
-rim), so lane opacity is proportional to distance from the core. Each lane's stroke is a
+offscreen layer masked by a radial gradient: full at the centre, fading to 0
+at `LANE_FADE_R = 550`, just beyond the white rim (owner reversed an earlier
+clear-centre version). Each lane's stroke is a
 Path2D built once (`path.p2d`). Every lane has a straight radial LEAD-IN from
 `LEAD_R = 2400` to `R0` (on wide screens a lane used to visibly begin in open
 space); enemies spawn where their lane enters the visible area (`entryS`,
