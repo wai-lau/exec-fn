@@ -4040,8 +4040,9 @@ multiply, `crit/arcs/targets/slow` add, anything else is a behaviour flag the
 shot code reads (`shred`, `dot`, `splash`, `stun`, `hitSlow`, `everyN`,
 `bossMul`, `aura`, `chillStop`, `brittle`, `all`, `sap`, `siphon`, `critMul`,
 `critBelow`, `pierce`). The popup shows one button per option at a branch
-point. On the board a tower shows its level as one extra inner outline
-per 5 levels plus `lvl % 5` dots (L7 = 2 outlines, 2 dots; L15 = 4 outlines). The tree is a FIRST DRAFT the owner is redesigning; change the data,
+point. On the board a tower shows its level as STACKED PLATES: one plate
+under the hex per 5 levels, each shifted down `PLATE_DY` and fading (L15 = 3
+plates), plus `lvl % 5` dots toward the next plate. The tree is a FIRST DRAFT the owner is redesigning; change the data,
 not the plumbing.
 
 Start only closes the intro; nothing moves until wave 1 is sent, so the

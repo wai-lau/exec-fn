@@ -156,21 +156,28 @@ function drawBoard() {
 
 // A tower is its cell's hexagon, inset a little so neighbours read apart;
 // label at the centroid, level pips beneath it.
-function drawTower(t, ghost) {
-  const b = TOWERS[t.kind], c = CELLS[t.cell], k = 0.88;
-  ctx.globalAlpha = ghost ? 0.55 : 1;
-  ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineWidth = 3.5; ctx.lineJoin = "round";
+// Level reads as STACKED PLATES: each 5-level tier adds a plate under the
+// tower, shifted down, so L5/L10/L15 show 1/2/3 distinct layers beneath the
+// top hex; dots count the levels toward the next plate.
+const PLATE_DY = 5;
+function towerHex(c, k, dy) {
   ctx.beginPath();
   c.pts.forEach((p, i) => {
-    const x = c.x + (p.x - c.x) * k, y = c.y + (p.y - c.y) * k;
+    const x = c.x + (p.x - c.x) * k, y = c.y + (p.y - c.y) * k + dy;
     if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
   });
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  // level: one extra (inner) outline per 5 levels reached, and dots for the
-  // levels toward the next outline (L7 = 2 outlines + 2 dots, L15 = 4 outlines)
-  const tiers = Math.floor(t.lvl / 5), dots = t.lvl % 5;
-  ctx.lineWidth = 1.6;
-  for (let r = 1; r <= tiers; r++) { cellPath(c, k - 0.09 * r); ctx.stroke(); }
+  ctx.closePath();
+}
+function drawTower(t, ghost) {
+  const b = TOWERS[t.kind], c = CELLS[t.cell], k = 0.88;
+  const tiers = Math.floor(t.lvl / 5), dots = t.lvl % 5, base = ghost ? 0.55 : 1;
+  ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round";
+  for (let r = tiers; r >= 1; r--) {
+    ctx.globalAlpha = base * (1 - 0.18 * r); ctx.lineWidth = 2.5;
+    towerHex(c, k, PLATE_DY * r); ctx.fill(); ctx.stroke();
+  }
+  ctx.globalAlpha = base; ctx.lineWidth = 3.5;
+  towerHex(c, k, 0); ctx.fill(); ctx.stroke();
   text(b.ab, c.x, c.y - 4, 13, b.color);
   ctx.fillStyle = COL[b.color];
   for (let i = 0; i < dots; i++) ctx.fillRect(c.x - 8 + i * 4.6, c.y + 6, 3, 3);
