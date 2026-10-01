@@ -3893,6 +3893,20 @@ failed by the order they last ran in.
   forgotten key. Only the owner's `python -m noodle.reset` CLI re-opens a
   name for a fresh bind.
 
+### Rate limits never fail the test suite
+
+The per-IP limiters (tarot chat + warm, mtg chat, noodle draft starts and
+ask) are SKIPPED for requests carrying `x-ratelimit-exempt:
+sha256("ratelimit-exempt:" + API_KEY)` (`auth.RATE_EXEMPT_TOKEN` /
+`auth.rate_exempt`; noodle derives the same token from the env itself, since it
+imports no app module, and never exempts when `API_KEY` is unset). The suite
+sends it from `tests/conftest.py`: every `httpx.Client` gets it as a default
+header, and every browser context adds it ONLY for requests to the app's own
+origin (a context route), never to CDNs. Why: a busy hour of pre-commit runs
+from this box spent noodle's 20-per-hour draft limit and failed
+`test_noodle_drafts_need_their_token` on 2026-10-01; tests from this machine
+must never fail because of a rate limit (owner).
+
 ## 22. /aspira — spiral tower defence
 
 Owner-only (`protected`), carried by the bottom nav but **not a nav entry**:

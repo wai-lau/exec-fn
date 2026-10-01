@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from auth import rate_exempt
 from mtg.agent import stream_chat
 from mtg.lookup import lookup_rule
 
@@ -148,7 +149,8 @@ class ChatBody(BaseModel):
 
 @router.post("/api/mtg/chat")
 async def api_mtg_chat(body: ChatBody, request: Request):
-    _rl_check(_client_ip(request))
+    if not rate_exempt(request):
+        _rl_check(_client_ip(request))
     return StreamingResponse(
         _stream_and_log(body.session_id or "mtg_unknown", body.messages),
         media_type="text/event-stream",

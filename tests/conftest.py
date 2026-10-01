@@ -36,6 +36,23 @@ def _key(name: str) -> str | None:
 
 
 API_KEY = _key("API_KEY")
+
+# ── rate-limit exemption: tests from this box must never fail on a limiter ───
+# The server skips its per-IP rate limiters (tarot/mtg chat, noodle drafts and
+# ask) for requests carrying x-ratelimit-exempt: sha256("ratelimit-exempt:" +
+# API_KEY) — see auth.RATE_EXEMPT_TOKEN. Every httpx client the suite makes
+# sends it (patched below); browser contexts add it only for requests to the
+# app's own origin (browser fixture), never to CDNs or other hosts.
+RL_EXEMPT = {"x-ratelimit-exempt": hashlib.sha256(f"ratelimit-exempt:{API_KEY}".encode()).hexdigest()} if API_KEY else {}
+_httpx_init = httpx.Client.__init__
+
+
+def _httpx_init_exempt(self, *a, **kw):
+    kw["headers"] = {**RL_EXEMPT, **dict(kw.get("headers") or {})}
+    _httpx_init(self, *a, **kw)
+
+
+httpx.Client.__init__ = _httpx_init_exempt
 TURNSTILE_SECRET = _key("TURNSTILE_SECRET")
 
 
@@ -128,8 +145,26 @@ def browser(_playwright):
         b = _playwright.webkit.launch()
     except PWError as e:
         pytest.skip(f"WebKit not installed (run: .venv/bin/playwright install webkit): {e}")
-    yield b
+    yield _ExemptBrowser(b, BASE_URL)
     b.close()
+
+
+class _ExemptBrowser:
+    """The real Browser, except every new_context() adds the rate-limit
+    exemption header to requests for the app's own origin only."""
+
+    def __init__(self, b, base_url):
+        self._b, self._origin = b, base_url.rstrip("/")
+
+    def __getattr__(self, name):
+        return getattr(self._b, name)
+
+    def new_context(self, *a, **kw):
+        ctx = self._b.new_context(*a, **kw)
+        if RL_EXEMPT:
+            ctx.route(self._origin + "/**",
+                      lambda route: route.continue_(headers={**route.request.headers, **RL_EXEMPT}))
+        return ctx
 
 
 # ── a live Noodle poll for the smoke + browser tests ─────────────────────────
