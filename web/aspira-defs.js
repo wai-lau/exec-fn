@@ -150,7 +150,7 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 
 const ENEMIES = {
   norm:  { sides: 4, hp: 1,   speed: 80,  bounty: 1,   size: 13, color: "green" },
-  fast:  { sides: 5, hp: 0.6, speed: 135, bounty: 0.8, size: 12, color: "orange" },
+  fast:  { sides: 3, hp: 0.6, speed: 135, bounty: 0.8, size: 12, color: "orange" },
   hard:  { sides: 7, hp: 2.6, speed: 55,  bounty: 2,   size: 15, color: "pink" },
   bonus: { sides: 5, hp: 1.4, speed: 100, bounty: 3,   size: 14, color: "cyan", star: true },
   boss:  { sides: 8, hp: 14,  speed: 45,  bounty: 15,  size: 24, color: "glow" },
