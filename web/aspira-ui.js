@@ -72,9 +72,7 @@ button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
 const EXTRA = {
   rapid: st => ["Rate", st.rate.toFixed(1) + "/s"], chain: st => ["Arcs", st.chains],
-  nuke: st => ["Crit", Math.round(st.crit * 100) + "%"], slower: st => ["Slow", Math.round(st.slow * 100) + "%"],
-  pusher: st => ["Push", Math.round(st.push)], stopper: st => ["Stun", st.stun.toFixed(1) + "s"],
-  reaper: st => ["Life", Math.round(st.life * 100) + "%"], gold: st => ["Bounty", "×" + st.mark.toFixed(1)],
+  ray: st => ["Crit", Math.round(st.crit * 100) + "%"], slower: st => ["Slow", Math.round(st.slow * 100) + "%"],
 };
 
 // One stat row: "now" alone at max level, "now -> next" when an upgrade

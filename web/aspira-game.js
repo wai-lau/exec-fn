@@ -145,9 +145,6 @@ function kill(e, t) {
   addScore(b * 10);
   G.charge = Math.min(POWER_FULL, G.charge + (e.type === "boss" ? 6 : 1));
   burst(e.x, e.y, ENEMIES[e.type].color, e.type === "boss" ? 40 : 14);
-  if (t && t.kind === "reaper" && Math.random() < towerStats(t).life) {
-    G.lives++; sfx("life"); float(e.x, e.y - 18, "+1 life", "glow");
-  }
   if (e.type === "bonus") bonusDrop(e);
 }
 
@@ -197,10 +194,10 @@ function fire(t, st) {
   if (t.kind === "slower") return fireSlower(t, st);
   const [e] = pickTargets(t, st, 1);
   if (!e) return false;
-  const col = TOWERS[t.kind].color, boss = e.type === "boss";
+  const col = TOWERS[t.kind].color;
   switch (t.kind) {
     case "chain": fireChain(t, st, e); break;
-    case "nuke": {
+    case "ray": {
       const crit = Math.random() < st.crit;
       beam(t, e, col, 0.25, crit ? 5 : 3, st.dmg * (crit ? 3 : 1));
       ring(e.x, e.y, crit ? 40 : 24, col);
@@ -208,23 +205,8 @@ function fire(t, st) {
       damage(e, st.dmg * (crit ? 3 : 1), t);
       break;
     }
-    case "pusher":
-      beam(t, e, col, 0.2, 3, st.dmg);
-      e.s = Math.max(0, e.s - st.push * PATHS[e.pi].pace * (boss ? 0.4 : 1));
-      damage(e, st.dmg, t);
-      break;
-    case "stopper":
-      beam(t, e, col, 0.2, 1.5, st.dmg);
-      e.stunT = Math.max(e.stunT, st.stun * (boss ? 0.4 : 1));
-      damage(e, st.dmg, t);
-      break;
-    case "gold":
-      beam(t, e, col, 0.15, 1.5, st.dmg);
-      e.markT = 5; e.markMul = Math.max(e.markMul, st.mark);
-      damage(e, st.dmg, t);
-      break;
     default:
-      beam(t, e, col, t.kind === "rapid" ? 0.06 : 0.15, t.kind === "reaper" ? 3 : 1.5, st.dmg);
+      beam(t, e, col, t.kind === "rapid" ? 0.06 : 0.15, 1.5, st.dmg);
       damage(e, st.dmg, t);
   }
   return true;
