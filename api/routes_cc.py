@@ -29,6 +29,12 @@ from routers import protected
 _MAX_PROMPT = 32_000
 _MAX_IMAGES = 4
 _MAX_IMAGE_B64 = 5 * 1024 * 1024
+# Dropped non-image files (written into the sandbox by claude-box/uploads.mjs).
+# Base64 lengths. The TOTAL cap keeps the whole body under the sidecar's 24MB
+# readBody limit and nginx's 25m.
+_MAX_FILES = 4
+_MAX_FILE_B64 = 6 * 1024 * 1024
+_MAX_ATTACH_B64 = 20 * 1024 * 1024
 
 
 @protected.get("/api/cc/health")
@@ -119,10 +125,20 @@ async def cc_query(request: Request):
     images = body.get("images") or []
     if not isinstance(images, list):
         images = []
-    # An image with no words is a legitimate message ("what is this?"), so the
-    # emptiness check is on BOTH, not on the text alone.
-    if not prompt and not images:
-        return JSONResponse({"error": "prompt or image required"}, status_code=400)
+    files = body.get("files") or []
+    if not isinstance(files, list):
+        files = []
+    # An image or a file with no words is a legitimate message ("what is
+    # this?"), so the emptiness check is on all three, not on the text alone.
+    if not prompt and not images and not files:
+        return JSONResponse({"error": "prompt, image or file required"}, status_code=400)
+    if len(files) > _MAX_FILES:
+        return JSONResponse({"error": f"at most {_MAX_FILES} files"}, status_code=413)
+    if any(len((f or {}).get("data") or "") > _MAX_FILE_B64 for f in files):
+        return JSONResponse({"error": "file too large"}, status_code=413)
+    attached = sum(len((x or {}).get("data") or "") for x in images + files)
+    if attached > _MAX_ATTACH_B64:
+        return JSONResponse({"error": "attachments too large"}, status_code=413)
     if len(prompt) > _MAX_PROMPT:
         return JSONResponse({"error": "prompt too long"}, status_code=413)
     if len(images) > _MAX_IMAGES:
@@ -133,7 +149,7 @@ async def cc_query(request: Request):
     # length check above is on Wai's words only; the block is ours.
     prompt = await exec_context.wrap(prompt)
     return StreamingResponse(
-        cc_client.stream_query(prompt, images),
+        cc_client.stream_query(prompt, images, files),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

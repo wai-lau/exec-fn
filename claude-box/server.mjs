@@ -31,6 +31,7 @@ import {
 } from "./exec-tools.mjs";
 import { usage } from "./usage.mjs";
 import { generateTitle } from "./title-gen.mjs";
+import { saveUploads, uploadNote } from "./uploads.mjs";
 import { checkToolPaths } from "./sandbox-paths.mjs";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
@@ -546,11 +547,12 @@ function imageBlocks(list) {
 }
 
 async function handleQuery(req, res, body) {
-  const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+  let prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const images = imageBlocks(body.images);
-  if (!prompt && !images.length) {
+  const hasFiles = Array.isArray(body.files) && body.files.length > 0;
+  if (!prompt && !images.length && !hasFiles) {
     res.writeHead(400, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: "prompt or image required" }));
+    res.end(JSON.stringify({ error: "prompt, image or file required" }));
     return;
   }
   if (active >= MAX_CONCURRENT) {
@@ -558,6 +560,10 @@ async function handleQuery(req, res, body) {
     res.end(JSON.stringify({ error: "busy", detail: "a run is already in flight" }));
     return;
   }
+
+  // Dropped files land in the sandbox AFTER the busy check, so a refused turn
+  // writes nothing; the prompt then says where they are (uploads.mjs).
+  prompt += uploadNote(saveUploads(SANDBOX, body.files));
 
   active += 1;
   res.writeHead(200, {

@@ -131,7 +131,7 @@ def test_card_tool_is_a_receipt_and_the_prompt_is_only_her_words(panel):
     assert _texts(pg, "#exec-term .msg.tool") == []
     bodies = _texts(pg, "#exec-term .msg.assistant")
     assert any("Checking." in b for b in bodies) and any("Added it." in b for b in bodies)
-    assert sent == [{"prompt": "buy chalk", "images": []}]
+    assert sent == [{"prompt": "buy chalk", "images": [], "files": []}]
 
 
 def test_text_after_a_tool_call_opens_its_own_bubble(panel):
@@ -202,3 +202,22 @@ def test_help_answers_without_a_query(panel):
     _send(pg, "/help")
     pg.wait_for_selector("#exec-term .exec-help-row", timeout=4000)
     assert sent == []
+
+
+def test_a_dropped_file_waits_as_a_chip_and_is_sent(panel):
+    """Drag a file anywhere: the panel takes it (the browser must not navigate
+    to it), it waits as a named chip, and the send carries it as {name, data}
+    beside Wai's words -- the sidecar writes it into the sandbox."""
+    pg, sent = panel(_DONE)
+    pg.evaluate("""() => {
+      const dt = new DataTransfer();
+      dt.items.add(new File(['hello'], 'notes.txt', {type: 'text/plain'}));
+      for (const t of ['dragover', 'drop'])
+        window.dispatchEvent(new DragEvent(t, {dataTransfer: dt, bubbles: true, cancelable: true}));
+    }""")
+    pg.wait_for_selector("#exec-thumbs .exec-thumb-file", timeout=4000)
+    _send(pg, "read this")
+    _idle(pg)
+    assert sent[0]["prompt"] == "read this"
+    assert sent[0]["files"] == [{"name": "notes.txt", "data": "aGVsbG8="}]
+    assert _texts(pg, "#exec-term .msg.user .exec-file") == ["notes.txt"]

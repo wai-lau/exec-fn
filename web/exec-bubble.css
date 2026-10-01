@@ -65,6 +65,9 @@
 }
 #exec-panel * { font-family: var(--font-mono) !important; }
 
+/* A file is being dragged over the page: the panel says it will take it. */
+#exec-panel.drag-over { outline: 2px dashed hsl(var(--green-hsl) / 0.8); outline-offset: -4px; }
+
 /* keyboard up: nav hidden, so the panel fills down to the keyboard */
 html.kb-open #exec-panel { height: var(--vvh, 100vh); }
 #exec-panel.open { transform: translateX(-50%) translateY(0); }
