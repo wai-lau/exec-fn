@@ -153,8 +153,8 @@ function damage(e, amt, t, quiet = false) {
     fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.15 + 0.08 * m });
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
-    // armor-blunted hits read faint red (Ember), the rest white
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "glow" : "white", 22, 1.2, blunted ? 0.6 : 1);
+    // armor-blunted hits read dim grey (the graticule's Silver), the rest white
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white", 22, 1.2);
   }
   if (e.hp <= 0) kill(e, t);
 }
