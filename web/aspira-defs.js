@@ -222,7 +222,7 @@ function towerStats(t, noAura = false) {
   // RANGE_BONUS: every tower reaches 20% further than its table value (owner)
   const s = {
     dmg: b.dmg * Math.pow(1.17, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.03 * L),
-    targets: 1, critMul: 3, arcRange: 70, arcFall: 0.8,
+    targets: 1, critMul: 3, arcRange: 50, arcFall: 0.8,
   };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
