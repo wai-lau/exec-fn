@@ -3978,7 +3978,9 @@ tracer + lightning pass was tried and reverted by the owner); each effect holds
 full opacity for the first half of its life, then fades.
 
 **Rules in one place:** enemies follow their spiral by arc length `s` (Pusher
-subtracts from `s`); a leak costs 1 life (boss 5). Interest is paid on credits
+subtracts from `s`); a leak costs 1 life (boss 5). The next-wave countdown (`WAVE_GAP = 15`s) runs only while the field is
+clear (`waveClear()`: no live enemies, no queued spawns); sending early is
+still allowed. Interest is paid on credits
 held at the moment a wave is SENT (3% base, +1% from bonuses); sending early
 pays the countdown's remaining seconds. Every 8th wave brings a boss and the
 next send pays a rotating bonus (lives / credits / interest). Kills fill the
