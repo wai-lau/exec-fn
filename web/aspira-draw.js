@@ -105,7 +105,7 @@ function drawLanes() {
     // numerals sit on an even ring at each lane's nominal 30-degree slot, not
     // at the rim crossing: elliptical lanes cross the rim too close to others
     const na = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
-    text(ROMAN[i], CX + Math.cos(na) * 436, CY + Math.sin(na) * 436, 20, col || "cyan");
+    text(ROMAN[i], CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, 30, col || "cyan");
   });
   ctx.globalAlpha = 1;
 }
@@ -169,7 +169,10 @@ function drawEnemy(e) {
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
   poly(e.x, e.y, size, d.sides, e.rot, d.star);
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
-  ctx.globalAlpha = 0.4 + 0.6 * f;
+  // outlines brighten as the enemy closes on the core (faint beyond the rim,
+  // full at the core), still dimmed by lost HP
+  const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));
+  ctx.globalAlpha = (0.25 + 0.75 * near) * (0.5 + 0.5 * f);
   ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = 2; ctx.stroke();
   ctx.globalAlpha = 1;
   if (e.stunT > 0) {
@@ -195,7 +198,7 @@ function drawFx() {
     } else if (f.k === "spark") {
       ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
     } else if (f.k === "text") {
-      text(f.text, f.x, f.y, 28, f.color);
+      text(f.text, f.x, f.y, f.size, f.color);
     }
   }
   ctx.globalAlpha = 1;
