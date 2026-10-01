@@ -4050,8 +4050,8 @@ a standing shield HALVES it. Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
 
 **Upgrade tree** (`web/aspira-upgrades.js`, pure data + `applyMods`): every
-tower goes to level 15. The L5→6 upgrade picks one of 3 PATHS, the L10→11
-upgrade one of that path's 2 FINAL FORMS (6 finals per tower); between those,
+tower goes to level 15. The upgrade REACHING L5 picks one of 3 PATHS, the one
+reaching L10 one of that path's 2 FINAL FORMS (6 finals per tower); between those,
 base stats grow per level in `towerStats`. Mods: `dmg/rate/range/arcRange`
 multiply, `crit/arcs/targets/slow` add, anything else is a behaviour flag the
 shot code reads (`shred`, `dot`, `splash`, `stun`, `hitSlow`, `everyN`,

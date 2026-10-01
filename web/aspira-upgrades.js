@@ -1,6 +1,6 @@
-// /aspira — the upgrade tree. Every tower goes to level 15: at level 5 the
-// next upgrade picks one of three PATHS, at level 10 one of that path's two
-// FINAL FORMS (3 paths x 2 forms = 6 finals per tower). Levels in between
+// /aspira — the upgrade tree. Every tower goes to level 15: the upgrade that
+// REACHES level 5 picks one of three PATHS, the one reaching level 10 one of
+// that path's two FINAL FORMS (3 paths x 2 forms = 6 finals per tower). Levels in between
 // grow the base stats (towerStats in aspira-defs.js).
 //
 // mods are applied by applyMods(): dmg/rate/range/arcRange multiply,
@@ -77,10 +77,11 @@ function applyMods(s, mods) {
   }
 }
 
-// the choice an upgrade from this level requires, if any
+// the choice the NEXT upgrade requires, if any: the step onto level 5 picks
+// the path, the step onto level 10 the final form (owner)
 function pendingChoice(t) {
-  if (t.lvl === BRANCH_LVL && t.path == null) return "path";
-  if (t.lvl === FINAL_LVL && t.form == null) return "form";
+  if (t.lvl === BRANCH_LVL - 1 && t.path == null) return "path";
+  if (t.lvl === FINAL_LVL - 1 && t.form == null) return "form";
   return null;
 }
 
