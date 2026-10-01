@@ -31,7 +31,6 @@ function makeWave(n) {
   if (theme === "swarm") count = Math.min(count * 3, 70);
   for (let i = 0; i < count; i++) list.push(theme === "mixed" ? MIXED[i % MIXED.length] : theme);
   if (n >= 3) list[Math.floor(Math.random() * count)] = "bonus";
-  if (n % 8 === 0) list.push("boss");
   return list;
 }
 
@@ -166,7 +165,7 @@ function damage(e, amt, t, quiet = false) {
 function onHit(e, t, st, amt) {
   if (st.shred) { e.shredMul = Math.max(e.shredT > 0 ? e.shredMul : 1, st.shred.mul); e.shredT = st.shred.t; }
   if (st.dot) { e.dotDps = Math.max(e.dotT > 0 ? e.dotDps : 0, amt * st.dot.frac / st.dot.t); e.dotT = st.dot.t; e.dotSrc = t; }
-  if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t * (e.type === "boss" ? 0.4 : 1));
+  if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t);
   if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t);
   if (st.splash) {
     ring(e.x, e.y, st.splash.r, TOWERS[t.kind].color, 0.3);
@@ -186,10 +185,10 @@ function applySlow(e, f, dur) {
   return true;
 }
 
-// damage for one shot at one enemy: boss bonus and the every-Nth-shot charge
+// damage for one shot at one enemy: EMP's armored bonus and the every-Nth-shot charge
 function shotDamage(t, st, e, base) {
   let d = base;
-  if (st.bossMul && e.type === "boss") d *= st.bossMul;
+  if (st.armorMul && e.armor) d *= st.armorMul;
   if (st.everyN && t.shots % st.everyN.n === 0) d *= st.everyN.mul;
   return d;
 }
@@ -202,8 +201,8 @@ function kill(e, t) {
   sfx("kill");
   float(e.x, e.y - 30, "+" + b, "orange", 30, 2.0);
   addScore(b * 10);
-  G.charge = Math.min(POWER_FULL, G.charge + (e.type === "boss" ? 6 : 1));
-  burst(e.x, e.y, ENEMIES[e.type].color, e.type === "boss" ? 40 : 14);
+  G.charge = Math.min(POWER_FULL, G.charge + 1);
+  burst(e.x, e.y, ENEMIES[e.type].color, 14);
   if (e.type === "bonus") bonusDrop(e);
 }
 
@@ -227,10 +226,12 @@ function addScore(n) {
 // between jumps, so the arc visibly crawls through a pack. The first hit is
 // instant; live chains are advanced by stepChains() from step().
 const HOP_DELAY = 0.5;
+// CHN and RPR beams linger (owner: "much longer"), tracking their targets
+const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 0.9;
 let chains = [];
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
-  beam(t, e, col, 0.15, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
+  beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
   if (st.arcs > 0) chains.push({ t, st, col, cur: e, hit: new Set([e.id]), dmg, left: st.arcs, timer: HOP_DELAY });
 }
 
@@ -243,9 +244,9 @@ function hopChain(c) {
     if (d < nd) { nd = d; nxt = o; }
   }
   if (!nxt) return false;
-  const prevBoss = st.bossMul && c.cur.type === "boss" ? st.bossMul : 1;
+  const prevBoss = st.armorMul && c.cur.armor ? st.armorMul : 1;
   c.dmg = shotDamage(t, st, nxt, c.dmg * st.arcFall / prevBoss);
-  c.hit.add(nxt.id); beam(c.cur, nxt, col, 0.15, 1.5, c.dmg);
+  c.hit.add(nxt.id); beam(c.cur, nxt, col, CHAIN_BEAM_LIFE, 1.5, c.dmg);
   damage(nxt, c.dmg, t); onHit(nxt, t, st, c.dmg);
   c.cur = nxt;
   return --c.left > 0;
@@ -266,7 +267,7 @@ function fireSlower(t, st) {
   for (const e of cands) {
     const fresh = !(e.slowT > 0);
     if (!applySlow(e, st.slow, 2.5)) { beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, 0); continue; }
-    if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop * (e.type === "boss" ? 0.4 : 1));
+    if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop);
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
     // each pulse also nicks: st.dmg (+ Sap's % max HP); it is a real hit, so
@@ -286,7 +287,7 @@ function fireRay(t, st, e) {
   const mulFor = o => (crit || (st.critBelow && o.hp / o.max < st.critBelow) ? st.critMul : 1);
   if (!st.pierce) {
     const m = mulFor(e), d = shotDamage(t, st, e, st.dmg) * m;
-    beam(t, e, col, 0.25, m > 1 ? 5 : 3, d, true);
+    beam(t, e, col, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
     if (m > 1) float(e.x, e.y - 20, "CRIT", col, 16);
     damage(e, d, t); onHit(e, t, st, d);
     return;
@@ -298,7 +299,7 @@ function fireRay(t, st, e) {
     const px = o.x - t.x, py = o.y - t.y, along = px * ux + py * uy;
     return along >= 0 && along <= st.range && Math.abs(px * uy - py * ux) <= st.pierce.wide;
   }).sort((a, b) => ((a.x - t.x) * ux + (a.y - t.y) * uy) - ((b.x - t.x) * ux + (b.y - t.y) * uy));
-  beam(t, end, col, 0.25, st.pierce.wide > 20 ? 7 : 3, st.dmg, true);
+  beam(t, end, col, RAY_BEAM_LIFE, st.pierce.wide > 20 ? 7 : 3, st.dmg, true);
   let base = st.dmg;
   for (const o of inLine) {
     const m = mulFor(o), d = shotDamage(t, st, o, base) * m;
@@ -318,7 +319,7 @@ function fire(t, st) {
   const col = TOWERS[t.kind].color;
   for (const e of targets) {
     const d = shotDamage(t, st, e, st.dmg);
-    beam(t, e, col, 0.06, 1.5, d); damage(e, d, t); onHit(e, t, st, d);
+    beam(t, e, col, 0.06, 1.5, d, false, false); damage(e, d, t); onHit(e, t, st, d);
   }
   return true;
 }
@@ -330,7 +331,7 @@ function usePower(code) {
     for (const e of G.enemies) e.stunT = Math.max(e.stunT, 4);
     banner("freeze");
   } else if (code === "BOM") {
-    for (const e of G.enemies) { burst(e.x, e.y, "orange", 6); damage(e, e.max * (e.type === "boss" ? 0.15 : 0.45), null); }
+    for (const e of G.enemies) { burst(e.x, e.y, "orange", 6); damage(e, e.max * 0.45, null); }
     ring(CX, CY, 480, "orange", 0.6); banner("blast");
   } else {
     G.power[code] = POWER_TIME;
@@ -342,9 +343,13 @@ function usePower(code) {
 // Effect magnitude from damage: ~0.9 for a 4-damage tick, ~2.3 for an 80
 // hit, capped at 3 (a big crit). 0 for no damage (the Slower's beam).
 const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
-// slim: RPR's beam - half the width, brighter glow (owner)
-function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false) {
-  fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg), slim });
+// slim: RPR's beam - half the width, brighter glow (owner).
+// follow: the beam keeps hold of its two endpoint objects (tower, enemy) and
+// is redrawn between them every frame while it lasts, so it tracks a moving
+// target; RPD's quick tracers do not (owner).
+function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) {
+  fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg), slim,
+    a: follow ? a : null, b: follow ? b : null });
 }
 function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
@@ -367,7 +372,7 @@ function stepSpawns(dt) {
       spawnEnemy(type, w.n, w.lanes[type]);
       // spacing is a balance lever: swarms pack ~11 apart (inside CHN's 70 hop
       // reach), trains spread ~60+ apart (just at or beyond it)
-      w.timer += type === "swarm" ? 0.12 : type === "fast" ? 0.5 : type === "boss" ? 1.2 : 0.8;
+      w.timer += type === "swarm" ? 0.12 : type === "fast" ? 0.5 : 0.8;
     }
   }
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
@@ -389,7 +394,7 @@ function stepEnemies(dt) {
     if (e.jit) { e.ph += dt * 2.2; e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
     if (e.s >= PATHS[e.pi].len) {
       e.dead = true;
-      G.lives -= e.type === "boss" ? 5 : 1;
+      G.lives -= 1;
       sfx("leak");
       ring(e.x, e.y, 40, "pink", 0.5);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
