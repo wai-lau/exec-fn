@@ -18,13 +18,16 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
-const BUILD_R = 200;
+// Towers build on BUILD_RINGS hex rings around the core; BUILD_R is the
+// outer edge of the last ring (its farthest corner), which the stars and the
+// graticule keep clear of.
+const CELL_S = 32, BUILD_RINGS = 4;
+const BUILD_R = Math.ceil(BUILD_RINGS * Math.sqrt(3) * CELL_S + CELL_S);
 
 // The build disc is tessellated into pointy-top hexagons on a lattice whose
 // centre hex IS the core, so the grid has the chart's six-fold symmetry.
-// Three rings around it (6 + 12 + 18 = 36 cells) fit inside BUILD_R; each
+// BUILD_RINGS rings around it (6 + 12 + 18 + 24 = 60 cells at 4); each
 // tower fills exactly one cell. CELL_S = hex circumradius (= core radius).
-const CELL_S = 32;
 const CELLS = (function buildCells() {
   const w = Math.sqrt(3) * CELL_S, out = [];
   for (let r = -4; r <= 4; r++) for (let q = -4; q <= 4; q++) {
@@ -35,7 +38,8 @@ const CELLS = (function buildCells() {
       const a = Math.PI / 6 + k * Math.PI / 3;
       pts.push({ x: x + CELL_S * Math.cos(a), y: y + CELL_S * Math.sin(a) });
     }
-    if (pts.every(p => Math.hypot(p.x - CX, p.y - CY) <= BUILD_R + 1)) out.push({ pts, x, y });
+    // axial hex distance from the core = which ring the cell is on
+    if ((Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 <= BUILD_RINGS) out.push({ pts, x, y });
   }
   return out;
 })();
