@@ -11,7 +11,10 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 // in opposite directions with the same turn count, so each pair is symmetric
 // about its own axis, and the six pairs climb from 1 full turn to 6 round the
 // clock (PAIR_TURNS). Archimedean (even spacing) from R0 in to the core.
-const N_PATHS = 12, R0 = 470, R1 = CORE_R;
+// R0 sits past the canvas corners (707 from centre), so every lane starts
+// off-screen and enemies drift in from beyond the chart; RIM_R is the chart's
+// graduated rim, where each lane's entry marker and numeral are drawn.
+const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
 const BUILD_R = 190;
@@ -32,7 +35,8 @@ function buildSpiral(i) {
     if (prev) acc += Math.hypot(p.x - prev.x, p.y - prev.y);
     p.s = acc; pts.push(p); prev = p;
   }
-  return { pts, len: acc, turns, pace: 1 };
+  const rim = pts.find(p => Math.hypot(p.x - CX, p.y - CY) <= RIM_R);
+  return { pts, len: acc, turns, pace: 1, rim };
 }
 
 for (let i = 0; i < N_PATHS; i++) PATHS.push(buildSpiral(i));
