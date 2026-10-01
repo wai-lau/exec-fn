@@ -364,7 +364,9 @@ function stepSpawns(dt) {
     while (w.timer <= 0 && w.idx < w.list.length) {
       const type = w.list[w.idx++];
       spawnEnemy(type, w.n, w.lanes[type]);
-      w.timer += type === "swarm" ? 0.12 : type === "fast" ? 0.35 : type === "boss" ? 1.2 : 0.55;
+      // spacing is a balance lever: swarms pack ~11 apart (inside CHN's 70 hop
+      // reach), trains spread ~60+ apart (just at or beyond it)
+      w.timer += type === "swarm" ? 0.12 : type === "fast" ? 0.5 : type === "boss" ? 1.2 : 0.8;
     }
   }
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
