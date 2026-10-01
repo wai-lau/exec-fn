@@ -4068,6 +4068,9 @@ Start only closes the intro; nothing moves until wave 1 is sent, so the
 first towers can be placed at leisure. Building and upgrading work while
 paused (nothing checks `ui.paused` outside the sim step).
 
+**TESTING:** `START_MONEY = 10000` in aspira-game.js while the owner designs;
+the real starting money is 100. Put it back before calling the game balanced.
+
 **Auto-send** checkbox (`localStorage["aspira.auto"]`): when the field clears,
 the next wave goes at once and the early bonus pays the whole countdown.
 
