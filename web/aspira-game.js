@@ -123,21 +123,49 @@ function pickTargets(t, st, count) {
   return c.slice(0, count).map(a => a.e);
 }
 
-function damage(e, amt, t) {
+// quiet: no flash or number (poison ticks, splash), so they do not spam
+function damage(e, amt, t, quiet = false) {
   if (e.dead) return;
+  if (e.shredT > 0) amt *= e.shredMul;
+  if (e.slowT > 0 && e.brittle) amt *= e.brittle;
   e.hp -= amt;
-  // impact flash sized and lit by the damage; big hits also throw sparks
-  const m = dmgMag(amt), col = t ? TOWERS[t.kind].color : "orange";
-  fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.15 + 0.08 * m });
-  if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
-  // small, short-lived damage number, jittered so rapid hits don't stack
-  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), "white", 22, 1.2);
+  if (!quiet) {
+    // impact flash sized and lit by the damage; big hits also throw sparks
+    const m = dmgMag(amt), col = t ? TOWERS[t.kind].color : "orange";
+    fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.15 + 0.08 * m });
+    if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
+    // damage number, jittered so rapid hits don't stack
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), "white", 22, 1.2);
+  }
   if (e.hp <= 0) kill(e, t);
+}
+
+// Side effects of a landed hit, from the tower's upgrade mods.
+function onHit(e, t, st, amt) {
+  if (st.shred) { e.shredMul = Math.max(e.shredT > 0 ? e.shredMul : 1, st.shred.mul); e.shredT = st.shred.t; }
+  if (st.dot) { e.dotDps = Math.max(e.dotT > 0 ? e.dotDps : 0, amt * st.dot.frac / st.dot.t); e.dotT = st.dot.t; e.dotSrc = t; }
+  if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t * (e.type === "boss" ? 0.4 : 1));
+  if (st.hitSlow) { e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, st.hitSlow.f); e.slowT = Math.max(e.slowT, st.hitSlow.t); }
+  if (st.splash) {
+    ring(e.x, e.y, st.splash.r, TOWERS[t.kind].color, 0.3);
+    for (const o of G.enemies) {
+      if (o === e || o.dead) continue;
+      if (Math.hypot(o.x - e.x, o.y - e.y) <= st.splash.r) damage(o, amt * st.splash.frac, t, true);
+    }
+  }
+}
+
+// damage for one shot at one enemy: boss bonus and the every-Nth-shot charge
+function shotDamage(t, st, e, base) {
+  let d = base;
+  if (st.bossMul && e.type === "boss") d *= st.bossMul;
+  if (st.everyN && t.shots % st.everyN.n === 0) d *= st.everyN.mul;
+  return d;
 }
 
 function kill(e, t) {
   e.dead = true;
-  const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1);
+  const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1) * (e.slowT > 0 && e.siphon ? e.siphon : 1);
   const b = Math.round(e.bounty * mul);
   G.money += b;
   sfx("kill");
@@ -166,48 +194,76 @@ function addScore(n) {
 
 function fireChain(t, st, e) {
   const hit = new Set([e.id]), col = TOWERS[t.kind].color;
-  let cur = e, dmg = st.dmg;
-  beam(t, e, col, 0.15, 1.5, dmg); damage(e, dmg, t);
-  for (let i = 0; i < st.chains; i++) {
-    let nxt = null, nd = 90 * 90;
+  let cur = e, dmg = shotDamage(t, st, e, st.dmg);
+  beam(t, e, col, 0.15, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
+  for (let i = 0; i < st.arcs; i++) {
+    let nxt = null, nd = st.arcRange * st.arcRange;
     for (const o of G.enemies) {
       if (o.dead || hit.has(o.id)) continue;
       const d = (o.x - cur.x) ** 2 + (o.y - cur.y) ** 2;
       if (d < nd) { nd = d; nxt = o; }
     }
     if (!nxt) break;
-    dmg *= 0.75; hit.add(nxt.id); beam(cur, nxt, col, 0.15, 1.5, dmg); damage(nxt, dmg, t); cur = nxt;
+    dmg = shotDamage(t, st, nxt, dmg * st.arcFall / (st.bossMul && cur.type === "boss" ? st.bossMul : 1));
+    hit.add(nxt.id); beam(cur, nxt, col, 0.15, 1.5, dmg); damage(nxt, dmg, t); onHit(nxt, t, st, dmg); cur = nxt;
   }
 }
 
 function fireSlower(t, st) {
   // unslowed enemies first, so three towers do not all chill the same three
-  const cands = pickTargets(t, st, 99).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.targets);
+  const cands = pickTargets(t, st, 9999).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.all ? 9999 : st.targets);
   for (const e of cands) {
+    if (st.chillStop && !(e.slowT > 0)) e.stunT = Math.max(e.stunT, st.chillStop * (e.type === "boss" ? 0.4 : 1));
     e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, st.slow); e.slowT = 2.5;
-    beam(t, e, TOWERS[t.kind].color, 0.2);
+    if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
+    if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
+    beam(t, e, TOWERS[t.kind].color, 0.2, 1.5, st.sap ? e.max * st.sap : 0);
+    if (st.sap) damage(e, e.max * st.sap, t);
   }
   return cands.length > 0;
 }
 
+// Ray: one roll for crit per shot; Assassin always crits low-HP targets.
+// Lance forms pierce every enemy within `wide` of the beam, losing `fall`
+// of the damage per enemy passed through.
+function fireRay(t, st, e) {
+  const col = TOWERS[t.kind].color, crit = Math.random() < st.crit;
+  const mulFor = o => (crit || (st.critBelow && o.hp / o.max < st.critBelow) ? st.critMul : 1);
+  if (!st.pierce) {
+    const m = mulFor(e), d = shotDamage(t, st, e, st.dmg) * m;
+    beam(t, e, col, 0.25, m > 1 ? 5 : 3, d);
+    if (m > 1) float(e.x, e.y - 20, "CRIT", col, 16);
+    damage(e, d, t); onHit(e, t, st, d);
+    return;
+  }
+  const dx = e.x - t.x, dy = e.y - t.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+  const end = { x: t.x + ux * st.range, y: t.y + uy * st.range };
+  const inLine = G.enemies.filter(o => {
+    if (o.dead) return false;
+    const px = o.x - t.x, py = o.y - t.y, along = px * ux + py * uy;
+    return along >= 0 && along <= st.range && Math.abs(px * uy - py * ux) <= st.pierce.wide;
+  }).sort((a, b) => ((a.x - t.x) * ux + (a.y - t.y) * uy) - ((b.x - t.x) * ux + (b.y - t.y) * uy));
+  beam(t, end, col, 0.25, st.pierce.wide > 20 ? 7 : 3, st.dmg);
+  let base = st.dmg;
+  for (const o of inLine) {
+    const m = mulFor(o), d = shotDamage(t, st, o, base) * m;
+    if (m > 1) float(o.x, o.y - 20, "CRIT", col, 16);
+    damage(o, d, t); onHit(o, t, st, d);
+    base *= st.pierce.fall;
+  }
+}
+
 function fire(t, st) {
   if (t.kind === "slower") return fireSlower(t, st);
-  const [e] = pickTargets(t, st, 1);
-  if (!e) return false;
+  const targets = pickTargets(t, st, st.targets);
+  if (!targets.length) return false;
+  t.shots = (t.shots || 0) + 1;
+  if (t.kind === "chain") { fireChain(t, st, targets[0]); return true; }
+  if (t.kind === "ray") { fireRay(t, st, targets[0]); return true; }
   const col = TOWERS[t.kind].color;
-  switch (t.kind) {
-    case "chain": fireChain(t, st, e); break;
-    case "ray": {
-      const crit = Math.random() < st.crit;
-      beam(t, e, col, 0.25, crit ? 5 : 3, st.dmg * (crit ? 3 : 1));
-      ring(e.x, e.y, crit ? 40 : 24, col);
-      if (crit) float(e.x, e.y - 20, "CRIT", col, 16);
-      damage(e, st.dmg * (crit ? 3 : 1), t);
-      break;
-    }
-    default:
-      beam(t, e, col, t.kind === "rapid" ? 0.06 : 0.15, 1.5, st.dmg);
-      damage(e, st.dmg, t);
+  for (const e of targets) {
+    const d = shotDamage(t, st, e, st.dmg);
+    beam(t, e, col, 0.06, 1.5, d); damage(e, d, t); onHit(e, t, st, d);
   }
   return true;
 }
@@ -264,6 +320,8 @@ function stepEnemies(dt) {
     if (e.stunT > 0) e.stunT -= dt;
     if (e.slowT > 0) e.slowT -= dt;
     if (e.markT > 0) e.markT -= dt; else e.markMul = 1;
+    if (e.shredT > 0) e.shredT -= dt;
+    if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
     e.s += effSpeed(e) * dt;
     e.rot += dt * (e.stunT > 0 ? 0 : 1.5);
     const p = pathAt(e.pi, e.s); e.x = p.x; e.y = p.y;
@@ -284,6 +342,7 @@ function step(dt) {
   // the countdown to the next wave only runs once the field is clear:
   // nothing alive, nothing still queued to spawn
   if (waveClear()) {
+    if (ui.auto) { sendWave(); return; }
     G.nextIn -= dt;
     if (G.nextIn <= 0) sendWave();
   }

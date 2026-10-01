@@ -165,9 +165,8 @@ function drawTower(t, ghost) {
     if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
   });
   ctx.closePath(); ctx.fill(); ctx.stroke();
-  text(b.ab, c.x, c.y - 3, 15, b.color);
-  ctx.fillStyle = COL[b.color];
-  for (let i = 0; i < t.lvl; i++) ctx.fillRect(c.x - 11 + i * 4.8, c.y + 8, 3.2, 3.2);
+  text(b.ab, c.x, c.y - 5, 15, b.color);
+  text(String(t.lvl), c.x, c.y + 11, 12, b.color); // level 1-15
   ctx.globalAlpha = 1;
 }
 

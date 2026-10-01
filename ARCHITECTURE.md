@@ -3953,7 +3953,7 @@ POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
 
-**Client** — five same-global-scope files, loaded in order (defs, sfx, game, draw, ui):
+**Client** — six same-global-scope files, loaded in order (defs, sfx, upgrades, game, draw, ui):
 
 | File | Holds |
 |------|-------|
@@ -4014,6 +4014,20 @@ full opacity for the first half of its life, then fades.
 Ray (the former Nuke: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
+
+**Upgrade tree** (`web/aspira-upgrades.js`, pure data + `applyMods`): every
+tower goes to level 15. The L5→6 upgrade picks one of 3 PATHS, the L10→11
+upgrade one of that path's 2 FINAL FORMS (6 finals per tower); between those,
+base stats grow per level in `towerStats`. Mods: `dmg/rate/range/arcRange`
+multiply, `crit/arcs/targets/slow` add, anything else is a behaviour flag the
+shot code reads (`shred`, `dot`, `splash`, `stun`, `hitSlow`, `everyN`,
+`bossMul`, `aura`, `chillStop`, `brittle`, `all`, `sap`, `siphon`, `critMul`,
+`critBelow`, `pierce`). The popup shows one button per option at a branch
+point. The tree is a FIRST DRAFT the owner is redesigning; change the data,
+not the plumbing.
+
+**Auto-send** checkbox (`localStorage["aspira.auto"]`): when the field clears,
+the next wave goes at once and the early bonus pays the whole countdown.
 
 **Rules in one place:** enemies follow their spiral by arc length `s` (Pusher
 subtracts from `s`); a leak costs 1 life (boss 5). The next-wave countdown (`WAVE_GAP = 15`s) runs only while the field is

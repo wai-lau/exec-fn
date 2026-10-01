@@ -5,6 +5,7 @@
 // exactly 2x and 3x that.
 const SPEED_MULT = { 1: 3, 2: 6, 3: 9 };
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
+try { ui.auto = localStorage.getItem("aspira.auto") === "1"; } catch (_e) { ui.auto = false; }
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
 
@@ -68,10 +69,17 @@ KINDS.forEach((k, i) => {
   }, "asp-sp-" + v);
 });
 $("asp-send").onclick = sendWave;
+// auto-send: when the field clears the next wave goes at once, and the early
+// bonus pays out the whole countdown (sendWave credits the seconds skipped)
+$("asp-auto").checked = ui.auto;
+$("asp-auto").onchange = ev => {
+  ui.auto = ev.target.checked;
+  try { localStorage.setItem("aspira.auto", ui.auto ? "1" : "0"); } catch (_e) {}
+};
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
 const EXTRA = {
-  rapid: st => ["Rate", st.rate.toFixed(1) + "/s"], chain: st => ["Arcs", st.chains],
+  rapid: st => ["Rate", st.rate.toFixed(1) + "/s"], chain: st => ["Arcs", st.arcs],
   ray: st => ["Crit", Math.round(st.crit * 100) + "%"], slower: st => ["Slow", Math.round(st.slow * 100) + "%"],
 };
 
@@ -82,8 +90,14 @@ function statRow(label, now, next) {
   return "<dt>" + label + "</dt><dd>" + now + arrow + "</dd>";
 }
 
-function upgradeTower(t) {
+// choice: the path (at level 5) or final form (at level 10) being bought;
+// those two upgrades cannot happen without one
+function upgradeTower(t, choice = null) {
   if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
+  const need = pendingChoice(t);
+  if (need && choice == null) return;
+  if (need === "path") t.path = choice;
+  if (need === "form") t.form = choice;
   const c = upCost(t);
   G.money -= c; t.spent += c; t.lvl++;
   sfx("up");
@@ -95,15 +109,25 @@ function inspectTower(el, t) {
   const st = towerStats(t), nx = maxed ? null : towerStats({ ...t, lvl: t.lvl + 1 });
   const ex = EXTRA[t.kind](st), exN = nx && EXTRA[t.kind](nx);
   el.innerHTML =
-    '<div class="name">' + b.name + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
+    '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
     '<div id="asp-upbox"></div>' +
     "<dl>" + (b.dmg ? statRow("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
     statRow("Range", Math.round(st.range), nx && Math.round(nx.range)) +
     statRow(ex[0], ex[1], exN && exN[1]) + "</dl>" +
     '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>' +
     '<p class="asp-hint">' + b.blurb + "</p>";
-  button($("asp-upbox"), "asp-primary asp-up-big",
-    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t) + " (U)", () => upgradeTower(t), "asp-up");
+  const need = !maxed && pendingChoice(t);
+  if (need) {
+    // a branch point: one button per option, each showing what it does
+    const opts = need === "path" ? UPGRADES[t.kind] : UPGRADES[t.kind][t.path].finals;
+    opts.forEach((o, i) => {
+      button($("asp-upbox"), "asp-primary asp-choice",
+        "<b>" + o.name + " · " + upCost(t) + "</b><span>" + o.desc + "</span>", () => upgradeTower(t, i));
+    });
+  } else {
+    button($("asp-upbox"), "asp-primary asp-up-big",
+      maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t) + " (U)", () => upgradeTower(t), "asp-up");
+  }
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });

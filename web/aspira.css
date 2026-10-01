@@ -175,6 +175,11 @@
 .cyber-blur { backdrop-filter: blur(calc(var(--blur-2xs) * 0.4)); }
 .cyber-crt { backdrop-filter: brightness(0.95) contrast(1.15); }
 
+#asp button.asp-choice { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-0-5); width: 100%; text-align: left; }
+.asp-choice span { font-size: var(--fs-2xs); font-weight: var(--fw-normal); color: hsl(var(--green-hsl) / 0.8); }
+.asp-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); cursor: pointer; }
+.asp-check input { accent-color: hsl(var(--orange-hsl)); }
+
 /* palette swatches the canvas reads its colours from (aspira-defs.js) */
 .asp-sw { display: none; }
 .asp-sw.bg { color: hsl(var(--bg-hsl)); }
