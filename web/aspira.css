@@ -165,6 +165,8 @@
   border-color: hsl(var(--green-hsl) / 0.45);
 }
 
+.asp-pop[hidden] { display: none; } /* .asp-deck's display:flex beats the UA [hidden] rule */
+
 /* palette swatches the canvas reads its colours from (aspira-defs.js) */
 .asp-sw { display: none; }
 .asp-sw.bg { color: hsl(var(--bg-hsl)); }

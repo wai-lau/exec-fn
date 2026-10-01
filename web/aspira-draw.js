@@ -102,7 +102,10 @@ function drawLanes() {
     const p0 = path.rim, a = Math.atan2(p0.y - CY, p0.x - CX);
     ctx.globalAlpha = col ? 1 : 0.7; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
-    text(ROMAN[i], CX + Math.cos(a) * 436, CY + Math.sin(a) * 436, 20, col || "cyan");
+    // numerals sit on an even ring at each lane's nominal 30-degree slot, not
+    // at the rim crossing: elliptical lanes cross the rim too close to others
+    const na = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
+    text(ROMAN[i], CX + Math.cos(na) * 436, CY + Math.sin(na) * 436, 20, col || "cyan");
   });
   ctx.globalAlpha = 1;
 }
@@ -143,16 +146,20 @@ function drawRange(x, y, r, color, dim = false) {
 }
 
 function drawEnemy(e) {
-  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max);
-  poly(e.x, e.y, d.size, d.sides, e.rot, d.star);
-  ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill(); ctx.globalAlpha = 1;
+  // damage shows as both size and opacity: full HP = full size, solid;
+  // near death = 45% size, faint
+  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
+  poly(e.x, e.y, size, d.sides, e.rot, d.star);
+  ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
+  ctx.globalAlpha = 0.4 + 0.6 * f;
   ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = 2; ctx.stroke();
+  ctx.globalAlpha = 1;
   if (e.stunT > 0) {
-    ctx.beginPath(); ctx.arc(e.x, e.y, d.size + 6, 0, 6.283);
+    ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283);
     ctx.strokeStyle = COL.pink; ctx.lineWidth = 1.5; ctx.stroke();
   }
   if (e.markT > 0) {
-    ctx.fillStyle = COL.orange; ctx.beginPath(); ctx.arc(e.x + d.size, e.y - d.size, 4, 0, 6.283); ctx.fill();
+    ctx.fillStyle = COL.orange; ctx.beginPath(); ctx.arc(e.x + size, e.y - size, 4, 0, 6.283); ctx.fill();
   }
 }
 

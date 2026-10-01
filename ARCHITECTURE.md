@@ -3917,7 +3917,8 @@ Clicking a tower opens its stats in a POPUP pinned beside it on the board
 (`#asp-pop`, re-anchored every frame by `placePop()`), never in the side deck:
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
-Keys: 1-8 build, U upgrade, Space pause, Tab next wave, Esc cancel. The
+Enemies shrink (to 45%) and fade as they lose HP. Lane numerals sit on an
+even ring at each lane's nominal 30° slot. Keys: 1-8 build, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
@@ -3946,7 +3947,11 @@ spaced every 30°, and run through the build disc
 all the way to the core (`R1 = CORE_R`); towers and enemies never collide, so
 building on a lane is allowed; lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
 the same turn count, and the six pairs climb `PAIR_TURNS = [3, 4, 5, 6, 7, 8]`
-(owner: min 3 full turns, max 8). Each lane has `pace = (len / shortest)^0.6`
+(owner: min 3 full turns, max 8). The odd pairs (4, 6, 8 turns) are ELLIPTICAL:
+`ellipse()` stretches them along their own mirror axis by
+`1 + 0.45·(r−R1)/(R0−R1)`, full at the off-screen start, round at the core,
+so pair symmetry holds and every lane still starts off-screen and ends on the
+core. Each lane has `pace = (len / shortest)^0.6`
 multiplying enemy speed and Pusher distance, so the longest lane takes ~1.4×
 as long as the shortest rather than ~2.5×. **Every tower goes inside the
 central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges

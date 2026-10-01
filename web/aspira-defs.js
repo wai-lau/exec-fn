@@ -25,19 +25,33 @@ const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
 const PACE_EXP = 0.6;
 const PATHS = [];
 
+// Stretch a point along axis `ax` by 1 + stretch * (r - R1) / (R0 - R1): full
+// ellipse at the off-screen start, a circle at the core, so an elliptical lane
+// still enters from beyond every edge and still ends on the core.
+const ELLIPSE = 0.45;
+function ellipse(x, y, r, ax, stretch) {
+  const c = Math.cos(ax), sn = Math.sin(ax);
+  const u = (x * c + y * sn) * (1 + stretch * (r - R1) / (R0 - R1)), v = -x * sn + y * c;
+  return { x: CX + u * c - v * sn, y: CY + u * sn + v * c, s: 0 };
+}
+
 function buildSpiral(i) {
   const a0 = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
   const dir = i % 2 ? 1 : -1, turns = PAIR_TURNS[i >> 1], steps = 160 * turns + 240;
+  // odd pairs are elliptical: stretched along the pair's own mirror axis, so
+  // the pair stays symmetric; ax = that axis, stretch = 0 for round pairs
+  const ax = (((i >> 1) * 2 + 1) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
+  const stretch = (i >> 1) % 2 ? ELLIPSE : 0;
   const pts = [];
   let prev = null, acc = 0;
   for (let k = 0; k <= steps; k++) {
     const t = k / steps, r = R0 - (R0 - R1) * t, a = a0 + dir * turns * Math.PI * 2 * t;
-    const p = { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a), s: 0 };
+    const p = ellipse(r * Math.cos(a), r * Math.sin(a), r, ax, stretch);
     if (prev) acc += Math.hypot(p.x - prev.x, p.y - prev.y);
     p.s = acc; pts.push(p); prev = p;
   }
   const rim = pts.find(p => Math.hypot(p.x - CX, p.y - CY) <= RIM_R);
-  return { pts, len: acc, turns, pace: 1, rim };
+  return { pts, len: acc, turns, pace: 1, rim, ellip: stretch > 0 };
 }
 
 for (let i = 0; i < N_PATHS; i++) PATHS.push(buildSpiral(i));
