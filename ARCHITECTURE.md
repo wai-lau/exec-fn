@@ -3922,7 +3922,9 @@ Clicking a tower opens its stats in a POPUP pinned beside it on the board
 (`#asp-pop`, re-anchored every frame by `placePop()`), never in the side deck:
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
-Enemies shrink (to 45%) and fade as they lose HP. Lane numerals sit on an
+Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
+proximity to the core (0.25 at/beyond the rim → 1 at the core, × HP). Every hit floats a small damage number (14,
+0.6s, jittered); a kill floats `+N` credits. Lane numerals sit on an
 even ring at each lane's nominal 30° slot. Keys (no build shortcuts, by choice): 1/2/3 speed, U upgrade, Space pause, Tab next wave, Esc cancel. The
 POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server

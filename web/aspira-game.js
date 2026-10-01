@@ -113,6 +113,8 @@ function pickTargets(t, st, count) {
 function damage(e, amt, t) {
   if (e.dead) return;
   e.hp -= amt;
+  // small, short-lived damage number, jittered so rapid hits don't stack
+  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), "green", 14, 0.6);
   if (e.hp <= 0) kill(e, t);
 }
 
@@ -121,6 +123,7 @@ function kill(e, t) {
   const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1);
   const b = Math.round(e.bounty * mul);
   G.money += b;
+  float(e.x, e.y - 30, "+" + b, "orange", 22, 1.0);
   addScore(b * 10);
   G.charge = Math.min(POWER_FULL, G.charge + (e.type === "boss" ? 6 : 1));
   burst(e.x, e.y, ENEMIES[e.type].color, e.type === "boss" ? 40 : 14);
@@ -183,7 +186,7 @@ function fire(t, st) {
       const crit = Math.random() < st.crit;
       beam(t, e, col, 0.25, crit ? 5 : 3);
       ring(e.x, e.y, crit ? 40 : 24, col);
-      if (crit) float(e.x, e.y - 20, "CRIT", col);
+      if (crit) float(e.x, e.y - 20, "CRIT", col, 16);
       damage(e, st.dmg * (crit ? 3 : 1), t);
       break;
     }
@@ -227,7 +230,7 @@ function usePower(code) {
 // ---------- fx ----------
 function beam(a, b, color, life, w = 1.5) { fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w }); }
 function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
-function float(x, y, text, color) { fx.push({ k: "text", x, y, text, color, t: 0, life: 1.1 }); }
+function float(x, y, text, color, size = 28, life = 1.1) { fx.push({ k: "text", x, y, text, color, t: 0, life, size }); }
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
