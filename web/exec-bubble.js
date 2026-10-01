@@ -237,22 +237,41 @@
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
     });
     msgInput.addEventListener('paste', onPaste);
+    wireDrop();
   }
 
-  // A screenshot paste carries an image FILE: shrink it and queue it above the
-  // composer (exec-images.js). Anything else is pasted as PLAIN text -- rich
-  // HTML drags in inline colours invisible on the dark panel.
+  // Drag files anywhere onto the page: the panel opens and they wait above the
+  // composer. Bound on WINDOW, because a file dropped outside a drop target
+  // makes the browser navigate to it -- leaving /rd for a PDF viewer.
+  function wireDrop() {
+    const hasFiles = function (e) {
+      return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1;
+    };
+    window.addEventListener('dragover', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      panel.classList.add('drag-over');
+    });
+    window.addEventListener('dragleave', function (e) {
+      if (!e.relatedTarget) panel.classList.remove('drag-over');
+    });
+    window.addEventListener('drop', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      panel.classList.remove('drag-over');
+      if (!isOpen) openPanel();
+      execAttach(e.dataTransfer.files);
+    });
+  }
+
+  // A pasted FILE (a screenshot, a copied PDF) is queued above the composer
+  // (exec-attach.js). Anything else is pasted as PLAIN text -- rich HTML drags
+  // in inline colours invisible on the dark panel.
   function onPaste(e) {
     const cd = e.clipboardData || window.clipboardData;
     e.preventDefault();
-    const files = Array.from(cd.files || []).filter(function (f) { return f.type.startsWith('image/'); });
-    if (files.length) {
-      Promise.all(files.slice(0, 4).map(execShrink)).then(function (list) {
-        for (const im of list) if (im && execPending.length < 4) execPending.push(im);
-        execThumbStrip();
-      });
-      return;
-    }
+    if (cd.files && cd.files.length) { execAttach(cd.files); return; }
     document.execCommand('insertText', false, cd.getData('text/plain'));
     renderCaret();
   }

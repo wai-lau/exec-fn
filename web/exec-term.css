@@ -92,6 +92,26 @@
   border: 1px solid hsl(var(--bg-hsl)); border-radius: var(--radius-round);
 }
 
+/* A non-image file waits as a named chip, not a thumbnail: the name is the
+   only thing worth showing about a PDF. Same border as the image thumbs. */
+.exec-thumb-file {
+  display: inline-flex; align-items: center; max-width: 12rem; height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-2);
+  font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ...and once sent, the same name as a chip under the message (exec-attach.js
+   execAddFileChips; replay parses the sidecar's [attached: ...] tail). */
+.exec-files { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+
+.exec-file {
+  padding: var(--space-0-5) var(--space-2);
+  border: 1px solid hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-2);
+  font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8);
+}
+
 /* In the transcript. Capped by VIEWPORT height as well as width: a tall
    screenshot at 100% width would otherwise push the reply it is about clean
    off the screen on a phone. */

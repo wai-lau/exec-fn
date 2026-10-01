@@ -188,7 +188,7 @@ function execSettle(t) {
   return last.body;
 }
 
-async function execStreamResponse(prompt, imgs) {
+async function execStreamResponse(prompt, imgs, files) {
   execStreaming = true;
   execResetTools();
   const signal = execRunBegin();   // exec-interrupt.js
@@ -203,6 +203,7 @@ async function execStreamResponse(prompt, imgs) {
       body: JSON.stringify({
         prompt: prompt,
         images: (imgs || []).map((i) => ({ media_type: i.media_type, data: i.data })),
+        files: (files || []).map((f) => ({ name: f.name, data: f.data })),
       }),
     });
     if (!r.ok || !r.body) {

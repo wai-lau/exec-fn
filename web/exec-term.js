@@ -56,9 +56,18 @@ function execAddMsg(role, text, extra) {
     if (role !== 'user' && window.execVoice) div.appendChild(execVoice.mark(role, text));
     const body = document.createElement('div');
     body.className = 'msg-body';
-    if (role === 'user') execRenderUserBody(body, text);
-    else execRender(body, text);
+    let files = [];
+    if (role === 'user') {
+      // A dropped file comes back as the sidecar's `[attached: ...]` tail
+      // (uploads.mjs); shown as chips, not as the bracket.
+      const split = execSplitAttached(text);
+      files = split.names;
+      execRenderUserBody(body, split.text);
+    } else {
+      execRender(body, text);
+    }
     execAddImages(body, extra.images);
+    execAddFileChips(body, files);
     div.appendChild(body);
   } else {
     div.textContent = text;
@@ -165,15 +174,19 @@ async function execSendText(text) {
   text = (text || '').trim();
   if (!text && !execPending.length) return;
   if (text.startsWith('/') && await execRunCommand(text)) return;
-  const imgs = execPending.slice();
+  const imgs = execPending.filter((p) => !p.file);
+  const files = execPending.filter((p) => p.file);
   execPending = [];
   execThumbStrip();
   // In the transcript BEFORE the interrupt it triggers: the wait is a few
   // hundred ms of round trips, and a line that appears nowhere reads as dropped.
-  execAddMsg('user', execFmtTs() + ' ' + text, { images: imgs });
+  // Files get the same `[attached: ...]` tail the sidecar appends, so the live
+  // line and its replay render the same chips.
+  const note = files.length ? '\n\n[attached: ' + files.map((f) => f.name).join(', ') + ']' : '';
+  execAddMsg('user', execFmtTs() + ' ' + text + note, { images: imgs });
   if (execSending) return;
   execSending = true;
   if (execStreaming) await execInterrupt();
   execSending = false;
-  await execStreamResponse(text, imgs);
+  await execStreamResponse(text, imgs, files);
 }

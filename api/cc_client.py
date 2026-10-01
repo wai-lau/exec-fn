@@ -183,7 +183,7 @@ async def new_conversation() -> dict:
         return {"ok": False, "detail": str(exc)}
 
 
-async def stream_query(prompt: str, images: list | None = None):
+async def stream_query(prompt: str, images: list | None = None, files: list | None = None):
     """Yield already-encoded SSE frames from the sidecar, passed straight through.
 
     The sidecar's event vocabulary (session/text/thinking/tool/tool_result/done/
@@ -200,6 +200,10 @@ async def stream_query(prompt: str, images: list | None = None):
     body = {"prompt": prompt}
     if images:
         body["images"] = images
+    if files:
+        # Only the two keys the sidecar reads; it writes them into the sandbox.
+        body["files"] = [{"name": str((f or {}).get("name") or "")[:200],
+                          "data": (f or {}).get("data") or ""} for f in files]
 
     # connect fails fast; read is unbounded because an agent turn legitimately
     # runs long and the sidecar already enforces its own idle timeout.
