@@ -3925,10 +3925,10 @@ into six mirror/rotation wedges, lanes as fine orbit lines numbered I–XII.
 Twelve Archimedean spirals enter every 30° and run through the build disc
 all the way to the core (`R1 = CORE_R`); towers and enemies never collide, so
 building on a lane is allowed; lanes come in mirror pairs (2j, 2j+1) winding opposite ways with
-the same turn count, and the six pairs climb `PAIR_TURNS = [1, 2, 4, 6, 9, 12]`
-(owner: min 1 full turn, max 12). A 12-turn lane is ~12× longer, so each lane
+the same turn count, and the six pairs climb `PAIR_TURNS = [1, 2, 3, 4, 5, 6]`
+(owner: min 1 full turn, max 6). A 6-turn lane is ~6× longer, so each lane
 has `pace = (len / shortest)^0.6` multiplying enemy speed and Pusher distance:
-the longest lane takes ~4× as long, not 12×. **Every tower goes inside the
+the longest lane takes ~2× as long, not 6×. **Every tower goes inside the
 central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges
 were raised (~+60%) to reach the lanes. **Each enemy TYPE owns one lane per wave**: type k of wave n rides lane
 `(n·5 + k·7) % 12` (`laneMap`; 7 is coprime with 12, so a wave's types never
