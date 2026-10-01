@@ -20,8 +20,9 @@ function toWorld(ev) {
 function placeTower(p) {
   const b = TOWERS[ui.build];
   const ci = cellAt(p.x, p.y);
-  if (!canPlace(ci)) { float(p.x, p.y, "blocked", "pink"); return; }
-  if (G.money < b.cost) { float(p.x, p.y, "need " + b.cost, "pink"); return; }
+  // a failed placement also ends placing mode, same as a successful one
+  if (!canPlace(ci)) { float(p.x, p.y, "blocked", "pink"); ui.build = null; return; }
+  if (G.money < b.cost) { float(p.x, p.y, "need " + b.cost, "pink"); ui.build = null; return; }
   G.money -= b.cost;
   const c = CELLS[ci];
   const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: "close", spent: b.cost };
