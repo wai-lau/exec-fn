@@ -40,6 +40,19 @@ const CELLS = (function buildCells() {
   return out;
 })();
 
+// Centre-to-centre distance between neighbouring cells: one "tile".
+const TILE = Math.sqrt(3) * CELL_S;
+
+// Placement snaps to the lattice: the cell under the point, else the nearest
+// cell centre within one tile (a tap just outside the grid still lands).
+function snapCell(x, y) {
+  const ci = cellAt(x, y);
+  if (ci >= 0) return ci;
+  let best = -1, bd = TILE;
+  CELLS.forEach((c, i) => { const d = Math.hypot(c.x - x, c.y - y); if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+
 function cellAt(x, y) {
   // inside a convex cell = on the same side of every edge
   return CELLS.findIndex(({ pts }) => pts.every((p, k) => {
