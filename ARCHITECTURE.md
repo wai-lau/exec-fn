@@ -3933,13 +3933,12 @@ central disc** (`BUILD_R = 190`, outside the core) and fires outward; ranges
 were raised (~+60%) to reach the lanes. **Each enemy TYPE owns one lane per wave**: type k of wave n rides lane
 `(n·5 + k·7) % 12` (`laneMap`; 7 is coprime with 12, so a wave's types never
 share a lane, and 5n rotates the set each wave). Lanes in use (live enemies or
-queued spawns, `activeLanes()`) are drawn bright in that type's colour with a
-soft glow; idle lanes drop to 0.12 alpha.
+queued spawns, `activeLanes()`) are drawn in that type's colour (0.45 alpha, faint
+glow; owner found brighter too vibrant); idle lanes drop to 0.08.
 
-**Shots are hit-scan but drawn loud**: additive (`lighter`) three-layer
-strokes (glow/body/core), lifetimes ~2x, a muzzle ring at the tower, a flash +
-sparks at impact; Rapid fires a travelling tracer (`bolt`), Chain draws jagged
-lightning whose offsets are fixed at creation so it does not shimmer.
+**Shots are hit-scan, drawn as plain beams/rings/sparks** (a louder glow +
+tracer + lightning pass was tried and reverted by the owner); each effect holds
+full opacity for the first half of its life, then fades.
 
 **Rules in one place:** enemies follow their spiral by arc length `s` (Pusher
 subtracts from `s`); a leak costs 1 life (boss 5). Interest is paid on credits

@@ -79,14 +79,14 @@ function drawLanes() {
     ctx.strokeStyle = COL[col || "cyan"];
     ctx.beginPath(); path.pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
     if (col) {
-      ctx.globalAlpha = 0.18; ctx.lineWidth = 7; ctx.stroke();
-      ctx.globalAlpha = 0.9; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.globalAlpha = 0.06; ctx.lineWidth = 6; ctx.stroke();
+      ctx.globalAlpha = 0.45; ctx.lineWidth = 1.2; ctx.stroke();
     } else {
-      ctx.globalAlpha = 0.12; ctx.lineWidth = 1; ctx.stroke();
+      ctx.globalAlpha = 0.08; ctx.lineWidth = 1; ctx.stroke();
     }
     // a small circle at entry, catalogue numeral just outside it
     const p0 = path.pts[0], a = Math.atan2(p0.y - CY, p0.x - CX);
-    ctx.globalAlpha = col ? 1 : 0.35; ctx.lineWidth = 1;
+    ctx.globalAlpha = col ? 0.7 : 0.3; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
     text(ROMAN[i], CX + Math.cos(a) * 448, CY + Math.sin(a) * 448, 12, col || "cyan");
   });
@@ -141,50 +141,22 @@ function drawEnemy(e) {
   }
 }
 
-function strokeLayers(width, k) {
-  // glow, body, core: additive, so overlapping shots bloom
-  ctx.globalAlpha = 0.25 * k; ctx.lineWidth = width * 6; ctx.stroke();
-  ctx.globalAlpha = 0.6 * k; ctx.lineWidth = width * 2.2; ctx.stroke();
-  ctx.globalAlpha = k; ctx.lineWidth = width; ctx.stroke();
-}
-
-function drawShot(f, k) {
-  ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(f.x1, f.y1);
-  if (f.k === "bolt") {
-    // head travels the full distance over the first 60% of life; 40-unit tail
-    const u = Math.min(1, f.t / (f.life * 0.6)), dx = f.x2 - f.x1, dy = f.y2 - f.y1;
-    const len = Math.hypot(dx, dy) || 1, tail = Math.max(0, u - 40 / len);
-    ctx.moveTo(f.x1 + dx * tail, f.y1 + dy * tail); ctx.lineTo(f.x1 + dx * u, f.y1 + dy * u);
-    strokeLayers(2.5, 1);
-    return;
-  }
-  if (f.pts) for (const p of f.pts) ctx.lineTo(p.x, p.y);
-  ctx.lineTo(f.x2, f.y2);
-  strokeLayers(f.w, k);
-}
-
 function drawFx() {
-  ctx.globalCompositeOperation = "lighter";
   for (const f of fx) {
+    // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
-    if (f.k === "beam" || f.k === "bolt") { drawShot(f, k); continue; }
-    ctx.globalAlpha = k;
-    if (f.k === "ring") {
-      ctx.strokeStyle = COL[f.color]; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.6), 0, 6.283); ctx.stroke();
-    } else if (f.k === "flash") {
-      ctx.fillStyle = COL[f.color];
-      ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (0.5 + k * 0.5), 0, 6.283); ctx.fill();
+    ctx.globalAlpha = Math.min(1, k * 2);
+    if (f.k === "beam") {
+      ctx.strokeStyle = COL[f.color]; ctx.lineWidth = f.w + 1;
+      ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+    } else if (f.k === "ring") {
+      ctx.strokeStyle = COL[f.color]; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.5), 0, 6.283); ctx.stroke();
     } else if (f.k === "spark") {
-      ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 2, f.y - 2, 4, 4);
+      ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
+    } else if (f.k === "text") {
+      text(f.text, f.x, f.y, 18, f.color);
     }
-  }
-  ctx.globalCompositeOperation = "source-over";
-  for (const f of fx) {
-    if (f.k !== "text") continue;
-    ctx.globalAlpha = 1 - f.t / f.life;
-    text(f.text, f.x, f.y, 18, f.color);
   }
   ctx.globalAlpha = 1;
 }
