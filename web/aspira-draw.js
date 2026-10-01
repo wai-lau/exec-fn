@@ -53,7 +53,7 @@ function roman(n) {
 function drawGraticule() {
   ctx.strokeStyle = COL.grid; ctx.lineWidth = 2;
   ctx.globalAlpha = 0.5;
-  for (let r = 100; r <= 450; r += 50) { ctx.beginPath(); ctx.arc(CX, CY, r, 0, 6.283); ctx.stroke(); }
+  for (let r = 125; r <= 375; r += 125) { ctx.beginPath(); ctx.arc(CX, CY, r, 0, 6.283); ctx.stroke(); }
   for (let h = 0; h < 24; h++) {
     const a = h * Math.PI / 12 - Math.PI / 2;
     ctx.beginPath();
