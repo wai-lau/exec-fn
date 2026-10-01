@@ -3911,7 +3911,7 @@ canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
 the decks, or the phone sheet covers Start. Placing a tower ends placing mode
 and selects the new tower. The build disc is TESSELLATED into pointy-top HEXAGONS (`CELLS`,
 circumradius `CELL_S = 32`; the centre hex IS the core, `CORE_R = 34`, and
-three rings around it give 36 cells inside `BUILD_R = 200`). A tower IS a
+three rings around it give 36 cells inside `BUILD_R = 200`). The grid is drawn ONLY while placing a tower (`ui.build`). A tower IS a
 hexagon: it fills one cell, snaps to the cell tapped (`cellAt`,
 point-in-convex-polygon), and its position is the cell centre. No enemy
 shares the towers' shape (owner's rule), so tough enemies are heptagons and
