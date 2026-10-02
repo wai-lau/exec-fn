@@ -40,6 +40,8 @@ function bossSpawn(e, n) {
   e.baseSpd = e.spd || 1; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
   // the Devil (each of six) and Death (and its twin) at HALF the boss HP (owner)
   if (["devil", "death"].includes(e.arcana)) { e.max *= 0.5; e.hp = e.max; }
+  // the early bosses, Star to Lovers, at DOUBLE (owner: "up until Temperance")
+  if (["star", "empress", "strength", "chariot", "lovers"].includes(e.arcana)) { e.max *= 2; e.hp = e.max; }
   const mate = bossCount(n) === 2 && G.enemies.find(o => o !== e && !o.dead && o.arcana === e.arcana && o.n === n && !o.mate);
   if (mate) { mate.mate = e; e.mate = mate; }
 }
