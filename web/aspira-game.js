@@ -52,7 +52,9 @@ function spawnEnemy(type, n, pi, ang = 0) {
     jit: type === "swarm" ? 6 + Math.random() * 15 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved twice
     spd: type === "swarm" ? 0.8 + Math.random() * 0.4 : 1, phr: 0.6 + Math.random(),
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
-    bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
+    // fractional, so a cheap swarmer really pays its share (owner: halved
+    // swarm bounty must hold; money is shown rounded down)
+    bounty: (2 + n * 0.35) * d.bounty, slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
   if (quenching()) quench(G.enemies[G.enemies.length - 1]); // the core's Quench / Vacuum (aspira-core.js)
   if (type === "bonus") bossSpawn(G.enemies[G.enemies.length - 1], n); // which boss (aspira-bosses.js)
@@ -204,11 +206,11 @@ function kill(e, t) {
   e.dead = true;
   if (t) t.kills = (t.kills || 0) + 1;
   const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1) * (e.slowT > 0 && e.siphon ? e.siphon : 1);
-  const b = Math.round(e.bounty * mul);
+  const b = e.bounty * mul;
   G.money += b;
   sfx("kill");
-  float(e.x, e.y - 30, "+" + b, "orange", 18, 2.0); // small (owner)
-  addScore(b * 10);
+  float(e.x, e.y - 30, "+" + (b < 10 ? +b.toFixed(1) : Math.round(b)), "orange", 18, 2.0); // small (owner)
+  addScore(Math.round(b * 10));
   G.charge = Math.min(POWER_FULL, G.charge + 1);
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
   if (e.type === "bonus") { if (bossPays(e)) bonusDrop(e); bossKilled(e); } // the last Devil pays; a Lover's mate enrages (aspira-bosses.js)
