@@ -3915,6 +3915,10 @@ renders the nav with nothing marked active. Linked from nowhere; reached by
 URL. A web take on the spiral tower-defence genre (Android "Spira Defence" /
 "Spira 2" as the reference for mechanics only; all code and art original).
 
+Background stars (`STARS`, white, never recoloured) TWINKLE (owner): `drawStars`
+breathes each one's alpha (0.35-1x) and size (0.85-1x) on its own rate/phase,
+fixed per star index, on real time so it runs while paused.
+
 **Route** `api/routes_aspira.py` → `templates/aspira.html`, `full_height`:
 the canvas fills the screen above the nav. The header (title, stats, and a
 controls row: send wave, auto-send, pause/speeds, sound) floats top-left; the
