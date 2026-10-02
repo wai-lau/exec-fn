@@ -4108,8 +4108,9 @@ from L2 on. All enemies move at `ENEMY_SPEED = 0.5` of their table speed (owner)
 spawn gaps are divided by the same factor so on-lane spacing is unchanged.
 Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
 per-hop falloff, CHN arcs fan from the hub ONE AT A TIME, 0.17s apart (`CHAIN_HOP_DELAY`,
-`G.chains`/`stepChains`, game time; owner restored the delay), and an arc that
-kills fires the next at once. CHN base range 115.6 (halved to 92.5, then +25%; owner) and hop reach is
+`G.chains`/`stepChains`, game time; owner restored the delay), but only a
+NON-lethal hop waits: a hop that will kill (`lethalHop`) and the one after a
+kill land at once. CHN base range 115.6 (halved to 92.5, then +25%; owner) and hop reach is
 HALF the tower's range (69 at L1, growing with level), measured each hop from the
 last-hit enemy's CURRENT position after the hop delay; Conductor +50%, Tesla
 more; spawn spacing is a lever — swarm gap 0.12s
