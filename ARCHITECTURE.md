@@ -4292,6 +4292,7 @@ Optional SAMPLE sounds (owner, 2026-10-02, for Brood War sounds from Wai's own i
 ACD now has a sound (owner: Hydralisk spit, `SpiFir00` in the local mapping): `sfx("acid")` when a burn line LATCHES onto a new enemy (not per tick), `GAP.acid` 0.25s. No synth exists for it, so without a sample it stays silent.
 ...changed the same day: ACD spits on EVERY tick (owner), and samples can cap their overlap - `SAMPLE_MAX = { acid: 3 }` copies at once, each new one at gain / (1 + already playing).
 FRZ's sample capped the same way (`SAMPLE_MAX.slower` 3): its 2s Lockdown at 2.4 pulses/s otherwise stacked ~5 deep per tower.
+Generalised the same day (owner: "for each tower type, max 3 copies of any sound playing"): `SOUND_MAX` = 3 for chain/slower/reaper/acid, sample OR synth. A synth sound counts as one copy until its last node ends (`curSound` lets `envelope()` count it); samples still drop in gain as they stack. Verified in WebKit: 6 rapid calls play 3, counts return to 0.
 ...FRZ damage then raised to x5 (1.5 -> 7.5 nick) the same day (owner: it barely hurt before).
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
