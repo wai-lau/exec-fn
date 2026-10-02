@@ -307,11 +307,10 @@ function kill(e, t) {
   if (e.charged) staticDischarge(e); // ARC's Static
 }
 
+// the star drops a LIFE or +0.5% INTEREST, half and half (owner, 2026-10-02:
+// never score - and no credits either); fixed per wave, like the waves
 function bonusDrop(e) {
-  const r = Math.floor(fixedRand(e.n, 4) * 4); // fixed per wave, like the waves
-  if (r === 0) { addScore(2000); float(e.x, e.y - 18, "+2000", "cyan"); }
-  else if (r === 1) { G.lives++; float(e.x, e.y - 18, "+1 life", "cyan"); }
-  else if (r === 2) { const c = 20 + e.bounty * 5; G.money += c; float(e.x, e.y - 18, "+" + c + " credits", "cyan"); }
+  if (fixedRand(e.n, 4) < 0.5) { G.lives++; float(e.x, e.y - 18, "+1 life", "cyan"); }
   else { G.interest += 0.005; float(e.x, e.y - 18, "+0.5% interest", "cyan"); }
 }
 
