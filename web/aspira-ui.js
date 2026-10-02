@@ -85,8 +85,10 @@ const SPEC = {
   },
   slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"]],
-  acid: st => [["Burn", Math.round(st.dmg) + "/s"], ["Ramp", "×2 / " + ACID_DOUBLE + "s"],
-    ["Max", "×" + ACID_MAX + " (" + Math.round(st.dmg * ACID_MAX) + "/s)"], ["Ticks", st.rate + "/s"], ["Shields", "−1 / tick"]],
+  acid: st => [["Burn", Math.round(st.dmg) + "/s"], ["Ramp", "×2 / " + st.double + "s"],
+    ["Max", "×" + st.cap + " (" + Math.round(st.dmg * st.cap) + "/s)"], ["Lines", st.allInRange ? "all in range" : st.targets],
+    ["Circle", st.plagueR ? Math.round(st.plagueR) + (st.bloom ? "→" + Math.round(st.plagueR * st.bloom) : "") : "—"],
+    ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"]],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
     ["Armor", "ignored"]],
 };

@@ -323,16 +323,30 @@ function drawAims() {
   ctx.globalAlpha = 1;
 }
 
-// ACD's line: thin and faint at first, thicker and brighter as its burn ramps
+// ACD: each line thin and faint at first, thicker and brighter as its burn
+// ramps (a Residue line, out of range, at half strength); Plague's circle
+// round each target; Contagion has no lines - its range glows instead.
 function drawAcid() {
-  ctx.lineCap = "round";
+  ctx.lineCap = "round"; ctx.strokeStyle = COL.chatsubo;
   for (const t of G.towers) {
-    if (t.kind !== "acid" || !t.link || t.link.dead) continue;
-    const f = Math.log2(acidMul(t)) / Math.log2(ACID_MAX); // 0 fresh .. 1 full burn (log: the ramp is exponential)
-    ctx.strokeStyle = COL.chatsubo;
-    ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.link.x, t.link.y);
-    ctx.globalAlpha = 0.1 + 0.2 * f; ctx.lineWidth = 3 + 5 * f; ctx.stroke();
-    ctx.globalAlpha = 0.6 + 0.4 * f; ctx.lineWidth = 1 + f; ctx.stroke();
+    if (t.kind !== "acid" || !t.lines || !t.lines.length) continue;
+    const st = towerStats(t, true);
+    if (st.allInRange) {
+      ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 200); ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(t.x, t.y, st.range, 0, 6.283); ctx.stroke();
+      continue;
+    }
+    for (const l of t.lines) {
+      if (l.e.dead) continue;
+      const f = acidFrac(l, st), k = Math.hypot(l.e.x - t.x, l.e.y - t.y) > st.range ? 0.5 : 1;
+      ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(l.e.x, l.e.y);
+      ctx.globalAlpha = (0.1 + 0.2 * f) * k; ctx.lineWidth = 3 + 5 * f; ctx.stroke();
+      ctx.globalAlpha = (0.6 + 0.4 * f) * k; ctx.lineWidth = 1 + f; ctx.stroke();
+      if (st.plagueR) {
+        ctx.globalAlpha = (0.15 + 0.25 * f) * k; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(l.e.x, l.e.y, plagueRadius(l, st), 0, 6.283); ctx.stroke();
+      }
+    }
   }
   ctx.globalAlpha = 1;
 }
