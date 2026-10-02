@@ -47,7 +47,8 @@ function wavePlan(n, prev) {
   const type = choices[Math.floor(fixedRand(n, 1) * choices.length)];
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
-  return { type, count: type === "swarm" ? base * 3 : base, split: 1 + Math.floor(fixedRand(n, 3) * 6), star: n >= 3 };
+  // HALF the bodies at TWICE the health (owner, 2026-10-02)
+  return { type, count: Math.max(1, Math.round((type === "swarm" ? base * 3 : base) / 2)), split: 1 + Math.floor(fixedRand(n, 3) * 6), star: n >= 3 };
 }
 function makeWave(n) {
   const { type, count } = wavePlan(n, G.lastType);
@@ -137,7 +138,7 @@ function entryS(pi) {
 
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
-  const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
+  const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp * 2; // x2: half as many enemies (owner)
   // DEFENCES KEEP PACE WITH HP (overnight simulator, 2026-10-02): with flat
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
   // the square root of the HP curve, shields with its 0.4 power - normalised so
