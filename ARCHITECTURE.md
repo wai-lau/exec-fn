@@ -4068,6 +4068,8 @@ RPD Shield✓✓✓ Fast✓✓ Normal✓ Swarm✗ Boss✗✗ Armor✗✗✗;
 CHN Swarm✓✓✓ Normal✓✓ Fast✓ Shield✗ Armor✗✗ Boss✗✗✗;
 SLW Fast✓✓✓ Boss✓✓ Swarm✓ Normal✗ Shield✗✗ Armor✗✗✗;
 RPR Armor✓✓✓ Boss✓✓ Normal✓ Fast✗ Shield✗✗ Swarm✗✗✗.
+All enemies move at `ENEMY_SPEED = 0.5` of their table speed (owner);
+spawn gaps are divided by the same factor so on-lane spacing is unchanged.
 Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
 per-hop falloff, hop reach = HALF the tower's range (111 at L1, growing
 with level; owner — 50 was far too short), measured each hop from the
