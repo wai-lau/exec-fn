@@ -260,6 +260,7 @@ function kill(e, t) {
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
   if (e.type === "bonus") bonusDrop(e);
   if (e.shatter && e.slowT > 0 && !shattering) shatterAt(e); // FRZ's Shatter
+  if (e.charged) staticDischarge(e); // ARC's Static
 }
 
 function bonusDrop(e) {
