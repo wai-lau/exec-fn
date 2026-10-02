@@ -3983,6 +3983,11 @@ OVERNIGHT BALANCE (simulator, 2026-10-02): enemy DEFENCES now keep pace with HP
 flat defences late waves were pure dps and ARC spam won (63 waves alone vs 64 mixed);
 now ARC alone reaches ~52 and an all-four build ~68, and dropping any one tower
 costs 3.5-10.5 waves.
+Upgrade FORMS were then evened out the same way (each form swapped into the all-four
+build): the 24 forms went from 64-73.5 waves to 65-71.5. Tweaks: Static x1.5 damage,
+Crescendo +40%/hop, Catalyst 0.5s, Rain also x1.25 burn, Residue 1.5s, Longshot
++1.5%/10u (Horizon +3%), Shatter 30%, Frostbite blast r84 + 4s slow (Hoarfrost 12s),
+Stasis +15%, Deep Freeze 0.25s (Absolute Zero 0.5s), Permafrost 10% weaker.
 by the overnight simulator for all 10 pairs): 160 damage at 1.35 shots/s and no L1
 half rate (was 240 at 0.45/s at L1) - same dps at L2+, a third of the overkill.
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).

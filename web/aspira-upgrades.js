@@ -21,7 +21,7 @@ const UPGRADES = {
       { name: "Overcharge", desc: "arcs hit as hard as the first strike", mods: { arcFall: 1 },
         super: { name: "Surge", desc: "arcs hit HARDER than the strike: x1.5", mods: { arcFall: 1.5 } } },
       // static: 1 = charge from the tower's own shots, 2 = Static shots charge too
-      { name: "Static", desc: "hits charge enemies (a marigold border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1 },
+      { name: "Static", desc: "hits deal x1.5 and charge enemies (a marigold border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1, dmg: 1.5 },
         super: { name: "Thunderhead", desc: "those shots charge what they hit too: kills can cascade", mods: { static: 2 } } },
     ] },
     { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x3.1", mods: { dmg: 3.1, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
@@ -31,7 +31,7 @@ const UPGRADES = {
       // 6.8 strikes a shot, so x0.85 damage levels it with Rail (5.8); Trident ~ Railgun
       { name: "Fork", desc: "two lines 1→1→1→1, never from the same enemy; damage x0.85", mods: { targets: 1, dmg: 0.85 },
         super: { name: "Trident", desc: "three lines", mods: { targets: 1 } } },
-      { name: "Crescendo", desc: "each hop hits 25% harder than the last", mods: { hopGain: 1.25 },
+      { name: "Crescendo", desc: "each hop hits 40% harder than the last", mods: { hopGain: 1.4 },
         super: { name: "Fortissimo", desc: "each hop hits 60% harder than the last", mods: { hopGain: 1.6 } } },
     ] },
   ],
@@ -39,12 +39,12 @@ const UPGRADES = {
   // each form's own on-theme L4 super. Bloom hits harder than Contagion
   // (x1.5 vs x0.7) to make up for its smaller area (owner).
   acid: [
-    { name: "Catalyst", desc: "the burn doubles every 0.6s (was 1s)", mods: { double: 0.6 }, finals: [
-      { name: "Rain", desc: "double range", mods: { range: 2 },
+    { name: "Catalyst", desc: "the burn doubles every 0.5s (was 1s)", mods: { double: 0.5 }, finals: [
+      { name: "Rain", desc: "double range; burn x1.25", mods: { range: 2, dmg: 1.25 },
         super: { name: "Deluge", desc: "triple range", mods: { range: 1.5 } } },
       { name: "Pour", desc: "three lines at once, each with its own ramp", mods: { targets: 2 },
         super: { name: "Torrent", desc: "five lines", mods: { targets: 2 } } },
-      { name: "Residue", desc: "an enemy that leaves range keeps burning for 2s", mods: { residue: 2 },
+      { name: "Residue", desc: "an enemy that leaves range keeps burning for 1.5s", mods: { residue: 1.5 },
         super: { name: "Scar", desc: "it keeps burning for 5s", mods: { residue: 5 } } },
     ] },
     { name: "Plague", desc: "every tick also burns everything within 45 of the target", mods: { plagueR: 45 }, finals: [
@@ -59,20 +59,20 @@ const UPGRADES = {
   // FRZ (owner, 2026-10-02): L2 Shatter or Stasis, three forms each, each with
   // its own on-theme L4 super.
   slower: [
-    { name: "Shatter", desc: "an enemy that dies while slowed explodes: 25% of its max HP within 60", mods: { shatter: { frac: 0.25, r: 60 } }, finals: [
-      { name: "Frostbite", desc: "explosions also slow everything they hit, for 2.6s", mods: { frostbite: 2.6 },
-        super: { name: "Hoarfrost", desc: "that slow lasts 7.8s", mods: { frostbite: 7.8 } } },
+    { name: "Shatter", desc: "an enemy that dies while slowed explodes: 30% of its max HP within 60", mods: { shatter: { frac: 0.3, r: 60 } }, finals: [
+      { name: "Frostbite", desc: "bigger blasts (r84) that also slow everything they hit, for 4s", mods: { frostbite: 4, shatter: { frac: 0.3, r: 84 } },
+        super: { name: "Hoarfrost", desc: "that slow lasts 12s", mods: { frostbite: 12 } } },
       { name: "Shrapnel", desc: "explosions deal 50% of max HP", mods: { shatter: { frac: 0.5, r: 60 } },
         super: { name: "Splinter", desc: "explosions deal 100% of max HP", mods: { shatter: { frac: 1, r: 60 } } } },
       { name: "Brittle", desc: "slowed enemies take +30% from every tower", mods: { brittle: 1.3 },
         super: { name: "Fracture", desc: "+60%", mods: { brittle: 1.6 } } },
     ] },
-    { name: "Stasis", desc: "slow +20%", mods: { slow: 0.2 }, finals: [
-      { name: "Deep Freeze", desc: "a newly slowed enemy nearly freezes: 95% slow for 0.4s", mods: { chillStop: 0.4 },
-        super: { name: "Absolute Zero", desc: "95% slow for 0.8s", mods: { chillStop: 0.8 } } },
+    { name: "Stasis", desc: "slow +15%", mods: { slow: 0.15 }, finals: [
+      { name: "Deep Freeze", desc: "a newly slowed enemy nearly freezes: 95% slow for 0.25s", mods: { chillStop: 0.25 },
+        super: { name: "Absolute Zero", desc: "95% slow for 0.5s", mods: { chillStop: 0.5 } } },
       { name: "Whiteout", desc: "slows everything in range; the range glows", mods: { all: true },
         super: { name: "Blizzard", desc: "range x1.4", mods: { range: 1.4 } } },
-      { name: "Permafrost", desc: "the slow never wears off", mods: { permafrost: true },
+      { name: "Permafrost", desc: "the slow never wears off, but is 10% weaker", mods: { permafrost: true, slow: -0.1 },
         super: { name: "Ice Age", desc: "the permanent slow is 15% stronger", mods: { slow: 0.15 } } },
     ] },
   ],
@@ -80,8 +80,8 @@ const UPGRADES = {
   // its own on-theme L4 super. Multi-lock (Array) was the parked idea.
   reaper: [
     { name: "Charge", desc: "damage x1.8, fire rate -30%", mods: { dmg: 1.8, rate: 0.7 }, finals: [
-      { name: "Longshot", desc: "+1% damage per 10 units to the target", mods: { longshot: 0.01 },
-        super: { name: "Horizon", desc: "+2% per 10 units", mods: { longshot: 0.02 } } },
+      { name: "Longshot", desc: "+1.5% damage per 10 units to the target", mods: { longshot: 0.015 },
+        super: { name: "Horizon", desc: "+3% per 10 units", mods: { longshot: 0.03 } } },
       { name: "Supernova", desc: "hits explode for 50% in a radius of 90", mods: { splash: { r: 90, frac: 0.5 } },
         super: { name: "Collapse", desc: "75% in a radius of 135", mods: { splash: { r: 135, frac: 0.75 } } } },
       { name: "Execute", desc: "an enemy left under 20% HP dies", mods: { execute: 0.2 },
