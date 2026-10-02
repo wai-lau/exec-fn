@@ -1,8 +1,9 @@
 // /aspira — DOM: HUD, build/inspect/power decks, input, overlay, main loop.
 
-// ui.speed is a setting (1/2/3); SPEED_MULT turns it into simulation rate.
+// ui.speed is a setting (0.5/1/2/3); SPEED_MULT turns it into simulation rate.
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
-const SPEED_MULT = { 1: 1, 2: 2, 3: 3 };
+const SPEED_MULT = { 0.5: 0.5, 1: 1, 2: 2, 3: 3 }; // 0.5x added (owner)
+const SPEEDS = [0.5, 1, 2, 3], speedId = v => "asp-sp-" + String(v).replace(".", "_");
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
@@ -36,9 +37,9 @@ function placeTower(p) {
   // the first tower placed starts wave 1 (owner)
   if (!G.started) sendWave();
 }
-cv.addEventListener("pointermove", ev => { ui.hover = toWorld(ev); });
-cv.addEventListener("pointerleave", () => { ui.hover = null; });
-cv.addEventListener("pointerdown", ev => {
+// a TAP on the board (aspira-camera.js decides tap vs drag/pinch): select a
+// tower, place the one being built, or clear the selection
+function onTap(ev) {
   if (G.over) return;
   const p = toWorld(ev);
   ui.hover = p;
@@ -47,7 +48,7 @@ cv.addEventListener("pointerdown", ev => {
   else if (ui.build) placeTower(p);
   else ui.sel = null;
   refreshPanels();
-});
+}
 
 // ---------- decks ----------
 function button(parent, cls, html, onclick, id) {
@@ -65,10 +66,10 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name;
 });
-[["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"]].forEach(([v, label]) => {
+[["pause", "pause"], [0.5, "½×"], [1, "1×"], [2, "2×"], [3, "3×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
-  }, "asp-sp-" + v);
+  }, v === "pause" ? "asp-sp-pause" : speedId(v));
 });
 $("asp-send").onclick = sendWave;
 
@@ -169,7 +170,7 @@ function updateHud() {
   send.disabled = G.over;
   $("asp-sp-pause").classList.toggle("on", ui.paused);
   setText($("asp-mute"), muted ? "sound off" : "sound on");
-  for (const v of [1, 2, 3]) $("asp-sp-" + v).classList.toggle("on", !ui.paused && ui.speed === v);
+  for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
   // the open popup's tallies update live

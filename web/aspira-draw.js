@@ -21,7 +21,8 @@ function resize() {
 // Re-fit ONLY when the canvas itself changes size (window resize). Nothing in
 // the overlays — the placing note, a send-wave label rewrapping — may move the
 // board (owner: nothing should bump the game).
-new ResizeObserver(resize).observe(cv);
+// (the zoom/pan view in aspira-camera.js resets to this fit on a resize)
+new ResizeObserver(() => { resize(); if (typeof fitK !== "undefined") fitK = cam.k; }).observe(cv);
 
 function poly(x, y, r, n, rot, star) {
   ctx.beginPath();
