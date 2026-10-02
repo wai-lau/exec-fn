@@ -57,7 +57,10 @@ function wavePlan(n, prev) {
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
-  return { type, count: Math.max(1, Math.round((type === "swarm" ? base * 3 : base) / 2)), split: 1 + Math.floor(fixedRand(n, 3) * 6), star: n % STAR_EVERY === 0 };
+  const raw = Math.max(1, Math.round((type === "swarm" ? base * 3 : base) / 2));
+  // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
+  const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
+  return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };
 }
 function makeWave(n) {
   const { type, count } = wavePlan(n, G.lastType);
@@ -82,7 +85,8 @@ function sendWave() {
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once
   makeWave(G.wave).forEach(list => {
-    const k = wavePlan(G.wave, null).split, per = Math.max(1, Math.ceil(list.length / k));
+    // the lane split comes from the wave number; even parts (wavePlan rounded the count down to fit)
+    const k = Math.min(list.length, 1 + Math.floor(fixedRand(G.wave, 3) * 6)), per = Math.floor(list.length / k);
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
       if (!part.length) continue;
