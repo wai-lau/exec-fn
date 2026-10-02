@@ -3,11 +3,13 @@
 // the sim step calls. Shared combat rules (damage, onHit, shotDamage,
 // applySlow, kill) stay in aspira-game.js; this file loads right after it.
 
-// Chain lightning: one strike, then arcs fan out from the struck enemy all
-// at once (owner: no delay).
+// Chain lightning: one strike, then arcs fan out from the struck enemy ONE
+// AT A TIME, CHAIN_HOP_DELAY apart (owner: the delay is back); an arc that
+// kills its target fires the next one at once. Pending chains step in
+// stepChains with game time, so the delay scales with game speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
-const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083;
+const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_DELAY = 0.17;
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
@@ -16,8 +18,19 @@ function fireChain(t, st, e) {
   // SINGLE LAYER (owner): the first enemy hit is the hub; every arc fans out
   // from it to the nearest unhit enemies in reach, rather than jumping on
   // from the last one. Each arc deals the first hit's damage x arcFall once.
-  const c = { t, st, col, src: e, hit: new Set([e.id]), dmg: st.dmg * st.arcFall, left: st.arcs };
-  while (hopChain(c));
+  const c = { t, st, col, src: e, hit: new Set([e.id]), dmg: st.dmg * st.arcFall, left: st.arcs, killed: false };
+  (G.chains ||= []).push({ c, wait: e.dead ? 0 : CHAIN_HOP_DELAY });
+}
+function stepChains(dt) {
+  if (!G.chains || !G.chains.length) return;
+  G.chains = G.chains.filter(p => {
+    p.wait -= dt;
+    while (p.wait <= 0) {
+      if (!hopChain(p.c)) return false;
+      p.wait += p.c.killed ? 0 : CHAIN_HOP_DELAY;
+    }
+    return true;
+  });
 }
 
 // c.src is the hub: every arc's reach is measured from it
@@ -33,6 +46,7 @@ function hopChain(c) {
   const d = shotDamage(t, st, nxt, c.dmg);
   c.hit.add(nxt.id); beam(c.src, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
   damage(nxt, d, t); onHit(nxt, t, st, d);
+  c.killed = nxt.dead;
   return --c.left > 0;
 }
 
