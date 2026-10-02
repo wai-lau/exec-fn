@@ -4159,8 +4159,9 @@ per tier, plus `lvl % 5` dots toward the next ring (a stacked-under version
 was tried first). The tree is a FIRST DRAFT the owner is redesigning; change the data,
 not the plumbing.
 
-Start only closes the intro; nothing moves until the first tower is placed,
-which sends wave 1. Building and upgrading work while
+No intro card (owner): the page opens straight onto the board; nothing moves
+until the first tower is placed, which sends wave 1. The overlay is only the
+game-over card. Building and upgrading work while
 paused (nothing checks `ui.paused` outside the sim step).
 
 **TESTING:** `START_MONEY = 10000` in aspira-game.js while the owner designs;

@@ -196,7 +196,7 @@ function showOverlay(title, body, btn) {
 }
 $("asp-ov-btn").onclick = () => {
   if (G.over) { G = newGame(); fx = []; ui.sel = null; ui.build = null; refreshPanels(); }
-  // Start only closes the intro: build first, then send wave 1 (button/Tab)
+  // no intro (owner): the overlay is only the game-over card; the first tower starts wave 1
   $("asp-ov").hidden = true;
 };
 
