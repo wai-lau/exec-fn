@@ -18,7 +18,10 @@ const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, 
 // Zen's wave TRAVELS (owner: slower): its front spreads from the core to its
 // reach over ZEN_WAVE_T seconds and freezes each enemy as it passes
 const ZEN_WAVE_T = 3;
-const STILL_R = 400, ECHO_MUL = 1.5, VACUUM_SPD = 0.75, TEMPER_RATE = 1.3;
+// Temper x1.5 (owner: was x1.3); it does not touch ACD, whose rate only sets
+// how often its burn TICKS (the burn per second is fixed), so a faster tick
+// would only feed armor more hits to soak
+const STILL_R = 400, ECHO_MUL = 1.5, VACUUM_SPD = 0.75, TEMPER_RATE = 1.5;
 // L3 (owner, 2026-10-02)
 const SILENCE_EVERY = 3, RESONANCE_MUL = 2, RESONANCE_T = 1, HORIZON_SPIN = 0.05, VOID_SPD = 0.6;
 const ANNEAL_P = 0.15, ANNEAL_MUL = 3, BRITTLE_CORE = 1.25;
@@ -37,7 +40,7 @@ const CORE_L2 = {
     { id: "vacuum", name: "Vacuum", desc: "every enemy moves 25% slower" },
   ],
   sinter: [
-    { id: "temper", name: "Temper", desc: "every tower fires 30% faster" },
+    { id: "temper", name: "Temper", desc: "every tower fires 50% faster (not ACD: its burn ticks, so rate does not add damage)" },
     { id: "quench", name: "Quench", desc: "Fast enemies at half speed; armor and shields halved" },
   ],
 };

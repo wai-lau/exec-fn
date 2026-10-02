@@ -4346,6 +4346,7 @@ CORE L3 (owner, 2026-10-02), 10,000, one per L2 (`CORE_L3`): Stillness -> Silenc
 A 10x speed button for testing (owner, 2026-10-02; `SPEEDS`/`SPEED_MULT`); still 0.02s sub-steps, so play is identical, just faster.
 The six slots ALWAYS orbit the core slowly (owner: liked Horizon's look): `BASE_SPIN` = Horizon's 0.05 rad/s / 10, on `G.rot` in `stepCore` (Horizon sets the full speed); `pushCells(d, rot)` moves towers with them. Placement snaps to wherever the slots are.
 ...REVERTED the same day (owner): the slots turn only under Horizon again (`G.rot`, `stepCore`).
+Temper is x1.5 fire rate (was x1.3) and does NOT apply to ACD (owner): ACD's rate only sets how often its burn ticks (burn per second is fixed in acidTick), so more, smaller ticks only lose more to armor. The card says so.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
