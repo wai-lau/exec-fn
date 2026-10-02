@@ -5,7 +5,7 @@
 
 // Chain lightning is a TREE (owner): the tower strikes one hub, the hub arcs
 // to st.branch enemies, each of those to as many more, st.layers deep. Base
-// is 1-2-4 (7 hits) at every level; the L2 PATH reshapes it (owner): Storm
+// is 1-2 (3 hits) at every level; the L2 PATH reshapes it (owner): Storm
 // 1-3-9, Ion a line 1-1-1-1. Every arc
 // reaches from its own parent (arcRange) to the nearest enemy and deals the
 // strike's damage x arcFall. Arcs may BOUNCE BACK to an enemy this shot

@@ -4267,6 +4267,7 @@ ONE enemy type per wave again (owner, 2026-10-02): a random unlocked type, never
 Every tower defaults to CLOSE targeting (owner, 2026-10-02; was FRZ fastest, SOL strongest). With the 10s timer a lone SOL then leaks 0-1 wave-1 swarmers (2 of 8 seeds) instead of ~11.
 ARC's base tree is one level deeper (owner, 2026-10-02): 1→2→4, 7 hits a shot (`layers = 2`); the L2 paths still set their own shape.
 ...with hit damage x0.45 before the L2 path to compensate (owner): a full shot stays 2.6 strikes' worth (was 1 + 2 x 0.8, now 1 + 6 x 0.8 = 5.8). Path forms untouched. A lone ARC still clears wave 1 clean on 8/8 seeds.
+REVERTED the same day (owner: the deeper tree was meant for SOL, not ARC): ARC's base is back to 1→2 at full damage.
 Shield and armor enemies trade HP for defence (owner, 2026-10-02): shield hp 0.9 -> 0.6, shield 5 -> 8 charges; armor hp 1.6 -> 1.0, armor 15 -> 24 (both still scale with the HP curve).
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).
