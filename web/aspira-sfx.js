@@ -3,8 +3,16 @@
 // gesture). Each sound has a minimum gap so a wall of rapid-fire towers is a
 // texture, not a roar, and there is a hard cap on live voices.
 
-let AC = null, master = null, noiseBuf = null, voices = 0, muted = false;
-try { muted = localStorage.getItem("aspira.mute") === "1"; } catch (_e) {}
+let AC = null, master = null, outGain = null, noiseBuf = null, voices = 0, muted = false;
+// volume slider (owner, 2026-10-02): 0..2, applied AFTER the limiter so it
+// really scales what you hear; the default 1 is twice the old loudness
+let volume = 1;
+const VOL_BOOST = 2;
+try {
+  muted = localStorage.getItem("aspira.mute") === "1";
+  const v = parseFloat(localStorage.getItem("aspira.vol"));
+  if (v >= 0 && v <= 2) volume = v;
+} catch (_e) {}
 const lastAt = {};
 const MAX_VOICES = 24;
 
@@ -19,7 +27,9 @@ function audioUnlock() {
     const limiter = AC.createDynamicsCompressor();
     limiter.threshold.value = -14; limiter.knee.value = 6; limiter.ratio.value = 12;
     limiter.attack.value = 0.003; limiter.release.value = 0.15;
-    master.connect(limiter).connect(AC.destination);
+    outGain = AC.createGain();
+    outGain.gain.value = volume * VOL_BOOST;
+    master.connect(limiter).connect(outGain).connect(AC.destination);
     noiseBuf = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -31,6 +41,11 @@ document.addEventListener("keydown", audioUnlock);
 function setMuted(m) {
   muted = m;
   try { localStorage.setItem("aspira.mute", m ? "1" : "0"); } catch (_e) {}
+}
+function setVolume(v) {
+  volume = v;
+  if (outGain) outGain.gain.setTargetAtTime(v * VOL_BOOST, AC.currentTime, 0.02);
+  try { localStorage.setItem("aspira.vol", String(v)); } catch (_e) {}
 }
 
 function envelope(node, t0, dur, vol) {

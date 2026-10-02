@@ -238,6 +238,9 @@
 .asp-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); cursor: pointer; }
 .asp-check input { accent-color: hsl(var(--orange-hsl)); }
 
+/* volume slider next to the sound toggle (owner) */
+#asp-vol { width: calc(var(--space-8) * 3); align-self: center; accent-color: hsl(var(--green-hsl)); }
+
 /* palette swatches the canvas reads its colours from (aspira-defs.js) */
 .asp-sw { display: none; }
 .asp-sw.bg { color: hsl(var(--bg-hsl)); }
