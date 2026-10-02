@@ -117,17 +117,20 @@ function drawLaneStrokes(live) {
   lctx.clearRect(0, 0, laneCv.width, laneCv.height);
   lctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
   lctx.lineJoin = "round"; lctx.lineCap = "round";
+  // every lane faint, then each lane IN USE lit in its rider's colour - drawn
+  // rotated when a split wave rides a rotated copy of it (u.ang)
   PATHS.forEach((path, i) => {
-    const use = live.get(i), col = use && use.color;
-    lctx.strokeStyle = COL[col || "cyan"];
-    lctx.setLineDash(LANE_DASH[i >> 1]);
-    if (col) {
-      lctx.globalAlpha = 0.03; lctx.lineWidth = 6; lctx.stroke(path.p2d);
-      lctx.globalAlpha = 0.3; lctx.lineWidth = 1.4; lctx.stroke(path.p2d);
-    } else {
-      lctx.globalAlpha = 0.05; lctx.lineWidth = 1.2; lctx.stroke(path.p2d);
-    }
+    lctx.strokeStyle = COL.cyan; lctx.setLineDash(LANE_DASH[i >> 1]);
+    lctx.globalAlpha = 0.05; lctx.lineWidth = 1.2; lctx.stroke(path.p2d);
   });
+  for (const u of live.values()) {
+    lctx.save();
+    lctx.translate(CX, CY); lctx.rotate(u.ang); lctx.translate(-CX, -CY);
+    lctx.strokeStyle = COL[u.color]; lctx.setLineDash(LANE_DASH[u.pi >> 1]);
+    lctx.globalAlpha = 0.03; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.globalAlpha = 0.3; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.restore();
+  }
   lctx.setLineDash([]);
   // mask: only alpha matters under destination-in, so transparent -> bg works
   const g = lctx.createRadialGradient(CX, CY, 0, CX, CY, LANE_FADE_R);
@@ -137,26 +140,32 @@ function drawLaneStrokes(live) {
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(laneCv, 0, 0); ctx.restore();
 }
 
+// numerals sit on an even ring at each lane's nominal 30-degree slot, not
+// at the rim crossing: elliptical lanes cross the rim too close to others
+const slotAng = i => ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
 function drawLanes() {
   const live = activeLanes();
   drawLaneStrokes(live);
   ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const lit = [...live.values()].map(u => slotAng(u.pi) + u.ang);
+  const near = a => lit.some(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < 0.05);
+  // idle: a small faint label + rim circle per lane (skipped where a lit one sits)
   PATHS.forEach((path, i) => {
-    const use = live.get(i), col = use && use.color;
-    ctx.strokeStyle = COL[col || "cyan"];
-    // a small circle where the lane crosses the rim
-    const p0 = path.rim;
-    ctx.globalAlpha = col ? 1 : 0.7; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(p0.x, p0.y, 4, 0, 6.283); ctx.stroke();
-    // numerals sit on an even ring at each lane's nominal 30-degree slot, not
-    // at the rim crossing: elliptical lanes cross the rim too close to others
-    const na = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
-    // in use: full size and opacity in the riding type's colour; idle: small, faint
-    ctx.globalAlpha = col ? 1 : 0.3;
-    // label = wave:track in roman (owner): the riding wave, else the current one
-    const label = roman(use ? use.n : Math.max(1, G.wave)) + ":" + roman(i + 1);
-    text(label, CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, col ? 30 : 20, col || "cyan");
+    if (near(slotAng(i))) return;
+    ctx.strokeStyle = COL.cyan; ctx.globalAlpha = 0.7; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(path.rim.x, path.rim.y, 4, 0, 6.283); ctx.stroke();
+    ctx.globalAlpha = 0.3;
+    const na = slotAng(i);
+    text(roman(Math.max(1, G.wave)) + ":" + roman(i + 1), CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, 20, "cyan");
   });
+  // in use: full size and opacity in the rider's colour, at the (rotated) slot;
+  // label = wave:track in roman (owner)
+  for (const u of live.values()) {
+    const rim = rotAbout(PATHS[u.pi].rim, u.ang), na = slotAng(u.pi) + u.ang;
+    ctx.strokeStyle = COL[u.color]; ctx.globalAlpha = 1; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(rim.x, rim.y, 4, 0, 6.283); ctx.stroke();
+    text(roman(u.n) + ":" + roman(u.pi + 1), CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, 30, u.color);
+  }
   ctx.globalAlpha = 1;
 }
 

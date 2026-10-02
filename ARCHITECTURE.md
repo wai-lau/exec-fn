@@ -3910,6 +3910,12 @@ must never fail because of a rate limit (owner).
 ## 22. /aspira — spiral tower defence
 
 Targeting mode `close` = closest to the CORE, not to the tower (owner).
+**SPLIT WAVES (owner):** each type's group in a wave is split k = 1..6 ways
+(uniform) and each part rides a COPY of its lane rotated 360/k degrees about the
+core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn
+stream). k = 6 gives six identical spirals 60 degrees apart. `activeLanes` keys
+lanes as `pi:ang`; lit copies are stroked rotated and labelled at their rotated
+slot, and idle labels under a lit one are skipped.
 **THREE towers only (owner, 2026-10-01): CHN, SLW, RPR.** Rapid (RPD) was removed
 entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicated
 counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).

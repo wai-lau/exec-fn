@@ -58,7 +58,15 @@ function sendWave() {
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
   sfx("wave");
   const lanes = laneMap(G.wave);
-  for (const list of makeWave(G.wave)) G.spawns.push({ n: G.wave, list, lanes, idx: 0, timer: 0 });
+  // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
+  // copy of the lane rotated 360/k degrees on from the last, all at once
+  for (const list of makeWave(G.wave)) {
+    const k = 1 + Math.floor(Math.random() * 6), per = Math.max(1, Math.ceil(list.length / k));
+    for (let j = 0; j < k; j++) {
+      const part = list.slice(j * per, (j + 1) * per);
+      if (part.length) G.spawns.push({ n: G.wave, list: part, lanes, ang: (j / k) * Math.PI * 2, idx: 0, timer: 0 });
+    }
+  }
   G.nextIn = WAVE_GAP;
   G.started = true;
 }
@@ -81,32 +89,32 @@ function laneMap(n) {
   return out;
 }
 
-// Lanes in use right now (live enemies or spawns still queued): lane ->
-// { color, n } with the riding type's colour and its wave number; feeds the
-// lane highlight and the wave:track labels in aspira-draw.js.
+// Lanes in use right now (live enemies or spawns still queued), keyed by
+// lane + rotation ("pi:ang"): { pi, ang, color, n } with the riding type's
+// colour and its wave number; feeds the lane highlight and the wave:track
+// labels in aspira-draw.js. ang 0 is the lane itself, else a rotated copy.
 function activeLanes() {
   const out = new Map();
-  for (const e of G.enemies) if (!e.dead && !out.has(e.pi)) out.set(e.pi, { color: ENEMIES[e.type].color, n: e.n });
-  for (const w of G.spawns) {
-    for (let i = w.idx; i < w.list.length; i++) {
-      const pi = w.lanes[w.list[i]];
-      if (!out.has(pi)) out.set(pi, { color: ENEMIES[w.list[i]].color, n: w.n });
-    }
-  }
+  const add = (pi, ang, type, n) => {
+    const key = pi + ":" + ang.toFixed(3);
+    if (!out.has(key)) out.set(key, { pi, ang, color: ENEMIES[type].color, n });
+  };
+  for (const e of G.enemies) if (!e.dead) add(e.pi, e.ang || 0, e.type, e.n);
+  for (const w of G.spawns) for (let i = w.idx; i < w.list.length; i++) add(w.lanes[w.list[i]], w.ang || 0, w.list[i], w.n);
   return out;
 }
 
 // Enemies appear where their lane enters the visible area (plus a margin),
 // not at the far end of the lead-in, so none spend ages travelling unseen.
-function entryS(pi) {
+function entryS(pi, ang = 0) {
   const m = 60, x0 = -cam.ox / cam.k - m, y0 = -cam.oy / cam.k - m;
   const x1 = (cv.width - cam.ox) / cam.k + m, y1 = (cv.height - cam.oy) / cam.k + m;
-  const p = PATHS[pi].pts.find(q => q.x >= x0 && q.x <= x1 && q.y >= y0 && q.y <= y1);
+  const p = PATHS[pi].pts.find(q => { const r = ang ? rotAbout(q, ang) : q; return r.x >= x0 && r.x <= x1 && r.y >= y0 && r.y <= y1; });
   return p ? p.s : 0;
 }
 
-function spawnEnemy(type, n, pi) {
-  const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0);
+function spawnEnemy(type, n, pi, ang = 0) {
+  const d = ENEMIES[type], s0 = entryS(pi, ang), p0 = pathAt(pi, s0, ang);
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
   // shields start at exactly 5 on their first wave (4) and gain 1 every 3 waves
   const shield = d.shield ? d.shield + Math.floor(Math.max(0, n - 4) / 3) : 0;
@@ -116,7 +124,7 @@ function spawnEnemy(type, n, pi) {
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 6 + Math.random() * 15 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved twice
     spd: type === "swarm" ? 0.8 + Math.random() * 0.4 : 1, phr: 0.6 + Math.random(),
-    id: G.id++, type, n, hp, max: hp, pi, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
+    id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
 }
@@ -285,7 +293,7 @@ function stepSpawns(dt) {
     w.timer -= dt;
     while (w.timer <= 0 && w.idx < w.list.length) {
       const type = w.list[w.idx++];
-      spawnEnemy(type, w.n, w.lanes[type]);
+      spawnEnemy(type, w.n, w.lanes[type], w.ang || 0);
       // spacing is a balance lever: swarms stream evenly and very densely
       // (5x the bodies in the same time as before), trains spread ~60+ apart
       w.timer += (type === "swarm" ? 0.024 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
@@ -310,9 +318,9 @@ function stepEnemies(dt) {
       if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
       e.s += effSpeed(e) * dt;
     }
-    const p = pathAt(e.pi, e.s); e.x = p.x; e.y = p.y;
+    const p = pathAt(e.pi, e.s, e.ang); e.x = p.x; e.y = p.y;
     // no free spin: one corner points along the lane, nose first
-    const ahead = pathAt(e.pi, e.s + 3);
+    const ahead = pathAt(e.pi, e.s + 3, e.ang);
     if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
     // wobble rate cut to 1/3 (owner) when the wander tripled, so it drifts, not buzzes
     if (e.jit) {
