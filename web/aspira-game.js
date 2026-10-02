@@ -228,8 +228,14 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 
 // Slow affects every enemy at full strength (owner; the earlier armor-immune
 // and shield-halves rules are gone). Returns whether any slow landed.
+// ONE slow at a time (owner): the strongest wins. A stronger (or equal) slow
+// replaces the current one - an equal one just refreshes its time; a weaker one
+// is ignored while the stronger is still running. (Amount and duration never
+// mix: a weak long slow cannot stretch a strong short one.)
 function applySlow(e, f, dur) {
-  e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, f); e.slowT = Math.max(e.slowT, dur);
+  if (e.slowT > 0 && f < e.slowF) return true;
+  e.slowT = f > e.slowF || !(e.slowT > 0) ? dur : Math.max(e.slowT, dur);
+  e.slowF = f;
   return true;
 }
 
