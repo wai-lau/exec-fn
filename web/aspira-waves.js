@@ -41,7 +41,7 @@ function wavePlan(n, prev) {
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
-  const raw = Math.max(1, Math.round((type === "swarm" ? base * 3 : base) / 2));
+  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2)); // swarms 6x (owner: doubled from 3x)
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
   const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };

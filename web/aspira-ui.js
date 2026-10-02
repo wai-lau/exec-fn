@@ -10,6 +10,7 @@ function setText(el, v) { v = String(v); if (el.textContent !== v) el.textConten
 // big counts shorten so they never run into the tower buttons: 12345 stays,
 // 123k, 4.0M
 function short(n) {
+  n = Math.floor(n); // money is fractional now (swarm bounties); show whole credits
   if (n < 1e5) return String(n);
   if (n < 1e6) return Math.floor(n / 1e3) + "k";
   return (n / 1e6).toFixed(n < 1e7 ? 1 : 0) + "M";
