@@ -3929,6 +3929,10 @@ enemy whose burn RAMPS EXPONENTIALLY while held (`stepAcid`: starts LOW at 3
 dmg/s, doubling every second held, capped x64 = 192/s after 6s; dealt in 4 ticks/s, each a real hit). Retargeting or a kill
 resets the ramp. Line thickens/brightens with the ramp (`drawAcid`). Upgrade tree
 is a placeholder. RAY renamed EXC (Executor).
+Lit lanes FADE in and out over 0.4s real time (`fadeLanes`, owner): line, rim circle
+and label together; the idle label under a lit slot cross-fades with it.
+Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270); Shielded and Armored
+halved (75 -> 37.5, 60 -> 30).
 A lane LIGHTS only once its first enemy has spawned (owner), not while its group
 is still queued (`activeLanes` counts live enemies only).
 **SPLIT WAVES (owner):** each type's group in a wave is split k = 1..6 ways
@@ -4039,6 +4043,7 @@ towers, draw, ui):
 | `web/aspira-game.js` | state `G`, waves, economy, targeting (`MODE_KEY`), combat, fx, `step()` |
 | `web/aspira-towers.js` | how each tower fires: Chain's fan, Slower pulse/tethers, Reaper charge + beam, `fire()` (split from aspira-game.js at the 500-line cap) |
 | `web/aspira-draw.js` | canvas render |
+| `web/aspira-lanes.js` | lane strokes, wave:track labels (non-overlapping), lit-lane fades |
 | `web/aspira-camera.js` | zoom (wheel / pinch) + drag-to-pan view; tap vs drag → `onTap` |
 | `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
 
