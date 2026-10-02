@@ -3929,6 +3929,8 @@ enemy whose burn RAMPS while held (`stepAcid`: 15 dmg/s at x1, +100% per second
 held, capped x6; dealt in 4 ticks/s, each a real hit). Retargeting or a kill
 resets the ramp. Line thickens/brightens with the ramp (`drawAcid`). Upgrade tree
 is a placeholder. RAY renamed EXC (Executor).
+A lane LIGHTS only once its first enemy has spawned (owner), not while its group
+is still queued (`activeLanes` counts live enemies only).
 **SPLIT WAVES (owner):** each type's group in a wave is split k = 1..6 ways
 (uniform) and each part rides a COPY of its lane rotated 360/k degrees about the
 core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn
