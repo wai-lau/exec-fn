@@ -37,7 +37,7 @@ function placeTower(p) {
   const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: "close", spent: cost };
   G.towers.push(t);
   sfx("build");
-  ring(t.x, t.y, 60, b.color);
+  ring(t.x, t.y, 60, TOWERS[t.kind].color);
   // one tower per pick: placing ends placing mode (the menu stays closed)
   ui.build = null;
   // the first tower placed starts wave 1 (owner)
