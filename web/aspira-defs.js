@@ -209,7 +209,7 @@ function resolveColors() {
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 34, rate: 1.5,  range: 173.4, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 7.5, rate: 2.4,  range: 160,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
+  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 7.5, rate: 2.4,  range: 160,  blurb: "Slows and nicks one enemy; each pulse pops a shield charge.", up: "slow strength" },
   reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 110,  rate: 1.35,  range: 239, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
   acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 18,  rate: 4,    range: 230, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
@@ -282,7 +282,7 @@ function towerStats(t, noAura = false) {
     case "reaper":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
       s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
-    case "slower": s.slow = LVL_SLOW[i]; s.targets = 3; break; // owner: 3 targets
+    case "slower": s.slow = LVL_SLOW[i]; s.targets = 1; break; // owner: 1 target (was 3, 2026-10-02)
     // ACD levels up MODESTLY like ARC (owner): the L2 path brings the big change
     case "acid":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
