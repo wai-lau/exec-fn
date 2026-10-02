@@ -129,7 +129,8 @@ const ENEMY_SPEED = 1.5;
 const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
 const MODE_KEY = {
-  close: a => a.d,
+  // close = closest to the CORE (owner), not to the tower: the most urgent enemy
+  close: a => (a.e.x - CX) ** 2 + (a.e.y - CY) ** 2,
   hard: a => -a.e.hp,
   weak: a => a.e.hp,
   fast: a => -effSpeed(a.e),
