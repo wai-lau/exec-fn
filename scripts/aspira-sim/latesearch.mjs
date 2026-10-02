@@ -1,7 +1,9 @@
 // Late-game search (owner, 2026-10-02): start at wave START with MONEY credits,
 // fill all six slots and max every tower to L4 at once (money is no object),
 // then play until the core falls. A build is six (kind, L2 path, L3 form)
-// picks; hill-climb them for the furthest wave reached on every seed.
+// picks plus the CORE's L1 (none, ZEN, NULLIFY or Sinter - bought at once,
+// it is open from wave 30); hill-climb them for the furthest wave reached
+// on every seed.
 //
 // usage: node latesearch.mjs [evals=120] [seeds=2] [start=60] [money=300000] [log.jsonl]
 import fs from "node:fs";
@@ -15,6 +17,7 @@ let rs = 777;
 const rnd = () => (rs = (rs * 1103515245 + 12345) % 2147483648) / 2147483648;
 const ri = n => Math.floor(rnd() * n);
 
+const CORE_NAMES = ["none", "ZEN", "NULLIFY", "Sinter"];
 function run(build, seed) {
   const g = makeGame(seed); g.reset();
   // reach wave START-1 the way a real game would (the type alternation
@@ -22,10 +25,11 @@ function run(build, seed) {
   g.run(`(() => { let prev = null; for (let n = 1; n < ${START}; n++) { const w = wavePlan(n, prev); if (w.type !== "bonus") prev = w.type; }
     G.lastType = prev; G.wave = ${START - 1}; G.money = ${MONEY}; })()`);
   const order = cellScores(g, "chain").map((v, i) => i);
-  build.forEach((b, i) => {
+  build.slots.forEach((b, i) => {
     const t = g.place(b.kind, order[i]);
     for (let l = 1; l < 4; l++) { const need = g.pendingChoice(t); g.upgrade(t, need === "path" ? b.p : b.f); }
   });
+  if (build.core > 0) g.run("buyCore(" + (build.core - 1) + ")");
   let t = 0;
   while (!g.G.over && g.G.wave < MAX_WAVE && t < 7200) { g.step(DT); g.clearFx(); t += DT; }
   return { wave: g.G.wave, lives: g.G.lives, secs: Math.round(t) };
@@ -38,24 +42,26 @@ function score(build) {
 }
 const randomPick = () => ({ kind: KINDS[ri(4)], p: ri(2), f: ri(3) });
 function mutate(build) {
-  const b = build.map(x => ({ ...x })), i = ri(6), m = ri(3);
-  if (m === 0) b[i] = randomPick(); else if (m === 1) b[i].p = ri(2); else b[i].f = ri(3);
+  const b = { slots: build.slots.map(x => ({ ...x })), core: build.core }, i = ri(6), m = ri(4);
+  if (m === 3) b.core = ri(4);
+  else if (m === 0) b.slots[i] = randomPick(); else if (m === 1) b.slots[i].p = ri(2); else b.slots[i].f = ri(3);
   return b;
 }
-const name = b => AB[b.kind] + " " + b.p + "/" + b.f;
+const slotName = b => AB[b.kind] + " " + b.p + "/" + b.f;
+const nameOf = b => b.slots.map(slotName).join(", ") + " | core " + CORE_NAMES[b.core];
 
 // starts: all-one-kind builds, an even mix, and random ones
-const starts = KINDS.map(k => Array(6).fill(0).map(() => ({ kind: k, p: ri(2), f: ri(3) })));
-starts.push(KINDS.concat(KINDS.slice(0, 2)).map(k => ({ kind: k, p: ri(2), f: ri(3) })));
-for (let i = 0; i < 3; i++) starts.push(Array(6).fill(0).map(randomPick));
+const starts = KINDS.map(k => ({ slots: Array(6).fill(0).map(() => ({ kind: k, p: ri(2), f: ri(3) })), core: ri(4) }));
+starts.push({ slots: KINDS.concat(KINDS.slice(0, 2)).map(k => ({ kind: k, p: ri(2), f: ri(3) })), core: ri(4) });
+for (let i = 0; i < 3; i++) starts.push({ slots: Array(6).fill(0).map(randomPick), core: ri(4) });
 let best = null, evals = 0;
 for (const s of starts) {
   const sc = score(s); evals++;
-  console.log("start", s.map(name).join(", "), "-> wave", sc.res.map(r => r.wave).join("/"));
+  console.log("start", nameOf(s), "-> wave", sc.res.map(r => r.wave).join("/"));
   if (!best || sc.v > best.v) best = { build: s, ...sc };
 }
 while (evals < EVALS) {
   const c = mutate(best.build), sc = score(c); evals++;
-  if (sc.v >= best.v) { if (sc.v > best.v) console.log("eval", evals, "wave", sc.res.map(r => r.wave).join("/"), c.map(name).join(", ")); best = { build: c, ...sc }; }
+  if (sc.v >= best.v) { if (sc.v > best.v) console.log("eval", evals, "wave", sc.res.map(r => r.wave).join("/"), nameOf(c)); best = { build: c, ...sc }; }
 }
-console.log("\nBEST", best.build.map(name).join(", "), "-> wave", best.res.map(r => r.wave).join("/"));
+console.log("\nBEST", nameOf(best.build), "-> wave", best.res.map(r => r.wave).join("/"));
