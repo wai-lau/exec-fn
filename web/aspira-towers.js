@@ -37,7 +37,7 @@ function fireChain(t, st, e, from = t, relay = false) {
   chainHit(c, e, dmg);
   branchFrom(c, root, 1);
 }
-// one ARC hit; Static charges the enemy (yellow border) so its death fires a shot
+// one ARC hit; Static charges the enemy (Marigold border) so its death fires a shot
 function chainHit(c, e, d) {
   damage(e, d, c.t, false, false, c.st); onHit(e, c.t, c.st, d);
   if (c.st.static && !e.dead && (!c.relay || c.st.static > 1)) e.charged = c.t;
