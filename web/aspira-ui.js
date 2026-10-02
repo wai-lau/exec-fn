@@ -75,7 +75,7 @@ $("asp-send").onclick = sendWave;
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
 const EXTRA = {
-  chain: () => ["Hits", "1 → 3 → 9"],
+  chain: (st, t) => { const b = branchOf(t); return ["Hits", "1 → " + b + " → " + b * b]; },
   reaper: st => ["Crit", Math.round(st.crit * 100) + "%"], slower: st => ["Slow", Math.round(st.slow * 100) + "%"],
 };
 
@@ -103,7 +103,7 @@ function upgradeTower(t, choice = null) {
 function inspectTower(el, t) {
   const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL;
   const st = towerStats(t), nx = maxed ? null : towerStats({ ...t, lvl: t.lvl + 1 });
-  const ex = EXTRA[t.kind](st), exN = nx && EXTRA[t.kind](nx);
+  const ex = EXTRA[t.kind](st, t), exN = nx && EXTRA[t.kind](nx, { ...t, lvl: t.lvl + 1 });
   el.innerHTML =
     '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
     '<div id="asp-upbox"></div>' +

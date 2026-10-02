@@ -4,8 +4,8 @@
 // applySlow, kill) stay in aspira-game.js; this file loads right after it.
 
 // Chain lightning is a TREE (owner): the tower strikes one hub, the hub arcs
-// to CHAIN_BRANCH enemies, and each of those arcs to CHAIN_BRANCH more -
-// 1 + 3 + 9 = 13 hits over CHAIN_LAYERS layers. Every arc reaches from its own
+// to branchOf(t) enemies, and each of those arcs to as many more - 1-2-2
+// (7 hits) at L1, 1-3-3 (13) from L2, over CHAIN_LAYERS layers. Every arc reaches from its own
 // parent (arcRange) to the nearest enemy not yet hit by this shot, and deals
 // the strike's damage x arcFall. Every arc lands hopDelay(st) after its
 // parent was hit - kills included (owner): no arc ever skips the delay.
@@ -16,7 +16,9 @@
 // follows fire-rate upgrades: 1.5 shots/s -> 0.17s per layer
 const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_FRAC = 0.25;
 const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
-const CHAIN_BRANCH = 3, CHAIN_LAYERS = 2;
+// arcs per enemy by level (owner): L1 1-2-2 (7 hits), L2+ 1-3-3 (13 hits)
+const CHAIN_BRANCH = [2, 3, 3, 3], CHAIN_LAYERS = 2;
+const branchOf = t => CHAIN_BRANCH[Math.min(t.lvl, CHAIN_BRANCH.length) - 1];
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
@@ -38,7 +40,7 @@ function keepLit(c, id, left) {
 function branchFrom(c, parent, depth) {
   if (depth > CHAIN_LAYERS) return;
   keepLit(c, parent.id, hopDelay(c.st) + 0.05); // stay lit until the children land
-  for (let i = 0; i < CHAIN_BRANCH; i++) (G.chains ||= []).push({ c, parent, depth, wait: hopDelay(c.st) });
+  for (let i = 0; i < branchOf(c.t); i++) (G.chains ||= []).push({ c, parent, depth, wait: hopDelay(c.st) });
 }
 function stepChains(dt) {
   if (!G.chains || !G.chains.length) return;
