@@ -12,18 +12,40 @@
 // Labels are drawn unmasked.
 const LANE_FADE_R = 550; // just past the rim circle (482-494)
 const laneCv = document.createElement("canvas"), lctx = laneCv.getContext("2d");
+// the FAINT trace of all twelve lanes never changes, so it is drawn once into
+// baseCv and only redrawn when the camera or the canvas size moves (it was
+// most of every frame: ~300ms of ~1s in headless WebKit, 2026-10-02)
+const baseCv = document.createElement("canvas"), bctx = baseCv.getContext("2d");
+let baseKey = "";
+function laneLayer(c, x, w, h) {
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over";
+  x.clearRect(0, 0, w, h);
+  x.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
+  x.lineJoin = "round"; x.lineCap = "round";
+}
+// mask: only alpha matters under destination-in, so transparent -> bg works
+function laneMask(x) {
+  const g = x.createRadialGradient(CX, CY, 0, CX, CY, LANE_FADE_R);
+  g.addColorStop(0, COL.bg); g.addColorStop(1, "transparent");
+  x.globalCompositeOperation = "destination-in"; x.globalAlpha = 1; x.fillStyle = g;
+  x.fillRect(CX - 4000, CY - 4000, 8000, 8000);
+}
+function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c, 0, 0); ctx.restore(); }
 function drawLaneStrokes(live) {
-  if (laneCv.width !== cv.width || laneCv.height !== cv.height) { laneCv.width = cv.width; laneCv.height = cv.height; }
-  lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.globalCompositeOperation = "source-over";
-  lctx.clearRect(0, 0, laneCv.width, laneCv.height);
-  lctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
-  lctx.lineJoin = "round"; lctx.lineCap = "round";
-  // every lane faint, then each lane IN USE lit in its rider's colour - drawn
-  // rotated when a split wave rides a rotated copy of it (u.ang)
-  PATHS.forEach(path => {
-    lctx.strokeStyle = COL.cyan;
-    lctx.globalAlpha = 0.05; lctx.lineWidth = 1.2; lctx.stroke(path.p2d);
-  });
+  const key = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
+  if (key !== baseKey) {
+    baseKey = key;
+    laneLayer(baseCv, bctx, cv.width, cv.height);
+    bctx.strokeStyle = COL.cyan; bctx.globalAlpha = 0.05; bctx.lineWidth = 1.2;
+    for (const path of PATHS) bctx.stroke(path.p2d);
+    laneMask(bctx);
+  }
+  blit(baseCv);
+  if (!live.length) return;
+  // each lane IN USE lit in its rider's colour - drawn rotated when a split
+  // wave rides a rotated copy of it (u.ang)
+  laneLayer(laneCv, lctx, cv.width, cv.height);
   for (const u of live) {
     lctx.save();
     lctx.translate(CX, CY); lctx.rotate(u.ang); lctx.translate(-CX, -CY);
@@ -34,12 +56,8 @@ function drawLaneStrokes(live) {
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
     lctx.restore();
   }
-  // mask: only alpha matters under destination-in, so transparent -> bg works
-  const g = lctx.createRadialGradient(CX, CY, 0, CX, CY, LANE_FADE_R);
-  g.addColorStop(0, COL.bg); g.addColorStop(1, "transparent");
-  lctx.globalCompositeOperation = "destination-in"; lctx.globalAlpha = 1; lctx.fillStyle = g;
-  lctx.fillRect(CX - 4000, CY - 4000, 8000, 8000);
-  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(laneCv, 0, 0); ctx.restore();
+  laneMask(lctx);
+  blit(laneCv);
 }
 
 // numerals sit on an even ring at each lane's nominal 30-degree slot, not
