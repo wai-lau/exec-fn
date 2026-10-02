@@ -335,13 +335,10 @@ function stepEnemies(dt) {
 function step(dt) {
   if (G.over || !G.started) return;
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
-  // the countdown to the next wave only runs once the field is clear:
-  // nothing alive, nothing still queued to spawn
-  if (waveClear()) {
-    if (ui.auto) { sendWave(); return; }
-    G.nextIn -= dt;
-    if (G.nextIn <= 0) sendWave();
-  }
+  // the next wave ALWAYS goes the moment the field clears (owner): nothing
+  // alive, nothing still queued to spawn. The early bonus pays the whole
+  // countdown it skipped.
+  if (waveClear()) { sendWave(); return; }
   stepSpawns(dt);
   stepEnemies(dt);
   if (G.over) return;
