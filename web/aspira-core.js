@@ -175,23 +175,19 @@ function drawCoreFx() {
 }
 
 // ---------- the core's card (UI only) ----------
+// One click buys a core option (owner, 2026-10-02: no confirm step); an
+// option it cannot afford is disabled (updateHud, by its data-cost).
+function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(); }
 // past L3: the repeatables, once all six towers are L4 too
-function coreReps(box, pick) {
+function coreReps(box) {
   if (!repsOpen()) { button(box, "asp-primary asp-up-big", "max level · more once all six towers are L4", () => {}); return; }
-  REPS.forEach((r, i) => {
-    button(box, "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
-      "<b>" + r.name + " " + (repN(r.id) + 1) + " · " + repCost(r.id) + "</b><span>" + r.desc + "</span>", () => { ui.pick = { tid: "core", choice: i }; refreshPanels(); });
+  REPS.forEach(r => {
+    button(box, "asp-primary asp-choice", "<b>" + r.name + " " + (repN(r.id) + 1) + " · " + repCost(r.id) + "</b><span>" + r.desc + "</span>",
+      () => { if (buyRep(r.id)) coreBought(); }).dataset.cost = repCost(r.id);
   });
-  if (pick) {
-    const r = REPS[pick.choice];
-    button(box, "asp-primary asp-up-big", "confirm · " + repCost(r.id), () => {
-      if (buyRep(r.id)) { ui.pick = null; sfx("coreup"); ring(CX, CY, 80, "white"); }
-      refreshPanels();
-    }, "asp-up");
-  }
 }
 function inspectCore(el) {
-  const lvl = coreLvl(), pick = ui.pick && ui.pick.tid === "core" ? ui.pick : null;
+  const lvl = coreLvl();
   const l1 = lvl ? CORE_L1.find(o => o.id === G.core.l1) : null;
   const l2 = G.core && G.core.l2 ? CORE_L2[G.core.l1].find(o => o.id === G.core.l2) : null;
   const l3 = G.core && G.core.l3 ? CORE_L3[G.core.l2].find(o => o.id === G.core.l3) : null;
@@ -200,16 +196,10 @@ function inspectCore(el) {
     '<div id="asp-upbox"></div>' +
     '<p class="asp-hint">' + (took.length ? took.map(o => o.desc).join("; ") : "The heart of the chart. Upgrades unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>";
   const box = $("asp-upbox");
-  if (lvl >= CORE_MAX) { coreReps(box, pick); return; }
+  if (lvl >= CORE_MAX) { coreReps(box); return; }
   if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
   coreOptions().forEach((o, i) => {
-    button(box, "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
-      "<b>" + o.name + " · " + coreCost() + "</b><span>" + o.desc + "</span>", () => { ui.pick = { tid: "core", choice: i }; refreshPanels(); });
+    button(box, "asp-primary asp-choice", "<b>" + o.name + " · " + coreCost() + "</b><span>" + o.desc + "</span>",
+      () => { if (buyCore(i)) coreBought(); }).dataset.cost = coreCost();
   });
-  if (pick) {
-    button(box, "asp-primary asp-up-big", "confirm · " + coreCost(), () => {
-      if (buyCore(pick.choice)) { ui.pick = null; sfx("coreup"); ring(CX, CY, 80, "white"); }
-      refreshPanels();
-    }, "asp-up");
-  }
 }

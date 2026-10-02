@@ -9,32 +9,34 @@
 
 const BRANCH_LVL = 2, FINAL_LVL = 3; // the levels that bring the path / final form
 
+// Every `desc` is its card's TAGLINE (owner): a reader-friendly one-line
+// descriptor of the upgrade, with no numbers - the card's stat rows show those.
 const UPGRADES = {
   chain: [
     // ARC (owner, 2026-10-02): L2 is 2 PATHS, L3 is 3 FORMS each. branch /
     // layers reshape the arc tree. Ion's damage is matched to Storm's full
     // tree per shot: Storm = strike x (1 + 12 x 0.8) = 10.6, Ion 4 hits = 3.4
     // -> x3.1.
-    { name: "Storm", desc: "the tree grows: 1→3→9", mods: { branch: 3, layers: 2 }, finals: [
-      { name: "Tempest", desc: "a wider tree: 1→4→16", mods: { branch: 4 },
-        super: { name: "Maelstrom", desc: "wider still: 1→5→25", mods: { branch: 5 } } },
-      { name: "Overcharge", desc: "arcs hit as hard as the first strike", mods: { arcFall: 1 },
-        super: { name: "Surge", desc: "arcs hit HARDER than the strike: x1.5", mods: { arcFall: 1.5 } } },
+    { name: "Storm", desc: "Lightning branches out, hitting more enemies with every arc.", mods: { branch: 3, layers: 2 }, finals: [
+      { name: "Tempest", desc: "An even bushier tree of lightning.", mods: { branch: 4 },
+        super: { name: "Maelstrom", desc: "The widest lightning tree of all.", mods: { branch: 5 } } },
+      { name: "Overcharge", desc: "Every arc hits as hard as the first strike.", mods: { arcFall: 1 },
+        super: { name: "Surge", desc: "Arcs hit harder than the strike that started them.", mods: { arcFall: 1.5 } } },
       // static: 1 = charge from the tower's own shots, 2 = Static shots charge too
-      { name: "Static", desc: "hits deal x1.5 and charge enemies (an orange border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1, dmg: 1.5 },
-        super: { name: "Thunderhead", desc: "those shots charge what they hit too: kills can cascade", mods: { static: 2 } } },
+      { name: "Static", desc: "Marks enemies; a marked enemy that dies fires a free shot.", mods: { static: 1, dmg: 1.5 },
+        super: { name: "Thunderhead", desc: "Free shots mark what they hit, so kills can chain.", mods: { static: 2 } } },
     ] },
     // Ion and Array nerfed x0.8 (owner, 2026-10-02): the build search's winners
     // took Ion in 29 of the top 30 and Array in 29 of 30
-    { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x2.5", mods: { dmg: 2.5, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
-      { name: "Rail", desc: "a longer line: 6 hops", mods: { layers: 6 },
-        super: { name: "Railgun", desc: "the line runs 10 hops", mods: { layers: 10 } } },
+    { name: "Ion", desc: "A piercing line that cuts through shields and armor.", mods: { dmg: 2.5, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
+      { name: "Rail", desc: "The line reaches further down the spiral.", mods: { layers: 6 },
+        super: { name: "Railgun", desc: "The longest line there is.", mods: { layers: 10 } } },
       // Fork (owner): two lines on two different enemies. Two full lines are 2 x 3.4 =
       // 6.8 strikes a shot, so x0.85 damage levels it with Rail (5.8); Trident ~ Railgun
-      { name: "Fork", desc: "two lines 1→1→1→1, never from the same enemy; damage x0.85", mods: { targets: 1, dmg: 0.85 },
-        super: { name: "Trident", desc: "three lines", mods: { targets: 1 } } },
-      { name: "Crescendo", desc: "each hop hits 40% harder than the last", mods: { hopGain: 1.4 },
-        super: { name: "Fortissimo", desc: "each hop hits 60% harder than the last", mods: { hopGain: 1.6 } } },
+      { name: "Fork", desc: "Two lines at once, never from the same enemy.", mods: { targets: 1, dmg: 0.85 },
+        super: { name: "Trident", desc: "Three lines at once.", mods: { targets: 1 } } },
+      { name: "Crescendo", desc: "Each hop down the line hits harder than the last.", mods: { hopGain: 1.4 },
+        super: { name: "Fortissimo", desc: "The line builds to a bigger finish.", mods: { hopGain: 1.6 } } },
     ] },
   ],
   // ACD (owner, 2026-10-02): L2 Catalyst or Plague, three L3 forms each, and
@@ -44,31 +46,31 @@ const UPGRADES = {
     // ACD buffed (owner, 2026-10-02: "ACD upgrades feel weak"; Rain and Residue
     // tested below the baseline): Catalyst +20% burn, Rain x2.5, Residue 3s and
     // x2.2 (Scar 8s), Corrosion 1.5 a tick (Dissolve 3), Contagion x1 (was x0.7)
-    { name: "Catalyst", desc: "the burn doubles every 0.5s (was 1s); burn x1.2", mods: { double: 0.5, dmg: 1.2 }, finals: [
+    { name: "Catalyst", desc: "The burn ramps up twice as fast.", mods: { double: 0.5, dmg: 1.2 }, finals: [
       // Rain tested weak whatever its burn (x1.25..x6: one line is one line);
       // it now CHAINS like ARC (owner): each tick also burns up to 5 more
       // enemies, hopping to the nearest within RAIN_HOP of the last
-      { name: "Rain", desc: "double range; the burn chains to 5 more enemies, hopping like ARC", mods: { range: 2, rainChain: 5 },
-        super: { name: "Deluge", desc: "triple range", mods: { range: 1.5 } } },
-      { name: "Pour", desc: "three lines at once, each with its own ramp", mods: { targets: 2 },
-        super: { name: "Torrent", desc: "five lines", mods: { targets: 2 } } },
+      { name: "Rain", desc: "The burn spreads from enemy to enemy, like lightning.", mods: { range: 2, rainChain: 5 },
+        super: { name: "Deluge", desc: "Rain that reaches across the board.", mods: { range: 1.5 } } },
+      { name: "Pour", desc: "Several burning lines, each ramping on its own.", mods: { targets: 2 },
+        super: { name: "Torrent", desc: "Even more burning lines.", mods: { targets: 2 } } },
       // Residue also SLOWS what it burns, and switches the tower to target Fast
       // enemies - the ones that run out of range and keep burning (owner)
-      { name: "Residue", desc: "burns slow by 30%; an enemy that leaves range keeps burning for 3s; burn x3; targets Fast enemies", mods: { residue: 3, dmg: 3, burnSlow: 0.3 }, mode: "fast",
-        super: { name: "Scar", desc: "it keeps burning for 8s", mods: { residue: 8 } } },
+      { name: "Residue", desc: "Burns slow enemies and cling on after they escape; hunts Fast ones.", mods: { residue: 3, dmg: 3, burnSlow: 0.3 }, mode: "fast",
+        super: { name: "Scar", desc: "The burn clings on much longer.", mods: { residue: 8 } } },
     ] },
     // circle tripled 45 -> 135 (owner, 2026-10-02: "45 range is nothing")
-    { name: "Plague", desc: "every tick also burns everything within 135 of the target", mods: { plagueR: 135 }, finals: [
+    { name: "Plague", desc: "Every tick also burns everything near the target.", mods: { plagueR: 135 }, finals: [
       // Bloom, Permafrost and Moons trimmed (owner, 2026-10-02: they topped the
       // late-game test at 84-90 vs an 80 baseline)
-      { name: "Bloom", desc: "the circle grows with the burn, up to 1.6x; burn x1.15", mods: { bloom: 1.6, dmg: 1.15 },
-        super: { name: "Overgrowth", desc: "the circle grows up to 2.2x", mods: { bloom: 2.2 } } },
-      { name: "Corrosion", desc: "every tick strips 1.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 1.5 },
-        super: { name: "Dissolve", desc: "strips 3 armor a tick", mods: { corrode: 3 } } },
+      { name: "Bloom", desc: "The burning circle grows as the burn ramps.", mods: { bloom: 1.6, dmg: 1.15 },
+        super: { name: "Overgrowth", desc: "The circle blooms even wider.", mods: { bloom: 2.2 } } },
+      { name: "Corrosion", desc: "Eats armor away, so every tower hits harder.", mods: { corrode: 1.5 },
+        super: { name: "Dissolve", desc: "Eats armor faster.", mods: { corrode: 3 } } },
       // range cut (owner, 2026-10-02): every burn in range keeps ramping, never
       // down, so a wide Contagion was too strong. 0.6 / 0.75 of the tower's range
-      { name: "Contagion", desc: "no line: every enemy in range burns, each on its own ramp; range x0.6", mods: { allInRange: true, plagueR: 0, range: 0.6 },
-        super: { name: "Pandemic", desc: "range x1.25", mods: { range: 1.25 } } },
+      { name: "Contagion", desc: "Everything in range burns, each on its own ramp.", mods: { allInRange: true, plagueR: 0, range: 0.6 },
+        super: { name: "Pandemic", desc: "The contagion reaches further.", mods: { range: 1.25 } } },
     ] },
   ],
   // FRZ (owner, 2026-10-02): L2 Shatter or Stasis, three forms each, each with
@@ -76,43 +78,43 @@ const UPGRADES = {
   slower: [
     // Shatter scales off the FRZ's OWN hit, never the enemy's max HP (owner,
     // 2026-10-02: max-HP effects made towers too obviously late-game picks)
-    { name: "Shatter", desc: "an enemy that dies while slowed explodes for 4x this tower's hit, within 60", mods: { shatter: { mul: 4, r: 60 } }, finals: [
-      { name: "Frostbite", desc: "bigger blasts (r84) that also slow everything they hit, for 4s", mods: { frostbite: 4, shatter: { mul: 4, r: 84 } },
-        super: { name: "Hoarfrost", desc: "that slow lasts 12s", mods: { frostbite: 12 } } },
-      { name: "Shrapnel", desc: "explosions deal 7x this tower's hit", mods: { shatter: { mul: 7, r: 60 } },
-        super: { name: "Splinter", desc: "explosions deal 14x this tower's hit", mods: { shatter: { mul: 14, r: 60 } } } },
-      { name: "Brittle", desc: "slowed enemies take +30% from every tower", mods: { brittle: 1.3 },
-        super: { name: "Fracture", desc: "+60%", mods: { brittle: 1.6 } } },
+    { name: "Shatter", desc: "Slowed enemies explode when they die.", mods: { shatter: { mul: 4, r: 60 } }, finals: [
+      { name: "Frostbite", desc: "Bigger explosions that slow whatever they hit.", mods: { frostbite: 4, shatter: { mul: 4, r: 84 } },
+        super: { name: "Hoarfrost", desc: "The frostbite slow lingers much longer.", mods: { frostbite: 12 } } },
+      { name: "Shrapnel", desc: "Much harder-hitting explosions.", mods: { shatter: { mul: 7, r: 60 } },
+        super: { name: "Splinter", desc: "Explosions hit harder still.", mods: { shatter: { mul: 14, r: 60 } } } },
+      { name: "Brittle", desc: "Slowed enemies take extra damage from every tower.", mods: { brittle: 1.3 },
+        super: { name: "Fracture", desc: "Slowed enemies take even more.", mods: { brittle: 1.6 } } },
     ] },
-    { name: "Stasis", desc: "slow +15%", mods: { slow: 0.15 }, finals: [
-      { name: "Deep Freeze", desc: "a newly slowed enemy nearly freezes: 95% slow for 0.25s", mods: { chillStop: 0.25 },
-        super: { name: "Absolute Zero", desc: "95% slow for 0.5s", mods: { chillStop: 0.5 } } },
+    { name: "Stasis", desc: "A much stronger slow.", mods: { slow: 0.15 }, finals: [
+      { name: "Deep Freeze", desc: "Freshly slowed enemies are frozen for a moment.", mods: { chillStop: 0.25 },
+        super: { name: "Absolute Zero", desc: "The freeze holds longer.", mods: { chillStop: 0.5 } } },
       // (owner, 2026-10-02: were Whiteout / Blizzard, whole-range chills)
-      { name: "Moons", desc: "two moons orbit the tower, each one a Stasis FRZ of its own (same range, slow and nick)", mods: { moons: 2 },
-        super: { name: "Desolation", desc: "a third moon, and the slow +5%", mods: { moons: 3, slow: 0.05 } } },
-      { name: "Permafrost", desc: "the slow never wears off, but is 15% weaker", mods: { permafrost: true, slow: -0.15 },
-        super: { name: "Ice Age", desc: "the permanent slow is 5% stronger", mods: { slow: 0.05 } } },
+      { name: "Moons", desc: "Two orbiting moons, each a freezing tower of its own.", mods: { moons: 2 },
+        super: { name: "Desolation", desc: "A third moon, and a deeper chill.", mods: { moons: 3, slow: 0.05 } } },
+      { name: "Permafrost", desc: "A slow that never wears off.", mods: { permafrost: true, slow: -0.15 },
+        super: { name: "Ice Age", desc: "The endless slow bites harder.", mods: { slow: 0.05 } } },
     ] },
   ],
   // SOL (owner, 2026-10-02): L2 Charge or Array, three forms each, each with
   // its own on-theme L4 super. Multi-lock (Array) was the parked idea.
   reaper: [
-    { name: "Charge", desc: "damage x2, fire rate -30%; fires twin beams", mods: { dmg: 2, rate: 0.7, twin: true }, finals: [
-      { name: "Longshot", desc: "+1.5% damage per 10 units to the target", mods: { longshot: 0.015 },
-        super: { name: "Horizon", desc: "+3% per 10 units", mods: { longshot: 0.03 } } },
-      { name: "Supernova", desc: "hits explode for 50% in a radius of 90", mods: { splash: { r: 90, frac: 0.5 } },
-        super: { name: "Collapse", desc: "75% in a radius of 135", mods: { splash: { r: 135, frac: 0.75 } } } },
+    { name: "Charge", desc: "Slower, heavier twin beams.", mods: { dmg: 2, rate: 0.7, twin: true }, finals: [
+      { name: "Longshot", desc: "The further the target, the harder it hits.", mods: { longshot: 0.015 },
+        super: { name: "Horizon", desc: "Distance pays off even more.", mods: { longshot: 0.03 } } },
+      { name: "Supernova", desc: "Every hit explodes around the target.", mods: { splash: { r: 90, frac: 0.5 } },
+        super: { name: "Collapse", desc: "Bigger, harder explosions.", mods: { splash: { r: 135, frac: 0.75 } } } },
       // Execute measures against the SHOT, not the enemy's max HP (owner)
-      { name: "Execute", desc: "an enemy left with less HP than half this shot dies", mods: { execute: 0.5 },
-        super: { name: "Verdict", desc: "less HP than a whole shot", mods: { execute: 1 } } },
+      { name: "Execute", desc: "Finishes off enemies left on low health.", mods: { execute: 0.5 },
+        super: { name: "Verdict", desc: "Finishes off far healthier enemies.", mods: { execute: 1 } } },
     ] },
-    { name: "Array", desc: "3 locks, each charging on its own timer; each beam x0.48", mods: { targets: 2, dmg: 0.48 }, finals: [
-      { name: "Grid", desc: "5 locks", mods: { targets: 2 },
-        super: { name: "Lattice", desc: "7 locks", mods: { targets: 2 } } },
-      { name: "Ricochet", desc: "each beam bounces once to the nearest enemy, at 60%", mods: { bounce: 0.6 },
-        super: { name: "Carom", desc: "the bounce deals full damage", mods: { bounce: 1 } } },
-      { name: "Refund", desc: "50% of overkill flies back and joins the next shot", mods: { refund: 0.5 },
-        super: { name: "Full Refund", desc: "all of the overkill comes back", mods: { refund: 1 } } },
+    { name: "Array", desc: "Locks onto several enemies, each on its own timer.", mods: { targets: 2, dmg: 0.48 }, finals: [
+      { name: "Grid", desc: "More locks.", mods: { targets: 2 },
+        super: { name: "Lattice", desc: "Even more locks.", mods: { targets: 2 } } },
+      { name: "Ricochet", desc: "Each beam bounces to the nearest enemy.", mods: { bounce: 0.6 },
+        super: { name: "Carom", desc: "Bounces hit as hard as the beam.", mods: { bounce: 1 } } },
+      { name: "Refund", desc: "Wasted overkill flies back into the next shot.", mods: { refund: 0.5 },
+        super: { name: "Full Refund", desc: "None of the overkill is wasted.", mods: { refund: 1 } } },
     ] },
   ],
 };

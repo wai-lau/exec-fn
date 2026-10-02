@@ -54,7 +54,7 @@ function onTap(ev) {
   ui.hover = p;
   const ci = cellAt(p.x, p.y), hit = ci >= 0 && G.towers.find(t => t.cell === ci);
   if (hit) { ui.sel = hit.id; ui.build = null; }
-  else if (!ui.build && Math.hypot(p.x - CX, p.y - CY) <= CORE_R) { ui.sel = "core"; ui.pick = null; } // the core's card (aspira-core.js)
+  else if (!ui.build && Math.hypot(p.x - CX, p.y - CY) <= CORE_R) { ui.sel = "core"; } // the core's card (aspira-core.js)
   else if (ui.build) placeTower(p);
   else ui.sel = null;
   refreshPanels();
@@ -150,7 +150,7 @@ function upgradeTower(t, choice = null) {
   if (need === "path") t.path = choice;
   if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; } // a form may set targeting (Residue)
   const c = upCost(t);
-  G.money -= c; t.spent += c; t.lvl++; ui.pick = null;
+  G.money -= c; t.spent += c; t.lvl++;
   sfxFor("up", t.kind);
   ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
 }
@@ -185,11 +185,11 @@ function inspectTower(el, t) {
 }
 
 // ---------- the upgrade chooser ----------
-// Upgrading (owner, 2026-10-02): a plain next step is bought by the upgrade
-// button at once. At a BRANCH (2-3 paths or forms) the button opens CARDS,
-// one per option, each listing the stats it changes; nothing is charged until
-// a card is tapped (owner), and clicking outside them (or Esc) just closes.
-// The game pauses meanwhile. Keys 1-3 pick a card.
+// Upgrading (owner, 2026-10-02): the upgrade button opens CARDS - one per
+// option at a branch (2-3 paths or forms), a single card for a plain step -
+// each laid out like the tower's card with the stats it changes. Nothing is
+// charged until a card is tapped; clicking outside (or Esc) just closes. The
+// game pauses meanwhile. Keys 1-3 pick a card.
 const chooser = { t: null, opts: [], wasPaused: false };
 function upgradeOptions(t) {
   const need = pendingChoice(t);
@@ -201,14 +201,18 @@ function upgradeOptions(t) {
   }
   return [{ choice: null }];
 }
-// the stats one option would change, "now -> next"
-function upgradeDiffs(t, choice) {
-  const nt = nextTower(t, choice), st = towerStats(t), nx = towerStats(nt);
-  const rows = [["Range", Math.round(st.range), Math.round(nx.range)], ["Rate", st.rate.toFixed(2) + "/s", nx.rate.toFixed(2) + "/s"]];
-  if (TOWERS[t.kind].dmg) rows.unshift(["Damage", Math.round(st.dmg), Math.round(nx.dmg)]);
+// one option's card, laid out like the tower's own card (owner): the tower it
+// would make as the title, every stat in the two columns ("now -> next" where
+// it changes), then the tagline
+function upgradeCard(t, o, i) {
+  const nt = nextTower(t, o.choice), st = towerStats(t), nx = towerStats(nt), b = TOWERS[t.kind];
   const spN = SPEC[t.kind](nx, nt);
-  SPEC[t.kind](st, t).forEach((r, i) => rows.push([r[0], r[1], spN[i][1]]));
-  return rows.filter(r => String(r[1]) !== String(r[2])).map(r => statRow(r[0], r[1], r[2])).join("");
+  return '<div class="name">' + (chooser.opts.length > 1 ? i + 1 + " · " : "") + towerTitle(nt) + " · L" + nt.lvl + " of " + MAX_LVL + "</div>" +
+    '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), Math.round(nx.dmg)) : "") +
+    statRow("Range", Math.round(st.range), Math.round(nx.range)) +
+    statRow("Rate", st.rate.toFixed(2) + "/s", nx.rate.toFixed(2) + "/s") + "</dl>" +
+    '<dl class="asp-spec">' + SPEC[t.kind](st, t).map((r, k) => statRow(r[0], r[1], spN[k][1])).join("") + "</dl></div>" +
+    (o.desc ? '<p class="asp-hint">' + o.desc + "</p>" : "");
 }
 function chooserEl() {
   let el = $("asp-chooser");
@@ -223,15 +227,14 @@ function chooserEl() {
 function openChooser(t) {
   if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
   const opts = upgradeOptions(t);
-  if (opts.length < 2) { upgradeTower(t, opts[0].choice); return; } // nothing to choose: buy it
   const el = chooserEl();
   chooser.t = t; chooser.opts = opts;
   chooser.wasPaused = ui.paused; ui.paused = true;
   el.dataset.kind = t.kind;
-  el.innerHTML = "<h2>" + towerTitle(t) + " → L" + (t.lvl + 1) + " · " + upCost(t) + "</h2><p>choose one · click outside to cancel</p>" + '<div class="asp-cards"></div>';
+  el.innerHTML = "<h2>" + towerTitle(t) + " → L" + (t.lvl + 1) + " · " + upCost(t) + "</h2><p>" + (opts.length > 1 ? "choose one · " : "") + "click outside to cancel</p>" + '<div class="asp-cards"></div>';
   opts.forEach((o, i) => {
     button(el.querySelector(".asp-cards"), "asp-card",
-      "<b>" + (i + 1) + " · " + o.name + "</b><span>" + o.desc + "</span><dl>" + upgradeDiffs(t, o.choice) + "</dl>",
+      upgradeCard(t, o, i),
       () => chooseUpgrade(i));
   });
   el.hidden = false;
@@ -324,7 +327,8 @@ function updateHud() {
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
-  if (up && ui.sel === "core") up.disabled = G.money < coreCost();
+  // the core's one-click options follow the money too (aspira-core.js)
+  for (const btn of document.querySelectorAll("#asp-pop [data-cost]")) btn.disabled = G.money < Number(btn.dataset.cost);
   // the open popup's tallies update live
   if (t && $("asp-kills")) { setText($("asp-kills"), t.kills || 0); setText($("asp-dealt"), Math.round(t.dealt || 0).toLocaleString()); }
 }
