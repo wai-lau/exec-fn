@@ -164,9 +164,9 @@ function pickTargets(t, st, count) {
 // crit: draw this hit's number PINK instead of a separate CRIT label (owner)
 function damage(e, amt, t, quiet = false, crit = false) {
   if (e.dead) return;
-  // a shield eats one whole HIT, whatever its size (poison/splash just bounce);
-  // the Reaper's shots pass straight through shields, leaving them intact (owner)
-  if (e.shield > 0 && !(t && t.kind === "reaper")) {
+  // a shield eats one whole HIT, whatever its size (poison/splash just bounce) -
+  // EXC's included (owner: stripping shields is ACD's job, its ticks pop them)
+  if (e.shield > 0) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
