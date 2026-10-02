@@ -56,19 +56,20 @@ function noise({ dur = 0.1, vol = 0.3, freq = 2000, q = 1, delay = 0 }) {
   src.start(t0); src.stop(t0 + dur + 0.02);
 }
 
-// The Reaper's charge-up over `dur` seconds: a whine climbing 320 -> 1500Hz
-// (high-passed, no bass) whose tremolo speeds up from 3 to 26 pulses/s, so it
-// audibly winds up toward the shot. Returns a handle whose stop() cuts it.
+// The Reaper's charge-up: the LAST THIRD of a whine that would climb
+// 320 -> 1500Hz with its tremolo speeding 3 -> 26 pulses/s (owner: only the
+// final rush) - so over `dur` seconds it runs ~900 -> 1500Hz and ~13 -> 26/s,
+// high-passed, no bass. Returns a handle whose stop() cuts it.
 function chargeHum(dur) {
   const t0 = AC.currentTime, o = AC.createOscillator(), hp = AC.createBiquadFilter();
   const lfo = AC.createOscillator(), depth = AC.createGain(), trem = AC.createGain(), g = AC.createGain();
   o.type = "sawtooth";
-  o.frequency.setValueAtTime(320, t0); o.frequency.exponentialRampToValueAtTime(1500, t0 + dur);
+  o.frequency.setValueAtTime(900, t0); o.frequency.exponentialRampToValueAtTime(1500, t0 + dur);
   hp.type = "highpass"; hp.frequency.value = 300;
-  lfo.frequency.setValueAtTime(3, t0); lfo.frequency.exponentialRampToValueAtTime(26, t0 + dur);
+  lfo.frequency.setValueAtTime(13, t0); lfo.frequency.exponentialRampToValueAtTime(26, t0 + dur);
   depth.gain.value = 0.5; trem.gain.value = 0.5;   // trem gain swings 0..1 with the LFO
   lfo.connect(depth).connect(trem.gain);
-  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.06, t0 + dur);
+  g.gain.setValueAtTime(0.007, t0); g.gain.exponentialRampToValueAtTime(0.06, t0 + dur);
   o.connect(hp).connect(trem).connect(g).connect(master);
   voices++; o.onended = () => { voices--; };
   o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
