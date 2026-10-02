@@ -40,7 +40,7 @@ function makeWave(n) {
   const types = pool.slice().sort(() => Math.random() - 0.5).slice(0, k);
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   const lists = types.map(type => {
-    const usual = type === "swarm" ? Math.min(base * 6, 140) : base; // swarms: 6x the bodies
+    const usual = type === "swarm" ? Math.min(base * 30, 700) : base; // swarms: 30x the bodies (owner: x6, then x5)
     return Array(Math.max(1, Math.round(usual / k))).fill(type);
   });
   if (n >= 3) { const l = lists[Math.floor(Math.random() * lists.length)]; l[Math.floor(Math.random() * l.length)] = "bonus"; }
@@ -284,9 +284,9 @@ function stepSpawns(dt) {
     while (w.timer <= 0 && w.idx < w.list.length) {
       const type = w.list[w.idx++];
       spawnEnemy(type, w.n, w.lanes[type]);
-      // spacing is a balance lever: swarms stream evenly and densely (twice
-      // the bodies in the same time as before), trains spread ~60+ apart
-      w.timer += (type === "swarm" ? 0.06 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
+      // spacing is a balance lever: swarms stream evenly and very densely
+      // (5x the bodies in the same time as before), trains spread ~60+ apart
+      w.timer += (type === "swarm" ? 0.012 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
     }
   }
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
