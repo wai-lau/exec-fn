@@ -7,7 +7,7 @@
 // at once (owner: no delay).
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
-const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 0.25;
+const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083;
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
@@ -132,7 +132,7 @@ function fire(t, st) {
   const col = TOWERS[t.kind].color;
   for (const e of targets) {
     const d = shotDamage(t, st, e, st.dmg);
-    beam(t, e, col, 0.06, 1.5, d, false, false); damage(e, d, t); onHit(e, t, st, d);
+    beam(t, e, col, 0.02, 1.5, d, false, false); damage(e, d, t); onHit(e, t, st, d);
   }
   return true;
 }
@@ -141,7 +141,7 @@ function usePower(code) {
   if (G.charge < POWER_FULL || G.over) return;
   G.charge = 0;
   if (code === "FRZ") {
-    for (const e of G.enemies) e.stunT = Math.max(e.stunT, 4);
+    for (const e of G.enemies) e.stunT = Math.max(e.stunT, 4 / 3);
     banner("freeze");
   } else if (code === "BOM") {
     for (const e of G.enemies) { burst(e.x, e.y, "orange", 6); damage(e, e.max * 0.45, null); }

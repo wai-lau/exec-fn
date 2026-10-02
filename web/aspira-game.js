@@ -19,7 +19,7 @@ function newGame() {
 let G = newGame();
 
 // ---------- waves ----------
-const WAVE_GAP = 15;
+const WAVE_GAP = 5;
 // clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // Waves rotate through themes so each counter tower gets its moment; waves
@@ -40,7 +40,9 @@ function makeWave(n) {
 function sendWave() {
   if (G.over) return;
   if (G.wave > 0 && G.nextIn > 0) {
-    const early = Math.ceil(G.nextIn);
+    // 3 credits per second skipped: the same +15 for a full countdown as when
+    // the gap was 15 (time rescale), so the economy is unchanged
+    const early = Math.ceil(G.nextIn * 3);
     G.money += early; addScore(early * 10);
     float(CX, CY - 80, "+" + early + " early", "orange", 28, 4, 1, 3);
   }
@@ -114,7 +116,7 @@ function spawnEnemy(type, n, pi) {
 // Global enemy pace (owner: everything at half speed). Spawn gaps are divided
 // by it too, so enemies stay the same DISTANCE apart on the lane — that
 // spacing is a balance lever for chain reach.
-const ENEMY_SPEED = 0.5;
+const ENEMY_SPEED = 1.5;
 const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
 const MODE_KEY = {
@@ -144,7 +146,7 @@ function damage(e, amt, t, quiet = false) {
   if (e.shield > 0) {
     if (quiet) return;
     e.shield--;
-    fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.2 });
+    fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
     float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 22, 1, 1, 30, true); // all of it soaked: dim grey, like armor
     return;
   }
@@ -161,7 +163,7 @@ function damage(e, amt, t, quiet = false) {
   if (!quiet) {
     // impact flash sized and lit by the damage; big hits also throw sparks
     const m = dmgMag(amt), col = t ? TOWERS[t.kind].color : "orange";
-    fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.15 + 0.08 * m });
+    fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.05 + 0.027 * m });
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
@@ -181,7 +183,7 @@ function onHit(e, t, st, amt) {
   if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t);
   if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t);
   if (st.splash) {
-    ring(e.x, e.y, st.splash.r, TOWERS[t.kind].color, 0.3);
+    ring(e.x, e.y, st.splash.r, TOWERS[t.kind].color, 0.1);
     for (const o of G.enemies) {
       if (o === e || o.dead) continue;
       if (Math.hypot(o.x - e.x, o.y - e.y) <= st.splash.r) damage(o, amt * st.splash.frac, t, true);
@@ -190,7 +192,7 @@ function onHit(e, t, st, amt) {
 }
 
 // how long a Slower's slow lasts (owner: 5x the old 2.5s)
-const SLOW_TIME = 12.5;
+const SLOW_TIME = 12.5 / 3; // ~4.2 real seconds
 
 // Slow affects every enemy at full strength (owner; the earlier armor-immune
 // and shield-halves rules are gone). Returns whether any slow landed.
@@ -249,7 +251,7 @@ function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) 
   fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg), slim,
     a: follow ? a : null, b: follow ? b : null });
 }
-function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
+function ring(x, y, r, color, life = 0.12) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
 function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, outline = false) {
   fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline });
@@ -257,11 +259,11 @@ function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, out
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
-    fx.push({ k: "spark", x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, color, t: 0, life: 0.4 + Math.random() * 0.3 });
+    fx.push({ k: "spark", x, y, vx: Math.cos(a) * v * 3, vy: Math.sin(a) * v * 3, color, t: 0, life: (0.4 + Math.random() * 0.3) / 3 });
   }
 }
 let bannerText = "", bannerT = 0;
-function banner(t) { bannerText = t; bannerT = 2; }
+function banner(t) { bannerText = t; bannerT = 2 / 3; }
 
 // ---------- update ----------
 function stepSpawns(dt) {
@@ -297,14 +299,14 @@ function stepEnemies(dt) {
     // no free spin: one corner points along the lane, nose first
     const ahead = pathAt(e.pi, e.s + 3);
     if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
-    if (e.jit) { e.ph += dt * 2.2; e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
+    if (e.jit) { e.ph += dt * 6.6; e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
     if (e.s >= PATHS[e.pi].len) {
       e.gone = true;
       if (e.dead) continue; // a ghost just fades out at the core
       e.dead = true;
       G.lives -= 1;
       sfx("leak");
-      ring(e.x, e.y, 40, "pink", 0.5);
+      ring(e.x, e.y, 40, "pink", 0.17);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }
   }

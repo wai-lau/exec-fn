@@ -1,9 +1,8 @@
 // /aspira — DOM: HUD, build/inspect/power decks, input, overlay, main loop.
 
 // ui.speed is a setting (1/2/3); SPEED_MULT turns it into simulation rate.
-// Setting 1 is the old 3x (owner: the old base was too slow); 2 and 3 are
-// exactly 2x and 3x that.
-const SPEED_MULT = { 1: 3, 2: 6, 3: 9 };
+// 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
+const SPEED_MULT = { 1: 1, 2: 2, 3: 3 };
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 try { ui.auto = localStorage.getItem("aspira.auto") === "1"; } catch (_e) { ui.auto = false; }
 const $ = id => document.getElementById(id);
