@@ -21,7 +21,7 @@ const UPGRADES = {
       { name: "Overcharge", desc: "arcs hit as hard as the first strike", mods: { arcFall: 1 },
         super: { name: "Surge", desc: "arcs hit HARDER than the strike: x1.5", mods: { arcFall: 1.5 } } },
       // static: 1 = charge from the tower's own shots, 2 = Static shots charge too
-      { name: "Static", desc: "hits deal x1.5 and charge enemies (a marigold border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1, dmg: 1.5 },
+      { name: "Static", desc: "hits deal x1.5 and charge enemies (a pink border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1, dmg: 1.5 },
         super: { name: "Thunderhead", desc: "those shots charge what they hit too: kills can cascade", mods: { static: 2 } } },
     ] },
     { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x3.1", mods: { dmg: 3.1, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
