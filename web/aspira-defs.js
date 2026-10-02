@@ -240,9 +240,8 @@ function towerStats(t, noAura = false) {
   };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * LVL_RAPID_RATE[i]; break;
-    // hop reach = the tower's own range (owner; the range itself was halved),
-    // measured from the hub enemy
-    case "chain": s.arcs = LVL_CHAIN_ARCS[i]; s.arcRange = s.range; break;
+    // hop reach = HALF the tower's own range (owner), measured from the hub enemy
+    case "chain": s.arcs = LVL_CHAIN_ARCS[i]; s.arcRange = s.range * 0.5; break;
     case "reaper": s.crit = LVL_REAPER_CRIT[i]; break;
     case "slower": s.slow = LVL_SLOW[i]; s.targets = 5; break;
   }
