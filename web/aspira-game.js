@@ -24,10 +24,11 @@ const WAVE_GAP = 5;
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // A wave mixes K of the unlocked enemy types (owner): K is 1-5 on a bell
 // curve peaking at 2, and each chosen type brings 1/K of its usual count.
-// Types unlock in order: normal w1, swarm w2, fast w3, shield w4, armor w5.
+// Types unlock in order: swarm w1, fast w2, shield w3, armor w4.
 // makeWave returns one spawn list PER TYPE, so each streams on its own lane
 // at the same time. From wave 3 one enemy is swapped for a bonus star.
-const UNLOCK = ["norm", "swarm", "fast", "shield", "armor"];
+// Normal enemies were REMOVED (owner, 2026-10-02): every type now has a counter
+const UNLOCK = ["swarm", "fast", "shield", "armor"];
 const K_WEIGHTS = [0.2, 0.35, 0.25, 0.13, 0.07]; // P(K = 1..5)
 function pickK(max) {
   const w = K_WEIGHTS.slice(0, max), total = w.reduce((a, b) => a + b, 0);
@@ -119,8 +120,8 @@ function entryS(pi) {
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
-  // shields start at exactly 5 on their first wave (4) and gain 1 every 3 waves
-  const shield = d.shield ? d.shield + Math.floor(Math.max(0, n - 4) / 3) : 0;
+  // shields start at exactly 5 on their first wave (3) and gain 1 every 3 waves
+  const shield = d.shield ? d.shield + Math.floor(Math.max(0, n - 3) / 3) : 0;
   G.enemies.push({
     armor: d.armor ? d.armor * (1 + 0.12 * (n - 1)) : 0, shield, shieldMax: shield,
     // swarm members wander widely off the lane, each at its own speed (+-20%)
