@@ -3966,7 +3966,8 @@ for this). A hit soaked by a shield floats a `0` and an armor-blunted hit its re
 number, both in dim grey (the graticule's Silver swatch). The `+N early` and `+N interest` floats from sending a wave stay 11s,
 drifting at 3 units/s instead of 30 (owner: ~10x longer). Floating text ages in REAL time (`stepFloats`), everything else in game
 time, so text durations are wall-clock at any game speed. Damage numbers (and
-shield `0`s) carry a black outline. Every hit floats a damage number SCALED by the
+shield `0`s) carry a thick black outline wrapped in a dark glow (shadow blur)
+so overlapping numbers stay apart. Every hit floats a damage number SCALED by the
 hit (`dmgMag`: size 16+8m, 0.6+0.45m s real time; ~23px/1s for small hits,
 40px/~2s for the biggest; jittered); a kill floats `+N` credits (size 30, 2s). Lane labels read `wave:track` in roman (`X:X` = wave 10 on track 10; the
 riding wave while in use, else the current wave) and sit on an
