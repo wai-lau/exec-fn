@@ -13,7 +13,7 @@
 // plan, per-seed result and action timeline) so they can be ranked afterwards.
 //
 // SPEED (owner, 2026-10-02), none of which changes a result:
-//  - two worker threads each evaluate a mutation of the best plan at once;
+//  - worker threads (WORKERS, default 1) each evaluate a mutation at once;
 //  - a run SNAPSHOTS the game each time it finishes an action, and a later
 //    plan with the same R and the same first k actions RESUMES from the k-th
 //    snapshot instead of replaying the shared opening (the game, the seeded
@@ -126,7 +126,9 @@ function mainSearch() {
   let rs = Number(process.argv[6] || 12345); // search RNG seed: a second run explores differently
   const rnd = () => (rs = (rs * 1103515245 + 12345) % 2147483648) / 2147483648;
   const ri = n => Math.floor(rnd() * n);
-  const NW = Math.max(1, Math.min(2, os.cpus().length));
+  // ONE worker by default (owner, 2026-10-02: two ran the droplet out of
+  // memory alongside the site); WORKERS=2 to opt back in
+  const NW = Math.max(1, Math.min(Number(process.env.WORKERS || 1), os.cpus().length));
 
   // drop actions that cannot happen: >6 builds, upgrades of unbuilt towers, past L4
   function repair(plan) {
