@@ -56,18 +56,35 @@ function noise({ dur = 0.1, vol = 0.3, freq = 2000, q = 1, delay = 0 }) {
   src.start(t0); src.stop(t0 + dur + 0.02);
 }
 
+// A rising, swelling hum over `dur` seconds (the Reaper's reload); returns a
+// handle whose stop() cuts it short when the charge is abandoned.
+function chargeHum(dur) {
+  const t0 = AC.currentTime, o = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(70, t0); o.frequency.exponentialRampToValueAtTime(420, t0 + dur);
+  f.type = "lowpass"; f.frequency.setValueAtTime(350, t0); f.frequency.exponentialRampToValueAtTime(2600, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.07, t0 + dur);
+  o.connect(f).connect(g).connect(master);
+  voices++; o.onended = () => { voices--; };
+  o.start(t0); o.stop(t0 + dur + 0.05);
+  return { stop() { try { g.gain.cancelScheduledValues(AC.currentTime); g.gain.setTargetAtTime(0.0001, AC.currentTime, 0.03); o.stop(AC.currentTime + 0.12); } catch (_e) {} } };
+}
+
 const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * step, ...opts }));
 
 const SFX = {
   rapid:   () => tone({ type: "square", f0: 1400, f1: 900, dur: 0.03, vol: 0.08 }),
   chain:   () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
-  // RPR: a spacey laser - a long falling sine, a detuned shimmer under it,
-  // and a faint echo, instead of a thump
+  // RPR fires a big-cannon discharge (owner asked for that feel; original
+  // synthesis): a deep falling body, a low rumble and a bright crack on top
   reaper:  () => {
-    tone({ f0: 1600, f1: 180, dur: 0.45, vol: 0.12 });
-    tone({ type: "triangle", f0: 1618, f1: 183, dur: 0.45, vol: 0.05 });
-    tone({ f0: 1600, f1: 180, dur: 0.45, vol: 0.035, delay: 0.14 });
+    tone({ f0: 150, f1: 32, dur: 0.8, vol: 0.38 });
+    tone({ type: "sawtooth", f0: 90, f1: 40, dur: 0.5, vol: 0.12 });
+    noise({ dur: 0.6, vol: 0.28, freq: 260, q: 0.6 });
+    noise({ dur: 0.09, vol: 0.16, freq: 2600, q: 1.2 });
   },
+  // and charges up for it: a hum that climbs and swells over the whole reload
+  reaperCharge: dur => chargeHum(dur),
   slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
   kill:    () => tone({ type: "triangle", f0: 520, f1: 1040, dur: 0.07, vol: 0.16 }),
   leak:    () => tone({ type: "sawtooth", f0: 110, f1: 60, dur: 0.4, vol: 0.3 }),
@@ -81,10 +98,11 @@ const SFX = {
 // minimum seconds between two plays of the same sound
 const GAP = { rapid: 0.06, chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.15 };
 
-function sfx(name) {
-  if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !SFX[name]) return;
+// returns whatever the sound returns (a stop() handle for long sounds), or null
+function sfx(name, ...args) {
+  if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !SFX[name]) return null;
   const now = AC.currentTime;
-  if (now - (lastAt[name] ?? -1) < (GAP[name] ?? 0.03)) return;
+  if (now - (lastAt[name] ?? -1) < (GAP[name] ?? 0.03)) return null;
   lastAt[name] = now;
-  SFX[name]();
+  return SFX[name](...args) || null;
 }

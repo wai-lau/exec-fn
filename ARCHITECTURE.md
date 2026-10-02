@@ -4044,7 +4044,10 @@ harmless CHARGE-UP line to its current target that fades in with reload
 progress (`aimReaper` / `drawAims`); firing is a bright 0.25s flash that deals
 the damage; the charge is LOCKED on one target (`stepReaper`): a death
 mid-charge restarts it, leaving range re-targets with the charge kept, no
-target = no charge. New Reapers default to Hard (strongest) targeting (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: a hair-thin core (an eighth of a normal
+target = no charge. New Reapers default to Hard (strongest) targeting. Sound: a rising, swelling
+charge-up hum over the reload (`chargeHum`, timed in real seconds via the game
+speed, stopped if the charge restarts) and a deep cannon discharge on firing
+(original synthesis in the spirit the owner asked for) (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: a hair-thin core (an eighth of a normal
 beam) inside a large two-layer glow (wide 0.18 halo + 0.5 inner glow). **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
 Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy
