@@ -2,9 +2,12 @@
 
 // ui.speed is a setting (0.5/1/2/3); SPEED_MULT turns it into simulation rate.
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
-const SPEED_MULT = { 0.5: 0.5, 1: 1, 2: 2, 3: 3, 10: 10 }; // 0.5x added (owner); 10x for testing (owner)
+// the old 2x is the new 1x (owner, 2026-10-02): every button runs the game
+// twice as fast as its label used to (0.5x added, 10x for testing - owner)
+const BASE_SPEED = 2;
+const SPEED_MULT = { 0.5: 0.5 * BASE_SPEED, 1: BASE_SPEED, 2: 2 * BASE_SPEED, 3: 3 * BASE_SPEED, 10: 10 * BASE_SPEED };
 const SPEEDS = [0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
-const ui = { build: null, sel: null, hover: null, speed: 2, paused: false }; // starts at 2x (owner)
+const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
 // big counts shorten so they never run into the tower buttons: 12345 stays,
