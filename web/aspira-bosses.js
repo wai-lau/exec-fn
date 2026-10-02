@@ -118,3 +118,18 @@ function drawBossInvert() {
   ctx.save(); ctx.globalCompositeOperation = "difference"; ctx.globalAlpha = 1; ctx.fillStyle = g;
   ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, r, 0, 6.283); ctx.fill(); ctx.restore();
 }
+
+// the STARS redden ahead of a boss (owner): over the wave before it they drift
+// from white to red, stay red while it is queued or alive, and drift back to
+// white over STAR_FADE_T s once it is dead
+const STAR_FADE_T = 3;
+const starTint = { k: 0, at: 0 };
+function starRed() {
+  const now = performance.now() / 1000, dt = Math.min(0.1, now - (starTint.at || now));
+  starTint.at = now;
+  const before = G.started && G.wave % STAR_EVERY === STAR_EVERY - 1 && !G.over;
+  if (G.started && !G.over && bossUp()) starTint.k = 1;
+  else if (before) starTint.k = Math.max(starTint.k, 1 - Math.max(0, G.nextIn) / WAVE_TIMER);
+  else starTint.k = Math.max(0, starTint.k - dt / STAR_FADE_T);
+  return starTint.k;
+}

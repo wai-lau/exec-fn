@@ -95,13 +95,14 @@ function drawGraticule() {
 // phase (fixed per star from its index, so the field never reshuffles), on
 // real time so it keeps going while paused. Colour never changes.
 function drawStars() {
-  ctx.fillStyle = COL.white;
-  const now = performance.now() / 1000;
+  const now = performance.now() / 1000, red = starRed(); // reddening before a boss (aspira-bosses.js)
   STARS.forEach((st, i) => {
     const rate = 0.6 + ((i * 0.618) % 1) * 1.8, ph = (i * 2.399) % 6.283;
-    const tw = 0.5 + 0.5 * Math.sin(now * rate + ph);
-    ctx.globalAlpha = Math.min(1, 0.25 + st.m * 0.3) * (0.35 + 0.65 * tw);
-    ctx.beginPath(); ctx.arc(st.x, st.y, st.m * (0.85 + 0.15 * tw), 0, 6.283); ctx.fill();
+    const tw = 0.5 + 0.5 * Math.sin(now * rate + ph), a = Math.min(1, 0.25 + st.m * 0.3) * (0.35 + 0.65 * tw);
+    ctx.beginPath(); ctx.arc(st.x, st.y, st.m * (0.85 + 0.15 * tw), 0, 6.283);
+    // white fading into Ember (the palette's red) as `red` goes 0 -> 1
+    if (red < 1) { ctx.fillStyle = COL.white; ctx.globalAlpha = a * (1 - red); ctx.fill(); }
+    if (red > 0) { ctx.fillStyle = COL.glow; ctx.globalAlpha = a * red; ctx.fill(); }
   });
   ctx.globalAlpha = 1;
 }
