@@ -338,9 +338,9 @@ function frame(now) {
     stepFloats(dt); // real time: unaffected by the game speed
   }
   render(); updateHud(); placePop(); tickFps(now);
-  // the screen INVERTS while a boss is alive (owner) - the whole game, so the
-  // HTML lists over the canvas flip with it and stay readable
-  $("asp").classList.toggle("asp-boss", G.enemies.some(e => e.arcana && !e.dead));
+  // while a boss lives the canvas inverts (drawBossInvert); the HTML over it
+  // flips too once the inversion fills the screen, so it stays readable
+  $("asp").classList.toggle("asp-boss", bossInv.full);
   requestAnimationFrame(frame);
 }
 

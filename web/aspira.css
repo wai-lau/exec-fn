@@ -39,6 +39,10 @@
   font-variant-numeric: tabular-nums;
   color: hsl(var(--green-hsl) / 0.8);
   pointer-events: none;
+
+  /* a dark outline round every glyph and icon, so the list reads over a
+     boss's inverted (white) sky as well as the dark one (owner) */
+  filter: drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl)));
 }
 .asp-wavenote > span:nth-child(3n + 1) { text-align: right; } /* wave numbers right-aligned against the ":" */
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
@@ -108,8 +112,11 @@
 
 .asp-main, .asp-board { position: absolute; inset: 0; }
 
-/* while a boss lives the whole game inverts (owner) */
-#asp.asp-boss { filter: invert(1); }
+/* while a boss lives the canvas inverts itself (aspira-bosses.js); the HTML over
+   it flips too once the inversion fills the screen (owner) */
+#asp.asp-boss .asp-head,
+#asp.asp-boss .asp-bottom,
+#asp.asp-boss .asp-pop { filter: invert(1); }
 
 #asp-cv {
   position: absolute;
