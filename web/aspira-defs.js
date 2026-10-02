@@ -257,7 +257,7 @@ const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
 // leak (owner, 2026-10-02); the simulator showed even full rate leaked ~10
 const LVL_REAPER_RATE = [1, 1, 1, 1];
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
-const LVL_SLOW = [0.4, 0.45, 0.5, 0.55]; // owner: starts at 40%, grows modestly; capped at 0.85 in towerStats
+const LVL_SLOW = [0.4, 0.45, 0.5, 0.55], FRZ_SLOW_MUL = 0.8; // owner: starts at 40%, grows modestly; capped at 0.85 in towerStats
 // cost to go from level i+1 to i+2, as a multiple of the tower's build cost
 const STEP_COST = [5.9, 15.25, 24];
 
@@ -299,7 +299,9 @@ function towerStats(t, noAura = false) {
       else applyMods(s, t.lvl >= MAX_LVL ? superMods(fm) : fm);
     }
   }
-  if (s.slow) s.slow = Math.min(0.85, s.slow);
+  // every FRZ slow 20% weaker (owner, 2026-10-02) - base, Stasis, Permafrost,
+  // Ice Age, Frostbite alike; Deep Freeze's 95% near-freeze is kept as is
+  if (s.slow) s.slow = Math.min(0.85, s.slow * FRZ_SLOW_MUL);
   if (!noAura) {
     for (const u of G.towers) {
       if (u === t) continue;
