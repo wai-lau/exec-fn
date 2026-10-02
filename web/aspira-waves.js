@@ -65,8 +65,6 @@ function sendWave() {
   // a boss is announced (owner): the advisor's double beep, then the Archon
   // (each boss has its own line, "bossvoice.<arcana>", else the shared one)
   if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", bossVoice(arcanaOf(G.wave).id)]);
-  // (owner) white like the core, and held 3s so it registers; click the core: aspira-core.js
-  if (G.wave === CORE_UNLOCK) banner("core upgrades unlocked", "white", 3);
   sfx("wave");
   const lanes = laneMap(G.wave);
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a

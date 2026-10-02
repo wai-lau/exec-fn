@@ -47,7 +47,9 @@ const CORE_MAX = CORE_COST.length;
 const coreLvl = () => (G.core ? G.core.lvl : 0);
 const coreHas = id => !!G.core && (G.core.l1 === id || G.core.l2 === id || G.core.l3 === id);
 const coreCost = () => CORE_COST[coreLvl()];
-const coreOpen = () => G.wave >= CORE_UNLOCK;
+// open once STRENGTH (the wave-30 boss) is beaten (owner) - a boss that gets
+// through ends the game, so being past wave 30 means it fell
+const coreOpen = () => G.wave > CORE_UNLOCK;
 // what the next core level offers: L1's three, the two under the L1 taken,
 // or the one under the L2 taken
 const coreOptions = () => [CORE_L1, G.core && CORE_L2[G.core.l1], G.core && CORE_L3[G.core.l2]][coreLvl()];
@@ -196,10 +198,10 @@ function inspectCore(el) {
   const took = [l1, l2, l3].filter(Boolean);
   el.innerHTML = '<div class="name">Core · L' + lvl + " of " + CORE_MAX + took.map(o => " · " + o.name).join("") + "</div>" +
     '<div id="asp-upbox"></div>' +
-    '<p class="asp-hint">' + (took.length ? took.map(o => o.desc).join("; ") : "The heart of the chart. Upgrades unlock at wave " + CORE_UNLOCK + ".") + "</p>";
+    '<p class="asp-hint">' + (took.length ? took.map(o => o.desc).join("; ") : "The heart of the chart. Upgrades unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>";
   const box = $("asp-upbox");
   if (lvl >= CORE_MAX) { coreReps(box, pick); return; }
-  if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks at wave " + CORE_UNLOCK, () => {}); return; }
+  if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
   coreOptions().forEach((o, i) => {
     button(box, "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
       "<b>" + o.name + " · " + coreCost() + "</b><span>" + o.desc + "</span>", () => { ui.pick = { tid: "core", choice: i }; refreshPanels(); });
