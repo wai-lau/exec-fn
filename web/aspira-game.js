@@ -21,7 +21,7 @@ let G = newGame();
 // ---------- waves ----------
 // Waves go on a FIXED TIMER (owner, 2026-10-02), fast enough that 2+ waves are
 // usually on screen, and still at once whenever the field clears.
-const WAVE_TIMER = 10;
+const WAVE_TIMER = 13; // owner: +3s (was 10) to thin the field
 // clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):

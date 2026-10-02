@@ -4273,6 +4273,7 @@ REGRESSION fixed (2026-10-02): the price-doubling commit dropped `const b` from 
 Fast enemies: hp 0.6 -> 1.0, and every slow on a Fast enemy counts DOUBLE up to 90% (`FAST_SLOW_MUL`/`FAST_SLOW_CAP` in `applySlow`; a stronger asked-for slow such as Deep Freeze's 95% is kept) (owner, 2026-10-02).
 Slows now STACK across towers, logarithmically (owner, 2026-10-02; replaces "one slow at a time"): `e.slows` keeps one slow per source (tower id; Deep Freeze is `id:chill`), `sumSlows` ages them and sets `e.slowF = max(f1, min(0.9, f1 x (1 + 0.5 ln n)))` over n live sources. Base FRZ on a normal enemy: 0.40 / 0.54 / 0.62 / 0.68 for 1-4 towers; on Fast 0.80 then the 0.90 cap.
 Contagion range x0.6 and Pandemic x1.25 on top (was x1 / x1.5) (owner, 2026-10-02: every burn in range keeps ramping, so the wide version was too strong).
+Wave timer 10 -> 13s (owner, 2026-10-02: thinner field). Simulator (six slots, ARC/FRZ/SOL): 2+ waves on screen 68-77% in W0-29, 88% in W30-39, 100% after (10s gave 73-96%); reached W55 vs W52.
 Shield and armor enemies trade HP for defence (owner, 2026-10-02): shield hp 0.9 -> 0.6, shield 5 -> 8 charges; armor hp 1.6 -> 1.0, armor 15 -> 24 (both still scale with the HP curve).
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).
