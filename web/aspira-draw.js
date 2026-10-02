@@ -300,10 +300,13 @@ function drawFx(pass) {
       if (f.m) {
         const a = ctx.globalAlpha;
         if (f.slim) {
-          // RPR (owner): a super-bright WHITE core inside a very dense pink
-          // glow - a wide halo and a near-solid inner glow, both pink
-          ctx.globalAlpha = a * 0.4; ctx.lineWidth = (f.w + 1) * (3 + 5 * f.m); ctx.stroke();
-          ctx.globalAlpha = a * 0.85; ctx.lineWidth = (f.w + 1) * (1 + 1.5 * f.m); ctx.stroke();
+          // RPR (owner): a super-bright WHITE core in a pink glow that is a
+          // GRADIENT - densest at the core, fading out by twice its width.
+          // Four nested strokes, widest first, stack into that falloff.
+          const core = wm * (f.w + 1) * (0.6 + 0.4 * f.m);
+          for (let i = 4; i >= 1; i--) {
+            ctx.globalAlpha = a * 0.3; ctx.lineWidth = core * (1 + i * 0.25); ctx.stroke();
+          }
         } else {
           ctx.globalAlpha = a * 0.22; ctx.lineWidth = (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
         }

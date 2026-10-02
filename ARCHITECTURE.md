@@ -4056,10 +4056,11 @@ the damage; the Reaper has TWO ranges: a lock may only START inside its range,
 but HOLDS out to `REAPER_HOLD = 2`x it (drawn as a dashed outer ring); the charge is LOCKED on one target (`stepReaper`): a death
 mid-charge restarts it, leaving range re-targets with the charge kept, no
 target = no charge. New Reapers default to Hard (strongest) targeting. Sound (owner: no bass): the
-LAST THIRD of a charge-up whine (~900→1500Hz, tremolo ~13→26/s) over the last
+LAST THIRD of a charge-up whine (~500→850Hz, tremolo ~13→26/s) over the last
 third of the reload (`chargeHum`, timed in real seconds via the game speed, stopped if the
-charge restarts), then a fast laser zap 2800→380Hz on firing (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: a hair-thin super-bright WHITE core (an
-eighth of a normal beam) inside a very dense pink glow (0.4 halo + 0.85 inner). **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
+charge restarts), then a fast laser zap 1600→300Hz on firing (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: a hair-thin super-bright WHITE core (an
+eighth of a normal beam) inside a pink GRADIENT glow out to twice the core's width (four nested
+0.3-alpha strokes stack into a falloff that is densest at the core). **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
 Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
