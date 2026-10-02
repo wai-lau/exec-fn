@@ -146,11 +146,14 @@ function inspectTower(el, t) {
       button($("asp-upbox"), "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
         "<b>" + o.name + " · " + upCost(t) + "</b><span>" + o.desc + "</span>", () => pickUpgrade(t, i));
     });
+  } else if (!maxed && t.lvl + 1 === MAX_LVL && t.form != null) {
+    // the L4 step names the form's own super and says what it does
+    const f = UPGRADES[t.kind][t.path].finals[t.form], sup = f.super || { name: "Super " + f.name, desc: "a stronger " + f.name };
+    button($("asp-upbox"), "asp-primary asp-choice" + (pick ? " on" : ""),
+      "<b>→ L" + MAX_LVL + " " + sup.name + " · " + upCost(t) + "</b><span>" + sup.desc + "</span>", () => pickUpgrade(t, null));
   } else {
     button($("asp-upbox"), "asp-primary asp-up-big" + (pick ? " on" : ""),
-      maxed ? "max level" : t.lvl + 1 === MAX_LVL && t.form != null
-        ? "→ L" + MAX_LVL + " super " + UPGRADES[t.kind][t.path].finals[t.form].name + " · " + upCost(t)
-        : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => { if (!maxed) pickUpgrade(t, null); });
+      maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => { if (!maxed) pickUpgrade(t, null); });
   }
   if (pick) button($("asp-upbox"), "asp-primary asp-up-big", "confirm · " + upCost(t) + " (U)", () => upgradeTower(t, pick.choice), "asp-up");
   MODES.forEach(([m, label]) => {
