@@ -161,14 +161,24 @@ const STARS = (function starField() {
   return out;
 })();
 
-function pathAt(pi, s) {
+// ang: the lane is a COPY rotated by `ang` radians about the core (owner:
+// a split wave rides k identical copies of its lane, 360/k degrees apart)
+function pathAt(pi, s, ang = 0) {
   const { pts, len } = PATHS[pi];
-  if (s <= 0) return pts[0];
-  if (s >= len) return pts[pts.length - 1];
-  let lo = 0, hi = pts.length - 1;
-  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m].s <= s) lo = m; else hi = m; }
-  const a = pts[lo], b = pts[hi], f = (s - a.s) / (b.s - a.s || 1);
-  return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+  let p;
+  if (s <= 0) p = pts[0];
+  else if (s >= len) p = pts[pts.length - 1];
+  else {
+    let lo = 0, hi = pts.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m].s <= s) lo = m; else hi = m; }
+    const a = pts[lo], b = pts[hi], f = (s - a.s) / (b.s - a.s || 1);
+    p = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+  }
+  return ang ? rotAbout(p, ang) : p;
+}
+function rotAbout(p, ang) {
+  const c = Math.cos(ang), s = Math.sin(ang), dx = p.x - CX, dy = p.y - CY;
+  return { x: CX + dx * c - dy * s, y: CY + dx * s + dy * c };
 }
 
 // Colours are palette KEYS, resolved at boot from the hidden swatches in
