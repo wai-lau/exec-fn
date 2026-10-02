@@ -11,20 +11,19 @@ const BRANCH_LVL = 2, FINAL_LVL = 3; // the levels that bring the path / final f
 
 const UPGRADES = {
   chain: [
-    // base hop reach (50) only spans packed swarms; Conductor buys the reach to
-    // chain through ordinary trains (spaced ~48-67), turning CHN into an all-rounder
-    { name: "Conductor", desc: "+2 arcs, arcs reach 50% further (chain through trains)", mods: { arcs: 2, arcRange: 1.5 }, finals: [
-      { name: "Storm", desc: "+3 arcs, arcs hit almost as hard as the first strike", mods: { arcs: 3, arcFall: 0.9 } },
-      { name: "Tesla", desc: "arcs jump 70% further", mods: { arcRange: 1.7 } },
+    // L2 paths (owner, 2026-10-02). branch / layers reshape the arc tree;
+    // the L3 finals are PLACEHOLDERS until designed.
+    { name: "Storm", desc: "the tree grows: 1→3→9", mods: { branch: 3, layers: 2 }, finals: [
+      { name: "Tempest", desc: "(placeholder) 1→4→16", mods: { branch: 4 } },
+      { name: "Overcharge", desc: "(placeholder) arcs hit as hard as the strike", mods: { arcFall: 1 } },
     ] },
-    { name: "Overload", desc: "+50% damage", mods: { dmg: 1.5 }, finals: [
-      { name: "Capacitor", desc: "every 4th shot deals x4", mods: { everyN: { n: 4, mul: 4 } } },
-      // was "x2.5 to bosses"; bosses were removed, so EMP now targets armor (placeholder)
-      { name: "EMP", desc: "x2.5 damage to armored enemies", mods: { armorMul: 2.5 } },
+    { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1", mods: { branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
+      { name: "Rail", desc: "(placeholder) a longer line, 6 hops", mods: { layers: 6 } },
+      { name: "Melt", desc: "(placeholder) ignores all armor", mods: { armorPierce: 1 } },
     ] },
-    { name: "Shock", desc: "15% chance to stun 0.1s", mods: { stun: { p: 0.15, t: 0.1 } }, finals: [
-      { name: "Paralyze", desc: "35% chance to stun 0.2s", mods: { stun: { p: 0.35, t: 0.2 } } },
-      { name: "Static", desc: "every hit slows 30% for 0.5s", mods: { hitSlow: { f: 0.3, t: 0.5 } } },
+    { name: "Static", desc: "every hit slows 30% for 0.5s", mods: { hitSlow: { f: 0.3, t: 0.5 } }, finals: [
+      { name: "Lockup", desc: "(placeholder) hits slow 50% for 0.8s", mods: { hitSlow: { f: 0.5, t: 0.8 } } },
+      { name: "Shock", desc: "(placeholder) 20% chance to stun 0.3s", mods: { stun: { p: 0.2, t: 0.3 } } },
     ] },
   ],
   // ACD's tree is a PLACEHOLDER (owner to design): plain stat paths for now
