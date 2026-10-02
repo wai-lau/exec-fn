@@ -3938,11 +3938,11 @@ unlocking at waves 1 / 2 / 3 / 4 (`UNLOCK`); shields still start at 5 on their f
 forms each: **Storm** (tree 1-3-9) -> Tempest 1-4-16 / Overcharge arcs at full
 strike damage / Static hits slow 30% 0.5s; **Ion** (x3.1 damage, ignores shields +
 half of armor via `damage(..., st)`, a line 1-1-1-1 that never bounces back,
-`noRevisit`) -> Rail 6 hops / Melt ignores all armor + each hit strips 2 armor
-(`armorShred`, onHit) / Crescendo each hop +25% (`hopGain`). Each form has its
+`noRevisit`) -> Rail 6 hops / Fork two lines from two different enemies, damage
+x0.85 (`st.targets` 2) / Crescendo each hop +25% (`hopGain`). Each form has its
 OWN on-theme L4 super (`super: {name, desc, mods}`, applied on top; owner):
 Maelstrom 1-5-25, Surge arcs x1.5 the strike, Lockdown slow 50% 1s + 20% stun,
-Railgun 10 hops, Dissolve strips 6 armor a hit, Fortissimo +60% per hop. Forms
+Railgun 10 hops, Trident three lines, Fortissimo +60% per hop. Forms
 without one fall back to the generic `superMods`.
 EXC's specialty is REACH (owner): base range 318 (x1.2 from 265; 382 at L1).
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).

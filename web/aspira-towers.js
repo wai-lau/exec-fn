@@ -192,7 +192,9 @@ function fire(t, st) {
   const targets = pickTargets(t, st, st.targets);
   if (!targets.length) return false;
   t.shots = (t.shots || 0) + 1;
-  if (t.kind === "chain") { fireChain(t, st, targets[0]); return true; }
+  // one chain per target: st.targets > 1 (Ion's Fork) starts several lines on
+  // DIFFERENT enemies (pickTargets never repeats one)
+  if (t.kind === "chain") { for (const e of targets) fireChain(t, st, e); return true; }
   if (t.kind === "reaper") { fireRay(t, st, targets[0]); return true; }
   const col = TOWERS[t.kind].color;
   for (const e of targets) {

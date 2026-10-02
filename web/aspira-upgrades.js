@@ -26,8 +26,10 @@ const UPGRADES = {
     { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x3.1", mods: { dmg: 3.1, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
       { name: "Rail", desc: "a longer line: 6 hops", mods: { layers: 6 },
         super: { name: "Railgun", desc: "the line runs 10 hops", mods: { layers: 10 } } },
-      { name: "Melt", desc: "ignores all armor; each hit strips 2 armor for good", mods: { armorPierce: 1, armorShred: 2 },
-        super: { name: "Dissolve", desc: "each hit strips 6 armor for good", mods: { armorShred: 6 } } },
+      // Fork (owner): two lines on two different enemies. Two full lines are 2 x 3.4 =
+      // 6.8 strikes a shot, so x0.85 damage levels it with Rail (5.8); Trident ~ Railgun
+      { name: "Fork", desc: "two lines 1→1→1→1, never from the same enemy; damage x0.85", mods: { targets: 1, dmg: 0.85 },
+        super: { name: "Trident", desc: "three lines", mods: { targets: 1 } } },
       { name: "Crescendo", desc: "each hop hits 25% harder than the last", mods: { hopGain: 1.25 },
         super: { name: "Fortissimo", desc: "each hop hits 60% harder than the last", mods: { hopGain: 1.6 } } },
     ] },
