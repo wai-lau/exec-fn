@@ -84,6 +84,16 @@ function drawStatus(e, d, size) {
     poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
     ctx.fillStyle = COL.cyan; ctx.globalAlpha = 0.45 * Math.min(1, e.biteT * 2); ctx.fill();
   }
+  // the core's marks (owner: clear animations): Vacuum a dashed white ring;
+  // Echo / Resonance a white glow while the bonus holds
+  if (e.quenched) {
+    ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283); ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (G.core && coreHas("echo") && G.core.clock < (e.echoUntil || 0)) {
+    poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
+    ctx.fillStyle = COL.white; ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 90); ctx.fill();
+  }
   if (e.brittle > 1 && e.slowT > 0) {
     const s = size * 0.7, c = Math.cos(e.rot), n = Math.sin(e.rot);
     const pt = (u, v) => [e.x + c * u - n * v, e.y + n * u + c * v];

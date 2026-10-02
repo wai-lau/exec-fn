@@ -462,6 +462,7 @@ function render() {
   drawAcid();
   drawAims();
   drawFx("shots");
+  drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
   drawFx("text");

@@ -30,7 +30,7 @@ export function makeGame(seed, patch = "") {
   vm.runInContext(`
     const __ts = towerStats, __cache = new Map();
     towerStats = function (t, noAura) {
-      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + (G.core ? G.core.l1 + G.core.l2 : ""); // core upgrades change stats
+      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + (G.core ? [G.core.l1, G.core.l2, G.core.l3, JSON.stringify(G.core.reps || {})].join() : ""); // core upgrades change stats
       let s = __cache.get(k);
       if (!s) { s = __ts(t, true); __cache.set(k, s); }
       return s;

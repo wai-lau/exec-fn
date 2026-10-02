@@ -314,9 +314,11 @@ function towerStats(t, noAura = false) {
   // the core's upgrades (aspira-core.js): Sinter damage, Temper fire rate,
   // Space (doubled by Expanse) range
   if (G.core) {
-    if (coreHas("sinter")) s.dmg *= SINTER_MUL;
-    if (coreHas("temper") && t.kind !== "acid") s.rate *= TEMPER_RATE; // not ACD's ticks (aspira-core.js)
+    if (sintering()) s.dmg *= SINTER_MUL;
     s.range += NULL_RANGE * spaceK();
+    // the repeatables: Amplifier, Overclock (not ACD's ticks), Lens
+    s.dmg *= repMul("amplifier"); s.range *= repMul("lens");
+    if (t.kind !== "acid") s.rate *= repMul("overclock");
   }
   return s;
 }

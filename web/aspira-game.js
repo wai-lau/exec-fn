@@ -54,7 +54,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
-  if (coreHas("quench")) quench(G.enemies[G.enemies.length - 1]); // the core's Quench (aspira-core.js)
+  if (quenching()) quench(G.enemies[G.enemies.length - 1]); // the core's Quench / Vacuum (aspira-core.js)
 }
 
 // ---------- combat ----------
@@ -62,8 +62,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
 // by it too, so enemies stay the same DISTANCE apart on the lane — that
 // spacing is a balance lever for chain reach.
 const ENEMY_SPEED = 1.5;
-const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0)) *
-  vacuumMul(); // the core's Vacuum / Void (aspira-core.js)
+const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
 const MODE_KEY = {
   // close = closest to the CORE (owner), not to the tower: the most urgent enemy
