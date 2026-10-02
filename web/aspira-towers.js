@@ -146,8 +146,7 @@ function fireRay(t, st, e) {
   if (!st.pierce) {
     const m = mulFor(e), d = shotDamage(t, st, e, st.dmg) * m;
     beam(t, e, col, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
-    if (m > 1) float(e.x, e.y - 20, "CRIT", col, 16);
-    damage(e, d, t); onHit(e, t, st, d);
+    damage(e, d, t, false, m > 1); onHit(e, t, st, d); // a crit shows as a PINK number (owner)
     return;
   }
   const dx = e.x - t.x, dy = e.y - t.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
@@ -162,8 +161,7 @@ function fireRay(t, st, e) {
   let base = st.dmg;
   for (const o of inLine) {
     const m = mulFor(o), d = shotDamage(t, st, o, base) * m;
-    if (m > 1) float(o.x, o.y - 20, "CRIT", col, 16);
-    damage(o, d, t); onHit(o, t, st, d);
+    damage(o, d, t, false, m > 1); onHit(o, t, st, d);
     base *= st.pierce.fall;
   }
 }
