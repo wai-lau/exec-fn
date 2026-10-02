@@ -3920,6 +3920,8 @@ canvas; double-click refits; a window resize refits too. A press moving under
 `DRAG_PX` 6 is a TAP and goes to ui.js `onTap` (select / place), so placement
 fires on release, not on press. Canvas `touch-action: none`. Speeds now include
 0.5x (owner).
+Each enemy TYPE in a wave starts `TYPE_STAGGER` 2s after the previous one
+(owner); a type's split copies start together.
 **SPLIT WAVES (owner):** each type's group in a wave is split k = 1..6 ways
 (uniform) and each part rides a COPY of its lane rotated 360/k degrees about the
 core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn

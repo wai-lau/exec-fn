@@ -49,6 +49,7 @@ function makeWave(n) {
 
 // Interest is paid on what you hold at the moment a wave is sent, so saving
 // beats spending early. Sending before the countdown ends pays the seconds left.
+const TYPE_STAGGER = 2; // seconds between one enemy type's start and the next
 function sendWave() {
   if (G.over) return;
   const gain = Math.floor(G.money * G.interest);
@@ -60,13 +61,14 @@ function sendWave() {
   const lanes = laneMap(G.wave);
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once
-  for (const list of makeWave(G.wave)) {
+  // and each TYPE starts TYPE_STAGGER seconds after the one before (owner)
+  makeWave(G.wave).forEach((list, ti) => {
     const k = 1 + Math.floor(Math.random() * 6), per = Math.max(1, Math.ceil(list.length / k));
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
-      if (part.length) G.spawns.push({ n: G.wave, list: part, lanes, ang: (j / k) * Math.PI * 2, idx: 0, timer: 0 });
+      if (part.length) G.spawns.push({ n: G.wave, list: part, lanes, ang: (j / k) * Math.PI * 2, idx: 0, timer: ti * TYPE_STAGGER });
     }
-  }
+  });
   G.nextIn = WAVE_GAP;
   G.started = true;
 }
