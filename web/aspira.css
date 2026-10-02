@@ -52,8 +52,15 @@
 #asp .asp-build .asp-tw { min-width: 72px; background: hsl(var(--bg-hsl)); }
 
 .asp-placing {
+  /* floats above the build bar without taking layout space, so showing it
+     never changes the bar's size (and so never moves the board) */
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(560px, 100%);
   margin: 0;
-  max-width: 560px;
   padding: var(--space-2) var(--space-4);
   border: 1px solid hsl(var(--green-hsl) / 0.12);
   border-radius: var(--radius-2);

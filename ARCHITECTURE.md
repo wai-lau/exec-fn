@@ -3919,7 +3919,8 @@ URL. A web take on the spiral tower-defence genre (Android "Spira Defence" /
 the canvas fills the screen above the nav. The header (title, stats, and a
 controls row: send wave, auto-send, pause/speeds, sound) floats top-left; the
 build bar floats bottom-centre with a one-line "placing" note above it only
-while placing. No cards/decks and no inspector (owner); the only panel is the
+while placing. NOTHING bumps the board: the camera re-fits only when the canvas (window)
+resizes, and the placing note floats absolutely above the bar. No cards/decks and no inspector (owner); the only panel is the
 tower popup, shown only while a tower is selected. The camera
 (`cam` in aspira-draw.js, device pixels) fits the 1000-unit chart into the
 area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient

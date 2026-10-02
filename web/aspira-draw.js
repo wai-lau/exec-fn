@@ -18,9 +18,10 @@ function resize() {
   cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
   cam.oy = (y0 + (y1 - y0 - W * k) / 2) * dpr;
 }
+// Re-fit ONLY when the canvas itself changes size (window resize). Nothing in
+// the overlays — the placing note, a send-wave label rewrapping — may move the
+// board (owner: nothing should bump the game).
 new ResizeObserver(resize).observe(cv);
-new ResizeObserver(resize).observe(document.querySelector(".asp-head"));
-new ResizeObserver(resize).observe(document.querySelector(".asp-bottom"));
 
 function poly(x, y, r, n, rot, star) {
   ctx.beginPath();
