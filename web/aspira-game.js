@@ -359,6 +359,9 @@ function stepSpawns(dt) {
 }
 
 const JIT_FADE_R = 400; // swarm wander is full beyond this radius, 0 at the core
+// enemies turn nose-first along their lane - drawing only, so the headless
+// balance simulator switches it off (scripts/aspira-sim)
+let FACING = true;
 function stepEnemies(dt) {
   for (const e of G.enemies) {
     if (e.gone) continue;
@@ -376,8 +379,10 @@ function stepEnemies(dt) {
     }
     const p = pathAt(e.pi, e.s, e.ang); e.x = p.x; e.y = p.y;
     // no free spin: one corner points along the lane, nose first
-    const ahead = pathAt(e.pi, e.s + 3, e.ang);
-    if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
+    if (FACING) {
+      const ahead = pathAt(e.pi, e.s + 3, e.ang);
+      if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
+    }
     // wobble rate cut to 1/3 (owner) when the wander tripled, so it drifts, not buzzes
     if (e.jit) {
       e.ph += dt * 2.2 * (e.phr || 1);
