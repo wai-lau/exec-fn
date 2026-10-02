@@ -3960,8 +3960,8 @@ Ricochet one bounce at 60% / Refund 50% of overkill flies back as a reflected
 beam into the next shot (`t.bank`). L4 supers: Horizon +2%, Collapse 75% r135,
 Verdict under 35%, Lattice 7 locks, Carom full bounce, Full Refund 100%. Code:
 `rayHit` / `fireRay` (towers.js); Lance's pierce branch was removed.
-ARC's **Static** (Storm form, owner): hits CHARGE enemies (`e.charged`, a yellow
-border; new palette token `--yellow-hsl` [Static]); a charged enemy that dies
+ARC's **Static** (Storm form, owner): hits CHARGE enemies (`e.charged`, a Marigold
+border, owner); a charged enemy that dies
 fires a full ARC shot from where it fell (`staticDischarge` -> `fireChain(...,
 from, relay)`). Its shots do not charge, so kills cannot cascade - except at L4
 **Thunderhead** (`static: 2`). Replaced the old slow-on-hit Static.
