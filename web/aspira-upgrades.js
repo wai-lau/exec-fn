@@ -20,8 +20,9 @@ const UPGRADES = {
         super: { name: "Maelstrom", desc: "wider still: 1→5→25", mods: { branch: 5 } } },
       { name: "Overcharge", desc: "arcs hit as hard as the first strike", mods: { arcFall: 1 },
         super: { name: "Surge", desc: "arcs hit HARDER than the strike: x1.5", mods: { arcFall: 1.5 } } },
-      { name: "Static", desc: "every hit slows 30% for 0.5s", mods: { hitSlow: { f: 0.3, t: 0.5 } },
-        super: { name: "Lockdown", desc: "hits slow 50% for 1s and may stun (20%, 0.3s)", mods: { hitSlow: { f: 0.5, t: 1 }, stun: { p: 0.2, t: 0.3 } } } },
+      // static: 1 = charge from the tower's own shots, 2 = Static shots charge too
+      { name: "Static", desc: "hits charge enemies (yellow); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1 },
+        super: { name: "Thunderhead", desc: "those shots charge what they hit too: kills can cascade", mods: { static: 2 } } },
     ] },
     { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x3.1", mods: { dmg: 3.1, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
       { name: "Rail", desc: "a longer line: 6 hops", mods: { layers: 6 },
@@ -67,8 +68,8 @@ const UPGRADES = {
         super: { name: "Fracture", desc: "+60%", mods: { brittle: 1.6 } } },
     ] },
     { name: "Stasis", desc: "slow +20%", mods: { slow: 0.2 }, finals: [
-      { name: "Deep Freeze", desc: "a newly slowed enemy freezes solid for 0.4s", mods: { chillStop: 0.4 },
-        super: { name: "Absolute Zero", desc: "freezes for 0.8s", mods: { chillStop: 0.8 } } },
+      { name: "Deep Freeze", desc: "a newly slowed enemy nearly freezes: 95% slow for 0.4s", mods: { chillStop: 0.4 },
+        super: { name: "Absolute Zero", desc: "95% slow for 0.8s", mods: { chillStop: 0.8 } } },
       { name: "Whiteout", desc: "slows everything in range; the range glows", mods: { all: true },
         super: { name: "Blizzard", desc: "range x1.4", mods: { range: 1.4 } } },
       { name: "Permafrost", desc: "the slow never wears off", mods: { permafrost: true },

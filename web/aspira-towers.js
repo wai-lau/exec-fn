@@ -27,12 +27,34 @@ const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start
 // The tree is built of NODES (an enemy can appear in several once arcs
 // bounce back): node = { e, fx: the beam that reached it, up: parent node,
 // kids: Set of enemy ids its arcs already took }.
-function fireChain(t, st, e) {
+// from: where the strike comes from - the tower, or (Static) the spot where a
+// charged enemy died; relay: this shot was fired by Static (its hits charge
+// enemies only at L4, Thunderhead, so kills cannot chain-react below that)
+function fireChain(t, st, e, from = t, relay = false) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
-  beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
-  damage(e, dmg, t, false, false, st); onHit(e, t, st, dmg);
-  const c = { t, st, col, dmg: st.dmg * st.arcFall, seen: new Set([e.id]) };
+  beam(from, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
+  const c = { t, st, col, dmg: st.dmg * st.arcFall, seen: new Set([e.id]), relay };
+  chainHit(c, e, dmg);
   branchFrom(c, root, 1);
+}
+// one ARC hit; Static charges the enemy (yellow border) so its death fires a shot
+function chainHit(c, e, d) {
+  damage(e, d, c.t, false, false, c.st); onHit(e, c.t, c.st, d);
+  if (c.st.static && !e.dead && (!c.relay || c.st.static > 1)) e.charged = c.t;
+}
+// Static: a charged enemy that dies fires a full ARC shot from where it died,
+// at the nearest live enemy within the tower's range of that spot
+function staticDischarge(e) {
+  const t = e.charged;
+  if (!G.towers.includes(t)) return;
+  const st = towerStats(t);
+  let nxt = null, nd = st.range * st.range;
+  for (const o of G.enemies) {
+    if (o.dead || o === e) continue;
+    const d = (o.x - e.x) ** 2 + (o.y - e.y) ** 2;
+    if (d < nd) { nd = d; nxt = o; }
+  }
+  if (nxt) fireChain(t, st, nxt, { x: e.x, y: e.y }, true);
 }
 // keep this node's beam, and every beam above it, lit for `left` more
 // seconds: a parent's beam outlives all its children's (the deepest keep
@@ -77,7 +99,7 @@ function hopTo(c, node, nxt, depth) {
   node.kids.add(nxt.id); c.seen.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one
-  damage(nxt, d, t, false, false, st); onHit(nxt, t, st, d);
+  chainHit(c, nxt, d);
   return child;
 }
 
@@ -91,7 +113,8 @@ function fireSlower(t, st) {
     const fresh = !(e.slowT > 0);
     if (!applySlow(e, st.slow, st.permafrost ? Infinity : SLOW_TIME)) continue; // Permafrost: forever
     if (st.shatter) e.shatter = { t, st };
-    if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop);
+    // Deep Freeze: a near-freeze (95% slow), never a stun - no stunlocking (owner)
+    if (st.chillStop && fresh) applySlow(e, 0.95, st.chillStop);
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
     // each pulse also nicks: st.dmg (+ Sap's % max HP); it is a real hit, so

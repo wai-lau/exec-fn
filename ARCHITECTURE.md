@@ -3960,12 +3960,17 @@ Ricochet one bounce at 60% / Refund 50% of overkill flies back as a reflected
 beam into the next shot (`t.bank`). L4 supers: Horizon +2%, Collapse 75% r135,
 Verdict under 35%, Lattice 7 locks, Carom full bounce, Full Refund 100%. Code:
 `rayHit` / `fireRay` (towers.js); Lance's pierce branch was removed.
+ARC's **Static** (Storm form, owner): hits CHARGE enemies (`e.charged`, a yellow
+border; new palette token `--yellow-hsl` [Static]); a charged enemy that dies
+fires a full ARC shot from where it fell (`staticDischarge` -> `fireChain(...,
+from, relay)`). Its shots do not charge, so kills cannot cascade - except at L4
+**Thunderhead** (`static: 2`). Replaced the old slow-on-hit Static.
 EXC's specialty is REACH (owner): base range 318 (x1.2 from 265; 382 at L1).
 **FRZ upgrades (owner, 2026-10-02):** L2 **Shatter** (a slowed enemy that dies
 after a Shatter FRZ chilled it explodes for 25% of its max HP within 60; blast
 kills never shatter in turn) -> Frostbite blasts slow 2.6s / Shrapnel 50% /
-Brittle +30% taken from every tower; **Stasis** (slow +20%) -> Deep Freeze 0.4s
-freeze / Whiteout slows all in range, range glows instead of tethers /
+Brittle +30% taken from every tower; **Stasis** (slow +20%) -> Deep Freeze 95% slow
+0.4s (never a stun: no stunlocking) / Whiteout slows all in range, range glows instead of tethers /
 Permafrost the slow never wears off. L4 supers: Hoarfrost 7.8s, Splinter 100%,
 Fracture +60%, Absolute Zero 0.8s, Blizzard range x1.4, Ice Age +15% slow.
 ONE slow at a time (owner): `applySlow` keeps only the strongest; a weaker slow is
