@@ -114,7 +114,7 @@ function spawnEnemy(type, n, pi) {
     armor: d.armor ? d.armor * (1 + 0.12 * (n - 1)) : 0, shield, shieldMax: shield,
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
-    jit: type === "swarm" ? 12 + Math.random() * 30 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved
+    jit: type === "swarm" ? 6 + Math.random() * 15 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved twice
     spd: type === "swarm" ? 0.8 + Math.random() * 0.4 : 1, phr: 0.6 + Math.random(),
     id: G.id++, type, n, hp, max: hp, pi, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
@@ -288,7 +288,7 @@ function stepSpawns(dt) {
       spawnEnemy(type, w.n, w.lanes[type]);
       // spacing is a balance lever: swarms stream evenly and very densely
       // (5x the bodies in the same time as before), trains spread ~60+ apart
-      w.timer += (type === "swarm" ? 0.012 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
+      w.timer += (type === "swarm" ? 0.024 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
     }
   }
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
