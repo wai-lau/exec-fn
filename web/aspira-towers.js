@@ -7,8 +7,8 @@
 // to CHAIN_BRANCH enemies, and each of those arcs to CHAIN_BRANCH more -
 // 1 + 3 + 9 = 13 hits over CHAIN_LAYERS layers. Every arc reaches from its own
 // parent (arcRange) to the nearest enemy not yet hit by this shot, and deals
-// the strike's damage x arcFall. Arcs land CHAIN_HOP_DELAY after their parent
-// was hit, except a lethal arc, or one whose parent died, which lands at once.
+// the strike's damage x arcFall. Every arc lands CHAIN_HOP_DELAY after its
+// parent was hit - kills included (owner): no arc ever skips the delay.
 // Pending arcs step in stepChains on game time, so the delay scales with speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
@@ -24,18 +24,16 @@ function fireChain(t, st, e) {
 // queue CHAIN_BRANCH pending arcs out of `parent`, one tree layer deeper
 function branchFrom(c, parent, depth) {
   if (depth > CHAIN_LAYERS) return;
-  const wait = parent.dead ? 0 : CHAIN_HOP_DELAY;
-  for (let i = 0; i < CHAIN_BRANCH; i++) (G.chains ||= []).push({ c, parent, depth, wait });
+  for (let i = 0; i < CHAIN_BRANCH; i++) (G.chains ||= []).push({ c, parent, depth, wait: CHAIN_HOP_DELAY });
 }
 function stepChains(dt) {
   if (!G.chains || !G.chains.length) return;
   const pending = G.chains; G.chains = [];
   for (const p of pending) {
     p.wait -= dt;
+    if (p.wait > 0) { G.chains.push(p); continue; }
     const nxt = nextHop(p.c, p.parent);
     if (!nxt) continue; // nothing left in reach: this arc fizzles
-    // only an arc that will NOT kill waits (owner); a lethal one lands at once
-    if (p.wait > 0 && !lethalHop(p.c, nxt)) { G.chains.push(p); continue; }
     hopTo(p.c, p.parent, nxt);
     branchFrom(p.c, nxt, p.depth + 1);
   }
@@ -50,12 +48,6 @@ function nextHop(c, from) {
     if (d < nd) { nd = d; nxt = o; }
   }
   return nxt;
-}
-// would this arc finish the enemy off? (no shield left; armor's flat cut applied)
-function lethalHop(c, o) {
-  if (o.shield > 0) return false;
-  const d = shotDamage(c.t, c.st, o, c.dmg);
-  return Math.max(d * 0.1, d - (o.armor || 0)) >= o.hp;
 }
 function hopTo(c, from, nxt) {
   const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg);
