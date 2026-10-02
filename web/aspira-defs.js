@@ -48,6 +48,13 @@ const CELLS = (function buildCells() {
 
 // Centre-to-centre distance between neighbouring cells: one "tile".
 const TILE = Math.sqrt(3) * CELL_S;
+// Towers stand well apart (owner, 2026-10-02): no two centres closer than
+// TOWER_GAP tiles, i.e. two free cells between neighbours. Fewer towers fit.
+const TOWER_GAP = 3;
+function tooClose(ci) {
+  const c = CELLS[ci];
+  return G.towers.some(t => Math.hypot(CELLS[t.cell].x - c.x, CELLS[t.cell].y - c.y) < TOWER_GAP * TILE - 1);
+}
 
 // Placement snaps to the lattice: the cell under the point, else the nearest
 // cell centre within one tile (a tap just outside the grid still lands).
