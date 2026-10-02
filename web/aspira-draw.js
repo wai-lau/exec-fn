@@ -338,7 +338,7 @@ function drawFx(pass) {
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
       // a following beam reads its endpoints live from the tower/enemy it joins
       ctx.beginPath(); ctx.moveTo(f.a ? f.a.x : f.x1, f.a ? f.a.y : f.y1); ctx.lineTo(f.b ? f.b.x : f.x2, f.b ? f.b.y : f.y2);
-      const wm = f.slim ? 0.125 : 1; // slim (RPR): an eighth of a normal beam (owner: 25% of the old half-width), bright glow
+      const wm = f.slim ? 0.25 : 1; // slim (EXC): a quarter of a normal beam (owner: doubled from an eighth; the glow scales with it)
       if (f.m) {
         const a = ctx.globalAlpha;
         if (f.slim) {
