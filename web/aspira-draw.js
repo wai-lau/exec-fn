@@ -392,10 +392,23 @@ function drawTethers() {
   ctx.globalAlpha = 1;
 }
 
+// The core taking damage SHAKES the screen (owner): a jolt that decays over
+// SHAKE_LEN real seconds. Leaks in a burst re-arm it rather than stacking.
+const SHAKE_LEN = 0.35, SHAKE_PX = 14;
+let shakeUntil = 0;
+function shakeScreen() { shakeUntil = performance.now() / 1000 + SHAKE_LEN; }
+function shakeOffset() {
+  const left = shakeUntil - performance.now() / 1000;
+  if (left <= 0) return [0, 0];
+  const a = SHAKE_PX * (window.devicePixelRatio || 1) * (left / SHAKE_LEN);
+  return [(Math.random() * 2 - 1) * a, (Math.random() * 2 - 1) * a];
+}
+
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cv.width, cv.height);
-  ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
+  const [sx, sy] = shakeOffset();
+  ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy);
   drawFx("dmg"); // damage numbers sit just above the background, under all else
   drawBoard();
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);

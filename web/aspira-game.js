@@ -317,7 +317,7 @@ function stepEnemies(dt) {
       if (e.dead) continue; // a ghost just fades out at the core
       e.dead = true;
       G.lives -= 1;
-      sfx("leak");
+      sfx("leak"); shakeScreen();
       ring(e.x, e.y, 40, "pink", 0.17);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }

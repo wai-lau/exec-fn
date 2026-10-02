@@ -76,7 +76,13 @@ const SFX = {
   },
   slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
   kill:    () => tone({ type: "triangle", f0: 520, f1: 1040, dur: 0.07, vol: 0.16 }),
-  leak:    () => tone({ type: "sawtooth", f0: 110, f1: 60, dur: 0.4, vol: 0.3 }),
+  // the core is hit: a SHUTDOWN (owner) - a click, then the power sliding
+  // away, everything falling to nothing like a machine switching off
+  leak:    () => {
+    noise({ dur: 0.03, vol: 0.14, freq: 1800, q: 1 });
+    tone({ type: "square", f0: 520, f1: 30, dur: 0.75, vol: 0.09 });
+    tone({ f0: 260, f1: 22, dur: 0.85, vol: 0.22 });
+  },
   wave:    () => notes([440, 554, 659], 0.07, { type: "triangle", dur: 0.12, vol: 0.18 }),
   build:   () => tone({ type: "square", f0: 300, f1: 600, dur: 0.06, vol: 0.12 }),
   up:      () => notes([523, 784, 1046], 0.06, { type: "triangle", dur: 0.1, vol: 0.18 }),
@@ -85,7 +91,7 @@ const SFX = {
   over:    () => notes([392, 330, 262, 196], 0.18, { type: "triangle", dur: 0.32, vol: 0.25 }),
 };
 // minimum seconds between two plays of the same sound
-const GAP = { rapid: 0.06, chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.15 };
+const GAP = { rapid: 0.06, chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
 
 // returns whatever the sound returns (a stop() handle for long sounds), or null
 function sfx(name, ...args) {
