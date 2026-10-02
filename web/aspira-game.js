@@ -104,17 +104,17 @@ function activeLanes() {
   return out;
 }
 
-// Enemies appear where their lane enters the visible area (plus a margin),
-// not at the far end of the lead-in, so none spend ages travelling unseen.
-function entryS(pi, ang = 0) {
-  const m = 60, x0 = -cam.ox / cam.k - m, y0 = -cam.oy / cam.k - m;
-  const x1 = (cv.width - cam.ox) / cam.k + m, y1 = (cv.height - cam.oy) / cam.k + m;
-  const p = PATHS[pi].pts.find(q => { const r = ang ? rotAbout(q, ang) : q; return r.x >= x0 && r.x <= x1 && r.y >= y0 && r.y <= y1; });
+// Enemies appear where their lane first crosses SPAWN_R from the core (owner:
+// every spawn the same distance from the centre, whatever the screen shape or
+// lane rotation - a rotated copy crosses the circle at the same s).
+const SPAWN_R = 600;
+function entryS(pi) {
+  const p = PATHS[pi].pts.find(q => Math.hypot(q.x - CX, q.y - CY) <= SPAWN_R);
   return p ? p.s : 0;
 }
 
 function spawnEnemy(type, n, pi, ang = 0) {
-  const d = ENEMIES[type], s0 = entryS(pi, ang), p0 = pathAt(pi, s0, ang);
+  const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
   // shields start at exactly 5 on their first wave (4) and gain 1 every 3 waves
   const shield = d.shield ? d.shield + Math.floor(Math.max(0, n - 4) / 3) : 0;
