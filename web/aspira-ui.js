@@ -2,8 +2,8 @@
 
 // ui.speed is a setting (0.5/1/2/3); SPEED_MULT turns it into simulation rate.
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
-const SPEED_MULT = { 0.5: 0.5, 1: 1, 2: 2, 3: 3 }; // 0.5x added (owner)
-const SPEEDS = [0.5, 1, 2, 3], speedId = v => "asp-sp-" + String(v).replace(".", "_");
+const SPEED_MULT = { 0.5: 0.5, 1: 1, 2: 2, 3: 3, 10: 10 }; // 0.5x added (owner); 10x for testing (owner)
+const SPEEDS = [0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
 // Playing in the browser starts with PLAY_MONEY (owner, 2026-10-02: 10000 for
 // playtesting); the balance simulator never loads this file, so its games
 // keep the real START_MONEY (100).
@@ -77,7 +77,7 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name;
 });
-[["pause", "pause"], [0.5, "½×"], [1, "1×"], [2, "2×"], [3, "3×"]].forEach(([v, label]) => {
+[["pause", "pause"], [0.5, "½×"], [1, "1×"], [2, "2×"], [3, "3×"], [10, "10×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
   }, v === "pause" ? "asp-sp-pause" : speedId(v));
