@@ -54,14 +54,14 @@ const UPGRADES = {
         super: { name: "Torrent", desc: "five lines", mods: { targets: 2 } } },
       // Residue also SLOWS what it burns, and switches the tower to target Fast
       // enemies - the ones that run out of range and keep burning (owner)
-      { name: "Residue", desc: "burns slow by 30%; an enemy that leaves range keeps burning for 3s; burn x2.2; targets Fast enemies", mods: { residue: 3, dmg: 2.2, burnSlow: 0.3 }, mode: "fast",
+      { name: "Residue", desc: "burns slow by 30%; an enemy that leaves range keeps burning for 3s; burn x3; targets Fast enemies", mods: { residue: 3, dmg: 3, burnSlow: 0.3 }, mode: "fast",
         super: { name: "Scar", desc: "it keeps burning for 8s", mods: { residue: 8 } } },
     ] },
     // circle tripled 45 -> 135 (owner, 2026-10-02: "45 range is nothing")
     { name: "Plague", desc: "every tick also burns everything within 135 of the target", mods: { plagueR: 135 }, finals: [
       // Bloom, Permafrost and Moons trimmed (owner, 2026-10-02: they topped the
       // late-game test at 84-90 vs an 80 baseline)
-      { name: "Bloom", desc: "the circle grows with the burn, up to 1.6x; burn x1.3", mods: { bloom: 1.6, dmg: 1.3 },
+      { name: "Bloom", desc: "the circle grows with the burn, up to 1.6x; burn x1.15", mods: { bloom: 1.6, dmg: 1.15 },
         super: { name: "Overgrowth", desc: "the circle grows up to 2.2x", mods: { bloom: 2.2 } } },
       { name: "Corrosion", desc: "every tick strips 1.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 1.5 },
         super: { name: "Dissolve", desc: "strips 3 armor a tick", mods: { corrode: 3 } } },

@@ -1,8 +1,10 @@
 // Which upgrades are useless or too good (owner, 2026-10-02)? Start at wave
 // START with every tower maxed (L4) and the core bought up to the path being
 // tested, then play until the core falls.
-//  - each of the 24 tower forms: TWO slots of it beside one reference tower of
-//    each kind (so a form is judged inside a working team, not alone);
+//  - each of the 24 tower forms: it REPLACES the reference tower of its kind
+//    in the reference team (so team make-up never changes - an earlier
+//    version filled two slots with the form and so measured how many FRZ a
+//    team had, not how good the form was);
 //  - each of the 6 core paths (L1 -> L2 -> L3), on the reference team of six.
 // Prints waves reached per seed, best first.
 //
@@ -20,6 +22,7 @@ const AB = { chain: "ARC", slower: "FRZ", reaper: "SOL", acid: "ACD" };
 // the reference team: one sensible form per kind
 const REF = { chain: [0, 0], slower: [1, 0], reaper: [0, 1], acid: [1, 1] };
 const ref = k => ({ kind: k, p: REF[k][0], f: REF[k][1] });
+const TEAM = ["chain", "slower", "reaper", "acid", "chain", "slower"]; // the reference team
 
 function run(slots, core, seed) {
   const g = makeGame(seed); g.reset();
@@ -52,13 +55,15 @@ const g0 = makeGame(1);
 for (const k of Object.keys(AB)) {
   g0.UPGRADES[k].forEach((p, pi) => p.finals.forEach((f, fi) => {
     const name = AB[k] + " " + p.name + " > " + f.name + (f.super ? " > " + f.super.name : "");
-    test(name, [{ kind: k, p: pi, f: fi }, { kind: k, p: pi, f: fi }, ref("chain"), ref("slower"), ref("reaper"), ref("acid")]);
+    const slots = TEAM.map(ref), at = TEAM.indexOf(k);
+    slots[at] = { kind: k, p: pi, f: fi };
+    test(name, slots);
   }));
 }
-const team = ["chain", "slower", "reaper", "acid", "chain", "slower"].map(ref);
+const team = TEAM.map(ref);
 test("core: none", team);
-const CORE = [["Zen > Stillness > Silence", [0, 0, 0]], ["Zen > Echo > Resonance", [0, 1, 0]], ["Space > Expanse > Horizon", [1, 0, 0]],
-  ["Space > Vacuum > Void", [1, 1, 0]], ["Sinter > Temper > Anneal", [2, 0, 0]], ["Sinter > Quench > Brittle Core", [2, 1, 0]]];
+const CORE = [["Zen > Stillness > Silence", [0, 0, 0]], ["Zen > Echo > Resonance", [0, 1, 0]],
+  ["Space > Expanse > Horizon", [1, 0, 0]], ["Space > Vacuum > Infinity", [1, 1, 0]]];
 for (const [name, path] of CORE) test("core: " + name, team, path);
 console.log("\nRANKED");
 for (const r of rows.sort((a, b) => b.avg - a.avg)) console.log(r.avg.toFixed(1).padStart(6), r.name);
