@@ -183,7 +183,7 @@ function resolveColors() {
 // Rates are per REAL second at 1x speed (time was rescaled so 1x = real time;
 // every rate x3 and every duration /3 against the old hidden-3x values).
 const TOWERS = {
-  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3.5, rate: 18,   range: 140, blurb: "Cheap, quick, long reach.", up: "fire rate" },
+  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 1.75, rate: 36,   range: 140, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 3,    range: 92.5, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 95,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
   reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 80,  rate: 0.9,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
@@ -202,7 +202,7 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 // shield shows as concentric outlines, armor as a thick outline (drawEnemy).
 const ENEMIES = {
   fast:   { sides: 3, hp: 0.6,  speed: 135, bounty: 0.8, size: 12, color: "orange" },
-  swarm:  { sides: 4, hp: 0.12, speed: 95,  bounty: 0.3, size: 6,  color: "white" },
+  swarm:  { sides: 4, hp: 0.07, speed: 95,  bounty: 0.18, size: 6, color: "white" }, // twice as many, half as tough
   norm:   { sides: 5, hp: 1,    speed: 80,  bounty: 1,   size: 13, color: "green" },
   shield: { sides: 5, hp: 0.9,  speed: 75,  bounty: 1.6, size: 13, color: "cyan", shield: 5 },
   armor:  { sides: 5, hp: 1.6,  speed: 60,  bounty: 2,   size: 15, color: "pink", armor: 6 },

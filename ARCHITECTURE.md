@@ -4077,9 +4077,10 @@ in check by FIRE RATE: CHN must stay under 1/5 of RPD's rate (1.0 vs 6) and
 RPR slower still (0.3). SHAPE SHOWS SPEED: triangle fastest (fast),
 square (swarm), pentagon (normal / shielded / armored), no hexagon enemies
 (hexagons are the towers; BOSSES WERE REMOVED, owner 2026-10-01). Enemies do not spin: one corner always points along
-the lane (nose first). Swarms read by small size + 3x count and wander off the lane
-on a small loop (`jit`). Shield (`5 + wave/3` HITS absorbed regardless of
-size; poison/splash bounce off) draws as up to 3 concentric outlines that
+the lane (nose first). Swarms (owner: swarmier) are 6x the count at 0.07 HP / 0.18 bounty (about
+the same wave total), stream in EVENLY (0.06 gap), and each member has its own
+speed (±20%, `spd`), a wide wander (`jit` 8–28) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
+absorbed regardless of size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
 thick outline; the Reaper's shots IGNORE armor (owner). Waves rotate themes `norm, swarm, fast, shield, armor, mixed`
 (`WAVE_THEMES`). Bonus stars unchanged; Regenerating was proposed and dropped; bosses removed
@@ -4102,7 +4103,8 @@ more; spawn spacing is a lever — swarm gap 0.12s
 (~11 apart, inside hop reach), normal/shield/armor 0.8s and fast 0.5s (~60+
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
-ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, base range 140
+ALL towers cost 40 to build (owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
+its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /
 110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~42 real seconds
 (owner raised it 5x, then 10x more), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
