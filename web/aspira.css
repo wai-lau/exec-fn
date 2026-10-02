@@ -305,23 +305,29 @@
 .asp-chooser[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 .asp-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-4); }
 
+/* each card is laid out like the tower's own card (owner): name, the two stat
+   columns, then the tagline - brighter than the tower card's hint */
 #asp button.asp-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--space-2);
-  width: 260px;
+  width: 380px;
+  max-width: 100%;
   padding: var(--space-4);
   text-align: left;
+  line-height: var(--lh-snug);
   color: hsl(var(--green-hsl));
   border-color: hsl(var(--green-hsl));
   background: hsl(var(--bg-hsl));
 }
-.asp-card b { font-size: var(--fs-xl); }
-.asp-card span { font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.8); }
-.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; }
+.asp-card .name { font-weight: var(--fw-bold); }
+.asp-card .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
+.asp-card .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
+.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
 .asp-card dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-card dd { margin: 0; }
+.asp-card .asp-hint { max-width: none; color: hsl(var(--green-hsl)); } /* not the overlay's 36ch */
 
 /* out of the header now, so it flips with the boss's inverted sky on its own
    (keeping its outline) */
