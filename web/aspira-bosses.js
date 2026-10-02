@@ -85,3 +85,36 @@ function bossKilled(e) {
 }
 // the boss reward drops ONCE a wave: a Devil only pays when it is the last one standing
 const bossPays = e => !(isA(e, "devil") && G.enemies.some(o => o !== e && !o.dead && isA(o, "devil")));
+
+// ---------- the inverted sky (UI only; aspira-draw.js calls it last) ----------
+// owner: when a boss appears, colour INVERSION spreads as a soft-edged circle
+// from where it spawned, filling the screen over BOSS_INV_T s; when the last
+// boss dies, it collapses over the same time onto where that boss fell. The
+// canvas is inverted by painting the circle in "difference" mode; the HTML
+// over it (header, build bar, card) flips by CSS once the circle covers the
+// screen (bossInv.full -> #asp.asp-boss).
+const BOSS_INV_T = 3;
+const bossInv = { phase: "off", t0: 0, x: 0, y: 0, last: null, full: false };
+function drawBossInvert() {
+  const now = performance.now() / 1000, alive = G.enemies.filter(e => e.arcana && !e.dead);
+  if (alive.length) bossInv.last = { x: alive[0].x, y: alive[0].y };
+  if (alive.length && (bossInv.phase === "off" || bossInv.phase === "out")) {
+    Object.assign(bossInv, { phase: "in", t0: now, x: alive[0].x, y: alive[0].y });
+  } else if (!alive.length && bossInv.phase === "in") {
+    const at = bossInv.last || { x: bossInv.x, y: bossInv.y };
+    Object.assign(bossInv, { phase: "out", t0: now, x: at.x, y: at.y });
+  }
+  if (bossInv.phase === "off") { bossInv.full = false; return; }
+  // the circle must reach the canvas corner furthest from its centre
+  const corners = [[0, 0], [cv.width, 0], [0, cv.height], [cv.width, cv.height]].map(([px, py]) => ({ x: (px - cam.ox) / cam.k, y: (py - cam.oy) / cam.k }));
+  const R = Math.max(...corners.map(c => Math.hypot(c.x - bossInv.x, c.y - bossInv.y))) * 1.3; // the soft edge clears the corners
+  const p = Math.min(1, (now - bossInv.t0) / BOSS_INV_T), ease = p * p * (3 - 2 * p);
+  const r = bossInv.phase === "in" ? R * ease : R * (1 - ease);
+  bossInv.full = bossInv.phase === "in" && p >= 1;
+  if (bossInv.phase === "out" && p >= 1) { bossInv.phase = "off"; return; }
+  if (r < 1) return;
+  const g = ctx.createRadialGradient(bossInv.x, bossInv.y, r * 0.85, bossInv.x, bossInv.y, r);
+  g.addColorStop(0, COL.white); g.addColorStop(1, "transparent");
+  ctx.save(); ctx.globalCompositeOperation = "difference"; ctx.globalAlpha = 1; ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, r, 0, 6.283); ctx.fill(); ctx.restore();
+}

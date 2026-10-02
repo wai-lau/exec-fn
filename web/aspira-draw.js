@@ -473,4 +473,5 @@ function render() {
     ctx.globalAlpha = 1;
   }
   drawCore();
+  drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
 }
