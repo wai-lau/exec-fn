@@ -3933,6 +3933,7 @@ Lit lanes FADE in and out over 0.4s real time (`fadeLanes`, owner): line, rim ci
 and label together; the idle label under a lit slot cross-fades with it.
 NORMAL enemies REMOVED (owner, 2026-10-02): types are swarm / fast / shield / armor,
 unlocking at waves 1 / 2 / 3 / 4 (`UNLOCK`); shields still start at 5 on their first wave.
+EXC's specialty is REACH (owner): base range 318 (x1.2 from 265; 382 at L1).
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
 Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270), then eased to 220 (ARC ~1.3x per pass); Shielded and Armored
 halved (75 -> 37.5, 60 -> 30).
