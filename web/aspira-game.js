@@ -143,7 +143,7 @@ function damage(e, amt, t, quiet = false) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.2 });
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 22, 1.2, 1, 30, true); // all of it soaked: dim grey, like armor
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 22, 1, 1, 30, true); // all of it soaked: dim grey, like armor
     return;
   }
   if (e.shredT > 0) amt *= e.shredMul;
@@ -160,7 +160,7 @@ function damage(e, amt, t, quiet = false) {
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white", 22, 1.2, 1, 30, true);
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white", 22, 1, 1, 30, true);
   }
   if (e.hp <= 0) kill(e, t);
 }
@@ -428,15 +428,23 @@ function step(dt) {
   G.enemies = G.enemies.filter(e => !e.dead);
 }
 
+// Beams, rings and sparks age in GAME time (they follow the 1/2/3x speed);
+// floating text ages in REAL time (stepFloats) so a 1s damage number is 1s
+// on screen at any speed (owner).
 function stepFx(dt) {
   for (const f of fx) {
+    if (f.k === "text") continue;
     f.t += dt;
     if (f.k === "spark") { f.x += f.vx * dt; f.y += f.vy * dt; }
-    if (f.k === "text") f.y -= f.vy * dt;
   }
   // a beam ends the moment the enemy it points at dies (owner)
   fx = fx.filter(f => f.t < f.life && !(f.k === "beam" && f.b && f.b.dead));
   if (bannerT > 0) bannerT -= dt;
+}
+
+function stepFloats(dt) {
+  for (const f of fx) if (f.k === "text") { f.t += dt; f.y -= f.vy * dt; }
+  fx = fx.filter(f => f.k !== "text" || f.t < f.life);
 }
 
 function gameOver() {

@@ -3959,8 +3959,10 @@ tint them), enemies, shots, TOWERS (on top of their
 own effects), build ghost, floating text, banner. Stars and damage numbers are WHITE (`--white-hsl`, added to chrome.css
 for this). A hit soaked by a shield floats a `0` and an armor-blunted hit its reduced
 number, both in dim grey (the graticule's Silver swatch). The `+N early` and `+N interest` floats from sending a wave stay 11s,
-drifting at 3 units/s instead of 30 (owner: ~10x longer). Damage numbers (and shield `0`s) carry a black outline. Every hit floats a damage number (size 22,
-1.2s, jittered); a kill floats `+N` credits (size 30, 2s). Lane labels read `wave:track` in roman (`X:X` = wave 10 on track 10; the
+drifting at 3 units/s instead of 30 (owner: ~10x longer). Floating text ages in REAL time (`stepFloats`), everything else in game
+time, so text durations are wall-clock at any game speed. Damage numbers (and
+shield `0`s) carry a black outline. Every hit floats a damage number (size 22,
+1s REAL time, jittered); a kill floats `+N` credits (size 30, 2s). Lane labels read `wave:track` in roman (`X:X` = wave 10 on track 10; the
 riding wave while in use, else the current wave) and sit on an
 even ring at each lane's nominal 30° slot: full size/opacity in the riding
 type's colour while in use, small (20) and faint (0.3) when idle. Speed settings 1/2/3 run the sim at 3/6/9× the original base
