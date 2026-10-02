@@ -30,6 +30,7 @@ function audioUnlock() {
     outGain = AC.createGain();
     outGain.gain.value = volume * VOL_BOOST;
     master.connect(limiter).connect(outGain).connect(AC.destination);
+    loadSamples();
     noiseBuf = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -108,10 +109,49 @@ const SFX = {
 const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
 
 // returns whatever the sound returns (a stop() handle for long sounds), or null
+// Optional SAMPLES (owner, 2026-10-02: Brood War sounds) replace a synth
+// sound when present. They live in api/data/aspira-sfx/ - never committed
+// (api/data/ is gitignored; the repo is public) and served owner-only through
+// /data/ - listed in its index.json as { "<sound name>": "file" | ["file", ...],
+// "_gain": 0.5 } (several files = one picked at random each time). Missing
+// folder, index or file: that sound stays synthesised.
+const SAMPLE_DIR = "/data/aspira-sfx/", SAMPLES = {};
+let sampleMap = null, sampleGain = 0.5;
+fetch(SAMPLE_DIR + "index.json").then(r => (r.ok ? r.json() : null)).then(m => {
+  if (!m) return;
+  sampleMap = m;
+  if (typeof m._gain === "number") sampleGain = m._gain;
+  loadSamples();
+}).catch(() => {});
+function loadSamples() {
+  if (!sampleMap || !AC) return;
+  for (const [name, files] of Object.entries(sampleMap)) {
+    if (name.startsWith("_") || SAMPLES[name]) continue;
+    SAMPLES[name] = [];
+    for (const f of [].concat(files)) {
+      fetch(SAMPLE_DIR + f).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(f))))
+        .then(b => AC.decodeAudioData(b)).then(buf => SAMPLES[name].push(buf)).catch(() => {});
+    }
+  }
+}
+function playSample(name) {
+  const list = SAMPLES[name];
+  const src = AC.createBufferSource(), g = AC.createGain();
+  src.buffer = list[Math.floor(Math.random() * list.length)];
+  g.gain.value = sampleGain;
+  src.connect(g).connect(master);
+  voices++;
+  src.onended = () => { voices--; };
+  src.start();
+  return src;
+}
+
 function sfx(name, ...args) {
-  if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !SFX[name]) return null;
+  const sample = SAMPLES[name] && SAMPLES[name].length;
+  if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !(SFX[name] || sample)) return null;
   const now = AC.currentTime;
   if (now - (lastAt[name] ?? -1) < (GAP[name] ?? 0.03)) return null;
   lastAt[name] = now;
+  if (sample) return playSample(name);
   return SFX[name](...args) || null;
 }
