@@ -142,24 +142,19 @@ function inspectTower(el, t) {
   });
 }
 
-// A selected tower's stats live in a popup pinned beside it on the board,
-// never in the side deck; placePop() re-anchors it every frame.
+// Only what is needed is shown (owner): a selected tower's stats in a popup
+// pinned beside it (placePop re-anchors it every frame), and, while placing,
+// one line about the tower being placed just above the build bar.
 function refreshPanels() {
-  const el = $("asp-inspect"), pop = $("asp-pop");
+  const pop = $("asp-pop"), placing = $("asp-placing");
   const t = ui.sel && G.towers.find(x => x.id === ui.sel);
   pop.hidden = !t;
   if (t) { inspectTower(pop, t); placePop(); }
+  placing.hidden = !ui.build;
   if (ui.build) {
     const b = TOWERS[ui.build];
-    el.innerHTML = '<h3>Placing</h3><div class="name">' + b.name + " · " + b.cost + "</div>" +
-      '<p class="asp-hint">' + b.blurb + " Upgrades improve " + b.up + ".</p>" +
-      '<p class="asp-hint">Tap inside the central ring. Placing one ends placing mode.</p>';
-    return;
+    placing.textContent = b.name + " · " + b.cost + " — " + b.blurb + " Tap a cell inside the rim.";
   }
-  el.innerHTML = '<h3>Inspector</h3><p class="asp-hint">Pick a tower to build, or tap one on the field.</p>' +
-    '<p class="asp-hint">Fewer sides = faster: triangles are fastest, pentagons slowest. Swarms are small and many (CHN), triangles fast (SLW), stacked outlines are shields (RPD), thick outlines armor (RPR). Stars drop a bonus. ' +
-    "</p>" +
-    '<p class="asp-hint">Every 8 waves pays a bonus. Extra lives at 50,000 points and every 100,000 after.</p>';
 }
 
 function updateHud() {

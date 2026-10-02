@@ -3,24 +3,24 @@
 
 const cv = document.getElementById("asp-cv"), ctx = cv.getContext("2d");
 // The canvas fills the screen; the camera fits the 1000-unit chart into the
-// part of it the floating decks leave open (left of the side deck on wide
-// screens, above the bottom sheet on phones). cam is in device pixels.
+// band between the header and the bottom build bar. cam is in device pixels.
 const cam = { k: 1, ox: 0, oy: 0 };
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
-  const side = document.querySelector(".asp-side").getBoundingClientRect();
+  // the chart fits between the header (title, stats, controls) and the
+  // bottom build bar
   const head = document.querySelector(".asp-head").getBoundingClientRect();
-  const wide = side.top - r.top < r.height / 3;
-  const x0 = 0, y0 = head.bottom - r.top;
-  const x1 = wide ? side.left - r.left : r.width, y1 = wide ? r.height : side.top - r.top;
+  const foot = document.querySelector(".asp-bottom").getBoundingClientRect();
+  const x0 = 0, y0 = head.bottom - r.top, x1 = r.width, y1 = foot.top - r.top;
   const k = Math.min(x1 - x0, y1 - y0) / W;
   cam.k = k * dpr;
   cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
   cam.oy = (y0 + (y1 - y0 - W * k) / 2) * dpr;
 }
 new ResizeObserver(resize).observe(cv);
-new ResizeObserver(resize).observe(document.querySelector(".asp-side"));
+new ResizeObserver(resize).observe(document.querySelector(".asp-head"));
+new ResizeObserver(resize).observe(document.querySelector(".asp-bottom"));
 
 function poly(x, y, r, n, rot, star) {
   ctx.beginPath();

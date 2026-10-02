@@ -1,15 +1,22 @@
-<link rel="stylesheet" href="/aspira.css?v=13">
+<link rel="stylesheet" href="/aspira.css?v=15">
 <div id="asp">
   <header class="asp-head">
-    <h1 class="asp-title">aspira</h1>
-    <div class="asp-stats">
-      <div class="asp-stat"><b>LIVES</b><span id="asp-lives"></span></div>
-      <div class="asp-stat"><b>CREDITS</b><span id="asp-money"></span></div>
-      <div class="asp-stat"><b>INTEREST</b><span id="asp-int"></span></div>
-      <div class="asp-stat"><b>WAVE</b><span id="asp-wave"></span></div>
-      <div class="asp-stat"><b>SCORE</b><span id="asp-score"></span></div>
-      <div class="asp-stat"><b>BEST</b><span id="asp-best"></span></div>
-      <div class="asp-stat"><b>FPS</b><span id="asp-fps"></span></div>
+    <div class="asp-titlerow">
+      <h1 class="asp-title">aspira</h1>
+      <div class="asp-stats">
+        <div class="asp-stat"><b>LIVES</b><span id="asp-lives"></span></div>
+        <div class="asp-stat"><b>CREDITS</b><span id="asp-money"></span></div>
+        <div class="asp-stat"><b>INTEREST</b><span id="asp-int"></span></div>
+        <div class="asp-stat"><b>WAVE</b><span id="asp-wave"></span></div>
+        <div class="asp-stat"><b>SCORE</b><span id="asp-score"></span></div>
+        <div class="asp-stat"><b>BEST</b><span id="asp-best"></span></div>
+        <div class="asp-stat"><b>FPS</b><span id="asp-fps"></span></div>
+      </div>
+    </div>
+    <div class="asp-controls">
+      <button class="asp-primary" id="asp-send">Send wave</button>
+      <label class="asp-check"><input type="checkbox" id="asp-auto"> auto-send</label>
+      <div class="asp-row" id="asp-speed"></div>
     </div>
   </header>
   <div class="asp-main">
@@ -22,19 +29,10 @@
         <button class="asp-primary" id="asp-ov-btn">Start</button>
       </div>
     </div>
-    <div class="asp-side">
-      <section class="asp-deck">
-        <h3>Build</h3>
-        <div class="asp-grid" id="asp-build"></div>
-      </section>
-      <section class="asp-deck" id="asp-inspect"></section>
-      <section class="asp-deck">
-        <div class="asp-row"><button class="asp-primary" id="asp-send">Send wave</button></div>
-        <label class="asp-check"><input type="checkbox" id="asp-auto"> auto-send next wave</label>
-        <div class="asp-row" id="asp-speed"></div>
-        <p class="asp-hint">Tap a tower type, then tap open ground. Tap a built tower to upgrade, sell or retarget. Keys: U upgrade, 1 2 3 speed, M sound, space pause, tab next wave, Esc cancel.</p>
-      </section>
-    </div>
+  </div>
+  <div class="asp-bottom">
+    <p class="asp-placing" id="asp-placing" hidden></p>
+    <div class="asp-build" id="asp-build"></div>
   </div>
   <span class="asp-sw bg" data-asp-sw="bg"></span>
   <span class="asp-sw grid" data-asp-sw="grid"></span>
@@ -50,5 +48,5 @@
 <script src="/aspira-sfx.js?v=6"></script>
 <script src="/aspira-upgrades.js?v=9"></script>
 <script src="/aspira-game.js?v=62"></script>
-<script src="/aspira-draw.js?v=56"></script>
-<script src="/aspira-ui.js?v=40"></script>
+<script src="/aspira-draw.js?v=57"></script>
+<script src="/aspira-ui.js?v=41"></script>
