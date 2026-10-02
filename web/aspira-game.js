@@ -292,6 +292,7 @@ function stepSpawns(dt) {
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
 }
 
+const JIT_FADE_R = 400; // swarm wander is full beyond this radius, 0 at the core
 function stepEnemies(dt) {
   for (const e of G.enemies) {
     if (e.gone) continue;
@@ -312,7 +313,13 @@ function stepEnemies(dt) {
     const ahead = pathAt(e.pi, e.s + 3);
     if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
     // wobble rate cut to 1/3 (owner) when the wander tripled, so it drifts, not buzzes
-    if (e.jit) { e.ph += dt * 2.2 * (e.phr || 1); e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
+    if (e.jit) {
+      e.ph += dt * 2.2 * (e.phr || 1);
+      // the wander fades to nothing approaching the core (owner), so the swarm
+      // funnels into a clean line instead of piling over the centre
+      const j = e.jit * Math.min(1, Math.hypot(e.x - CX, e.y - CY) / JIT_FADE_R) ** 2; // squared: gone well before the core
+      e.x += Math.cos(e.ph) * j; e.y += Math.sin(e.ph * 1.3) * j;
+    }
     if (e.s >= PATHS[e.pi].len) {
       e.gone = true;
       if (e.dead) continue; // a ghost just fades out at the core
