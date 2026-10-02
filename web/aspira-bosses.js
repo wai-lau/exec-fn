@@ -21,7 +21,7 @@ const ARCANA = [
   { id: "devil", name: "The Devil" }, { id: "justice", name: "Justice" }, { id: "judgement", name: "Judgement" },
   { id: "death", name: "Death" },
 ];
-const BOSS_HP = { star: 2, empress: 2, strength: 2, chariot: 2, lovers: 2, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
+const BOSS_HP = { star: 2, empress: 2, strength: 2, chariot: 2, lovers: 1.2, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
 const EMPRESS_BROOD = 4, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
 const TEMPERANCE_REGEN = 0.02, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
@@ -37,7 +37,7 @@ const isA = (e, id) => e.arcana === id;
 function bossSpawn(e, n) {
   e.arcana = arcanaOf(n).id;
   e.baseSpd = e.spd || 1; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
-  // HP per boss (owner): Star to Lovers x2; Devil (each of six) x0.75 (halved,
+  // HP per boss (owner): Star to Chariot x2, Lovers x1.2 (60% of its x2); Devil (each of six) x0.75 (halved,
   // then x1.5); Justice and Judgement x1.5; Death x3; Temperance as is
   e.max *= BOSS_HP[e.arcana] || 1; e.hp = e.max;
   // each boss a size bigger than the last (owner): Star x1.1 ... Death x2
