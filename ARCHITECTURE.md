@@ -3992,6 +3992,10 @@ Then every TOWER SUBSET was played (best forms): EXC had become the do-everythin
 pick (alone 68.5 waves, FRZ+EXC 73.5). EXC 110 damage, Array beams x0.6, ACD burn
 8/s. Now the best build is all four (70.5); dropping ACD / ARC / FRZ / EXC costs
 3.5 / 7.5 / 11.5 / 14.5 waves; best pair 66, EXC alone 62, ARC alone 54.
+Forms re-checked after that: all 24 within 65-71.5 waves. Play style does not matter
+much: upgrade appetite 20-80%, interest reserve 0-30 x wave and tower caps 12-30 all
+land 66-74.5. The simulator lives in **`scripts/aspira-sim/`** (README there):
+re-run `wave1.mjs`, `combos.mjs` and `forms.mjs` after any balance change.
 by the overnight simulator for all 10 pairs): 160 damage at 1.35 shots/s and no L1
 half rate (was 240 at 0.45/s at L1) - same dps at L2+, a third of the overkill.
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
