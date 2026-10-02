@@ -192,10 +192,14 @@ function drawBoard() {
   drawGraticule();
   drawLanes();
   if (ui.build) drawCells(); // the hex grid shows only while placing a tower
-  // the core: a solid white hexagon (gently pulsing), lives in black on it
+}
+
+// the core: a solid white hexagon (gently pulsing), lives in black on it -
+// drawn LAST, over everything else (owner)
+function drawCore() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
-  ctx.fillStyle = COL.white; ctx.fill();
+  ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill();
   text(G.lives, CX, CY + 2, 28, "bg");
 }
 
@@ -461,4 +465,5 @@ function render() {
     ctx.globalAlpha = 1;
   }
   if (ui.paused && !G.over && G.started) text("paused", CX, CY - INNER_R - 40, 56, "green");
+  drawCore();
 }
