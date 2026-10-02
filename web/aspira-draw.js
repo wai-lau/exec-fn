@@ -216,12 +216,14 @@ function drawTowerRange(t, dim) {
 // lane, each shorter and wider than the last, so the light piles up smoothly
 // toward the head and thins to nothing STAR_TAIL behind it - no joints to
 // overlap. A soft shadow blur turns it into a glow.
-const STAR_TAIL = 160, STAR_LAYERS = 6, STAR_STEP = 8;
+// Fast enemies trail a much SHORTER one (owner), without the shadow blur -
+// a whole wave of them each blurring six strokes would cost too much.
+const STAR_TAIL = 160, STAR_LAYERS = 6, STAR_STEP = 8, TRAIL = { bonus: STAR_TAIL, fast: 48 };
 function drawStarTrail(e, size) {
-  const pts = [];
-  for (let d = 0; d <= STAR_TAIL; d += STAR_STEP) pts.push(d ? pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0) : { x: e.x, y: e.y });
+  const pts = [], tail = TRAIL[e.type], glow = e.type === "bonus";
+  for (let d = 0; d <= tail; d += STAR_STEP) pts.push(d ? pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0) : { x: e.x, y: e.y });
   const col = COL[ENEMIES[e.type].color];
-  ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = size * cam.k;
+  ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = glow ? size * cam.k : 0;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
   for (let i = 0; i < STAR_LAYERS; i++) {
     const k = 1 - i / STAR_LAYERS, n = Math.max(2, Math.round(pts.length * k));
@@ -238,7 +240,7 @@ function drawEnemy(e) {
   // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
   if (e.dead) return;
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
-  if (d.star) drawStarTrail(e, size);
+  if (TRAIL[e.type]) drawStarTrail(e, size);
   poly(e.x, e.y, size, d.sides, e.rot, d.star);
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
