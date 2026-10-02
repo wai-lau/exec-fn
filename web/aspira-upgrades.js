@@ -52,8 +52,10 @@ const UPGRADES = {
         super: { name: "Overgrowth", desc: "the circle grows up to 3x", mods: { bloom: 3 } } },
       { name: "Corrosion", desc: "every tick strips 0.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 0.5 },
         super: { name: "Dissolve", desc: "strips 1.5 armor a tick", mods: { corrode: 1.5 } } },
-      { name: "Contagion", desc: "no line: every enemy in range burns, each on its own ramp; burn x0.7", mods: { allInRange: true, plagueR: 0, dmg: 0.7 },
-        super: { name: "Pandemic", desc: "range x1.5", mods: { range: 1.5 } } },
+      // range cut (owner, 2026-10-02): every burn in range keeps ramping, never
+      // down, so a wide Contagion was too strong. 0.6 / 0.75 of the tower's range
+      { name: "Contagion", desc: "no line: every enemy in range burns, each on its own ramp; burn x0.7; range x0.6", mods: { allInRange: true, plagueR: 0, dmg: 0.7, range: 0.6 },
+        super: { name: "Pandemic", desc: "range x1.25", mods: { range: 1.25 } } },
     ] },
   ],
   // FRZ (owner, 2026-10-02): L2 Shatter or Stasis, three forms each, each with
