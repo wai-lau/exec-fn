@@ -3909,6 +3909,7 @@ must never fail because of a rate limit (owner).
 
 ## 22. /aspira — spiral tower defence
 
+Targeting mode `close` = closest to the CORE, not to the tower (owner).
 **THREE towers only (owner, 2026-10-01): CHN, SLW, RPR.** Rapid (RPD) was removed
 entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicated
 counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).
@@ -4122,8 +4123,8 @@ beam below it has gone (`keepLit`, via `c.links`); the deepest keep 0.2s (owner:
 `arcs` stat and the upgrades' `+arcs` mods are now unused. Earlier: CHN arcs fanned from the hub ONE AT A TIME, 0.17s apart (`CHAIN_HOP_DELAY`,
 `G.chains`/`stepChains`, game time; owner restored the delay), but only a
 NON-lethal hop waits: a hop that will kill (`lethalHop`) and the one after a
-kill land at once. CHN base range 115.6 (halved to 92.5, then +25%; owner) and hop reach is
-HALF the tower's range (69 at L1, growing with level), measured each hop from the
+kill land at once. CHN base range 173.4 (owner: +50% on 115.6) and each arc reaches the tower's
+FULL range from its parent (208 at L1, owner: tripled), measured each hop from the
 last-hit enemy's CURRENT position after the hop delay; Conductor +50%, Tesla
 more; spawn spacing is a lever — swarm gap 0.12s
 (~11 apart, inside hop reach), normal/shield/armor 0.8s and fast 0.5s (~60+
