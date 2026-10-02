@@ -4315,6 +4315,7 @@ A trailed enemy's shape is blanked in `COL.bg` before its see-through body is dr
 ARC and SOL colours swapped BACK (owner, 2026-10-02): ARC orange, SOL pink (defs + the `.asp-pop[data-kind]` card hues). Static's charge border now reads `TOWERS.chain.color` instead of a fixed colour.
 ARC damage 28 -> 34 (x1.2; owner, 2026-10-02): with half the enemies its arc tree has fewer targets and the search had all but dropped it. New `scripts/aspira-sim/latesearch.mjs`: start at wave 60 with 300k credits, six towers maxed at L4, hill-climb the six (kind, path, form) picks for the furthest wave reached (~2s a run).
 FRZ base targets 3 -> 1 (owner, 2026-10-02; blurb updated).
+Armored enemies are HEPTAGONS (owner, 2026-10-02; were pentagons like Shield), on the board and in the wave list.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
