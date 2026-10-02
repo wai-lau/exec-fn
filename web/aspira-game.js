@@ -5,7 +5,7 @@ let best = { score: 0, wave: 0 };
 try { best = JSON.parse(localStorage.getItem("aspira.best")) || best; } catch (_e) {}
 
 // TESTING: the owner asked to start rich while designing; the real start is 100
-const START_MONEY = 10000;
+const START_MONEY = 100; // the real economy (owner, 2026-10-02; was 10000 for testing)
 
 function newGame() {
   return {
