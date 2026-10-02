@@ -29,7 +29,7 @@ const MIXED = ["norm", "swarm", "swarm", "fast", "shield", "armor"];
 function makeWave(n) {
   const theme = WAVE_THEMES[(n - 1) % WAVE_THEMES.length], list = [];
   let count = Math.min(10 + Math.floor(n * 0.5), 28);
-  if (theme === "swarm") count = Math.min(count * 3, 70);
+  if (theme === "swarm") count = Math.min(count * 6, 140); // swarms: 6x the bodies (owner: swarmier)
   for (let i = 0; i < count; i++) list.push(theme === "mixed" ? MIXED[i % MIXED.length] : theme);
   if (n >= 3) list[Math.floor(Math.random() * count)] = "bonus";
   return list;
@@ -102,11 +102,14 @@ function entryS(pi) {
 function spawnEnemy(type, n, pi) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0);
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
-  const shield = d.shield ? d.shield + Math.floor(n / 3) : 0;
+  // shields start at exactly 5 on their first wave (4) and gain 1 every 3 waves
+  const shield = d.shield ? d.shield + Math.floor(Math.max(0, n - 4) / 3) : 0;
   G.enemies.push({
     armor: d.armor ? d.armor * (1 + 0.12 * (n - 1)) : 0, shield, shieldMax: shield,
-    // swarm members wander off the lane line on their own small loop
-    jit: type === "swarm" ? 6 + Math.random() * 14 : 0, ph: Math.random() * 6.283,
+    // swarm members wander widely off the lane, each at its own speed (+-20%)
+    // and its own wobble rate, so a clump churns as it moves
+    jit: type === "swarm" ? 8 + Math.random() * 20 : 0, ph: Math.random() * 6.283,
+    spd: type === "swarm" ? 0.8 + Math.random() * 0.4 : 1, phr: 0.6 + Math.random(),
     id: G.id++, type, n, hp, max: hp, pi, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
@@ -117,7 +120,7 @@ function spawnEnemy(type, n, pi) {
 // by it too, so enemies stay the same DISTANCE apart on the lane — that
 // spacing is a balance lever for chain reach.
 const ENEMY_SPEED = 1.5;
-const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
+const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
 const MODE_KEY = {
   close: a => a.d,
@@ -275,9 +278,9 @@ function stepSpawns(dt) {
     while (w.timer <= 0 && w.idx < w.list.length) {
       const type = w.list[w.idx++];
       spawnEnemy(type, w.n, w.lanes[type]);
-      // spacing is a balance lever: swarms pack ~11 apart (inside CHN's 70 hop
-      // reach), trains spread ~60+ apart (just at or beyond it)
-      w.timer += (type === "swarm" ? 0.12 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
+      // spacing is a balance lever: swarms stream evenly and densely (twice
+      // the bodies in the same time as before), trains spread ~60+ apart
+      w.timer += (type === "swarm" ? 0.06 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
     }
   }
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
@@ -289,7 +292,7 @@ function stepEnemies(dt) {
     if (e.dead) {
       // a GHOST (owner): the dead keep drifting in at their plain pace,
       // untargetable and harmless, and are removed at the core with no life lost
-      e.s += ENEMIES[e.type].speed * ENEMY_SPEED * PATHS[e.pi].pace * dt;
+      e.s += ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * dt;
     } else {
       if (e.stunT > 0) e.stunT -= dt;
       if (e.slowT > 0) e.slowT -= dt;
@@ -302,7 +305,7 @@ function stepEnemies(dt) {
     // no free spin: one corner points along the lane, nose first
     const ahead = pathAt(e.pi, e.s + 3);
     if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
-    if (e.jit) { e.ph += dt * 6.6; e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
+    if (e.jit) { e.ph += dt * 6.6 * (e.phr || 1); e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
     if (e.s >= PATHS[e.pi].len) {
       e.gone = true;
       if (e.dead) continue; // a ghost just fades out at the core
