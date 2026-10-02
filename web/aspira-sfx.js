@@ -56,32 +56,6 @@ function noise({ dur = 0.1, vol = 0.3, freq = 2000, q = 1, delay = 0 }) {
   src.start(t0); src.stop(t0 + dur + 0.02);
 }
 
-// The Reaper's charge-up: the LAST THIRD of a whine that would climb
-// 320 -> 1500Hz with its tremolo speeding 3 -> 26 pulses/s (owner: only the
-// final rush), pitched down (owner): ~500 -> 850Hz while ~13 -> 26/s pulses,
-// high-passed, no bass. Returns a handle whose stop() cuts it.
-function chargeHum(dur) {
-  const t0 = AC.currentTime, o = AC.createOscillator(), hp = AC.createBiquadFilter();
-  const lfo = AC.createOscillator(), depth = AC.createGain(), trem = AC.createGain(), g = AC.createGain();
-  o.type = "sawtooth";
-  o.frequency.setValueAtTime(500, t0); o.frequency.exponentialRampToValueAtTime(850, t0 + dur);
-  hp.type = "highpass"; hp.frequency.value = 280;
-  lfo.frequency.setValueAtTime(13, t0); lfo.frequency.exponentialRampToValueAtTime(26, t0 + dur);
-  depth.gain.value = 0.5; trem.gain.value = 0.5;   // trem gain swings 0..1 with the LFO
-  lfo.connect(depth).connect(trem.gain);
-  g.gain.setValueAtTime(0.007, t0); g.gain.exponentialRampToValueAtTime(0.06, t0 + dur);
-  o.connect(hp).connect(trem).connect(g).connect(master);
-  voices++; o.onended = () => { voices--; };
-  o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
-  return { stop() {
-    try {
-      const now = AC.currentTime;
-      g.gain.cancelScheduledValues(now); g.gain.setTargetAtTime(0.0001, now, 0.03);
-      o.stop(now + 0.12); lfo.stop(now + 0.12);
-    } catch (_e) {}
-  } };
-}
-
 const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * step, ...opts }));
 
 const SFX = {
@@ -90,13 +64,11 @@ const SFX = {
   // RPR fires a LASER (owner: no bass): a fast falling zap, a brighter buzz
   // under it, a high crack and a faint echo - nothing below ~350Hz
   reaper:  () => {
-    tone({ f0: 1600, f1: 300, dur: 0.28, vol: 0.2 });
-    tone({ type: "square", f0: 1100, f1: 360, dur: 0.2, vol: 0.05 });
-    noise({ dur: 0.06, vol: 0.12, freq: 2600, q: 1.5 });
-    tone({ f0: 1600, f1: 300, dur: 0.28, vol: 0.05, delay: 0.11 });
+    tone({ f0: 600, f1: 90, dur: 0.32, vol: 0.24 });
+    tone({ type: "square", f0: 420, f1: 110, dur: 0.24, vol: 0.05 });
+    noise({ dur: 0.07, vol: 0.12, freq: 1400, q: 1.2 });
+    tone({ f0: 600, f1: 90, dur: 0.32, vol: 0.06, delay: 0.12 });
   },
-  // and CHARGES for it: a whine that climbs while its pulse speeds up
-  reaperCharge: dur => chargeHum(dur),
   slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
   kill:    () => tone({ type: "triangle", f0: 520, f1: 1040, dur: 0.07, vol: 0.16 }),
   leak:    () => tone({ type: "sawtooth", f0: 110, f1: 60, dur: 0.4, vol: 0.3 }),

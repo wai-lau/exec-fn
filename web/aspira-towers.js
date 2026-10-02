@@ -70,7 +70,7 @@ function stepReaper(t, dt) {
   // two ranges (owner): a lock can only START inside st.range (pickTargets),
   // but once charging it HOLDS out to REAPER_HOLD x that range
   if (t.aim && (t.aim.dead || Math.hypot(t.aim.x - t.x, t.aim.y - t.y) > st.range * REAPER_HOLD)) {
-    if (t.aim.dead) { t.cd = t.period; stopCharge(t); } // the charge starts over
+    if (t.aim.dead) t.cd = t.period; // the charge starts over
     t.aim = null;
   }
   if (!t.aim) {
@@ -78,21 +78,14 @@ function stepReaper(t, dt) {
     // a fresh lock with no charge built (e.g. a just-placed tower) charges in full
     if (t.aim && t.cd <= 0) t.cd = t.period;
   }
-  if (!t.aim) { t.cd = t.period; stopCharge(t); return; }
-  // the charge-up hum plays only over the LAST THIRD of the charge (owner),
-  // timed to it as it will play out on screen (game speed applied)
-  if (t.cd <= t.period / 3 && !t.chargeSnd) t.chargeSnd = sfx("reaperCharge", Math.max(0.05, t.cd) / SPEED_MULT[ui.speed]) || { stop() {} };
+  if (!t.aim) { t.cd = t.period; return; }
   t.cd -= dt;
   if (t.cd > 0) return;
   t.shots = (t.shots || 0) + 1;
-  stopCharge(t);
   fireRay(t, st, t.aim); sfx(t.kind);
   t.cd = t.period;
 }
 
-function stopCharge(t) {
-  if (t.chargeSnd) { t.chargeSnd.stop(); t.chargeSnd = null; }
-}
 
 function fireRay(t, st, e) {
   const col = TOWERS[t.kind].color, crit = Math.random() < st.crit;
