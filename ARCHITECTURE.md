@@ -4179,6 +4179,10 @@ The lock-on charge line never drops below 50% of its full opacity (owner).
 Reaper crits show as a PINK damage number, no separate CRIT label (owner).
 EXC's fire beam (white core + pink glow) is a quarter of a normal beam's width (owner:
 doubled from an eighth; the glow doubles with it).
+UPGRADING IS TWO CLICKS (owner): an upgrade option (path, final form or plain
+level) only SELECTS (`ui.pick`) and previews its stat changes ("-> next") in both
+popup columns; a `confirm · cost` button buys it. U picks the plain upgrade,
+then U again confirms. No preview shows until an option is picked.
 The tower popup has TWO stat columns (owner): left = every tower's Damage /
 Range / Rate / Kills / Dealt, right = that type's own (`SPEC` in aspira-ui.js:
 ARC hits / arc dmg / arc reach / leash / delay, FRZ slow / lasts / targets /

@@ -88,7 +88,7 @@ const SPEC = {
   acid: st => [["Burn", Math.round(st.dmg) + "/s"], ["Ramp", "×2 / " + ACID_DOUBLE + "s"],
     ["Max", "×" + ACID_MAX + " (" + Math.round(st.dmg * ACID_MAX) + "/s)"], ["Ticks", st.rate + "/s"]],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
-    ["Ignores", "armor, shields"]],
+    ["Armor", "ignored"], ["Shields", "ignored"]],
 };
 
 // One stat row: "now" alone at max level, "now -> next" when an upgrade
@@ -107,15 +107,26 @@ function upgradeTower(t, choice = null) {
   if (need === "path") t.path = choice;
   if (need === "form") t.form = choice;
   const c = upCost(t);
-  G.money -= c; t.spent += c; t.lvl++;
+  G.money -= c; t.spent += c; t.lvl++; ui.pick = null;
   sfx("up");
   ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
 }
 
+// The tower an upgrade option WOULD make: one level up, with the chosen path
+// or final form applied when this step needs one.
+function nextTower(t, choice) {
+  const need = pendingChoice(t);
+  return { ...t, lvl: t.lvl + 1, path: need === "path" ? choice : t.path, form: need === "form" ? choice : t.form };
+}
+// Upgrading is TWO clicks (owner): picking an option (ui.pick) only previews
+// its stat changes in the columns; the confirm button then buys it.
+function pickUpgrade(t, choice) { ui.pick = { tid: t.id, choice }; refreshPanels(); }
 function inspectTower(el, t) {
   const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL;
-  const st = towerStats(t), nx = maxed ? null : towerStats({ ...t, lvl: t.lvl + 1 });
-  const sp = SPEC[t.kind](st, t), spN = nx && SPEC[t.kind](nx, { ...t, lvl: t.lvl + 1 });
+  const pick = !maxed && ui.pick && ui.pick.tid === t.id ? ui.pick : null;
+  const nt = pick && nextTower(t, pick.choice);
+  const st = towerStats(t), nx = nt && towerStats(nt);
+  const sp = SPEC[t.kind](st, t), spN = nx && SPEC[t.kind](nx, nt);
   el.innerHTML =
     '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
     '<div id="asp-upbox"></div>' +
@@ -132,15 +143,16 @@ function inspectTower(el, t) {
     // a branch point: one button per option, each showing what it does
     const opts = need === "path" ? UPGRADES[t.kind] : UPGRADES[t.kind][t.path].finals;
     opts.forEach((o, i) => {
-      button($("asp-upbox"), "asp-primary asp-choice",
-        "<b>" + o.name + " · " + upCost(t) + "</b><span>" + o.desc + "</span>", () => upgradeTower(t, i));
+      button($("asp-upbox"), "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
+        "<b>" + o.name + " · " + upCost(t) + "</b><span>" + o.desc + "</span>", () => pickUpgrade(t, i));
     });
   } else {
-    button($("asp-upbox"), "asp-primary asp-up-big",
+    button($("asp-upbox"), "asp-primary asp-up-big" + (pick ? " on" : ""),
       maxed ? "max level" : t.lvl + 1 === MAX_LVL && t.form != null
-        ? "→ L" + MAX_LVL + " super " + UPGRADES[t.kind][t.path].finals[t.form].name + " · " + upCost(t) + " (U)"
-        : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t) + " (U)", () => upgradeTower(t), "asp-up");
+        ? "→ L" + MAX_LVL + " super " + UPGRADES[t.kind][t.path].finals[t.form].name + " · " + upCost(t)
+        : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => { if (!maxed) pickUpgrade(t, null); });
   }
+  if (pick) button($("asp-upbox"), "asp-primary asp-up-big", "confirm · " + upCost(t) + " (U)", () => upgradeTower(t, pick.choice), "asp-up");
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
@@ -203,6 +215,14 @@ function placePop() {
   pop.style.left = Math.max(8, x) + "px"; pop.style.top = y + "px";
 }
 
+// U: confirm the picked upgrade; with none picked, pick the plain one (a
+// branch point needs its option clicked first)
+function keyUpgrade(t) {
+  if (!t) return;
+  if (ui.pick && ui.pick.tid === t.id) upgradeTower(t, ui.pick.choice);
+  else if (!pendingChoice(t) && t.lvl < MAX_LVL) pickUpgrade(t, null);
+}
+
 // ---------- overlay ----------
 function showOverlay(title, body, btn) {
   setText($("asp-ov-title"), title); setText($("asp-ov-text"), body); setText($("asp-ov-btn"), btn);
@@ -221,7 +241,7 @@ document.addEventListener("keydown", ev => {
   else if (ev.key === "m" || ev.key === "M") setMuted(!muted);
   else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; }
   else if (ev.key === "Tab") { ev.preventDefault(); if ($("asp-ov").hidden) sendWave(); }
-  else if (ev.key === "u" || ev.key === "U") upgradeTower(ui.sel && G.towers.find(x => x.id === ui.sel));
+  else if (ev.key === "u" || ev.key === "U") keyUpgrade(ui.sel && G.towers.find(x => x.id === ui.sel));
   else if (ev.key === "Escape") { ui.build = null; ui.sel = null; refreshPanels(); }
 });
 
