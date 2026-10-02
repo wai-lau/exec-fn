@@ -4147,6 +4147,15 @@ the real starting money is 100. Put it back before calling the game balanced.
 **Auto-send** checkbox (`localStorage["aspira.auto"]`): when the field clears,
 the next wave goes at once and the early bonus pays the whole countdown.
 
+**Time is REAL at 1x** (owner): the sim used to run at a hidden 3x at "1x",
+so the code was rescaled once — every rate x3 (enemy pace `ENEMY_SPEED` 1.5;
+fire rates RPD 18/s, CHN 3, SLW 2.4, RPR 0.9) and every duration /3 (slow
+~4.2s, wave countdown 5s, beam/flash/spark/banner lives, upgrade durations),
+with `SPEED_MULT = {1:1, 2:2, 3:3}`. The pace of play did not change. The early
+bonus pays 3 credits per second skipped so a full countdown is still +15.
+Older numbers elsewhere in this section that predate the rescale are in the
+old game-time units (divide durations by 3, multiply rates by 3).
+
 **Rules in one place:** enemies follow their spiral by arc length `s` (Pusher
 subtracts from `s`); a leak costs 1 life (boss 5). The next-wave countdown (`WAVE_GAP = 15`s) runs only while the field is
 clear (`waveClear()`: no live enemies, no queued spawns); sending early is

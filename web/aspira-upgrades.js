@@ -19,8 +19,8 @@ const UPGRADES = {
       { name: "Sniper", desc: "damage x3, range +20%, half fire rate", mods: { dmg: 3, rate: 0.5, range: 1.2 } },
       { name: "Spotter", desc: "towers in its range deal +20%", mods: { aura: 1.2 } },
     ] },
-    { name: "Shred", desc: "hit enemies take +20% damage for 2s", mods: { shred: { mul: 1.2, t: 2 } }, finals: [
-      { name: "Acid", desc: "hits also poison: 60% more over 3s", mods: { dot: { frac: 0.6, t: 3 } } },
+    { name: "Shred", desc: "hit enemies take +20% damage for 0.7s", mods: { shred: { mul: 1.2, t: 0.67 } }, finals: [
+      { name: "Acid", desc: "hits also poison: 60% more over 1s", mods: { dot: { frac: 0.6, t: 1 } } },
       { name: "Flechette", desc: "hits splash 40% within a short radius", mods: { splash: { r: 50, frac: 0.4 } } },
     ] },
   ],
@@ -36,14 +36,14 @@ const UPGRADES = {
       // was "x2.5 to bosses"; bosses were removed, so EMP now targets armor (placeholder)
       { name: "EMP", desc: "x2.5 damage to armored enemies", mods: { armorMul: 2.5 } },
     ] },
-    { name: "Shock", desc: "15% chance to stun 0.3s", mods: { stun: { p: 0.15, t: 0.3 } }, finals: [
-      { name: "Paralyze", desc: "35% chance to stun 0.6s", mods: { stun: { p: 0.35, t: 0.6 } } },
-      { name: "Static", desc: "every hit slows 30% for 1.5s", mods: { hitSlow: { f: 0.3, t: 1.5 } } },
+    { name: "Shock", desc: "15% chance to stun 0.1s", mods: { stun: { p: 0.15, t: 0.1 } }, finals: [
+      { name: "Paralyze", desc: "35% chance to stun 0.2s", mods: { stun: { p: 0.35, t: 0.2 } } },
+      { name: "Static", desc: "every hit slows 30% for 0.5s", mods: { hitSlow: { f: 0.3, t: 0.5 } } },
     ] },
   ],
   slower: [
     { name: "Frost", desc: "+15% slow", mods: { slow: 0.15 }, finals: [
-      { name: "Deep Freeze", desc: "newly slowed enemies freeze 0.5s", mods: { chillStop: 0.5 } },
+      { name: "Deep Freeze", desc: "newly slowed enemies freeze 0.17s", mods: { chillStop: 0.17 } },
       { name: "Brittle", desc: "slowed enemies take +30% damage", mods: { brittle: 1.3 } },
     ] },
     { name: "Spread", desc: "+3 targets", mods: { targets: 3 }, finals: [

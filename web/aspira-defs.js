@@ -180,11 +180,13 @@ function resolveColors() {
   }
 }
 
+// Rates are per REAL second at 1x speed (time was rescaled so 1x = real time;
+// every rate x3 and every duration /3 against the old hidden-3x values).
 const TOWERS = {
-  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3.5, rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
-  chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1,    range: 92.5, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 0.8,  range: 95,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
-  reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 80,  rate: 0.3,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3.5, rate: 18,   range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
+  chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 3,    range: 92.5, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
+  slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 95,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
+  reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 80,  rate: 0.9,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
@@ -211,7 +213,7 @@ const POWERS = [
   ["SCR", "Score ×2"], ["RNG", "Range +30%"], ["MNY", "Bounty ×2"],
   ["DAM", "Damage +60%"], ["FRZ", "Freeze all"], ["BOM", "Blast all"],
 ];
-const POWER_FULL = 30, POWER_TIME = 10;
+const POWER_FULL = 30, POWER_TIME = 10 / 3;
 
 // Towers have four levels (L1-L4, matching the UI). Each table holds one
 // value per level; L2 brings the path choice, L3 the final form, L4 the super
