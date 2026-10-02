@@ -17,10 +17,9 @@ function short(n) {
 
 // ---------- placement / input ----------
 // Towers snap to the triangular cells of the build disc (CELLS in
-// aspira-defs.js); a cell holds at most one tower, and none may stand
-// within TOWER_GAP tiles of another (tooClose).
+// aspira-defs.js); a cell holds at most one tower.
 function canPlace(ci) {
-  return ci >= 0 && !tooClose(ci);
+  return ci >= 0 && !occupied(ci);
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;

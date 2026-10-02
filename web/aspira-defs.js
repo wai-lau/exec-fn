@@ -20,7 +20,7 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // the core; towers and enemies never collide, so building on a lane is fine.
 // Towers build anywhere inside the chart's rim (owner): every hex cell whose
 // corners all sit within BUILD_R, just inside the white rim circle.
-const CELL_S = 32;
+const CELL_S = 32, CELL_PITCH = 2;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
 // the build area, which now spans the whole chart)
@@ -28,14 +28,16 @@ const INNER_R = 220;
 
 // The build disc is tessellated into pointy-top hexagons on a lattice whose
 // centre hex IS the core, so the grid has the chart's six-fold symmetry.
+// CELL_PITCH spreads the lattice (owner, 2026-10-02): centres sit twice as far
+// apart as touching hexes would, so towers stand apart with open sky between.
 // every lattice cell inside BUILD_R around it (~270 cells); each
 // tower fills exactly one cell. CELL_S = hex circumradius (= core radius).
 const CELLS = (function buildCells() {
-  const w = Math.sqrt(3) * CELL_S, out = [];
-  const span = Math.ceil(BUILD_R / (1.5 * CELL_S)) + 1;
+  const w = Math.sqrt(3) * CELL_S * CELL_PITCH, h = 1.5 * CELL_S * CELL_PITCH, out = [];
+  const span = Math.ceil(BUILD_R / h) + 1;
   for (let r = -span; r <= span; r++) for (let q = -2 * span; q <= 2 * span; q++) {
     if (q === 0 && r === 0) continue; // the core
-    const x = CX + w * (q + r / 2), y = CY + 1.5 * CELL_S * r;
+    const x = CX + w * (q + r / 2), y = CY + h * r;
     const pts = [];
     for (let k = 0; k < 6; k++) {
       const a = Math.PI / 6 + k * Math.PI / 3;
@@ -47,14 +49,8 @@ const CELLS = (function buildCells() {
 })();
 
 // Centre-to-centre distance between neighbouring cells: one "tile".
-const TILE = Math.sqrt(3) * CELL_S;
-// Towers stand well apart (owner, 2026-10-02): no two centres closer than
-// TOWER_GAP tiles, i.e. two free cells between neighbours. Fewer towers fit.
-const TOWER_GAP = 3;
-function tooClose(ci) {
-  const c = CELLS[ci];
-  return G.towers.some(t => Math.hypot(CELLS[t.cell].x - c.x, CELLS[t.cell].y - c.y) < TOWER_GAP * TILE - 1);
-}
+const TILE = Math.sqrt(3) * CELL_S * CELL_PITCH;
+function occupied(ci) { return G.towers.some(t => t.cell === ci); }
 
 // Placement snaps to the lattice: the cell under the point, else the nearest
 // cell centre within one tile (a tap just outside the grid still lands).

@@ -51,7 +51,7 @@ export function makeGame(seed, patch = "") {
       towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell,
       place(kind, ci) {
         const b = TOWERS[kind], c = CELLS[ci];
-        if (G.money < b.cost || tooClose(ci)) return null;
+        if (G.money < b.cost || occupied(ci)) return null;
         G.money -= b.cost;
         const t = { id: G.id++, kind, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0,
           mode: { slower: "fast", reaper: "hard" }[kind] || "close", spent: b.cost };
@@ -136,7 +136,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
       }
       const b = g.TOWERS[next.kind];
       if (G.money - b.cost < (G.towers.length < 2 ? 0 : (strategy.reserve || 0) * G.wave)) return;
-      const best = order[next.kind].find(i => !g.run("tooClose(" + i + ")"));
+      const best = order[next.kind].find(i => !g.run("occupied(" + i + ")"));
       if (best == null) { next = null; return; }
       g.place(next.kind, best); next = null;
     }
