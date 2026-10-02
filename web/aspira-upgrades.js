@@ -59,8 +59,10 @@ const UPGRADES = {
     ] },
     // circle tripled 45 -> 135 (owner, 2026-10-02: "45 range is nothing")
     { name: "Plague", desc: "every tick also burns everything within 135 of the target", mods: { plagueR: 135 }, finals: [
-      { name: "Bloom", desc: "the circle grows with the burn, up to 2x; burn x1.5", mods: { bloom: 2, dmg: 1.5 },
-        super: { name: "Overgrowth", desc: "the circle grows up to 3x", mods: { bloom: 3 } } },
+      // Bloom, Permafrost and Moons trimmed (owner, 2026-10-02: they topped the
+      // late-game test at 84-90 vs an 80 baseline)
+      { name: "Bloom", desc: "the circle grows with the burn, up to 1.6x; burn x1.3", mods: { bloom: 1.6, dmg: 1.3 },
+        super: { name: "Overgrowth", desc: "the circle grows up to 2.2x", mods: { bloom: 2.2 } } },
       { name: "Corrosion", desc: "every tick strips 1.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 1.5 },
         super: { name: "Dissolve", desc: "strips 3 armor a tick", mods: { corrode: 3 } } },
       // range cut (owner, 2026-10-02): every burn in range keeps ramping, never
@@ -87,9 +89,9 @@ const UPGRADES = {
         super: { name: "Absolute Zero", desc: "95% slow for 0.5s", mods: { chillStop: 0.5 } } },
       // (owner, 2026-10-02: were Whiteout / Blizzard, whole-range chills)
       { name: "Moons", desc: "two moons orbit the tower, each one a Stasis FRZ of its own (same range, slow and nick)", mods: { moons: 2 },
-        super: { name: "Desolation", desc: "a third moon, and the slow +10%", mods: { moons: 3, slow: 0.1 } } },
-      { name: "Permafrost", desc: "the slow never wears off, but is 10% weaker", mods: { permafrost: true, slow: -0.1 },
-        super: { name: "Ice Age", desc: "the permanent slow is 15% stronger", mods: { slow: 0.15 } } },
+        super: { name: "Desolation", desc: "a third moon, and the slow +5%", mods: { moons: 3, slow: 0.05 } } },
+      { name: "Permafrost", desc: "the slow never wears off, but is 15% weaker", mods: { permafrost: true, slow: -0.15 },
+        super: { name: "Ice Age", desc: "the permanent slow is 5% stronger", mods: { slow: 0.05 } } },
     ] },
   ],
   // SOL (owner, 2026-10-02): L2 Charge or Array, three forms each, each with
