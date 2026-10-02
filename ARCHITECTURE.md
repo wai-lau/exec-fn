@@ -4151,7 +4151,8 @@ paused (nothing checks `ui.paused` outside the sim step).
 the real starting money is 100. Put it back before calling the game balanced.
 
 **Waves are always auto-sent** (owner; the checkbox is gone): the next wave
-goes the moment the field clears and the early bonus pays the whole countdown.
+goes the moment the field clears. The early bonus is GONE (owner: every wave
+is early now); send wave still sends the next one while this one runs.
 Placing the FIRST tower sends wave 1.
 
 **Time is REAL at 1x** (owner): the sim used to run at a hidden 3x at "1x",
