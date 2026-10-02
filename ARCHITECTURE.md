@@ -4118,8 +4118,8 @@ ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its
 RPD fires in BURSTS of 10 (`RAPID_BURST`, `fireBurst`): targets are locked for
 the whole burst and shots after a target dies are WASTED (fired at its ghost,
 no damage), so overkill against tiny swarmers costs it (owner).
-Each RPD shot is a small HOMING SQUIGGLE (`launchMissile`/`stepMissiles`,
-`G.missiles`, 520 u/s, sine wiggle that straightens as it closes) dealing its
+Each RPD shot is a short straight HOMING LINE (`launchMissile`/`stepMissiles`,
+`G.missiles`, 520 u/s, 12 units long; owner: no squiggle) dealing its
 damage on ARRIVAL; shots in flight at a target that dies are wasted too, and a
 MISSED shot visibly keeps flying on its last heading, fading over 0.7s.
 Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved

@@ -119,14 +119,14 @@ function fireRay(t, st, e) {
 // and if a target dies mid-burst the rest of that burst is WASTED - the
 // shots still go, at the invisible ghost, for nothing. Overkill is the cost
 // of a fast gun: great into big HP, poor into swarms of tiny ones.
-// Each shot is a small HOMING SQUIGGLE (owner) that deals its damage on
+// Each shot is a short HOMING LINE (owner) that deals its damage on
 // arrival, so shots already in flight at a target that dies are wasted too.
 // A shot whose target is already dead MISSES (owner): it stops homing and keeps
 // flying on its last heading, fading out over MISS_LIFE, so the waste shows.
-const RAPID_BURST = 10, MISSILE_SPEED = 520, MISSILE_TRAIL = 7, MISSILE_LIFE = 2, MISS_LIFE = 0.7;
+const RAPID_BURST = 10, MISSILE_SPEED = 520, MISSILE_LEN = 12, MISSILE_LIFE = 2, MISS_LIFE = 0.7;
 function launchMissile(t, st, e) {
   const a = Math.atan2(e.y - t.y, e.x - t.x);
-  (G.missiles ||= []).push({ x: t.x, y: t.y, e, t, st, age: 0, ph: Math.random() * 6.283, trail: [], a, miss: 0 });
+  (G.missiles ||= []).push({ x: t.x, y: t.y, e, t, st, age: 0, a, miss: 0 });
 }
 function stepMissiles(dt) {
   if (!G.missiles || !G.missiles.length) return;
@@ -134,11 +134,9 @@ function stepMissiles(dt) {
     m.age += dt;
     const e = m.e;
     if (!m.miss && (e.dead || e.gone)) m.miss = MISS_LIFE; // target gone: this shot is wasted
-    let a;
     if (m.miss) {
       m.miss -= dt;
-      if (m.miss <= 0) return false;
-      a = m.a + Math.sin(m.age * 34 + m.ph) * 0.7; // sails on, still squiggling
+      if (m.miss <= 0) return false; // sails on straight along its last heading
     } else {
       const dx = e.x - m.x, dy = e.y - m.y, dist = Math.hypot(dx, dy);
       if (m.age > MISSILE_LIFE) return false;
@@ -146,12 +144,9 @@ function stepMissiles(dt) {
         const d = shotDamage(m.t, m.st, e, m.st.dmg); damage(e, d, m.t); onHit(e, m.t, m.st, d);
         return false;
       }
-      // home in on the target with a wiggle that straightens as it closes
-      m.a = Math.atan2(dy, dx);
-      a = m.a + Math.sin(m.age * 34 + m.ph) * 0.7 * Math.min(1, dist / 70);
+      m.a = Math.atan2(dy, dx); // homes straight at the target
     }
-    m.trail.push(m.x, m.y); if (m.trail.length > MISSILE_TRAIL * 2) m.trail.splice(0, 2);
-    m.x += Math.cos(a) * MISSILE_SPEED * dt; m.y += Math.sin(a) * MISSILE_SPEED * dt;
+    m.x += Math.cos(m.a) * MISSILE_SPEED * dt; m.y += Math.sin(m.a) * MISSILE_SPEED * dt;
     return true;
   });
 }
