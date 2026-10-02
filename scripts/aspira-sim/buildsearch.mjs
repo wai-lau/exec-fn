@@ -175,7 +175,18 @@ function mainSearch() {
     }
     const picked = starts.sort(() => rnd() - 0.5).slice(0, 8);
     let best = null, evals = 0;
-    for (let i = 0; i < picked.length; i += NW) {
+    // CHECKPOINT (owner): a log from an earlier, interrupted run is picked up -
+    // its best plan becomes the start and its evaluations count toward EVALS
+    if (LOG && fs.existsSync(LOG)) {
+      for (const line of fs.readFileSync(LOG, "utf8").split("\n")) {
+        if (!line) continue;
+        const r = JSON.parse(line); evals++;
+        if (r.res.length === SEEDS && (!best || r.v > best.v)) best = { plan: { R: r.R, acts: r.acts }, v: r.v, res: r.res };
+      }
+      if (best) console.log("resumed", evals, "evals, best", best.v);
+    }
+    const resumed = !!best;
+    for (let i = 0; !resumed && i < picked.length; i += NW) {
       const out = await Promise.all(picked.slice(i, i + NW).map((p, j) => evalOn(workers[j], p, -Infinity)));
       for (const o of out) { evals++; if (!best || o.v > best.v) best = o; }
     }
