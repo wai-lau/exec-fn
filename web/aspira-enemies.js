@@ -116,15 +116,20 @@ function drawStatus(e, d, size) {
   ctx.globalAlpha = 1;
 }
 
-// a boss is ringed by a static EYE (owner): an almond of two lids - upper and
-// lower - with a gap at each corner, in the boss's colour (red once inverted);
-// it never turns with the boss
-const EYE_RX = 2.1, EYE_RY = 1.25, EYE_GAP = 0.32;
+// a boss is ringed by a static EYE (owner): an OCTAGON round it, flat sides
+// up and down, with its left and right sides left open, so the top and
+// bottom halves read as lids; in the boss's colour (red once inverted); it
+// never turns with the boss
+const EYE_R = 1.9;
 function drawBossEye(e, size) {
-  const rx = size * EYE_RX, ry = size * EYE_RY;
-  ctx.strokeStyle = COL[ENEMIES[e.type].color]; ctx.globalAlpha = 0.95; ctx.lineWidth = 3; ctx.lineCap = "round";
-  for (const [a0, a1] of [[EYE_GAP, Math.PI - EYE_GAP], [Math.PI + EYE_GAP, 2 * Math.PI - EYE_GAP]]) {
-    ctx.beginPath(); ctx.ellipse(e.x, e.y, rx, ry, 0, a0, a1); ctx.stroke();
+  const r = size * EYE_R, pts = [];
+  for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + i * Math.PI / 4; pts.push([e.x + Math.cos(a) * r, e.y + Math.sin(a) * r]); }
+  ctx.strokeStyle = COL[ENEMIES[e.type].color]; ctx.globalAlpha = 0.95; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  // vertices 0..7 from just below the right side, clockwise; sides 7-0 (right) and 3-4 (left) stay open
+  for (const lid of [[0, 1, 2, 3], [4, 5, 6, 7]]) {
+    ctx.beginPath(); ctx.moveTo(...pts[lid[0]]);
+    for (const k of lid.slice(1)) ctx.lineTo(...pts[k]);
+    ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
