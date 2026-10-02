@@ -4266,6 +4266,7 @@ While placing, all six slots draw at full strength (owner: "fully show"), no lon
 ONE enemy type per wave again (owner, 2026-10-02): a random unlocked type, never the previous wave's (`G.lastType`); the 1-5 type mix, `pickK` and `TYPE_STAGGER` are gone (the 1-6 lane split stays). Waves go on a FIXED TIMER, `WAVE_TIMER = 10`s, and still at once when the field clears; the send button shows the countdown. Measured in the simulator (six slots, ARC/FRZ/SOL): 2+ waves on screen 73% of the time in W0-9, 90-96% in W10-39, 100% after; a 15s timer fell to 40-60% mid-game.
 Every tower defaults to CLOSE targeting (owner, 2026-10-02; was FRZ fastest, SOL strongest). With the 10s timer a lone SOL then leaks 0-1 wave-1 swarmers (2 of 8 seeds) instead of ~11.
 ARC's base tree is one level deeper (owner, 2026-10-02): 1→2→4, 7 hits a shot (`layers = 2`); the L2 paths still set their own shape.
+...with hit damage x0.45 before the L2 path to compensate (owner): a full shot stays 2.6 strikes' worth (was 1 + 2 x 0.8, now 1 + 6 x 0.8 = 5.8). Path forms untouched. A lone ARC still clears wave 1 clean on 8/8 seeds.
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).
 Credits shorten past 99,999 (`short()` in aspira-ui.js: 123k, 4.0M) so a late-game balance never runs into the tower buttons (owner screenshot: 3,996,452 overlapped ACD).
