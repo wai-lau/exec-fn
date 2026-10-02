@@ -102,9 +102,7 @@ function drawStars() {
 
 // Lanes in use this wave are drawn bright in the colour of the enemy type
 // riding them; idle lanes drop to a faint trace.
-// one stroke style per mirror pair (both lanes of a pair match, so the
-// pair symmetry holds): solid, dotted, dashed, dash-dot, fine dots, long dash
-const LANE_DASH = [[], [0.1, 7], [12, 7], [16, 5, 0.1, 5], [0.1, 4], [28, 9]];
+// every lane is a SOLID line (owner; the per-pair dash styles are gone)
 // Lane STROKES go to an offscreen layer that is then masked by a radial
 // gradient: full at the centre, fading linearly to nothing just beyond the
 // white rim (LANE_FADE_R), so lanes do not trail across the open sky.
@@ -119,19 +117,18 @@ function drawLaneStrokes(live) {
   lctx.lineJoin = "round"; lctx.lineCap = "round";
   // every lane faint, then each lane IN USE lit in its rider's colour - drawn
   // rotated when a split wave rides a rotated copy of it (u.ang)
-  PATHS.forEach((path, i) => {
-    lctx.strokeStyle = COL.cyan; lctx.setLineDash(LANE_DASH[i >> 1]);
+  PATHS.forEach(path => {
+    lctx.strokeStyle = COL.cyan;
     lctx.globalAlpha = 0.05; lctx.lineWidth = 1.2; lctx.stroke(path.p2d);
   });
   for (const u of live.values()) {
     lctx.save();
     lctx.translate(CX, CY); lctx.rotate(u.ang); lctx.translate(-CX, -CY);
-    lctx.strokeStyle = COL[u.color]; lctx.setLineDash(LANE_DASH[u.pi >> 1]);
+    lctx.strokeStyle = COL[u.color];
     lctx.globalAlpha = 0.03; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
     lctx.globalAlpha = 0.3; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
     lctx.restore();
   }
-  lctx.setLineDash([]);
   // mask: only alpha matters under destination-in, so transparent -> bg works
   const g = lctx.createRadialGradient(CX, CY, 0, CX, CY, LANE_FADE_R);
   g.addColorStop(0, COL.bg); g.addColorStop(1, "transparent");
