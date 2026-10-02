@@ -2,7 +2,7 @@
 // open its card (the tower card, in white). From wave CORE_UNLOCK the core can
 // be upgraded; L1 is one of three powerful effects at a high price:
 //   ZEN      every ZEN_EVERY s a pulse near-freezes (95%) enemies within ZEN_R for ZEN_T s
-//   NULLIFY  enemy shield charges and armor halved, Fast enemies at half speed;
+//   Space    (id "nullify"; owner renamed it) enemy shield charges and armor halved, Fast enemies at half speed;
 //            the six slots (and their towers) move NULL_PUSH further from the
 //            core, and every tower gains NULL_RANGE range
 //   Sinter   every tower deals +30% damage
@@ -12,7 +12,7 @@ const CORE_UNLOCK = 30, CORE_COST = [2500];
 const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 100;
 const CORE_L1 = [
   { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
-  { id: "nullify", name: "Nullify", desc: "enemy shields and armor halved; Fast enemies at half speed; towers move 100 further out and gain +100 range" },
+  { id: "nullify", name: "Space", desc: "enemy shields and armor halved; Fast enemies at half speed; towers move 100 further out and gain +100 range" },
   { id: "sinter", name: "Sinter", desc: "every tower deals +30% damage" },
 ];
 const CORE_MAX = CORE_COST.length;
