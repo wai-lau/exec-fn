@@ -89,7 +89,7 @@ const bossPays = e => !(isA(e, "devil") && G.enemies.some(o => o !== e && !o.dea
 
 // ---------- the inverted sky (UI only; aspira-draw.js calls it last) ----------
 // owner: when a boss appears, colour INVERSION spreads as a soft-edged circle
-// from where it spawned, filling the screen over BOSS_INV_T s; when the last
+// from the core, filling the screen over BOSS_INV_T s; when the last
 // boss dies, it collapses over the same time onto where that boss fell. The
 // canvas is inverted by painting the circle in "difference" mode; the HTML
 // over it (header, build bar, card) flips by CSS once the circle covers the
@@ -100,7 +100,7 @@ function drawBossInvert() {
   const now = performance.now() / 1000, alive = G.enemies.filter(e => e.arcana && !e.dead);
   if (alive.length) bossInv.last = { x: alive[0].x, y: alive[0].y };
   if (alive.length && (bossInv.phase === "off" || bossInv.phase === "out")) {
-    Object.assign(bossInv, { phase: "in", t0: now, x: alive[0].x, y: alive[0].y });
+    Object.assign(bossInv, { phase: "in", t0: now, x: CX, y: CY }); // spreads from the CORE (owner: was the boss)
   } else if (!alive.length && bossInv.phase === "in") {
     const at = bossInv.last || { x: bossInv.x, y: bossInv.y };
     Object.assign(bossInv, { phase: "out", t0: now, x: at.x, y: at.y });
