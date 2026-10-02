@@ -19,38 +19,31 @@ function newGame() {
 let G = newGame();
 
 // ---------- waves ----------
-const WAVE_GAP = 5;
+// Waves go on a FIXED TIMER (owner, 2026-10-02), fast enough that 2+ waves are
+// usually on screen, and still at once whenever the field clears.
+const WAVE_TIMER = 10;
 // clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
-// A wave mixes K of the unlocked enemy types (owner): K is 1-5 on a bell
-// curve peaking at 2, and each chosen type brings 1/K of its usual count.
-// Types unlock in order: swarm w1, fast w2, shield w3, armor w4.
-// makeWave returns one spawn list PER TYPE, so each streams on its own lane
-// at the same time. From wave 3 one enemy is swapped for a bonus star.
+// ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
+// a random unlocked type, never the same as the wave before. Types unlock in
+// order: swarm w1, fast w2, shield w3, armor w4. makeWave returns the spawn
+// lists (one, kept a list so the lane split below stays generic). From wave 3
+// one enemy is swapped for a bonus star.
 // Normal enemies were REMOVED (owner, 2026-10-02): every type now has a counter
 const UNLOCK = ["swarm", "fast", "shield", "armor"];
-const K_WEIGHTS = [0.2, 0.35, 0.25, 0.13, 0.07]; // P(K = 1..5)
-function pickK(max) {
-  const w = K_WEIGHTS.slice(0, max), total = w.reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  for (let k = 0; k < w.length; k++) { r -= w[k]; if (r <= 0) return k + 1; }
-  return max;
-}
 function makeWave(n) {
-  const pool = UNLOCK.slice(0, Math.min(UNLOCK.length, n)), k = pickK(pool.length);
-  const types = pool.slice().sort(() => Math.random() - 0.5).slice(0, k);
+  const pool = UNLOCK.slice(0, Math.min(UNLOCK.length, n));
+  const choices = pool.length > 1 ? pool.filter(t => t !== G.lastType) : pool;
+  const type = choices[Math.floor(Math.random() * choices.length)];
+  G.lastType = type;
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
-  const lists = types.map(type => {
-    const usual = type === "swarm" ? base * 3 : base; // swarms: 3x the bodies of a normal wave (owner)
-    return Array(Math.max(1, Math.round(usual / k))).fill(type);
-  });
-  if (n >= 3) { const l = lists[Math.floor(Math.random() * lists.length)]; l[Math.floor(Math.random() * l.length)] = "bonus"; }
-  return lists;
+  const list = Array(type === "swarm" ? base * 3 : base).fill(type); // swarms: 3x the bodies (owner)
+  if (n >= 3) list[Math.floor(Math.random() * list.length)] = "bonus";
+  return [list];
 }
 
 // Interest is paid on what you hold at the moment a wave is sent, so saving
 // beats spending early. Sending before the countdown ends pays the seconds left.
-const TYPE_STAGGER = 2; // seconds between one enemy type's start and the next
 function sendWave() {
   if (G.over) return;
   const gain = Math.floor(G.money * G.interest);
@@ -62,15 +55,14 @@ function sendWave() {
   const lanes = laneMap(G.wave);
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once
-  // and each TYPE starts TYPE_STAGGER seconds after the one before (owner)
-  makeWave(G.wave).forEach((list, ti) => {
+  makeWave(G.wave).forEach(list => {
     const k = 1 + Math.floor(Math.random() * 6), per = Math.max(1, Math.ceil(list.length / k));
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
-      if (part.length) G.spawns.push({ n: G.wave, list: part, lanes, ang: (j / k) * Math.PI * 2, idx: 0, timer: ti * TYPE_STAGGER });
+      if (part.length) G.spawns.push({ n: G.wave, list: part, lanes, ang: (j / k) * Math.PI * 2, idx: 0, timer: 0 });
     }
   });
-  G.nextIn = WAVE_GAP;
+  G.nextIn = WAVE_TIMER;
   G.started = true;
 }
 
@@ -370,9 +362,10 @@ function stepEnemies(dt) {
 function step(dt) {
   if (G.over || !G.started) return;
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
-  // the next wave ALWAYS goes the moment the field clears (owner): nothing
-  // alive, nothing still queued to spawn
-  if (waveClear()) { sendWave(); return; }
+  // the next wave goes when its timer runs out, or the moment the field
+  // clears (owner): nothing alive, nothing still queued to spawn
+  G.nextIn -= dt;
+  if (G.nextIn <= 0 || waveClear()) { sendWave(); return; }
   stepSpawns(dt);
   stepEnemies(dt);
   if (G.over) return;
