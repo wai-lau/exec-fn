@@ -4117,7 +4117,7 @@ more; spawn spacing is a lever — swarm gap 0.12s
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its rate, doubled its damage).
-RPD fires a SHOTGUN VOLLEY (owner): 3/5/7/10 shots at L1-L4 (`RAPID_VOLLEY`, `fireVolley`)
+RPD fires a SHOTGUN VOLLEY (owner): 3 shots at every level (`RAPID_VOLLEY`, `fireVolley`)
 leave at once, sprayed WIDE (2.4 rad, ~+-70 deg) and curve in on the target
 (`steer`; turn rate starts low, grows with age so none orbit); it then reloads that many shots' worth of time
 (same dps). Each shot is a short straight HOMING LINE (`G.missiles`, 520 u/s,
