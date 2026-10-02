@@ -50,11 +50,12 @@ export function makeGame(seed, patch = "") {
       CELLS, TOWERS, UPGRADES, PATHS, CX, CY, RIM_R, MAX_LVL,
       towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell,
       place(kind, ci) {
-        const b = TOWERS[kind], c = CELLS[ci];
-        if (G.money < b.cost || occupied(ci)) return null;
-        G.money -= b.cost;
+        const c = CELLS[ci];
+        const cost = towerCost(kind);
+        if (G.money < cost || occupied(ci)) return null;
+        G.money -= cost;
         const t = { id: G.id++, kind, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0,
-          mode: { slower: "fast", reaper: "hard" }[kind] || "close", spent: b.cost };
+          mode: { slower: "fast", reaper: "hard" }[kind] || "close", spent: cost };
         G.towers.push(t);
         if (!G.started) sendWave();
         return t;
@@ -137,8 +138,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
         g.upgrade(t, need === "path" ? p : f);
         used[t.kind] = 1; next = null; continue;
       }
-      const b = g.TOWERS[next.kind];
-      if (G.money - b.cost < (G.towers.length < 2 ? 0 : (strategy.reserve || 0) * G.wave)) return;
+      if (G.money - g.run("towerCost('" + next.kind + "')") < (G.towers.length < 2 ? 0 : (strategy.reserve || 0) * G.wave)) return;
       const best = order[next.kind].find(i => !g.run("occupied(" + i + ")"));
       if (best == null) { next = null; return; }
       g.place(next.kind, best); next = null;

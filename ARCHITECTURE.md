@@ -4261,6 +4261,7 @@ REPLACED the same day (owner: "don't require empty cells, just make the cells fu
 Towers glow in their own colour by level (owner, 2026-10-02): `TOWER_GLOW = [4, 12, 22, 34]` shadow blur (world px, x cam.k) on the main hex, stroked once per level so the glow thickens rather than thinning out.
 Simulator `threat` strategy (owner, 2026-10-02): the player saves and only builds/upgrades while a live enemy is within `threat` of the core; `play()` returns `nearest`. With threat 150 (all four kinds, 60 cells) the bank hit 21k at W45 (interest 2.1k/wave, rate 10% and climbing to 14.5% by W65): interest DOES run away for a saving player, checked only by the board filling up and dying.
 SIX slots only (owner, 2026-10-02): `buildCells` keeps just the core's six lattice neighbours (hex distance 1, 111 from centre at `CELL_PITCH = 2`). Every wave-1 two-tower opening still clean.
+Tower prices DOUBLE per tower standing (owner, 2026-10-02): `towerCost(k) = base x 2^G.towers.length` (40, 80, 160, 320, 640, 1280 to fill the six); build buttons show the live price; upgrades still price off the base. Start money 100 buys one tower, and each kind alone clears wave 1 with no leak.
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).
 Credits shorten past 99,999 (`short()` in aspira-ui.js: 123k, 4.0M) so a late-game balance never runs into the tower buttons (owner screenshot: 3,996,452 overlapped ACD).
