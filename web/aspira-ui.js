@@ -198,7 +198,7 @@ function refreshPanels() {
   placing.hidden = !ui.build;
   if (ui.build) {
     const b = TOWERS[ui.build];
-    placing.textContent = b.name + " · " + towerCost(ui.build) + " — " + b.blurb + " Tap a cell inside the rim.";
+    placing.textContent = b.name + " · " + towerCost(ui.build) + " — " + b.blurb + " Tap a free slot.";
   }
 }
 
