@@ -41,11 +41,15 @@ export function makeGame(seed, patch = "") {
   vm.runInContext(`
     float = function () {}; ring = function () {}; burst = function () {}; banner = function () {};
     beam = function () { fx.push({ t: 0, life: 0 }); };
-    // GHOSTS (dead enemies drifting on to the core) are pure visuals but cost
-    // ~half the run: drop them at once. 2.1x faster; results move only within
-    // seed noise (an ARC arc launched from a dead parent now starts where it
-    // died, not where its ghost drifted to).
-    var __se = stepEnemies; stepEnemies = function (dt) { G.enemies = G.enemies.filter(e => !e.dead); __se(dt); };`, ctx);
+    // GHOSTS (dead enemies drifting on to the core) cost ~half the run. Drop
+    // one once NOTHING TRACKS it (owner): a pending ARC arc launches from its
+    // parent node's enemy, ghost or not, so those stay. Nothing can pick up a
+    // ghost later (arcs only hop to the living), so results are unchanged.
+    var __se = stepEnemies; stepEnemies = function (dt) {
+      const tracked = new Set((G.chains || []).map(p => p.node.e));
+      G.enemies = G.enemies.filter(e => !e.dead || tracked.has(e));
+      __se(dt);
+    };`, ctx);
   vm.runInContext(`
     var api = {
       reset() { G = newGame(); fx = []; },
