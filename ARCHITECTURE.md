@@ -3932,7 +3932,7 @@ is a placeholder. RAY renamed EXC (Executor).
 Lit lanes FADE in and out over 0.4s real time (`fadeLanes`, owner): line, rim circle
 and label together; the idle label under a lit slot cross-fades with it.
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
-Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270); Shielded and Armored
+Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270), then eased to 220 (ARC ~1.3x per pass); Shielded and Armored
 halved (75 -> 37.5, 60 -> 30).
 A lane LIGHTS only once its first enemy has spawned (owner), not while its group
 is still queued (`activeLanes` counts live enemies only).
