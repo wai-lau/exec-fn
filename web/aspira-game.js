@@ -180,11 +180,9 @@ function onHit(e, t, st, amt) {
   }
 }
 
-// Slow resistances (owner's balance grid): armored enemies are immune, a
-// standing shield halves the slow. Returns whether any slow landed.
+// Slow affects every enemy at full strength (owner; the earlier armor-immune
+// and shield-halves rules are gone). Returns whether any slow landed.
 function applySlow(e, f, dur) {
-  if (e.armor) return false;
-  if (e.shield > 0) f *= 0.5;
   e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, f); e.slowT = Math.max(e.slowT, dur);
   return true;
 }
