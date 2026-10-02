@@ -97,7 +97,7 @@ const SPEC = {
   chain: st => {
     const tree = [1]; for (let l = 1; l <= st.layers; l++) tree.push(st.branch ** l);
     return [["Hits", tree.join("→")], ["Arc dmg", Math.round(st.dmg * st.arcFall)],
-      ["Arc reach", Math.round(st.arcRange)], ["Leash", Math.round(st.range * CHAIN_LEASH)], ["Delay", hopDelay(st).toFixed(2) + "s"]];
+      ["Arc reach", Math.round(st.arcRange)], ["Limit", Math.round(st.range * CHAIN_LEASH)], ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
   slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
