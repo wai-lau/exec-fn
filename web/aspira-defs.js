@@ -315,7 +315,7 @@ function towerStats(t, noAura = false) {
   // Space (doubled by Expanse) range
   if (G.core) {
     if (coreHas("sinter")) s.dmg *= SINTER_MUL;
-    if (coreHas("temper")) s.rate *= TEMPER_RATE;
+    if (coreHas("temper") && t.kind !== "acid") s.rate *= TEMPER_RATE; // not ACD's ticks (aspira-core.js)
     s.range += NULL_RANGE * spaceK();
   }
   return s;
