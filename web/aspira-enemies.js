@@ -46,6 +46,7 @@ function drawEnemy(e) {
   if (e.arcana) { ctx.shadowColor = COL[d.color]; ctx.shadowBlur = 28 * cam.k; }
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
   ctx.shadowBlur = 0;
+  if (e.arcana) drawBossEye(e, size);
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
   // full at the core), still dimmed by lost HP
   const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));
@@ -111,6 +112,19 @@ function drawStatus(e, d, size) {
   if (e.corrodeT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 3, 0, 6.283);
     ctx.setLineDash([2, 4]); ctx.strokeStyle = COL.chatsubo; ctx.globalAlpha = 0.9; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// a boss is ringed by a static EYE (owner): an almond of two lids - upper and
+// lower - with a gap at each corner, in the boss's colour (red once inverted);
+// it never turns with the boss
+const EYE_RX = 2.1, EYE_RY = 1.25, EYE_GAP = 0.32;
+function drawBossEye(e, size) {
+  const rx = size * EYE_RX, ry = size * EYE_RY;
+  ctx.strokeStyle = COL[ENEMIES[e.type].color]; ctx.globalAlpha = 0.95; ctx.lineWidth = 3; ctx.lineCap = "round";
+  for (const [a0, a1] of [[EYE_GAP, Math.PI - EYE_GAP], [Math.PI + EYE_GAP, 2 * Math.PI - EYE_GAP]]) {
+    ctx.beginPath(); ctx.ellipse(e.x, e.y, rx, ry, 0, a0, a1); ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
