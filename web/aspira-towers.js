@@ -5,10 +5,12 @@
 
 // Chain lightning is a TREE (owner): the tower strikes one hub, the hub arcs
 // to branchOf(t) enemies, and each of those arcs to as many more - 1-2-2
-// (7 hits) at L1, 1-3-3 (13) from L2, over CHAIN_LAYERS layers. Every arc reaches from its own
-// parent (arcRange) to the nearest enemy not yet hit by this shot, and deals
-// the strike's damage x arcFall. Every arc lands hopDelay(st) after its
-// parent was hit - kills included (owner): no arc ever skips the delay.
+// (7 hits) at L1, 1-3-3 (13) from L2, over CHAIN_LAYERS layers. Every arc
+// reaches from its own parent (arcRange) to the nearest enemy and deals the
+// strike's damage x arcFall. Arcs may BOUNCE BACK to an enemy this shot
+// already hit (owner) - just not to their own parent, nor to one a sibling
+// arc from the same parent already took. Every arc lands hopDelay(st) after
+// its parent was hit - kills included (owner): no arc ever skips the delay.
 // Pending arcs step in stepChains on game time, so the delay scales with speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
@@ -23,27 +25,29 @@ const CHAIN_BRANCH = [2, 3, 3, 3], CHAIN_LAYERS = 2;
 const CHAIN_LEASH = 1.5;
 const branchOf = t => CHAIN_BRANCH[Math.min(t.lvl, CHAIN_BRANCH.length) - 1];
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
+const REAPER_TARGETS = 3; // enemies a Reaper locks and fires on at once (owner)
+
+// The tree is built of NODES (an enemy can appear in several once arcs
+// bounce back): node = { e, fx: the beam that reached it, up: parent node,
+// kids: Set of enemy ids its arcs already took }.
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
-  beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = fx[fx.length - 1];
+  beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
   damage(e, dmg, t); onHit(e, t, st, dmg);
-  // links: enemy id -> the beam that reached it + its parent's id, so a beam
-  // can be kept lit until every beam below it has gone (owner)
-  const c = { t, st, col, hit: new Set([e.id]), dmg: st.dmg * st.arcFall,
-    links: new Map([[e.id, { fx: root, up: null }]]) };
-  branchFrom(c, e, 1);
+  const c = { t, st, col, dmg: st.dmg * st.arcFall };
+  branchFrom(c, root, 1);
 }
-// keep the beam into enemy `id`, and every beam above it, lit for `left` more
+// keep this node's beam, and every beam above it, lit for `left` more
 // seconds: a parent's beam outlives all its children's (the deepest keep
 // CHAIN_BEAM_LIFE)
-function keepLit(c, id, left) {
-  for (let n = c.links.get(id); n; n = c.links.get(n.up)) n.fx.life = Math.max(n.fx.life, n.fx.t + left);
+function keepLit(node, left) {
+  for (let n = node; n; n = n.up) n.fx.life = Math.max(n.fx.life, n.fx.t + left);
 }
-// queue CHAIN_BRANCH pending arcs out of `parent`, one tree layer deeper
-function branchFrom(c, parent, depth) {
+// queue branchOf(t) pending arcs out of `node`, one tree layer deeper
+function branchFrom(c, node, depth) {
   if (depth > CHAIN_LAYERS) return;
-  keepLit(c, parent.id, hopDelay(c.st) + 0.05); // stay lit until the children land
-  for (let i = 0; i < branchOf(c.t); i++) (G.chains ||= []).push({ c, parent, depth, wait: hopDelay(c.st) });
+  keepLit(node, hopDelay(c.st) + 0.05); // stay lit until the children land
+  for (let i = 0; i < branchOf(c.t); i++) (G.chains ||= []).push({ c, node, depth, wait: hopDelay(c.st) });
 }
 function stepChains(dt) {
   if (!G.chains || !G.chains.length) return;
@@ -51,31 +55,31 @@ function stepChains(dt) {
   for (const p of pending) {
     p.wait -= dt;
     if (p.wait > 0) { G.chains.push(p); continue; }
-    const nxt = nextHop(p.c, p.parent);
+    const nxt = nextHop(p.c, p.node);
     if (!nxt) continue; // nothing left in reach: this arc fizzles
-    hopTo(p.c, p.parent, nxt);
-    branchFrom(p.c, nxt, p.depth + 1);
+    branchFrom(p.c, hopTo(p.c, p.node, nxt), p.depth + 1);
   }
 }
 
-// the nearest enemy this shot has not hit yet, within arc reach of `from`
-function nextHop(c, from) {
+// the nearest enemy within arc reach of the node's enemy (and the tower's leash)
+function nextHop(c, node) {
+  const from = node.e, leash = (c.st.range * CHAIN_LEASH) ** 2;
   let nxt = null, nd = c.st.arcRange * c.st.arcRange;
-  const leash = (c.st.range * CHAIN_LEASH) ** 2;
   for (const o of G.enemies) {
-    if (o.dead || c.hit.has(o.id)) continue;
+    if (o.dead || o === from || node.kids.has(o.id)) continue;
     if ((o.x - c.t.x) ** 2 + (o.y - c.t.y) ** 2 > leash) continue;
     const d = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
     if (d < nd) { nd = d; nxt = o; }
   }
   return nxt;
 }
-function hopTo(c, from, nxt) {
+function hopTo(c, node, nxt) {
   const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg);
-  c.hit.add(nxt.id); beam(from, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
-  c.links.set(nxt.id, { fx: fx[fx.length - 1], up: from.id });
-  keepLit(c, from.id, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one
+  node.kids.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
+  const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
+  keepLit(node, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one
   damage(nxt, d, t); onHit(nxt, t, st, d);
+  return child;
 }
 
 function fireSlower(t, st) {
@@ -101,7 +105,7 @@ function fireSlower(t, st) {
 // Ray: one roll for crit per shot; Assassin always crits low-HP targets.
 // Lance forms pierce every enemy within `wide` of the beam, losing `fall`
 // of the damage per enemy passed through.
-// A Reaper CHARGES at one locked target (t.aim) for its whole reload
+// A Reaper CHARGES at its locked targets (t.aims, up to 3) for its whole reload
 // (t.period), drawn as a fading-in line by drawAims, then fires at it.
 // Owner's rules: if the target dies mid-charge the charge starts over on a
 // new one; if it only leaves range the Reaper re-targets but keeps its charge;
@@ -110,21 +114,28 @@ function stepReaper(t, dt) {
   const st = towerStats(t);
   t.period = 1 / st.rate;
   // two ranges (owner): a lock can only START inside st.range (pickTargets),
-  // but once charging it HOLDS out to REAPER_HOLD x that range
-  if (t.aim && (t.aim.dead || Math.hypot(t.aim.x - t.x, t.aim.y - t.y) > st.range * REAPER_HOLD)) {
-    if (t.aim.dead) t.cd = t.period; // the charge starts over
-    t.aim = null;
-  }
-  if (!t.aim) {
-    t.aim = pickTargets(t, st, 1)[0] || null;
+  // but once charging it HOLDS out to REAPER_HOLD x that range. It locks up to
+  // REAPER_TARGETS enemies at once (owner) on one shared charge, and fires a
+  // ray at each; a lock lost mid-charge is replaced, and the charge only
+  // starts over when EVERY lock is lost.
+  const had = (t.aims || []).length;
+  t.aims = (t.aims || []).filter(a => !a.dead && Math.hypot(a.x - t.x, a.y - t.y) <= st.range * REAPER_HOLD);
+  if (had && !t.aims.length) t.cd = t.period; // the charge starts over
+  if (t.aims.length < REAPER_TARGETS) {
+    const fresh = !t.aims.length;
+    for (const e of pickTargets(t, st, REAPER_TARGETS + t.aims.length)) {
+      if (t.aims.length >= REAPER_TARGETS) break;
+      if (!t.aims.includes(e)) t.aims.push(e);
+    }
     // a fresh lock with no charge built (e.g. a just-placed tower) charges in full
-    if (t.aim && t.cd <= 0) t.cd = t.period;
+    if (fresh && t.aims.length && t.cd <= 0) t.cd = t.period;
   }
-  if (!t.aim) { t.cd = t.period; return; }
+  if (!t.aims.length) { t.cd = t.period; return; }
   t.cd -= dt;
   if (t.cd > 0) return;
   t.shots = (t.shots || 0) + 1;
-  fireRay(t, st, t.aim); sfx(t.kind);
+  for (const e of t.aims) fireRay(t, st, e);
+  sfx(t.kind);
   t.cd = t.period;
 }
 
