@@ -8,13 +8,17 @@
 // plan by mutation; a plan must survive on every seed, and scores the LOWEST
 // bank across seeds at the moment wave TARGET+1 is sent.
 //
-// usage: node buildsearch.mjs [evals=150] [seeds=2] [target=30]
+// usage: node buildsearch.mjs [evals=150] [seeds=2] [target=30] [log.jsonl] [rngSeed]
+// With a log path, EVERY plan evaluated is appended as one JSON line (score,
+// plan, per-seed result and action timeline) so they can be ranked afterwards.
+import fs from "node:fs";
 import { makeGame, cellScores } from "./sim.mjs";
 
 const EVALS = Number(process.argv[2] || 150), SEEDS = Number(process.argv[3] || 2), TARGET = Number(process.argv[4] || 30);
+const LOG = process.argv[5] || "";
 const KINDS = ["chain", "slower", "reaper", "acid"], AB = { chain: "ARC", slower: "FRZ", reaper: "SOL", acid: "ACD" };
 const MAX_TOWERS = 6, DT = 0.02;
-let rs = 12345;
+let rs = Number(process.argv[6] || 12345); // search RNG seed: a second run explores differently
 const rnd = () => (rs = (rs * 1103515245 + 12345) % 2147483648) / 2147483648;
 const ri = n => Math.floor(rnd() * n);
 
@@ -75,6 +79,7 @@ function score(plan) {
     worst = Math.min(worst, v);
     if (!r.alive) break;
   }
+  if (LOG) fs.appendFileSync(LOG, JSON.stringify({ v: worst, R: plan.R, acts: plan.acts, res }) + "\n");
   return { v: worst, res };
 }
 
