@@ -49,7 +49,8 @@ const UPGRADES = {
       { name: "Residue", desc: "an enemy that leaves range keeps burning for 1.5s", mods: { residue: 1.5 },
         super: { name: "Scar", desc: "it keeps burning for 5s", mods: { residue: 5 } } },
     ] },
-    { name: "Plague", desc: "every tick also burns everything within 45 of the target", mods: { plagueR: 45 }, finals: [
+    // circle tripled 45 -> 135 (owner, 2026-10-02: "45 range is nothing")
+    { name: "Plague", desc: "every tick also burns everything within 135 of the target", mods: { plagueR: 135 }, finals: [
       { name: "Bloom", desc: "the circle grows with the burn, up to 2x; burn x1.5", mods: { bloom: 2, dmg: 1.5 },
         super: { name: "Overgrowth", desc: "the circle grows up to 3x", mods: { bloom: 3 } } },
       { name: "Corrosion", desc: "every tick strips 0.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 0.5 },
