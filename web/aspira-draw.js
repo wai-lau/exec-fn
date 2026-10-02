@@ -374,6 +374,7 @@ function drawAcid() {
       const k = (Math.hypot(l.e.x - t.x, l.e.y - t.y) > st.range ? 0.5 : 1) *
         (cat ? 0.7 + 0.3 * Math.sin(performance.now() / 1000 * (4 + 20 * f)) : 1);
       ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(l.e.x, l.e.y);
+      for (const o of l.chain || []) if (!o.dead) ctx.lineTo(o.x, o.y); // Rain: on through its chain
       ctx.globalAlpha = (0.1 + 0.2 * f) * k; ctx.lineWidth = 3 + 5 * f; ctx.stroke();
       ctx.globalAlpha = (0.6 + 0.4 * f) * k; ctx.lineWidth = 1 + f; ctx.stroke();
       if (st.plagueR) {

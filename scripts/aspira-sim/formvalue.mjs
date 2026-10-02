@@ -35,7 +35,10 @@ function run(slots, core, seed) {
   return g.G.wave;
 }
 const rows = [];
+// FV_ONLY=<regex>: run only the tests whose name matches (re-checking a fix)
+const ONLY = process.env.FV_ONLY ? new RegExp(process.env.FV_ONLY) : null;
 const test = (name, slots, core = []) => {
+  if (ONLY && !ONLY.test(name)) return;
   let r = done.get(name);
   if (!r) {
     const w = []; for (let s = 1; s <= SEEDS; s++) w.push(run(slots, core, s));

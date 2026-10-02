@@ -84,7 +84,8 @@ export function makeGame(seed, patch = "") {
         if (t.lvl >= MAX_LVL) return false;
         const c = upCost(t); if (G.money < c) return false;
         const need = pendingChoice(t);
-        if (need === "path") t.path = choice; else if (need === "form") t.form = choice;
+        if (need === "path") t.path = choice;
+        else if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; }
         G.money -= c; t.spent += c; t.lvl++;
         return true;
       },

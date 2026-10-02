@@ -149,7 +149,7 @@ function upgradeTower(t, choice = null) {
   const need = pendingChoice(t);
   if (need && choice == null) return;
   if (need === "path") t.path = choice;
-  if (need === "form") t.form = choice;
+  if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; } // a form may set targeting (Residue)
   const c = upCost(t);
   G.money -= c; t.spent += c; t.lvl++; ui.pick = null;
   sfxFor("up", t.kind);
