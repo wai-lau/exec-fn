@@ -113,7 +113,9 @@ function hopTo(c, node, nxt, depth) {
 // tower, evenly spaced (Moon 2, Desolation 4), each carrying a circle of
 // MOON_AURA around itself, and a pulse lands on whatever is inside a circle.
 // The orbit sits so the circles reach MOON_REACH x the tower's range.
-const MOON_SPIN = 2, MOON_AURA = 60, MOON_REACH = 1.15; // rad/s (owner: half of 4)
+// MOON_AURA 60 -> 90 (owner: bigger moons); the orbit stays where it was
+// (MOON_REACH x range - MOON_INSET), so the circles now reach a bit further
+const MOON_SPIN = 2, MOON_AURA = 90, MOON_REACH = 1.15, MOON_INSET = 60; // rad/s (owner: half of 4)
 // Desolation (st.mirror, owner): the same moons ALSO orbit the slot straight
 // across the core - its tower, or the empty slot itself
 function moonCentres(t, st) {
@@ -123,7 +125,7 @@ function moonCentres(t, st) {
   return [t, opp];
 }
 function moonSpots(t, st) {
-  const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1, orb = st.range * MOON_REACH - MOON_AURA, out = [];
+  const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1, orb = st.range * MOON_REACH - MOON_INSET, out = [];
   for (const c of moonCentres(t, st)) {
     for (let i = 0; i < n; i++) {
       const m = a + i * 2 * Math.PI / n;

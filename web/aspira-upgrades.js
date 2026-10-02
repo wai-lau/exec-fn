@@ -78,7 +78,7 @@ const UPGRADES = {
       { name: "Deep Freeze", desc: "a newly slowed enemy nearly freezes: 95% slow for 0.25s", mods: { chillStop: 0.25 },
         super: { name: "Absolute Zero", desc: "95% slow for 0.5s", mods: { chillStop: 0.5 } } },
       // (owner, 2026-10-02: were Whiteout / Blizzard, whole-range chills)
-      { name: "Moons", desc: "two moons orbit the tower, each slowing everything within 60 of it", mods: { all: true, moons: 2 },
+      { name: "Moons", desc: "two moons orbit the tower, each slowing everything within 90 of it", mods: { all: true, moons: 2 },
         super: { name: "Desolation", desc: "two more moons orbit the opposite tower (or its empty slot)", mods: { mirror: true } } },
       { name: "Permafrost", desc: "the slow never wears off, but is 10% weaker", mods: { permafrost: true, slow: -0.1 },
         super: { name: "Ice Age", desc: "the permanent slow is 15% stronger", mods: { slow: 0.15 } } },
