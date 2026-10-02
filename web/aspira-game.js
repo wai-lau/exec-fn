@@ -143,7 +143,7 @@ function damage(e, amt, t, quiet = false) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.2 });
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 22, 1.2); // all of it soaked: dim grey, like armor
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 22, 1.2, 1, 30, true); // all of it soaked: dim grey, like armor
     return;
   }
   if (e.shredT > 0) amt *= e.shredMul;
@@ -160,7 +160,7 @@ function damage(e, amt, t, quiet = false) {
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white", 22, 1.2);
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white", 22, 1.2, 1, 30, true);
   }
   if (e.hp <= 0) kill(e, t);
 }
@@ -351,7 +351,9 @@ function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) 
 }
 function ring(x, y, r, color, life = 0.35) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
-function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30) { fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy }); }
+function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, outline = false) {
+  fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline });
+}
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
