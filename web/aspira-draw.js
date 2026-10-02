@@ -85,12 +85,18 @@ function drawGraticule() {
   }
 }
 
+// Stars TWINKLE (owner): each one's brightness breathes on its own rate and
+// phase (fixed per star from its index, so the field never reshuffles), on
+// real time so it keeps going while paused. Colour never changes.
 function drawStars() {
   ctx.fillStyle = COL.white;
-  for (const st of STARS) {
-    ctx.globalAlpha = Math.min(1, 0.25 + st.m * 0.3);
-    ctx.beginPath(); ctx.arc(st.x, st.y, st.m, 0, 6.283); ctx.fill();
-  }
+  const now = performance.now() / 1000;
+  STARS.forEach((st, i) => {
+    const rate = 0.6 + ((i * 0.618) % 1) * 1.8, ph = (i * 2.399) % 6.283;
+    const tw = 0.5 + 0.5 * Math.sin(now * rate + ph);
+    ctx.globalAlpha = Math.min(1, 0.25 + st.m * 0.3) * (0.35 + 0.65 * tw);
+    ctx.beginPath(); ctx.arc(st.x, st.y, st.m * (0.85 + 0.15 * tw), 0, 6.283); ctx.fill();
+  });
   ctx.globalAlpha = 1;
 }
 
