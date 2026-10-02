@@ -79,7 +79,8 @@ function bossRise(e) {
 // from kill(): a Lover left alone heals to full and runs faster
 function bossKilled(e) {
   // Strength's fall opens the core's upgrades, announced where its name was (owner)
-  if (isA(e, "strength")) float(CX, CY - 80, "core upgrades unlocked", "white", 28, 4, 1, 3);
+  // ...with an arrow down at the core (owner)
+  if (isA(e, "strength")) { float(CX, CY - 80, "core upgrades unlocked", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3); }
   const m = e.mate;
   if (!m || m.dead) return;
   m.hp = m.max; m.enraged = true; m.spd = (m.baseSpd || 1) * LOVERS_SPD;

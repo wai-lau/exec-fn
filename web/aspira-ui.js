@@ -169,13 +169,14 @@ function inspectTower(el, t) {
   const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL, st = towerStats(t);
   el.innerHTML =
     '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
+    '<p class="asp-hint">' + b.blurb + "</p>" + // the tagline under the title (owner)
     // two columns (owner): what every tower has | what only this type has
     '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
     statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) +
     '<dt>Kills</dt><dd id="asp-kills"></dd><dt>Dealt</dt><dd id="asp-dealt"></dd></dl>' +
     '<dl class="asp-spec">' + SPEC[t.kind](st, t).map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
     '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>' +
-    '<div class="asp-row" id="asp-upbox"></div><p class="asp-hint">' + b.blurb + "</p>";
+    '<div class="asp-row" id="asp-upbox"></div>';
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
@@ -212,11 +213,11 @@ function upgradeCard(t, o, i) {
   const nt = nextTower(t, o.choice), st = towerStats(t), nx = towerStats(nt), b = TOWERS[t.kind];
   const spN = SPEC[t.kind](nx, nt);
   return '<div class="name">' + (chooser.opts.length > 1 ? i + 1 + " · " : "") + towerTitle(nt) + " · L" + nt.lvl + " of " + MAX_LVL + "</div>" +
+    (o.desc ? '<p class="asp-hint">' + o.desc + "</p>" : "") + // the tagline under the title (owner)
     '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), Math.round(nx.dmg)) : "") +
     statRow("Range", Math.round(st.range), Math.round(nx.range)) +
     statRow("Rate", st.rate.toFixed(2) + "/s", nx.rate.toFixed(2) + "/s") + "</dl>" +
-    '<dl class="asp-spec">' + SPEC[t.kind](st, t).map((r, k) => statRow(r[0], r[1], spN[k][1])).join("") + "</dl></div>" +
-    (o.desc ? '<p class="asp-hint">' + o.desc + "</p>" : "");
+    '<dl class="asp-spec">' + SPEC[t.kind](st, t).map((r, k) => statRow(r[0], r[1], spN[k][1])).join("") + "</dl></div>";
 }
 function chooserEl() {
   let el = $("asp-chooser");
@@ -260,7 +261,13 @@ function chooseUpgrade(i) {
 // pinned beside it (placePop re-anchors it every frame), and, while placing,
 // one line about the tower being placed just above the build bar.
 // the four build buttons flash until the first tower is placed (owner)
-function flashBuild() { $("asp-build").classList.toggle("asp-flash", !G.started && !G.towers.length); }
+function flashBuild() {
+  $("asp-build").classList.toggle("asp-flash", !G.started && !G.towers.length);
+  // every slot taken: the build buttons go (owner), and so does any half-made pick
+  const full = G.towers.length >= CELLS.length;
+  $("asp-build").style.display = full ? "none" : "";
+  if (full && ui.build) { ui.build = null; $("asp-placing").hidden = true; }
+}
 function refreshPanels() {
   flashBuild();
   const pop = $("asp-pop"), placing = $("asp-placing");
@@ -276,11 +283,11 @@ function refreshPanels() {
     const k = ui.build, b = TOWERS[k], nt = { kind: k, lvl: 1, mode: DEFAULT_MODE[k] }, st = towerStats(nt);
     placing.dataset.kind = k;
     placing.innerHTML = '<div class="name">' + b.name + " · " + towerCost(k) + "</div>" +
+      '<p class="asp-hint">' + b.blurb + "</p>" + // the tagline under the title (owner)
       '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
       statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) + "</dl>" +
       // compact (owner: the six slots must stay visible): rows with nothing yet ("—") are left out
-      '<dl class="asp-spec">' + SPEC[k](st, nt).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
-      '<p class="asp-hint">' + b.blurb + "</p>";
+      '<dl class="asp-spec">' + SPEC[k](st, nt).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>";
   }
 }
 
