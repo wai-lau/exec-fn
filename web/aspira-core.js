@@ -11,8 +11,8 @@
 const CORE_UNLOCK = 30, CORE_COST = [2500];
 const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 100;
 const CORE_L1 = [
-  { id: "zen", name: "ZEN", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
-  { id: "nullify", name: "NULLIFY", desc: "enemy shields and armor halved; Fast enemies at half speed; towers move 100 further out and gain +100 range" },
+  { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
+  { id: "nullify", name: "Nullify", desc: "enemy shields and armor halved; Fast enemies at half speed; towers move 100 further out and gain +100 range" },
   { id: "sinter", name: "Sinter", desc: "every tower deals +30% damage" },
 ];
 const CORE_MAX = CORE_COST.length;
