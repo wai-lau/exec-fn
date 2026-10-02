@@ -20,7 +20,8 @@ let G = newGame();
 
 // ---------- waves ----------
 const WAVE_GAP = 15;
-const waveClear = () => G.enemies.length === 0 && G.spawns.length === 0;
+// clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
+const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // Waves rotate through themes so each counter tower gets its moment; waves
 // 1-6 introduce them in order. Swarm waves are three times as many enemies.
 const WAVE_THEMES = ["norm", "swarm", "fast", "shield", "armor", "mixed"];
@@ -77,7 +78,7 @@ function laneMap(n) {
 // lane highlight and the wave:track labels in aspira-draw.js.
 function activeLanes() {
   const out = new Map();
-  for (const e of G.enemies) if (!out.has(e.pi)) out.set(e.pi, { color: ENEMIES[e.type].color, n: e.n });
+  for (const e of G.enemies) if (!e.dead && !out.has(e.pi)) out.set(e.pi, { color: ENEMIES[e.type].color, n: e.n });
   for (const w of G.spawns) {
     for (let i = w.idx; i < w.list.length; i++) {
       const pi = w.lanes[w.list[i]];
@@ -279,19 +280,27 @@ function stepSpawns(dt) {
 
 function stepEnemies(dt) {
   for (const e of G.enemies) {
-    if (e.dead) continue;
-    if (e.stunT > 0) e.stunT -= dt;
-    if (e.slowT > 0) e.slowT -= dt;
-    if (e.markT > 0) e.markT -= dt; else e.markMul = 1;
-    if (e.shredT > 0) e.shredT -= dt;
-    if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
-    e.s += effSpeed(e) * dt;
+    if (e.gone) continue;
+    if (e.dead) {
+      // a GHOST (owner): the dead keep drifting in at their plain pace,
+      // untargetable and harmless, and are removed at the core with no life lost
+      e.s += ENEMIES[e.type].speed * ENEMY_SPEED * PATHS[e.pi].pace * dt;
+    } else {
+      if (e.stunT > 0) e.stunT -= dt;
+      if (e.slowT > 0) e.slowT -= dt;
+      if (e.markT > 0) e.markT -= dt; else e.markMul = 1;
+      if (e.shredT > 0) e.shredT -= dt;
+      if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
+      e.s += effSpeed(e) * dt;
+    }
     const p = pathAt(e.pi, e.s); e.x = p.x; e.y = p.y;
     // no free spin: one corner points along the lane, nose first
     const ahead = pathAt(e.pi, e.s + 3);
     if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
     if (e.jit) { e.ph += dt * 2.2; e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
     if (e.s >= PATHS[e.pi].len) {
+      e.gone = true;
+      if (e.dead) continue; // a ghost just fades out at the core
       e.dead = true;
       G.lives -= 1;
       sfx("leak");
@@ -299,7 +308,7 @@ function stepEnemies(dt) {
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }
   }
-  G.enemies = G.enemies.filter(e => !e.dead);
+  G.enemies = G.enemies.filter(e => !e.gone);
 }
 
 function step(dt) {
@@ -324,7 +333,7 @@ function step(dt) {
     if (fired) sfx(t.kind);
     t.cd = fired ? 1 / st.rate : 0.05;
   }
-  G.enemies = G.enemies.filter(e => !e.dead);
+  G.enemies = G.enemies.filter(e => !e.gone);
 }
 
 // Beams, rings and sparks age in GAME time (they follow the 1/2/3x speed);
@@ -336,8 +345,8 @@ function stepFx(dt) {
     f.t += dt;
     if (f.k === "spark") { f.x += f.vx * dt; f.y += f.vy * dt; }
   }
-  // a beam ends the moment the enemy it points at dies (owner)
-  fx = fx.filter(f => f.t < f.life && !(f.k === "beam" && f.b && f.b.dead));
+  // beams run their full life and keep following their target, ghost or not
+  fx = fx.filter(f => f.t < f.life);
   if (bannerT > 0) bannerT -= dt;
 }
 
