@@ -418,6 +418,5 @@ function render() {
     text(bannerText, CX, 70, 44, "orange", true);
     ctx.globalAlpha = 1;
   }
-  if (ui.paused && !G.over && G.started) text("paused", CX, CY - INNER_R - 40, 56, "green");
   drawCore();
 }

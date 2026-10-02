@@ -4257,6 +4257,7 @@ Static's charge border is pink, ARC's colour (owner, 2026-10-02; was Marigold).
 Crit damage numbers are Marigold (`orange` token; owner asked for yellow and the palette's yellow is Marigold), no longer pink.
 The 3-letter label on a placed tower follows its newest name (owner, 2026-10-02): `towerAb(t)` in aspira-upgrades.js gives the base ab, then the path, form and super names cut to 3 letters (ARC -> STO -> TEM -> MAE), with `AB_OVERRIDE` where that clashes in a tree or reads badly (Railgun RGN, Fortissimo FFF, Overcharge OVR, Overgrowth OVG, Deep Freeze DFZ, Absolute Zero ABZ, Full Refund FRF). Build buttons keep the base ab.
 Towers stand well apart (owner, 2026-10-02): `TOWER_GAP = 3` tiles minimum between centres (`tooClose(ci)` in aspira-defs.js, used by `canPlace` and the simulator), i.e. two free cells between neighbours; the placement overlay now fades over 4 tiles so the keep-out shows. All 10 two-tower openings still clear wave 1 without a leak.
+No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 doubled from an eighth; the glow doubles with it).
 UPGRADING IS TWO CLICKS (owner): an upgrade option (path, final form or plain
 level) only SELECTS (`ui.pick`) and previews its stat changes ("-> next") in both
