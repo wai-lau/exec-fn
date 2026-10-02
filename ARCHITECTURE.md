@@ -4088,7 +4088,8 @@ square (swarm), pentagon (normal / shielded / armored), no hexagon enemies
 (hexagons are the towers; BOSSES WERE REMOVED, owner 2026-10-01). Enemies do not spin: one corner always points along
 the lane (nose first). Swarms (owner: swarmier) are 30x the count (cap 700) at 0.07 HP / 0.18 bounty (about
 the same wave total), stream in EVENLY (0.012 gap), and each member has its own
-speed (±20%, `spd`), a wide wander (`jit` 24–84, tripled) at a slow wobble (2.2 rad/s, cut to 1/3) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
+speed (±20%, `spd`), a wide wander (`jit` 24–84, tripled) at a slow wobble (2.2 rad/s, cut to 1/3), fading to 0 at the core from
+`JIT_FADE_R` 400 (squared falloff) (owner: no pile-up at the centre) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
 absorbed regardless of size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
 thick outline; the Reaper's shots IGNORE armor (owner). A wave mixes K of the unlocked types (`makeWave`;
@@ -4107,7 +4108,10 @@ SLW's slow strength was doubled (owner): 70% at L1, and the 85% cap is hit
 from L2 on. All enemies move at `ENEMY_SPEED = 0.5` of their table speed (owner);
 spawn gaps are divided by the same factor so on-lane spacing is unchanged.
 Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
-per-hop falloff, CHN arcs fan from the hub ONE AT A TIME, 0.17s apart (`CHAIN_HOP_DELAY`,
+per-hop falloff, CHN is a lightning TREE (owner): strike 1 hub → it arcs to 3 → each of those
+arcs to 3 more (`CHAIN_BRANCH` 3, `CHAIN_LAYERS` 2; 13 hits a shot), every arc
+reaching from its own parent to the nearest enemy this shot has not hit; the
+`arcs` stat and the upgrades' `+arcs` mods are now unused. Earlier: CHN arcs fanned from the hub ONE AT A TIME, 0.17s apart (`CHAIN_HOP_DELAY`,
 `G.chains`/`stepChains`, game time; owner restored the delay), but only a
 NON-lethal hop waits: a hop that will kill (`lethalHop`) and the one after a
 kill land at once. CHN base range 115.6 (halved to 92.5, then +25%; owner) and hop reach is

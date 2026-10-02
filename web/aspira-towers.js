@@ -1,48 +1,52 @@
-// /aspira — how each tower fires: Chain's instant fan, the Slower's pulse
+// /aspira — how each tower fires: Chain's lightning tree, the Slower's pulse
 // and tethers, the Reaper's locked charge and beam, and the fire() dispatcher
 // the sim step calls. Shared combat rules (damage, onHit, shotDamage,
 // applySlow, kill) stay in aspira-game.js; this file loads right after it.
 
-// Chain lightning: one strike, then arcs fan out from the struck enemy ONE
-// AT A TIME, CHAIN_HOP_DELAY apart (owner: the delay is back) - but only a
-// hop that will NOT kill waits: a lethal hop, and the one after a kill, land
-// at once. Pending chains step in
-// stepChains with game time, so the delay scales with game speed.
+// Chain lightning is a TREE (owner): the tower strikes one hub, the hub arcs
+// to CHAIN_BRANCH enemies, and each of those arcs to CHAIN_BRANCH more -
+// 1 + 3 + 9 = 13 hits over CHAIN_LAYERS layers. Every arc reaches from its own
+// parent (arcRange) to the nearest enemy not yet hit by this shot, and deals
+// the strike's damage x arcFall. Arcs land CHAIN_HOP_DELAY after their parent
+// was hit, except a lethal arc, or one whose parent died, which lands at once.
+// Pending arcs step in stepChains on game time, so the delay scales with speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
 const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_DELAY = 0.17;
+const CHAIN_BRANCH = 3, CHAIN_LAYERS = 2;
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
-  if (st.arcs <= 0) return;
-  // SINGLE LAYER (owner): the first enemy hit is the hub; every arc fans out
-  // from it to the nearest unhit enemies in reach, rather than jumping on
-  // from the last one. Each arc deals the first hit's damage x arcFall once.
-  const c = { t, st, col, src: e, hit: new Set([e.id]), dmg: st.dmg * st.arcFall, left: st.arcs, killed: false };
-  (G.chains ||= []).push({ c, wait: e.dead ? 0 : CHAIN_HOP_DELAY });
+  const c = { t, st, col, hit: new Set([e.id]), dmg: st.dmg * st.arcFall };
+  branchFrom(c, e, 1);
+}
+// queue CHAIN_BRANCH pending arcs out of `parent`, one tree layer deeper
+function branchFrom(c, parent, depth) {
+  if (depth > CHAIN_LAYERS) return;
+  const wait = parent.dead ? 0 : CHAIN_HOP_DELAY;
+  for (let i = 0; i < CHAIN_BRANCH; i++) (G.chains ||= []).push({ c, parent, depth, wait });
 }
 function stepChains(dt) {
   if (!G.chains || !G.chains.length) return;
-  G.chains = G.chains.filter(p => {
+  const pending = G.chains; G.chains = [];
+  for (const p of pending) {
     p.wait -= dt;
-    for (;;) {
-      const nxt = nextHop(p.c);
-      if (!nxt) return false;
-      // only a hop that will NOT kill waits (owner); a lethal one lands at once
-      if (p.wait > 0 && !lethalHop(p.c, nxt)) return true;
-      if (!hopTo(p.c, nxt)) return false;
-      if (!p.c.killed) p.wait = Math.max(p.wait, 0) + CHAIN_HOP_DELAY;
-    }
-  });
+    const nxt = nextHop(p.c, p.parent);
+    if (!nxt) continue; // nothing left in reach: this arc fizzles
+    // only an arc that will NOT kill waits (owner); a lethal one lands at once
+    if (p.wait > 0 && !lethalHop(p.c, nxt)) { G.chains.push(p); continue; }
+    hopTo(p.c, p.parent, nxt);
+    branchFrom(p.c, nxt, p.depth + 1);
+  }
 }
 
-// c.src is the hub: every arc's reach is measured from it
-function nextHop(c) {
+// the nearest enemy this shot has not hit yet, within arc reach of `from`
+function nextHop(c, from) {
   let nxt = null, nd = c.st.arcRange * c.st.arcRange;
   for (const o of G.enemies) {
     if (o.dead || c.hit.has(o.id)) continue;
-    const d = (o.x - c.src.x) ** 2 + (o.y - c.src.y) ** 2;
+    const d = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
     if (d < nd) { nd = d; nxt = o; }
   }
   return nxt;
@@ -53,12 +57,10 @@ function lethalHop(c, o) {
   const d = shotDamage(c.t, c.st, o, c.dmg);
   return Math.max(d * 0.1, d - (o.armor || 0)) >= o.hp;
 }
-function hopTo(c, nxt) {
+function hopTo(c, from, nxt) {
   const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg);
-  c.hit.add(nxt.id); beam(c.src, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
+  c.hit.add(nxt.id); beam(from, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
   damage(nxt, d, t); onHit(nxt, t, st, d);
-  c.killed = nxt.dead;
-  return --c.left > 0;
 }
 
 function fireSlower(t, st) {

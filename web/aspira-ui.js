@@ -75,7 +75,7 @@ $("asp-send").onclick = sendWave;
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
 const EXTRA = {
-  rapid: st => ["Rate", st.rate.toFixed(1) + "/s"], chain: st => ["Arcs", st.arcs],
+  rapid: st => ["Rate", st.rate.toFixed(1) + "/s"], chain: () => ["Hits", "1 → 3 → 9"],
   reaper: st => ["Crit", Math.round(st.crit * 100) + "%"], slower: st => ["Slow", Math.round(st.slow * 100) + "%"],
 };
 
