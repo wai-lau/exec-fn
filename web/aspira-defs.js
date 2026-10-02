@@ -18,8 +18,7 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
-// Towers build anywhere inside the chart's rim (owner): every hex cell whose
-// corners all sit within BUILD_R, just inside the white rim circle.
+// Only SIX slots (owner, 2026-10-02): the ring of hexes around the core.
 const CELL_S = 32, CELL_PITCH = 2;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
@@ -30,8 +29,9 @@ const INNER_R = 220;
 // centre hex IS the core, so the grid has the chart's six-fold symmetry.
 // CELL_PITCH spreads the lattice (owner, 2026-10-02): centres sit twice as far
 // apart as touching hexes would, so towers stand apart with open sky between.
-// every lattice cell inside BUILD_R around it (~270 cells); each
-// tower fills exactly one cell. CELL_S = hex circumradius (= core radius).
+// Only the core's six neighbours are built on (owner: "limit slots to only 6,
+// the ring around center"); each tower fills exactly one cell. CELL_S = hex
+// circumradius (= core radius).
 const CELLS = (function buildCells() {
   const w = Math.sqrt(3) * CELL_S * CELL_PITCH, h = 1.5 * CELL_S * CELL_PITCH, out = [];
   const span = Math.ceil(BUILD_R / h) + 1;
@@ -43,7 +43,7 @@ const CELLS = (function buildCells() {
       const a = Math.PI / 6 + k * Math.PI / 3;
       pts.push({ x: x + CELL_S * Math.cos(a), y: y + CELL_S * Math.sin(a) });
     }
-    if (pts.every(p => Math.hypot(p.x - CX, p.y - CY) <= BUILD_R)) out.push({ pts, x, y });
+    if (Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) === 1) out.push({ pts, x, y });
   }
   return out;
 })();
