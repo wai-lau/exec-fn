@@ -211,74 +211,16 @@ function drawTowerRange(t, dim) {
   ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 
-// the bonus STAR trails a shooting-star tracer (owner): ONE filled shape, so
-// nothing overlaps and compounds (layered strokes banded where they stacked).
-// The tail tapers from the star's width to a point TRAIL behind it along its
-// lane, filled with a radial gradient fading out from the star. Fast enemies
-// trail a much SHORTER one (owner); only the star adds a shadow-blur glow (a
-// whole Fast wave blurring would cost too much).
-const TRAIL = { bonus: 160, fast: 48 }, TRAIL_STEP = 6, TRAIL_ALPHA = 0.55;
-function drawStarTrail(e, size) {
-  const tail = TRAIL[e.type], pts = [];
-  for (let d = 0; d <= tail; d += TRAIL_STEP) pts.push(d ? pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0) : { x: e.x, y: e.y });
-  const n = pts.length - 1, L = [], R = [];
-  for (let i = 0; i <= n; i++) {
-    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    const w = size * 0.55 * (1 - i / n), nx = -(b.y - a.y) / len * w, ny = (b.x - a.x) / len * w;
-    L.push({ x: pts[i].x + nx, y: pts[i].y + ny }); R.push({ x: pts[i].x - nx, y: pts[i].y - ny });
-  }
-  const col = COL[ENEMIES[e.type].color], g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail);
-  g.addColorStop(0, col); g.addColorStop(1, "transparent");
-  ctx.beginPath(); ctx.moveTo(L[0].x, L[0].y);
-  for (const p of L) ctx.lineTo(p.x, p.y);
-  for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i].x, R[i].y);
-  ctx.closePath();
-  ctx.fillStyle = g; ctx.globalAlpha = TRAIL_ALPHA;
-  ctx.shadowColor = col; ctx.shadowBlur = e.type === "bonus" ? size * cam.k : 0;
-  ctx.fill();
-  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+// an area effect's disc (owner): a radial gradient from nothing at the centre
+// to GRAD_EDGE at the outline - Plague/Bloom, Contagion, Whiteout, Shatter, Supernova
+const GRAD_EDGE = 0.5;
+function gradDisc(x, y, r, col, a = 1) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, "transparent"); g.addColorStop(1, col);
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
+  ctx.fillStyle = g; ctx.globalAlpha = GRAD_EDGE * a; ctx.fill();
 }
-function drawEnemy(e) {
-  // damage shows as both size and opacity: full HP = full size, solid;
-  // near death = 45% size, faint
-  // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
-  if (e.dead) return;
-  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
-  if (TRAIL[e.type]) {
-    drawStarTrail(e, size);
-    // the body is see-through, so blank its shape first: the tracer must not
-    // show through the enemy it trails (owner)
-    poly(e.x, e.y, size, d.sides, e.rot, d.pointy); ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fill();
-  }
-  poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
-  ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
-  // outlines brighten as the enemy closes on the core (faint beyond the rim,
-  // full at the core), still dimmed by lost HP
-  const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));
-  ctx.globalAlpha = (0.1 + 0.9 * near) * (0.7 + 0.3 * f);
-  // armor = a thick outline
-  ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = e.armor ? 6.5 : 3; ctx.stroke();
-  // shield = up to 3 concentric outlines of the same shape, peeling off as
-  // its hits are used up
-  if (e.shield > 0) {
-    const rings = Math.ceil(3 * e.shield / e.shieldMax);
-    ctx.lineWidth = 1.8;
-    for (let r = 1; r <= rings; r++) { poly(e.x, e.y, size + 5 * r, d.sides, e.rot, false); ctx.stroke(); }
-  }
-  ctx.globalAlpha = 1;
-  if (e.charged) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
-    poly(e.x, e.y, size + 4, d.sides, e.rot, false);
-    ctx.strokeStyle = COL[TOWERS.chain.color]; ctx.lineWidth = 2; ctx.stroke(); // ARC's colour, whatever it is
-  }
-  if (e.stunT > 0) {
-    ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283);
-    ctx.strokeStyle = COL.pink; ctx.lineWidth = 2.5; ctx.stroke();
-  }
-  if (e.markT > 0) {
-    ctx.fillStyle = COL.orange; ctx.beginPath(); ctx.arc(e.x + size, e.y - size, 4, 0, 6.283); ctx.fill();
-  }
-}
-
+const TWIN_GAP = 3.5; // Charge's twin beams sit this far either side of the line
 // Two passes so towers sit on top of their own shots but under the numbers:
 // pass "shots" draws beams/rings/sparks, pass "text" draws floating numbers.
 // Passes: "dmg" = damage numbers (`under` text), drawn right over the
@@ -295,7 +237,13 @@ function drawFx(pass) {
       // glow underlay + core, both widening with the damage behind the shot
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
       // a following beam reads its endpoints live from the tower/enemy it joins
-      ctx.beginPath(); ctx.moveTo(f.a ? f.a.x : f.x1, f.a ? f.a.y : f.y1); ctx.lineTo(f.b ? f.b.x : f.x2, f.b ? f.b.y : f.y2);
+      const x1 = f.a ? f.a.x : f.x1, y1 = f.a ? f.a.y : f.y1, x2 = f.b ? f.b.x : f.x2, y2 = f.b ? f.b.y : f.y2;
+      ctx.beginPath();
+      if (f.twin) {
+        // Charge: two PARALLEL beams, TWIN_GAP apart (owner)
+        const len = Math.hypot(x2 - x1, y2 - y1) || 1, ox = -(y2 - y1) / len * TWIN_GAP, oy = (x2 - x1) / len * TWIN_GAP;
+        ctx.moveTo(x1 + ox, y1 + oy); ctx.lineTo(x2 + ox, y2 + oy); ctx.moveTo(x1 - ox, y1 - oy); ctx.lineTo(x2 - ox, y2 - oy);
+      } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
       const wm = f.slim ? 0.25 : 1; // slim (SOL): a quarter of a normal beam (owner: doubled from an eighth; the glow scales with it)
       if (f.m) {
         const a = ctx.globalAlpha;
@@ -314,12 +262,25 @@ function drawFx(pass) {
       }
       if (f.slim) { ctx.strokeStyle = COL.white; ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 1.5); }
       ctx.lineWidth = wm * (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
+      // Ion: a thin WHITE core down the middle of the arc - it pierces (owner)
+      if (f.pierce) { ctx.strokeStyle = COL.white; ctx.lineWidth = Math.max(1, ctx.lineWidth * 0.35); ctx.stroke(); }
     } else if (f.k === "hit") {
       const a = ctx.globalAlpha, rr = f.r * (0.5 + 0.5 * (1 - k));
       ctx.fillStyle = COL[f.color]; ctx.globalAlpha = a * 0.3;
       ctx.beginPath(); ctx.arc(f.x, f.y, rr, 0, 6.283); ctx.fill();
       ctx.strokeStyle = COL[f.color]; ctx.globalAlpha = a; ctx.lineWidth = 1 + f.m * 0.6; ctx.stroke();
+    } else if (f.k === "flash") {
+      // Execute / Verdict: a white flash where the enemy was (owner)
+      ctx.fillStyle = COL.white; ctx.globalAlpha = k;
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1.3 - 0.3 * k), 0, 6.283); ctx.fill();
+    } else if (f.k === "blast") {
+      // Supernova / Collapse: a filled blast that lingers (owner)
+      const a = ctx.globalAlpha, rr = f.r * (0.85 + 0.15 * (1 - k));
+      gradDisc(f.x, f.y, rr, COL[f.color], a); // same gradient fill as the other area discs (owner)
+      ctx.beginPath(); ctx.arc(f.x, f.y, rr, 0, 6.283);
+      ctx.strokeStyle = COL[f.color]; ctx.globalAlpha = a; ctx.lineWidth = 2.5; ctx.stroke();
     } else if (f.k === "ring") {
+      if (f.grad) { const a = ctx.globalAlpha; gradDisc(f.x, f.y, f.r * (1 - k * 0.5), COL[f.color], a); ctx.globalAlpha = a; }
       ctx.strokeStyle = COL[f.color]; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.5), 0, 6.283); ctx.stroke();
     } else if (f.k === "spark") {
@@ -375,19 +336,25 @@ function drawAcid() {
     if (t.kind !== "acid" || !t.lines || !t.lines.length) continue;
     const st = towerStats(t, true);
     if (st.allInRange) {
+      gradDisc(t.x, t.y, st.range, COL.chatsubo);
       ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 200); ctx.lineWidth = 4;
       ctx.beginPath(); ctx.arc(t.x, t.y, st.range, 0, 6.283); ctx.stroke();
       continue;
     }
     for (const l of t.lines) {
       if (l.e.dead) continue;
-      const f = acidFrac(l, st), k = Math.hypot(l.e.x - t.x, l.e.y - t.y) > st.range ? 0.5 : 1;
+      // Catalyst: the line THROBS, faster the further its burn has ramped (owner)
+      const f = acidFrac(l, st), cat = t.path != null && UPGRADES.acid[t.path].name === "Catalyst";
+      const k = (Math.hypot(l.e.x - t.x, l.e.y - t.y) > st.range ? 0.5 : 1) *
+        (cat ? 0.7 + 0.3 * Math.sin(performance.now() / 1000 * (4 + 20 * f)) : 1);
       ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(l.e.x, l.e.y);
       ctx.globalAlpha = (0.1 + 0.2 * f) * k; ctx.lineWidth = 3 + 5 * f; ctx.stroke();
       ctx.globalAlpha = (0.6 + 0.4 * f) * k; ctx.lineWidth = 1 + f; ctx.stroke();
       if (st.plagueR) {
+        const pr = plagueRadius(l, st);
+        gradDisc(l.e.x, l.e.y, pr, COL.chatsubo, k);
         ctx.globalAlpha = (0.15 + 0.25 * f) * k; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(l.e.x, l.e.y, plagueRadius(l, st), 0, 6.283); ctx.stroke();
+        ctx.beginPath(); ctx.arc(l.e.x, l.e.y, pr, 0, 6.283); ctx.stroke();
       }
     }
   }
@@ -404,16 +371,19 @@ function drawTethers() {
     if (t.kind !== "slower" || !t.links || !t.links.length) continue;
     const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
     if (st.all) { // Whiteout: no tethers - the range circle glows, like ACD's Contagion
+      gradDisc(t.x, t.y, r, col);
       ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 200); ctx.lineWidth = 4;
       ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, 6.283); ctx.stroke();
       continue;
     }
+    // Stasis (the slow path): a much THICKER tether (owner)
+    const w = t.path != null && UPGRADES.slower[t.path].name === "Stasis" ? 2 : 1;
     for (const e of t.links) {
       if (e.dead || Math.hypot(e.x - t.x, e.y - t.y) > r) continue;
       ctx.strokeStyle = col;
       ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(e.x, e.y);
-      ctx.globalAlpha = 0.15 * shimmer; ctx.lineWidth = 6; ctx.stroke();
-      ctx.globalAlpha = 0.7 * shimmer; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.globalAlpha = 0.15 * shimmer; ctx.lineWidth = 6 * w; ctx.stroke();
+      ctx.globalAlpha = 0.7 * shimmer; ctx.lineWidth = 1.6 * w; ctx.stroke();
     }
   }
   ctx.globalAlpha = 1;
