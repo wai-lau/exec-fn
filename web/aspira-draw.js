@@ -299,6 +299,11 @@ function drawFx(pass) {
       gradDisc(f.x, f.y, rr, COL[f.color], a); // same gradient fill as the other area discs (owner)
       ctx.beginPath(); ctx.arc(f.x, f.y, rr, 0, 6.283);
       ctx.strokeStyle = COL[f.color]; ctx.globalAlpha = a; ctx.lineWidth = 2.5; ctx.stroke();
+    } else if (f.k === "zen") {
+      // Zen's wave: its front spreads to the pulse's reach and FADES TO
+      // NOTHING as it gets there (owner)
+      const p = Math.min(1, f.t / f.life);
+      gradDisc(CX, CY, Math.max(1, f.r * p), COL.white, 1 - p);
     } else if (f.k === "ring") {
       if (f.grad) { const a = ctx.globalAlpha; gradDisc(f.x, f.y, f.r * (1 - k * 0.5), COL[f.color], a); ctx.globalAlpha = a; }
       if (f.outline === false) continue; // Zen's pulse: the gradient wave alone

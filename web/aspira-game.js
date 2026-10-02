@@ -178,7 +178,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
 // spacing is a balance lever for chain reach.
 const ENEMY_SPEED = 1.5;
 const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0)) *
-  (coreHas("vacuum") ? VACUUM_SPD : 1); // the core's Vacuum (aspira-core.js)
+  vacuumMul(); // the core's Vacuum / Void (aspira-core.js)
 
 const MODE_KEY = {
   // close = closest to the CORE (owner), not to the tower: the most urgent enemy
@@ -218,7 +218,9 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   }
   if (e.shredT > 0) amt *= e.shredMul;
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
-  amt *= echoMul(e); // the core's Echo (aspira-core.js)
+  // the core (aspira-core.js): Echo / Resonance, Brittle Core, Anneal's crit
+  const [coreM, coreCrit] = coreHitMul(e, t);
+  amt *= coreM; if (coreCrit) crit = true;
   // armor takes a flat bite out of every hit (never below 10% of it)
   const raw = amt;
   // ... except from the Reaper, whose shots ignore armor (owner)
