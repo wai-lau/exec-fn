@@ -277,10 +277,10 @@ function drawFx(pass) {
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
       // a following beam reads its endpoints live from the tower/enemy it joins
       ctx.beginPath(); ctx.moveTo(f.a ? f.a.x : f.x1, f.a ? f.a.y : f.y1); ctx.lineTo(f.b ? f.b.x : f.x2, f.b ? f.b.y : f.y2);
-      const wm = f.slim ? 0.5 : 1; // slim (RPR): half the width, brighter glow
+      const wm = f.slim ? 0.125 : 1; // slim (RPR): an eighth of a normal beam (owner: 25% of the old half-width), bright glow
       if (f.m) {
         const a = ctx.globalAlpha;
-        ctx.globalAlpha = a * (f.slim ? 0.45 : 0.22); ctx.lineWidth = wm * (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
+        ctx.globalAlpha = a * (f.slim ? 0.7 : 0.22); ctx.lineWidth = wm * (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
         ctx.globalAlpha = a;
       }
       ctx.lineWidth = wm * (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
@@ -318,6 +318,20 @@ function drawPlacement() {
   drawBlocked(c.x, c.y, 14);
 }
 
+// RPR's charge-up: a thin line to the target it is reloading for, fading in
+// as the reload fills (alpha ~ progress^2), so the shot is telegraphed.
+// It deals nothing; the damage comes with the bright flash on firing.
+function drawAims() {
+  ctx.lineCap = "round"; ctx.lineWidth = 0.8;
+  for (const t of G.towers) {
+    if (t.kind !== "reaper" || !t.aim || t.aim.dead || !t.period) continue;
+    const p = Math.min(1, Math.max(0, 1 - t.cd / t.period));
+    ctx.strokeStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = 0.04 + 0.6 * p * p;
+    ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.aim.x, t.aim.y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 // SLW's continuous tethers: a live beam from each Slower to every enemy it
 // is holding, redrawn each frame so it tracks them; it drops when the enemy
 // dies or leaves range. A slow shimmer keeps it reading as a held effect.
@@ -350,6 +364,7 @@ function render() {
   drawStars();
   for (const e of G.enemies) drawEnemy(e);
   drawTethers();
+  drawAims();
   drawFx("shots");
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
