@@ -174,7 +174,6 @@ function spawnEnemy(type, n, pi, ang = 0) {
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
-  if (coreHas("nullify")) nullify(G.enemies[G.enemies.length - 1]); // the core's NULLIFY (aspira-core.js)
 }
 
 // ---------- combat ----------

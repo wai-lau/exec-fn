@@ -2,7 +2,7 @@
 // open its card (the tower card, in white). From wave CORE_UNLOCK the core can
 // be upgraded; L1 is one of three powerful effects at a high price:
 //   ZEN      every ZEN_EVERY s a pulse near-freezes (95%) enemies within ZEN_R for ZEN_T s
-//   Space    (id "nullify"; owner renamed it) Fast enemies at half speed (it no longer halves defences);
+//   Space    (id "nullify"; owner renamed it; it no longer touches enemies)
 //            the six slots (and their towers) move NULL_PUSH further from the
 //            core, and every tower gains NULL_RANGE range
 //   Sinter   every tower deals +30% damage
@@ -12,7 +12,7 @@ const CORE_UNLOCK = 30, CORE_COST = [2500];
 const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 100;
 const CORE_L1 = [
   { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
-  { id: "nullify", name: "Space", desc: "Fast enemies at half speed; towers move 100 further out and gain +100 range" },
+  { id: "nullify", name: "Space", desc: "towers move 100 further out and gain +100 range" },
   { id: "sinter", name: "Sinter", desc: "every tower deals +30% damage" },
 ];
 const CORE_MAX = CORE_COST.length;
@@ -26,10 +26,7 @@ function buyCore(choice) {
   if (!coreOpen() || coreLvl() >= CORE_MAX || G.money < coreCost()) return false;
   G.money -= coreCost();
   G.core = { lvl: 1, l1: CORE_L1[choice].id, zenT: ZEN_EVERY };
-  if (coreHas("nullify")) {
-    for (const e of G.enemies) if (!e.dead) nullify(e);
-    pushCells(NULL_PUSH);
-  }
+  if (coreHas("nullify")) pushCells(NULL_PUSH);
   return true;
 }
 // move every slot d further out from the core (0 = home), towers with them;
@@ -42,13 +39,6 @@ function pushCells(d) {
     c.pts = c.home.pts.map(p => ({ x: p.x + ox, y: p.y + oy }));
   }
   if (typeof G !== "undefined" && G) for (const t of G.towers) { t.x = CELLS[t.cell].x; t.y = CELLS[t.cell].y; }
-}
-// Space, once per enemy: on everything alive when bought, then at spawn.
-// It no longer halves shields or armor (owner: Space must not touch defences).
-function nullify(e) {
-  if (e.nulled) return;
-  e.nulled = true;
-  if (e.type === "fast") e.spd = (e.spd || 1) * 0.5;
 }
 // ZEN's pulse, from step()
 function stepCore(dt) {
