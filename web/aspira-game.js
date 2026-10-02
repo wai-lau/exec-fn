@@ -120,10 +120,14 @@ function entryS(pi) {
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   const hp = (18 * Math.pow(1.15, n - 1) + n * 4) * d.hp;
-  // shields start at exactly 5 on their first wave (3) and gain 1 every 3 waves
-  const shield = d.shield ? d.shield + Math.floor(Math.max(0, n - 3) / 3) : 0;
+  // DEFENCES KEEP PACE WITH HP (overnight simulator, 2026-10-02): with flat
+  // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
+  // the square root of the HP curve, shields with its 0.4 power - normalised so
+  // shields still start at exactly 5 on their first wave (3).
+  const grow = Math.pow(1.15, n - 1) + n * 4 / 18, grow3 = Math.pow(1.15, 2) + 3 * 4 / 18;
+  const shield = d.shield ? Math.max(d.shield, Math.round(d.shield * Math.pow(grow / grow3, 0.4))) : 0;
   G.enemies.push({
-    armor: d.armor ? d.armor * (1 + 0.12 * (n - 1)) : 0, shield, shieldMax: shield,
+    armor: d.armor ? d.armor * Math.sqrt(grow) : 0, shield, shieldMax: shield,
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 6 + Math.random() * 15 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved twice
