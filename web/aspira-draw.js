@@ -221,6 +221,8 @@ function drawRange(x, y, r, color, dim = false) {
 // ARC's REACH ring (how far its arcs may land, chainReach) is, dashed (owner)
 function drawTowerRange(t, dim) {
   const st = towerStats(t), r = st.range, col = TOWERS[t.kind].color;
+  // Moons / Desolation: each moon's slowing circle INSTEAD of the tower's range (owner)
+  if (st.all && st.moons) { for (const m of moonSpots(t, st)) drawRange(m.x, m.y, MOON_AURA, col, dim); return; }
   drawRange(t.x, t.y, r, col, dim);
   if (t.kind !== "chain") return;
   ctx.beginPath(); ctx.arc(t.x, t.y, chainReach(st), 0, 6.283);
