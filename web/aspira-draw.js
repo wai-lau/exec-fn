@@ -21,7 +21,9 @@ function resize() {
   const fit = Math.min(x1 - x0, y1 - y0) / W, k = fit * DEFAULT_ZOOM;
   cam.fit = fit * dpr; cam.k = k * dpr;
   cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
-  cam.oy = (y0 + (y1 - y0 - W * k) / 2) * dpr;
+  // the CORE sits at the screen's vertical middle (owner), not mid-way between
+  // header and build bar - the size still fits that space
+  cam.oy = ((r.height - W * k) / 2) * dpr;
 }
 // Re-fit ONLY when the canvas itself changes size (window resize). Nothing in
 // the overlays — the placing note, a send-wave label rewrapping — may move the

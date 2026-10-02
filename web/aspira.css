@@ -97,7 +97,16 @@
 #asp .asp-placing {
   bottom: calc(100% + var(--space-2));
   right: 0;
+
+  /* SMALL (owner): the six build slots must stay in view while it is open */
+  width: max-content;
+  max-width: min(280px, 100%);
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--fs-2xs);
 }
+#asp .asp-placing .asp-cols { gap: var(--space-3); }
+#asp .asp-placing dl { gap: 0 var(--space-2); }
+#asp .asp-placing .asp-spec { padding-left: var(--space-3); }
 
 /* the bottom bar already flips on a boss's sky; a card inside it must not flip back */
 #asp.asp-boss .asp-bottom .asp-pop { filter: none; }

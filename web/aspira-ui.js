@@ -274,7 +274,8 @@ function refreshPanels() {
     placing.innerHTML = '<div class="name">' + b.name + " · " + towerCost(k) + "</div>" +
       '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
       statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) + "</dl>" +
-      '<dl class="asp-spec">' + SPEC[k](st, nt).map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
+      // compact (owner: the six slots must stay visible): rows with nothing yet ("—") are left out
+      '<dl class="asp-spec">' + SPEC[k](st, nt).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
       '<p class="asp-hint">' + b.blurb + "</p>";
   }
 }
