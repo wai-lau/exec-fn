@@ -23,12 +23,15 @@ let G = newGame();
 // usually on screen, and still at once whenever the field clears.
 const WAVE_TIMER = 16; // owner: 10 -> 13 -> 16s to thin the field
 // clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
+// the boss (the star) is alive or still queued to spawn
+const bossUp = () => G.enemies.some(e => !e.dead && ENEMIES[e.type].star) ||
+  G.spawns.some(w => w.list.slice(w.idx).some(t => ENEMIES[t].star));
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
 // a random unlocked type, never the same as the wave before. Types unlock in
 // order: swarm w1, fast w2, shield w3, armor w4. makeWave returns the spawn
-// lists (one, kept a list so the lane split below stays generic). On every
-// STAR_EVERY-th wave one enemy is swapped for the bonus star.
+// lists (one, kept a list so the lane split below stays generic). Every
+// STAR_EVERY-th wave is the boss alone (wavePlan).
 // Normal enemies were REMOVED (owner, 2026-10-02): every type now has a counter
 const UNLOCK = ["swarm", "fast", "shield", "armor"];
 const STAR_EVERY = 10; // the star rides waves 10, 20, 30... (owner, 2026-10-02; was every wave from 3)
@@ -43,6 +46,8 @@ function fixedRand(n, salt) {
 // what wave n will be, given the type of the wave before it - pure, so the
 // HUD can preview the next wave (owner) without touching the game
 function wavePlan(n, prev) {
+  // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
+  if (n % STAR_EVERY === 0) return { type: "bonus", count: 1, split: 1, star: true };
   const pool = UNLOCK.slice(0, Math.min(UNLOCK.length, n));
   const choices = pool.length > 1 ? pool.filter(t => t !== prev) : pool;
   const type = choices[Math.floor(fixedRand(n, 1) * choices.length)];
@@ -53,9 +58,8 @@ function wavePlan(n, prev) {
 }
 function makeWave(n) {
   const { type, count } = wavePlan(n, G.lastType);
-  G.lastType = type;
+  if (type !== "bonus") G.lastType = type; // the boss wave does not break the alternation
   const list = Array(count).fill(type);
-  if (n % STAR_EVERY === 0) list[Math.floor(fixedRand(n, 2) * list.length)] = "bonus";
   return [list];
 }
 
@@ -404,7 +408,7 @@ function stepEnemies(dt) {
       e.gone = true;
       if (e.dead) continue; // a ghost just fades out at the core
       e.dead = true;
-      G.lives -= 1;
+      G.lives -= ENEMIES[e.type].leak || 1; // the boss costs 10 (owner)
       sfx("leak"); shakeScreen();
       ring(e.x, e.y, 40, "pink", 0.17);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
@@ -418,7 +422,9 @@ function step(dt) {
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
   // the next wave goes when its timer runs out, or the moment the field
   // clears (owner): nothing alive, nothing still queued to spawn
-  G.nextIn -= dt;
+  // ...except the BOSS holds the timer (owner): nothing new comes until it
+  // is dead (or through), then the field is clear and the next wave goes
+  if (!bossUp()) G.nextIn -= dt;
   if (G.nextIn <= 0 || waveClear()) { sendWave(); return; }
   stepSpawns(dt);
   stepEnemies(dt);

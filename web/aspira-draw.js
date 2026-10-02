@@ -245,7 +245,7 @@ function drawEnemy(e) {
   if (e.dead) return;
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
   if (TRAIL[e.type]) drawStarTrail(e, size);
-  poly(e.x, e.y, size, d.sides, e.rot, d.star);
+  poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
   // full at the core), still dimmed by lost HP
