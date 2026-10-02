@@ -115,7 +115,8 @@ function inspectTower(el, t) {
     '<div id="asp-upbox"></div>' +
     "<dl>" + (b.dmg ? statRow("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
     statRow("Range", Math.round(st.range), nx && Math.round(nx.range)) +
-    statRow(ex[0], ex[1], exN && exN[1]) + "</dl>" +
+    statRow(ex[0], ex[1], exN && exN[1]) +
+    '<dt>Kills</dt><dd id="asp-kills"></dd><dt>Dealt</dt><dd id="asp-dealt"></dd></dl>' +
     '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>' +
     '<p class="asp-hint">' + b.blurb + "</p>";
   const need = !maxed && pendingChoice(t);
@@ -184,6 +185,8 @@ function updateHud() {
   for (const v of [1, 2, 3]) $("asp-sp-" + v).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
+  // the open popup's tallies update live
+  if (t && $("asp-kills")) { setText($("asp-kills"), t.kills || 0); setText($("asp-dealt"), Math.round(t.dealt || 0).toLocaleString()); }
 }
 
 function placePop() {
