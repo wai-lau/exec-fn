@@ -3925,8 +3925,8 @@ fires on release, not on press. Canvas `touch-action: none`. Speeds now include
 Each enemy TYPE in a wave starts `TYPE_STAGGER` 2s after the previous one
 (owner); a type's split copies start together.
 **ACD (acid, owner, 2026-10-02):** chatsubo green; a continuous line on ONE
-enemy whose burn RAMPS while held (`stepAcid`: 15 dmg/s at x1, +100% per second
-held, capped x6; dealt in 4 ticks/s, each a real hit). Retargeting or a kill
+enemy whose burn RAMPS EXPONENTIALLY while held (`stepAcid`: starts LOW at 3
+dmg/s, doubling every second held, capped x64 = 192/s after 6s; dealt in 4 ticks/s, each a real hit). Retargeting or a kill
 resets the ramp. Line thickens/brightens with the ramp (`drawAcid`). Upgrade tree
 is a placeholder. RAY renamed EXC (Executor).
 A lane LIGHTS only once its first enemy has spawned (owner), not while its group
