@@ -252,4 +252,15 @@ function towerStats(t, noAura = false) {
   return s;
 }
 const upCost = t => Math.round(TOWERS[t.kind].cost * (0.6 + 0.35 * t.lvl));
+// Upgrades come in STEPS of 5 internal levels (owner): 1 -> 5 -> 10 -> 15, shown
+// to the player as L1..L4. A step costs every internal level it skips, and the
+// stat formulas above are untouched, so a step = five old level-ups at once.
+const nextLvl = t => (t.lvl < 5 ? 5 : Math.min(MAX_LVL, t.lvl + 5));
+function stepCost(t) {
+  let c = 0;
+  for (let l = t.lvl; l < nextLvl(t); l++) c += upCost({ ...t, lvl: l });
+  return c;
+}
+const shownLvl = lvl => (lvl < 5 ? 1 : lvl / 5 + 1);
+const SHOWN_MAX = shownLvl(MAX_LVL);
 const sellValue = t => Math.floor(t.spent * 0.7);

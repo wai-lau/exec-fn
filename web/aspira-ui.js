@@ -93,23 +93,23 @@ function statRow(label, now, next) {
 // choice: the path (at level 5) or final form (at level 10) being bought;
 // those two upgrades cannot happen without one
 function upgradeTower(t, choice = null) {
-  if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
+  if (!t || t.lvl >= MAX_LVL || G.money < stepCost(t)) return;
   const need = pendingChoice(t);
   if (need && choice == null) return;
   if (need === "path") t.path = choice;
   if (need === "form") t.form = choice;
-  const c = upCost(t);
-  G.money -= c; t.spent += c; t.lvl++;
+  const c = stepCost(t);
+  G.money -= c; t.spent += c; t.lvl = nextLvl(t);
   sfx("up");
   ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
 }
 
 function inspectTower(el, t) {
   const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL;
-  const st = towerStats(t), nx = maxed ? null : towerStats({ ...t, lvl: t.lvl + 1 });
+  const st = towerStats(t), nx = maxed ? null : towerStats({ ...t, lvl: nextLvl(t) });
   const ex = EXTRA[t.kind](st), exN = nx && EXTRA[t.kind](nx);
   el.innerHTML =
-    '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
+    '<div class="name">' + towerTitle(t) + " · L" + shownLvl(t.lvl) + " of " + SHOWN_MAX + "</div>" +
     '<div id="asp-upbox"></div>' +
     "<dl>" + (b.dmg ? statRow("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
     statRow("Range", Math.round(st.range), nx && Math.round(nx.range)) +
@@ -122,13 +122,13 @@ function inspectTower(el, t) {
     const opts = need === "path" ? UPGRADES[t.kind] : UPGRADES[t.kind][t.path].finals;
     opts.forEach((o, i) => {
       button($("asp-upbox"), "asp-primary asp-choice",
-        "<b>" + o.name + " · " + upCost(t) + "</b><span>" + o.desc + "</span>", () => upgradeTower(t, i));
+        "<b>" + o.name + " · " + stepCost(t) + "</b><span>" + o.desc + "</span>", () => upgradeTower(t, i));
     });
   } else {
     button($("asp-upbox"), "asp-primary asp-up-big",
-      maxed ? "max level" : t.lvl + 1 === MAX_LVL && t.form != null
-        ? "→ L15 super " + UPGRADES[t.kind][t.path].finals[t.form].name + " · " + upCost(t) + " (U)"
-        : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t) + " (U)", () => upgradeTower(t), "asp-up");
+      maxed ? "max level" : nextLvl(t) === MAX_LVL && t.form != null
+        ? "→ L" + SHOWN_MAX + " super " + UPGRADES[t.kind][t.path].finals[t.form].name + " · " + stepCost(t) + " (U)"
+        : "upgrade → L" + shownLvl(nextLvl(t)) + " · " + stepCost(t) + " (U)", () => upgradeTower(t), "asp-up");
   }
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
@@ -181,7 +181,7 @@ function updateHud() {
   setText($("asp-mute"), muted ? "sound off" : "sound on");
   for (const v of [1, 2, 3]) $("asp-sp-" + v).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
-  if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
+  if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < stepCost(t);
 }
 
 function placePop() {
