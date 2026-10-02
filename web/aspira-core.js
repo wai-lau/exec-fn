@@ -183,7 +183,7 @@ function coreReps(box, pick) {
   if (pick) {
     const r = REPS[pick.choice];
     button(box, "asp-primary asp-up-big", "confirm · " + repCost(r.id), () => {
-      if (buyRep(r.id)) { ui.pick = null; sfx("up"); ring(CX, CY, 80, "white"); }
+      if (buyRep(r.id)) { ui.pick = null; sfx("coreup"); ring(CX, CY, 80, "white"); }
       refreshPanels();
     }, "asp-up");
   }
@@ -206,7 +206,7 @@ function inspectCore(el) {
   });
   if (pick) {
     button(box, "asp-primary asp-up-big", "confirm · " + coreCost(), () => {
-      if (buyCore(pick.choice)) { ui.pick = null; sfx("up"); ring(CX, CY, 80, "white"); }
+      if (buyCore(pick.choice)) { ui.pick = null; sfx("coreup"); ring(CX, CY, 80, "white"); }
       refreshPanels();
     }, "asp-up");
   }

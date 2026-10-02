@@ -21,6 +21,7 @@ const ARCANA = [
   { id: "devil", name: "The Devil" }, { id: "justice", name: "Justice" }, { id: "judgement", name: "Judgement" },
   { id: "death", name: "Death" },
 ];
+const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
 const EMPRESS_BROOD = 4, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
 const TEMPERANCE_REGEN = 0.02, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
 // Death's doses of each
