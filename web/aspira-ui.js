@@ -4,11 +4,6 @@
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
 const SPEED_MULT = { 0.5: 0.5, 1: 1, 2: 2, 3: 3, 10: 10 }; // 0.5x added (owner); 10x for testing (owner)
 const SPEEDS = [0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
-// Playing in the browser starts with PLAY_MONEY (owner, 2026-10-02: 10000 for
-// playtesting); the balance simulator never loads this file, so its games
-// keep the real START_MONEY (100).
-const PLAY_MONEY = 10000;
-G.money = PLAY_MONEY;
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
@@ -301,7 +296,7 @@ function showOverlay(title, body, btn) {
   $("asp-ov").hidden = false;
 }
 $("asp-ov-btn").onclick = () => {
-  if (G.over) { G = newGame(); G.money = PLAY_MONEY; fx = []; ui.sel = null; ui.build = null; refreshPanels(); }
+  if (G.over) { G = newGame(); fx = []; ui.sel = null; ui.build = null; refreshPanels(); }
   // no intro (owner): the overlay is only the game-over card; the first tower starts wave 1
   $("asp-ov").hidden = true;
 };

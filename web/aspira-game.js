@@ -5,7 +5,7 @@ let best = { score: 0, wave: 0 };
 try { best = JSON.parse(localStorage.getItem("aspira.best")) || best; } catch (_e) {}
 
 // TESTING: the owner asked to start rich while designing; the real start is 100
-const START_MONEY = 100; // the real economy (owner, 2026-10-02; was 10000 for testing)
+const START_MONEY = 120; // owner, 2026-10-02 (was 100; the 10000 playtest start is gone)
 
 function newGame() {
   // NULLIFY moved the slots out; a new game puts them home (aspira-core.js
