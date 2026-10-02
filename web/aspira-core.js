@@ -21,9 +21,6 @@ const ZEN_WAVE_T = 3;
 const STILL_R = 400, ECHO_MUL = 1.5, VACUUM_SPD = 0.75, TEMPER_RATE = 1.3;
 // L3 (owner, 2026-10-02)
 const SILENCE_EVERY = 3, RESONANCE_MUL = 2, RESONANCE_T = 1, HORIZON_SPIN = 0.05, VOID_SPD = 0.6;
-// the six slots ALWAYS turn slowly round the core (owner: "I really like the
-// Horizon look"), at a tenth of Horizon's speed; Horizon turns them at full
-const BASE_SPIN = HORIZON_SPIN / 10;
 const ANNEAL_P = 0.15, ANNEAL_MUL = 3, BRITTLE_CORE = 1.25;
 const CORE_L1 = [
   { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
@@ -101,12 +98,12 @@ function quench(e) {
   if (e.armor > 0) e.armor /= 2;
   if (e.type === "fast") e.spd = (e.spd || 1) * 0.5;
 }
-// the core each step: the slots' slow orbit (Horizon's faster), Zen's wave
+// the core each step: Horizon's slow orbit of the slots, Zen's wave (the
+// slots stand still otherwise - an always-on slow orbit was tried and dropped)
 function stepCore(dt) {
-  G.rot = (G.rot || 0) + (coreHas("horizon") ? HORIZON_SPIN : BASE_SPIN) * dt;
-  pushCells(NULL_PUSH * pushK(), G.rot);
   if (!G.core) return;
   G.core.clock += dt;
+  if (coreHas("horizon")) { G.rot = (G.rot || 0) + HORIZON_SPIN * dt; pushCells(NULL_PUSH * pushK(), G.rot); }
   if (!coreHas("zen")) return;
   const w = G.core.wave;
   if (w) {
