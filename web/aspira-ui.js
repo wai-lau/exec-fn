@@ -239,6 +239,7 @@ function frame(now) {
   if (!ui.paused) {
     let left = dt * SPEED_MULT[ui.speed];
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
+    stepFloats(dt); // real time: unaffected by the game speed
   }
   render(); updateHud(); placePop(); tickFps(now);
   requestAnimationFrame(frame);
