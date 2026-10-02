@@ -4365,6 +4365,7 @@ SWARMS doubled again (owner, 2026-10-02): 6x a normal wave's count (was 3x), spe
 A boss SHRINKS with its HP all the way to nothing at 0% (owner); other enemies still bottom out at 45% size.
 The game starts at 2x speed (owner, 2026-10-02; `ui.speed`).
 ...REPLACED the same day (owner meant a new scale): the game starts at 1x again, but every speed is twice what it was (`BASE_SPEED` 2 in `SPEED_MULT`: 1x = the old 2x, 3x = the old 6x, ...). Game-time numbers (wave timer, slows, the simulator) are unchanged.
+Ordinary waves no longer show 'wave N' mid-screen (owner); boss waves still show the boss's name.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
