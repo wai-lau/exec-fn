@@ -4042,7 +4042,10 @@ Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
 
 **Enemies have one counter tower each** (owner): Swarm → CHN, Fast → SLW,
-Shielded → RPD, Armored → RPR. A hop that KILLS its target skips the delay: the chain jumps on at once
+Shielded → RPD, Armored → RPR. Chain is SINGLE LAYER and INSTANT (owner): the first enemy hit is the hub
+and its arcs fan out from it, all at once, to the nearest unhit enemies within
+hop reach, each at `dmg x arcFall` (no compounding falloff). (Superseded: a
+hop delay and kill-skips-delay rule existed briefly: the chain jumps on at once
 (`runChain`), so kills cascade through a pack. Chain lightning hops one enemy at a time, `HOP_DELAY = 0.5` game seconds
 apart (owner raised it from 0.2; moving enemies can drift out of hop reach
 during the wait) (`chains`, advanced by `stepChains`), so the arc visibly crawls. Chain hops DO pop shields (each hop strips a
