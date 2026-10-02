@@ -202,7 +202,7 @@ function resolveColors() {
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 28, rate: 1.5,  range: 173.4, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 133,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
-  reaper:  { name: "Executor", ab: "EXC", color: "pink",   cost: 40,  dmg: 240,  rate: 0.9,  range: 318, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  reaper:  { name: "Executor", ab: "EXC", color: "pink",   cost: 40,  dmg: 160,  rate: 1.35,  range: 318, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
   acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 3,  rate: 4,    range: 160, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
 };
@@ -242,7 +242,9 @@ const POWER_FULL = 30, POWER_TIME = 10 / 3;
 const LVL_DMG = [1, 1.874, 4.108, 9.007];
 const LVL_RANGE = [1, 1.12, 1.27, 1.42];
 const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
-const LVL_REAPER_RATE = [0.5, 1, 1, 1]; // owner: L1 fires at half rate
+// no L1 half rate any more: two L1 EXCs must clear wave 1 (30 swarmers) with no
+// leak (owner, 2026-10-02); the simulator showed even full rate leaked ~10
+const LVL_REAPER_RATE = [1, 1, 1, 1];
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
 const LVL_SLOW = [0.4, 0.45, 0.5, 0.55]; // owner: starts at 40%, grows modestly; capped at 0.85 in towerStats
 // cost to go from level i+1 to i+2, as a multiple of the tower's build cost

@@ -3976,6 +3976,9 @@ Fracture +60%, Absolute Zero 0.8s, Blizzard range x1.4, Ice Age +15% slow.
 ONE slow at a time (owner): `applySlow` keeps only the strongest; a weaker slow is
 ignored while a stronger one runs, and amount/duration never mix.
 FRZ base (owner, 2026-10-02): 3 targets, slow 40% at L1 (`LVL_SLOW` 40/45/50/55%).
+EXC base (owner rule: ANY 2-tower opening must clear wave 1 with no leak; checked
+by the overnight simulator for all 10 pairs): 160 damage at 1.35 shots/s and no L1
+half rate (was 240 at 0.45/s at L1) - same dps at L2+, a third of the overkill.
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
 Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270), then eased to 220 (ARC ~1.3x per pass); Shielded and Armored
 halved (75 -> 37.5, 60 -> 30).
