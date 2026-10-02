@@ -3937,7 +3937,8 @@ unlocking at waves 1 / 2 / 3 / 4 (`UNLOCK`); shields still start at 5 on their f
 (`LVL_ARC_DMG` 1/1.4/2/2.8, `LVL_ARC_RANGE` 1/1.1/1.2/1.3, tree stays 1-2); the
 L2 PATH reshapes it via `branch`/`layers` mods: **Storm** 1-3-9; **Ion** ignores
 shields and half of armor (`ignoreShield`, `armorPierce`, read by `damage(...,
-st)`) and chains in a line 1-1-1-1 that never bounces back (`noRevisit`); **Static** every hit slows 30% for 0.5s.
+st)`) and chains in a line 1-1-1-1 that never bounces back (`noRevisit`); **Static** every hit slows 30% for 0.5s. Ion and Static deal damage x3.1 / x4.1
+so a full shot matches Storm's 13-hit tree (owner).
 L3 finals are placeholders.
 EXC's specialty is REACH (owner): base range 318 (x1.2 from 265; 382 at L1).
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).

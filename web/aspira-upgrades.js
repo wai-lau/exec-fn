@@ -17,11 +17,13 @@ const UPGRADES = {
       { name: "Tempest", desc: "(placeholder) 1→4→16", mods: { branch: 4 } },
       { name: "Overcharge", desc: "(placeholder) arcs hit as hard as the strike", mods: { arcFall: 1 } },
     ] },
-    { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1", mods: { branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
+    // damage per shot matched to Storm's full tree (owner): Storm = strike x
+    // (1 + 12 x 0.8) = 10.6; Ion 4 hits = 3.4 -> x3.1; Static 3 hits = 2.6 -> x4.1
+    { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x3.1", mods: { dmg: 3.1, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
       { name: "Rail", desc: "(placeholder) a longer line, 6 hops", mods: { layers: 6 } },
       { name: "Melt", desc: "(placeholder) ignores all armor", mods: { armorPierce: 1 } },
     ] },
-    { name: "Static", desc: "every hit slows 30% for 0.5s", mods: { hitSlow: { f: 0.3, t: 0.5 } }, finals: [
+    { name: "Static", desc: "every hit slows 30% for 0.5s; damage x4.1", mods: { dmg: 4.1, hitSlow: { f: 0.3, t: 0.5 } }, finals: [
       { name: "Lockup", desc: "(placeholder) hits slow 50% for 0.8s", mods: { hitSlow: { f: 0.5, t: 0.8 } } },
       { name: "Shock", desc: "(placeholder) 20% chance to stun 0.3s", mods: { stun: { p: 0.2, t: 0.3 } } },
     ] },
