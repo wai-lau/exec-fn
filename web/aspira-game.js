@@ -160,7 +160,8 @@ function pickTargets(t, st, count) {
 }
 
 // quiet: no flash or number (poison ticks, splash), so they do not spam
-function damage(e, amt, t, quiet = false) {
+// crit: draw this hit's number PINK instead of a separate CRIT label (owner)
+function damage(e, amt, t, quiet = false, crit = false) {
   if (e.dead) return;
   // a shield eats one whole HIT, whatever its size (poison/splash just bounce);
   // the Reaper's shots pass straight through shields, leaving them intact (owner)
@@ -192,7 +193,7 @@ function damage(e, amt, t, quiet = false) {
     // far is 27px / 2s, a tiny one 11px / 0.8s (owner: smaller), spaced by sqrt(amt / maxHit)
     G.maxHit = Math.max(G.maxHit || 1, amt);
     const rel = Math.sqrt(amt / G.maxHit);
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white",
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), crit ? "pink" : blunted ? "grid" : "white",
       Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
   }
   if (e.hp <= 0) kill(e, t);
