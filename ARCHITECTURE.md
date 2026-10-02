@@ -4112,7 +4112,8 @@ per-hop falloff, CHN is a lightning TREE (owner): strike 1 hub → it arcs to 3 
 arcs to 3 more (`CHAIN_BRANCH` 3, `CHAIN_LAYERS` 2; 13 hits a shot), every arc
 reaching from its own parent to the nearest enemy this shot has not hit, ALWAYS
 a QUARTER of the shot interval after its parent was hit (`hopDelay`, 0.17s at
-1.5 shots/s; owner, after trying 0.17s / 1.7s / 0.5s flat) (owner: kills do not skip the delay); the
+1.5 shots/s; owner, after trying 0.17s / 1.7s / 0.5s flat). A beam stays lit until every
+beam below it has gone (`keepLit`, via `c.links`); the deepest keep 0.2s (owner: kills do not skip the delay); the
 `arcs` stat and the upgrades' `+arcs` mods are now unused. Earlier: CHN arcs fanned from the hub ONE AT A TIME, 0.17s apart (`CHAIN_HOP_DELAY`,
 `G.chains`/`stepChains`, game time; owner restored the delay), but only a
 NON-lethal hop waits: a hop that will kill (`lethalHop`) and the one after a

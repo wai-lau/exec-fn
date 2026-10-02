@@ -20,13 +20,24 @@ const CHAIN_BRANCH = 3, CHAIN_LAYERS = 2;
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
-  beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
-  const c = { t, st, col, hit: new Set([e.id]), dmg: st.dmg * st.arcFall };
+  beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = fx[fx.length - 1];
+  damage(e, dmg, t); onHit(e, t, st, dmg);
+  // links: enemy id -> the beam that reached it + its parent's id, so a beam
+  // can be kept lit until every beam below it has gone (owner)
+  const c = { t, st, col, hit: new Set([e.id]), dmg: st.dmg * st.arcFall,
+    links: new Map([[e.id, { fx: root, up: null }]]) };
   branchFrom(c, e, 1);
+}
+// keep the beam into enemy `id`, and every beam above it, lit for `left` more
+// seconds: a parent's beam outlives all its children's (the deepest keep
+// CHAIN_BEAM_LIFE)
+function keepLit(c, id, left) {
+  for (let n = c.links.get(id); n; n = c.links.get(n.up)) n.fx.life = Math.max(n.fx.life, n.fx.t + left);
 }
 // queue CHAIN_BRANCH pending arcs out of `parent`, one tree layer deeper
 function branchFrom(c, parent, depth) {
   if (depth > CHAIN_LAYERS) return;
+  keepLit(c, parent.id, hopDelay(c.st) + 0.05); // stay lit until the children land
   for (let i = 0; i < CHAIN_BRANCH; i++) (G.chains ||= []).push({ c, parent, depth, wait: hopDelay(c.st) });
 }
 function stepChains(dt) {
@@ -55,6 +66,8 @@ function nextHop(c, from) {
 function hopTo(c, from, nxt) {
   const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg);
   c.hit.add(nxt.id); beam(from, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
+  c.links.set(nxt.id, { fx: fx[fx.length - 1], up: from.id });
+  keepLit(c, from.id, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one
   damage(nxt, d, t); onHit(nxt, t, st, d);
 }
 
