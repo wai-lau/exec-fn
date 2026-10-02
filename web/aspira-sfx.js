@@ -56,7 +56,10 @@ function envelope(node, t0, dur, vol) {
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   node.connect(g).connect(master);
   voices++;
-  node.onended = () => { voices--; };
+  // a synth sound is several nodes: it counts as one copy until its last ends
+  const inst = curSound;
+  if (inst) inst.nodes++;
+  node.onended = () => { voices--; if (inst && --inst.nodes === 0) playing[inst.name]--; };
 }
 
 function tone({ type = "sine", f0, f1 = f0, dur = 0.1, vol = 0.3, delay = 0 }) {
@@ -134,16 +137,16 @@ function loadSamples() {
     }
   }
 }
-// at most SAMPLE_MAX[name] copies of a sample at once, each new one quieter
-// by how many are already playing (owner: ACD spits every tick, max 3; FRZ's
-// 2s Lockdown too, or 2.4 pulses a second pile up)
-const SAMPLE_MAX = { acid: 3, slower: 3 }, playing = {};
+// Each TOWER's sound plays at most 3 copies at once (owner, 2026-10-02),
+// sample or synth alike: playing[name] counts live copies and a 4th is
+// skipped. A sample copy is also quieter by how many are already sounding.
+const SOUND_MAX = { chain: 3, slower: 3, reaper: 3, acid: 3 }, playing = {};
+let curSound = null; // the synth sound being built, so envelope() can count it
 function playSample(name) {
   const list = SAMPLES[name], n = playing[name] || 0;
-  if (SAMPLE_MAX[name] && n >= SAMPLE_MAX[name]) return null;
   const src = AC.createBufferSource(), g = AC.createGain();
   src.buffer = list[Math.floor(Math.random() * list.length)];
-  g.gain.value = SAMPLE_MAX[name] ? sampleGain / (1 + n) : sampleGain;
+  g.gain.value = SOUND_MAX[name] ? sampleGain / (1 + n) : sampleGain;
   src.connect(g).connect(master);
   voices++; playing[name] = n + 1;
   src.onended = () => { voices--; playing[name]--; };
@@ -156,7 +159,13 @@ function sfx(name, ...args) {
   if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !(SFX[name] || sample)) return null;
   const now = AC.currentTime;
   if (now - (lastAt[name] ?? -1) < (GAP[name] ?? 0.03)) return null;
+  if (SOUND_MAX[name] && (playing[name] || 0) >= SOUND_MAX[name]) return null;
   lastAt[name] = now;
   if (sample) return playSample(name);
-  return SFX[name](...args) || null;
+  const inst = { name, nodes: 0 };
+  curSound = inst;
+  let h;
+  try { h = SFX[name](...args); } finally { curSound = null; }
+  if (inst.nodes) playing[name] = (playing[name] || 0) + 1;
+  return h || null;
 }
