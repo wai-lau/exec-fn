@@ -216,7 +216,7 @@ function updateHud() {
     btn.classList.toggle("on", ui.build === k);
   }
   const send = $("asp-send");
-  const label = G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " now";
+  const label = G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " · " + Math.ceil(Math.max(0, G.nextIn)) + "s";
   setText(send, label);
   send.disabled = G.over;
   $("asp-sp-pause").classList.toggle("on", ui.paused);
