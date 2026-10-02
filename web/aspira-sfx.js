@@ -14,7 +14,12 @@ function audioUnlock() {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     master = AC.createGain();
     master.gain.value = 0.22;
-    master.connect(AC.destination);
+    // a limiter after the mix: with towers firing many times a second, stacked
+    // sounds used to sum past full scale and clip into audible zaps/crackle
+    const limiter = AC.createDynamicsCompressor();
+    limiter.threshold.value = -14; limiter.knee.value = 6; limiter.ratio.value = 12;
+    limiter.attack.value = 0.003; limiter.release.value = 0.15;
+    master.connect(limiter).connect(AC.destination);
     noiseBuf = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -31,7 +36,7 @@ function setMuted(m) {
 function envelope(node, t0, dur, vol) {
   const g = AC.createGain();
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.005);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.008); // 8ms fade-in: no start click
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   node.connect(g).connect(master);
   voices++;

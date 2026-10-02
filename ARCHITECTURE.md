@@ -3986,7 +3986,7 @@ towers, draw, ui):
 | File | Holds |
 |------|-------|
 | `web/aspira-defs.js` | world geometry (1000×1000; twelve spirals `PATHS` with per-lane `pace`, `pathAt(pi, s)` by binary search; `BUILD_R` disc; `STARS`), `TOWERS`/`ENEMIES`/`POWERS` tables, `towerStats()`, `COL` |
-| `web/aspira-sfx.js` | synthesised WebAudio sound effects (`sfx(name)`): one per tower shot, kill, leak, wave, build/upgrade/sell, life, game over; context created on first gesture; per-sound minimum gap + 24-voice cap; mute persisted in `localStorage["aspira.mute"]` (button + M) |
+| `web/aspira-sfx.js` | synthesised WebAudio sound effects (`sfx(name)`) through a limiter (stacked rapid-fire sounds used to clip into zaps), 8ms fade-ins: one per tower shot, kill, leak, wave, build/upgrade/sell, life, game over; context created on first gesture; per-sound minimum gap + 24-voice cap; mute persisted in `localStorage["aspira.mute"]` (button + M) |
 | `web/aspira-game.js` | state `G`, waves, economy, targeting (`MODE_KEY`), combat, fx, `step()` |
 | `web/aspira-towers.js` | how each tower fires: Chain's fan, Slower pulse/tethers, Reaper charge + beam, `fire()` (split from aspira-game.js at the 500-line cap) |
 | `web/aspira-draw.js` | canvas render |
