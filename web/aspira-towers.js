@@ -4,8 +4,9 @@
 // applySlow, kill) stay in aspira-game.js; this file loads right after it.
 
 // Chain lightning is a TREE (owner): the tower strikes one hub, the hub arcs
-// to branchOf(t) enemies, and each of those arcs to as many more - 1-2-2
-// at L1 is just 1-2 (3 hits); 1-3-3 (13) from L2. Every arc
+// to st.branch enemies, each of those to as many more, st.layers deep. Base
+// is 1-2 (3 hits) at every level; the L2 PATH reshapes it (owner): Storm
+// 1-3-9, Ion a line 1-1-1-1. Every arc
 // reaches from its own parent (arcRange) to the nearest enemy and deals the
 // strike's damage x arcFall. Arcs may BOUNCE BACK to an enemy this shot
 // already hit (owner) - just not to their own parent, nor to one a sibling
@@ -18,15 +19,9 @@
 // follows fire-rate upgrades: 1.5 shots/s -> 0.17s per layer
 const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_FRAC = 0.25;
 const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
-// the tree by level (owner): L1 is 1-2 (one layer, 3 hits), L2+ 1-3-3
-// (two layers, 13 hits). CHAIN_BRANCH = arcs out of each enemy, CHAIN_LAYERS =
-// how many layers deep the tree goes.
-const CHAIN_BRANCH = [2, 3, 3, 3], CHAIN_LAYERS = [1, 2, 2, 2];
-const layersOf = t => CHAIN_LAYERS[Math.min(t.lvl, CHAIN_LAYERS.length) - 1];
 // arcs only land on enemies within CHAIN_LEASH x the tower's range, measured
 // from the TOWER (owner; drawn as a dashed outer ring)
 const CHAIN_LEASH = 1.5;
-const branchOf = t => CHAIN_BRANCH[Math.min(t.lvl, CHAIN_BRANCH.length) - 1];
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 
 // The tree is built of NODES (an enemy can appear in several once arcs
@@ -35,8 +30,8 @@ const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
-  damage(e, dmg, t); onHit(e, t, st, dmg);
-  const c = { t, st, col, dmg: st.dmg * st.arcFall };
+  damage(e, dmg, t, false, false, st); onHit(e, t, st, dmg);
+  const c = { t, st, col, dmg: st.dmg * st.arcFall, seen: new Set([e.id]) };
   branchFrom(c, root, 1);
 }
 // keep this node's beam, and every beam above it, lit for `left` more
@@ -45,11 +40,11 @@ function fireChain(t, st, e) {
 function keepLit(node, left) {
   for (let n = node; n; n = n.up) n.fx.life = Math.max(n.fx.life, n.fx.t + left);
 }
-// queue branchOf(t) pending arcs out of `node`, one tree layer deeper
+// queue st.branch pending arcs out of `node`, one tree layer deeper
 function branchFrom(c, node, depth) {
-  if (depth > layersOf(c.t)) return;
+  if (depth > c.st.layers) return;
   keepLit(node, hopDelay(c.st) + 0.05); // stay lit until the children land
-  for (let i = 0; i < branchOf(c.t); i++) (G.chains ||= []).push({ c, node, depth, wait: hopDelay(c.st) });
+  for (let i = 0; i < c.st.branch; i++) (G.chains ||= []).push({ c, node, depth, wait: hopDelay(c.st) });
 }
 function stepChains(dt) {
   if (!G.chains || !G.chains.length) return;
@@ -69,6 +64,7 @@ function nextHop(c, node) {
   let nxt = null, nd = c.st.arcRange * c.st.arcRange;
   for (const o of G.enemies) {
     if (o.dead || o === from || node.kids.has(o.id)) continue;
+    if (c.st.noRevisit && c.seen.has(o.id)) continue; // Ion: a line runs ON, never back
     if ((o.x - c.t.x) ** 2 + (o.y - c.t.y) ** 2 > leash) continue;
     const d = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
     if (d < nd) { nd = d; nxt = o; }
@@ -77,10 +73,10 @@ function nextHop(c, node) {
 }
 function hopTo(c, node, nxt) {
   const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg);
-  node.kids.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
+  node.kids.add(nxt.id); c.seen.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one
-  damage(nxt, d, t); onHit(nxt, t, st, d);
+  damage(nxt, d, t, false, false, st); onHit(nxt, t, st, d);
   return child;
 }
 

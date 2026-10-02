@@ -241,7 +241,7 @@ const POWER_FULL = 30, POWER_TIME = 10 / 3;
 // balance is unchanged by the condensing.)
 const LVL_DMG = [1, 1.874, 4.108, 9.007];
 const LVL_RANGE = [1, 1.12, 1.27, 1.42];
-const LVL_CHAIN_ARCS = [5, 6, 7, 8];
+const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
 const LVL_REAPER_RATE = [0.5, 1, 1, 1]; // owner: L1 fires at half rate
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
 const LVL_SLOW = [0.7, 0.86, 1.06, 1.26]; // doubled (owner); capped at 0.85 in towerStats
@@ -261,7 +261,10 @@ function towerStats(t, noAura = false) {
   switch (t.kind) {
     // arc reach = the tower's own range (owner: tripled from half the old range),
     // measured from each arc's parent enemy
-    case "chain": s.arcs = LVL_CHAIN_ARCS[i]; s.arcRange = s.range; break;
+    // ARC levels up MODESTLY (owner, option A): the L2 path brings the big change
+    case "chain":
+      s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
+      s.arcRange = s.range; s.branch = 2; s.layers = 1; break;
     case "reaper": s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
     case "slower": s.slow = LVL_SLOW[i]; s.targets = 5; break;
   }

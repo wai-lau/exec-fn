@@ -163,11 +163,13 @@ function pickTargets(t, st, count) {
 
 // quiet: no flash or number (poison ticks, splash), so they do not spam
 // crit: draw this hit's number PINK instead of a separate CRIT label (owner)
-function damage(e, amt, t, quiet = false, crit = false) {
+// st (optional): the hitting tower's stats, for pierce - st.ignoreShield and
+// st.armorPierce (the share of armor ignored; ARC's Ion path, owner)
+function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
   // a shield eats one whole HIT, whatever its size (poison/splash just bounce) -
   // EXC's included (owner: stripping shields is ACD's job, its ticks pop them)
-  if (e.shield > 0) {
+  if (e.shield > 0 && !(st && st.ignoreShield)) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
@@ -179,7 +181,8 @@ function damage(e, amt, t, quiet = false, crit = false) {
   // armor takes a flat bite out of every hit (never below 10% of it)
   const raw = amt;
   // ... except from the Reaper, whose shots ignore armor (owner)
-  if (e.armor && !quiet && !(t && t.kind === "reaper")) amt = Math.max(amt * 0.1, amt - e.armor);
+  const pierce = t && t.kind === "reaper" ? 1 : (st && st.armorPierce) || 0;
+  if (e.armor && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - e.armor * (1 - pierce));
   const blunted = amt < raw;
   // per-tower tally: damage counts only up to the HP the enemy had left
   if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));
