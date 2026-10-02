@@ -4337,6 +4337,7 @@ FRZ Moons / Desolation REWORKED (owner, 2026-10-02): no sweeping sectors - each 
 Browser games start with `PLAY_MONEY` 10,000 (owner, 2026-10-02: for playtesting; aspira-ui.js, on load and on restart). The simulator never loads aspira-ui.js, so its games keep START_MONEY 100.
 Desolation no longer adds moons to its own tower (owner): `mirror` sends its two moons' twins around the slot straight across the core - that tower, or the empty slot (`moonCentres`).
 Moon circles 60 -> 90 (`MOON_AURA`; the orbit stays at MOON_REACH x range - `MOON_INSET` 60, so the reach grows), and a Moons/Desolation tower shows each moon's circle INSTEAD of its own range ring (owner).
+...then circles 180 and the orbit pulled in by another 90 (`MOON_INSET` 150) (owner).
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
