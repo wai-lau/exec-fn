@@ -75,6 +75,16 @@ $("asp-send").onclick = sendWave;
 
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
+// EXC's form, in one short line for the popup (the same row at every level, so
+// the next-level preview lines up)
+function rayForm(st) {
+  if (st.longshot) return "+" + Math.round(st.longshot * 100) + "% / 10u";
+  if (st.splash) return Math.round(st.splash.frac * 100) + "% r" + st.splash.r;
+  if (st.execute) return "kills <" + Math.round(st.execute * 100) + "%";
+  if (st.bounce) return "bounce " + Math.round(st.bounce * 100) + "%";
+  if (st.refund) return "refund " + Math.round(st.refund * 100) + "%";
+  return "—";
+}
 // The popup's RIGHT column (owner): stats only that tower type has, as
 // [label, value] rows, computed for a level so the next one can be previewed.
 const SPEC = {
@@ -90,7 +100,7 @@ const SPEC = {
     ["Circle", st.plagueR ? Math.round(st.plagueR) + (st.bloom ? "→" + Math.round(st.plagueR * st.bloom) : "") : "—"],
     ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"]],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
-    ["Armor", "ignored"]],
+    ["Armor", "ignored"], ["Form", rayForm(st)]],
 };
 
 // One stat row: "now" alone at max level, "now -> next" when an upgrade

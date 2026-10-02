@@ -101,9 +101,6 @@ function fireSlower(t, st) {
   return cands.length > 0;
 }
 
-// Ray: one roll for crit per shot; Assassin always crits low-HP targets.
-// Lance forms pierce every enemy within `wide` of the beam, losing `fall`
-// of the damage per enemy passed through.
 // A Reaper CHARGES at each locked target (t.locks: st.targets of them, 1 at base) for its whole reload
 // (t.period), drawn as a fading-in line by drawAims, then fires at it.
 // Owner's rules: if the target dies mid-charge the charge starts over on a
@@ -194,29 +191,39 @@ function stepAcid(t, dt) {
   }
 }
 
+// EXC's shot: one crit roll per shot. Its forms (owner, 2026-10-02):
+//   st.longshot  +x damage per 10 units from the tower (Longshot)
+//   st.splash    the hit explodes (Supernova; onHit)
+//   st.execute   an enemy left under this share of HP dies outright (Execute)
+//   st.bounce    the beam bounces once to the nearest enemy at this share (Ricochet)
+//   st.refund    this share of any OVERKILL flies back to the tower as a
+//                reflected beam and is banked into its next shot (Refund)
+const BOUNCE_R = 160;
+function rayHit(t, st, e, base, from, crit) {
+  const m = crit || (st.critBelow && e.hp / e.max < st.critBelow) ? st.critMul : 1;
+  const far = st.longshot ? 1 + st.longshot * Math.hypot(e.x - t.x, e.y - t.y) / 10 : 1;
+  const d = shotDamage(t, st, e, base) * m * far, before = e.hp;
+  beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
+  damage(e, d, t, false, m > 1); onHit(e, t, st, d); // a crit shows as a PINK number (owner)
+  if (st.execute && !e.dead && e.hp / e.max < st.execute) damage(e, e.hp + 1, t, false, true);
+  return e.dead ? Math.max(0, d - before) : 0;
+}
 function fireRay(t, st, e) {
-  const col = TOWERS[t.kind].color, crit = Math.random() < st.crit;
-  const mulFor = o => (crit || (st.critBelow && o.hp / o.max < st.critBelow) ? st.critMul : 1);
-  if (!st.pierce) {
-    const m = mulFor(e), d = shotDamage(t, st, e, st.dmg) * m;
-    beam(t, e, col, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
-    damage(e, d, t, false, m > 1); onHit(e, t, st, d); // a crit shows as a PINK number (owner)
-    return;
+  const crit = Math.random() < st.crit, bank = t.bank || 0;
+  t.bank = 0;
+  let over = rayHit(t, st, e, st.dmg + bank, t, crit);
+  if (st.bounce) {
+    let nxt = null, nd = BOUNCE_R * BOUNCE_R;
+    for (const o of G.enemies) {
+      if (o.dead || o === e) continue;
+      const d = (o.x - e.x) ** 2 + (o.y - e.y) ** 2;
+      if (d < nd) { nd = d; nxt = o; }
+    }
+    if (nxt) over += rayHit(t, st, nxt, st.dmg * st.bounce, e, false);
   }
-  const dx = e.x - t.x, dy = e.y - t.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
-  const end = { x: t.x + ux * st.range, y: t.y + uy * st.range };
-  const inLine = G.enemies.filter(o => {
-    if (o.dead) return false;
-    const px = o.x - t.x, py = o.y - t.y, along = px * ux + py * uy;
-    return along >= 0 && along <= st.range && Math.abs(px * uy - py * ux) <= st.pierce.wide;
-  }).sort((a, b) => ((a.x - t.x) * ux + (a.y - t.y) * uy) - ((b.x - t.x) * ux + (b.y - t.y) * uy));
-  // drawn to (and tracking) the primary target; the pierce damage used `end`
-  beam(t, e, col, RAY_BEAM_LIFE, st.pierce.wide > 20 ? 7 : 3, st.dmg, true);
-  let base = st.dmg;
-  for (const o of inLine) {
-    const m = mulFor(o), d = shotDamage(t, st, o, base) * m;
-    damage(o, d, t, false, m > 1); onHit(o, t, st, d);
-    base *= st.pierce.fall;
+  if (st.refund && over > 0) {
+    t.bank = over * st.refund;
+    beam(e, t, TOWERS[t.kind].color, RAY_BEAM_LIFE * 3, 2, t.bank, true, false); // the reflected beam home
   }
 }
 

@@ -3953,6 +3953,13 @@ hits, in `damage`) / Contagion no line, every enemy in range burns on its own
 ramp, burn x0.7, range circle glows. L4 supers: Deluge range x3, Torrent 5 lines,
 Scar 5s, Overgrowth 3x, Dissolve 1.5 armor/tick, Pandemic range x1.5. Code:
 `acidLines` / `acidTick` / `stepAcid` (towers.js), `drawAcid`.
+**EXC upgrades (owner, 2026-10-02):** own levels MODEST like ARC/ACD; L2 **Charge**
+(damage x1.8, fire rate -30%) -> Longshot +1% per 10 units / Supernova 50% r90 /
+Execute kills under 20% HP; **Array** (3 locks, own timers) -> Grid 5 locks /
+Ricochet one bounce at 60% / Refund 50% of overkill flies back as a reflected
+beam into the next shot (`t.bank`). L4 supers: Horizon +2%, Collapse 75% r135,
+Verdict under 35%, Lattice 7 locks, Carom full bounce, Full Refund 100%. Code:
+`rayHit` / `fireRay` (towers.js); Lance's pierce branch was removed.
 EXC's specialty is REACH (owner): base range 318 (x1.2 from 265; 382 at L1).
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
 Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270), then eased to 220 (ARC ~1.3x per pass); Shielded and Armored

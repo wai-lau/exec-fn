@@ -69,20 +69,24 @@ const UPGRADES = {
       { name: "Siphon", desc: "slowed enemies pay +50% bounty", mods: { siphon: 1.5 } },
     ] },
   ],
+  // EXC (owner, 2026-10-02): L2 Charge or Array, three forms each, each with
+  // its own on-theme L4 super. Multi-lock (Array) was the parked idea.
   reaper: [
-    // PARKED (owner): extra locks - each with its own charge timer - as an
-    // upgrade, via a `targets` mod (stepReaper already holds st.targets locks)
-    { name: "Focus", desc: "+15% crit chance", mods: { crit: 0.15 }, finals: [
-      { name: "Executioner", desc: "crits deal x6 instead of x3", mods: { critMul: 6 } },
-      { name: "Assassin", desc: "always crits enemies under 30% HP", mods: { critBelow: 0.3 } },
+    { name: "Charge", desc: "damage x1.8, fire rate -30%", mods: { dmg: 1.8, rate: 0.7 }, finals: [
+      { name: "Longshot", desc: "+1% damage per 10 units to the target", mods: { longshot: 0.01 },
+        super: { name: "Horizon", desc: "+2% per 10 units", mods: { longshot: 0.02 } } },
+      { name: "Supernova", desc: "hits explode for 50% in a radius of 90", mods: { splash: { r: 90, frac: 0.5 } },
+        super: { name: "Collapse", desc: "75% in a radius of 135", mods: { splash: { r: 135, frac: 0.75 } } } },
+      { name: "Execute", desc: "an enemy left under 20% HP dies", mods: { execute: 0.2 },
+        super: { name: "Verdict", desc: "under 35% HP", mods: { execute: 0.35 } } },
     ] },
-    { name: "Lance", desc: "pierces every enemy in line, -30% each", mods: { pierce: { fall: 0.7, wide: 14 } }, finals: [
-      { name: "Piercer", desc: "piercing loses no damage", mods: { pierce: { fall: 1, wide: 14 } } },
-      { name: "Wide Beam", desc: "beam three times wider", mods: { pierce: { fall: 0.8, wide: 42 } } },
-    ] },
-    { name: "Charge", desc: "damage x1.8, -30% fire rate", mods: { dmg: 1.8, rate: 0.7 }, finals: [
-      { name: "Supernova", desc: "hits explode for 50% in a wide radius", mods: { splash: { r: 90, frac: 0.5 } } },
-      { name: "Annihilator", desc: "damage x2 again", mods: { dmg: 2, rate: 0.85 } },
+    { name: "Array", desc: "3 locks, each charging on its own timer", mods: { targets: 2 }, finals: [
+      { name: "Grid", desc: "5 locks", mods: { targets: 2 },
+        super: { name: "Lattice", desc: "7 locks", mods: { targets: 2 } } },
+      { name: "Ricochet", desc: "each beam bounces once to the nearest enemy, at 60%", mods: { bounce: 0.6 },
+        super: { name: "Carom", desc: "the bounce deals full damage", mods: { bounce: 1 } } },
+      { name: "Refund", desc: "50% of overkill flies back and joins the next shot", mods: { refund: 0.5 },
+        super: { name: "Full Refund", desc: "all of the overkill comes back", mods: { refund: 1 } } },
     ] },
   ],
 };
