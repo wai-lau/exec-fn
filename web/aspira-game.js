@@ -152,6 +152,8 @@ function damage(e, amt, t, quiet = false) {
   const raw = amt;
   if (e.armor && !quiet) amt = Math.max(amt * 0.1, amt - e.armor);
   const blunted = amt < raw;
+  // per-tower tally: damage counts only up to the HP the enemy had left
+  if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));
   e.hp -= amt;
   if (!quiet) {
     // impact flash sized and lit by the damage; big hits also throw sparks
@@ -204,6 +206,7 @@ function shotDamage(t, st, e, base) {
 
 function kill(e, t) {
   e.dead = true;
+  if (t) t.kills = (t.kills || 0) + 1;
   const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1) * (e.slowT > 0 && e.siphon ? e.siphon : 1);
   const b = Math.round(e.bounty * mul);
   G.money += b;

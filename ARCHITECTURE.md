@@ -3946,7 +3946,9 @@ own stroke (`LANE_DASH`: solid, dotted, dashed, dash-dot, fine dots, long
 dash). Board
 text (hour labels, lane numerals, lives, floats, banner) is drawn large and
 near-opaque; deck text is HTML and unaffected.
-Clicking a tower opens its stats in a POPUP pinned beside it on the board
+Every tower tallies `kills` and `dealt` (damage capped at the HP the enemy
+had left, so no overkill; shield-soaked hits count 0; poison/splash credit
+the tower that caused them), shown live in its popup. Clicking a tower opens its stats in a POPUP pinned beside it on the board
 (`#asp-pop`, re-anchored every frame by `placePop()`), never in the side deck:
 a big upgrade button (also `U`) and each stat as `now → next`. Every tower's
 range circle is always drawn faintly; the selected one at full strength.
