@@ -87,7 +87,7 @@ const UPGRADES = {
       { name: "Execute", desc: "an enemy left under 20% HP dies", mods: { execute: 0.2 },
         super: { name: "Verdict", desc: "under 35% HP", mods: { execute: 0.35 } } },
     ] },
-    { name: "Array", desc: "3 locks, each charging on its own timer", mods: { targets: 2 }, finals: [
+    { name: "Array", desc: "3 locks, each charging on its own timer; each beam x0.6", mods: { targets: 2, dmg: 0.6 }, finals: [
       { name: "Grid", desc: "5 locks", mods: { targets: 2 },
         super: { name: "Lattice", desc: "7 locks", mods: { targets: 2 } } },
       { name: "Ricochet", desc: "each beam bounces once to the nearest enemy, at 60%", mods: { bounce: 0.6 },

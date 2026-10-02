@@ -3988,6 +3988,10 @@ build): the 24 forms went from 64-73.5 waves to 65-71.5. Tweaks: Static x1.5 dam
 Crescendo +40%/hop, Catalyst 0.5s, Rain also x1.25 burn, Residue 1.5s, Longshot
 +1.5%/10u (Horizon +3%), Shatter 30%, Frostbite blast r84 + 4s slow (Hoarfrost 12s),
 Stasis +15%, Deep Freeze 0.25s (Absolute Zero 0.5s), Permafrost 10% weaker.
+Then every TOWER SUBSET was played (best forms): EXC had become the do-everything
+pick (alone 68.5 waves, FRZ+EXC 73.5). EXC 110 damage, Array beams x0.6, ACD burn
+8/s. Now the best build is all four (70.5); dropping ACD / ARC / FRZ / EXC costs
+3.5 / 7.5 / 11.5 / 14.5 waves; best pair 66, EXC alone 62, ARC alone 54.
 by the overnight simulator for all 10 pairs): 160 damage at 1.35 shots/s and no L1
 half rate (was 240 at 0.45/s at L1) - same dps at L2+, a third of the overkill.
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
