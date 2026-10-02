@@ -4115,13 +4115,13 @@ more; spawn spacing is a lever — swarm gap 0.12s
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its rate, doubled its damage).
-RPD fires in BURSTS of 10 (`RAPID_BURST`, `fireBurst`): targets are locked for
-the whole burst and shots after a target dies are WASTED (fired at its ghost,
-no damage), so overkill against tiny swarmers costs it (owner).
-Each RPD shot is a short straight HOMING LINE (`launchMissile`/`stepMissiles`,
-`G.missiles`, 520 u/s, 12 units long; owner: no squiggle) dealing its
-damage on ARRIVAL; shots in flight at a target that dies are wasted too, and a
-MISSED shot visibly keeps flying on its last heading, fading over 0.7s.
+RPD fires a SHOTGUN VOLLEY (owner): all 10 shots (`RAPID_BURST`, `fireVolley`)
+leave at once, fanned over 0.9 rad, and curve in on the target (`steer`; turn
+rate grows with age so none orbit); it then reloads 10 shots' worth of time
+(same dps). Each shot is a short straight HOMING LINE (`G.missiles`, 520 u/s,
+12 units long) dealing damage on ARRIVAL. Once the target dies every shot still
+in flight MISSES: stops homing, flies straight off and fades slowly over 3s, so
+overkill against tiny swarmers is visible waste.
 Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /

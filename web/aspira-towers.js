@@ -115,18 +115,23 @@ function fireRay(t, st, e) {
   }
 }
 
-// Rapid fires in BURSTS (owner): it locks its targets for RAPID_BURST shots,
-// and if a target dies mid-burst the rest of that burst is WASTED - the
-// shots still go, at the invisible ghost, for nothing. Overkill is the cost
-// of a fast gun: great into big HP, poor into swarms of tiny ones.
-// Each shot is a short HOMING LINE (owner) that deals its damage on
-// arrival, so shots already in flight at a target that dies are wasted too.
-// A shot whose target is already dead MISSES (owner): it stops homing and keeps
-// flying on its last heading, fading out over MISS_LIFE, so the waste shows.
-const RAPID_BURST = 10, MISSILE_SPEED = 520, MISSILE_LEN = 12, MISSILE_LIFE = 2, MISS_LIFE = 0.7;
-function launchMissile(t, st, e) {
-  const a = Math.atan2(e.y - t.y, e.x - t.x);
+// Rapid fires a SHOTGUN VOLLEY (owner): all RAPID_BURST shots leave at once,
+// fanned across VOLLEY_SPREAD, and curve in on the target (turn rate grows
+// with age, so none can orbit). Each is a short HOMING LINE that deals its
+// damage on arrival; the tower then reloads for RAPID_BURST shots' worth of
+// time (same dps). Overkill is the cost: once the target dies, every shot
+// still in flight MISSES - it stops homing and flies straight off into the
+// distance, fading slowly over MISS_LIFE, so the waste shows.
+const RAPID_BURST = 10, VOLLEY_SPREAD = 0.9, MISSILE_SPEED = 520, MISSILE_LEN = 12;
+const MISSILE_LIFE = 2, MISS_LIFE = 3;
+function launchMissile(t, st, e, a) {
   (G.missiles ||= []).push({ x: t.x, y: t.y, e, t, st, age: 0, a, miss: 0 });
+}
+function steer(m, want, dt) {
+  let d = want - m.a;
+  d = Math.atan2(Math.sin(d), Math.cos(d)); // shortest way round
+  const turn = (8 + m.age * 80) * dt;
+  m.a += Math.max(-turn, Math.min(turn, d));
 }
 function stepMissiles(dt) {
   if (!G.missiles || !G.missiles.length) return;
@@ -136,7 +141,7 @@ function stepMissiles(dt) {
     if (!m.miss && (e.dead || e.gone)) m.miss = MISS_LIFE; // target gone: this shot is wasted
     if (m.miss) {
       m.miss -= dt;
-      if (m.miss <= 0) return false; // sails on straight along its last heading
+      if (m.miss <= 0) return false; // flew straight off along its last heading
     } else {
       const dx = e.x - m.x, dy = e.y - m.y, dist = Math.hypot(dx, dy);
       if (m.age > MISSILE_LIFE) return false;
@@ -144,26 +149,26 @@ function stepMissiles(dt) {
         const d = shotDamage(m.t, m.st, e, m.st.dmg); damage(e, d, m.t); onHit(e, m.t, m.st, d);
         return false;
       }
-      m.a = Math.atan2(dy, dx); // homes straight at the target
+      steer(m, Math.atan2(dy, dx), dt);
     }
     m.x += Math.cos(m.a) * MISSILE_SPEED * dt; m.y += Math.sin(m.a) * MISSILE_SPEED * dt;
     return true;
   });
 }
-function fireBurst(t, st) {
-  if (!t.burst || t.burst.left <= 0) {
-    const targets = pickTargets(t, st, st.targets);
-    if (!targets.length) { t.burst = null; return false; }
-    t.burst = { targets, left: RAPID_BURST };
+function fireVolley(t, st) {
+  const targets = pickTargets(t, st, st.targets);
+  if (!targets.length) return false;
+  t.shots = (t.shots || 0) + 1;
+  for (const e of targets) {
+    const aim = Math.atan2(e.y - t.y, e.x - t.x);
+    for (let i = 0; i < RAPID_BURST; i++) launchMissile(t, st, e, aim + (i / (RAPID_BURST - 1) - 0.5) * VOLLEY_SPREAD);
   }
-  t.burst.left--; t.shots = (t.shots || 0) + 1;
-  for (const e of t.burst.targets) if (!e.gone) launchMissile(t, st, e); // dead ones: wasted
   return true;
 }
 
 function fire(t, st) {
   if (t.kind === "slower") { const hit = fireSlower(t, st); if (!hit) t.links = []; return hit; }
-  if (t.kind === "rapid") return fireBurst(t, st);
+  if (t.kind === "rapid") return fireVolley(t, st);
   const targets = pickTargets(t, st, st.targets);
   if (!targets.length) return false;
   t.shots = (t.shots || 0) + 1;
