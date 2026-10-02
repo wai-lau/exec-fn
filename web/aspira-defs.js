@@ -197,7 +197,7 @@ function resolveColors() {
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 28, rate: 1.5,  range: 173.4, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 95,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
-  reaper:  { name: "Ray",     ab: "RAY", color: "pink",   cost: 40,  dmg: 720,  rate: 0.9,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  reaper:  { name: "Ray",     ab: "RAY", color: "pink",   cost: 40,  dmg: 240,  rate: 2.7,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
@@ -217,7 +217,7 @@ const ENEMIES = {
   swarm:  { sides: 4, hp: 0.07, speed: 95,  bounty: 0.18, size: 6, color: "white" }, // twice as many, half as tough
   norm:   { sides: 5, hp: 1,    speed: 80,  bounty: 1,   size: 13, color: "green" },
   shield: { sides: 5, hp: 0.9,  speed: 75,  bounty: 1.6, size: 13, color: "cyan", shield: 5 },
-  armor:  { sides: 5, hp: 1.6,  speed: 60,  bounty: 2,   size: 15, color: "pink", armor: 6 },
+  armor:  { sides: 5, hp: 1.6,  speed: 60,  bounty: 2,   size: 15, color: "pink", armor: 15 }, // owner: raised from 6
   bonus: { sides: 5, hp: 1.4, speed: 100, bounty: 3,   size: 14, color: "cyan", star: true },
 };
 
