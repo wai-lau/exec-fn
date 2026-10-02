@@ -180,6 +180,9 @@ function onHit(e, t, st, amt) {
   }
 }
 
+// how long a Slower's slow lasts (owner: 5x the old 2.5s)
+const SLOW_TIME = 12.5;
+
 // Slow affects every enemy at full strength (owner; the earlier armor-immune
 // and shield-halves rules are gone). Returns whether any slow landed.
 function applySlow(e, f, dur) {
@@ -262,7 +265,7 @@ function fireSlower(t, st) {
   t.links = cands;
   for (const e of cands) {
     const fresh = !(e.slowT > 0);
-    if (!applySlow(e, st.slow, 2.5)) continue;
+    if (!applySlow(e, st.slow, SLOW_TIME)) continue;
     if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop);
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
