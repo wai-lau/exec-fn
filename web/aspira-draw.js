@@ -298,15 +298,16 @@ function drawFx(pass) {
       if (f.m) {
         const a = ctx.globalAlpha;
         if (f.slim) {
-          // RPR: a hair-thin core inside a big two-layer glow (owner: much
-          // more glow) - a wide soft halo, then a brighter inner glow
-          ctx.globalAlpha = a * 0.18; ctx.lineWidth = (f.w + 1) * (3 + 5 * f.m); ctx.stroke();
-          ctx.globalAlpha = a * 0.5; ctx.lineWidth = (f.w + 1) * (1 + 1.5 * f.m); ctx.stroke();
+          // RPR (owner): a super-bright WHITE core inside a very dense pink
+          // glow - a wide halo and a near-solid inner glow, both pink
+          ctx.globalAlpha = a * 0.4; ctx.lineWidth = (f.w + 1) * (3 + 5 * f.m); ctx.stroke();
+          ctx.globalAlpha = a * 0.85; ctx.lineWidth = (f.w + 1) * (1 + 1.5 * f.m); ctx.stroke();
         } else {
           ctx.globalAlpha = a * 0.22; ctx.lineWidth = (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
         }
         ctx.globalAlpha = a;
       }
+      if (f.slim) { ctx.strokeStyle = COL.white; ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 1.5); }
       ctx.lineWidth = wm * (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
     } else if (f.k === "hit") {
       const a = ctx.globalAlpha, rr = f.r * (0.5 + 0.5 * (1 - k));

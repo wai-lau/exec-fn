@@ -4055,8 +4055,8 @@ mid-charge restarts it, leaving range re-targets with the charge kept, no
 target = no charge. New Reapers default to Hard (strongest) targeting. Sound (owner: no bass): a
 charge-up whine climbing 320→1500Hz with a tremolo speeding 3→26/s over the
 reload (`chargeHum`, timed in real seconds via the game speed, stopped if the
-charge restarts), then a fast laser zap 2800→380Hz on firing (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: a hair-thin core (an eighth of a normal
-beam) inside a large two-layer glow (wide 0.18 halo + 0.5 inner glow). **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
+charge restarts), then a fast laser zap 2800→380Hz on firing (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: a hair-thin super-bright WHITE core (an
+eighth of a normal beam) inside a very dense pink glow (0.4 halo + 0.85 inner). **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
 Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
