@@ -139,6 +139,7 @@ function drawLaneStrokes(live) {
 
 // numerals sit on an even ring at each lane's nominal 30-degree slot, not
 // at the rim crossing: elliptical lanes cross the rim too close to others
+const LABEL_STACK = 30;
 const slotAng = i => ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
 function drawLanes() {
   const live = activeLanes();
@@ -157,11 +158,17 @@ function drawLanes() {
   });
   // in use: full size and opacity in the rider's colour, at the (rotated) slot;
   // label = wave:track in roman (owner)
+  // two lit lanes can share a slot (a rotated copy landing on another lane's
+  // slot): their labels STACK inward, LABEL_STACK apart, instead of overlapping
+  const placed = [];
   for (const u of live.values()) {
     const rim = rotAbout(PATHS[u.pi].rim, u.ang), na = slotAng(u.pi) + u.ang;
     ctx.strokeStyle = COL[u.color]; ctx.globalAlpha = 1; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(rim.x, rim.y, 4, 0, 6.283); ctx.stroke();
-    text(roman(u.n) + ":" + roman(u.pi + 1), CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, 30, u.color);
+    const k = placed.filter(b => Math.abs(Math.atan2(Math.sin(na - b), Math.cos(na - b))) < 0.05).length;
+    placed.push(na);
+    const r = 430 - k * LABEL_STACK;
+    text(roman(u.n) + ":" + roman(u.pi + 1), CX + Math.cos(na) * r, CY + Math.sin(na) * r, 30, u.color);
   }
   ctx.globalAlpha = 1;
 }
