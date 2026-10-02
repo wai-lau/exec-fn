@@ -222,7 +222,7 @@ const LVL_RANGE = [1, 1.12, 1.27, 1.42];
 const LVL_RAPID_RATE = [1, 1.24, 1.54, 1.84];
 const LVL_CHAIN_ARCS = [5, 6, 7, 8];
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
-const LVL_SLOW = [0.35, 0.43, 0.53, 0.63];
+const LVL_SLOW = [0.7, 0.86, 1.06, 1.26]; // doubled (owner); capped at 0.85 in towerStats
 // cost to go from level i+1 to i+2, as a multiple of the tower's build cost
 const STEP_COST = [5.9, 15.25, 24];
 
