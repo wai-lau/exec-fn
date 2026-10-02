@@ -187,7 +187,7 @@ const TOWERS = {
   reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 120, rate: 0.2, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
 const KINDS = Object.keys(TOWERS);
-const MAX_LVL = 15;
+const MAX_LVL = 4;
 const RANGE_BONUS = 1.2;
 const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", "Fast"]];
 
@@ -213,30 +213,42 @@ const POWERS = [
 ];
 const POWER_FULL = 30, POWER_TIME = 10;
 
-// Base stats grow every level (1..15); the chosen path's mods and then the
+// Towers have four levels (L1-L4, matching the UI). Each table holds one
+// value per level; L2 brings the path choice, L3 the final form, L4 the super
+// form. (These are the old 15-level curves sampled at levels 1/5/10/15, so the
+// balance is unchanged by the condensing.)
+const LVL_DMG = [1, 1.874, 4.108, 9.007];
+const LVL_RANGE = [1, 1.12, 1.27, 1.42];
+const LVL_RAPID_RATE = [1, 1.24, 1.54, 1.84];
+const LVL_CHAIN_ARCS = [5, 6, 7, 8];
+const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
+const LVL_SLOW = [0.35, 0.43, 0.53, 0.63];
+// cost to go from level i+1 to i+2, as a multiple of the tower's build cost
+const STEP_COST = [5.9, 15.25, 24];
+
+// Base stats come from the level tables; the chosen path's mods and then the
 // final form's mods (aspira-upgrades.js) stack on top. A Spotter in range
 // adds its aura; noAura stops the aura lookup recursing into other towers.
 function towerStats(t, noAura = false) {
-  const b = TOWERS[t.kind], L = t.lvl - 1;
+  const b = TOWERS[t.kind], i = t.lvl - 1;
   // RANGE_BONUS: every tower reaches 20% further than its table value (owner)
   const s = {
-    dmg: b.dmg * Math.pow(1.17, L), rate: b.rate, range: b.range * RANGE_BONUS * (1 + 0.03 * L),
+    dmg: b.dmg * LVL_DMG[i], rate: b.rate, range: b.range * RANGE_BONUS * LVL_RANGE[i],
     targets: 1, critMul: 3, arcRange: 50, arcFall: 0.8,
   };
   switch (t.kind) {
-    case "rapid": s.rate = b.rate * (1 + 0.06 * L); break;
-    // hop reach = half the tower's range (owner), measured each hop from where
-    // the last-hit enemy is NOW, after the hop delay
-    case "chain": s.arcs = 5 + Math.floor(L / 4); s.arcRange = s.range * 0.5; break;
-    case "reaper": s.crit = 0.1 + 0.015 * L; break;
-    case "slower": s.slow = 0.35 + 0.02 * L; s.targets = 5; break;
+    case "rapid": s.rate = b.rate * LVL_RAPID_RATE[i]; break;
+    // hop reach = half the tower's range (owner), measured from the hub enemy
+    case "chain": s.arcs = LVL_CHAIN_ARCS[i]; s.arcRange = s.range * 0.5; break;
+    case "reaper": s.crit = LVL_REAPER_CRIT[i]; break;
+    case "slower": s.slow = LVL_SLOW[i]; s.targets = 5; break;
   }
   if (t.path != null) {
     const p = UPGRADES[t.kind][t.path];
     applyMods(s, p.mods);
     if (t.form != null) {
       const fm = p.finals[t.form].mods;
-      applyMods(s, t.lvl >= MAX_LVL ? superMods(fm) : fm); // L15: super form
+      applyMods(s, t.lvl >= MAX_LVL ? superMods(fm) : fm); // L4: super form
     }
   }
   if (s.slow) s.slow = Math.min(0.85, s.slow);
@@ -251,16 +263,5 @@ function towerStats(t, noAura = false) {
   if (G.power.DAM > 0) s.dmg *= 1.6;
   return s;
 }
-const upCost = t => Math.round(TOWERS[t.kind].cost * (0.6 + 0.35 * t.lvl));
-// Upgrades come in STEPS of 5 internal levels (owner): 1 -> 5 -> 10 -> 15, shown
-// to the player as L1..L4. A step costs every internal level it skips, and the
-// stat formulas above are untouched, so a step = five old level-ups at once.
-const nextLvl = t => (t.lvl < 5 ? 5 : Math.min(MAX_LVL, t.lvl + 5));
-function stepCost(t) {
-  let c = 0;
-  for (let l = t.lvl; l < nextLvl(t); l++) c += upCost({ ...t, lvl: l });
-  return c;
-}
-const shownLvl = lvl => (lvl < 5 ? 1 : lvl / 5 + 1);
-const SHOWN_MAX = shownLvl(MAX_LVL);
+const upCost = t => Math.round(TOWERS[t.kind].cost * STEP_COST[t.lvl - 1]);
 const sellValue = t => Math.floor(t.spent * 0.7);

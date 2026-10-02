@@ -171,7 +171,7 @@ function towerHex(c, k) {
 }
 function drawTower(t, ghost) {
   const b = TOWERS[t.kind], c = CELLS[t.cell];
-  const tiers = Math.floor(t.lvl / 5), dots = 0, base = ghost ? 0.55 : 1; // levels come in 5-steps: no partial dots
+  const tiers = t.lvl - 1, base = ghost ? 0.55 : 1; // one ring per level above L1
   const kMain = TOWER_K - LAYER_STEP * tiers;
   ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round";
   ctx.globalAlpha = base;
@@ -183,8 +183,6 @@ function drawTower(t, ghost) {
   ctx.globalAlpha = base; ctx.lineWidth = 3.5;
   towerHex(c, kMain); ctx.stroke();
   text(b.ab, c.x, c.y - 4, 13, b.color);
-  ctx.fillStyle = COL[b.color];
-  for (let i = 0; i < dots; i++) ctx.fillRect(c.x - 8 + i * 4.6, c.y + 6, 3, 3);
   ctx.globalAlpha = 1;
 }
 
