@@ -4082,6 +4082,13 @@ charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 120 dmg at
 a standing shield HALVES it. Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
 
+**Upgrades are 4 STEPS** (owner condensed them): each upgrade jumps 5
+internal levels, 1 → 5 → 10 → 15, shown to the player as L1–L4 (`nextLvl`,
+`stepCost` = the sum of every internal level skipped, `shownLvl`). The stat
+formulas still run on the internal level. Step 1 carries the path choice,
+step 2 the final form, step 3 the super form. Towers show one ring per step
+and no partial-level dots.
+
 **Upgrade tree** (`web/aspira-upgrades.js`, pure data + `applyMods`): every
 tower goes to level 15. The upgrade REACHING L5 picks one of 3 PATHS, the one
 reaching L10 one of that path's 2 FINAL FORMS (6 finals per tower); between those,

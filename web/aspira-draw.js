@@ -171,7 +171,7 @@ function towerHex(c, k) {
 }
 function drawTower(t, ghost) {
   const b = TOWERS[t.kind], c = CELLS[t.cell];
-  const tiers = Math.floor(t.lvl / 5), dots = t.lvl % 5, base = ghost ? 0.55 : 1;
+  const tiers = Math.floor(t.lvl / 5), dots = 0, base = ghost ? 0.55 : 1; // levels come in 5-steps: no partial dots
   const kMain = TOWER_K - LAYER_STEP * tiers;
   ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round";
   ctx.globalAlpha = base;
