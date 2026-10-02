@@ -4081,8 +4081,8 @@ apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, CHN 3 base hops /
 110 hop reach / 55% per-hop falloff, SLW 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
-charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 120 dmg at 0.20 shots/s (was 80 at 0.30; same 24 dps, slower beat — owner); slow resistances in `applySlow`: armored enemies are IMMUNE to slow,
-a standing shield HALVES it. Ratings are judged from L1 time-to-kill against
+charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 120 dmg at 0.20 shots/s (was 80 at 0.30; same 24 dps, slower beat — owner); slow now affects EVERY enemy at full strength (owner removed the
+earlier armor-immune / shield-halves rules). Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
 
 **Towers have 4 LEVELS** (L1–L4; owner condensed 15 into 4, and the code
