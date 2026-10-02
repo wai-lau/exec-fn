@@ -24,7 +24,9 @@ const UPGRADES = {
       { name: "Static", desc: "hits deal x1.5 and charge enemies (a pink border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1, dmg: 1.5 },
         super: { name: "Thunderhead", desc: "those shots charge what they hit too: kills can cascade", mods: { static: 2 } } },
     ] },
-    { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x3.1", mods: { dmg: 3.1, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
+    // Ion and Array nerfed x0.8 (owner, 2026-10-02): the build search's winners
+    // took Ion in 29 of the top 30 and Array in 29 of 30
+    { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x2.5", mods: { dmg: 2.5, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
       { name: "Rail", desc: "a longer line: 6 hops", mods: { layers: 6 },
         super: { name: "Railgun", desc: "the line runs 10 hops", mods: { layers: 10 } } },
       // Fork (owner): two lines on two different enemies. Two full lines are 2 x 3.4 =
@@ -89,7 +91,7 @@ const UPGRADES = {
       { name: "Execute", desc: "an enemy left under 20% HP dies", mods: { execute: 0.2 },
         super: { name: "Verdict", desc: "under 35% HP", mods: { execute: 0.35 } } },
     ] },
-    { name: "Array", desc: "3 locks, each charging on its own timer; each beam x0.6", mods: { targets: 2, dmg: 0.6 }, finals: [
+    { name: "Array", desc: "3 locks, each charging on its own timer; each beam x0.48", mods: { targets: 2, dmg: 0.48 }, finals: [
       { name: "Grid", desc: "5 locks", mods: { targets: 2 },
         super: { name: "Lattice", desc: "7 locks", mods: { targets: 2 } } },
       { name: "Ricochet", desc: "each beam bounces once to the nearest enemy, at 60%", mods: { bounce: 0.6 },

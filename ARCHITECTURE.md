@@ -4296,6 +4296,7 @@ Generalised the same day (owner: "for each tower type, max 3 copies of any sound
 Per-tower build/upgrade sounds (owner, 2026-10-02): `sfxFor(name, kind)` plays the sample mapped as "build.<kind>" / "up.<kind>" when there is one, else the shared "build" / "up". Placement re-verified in WebKit (placeTower touched).
 ...FRZ damage then raised to x5 (1.5 -> 7.5 nick) the same day (owner: it barely hurt before).
 ACD buffed again (owner, 2026-10-02; the post-buff search still picked it in only 18 of 128 surviving builds): burn 12 -> 18/s (x1.5), range 192 -> 230 (x1.2).
+Ion and Array nerfed x0.8 (owner, 2026-10-02): the build search's top 30 took ARC Ion in 29 and SOL Array in 29 (both at L2, cheap and early). Ion damage x3.1 -> x2.5, Array beams x0.6 -> x0.48. Refund (7 of 30) left alone.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
