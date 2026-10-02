@@ -27,9 +27,11 @@ function drawLaneStrokes(live) {
   for (const u of live) {
     lctx.save();
     lctx.translate(CX, CY); lctx.rotate(u.ang); lctx.translate(-CX, -CY);
+    // the bonus STAR's lane burns three times as bright as the rest (owner)
+    const k = u.star ? 3 : 1;
     lctx.strokeStyle = COL[u.color];
-    lctx.globalAlpha = 0.03 * u.a; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
-    lctx.globalAlpha = 0.3 * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
     lctx.restore();
   }
   // mask: only alpha matters under destination-in, so transparent -> bg works
