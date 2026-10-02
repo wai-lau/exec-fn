@@ -29,7 +29,7 @@ from security import render_security, load_security_data
 # ── public: landing + auth ──────────────────────────────────────────────────
 
 _GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall", "/hosaka", "/graph", "/UI", "/security",
-                       "/printer", "/zombo", "/noodle"}
+                       "/printer", "/zombo", "/noodle", "/aspira"}
 
 
 def _safe_next(value: str, default: str = "/mtg") -> str:
@@ -55,8 +55,9 @@ _LANDING_SCRIPT = '<script src="/landing-wheel.js?v=10"></script>'
 # tile) -> security 36° (same orange, with a blue secondary that leans it
 # toward what follows) -> hosaka 50° (amber radar) -> graph 171° (teal) ->
 # nightfall 194° (cyan) -> printer 206° (blue bitman tile) -> ui 226° (blue) ->
-# mtg 261° (purple) -> tarot 351° (pink).
-_LANDING_HUE_ORDER = ["recruiter", "security", "hosaka", "graph", "nightfall", "noodle", "printer", "ui", "mtg", "tarot"]
+# mtg 261° (purple) -> tarot 351° (pink). aspira (the green Tower sprite, ~150°)
+# sits between hosaka and graph.
+_LANDING_HUE_ORDER = ["recruiter", "security", "hosaka", "aspira", "graph", "nightfall", "noodle", "printer", "ui", "mtg", "tarot"]
 
 # The name each section goes by, shown under its nav code. Not the code and not
 # a sentence -- the thing's own title. One per _LANDING_HUE_ORDER section.
@@ -71,6 +72,7 @@ _LANDING_BLURBS = {
     "recruiter": "Résumé",
     "security": "Crawlers",
     "noodle": "noodle",
+    "aspira": "Aspira",
 }
 
 # One plain line under each title saying what the thing actually is.
@@ -85,6 +87,7 @@ _LANDING_DESCS = {
     "recruiter": "Everyone needs a plug.",
     "security": "Someone's watching.",
     "noodle": "Find a time everyone can make.",
+    "aspira": "Inspired by Flash games of another time.",
 }
 _RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=29">'
 

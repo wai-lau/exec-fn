@@ -160,7 +160,7 @@ async def unauthorized_handler(request: Request, exc: HTTPException):
         # sub-paths (the proxied SPA + file endpoints) are owner-only and must
         # bounce to the admin login, not the guest gate.
         if path.startswith(("/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security",
-                            "/nightfall", "/zombo")) or path in ("/printer", "/noodle"):
+                            "/nightfall", "/zombo", "/aspira")) or path in ("/printer", "/noodle"):
             return RedirectResponse(f"/guest?next={path}", status_code=302)
         if request.method == "GET" and path not in ("/", "/login", "/guest"):
             full = path + ("?" + request.url.query if request.url.query else "")

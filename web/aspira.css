@@ -53,11 +53,12 @@
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
 .asp-wavenote .e-boss { filter: invert(1); }
 
-/* the four build buttons FLASH until the first tower is placed (owner) */
+/* until the first tower is placed the four build buttons PULSE (owner): the
+   background eases up to the lit-button tint and back - no hard blink */
 @keyframes asp-flash {
-  50% { opacity: 0.45; }
+  50% { background: hsl(var(--green-hsl) / 0.12); }
 }
-.asp-build.asp-flash .asp-tw { animation: asp-flash 1s steps(1) infinite; }
+#asp .asp-build.asp-flash .asp-tw { animation: asp-flash 1.6s ease-in-out infinite; }
 
 /* on a phone the build bar spans the bottom, so the list sits just above it */
 @media (width < 700px) {

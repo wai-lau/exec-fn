@@ -4020,9 +4020,8 @@ entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicate
 counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).
 
 
-Owner-only (`protected`), and a nav entry since 2026-10-02: `SPR`, icon
-`tower` (Nightfall's Tower sprite, traced), owner nav only - never the guest
-nav. A web take on the spiral tower-defence genre (Android "Spira Defence" /
+GUEST-tier (Turnstile) since 2026-10-02, a nav entry in both navs (`SPR`, icon
+`tower`, Nightfall's Tower sprite traced) and a landing-wheel section. A web take on the spiral tower-defence genre (Android "Spira Defence" /
 "Spira 2" as the reference for mechanics only; all code and art original).
 
 Background stars (`STARS`, white, never recoloured) TWINKLE (owner): `drawStars`
@@ -4377,6 +4376,7 @@ The build bar sits BOTTOM-RIGHT against the Exec bubble at every width (owner; `
 UPGRADING (owner, 2026-10-02): the card's upgrade button sits UNDER sell. A plain next step buys at once; at a BRANCH (path or form, 2-3 options) it opens the CHOOSER (`openChooser`, aspira-ui.js): one card per option listing the stats it changes, the game paused, NOTHING charged until a card is tapped; clicking outside (or Esc) just closes; keys 1-3 pick. The old in-card preview + confirm is gone (core keeps its own). The WAVE LIST is BOTTOM-LEFT (moved out of the header; on phones under 700px it sits 112px up, above the build bar; it flips with the boss sky on its own).
 Wave-list rows always show the wave NUMBER; a boss row adds ', <boss name>' after the HP, its icon inverted (`.e-boss`). The four build buttons FLASH until the first tower is placed (`flashBuild`). Picking a build button shows that tower's CARD (L1 stats + blurb, an `.asp-pop` coloured like the tower) above the credits; the 'tap a free slot' line is gone. On the upgrade cards an increase reads chatsubo green.
 UPGRADE CARDS (owner): every upgrade, plain steps included, opens the chooser; each card is laid out like the tower's own card (title of the tower it makes, both stat columns with 'now -> next', increases chatsubo green) plus a TAGLINE: each `desc` in aspira-upgrades.js is a reader-friendly one-liner with no numbers (the rows show those). Core options buy in ONE click (no confirm); unaffordable ones disable live via `data-cost`.
+/aspira is GUEST-tier (owner, 2026-10-02: 'public, behind cloudflare'): `guest_protected`, in `_GUEST_NEXT_ALLOWED`, the 401 handler's guest prefixes, `_GUEST_NAV_LINKS`, smoke GUEST_PAGES, and on the landing wheel ('Aspira' / 'Inspired by Flash games of another time.', between hosaka and graph by icon hue). The first-tower flash is now a smooth 1.6s background pulse to the lit-button tint (no blink).
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
