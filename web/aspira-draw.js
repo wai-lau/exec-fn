@@ -135,7 +135,7 @@ function drawCore() {
     poly(CX, CY, CORE_R * (1 + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
     ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }
-  if (ui.sel === "core" && coreHas("zen")) drawRange(CX, CY, ZEN_R, "white");
+  if (ui.sel === "core" && coreHas("zen")) drawRange(CX, CY, zenR(), "white");
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
   ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill();
   text(G.lives, CX, CY + 2, 28, "bg");
