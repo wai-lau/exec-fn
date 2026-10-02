@@ -245,14 +245,14 @@ function updateHud() {
     btn.classList.toggle("on", ui.build === k);
   }
   // the next TEN waves under the send button, one per row (owner; waves are
-  // fixed, so they are known): number : enemy x count, lanes, star. A grid
+  // fixed, so they are known): number : enemy x count, star. A grid
   // keeps the ":" in one column down the middle.
   let note = "", prev = G.lastType;
   for (let i = 1; i <= 10; i++) {
     const n = G.wave + i, w = wavePlan(n, prev);
     prev = w.type;
     note += "<span>" + n + "</span><span>:</span><span>" +
-      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b> · " + w.split + (w.split > 1 ? " lanes" : " lane") +
+      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
       (w.star ? ' <b class="e-orange">' + enemyIcon("bonus") + "</b>" : "") + "</span>";
   }
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source

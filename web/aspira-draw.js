@@ -13,7 +13,9 @@ function resize() {
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
   // the chart fits between the header (title, stats, controls) and the
   // bottom build bar
-  const head = document.querySelector(".asp-head").getBoundingClientRect();
+  // the controls row, not the whole header: the ten-wave list hangs below it
+  // over the board and must not shrink the fit (it zoomed the game out)
+  const head = document.querySelector(".asp-controls").getBoundingClientRect();
   const foot = document.querySelector(".asp-bottom").getBoundingClientRect();
   const x0 = 0, y0 = head.bottom - r.top, x1 = r.width, y1 = foot.top - r.top;
   const fit = Math.min(x1 - x0, y1 - y0) / W, k = fit * DEFAULT_ZOOM;
