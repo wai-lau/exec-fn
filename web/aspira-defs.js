@@ -265,7 +265,10 @@ function towerStats(t, noAura = false) {
     case "chain":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
       s.arcRange = s.range; s.branch = 2; s.layers = 1; break;
-    case "reaper": s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
+    // EXC levels up MODESTLY like ARC and ACD (owner): the L2 path brings the change
+    case "reaper":
+      s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
+      s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
     case "slower": s.slow = LVL_SLOW[i]; s.targets = 5; break;
     // ACD levels up MODESTLY like ARC (owner): the L2 path brings the big change
     case "acid":
