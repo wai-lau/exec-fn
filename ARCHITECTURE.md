@@ -4136,7 +4136,8 @@ ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its
 RPD shoots an instant LINE per shot (owner: the burst / shotgun / homing-shot
 experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
 11–27px by size relative to the biggest hit, shield `0` 15px.
-Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
+RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, then 0.9/s;
+owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /
 110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~42 real seconds
