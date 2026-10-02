@@ -4275,6 +4275,7 @@ Slows now STACK across towers, logarithmically (owner, 2026-10-02; replaces "one
 Contagion range x0.6 and Pandemic x1.25 on top (was x1 / x1.5) (owner, 2026-10-02: every burn in range keeps ramping, so the wide version was too strong).
 Wave timer 10 -> 13s (owner, 2026-10-02: thinner field). Simulator (six slots, ARC/FRZ/SOL): 2+ waves on screen 68-77% in W0-29, 88% in W30-39, 100% after (10s gave 73-96%); reached W55 vs W52.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
+The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Shield and armor enemies trade HP for defence (owner, 2026-10-02): shield hp 0.9 -> 0.6, shield 5 -> 8 charges; armor hp 1.6 -> 1.0, armor 15 -> 24 (both still scale with the HP curve).
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).

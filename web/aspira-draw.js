@@ -207,12 +207,27 @@ function drawTowerRange(t, dim) {
   ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 
+// the bonus STAR trails a shooting-star tracer (owner): a tail back along its
+// lane, thinning and fading to nothing STAR_TAIL behind it
+const STAR_TAIL = 140, STAR_SEGS = 14;
+function drawStarTrail(e, size) {
+  ctx.strokeStyle = COL[ENEMIES[e.type].color]; ctx.lineCap = "round";
+  let a = { x: e.x, y: e.y };
+  for (let i = 1; i <= STAR_SEGS; i++) {
+    const b = pathAt(e.pi, Math.max(0, e.s - STAR_TAIL * i / STAR_SEGS), e.ang || 0), k = 1 - i / STAR_SEGS;
+    ctx.globalAlpha = 0.7 * k; ctx.lineWidth = size * 0.6 * k + 0.5;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    a = b;
+  }
+  ctx.globalAlpha = 1;
+}
 function drawEnemy(e) {
   // damage shows as both size and opacity: full HP = full size, solid;
   // near death = 45% size, faint
   // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
   if (e.dead) return;
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
+  if (d.star) drawStarTrail(e, size);
   poly(e.x, e.y, size, d.sides, e.rot, d.star);
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
