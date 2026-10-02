@@ -106,7 +106,7 @@ const SFX = {
   over:    () => notes([392, 330, 262, 196], 0.18, { type: "triangle", dur: 0.32, vol: 0.25 }),
 };
 // minimum seconds between two plays of the same sound
-const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5, acid: 0.25 };
+const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
 
 // returns whatever the sound returns (a stop() handle for long sounds), or null
 // Optional SAMPLES (owner, 2026-10-02: Brood War sounds) replace a synth
@@ -134,14 +134,18 @@ function loadSamples() {
     }
   }
 }
+// at most SAMPLE_MAX[name] copies of a sample at once, each new one quieter
+// by how many are already playing (owner: ACD spits every tick, max 3)
+const SAMPLE_MAX = { acid: 3 }, playing = {};
 function playSample(name) {
-  const list = SAMPLES[name];
+  const list = SAMPLES[name], n = playing[name] || 0;
+  if (SAMPLE_MAX[name] && n >= SAMPLE_MAX[name]) return null;
   const src = AC.createBufferSource(), g = AC.createGain();
   src.buffer = list[Math.floor(Math.random() * list.length)];
-  g.gain.value = sampleGain;
+  g.gain.value = SAMPLE_MAX[name] ? sampleGain / (1 + n) : sampleGain;
   src.connect(g).connect(master);
-  voices++;
-  src.onended = () => { voices--; };
+  voices++; playing[name] = n + 1;
+  src.onended = () => { voices--; playing[name]--; };
   src.start();
   return src;
 }
