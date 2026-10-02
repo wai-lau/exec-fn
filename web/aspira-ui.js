@@ -33,8 +33,7 @@ function placeTower(p) {
   if (G.money < cost) { float(p.x, p.y, "need " + cost, "pink"); ui.build = null; return; }
   G.money -= cost;
   const c = CELLS[ci];
-  // every tower targets the closest by default (owner, 2026-10-02)
-  const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: "close", spent: cost };
+  const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: DEFAULT_MODE[ui.build], spent: cost };
   G.towers.push(t);
   sfx("build");
   ring(t.x, t.y, 60, TOWERS[t.kind].color);
