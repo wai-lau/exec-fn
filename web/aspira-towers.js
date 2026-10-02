@@ -12,7 +12,7 @@
 // Pending arcs step in stepChains on game time, so the delay scales with speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
-const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_DELAY = 1.7; // owner: 10x the old 0.17s
+const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_DELAY = 0.5; // owner
 const CHAIN_BRANCH = 3, CHAIN_LAYERS = 2;
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {

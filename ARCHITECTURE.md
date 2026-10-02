@@ -4111,7 +4111,7 @@ Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
 per-hop falloff, CHN is a lightning TREE (owner): strike 1 hub → it arcs to 3 → each of those
 arcs to 3 more (`CHAIN_BRANCH` 3, `CHAIN_LAYERS` 2; 13 hits a shot), every arc
 reaching from its own parent to the nearest enemy this shot has not hit, ALWAYS
-1.7s after its parent was hit (10x the old 0.17s) (owner: kills do not skip the delay); the
+0.5s after its parent was hit (owner; tried 0.17s and 1.7s) (owner: kills do not skip the delay); the
 `arcs` stat and the upgrades' `+arcs` mods are now unused. Earlier: CHN arcs fanned from the hub ONE AT A TIME, 0.17s apart (`CHAIN_HOP_DELAY`,
 `G.chains`/`stepChains`, game time; owner restored the delay), but only a
 NON-lethal hop waits: a hop that will kill (`lethalHop`) and the one after a
