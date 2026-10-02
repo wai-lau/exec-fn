@@ -91,7 +91,7 @@ function laneMap(n) {
   return out;
 }
 
-// Lanes in use right now (live enemies or spawns still queued), keyed by
+// Lanes in use right now (a live enemy on them), keyed by
 // lane + rotation ("pi:ang"): { pi, ang, color, n } with the riding type's
 // colour and its wave number; feeds the lane highlight and the wave:track
 // labels in aspira-draw.js. ang 0 is the lane itself, else a rotated copy.
@@ -101,8 +101,9 @@ function activeLanes() {
     const key = pi + ":" + ang.toFixed(3);
     if (!out.has(key)) out.set(key, { pi, ang, color: ENEMIES[type].color, n });
   };
+  // only lanes with an enemy ON them (owner): a lane lights when its first
+  // enemy appears, not while its group is still queued
   for (const e of G.enemies) if (!e.dead) add(e.pi, e.ang || 0, e.type, e.n);
-  for (const w of G.spawns) for (let i = w.idx; i < w.list.length; i++) add(w.lanes[w.list[i]], w.ang || 0, w.list[i], w.n);
   return out;
 }
 
