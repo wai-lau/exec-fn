@@ -4373,6 +4373,7 @@ The Lovers at 60% of their HP (owner): `BOSS_HP.lovers` 2 -> 1.2.
 The Chariot at DOUBLE its HP (owner): `BOSS_HP.chariot` 2 -> 4.
 The wave list shows each enemy's HP (owner): `N : icon xcount · <hp>hp`, from `enemyHp(type, n)` (game.js, shared with spawnEnemy), a boss's times its `BOSS_HP`.
 The build bar sits BOTTOM-RIGHT against the Exec bubble at every width (owner; `.asp-bottom` align-items flex-end, right inset always clears the bubble). It used to centre in the space left of the bubble under 600px, which read as shifted left.
+...the bubble inset REMOVED (owner): the Exec bubble never affects placement - the bar keeps the plain `--space-6` right inset and may overlap it.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
