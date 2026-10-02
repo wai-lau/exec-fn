@@ -33,9 +33,15 @@ function poly(x, y, r, n, rot, star) {
   ctx.closePath();
 }
 
-function text(str, x, y, size, color) {
-  ctx.fillStyle = COL[color]; ctx.font = size + "px " + CANVAS_FONT;
+// outline: a black stroke under the fill so the text reads over beams/lanes
+function text(str, x, y, size, color, outline = false) {
+  ctx.font = size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (outline) {
+    ctx.strokeStyle = COL.bg; ctx.lineWidth = size * 0.22; ctx.lineJoin = "round";
+    ctx.strokeText(str, x, y);
+  }
+  ctx.fillStyle = COL[color];
   ctx.fillText(str, x, y);
 }
 
@@ -290,7 +296,7 @@ function drawFx(pass) {
       ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
     } else if (f.k === "text") {
       ctx.globalAlpha *= f.alpha ?? 1;
-      text(f.text, f.x, f.y, f.size, f.color);
+      text(f.text, f.x, f.y, f.size, f.color, f.outline);
     }
   }
   ctx.globalAlpha = 1;
