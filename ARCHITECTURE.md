@@ -4255,6 +4255,7 @@ Colours swapped (owner, 2026-10-02): ARC is now pink, EXC orange (TOWERS[].color
 EXC renamed SOL (owner, 2026-10-02): display name Sol, abbreviation SOL; internal kind stays `reaper`. Every EXC above means SOL.
 Static's charge border is pink, ARC's colour (owner, 2026-10-02; was Marigold).
 Crit damage numbers are Marigold (`orange` token; owner asked for yellow and the palette's yellow is Marigold), no longer pink.
+The 3-letter label on a placed tower follows its newest name (owner, 2026-10-02): `towerAb(t)` in aspira-upgrades.js gives the base ab, then the path, form and super names cut to 3 letters (ARC -> STO -> TEM -> MAE), with `AB_OVERRIDE` where that clashes in a tree or reads badly (Railgun RGN, Fortissimo FFF, Overcharge OVR, Overgrowth OVG, Deep Freeze DFZ, Absolute Zero ABZ, Full Refund FRF). Build buttons keep the base ab.
 doubled from an eighth; the glow doubles with it).
 UPGRADING IS TWO CLICKS (owner): an upgrade option (path, final form or plain
 level) only SELECTS (`ui.pick`) and previews its stat changes ("-> next") in both
