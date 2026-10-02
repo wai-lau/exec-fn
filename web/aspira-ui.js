@@ -257,7 +257,8 @@ function updateHud() {
   for (let i = 1; i <= 10; i++) {
     const n = G.wave + i, w = wavePlan(n, prev);
     if (w.type !== "bonus") prev = w.type; // the boss wave does not break the alternation
-    note += "<span>" + n + "</span><span>:</span><span>" +
+    // a boss wave shows the boss's NAME where the number would be (owner)
+    note += "<span>" + (w.type === "bonus" ? arcanaOf(n).name : n) + "</span><span>:</span><span>" +
       '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
       // no send button any more (owner): the countdown rides the first row
       (i === 1 && G.started && !bossUp() ? " · in " + Math.ceil(Math.max(0, G.nextIn)) + "s" : "") + "</span>";
@@ -337,6 +338,9 @@ function frame(now) {
     stepFloats(dt); // real time: unaffected by the game speed
   }
   render(); updateHud(); placePop(); tickFps(now);
+  // the screen INVERTS while a boss is alive (owner) - the whole game, so the
+  // HTML lists over the canvas flip with it and stay readable
+  $("asp").classList.toggle("asp-boss", G.enemies.some(e => e.arcana && !e.dead));
   requestAnimationFrame(frame);
 }
 

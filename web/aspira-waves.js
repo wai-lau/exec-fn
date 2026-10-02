@@ -35,7 +35,7 @@ function fixedRand(n, salt) {
 // HUD can preview the next wave (owner) without touching the game
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
-  if (n % STAR_EVERY === 0) return { type: "bonus", count: 1, split: 1, star: true };
+  if (n % STAR_EVERY === 0) return { type: "bonus", count: bossCount(n), split: bossSplit(n), star: true }; // the Lovers and Death come as two, the Devil as six (aspira-bosses.js)
   const choices = UNLOCK.filter(t => t !== prev);
   const type = n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)];
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
@@ -60,7 +60,8 @@ function sendWave() {
   const gain = Math.floor(G.money * G.interest);
   if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 4, 1, 3); }
   G.wave++;
-  float(CX, CY - 80, "wave " + G.wave, "orange", 28, 4, 1, 3); // no early bonus: waves always go at once (owner)
+  // a boss wave announces the boss by name (owner), others their number
+  float(CX, CY - 80, G.wave % STAR_EVERY === 0 ? arcanaOf(G.wave).name : "wave " + G.wave, "orange", 28, 4, 1, 3);
   // (owner) white like the core, and held 3s so it registers; click the core: aspira-core.js
   if (G.wave === CORE_UNLOCK) banner("core upgrades unlocked", "white", 3);
   sfx("wave");
@@ -69,7 +70,10 @@ function sendWave() {
   // copy of the lane rotated 360/k degrees on from the last, all at once
   makeWave(G.wave).forEach(list => {
     // the lane split comes from the wave number; even parts (wavePlan rounded the count down to fit)
-    const k = Math.min(list.length, 1 + Math.floor(fixedRand(G.wave, 3) * 6)), per = Math.floor(list.length / k);
+    // (a boss wave takes its split from the boss: the Devil's six come from
+    // six directions, one per rotated copy of the lane)
+    const want = G.wave % STAR_EVERY === 0 ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
+    const k = Math.min(list.length, want), per = Math.floor(list.length / k);
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
       if (!part.length) continue;
