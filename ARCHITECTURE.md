@@ -4278,6 +4278,7 @@ The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02):
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
 Enemy colours (owner, 2026-10-02): Fast is green (was orange); the bonus star is Marigold, the palette's yellow (was cyan) - its lane, tracer and label follow.
+ARC's popup row "Leash" is now "Limit" (owner, 2026-10-02); the code keeps `CHAIN_LEASH`.
 Shield and armor enemies trade HP for defence (owner, 2026-10-02): shield hp 0.9 -> 0.6, shield 5 -> 8 charges; armor hp 1.6 -> 1.0, armor 15 -> 24 (both still scale with the HP curve).
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).
