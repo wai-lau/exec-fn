@@ -7,12 +7,15 @@
 // to CHAIN_BRANCH enemies, and each of those arcs to CHAIN_BRANCH more -
 // 1 + 3 + 9 = 13 hits over CHAIN_LAYERS layers. Every arc reaches from its own
 // parent (arcRange) to the nearest enemy not yet hit by this shot, and deals
-// the strike's damage x arcFall. Every arc lands CHAIN_HOP_DELAY after its
+// the strike's damage x arcFall. Every arc lands hopDelay(st) after its
 // parent was hit - kills included (owner): no arc ever skips the delay.
 // Pending arcs step in stepChains on game time, so the delay scales with speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
-const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_DELAY = 0.5; // owner
+// the arc delay is a QUARTER of the tower's shot interval (owner), so it
+// follows fire-rate upgrades: 1.5 shots/s -> 0.17s per layer
+const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_FRAC = 0.25;
+const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
 const CHAIN_BRANCH = 3, CHAIN_LAYERS = 2;
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
@@ -24,7 +27,7 @@ function fireChain(t, st, e) {
 // queue CHAIN_BRANCH pending arcs out of `parent`, one tree layer deeper
 function branchFrom(c, parent, depth) {
   if (depth > CHAIN_LAYERS) return;
-  for (let i = 0; i < CHAIN_BRANCH; i++) (G.chains ||= []).push({ c, parent, depth, wait: CHAIN_HOP_DELAY });
+  for (let i = 0; i < CHAIN_BRANCH; i++) (G.chains ||= []).push({ c, parent, depth, wait: hopDelay(c.st) });
 }
 function stepChains(dt) {
   if (!G.chains || !G.chains.length) return;
