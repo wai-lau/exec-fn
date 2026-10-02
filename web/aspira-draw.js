@@ -153,11 +153,11 @@ function drawBoard() {
   drawGraticule();
   drawLanes();
   if (ui.build) drawCells(); // the hex grid shows only while placing a tower
-  // the core, drawn as a sun symbol: circle with a centre dot
+  // the core: a solid white hexagon (gently pulsing), lives in black on it
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
-  ctx.strokeStyle = COL.orange; ctx.lineWidth = 3.5;
-  poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false); ctx.stroke();
-  text(G.lives, CX, CY + 2, 28, "orange");
+  poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
+  ctx.fillStyle = COL.white; ctx.fill();
+  text(G.lives, CX, CY + 2, 28, "bg");
 }
 
 // A tower is its cell's hexagon, inset a little so neighbours read apart;
