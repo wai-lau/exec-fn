@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web") + "/";
-const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-towers.js"];
+const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-towers.js", "aspira-core.js"];
 
 export function makeGame(seed, patch = "") {
   let a = seed >>> 0 || 1;
@@ -30,7 +30,7 @@ export function makeGame(seed, patch = "") {
   vm.runInContext(`
     const __ts = towerStats, __cache = new Map();
     towerStats = function (t, noAura) {
-      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form;
+      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + (G.core ? G.core.l1 : ""); // Sinter changes damage
       let s = __cache.get(k);
       if (!s) { s = __ts(t, true); __cache.set(k, s); }
       return s;
