@@ -359,7 +359,12 @@ function drawTethers() {
   ctx.lineCap = "round";
   for (const t of G.towers) {
     if (t.kind !== "slower" || !t.links || !t.links.length) continue;
-    const r = towerStats(t, true).range, col = COL[TOWERS[t.kind].color];
+    const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
+    if (st.all) { // Whiteout: no tethers - the range circle glows, like ACD's Contagion
+      ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 200); ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, 6.283); ctx.stroke();
+      continue;
+    }
     for (const e of t.links) {
       if (e.dead || Math.hypot(e.x - t.x, e.y - t.y) > r) continue;
       ctx.strokeStyle = col;
