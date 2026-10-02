@@ -237,7 +237,8 @@ const ENEMIES = {
   // the rare BOSS (owner, 2026-10-02): every 10th wave, ALONE; an octagon,
   // x5 HP, x2 size, half speed (100 -> 50), and letting it through costs 10 lives. `star` still marks
   // it as the bonus (lane, tracer, drop); `pointy` would draw a star shape.
-  bonus: { sides: 8, hp: 3.5, speed: 50, bounty: 3,   size: 28, color: "orange", star: true, leak: 10 }, // owner 2026-10-02: yellow = Marigold (was cyan)
+  // cyan, so it reads RED on the inverted sky it brings (owner)
+  bonus: { sides: 8, hp: 3.5, speed: 50, bounty: 3,   size: 28, color: "cyan", star: true, leak: 10 }, // owner 2026-10-02: yellow = Marigold (was cyan)
 };
 
 const POWERS = [
