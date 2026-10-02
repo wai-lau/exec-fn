@@ -413,7 +413,7 @@ function drawAcid() {
   ctx.lineCap = "round";
   for (const t of G.towers) {
     if (t.kind !== "acid" || !t.link || t.link.dead) continue;
-    const f = (acidMul(t) - 1) / (ACID_MAX - 1); // 0 fresh .. 1 full burn
+    const f = Math.log2(acidMul(t)) / Math.log2(ACID_MAX); // 0 fresh .. 1 full burn (log: the ramp is exponential)
     ctx.strokeStyle = COL.chatsubo;
     ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.link.x, t.link.y);
     ctx.globalAlpha = 0.1 + 0.2 * f; ctx.lineWidth = 3 + 5 * f; ctx.stroke();

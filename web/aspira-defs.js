@@ -204,7 +204,7 @@ const TOWERS = {
   slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 95,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
   reaper:  { name: "Executor", ab: "EXC", color: "pink",   cost: 40,  dmg: 240,  rate: 0.9,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
-  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 15,  rate: 4,    range: 160, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
+  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 3,  rate: 4,    range: 160, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;

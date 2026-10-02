@@ -140,12 +140,13 @@ function stepReaper(t, dt) {
 }
 
 
-// ACD (owner): a continuous line on ONE enemy whose burn RAMPS while it holds:
-// x1 at first, +ACID_RAMP per second held, capped at ACID_MAX. Damage lands in
+// ACD (owner): a continuous line on ONE enemy whose burn RAMPS while it holds,
+// EXPONENTIALLY (owner): it doubles every ACID_DOUBLE seconds held, capped at
+// ACID_MAX (x64 after 6s); it starts LOW (owner: 3 dmg/s at x1). Damage lands in
 // st.rate ticks a second (each a real hit: armor cuts it, a shield eats it).
 // Losing the target (dead / out of range) drops the line and the ramp.
-const ACID_RAMP = 1, ACID_MAX = 6;
-const acidMul = t => Math.min(ACID_MAX, 1 + ACID_RAMP * (t.held || 0));
+const ACID_DOUBLE = 1, ACID_MAX = 64;
+const acidMul = t => Math.min(ACID_MAX, 2 ** ((t.held || 0) / ACID_DOUBLE));
 function stepAcid(t, dt) {
   const st = towerStats(t);
   if (t.link && (t.link.dead || Math.hypot(t.link.x - t.x, t.link.y - t.y) > st.range)) t.link = null;
