@@ -41,11 +41,12 @@ function sendWave() {
   if (G.wave > 0 && G.nextIn > 0) {
     const early = Math.ceil(G.nextIn);
     G.money += early; addScore(early * 10);
-    float(CX, CY - 80, "+" + early + " early", "orange", 28, 11, 1, 3);
+    float(CX, CY - 80, "+" + early + " early", "orange", 28, 4, 1, 3);
   }
   const gain = Math.floor(G.money * G.interest);
-  if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 11, 1, 3); }
+  if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 4, 1, 3); }
   G.wave++;
+  float(CX, CY - 52, "wave " + G.wave, "orange", 22, 4, 1, 3); // under the early bonus line
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
   sfx("wave");
   G.spawns.push({ n: G.wave, list: makeWave(G.wave), lanes: laneMap(G.wave), idx: 0, timer: 0 });
