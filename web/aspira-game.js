@@ -92,7 +92,7 @@ function activeLanes() {
   const out = new Map();
   const add = (pi, ang, type, n) => {
     const key = pi + ":" + ang.toFixed(3);
-    if (!out.has(key)) out.set(key, { pi, ang, color: ENEMIES[type].color, n });
+    if (!out.has(key)) out.set(key, { pi, ang, color: ENEMIES[type].color, n, star: !!ENEMIES[type].star });
   };
   // only lanes with an enemy ON them (owner): a lane lights when its first
   // enemy appears, not while its group is still queued
