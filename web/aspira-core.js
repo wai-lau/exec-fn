@@ -21,6 +21,9 @@ const ZEN_WAVE_T = 3;
 const STILL_R = 400, ECHO_MUL = 1.5, VACUUM_SPD = 0.75, TEMPER_RATE = 1.3;
 // L3 (owner, 2026-10-02)
 const SILENCE_EVERY = 3, RESONANCE_MUL = 2, RESONANCE_T = 1, HORIZON_SPIN = 0.05, VOID_SPD = 0.6;
+// the six slots ALWAYS turn slowly round the core (owner: "I really like the
+// Horizon look"), at a tenth of Horizon's speed; Horizon turns them at full
+const BASE_SPIN = HORIZON_SPIN / 10;
 const ANNEAL_P = 0.15, ANNEAL_MUL = 3, BRITTLE_CORE = 1.25;
 const CORE_L1 = [
   { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
@@ -70,9 +73,9 @@ function buyCore(choice) {
   const opt = coreOptions()[choice];
   if (!opt) return false;
   G.money -= coreCost();
-  if (!G.core) G.core = { lvl: 1, l1: opt.id, zenT: ZEN_EVERY, clock: 0, rot: 0 };
+  if (!G.core) G.core = { lvl: 1, l1: opt.id, zenT: ZEN_EVERY, clock: 0 };
   else { G.core["l" + (G.core.lvl + 1)] = opt.id; G.core.lvl++; }
-  if (coreHas("nullify")) pushCells(NULL_PUSH * pushK(), G.core.rot);
+  if (coreHas("nullify")) pushCells(NULL_PUSH * pushK(), G.rot || 0);
   if (coreHas("quench")) for (const e of G.enemies) if (!e.dead) quench(e);
   return true;
 }
@@ -98,11 +101,12 @@ function quench(e) {
   if (e.armor > 0) e.armor /= 2;
   if (e.type === "fast") e.spd = (e.spd || 1) * 0.5;
 }
-// the core each step: Zen's travelling wave, Horizon's slow orbit
+// the core each step: the slots' slow orbit (Horizon's faster), Zen's wave
 function stepCore(dt) {
+  G.rot = (G.rot || 0) + (coreHas("horizon") ? HORIZON_SPIN : BASE_SPIN) * dt;
+  pushCells(NULL_PUSH * pushK(), G.rot);
   if (!G.core) return;
   G.core.clock += dt;
-  if (coreHas("horizon")) { G.core.rot += HORIZON_SPIN * dt; pushCells(NULL_PUSH * pushK(), G.core.rot); }
   if (!coreHas("zen")) return;
   const w = G.core.wave;
   if (w) {
