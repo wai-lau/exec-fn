@@ -177,6 +177,10 @@
 .asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
 .asp-pop dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-pop dd { margin: 0; }
+/* two stat columns (owner): every tower's stats | this type's own */
+.asp-pop .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
+.asp-pop .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
+.asp-pop .asp-cols dd { white-space: nowrap; } /* "now -> next" stays on one line */
 .asp-hint { margin: 0; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.8); }
 
 .asp-bar { height: 6px; background: hsl(var(--bg-hsl) / 0.45); border-radius: var(--radius-1); overflow: hidden; }
@@ -188,7 +192,7 @@
 .asp-pop {
   position: absolute;
   z-index: var(--z-raised);
-  width: 300px;
+  width: 380px; /* room for two stat columns (owner) */
   max-width: calc(100% - 16px);
   line-height: var(--lh-snug);
   border-color: hsl(var(--green-hsl) / 0.45);
