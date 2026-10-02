@@ -4,7 +4,7 @@
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
 const SPEED_MULT = { 0.5: 0.5, 1: 1, 2: 2, 3: 3, 10: 10 }; // 0.5x added (owner); 10x for testing (owner)
 const SPEEDS = [0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
-const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
+const ui = { build: null, sel: null, hover: null, speed: 2, paused: false }; // starts at 2x (owner)
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
 // big counts shorten so they never run into the tower buttons: 12345 stays,
