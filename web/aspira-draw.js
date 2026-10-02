@@ -255,15 +255,10 @@ function drawTowerRange(t, dim) {
 function drawEnemy(e) {
   // damage shows as both size and opacity: full HP = full size, solid;
   // near death = 45% size, faint
+  // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
+  if (e.dead) return;
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
   poly(e.x, e.y, size, d.sides, e.rot, d.star);
-  if (e.dead) {
-    // a ghost: faint fill and outline only, no shield/stun/mark markings
-    ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.08; ctx.fill();
-    ctx.strokeStyle = COL[d.color]; ctx.globalAlpha = 0.25; ctx.lineWidth = 2; ctx.stroke();
-    ctx.globalAlpha = 1;
-    return;
-  }
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
   // full at the core), still dimmed by lost HP
