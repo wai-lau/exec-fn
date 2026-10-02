@@ -115,7 +115,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
   // DEFENCES KEEP PACE WITH HP (overnight simulator, 2026-10-02): with flat
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
   // the square root of the HP curve, shields with its 0.4 power - normalised so
-  // shields still start at exactly 5 on their first wave (3).
+  // shields still start at exactly their base (8) on their first wave (3).
   const grow = Math.pow(1.15, n - 1) + n * 4 / 18, grow3 = Math.pow(1.15, 2) + 3 * 4 / 18;
   const shield = d.shield ? Math.max(d.shield, Math.round(d.shield * Math.pow(grow / grow3, 0.4))) : 0;
   G.enemies.push({
