@@ -204,7 +204,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     // far is 27px / 2s, a tiny one 11px / 0.8s (owner: smaller), spaced by sqrt(amt / maxHit)
     G.maxHit = Math.max(G.maxHit || 1, amt);
     const rel = Math.sqrt(amt / G.maxHit);
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), crit ? "pink" : blunted ? "grid" : "white",
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), crit ? "orange" : blunted ? "grid" : "white",
       Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
   }
   if (e.hp <= 0) kill(e, t);

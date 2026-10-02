@@ -4254,6 +4254,7 @@ EXC's fire beam (white core + pink glow) is a quarter of a normal beam's width (
 Colours swapped (owner, 2026-10-02): ARC is now pink, EXC orange (TOWERS[].color drives buttons, beams, damage numbers); the beam/glow notes above predate the swap.
 EXC renamed SOL (owner, 2026-10-02): display name Sol, abbreviation SOL; internal kind stays `reaper`. Every EXC above means SOL.
 Static's charge border is pink, ARC's colour (owner, 2026-10-02; was Marigold).
+Crit damage numbers are Marigold (`orange` token; owner asked for yellow and the palette's yellow is Marigold), no longer pink.
 doubled from an eighth; the glow doubles with it).
 UPGRADING IS TWO CLICKS (owner): an upgrade option (path, final form or plain
 level) only SELECTS (`ui.pick`) and previews its stat changes ("-> next") in both
