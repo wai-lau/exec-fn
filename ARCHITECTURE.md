@@ -4103,7 +4103,8 @@ more; spawn spacing is a lever — swarm gap 0.12s
 (~11 apart, inside hop reach), normal/shield/armor 0.8s and fast 0.5s (~60+
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
-ALL towers cost 40 to build (owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
+ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its rate, doubled its damage).
+Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /
 110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~42 real seconds
