@@ -246,16 +246,9 @@ function drawRange(x, y, r, color, dim = false) {
   ctx.globalAlpha = 1;
 }
 
-// a tower's range, plus (for the Reaper) its dashed outer HOLD ring: where a
-// lock it has already started can keep charging
+// a tower's range; the Reaper's outer HOLD ring (2x) is not drawn (owner)
 function drawTowerRange(t, dim) {
-  const r = towerStats(t).range, col = TOWERS[t.kind].color;
-  drawRange(t.x, t.y, r, col, dim);
-  if (t.kind !== "reaper") return;
-  ctx.beginPath(); ctx.arc(t.x, t.y, r * REAPER_HOLD, 0, 6.283);
-  ctx.strokeStyle = COL[col]; ctx.setLineDash([8, 10]); ctx.lineWidth = dim ? 1.5 : 2.5;
-  ctx.globalAlpha = dim ? 0.2 : 0.5; ctx.stroke();
-  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  drawRange(t.x, t.y, towerStats(t).range, TOWERS[t.kind].color, dim);
 }
 
 function drawEnemy(e) {
