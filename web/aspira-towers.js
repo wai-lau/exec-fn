@@ -19,9 +19,12 @@
 // follows fire-rate upgrades: 1.5 shots/s -> 0.17s per layer
 const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_FRAC = 0.25;
 const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
-// arcs only land on enemies within CHAIN_LEASH x the tower's range, measured
-// from the TOWER (owner; drawn as a dashed outer ring)
-const CHAIN_LEASH = 1.5;
+// arcs only land on enemies within the REACH, measured from the TOWER (owner;
+// drawn as a dashed outer ring): CHAIN_LEASH x range for the base 1-layer
+// tree, and a longer chain reaches further (owner, 2026-10-02) - +0.5 x range
+// per layer: Storm (2) 2x, Ion (3) 2.5x, Rail (6) 4x, Railgun (10) 6x
+const CHAIN_LEASH = 1.5, LEASH_PER_LAYER = 0.5;
+const chainReach = st => st.range * (CHAIN_LEASH + LEASH_PER_LAYER * (st.layers - 1));
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 
 // The tree is built of NODES (an enemy can appear in several once arcs
@@ -82,7 +85,7 @@ function stepChains(dt) {
 
 // the nearest enemy within arc reach of the node's enemy (and the tower's leash)
 function nextHop(c, node) {
-  const from = node.e, leash = (c.st.range * CHAIN_LEASH) ** 2;
+  const from = node.e, leash = chainReach(c.st) ** 2;
   let nxt = null, nd = c.st.arcRange * c.st.arcRange;
   for (const o of G.enemies) {
     if (o.dead || o === from || node.kids.has(o.id)) continue;
