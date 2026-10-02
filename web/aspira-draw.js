@@ -133,6 +133,7 @@ function towerHex(c, k) {
   });
   ctx.closePath();
 }
+const TOWER_GLOW = [4, 12, 22, 34]; // shadow blur per level, world px
 function drawTower(t, ghost) {
   const b = TOWERS[t.kind], c = CELLS[t.cell];
   const tiers = t.lvl - 1, base = ghost ? 0.55 : 1; // one ring per level above L1
@@ -145,7 +146,12 @@ function drawTower(t, ghost) {
     towerHex(c, kMain + LAYER_STEP * r); ctx.stroke();
   }
   ctx.globalAlpha = base; ctx.lineWidth = 3.5;
-  towerHex(c, kMain); ctx.stroke();
+  // a glow in the tower's own colour that grows with its level (owner): wider
+  // blur AND one stacked pass per level, since a lone wide shadow thins out
+  ctx.shadowColor = COL[b.color]; ctx.shadowBlur = TOWER_GLOW[t.lvl - 1] * cam.k;
+  towerHex(c, kMain);
+  for (let i = 0; i < t.lvl; i++) ctx.stroke();
+  ctx.shadowBlur = 0;
   text(towerAb(t), c.x, c.y + 1, 13, b.color); // centred: no level dots below it any more
   ctx.globalAlpha = 1;
 }
