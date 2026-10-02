@@ -114,8 +114,19 @@ const SPEC = {
 
 // One stat row: "now" alone at max level, "now -> next" when an upgrade
 // would change it, so the payoff of the upgrade is visible before buying it.
+// A change for the WORSE shows red and bold (owner): compared on the last
+// number in each value, lower-is-better for the rows in LOWER_BETTER, and a
+// number giving way to "—" (a stat the upgrade removes) counts as worse.
+const LOWER_BETTER = new Set(["Delay", "Ramp"]);
+function lastNum(v) { const m = String(v).match(/\d+(\.\d+)?/g); return m ? Number(m[m.length - 1]) : NaN; }
+function worse(label, now, next) {
+  const a = lastNum(now), b = lastNum(next);
+  if (isNaN(b)) return !isNaN(a) && String(next) === "—";
+  return !isNaN(a) && (LOWER_BETTER.has(label) ? b > a : b < a);
+}
 function statRow(label, now, next) {
-  const arrow = next !== null && next !== now ? ' <span class="asp-next">→ ' + next + "</span>" : "";
+  const cls = next !== null && worse(label, now, next) ? "asp-next asp-worse" : "asp-next";
+  const arrow = next !== null && next !== now ? ' <span class="' + cls + '">→ ' + next + "</span>" : "";
   return "<dt>" + label + "</dt><dd>" + now + arrow + "</dd>";
 }
 
