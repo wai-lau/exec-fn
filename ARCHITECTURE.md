@@ -4174,8 +4174,8 @@ RAY's job. RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, 
 owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /
-110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~42 real seconds
-(owner raised it 5x, then 10x more), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
+110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~10.4 real seconds
+(owner raised it 5x, then 10x, then cut to 1/4), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
 charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 80 dmg at 0.30 shots/s (a 3.3 game-second cycle; every change to its
 rate has kept 24 dps; was 80 at 0.30, then 120 at
 0.20 — the same 24 dps each time, a slower beat — owner); slow now affects EVERY enemy at full strength (owner removed the
