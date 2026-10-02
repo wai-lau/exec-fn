@@ -364,12 +364,13 @@ function drawPlacement() {
 function drawAims() {
   ctx.lineCap = "round"; ctx.lineWidth = 0.8;
   for (const t of G.towers) {
-    if (t.kind !== "reaper" || !t.aims || !t.period) continue;
-    const p = Math.min(1, Math.max(0, 1 - t.cd / t.period));
-    ctx.strokeStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = 0.04 + 0.6 * p * p;
-    for (const a of t.aims) {
-      if (a.dead) continue;
-      ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(a.x, a.y); ctx.stroke();
+    if (t.kind !== "reaper" || !t.locks || !t.period) continue;
+    ctx.strokeStyle = COL[TOWERS[t.kind].color];
+    for (const l of t.locks) { // each lock's line brightens on its own charge
+      if (l.e.dead) continue;
+      const p = Math.min(1, Math.max(0, 1 - l.cd / t.period));
+      ctx.globalAlpha = 0.04 + 0.6 * p * p;
+      ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(l.e.x, l.e.y); ctx.stroke();
     }
   }
   ctx.globalAlpha = 1;
