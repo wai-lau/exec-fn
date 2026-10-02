@@ -269,7 +269,7 @@ function towerStats(t, noAura = false) {
     // ARC levels up MODESTLY (owner, option A): the L2 path brings the big change
     case "chain":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
-      s.arcRange = s.range; s.branch = 2; s.layers = 1; break;
+      s.arcRange = s.range; s.branch = 2; s.layers = 2; break; // 1→2→4 (owner, 2026-10-02: one more level)
     // SOL levels up MODESTLY like ARC and ACD (owner): the L2 path brings the change
     case "reaper":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
