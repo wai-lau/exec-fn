@@ -354,7 +354,7 @@ function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) 
   fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg), slim,
     a: follow ? a : null, b: follow ? b : null });
 }
-function ring(x, y, r, color, life = 0.12, grad = false) { fx.push({ k: "ring", x, y, r, color, t: 0, life, grad }); }
+function ring(x, y, r, color, life = 0.12, grad = false, outline = true) { fx.push({ k: "ring", x, y, r, color, t: 0, life, grad, outline }); }
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
 // every pop-up has the black outline + dark glow (owner); `under` marks the
 // damage numbers, which draw beneath everything but the background

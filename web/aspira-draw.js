@@ -301,6 +301,7 @@ function drawFx(pass) {
       ctx.strokeStyle = COL[f.color]; ctx.globalAlpha = a; ctx.lineWidth = 2.5; ctx.stroke();
     } else if (f.k === "ring") {
       if (f.grad) { const a = ctx.globalAlpha; gradDisc(f.x, f.y, f.r * (1 - k * 0.5), COL[f.color], a); ctx.globalAlpha = a; }
+      if (f.outline === false) continue; // Zen's pulse: the gradient wave alone
       ctx.strokeStyle = COL[f.color]; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.5), 0, 6.283); ctx.stroke();
     } else if (f.k === "spark") {
