@@ -10,9 +10,10 @@ function setText(el, v) { v = String(v); if (el.textContent !== v) el.textConten
 
 // ---------- placement / input ----------
 // Towers snap to the triangular cells of the build disc (CELLS in
-// aspira-defs.js); a cell holds at most one tower.
+// aspira-defs.js); a cell holds at most one tower, and none may stand
+// within TOWER_GAP tiles of another (tooClose).
 function canPlace(ci) {
-  return ci >= 0 && !G.towers.some(t => t.cell === ci);
+  return ci >= 0 && !tooClose(ci);
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
