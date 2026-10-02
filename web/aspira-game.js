@@ -51,17 +51,10 @@ function makeWave(n) {
 // beats spending early. Sending before the countdown ends pays the seconds left.
 function sendWave() {
   if (G.over) return;
-  if (G.wave > 0 && G.nextIn > 0) {
-    // 3 credits per second skipped: the same +15 for a full countdown as when
-    // the gap was 15 (time rescale), so the economy is unchanged
-    const early = Math.ceil(G.nextIn * 3);
-    G.money += early; addScore(early * 10);
-    float(CX, CY - 80, "+" + early + " early", "orange", 28, 4, 1, 3);
-  }
   const gain = Math.floor(G.money * G.interest);
   if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 4, 1, 3); }
   G.wave++;
-  float(CX, CY - 52, "wave " + G.wave, "orange", 22, 4, 1, 3); // under the early bonus line
+  float(CX, CY - 80, "wave " + G.wave, "orange", 28, 4, 1, 3); // no early bonus: waves always go at once (owner)
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
   sfx("wave");
   const lanes = laneMap(G.wave);
@@ -336,8 +329,7 @@ function step(dt) {
   if (G.over || !G.started) return;
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
   // the next wave ALWAYS goes the moment the field clears (owner): nothing
-  // alive, nothing still queued to spawn. The early bonus pays the whole
-  // countdown it skipped.
+  // alive, nothing still queued to spawn
   if (waveClear()) { sendWave(); return; }
   stepSpawns(dt);
   stepEnemies(dt);
