@@ -18,6 +18,9 @@ const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_FRAC = 0.25;
 const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
 // arcs per enemy by level (owner): L1 1-2-2 (7 hits), L2+ 1-3-3 (13 hits)
 const CHAIN_BRANCH = [2, 3, 3, 3], CHAIN_LAYERS = 2;
+// arcs only land on enemies within CHAIN_LEASH x the tower's range, measured
+// from the TOWER (owner; drawn as a dashed outer ring)
+const CHAIN_LEASH = 1.5;
 const branchOf = t => CHAIN_BRANCH[Math.min(t.lvl, CHAIN_BRANCH.length) - 1];
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
@@ -58,8 +61,10 @@ function stepChains(dt) {
 // the nearest enemy this shot has not hit yet, within arc reach of `from`
 function nextHop(c, from) {
   let nxt = null, nd = c.st.arcRange * c.st.arcRange;
+  const leash = (c.st.range * CHAIN_LEASH) ** 2;
   for (const o of G.enemies) {
     if (o.dead || c.hit.has(o.id)) continue;
+    if ((o.x - c.t.x) ** 2 + (o.y - c.t.y) ** 2 > leash) continue;
     const d = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
     if (d < nd) { nd = d; nxt = o; }
   }

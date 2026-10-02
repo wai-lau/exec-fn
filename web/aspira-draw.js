@@ -246,9 +246,16 @@ function drawRange(x, y, r, color, dim = false) {
   ctx.globalAlpha = 1;
 }
 
-// a tower's range; the Reaper's outer HOLD ring (2x) is not drawn (owner)
+// a tower's range; the Reaper's outer HOLD ring (2x) is not drawn (owner),
+// Chain's LEASH ring (how far its arcs may land) is, dashed (owner)
 function drawTowerRange(t, dim) {
-  drawRange(t.x, t.y, towerStats(t).range, TOWERS[t.kind].color, dim);
+  const r = towerStats(t).range, col = TOWERS[t.kind].color;
+  drawRange(t.x, t.y, r, col, dim);
+  if (t.kind !== "chain") return;
+  ctx.beginPath(); ctx.arc(t.x, t.y, r * CHAIN_LEASH, 0, 6.283);
+  ctx.strokeStyle = COL[col]; ctx.setLineDash([8, 10]); ctx.lineWidth = dim ? 1.5 : 2.5;
+  ctx.globalAlpha = dim ? 0.2 : 0.5; ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 
 function drawEnemy(e) {
