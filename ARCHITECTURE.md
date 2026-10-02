@@ -4105,8 +4105,8 @@ SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, CHN 3 base hops /
 110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME = 12.5`s
 (5x), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
-charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 480 dmg at 0.10 shots/s (a 10s charge — owner halved the 20s one, which
-doubled its dps to 48; was 80 at 0.30, then 120 at
+charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 240 dmg at 0.10 shots/s (a 10s charge; the shot was cut from 480 to keep
+24 dps after the charge was halved; was 80 at 0.30, then 120 at
 0.20 — the same 24 dps each time, a slower beat — owner); slow now affects EVERY enemy at full strength (owner removed the
 earlier armor-immune / shield-halves rules). Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
