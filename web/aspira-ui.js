@@ -4,7 +4,6 @@
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
 const SPEED_MULT = { 1: 1, 2: 2, 3: 3 };
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
-try { ui.auto = localStorage.getItem("aspira.auto") === "1"; } catch (_e) { ui.auto = false; }
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
 
@@ -34,6 +33,8 @@ function placeTower(p) {
   ring(t.x, t.y, 60, b.color);
   // one tower per pick: placing ends placing mode (the menu stays closed)
   ui.build = null;
+  // the first tower placed starts wave 1 (owner)
+  if (!G.started) sendWave();
 }
 cv.addEventListener("pointermove", ev => { ui.hover = toWorld(ev); });
 cv.addEventListener("pointerleave", () => { ui.hover = null; });
@@ -70,13 +71,7 @@ KINDS.forEach((k, i) => {
   }, "asp-sp-" + v);
 });
 $("asp-send").onclick = sendWave;
-// auto-send: when the field clears the next wave goes at once, and the early
-// bonus pays out the whole countdown (sendWave credits the seconds skipped)
-$("asp-auto").checked = ui.auto;
-$("asp-auto").onchange = ev => {
-  ui.auto = ev.target.checked;
-  try { localStorage.setItem("aspira.auto", ui.auto ? "1" : "0"); } catch (_e) {}
-};
+
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
 const EXTRA = {

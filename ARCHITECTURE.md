@@ -4143,15 +4143,16 @@ per tier, plus `lvl % 5` dots toward the next ring (a stacked-under version
 was tried first). The tree is a FIRST DRAFT the owner is redesigning; change the data,
 not the plumbing.
 
-Start only closes the intro; nothing moves until wave 1 is sent, so the
-first towers can be placed at leisure. Building and upgrading work while
+Start only closes the intro; nothing moves until the first tower is placed,
+which sends wave 1. Building and upgrading work while
 paused (nothing checks `ui.paused` outside the sim step).
 
 **TESTING:** `START_MONEY = 10000` in aspira-game.js while the owner designs;
 the real starting money is 100. Put it back before calling the game balanced.
 
-**Auto-send** checkbox (`localStorage["aspira.auto"]`): when the field clears,
-the next wave goes at once and the early bonus pays the whole countdown.
+**Waves are always auto-sent** (owner; the checkbox is gone): the next wave
+goes the moment the field clears and the early bonus pays the whole countdown.
+Placing the FIRST tower sends wave 1.
 
 **Time is REAL at 1x** (owner): the sim used to run at a hidden 3x at "1x",
 so the code was rescaled once — every rate x3 (enemy pace `ENEMY_SPEED` 1.5;
