@@ -40,7 +40,7 @@ function makeWave(n) {
   const types = pool.slice().sort(() => Math.random() - 0.5).slice(0, k);
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   const lists = types.map(type => {
-    const usual = type === "swarm" ? Math.min(base * 30, 700) : base; // swarms: 30x the bodies (owner: x6, then x5)
+    const usual = type === "swarm" ? Math.min(base * 7.5, 175) : base; // swarms: 7.5x the bodies (owner: x6, x5, then /4)
     return Array(Math.max(1, Math.round(usual / k))).fill(type);
   });
   if (n >= 3) { const l = lists[Math.floor(Math.random() * lists.length)]; l[Math.floor(Math.random() * l.length)] = "bonus"; }
