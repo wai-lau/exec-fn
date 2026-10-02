@@ -56,18 +56,29 @@ function noise({ dur = 0.1, vol = 0.3, freq = 2000, q = 1, delay = 0 }) {
   src.start(t0); src.stop(t0 + dur + 0.02);
 }
 
-// A rising, swelling hum over `dur` seconds (the Reaper's reload); returns a
-// handle whose stop() cuts it short when the charge is abandoned.
+// The Reaper's charge-up over `dur` seconds: a whine climbing 320 -> 1500Hz
+// (high-passed, no bass) whose tremolo speeds up from 3 to 26 pulses/s, so it
+// audibly winds up toward the shot. Returns a handle whose stop() cuts it.
 function chargeHum(dur) {
-  const t0 = AC.currentTime, o = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain();
+  const t0 = AC.currentTime, o = AC.createOscillator(), hp = AC.createBiquadFilter();
+  const lfo = AC.createOscillator(), depth = AC.createGain(), trem = AC.createGain(), g = AC.createGain();
   o.type = "sawtooth";
-  o.frequency.setValueAtTime(70, t0); o.frequency.exponentialRampToValueAtTime(420, t0 + dur);
-  f.type = "lowpass"; f.frequency.setValueAtTime(350, t0); f.frequency.exponentialRampToValueAtTime(2600, t0 + dur);
-  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.07, t0 + dur);
-  o.connect(f).connect(g).connect(master);
+  o.frequency.setValueAtTime(320, t0); o.frequency.exponentialRampToValueAtTime(1500, t0 + dur);
+  hp.type = "highpass"; hp.frequency.value = 300;
+  lfo.frequency.setValueAtTime(3, t0); lfo.frequency.exponentialRampToValueAtTime(26, t0 + dur);
+  depth.gain.value = 0.5; trem.gain.value = 0.5;   // trem gain swings 0..1 with the LFO
+  lfo.connect(depth).connect(trem.gain);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.06, t0 + dur);
+  o.connect(hp).connect(trem).connect(g).connect(master);
   voices++; o.onended = () => { voices--; };
-  o.start(t0); o.stop(t0 + dur + 0.05);
-  return { stop() { try { g.gain.cancelScheduledValues(AC.currentTime); g.gain.setTargetAtTime(0.0001, AC.currentTime, 0.03); o.stop(AC.currentTime + 0.12); } catch (_e) {} } };
+  o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+  return { stop() {
+    try {
+      const now = AC.currentTime;
+      g.gain.cancelScheduledValues(now); g.gain.setTargetAtTime(0.0001, now, 0.03);
+      o.stop(now + 0.12); lfo.stop(now + 0.12);
+    } catch (_e) {}
+  } };
 }
 
 const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * step, ...opts }));
@@ -75,15 +86,15 @@ const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * 
 const SFX = {
   rapid:   () => tone({ type: "square", f0: 1400, f1: 900, dur: 0.03, vol: 0.08 }),
   chain:   () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
-  // RPR fires a big-cannon discharge (owner asked for that feel; original
-  // synthesis): a deep falling body, a low rumble and a bright crack on top
+  // RPR fires a LASER (owner: no bass): a fast falling zap, a brighter buzz
+  // under it, a high crack and a faint echo - nothing below ~350Hz
   reaper:  () => {
-    tone({ f0: 150, f1: 32, dur: 0.8, vol: 0.38 });
-    tone({ type: "sawtooth", f0: 90, f1: 40, dur: 0.5, vol: 0.12 });
-    noise({ dur: 0.6, vol: 0.28, freq: 260, q: 0.6 });
-    noise({ dur: 0.09, vol: 0.16, freq: 2600, q: 1.2 });
+    tone({ f0: 2800, f1: 380, dur: 0.28, vol: 0.2 });
+    tone({ type: "square", f0: 1900, f1: 520, dur: 0.2, vol: 0.05 });
+    noise({ dur: 0.06, vol: 0.12, freq: 4200, q: 1.5 });
+    tone({ f0: 2800, f1: 380, dur: 0.28, vol: 0.05, delay: 0.11 });
   },
-  // and charges up for it: a hum that climbs and swells over the whole reload
+  // and CHARGES for it: a whine that climbs while its pulse speeds up
   reaperCharge: dur => chargeHum(dur),
   slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
   kill:    () => tone({ type: "triangle", f0: 520, f1: 1040, dur: 0.07, vol: 0.16 }),
