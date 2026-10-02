@@ -140,6 +140,29 @@ function stepReaper(t, dt) {
 }
 
 
+// ACD (owner): a continuous line on ONE enemy whose burn RAMPS while it holds:
+// x1 at first, +ACID_RAMP per second held, capped at ACID_MAX. Damage lands in
+// st.rate ticks a second (each a real hit: armor cuts it, a shield eats it).
+// Losing the target (dead / out of range) drops the line and the ramp.
+const ACID_RAMP = 1, ACID_MAX = 6;
+const acidMul = t => Math.min(ACID_MAX, 1 + ACID_RAMP * (t.held || 0));
+function stepAcid(t, dt) {
+  const st = towerStats(t);
+  if (t.link && (t.link.dead || Math.hypot(t.link.x - t.x, t.link.y - t.y) > st.range)) t.link = null;
+  if (!t.link) {
+    t.link = pickTargets(t, st, 1)[0] || null; t.held = 0; t.tick = 0;
+    if (!t.link) return;
+  }
+  t.held += dt; t.tick += dt;
+  const every = 1 / st.rate;
+  while (t.tick >= every) {
+    t.tick -= every;
+    const d = shotDamage(t, st, t.link, st.dmg * acidMul(t) * every);
+    damage(t.link, d, t); onHit(t.link, t, st, d);
+    if (t.link.dead) { t.link = null; break; }
+  }
+}
+
 function fireRay(t, st, e) {
   const col = TOWERS[t.kind].color, crit = Math.random() < st.crit;
   const mulFor = o => (crit || (st.critBelow && o.hp / o.max < st.critBelow) ? st.critMul : 1);

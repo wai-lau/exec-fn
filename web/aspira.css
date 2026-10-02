@@ -168,6 +168,7 @@
 .asp-tw .ab { font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); }
 .asp-tw .c { font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; }
 #asp .asp-tw.cyan { color: hsl(var(--cyan-hsl)); }
+#asp .asp-tw.chatsubo { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
 #asp .asp-tw.pink { color: hsl(var(--pink-hsl)); }
 #asp .asp-tw.glow { color: hsl(var(--orange-glow-hsl)); }
 #asp .asp-tw.green { color: hsl(var(--green-hsl)); }
@@ -177,6 +178,7 @@
 .asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
 .asp-pop dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-pop dd { margin: 0; }
+
 /* two stat columns (owner): every tower's stats | this type's own */
 .asp-pop .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
 .asp-pop .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
@@ -218,6 +220,9 @@
 .asp-sw.bg { color: hsl(var(--bg-hsl)); }
 .asp-sw.grid { color: hsl(var(--gray-hsl) / 0.45); }
 .asp-sw.green { color: hsl(var(--green-hsl)); }
+
+/* [Chatsubo] - the boards' Social hue, reused for the ACD tower */
+.asp-sw.chatsubo { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
 .asp-sw.cyan { color: hsl(var(--cyan-hsl)); }
 .asp-sw.orange { color: hsl(var(--orange-hsl)); }
 .asp-sw.glow { color: hsl(var(--orange-glow-hsl)); }

@@ -3924,6 +3924,11 @@ fires on release, not on press. Canvas `touch-action: none`. Speeds now include
 0.5x (owner).
 Each enemy TYPE in a wave starts `TYPE_STAGGER` 2s after the previous one
 (owner); a type's split copies start together.
+**ACD (acid, owner, 2026-10-02):** chatsubo green; a continuous line on ONE
+enemy whose burn RAMPS while held (`stepAcid`: 15 dmg/s at x1, +100% per second
+held, capped x6; dealt in 4 ticks/s, each a real hit). Retargeting or a kill
+resets the ramp. Line thickens/brightens with the ramp (`drawAcid`). Upgrade tree
+is a placeholder. RAY renamed EXC (Executor).
 **SPLIT WAVES (owner):** each type's group in a wave is split k = 1..6 ways
 (uniform) and each part rides a COPY of its lane rotated 360/k degrees about the
 core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn
@@ -3934,8 +3939,8 @@ slot, and idle labels under a lit one are skipped; labels NEVER overlap
 (lower half of the circle) or up (upper half), reading as a short list; lit
 labels are placed first. Rim circles are WHITE; labels stay
 coloured (lit = the rider's colour, idle = cyan; owner).
-**THREE towers only (owner, 2026-10-01): ARC (chain, was CHN), FRZ (slower,
-was SLW), RAY (reaper, was RPR)** — display names only; code keys and older
+**Towers (owner): ARC (chain, was CHN), FRZ (slower, was SLW), EXC (Executor;
+reaper, was RPR / RAY), ACD (acid)** — was three towers on 2026-10-01 — display names only; code keys and older
 notes here still say chain/slower/reaper and CHN/SLW/RPR. Rapid (RPD) was removed
 entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicated
 counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).

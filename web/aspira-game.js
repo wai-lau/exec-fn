@@ -358,6 +358,7 @@ function step(dt) {
   stepChains(dt);
   for (const t of G.towers) {
     if (t.kind === "reaper") { stepReaper(t, dt); continue; }
+    if (t.kind === "acid") { stepAcid(t, dt); continue; }
     t.cd -= dt;
     if (t.cd > 0) continue;
     const st = towerStats(t);
