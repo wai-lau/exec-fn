@@ -244,7 +244,12 @@ function drawEnemy(e) {
   // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
   if (e.dead) return;
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (0.45 + 0.55 * f);
-  if (TRAIL[e.type]) drawStarTrail(e, size);
+  if (TRAIL[e.type]) {
+    drawStarTrail(e, size);
+    // the body is see-through, so blank its shape first: the tracer must not
+    // show through the enemy it trails (owner)
+    poly(e.x, e.y, size, d.sides, e.rot, d.pointy); ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fill();
+  }
   poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
