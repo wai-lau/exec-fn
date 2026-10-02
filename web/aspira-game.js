@@ -254,8 +254,10 @@ function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) 
 }
 function ring(x, y, r, color, life = 0.12) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
-function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, outline = false) {
-  fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline });
+// every pop-up has the black outline + dark glow (owner); `under` marks the
+// damage numbers, which draw beneath everything but the background
+function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, under = false) {
+  fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline: true, under });
 }
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {

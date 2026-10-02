@@ -285,12 +285,12 @@ function drawEnemy(e) {
 
 // Two passes so towers sit on top of their own shots but under the numbers:
 // pass "shots" draws beams/rings/sparks, pass "text" draws floating numbers.
-// Passes: "dmg" = damage numbers (outlined text), drawn right over the
+// Passes: "dmg" = damage numbers (`under` text), drawn right over the
 // background beneath everything else (owner); "shots" = beams/rings/sparks;
 // "text" = every other floating text, on top.
 function drawFx(pass) {
   for (const f of fx) {
-    const kind = f.k !== "text" ? "shots" : f.outline ? "dmg" : "text";
+    const kind = f.k !== "text" ? "shots" : f.under ? "dmg" : "text";
     if (kind !== pass) continue;
     // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
@@ -406,7 +406,7 @@ function render() {
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
-    text(bannerText, CX, 70, 44, "orange");
+    text(bannerText, CX, 70, 44, "orange", true);
     ctx.globalAlpha = 1;
   }
   if (ui.paused && !G.over && G.started) text("paused", CX, CY - INNER_R - 40, 56, "green");
