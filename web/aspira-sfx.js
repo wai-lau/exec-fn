@@ -106,7 +106,7 @@ const SFX = {
   over:    () => notes([392, 330, 262, 196], 0.18, { type: "triangle", dur: 0.32, vol: 0.25 }),
 };
 // minimum seconds between two plays of the same sound
-const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
+const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5, acid: 0.25 };
 
 // returns whatever the sound returns (a stop() handle for long sounds), or null
 // Optional SAMPLES (owner, 2026-10-02: Brood War sounds) replace a synth
