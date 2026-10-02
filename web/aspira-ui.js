@@ -35,7 +35,7 @@ function placeTower(p) {
   const c = CELLS[ci];
   const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: DEFAULT_MODE[ui.build], spent: cost };
   G.towers.push(t);
-  sfx("build");
+  sfxFor("build", t.kind);
   ring(t.x, t.y, 60, TOWERS[t.kind].color);
   // one tower per pick: placing ends placing mode (the menu stays closed)
   ui.build = null;
@@ -147,7 +147,7 @@ function upgradeTower(t, choice = null) {
   if (need === "form") t.form = choice;
   const c = upCost(t);
   G.money -= c; t.spent += c; t.lvl++; ui.pick = null;
-  sfx("up");
+  sfxFor("up", t.kind);
   ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
 }
 

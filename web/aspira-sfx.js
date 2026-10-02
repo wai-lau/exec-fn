@@ -154,6 +154,12 @@ function playSample(name) {
   return src;
 }
 
+// a per-TOWER variant of a sound when one is mapped (owner: each tower's own
+// build/upgrade sample, index.json keys like "build.reaper"), else the shared one
+function sfxFor(name, kind) {
+  const k = name + "." + kind;
+  return SAMPLES[k] && SAMPLES[k].length ? sfx(k) : sfx(name);
+}
 function sfx(name, ...args) {
   const sample = SAMPLES[name] && SAMPLES[name].length;
   if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !(SFX[name] || sample)) return null;
