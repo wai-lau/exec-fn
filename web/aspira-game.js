@@ -103,7 +103,7 @@ function sendWave() {
 function blockBonus() {
   const k = ((G.wave - 1) / 8) % 3;
   if (k === 1) { const c = 100 + G.wave * 10; G.money += c; addScore(c * 10); banner("bonus +" + c + " credits"); }
-  else if (k === 2) { G.interest += 0.01; banner("bonus interest +1%"); }
+  else if (k === 2) { G.interest += 0.005; banner("bonus interest +0.5%"); } // owner: was +1%
   else { G.lives += 3; banner("bonus +3 lives"); }
 }
 
@@ -331,12 +331,12 @@ function kill(e, t) {
   if (e.charged) staticDischarge(e); // ARC's Static
 }
 
-// the star drops +10 LIVES or +5% INTEREST, half and half (owner, 2026-10-02:
+// the star drops +10 LIVES or +1% INTEREST (was +5%), half and half (owner, 2026-10-02:
 // never score, no credits; x10 since it now comes every 10th wave); fixed
 // per wave, like the waves
 function bonusDrop(e) {
   if (fixedRand(e.n, 4) < 0.5) { G.lives += 10; float(e.x, e.y - 18, "+10 lives", "cyan"); }
-  else { G.interest += 0.05; float(e.x, e.y - 18, "+5% interest", "cyan"); }
+  else { G.interest += 0.01; float(e.x, e.y - 18, "+1% interest", "cyan"); } // owner: was +5%, too much compounding
 }
 
 function addScore(n) {
