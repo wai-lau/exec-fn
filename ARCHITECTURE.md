@@ -4094,7 +4094,7 @@ square (swarm), pentagon (normal / shielded / armored), no hexagon enemies
 (hexagons are the towers; BOSSES WERE REMOVED, owner 2026-10-01). Enemies do not spin: one corner always points along
 the lane (nose first). Swarms (owner: swarmier) are 30x the count (cap 700) at 0.07 HP / 0.18 bounty (about
 the same wave total), stream in EVENLY (0.012 gap), and each member has its own
-speed (±20%, `spd`), a wide wander (`jit` 24–84, tripled) at a slow wobble (2.2 rad/s, cut to 1/3), fading to 0 at the core from
+speed (±20%, `spd`), a wide wander (`jit` 12–42; tripled, then halved) at a slow wobble (2.2 rad/s, cut to 1/3), fading to 0 at the core from
 `JIT_FADE_R` 400 (squared falloff) (owner: no pile-up at the centre) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
 absorbed regardless of size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
