@@ -167,11 +167,12 @@ function damage(e, amt, t, quiet = false) {
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
-    // bigger hits read bigger and linger longer: size 16 + 8m, life 0.6 + 0.45m
-    // (m = dmgMag: ~0.9 for a 4-damage tick -> 23px / 1s; capped 3 -> 40px / ~2s)
-    const mg = dmgMag(amt);
+    // sized RELATIVE to the biggest hit seen this game (owner): the largest so
+    // far is 40px / 2s, a tiny one 16px / 0.8s, spaced by sqrt(amt / maxHit)
+    G.maxHit = Math.max(G.maxHit || 1, amt);
+    const rel = Math.sqrt(amt / G.maxHit);
     float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white",
-      Math.round(16 + 8 * mg), 0.6 + 0.45 * mg, 1, 30, true);
+      Math.round(16 + 24 * rel), 0.8 + 1.2 * rel, 1, 30, true);
   }
   if (e.hp <= 0) kill(e, t);
 }

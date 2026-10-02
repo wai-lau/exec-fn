@@ -3968,9 +3968,9 @@ number, both in dim grey (the graticule's Silver swatch). Sending a wave floats 
 each 4s (real time), drifting at 3 units/s. Floating text ages in REAL time (`stepFloats`), everything else in game
 time, so text durations are wall-clock at any game speed. Damage numbers (and
 shield `0`s) carry a thick black outline wrapped in a dark glow (shadow blur)
-so overlapping numbers stay apart. Every hit floats a damage number SCALED by the
-hit (`dmgMag`: size 16+8m, 0.6+0.45m s real time; ~23px/1s for small hits,
-40px/~2s for the biggest; jittered); a kill floats `+N` credits (size 30, 2s). Lane labels read `wave:track` in roman (`X:X` = wave 10 on track 10; the
+so overlapping numbers stay apart. Every hit floats a damage number sized RELATIVE to
+the biggest hit seen this game (`G.maxHit`; sqrt(amt/max): 40px/2s at the
+max, 16px/0.8s for tiny hits; real time; jittered); a kill floats `+N` credits (size 30, 2s). Lane labels read `wave:track` in roman (`X:X` = wave 10 on track 10; the
 riding wave while in use, else the current wave) and sit on an
 even ring at each lane's nominal 30° slot: full size/opacity in the riding
 type's colour while in use, small (20) and faint (0.3) when idle. Speed settings 1/2/3 run the sim at 3/6/9× the original base
