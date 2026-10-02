@@ -311,7 +311,8 @@ function stepEnemies(dt) {
     // no free spin: one corner points along the lane, nose first
     const ahead = pathAt(e.pi, e.s + 3);
     if (ahead.x !== p.x || ahead.y !== p.y) e.rot = Math.atan2(ahead.y - p.y, ahead.x - p.x);
-    if (e.jit) { e.ph += dt * 6.6 * (e.phr || 1); e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
+    // wobble rate cut to 1/3 (owner) when the wander tripled, so it drifts, not buzzes
+    if (e.jit) { e.ph += dt * 2.2 * (e.phr || 1); e.x += Math.cos(e.ph) * e.jit; e.y += Math.sin(e.ph * 1.3) * e.jit; }
     if (e.s >= PATHS[e.pi].len) {
       e.gone = true;
       if (e.dead) continue; // a ghost just fades out at the core
