@@ -193,7 +193,7 @@ function onHit(e, t, st, amt) {
 }
 
 // how long a Slower's slow lasts (owner: 5x the old 2.5s)
-const SLOW_TIME = 12.5 / 3; // ~4.2 real seconds
+const SLOW_TIME = 125 / 3; // ~42 real seconds (owner: 10x the old ~4.2s)
 
 // Slow affects every enemy at full strength (owner; the earlier armor-immune
 // and shield-halves rules are gone). Returns whether any slow landed.
