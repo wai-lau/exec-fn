@@ -28,13 +28,16 @@
 #asp .asp-controls button { padding: var(--space-1-5) var(--space-3); }
 .asp-controls .asp-row > button { flex: none; }
 
-/* the next wave, under the send button (owner): what, how many, how many lanes */
+/* the next waves, BOTTOM-LEFT (owner, 2026-10-02; was under the speed row) */
 .asp-wavenote {
+  position: absolute;
+  left: var(--space-6);
+  bottom: var(--space-4);
+  z-index: var(--z-raised);
   display: grid;
   grid-template-columns: auto auto auto;
   justify-content: start;
   gap: var(--space-0-5) var(--space-1);
-  margin-top: var(--space-1-5);
   font-size: var(--fs-2xs);
   font-variant-numeric: tabular-nums;
   color: hsl(var(--green-hsl) / 0.8);
@@ -46,6 +49,11 @@
 }
 .asp-wavenote > span:nth-child(3n + 1) { text-align: right; } /* wave numbers right-aligned against the ":" */
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
+
+/* on a phone the build bar spans the bottom, so the list sits just above it */
+@media (width < 700px) {
+  .asp-wavenote { bottom: calc(var(--space-4) + 112px); }
+}
 
 /* an enemy's own shape (enemyIcon), in its colour, sized to the text */
 .asp-eicon { width: 1.2em; height: 1.2em; vertical-align: -0.25em; fill: currentcolor; fill-opacity: 0.45; stroke: currentcolor; stroke-width: 1.5; }
@@ -284,3 +292,36 @@
 .asp-sw.pink { color: hsl(var(--pink-hsl)); }
 .asp-sw.white { color: hsl(var(--white-hsl)); }
 
+/* the upgrade chooser (aspira-ui.js): 2-3 cards over the dimmed board, each
+   coloured like the tower; nothing is charged until one is tapped */
+.asp-chooser { overflow-y: auto; justify-content: flex-start; }
+.asp-chooser > :first-child { margin-top: auto; }
+.asp-chooser > :last-child { margin-bottom: auto; }
+.asp-chooser h2 { font-size: var(--fs-xl); color: hsl(var(--green-hsl)); }
+.asp-chooser[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
+.asp-chooser[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
+.asp-chooser[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
+.asp-chooser[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-4); }
+
+#asp button.asp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 260px;
+  padding: var(--space-4);
+  text-align: left;
+  color: hsl(var(--green-hsl));
+  border-color: hsl(var(--green-hsl));
+  background: hsl(var(--bg-hsl));
+}
+.asp-card b { font-size: var(--fs-xl); }
+.asp-card span { font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.8); }
+.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; }
+.asp-card dt { color: hsl(var(--green-hsl) / 0.45); }
+.asp-card dd { margin: 0; }
+
+/* out of the header now, so it flips with the boss's inverted sky on its own
+   (keeping its outline) */
+#asp.asp-boss .asp-wavenote { filter: invert(1) drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl))); }

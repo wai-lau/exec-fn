@@ -161,44 +161,17 @@ function nextTower(t, choice) {
   const need = pendingChoice(t);
   return { ...t, lvl: t.lvl + 1, path: need === "path" ? choice : t.path, form: need === "form" ? choice : t.form };
 }
-// Upgrading is TWO clicks (owner): picking an option (ui.pick) only previews
-// its stat changes in the columns; the confirm button then buys it.
-function pickUpgrade(t, choice) { ui.pick = { tid: t.id, choice }; refreshPanels(); }
 function inspectTower(el, t) {
-  const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL;
-  const pick = !maxed && ui.pick && ui.pick.tid === t.id ? ui.pick : null;
-  const nt = pick && nextTower(t, pick.choice);
-  const st = towerStats(t), nx = nt && towerStats(nt);
-  const sp = SPEC[t.kind](st, t), spN = nx && SPEC[t.kind](nx, nt);
+  const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL, st = towerStats(t);
   el.innerHTML =
     '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
-    '<div id="asp-upbox"></div>' +
     // two columns (owner): what every tower has | what only this type has
-    '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
-    statRow("Range", Math.round(st.range), nx && Math.round(nx.range)) +
-    statRow("Rate", st.rate.toFixed(2) + "/s", nx && nx.rate.toFixed(2) + "/s") +
+    '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
+    statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) +
     '<dt>Kills</dt><dd id="asp-kills"></dd><dt>Dealt</dt><dd id="asp-dealt"></dd></dl>' +
-    '<dl class="asp-spec">' + sp.map((r, i) => statRow(r[0], r[1], spN && spN[i][1])).join("") + "</dl></div>" +
+    '<dl class="asp-spec">' + SPEC[t.kind](st, t).map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
     '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>' +
-    '<p class="asp-hint">' + b.blurb + "</p>";
-  const need = !maxed && pendingChoice(t);
-  if (need) {
-    // a branch point: one button per option, each showing what it does
-    const opts = need === "path" ? UPGRADES[t.kind] : UPGRADES[t.kind][t.path].finals;
-    opts.forEach((o, i) => {
-      button($("asp-upbox"), "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
-        "<b>" + o.name + " · " + upCost(t) + "</b><span>" + o.desc + "</span>", () => pickUpgrade(t, i));
-    });
-  } else if (!maxed && t.lvl + 1 === MAX_LVL && t.form != null) {
-    // the L4 step names the form's own super and says what it does
-    const f = UPGRADES[t.kind][t.path].finals[t.form], sup = f.super || { name: "Super " + f.name, desc: "a stronger " + f.name };
-    button($("asp-upbox"), "asp-primary asp-choice" + (pick ? " on" : ""),
-      "<b>→ L" + MAX_LVL + " " + sup.name + " · " + upCost(t) + "</b><span>" + sup.desc + "</span>", () => pickUpgrade(t, null));
-  } else {
-    button($("asp-upbox"), "asp-primary asp-up-big" + (pick ? " on" : ""),
-      maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => { if (!maxed) pickUpgrade(t, null); });
-  }
-  if (pick) button($("asp-upbox"), "asp-primary asp-up-big", "confirm · " + upCost(t) + " (U)", () => upgradeTower(t, pick.choice), "asp-up");
+    '<div class="asp-row" id="asp-upbox"></div><p class="asp-hint">' + b.blurb + "</p>";
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
@@ -206,6 +179,74 @@ function inspectTower(el, t) {
     G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null;
     sfx("sell"); refreshPanels();
   });
+  // the upgrade button sits UNDER sell (owner) and opens the card chooser
+  button($("asp-upbox"), "asp-primary asp-up-big",
+    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => openChooser(t), "asp-up");
+}
+
+// ---------- the upgrade chooser ----------
+// Upgrading (owner, 2026-10-02): a plain next step is bought by the upgrade
+// button at once. At a BRANCH (2-3 paths or forms) the button opens CARDS,
+// one per option, each listing the stats it changes; nothing is charged until
+// a card is tapped (owner), and clicking outside them (or Esc) just closes.
+// The game pauses meanwhile. Keys 1-3 pick a card.
+const chooser = { t: null, opts: [], wasPaused: false };
+function upgradeOptions(t) {
+  const need = pendingChoice(t);
+  if (need) return (need === "path" ? UPGRADES[t.kind] : UPGRADES[t.kind][t.path].finals).map((o, i) => ({ choice: i, name: o.name, desc: o.desc }));
+  if (t.lvl + 1 === MAX_LVL && t.form != null) {
+    // the L4 step names the form's own super and says what it does
+    const f = UPGRADES[t.kind][t.path].finals[t.form];
+    return [{ choice: null, ...(f.super || { name: "Super " + f.name, desc: "a stronger " + f.name }) }];
+  }
+  return [{ choice: null }];
+}
+// the stats one option would change, "now -> next"
+function upgradeDiffs(t, choice) {
+  const nt = nextTower(t, choice), st = towerStats(t), nx = towerStats(nt);
+  const rows = [["Range", Math.round(st.range), Math.round(nx.range)], ["Rate", st.rate.toFixed(2) + "/s", nx.rate.toFixed(2) + "/s"]];
+  if (TOWERS[t.kind].dmg) rows.unshift(["Damage", Math.round(st.dmg), Math.round(nx.dmg)]);
+  const spN = SPEC[t.kind](nx, nt);
+  SPEC[t.kind](st, t).forEach((r, i) => rows.push([r[0], r[1], spN[i][1]]));
+  return rows.filter(r => String(r[1]) !== String(r[2])).map(r => statRow(r[0], r[1], r[2])).join("");
+}
+function chooserEl() {
+  let el = $("asp-chooser");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "asp-chooser"; el.className = "asp-ov asp-chooser"; el.hidden = true;
+    el.onclick = ev => { if (!ev.target.closest(".asp-card")) closeChooser(); }; // click out = cancel
+    $("asp-ov").parentNode.appendChild(el);
+  }
+  return el;
+}
+function openChooser(t) {
+  if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
+  const opts = upgradeOptions(t);
+  if (opts.length < 2) { upgradeTower(t, opts[0].choice); return; } // nothing to choose: buy it
+  const el = chooserEl();
+  chooser.t = t; chooser.opts = opts;
+  chooser.wasPaused = ui.paused; ui.paused = true;
+  el.dataset.kind = t.kind;
+  el.innerHTML = "<h2>" + towerTitle(t) + " → L" + (t.lvl + 1) + " · " + upCost(t) + "</h2><p>choose one · click outside to cancel</p>" + '<div class="asp-cards"></div>';
+  opts.forEach((o, i) => {
+    button(el.querySelector(".asp-cards"), "asp-card",
+      "<b>" + (i + 1) + " · " + o.name + "</b><span>" + o.desc + "</span><dl>" + upgradeDiffs(t, o.choice) + "</dl>",
+      () => chooseUpgrade(i));
+  });
+  el.hidden = false;
+}
+// close the cards (nothing was charged); a pick pays through upgradeTower
+function closeChooser() {
+  if (!chooser.t) return;
+  chooser.t = null;
+  $("asp-chooser").hidden = true; ui.paused = chooser.wasPaused;
+}
+function chooseUpgrade(i) {
+  const o = chooser.opts[i], t = chooser.t;
+  if (!o || !t) return;
+  closeChooser();
+  upgradeTower(t, o.choice);
 }
 
 // Only what is needed is shown (owner): a selected tower's stats in a popup
@@ -288,13 +329,8 @@ function placePop() {
   pop.style.left = Math.max(8, x) + "px"; pop.style.top = y + "px";
 }
 
-// U: confirm the picked upgrade; with none picked, pick the plain one (a
-// branch point needs its option clicked first)
-function keyUpgrade(t) {
-  if (!t) return;
-  if (ui.pick && ui.pick.tid === t.id) upgradeTower(t, ui.pick.choice);
-  else if (!pendingChoice(t) && t.lvl < MAX_LVL) pickUpgrade(t, null);
-}
+// U: open the upgrade chooser for the selected tower
+function keyUpgrade(t) { openChooser(t); }
 
 // ---------- overlay ----------
 function showOverlay(title, body, btn) {
@@ -310,6 +346,12 @@ $("asp-ov-btn").onclick = () => {
 document.addEventListener("keydown", ev => {
   if (ev.target.closest("input, textarea, [contenteditable]")) return;
   if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  // the chooser is open: only a card choice gets through (1-3)
+  if (chooser.t) {
+    if (["1", "2", "3"].includes(ev.key)) chooseUpgrade(Number(ev.key) - 1);
+    else if (ev.key === "Escape") closeChooser();
+    ev.preventDefault(); return;
+  }
   if (["1", "2", "3"].includes(ev.key)) { ui.speed = Number(ev.key); ui.paused = false; }
   else if (ev.key === "m" || ev.key === "M") setMuted(!muted);
   else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; }
