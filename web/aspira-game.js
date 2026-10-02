@@ -454,6 +454,7 @@ function step(dt) {
   if (G.over) return;
   stepChains(dt);
   for (const t of G.towers) {
+    t.spin = (t.spin || 0) + dt; // game-time clock for anything that orbits (FRZ's moons)
     if (t.kind === "reaper") { stepReaper(t, dt); continue; }
     if (t.kind === "acid") { stepAcid(t, dt); continue; }
     t.cd -= dt;
