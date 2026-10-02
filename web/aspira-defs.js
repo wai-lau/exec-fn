@@ -202,14 +202,14 @@ function resolveColors() {
 // FRZ and ACD x1.5 damage, x1.2 range (owner, 2026-10-02: lift the two
 // towers the build search never picked): FRZ 1.5 -> 7.5 (x5: it barely hurt) / 133 -> 160, ACD 8 -> 12 / 160 -> 192,
 // then ACD again (still unpicked): 12 -> 18 burn, 192 -> 230 range
-// SOL damage 110 -> 88 (x0.8, owner 2026-10-02: nerf SOL)
+// SOL nerfed by RANGE instead (owner 2026-10-02): 318 -> 239 (x0.75), damage back to 110
 // display names (owner): chain = ARC, slower = FRZ, reaper = SOL (was RAY),
 // acid = ACD; the code
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "pink",     cost: 40,  dmg: 28, rate: 1.5,  range: 173.4, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 7.5, rate: 2.4,  range: 160,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
-  reaper:  { name: "Sol",      ab: "SOL", color: "orange", cost: 40,  dmg: 88,  rate: 1.35,  range: 318, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  reaper:  { name: "Sol",      ab: "SOL", color: "orange", cost: 40,  dmg: 110,  rate: 1.35,  range: 239, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
   acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 18,  rate: 4,    range: 230, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
 };

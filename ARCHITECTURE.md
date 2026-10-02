@@ -4309,6 +4309,7 @@ The bonus star drops ONLY +1 life or +0.5% interest, half and half by `fixedRand
 ...star size eased to x2 (28) the same day (owner: x10 was too big); HP stays x10.
 SOL damage 110 -> 88 (x0.8; owner, 2026-10-02: nerf SOL). A lone SOL still clears wave 1.
 Camera fit measures from the CONTROLS row, not the whole header (2026-10-02): the ten-wave list made the header ten rows taller and the game started zoomed out; the list now hangs over the board. The list no longer shows lane counts (owner).
+SOL nerf moved to RANGE (owner, 2026-10-02): damage back to 110, range 318 -> 239 (x0.75). A lone SOL still clears wave 1.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
