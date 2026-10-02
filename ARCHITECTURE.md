@@ -3918,9 +3918,11 @@ All lanes are SOLID lines (owner; the per-pair dash styles `LANE_DASH` were remo
 core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn
 stream). k = 6 gives six identical spirals 60 degrees apart. `activeLanes` keys
 lanes as `pi:ang`; lit copies are stroked rotated and labelled at their rotated
-slot, and idle labels under a lit one are skipped; lit labels sharing a slot
-stack inward 30 apart (`LABEL_STACK`) instead of overlapping. Lane labels and rim circles are
-all WHITE (owner); only the lit lane line carries the rider's colour.
+slot, and idle labels under a lit one are skipped; labels NEVER overlap
+(`placeLabels`): a label that would hit one already placed steps a line down
+(lower half of the circle) or up (upper half), reading as a short list; lit
+labels are placed first. Rim circles are WHITE; labels stay
+coloured (lit = the rider's colour, idle = cyan; owner).
 **THREE towers only (owner, 2026-10-01): CHN, SLW, RPR.** Rapid (RPD) was removed
 entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicated
 counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).

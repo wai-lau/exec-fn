@@ -139,38 +139,51 @@ function drawLaneStrokes(live) {
 
 // numerals sit on an even ring at each lane's nominal 30-degree slot, not
 // at the rim crossing: elliptical lanes cross the rim too close to others
-const LABEL_STACK = 30;
+// numerals sit on an even ring at each lane's nominal 30-degree slot, not
+// at the rim crossing: elliptical lanes cross the rim too close to others
 const slotAng = i => ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
+const LABEL_R = 430;
+// Labels never overlap (owner): each is placed at its slot, and while its box
+// hits one already placed it steps one line DOWN (lower half of the circle)
+// or UP (upper half), so crowded slots read as a short list. Lit labels go
+// first and keep their spot; idle ones under an identical lit slot are skipped.
+function placeLabels(items) {
+  const boxes = [];
+  for (const it of items) {
+    const w = it.text.length * it.size * 0.58, h = it.size * 1.05, dir = it.y < CY ? -1 : 1;
+    let y = it.y;
+    const hits = () => boxes.some(b => Math.abs(b.x - it.x) * 2 < b.w + w && Math.abs(b.y - y) * 2 < b.h + h);
+    for (let n = 0; n < 12 && hits(); n++) y += dir * h;
+    boxes.push({ x: it.x, y, w, h });
+    ctx.globalAlpha = it.alpha;
+    text(it.text, it.x, y, it.size, it.color);
+  }
+}
 function drawLanes() {
   const live = activeLanes();
   drawLaneStrokes(live);
   ctx.lineJoin = "round"; ctx.lineCap = "round";
   const lit = [...live.values()].map(u => slotAng(u.pi) + u.ang);
-  const near = a => lit.some(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < 0.05);
-  // idle: a small faint label + rim circle per lane (skipped where a lit one sits)
-  PATHS.forEach((path, i) => {
-    if (near(slotAng(i))) return;
-    ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.7; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(path.rim.x, path.rim.y, 4, 0, 6.283); ctx.stroke();
-    ctx.globalAlpha = 0.3;
-    const na = slotAng(i);
-    text(roman(Math.max(1, G.wave)) + ":" + roman(i + 1), CX + Math.cos(na) * 430, CY + Math.sin(na) * 430, 20, "white");
-  });
-  // in use: full size and opacity, at the (rotated) slot; every lane label and
-  // rim circle is WHITE (owner) - only the lane line carries the rider's colour;
+  const same = a => lit.some(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) < 0.05);
+  const items = [];
+  // in use: full size and opacity, at the (rotated) slot, in the rider's colour;
+  // rim circles are WHITE (owner), labels stay coloured (owner);
   // label = wave:track in roman (owner)
-  // two lit lanes can share a slot (a rotated copy landing on another lane's
-  // slot): their labels STACK inward, LABEL_STACK apart, instead of overlapping
-  const placed = [];
   for (const u of live.values()) {
     const rim = rotAbout(PATHS[u.pi].rim, u.ang), na = slotAng(u.pi) + u.ang;
     ctx.strokeStyle = COL.white; ctx.globalAlpha = 1; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(rim.x, rim.y, 4, 0, 6.283); ctx.stroke();
-    const k = placed.filter(b => Math.abs(Math.atan2(Math.sin(na - b), Math.cos(na - b))) < 0.05).length;
-    placed.push(na);
-    const r = 430 - k * LABEL_STACK;
-    text(roman(u.n) + ":" + roman(u.pi + 1), CX + Math.cos(na) * r, CY + Math.sin(na) * r, 30, "white");
+    items.push({ text: roman(u.n) + ":" + roman(u.pi + 1), x: CX + Math.cos(na) * LABEL_R, y: CY + Math.sin(na) * LABEL_R, size: 30, alpha: 1, color: u.color });
   }
+  // idle: a small faint label + rim circle per lane
+  PATHS.forEach((path, i) => {
+    if (same(slotAng(i))) return;
+    ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.7; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(path.rim.x, path.rim.y, 4, 0, 6.283); ctx.stroke();
+    const na = slotAng(i);
+    items.push({ text: roman(Math.max(1, G.wave)) + ":" + roman(i + 1), x: CX + Math.cos(na) * LABEL_R, y: CY + Math.sin(na) * LABEL_R, size: 20, alpha: 0.3, color: "cyan" });
+  });
+  placeLabels(items);
   ctx.globalAlpha = 1;
 }
 
