@@ -10,7 +10,7 @@ const START_MONEY = 10000;
 function newGame() {
   return {
     money: START_MONEY, lives: 20, score: 0, wave: 0, interest: 0.03,
-    towers: [], enemies: [], spawns: [], missiles: [], chains: [], nextIn: 0, started: false, over: false,
+    towers: [], enemies: [], spawns: [], chains: [], nextIn: 0, started: false, over: false,
     power: { SCR: 0, RNG: 0, MNY: 0, DAM: 0 }, charge: 0,
     nextLifeAt: 50000, id: 1,
   };
@@ -335,7 +335,6 @@ function step(dt) {
   stepSpawns(dt);
   stepEnemies(dt);
   if (G.over) return;
-  stepMissiles(dt);
   stepChains(dt);
   for (const t of G.towers) {
     if (t.kind === "reaper") { stepReaper(t, dt); continue; }
@@ -344,8 +343,7 @@ function step(dt) {
     const st = towerStats(t);
     const fired = fire(t, st);
     if (fired) sfx(t.kind);
-    // Rapid reloads a whole volley's worth of shots at once (owner: shotgun)
-    t.cd = fired ? (t.kind === "rapid" ? volleySize(t) : 1) / st.rate : 0.05;
+    t.cd = fired ? 1 / st.rate : 0.05;
   }
   G.enemies = G.enemies.filter(e => !e.gone);
 }
