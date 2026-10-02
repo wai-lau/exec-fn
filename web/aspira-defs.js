@@ -312,6 +312,7 @@ function towerStats(t, noAura = false) {
   if (G.power.RNG > 0) s.range *= 1.3;
   if (G.power.DAM > 0) s.dmg *= 1.6;
   if (G.core && G.core.l1 === "sinter") s.dmg *= SINTER_MUL; // the core's Sinter (aspira-core.js)
+  if (G.core && G.core.l1 === "nullify") s.range += NULL_RANGE; // the core's NULLIFY (aspira-core.js)
   return s;
 }
 const upCost = t => Math.round(TOWERS[t.kind].cost * STEP_COST[t.lvl - 1]);

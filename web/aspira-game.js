@@ -8,6 +8,9 @@ try { best = JSON.parse(localStorage.getItem("aspira.best")) || best; } catch (_
 const START_MONEY = 100; // the real economy (owner, 2026-10-02; was 10000 for testing)
 
 function newGame() {
+  // NULLIFY moved the slots out; a new game puts them home (aspira-core.js
+  // loads after this file, so the very first call finds no pushCells yet)
+  if (typeof pushCells === "function") pushCells(0);
   return {
     money: START_MONEY, lives: 20, score: 0, wave: 0, interest: 0.03,
     towers: [], enemies: [], spawns: [], chains: [], nextIn: 0, started: false, over: false,

@@ -2,15 +2,17 @@
 // open its card (the tower card, in white). From wave CORE_UNLOCK the core can
 // be upgraded; L1 is one of three powerful effects at a high price:
 //   ZEN      every ZEN_EVERY s a pulse near-freezes (95%) enemies within ZEN_R for ZEN_T s
-//   NULLIFY  enemy shield charges and armor halved, Fast enemies at half speed
+//   NULLIFY  enemy shield charges and armor halved, Fast enemies at half speed;
+//            the six slots (and their towers) move NULL_PUSH further from the
+//            core, and every tower gains NULL_RANGE range
 //   Sinter   every tower deals +30% damage
 // Loaded after aspira-towers.js (the simulator loads it too); the card code
 // only runs from the UI.
 const CORE_UNLOCK = 30, CORE_COST = [2500];
-const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3;
+const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 100;
 const CORE_L1 = [
   { id: "zen", name: "ZEN", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
-  { id: "nullify", name: "NULLIFY", desc: "enemy shields and armor halved; Fast enemies at half speed" },
+  { id: "nullify", name: "NULLIFY", desc: "enemy shields and armor halved; Fast enemies at half speed; towers move 100 further out and gain +100 range" },
   { id: "sinter", name: "Sinter", desc: "every tower deals +30% damage" },
 ];
 const CORE_MAX = CORE_COST.length;
@@ -24,8 +26,22 @@ function buyCore(choice) {
   if (!coreOpen() || coreLvl() >= CORE_MAX || G.money < coreCost()) return false;
   G.money -= coreCost();
   G.core = { lvl: 1, l1: CORE_L1[choice].id, zenT: ZEN_EVERY };
-  if (coreHas("nullify")) for (const e of G.enemies) if (!e.dead) nullify(e);
+  if (coreHas("nullify")) {
+    for (const e of G.enemies) if (!e.dead) nullify(e);
+    pushCells(NULL_PUSH);
+  }
   return true;
+}
+// move every slot d further out from the core (0 = home), towers with them;
+// newGame() calls pushCells(0), so a restart puts them back
+function pushCells(d) {
+  for (const c of CELLS) {
+    if (!c.home) c.home = { x: c.x, y: c.y, pts: c.pts.map(p => ({ ...p })) };
+    const len = Math.hypot(c.home.x - CX, c.home.y - CY), ox = (c.home.x - CX) / len * d, oy = (c.home.y - CY) / len * d;
+    c.x = c.home.x + ox; c.y = c.home.y + oy;
+    c.pts = c.home.pts.map(p => ({ x: p.x + ox, y: p.y + oy }));
+  }
+  if (typeof G !== "undefined" && G) for (const t of G.towers) { t.x = CELLS[t.cell].x; t.y = CELLS[t.cell].y; }
 }
 // NULLIFY, once per enemy: on everything alive when bought, then at spawn
 function nullify(e) {
