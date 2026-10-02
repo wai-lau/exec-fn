@@ -75,7 +75,7 @@ $("asp-send").onclick = sendWave;
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
 const EXTRA = {
-  chain: (st, t) => { const b = branchOf(t); return ["Hits", "1 → " + b + " → " + b * b]; },
+  chain: (st, t) => { const b = branchOf(t); return ["Hits", layersOf(t) > 1 ? "1 → " + b + " → " + b * b : "1 → " + b]; },
   reaper: st => ["Crit", Math.round(st.crit * 100) + "%"], slower: st => ["Slow", Math.round(st.slow * 100) + "%"],
 };
 

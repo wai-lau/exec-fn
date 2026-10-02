@@ -42,6 +42,8 @@ const UPGRADES = {
     ] },
   ],
   reaper: [
+    // PARKED (owner): extra locks - each with its own charge timer - as an
+    // upgrade, via a `targets` mod (stepReaper already holds st.targets locks)
     { name: "Focus", desc: "+15% crit chance", mods: { crit: 0.15 }, finals: [
       { name: "Executioner", desc: "crits deal x6 instead of x3", mods: { critMul: 6 } },
       { name: "Assassin", desc: "always crits enemies under 30% HP", mods: { critBelow: 0.3 } },
