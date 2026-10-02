@@ -55,7 +55,16 @@ const starts = KINDS.map(k => ({ slots: Array(6).fill(0).map(() => ({ kind: k, p
 starts.push({ slots: KINDS.concat(KINDS.slice(0, 2)).map(k => ({ kind: k, p: ri(2), f: ri(3) })), core: ri(4) });
 for (let i = 0; i < 3; i++) starts.push({ slots: Array(6).fill(0).map(randomPick), core: ri(4) });
 let best = null, evals = 0;
-for (const s of starts) {
+// CHECKPOINT (owner): resume from an earlier run's log
+if (LOG && fs.existsSync(LOG)) {
+  for (const line of fs.readFileSync(LOG, "utf8").split("\n")) {
+    if (!line) continue;
+    const r = JSON.parse(line); evals++;
+    if (r.build.slots && (!best || r.v > best.v)) best = { build: r.build, v: r.v, res: r.res };
+  }
+  if (best) console.log("resumed", evals, "evals, best", nameOf(best.build));
+}
+for (const s of best ? [] : starts) {
   const sc = score(s); evals++;
   console.log("start", nameOf(s), "-> wave", sc.res.map(r => r.wave).join("/"));
   if (!best || sc.v > best.v) best = { build: s, ...sc };
