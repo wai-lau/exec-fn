@@ -4046,7 +4046,10 @@ Tower colours (owner): RPD [Chatsubo] (the Social hue, via
 pink. SLW draws CONTINUOUS tethers (`t.links`, `drawTethers`) to the enemies it
 last pulsed, tracking them every frame; damage/slow still land per pulse. Beams FOLLOW: each keeps its endpoint objects and is redrawn between them
 while it lasts, so it tracks a moving enemy — except RPD's 0.06s tracers.
-A beam ENDS the moment the enemy it points at dies. CHN beams last 0.6s. RPR (owner): while reloading it draws a thin,
+Killed enemies become GHOSTS (owner): they keep drifting in at their plain
+pace, drawn faint, untargetable, and are removed at the core with no life
+lost (`e.dead` = ghost, `e.gone` = removed); beams keep running their full life
+and following them. CHN beams last 0.6s. RPR (owner): while reloading it draws a thin,
 harmless CHARGE-UP line to its current target that fades in with reload
 progress (`aimReaper` / `drawAims`); firing is a bright 0.25s flash that deals
 the damage; the Reaper has TWO ranges: a lock may only START inside its range,
