@@ -182,7 +182,7 @@ function resolveColors() {
 
 const TOWERS = {
   rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 3.5, rate: 6,    range: 220, blurb: "Cheap, quick, long reach.", up: "fire rate" },
-  chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1,    range: 185, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
+  chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 14, rate: 1,    range: 92.5, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 0.8,  range: 95,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
   reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 120, rate: 0.2, range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
 };
@@ -238,8 +238,9 @@ function towerStats(t, noAura = false) {
   };
   switch (t.kind) {
     case "rapid": s.rate = b.rate * LVL_RAPID_RATE[i]; break;
-    // hop reach = half the tower's range (owner), measured from the hub enemy
-    case "chain": s.arcs = LVL_CHAIN_ARCS[i]; s.arcRange = s.range * 0.5; break;
+    // hop reach = the tower's own range (owner; the range itself was halved),
+    // measured from the hub enemy
+    case "chain": s.arcs = LVL_CHAIN_ARCS[i]; s.arcRange = s.range; break;
     case "reaper": s.crit = LVL_REAPER_CRIT[i]; break;
     case "slower": s.slow = LVL_SLOW[i]; s.targets = 5; break;
   }
