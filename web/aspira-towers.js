@@ -242,15 +242,35 @@ function acidLines(t, st) {
   }
   return lines;
 }
+// Rain's chain: from the burning enemy, hop to the nearest enemy not yet in it
+// within RAIN_HOP, never past the tower's reach, up to st.rainChain hops
+const RAIN_HOP = 120;
+function rainChain(t, st, from) {
+  const out = [], seen = new Set([from]), r2 = st.range ** 2;
+  let at = from;
+  while (out.length < st.rainChain) {
+    let nxt = null, nd = RAIN_HOP * RAIN_HOP;
+    for (const o of G.enemies) {
+      if (o.dead || seen.has(o) || (o.x - t.x) ** 2 + (o.y - t.y) ** 2 > r2) continue;
+      const d = (o.x - at.x) ** 2 + (o.y - at.y) ** 2;
+      if (d < nd) { nd = d; nxt = o; }
+    }
+    if (!nxt) break;
+    seen.add(nxt); out.push(nxt); at = nxt;
+  }
+  return out;
+}
 function acidTick(t, st, l, every) {
   const d = st.dmg * acidMulOf(l.held, st) * every;
   const burn = o => {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t); onHit(o, t, st, dd);
+    if (st.burnSlow && !o.dead) applySlow(o, st.burnSlow, 0.5, t.id); // Residue: the burn slows
     if (st.corrode && !o.dead) { o.armor = (o.armor || 0) - st.corrode; o.corrodeT = 0.4; } // Corrosion: past zero, on purpose; corrodeT: dotted ring
   };
   const R = st.plagueR ? plagueRadius(l, st) : 0, center = l.e;
   burn(center);
+  if (st.rainChain) l.chain = rainChain(t, st, center).filter(o => { burn(o); return true; });
   if (R) for (const o of G.enemies) if (o !== center && !o.dead && Math.hypot(o.x - center.x, o.y - center.y) <= R) burn(o);
 }
 function stepAcid(t, dt) {

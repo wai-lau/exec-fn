@@ -41,23 +41,31 @@ const UPGRADES = {
   // each form's own on-theme L4 super. Bloom hits harder than Contagion
   // (x1.5 vs x0.7) to make up for its smaller area (owner).
   acid: [
-    { name: "Catalyst", desc: "the burn doubles every 0.5s (was 1s)", mods: { double: 0.5 }, finals: [
-      { name: "Rain", desc: "double range; burn x1.25", mods: { range: 2, dmg: 1.25 },
+    // ACD buffed (owner, 2026-10-02: "ACD upgrades feel weak"; Rain and Residue
+    // tested below the baseline): Catalyst +20% burn, Rain x2.5, Residue 3s and
+    // x2.2 (Scar 8s), Corrosion 1.5 a tick (Dissolve 3), Contagion x1 (was x0.7)
+    { name: "Catalyst", desc: "the burn doubles every 0.5s (was 1s); burn x1.2", mods: { double: 0.5, dmg: 1.2 }, finals: [
+      // Rain tested weak whatever its burn (x1.25..x6: one line is one line);
+      // it now CHAINS like ARC (owner): each tick also burns up to 5 more
+      // enemies, hopping to the nearest within RAIN_HOP of the last
+      { name: "Rain", desc: "double range; the burn chains to 5 more enemies, hopping like ARC", mods: { range: 2, rainChain: 5 },
         super: { name: "Deluge", desc: "triple range", mods: { range: 1.5 } } },
       { name: "Pour", desc: "three lines at once, each with its own ramp", mods: { targets: 2 },
         super: { name: "Torrent", desc: "five lines", mods: { targets: 2 } } },
-      { name: "Residue", desc: "an enemy that leaves range keeps burning for 1.5s", mods: { residue: 1.5 },
-        super: { name: "Scar", desc: "it keeps burning for 5s", mods: { residue: 5 } } },
+      // Residue also SLOWS what it burns, and switches the tower to target Fast
+      // enemies - the ones that run out of range and keep burning (owner)
+      { name: "Residue", desc: "burns slow by 30%; an enemy that leaves range keeps burning for 3s; burn x2.2; targets Fast enemies", mods: { residue: 3, dmg: 2.2, burnSlow: 0.3 }, mode: "fast",
+        super: { name: "Scar", desc: "it keeps burning for 8s", mods: { residue: 8 } } },
     ] },
     // circle tripled 45 -> 135 (owner, 2026-10-02: "45 range is nothing")
     { name: "Plague", desc: "every tick also burns everything within 135 of the target", mods: { plagueR: 135 }, finals: [
       { name: "Bloom", desc: "the circle grows with the burn, up to 2x; burn x1.5", mods: { bloom: 2, dmg: 1.5 },
         super: { name: "Overgrowth", desc: "the circle grows up to 3x", mods: { bloom: 3 } } },
-      { name: "Corrosion", desc: "every tick strips 0.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 0.5 },
-        super: { name: "Dissolve", desc: "strips 1.5 armor a tick", mods: { corrode: 1.5 } } },
+      { name: "Corrosion", desc: "every tick strips 1.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 1.5 },
+        super: { name: "Dissolve", desc: "strips 3 armor a tick", mods: { corrode: 3 } } },
       // range cut (owner, 2026-10-02): every burn in range keeps ramping, never
       // down, so a wide Contagion was too strong. 0.6 / 0.75 of the tower's range
-      { name: "Contagion", desc: "no line: every enemy in range burns, each on its own ramp; burn x0.7; range x0.6", mods: { allInRange: true, plagueR: 0, dmg: 0.7, range: 0.6 },
+      { name: "Contagion", desc: "no line: every enemy in range burns, each on its own ramp; range x0.6", mods: { allInRange: true, plagueR: 0, range: 0.6 },
         super: { name: "Pandemic", desc: "range x1.25", mods: { range: 1.25 } } },
     ] },
   ],
