@@ -3979,13 +3979,15 @@ POWER deck is removed for now (`usePower`/`G.power` remain in aspira-game.js,
 unreachable; the bonus drop that filled the bar pays credits instead). No API, no server
 state; the only persistence is `localStorage["aspira.best"]` (best score/wave).
 
-**Client** — six same-global-scope files, loaded in order (defs, sfx, upgrades, game, draw, ui):
+**Client** — seven same-global-scope files, loaded in order (defs, sfx, upgrades, game,
+towers, draw, ui):
 
 | File | Holds |
 |------|-------|
 | `web/aspira-defs.js` | world geometry (1000×1000; twelve spirals `PATHS` with per-lane `pace`, `pathAt(pi, s)` by binary search; `BUILD_R` disc; `STARS`), `TOWERS`/`ENEMIES`/`POWERS` tables, `towerStats()`, `COL` |
 | `web/aspira-sfx.js` | synthesised WebAudio sound effects (`sfx(name)`): one per tower shot, kill, leak, wave, build/upgrade/sell, life, game over; context created on first gesture; per-sound minimum gap + 24-voice cap; mute persisted in `localStorage["aspira.mute"]` (button + M) |
 | `web/aspira-game.js` | state `G`, waves, economy, targeting (`MODE_KEY`), combat, fx, `step()` |
+| `web/aspira-towers.js` | how each tower fires: Chain's fan, Slower pulse/tethers, Reaper charge + beam, `fire()` (split from aspira-game.js at the 500-line cap) |
 | `web/aspira-draw.js` | canvas render |
 | `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
 
@@ -4074,7 +4076,7 @@ the lane (nose first). Swarms read by small size + 3x count and wander off the l
 on a small loop (`jit`). Shield (`5 + wave/3` HITS absorbed regardless of
 size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
-thick outline. Waves rotate themes `norm, swarm, fast, shield, armor, mixed`
+thick outline; the Reaper's shots IGNORE armor (owner). Waves rotate themes `norm, swarm, fast, shield, armor, mixed`
 (`WAVE_THEMES`). Bonus stars unchanged; Regenerating was proposed and dropped; bosses removed
 (CHN's EMP final now hits armored enemies x2.5 as a placeholder).
 
