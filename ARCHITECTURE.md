@@ -3960,7 +3960,7 @@ Enemies shrink (to 45%) and fade as they lose HP. Outline opacity rises with
 proximity to the core (0.1 at/beyond the rim → 1 at the core, × 0.7-1 by HP). Non-lane strokes (graticule, rim ticks, hex grid, core, towers,
 ranges, enemy outlines) are drawn heavy (2-3.5); lanes stay fine. The CRT
 stack is cut to 0.4 opacity on this page (rules in aspira.css; it loads only
-here). The HUD shows FPS (frames over 0.5s windows, `tickFps`). The core is a solid WHITE hexagon with the lives count in black. Draw order: board, ranges, STARS (after lanes + range fills, which used to
+here). The HUD shows FPS (frames over 0.5s windows, `tickFps`). The core is a solid WHITE hexagon with the lives count in black. Draw order: background, DAMAGE NUMBERS (under everything else, owner), board, ranges, STARS (after lanes + range fills, which used to
 tint them), enemies, shots, TOWERS (on top of their
 own effects), build ghost, floating text, banner. Stars and damage numbers are WHITE (`--white-hsl`, added to chrome.css
 for this). A hit soaked by a shield floats a `0` and an armor-blunted hit its reduced
