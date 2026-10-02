@@ -1,35 +1,29 @@
 // /aspira — the CORE's own upgrades (owner, 2026-10-02). Click the core to
-// open its card (the tower card, in white). From wave CORE_UNLOCK the core can
-// be upgraded. L1 is one of three effects; L2 deepens it, two options each:
-//   Zen      every ZEN_EVERY s a pulse near-freezes (95%) enemies within ZEN_R for ZEN_T s
-//     Stillness  the pulse reaches STILL_R
-//     Echo       enemies held by the pulse take ECHO_MUL damage
-//   Space    (id "nullify") the six slots (and their towers) move NULL_PUSH
-//            further from the core, and every tower gains NULL_RANGE range
-//     Expanse    the same again: 2x the push, 2x the range
-//     Vacuum     every enemy moves at VACUUM_SPD of its speed
-//   Sinter   every tower deals +30% damage
-//     Temper     every tower fires TEMPER_RATE faster
-//     Quench     Fast enemies at half speed, armor and shield charges halved
-// Loaded after aspira-towers.js (the simulator loads it too); the card code
-// only runs from the UI.
-const CORE_UNLOCK = 30, CORE_COST = [2500, 5000, 10000];
+// open its card (the tower card, in white). From wave CORE_UNLOCK the core
+// levels L1 -> L2 -> L3, each choice opening its own next options:
+//   Zen      every few seconds a wave spreads from the core, near-freezing (95%) what it passes
+//     Stillness  reach STILL_R           -> Silence    a pulse every 3s
+//     Echo       frozen enemies x1.5     -> Resonance  x2, and 1s past the freeze
+//   Space    (id "nullify") slots and towers move NULL_PUSH out, +NULL_RANGE range
+//     Expanse    the same again          -> Horizon    +range again; the slots orbit the core
+//     Vacuum     Quench: Fast half speed, armor and shields halved -> Infinity  every tower +30% damage
+// Past L3, once all six towers are L4: the repeatables (Overclock, Amplifier,
+// Lens). Loaded after aspira-towers.js (the simulator loads it too); the card
+// and drawing code only run from the UI.
+const CORE_UNLOCK = 30, CORE_COST = [1500, 3000, 6000]; // owner: was 2500 / 5000 / 10000
 const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 100;
 // Zen's wave TRAVELS (owner: slower): its front spreads from the core to its
 // reach over ZEN_WAVE_T seconds and freezes each enemy as it passes
 const ZEN_WAVE_T = 3;
-// Temper x1.5 (owner: was x1.3); it does not touch ACD, whose rate only sets
-// how often its burn TICKS (the burn per second is fixed), so a faster tick
-// would only feed armor more hits to soak
-const STILL_R = 400, ECHO_MUL = 1.5, VACUUM_SPD = 0.75, TEMPER_RATE = 1.5;
+const STILL_R = 400, ECHO_MUL = 1.5;
 // L3 (owner, 2026-10-02)
-const SILENCE_EVERY = 3, RESONANCE_MUL = 2, RESONANCE_T = 1, HORIZON_SPIN = 0.05, VOID_SPD = 0.6;
-const ANNEAL_P = 0.15, ANNEAL_MUL = 3, BRITTLE_CORE = 1.25;
+const SILENCE_EVERY = 3, RESONANCE_MUL = 2, RESONANCE_T = 1, HORIZON_SPIN = 0.05;
 const CORE_L1 = [
   { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
   { id: "nullify", name: "Space", desc: "towers move 100 further out and gain +100 range" },
-  { id: "sinter", name: "Sinter", desc: "every tower deals +30% damage" },
 ];
+// (the Sinter path - Sinter, Temper, Quench, Anneal, Brittle Core - was cut,
+// owner 2026-10-02; its two effects live on under Space as Vacuum and Infinity)
 const CORE_L2 = {
   zen: [
     { id: "stillness", name: "Stillness", desc: "the pulse reaches 400 (was 250)" },
@@ -37,20 +31,16 @@ const CORE_L2 = {
   ],
   nullify: [
     { id: "expanse", name: "Expanse", desc: "towers move another 100 out and gain another +100 range" },
-    { id: "vacuum", name: "Vacuum", desc: "every enemy moves 25% slower" },
-  ],
-  sinter: [
-    { id: "temper", name: "Temper", desc: "every tower fires 50% faster (not ACD: its burn ticks, so rate does not add damage)" },
-    { id: "quench", name: "Quench", desc: "Fast enemies at half speed; armor and shields halved" },
+    // Vacuum carries Quench's effect (owner, 2026-10-02; was 25% slower)
+    { id: "vacuum", name: "Vacuum", desc: "Fast enemies at half speed; armor and shields halved" },
   ],
 };
 const CORE_L3 = {
   stillness: [{ id: "silence", name: "Silence", desc: "a pulse every 3s (was 5)" }],
   echo: [{ id: "resonance", name: "Resonance", desc: "held enemies take +100% (was +50%), for 1s after the freeze ends too" }],
   expanse: [{ id: "horizon", name: "Horizon", desc: "+100 range again (+300 in all), and the slots slowly orbit the core" }],
-  vacuum: [{ id: "void", name: "Void", desc: "every enemy moves 40% slower (was 25%)" }],
-  temper: [{ id: "anneal", name: "Anneal", desc: "every hit from every tower has a 15% chance to crit for x3" }],
-  quench: [{ id: "brittlecore", name: "Brittle Core", desc: "quenched enemies take +25% damage from every tower" }],
+  // Infinity carries Sinter's effect (owner; replaced Void)
+  vacuum: [{ id: "infinity", name: "Infinity", desc: "every tower deals +30% damage" }],
 };
 const CORE_MAX = CORE_COST.length;
 
@@ -66,7 +56,31 @@ const zenEvery = () => (coreHas("silence") ? SILENCE_EVERY : ZEN_EVERY);
 // Space's push (doubled by Expanse) and range (that, plus one more for Horizon)
 const pushK = () => (coreHas("nullify") ? (coreHas("expanse") ? 2 : 1) : 0);
 const spaceK = () => pushK() + (coreHas("horizon") ? 1 : 0);
-const vacuumMul = () => (coreHas("void") ? VOID_SPD : coreHas("vacuum") ? VACUUM_SPD : 1);
+// Vacuum quenches (Fast half speed, armor and shields halved); Infinity adds
+// +30% damage to every tower
+const quenching = () => coreHas("vacuum");
+const sintering = () => coreHas("infinity");
+
+// REPEATABLES (owner, 2026-10-02: Overclock / Amplifier / Lens), open once the
+// core is L3 AND all six towers are L4; each buy adds its step again and
+// doubles that upgrade's price
+const REPS = [
+  { id: "overclock", name: "Overclock", desc: "every tower fires 10% faster (not ACD's burn ticks)", step: 1.1 },
+  { id: "amplifier", name: "Amplifier", desc: "every tower deals 10% more damage", step: 1.1 },
+  { id: "lens", name: "Lens", desc: "every tower reaches 5% further", step: 1.05 },
+];
+const REP_BASE = 6000;
+const repN = id => (G.core && G.core.reps ? G.core.reps[id] || 0 : 0);
+const repCost = id => REP_BASE * Math.pow(2, repN(id));
+const repMul = id => Math.pow(REPS.find(r => r.id === id).step, repN(id));
+const repsOpen = () => coreLvl() >= CORE_MAX && G.towers.length === CELLS.length && G.towers.every(t => t.lvl >= MAX_LVL);
+function buyRep(id) {
+  if (!repsOpen() || G.money < repCost(id)) return false;
+  G.money -= repCost(id);
+  G.core.reps = G.core.reps || {};
+  G.core.reps[id] = repN(id) + 1;
+  return true;
+}
 
 function buyCore(choice) {
   if (!coreOpen() || coreLvl() >= CORE_MAX || G.money < coreCost()) return false;
@@ -76,7 +90,7 @@ function buyCore(choice) {
   if (!G.core) G.core = { lvl: 1, l1: opt.id, zenT: ZEN_EVERY, clock: 0 };
   else { G.core["l" + (G.core.lvl + 1)] = opt.id; G.core.lvl++; }
   if (coreHas("nullify")) pushCells(NULL_PUSH * pushK(), G.rot || 0);
-  if (coreHas("quench")) for (const e of G.enemies) if (!e.dead) quench(e);
+  if (quenching()) for (const e of G.enemies) if (!e.dead) quench(e);
   return true;
 }
 // move every slot d further out from the core and turn them rot radians
@@ -127,16 +141,53 @@ function stepCore(dt) {
 }
 // Echo / Resonance: extra damage on an enemy the Zen wave froze (from damage())
 const echoMul = e => (coreHas("echo") && G.core.clock < (e.echoUntil || 0) ? (coreHas("resonance") ? RESONANCE_MUL : ECHO_MUL) : 1);
-// Anneal (a crit on any tower's hit) and Brittle Core (quenched take more),
-// from damage(); returns [multiplier, crit]
-function coreHitMul(e, t) {
-  let m = echoMul(e), crit = false;
-  if (coreHas("brittlecore") && e.quenched) m *= BRITTLE_CORE;
-  if (t && coreHas("anneal") && Math.random() < ANNEAL_P) { m *= ANNEAL_MUL; crit = true; }
-  return [m, crit];
+// the core's damage multiplier on a hit, from damage(); returns [multiplier,
+// crit] (no crit source left since Anneal was cut, kept for the call shape)
+function coreHitMul(e) {
+  return [echoMul(e), false];
+}
+
+// ---------- the core's look (UI only; aspira-draw.js calls it under the towers) ----------
+// every core effect shows on the board (owner: clear animations):
+//   Space / Expanse / Horizon  thin white struts from the core to every slot
+//   Infinity                   a steady thick white beam to every tower
+// (Zen's wave, and the enemy marks for Vacuum / Echo, are drawn
+// elsewhere: fx "zen", and drawStatus in aspira-enemies.js)
+function drawCoreFx() {
+  if (!G.core) return;
+  const now = performance.now();
+  ctx.strokeStyle = COL.white; ctx.lineCap = "round";
+  if (coreHas("nullify")) {
+    ctx.globalAlpha = 0.25; ctx.lineWidth = 2;
+    for (const c of CELLS) { ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(c.x, c.y); ctx.stroke(); }
+  }
+  if (sintering()) {
+    const pulse = 0.7 + 0.3 * Math.sin(now / 400);
+    for (const t of G.towers) {
+      ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(t.x, t.y);
+      ctx.globalAlpha = 0.12 * pulse; ctx.lineWidth = 12; ctx.stroke();
+      ctx.globalAlpha = 0.5 * pulse; ctx.lineWidth = 3; ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 
 // ---------- the core's card (UI only) ----------
+// past L3: the repeatables, once all six towers are L4 too
+function coreReps(box, pick) {
+  if (!repsOpen()) { button(box, "asp-primary asp-up-big", "max level · more once all six towers are L4", () => {}); return; }
+  REPS.forEach((r, i) => {
+    button(box, "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
+      "<b>" + r.name + " " + (repN(r.id) + 1) + " · " + repCost(r.id) + "</b><span>" + r.desc + "</span>", () => { ui.pick = { tid: "core", choice: i }; refreshPanels(); });
+  });
+  if (pick) {
+    const r = REPS[pick.choice];
+    button(box, "asp-primary asp-up-big", "confirm · " + repCost(r.id), () => {
+      if (buyRep(r.id)) { ui.pick = null; sfx("up"); ring(CX, CY, 80, "white"); }
+      refreshPanels();
+    }, "asp-up");
+  }
+}
 function inspectCore(el) {
   const lvl = coreLvl(), pick = ui.pick && ui.pick.tid === "core" ? ui.pick : null;
   const l1 = lvl ? CORE_L1.find(o => o.id === G.core.l1) : null;
@@ -147,7 +198,7 @@ function inspectCore(el) {
     '<div id="asp-upbox"></div>' +
     '<p class="asp-hint">' + (took.length ? took.map(o => o.desc).join("; ") : "The heart of the chart. Upgrades unlock at wave " + CORE_UNLOCK + ".") + "</p>";
   const box = $("asp-upbox");
-  if (lvl >= CORE_MAX) { button(box, "asp-primary asp-up-big", "max level", () => {}); return; }
+  if (lvl >= CORE_MAX) { coreReps(box, pick); return; }
   if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks at wave " + CORE_UNLOCK, () => {}); return; }
   coreOptions().forEach((o, i) => {
     button(box, "asp-primary asp-choice" + (pick && pick.choice === i ? " on" : ""),
