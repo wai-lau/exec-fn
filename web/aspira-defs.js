@@ -219,10 +219,10 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 // SHAPE SHOWS SPEED (owner): triangle = fastest, more sides = slower, and the
 // hexagon is reserved for the towers (bosses were removed). Swarms read by size + count;
 // shield shows as concentric outlines, armor as a thick outline (drawEnemy).
-// speeds (owner, 2026-10-02): fast doubled to 270; shield and armor halved to
+// speeds (owner, 2026-10-02): fast doubled to 270, then eased to 220; shield and armor halved to
 // 37.5 and 30
 const ENEMIES = {
-  fast:   { sides: 3, hp: 0.6,  speed: 270, bounty: 0.8, size: 12, color: "orange" },
+  fast:   { sides: 3, hp: 0.6,  speed: 220, bounty: 0.8, size: 12, color: "orange" },
   swarm:  { sides: 4, hp: 0.07, speed: 95,  bounty: 0.18, size: 6, color: "white" }, // twice as many, half as tough
   norm:   { sides: 5, hp: 1,    speed: 80,  bounty: 1,   size: 13, color: "green" },
   shield: { sides: 5, hp: 0.9,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 5 },
