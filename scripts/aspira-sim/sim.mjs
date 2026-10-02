@@ -58,13 +58,13 @@ export function makeGame(seed, patch = "") {
       get G() { return G; },
       CELLS, TOWERS, UPGRADES, PATHS, CX, CY, RIM_R, MAX_LVL,
       towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell,
-      place(kind, ci) {
+      place(kind, ci, mode = DEFAULT_MODE[kind]) {
         const c = CELLS[ci];
         const cost = towerCost(kind);
         if (G.money < cost || occupied(ci)) return null;
         G.money -= cost;
         const t = { id: G.id++, kind, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0,
-          mode: "close", spent: cost };
+          mode, spent: cost };
         G.towers.push(t);
         if (!G.started) sendWave();
         return t;
@@ -150,7 +150,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
       if (G.money - g.run("towerCost('" + next.kind + "')") < (G.towers.length < 2 ? 0 : (strategy.reserve || 0) * G.wave)) return;
       const best = order[next.kind].find(i => !g.run("occupied(" + i + ")"));
       if (best == null) { next = null; return; }
-      g.place(next.kind, best); next = null;
+      g.place(next.kind, best, (strategy.modes || {})[next.kind]); next = null;
     }
   };
   let time = 0, nearest = Infinity;
