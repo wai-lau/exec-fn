@@ -169,14 +169,15 @@ function cellPath(c, k = 1) {
 }
 
 // Shown while placing: all six slots at full strength (owner: "fully show"),
-// free cells green, occupied ones orange.
+// free cells in the colour of the tower being placed (owner), occupied ones grey.
 function drawCells() {
   ctx.lineWidth = 2;
   CELLS.forEach((c, ci) => {
     const free = canPlace(ci);
     cellPath(c, 0.94);
-    if (free) { ctx.fillStyle = COL.green; ctx.globalAlpha = 0.15; ctx.fill(); }
-    ctx.strokeStyle = COL[free ? "green" : "orange"]; ctx.globalAlpha = free ? 0.8 : 0.4; ctx.stroke();
+    const col = COL[TOWERS[ui.build].color];
+    if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }
+    ctx.strokeStyle = free ? col : COL.grid; ctx.globalAlpha = free ? 0.8 : 0.4; ctx.stroke();
   });
   ctx.globalAlpha = 1;
 }
