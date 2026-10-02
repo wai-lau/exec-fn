@@ -4169,8 +4169,8 @@ experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
 The lock-on charge line never drops below 50% of its full opacity (owner).
 RPR holds `st.targets` locks (`t.locks`) — 1 at base; MORE IS PARKED for a
 Reaper upgrade via a `targets` mod (owner) — EACH with its own charge timer: a new lock charges from empty and fires its own ray when
-full; a lost lock is dropped and its slot refills fresh. RAY (reaper) hits for 240 at 2.7 shots/s base (owner: 720 at 0.9 cut to a third,
-rate tripled - same dps, a third of the overkill). Armor base is 15 (owner:
+full; a lost lock is dropped and its slot refills fresh. RAY (reaper) hits for 240 at 0.9 shots/s base (owner: damage cut from 720 to a
+third, fire rate NOT raised - a third of the dps). Armor base is 15 (owner:
 raised from 6; 24 at wave 6), so ARC's hits are mostly blunted and armor is
 RAY's job. RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, then 0.9/s;
 owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
