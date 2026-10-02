@@ -129,15 +129,17 @@ function fireRay(t, st, e) {
   }
 }
 
-// Rapid fires a SHOTGUN VOLLEY (owner): all RAPID_BURST shots leave at once,
+// Rapid fires a SHOTGUN VOLLEY (owner): all volleySize(t) shots leave at once,
 // sprayed WIDE of the target across VOLLEY_SPREAD (~+-70 deg), then curve in on
 // it (turn rate starts low and grows with age, so the fan shows and none orbit). Each is a short HOMING LINE that deals its
-// damage on arrival; the tower then reloads for RAPID_BURST shots' worth of
+// damage on arrival; the tower then reloads for that many shots' worth of
 // time (same dps). Overkill is the cost: once the target dies, every shot
 // still in flight MISSES - it stops homing and flies straight off into the
 // distance, fading slowly over MISS_LIFE, so the waste shows. A missed shot
 // still COLLIDES (owner): the first live enemy it flies through takes its hit.
-const RAPID_BURST = 10, VOLLEY_SPREAD = 2.4, MISSILE_SPEED = 520, MISSILE_LEN = 12;
+// volley size by level (owner: starts at 3)
+const RAPID_VOLLEY = [3, 5, 7, 10], volleySize = t => RAPID_VOLLEY[Math.min(t.lvl, RAPID_VOLLEY.length) - 1];
+const VOLLEY_SPREAD = 2.4, MISSILE_SPEED = 520, MISSILE_LEN = 12;
 const MISSILE_LIFE = 2, MISS_LIFE = 3;
 function launchMissile(t, st, e, a) {
   (G.missiles ||= []).push({ x: t.x, y: t.y, e, t, st, age: 0, a, miss: 0 });
@@ -188,7 +190,8 @@ function fireVolley(t, st) {
   t.shots = (t.shots || 0) + 1;
   for (const e of targets) {
     const aim = Math.atan2(e.y - t.y, e.x - t.x);
-    for (let i = 0; i < RAPID_BURST; i++) launchMissile(t, st, e, aim + (i / (RAPID_BURST - 1) - 0.5) * VOLLEY_SPREAD);
+    const n = volleySize(t);
+    for (let i = 0; i < n; i++) launchMissile(t, st, e, aim + (i / (n - 1) - 0.5) * VOLLEY_SPREAD);
   }
   return true;
 }

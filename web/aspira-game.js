@@ -344,7 +344,7 @@ function step(dt) {
     const fired = fire(t, st);
     if (fired) sfx(t.kind);
     // Rapid reloads a whole volley's worth of shots at once (owner: shotgun)
-    t.cd = fired ? (t.kind === "rapid" ? RAPID_BURST : 1) / st.rate : 0.05;
+    t.cd = fired ? (t.kind === "rapid" ? volleySize(t) : 1) / st.rate : 0.05;
   }
   G.enemies = G.enemies.filter(e => !e.gone);
 }
