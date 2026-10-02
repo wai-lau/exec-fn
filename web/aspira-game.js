@@ -224,7 +224,7 @@ function addScore(n) {
 
 // Chain lightning: one strike, then arcs fan out from the struck enemy all
 // at once (owner: no delay).
-const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 9; // RPR: 10x its old 0.9s (owner)
+const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 3; // RPR: 3s (owner: a third of 9s)
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
