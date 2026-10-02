@@ -108,38 +108,34 @@ function hopTo(c, node, nxt, depth) {
   return child;
 }
 
-// Moon / Desolation (st.all; were Whiteout / Blizzard) no longer chill the
-// whole range (owner: it read like ACD's Contagion): st.moons MOONS orbit the
-// tower, evenly spaced (Moon 2, Desolation 4), each carrying a circle of
-// MOON_AURA around itself, and a pulse lands on whatever is inside a circle.
-// The orbit sits so the circles reach MOON_REACH x the tower's range.
-// orbit = MOON_REACH x range - MOON_INSET; circle MOON_AURA (owner: 60 -> 90
-// -> 180, and the orbit pulled in by another 90 -> inset 150)
-const MOON_SPIN = 2, MOON_AURA = 180, MOON_REACH = 1.15, MOON_INSET = 150; // rad/s (owner: half of 4)
-// Desolation (st.mirror, owner): the same moons ALSO orbit the slot straight
-// across the core - its tower, or the empty slot itself
-function moonCentres(t, st) {
-  if (!st.mirror) return [t];
-  const ox = 2 * CX - t.x, oy = 2 * CY - t.y;
-  const opp = CELLS.reduce((b, c) => (Math.hypot(c.x - ox, c.y - oy) < Math.hypot(b.x - ox, b.y - oy) ? c : b), CELLS[0]);
-  return [t, opp];
-}
+// Moons / Desolation (were Whiteout / Blizzard; owner, 2026-10-02): st.moons
+// MOONS orbit the tower at MOON_ORBIT, evenly spaced, and EACH MOON IS A
+// STASIS FRZ of its own - the tower's range, slow, nick and target count, all
+// measured from the moon, with its own tether. Desolation: a third moon and
+// +10% slow (owner).
+const MOON_SPIN = 2, MOON_ORBIT = 42; // rad/s (owner: half of 4); orbit hugs the tower (owner: was 80)
 function moonSpots(t, st) {
-  const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1, orb = st.range * MOON_REACH - MOON_INSET, out = [];
-  for (const c of moonCentres(t, st)) {
-    for (let i = 0; i < n; i++) {
-      const m = a + i * 2 * Math.PI / n;
-      out.push({ x: c.x + Math.cos(m) * orb, y: c.y + Math.sin(m) * orb });
-    }
-  }
-  return out;
+  const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1;
+  return Array.from({ length: n }, (_, i) => {
+    const m = a + i * 2 * Math.PI / n;
+    return { x: t.x + Math.cos(m) * MOON_ORBIT, y: t.y + Math.sin(m) * MOON_ORBIT };
+  });
 }
-function inMoonSweep(t, st, e) {
-  return moonSpots(t, st).some(m => (e.x - m.x) ** 2 + (e.y - m.y) ** 2 <= MOON_AURA * MOON_AURA);
+// each moon's pick, like a Stasis FRZ standing where the moon is; t.moonLinks
+// remembers which moon holds which enemy, for the tethers
+function moonTargets(t, st) {
+  const out = [], taken = new Set();
+  t.moonLinks = [];
+  moonSpots(t, st).forEach((m, i) => {
+    const mine = pickTargets({ ...t, x: m.x, y: m.y }, st, 9999).filter(e => !taken.has(e))
+      .sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.targets);
+    for (const e of mine) { taken.add(e); out.push(e); t.moonLinks.push({ i, e }); }
+  });
+  return out;
 }
 function fireSlower(t, st) {
   // unslowed enemies first, so three towers do not all chill the same three
-  const cands = st.all ? G.enemies.filter(e => !e.dead && inMoonSweep(t, st, e))
+  const cands = st.moons ? moonTargets(t, st)
     : pickTargets(t, st, 9999).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.targets);
   // SLW draws CONTINUOUS tethers to the enemies it last pulsed (drawTethers),
   // not per-pulse beams; the slow and nick still land once per pulse

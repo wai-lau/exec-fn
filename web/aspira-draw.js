@@ -222,7 +222,7 @@ function drawRange(x, y, r, color, dim = false) {
 function drawTowerRange(t, dim) {
   const st = towerStats(t), r = st.range, col = TOWERS[t.kind].color;
   // Moons / Desolation: each moon's slowing circle INSTEAD of the tower's range (owner)
-  if (st.all && st.moons) { for (const m of moonSpots(t, st)) drawRange(m.x, m.y, MOON_AURA, col, dim); return; }
+  if (st.moons) { for (const m of moonSpots(t, st)) drawRange(m.x, m.y, r, col, dim); return; }
   drawRange(t.x, t.y, r, col, dim);
   if (t.kind !== "chain") return;
   ctx.beginPath(); ctx.arc(t.x, t.y, chainReach(st), 0, 6.283);
@@ -390,7 +390,7 @@ function drawTethers() {
   for (const t of G.towers) {
     if (t.kind !== "slower") continue;
     const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
-    if (st.all) { drawMoons(t, st, col); continue; } // Moon / Desolation: orbiting moons, always shown
+    if (st.moons) { drawMoons(t, st, col, shimmer); continue; } // Moons / Desolation: orbiting moons, always shown
     if (!t.links || !t.links.length) continue;
     // Stasis (the slow path): a much THICKER tether (owner)
     const w = t.path != null && UPGRADES.slower[t.path].name === "Stasis" ? 2 : 1;
@@ -405,17 +405,24 @@ function drawTethers() {
   ctx.globalAlpha = 1;
 }
 
-// FRZ's Moon / Desolation (fireSlower): each moon a bright body in a glow that
-// RADIATES from it (owner), strongest at the moon and gone at the edge of the
-// circle that slows
-const MOON_GLOW = 0.35;
-function drawMoons(t, st, col) {
-  for (const m of moonSpots(t, st)) {
-    const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, MOON_AURA);
+// FRZ's Moons / Desolation: each moon a bright body with a small glow, and a
+// Stasis-thick tether from the moon (where it is NOW) to the enemy it holds
+const MOON_GLOW = 0.35, MOON_GLOW_R = 26;
+function drawMoons(t, st, col, shimmer) {
+  const spots = moonSpots(t, st);
+  for (const { i, e } of t.moonLinks || []) {
+    const m = spots[i];
+    if (!m || e.dead || Math.hypot(e.x - m.x, e.y - m.y) > st.range) continue;
+    ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(e.x, e.y);
+    ctx.globalAlpha = 0.15 * shimmer; ctx.lineWidth = 12; ctx.stroke();
+    ctx.globalAlpha = 0.7 * shimmer; ctx.lineWidth = 3.2; ctx.stroke();
+  }
+  for (const m of spots) {
+    const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, MOON_GLOW_R);
     g.addColorStop(0, col); g.addColorStop(1, "transparent");
     ctx.fillStyle = g; ctx.globalAlpha = MOON_GLOW;
-    ctx.beginPath(); ctx.arc(m.x, m.y, MOON_AURA, 0, 6.283); ctx.fill();
-    ctx.fillStyle = col; ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.arc(m.x, m.y, 9, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(m.x, m.y, MOON_GLOW_R, 0, 6.283); ctx.fill();
+    ctx.fillStyle = col; ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.arc(m.x, m.y, 8, 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
