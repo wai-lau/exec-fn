@@ -223,9 +223,9 @@ function refreshPanels() {
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
 function enemyIcon(type) {
-  const d = ENEMIES[type], n = d.star ? d.sides * 2 : d.sides, pts = [];
+  const d = ENEMIES[type], n = d.pointy ? d.sides * 2 : d.sides, pts = [];
   for (let i = 0; i < n; i++) {
-    const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.star && i % 2 ? 3.6 : 8;
+    const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.pointy && i % 2 ? 3.6 : 8;
     pts.push((10 + Math.cos(a) * r).toFixed(1) + "," + (10 + Math.sin(a) * r).toFixed(1));
   }
   return '<svg class="asp-eicon" viewBox="0 0 20 20" aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
@@ -250,10 +250,9 @@ function updateHud() {
   let note = "", prev = G.lastType;
   for (let i = 1; i <= 10; i++) {
     const n = G.wave + i, w = wavePlan(n, prev);
-    prev = w.type;
+    if (w.type !== "bonus") prev = w.type; // the boss wave does not break the alternation
     note += "<span>" + n + "</span><span>:</span><span>" +
-      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
-      (w.star ? ' <b class="e-orange">' + enemyIcon("bonus") + "</b>" : "") + "</span>";
+      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b></span>";
   }
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
   const send = $("asp-send");
