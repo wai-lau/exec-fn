@@ -252,17 +252,27 @@ function chooseUpgrade(i) {
 // Only what is needed is shown (owner): a selected tower's stats in a popup
 // pinned beside it (placePop re-anchors it every frame), and, while placing,
 // one line about the tower being placed just above the build bar.
+// the four build buttons flash until the first tower is placed (owner)
+function flashBuild() { $("asp-build").classList.toggle("asp-flash", !G.started && !G.towers.length); }
 function refreshPanels() {
+  flashBuild();
   const pop = $("asp-pop"), placing = $("asp-placing");
   const t = ui.sel && G.towers.find(x => x.id === ui.sel), core = ui.sel === "core";
   pop.hidden = !t && !core;
   pop.dataset.kind = core ? "core" : t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
   if (t) { inspectTower(pop, t); placePop(); }
   if (core) { inspectCore(pop); placePop(); }
+  // while placing, the tower's own card sits above the credits (owner): its
+  // L1 stats and blurb, coloured like the tower (no "tap a slot" line, owner)
   placing.hidden = !ui.build;
   if (ui.build) {
-    const b = TOWERS[ui.build];
-    placing.textContent = b.name + " · " + towerCost(ui.build) + " — " + b.blurb + " Tap a free slot.";
+    const k = ui.build, b = TOWERS[k], nt = { kind: k, lvl: 1, mode: DEFAULT_MODE[k] }, st = towerStats(nt);
+    placing.dataset.kind = k;
+    placing.innerHTML = '<div class="name">' + b.name + " · " + towerCost(k) + "</div>" +
+      '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
+      statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) + "</dl>" +
+      '<dl class="asp-spec">' + SPEC[k](st, nt).map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
+      '<p class="asp-hint">' + b.blurb + "</p>";
   }
 }
 
@@ -284,6 +294,7 @@ function updateHud() {
   setText($("asp-wave"), G.wave);
   setText($("asp-score"), G.score.toLocaleString());
   setText($("asp-best"), Math.max(best.score, G.score).toLocaleString());
+  flashBuild();
   for (const k of KINDS) {
     const btn = $("asp-tw-" + k);
     btn.disabled = G.money < towerCost(k) && ui.build !== k;
@@ -297,11 +308,13 @@ function updateHud() {
   for (let i = 1; i <= 10; i++) {
     const n = G.wave + i, w = wavePlan(n, prev);
     if (w.type !== "bonus") prev = w.type; // the boss wave does not break the alternation
-    // a boss wave shows the boss's NAME where the number would be (owner)
-    note += "<span>" + (w.type === "bonus" ? arcanaOf(n).name : n) + "</span><span>:</span><span>" +
-      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
+    // every row keeps its NUMBER; a boss wave adds the boss's name after the
+    // HP, and its icon is drawn inverted, as the boss reads on its own sky (owner)
+    const boss = w.type === "bonus";
+    note += "<span>" + n + "</span><span>:</span><span>" +
+      '<b class="e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
       // each one's HP (owner), a boss's with its own multiplier
-      " · " + short(enemyHp(w.type, n) * (w.type === "bonus" ? BOSS_HP[arcanaOf(n).id] || 1 : 1)) + "hp" +
+      " · " + short(enemyHp(w.type, n) * (boss ? BOSS_HP[arcanaOf(n).id] || 1 : 1)) + "hp" + (boss ? ", " + arcanaOf(n).name : "") +
       // no send button any more (owner): the countdown rides the first row
       (i === 1 && G.started && !bossUp() ? " · in " + Math.ceil(Math.max(0, G.nextIn)) + "s" : "") + "</span>";
   }

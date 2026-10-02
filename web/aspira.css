@@ -50,6 +50,15 @@
 .asp-wavenote > span:nth-child(3n + 1) { text-align: right; } /* wave numbers right-aligned against the ":" */
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
+/* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
+.asp-wavenote .e-boss { filter: invert(1); }
+
+/* the four build buttons FLASH until the first tower is placed (owner) */
+@keyframes asp-flash {
+  50% { opacity: 0.45; }
+}
+.asp-build.asp-flash .asp-tw { animation: asp-flash 1s steps(1) infinite; }
+
 /* on a phone the build bar spans the bottom, so the list sits just above it */
 @media (width < 700px) {
   .asp-wavenote { bottom: calc(var(--space-4) + 112px); }
@@ -81,24 +90,16 @@
 .asp-build { display: flex; gap: var(--space-2); }
 #asp .asp-build .asp-tw { min-width: 72px; background: hsl(var(--bg-hsl)); }
 
-.asp-placing {
-  /* floats above the build bar without taking layout space, so showing it
-     never changes the bar's size (and so never moves the board) */
-  position: absolute;
+/* the tower being placed: its card (an .asp-pop, so it looks and colours like
+   a placed tower's) above the credits. It floats over the bar without taking
+   layout space, so showing it never resizes the bar or moves the board. */
+#asp .asp-placing {
   bottom: calc(100% + var(--space-2));
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: min(560px, 100%);
-  margin: 0;
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid hsl(var(--green-hsl) / 0.12);
-  border-radius: var(--radius-2);
-  background: hsl(var(--bg-hsl));
-  font-size: var(--fs-2xs);
-  line-height: var(--lh-snug);
-  text-align: center;
+  right: 0;
 }
+
+/* the bottom bar already flips on a boss's sky; a card inside it must not flip back */
+#asp.asp-boss .asp-bottom .asp-pop { filter: none; }
 
 .asp-title {
   margin: 0;
@@ -325,3 +326,8 @@
 /* out of the header now, so it flips with the boss's inverted sky on its own
    (keeping its outline) */
 #asp.asp-boss .asp-wavenote { filter: invert(1) drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl))); }
+
+/* on the upgrade cards an INCREASE reads chatsubo green (owner); a change for
+   the worse stays Ember red */
+.asp-card .asp-next { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
+.asp-card .asp-next.asp-worse { color: hsl(var(--orange-glow-hsl)); }
