@@ -259,6 +259,8 @@ function updateHud() {
     // a boss wave shows the boss's NAME where the number would be (owner)
     note += "<span>" + (w.type === "bonus" ? arcanaOf(n).name : n) + "</span><span>:</span><span>" +
       '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
+      // each one's HP (owner), a boss's with its own multiplier
+      " · " + short(enemyHp(w.type, n) * (w.type === "bonus" ? BOSS_HP[arcanaOf(n).id] || 1 : 1)) + "hp" +
       // no send button any more (owner): the countdown rides the first row
       (i === 1 && G.started && !bossUp() ? " · in " + Math.ceil(Math.max(0, G.nextIn)) + "s" : "") + "</span>";
   }

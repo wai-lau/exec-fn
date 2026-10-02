@@ -34,9 +34,11 @@ function entryS(pi) {
 // quadrupled every 10 waves and walled every build by ~70), armor with the
 // curve's 0.4 power (was 0.5); shields keep the old 1.15 curve (owner)
 const HP_GROWTH = 1.10, ARMOR_EXP = 0.4;
+// one enemy's HP on wave n (before a boss's own multiplier); the wave list shows it too
+const enemyHp = (type, n) => (18 * Math.pow(HP_GROWTH, n - 1) + n * 4) * ENEMIES[type].hp * 2; // x2: half as many enemies (owner)
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
-  const hp = (18 * Math.pow(HP_GROWTH, n - 1) + n * 4) * d.hp * 2; // x2: half as many enemies (owner)
+  const hp = enemyHp(type, n);
   // DEFENCES KEEP PACE WITH HP (overnight simulator, 2026-10-02): with flat
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
   // the curve to ARMOR_EXP (0.4; was the square root), shields with its 0.4 power - normalised so
