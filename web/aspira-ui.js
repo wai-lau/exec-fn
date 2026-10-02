@@ -76,7 +76,6 @@ KINDS.forEach((k, i) => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
   }, v === "pause" ? "asp-sp-pause" : speedId(v));
 });
-$("asp-send").onclick = sendWave;
 
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 // volume slider beside the sound toggle (owner)
@@ -252,13 +251,11 @@ function updateHud() {
     const n = G.wave + i, w = wavePlan(n, prev);
     if (w.type !== "bonus") prev = w.type; // the boss wave does not break the alternation
     note += "<span>" + n + "</span><span>:</span><span>" +
-      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b></span>";
+      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
+      // no send button any more (owner): the countdown rides the first row
+      (i === 1 && G.started && !bossUp() ? " · in " + Math.ceil(Math.max(0, G.nextIn)) + "s" : "") + "</span>";
   }
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
-  const send = $("asp-send");
-  const label = G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " · " + Math.ceil(Math.max(0, G.nextIn)) + "s";
-  setText(send, label);
-  send.disabled = G.over;
   $("asp-sp-pause").classList.toggle("on", ui.paused);
   setText($("asp-mute"), muted ? "sound off" : "sound on");
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
@@ -306,7 +303,6 @@ document.addEventListener("keydown", ev => {
   if (["1", "2", "3"].includes(ev.key)) { ui.speed = Number(ev.key); ui.paused = false; }
   else if (ev.key === "m" || ev.key === "M") setMuted(!muted);
   else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; }
-  else if (ev.key === "Tab") { ev.preventDefault(); if ($("asp-ov").hidden) sendWave(); }
   else if (ev.key === "u" || ev.key === "U") keyUpgrade(ui.sel && G.towers.find(x => x.id === ui.sel));
   else if (ev.key === "Escape") { ui.build = null; ui.sel = null; refreshPanels(); }
 });
