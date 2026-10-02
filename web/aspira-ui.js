@@ -82,6 +82,10 @@ KINDS.forEach((k, i) => {
   }, v === "pause" ? "asp-sp-pause" : speedId(v));
 });
 
+// the sound toggle is an ICON (owner: was "sound on"/"sound off"): a speaker
+// with waves, or crossed out
+const ICON_SOUND = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const ICON_MUTED = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 // volume slider beside the sound toggle (owner)
 (function volumeSlider() {
@@ -312,19 +316,25 @@ function updateHud() {
   for (let i = 1; i <= 10; i++) {
     const n = G.wave + i, w = wavePlan(n, prev);
     if (w.type !== "bonus") prev = w.type; // the boss wave does not break the alternation
-    // every row keeps its NUMBER; a boss wave adds the boss's name after the
-    // HP, and its icon is drawn inverted, as the boss reads on its own sky (owner)
+    // five columns (owner): number : enemies, HP, NAME - HPs and names line
+    // up down the list. A plain enemy is named by its type in lowercase; a
+    // boss by its arcana (capitalised), its icon inverted as on its own sky.
     const boss = w.type === "bonus";
     note += "<span>" + n + "</span><span>:</span><span>" +
-      '<b class="e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type) + "×" + w.count + "</b>" +
+      '<b class="e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type) + "×" + w.count + "</b></span>" +
       // each one's HP (owner), a boss's with its own multiplier
-      " · " + short(enemyHp(w.type, n) * (boss ? BOSS_HP[arcanaOf(n).id] || 1 : 1)) + "hp" + (boss ? ", " + arcanaOf(n).name : "") +
+      "<span>" + short(enemyHp(w.type, n) * (boss ? BOSS_HP[arcanaOf(n).id] || 1 : 1)) + "hp</span>" +
+      "<span>" + (boss ? arcanaOf(n).name : w.type) +
       // no send button any more (owner): the countdown rides the first row
       (i === 1 && G.started && !bossUp() ? " · in " + Math.ceil(Math.max(0, G.nextIn)) + "s" : "") + "</span>";
   }
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
   $("asp-sp-pause").classList.toggle("on", ui.paused);
-  setText($("asp-mute"), muted ? "sound off" : "sound on");
+  const mute = $("asp-mute");
+  if (mute.dataset.muted !== String(muted)) { // redraw the icon only when it changes
+    mute.dataset.muted = String(muted); mute.innerHTML = muted ? ICON_MUTED : ICON_SOUND;
+    mute.setAttribute("aria-label", muted ? "sound off" : "sound on"); mute.title = mute.getAttribute("aria-label");
+  }
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
