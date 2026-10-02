@@ -306,7 +306,7 @@ function drawPlacement() {
   const hc = snapCell(ui.hover.x, ui.hover.y), b = TOWERS[ui.build];
   if (hc < 0) { drawBlocked(ui.hover.x, ui.hover.y, 12); return; }
   const c = CELLS[hc];
-  if (canPlace(hc) && G.money >= b.cost) {
+  if (canPlace(hc) && G.money >= towerCost(ui.build)) {
     drawRange(c.x, c.y, towerStats({ kind: ui.build, lvl: 1 }).range, b.color);
     drawTower({ kind: ui.build, cell: hc, lvl: 1 }, true);
     return;

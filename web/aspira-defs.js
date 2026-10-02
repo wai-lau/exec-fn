@@ -304,4 +304,7 @@ function towerStats(t, noAura = false) {
   return s;
 }
 const upCost = t => Math.round(TOWERS[t.kind].cost * STEP_COST[t.lvl - 1]);
+// each new tower costs DOUBLE the last (owner, 2026-10-02): base x 2^towers
+// standing, so the 6 slots fill at 40, 80, 160, 320, 640, 1280
+const towerCost = k => TOWERS[k].cost * Math.pow(2, G.towers.length);
 const sellValue = t => Math.floor(t.spent * 0.7);

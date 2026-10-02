@@ -26,16 +26,16 @@ function toWorld(ev) {
   return { x: ((ev.clientX - r.left) * dpr - cam.ox) / cam.k, y: ((ev.clientY - r.top) * dpr - cam.oy) / cam.k };
 }
 function placeTower(p) {
-  const b = TOWERS[ui.build];
   const ci = snapCell(p.x, p.y);
   // a failed placement also ends placing mode, same as a successful one
   if (!canPlace(ci)) { float(p.x, p.y, "blocked", "pink"); ui.build = null; return; }
-  if (G.money < b.cost) { float(p.x, p.y, "need " + b.cost, "pink"); ui.build = null; return; }
-  G.money -= b.cost;
+  const cost = towerCost(ui.build);
+  if (G.money < cost) { float(p.x, p.y, "need " + cost, "pink"); ui.build = null; return; }
+  G.money -= cost;
   const c = CELLS[ci];
   // default targeting (owner): Slowers the fastest, Reapers the strongest,
   // everything else the closest
-  const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: { slower: "fast", reaper: "hard" }[ui.build] || "close", spent: b.cost };
+  const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: { slower: "fast", reaper: "hard" }[ui.build] || "close", spent: cost };
   G.towers.push(t);
   sfx("build");
   ring(t.x, t.y, 60, b.color);
@@ -198,7 +198,7 @@ function refreshPanels() {
   placing.hidden = !ui.build;
   if (ui.build) {
     const b = TOWERS[ui.build];
-    placing.textContent = b.name + " · " + b.cost + " — " + b.blurb + " Tap a cell inside the rim.";
+    placing.textContent = b.name + " · " + towerCost(ui.build) + " — " + b.blurb + " Tap a cell inside the rim.";
   }
 }
 
@@ -211,7 +211,8 @@ function updateHud() {
   setText($("asp-best"), Math.max(best.score, G.score).toLocaleString());
   for (const k of KINDS) {
     const btn = $("asp-tw-" + k);
-    btn.disabled = G.money < TOWERS[k].cost && ui.build !== k;
+    btn.disabled = G.money < towerCost(k) && ui.build !== k;
+    setText(btn.querySelector(".c"), short(towerCost(k)));
     btn.classList.toggle("on", ui.build === k);
   }
   const send = $("asp-send");
