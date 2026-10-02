@@ -4020,10 +4020,9 @@ entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicate
 counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).
 
 
-Owner-only (`protected`), carried by the bottom nav but **not a nav entry**:
-no `aspira` key in pages.py's nav tables, so `_render_page("aspira", …)`
-renders the nav with nothing marked active. Linked from nowhere; reached by
-URL. A web take on the spiral tower-defence genre (Android "Spira Defence" /
+Owner-only (`protected`), and a nav entry since 2026-10-02: `SPR`, icon
+`tower` (Nightfall's Tower sprite, traced), owner nav only - never the guest
+nav. A web take on the spiral tower-defence genre (Android "Spira Defence" /
 "Spira 2" as the reference for mechanics only; all code and art original).
 
 Background stars (`STARS`, white, never recoloured) TWINKLE (owner): `drawStars`
@@ -4370,6 +4369,7 @@ Balance (owner, 2026-10-02; waves 1-30 stay an easy tutorial): ARC damage 34 -> 
 formvalue.mjs FIXED: a form now replaces the reference tower of its own kind (team make-up constant); the old two-slot version measured FRZ count, not the form. Fixed run: every form and core path within 74-86 of a 79.5 baseline; then Bloom burn x1.3 -> x1.15 (was 86) and Residue x2.2 -> x3 (was 74) (owner). The STARS redden ahead of each boss (owner): over the wave before it they cross-fade white -> Ember (`starRed`), stay red while it is queued or alive, and fade back over 3s after it dies.
 The Lovers at 60% of their HP (owner): `BOSS_HP.lovers` 2 -> 1.2.
 ...REVERTED at once (owner: 'it's fine'): the Lovers are back at x2.
+/aspira is a NAV ENTRY (owner, 2026-10-02): `SPR`, after `12AM`, owner nav only (never `_GUEST_NAV_LINKS`). Icon `tower`: Nightfall's Tower program sprite copied to web/tower.png and traced by scripts/trace-icons.py like every other nav icon.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
