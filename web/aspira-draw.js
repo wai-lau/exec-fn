@@ -404,20 +404,6 @@ function shakeOffset() {
   return [(Math.random() * 2 - 1) * a, (Math.random() * 2 - 1) * a];
 }
 
-// Rapid's homing shots: a short straight line trailing back along the heading
-function drawMissiles() {
-  if (!G.missiles || !G.missiles.length) return;
-  ctx.strokeStyle = COL.chatsubo; ctx.lineWidth = 1.5; ctx.lineCap = "round";
-  for (const m of G.missiles) {
-    ctx.globalAlpha = m.miss ? m.miss / MISS_LIFE : 1; // a miss fades as it sails off
-    ctx.beginPath();
-    ctx.moveTo(m.x - Math.cos(m.a) * MISSILE_LEN, m.y - Math.sin(m.a) * MISSILE_LEN);
-    ctx.lineTo(m.x, m.y); ctx.stroke();
-    ctx.fillStyle = COL.white; ctx.fillRect(m.x - 1, m.y - 1, 2, 2);
-  }
-  ctx.globalAlpha = 1;
-}
-
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -434,7 +420,6 @@ function render() {
   drawTethers();
   drawAims();
   drawFx("shots");
-  drawMissiles();
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
   drawFx("text");

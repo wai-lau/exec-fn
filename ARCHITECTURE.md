@@ -4118,15 +4118,9 @@ more; spawn spacing is a lever — swarm gap 0.12s
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its rate, doubled its damage).
-RPD fires a SHOTGUN VOLLEY (owner): 1 shot at every level, leaving at a random angle in the fan (`RAPID_VOLLEY`, `fireVolley`)
-leave at once, sprayed WIDE (2.4 rad, ~+-70 deg) and curve in on the target
-(`steer`; turn rate starts low, grows with age so none orbit); it then reloads that many shots' worth of time
-(same dps). Each shot is a short straight HOMING LINE (`G.missiles`, 520 u/s,
-12 units long) dealing damage on ARRIVAL. Once the target dies every shot still
-in flight MISSES: stops homing, flies straight off and fades slowly over 3s, so
-overkill against tiny swarmers is visible waste; a miss still COLLIDES with the
-first live enemy it flies through (`missileCollide`). Pop-ups are small (owner):
-credits 18px, damage 11–27px by size relative to the biggest hit, shield `0` 15px.
+RPD shoots an instant LINE per shot (owner: the burst / shotgun / homing-shot
+experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
+11–27px by size relative to the biggest hit, shield `0` 15px.
 Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /

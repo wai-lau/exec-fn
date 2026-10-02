@@ -140,77 +140,8 @@ function fireRay(t, st, e) {
   }
 }
 
-// Rapid fires a SHOTGUN VOLLEY (owner): all volleySize(t) shots leave at once,
-// sprayed WIDE of the target across VOLLEY_SPREAD (~+-70 deg), then curve in on
-// it (turn rate starts low and grows with age, so the fan shows and none orbit). Each is a short HOMING LINE that deals its
-// damage on arrival; the tower then reloads for that many shots' worth of
-// time (same dps). Overkill is the cost: once the target dies, every shot
-// still in flight MISSES - it stops homing and flies straight off into the
-// distance, fading slowly over MISS_LIFE, so the waste shows. A missed shot
-// still COLLIDES (owner): the first live enemy it flies through takes its hit.
-// volley size: 1 shot (owner), at every level
-const RAPID_VOLLEY = 1, volleySize = () => RAPID_VOLLEY;
-const VOLLEY_SPREAD = 2.4, MISSILE_SPEED = 520, MISSILE_LEN = 12;
-const MISSILE_LIFE = 2, MISS_LIFE = 3;
-function launchMissile(t, st, e, a) {
-  (G.missiles ||= []).push({ x: t.x, y: t.y, e, t, st, age: 0, a, miss: 0 });
-}
-function steer(m, want, dt) {
-  let d = want - m.a;
-  d = Math.atan2(Math.sin(d), Math.cos(d)); // shortest way round
-  const turn = (2 + m.age * 60) * dt;
-  m.a += Math.max(-turn, Math.min(turn, d));
-}
-function stepMissiles(dt) {
-  if (!G.missiles || !G.missiles.length) return;
-  G.missiles = G.missiles.filter(m => {
-    m.age += dt;
-    const e = m.e;
-    if (!m.miss && (e.dead || e.gone)) m.miss = MISS_LIFE; // target gone: this shot is wasted
-    if (m.miss) {
-      m.miss -= dt;
-      if (m.miss <= 0) return false; // flew straight off along its last heading
-      const o = missileCollide(m, dt);
-      if (o) { const d = shotDamage(m.t, m.st, o, m.st.dmg); damage(o, d, m.t); onHit(o, m.t, m.st, d); return false; }
-    } else {
-      const dx = e.x - m.x, dy = e.y - m.y, dist = Math.hypot(dx, dy);
-      if (m.age > MISSILE_LIFE) return false;
-      if (dist <= 6 + MISSILE_SPEED * dt) {
-        const d = shotDamage(m.t, m.st, e, m.st.dmg); damage(e, d, m.t); onHit(e, m.t, m.st, d);
-        return false;
-      }
-      steer(m, Math.atan2(dy, dx), dt);
-    }
-    m.x += Math.cos(m.a) * MISSILE_SPEED * dt; m.y += Math.sin(m.a) * MISSILE_SPEED * dt;
-    return true;
-  });
-}
-// the first live enemy within reach of a stray shot's next step
-function missileCollide(m, dt) {
-  const r = 8 + MISSILE_SPEED * dt, r2 = r * r;
-  for (const o of G.enemies) {
-    if (o.dead) continue;
-    const dx = o.x - m.x, dy = o.y - m.y;
-    if (dx * dx + dy * dy <= r2) return o;
-  }
-  return null;
-}
-function fireVolley(t, st) {
-  const targets = pickTargets(t, st, st.targets);
-  if (!targets.length) return false;
-  t.shots = (t.shots || 0) + 1;
-  for (const e of targets) {
-    const aim = Math.atan2(e.y - t.y, e.x - t.x);
-    const n = volleySize(t);
-    // shots spread evenly across the fan; a lone shot leaves at a random angle in it
-    for (let i = 0; i < n; i++) launchMissile(t, st, e, aim + ((n > 1 ? i / (n - 1) : Math.random()) - 0.5) * VOLLEY_SPREAD);
-  }
-  return true;
-}
-
 function fire(t, st) {
   if (t.kind === "slower") { const hit = fireSlower(t, st); if (!hit) t.links = []; return hit; }
-  if (t.kind === "rapid") return fireVolley(t, st);
   const targets = pickTargets(t, st, st.targets);
   if (!targets.length) return false;
   t.shots = (t.shots || 0) + 1;
