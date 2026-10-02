@@ -233,7 +233,7 @@ const ENEMIES = {
   fast:   { sides: 3, hp: 1.0,  speed: 220, bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
   swarm:  { sides: 4, hp: 0.07, speed: 95,  bounty: 0.18, size: 6, color: "white" }, // twice as many, half as tough
   shield: { sides: 5, hp: 0.6,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
-  armor:  { sides: 5, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 24 }, // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
+  armor:  { sides: 7, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 24 }, // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
   // the rare BOSS (owner, 2026-10-02): every 10th wave, ALONE; an octagon,
   // x5 HP, x2 size, half speed (100 -> 50), and letting it through costs 10 lives. `star` still marks
   // it as the bonus (lane, tracer, drop); `pointy` would draw a star shape.
