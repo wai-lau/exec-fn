@@ -131,9 +131,13 @@ function loadSamples() {
   for (const [name, files] of Object.entries(sampleMap)) {
     if (name.startsWith("_") || SAMPLES[name]) continue;
     SAMPLES[name] = [];
+    // an entry is a file, or { file, start, end } to play only a slice of it
+    // (seconds), e.g. just the double beep at the head of an advisor line
     for (const f of [].concat(files)) {
-      fetch(SAMPLE_DIR + f).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(f))))
-        .then(b => AC.decodeAudioData(b)).then(buf => SAMPLES[name].push(buf)).catch(() => {});
+      const clip = typeof f === "string" ? { file: f } : f;
+      fetch(SAMPLE_DIR + clip.file).then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(clip.file))))
+        .then(b => AC.decodeAudioData(b)).then(buf => SAMPLES[name].push({ buf, start: clip.start || 0, end: clip.end || buf.duration }))
+        .catch(() => {});
     }
   }
 }
@@ -142,16 +146,28 @@ function loadSamples() {
 // skipped. A sample copy is also quieter by how many are already sounding.
 const SOUND_MAX = { chain: 3, slower: 3, reaper: 3, acid: 3 }, playing = {};
 let curSound = null; // the synth sound being built, so envelope() can count it
-function playSample(name) {
+function playSample(name, at = 0) {
   const list = SAMPLES[name], n = playing[name] || 0;
-  const src = AC.createBufferSource(), g = AC.createGain();
-  src.buffer = list[Math.floor(Math.random() * list.length)];
+  const src = AC.createBufferSource(), g = AC.createGain(), clip = list[Math.floor(Math.random() * list.length)];
+  src.buffer = clip.buf;
   g.gain.value = SOUND_MAX[name] ? sampleGain / (1 + n) : sampleGain;
   src.connect(g).connect(master);
   voices++; playing[name] = n + 1;
   src.onended = () => { voices--; playing[name]--; };
-  src.start();
+  src.start(AC.currentTime + at, clip.start, clip.end - clip.start);
   return src;
+}
+// samples played back to back (owner: the boss warning - a double beep, then
+// the voice); missing ones are skipped, and a sequence never overlaps itself
+function sfxSeq(names) {
+  if (muted || !AC || AC.state !== "running") return;
+  let at = 0;
+  for (const name of names) {
+    const list = SAMPLES[name];
+    if (!list || !list.length) continue;
+    playSample(name, at);
+    at += list[0].end - list[0].start + 0.1;
+  }
 }
 
 // a per-TOWER variant of a sound when one is mapped (owner: each tower's own

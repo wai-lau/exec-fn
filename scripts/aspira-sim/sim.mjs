@@ -20,7 +20,7 @@ export function makeGame(seed, patch = "") {
     document: { querySelectorAll: () => [], querySelector: () => null },
     window: {}, localStorage: { getItem: () => null, setItem: () => {} },
     ui: { speed: 1, paused: false, sel: null, build: null },
-    sfx: () => null, shakeScreen: () => {}, showOverlay: () => {}, cam: { k: 1, ox: 0, oy: 0 }, cv: { width: 1000, height: 1000 },
+    sfx: () => null, sfxSeq: () => null, shakeScreen: () => {}, showOverlay: () => {}, cam: { k: 1, ox: 0, oy: 0 }, cv: { width: 1000, height: 1000 },
   };
   vm.createContext(ctx);
   for (const f of FILES) vm.runInContext(fs.readFileSync(WEB + f, "utf8"), ctx, { filename: f });

@@ -62,6 +62,8 @@ function sendWave() {
   G.wave++;
   // a boss wave announces the boss by name (owner), others their number
   float(CX, CY - 80, G.wave % STAR_EVERY === 0 ? arcanaOf(G.wave).name : "wave " + G.wave, "orange", 28, 4, 1, 3);
+  // a boss is announced (owner): the advisor's double beep, then the Archon
+  if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", "bossvoice"]);
   // (owner) white like the core, and held 3s so it registers; click the core: aspira-core.js
   if (G.wave === CORE_UNLOCK) banner("core upgrades unlocked", "white", 3);
   sfx("wave");
@@ -72,13 +74,15 @@ function sendWave() {
     // the lane split comes from the wave number; even parts (wavePlan rounded the count down to fit)
     // (a boss wave takes its split from the boss: the Devil's six come from
     // six directions, one per rotated copy of the lane)
-    const want = G.wave % STAR_EVERY === 0 ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
+    const boss = G.wave % STAR_EVERY === 0;
+    const want = boss ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
     const k = Math.min(list.length, want), per = Math.floor(list.length / k);
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
       if (!part.length) continue;
       const ang = (j / k) * Math.PI * 2;
-      G.spawns.push({ n: G.wave, list: part, lanes, ang, idx: 0, timer: 0 });
+      // a boss arrives BOSS_INTRO s into its wave, after its warning (owner)
+      G.spawns.push({ n: G.wave, list: part, lanes, ang, idx: 0, timer: boss ? BOSS_INTRO : 0 });
       // each lane copy remembers how many it was sent, for its brightness
       for (const type of part) { const key = laneKey(lanes[type], ang); (G.laneTotals ||= {})[key] = (G.laneTotals[key] || 0) + 1; }
     }
