@@ -111,10 +111,10 @@ function fireSlower(t, st) {
   t.links = cands;
   for (const e of cands) {
     const fresh = !(e.slowT > 0);
-    if (!applySlow(e, st.slow, st.permafrost ? Infinity : SLOW_TIME)) continue; // Permafrost: forever
+    if (!applySlow(e, st.slow, st.permafrost ? Infinity : SLOW_TIME, t.id)) continue; // Permafrost: forever
     if (st.shatter) e.shatter = { t, st };
     // Deep Freeze: a near-freeze (95% slow), never a stun - no stunlocking (owner)
-    if (st.chillStop && fresh) applySlow(e, 0.95, st.chillStop);
+    if (st.chillStop && fresh) applySlow(e, 0.95, st.chillStop, t.id + ":chill");
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
     // each pulse also nicks: st.dmg (+ Sap's % max HP); it is a real hit, so
@@ -137,7 +137,7 @@ function shatterAt(e) {
   for (const o of G.enemies) {
     if (o === e || o.dead || Math.hypot(o.x - e.x, o.y - e.y) > r) continue;
     damage(o, d, t);
-    if (st.frostbite && !o.dead) applySlow(o, st.slow, st.frostbite);
+    if (st.frostbite && !o.dead) applySlow(o, st.slow, st.frostbite, t.id);
   }
   shattering = false;
 }
