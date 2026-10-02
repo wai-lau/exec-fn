@@ -86,9 +86,9 @@ const SPEC = {
   slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"]],
   acid: st => [["Burn", Math.round(st.dmg) + "/s"], ["Ramp", "×2 / " + ACID_DOUBLE + "s"],
-    ["Max", "×" + ACID_MAX + " (" + Math.round(st.dmg * ACID_MAX) + "/s)"], ["Ticks", st.rate + "/s"]],
+    ["Max", "×" + ACID_MAX + " (" + Math.round(st.dmg * ACID_MAX) + "/s)"], ["Ticks", st.rate + "/s"], ["Shields", "−1 / tick"]],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
-    ["Armor", "ignored"], ["Shields", "ignored"]],
+    ["Armor", "ignored"]],
 };
 
 // One stat row: "now" alone at max level, "now -> next" when an upgrade

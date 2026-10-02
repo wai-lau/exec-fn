@@ -4132,8 +4132,8 @@ speed (±20%, `spd`), a wander (`jit` 6–21; tripled, then halved twice) at a s
 `JIT_FADE_R` 400 (squared falloff) (owner: no pile-up at the centre) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
 absorbed regardless of size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
-thick outline; the Reaper's shots IGNORE armor AND shields (owner; shields are
-left intact, not popped). A wave mixes K of the unlocked types (`makeWave`;
+thick outline; the Reaper's (EXC's) shots IGNORE armor but NOT shields (owner,
+2026-10-02: shields are ACD's job - each burn tick pops a charge). A wave mixes K of the unlocked types (`makeWave`;
 K 1–5, bell curve peaking at 2 — `K_WEIGHTS` .2/.35/.25/.13/.07; each type
 brings 1/K of its usual count; unlock order normal, swarm, fast, shield, armor
 by wave 1–5), one spawn stream per type so they arrive side by side. Bonus stars unchanged; Regenerating was proposed and dropped; bosses removed
