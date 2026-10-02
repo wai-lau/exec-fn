@@ -224,7 +224,6 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 const ENEMIES = {
   fast:   { sides: 3, hp: 0.6,  speed: 220, bounty: 0.8, size: 12, color: "orange" },
   swarm:  { sides: 4, hp: 0.07, speed: 95,  bounty: 0.18, size: 6, color: "white" }, // twice as many, half as tough
-  norm:   { sides: 5, hp: 1,    speed: 80,  bounty: 1,   size: 13, color: "green" },
   shield: { sides: 5, hp: 0.9,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 5 },
   armor:  { sides: 5, hp: 1.6,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 15 }, // owner: raised from 6
   bonus: { sides: 5, hp: 1.4, speed: 100, bounty: 3,   size: 14, color: "cyan", star: true },
