@@ -131,12 +131,12 @@ function fireSlower(t, st) {
 }
 
 // Shatter (FRZ): an enemy that dies while slowed, after a Shatter FRZ chilled
-// it, explodes for st.shatter.frac of its max HP on everyone within r;
+// it, explodes for st.shatter.mul x that tower's hit on everyone within r;
 // Frostbite slows what the blast hits. Blast kills never shatter in turn
 // (no chain reactions; owner).
 let shattering = false;
 function shatterAt(e) {
-  const { t, st } = e.shatter, r = st.shatter.r, d = e.max * st.shatter.frac;
+  const { t, st } = e.shatter, r = st.shatter.r, d = st.dmg * st.shatter.mul;
   ring(e.x, e.y, r, "cyan", 0.25, true); // gradient-filled (owner)
   shattering = true;
   for (const o of G.enemies) {
@@ -242,7 +242,7 @@ function stepAcid(t, dt) {
 // SOL's shot: one crit roll per shot. Its forms (owner, 2026-10-02):
 //   st.longshot  +x damage per 10 units from the tower (Longshot)
 //   st.splash    the hit explodes (Supernova; onHit)
-//   st.execute   an enemy left under this share of HP dies outright (Execute)
+//   st.execute   an enemy left with less HP than this share of the shot dies outright (Execute)
 //   st.bounce    the beam bounces once to the nearest enemy at this share (Ricochet)
 //   st.refund    this share of any OVERKILL flies back to the tower as a
 //                reflected beam and is banked into its next shot (Refund)
@@ -254,7 +254,7 @@ function rayHit(t, st, e, base, from, crit) {
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
   if (st.twin) fx[fx.length - 1].twin = true; // Charge: drawn as two parallel beams (owner)
   damage(e, d, t, false, m > 1); onHit(e, t, st, d); // a crit shows as a PINK number (owner)
-  if (st.execute && !e.dead && e.hp / e.max < st.execute) {
+  if (st.execute && !e.dead && e.hp < d * st.execute) {
     // Execute / Verdict: the enemy flashes WHITE as it goes, with extra sparks (owner)
     fx.push({ k: "flash", x: e.x, y: e.y, r: ENEMIES[e.type].size * 1.6, t: 0, life: 0.3 });
     burst(e.x, e.y, "white", 22);
