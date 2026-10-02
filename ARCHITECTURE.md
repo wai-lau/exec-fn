@@ -4168,6 +4168,11 @@ experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
 11–27px by size relative to the biggest hit, shield `0` 15px.
 The lock-on charge line never drops below 50% of its full opacity (owner).
 Reaper crits show as a PINK damage number, no separate CRIT label (owner).
+The tower popup has TWO stat columns (owner): left = every tower's Damage /
+Range / Rate / Kills / Dealt, right = that type's own (`SPEC` in aspira-ui.js:
+ARC hits / arc dmg / arc reach / leash / delay, FRZ slow / lasts / targets /
+shields, RAY crit / crit x / locks / ignores), each with its "-> next" preview.
+FRZ's slow now lasts ~2.6s (owner: quartered again).
 RPR holds `st.targets` locks (`t.locks`) — 1 at base; MORE IS PARKED for a
 Reaper upgrade via a `targets` mod (owner) — EACH with its own charge timer: a new lock charges from empty and fires its own ray when
 full; a lost lock is dropped and its slot refills fresh. RAY (reaper) hits for 240 at 0.9 shots/s base (owner: damage cut from 720 to a
@@ -4177,8 +4182,8 @@ RAY's job. RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, 
 owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /
-110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~10.4 real seconds
-(owner raised it 5x, then 10x, then cut to 1/4), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
+110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~2.6 real seconds
+(owner raised it 5x, then 10x, then cut to 1/4 twice), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
 charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 80 dmg at 0.30 shots/s (a 3.3 game-second cycle; every change to its
 rate has kept 24 dps; was 80 at 0.30, then 120 at
 0.20 — the same 24 dps each time, a slower beat — owner); slow now affects EVERY enemy at full strength (owner removed the

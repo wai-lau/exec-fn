@@ -75,9 +75,18 @@ $("asp-send").onclick = sendWave;
 
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
-const EXTRA = {
-  chain: (st, t) => { const b = branchOf(t); return ["Hits", layersOf(t) > 1 ? "1 → " + b + " → " + b * b : "1 → " + b]; },
-  reaper: st => ["Crit", Math.round(st.crit * 100) + "%"], slower: st => ["Slow", Math.round(st.slow * 100) + "%"],
+// The popup's RIGHT column (owner): stats only that tower type has, as
+// [label, value] rows, computed for a level so the next one can be previewed.
+const SPEC = {
+  chain: (st, t) => {
+    const b = branchOf(t);
+    return [["Hits", layersOf(t) > 1 ? "1→" + b + "→" + b * b : "1→" + b], ["Arc dmg", Math.round(st.dmg * st.arcFall)],
+      ["Arc reach", Math.round(st.arcRange)], ["Leash", Math.round(st.range * CHAIN_LEASH)], ["Delay", hopDelay(st).toFixed(2) + "s"]];
+  },
+  slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", SLOW_TIME.toFixed(1) + "s"],
+    ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"]],
+  reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
+    ["Ignores", "armor, shields"]],
 };
 
 // One stat row: "now" alone at max level, "now -> next" when an upgrade
@@ -104,14 +113,16 @@ function upgradeTower(t, choice = null) {
 function inspectTower(el, t) {
   const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL;
   const st = towerStats(t), nx = maxed ? null : towerStats({ ...t, lvl: t.lvl + 1 });
-  const ex = EXTRA[t.kind](st, t), exN = nx && EXTRA[t.kind](nx, { ...t, lvl: t.lvl + 1 });
+  const sp = SPEC[t.kind](st, t), spN = nx && SPEC[t.kind](nx, { ...t, lvl: t.lvl + 1 });
   el.innerHTML =
     '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
     '<div id="asp-upbox"></div>' +
-    "<dl>" + (b.dmg ? statRow("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
+    // two columns (owner): what every tower has | what only this type has
+    '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
     statRow("Range", Math.round(st.range), nx && Math.round(nx.range)) +
-    statRow(ex[0], ex[1], exN && exN[1]) +
+    statRow("Rate", st.rate.toFixed(2) + "/s", nx && nx.rate.toFixed(2) + "/s") +
     '<dt>Kills</dt><dd id="asp-kills"></dd><dt>Dealt</dt><dd id="asp-dealt"></dd></dl>' +
+    '<dl class="asp-spec">' + sp.map((r, i) => statRow(r[0], r[1], spN && spN[i][1])).join("") + "</dl></div>" +
     '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>' +
     '<p class="asp-hint">' + b.blurb + "</p>";
   const need = !maxed && pendingChoice(t);
