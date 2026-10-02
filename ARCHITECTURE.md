@@ -4149,8 +4149,7 @@ experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
 11–27px by size relative to the biggest hit, shield `0` 15px.
 RPR holds `st.targets` locks (`t.locks`) — 1 at base; MORE IS PARKED for a
 Reaper upgrade via a `targets` mod (owner) — EACH with its own charge timer: a new lock charges from empty and fires its own ray when
-full; a lost lock is dropped and its slot refills fresh. RPR hits for 240 base (owner: x3, so its dps sits at ~50-80% of a full CHN
-tree instead of 1/6-1/10). RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, then 0.9/s;
+full; a lost lock is dropped and its slot refills fresh. RPR hits for 720 base (owner: x3 twice, from 80). RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, then 0.9/s;
 owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /
