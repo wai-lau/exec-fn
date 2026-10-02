@@ -229,7 +229,9 @@ function addScore(n) {
 
 // Chain lightning: one strike, then arcs fan out from the struck enemy all
 // at once (owner: no delay).
-const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 3; // RPR: 3s (owner: a third of 9s)
+// RPR fires a bright flash that is gone almost at once (owner); its reload
+// is shown by a separate charge-up line instead (stepReaper / drawAims)
+const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 0.25;
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
@@ -280,6 +282,31 @@ function fireSlower(t, st) {
 // Ray: one roll for crit per shot; Assassin always crits low-HP targets.
 // Lance forms pierce every enemy within `wide` of the beam, losing `fall`
 // of the damage per enemy passed through.
+// A Reaper CHARGES at one locked target (t.aim) for its whole reload
+// (t.period), drawn as a fading-in line by drawAims, then fires at it.
+// Owner's rules: if the target dies mid-charge the charge starts over on a
+// new one; if it only leaves range the Reaper re-targets but keeps its charge;
+// with no target at all it sits uncharged, so every shot is telegraphed.
+function stepReaper(t, dt) {
+  const st = towerStats(t);
+  t.period = 1 / st.rate;
+  if (t.aim && (t.aim.dead || Math.hypot(t.aim.x - t.x, t.aim.y - t.y) > st.range)) {
+    if (t.aim.dead) t.cd = t.period;
+    t.aim = null;
+  }
+  if (!t.aim) {
+    t.aim = pickTargets(t, st, 1)[0] || null;
+    // a fresh lock with no charge built (e.g. a just-placed tower) charges in full
+    if (t.aim && t.cd <= 0) t.cd = t.period;
+  }
+  if (!t.aim) { t.cd = t.period; return; }
+  t.cd -= dt;
+  if (t.cd > 0) return;
+  t.shots = (t.shots || 0) + 1;
+  fireRay(t, st, t.aim); sfx(t.kind);
+  t.cd = t.period;
+}
+
 function fireRay(t, st, e) {
   const col = TOWERS[t.kind].color, crit = Math.random() < st.crit;
   const mulFor = o => (crit || (st.critBelow && o.hp / o.max < st.critBelow) ? st.critMul : 1);
@@ -418,6 +445,7 @@ function step(dt) {
   stepEnemies(dt);
   if (G.over) return;
   for (const t of G.towers) {
+    if (t.kind === "reaper") { stepReaper(t, dt); continue; }
     t.cd -= dt;
     if (t.cd > 0) continue;
     const st = towerStats(t);

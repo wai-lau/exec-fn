@@ -27,8 +27,9 @@ function placeTower(p) {
   if (G.money < b.cost) { float(p.x, p.y, "need " + b.cost, "pink"); ui.build = null; return; }
   G.money -= b.cost;
   const c = CELLS[ci];
-  // Slowers default to targeting the fastest enemy (owner); others the closest
-  const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: ui.build === "slower" ? "fast" : "close", spent: b.cost };
+  // default targeting (owner): Slowers the fastest, Reapers the strongest,
+  // everything else the closest
+  const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: { slower: "fast", reaper: "hard" }[ui.build] || "close", spent: b.cost };
   G.towers.push(t);
   sfx("build");
   ring(t.x, t.y, 60, b.color);

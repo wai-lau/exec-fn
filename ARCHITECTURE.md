@@ -4036,9 +4036,13 @@ Tower colours (owner): RPD [Chatsubo] (the Social hue, via
 pink. SLW draws CONTINUOUS tethers (`t.links`, `drawTethers`) to the enemies it
 last pulsed, tracking them every frame; damage/slow still land per pulse. Beams FOLLOW: each keeps its endpoint objects and is redrawn between them
 while it lasts, so it tracks a moving enemy — except RPD's 0.06s tracers.
-A beam ENDS the moment the enemy it points at dies. CHN beams last 0.6s and RPR beams 3s (owner: 10x, then a third of that), every RPR beam
-(pierce included) tracking its primary target (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's beam is drawn SLIM: half the width of other beams with a doubled
-glow alpha, so it reads thinner but brighter. **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
+A beam ENDS the moment the enemy it points at dies. CHN beams last 0.6s. RPR (owner): while reloading it draws a thin,
+harmless CHARGE-UP line to its current target that fades in with reload
+progress (`aimReaper` / `drawAims`); firing is a bright 0.25s flash that deals
+the damage; the charge is LOCKED on one target (`stepReaper`): a death
+mid-charge restarts it, leaving range re-targets with the charge kept, no
+target = no charge. New Reapers default to Hard (strongest) targeting (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: an eighth the width of other beams with a
+strong glow (0.7), so it reads hair-thin but bright. **Four towers** (owner cut the rest): RPD Rapid, CHN Chain, SLW Slower, RPR
 Reaper (the former Nuke, then Ray: big hits, slow reload, crit ×3). Pusher, Stopper,
 Reaper and Gold were removed with their stats, effects and sounds; enemy
 `stunT`/`markT` fields remain (FRZ power, unreachable while powers are off).
