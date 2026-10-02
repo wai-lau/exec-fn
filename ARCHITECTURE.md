@@ -3961,6 +3961,8 @@ beam into the next shot (`t.bank`). L4 supers: Horizon +2%, Collapse 75% r135,
 Verdict under 35%, Lattice 7 locks, Carom full bounce, Full Refund 100%. Code:
 `rayHit` / `fireRay` (towers.js); Lance's pierce branch was removed.
 EXC's specialty is REACH (owner): base range 318 (x1.2 from 265; 382 at L1).
+ONE slow at a time (owner): `applySlow` keeps only the strongest; a weaker slow is
+ignored while a stronger one runs, and amount/duration never mix.
 FRZ base (owner, 2026-10-02): 3 targets, slow 40% at L1 (`LVL_SLOW` 40/45/50/55%).
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
 Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270), then eased to 220 (ARC ~1.3x per pass); Shielded and Armored
