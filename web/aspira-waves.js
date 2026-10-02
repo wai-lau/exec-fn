@@ -60,8 +60,9 @@ function sendWave() {
   const gain = Math.floor(G.money * G.interest);
   if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 4, 1, 3); }
   G.wave++;
-  // a boss wave announces the boss by name (owner), others their number
-  float(CX, CY - 80, G.wave % STAR_EVERY === 0 ? arcanaOf(G.wave).name : "wave " + G.wave, "orange", 28, 4, 1, 3);
+  // a boss wave announces the boss by name (owner); ordinary waves show nothing
+  // mid-screen any more (owner) - the wave list has them
+  if (G.wave % STAR_EVERY === 0) float(CX, CY - 80, arcanaOf(G.wave).name, "orange", 28, 4, 1, 3);
   // a boss is announced (owner): the advisor's double beep, then the Archon
   // (each boss has its own line, "bossvoice.<arcana>", else the shared one)
   if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", bossVoice(arcanaOf(G.wave).id)]);
