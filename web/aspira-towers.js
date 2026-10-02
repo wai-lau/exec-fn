@@ -200,7 +200,7 @@ function acidLines(t, st) {
   let lines = (t.lines || []).filter(l => !l.e.dead);
   if (st.allInRange) {
     const had = new Map(lines.map(l => [l.e, l]));
-    return G.enemies.filter(inRange).map(e => had.get(e) || (sfx("acid"), { e, held: 0, tick: 0 }));
+    return G.enemies.filter(inRange).map(e => had.get(e) || { e, held: 0, tick: 0 });
   }
   // a line whose enemy left range lives on for st.residue seconds (Residue)
   lines = lines.filter(l => {
@@ -210,8 +210,7 @@ function acidLines(t, st) {
   let live = lines.filter(l => inRange(l.e)).length;
   for (const e of pickTargets(t, st, st.targets + lines.length)) {
     if (live >= st.targets) break;
-    // a line LATCHING on is ACD's sound (owner: Hydralisk spit) - not every tick
-    if (!lines.some(l => l.e === e)) { lines.push({ e, held: 0, tick: 0, left: st.residue || 0 }); live++; sfx("acid"); }
+    if (!lines.some(l => l.e === e)) { lines.push({ e, held: 0, tick: 0, left: st.residue || 0 }); live++; }
   }
   return lines;
 }
@@ -232,7 +231,9 @@ function stepAcid(t, dt) {
   for (const l of t.lines) {
     if ((l.e.x - t.x) ** 2 + (l.e.y - t.y) ** 2 > r2) l.left -= dt; // Residue's countdown
     l.held += dt; l.tick += dt;
-    while (l.tick >= every && !l.e.dead) { l.tick -= every; acidTick(t, st, l, every); }
+    // every tick spits (owner: Hydralisk sound); aspira-sfx.js caps it at 3
+    // at once, each quieter than the last
+    while (l.tick >= every && !l.e.dead) { l.tick -= every; acidTick(t, st, l, every); sfx("acid"); }
   }
 }
 
