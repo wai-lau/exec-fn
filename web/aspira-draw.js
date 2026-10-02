@@ -33,13 +33,17 @@ function poly(x, y, r, n, rot, star) {
   ctx.closePath();
 }
 
-// outline: a black stroke under the fill so the text reads over beams/lanes
+// outline: a thick black stroke wrapped in a soft dark glow (shadow blur)
+// under the fill, so overlapping damage numbers stay separate and readable
 function text(str, x, y, size, color, outline = false) {
   ctx.font = size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (outline) {
-    ctx.strokeStyle = COL.bg; ctx.lineWidth = size * 0.22; ctx.lineJoin = "round";
-    ctx.strokeText(str, x, y);
+    ctx.save();
+    ctx.shadowColor = COL.bg; ctx.shadowBlur = size * 0.7 * cam.k; // shadow is in device px
+    ctx.strokeStyle = COL.bg; ctx.lineWidth = size * 0.32; ctx.lineJoin = "round";
+    ctx.strokeText(str, x, y); ctx.strokeText(str, x, y);
+    ctx.restore();
   }
   ctx.fillStyle = COL[color];
   ctx.fillText(str, x, y);
