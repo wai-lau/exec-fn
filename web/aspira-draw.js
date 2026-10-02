@@ -266,9 +266,9 @@ function drawEnemy(e) {
     for (let r = 1; r <= rings; r++) { poly(e.x, e.y, size + 5 * r, d.sides, e.rot, false); ctx.stroke(); }
   }
   ctx.globalAlpha = 1;
-  if (e.charged) { // ARC's Static charge: a border in ARC's pink just outside the outline (owner: was Marigold)
+  if (e.charged) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
     poly(e.x, e.y, size + 4, d.sides, e.rot, false);
-    ctx.strokeStyle = COL.pink; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = COL[TOWERS.chain.color]; ctx.lineWidth = 2; ctx.stroke(); // ARC's colour, whatever it is
   }
   if (e.stunT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283);

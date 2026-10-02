@@ -21,7 +21,7 @@ const UPGRADES = {
       { name: "Overcharge", desc: "arcs hit as hard as the first strike", mods: { arcFall: 1 },
         super: { name: "Surge", desc: "arcs hit HARDER than the strike: x1.5", mods: { arcFall: 1.5 } } },
       // static: 1 = charge from the tower's own shots, 2 = Static shots charge too
-      { name: "Static", desc: "hits deal x1.5 and charge enemies (a pink border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1, dmg: 1.5 },
+      { name: "Static", desc: "hits deal x1.5 and charge enemies (an orange border); a charged enemy that dies fires a full shot from where it fell", mods: { static: 1, dmg: 1.5 },
         super: { name: "Thunderhead", desc: "those shots charge what they hit too: kills can cascade", mods: { static: 2 } } },
     ] },
     // Ion and Array nerfed x0.8 (owner, 2026-10-02): the build search's winners
