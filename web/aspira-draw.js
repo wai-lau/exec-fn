@@ -388,7 +388,7 @@ function drawTethers() {
   for (const t of G.towers) {
     if (t.kind !== "slower") continue;
     const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
-    if (st.all) { drawMoons(t, st, col); continue; } // Whiteout / Blizzard: two orbiting moons, always shown
+    if (st.all) { drawMoons(t, st, col); continue; } // Moon / Desolation: orbiting moons, always shown
     if (!t.links || !t.links.length) continue;
     // Stasis (the slow path): a much THICKER tether (owner)
     const w = t.path != null && UPGRADES.slower[t.path].name === "Stasis" ? 2 : 1;
@@ -408,7 +408,7 @@ function drawTethers() {
 function drawMoons(t, st, col) {
   const R = st.range * MOON_REACH;
   ctx.fillStyle = col; ctx.strokeStyle = col;
-  for (const a of moonAngles(t)) {
+  for (const a of moonAngles(t, st)) {
     ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.arc(t.x, t.y, R, a - MOON_ARC, a + MOON_ARC); ctx.closePath();
     ctx.globalAlpha = 0.06; ctx.fill();
     ctx.globalAlpha = 0.5; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(t.x, t.y, R, a - MOON_ARC, a + MOON_ARC); ctx.stroke();
