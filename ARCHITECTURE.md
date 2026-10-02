@@ -4088,7 +4088,7 @@ square (swarm), pentagon (normal / shielded / armored), no hexagon enemies
 (hexagons are the towers; BOSSES WERE REMOVED, owner 2026-10-01). Enemies do not spin: one corner always points along
 the lane (nose first). Swarms (owner: swarmier) are 30x the count (cap 700) at 0.07 HP / 0.18 bounty (about
 the same wave total), stream in EVENLY (0.012 gap), and each member has its own
-speed (±20%, `spd`), a wide wander (`jit` 8–28) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
+speed (±20%, `spd`), a wide wander (`jit` 24–84, tripled) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
 absorbed regardless of size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
 thick outline; the Reaper's shots IGNORE armor (owner). A wave mixes K of the unlocked types (`makeWave`;
