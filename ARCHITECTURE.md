@@ -3919,6 +3919,11 @@ Background stars (`STARS`, white, never recoloured) TWINKLE (owner): `drawStars`
 breathes each one's alpha (0.35-1x) and size (0.85-1x) on its own rate/phase,
 fixed per star index, on real time so it runs while paused.
 
+The core taking damage SHAKES the screen (`shakeScreen`, 14px decaying over
+0.35s real time; a burst of leaks re-arms it, never stacks) and plays a
+SHUTDOWN sound: a click, then a square + sine sliding 520/260Hz -> ~25Hz over
+~0.8s (at most one every 0.5s).
+
 **Route** `api/routes_aspira.py` → `templates/aspira.html`, `full_height`:
 the canvas fills the screen above the nav. The header (title, stats, and a
 controls row: send wave, auto-send, pause/speeds, sound) floats top-left; the
