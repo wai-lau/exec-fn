@@ -199,15 +199,17 @@ function resolveColors() {
 
 // Rates are per REAL second at 1x speed (time was rescaled so 1x = real time;
 // every rate x3 and every duration /3 against the old hidden-3x values).
+// FRZ and ACD x1.5 damage, x1.2 range (owner, 2026-10-02: lift the two
+// towers the build search never picked): FRZ 1.5 -> 2.25 / 133 -> 160, ACD 8 -> 12 / 160 -> 192
 // display names (owner): chain = ARC, slower = FRZ, reaper = SOL (was RAY),
 // acid = ACD; the code
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "pink",     cost: 40,  dmg: 28, rate: 1.5,  range: 173.4, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 133,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
+  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 2.25, rate: 2.4,  range: 160,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
   reaper:  { name: "Sol",      ab: "SOL", color: "orange", cost: 40,  dmg: 110,  rate: 1.35,  range: 318, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
-  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 8,  rate: 4,    range: 160, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
+  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 12,  rate: 4,    range: 192, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
 };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
