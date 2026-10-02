@@ -28,17 +28,17 @@ function clampView() {
   cam.ox += Math.max(0, Math.min(cv.width, cx)) - cx;
   cam.oy += Math.max(0, Math.min(cv.height, cy)) - cy;
 }
-function refit() { resize(); fitK = cam.k; }
+function refit() { resize(); fitK = cam.fit; }
 
 cv.addEventListener("wheel", ev => {
   ev.preventDefault();
-  if (!fitK) fitK = cam.k;
+  if (!fitK) fitK = cam.fit;
   const p = devXY(ev);
   zoomAt(p.x, p.y, Math.exp(-ev.deltaY * 0.0015));
 }, { passive: false });
 
 cv.addEventListener("pointerdown", ev => {
-  if (!fitK) fitK = cam.k;
+  if (!fitK) fitK = cam.fit;
   cv.setPointerCapture(ev.pointerId);
   ptrs.set(ev.pointerId, devXY(ev));
   if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); }

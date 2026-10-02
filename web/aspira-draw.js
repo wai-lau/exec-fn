@@ -4,7 +4,10 @@
 const cv = document.getElementById("asp-cv"), ctx = cv.getContext("2d");
 // The canvas fills the screen; the camera fits the 1000-unit chart into the
 // band between the header and the bottom build bar. cam is in device pixels.
-const cam = { k: 1, ox: 0, oy: 0 };
+// The default view sits 25% closer than the whole-chart fit (owner, 2026-10-02);
+// cam.fit keeps that whole-chart scale, the furthest you can zoom out.
+const DEFAULT_ZOOM = 1.25;
+const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
@@ -13,8 +16,8 @@ function resize() {
   const head = document.querySelector(".asp-head").getBoundingClientRect();
   const foot = document.querySelector(".asp-bottom").getBoundingClientRect();
   const x0 = 0, y0 = head.bottom - r.top, x1 = r.width, y1 = foot.top - r.top;
-  const k = Math.min(x1 - x0, y1 - y0) / W;
-  cam.k = k * dpr;
+  const fit = Math.min(x1 - x0, y1 - y0) / W, k = fit * DEFAULT_ZOOM;
+  cam.fit = fit * dpr; cam.k = k * dpr;
   cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
   cam.oy = (y0 + (y1 - y0 - W * k) / 2) * dpr;
 }
@@ -22,7 +25,7 @@ function resize() {
 // the overlays — the placing note, a send-wave label rewrapping — may move the
 // board (owner: nothing should bump the game).
 // (the zoom/pan view in aspira-camera.js resets to this fit on a resize)
-new ResizeObserver(() => { resize(); if (typeof fitK !== "undefined") fitK = cam.k; }).observe(cv);
+new ResizeObserver(() => { resize(); if (typeof fitK !== "undefined") fitK = cam.fit; }).observe(cv);
 
 function poly(x, y, r, n, rot, star) {
   ctx.beginPath();
