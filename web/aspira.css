@@ -29,8 +29,22 @@
 .asp-controls .asp-row > button { flex: none; }
 
 /* the next wave, under the send button (owner): what, how many, how many lanes */
-.asp-wavenote { margin-top: var(--space-1-5); font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); pointer-events: none; }
-.asp-wavenote b { font-weight: var(--fw-bold); }
+.asp-wavenote {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: start;
+  gap: var(--space-0-5) var(--space-1);
+  margin-top: var(--space-1-5);
+  font-size: var(--fs-2xs);
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--green-hsl) / 0.8);
+  pointer-events: none;
+}
+.asp-wavenote > span:nth-child(3n + 1) { text-align: right; } /* wave numbers right-aligned against the ":" */
+.asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
+
+/* an enemy's own shape (enemyIcon), in its colour, sized to the text */
+.asp-eicon { width: 1.2em; height: 1.2em; vertical-align: -0.25em; fill: currentcolor; fill-opacity: 0.45; stroke: currentcolor; stroke-width: 1.5; }
 .asp-wavenote .e-white { color: hsl(var(--white-hsl)); }
 .asp-wavenote .e-green { color: hsl(var(--green-hsl)); }
 .asp-wavenote .e-cyan { color: hsl(var(--cyan-hsl)); }
