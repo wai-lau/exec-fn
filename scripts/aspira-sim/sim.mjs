@@ -45,6 +45,16 @@ export function makeGame(seed, patch = "") {
     // one once NOTHING TRACKS it (owner): a pending ARC arc launches from its
     // parent node's enemy, ghost or not, so those stay. Nothing can pick up a
     // ghost later (arcs only hop to the living), so results are unchanged.
+    // no nose-first turning (drawing only), and each lane copy's rotation trig
+    // computed once instead of every enemy every tick - both exact
+    FACING = false;
+    var __trig = new Map();
+    rotAbout = function (p, ang) {
+      let t = __trig.get(ang);
+      if (!t) { t = [Math.cos(ang), Math.sin(ang)]; __trig.set(ang, t); }
+      const dx = p.x - CX, dy = p.y - CY;
+      return { x: CX + dx * t[0] - dy * t[1], y: CY + dx * t[1] + dy * t[0] };
+    };
     var __se = stepEnemies; stepEnemies = function (dt) {
       const tracked = new Set((G.chains || []).map(p => p.node.e));
       G.enemies = G.enemies.filter(e => !e.dead || tracked.has(e));
@@ -56,6 +66,7 @@ export function makeGame(seed, patch = "") {
       clearFx() { fx.length = 0; },
       run(code) { return eval(code); },
       get G() { return G; },
+      setG(x) { G = x; }, // restore a snapshot (buildsearch)
       CELLS, TOWERS, UPGRADES, PATHS, CX, CY, RIM_R, MAX_LVL,
       towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell,
       place(kind, ci, mode = DEFAULT_MODE[kind]) {
@@ -78,6 +89,8 @@ export function makeGame(seed, patch = "") {
         return true;
       },
     };`, ctx);
+  // the seeded RNG's state, so a snapshot can be resumed exactly
+  ctx.api.rng = { get: () => a, set: v => { a = v; } };
   return ctx.api;
 }
 
