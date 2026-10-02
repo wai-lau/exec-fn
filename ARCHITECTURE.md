@@ -4117,7 +4117,8 @@ spawn gaps are divided by the same factor so on-lane spacing is unchanged.
 Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
 per-hop falloff, CHN is a lightning TREE (owner): strike 1 hub → it arcs to 3 → each of those
 arcs to 3 more (`CHAIN_LAYERS` 2; 13 hits a shot) — branching by level
-(`CHAIN_BRANCH` [2,3,3,3]: L1 is 1-2-2, 7 hits; owner); arcs only land within
+(`CHAIN_BRANCH` [2,3,3,3] x `CHAIN_LAYERS` [1,2,2,2]: L1 is just 1-2, 3 hits;
+owner); arcs only land within
 `CHAIN_LEASH` 1.5x the tower's range, measured from the tower, drawn as a dashed
 outer ring, every arc
 reaching from its own parent to the nearest enemy — it may BOUNCE BACK to one
@@ -4140,8 +4141,8 @@ ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its
 RPD shoots an instant LINE per shot (owner: the burst / shotgun / homing-shot
 experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
 11–27px by size relative to the biggest hit, shield `0` 15px.
-RPR holds up to 3 locks at once (`REAPER_TARGETS`, `t.locks`; owner), EACH with
-its own charge timer: a new lock charges from empty and fires its own ray when
+RPR holds `st.targets` locks (`t.locks`) — 1 at base; MORE IS PARKED for a
+Reaper upgrade via a `targets` mod (owner) — EACH with its own charge timer: a new lock charges from empty and fires its own ray when
 full; a lost lock is dropped and its slot refills fresh. RPR hits for 240 base (owner: x3, so its dps sits at ~50-80% of a full CHN
 tree instead of 1/6-1/10). RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, then 0.9/s;
 owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
