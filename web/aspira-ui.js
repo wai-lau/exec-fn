@@ -80,6 +80,14 @@ KINDS.forEach((k, i) => {
 $("asp-send").onclick = sendWave;
 
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
+// volume slider beside the sound toggle (owner)
+(function volumeSlider() {
+  const s = document.createElement("input");
+  Object.assign(s, { type: "range", id: "asp-vol", min: 0, max: 2, step: 0.05, value: volume, title: "volume" });
+  s.setAttribute("aria-label", "volume");
+  s.oninput = () => { setVolume(Number(s.value)); if (muted && Number(s.value) > 0) setMuted(false); };
+  $("asp-speed").appendChild(s);
+})();
 
 // SOL's form, in one short line for the popup (the same row at every level, so
 // the next-level preview lines up)
