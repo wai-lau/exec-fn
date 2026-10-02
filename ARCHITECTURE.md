@@ -3923,7 +3923,7 @@ area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient
 over `--bg-hsl`), never `backdrop-filter`, which would re-read the animated
 canvas every frame. The start/game-over overlay sits at `--z-sticky`, above
 the decks, or the phone sheet covers Start. Placing a tower ends placing mode
-and selects the new tower; a FAILED placement (blocked cell, too few credits)
+(the menu stays closed); a FAILED placement (blocked cell, too few credits)
 ends placing mode too. The build disc is TESSELLATED into pointy-top HEXAGONS (`CELLS`,
 circumradius `CELL_S = 32`; the centre hex IS the core, `CORE_R = 34`, and
 cells fill the WHOLE chart: every lattice cell whose corners sit inside
@@ -4082,12 +4082,13 @@ charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 120 dmg at
 a standing shield HALVES it. Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
 
-**Upgrades are 4 STEPS** (owner condensed them): each upgrade jumps 5
-internal levels, 1 → 5 → 10 → 15, shown to the player as L1–L4 (`nextLvl`,
-`stepCost` = the sum of every internal level skipped, `shownLvl`). The stat
-formulas still run on the internal level. Step 1 carries the path choice,
-step 2 the final form, step 3 the super form. Towers show one ring per step
-and no partial-level dots.
+**Towers have 4 LEVELS** (L1–L4; owner condensed 15 into 4, and the code
+uses 1–4 like the UI). Base stats come from per-level tables in
+aspira-defs.js (`LVL_DMG`, `LVL_RANGE`, `LVL_RAPID_RATE`, `LVL_CHAIN_ARCS`,
+`LVL_REAPER_CRIT`, `LVL_SLOW` — the old curves sampled at 1/5/10/15, so balance
+did not move); `upCost` = build cost × `STEP_COST[level]`. Reaching L2 picks
+the path, L3 the final form, L4 is the super form. One ring per level above
+L1. Placing a tower no longer opens its menu.
 
 **Upgrade tree** (`web/aspira-upgrades.js`, pure data + `applyMods`): every
 tower goes to level 15. The upgrade REACHING L5 picks one of 3 PATHS, the one

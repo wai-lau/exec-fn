@@ -1,13 +1,13 @@
-// /aspira — the upgrade tree. Every tower goes to level 15: the upgrade that
-// REACHES level 5 picks one of three PATHS, the one reaching level 10 one of
-// that path's two FINAL FORMS (3 paths x 2 forms = 6 finals per tower). Levels in between
+// /aspira — the upgrade tree. Every tower has four levels: the upgrade to L2
+// picks one of three PATHS, the one to L3 one of that path's two FINAL FORMS
+// (3 paths x 2 forms = 6 finals per tower), and L4 is the SUPER form. Levels in between
 // grow the base stats (towerStats in aspira-defs.js).
 //
 // mods are applied by applyMods(): dmg/rate/range/arcRange multiply,
 // crit/arcs/targets/slow add, everything else is a behaviour flag read by
 // the shot code in aspira-game.js. A final form's mods stack on its path's.
 
-const BRANCH_LVL = 5, FINAL_LVL = 10;
+const BRANCH_LVL = 2, FINAL_LVL = 3; // the levels that bring the path / final form
 
 const UPGRADES = {
   rapid: [
@@ -80,7 +80,7 @@ function applyMods(s, mods) {
   }
 }
 
-// LEVEL 15 = SUPER FORM (owner): the final form "concentrates further" —
+// LEVEL 4 = SUPER FORM (owner): the final form "concentrates further" —
 // its own mods are intensified, so the tower becomes a super version of what
 // it already is. Multipliers compound (v^1.6: Sniper's half fire rate goes
 // slower still, its x3 damage far higher); additive bonuses double; each
@@ -110,11 +110,11 @@ function superMods(mods) {
   return out;
 }
 
-// the choice the NEXT upgrade requires, if any: the step onto level 5 picks
-// the path, the step onto level 10 the final form (owner)
+// the choice the NEXT upgrade requires, if any: the step onto L2 picks the
+// path, the step onto L3 the final form (owner)
 function pendingChoice(t) {
-  if (t.lvl < BRANCH_LVL && t.path == null) return "path";
-  if (t.lvl >= BRANCH_LVL && t.lvl < FINAL_LVL && t.form == null) return "form";
+  if (t.lvl === BRANCH_LVL - 1 && t.path == null) return "path";
+  if (t.lvl === FINAL_LVL - 1 && t.form == null) return "form";
   return null;
 }
 
