@@ -15,6 +15,7 @@
 // only runs from the UI.
 const CORE_UNLOCK = 30, CORE_COST = [2500, 5000];
 const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 100;
+const ZEN_WAVE_T = 1.5; // the pulse's visible wave, seconds (owner: slower, was 0.5)
 const STILL_R = 400, ECHO_MUL = 1.5, VACUUM_SPD = 0.75, TEMPER_RATE = 1.3;
 const CORE_L1 = [
   { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
@@ -85,7 +86,7 @@ function stepCore(dt) {
   G.core.zenT += ZEN_EVERY;
   const r = zenR();
   for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - CX, e.y - CY) <= r) applySlow(e, ZEN_SLOW, ZEN_T, "core:zen");
-  ring(CX, CY, r, "white", 0.5, true);
+  ring(CX, CY, r, "white", ZEN_WAVE_T, true, false); // a slow gradient wave, no outline (owner)
 }
 // Echo: extra damage on an enemy the Zen pulse is holding (from damage())
 const echoMul = e => (coreHas("echo") && e.slows && e.slows["core:zen"] ? ECHO_MUL : 1);
