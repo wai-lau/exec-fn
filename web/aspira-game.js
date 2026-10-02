@@ -27,10 +27,11 @@ const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
 // a random unlocked type, never the same as the wave before. Types unlock in
 // order: swarm w1, fast w2, shield w3, armor w4. makeWave returns the spawn
-// lists (one, kept a list so the lane split below stays generic). From wave 3
-// one enemy is swapped for a bonus star.
+// lists (one, kept a list so the lane split below stays generic). On every
+// STAR_EVERY-th wave one enemy is swapped for the bonus star.
 // Normal enemies were REMOVED (owner, 2026-10-02): every type now has a counter
 const UNLOCK = ["swarm", "fast", "shield", "armor"];
+const STAR_EVERY = 10; // the star rides waves 10, 20, 30... (owner, 2026-10-02; was every wave from 3)
 // Waves are the SAME every game (owner, 2026-10-02): type, lane split, star
 // slot and star drop all come from fixedRand(wave, salt), a hash, never
 // Math.random. Only crits, swarm jitter and stun chance stay random.
@@ -48,13 +49,13 @@ function wavePlan(n, prev) {
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
-  return { type, count: Math.max(1, Math.round((type === "swarm" ? base * 3 : base) / 2)), split: 1 + Math.floor(fixedRand(n, 3) * 6), star: n >= 3 };
+  return { type, count: Math.max(1, Math.round((type === "swarm" ? base * 3 : base) / 2)), split: 1 + Math.floor(fixedRand(n, 3) * 6), star: n % STAR_EVERY === 0 };
 }
 function makeWave(n) {
   const { type, count } = wavePlan(n, G.lastType);
   G.lastType = type;
   const list = Array(count).fill(type);
-  if (n >= 3) list[Math.floor(fixedRand(n, 2) * list.length)] = "bonus";
+  if (n % STAR_EVERY === 0) list[Math.floor(fixedRand(n, 2) * list.length)] = "bonus";
   return [list];
 }
 
@@ -307,11 +308,12 @@ function kill(e, t) {
   if (e.charged) staticDischarge(e); // ARC's Static
 }
 
-// the star drops a LIFE or +0.5% INTEREST, half and half (owner, 2026-10-02:
-// never score - and no credits either); fixed per wave, like the waves
+// the star drops +10 LIVES or +5% INTEREST, half and half (owner, 2026-10-02:
+// never score, no credits; x10 since it now comes every 10th wave); fixed
+// per wave, like the waves
 function bonusDrop(e) {
-  if (fixedRand(e.n, 4) < 0.5) { G.lives++; float(e.x, e.y - 18, "+1 life", "cyan"); }
-  else { G.interest += 0.005; float(e.x, e.y - 18, "+0.5% interest", "cyan"); }
+  if (fixedRand(e.n, 4) < 0.5) { G.lives += 10; float(e.x, e.y - 18, "+10 lives", "cyan"); }
+  else { G.interest += 0.05; float(e.x, e.y - 18, "+5% interest", "cyan"); }
 }
 
 function addScore(n) {
