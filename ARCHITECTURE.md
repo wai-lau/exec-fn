@@ -4140,9 +4140,9 @@ ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its
 RPD shoots an instant LINE per shot (owner: the burst / shotgun / homing-shot
 experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
 11–27px by size relative to the biggest hit, shield `0` 15px.
-RPR locks up to 3 enemies at once (`REAPER_TARGETS`, `t.aims`; owner) on one
-shared charge and fires a ray at each; a lost lock is replaced, and the charge
-restarts only when all are lost. RPR hits for 240 base (owner: x3, so its dps sits at ~50-80% of a full CHN
+RPR holds up to 3 locks at once (`REAPER_TARGETS`, `t.locks`; owner), EACH with
+its own charge timer: a new lock charges from empty and fires its own ray when
+full; a lost lock is dropped and its slot refills fresh. RPR hits for 240 base (owner: x3, so its dps sits at ~50-80% of a full CHN
 tree instead of 1/6-1/10). RPR fires at HALF rate at L1 (`LVL_REAPER_RATE` [0.5,1,1,1]: 0.45/s, then 0.9/s;
 owner). Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140

@@ -105,7 +105,7 @@ function fireSlower(t, st) {
 // Ray: one roll for crit per shot; Assassin always crits low-HP targets.
 // Lance forms pierce every enemy within `wide` of the beam, losing `fall`
 // of the damage per enemy passed through.
-// A Reaper CHARGES at its locked targets (t.aims, up to 3) for its whole reload
+// A Reaper CHARGES at each locked target (t.locks, up to 3, own timers) for its whole reload
 // (t.period), drawn as a fading-in line by drawAims, then fires at it.
 // Owner's rules: if the target dies mid-charge the charge starts over on a
 // new one; if it only leaves range the Reaper re-targets but keeps its charge;
@@ -114,29 +114,26 @@ function stepReaper(t, dt) {
   const st = towerStats(t);
   t.period = 1 / st.rate;
   // two ranges (owner): a lock can only START inside st.range (pickTargets),
-  // but once charging it HOLDS out to REAPER_HOLD x that range. It locks up to
-  // REAPER_TARGETS enemies at once (owner) on one shared charge, and fires a
-  // ray at each; a lock lost mid-charge is replaced, and the charge only
-  // starts over when EVERY lock is lost.
-  const had = (t.aims || []).length;
-  t.aims = (t.aims || []).filter(a => !a.dead && Math.hypot(a.x - t.x, a.y - t.y) <= st.range * REAPER_HOLD);
-  if (had && !t.aims.length) t.cd = t.period; // the charge starts over
-  if (t.aims.length < REAPER_TARGETS) {
-    const fresh = !t.aims.length;
-    for (const e of pickTargets(t, st, REAPER_TARGETS + t.aims.length)) {
-      if (t.aims.length >= REAPER_TARGETS) break;
-      if (!t.aims.includes(e)) t.aims.push(e);
+  // but once charging it HOLDS out to REAPER_HOLD x that range. It holds up
+  // to REAPER_TARGETS locks (owner), EACH WITH ITS OWN CHARGE TIMER (owner):
+  // a new lock charges from empty, fires its own ray when full and charges
+  // again; a lock whose target dies or slips away is dropped, and the slot
+  // refills with a fresh lock.
+  t.locks = (t.locks || []).filter(l => !l.e.dead && Math.hypot(l.e.x - t.x, l.e.y - t.y) <= st.range * REAPER_HOLD);
+  if (t.locks.length < REAPER_TARGETS) {
+    for (const e of pickTargets(t, st, REAPER_TARGETS + t.locks.length)) {
+      if (t.locks.length >= REAPER_TARGETS) break;
+      if (!t.locks.some(l => l.e === e)) t.locks.push({ e, cd: t.period });
     }
-    // a fresh lock with no charge built (e.g. a just-placed tower) charges in full
-    if (fresh && t.aims.length && t.cd <= 0) t.cd = t.period;
   }
-  if (!t.aims.length) { t.cd = t.period; return; }
-  t.cd -= dt;
-  if (t.cd > 0) return;
-  t.shots = (t.shots || 0) + 1;
-  for (const e of t.aims) fireRay(t, st, e);
-  sfx(t.kind);
-  t.cd = t.period;
+  let fired = false;
+  for (const l of t.locks) {
+    l.cd -= dt;
+    if (l.cd > 0) continue;
+    fireRay(t, st, l.e); l.cd = t.period; fired = true;
+    t.shots = (t.shots || 0) + 1;
+  }
+  if (fired) sfx(t.kind);
 }
 
 
