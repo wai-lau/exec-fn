@@ -135,8 +135,9 @@ function loadSamples() {
   }
 }
 // at most SAMPLE_MAX[name] copies of a sample at once, each new one quieter
-// by how many are already playing (owner: ACD spits every tick, max 3)
-const SAMPLE_MAX = { acid: 3 }, playing = {};
+// by how many are already playing (owner: ACD spits every tick, max 3; FRZ's
+// 2s Lockdown too, or 2.4 pulses a second pile up)
+const SAMPLE_MAX = { acid: 3, slower: 3 }, playing = {};
 function playSample(name) {
   const list = SAMPLES[name], n = playing[name] || 0;
   if (SAMPLE_MAX[name] && n >= SAMPLE_MAX[name]) return null;
