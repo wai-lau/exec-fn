@@ -137,8 +137,8 @@ function fireRay(t, st, e) {
 // still in flight MISSES - it stops homing and flies straight off into the
 // distance, fading slowly over MISS_LIFE, so the waste shows. A missed shot
 // still COLLIDES (owner): the first live enemy it flies through takes its hit.
-// volley size by level (owner: starts at 3)
-const RAPID_VOLLEY = [3, 5, 7, 10], volleySize = t => RAPID_VOLLEY[Math.min(t.lvl, RAPID_VOLLEY.length) - 1];
+// volley size: always 3 (owner), at every level
+const RAPID_VOLLEY = 3, volleySize = () => RAPID_VOLLEY;
 const VOLLEY_SPREAD = 2.4, MISSILE_SPEED = 520, MISSILE_LEN = 12;
 const MISSILE_LIFE = 2, MISS_LIFE = 3;
 function launchMissile(t, st, e, a) {
