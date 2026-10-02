@@ -21,121 +21,6 @@ function newGame() {
 
 let G = newGame();
 
-// ---------- waves ----------
-// Waves go on a FIXED TIMER (owner, 2026-10-02), fast enough that 2+ waves are
-// usually on screen, and still at once whenever the field clears.
-const WAVE_TIMER = 16; // owner: 10 -> 13 -> 16s to thin the field
-// clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
-// the boss (the star) is alive or still queued to spawn
-const bossUp = () => G.enemies.some(e => !e.dead && ENEMIES[e.type].star) ||
-  G.spawns.some(w => w.list.slice(w.idx).some(t => ENEMIES[t].star));
-const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
-// ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
-// a random unlocked type, never the same as the wave before. Types unlock in
-// order: swarm w1, shield w2, armor w3, fast w4 (fixed). makeWave returns the spawn
-// lists (one, kept a list so the lane split below stays generic). Every
-// STAR_EVERY-th wave is the boss alone (wavePlan).
-// Normal enemies were REMOVED (owner, 2026-10-02): every type now has a counter
-// the first four waves are FIXED (owner, 2026-10-02): swarm, shield, armor,
-// fast - one of each, to meet them in turn; from wave 5 a random type, never
-// the one before
-const UNLOCK = ["swarm", "shield", "armor", "fast"];
-const STAR_EVERY = 10; // the star rides waves 10, 20, 30... (owner, 2026-10-02; was every wave from 3)
-// Waves are the SAME every game (owner, 2026-10-02): type, lane split, star
-// slot and star drop all come from fixedRand(wave, salt), a hash, never
-// Math.random. Only crits, swarm jitter and stun chance stay random.
-function fixedRand(n, salt) {
-  let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(salt + 1, 0xc2b2ae35);
-  h = Math.imul(h ^ (h >>> 16), 0x7feb352d); h = Math.imul(h ^ (h >>> 15), 0x846ca68b);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-// what wave n will be, given the type of the wave before it - pure, so the
-// HUD can preview the next wave (owner) without touching the game
-function wavePlan(n, prev) {
-  // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
-  if (n % STAR_EVERY === 0) return { type: "bonus", count: 1, split: 1, star: true };
-  const choices = UNLOCK.filter(t => t !== prev);
-  const type = n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)];
-  const base = Math.min(10 + Math.floor(n * 0.5), 28);
-  // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
-  // HALF the bodies at TWICE the health (owner, 2026-10-02)
-  const raw = Math.max(1, Math.round((type === "swarm" ? base * 3 : base) / 2));
-  // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
-  const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
-  return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };
-}
-function makeWave(n) {
-  const { type, count } = wavePlan(n, G.lastType);
-  if (type !== "bonus") G.lastType = type; // the boss wave does not break the alternation
-  const list = Array(count).fill(type);
-  return [list];
-}
-
-// Interest is paid on what you hold at the moment a wave is sent, so saving
-// beats spending early. Sending before the countdown ends pays the seconds left.
-function sendWave() {
-  if (G.over) return;
-  const gain = Math.floor(G.money * G.interest);
-  if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 4, 1, 3); }
-  G.wave++;
-  float(CX, CY - 80, "wave " + G.wave, "orange", 28, 4, 1, 3); // no early bonus: waves always go at once (owner)
-  // (owner) white like the core, and held 3s so it registers; click the core: aspira-core.js
-  if (G.wave === CORE_UNLOCK) banner("core upgrades unlocked", "white", 3);
-  sfx("wave");
-  const lanes = laneMap(G.wave);
-  // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
-  // copy of the lane rotated 360/k degrees on from the last, all at once
-  makeWave(G.wave).forEach(list => {
-    // the lane split comes from the wave number; even parts (wavePlan rounded the count down to fit)
-    const k = Math.min(list.length, 1 + Math.floor(fixedRand(G.wave, 3) * 6)), per = Math.floor(list.length / k);
-    for (let j = 0; j < k; j++) {
-      const part = list.slice(j * per, (j + 1) * per);
-      if (!part.length) continue;
-      const ang = (j / k) * Math.PI * 2;
-      G.spawns.push({ n: G.wave, list: part, lanes, ang, idx: 0, timer: 0 });
-      // each lane copy remembers how many it was sent, for its brightness
-      for (const type of part) { const key = laneKey(lanes[type], ang); (G.laneTotals ||= {})[key] = (G.laneTotals[key] || 0) + 1; }
-    }
-  });
-  G.nextIn = WAVE_TIMER;
-  G.started = true;
-}
-
-
-// Each enemy TYPE in a wave owns one lane for that wave. Type k of wave n
-// takes lane (n*5 + k*7) % 12: 7 is coprime with 12, so the (up to five)
-// types of one wave always land on five different lanes, and 5n rotates the
-// whole set round the rim from wave to wave.
-const TYPE_ORDER = Object.keys(ENEMIES);
-function laneMap(n) {
-  const out = {};
-  TYPE_ORDER.forEach((type, k) => { out[type] = (n * 5 + k * 7) % N_PATHS; });
-  return out;
-}
-
-// Lanes in use right now (a live enemy on them), keyed by
-// lane + rotation ("pi:ang"): { pi, ang, color, n, star, a } with the riding
-// type's colour and its wave number; feeds the lane highlight and the
-// wave:track labels in aspira-lanes.js. ang 0 is the lane itself, else a
-// rotated copy. Brightness a = ALIVE / SENT on that lane (owner, 2026-10-02,
-// replacing a timed fade): it fills in as the group spawns and drains as it
-// dies, and the lane's count is forgotten once nothing is alive or queued.
-const laneKey = (pi, ang) => pi + ":" + ang.toFixed(3);
-function activeLanes() {
-  const out = new Map(), totals = G.laneTotals || {};
-  for (const e of G.enemies) {
-    if (e.dead) continue;
-    const key = laneKey(e.pi, e.ang || 0), u = out.get(key);
-    if (u) u.alive++;
-    else out.set(key, { pi: e.pi, ang: e.ang || 0, color: ENEMIES[e.type].color, n: e.n, star: !!ENEMIES[e.type].star, alive: 1 });
-  }
-  const queued = new Set();
-  for (const w of G.spawns) for (let i = w.idx; i < w.list.length; i++) queued.add(laneKey(w.lanes[w.list[i]], w.ang || 0));
-  for (const key in totals) if (!out.has(key) && !queued.has(key)) delete totals[key];
-  for (const [key, u] of out) u.a = Math.min(1, u.alive / (totals[key] || u.alive));
-  return out;
-}
-
 // Enemies appear where their lane first crosses SPAWN_R from the core (owner:
 // every spawn the same distance from the centre, whatever the screen shape or
 // lane rotation - a rotated copy crosses the circle at the same s).
@@ -427,9 +312,11 @@ function stepEnemies(dt) {
       e.gone = true;
       if (e.dead) continue; // a ghost just fades out at the core
       e.dead = true;
-      G.lives -= ENEMIES[e.type].leak || 1; // the boss costs 10 (owner)
+      G.lives -= ENEMIES[e.type].leak || 1;
       sfx("leak"); shakeScreen();
       ring(e.x, e.y, 40, "pink", 0.17);
+      // a BOSS that gets through ends the game outright (owner, 2026-10-02)
+      if (ENEMIES[e.type].star) G.lives = 0;
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }
   }
@@ -445,7 +332,10 @@ function step(dt) {
   // ...except the BOSS holds the timer (owner): nothing new comes until it
   // is dead (or through), then the field is clear and the next wave goes
   if (!bossUp()) G.nextIn -= dt;
-  if (G.nextIn <= 0 || waveClear()) { sendWave(); return; }
+  // the game is WON when the 10th boss (wave WIN_WAVE) falls (owner)
+  // (no wave after it: the field plays out, then the clear wins)
+  if (G.wave >= WIN_WAVE) { if (waveClear()) { winGame(); return; } }
+  else if (G.nextIn <= 0 || waveClear()) { sendWave(); return; }
   stepSpawns(dt);
   stepEnemies(dt);
   if (G.over) return;
@@ -483,6 +373,15 @@ function stepFloats(dt) {
   fx = fx.filter(f => f.k !== "text" || f.t < f.life);
 }
 
+const WIN_WAVE = 100; // the 10th boss
+function winGame() {
+  G.over = true; G.won = true;
+  addScore(G.lives * 1000);
+  if (G.score > best.score) best.score = G.score;
+  if (G.wave > best.wave) best.wave = G.wave;
+  try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
+  showOverlay("the core holds", "All ten bosses down with " + G.lives + " lives left: " + G.score.toLocaleString() + " points.", "Play again");
+}
 function gameOver() {
   G.over = true;
   sfx("over");
