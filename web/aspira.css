@@ -91,7 +91,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  touch-action: manipulation;
+  touch-action: none; /* the page handles drag-to-pan and pinch-zoom itself */
   cursor: crosshair;
   background: hsl(var(--bg-hsl));
 }

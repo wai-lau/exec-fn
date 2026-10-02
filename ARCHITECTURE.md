@@ -3913,6 +3913,13 @@ Targeting mode `close` = closest to the CORE, not to the tower (owner).
 Every enemy SPAWNS where its lane first crosses `SPAWN_R` 600 from the core
 (`entryS`; owner: all spawns equidistant), not at the screen edge.
 All lanes are SOLID lines (owner; the per-pair dash styles `LANE_DASH` were removed).
+**ZOOM + PAN (owner, `web/aspira-camera.js`, loaded between draw and ui):** wheel
+zooms about the cursor, drag pans; touch drags with one finger and pinches with
+two. Zoom spans the fitted view (1x) to `ZOOM_MAX` 4x; the core is kept on the
+canvas; double-click refits; a window resize refits too. A press moving under
+`DRAG_PX` 6 is a TAP and goes to ui.js `onTap` (select / place), so placement
+fires on release, not on press. Canvas `touch-action: none`. Speeds now include
+0.5x (owner).
 **SPLIT WAVES (owner):** each type's group in a wave is split k = 1..6 ways
 (uniform) and each part rides a COPY of its lane rotated 360/k degrees about the
 core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn
@@ -4021,6 +4028,7 @@ towers, draw, ui):
 | `web/aspira-game.js` | state `G`, waves, economy, targeting (`MODE_KEY`), combat, fx, `step()` |
 | `web/aspira-towers.js` | how each tower fires: Chain's fan, Slower pulse/tethers, Reaper charge + beam, `fire()` (split from aspira-game.js at the 500-line cap) |
 | `web/aspira-draw.js` | canvas render |
+| `web/aspira-camera.js` | zoom (wheel / pinch) + drag-to-pan view; tap vs drag → `onTap` |
 | `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
 
 **Colours never live in the JS.** The template carries hidden `.asp-sw`
