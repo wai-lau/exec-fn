@@ -4251,6 +4251,7 @@ experiments were all reverted). Pop-ups are small (owner): credits 18px, damage
 The lock-on charge line never drops below 50% of its full opacity (owner).
 Reaper crits show as a PINK damage number, no separate CRIT label (owner).
 EXC's fire beam (white core + pink glow) is a quarter of a normal beam's width (owner:
+Colours swapped (owner, 2026-10-02): ARC is now pink, EXC orange (TOWERS[].color drives buttons, beams, damage numbers); the beam/glow notes above predate the swap.
 doubled from an eighth; the glow doubles with it).
 UPGRADING IS TWO CLICKS (owner): an upgrade option (path, final form or plain
 level) only SELECTS (`ui.pick`) and previews its stat changes ("-> next") in both
