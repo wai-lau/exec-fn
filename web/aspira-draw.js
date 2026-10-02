@@ -146,7 +146,7 @@ function drawTower(t, ghost) {
   }
   ctx.globalAlpha = base; ctx.lineWidth = 3.5;
   towerHex(c, kMain); ctx.stroke();
-  text(b.ab, c.x, c.y + 1, 13, b.color); // centred: no level dots below it any more
+  text(towerAb(t), c.x, c.y + 1, 13, b.color); // centred: no level dots below it any more
   ctx.globalAlpha = 1;
 }
 

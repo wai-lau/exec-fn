@@ -156,3 +156,17 @@ function towerTitle(t) {
   if (t.lvl < MAX_LVL) return f.name;
   return f.super ? f.super.name : "Super " + f.name;
 }
+
+// the 3-letter label drawn on the tower follows its newest name (owner):
+// ARC -> STO (Storm) -> TEM (Tempest) -> MAE (Maelstrom). First three
+// letters, except where that would clash within a tree or read badly.
+const AB_OVERRIDE = {
+  Railgun: "RGN", Fortissimo: "FFF", Overcharge: "OVR", Overgrowth: "OVG",
+  "Deep Freeze": "DFZ", "Absolute Zero": "ABZ", "Full Refund": "FRF",
+};
+function towerAb(t) {
+  if (t.path == null) return TOWERS[t.kind].ab;
+  const p = UPGRADES[t.kind][t.path], f = t.form == null ? null : p.finals[t.form];
+  const name = !f ? p.name : t.lvl < MAX_LVL || !f.super ? f.name : f.super.name;
+  return AB_OVERRIDE[name] || name.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase();
+}
