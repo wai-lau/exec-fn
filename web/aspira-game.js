@@ -156,7 +156,7 @@ function damage(e, amt, t, quiet = false) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 22, 1, 1, 30, true); // all of it soaked: dim grey, like armor
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 15, 1, 1, 30, true); // all of it soaked: dim grey, like armor
     return;
   }
   if (e.shredT > 0) amt *= e.shredMul;
@@ -177,11 +177,11 @@ function damage(e, amt, t, quiet = false) {
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
     // sized RELATIVE to the biggest hit seen this game (owner): the largest so
-    // far is 40px / 2s, a tiny one 16px / 0.8s, spaced by sqrt(amt / maxHit)
+    // far is 27px / 2s, a tiny one 11px / 0.8s (owner: smaller), spaced by sqrt(amt / maxHit)
     G.maxHit = Math.max(G.maxHit || 1, amt);
     const rel = Math.sqrt(amt / G.maxHit);
     float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white",
-      Math.round(16 + 24 * rel), 0.8 + 1.2 * rel, 1, 30, true);
+      Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
   }
   if (e.hp <= 0) kill(e, t);
 }
@@ -226,7 +226,7 @@ function kill(e, t) {
   const b = Math.round(e.bounty * mul);
   G.money += b;
   sfx("kill");
-  float(e.x, e.y - 30, "+" + b, "orange", 30, 2.0);
+  float(e.x, e.y - 30, "+" + b, "orange", 18, 2.0); // small (owner)
   addScore(b * 10);
   G.charge = Math.min(POWER_FULL, G.charge + 1);
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
