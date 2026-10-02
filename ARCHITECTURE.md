@@ -3977,6 +3977,12 @@ ONE slow at a time (owner): `applySlow` keeps only the strongest; a weaker slow 
 ignored while a stronger one runs, and amount/duration never mix.
 FRZ base (owner, 2026-10-02): 3 targets, slow 40% at L1 (`LVL_SLOW` 40/45/50/55%).
 EXC base (owner rule: ANY 2-tower opening must clear wave 1 with no leak; checked
+OVERNIGHT BALANCE (simulator, 2026-10-02): enemy DEFENCES now keep pace with HP
+(armor = 15 x sqrt(HP growth); shields = 5 x (growth / growth at wave 3)^0.4, so 5 /
+8 / 12 / 34 / 103 at waves 3 / 10 / 20 / 40 / 60) and ACD's base burn is 6/s. With
+flat defences late waves were pure dps and ARC spam won (63 waves alone vs 64 mixed);
+now ARC alone reaches ~52 and an all-four build ~68, and dropping any one tower
+costs 3.5-10.5 waves.
 by the overnight simulator for all 10 pairs): 160 damage at 1.35 shots/s and no L1
 half rate (was 240 at 0.45/s at L1) - same dps at L2+, a third of the overkill.
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
