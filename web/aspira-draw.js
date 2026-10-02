@@ -211,27 +211,31 @@ function drawTowerRange(t, dim) {
   ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 
-// the bonus STAR trails a shooting-star tracer (owner): a GLOW, not segments.
-// STAR_LAYERS continuous strokes all start at the star and run back along its
-// lane, each shorter and wider than the last, so the light piles up smoothly
-// toward the head and thins to nothing STAR_TAIL behind it - no joints to
-// overlap. A soft shadow blur turns it into a glow.
-// Fast enemies trail a much SHORTER one (owner), without the shadow blur -
-// a whole wave of them each blurring six strokes would cost too much.
-const STAR_TAIL = 160, STAR_LAYERS = 6, STAR_STEP = 8, TRAIL = { bonus: STAR_TAIL, fast: 48 };
+// the bonus STAR trails a shooting-star tracer (owner): ONE filled shape, so
+// nothing overlaps and compounds (layered strokes banded where they stacked).
+// The tail tapers from the star's width to a point TRAIL behind it along its
+// lane, filled with a radial gradient fading out from the star. Fast enemies
+// trail a much SHORTER one (owner); only the star adds a shadow-blur glow (a
+// whole Fast wave blurring would cost too much).
+const TRAIL = { bonus: 160, fast: 48 }, TRAIL_STEP = 6, TRAIL_ALPHA = 0.55;
 function drawStarTrail(e, size) {
-  const pts = [], tail = TRAIL[e.type], glow = e.type === "bonus";
-  for (let d = 0; d <= tail; d += STAR_STEP) pts.push(d ? pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0) : { x: e.x, y: e.y });
-  const col = COL[ENEMIES[e.type].color];
-  ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = glow ? size * cam.k : 0;
-  ctx.lineCap = "round"; ctx.lineJoin = "round";
-  for (let i = 0; i < STAR_LAYERS; i++) {
-    const k = 1 - i / STAR_LAYERS, n = Math.max(2, Math.round(pts.length * k));
-    ctx.globalAlpha = 0.08; ctx.lineWidth = size * (0.25 + 0.9 * (1 - k));
-    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
-    for (let j = 1; j < n; j++) ctx.lineTo(pts[j].x, pts[j].y);
-    ctx.stroke();
+  const tail = TRAIL[e.type], pts = [];
+  for (let d = 0; d <= tail; d += TRAIL_STEP) pts.push(d ? pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0) : { x: e.x, y: e.y });
+  const n = pts.length - 1, L = [], R = [];
+  for (let i = 0; i <= n; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const w = size * 0.55 * (1 - i / n), nx = -(b.y - a.y) / len * w, ny = (b.x - a.x) / len * w;
+    L.push({ x: pts[i].x + nx, y: pts[i].y + ny }); R.push({ x: pts[i].x - nx, y: pts[i].y - ny });
   }
+  const col = COL[ENEMIES[e.type].color], g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail);
+  g.addColorStop(0, col); g.addColorStop(1, "transparent");
+  ctx.beginPath(); ctx.moveTo(L[0].x, L[0].y);
+  for (const p of L) ctx.lineTo(p.x, p.y);
+  for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i].x, R[i].y);
+  ctx.closePath();
+  ctx.fillStyle = g; ctx.globalAlpha = TRAIL_ALPHA;
+  ctx.shadowColor = col; ctx.shadowBlur = e.type === "bonus" ? size * cam.k : 0;
+  ctx.fill();
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
 function drawEnemy(e) {
