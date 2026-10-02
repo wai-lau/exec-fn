@@ -32,11 +32,14 @@ const bossUp = () => G.enemies.some(e => !e.dead && ENEMIES[e.type].star) ||
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
 // a random unlocked type, never the same as the wave before. Types unlock in
-// order: swarm w1, fast w2, shield w3, armor w4. makeWave returns the spawn
+// order: swarm w1, shield w2, armor w3, fast w4 (fixed). makeWave returns the spawn
 // lists (one, kept a list so the lane split below stays generic). Every
 // STAR_EVERY-th wave is the boss alone (wavePlan).
 // Normal enemies were REMOVED (owner, 2026-10-02): every type now has a counter
-const UNLOCK = ["swarm", "fast", "shield", "armor"];
+// the first four waves are FIXED (owner, 2026-10-02): swarm, shield, armor,
+// fast - one of each, to meet them in turn; from wave 5 a random type, never
+// the one before
+const UNLOCK = ["swarm", "shield", "armor", "fast"];
 const STAR_EVERY = 10; // the star rides waves 10, 20, 30... (owner, 2026-10-02; was every wave from 3)
 // Waves are the SAME every game (owner, 2026-10-02): type, lane split, star
 // slot and star drop all come from fixedRand(wave, salt), a hash, never
@@ -51,9 +54,8 @@ function fixedRand(n, salt) {
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
   if (n % STAR_EVERY === 0) return { type: "bonus", count: 1, split: 1, star: true };
-  const pool = UNLOCK.slice(0, Math.min(UNLOCK.length, n));
-  const choices = pool.length > 1 ? pool.filter(t => t !== prev) : pool;
-  const type = choices[Math.floor(fixedRand(n, 1) * choices.length)];
+  const choices = UNLOCK.filter(t => t !== prev);
+  const type = n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)];
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
@@ -77,7 +79,6 @@ function sendWave() {
   if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 4, 1, 3); }
   G.wave++;
   float(CX, CY - 80, "wave " + G.wave, "orange", 28, 4, 1, 3); // no early bonus: waves always go at once (owner)
-  if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
   // (owner) white like the core, and held 3s so it registers; click the core: aspira-core.js
   if (G.wave === CORE_UNLOCK) banner("core upgrades unlocked", "white", 3);
   sfx("wave");
@@ -100,12 +101,6 @@ function sendWave() {
   G.started = true;
 }
 
-function blockBonus() {
-  const k = ((G.wave - 1) / 8) % 3;
-  if (k === 1) { const c = 100 + G.wave * 10; G.money += c; addScore(c * 10); banner("bonus +" + c + " credits"); }
-  else if (k === 2) { G.interest += 0.005; banner("bonus interest +0.5%"); } // owner: was +1%
-  else { G.lives += 3; banner("bonus +3 lives"); }
-}
 
 // Each enemy TYPE in a wave owns one lane for that wave. Type k of wave n
 // takes lane (n*5 + k*7) % 12: 7 is coprime with 12, so the (up to five)
