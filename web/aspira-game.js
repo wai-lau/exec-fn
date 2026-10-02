@@ -59,7 +59,11 @@ function sendWave() {
     const k = 1 + Math.floor(Math.random() * 6), per = Math.max(1, Math.ceil(list.length / k));
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
-      if (part.length) G.spawns.push({ n: G.wave, list: part, lanes, ang: (j / k) * Math.PI * 2, idx: 0, timer: 0 });
+      if (!part.length) continue;
+      const ang = (j / k) * Math.PI * 2;
+      G.spawns.push({ n: G.wave, list: part, lanes, ang, idx: 0, timer: 0 });
+      // each lane copy remembers how many it was sent, for its brightness
+      for (const type of part) { const key = laneKey(lanes[type], ang); (G.laneTotals ||= {})[key] = (G.laneTotals[key] || 0) + 1; }
     }
   });
   G.nextIn = WAVE_TIMER;
@@ -85,18 +89,25 @@ function laneMap(n) {
 }
 
 // Lanes in use right now (a live enemy on them), keyed by
-// lane + rotation ("pi:ang"): { pi, ang, color, n } with the riding type's
-// colour and its wave number; feeds the lane highlight and the wave:track
-// labels in aspira-draw.js. ang 0 is the lane itself, else a rotated copy.
+// lane + rotation ("pi:ang"): { pi, ang, color, n, star, a } with the riding
+// type's colour and its wave number; feeds the lane highlight and the
+// wave:track labels in aspira-lanes.js. ang 0 is the lane itself, else a
+// rotated copy. Brightness a = ALIVE / SENT on that lane (owner, 2026-10-02,
+// replacing a timed fade): it fills in as the group spawns and drains as it
+// dies, and the lane's count is forgotten once nothing is alive or queued.
+const laneKey = (pi, ang) => pi + ":" + ang.toFixed(3);
 function activeLanes() {
-  const out = new Map();
-  const add = (pi, ang, type, n) => {
-    const key = pi + ":" + ang.toFixed(3);
-    if (!out.has(key)) out.set(key, { pi, ang, color: ENEMIES[type].color, n, star: !!ENEMIES[type].star });
-  };
-  // only lanes with an enemy ON them (owner): a lane lights when its first
-  // enemy appears, not while its group is still queued
-  for (const e of G.enemies) if (!e.dead) add(e.pi, e.ang || 0, e.type, e.n);
+  const out = new Map(), totals = G.laneTotals || {};
+  for (const e of G.enemies) {
+    if (e.dead) continue;
+    const key = laneKey(e.pi, e.ang || 0), u = out.get(key);
+    if (u) u.alive++;
+    else out.set(key, { pi: e.pi, ang: e.ang || 0, color: ENEMIES[e.type].color, n: e.n, star: !!ENEMIES[e.type].star, alive: 1 });
+  }
+  const queued = new Set();
+  for (const w of G.spawns) for (let i = w.idx; i < w.list.length; i++) queued.add(laneKey(w.lanes[w.list[i]], w.ang || 0));
+  for (const key in totals) if (!out.has(key) && !queued.has(key)) delete totals[key];
+  for (const [key, u] of out) u.a = Math.min(1, u.alive / (totals[key] || u.alive));
   return out;
 }
 

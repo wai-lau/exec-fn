@@ -62,28 +62,11 @@ function placeLabels(items) {
     text(it.text, it.x, y, it.size, it.color);
   }
 }
-// Lit lanes FADE in and out (owner) over LANE_FADE_T real seconds: each
-// lane key keeps an alpha `a` easing toward 1 while it has an enemy on it and
-// toward 0 after; it is forgotten once fully faded.
-const LANE_FADE_T = 0.4, laneFade = new Map();
-let laneFadeAt = 0;
-function fadeLanes() {
-  const now = performance.now() / 1000, step = Math.min(0.1, now - (laneFadeAt || now)) / LANE_FADE_T;
-  laneFadeAt = now;
-  const live = activeLanes();
-  for (const [k, u] of live) {
-    const f = laneFade.get(k);
-    if (f) Object.assign(f, u, { on: true }); else laneFade.set(k, { ...u, a: 0, on: true });
-  }
-  for (const [k, f] of laneFade) {
-    if (!live.has(k)) f.on = false;
-    f.a = Math.max(0, Math.min(1, f.a + (f.on ? step : -step)));
-    if (!f.on && f.a <= 0) laneFade.delete(k);
-  }
-  return [...laneFade.values()];
-}
+// Lit lanes are as bright as the share of their group still alive (owner:
+// alive / sent, from activeLanes) - no timed fade any more.
+function litLanes() { return [...activeLanes().values()]; }
 function drawLanes() {
-  const live = fadeLanes();
+  const live = litLanes();
   drawLaneStrokes(live);
   ctx.lineJoin = "round"; ctx.lineCap = "round";
   // an idle label fades out as a lit one fades in over its slot (and back)
