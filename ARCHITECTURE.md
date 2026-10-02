@@ -4080,7 +4080,8 @@ more; spawn spacing is a lever — swarm gap 0.12s
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, CHN 3 base hops /
-110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
+110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME = 12.5`s
+(5x), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
 charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 120 dmg at 0.20 shots/s (was 80 at 0.30; same 24 dps, slower beat — owner); slow now affects EVERY enemy at full strength (owner removed the
 earlier armor-immune / shield-halves rules). Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
