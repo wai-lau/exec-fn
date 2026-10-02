@@ -244,7 +244,7 @@ const LVL_RANGE = [1, 1.12, 1.27, 1.42];
 const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
 const LVL_REAPER_RATE = [0.5, 1, 1, 1]; // owner: L1 fires at half rate
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
-const LVL_SLOW = [0.7, 0.86, 1.06, 1.26]; // doubled (owner); capped at 0.85 in towerStats
+const LVL_SLOW = [0.4, 0.45, 0.5, 0.55]; // owner: starts at 40%, grows modestly; capped at 0.85 in towerStats
 // cost to go from level i+1 to i+2, as a multiple of the tower's build cost
 const STEP_COST = [5.9, 15.25, 24];
 
@@ -269,7 +269,7 @@ function towerStats(t, noAura = false) {
     case "reaper":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
       s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
-    case "slower": s.slow = LVL_SLOW[i]; s.targets = 5; break;
+    case "slower": s.slow = LVL_SLOW[i]; s.targets = 3; break; // owner: 3 targets
     // ACD levels up MODESTLY like ARC (owner): the L2 path brings the big change
     case "acid":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
