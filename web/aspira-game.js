@@ -182,7 +182,9 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   const raw = amt;
   // ... except from the Reaper, whose shots ignore armor (owner)
   const pierce = t && t.kind === "reaper" ? 1 : (st && st.armorPierce) || 0;
-  if (e.armor && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - e.armor * (1 - pierce));
+  if (e.armor > 0 && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - e.armor * (1 - pierce));
+  // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit
+  else if (e.armor < 0 && !quiet) amt -= e.armor;
   const blunted = amt < raw;
   // per-tower tally: damage counts only up to the HP the enemy had left
   if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));

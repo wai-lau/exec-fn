@@ -267,6 +267,10 @@ function towerStats(t, noAura = false) {
       s.arcRange = s.range; s.branch = 2; s.layers = 1; break;
     case "reaper": s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
     case "slower": s.slow = LVL_SLOW[i]; s.targets = 5; break;
+    // ACD levels up MODESTLY like ARC (owner): the L2 path brings the big change
+    case "acid":
+      s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
+      s.double = ACID_DOUBLE; s.cap = ACID_MAX; s.plagueR = 0; break;
   }
   if (t.path != null) {
     const p = UPGRADES[t.kind][t.path];

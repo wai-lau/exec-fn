@@ -34,19 +34,25 @@ const UPGRADES = {
         super: { name: "Fortissimo", desc: "each hop hits 60% harder than the last", mods: { hopGain: 1.6 } } },
     ] },
   ],
-  // ACD's tree is a PLACEHOLDER (owner to design): plain stat paths for now
+  // ACD (owner, 2026-10-02): L2 Catalyst or Plague, three L3 forms each, and
+  // each form's own on-theme L4 super. Bloom hits harder than Contagion
+  // (x1.5 vs x0.7) to make up for its smaller area (owner).
   acid: [
-    { name: "Corrosive", desc: "+50% burn", mods: { dmg: 1.5 }, finals: [
-      { name: "Melt", desc: "burn x2", mods: { dmg: 2 } },
-      { name: "Reach", desc: "+40% range", mods: { range: 1.4 } },
+    { name: "Catalyst", desc: "the burn doubles every 0.6s (was 1s)", mods: { double: 0.6 }, finals: [
+      { name: "Rain", desc: "double range", mods: { range: 2 },
+        super: { name: "Deluge", desc: "triple range", mods: { range: 1.5 } } },
+      { name: "Pour", desc: "three lines at once, each with its own ramp", mods: { targets: 2 },
+        super: { name: "Torrent", desc: "five lines", mods: { targets: 2 } } },
+      { name: "Residue", desc: "an enemy that leaves range keeps burning for 2s", mods: { residue: 2 },
+        super: { name: "Scar", desc: "it keeps burning for 5s", mods: { residue: 5 } } },
     ] },
-    { name: "Long Line", desc: "+30% range", mods: { range: 1.3 }, finals: [
-      { name: "Lance", desc: "+30% range, +30% burn", mods: { range: 1.3, dmg: 1.3 } },
-      { name: "Searing", desc: "burn x1.8", mods: { dmg: 1.8 } },
-    ] },
-    { name: "Catalyst", desc: "+30% burn", mods: { dmg: 1.3 }, finals: [
-      { name: "Volatile", desc: "burn x1.6", mods: { dmg: 1.6 } },
-      { name: "Wide", desc: "+50% range", mods: { range: 1.5 } },
+    { name: "Plague", desc: "every tick also burns everything within 45 of the target", mods: { plagueR: 45 }, finals: [
+      { name: "Bloom", desc: "the circle grows with the burn, up to 2x; burn x1.5", mods: { bloom: 2, dmg: 1.5 },
+        super: { name: "Overgrowth", desc: "the circle grows up to 3x", mods: { bloom: 3 } } },
+      { name: "Corrosion", desc: "every tick strips 0.5 armor from all it burns, below zero (bonus damage from every tower)", mods: { corrode: 0.5 },
+        super: { name: "Dissolve", desc: "strips 1.5 armor a tick", mods: { corrode: 1.5 } } },
+      { name: "Contagion", desc: "no line: every enemy in range burns, each on its own ramp; burn x0.7", mods: { allInRange: true, plagueR: 0, dmg: 0.7 },
+        super: { name: "Pandemic", desc: "range x1.5", mods: { range: 1.5 } } },
     ] },
   ],
   slower: [

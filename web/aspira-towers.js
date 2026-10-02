@@ -137,27 +137,60 @@ function stepReaper(t, dt) {
 }
 
 
-// ACD (owner): a continuous line on ONE enemy whose burn RAMPS while it holds,
-// EXPONENTIALLY (owner): it doubles every ACID_DOUBLE seconds held, capped at
-// ACID_MAX (x64 after 6s); it starts LOW (owner: 3 dmg/s at x1). Damage lands in
-// st.rate ticks a second (each a real hit: armor cuts it, a shield eats it).
-// Losing the target (dead / out of range) drops the line and the ramp.
+// ACD (owner): continuous LINES on enemies whose burn RAMPS EXPONENTIALLY
+// while held - doubling every st.double seconds (1s; Catalyst 0.6s), capped at
+// st.cap (x64). It starts LOW (3 dmg/s at x1). Damage lands in st.rate ticks a
+// second, each a real hit (armor cuts it, a shield eats it). Each line keeps
+// its own ramp, which resets when its enemy dies or leaves range.
+//   st.targets    lines at once (Pour 3)
+//   st.residue    seconds a line keeps burning after its enemy leaves range
+//   st.plagueR    each tick also burns everyone within this radius of the
+//                 line's enemy (Plague); st.bloom grows it with the ramp
+//   st.corrode    armor stripped from everything a tick burns, below zero
+//   st.allInRange no lines: every enemy in range burns on its own ramp
 const ACID_DOUBLE = 1, ACID_MAX = 64;
-const acidMul = t => Math.min(ACID_MAX, 2 ** ((t.held || 0) / ACID_DOUBLE));
-function stepAcid(t, dt) {
-  const st = towerStats(t);
-  if (t.link && (t.link.dead || Math.hypot(t.link.x - t.x, t.link.y - t.y) > st.range)) t.link = null;
-  if (!t.link) {
-    t.link = pickTargets(t, st, 1)[0] || null; t.held = 0; t.tick = 0;
-    if (!t.link) return;
+const acidMulOf = (held, st) => Math.min(st.cap, 2 ** (held / st.double));
+const acidFrac = (l, st) => Math.log2(acidMulOf(l.held, st)) / Math.log2(st.cap); // 0 fresh .. 1 full burn
+function plagueRadius(l, st) {
+  return st.plagueR * (st.bloom ? 1 + (st.bloom - 1) * acidFrac(l, st) : 1);
+}
+function acidLines(t, st) {
+  const r2 = st.range ** 2, inRange = e => !e.dead && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r2;
+  let lines = (t.lines || []).filter(l => !l.e.dead);
+  if (st.allInRange) {
+    const had = new Map(lines.map(l => [l.e, l]));
+    return G.enemies.filter(inRange).map(e => had.get(e) || { e, held: 0, tick: 0 });
   }
-  t.held += dt; t.tick += dt;
-  const every = 1 / st.rate;
-  while (t.tick >= every) {
-    t.tick -= every;
-    const d = shotDamage(t, st, t.link, st.dmg * acidMul(t) * every);
-    damage(t.link, d, t); onHit(t.link, t, st, d);
-    if (t.link.dead) { t.link = null; break; }
+  // a line whose enemy left range lives on for st.residue seconds (Residue)
+  lines = lines.filter(l => {
+    if (inRange(l.e)) { l.left = st.residue || 0; return true; }
+    return (l.left ?? 0) > 0;
+  });
+  let live = lines.filter(l => inRange(l.e)).length;
+  for (const e of pickTargets(t, st, st.targets + lines.length)) {
+    if (live >= st.targets) break;
+    if (!lines.some(l => l.e === e)) { lines.push({ e, held: 0, tick: 0, left: st.residue || 0 }); live++; }
+  }
+  return lines;
+}
+function acidTick(t, st, l, every) {
+  const d = st.dmg * acidMulOf(l.held, st) * every;
+  const burn = o => {
+    const dd = shotDamage(t, st, o, d);
+    damage(o, dd, t); onHit(o, t, st, dd);
+    if (st.corrode && !o.dead) o.armor = (o.armor || 0) - st.corrode; // Corrosion: past zero, on purpose
+  };
+  const R = st.plagueR ? plagueRadius(l, st) : 0, center = l.e;
+  burn(center);
+  if (R) for (const o of G.enemies) if (o !== center && !o.dead && Math.hypot(o.x - center.x, o.y - center.y) <= R) burn(o);
+}
+function stepAcid(t, dt) {
+  const st = towerStats(t), every = 1 / st.rate, r2 = st.range ** 2;
+  t.lines = acidLines(t, st);
+  for (const l of t.lines) {
+    if ((l.e.x - t.x) ** 2 + (l.e.y - t.y) ** 2 > r2) l.left -= dt; // Residue's countdown
+    l.held += dt; l.tick += dt;
+    while (l.tick >= every && !l.e.dead) { l.tick -= every; acidTick(t, st, l, every); }
   }
 }
 

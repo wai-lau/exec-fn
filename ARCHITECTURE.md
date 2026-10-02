@@ -3944,6 +3944,15 @@ OWN on-theme L4 super (`super: {name, desc, mods}`, applied on top; owner):
 Maelstrom 1-5-25, Surge arcs x1.5 the strike, Lockdown slow 50% 1s + 20% stun,
 Railgun 10 hops, Trident three lines, Fortissimo +60% per hop. Forms
 without one fall back to the generic `superMods`.
+**ACD upgrades (owner, 2026-10-02):** own levels MODEST like ARC; L2 **Catalyst**
+(doubles every 0.6s) -> Rain range x2 / Pour 3 lines (own ramps) / Residue keeps
+burning 2s after leaving range; **Plague** (each tick also burns all within 45 of
+the target) -> Bloom circle grows to 2x with the ramp, burn x1.5 / Corrosion each
+tick strips 0.5 armor BELOW ZERO (negative armor = flat bonus on every tower's
+hits, in `damage`) / Contagion no line, every enemy in range burns on its own
+ramp, burn x0.7, range circle glows. L4 supers: Deluge range x3, Torrent 5 lines,
+Scar 5s, Overgrowth 3x, Dissolve 1.5 armor/tick, Pandemic range x1.5. Code:
+`acidLines` / `acidTick` / `stepAcid` (towers.js), `drawAcid`.
 EXC's specialty is REACH (owner): base range 318 (x1.2 from 265; 382 at L1).
 FRZ base range 133 (owner: up from 95, so 160 at L1 - Fast was crossing it in 0.6s).
 Enemy speeds (owner, 2026-10-02): Fast doubled (135 -> 270), then eased to 220 (ARC ~1.3x per pass); Shielded and Armored
