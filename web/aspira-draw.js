@@ -225,7 +225,7 @@ function drawStarTrail(e, size) {
   ctx.lineCap = "round"; ctx.lineJoin = "round";
   for (let i = 0; i < STAR_LAYERS; i++) {
     const k = 1 - i / STAR_LAYERS, n = Math.max(2, Math.round(pts.length * k));
-    ctx.globalAlpha = 0.16; ctx.lineWidth = size * (0.25 + 0.9 * (1 - k));
+    ctx.globalAlpha = 0.08; ctx.lineWidth = size * (0.25 + 0.9 * (1 - k));
     ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
     for (let j = 1; j < n; j++) ctx.lineTo(pts[j].x, pts[j].y);
     ctx.stroke();
