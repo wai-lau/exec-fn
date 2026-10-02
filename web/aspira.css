@@ -113,6 +113,18 @@
 .asp-ov h2 { margin: 0; font-size: var(--fs-3xl); letter-spacing: var(--tracking-mega); text-transform: uppercase; color: hsl(var(--orange-hsl)); }
 .asp-ov p { margin: 0; max-width: 36ch; line-height: var(--lh-snug); }
 
+/* game-over letters (owner): a black outline (four hard offsets) under a glow
+   in the text's own colour, so they read over towers and lanes */
+.asp-ov h2,
+.asp-ov p {
+  text-shadow:
+    calc(-2 * var(--space-px)) 0 hsl(var(--bg-hsl)),
+    calc(2 * var(--space-px)) 0 hsl(var(--bg-hsl)),
+    0 calc(-2 * var(--space-px)) hsl(var(--bg-hsl)),
+    0 calc(2 * var(--space-px)) hsl(var(--bg-hsl)),
+    0 0 var(--blur-sm) currentcolor;
+}
+
 
 
 
