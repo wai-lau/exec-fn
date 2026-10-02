@@ -31,14 +31,22 @@ const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
 // one enemy is swapped for a bonus star.
 // Normal enemies were REMOVED (owner, 2026-10-02): every type now has a counter
 const UNLOCK = ["swarm", "fast", "shield", "armor"];
+// Waves are the SAME every game (owner, 2026-10-02): type, lane split, star
+// slot and star drop all come from fixedRand(wave, salt), a hash, never
+// Math.random. Only crits, swarm jitter and stun chance stay random.
+function fixedRand(n, salt) {
+  let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(salt + 1, 0xc2b2ae35);
+  h = Math.imul(h ^ (h >>> 16), 0x7feb352d); h = Math.imul(h ^ (h >>> 15), 0x846ca68b);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
 function makeWave(n) {
   const pool = UNLOCK.slice(0, Math.min(UNLOCK.length, n));
   const choices = pool.length > 1 ? pool.filter(t => t !== G.lastType) : pool;
-  const type = choices[Math.floor(Math.random() * choices.length)];
+  const type = choices[Math.floor(fixedRand(n, 1) * choices.length)];
   G.lastType = type;
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   const list = Array(type === "swarm" ? base * 3 : base).fill(type); // swarms: 3x the bodies (owner)
-  if (n >= 3) list[Math.floor(Math.random() * list.length)] = "bonus";
+  if (n >= 3) list[Math.floor(fixedRand(n, 2) * list.length)] = "bonus";
   return [list];
 }
 
@@ -56,7 +64,7 @@ function sendWave() {
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once
   makeWave(G.wave).forEach(list => {
-    const k = 1 + Math.floor(Math.random() * 6), per = Math.max(1, Math.ceil(list.length / k));
+    const k = 1 + Math.floor(fixedRand(G.wave, 3) * 6), per = Math.max(1, Math.ceil(list.length / k));
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
       if (!part.length) continue;
@@ -292,7 +300,7 @@ function kill(e, t) {
 }
 
 function bonusDrop(e) {
-  const r = Math.floor(Math.random() * 4);
+  const r = Math.floor(fixedRand(e.n, 4) * 4); // fixed per wave, like the waves
   if (r === 0) { addScore(2000); float(e.x, e.y - 18, "+2000", "cyan"); }
   else if (r === 1) { G.lives++; float(e.x, e.y - 18, "+1 life", "cyan"); }
   else if (r === 2) { const c = 20 + e.bounty * 5; G.money += c; float(e.x, e.y - 18, "+" + c + " credits", "cyan"); }
