@@ -74,6 +74,10 @@ const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
 // toward the core. (An earlier angle = t^2.2 hooked ~50 deg right after the
 // lead-in: at r ~ 700 even a slow angle rate is a big sideways speed.)
 const TANGENT_Q = 2;
+// ... softened (owner: lanes got too dense near the core): the winding rate
+// uses 1 / (r + LANE_SOFT_R), so the same turns spread outward instead of
+// packing into the last few dozen units around the core
+const LANE_SOFT_R = 200;
 // An 8-turn lane is ~2.5x longer than a 3-turn one. Enemies on it move
 // faster (pace = (len / shortest)^0.6) so it takes ~1.4x as long, not 2.5x.
 const PACE_EXP = 0.6;
@@ -113,7 +117,7 @@ function buildSpiral(i) {
   const F = [0];
   for (let k = 1; k <= steps; k++) {
     const tm = (k - 0.5) / steps, rm = R0 - (R0 - rEnd) * tm;
-    F.push(F[k - 1] + Math.pow(tm, TANGENT_Q) / rm);
+    F.push(F[k - 1] + Math.pow(tm, TANGENT_Q) / (rm + LANE_SOFT_R));
   }
   for (let k = 0; k <= steps; k++) {
     const t = k / steps, r = R0 - (R0 - rEnd) * t, a = a0 + dir * turns * Math.PI * 2 * F[k] / F[steps];
