@@ -55,7 +55,7 @@ export function makeGame(seed, patch = "") {
         if (G.money < cost || occupied(ci)) return null;
         G.money -= cost;
         const t = { id: G.id++, kind, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0,
-          mode: { slower: "fast", reaper: "hard" }[kind] || "close", spent: cost };
+          mode: "close", spent: cost };
         G.towers.push(t);
         if (!G.started) sendWave();
         return t;
