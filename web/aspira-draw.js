@@ -403,16 +403,17 @@ function drawTethers() {
   ctx.globalAlpha = 1;
 }
 
-// FRZ's Whiteout / Blizzard moons (fireSlower): each sweeps a faint sector out
-// to its reach, with the moon riding the outer edge of its orbit
+// FRZ's Moon / Desolation (fireSlower): each moon a bright body in a glow that
+// RADIATES from it (owner), strongest at the moon and gone at the edge of the
+// circle that slows
+const MOON_GLOW = 0.35;
 function drawMoons(t, st, col) {
-  const R = st.range * MOON_REACH;
-  ctx.fillStyle = col; ctx.strokeStyle = col;
-  for (const a of moonAngles(t, st)) {
-    ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.arc(t.x, t.y, R, a - MOON_ARC, a + MOON_ARC); ctx.closePath();
-    ctx.globalAlpha = 0.06; ctx.fill();
-    ctx.globalAlpha = 0.5; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(t.x, t.y, R, a - MOON_ARC, a + MOON_ARC); ctx.stroke();
-    ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.arc(t.x + Math.cos(a) * R, t.y + Math.sin(a) * R, 9, 0, 6.283); ctx.fill();
+  for (const m of moonSpots(t, st)) {
+    const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, MOON_AURA);
+    g.addColorStop(0, col); g.addColorStop(1, "transparent");
+    ctx.fillStyle = g; ctx.globalAlpha = MOON_GLOW;
+    ctx.beginPath(); ctx.arc(m.x, m.y, MOON_AURA, 0, 6.283); ctx.fill();
+    ctx.fillStyle = col; ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.arc(m.x, m.y, 9, 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }

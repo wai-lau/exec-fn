@@ -78,8 +78,8 @@ const UPGRADES = {
       { name: "Deep Freeze", desc: "a newly slowed enemy nearly freezes: 95% slow for 0.25s", mods: { chillStop: 0.25 },
         super: { name: "Absolute Zero", desc: "95% slow for 0.5s", mods: { chillStop: 0.5 } } },
       // (owner, 2026-10-02: were Whiteout / Blizzard, whole-range chills)
-      { name: "Moon", desc: "a moon orbits fast, slowing whatever it sweeps, out to 1.15x range", mods: { all: true, moons: 1 },
-        super: { name: "Desolation", desc: "a second moon, half a turn behind", mods: { moons: 2 } } },
+      { name: "Moons", desc: "two moons orbit the tower, each slowing everything within 60 of it", mods: { all: true, moons: 2 },
+        super: { name: "Desolation", desc: "four moons", mods: { moons: 4 } } },
       { name: "Permafrost", desc: "the slow never wears off, but is 10% weaker", mods: { permafrost: true, slow: -0.1 },
         super: { name: "Ice Age", desc: "the permanent slow is 15% stronger", mods: { slow: 0.15 } } },
     ] },
@@ -171,7 +171,7 @@ function towerTitle(t) {
 // letters, except where that would clash within a tree or read badly.
 const AB_OVERRIDE = {
   Railgun: "RGN", Fortissimo: "FFF", Overcharge: "OVR", Overgrowth: "OVG",
-  "Deep Freeze": "DFZ", "Absolute Zero": "ABZ", "Full Refund": "FRF", Moon: "MON",
+  "Deep Freeze": "DFZ", "Absolute Zero": "ABZ", "Full Refund": "FRF", Moons: "MON",
 };
 function towerAb(t) {
   if (t.path == null) return TOWERS[t.kind].ab;

@@ -110,18 +110,19 @@ function hopTo(c, node, nxt, depth) {
 
 // Moon / Desolation (st.all; were Whiteout / Blizzard) no longer chill the
 // whole range (owner: it read like ACD's Contagion): st.moons MOONS orbit the
-// tower fast, evenly spaced (Moon 1, Desolation 2), and a pulse lands on
-// whatever is inside a moon's sector out to MOON_REACH x range.
-const MOON_SPIN = 4, MOON_ARC = 1.1, MOON_REACH = 1.15; // rad/s; sector half-width, rad
-const moonAngles = (t, st) => {
-  const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1;
-  return Array.from({ length: n }, (_, i) => a + i * 2 * Math.PI / n);
-};
+// tower, evenly spaced (Moon 2, Desolation 4), each carrying a circle of
+// MOON_AURA around itself, and a pulse lands on whatever is inside a circle.
+// The orbit sits so the circles reach MOON_REACH x the tower's range.
+const MOON_SPIN = 2, MOON_AURA = 60, MOON_REACH = 1.15; // rad/s (owner: half of 4)
+function moonSpots(t, st) {
+  const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1, orb = st.range * MOON_REACH - MOON_AURA;
+  return Array.from({ length: n }, (_, i) => {
+    const m = a + i * 2 * Math.PI / n;
+    return { x: t.x + Math.cos(m) * orb, y: t.y + Math.sin(m) * orb };
+  });
+}
 function inMoonSweep(t, st, e) {
-  const dx = e.x - t.x, dy = e.y - t.y;
-  if (dx * dx + dy * dy > (st.range * MOON_REACH) ** 2) return false;
-  const a = Math.atan2(dy, dx);
-  return moonAngles(t, st).some(m => Math.abs(Math.atan2(Math.sin(a - m), Math.cos(a - m))) <= MOON_ARC);
+  return moonSpots(t, st).some(m => (e.x - m.x) ** 2 + (e.y - m.y) ** 2 <= MOON_AURA * MOON_AURA);
 }
 function fireSlower(t, st) {
   // unslowed enemies first, so three towers do not all chill the same three
