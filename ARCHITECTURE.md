@@ -4063,7 +4063,7 @@ and following them. CHN beams last 0.6s. RPR (owner): while reloading it draws a
 harmless CHARGE-UP line to its current target that fades in with reload
 progress (`aimReaper` / `drawAims`); firing is a bright 0.25s flash that deals
 the damage; the Reaper has TWO ranges: a lock may only START inside its range,
-but HOLDS out to `REAPER_HOLD = 2`x it (drawn as a dashed outer ring); the charge is LOCKED on one target (`stepReaper`): a death
+but HOLDS out to `REAPER_HOLD = 2`x it (not drawn, owner); the charge is LOCKED on one target (`stepReaper`): a death
 mid-charge restarts it, leaving range re-targets with the charge kept, no
 target = no charge. New Reapers default to Hard (strongest) targeting. Sound: a laser zap 600→90Hz on firing
 only (owner removed the charge-up hum) (`CHAIN_BEAM_LIFE`/`RAY_BEAM_LIFE`). RPR's firing beam is drawn SLIM: a hair-thin super-bright WHITE core (an
