@@ -222,55 +222,35 @@ function addScore(n) {
   }
 }
 
-// Chain lightning hops one enemy at a time with HOP_DELAY (game seconds)
-// between jumps, so the arc visibly crawls through a pack. The first hit is
-// instant; live chains are advanced by stepChains() from step().
-const HOP_DELAY = 0.5;
-// CHN and RPR beams linger (owner: "much longer"), tracking their targets
+// Chain lightning: one strike, then arcs fan out from the struck enemy all
+// at once (owner: no delay).
 const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 9; // RPR: 10x its old 0.9s (owner)
 let chains = [];
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
   if (st.arcs <= 0) return;
-  const c = { t, st, col, cur: e, hit: new Set([e.id]), dmg, left: st.arcs, timer: HOP_DELAY };
-  // a kill skips the wait: jump on at once (runChain)
-  if (!e.dead || runChain(c)) chains.push(c);
+  // SINGLE LAYER (owner): the first enemy hit is the hub; every arc fans out
+  // from it to the nearest unhit enemies in reach, rather than jumping on
+  // from the last one. Each arc deals the first hit's damage x arcFall once.
+  const c = { t, st, col, src: e, hit: new Set([e.id]), dmg: st.dmg * st.arcFall, left: st.arcs };
+  while (hopChain(c));
 }
 
-// c.cur is the enemy OBJECT, so this measures from its position now — after
-// the hop delay it has moved on (or lies where it died) — not where it was hit
+// c.src is the hub: every arc's reach is measured from it
 function hopChain(c) {
   const { t, st, col } = c;
   let nxt = null, nd = st.arcRange * st.arcRange;
   for (const o of G.enemies) {
     if (o.dead || c.hit.has(o.id)) continue;
-    const d = (o.x - c.cur.x) ** 2 + (o.y - c.cur.y) ** 2;
+    const d = (o.x - c.src.x) ** 2 + (o.y - c.src.y) ** 2;
     if (d < nd) { nd = d; nxt = o; }
   }
   if (!nxt) return false;
-  const prevBoss = st.armorMul && c.cur.armor ? st.armorMul : 1;
-  c.dmg = shotDamage(t, st, nxt, c.dmg * st.arcFall / prevBoss);
-  c.hit.add(nxt.id); beam(c.cur, nxt, col, CHAIN_BEAM_LIFE, 1.5, c.dmg);
-  damage(nxt, c.dmg, t); onHit(nxt, t, st, c.dmg);
-  c.cur = nxt;
+  const d = shotDamage(t, st, nxt, c.dmg);
+  c.hit.add(nxt.id); beam(c.src, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
+  damage(nxt, d, t); onHit(nxt, t, st, d);
   return --c.left > 0;
-}
-
-// Hop now; while each hop KILLS its target, keep hopping with no delay (owner).
-// Returns whether the chain still has a (delayed) hop to come.
-function runChain(c) {
-  for (;;) {
-    if (!hopChain(c)) return false;
-    if (!c.cur.dead) { c.timer = HOP_DELAY; return true; }
-  }
-}
-
-function stepChains(dt) {
-  chains = chains.filter(c => {
-    c.timer -= dt;
-    return c.timer > 0 || runChain(c);
-  });
 }
 
 function fireSlower(t, st) {
@@ -430,7 +410,6 @@ function step(dt) {
   }
   stepSpawns(dt);
   stepEnemies(dt);
-  stepChains(dt);
   if (G.over) return;
   for (const t of G.towers) {
     t.cd -= dt;
