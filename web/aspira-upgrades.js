@@ -64,11 +64,13 @@ const UPGRADES = {
   // FRZ (owner, 2026-10-02): L2 Shatter or Stasis, three forms each, each with
   // its own on-theme L4 super.
   slower: [
-    { name: "Shatter", desc: "an enemy that dies while slowed explodes: 30% of its max HP within 60", mods: { shatter: { frac: 0.3, r: 60 } }, finals: [
-      { name: "Frostbite", desc: "bigger blasts (r84) that also slow everything they hit, for 4s", mods: { frostbite: 4, shatter: { frac: 0.3, r: 84 } },
+    // Shatter scales off the FRZ's OWN hit, never the enemy's max HP (owner,
+    // 2026-10-02: max-HP effects made towers too obviously late-game picks)
+    { name: "Shatter", desc: "an enemy that dies while slowed explodes for 4x this tower's hit, within 60", mods: { shatter: { mul: 4, r: 60 } }, finals: [
+      { name: "Frostbite", desc: "bigger blasts (r84) that also slow everything they hit, for 4s", mods: { frostbite: 4, shatter: { mul: 4, r: 84 } },
         super: { name: "Hoarfrost", desc: "that slow lasts 12s", mods: { frostbite: 12 } } },
-      { name: "Shrapnel", desc: "explosions deal 50% of max HP", mods: { shatter: { frac: 0.5, r: 60 } },
-        super: { name: "Splinter", desc: "explosions deal 100% of max HP", mods: { shatter: { frac: 1, r: 60 } } } },
+      { name: "Shrapnel", desc: "explosions deal 7x this tower's hit", mods: { shatter: { mul: 7, r: 60 } },
+        super: { name: "Splinter", desc: "explosions deal 14x this tower's hit", mods: { shatter: { mul: 14, r: 60 } } } },
       { name: "Brittle", desc: "slowed enemies take +30% from every tower", mods: { brittle: 1.3 },
         super: { name: "Fracture", desc: "+60%", mods: { brittle: 1.6 } } },
     ] },
@@ -89,8 +91,9 @@ const UPGRADES = {
         super: { name: "Horizon", desc: "+3% per 10 units", mods: { longshot: 0.03 } } },
       { name: "Supernova", desc: "hits explode for 50% in a radius of 90", mods: { splash: { r: 90, frac: 0.5 } },
         super: { name: "Collapse", desc: "75% in a radius of 135", mods: { splash: { r: 135, frac: 0.75 } } } },
-      { name: "Execute", desc: "an enemy left under 20% HP dies", mods: { execute: 0.2 },
-        super: { name: "Verdict", desc: "under 35% HP", mods: { execute: 0.35 } } },
+      // Execute measures against the SHOT, not the enemy's max HP (owner)
+      { name: "Execute", desc: "an enemy left with less HP than half this shot dies", mods: { execute: 0.5 },
+        super: { name: "Verdict", desc: "less HP than a whole shot", mods: { execute: 1 } } },
     ] },
     { name: "Array", desc: "3 locks, each charging on its own timer; each beam x0.48", mods: { targets: 2, dmg: 0.48 }, finals: [
       { name: "Grid", desc: "5 locks", mods: { targets: 2 },

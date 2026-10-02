@@ -92,7 +92,7 @@ button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 function rayForm(st) {
   if (st.longshot) return "+" + Math.round(st.longshot * 100) + "% / 10u";
   if (st.splash) return Math.round(st.splash.frac * 100) + "% r" + st.splash.r;
-  if (st.execute) return "kills <" + Math.round(st.execute * 100) + "%";
+  if (st.execute) return "kills <" + Math.round(st.execute * 100) + "% of a shot";
   if (st.bounce) return "bounce " + Math.round(st.bounce * 100) + "%";
   if (st.refund) return "refund " + Math.round(st.refund * 100) + "%";
   return "—";
@@ -107,7 +107,7 @@ const SPEC = {
   },
   slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
-    ["Shatter", st.shatter ? Math.round(st.shatter.frac * 100) + "% r" + st.shatter.r : "—"],
+    ["Shatter", st.shatter ? Math.round(st.dmg * st.shatter.mul) + " r" + st.shatter.r : "—"],
     ["Extra", st.frostbite ? "blast slows " + st.frostbite + "s" : st.brittle ? "+" + Math.round((st.brittle - 1) * 100) + "% taken"
       : st.chillStop ? "95% for " + st.chillStop + "s" : "—"]],
   acid: st => [["Burn", Math.round(st.dmg) + "/s"], ["Ramp", "×2 / " + st.double + "s"],
