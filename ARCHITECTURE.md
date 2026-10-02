@@ -3918,7 +3918,8 @@ All lanes are SOLID lines (owner; the per-pair dash styles `LANE_DASH` were remo
 core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn
 stream). k = 6 gives six identical spirals 60 degrees apart. `activeLanes` keys
 lanes as `pi:ang`; lit copies are stroked rotated and labelled at their rotated
-slot, and idle labels under a lit one are skipped.
+slot, and idle labels under a lit one are skipped; lit labels sharing a slot
+stack inward 30 apart (`LABEL_STACK`) instead of overlapping.
 **THREE towers only (owner, 2026-10-01): CHN, SLW, RPR.** Rapid (RPD) was removed
 entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicated
 counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).
