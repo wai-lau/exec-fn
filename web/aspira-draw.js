@@ -280,7 +280,14 @@ function drawFx(pass) {
       const wm = f.slim ? 0.125 : 1; // slim (RPR): an eighth of a normal beam (owner: 25% of the old half-width), bright glow
       if (f.m) {
         const a = ctx.globalAlpha;
-        ctx.globalAlpha = a * (f.slim ? 0.7 : 0.22); ctx.lineWidth = wm * (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
+        if (f.slim) {
+          // RPR: a hair-thin core inside a big two-layer glow (owner: much
+          // more glow) - a wide soft halo, then a brighter inner glow
+          ctx.globalAlpha = a * 0.18; ctx.lineWidth = (f.w + 1) * (3 + 5 * f.m); ctx.stroke();
+          ctx.globalAlpha = a * 0.5; ctx.lineWidth = (f.w + 1) * (1 + 1.5 * f.m); ctx.stroke();
+        } else {
+          ctx.globalAlpha = a * 0.22; ctx.lineWidth = (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
+        }
         ctx.globalAlpha = a;
       }
       ctx.lineWidth = wm * (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
