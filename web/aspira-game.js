@@ -160,7 +160,11 @@ function damage(e, amt, t, quiet = false) {
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white", 22, 1, 1, 30, true);
+    // bigger hits read bigger and linger longer: size 16 + 8m, life 0.6 + 0.45m
+    // (m = dmgMag: ~0.9 for a 4-damage tick -> 23px / 1s; capped 3 -> 40px / ~2s)
+    const mg = dmgMag(amt);
+    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), blunted ? "grid" : "white",
+      Math.round(16 + 8 * mg), 0.6 + 0.45 * mg, 1, 30, true);
   }
   if (e.hp <= 0) kill(e, t);
 }
