@@ -12,7 +12,7 @@ for (let m = 1; m < 16; m++) {
   const w = [], leaks = {};
   for (let seed = 1; seed <= SEEDS; seed++) { const r = play(s, seed, 110, 0.02, patch); w.push(r.wave); for (const [k, v] of Object.entries(r.leaks)) leaks[k] = (leaks[k] || 0) + v; }
   const avg = w.reduce((a, b) => a + b) / w.length;
-  rows.push([ks.map(k => ({ chain: "ARC", slower: "FRZ", reaper: "EXC", acid: "ACD" })[k]).join("+"), avg, w.join(","), JSON.stringify(leaks)]);
+  rows.push([ks.map(k => ({ chain: "ARC", slower: "FRZ", reaper: "SOL", acid: "ACD" })[k]).join("+"), avg, w.join(","), JSON.stringify(leaks)]);
   console.log(rows.at(-1)[0].padEnd(18), avg.toFixed(1).padStart(5), rows.at(-1)[2], rows.at(-1)[3]);
 }
 rows.sort((a, b) => b[1] - a[1]);

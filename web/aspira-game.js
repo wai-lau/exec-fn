@@ -172,7 +172,7 @@ function pickTargets(t, st, count) {
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
   // a shield eats one whole HIT, whatever its size (poison/splash just bounce) -
-  // EXC's included (owner: stripping shields is ACD's job, its ticks pop them)
+  // SOL's included (owner: stripping shields is ACD's job, its ticks pop them)
   if (e.shield > 0 && !(st && st.ignoreShield)) {
     if (quiet) return;
     e.shield--;
