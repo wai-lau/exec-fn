@@ -4082,8 +4082,10 @@ the same wave total), stream in EVENLY (0.06 gap), and each member has its own
 speed (±20%, `spd`), a wide wander (`jit` 8–28) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
 absorbed regardless of size; poison/splash bounce off) draws as up to 3 concentric outlines that
 peel off; armor (flat cut from every hit, floor 10%, +12% per wave) draws as a
-thick outline; the Reaper's shots IGNORE armor (owner). Waves rotate themes `norm, swarm, fast, shield, armor, mixed`
-(`WAVE_THEMES`). Bonus stars unchanged; Regenerating was proposed and dropped; bosses removed
+thick outline; the Reaper's shots IGNORE armor (owner). A wave mixes K of the unlocked types (`makeWave`;
+K 1–5, bell curve peaking at 2 — `K_WEIGHTS` .2/.35/.25/.13/.07; each type
+brings 1/K of its usual count; unlock order normal, swarm, fast, shield, armor
+by wave 1–5), one spawn stream per type so they arrive side by side. Bonus stars unchanged; Regenerating was proposed and dropped; bosses removed
 (CHN's EMP final now hits armored enemies x2.5 as a placeholder).
 
 **Balance target** (owner): every tower has exactly one each of ✓✓✓ ✓✓ ✓ ✗

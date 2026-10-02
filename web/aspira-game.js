@@ -22,17 +22,29 @@ let G = newGame();
 const WAVE_GAP = 5;
 // clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
-// Waves rotate through themes so each counter tower gets its moment; waves
-// 1-6 introduce them in order. Swarm waves are three times as many enemies.
-const WAVE_THEMES = ["norm", "swarm", "fast", "shield", "armor", "mixed"];
-const MIXED = ["norm", "swarm", "swarm", "fast", "shield", "armor"];
+// A wave mixes K of the unlocked enemy types (owner): K is 1-5 on a bell
+// curve peaking at 2, and each chosen type brings 1/K of its usual count.
+// Types unlock in order: normal w1, swarm w2, fast w3, shield w4, armor w5.
+// makeWave returns one spawn list PER TYPE, so each streams on its own lane
+// at the same time. From wave 3 one enemy is swapped for a bonus star.
+const UNLOCK = ["norm", "swarm", "fast", "shield", "armor"];
+const K_WEIGHTS = [0.2, 0.35, 0.25, 0.13, 0.07]; // P(K = 1..5)
+function pickK(max) {
+  const w = K_WEIGHTS.slice(0, max), total = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let k = 0; k < w.length; k++) { r -= w[k]; if (r <= 0) return k + 1; }
+  return max;
+}
 function makeWave(n) {
-  const theme = WAVE_THEMES[(n - 1) % WAVE_THEMES.length], list = [];
-  let count = Math.min(10 + Math.floor(n * 0.5), 28);
-  if (theme === "swarm") count = Math.min(count * 6, 140); // swarms: 6x the bodies (owner: swarmier)
-  for (let i = 0; i < count; i++) list.push(theme === "mixed" ? MIXED[i % MIXED.length] : theme);
-  if (n >= 3) list[Math.floor(Math.random() * count)] = "bonus";
-  return list;
+  const pool = UNLOCK.slice(0, Math.min(UNLOCK.length, n)), k = pickK(pool.length);
+  const types = pool.slice().sort(() => Math.random() - 0.5).slice(0, k);
+  const base = Math.min(10 + Math.floor(n * 0.5), 28);
+  const lists = types.map(type => {
+    const usual = type === "swarm" ? Math.min(base * 6, 140) : base; // swarms: 6x the bodies
+    return Array(Math.max(1, Math.round(usual / k))).fill(type);
+  });
+  if (n >= 3) { const l = lists[Math.floor(Math.random() * lists.length)]; l[Math.floor(Math.random() * l.length)] = "bonus"; }
+  return lists;
 }
 
 // Interest is paid on what you hold at the moment a wave is sent, so saving
@@ -52,7 +64,8 @@ function sendWave() {
   float(CX, CY - 52, "wave " + G.wave, "orange", 22, 4, 1, 3); // under the early bonus line
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
   sfx("wave");
-  G.spawns.push({ n: G.wave, list: makeWave(G.wave), lanes: laneMap(G.wave), idx: 0, timer: 0 });
+  const lanes = laneMap(G.wave);
+  for (const list of makeWave(G.wave)) G.spawns.push({ n: G.wave, list, lanes, idx: 0, timer: 0 });
   G.nextIn = WAVE_GAP;
   G.started = true;
 }
