@@ -109,7 +109,11 @@ function spawnEnemy(type, n, pi) {
 }
 
 // ---------- combat ----------
-const effSpeed = e => ENEMIES[e.type].speed * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
+// Global enemy pace (owner: everything at half speed). Spawn gaps are divided
+// by it too, so enemies stay the same DISTANCE apart on the lane — that
+// spacing is a balance lever for chain reach.
+const ENEMY_SPEED = 0.5;
+const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
 const MODE_KEY = {
   close: a => a.d,
@@ -366,7 +370,7 @@ function stepSpawns(dt) {
       spawnEnemy(type, w.n, w.lanes[type]);
       // spacing is a balance lever: swarms pack ~11 apart (inside CHN's 70 hop
       // reach), trains spread ~60+ apart (just at or beyond it)
-      w.timer += type === "swarm" ? 0.12 : type === "fast" ? 0.5 : 0.8;
+      w.timer += (type === "swarm" ? 0.12 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
     }
   }
   G.spawns = G.spawns.filter(w => w.idx < w.list.length);
