@@ -79,9 +79,9 @@ function stepReaper(t, dt) {
     if (t.aim && t.cd <= 0) t.cd = t.period;
   }
   if (!t.aim) { t.cd = t.period; stopCharge(t); return; }
-  // a charge starting from full plays the charge-up hum, timed to the reload
-  // as it will actually play out on screen (game speed applied)
-  if (t.cd >= t.period - 1e-9 && !t.chargeSnd) t.chargeSnd = sfx("reaperCharge", t.period / SPEED_MULT[ui.speed]);
+  // the charge-up hum plays only over the LAST THIRD of the charge (owner),
+  // timed to it as it will play out on screen (game speed applied)
+  if (t.cd <= t.period / 3 && !t.chargeSnd) t.chargeSnd = sfx("reaperCharge", Math.max(0.05, t.cd) / SPEED_MULT[ui.speed]) || { stop() {} };
   t.cd -= dt;
   if (t.cd > 0) return;
   t.shots = (t.shots || 0) + 1;
