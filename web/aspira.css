@@ -60,21 +60,16 @@
 .asp-bottom {
   position: absolute;
   left: var(--space-6);
-  right: var(--space-6);
+  right: calc(var(--space-10) * 2 + var(--space-2)); /* clears the site's floating Exec bubble (bottom-right) at every width */
   bottom: var(--space-4);
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end; /* bottom-RIGHT, against the Exec bubble (owner; was centred in the space left of it) */
   gap: var(--space-2);
   pointer-events: none;
 }
 .asp-bottom > * { pointer-events: auto; }
-
-/* keep the build bar clear of the site's floating Exec bubble (bottom-right) */
-@media (width < 600px) {
-  .asp-bottom { right: calc(var(--space-10) * 2 + var(--space-2)); }
-}
 .asp-build { display: flex; gap: var(--space-2); }
 #asp .asp-build .asp-tw { min-width: 72px; background: hsl(var(--bg-hsl)); }
 
