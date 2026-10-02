@@ -220,6 +220,16 @@ function refreshPanels() {
   }
 }
 
+// the enemy itself (owner): the same polygon the board draws (poly() in
+// aspira-draw.js), as a small inline SVG in the type's colour
+function enemyIcon(type) {
+  const d = ENEMIES[type], n = d.star ? d.sides * 2 : d.sides, pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.star && i % 2 ? 3.6 : 8;
+    pts.push((10 + Math.cos(a) * r).toFixed(1) + "," + (10 + Math.sin(a) * r).toFixed(1));
+  }
+  return '<svg class="asp-eicon" viewBox="0 0 20 20" aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
+}
 let lastNote = "";
 function updateHud() {
   setText($("asp-lives"), G.lives);
@@ -234,10 +244,17 @@ function updateHud() {
     setText(btn.querySelector(".c"), short(towerCost(k)));
     btn.classList.toggle("on", ui.build === k);
   }
-  // the NEXT wave under the send button (owner; waves are fixed, so it is known)
-  const nx = wavePlan(G.wave + 1, G.lastType), col = ENEMIES[nx.type].color;
-  const note = "next · wave " + (G.wave + 1) + ": <b class=\"e-" + col + "\">" + nx.type + " ×" + nx.count + "</b> on " + nx.split +
-    (nx.split > 1 ? " lanes" : " lane") + (nx.star ? ' + <b class="e-orange">★</b>' : "");
+  // the next TEN waves under the send button, one per row (owner; waves are
+  // fixed, so they are known): number : enemy x count, lanes, star. A grid
+  // keeps the ":" in one column down the middle.
+  let note = "", prev = G.lastType;
+  for (let i = 1; i <= 10; i++) {
+    const n = G.wave + i, w = wavePlan(n, prev);
+    prev = w.type;
+    note += "<span>" + n + "</span><span>:</span><span>" +
+      '<b class="e-' + ENEMIES[w.type].color + '">' + enemyIcon(w.type) + "×" + w.count + "</b> · " + w.split + (w.split > 1 ? " lanes" : " lane") +
+      (w.star ? ' <b class="e-orange">' + enemyIcon("bonus") + "</b>" : "") + "</span>";
+  }
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
   const send = $("asp-send");
   const label = G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " · " + Math.ceil(Math.max(0, G.nextIn)) + "s";
