@@ -4275,6 +4275,7 @@ Slows now STACK across towers, logarithmically (owner, 2026-10-02; replaces "one
 Contagion range x0.6 and Pandemic x1.25 on top (was x1 / x1.5) (owner, 2026-10-02: every burn in range keeps ramping, so the wide version was too strong).
 Wave timer 10 -> 13s (owner, 2026-10-02: thinner field). Simulator (six slots, ARC/FRZ/SOL): 2+ waves on screen 68-77% in W0-29, 88% in W30-39, 100% after (10s gave 73-96%); reached W55 vs W52.
 ...and 13 -> 16s the same day (owner: a few more seconds between waves).
+Simulator: ghosts are dropped at death (2.1x faster, results within seed noise), and `buildsearch.mjs` hill-climbs a build plan (ordered builds/upgrades + a threat radius; the player saves until an enemy is that close) for the biggest bank at wave 31 alive on every seed.
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
