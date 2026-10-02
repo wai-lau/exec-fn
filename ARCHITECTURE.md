@@ -4115,6 +4115,13 @@ more; spawn spacing is a lever — swarm gap 0.12s
 apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). CHN 28 dmg at 1.5 shots/s (owner halved its rate, doubled its damage).
+RPD fires in BURSTS of 10 (`RAPID_BURST`, `fireBurst`): targets are locked for
+the whole burst and shots after a target dies are WASTED (fired at its ghost,
+no damage), so overkill against tiny swarmers costs it (owner).
+Each RPD shot is a small HOMING SQUIGGLE (`launchMissile`/`stepMissiles`,
+`G.missiles`, 520 u/s, sine wiggle that straightens as it closes) dealing its
+damage on ARRIVAL; shots in flight at a target that dies are wasted too, and a
+MISSED shot visibly keeps flying on its last heading, fading over 0.7s.
 Tuned by: RPD 1.75 dmg at 36 shots/s (owner doubled its rate and halved
 its damage), base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /

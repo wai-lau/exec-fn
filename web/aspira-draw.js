@@ -404,6 +404,21 @@ function shakeOffset() {
   return [(Math.random() * 2 - 1) * a, (Math.random() * 2 - 1) * a];
 }
 
+// Rapid's homing squiggles: the recent path as a short wavy line, brightest
+// at the head
+function drawMissiles() {
+  if (!G.missiles || !G.missiles.length) return;
+  ctx.strokeStyle = COL.chatsubo; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+  for (const m of G.missiles) {
+    ctx.globalAlpha = m.miss ? m.miss / MISS_LIFE : 1; // a miss fades as it sails off
+    ctx.beginPath();
+    for (let i = 0; i < m.trail.length; i += 2) ctx.lineTo(m.trail[i], m.trail[i + 1]);
+    ctx.lineTo(m.x, m.y); ctx.stroke();
+    ctx.fillStyle = COL.white; ctx.fillRect(m.x - 1, m.y - 1, 2, 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -420,6 +435,7 @@ function render() {
   drawTethers();
   drawAims();
   drawFx("shots");
+  drawMissiles();
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
   drawFx("text");
