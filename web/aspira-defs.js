@@ -273,7 +273,10 @@ function towerStats(t, noAura = false) {
     applyMods(s, p.mods);
     if (t.form != null) {
       const fm = p.finals[t.form].mods;
-      applyMods(s, t.lvl >= MAX_LVL ? superMods(fm) : fm); // L4: super form
+      const fin = p.finals[t.form];
+      // L4: the form's own on-theme super on top of it, else the generic boost
+      if (t.lvl >= MAX_LVL && fin.super) { applyMods(s, fm); applyMods(s, fin.super.mods); }
+      else applyMods(s, t.lvl >= MAX_LVL ? superMods(fm) : fm);
     }
   }
   if (s.slow) s.slow = Math.min(0.85, s.slow);

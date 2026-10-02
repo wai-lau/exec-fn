@@ -11,21 +11,25 @@ const BRANCH_LVL = 2, FINAL_LVL = 3; // the levels that bring the path / final f
 
 const UPGRADES = {
   chain: [
-    // L2 paths (owner, 2026-10-02). branch / layers reshape the arc tree;
-    // the L3 finals are PLACEHOLDERS until designed.
+    // ARC (owner, 2026-10-02): L2 is 2 PATHS, L3 is 3 FORMS each. branch /
+    // layers reshape the arc tree. Ion's damage is matched to Storm's full
+    // tree per shot: Storm = strike x (1 + 12 x 0.8) = 10.6, Ion 4 hits = 3.4
+    // -> x3.1.
     { name: "Storm", desc: "the tree grows: 1→3→9", mods: { branch: 3, layers: 2 }, finals: [
-      { name: "Tempest", desc: "(placeholder) 1→4→16", mods: { branch: 4 } },
-      { name: "Overcharge", desc: "(placeholder) arcs hit as hard as the strike", mods: { arcFall: 1 } },
+      { name: "Tempest", desc: "a wider tree: 1→4→16", mods: { branch: 4 },
+        super: { name: "Maelstrom", desc: "wider still: 1→5→25", mods: { branch: 5 } } },
+      { name: "Overcharge", desc: "arcs hit as hard as the first strike", mods: { arcFall: 1 },
+        super: { name: "Surge", desc: "arcs hit HARDER than the strike: x1.5", mods: { arcFall: 1.5 } } },
+      { name: "Static", desc: "every hit slows 30% for 0.5s", mods: { hitSlow: { f: 0.3, t: 0.5 } },
+        super: { name: "Lockdown", desc: "hits slow 50% for 1s and may stun (20%, 0.3s)", mods: { hitSlow: { f: 0.5, t: 1 }, stun: { p: 0.2, t: 0.3 } } } },
     ] },
-    // damage per shot matched to Storm's full tree (owner): Storm = strike x
-    // (1 + 12 x 0.8) = 10.6; Ion 4 hits = 3.4 -> x3.1; Static 3 hits = 2.6 -> x4.1
     { name: "Ion", desc: "ignores shields and half of armor; a line 1→1→1→1; damage x3.1", mods: { dmg: 3.1, branch: 1, layers: 3, ignoreShield: true, armorPierce: 0.5, noRevisit: true }, finals: [
-      { name: "Rail", desc: "(placeholder) a longer line, 6 hops", mods: { layers: 6 } },
-      { name: "Melt", desc: "(placeholder) ignores all armor", mods: { armorPierce: 1 } },
-    ] },
-    { name: "Static", desc: "every hit slows 30% for 0.5s; damage x4.1", mods: { dmg: 4.1, hitSlow: { f: 0.3, t: 0.5 } }, finals: [
-      { name: "Lockup", desc: "(placeholder) hits slow 50% for 0.8s", mods: { hitSlow: { f: 0.5, t: 0.8 } } },
-      { name: "Shock", desc: "(placeholder) 20% chance to stun 0.3s", mods: { stun: { p: 0.2, t: 0.3 } } },
+      { name: "Rail", desc: "a longer line: 6 hops", mods: { layers: 6 },
+        super: { name: "Railgun", desc: "the line runs 10 hops", mods: { layers: 10 } } },
+      { name: "Melt", desc: "ignores all armor; each hit strips 2 armor for good", mods: { armorPierce: 1, armorShred: 2 },
+        super: { name: "Dissolve", desc: "each hit strips 6 armor for good", mods: { armorShred: 6 } } },
+      { name: "Crescendo", desc: "each hop hits 25% harder than the last", mods: { hopGain: 1.25 },
+        super: { name: "Fortissimo", desc: "each hop hits 60% harder than the last", mods: { hopGain: 1.6 } } },
     ] },
   ],
   // ACD's tree is a PLACEHOLDER (owner to design): plain stat paths for now
@@ -84,7 +88,9 @@ function applyMods(s, mods) {
   }
 }
 
-// LEVEL 4 = SUPER FORM (owner): the final form "concentrates further" —
+// LEVEL 4 = SUPER FORM (owner). A form may name its OWN super (`super: { name,
+// desc, mods }` - on theme with that form, owner); its mods apply on top of the
+// form's. A form without one falls back to the generic rule: the final form "concentrates further" —
 // its own mods are intensified, so the tower becomes a super version of what
 // it already is. Multipliers compound (v^1.6: Sniper's half fire rate goes
 // slower still, its x3 damage far higher); additive bonuses double; each
@@ -127,5 +133,7 @@ function towerTitle(t) {
   if (t.path == null) return b.name;
   const p = UPGRADES[t.kind][t.path];
   if (t.form == null) return b.name + " · " + p.name;
-  return (t.lvl >= MAX_LVL ? "Super " : "") + p.finals[t.form].name;
+  const f = p.finals[t.form];
+  if (t.lvl < MAX_LVL) return f.name;
+  return f.super ? f.super.name : "Super " + f.name;
 }

@@ -54,7 +54,7 @@ function stepChains(dt) {
     if (p.wait > 0) { G.chains.push(p); continue; }
     const nxt = nextHop(p.c, p.node);
     if (!nxt) continue; // nothing left in reach: this arc fizzles
-    branchFrom(p.c, hopTo(p.c, p.node, nxt), p.depth + 1);
+    branchFrom(p.c, hopTo(p.c, p.node, nxt, p.depth), p.depth + 1);
   }
 }
 
@@ -71,8 +71,9 @@ function nextHop(c, node) {
   }
   return nxt;
 }
-function hopTo(c, node, nxt) {
-  const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg);
+// Crescendo (st.hopGain): each layer deeper hits that much harder than the last
+function hopTo(c, node, nxt, depth) {
+  const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg * (st.hopGain || 1) ** (depth - 1));
   node.kids.add(nxt.id); c.seen.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one

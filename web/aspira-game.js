@@ -210,6 +210,8 @@ function onHit(e, t, st, amt) {
   if (st.dot) { e.dotDps = Math.max(e.dotT > 0 ? e.dotDps : 0, amt * st.dot.frac / st.dot.t); e.dotT = st.dot.t; e.dotSrc = t; }
   if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t);
   if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t);
+  // Melt (ARC): every hit strips armor for good, so later hits land harder
+  if (st.armorShred && e.armor) e.armor = Math.max(0, e.armor - st.armorShred);
   if (st.splash) {
     ring(e.x, e.y, st.splash.r, TOWERS[t.kind].color, 0.1);
     for (const o of G.enemies) {
