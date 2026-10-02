@@ -108,6 +108,9 @@
 
 .asp-main, .asp-board { position: absolute; inset: 0; }
 
+/* while a boss lives the whole game inverts (owner) */
+#asp.asp-boss { filter: invert(1); }
+
 #asp-cv {
   position: absolute;
   inset: 0;
