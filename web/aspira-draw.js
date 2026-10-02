@@ -121,13 +121,9 @@ function drawCore() {
   text(G.lives, CX, CY + 2, 28, "bg");
 }
 
-// A tower is its cell's hexagon, inset a little so neighbours read apart;
-// label at the centroid, level pips beneath it.
-// Level reads as CONCENTRIC LAYERS all the way round: each 5-level tier adds
-// an outer hex ring. The outermost ring always sits at the cell's usual size
-// (TOWER_K) and the main hex shrinks one step per tier, so towers never grow
-// into their neighbours. Dots count the levels toward the next ring.
-const TOWER_K = 0.88, LAYER_STEP = 0.09;
+// A tower is its cell's hexagon, inset a little; its label at the centroid.
+// Level shows as concentric rings OUTSIDE it (drawTower).
+const TOWER_K = 0.88;
 function towerHex(c, k) {
   ctx.beginPath();
   c.pts.forEach((p, i) => {
@@ -136,29 +132,28 @@ function towerHex(c, k) {
   });
   ctx.closePath();
 }
-const TOWER_GLOW = [4, 12, 22, 34]; // shadow blur per level, world px
+// LEVEL READS AT A GLANCE (owner, 2026-10-02): the main hex stays full size
+// and each level past L1 adds a BOLD ring OUTSIDE it, LEVEL_GAP further out
+// each (the cells are two tiles apart, so there is room), under a glow that
+// grows with the level.
+const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.24; // glow: shadow blur per level, world px
 function drawTower(t, ghost) {
   const b = TOWERS[t.kind], c = CELLS[t.cell];
   const tiers = t.lvl - 1, base = ghost ? 0.55 : 1; // one ring per level above L1
-  const kMain = TOWER_K - LAYER_STEP * tiers;
   ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round";
   ctx.globalAlpha = base;
   towerHex(c, TOWER_K); ctx.fill();
-  for (let r = 1; r <= tiers; r++) {
-    ctx.globalAlpha = base * (1 - 0.15 * r); ctx.lineWidth = 2.2;
-    towerHex(c, kMain + LAYER_STEP * r); ctx.stroke();
-  }
-  ctx.globalAlpha = base; ctx.lineWidth = 3.5;
-  // a glow in the tower's own colour that grows with its level (owner): wider
-  // blur AND one stacked pass per level, since a lone wide shadow thins out
   ctx.shadowColor = COL[b.color]; ctx.shadowBlur = TOWER_GLOW[t.lvl - 1] * cam.k;
-  towerHex(c, kMain);
+  for (let r = 1; r <= tiers; r++) {
+    ctx.globalAlpha = base * (1 - 0.12 * r); ctx.lineWidth = 3.5;
+    towerHex(c, TOWER_K + LEVEL_GAP * r); ctx.stroke();
+  }
+  // the glow stacks one pass per level, since a lone wide shadow thins out
+  ctx.globalAlpha = base; ctx.lineWidth = 4.5;
+  towerHex(c, TOWER_K);
   for (let i = 0; i < t.lvl; i++) ctx.stroke();
   ctx.shadowBlur = 0;
   text(towerAb(t), c.x, c.y + 1, 13, b.color);
-  // the level as a roman numeral just BELOW the hex (owner: make the level
-  // apparent; the rings alone did not read, and inside the hex it was cramped)
-  text(roman(t.lvl), c.x, c.y + CELL_S + 12, 20, b.color);
   ctx.globalAlpha = 1;
 }
 
