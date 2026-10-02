@@ -84,7 +84,7 @@ const UPGRADES = {
   // SOL (owner, 2026-10-02): L2 Charge or Array, three forms each, each with
   // its own on-theme L4 super. Multi-lock (Array) was the parked idea.
   reaper: [
-    { name: "Charge", desc: "damage x1.8, fire rate -30%", mods: { dmg: 1.8, rate: 0.7 }, finals: [
+    { name: "Charge", desc: "damage x2, fire rate -30%; fires twin beams", mods: { dmg: 2, rate: 0.7, twin: true }, finals: [
       { name: "Longshot", desc: "+1.5% damage per 10 units to the target", mods: { longshot: 0.015 },
         super: { name: "Horizon", desc: "+3% per 10 units", mods: { longshot: 0.03 } } },
       { name: "Supernova", desc: "hits explode for 50% in a radius of 90", mods: { splash: { r: 90, frac: 0.5 } },

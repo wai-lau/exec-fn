@@ -243,7 +243,8 @@ function onHit(e, t, st, amt) {
   // Melt (ARC): every hit strips armor for good, so later hits land harder
   if (st.armorShred && e.armor) e.armor = Math.max(0, e.armor - st.armorShred);
   if (st.splash) {
-    ring(e.x, e.y, st.splash.r, TOWERS[t.kind].color, 0.1);
+    // a FILLED blast that lingers 0.3s, so the splash actually reads (owner)
+    fx.push({ k: "blast", x: e.x, y: e.y, r: st.splash.r, color: TOWERS[t.kind].color, t: 0, life: 0.3 });
     for (const o of G.enemies) {
       if (o === e || o.dead) continue;
       if (Math.hypot(o.x - e.x, o.y - e.y) <= st.splash.r) damage(o, amt * st.splash.frac, t, true);
@@ -340,7 +341,7 @@ function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) 
   fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg), slim,
     a: follow ? a : null, b: follow ? b : null });
 }
-function ring(x, y, r, color, life = 0.12) { fx.push({ k: "ring", x, y, r, color, t: 0, life }); }
+function ring(x, y, r, color, life = 0.12, grad = false) { fx.push({ k: "ring", x, y, r, color, t: 0, life, grad }); }
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
 // every pop-up has the black outline + dark glow (owner); `under` marks the
 // damage numbers, which draw beneath everything but the background
@@ -386,6 +387,8 @@ function stepEnemies(dt) {
       if (e.stunT > 0) e.stunT -= dt;
       if (e.slows) sumSlows(e, dt);
       if (e.markT > 0) e.markT -= dt; else e.markMul = 1;
+      if (e.biteT > 0) e.biteT -= dt; // Frostbite tint
+      if (e.corrodeT > 0) e.corrodeT -= dt; // Corrosion ring
       if (e.shredT > 0) e.shredT -= dt;
       if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
       e.s += effSpeed(e) * dt;

@@ -36,6 +36,7 @@ const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start
 function fireChain(t, st, e, from = t, relay = false) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(from, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
+  if (st.ignoreShield) root.fx.pierce = true; // Ion: a white core - it pierces (owner)
   const c = { t, st, col, dmg: st.dmg * st.arcFall, seen: new Set([e.id]), relay };
   chainHit(c, e, dmg);
   branchFrom(c, root, 1);
@@ -100,6 +101,7 @@ function nextHop(c, node) {
 function hopTo(c, node, nxt, depth) {
   const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg * (st.hopGain || 1) ** (depth - 1));
   node.kids.add(nxt.id); c.seen.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
+  if (c.st.ignoreShield) fx[fx.length - 1].pierce = true;
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one
   chainHit(c, nxt, d);
@@ -135,12 +137,12 @@ function fireSlower(t, st) {
 let shattering = false;
 function shatterAt(e) {
   const { t, st } = e.shatter, r = st.shatter.r, d = e.max * st.shatter.frac;
-  ring(e.x, e.y, r, "cyan", 0.25);
+  ring(e.x, e.y, r, "cyan", 0.25, true); // gradient-filled (owner)
   shattering = true;
   for (const o of G.enemies) {
     if (o === e || o.dead || Math.hypot(o.x - e.x, o.y - e.y) > r) continue;
     damage(o, d, t);
-    if (st.frostbite && !o.dead) applySlow(o, st.slow, st.frostbite, t.id);
+    if (st.frostbite && !o.dead) { applySlow(o, st.slow, st.frostbite, t.id); o.biteT = st.frostbite; } // biteT: frost tint
   }
   shattering = false;
 }
@@ -219,7 +221,7 @@ function acidTick(t, st, l, every) {
   const burn = o => {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t); onHit(o, t, st, dd);
-    if (st.corrode && !o.dead) o.armor = (o.armor || 0) - st.corrode; // Corrosion: past zero, on purpose
+    if (st.corrode && !o.dead) { o.armor = (o.armor || 0) - st.corrode; o.corrodeT = 0.4; } // Corrosion: past zero, on purpose; corrodeT: dotted ring
   };
   const R = st.plagueR ? plagueRadius(l, st) : 0, center = l.e;
   burn(center);
@@ -250,8 +252,14 @@ function rayHit(t, st, e, base, from, crit) {
   const far = st.longshot ? 1 + st.longshot * Math.hypot(e.x - t.x, e.y - t.y) / 10 : 1;
   const d = shotDamage(t, st, e, base) * m * far, before = e.hp;
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
+  if (st.twin) fx[fx.length - 1].twin = true; // Charge: drawn as two parallel beams (owner)
   damage(e, d, t, false, m > 1); onHit(e, t, st, d); // a crit shows as a PINK number (owner)
-  if (st.execute && !e.dead && e.hp / e.max < st.execute) damage(e, e.hp + 1, t, false, true);
+  if (st.execute && !e.dead && e.hp / e.max < st.execute) {
+    // Execute / Verdict: the enemy flashes WHITE as it goes, with extra sparks (owner)
+    fx.push({ k: "flash", x: e.x, y: e.y, r: ENEMIES[e.type].size * 1.6, t: 0, life: 0.3 });
+    burst(e.x, e.y, "white", 22);
+    damage(e, e.hp + 1, t, false, true);
+  }
   return e.dead ? Math.max(0, d - before) : 0;
 }
 function fireRay(t, st, e) {
