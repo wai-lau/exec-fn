@@ -4096,8 +4096,8 @@ SLW's slow strength was doubled (owner): 70% at L1, and the 85% cap is hit
 from L2 on. All enemies move at `ENEMY_SPEED = 0.5` of their table speed (owner);
 spawn gaps are divided by the same factor so on-lane spacing is unchanged.
 Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
-per-hop falloff, CHN range was HALVED (base 92.5) and hop reach EQUALS
-the tower's range (111 at L1, growing with level; owner), measured each hop from the
+per-hop falloff, CHN range was HALVED (base 92.5) and hop reach is HALF
+the tower's range (55 at L1, growing with level; owner), measured each hop from the
 last-hit enemy's CURRENT position after the hop delay; Conductor +50%, Tesla
 more; spawn spacing is a lever — swarm gap 0.12s
 (~11 apart, inside hop reach), normal/shield/armor 0.8s and fast 0.5s (~60+
