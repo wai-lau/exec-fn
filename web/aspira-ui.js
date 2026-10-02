@@ -204,6 +204,7 @@ function refreshPanels() {
   const pop = $("asp-pop"), placing = $("asp-placing");
   const t = ui.sel && G.towers.find(x => x.id === ui.sel);
   pop.hidden = !t;
+  pop.dataset.kind = t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
   if (t) { inspectTower(pop, t); placePop(); }
   placing.hidden = !ui.build;
   if (ui.build) {

@@ -217,6 +217,14 @@
 
 .asp-pop[hidden] { display: none; } /* .asp-deck's display:flex beats the UA [hidden] rule */
 
+/* the card is coloured like the tower clicked (owner): every green inside it
+   (tint, borders, labels, buttons) reads --green-hsl, so swap that one token */
+.asp-pop[data-kind="chain"] { --green-hsl: var(--pink-hsl); }
+.asp-pop[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
+.asp-pop[data-kind="reaper"] { --green-hsl: var(--orange-hsl); }
+.asp-pop[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-pop[data-kind] { color: hsl(var(--green-hsl)); }
+
 /* CRT stack well below even crt-dim.css's reduced strength: a fast board of
    fine lines and small shapes is unreadable under full scanlines. aspira.css
    loads only on /aspira, so these global selectors touch no other page.
