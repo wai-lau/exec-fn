@@ -75,7 +75,7 @@ $("asp-send").onclick = sendWave;
 
 button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 
-// EXC's form, in one short line for the popup (the same row at every level, so
+// SOL's form, in one short line for the popup (the same row at every level, so
 // the next-level preview lines up)
 function rayForm(st) {
   if (st.longshot) return "+" + Math.round(st.longshot * 100) + "% / 10u";

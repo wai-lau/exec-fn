@@ -232,7 +232,7 @@ function stepAcid(t, dt) {
   }
 }
 
-// EXC's shot: one crit roll per shot. Its forms (owner, 2026-10-02):
+// SOL's shot: one crit roll per shot. Its forms (owner, 2026-10-02):
 //   st.longshot  +x damage per 10 units from the tower (Longshot)
 //   st.splash    the hit explodes (Supernova; onHit)
 //   st.execute   an enemy left under this share of HP dies outright (Execute)

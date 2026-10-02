@@ -8,11 +8,11 @@ const best = { chain: [1, 1], slower: [0, 1], reaper: [0, 0], acid: [1, 0] };
 const A = (o) => ({ up: 0.5, maxTowers: 20, paths: best, ...o });
 const S = [
   A({ name: "mono ARC", mix: { chain: 1 } }),
-  A({ name: "mono EXC", mix: { reaper: 1 } }),
+  A({ name: "mono SOL", mix: { reaper: 1 } }),
   A({ name: "mono ACD", mix: { acid: 1 } }),
   A({ name: "ARC>all4", opening: ["chain", "chain"], mix: { chain: 1, slower: 1, reaper: 1, acid: 1 } }),
   A({ name: "ARC>all4 -FRZ", opening: ["chain", "chain"], mix: { chain: 1, reaper: 1, acid: 1 } }),
-  A({ name: "ARC>all4 -EXC", opening: ["chain", "chain"], mix: { chain: 1, slower: 1, acid: 1 } }),
+  A({ name: "ARC>all4 -SOL", opening: ["chain", "chain"], mix: { chain: 1, slower: 1, acid: 1 } }),
   A({ name: "ARC>all4 -ACD", opening: ["chain", "chain"], mix: { chain: 1, slower: 1, reaper: 1 } }),
   A({ name: "ARC>all4 -ARC", opening: ["chain", "chain"], mix: { slower: 1, reaper: 1, acid: 1 } }),
 ];

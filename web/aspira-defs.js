@@ -196,13 +196,13 @@ function resolveColors() {
 
 // Rates are per REAL second at 1x speed (time was rescaled so 1x = real time;
 // every rate x3 and every duration /3 against the old hidden-3x values).
-// display names (owner): chain = ARC, slower = FRZ, reaper = EXC (was RAY),
+// display names (owner): chain = ARC, slower = FRZ, reaper = SOL (was RAY),
 // acid = ACD; the code
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "pink",     cost: 40,  dmg: 28, rate: 1.5,  range: 173.4, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 133,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
-  reaper:  { name: "Executor", ab: "EXC", color: "orange", cost: 40,  dmg: 110,  rate: 1.35,  range: 318, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  reaper:  { name: "Sol",      ab: "SOL", color: "orange", cost: 40,  dmg: 110,  rate: 1.35,  range: 318, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
   acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 8,  rate: 4,    range: 160, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
 };
@@ -242,7 +242,7 @@ const POWER_FULL = 30, POWER_TIME = 10 / 3;
 const LVL_DMG = [1, 1.874, 4.108, 9.007];
 const LVL_RANGE = [1, 1.12, 1.27, 1.42];
 const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
-// no L1 half rate any more: two L1 EXCs must clear wave 1 (30 swarmers) with no
+// no L1 half rate any more: two L1 SOLs must clear wave 1 (30 swarmers) with no
 // leak (owner, 2026-10-02); the simulator showed even full rate leaked ~10
 const LVL_REAPER_RATE = [1, 1, 1, 1];
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
@@ -267,7 +267,7 @@ function towerStats(t, noAura = false) {
     case "chain":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
       s.arcRange = s.range; s.branch = 2; s.layers = 1; break;
-    // EXC levels up MODESTLY like ARC and ACD (owner): the L2 path brings the change
+    // SOL levels up MODESTLY like ARC and ACD (owner): the L2 path brings the change
     case "reaper":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
       s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;

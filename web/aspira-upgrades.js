@@ -76,7 +76,7 @@ const UPGRADES = {
         super: { name: "Ice Age", desc: "the permanent slow is 15% stronger", mods: { slow: 0.15 } } },
     ] },
   ],
-  // EXC (owner, 2026-10-02): L2 Charge or Array, three forms each, each with
+  // SOL (owner, 2026-10-02): L2 Charge or Array, three forms each, each with
   // its own on-theme L4 super. Multi-lock (Array) was the parked idea.
   reaper: [
     { name: "Charge", desc: "damage x1.8, fire rate -30%", mods: { dmg: 1.8, rate: 0.7 }, finals: [
