@@ -4103,8 +4103,8 @@ apart, at or beyond it); swarm HP 0.12 (~7 at wave 6, CHN kills ~5 per shot);
 SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, base range 140
 (cut from 220 so RPD stops being the best answer to nearly everything), CHN 3 base hops /
-110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME = 12.5`s
-(5x), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
+110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME` ~42 real seconds
+(owner raised it 5x, then 10x more), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
 charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 80 dmg at 0.30 shots/s (a 3.3 game-second cycle; every change to its
 rate has kept 24 dps; was 80 at 0.30, then 120 at
 0.20 — the same 24 dps each time, a slower beat — owner); slow now affects EVERY enemy at full strength (owner removed the
@@ -4150,7 +4150,7 @@ the next wave goes at once and the early bonus pays the whole countdown.
 **Time is REAL at 1x** (owner): the sim used to run at a hidden 3x at "1x",
 so the code was rescaled once — every rate x3 (enemy pace `ENEMY_SPEED` 1.5;
 fire rates RPD 18/s, CHN 3, SLW 2.4, RPR 0.9) and every duration /3 (slow
-~4.2s, wave countdown 5s, beam/flash/spark/banner lives, upgrade durations),
+then ~4.2s, since raised to ~42s; wave countdown 5s, beam/flash/spark/banner lives, upgrade durations),
 with `SPEED_MULT = {1:1, 2:2, 3:3}`. The pace of play did not change. The early
 bonus pays 3 credits per second skipped so a full countdown is still +15.
 Older numbers elsewhere in this section that predate the rescale are in the
