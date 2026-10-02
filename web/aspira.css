@@ -28,14 +28,21 @@
 #asp .asp-controls button { padding: var(--space-1-5) var(--space-3); }
 .asp-controls .asp-row > button { flex: none; }
 
-/* the next waves, BOTTOM-LEFT (owner, 2026-10-02; was under the speed row) */
-.asp-wavenote {
+/* BOTTOM-LEFT (owner, 2026-10-02): the next waves, the title under them */
+.asp-left {
   position: absolute;
   left: var(--space-6);
   bottom: var(--space-4);
   z-index: var(--z-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.asp-wavenote {
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: repeat(5, auto); /* number : enemies hp name */
   justify-content: start;
   gap: var(--space-0-5) var(--space-1);
   font-size: var(--fs-2xs);
@@ -47,7 +54,10 @@
      boss's inverted (white) sky as well as the dark one (owner) */
   filter: drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl)));
 }
-.asp-wavenote > span:nth-child(3n + 1) { text-align: right; } /* wave numbers right-aligned against the ":" */
+
+/* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
+.asp-wavenote > span:nth-child(5n + 1),
+.asp-wavenote > span:nth-child(5n + 4) { text-align: right; }
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
@@ -60,9 +70,9 @@
 }
 #asp .asp-build.asp-flash .asp-tw { animation: asp-flash 1.6s ease-in-out infinite; }
 
-/* on a phone the build bar spans the bottom, so the list sits just above it */
+/* on a phone the build bar spans the bottom, so the list and title sit above it */
 @media (width < 700px) {
-  .asp-wavenote { bottom: calc(var(--space-4) + 112px); }
+  .asp-left { bottom: calc(var(--space-4) + 112px); }
 }
 
 /* an enemy's own shape (enemyIcon), in its colour, sized to the text */
@@ -119,8 +129,10 @@
   text-transform: uppercase;
   color: hsl(var(--orange-hsl));
 }
-.asp-stats { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); font-variant-numeric: tabular-nums; }
-.asp-stat { display: flex; gap: var(--space-2); align-items: baseline; }
+
+/* ONE row (owner): small type, tight gaps, never wrapping */
+.asp-stats { display: flex; flex-wrap: nowrap; gap: var(--space-3); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.asp-stat { display: flex; gap: var(--space-1); align-items: baseline; }
 .asp-stat b { font-size: var(--fs-2xs); font-weight: var(--fw-normal); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
 .asp-stat span { font-weight: var(--fw-bold); }
 
@@ -347,3 +359,9 @@
    the worse stays Ember red */
 .asp-card .asp-next { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
 .asp-card .asp-next.asp-worse { color: hsl(var(--orange-glow-hsl)); }
+
+/* the title left the header, so it flips with the boss sky on its own */
+#asp.asp-boss .asp-title { filter: invert(1); }
+
+/* the sound toggle is an icon (owner): a speaker, crossed out when muted */
+#asp-mute svg { display: block; width: 1.2em; height: 1.2em; fill: none; stroke: currentcolor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
