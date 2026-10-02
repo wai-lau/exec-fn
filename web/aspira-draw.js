@@ -240,6 +240,18 @@ function drawRange(x, y, r, color, dim = false) {
   ctx.globalAlpha = 1;
 }
 
+// a tower's range, plus (for the Reaper) its dashed outer HOLD ring: where a
+// lock it has already started can keep charging
+function drawTowerRange(t, dim) {
+  const r = towerStats(t).range, col = TOWERS[t.kind].color;
+  drawRange(t.x, t.y, r, col, dim);
+  if (t.kind !== "reaper") return;
+  ctx.beginPath(); ctx.arc(t.x, t.y, r * REAPER_HOLD, 0, 6.283);
+  ctx.strokeStyle = COL[col]; ctx.setLineDash([8, 10]); ctx.lineWidth = dim ? 1.5 : 2.5;
+  ctx.globalAlpha = dim ? 0.2 : 0.5; ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+}
+
 function drawEnemy(e) {
   // damage shows as both size and opacity: full HP = full size, solid;
   // near death = 45% size, faint
@@ -370,8 +382,8 @@ function render() {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
   drawBoard();
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
-  for (const t of G.towers) if (t !== sel) drawRange(t.x, t.y, towerStats(t).range, TOWERS[t.kind].color, true);
-  if (sel) drawRange(sel.x, sel.y, towerStats(sel).range, TOWERS[sel.kind].color);
+  for (const t of G.towers) if (t !== sel) drawTowerRange(t, true);
+  if (sel) drawTowerRange(sel, false);
   // stars go on top of lanes and range fills, which would otherwise tint them
   drawStars();
   for (const e of G.enemies) drawEnemy(e);
