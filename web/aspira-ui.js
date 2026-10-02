@@ -93,8 +93,11 @@ const SPEC = {
     return [["Hits", tree.join("→")], ["Arc dmg", Math.round(st.dmg * st.arcFall)],
       ["Arc reach", Math.round(st.arcRange)], ["Leash", Math.round(st.range * CHAIN_LEASH)], ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
-  slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", SLOW_TIME.toFixed(1) + "s"],
-    ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"]],
+  slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
+    ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
+    ["Shatter", st.shatter ? Math.round(st.shatter.frac * 100) + "% r" + st.shatter.r : "—"],
+    ["Extra", st.frostbite ? "blast slows " + st.frostbite + "s" : st.brittle ? "+" + Math.round((st.brittle - 1) * 100) + "% taken"
+      : st.chillStop ? "freeze " + st.chillStop + "s" : "—"]],
   acid: st => [["Burn", Math.round(st.dmg) + "/s"], ["Ramp", "×2 / " + st.double + "s"],
     ["Max", "×" + st.cap + " (" + Math.round(st.dmg * st.cap) + "/s)"], ["Lines", st.allInRange ? "all in range" : st.targets],
     ["Circle", st.plagueR ? Math.round(st.plagueR) + (st.bloom ? "→" + Math.round(st.plagueR * st.bloom) : "") : "—"],

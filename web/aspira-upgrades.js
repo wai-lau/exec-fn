@@ -55,18 +55,24 @@ const UPGRADES = {
         super: { name: "Pandemic", desc: "range x1.5", mods: { range: 1.5 } } },
     ] },
   ],
+  // FRZ (owner, 2026-10-02): L2 Shatter or Stasis, three forms each, each with
+  // its own on-theme L4 super.
   slower: [
-    { name: "Frost", desc: "+15% slow", mods: { slow: 0.15 }, finals: [
-      { name: "Deep Freeze", desc: "newly slowed enemies freeze 0.17s", mods: { chillStop: 0.17 } },
-      { name: "Brittle", desc: "slowed enemies take +30% damage", mods: { brittle: 1.3 } },
+    { name: "Shatter", desc: "an enemy that dies while slowed explodes: 25% of its max HP within 60", mods: { shatter: { frac: 0.25, r: 60 } }, finals: [
+      { name: "Frostbite", desc: "explosions also slow everything they hit, for 2.6s", mods: { frostbite: 2.6 },
+        super: { name: "Hoarfrost", desc: "that slow lasts 7.8s", mods: { frostbite: 7.8 } } },
+      { name: "Shrapnel", desc: "explosions deal 50% of max HP", mods: { shatter: { frac: 0.5, r: 60 } },
+        super: { name: "Splinter", desc: "explosions deal 100% of max HP", mods: { shatter: { frac: 1, r: 60 } } } },
+      { name: "Brittle", desc: "slowed enemies take +30% from every tower", mods: { brittle: 1.3 },
+        super: { name: "Fracture", desc: "+60%", mods: { brittle: 1.6 } } },
     ] },
-    { name: "Spread", desc: "+3 targets", mods: { targets: 3 }, finals: [
-      { name: "Blizzard", desc: "slows everything in range", mods: { all: true } },
-      { name: "Glacier", desc: "+40% range", mods: { range: 1.4 } },
-    ] },
-    { name: "Sap", desc: "each pulse deals 2% max HP", mods: { sap: 0.02 }, finals: [
-      { name: "Wither", desc: "each pulse deals 5% max HP", mods: { sap: 0.05 } },
-      { name: "Siphon", desc: "slowed enemies pay +50% bounty", mods: { siphon: 1.5 } },
+    { name: "Stasis", desc: "slow +20%", mods: { slow: 0.2 }, finals: [
+      { name: "Deep Freeze", desc: "a newly slowed enemy freezes solid for 0.4s", mods: { chillStop: 0.4 },
+        super: { name: "Absolute Zero", desc: "freezes for 0.8s", mods: { chillStop: 0.8 } } },
+      { name: "Whiteout", desc: "slows everything in range; the range glows", mods: { all: true },
+        super: { name: "Blizzard", desc: "range x1.4", mods: { range: 1.4 } } },
+      { name: "Permafrost", desc: "the slow never wears off", mods: { permafrost: true },
+        super: { name: "Ice Age", desc: "the permanent slow is 15% stronger", mods: { slow: 0.15 } } },
     ] },
   ],
   // EXC (owner, 2026-10-02): L2 Charge or Array, three forms each, each with

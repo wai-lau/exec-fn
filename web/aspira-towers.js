@@ -89,7 +89,8 @@ function fireSlower(t, st) {
   t.links = cands;
   for (const e of cands) {
     const fresh = !(e.slowT > 0);
-    if (!applySlow(e, st.slow, SLOW_TIME)) continue;
+    if (!applySlow(e, st.slow, st.permafrost ? Infinity : SLOW_TIME)) continue; // Permafrost: forever
+    if (st.shatter) e.shatter = { t, st };
     if (st.chillStop && fresh) e.stunT = Math.max(e.stunT, st.chillStop);
     if (st.brittle) e.brittle = Math.max(e.brittle || 1, st.brittle);
     if (st.siphon) e.siphon = Math.max(e.siphon || 1, st.siphon);
@@ -99,6 +100,23 @@ function fireSlower(t, st) {
     if (nick > 0) damage(e, nick, t);
   }
   return cands.length > 0;
+}
+
+// Shatter (FRZ): an enemy that dies while slowed, after a Shatter FRZ chilled
+// it, explodes for st.shatter.frac of its max HP on everyone within r;
+// Frostbite slows what the blast hits. Blast kills never shatter in turn
+// (no chain reactions; owner).
+let shattering = false;
+function shatterAt(e) {
+  const { t, st } = e.shatter, r = st.shatter.r, d = e.max * st.shatter.frac;
+  ring(e.x, e.y, r, "cyan", 0.25);
+  shattering = true;
+  for (const o of G.enemies) {
+    if (o === e || o.dead || Math.hypot(o.x - e.x, o.y - e.y) > r) continue;
+    damage(o, d, t);
+    if (st.frostbite && !o.dead) applySlow(o, st.slow, st.frostbite);
+  }
+  shattering = false;
 }
 
 // A Reaper CHARGES at each locked target (t.locks: st.targets of them, 1 at base) for its whole reload
