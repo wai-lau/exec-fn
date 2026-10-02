@@ -143,7 +143,7 @@ function entryS(pi) {
 
 // gentler late ramp (owner, 2026-10-02): HP x1.10 a wave (was 1.15, which
 // quadrupled every 10 waves and walled every build by ~70), armor with the
-// curve's 0.4 power (was 0.5); shields read the same curve, so ease too
+// curve's 0.4 power (was 0.5); shields keep the old 1.15 curve (owner)
 const HP_GROWTH = 1.10, ARMOR_EXP = 0.4;
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
@@ -153,7 +153,9 @@ function spawnEnemy(type, n, pi, ang = 0) {
   // the curve to ARMOR_EXP (0.4; was the square root), shields with its 0.4 power - normalised so
   // shields still start at exactly their base (8) on their first wave (3).
   const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18, grow3 = Math.pow(HP_GROWTH, 2) + 3 * 4 / 18;
-  const shield = d.shield ? Math.max(d.shield, Math.round(d.shield * Math.pow(grow / grow3, 0.4))) : 0;
+  // shields keep the OLD steeper curve (owner: "shields can stay the same")
+  const sGrow = Math.pow(1.15, n - 1) + n * 4 / 18, sGrow3 = Math.pow(1.15, 2) + 3 * 4 / 18;
+  const shield = d.shield ? Math.max(d.shield, Math.round(d.shield * Math.pow(sGrow / sGrow3, 0.4))) : 0;
   G.enemies.push({
     armor: d.armor ? d.armor * Math.pow(grow, ARMOR_EXP) : 0, shield, shieldMax: shield,
     // swarm members wander widely off the lane, each at its own speed (+-20%)
