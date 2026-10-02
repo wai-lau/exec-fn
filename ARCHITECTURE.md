@@ -3910,6 +3910,8 @@ must never fail because of a rate limit (owner).
 ## 22. /aspira — spiral tower defence
 
 Targeting mode `close` = closest to the CORE, not to the tower (owner).
+Every enemy SPAWNS where its lane first crosses `SPAWN_R` 600 from the core
+(`entryS`; owner: all spawns equidistant), not at the screen edge.
 **SPLIT WAVES (owner):** each type's group in a wave is split k = 1..6 ways
 (uniform) and each part rides a COPY of its lane rotated 360/k degrees about the
 core (`pathAt(pi, s, ang)` / `rotAbout`; `ang` on the enemy and the spawn
