@@ -172,7 +172,6 @@
 #asp .asp-tw.glow { color: hsl(var(--orange-glow-hsl)); }
 #asp .asp-tw.green { color: hsl(var(--green-hsl)); }
 #asp .asp-tw.orange { color: hsl(var(--orange-hsl)); }
-#asp .asp-tw.chatsubo { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
 
 .asp-pop .name { font-weight: var(--fw-bold); }
 .asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
@@ -221,5 +220,3 @@
 .asp-sw.pink { color: hsl(var(--pink-hsl)); }
 .asp-sw.white { color: hsl(var(--white-hsl)); }
 
-/* [Chatsubo] — the boards' Social hue, reused for the RPD tower */
-.asp-sw.chatsubo { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }

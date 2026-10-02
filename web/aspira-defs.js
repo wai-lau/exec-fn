@@ -183,7 +183,6 @@ function resolveColors() {
 // Rates are per REAL second at 1x speed (time was rescaled so 1x = real time;
 // every rate x3 and every duration /3 against the old hidden-3x values).
 const TOWERS = {
-  rapid:   { name: "Rapid",   ab: "RPD", color: "chatsubo",   cost: 40,  dmg: 1.75, rate: 36,   range: 140, blurb: "Cheap, quick, long reach.", up: "fire rate" },
   chain:   { name: "Chain",   ab: "CHN", color: "orange",   cost: 40,  dmg: 28, rate: 1.5,  range: 115.6, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
   slower:  { name: "Slower",  ab: "SLW", color: "cyan",   cost: 40,  dmg: 1.5, rate: 2.4,  range: 95,  blurb: "Slows and nicks five enemies at once; each pulse pops a shield charge.", up: "slow strength" },
   reaper:  { name: "Reaper",  ab: "RPR", color: "pink",   cost: 40,  dmg: 80,  rate: 0.9,  range: 265, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
@@ -193,8 +192,9 @@ const MAX_LVL = 4;
 const RANGE_BONUS = 1.2;
 const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", "Fast"]];
 
-// Each special enemy has ONE counter tower (owner): swarm -> CHN, fast -> SLW,
-// shield -> RPD, armor -> RPR. shield = hits absorbed (any size) before the
+// Each special enemy had ONE counter tower: swarm -> CHN, fast -> SLW,
+// armor -> RPR; shield's counter was RPD, removed (owner: three towers only).
+// shield = hits absorbed (any size) before the
 // enemy takes damage; armor = flat damage removed from every hit (floor 10%).
 // Both scale with the wave number in spawnEnemy.
 // SHAPE SHOWS SPEED (owner): triangle = fastest, more sides = slower, and the
@@ -221,7 +221,6 @@ const POWER_FULL = 30, POWER_TIME = 10 / 3;
 // balance is unchanged by the condensing.)
 const LVL_DMG = [1, 1.874, 4.108, 9.007];
 const LVL_RANGE = [1, 1.12, 1.27, 1.42];
-const LVL_RAPID_RATE = [1, 1.24, 1.54, 1.84];
 const LVL_CHAIN_ARCS = [5, 6, 7, 8];
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
 const LVL_SLOW = [0.7, 0.86, 1.06, 1.26]; // doubled (owner); capped at 0.85 in towerStats
@@ -239,7 +238,6 @@ function towerStats(t, noAura = false) {
     targets: 1, critMul: 3, arcRange: 50, arcFall: 0.8,
   };
   switch (t.kind) {
-    case "rapid": s.rate = b.rate * LVL_RAPID_RATE[i]; break;
     // hop reach = HALF the tower's own range (owner), measured from the hub enemy
     case "chain": s.arcs = LVL_CHAIN_ARCS[i]; s.arcRange = s.range * 0.5; break;
     case "reaper": s.crit = LVL_REAPER_CRIT[i]; break;

@@ -10,20 +10,6 @@
 const BRANCH_LVL = 2, FINAL_LVL = 3; // the levels that bring the path / final form
 
 const UPGRADES = {
-  rapid: [
-    { name: "Overclock", desc: "+50% fire rate", mods: { rate: 1.5 }, finals: [
-      { name: "Gatling", desc: "fire rate x1.8", mods: { rate: 1.8 } },
-      { name: "Twin", desc: "hits two targets per shot", mods: { targets: 1 } },
-    ] },
-    { name: "Scope", desc: "+30% range and damage", mods: { range: 1.3, dmg: 1.3 }, finals: [
-      { name: "Sniper", desc: "damage x3, range +20%, half fire rate", mods: { dmg: 3, rate: 0.5, range: 1.2 } },
-      { name: "Spotter", desc: "towers in its range deal +20%", mods: { aura: 1.2 } },
-    ] },
-    { name: "Shred", desc: "hit enemies take +20% damage for 0.7s", mods: { shred: { mul: 1.2, t: 0.67 } }, finals: [
-      { name: "Acid", desc: "hits also poison: 60% more over 1s", mods: { dot: { frac: 0.6, t: 1 } } },
-      { name: "Flechette", desc: "hits splash 40% within a short radius", mods: { splash: { r: 50, frac: 0.4 } } },
-    ] },
-  ],
   chain: [
     // base hop reach (50) only spans packed swarms; Conductor buys the reach to
     // chain through ordinary trains (spaced ~48-67), turning CHN into an all-rounder
