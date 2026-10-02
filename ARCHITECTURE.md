@@ -3913,6 +3913,8 @@ Targeting mode `close` = closest to the CORE, not to the tower (owner).
 Every enemy SPAWNS where its lane first crosses `SPAWN_R` 600 from the core
 (`entryS`; owner: all spawns equidistant), not at the screen edge.
 All lanes are SOLID lines (owner; the per-pair dash styles `LANE_DASH` were removed).
+Lane coils are SOFTENED near the core (owner: too dense): the winding rate is
+1 / (r + `LANE_SOFT_R` 200) instead of 1 / r, so the turns spread outward.
 **ZOOM + PAN (owner, `web/aspira-camera.js`, loaded between draw and ui):** wheel
 zooms about the cursor, drag pans; touch drags with one finger and pinches with
 two. Zoom spans the fitted view (1x) to `ZOOM_MAX` 4x; the core is kept on the
