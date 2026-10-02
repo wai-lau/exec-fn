@@ -114,7 +114,7 @@ function spawnEnemy(type, n, pi) {
     armor: d.armor ? d.armor * (1 + 0.12 * (n - 1)) : 0, shield, shieldMax: shield,
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
-    jit: type === "swarm" ? 8 + Math.random() * 20 : 0, ph: Math.random() * 6.283,
+    jit: type === "swarm" ? 24 + Math.random() * 60 : 0, ph: Math.random() * 6.283, // owner: tripled
     spd: type === "swarm" ? 0.8 + Math.random() * 0.4 : 1, phr: 0.6 + Math.random(),
     id: G.id++, type, n, hp, max: hp, pi, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
