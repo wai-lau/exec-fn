@@ -77,7 +77,7 @@ const UPGRADES = {
     { name: "Stasis", desc: "slow +15%", mods: { slow: 0.15 }, finals: [
       { name: "Deep Freeze", desc: "a newly slowed enemy nearly freezes: 95% slow for 0.25s", mods: { chillStop: 0.25 },
         super: { name: "Absolute Zero", desc: "95% slow for 0.5s", mods: { chillStop: 0.5 } } },
-      { name: "Whiteout", desc: "slows everything in range; the range glows", mods: { all: true },
+      { name: "Whiteout", desc: "two moons orbit fast, slowing whatever they sweep, out to 1.15x range", mods: { all: true },
         super: { name: "Blizzard", desc: "range x1.4", mods: { range: 1.4 } } },
       { name: "Permafrost", desc: "the slow never wears off, but is 10% weaker", mods: { permafrost: true, slow: -0.1 },
         super: { name: "Ice Age", desc: "the permanent slow is 15% stronger", mods: { slow: 0.15 } } },

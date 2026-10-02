@@ -386,14 +386,10 @@ function drawTethers() {
   const shimmer = 0.75 + 0.25 * Math.sin(performance.now() / 160);
   ctx.lineCap = "round";
   for (const t of G.towers) {
-    if (t.kind !== "slower" || !t.links || !t.links.length) continue;
+    if (t.kind !== "slower") continue;
     const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
-    if (st.all) { // Whiteout: no tethers - the range circle glows, like ACD's Contagion
-      gradDisc(t.x, t.y, r, col);
-      ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 200); ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, 6.283); ctx.stroke();
-      continue;
-    }
+    if (st.all) { drawMoons(t, st, col); continue; } // Whiteout / Blizzard: two orbiting moons, always shown
+    if (!t.links || !t.links.length) continue;
     // Stasis (the slow path): a much THICKER tether (owner)
     const w = t.path != null && UPGRADES.slower[t.path].name === "Stasis" ? 2 : 1;
     for (const e of t.links) {
@@ -403,6 +399,20 @@ function drawTethers() {
       ctx.globalAlpha = 0.15 * shimmer; ctx.lineWidth = 6 * w; ctx.stroke();
       ctx.globalAlpha = 0.7 * shimmer; ctx.lineWidth = 1.6 * w; ctx.stroke();
     }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// FRZ's Whiteout / Blizzard moons (fireSlower): each sweeps a faint sector out
+// to its reach, with the moon riding the outer edge of its orbit
+function drawMoons(t, st, col) {
+  const R = st.range * MOON_REACH;
+  ctx.fillStyle = col; ctx.strokeStyle = col;
+  for (const a of moonAngles(t)) {
+    ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.arc(t.x, t.y, R, a - MOON_ARC, a + MOON_ARC); ctx.closePath();
+    ctx.globalAlpha = 0.06; ctx.fill();
+    ctx.globalAlpha = 0.5; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(t.x, t.y, R, a - MOON_ARC, a + MOON_ARC); ctx.stroke();
+    ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.arc(t.x + Math.cos(a) * R, t.y + Math.sin(a) * R, 9, 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }

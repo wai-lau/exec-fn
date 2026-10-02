@@ -108,9 +108,22 @@ function hopTo(c, node, nxt, depth) {
   return child;
 }
 
+// Whiteout / Blizzard (st.all) no longer chill the whole range (owner: it read
+// like ACD's Contagion): TWO MOONS orbit the tower fast, half a turn apart,
+// and a pulse lands on whatever is inside a moon's sector - a bit less contact
+// than the whole disc - out to MOON_REACH x range, a bit further than before.
+const MOON_SPIN = 4, MOON_ARC = 1.1, MOON_REACH = 1.15; // rad/s; sector half-width, rad
+const moonAngles = t => { const a = (t.spin || 0) * MOON_SPIN; return [a, a + Math.PI]; };
+function inMoonSweep(t, st, e) {
+  const dx = e.x - t.x, dy = e.y - t.y;
+  if (dx * dx + dy * dy > (st.range * MOON_REACH) ** 2) return false;
+  const a = Math.atan2(dy, dx);
+  return moonAngles(t).some(m => Math.abs(Math.atan2(Math.sin(a - m), Math.cos(a - m))) <= MOON_ARC);
+}
 function fireSlower(t, st) {
   // unslowed enemies first, so three towers do not all chill the same three
-  const cands = pickTargets(t, st, 9999).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.all ? 9999 : st.targets);
+  const cands = st.all ? G.enemies.filter(e => !e.dead && inMoonSweep(t, st, e))
+    : pickTargets(t, st, 9999).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.targets);
   // SLW draws CONTINUOUS tethers to the enemies it last pulsed (drawTethers),
   // not per-pulse beams; the slow and nick still land once per pulse
   t.links = cands;
