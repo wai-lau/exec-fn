@@ -8,19 +8,35 @@ API and nothing to save beyond the browser's own best score.
 GUEST tier since 2026-10-02 (`guest_protected`, owner: "aspira should be
 public (behind cloudflare)"): also in `_GUEST_NEXT_ALLOWED`, the 401
 handler's guest prefixes and `_GUEST_NAV_LINKS`. A nav entry (`SPR`, the
-Nightfall Tower sprite traced to web/icons/tower.svg). The game's sound
-samples stay owner-only (/data/), so a guest plays silent.
+Nightfall Tower sprite traced to web/icons/tower.svg).
+
+The sound samples (Brood War) are served to the SAME guest tier from
+/aspira-sfx/ (owner: "it's guest but still personal use"); they live only in
+the gitignored api/data/aspira-sfx/, never in the public repo.
 See ARCHITECTURE.md §22.
 """
-from fastapi import Request
-from fastapi.responses import HTMLResponse
+from fastapi import HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse
 
 from auth import SESSION_TOKEN
+from helpers import DATA_DIR
 from routers import guest_protected
 from pages import _render_page, _tmpl
+
+SFX_DIR = (DATA_DIR / "aspira-sfx").resolve()
 
 
 @guest_protected.get("/aspira", response_class=HTMLResponse)
 async def aspira_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     return _render_page("aspira", _tmpl("aspira.html"), full_height=True, guest=not is_full_auth)
+
+
+@guest_protected.get("/aspira-sfx/{filename:path}")
+async def aspira_sfx(filename: str):
+    path = (SFX_DIR / filename).resolve()
+    # inside the sound folder only (is_relative_to, not a string prefix: a
+    # sibling like aspira-sfx-x/ must not pass)
+    if not path.is_relative_to(SFX_DIR) or not path.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(path), headers={"Cache-Control": "private, max-age=86400"})

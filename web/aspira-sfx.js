@@ -114,11 +114,11 @@ const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
 // returns whatever the sound returns (a stop() handle for long sounds), or null
 // Optional SAMPLES (owner, 2026-10-02: Brood War sounds) replace a synth
 // sound when present. They live in api/data/aspira-sfx/ - never committed
-// (api/data/ is gitignored; the repo is public) and served owner-only through
-// /data/ - listed in its index.json as { "<sound name>": "file" | ["file", ...],
+// (api/data/ is gitignored; the repo is public) and served to the page's own
+// guest tier through /aspira-sfx/ - listed in its index.json as { "<sound name>": "file" | ["file", ...],
 // "_gain": 0.5 } (several files = one picked at random each time). Missing
 // folder, index or file: that sound stays synthesised.
-const SAMPLE_DIR = "/data/aspira-sfx/", SAMPLES = {};
+const SAMPLE_DIR = "/aspira-sfx/", SAMPLES = {}; // guest-tier route (routes_aspira.py)
 let sampleMap = null, sampleGain = 0.5;
 fetch(SAMPLE_DIR + "index.json").then(r => (r.ok ? r.json() : null)).then(m => {
   if (!m) return;
