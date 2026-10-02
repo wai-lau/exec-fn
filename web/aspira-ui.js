@@ -50,6 +50,7 @@ function onTap(ev) {
   ui.hover = p;
   const ci = cellAt(p.x, p.y), hit = ci >= 0 && G.towers.find(t => t.cell === ci);
   if (hit) { ui.sel = hit.id; ui.build = null; }
+  else if (!ui.build && Math.hypot(p.x - CX, p.y - CY) <= CORE_R) { ui.sel = "core"; ui.pick = null; } // the core's card (aspira-core.js)
   else if (ui.build) placeTower(p);
   else ui.sel = null;
   refreshPanels();
@@ -208,10 +209,11 @@ function inspectTower(el, t) {
 // one line about the tower being placed just above the build bar.
 function refreshPanels() {
   const pop = $("asp-pop"), placing = $("asp-placing");
-  const t = ui.sel && G.towers.find(x => x.id === ui.sel);
-  pop.hidden = !t;
-  pop.dataset.kind = t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
+  const t = ui.sel && G.towers.find(x => x.id === ui.sel), core = ui.sel === "core";
+  pop.hidden = !t && !core;
+  pop.dataset.kind = core ? "core" : t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
   if (t) { inspectTower(pop, t); placePop(); }
+  if (core) { inspectCore(pop); placePop(); }
   placing.hidden = !ui.build;
   if (ui.build) {
     const b = TOWERS[ui.build];
@@ -261,12 +263,13 @@ function updateHud() {
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
+  if (up && ui.sel === "core") up.disabled = G.money < coreCost();
   // the open popup's tallies update live
   if (t && $("asp-kills")) { setText($("asp-kills"), t.kills || 0); setText($("asp-dealt"), Math.round(t.dealt || 0).toLocaleString()); }
 }
 
 function placePop() {
-  const pop = $("asp-pop"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
+  const pop = $("asp-pop"), t = ui.sel === "core" ? { x: CX, y: CY } : ui.sel && G.towers.find(x => x.id === ui.sel);
   if (pop.hidden || !t) return;
   const dpr = window.devicePixelRatio || 1, cw = cv.clientWidth, ch = cv.clientHeight;
   const sx = (cam.ox + t.x * cam.k) / dpr, sy = (cam.oy + t.y * cam.k) / dpr, half = 40 * cam.k / dpr;

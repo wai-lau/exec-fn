@@ -118,6 +118,13 @@ function drawBoard() {
 // drawn LAST, over everything else (owner)
 function drawCore() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
+  // a core upgrade is open: a slow white ring breathes around it, so it reads
+  // as something to click (owner: show the unlock); ZEN's reach while selected
+  if (coreOpen() && coreLvl() < CORE_MAX) {
+    poly(CX, CY, CORE_R * (1.35 + 0.15 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
+    ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  if (ui.sel === "core" && coreHas("zen")) drawRange(CX, CY, ZEN_R, "white");
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
   ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill();
   text(G.lives, CX, CY + 2, 28, "bg");
@@ -423,7 +430,7 @@ function render() {
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
-    text(bannerText, CX, 70, 44, "orange", true);
+    text(bannerText, CX, 70, 44, bannerCol, true);
     ctx.globalAlpha = 1;
   }
   drawCore();

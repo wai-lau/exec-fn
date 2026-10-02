@@ -246,6 +246,7 @@
 .asp-pop[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
 .asp-pop[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
 .asp-pop[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-pop[data-kind="core"] { --green-hsl: var(--white-hsl); } /* the core's card is white, like the core */
 .asp-pop[data-kind] { color: hsl(var(--green-hsl)); }
 
 /* CRT stack well below even crt-dim.css's reduced strength: a fast board of

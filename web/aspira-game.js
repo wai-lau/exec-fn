@@ -72,6 +72,8 @@ function sendWave() {
   G.wave++;
   float(CX, CY - 80, "wave " + G.wave, "orange", 28, 4, 1, 3); // no early bonus: waves always go at once (owner)
   if (G.wave > 1 && (G.wave - 1) % 8 === 0) blockBonus();
+  // (owner) white like the core, and held 3s so it registers; click the core: aspira-core.js
+  if (G.wave === CORE_UNLOCK) banner("core upgrades unlocked", "white", 3);
   sfx("wave");
   const lanes = laneMap(G.wave);
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
@@ -165,6 +167,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
+  if (coreHas("nullify")) nullify(G.enemies[G.enemies.length - 1]); // the core's NULLIFY (aspira-core.js)
 }
 
 // ---------- combat ----------
@@ -360,8 +363,9 @@ function burst(x, y, color, n) {
     fx.push({ k: "spark", x, y, vx: Math.cos(a) * v * 3, vy: Math.sin(a) * v * 3, color, t: 0, life: (0.4 + Math.random() * 0.3) / 3 });
   }
 }
-let bannerText = "", bannerT = 0;
-function banner(t) { bannerText = t; bannerT = 2 / 3; }
+let bannerText = "", bannerT = 0, bannerCol = "orange";
+// a banner across the top; `life` in seconds, `col` a palette key
+function banner(t, col = "orange", life = 2 / 3) { bannerText = t; bannerT = life; bannerCol = col; }
 
 // ---------- update ----------
 function stepSpawns(dt) {
@@ -429,6 +433,7 @@ function stepEnemies(dt) {
 function step(dt) {
   if (G.over || !G.started) return;
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
+  stepCore(dt); // the core's ZEN pulse (aspira-core.js)
   // the next wave goes when its timer runs out, or the moment the field
   // clears (owner): nothing alive, nothing still queued to spawn
   // ...except the BOSS holds the timer (owner): nothing new comes until it
