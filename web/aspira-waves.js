@@ -63,7 +63,8 @@ function sendWave() {
   // a boss wave announces the boss by name (owner), others their number
   float(CX, CY - 80, G.wave % STAR_EVERY === 0 ? arcanaOf(G.wave).name : "wave " + G.wave, "orange", 28, 4, 1, 3);
   // a boss is announced (owner): the advisor's double beep, then the Archon
-  if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", "bossvoice"]);
+  // (each boss has its own line, "bossvoice.<arcana>", else the shared one)
+  if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", bossVoice(arcanaOf(G.wave).id)]);
   // (owner) white like the core, and held 3s so it registers; click the core: aspira-core.js
   if (G.wave === CORE_UNLOCK) banner("core upgrades unlocked", "white", 3);
   sfx("wave");

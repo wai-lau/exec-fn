@@ -146,11 +146,17 @@ function loadSamples() {
 // skipped. A sample copy is also quieter by how many are already sounding.
 const SOUND_MAX = { chain: 3, slower: 3, reaper: 3, acid: 3 }, playing = {};
 let curSound = null; // the synth sound being built, so envelope() can count it
+// LOUDNESS (owner, 2026-10-02): the bosses' warnings and voices and every
+// upgrade/build sound stand well above the towers' shots - about 10 dB
+// (TOWER_GAIN 0.6 vs LOUD_GAIN 2)
+const TOWER_GAIN = 0.6, LOUD_GAIN = 2;
+const LOUD = /^(bosswarn|bossvoice|coreup|up|build)/;
+const gainFor = name => (LOUD.test(name) ? LOUD_GAIN : SOUND_MAX[name] ? TOWER_GAIN : 1);
 function playSample(name, at = 0) {
   const list = SAMPLES[name], n = playing[name] || 0;
   const src = AC.createBufferSource(), g = AC.createGain(), clip = list[Math.floor(Math.random() * list.length)];
   src.buffer = clip.buf;
-  g.gain.value = SOUND_MAX[name] ? sampleGain / (1 + n) : sampleGain;
+  g.gain.value = sampleGain * gainFor(name) / (SOUND_MAX[name] ? 1 + n : 1);
   src.connect(g).connect(master);
   voices++; playing[name] = n + 1;
   src.onended = () => { voices--; playing[name]--; };
@@ -159,6 +165,7 @@ function playSample(name, at = 0) {
 }
 // samples played back to back (owner: the boss warning - a double beep, then
 // the voice); missing ones are skipped, and a sequence never overlaps itself
+const bossVoice = id => (SAMPLES["bossvoice." + id] && SAMPLES["bossvoice." + id].length ? "bossvoice." + id : "bossvoice");
 function sfxSeq(names) {
   if (muted || !AC || AC.state !== "running") return;
   let at = 0;
