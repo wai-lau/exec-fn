@@ -225,7 +225,7 @@ const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", 
 // speeds (owner, 2026-10-02): fast doubled to 270, then eased to 220; shield and armor halved to
 // 37.5 and 30
 const ENEMIES = {
-  fast:   { sides: 3, hp: 0.6,  speed: 220, bounty: 0.8, size: 12, color: "orange" },
+  fast:   { sides: 3, hp: 1.0,  speed: 220, bounty: 0.8, size: 12, color: "orange" }, // owner 2026-10-02: hp 0.6 -> 1.0
   swarm:  { sides: 4, hp: 0.07, speed: 95,  bounty: 0.18, size: 6, color: "white" }, // twice as many, half as tough
   shield: { sides: 5, hp: 0.6,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
   armor:  { sides: 5, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 24 }, // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)

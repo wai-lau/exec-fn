@@ -4270,6 +4270,7 @@ ARC's base tree is one level deeper (owner, 2026-10-02): 1→2→4, 7 hits a sho
 REVERTED the same day (owner: the deeper tree was meant for SOL, not ARC): ARC's base is back to 1→2 at full damage.
 Wave-1 rule, amended (owner, 2026-10-02): a lone SOL opening MAY leak a swarmer (1 on 2/8 seeds with the 10s timer) - "a good way to learn not to use SOL first". ARC, FRZ and ACD alone still clear wave 1 clean.
 REGRESSION fixed (2026-10-02): the price-doubling commit dropped `const b` from `placeTower` while `ring(..., b.color)` still used it, so every placement threw AFTER paying - placing mode never closed and the first tower never started wave 1. ESLint does not catch it (these files share one global scope, so no-undef is off); verify placement in WebKit after touching `placeTower`.
+Fast enemies: hp 0.6 -> 1.0, and every slow on a Fast enemy counts DOUBLE up to 90% (`FAST_SLOW_MUL`/`FAST_SLOW_CAP` in `applySlow`; a stronger asked-for slow such as Deep Freeze's 95% is kept) (owner, 2026-10-02).
 Shield and armor enemies trade HP for defence (owner, 2026-10-02): shield hp 0.9 -> 0.6, shield 5 -> 8 charges; armor hp 1.6 -> 1.0, armor 15 -> 24 (both still scale with the HP curve).
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).

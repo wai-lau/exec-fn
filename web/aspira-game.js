@@ -228,7 +228,11 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 // replaces the current one - an equal one just refreshes its time; a weaker one
 // is ignored while the stronger is still running. (Amount and duration never
 // mix: a weak long slow cannot stretch a strong short one.)
+// FRZ hits Fast enemies twice as hard (owner, 2026-10-02): double the slow,
+// up to 90% - never past a stronger slow already asked for (Deep Freeze 95%)
+const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.9;
 function applySlow(e, f, dur) {
+  if (e.type === "fast") f = Math.max(f, Math.min(FAST_SLOW_CAP, f * FAST_SLOW_MUL));
   if (e.slowT > 0 && f < e.slowF) return true;
   e.slowT = f > e.slowF || !(e.slowT > 0) ? dur : Math.max(e.slowT, dur);
   e.slowF = f;
