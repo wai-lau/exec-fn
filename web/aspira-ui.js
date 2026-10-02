@@ -220,6 +220,7 @@ function refreshPanels() {
   }
 }
 
+let lastNote = "";
 function updateHud() {
   setText($("asp-lives"), G.lives);
   setText($("asp-money"), short(G.money));
@@ -233,6 +234,11 @@ function updateHud() {
     setText(btn.querySelector(".c"), short(towerCost(k)));
     btn.classList.toggle("on", ui.build === k);
   }
+  // the NEXT wave under the send button (owner; waves are fixed, so it is known)
+  const nx = wavePlan(G.wave + 1, G.lastType), col = ENEMIES[nx.type].color;
+  const note = "next · wave " + (G.wave + 1) + ": <b class=\"e-" + col + "\">" + nx.type + " ×" + nx.count + "</b> on " + nx.split +
+    (nx.split > 1 ? " lanes" : " lane") + (nx.star ? ' + <b class="e-orange">★</b>' : "");
+  if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
   const send = $("asp-send");
   const label = G.wave === 0 ? "send wave 1" : "send wave " + (G.wave + 1) + " · " + Math.ceil(Math.max(0, G.nextIn)) + "s";
   setText(send, label);

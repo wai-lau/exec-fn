@@ -155,7 +155,10 @@ function drawTower(t, ghost) {
   towerHex(c, kMain);
   for (let i = 0; i < t.lvl; i++) ctx.stroke();
   ctx.shadowBlur = 0;
-  text(towerAb(t), c.x, c.y + 1, 13, b.color); // centred: no level dots below it any more
+  text(towerAb(t), c.x, c.y + 1, 13, b.color);
+  // the level as a roman numeral just BELOW the hex (owner: make the level
+  // apparent; the rings alone did not read, and inside the hex it was cramped)
+  text(roman(t.lvl), c.x, c.y + CELL_S + 12, 20, b.color);
   ctx.globalAlpha = 1;
 }
 

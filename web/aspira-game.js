@@ -39,13 +39,20 @@ function fixedRand(n, salt) {
   h = Math.imul(h ^ (h >>> 16), 0x7feb352d); h = Math.imul(h ^ (h >>> 15), 0x846ca68b);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
-function makeWave(n) {
+// what wave n will be, given the type of the wave before it - pure, so the
+// HUD can preview the next wave (owner) without touching the game
+function wavePlan(n, prev) {
   const pool = UNLOCK.slice(0, Math.min(UNLOCK.length, n));
-  const choices = pool.length > 1 ? pool.filter(t => t !== G.lastType) : pool;
+  const choices = pool.length > 1 ? pool.filter(t => t !== prev) : pool;
   const type = choices[Math.floor(fixedRand(n, 1) * choices.length)];
-  G.lastType = type;
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
-  const list = Array(type === "swarm" ? base * 3 : base).fill(type); // swarms: 3x the bodies (owner)
+  // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
+  return { type, count: type === "swarm" ? base * 3 : base, split: 1 + Math.floor(fixedRand(n, 3) * 6), star: n >= 3 };
+}
+function makeWave(n) {
+  const { type, count } = wavePlan(n, G.lastType);
+  G.lastType = type;
+  const list = Array(count).fill(type);
   if (n >= 3) list[Math.floor(fixedRand(n, 2) * list.length)] = "bonus";
   return [list];
 }
@@ -64,7 +71,7 @@ function sendWave() {
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once
   makeWave(G.wave).forEach(list => {
-    const k = 1 + Math.floor(fixedRand(G.wave, 3) * 6), per = Math.max(1, Math.ceil(list.length / k));
+    const k = wavePlan(G.wave, null).split, per = Math.max(1, Math.ceil(list.length / k));
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
       if (!part.length) continue;

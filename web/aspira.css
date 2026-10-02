@@ -28,6 +28,15 @@
 #asp .asp-controls button { padding: var(--space-1-5) var(--space-3); }
 .asp-controls .asp-row > button { flex: none; }
 
+/* the next wave, under the send button (owner): what, how many, how many lanes */
+.asp-wavenote { margin-top: var(--space-1-5); font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); pointer-events: none; }
+.asp-wavenote b { font-weight: var(--fw-bold); }
+.asp-wavenote .e-white { color: hsl(var(--white-hsl)); }
+.asp-wavenote .e-green { color: hsl(var(--green-hsl)); }
+.asp-wavenote .e-cyan { color: hsl(var(--cyan-hsl)); }
+.asp-wavenote .e-pink { color: hsl(var(--pink-hsl)); }
+.asp-wavenote .e-orange { color: hsl(var(--orange-hsl)); }
+
 /* bottom: the build bar, with a one-line "placing" note above it only while
    a tower is being placed (no cards: owner) */
 .asp-bottom {
