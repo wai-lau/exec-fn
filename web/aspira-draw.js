@@ -120,8 +120,19 @@ function drawCore() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
   // a core upgrade is open: a slow white ring breathes around it, so it reads
   // as something to click (owner: show the unlock); ZEN's reach while selected
-  if (coreOpen() && coreLvl() < CORE_MAX) {
-    poly(CX, CY, CORE_R * (1.35 + 0.15 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
+  // the core's LEVEL shows like a tower's (owner): a bold white ring outside
+  // it per level, LEVEL_GAP apart, under a glow that grows with the level
+  const lvl = coreLvl();
+  if (lvl) {
+    ctx.strokeStyle = COL.white; ctx.shadowColor = COL.white; ctx.shadowBlur = TOWER_GLOW[lvl] * cam.k; ctx.lineWidth = 3.5;
+    for (let r = 1; r <= lvl; r++) {
+      ctx.globalAlpha = 1 - 0.12 * r;
+      poly(CX, CY, CORE_R * (1 + LEVEL_GAP * r), 6, Math.PI / 6, false); ctx.stroke();
+    }
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  }
+  if (coreOpen() && lvl < CORE_MAX) {
+    poly(CX, CY, CORE_R * (1 + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
     ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }
   if (ui.sel === "core" && coreHas("zen")) drawRange(CX, CY, ZEN_R, "white");
