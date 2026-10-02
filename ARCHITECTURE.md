@@ -4259,6 +4259,7 @@ The 3-letter label on a placed tower follows its newest name (owner, 2026-10-02)
 Towers stand well apart (owner, 2026-10-02): `TOWER_GAP = 3` tiles minimum between centres (`tooClose(ci)` in aspira-defs.js, used by `canPlace` and the simulator), i.e. two free cells between neighbours; the placement overlay now fades over 4 tiles so the keep-out shows. All 10 two-tower openings still clear wave 1 without a leak.
 No "paused" text over the board (owner, 2026-10-02): the lit pause button says it.
 Game-over title + line carry a black outline (four 2px offsets) and a `--blur-sm` glow in their own colour (owner, 2026-10-02).
+Credits shorten past 99,999 (`short()` in aspira-ui.js: 123k, 4.0M) so a late-game balance never runs into the tower buttons (owner screenshot: 3,996,452 overlapped ACD).
 doubled from an eighth; the glow doubles with it).
 UPGRADING IS TWO CLICKS (owner): an upgrade option (path, final form or plain
 level) only SELECTS (`ui.pick`) and previews its stat changes ("-> next") in both

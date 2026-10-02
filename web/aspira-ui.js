@@ -7,6 +7,13 @@ const SPEEDS = [0.5, 1, 2, 3], speedId = v => "asp-sp-" + String(v).replace(".",
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
+// big counts shorten so they never run into the tower buttons: 12345 stays,
+// 123k, 4.0M
+function short(n) {
+  if (n < 1e5) return String(n);
+  if (n < 1e6) return Math.floor(n / 1e3) + "k";
+  return (n / 1e6).toFixed(n < 1e7 ? 1 : 0) + "M";
+}
 
 // ---------- placement / input ----------
 // Towers snap to the triangular cells of the build disc (CELLS in
@@ -198,7 +205,7 @@ function refreshPanels() {
 
 function updateHud() {
   setText($("asp-lives"), G.lives);
-  setText($("asp-money"), G.money);
+  setText($("asp-money"), short(G.money));
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
   setText($("asp-wave"), G.wave);
   setText($("asp-score"), G.score.toLocaleString());
