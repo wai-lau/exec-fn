@@ -165,19 +165,15 @@ function cellPath(c, k = 1) {
   ctx.closePath();
 }
 
-// Shown only while placing, and only NEAR THE CURSOR: each cell's opacity is
-// (1 - d / 2 tiles)^2, full under the pointer and gone two tiles out. Free
-// cells are green, occupied ones orange.
+// Shown while placing: all six slots at full strength (owner: "fully show"),
+// free cells green, occupied ones orange.
 function drawCells() {
-  if (!ui.hover) return;
   ctx.lineWidth = 2;
   CELLS.forEach((c, ci) => {
-    const w = Math.pow(Math.max(0, 1 - Math.hypot(c.x - ui.hover.x, c.y - ui.hover.y) / (2 * TILE)), 2);
-    if (w <= 0.01) return;
     const free = canPlace(ci);
     cellPath(c, 0.94);
-    if (free) { ctx.fillStyle = COL.green; ctx.globalAlpha = 0.15 * w; ctx.fill(); }
-    ctx.strokeStyle = COL[free ? "green" : "orange"]; ctx.globalAlpha = (free ? 0.8 : 0.4) * w; ctx.stroke();
+    if (free) { ctx.fillStyle = COL.green; ctx.globalAlpha = 0.15; ctx.fill(); }
+    ctx.strokeStyle = COL[free ? "green" : "orange"]; ctx.globalAlpha = free ? 0.8 : 0.4; ctx.stroke();
   });
   ctx.globalAlpha = 1;
 }
