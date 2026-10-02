@@ -96,7 +96,10 @@ export function cellScores(g, kind) {
 }
 
 // strategy: { mix: {kind: weight}, paths: {kind: [path, form]}, up: 0..1 (how
-// eager to upgrade vs build), maxTowers }
+// eager to upgrade vs build), maxTowers, threat }
+// threat (owner, 2026-10-02: "measure the nearest an enemy got; upgrade or
+// build when units get a bit too close"): the player SAVES (earning interest)
+// and only spends once a live enemy comes within \`threat\` of the core.
 export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const g = makeGame(seed, patch);
   g.reset();
@@ -141,14 +144,22 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
       g.place(next.kind, best); next = null;
     }
   };
-  let time = 0;
+  let time = 0, nearest = Infinity;
   const leaks = {}, leakWave = {};
   act();
   while (!g.G.over && g.G.wave < maxWave && time < 60 * 60 * 2) {
     const alive = g.G.enemies.filter(e => !e.dead);
     g.step(dt); g.clearFx(); time += dt;
     for (const e of alive) if (e.dead && e.gone && e.hp > 0) { leaks[e.type] = (leaks[e.type] || 0) + 1; leakWave[g.G.wave] = (leakWave[g.G.wave] || 0) + 1; }
-    if (Math.round(time / dt) % 10 === 0) act();
+    if (Math.round(time / dt) % 10 === 0) {
+      if (!strategy.threat || g.G.towers.length < (strategy.opening || []).length) act();
+      else {
+        let near = Infinity;
+        for (const e of g.G.enemies) if (!e.dead) near = Math.min(near, Math.hypot(e.x - g.CX, e.y - g.CY));
+        nearest = Math.min(nearest, near);
+        if (near < strategy.threat) act();
+      }
+    }
   }
   const G = g.G;
   const towers = {};
@@ -157,7 +168,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     towers[key] = towers[key] || { n: 0, dealt: 0, kills: 0 };
     towers[key].n++; towers[key].dealt += t.dealt || 0; towers[key].kills += t.kills || 0;
   }
-  return { wave: G.wave, over: G.over, lives: G.lives, money: Math.round(G.money), time: Math.round(time), towers, leaks, leakWave };
+  return { nearest: Math.round(nearest), wave: G.wave, over: G.over, lives: G.lives, money: Math.round(G.money), time: Math.round(time), towers, leaks, leakWave };
 }
 
 if (process.argv[1] && process.argv[1].endsWith("sim.mjs") && process.argv[2]) {
