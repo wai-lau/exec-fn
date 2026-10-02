@@ -4116,7 +4116,8 @@ from L2 on. All enemies move at `ENEMY_SPEED = 0.5` of their table speed (owner)
 spawn gaps are divided by the same factor so on-lane spacing is unchanged.
 Paper balance pass (owner: tune on paper, not simulation): CHN 5 hops, 80%
 per-hop falloff, CHN is a lightning TREE (owner): strike 1 hub → it arcs to 3 → each of those
-arcs to 3 more (`CHAIN_BRANCH` 3, `CHAIN_LAYERS` 2; 13 hits a shot), every arc
+arcs to 3 more (`CHAIN_LAYERS` 2; 13 hits a shot) — branching by level
+(`CHAIN_BRANCH` [2,3,3,3]: L1 is 1-2-2, 7 hits; owner), every arc
 reaching from its own parent to the nearest enemy this shot has not hit, ALWAYS
 a QUARTER of the shot interval after its parent was hit (`hopDelay`, 0.17s at
 1.5 shots/s; owner, after trying 0.17s / 1.7s / 0.5s flat). A beam stays lit until every
