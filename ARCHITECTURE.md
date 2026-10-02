@@ -4071,7 +4071,7 @@ apart (owner raised it from 0.2; moving enemies can drift out of hop reach
 during the wait) (`chains`, advanced by `stepChains`), so the arc visibly crawls. Chain hops DO pop shields (each hop strips a
 charge; the owner reversed an earlier "shields ground the arc" rule), kept
 in check by FIRE RATE: CHN must stay under 1/5 of RPD's rate (1.0 vs 6) and
-RPR slower still (0.05). SHAPE SHOWS SPEED: triangle fastest (fast),
+RPR slower still (0.1). SHAPE SHOWS SPEED: triangle fastest (fast),
 square (swarm), pentagon (normal / shielded / armored), no hexagon enemies
 (hexagons are the towers; BOSSES WERE REMOVED, owner 2026-10-01). Enemies do not spin: one corner always points along
 the lane (nose first). Swarms read by small size + 3x count and wander off the lane
@@ -4102,7 +4102,8 @@ SLW pulses 0.8/s so it strips 4 shield charges/s across a group vs RPD's 6.
 ALL towers cost 40 to build (owner). Tuned by: RPD 3.5 dmg, CHN 3 base hops /
 110 hop reach / 55% per-hop falloff, SLW base range 95 (owner halved it from 190), slow lasts `SLOW_TIME = 12.5`s
 (5x), new Slowers default to Fast targeting, 5 targets, 1.5 dmg per pulse (a real hit: pops one shield
-charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 480 dmg at 0.05 shots/s (one shot per 20s; was 80 at 0.30, then 120 at
+charge per enemy touched; cut by armor) and bosses CAN be slowed, RPR 480 dmg at 0.10 shots/s (a 10s charge — owner halved the 20s one, which
+doubled its dps to 48; was 80 at 0.30, then 120 at
 0.20 — the same 24 dps each time, a slower beat — owner); slow now affects EVERY enemy at full strength (owner removed the
 earlier armor-immune / shield-halves rules). Ratings are judged from L1 time-to-kill against
 wave-6 enemies, not from playtesting.
