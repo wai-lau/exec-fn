@@ -207,7 +207,7 @@ function onHit(e, t, st, amt) {
   if (st.shred) { e.shredMul = Math.max(e.shredT > 0 ? e.shredMul : 1, st.shred.mul); e.shredT = st.shred.t; }
   if (st.dot) { e.dotDps = Math.max(e.dotT > 0 ? e.dotDps : 0, amt * st.dot.frac / st.dot.t); e.dotT = st.dot.t; e.dotSrc = t; }
   if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t);
-  if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t);
+  if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t, t ? t.id : "x");
   // Melt (ARC): every hit strips armor for good, so later hits land harder
   if (st.armorShred && e.armor) e.armor = Math.max(0, e.armor - st.armorShred);
   if (st.splash) {
@@ -224,19 +224,36 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 
 // Slow affects every enemy at full strength (owner; the earlier armor-immune
 // and shield-halves rules are gone). Returns whether any slow landed.
-// ONE slow at a time (owner): the strongest wins. A stronger (or equal) slow
-// replaces the current one - an equal one just refreshes its time; a weaker one
-// is ignored while the stronger is still running. (Amount and duration never
-// mix: a weak long slow cannot stretch a strong short one.)
+// Slows STACK across sources, LOGARITHMICALLY (owner, 2026-10-02; was one
+// slow at a time). Each source (a tower id, or "id:chill" for Deep Freeze)
+// keeps ONE slow on the enemy: its stronger slow replaces its weaker, an equal
+// one refreshes the time, a weaker one is ignored while the stronger runs.
+// Across n live sources the strongest, f1, grows by 1 + STACK_K * ln(n):
+// 0.4 alone, 0.54 from two towers, 0.62 from three, 0.68 from four - never past
+// STACK_CAP by stacking (a single stronger slow, Deep Freeze's 95%, still holds).
 // FRZ hits Fast enemies twice as hard (owner, 2026-10-02): double the slow,
 // up to 90% - never past a stronger slow already asked for (Deep Freeze 95%)
-const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.9;
-function applySlow(e, f, dur) {
+const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.9, STACK_K = 0.5, STACK_CAP = 0.9;
+function applySlow(e, f, dur, src = "x") {
   if (e.type === "fast") f = Math.max(f, Math.min(FAST_SLOW_CAP, f * FAST_SLOW_MUL));
-  if (e.slowT > 0 && f < e.slowF) return true;
-  e.slowT = f > e.slowF || !(e.slowT > 0) ? dur : Math.max(e.slowT, dur);
-  e.slowF = f;
+  const slows = e.slows || (e.slows = {}), s = slows[src];
+  if (s && s.t > 0 && f < s.f) return true;
+  slows[src] = { f, t: !s || !(s.t > 0) || f > s.f ? dur : Math.max(s.t, dur) };
+  sumSlows(e);
   return true;
+}
+// age every source's slow by dt, drop the spent ones, and fold the rest into
+// e.slowF / e.slowT (what effSpeed, Brittle, Shatter and the drawing read)
+function sumSlows(e, dt = 0) {
+  let f1 = 0, n = 0, t = 0;
+  for (const k in e.slows) {
+    const s = e.slows[k];
+    s.t -= dt;
+    if (!(s.t > 0)) { delete e.slows[k]; continue; }
+    f1 = Math.max(f1, s.f); n++; t = Math.max(t, s.t);
+  }
+  e.slowF = n > 1 ? Math.max(f1, Math.min(STACK_CAP, f1 * (1 + STACK_K * Math.log(n)))) : f1;
+  e.slowT = t;
 }
 
 // damage for one shot at one enemy: EMP's armored bonus and the every-Nth-shot charge
@@ -332,7 +349,7 @@ function stepEnemies(dt) {
       e.s += ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * dt;
     } else {
       if (e.stunT > 0) e.stunT -= dt;
-      if (e.slowT > 0) e.slowT -= dt;
+      if (e.slows) sumSlows(e, dt);
       if (e.markT > 0) e.markT -= dt; else e.markMul = 1;
       if (e.shredT > 0) e.shredT -= dt;
       if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
