@@ -3916,8 +3916,11 @@ URL. A web take on the spiral tower-defence genre (Android "Spira Defence" /
 "Spira 2" as the reference for mechanics only; all code and art original).
 
 **Route** `api/routes_aspira.py` → `templates/aspira.html`, `full_height`:
-the canvas fills the screen above the nav and the HUD + decks float over it
-(deck on the right ≥900px, a fixed 42% bottom sheet below). The camera
+the canvas fills the screen above the nav. The header (title, stats, and a
+controls row: send wave, auto-send, pause/speeds, sound) floats top-left; the
+build bar floats bottom-centre with a one-line "placing" note above it only
+while placing. No cards/decks and no inspector (owner); the only panel is the
+tower popup, shown only while a tower is selected. The camera
 (`cam` in aspira-draw.js, device pixels) fits the 1000-unit chart into the
 area the decks leave open; `toWorld` inverts it. Decks are OPAQUE (gradient
 over `--bg-hsl`), never `backdrop-filter`, which would re-read the animated
