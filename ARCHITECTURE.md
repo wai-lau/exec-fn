@@ -4100,7 +4100,7 @@ in check by FIRE RATE: CHN must stay under 1/5 of RPD's rate (1.0 vs 6) and
 RPR slower still (0.3). SHAPE SHOWS SPEED: triangle fastest (fast),
 square (swarm), pentagon (normal / shielded / armored), no hexagon enemies
 (hexagons are the towers; BOSSES WERE REMOVED, owner 2026-10-01). Enemies do not spin: one corner always points along
-the lane (nose first). Swarms are 7.5x the count (cap 175; owner: x6, x5, then quartered) at 0.07 HP / 0.18 bounty (about
+the lane (nose first). Swarms are ~1.9x the count (cap 44; owner: x6, x5, then quartered twice) at 0.07 HP / 0.18 bounty (about
 the same wave total), stream in EVENLY (0.024 gap; owner halved the density), and each member has its own
 speed (±20%, `spd`), a wander (`jit` 6–21; tripled, then halved twice) at a slow wobble (2.2 rad/s, cut to 1/3), fading to 0 at the core from
 `JIT_FADE_R` 400 (squared falloff) (owner: no pile-up at the centre) and wobble rate (`phr`). Shield (5 HITS on its first wave, +1 every 3 waves after,
