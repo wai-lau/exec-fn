@@ -4,8 +4,9 @@
 // applySlow, kill) stay in aspira-game.js; this file loads right after it.
 
 // Chain lightning: one strike, then arcs fan out from the struck enemy ONE
-// AT A TIME, CHAIN_HOP_DELAY apart (owner: the delay is back); an arc that
-// kills its target fires the next one at once. Pending chains step in
+// AT A TIME, CHAIN_HOP_DELAY apart (owner: the delay is back) - but only a
+// hop that will NOT kill waits: a lethal hop, and the one after a kill, land
+// at once. Pending chains step in
 // stepChains with game time, so the delay scales with game speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
@@ -25,25 +26,35 @@ function stepChains(dt) {
   if (!G.chains || !G.chains.length) return;
   G.chains = G.chains.filter(p => {
     p.wait -= dt;
-    while (p.wait <= 0) {
-      if (!hopChain(p.c)) return false;
-      p.wait += p.c.killed ? 0 : CHAIN_HOP_DELAY;
+    for (;;) {
+      const nxt = nextHop(p.c);
+      if (!nxt) return false;
+      // only a hop that will NOT kill waits (owner); a lethal one lands at once
+      if (p.wait > 0 && !lethalHop(p.c, nxt)) return true;
+      if (!hopTo(p.c, nxt)) return false;
+      if (!p.c.killed) p.wait = Math.max(p.wait, 0) + CHAIN_HOP_DELAY;
     }
-    return true;
   });
 }
 
 // c.src is the hub: every arc's reach is measured from it
-function hopChain(c) {
-  const { t, st, col } = c;
-  let nxt = null, nd = st.arcRange * st.arcRange;
+function nextHop(c) {
+  let nxt = null, nd = c.st.arcRange * c.st.arcRange;
   for (const o of G.enemies) {
     if (o.dead || c.hit.has(o.id)) continue;
     const d = (o.x - c.src.x) ** 2 + (o.y - c.src.y) ** 2;
     if (d < nd) { nd = d; nxt = o; }
   }
-  if (!nxt) return false;
-  const d = shotDamage(t, st, nxt, c.dmg);
+  return nxt;
+}
+// would this arc finish the enemy off? (no shield left; armor's flat cut applied)
+function lethalHop(c, o) {
+  if (o.shield > 0) return false;
+  const d = shotDamage(c.t, c.st, o, c.dmg);
+  return Math.max(d * 0.1, d - (o.armor || 0)) >= o.hp;
+}
+function hopTo(c, nxt) {
+  const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg);
   c.hit.add(nxt.id); beam(c.src, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
   damage(nxt, d, t); onHit(nxt, t, st, d);
   c.killed = nxt.dead;
