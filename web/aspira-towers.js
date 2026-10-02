@@ -148,8 +148,8 @@ function fireRay(t, st, e) {
 // still in flight MISSES - it stops homing and flies straight off into the
 // distance, fading slowly over MISS_LIFE, so the waste shows. A missed shot
 // still COLLIDES (owner): the first live enemy it flies through takes its hit.
-// volley size: always 3 (owner), at every level
-const RAPID_VOLLEY = 3, volleySize = () => RAPID_VOLLEY;
+// volley size: 1 shot (owner), at every level
+const RAPID_VOLLEY = 1, volleySize = () => RAPID_VOLLEY;
 const VOLLEY_SPREAD = 2.4, MISSILE_SPEED = 520, MISSILE_LEN = 12;
 const MISSILE_LIFE = 2, MISS_LIFE = 3;
 function launchMissile(t, st, e, a) {
@@ -202,7 +202,8 @@ function fireVolley(t, st) {
   for (const e of targets) {
     const aim = Math.atan2(e.y - t.y, e.x - t.x);
     const n = volleySize(t);
-    for (let i = 0; i < n; i++) launchMissile(t, st, e, aim + (i / (n - 1) - 0.5) * VOLLEY_SPREAD);
+    // shots spread evenly across the fan; a lone shot leaves at a random angle in it
+    for (let i = 0; i < n; i++) launchMissile(t, st, e, aim + ((n > 1 ? i / (n - 1) : Math.random()) - 0.5) * VOLLEY_SPREAD);
   }
   return true;
 }
