@@ -8,6 +8,7 @@
 // RPR fires a bright flash that is gone almost at once (owner); its reload
 // is shown by a separate charge-up line instead (stepReaper / drawAims)
 const CHAIN_BEAM_LIFE = 0.6, RAY_BEAM_LIFE = 0.25;
+const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 function fireChain(t, st, e) {
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); damage(e, dmg, t); onHit(e, t, st, dmg);
@@ -66,7 +67,9 @@ function fireSlower(t, st) {
 function stepReaper(t, dt) {
   const st = towerStats(t);
   t.period = 1 / st.rate;
-  if (t.aim && (t.aim.dead || Math.hypot(t.aim.x - t.x, t.aim.y - t.y) > st.range)) {
+  // two ranges (owner): a lock can only START inside st.range (pickTargets),
+  // but once charging it HOLDS out to REAPER_HOLD x that range
+  if (t.aim && (t.aim.dead || Math.hypot(t.aim.x - t.x, t.aim.y - t.y) > st.range * REAPER_HOLD)) {
     if (t.aim.dead) { t.cd = t.period; stopCharge(t); } // the charge starts over
     t.aim = null;
   }

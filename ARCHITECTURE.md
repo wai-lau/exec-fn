@@ -4049,7 +4049,8 @@ while it lasts, so it tracks a moving enemy — except RPD's 0.06s tracers.
 A beam ENDS the moment the enemy it points at dies. CHN beams last 0.6s. RPR (owner): while reloading it draws a thin,
 harmless CHARGE-UP line to its current target that fades in with reload
 progress (`aimReaper` / `drawAims`); firing is a bright 0.25s flash that deals
-the damage; the charge is LOCKED on one target (`stepReaper`): a death
+the damage; the Reaper has TWO ranges: a lock may only START inside its range,
+but HOLDS out to `REAPER_HOLD = 2`x it (drawn as a dashed outer ring); the charge is LOCKED on one target (`stepReaper`): a death
 mid-charge restarts it, leaving range re-targets with the charge kept, no
 target = no charge. New Reapers default to Hard (strongest) targeting. Sound (owner: no bass): a
 charge-up whine climbing 320→1500Hz with a tremolo speeding 3→26/s over the
