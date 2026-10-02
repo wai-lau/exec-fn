@@ -58,14 +58,14 @@ function noise({ dur = 0.1, vol = 0.3, freq = 2000, q = 1, delay = 0 }) {
 
 // The Reaper's charge-up: the LAST THIRD of a whine that would climb
 // 320 -> 1500Hz with its tremolo speeding 3 -> 26 pulses/s (owner: only the
-// final rush) - so over `dur` seconds it runs ~900 -> 1500Hz and ~13 -> 26/s,
+// final rush), pitched down (owner): ~500 -> 850Hz while ~13 -> 26/s pulses,
 // high-passed, no bass. Returns a handle whose stop() cuts it.
 function chargeHum(dur) {
   const t0 = AC.currentTime, o = AC.createOscillator(), hp = AC.createBiquadFilter();
   const lfo = AC.createOscillator(), depth = AC.createGain(), trem = AC.createGain(), g = AC.createGain();
   o.type = "sawtooth";
-  o.frequency.setValueAtTime(900, t0); o.frequency.exponentialRampToValueAtTime(1500, t0 + dur);
-  hp.type = "highpass"; hp.frequency.value = 300;
+  o.frequency.setValueAtTime(500, t0); o.frequency.exponentialRampToValueAtTime(850, t0 + dur);
+  hp.type = "highpass"; hp.frequency.value = 280;
   lfo.frequency.setValueAtTime(13, t0); lfo.frequency.exponentialRampToValueAtTime(26, t0 + dur);
   depth.gain.value = 0.5; trem.gain.value = 0.5;   // trem gain swings 0..1 with the LFO
   lfo.connect(depth).connect(trem.gain);
@@ -90,10 +90,10 @@ const SFX = {
   // RPR fires a LASER (owner: no bass): a fast falling zap, a brighter buzz
   // under it, a high crack and a faint echo - nothing below ~350Hz
   reaper:  () => {
-    tone({ f0: 2800, f1: 380, dur: 0.28, vol: 0.2 });
-    tone({ type: "square", f0: 1900, f1: 520, dur: 0.2, vol: 0.05 });
-    noise({ dur: 0.06, vol: 0.12, freq: 4200, q: 1.5 });
-    tone({ f0: 2800, f1: 380, dur: 0.28, vol: 0.05, delay: 0.11 });
+    tone({ f0: 1600, f1: 300, dur: 0.28, vol: 0.2 });
+    tone({ type: "square", f0: 1100, f1: 360, dur: 0.2, vol: 0.05 });
+    noise({ dur: 0.06, vol: 0.12, freq: 2600, q: 1.5 });
+    tone({ f0: 1600, f1: 300, dur: 0.28, vol: 0.05, delay: 0.11 });
   },
   // and CHARGES for it: a whine that climbs while its pulse speeds up
   reaperCharge: dur => chargeHum(dur),
