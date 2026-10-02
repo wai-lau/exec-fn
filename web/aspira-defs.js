@@ -232,8 +232,8 @@ const ENEMIES = {
   swarm:  { sides: 4, hp: 0.07, speed: 95,  bounty: 0.18, size: 6, color: "white" }, // twice as many, half as tough
   shield: { sides: 5, hp: 0.6,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
   armor:  { sides: 5, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 24 }, // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
-  // x10 size and HP, a rare boss (owner, 2026-10-02): every 10th wave only
-  bonus: { sides: 5, hp: 14, speed: 100, bounty: 3,   size: 140, color: "orange", star: true }, // owner 2026-10-02: yellow = Marigold (was cyan)
+  // a rare boss (owner, 2026-10-02): x10 HP, x2 size, every 10th wave only
+  bonus: { sides: 5, hp: 14, speed: 100, bounty: 3,   size: 28, color: "orange", star: true }, // owner 2026-10-02: yellow = Marigold (was cyan)
 };
 
 const POWERS = [
