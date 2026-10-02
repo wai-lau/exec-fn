@@ -27,6 +27,21 @@ const UPGRADES = {
       { name: "Static", desc: "every hit slows 30% for 0.5s", mods: { hitSlow: { f: 0.3, t: 0.5 } } },
     ] },
   ],
+  // ACD's tree is a PLACEHOLDER (owner to design): plain stat paths for now
+  acid: [
+    { name: "Corrosive", desc: "+50% burn", mods: { dmg: 1.5 }, finals: [
+      { name: "Melt", desc: "burn x2", mods: { dmg: 2 } },
+      { name: "Reach", desc: "+40% range", mods: { range: 1.4 } },
+    ] },
+    { name: "Long Line", desc: "+30% range", mods: { range: 1.3 }, finals: [
+      { name: "Lance", desc: "+30% range, +30% burn", mods: { range: 1.3, dmg: 1.3 } },
+      { name: "Searing", desc: "burn x1.8", mods: { dmg: 1.8 } },
+    ] },
+    { name: "Catalyst", desc: "+30% burn", mods: { dmg: 1.3 }, finals: [
+      { name: "Volatile", desc: "burn x1.6", mods: { dmg: 1.6 } },
+      { name: "Wide", desc: "+50% range", mods: { range: 1.5 } },
+    ] },
+  ],
   slower: [
     { name: "Frost", desc: "+15% slow", mods: { slow: 0.15 }, finals: [
       { name: "Deep Freeze", desc: "newly slowed enemies freeze 0.17s", mods: { chillStop: 0.17 } },

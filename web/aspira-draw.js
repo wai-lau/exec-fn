@@ -408,6 +408,20 @@ function drawAims() {
   ctx.globalAlpha = 1;
 }
 
+// ACD's line: thin and faint at first, thicker and brighter as its burn ramps
+function drawAcid() {
+  ctx.lineCap = "round";
+  for (const t of G.towers) {
+    if (t.kind !== "acid" || !t.link || t.link.dead) continue;
+    const f = (acidMul(t) - 1) / (ACID_MAX - 1); // 0 fresh .. 1 full burn
+    ctx.strokeStyle = COL.chatsubo;
+    ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.link.x, t.link.y);
+    ctx.globalAlpha = 0.1 + 0.2 * f; ctx.lineWidth = 3 + 5 * f; ctx.stroke();
+    ctx.globalAlpha = 0.6 + 0.4 * f; ctx.lineWidth = 1 + f; ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 // SLW's continuous tethers: a live beam from each Slower to every enemy it
 // is holding, redrawn each frame so it tracks them; it drops when the enemy
 // dies or leaves range. A slow shimmer keeps it reading as a held effect.
@@ -454,6 +468,7 @@ function render() {
   drawStars();
   for (const e of G.enemies) drawEnemy(e);
   drawTethers();
+  drawAcid();
   drawAims();
   drawFx("shots");
   for (const t of G.towers) drawTower(t);
