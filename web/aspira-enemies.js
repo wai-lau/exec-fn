@@ -42,7 +42,10 @@ function drawEnemy(e) {
     poly(e.x, e.y, size, d.sides, e.rot, d.pointy); ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fill();
   }
   poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
+  // a boss GLOWS in its colour (owner); the tracer is the boss type's own
+  if (e.arcana) { ctx.shadowColor = COL[d.color]; ctx.shadowBlur = 28 * cam.k; }
   ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
+  ctx.shadowBlur = 0;
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
   // full at the core), still dimmed by lost HP
   const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));

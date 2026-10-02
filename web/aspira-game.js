@@ -55,6 +55,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     bounty: Math.ceil((2 + n * 0.35) * d.bounty), slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
   if (quenching()) quench(G.enemies[G.enemies.length - 1]); // the core's Quench / Vacuum (aspira-core.js)
+  if (type === "bonus") bossSpawn(G.enemies[G.enemies.length - 1], n); // which boss (aspira-bosses.js)
 }
 
 // ---------- combat ----------
@@ -115,6 +116,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   const blunted = amt < raw;
   // per-tower tally: damage counts only up to the HP the enemy had left
   if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));
+  amt = bossHitCap(e, amt); // Justice / Death cap a single hit (aspira-bosses.js)
   e.hp -= amt;
   if (!quiet) {
     // impact flash sized and lit by the damage; big hits also throw sparks
@@ -167,6 +169,7 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 // up to 90% - never past a stronger slow already asked for (Deep Freeze 95%)
 const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.9, STACK_K = 0.5, STACK_CAP = 0.9;
 function applySlow(e, f, dur, src = "x") {
+  if (e.arcana) { f *= bossSlowMul(e); if (f <= 0) return true; } // Strength / Death (aspira-bosses.js)
   if (e.type === "fast") f = Math.max(f, Math.min(FAST_SLOW_CAP, f * FAST_SLOW_MUL));
   const slows = e.slows || (e.slows = {}), s = slows[src];
   if (s && s.t > 0 && f < s.f) return true;
@@ -197,6 +200,7 @@ function shotDamage(t, st, e, base) {
 }
 
 function kill(e, t) {
+  if (bossRise(e)) return; // Judgement / Death rise once (aspira-bosses.js)
   e.dead = true;
   if (t) t.kills = (t.kills || 0) + 1;
   const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1) * (e.slowT > 0 && e.siphon ? e.siphon : 1);
@@ -207,7 +211,7 @@ function kill(e, t) {
   addScore(b * 10);
   G.charge = Math.min(POWER_FULL, G.charge + 1);
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
-  if (e.type === "bonus") bonusDrop(e);
+  if (e.type === "bonus") { if (bossPays(e)) bonusDrop(e); bossKilled(e); } // the last Devil pays; a Lover's mate enrages (aspira-bosses.js)
   if (e.shatter && e.slowT > 0 && !shattering) shatterAt(e); // FRZ's Shatter
   if (e.charged) staticDischarge(e); // ARC's Static
 }
@@ -287,6 +291,7 @@ function stepEnemies(dt) {
       if (e.stunT > 0) e.stunT -= dt;
       if (e.slows) sumSlows(e, dt);
       if (e.markT > 0) e.markT -= dt; else e.markMul = 1;
+      if (e.arcana) bossStep(e, dt); // the bosses' tricks (aspira-bosses.js)
       if (e.biteT > 0) e.biteT -= dt; // Frostbite tint
       if (e.corrodeT > 0) e.corrodeT -= dt; // Corrosion ring
       if (e.shredT > 0) e.shredT -= dt;
