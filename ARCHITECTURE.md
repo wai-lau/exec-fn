@@ -3909,6 +3909,11 @@ must never fail because of a rate limit (owner).
 
 ## 22. /aspira — spiral tower defence
 
+**THREE towers only (owner, 2026-10-01): CHN, SLW, RPR.** Rapid (RPD) was removed
+entirely (stats, upgrade tree, sound, swatch); shielded enemies have no dedicated
+counter now (CHN's 13-hit tree and SLW's pulses each pop one charge per hit).
+
+
 Owner-only (`protected`), carried by the bottom nav but **not a nav entry**:
 no `aspira` key in pages.py's nav tables, so `_render_page("aspira", …)`
 renders the nav with nothing marked active. Linked from nowhere; reached by

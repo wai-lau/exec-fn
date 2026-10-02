@@ -64,7 +64,6 @@ function noise({ dur = 0.1, vol = 0.3, freq = 2000, q = 1, delay = 0 }) {
 const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * step, ...opts }));
 
 const SFX = {
-  rapid:   () => tone({ type: "square", f0: 1400, f1: 900, dur: 0.03, vol: 0.08 }),
   chain:   () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
   // RPR fires a LASER (owner: no bass): a fast falling zap, a brighter buzz
   // under it, a high crack and a faint echo - nothing below ~350Hz
@@ -91,7 +90,7 @@ const SFX = {
   over:    () => notes([392, 330, 262, 196], 0.18, { type: "triangle", dur: 0.32, vol: 0.25 }),
 };
 // minimum seconds between two plays of the same sound
-const GAP = { rapid: 0.06, chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
+const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
 
 // returns whatever the sound returns (a stop() handle for long sounds), or null
 function sfx(name, ...args) {

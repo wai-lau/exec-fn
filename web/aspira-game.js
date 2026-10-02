@@ -256,7 +256,7 @@ const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
 // slim: RPR's beam - half the width, brighter glow (owner).
 // follow: the beam keeps hold of its two endpoint objects (tower, enemy) and
 // is redrawn between them every frame while it lasts, so it tracks a moving
-// target; RPD's quick tracers do not (owner).
+// target; follow = false draws a fixed line between the start points.
 function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) {
   fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, m: dmgMag(dmg), slim,
     a: follow ? a : null, b: follow ? b : null });
