@@ -221,8 +221,9 @@ const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
 const RANGE_BONUS = 1.2;
 // targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
-// Close = nearest the core (aspira-game.js MODE_KEY)
-const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Close"]];
+// Near = nearest the core (aspira-game.js MODE_KEY; the key stays "close", the
+// label is Near so it does not read as "close this card" - owner)
+const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"]];
 
 // Each special enemy had ONE counter tower: swarm -> CHN, fast -> SLW,
 // armor -> RPR; shield's counter was RPD, removed (owner: three towers only).

@@ -60,9 +60,7 @@ function sendWave() {
   const gain = Math.floor(G.money * G.interest);
   if (gain > 0) { G.money += gain; creditsFx = { gain, pct: G.interest * 100, t0: performance.now() / 1000 }; }
   G.wave++;
-  // a boss wave announces the boss by name (owner); ordinary waves show nothing
-  // mid-screen any more (owner) - the wave list has them
-  if (G.wave % STAR_EVERY === 0) float(CX, CY - 80, arcanaOf(G.wave).name, "orange", 28, 4, 1, 3);
+  // the boss is named in its HP BAR under the speed row (owner), not mid-screen
   // a boss is announced (owner): the advisor's double beep, then the Archon
   // (each boss has its own line, "bossvoice.<arcana>", else the shared one)
   if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", bossVoice(arcanaOf(G.wave).id)]);

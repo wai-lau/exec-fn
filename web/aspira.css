@@ -426,3 +426,33 @@
 
   #asp .asp-build .asp-tw { min-width: 52px; padding-block: var(--space-1-5); }
 }
+
+/* a button the credits cannot cover is dimmed but still TAPPABLE (owner): a
+   tap flashes its cost Ember red and shakes it (noFunds, aspira-ui.js) */
+#asp button.poor { opacity: 0.45; }
+
+@keyframes asp-nofunds {
+  20%, 60% { transform: translateX(calc(-3 * var(--space-px))); }
+  40%, 80% { transform: translateX(calc(3 * var(--space-px))); }
+}
+
+#asp button.asp-nofunds { animation: asp-nofunds 0.4s ease-out; opacity: 1; }
+
+#asp button.asp-nofunds .c,
+#asp button.asp-up-big.asp-nofunds { color: hsl(var(--orange-glow-hsl)); }
+
+/* sell, armed by a first tap: Ember until the second tap or a 2s timeout */
+#asp button.asp-sell.armed { color: hsl(var(--orange-glow-hsl)); border-color: hsl(var(--orange-glow-hsl)); }
+
+/* FPS is debug noise (owner): the counter keeps running, unseen */
+.asp-stat:has(#asp-fps) { display: none; }
+
+/* a live boss's HP bar under the speed row (aspira-ui.js updateBossBar) */
+.asp-bossbar { display: flex; align-items: center; gap: var(--space-2); max-width: 420px; margin-top: var(--space-2); font-size: var(--fs-xs); }
+
+.asp-bossbar[hidden] { display: none; }
+
+.asp-bossbar .asp-bar { flex: 1; }
+
+.asp-bossname { white-space: nowrap; color: hsl(var(--orange-glow-hsl)); }
+

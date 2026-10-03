@@ -243,8 +243,9 @@ def _build_nav(active=None, guest=False):
     # Exec chat = a floating draggable bubble + panel, on the planning routes
     # (rd + hq). On every OTHER non-guest page the same bubble shows
     # as a plain link to the planning chat (/hq?exec=open) — same-origin
-    # so the standalone link interceptor keeps it in-app. Never for guests.
-    if guest:
+    # so the standalone link interceptor keeps it in-app. Never for guests
+    # ...and never on /aspira (owner, 2026-10-03): it sat on the build buttons
+    if guest or active == "aspira":
         bubble = ''
     elif active in {"rd", "hq"}:
         # voice-input.js + exec-mic.js are the panel's hands-free input: the same
