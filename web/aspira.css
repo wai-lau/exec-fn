@@ -374,11 +374,14 @@
    the countdown stay), and it and the title squeeze in LEFT of compact build
    buttons, on the same bottom band */
 @media (width < 700px) {
-  .asp-wavenote { grid-template-columns: repeat(2, auto); }
+  /* no holes (owner: "gaps"): HP right after the count, rows packed */
+  .asp-wavenote { grid-template-columns: repeat(2, auto); gap: 0 var(--space-1-5); }
 
   .asp-wavenote > span:nth-child(5n + 1),
   .asp-wavenote > span:nth-child(5n + 2),
   .asp-wavenote > span:nth-child(5n + 5) { display: none; }
+
+  .asp-wavenote > span:nth-child(5n + 4) { text-align: left; }
 
   /* the speed row and its volume slider stay ONE line (owner): tighter
      buttons, and the slider takes what is left */
