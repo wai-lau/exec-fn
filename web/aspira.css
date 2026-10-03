@@ -253,7 +253,7 @@
 #asp .asp-tw.orange { color: hsl(var(--orange-hsl)); }
 
 .asp-pop .name { font-weight: var(--fw-bold); }
-.asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
+.asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; } /* stats smaller (owner) */
 .asp-pop dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-pop dd { margin: 0; }
 
@@ -329,7 +329,17 @@
 .asp-chooser[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
 .asp-chooser[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
 .asp-chooser[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
-.asp-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-4); }
+
+/* ONE line of cards (owner): a row, or a column when they do not all fit across (aspira-ui.js) */
+.asp-cards { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: var(--space-4); }
+.asp-cards.asp-cards-col { flex-direction: column; }
+
+/* cancel: the same as clicking off the cards (owner) */
+#asp button.asp-cancel { padding-inline: var(--space-8); background: hsl(var(--bg-hsl)); }
+
+/* while the cards are up, the board BLURS and darkens beneath them (owner); it
+   is frozen then (no redraw), so the filter is not re-run every frame */
+#asp.asp-choosing .asp-board canvas { filter: blur(var(--blur-xs)) brightness(0.5); }
 
 /* each card is laid out like the tower's own card (owner): name, the two stat
    columns, then the tagline - brighter than the tower card's hint */
@@ -354,7 +364,7 @@
 .asp-card .name { font-weight: var(--fw-bold); }
 .asp-card .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
 .asp-card .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
-.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
+.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 .asp-card dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-card dd { margin: 0; white-space: nowrap; } /* "now -> next" on one line, like the tower card */
 .asp-card .asp-hint { max-width: none; color: hsl(var(--green-hsl)); } /* not the overlay's 36ch */

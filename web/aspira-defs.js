@@ -215,6 +215,8 @@ const TOWERS = {
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
   acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 18,  rate: 4,    range: 230, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
 };
+// which enemies each tower is GOOD AGAINST (owner), on its build card
+const GOOD_VS = { chain: "swarms", slower: "fast, shields", reaper: "armor, bosses", acid: "shields, bosses" };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
 const RANGE_BONUS = 1.2;
