@@ -138,7 +138,7 @@ function drawCredits() {
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
   text("CREDITS " + n, CX, CY - CORE_R - LIFE_GAP * LIFE_RINGS - 22, 22, "white", true);
   if (!fxOn) return;
-  const parts = [["+" + creditsFx.gain, "green"], ["c", "orange"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
+  const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "20px " + CANVAS_FONT;
   const ws = parts.map(p => ctx.measureText(p[0]).width);
   let x = CX - ws.reduce((a, w) => a + w, 0) / 2;

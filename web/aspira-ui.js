@@ -10,7 +10,7 @@ const SPEEDS = [0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
-// a CREDITS amount reads "40c", the c in gold (Marigold, owner) - HTML
+// a CREDITS amount reads "40c" (owner); the c takes the text's own colour
 const cr = n => n + '<span class="asp-c">c</span>';
 function setHtml(el, v) { if (el.dataset.html !== v) { el.dataset.html = v; el.innerHTML = v; } }
 // big counts shorten so they never run into the tower buttons: 12345 stays,
