@@ -335,7 +335,7 @@ def test_a_draft_poll_is_created_by_the_hosts_first_commit(browser, base_url):
     page = browser.new_page(viewport={"width": 430, "height": 932})
     try:
         page.goto(f"{base_url}{d['url']}")
-        assert page.inner_text("#nd-title") == "untitled noodle"
+        assert page.inner_text("#nd-title") == "title"
         assert page.is_hidden("#nd-share"), "no link to share before the poll exists"
         page.fill("#nd-name", "smoke drafter")
         page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)

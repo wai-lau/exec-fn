@@ -44,7 +44,8 @@ function ndhTitleMarks(role) {
   ndh$('noodle').classList.toggle('nd-as-host', host);   // host-only / guest-only bits (noodle.css)
   host = host && NDV.step === 'pick';   // editable only on the pick step: one section at a time
   t.classList.toggle('editable', host);
-  t.classList.toggle('untitled', host && t.textContent.trim() === 'untitled noodle');
+  // "title" is the placeholder; polls made before 2026-10-03 still say "untitled noodle"
+  t.classList.toggle('untitled', host && ['title', 'untitled noodle'].indexOf(t.textContent.trim()) >= 0);
   // the NOTE under it wears the same "you can edit me" line
   n.classList.toggle('editable', host);
 }
@@ -142,7 +143,7 @@ function ndhTextTap(k) {
     if ((role !== 'host' && role !== 'fresh') || NDV.step !== 'pick' || el.isContentEditable) return;
     el.contentEditable = 'plaintext-only';
     el.focus();
-    // all of it selected: a placeholder like "untitled noodle" is typed over
+    // all of it selected: the placeholder "title" is typed over
     var r = document.createRange();
     r.selectNodeContents(el);
     window.getSelection().removeAllRanges();
