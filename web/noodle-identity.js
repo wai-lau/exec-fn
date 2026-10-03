@@ -101,7 +101,57 @@ function ndvOnIdentityInput() {
 function ndvPickFace(e) {
   var face = e.target.closest('.nd-face');
   if (!face || !face.dataset.name || (window.NDR && NDR.active)) return;   // the blank 'you' seat fills nothing
+  NDV.step = 'you';   // a different identity: back to the YOU step
   ndv$('nd-name').value = face.dataset.name;
   ndvOnIdentityInput();
   ndv$('nd-pass').focus();
+}
+
+// ONE section edits at a time (feedback 2026-10-03: the whole page open at
+// once was overwhelming): YOU (name + passphrase), then the PICK (calendar,
+// Ask, Commit, and the host's title + note). On the pick step YOU folds to
+// one line, "you are <name> [edit]"; on the you step the pick stays in view,
+// grey and read-only (ndvSyncLock), so the results can still be read. A
+// returning voter whose saved identity unlocks skips straight to the pick.
+function ndvCanNext() {
+  return !!window.noodleNormName(ndv$('nd-name').value) && !NDV.keyError && !NDV.blocked && !NDV.taken;
+}
+
+function ndvStep(step) {
+  NDV.step = step;
+  NDV.autoStep = false;
+  ndvSyncSubmit();   // runs ndvSyncLock, which paints the step
+  if (window.ndhSync && NDV.poll) window.ndhSync(ndvReady() ? ndvPub() : null);   // the title's edit marks
+}
+
+// Called from ndvSyncLock on every state change: a name that turns out to be
+// someone else's sends the voter back to YOU, where the fix is.
+function ndvPaintStep() {
+  var was = NDV.step;
+  if (NDV.step === 'pick' && (NDV.blocked || NDV.keyError || !window.noodleNormName(ndv$('nd-name').value))) NDV.step = 'you';
+  if (NDV.autoStep && NDV.poll && ndvReady() && !NDV.blocked && !(NDV.held && !NDV.mine)) {
+    NDV.autoStep = false;
+    NDV.step = 'pick';
+  }
+  var pick = NDV.step === 'pick', you = ndv$('nd-you-name');
+  ndv$('noodle').classList.toggle('nd-step-pick', pick);
+  ndv$('nd-next').disabled = !ndvCanNext();
+  ndv$('nd-next').textContent = window.ndxIsHost && window.ndxIsHost() ? 'next: offer times' : 'next: pick times';
+  you.textContent = window.noodleNormName(ndv$('nd-name').value);
+  if (NDV.seal) you.style.setProperty('--seal-hsl', NDV.seal.ink); else you.style.removeProperty('--seal-hsl');
+  ndv$('nd-submit').inert = !pick;
+  if (was !== NDV.step && window.ndhRole) ndhTitleMarks(ndhRole(ndvReady() ? ndvPub() : null));
+}
+
+// wired by ndvInit: this file loads before NDV exists (noodle-vote.js)
+function ndvStepInit() {
+  NDV.step = 'you';
+  ndv$('nd-next').addEventListener('click', function () { if (ndvCanNext()) ndvStep('pick'); });
+  ndv$('nd-you-edit').addEventListener('click', function () { ndvStep('you'); ndv$('nd-name').focus(); });
+  // Enter in either field is "next"
+  ['nd-name', 'nd-pass'].forEach(function (id) {
+    ndv$(id).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && ndvCanNext()) { e.preventDefault(); ndv$(id).blur(); ndvStep('pick'); }
+    });
+  });
 }

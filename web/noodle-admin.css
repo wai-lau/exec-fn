@@ -1,5 +1,5 @@
 /* noodle: the /noodle page -- the owner's poll table, and for guests the
-   centred title + create button + demo video, above the CRT, never scrolling. */
+   centred title + create button + demo video, never scrolling. */
 
 /* ── owner list ─────────────────────────────────────────────────────────── */
 .nd-polls { width: 100%; margin: 0 0 var(--space-6); border-collapse: collapse; font-size: var(--fs-2xs); }
@@ -21,11 +21,10 @@
 }
 #noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }
 
-/* the demo video (guests only, pages.py _DEMO), under the create button and
-   ABOVE the CRT stack. .page-scroll is position:fixed, which always makes a
-   stacking context, so nothing inside it can rise over the CRT (z-modal):
-   on this page the wrapper goes static and the document scrolls instead; and
-   .doc-card's z-index (chrome.css) is a stacking context too, so it goes auto. */
+/* the demo video (guests only, pages.py _DEMO), under the create button.
+   The wrapper goes static and the document scrolls instead, and .doc-card's
+   z-index goes auto -- left from when the video had to rise over the CRT
+   stack (noodle has none since 2026-10-03). */
 .page-scroll:has(.nd-demo) { position: static; overflow: visible; padding-bottom: var(--nav-h); }
 .doc-card:has(.nd-demo) { z-index: auto; }
 

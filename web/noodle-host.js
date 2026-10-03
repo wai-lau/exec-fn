@@ -42,6 +42,7 @@ function ndhSync(pub) {
 function ndhTitleMarks(role) {
   var t = ndh$('nd-title'), n = ndh$('nd-note'), host = role === 'host' || role === 'fresh';
   ndh$('noodle').classList.toggle('nd-as-host', host);   // host-only / guest-only bits (noodle.css)
+  host = host && NDV.step === 'pick';   // editable only on the pick step: one section at a time
   t.classList.toggle('editable', host);
   t.classList.toggle('untitled', host && t.textContent.trim() === 'untitled noodle');
   // the NOTE under it wears the same "you can edit me" line
@@ -138,7 +139,7 @@ var NDH_TEXT = {
 function ndhTextTap(k) {
   return function () {
     var el = ndh$(NDH_TEXT[k].el), role = ndhRole(ndvReady() ? ndvPub() : null);
-    if ((role !== 'host' && role !== 'fresh') || el.isContentEditable) return;
+    if ((role !== 'host' && role !== 'fresh') || NDV.step !== 'pick' || el.isContentEditable) return;
     el.contentEditable = 'plaintext-only';
     el.focus();
     // all of it selected: a placeholder like "untitled noodle" is typed over

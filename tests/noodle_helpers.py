@@ -19,6 +19,6 @@ def offer_one(page):
 def can_commit(page):
     """Wait until the calendar takes taps, offer something if hosting, and
     wait for Commit to be pressable."""
-    page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+    page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)
     offer_one(page)
     page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)

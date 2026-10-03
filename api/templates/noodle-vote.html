@@ -5,44 +5,53 @@
     <ul id="nd-voters" class="nd-faces"></ul>
   </section>
 
+  <p class="nd-kicker">poll</p>
   <h1 id="nd-title" class="nd-title" spellcheck="false">{{TITLE}}</h1>
   <p id="nd-note" class="nd-subnote" spellcheck="false">{{NOTE}}</p>
 
-  <section class="nd-id">
-    <div class="nd-fields">
-      <label class="nd-field"><span>name</span>
-        <span class="nd-pass-row"><input id="nd-name" type="text" placeholder="please help the host know who you are" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="40"><button id="nd-rename" type="button" class="nd-rekey" hidden>change</button></span></label>
-      <label class="nd-field"><span class="nd-field-h"><span id="nd-pass-label">passphrase (optional)</span></span>
-        <span class="nd-pass-row"><input id="nd-pass" type="text" maxlength="128" placeholder="you'll need this to change your vote" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"><button id="nd-rekey" type="button" class="nd-rekey" hidden>change</button></span></label>
+  <!-- ONE section edits at a time: YOU, then the PICK (noodle-identity.js ndvStep) -->
+  <section id="nd-you" class="nd-step">
+    <p class="nd-you-sum"><span>you are <b id="nd-you-name"></b></span><button id="nd-you-edit" type="button" class="nd-rekey">edit</button></p>
+    <section class="nd-id">
+      <div class="nd-fields">
+        <label class="nd-field"><span>your name</span>
+          <span class="nd-pass-row"><input id="nd-name" type="text" placeholder="please help the host know who you are" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="40"><button id="nd-rename" type="button" class="nd-rekey" hidden>change</button></span></label>
+        <label class="nd-field"><span class="nd-field-h"><span id="nd-pass-label">passphrase (optional)</span></span>
+          <span class="nd-pass-row"><input id="nd-pass" type="text" maxlength="128" placeholder="you'll need this to change your vote" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"><button id="nd-rekey" type="button" class="nd-rekey" hidden>change</button></span></label>
+      </div>
+    </section>
+    <p id="nd-warn" class="nd-warn" hidden>no passphrase: anyone can change your vote</p>
+
+    <div class="nd-teach-box">
+      <div id="nd-teach" class="nd-teach" aria-live="polite"></div>
+      <div class="nd-seal-box">
+        <pre id="nd-seal" class="nd-seal" aria-label="your seal"></pre>
+        <span id="nd-seal-cap" class="nd-seal-cap">your seal of approval</span>
+      </div>
+    </div>
+    <button id="nd-next" type="button" class="nd-submit nd-next" disabled>next: pick times</button>
+  </section>
+
+  <section id="nd-pick" class="nd-step">
+    <p class="nd-pick-note">please select your availabilities (public)</p>
+
+    <div id="nd-split-slot" class="nd-split-slot"><label id="nd-split-row" class="nd-check nd-split" hidden><input id="nd-split" type="checkbox"> split each day into halves</label></div>
+    <div id="nd-cal" class="nd-cal-wrap"></div>
+
+    <p id="nd-why" class="nd-why" aria-live="polite"></p>
+    <button id="nd-submit" type="button" class="nd-submit">Commit</button>
+    <p id="nd-dirty" class="nd-dirty" hidden>* unsaved changes</p>
+    <div id="nd-share" class="nd-share nd-pass-row" hidden><input id="nd-url" class="nd-url" type="text" readonly aria-label="link to this poll"><button id="nd-copy" type="button" class="nd-rekey" aria-label="copy link" title="copy link"></button></div>
+
+    <div class="nd-ask">
+      <label for="nd-ask" class="nd-ask-label">or ask noodle</label>
+      <div class="nd-ask-row">
+        <textarea id="nd-ask" rows="5" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="only available every in the morning on odd days&#10;never tuesdays&#10;and also, at night on stat holidays&#10;oh and, next monday, I'm free all day"></textarea>
+        <button id="nd-ask-go" type="button" class="nd-ask-go" disabled>help me</button>
+      </div>
+      <p id="nd-ask-status" class="nd-status" aria-live="polite"></p>
     </div>
   </section>
-  <p id="nd-warn" class="nd-warn" hidden>no passphrase: anyone can change your vote</p>
-
-  <div class="nd-teach-box">
-    <div id="nd-teach" class="nd-teach" aria-live="polite"></div>
-    <div class="nd-seal-box">
-      <pre id="nd-seal" class="nd-seal" aria-label="your seal"></pre>
-      <span id="nd-seal-cap" class="nd-seal-cap">your seal of approval</span>
-    </div>
-  </div>
-  <p class="nd-pick-note">please select your availabilities (public)</p>
-
-  <div id="nd-split-slot" class="nd-split-slot"><label id="nd-split-row" class="nd-check nd-split" hidden><input id="nd-split" type="checkbox"> split each day into halves</label></div>
-  <div id="nd-cal" class="nd-cal-wrap"></div>
-
-  <p id="nd-why" class="nd-why" aria-live="polite"></p>
-  <button id="nd-submit" type="button" class="nd-submit">Commit</button>
-  <p id="nd-dirty" class="nd-dirty" hidden>* unsaved changes</p>
-  <div id="nd-share" class="nd-share nd-pass-row" hidden><input id="nd-url" class="nd-url" type="text" readonly aria-label="link to this poll"><button id="nd-copy" type="button" class="nd-rekey" aria-label="copy link" title="copy link"></button></div>
-
-  <div class="nd-ask">
-    <label for="nd-ask" class="nd-ask-label">or ask noodle</label>
-    <div class="nd-ask-row">
-      <textarea id="nd-ask" rows="5" maxlength="{{ASK_MAX}}" autocomplete="off" spellcheck="false" placeholder="only available every in the morning on odd days&#10;never tuesdays&#10;and also, at night on stat holidays&#10;oh and, next monday, I'm free all day"></textarea>
-      <button id="nd-ask-go" type="button" class="nd-ask-go" disabled>help me</button>
-    </div>
-    <p id="nd-ask-status" class="nd-status" aria-live="polite"></p>
-  </div>
   <section id="nd-top-box" class="nd-top-box" hidden>
     <ul id="nd-top" class="nd-top"></ul>
   </section>
@@ -61,18 +70,18 @@
 <script src="/qc-holidays.js?v=1"></script>
 <script src="/noodle-toggle.js?v=4"></script>
 <script src="/noodle-seal.js?v=5"></script>
-<script src="/noodle-cal.js?v=19"></script>
+<script src="/noodle-cal.js?v=20"></script>
 <script src="/noodle-cal-view.js?v=48"></script>
 <script src="/noodle-kdf.js?v=5"></script>
 <script src="/noodle-esc.js?v=1"></script>
 <script src="/noodle-roster.js?v=23"></script>
 <script src="/noodle-crop.js?v=17"></script>
 <script src="/noodle-storage.js?v=1"></script>
-<script src="/noodle-identity.js?v=1"></script>
+<script src="/noodle-identity.js?v=3"></script>
 <script src="/noodle-commit.js?v=2"></script>
-<script src="/noodle-vote.js?v=78"></script>
+<script src="/noodle-vote.js?v=80"></script>
 <script src="/noodle-ask.js?v=24"></script>
-<script src="/noodle-host.js?v=15"></script>
+<script src="/noodle-host.js?v=16"></script>
 <script src="/noodle-rekey.js?v=10"></script>
 <script src="/noodle-top.js?v=3"></script>
 <script src="/noodle-share.js?v=4"></script>

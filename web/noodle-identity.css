@@ -1,6 +1,7 @@
 /* noodle: the identity block -- name + passphrase fields and their change
-   buttons (noodle-rekey.js), the seal (noodle-seal.js), and the dotted
-   teaching box with its derivation arrow. */
+   buttons (noodle-rekey.js), the seal (noodle-seal.js), the dotted
+   teaching box with its derivation arrow, and the one-section-at-a-time
+   step (YOU folds to a line once the pick opens). */
 
 /* ── identity: name + passphrase (the seal is in the teaching box) ───────── */
 .nd-id { display: flex; }
@@ -161,3 +162,21 @@
 }
 .nd-arrow-shaft { flex: 1; overflow: hidden; }
 .nd-arrow-shaft::before { content: '\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500\2500'; }
+
+/* ── one section at a time (noodle-identity.js ndvStep) ──────────────────── */
+
+/* YOU folded to one line on the pick step: "you are <name> [edit]", the name
+   in its seal's ink once there is one */
+.nd-you-sum { display: none; align-items: center; justify-content: center; gap: var(--space-2); margin: 0 0 var(--space-6); }
+.nd-you-sum b { color: hsl(var(--green-hsl) / 1); }
+.nd-you-sum b[style] { color: hsl(var(--seal-hsl) / 1); }
+.nd-you-sum .nd-rekey { margin-left: 0; }
+.nd-step-pick .nd-you-sum { display: flex; }
+.nd-step-pick #nd-you > :not(.nd-you-sum) { display: none; }
+
+/* "next" sits where Commit will, and goes once it is pressed */
+.nd-next { margin-bottom: var(--space-6); }
+
+/* on the YOU step the pick is a preview: Commit, its lines and the split box
+   wait for it (the share link stays -- copying it edits nothing) */
+#noodle:not(.nd-step-pick) :is(#nd-why, #nd-submit, #nd-dirty, .nd-split-slot) { display: none; }

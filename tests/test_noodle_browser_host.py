@@ -55,7 +55,7 @@ def test_the_host_drags_the_crop_lines_and_commit_saves_them(browser, base_url, 
         page.goto(f"{base_url}/noodle/{crop_slug}")
         page.fill("#nd-name", "smoke crop host")
         page.fill("#nd-pass", "crop host pass")
-        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)
         # a host must offer something to commit: give this one the first open time
         page.evaluate("NDV.cal.getSel().size || (NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))), ndvSaveDraft())")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
@@ -87,7 +87,7 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         page.reload()
         page.fill("#nd-name", nm)
         page.fill("#nd-pass", pw)
-        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')"
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))"
                                " || document.querySelector('#nd-why').textContent.includes('different')",
                                timeout=20000)
         return page.evaluate("NDV.mine")
@@ -100,12 +100,14 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
                                timeout=20000)
 
     def change(field, btn, new):
+        page.evaluate("ndvStep('you')")   # one section at a time: the fields live on YOU
         page.wait_for_function(f"!document.querySelector('#{btn}').hidden", timeout=10000)
         assert page.inner_text(f"#{btn}") == "change"
         page.click(f"#{btn}")
         assert page.inner_text(f"#{btn}") == "undo"
         assert not page.is_disabled(f"#{field}")
         page.fill(f"#{field}", new)
+        page.click("#nd-next")   # Commit carries the change, on the PICK step
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
         commit()
 
@@ -140,6 +142,7 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         change("nd-name", "nd-rename", renamed)
         assert fresh(renamed, two)
         # mid change the roster keeps YOUR face (typed name), never the empty seat
+        page.click("#nd-you-edit")
         page.click("#nd-rename")
         page.fill("#nd-name", "smoke midway")
         page.wait_for_function("[...document.querySelectorAll('.nd-face-name')].some(e => e.textContent === 'smoke midway')",
@@ -150,6 +153,7 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         change("nd-name", "nd-rename", name)
         change("nd-pass", "nd-rekey", one)
         # the cross puts the old value back untouched
+        page.click("#nd-you-edit")
         page.click("#nd-rekey")
         assert page.input_value("#nd-pass") == ""
         page.click("#nd-rekey")
@@ -234,7 +238,7 @@ def test_a_fresh_poll_starts_three_weeks_with_nothing_picked(browser, base_url):
         span = (date.fromisoformat(crop["to"]) - date.fromisoformat(crop["from"])).days
         assert span == 20, crop   # three whole weeks, Sunday to Saturday
         page.fill("#nd-name", "smoke fresh host")
-        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)
         assert page.evaluate("NDV.cal.getSel().size") == 0
         assert "pick at least one" in page.inner_text("#nd-why")
     finally:
@@ -255,7 +259,7 @@ def test_the_host_retitles_by_tapping_the_title(browser, base_url):
     try:
         page.goto(f"{base_url}/noodle/{slug}")
         page.fill("#nd-name", "smoke titler")
-        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)
         # a host must offer something to commit
         page.evaluate("NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))); ndvSaveDraft()")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
@@ -298,7 +302,7 @@ def test_an_answer_with_parts_of_a_day_splits_the_hosts_calendar(browser, base_u
     try:
         page.goto(f"{base_url}/noodle/{slug}")
         page.fill("#nd-name", "smoke splitter")
-        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)
         day = page.evaluate("[...NDV.cal.openSlots('0', '9')][0].slice(0, 10)")
         page.route("**/ask", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(
             {"slots": [f"{day}:n"], "reading": "nights", "dropped": 0, "crop": None, "split": True})))
@@ -334,7 +338,7 @@ def test_a_draft_poll_is_created_by_the_hosts_first_commit(browser, base_url):
         assert page.inner_text("#nd-title") == "untitled noodle"
         assert page.is_hidden("#nd-share"), "no link to share before the poll exists"
         page.fill("#nd-name", "smoke drafter")
-        page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')", timeout=20000)
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)
         page.evaluate("NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))); ndvSaveDraft()")
         page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
         page.evaluate("NDV.committed = 0")
