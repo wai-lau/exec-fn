@@ -330,9 +330,11 @@ function updateHud() {
       '<b class="e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type) + "×" + w.count + "</b></span>" +
       // each one's HP (owner), a boss's with its own multiplier
       "<span>" + short(enemyHp(w.type, n) * (boss ? BOSS_HP[arcanaOf(n).id] || 1 : 1)) + "hp</span>" +
-      "<span>" + (boss ? arcanaOf(n).name : w.type) +
-      // no send button any more (owner): the countdown rides the first row
-      (i === 1 && G.started && !bossUp() ? " · in " + Math.ceil(Math.max(0, G.nextIn)) + "s" : "") + "</span>";
+      "<span>" + (boss ? arcanaOf(n).name : w.type) + "</span>" +
+      // no send button any more (owner): the countdown rides the first row, in
+      // a LAST column of its own so it widens nothing (and survives the phone
+      // layout, which hides the numbers and names)
+      "<span>" + (i === 1 && G.started && !bossUp() ? "in " + Math.ceil(Math.max(0, G.nextIn)) + "s" : "") + "</span>";
   }
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
   $("asp-sp-pause").classList.toggle("on", ui.paused);

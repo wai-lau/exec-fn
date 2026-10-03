@@ -42,7 +42,7 @@
 
 .asp-wavenote {
   display: grid;
-  grid-template-columns: repeat(5, auto); /* number : enemies hp name */
+  grid-template-columns: repeat(6, auto); /* number : enemies hp name countdown */
   justify-content: start;
   gap: var(--space-0-5) var(--space-1);
   font-size: var(--fs-2xs);
@@ -56,8 +56,8 @@
 }
 
 /* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
-.asp-wavenote > span:nth-child(5n + 1),
-.asp-wavenote > span:nth-child(5n + 4) { text-align: right; }
+.asp-wavenote > span:nth-child(6n + 1),
+.asp-wavenote > span:nth-child(6n + 4) { text-align: right; }
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
@@ -70,10 +70,6 @@
 }
 #asp .asp-build.asp-flash .asp-tw { animation: asp-flash 1.6s ease-in-out infinite; }
 
-/* on a phone the build bar spans the bottom, so the list and title sit above it */
-@media (width < 700px) {
-  .asp-left { bottom: calc(var(--space-4) + 112px); }
-}
 
 /* an enemy's own shape (enemyIcon), in its colour, sized to the text */
 .asp-eicon { width: 1.2em; height: 1.2em; vertical-align: -0.25em; fill: currentcolor; fill-opacity: 0.45; stroke: currentcolor; stroke-width: 1.5; }
@@ -365,3 +361,24 @@
 
 /* the sound toggle is an icon (owner): a speaker, crossed out when muted */
 #asp-mute svg { display: block; width: 1.2em; height: 1.2em; fill: none; stroke: currentcolor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* PHONES (owner): the wave list drops its numbers and names (enemies, HP and
+   the countdown stay), and it and the title squeeze in LEFT of compact build
+   buttons, on the same bottom band */
+@media (width < 700px) {
+  .asp-wavenote { grid-template-columns: repeat(3, auto); }
+
+  .asp-wavenote > span:nth-child(6n + 1),
+  .asp-wavenote > span:nth-child(6n + 2),
+  .asp-wavenote > span:nth-child(6n + 5) { display: none; }
+
+  .asp-left { left: var(--space-3); bottom: var(--space-4); gap: var(--space-1); }
+
+  .asp-left .asp-title { font-size: var(--fs-sm); letter-spacing: var(--tracking-wide); }
+
+  .asp-bottom { right: var(--space-3); }
+
+  #asp .asp-build { gap: var(--space-1); }
+
+  #asp .asp-build .asp-tw { min-width: 52px; padding-block: var(--space-1-5); }
+}
