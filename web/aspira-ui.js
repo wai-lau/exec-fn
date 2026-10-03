@@ -69,7 +69,10 @@ function button(parent, cls, html, onclick, id) {
   parent.appendChild(btn);
   return btn;
 }
-function selectBuild(k) { ui.build = ui.build === k ? null : k; ui.sel = null; refreshPanels(); }
+function selectBuild(k) {
+  if (ui.build !== k && G.money < towerCost(k)) { noFunds($("asp-tw-" + k)); return; }
+  ui.build = ui.build === k ? null : k; ui.sel = null; refreshPanels();
+}
 
 KINDS.forEach((k, i) => {
   const b = TOWERS[k];
@@ -174,20 +177,36 @@ function inspectTower(el, t) {
     // two columns (owner): what every tower has | what only this type has
     '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
     statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) +
-    '<dt>Kills</dt><dd id="asp-kills"></dd><dt>Dealt</dt><dd id="asp-dealt"></dd></dl>' +
-    '<dl class="asp-spec">' + SPEC[t.kind](st, t).map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
-    '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-acts"></div>' +
-    '<div class="asp-row" id="asp-upbox"></div>';
+    // compact for the phone (owner): kills and damage dealt share ONE row, and
+    // stats this tower does not have yet ("—") are left out
+    '<dt>Kills</dt><dd id="asp-kills"></dd></dl>' +
+    '<dl class="asp-spec">' + SPEC[t.kind](st, t).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
+    '<div class="asp-row" id="asp-modes"></div><div class="asp-row" id="asp-upbox"></div>' +
+    '<div class="asp-row" id="asp-acts"></div>';
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
-  button($("asp-acts"), "", "sell · " + sellValue(t), () => {
+  // the upgrade button opens the card chooser
+  button($("asp-upbox"), "asp-primary asp-up-big",
+    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => openChooser(t), "asp-up").disabled = maxed;
+  // SELL sits last, away from the often-tapped rows, and takes TWO taps (owner):
+  // the first arms it for SELL_ARM_MS, the second sells
+  const label = "sell · " + sellValue(t), sell = button($("asp-acts"), "asp-sell", label, () => {
+    if (!sell.classList.contains("armed")) {
+      sell.classList.add("armed"); sell.textContent = "tap again to sell · " + sellValue(t);
+      setTimeout(() => { if (sell.isConnected) { sell.classList.remove("armed"); sell.textContent = label; } }, SELL_ARM_MS);
+      return;
+    }
     G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null;
     sfx("sell"); refreshPanels();
   });
-  // the upgrade button sits UNDER sell (owner) and opens the card chooser
-  button($("asp-upbox"), "asp-primary asp-up-big",
-    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => openChooser(t), "asp-up");
+}
+const SELL_ARM_MS = 2000;
+// a tap on something the credits cannot cover flashes its cost red and shakes
+// it (owner), instead of the button just sitting greyed out
+function noFunds(btn) {
+  btn.classList.remove("asp-nofunds"); void btn.offsetWidth; // restart the animation
+  btn.classList.add("asp-nofunds");
 }
 
 // ---------- the upgrade chooser ----------
@@ -233,7 +252,8 @@ function chooserEl() {
   return el;
 }
 function openChooser(t) {
-  if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
+  if (!t || t.lvl >= MAX_LVL) return;
+  if (G.money < upCost(t)) { noFunds($("asp-up")); return; }
   const opts = upgradeOptions(t);
   const el = chooserEl();
   chooser.t = t; chooser.opts = opts;
@@ -249,8 +269,10 @@ function openChooser(t) {
   el.hidden = false;
   // measured once shown (a hidden element has no width)
   row.classList.toggle("asp-cards-col", opts.length * CARD_W + (opts.length - 1) * 16 > el.clientWidth - 32);
-  // at the bottom, lifted exactly like the tower card (cardLift)
+  // at the bottom, lifted exactly like the tower card (cardLift), and never up
+  // into the HUD: the top stops below the speed row (the cards scroll instead)
   el.style.paddingBottom = cardLift(row.offsetWidth).lift + "px";
+  el.style.paddingTop = Math.max(8, document.querySelector(".asp-controls").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
   $("asp").classList.add("asp-choosing"); // the board blurs and darkens beneath (aspira.css)
 }
 const CARD_W = 380; // .asp-card's width (aspira.css)
@@ -318,7 +340,7 @@ function updateHud() {
   flashBuild();
   for (const k of KINDS) {
     const btn = $("asp-tw-" + k);
-    btn.disabled = G.money < towerCost(k) && ui.build !== k;
+    btn.classList.toggle("poor", G.money < towerCost(k) && ui.build !== k); // tappable: a tap flashes the cost
     setText(btn.querySelector(".c"), short(towerCost(k)));
     btn.classList.toggle("on", ui.build === k);
   }
@@ -356,11 +378,30 @@ function updateHud() {
   }
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
-  if (up && t) up.disabled = t.lvl >= MAX_LVL || G.money < upCost(t);
+  if (up && t) up.classList.toggle("poor", t.lvl < MAX_LVL && G.money < upCost(t));
   // the core's one-click options follow the money too (aspira-core.js)
   for (const btn of document.querySelectorAll("#asp-pop [data-cost]")) btn.disabled = G.money < Number(btn.dataset.cost);
   // the open popup's tallies update live
-  if (t && $("asp-kills")) { setText($("asp-kills"), t.kills || 0); setText($("asp-dealt"), Math.round(t.dealt || 0).toLocaleString()); }
+  if (t && $("asp-kills")) setText($("asp-kills"), (t.kills || 0) + " · " + short(Math.round(t.dealt || 0)) + " dealt");
+  updateBossBar();
+}
+
+// a live BOSS gets an HP bar under the speed row (owner): its name and the
+// HP left across every boss on the field (the Devil's six, the Lovers' two)
+function updateBossBar() {
+  let bar = $("asp-bossbar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "asp-bossbar"; bar.className = "asp-bossbar"; bar.hidden = true;
+    bar.innerHTML = '<span class="asp-bossname"></span><div class="asp-bar"><i></i></div>';
+    document.querySelector(".asp-controls").after(bar);
+  }
+  const bosses = G.enemies.filter(e => e.arcana && !e.dead);
+  bar.hidden = !bosses.length;
+  if (!bosses.length) return;
+  const hp = bosses.reduce((a, e) => a + Math.max(0, e.hp), 0), max = bosses.reduce((a, e) => a + e.max, 0);
+  setText(bar.firstChild, arcanaOf(bosses[0].n).name + (bosses.length > 1 ? " ×" + bosses.length : ""));
+  bar.querySelector("i").style.width = (100 * hp / max).toFixed(1) + "%";
 }
 
 // the tower's / core's card sits BOTTOM CENTRE and stays there (owner: it no
@@ -384,7 +425,9 @@ function placePop() {
   const pop = $("asp-pop");
   if (pop.hidden) return;
   const h = pop.offsetHeight, { x, lift } = cardLift(pop.offsetWidth);
-  pop.style.left = x + "px"; pop.style.top = Math.max(CARD_GAP, cv.getBoundingClientRect().height - h - lift) + "px";
+  // ...but never up over the speed row or the boss bar (a short phone: it then sits over the wave list)
+  const cr = cv.getBoundingClientRect(), bar = $("asp-bossbar"), top = (bar && !bar.hidden ? bar : document.querySelector(".asp-controls")).getBoundingClientRect().bottom - cr.top + CARD_GAP;
+  pop.style.left = x + "px"; pop.style.top = Math.max(top, cr.height - h - lift) + "px";
 }
 
 // U: open the upgrade chooser for the selected tower

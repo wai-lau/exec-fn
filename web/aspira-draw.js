@@ -126,23 +126,29 @@ function drawCore() {
   // the core's LEVEL shows like a tower's (owner): a bold white ring outside
   // it per level, LEVEL_GAP apart, under a glow that grows with the level
   const lvl = coreLvl();
+  // LIVES drawn like an enemy's shield (owner): up to LIFE_RINGS thin outlines
+  // of the core's own hex, peeling off as lives are lost - no number
+  const rings = Math.min(LIFE_RINGS, Math.ceil(LIFE_RINGS * Math.max(0, G.lives) / LIFE_FULL));
+  ctx.strokeStyle = COL.white; ctx.lineWidth = 1.8;
+  for (let r = 1; r <= rings; r++) { poly(CX, CY, CORE_R + LIFE_GAP * r, 6, Math.PI / 6, false); ctx.stroke(); }
+  const out = LIFE_GAP * LIFE_RINGS / CORE_R; // the level rings sit outside the life rings
   if (lvl) {
     ctx.strokeStyle = COL.white; ctx.shadowColor = COL.white; ctx.shadowBlur = TOWER_GLOW[lvl] * cam.k; ctx.lineWidth = 3.5;
     for (let r = 1; r <= lvl; r++) {
       ctx.globalAlpha = 1 - 0.12 * r;
-      poly(CX, CY, CORE_R * (1 + LEVEL_GAP * r), 6, Math.PI / 6, false); ctx.stroke();
+      poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * r), 6, Math.PI / 6, false); ctx.stroke();
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
   if (coreOpen() && lvl < CORE_MAX) {
-    poly(CX, CY, CORE_R * (1 + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
+    poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
     ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }
   if (ui.sel === "core" && coreHas("zen")) drawRange(CX, CY, zenR(), "white");
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
   ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill();
-  text(G.lives, CX, CY + 2, 28, "bg");
 }
+const LIFE_RINGS = 5, LIFE_FULL = 20, LIFE_GAP = 5; // 20 lives = 5 rings, one per 4
 
 function drawTower(t, ghost) {
   // drawn where the tower IS (it slides along its spoke), its slot's hex moved with it
