@@ -3976,6 +3976,7 @@ UI AUDIT FIXES (owner, 2026-10-03): no Exec bubble on /aspira (pages.py: it cove
 Every CREDITS amount reads 'Nc' with the c in gold - Marigold (owner; `cr()` + `.asp-c` in HTML, an orange 'c' on the canvas): build costs, upgrade, sell, the chooser, core options, the per-kill floats, the interest line. The one exception is the COUNT itself, now drawn ON the core's hexagon as a small CREDITS over the number (owner: 'leave that one as CREDITS'), after drawCore; the interest '+Xc (+r%)' shows under the core.
 ...the count moved OVER the core, not in it (owner): 'CREDITS 12,345', one line, white, the FULL number with separators (counts pass 10k - owner), clear of the life rings.
 ...and the c is NOT gold (owner: 'don't make it gold unless already gold'): it takes the surrounding text's colour (the per-kill floats were gold already).
+Tower SLIDING smoothed (owner: 'a lot of jitter... not predicting'): a STICKY target (re-picked every `CHASE_HOLD` 0.6s or on its death), PREDICTED along its lane by the tower's travel time (`CHASE_LEAD` 0.3-2.5s), a DEAD ZONE (holds while the predicted point is within `CHASE_KEEP` 0.7 of its range) and EASED motion (`TOWER_ACCEL` 240, braking onto its mark). Simulator, waves 1-25, 6 towers x 2 seeds: direction reversals 99 -> 7.7 per tower-minute, travel 10.7 -> 7.8 u/s, lives unchanged.
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
