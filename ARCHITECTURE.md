@@ -3925,6 +3925,7 @@ fires on release, not on press. Canvas `touch-action: none`. Speeds now include
 Each enemy TYPE in a wave starts `TYPE_STAGGER` 2s after the previous one
 (owner); a type's split copies start together.
 CREDITS are drawn on the CANVAS under the core (owner, 2026-10-02; were a
+SOL CHARGE's twin beams are TWO HITS of half the shot each (owner): same damage, but each pops a shield charge - a 1-charge shield loses its charge to the first and the second lands (`rayHit`; `onHit` per half).
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).

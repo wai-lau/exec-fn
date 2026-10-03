@@ -299,7 +299,12 @@ function rayHit(t, st, e, base, from, crit) {
   const d = shotDamage(t, st, e, base) * m * far, before = e.hp;
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
   if (st.twin) fx[fx.length - 1].twin = true; // Charge: drawn as two parallel beams (owner)
-  damage(e, d, t, false, m > 1); onHit(e, t, st, d); // a crit shows as a PINK number (owner)
+  // Charge's twin beams are TWO HITS of half the shot each (owner): the same
+  // damage, but a shield eats only the first, so the second gets through
+  for (const part of st.twin ? [d / 2, d / 2] : [d]) {
+    if (e.dead) break;
+    damage(e, part, t, false, m > 1); onHit(e, t, st, part); // a crit shows as a PINK number (owner)
+  }
   if (st.execute && !e.dead && e.hp < d * st.execute) {
     // Execute / Verdict: the enemy flashes WHITE as it goes, with extra sparks (owner)
     fx.push({ k: "flash", x: e.x, y: e.y, r: ENEMIES[e.type].size * 1.6, t: 0, life: 0.3 });
