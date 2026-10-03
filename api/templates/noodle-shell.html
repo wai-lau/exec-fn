@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- maximum-scale=1: the Ask box's text is under 16px, and iOS would zoom the
+     page on focus; iOS still lets the reader pinch-zoom (noodle-actions.css) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>{{TITLE}}</title>
 {{OG}}
@@ -14,9 +16,9 @@
 <link rel="preload" href="/fonts/iosevka-500.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/noodle-seal.woff2?v=6" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/chrome.css?v=83">
-<link rel="stylesheet" href="/noodle.css?v=104">
+<link rel="stylesheet" href="/noodle.css?v=105">
 <link rel="stylesheet" href="/noodle-identity.css?v=3">
-<link rel="stylesheet" href="/noodle-actions.css?v=4">
+<link rel="stylesheet" href="/noodle-actions.css?v=5">
 <link rel="stylesheet" href="/noodle-roster.css?v=1">
 <link rel="stylesheet" href="/noodle-split.css?v=1">
 <link rel="stylesheet" href="/noodle-admin.css?v=2">

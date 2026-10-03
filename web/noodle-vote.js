@@ -195,7 +195,7 @@ async function ndvLoadPoll() {
   // a DRAFT (no poll stored yet, drafts.py): an empty poll stands in until the
   // host's first commit creates the real one
   NDV.poll = r.status === 404 && NDV.draft
-    ? { slug: NDV.slug, title: 'untitled noodle', halves: false, crop: null, voters: [], host: null }
+    ? { slug: NDV.slug, title: 'title', halves: false, crop: null, voters: [], host: null }
     : await r.json();
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   if (!NDV.blankSeal) NDV.blankSeal = ndvBlankSeal();

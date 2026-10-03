@@ -3558,9 +3558,12 @@ falls back to YOU; tapping a roster face returns to YOU. Rekey: `change` is
 on YOU, Commit (on the pick) carries it. The step init (`ndvStepInit`) is
 called from `ndvInit` -- `noodle-identity.js` loads BEFORE `NDV` exists, so
 an IIFE there throws. Browser tests advance with
-`ndvCanNext() && ndvStep('pick')` inside their unlock waits. The title has a
-grey "poll" kicker above it and the field is labelled "your name" -- which
-was the group's name and which the voter's was unclear.
+`ndvCanNext() && ndvStep('pick')` inside their unlock waits. The title has the
+placeholder "title" (not "untitled noodle") and the field is labelled "your
+name" -- which was the group's name and which the voter's was unclear. The
+Ask box's text is `--fs-2xs`, under iOS's 16px focus-zoom line, so the
+noodle shell's viewport carries `maximum-scale=1` (iOS still pinch-zooms;
+Android does not on noodle pages -- accepted).
 
 **A name sealed by another key locks the page** (`ndvSyncLock`): calendar,
 Ask and Commit go grey + `inert` (`.nd-locked`), the caption reads
@@ -3837,7 +3840,7 @@ alone and the page says so.
 ### 21i. `/noodle` and link previews
 
 **Owner**: one `create poll` button (no title — routes through the same
-draft flow a guest uses; the draft starts `untitled noodle` until the host
+draft flow a guest uses; the draft starts `title` (a placeholder, was `untitled noodle`) until the host
 retitles by tapping the title) plus a table of polls (title, voter count,
 created, a delete button that confirms first; `DELETE /api/noodle-polls/{slug}`
 takes every vote with it).

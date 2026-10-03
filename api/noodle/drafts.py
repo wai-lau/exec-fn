@@ -21,7 +21,7 @@ from datetime import datetime
 
 from noodle import config, store
 
-UNTITLED = "untitled noodle"
+UNTITLED = "title"   # the placeholder the host types over (was "untitled noodle")
 _secret: bytes | None = None
 
 

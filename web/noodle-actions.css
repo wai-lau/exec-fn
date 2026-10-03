@@ -26,6 +26,11 @@
 .nd-ask-go:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
 .nd-ask .nd-status { margin: 0; }
 .nd-card textarea { resize: none; line-height: var(--lh-snug); }
+
+/* the Ask box's text is small (feedback 2026-10-03): the box is a few lines
+   of plain talk, not a field to read from across the room. Under 16px iOS
+   zooms on focus -- the shell's maximum-scale=1 stops that (noodle-shell.html) */
+.nd-card #nd-ask { font-size: var(--fs-2xs); }
 .nd-ask-label { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.8); }
 
 .nd-status { min-height: 1lh; margin: var(--space-4) 0; text-align: center; font-size: var(--fs-2xs); }

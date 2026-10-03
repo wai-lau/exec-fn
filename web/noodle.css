@@ -50,17 +50,6 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
   line-height: var(--lh-snug);
 }
 
-/* "poll" over the title, so the poll's name never reads as yours (feedback
-   2026-10-03: which was the group's name and which the voter's was unclear;
-   the field below says "your name") */
-.nd-kicker {
-  margin: 0 0 var(--space-1);
-  text-align: center;
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--tracking-wide);
-  color: hsl(var(--gray-hsl) / 0.45);
-}
-
 .nd-title {
   margin: 0 0 var(--space-6);
   font-size: var(--fs-xl);
@@ -80,7 +69,7 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 
 /* for the HOST the title is editable, and says so: a dotted line only a few
    characters wider than the title itself (noodle-host.js marks .editable);
-   still "untitled noodle", it gets a red squiggle like a misspelling */
+   still the placeholder "title", it gets a red squiggle like a misspelling */
 .nd-title.editable {
   width: fit-content;
   margin-inline: auto;
