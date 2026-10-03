@@ -35,29 +35,7 @@ async function ndmDelete(e) {
   ndmList();
 }
 
-// The demo video (guests only) autoplays muted and looping inline; a tap opens
-// it FULLSCREEN with the native controls, and leaving hides them again and
-// keeps it playing.
-// iPhone Safari has no element requestFullscreen -- a video's own
-// webkitEnterFullscreen is its only way in.
-function ndmDemo(v) {
-  function inFull() { return document.fullscreenElement === v || document.webkitFullscreenElement === v; }
-  v.addEventListener('click', function () {
-    if (inFull()) return;
-    v.controls = true;
-    v.play().catch(function () {});
-    if (v.requestFullscreen) v.requestFullscreen().catch(function () {});
-    else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
-  });
-  function left() { if (!inFull()) { v.controls = false; v.play().catch(function () {}); } }
-  document.addEventListener('fullscreenchange', left);
-  document.addEventListener('webkitfullscreenchange', left);
-  v.addEventListener('webkitendfullscreen', left);   // iPhone
-}
-
 (function () {
-  var demo = document.querySelector('.nd-demo');
-  if (demo) ndmDemo(demo);
   var form = document.getElementById('nd-create');
   if (!form) return;
   form.addEventListener('submit', ndmCreate);
