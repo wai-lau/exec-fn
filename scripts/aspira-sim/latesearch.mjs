@@ -1,7 +1,7 @@
 // Late-game search (owner, 2026-10-02): start at wave START with MONEY credits,
 // fill all six slots and max every tower to L4 at once (money is no object),
 // then play until the core falls. A build is six (kind, L2 path, L3 form)
-// picks plus the CORE's L1 (none, ZEN, NULLIFY or Sinter - bought at once,
+// picks plus the CORE's L1 (none, Zen or Space - the live CORE_L1 order; bought at once,
 // it is open from wave 30); hill-climb them for the furthest wave reached
 // on every seed.
 //
@@ -17,7 +17,7 @@ let rs = 777;
 const rnd = () => (rs = (rs * 1103515245 + 12345) % 2147483648) / 2147483648;
 const ri = n => Math.floor(rnd() * n);
 
-const CORE_NAMES = ["none", "ZEN", "NULLIFY", "Sinter"];
+const CORE_NAMES = ["none", "Zen", "Space"]; // index - 1 = buyCore's CORE_L1 option (Sinter was cut)
 function run(build, seed) {
   const g = makeGame(seed); g.reset();
   // reach wave START-1 the way a real game would (the type alternation
@@ -43,7 +43,7 @@ function score(build) {
 const randomPick = () => ({ kind: KINDS[ri(4)], p: ri(2), f: ri(3) });
 function mutate(build) {
   const b = { slots: build.slots.map(x => ({ ...x })), core: build.core }, i = ri(6), m = ri(4);
-  if (m === 3) b.core = ri(4);
+  if (m === 3) b.core = ri(CORE_NAMES.length);
   else if (m === 0) b.slots[i] = randomPick(); else if (m === 1) b.slots[i].p = ri(2); else b.slots[i].f = ri(3);
   return b;
 }
@@ -51,9 +51,9 @@ const slotName = b => AB[b.kind] + " " + b.p + "/" + b.f;
 const nameOf = b => b.slots.map(slotName).join(", ") + " | core " + CORE_NAMES[b.core];
 
 // starts: all-one-kind builds, an even mix, and random ones
-const starts = KINDS.map(k => ({ slots: Array(6).fill(0).map(() => ({ kind: k, p: ri(2), f: ri(3) })), core: ri(4) }));
-starts.push({ slots: KINDS.concat(KINDS.slice(0, 2)).map(k => ({ kind: k, p: ri(2), f: ri(3) })), core: ri(4) });
-for (let i = 0; i < 3; i++) starts.push({ slots: Array(6).fill(0).map(randomPick), core: ri(4) });
+const starts = KINDS.map(k => ({ slots: Array(6).fill(0).map(() => ({ kind: k, p: ri(2), f: ri(3) })), core: ri(CORE_NAMES.length) }));
+starts.push({ slots: KINDS.concat(KINDS.slice(0, 2)).map(k => ({ kind: k, p: ri(2), f: ri(3) })), core: ri(CORE_NAMES.length) });
+for (let i = 0; i < 3; i++) starts.push({ slots: Array(6).fill(0).map(randomPick), core: ri(CORE_NAMES.length) });
 let best = null, evals = 0;
 // CHECKPOINT (owner): resume from an earlier run's log
 if (LOG && fs.existsSync(LOG)) {
