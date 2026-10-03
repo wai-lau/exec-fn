@@ -42,7 +42,6 @@ function ndhSync(pub) {
 function ndhTitleMarks(role) {
   var t = ndh$('nd-title'), n = ndh$('nd-note'), host = role === 'host' || role === 'fresh';
   ndh$('noodle').classList.toggle('nd-as-host', host);   // host-only / guest-only bits (noodle.css)
-  host = host && NDV.step === 'pick';   // editable only on the pick step: one section at a time
   t.classList.toggle('editable', host);
   // "title" is the placeholder; polls made before 2026-10-03 still say "untitled noodle"
   t.classList.toggle('untitled', host && ['title', 'untitled noodle'].indexOf(t.textContent.trim()) >= 0);
@@ -140,7 +139,8 @@ var NDH_TEXT = {
 function ndhTextTap(k) {
   return function () {
     var el = ndh$(NDH_TEXT[k].el), role = ndhRole(ndvReady() ? ndvPub() : null);
-    if ((role !== 'host' && role !== 'fresh') || NDV.step !== 'pick' || el.isContentEditable) return;
+    // on either step: naming the poll goes with naming yourself (Wai, 2026-10-03)
+    if ((role !== 'host' && role !== 'fresh') || el.isContentEditable) return;
     el.contentEditable = 'plaintext-only';
     el.focus();
     // all of it selected: the placeholder "title" is typed over

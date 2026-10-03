@@ -3546,8 +3546,9 @@ CSS as the page-local `--seal-hsl` token (`scripts/lint-colors.py`
 
 **One section edits at a time** (`ndvStep`/`ndvPaintStep` in
 `noodle-identity.js`, feedback 2026-10-03): `#nd-you` (name + passphrase +
-seal) then `#nd-pick` (calendar, Ask, Commit, and the host's
-title/note, which are editable ONLY on the pick step). `NDV.step` is
+seal) then `#nd-pick` (calendar, Ask, Commit). The host's title/note are
+editable on EITHER step (Wai, 2026-10-03: naming the poll goes with naming
+yourself) -- still sent only with Commit. `NDV.step` is
 `'you'|'pick'`; `.nd-step-pick` on `#noodle` folds YOU to one line ("you
 are <name> [edit]", in the seal's ink). On the you step the pick is a grey
 read-only preview (`ndvSyncLock`'s `open` requires the pick step) and
