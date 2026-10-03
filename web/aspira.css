@@ -42,7 +42,7 @@
 
 .asp-wavenote {
   display: grid;
-  grid-template-columns: repeat(6, auto); /* number : enemies hp name countdown */
+  grid-template-columns: repeat(5, auto); /* number : enemies hp name */
   justify-content: start;
   gap: var(--space-0-5) var(--space-1);
   font-size: var(--fs-2xs);
@@ -56,8 +56,16 @@
 }
 
 /* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
-.asp-wavenote > span:nth-child(6n + 1),
-.asp-wavenote > span:nth-child(6n + 4) { text-align: right; }
+.asp-wavenote > span:nth-child(5n + 1),
+.asp-wavenote > span:nth-child(5n + 4) { text-align: right; }
+
+/* the time to the next wave, its own line above the list (owner) */
+.asp-nextin {
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl));
+  filter: drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl)));
+}
+.asp-nextin:empty { display: none; }
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
@@ -366,11 +374,21 @@
    the countdown stay), and it and the title squeeze in LEFT of compact build
    buttons, on the same bottom band */
 @media (width < 700px) {
-  .asp-wavenote { grid-template-columns: repeat(3, auto); }
+  .asp-wavenote { grid-template-columns: repeat(2, auto); }
 
-  .asp-wavenote > span:nth-child(6n + 1),
-  .asp-wavenote > span:nth-child(6n + 2),
-  .asp-wavenote > span:nth-child(6n + 5) { display: none; }
+  .asp-wavenote > span:nth-child(5n + 1),
+  .asp-wavenote > span:nth-child(5n + 2),
+  .asp-wavenote > span:nth-child(5n + 5) { display: none; }
+
+  /* the speed row and its volume slider stay ONE line (owner): tighter
+     buttons, and the slider takes what is left */
+  #asp-speed { flex-wrap: nowrap; gap: var(--space-1); }
+
+  #asp .asp-controls #asp-speed button { padding: var(--space-1); }
+
+  #asp-vol { flex: 1 1 auto; width: auto; min-width: var(--space-10); }
+
+  .asp-stats { gap: var(--space-2); }
 
   .asp-left { left: var(--space-3); bottom: var(--space-4); gap: var(--space-1); }
 
