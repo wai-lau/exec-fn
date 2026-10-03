@@ -20,7 +20,7 @@ const done = new Map();
 if (OUT && fs.existsSync(OUT)) for (const l of fs.readFileSync(OUT, "utf8").split("\n")) if (l) { const r = JSON.parse(l); done.set(r.name, r); }
 const AB = { chain: "ARC", slower: "FRZ", reaper: "SOL", acid: "ACD" };
 // the reference team: one sensible form per kind
-const REF = { chain: [0, 0], slower: [1, 0], reaper: [0, 1], acid: [1, 1] };
+const REF = { chain: [0, 0], slower: [1, 0], reaper: [1, 0], acid: [1, 1] }; // SOL ref: Charge > Grid (2026-10-03 tree)
 const ref = k => ({ kind: k, p: REF[k][0], f: REF[k][1] });
 const TEAM = ["chain", "slower", "reaper", "acid", "chain", "slower"]; // the reference team
 

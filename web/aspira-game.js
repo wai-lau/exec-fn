@@ -94,6 +94,7 @@ function pickTargets(t, st, count) {
 // crit: draw this hit's number PINK instead of a separate CRIT label (owner)
 // st (optional): the hitting tower's stats, for pierce - st.ignoreShield and
 // st.armorPierce (the share of armor ignored; ARC's Ion path, owner)
+const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
   // a shield eats one whole HIT, whatever its size (poison/splash just bounce) -
@@ -105,6 +106,9 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 15, 1, 1, 30, true); // all of it soaked: dim grey, like armor
     return;
   }
+  // BLEED (SOL's Impale): every OTHER tower may crit a bleeding enemy too, for
+  // x BLEED_CRIT_MUL (SOL rolls the bleed into its own crit, rayHit)
+  if (!quiet && !crit && e.bleedCrit > 0 && !(t && t.kind === "reaper") && Math.random() < e.bleedCrit) { crit = true; amt *= BLEED_CRIT_MUL; }
   if (e.shredT > 0) amt *= e.shredMul;
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
   // the core (aspira-core.js): Echo / Resonance, Brittle Core, Anneal's crit
@@ -145,8 +149,9 @@ function onHit(e, t, st, amt) {
   if (st.dot) { e.dotDps = Math.max(e.dotT > 0 ? e.dotDps : 0, amt * st.dot.frac / st.dot.t); e.dotT = st.dot.t; e.dotSrc = t; }
   if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t);
   if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t, t ? t.id : "x");
-  // Melt (ARC): every hit strips armor for good, so later hits land harder
-  if (st.armorShred && e.armor) e.armor = Math.max(0, e.armor - st.armorShred);
+  // Melt (ARC): every hit strips armor for good, past zero (owner: every armor
+  // reduction is permanent and may go negative), so later hits land harder
+  if (st.armorShred) e.armor = (e.armor || 0) - st.armorShred;
   if (st.splash) {
     // a FILLED blast that lingers 0.3s, so the splash actually reads (owner)
     fx.push({ k: "blast", x: e.x, y: e.y, r: st.splash.r, color: TOWERS[t.kind].color, t: 0, life: 0.3 });

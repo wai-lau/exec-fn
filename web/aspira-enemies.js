@@ -110,6 +110,11 @@ function drawStatus(e, d, size) {
     poly(e.x, e.y, size + 9, 6, Math.PI / 6, false);
     ctx.strokeStyle = COL.cyan; ctx.globalAlpha = 0.9; ctx.lineWidth = 2.5; ctx.stroke();
   }
+  // BLEED (SOL's Impale): a pink outline, for good (owner)
+  if (e.bleedCrit > 0) {
+    poly(e.x, e.y, size + 4, d.sides, e.rot, d.pointy);
+    ctx.strokeStyle = COL.pink; ctx.globalAlpha = 0.9; ctx.lineWidth = 2; ctx.stroke();
+  }
   if (e.corrodeT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 3, 0, 6.283);
     ctx.setLineDash([2, 4]); ctx.strokeStyle = COL.chatsubo; ctx.globalAlpha = 0.9; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
