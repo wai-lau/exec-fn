@@ -124,21 +124,19 @@ function activeLanes() {
   return out;
 }
 
-// ---------- the credits ON the core (UI only; aspira-draw.js calls it) ----------
-// the count sits on the core's white hexagon (owner; the lives are its rings
-// now) under a small CREDITS; for CREDITS_FX_T s after an interest payout
-// "+Xc (+r%)" shows just under the core, the c in gold
-const CREDITS_FX_T = 2.5, CREDITS_FIT = CORE_R * 1.5;
+// ---------- the credits over the core (UI only; aspira-draw.js calls it) ----------
+// the count sits just over the core (owner), "CREDITS 12,345"; for
+// CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under it,
+// the c in gold
+const CREDITS_FX_T = 2.5;
 let creditsFx = null;
 function drawCredits() {
   const fxOn = creditsFx && performance.now() / 1000 - creditsFx.t0 < CREDITS_FX_T;
-  // THIS count keeps its word (owner: "leave that one as CREDITS"): a small
-  // CREDITS over the number, no c
-  const n = short(fxOn ? G.money - creditsFx.gain : G.money);
-  ctx.font = "22px " + CANVAS_FONT;
-  const size = Math.min(22, 22 * CREDITS_FIT / ctx.measureText(n).width); // shrinks to fit the hex
-  text("CREDITS", CX, CY - 9, 8, "bg");
-  text(n, CX, CY + 7, size, "bg");
+  // THIS count keeps its word (owner: "leave that one as CREDITS"), no c. It
+  // sits just OVER the core, clear of its life rings (owner: over, not in),
+  // as the full number with separators - counts run past 10k (owner)
+  const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
+  text("CREDITS " + n, CX, CY - CORE_R - LIFE_GAP * LIFE_RINGS - 22, 22, "white", true);
   if (!fxOn) return;
   const parts = [["+" + creditsFx.gain, "green"], ["c", "orange"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "20px " + CANVAS_FONT;
