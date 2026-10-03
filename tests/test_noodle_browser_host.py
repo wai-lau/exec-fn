@@ -352,3 +352,30 @@ def test_a_draft_poll_is_created_by_the_hosts_first_commit(browser, base_url):
         page.close()
         with httpx.Client(base_url=base_url, timeout=15.0) as c:
             c.delete(f"/api/noodle-polls/{slug}", headers=auth)
+
+
+def test_title_and_note_are_editable_on_the_you_step(browser, base_url):
+    """The host may name the poll while naming themself: the title and note
+    take taps on the YOU step, before any name is typed (Wai, 2026-10-03)."""
+    import httpx
+    from conftest import API_KEY
+    if not API_KEY:
+        pytest.skip("API_KEY not set")
+    auth = {"Authorization": f"Bearer {API_KEY}"}
+    slug = httpx.post(f"{base_url}/api/noodle-polls", headers=auth, json={"title": "title"}).json()["slug"]
+    page = browser.new_page(viewport={"width": 430, "height": 932})
+    try:
+        page.goto(f"{base_url}/noodle/{slug}")
+        page.wait_for_function("NDV.poll", timeout=10000)
+        assert page.evaluate("NDV.step") == "you"
+        assert "editable" in page.get_attribute("#nd-title", "class").split()
+        page.click("#nd-title")
+        page.keyboard.type("LAN party")
+        page.keyboard.press("Enter")
+        page.click("#nd-note")
+        page.keyboard.type("bring snacks")
+        page.keyboard.press("Enter")
+        assert page.evaluate("[NDV.pendingTitle, NDV.pendingNote]") == ["LAN party", "bring snacks"]
+    finally:
+        page.close()
+        httpx.delete(f"{base_url}/api/noodle-polls/{slug}", headers=auth)
