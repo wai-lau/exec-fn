@@ -337,22 +337,26 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-2);
+  gap: var(--space-3);
   width: 380px;
   max-width: 100%;
   padding: var(--space-4);
   text-align: left;
   line-height: var(--lh-snug);
   color: hsl(var(--green-hsl));
-  border-color: hsl(var(--green-hsl));
-  background: hsl(var(--bg-hsl));
+
+  /* the tower card's own surface (owner: "match the tower cards") - .asp-deck's
+     tint over the background, .asp-pop's border */
+  background: linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12)), hsl(var(--bg-hsl));
+  border-color: hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-3);
 }
 .asp-card .name { font-weight: var(--fw-bold); }
 .asp-card .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
 .asp-card .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
 .asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-variant-numeric: tabular-nums; }
 .asp-card dt { color: hsl(var(--green-hsl) / 0.45); }
-.asp-card dd { margin: 0; }
+.asp-card dd { margin: 0; white-space: nowrap; } /* "now -> next" on one line, like the tower card */
 .asp-card .asp-hint { max-width: none; color: hsl(var(--green-hsl)); } /* not the overlay's 36ch */
 
 /* out of the header now, so it flips with the boss's inverted sky on its own
@@ -392,6 +396,8 @@
   #asp-vol { flex: 1 1 auto; width: auto; min-width: var(--space-10); }
 
   .asp-stats { gap: var(--space-2); }
+
+  .asp-card dd { white-space: normal; } /* a narrow card wraps rather than spill */
 
   .asp-left { left: var(--space-3); bottom: var(--space-4); gap: var(--space-1); }
 
