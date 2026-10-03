@@ -1,37 +1,19 @@
 // noodle's IDENTITY block: the name + passphrase fields (cleaned as typed),
 // the key worker's callbacks (ndvOnStart / ndvOnDerived), the seal and its
-// caption, the empty-passphrase warning, and the dotted teaching box. Same
+// caption, the empty-passphrase warning, and the you -> pick step. Same
 // global scope as noodle-vote.js; loaded before it, called once it has run.
-
-var NDV_SIGN_WAIT = 'commit ──> stamp(data, seal)';
-var NDV_SIGN_DONE = 'commit ──> stamp(data, seal) ──> sealed';
-
-// The recipe, not the values: the salt ties the key to the name and the
-// poll, so one passphrase gives a different key to every name in every poll.
-// The argon2id line's arrow STRETCHES to two spaces short of the seal beside
-// the box (.nd-arrow), so it points at the face the passphrase produced.
-function ndvTeach(tail, signLine) {
-  var el = ndv$('nd-teach');
-  el.innerHTML = '<div>salt = sha256(poll, name)</div>' +
-    '<div class="nd-arrow-line"><span>seal = argon2id(passphrase, salt)' + (tail ? ' ' + tail : '') + '</span>' +
-    '<span class="nd-arrow" aria-hidden="true"><span class="nd-arrow-shaft"></span>&gt;</span></div>' +
-    '<div class="nd-sign"></div>';
-  el.querySelector('.nd-sign').textContent = signLine;
-}
 
 function ndvOnStart(info) {
   ndvSyncSubmit();
   var seal = ndv$('nd-seal');
   if (NDV.seal) NDV.lastSeal = NDV.seal;
   NDV.seal = null;
-  if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); ndvTeach('', NDV_SIGN_WAIT); return; }
+  if (!info) { NDV.salt = ''; window.NoodleSeal.paint(seal, null); return; }
   NDV.salt = info.salt;
   seal.classList.add('pending');
-  ndvTeach('', NDV_SIGN_WAIT);
 }
 
 async function ndvOnDerived(d) {
-  ndvTeach('', NDV_SIGN_WAIT);
   var seal = ndv$('nd-seal');
   seal.classList.remove('pending');
   NDV.seal = await window.NoodleSeal.seal(d.pub);
@@ -48,6 +30,9 @@ function ndvSealCaption() {
   else if (!name) cap.textContent = 'your seal of approval';
   else if (!ndvReady() || (NDV.held && !NDV.mine)) cap.textContent = 'checking the seal...';
   else cap.textContent = name + "'s seal of approval";
+  // the seal shows once there is a name to seal (the argon2id recipe box that
+  // framed it went 2026-10-03: jargon beside the one thing to do, type a name)
+  ndv$('nd-seal-row').hidden = !name;
   // the passphrase is a choice for a new name, and the key to an existing one
   ndv$('nd-pass-label').textContent = 'passphrase (' + (NDV.held ? 'required' : 'optional') + ')';
   ndvWarnEmpty();   // who you are decides what the empty-passphrase warning says
@@ -113,9 +98,20 @@ function ndvPickFace(e) {
 // one line, "you are <name> [edit]"; on the you step the pick stays in view,
 // grey and read-only (ndvSyncLock), so the results can still be read. A
 // returning voter whose saved identity unlocks skips straight to the pick.
-function ndvCanNext() {
-  return !!window.noodleNormName(ndv$('nd-name').value) && !NDV.keyError && !NDV.blocked && !NDV.taken;
+// Why "next" cannot be pressed, or '' when it can -- shown above it, like
+// Commit's reason (ndvWhyNot): a grey button with no reason reads as broken.
+// A key still being made does NOT hold it: the pick unlocks when it lands.
+function ndvNextWhy() {
+  var raw = ndv$('nd-name').value;
+  if (!raw.trim()) return 'enter your name first';
+  if (!window.noodleNormName(raw)) return 'that name is too long, or has characters that cannot be used';
+  if (NDV.blocked) return '"' + NDV.blocked + '" is already sealed with a different passphrase';
+  if (NDV.taken) return '"' + NDV.taken + '" is already taken';
+  if (NDV.keyError) return 'this browser could not make a key';
+  return '';
 }
+
+function ndvCanNext() { return !ndvNextWhy(); }
 
 function ndvStep(step) {
   NDV.step = step;
@@ -135,6 +131,7 @@ function ndvPaintStep() {
   }
   var pick = NDV.step === 'pick', you = ndv$('nd-you-name');
   ndv$('noodle').classList.toggle('nd-step-pick', pick);
+  ndv$('nd-next-why').textContent = ndvNextWhy();
   ndv$('nd-next').disabled = !ndvCanNext();
   ndv$('nd-next').textContent = window.ndxIsHost && window.ndxIsHost() ? 'next: offer times' : 'next: pick times';
   you.textContent = window.noodleNormName(ndv$('nd-name').value);

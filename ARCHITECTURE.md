@@ -3459,7 +3459,7 @@ auth. The browser derives an Ed25519 key from the passphrase
 
 **CSS** (`web/`), loaded in this order by `noodle-shell.html` — **the load
 order is the cascade**: `noodle.css` (font-face, shell, title/note,
-host/guest wording) → `noodle-identity.css` (fields, seal, teaching box) →
+host/guest wording) → `noodle-identity.css` (fields, seal, you -> pick step) →
 `noodle-actions.css` (Ask, banner, Commit, lock states, share) →
 `noodle-roster.css` (voter faces) → `noodle-split.css` (split checkbox) →
 `noodle-admin.css` (`/noodle` page) → `noodle-foot.css` (top dates + foot
@@ -3546,7 +3546,7 @@ CSS as the page-local `--seal-hsl` token (`scripts/lint-colors.py`
 
 **One section edits at a time** (`ndvStep`/`ndvPaintStep` in
 `noodle-identity.js`, feedback 2026-10-03): `#nd-you` (name + passphrase +
-teaching box) then `#nd-pick` (calendar, Ask, Commit, and the host's
+seal) then `#nd-pick` (calendar, Ask, Commit, and the host's
 title/note, which are editable ONLY on the pick step). `NDV.step` is
 `'you'|'pick'`; `.nd-step-pick` on `#noodle` folds YOU to one line ("you
 are <name> [edit]", in the seal's ink). On the you step the pick is a grey
@@ -3564,6 +3564,17 @@ name" -- which was the group's name and which the voter's was unclear. The
 Ask box's text is `--fs-2xs`, under iOS's 16px focus-zoom line, so the
 noodle shell's viewport carries `maximum-scale=1` (iOS still pinch-zooms;
 Android does not on noodle pages -- accepted).
+
+**UI audit 2026-10-03** (all applied): the argon2id recipe box is GONE --
+the seal + caption sit centred under the fields (`.nd-seal-row`, hidden
+until a name is typed); `#nd-next-why` above "next" gives the reason it is
+grey (`ndvNextWhy`, the identity half of `ndvWhyNot`; a key still deriving
+does not hold it); the host's not-yet-offered days are dim green and NOT
+struck (only past / out-of-crop days are); the crop grips sit at `left:
+20px` in the week column, off the dates; the foot links are plain dim
+underlined links, not buttons that out-shout Commit; the note has no dashed
+line of its own; "help me" is its label's height; one passphrase hint for
+both roles; the pick note reads "when are you free? (everyone can see)".
 
 **A name sealed by another key locks the page** (`ndvSyncLock`): calendar,
 Ask and Commit go grey + `inert` (`.nd-locked`), the caption reads

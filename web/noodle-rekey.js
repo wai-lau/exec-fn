@@ -49,7 +49,7 @@ function ndrHint(k) {
   var host = window.ndxIsHost && window.ndxIsHost();
   if (k === 'name') return host ? 'how shall the guests address you, host?' : 'please help the host know who you are';
   if (NDV.held) return 'please enter your passphrase';
-  return host ? "you'll NEED to remember this" : "you'll need this to change your vote";
+  return "you'll need this to change your vote";   // host and guest alike (UI audit 2026-10-03)
 }
 
 function ndrStop() {

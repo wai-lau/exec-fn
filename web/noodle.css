@@ -2,7 +2,7 @@
    page and card, the title + note (and their host-only edit marks), the pick
    note, and the host/guest wording switch. The rest, one file per part, loaded
    in this order by noodle-shell.html (the order is the cascade):
-     noodle-identity.css  name + passphrase, the seal, the teaching box
+     noodle-identity.css  name + passphrase, the seal, the you -> pick step
      noodle-actions.css   Ask, banner, Commit, lock states, share link
      noodle-roster.css    the voters' faces
      noodle-split.css     the host's split switch
@@ -10,8 +10,8 @@
      noodle-foot.css      top dates + the foot links
      noodle-cal.css       the calendar grid
 
-   Every non-ASCII glyph noodle draws (seal eyes + mouths, the teaching
-   panel's bullets and rule, the toggle marks) comes from ONE subset of the
+   Every non-ASCII glyph noodle draws (seal eyes + mouths, the toggle
+   marks) comes from ONE subset of the
    site's own Iosevka, each checked single-width (tests/test_noodle_glyphs.py).
    The site's woff2 is a 126-glyph subset without them, so they would
    otherwise fall back to some other font -- wider, and the seal's columns
@@ -86,7 +86,7 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
 .noodle .exec-nav { box-sizing: border-box; }
 
 /* the host's NOTE under the title: the title's own mechanism (noodle-host.js
-   NDH_TEXT) -- dotted line for the host, tap to edit, sent with Commit. Empty,
+   NDH_TEXT) -- tap to edit, sent with Commit. Empty,
    a guest sees nothing and the host a grey "add a note" to tap */
 .nd-subnote {
   width: fit-content;
@@ -99,7 +99,10 @@ body.noodle:not(.with-nav) { --nav-h: 0px; }
   color: hsl(var(--green-hsl) / 0.8);
 }
 .nd-subnote:empty:not(.editable) { display: none; }
-.nd-subnote.editable { border-bottom: 2px dashed hsl(var(--green-hsl) / 0.45); cursor: text; }
+
+/* no dashed line of its own: two stacked under the title read as noise (UI
+   audit 2026-10-03); the grey "add a note" already says tap me */
+.nd-subnote.editable { cursor: text; }
 .nd-subnote.editable:empty::before { content: 'add a note'; color: hsl(var(--gray-hsl) / 0.45); }
 .nd-subnote[contenteditable="plaintext-only"], .nd-subnote[contenteditable="true"] { outline: none; }
 

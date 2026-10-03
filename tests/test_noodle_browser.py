@@ -41,10 +41,6 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         ink = page.evaluate("document.getElementById('nd-seal').style.getPropertyValue('--seal-hsl')")
         h, sat, light = ink.split()
         assert 0 <= int(h) < 360 and 60 <= int(sat[:-1]) <= 100 and 62 <= int(light[:-1]) <= 82
-        # the YOU step is folded once the pick opens: read the lines as text
-        teach = page.evaluate("[...document.querySelectorAll('#nd-teach > div')].map(d => d.textContent).join('\\n')")
-        assert teach.startswith("salt = sha256(poll, name)\nseal = argon2id(passphrase, salt)")
-        assert "commit ──> stamp(data, seal)" in teach
 
         # an open day other than the one a host is offering (flipping that one
         # off would leave nothing to commit), a WEEK down: the first open row
@@ -200,7 +196,6 @@ def test_tapping_a_face_fills_the_name(browser, base_url, noodle_slug):
         assert page.input_value("#nd-name") == name
         assert page.evaluate("document.activeElement.id") == "nd-pass"
         want = ("please enter your passphrase" if page.evaluate("NDV.held") else
-                "you'll NEED to remember this" if page.evaluate("ndxIsHost()") else
                 "you'll need this to change your vote")
         assert page.get_attribute("#nd-pass", "placeholder") == want
     finally:
