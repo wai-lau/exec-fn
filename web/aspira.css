@@ -324,7 +324,14 @@
 .asp-chooser { overflow-y: auto; justify-content: flex-start; }
 .asp-chooser > :first-child { margin-top: auto; }
 .asp-chooser > :last-child { margin-bottom: 0; } /* sits at the BOTTOM, where the tower card is (owner); its lift is set by aspira-ui.js */
-.asp-chooser h2 { font-size: var(--fs-xl); color: hsl(var(--green-hsl)); }
+.asp-chooser .asp-chooser-cost {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-2);
+  background: hsl(var(--bg-hsl));
+  font-size: var(--fs-xs);
+  color: hsl(var(--green-hsl));
+  text-shadow: none;
+}
 .asp-chooser[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
 .asp-chooser[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
 .asp-chooser[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
