@@ -3846,16 +3846,11 @@ created, a delete button that confirms first; `DELETE /api/noodle-polls/{slug}`
 takes every vote with it).
 
 **Guest**: no poll list (the list request 401s, the section stays hidden)
-— instead an autoplaying, muted, looping demo video
-(`web/noodle-demo.mp4`, gitignored, server holds the only copy) under the
-create button, ABOVE the CRT stack. The page NEVER scrolls for a guest
-(`noodle-admin.css`, all keyed on `:has(.nd-demo)`): `html`/`body` go
-`overflow:hidden`, `.page-scroll` switches from its normal `position:fixed`
-(always a stacking context, which would otherwise trap the video under the
-CRT's `--z-modal`) to `static`, and `.doc-card`'s z-index goes `auto`. A tap
-opens the video fullscreen (iPhone via `webkitEnterFullscreen`, no native
-`requestFullscreen`); the owner's list page has no `.nd-demo` and scrolls
-normally. The title (`.nd-brand`) is big, glowing, set in **Courier New** —
+-- just the title and the create button, centred in the screen above the
+nav (`#noodle-admin:has(#nd-owner[hidden])`). There was an autoplaying demo
+video under the button until 2026-10-03; Wai dropped it ("just have the
+thing in the middle"), the last two copies are in `.archaeology/media/`.
+The title (`.nd-brand`) is big, glowing, set in **Courier New** —
 a system font everywhere — not the site's own mono face.
 
 Open Graph on every noodle page (`pages._og`): title, description (the

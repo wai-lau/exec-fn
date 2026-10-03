@@ -1,5 +1,6 @@
 /* noodle: the /noodle page -- the owner's poll table, and for guests the
-   centred title + create button + demo video, never scrolling. */
+   centred title + create button, nothing else (the demo video went
+   2026-10-03). */
 
 /* ── owner list ─────────────────────────────────────────────────────────── */
 .nd-polls { width: 100%; margin: 0 0 var(--space-6); border-collapse: collapse; font-size: var(--fs-2xs); }
@@ -21,33 +22,5 @@
 }
 #noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }
 
-/* the demo video (guests only, pages.py _DEMO), under the create button.
-   The wrapper goes static and the document scrolls instead, and .doc-card's
-   z-index goes auto -- left from when the video had to rise over the CRT
-   stack (noodle has none since 2026-10-03). */
-.page-scroll:has(.nd-demo) { position: static; overflow: visible; padding-bottom: var(--nav-h); }
-.doc-card:has(.nd-demo) { z-index: auto; }
-
-/* and the page never scrolls: the card is exactly the screen above the nav,
-   and the video (a flex item) shrinks to whatever the title and button leave */
-html:has(.nd-demo), body:has(.nd-demo) { overflow: hidden; overscroll-behavior: none; }
-#noodle-admin:has(.nd-demo) { height: calc(100dvh - var(--nav-h, 0px)); overflow: hidden; }
-
-/* the empty status line under the button would push the video down */
+/* the empty status line under the button would push it off centre */
 .nd-create #nd-msg:empty { display: none; }
-
-.nd-demo {
-  position: relative;
-  z-index: var(--z-top);
-  display: block;
-  width: auto;
-  max-width: 100%;
-  min-height: 0;
-  flex: 0 1 auto;
-  aspect-ratio: 694 / 1040;
-  object-fit: cover;   /* never letterbox: a box off the file's ratio by a hair drew black side bars */
-  margin: var(--space-6) auto 0;
-  border-radius: var(--radius-4);
-  background: hsl(var(--bg-hsl) / 1);
-  cursor: pointer;   /* a tap opens it fullscreen (noodle-admin.js) */
-}
