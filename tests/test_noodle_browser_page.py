@@ -82,7 +82,7 @@ def test_the_same_question_reapplies_the_last_answer(browser, base_url, noodle_s
         page.route("**/ask", answer)
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", "smoke asker")   # Ask is off until a key is yours
-        page.wait_for_function("!document.getElementById('noodle').classList.contains('nd-off')", timeout=20000)
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('noodle').classList.contains('nd-off'))", timeout=20000)
         page.fill("#nd-ask", "fridays")
         page.click("#nd-ask-go")
         page.wait_for_function("document.querySelector('#nd-ask-status').textContent.includes('read that as')")
@@ -103,7 +103,7 @@ def test_the_ask_text_is_kept_per_poll_and_name(browser, base_url, noodle_slug):
     try:
         page.goto(f"{base_url}/noodle/{noodle_slug}")
         page.fill("#nd-name", "smoke asker two")
-        page.wait_for_function("!document.getElementById('noodle').classList.contains('nd-off')", timeout=20000)
+        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('noodle').classList.contains('nd-off'))", timeout=20000)
         page.fill("#nd-ask", "fridays after work")
         page.reload()
         page.fill("#nd-name", "smoke asker two")

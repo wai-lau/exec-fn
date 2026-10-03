@@ -3475,8 +3475,9 @@ calls must already be loaded: `qc-holidays` → `noodle-toggle` →
 `noodle-share`. `/noodle` (`noodle-admin.html`) loads only `noodle-esc` +
 `noodle-admin`.
 
-**Templates** (`api/templates/`): `noodle-shell.html` (shared shell — CRT
-stack written out literally, `.page-scroll` wrapper, OG slot),
+**Templates** (`api/templates/`): `noodle-shell.html` (shared shell —
+`.page-scroll` wrapper, OG slot; **no CRT stack**, removed 2026-10-03 on
+user feedback: noodle is the site's one plain page),
 `noodle-vote.html` (poll body + scripts), `noodle-admin.html` (`/noodle`
 body + its 2 scripts).
 
@@ -3542,6 +3543,24 @@ evenly into each choice set). Ink hue is unconstrained but lightness has a
 floor (62-82%) so every seal reads on black regardless of hue; it reaches
 CSS as the page-local `--seal-hsl` token (`scripts/lint-colors.py`
 `LOCAL_ACCENTS`) and also colours that voter's calendar dots.
+
+**One section edits at a time** (`ndvStep`/`ndvPaintStep` in
+`noodle-identity.js`, feedback 2026-10-03): `#nd-you` (name + passphrase +
+teaching box) then `#nd-pick` (calendar, Ask, Commit, and the host's
+title/note, which are editable ONLY on the pick step). `NDV.step` is
+`'you'|'pick'`; `.nd-step-pick` on `#noodle` folds YOU to one line ("you
+are <name> [edit]", in the seal's ink). On the you step the pick is a grey
+read-only preview (`ndvSyncLock`'s `open` requires the pick step) and
+Commit/why/dirty/split are hidden; `#nd-next` (or Enter in either field)
+advances once a name is typed. A saved identity that unlocks skips straight
+to the pick (`NDV.autoStep`); a name that turns out sealed by another key
+falls back to YOU; tapping a roster face returns to YOU. Rekey: `change` is
+on YOU, Commit (on the pick) carries it. The step init (`ndvStepInit`) is
+called from `ndvInit` -- `noodle-identity.js` loads BEFORE `NDV` exists, so
+an IIFE there throws. Browser tests advance with
+`ndvCanNext() && ndvStep('pick')` inside their unlock waits. The title has a
+grey "poll" kicker above it and the field is labelled "your name" -- which
+was the group's name and which the voter's was unclear.
 
 **A name sealed by another key locks the page** (`ndvSyncLock`): calendar,
 Ask and Commit go grey + `inert` (`.nd-locked`), the caption reads
@@ -3645,12 +3664,12 @@ correctness issue, just no cross-poll write parallelism.
 `ndDotsHtml`/etc, as `window.NoodleCalParts`) + `noodle-cal-view.js`
 (`NoodleCal()`, the stateful controller), styled by `noodle-cal.css`. ONE
 continuous vertical scroller of Sunday-first weeks, /rd's visual language
-(5px rules, bold dates, cyan weekends). **The calendar sits ABOVE the CRT
-stack** (`.nd-cal-wrap` at `--z-top`): on a poll page `.page-scroll` goes
-static (the document scrolls, its scrollbar hidden) and the card's z-index
-goes auto -- both were stacking contexts it could not rise out of -- and the
-banner + "approved by" stamp go to `--z-max` so the calendar never covers
-them.
+(5px rules, bold dates, cyan weekends). `.nd-cal-wrap` sits at `--z-top`:
+on a poll page `.page-scroll` goes static (the document scrolls, its
+scrollbar hidden) and the card's z-index goes auto, and the banner +
+"approved by" stamp go to `--z-max` so the calendar never covers them. That
+layering was built to rise over the CRT stack, which noodle no longer has
+(2026-10-03); it stays because the sticky/crop z-indices are tuned to it.
 
 **Endless unless bounded by a crop.** Opens on `NDC_FIRST`=12 weeks, appends
 `NDC_MORE`=8 as a sentinel scrolls into view — via both a `scroll` listener
@@ -3671,7 +3690,9 @@ diagonal.
 
 **Dots**: every voter — you included — owns ONE fixed column by vote order
 (top dot midday, bottom night, a gap where not free), so one person reads
-as one vertical line down the grid. Your own column is a `self` entry
+as one vertical line down the grid. Dots are **6px** (`ND_DOT` in
+noodle-cal.js mirrors `.nd-dots` in noodle-cal.css -- change both); 4px read
+as specks over a picked half (feedback 2026-10-03). Your own column is a `self` entry
 showing your LIVE selection, not your last-saved vote. Overflow gets /rd's
 hollow ring; your own column is never the one cut.
 

@@ -14,28 +14,21 @@
 <link rel="preload" href="/fonts/iosevka-500.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/noodle-seal.woff2?v=6" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/chrome.css?v=83">
-<link rel="stylesheet" href="/noodle.css?v=103">
-<link rel="stylesheet" href="/noodle-identity.css?v=1">
-<link rel="stylesheet" href="/noodle-actions.css?v=3">
+<link rel="stylesheet" href="/noodle.css?v=104">
+<link rel="stylesheet" href="/noodle-identity.css?v=3">
+<link rel="stylesheet" href="/noodle-actions.css?v=4">
 <link rel="stylesheet" href="/noodle-roster.css?v=1">
 <link rel="stylesheet" href="/noodle-split.css?v=1">
-<link rel="stylesheet" href="/noodle-admin.css?v=1">
+<link rel="stylesheet" href="/noodle-admin.css?v=2">
 <link rel="stylesheet" href="/noodle-foot.css?v=3">
-<link rel="stylesheet" href="/noodle-cal.css?v=72">
-<link rel="stylesheet" href="/crt-dim.css?v=1">
+<link rel="stylesheet" href="/noodle-cal.css?v=73">
 </head>
 <body class="noodle">
-<!-- the page scrolls in a fixed wrapper, not the document: a root scrollbar is
-     top-layer and painted over the CRT stack (chrome.css .page-scroll) -->
+<!-- the page scrolls in chrome.css's .page-scroll wrapper; the calendar page
+     and /noodle turn it static and let the document scroll (noodle-cal.css).
+     No CRT stack: noodle is the one plain page (dropped 2026-10-03, feedback) -->
 <div class="page-scroll">
 {{BODY}}
 </div>
-<!-- the site's CRT stack (pages.py _CRT_FX), written out here: noodle imports
-     no app module, so it cannot take the constant. Paint order is load-bearing:
-     bg, lines, blur, crt, scan (ARCHITECTURE.md section 10). -->
-<div class="cyber-bg"></div><div class="cyber-lines"></div>
-<div class="cyber-blur"></div><div class="cyber-crt"></div>
-<div class="cyber-scan"></div>
-<script src="/crt-zoom.js?v=2"></script>
 </body>
 </html>

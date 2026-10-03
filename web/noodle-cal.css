@@ -3,12 +3,12 @@
    weekends, a faint blurred month number behind the grid, stadium dots), made
    continuous and two-halved. Built by noodle-cal.js + noodle-cal-view.js. */
 
-/* The calendar sits ABOVE the CRT stack (--z-modal), like /noodle's demo
-   video (noodle-admin.css): the two stacking contexts in its way go -- the
-   fixed .page-scroll wrapper goes static (the document scrolls instead, its
-   scrollbar hidden) and the card's z-index goes auto. The error banner and
-   the "approved by" stamp then go to --z-max (noodle-actions.css), or the
-   calendar would cover them. */
+/* The calendar page scrolls the document, not chrome.css's fixed
+   .page-scroll wrapper (its scrollbar hidden), and the card's z-index goes
+   auto. This once lifted the grid over the CRT stack; noodle has had no CRT
+   since 2026-10-03, and the layering stays because the sticky week column,
+   crop and banner z-indices are tuned against it. The error banner and the
+   "approved by" stamp sit at --z-max (noodle-actions.css), over the grid. */
 .page-scroll:has(#nd-cal) { position: static; overflow: visible; }
 .doc-card:has(#nd-cal) { z-index: auto; }
 html:has(#nd-cal) { scrollbar-width: none; }
@@ -213,7 +213,7 @@ html:has(#nd-cal)::-webkit-scrollbar { display: none; }
    takes the day's fill (--top and --bot are always equal here), and each
    voter gets one dot a day, not two. */
 .nd-grid.single .nd-d { background-image: linear-gradient(var(--top), var(--top)); }
-.nd-grid.single .nd-dots { grid-template-rows: 4px; }
+.nd-grid.single .nd-dots { grid-template-rows: 6px; }
 
 .nd-d.mid { --top: hsl(var(--green-hsl) / 0.45); }
 .nd-d.nit { --bot: hsl(var(--green-hsl) / 0.45); }
@@ -317,21 +317,22 @@ html:has(#nd-cal)::-webkit-scrollbar { display: none; }
 
 /* Voters, you included: ONE fixed column per person, the same position in
    every cell -- top dot midday, bottom dot night, NO dot where not free.
-   Sizes mirror ND_DOT / ND_DOT_GAP in noodle-cal.js (4px, --space-0-5): small
-   enough for seven columns in a phone-width cell. */
+   Sizes mirror ND_DOT / ND_DOT_GAP in noodle-cal.js (6px, --space-0-5): six
+   columns in a phone-width cell. They were 4px and read as specks over a
+   picked half (feedback 2026-10-03). */
 .nd-dots {
   display: grid;
   grid-auto-flow: column;
-  grid-template-rows: 4px 4px;
-  grid-auto-columns: 4px;
+  grid-template-rows: 6px 6px;
+  grid-auto-columns: 6px;
   gap: var(--space-0-5);
   justify-content: center;
-  height: calc(8px + var(--space-0-5));
+  height: calc(12px + var(--space-0-5));
   margin-top: var(--space-1-5);
   overflow: hidden;
 }
 
-.nd-dots i { width: 4px; height: 4px; border-radius: var(--radius-pill); }
+.nd-dots i { width: 6px; height: 6px; border-radius: var(--radius-pill); }
 
 .nd-dots i.on {
   background: hsl(var(--green-hsl) / 1);
@@ -346,8 +347,8 @@ html:has(#nd-cal)::-webkit-scrollbar { display: none; }
   grid-row: 1 / span 2;
   align-self: center;
   box-sizing: border-box;
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border: 2px solid hsl(var(--gray-hsl) / 0.45);
   border-radius: var(--radius-pill);
 }

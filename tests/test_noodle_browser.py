@@ -20,7 +20,7 @@ NAME, PASS = "smoke bot", "a fixed smoke passphrase"
 def _ready(page):
     page.fill("#nd-name", NAME)
     page.fill("#nd-pass", PASS)
-    page.wait_for_function("!document.getElementById('nd-cal').classList.contains('nd-readonly')"
+    page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))"
                            " || document.querySelector('#nd-why').textContent.includes('different')", timeout=20000)
     _offer_one(page)
     page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
@@ -41,7 +41,8 @@ def test_sign_in_browser_verify_on_server(browser, base_url, noodle_slug):
         ink = page.evaluate("document.getElementById('nd-seal').style.getPropertyValue('--seal-hsl')")
         h, sat, light = ink.split()
         assert 0 <= int(h) < 360 and 60 <= int(sat[:-1]) <= 100 and 62 <= int(light[:-1]) <= 82
-        teach = page.inner_text("#nd-teach")
+        # the YOU step is folded once the pick opens: read the lines as text
+        teach = page.evaluate("[...document.querySelectorAll('#nd-teach > div')].map(d => d.textContent).join('\\n')")
         assert teach.startswith("salt = sha256(poll, name)\nseal = argon2id(passphrase, salt)")
         assert "commit ──> stamp(data, seal)" in teach
 
@@ -124,6 +125,7 @@ def test_empty_passphrase_is_allowed_with_a_warning(browser, base_url, noodle_sl
         page.fill("#nd-pass", "")
         assert page.is_visible("#nd-warn")
         _can_commit(page)
+        page.click("#nd-you-edit")   # one section at a time: back to YOU
         page.fill("#nd-pass", "x")
         assert not page.is_visible("#nd-warn")
     finally:

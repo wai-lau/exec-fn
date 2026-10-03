@@ -46,7 +46,8 @@ function ndvPub() {
 // noodle-crop.js). Typing a voter's name used to flash the grid editable for
 // the second the key took to derive.
 function ndvSyncLock() {
-  var locked = !!NDV.blocked, open = ndvReady() && !locked && !(NDV.held && !NDV.mine);
+  if (window.ndvPaintStep) window.ndvPaintStep();   // and only on the PICK step (noodle-identity.js)
+  var locked = !!NDV.blocked, open = NDV.step === 'pick' && ndvReady() && !locked && !(NDV.held && !NDV.mine);
   ndv$('noodle').classList.toggle('nd-locked', locked);
   ndv$('noodle').classList.toggle('nd-off', !open);
   ndv$('nd-cal').classList.toggle('nd-readonly', !open);
@@ -171,7 +172,7 @@ function ndvEnsureCal(force) {
   // the split box lives INSIDE the grid (noodle-host.js ndhPlaceSplit); take it
   // out first, or rebuilding the grid would destroy it with the old rows
   var slot = ndv$('nd-split-slot');
-  if (slot && slot.parentNode !== ndv$('noodle')) ndv$('nd-cal').before(slot);
+  if (slot && slot.parentNode !== ndv$('nd-pick')) ndv$('nd-cal').before(slot);
   if (NDV.cal) NDV.cal.destroy();   // its observers, or they outlive the old grid
   NDV.cal = window.NoodleCal(ndv$('nd-cal'), { halves: halves, crop: c, endless: host,
     onChange: ndvSaveDraft, onRows: function () { if (window.ndxSync) window.ndxSync(); } });
@@ -208,6 +209,7 @@ function ndvInit() {
   NDV.slug = root.dataset.slug;
   NDV.draft = root.dataset.draft || '';
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
+  ndvStepInit();
   ndv$('nd-ask').addEventListener('input', ndvSaveAsk);
   NDV.kdf = window.NoodleKdf({
     slug: NDV.slug, kdf: NDV.kdfCfg, workerUrl: root.dataset.worker,
@@ -236,7 +238,8 @@ function ndvInit() {
     var at = String(e.stack || '').split('\n').slice(1, 2).join('').trim();
     ndvStatus('could not load the poll (' + e.message + (at ? ' ' + at : '') + ')', 'err');
   });
-  if (ndvRestoreIdentity()) ndvOnIdentityInput();
+  // a saved identity that unlocks goes straight to the pick (ndvPaintStep)
+  if (ndvRestoreIdentity()) { NDV.autoStep = true; ndvOnIdentityInput(); }
 }
 
 window.ndvOnIdentityInput = ndvOnIdentityInput;

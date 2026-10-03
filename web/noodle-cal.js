@@ -19,7 +19,7 @@
 
 var ND_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 var ND_TAN30 = Math.tan(Math.PI / 6);
-var ND_DOT = 4, ND_DOT_GAP = 2; // px; mirrors .nd-dots in noodle-cal.css (4px, --space-0-5)
+var ND_DOT = 6, ND_DOT_GAP = 2; // px; mirrors .nd-dots in noodle-cal.css (6px, --space-0-5)
 
 function ndIso(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
