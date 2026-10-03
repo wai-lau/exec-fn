@@ -456,3 +456,6 @@
 
 .asp-bossname { white-space: nowrap; color: hsl(var(--orange-glow-hsl)); }
 
+/* the c of a credits amount ("40c") is gold - Marigold (owner) */
+.asp-c { color: hsl(var(--orange-hsl)); }
+

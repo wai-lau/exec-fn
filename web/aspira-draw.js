@@ -465,7 +465,6 @@ function render() {
   drawSpokes();
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
-  drawCredits(); // under the core (aspira-waves.js)
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
@@ -473,5 +472,6 @@ function render() {
     ctx.globalAlpha = 1;
   }
   drawCore();
+  drawCredits(); // ON the core, so after it (aspira-waves.js)
   drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
 }

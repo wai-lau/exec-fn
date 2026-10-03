@@ -221,7 +221,7 @@ function kill(e, t) {
   const b = e.bounty * mul;
   G.money += b;
   sfx("kill");
-  float(e.x, e.y - 30, "+" + (b < 10 ? +b.toFixed(1) : Math.round(b)), "orange", 18, 2.0); // small (owner)
+  float(e.x, e.y - 30, "+" + (b < 10 ? +b.toFixed(1) : Math.round(b)) + "c", "orange", 18, 2.0); // small (owner); credits read "Nc", all gold here
   addScore(Math.round(b * 10));
   G.charge = Math.min(POWER_FULL, G.charge + 1);
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
