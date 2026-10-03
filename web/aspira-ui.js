@@ -304,7 +304,6 @@ function enemyIcon(type) {
 let lastNote = "";
 function updateHud() {
   setText($("asp-lives"), G.lives);
-  setText($("asp-money"), short(G.money));
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
   setText($("asp-wave"), G.wave);
   setText($("asp-score"), G.score.toLocaleString());

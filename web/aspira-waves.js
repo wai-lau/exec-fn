@@ -58,7 +58,7 @@ function makeWave(n) {
 function sendWave() {
   if (G.over) return;
   const gain = Math.floor(G.money * G.interest);
-  if (gain > 0) { G.money += gain; float(CX, CY + 80, "+" + gain + " interest", "green", 28, 4, 1, 3); }
+  if (gain > 0) { G.money += gain; creditsFx = { gain, pct: G.interest * 100, t0: performance.now() / 1000 }; }
   G.wave++;
   // a boss wave announces the boss by name (owner); ordinary waves show nothing
   // mid-screen any more (owner) - the wave list has them
@@ -124,4 +124,20 @@ function activeLanes() {
   for (const key in totals) if (!out.has(key) && !queued.has(key)) delete totals[key];
   for (const [key, u] of out) u.a = Math.min(1, u.alive / (totals[key] || u.alive));
   return out;
+}
+
+// ---------- the credits under the core (UI only; aspira-draw.js calls it) ----------
+// static, where the "+X interest" popup was (owner): "CREDITS N"; for
+// CREDITS_FX_T s after a payout "CREDITS <before> +X (+r%)", the gain in green,
+// then the new total
+const CREDITS_FX_T = 2.5;
+let creditsFx = null;
+function drawCredits() {
+  const fxOn = creditsFx && performance.now() / 1000 - creditsFx.t0 < CREDITS_FX_T;
+  const base = "CREDITS " + short(fxOn ? G.money - creditsFx.gain : G.money);
+  const extra = fxOn ? " +" + creditsFx.gain + " (+" + creditsFx.pct.toFixed(1) + "%)" : "";
+  ctx.font = "22px " + CANVAS_FONT;
+  const w1 = ctx.measureText(base).width, w2 = ctx.measureText(extra).width, x0 = CX - (w1 + w2) / 2, y = CY + 80;
+  text(base, x0 + w1 / 2, y, 22, "white", true);
+  if (extra) text(extra, x0 + w1 + w2 / 2, y, 22, "green", true);
 }

@@ -3924,6 +3924,10 @@ fires on release, not on press. Canvas `touch-action: none`. Speeds now include
 0.5x (owner).
 Each enemy TYPE in a wave starts `TYPE_STAGGER` 2s after the previous one
 (owner); a type's split copies start together.
+CREDITS are drawn on the CANVAS under the core (owner, 2026-10-02; were a
+header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
+interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
+total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
 **ACD (acid, owner, 2026-10-02):** chatsubo green; a continuous line on ONE
 enemy whose burn RAMPS EXPONENTIALLY while held (`stepAcid`: starts LOW at 3
 dmg/s, doubling every second held, capped x64 = 192/s after 6s; dealt in 4 ticks/s, each a real hit). Retargeting or a kill
@@ -4381,6 +4385,7 @@ The SOUND SAMPLES (Brood War) are served to the same guest tier at /aspira-sfx/{
 The build (placing) card is COMPACT (owner: the six slots stay in view): small font, max 280px, '—' rows left out. The default camera puts the CORE at the canvas's vertical middle (`resize`; the zoom still fits between controls and build bar).
 HUD (owner): the stats fit ONE row (small type, nowrap); the sound toggle is a speaker ICON (crossed out when muted); the ASPIRA title sits BOTTOM-LEFT under the wave list (both in `.asp-left`). The wave list has five columns - number : enemies HP name - with HPs and names aligned; plain enemies named by type in lowercase, bosses by arcana.
 Every card (tower, build, upgrade) puts its TAGLINE right under the title (owner). The build buttons HIDE once every slot holds a tower (`flashBuild`), cancelling any pick. 'core upgrades unlocked' floats with a ↓ pointing at the core.
+WIN and LOSS (owner, 2026-10-02): the game is WON when the 10th boss falls - no wave comes after wave 100 (`WIN_WAVE`); once its field clears, `winGame()` scores +1000 per life left and shows 'the core holds'. Any BOSS that reaches the core ends the game outright (lives to 0).
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
 Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
