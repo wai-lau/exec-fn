@@ -24,17 +24,33 @@
 .nd-top-dots i.on { background: hsl(var(--green-hsl) / 1); }
 .nd-top-dots i.on[style] { background: hsl(var(--seal-hsl) / 1); }
 
-/* "make another noodle" (host) / "make your own noodle" (guest), and under
-   it the feedback mailto (the address /recruiter already shows): plain
-   underlined LINKS, dim green. They were drawn as solid buttons and out-shouted
-   Commit, the page's one real action (UI audit 2026-10-03). */
+/* "make another noodle" (host) / "make your own noodle" (guest): a small
+   OUTLINED button, quieter than Commit (no fill, its type size is a step
+   down). Under it the feedback mailto (the address /recruiter already shows):
+   just small grey text, so the two never read as a pair (Wai, 2026-10-03).
+   Both were once solid buttons that out-shouted Commit. */
 .nd-another { margin: var(--space-6) 0 0; text-align: center; }
-.nd-another.nd-feedback { margin-top: var(--space-3); }
+.nd-another.nd-feedback { margin-top: var(--space-4); }
 
 .nd-another a {
-  color: hsl(var(--green-hsl) / 0.45);
+  display: inline-block;
+  padding: var(--space-2) var(--space-6);
+  border: 2px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+  color: hsl(var(--green-hsl) / 0.8);
   font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-wide);
+  text-decoration: none;
+}
+
+.nd-another.nd-feedback a {
+  padding: 0;
+  border: 0;
+  color: hsl(var(--gray-hsl) / 0.45);
+  font-size: calc(var(--fs-2xs) * 0.85);
+  font-weight: var(--fw-normal);
+  letter-spacing: 0;
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
