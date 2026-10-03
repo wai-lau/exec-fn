@@ -3939,6 +3939,7 @@ Each tower's SPOKE is drawn (owner): dashed in its colour from the slot to near 
 Upgrade cards MATCH the tower card (owner): the same tinted surface (.asp-deck's gradient), .asp-pop's border and radius, stats one line each (wrapping only on phones).
 The CHOOSER (owner): the game pauses AND the board stops redrawing while it is open, so a CSS blur + darken on the canvas (`#asp.asp-choosing`) costs nothing per frame; cards sit in ONE line - a row if they all fit across, else a column; each card lists ONLY the stats that option changes; a CANCEL button closes it like clicking off. Tower-card stats are smaller (--fs-xs) everywhere. The BUILD card shows only name, cost and tagline, which now ends 'Good against ...' (`GOOD_VS`, aspira-defs.js).
 The tower/core CARD is pinned BOTTOM CENTRE (owner: it no longer follows the tower, which moves); where it would cover the wave list or the build buttons it lifts above them (`placePop`, measured each frame).
+The UPGRADE CARDS sit where the tower card does (owner: match in appearance and positioning): the chooser stacks at the board's BOTTOM, lifted by the same `cardLift` rule; every card's tagline is equally bright (`.asp-hint` full colour).
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).

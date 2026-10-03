@@ -261,7 +261,7 @@
 .asp-pop .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
 .asp-pop .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
 .asp-pop .asp-cols dd { white-space: nowrap; } /* "now -> next" stays on one line */
-.asp-hint { margin: 0; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl) / 0.8); }
+.asp-hint { margin: 0; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl)); } /* bright on every card alike (owner) */
 
 .asp-bar { height: 6px; background: hsl(var(--bg-hsl) / 0.45); border-radius: var(--radius-1); overflow: hidden; }
 .asp-bar i { display: block; height: 100%; width: 0; background: hsl(var(--orange-hsl)); }
@@ -323,7 +323,7 @@
    coloured like the tower; nothing is charged until one is tapped */
 .asp-chooser { overflow-y: auto; justify-content: flex-start; }
 .asp-chooser > :first-child { margin-top: auto; }
-.asp-chooser > :last-child { margin-bottom: auto; }
+.asp-chooser > :last-child { margin-bottom: 0; } /* sits at the BOTTOM, where the tower card is (owner); its lift is set by aspira-ui.js */
 .asp-chooser h2 { font-size: var(--fs-xl); color: hsl(var(--green-hsl)); }
 .asp-chooser[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
 .asp-chooser[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
@@ -367,7 +367,7 @@
 .asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 .asp-card dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-card dd { margin: 0; white-space: nowrap; } /* "now -> next" on one line, like the tower card */
-.asp-card .asp-hint { max-width: none; color: hsl(var(--green-hsl)); } /* not the overlay's 36ch */
+.asp-card .asp-hint { max-width: none; } /* not the overlay's 36ch */
 
 /* out of the header now, so it flips with the boss's inverted sky on its own
    (keeping its outline) */
