@@ -116,7 +116,7 @@ const UPGRADES = {
         super: { name: "Lattice", desc: "Even more locks.", mods: { targets: 2 } } },
       { name: "Quad", desc: "Four parallel beams at once.", mods: { beams: 4 },
         super: { name: "Horizon", desc: "Seven parallel beams.", mods: { beams: 7 } } },
-      { name: "Smasher", desc: "A kill bursts, hitting everything around it.", mods: { smash: { r: 160, frac: 1 } },
+      { name: "Nova", desc: "A kill bursts, hitting everything around it.", mods: { smash: { r: 160, frac: 1 } },
         super: { name: "Supernova", desc: "A far bigger, harder burst.", mods: { smash: { r: 240, frac: 2 } } } },
     ] },
   ],
