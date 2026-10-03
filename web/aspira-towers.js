@@ -292,7 +292,7 @@ function stepAcid(t, dt) {
 //   st.ricochet   the shot chains at full damage to this many more enemies
 //   st.beams      parallel beams, each a hit of HALF the shot (Charge 2, Quad 4,
 //                 Horizon 7) - so each pops its own shield charge
-//   st.smash      a kill bursts for frac x the shot within r (Smasher)
+//   st.smash      a kill bursts for frac x the shot within r (Nova)
 const BOUNCE_R = 160, BLEED_CRIT_CAP = 1;
 function bleed(e, st) {
   if (!st.bleedArmor || e.dead) return;
@@ -309,7 +309,7 @@ function rayHit(t, st, e, base, from) {
     damage(e, part, t, false, crit); onHit(e, t, st, part); bleed(e, st); // a crit shows as a PINK number (owner)
   }
   if (e.dead && st.smash && !e.smashed) {
-    // Smasher / Supernova: the kill bursts (a filled blast that lingers, owner)
+    // Nova / Supernova: the kill bursts (a filled blast that lingers, owner)
     e.smashed = true;
     fx.push({ k: "blast", x: e.x, y: e.y, r: st.smash.r, color: TOWERS[t.kind].color, t: 0, life: 0.35 });
     for (const o of G.enemies) {
