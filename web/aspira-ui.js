@@ -10,6 +10,9 @@ const SPEEDS = [0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
+// a CREDITS amount reads "40c", the c in gold (Marigold, owner) - HTML
+const cr = n => n + '<span class="asp-c">c</span>';
+function setHtml(el, v) { if (el.dataset.html !== v) { el.dataset.html = v; el.innerHTML = v; } }
 // big counts shorten so they never run into the tower buttons: 12345 stays,
 // 123k, 4.0M
 function short(n) {
@@ -188,13 +191,13 @@ function inspectTower(el, t) {
   });
   // the upgrade button opens the card chooser
   button($("asp-upbox"), "asp-primary asp-up-big",
-    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + upCost(t), () => openChooser(t), "asp-up").disabled = maxed;
+    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + cr(upCost(t)), () => openChooser(t), "asp-up").disabled = maxed;
   // SELL sits last, away from the often-tapped rows, and takes TWO taps (owner):
   // the first arms it for SELL_ARM_MS, the second sells
-  const label = "sell · " + sellValue(t), sell = button($("asp-acts"), "asp-sell", label, () => {
+  const label = "sell · " + cr(sellValue(t)), sell = button($("asp-acts"), "asp-sell", label, () => {
     if (!sell.classList.contains("armed")) {
-      sell.classList.add("armed"); sell.textContent = "tap again to sell · " + sellValue(t);
-      setTimeout(() => { if (sell.isConnected) { sell.classList.remove("armed"); sell.textContent = label; } }, SELL_ARM_MS);
+      sell.classList.add("armed"); sell.innerHTML = "tap again to sell · " + cr(sellValue(t));
+      setTimeout(() => { if (sell.isConnected) { sell.classList.remove("armed"); sell.innerHTML = label; } }, SELL_ARM_MS);
       return;
     }
     G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null;
@@ -261,7 +264,7 @@ function openChooser(t) {
   el.dataset.kind = t.kind;
   // one small solid line, not a big heading (owner, phone-first: the heading
   // overlapped the tower card behind) - the cards' own titles name the upgrade
-  el.innerHTML = '<p class="asp-chooser-cost">upgrade · ' + upCost(t) + (opts.length > 1 ? " · choose one" : "") + "</p>" + '<div class="asp-cards"></div>';
+  el.innerHTML = '<p class="asp-chooser-cost">upgrade · ' + cr(upCost(t)) + (opts.length > 1 ? " · choose one" : "") + "</p>" + '<div class="asp-cards"></div>';
   const row = el.querySelector(".asp-cards");
   opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
   button(el, "asp-cancel", "cancel", closeChooser); // the same as clicking off the cards (owner)
@@ -315,7 +318,7 @@ function refreshPanels() {
   if (ui.build) {
     const k = ui.build, b = TOWERS[k];
     placing.dataset.kind = k;
-    placing.innerHTML = '<div class="name">' + b.name + " · " + towerCost(k) + "</div>" + '<p class="asp-hint">' + b.blurb +
+    placing.innerHTML = '<div class="name">' + b.name + " · " + cr(towerCost(k)) + "</div>" + '<p class="asp-hint">' + b.blurb +
       " Good against " + GOOD_VS[k] + ".</p>"; // what it counters (owner)
   }
 }
@@ -341,7 +344,7 @@ function updateHud() {
   for (const k of KINDS) {
     const btn = $("asp-tw-" + k);
     btn.classList.toggle("poor", G.money < towerCost(k) && ui.build !== k); // tappable: a tap flashes the cost
-    setText(btn.querySelector(".c"), short(towerCost(k)));
+    setHtml(btn.querySelector(".c"), cr(short(towerCost(k))));
     btn.classList.toggle("on", ui.build === k);
   }
   // the next TEN waves under the send button, one per row (owner; waves are

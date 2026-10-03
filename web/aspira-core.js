@@ -182,7 +182,7 @@ function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(
 function coreReps(box) {
   if (!repsOpen()) { button(box, "asp-primary asp-up-big", "max level · more once all six towers are L4", () => {}); return; }
   REPS.forEach(r => {
-    button(box, "asp-primary asp-choice", "<b>" + r.name + " " + (repN(r.id) + 1) + " · " + repCost(r.id) + "</b><span>" + r.desc + "</span>",
+    button(box, "asp-primary asp-choice", "<b>" + r.name + " " + (repN(r.id) + 1) + " · " + cr(repCost(r.id)) + "</b><span>" + r.desc + "</span>",
       () => { if (buyRep(r.id)) coreBought(); }).dataset.cost = repCost(r.id);
   });
 }
@@ -199,7 +199,7 @@ function inspectCore(el) {
   if (lvl >= CORE_MAX) { coreReps(box); return; }
   if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
   coreOptions().forEach((o, i) => {
-    button(box, "asp-primary asp-choice", "<b>" + o.name + " · " + coreCost() + "</b><span>" + o.desc + "</span>",
+    button(box, "asp-primary asp-choice", "<b>" + o.name + " · " + cr(coreCost()) + "</b><span>" + o.desc + "</span>",
       () => { if (buyCore(i)) coreBought(); }).dataset.cost = coreCost();
   });
 }

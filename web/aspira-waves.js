@@ -124,18 +124,25 @@ function activeLanes() {
   return out;
 }
 
-// ---------- the credits under the core (UI only; aspira-draw.js calls it) ----------
-// static, where the "+X interest" popup was (owner): "CREDITS N"; for
-// CREDITS_FX_T s after a payout "CREDITS <before> +X (+r%)", the gain in green,
-// then the new total
-const CREDITS_FX_T = 2.5;
+// ---------- the credits ON the core (UI only; aspira-draw.js calls it) ----------
+// the count sits on the core's white hexagon (owner; the lives are its rings
+// now) under a small CREDITS; for CREDITS_FX_T s after an interest payout
+// "+Xc (+r%)" shows just under the core, the c in gold
+const CREDITS_FX_T = 2.5, CREDITS_FIT = CORE_R * 1.5;
 let creditsFx = null;
 function drawCredits() {
   const fxOn = creditsFx && performance.now() / 1000 - creditsFx.t0 < CREDITS_FX_T;
-  const base = "CREDITS " + short(fxOn ? G.money - creditsFx.gain : G.money);
-  const extra = fxOn ? " +" + creditsFx.gain + " (+" + creditsFx.pct.toFixed(1) + "%)" : "";
+  // THIS count keeps its word (owner: "leave that one as CREDITS"): a small
+  // CREDITS over the number, no c
+  const n = short(fxOn ? G.money - creditsFx.gain : G.money);
   ctx.font = "22px " + CANVAS_FONT;
-  const w1 = ctx.measureText(base).width, w2 = ctx.measureText(extra).width, x0 = CX - (w1 + w2) / 2, y = CY + 80;
-  text(base, x0 + w1 / 2, y, 22, "white", true);
-  if (extra) text(extra, x0 + w1 + w2 / 2, y, 22, "green", true);
+  const size = Math.min(22, 22 * CREDITS_FIT / ctx.measureText(n).width); // shrinks to fit the hex
+  text("CREDITS", CX, CY - 9, 8, "bg");
+  text(n, CX, CY + 7, size, "bg");
+  if (!fxOn) return;
+  const parts = [["+" + creditsFx.gain, "green"], ["c", "orange"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
+  ctx.font = "20px " + CANVAS_FONT;
+  const ws = parts.map(p => ctx.measureText(p[0]).width);
+  let x = CX - ws.reduce((a, w) => a + w, 0) / 2;
+  parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, CY + 80, 20, p[1], true); x += ws[i]; });
 }
