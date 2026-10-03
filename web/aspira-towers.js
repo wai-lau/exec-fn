@@ -264,7 +264,7 @@ function acidTick(t, st, l, every) {
   const d = st.dmg * acidMulOf(l.held, st) * every;
   const burn = o => {
     const dd = shotDamage(t, st, o, d);
-    damage(o, dd, t); onHit(o, t, st, dd);
+    damage(o, dd, t); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh
     if (st.burnSlow && !o.dead) applySlow(o, st.burnSlow, 0.5, t.id); // Residue: the burn slows
     if (st.corrode && !o.dead) { o.armor = (o.armor || 0) - st.corrode; o.corrodeT = 0.4; } // Corrosion: past zero, on purpose; corrodeT: dotted ring
   };
@@ -365,4 +365,31 @@ function usePower(code) {
     G.power[code] = POWER_TIME;
     banner(POWERS.find(p => p[0] === code)[1].toLowerCase());
   }
+}
+
+// ---------- towers MOVE (owner, 2026-10-03) ----------
+// Each tower slides along its own SPOKE - the line from the core out through
+// its slot - towards the point on it nearest the enemy its targeting picks
+// (from the whole field, so it closes in before that enemy is in range),
+// at TOWER_MOVE a second, from its slot out to near the rim; with nothing to
+// chase it drifts home. Its slot stays its own (placement, Space, Horizon).
+const TOWER_MOVE = 80, TOWER_MOVE_RIM = RIM_R - 30;
+function chaseTarget(t) {
+  const key = MODE_KEY[t.mode] || MODE_KEY.close;
+  let best = null, bk = Infinity;
+  for (const e of G.enemies) {
+    if (e.dead) continue;
+    const k = key({ e });
+    if (k < bk || (k === bk && best && e.s > best.s)) { bk = k; best = e; }
+  }
+  return best;
+}
+function moveTower(t, dt) {
+  const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0;
+  const e = chaseTarget(t);
+  // where on the spoke the target is closest, kept between the slot and the rim
+  const want = e ? Math.max(0, Math.min(TOWER_MOVE_RIM - r0, (e.x - CX) * ux + (e.y - CY) * uy - r0)) : 0;
+  const off = t.off || 0, step = TOWER_MOVE * dt;
+  t.off = Math.abs(want - off) <= step ? want : off + Math.sign(want - off) * step;
+  t.x = c.x + ux * t.off; t.y = c.y + uy * t.off;
 }

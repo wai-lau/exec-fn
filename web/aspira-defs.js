@@ -218,7 +218,9 @@ const TOWERS = {
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
 const RANGE_BONUS = 1.2;
-const MODES = [["close", "Close"], ["hard", "Hard"], ["weak", "Weak"], ["fast", "Fast"]];
+// targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
+// Close = nearest the core (aspira-game.js MODE_KEY)
+const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Close"]];
 
 // Each special enemy had ONE counter tower: swarm -> CHN, fast -> SLW,
 // armor -> RPR; shield's counter was RPD, removed (owner: three towers only).
@@ -329,10 +331,10 @@ function towerStats(t, noAura = false) {
 const upCost = t => Math.round(TOWERS[t.kind].cost * STEP_COST[t.lvl - 1]);
 // each new tower costs DOUBLE the last (owner, 2026-10-02): base x 2^towers
 // standing, so the 6 slots fill at 40, 80, 160, 320, 640, 1280
-// each tower's default targeting, its natural job (owner, 2026-10-02): ARC
-// starts its tree on whatever is nearest the core, FRZ slows the fastest, SOL
-// saves its big hit for the toughest, ACD holds its ramping burn on the
-// longest-lived (the toughest)
-const DEFAULT_MODE = { chain: "close", slower: "fast", reaper: "hard", acid: "hard" };
+// each tower's default targeting, its natural job (owner, 2026-10-03): ARC
+// starts its tree on whatever is nearest the core, FRZ slows what nothing has
+// touched yet (Fresh), SOL saves its big hit for the most HP, ACD holds its
+// ramping burn on the longest-lived (Biggest)
+const DEFAULT_MODE = { chain: "close", slower: "fresh", reaper: "biggest", acid: "biggest" };
 const towerCost = k => TOWERS[k].cost * Math.pow(2, G.towers.length);
 const sellValue = t => Math.floor(t.spent * 0.7);

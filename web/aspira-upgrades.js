@@ -56,7 +56,7 @@ const UPGRADES = {
         super: { name: "Torrent", desc: "Even more burning lines.", mods: { targets: 2 } } },
       // Residue also SLOWS what it burns, and switches the tower to target Fast
       // enemies - the ones that run out of range and keep burning (owner)
-      { name: "Residue", desc: "Burns slow enemies and cling on after they escape; hunts Fast ones.", mods: { residue: 3, dmg: 3, burnSlow: 0.3 }, mode: "fast",
+      { name: "Residue", desc: "Burns slow enemies and cling on after they escape; hunts fresh ones.", mods: { residue: 3, dmg: 3, burnSlow: 0.3 }, mode: "fresh",
         super: { name: "Scar", desc: "The burn clings on much longer.", mods: { residue: 8 } } },
     ] },
     // circle tripled 45 -> 135 (owner, 2026-10-02: "45 range is nothing")

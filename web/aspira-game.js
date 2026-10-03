@@ -69,12 +69,17 @@ function spawnEnemy(type, n, pi, ang = 0) {
 const ENEMY_SPEED = 1.5;
 const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
+// FRESH (owner): an enemy carrying NO debuff - slowed, stunned, bleeding,
+// burning, corroded, frostbitten, shredded, poisoned or charged
+const debuffed = e => e.slowT > 0 || e.stunT > 0 || e.bleedCrit > 0 || e.burnT > 0 || e.corrodeT > 0 ||
+  e.biteT > 0 || e.shredT > 0 || e.dotT > 0 || !!e.charged;
+const coreD2 = e => (e.x - CX) ** 2 + (e.y - CY) ** 2;
 const MODE_KEY = {
   // close = closest to the CORE (owner), not to the tower: the most urgent enemy
-  close: a => (a.e.x - CX) ** 2 + (a.e.y - CY) ** 2,
-  hard: a => -a.e.hp,
-  weak: a => a.e.hp,
-  fast: a => -effSpeed(a.e),
+  close: a => coreD2(a.e),
+  // fresh: undebuffed first (nearest the core among them), then the rest
+  fresh: a => (debuffed(a.e) ? 1e9 : 0) + coreD2(a.e),
+  biggest: a => -a.e.hp, // the most HP left (owner)
 };
 
 function pickTargets(t, st, count) {
@@ -84,7 +89,7 @@ function pickTargets(t, st, count) {
     const d = (e.x - t.x) ** 2 + (e.y - t.y) ** 2;
     if (d <= r2) c.push({ e, d });
   }
-  const key = MODE_KEY[t.mode];
+  const key = MODE_KEY[t.mode] || MODE_KEY.close; // an old mode name (hard/weak/fast) falls back to Close
   // ties go to whoever is furthest along the spiral
   c.sort((a, b) => key(a) - key(b) || b.e.s - a.e.s);
   return c.slice(0, count).map(a => a.e);
@@ -303,6 +308,7 @@ function stepEnemies(dt) {
       if (e.arcana) bossStep(e, dt); // the bosses' tricks (aspira-bosses.js)
       if (e.biteT > 0) e.biteT -= dt; // Frostbite tint
       if (e.corrodeT > 0) e.corrodeT -= dt; // Corrosion ring
+      if (e.burnT > 0) e.burnT -= dt; // under an ACD burn (Fresh targeting)
       if (e.shredT > 0) e.shredT -= dt;
       if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
       e.s += effSpeed(e) * dt;
@@ -355,6 +361,7 @@ function step(dt) {
   stepChains(dt);
   for (const t of G.towers) {
     t.spin = (t.spin || 0) + dt; // game-time clock for anything that orbits (FRZ's moons)
+    moveTower(t, dt); // slides along its spoke after its target (aspira-towers.js)
     if (t.kind === "reaper") { stepReaper(t, dt); continue; }
     if (t.kind === "acid") { stepAcid(t, dt); continue; }
     t.cd -= dt;
