@@ -375,11 +375,12 @@ function usePower(code) {
 // chase it drifts back to its REST point - its slot, unless the player has
 // DRAGGED it along the spoke to a new one (owner; t.rest, aspira-camera.js).
 // Its slot stays its own (placement, Space, Horizon).
-const TOWER_MOVE = 80, TOWER_MOVE_RIM = RIM_R - 30;
+// towers slide out to TOWER_MOVE_R from the core's centre at most (owner: 350)
+const TOWER_MOVE = 80, TOWER_MOVE_R = 350;
 // the spoke: its unit direction, the slot's radius and how far out it runs
 function spokeOf(t) {
   const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
-  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_MOVE_RIM - r0) };
+  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_MOVE_R - r0) };
 }
 // drag: the point on the spoke nearest p becomes the rest point, and the tower goes there now
 function setRest(t, p) {
@@ -433,20 +434,21 @@ function moveTower(t, dt) {
 }
 
 
-// UI only (aspira-draw.js calls it): each tower's SPOKE (owner): the track it slides along, slot to near the
-// rim, dashed in its colour, with a tick at its rest point
+// UI only (aspira-draw.js calls it): each tower's SPOKE (owner): the track it slides along
 function drawSpokes() {
-  ctx.lineWidth = 1.5; ctx.setLineDash([4, 6]);
+  // BRIGHT WHITE, solid, from the core out to the limit (owner: show the axis clearly)
+  ctx.strokeStyle = COL.white; ctx.lineCap = "round";
   for (const t of G.towers) {
-    const k = spokeOf(t), col = COL[TOWERS[t.kind].color];
-    ctx.strokeStyle = col; ctx.globalAlpha = t.id === ui.sel || t.held ? 0.7 : 0.3;
-    ctx.beginPath(); ctx.moveTo(k.c.x, k.c.y); ctx.lineTo(k.c.x + k.ux * k.max, k.c.y + k.uy * k.max); ctx.stroke();
-    if (t.rest) {
-      const rx = k.c.x + k.ux * t.rest, ry = k.c.y + k.uy * t.rest;
-      ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(rx - k.uy * 10, ry + k.ux * 10); ctx.lineTo(rx + k.uy * 10, ry - k.ux * 10); ctx.stroke(); ctx.setLineDash([4, 6]);
+    const k = spokeOf(t), from = CORE_R + 6, to = k.r0 + k.max;
+    ctx.globalAlpha = t.id === ui.sel || t.held ? 0.95 : 0.6; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(CX + k.ux * from, CY + k.uy * from); ctx.lineTo(CX + k.ux * to, CY + k.uy * to); ctx.stroke();
+    // the end is a T (owner); a dragged rest point gets a shorter crossbar
+    for (const [at, half] of t.rest ? [[k.max, 14], [t.rest, 8]] : [[k.max, 14]]) {
+      const rx = k.c.x + k.ux * at, ry = k.c.y + k.uy * at;
+      ctx.beginPath(); ctx.moveTo(rx - k.uy * half, ry + k.ux * half); ctx.lineTo(rx + k.uy * half, ry - k.ux * half); ctx.stroke();
     }
   }
-  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1;
 }
 
 // A tower is its cell's hexagon, inset a little; its label at the centroid.
