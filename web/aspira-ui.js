@@ -359,17 +359,21 @@ function updateHud() {
   if (t && $("asp-kills")) { setText($("asp-kills"), t.kills || 0); setText($("asp-dealt"), Math.round(t.dealt || 0).toLocaleString()); }
 }
 
+// the tower's / core's card sits BOTTOM CENTRE and stays there (owner: it no
+// longer follows the tower, which now moves); where it would cover the wave
+// list or the build buttons it lifts above whichever it overlaps
 function placePop() {
-  const pop = $("asp-pop"), t = ui.sel === "core" ? { x: CX, y: CY } : ui.sel && G.towers.find(x => x.id === ui.sel);
-  if (pop.hidden || !t) return;
-  const dpr = window.devicePixelRatio || 1, cw = cv.clientWidth, ch = cv.clientHeight;
-  const sx = (cam.ox + t.x * cam.k) / dpr, sy = (cam.oy + t.y * cam.k) / dpr, half = 40 * cam.k / dpr;
-  const w = pop.offsetWidth, h = pop.offsetHeight, gap = 12;
-  // right of the tower if it fits, else left; vertically centred, kept on screen
-  let x = sx + half + gap;
-  if (x + w > cw - 8) x = sx - half - gap - w;
-  const y = Math.max(8, Math.min(ch - h - 8, sy - h / 2));
-  pop.style.left = Math.max(8, x) + "px"; pop.style.top = y + "px";
+  const pop = $("asp-pop");
+  if (pop.hidden) return;
+  const cr = cv.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, gap = 8;
+  const x = Math.max(gap, (cr.width - w) / 2);
+  let y = cr.height - h - gap;
+  for (const sel of [".asp-left", "#asp-build"]) {
+    const r = document.querySelector(sel).getBoundingClientRect();
+    if (!r.height || r.right - cr.left <= x || r.left - cr.left >= x + w) continue; // beside it, not under it
+    y = Math.min(y, r.top - cr.top - h - gap);
+  }
+  pop.style.left = x + "px"; pop.style.top = Math.max(gap, y) + "px";
 }
 
 // U: open the upgrade chooser for the selected tower
