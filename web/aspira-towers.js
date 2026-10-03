@@ -372,10 +372,24 @@ function usePower(code) {
 // its slot - towards the point on it nearest the enemy its targeting picks
 // (from the whole field, so it closes in before that enemy is in range),
 // at TOWER_MOVE a second, from its slot out to near the rim; with nothing to
-// chase it drifts home. Its slot stays its own (placement, Space, Horizon).
+// chase it drifts back to its REST point - its slot, unless the player has
+// DRAGGED it along the spoke to a new one (owner; t.rest, aspira-camera.js).
+// Its slot stays its own (placement, Space, Horizon).
 const TOWER_MOVE = 80, TOWER_MOVE_RIM = RIM_R - 30;
+// the spoke: its unit direction, the slot's radius and how far out it runs
+function spokeOf(t) {
+  const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
+  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_MOVE_RIM - r0) };
+}
+// drag: the point on the spoke nearest p becomes the rest point, and the tower goes there now
+function setRest(t, p) {
+  const k = spokeOf(t);
+  t.rest = Math.max(0, Math.min(k.max, (p.x - CX) * k.ux + (p.y - CY) * k.uy - k.r0));
+  t.off = t.rest; t.x = k.c.x + k.ux * t.off; t.y = k.c.y + k.uy * t.off;
+}
+const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
 function chaseTarget(t) {
-  const key = MODE_KEY[t.mode] || MODE_KEY.close;
+  const key = MODE_KEY[t.mode];
   let best = null, bk = Infinity;
   for (const e of G.enemies) {
     if (e.dead) continue;
@@ -385,11 +399,45 @@ function chaseTarget(t) {
   return best;
 }
 function moveTower(t, dt) {
-  const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0;
-  const e = chaseTarget(t);
+  if (t.held) return; // being dragged (aspira-camera.js)
+  const { c, r0, ux, uy, max } = spokeOf(t), e = chaseTarget(t);
   // where on the spoke the target is closest, kept between the slot and the rim
-  const want = e ? Math.max(0, Math.min(TOWER_MOVE_RIM - r0, (e.x - CX) * ux + (e.y - CY) * uy - r0)) : 0;
+  const want = e ? Math.max(0, Math.min(max, (e.x - CX) * ux + (e.y - CY) * uy - r0)) : t.rest || 0;
   const off = t.off || 0, step = TOWER_MOVE * dt;
   t.off = Math.abs(want - off) <= step ? want : off + Math.sign(want - off) * step;
   t.x = c.x + ux * t.off; t.y = c.y + uy * t.off;
 }
+
+
+// UI only (aspira-draw.js calls it): each tower's SPOKE (owner): the track it slides along, slot to near the
+// rim, dashed in its colour, with a tick at its rest point
+function drawSpokes() {
+  ctx.lineWidth = 1.5; ctx.setLineDash([4, 6]);
+  for (const t of G.towers) {
+    const k = spokeOf(t), col = COL[TOWERS[t.kind].color];
+    ctx.strokeStyle = col; ctx.globalAlpha = t.id === ui.sel || t.held ? 0.7 : 0.3;
+    ctx.beginPath(); ctx.moveTo(k.c.x, k.c.y); ctx.lineTo(k.c.x + k.ux * k.max, k.c.y + k.uy * k.max); ctx.stroke();
+    if (t.rest) {
+      const rx = k.c.x + k.ux * t.rest, ry = k.c.y + k.uy * t.rest;
+      ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(rx - k.uy * 10, ry + k.ux * 10); ctx.lineTo(rx + k.uy * 10, ry - k.ux * 10); ctx.stroke(); ctx.setLineDash([4, 6]);
+    }
+  }
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+}
+
+// A tower is its cell's hexagon, inset a little; its label at the centroid.
+// Level shows as concentric rings OUTSIDE it (drawTower).
+const TOWER_K = 0.88;
+function towerHex(c, k) {
+  ctx.beginPath();
+  c.pts.forEach((p, i) => {
+    const x = c.x + (p.x - c.x) * k, y = c.y + (p.y - c.y) * k;
+    if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+  });
+  ctx.closePath();
+}
+// LEVEL READS AT A GLANCE (owner, 2026-10-02): the main hex stays full size
+// and each level past L1 adds a BOLD ring OUTSIDE it, LEVEL_GAP further out
+// each (the cells are two tiles apart, so there is room), under a glow that
+// grows with the level.
+const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.24; // glow: shadow blur per level, world px
