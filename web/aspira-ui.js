@@ -213,12 +213,14 @@ function upgradeOptions(t) {
 function upgradeCard(t, o, i) {
   const nt = nextTower(t, o.choice), st = towerStats(t), nx = towerStats(nt), b = TOWERS[t.kind];
   const spN = SPEC[t.kind](nx, nt);
+  // only the stats this option CHANGES (owner), in the tower card's two columns
+  const base = [["Range", Math.round(st.range), Math.round(nx.range)], ["Rate", st.rate.toFixed(2) + "/s", nx.rate.toFixed(2) + "/s"]];
+  if (b.dmg) base.unshift(["Damage", Math.round(st.dmg), Math.round(nx.dmg)]);
+  const spec = SPEC[t.kind](st, t).map((r, k) => [r[0], r[1], spN[k][1]]);
+  const changed = rows => rows.filter(r => String(r[1]) !== String(r[2])).map(r => statRow(r[0], r[1], r[2])).join("");
   return '<div class="name">' + (chooser.opts.length > 1 ? i + 1 + " · " : "") + towerTitle(nt) + " · L" + nt.lvl + " of " + MAX_LVL + "</div>" +
     (o.desc ? '<p class="asp-hint">' + o.desc + "</p>" : "") + // the tagline under the title (owner)
-    '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), Math.round(nx.dmg)) : "") +
-    statRow("Range", Math.round(st.range), Math.round(nx.range)) +
-    statRow("Rate", st.rate.toFixed(2) + "/s", nx.rate.toFixed(2) + "/s") + "</dl>" +
-    '<dl class="asp-spec">' + SPEC[t.kind](st, t).map((r, k) => statRow(r[0], r[1], spN[k][1])).join("") + "</dl></div>";
+    '<div class="asp-cols"><dl>' + changed(base) + "</dl>" + (changed(spec) ? '<dl class="asp-spec">' + changed(spec) + "</dl>" : "") + "</div>";
 }
 function chooserEl() {
   let el = $("asp-chooser");
@@ -237,19 +239,23 @@ function openChooser(t) {
   chooser.t = t; chooser.opts = opts;
   chooser.wasPaused = ui.paused; ui.paused = true;
   el.dataset.kind = t.kind;
-  el.innerHTML = "<h2>" + towerTitle(t) + " → L" + (t.lvl + 1) + " · " + upCost(t) + "</h2><p>" + (opts.length > 1 ? "choose one · " : "") + "click outside to cancel</p>" + '<div class="asp-cards"></div>';
-  opts.forEach((o, i) => {
-    button(el.querySelector(".asp-cards"), "asp-card",
-      upgradeCard(t, o, i),
-      () => chooseUpgrade(i));
-  });
+  el.innerHTML = "<h2>" + towerTitle(t) + " → L" + (t.lvl + 1) + " · " + upCost(t) + "</h2>" + (opts.length > 1 ? "<p>choose one</p>" : "") + '<div class="asp-cards"></div>';
+  const row = el.querySelector(".asp-cards");
+  opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
+  button(el, "asp-cancel", "cancel", closeChooser); // the same as clicking off the cards (owner)
+  // ONE line (owner): side by side if they all fit across, else one column
   el.hidden = false;
+  // measured once shown (a hidden element has no width)
+  row.classList.toggle("asp-cards-col", opts.length * CARD_W + (opts.length - 1) * 16 > el.clientWidth - 32);
+  $("asp").classList.add("asp-choosing"); // the board blurs and darkens beneath (aspira.css)
 }
+const CARD_W = 380; // .asp-card's width (aspira.css)
 // close the cards (nothing was charged); a pick pays through upgradeTower
 function closeChooser() {
   if (!chooser.t) return;
   chooser.t = null;
   $("asp-chooser").hidden = true; ui.paused = chooser.wasPaused;
+  $("asp").classList.remove("asp-choosing");
 }
 function chooseUpgrade(i) {
   const o = chooser.opts[i], t = chooser.t;
@@ -277,18 +283,14 @@ function refreshPanels() {
   pop.dataset.kind = core ? "core" : t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
   if (t) { inspectTower(pop, t); placePop(); }
   if (core) { inspectCore(pop); placePop(); }
-  // while placing, the tower's own card sits above the credits (owner): its
-  // L1 stats and blurb, coloured like the tower (no "tap a slot" line, owner)
+  // while placing, a small card above the credits (owner): the tower's name,
+  // cost and TAGLINE only - no stats
   placing.hidden = !ui.build;
   if (ui.build) {
-    const k = ui.build, b = TOWERS[k], nt = { kind: k, lvl: 1, mode: DEFAULT_MODE[k] }, st = towerStats(nt);
+    const k = ui.build, b = TOWERS[k];
     placing.dataset.kind = k;
-    placing.innerHTML = '<div class="name">' + b.name + " · " + towerCost(k) + "</div>" +
-      '<p class="asp-hint">' + b.blurb + "</p>" + // the tagline under the title (owner)
-      '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
-      statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) + "</dl>" +
-      // compact (owner: the six slots must stay visible): rows with nothing yet ("—") are left out
-      '<dl class="asp-spec">' + SPEC[k](st, nt).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>";
+    placing.innerHTML = '<div class="name">' + b.name + " · " + towerCost(k) + "</div>" + '<p class="asp-hint">' + b.blurb +
+      " Good against " + GOOD_VS[k] + ".</p>"; // what it counters (owner)
   }
 }
 
@@ -421,7 +423,10 @@ function frame(now) {
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
   }
-  render(); updateHud(); placePop(); tickFps(now);
+  // while the upgrade cards are up the board is paused AND frozen: no redraw,
+  // so its CSS blur (aspira.css .asp-choosing) is computed once, not per frame
+  if (!chooser.t) render();
+  updateHud(); placePop(); tickFps(now);
   // while a boss lives the canvas inverts (drawBossInvert); the HTML over it
   // flips too once the inversion fills the screen, so it stays readable
   $("asp").classList.toggle("asp-boss", bossInv.full);
