@@ -101,7 +101,6 @@ async function ndvSubmit() {
       NDV.draft = '';
       history.replaceState(null, '', '/noodle/' + NDV.slug);
     }
-    ndvTeach('', NDV_SIGN_DONE);
     // never let the clipboard hold a commit up: some browsers leave the write
     // pending forever (no focus, no permission) -- 800ms, then carry on
     var copied = await Promise.race([copying, new Promise(function (r) { setTimeout(r, 800, false); })]);

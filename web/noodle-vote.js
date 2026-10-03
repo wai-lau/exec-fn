@@ -230,7 +230,6 @@ function ndvInit() {
     ndvStatus('something failed: ' + ((e.reason && e.reason.message) || e.reason), 'err');
     e.preventDefault();
   });
-  ndvTeach('', NDV_SIGN_WAIT);
   ndvSyncSubmit();
   // a reload mid-fetch rejects it ('Load failed'); say so rather than throw
   ndvLoadPoll().catch(function (e) {

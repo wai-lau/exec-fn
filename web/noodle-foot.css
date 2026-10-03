@@ -25,24 +25,16 @@
 .nd-top-dots i.on[style] { background: hsl(var(--seal-hsl) / 1); }
 
 /* "make another noodle" (host) / "make your own noodle" (guest), and under
-   it the feedback mailto (the address /recruiter already shows): LINKS drawn
-   as smaller Commit buttons (noodle-actions.css .nd-submit) */
+   it the feedback mailto (the address /recruiter already shows): plain
+   underlined LINKS, dim green. They were drawn as solid buttons and out-shouted
+   Commit, the page's one real action (UI audit 2026-10-03). */
 .nd-another { margin: var(--space-6) 0 0; text-align: center; }
-.nd-another.nd-feedback { margin-top: var(--space-4); }
+.nd-another.nd-feedback { margin-top: var(--space-3); }
 
 .nd-another a {
-  display: inline-block;
-  padding: var(--space-2) var(--space-6);
-  border: 2px solid hsl(var(--green-hsl) / 1);
-  border-radius: var(--radius-2);
-  background: hsl(var(--green-hsl) / 0.12);
-  color: hsl(var(--green-hsl) / 1);
+  color: hsl(var(--green-hsl) / 0.45);
   font-size: var(--fs-2xs);
-  font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-wide);
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
-
-/* The poll link is the bigger of the two: between Commit and the bug button --
-   Commit's type size on a tighter pad (no font step sits between 2xs and sm). */
-.nd-another:not(.nd-feedback) a { padding: var(--space-2) var(--space-8); font-size: var(--fs-sm); }

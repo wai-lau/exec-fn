@@ -13,6 +13,7 @@
    so the two can never be taken for one another */
 .nd-ask-go {
   flex: 0 0 auto;
+  align-self: center;   /* its label's height, not the textarea's (UI audit 2026-10-03) */
   padding: var(--space-2) var(--space-4);
   border: 2px solid hsl(var(--green-hsl) / 0.8);
   border-radius: var(--radius-2);

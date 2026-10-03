@@ -209,8 +209,7 @@ def test_name_and_passphrase_keep_only_letters_digits_and_spaces(browser, base_u
         host = page.evaluate("ndxIsHost()")
         assert page.get_attribute("#nd-name", "placeholder") == (
             "how shall the guests address you, host?" if host else "please help the host know who you are")
-        assert page.get_attribute("#nd-pass", "placeholder") == (
-            "you'll NEED to remember this" if host else "you'll need this to change your vote")
+        assert page.get_attribute("#nd-pass", "placeholder") == "you'll need this to change your vote"
         page.type("#nd-name", "Jane.Doe-2!")
         page.type("#nd-pass", "p@ss w0rd?")
         assert page.input_value("#nd-name") == "janedoe2"
