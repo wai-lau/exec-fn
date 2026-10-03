@@ -99,11 +99,10 @@ button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
 // SOL's form, in one short line for the popup (the same row at every level, so
 // the next-level preview lines up)
 function rayForm(st) {
-  if (st.longshot) return "+" + Math.round(st.longshot * 100) + "% / 10u";
-  if (st.splash) return Math.round(st.splash.frac * 100) + "% r" + st.splash.r;
-  if (st.execute) return "kills <" + Math.round(st.execute * 100) + "% of a shot";
-  if (st.bounce) return "bounce " + Math.round(st.bounce * 100) + "%";
-  if (st.refund) return "refund " + Math.round(st.refund * 100) + "%";
+  if (st.critScale) return "crit chance ×" + st.critScale;
+  if (st.ricochet) return "chains to " + st.ricochet;
+  if (st.smash) return "kill bursts " + Math.round(st.smash.frac * 100) + "% r" + st.smash.r;
+  if (st.beams > 2) return st.beams + " beams";
   return "—";
 }
 // The popup's RIGHT column (owner): stats only that tower type has, as
@@ -124,6 +123,7 @@ const SPEC = {
     ["Circle", st.plagueR ? Math.round(st.plagueR) + (st.bloom ? "→" + Math.round(st.plagueR * st.bloom) : "") : "—"],
     ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"]],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
+    ["Beams", st.beams || 1], ["Bleed", st.bleedArmor ? "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit / hit" : "—"],
     ["Armor", "ignored"], ["Form", rayForm(st)]],
 };
 

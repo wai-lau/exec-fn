@@ -96,25 +96,28 @@ const UPGRADES = {
         super: { name: "Ice Age", desc: "The endless slow bites harder.", mods: { slow: 0.05 } } },
     ] },
   ],
-  // SOL (owner, 2026-10-02): L2 Charge or Array, three forms each, each with
-  // its own on-theme L4 super. Multi-lock (Array) was the parked idea.
+  // SOL (owner, 2026-10-03): L2 Impale or Charge, three forms each, each with
+  // its own on-theme L4 super.
+  //   Impale  every hit BLEEDS the enemy (st.bleedArmor / st.bleedCrit per hit,
+  //           stacking, permanent): its armor falls and EVERY tower crits it more
+  //   Charge  heavier, slower twin beams (st.beams 2, each half a shot)
   reaper: [
-    { name: "Charge", desc: "Slower, heavier twin beams.", mods: { dmg: 2, rate: 0.7, twin: true }, finals: [
-      { name: "Longshot", desc: "The further the target, the harder it hits.", mods: { longshot: 0.015 },
-        super: { name: "Horizon", desc: "Distance pays off even more.", mods: { longshot: 0.03 } } },
-      { name: "Supernova", desc: "Every hit explodes around the target.", mods: { splash: { r: 90, frac: 0.5 } },
-        super: { name: "Collapse", desc: "Bigger, harder explosions.", mods: { splash: { r: 135, frac: 0.75 } } } },
-      // Execute measures against the SHOT, not the enemy's max HP (owner)
-      { name: "Execute", desc: "Finishes off enemies left on low health.", mods: { execute: 0.5 },
-        super: { name: "Verdict", desc: "Finishes off far healthier enemies.", mods: { execute: 1 } } },
-    ] },
-    { name: "Array", desc: "Locks onto several enemies, each on its own timer.", mods: { targets: 2, dmg: 0.48 }, finals: [
-      { name: "Grid", desc: "More locks.", mods: { targets: 2 },
+    { name: "Impale", desc: "Every hit makes the enemy bleed: its armor falls and every tower crits it more, for good.",
+      mods: { bleedArmor: 3, bleedCrit: 0.03 }, finals: [
+        { name: "Pinpoint", desc: "Crits come far more often, and hit harder.", mods: { critScale: 1.5, critMul: 4 },
+          super: { name: "Splicer", desc: "Crits come more often still, and hit harder still.", mods: { critScale: 2, critMul: 5 } } },
+        { name: "Stake", desc: "Every hit bleeds deeper.", mods: { bleedArmor: 6, bleedCrit: 0.06 },
+          super: { name: "Gore", desc: "The deepest bleeding.", mods: { bleedArmor: 9, bleedCrit: 0.09 } } },
+        { name: "Ricochet", desc: "Each shot chains at full damage from enemy to enemy.", mods: { ricochet: 3 },
+          super: { name: "Shredder", desc: "The chain runs much further.", mods: { ricochet: 6 } } },
+      ] },
+    { name: "Charge", desc: "Slower, heavier twin beams.", mods: { dmg: 2, rate: 0.7, beams: 2 }, finals: [
+      { name: "Grid", desc: "More locks, each firing its own twin beams.", mods: { targets: 2 },
         super: { name: "Lattice", desc: "Even more locks.", mods: { targets: 2 } } },
-      { name: "Ricochet", desc: "Each beam bounces to the nearest enemy.", mods: { bounce: 0.6 },
-        super: { name: "Carom", desc: "Bounces hit as hard as the beam.", mods: { bounce: 1 } } },
-      { name: "Refund", desc: "Wasted overkill flies back into the next shot.", mods: { refund: 0.5 },
-        super: { name: "Full Refund", desc: "None of the overkill is wasted.", mods: { refund: 1 } } },
+      { name: "Quad", desc: "Four parallel beams at once.", mods: { beams: 4 },
+        super: { name: "Horizon", desc: "Seven parallel beams.", mods: { beams: 7 } } },
+      { name: "Smasher", desc: "A kill bursts, hitting everything around it.", mods: { smash: { r: 160, frac: 1 } },
+        super: { name: "Supernova", desc: "A far bigger, harder burst.", mods: { smash: { r: 240, frac: 2 } } } },
     ] },
   ],
 };

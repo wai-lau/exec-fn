@@ -285,50 +285,53 @@ function stepAcid(t, dt) {
   }
 }
 
-// SOL's shot: one crit roll per shot. Its forms (owner, 2026-10-02):
-//   st.longshot  +x damage per 10 units from the tower (Longshot)
-//   st.splash    the hit explodes (Supernova; onHit)
-//   st.execute   an enemy left with less HP than this share of the shot dies outright (Execute)
-//   st.bounce    the beam bounces once to the nearest enemy at this share (Ricochet)
-//   st.refund    this share of any OVERKILL flies back to the tower as a
-//                reflected beam and is banked into its next shot (Refund)
-const BOUNCE_R = 160;
-function rayHit(t, st, e, base, from, crit) {
-  const m = crit || (st.critBelow && e.hp / e.max < st.critBelow) ? st.critMul : 1;
-  const far = st.longshot ? 1 + st.longshot * Math.hypot(e.x - t.x, e.y - t.y) / 10 : 1;
-  const d = shotDamage(t, st, e, base) * m * far, before = e.hp;
+// SOL's shot (owner, 2026-10-03). One crit roll per target, its chance the
+// tower's own plus the target's BLEED, times st.critScale (Pinpoint). Forms:
+//   st.bleedArmor / st.bleedCrit  each hit bleeds the enemy (Impale): armor
+//                 down for good (past zero), crit chance up for every tower
+//   st.ricochet   the shot chains at full damage to this many more enemies
+//   st.beams      parallel beams, each a hit of HALF the shot (Charge 2, Quad 4,
+//                 Horizon 7) - so each pops its own shield charge
+//   st.smash      a kill bursts for frac x the shot within r (Smasher)
+const BOUNCE_R = 160, BLEED_CRIT_CAP = 1;
+function bleed(e, st) {
+  if (!st.bleedArmor || e.dead) return;
+  e.armor = (e.armor || 0) - st.bleedArmor; // permanent, and on past zero (owner)
+  e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit);
+}
+function rayHit(t, st, e, base, from) {
+  const crit = Math.random() < ((st.crit || 0) + (e.bleedCrit || 0)) * (st.critScale || 1);
+  const m = crit ? st.critMul : 1, d = shotDamage(t, st, e, base) * m;
+  const n = st.beams || 1, part = n > 1 ? d / 2 : d;
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
-  if (st.twin) fx[fx.length - 1].twin = true; // Charge: drawn as two parallel beams (owner)
-  // Charge's twin beams are TWO HITS of half the shot each (owner): the same
-  // damage, but a shield eats only the first, so the second gets through
-  for (const part of st.twin ? [d / 2, d / 2] : [d]) {
-    if (e.dead) break;
-    damage(e, part, t, false, m > 1); onHit(e, t, st, part); // a crit shows as a PINK number (owner)
+  if (n > 1) fx[fx.length - 1].beams = n; // drawn as n parallel beams (owner)
+  for (let i = 0; i < n && !e.dead; i++) {
+    damage(e, part, t, false, crit); onHit(e, t, st, part); bleed(e, st); // a crit shows as a PINK number (owner)
   }
-  if (st.execute && !e.dead && e.hp < d * st.execute) {
-    // Execute / Verdict: the enemy flashes WHITE as it goes, with extra sparks (owner)
-    fx.push({ k: "flash", x: e.x, y: e.y, r: ENEMIES[e.type].size * 1.6, t: 0, life: 0.3 });
-    burst(e.x, e.y, "white", 22);
-    damage(e, e.hp + 1, t, false, true);
+  if (e.dead && st.smash && !e.smashed) {
+    // Smasher / Supernova: the kill bursts (a filled blast that lingers, owner)
+    e.smashed = true;
+    fx.push({ k: "blast", x: e.x, y: e.y, r: st.smash.r, color: TOWERS[t.kind].color, t: 0, life: 0.35 });
+    for (const o of G.enemies) {
+      if (o !== e && !o.dead && Math.hypot(o.x - e.x, o.y - e.y) <= st.smash.r) damage(o, d * st.smash.frac, t, true);
+    }
   }
-  return e.dead ? Math.max(0, d - before) : 0;
 }
 function fireRay(t, st, e) {
-  const crit = Math.random() < st.crit, bank = t.bank || 0;
-  t.bank = 0;
-  let over = rayHit(t, st, e, st.dmg + bank, t, crit);
-  if (st.bounce) {
+  rayHit(t, st, e, st.dmg, t);
+  if (!st.ricochet) return;
+  // Ricochet / Shredder: hop to the nearest enemy not yet hit, at full damage
+  const hit = new Set([e]);
+  let prev = e;
+  for (let k = 0; k < st.ricochet; k++) {
     let nxt = null, nd = BOUNCE_R * BOUNCE_R;
     for (const o of G.enemies) {
-      if (o.dead || o === e) continue;
-      const d = (o.x - e.x) ** 2 + (o.y - e.y) ** 2;
-      if (d < nd) { nd = d; nxt = o; }
+      if (o.dead || hit.has(o)) continue;
+      const dd = (o.x - prev.x) ** 2 + (o.y - prev.y) ** 2;
+      if (dd < nd) { nd = dd; nxt = o; }
     }
-    if (nxt) over += rayHit(t, st, nxt, st.dmg * st.bounce, e, false);
-  }
-  if (st.refund && over > 0) {
-    t.bank = over * st.refund;
-    beam(e, t, TOWERS[t.kind].color, RAY_BEAM_LIFE * 3, 2, t.bank, true, false); // the reflected beam home
+    if (!nxt) break;
+    rayHit(t, st, nxt, st.dmg, prev); hit.add(nxt); prev = nxt;
   }
 }
 

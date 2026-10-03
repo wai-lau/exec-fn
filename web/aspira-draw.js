@@ -243,7 +243,7 @@ function gradDisc(x, y, r, col, a = 1) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
   ctx.fillStyle = g; ctx.globalAlpha = GRAD_EDGE * a; ctx.fill();
 }
-const TWIN_GAP = 3.5; // Charge's twin beams sit this far either side of the line
+const TWIN_GAP = 3.5; // Charge's parallel beams sit 2 x this apart
 // Two passes so towers sit on top of their own shots but under the numbers:
 // pass "shots" draws beams/rings/sparks, pass "text" draws floating numbers.
 // Passes: "dmg" = damage numbers (`under` text), drawn right over the
@@ -262,10 +262,13 @@ function drawFx(pass) {
       // a following beam reads its endpoints live from the tower/enemy it joins
       const x1 = f.a ? f.a.x : f.x1, y1 = f.a ? f.a.y : f.y1, x2 = f.b ? f.b.x : f.x2, y2 = f.b ? f.b.y : f.y2;
       ctx.beginPath();
-      if (f.twin) {
-        // Charge: two PARALLEL beams, TWIN_GAP apart (owner)
-        const len = Math.hypot(x2 - x1, y2 - y1) || 1, ox = -(y2 - y1) / len * TWIN_GAP, oy = (x2 - x1) / len * TWIN_GAP;
-        ctx.moveTo(x1 + ox, y1 + oy); ctx.lineTo(x2 + ox, y2 + oy); ctx.moveTo(x1 - ox, y1 - oy); ctx.lineTo(x2 - ox, y2 - oy);
+      if (f.beams > 1) {
+        // Charge / Quad / Horizon: n PARALLEL beams, 2 x TWIN_GAP apart (owner)
+        const len = Math.hypot(x2 - x1, y2 - y1) || 1, px = -(y2 - y1) / len, py = (x2 - x1) / len;
+        for (let i = 0; i < f.beams; i++) {
+          const o = (i - (f.beams - 1) / 2) * 2 * TWIN_GAP;
+          ctx.moveTo(x1 + px * o, y1 + py * o); ctx.lineTo(x2 + px * o, y2 + py * o);
+        }
       } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
       const wm = f.slim ? 0.25 : 1; // slim (SOL): a quarter of a normal beam (owner: doubled from an eighth; the glow scales with it)
       if (f.m) {
