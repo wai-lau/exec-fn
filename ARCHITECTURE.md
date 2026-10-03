@@ -3932,6 +3932,7 @@ SOL TREE REWORKED (owner, 2026-10-03): L2 IMPALE (every hit BLEEDS: -3 armor and
 Smasher renamed NOVA (owner); its super stays Supernova.
 SOL viability (formvalue, wave 60, baseline 78.5): Ricochet 84, Quad 80, Pinpoint 79.5, Nova 79, Stake 78.5, Grid 78.5 -> Ricochet trimmed to 2 chains (Shredder 5).
 PHONES (<700px, owner): the wave list drops its numbers and names (enemies, HP, countdown stay - the countdown now has its own last column) and, with a smaller ASPIRA, sits LEFT of compact build buttons (min 52px) on the same bottom band.
+The time to the next wave is its OWN line above the wave list (`#asp-nextin`, created by updateHud; the list is back to five columns). On phones the speed row keeps the volume slider on the same line (tight buttons, the slider flexes) and the HUD stats tighten to fit 382px.
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
