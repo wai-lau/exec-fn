@@ -144,22 +144,6 @@ function drawCore() {
   text(G.lives, CX, CY + 2, 28, "bg");
 }
 
-// A tower is its cell's hexagon, inset a little; its label at the centroid.
-// Level shows as concentric rings OUTSIDE it (drawTower).
-const TOWER_K = 0.88;
-function towerHex(c, k) {
-  ctx.beginPath();
-  c.pts.forEach((p, i) => {
-    const x = c.x + (p.x - c.x) * k, y = c.y + (p.y - c.y) * k;
-    if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-  });
-  ctx.closePath();
-}
-// LEVEL READS AT A GLANCE (owner, 2026-10-02): the main hex stays full size
-// and each level past L1 adds a BOLD ring OUTSIDE it, LEVEL_GAP further out
-// each (the cells are two tiles apart, so there is room), under a glow that
-// grows with the level.
-const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.24; // glow: shadow blur per level, world px
 function drawTower(t, ghost) {
   // drawn where the tower IS (it slides along its spoke), its slot's hex moved with it
   const b = TOWERS[t.kind], c0 = CELLS[t.cell], dx = (t.x ?? c0.x) - c0.x, dy = (t.y ?? c0.y) - c0.y;
@@ -472,6 +456,7 @@ function render() {
   drawAims();
   drawFx("shots");
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
+  drawSpokes();
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
   drawCredits(); // under the core (aspira-waves.js)

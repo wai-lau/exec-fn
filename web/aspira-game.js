@@ -89,7 +89,7 @@ function pickTargets(t, st, count) {
     const d = (e.x - t.x) ** 2 + (e.y - t.y) ** 2;
     if (d <= r2) c.push({ e, d });
   }
-  const key = MODE_KEY[t.mode] || MODE_KEY.close; // an old mode name (hard/weak/fast) falls back to Close
+  const key = MODE_KEY[t.mode];
   // ties go to whoever is furthest along the spiral
   c.sort((a, b) => key(a) - key(b) || b.e.s - a.e.s);
   return c.slice(0, count).map(a => a.e);
