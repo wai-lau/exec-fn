@@ -171,7 +171,7 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 // STACK_CAP by stacking (a single stronger slow, Deep Freeze's 95%, still holds).
 // FRZ hits Fast enemies twice as hard (owner, 2026-10-02): double the slow,
 // up to 90% - never past a stronger slow already asked for (Deep Freeze 95%)
-const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.9, STACK_K = 0.5, STACK_CAP = 0.9;
+const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.99, STACK_K = 0.5, STACK_CAP = 0.9;
 function applySlow(e, f, dur, src = "x") {
   if (e.arcana) { f *= bossSlowMul(e); if (f <= 0) return true; } // Strength / Death (aspira-bosses.js)
   if (e.type === "fast") f = Math.max(f, Math.min(FAST_SLOW_CAP, f * FAST_SLOW_MUL));
