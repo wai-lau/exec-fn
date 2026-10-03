@@ -140,14 +140,16 @@
     var sec = document.createElement('div');
     sec.id = 'exec-todos';
     // The add row sits UNDER the list, right above the divider, and reads as the
-    // next empty row: its placeholder carries the same `[ ]` the rows start
-    // with, so it lines up with them instead of hanging off a `+` gutter.
+    // next empty row: it starts with the same `[ ]` box the rows do (a label, so
+    // tapping it focuses the input), and typed text begins after it, in the
+    // rows' text column, instead of under the box.
     sec.innerHTML =
       '<ul id="exec-todo-list"></ul>' +
       '<div id="exec-todo-add">' +
+        '<label class="exec-todo-box" for="exec-todo-input">[ ]</label>' +
         '<input id="exec-todo-input" type="text" autocomplete="off" ' +
           'autocorrect="off" autocapitalize="off" spellcheck="false" ' +
-          'placeholder="[ ] add a note...">' +
+          'placeholder="add a note...">' +
       '</div>';
     panel.insertBefore(sec, panel.firstChild);
     listEl = sec.querySelector('#exec-todo-list');
