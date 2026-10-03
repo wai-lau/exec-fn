@@ -239,7 +239,9 @@ function openChooser(t) {
   chooser.t = t; chooser.opts = opts;
   chooser.wasPaused = ui.paused; ui.paused = true;
   el.dataset.kind = t.kind;
-  el.innerHTML = "<h2>" + towerTitle(t) + " → L" + (t.lvl + 1) + " · " + upCost(t) + "</h2>" + (opts.length > 1 ? "<p>choose one</p>" : "") + '<div class="asp-cards"></div>';
+  // one small solid line, not a big heading (owner, phone-first: the heading
+  // overlapped the tower card behind) - the cards' own titles name the upgrade
+  el.innerHTML = '<p class="asp-chooser-cost">upgrade · ' + upCost(t) + (opts.length > 1 ? " · choose one" : "") + "</p>" + '<div class="asp-cards"></div>';
   const row = el.querySelector(".asp-cards");
   opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
   button(el, "asp-cancel", "cancel", closeChooser); // the same as clicking off the cards (owner)
