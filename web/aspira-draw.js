@@ -161,7 +161,9 @@ function towerHex(c, k) {
 // grows with the level.
 const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.24; // glow: shadow blur per level, world px
 function drawTower(t, ghost) {
-  const b = TOWERS[t.kind], c = CELLS[t.cell];
+  // drawn where the tower IS (it slides along its spoke), its slot's hex moved with it
+  const b = TOWERS[t.kind], c0 = CELLS[t.cell], dx = (t.x ?? c0.x) - c0.x, dy = (t.y ?? c0.y) - c0.y;
+  const c = dx || dy ? { x: c0.x + dx, y: c0.y + dy, pts: c0.pts.map(p => ({ x: p.x + dx, y: p.y + dy })) } : c0;
   const tiers = t.lvl - 1, base = ghost ? 0.55 : 1; // one ring per level above L1
   ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round";
   ctx.globalAlpha = base;
