@@ -3927,6 +3927,7 @@ Each enemy TYPE in a wave starts `TYPE_STAGGER` 2s after the previous one
 CREDITS are drawn on the CANVAS under the core (owner, 2026-10-02; were a
 SOL CHARGE's twin beams are TWO HITS of half the shot each (owner): same damage, but each pops a shield charge - a 1-charge shield loses its charge to the first and the second lands (`rayHit`; `onHit` per half).
 Fast enemies' slow cap is 99% (owner; `FAST_SLOW_CAP` 0.9 -> 0.99): they still take double every slow, now up to 99% (Stasis 48% -> 96% on a Fast).
+...then 96% (owner, same day; `FAST_SLOW_CAP` 0.96 - Stasis 48% on a Fast reaches it exactly).
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
