@@ -469,6 +469,7 @@ function render() {
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
   for (const t of G.towers) drawTower(t);
   if (ui.build && ui.hover) drawPlacement();
+  drawCredits(); // under the core (aspira-waves.js)
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
