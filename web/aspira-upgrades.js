@@ -108,8 +108,8 @@ const UPGRADES = {
           super: { name: "Splicer", desc: "Crits come more often still, and hit harder still.", mods: { critScale: 2, critMul: 5 } } },
         { name: "Stake", desc: "Every hit bleeds deeper.", mods: { bleedArmor: 6, bleedCrit: 0.06 },
           super: { name: "Gore", desc: "The deepest bleeding.", mods: { bleedArmor: 9, bleedCrit: 0.09 } } },
-        { name: "Ricochet", desc: "Each shot chains at full damage from enemy to enemy.", mods: { ricochet: 3 },
-          super: { name: "Shredder", desc: "The chain runs much further.", mods: { ricochet: 6 } } },
+        { name: "Ricochet", desc: "Each shot chains at full damage from enemy to enemy.", mods: { ricochet: 2 },
+          super: { name: "Shredder", desc: "The chain runs much further.", mods: { ricochet: 5 } } },
       ] },
     { name: "Charge", desc: "Slower, heavier twin beams.", mods: { dmg: 2, rate: 0.7, beams: 2 }, finals: [
       { name: "Grid", desc: "More locks, each firing its own twin beams.", mods: { targets: 2 },

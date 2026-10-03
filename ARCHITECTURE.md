@@ -3930,6 +3930,7 @@ Fast enemies' slow cap is 99% (owner; `FAST_SLOW_CAP` 0.9 -> 0.99): they still t
 ...then 96% (owner, same day; `FAST_SLOW_CAP` 0.96 - Stasis 48% on a Fast reaches it exactly).
 SOL TREE REWORKED (owner, 2026-10-03): L2 IMPALE (every hit BLEEDS: -3 armor and +3% crit chance per hit, stacking, permanent, pink outline; EVERY tower may crit a bleeding enemy - x`BLEED_CRIT_MUL` 2, SOL with its own critMul) -> Pinpoint (crit chance x1.5, crit x4; Splicer x2, x5) / Stake (bleed 6/6%; Gore 9/9%) / Ricochet (chains full damage to 3; Shredder 6). L2 CHARGE (x2 dmg, x0.7 rate, 2 beams each HALF a shot) -> Grid (+2 locks; Lattice +2) / Quad (4 beams; Horizon 7) / Smasher (a kill bursts 1x the shot r160; Supernova 2x r240). Longshot, Execute, Array, Refund and the old bounce are gone. ALL ARMOR REDUCTIONS are permanent and may go negative (Melt's floor at 0 removed). formvalue's SOL reference is Charge > Grid.
 Smasher renamed NOVA (owner); its super stays Supernova.
+SOL viability (formvalue, wave 60, baseline 78.5): Ricochet 84, Quad 80, Pinpoint 79.5, Nova 79, Stake 78.5, Grid 78.5 -> Ricochet trimmed to 2 chains (Shredder 5).
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
