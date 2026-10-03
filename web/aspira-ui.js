@@ -247,6 +247,8 @@ function openChooser(t) {
   el.hidden = false;
   // measured once shown (a hidden element has no width)
   row.classList.toggle("asp-cards-col", opts.length * CARD_W + (opts.length - 1) * 16 > el.clientWidth - 32);
+  // at the bottom, lifted exactly like the tower card (cardLift)
+  el.style.paddingBottom = cardLift(row.offsetWidth).lift + "px";
   $("asp").classList.add("asp-choosing"); // the board blurs and darkens beneath (aspira.css)
 }
 const CARD_W = 380; // .asp-card's width (aspira.css)
@@ -362,18 +364,25 @@ function updateHud() {
 // the tower's / core's card sits BOTTOM CENTRE and stays there (owner: it no
 // longer follows the tower, which now moves); where it would cover the wave
 // list or the build buttons it lifts above whichever it overlaps
-function placePop() {
-  const pop = $("asp-pop");
-  if (pop.hidden) return;
-  const cr = cv.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, gap = 8;
-  const x = Math.max(gap, (cr.width - w) / 2);
-  let y = cr.height - h - gap;
+// how far above the board's bottom a centred box of width w must sit to clear
+// the wave list and build buttons beneath it (the tower card and the upgrade
+// cards share it, so they sit in the same place - owner)
+const CARD_GAP = 8;
+function cardLift(w) {
+  const cr = cv.getBoundingClientRect(), x = Math.max(CARD_GAP, (cr.width - w) / 2);
+  let lift = CARD_GAP;
   for (const sel of [".asp-left", "#asp-build"]) {
     const r = document.querySelector(sel).getBoundingClientRect();
     if (!r.height || r.right - cr.left <= x || r.left - cr.left >= x + w) continue; // beside it, not under it
-    y = Math.min(y, r.top - cr.top - h - gap);
+    lift = Math.max(lift, cr.bottom - r.top + CARD_GAP);
   }
-  pop.style.left = x + "px"; pop.style.top = Math.max(gap, y) + "px";
+  return { x, lift };
+}
+function placePop() {
+  const pop = $("asp-pop");
+  if (pop.hidden) return;
+  const h = pop.offsetHeight, { x, lift } = cardLift(pop.offsetWidth);
+  pop.style.left = x + "px"; pop.style.top = Math.max(CARD_GAP, cv.getBoundingClientRect().height - h - lift) + "px";
 }
 
 // U: open the upgrade chooser for the selected tower
