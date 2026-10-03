@@ -388,6 +388,15 @@ function setRest(t, p) {
   t.off = t.rest; t.x = k.c.x + k.ux * t.off; t.y = k.c.y + k.uy * t.off;
 }
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
+// SMOOTH chasing (owner: "a lot of jitter... not predicting"), four rules:
+//  - STICKY target: re-picked only every CHASE_HOLD s or when it dies, so the
+//    ever-shifting "best" (Near, Fresh) no longer flips the tower about
+//  - PREDICTED: it aims where the enemy will be along its lane by the time
+//    the tower gets there (its travel time, clamped to CHASE_LEAD)
+//  - a DEAD ZONE: while that point is inside CHASE_KEEP of its range it
+//    holds still - it only moves to bring the target back in
+//  - EASED: speed ramps at TOWER_ACCEL and brakes to stop on its mark
+const CHASE_HOLD = 0.6, CHASE_LEAD = [0.3, 2.5], CHASE_KEEP = 0.7, TOWER_ACCEL = 240;
 function chaseTarget(t) {
   const key = MODE_KEY[t.mode];
   let best = null, bk = Infinity;
@@ -400,11 +409,26 @@ function chaseTarget(t) {
 }
 function moveTower(t, dt) {
   if (t.held) return; // being dragged (aspira-camera.js)
-  const { c, r0, ux, uy, max } = spokeOf(t), e = chaseTarget(t);
-  // where on the spoke the target is closest, kept between the slot and the rim
-  const want = e ? Math.max(0, Math.min(max, (e.x - CX) * ux + (e.y - CY) * uy - r0)) : t.rest || 0;
-  const off = t.off || 0, step = TOWER_MOVE * dt;
-  t.off = Math.abs(want - off) <= step ? want : off + Math.sign(want - off) * step;
+  const { c, r0, ux, uy, max } = spokeOf(t), off = t.off || 0;
+  t.chaseT = (t.chaseT || 0) - dt;
+  if (!t.chase || t.chase.dead || t.chase.gone || t.chaseT <= 0) { t.chase = chaseTarget(t); t.chaseT = CHASE_HOLD; }
+  const e = t.chase;
+  let want = t.rest || 0;
+  if (e) {
+    // where it will be: lead by the time to cover the gap at full speed
+    const proj = p => Math.max(0, Math.min(max, (p.x - CX) * ux + (p.y - CY) * uy - r0));
+    const lead = Math.max(CHASE_LEAD[0], Math.min(CHASE_LEAD[1], Math.abs(proj(e) - off) / TOWER_MOVE));
+    const p = pathAt(e.pi, e.s + effSpeed(e) * lead, e.ang || 0);
+    const tx = c.x + ux * off, ty = c.y + uy * off;
+    // in range enough already: hold where it is
+    want = Math.hypot(p.x - tx, p.y - ty) <= towerStats(t).range * CHASE_KEEP ? off : proj(p);
+  }
+  // eased: aim for the speed that still stops on the mark, then ramp to it
+  const gap = want - off, vWant = Math.sign(gap) * Math.min(TOWER_MOVE, Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
+  const v = t.v || 0, dv = TOWER_ACCEL * dt;
+  t.v = Math.abs(vWant - v) <= dv ? vWant : v + Math.sign(vWant - v) * dv;
+  t.off = Math.max(0, Math.min(max, off + t.v * dt));
+  if (Math.abs(gap) < 0.5 && Math.abs(t.v) < 5) { t.off = want; t.v = 0; }
   t.x = c.x + ux * t.off; t.y = c.y + uy * t.off;
 }
 

@@ -126,8 +126,7 @@ function activeLanes() {
 
 // ---------- the credits over the core (UI only; aspira-draw.js calls it) ----------
 // the count sits just over the core (owner), "CREDITS 12,345"; for
-// CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under it,
-// the c in gold
+// CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under it
 const CREDITS_FX_T = 2.5;
 let creditsFx = null;
 function drawCredits() {
