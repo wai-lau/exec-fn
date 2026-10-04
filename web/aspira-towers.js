@@ -372,21 +372,14 @@ function usePower(code) {
 // its slot - towards the point on it nearest the enemy its targeting picks
 // (from the whole field, so it closes in before that enemy is in range),
 // at TOWER_MOVE a second, from its slot out to near the rim; with nothing to
-// chase it drifts back to its REST point - its slot, unless the player has
-// DRAGGED it along the spoke to a new one (owner; t.rest, aspira-camera.js).
-// Its slot stays its own (placement, Space, Horizon).
+// chase it drifts back to its SLOT (owner: drag-to-rest was dropped). Its
+// slot stays its own (placement, Space, Horizon).
 // towers slide out to TOWER_MOVE_R from the core's centre at most (owner: 350)
 const TOWER_MOVE = 80, TOWER_MOVE_R = 350;
 // the spoke: its unit direction, the slot's radius and how far out it runs
 function spokeOf(t) {
   const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
   return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_MOVE_R - r0) };
-}
-// drag: the point on the spoke nearest p becomes the rest point, and the tower goes there now
-function setRest(t, p) {
-  const k = spokeOf(t);
-  t.rest = Math.max(0, Math.min(k.max, (p.x - CX) * k.ux + (p.y - CY) * k.uy - k.r0));
-  t.off = t.rest; t.x = k.c.x + k.ux * t.off; t.y = k.c.y + k.uy * t.off;
 }
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
 // SMOOTH chasing (owner: "a lot of jitter... not predicting"), four rules:
@@ -409,12 +402,11 @@ function chaseTarget(t) {
   return best;
 }
 function moveTower(t, dt) {
-  if (t.held) return; // being dragged (aspira-camera.js)
   const { c, r0, ux, uy, max } = spokeOf(t), off = t.off || 0;
   t.chaseT = (t.chaseT || 0) - dt;
   if (!t.chase || t.chase.dead || t.chase.gone || t.chaseT <= 0) { t.chase = chaseTarget(t); t.chaseT = CHASE_HOLD; }
   const e = t.chase;
-  let want = t.rest || 0;
+  let want = 0; // nothing to chase: home to the slot
   if (e) {
     // where it will be: lead by the time to cover the gap at full speed
     const proj = p => Math.max(0, Math.min(max, (p.x - CX) * ux + (p.y - CY) * uy - r0));
@@ -440,13 +432,11 @@ function drawSpokes() {
   ctx.strokeStyle = COL.white; ctx.lineCap = "round";
   for (const t of G.towers) {
     const k = spokeOf(t), from = CORE_R + 6, to = k.r0 + k.max;
-    ctx.globalAlpha = t.id === ui.sel || t.held ? 0.95 : 0.6; ctx.lineWidth = 2;
+    ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(CX + k.ux * from, CY + k.uy * from); ctx.lineTo(CX + k.ux * to, CY + k.uy * to); ctx.stroke();
-    // the end is a T (owner); a dragged rest point gets a shorter crossbar
-    for (const [at, half] of t.rest ? [[k.max, 14], [t.rest, 8]] : [[k.max, 14]]) {
-      const rx = k.c.x + k.ux * at, ry = k.c.y + k.uy * at;
-      ctx.beginPath(); ctx.moveTo(rx - k.uy * half, ry + k.ux * half); ctx.lineTo(rx + k.uy * half, ry - k.ux * half); ctx.stroke();
-    }
+    // the end is a T (owner)
+    const ex = CX + k.ux * to, ey = CY + k.uy * to;
+    ctx.beginPath(); ctx.moveTo(ex - k.uy * 14, ey + k.ux * 14); ctx.lineTo(ex + k.uy * 14, ey - k.ux * 14); ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }

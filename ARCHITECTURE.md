@@ -3978,6 +3978,7 @@ Every CREDITS amount reads 'Nc' with the c in gold - Marigold (owner; `cr()` + `
 ...and the c is NOT gold (owner: 'don't make it gold unless already gold'): it takes the surrounding text's colour (the per-kill floats were gold already).
 Tower SLIDING smoothed (owner: 'a lot of jitter... not predicting'): a STICKY target (re-picked every `CHASE_HOLD` 0.6s or on its death), PREDICTED along its lane by the tower's travel time (`CHASE_LEAD` 0.3-2.5s), a DEAD ZONE (holds while the predicted point is within `CHASE_KEEP` 0.7 of its range) and EASED motion (`TOWER_ACCEL` 240, braking onto its mark). Simulator, waves 1-25, 6 towers x 2 seeds: direction reversals 99 -> 7.7 per tower-minute, travel 10.7 -> 7.8 u/s, lives unchanged.
 Spokes are BRIGHT WHITE and solid from the core's edge out to the limit, ending in a T (owner; a dragged rest point gets a shorter crossbar). Towers slide out to at most radius 350 from the core's centre (`TOWER_MOVE_R`; was the rim - 30).
+The credits count sits BELOW the core (`CREDITS_DY` 150: past the bottom two slots, between their spokes - over the core it sat on the top slots' towers), the interest line right under it. DRAG-TO-REST REMOVED (owner): with nothing to chase a tower always returns to its slot; a drag on a tower pans the view again.
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
