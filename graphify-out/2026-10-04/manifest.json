@@ -205,13 +205,13 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1791072648.4539626,
-    "ast_hash": "4ec3b7b88695876a67efd2526576ff76",
+    "mtime": 1791006435.0200717,
+    "ast_hash": "1cf47ebfd95db002185a10bf0dde5fc3",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1791043305.680862,
-    "ast_hash": "ff7063e4369e31fad4957ceff2e48821",
+    "mtime": 1790981801.1842954,
+    "ast_hash": "55f47168342f3614dfcee8ca6a4709d6",
     "semantic_hash": ""
   },
   "README.md": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1791043094.5919673,
-    "ast_hash": "8462c511f0a4087b3c070171b6eaf174",
+    "mtime": 1790981535.9982574,
+    "ast_hash": "c3de490873e0f68ab89b57bb596ab295",
     "semantic_hash": ""
   },
   "api/routers.py": {
@@ -1030,8 +1030,8 @@
     "semantic_hash": ""
   },
   "web/exec-todos.js": {
-    "mtime": 1791037825.0685232,
-    "ast_hash": "881382821401bd85f6b6d224c15774d5",
+    "mtime": 1790715828.5508316,
+    "ast_hash": "1bc20bd410dbbd5944adec2b899b73d2",
     "semantic_hash": ""
   },
   "tests/conftest.py": {
@@ -1040,8 +1040,8 @@
     "semantic_hash": ""
   },
   "tests/test_smoke.py": {
-    "mtime": 1791065839.943636,
-    "ast_hash": "8a12d6540c83584fe3bd5b8e26d7a312",
+    "mtime": 1790981660.9437442,
+    "ast_hash": "36ff4ddcfe357a023f11b0c536ac8693",
     "semantic_hash": ""
   },
   "requirements-dev.txt": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1791102605.761614,
+    "mtime": 1791016205.1250484,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -1775,8 +1775,8 @@
     "semantic_hash": ""
   },
   "api/data/exec_todos.json": {
-    "mtime": 1791037642.668799,
-    "ast_hash": "2f51ca84161e8d2d224a473ea302e1bd",
+    "mtime": 1790351873.5819302,
+    "ast_hash": "6e2d7263790c77248909c54aaee3614b",
     "semantic_hash": ""
   },
   "api/data/gamesave_save1.json": {
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1791102608.712626,
+    "mtime": 1791016208.0390599,
     "ast_hash": "28cc94cb4e18ea1229260c8db480c596",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1791102630.1337132,
-    "ast_hash": "84fd3ca4afd490cd12e8ae6a2636d8ba",
+    "mtime": 1791016222.190116,
+    "ast_hash": "e8605744b1a41ebf277e99626bc8f623",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1791018619.0049388,
+    "mtime": 1790932216.4258387,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1791018619.0149388,
+    "mtime": 1790932216.4338386,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -6960,8 +6960,8 @@
     "semantic_hash": ""
   },
   "web/exec-bubble-assets.js": {
-    "mtime": 1791037825.0705233,
-    "ast_hash": "8360d1114a18bf4bf0c815a2161556a0",
+    "mtime": 1790880784.5180407,
+    "ast_hash": "a7c9e0970b3cb8e2a79328132ef18f55",
     "semantic_hash": ""
   },
   ".claude/hooks/cmdscan.py": {
@@ -9425,8 +9425,8 @@
     "semantic_hash": ""
   },
   "api/noodle/pages.py": {
-    "mtime": 1791065839.943636,
-    "ast_hash": "b884ed0721fd20a1ee532b4f9e5fbf46",
+    "mtime": 1790622484.1883767,
+    "ast_hash": "ac0c331f0f529b742f1c974e4681ae30",
     "semantic_hash": ""
   },
   "api/noodle/reset.py": {
@@ -9480,8 +9480,8 @@
     "semantic_hash": ""
   },
   "tests/test_noodle_browser.py": {
-    "mtime": 1791066175.1060386,
-    "ast_hash": "4c8df54305dcffbd7f1052c094fb4a49",
+    "mtime": 1790714098.1499345,
+    "ast_hash": "ff8c0ba9c57ba1414d6f5ceaa6fa00b9",
     "semantic_hash": ""
   },
   "tests/test_noodle_glyphs.py": {
@@ -9530,8 +9530,8 @@
     "semantic_hash": ""
   },
   "web/noodle-admin.js": {
-    "mtime": 1791065839.941636,
-    "ast_hash": "4e140a299bbb7d71f3298447ddded2ca",
+    "mtime": 1790713077.8901005,
+    "ast_hash": "012d31a608dc9a936bd474a108a561b3",
     "semantic_hash": ""
   },
   "web/noodle-ask.js": {
@@ -9545,8 +9545,8 @@
     "semantic_hash": ""
   },
   "web/noodle-cal.js": {
-    "mtime": 1791063990.0997794,
-    "ast_hash": "fc36d333efcf5ee0214029ee29eea905",
+    "mtime": 1790716706.3332734,
+    "ast_hash": "cfabdc53b20ded7ca4f68cd6a047cc88",
     "semantic_hash": ""
   },
   "web/noodle-kdf-worker.js": {
@@ -9575,23 +9575,23 @@
     "semantic_hash": ""
   },
   "web/noodle-vote.js": {
-    "mtime": 1791066135.0428717,
-    "ast_hash": "2eb462d13cf78e8a47dcbcd7637fa298",
+    "mtime": 1790724422.867141,
+    "ast_hash": "89664226f7904291f7f1e6fb8e337cfe",
     "semantic_hash": ""
   },
   "api/templates/noodle-admin.html": {
-    "mtime": 1791065839.9636362,
-    "ast_hash": "1a9e63bb59922a093f3f459d42f0be45",
+    "mtime": 1790713105.6662452,
+    "ast_hash": "c3f210d8da22b7a2ab26fc37e298d8dd",
     "semantic_hash": ""
   },
   "api/templates/noodle-shell.html": {
-    "mtime": 1791069087.350832,
-    "ast_hash": "4422c1275db1028925c85340fe992d75",
+    "mtime": 1790920592.1206758,
+    "ast_hash": "1f4d9b9510b4c3b9729bf4017e1312c0",
     "semantic_hash": ""
   },
   "api/templates/noodle-vote.html": {
-    "mtime": 1791067183.6942105,
-    "ast_hash": "2c70c1b89a259e7a45c59943299b29c5",
+    "mtime": 1790724748.8134062,
+    "ast_hash": "de628368253c4c6fb5f308dc94627985",
     "semantic_hash": ""
   },
   "docs/plan-exec-cc-merge.md": {
@@ -9610,8 +9610,8 @@
     "semantic_hash": ""
   },
   "api/noodle/drafts.py": {
-    "mtime": 1791065449.083972,
-    "ast_hash": "5bae82bac7b46415d200d31ff72e9181",
+    "mtime": 1790564275.6402194,
+    "ast_hash": "5205e33fd3b004863b1ed188e2b20e42",
     "semantic_hash": ""
   },
   "api/noodle/host.py": {
@@ -9630,13 +9630,13 @@
     "semantic_hash": ""
   },
   "tests/noodle_helpers.py": {
-    "mtime": 1791064282.627955,
-    "ast_hash": "92da42079844bbb15dfd7276280fdd23",
+    "mtime": 1790714091.1999035,
+    "ast_hash": "27e4201e0b8de5021bafafd32d0b126f",
     "semantic_hash": ""
   },
   "tests/test_noodle_browser_host.py": {
-    "mtime": 1791067208.9633145,
-    "ast_hash": "e4529f5b0cdce70853876be583b9a9e4",
+    "mtime": 1790610648.0461853,
+    "ast_hash": "47c0de733f3e54626a923b00d8fd9f58",
     "semantic_hash": ""
   },
   "tests/test_noodle_drafts.py": {
@@ -9665,13 +9665,13 @@
     "semantic_hash": ""
   },
   "web/noodle-host.js": {
-    "mtime": 1791067183.6582103,
-    "ast_hash": "eb7dd309a22567be575e08d358b32262",
+    "mtime": 1790713784.4935155,
+    "ast_hash": "63a6dfad9e97d4ebef6364dc2f471be5",
     "semantic_hash": ""
   },
   "web/noodle-rekey.js": {
-    "mtime": 1791066175.1060386,
-    "ast_hash": "8969fbbe01b917644cefc9cf06ecdafb",
+    "mtime": 1790569522.1935031,
+    "ast_hash": "d785d828a28dad501bb0c8ac721ee55d",
     "semantic_hash": ""
   },
   "web/noodle-share.js": {
@@ -9739,6 +9739,11 @@
     "ast_hash": "44c3a3c4fe294edd0268c9fe16118e65",
     "semantic_hash": ""
   },
+  "web/noodle-demo.mp4": {
+    "mtime": 1790622484.1483767,
+    "ast_hash": "89a39c20e133115c3b5e06b89501a93c",
+    "semantic_hash": ""
+  },
   "api/data/activity_log_20260930.json": {
     "mtime": 1790751248.231226,
     "ast_hash": "54469d7af16fdf14393cead5da7e791d",
@@ -9750,8 +9755,8 @@
     "semantic_hash": ""
   },
   "tests/test_noodle_browser_page.py": {
-    "mtime": 1791064282.6269548,
-    "ast_hash": "9b9dc9457bd6833e8cc45d432f2e3c8e",
+    "mtime": 1790724762.5634599,
+    "ast_hash": "76695c0e7d8202f26e4697c11bbf6b94",
     "semantic_hash": ""
   },
   "tests/test_noodle_convert.py": {
@@ -9805,8 +9810,8 @@
     "semantic_hash": ""
   },
   "web/noodle-commit.js": {
-    "mtime": 1791066135.0428717,
-    "ast_hash": "2ef97cff8f61474117e0815333399bf5",
+    "mtime": 1790717578.9839902,
+    "ast_hash": "8e9b72343e0a18d6035e7a3991dbf8a9",
     "semantic_hash": ""
   },
   "web/noodle-esc.js": {
@@ -9815,8 +9820,8 @@
     "semantic_hash": ""
   },
   "web/noodle-identity.js": {
-    "mtime": 1791066147.2759225,
-    "ast_hash": "94039586cf358c35d6fe9e4c54142097",
+    "mtime": 1790713077.8891006,
+    "ast_hash": "881ee8c0e759242426e8486990ea3f9a",
     "semantic_hash": ""
   },
   "web/noodle-storage.js": {
@@ -9880,23 +9885,23 @@
     "semantic_hash": ""
   },
   "web/aspira-camera.js": {
-    "mtime": 1791072474.8932583,
+    "mtime": 1790957132.075838,
     "ast_hash": "70c16b42a9bfbf7f43f195254b2710da",
     "semantic_hash": ""
   },
   "web/aspira-defs.js": {
-    "mtime": 1791043168.352281,
-    "ast_hash": "4482fd915cab795f11d776b124e904b7",
+    "mtime": 1790978453.8195536,
+    "ast_hash": "cf24178c98bd423d46dfb4b6eb51aac1",
     "semantic_hash": ""
   },
   "web/aspira-draw.js": {
-    "mtime": 1791071328.7204883,
-    "ast_hash": "491f056620b4a1d95c8b037f7e1d1299",
+    "mtime": 1791003910.397927,
+    "ast_hash": "04295877424bfdc5eaefe7b7fb75c4b8",
     "semantic_hash": ""
   },
   "web/aspira-game.js": {
-    "mtime": 1791071266.858217,
-    "ast_hash": "ff90aab67b66ddccd98d9358b52e0d64",
+    "mtime": 1791003910.394927,
+    "ast_hash": "04e1fb6d86b82a5cc3571dcf2d421c3c",
     "semantic_hash": ""
   },
   "web/aspira-lanes.js": {
@@ -9910,18 +9915,18 @@
     "semantic_hash": ""
   },
   "web/aspira-towers.js": {
-    "mtime": 1791072474.8892584,
-    "ast_hash": "2bca7beac29ae33e1736cee1f4fa86f8",
+    "mtime": 1791005314.3234625,
+    "ast_hash": "9a5fc8e230bb439b4b546fd77f2adcaa",
     "semantic_hash": ""
   },
   "web/aspira-ui.js": {
-    "mtime": 1791071699.7000718,
-    "ast_hash": "487ea2c8fc65744f4cc2443065708aee",
+    "mtime": 1791006226.766327,
+    "ast_hash": "6889ee69748a0ff994d79e8a531659d9",
     "semantic_hash": ""
   },
   "web/aspira-upgrades.js": {
-    "mtime": 1791036001.241823,
-    "ast_hash": "979db4e309246c3d5f79eae9170122c7",
+    "mtime": 1791005444.3199124,
+    "ast_hash": "c150977a3382cfa22e2f37ed8d4b07e2",
     "semantic_hash": ""
   },
   "web/exec-attach.js": {
@@ -9930,8 +9935,8 @@
     "semantic_hash": ""
   },
   "api/templates/aspira.html": {
-    "mtime": 1791072648.4319625,
-    "ast_hash": "f5cbec513326dd4a447f77c25fb0f10d",
+    "mtime": 1791006434.9980717,
+    "ast_hash": "744af52c38c60a36c6c5ad935017ce42",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/README.md": {
@@ -9960,13 +9965,13 @@
     "semantic_hash": ""
   },
   "scripts/aspira-sim/latesearch.mjs": {
-    "mtime": 1791035471.5515733,
-    "ast_hash": "8e9864109b627c231fa0f2075728b5eb",
+    "mtime": 1790972335.675604,
+    "ast_hash": "40ee6ec766f415c0b531eea21a7869b4",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/modes.mjs": {
-    "mtime": 1791036054.9300508,
-    "ast_hash": "7bdef0088327ad91726d85f9cbd7cca0",
+    "mtime": 1790958525.4527082,
+    "ast_hash": "a71477b8cdc7628045a63d49d37a3dd3",
     "semantic_hash": ""
   },
   "web/aspira-bosses.js": {
@@ -9975,8 +9980,8 @@
     "semantic_hash": ""
   },
   "web/aspira-core.js": {
-    "mtime": 1791071266.8572168,
-    "ast_hash": "8101cc3bcbc0049e1af973a664deb277",
+    "mtime": 1790981248.8001618,
+    "ast_hash": "4981d1247eb4d5528c716abef16bb7a2",
     "semantic_hash": ""
   },
   "web/aspira-enemies.js": {
@@ -9985,8 +9990,8 @@
     "semantic_hash": ""
   },
   "web/aspira-waves.js": {
-    "mtime": 1791072629.1488843,
-    "ast_hash": "fc042b1a66ae8b33059a620aff34f816",
+    "mtime": 1790999410.7582033,
+    "ast_hash": "0c6e8f4e4af1b7bafd46b92bcdf0360d",
     "semantic_hash": ""
   },
   "api/data/aspira-sfx/README.txt": {
@@ -14782,36 +14787,6 @@
   "api/data/aspira-sfx/Sound/Zerg/Zergling/ZZeYes03.wav": {
     "mtime": 1790960442.241396,
     "ast_hash": "b8553963b3913b0c39029f9522df6117",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20261004.json": {
-    "mtime": 1791016205.1250484,
-    "ast_hash": "d751713988987e9331980363e24189ce",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/AFvjWA881Mt3peyRLx3GOg.json": {
-    "mtime": 1791064196.2146075,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/Kj-sz1jXKswNKl5QRvL_2A.json": {
-    "mtime": 1791064132.6903522,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/SREwIjhlmjDMKMTxyLOV0w.json": {
-    "mtime": 1791064163.1454747,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  ".archaeology/media/noodle-demo.2026-10-03-prev.mp4": {
-    "mtime": 1790622484.1483767,
-    "ast_hash": "89a39c20e133115c3b5e06b89501a93c",
-    "semantic_hash": ""
-  },
-  ".archaeology/media/noodle-demo.2026-10-03-retired.mp4": {
-    "mtime": 1791065348.2685344,
-    "ast_hash": "ec2755e1297dd7ee2833b4b3c4a9deb2",
     "semantic_hash": ""
   }
 }
