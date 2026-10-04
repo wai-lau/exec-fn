@@ -124,25 +124,23 @@ function activeLanes() {
   return out;
 }
 
-// ---------- the credits under the core (UI only; aspira-draw.js calls it) ----------
-// the count sits just under the core (owner), "CREDITS 12,345"; for
-// CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows under that
-// below the bottom two slots and between their spokes, so no tower covers it
-// (owner: closer in, it sat on the inner ring's towers)
-const CREDITS_FX_T = 2.5, CREDITS_DY = 150;
+// ---------- the credits over the core (UI only; aspira-draw.js calls it) ----------
+// the count is drawn over the core (owner), "CREDITS 12,345"; for
+// CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under the rings
+const CREDITS_FX_T = 2.5;
 let creditsFx = null;
 function drawCredits() {
   const fxOn = creditsFx && performance.now() / 1000 - creditsFx.t0 < CREDITS_FX_T;
   // THIS count keeps its word (owner: "leave that one as CREDITS"), no c. It
-  // sits just UNDER the core, clear of its life rings (owner: over the core put
-  // it on the top slots' towers), as the full number with separators - counts
-  // run past 10k (owner)
+  // is drawn OVER the core - on top of the hexagon, outlined, full size (owner:
+  // "z height above", not shrunk inside it) - as the full number with
+  // separators, since counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
-  text("CREDITS " + n, CX, CY + CREDITS_DY, 22, "white", true);
+  text("CREDITS " + n, CX, CY, 22, "white", true);
   if (!fxOn) return;
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "20px " + CANVAS_FONT;
   const ws = parts.map(p => ctx.measureText(p[0]).width);
   let x = CX - ws.reduce((a, w) => a + w, 0) / 2;
-  parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, CY + CREDITS_DY + 24, 20, p[1], true); x += ws[i]; });
+  parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, 20, p[1], true); x += ws[i]; });
 }
