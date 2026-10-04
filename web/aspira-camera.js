@@ -37,13 +37,11 @@ cv.addEventListener("wheel", ev => {
   zoomAt(p.x, p.y, Math.exp(-ev.deltaY * 0.0015));
 }, { passive: false });
 
-let held = null; // the tower being dragged along its spoke, if any
 cv.addEventListener("pointerdown", ev => {
   if (!fitK) fitK = cam.fit;
   cv.setPointerCapture(ev.pointerId);
   ptrs.set(ev.pointerId, devXY(ev));
-  // a press ON a tower drags that tower along its spoke, not the view (owner)
-  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); held = ui.build ? null : towerAt(toWorld(ev)); }
+  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); }
   if (ptrs.size === 2) {
     const [a, b] = [...ptrs.values()];
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
@@ -65,14 +63,12 @@ cv.addEventListener("pointermove", ev => {
   }
   const dpr = window.devicePixelRatio || 1;
   if (!dragged && Math.hypot(now.x - downAt.x, now.y - downAt.y) > DRAG_PX * dpr) dragged = true;
-  if (dragged && held) { held.held = true; setRest(held, toWorld(ev)); return; }
   if (dragged) panBy(now.x - prev.x, now.y - prev.y);
 });
 function endPointer(ev, tap) {
   if (!ptrs.has(ev.pointerId)) return;
   ptrs.delete(ev.pointerId);
   if (ptrs.size < 2) pinch = null;
-  if (held) { held.held = false; held = null; }
   if (tap && !ptrs.size && !dragged) onTap(ev);
 }
 cv.addEventListener("pointerup", ev => endPointer(ev, true));
