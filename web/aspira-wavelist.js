@@ -70,7 +70,7 @@ function updateWaveList() {
   const rowOf = (n, w) => {
     const boss = w.type === "bonus";
     const hp = enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * laneTravel(laneMap(n).bonus) / meanTravel() : 1);
-    return { n, w, boss, hp, alive: live.get(n), cur: n === G.wave };
+    return { n, w, boss, hp, alive: live.get(n), cur: n === G.wave || live.has(n) }; // highlighted: every wave still ALIVE, and the current one (owner)
   };
   for (const n of [...new Set([...live.keys(), ...(G.wave > 0 ? [G.wave] : [])])].sort((a, b) => a - b)) {
     if (G.planLog && G.planLog[n]) rows.push(rowOf(n, G.planLog[n]));
@@ -99,7 +99,7 @@ function updateWaveList() {
     let icons = boss
       ? '<span class="asp-bline"></span>' + enemyIcon(w.type, px, 2).repeat(w.count - 1) + enemyIcon(w.type, px, 0) + '<span class="asp-bline"></span>'
       : waveBand(w.type, w.count, px, span, alive);
-    const c = cur ? ' class="asp-cur"' : ""; // the CURRENT wave: a light white band (owner)
+    const c = cur ? ' class="asp-cur"' : ""; // a live wave: one unbroken light white band across its row (owner)
     note += "<span" + c + ">" + roman(n) + "</span><span" + c + ">:</span>" +
       '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (cur ? " asp-cur" : "") + '" style="width:' + span + 'px">' + icons + "</span>" +
       "<span" + c + ">" + (boss ? "<b>" + arcanaOf(n).name + "</b>" : w.type) + "</span>"; // boss names BOLD (owner)
