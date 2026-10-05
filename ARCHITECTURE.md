@@ -3991,6 +3991,7 @@ The UPGRADE CHOOSER moved to its own file, web/aspira-chooser.js (loaded before 
 With no enemy alive a tower rests at the OUTER end of its spoke (owner; was its slot). Simulator: 29/28/27 lives at wave 29, as before.
 Positioning weights retuned (owner: targeting at 0.3 barely counted - urgency spans x21, targeting moved a hit only 0.7-1.0): FULL targeting (`POS_MODE_MIX` 1: Biggest = HP share, so a swarmer is ~0; Fresh debuffed = 0.2) with urgency 6 (x1 at entry .. x7 at the core). Simulator lives at wave 29: 28/28/29 (the 20/0.3 setting: 29/28/27; 20/1: 27/26/24).
 SOL's locks RE-AIM at every full charge (owner: Fresh Impale kept hitting the enemy it had already bled): the best enemy in range by its targeting that no other lock holds; the charge carries over. Test: four enemies in range, Fresh - the first four shots hit four different enemies.
+Card type sizes (owner): the TAGLINE takes the size the stats had (`--fs-sm`), the STATS go much smaller (`calc(var(--fs-2xs) * 0.8)`, a deliberate one-off). Note: `--fs-xs` NEVER EXISTED in chrome.css - every rule using it fell back to the inherited size, which is why the stats never shrank; all such uses in aspira.css are now `--fs-2xs`.
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
