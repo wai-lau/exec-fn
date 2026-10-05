@@ -467,4 +467,6 @@ function render() {
   drawCore();
   drawCredits(); // ON the core, so after it (aspira-waves.js)
   drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
+  // ...except the TOWERS, which keep their own colours (owner): drawn again on top
+  if (bossInv.phase !== "off") for (const t of G.towers) drawTower(t);
 }
