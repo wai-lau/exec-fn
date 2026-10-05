@@ -3981,6 +3981,7 @@ Spokes are BRIGHT WHITE and solid from the core's edge out to the limit, ending 
 The credits count sits BELOW the core (`CREDITS_DY` 150: past the bottom two slots, between their spokes - over the core it sat on the top slots' towers), the interest line right under it. DRAG-TO-REST REMOVED (owner): with nothing to chase a tower always returns to its slot; a drag on a tower pans the view again.
 ...REPLACED (owner: 'z height above the hexagon'): the count is drawn ON TOP of the core - centred on it, full size, white with a dark outline, after drawCore - and the interest line sits just under the life rings.
 RENAMED for players to THE SPIRE (owner, 2026-10-04): the in-game title (h1 'the spire', uppercased by CSS) and the landing wheel's name. The route /aspira, the files, the ids and this section's name stay 'aspira'.
+The credits count on the core is TWO lines (owner): CREDITS over the number.
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).

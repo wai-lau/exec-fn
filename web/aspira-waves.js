@@ -136,7 +136,9 @@ function drawCredits() {
   // "z height above", not shrunk inside it) - as the full number with
   // separators, since counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
-  text("CREDITS " + n, CX, CY, 22, "white", true);
+  // two lines (owner): CREDITS, then the number
+  text("CREDITS", CX, CY - 11, 16, "white", true);
+  text(n, CX, CY + 11, 22, "white", true);
   if (!fxOn) return;
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "20px " + CANVAS_FONT;
