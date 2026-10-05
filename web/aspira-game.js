@@ -116,8 +116,8 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
-    // all of it soaked: a dim grey "0", as BIG as the hit it swallowed (owner)
-    dmgNumber(e, "0", amt, "grid");
+    // all of it soaked: a "0" in SHIELD blue, as BIG as the hit it swallowed (owner)
+    dmgNumber(e, "0", amt, "cyan");
     return;
   }
   // BLEED (SOL's Impale): every OTHER tower may crit a bleeding enemy too, for
@@ -227,6 +227,7 @@ function kill(e, t) {
   G.money += b;
   sfx("kill");
   float(e.x, e.y - 30, "+" + (b < 10 ? +b.toFixed(1) : Math.round(b)) + "c", "orange", 18, 2.0); // small (owner); credits read "Nc", all gold here
+  fx[fx.length - 1].shrink = true; // it holds, then shrinks + fades like a damage number (owner)
   addScore(Math.round(b * 10));
   G.charge = Math.min(POWER_FULL, G.charge + 1);
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
