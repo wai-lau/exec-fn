@@ -36,8 +36,10 @@ function fixedRand(n, salt) {
 // enemy COUNTS per TYPE (owner, 2026-10-04: the types balanced against each
 // other at the same wave, the rise across waves kept; scripts/aspira-sim/wavebal.mjs
 // types). WAVE_TYPE_FORCE is the simulator's way to try a type at a wave - empty in play.
-// fitted 2026-10-04 (typebal.mjs, 2 seeds, waves 3-29 vs one L1 of each tower)
-const TYPE_COUNT_MUL = { swarm: 0.75, shield: 1.51, armor: 2.63, fast: 0.48 }, WAVE_TYPE_FORCE = {};
+// fitted 2026-10-04 (typebal.mjs, 2 seeds, waves 3-29 vs one L1 of each
+// tower, on ENEMY-SECONDS - the first fit, on closest approach, piled on slow
+// armor and shields); used for EVERY wave (owner: no upgrades in the test)
+const TYPE_COUNT_MUL = { swarm: 0.52, shield: 0.99, armor: 1.07, fast: 1.47 }, WAVE_TYPE_FORCE = {};
 const WAVE_COUNT_MUL = {};
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)

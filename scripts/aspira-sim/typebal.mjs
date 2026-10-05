@@ -8,6 +8,7 @@
 import { makeGame } from "./sim.mjs";
 const SEEDS = Number(process.argv[2] || 2), WAVES = [3, 6, 9, 13, 16, 19, 23, 26, 29];
 const TYPES = ["swarm", "shield", "armor", "fast"];
+const METRIC = process.env.TB_METRIC || "load", LEAK_S = 30, BOUNDS = [0.5, 2]; // multipliers kept within BOUNDS (owner)
 function closest(n, type, mul, seed) {
   const g = makeGame(seed); g.reset();
   g.run("G.money = 1e9;");
@@ -15,13 +16,18 @@ function closest(n, type, mul, seed) {
   g.run(`WAVE_TYPE_FORCE[${n}] = "${type}"; TYPE_COUNT_MUL["${type}"] = ${mul};
     G.lastType = "${type === "swarm" ? "fast" : "swarm"}"; G.started = true; G.wave = ${n - 1}; G.nextIn = 0;`);
   g.step(0.02); g.run("G.nextIn = 1e9;");
-  const lives0 = g.G.lives; let best = Infinity, t = 0;
+  const lives0 = g.G.lives; let best = Infinity, t = 0, load = 0;
   while (t < 240 && !g.G.over) {
     g.step(0.02); g.clearFx(); t += 0.02;
-    if (g.G.lives < lives0) return 0;
-    for (const e of g.G.enemies) if (!e.dead) best = Math.min(best, Math.hypot(e.x - 500, e.y - 500));
+    let alive = 0;
+    for (const e of g.G.enemies) if (!e.dead) { alive++; best = Math.min(best, Math.hypot(e.x - 500, e.y - 500)); }
+    load += alive * 0.02;
+    if (METRIC === "close" && g.G.lives < lives0) return 0;
     if (g.run("waveClear()")) break;
   }
+  // "load" (default): ENEMY-SECONDS alive - crowding and pressure - plus LEAK_S
+  // per life lost; "close": the closest approach to the core
+  if (METRIC === "load") return load + LEAK_S * (lives0 - g.G.lives);
   return best === Infinity ? 500 : best;
 }
 const dist = (n, type, mul) => { let s = 0; for (let k = 1; k <= SEEDS; k++) s += closest(n, type, mul, k); return s / SEEDS; };
@@ -37,9 +43,12 @@ if (!target) {
 }
 const out = {};
 for (const type of process.env.TB_ONLY ? process.env.TB_ONLY.split(",") : TYPES) {
-  // mean signed gap to the target: >0 = too easy (stays further out) -> more of them
-  const gap = mul => WAVES.reduce((a, n) => a + (dist(n, type, mul) - target[n]), 0) / WAVES.length;
-  let lo = 0.2, hi = 5;
+  // mean signed gap to the target (in log for load): >0 = too EASY -> more of them
+  const gap = mul => WAVES.reduce((a, n) => {
+    const v = dist(n, type, mul);
+    return a + (METRIC === "load" ? Math.log(target[n] + 1) - Math.log(v + 1) : v - target[n]);
+  }, 0) / WAVES.length;
+  let [lo, hi] = BOUNDS;
   for (let it = 0; it < 7; it++) { const mid = Math.sqrt(lo * hi); if (gap(mid) > 0) lo = mid; else hi = mid; }
   out[type] = +Math.sqrt(lo * hi).toFixed(2);
   console.log(type, "x" + out[type]);
