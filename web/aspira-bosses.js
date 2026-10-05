@@ -177,7 +177,8 @@ function drawBossTitle() {
   const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, arc = arcanaOf(bosses[0].n);
   const inv = bossInv.phase !== "off" && Math.hypot(CX - bossInv.x, y - bossInv.y) < (bossInv.r || 0);
   const col = inv ? flashRed() : ENEMIES.bonus.color;
-  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y + 14, BOSS_TITLE_PX, col, true, true); // BOLD and bigger (owner; was 20, 26, 34)
+  const halo = inv ? "white" : true; // the sky's own colour behind it: white once inverted (owner: not a black slab)
+  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y + 14, BOSS_TITLE_PX, col, halo, true); // BOLD and bigger (owner; was 20, 26, 34)
   // the mythic subtitle, much bigger (owner; was 12, 15, 19), WRAPPED to
   // BOSS_SUB_W so it stays on a phone's screen
   ctx.font = BOSS_SUB_PX + "px " + CANVAS_FONT;
@@ -187,7 +188,7 @@ function drawBossTitle() {
     if (lines.length && ctx.measureText(cur).width <= BOSS_SUB_W) lines[lines.length - 1] = cur; else lines.push(word);
   }
   ctx.globalAlpha = 0.85;
-  lines.forEach((l, i) => text(l, CX, y + 14 + BOSS_TITLE_PX * 0.5 + BOSS_SUB_PX * (1 + 1.15 * i), BOSS_SUB_PX, col, true));
+  lines.forEach((l, i) => text(l, CX, y + 14 + BOSS_TITLE_PX * 0.5 + BOSS_SUB_PX * (1 + 1.15 * i), BOSS_SUB_PX, col, halo));
   ctx.globalAlpha = 1;
 }
 function drawBossBar() {
