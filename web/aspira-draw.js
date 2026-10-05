@@ -116,7 +116,7 @@ function drawCore() {
   // one per life, no number (aspira-enemies.js syncSegs / drawSegs)
   G.lifeFlash = G.lifeFlash || [];
   G.lifeSegs = syncSegs(G.lifeSegs || [], Math.max(0, G.lives), 6, G.lifeFlash);
-  ctx.strokeStyle = COL.white; ctx.lineWidth = 1.8;
+  ctx.strokeStyle = COL.white; ctx.lineWidth = 2.6; // thicker (owner; was 1.8)
   drawSegs(CX, CY, G.lifeSegs, 6, Math.PI / 6, CORE_R, LIFE_GAP, G.lifeFlash); // a lost life flashes red
   const out = LIFE_GAP * LIFE_RINGS / CORE_R; // the level rings sit outside the life rings
   if (lvl) {
@@ -155,7 +155,7 @@ function drawTower(t, ghost) {
   towerHex(c, TOWER_K);
   for (let i = 0; i < t.lvl; i++) ctx.stroke();
   ctx.shadowBlur = 0;
-  text(towerAb(t), c.x, c.y + 1, 10, b.color); // smaller with the tower (owner: towers 25% smaller)
+  text(towerAb(t), c.x, c.y + 1, 12, b.color); // bigger again (owner; 10 with the smaller towers, 13 before)
   ctx.globalAlpha = 1;
 }
 

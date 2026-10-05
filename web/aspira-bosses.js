@@ -29,7 +29,7 @@ const ARCANA = [
   { id: "judgement", name: "Judgement", hint: "What falls is called to rise again." },
   { id: "death", name: "Death", hint: "No riddle. Only the end." },
 ];
-const BOSS_HP = { star: 2, empress: 2, strength: 2, chariot: 4, lovers: 2, temperance: 5, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
+const BOSS_HP = { star: 4, empress: 2, strength: 2, chariot: 4, lovers: 2, temperance: 5, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
 const EMPRESS_BROOD = 30, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
 const TEMPERANCE_REGEN = 0.06, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;

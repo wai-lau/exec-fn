@@ -4,7 +4,7 @@
 
 // World is a fixed 1000x1000 chart; the camera (aspira-draw.js) fits it into
 // whatever part of the full-screen canvas the decks leave open.
-const W = 1000, CX = 500, CY = 500, CORE_R = 25.5; // the core 25% smaller (owner; was 34)
+const W = 1000, CX = 500, CY = 500, CORE_R = 29; // the core 25% smaller (owner; was 34), then a little bigger again
 const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 
 // Twelve spirals, one entering every 30 degrees around the rim. A FIXED

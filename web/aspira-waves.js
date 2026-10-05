@@ -33,6 +33,7 @@ function fixedRand(n, salt) {
 }
 // what wave n will be, given the type of the wave before it - pure, so the
 // HUD can preview the next wave (owner) without touching the game
+const WAVE_COUNT_MUL = {};
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
   if (n % STAR_EVERY === 0) return { type: "bonus", count: bossCount(n), split: bossSplit(n), star: true }; // the Lovers and Death come as two, the Devil as six (aspira-bosses.js)
@@ -41,7 +42,9 @@ function wavePlan(n, prev) {
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
-  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2)); // swarms 6x (owner: doubled from 3x)
+  // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
+  // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
+  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1))); // swarms 6x (owner: doubled from 3x)
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
   const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };
