@@ -414,7 +414,7 @@ function trackAt(p) {
   let best = null, bd = TRACK_HIT;
   for (const t of G.towers) {
     const k = spokeOf(t), along = (p.x - CX) * k.ux + (p.y - CY) * k.uy;
-    if (along < CORE_R || along > k.r0 + k.max + TRACK_PAST) continue;
+    if (along < CORE_R || along > k.r0 + k.max + trackPast()) continue;
     const d = Math.abs((p.x - CX) * k.uy - (p.y - CY) * k.ux); // distance across the line
     if (d < bd) { bd = d; best = t; }
   }
@@ -442,18 +442,22 @@ function moveTower(t, dt) {
 
 // UI only (aspira-draw.js calls it): each tower's SPOKE (owner): the track it slides along
 // one spoke: from the core's edge out through cell c to radius `to`, ending in a
-// T just PAST it - a tower's own half-size further (TRACK_PAST), so a tower at
+// T just PAST it - a tower's own half-size further (trackPast), so a tower at
 // full reach touches the T instead of covering it (owner)
-const TRACK_PAST = CELL_S * 0.68; // the smaller tower's half-size (was 0.9)
+// a tower's half-size (its L1 hex), so the T-bars mark where its EDGE can go
+const trackPast = () => CELL_S * TOWER_K;
 function spokeTrack(c, reach) {
   // the line runs only over the range a tower can MOVE (owner: show the min):
   // from its inner limit out to its reach
-  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, to = reach + TRACK_PAST, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = innerR(c, r0);
+  // both ends mark the tower's EDGE (owner): its reach plus a half-size out,
+  // its inner limit minus a half-size in
+  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0;
+  const to = reach + trackPast(), from = innerR(c, r0) - trackPast();
   ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
   // a T-bar at each LIMIT (owner): the outer reach, and the innermost a tower
   // slides, TOWER_IN of its slot's distance (shorter, so out and in read apart)
   const bar = (r, w) => { const ex = CX + ux * r, ey = CY + uy * r; ctx.beginPath(); ctx.moveTo(ex - uy * w, ey + ux * w); ctx.lineTo(ex + uy * w, ey - ux * w); ctx.stroke(); };
-  bar(to, 14); bar(innerR(c, r0), 9);
+  bar(to, 14); bar(from, 9);
 }
 function drawSpokes() {
   // solid, from the core out to the limit, in the TOWER'S colour and a little
