@@ -443,8 +443,10 @@ const TRACK_PAST = CELL_S * 0.68; // the smaller tower's half-size (was 0.9)
 function spokeTrack(c, reach) {
   const to = reach + TRACK_PAST, r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = CORE_R + 6;
   ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
-  const ex = CX + ux * to, ey = CY + uy * to;
-  ctx.beginPath(); ctx.moveTo(ex - uy * 14, ey + ux * 14); ctx.lineTo(ex + uy * 14, ey - ux * 14); ctx.stroke();
+  // a T-bar at each LIMIT (owner): the outer reach, and the innermost a tower
+  // slides, TOWER_IN of its slot's distance (shorter, so out and in read apart)
+  const bar = (r, w) => { const ex = CX + ux * r, ey = CY + uy * r; ctx.beginPath(); ctx.moveTo(ex - uy * w, ey + ux * w); ctx.lineTo(ex + uy * w, ey - ux * w); ctx.stroke(); };
+  bar(to, 14); bar(r0 * TOWER_IN, 9);
 }
 function drawSpokes() {
   // solid, from the core out to the limit, in the TOWER'S colour and a little

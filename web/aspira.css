@@ -81,7 +81,7 @@
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
-.asp-wavenote .e-boss { filter: invert(1); }
+.asp-wavenote .e-boss > * { filter: invert(1); } /* the icons + lines only: on the cell it inverted the live band too (owner) */
 
 /* until the first tower is placed the four build buttons PULSE (owner): the
    background eases up to the lit-button tint and back - no hard blink */
