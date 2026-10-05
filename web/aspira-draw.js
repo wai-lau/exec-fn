@@ -244,11 +244,12 @@ function drawFx(pass) {
       const x1 = f.a ? f.a.x : f.x1, y1 = f.a ? f.a.y : f.y1, x2 = f.b ? f.b.x : f.x2, y2 = f.b ? f.b.y : f.y2;
       ctx.beginPath();
       if (f.beams > 1) {
-        // Charge / Quad / Horizon: n PARALLEL beams, 2 x TWIN_GAP apart (owner)
+        // Charge / Quad / Horizon: n beams, 2 x TWIN_GAP apart at the tower,
+        // CONVERGING on the enemy (owner)
         const len = Math.hypot(x2 - x1, y2 - y1) || 1, px = -(y2 - y1) / len, py = (x2 - x1) / len;
         for (let i = 0; i < f.beams; i++) {
           const o = (i - (f.beams - 1) / 2) * 2 * TWIN_GAP;
-          ctx.moveTo(x1 + px * o, y1 + py * o); ctx.lineTo(x2 + px * o, y2 + py * o);
+          ctx.moveTo(x1 + px * o, y1 + py * o); ctx.lineTo(x2, y2);
         }
       } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
       // the core's width is the DAMAGE of this hit (owner: every tower) - a
@@ -345,7 +346,7 @@ function drawAims() {
       ctx.beginPath();
       for (let i = 0; i < n; i++) {
         const o = (i - (n - 1) / 2) * 2 * TWIN_GAP;
-        ctx.moveTo(t.x + px * o, t.y + py * o); ctx.lineTo(l.e.x + px * o, l.e.y + py * o);
+        ctx.moveTo(t.x + px * o, t.y + py * o); ctx.lineTo(l.e.x, l.e.y); // converging on the target (owner)
       }
       ctx.stroke();
     }
