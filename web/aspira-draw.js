@@ -418,7 +418,6 @@ function drawScene([sx, sy], clipR) {
   if (sel) drawTowerRange(sel, false);
   // stars go on top of lanes and range fills, which would otherwise tint them
   drawStars();
-  for (const e of G.enemies) drawEnemy(e);
   drawTethers();
   drawAcid();
   drawAims();
@@ -427,14 +426,16 @@ function drawScene([sx, sy], clipR) {
   ownColours(() => { drawSpokes(); for (const t of G.towers) drawTower(t); }); // towers keep their colours on a boss sky (owner)
   drawSlotFlash(); // a corner slot that just opened (aspira-waves.js)
   if (ui.build && ui.hover) drawPlacement();
+  drawCore();
+  drawCredits(); // ON the core, so after it (aspira-waves.js)
+  // ENEMIES over the towers and the core (owner)
+  for (const e of G.enemies) drawEnemy(e);
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
     text(bannerText, CX, 70, 44, bannerCol, true);
     ctx.globalAlpha = 1;
   }
-  drawCore();
-  drawCredits(); // ON the core, so after it (aspira-waves.js)
   drawBossTitle(); // the boss's name + subtitle, over the towers (owner)
   ctx.restore();
 }
