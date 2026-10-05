@@ -276,8 +276,11 @@ const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
 // target; follow = false draws a fixed line between the start points.
 // EVERY beam's thickness follows the damage of its hit (owner): beamWidth()
 // scales with sqrt(hit / biggest hit seen), the curve damage numbers size on
-const BEAM_MIN = 0.6, BEAM_SPAN = 3.4;
-const beamWidth = d => BEAM_MIN + BEAM_SPAN * Math.sqrt(Math.min(1, Math.max(0, d) / (G.maxHit || 1)));
+// beam thickness tracks the hit HARDER (owner, 2026-10-05; was 0.6 + 3.4 x
+// sqrt(share)): LINEAR in the hit's share of the biggest so far, over a wider
+// range - a chip is a hairline, the biggest hit a bar
+const BEAM_MIN = 0.4, BEAM_SPAN = 7.6;
+const beamWidth = d => BEAM_MIN + BEAM_SPAN * Math.min(1, Math.max(0, d) / (G.maxHit || 1));
 function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) {
   fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, d: dmg, m: dmgMag(dmg), slim,
     a: follow ? a : null, b: follow ? b : null });

@@ -18,14 +18,17 @@ function drawStarTrail(e, size) {
     const w = size * 0.55 * (1 - i / n), nx = -(b.y - a.y) / len * w, ny = (b.x - a.x) / len * w;
     L.push({ x: pts[i].x + nx, y: pts[i].y + ny }); R.push({ x: pts[i].x - nx, y: pts[i].y - ny });
   }
-  const col = COL[ENEMIES[e.type].color], g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail);
-  g.addColorStop(0, col); g.addColorStop(1, "transparent");
+  // the star's tail fades by a gradient; a FAST one's is a plain tapered fill
+  // (a gradient per fast enemy was a late-game frame cost, 2026-10-05)
+  const col = COL[ENEMIES[e.type].color], star = e.type === "bonus";
+  let g = col;
+  if (star) { g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail); g.addColorStop(0, col); g.addColorStop(1, "transparent"); }
   ctx.beginPath(); ctx.moveTo(L[0].x, L[0].y);
   for (const p of L) ctx.lineTo(p.x, p.y);
   for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i].x, R[i].y);
   ctx.closePath();
-  ctx.fillStyle = g; ctx.globalAlpha = TRAIL_ALPHA;
-  ctx.shadowColor = col; ctx.shadowBlur = e.type === "bonus" ? size * cam.k : 0;
+  ctx.fillStyle = g; ctx.globalAlpha = TRAIL_ALPHA * (star ? 1 : 0.5); // half as strong, standing in for the fade
+  ctx.shadowColor = col; ctx.shadowBlur = star ? size * cam.k : 0;
   ctx.fill();
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
@@ -203,8 +206,13 @@ function drawSegs(x, y, segs, sides, rot, base, gap, flashes) {
   ctx.globalAlpha = 1; ctx.lineWidth = lw; ctx.strokeStyle = ss;
 }
 const SEG_FLASH_T = 0.8, SEG_FLASH_W = 6; // longer and bolder (owner: make it read as a red flash)
-let flashRedCss = null;
-function flashRed() {
-  if (!flashRedCss) { const m = (COL.cyan || "").match(/\d+/g); flashRedCss = m ? "rgb(" + m.slice(0, 3).map(v => 255 - v).join(",") + ")" : COL.glow; }
-  return flashRedCss;
+// a resolved colour, INVERTED (alpha kept): the boss red is Hack cyan inverted,
+// and the boss sky's overlay draws towers in inverted colours (aspira-bosses.js)
+function invertColor(c) {
+  const m = (c || "").match(/[\d.]+/g);
+  if (!m || m.length < 3) return c;
+  const rgb = m.slice(0, 3).map(v => 255 - v).join(",");
+  return m.length > 3 ? "rgba(" + rgb + "," + m[3] + ")" : "rgb(" + rgb + ")";
 }
+let flashRedCss = null;
+const flashRed = () => (flashRedCss ||= invertColor(COL.cyan));

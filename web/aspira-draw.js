@@ -1,7 +1,8 @@
 // /aspira — canvas rendering. Every colour is a COL key (aspira-defs.js);
 // fades are globalAlpha, never a colour with its own alpha.
 
-const cv = document.getElementById("asp-cv"), ctx = cv.getContext("2d");
+const cv = document.getElementById("asp-cv");
+let ctx = cv.getContext("2d"); // let: the boss sky's overlay borrows it to draw the towers (drawBossInvert)
 // The canvas fills the screen; the camera fits the 1000-unit chart into the
 // band between the header and the bottom build bar. cam is in device pixels.
 // The default view sits 25% closer than the whole-chart fit (owner, 2026-10-02);
@@ -11,8 +12,13 @@ const DEFAULT_ZOOM = 1.5625; // 25% closer (owner, 2026-10-04; was 1.25)
 // PHONE_HALF units either side of the core across the width (owner, 2026-10-05)
 const PHONE_HALF = 400;
 const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
+// the canvas draws at most RES_CAP device pixels per CSS pixel (owner: "need
+// more perf"): a phone at 3x drew 3.4 million pixels a frame; 2x is 2.25x fewer
+// for a barely softer line. EVERY dpr use in the game reads canvasDpr().
+const RES_CAP = 2;
+const canvasDpr = () => Math.min(window.devicePixelRatio || 1, RES_CAP);
 function resize() {
-  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect(), dpr = canvasDpr();
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
   // the chart fits between the header (title, stats, controls) and the
   // bottom build bar
@@ -151,24 +157,48 @@ const LIFE_RINGS = 5, LIFE_GAP = 5; // room kept for 5 rings of life segments (2
 
 function drawTower(t, ghost) {
   // drawn where the tower IS (it slides along its spoke), its slot's hex moved with it
-  const b = TOWERS[t.kind], c0 = CELLS[t.cell], dx = (t.x ?? c0.x) - c0.x, dy = (t.y ?? c0.y) - c0.y;
-  const c = dx || dy ? { x: c0.x + dx, y: c0.y + dy, pts: c0.pts.map(p => ({ x: p.x + dx, y: p.y + dy })) } : c0;
-  const tiers = t.lvl - 1, base = ghost ? 0.55 : 1; // one ring per level above L1
-  ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round";
-  ctx.globalAlpha = base;
-  towerHex(c, TOWER_K + LEVEL_GAP * tiers); ctx.fill(); // the background colour under the WHOLE tower, rings too (owner)
-  ctx.shadowColor = COL[b.color]; ctx.shadowBlur = TOWER_GLOW[t.lvl - 1] * cam.k;
-  for (let r = 1; r <= tiers; r++) {
-    ctx.globalAlpha = base * (1 - 0.12 * r); ctx.lineWidth = 3.5;
-    towerHex(c, TOWER_K + LEVEL_GAP * r); ctx.stroke();
-  }
-  // the glow stacks one pass per level, since a lone wide shadow thins out
-  ctx.globalAlpha = base; ctx.lineWidth = 4.5;
-  towerHex(c, TOWER_K);
-  for (let i = 0; i < t.lvl; i++) ctx.stroke();
-  ctx.shadowBlur = 0;
-  text(towerAb(t), c.x, c.y + 1, 12, b.color); // bigger again (owner; 10 with the smaller towers, 13 before)
+  const b = TOWERS[t.kind], c0 = CELLS[t.cell], x = t.x ?? c0.x, y = t.y ?? c0.y;
+  // its glowing body is a cached SPRITE (towerSprite): the glow is a shadow blur
+  // stroked once per level, and at max level that was by far the costliest
+  // draw of a late-game frame (profiled 2026-10-05). Stamped here 1:1 with the
+  // canvas's pixels, then the label on top.
+  const sp = towerSprite(t.kind, t.lvl, c0), w = sp.width / cam.k;
+  ctx.globalAlpha = ghost ? 0.55 : 1;
+  ctx.drawImage(sp, x - w / 2, y - w / 2, w, w);
+  text(towerAb(t), x, y + 1, 12, b.color); // bigger again (owner; 10 with the smaller towers, 13 before)
   ctx.globalAlpha = 1;
+}
+// one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits
+// the slots), drawn exactly as the tower used to be drawn each frame
+const towerSprites = new Map();
+function towerSprite(kind, lvl, c0) {
+  const b = TOWERS[kind], turn = Math.round(Math.atan2(c0.pts[0].y - c0.y, c0.pts[0].x - c0.x) * 90 / Math.PI); // 2-degree steps
+  const key = [kind, lvl, COL[b.color], COL.bg, cam.k.toFixed(4), turn].join("|");
+  let sp = towerSprites.get(key);
+  if (sp) return sp;
+  if (towerSprites.size > 300) towerSprites.clear();
+  const tiers = lvl - 1, reach = CELL_S * (TOWER_K + LEVEL_GAP * tiers) + 4 + TOWER_GLOW[lvl - 1] * 1.6;
+  sp = document.createElement("canvas");
+  sp.width = sp.height = Math.ceil(2 * reach * cam.k);
+  const sx = sp.getContext("2d"), main = ctx;
+  sx.setTransform(cam.k, 0, 0, cam.k, sp.width / 2, sp.height / 2);
+  const c = { x: 0, y: 0, pts: c0.pts.map(p => ({ x: p.x - c0.x, y: p.y - c0.y })) };
+  ctx = sx;
+  try {
+    ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round"; ctx.globalAlpha = 1;
+    towerHex(c, TOWER_K + LEVEL_GAP * tiers); ctx.fill(); // the background colour under the WHOLE tower, rings too (owner)
+    ctx.shadowColor = COL[b.color]; ctx.shadowBlur = TOWER_GLOW[lvl - 1] * cam.k;
+    for (let r = 1; r <= tiers; r++) {
+      ctx.globalAlpha = 1 - 0.12 * r; ctx.lineWidth = 3.5;
+      towerHex(c, TOWER_K + LEVEL_GAP * r); ctx.stroke();
+    }
+    // the glow stacks one pass per level, since a lone wide shadow thins out
+    ctx.globalAlpha = 1; ctx.lineWidth = 4.5;
+    towerHex(c, TOWER_K);
+    for (let i = 0; i < lvl; i++) ctx.stroke();
+  } finally { ctx = main; }
+  towerSprites.set(key, sp);
+  return sp;
 }
 
 function cellPath(c, k = 1) {
@@ -350,7 +380,7 @@ function shakeScreen() { shakeUntil = performance.now() / 1000 + SHAKE_LEN; }
 function shakeOffset() {
   const left = shakeUntil - performance.now() / 1000;
   if (left <= 0) return [0, 0];
-  const a = SHAKE_PX * (window.devicePixelRatio || 1) * (left / SHAKE_LEN);
+  const a = SHAKE_PX * canvasDpr() * (left / SHAKE_LEN);
   return [(Math.random() * 2 - 1) * a, (Math.random() * 2 - 1) * a];
 }
 
@@ -385,8 +415,6 @@ function render() {
   }
   drawCore();
   drawCredits(); // ON the core, so after it (aspira-waves.js)
-  drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
-  // ...except the TOWERS and their TRACKS, which keep their own colours (owner): drawn again on top
-  if (bossInv.phase !== "off") { drawSpokes(); for (const t of G.towers) drawTower(t); }
   drawBossTitle(); // the boss's name + subtitle, over the towers (owner)
+  drawBossInvert(); // the boss's inverted sky, an overlay canvas over everything (aspira-bosses.js)
 }

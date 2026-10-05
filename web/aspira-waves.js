@@ -140,8 +140,9 @@ function activeLanes() {
   return out;
 }
 
-// a newly opened corner slot flashes white for SLOT_FLASH_S real seconds (owner)
-const SLOT_FLASH_S = 4;
+// a newly opened corner slot flashes white for SLOT_FLASH_S real seconds (owner:
+// 3x as long as its notice, SLOT_TEXT_S, stays up)
+const SLOT_TEXT_S = 4, SLOT_FLASH_S = 12;
 let slotFlash = null;
 function drawSlotFlash() {
   if (!slotFlash || performance.now() > slotFlash.until) { slotFlash = null; return; }
