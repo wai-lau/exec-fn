@@ -211,7 +211,12 @@ const SELL_ARM_MS = 2000;
 function noFunds(btn) {
   btn.classList.remove("asp-nofunds"); void btn.offsetWidth; // restart the animation
   btn.classList.add("asp-nofunds");
+  // ...and only for the shake: the red must not stick (owner saw it stay red).
+  // A timer, not animationend, which a backgrounded or throttled tab may never fire
+  clearTimeout(btn.nofundsT);
+  btn.nofundsT = setTimeout(() => btn.classList.remove("asp-nofunds"), NOFUNDS_MS);
 }
+const NOFUNDS_MS = 450; // the shake's 0.4s, and a little
 
 // the upgrade chooser lives in aspira-chooser.js
 
