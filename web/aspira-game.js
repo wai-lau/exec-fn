@@ -102,9 +102,21 @@ function pickTargets(t, st, count) {
 // a floating damage number, sized RELATIVE to the biggest hit seen this game
 // (owner): the largest so far is 27px / 2s, a tiny one 11px / 0.8s, spaced by
 // sqrt(size / maxHit) - size being the hit before armor or shield
+// At most DMG_MAX on screen, a HARD cap: past it a small hit gets no number and
+// a BIG one (rel >= DMG_BIG) retires the oldest number to take its place (with
+// maxed towers nearly every hit is big). They age in REAL time while the game runs up to 20x, so late
+// waves at speed piled thousands up - drawing them was most of the frame
+// (profiled 2026-10-05, waves 80-85, 9 max towers)
+const DMG_MAX = 120, DMG_BIG = 0.6;
+let dmgLive = 0;
 function dmgNumber(e, label, size, color) {
   G.maxHit = Math.max(G.maxHit || 1, size);
   const rel = Math.sqrt(size / G.maxHit);
+  if (dmgLive >= DMG_MAX) {
+    if (rel < DMG_BIG) return;
+    const old = fx.find(f => f.under && f.t < f.life);
+    if (old) old.t = old.life; else return;
+  } else dmgLive++;
   float(e.x + (Math.random() - 0.5) * 24, e.y - 14, label, color, Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
 }
 const BLEED_CRIT_MUL = 2;
@@ -404,6 +416,7 @@ function stepFx(dt) {
 function stepFloats(dt) {
   for (const f of fx) if (f.k === "text") { f.t += dt; f.y -= f.vy * dt; }
   fx = fx.filter(f => f.k !== "text" || f.t < f.life);
+  dmgLive = 0; for (const f of fx) if (f.under) dmgLive++;
 }
 
 const WIN_WAVE = 100; // the 10th boss
