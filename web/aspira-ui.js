@@ -117,7 +117,7 @@ const autoWaiting = () => {
   btn.setAttribute("role", "checkbox");
 })();
 function updateAutoWait() {
-  const btn = $("asp-autowait"), html = (autoWait ? "☑" : "☐") + " auto-wait";
+  const btn = $("asp-autowait"), html = '<span class="asp-box">' + (autoWait ? "☑" : "☐") + "</span> auto-wait"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
   btn.classList.toggle("on", autoWaiting()); // lit while it is holding the game at 1/2x
 }
