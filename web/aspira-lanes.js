@@ -57,7 +57,8 @@ function applyMask(x, n) {
 }
 function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c, 0, 0); ctx.restore(); }
 const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
-let litKey = "";
+let litKey = "", litCam = "", litAt = 0;
+const LIT_MIN_MS = 200;
 const LIT_STEPS = 16;
 const BOSS_LANE_W = 3.5, BOSS_LANE_BLUR = 28; // a boss lane: x widths, and its glow (world px)
 function drawLaneStrokes(live) {
@@ -84,10 +85,14 @@ function drawLaneStrokes(live) {
   // their colours, their brightness to 1/LIT_STEPS, the camera; otherwise last
   // frame's finished layers are blitted again (profiled 2026-10-05: rebuilding
   // them every frame was most of a late-game frame)
-  const sig = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join() + "|" +
+  // ...and at most every LIT_MIN_MS: at 10x the lanes' brightness moves every
+  // frame, and rebuilding each time was the late game's frame spikes (a camera
+  // move still rebuilds at once, or the layers would sit misaligned)
+  const camSig = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
+  const sig = camSig + "|" +
     live.map(u => u.pi + ":" + u.ang.toFixed(3) + ":" + u.color + ":" + (u.star ? 1 : 0) + ":" + Math.round(u.a * LIT_STEPS)).join(",");
-  if (sig === litKey) { blit(glowCv); blit(laneCv); return; }
-  litKey = sig;
+  if (sig === litKey || (camSig === litCam && now - litAt < LIT_MIN_MS)) { blit(glowCv); blit(laneCv); return; }
+  litKey = sig; litCam = camSig; litAt = now;
   // each lane IN USE lit in its rider's colour - drawn rotated when a split
   // wave rides a rotated copy of it (u.ang)
   laneLayer(laneCv, lctx, cv.width, cv.height);
@@ -104,9 +109,9 @@ function drawLaneStrokes(live) {
     // layer with a much steeper fade outward (owner: "stronger gradient")
     gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.stroke(PATHS[u.pi].glow2d); // thicker at the core (owner; was 0.18, 20)
     gctx.restore();
-    lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].lit2d);
     if (u.star) { lctx.shadowColor = COL[u.color]; lctx.shadowBlur = BOSS_LANE_BLUR * cam.k; }
-    lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4 * w; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4 * w; lctx.stroke(PATHS[u.pi].lit2d);
     lctx.restore();
   }
   applyMask(gctx, GLOW_FALLOFF);

@@ -283,7 +283,7 @@ function refreshPanels() {
   }
 }
 
-let lastNote = "", waveListAt = 0;
+let lastNote = "", waveListAt = 0, hudAt = 0;
 function updateHud() {
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
@@ -399,7 +399,9 @@ function frame(now) {
   // while the upgrade cards are up the board is paused AND frozen: no redraw,
   // so its CSS blur (aspira.css .asp-choosing) is computed once, not per frame
   if (!chooser.t) render();
-  updateHud(); placePop(); tickFps(now);
+  // the HUD's text and buttons 10x a second, not every frame (perf, 2026-10-05)
+  if (!(now < hudAt)) { hudAt = now + 100; updateHud(); }
+  placePop(); tickFps(now);
   // while a boss lives the canvas inverts (drawBossInvert); the HTML over it
   // flips too once the inversion fills the screen, so it stays readable
   $("asp").classList.toggle("asp-boss", bossInv.full);

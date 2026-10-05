@@ -54,7 +54,7 @@ const CELLS = (function buildCells() {
   }
   // THREE MORE slots (owner, 2026-10-05) out of the core's CORNERS, a little way
   // past the ring, a TOP-HEAVY triangle: upper right, upper left, then straight
-  // down; each opens at its wave (CORNER_UNLOCK) and is hidden till then
+  // down; each opens when the boss of its wave (40, 50, 60) falls, hidden till then
   CORNER_SLOTS.forEach(([deg, unlock]) => {
     const a = deg * Math.PI / 180, x = CX + Math.cos(a) * TILE_R, y = CY + Math.sin(a) * TILE_R, pts = [];
     for (let k = 0; k < 6; k++) { const b = Math.PI / 6 + k * Math.PI / 3; pts.push({ x: x + CELL_S * Math.cos(b), y: y + CELL_S * Math.sin(b) }); }
@@ -62,8 +62,9 @@ const CELLS = (function buildCells() {
   });
   return out;
 })();
-// a slot is OPEN once its unlock wave has come (the six ring slots always are)
-const cellOpen = ci => ci >= 0 && (!CELLS[ci].unlock || (typeof G !== "undefined" && G && G.wave >= CELLS[ci].unlock));
+// a slot is OPEN once the boss of its unlock wave is down (bossKilled sets
+// G.opened); the six ring slots always are
+const cellOpen = ci => ci >= 0 && (!CELLS[ci].unlock || !!(typeof G !== "undefined" && G && G.opened && G.opened[ci]));
 const openCells = () => CELLS.filter((c, i) => cellOpen(i)).length;
 
 // Centre-to-centre distance between neighbouring cells: one "tile".
@@ -160,7 +161,11 @@ function buildSpiral(i) {
     if (Math.hypot(p.x - CX, p.y - CY) > GLOW_PATH_R) { on = false; continue; }
     if (on) glow2d.lineTo(p.x, p.y); else { glow2d.moveTo(p.x, p.y); on = true; }
   }
-  return { pts, len: acc, lead, turns, pace: 1, rim, ellip: stretch > 0, p2d, glow2d };
+  // every other point, for the LIT lane lines rebuilt during play (half the
+  // stroking; the spiral is smooth enough that it does not show)
+  const lit2d = new Path2D();
+  pts.forEach((p, k) => { if (k === 0) lit2d.moveTo(p.x, p.y); else if (k % 2 === 0 || k === pts.length - 1) lit2d.lineTo(p.x, p.y); });
+  return { pts, len: acc, lead, turns, pace: 1, rim, ellip: stretch > 0, p2d, glow2d, lit2d };
 }
 
 for (let i = 0; i < N_PATHS; i++) PATHS.push(buildSpiral(i));

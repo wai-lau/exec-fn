@@ -15,19 +15,20 @@
 //  100 Death       a juiced-up Star (owner): no tricks, the most HP but the Chariot
 // Boss HP is ENEMIES.bonus.hp (halved, owner). Loaded after aspira-waves.js
 // (the simulator loads it too).
-// each with a HINT (owner): a small mythic subtitle under its name - its trick
-// told sideways, never spelled out
+// each with a HINT (owner): a mythic subtitle under its name - its trick told
+// sideways, never spelled out - as a HAIKU (owner, 2026-10-05): three lines,
+// 5-7-5 syllables, drawn one under another
 const ARCANA = [
-  { id: "star", name: "The Star", hint: "A lone light crosses the dark, and asks only to be met." },
-  { id: "empress", name: "The Empress", hint: "Wound her, and her children answer." },
-  { id: "strength", name: "Strength", hint: "No frost binds her; no chain slows her stride." },
-  { id: "chariot", name: "The Chariot", hint: "The reins slip, and the horses run." },
-  { id: "lovers", name: "The Lovers", hint: "Part them, and the one left behind will not forgive you." },
-  { id: "temperance", name: "Temperance", hint: "What is poured out is poured back." },
-  { id: "devil", name: "The Devil", hint: "Six faces, one hunger. Let none pass." },
-  { id: "justice", name: "Justice", hint: "No single blow outweighs the scales." },
-  { id: "judgement", name: "Judgement", hint: "What falls is called to rise again." },
-  { id: "death", name: "Death", hint: "No riddle. Only the end." },
+  { id: "star", name: "The Star", hint: ["One light in the dark", "crossing the long silent sky", "asks only to meet."] },
+  { id: "empress", name: "The Empress", hint: ["Strike the mother once", "and the field fills with her young:", "her children answer."] },
+  { id: "strength", name: "Strength", hint: ["No frost can bind her,", "no chain will shorten her stride.", "She walks through the cold."] },
+  { id: "chariot", name: "The Chariot", hint: ["The reins slip loose now", "and the horses break and run,", "faster than your aim."] },
+  { id: "lovers", name: "The Lovers", hint: ["Two walk as one heart.", "Part them, and the one who stays", "will never forgive."] },
+  { id: "temperance", name: "Temperance", hint: ["What is poured away", "returns to the cup again;", "the wound fills, and heals."] },
+  { id: "devil", name: "The Devil", hint: ["Six faces, one want,", "six roads leading to your door.", "Let not one get through."] },
+  { id: "justice", name: "Justice", hint: ["The scales hold steady.", "No blow, however heavy,", "outweighs the balance."] },
+  { id: "judgement", name: "Judgement", hint: ["The trumpet sounds once;", "what has fallen hears its name", "and rises again."] },
+  { id: "death", name: "Death", hint: ["No riddle, no trick,", "only the long road to dark,", "only, now, the end."] },
 ];
 // fitted 2026-10-05 (scripts/aspira-sim/bossbal.mjs): each boss comes 0.9x as
 // near the core as the four waves around it (owner: "just a little closer"),
@@ -103,6 +104,17 @@ function bossKilled(e) {
   // Strength's fall opens the core's upgrades, announced where its name was (owner)
   // ...with an arrow down at the core (owner)
   if (isA(e, "strength")) { float(CX, CY - 80, "core upgrades unlocked", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3); }
+  // the LAST boss of its wave down: that wave's corner slot opens (owner: unlocks
+  // come AFTER the boss, never during its wave) - announced like the core's
+  // upgrades, the slot flashing meanwhile (aspira-waves.js)
+  if (!G.enemies.some(o => o !== e && !o.dead && o.arcana && o.n === e.n)) {
+    CELLS.forEach((c, ci) => {
+      if (c.unlock !== e.n || (G.opened ||= {})[ci]) return;
+      G.opened[ci] = true;
+      float(CX, CY - 80, "new slot unlocked", "white", 28, SLOT_FLASH_S, 1, 3);
+      slotFlash = { ci, until: performance.now() + SLOT_FLASH_S * 1000 };
+    });
+  }
   const m = e.mate;
   if (!m || m.dead) return;
   m.hp = m.max; m.enraged = true; m.spd = (m.baseSpd || 1) * LOVERS_SPD;
@@ -170,7 +182,7 @@ const BOSS_BAR_R = 400, BOSS_BAR_W = 21, BOSS_BAR_TRACK = 0.3; // 3x thicker (ow
 // the boss's NAME and mythic subtitle under the core: drawn LAST, over the
 // towers (owner) - so after the inverted sky, and in the colour the sky would
 // have given it: the boss red inside the inversion's circle, its own outside
-const BOSS_TITLE_PX = 46, BOSS_SUB_PX = 30, BOSS_SUB_W = 640;
+const BOSS_TITLE_PX = 46, BOSS_SUB_PX = 30;
 function drawBossTitle() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
   if (!bosses.length) return;
@@ -179,16 +191,9 @@ function drawBossTitle() {
   const col = inv ? flashRed() : ENEMIES.bonus.color;
   const halo = inv ? "white" : true; // the sky's own colour behind it: white once inverted (owner: not a black slab)
   text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y + 14, BOSS_TITLE_PX, col, halo, true); // BOLD and bigger (owner; was 20, 26, 34)
-  // the mythic subtitle, much bigger (owner; was 12, 15, 19), WRAPPED to
-  // BOSS_SUB_W so it stays on a phone's screen
-  ctx.font = BOSS_SUB_PX + "px " + CANVAS_FONT;
-  const lines = [];
-  for (const word of arc.hint.split(" ")) {
-    const cur = lines.length ? lines[lines.length - 1] + " " + word : word;
-    if (lines.length && ctx.measureText(cur).width <= BOSS_SUB_W) lines[lines.length - 1] = cur; else lines.push(word);
-  }
+  // the haiku, much bigger (owner; was 12, 15, 19), its three lines stacked
   ctx.globalAlpha = 0.85;
-  lines.forEach((l, i) => text(l, CX, y + 14 + BOSS_TITLE_PX * 0.5 + BOSS_SUB_PX * (1 + 1.15 * i), BOSS_SUB_PX, col, halo));
+  arc.hint.forEach((l, i) => text(l, CX, y + 14 + BOSS_TITLE_PX * 0.5 + BOSS_SUB_PX * (1 + 1.15 * i), BOSS_SUB_PX, col, halo));
   ctx.globalAlpha = 1;
 }
 function drawBossBar() {
