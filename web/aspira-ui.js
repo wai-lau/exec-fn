@@ -308,26 +308,8 @@ function updateHud() {
   for (const btn of document.querySelectorAll("#asp-pop [data-cost]")) btn.disabled = G.money < Number(btn.dataset.cost);
   // the open popup's tallies update live
   if (t && $("asp-kills")) setText($("asp-kills"), (t.kills || 0) + " · " + short(Math.round(t.dealt || 0)) + " dealt");
-  updateBossBar();
 }
 
-// a live BOSS gets an HP bar under the speed row (owner): its name and the
-// HP left across every boss on the field (the Devil's six, the Lovers' two)
-function updateBossBar() {
-  let bar = $("asp-bossbar");
-  if (!bar) {
-    bar = document.createElement("div");
-    bar.id = "asp-bossbar"; bar.className = "asp-bossbar"; bar.hidden = true;
-    bar.innerHTML = '<span class="asp-bossname"></span><div class="asp-bar"><i></i></div>';
-    document.querySelector(".asp-controls").after(bar);
-  }
-  const bosses = G.enemies.filter(e => e.arcana && !e.dead);
-  bar.hidden = !bosses.length;
-  if (!bosses.length) return;
-  const hp = bosses.reduce((a, e) => a + Math.max(0, e.hp), 0), max = bosses.reduce((a, e) => a + e.max, 0);
-  setText(bar.firstChild, arcanaOf(bosses[0].n).name + (bosses.length > 1 ? " ×" + bosses.length : ""));
-  bar.querySelector("i").style.width = (100 * hp / max).toFixed(1) + "%";
-}
 
 // the tower's / core's card sits BOTTOM CENTRE and stays there (owner: it no
 // longer follows the tower, which now moves); where it would cover the wave
@@ -350,8 +332,8 @@ function placePop() {
   const pop = $("asp-pop");
   if (pop.hidden) return;
   const h = pop.offsetHeight, { x, lift } = cardLift(pop.offsetWidth);
-  // ...but never up over the speed row or the boss bar (a short phone: it then sits over the wave list)
-  const cr = cv.getBoundingClientRect(), bar = $("asp-bossbar"), top = (bar && !bar.hidden ? bar : document.querySelector(".asp-controls")).getBoundingClientRect().bottom - cr.top + CARD_GAP;
+  // ...but never up over the speed row (a short phone: it then sits over the wave list)
+  const cr = cv.getBoundingClientRect(), top = document.querySelector(".asp-controls").getBoundingClientRect().bottom - cr.top + CARD_GAP;
   pop.style.left = x + "px"; pop.style.top = Math.max(top, cr.height - h - lift) + "px";
 }
 

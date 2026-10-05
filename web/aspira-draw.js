@@ -492,5 +492,6 @@ function render() {
   }
   drawCore();
   drawCredits(); // ON the core, so after it (aspira-waves.js)
+  drawBossBar(); // a live boss's name + HP line under the core (aspira-bosses.js)
   drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
 }
