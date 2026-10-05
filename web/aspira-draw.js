@@ -91,9 +91,28 @@ function drawGraticule() {
     ctx.lineTo(CX + Math.cos(a) * (482 + len), CY + Math.sin(a) * (482 + len));
     ctx.stroke();
   }
+  drawScaleBar();
 }
-
-// Stars TWINKLE (owner): each one's brightness breathes on its own rate and
+// the chart's RULER (owner: show how long X units are, on the flat line left
+// and right of the centre): a horizontal line through the centre and on to the
+// screen's edges, graduated in units from the core's centre. Finer near the
+// middle, sparser outward (owner): a notch every 10 out to 200, every 50 out to
+// 1000, then every 100; numbered every 100 to 500, every 200 to 1000, then 500.
+const RULER_R = 2000;
+const rulerNotch = r => r <= 200 || (r <= 1000 ? r % 50 === 0 : r % 100 === 0);
+const rulerLabel = r => r % (r <= 500 ? 100 : r <= 1000 ? 200 : 500) === 0;
+function drawScaleBar() {
+  ctx.strokeStyle = COL.grid; ctx.globalAlpha = 1; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(CX - RULER_R, CY); ctx.lineTo(CX + RULER_R, CY);
+  for (let r = 10; r <= RULER_R; r += 10) {
+    if (!rulerNotch(r)) continue;
+    const h = r % 100 === 0 ? 8 : r % 50 === 0 ? 5 : 2.5;
+    for (const sx of [-1, 1]) { ctx.moveTo(CX + sx * r, CY - h); ctx.lineTo(CX + sx * r, CY + h); }
+  }
+  ctx.stroke();
+  for (let r = 100; r <= RULER_R; r += 100) if (rulerLabel(r)) for (const sx of [-1, 1]) text(String(r), CX + sx * r, CY + 18, 12, "grid");
+}// Stars TWINKLE (owner): each one's brightness breathes on its own rate and
 // phase (fixed per star from its index, so the field never reshuffles), on
 // real time so it keeps going while paused. Colour never changes.
 function drawStars() {
