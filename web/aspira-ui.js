@@ -276,13 +276,14 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-function enemyIcon(type) {
+const WAVE_ICON = [5, 18]; // the upcoming-wave icons' size range, px
+function enemyIcon(type, px) {
   const d = ENEMIES[type], n = d.pointy ? d.sides * 2 : d.sides, pts = [];
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.pointy && i % 2 ? 3.6 : 8;
     pts.push((10 + Math.cos(a) * r).toFixed(1) + "," + (10 + Math.sin(a) * r).toFixed(1));
   }
-  return '<svg class="asp-eicon" viewBox="0 0 20 20" aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
+  return '<svg class="asp-eicon" viewBox="0 0 20 20"' + (px ? ' style="width:' + px + 'px;height:' + px + 'px"' : "") + ' aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
 }
 let lastNote = "";
 function updateHud() {
@@ -299,22 +300,26 @@ function updateHud() {
     setHtml(btn.querySelector(".c"), cr(short(towerCost(k))));
     btn.classList.toggle("on", ui.build === k);
   }
-  // the next TEN waves under the send button, one per row (owner; waves are
-  // fixed, so they are known): number : enemy x count, star. A grid
-  // keeps the ":" in one column down the middle.
-  let note = "", prev = G.lastType;
+  // the next TEN waves, one per row (owner; waves are fixed, so they are
+  // known): its Roman number : its enemies, ONE ICON EACH, sized by HP : name.
+  // No count, no HP figure (owner) - the icons say both. Sizes run on a log
+  // scale across the ten waves, WAVE_ICON[0] .. WAVE_ICON[1] px. A plain enemy
+  // is named by type in lowercase, a boss by its arcana, its icon inverted as
+  // on its own sky.
+  const rows = [];
+  let prev = G.lastType;
   for (let i = 1; i <= 10; i++) {
-    const n = G.wave + i, w = wavePlan(n, prev);
-    if (w.type !== "bonus") prev = w.type; // the boss wave does not break the alternation
-    // five columns (owner): number : enemies, HP, NAME - HPs and names line
-    // up down the list. A plain enemy is named by its type in lowercase; a
-    // boss by its arcana (capitalised), its icon inverted as on its own sky.
-    const boss = w.type === "bonus";
-    note += "<span>" + roman(n) + "</span><span>:</span><span>" +
-      '<b class="e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type) + "×" + w.count + "</b></span>" +
-      // each one's HP (owner), a boss's with its own multiplier
-      // a boss's with its own multiplier and its lane's travel (aspira-bosses.js)
-      "<span>" + short(enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * laneTravel(laneMap(n).bonus) / meanTravel() : 1)) + "hp</span>" +
+    const n = G.wave + i, w = wavePlan(n, prev), boss = w.type === "bonus";
+    if (!boss) prev = w.type; // the boss wave does not break the alternation
+    const hp = enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * laneTravel(laneMap(n).bonus) / meanTravel() : 1);
+    rows.push({ n, w, boss, hp });
+  }
+  const lo = Math.log(Math.min(...rows.map(r => r.hp))), hi = Math.log(Math.max(...rows.map(r => r.hp)));
+  let note = "";
+  for (const { n, w, boss, hp } of rows) {
+    const px = Math.round(WAVE_ICON[0] + (WAVE_ICON[1] - WAVE_ICON[0]) * (hi > lo ? (Math.log(hp) - lo) / (hi - lo) : 0.5));
+    note += "<span>" + roman(n) + "</span><span>:</span>" +
+      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type, px).repeat(w.count) + "</span>" +
       "<span>" + (boss ? arcanaOf(n).name : w.type) + "</span>";
   }
   // the time to the next wave, on its OWN line above the list (owner)
