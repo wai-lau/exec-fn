@@ -170,14 +170,25 @@ const BOSS_BAR_R = 400, BOSS_BAR_W = 21, BOSS_BAR_TRACK = 0.3; // 3x thicker (ow
 // the boss's NAME and mythic subtitle under the core: drawn LAST, over the
 // towers (owner) - so after the inverted sky, and in the colour the sky would
 // have given it: the boss red inside the inversion's circle, its own outside
+const BOSS_TITLE_PX = 46, BOSS_SUB_PX = 30, BOSS_SUB_W = 640;
 function drawBossTitle() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
   if (!bosses.length) return;
   const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, arc = arcanaOf(bosses[0].n);
   const inv = bossInv.phase !== "off" && Math.hypot(CX - bossInv.x, y - bossInv.y) < (bossInv.r || 0);
   const col = inv ? flashRed() : ENEMIES.bonus.color;
-  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 34, col, true, true); // BOLD and bigger (owner; was 20, then 26)
-  ctx.globalAlpha = 0.8; text(arc.hint, CX, y + 31, 19, col, true); ctx.globalAlpha = 1; // its mythic subtitle (owner; bigger, was 12, then 15)
+  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y + 14, BOSS_TITLE_PX, col, true, true); // BOLD and bigger (owner; was 20, 26, 34)
+  // the mythic subtitle, much bigger (owner; was 12, 15, 19), WRAPPED to
+  // BOSS_SUB_W so it stays on a phone's screen
+  ctx.font = BOSS_SUB_PX + "px " + CANVAS_FONT;
+  const lines = [];
+  for (const word of arc.hint.split(" ")) {
+    const cur = lines.length ? lines[lines.length - 1] + " " + word : word;
+    if (lines.length && ctx.measureText(cur).width <= BOSS_SUB_W) lines[lines.length - 1] = cur; else lines.push(word);
+  }
+  ctx.globalAlpha = 0.85;
+  lines.forEach((l, i) => text(l, CX, y + 14 + BOSS_TITLE_PX * 0.5 + BOSS_SUB_PX * (1 + 1.15 * i), BOSS_SUB_PX, col, true));
+  ctx.globalAlpha = 1;
 }
 function drawBossBar() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);

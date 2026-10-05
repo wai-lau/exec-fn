@@ -15,17 +15,18 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 // R0 sits past the canvas corners (707 from centre), so every lane starts
 // off-screen and enemies drift in from beyond the chart; RIM_R is the chart's
 // graduated rim, where each lane's entry marker and numeral are drawn.
-const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
+const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482, GLOW_PATH_R = 330;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
 // Only SIX slots (owner, 2026-10-02): the ring of hexes around the core.
 const CELL_S = 32, CELL_PITCH = 2;
 // the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
 // INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level
-// slid fully in, a gap still shows between all of them): 145 leaves the same
+// slid fully in, a gap still shows between all of them): 171 leaves the same
 // 13.6 gap to the innermost ring towers that ring neighbours have to each other
-// (solved on the max-level hexes). They rest there, so they only slide OUT.
-const CORNER_SLOTS = [[-30, 40], [-150, 50], [90, 60]], CORNER_IN = 145, TILE_R = CORNER_IN;
+// (solved on the max-level hexes at TOWER_K 0.94; 145 with the smaller towers).
+// They rest there, so they only slide OUT.
+const CORNER_SLOTS = [[-30, 40], [-150, 50], [90, 60]], CORNER_IN = 171, TILE_R = CORNER_IN;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
 // the build area, which now spans the whole chart)
@@ -150,7 +151,16 @@ function buildSpiral(i) {
   // the lane never changes, so its stroke path is built once (drawLanes)
   const p2d = new Path2D();
   pts.forEach((p, k) => (k ? p2d.lineTo(p.x, p.y) : p2d.moveTo(p.x, p.y)));
-  return { pts, len: acc, lead, turns, pace: 1, rim, ellip: stretch > 0, p2d };
+  // the lane's INNER part only, for the wide glow stroke: its fade is so steep
+  // it is invisible past GLOW_PATH_R, and stroking the whole spiral at 32 wide
+  // was the costliest draw of a late-game frame (profiled 2026-10-05)
+  const glow2d = new Path2D();
+  let on = false;
+  for (const p of pts) {
+    if (Math.hypot(p.x - CX, p.y - CY) > GLOW_PATH_R) { on = false; continue; }
+    if (on) glow2d.lineTo(p.x, p.y); else { glow2d.moveTo(p.x, p.y); on = true; }
+  }
+  return { pts, len: acc, lead, turns, pace: 1, rim, ellip: stretch > 0, p2d, glow2d };
 }
 
 for (let i = 0; i < N_PATHS; i++) PATHS.push(buildSpiral(i));

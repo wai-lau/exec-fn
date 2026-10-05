@@ -7,6 +7,9 @@ const cv = document.getElementById("asp-cv"), ctx = cv.getContext("2d");
 // The default view sits 25% closer than the whole-chart fit (owner, 2026-10-02);
 // cam.fit keeps that whole-chart scale, the furthest you can zoom out.
 const DEFAULT_ZOOM = 1.5625; // 25% closer (owner, 2026-10-04; was 1.25)
+// on a PHONE (a portrait band, width the limit) the default view instead fits
+// PHONE_HALF units either side of the core across the width (owner, 2026-10-05)
+const PHONE_HALF = 400;
 const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
@@ -18,7 +21,8 @@ function resize() {
   const head = document.querySelector(".asp-controls").getBoundingClientRect();
   const foot = document.querySelector(".asp-bottom").getBoundingClientRect();
   const x0 = 0, y0 = head.bottom - r.top, x1 = r.width, y1 = foot.top - r.top;
-  const fit = Math.min(x1 - x0, y1 - y0) / W, k = fit * DEFAULT_ZOOM;
+  const fit = Math.min(x1 - x0, y1 - y0) / W;
+  const k = x1 - x0 < y1 - y0 ? (x1 - x0) / (2 * PHONE_HALF) : fit * DEFAULT_ZOOM;
   cam.fit = fit * dpr; cam.k = k * dpr;
   cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
   // the CORE sits at the screen's vertical middle (owner), not mid-way between
@@ -45,13 +49,17 @@ function poly(x, y, r, n, rot, star) {
 // outline: a thick black stroke wrapped in a soft dark glow (shadow blur)
 // under the fill, so overlapping damage numbers stay separate and readable
 // outline: true = the background colour, or a palette key (the credits' white halo)
+const TEXT_BLUR_MIN = 30;
 function text(str, x, y, size, color, outline = false, bold = false) {
   ctx.font = (bold ? "bold " : "") + size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (outline) {
     ctx.save();
     const oc = COL[outline === true ? "bg" : outline];
-    ctx.shadowColor = oc; ctx.shadowBlur = size * 0.7 * cam.k; // shadow is in device px
+    // the soft shadow only on BIG text (titles, banners): on the hundreds of
+    // small damage numbers a frame it was a large share of late-game frame
+    // time (profiled 2026-10-05); the stroked outline stays on all
+    if (size >= TEXT_BLUR_MIN) { ctx.shadowColor = oc; ctx.shadowBlur = size * 0.7 * cam.k; } // shadow is in device px
     ctx.strokeStyle = oc; ctx.lineWidth = size * 0.32; ctx.lineJoin = "round";
     ctx.strokeText(str, x, y); ctx.strokeText(str, x, y);
     ctx.restore();
@@ -475,6 +483,7 @@ function render() {
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
   drawSpokes();
   for (const t of G.towers) drawTower(t);
+  drawSlotFlash(); // a corner slot that just opened (aspira-waves.js)
   if (ui.build && ui.hover) drawPlacement();
   drawFx("text");
   if (bannerT > 0) {
