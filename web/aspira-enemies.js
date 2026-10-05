@@ -148,26 +148,39 @@ function drawBossEye(e, size) {
 // slot outward. A ring left wholly empty at the outside is dropped. The rings
 // breathe with the core's pulse (shieldPulse).
 // segs: [true|false, ...], slot 0 = the innermost ring's first side
-function syncSegs(segs, n, sides) {
+// flashes (optional): [{ i, t }] - each lost segment is recorded so it can
+// flash (drawSegs); a gain shifts them outward with everything else
+function syncSegs(segs, n, sides, flashes) {
   let have = segs.reduce((a, v) => a + (v ? 1 : 0), 0);
   while (have > n) {
     const live = []; segs.forEach((v, i) => { if (v) live.push(i); });
-    segs[live[Math.floor(Math.random() * live.length)]] = false; have--;
+    const i = live[Math.floor(Math.random() * live.length)];
+    segs[i] = false; have--;
+    if (flashes) flashes.push({ i, t: performance.now() / 1000 });
   }
-  while (have < n) { segs.unshift(true); have++; }
+  while (have < n) { segs.unshift(true); have++; if (flashes) for (const f of flashes) f.i++; }
   while (segs.length && segs.slice(-((segs.length - 1) % sides + 1)).every(v => !v)) segs.length -= (segs.length - 1) % sides + 1;
   return segs;
 }
 const shieldPulse = () => 1 + 0.04 * Math.sin(performance.now() / 300); // the core's own breath
 // ring r (0 = inner) has radius base + gap * (r + 1); slot i is side i % sides of ring floor(i / sides)
-function drawSegs(x, y, segs, sides, rot, base, gap) {
+function drawSegs(x, y, segs, sides, rot, base, gap, flashes) {
   const k = shieldPulse();
-  ctx.beginPath();
-  segs.forEach((on, i) => {
-    if (!on) return;
+  const side = i => {
     const r = (base + gap * (Math.floor(i / sides) + 1)) * k, s = i % sides;
     const a0 = rot + s * Math.PI * 2 / sides, a1 = rot + (s + 1) * Math.PI * 2 / sides;
     ctx.moveTo(x + Math.cos(a0) * r, y + Math.sin(a0) * r); ctx.lineTo(x + Math.cos(a1) * r, y + Math.sin(a1) * r);
-  });
+  };
+  ctx.beginPath();
+  segs.forEach((on, i) => { if (on) side(i); });
   ctx.stroke();
+  if (!flashes || !flashes.length) return;
+  // a LOST segment flashes Ember red and thick, fading over SEG_FLASH_T (owner)
+  const now = performance.now() / 1000, keep = flashes.filter(f => now - f.t < SEG_FLASH_T);
+  flashes.length = 0; flashes.push(...keep);
+  const lw = ctx.lineWidth, ss = ctx.strokeStyle;
+  ctx.strokeStyle = COL.glow; ctx.lineWidth = SEG_FLASH_W;
+  for (const f of keep) { ctx.globalAlpha = 1 - (now - f.t) / SEG_FLASH_T; ctx.beginPath(); side(f.i); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.lineWidth = lw; ctx.strokeStyle = ss;
 }
+const SEG_FLASH_T = 0.5, SEG_FLASH_W = 4.5;

@@ -114,9 +114,10 @@ function drawCore() {
   const lvl = coreLvl();
   // LIVES drawn like an enemy's shield (owner): SEGMENTS of the core's own hex,
   // one per life, no number (aspira-enemies.js syncSegs / drawSegs)
-  G.lifeSegs = syncSegs(G.lifeSegs || [], Math.max(0, G.lives), 6);
+  G.lifeFlash = G.lifeFlash || [];
+  G.lifeSegs = syncSegs(G.lifeSegs || [], Math.max(0, G.lives), 6, G.lifeFlash);
   ctx.strokeStyle = COL.white; ctx.lineWidth = 1.8;
-  drawSegs(CX, CY, G.lifeSegs, 6, Math.PI / 6, CORE_R, LIFE_GAP);
+  drawSegs(CX, CY, G.lifeSegs, 6, Math.PI / 6, CORE_R, LIFE_GAP, G.lifeFlash); // a lost life flashes red
   const out = LIFE_GAP * LIFE_RINGS / CORE_R; // the level rings sit outside the life rings
   if (lvl) {
     ctx.strokeStyle = COL.white; ctx.shadowColor = COL.white; ctx.shadowBlur = TOWER_GLOW[lvl] * cam.k; ctx.lineWidth = 3.5;
