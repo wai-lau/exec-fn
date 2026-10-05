@@ -12,7 +12,7 @@ function newGame() {
   // loads after this file, so the very first call finds no pushCells yet)
   if (typeof pushCells === "function") pushCells(0);
   return {
-    money: START_MONEY, lives: 20, score: 0, wave: 0, interest: 0.03,
+    money: START_MONEY, lives: 18, score: 0, wave: 0, interest: 0.03, // 18 = two full shield rings (owner)
     towers: [], enemies: [], spawns: [], chains: [], nextIn: 0, started: false, over: false,
     power: { SCR: 0, RNG: 0, MNY: 0, DAM: 0 }, charge: 0,
     nextLifeAt: 50000, id: 1,
@@ -236,18 +236,20 @@ function kill(e, t) {
   if (e.charged) staticDischarge(e); // ARC's Static
 }
 
-// the star drops +10 LIVES or +1% INTEREST (was +5%), half and half (owner, 2026-10-02:
+// LIVES come in multiples of LIFE_STEP 6 - a ring's first side count (owner, 2026-10-04)
+const LIFE_STEP = 6;
+// the star drops +12 LIVES (was +10) or +1% INTEREST (was +5%), half and half (owner, 2026-10-02:
 // never score, no credits; x10 since it now comes every 10th wave); fixed
 // per wave, like the waves
 function bonusDrop(e) {
-  if (fixedRand(e.n, 4) < 0.5) { G.lives += 10; float(e.x, e.y - 18, "+10 lives", "cyan"); }
+  if (fixedRand(e.n, 4) < 0.5) { G.lives += 2 * LIFE_STEP; float(e.x, e.y - 18, "+" + 2 * LIFE_STEP + " lives", "cyan"); }
   else { G.interest += 0.01; float(e.x, e.y - 18, "+1% interest", "cyan"); } // owner: was +5%, too much compounding
 }
 
 function addScore(n) {
   G.score += n * (G.power.SCR > 0 ? 2 : 1);
   while (G.score >= G.nextLifeAt) {
-    G.lives++; sfx("life"); banner("extra life");
+    G.lives += LIFE_STEP; sfx("life"); banner("+" + LIFE_STEP + " lives");
     G.nextLifeAt = G.nextLifeAt < 100000 ? 100000 : G.nextLifeAt + 100000;
   }
 }
