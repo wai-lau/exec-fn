@@ -84,12 +84,15 @@ function stepChains(dt) {
   }
 }
 
-// the nearest enemy within arc reach of the node's enemy (and the tower's leash)
+// the nearest enemy within arc reach of the node's enemy (and the tower's
+// leash) that is NOT AN ANCESTOR of this node (owner: every ARC hop, not just
+// back to its own parent) - an arc never runs back up its own branch
 function nextHop(c, node) {
-  const from = node.e, leash = chainReach(c.st) ** 2;
+  const from = node.e, leash = chainReach(c.st) ** 2, anc = new Set();
+  for (let n = node; n; n = n.up) anc.add(n.e.id);
   let nxt = null, nd = c.st.arcRange * c.st.arcRange;
   for (const o of G.enemies) {
-    if (o.dead || o === from || node.kids.has(o.id)) continue;
+    if (o.dead || anc.has(o.id) || node.kids.has(o.id)) continue;
     if (c.st.noRevisit && c.seen.has(o.id)) continue; // Ion: a line runs ON, never back
     if ((o.x - c.t.x) ** 2 + (o.y - c.t.y) ** 2 > leash) continue;
     const d = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
@@ -100,8 +103,12 @@ function nextHop(c, node) {
 // Crescendo (st.hopGain): each layer deeper hits that much harder than the last
 function hopTo(c, node, nxt, depth) {
   const { t, st, col } = c, d = shotDamage(t, st, nxt, c.dmg * (st.hopGain || 1) ** (depth - 1));
-  node.kids.add(nxt.id); c.seen.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5, d);
+  // Crescendo / Fortissimo: each hop LOOKS heavier too (owner) - a thicker
+  // beam, a growing ring and more sparks the deeper it goes
+  const up = st.hopGain ? depth - 1 : 0;
+  node.kids.add(nxt.id); c.seen.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5 * (1 + 0.6 * up), d);
   if (c.st.ignoreShield) fx[fx.length - 1].pierce = true;
+  if (up) { ring(nxt.x, nxt.y, 14 + 9 * up, col, 0.18 + 0.05 * up); burst(nxt.x, nxt.y, col, 3 * up); }
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one
   chainHit(c, nxt, d);
