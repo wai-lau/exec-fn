@@ -374,15 +374,20 @@ function usePower(code) {
 
 // ---------- towers MOVE (owner, 2026-10-03) ----------
 // Each tower slides along its own SPOKE - the line from the core out through
-// its slot - at most TOWER_MOVE a second, between its slot and radius
-// TOWER_MOVE_R, to wherever moveTower says. Its slot stays its own
+// its slot - at its kind's MOVE SPEED, between its slot and its kind's
+// REACH (a radius from the core), to wherever moveTower says. Its slot stays its own
 // (placement, Space, Horizon).
-// towers slide out to TOWER_MOVE_R from the core's centre at most (owner: 350)
-const TOWER_MOVE = 80, TOWER_MOVE_R = 350;
+// each kind moves at its own SPEED (units / game-s) and slides out to its own
+// REACH (owner, 2026-10-04): ACD fastest, ARC next, SOL and FRZ slowest; FRZ
+// reaches furthest, ACD and ARC next, SOL least (its weapon range was raised
+// to make up for it)
+const TOWER_SPEED = { acid: 120, chain: 90, reaper: 60, slower: 60 };
+const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 250 };
+const moveSpeed = t => TOWER_SPEED[t.kind];
 // the spoke: its unit direction, the slot's radius and how far out it runs
 function spokeOf(t) {
   const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
-  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_MOVE_R - r0) };
+  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_REACH[t.kind] - r0) };
 }
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
 // WHERE it heads (owner, 2026-10-04): the spot that maximises ANTICIPATED
@@ -396,7 +401,7 @@ function moveTower(t, dt) {
   if (t.posT <= 0) { t.posT = POS_EVERY; t.want = bestSpot(t, k, towerStats(t).range); }
   const want = Math.max(0, Math.min(max, t.want ?? max)); // nothing alive: rest OUTERMOST (owner)
   // eased: aim for the speed that still stops on the mark, then ramp to it
-  const gap = want - off, vWant = Math.sign(gap) * Math.min(TOWER_MOVE, Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
+  const gap = want - off, vWant = Math.sign(gap) * Math.min(moveSpeed(t), Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
   const v = t.v || 0, dv = TOWER_ACCEL * dt;
   t.v = Math.abs(vWant - v) <= dv ? vWant : v + Math.sign(vWant - v) * dv;
   t.off = Math.max(0, Math.min(max, off + t.v * dt));
