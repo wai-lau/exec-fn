@@ -186,7 +186,7 @@ function inspectTower(el, t) {
     '<dl class="asp-spec">' + SPEC[t.kind](st, t).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
     // upgrade, then sell, then the targeting - SMALL, under sell (owner)
     '<div class="asp-row" id="asp-upbox"></div><div class="asp-row" id="asp-acts"></div>' +
-    '<div class="asp-row asp-modes" id="asp-modes"></div>';
+    '<div class="asp-prio">Priority:</div><div class="asp-row asp-modes" id="asp-modes"></div>';
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });

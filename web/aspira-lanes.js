@@ -114,3 +114,38 @@ function drawLanes() {
   placeLabels(items);
   ctx.globalAlpha = 1;
 }
+
+// the chart's RULER (owner: show how long X units are, on the flat line left
+// and right of the centre): a horizontal line through the centre and on to the
+// screen's edges, graduated in units from the core's centre. Finer near the
+// middle, sparser outward (owner): a notch every 10 out to 200, every 50 out to
+// 1000, then every 100; numbered every 100 to 500, every 200 to 1000, then 500.
+const RULER_R = 2000;
+const rulerNotch = r => r <= 200 || (r <= 1000 ? r % 50 === 0 : r % 100 === 0);
+const rulerLabel = r => r % (r <= 500 ? 100 : r <= 1000 ? 200 : 500) === 0;
+function drawScaleBar() {
+  ctx.strokeStyle = COL.grid; ctx.globalAlpha = 1; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(CX - RULER_R, CY); ctx.lineTo(CX + RULER_R, CY);
+  for (let r = 10; r <= RULER_R; r += 10) {
+    if (!rulerNotch(r)) continue;
+    const h = r % 100 === 0 ? 8 : r % 50 === 0 ? 5 : 2.5;
+    for (const sx of [-1, 1]) { ctx.moveTo(CX + sx * r, CY - h); ctx.lineTo(CX + sx * r, CY + h); }
+  }
+  ctx.stroke();
+  for (let r = 100; r <= RULER_R; r += 100) if (rulerLabel(r)) for (const sx of [-1, 1]) text(String(r), CX + sx * r, CY + 18, 12, "grid");
+}// Stars TWINKLE (owner): each one's brightness breathes on its own rate and
+// phase (fixed per star from its index, so the field never reshuffles), on
+// real time so it keeps going while paused. Colour never changes.
+function drawStars() {
+  const now = performance.now() / 1000, red = starRed(); // reddening before a boss (aspira-bosses.js)
+  STARS.forEach((st, i) => {
+    const rate = 0.6 + ((i * 0.618) % 1) * 1.8, ph = (i * 2.399) % 6.283;
+    const tw = 0.5 + 0.5 * Math.sin(now * rate + ph), a = Math.min(1, 0.25 + st.m * 0.3) * (0.35 + 0.65 * tw);
+    ctx.beginPath(); ctx.arc(st.x, st.y, st.m * (0.85 + 0.15 * tw), 0, 6.283);
+    // white fading into Ember (the palette's red) as `red` goes 0 -> 1
+    if (red < 1) { ctx.fillStyle = COL.white; ctx.globalAlpha = a * (1 - red); ctx.fill(); }
+    if (red > 0) { ctx.fillStyle = COL.glow; ctx.globalAlpha = a * red; ctx.fill(); }
+  });
+  ctx.globalAlpha = 1;
+}
