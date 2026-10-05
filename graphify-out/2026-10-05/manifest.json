@@ -50,8 +50,8 @@
     "semantic_hash": ""
   },
   "api/main.py": {
-    "mtime": 1791163907.451515,
-    "ast_hash": "d7c5c55f2513d7f54ec44fe7e724a2dc",
+    "mtime": 1790981535.9962573,
+    "ast_hash": "26462e3b291582fb66f765047b768680",
     "semantic_hash": ""
   },
   "api/monitor.py": {
@@ -205,13 +205,13 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1791183113.9812343,
-    "ast_hash": "f09c024ead2a433773c1e0d9d2725ea3",
+    "mtime": 1791072648.4539626,
+    "ast_hash": "4ec3b7b88695876a67efd2526576ff76",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1791163927.8206127,
-    "ast_hash": "477cb67b945fde2495b7ff1a74d0ce38",
+    "mtime": 1791043305.680862,
+    "ast_hash": "ff7063e4369e31fad4957ceff2e48821",
     "semantic_hash": ""
   },
   "README.md": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1791163907.4525151,
-    "ast_hash": "e7044fd44948692199ff46cf345598a8",
+    "mtime": 1791043094.5919673,
+    "ast_hash": "8462c511f0a4087b3c070171b6eaf174",
     "semantic_hash": ""
   },
   "api/routers.py": {
@@ -975,8 +975,8 @@
     "semantic_hash": ""
   },
   "api/routes_views.py": {
-    "mtime": 1791163907.4525151,
-    "ast_hash": "50450575335e42f94de7c47d29e0c9d0",
+    "mtime": 1790981713.8059514,
+    "ast_hash": "f23967f772e7183599f5e80d86bb538c",
     "semantic_hash": ""
   },
   "api/nudge_deadlines.py": {
@@ -1040,8 +1040,8 @@
     "semantic_hash": ""
   },
   "tests/test_smoke.py": {
-    "mtime": 1791163907.4525151,
-    "ast_hash": "89fa520e73c98ddeebee88de5523a7cb",
+    "mtime": 1791065839.943636,
+    "ast_hash": "8a12d6540c83584fe3bd5b8e26d7a312",
     "semantic_hash": ""
   },
   "requirements-dev.txt": {
@@ -1115,8 +1115,8 @@
     "semantic_hash": ""
   },
   "scripts/palette-baseline.json": {
-    "mtime": 1791177390.8147085,
-    "ast_hash": "74a2d744a3813a495ccccb6ea5829c95",
+    "mtime": 1790920592.3086767,
+    "ast_hash": "892154671818593adead7183cd81ad3f",
     "semantic_hash": ""
   },
   "web/firewall.png": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1791189007.285815,
+    "mtime": 1791102605.761614,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1791189010.2168272,
-    "ast_hash": "0c3458d9df62c411fb8dd662bef9a3de",
+    "mtime": 1791102608.712626,
+    "ast_hash": "28cc94cb4e18ea1229260c8db480c596",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1791189007.6438165,
-    "ast_hash": "0d22b8c1b9bb6beccc8c32266440bc28",
+    "mtime": 1791102630.1337132,
+    "ast_hash": "84fd3ca4afd490cd12e8ae6a2636d8ba",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1791105017.9511042,
+    "mtime": 1791018619.0049388,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1791105017.9591043,
+    "mtime": 1791018619.0149388,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -6760,8 +6760,8 @@
     "semantic_hash": ""
   },
   "scripts/raw-color-baseline.json": {
-    "mtime": 1791177390.8517087,
-    "ast_hash": "0ff023e1da7781d3bc3b3a08591fa134",
+    "mtime": 1790920592.3306768,
+    "ast_hash": "a1c3fc7c11cb4b5b3cd65a92cadf3153",
     "semantic_hash": ""
   },
   "scripts/scale-baseline.json": {
@@ -7055,8 +7055,8 @@
     "semantic_hash": ""
   },
   "api/data/cc_titles.json": {
-    "mtime": 1791139127.4431498,
-    "ast_hash": "c69299a8afd1223eaa5e3c96b7d98647",
+    "mtime": 1790884203.2009768,
+    "ast_hash": "84502e885472f1be26702fd2aa9b296c",
     "semantic_hash": ""
   },
   "api/data/mtg_sessions/mtg_mtwgpi33.json": {
@@ -9475,8 +9475,8 @@
     "semantic_hash": ""
   },
   "tests/test_noodle_ask.py": {
-    "mtime": 1791177102.0375912,
-    "ast_hash": "65132d25463e297e56c0295cd851ec13",
+    "mtime": 1790630486.090153,
+    "ast_hash": "a98c072c11caf178f89bf68fce437e57",
     "semantic_hash": ""
   },
   "tests/test_noodle_browser.py": {
@@ -9835,8 +9835,8 @@
     "semantic_hash": ""
   },
   "api/routes_aspira.py": {
-    "mtime": 1791163907.451515,
-    "ast_hash": "8219b334cd9869a4cdc179bdcf7d1a2b",
+    "mtime": 1790981930.1578062,
+    "ast_hash": "40fba126942c93e8fff258d7c9164007",
     "semantic_hash": ""
   },
   "claude-box/uploads.mjs": {
@@ -9865,8 +9865,8 @@
     "semantic_hash": ""
   },
   "scripts/aspira-sim/sim.mjs": {
-    "mtime": 1791162598.6752093,
-    "ast_hash": "90ca7b0ca61e77916fde3e1bc2cf9bd3",
+    "mtime": 1790976197.9744468,
+    "ast_hash": "9de2ab22ca875741d10b150eedb815db",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/style.mjs": {
@@ -9885,43 +9885,43 @@
     "semantic_hash": ""
   },
   "web/aspira-defs.js": {
-    "mtime": 1791182839.6863506,
-    "ast_hash": "4b542abc155b90a8fb34626b0a30c27a",
+    "mtime": 1791043168.352281,
+    "ast_hash": "4482fd915cab795f11d776b124e904b7",
     "semantic_hash": ""
   },
   "web/aspira-draw.js": {
-    "mtime": 1791182558.5105891,
-    "ast_hash": "20c0206667e90fbd97cb31ac1765476e",
+    "mtime": 1791071328.7204883,
+    "ast_hash": "491f056620b4a1d95c8b037f7e1d1299",
     "semantic_hash": ""
   },
   "web/aspira-game.js": {
-    "mtime": 1791180016.2778711,
-    "ast_hash": "f3e69596649f820e826ebdb5eb081c71",
+    "mtime": 1791071266.858217,
+    "ast_hash": "ff90aab67b66ddccd98d9358b52e0d64",
     "semantic_hash": ""
   },
   "web/aspira-lanes.js": {
-    "mtime": 1791182839.6893506,
-    "ast_hash": "d9cc6f2dc746f84f3df5f873b25612f7",
+    "mtime": 1790971412.4517772,
+    "ast_hash": "95279e50f41bcff3579a18f8a3207840",
     "semantic_hash": ""
   },
   "web/aspira-sfx.js": {
-    "mtime": 1791172696.8657486,
-    "ast_hash": "592a88847f7e0e4b7ca5c11d427128c7",
+    "mtime": 1790981930.1608062,
+    "ast_hash": "8bf9a40f4f9912a96d2fd29b133c30c8",
     "semantic_hash": ""
   },
   "web/aspira-towers.js": {
-    "mtime": 1791181905.7551253,
-    "ast_hash": "a3037c7a080b141c1ed425bdcb7155ef",
+    "mtime": 1791072474.8892584,
+    "ast_hash": "2bca7beac29ae33e1736cee1f4fa86f8",
     "semantic_hash": ""
   },
   "web/aspira-ui.js": {
-    "mtime": 1791183052.309027,
-    "ast_hash": "ae511ffb8fd928d8a3c413a156be6034",
+    "mtime": 1791071699.7000718,
+    "ast_hash": "487ea2c8fc65744f4cc2443065708aee",
     "semantic_hash": ""
   },
   "web/aspira-upgrades.js": {
-    "mtime": 1791168825.2811878,
-    "ast_hash": "54a78c63b4fb8960aa1cd16dc50a7125",
+    "mtime": 1791036001.241823,
+    "ast_hash": "979db4e309246c3d5f79eae9170122c7",
     "semantic_hash": ""
   },
   "web/exec-attach.js": {
@@ -9930,8 +9930,8 @@
     "semantic_hash": ""
   },
   "api/templates/aspira.html": {
-    "mtime": 1791183052.318027,
-    "ast_hash": "59ba6feb98fc0121d5b38bcfc0bd99df",
+    "mtime": 1791072648.4319625,
+    "ast_hash": "f5cbec513326dd4a447f77c25fb0f10d",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/README.md": {
@@ -9970,23 +9970,23 @@
     "semantic_hash": ""
   },
   "web/aspira-bosses.js": {
-    "mtime": 1791181913.6381116,
-    "ast_hash": "b13080e8b5e9d2d33a9e10cfb860d719",
+    "mtime": 1790982604.4995086,
+    "ast_hash": "f19a72e49c3a21673f339f5a1c6c4f13",
     "semantic_hash": ""
   },
   "web/aspira-core.js": {
-    "mtime": 1791178936.2835243,
-    "ast_hash": "ae3198ee3b6a39a3a5ab7d15317e5015",
+    "mtime": 1791071266.8572168,
+    "ast_hash": "8101cc3bcbc0049e1af973a664deb277",
     "semantic_hash": ""
   },
   "web/aspira-enemies.js": {
-    "mtime": 1791177374.6346457,
-    "ast_hash": "d0c4a51171abb56a41f0ecbdb4ccf4ca",
+    "mtime": 1791003910.397927,
+    "ast_hash": "b2a47dbe43a1e47862dd6f8718d1c25c",
     "semantic_hash": ""
   },
   "web/aspira-waves.js": {
-    "mtime": 1791180602.3320048,
-    "ast_hash": "26913df17caedb9156740fd08405ecd1",
+    "mtime": 1791072629.1488843,
+    "ast_hash": "fc042b1a66ae8b33059a620aff34f816",
     "semantic_hash": ""
   },
   "api/data/aspira-sfx/README.txt": {
@@ -14812,41 +14812,6 @@
   ".archaeology/media/noodle-demo.2026-10-03-retired.mp4": {
     "mtime": 1791065348.2685344,
     "ast_hash": "ec2755e1297dd7ee2833b4b3c4a9deb2",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20261005.json": {
-    "mtime": 1791139130.8781636,
-    "ast_hash": "66de52adbc324971a12f64db0fd873fb",
-    "semantic_hash": ""
-  },
-  "scripts/aspira-sim/bossbal.mjs": {
-    "mtime": 1791179297.2549155,
-    "ast_hash": "c7196fab7958c76dd1bc7710ceeab0f9",
-    "semantic_hash": ""
-  },
-  "scripts/aspira-sim/typebal.mjs": {
-    "mtime": 1791170928.7872565,
-    "ast_hash": "fb175b299544b63b39961e8a00095aec",
-    "semantic_hash": ""
-  },
-  "scripts/aspira-sim/wavebal.mjs": {
-    "mtime": 1791169717.190084,
-    "ast_hash": "1e18d40e1d63a6eddb9a2351baf65658",
-    "semantic_hash": ""
-  },
-  "web/aspira-chooser.js": {
-    "mtime": 1791162940.7114704,
-    "ast_hash": "eb7b001fddc5ab96c57228db4b572cb1",
-    "semantic_hash": ""
-  },
-  "web/aspira-positioning.js": {
-    "mtime": 1791168988.3388171,
-    "ast_hash": "bf4befa602ebc27ade62250e8cb6fb82",
-    "semantic_hash": ""
-  },
-  "web/aspira-wavelist.js": {
-    "mtime": 1791180016.2768712,
-    "ast_hash": "7e9d74ba8ad8f3ebbbe759f6cff868ba",
     "semantic_hash": ""
   }
 }
