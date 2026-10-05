@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web") + "/";
-const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-core.js"];
+const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-positioning.js", "aspira-core.js"];
 
 export function makeGame(seed, patch = "") {
   let a = seed >>> 0 || 1;
