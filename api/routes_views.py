@@ -72,7 +72,7 @@ _LANDING_BLURBS = {
     "recruiter": "Résumé",
     "security": "Crawlers",
     "noodle": "noodle",
-    "aspira": "Aspira",
+    "aspira": "The Spire",
 }
 
 # One plain line under each title saying what the thing actually is.
