@@ -26,7 +26,7 @@ function short(n) {
 // Towers snap to the triangular cells of the build disc (CELLS in
 // aspira-defs.js); a cell holds at most one tower.
 function canPlace(ci) {
-  return ci >= 0 && !occupied(ci);
+  return cellOpen(ci) && !occupied(ci);
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
@@ -260,7 +260,7 @@ const NOFUNDS_MS = 450; // the shake's 0.4s, and a little
 function flashBuild() {
   $("asp-build").classList.toggle("asp-flash", !G.started && !G.towers.length);
   // every slot taken: the build buttons go (owner), and so does any half-made pick
-  const full = G.towers.length >= CELLS.length;
+  const full = G.towers.length >= openCells(); // a corner slot opening brings them back
   $("asp-build").style.display = full ? "none" : "";
   if (full && ui.build) { ui.build = null; $("asp-placing").hidden = true; }
 }

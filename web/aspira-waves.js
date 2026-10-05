@@ -76,6 +76,8 @@ function sendWave() {
   // (each boss has its own line, "bossvoice.<arcana>", else the shared one)
   if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", bossVoice(arcanaOf(G.wave).id)]);
   sfx("wave");
+  // a corner slot opens this wave (owner): say so where it appears
+  CELLS.forEach(c => { if (c.unlock === G.wave && typeof float === "function") float(c.x, c.y - 24, "new slot", "green", 22, 3); });
   const lanes = laneMap(G.wave);
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once

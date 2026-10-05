@@ -20,6 +20,9 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // the core; towers and enemies never collide, so building on a lane is fine.
 // Only SIX slots (owner, 2026-10-02): the ring of hexes around the core.
 const CELL_S = 32, CELL_PITCH = 2;
+// the corner slots: [angle (deg, screen: -90 = up), wave it opens]; they sit
+// CORNER_OUT x the ring's radius out, so they clear the ring towers either side
+const CORNER_SLOTS = [[-30, 40], [-150, 50], [90, 60]], CORNER_OUT = 1.3, TILE_R = Math.sqrt(3) * CELL_S * CELL_PITCH * CORNER_OUT;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
 // the build area, which now spans the whole chart)
@@ -45,8 +48,19 @@ const CELLS = (function buildCells() {
     }
     if (Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) === 1) out.push({ pts, x, y });
   }
+  // THREE MORE slots (owner, 2026-10-05) out of the core's CORNERS, a little way
+  // past the ring, a TOP-HEAVY triangle: upper right, upper left, then straight
+  // down; each opens at its wave (CORNER_UNLOCK) and is hidden till then
+  CORNER_SLOTS.forEach(([deg, unlock]) => {
+    const a = deg * Math.PI / 180, x = CX + Math.cos(a) * TILE_R, y = CY + Math.sin(a) * TILE_R, pts = [];
+    for (let k = 0; k < 6; k++) { const b = Math.PI / 6 + k * Math.PI / 3; pts.push({ x: x + CELL_S * Math.cos(b), y: y + CELL_S * Math.sin(b) }); }
+    out.push({ pts, x, y, unlock });
+  });
   return out;
 })();
+// a slot is OPEN once its unlock wave has come (the six ring slots always are)
+const cellOpen = ci => ci >= 0 && (!CELLS[ci].unlock || (typeof G !== "undefined" && G && G.wave >= CELLS[ci].unlock));
+const openCells = () => CELLS.filter((c, i) => cellOpen(i)).length;
 
 // Centre-to-centre distance between neighbouring cells: one "tile".
 const TILE = Math.sqrt(3) * CELL_S * CELL_PITCH;
@@ -56,9 +70,9 @@ function occupied(ci) { return G.towers.some(t => t.cell === ci); }
 // cell centre within one tile (a tap just outside the grid still lands).
 function snapCell(x, y) {
   const ci = cellAt(x, y);
-  if (ci >= 0) return ci;
+  if (cellOpen(ci)) return ci;
   let best = -1, bd = TILE;
-  CELLS.forEach((c, i) => { const d = Math.hypot(c.x - x, c.y - y); if (d < bd) { bd = d; best = i; } });
+  CELLS.forEach((c, i) => { const d = Math.hypot(c.x - x, c.y - y); if (cellOpen(i) && d < bd) { bd = d; best = i; } });
   return best;
 }
 
