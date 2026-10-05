@@ -57,7 +57,7 @@
 }
 
 /* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
-.asp-wavenote > span:nth-child(4n + 1) { text-align: right; }
+.asp-wavenote > span:nth-child(4n + 1) { min-width: 8ch; text-align: right; } /* fixed: LXXXVIII is the widest numeral, so the list never shifts (owner) */
 
 .asp-wavenote > span:nth-child(4n) { padding-left: 2ch; } /* a gap before the name (owner) */
 
