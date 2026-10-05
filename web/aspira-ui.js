@@ -89,6 +89,29 @@ KINDS.forEach((k, i) => {
   }, v === "pause" ? "asp-sp-pause" : speedId(v));
 });
 
+// AUTO-WAIT (owner): a checkbox under the pause button; while ticked, the game
+// drops to 1/2x whenever an enemy is within AUTO_WAIT_R of the core, and goes
+// back to the chosen speed once none is. Remembered in localStorage.
+const AUTO_WAIT_R = 200;
+let autoWait = false;
+try { autoWait = localStorage.getItem("spire.autowait") === "1"; } catch (e) { /* storage blocked: off */ }
+const autoWaiting = () => autoWait && !ui.paused && G.enemies.some(e => !e.dead && Math.hypot(e.x - CX, e.y - CY) <= AUTO_WAIT_R);
+(function autoWaitBox() {
+  const row = document.createElement("div");
+  row.className = "asp-row asp-autowait";
+  $("asp-speed").after(row);
+  const btn = button(row, "asp-check", "", () => {
+    autoWait = !autoWait;
+    try { localStorage.setItem("spire.autowait", autoWait ? "1" : "0"); } catch (e) { /* not remembered */ }
+  }, "asp-autowait");
+  btn.setAttribute("role", "checkbox");
+})();
+function updateAutoWait() {
+  const btn = $("asp-autowait"), html = (autoWait ? "☑" : "☐") + " auto-wait";
+  if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
+  btn.classList.toggle("on", autoWaiting()); // lit while it is holding the game at 1/2x
+}
+
 // the sound toggle is an ICON (owner: was "sound on"/"sound off"): a speaker
 // with waves, or crossed out
 const ICON_SOUND = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
@@ -266,6 +289,7 @@ function updateHud() {
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
   setText($("asp-wave"), G.wave);
   setText($("asp-score"), G.score.toLocaleString());
+  updateAutoWait();
   setText($("asp-best"), Math.max(best.score, G.score).toLocaleString());
   flashBuild();
   for (const k of KINDS) {
@@ -390,7 +414,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {
-    let left = dt * SPEED_MULT[ui.speed];
+    let left = dt * SPEED_MULT[autoWaiting() ? 0.5 : ui.speed];
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
   }
