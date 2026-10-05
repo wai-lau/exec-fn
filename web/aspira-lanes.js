@@ -12,6 +12,9 @@
 // Labels are drawn unmasked.
 const LANE_FADE_R = 550; // just past the rim circle (482-494)
 const laneCv = document.createElement("canvas"), lctx = laneCv.getContext("2d");
+// the live lanes' GLOW, on its own layer so it can fade much faster outward:
+// its radial mask is applied GLOW_FALLOFF times (alpha ~ (1 - r/R)^n)
+const glowCv = document.createElement("canvas"), gctx = glowCv.getContext("2d"), GLOW_FALLOFF = 3;
 // the FAINT trace of all twelve lanes never changes, so it is drawn once into
 // baseCv and only redrawn when the camera or the canvas size moves (it was
 // most of every frame: ~300ms of ~1s in headless WebKit, 2026-10-02)
@@ -46,19 +49,23 @@ function drawLaneStrokes(live) {
   // each lane IN USE lit in its rider's colour - drawn rotated when a split
   // wave rides a rotated copy of it (u.ang)
   laneLayer(laneCv, lctx, cv.width, cv.height);
+  laneLayer(glowCv, gctx, cv.width, cv.height);
   for (const u of live) {
-    lctx.save();
-    lctx.translate(CX, CY); lctx.rotate(u.ang); lctx.translate(-CX, -CY);
+    lctx.save(); gctx.save();
+    for (const x of [lctx, gctx]) { x.translate(CX, CY); x.rotate(u.ang); x.translate(-CX, -CY); }
     // the bonus STAR's lane burns three times as bright as the rest (owner)
     const k = u.star ? 3 : 1;
-    lctx.strokeStyle = COL[u.color];
-    // a wide GLOW that grows in intensity toward the core (owner) - the radial
-    // lane mask below fades everything outward, so this builds up inward
-    lctx.globalAlpha = 0.18 * k * u.a; lctx.lineWidth = 20; lctx.stroke(PATHS[u.pi].p2d); // more intense (owner; was 0.07, 16)
+    lctx.strokeStyle = gctx.strokeStyle = COL[u.color];
+    // a wide GLOW that grows in intensity toward the core (owner), on its own
+    // layer with a much steeper fade outward (owner: "stronger gradient")
+    gctx.globalAlpha = Math.min(1, 0.18 * k * u.a); gctx.lineWidth = 20; gctx.stroke(PATHS[u.pi].p2d);
+    gctx.restore();
     lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
     lctx.restore();
   }
+  for (let i = 0; i < GLOW_FALLOFF; i++) laneMask(gctx);
+  blit(glowCv);
   laneMask(lctx);
   blit(laneCv);
 }
