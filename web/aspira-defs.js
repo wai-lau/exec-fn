@@ -210,8 +210,8 @@ function resolveColors() {
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 42, rate: 1.5,  range: 173.4, blurb: "Arcs to nearby enemies.", up: "extra arcs" },
-  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 7.5, rate: 2.4,  range: 160,  blurb: "Slows and nicks one enemy; each pulse pops a shield charge.", up: "slow strength" },
-  reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 140,  rate: 1.35,  range: 287, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 7.5, rate: 2.4,  range: 176,  blurb: "Slows and nicks one enemy; each pulse pops a shield charge.", up: "slow strength" },
+  reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 140,  rate: 1.35,  range: 350, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
   acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 18,  rate: 4,    range: 230, blurb: "A burning line on one enemy; the longer it holds, the harder it burns.", up: "burn" },
 };

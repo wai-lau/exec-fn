@@ -44,7 +44,7 @@ function bestSpot(t, k, range) {
   // POS_STALE for the rest, Near plain (the urgency weight already favours the core)
   const f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? e.hp / pred.maxHp : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : 1) + 1 - POS_MODE_MIX);
   const score = oi => {
-    const o = oi * POS_STEP, x = k.c.x + k.ux * o, y = k.c.y + k.uy * o, eta = Math.abs(o - off) / TOWER_MOVE;
+    const o = oi * POS_STEP, x = k.c.x + k.ux * o, y = k.c.y + k.uy * o, eta = Math.abs(o - off) / moveSpeed(t);
     let n = 0;
     pred.forEach(({ pts }, i) => { for (const p of pts) if (p.t >= eta && (p.x - x) ** 2 + (p.y - y) ** 2 <= r2) n += p.w * f[i]; });
     return n;
