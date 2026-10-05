@@ -59,8 +59,8 @@ function drawEnemy(e) {
   // shield = SEGMENTS (owner): one per charge, on rings of its own shape
   if (e.shield > 0 || e.shSegs) {
     e.shSegs = syncSegs(e.shSegs || [], Math.max(0, e.shield), d.sides);
-    ctx.lineWidth = 1.8;
-    drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 5);
+    ctx.lineWidth = 1.4;
+    drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 2.5); // layers tight (owner: much thinner gap; was 5)
   }
   ctx.globalAlpha = 1;
   if (e.charged) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
