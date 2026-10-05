@@ -244,7 +244,7 @@ const TWIN_GAP = 3.5; // Charge's parallel beams sit 2 x this apart
 function drawFx(pass) {
   for (const f of fx) {
     const kind = f.k !== "text" ? "shots" : f.under ? "dmg" : "text";
-    if (kind !== pass) continue;
+    if (kind !== pass || f.t >= f.life) continue; // a retired damage number (dmgNumber) is not drawn
     // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
