@@ -390,6 +390,20 @@ function spokeOf(t) {
   return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_REACH[t.kind] - r0) };
 }
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
+// the tower whose TRACK passes nearest p, within TRACK_HIT (owner: tapping near
+// the slider line opens its card too); its line runs from the core's edge to
+// just past its reach (spokeTrack)
+const TRACK_HIT = 16;
+function trackAt(p) {
+  let best = null, bd = TRACK_HIT;
+  for (const t of G.towers) {
+    const k = spokeOf(t), along = (p.x - CX) * k.ux + (p.y - CY) * k.uy;
+    if (along < CORE_R || along > k.r0 + k.max + TRACK_PAST) continue;
+    const d = Math.abs((p.x - CX) * k.uy - (p.y - CY) * k.ux); // distance across the line
+    if (d < bd) { bd = d; best = t; }
+  }
+  return best;
+}
 // WHERE it heads (owner, 2026-10-04): the spot that maximises ANTICIPATED
 // HITS, re-scored live (aspira-positioning.js) - it replaced chasing one
 // target, which walked away from groups. It gets there EASED: speed ramps at
