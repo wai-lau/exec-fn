@@ -463,3 +463,8 @@
 /* the c of "40c" (cr) takes the font and colour of the text it ends - the core
    option buttons style every span small and dim otherwise (owner: "fix the c") */
 #asp .asp-c { font: inherit; color: inherit; }
+
+/* the auto-wait checkbox, on its own line under the speed row (owner) */
+.asp-autowait { margin-top: var(--space-1); }
+
+#asp .asp-autowait button { padding: var(--space-1) var(--space-2); font-size: var(--fs-2xs); }
