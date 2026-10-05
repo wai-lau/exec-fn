@@ -450,15 +450,6 @@
 /* FPS is debug noise (owner): the counter keeps running, unseen */
 .asp-stat:has(#asp-fps) { display: none; }
 
-/* a live boss's HP bar under the speed row (aspira-ui.js updateBossBar) */
-.asp-bossbar { display: flex; align-items: center; gap: var(--space-2); max-width: 420px; margin-top: var(--space-2); font-size: var(--fs-2xs); }
-
-.asp-bossbar[hidden] { display: none; }
-
-.asp-bossbar .asp-bar { flex: 1; }
-
-.asp-bossname { white-space: nowrap; color: hsl(var(--orange-glow-hsl)); }
-
 
 /* the targeting buttons sit SMALL under sell (owner) */
 #asp .asp-modes button { padding: var(--space-1) var(--space-2); font-size: var(--fs-2xs); }

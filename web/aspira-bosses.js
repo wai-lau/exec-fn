@@ -105,12 +105,13 @@ function drawBossInvert() {
   } else if (!alive.length && bossInv.phase === "in") {
     Object.assign(bossInv, { phase: "out", t0: now, x: CX, y: CY }); // collapses onto the CORE too (owner)
   }
-  if (bossInv.phase === "off") { bossInv.full = false; return; }
+  if (bossInv.phase === "off") { bossInv.full = false; bossInv.r = 0; return; }
   // the circle must reach the canvas corner furthest from its centre
   const corners = [[0, 0], [cv.width, 0], [0, cv.height], [cv.width, cv.height]].map(([px, py]) => ({ x: (px - cam.ox) / cam.k, y: (py - cam.oy) / cam.k }));
   const R = Math.max(...corners.map(c => Math.hypot(c.x - bossInv.x, c.y - bossInv.y))) * 1.3; // the soft edge clears the corners
   const p = Math.min(1, (now - bossInv.t0) / BOSS_INV_T), ease = p * p * (3 - 2 * p);
   const r = bossInv.phase === "in" ? R * ease : R * (1 - ease);
+  bossInv.r = r; // the boss's HP line grows and shrinks with this edge (drawBossBar)
   bossInv.full = bossInv.phase === "in" && p >= 1;
   if (bossInv.phase === "out" && p >= 1) { bossInv.phase = "off"; return; }
   if (r < 1) return;
@@ -133,4 +134,23 @@ function starRed() {
   else if (before) starTint.k = Math.max(starTint.k, 1 - Math.max(0, G.nextIn) / WAVE_TIMER);
   else starTint.k = Math.max(0, starTint.k - dt / STAR_FADE_T);
   return starTint.k;
+}
+
+// ---------- the boss's HP, on the board (UI only; aspira-draw.js calls it) ----------
+// owner: a THICK line in the boss's colour under the core, stretching to both
+// sides in proportion to the HP left (BOSS_BAR_R at full), never past the
+// inverted sky's spreading edge (bossInv.r) - so it grows out with the circle
+// and shrinks back as it collapses. The boss's NAME sits just above it, where
+// the interest line is otherwise. Drawn before the inversion, so cyan reads red.
+const BOSS_BAR_R = 400, BOSS_BAR_W = 7;
+function drawBossBar() {
+  const bosses = G.enemies.filter(e => e.arcana && !e.dead);
+  if (!bosses.length) return;
+  const hp = bosses.reduce((a, e) => a + Math.max(0, e.hp), 0), max = bosses.reduce((a, e) => a + e.max, 0);
+  const half = Math.min(BOSS_BAR_R * hp / max, bossInv.r || 0), col = ENEMIES.bonus.color;
+  const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20;
+  text(arcanaOf(bosses[0].n).name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 20, col, true);
+  if (half <= 0) return;
+  ctx.strokeStyle = COL[col]; ctx.globalAlpha = 1; ctx.lineWidth = BOSS_BAR_W; ctx.lineCap = "butt";
+  ctx.beginPath(); ctx.moveTo(CX - half, y + 18); ctx.lineTo(CX + half, y + 18); ctx.stroke();
 }
