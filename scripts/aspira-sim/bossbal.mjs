@@ -7,7 +7,8 @@
 // stay out (closest approach >= MIN_D) - so the comparison stays readable late.
 // Then bisect BOSS_HP[arcana] until the boss's closest approach is CLOSER x
 // the neighbours' mean.
-// usage: node bossbal.mjs [measure|tune] [seeds=2]   env BB_ONLY=10,20 to pick waves
+// usage: node bossbal.mjs [measure|tune] [seeds=2]   env BB_ONLY=10,20 to pick waves,
+// BB_HP=x to measure one HP, BB_BROOD=n to try an Empress brood
 import { makeGame } from "./sim.mjs";
 const MODE = process.argv[2] || "measure", SEEDS = Number(process.argv[3] || 2);
 const CLOSER = 0.9, MIN_D = 90;
@@ -26,7 +27,7 @@ function closest(n, lvl, hp, seed) {
     }
   });
   const arc = g.run(`arcanaOf(${n}).id`);
-  g.run(`${hp != null ? `BOSS_HP["${arc}"] = ${hp};` : ""}
+  g.run(`${process.env.BB_BROOD ? `EMPRESS_BROOD = ${process.env.BB_BROOD};` : ""}${hp != null ? `BOSS_HP["${arc}"] = ${hp};` : ""}
     let prev = "swarm"; for (let k = 1; k < ${n}; k++) { const w = wavePlan(k, prev); if (w.type !== "bonus") prev = w.type; }
     G.lastType = prev; G.started = true; G.wave = ${n - 1}; G.nextIn = 0;`);
   g.step(0.02); g.run("G.nextIn = 1e9;");
@@ -44,10 +45,13 @@ const g0 = makeGame(1); g0.reset();
 const res = {};
 for (let n = 10; n <= 100; n += 10) {
   if (ONLY.length && !ONLY.includes(n)) continue;
-  const arc = g0.run(`arcanaOf(${n}).id`), hp0 = g0.run(`BOSS_HP["${arc}"] || 1`);
+  const arc = g0.run(`arcanaOf(${n}).id`), hp0 = Number(process.env.BB_HP) || g0.run(`BOSS_HP["${arc}"] || 1`); // BB_HP: try one HP in measure mode
   let lvl = 1, nb = 0;
-  // neighbours: the two waves either side (four), for less type noise
-  for (; lvl <= g0.MAX_LVL; lvl++) { nb = [-2, -1, 1, 2].reduce((a, k) => a + avg(n + k, lvl), 0) / 4; if (nb >= MIN_D) break; }
+  // neighbours: the two waves either side (four), for less type noise - the
+  // last boss takes the four BEFORE it: the game is won at WIN_WAVE, so the
+  // waves after it never spawn (they read as "nothing came near", 500)
+  const near = n >= g0.run("WIN_WAVE") ? [-4, -3, -2, -1] : [-2, -1, 1, 2];
+  for (; lvl <= g0.MAX_LVL; lvl++) { nb = near.reduce((a, k) => a + avg(n + k, lvl), 0) / 4; if (nb >= MIN_D) break; }
   lvl = Math.min(lvl, g0.MAX_LVL);
   const target = nb * CLOSER, d0 = avg(n, lvl, hp0);
   let hp = hp0, d = d0;

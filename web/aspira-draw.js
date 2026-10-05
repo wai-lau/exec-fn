@@ -44,8 +44,8 @@ function poly(x, y, r, n, rot, star) {
 
 // outline: a thick black stroke wrapped in a soft dark glow (shadow blur)
 // under the fill, so overlapping damage numbers stay separate and readable
-function text(str, x, y, size, color, outline = false) {
-  ctx.font = size + "px " + CANVAS_FONT;
+function text(str, x, y, size, color, outline = false, bold = false) {
+  ctx.font = (bold ? "bold " : "") + size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (outline) {
     ctx.save();
@@ -54,7 +54,7 @@ function text(str, x, y, size, color, outline = false) {
     ctx.strokeText(str, x, y); ctx.strokeText(str, x, y);
     ctx.restore();
   }
-  ctx.fillStyle = COL[color];
+  ctx.fillStyle = COL[color] || color; // a palette key, or a colour already resolved (the boss title's red)
   ctx.fillText(str, x, y);
 }
 
@@ -459,7 +459,7 @@ function render() {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy);
   drawFx("dmg"); // damage numbers sit just above the background, under all else
   drawBoard();
-  drawBossBar(); // a live boss's HP line along the horizon + its name, UNDER the towers and their effects (owner)
+  drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
   for (const t of G.towers) if (t !== sel) drawTowerRange(t, true);
   if (sel) drawTowerRange(sel, false);
@@ -485,4 +485,5 @@ function render() {
   drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
   // ...except the TOWERS and their TRACKS, which keep their own colours (owner): drawn again on top
   if (bossInv.phase !== "off") { drawSpokes(); for (const t of G.towers) drawTower(t); }
+  drawBossTitle(); // the boss's name + subtitle, over the towers (owner)
 }

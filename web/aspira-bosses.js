@@ -3,7 +3,7 @@
 // rules - it comes alone, holds the wave timer, ends the game if it gets
 // through - and adds its own trick:
 //   10 Star        none: the plain boss that teaches the rules
-//   20 Empress     sheds EMPRESS_BROOD swarmers each time it loses a fifth of its HP (owner: 10x, then x0.75 -> 30)
+//   20 Empress     sheds EMPRESS_BROOD swarmers each time it loses a fifth of its HP (owner: 10x, then x0.75 -> 30; fitted -> 12)
 //   30 Strength    no slow or freeze touches it
 //   40 Chariot     every CHARIOT_EVERY s it sprints at CHARIOT_SPD x for CHARIOT_T s
 //   50 Lovers      a PAIR; when one dies the other heals to full and runs LOVERS_SPD x faster
@@ -12,7 +12,7 @@
 //                  lane - any one that gets through ends the game (owner; replaced the Moon)
 //   80 Justice     no single hit takes more than JUSTICE_CAP of its HP
 //   90 Judgement   rises once at JUDGEMENT_REVIVE of its HP
-//  100 Death       a juiced-up Star (owner): no tricks, x3 HP
+//  100 Death       a juiced-up Star (owner): no tricks, the most HP but the Chariot
 // Boss HP is ENEMIES.bonus.hp (halved, owner). Loaded after aspira-waves.js
 // (the simulator loads it too).
 // each with a HINT (owner): a small mythic subtitle under its name - its trick
@@ -29,9 +29,15 @@ const ARCANA = [
   { id: "judgement", name: "Judgement", hint: "What falls is called to rise again." },
   { id: "death", name: "Death", hint: "No riddle. Only the end." },
 ];
-const BOSS_HP = { star: 4, empress: 2, strength: 2, chariot: 4, lovers: 2, temperance: 5, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
+// fitted 2026-10-05 (scripts/aspira-sim/bossbal.mjs): each boss comes 0.9x as
+// near the core as the four waves around it (owner: "just a little closer"),
+// on closest approach, against every open slot filled. Was star 4, strength 2,
+// lovers 2, temperance 5, justice 1.5, judgement 1.5, death 3. Death's fit
+// (1.8) sits on the edge of leaking - a boss leak ends the game - so 1.6.
+const BOSS_HP = { star: 3.4, empress: 2, strength: 0.9, chariot: 4, lovers: 3.1, temperance: 3, devil: 0.75, justice: 4.4, judgement: 1.7, death: 1.6 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
-const EMPRESS_BROOD = 30, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
+let EMPRESS_BROOD = 12; // fitted 2026-10-05 (was 30): her HP was never the lever, her brood is; let: the boss balance test (scripts/aspira-sim/bossbal.mjs, BB_BROOD) tries other broods
+const CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
 const TEMPERANCE_REGEN = 0.06, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
 
 // how far an enemy on lane pi travels, entry to core, and the average over all lanes
@@ -49,8 +55,7 @@ const isA = (e, id) => e.arcana === id;
 function bossSpawn(e, n) {
   e.arcana = arcanaOf(n).id;
   e.baseSpd = e.spd || 1; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
-  // HP per boss (owner): Star to Lovers x2, the Chariot x4; Devil (each of six) x0.75 (halved,
-  // then x1.5); Justice and Judgement x1.5; Death x3; Temperance as is
+  // HP per boss: BOSS_HP (fitted, see there; the Devil's is each of six)
   e.max *= BOSS_HP[e.arcana] || 1;
   // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps
   // it under fire longer, so it gets proportionally more HP (x0.5 .. x1.6, the
@@ -162,15 +167,23 @@ function starRed() {
 // and shrinks back as it collapses. The boss's NAME sits just above it, where
 // the interest line is otherwise. Drawn before the inversion, so cyan reads red.
 const BOSS_BAR_R = 400, BOSS_BAR_W = 21, BOSS_BAR_TRACK = 0.3; // 3x thicker (owner); the track = full HP, translucent
+// the boss's NAME and mythic subtitle under the core: drawn LAST, over the
+// towers (owner) - so after the inverted sky, and in the colour the sky would
+// have given it: the boss red inside the inversion's circle, its own outside
+function drawBossTitle() {
+  const bosses = G.enemies.filter(e => e.arcana && !e.dead);
+  if (!bosses.length) return;
+  const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, arc = arcanaOf(bosses[0].n);
+  const inv = bossInv.phase !== "off" && Math.hypot(CX - bossInv.x, y - bossInv.y) < (bossInv.r || 0);
+  const col = inv ? flashRed() : ENEMIES.bonus.color;
+  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 34, col, true, true); // BOLD and bigger (owner; was 20, then 26)
+  ctx.globalAlpha = 0.8; text(arc.hint, CX, y + 31, 19, col, true); ctx.globalAlpha = 1; // its mythic subtitle (owner; bigger, was 12, then 15)
+}
 function drawBossBar() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
   if (!bosses.length) return;
   const hp = bosses.reduce((a, e) => a + Math.max(0, e.hp), 0), max = bosses.reduce((a, e) => a + e.max, 0);
   const reach = bossInv.r || 0, half = Math.min(BOSS_BAR_R * hp / max, reach), col = ENEMIES.bonus.color;
-  const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20;
-  const arc = arcanaOf(bosses[0].n);
-  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 26, col, true); // bigger (owner; was 20)
-  ctx.globalAlpha = 0.8; text(arc.hint, CX, y + 24, 15, col, true); ctx.globalAlpha = 1; // its mythic subtitle (owner; bigger, was 12)
   const by = CY, track = Math.min(BOSS_BAR_R, reach); // ON the horizon through the core, under the core (owner)
   if (track <= 0) return;
   ctx.strokeStyle = COL[col]; ctx.lineWidth = BOSS_BAR_W; ctx.lineCap = "butt";
