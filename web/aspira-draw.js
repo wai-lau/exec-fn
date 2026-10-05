@@ -330,7 +330,8 @@ function drawFx(pass) {
       ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
     } else if (f.k === "text") {
       ctx.globalAlpha *= f.alpha ?? 1;
-      text(f.text, f.x, f.y, f.size, f.color, f.outline);
+      // a DAMAGE number shrinks as it fades, at the same rate (owner)
+      text(f.text, f.x, f.y, f.under ? f.size * Math.min(1, k * 2) : f.size, f.color, f.outline);
     }
   }
   ctx.globalAlpha = 1;
