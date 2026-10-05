@@ -340,12 +340,15 @@ function updateHud() {
       // The diamond fills 0.8 of its box b, so the lattice step is 0.4 b.
       // the diamond box is its HP size (never blown up to fill the row), shrunk only to fit
       const cols = Math.ceil(w.count * 2 / 3), b = Math.max(SWARM_MIN, Math.min(px, span / ((cols - 1) * 0.4 + 1)));
+      // ...and SPACED OUT to the row's width like the others (owner): the
+      // column step grows past the touching 0.4 b when there is room
+      const step = cols > 1 ? Math.max(0.4 * b, (span - b) / (cols - 1)) : 0;
       let html = "", left = w.count;
       for (let c = 0; left > 0; c++) for (const row of c % 2 ? [1] : [0, 2]) {
         if (left-- <= 0) break;
-        html += enemyIcon(w.type, b, 0, 0, (c * 0.4 * b).toFixed(2) + "px", (row * 0.4 * b).toFixed(2) + "px");
+        html += enemyIcon(w.type, b, 0, 0, (c * step).toFixed(2) + "px", (row * 0.4 * b).toFixed(2) + "px");
       }
-      icons = '<span class="asp-band" style="width:' + ((cols - 1) * 0.4 * b + b).toFixed(1) + "px;height:" + (1.8 * b).toFixed(1) + 'px">' + html + "</span>";
+      icons = '<span class="asp-band" style="width:' + ((cols - 1) * step + b).toFixed(1) + "px;height:" + (1.8 * b).toFixed(1) + 'px">' + html + "</span>";
     }
     note += "<span>" + roman(n) + "</span><span>:</span>" +
       '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (w.type === "swarm" ? " asp-tess" : "") + '">' + icons + "</span>" +
