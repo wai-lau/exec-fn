@@ -3993,6 +3993,7 @@ Positioning weights retuned (owner: targeting at 0.3 barely counted - urgency sp
 SOL's locks RE-AIM at every full charge (owner: Fresh Impale kept hitting the enemy it had already bled): the best enemy in range by its targeting that no other lock holds; the charge carries over. Test: four enemies in range, Fresh - the first four shots hit four different enemies.
 Card type sizes (owner): the TAGLINE takes the size the stats had (`--fs-sm`), the STATS go much smaller (`calc(var(--fs-2xs) * 0.8)`, a deliberate one-off). Note: `--fs-xs` NEVER EXISTED in chrome.css - every rule using it fell back to the inherited size, which is why the stats never shrank; all such uses in aspira.css are now `--fs-2xs`.
 Tower RANGE at 75% of the original, not 50% (owner: the halving was meant as 75%): `RANGE_BONUS` 0.9 (was 1.2, briefly 0.6), Space bonuses +75 each, Ricochet hop 120. L1 ranges ARC 156, FRZ 144, SOL 258, ACD 207. Simulator: lone FRZ/ARC/ACD leak 0 on wave 1, lone SOL 3-7; six L3 towers keep 30/30/30 lives to wave 29 and fall at Strength (30).
+The page lives at /spire (owner, 2026-10-04): `aspira_page` serves it (guest tier); /aspira is a public 301 to /spire; `_NAV_HREFS`, `_GUEST_NEXT_ALLOWED`, the 401 guest prefixes and smoke GUEST_PAGES carry /spire. The sound route stays /aspira-sfx/.
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
