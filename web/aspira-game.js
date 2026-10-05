@@ -276,11 +276,12 @@ const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
 // target; follow = false draws a fixed line between the start points.
 // EVERY beam's thickness follows the damage of its hit (owner): beamWidth()
 // scales with sqrt(hit / biggest hit seen), the curve damage numbers size on
-// beam thickness tracks the hit HARDER (owner, 2026-10-05; was 0.6 + 3.4 x
-// sqrt(share)): LINEAR in the hit's share of the biggest so far, over a wider
-// range - a chip is a hairline, the biggest hit a bar
-const BEAM_MIN = 0.4, BEAM_SPAN = 7.6;
-const beamWidth = d => BEAM_MIN + BEAM_SPAN * Math.min(1, Math.max(0, d) / (G.maxHit || 1));
+// beam thickness is ABSOLUTE (owner, 2026-10-05): it depends on the hit's own
+// damage alone, never on the biggest hit so far (that is the damage numbers'
+// rule). Damage runs from ~5 to 100k+ over a game, so it is LOGARITHMIC:
+// 10 -> 2.0, 100 -> 3.6, 1k -> 5.2, 10k -> 6.8, 100k -> 8.4, capped at BEAM_MAX
+const BEAM_MIN = 0.4, BEAM_PER_DECADE = 1.6, BEAM_MAX = 10;
+const beamWidth = d => Math.min(BEAM_MAX, BEAM_MIN + BEAM_PER_DECADE * Math.log10(1 + Math.max(0, d)));
 function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) {
   fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, d: dmg, m: dmgMag(dmg), slim,
     a: follow ? a : null, b: follow ? b : null });
