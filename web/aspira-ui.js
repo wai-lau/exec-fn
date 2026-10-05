@@ -407,7 +407,7 @@ function frame(now) {
   // the HUD's text and buttons 10x a second, not every frame (perf, 2026-10-05)
   if (!(now < hudAt)) { hudAt = now + 100; updateHud(); }
   placePop(); tickFps(now);
-  // while a boss lives the canvas inverts (drawBossInvert); the HTML over it
+  // while a boss lives the board draws inverted (render, bossSkyStep); the HTML over it
   // flips too once the inversion fills the screen, so it stays readable
   $("asp").classList.toggle("asp-boss", bossInv.full);
   requestAnimationFrame(frame);

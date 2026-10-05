@@ -171,22 +171,6 @@
 #asp.asp-boss .asp-pop,
 #asp.asp-boss .asp-chooser { filter: invert(1); } /* the upgrade cards flip with the boss sky too (owner) */
 
-/* the boss sky (aspira-bosses.js drawBossInvert): a copy of the frame, CSS
-   inverted, shown inside a soft circle that grows from the core; no mask once
-   it fills the screen */
-#asp-inv {
-  position: absolute;
-  inset: 0;
-  display: none;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  filter: invert(1);
-  mask-image: radial-gradient(circle var(--inv-r) at var(--inv-x) var(--inv-y), hsl(var(--bg-hsl)) 85%, transparent 100%);
-}
-
-#asp-inv.on { display: block; }
-#asp-inv.full { mask-image: none; }
 
 #asp-cv {
   position: absolute;
