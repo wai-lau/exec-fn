@@ -463,8 +463,8 @@ function render() {
     text(bannerText, CX, 70, 44, bannerCol, true);
     ctx.globalAlpha = 1;
   }
+  drawBossBar(); // a live boss's HP line along the horizon, UNDER the core, + its name (aspira-bosses.js)
   drawCore();
   drawCredits(); // ON the core, so after it (aspira-waves.js)
-  drawBossBar(); // a live boss's name + HP line under the core (aspira-bosses.js)
   drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
 }
