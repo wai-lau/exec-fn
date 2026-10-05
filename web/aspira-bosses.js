@@ -142,15 +142,20 @@ function starRed() {
 // inverted sky's spreading edge (bossInv.r) - so it grows out with the circle
 // and shrinks back as it collapses. The boss's NAME sits just above it, where
 // the interest line is otherwise. Drawn before the inversion, so cyan reads red.
-const BOSS_BAR_R = 400, BOSS_BAR_W = 7;
+const BOSS_BAR_R = 400, BOSS_BAR_W = 21, BOSS_BAR_TRACK = 0.3; // 3x thicker (owner); the track = full HP, translucent
 function drawBossBar() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
   if (!bosses.length) return;
   const hp = bosses.reduce((a, e) => a + Math.max(0, e.hp), 0), max = bosses.reduce((a, e) => a + e.max, 0);
-  const half = Math.min(BOSS_BAR_R * hp / max, bossInv.r || 0), col = ENEMIES.bonus.color;
+  const reach = bossInv.r || 0, half = Math.min(BOSS_BAR_R * hp / max, reach), col = ENEMIES.bonus.color;
   const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20;
   text(arcanaOf(bosses[0].n).name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 20, col, true);
-  if (half <= 0) return;
-  ctx.strokeStyle = COL[col]; ctx.globalAlpha = 1; ctx.lineWidth = BOSS_BAR_W; ctx.lineCap = "butt";
-  ctx.beginPath(); ctx.moveTo(CX - half, y + 18); ctx.lineTo(CX + half, y + 18); ctx.stroke();
+  const by = y + 12 + BOSS_BAR_W / 2, track = Math.min(BOSS_BAR_R, reach);
+  if (track <= 0) return;
+  ctx.strokeStyle = COL[col]; ctx.lineWidth = BOSS_BAR_W; ctx.lineCap = "butt";
+  // the ORIGINAL HP as a translucent track (owner), the HP left solid over it
+  ctx.globalAlpha = BOSS_BAR_TRACK;
+  ctx.beginPath(); ctx.moveTo(CX - track, by); ctx.lineTo(CX + track, by); ctx.stroke();
+  ctx.globalAlpha = 1;
+  if (half > 0) { ctx.beginPath(); ctx.moveTo(CX - half, by); ctx.lineTo(CX + half, by); ctx.stroke(); }
 }
