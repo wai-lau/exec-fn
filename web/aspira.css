@@ -465,7 +465,7 @@
 #asp .asp-c { font: inherit; color: inherit; }
 
 /* the auto-wait checkbox, on its own line under the speed row (owner) */
-.asp-autowait { margin-top: var(--space-1); }
+.asp-autowait { flex-basis: 100%; margin-top: var(--space-1); } /* its own line, under pause (the controls wrap) */
 
 /* a plain checkbox + label, no button box (owner: "not on a card"), lit text while it holds the game slow */
 #asp .asp-autowait button { padding: 0; border: none; background: none; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
