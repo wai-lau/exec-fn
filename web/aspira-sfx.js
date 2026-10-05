@@ -185,7 +185,7 @@ function sfxFor(name, kind) {
 }
 // how many times faster than 1x the game runs now (aspira-ui.js's speed; 1 in the simulator)
 const soundCredit = {};
-const gameSpeedX = () => (typeof ui !== "undefined" && typeof SPEED_MULT !== "undefined" ? SPEED_MULT[typeof autoWaiting === "function" && autoWaiting() ? 0.5 : ui.speed] / BASE_SPEED : 1);
+const gameSpeedX = () => (typeof ui !== "undefined" && typeof SPEED_MULT !== "undefined" ? SPEED_MULT[Math.min((typeof autoWaiting === "function" && autoWaiting()) || Infinity, ui.speed)] / BASE_SPEED : 1);
 function sfx(name, ...args) {
   const sample = SAMPLES[name] && SAMPLES[name].length;
   if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !(SFX[name] || sample)) return null;

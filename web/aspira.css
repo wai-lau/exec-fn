@@ -423,9 +423,9 @@
      buttons, and the slider takes what is left */
   #asp-speed { flex-wrap: nowrap; gap: var(--space-1); }
 
-  #asp .asp-controls #asp-speed button { padding: var(--space-1); }
+  #asp .asp-controls #asp-speed button { padding: var(--space-1); font-size: var(--fs-2xs); } /* smaller: the 1/4x button joined the row */
 
-  #asp-vol { flex: 1 1 auto; width: auto; min-width: var(--space-10); }
+  #asp-vol { flex: 1 1 auto; width: auto; min-width: var(--space-8); }
 
   .asp-stats { gap: var(--space-2); }
 
