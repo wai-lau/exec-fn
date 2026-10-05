@@ -393,7 +393,10 @@ function usePower(code) {
 const TOWER_SPEED = { acid: 120, chain: 90, reaper: 30, slower: 60 }; // SOL halved again (owner)
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const moveSpeed = t => TOWER_SPEED[t.kind];
-const TOWER_IN = 0.75; // the innermost a tower slides: this share of its slot's distance from the core
+// the innermost a tower slides: this share of its slot's distance from the core.
+// 0.89 keeps a 13.6 gap between ring neighbours at max level slid fully in
+// (owner) with TOWER_K 0.94 (was 0.75 with the smaller towers)
+const TOWER_IN = 0.89;
 // a slot's own inner limit (the corner slots carry one, CORNER_IN) else TOWER_IN of its distance
 const innerR = (c, r0) => c.minR ?? r0 * TOWER_IN;
 // the spoke: its unit direction, the slot's radius and how far out it runs
@@ -472,7 +475,7 @@ function drawSpokes() {
 
 // A tower is its cell's hexagon, inset a little; its label at the centroid.
 // Level shows as concentric rings OUTSIDE it (drawTower).
-const TOWER_K = 0.66; // 25% smaller (owner; was 0.88)
+const TOWER_K = 0.94; // the size of the slot hexes drawn while placing (owner, 2026-10-05; was 0.88, then 0.66)
 function towerHex(c, k) {
   ctx.beginPath();
   c.pts.forEach((p, i) => {

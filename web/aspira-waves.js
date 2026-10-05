@@ -76,8 +76,13 @@ function sendWave() {
   // (each boss has its own line, "bossvoice.<arcana>", else the shared one)
   if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", bossVoice(arcanaOf(G.wave).id)]);
   sfx("wave");
-  // a corner slot opens this wave (owner): say so where it appears
-  CELLS.forEach(c => { if (c.unlock === G.wave && typeof float === "function") float(c.x, c.y - 24, "new slot", "green", 22, 3); });
+  // a corner slot opens this wave (owner): said where "core upgrades unlocked"
+  // is, in the same white, and the slot FLASHES while the words are up (drawSlotFlash)
+  CELLS.forEach((c, ci) => {
+    if (c.unlock !== G.wave || typeof float !== "function") return;
+    float(CX, CY - 80, "new slot unlocked", "white", 28, SLOT_FLASH_S, 1, 3);
+    slotFlash = { ci, until: performance.now() + SLOT_FLASH_S * 1000 };
+  });
   const lanes = laneMap(G.wave);
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once
@@ -140,6 +145,16 @@ function activeLanes() {
   for (const key in totals) if (!out.has(key) && !queued.has(key)) delete totals[key];
   for (const [key, u] of out) u.a = Math.min(1, u.alive / (totals[key] || u.alive));
   return out;
+}
+
+// a newly opened corner slot flashes white for SLOT_FLASH_S real seconds (owner)
+const SLOT_FLASH_S = 4;
+let slotFlash = null;
+function drawSlotFlash() {
+  if (!slotFlash || performance.now() > slotFlash.until) { slotFlash = null; return; }
+  const on = Math.floor(performance.now() / 250) % 2 === 0; // 2 flashes a second
+  cellPath(CELLS[slotFlash.ci], 0.94);
+  ctx.strokeStyle = COL.white; ctx.lineWidth = 4; ctx.globalAlpha = on ? 1 : 0.25; ctx.stroke(); ctx.globalAlpha = 1;
 }
 
 // ---------- the credits over the core (UI only; aspira-draw.js calls it) ----------

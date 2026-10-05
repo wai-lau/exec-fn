@@ -283,7 +283,7 @@ function refreshPanels() {
   }
 }
 
-let lastNote = "";
+let lastNote = "", waveListAt = 0;
 function updateHud() {
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
@@ -298,7 +298,9 @@ function updateHud() {
     setHtml(btn.querySelector(".c"), cr(short(towerCost(k))));
     btn.classList.toggle("on", ui.build === k);
   }
-  updateWaveList(); // the upcoming-wave list (aspira-wavelist.js)
+  // the upcoming-wave list (aspira-wavelist.js), 4x a second: rebuilding its
+  // HTML every frame was a visible share of a late-game frame (2026-10-05)
+  if (!(performance.now() < waveListAt)) { waveListAt = performance.now() + 250; updateWaveList(); }
   // THE SPIRE becomes ASCENDANT once the game has been beaten (owner), and stays so
   setText(document.querySelector(".asp-title"), best.ascended ? "ascendant" : "the spire");
   $("asp-sp-pause").classList.toggle("on", ui.paused);
