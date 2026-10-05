@@ -7,7 +7,9 @@
 // shared by every tower. A spot on the spoke (every POS_STEP units) scores
 // each predicted sample inside the tower's range, weighed by URGENCY (nearer
 // the core counts more) and by the tower's own TARGETING (see bestSpot). Samples sooner than the
-// tower could reach that spot do not count, since it would not be there yet.
+// tower could reach that spot count only if they pass within range of where it
+// IS now - it keeps firing on the way (before, they did not count at all, so
+// staying put always won and a whole-board range never moved).
 // The tower heads for the best spot, and only switches for a spot POS_SWITCH
 // times better than the one it is heading to. With nothing reachable in time,
 // or no enemy alive, it RESTS at the OUTER end of its spoke (owner).
@@ -43,21 +45,34 @@ function bestSpot(t, k, range) {
   // HP against the biggest on the field, Fresh full for the undebuffed and
   // POS_STALE for the rest, Near plain (the urgency weight already favours the core)
   const f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? e.hp / pred.maxHp : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : 1) + 1 - POS_MODE_MIX);
+  // NEAR: the same weighted hits, each worth more the CLOSER it passes - only a
+  // tie-break (owner: maxed towers "stopped moving": with a range covering the
+  // whole board every spot scored the same, so they never left their slot;
+  // now they still follow the action)
+  let near = 0;
   const score = oi => {
     const o = oi * POS_STEP, x = k.c.x + k.ux * o, y = k.c.y + k.uy * o, eta = Math.abs(o - off) / moveSpeed(t);
     let n = 0;
-    pred.forEach(({ pts }, i) => { for (const p of pts) if (p.t >= eta && (p.x - x) ** 2 + (p.y - y) ** 2 <= r2) n += p.w * f[i]; });
+    near = 0;
+    pred.forEach(({ pts }, i) => {
+      for (const p of pts) {
+        const d2 = (p.x - x) ** 2 + (p.y - y) ** 2;
+        if (p.t >= eta ? d2 <= r2 : (p.x - t.x) ** 2 + (p.y - t.y) ** 2 <= r2) n += p.w * f[i]; // before it arrives it still fires from WHERE IT IS
+        if (d2 <= r2) near += p.w * f[i] * (1 - Math.sqrt(d2) / range); // how close the action passes, whenever
+      }
+    });
     return n;
   };
-  let best = 0, bestScore = 0;
+  let best = 0, bestScore = 0, bestNear = 0;
   for (let oi = first; oi <= steps; oi++) {
     const sc = score(oi);
-    if (sc > bestScore || (sc === bestScore && sc > 0 && Math.abs(oi * POS_STEP - off) < Math.abs(best * POS_STEP - off))) { bestScore = sc; best = oi; }
+    if (sc > bestScore || (sc === bestScore && sc > 0 && near > bestNear)) { bestScore = sc; best = oi; bestNear = near; }
   }
   // nothing reachable in time: REST outermost (owner) - enemies enter at the rim
   if (!bestScore) return k.max;
   // stay with the current mark unless the new one is clearly better
   const cur = t.want != null ? Math.round(t.want / POS_STEP) : null;
-  if (cur != null && cur >= first && cur <= steps && score(cur) * POS_SWITCH >= bestScore) return cur * POS_STEP;
+  // (on an exact tie in hits it follows the nearer spot, no threshold)
+  if (cur != null && cur >= first && cur <= steps) { const sc = score(cur); if (sc * POS_SWITCH >= bestScore && sc !== bestScore) return cur * POS_STEP; }
   return best * POS_STEP;
 }
