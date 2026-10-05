@@ -278,7 +278,7 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, SWARM_TALL = 24, WAVE_BOSS_PX = 22; // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
+const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
 // gap: px between this icon and the next (negative overlaps them); dy: a
 // vertical nudge (px); x, y: an absolute spot inside a lattice band (CSS lengths)
 function enemyIcon(type, px, gap, dy, x, y) {
@@ -330,9 +330,11 @@ function updateHud() {
     matchMedia("(width < 700px)").matches ? WAVE_SPAN_PHONE : Infinity);
   let note = "";
   for (const { n, w, boss, hp } of rows) {
-    const px = pxOf(hp, boss), wide = w.count * (px + 1) > span;
-    const step = wide ? (span - px) / (w.count - 1) : px + 1; // start-to-start spacing
-    let icons = enemyIcon(w.type, px, wide ? step - px : 1).repeat(w.count);
+    // every row the SAME width (owner): a long one overlaps, a short one spreads
+    // out to `span` - one icon (a boss) just sits at the start
+    const px = Math.min(pxOf(hp, boss), WAVE_ROW_H);
+    const step = w.count > 1 ? (span - px) / (w.count - 1) : px + 1; // start-to-start spacing
+    let icons = enemyIcon(w.type, px, step - px).repeat(w.count);
     if (w.type === "swarm") {
       // a SWARM TESSELLATES (owner): ONE lattice THREE diamonds tall - columns
       // alternate two diamonds (top + bottom rows) and one (the middle), each
@@ -344,7 +346,7 @@ function updateHud() {
       // column step grows past the touching 0.4 b when there is room
       const step = cols > 1 ? Math.max(0.4 * b, (span - b) / (cols - 1)) : 0;
       // rows as far apart as the columns (owner: even spacing), within SWARM_TALL px of band
-      const rowStep = Math.max(0.4 * b, Math.min(step, (SWARM_TALL - b) / 2));
+      const rowStep = Math.max(0.4 * b, Math.min(step, (WAVE_ROW_H - b) / 2));
       let html = "", left = w.count;
       for (let c = 0; left > 0; c++) for (const row of c % 2 ? [1] : [0, 2]) {
         if (left-- <= 0) break;

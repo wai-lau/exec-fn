@@ -68,6 +68,7 @@ function bossStep(e, dt) {
     for (let i = 0; i < EMPRESS_BROOD; i++) {
       spawnEnemy("swarm", e.n, e.pi, e.ang || 0);
       const m = G.enemies[G.enemies.length - 1]; m.s = Math.max(0, e.s - 8 * i);
+      m.bossKin = true; // the boss's own: the inverted sky holds till these die too
     }
   }
   if (isA(e, "chariot")) {
@@ -115,7 +116,9 @@ const bossPays = e => !(isA(e, "devil") && G.enemies.some(o => o !== e && !o.dea
 const BOSS_INV_T = 3;
 const bossInv = { phase: "off", t0: 0, x: 0, y: 0, full: false };
 function drawBossInvert() {
-  const now = performance.now() / 1000, alive = G.enemies.filter(e => e.arcana && !e.dead);
+  // the sky stays inverted while ANY boss-related enemy lives - the boss and its
+  // brood (owner) - and only then collapses
+  const now = performance.now() / 1000, alive = G.enemies.filter(e => (e.arcana || e.bossKin) && !e.dead);
   if (alive.length && (bossInv.phase === "off" || bossInv.phase === "out")) {
     Object.assign(bossInv, { phase: "in", t0: now, x: CX, y: CY }); // spreads from the CORE (owner: was the boss)
   } else if (!alive.length && bossInv.phase === "in") {

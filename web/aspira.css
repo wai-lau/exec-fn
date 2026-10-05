@@ -62,7 +62,7 @@
 .asp-wavenote > span:nth-child(4n) { padding-left: 2ch; } /* a gap before the name (owner) */
 
 /* the enemies, ONE ICON EACH sized by HP (owner), on one line */
-.asp-dots { display: flex; align-items: center; } /* one line: big groups overlap (aspira-ui.js), spacing set per icon */
+.asp-dots { display: flex; align-items: center; height: 22px; } /* every row the same height (WAVE_ROW_H, aspira-ui.js) and width; spacing set per icon */
 
 /* a tessellated swarm: ONE lattice band, three diamonds tall (owner; aspira-ui.js places each) */
 .asp-band { position: relative; display: block; }
