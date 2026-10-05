@@ -72,7 +72,9 @@ function drawTethers() {
   for (const t of G.towers) {
     if (t.kind !== "slower") continue;
     const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
-    if (st.moons) { drawMoons(t, st, col, shimmer); continue; } // Moons / Desolation: orbiting moons, always shown
+    // Moons / Desolation: orbiting moons, always shown - in FRZ's OWN colour on a
+    // boss sky, like the towers (owner)
+    if (st.moons) { ownColours(() => drawMoons(t, st, COL[TOWERS[t.kind].color], shimmer)); continue; }
     if (!t.links || !t.links.length) continue;
     // Stasis (the slow path): a much THICKER tether (owner)
     const w = t.path != null && UPGRADES.slower[t.path].name === "Stasis" ? 2 : 1;
