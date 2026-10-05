@@ -3,7 +3,7 @@
 // rules - it comes alone, holds the wave timer, ends the game if it gets
 // through - and adds its own trick:
 //   10 Star        none: the plain boss that teaches the rules
-//   20 Empress     sheds EMPRESS_BROOD swarmers each time it loses a fifth of its HP
+//   20 Empress     sheds EMPRESS_BROOD swarmers each time it loses a fifth of its HP (owner: 10x, 40)
 //   30 Strength    no slow or freeze touches it
 //   40 Chariot     every CHARIOT_EVERY s it sprints at CHARIOT_SPD x for CHARIOT_T s
 //   50 Lovers      a PAIR; when one dies the other heals to full and runs LOVERS_SPD x faster
@@ -31,7 +31,7 @@ const ARCANA = [
 ];
 const BOSS_HP = { star: 2, empress: 2, strength: 2, chariot: 4, lovers: 2, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
-const EMPRESS_BROOD = 4, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
+const EMPRESS_BROOD = 40, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
 const TEMPERANCE_REGEN = 0.02, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
 
 // how far an enemy on lane pi travels, entry to core, and the average over all lanes

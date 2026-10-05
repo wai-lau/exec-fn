@@ -389,7 +389,7 @@ function usePower(code) {
 // reaches furthest, ACD and ARC next, SOL least (its weapon range was raised
 // to make up for it); SOL then moves at half FRZ's speed (owner)
 const TOWER_SPEED = { acid: 120, chain: 90, reaper: 30, slower: 60 }; // SOL halved again (owner)
-const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 250 };
+const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const moveSpeed = t => TOWER_SPEED[t.kind];
 // the spoke: its unit direction, the slot's radius and how far out it runs
 function spokeOf(t) {

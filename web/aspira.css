@@ -63,9 +63,8 @@
 /* the enemies, ONE ICON EACH sized by HP (owner), on one line */
 .asp-dots { display: flex; align-items: center; } /* one line: big groups overlap (aspira-ui.js), spacing set per icon */
 
-/* a tessellated swarm: one or more stacked bands of staggered diamonds (owner) */
-.asp-dots.asp-tess { flex-direction: column; align-items: flex-start; }
-.asp-band { display: flex; align-items: center; }
+/* a tessellated swarm: ONE lattice band, three diamonds tall (owner; aspira-ui.js places each) */
+.asp-band { position: relative; display: block; }
 
 /* the time to the next wave, its own line above the list (owner) */
 .asp-nextin {
