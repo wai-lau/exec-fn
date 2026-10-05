@@ -389,7 +389,7 @@ function moveTower(t, dt) {
   const k = spokeOf(t), { c, ux, uy, max } = k, off = t.off || 0;
   t.posT = (t.posT || 0) - dt;
   if (t.posT <= 0) { t.posT = POS_EVERY; t.want = bestSpot(t, k, towerStats(t).range); }
-  const want = Math.max(0, Math.min(max, t.want ?? 0)); // nothing alive: home to the slot
+  const want = Math.max(0, Math.min(max, t.want ?? max)); // nothing alive: rest OUTERMOST (owner)
   // eased: aim for the speed that still stops on the mark, then ramp to it
   const gap = want - off, vWant = Math.sign(gap) * Math.min(TOWER_MOVE, Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
   const v = t.v || 0, dv = TOWER_ACCEL * dt;

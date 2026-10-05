@@ -11,7 +11,7 @@
 // The tower heads for the best spot, and only switches for a spot POS_SWITCH
 // times better than the one it is heading to. If nothing is reachable in time
 // it heads for the nearest enemy's furthest predicted point, so it closes in;
-// with no enemy alive it goes home to its slot.
+// with no enemy alive it rests at the OUTER end of its spoke (owner).
 const POS_EVERY = 0.25, POS_HORIZON = 3, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
 const POS_STALE = 0.2; // Fresh: what a debuffed enemy's hits are still worth
 let POS_URGENCY = 20, POS_MODE_MIX = 0.3; // swept 0/0.3/0.5/1: 0.3 keeps the targeting in play for ~1 life by wave 29. // MIX: how much the targeting weighs (0 none .. 1 all); let: the simulator sweeps both // swept 0-60 in the simulator: 20 kept the most lives (let: the simulator sweeps it)
