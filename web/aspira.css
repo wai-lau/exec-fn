@@ -58,8 +58,14 @@
 /* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
 .asp-wavenote > span:nth-child(4n + 1) { text-align: right; }
 
+.asp-wavenote > span:nth-child(4n) { padding-left: 2ch; } /* a gap before the name (owner) */
+
 /* the enemies, ONE ICON EACH sized by HP (owner), on one line */
 .asp-dots { display: flex; align-items: center; } /* one line: big groups overlap (aspira-ui.js), spacing set per icon */
+
+/* a tessellated swarm: one or more stacked bands of staggered diamonds (owner) */
+.asp-dots.asp-tess { flex-direction: column; align-items: flex-start; }
+.asp-band { display: flex; align-items: center; }
 
 /* the time to the next wave, its own line above the list (owner) */
 .asp-nextin {
@@ -76,9 +82,9 @@
 /* until the first tower is placed the four build buttons PULSE (owner): the
    background eases up to the lit-button tint and back - no hard blink */
 @keyframes asp-flash {
-  50% { background: hsl(var(--green-hsl) / 0.12); }
+  50% { background: hsl(var(--green-hsl) / 0.45); border-color: hsl(var(--green-hsl)); }
 }
-#asp .asp-build.asp-flash .asp-tw { animation: asp-flash 1.6s ease-in-out infinite; }
+#asp .asp-build.asp-flash .asp-tw { animation: asp-flash 1.1s ease-in-out infinite; } /* brighter + faster (owner; was 0.12 at 1.6s) - 0.45, the palette's next green alpha */
 
 
 /* an enemy's own shape (enemyIcon), in its colour, sized to the text */
