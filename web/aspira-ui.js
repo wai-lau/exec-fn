@@ -100,11 +100,25 @@ let autoWait = true;
 try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { autoWait = true; }
 // TWO stages (owner): 1/2x within AUTO_WAIT_S of the core, 1/4x within half
 // that. Returns the speed key to run at (0.25 / 0.5), or 0 when not waiting.
+// NO JITTER (owner): the nearest ETA jumps as enemies are slowed, die or swap,
+// so a stage is entered at its line but only LEFT past AUTO_RELEASE x it (8s in,
+// 10s out; 4s in, 5s out), and a slower speed holds at least AUTO_HOLD_MS of
+// real time before it may speed up again. Slowing down is always immediate.
+// Worked out at most once a frame (it is asked several times).
+const AUTO_RELEASE = 1.25, AUTO_HOLD_MS = 1500;
+let awLevel = 0, awSince = 0, awAt = -1;
 const autoWaiting = () => {
-  if (!autoWait || ui.paused) return 0;
+  if (!autoWait || ui.paused) { awLevel = 0; return 0; }
+  const now = performance.now();
+  if (now - awAt < 8) return awLevel;
+  awAt = now;
   let eta = Infinity;
   for (const e of G.enemies) if (!e.dead) eta = Math.min(eta, etaToCore(e));
-  return eta <= AUTO_WAIT_S / 2 ? 0.25 : eta <= AUTO_WAIT_S ? 0.5 : 0;
+  const hold = (lvl, line) => awLevel && awLevel <= lvl && eta <= line * AUTO_RELEASE; // already this slow or slower, still near
+  const want = eta <= AUTO_WAIT_S / 2 || hold(0.25, AUTO_WAIT_S / 2) ? 0.25 : eta <= AUTO_WAIT_S || hold(0.5, AUTO_WAIT_S) ? 0.5 : 0;
+  const slower = want && (!awLevel || want < awLevel);
+  if (want !== awLevel && (slower || now - awSince >= AUTO_HOLD_MS)) { awLevel = want; awSince = now; }
+  return awLevel;
 };
 (function autoWaitBox() {
   const row = document.createElement("div");
