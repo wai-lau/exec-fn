@@ -213,7 +213,7 @@ function inspectTower(el, t) {
   const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL, st = towerStats(t);
   el.innerHTML =
     '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
-    '<p class="asp-hint">' + b.blurb + "</p>" + // the tagline under the title (owner)
+    '<p class="asp-hint">' + towerTagline(t) + "</p>" + // the CURRENT upgrade's tagline under the title (owner)
     // two columns (owner): what every tower has | what only this type has
     '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
     statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) +
