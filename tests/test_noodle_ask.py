@@ -156,9 +156,11 @@ def test_noodle_never_touches_the_poll(env, monkeypatch):
 
 
 def test_only_the_days_the_page_sent(env):
-    go(env, dates=["2026-10-04", "2026-10-06"])
+    # dates far from any real "today": the prompt names today's date too, so a
+    # skipped day that IS today showed up anyway (failed on 2026-10-05)
+    go(env, dates=["2030-03-04", "2030-03-06"])
     system = env["calls"][-1][0]
-    assert "2026-10-04 " in system and "2026-10-06 " in system and "2026-10-05 " not in system
+    assert "2030-03-04 " in system and "2030-03-06 " in system and "2030-03-05 " not in system
     assert status(env, dates=[]).status == 400
     assert status(env, dates=["october"]).status == 400
     assert status(env, dates=[f"2026-{m:02d}-01" for m in range(1, 13)] * 20).status == 400
