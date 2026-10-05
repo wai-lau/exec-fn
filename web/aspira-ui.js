@@ -330,7 +330,7 @@ const CARD_GAP = 8;
 function cardLift(w) {
   const cr = cv.getBoundingClientRect(), x = Math.max(CARD_GAP, (cr.width - w) / 2);
   let lift = CARD_GAP;
-  for (const sel of [".asp-left", "#asp-build"]) {
+  for (const sel of [".asp-left", ".asp-buildcol"]) { // the build buttons + the title under them
     const r = document.querySelector(sel).getBoundingClientRect();
     if (!r.height || r.right - cr.left <= x || r.left - cr.left >= x + w) continue; // beside it, not under it
     lift = Math.max(lift, cr.bottom - r.top + CARD_GAP);
