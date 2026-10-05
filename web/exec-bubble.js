@@ -238,7 +238,8 @@
       document.getElementById('exec-icursor').style.display = 'inline-block';
       renderCaret();
     });
-    // Enter is a newline (the browser's own); the THIRD Enter in a row sends,
+    // With a mouse (desktop), Enter sends and Shift+Enter is a newline.
+    // On touch, Enter is a newline (the browser's own); the THIRD Enter in a row sends,
     // the two blank lines it leaves trimmed off. Counted on beforeinput, not
     // keydown, so a phone keyboard's return (key 'Unidentified' on Android)
     // counts too. Any other edit resets the run. Ctrl/Cmd+Enter sends at once.
@@ -251,7 +252,9 @@
       sendMsg();
     });
     msgInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); enterRun = 0; sendMsg(); }
+      if (e.key !== 'Enter') return;
+      const desktop = !e.shiftKey && matchMedia('(hover: hover) and (pointer: fine)').matches;
+      if (desktop || e.ctrlKey || e.metaKey) { e.preventDefault(); enterRun = 0; sendMsg(); }
     });
     msgInput.addEventListener('paste', onPaste);
     wireDrop();

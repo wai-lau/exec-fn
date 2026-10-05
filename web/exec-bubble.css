@@ -123,25 +123,25 @@ body:has(#exec-panel.open) #exec-bubble { display: none; }
    line. The solid ground hides the line inside the ring. */
 #exec-todo-fold {
   position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%);
-  width: var(--space-6); height: var(--space-6); padding: 0;
+  width: var(--space-8); height: var(--space-8); padding: 0;
   display: flex; align-items: center; justify-content: center;
   background: hsl(var(--bg-hsl) / 1); cursor: pointer;
-  border: 1px solid hsl(var(--green-hsl) / 0.45); border-radius: 50%;
+  border: 2px solid hsl(var(--green-hsl) / 0.8); border-radius: 50%;
   transition: border-color 0.15s;
 }
 
 #exec-todo-fold:hover { border-color: hsl(var(--green-hsl) / 1); }
 
 #exec-todo-fold::before {
-  content: ""; display: inline-block; width: var(--space-1-5); height: var(--space-1-5);
-  border-right: 1px solid hsl(var(--green-hsl) / 0.45);
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.45);
-  transform: translateY(-25%) rotate(-135deg); /* up: fold away */
+  content: ""; display: inline-block; width: var(--space-2-5); height: var(--space-2-5);
+  border-right: 2px solid hsl(var(--green-hsl) / 0.8);
+  border-bottom: 2px solid hsl(var(--green-hsl) / 0.8);
+  transform: translateY(25%) rotate(-135deg); /* up: fold away */
   transition: border-color 0.15s;
 }
 #exec-todo-fold:hover::before { border-color: hsl(var(--green-hsl) / 1); }
 
-#exec-todos.folded #exec-todo-fold::before { transform: translateY(25%) rotate(45deg); }
+#exec-todos.folded #exec-todo-fold::before { transform: translateY(-25%) rotate(45deg); }
 
 #exec-todos.folded #exec-todo-list,
 #exec-todos.folded #exec-todo-add { display: none; }

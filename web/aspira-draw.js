@@ -10,7 +10,7 @@ let ctx = cv.getContext("2d"); // let: tower sprites and other offscreen draws b
 const DEFAULT_ZOOM = 1.5625; // 25% closer (owner, 2026-10-04; was 1.25)
 // on a PHONE (a portrait band, width the limit) the default view instead fits
 // PHONE_HALF units either side of the core across the width (owner, 2026-10-05)
-const PHONE_HALF = 400;
+const PHONE_HALF = 400, CORE_TOP = 400;
 const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 // the canvas draws at most RES_CAP device pixels per CSS pixel (owner: "need
 // more perf"): a phone at 3x drew 3.4 million pixels a frame; 2x is 2.25x fewer
@@ -31,9 +31,10 @@ function resize() {
   const k = x1 - x0 < y1 - y0 ? (x1 - x0) / (2 * PHONE_HALF) : fit * DEFAULT_ZOOM;
   cam.fit = fit * dpr; cam.k = k * dpr;
   cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
-  // the CORE sits at the screen's vertical middle (owner), not mid-way between
-  // header and build bar - the size still fits that space
-  cam.oy = ((r.height - W * k) / 2) * dpr;
+  // the CORE sits CORE_TOP world units below the top of the screen (owner,
+  // 2026-10-05; was the vertical middle) - never LOWER than the middle
+  const coreY = Math.min(r.height / 2, CORE_TOP * k);
+  cam.oy = (coreY - CY * k) * dpr;
 }
 // Re-fit ONLY when the canvas itself changes size (window resize). Nothing in
 // the overlays — the placing note, a send-wave label rewrapping — may move the
