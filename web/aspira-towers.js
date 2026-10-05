@@ -122,7 +122,7 @@ function hopTo(c, node, nxt, depth) {
 // STASIS FRZ of its own - the tower's range, slow, nick and target count, all
 // measured from the moon, with its own tether. Desolation: a third moon and
 // +10% slow (owner).
-const MOON_SPIN = 2 / 3, MOON_ORBIT = 42; // rad/s (owner: 4 -> 2 -> 2/3); orbit hugs the tower (owner: was 80)
+const MOON_SPIN = 2 / 3, MOON_ORBIT = 126; // rad/s (owner: 4 -> 2 -> 2/3); orbit radius tripled (owner, 2026-10-05; was 80, then 42)
 function moonSpots(t, st) {
   const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1;
   return Array.from({ length: n }, (_, i) => {
