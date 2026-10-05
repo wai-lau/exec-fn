@@ -481,6 +481,8 @@
 
 /* out of the header now, so it flips with the boss's inverted sky on its own
    (keeping its outline) */
+#asp.asp-boss .asp-autowait { filter: invert(1); }
+
 #asp.asp-boss .asp-wavenote { filter: invert(1) drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl))); }
 
 /* on the upgrade cards an INCREASE reads chatsubo green (owner); a change for
@@ -563,7 +565,7 @@
 #asp .asp-c { font: inherit; color: inherit; }
 
 /* the auto-wait checkbox, on its own line under the speed row (owner) */
-.asp-autowait { flex-basis: 100%; margin-top: var(--space-1); } /* its own line, under pause (the controls wrap) */
+.asp-autowait { pointer-events: auto; align-self: flex-start; } /* under the wave list (owner), its own line; the list's box lets taps through, this does not */
 
 /* a plain checkbox + label, no button box (owner: "not on a card"), lit text while it holds the game slow */
 #asp .asp-autowait button { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0; border: none; background: none; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
