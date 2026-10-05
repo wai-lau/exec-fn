@@ -44,13 +44,15 @@ function poly(x, y, r, n, rot, star) {
 
 // outline: a thick black stroke wrapped in a soft dark glow (shadow blur)
 // under the fill, so overlapping damage numbers stay separate and readable
+// outline: true = the background colour, or a palette key (the credits' white halo)
 function text(str, x, y, size, color, outline = false, bold = false) {
   ctx.font = (bold ? "bold " : "") + size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (outline) {
     ctx.save();
-    ctx.shadowColor = COL.bg; ctx.shadowBlur = size * 0.7 * cam.k; // shadow is in device px
-    ctx.strokeStyle = COL.bg; ctx.lineWidth = size * 0.32; ctx.lineJoin = "round";
+    const oc = COL[outline === true ? "bg" : outline];
+    ctx.shadowColor = oc; ctx.shadowBlur = size * 0.7 * cam.k; // shadow is in device px
+    ctx.strokeStyle = oc; ctx.lineWidth = size * 0.32; ctx.lineJoin = "round";
     ctx.strokeText(str, x, y); ctx.strokeText(str, x, y);
     ctx.restore();
   }
@@ -123,7 +125,7 @@ function drawCore() {
     ctx.strokeStyle = COL.white; ctx.shadowColor = COL.white; ctx.shadowBlur = TOWER_GLOW[lvl] * cam.k; ctx.lineWidth = 3.5;
     for (let r = 1; r <= lvl; r++) {
       ctx.globalAlpha = 1 - 0.12 * r;
-      poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * r), 6, Math.PI / 6, false); ctx.stroke();
+      poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * r) * shieldPulse(), 6, Math.PI / 6, false); ctx.stroke(); // breathes with the life rings (owner)
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }

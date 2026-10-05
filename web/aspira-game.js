@@ -409,6 +409,7 @@ function stepFloats(dt) {
 const WIN_WAVE = 100; // the 10th boss
 function winGame() {
   G.over = true; G.won = true;
+  best.ascended = true; // the title reads ASCENDANT from now on (owner; aspira-ui.js)
   addScore(G.lives * 1000);
   if (G.score > best.score) best.score = G.score;
   if (G.wave > best.wave) best.wave = G.wave;
