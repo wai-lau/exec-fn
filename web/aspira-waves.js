@@ -137,7 +137,10 @@ function drawCredits() {
   // separators, since counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
   // two lines (owner): CREDITS, then the number
-  text("CREDITS", CX, CY - 11, 16, "white", true);
+  // the word gets a LIGHT outline - a thin stroke, no blur (owner: less shadow)
+  ctx.font = "16px " + CANVAS_FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.strokeStyle = COL.bg; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.strokeText("CREDITS", CX, CY - 11);
+  ctx.fillStyle = COL.white; ctx.fillText("CREDITS", CX, CY - 11);
   text(n, CX, CY + 11, 22, "white", true);
   if (!fxOn) return;
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];

@@ -3983,6 +3983,7 @@ The credits count sits BELOW the core (`CREDITS_DY` 150: past the bottom two slo
 RENAMED for players to THE SPIRE (owner, 2026-10-04): the in-game title (h1 'the spire', uppercased by CSS) and the landing wheel's name. The route /aspira, the files, the ids and this section's name stay 'aspira'.
 The credits count on the core is TWO lines (owner): CREDITS over the number.
 The chart has a RULER (owner: 'show how long X units are'): a horizontal line through the centre out to the screen's edges (`RULER_R` 2000), graduated in units from the core's centre - notches every 10 to 200, every 50 to 1000, then every 100; numbered every 100 to 500, every 200 to 1000, then every 500 (`drawScaleBar`).
+The CREDITS word on the core has a light outline (a thin stroke, no blur; owner: less shadow); the number keeps the full outline.
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
