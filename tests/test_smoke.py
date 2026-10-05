@@ -21,7 +21,7 @@ PROTECTED_PAGES = ["/rd", "/hq", "/debug"]
 # /zombo is UNLINKED (no nav entry, no landing spoke) but still gated: unlisted
 # is not a tier, so it is asserted here like every other guest page.
 GUEST_PAGES = ["/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security", "/nightfall",
-               "/printer", "/zombo", "/noodle", "/aspira"]
+               "/printer", "/zombo", "/noodle", "/spire"]
 
 
 def _is_page(r) -> bool:

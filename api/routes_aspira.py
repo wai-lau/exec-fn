@@ -1,4 +1,6 @@
-"""/aspira -- a spiral tower-defence game (GUEST tier: public behind Turnstile).
+"""/spire (THE SPIRE; was /aspira) -- a spiral tower-defence game (GUEST tier:
+public behind Turnstile). /aspira 301s to /spire for anyone (no auth needed to
+be redirected); the code, files and nav key keep the name `aspira`.
 
 Polygons travel an Archimedean spiral from the rim to a core at the centre;
 towers built between the arms shoot them. Entirely client-side
@@ -16,17 +18,22 @@ the gitignored api/data/aspira-sfx/, never in the public repo.
 See ARCHITECTURE.md §22.
 """
 from fastapi import HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 from auth import SESSION_TOKEN
 from helpers import DATA_DIR
-from routers import guest_protected
+from routers import guest_protected, public
 from pages import _render_page, _tmpl
 
 SFX_DIR = (DATA_DIR / "aspira-sfx").resolve()
 
 
-@guest_protected.get("/aspira", response_class=HTMLResponse)
+@public.get("/aspira")
+async def aspira_moved():
+    return RedirectResponse("/spire", status_code=301)
+
+
+@guest_protected.get("/spire", response_class=HTMLResponse)
 async def aspira_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     return _render_page("aspira", _tmpl("aspira.html"), full_height=True, guest=not is_full_auth)
