@@ -340,9 +340,12 @@
 .asp-chooser[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
 .asp-chooser[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 
-/* ONE line of cards (owner): a row, or a column when they do not all fit across (aspira-ui.js) */
-.asp-cards { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: var(--space-4); }
-.asp-cards.asp-cards-col { flex-direction: column; }
+/* ONE line of cards (owner): a row, or a column when they do not all fit across
+   (aspira-chooser.js). A GRID: side by side the cards share one row and so
+   stretch to the SAME height (owner); stacked in a column each keeps its own
+   height, to save room */
+.asp-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 380px); justify-content: center; gap: var(--space-4); }
+.asp-cards.asp-cards-col { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 380px); }
 
 /* cancel: the same as clicking off the cards (owner) */
 #asp button.asp-cancel { padding-inline: var(--space-8); background: hsl(var(--bg-hsl)); }
@@ -456,3 +459,7 @@
 
 /* "Priority:" centred over the targeting row (owner) */
 .asp-prio { margin-bottom: calc(-1 * var(--space-2)); text-align: center; font-size: var(--fs-2xs); color: hsl(var(--green-hsl)); }
+
+/* the c of "40c" (cr) takes the font and colour of the text it ends - the core
+   option buttons style every span small and dim otherwise (owner: "fix the c") */
+#asp .asp-c { font: inherit; color: inherit; }
