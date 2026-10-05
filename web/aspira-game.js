@@ -427,7 +427,7 @@ function winGame() {
   if (G.score > best.score) best.score = G.score;
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
-  showOverlay("the core holds", "All ten bosses down with " + G.lives + " lives left: " + G.score.toLocaleString() + " points.", "Play again");
+  showOverlay("the core holds", "All ten bosses down with " + G.lives + " lives left.", "Play again");
 }
 function gameOver() {
   G.over = true;
@@ -435,5 +435,5 @@ function gameOver() {
   if (G.score > best.score) best.score = G.score;
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
-  showOverlay("core breached", "Reached wave " + G.wave + " with " + G.score.toLocaleString() + " points.", "Play again");
+  showOverlay("core breached", "Reached wave " + G.wave + (G.wave >= (best.wave || 0) ? ", your best." : " (best: " + best.wave + ")."), "Play again");
 }

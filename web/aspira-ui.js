@@ -288,9 +288,10 @@ function updateHud() {
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
   setText($("asp-wave"), G.wave); // the HUD keeps Arabic numerals (owner); the upcoming-wave list is Roman
-  setText($("asp-score"), G.score.toLocaleString());
   updateAutoWait();
-  setText($("asp-best"), Math.max(best.score, G.score).toLocaleString());
+  // BEST is the furthest WAVE reached (owner: no one cares about score; the score
+  // still counts underneath, it is what pays the extra lives - addScore)
+  setText($("asp-best"), Math.max(best.wave || 0, G.wave));
   flashBuild();
   for (const k of KINDS) {
     const btn = $("asp-tw-" + k);
