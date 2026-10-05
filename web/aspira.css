@@ -5,7 +5,7 @@
 
 #asp {
   position: fixed;
-  inset: 0 0 var(--nav-h, 64px);
+  inset: 0; /* no nav bar on this page (owner); the home button replaces it */
   z-index: var(--z-raised);
   overflow: hidden;
   color: hsl(var(--green-hsl));
@@ -23,7 +23,11 @@
   gap: var(--space-2-5);
   pointer-events: none;
 }
-.asp-titlerow { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2-5) var(--space-7); }
+.asp-titlerow { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--space-2-5) var(--space-3); }
+
+/* home: the site's favicon, top-left, to the landing page (owner) */
+.asp-home { flex: none; display: block; pointer-events: auto; line-height: var(--lh-none); }
+.asp-home img { display: block; width: var(--space-7); height: var(--space-7); image-rendering: pixelated; }
 .asp-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); pointer-events: auto; }
 #asp .asp-controls button { padding: var(--space-1-5) var(--space-3); }
 .asp-controls .asp-row > button { flex: none; }
@@ -37,7 +41,7 @@
 .asp-left {
   position: absolute;
   left: var(--space-6);
-  bottom: var(--space-4);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); /* no nav under it now: clear a phone's home bar */
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
@@ -107,7 +111,7 @@
   position: absolute;
   left: var(--space-6);
   right: var(--space-6); /* the Exec bubble never moves anything (owner): it may overlap */
-  bottom: var(--space-4);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); /* no nav under it now: clear a phone's home bar */
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;

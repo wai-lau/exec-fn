@@ -57,7 +57,9 @@ async def aspira_moved():
 async def aspira_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
     html = _tmpl("aspira.html").replace("__SPIRE_VERSION__", spire_version())
-    return _render_page("aspira", html, full_height=True, guest=not is_full_auth)
+    # no nav bar (owner): the game takes the whole screen; a favicon button
+    # top-left goes home to the landing page instead
+    return _render_page("aspira", html, full_height=True, guest=not is_full_auth, show_nav=False)
 
 
 @guest_protected.get("/aspira-sfx/{filename:path}")
