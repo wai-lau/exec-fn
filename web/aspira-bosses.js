@@ -123,59 +123,33 @@ function bossKilled(e) {
 // the boss reward drops ONCE a wave: a Devil only pays when it is the last one standing
 const bossPays = e => !(isA(e, "devil") && G.enemies.some(o => o !== e && !o.dead && isA(o, "devil")));
 
-// ---------- the inverted sky (UI only; aspira-draw.js calls it last) ----------
-// owner: when a boss appears, colour INVERSION spreads as a soft-edged circle
-// from the core, filling the screen over BOSS_INV_T s; when the last boss dies
-// it collapses back onto the core over the same time. The HTML over the board
-// flips by CSS once the circle covers the screen (bossInv.full -> #asp.asp-boss).
-// HOW (2026-10-05; owner: "looks laggy"): an OVERLAY canvas (#asp-inv) that
-// CSS inverts - a GPU filter, near free - takes a copy of the finished frame,
-// and a CSS radial MASK (--inv-r/x/y) shows it inside the circle, its soft edge
-// included. It replaced a full-screen "difference" blend every frame, which
-// cost ~470 ms a frame against 13 without (headless, 3x density). The TOWERS
-// and their tracks keep their own colours (owner): drawn again on the overlay
-// in INVERTED colours, which its filter turns back.
+// ---------- the inverted sky (UI only; render() in aspira-draw.js draws it) ----------
+// owner: when a boss appears, colour INVERSION spreads as a circle from the
+// core, filling the screen over BOSS_INV_T s; when the last boss dies, it
+// collapses over the same time back onto the core. This only keeps the STATE
+// (phase, radius r, full); render() draws the inverted frame (withPalette).
+// The HTML over the board flips by CSS once the circle covers the screen
+// (bossInv.full -> #asp.asp-boss).
 const BOSS_INV_T = 3;
-const bossInv = { phase: "off", t0: 0, x: 0, y: 0, full: false };
-const inv = document.getElementById("asp-inv"), ictx = inv.getContext("2d");
-let colInv = null;
-function drawBossInvert() {
+const bossInv = { phase: "off", t0: 0, x: 0, y: 0, full: false, r: 0 };
+function bossSkyStep() {
   // the sky stays inverted while ANY boss-related enemy lives - the boss and its
   // brood (owner) - and only then collapses
-  const now = performance.now() / 1000, alive = G.enemies.filter(e => (e.arcana || e.bossKin) && !e.dead);
-  if (alive.length && (bossInv.phase === "off" || bossInv.phase === "out")) {
+  const now = performance.now() / 1000, alive = G.enemies.some(e => (e.arcana || e.bossKin) && !e.dead);
+  if (alive && (bossInv.phase === "off" || bossInv.phase === "out")) {
     Object.assign(bossInv, { phase: "in", t0: now, x: CX, y: CY }); // spreads from the CORE (owner: was the boss)
-  } else if (!alive.length && bossInv.phase === "in") {
+  } else if (!alive && bossInv.phase === "in") {
     Object.assign(bossInv, { phase: "out", t0: now, x: CX, y: CY }); // collapses onto the CORE too (owner)
   }
   if (bossInv.phase === "out" && now - bossInv.t0 >= BOSS_INV_T) bossInv.phase = "off";
-  if (bossInv.phase === "off") { bossInv.full = false; bossInv.r = 0; inv.classList.remove("on"); return; }
+  if (bossInv.phase === "off") { bossInv.full = false; bossInv.r = 0; return; }
   // the circle must reach the canvas corner furthest from its centre
   const corners = [[0, 0], [cv.width, 0], [0, cv.height], [cv.width, cv.height]].map(([px, py]) => ({ x: (px - cam.ox) / cam.k, y: (py - cam.oy) / cam.k }));
-  const R = Math.max(...corners.map(c => Math.hypot(c.x - bossInv.x, c.y - bossInv.y))) * 1.3; // the soft edge clears the corners
+  const R = Math.max(...corners.map(c => Math.hypot(c.x - bossInv.x, c.y - bossInv.y))) * 1.05;
   const p = Math.min(1, (now - bossInv.t0) / BOSS_INV_T), ease = p * p * (3 - 2 * p);
-  const r = bossInv.phase === "in" ? R * ease : R * (1 - ease);
-  bossInv.r = r; // the boss's HP line grows and shrinks with this edge (drawBossBar)
+  bossInv.r = bossInv.phase === "in" ? R * ease : R * (1 - ease); // the boss's HP line grows and shrinks with this edge (drawBossBar)
   bossInv.full = bossInv.phase === "in" && p >= 1;
-  // the overlay: a copy of the frame, shown inside the circle (CSS mask, in CSS px)
-  if (inv.width !== cv.width || inv.height !== cv.height) { inv.width = cv.width; inv.height = cv.height; }
-  const dpr = canvasDpr();
-  inv.style.setProperty("--inv-r", (r * cam.k / dpr).toFixed(1) + "px");
-  inv.style.setProperty("--inv-x", ((bossInv.x * cam.k + cam.ox) / dpr).toFixed(1) + "px");
-  inv.style.setProperty("--inv-y", ((bossInv.y * cam.k + cam.oy) / dpr).toFixed(1) + "px");
-  inv.classList.add("on"); inv.classList.toggle("full", bossInv.full);
-  ictx.setTransform(1, 0, 0, 1, 0, 0); ictx.globalAlpha = 1; ictx.globalCompositeOperation = "copy";
-  ictx.drawImage(cv, 0, 0); ictx.globalCompositeOperation = "source-over";
-  // the towers + tracks again, in inverted colours, so they read in their own
-  ictx.setTransform(ctx.getTransform());
-  const main = ctx, saved = { ...COL };
-  colInv ||= Object.fromEntries(Object.entries(COL).map(([k, v]) => [k, invertColor(v)]));
-  ctx = ictx; Object.assign(COL, colInv);
-  try { drawSpokes(); for (const t of G.towers) drawTower(t); } finally { ctx = main; Object.assign(COL, saved); }
-  drawBossTitleOn(ictx); // over the towers there too
 }
-// the title once more on the overlay (in its own colours: the filter makes it red)
-function drawBossTitleOn(x) { const main = ctx; ctx = x; try { drawBossTitle(); } finally { ctx = main; } }
 
 // the STARS redden ahead of a boss (owner): over the wave before it they drift
 // from white to red, stay red while it is queued or alive, and drift back to
@@ -209,7 +183,7 @@ function drawBossTitle() {
   // the TITLE above the core, the haiku under it (owner)
   const off = CORE_R + LIFE_GAP * LIFE_RINGS + 20, arc = arcanaOf(bosses[0].n), col = ENEMIES.bonus.color;
   // drawn in its own colours with a dark halo: inside the inverted sky the
-  // overlay turns that red on a white halo (drawBossInvert)
+  // inverted palette turns that red on a white halo (render, withPalette)
   text(arc.name, CX, CY - off - BOSS_TITLE_PX * 0.5, BOSS_TITLE_PX, col, true, true); // BOLD and bigger (owner); just the name, no "x2" (owner)
   // the haiku, much bigger (owner; was 12, 15, 19), its three lines stacked
   ctx.globalAlpha = 0.85;

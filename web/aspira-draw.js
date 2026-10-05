@@ -2,7 +2,7 @@
 // fades are globalAlpha, never a colour with its own alpha.
 
 const cv = document.getElementById("asp-cv");
-let ctx = cv.getContext("2d"); // let: the boss sky's overlay borrows it to draw the towers (drawBossInvert)
+let ctx = cv.getContext("2d"); // let: tower sprites and other offscreen draws borrow it
 // The canvas fills the screen; the camera fits the 1000-unit chart into the
 // band between the header and the bottom build bar. cam is in device pixels.
 // The default view sits 25% closer than the whole-chart fit (owner, 2026-10-02);
@@ -386,11 +386,24 @@ function shakeOffset() {
   return [(Math.random() * 2 - 1) * a, (Math.random() * 2 - 1) * a];
 }
 
+// The BOSS SKY (owner, round 3, 2026-10-05: the overlay was still "very
+// laggy"): no blending or filters at all. With the sky full the frame is simply
+// DRAWN in inverted colours (withPalette); while it spreads or collapses, the
+// normal frame is drawn and then the inverted one again, CLIPPED to the circle
+// - two plain draws, nothing composited. Towers and their tracks keep their
+// own colours either way (ownColours).
 function render() {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, cv.width, cv.height);
-  const [sx, sy] = shakeOffset();
+  bossSkyStep(); // the sky's state: phase, radius, full (aspira-bosses.js)
+  const shake = shakeOffset(), sky = bossInv.phase !== "off";
+  if (sky && bossInv.full) { withPalette(() => drawScene(shake, 0)); return; }
+  drawScene(shake, 0);
+  if (sky && bossInv.r > 1) withPalette(() => drawScene(shake, bossInv.r));
+}
+function drawScene([sx, sy], clipR) {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy);
+  ctx.save();
+  if (clipR) { ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, clipR, 0, 6.283); ctx.clip(); }
+  ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fillRect(CX - 4000, CY - 4000, 8000, 8000);
   drawFx("dmg"); // damage numbers sit just above the background, under all else
   drawBoard();
   drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
@@ -405,8 +418,7 @@ function render() {
   drawAims();
   drawFx("shots");
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
-  drawSpokes();
-  for (const t of G.towers) drawTower(t);
+  ownColours(() => { drawSpokes(); for (const t of G.towers) drawTower(t); }); // towers keep their colours on a boss sky (owner)
   drawSlotFlash(); // a corner slot that just opened (aspira-waves.js)
   if (ui.build && ui.hover) drawPlacement();
   drawFx("text");
@@ -418,5 +430,19 @@ function render() {
   drawCore();
   drawCredits(); // ON the core, so after it (aspira-waves.js)
   drawBossTitle(); // the boss's name + subtitle, over the towers (owner)
-  drawBossInvert(); // the boss's inverted sky, an overlay canvas over everything (aspira-bosses.js)
+  ctx.restore();
+}
+// the whole palette inverted while fn draws (invertColor keeps alpha); the
+// inverted set is built once, COL being fixed after resolveColors
+let colOwn = null, colInv = null, inverted = false;
+function withPalette(fn) {
+  colOwn ||= { ...COL };
+  colInv ||= Object.fromEntries(Object.entries(colOwn).map(([k, v]) => [k, invertColor(v)]));
+  Object.assign(COL, colInv); inverted = true;
+  try { fn(); } finally { Object.assign(COL, colOwn); inverted = false; }
+}
+function ownColours(fn) {
+  if (!inverted) { fn(); return; }
+  Object.assign(COL, colOwn);
+  try { fn(); } finally { Object.assign(COL, colInv); }
 }

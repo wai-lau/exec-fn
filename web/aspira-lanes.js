@@ -11,15 +11,23 @@
 // white rim (LANE_FADE_R), so lanes do not trail across the open sky.
 // Labels are drawn unmasked.
 const LANE_FADE_R = 550; // just past the rim circle (482-494)
-const laneCv = document.createElement("canvas"), lctx = laneCv.getContext("2d");
 // the live lanes' GLOW, on its own layer so it can fade much faster outward:
 // its radial mask is applied GLOW_FALLOFF times (alpha ~ (1 - r/R)^n)
-const glowCv = document.createElement("canvas"), gctx = glowCv.getContext("2d"), GLOW_FALLOFF = 5; // harder (owner; was 3)
+const GLOW_FALLOFF = 5; // harder (owner; was 3)
 // the FAINT trace of all twelve lanes never changes, so it is drawn once into
 // baseCv and only redrawn when the camera or the canvas size moves (it was
 // most of every frame: ~300ms of ~1s in headless WebKit, 2026-10-02)
-const baseCv = document.createElement("canvas"), bctx = baseCv.getContext("2d");
-let baseKey = "";
+// ONE SET of these cached layers per PALETTE (keyed by the background colour):
+// the boss sky draws the board in inverted colours too (render), and sharing
+// one set would rebuild them twice a frame while the sky spreads
+const laneSets = {};
+function laneSet() {
+  return laneSets[COL.bg] ||= (() => {
+    const mk = () => { const c = document.createElement("canvas"); return [c, c.getContext("2d")]; };
+    const [laneCv, lctx] = mk(), [glowCv, gctx] = mk(), [baseCv, bctx] = mk();
+    return { laneCv, lctx, glowCv, gctx, baseCv, bctx, baseKey: "", litKey: "", litCam: "", litAt: 0 };
+  })();
+}
 function laneLayer(c, x, w, h) {
   if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
   x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over";
@@ -57,23 +65,23 @@ function applyMask(x, n) {
 }
 function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c, 0, 0); ctx.restore(); }
 const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
-let litKey = "", litCam = "", litAt = 0;
 const LIT_MIN_MS = 200;
 const LIT_STEPS = 16;
 const BOSS_LANE_W = 3.5, BOSS_LANE_BLUR = 28; // a boss lane: x widths, and its glow (world px)
 function drawLaneStrokes(live) {
+  const S = laneSet(), { laneCv, lctx, glowCv, gctx, baseCv, bctx } = S;
   // forget lanes that went dark, so they fade in again next time
   for (const key of laneSeen.keys()) if (!live.some(u => u.pi + ":" + u.ang === key)) laneSeen.delete(key);
   const key = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
-  if (key !== baseKey) {
-    baseKey = key;
+  if (key !== S.baseKey) {
+    S.baseKey = key;
     laneLayer(baseCv, bctx, cv.width, cv.height);
     bctx.strokeStyle = COL.cyan; bctx.globalAlpha = 0.05; bctx.lineWidth = 1.2;
     for (const path of PATHS) bctx.stroke(path.p2d);
     laneMask(bctx);
   }
   blit(baseCv);
-  if (!live.length) { litKey = ""; return; }
+  if (!live.length) { S.litKey = ""; return; }
   const now = performance.now();
   for (const u of live) {
     // a lane FADES IN over LANE_FADE_IN_MS of REAL time, whatever the game speed (owner)
@@ -91,8 +99,8 @@ function drawLaneStrokes(live) {
   const camSig = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
   const sig = camSig + "|" +
     live.map(u => u.pi + ":" + u.ang.toFixed(3) + ":" + u.color + ":" + (u.star ? 1 : 0) + ":" + Math.round(u.a * LIT_STEPS)).join(",");
-  if (sig === litKey || (camSig === litCam && now - litAt < LIT_MIN_MS)) { blit(glowCv); blit(laneCv); return; }
-  litKey = sig; litCam = camSig; litAt = now;
+  if (sig === S.litKey || (camSig === S.litCam && now - S.litAt < LIT_MIN_MS)) { blit(glowCv); blit(laneCv); return; }
+  S.litKey = sig; S.litCam = camSig; S.litAt = now;
   // each lane IN USE lit in its rider's colour - drawn rotated when a split
   // wave rides a rotated copy of it (u.ang)
   laneLayer(laneCv, lctx, cv.width, cv.height);
