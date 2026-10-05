@@ -112,11 +112,11 @@ function drawCore() {
   // the core's LEVEL shows like a tower's (owner): a bold white ring outside
   // it per level, LEVEL_GAP apart, under a glow that grows with the level
   const lvl = coreLvl();
-  // LIVES drawn like an enemy's shield (owner): up to LIFE_RINGS thin outlines
-  // of the core's own hex, peeling off as lives are lost - no number
-  const rings = Math.min(LIFE_RINGS, Math.ceil(LIFE_RINGS * Math.max(0, G.lives) / LIFE_FULL));
+  // LIVES drawn like an enemy's shield (owner): SEGMENTS of the core's own hex,
+  // one per life, no number (aspira-enemies.js syncSegs / drawSegs)
+  G.lifeSegs = syncSegs(G.lifeSegs || [], Math.max(0, G.lives), 6);
   ctx.strokeStyle = COL.white; ctx.lineWidth = 1.8;
-  for (let r = 1; r <= rings; r++) { poly(CX, CY, CORE_R + LIFE_GAP * r, 6, Math.PI / 6, false); ctx.stroke(); }
+  drawSegs(CX, CY, G.lifeSegs, 6, Math.PI / 6, CORE_R, LIFE_GAP);
   const out = LIFE_GAP * LIFE_RINGS / CORE_R; // the level rings sit outside the life rings
   if (lvl) {
     ctx.strokeStyle = COL.white; ctx.shadowColor = COL.white; ctx.shadowBlur = TOWER_GLOW[lvl] * cam.k; ctx.lineWidth = 3.5;
@@ -134,7 +134,7 @@ function drawCore() {
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
   ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill();
 }
-const LIFE_RINGS = 5, LIFE_FULL = 20, LIFE_GAP = 5; // 20 lives = 5 rings, one per 4
+const LIFE_RINGS = 5, LIFE_GAP = 5; // room kept for 5 rings of life segments (20 lives fill 3 and a bit)
 
 function drawTower(t, ghost) {
   // drawn where the tower IS (it slides along its spoke), its slot's hex moved with it

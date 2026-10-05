@@ -56,12 +56,11 @@ function drawEnemy(e) {
   // Permafrost (a slow that never ends) draws the freeze outline thicker (owner)
   const perma = e.slowT === Infinity;
   ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke();
-  // shield = up to 3 concentric outlines of the same shape, peeling off as
-  // its hits are used up
-  if (e.shield > 0) {
-    const rings = Math.ceil(3 * e.shield / e.shieldMax);
+  // shield = SEGMENTS (owner): one per charge, on rings of its own shape
+  if (e.shield > 0 || e.shSegs) {
+    e.shSegs = syncSegs(e.shSegs || [], Math.max(0, e.shield), d.sides);
     ctx.lineWidth = 1.8;
-    for (let r = 1; r <= rings; r++) { poly(e.x, e.y, size + 5 * r, d.sides, e.rot, false); ctx.stroke(); }
+    drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 5);
   }
   ctx.globalAlpha = 1;
   if (e.charged) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
@@ -138,4 +137,37 @@ function drawBossEye(e, size) {
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
+}
+
+
+// ---------- SEGMENTED shields (owner, 2026-10-04) ----------
+// A shield - an enemy's charges, the core's lives - is SEGMENTS: one per
+// charge, each a side of a ring in the shape's own outline, rings stacked
+// outward. A lost charge removes a RANDOM remaining segment (a gap stays); a
+// gained one goes in at the innermost slot and PUSHES every other segment one
+// slot outward. A ring left wholly empty at the outside is dropped. The rings
+// breathe with the core's pulse (shieldPulse).
+// segs: [true|false, ...], slot 0 = the innermost ring's first side
+function syncSegs(segs, n, sides) {
+  let have = segs.reduce((a, v) => a + (v ? 1 : 0), 0);
+  while (have > n) {
+    const live = []; segs.forEach((v, i) => { if (v) live.push(i); });
+    segs[live[Math.floor(Math.random() * live.length)]] = false; have--;
+  }
+  while (have < n) { segs.unshift(true); have++; }
+  while (segs.length && segs.slice(-((segs.length - 1) % sides + 1)).every(v => !v)) segs.length -= (segs.length - 1) % sides + 1;
+  return segs;
+}
+const shieldPulse = () => 1 + 0.04 * Math.sin(performance.now() / 300); // the core's own breath
+// ring r (0 = inner) has radius base + gap * (r + 1); slot i is side i % sides of ring floor(i / sides)
+function drawSegs(x, y, segs, sides, rot, base, gap) {
+  const k = shieldPulse();
+  ctx.beginPath();
+  segs.forEach((on, i) => {
+    if (!on) return;
+    const r = (base + gap * (Math.floor(i / sides) + 1)) * k, s = i % sides;
+    const a0 = rot + s * Math.PI * 2 / sides, a1 = rot + (s + 1) * Math.PI * 2 / sides;
+    ctx.moveTo(x + Math.cos(a0) * r, y + Math.sin(a0) * r); ctx.lineTo(x + Math.cos(a1) * r, y + Math.sin(a1) * r);
+  });
+  ctx.stroke();
 }
