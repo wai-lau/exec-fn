@@ -130,8 +130,12 @@ const autoWaiting = () => {
   }, "asp-autowait");
   btn.setAttribute("role", "checkbox");
 })();
+// the checkbox as an SVG, not a font glyph (owner: the glyph sat off-centre
+// from its label); centred against the words by the button's flex row
+const ICON_UNCHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/></svg>';
+const ICON_CHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/><path d="M5.5 10.5l3 3 6-7"/></svg>';
 function updateAutoWait() {
-  const btn = $("asp-autowait"), html = '<span class="asp-box">' + (autoWait ? "☑" : "☐") + "</span> auto-wait"; // the box bigger than the words (owner)
+  const btn = $("asp-autowait"), html = (autoWait ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-wait</span>"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
   btn.classList.toggle("on", autoWaiting()); // lit while it is holding the game at 1/2x
 }
