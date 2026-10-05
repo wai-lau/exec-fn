@@ -443,7 +443,9 @@ function moveTower(t, dt) {
 // full reach touches the T instead of covering it (owner)
 const TRACK_PAST = CELL_S * 0.68; // the smaller tower's half-size (was 0.9)
 function spokeTrack(c, reach) {
-  const to = reach + TRACK_PAST, r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = CORE_R + 6;
+  // the line runs only over the range a tower can MOVE (owner: show the min):
+  // from its inner limit out to its reach
+  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, to = reach + TRACK_PAST, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = innerR(c, r0);
   ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
   // a T-bar at each LIMIT (owner): the outer reach, and the innermost a tower
   // slides, TOWER_IN of its slot's distance (shorter, so out and in read apart)

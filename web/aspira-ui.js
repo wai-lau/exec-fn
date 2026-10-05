@@ -299,6 +299,8 @@ function updateHud() {
     btn.classList.toggle("on", ui.build === k);
   }
   updateWaveList(); // the upcoming-wave list (aspira-wavelist.js)
+  // THE SPIRE becomes ASCENDANT once the game has been beaten (owner), and stays so
+  setText(document.querySelector(".asp-title"), best.ascended ? "ascendant" : "the spire");
   $("asp-sp-pause").classList.toggle("on", ui.paused);
   const mute = $("asp-mute");
   if (mute.dataset.muted !== String(muted)) { // redraw the icon only when it changes

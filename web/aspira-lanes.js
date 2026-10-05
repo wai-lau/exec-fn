@@ -36,6 +36,7 @@ function laneMask(x) {
 }
 function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c, 0, 0); ctx.restore(); }
 const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
+const BOSS_LANE_W = 3.5, BOSS_LANE_BLUR = 28; // a boss lane: x widths, and its glow (world px)
 function drawLaneStrokes(live) {
   // forget lanes that went dark, so they fade in again next time
   for (const key of laneSeen.keys()) if (!live.some(u => u.pi + ":" + u.ang === key)) laneSeen.delete(key);
@@ -61,15 +62,18 @@ function drawLaneStrokes(live) {
     u.a *= Math.min(1, (now - laneSeen.get(key)) / LANE_FADE_IN_MS);
     lctx.save(); gctx.save();
     for (const x of [lctx, gctx]) { x.translate(CX, CY); x.rotate(u.ang); x.translate(-CX, -CY); }
-    // the bonus STAR's lane burns three times as bright as the rest (owner)
-    const k = u.star ? 3 : 1;
+    // the bonus STAR's lane burns three times as bright as the rest (owner),
+    // and a BOSS lane is much THICKER with much more GLOW (owner): w scales
+    // every width, and its line carries a wide shadow-blur halo
+    const k = u.star ? 3 : 1, w = u.star ? BOSS_LANE_W : 1;
     lctx.strokeStyle = gctx.strokeStyle = COL[u.color];
     // a wide GLOW that grows in intensity toward the core (owner), on its own
     // layer with a much steeper fade outward (owner: "stronger gradient")
-    gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32; gctx.stroke(PATHS[u.pi].p2d); // thicker at the core (owner; was 0.18, 20)
+    gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.stroke(PATHS[u.pi].p2d); // thicker at the core (owner; was 0.18, 20)
     gctx.restore();
-    lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
-    lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].p2d);
+    if (u.star) { lctx.shadowColor = COL[u.color]; lctx.shadowBlur = BOSS_LANE_BLUR * cam.k; }
+    lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4 * w; lctx.stroke(PATHS[u.pi].p2d);
     lctx.restore();
   }
   for (let i = 0; i < GLOW_FALLOFF; i++) laneMask(gctx);

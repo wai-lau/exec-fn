@@ -76,7 +76,8 @@ function updateWaveList() {
     if (G.planLog && G.planLog[n]) rows.push(rowOf(n, G.planLog[n]));
   }
   let prev = G.lastType;
-  for (let i = 1; rows.length < WAVE_ROWS || i <= 3; i++) {
+  // nothing past the last boss (owner): the game is won at WIN_WAVE
+  for (let i = 1; (rows.length < WAVE_ROWS || i <= 3) && G.wave + i <= WIN_WAVE; i++) {
     const n = G.wave + i, w = wavePlan(n, prev);
     if (w.type !== "bonus") prev = w.type; // the boss wave does not break the alternation
     rows.push(rowOf(n, w));
