@@ -15,7 +15,8 @@ const CLOSER = 0.9, MIN_D = 90;
 const ONLY = (process.env.BB_ONLY || "").split(",").filter(Boolean).map(Number);
 function closest(n, lvl, hp, seed) {
   const g = makeGame(seed); g.reset(); g.run("G.started = true;"); // no auto-send on the first place
-  g.run(`G.money = 1e12; G.wave = ${n};`);
+  // the corner slots whose boss fell BEFORE this wave are open
+  g.run(`G.money = 1e12; G.wave = ${n}; G.opened = {}; CELLS.forEach((c, i) => { if (c.unlock && c.unlock < ${n}) G.opened[i] = true; });`);
   const kinds = ["chain", "slower", "reaper", "acid"], open = g.run("CELLS.map((c, i) => i).filter(cellOpen)");
   open.forEach((ci, j) => {
     const k = kinds[j % 4], i = ci;

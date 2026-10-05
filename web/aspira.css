@@ -71,18 +71,15 @@
 .asp-wavenote > span:nth-child(4n + 3) { padding-left: var(--space-1); }
 
 /* the enemies, ONE ICON EACH sized by HP (owner), on one line */
-.asp-dots { display: flex; align-items: center; height: 22px; } /* every row the same height (WAVE_ROW_H, aspira-ui.js) and width; spacing set per icon */
+.asp-dots { position: relative; display: flex; align-items: center; height: 22px; } /* every row the same height (WAVE_ROW_H, aspira-ui.js) and width; spacing set per icon */
 
 /* a tessellated swarm: ONE lattice band, three diamonds tall (owner; aspira-ui.js places each) */
 .asp-band { position: relative; display: block; }
 
-/* the time to the next wave, its own line above the list (owner) */
-.asp-nextin {
-  font-size: var(--fs-2xs);
-  color: hsl(var(--green-hsl));
-  filter: drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl)));
-}
-.asp-nextin:empty { display: none; }
+/* the incoming wave's countdown, "15s", right of its row (owner): after the
+   name; on a phone (names hidden) just right of the icons (.asp-eta-ph) */
+.asp-eta { margin-left: 1ch; color: hsl(var(--green-hsl)); font-variant-numeric: tabular-nums; }
+.asp-eta-ph { display: none; position: absolute; left: 100%; top: 50%; transform: translateY(-50%); white-space: nowrap; }
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
@@ -324,7 +321,52 @@
 .asp-check input { accent-color: hsl(var(--orange-hsl)); }
 
 /* volume slider next to the sound toggle (owner) */
-#asp-vol { width: calc(var(--space-8) * 3); align-self: center; accent-color: hsl(var(--green-hsl)); }
+
+/* the volume slider drawn like the buttons (owner: "match the UI"): a track in
+   the button's outline and fill, a square thumb with the button's border */
+#asp-vol {
+  width: calc(var(--space-8) * 3);
+  height: var(--space-6);
+  align-self: center;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+#asp-vol::-webkit-slider-runnable-track {
+  height: var(--space-2);
+  background: hsl(var(--bg-hsl) / 0.45);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+}
+
+#asp-vol::-moz-range-track {
+  height: var(--space-2);
+  background: hsl(var(--bg-hsl) / 0.45);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-2);
+}
+
+#asp-vol::-webkit-slider-thumb {
+  width: var(--space-4);
+  height: var(--space-5);
+  margin-top: calc(var(--space-2) / 2 - var(--space-5) / 2 - 1px);
+  appearance: none;
+  background: hsl(var(--bg-hsl));
+  border: 1px solid hsl(var(--green-hsl));
+  border-radius: var(--radius-2);
+}
+
+#asp-vol::-moz-range-thumb {
+  width: var(--space-4);
+  height: var(--space-5);
+  background: hsl(var(--bg-hsl));
+  border: 1px solid hsl(var(--green-hsl));
+  border-radius: var(--radius-2);
+}
+
+/* the version stamp after BEST (owner): quiet, the stat label's dimness */
+.asp-ver { opacity: 0.45; font-size: var(--fs-2xs); align-self: center; }
 
 /* palette swatches the canvas reads its colours from (aspira-defs.js) */
 .asp-sw { display: none; }
@@ -425,6 +467,8 @@
   .asp-wavenote > span:nth-child(4n + 1),
   .asp-wavenote > span:nth-child(4n + 2),
   .asp-wavenote > span:nth-child(4n + 4) { display: none; }
+
+  .asp-wavenote .asp-eta-ph { display: block; }
 
 
 

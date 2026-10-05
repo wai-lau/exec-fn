@@ -62,7 +62,8 @@ function text(str, x, y, size, color, outline = false, bold = false) {
     // halo and stroke CAPPED (owner: big titles carried a slab of shadow)
     if (size >= TEXT_BLUR_MIN) { ctx.shadowColor = oc; ctx.shadowBlur = Math.min(size * 0.7, TEXT_BLUR_MAX) * cam.k; } // shadow is in device px
     ctx.strokeStyle = oc; ctx.lineWidth = Math.min(size * 0.32, TEXT_STROKE_MAX); ctx.lineJoin = "round";
-    ctx.strokeText(str, x, y); ctx.strokeText(str, x, y);
+    ctx.strokeText(str, x, y);
+    if (size >= TEXT_BLUR_MIN) ctx.strokeText(str, x, y); // a second, darker pass only on big text (perf: damage numbers)
     ctx.restore();
   }
   ctx.fillStyle = COL[color] || color; // a palette key, or a colour already resolved (the boss title's red)

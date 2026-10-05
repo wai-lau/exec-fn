@@ -76,13 +76,6 @@ function sendWave() {
   // (each boss has its own line, "bossvoice.<arcana>", else the shared one)
   if (G.wave % STAR_EVERY === 0) sfxSeq(["bosswarn", bossVoice(arcanaOf(G.wave).id)]);
   sfx("wave");
-  // a corner slot opens this wave (owner): said where "core upgrades unlocked"
-  // is, in the same white, and the slot FLASHES while the words are up (drawSlotFlash)
-  CELLS.forEach((c, ci) => {
-    if (c.unlock !== G.wave || typeof float !== "function") return;
-    float(CX, CY - 80, "new slot unlocked", "white", 28, SLOT_FLASH_S, 1, 3);
-    slotFlash = { ci, until: performance.now() + SLOT_FLASH_S * 1000 };
-  });
   const lanes = laneMap(G.wave);
   // each type's group is SPLIT k ways (k = 1..6, owner) and each part rides a
   // copy of the lane rotated 360/k degrees on from the last, all at once
