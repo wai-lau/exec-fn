@@ -172,7 +172,7 @@ function drawTower(t, ghost) {
 }
 // one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits
 // the slots), drawn exactly as the tower used to be drawn each frame
-const towerSprites = new Map(), TOWER_LABEL_PX = 23;
+const towerSprites = new Map(), TOWER_LABEL_PX = 23, MAX_SPOKE_PAST = 0.22; // a max-level spoke's reach past the outer ring, in cell sizes
 function towerSprite(kind, lvl, c0) {
   const b = TOWERS[kind], turn = Math.round(Math.atan2(c0.pts[0].y - c0.y, c0.pts[0].x - c0.x) * 90 / Math.PI); // 2-degree steps
   const key = [kind, lvl, COL[b.color], COL.bg, cam.k.toFixed(4), turn].join("|");
@@ -199,10 +199,13 @@ function towerSprite(kind, lvl, c0) {
     towerHex(c, TOWER_K);
     for (let i = 0; i < lvl; i++) ctx.stroke();
     // MAX LEVEL reads at a glance (owner: L3 and L4 were hard to tell apart):
-    // its outermost ring is redrawn bold and WHITE
+    // SIX SPOKES in the tower's colour, one from each corner of its hex out
+    // past the outermost ring (owner; replaced a white outer ring)
     if (lvl >= MAX_LVL) {
-      ctx.shadowColor = COL.white; ctx.strokeStyle = COL.white; ctx.lineWidth = 4;
-      towerHex(c, TOWER_K + LEVEL_GAP * tiers); ctx.stroke();
+      const k0 = TOWER_K, k1 = TOWER_K + LEVEL_GAP * tiers + MAX_SPOKE_PAST;
+      ctx.lineWidth = 3.5; ctx.lineCap = "round"; ctx.beginPath();
+      for (const p of c.pts) { ctx.moveTo(p.x * k0, p.y * k0); ctx.lineTo(p.x * k1, p.y * k1); }
+      ctx.stroke();
     }
   } finally { ctx = main; }
   towerSprites.set(key, sp);
