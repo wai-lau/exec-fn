@@ -154,7 +154,8 @@
    it flips too once the inversion fills the screen (owner) */
 #asp.asp-boss .asp-head,
 #asp.asp-boss .asp-bottom,
-#asp.asp-boss .asp-pop { filter: invert(1); }
+#asp.asp-boss .asp-pop,
+#asp.asp-boss .asp-chooser { filter: invert(1); } /* the upgrade cards flip with the boss sky too (owner) */
 
 #asp-cv {
   position: absolute;

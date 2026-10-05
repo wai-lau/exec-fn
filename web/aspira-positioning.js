@@ -37,7 +37,8 @@ function predictions() {
 function bestSpot(t, k, range) {
   const pred = predictions();
   if (!pred.length) return null;
-  const off = t.off || 0, r2 = range * range, steps = Math.floor(k.max / POS_STEP);
+  // spots from the inner limit (k.min, below the slot) out to k.max
+  const off = t.off || 0, r2 = range * range, first = Math.ceil(k.min / POS_STEP), steps = Math.floor(k.max / POS_STEP);
   // each enemy's hits weighed by the tower's TARGETING (owner): Biggest by its
   // HP against the biggest on the field, Fresh full for the undebuffed and
   // POS_STALE for the rest, Near plain (the urgency weight already favours the core)
@@ -49,7 +50,7 @@ function bestSpot(t, k, range) {
     return n;
   };
   let best = 0, bestScore = 0;
-  for (let oi = 0; oi <= steps; oi++) {
+  for (let oi = first; oi <= steps; oi++) {
     const sc = score(oi);
     if (sc > bestScore || (sc === bestScore && sc > 0 && Math.abs(oi * POS_STEP - off) < Math.abs(best * POS_STEP - off))) { bestScore = sc; best = oi; }
   }
@@ -57,6 +58,6 @@ function bestSpot(t, k, range) {
   if (!bestScore) return k.max;
   // stay with the current mark unless the new one is clearly better
   const cur = t.want != null ? Math.round(t.want / POS_STEP) : null;
-  if (cur != null && cur <= steps && score(cur) * POS_SWITCH >= bestScore) return cur * POS_STEP;
+  if (cur != null && cur >= first && cur <= steps && score(cur) * POS_SWITCH >= bestScore) return cur * POS_STEP;
   return best * POS_STEP;
 }

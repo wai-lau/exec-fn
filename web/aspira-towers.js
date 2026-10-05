@@ -393,10 +393,12 @@ function usePower(code) {
 const TOWER_SPEED = { acid: 120, chain: 90, reaper: 30, slower: 60 }; // SOL halved again (owner)
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const moveSpeed = t => TOWER_SPEED[t.kind];
+const TOWER_IN = 0.75; // the innermost a tower slides: this share of its slot's distance from the core
 // the spoke: its unit direction, the slot's radius and how far out it runs
 function spokeOf(t) {
   const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
-  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_REACH[t.kind] - r0) };
+  // min: it may also slide IN, to TOWER_IN of its slot's distance (owner: 25% closer)
+  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_REACH[t.kind] - r0), min: -(1 - TOWER_IN) * r0 };
 }
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
 // the tower whose TRACK passes nearest p, within TRACK_HIT (owner: tapping near
@@ -422,12 +424,12 @@ function moveTower(t, dt) {
   const k = spokeOf(t), { c, ux, uy, max } = k, off = t.off || 0;
   t.posT = (t.posT || 0) - dt;
   if (t.posT <= 0) { t.posT = POS_EVERY; t.want = bestSpot(t, k, towerStats(t).range); }
-  const want = Math.max(0, Math.min(max, t.want ?? max)); // nothing alive: rest OUTERMOST (owner)
+  const want = Math.max(k.min, Math.min(max, t.want ?? max)); // nothing alive: rest OUTERMOST (owner)
   // eased: aim for the speed that still stops on the mark, then ramp to it
   const gap = want - off, vWant = Math.sign(gap) * Math.min(moveSpeed(t), Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
   const v = t.v || 0, dv = TOWER_ACCEL * dt;
   t.v = Math.abs(vWant - v) <= dv ? vWant : v + Math.sign(vWant - v) * dv;
-  t.off = Math.max(0, Math.min(max, off + t.v * dt));
+  t.off = Math.max(k.min, Math.min(max, off + t.v * dt));
   if (Math.abs(gap) < 0.5 && Math.abs(t.v) < 5) { t.off = want; t.v = 0; }
   t.x = c.x + ux * t.off; t.y = c.y + uy * t.off;
 }
@@ -437,7 +439,7 @@ function moveTower(t, dt) {
 // one spoke: from the core's edge out through cell c to radius `to`, ending in a
 // T just PAST it - a tower's own half-size further (TRACK_PAST), so a tower at
 // full reach touches the T instead of covering it (owner)
-const TRACK_PAST = CELL_S * 0.9;
+const TRACK_PAST = CELL_S * 0.68; // the smaller tower's half-size (was 0.9)
 function spokeTrack(c, reach) {
   const to = reach + TRACK_PAST, r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = CORE_R + 6;
   ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
@@ -464,7 +466,7 @@ function drawSpokes() {
 
 // A tower is its cell's hexagon, inset a little; its label at the centroid.
 // Level shows as concentric rings OUTSIDE it (drawTower).
-const TOWER_K = 0.88;
+const TOWER_K = 0.66; // 25% smaller (owner; was 0.88)
 function towerHex(c, k) {
   ctx.beginPath();
   c.pts.forEach((p, i) => {
@@ -477,4 +479,4 @@ function towerHex(c, k) {
 // and each level past L1 adds a BOLD ring OUTSIDE it, LEVEL_GAP further out
 // each (the cells are two tiles apart, so there is room), under a glow that
 // grows with the level.
-const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.24; // glow: shadow blur per level, world px
+const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.18; // rings 25% tighter with the smaller towers (was 0.24) // glow: shadow blur per level, world px
