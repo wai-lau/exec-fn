@@ -290,23 +290,32 @@ function enemyIcon(type, px, gap, dy, x, y) {
   return '<svg class="asp-eicon" viewBox="0 0 20 20"' + (px ? ' style="width:' + px.toFixed(2) + 'px;height:' + px.toFixed(2) + 'px;margin-right:' + (gap ?? 1).toFixed(2) + 'px' + (dy ? ';transform:translateY(' + dy.toFixed(2) + 'px)' : "") + (x != null ? ';position:absolute;left:' + x + ';top:' + y : "") + '"' : "") + ' aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
 }
 // one wave-list row's icons, LEFT-ALIGNED in a band `span` x WAVE_ROW_H: one
-// line if it fits at natural size; else 2 rows zigzagging (icons at most half
-// the row's height); else 3 rows - columns alternating two icons (top, bottom)
-// and one (middle). Same-row neighbours sit at least an icon apart, so the
-// stagger lets each column step only half an icon. Past 3 rows at SWARM_MIN
-// px, the columns squeeze to fit (overlapping).
+// line if it fits at natural size (never for a swarm, owner: at least 2 rows);
+// else 2 rows zigzagging; else 3 - columns alternating two icons (top, bottom)
+// and one (middle). In 2 and 3 rows the VERTICAL step EQUALS the horizontal one
+// (owner), TESS_STEP of an icon so diagonal neighbours just clear each other;
+// icons shrink only as far as the row's height and width force, down to
+// SWARM_MIN px, and columns squeeze (overlap) past that.
+const TESS_STEP = 0.72;
 function waveBand(type, count, px, span) {
   const H = WAVE_ROW_H, place = (pts, b) => '<span class="asp-band" style="width:' + span + "px;height:" + H + 'px">' +
     pts.map(([x, y]) => enemyIcon(type, b, 0, 0, x.toFixed(2) + "px", y.toFixed(2) + "px")).join("") + "</span>";
-  if (count * (px + 2) - 2 <= span) return place(Array.from({ length: count }, (_, k) => [k * (px + 2), (H - px) / 2]), px);
-  const b2 = Math.min(px, H / 2), s2 = b2 / 2 + 1;
-  if ((count - 1) * s2 + b2 <= span) return place(Array.from({ length: count }, (_, k) => [k * s2, k % 2 ? H - b2 : 0]), b2);
-  const cols = Math.ceil(count * 2 / 3);
-  const b3 = Math.max(SWARM_MIN, Math.min(px, H / 2.2, span / ((cols - 1) / 2 + 1)));
-  const s3 = cols > 1 ? Math.min(b3 / 2 + 1, (span - b3) / (cols - 1)) : 0, dy = (H - b3) / 2, pts = [];
-  let left = count;
-  for (let c = 0; left > 0; c++) for (const r of c % 2 ? [1] : [0, 2]) { if (left-- <= 0) break; pts.push([c * s3, r * dy]); }
-  return place(pts, b3);
+  if (type !== "swarm" && count * (px + 2) - 2 <= span) return place(Array.from({ length: count }, (_, k) => [k * (px + 2), (H - px) / 2]), px);
+  // rows R: R-1 vertical steps of the same size as the column step
+  const lattice = R => {
+    const cols = R === 2 ? count : Math.ceil(count * 2 / 3);
+    let b = Math.min(px, (H - 1) / ((R - 1) * TESS_STEP + 1)); // fits the height
+    const fitW = cols > 1 ? span / ((cols - 1) * TESS_STEP + 1) : b;
+    const fits = fitW >= b;
+    b = Math.max(SWARM_MIN, Math.min(b, fitW));
+    const st = cols > 1 ? Math.min(b * TESS_STEP, (span - b) / (cols - 1)) : 0, top = (H - (R - 1) * st - b) / 2, pts = [];
+    if (R === 2) for (let k = 0; k < count; k++) pts.push([k * st, top + (k % 2) * st]);
+    else { let left = count; for (let c = 0; left > 0; c++) for (const r of c % 2 ? [1] : [0, 2]) { if (left-- <= 0) break; pts.push([c * st, top + r * st]); } }
+    return { fits, html: place(pts, b), b };
+  };
+  const two = lattice(2);
+  if (two.fits) return two.html; // 2 rows whenever they fit the width; 3 only past that
+  return lattice(3).html;
 }
 let lastNote = "";
 function updateHud() {
