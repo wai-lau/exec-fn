@@ -369,11 +369,9 @@ function usePower(code) {
 
 // ---------- towers MOVE (owner, 2026-10-03) ----------
 // Each tower slides along its own SPOKE - the line from the core out through
-// its slot - towards the point on it nearest the enemy its targeting picks
-// (from the whole field, so it closes in before that enemy is in range),
-// at TOWER_MOVE a second, from its slot out to near the rim; with nothing to
-// chase it drifts back to its SLOT (owner: drag-to-rest was dropped). Its
-// slot stays its own (placement, Space, Horizon).
+// its slot - at most TOWER_MOVE a second, between its slot and radius
+// TOWER_MOVE_R, to wherever moveTower says. Its slot stays its own
+// (placement, Space, Horizon).
 // towers slide out to TOWER_MOVE_R from the core's centre at most (owner: 350)
 const TOWER_MOVE = 80, TOWER_MOVE_R = 350;
 // the spoke: its unit direction, the slot's radius and how far out it runs
@@ -382,40 +380,16 @@ function spokeOf(t) {
   return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_MOVE_R - r0) };
 }
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
-// SMOOTH chasing (owner: "a lot of jitter... not predicting"), four rules:
-//  - STICKY target: re-picked only every CHASE_HOLD s or when it dies, so the
-//    ever-shifting "best" (Near, Fresh) no longer flips the tower about
-//  - PREDICTED: it aims where the enemy will be along its lane by the time
-//    the tower gets there (its travel time, clamped to CHASE_LEAD)
-//  - a DEAD ZONE: while that point is inside CHASE_KEEP of its range it
-//    holds still - it only moves to bring the target back in
-//  - EASED: speed ramps at TOWER_ACCEL and brakes to stop on its mark
-const CHASE_HOLD = 0.6, CHASE_LEAD = [0.3, 2.5], CHASE_KEEP = 0.7, TOWER_ACCEL = 240;
-function chaseTarget(t) {
-  const key = MODE_KEY[t.mode];
-  let best = null, bk = Infinity;
-  for (const e of G.enemies) {
-    if (e.dead) continue;
-    const k = key({ e });
-    if (k < bk || (k === bk && best && e.s > best.s)) { bk = k; best = e; }
-  }
-  return best;
-}
+// WHERE it heads (owner, 2026-10-04): the spot that maximises ANTICIPATED
+// HITS, re-scored live (aspira-positioning.js) - it replaced chasing one
+// target, which walked away from groups. It gets there EASED: speed ramps at
+// TOWER_ACCEL and brakes to stop on its mark.
+const TOWER_ACCEL = 240;
 function moveTower(t, dt) {
-  const { c, r0, ux, uy, max } = spokeOf(t), off = t.off || 0;
-  t.chaseT = (t.chaseT || 0) - dt;
-  if (!t.chase || t.chase.dead || t.chase.gone || t.chaseT <= 0) { t.chase = chaseTarget(t); t.chaseT = CHASE_HOLD; }
-  const e = t.chase;
-  let want = 0; // nothing to chase: home to the slot
-  if (e) {
-    // where it will be: lead by the time to cover the gap at full speed
-    const proj = p => Math.max(0, Math.min(max, (p.x - CX) * ux + (p.y - CY) * uy - r0));
-    const lead = Math.max(CHASE_LEAD[0], Math.min(CHASE_LEAD[1], Math.abs(proj(e) - off) / TOWER_MOVE));
-    const p = pathAt(e.pi, e.s + effSpeed(e) * lead, e.ang || 0);
-    const tx = c.x + ux * off, ty = c.y + uy * off;
-    // in range enough already: hold where it is
-    want = Math.hypot(p.x - tx, p.y - ty) <= towerStats(t).range * CHASE_KEEP ? off : proj(p);
-  }
+  const k = spokeOf(t), { c, ux, uy, max } = k, off = t.off || 0;
+  t.posT = (t.posT || 0) - dt;
+  if (t.posT <= 0) { t.posT = POS_EVERY; t.want = bestSpot(t, k, towerStats(t).range); }
+  const want = Math.max(0, Math.min(max, t.want ?? 0)); // nothing alive: home to the slot
   // eased: aim for the speed that still stops on the mark, then ramp to it
   const gap = want - off, vWant = Math.sign(gap) * Math.min(TOWER_MOVE, Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
   const v = t.v || 0, dv = TOWER_ACCEL * dt;

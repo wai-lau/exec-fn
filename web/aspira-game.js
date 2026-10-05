@@ -344,6 +344,7 @@ function stepEnemies(dt) {
 
 function step(dt) {
   if (G.over || !G.started) return;
+  G.clock = (G.clock || 0) + dt; // game time (aspira-positioning.js paces its predictions on it)
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
   stepCore(dt); // the core's ZEN pulse (aspira-core.js)
   // the next wave goes when its timer runs out, or the moment the field
