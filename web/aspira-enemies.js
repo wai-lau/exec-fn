@@ -142,8 +142,8 @@ function drawBossEye(e, size) {
 
 // ---------- SEGMENTED shields (owner, 2026-10-04) ----------
 // A shield - an enemy's charges, the core's lives - is SEGMENTS: one per
-// charge, each a side of a ring in the shape's own outline, rings stacked
-// outward. A lost charge removes a RANDOM remaining segment (a gap stays); a
+// charge, on rings of the shape's own outline stacked outward; ring r cuts
+// each side into r pieces (ringOf). A lost charge removes a RANDOM remaining segment (a gap stays); a
 // gained one goes in at the innermost slot and PUSHES every other segment one
 // slot outward. A ring left wholly empty at the outside is dropped. The rings
 // breathe with the core's pulse (shieldPulse).
@@ -159,17 +159,33 @@ function syncSegs(segs, n, sides, flashes) {
     if (flashes) flashes.push({ i, t: performance.now() / 1000 });
   }
   while (have < n) { segs.unshift(true); have++; if (flashes) for (const f of flashes) f.i++; }
-  while (segs.length && segs.slice(-((segs.length - 1) % sides + 1)).every(v => !v)) segs.length -= (segs.length - 1) % sides + 1;
+  // drop the outermost ring while it is wholly empty
+  while (segs.length) {
+    const start = ringStart(ringOf(segs.length - 1, sides).r, sides);
+    if (!segs.slice(start).every(v => !v)) break;
+    segs.length = start;
+  }
   return segs;
+}
+// rings SUBDIVIDE outward (owner): ring r (1 = inner) has `sides` x r segments,
+// each side cut in r; slot i -> its ring r and its place in that ring
+const ringStart = (r, sides) => sides * (r - 1) * r / 2;
+function ringOf(i, sides) {
+  let r = 1;
+  while (ringStart(r + 1, sides) <= i) r++;
+  return { r, pos: i - ringStart(r, sides) };
 }
 const shieldPulse = () => 1 + 0.04 * Math.sin(performance.now() / 300); // the core's own breath
 // ring r (0 = inner) has radius base + gap * (r + 1); slot i is side i % sides of ring floor(i / sides)
 function drawSegs(x, y, segs, sides, rot, base, gap, flashes) {
   const k = shieldPulse();
   const side = i => {
-    const r = (base + gap * (Math.floor(i / sides) + 1)) * k, s = i % sides;
+    const { r: ring, pos } = ringOf(i, sides), r = (base + gap * ring) * k, s = Math.floor(pos / ring), j = pos % ring;
     const a0 = rot + s * Math.PI * 2 / sides, a1 = rot + (s + 1) * Math.PI * 2 / sides;
-    ctx.moveTo(x + Math.cos(a0) * r, y + Math.sin(a0) * r); ctx.lineTo(x + Math.cos(a1) * r, y + Math.sin(a1) * r);
+    const x0 = x + Math.cos(a0) * r, y0 = y + Math.sin(a0) * r, x1 = x + Math.cos(a1) * r, y1 = y + Math.sin(a1) * r;
+    // piece j of the side's `ring` pieces
+    ctx.moveTo(x0 + (x1 - x0) * j / ring, y0 + (y1 - y0) * j / ring);
+    ctx.lineTo(x0 + (x1 - x0) * (j + 1) / ring, y0 + (y1 - y0) * (j + 1) / ring);
   };
   ctx.beginPath();
   segs.forEach((on, i) => { if (on) side(i); });
