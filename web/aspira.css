@@ -148,7 +148,7 @@
 
 .asp-title {
   margin: 0;
-  font-size: var(--fs-xl);
+  font-size: var(--fs-3xl); /* bigger (owner; was xl) */
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-mega);
   text-transform: uppercase;
@@ -507,7 +507,7 @@
 
   .asp-left { left: var(--space-3); bottom: var(--space-4); gap: var(--space-1); }
 
-  .asp-title { font-size: var(--fs-sm); letter-spacing: var(--tracking-wide); }
+  .asp-title { font-size: var(--fs-xl); letter-spacing: var(--tracking-wide); } /* bigger (owner; was sm) */
 
   .asp-bottom { right: var(--space-3); }
 
