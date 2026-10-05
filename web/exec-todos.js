@@ -135,6 +135,22 @@
       .catch(function () {});
   }
 
+  // The fold sits ON the divider. Collapsed hides the list and the add row,
+  // leaving only the line and the chevron; the choice persists per browser.
+  var FOLD_KEY = 'exec.todos.folded';
+  function wireFold(sec) {
+    var btn = sec.querySelector('#exec-todo-fold');
+    function set(folded) {
+      sec.classList.toggle('folded', folded);
+      btn.setAttribute('aria-label', folded ? 'expand notes' : 'collapse notes');
+      try { localStorage.setItem(FOLD_KEY, folded ? '1' : '0'); } catch (_) {}
+    }
+    var start = false;
+    try { start = localStorage.getItem(FOLD_KEY) === '1'; } catch (_) {}
+    set(start);
+    btn.addEventListener('click', function () { set(!sec.classList.contains('folded')); });
+  }
+
   window.execBuildTodos = function (panel) {
     if (!panel || document.getElementById('exec-todos')) return;
     var sec = document.createElement('div');
@@ -150,8 +166,10 @@
         '<input id="exec-todo-input" type="text" autocomplete="off" ' +
           'autocorrect="off" autocapitalize="off" spellcheck="false" ' +
           'placeholder="add a note...">' +
-      '</div>';
+      '</div>' +
+      '<button id="exec-todo-fold" type="button" aria-label="collapse notes"></button>';
     panel.insertBefore(sec, panel.firstChild);
+    wireFold(sec);
     listEl = sec.querySelector('#exec-todo-list');
     inputEl = sec.querySelector('#exec-todo-input');
     inputEl.addEventListener('keydown', function (e) {

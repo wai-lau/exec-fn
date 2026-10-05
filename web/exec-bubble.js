@@ -64,7 +64,7 @@
           '<span id="exec-prompt">$</span>' +
           '<div id="exec-iwrap">' +
             '<div id="exec-idisp"><span id="exec-ipre"></span><span id="exec-icursor"></span><span id="exec-ipost"></span></div>' +
-            '<div id="exec-minput" contenteditable="true" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>' +
+            '<div id="exec-minput" contenteditable="true" enterkeyhint="enter" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>' +
           '</div>' +
           '<button id="exec-ph-close">[x]</button>' +
         '</div>' +
@@ -220,7 +220,12 @@
   }
 
   function wireInput() {
-    msgInput.addEventListener('input', renderCaret);
+    // A newline grows the composer and shrinks the transcript: keep its last
+    // line in view instead of letting the new row cover it.
+    msgInput.addEventListener('input', function () {
+      renderCaret();
+      termEl.scrollTop = termEl.scrollHeight;
+    });
     msgInput.addEventListener('keyup', renderCaret);
     msgInput.addEventListener('click', renderCaret);
     document.addEventListener('selectionchange', function () {
@@ -233,8 +238,20 @@
       document.getElementById('exec-icursor').style.display = 'inline-block';
       renderCaret();
     });
+    // Enter is a newline (the browser's own); the THIRD Enter in a row sends,
+    // the two blank lines it leaves trimmed off. Counted on beforeinput, not
+    // keydown, so a phone keyboard's return (key 'Unidentified' on Android)
+    // counts too. Any other edit resets the run. Ctrl/Cmd+Enter sends at once.
+    let enterRun = 0;
+    msgInput.addEventListener('beforeinput', function (e) {
+      if (e.inputType !== 'insertParagraph' && e.inputType !== 'insertLineBreak') { enterRun = 0; return; }
+      if (++enterRun < 3) return;
+      e.preventDefault();
+      enterRun = 0;
+      sendMsg();
+    });
     msgInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); enterRun = 0; sendMsg(); }
     });
     msgInput.addEventListener('paste', onPaste);
     wireDrop();
