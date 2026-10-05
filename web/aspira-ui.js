@@ -5,8 +5,8 @@
 // the old 2x is the new 1x (owner, 2026-10-02): every button runs the game
 // twice as fast as its label used to (0.5x added, 10x for testing - owner)
 const BASE_SPEED = 2;
-const SPEED_MULT = { 0.5: 0.5 * BASE_SPEED, 1: BASE_SPEED, 2: 2 * BASE_SPEED, 3: 3 * BASE_SPEED, 10: 10 * BASE_SPEED };
-const SPEEDS = [0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
+const SPEED_MULT = { 0.25: 0.25 * BASE_SPEED, 0.5: 0.5 * BASE_SPEED, 1: BASE_SPEED, 2: 2 * BASE_SPEED, 3: 3 * BASE_SPEED, 10: 10 * BASE_SPEED };
+const SPEEDS = [0.25, 0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
@@ -83,7 +83,7 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name;
 });
-[["pause", "pause"], [0.5, "½×"], [1, "1×"], [2, "2×"], [3, "3×"], [10, "10×"]].forEach(([v, label]) => {
+[["pause", "pause"], [0.25, "¼×"], [0.5, "½×"], [1, "1×"], [2, "2×"], [3, "3×"], [10, "10×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
   }, v === "pause" ? "asp-sp-pause" : speedId(v));
@@ -98,7 +98,14 @@ const etaToCore = e => { const v = effSpeed(e); return v > 0 ? (PATHS[e.pi].len 
 let autoWait = true;
 // ON by default (owner); only an explicit "0" (unticked before) turns it off
 try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { autoWait = true; }
-const autoWaiting = () => autoWait && !ui.paused && G.enemies.some(e => !e.dead && etaToCore(e) <= AUTO_WAIT_S);
+// TWO stages (owner): 1/2x within AUTO_WAIT_S of the core, 1/4x within half
+// that. Returns the speed key to run at (0.25 / 0.5), or 0 when not waiting.
+const autoWaiting = () => {
+  if (!autoWait || ui.paused) return 0;
+  let eta = Infinity;
+  for (const e of G.enemies) if (!e.dead) eta = Math.min(eta, etaToCore(e));
+  return eta <= AUTO_WAIT_S / 2 ? 0.25 : eta <= AUTO_WAIT_S ? 0.5 : 0;
+};
 (function autoWaitBox() {
   const row = document.createElement("div");
   row.className = "asp-row asp-autowait";
@@ -466,7 +473,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {
-    let left = dt * SPEED_MULT[autoWaiting() ? 0.5 : ui.speed];
+    let left = dt * SPEED_MULT[Math.min(autoWaiting() || Infinity, ui.speed)]; // auto-wait only ever SLOWS
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
   }
