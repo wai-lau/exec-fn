@@ -15,11 +15,19 @@
 //  100 Death       a juiced-up Star (owner): no tricks, x3 HP
 // Boss HP is ENEMIES.bonus.hp (halved, owner). Loaded after aspira-waves.js
 // (the simulator loads it too).
+// each with a HINT (owner): a small mythic subtitle under its name - its trick
+// told sideways, never spelled out
 const ARCANA = [
-  { id: "star", name: "The Star" }, { id: "empress", name: "The Empress" }, { id: "strength", name: "Strength" },
-  { id: "chariot", name: "The Chariot" }, { id: "lovers", name: "The Lovers" }, { id: "temperance", name: "Temperance" },
-  { id: "devil", name: "The Devil" }, { id: "justice", name: "Justice" }, { id: "judgement", name: "Judgement" },
-  { id: "death", name: "Death" },
+  { id: "star", name: "The Star", hint: "A lone light crosses the dark, and asks only to be met." },
+  { id: "empress", name: "The Empress", hint: "Wound her, and her children answer." },
+  { id: "strength", name: "Strength", hint: "No frost binds her; no chain slows her stride." },
+  { id: "chariot", name: "The Chariot", hint: "The reins slip, and the horses run." },
+  { id: "lovers", name: "The Lovers", hint: "Part them, and the one left behind will not forgive you." },
+  { id: "temperance", name: "Temperance", hint: "What is poured out is poured back." },
+  { id: "devil", name: "The Devil", hint: "Six faces, one hunger. Let none pass." },
+  { id: "justice", name: "Justice", hint: "No single blow outweighs the scales." },
+  { id: "judgement", name: "Judgement", hint: "What falls is called to rise again." },
+  { id: "death", name: "Death", hint: "No riddle. Only the end." },
 ];
 const BOSS_HP = { star: 2, empress: 2, strength: 2, chariot: 4, lovers: 2, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
@@ -157,7 +165,9 @@ function drawBossBar() {
   const hp = bosses.reduce((a, e) => a + Math.max(0, e.hp), 0), max = bosses.reduce((a, e) => a + e.max, 0);
   const reach = bossInv.r || 0, half = Math.min(BOSS_BAR_R * hp / max, reach), col = ENEMIES.bonus.color;
   const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20;
-  text(arcanaOf(bosses[0].n).name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 20, col, true);
+  const arc = arcanaOf(bosses[0].n);
+  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 20, col, true);
+  ctx.globalAlpha = 0.8; text(arc.hint, CX, y + 20, 12, col, true); ctx.globalAlpha = 1; // its mythic subtitle (owner)
   const by = CY, track = Math.min(BOSS_BAR_R, reach); // ON the horizon through the core, under the core (owner)
   if (track <= 0) return;
   ctx.strokeStyle = COL[col]; ctx.lineWidth = BOSS_BAR_W; ctx.lineCap = "butt";

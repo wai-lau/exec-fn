@@ -4012,6 +4012,7 @@ The UPCOMING-WAVE list shows each wave's enemies as ONE ICON EACH, sized by HP o
 ARC never hops to an ANCESTOR of the arc it is on (owner): `nextHop` skips every enemy up its own branch, for all ARC forms (Ion still never revisits anything). Crescendo / Fortissimo hops LOOK heavier the deeper they go: beam width x(1 + 0.6 x hop), a growing ring and more sparks (`hopTo`).
 SOL's Stake renamed GORE (owner); its L4 super, which was Gore, is now HAEMORRHAGE.
 Enemy shield layers sit much closer (owner): ring spacing 5 -> 2.5, lines 1.8 -> 1.4 (the core's life rings keep `LIFE_GAP` 5).
+Every boss carries a mythic HINT (owner: its trick told sideways - `ARCANA[].hint`), drawn small under its name below the core.
 DAMAGE NUMBERS hold whole for `DMG_HOLD` 0.1s (owner: 0.5 too long), then shrink and fade TOGETHER at the same rate to nothing at the end of their life (owner; drawFx, `f.under`). The tower card has a centred 'Priority:' over the targeting row (owner). The chart's ruler (`drawScaleBar`) moved to aspira-lanes.js when aspira-draw.js hit the 500-line cap.
 Damage numbers are SIZED BY THE HIT BEFORE ARMOR (owner; `dmgNumber`, aspira-game.js): an armor-blunted hit still reads big (in grey), and a shield-soaked '0' is as big as the hit it swallowed, in SHIELD blue (cyan). The kill's '+Nc' credit popup holds and then shrinks + fades exactly like a damage number (`f.shrink`).
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
