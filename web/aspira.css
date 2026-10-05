@@ -43,6 +43,7 @@
 .asp-wavenote {
   display: grid;
   grid-template-columns: repeat(4, auto); /* number : enemies name */
+  align-items: center; /* text level with the icons' centres (owner) */
   justify-content: start;
   gap: var(--space-0-5) var(--space-1);
   font-size: var(--fs-2xs);
