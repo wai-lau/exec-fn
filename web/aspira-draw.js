@@ -155,7 +155,7 @@ function drawTower(t, ghost) {
   towerHex(c, TOWER_K);
   for (let i = 0; i < t.lvl; i++) ctx.stroke();
   ctx.shadowBlur = 0;
-  text(towerAb(t), c.x, c.y + 1, 13, b.color);
+  text(towerAb(t), c.x, c.y + 1, 10, b.color); // smaller with the tower (owner: towers 25% smaller)
   ctx.globalAlpha = 1;
 }
 
@@ -251,24 +251,25 @@ function drawFx(pass) {
           ctx.moveTo(x1 + px * o, y1 + py * o); ctx.lineTo(x2 + px * o, y2 + py * o);
         }
       } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
-      const wm = f.slim ? 0.25 : 1; // slim (SOL): a quarter of a normal beam (owner: doubled from an eighth; the glow scales with it)
+      // the core's width is the DAMAGE of this hit (owner: every tower) - a
+      // multi-beam shot's beams each carry half the shot (rayHit)
+      const core = beamWidth((f.d || 0) / (f.beams > 1 ? 2 : 1));
       if (f.m) {
         const a = ctx.globalAlpha;
         if (f.slim) {
           // RPR (owner): a super-bright WHITE core in a pink glow that is a
           // GRADIENT - densest at the core, fading out by twice its width.
           // Four nested strokes, widest first, stack into that falloff.
-          const core = wm * (f.w + 1) * (0.6 + 0.4 * f.m);
           for (let i = 4; i >= 1; i--) {
-            ctx.globalAlpha = a * 0.3; ctx.lineWidth = core * (1 + i * 0.25); ctx.stroke();
+            ctx.globalAlpha = a * 0.3; ctx.lineWidth = core * 0.5 * (1 + i * 0.25); ctx.stroke(); // SOL: a slim beam, half the width
           }
         } else {
-          ctx.globalAlpha = a * 0.22; ctx.lineWidth = (f.w + 1) * (1 + 2 * f.m); ctx.stroke();
+          ctx.globalAlpha = a * 0.22; ctx.lineWidth = core * 3; ctx.stroke();
         }
         ctx.globalAlpha = a;
       }
       if (f.slim) { ctx.strokeStyle = COL.white; ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 1.5); }
-      ctx.lineWidth = wm * (f.w + 1) * (0.6 + 0.4 * (f.m || 1)); ctx.stroke();
+      ctx.lineWidth = f.slim ? core * 0.5 : core; ctx.stroke();
       // Ion: a thin WHITE core down the middle of the arc - it pierces (owner)
       if (f.pierce) { ctx.strokeStyle = COL.white; ctx.lineWidth = Math.max(1, ctx.lineWidth * 0.35); ctx.stroke(); }
     } else if (f.k === "hit") {
@@ -335,11 +336,18 @@ function drawAims() {
   for (const t of G.towers) {
     if (t.kind !== "reaper" || !t.locks || !t.period) continue;
     ctx.strokeStyle = COL[TOWERS[t.kind].color];
+    const n = towerStats(t).beams || 1; // as many lines as the shot has BEAMS (owner)
     for (const l of t.locks) { // each lock's line brightens on its own charge
       if (l.e.dead) continue;
       const p = Math.min(1, Math.max(0, 1 - l.cd / t.period));
       ctx.globalAlpha = 0.32 + 0.32 * p * p; // never below half its full strength (owner)
-      ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(l.e.x, l.e.y); ctx.stroke();
+      const len = Math.hypot(l.e.x - t.x, l.e.y - t.y) || 1, px = -(l.e.y - t.y) / len, py = (l.e.x - t.x) / len;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const o = (i - (n - 1) / 2) * 2 * TWIN_GAP;
+        ctx.moveTo(t.x + px * o, t.y + py * o); ctx.lineTo(l.e.x + px * o, l.e.y + py * o);
+      }
+      ctx.stroke();
     }
   }
   ctx.globalAlpha = 1;
@@ -367,8 +375,10 @@ function drawAcid() {
         (cat ? 0.7 + 0.3 * Math.sin(performance.now() / 1000 * (4 + 20 * f)) : 1);
       ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(l.e.x, l.e.y);
       for (const o of l.chain || []) if (!o.dead) ctx.lineTo(o.x, o.y); // Rain: on through its chain
-      ctx.globalAlpha = (0.1 + 0.2 * f) * k; ctx.lineWidth = 3 + 5 * f; ctx.stroke();
-      ctx.globalAlpha = (0.6 + 0.4 * f) * k; ctx.lineWidth = 1 + f; ctx.stroke();
+      // as THICK as one burn tick's damage (beamWidth, owner)
+      const bw = beamWidth(st.dmg * acidMulOf(l.held, st) / st.rate);
+      ctx.globalAlpha = (0.1 + 0.2 * f) * k; ctx.lineWidth = bw * 3; ctx.stroke();
+      ctx.globalAlpha = (0.6 + 0.4 * f) * k; ctx.lineWidth = bw; ctx.stroke();
       if (st.plagueR) {
         const pr = plagueRadius(l, st);
         gradDisc(l.e.x, l.e.y, pr, COL.chatsubo, k);
@@ -397,9 +407,10 @@ function drawTethers() {
       if (e.dead || Math.hypot(e.x - t.x, e.y - t.y) > r) continue;
       ctx.strokeStyle = col;
       ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(e.x, e.y);
-      // three rays now, so each THINNER and FAINTER (owner)
-      ctx.globalAlpha = 0.1 * shimmer; ctx.lineWidth = 4 * w; ctx.stroke();
-      ctx.globalAlpha = 0.45 * shimmer; ctx.lineWidth = 1 * w; ctx.stroke();
+      // three rays now, so each FAINTER (owner); as THICK as its hit (beamWidth, owner)
+      const bw = beamWidth(st.dmg) * w;
+      ctx.globalAlpha = 0.1 * shimmer; ctx.lineWidth = bw * 3; ctx.stroke();
+      ctx.globalAlpha = 0.45 * shimmer; ctx.lineWidth = bw; ctx.stroke();
     }
   }
   ctx.globalAlpha = 1;
