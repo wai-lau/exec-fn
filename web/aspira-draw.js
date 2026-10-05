@@ -6,7 +6,7 @@ const cv = document.getElementById("asp-cv"), ctx = cv.getContext("2d");
 // band between the header and the bottom build bar. cam is in device pixels.
 // The default view sits 25% closer than the whole-chart fit (owner, 2026-10-02);
 // cam.fit keeps that whole-chart scale, the furthest you can zoom out.
-const DEFAULT_ZOOM = 1.25;
+const DEFAULT_ZOOM = 1.5625; // 25% closer (owner, 2026-10-04; was 1.25)
 const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;

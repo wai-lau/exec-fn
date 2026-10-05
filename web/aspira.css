@@ -456,3 +456,6 @@
 
 .asp-bossname { white-space: nowrap; color: hsl(var(--orange-glow-hsl)); }
 
+
+/* the targeting buttons sit SMALL under sell (owner) */
+#asp .asp-modes button { padding: var(--space-1) var(--space-2); font-size: var(--fs-2xs); }

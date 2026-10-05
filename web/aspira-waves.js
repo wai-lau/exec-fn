@@ -125,23 +125,16 @@ function activeLanes() {
 }
 
 // ---------- the credits over the core (UI only; aspira-draw.js calls it) ----------
-// the count is drawn over the core (owner), "CREDITS 12,345"; for
+// the count is drawn over the core (owner), just the number "12,345"; for
 // CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under the rings
 const CREDITS_FX_T = 2.5;
 let creditsFx = null;
 function drawCredits() {
   const fxOn = creditsFx && performance.now() / 1000 - creditsFx.t0 < CREDITS_FX_T;
-  // THIS count keeps its word (owner: "leave that one as CREDITS"), no c. It
-  // is drawn OVER the core - on top of the hexagon, outlined, full size (owner:
-  // "z height above", not shrunk inside it) - as the full number with
-  // separators, since counts run past 10k (owner)
+  // just the NUMBER, centred on the core (owner: the CREDITS word is gone),
+  // full with separators - counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
-  // two lines (owner): CREDITS, then the number
-  // the word gets a LIGHT outline - a thin stroke, no blur (owner: less shadow)
-  ctx.font = "16px " + CANVAS_FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.strokeStyle = COL.bg; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.strokeText("CREDITS", CX, CY - 11);
-  ctx.fillStyle = COL.white; ctx.fillText("CREDITS", CX, CY - 11);
-  text(n, CX, CY + 11, 22, "white", true);
+  text(n, CX, CY, 22, "white", true);
   if (!fxOn) return;
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "20px " + CANVAS_FONT;
