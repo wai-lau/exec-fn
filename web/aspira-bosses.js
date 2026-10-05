@@ -7,7 +7,7 @@
 //   30 Strength    no slow or freeze touches it
 //   40 Chariot     every CHARIOT_EVERY s it sprints at CHARIOT_SPD x for CHARIOT_T s
 //   50 Lovers      a PAIR; when one dies the other heals to full and runs LOVERS_SPD x faster
-//   60 Temperance  regenerates TEMPERANCE_REGEN of its HP a second
+//   60 Temperance  regenerates TEMPERANCE_REGEN of its HP a second (owner: tripled to 6%, and x5 HP)
 //   70 Devil       comes as SIX (DEVIL_COPIES), each a full boss on its own copy of the
 //                  lane - any one that gets through ends the game (owner; replaced the Moon)
 //   80 Justice     no single hit takes more than JUSTICE_CAP of its HP
@@ -29,10 +29,10 @@ const ARCANA = [
   { id: "judgement", name: "Judgement", hint: "What falls is called to rise again." },
   { id: "death", name: "Death", hint: "No riddle. Only the end." },
 ];
-const BOSS_HP = { star: 2, empress: 2, strength: 2, chariot: 4, lovers: 2, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
+const BOSS_HP = { star: 2, empress: 2, strength: 2, chariot: 4, lovers: 2, temperance: 5, devil: 0.75, justice: 1.5, judgement: 1.5, death: 3 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
 const EMPRESS_BROOD = 30, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
-const TEMPERANCE_REGEN = 0.02, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
+const TEMPERANCE_REGEN = 0.06, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
 
 // how far an enemy on lane pi travels, entry to core, and the average over all lanes
 const laneTravel = pi => PATHS[pi].len - entryS(pi);
