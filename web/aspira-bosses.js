@@ -150,7 +150,7 @@ function drawBossBar() {
   const reach = bossInv.r || 0, half = Math.min(BOSS_BAR_R * hp / max, reach), col = ENEMIES.bonus.color;
   const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20;
   text(arcanaOf(bosses[0].n).name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 20, col, true);
-  const by = y + 12 + BOSS_BAR_W / 2, track = Math.min(BOSS_BAR_R, reach);
+  const by = CY, track = Math.min(BOSS_BAR_R, reach); // ON the horizon through the core, under the core (owner)
   if (track <= 0) return;
   ctx.strokeStyle = COL[col]; ctx.lineWidth = BOSS_BAR_W; ctx.lineCap = "butt";
   // the ORIGINAL HP as a translucent track (owner), the HP left solid over it

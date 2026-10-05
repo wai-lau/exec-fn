@@ -9,9 +9,8 @@
 // the core counts more) and by the tower's own TARGETING (see bestSpot). Samples sooner than the
 // tower could reach that spot do not count, since it would not be there yet.
 // The tower heads for the best spot, and only switches for a spot POS_SWITCH
-// times better than the one it is heading to. If nothing is reachable in time
-// it heads for the nearest enemy's furthest predicted point, so it closes in;
-// with no enemy alive it rests at the OUTER end of its spoke (owner).
+// times better than the one it is heading to. With nothing reachable in time,
+// or no enemy alive, it RESTS at the OUTER end of its spoke (owner).
 const POS_EVERY = 0.25, POS_HORIZON = 3, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
 const POS_STALE = 0.2; // Fresh: what a debuffed enemy's hits are still worth
 let POS_URGENCY = 6, POS_MODE_MIX = 1; // FULL targeting (owner: 0.3 barely counted); urgency 6 keeps the lives - swept u 3/6/10/20 x mix 0.3/1. let: the simulator sweeps both
@@ -54,12 +53,8 @@ function bestSpot(t, k, range) {
     const sc = score(oi);
     if (sc > bestScore || (sc === bestScore && sc > 0 && Math.abs(oi * POS_STEP - off) < Math.abs(best * POS_STEP - off))) { bestScore = sc; best = oi; }
   }
-  if (!bestScore) {
-    // nothing reachable in time: close in on the nearest enemy's furthest predicted point
-    let near = null, nd = Infinity;
-    for (const { e, pts } of pred) { const d = Math.hypot(e.x - t.x, e.y - t.y); if (d < nd) { nd = d; near = pts[pts.length - 1]; } }
-    return Math.max(0, Math.min(k.max, (near.x - CX) * k.ux + (near.y - CY) * k.uy - k.r0));
-  }
+  // nothing reachable in time: REST outermost (owner) - enemies enter at the rim
+  if (!bestScore) return k.max;
   // stay with the current mark unless the new one is clearly better
   const cur = t.want != null ? Math.round(t.want / POS_STEP) : null;
   if (cur != null && cur <= steps && score(cur) * POS_SWITCH >= bestScore) return cur * POS_STEP;

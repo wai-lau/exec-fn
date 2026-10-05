@@ -411,9 +411,12 @@ function moveTower(t, dt) {
 
 
 // UI only (aspira-draw.js calls it): each tower's SPOKE (owner): the track it slides along
-// one spoke: from the core's edge out through cell c to radius `to`, ending in a T (owner)
-function spokeTrack(c, to) {
-  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = CORE_R + 6;
+// one spoke: from the core's edge out through cell c to radius `to`, ending in a
+// T just PAST it - a tower's own half-size further (TRACK_PAST), so a tower at
+// full reach touches the T instead of covering it (owner)
+const TRACK_PAST = CELL_S * 0.9;
+function spokeTrack(c, reach) {
+  const to = reach + TRACK_PAST, r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = CORE_R + 6;
   ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
   const ex = CX + ux * to, ey = CY + uy * to;
   ctx.beginPath(); ctx.moveTo(ex - uy * 14, ey + ux * 14); ctx.lineTo(ex + uy * 14, ey - ux * 14); ctx.stroke();
