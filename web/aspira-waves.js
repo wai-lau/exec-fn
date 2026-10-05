@@ -59,6 +59,7 @@ function wavePlan(n, prev) {
 function makeWave(n) {
   const { type, count } = wavePlan(n, G.lastType);
   if (type !== "bonus") G.lastType = type; // the boss wave does not break the alternation
+  (G.planLog ||= {})[n] = { type, count }; // what wave n was, for the wave list once it is under way
   const list = Array(count).fill(type);
   return [list];
 }

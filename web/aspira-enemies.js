@@ -191,12 +191,20 @@ function drawSegs(x, y, segs, sides, rot, base, gap, flashes) {
   segs.forEach((on, i) => { if (on) side(i); });
   ctx.stroke();
   if (!flashes || !flashes.length) return;
-  // a LOST segment flashes Ember red and thick, fading over SEG_FLASH_T (owner)
+  // a LOST segment flashes RED and thick, fading over SEG_FLASH_T (owner). The
+  // red is the BOSS red - Hack cyan inverted, as a boss icon shows it - since
+  // Ember read as orange (owner: "should flash red")
   const now = performance.now() / 1000, keep = flashes.filter(f => now - f.t < SEG_FLASH_T);
   flashes.length = 0; flashes.push(...keep);
   const lw = ctx.lineWidth, ss = ctx.strokeStyle;
-  ctx.strokeStyle = COL.glow; ctx.lineWidth = SEG_FLASH_W;
-  for (const f of keep) { ctx.globalAlpha = 1 - (now - f.t) / SEG_FLASH_T; ctx.beginPath(); side(f.i); ctx.stroke(); }
+  ctx.strokeStyle = flashRed(); ctx.lineWidth = SEG_FLASH_W;
+  // full strength for the first half, then fading out
+  for (const f of keep) { ctx.globalAlpha = Math.min(1, 2 * (1 - (now - f.t) / SEG_FLASH_T)); ctx.beginPath(); side(f.i); ctx.stroke(); }
   ctx.globalAlpha = 1; ctx.lineWidth = lw; ctx.strokeStyle = ss;
 }
-const SEG_FLASH_T = 0.5, SEG_FLASH_W = 4.5;
+const SEG_FLASH_T = 0.8, SEG_FLASH_W = 6; // longer and bolder (owner: make it read as a red flash)
+let flashRedCss = null;
+function flashRed() {
+  if (!flashRedCss) { const m = (COL.cyan || "").match(/\d+/g); flashRedCss = m ? "rgb(" + m.slice(0, 3).map(v => 255 - v).join(",") + ")" : COL.glow; }
+  return flashRedCss;
+}

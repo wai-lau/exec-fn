@@ -483,3 +483,6 @@
 
 /* a boss row: the boss centred, a line out to either side (owner) */
 .asp-bline { flex: 1; height: 0; margin: 0 var(--space-1); border-top: 1px solid currentcolor; }
+
+/* the CURRENT wave's row: a light white band (owner) */
+.asp-wavenote > .asp-cur { background: hsl(var(--white-hsl) / 0.12); }
