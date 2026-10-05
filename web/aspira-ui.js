@@ -37,7 +37,7 @@ function placeTower(p) {
   // a failed placement also ends placing mode, same as a successful one
   if (!canPlace(ci)) { float(p.x, p.y, "blocked", "pink"); ui.build = null; return; }
   const cost = towerCost(ui.build);
-  if (G.money < cost) { float(p.x, p.y, "need " + cost, "pink"); ui.build = null; return; }
+  if (G.money < cost) { float(p.x, p.y, "need " + cost + "c", "pink"); ui.build = null; return; }
   G.money -= cost;
   const c = CELLS[ci];
   const t = { id: G.id++, kind: ui.build, cell: ci, x: c.x, y: c.y, lvl: 1, cd: 0, mode: DEFAULT_MODE[ui.build], spent: cost };

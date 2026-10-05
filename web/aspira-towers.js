@@ -380,8 +380,8 @@ function usePower(code) {
 // each kind moves at its own SPEED (units / game-s) and slides out to its own
 // REACH (owner, 2026-10-04): ACD fastest, ARC next, SOL and FRZ slowest; FRZ
 // reaches furthest, ACD and ARC next, SOL least (its weapon range was raised
-// to make up for it)
-const TOWER_SPEED = { acid: 120, chain: 90, reaper: 60, slower: 60 };
+// to make up for it); SOL then moves at half FRZ's speed (owner)
+const TOWER_SPEED = { acid: 120, chain: 90, reaper: 30, slower: 60 }; // SOL halved again (owner)
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 250 };
 const moveSpeed = t => TOWER_SPEED[t.kind];
 // the spoke: its unit direction, the slot's radius and how far out it runs
@@ -411,16 +411,26 @@ function moveTower(t, dt) {
 
 
 // UI only (aspira-draw.js calls it): each tower's SPOKE (owner): the track it slides along
+// one spoke: from the core's edge out through cell c to radius `to`, ending in a T (owner)
+function spokeTrack(c, to) {
+  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0, from = CORE_R + 6;
+  ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
+  const ex = CX + ux * to, ey = CY + uy * to;
+  ctx.beginPath(); ctx.moveTo(ex - uy * 14, ey + ux * 14); ctx.lineTo(ex + uy * 14, ey - ux * 14); ctx.stroke();
+}
 function drawSpokes() {
   // BRIGHT WHITE, solid, from the core out to the limit (owner: show the axis clearly)
-  ctx.strokeStyle = COL.white; ctx.lineCap = "round";
+  ctx.strokeStyle = COL.white; ctx.lineCap = "round"; ctx.lineWidth = 2;
   for (const t of G.towers) {
-    const k = spokeOf(t), from = CORE_R + 6, to = k.r0 + k.max;
-    ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(CX + k.ux * from, CY + k.uy * from); ctx.lineTo(CX + k.ux * to, CY + k.uy * to); ctx.stroke();
-    // the end is a T (owner)
-    const ex = CX + k.ux * to, ey = CY + k.uy * to;
-    ctx.beginPath(); ctx.moveTo(ex - k.uy * 14, ey + k.ux * 14); ctx.lineTo(ex + k.uy * 14, ey - k.ux * 14); ctx.stroke();
+    const k = spokeOf(t);
+    ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6;
+    spokeTrack(k.c, k.r0 + k.max);
+  }
+  // while PLACING, every free slot shows the track the tower being built would
+  // slide along, in its colour (owner)
+  if (ui.build) {
+    ctx.strokeStyle = COL[TOWERS[ui.build].color]; ctx.globalAlpha = 0.7;
+    CELLS.forEach((c, ci) => { if (canPlace(ci)) spokeTrack(c, Math.max(Math.hypot(c.x - CX, c.y - CY), TOWER_REACH[ui.build])); });
   }
   ctx.globalAlpha = 1;
 }
