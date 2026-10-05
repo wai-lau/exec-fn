@@ -58,8 +58,8 @@
 /* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
 .asp-wavenote > span:nth-child(4n + 1) { text-align: right; }
 
-/* the enemies, ONE ICON EACH sized by HP (owner): they wrap within their column */
-.asp-dots { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-px); max-width: 200px; }
+/* the enemies, ONE ICON EACH sized by HP (owner), on one line */
+.asp-dots { display: flex; align-items: center; } /* one line: big groups overlap (aspira-ui.js), spacing set per icon */
 
 /* the time to the next wave, its own line above the list (owner) */
 .asp-nextin {
@@ -410,7 +410,6 @@
   .asp-wavenote > span:nth-child(4n + 2),
   .asp-wavenote > span:nth-child(4n + 4) { display: none; }
 
-  .asp-dots { max-width: 110px; }
 
 
   /* the speed row and its volume slider stay ONE line (owner): tighter
