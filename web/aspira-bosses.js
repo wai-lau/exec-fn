@@ -111,7 +111,7 @@ function bossKilled(e) {
     CELLS.forEach((c, ci) => {
       if (c.unlock !== e.n || (G.opened ||= {})[ci]) return;
       G.opened[ci] = true;
-      float(CX, CY - 80, "new slot unlocked", "white", 28, SLOT_FLASH_S, 1, 3);
+      float(CX, CY - 80, "new slot unlocked", "white", 28, SLOT_TEXT_S, 1, 3);
       slotFlash = { ci, until: performance.now() + SLOT_FLASH_S * 1000 };
     });
   }
@@ -125,13 +125,20 @@ const bossPays = e => !(isA(e, "devil") && G.enemies.some(o => o !== e && !o.dea
 
 // ---------- the inverted sky (UI only; aspira-draw.js calls it last) ----------
 // owner: when a boss appears, colour INVERSION spreads as a soft-edged circle
-// from the core, filling the screen over BOSS_INV_T s; when the last
-// boss dies, it collapses over the same time back onto the core. The
-// canvas is inverted by painting the circle in "difference" mode; the HTML
-// over it (header, build bar, card) flips by CSS once the circle covers the
-// screen (bossInv.full -> #asp.asp-boss).
+// from the core, filling the screen over BOSS_INV_T s; when the last boss dies
+// it collapses back onto the core over the same time. The HTML over the board
+// flips by CSS once the circle covers the screen (bossInv.full -> #asp.asp-boss).
+// HOW (2026-10-05; owner: "looks laggy"): an OVERLAY canvas (#asp-inv) that
+// CSS inverts - a GPU filter, near free - takes a copy of the finished frame,
+// and a CSS radial MASK (--inv-r/x/y) shows it inside the circle, its soft edge
+// included. It replaced a full-screen "difference" blend every frame, which
+// cost ~470 ms a frame against 13 without (headless, 3x density). The TOWERS
+// and their tracks keep their own colours (owner): drawn again on the overlay
+// in INVERTED colours, which its filter turns back.
 const BOSS_INV_T = 3;
 const bossInv = { phase: "off", t0: 0, x: 0, y: 0, full: false };
+const inv = document.getElementById("asp-inv"), ictx = inv.getContext("2d");
+let colInv = null;
 function drawBossInvert() {
   // the sky stays inverted while ANY boss-related enemy lives - the boss and its
   // brood (owner) - and only then collapses
@@ -141,7 +148,8 @@ function drawBossInvert() {
   } else if (!alive.length && bossInv.phase === "in") {
     Object.assign(bossInv, { phase: "out", t0: now, x: CX, y: CY }); // collapses onto the CORE too (owner)
   }
-  if (bossInv.phase === "off") { bossInv.full = false; bossInv.r = 0; return; }
+  if (bossInv.phase === "out" && now - bossInv.t0 >= BOSS_INV_T) bossInv.phase = "off";
+  if (bossInv.phase === "off") { bossInv.full = false; bossInv.r = 0; inv.classList.remove("on"); return; }
   // the circle must reach the canvas corner furthest from its centre
   const corners = [[0, 0], [cv.width, 0], [0, cv.height], [cv.width, cv.height]].map(([px, py]) => ({ x: (px - cam.ox) / cam.k, y: (py - cam.oy) / cam.k }));
   const R = Math.max(...corners.map(c => Math.hypot(c.x - bossInv.x, c.y - bossInv.y))) * 1.3; // the soft edge clears the corners
@@ -149,13 +157,25 @@ function drawBossInvert() {
   const r = bossInv.phase === "in" ? R * ease : R * (1 - ease);
   bossInv.r = r; // the boss's HP line grows and shrinks with this edge (drawBossBar)
   bossInv.full = bossInv.phase === "in" && p >= 1;
-  if (bossInv.phase === "out" && p >= 1) { bossInv.phase = "off"; return; }
-  if (r < 1) return;
-  const g = ctx.createRadialGradient(bossInv.x, bossInv.y, r * 0.85, bossInv.x, bossInv.y, r);
-  g.addColorStop(0, COL.white); g.addColorStop(1, "transparent");
-  ctx.save(); ctx.globalCompositeOperation = "difference"; ctx.globalAlpha = 1; ctx.fillStyle = g;
-  ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, r, 0, 6.283); ctx.fill(); ctx.restore();
+  // the overlay: a copy of the frame, shown inside the circle (CSS mask, in CSS px)
+  if (inv.width !== cv.width || inv.height !== cv.height) { inv.width = cv.width; inv.height = cv.height; }
+  const dpr = canvasDpr();
+  inv.style.setProperty("--inv-r", (r * cam.k / dpr).toFixed(1) + "px");
+  inv.style.setProperty("--inv-x", ((bossInv.x * cam.k + cam.ox) / dpr).toFixed(1) + "px");
+  inv.style.setProperty("--inv-y", ((bossInv.y * cam.k + cam.oy) / dpr).toFixed(1) + "px");
+  inv.classList.add("on"); inv.classList.toggle("full", bossInv.full);
+  ictx.setTransform(1, 0, 0, 1, 0, 0); ictx.globalAlpha = 1; ictx.globalCompositeOperation = "copy";
+  ictx.drawImage(cv, 0, 0); ictx.globalCompositeOperation = "source-over";
+  // the towers + tracks again, in inverted colours, so they read in their own
+  ictx.setTransform(ctx.getTransform());
+  const main = ctx, saved = { ...COL };
+  colInv ||= Object.fromEntries(Object.entries(COL).map(([k, v]) => [k, invertColor(v)]));
+  ctx = ictx; Object.assign(COL, colInv);
+  try { drawSpokes(); for (const t of G.towers) drawTower(t); } finally { ctx = main; Object.assign(COL, saved); }
+  drawBossTitleOn(ictx); // over the towers there too
 }
+// the title once more on the overlay (in its own colours: the filter makes it red)
+function drawBossTitleOn(x) { const main = ctx; ctx = x; try { drawBossTitle(); } finally { ctx = main; } }
 
 // the STARS redden ahead of a boss (owner): over the wave before it they drift
 // from white to red, stay red while it is queued or alive, and drift back to
@@ -186,14 +206,14 @@ const BOSS_TITLE_PX = 46, BOSS_SUB_PX = 30;
 function drawBossTitle() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
   if (!bosses.length) return;
-  const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, arc = arcanaOf(bosses[0].n);
-  const inv = bossInv.phase !== "off" && Math.hypot(CX - bossInv.x, y - bossInv.y) < (bossInv.r || 0);
-  const col = inv ? flashRed() : ENEMIES.bonus.color;
-  const halo = inv ? "white" : true; // the sky's own colour behind it: white once inverted (owner: not a black slab)
-  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y + 14, BOSS_TITLE_PX, col, halo, true); // BOLD and bigger (owner; was 20, 26, 34)
+  // the TITLE above the core, the haiku under it (owner)
+  const off = CORE_R + LIFE_GAP * LIFE_RINGS + 20, arc = arcanaOf(bosses[0].n), col = ENEMIES.bonus.color;
+  // drawn in its own colours with a dark halo: inside the inverted sky the
+  // overlay turns that red on a white halo (drawBossInvert)
+  text(arc.name, CX, CY - off - BOSS_TITLE_PX * 0.5, BOSS_TITLE_PX, col, true, true); // BOLD and bigger (owner); just the name, no "x2" (owner)
   // the haiku, much bigger (owner; was 12, 15, 19), its three lines stacked
   ctx.globalAlpha = 0.85;
-  arc.hint.forEach((l, i) => text(l, CX, y + 14 + BOSS_TITLE_PX * 0.5 + BOSS_SUB_PX * (1 + 1.15 * i), BOSS_SUB_PX, col, halo));
+  arc.hint.forEach((l, i) => text(l, CX, CY + off + BOSS_SUB_PX * (0.5 + 1.15 * i), BOSS_SUB_PX, col, true));
   ctx.globalAlpha = 1;
 }
 function drawBossBar() {

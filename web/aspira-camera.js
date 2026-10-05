@@ -12,7 +12,7 @@ const ptrs = new Map(); // pointerId -> { x, y } in device pixels
 let fitK = 0, dragged = false, downAt = null, pinch = null;
 
 function devXY(ev) {
-  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect(), dpr = canvasDpr();
   return { x: (ev.clientX - r.left) * dpr, y: (ev.clientY - r.top) * dpr };
 }
 // scale the view by f about device point (sx, sy), within [fit, fit x ZOOM_MAX]
@@ -61,7 +61,7 @@ cv.addEventListener("pointermove", ev => {
     pinch = { d, m };
     return;
   }
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = canvasDpr();
   if (!dragged && Math.hypot(now.x - downAt.x, now.y - downAt.y) > DRAG_PX * dpr) dragged = true;
   if (dragged) panBy(now.x - prev.x, now.y - prev.y);
 });

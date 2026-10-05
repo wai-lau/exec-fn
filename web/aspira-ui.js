@@ -29,7 +29,7 @@ function canPlace(ci) {
   return cellOpen(ci) && !occupied(ci);
 }
 function toWorld(ev) {
-  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect(), dpr = canvasDpr();
   return { x: ((ev.clientX - r.left) * dpr - cam.ox) / cam.k, y: ((ev.clientY - r.top) * dpr - cam.oy) / cam.k };
 }
 function placeTower(p) {
