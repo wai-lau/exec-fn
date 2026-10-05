@@ -285,7 +285,7 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-const WAVE_ICON = [5, 18], WAVE_SPAN = 220, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
+const WAVE_ICON = [5, 18], WAVE_SPAN = 110, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
 // gap: px between this icon and the next (negative overlaps them); dy: a
 // vertical nudge (px); x, y: an absolute spot inside a lattice band (CSS lengths)
 function enemyIcon(type, px, gap, dy, x, y) {
