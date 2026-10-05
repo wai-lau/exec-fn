@@ -453,3 +453,6 @@
 
 /* the targeting buttons sit SMALL under sell (owner) */
 #asp .asp-modes button { padding: var(--space-1) var(--space-2); font-size: var(--fs-2xs); }
+
+/* "Priority:" centred over the targeting row (owner) */
+.asp-prio { margin-bottom: calc(-1 * var(--space-2)); text-align: center; font-size: var(--fs-2xs); color: hsl(var(--green-hsl)); }
