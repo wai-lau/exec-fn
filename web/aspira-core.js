@@ -101,7 +101,8 @@ function pushCells(d, rot = 0) {
   const c0 = Math.cos(rot), s0 = Math.sin(rot);
   const turn = (x, y) => ({ x: CX + (x - CX) * c0 - (y - CY) * s0, y: CY + (x - CX) * s0 + (y - CY) * c0 });
   for (const c of CELLS) {
-    if (!c.home) c.home = { x: c.x, y: c.y, pts: c.pts.map(p => ({ ...p })) };
+    if (!c.home) c.home = { x: c.x, y: c.y, pts: c.pts.map(p => ({ ...p })), minR: c.minR };
+    if (c.home.minR != null) c.minR = c.home.minR + d; // a corner slot's inner limit moves out with it
     const len = Math.hypot(c.home.x - CX, c.home.y - CY), ox = (c.home.x - CX) / len * d, oy = (c.home.y - CY) / len * d;
     const at = turn(c.home.x + ox, c.home.y + oy);
     c.x = at.x; c.y = at.y;

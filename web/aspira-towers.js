@@ -394,11 +394,13 @@ const TOWER_SPEED = { acid: 120, chain: 90, reaper: 30, slower: 60 }; // SOL hal
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const moveSpeed = t => TOWER_SPEED[t.kind];
 const TOWER_IN = 0.75; // the innermost a tower slides: this share of its slot's distance from the core
+// a slot's own inner limit (the corner slots carry one, CORNER_IN) else TOWER_IN of its distance
+const innerR = (c, r0) => c.minR ?? r0 * TOWER_IN;
 // the spoke: its unit direction, the slot's radius and how far out it runs
 function spokeOf(t) {
   const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
   // min: it may also slide IN, to TOWER_IN of its slot's distance (owner: 25% closer)
-  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_REACH[t.kind] - r0), min: -(1 - TOWER_IN) * r0 };
+  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, max: Math.max(0, TOWER_REACH[t.kind] - r0), min: -(r0 - innerR(c, r0)) };
 }
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
 // the tower whose TRACK passes nearest p, within TRACK_HIT (owner: tapping near
@@ -446,7 +448,7 @@ function spokeTrack(c, reach) {
   // a T-bar at each LIMIT (owner): the outer reach, and the innermost a tower
   // slides, TOWER_IN of its slot's distance (shorter, so out and in read apart)
   const bar = (r, w) => { const ex = CX + ux * r, ey = CY + uy * r; ctx.beginPath(); ctx.moveTo(ex - uy * w, ey + ux * w); ctx.lineTo(ex + uy * w, ey - ux * w); ctx.stroke(); };
-  bar(to, 14); bar(r0 * TOWER_IN, 9);
+  bar(to, 14); bar(innerR(c, r0), 9);
 }
 function drawSpokes() {
   // solid, from the core out to the limit, in the TOWER'S colour and a little

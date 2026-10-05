@@ -20,9 +20,12 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482;
 // the core; towers and enemies never collide, so building on a lane is fine.
 // Only SIX slots (owner, 2026-10-02): the ring of hexes around the core.
 const CELL_S = 32, CELL_PITCH = 2;
-// the corner slots: [angle (deg, screen: -90 = up), wave it opens]; they sit
-// CORNER_OUT x the ring's radius out, so they clear the ring towers either side
-const CORNER_SLOTS = [[-30, 40], [-150, 50], [90, 60]], CORNER_OUT = 1.3, TILE_R = Math.sqrt(3) * CELL_S * CELL_PITCH * CORNER_OUT;
+// the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
+// INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level
+// slid fully in, a gap still shows between all of them): 145 leaves the same
+// 13.6 gap to the innermost ring towers that ring neighbours have to each other
+// (solved on the max-level hexes). They rest there, so they only slide OUT.
+const CORNER_SLOTS = [[-30, 40], [-150, 50], [90, 60]], CORNER_IN = 145, TILE_R = CORNER_IN;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
 // the build area, which now spans the whole chart)
@@ -54,7 +57,7 @@ const CELLS = (function buildCells() {
   CORNER_SLOTS.forEach(([deg, unlock]) => {
     const a = deg * Math.PI / 180, x = CX + Math.cos(a) * TILE_R, y = CY + Math.sin(a) * TILE_R, pts = [];
     for (let k = 0; k < 6; k++) { const b = Math.PI / 6 + k * Math.PI / 3; pts.push({ x: x + CELL_S * Math.cos(b), y: y + CELL_S * Math.sin(b) }); }
-    out.push({ pts, x, y, unlock });
+    out.push({ pts, x, y, unlock, minR: CORNER_IN });
   });
   return out;
 })();
