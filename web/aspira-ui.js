@@ -337,15 +337,14 @@ function updateHud() {
     // a BOSS sits CENTRED with a horizontal line out to either side (owner)
     if (boss) icons = '<span class="asp-bline"></span>' + enemyIcon(w.type, px, 2).repeat(w.count - 1) + enemyIcon(w.type, px, 0) + '<span class="asp-bline"></span>';
     if (w.type === "swarm") {
-      // a SWARM is ONE horizontal line of diamonds across the row's width, each
-      // jittered a little sideways (owner) - by a fixed hash of its place, so the
-      // list does not shimmer when it redraws
-      const b = Math.max(SWARM_MIN, px), gap = w.count > 1 ? (span - b) / (w.count - 1) : 0;
+      // a SWARM is ONE line of diamonds, evenly across the row's width, each
+      // jittered UP or DOWN a little (owner: vertical, not sideways) - by a fixed
+      // hash of its place, so the list does not shimmer when it redraws
+      const b = Math.max(SWARM_MIN, px), gap = w.count > 1 ? (span - b) / (w.count - 1) : 0, room = WAVE_ROW_H - b;
       let html = "";
       for (let k = 0; k < w.count; k++) {
-        const jit = (fixedRand(n * 97 + k, 7) - 0.5) * SWARM_JITTER * gap;
-        const x = Math.max(0, Math.min(span - b, k * gap + jit));
-        html += enemyIcon(w.type, b, 0, 0, x.toFixed(2) + "px", ((WAVE_ROW_H - b) / 2).toFixed(2) + "px");
+        const y = room / 2 + (fixedRand(n * 97 + k, 7) - 0.5) * room * SWARM_JITTER;
+        html += enemyIcon(w.type, b, 0, 0, (k * gap).toFixed(2) + "px", y.toFixed(2) + "px");
       }
       icons = '<span class="asp-band" style="width:' + span.toFixed(1) + "px;height:" + WAVE_ROW_H + 'px">' + html + "</span>";
     }
