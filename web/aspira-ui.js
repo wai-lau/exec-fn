@@ -265,7 +265,8 @@ function flashBuild() {
   $("asp-build").classList.toggle("asp-flash", !G.started && !G.towers.length);
   // every slot taken: the build buttons go (owner), and so does any half-made pick
   const full = G.towers.length >= openCells(); // a corner slot opening brings them back
-  $("asp-build").style.display = full ? "none" : "";
+  // HIDDEN, not removed: the title under them keeps its place (owner)
+  $("asp-build").style.visibility = full ? "hidden" : "";
   if (full && ui.build) { ui.build = null; $("asp-placing").hidden = true; }
 }
 function refreshPanels() {
