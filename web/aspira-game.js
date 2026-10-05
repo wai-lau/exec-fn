@@ -99,6 +99,14 @@ function pickTargets(t, st, count) {
 // crit: draw this hit's number PINK instead of a separate CRIT label (owner)
 // st (optional): the hitting tower's stats, for pierce - st.ignoreShield and
 // st.armorPierce (the share of armor ignored; ARC's Ion path, owner)
+// a floating damage number, sized RELATIVE to the biggest hit seen this game
+// (owner): the largest so far is 27px / 2s, a tiny one 11px / 0.8s, spaced by
+// sqrt(size / maxHit) - size being the hit before armor or shield
+function dmgNumber(e, label, size, color) {
+  G.maxHit = Math.max(G.maxHit || 1, size);
+  const rel = Math.sqrt(size / G.maxHit);
+  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, label, color, Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
+}
 const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
@@ -108,7 +116,8 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     if (quiet) return;
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, "0", "grid", 15, 1, 1, 30, true); // all of it soaked: dim grey, like armor
+    // all of it soaked: a dim grey "0", as BIG as the hit it swallowed (owner)
+    dmgNumber(e, "0", amt, "grid");
     return;
   }
   // BLEED (SOL's Impale): every OTHER tower may crit a bleeding enemy too, for
@@ -138,12 +147,8 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
-    // sized RELATIVE to the biggest hit seen this game (owner): the largest so
-    // far is 27px / 2s, a tiny one 11px / 0.8s (owner: smaller), spaced by sqrt(amt / maxHit)
-    G.maxHit = Math.max(G.maxHit || 1, amt);
-    const rel = Math.sqrt(amt / G.maxHit);
-    float(e.x + (Math.random() - 0.5) * 24, e.y - 14, String(Math.round(amt)), crit ? "orange" : blunted ? "grid" : "white",
-      Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
+    // sized by the hit BEFORE armor (owner): a big hit blunted to little still reads big, in grey
+    dmgNumber(e, String(Math.round(amt)), raw, crit ? "orange" : blunted ? "grid" : "white");
   }
   if (e.hp <= 0) kill(e, t);
 }

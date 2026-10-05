@@ -221,7 +221,7 @@ function gradDisc(x, y, r, col, a = 1) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
   ctx.fillStyle = g; ctx.globalAlpha = GRAD_EDGE * a; ctx.fill();
 }
-const DMG_HOLD = 0.5; // s a damage number stays whole before it shrinks + fades (owner)
+const DMG_HOLD = 0.1; // s a damage number stays whole before it shrinks + fades (owner: 0.5 was too long)
 const TWIN_GAP = 3.5; // Charge's parallel beams sit 2 x this apart
 // Two passes so towers sit on top of their own shots but under the numbers:
 // pass "shots" draws beams/rings/sparks, pass "text" draws floating numbers.
