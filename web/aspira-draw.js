@@ -443,6 +443,7 @@ function render() {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy);
   drawFx("dmg"); // damage numbers sit just above the background, under all else
   drawBoard();
+  drawBossBar(); // a live boss's HP line along the horizon + its name, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
   for (const t of G.towers) if (t !== sel) drawTowerRange(t, true);
   if (sel) drawTowerRange(sel, false);
@@ -463,7 +464,6 @@ function render() {
     text(bannerText, CX, 70, 44, bannerCol, true);
     ctx.globalAlpha = 1;
   }
-  drawBossBar(); // a live boss's HP line along the horizon, UNDER the core, + its name (aspira-bosses.js)
   drawCore();
   drawCredits(); // ON the core, so after it (aspira-waves.js)
   drawBossInvert(); // the boss's inverted sky, over everything (aspira-bosses.js)
