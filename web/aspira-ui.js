@@ -123,7 +123,7 @@ const autoWaiting = () => {
 (function autoWaitBox() {
   const row = document.createElement("div");
   row.className = "asp-row asp-autowait";
-  $("asp-speed").after(row);
+  $("asp-wavenote").after(row); // UNDER the wave list (owner; was under the speed row)
   const btn = button(row, "asp-check", "", () => {
     autoWait = !autoWait;
     try { localStorage.setItem("spire.autowait", autoWait ? "1" : "0"); } catch (e) { /* not remembered */ }
