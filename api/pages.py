@@ -341,12 +341,15 @@ def _index_pages() -> tuple[str, str]:
 _FULL_HEIGHT_STYLE = "<style>body{display:block;height:100vh;overflow:hidden!important;}</style>"
 
 
-def _render_page(active: str | None, content: str, full_height: bool = False, guest: bool = False) -> str:
+def _render_page(active: str | None, content: str, full_height: bool = False, guest: bool = False,
+                 show_nav: bool = True) -> str:
     no_form, bare = _index_pages()
     base = bare if active else no_form
     preconnect = _JSDELIVR_PRECONNECT if active in _JSDELIVR_PAGES else ""
     head_inject = preconnect + _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
-    nav = _build_nav(active, guest=guest)
+    # show_nav=False: a page with its own way out and no room for the bar
+    # (/spire, owner 2026-10-05: a favicon button home instead)
+    nav = _build_nav(active, guest=guest) if show_nav else ""
     # Non-full-height pages scroll at the document root, whose native scrollbar
     # is top-layer and paints over the fixed bottom nav's right edge. Confine the
     # scroll to a wrapper that stops at the nav top (.page-scroll in chrome.css)
