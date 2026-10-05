@@ -33,18 +33,23 @@ function fixedRand(n, salt) {
 }
 // what wave n will be, given the type of the wave before it - pure, so the
 // HUD can preview the next wave (owner) without touching the game
+// enemy COUNTS per TYPE (owner, 2026-10-04: the types balanced against each
+// other at the same wave, the rise across waves kept; scripts/aspira-sim/wavebal.mjs
+// types). WAVE_TYPE_FORCE is the simulator's way to try a type at a wave - empty in play.
+// fitted 2026-10-04 (typebal.mjs, 2 seeds, waves 3-29 vs one L1 of each tower)
+const TYPE_COUNT_MUL = { swarm: 0.75, shield: 1.51, armor: 2.63, fast: 0.48 }, WAVE_TYPE_FORCE = {};
 const WAVE_COUNT_MUL = {};
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
   if (n % STAR_EVERY === 0) return { type: "bonus", count: bossCount(n), split: bossSplit(n), star: true }; // the Lovers and Death come as two, the Devil as six (aspira-bosses.js)
   const choices = UNLOCK.filter(t => t !== prev);
-  const type = n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)];
+  const type = WAVE_TYPE_FORCE[n] || (n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)]);
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1))); // swarms 6x (owner: doubled from 3x)
+  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1))); // swarms 6x (owner: doubled from 3x)
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
   const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };

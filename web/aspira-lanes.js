@@ -14,7 +14,7 @@ const LANE_FADE_R = 550; // just past the rim circle (482-494)
 const laneCv = document.createElement("canvas"), lctx = laneCv.getContext("2d");
 // the live lanes' GLOW, on its own layer so it can fade much faster outward:
 // its radial mask is applied GLOW_FALLOFF times (alpha ~ (1 - r/R)^n)
-const glowCv = document.createElement("canvas"), gctx = glowCv.getContext("2d"), GLOW_FALLOFF = 3;
+const glowCv = document.createElement("canvas"), gctx = glowCv.getContext("2d"), GLOW_FALLOFF = 5; // harder (owner; was 3)
 // the FAINT trace of all twelve lanes never changes, so it is drawn once into
 // baseCv and only redrawn when the camera or the canvas size moves (it was
 // most of every frame: ~300ms of ~1s in headless WebKit, 2026-10-02)
@@ -35,7 +35,10 @@ function laneMask(x) {
   x.fillRect(CX - 4000, CY - 4000, 8000, 8000);
 }
 function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c, 0, 0); ctx.restore(); }
+const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
 function drawLaneStrokes(live) {
+  // forget lanes that went dark, so they fade in again next time
+  for (const key of laneSeen.keys()) if (!live.some(u => u.pi + ":" + u.ang === key)) laneSeen.delete(key);
   const key = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
   if (key !== baseKey) {
     baseKey = key;
@@ -50,7 +53,12 @@ function drawLaneStrokes(live) {
   // wave rides a rotated copy of it (u.ang)
   laneLayer(laneCv, lctx, cv.width, cv.height);
   laneLayer(glowCv, gctx, cv.width, cv.height);
+  const now = performance.now();
   for (const u of live) {
+    // a lane FADES IN over LANE_FADE_IN_MS of REAL time, whatever the game speed (owner)
+    const key = u.pi + ":" + u.ang;
+    if (!laneSeen.has(key)) laneSeen.set(key, now);
+    u.a *= Math.min(1, (now - laneSeen.get(key)) / LANE_FADE_IN_MS);
     lctx.save(); gctx.save();
     for (const x of [lctx, gctx]) { x.translate(CX, CY); x.rotate(u.ang); x.translate(-CX, -CY); }
     // the bonus STAR's lane burns three times as bright as the rest (owner)
@@ -58,7 +66,7 @@ function drawLaneStrokes(live) {
     lctx.strokeStyle = gctx.strokeStyle = COL[u.color];
     // a wide GLOW that grows in intensity toward the core (owner), on its own
     // layer with a much steeper fade outward (owner: "stronger gradient")
-    gctx.globalAlpha = Math.min(1, 0.18 * k * u.a); gctx.lineWidth = 20; gctx.stroke(PATHS[u.pi].p2d);
+    gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32; gctx.stroke(PATHS[u.pi].p2d); // thicker at the core (owner; was 0.18, 20)
     gctx.restore();
     lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
