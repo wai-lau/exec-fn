@@ -52,6 +52,9 @@ function drawLaneStrokes(live) {
     // the bonus STAR's lane burns three times as bright as the rest (owner)
     const k = u.star ? 3 : 1;
     lctx.strokeStyle = COL[u.color];
+    // a wide GLOW that grows in intensity toward the core (owner) - the radial
+    // lane mask below fades everything outward, so this builds up inward
+    lctx.globalAlpha = 0.07 * k * u.a; lctx.lineWidth = 16; lctx.stroke(PATHS[u.pi].p2d);
     lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
     lctx.restore();
