@@ -114,7 +114,7 @@ def test_assistant_reply_is_spoken_in_glados(open_rd):
     pg = open_rd()
     _open_panel(pg)
     pg.fill("#exec-minput", "hello")
-    pg.keyboard.press("Enter")
+    pg.keyboard.press("Control+Enter")  # bare Enter is a newline; 3 in a row send
     pg.wait_for_function("() => (window.__execSpoken || []).length >= 1", timeout=8000)
     spoken = _spoken(pg)
     assert len(spoken) == 1
@@ -167,7 +167,7 @@ def test_voice_off_stays_silent_and_still_shows_the_reply(open_rd):
     assert pg.query_selector("#exec-mute.voice-mute") is not None
     pg.evaluate("() => window.execVoice.setOn(false)")
     pg.fill("#exec-minput", "quietly please")
-    pg.keyboard.press("Enter")
+    pg.keyboard.press("Control+Enter")  # bare Enter is a newline; 3 in a row send
     pg.wait_for_function(
         """() => [...document.querySelectorAll('#exec-term .msg.assistant .msg-body')]
                  .some(b => b.innerText.includes('It is'))""", timeout=10000)

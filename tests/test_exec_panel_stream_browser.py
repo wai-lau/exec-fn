@@ -107,7 +107,7 @@ def panel(browser, base_url, admin_headers):
 
 def _send(pg, text):
     pg.locator("#exec-minput").fill(text)
-    pg.keyboard.press("Enter")
+    pg.keyboard.press("Control+Enter")  # bare Enter is a newline; 3 in a row send
 
 
 def _texts(pg, sel):
