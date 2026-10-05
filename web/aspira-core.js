@@ -11,7 +11,7 @@
 // Lens). Loaded after aspira-towers.js (the simulator loads it too); the card
 // and drawing code only run from the UI.
 const CORE_UNLOCK = 30, CORE_COST = [1500, 3000, 6000]; // owner: was 2500 / 5000 / 10000
-const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 50; // Space range bonus halved with every range (owner)
+const ZEN_EVERY = 5, ZEN_R = 250, ZEN_SLOW = 0.95, ZEN_T = 1, SINTER_MUL = 1.3, NULL_PUSH = 100, NULL_RANGE = 75; // Space range bonus at 75%, with every range (owner)
 // Zen's wave TRAVELS (owner: slower): its front spreads from the core to its
 // reach over ZEN_WAVE_T seconds and freezes each enemy as it passes
 const ZEN_WAVE_T = 3;
@@ -20,7 +20,7 @@ const STILL_R = 400, ECHO_MUL = 1.5;
 const SILENCE_EVERY = 3, RESONANCE_MUL = 2, RESONANCE_T = 1, HORIZON_SPIN = 0.05;
 const CORE_L1 = [
   { id: "zen", name: "Zen", desc: "every 5s a pulse near-freezes enemies within 250 of the core (95% slow) for 1s" },
-  { id: "nullify", name: "Space", desc: "towers move 100 further out and gain +50 range" },
+  { id: "nullify", name: "Space", desc: "towers move 100 further out and gain +75 range" },
 ];
 // (the Sinter path - Sinter, Temper, Quench, Anneal, Brittle Core - was cut,
 // owner 2026-10-02; its two effects live on under Space as Vacuum and Infinity)
@@ -30,7 +30,7 @@ const CORE_L2 = {
     { id: "echo", name: "Echo", desc: "enemies held by the pulse take +50% damage" },
   ],
   nullify: [
-    { id: "expanse", name: "Expanse", desc: "towers move another 100 out and gain another +50 range" },
+    { id: "expanse", name: "Expanse", desc: "towers move another 100 out and gain another +75 range" },
     // Vacuum carries Quench's effect (owner, 2026-10-02; was 25% slower)
     { id: "vacuum", name: "Vacuum", desc: "Fast enemies at half speed; armor and shields halved" },
   ],
@@ -38,7 +38,7 @@ const CORE_L2 = {
 const CORE_L3 = {
   stillness: [{ id: "silence", name: "Silence", desc: "a pulse every 3s (was 5)" }],
   echo: [{ id: "resonance", name: "Resonance", desc: "held enemies take +100% (was +50%), for 1s after the freeze ends too" }],
-  expanse: [{ id: "horizon", name: "Horizon", desc: "+50 range again (+150 in all), and the slots slowly orbit the core" }],
+  expanse: [{ id: "horizon", name: "Horizon", desc: "+75 range again (+225 in all), and the slots slowly orbit the core" }],
   // Infinity carries Sinter's effect (owner; replaced Void)
   vacuum: [{ id: "infinity", name: "Infinity", desc: "every tower deals +30% damage" }],
 };

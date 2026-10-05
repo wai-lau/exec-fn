@@ -219,7 +219,7 @@ const TOWERS = {
 const GOOD_VS = { chain: "swarms", slower: "fast, shields", reaper: "armor, bosses", acid: "shields, bosses" };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
-const RANGE_BONUS = 0.6; // HALVED (owner, 2026-10-04: towers move now) - was 1.2
+const RANGE_BONUS = 0.9; // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
 // targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
 // Near = nearest the core (aspira-game.js MODE_KEY; the key stays "close", the
 // label is Near so it does not read as "close this card" - owner)
@@ -275,7 +275,7 @@ const STEP_COST = [5.9, 15.25, 24];
 // adds its aura; noAura stops the aura lookup recursing into other towers.
 function towerStats(t, noAura = false) {
   const b = TOWERS[t.kind], i = t.lvl - 1;
-  // RANGE_BONUS: every tower reaches 0.6x its table value (owner: was 1.2, halved 2026-10-04)
+  // RANGE_BONUS: every tower reaches 0.9x its table value (owner: 75% of the old 1.2, 2026-10-04)
   const s = {
     dmg: b.dmg * LVL_DMG[i], rate: b.rate, range: b.range * RANGE_BONUS * LVL_RANGE[i],
     targets: 1, critMul: 3, arcRange: 50, arcFall: 0.8,
