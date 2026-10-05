@@ -54,7 +54,7 @@ function drawLaneStrokes(live) {
     lctx.strokeStyle = COL[u.color];
     // a wide GLOW that grows in intensity toward the core (owner) - the radial
     // lane mask below fades everything outward, so this builds up inward
-    lctx.globalAlpha = 0.07 * k * u.a; lctx.lineWidth = 16; lctx.stroke(PATHS[u.pi].p2d);
+    lctx.globalAlpha = 0.18 * k * u.a; lctx.lineWidth = 20; lctx.stroke(PATHS[u.pi].p2d); // more intense (owner; was 0.07, 16)
     lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6; lctx.stroke(PATHS[u.pi].p2d);
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4; lctx.stroke(PATHS[u.pi].p2d);
     lctx.restore();
