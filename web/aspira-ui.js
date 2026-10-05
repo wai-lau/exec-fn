@@ -334,6 +334,8 @@ function updateHud() {
     const step = w.count > 1 ? (span - px) / (w.count - 1) : px + 1; // start-to-start spacing
     // the last icon carries no trailing gap, so the row is exactly `span` wide
     let icons = enemyIcon(w.type, px, step - px).repeat(w.count - 1) + enemyIcon(w.type, px, 0);
+    // a BOSS sits CENTRED with a horizontal line out to either side (owner)
+    if (boss) icons = '<span class="asp-bline"></span>' + enemyIcon(w.type, px, 2).repeat(w.count - 1) + enemyIcon(w.type, px, 0) + '<span class="asp-bline"></span>';
     if (w.type === "swarm") {
       // a SWARM is ONE horizontal line of diamonds across the row's width, each
       // jittered a little sideways (owner) - by a fixed hash of its place, so the

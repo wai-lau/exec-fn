@@ -183,12 +183,21 @@ function sfxFor(name, kind) {
   const k = name + "." + kind;
   return SAMPLES[k] && SAMPLES[k].length ? sfx(k) : sfx(name);
 }
+// how many times faster than 1x the game runs now (aspira-ui.js's speed; 1 in the simulator)
+const soundCredit = {};
+const gameSpeedX = () => (typeof ui !== "undefined" && typeof SPEED_MULT !== "undefined" ? SPEED_MULT[typeof autoWaiting === "function" && autoWaiting() ? 0.5 : ui.speed] / BASE_SPEED : 1);
 function sfx(name, ...args) {
   const sample = SAMPLES[name] && SAMPLES[name].length;
   if (muted || !AC || AC.state !== "running" || voices > MAX_VOICES || !(SFX[name] || sample)) return null;
   const now = AC.currentTime;
   if (now - (lastAt[name] ?? -1) < (GAP[name] ?? 0.03)) return null;
   if (SOUND_MAX[name] && (playing[name] || 0) >= SOUND_MAX[name]) return null;
+  // sounds keep their 1x DENSITY whatever the game speed (owner): at k x only
+  // about 1 in k triggers of a name plays; loud cues (bosses, upgrades) always do
+  if (!LOUD.test(name)) {
+    const k = gameSpeedX();
+    if (k > 1) { soundCredit[name] = (soundCredit[name] || 0) + 1 / k; if (soundCredit[name] < 1) return null; soundCredit[name] -= 1; }
+  }
   lastAt[name] = now;
   if (sample) return playSample(name);
   const inst = { name, nodes: 0 };
