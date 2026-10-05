@@ -106,8 +106,8 @@ const UPGRADES = {
       mods: { bleedArmor: 3, bleedCrit: 0.03 }, finals: [
         { name: "Pinpoint", desc: "Crits come far more often, and hit harder.", mods: { critScale: 1.5, critMul: 4 },
           super: { name: "Splicer", desc: "Crits come more often still, and hit harder still.", mods: { critScale: 2, critMul: 5 } } },
-        { name: "Stake", desc: "Every hit bleeds deeper.", mods: { bleedArmor: 6, bleedCrit: 0.06 },
-          super: { name: "Gore", desc: "The deepest bleeding.", mods: { bleedArmor: 9, bleedCrit: 0.09 } } },
+        { name: "Gore", desc: "Every hit bleeds deeper.", mods: { bleedArmor: 6, bleedCrit: 0.06 },
+          super: { name: "Haemorrhage", desc: "The deepest bleeding.", mods: { bleedArmor: 9, bleedCrit: 0.09 } } },
         { name: "Ricochet", desc: "Each shot chains at full damage from enemy to enemy.", mods: { ricochet: 2 },
           super: { name: "Shredder", desc: "The chain runs much further.", mods: { ricochet: 5 } } },
       ] },
