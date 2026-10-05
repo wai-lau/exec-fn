@@ -198,6 +198,12 @@ function towerSprite(kind, lvl, c0) {
     ctx.globalAlpha = 1; ctx.lineWidth = 4.5;
     towerHex(c, TOWER_K);
     for (let i = 0; i < lvl; i++) ctx.stroke();
+    // MAX LEVEL reads at a glance (owner: L3 and L4 were hard to tell apart):
+    // its outermost ring is redrawn bold and WHITE
+    if (lvl >= MAX_LVL) {
+      ctx.shadowColor = COL.white; ctx.strokeStyle = COL.white; ctx.lineWidth = 4;
+      towerHex(c, TOWER_K + LEVEL_GAP * tiers); ctx.stroke();
+    }
   } finally { ctx = main; }
   towerSprites.set(key, sp);
   return sp;
