@@ -278,14 +278,15 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-const WAVE_ICON = [5, 18]; // the upcoming-wave icons' size range, px
-function enemyIcon(type, px) {
+const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95; // the upcoming-wave icons' size range (px); rows up to this many never overlap
+// gap: px between this icon and the next (negative overlaps them)
+function enemyIcon(type, px, gap) {
   const d = ENEMIES[type], n = d.pointy ? d.sides * 2 : d.sides, pts = [];
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.pointy && i % 2 ? 3.6 : 8;
     pts.push((10 + Math.cos(a) * r).toFixed(1) + "," + (10 + Math.sin(a) * r).toFixed(1));
   }
-  return '<svg class="asp-eicon" viewBox="0 0 20 20"' + (px ? ' style="width:' + px + 'px;height:' + px + 'px"' : "") + ' aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
+  return '<svg class="asp-eicon" viewBox="0 0 20 20"' + (px ? ' style="width:' + px + 'px;height:' + px + 'px;margin-right:' + (gap ?? 1).toFixed(2) + 'px"' : "") + ' aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
 }
 let lastNote = "";
 function updateHud() {
@@ -317,11 +318,19 @@ function updateHud() {
     rows.push({ n, w, boss, hp });
   }
   const lo = Math.log(Math.min(...rows.map(r => r.hp))), hi = Math.log(Math.max(...rows.map(r => r.hp)));
+  const pxOf = hp => Math.round(WAVE_ICON[0] + (WAVE_ICON[1] - WAVE_ICON[0]) * (hi > lo ? (Math.log(hp) - lo) / (hi - lo) : 0.5));
+  // a big group (a swarm) OVERLAPS its icons to about the width of the widest
+  // ordinary row (WAVE_ROW_N enemies or fewer) instead of wrapping (owner)
+  // (on a phone no wider than WAVE_SPAN_PHONE, to clear the build buttons)
+  const span = Math.min(Math.max(...rows.filter(r => r.w.count <= WAVE_ROW_N).map(r => r.w.count * (pxOf(r.hp) + 1)), 40),
+    matchMedia("(width < 700px)").matches ? WAVE_SPAN_PHONE : Infinity);
   let note = "";
   for (const { n, w, boss, hp } of rows) {
-    const px = Math.round(WAVE_ICON[0] + (WAVE_ICON[1] - WAVE_ICON[0]) * (hi > lo ? (Math.log(hp) - lo) / (hi - lo) : 0.5));
+    const px = pxOf(hp), wide = w.count * (px + 1) > span;
+    const step = wide ? (span - px) / (w.count - 1) : px + 1; // start-to-start spacing
+    const icon = enemyIcon(w.type, px, wide ? step - px : 1);
     note += "<span>" + roman(n) + "</span><span>:</span>" +
-      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type, px).repeat(w.count) + "</span>" +
+      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + icon.repeat(w.count) + "</span>" +
       "<span>" + (boss ? arcanaOf(n).name : w.type) + "</span>";
   }
   // the time to the next wave, on its OWN line above the list (owner)
