@@ -189,6 +189,14 @@ const AB_OVERRIDE = {
   Railgun: "RGN", Fortissimo: "FFF", Overcharge: "OVR", Overgrowth: "OVG",
   "Deep Freeze": "DFZ", "Absolute Zero": "ABZ", "Full Refund": "FRF", Moons: "MON",
 };
+// the tagline of what the tower IS now (owner): the base blurb until it picks
+// a path, then the path's, then its final form's, then the form's max level -
+// the same steps towerAb names
+function towerTagline(t) {
+  if (t.path == null) return TOWERS[t.kind].blurb;
+  const p = UPGRADES[t.kind][t.path], f = t.form == null ? null : p.finals[t.form];
+  return !f ? p.desc : t.lvl < MAX_LVL || !f.super ? f.desc : f.super.desc;
+}
 function towerAb(t) {
   if (t.path == null) return TOWERS[t.kind].ab;
   const p = UPGRADES[t.kind][t.path], f = t.form == null ? null : p.finals[t.form];
