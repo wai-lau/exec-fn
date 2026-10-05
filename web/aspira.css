@@ -36,6 +36,7 @@
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
+  align-items: center; /* next-wave line and the title centred on the list (owner) */
   gap: var(--space-2);
   pointer-events: none;
 }
@@ -45,7 +46,7 @@
   grid-template-columns: repeat(4, auto); /* number : enemies name */
   align-items: center; /* text level with the icons' centres (owner) */
   justify-content: start;
-  gap: var(--space-0-5) var(--space-1);
+  gap: var(--space-0-5) 0; /* no column gap: cells pad instead, so a live row's band is unbroken */
   font-size: var(--fs-2xs);
   font-variant-numeric: tabular-nums;
   color: hsl(var(--green-hsl) / 0.8);
@@ -57,9 +58,12 @@
 }
 
 /* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
-.asp-wavenote > span:nth-child(4n + 1) { min-width: 8ch; text-align: right; } /* fixed: LXXXVIII is the widest numeral, so the list never shifts (owner) */
+.asp-wavenote > span:nth-child(4n + 1) { min-width: 8ch; justify-content: flex-end; } /* fixed: LXXXVIII is the widest numeral, so the list never shifts (owner) */
 
-.asp-wavenote > span:nth-child(4n) { padding-left: 2ch; } /* a gap before the name (owner) */
+.asp-wavenote > span:nth-child(4n) { padding: 0 var(--space-2) 0 2ch; } /* a gap before the name (owner) */
+
+.asp-wavenote > span:nth-child(4n + 2),
+.asp-wavenote > span:nth-child(4n + 3) { padding-left: var(--space-1); }
 
 /* the enemies, ONE ICON EACH sized by HP (owner), on one line */
 .asp-dots { display: flex; align-items: center; height: 22px; } /* every row the same height (WAVE_ROW_H, aspira-ui.js) and width; spacing set per icon */
@@ -484,5 +488,7 @@
 /* a boss row: the boss centred, a line out to either side (owner) */
 .asp-bline { flex: 1; height: 0; margin: 0 var(--space-1); border-top: 1px solid currentcolor; }
 
-/* the CURRENT wave's row: a light white band (owner) */
+/* every LIVE wave's row: one unbroken light white band (owner); every cell
+   stretches to the row's full height, its text centred in it */
 .asp-wavenote > .asp-cur { background: hsl(var(--white-hsl) / 0.12); }
+.asp-wavenote > span { display: flex; align-items: center; align-self: stretch; }
