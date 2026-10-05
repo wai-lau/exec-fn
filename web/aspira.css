@@ -117,7 +117,7 @@
 }
 .asp-bottom > * { pointer-events: auto; }
 .asp-build { display: flex; gap: var(--space-2); }
-#asp .asp-build .asp-tw { min-width: 72px; background: hsl(var(--bg-hsl)); }
+#asp .asp-build .asp-tw { min-width: 96px; padding-block: var(--space-3); background: hsl(var(--bg-hsl)); } /* bigger (owner, 2026-10-05; was 72px) */
 
 /* the tower being placed: its card (an .asp-pop, so it looks and colours like
    a placed tower's) above the credits. It floats over the bar without taking
@@ -258,8 +258,8 @@
 #asp button.on { background: hsl(var(--green-hsl) / 0.12); border-color: currentcolor; }
 
 #asp .asp-tw { display: flex; flex-direction: column; align-items: center; gap: var(--space-0-5); padding-inline: var(--space-0-5); }
-.asp-tw .ab { font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); }
-.asp-tw .c { font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; }
+.asp-tw .ab { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: var(--tracking-wide); }
+.asp-tw .c { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 #asp .asp-tw.cyan { color: hsl(var(--cyan-hsl)); }
 #asp .asp-tw.chatsubo { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
 #asp .asp-tw.pink { color: hsl(var(--pink-hsl)); }
@@ -492,7 +492,7 @@
 
   #asp .asp-build { gap: var(--space-1); }
 
-  #asp .asp-build .asp-tw { min-width: 52px; padding-block: var(--space-1-5); }
+  #asp .asp-build .asp-tw { min-width: 54px; padding-block: var(--space-3); } /* taller (owner); the width is what the list leaves */
 }
 
 /* a button the credits cannot cover is dimmed but still TAPPABLE (owner): a
