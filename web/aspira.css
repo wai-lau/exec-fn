@@ -135,7 +135,7 @@
 }
 
 /* ONE row (owner): small type, tight gaps, never wrapping */
-.asp-stats { display: flex; flex-wrap: nowrap; gap: var(--space-3); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.asp-stats { display: flex; flex-wrap: nowrap; gap: var(--space-3); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .asp-stat { display: flex; gap: var(--space-1); align-items: baseline; }
 .asp-stat b { font-size: var(--fs-2xs); font-weight: var(--fw-normal); letter-spacing: var(--tracking-wide); color: hsl(var(--green-hsl) / 0.45); }
 .asp-stat span { font-weight: var(--fw-bold); }
@@ -253,7 +253,10 @@
 #asp .asp-tw.orange { color: hsl(var(--orange-hsl)); }
 
 .asp-pop .name { font-weight: var(--fw-bold); }
-.asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; } /* stats smaller (owner) */
+
+/* STATS much smaller than the tagline (owner): a deliberate one-off under the
+   scale's smallest step; the tagline takes the size the stats had (--fs-sm) */
+.asp-pop dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: calc(var(--fs-2xs) * 0.8); font-variant-numeric: tabular-nums; }
 .asp-pop dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-pop dd { margin: 0; }
 
@@ -261,7 +264,7 @@
 .asp-pop .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
 .asp-pop .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
 .asp-pop .asp-cols dd { white-space: nowrap; } /* "now -> next" stays on one line */
-.asp-hint { margin: 0; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--green-hsl)); } /* bright on every card alike (owner) */
+.asp-hint { margin: 0; font-size: var(--fs-sm); line-height: var(--lh-snug); color: hsl(var(--green-hsl)); } /* bright on every card alike, the stats' old size (owner) */
 
 .asp-bar { height: 6px; background: hsl(var(--bg-hsl) / 0.45); border-radius: var(--radius-1); overflow: hidden; }
 .asp-bar i { display: block; height: 100%; width: 0; background: hsl(var(--orange-hsl)); }
@@ -328,7 +331,7 @@
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-2);
   background: hsl(var(--bg-hsl));
-  font-size: var(--fs-xs);
+  font-size: var(--fs-2xs);
   color: hsl(var(--green-hsl));
   text-shadow: none;
 }
@@ -371,7 +374,7 @@
 .asp-card .name { font-weight: var(--fw-bold); }
 .asp-card .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
 .asp-card .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
-.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: calc(var(--fs-2xs) * 0.8); font-variant-numeric: tabular-nums; }
 .asp-card dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-card dd { margin: 0; white-space: nowrap; } /* "now -> next" on one line, like the tower card */
 .asp-card .asp-hint { max-width: none; } /* not the overlay's 36ch */
@@ -448,7 +451,7 @@
 .asp-stat:has(#asp-fps) { display: none; }
 
 /* a live boss's HP bar under the speed row (aspira-ui.js updateBossBar) */
-.asp-bossbar { display: flex; align-items: center; gap: var(--space-2); max-width: 420px; margin-top: var(--space-2); font-size: var(--fs-xs); }
+.asp-bossbar { display: flex; align-items: center; gap: var(--space-2); max-width: 420px; margin-top: var(--space-2); font-size: var(--fs-2xs); }
 
 .asp-bossbar[hidden] { display: none; }
 
