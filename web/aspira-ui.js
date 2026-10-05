@@ -278,7 +278,7 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, SWARM_JITTER = 0.8, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
+const WAVE_ICON = [5, 18], WAVE_SPAN = 220, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, SWARM_JITTER = 0.8, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
 // gap: px between this icon and the next (negative overlaps them); dy: a
 // vertical nudge (px); x, y: an absolute spot inside a lattice band (CSS lengths)
 function enemyIcon(type, px, gap, dy, x, y) {
@@ -323,18 +323,17 @@ function updateHud() {
   const plain = rows.filter(r => !r.boss).map(r => r.hp);
   const lo = Math.log(Math.min(...plain)), hi = Math.log(Math.max(...plain));
   const pxOf = (hp, boss) => boss ? WAVE_BOSS_PX : Math.round(WAVE_ICON[0] + (WAVE_ICON[1] - WAVE_ICON[0]) * (hi > lo ? (Math.log(hp) - lo) / (hi - lo) : 0.5));
-  // a big group (a swarm) OVERLAPS its icons to about the width of the widest
-  // ordinary row (WAVE_ROW_N enemies or fewer) instead of wrapping (owner)
-  // (on a phone no wider than WAVE_SPAN_PHONE, to clear the build buttons)
-  const span = Math.min(Math.max(...rows.filter(r => r.w.count <= WAVE_ROW_N).map(r => r.w.count * (pxOf(r.hp, r.boss) + 1)), 40),
-    matchMedia("(width < 700px)").matches ? WAVE_SPAN_PHONE : Infinity);
+  // every row is the SAME FIXED width, wave after wave (owner): WAVE_SPAN, or
+  // WAVE_SPAN_PHONE on a phone (to clear the build buttons)
+  const span = matchMedia("(width < 700px)").matches ? WAVE_SPAN_PHONE : WAVE_SPAN;
   let note = "";
   for (const { n, w, boss, hp } of rows) {
     // every row the SAME width (owner): a long one overlaps, a short one spreads
     // out to `span` - one icon (a boss) just sits at the start
     const px = Math.min(pxOf(hp, boss), WAVE_ROW_H);
     const step = w.count > 1 ? (span - px) / (w.count - 1) : px + 1; // start-to-start spacing
-    let icons = enemyIcon(w.type, px, step - px).repeat(w.count);
+    // the last icon carries no trailing gap, so the row is exactly `span` wide
+    let icons = enemyIcon(w.type, px, step - px).repeat(w.count - 1) + enemyIcon(w.type, px, 0);
     if (w.type === "swarm") {
       // a SWARM is ONE horizontal line of diamonds across the row's width, each
       // jittered a little sideways (owner) - by a fixed hash of its place, so the
@@ -349,7 +348,7 @@ function updateHud() {
       icons = '<span class="asp-band" style="width:' + span.toFixed(1) + "px;height:" + WAVE_ROW_H + 'px">' + html + "</span>";
     }
     note += "<span>" + roman(n) + "</span><span>:</span>" +
-      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (w.type === "swarm" ? " asp-tess" : "") + '">' + icons + "</span>" +
+      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '" style="width:' + span + 'px">' + icons + "</span>" +
       "<span>" + (boss ? "<b>" + arcanaOf(n).name + "</b>" : w.type) + "</span>"; // boss names BOLD (owner)
   }
   // the time to the next wave, on its OWN line above the list (owner)
