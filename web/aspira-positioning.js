@@ -14,7 +14,7 @@
 // with no enemy alive it rests at the OUTER end of its spoke (owner).
 const POS_EVERY = 0.25, POS_HORIZON = 3, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
 const POS_STALE = 0.2; // Fresh: what a debuffed enemy's hits are still worth
-let POS_URGENCY = 20, POS_MODE_MIX = 0.3; // swept 0/0.3/0.5/1: 0.3 keeps the targeting in play for ~1 life by wave 29. // MIX: how much the targeting weighs (0 none .. 1 all); let: the simulator sweeps both // swept 0-60 in the simulator: 20 kept the most lives (let: the simulator sweeps it)
+let POS_URGENCY = 6, POS_MODE_MIX = 1; // FULL targeting (owner: 0.3 barely counted); urgency 6 keeps the lives - swept u 3/6/10/20 x mix 0.3/1. let: the simulator sweeps both
 let posPred = null, posPredAt = -1;
 // [{ e, pts: [{ x, y, t }] }], recomputed at most once per POS_EVERY of game time
 function predictions() {
@@ -26,7 +26,7 @@ function predictions() {
     const v = effSpeed(e), pts = [];
     for (let t = 0; t <= POS_HORIZON + 1e-9; t += POS_DT) {
       const s = e.s + v * t, p = pathAt(e.pi, s, e.ang || 0);
-      // URGENCY: a hit counts more the nearer that point is to the core
+      // URGENCY: a hit counts more the nearer that point is to the core (x1 at entry .. x7 at the core)
       pts.push({ x: p.x, y: p.y, t, w: 1 + POS_URGENCY * Math.min(1, s / PATHS[e.pi].len) ** 2 });
     }
     posPred.push({ e, pts });

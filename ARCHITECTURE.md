@@ -3989,6 +3989,7 @@ TOWER POSITIONING (owner, 2026-10-04: 'maximise anticipated hits, weighed on the
 The tower card's TARGETING row (Fresh / Biggest / Near) sits SMALL under sell (owner): upgrade, sell, then the targeting.
 The UPGRADE CHOOSER moved to its own file, web/aspira-chooser.js (loaded before aspira-ui.js), when aspira-ui.js hit the 500-line cap. The game starts 25% more zoomed in (`DEFAULT_ZOOM` 1.25 -> 1.5625, owner). The credits count on the core is JUST THE NUMBER, centred (owner: the CREDITS word is gone).
 With no enemy alive a tower rests at the OUTER end of its spoke (owner; was its slot). Simulator: 29/28/27 lives at wave 29, as before.
+Positioning weights retuned (owner: targeting at 0.3 barely counted - urgency spans x21, targeting moved a hit only 0.7-1.0): FULL targeting (`POS_MODE_MIX` 1: Biggest = HP share, so a swarmer is ~0; Fresh debuffed = 0.2) with urgency 6 (x1 at entry .. x7 at the core). Simulator lives at wave 29: 28/28/29 (the 20/0.3 setting: 29/28/27; 20/1: 27/26/24).
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
