@@ -93,8 +93,9 @@ KINDS.forEach((k, i) => {
 // drops to 1/2x whenever an enemy is within AUTO_WAIT_R of the core, and goes
 // back to the chosen speed once none is. Remembered in localStorage.
 const AUTO_WAIT_R = 200;
-let autoWait = false;
-try { autoWait = localStorage.getItem("spire.autowait") === "1"; } catch (e) { /* storage blocked: off */ }
+let autoWait = true;
+// ON by default (owner); only an explicit "0" (unticked before) turns it off
+try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { autoWait = true; }
 const autoWaiting = () => autoWait && !ui.paused && G.enemies.some(e => !e.dead && Math.hypot(e.x - CX, e.y - CY) <= AUTO_WAIT_R);
 (function autoWaitBox() {
   const row = document.createElement("div");
@@ -287,7 +288,7 @@ let lastNote = "";
 function updateHud() {
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
-  setText($("asp-wave"), G.wave);
+  setText($("asp-wave"), roman(G.wave)); // wave numbers in Roman numerals (owner)
   setText($("asp-score"), G.score.toLocaleString());
   updateAutoWait();
   setText($("asp-best"), Math.max(best.score, G.score).toLocaleString());
@@ -309,7 +310,7 @@ function updateHud() {
     // up down the list. A plain enemy is named by its type in lowercase; a
     // boss by its arcana (capitalised), its icon inverted as on its own sky.
     const boss = w.type === "bonus";
-    note += "<span>" + n + "</span><span>:</span><span>" +
+    note += "<span>" + roman(n) + "</span><span>:</span><span>" +
       '<b class="e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type) + "×" + w.count + "</b></span>" +
       // each one's HP (owner), a boss's with its own multiplier
       // a boss's with its own multiplier and its lane's travel (aspira-bosses.js)
