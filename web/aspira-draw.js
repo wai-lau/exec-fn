@@ -299,8 +299,9 @@ function drawFx(pass) {
     } else if (f.k === "text") {
       // a DAMAGE number holds DMG_HOLD s, then shrinks and fades together, at
       // the same rate, to nothing at the end of its life (owner)
-      const g = f.under ? (f.t < DMG_HOLD ? 1 : Math.max(0, (f.life - f.t) / Math.max(0.01, f.life - DMG_HOLD))) : 1;
-      if (f.under) ctx.globalAlpha = g;
+      const sh = f.under || f.shrink; // the kill's "+Nc" too (owner)
+      const g = sh ? (f.t < DMG_HOLD ? 1 : Math.max(0, (f.life - f.t) / Math.max(0.01, f.life - DMG_HOLD))) : 1;
+      if (sh) ctx.globalAlpha = g;
       ctx.globalAlpha *= f.alpha ?? 1;
       text(f.text, f.x, f.y, f.size * g, f.color, f.outline);
     }
