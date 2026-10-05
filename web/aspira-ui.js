@@ -288,7 +288,7 @@ let lastNote = "";
 function updateHud() {
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
-  setText($("asp-wave"), roman(G.wave)); // wave numbers in Roman numerals (owner)
+  setText($("asp-wave"), G.wave); // the HUD keeps Arabic numerals (owner); the upcoming-wave list is Roman
   setText($("asp-score"), G.score.toLocaleString());
   updateAutoWait();
   setText($("asp-best"), Math.max(best.score, G.score).toLocaleString());
