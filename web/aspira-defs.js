@@ -294,8 +294,9 @@ const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
 const LVL_REAPER_RATE = [1, 1, 1, 1];
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
 const LVL_SLOW = [0.4, 0.45, 0.5, 0.55], FRZ_SLOW_MUL = 0.8; // owner: starts at 40%, grows modestly; capped at 0.85 in towerStats
-// cost to go from level i+1 to i+2, as a multiple of the tower's build cost
-const STEP_COST = [5.9, 15.25, 24];
+// cost to go from level i+1 to i+2, as a multiple of the tower's build cost;
+// the first upgrade HALVED (owner, 2026-10-05; was 5.9)
+const STEP_COST = [2.95, 15.25, 24];
 
 // Base stats come from the level tables; the chosen path's mods and then the
 // final form's mods (aspira-upgrades.js) stack on top. A Spotter in range
