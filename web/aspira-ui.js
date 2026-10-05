@@ -278,7 +278,7 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
+const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, SWARM_JITTER = 0.8, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
 // gap: px between this icon and the next (negative overlaps them); dy: a
 // vertical nudge (px); x, y: an absolute spot inside a lattice band (CSS lengths)
 function enemyIcon(type, px, gap, dy, x, y) {
@@ -336,23 +336,17 @@ function updateHud() {
     const step = w.count > 1 ? (span - px) / (w.count - 1) : px + 1; // start-to-start spacing
     let icons = enemyIcon(w.type, px, step - px).repeat(w.count);
     if (w.type === "swarm") {
-      // a SWARM TESSELLATES (owner): ONE lattice THREE diamonds tall - columns
-      // alternate two diamonds (top + bottom rows) and one (the middle), each
-      // half a diamond along, edges touching, the band at most the row's width.
-      // The diamond fills 0.8 of its box b, so the lattice step is 0.4 b.
-      // the diamond box is its HP size (never blown up to fill the row), shrunk only to fit
-      const cols = Math.ceil(w.count * 2 / 3), b = Math.max(SWARM_MIN, Math.min(px, span / ((cols - 1) * 0.4 + 1)));
-      // ...and SPACED OUT to the row's width like the others (owner): the
-      // column step grows past the touching 0.4 b when there is room
-      const step = cols > 1 ? Math.max(0.4 * b, (span - b) / (cols - 1)) : 0;
-      // rows as far apart as the columns (owner: even spacing), within SWARM_TALL px of band
-      const rowStep = Math.max(0.4 * b, Math.min(step, (WAVE_ROW_H - b) / 2));
-      let html = "", left = w.count;
-      for (let c = 0; left > 0; c++) for (const row of c % 2 ? [1] : [0, 2]) {
-        if (left-- <= 0) break;
-        html += enemyIcon(w.type, b, 0, 0, (c * step).toFixed(2) + "px", (row * rowStep).toFixed(2) + "px");
+      // a SWARM is ONE horizontal line of diamonds across the row's width, each
+      // jittered a little sideways (owner) - by a fixed hash of its place, so the
+      // list does not shimmer when it redraws
+      const b = Math.max(SWARM_MIN, px), gap = w.count > 1 ? (span - b) / (w.count - 1) : 0;
+      let html = "";
+      for (let k = 0; k < w.count; k++) {
+        const jit = (fixedRand(n * 97 + k, 7) - 0.5) * SWARM_JITTER * gap;
+        const x = Math.max(0, Math.min(span - b, k * gap + jit));
+        html += enemyIcon(w.type, b, 0, 0, x.toFixed(2) + "px", ((WAVE_ROW_H - b) / 2).toFixed(2) + "px");
       }
-      icons = '<span class="asp-band" style="width:' + ((cols - 1) * step + b).toFixed(1) + "px;height:" + (2 * rowStep + b).toFixed(1) + 'px">' + html + "</span>";
+      icons = '<span class="asp-band" style="width:' + span.toFixed(1) + "px;height:" + WAVE_ROW_H + 'px">' + html + "</span>";
     }
     note += "<span>" + roman(n) + "</span><span>:</span>" +
       '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (w.type === "swarm" ? " asp-tess" : "") + '">' + icons + "</span>" +
