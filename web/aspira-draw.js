@@ -168,11 +168,12 @@ function cellPath(c, k = 1) {
   ctx.closePath();
 }
 
-// Shown while placing: all six slots at full strength (owner: "fully show"),
+// Shown while placing: every OPEN slot at full strength (owner: "fully show"),
 // free cells in the colour of the tower being placed (owner), occupied ones grey.
 function drawCells() {
   ctx.lineWidth = 2;
   CELLS.forEach((c, ci) => {
+    if (!cellOpen(ci)) return; // a corner slot shows once its wave opens it
     const free = canPlace(ci);
     cellPath(c, 0.94);
     const col = COL[TOWERS[ui.build].color];

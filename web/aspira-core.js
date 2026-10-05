@@ -7,7 +7,7 @@
 //   Space    (id "nullify") slots and towers move NULL_PUSH out, +NULL_RANGE range
 //     Expanse    the same again          -> Horizon    +range again; the slots orbit the core
 //     Vacuum     Quench: Fast half speed, armor and shields halved -> Infinity  every tower +30% damage
-// Past L3, once all six towers are L4: the repeatables (Overclock, Amplifier,
+// Past L3, once every open slot has an L4 tower: the repeatables (Overclock, Amplifier,
 // Lens). Loaded after aspira-towers.js (the simulator loads it too); the card
 // and drawing code only run from the UI.
 const CORE_UNLOCK = 30, CORE_COST = [1500, 3000, 6000]; // owner: was 2500 / 5000 / 10000
@@ -64,7 +64,7 @@ const quenching = () => coreHas("vacuum");
 const sintering = () => coreHas("infinity");
 
 // REPEATABLES (owner, 2026-10-02: Overclock / Amplifier / Lens), open once the
-// core is L3 AND all six towers are L4; each buy adds its step again and
+// core is L3 AND every open slot has an L4 tower; each buy adds its step again and
 // doubles that upgrade's price
 const REPS = [
   { id: "overclock", name: "Overclock", desc: "every tower fires 10% faster (not ACD's burn ticks)", step: 1.1 },
@@ -75,7 +75,7 @@ const REP_BASE = 6000;
 const repN = id => (G.core && G.core.reps ? G.core.reps[id] || 0 : 0);
 const repCost = id => REP_BASE * Math.pow(2, repN(id));
 const repMul = id => Math.pow(REPS.find(r => r.id === id).step, repN(id));
-const repsOpen = () => coreLvl() >= CORE_MAX && G.towers.length === CELLS.length && G.towers.every(t => t.lvl >= MAX_LVL);
+const repsOpen = () => coreLvl() >= CORE_MAX && G.towers.length === openCells() && G.towers.every(t => t.lvl >= MAX_LVL);
 function buyRep(id) {
   if (!repsOpen() || G.money < repCost(id)) return false;
   G.money -= repCost(id);
@@ -161,7 +161,7 @@ function drawCoreFx() {
   ctx.strokeStyle = COL.white; ctx.lineCap = "round";
   if (coreHas("nullify")) {
     ctx.globalAlpha = 0.25; ctx.lineWidth = 2;
-    for (const c of CELLS) { ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(c.x, c.y); ctx.stroke(); }
+    CELLS.forEach((c, i) => { if (cellOpen(i)) { ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(c.x, c.y); ctx.stroke(); } });
   }
   if (sintering()) {
     const pulse = 0.7 + 0.3 * Math.sin(now / 400);
@@ -178,9 +178,9 @@ function drawCoreFx() {
 // One click buys a core option (owner, 2026-10-02: no confirm step); an
 // option it cannot afford is disabled (updateHud, by its data-cost).
 function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(); }
-// past L3: the repeatables, once all six towers are L4 too
+// past L3: the repeatables, once every open slot has an L4 tower too
 function coreReps(box) {
-  if (!repsOpen()) { button(box, "asp-primary asp-up-big", "max level · more once all six towers are L4", () => {}); return; }
+  if (!repsOpen()) { button(box, "asp-primary asp-up-big", "max level · more once every slot has an L4 tower", () => {}); return; }
   REPS.forEach(r => {
     button(box, "asp-primary asp-choice", "<b>" + r.name + " " + (repN(r.id) + 1) + " · " + cr(repCost(r.id)) + "</b><span>" + r.desc + "</span>",
       () => { if (buyRep(r.id)) coreBought(); }).dataset.cost = repCost(r.id);
