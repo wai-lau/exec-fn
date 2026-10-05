@@ -278,7 +278,7 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-const WAVE_ICON = [5, 18], WAVE_SPAN = 220, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, SWARM_JITTER = 0.8, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
+const WAVE_ICON = [5, 18], WAVE_SPAN = 220, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
 // gap: px between this icon and the next (negative overlaps them); dy: a
 // vertical nudge (px); x, y: an absolute spot inside a lattice band (CSS lengths)
 function enemyIcon(type, px, gap, dy, x, y) {
@@ -337,14 +337,18 @@ function updateHud() {
     // a BOSS sits CENTRED with a horizontal line out to either side (owner)
     if (boss) icons = '<span class="asp-bline"></span>' + enemyIcon(w.type, px, 2).repeat(w.count - 1) + enemyIcon(w.type, px, 0) + '<span class="asp-bline"></span>';
     if (w.type === "swarm") {
-      // a SWARM is ONE line of diamonds, evenly across the row's width, each
-      // jittered UP or DOWN a little (owner: vertical, not sideways) - by a fixed
-      // hash of its place, so the list does not shimmer when it redraws
-      const b = Math.max(SWARM_MIN, px), gap = w.count > 1 ? (span - b) / (w.count - 1) : 0, room = WAVE_ROW_H - b;
-      let html = "";
-      for (let k = 0; k < w.count; k++) {
-        const y = room / 2 + (fixedRand(n * 97 + k, 7) - 0.5) * room * SWARM_JITTER;
-        html += enemyIcon(w.type, b, 0, 0, (k * gap).toFixed(2) + "px", y.toFixed(2) + "px");
+      // a SWARM TESSELLATES (owner: back to three rows): ONE lattice THREE
+      // diamonds tall - columns alternate two diamonds (top + bottom) and one
+      // (middle) - at its HP size, spread evenly to the row's width, rows as far
+      // apart as columns within the row's height. The diamond fills 0.8 of its
+      // box b, so they touch at a step of 0.4 b.
+      const cols = Math.ceil(w.count * 2 / 3), b = Math.max(SWARM_MIN, Math.min(px, span / ((cols - 1) * 0.4 + 1)));
+      const step = cols > 1 ? Math.max(0.4 * b, (span - b) / (cols - 1)) : 0;
+      const rowStep = Math.max(0.4 * b, Math.min(step, (WAVE_ROW_H - b) / 2)), top = (WAVE_ROW_H - 2 * rowStep - b) / 2;
+      let html = "", left = w.count;
+      for (let c = 0; left > 0; c++) for (const row of c % 2 ? [1] : [0, 2]) {
+        if (left-- <= 0) break;
+        html += enemyIcon(w.type, b, 0, 0, (c * step).toFixed(2) + "px", (top + row * rowStep).toFixed(2) + "px");
       }
       icons = '<span class="asp-band" style="width:' + span.toFixed(1) + "px;height:" + WAVE_ROW_H + 'px">' + html + "</span>";
     }
