@@ -293,7 +293,7 @@ function stepAcid(t, dt) {
 //   st.beams      parallel beams, each a hit of HALF the shot (Charge 2, Quad 4,
 //                 Horizon 7) - so each pops its own shield charge
 //   st.smash      a kill bursts for frac x the shot within r (Nova)
-const BOUNCE_R = 160, BLEED_CRIT_CAP = 1;
+const BOUNCE_R = 80, BLEED_CRIT_CAP = 1; // Ricochet hop, halved with every range (owner)
 function bleed(e, st) {
   if (!st.bleedArmor || e.dead) return;
   e.armor = (e.armor || 0) - st.bleedArmor; // permanent, and on past zero (owner)
