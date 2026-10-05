@@ -16,7 +16,7 @@
   position: absolute;
   top: var(--space-4);
   left: var(--space-6);
-  right: calc(var(--space-6) + var(--space-8)); /* room for the vertical volume slider (.asp-volbox) */
+  right: calc(var(--space-6) + var(--space-10)); /* room for the mute button + volume slider (.asp-volbox) */
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
@@ -29,6 +29,15 @@
 .asp-home { flex: none; display: block; pointer-events: auto; line-height: var(--lh-none); }
 .asp-home img { display: block; width: var(--space-7); height: var(--space-7); image-rendering: pixelated; }
 .asp-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); pointer-events: auto; }
+
+/* the speed controls along the BOTTOM of the screen (owner) */
+.asp-foot {
+  position: absolute;
+  left: var(--space-6);
+  right: var(--space-6);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-raised);
+}
 #asp .asp-controls button { padding: var(--space-1-5) var(--space-3); }
 .asp-controls .asp-row > button { flex: none; }
 
@@ -41,7 +50,7 @@
 .asp-left {
   position: absolute;
   left: var(--space-6);
-  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); /* no nav under it now: clear a phone's home bar */
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px) + var(--foot-h, 0px) + var(--space-3)); /* above the bottom speed bar (and a phone's home bar) */
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
@@ -111,7 +120,7 @@
   position: absolute;
   left: var(--space-6);
   right: var(--space-6); /* the Exec bubble never moves anything (owner): it may overlap */
-  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); /* no nav under it now: clear a phone's home bar */
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px) + var(--foot-h, 0px) + var(--space-3)); /* above the bottom speed bar (and a phone's home bar) */
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
@@ -167,6 +176,7 @@
    it flips too once the inversion fills the screen (owner) */
 #asp.asp-boss .asp-head,
 #asp.asp-boss .asp-volbox,
+#asp.asp-boss .asp-foot,
 #asp.asp-boss .asp-bottom,
 #asp.asp-boss .asp-pop,
 #asp.asp-boss .asp-chooser { filter: invert(1); } /* the upgrade cards flip with the boss sky too (owner) */
@@ -338,9 +348,14 @@
   top: var(--space-4);
   right: var(--space-2);
   z-index: var(--z-raised);
-  width: var(--space-8);
-  height: calc(var(--space-8) * 4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
 }
+
+#asp .asp-volbox #asp-mute { padding: var(--space-1-5); }
+.asp-volslot { position: relative; width: var(--space-8); height: calc(var(--space-8) * 4); }
 
 #asp-vol {
   position: absolute;
@@ -501,11 +516,11 @@
 
 
 
-  .asp-stats { gap: var(--space-2); }
+  .asp-stats { gap: var(--space-1-5); } /* tighter: the top-right mute + slider column takes room */
 
   .asp-card dd { white-space: normal; } /* a narrow card wraps rather than spill */
 
-  .asp-left { left: var(--space-3); bottom: var(--space-4); gap: var(--space-1); }
+  .asp-left { left: var(--space-3); gap: var(--space-1); }
 
   .asp-title { font-size: var(--fs-xl); letter-spacing: var(--tracking-wide); } /* bigger (owner; was sm) */
 

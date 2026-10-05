@@ -63,7 +63,7 @@ function openChooser(t) {
   // at the bottom, lifted exactly like the tower card (cardLift), and never up
   // into the HUD: the top stops below the speed row (the cards scroll instead)
   el.style.paddingBottom = cardLift(row.offsetWidth).lift + "px";
-  el.style.paddingTop = Math.max(8, document.querySelector(".asp-controls").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
+  el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
   $("asp").classList.add("asp-choosing"); // the board blurs and darkens beneath (aspira.css)
 }
 const CARD_W = 380; // .asp-card's width (aspira.css)
