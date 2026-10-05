@@ -90,13 +90,15 @@ KINDS.forEach((k, i) => {
 });
 
 // AUTO-WAIT (owner): a checkbox under the pause button; while ticked, the game
-// drops to 1/2x whenever an enemy is within AUTO_WAIT_R of the core, and goes
+// drops to 1/2x whenever an enemy is within AUTO_WAIT_S game-seconds of
+// reaching the core at its current speed (owner: time, not distance), and goes
 // back to the chosen speed once none is. Remembered in localStorage.
-const AUTO_WAIT_R = 200;
+const AUTO_WAIT_S = 8;
+const etaToCore = e => { const v = effSpeed(e); return v > 0 ? (PATHS[e.pi].len - e.s) / v : Infinity; };
 let autoWait = true;
 // ON by default (owner); only an explicit "0" (unticked before) turns it off
 try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { autoWait = true; }
-const autoWaiting = () => autoWait && !ui.paused && G.enemies.some(e => !e.dead && Math.hypot(e.x - CX, e.y - CY) <= AUTO_WAIT_R);
+const autoWaiting = () => autoWait && !ui.paused && G.enemies.some(e => !e.dead && etaToCore(e) <= AUTO_WAIT_S);
 (function autoWaitBox() {
   const row = document.createElement("div");
   row.className = "asp-row asp-autowait";
