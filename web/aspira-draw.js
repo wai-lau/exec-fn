@@ -87,28 +87,50 @@ function roman(n) {
   return out || "0";
 }
 
+// the GRATICULE (rings, hour spokes, the graduated rim, the ruler) never
+// changes for a given camera and palette, so it is drawn ONCE into a cached
+// layer and stamped each frame (2026-10-05: it stroked 384 separate paths a
+// frame); one cache per palette, the boss sky drawing it inverted
+const gratSets = {};
 function drawGraticule() {
+  const key = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
+  let g = gratSets[COL.bg];
+  if (!g || g.key !== key) {
+    g = gratSets[COL.bg] ||= { cv: document.createElement("canvas") };
+    g.key = key;
+    g.cv.width = cv.width; g.cv.height = cv.height;
+    const gx = g.cv.getContext("2d"), main = ctx;
+    gx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
+    ctx = gx;
+    try { drawGraticuleLive(); } finally { ctx = main; }
+  }
+  const m = ctx.getTransform(); // carries the screen shake: stamp the layer shaken too
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  ctx.drawImage(g.cv, m.e - cam.ox, m.f - cam.oy);
+  ctx.restore();
+}
+function drawGraticuleLive() {
   ctx.strokeStyle = COL.grid; ctx.lineWidth = 2;
   ctx.globalAlpha = 0.5;
-  for (let r = 125; r <= 375; r += 125) { ctx.beginPath(); ctx.arc(CX, CY, r, 0, 6.283); ctx.stroke(); }
+  ctx.beginPath();
+  for (let r = 125; r <= 375; r += 125) { ctx.moveTo(CX + r, CY); ctx.arc(CX, CY, r, 0, 6.283); }
   for (let h = 0; h < 24; h++) {
     const a = h * Math.PI / 12 - Math.PI / 2;
-    ctx.beginPath();
     ctx.moveTo(CX + Math.cos(a) * INNER_R, CY + Math.sin(a) * INNER_R);
     ctx.lineTo(CX + Math.cos(a) * 480, CY + Math.sin(a) * 480);
-    ctx.stroke();
   }
+  ctx.stroke();
   // graduated rim: a tick per degree, longer every 5 (no hour labels: owner)
   ctx.globalAlpha = 1;
-  ctx.beginPath(); ctx.arc(CX, CY, 482, 0, 6.283); ctx.stroke();
-  ctx.beginPath(); ctx.arc(CX, CY, 494, 0, 6.283); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(CX + 482, CY); ctx.arc(CX, CY, 482, 0, 6.283);
+  ctx.moveTo(CX + 494, CY); ctx.arc(CX, CY, 494, 0, 6.283);
   for (let d = 0; d < 360; d++) {
     const a = d * Math.PI / 180 - Math.PI / 2, len = d % 15 === 0 ? 12 : d % 5 === 0 ? 7 : 3;
-    ctx.beginPath();
     ctx.moveTo(CX + Math.cos(a) * 482, CY + Math.sin(a) * 482);
     ctx.lineTo(CX + Math.cos(a) * (482 + len), CY + Math.sin(a) * (482 + len));
-    ctx.stroke();
   }
+  ctx.stroke();
   drawScaleBar();
 }
 // the chart's ruler (drawScaleBar) lives in aspira-lanes.js
@@ -248,7 +270,10 @@ function drawBlocked(x, y, r) {
 // build ghost) draws at full strength. dim = the faint pass.
 function drawRange(x, y, r, color, dim = false) {
   ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
-  ctx.fillStyle = COL[color]; ctx.globalAlpha = dim ? 0.025 : 0.08; ctx.fill();
+  // only the SELECTED tower's disc is filled: a dim one's 2.5% fill was all
+  // but invisible, and nine big discs (three a moon tower) were the costliest
+  // single draw of a late frame (2026-10-05)
+  if (!dim) { ctx.fillStyle = COL[color]; ctx.globalAlpha = 0.08; ctx.fill(); }
   ctx.strokeStyle = COL[color]; ctx.globalAlpha = dim ? 0.35 : 0.75; ctx.lineWidth = dim ? 2 : 3.5; ctx.stroke();
   ctx.globalAlpha = 1;
 }
