@@ -140,7 +140,14 @@ function updateAutoWait() {
 // with waves, or crossed out
 const ICON_SOUND = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
 const ICON_MUTED = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
-button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
+// the bottom speed bar's height, live, so the wave list and build buttons sit
+// just above it (--foot-h, aspira.css)
+new ResizeObserver(() => $("asp").style.setProperty("--foot-h", document.querySelector(".asp-foot").getBoundingClientRect().height + "px")).observe(document.querySelector(".asp-foot"));
+// the mute button sits ABOVE the vertical volume slider, top-right (owner)
+const volBox = document.createElement("div");
+volBox.className = "asp-volbox";
+$("asp").appendChild(volBox);
+button(volBox, "", "", () => setMuted(!muted), "asp-mute");
 // volume slider: VERTICAL, top-right (owner; was beside the sound toggle) - a
 // plain range input turned -90deg in its own box (.asp-volbox), up = louder
 (function volumeSlider() {
@@ -148,10 +155,10 @@ button($("asp-speed"), "", "", () => setMuted(!muted), "asp-mute");
   Object.assign(s, { type: "range", id: "asp-vol", min: 0, max: 2, step: 0.05, value: volume, title: "volume" });
   s.setAttribute("aria-label", "volume");
   s.oninput = () => { setVolume(Number(s.value)); if (muted && Number(s.value) > 0) setMuted(false); };
-  const box = document.createElement("div");
-  box.className = "asp-volbox";
-  box.appendChild(s);
-  $("asp").appendChild(box);
+  const slot = document.createElement("div");
+  slot.className = "asp-volslot";
+  slot.appendChild(s);
+  volBox.appendChild(slot);
 })();
 
 // SOL's form, in one short line for the popup (the same row at every level, so
@@ -349,7 +356,7 @@ const CARD_GAP = 8;
 function cardLift(w) {
   const cr = cv.getBoundingClientRect(), x = Math.max(CARD_GAP, (cr.width - w) / 2);
   let lift = CARD_GAP;
-  for (const sel of [".asp-left", ".asp-buildcol"]) { // the build buttons + the title under them
+  for (const sel of [".asp-left", ".asp-buildcol", ".asp-foot"]) { // the build buttons + the title under them
     const r = document.querySelector(sel).getBoundingClientRect();
     if (!r.height || r.right - cr.left <= x || r.left - cr.left >= x + w) continue; // beside it, not under it
     lift = Math.max(lift, cr.bottom - r.top + CARD_GAP);
@@ -361,7 +368,7 @@ function placePop() {
   if (pop.hidden) return;
   const h = pop.offsetHeight, { x, lift } = cardLift(pop.offsetWidth);
   // ...but never up over the speed row (a short phone: it then sits over the wave list)
-  const cr = cv.getBoundingClientRect(), top = document.querySelector(".asp-controls").getBoundingClientRect().bottom - cr.top + CARD_GAP;
+  const cr = cv.getBoundingClientRect(), top = document.querySelector(".asp-head").getBoundingClientRect().bottom - cr.top + CARD_GAP;
   pop.style.left = x + "px"; pop.style.top = Math.max(top, cr.height - h - lift) + "px";
 }
 

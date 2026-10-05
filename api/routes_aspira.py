@@ -37,15 +37,15 @@ _GAME_DIRS = [_HERE / "static", _HERE.parent / "web"]
 
 def spire_version() -> str:
     """The game's version, shown top-left after BEST (owner): when its files
-    last changed, "v1005.1432" (month day . hour minute) - so a phone showing an
+    last changed, "1005.1432" (month day . hour minute) - so a phone showing an
     older stamp is running cached code. Never raises."""
     try:
         files = [f for d in _GAME_DIRS if d.is_dir() for f in d.glob("aspira*")]
         files.append(_HERE / "templates" / "aspira.html")
         newest = max((f.stat().st_mtime for f in files if f.is_file()), default=0)
-        return time.strftime("v%m%d.%H%M", time.localtime(newest)) if newest else "v?"
+        return time.strftime("%m%d.%H%M", time.localtime(newest)) if newest else "?"
     except OSError:
-        return "v?"
+        return "?"
 
 
 @public.get("/aspira")

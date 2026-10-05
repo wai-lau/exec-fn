@@ -24,7 +24,7 @@ function resize() {
   // bottom build bar
   // the controls row, not the whole header: the ten-wave list hangs below it
   // over the board and must not shrink the fit (it zoomed the game out)
-  const head = document.querySelector(".asp-controls").getBoundingClientRect();
+  const head = document.querySelector(".asp-head").getBoundingClientRect(); // the stats row (the speed controls moved to the bottom)
   const foot = document.querySelector(".asp-bottom").getBoundingClientRect();
   const x0 = 0, y0 = head.bottom - r.top, x1 = r.width, y1 = foot.top - r.top;
   const fit = Math.min(x1 - x0, y1 - y0) / W;
