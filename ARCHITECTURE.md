@@ -3984,6 +3984,7 @@ RENAMED for players to THE SPIRE (owner, 2026-10-04): the in-game title (h1 'the
 The credits count on the core is TWO lines (owner): CREDITS over the number.
 The chart has a RULER (owner: 'show how long X units are'): a horizontal line through the centre out to the screen's edges (`RULER_R` 2000), graduated in units from the core's centre - notches every 10 to 200, every 50 to 1000, then every 100; numbered every 100 to 500, every 200 to 1000, then every 500 (`drawScaleBar`).
 The CREDITS word on the core has a light outline (a thin stroke, no blur; owner: less shadow); the number keeps the full outline.
+Every tower RANGE HALVED (owner, 2026-10-04 - towers move now): `RANGE_BONUS` 1.2 -> 0.6 (ARC's hop and Rain's chain follow range), Space/Expanse/Horizon range bonus +100 -> +50 each (`NULL_RANGE`), Ricochet hop 160 -> 80 (`BOUNCE_R`). Blast and circle SIZES (Plague, Shatter, Nova, Supernova) unchanged. L1 ranges now ARC 104, FRZ 96, SOL 172, ACD 138. Simulator: a lone FRZ now leaks 0-6 on wave 1 (was 0), a lone SOL 11-15 (was 7-10); the six-tower L3 test team falls at wave 30 (was 40).
 header stat): static `CREDITS N`, and for `CREDITS_FX_T` 2.5s after each
 interest payout `CREDITS <before> +X (+r%)` with the gain in green, then the new
 total (`drawCredits`, aspira-waves.js; replaced the "+X interest" popup).
