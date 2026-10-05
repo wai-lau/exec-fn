@@ -108,6 +108,8 @@ function hopTo(c, node, nxt, depth) {
   const up = st.hopGain ? depth - 1 : 0;
   node.kids.add(nxt.id); c.seen.add(nxt.id); beam(node.e, nxt, col, CHAIN_BEAM_LIFE, 1.5 * (1 + 0.6 * up), d);
   if (c.st.ignoreShield) fx[fx.length - 1].pierce = true;
+  // the beam's opacity is the share of the FIRST strike's damage this hop still carries (owner)
+  fx[fx.length - 1].alpha = Math.min(1, c.dmg * (st.hopGain || 1) ** (depth - 1) / st.dmg);
   if (up) { ring(nxt.x, nxt.y, 14 + 9 * up, col, 0.18 + 0.05 * up); burst(nxt.x, nxt.y, col, 3 * up); }
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE); // the parent's beam outlasts this one

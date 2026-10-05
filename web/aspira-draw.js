@@ -237,6 +237,7 @@ function drawFx(pass) {
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
     if (f.k === "beam") {
+      ctx.globalAlpha *= f.alpha ?? 1; // ARC: an arc's beam is as opaque as the share of damage it still carries
       // glow underlay + core, both widening with the damage behind the shot
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
       // a following beam reads its endpoints live from the tower/enemy it joins
@@ -396,8 +397,9 @@ function drawTethers() {
       if (e.dead || Math.hypot(e.x - t.x, e.y - t.y) > r) continue;
       ctx.strokeStyle = col;
       ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(e.x, e.y);
-      ctx.globalAlpha = 0.15 * shimmer; ctx.lineWidth = 6 * w; ctx.stroke();
-      ctx.globalAlpha = 0.7 * shimmer; ctx.lineWidth = 1.6 * w; ctx.stroke();
+      // three rays now, so each THINNER and FAINTER (owner)
+      ctx.globalAlpha = 0.1 * shimmer; ctx.lineWidth = 4 * w; ctx.stroke();
+      ctx.globalAlpha = 0.45 * shimmer; ctx.lineWidth = 1 * w; ctx.stroke();
     }
   }
   ctx.globalAlpha = 1;

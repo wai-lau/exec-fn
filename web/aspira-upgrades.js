@@ -78,11 +78,12 @@ const UPGRADES = {
   slower: [
     // Shatter scales off the FRZ's OWN hit, never the enemy's max HP (owner,
     // 2026-10-02: max-HP effects made towers too obviously late-game picks)
-    { name: "Shatter", desc: "Slowed enemies explode when they die.", mods: { shatter: { mul: 4, r: 60 } }, finals: [
-      { name: "Frostbite", desc: "Bigger explosions that slow whatever they hit.", mods: { frostbite: 4, shatter: { mul: 4, r: 84 } },
+    // Shatter's multipliers TRIPLED with FRZ's hit cut to a third (owner: 3 rays), so explosions are unchanged
+    { name: "Shatter", desc: "Slowed enemies explode when they die.", mods: { shatter: { mul: 12, r: 60 } }, finals: [
+      { name: "Frostbite", desc: "Bigger explosions that slow whatever they hit.", mods: { frostbite: 4, shatter: { mul: 12, r: 84 } },
         super: { name: "Hoarfrost", desc: "The frostbite slow lingers much longer.", mods: { frostbite: 12 } } },
-      { name: "Shrapnel", desc: "Much harder-hitting explosions.", mods: { shatter: { mul: 7, r: 60 } },
-        super: { name: "Splinter", desc: "Explosions hit harder still.", mods: { shatter: { mul: 14, r: 60 } } } },
+      { name: "Shrapnel", desc: "Much harder-hitting explosions.", mods: { shatter: { mul: 21, r: 60 } },
+        super: { name: "Splinter", desc: "Explosions hit harder still.", mods: { shatter: { mul: 42, r: 60 } } } },
       { name: "Brittle", desc: "Slowed enemies take extra damage from every tower.", mods: { brittle: 1.3 },
         super: { name: "Fracture", desc: "Slowed enemies take even more.", mods: { brittle: 1.6 } } },
     ] },
