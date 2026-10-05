@@ -436,11 +436,12 @@ function spokeTrack(c, reach) {
   ctx.beginPath(); ctx.moveTo(ex - uy * 14, ey + ux * 14); ctx.lineTo(ex + uy * 14, ey - ux * 14); ctx.stroke();
 }
 function drawSpokes() {
-  // BRIGHT WHITE, solid, from the core out to the limit (owner: show the axis clearly)
-  ctx.strokeStyle = COL.white; ctx.lineCap = "round"; ctx.lineWidth = 2;
+  // solid, from the core out to the limit, in the TOWER'S colour and a little
+  // thicker (owner; was bright white)
+  ctx.lineCap = "round"; ctx.lineWidth = 3;
   for (const t of G.towers) {
     const k = spokeOf(t);
-    ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6;
+    ctx.strokeStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6;
     spokeTrack(k.c, k.r0 + k.max);
   }
   // while PLACING, every free slot shows the track the tower being built would

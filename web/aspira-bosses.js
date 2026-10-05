@@ -26,6 +26,10 @@ const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving 
 const EMPRESS_BROOD = 4, CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
 const TEMPERANCE_REGEN = 0.02, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
 
+// how far an enemy on lane pi travels, entry to core, and the average over all lanes
+const laneTravel = pi => PATHS[pi].len - entryS(pi);
+let meanTravelV = 0;
+const meanTravel = () => meanTravelV || (meanTravelV = PATHS.reduce((a, p, i) => a + laneTravel(i), 0) / PATHS.length);
 const arcanaOf = n => ARCANA[Math.min(ARCANA.length, Math.max(1, Math.round(n / STAR_EVERY))) - 1];
 // how many bosses ride a boss wave: the Lovers come as two, the Devil as six,
 // one on each of six lane copies
@@ -39,7 +43,11 @@ function bossSpawn(e, n) {
   e.baseSpd = e.spd || 1; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
   // HP per boss (owner): Star to Lovers x2, the Chariot x4; Devil (each of six) x0.75 (halved,
   // then x1.5); Justice and Judgement x1.5; Death x3; Temperance as is
-  e.max *= BOSS_HP[e.arcana] || 1; e.hp = e.max;
+  e.max *= BOSS_HP[e.arcana] || 1;
+  // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps
+  // it under fire longer, so it gets proportionally more HP (x0.5 .. x1.6, the
+  // average lane x1)
+  e.max *= laneTravel(e.pi) / meanTravel(); e.hp = e.max;
   // each boss a size bigger than the last (owner): Star x1.1 ... Death x2
   e.sizeMul = 1 + 0.1 * (ARCANA.findIndex(a => a.id === e.arcana) + 1);
   const mate = bossCount(n) === 2 && G.enemies.find(o => o !== e && !o.dead && o.arcana === e.arcana && o.n === n && !o.mate);

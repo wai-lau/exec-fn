@@ -288,7 +288,8 @@ function updateHud() {
     note += "<span>" + n + "</span><span>:</span><span>" +
       '<b class="e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '">' + enemyIcon(w.type) + "×" + w.count + "</b></span>" +
       // each one's HP (owner), a boss's with its own multiplier
-      "<span>" + short(enemyHp(w.type, n) * (boss ? BOSS_HP[arcanaOf(n).id] || 1 : 1)) + "hp</span>" +
+      // a boss's with its own multiplier and its lane's travel (aspira-bosses.js)
+      "<span>" + short(enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * laneTravel(laneMap(n).bonus) / meanTravel() : 1)) + "hp</span>" +
       "<span>" + (boss ? arcanaOf(n).name : w.type) + "</span>";
   }
   // the time to the next wave, on its OWN line above the list (owner)
