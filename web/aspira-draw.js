@@ -165,12 +165,14 @@ function drawTower(t, ghost) {
   const sp = towerSprite(t.kind, t.lvl, c0), w = sp.width / cam.k;
   ctx.globalAlpha = ghost ? 0.55 : 1;
   ctx.drawImage(sp, x - w / 2, y - w / 2, w, w);
-  text(towerAb(t), x, y + 1, 12, b.color); // bigger again (owner; 10 with the smaller towers, 13 before)
+  // as BIG as fits (owner): every label is 3 monospace letters, 1.5 em wide, and
+  // the hex is ~44 across inside its outline -> TOWER_LABEL_PX 28 (was 12)
+  text(towerAb(t), x, y + 1, TOWER_LABEL_PX, b.color, false, true);
   ctx.globalAlpha = 1;
 }
 // one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits
 // the slots), drawn exactly as the tower used to be drawn each frame
-const towerSprites = new Map();
+const towerSprites = new Map(), TOWER_LABEL_PX = 28;
 function towerSprite(kind, lvl, c0) {
   const b = TOWERS[kind], turn = Math.round(Math.atan2(c0.pts[0].y - c0.y, c0.pts[0].x - c0.x) * 90 / Math.PI); // 2-degree steps
   const key = [kind, lvl, COL[b.color], COL.bg, cam.k.toFixed(4), turn].join("|");
