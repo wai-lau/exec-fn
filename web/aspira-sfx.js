@@ -151,7 +151,9 @@ let curSound = null; // the synth sound being built, so envelope() can count it
 // (TOWER_GAIN 0.6 vs LOUD_GAIN 2)
 const TOWER_GAIN = 0.6, LOUD_GAIN = 2;
 const LOUD = /^(bosswarn|bossvoice|coreup|up|build)/;
-const gainFor = name => (LOUD.test(name) ? LOUD_GAIN : SOUND_MAX[name] ? TOWER_GAIN : 1);
+// per-sound trims (owner): the ship explosion on every kill was too loud
+const SOUND_GAIN = { kill: 0.4 };
+const gainFor = name => (LOUD.test(name) ? LOUD_GAIN : SOUND_MAX[name] ? TOWER_GAIN : 1) * (SOUND_GAIN[name] ?? 1);
 function playSample(name, at = 0) {
   const list = SAMPLES[name], n = playing[name] || 0;
   const src = AC.createBufferSource(), g = AC.createGain(), clip = list[Math.floor(Math.random() * list.length)];
