@@ -278,15 +278,16 @@ function refreshPanels() {
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
-const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95, SWARM_MIN = 6, SWARM_BANDS = 3; // SWARM_MIN: the smallest tessellated diamond box (px) // the upcoming-wave icons' size range (px); rows up to this many never overlap
-// gap: px between this icon and the next (negative overlaps them); dy: a vertical nudge (px)
-function enemyIcon(type, px, gap, dy) {
+const WAVE_ICON = [5, 18], WAVE_ROW_N = 12, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_BOSS_PX = 22; // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
+// gap: px between this icon and the next (negative overlaps them); dy: a
+// vertical nudge (px); x, y: an absolute spot inside a lattice band (CSS lengths)
+function enemyIcon(type, px, gap, dy, x, y) {
   const d = ENEMIES[type], n = d.pointy ? d.sides * 2 : d.sides, pts = [];
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.pointy && i % 2 ? 3.6 : 8;
     pts.push((10 + Math.cos(a) * r).toFixed(1) + "," + (10 + Math.sin(a) * r).toFixed(1));
   }
-  return '<svg class="asp-eicon" viewBox="0 0 20 20"' + (px ? ' style="width:' + px.toFixed(2) + 'px;height:' + px.toFixed(2) + 'px;margin-right:' + (gap ?? 1).toFixed(2) + 'px' + (dy ? ';transform:translateY(' + dy.toFixed(2) + 'px)' : "") + '"' : "") + ' aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
+  return '<svg class="asp-eicon" viewBox="0 0 20 20"' + (px ? ' style="width:' + px.toFixed(2) + 'px;height:' + px.toFixed(2) + 'px;margin-right:' + (gap ?? 1).toFixed(2) + 'px' + (dy ? ';transform:translateY(' + dy.toFixed(2) + 'px)' : "") + (x != null ? ';position:absolute;left:' + x + ';top:' + y : "") + '"' : "") + ' aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
 }
 let lastNote = "";
 function updateHud() {
@@ -317,30 +318,34 @@ function updateHud() {
     const hp = enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * laneTravel(laneMap(n).bonus) / meanTravel() : 1);
     rows.push({ n, w, boss, hp });
   }
-  const lo = Math.log(Math.min(...rows.map(r => r.hp))), hi = Math.log(Math.max(...rows.map(r => r.hp)));
-  const pxOf = hp => Math.round(WAVE_ICON[0] + (WAVE_ICON[1] - WAVE_ICON[0]) * (hi > lo ? (Math.log(hp) - lo) / (hi - lo) : 0.5));
+  // the log scale spans the ORDINARY enemies only (owner: sizes did not read -
+  // one boss's HP squeezed the rest into the middle); a boss is always WAVE_BOSS_PX
+  const plain = rows.filter(r => !r.boss).map(r => r.hp);
+  const lo = Math.log(Math.min(...plain)), hi = Math.log(Math.max(...plain));
+  const pxOf = (hp, boss) => boss ? WAVE_BOSS_PX : Math.round(WAVE_ICON[0] + (WAVE_ICON[1] - WAVE_ICON[0]) * (hi > lo ? (Math.log(hp) - lo) / (hi - lo) : 0.5));
   // a big group (a swarm) OVERLAPS its icons to about the width of the widest
   // ordinary row (WAVE_ROW_N enemies or fewer) instead of wrapping (owner)
   // (on a phone no wider than WAVE_SPAN_PHONE, to clear the build buttons)
-  const span = Math.min(Math.max(...rows.filter(r => r.w.count <= WAVE_ROW_N).map(r => r.w.count * (pxOf(r.hp) + 1)), 40),
+  const span = Math.min(Math.max(...rows.filter(r => r.w.count <= WAVE_ROW_N).map(r => r.w.count * (pxOf(r.hp, r.boss) + 1)), 40),
     matchMedia("(width < 700px)").matches ? WAVE_SPAN_PHONE : Infinity);
   let note = "";
   for (const { n, w, boss, hp } of rows) {
-    const px = pxOf(hp), wide = w.count * (px + 1) > span;
+    const px = pxOf(hp, boss), wide = w.count * (px + 1) > span;
     const step = wide ? (span - px) / (w.count - 1) : px + 1; // start-to-start spacing
     let icons = enemyIcon(w.type, px, wide ? step - px : 1).repeat(w.count);
     if (w.type === "swarm") {
-      // a SWARM TESSELLATES (owner): diamonds stagger up and down, each half a
-      // diamond along from the last, edges touching - one band the row's width.
-      // The diamond fills 0.8 of its box, so the step is 0.4 box.
-      // Always SWARM_BANDS stacked bands (owner: 3, so they need not pack so
-      // tight), sharing the swarm evenly, each at most the row's width.
-      const per = Math.ceil(w.count / SWARM_BANDS), lines = [];
-      const b = Math.max(SWARM_MIN, Math.min(px * 2, span / (0.4 * per + 0.6)));
-      for (let k = 0; k < w.count; k += per) {
-        lines.push('<span class="asp-band">' + Array.from({ length: Math.min(per, w.count - k) }, (_, j) => enemyIcon(w.type, b, -0.6 * b, (j % 2 ? 0.2 : -0.2) * b)).join("") + "</span>");
+      // a SWARM TESSELLATES (owner): ONE lattice THREE diamonds tall - columns
+      // alternate two diamonds (top + bottom rows) and one (the middle), each
+      // half a diamond along, edges touching, the band at most the row's width.
+      // The diamond fills 0.8 of its box b, so the lattice step is 0.4 b.
+      // the diamond box is its HP size (never blown up to fill the row), shrunk only to fit
+      const cols = Math.ceil(w.count * 2 / 3), b = Math.max(SWARM_MIN, Math.min(px, span / ((cols - 1) * 0.4 + 1)));
+      let html = "", left = w.count;
+      for (let c = 0; left > 0; c++) for (const row of c % 2 ? [1] : [0, 2]) {
+        if (left-- <= 0) break;
+        html += enemyIcon(w.type, b, 0, 0, (c * 0.4 * b).toFixed(2) + "px", (row * 0.4 * b).toFixed(2) + "px");
       }
-      icons = lines.join("");
+      icons = '<span class="asp-band" style="width:' + ((cols - 1) * 0.4 * b + b).toFixed(1) + "px;height:" + (1.8 * b).toFixed(1) + 'px">' + html + "</span>";
     }
     note += "<span>" + roman(n) + "</span><span>:</span>" +
       '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (w.type === "swarm" ? " asp-tess" : "") + '">' + icons + "</span>" +
