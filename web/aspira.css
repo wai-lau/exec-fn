@@ -16,7 +16,7 @@
   position: absolute;
   top: var(--space-4);
   left: var(--space-6);
-  right: var(--space-6);
+  right: calc(var(--space-6) + var(--space-8)); /* room for the vertical volume slider (.asp-volbox) */
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
@@ -166,6 +166,7 @@
 /* while a boss lives the canvas inverts itself (aspira-bosses.js); the HTML over
    it flips too once the inversion fills the screen (owner) */
 #asp.asp-boss .asp-head,
+#asp.asp-boss .asp-volbox,
 #asp.asp-boss .asp-bottom,
 #asp.asp-boss .asp-pop,
 #asp.asp-boss .asp-chooser { filter: invert(1); } /* the upgrade cards flip with the boss sky too (owner) */
@@ -348,10 +349,23 @@
 
 /* the volume slider drawn like the buttons (owner: "match the UI"): a track in
    the button's outline and fill, a square thumb with the button's border */
+.asp-volbox {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-2);
+  z-index: var(--z-raised);
+  width: var(--space-8);
+  height: calc(var(--space-8) * 4);
+}
+
 #asp-vol {
-  width: calc(var(--space-8) * 3);
-  height: var(--space-6);
-  align-self: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--space-8) * 4);
+  height: var(--space-8);
+  margin: 0;
+  transform: translate(-50%, -50%) rotate(-90deg);
   appearance: none;
   background: transparent;
   cursor: pointer;
@@ -501,7 +515,7 @@
 
   #asp .asp-controls #asp-speed button { padding: var(--space-1); font-size: var(--fs-2xs); } /* smaller: the 1/4x button joined the row */
 
-  #asp-vol { width: calc(var(--space-8) * 2); }
+
 
   .asp-stats { gap: var(--space-2); }
 
