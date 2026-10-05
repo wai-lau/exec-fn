@@ -95,9 +95,14 @@ function sendWave() {
 // types of one wave always land on five different lanes, and 5n rotates the
 // whole set round the rim from wave to wave.
 const TYPE_ORDER = Object.keys(ENEMIES);
+// a BOSS rides a lane of at least BOSS_MIN_TURNS loops round the core (owner):
+// a shorter pick moves on to the next lane that long (its HP scales with the
+// lane's length anyway - bossSpawn)
+const BOSS_MIN_TURNS = 5;
 function laneMap(n) {
   const out = {};
   TYPE_ORDER.forEach((type, k) => { out[type] = (n * 5 + k * 7) % N_PATHS; });
+  while (PATHS[out.bonus].turns < BOSS_MIN_TURNS) out.bonus = (out.bonus + 1) % N_PATHS;
   return out;
 }
 
