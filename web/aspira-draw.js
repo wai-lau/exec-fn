@@ -143,7 +143,7 @@ function drawTower(t, ghost) {
   const tiers = t.lvl - 1, base = ghost ? 0.55 : 1; // one ring per level above L1
   ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round";
   ctx.globalAlpha = base;
-  towerHex(c, TOWER_K); ctx.fill();
+  towerHex(c, TOWER_K + LEVEL_GAP * tiers); ctx.fill(); // the background colour under the WHOLE tower, rings too (owner)
   ctx.shadowColor = COL[b.color]; ctx.shadowBlur = TOWER_GLOW[t.lvl - 1] * cam.k;
   for (let r = 1; r <= tiers; r++) {
     ctx.globalAlpha = base * (1 - 0.12 * r); ctx.lineWidth = 3.5;
