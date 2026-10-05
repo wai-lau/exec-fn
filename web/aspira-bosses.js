@@ -169,8 +169,8 @@ function drawBossBar() {
   const reach = bossInv.r || 0, half = Math.min(BOSS_BAR_R * hp / max, reach), col = ENEMIES.bonus.color;
   const y = CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20;
   const arc = arcanaOf(bosses[0].n);
-  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 20, col, true);
-  ctx.globalAlpha = 0.8; text(arc.hint, CX, y + 20, 12, col, true); ctx.globalAlpha = 1; // its mythic subtitle (owner)
+  text(arc.name + (bosses.length > 1 ? " ×" + bosses.length : ""), CX, y, 26, col, true); // bigger (owner; was 20)
+  ctx.globalAlpha = 0.8; text(arc.hint, CX, y + 24, 15, col, true); ctx.globalAlpha = 1; // its mythic subtitle (owner; bigger, was 12)
   const by = CY, track = Math.min(BOSS_BAR_R, reach); // ON the horizon through the core, under the core (owner)
   if (track <= 0) return;
   ctx.strokeStyle = COL[col]; ctx.lineWidth = BOSS_BAR_W; ctx.lineCap = "butt";
