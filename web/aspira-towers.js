@@ -199,6 +199,11 @@ function stepReaper(t, dt) {
   for (const l of t.locks) {
     l.cd -= dt;
     if (l.cd > 0) continue;
+    // a full charge RE-AIMS by the targeting before it fires (owner: Fresh kept
+    // hitting the enemy it had already bled): the best enemy in range that no
+    // other lock holds; the charge carries over, so no shot is lost
+    const pick = pickTargets(t, st, st.targets + t.locks.length).find(e => e === l.e || !t.locks.some(o => o.e === e));
+    if (pick) l.e = pick;
     fireRay(t, st, l.e); l.cd = t.period; fired = true;
     t.shots = (t.shots || 0) + 1;
   }
