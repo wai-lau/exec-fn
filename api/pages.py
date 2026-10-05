@@ -261,7 +261,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=7"></script>'
                   '<script src="/voice-input.js?v=3"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=28"></script>'
+                  '<script src="/exec-bubble-assets.js?v=29"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=3"></script>'
                   # The agent transcript (the /cc page until it folded in, 2026-09-29):
@@ -277,7 +277,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-interrupt.js?v=1"></script>'
                   '<script src="/exec-term.js?v=2"></script>'
                   '<script src="/exec-stream.js?v=4"></script>'
-                  '<script src="/exec-bubble.js?v=80"></script>')
+                  '<script src="/exec-bubble.js?v=81"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +
@@ -298,7 +298,7 @@ def _build_nav(active=None, guest=False):
             '<script src="/exec-voice.js?v=7"></script>'
         ) if want_voice else ''
         voice_listener = '<script src="/exec-voice-listener.js?v=2"></script>' if want_voice else ''
-        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=33">'
+        bubble = ('<link rel="stylesheet" href="/exec-bubble.css?v=34">'
                   '<div id="exec-bubble" role="button" aria-label="Exec">'
                   '<img src="/guru-pink.png" alt="exec"></div>'
                   + voice_pre +
