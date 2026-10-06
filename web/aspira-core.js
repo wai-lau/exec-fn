@@ -148,7 +148,8 @@ function inspectCore(el) {
   const lvl = coreLvl(), copy = G.core && G.core.tower;
   el.innerHTML = '<div class="name">Core · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name + " · " + Math.ceil(G.core.copyUntil - G.core.clock) + "s" : "") + "</div>" +
     '<p class="asp-hint">' + (coreOpen() ? "Three powers, " + CORE_TIERS + " levels each." : "The heart of the chart. Its powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
-    '<div id="asp-upbox"></div>';
+    '<div id="asp-upbox"></div>' + CLOSE_ROW;
+  closeButton(); // the card's close (aspira-ui.js)
   const box = $("asp-upbox");
   if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
   CORE_POWERS.forEach(p => {

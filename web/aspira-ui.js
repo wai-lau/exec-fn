@@ -260,7 +260,8 @@ function inspectTower(el, t) {
     '<dl class="asp-spec">' + SPEC[t.kind](st, t).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
     // upgrade, then sell, then the targeting - SMALL, under sell (owner)
     '<div class="asp-row" id="asp-upbox"></div><div class="asp-row" id="asp-acts"></div>' +
-    '<div class="asp-prio">Priority:</div><div class="asp-row asp-modes" id="asp-modes"></div>';
+    '<div class="asp-prio">Priority:</div><div class="asp-row asp-modes" id="asp-modes"></div>' + CLOSE_ROW;
+  closeButton();
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
@@ -280,6 +281,10 @@ function inspectTower(el, t) {
   });
 }
 const SELL_ARM_MS = 2000;
+// a CLOSE button at the card's foot, centred where the chooser's cancel sits
+// (owner) - the same as tapping off the card
+const CLOSE_ROW = '<div class="asp-row asp-close-row" id="asp-close"></div>';
+function closeButton() { button($("asp-close"), "asp-cancel", "close", () => { ui.sel = null; refreshPanels(); }); }
 // a tap on something the credits cannot cover flashes its cost red and shakes
 // it (owner), instead of the button just sitting greyed out
 function noFunds(btn) {

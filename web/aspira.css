@@ -256,6 +256,11 @@
 .asp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
 .asp-grid.six { grid-template-columns: repeat(6, 1fr); }
 .asp-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* the card's close, compact and centred where the chooser's cancel sits (owner) */
+.asp-close-row { justify-content: center; }
+
+#asp .asp-close-row button { flex: 0 0 auto; }
 .asp-row > button { flex: 1; }
 
 #asp button {
