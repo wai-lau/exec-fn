@@ -12,7 +12,7 @@
 // drawCoreFx goes under the towers (beams), drawCoreHud over the enemies.
 // sized for a PHONE (the board shows at ~0.54 css px per unit there): text
 // 26 units reads as ~14px
-const DIAL_R = 118, DIAL_W = 18, DIAL_GAP = 0.2, DIAL_TEXT = 26, DIAL_LABEL = 36;
+const DIAL_R = 118, DIAL_W = 18, DIAL_GAP = 0.2, DIAL_TEXT = 26;
 const DIAL = [ // clockwise from the top-left; colours are palette keys
   { id: "temporal", label: "TIME", color: "cyan", mid: -Math.PI * 0.833, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock },
   { id: "empower", label: "EMPOWER", color: "white", mid: -Math.PI * 0.167, tab: () => EMPOWER, active: () => empowerLeft() },
@@ -88,7 +88,7 @@ function drawDial(c, now) {
       ctx.beginPath(); ctx.arc(CX, CY, DIAL_R, a0, a0 + seg); ctx.stroke();
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    const lx = CX + Math.cos(d.mid) * (DIAL_R + DIAL_LABEL), ly = CY + Math.sin(d.mid) * (DIAL_R + DIAL_LABEL);
+    const lx = CX + Math.cos(d.mid) * DIAL_R, ly = CY + Math.sin(d.mid) * DIAL_R; // ON the segment (owner)
     const name = d.id === "fortify" && c.tower ? TOWERS[c.tower.kind].ab : d.label;
     text(run > 0 ? name + " " + Math.ceil(run) + "s" : cd > 0 ? d.label + " " + Math.ceil(cd) + "s" : d.label + " READY", lx, ly, DIAL_TEXT, run > 0 ? "white" : d.color, true, true);
   }
