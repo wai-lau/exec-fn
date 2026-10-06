@@ -237,15 +237,19 @@ function resolveColors() {
 // SOL nerfed by RANGE instead (owner 2026-10-02): 318 -> 239 (x0.75), damage back to 110
 // ARC damage 28 -> 34 (x1.2, owner 2026-10-02: half the enemies left it fewer arc targets) -> 42
 // SOL damage 110 -> 140, range 239 -> 287 (owner: ARC and SOL were the weakest late)
+// RANGES HALVED (owner, 2026-10-06: "halve all tower ranges, not their effects nor reach"):
+// ARC 173.4 -> 86.7, FRZ 176 -> 88, SOL 350 -> 175, ACD 230 -> 115. Effects keep their
+// absolute size (ARC's jumps ARC_JUMP_BASE, Static rings, SOL's cone, ACD puddles, the
+// moons' orbit); FRZ's aura IS its range, so it halves with it.
 // display names (owner): chain = ARC, slower = FRZ, reaper = SOL (was RAY),
 // acid = ACD; the code
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
-  chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 48, rate: 1.5, /* 2026-10-06: was 42 - the weakest full chart late */  range: 173.4, blurb: "Lightning that jumps and forks from enemy to enemy, never hitting the same one twice.", up: "extra arcs" },
-  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 5, rate: 2.4, /* early-game balance 2026-10-06: was 2.5 - its aura tick is what helps against the fast waves */  range: 176,  blurb: "An aura that slows and chills everything inside it, and lets go the moment they leave.", up: "slow strength" },
-  reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 189,  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer */  range: 350, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 96, rate: 1.5, /* 2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 86.7, blurb: "Lightning that jumps and forks from enemy to enemy, never hitting the same one twice.", up: "extra arcs" },
+  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 12, rate: 2.4, /* early-game balance 2026-10-06: was 2.5, then 5; 12 with its aura halved (a quarter of the area) */  range: 88,  blurb: "An aura that slows and chills everything inside it, and lets go the moment they leave.", up: "slow strength" },
+  reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 215,  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer; 215 with the range halved */  range: 175, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
-  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 26,  rate: 4, /* early-game balance 2026-10-06: was 18 */    range: 230, blurb: "A burning line on one enemy that burns harder the longer it holds, dripping fire onto the lane.", up: "burn" },
+  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 46,  rate: 4, /* early-game balance 2026-10-06: was 18, then 26; 46 with the range halved (and a faster base ramp, ACD_DOUBLE) */    range: 115, blurb: "A burning line on one enemy that burns harder the longer it holds, dripping fire onto the lane.", up: "burn" },
 };
 // which enemies each tower is GOOD AGAINST (owner), on its build card
 const GOOD_VS = { chain: "swarms", slower: "fast, shields", reaper: "armor, bosses", acid: "shields, bosses" };
@@ -313,6 +317,7 @@ function towerStats(t, noAura = false) {
   const s = {
     dmg: b.dmg * LVL_DMG[i], rate: b.rate, range: b.range * RANGE_BONUS * LVL_RANGE[i],
     targets: 1, critMul: 3, arcRange: 50, arcFall: 0.8,
+    slide: 1, speed: 1, // x the slide extent / slide speed (aspira-towers.js; a chart tier may raise them)
   };
   switch (t.kind) {
     // arc reach = the tower's own range (owner: tripled from half the old range),
@@ -346,6 +351,7 @@ function towerStats(t, noAura = false) {
   // every FRZ slow 20% weaker (owner, 2026-10-02) - base, Stasis, Permafrost,
   // Ice Age, Frostbite alike; Deep Freeze's 95% near-freeze is kept as is
   if (s.slow) s.slow = Math.min(0.85, s.slow * FRZ_SLOW_MUL);
+  if (hasSkills(t)) skillMove(t, s); // a chart tier's range / slide / speed (aspira-skills.js)
   if (!noAura) {
     for (const u of G.towers) {
       if (u === t) continue;
