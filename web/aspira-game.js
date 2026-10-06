@@ -402,7 +402,7 @@ function stepEnemies(dt) {
       sfx("leak"); shakeScreen();
       ring(e.x, e.y, 40, "pink", 0.17);
       // a BOSS that gets through ends the game outright (owner, 2026-10-02)
-      if (ENEMIES[e.type].star) G.lives = 0;
+      if (ENEMIES[e.type].star) { G.lives = 0; G.breachBy = e.arcana; } // the end title names the boss (BOSS_BREACH)
       const lw = e.wave || G.wave; // lives lost per wave it CAME from (owner), for the end screen
       (G.leaks ||= {})[lw] = (G.leaks[lw] || 0) + before - Math.max(0, G.lives);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
@@ -484,5 +484,5 @@ function gameOver() {
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
   if (typeof renderEndStats === "function") renderEndStats(); // the end screen's tower + leak stats (aspira-endstats.js)
-  showOverlay("core breached", "Reached wave " + G.wave + (G.wave >= (best.wave || 0) ? ", your best." : " (best: " + best.wave + ")."), "Play again");
+  showOverlay((G.breachBy && BOSS_BREACH[G.breachBy]) || "core breached", "Reached wave " + G.wave + (G.wave >= (best.wave || 0) ? ", your best." : " (best: " + best.wave + ")."), "Play again");
 }
