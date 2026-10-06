@@ -40,6 +40,9 @@ function fixedRand(n, salt) {
 // tower, on ENEMY-SECONDS - the first fit, on closest approach, piled on slow
 // armor and shields); used for EVERY wave (owner: no upgrades in the test)
 const TYPE_COUNT_MUL = { swarm: 0.52, shield: 0.99, armor: 1.07, fast: 1.47 }, WAVE_TYPE_FORCE = {};
+// swarms are DOUBLED on waves 11-60 (owner, 2026-10-06): a SOL-heavy build must
+// find a swarm answer; not past 60, where it cost ARC+SOL+FRZ teams 20 waves
+const SWARM_MID_MUL = 2, SWARM_MID = [11, 60];
 const WAVE_COUNT_MUL = {};
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
@@ -51,7 +54,7 @@ function wavePlan(n, prev) {
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1))); // swarms 6x (owner: doubled from 3x)
+  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" && n >= SWARM_MID[0] && n <= SWARM_MID[1] ? SWARM_MID_MUL : 1))); // swarms 6x (owner: doubled from 3x)
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
   const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };

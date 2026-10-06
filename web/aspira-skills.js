@@ -109,17 +109,18 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 // ARC's numbers by tier (index 0 = untaken). Balance later (owner: ideas first).
 // Voltage's damage FITTED to +25% / +50% / +100% dealt (owner; arcfit.mjs, waves 6-20)
 // Voltage refit 2026-10-06 (drifted 4-6% low after the Static / slow / FRZ changes)
-const ARC_VOLT_DMG = [1, 1.31, 1.49, 3.27], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
+// REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
+const ARC_VOLT_DMG = [1, 1.28, 1.42, 1.88], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
 // d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
-let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1.24 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1.53 }, { s: 2, j: 2, f: 3, r: 1.6, d: 2.8 }];
+let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 0.775 }, { s: 1, j: 2, f: 3, r: 1.4, d: 0.613 }, { s: 2, j: 2, f: 3, r: 1.6, d: 0.394 }]; // d refit 2026-10-06: the branching carries Conductivity, so its damage falls (was 1.24 / 1.53 / 2.8)
 // Static by tier: the blast's radius and its damage, x the hit that set it off
 // FITTED 2026-10-06 to +25 / +50 / +100% ARC-own dealt (tier III saturates -
 // a discharge can only take the HP in reach - so it needs a big charge)
-const ARC_STATIC = [null, { r: 40, frac: 0.83 }, { r: 60, frac: 1.49 }, { r: 85, frac: 5.3 }];
+const ARC_STATIC = [null, { r: 18, frac: 0.1 }, { r: 37.6, frac: 0.15 }, { r: 85, frac: 0.106 }]; // refit 2026-10-06 (a discharge pops a shield whatever its size, so tier I shrinks its ring)
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.6, ARC_SHRINK = 0.7;
 // a jump's reach, x the tower's range, before Conductivity lengthens it (owner: longer by default)
@@ -240,7 +241,7 @@ function skillHopTo(c, node, nxt, depth) {
 // guesses were 2-4x too strong; range moves little so "colder" reads as colder
 // early-game balance 2026-10-06: +0.03 on every tier (FRZ stays a pure SUPPORT tower - owner)
 const FRZ_FROST_SLOW = [0.33, 0.363, 0.394, 0.439], FRZ_FROST_RANGE = [1, 1.05, 1.1, 1.15];
-const FRZ_RIME = [0, 0.01, 0.019, 0.037]; // each pulse's permanent stacking slow
+const FRZ_RIME = [0, 0.02, 0.035, 0.06]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 2.4, FRZ_MOON_SCALE = 0.78; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 function frzSkillStats(t, s, b) {
@@ -362,12 +363,13 @@ function drawCone(f, k) {
 // FITTED 2026-10-06 to +25 / +50 / +100% (Spray to +30 / +60 / +120%, since
 // its lines can never share an enemy): Corrosion's ramp time, Spray's per-line
 // damage, Contagion's puddle heat (tier III's is below II's - its puddles are bigger)
-const ACD_DOUBLE = [1, 0.7, 0.6, 0.6], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_POUR_MUL = [1, 1.03, 1.39, 2.4];
+// REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
+const ACD_DOUBLE = [1, 0.82, 0.6, 0.24], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_POUR_MUL = [1, 1, 1.8, 3.1];
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
-const ACD_SEEP = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1, life: 2, r: 25 }, { every: 0.7, life: 3, r: 32 }, { every: 0.5, life: 4.5, r: 40 }];
-const ACD_PUDDLE_HEAT = [0.5, 2.8, 2.3, 3.75];
+const ACD_SEEP = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.8, life: 3.2, r: 30 }]; // refit 2026-10-06
+const ACD_PUDDLE_HEAT = [0.5, 1.08, 1.75, 3.2];
 function acidSkillStats(t, s, b) {
   const c = skillOf(t, "catalyst");
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACID_MAX; s.plagueR = 0;
