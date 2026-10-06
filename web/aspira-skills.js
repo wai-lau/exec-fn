@@ -154,6 +154,11 @@ function fireSkillChain(t, st, e, seen) {
   const col = TOWERS[t.kind].color, d = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, d);
   const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
+  // Voltage SHOWS (owner): a white-hot core in every arc, and at tier III the
+  // strike point throws sparks
+  const v = skillOf(t, "volt");
+  if (v) root.fx.pierce = true;
+  if (v >= SKILL_TIERS) burst(e.x, e.y, "white", 6);
   const c = { t, st, col, skill: true, seen: seen || new Set() }; // shared by the attack's strikes
   c.seen.add(e.id);
   skillHit(c, e, d);
@@ -167,25 +172,40 @@ function skillHit(c, e, d) {
   ch.dmg += d * b.frac; ch.n++; ch.r = Math.max(ch.r, b.r); ch.t = c.t;
 }
 let staticQuiet = false;
-// one Static blast: dmg to every live enemy within r of `at` (but `skip`);
-// returns the enemies it caught. Quiet: it sets off no charges.
-function staticBlast(t, at, r, dmg, skip = null) {
-  ring(at.x, at.y, r, TOWERS.chain.color, 0.35);
-  const caught = [];
-  staticQuiet = true;
-  try {
-    for (const o of G.enemies) {
-      if (o.dead || o === skip || (o.x - at.x) ** 2 + (o.y - at.y) ** 2 > r * r) continue;
-      damage(o, dmg, t, false, false, null); caught.push(o);
-    }
-  } finally { staticQuiet = false; }
-  return caught;
-}
-// from damage(): a CHARGED enemy hit by any tower lets all its charges go at once
+// a DISCHARGE (owner): a RAPIDLY EXPANDING orange ring from the enemy, out to
+// its radius over STATIC_RING_T, damaging each enemy once as its edge reaches
+// it. Quiet: it sets off no other charges.
+const STATIC_RING_T = 0.25;
 function dischargeStatic(e) {
   const ch = e.charge;
   e.charge = null;
-  staticBlast(ch.t, e, ch.r, ch.dmg);
+  (G.staticRings ||= []).push({ x: e.x, y: e.y, R: ch.r, dmg: ch.dmg, t: ch.t, age: 0, hit: new Set() });
+}
+// every step (stepChains): grow the rings and land their damage
+function stepStaticRings(dt) {
+  if (!G.staticRings || !G.staticRings.length) return;
+  staticQuiet = true;
+  try {
+    for (const g of G.staticRings) {
+      g.age += dt;
+      const r = g.R * Math.min(1, g.age / STATIC_RING_T);
+      for (const o of G.enemies) {
+        if (o.dead || g.hit.has(o.id) || (o.x - g.x) ** 2 + (o.y - g.y) ** 2 > r * r) continue;
+        g.hit.add(o.id); damage(o, g.dmg, g.t, false, false, null);
+      }
+    }
+  } finally { staticQuiet = false; }
+  G.staticRings = G.staticRings.filter(g => g.age < STATIC_RING_T * 1.6); // a short fade past full size
+}
+// UI (drawScene): each ring, bright while it grows, fading once it is full
+function drawStaticRings() {
+  ctx.strokeStyle = COL[TOWERS.chain.color]; ctx.lineWidth = 3;
+  for (const g of G.staticRings || []) {
+    const p = g.age / STATIC_RING_T;
+    ctx.globalAlpha = p < 1 ? 0.9 : Math.max(0, 0.9 * (1.6 - p) / 0.6);
+    ctx.beginPath(); ctx.arc(g.x, g.y, g.R * Math.min(1, p), 0, 6.283); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 // the nearest enemy this bolt has not hit yet, within this jump's (shrunk) reach
 function skillHop(c, node, depth) {
@@ -203,6 +223,7 @@ function skillHopTo(c, node, nxt, depth) {
   node.kids.add(nxt.id); c.seen.add(nxt.id);
   beam(node.e, nxt, c.col, CHAIN_BEAM_LIFE, 1.5, d);
   fx[fx.length - 1].alpha = Math.min(1, raw / c.st.dmg); // as opaque as the share of the strike it carries
+  if (skillOf(c.t, "volt")) fx[fx.length - 1].pierce = true; // Voltage's white-hot core
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE);
   skillHit(c, nxt, d);
@@ -214,7 +235,7 @@ function skillHopTo(c, node, nxt, depth) {
 const FRZ_FROST_SLOW = [0.3, 0.38, 0.46, 0.55], FRZ_FROST_RANGE = [1, 1.15, 1.3, 1.45];
 const FRZ_RIME = [0, 0.03, 0.05, 0.08]; // each pulse's permanent stacking slow
 const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 0.6, FRZ_MOON_SCALE = 0.5;
-const FRZ_AURA_HOLD = 0.06; // an aura slow outlasts one step only: it is gone the moment the enemy leaves
+const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "frost");
   s.range = b.range * RANGE_BONUS * FRZ_FROST_RANGE[f];
@@ -266,14 +287,18 @@ function drawFrzSkill(t, st) {
   const col = COL[TOWERS.slower.color];
   for (const s of frzSources(t, st)) {
     gradDisc(s.x, s.y, st.range * s.k, col, 0.8);
+    // Frost (owner): a FROSTED RIM, thicker the colder the aura (its slow)
+    ctx.strokeStyle = col; ctx.globalAlpha = 0.45; ctx.lineWidth = FRZ_RIM_W * st.aura * s.k;
+    ctx.beginPath(); ctx.arc(s.x, s.y, st.range * s.k, 0, 6.283); ctx.stroke();
     if (s.k < 1) { ctx.fillStyle = col; ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.arc(s.x, s.y, 8, 0, 6.283); ctx.fill(); }
   }
-  ctx.strokeStyle = col; ctx.lineWidth = 3;
+  // Rime (owner): a THIN expanding ring with a GLOW
+  ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.shadowColor = col; ctx.shadowBlur = 12 * cam.k;
   for (const p of t.pulses || []) {
     const f = Math.min(1, p.age / FRZ_RIME_GROW);
-    ctx.globalAlpha = 0.7 * (1 - f * 0.6); ctx.beginPath(); ctx.arc(p.x, p.y, p.R * f, 0, 6.283); ctx.stroke();
+    ctx.globalAlpha = 0.9 * (1 - f * 0.6); ctx.beginPath(); ctx.arc(p.x, p.y, p.R * f, 0, 6.283); ctx.stroke();
   }
-  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
 
 // ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------

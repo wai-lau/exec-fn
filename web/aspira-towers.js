@@ -75,6 +75,7 @@ function branchFrom(c, node, depth) {
   for (let i = 0; i < c.st.branch; i++) (G.chains ||= []).push({ c, node, depth, wait: hopDelay(c.st) });
 }
 function stepChains(dt) {
+  stepStaticRings(dt); // ARC Static's discharge rings (aspira-skills.js)
   if (!G.chains || !G.chains.length) return;
   const pending = G.chains; G.chains = [];
   for (const p of pending) {

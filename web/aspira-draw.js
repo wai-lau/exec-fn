@@ -452,6 +452,7 @@ function drawScene([sx, sy], clipR) {
   drawStars();
   drawTethers();
   drawAcid();
+  drawStaticRings(); // ARC Static's discharge rings (aspira-skills.js)
   drawAims();
   drawFx("shots");
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
