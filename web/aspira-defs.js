@@ -307,6 +307,7 @@ const STEP_COST = [2.95, 15.25, 24];
 // final form's mods (aspira-upgrades.js) stack on top. A Spotter in range
 // adds its aura; noAura stops the aura lookup recursing into other towers.
 function towerStats(t, noAura = false) {
+  if (typeof empowered === "function" && empowered(t)) t = empoweredView(t); // the core's Empower: every axis maxed for a while (aspira-core.js)
   const b = TOWERS[t.kind], i = t.lvl - 1;
   // RANGE_BONUS: every tower reaches 0.9x its table value (owner: 75% of the old 1.2, 2026-10-04)
   const s = {
@@ -354,15 +355,6 @@ function towerStats(t, noAura = false) {
   }
   if (G.power.RNG > 0) s.range *= 1.3;
   if (G.power.DAM > 0) s.dmg *= 1.6;
-  // the core's upgrades (aspira-core.js): Sinter damage, Temper fire rate,
-  // Space (doubled by Expanse) range
-  if (G.core) {
-    if (sintering()) s.dmg *= SINTER_MUL;
-    s.range += NULL_RANGE * spaceK();
-    // the repeatables: Amplifier, Overclock (not ACD's ticks), Lens
-    s.dmg *= repMul("amplifier"); s.range *= repMul("lens");
-    if (t.kind !== "acid") s.rate *= repMul("overclock");
-  }
   return s;
 }
 const upCost = t => Math.round(TOWERS[t.kind].cost * (hasSkills(t) ? SKILL_STEP_COST : STEP_COST)[t.lvl - 1]); // chart towers: six small steps

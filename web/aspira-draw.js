@@ -149,7 +149,7 @@ function drawBoard() {
 function drawCore() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
   // a core upgrade is open: a slow white ring breathes around it, so it reads
-  // as something to click (owner: show the unlock); ZEN's reach while selected
+  // as something to click (owner: show the unlock)
   // the core's LEVEL shows like a tower's (owner): a bold white ring outside
   // it per level, LEVEL_GAP apart, under a glow that grows with the level
   const lvl = coreLvl();
@@ -168,13 +168,15 @@ function drawCore() {
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
-  if (coreOpen() && lvl < CORE_MAX) {
+  if (coreOpen() && lvl < CORE_POINTS) {
     poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
     ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }
-  if (ui.sel === "core" && coreHas("zen")) drawRange(CX, CY, zenR(), "white");
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
   ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill();
+  // Fortifications: the core wears the colour of the tower it copies (aspira-core.js)
+  const cc = coreCopyColor();
+  if (cc) { ctx.strokeStyle = cc; ctx.lineWidth = 5; ctx.stroke(); }
 }
 const LIFE_RINGS = 5, LIFE_GAP = 5; // room kept for 5 rings of life segments (20 lives fill 3 and a bit)
 

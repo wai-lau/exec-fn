@@ -6,7 +6,7 @@
 // It deals nothing; the damage comes with the bright flash on firing.
 function drawAims() {
   ctx.lineCap = "round"; ctx.lineWidth = 0.8;
-  for (const t of G.towers) {
+  for (const t of [...G.towers, ...coreTowers()]) { // the core's Fortifications copy fires too (aspira-core.js)
     if (t.kind !== "reaper" || !t.locks || !t.period) continue;
     ctx.strokeStyle = COL[TOWERS[t.kind].color];
     const n = towerStats(t).beams || 1; // as many lines as the shot has BEAMS (owner)
@@ -31,7 +31,7 @@ function drawAims() {
 // round each target; Contagion has no lines - its range glows instead.
 function drawAcid() {
   ctx.lineCap = "round"; ctx.strokeStyle = COL.chatsubo;
-  for (const t of G.towers) {
+  for (const t of [...G.towers, ...coreTowers()]) { // the core's Fortifications copy fires too (aspira-core.js)
     if (t.kind !== "acid") continue;
     drawPuddles(t); // the chart ACD's puddles, under its lines (aspira-skills.js)
     if (!t.lines || !t.lines.length) continue;
@@ -71,7 +71,7 @@ function drawAcid() {
 function drawTethers() {
   const shimmer = 0.75 + 0.25 * Math.sin(performance.now() / 160);
   ctx.lineCap = "round";
-  for (const t of G.towers) {
+  for (const t of [...G.towers, ...coreTowers()]) { // the core's Fortifications copy fires too (aspira-core.js)
     if (t.kind !== "slower") continue;
     const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
     if (st.skill) { ownColours(() => drawFrzSkill(t, st)); continue; } // the chart FRZ: aura, moons, Rime (aspira-skills.js)
