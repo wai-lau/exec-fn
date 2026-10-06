@@ -83,17 +83,17 @@ SKILL_TREES.reaper = [
 // burn ramps faster (tier III: a line whose enemy dies hands half its ramp to
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acid = [
-  { id: "catalyst", name: "Catalyst", tiers: [
+  { id: "catalyst", name: "Caustic", tiers: [ // axis names (owner): Caustic, Spray, Contagion (ids unchanged)
     { name: "Catalyst", desc: "The burn ramps up faster." },
     { name: "Accelerant", desc: "Faster still." },
     { name: "Chain Reaction", desc: "The fastest ramp; a line whose enemy dies hands half its heat to the next." },
   ] },
-  { id: "pour", name: "Pour", tiers: [
+  { id: "pour", name: "Spray", tiers: [
     { name: "Pour", desc: "Two burning lines at once, each ramping on its own." },
     { name: "Torrent", desc: "Three lines." },
     { name: "Deluge", desc: "Five lines." },
   ] },
-  { id: "seep", name: "Seep", tiers: [
+  { id: "seep", name: "Contagion", tiers: [
     { name: "Seep", desc: "Puddles drip more often and burn longer." },
     { name: "Pool", desc: "More, longer, wider puddles." },
     { name: "Swamp", desc: "The most puddles, the longest, the widest." },
