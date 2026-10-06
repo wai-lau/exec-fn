@@ -16,14 +16,16 @@ let fitK = 0, dragged = false, downAt = null, pinch = null;
 //   drag from the CORE onto a tower -> Empower it
 //   drag from a TOWER onto the core -> Fortifications copies it
 // ui.drag = { kind: "core" | "tower", t, from, at } while one is held (drawn by drawCoreFx)
-const HOLD_MS = 400, CORE_GRAB = 1.8; // the core grabs within CORE_GRAB x its radius
-let holdTimer = 0, holdFired = false;
+// a held finger always wobbles: the hold survives HOLD_SLOP css px of drift
+// (owner: hold did nothing on a phone - DRAG_PX 6 was too tight for a thumb)
+const HOLD_MS = 400, CORE_GRAB = 1.8, HOLD_SLOP = 18; // the core grabs within CORE_GRAB x its radius
+let holdTimer = 0, holdFired = false, holdMoved = false;
 function grabPower(ev) {
   if (!G.core || !coreOpen()) return null;
   const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
   if (onCore && (powerLvl("temporal") || powerLvl("empower"))) {
     if (powerLvl("temporal")) holdTimer = setTimeout(() => {
-      if (ui.drag && ui.drag.kind === "core" && !dragged && temporalFreeze()) { holdFired = true; ui.drag = null; refreshPanels(); }
+      if (ui.drag && ui.drag.kind === "core" && !holdMoved && temporalFreeze()) { holdFired = true; ui.drag = null; refreshPanels(); }
     }, HOLD_MS);
     return { kind: "core", from: { x: CX, y: CY }, at: null };
   }
@@ -68,7 +70,7 @@ cv.addEventListener("pointerdown", ev => {
   if (!fitK) fitK = cam.fit;
   cv.setPointerCapture(ev.pointerId);
   ptrs.set(ev.pointerId, devXY(ev));
-  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); holdFired = false; ui.drag = grabPower(ev); }
+  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); holdFired = holdMoved = false; ui.drag = grabPower(ev); }
   if (ptrs.size === 2) {
     clearTimeout(holdTimer); ui.drag = null; // a pinch is never a power gesture
     const [a, b] = [...ptrs.values()];
@@ -91,7 +93,11 @@ cv.addEventListener("pointermove", ev => {
   }
   const dpr = canvasDpr();
   if (!dragged && Math.hypot(now.x - downAt.x, now.y - downAt.y) > DRAG_PX * dpr) dragged = true;
-  if (ui.drag) { if (dragged) { clearTimeout(holdTimer); ui.drag.at = toWorld(ev); } return; } // a power drag: no pan
+  if (ui.drag) { // a power drag: no pan; the hold only breaks past HOLD_SLOP
+    if (Math.hypot(now.x - downAt.x, now.y - downAt.y) > HOLD_SLOP * dpr) { holdMoved = true; clearTimeout(holdTimer); }
+    if (dragged) ui.drag.at = toWorld(ev);
+    return;
+  }
   if (dragged) panBy(now.x - prev.x, now.y - prev.y);
 });
 function endPointer(ev, tap) {
@@ -102,10 +108,13 @@ function endPointer(ev, tap) {
   const d = ui.drag;
   ui.drag = null;
   if (holdFired) { holdFired = false; return; } // the hold already froze: no tap
-  if (d && dragged) { if (tap) dropPower(d); return; }
+  if (d && holdMoved) { if (tap) dropPower(d); return; }
+  if (d && !holdMoved) { if (tap && !ptrs.size) onTap(ev); return; } // a short wobble on a grab is still a TAP
   if (tap && !ptrs.size && !dragged) onTap(ev);
 }
 cv.addEventListener("pointerup", ev => endPointer(ev, true));
 cv.addEventListener("pointercancel", ev => endPointer(ev, false));
 cv.addEventListener("pointerleave", () => { if (!ptrs.size) ui.hover = null; });
 cv.addEventListener("dblclick", refit);
+// iOS: a long press would open the callout / magnifier and cancel the pointer
+cv.addEventListener("contextmenu", ev => ev.preventDefault());
