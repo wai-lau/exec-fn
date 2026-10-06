@@ -22,8 +22,11 @@ const CORE_POWERS = [
     lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown."] },
 ];
 const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
-const EMPOWER = [null, { dur: 6, cd: 45 }, { dur: 12, cd: 30 }];
-const FORTIFY = [null, { dur: 15, cd: 40 }, { dur: 15, cd: 40 }]; // L2 buys a stronger copy, not more time
+// 3x longer (owner, 2026-10-06; were 6 / 12 and 15 s); their cooldowns now
+// count from when the effect ENDS, or Empower II (36 s on, 30 s cooldown)
+// would never switch off
+const EMPOWER = [null, { dur: 18, cd: 45 }, { dur: 36, cd: 30 }];
+const FORTIFY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // L2 buys a stronger copy, not more time
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
@@ -55,7 +58,7 @@ function fortify(t) {
   const lv = FORTIFY[powerLvl("fortify")];
   if (!lv || !t || t.isCore || cooldownLeft("fortify") > 0) return false;
   const c = coreState();
-  c.cd.fortify = lv.cd;
+  c.cd.fortify = lv.dur + lv.cd; // the cooldown starts when the copy wears off
   c.copyUntil = c.clock + lv.dur;
   c.copy = { kind: t.kind, skills: { ...t.skills } };
   c.tower = coreCopy(c.copy);
@@ -90,7 +93,7 @@ function temporalFreeze() {
 function empower(t) {
   const lv = EMPOWER[powerLvl("empower")];
   if (!lv || !t || t.isCore || cooldownLeft("empower") > 0) return false;
-  coreState().cd.empower = lv.cd;
+  coreState().cd.empower = lv.dur + lv.cd; // the cooldown starts when it wears off
   t.empowerUntil = (G.clock || 0) + lv.dur;
   if (typeof banner === "function") banner("EMPOWER", "white", 1.5);
   ring(t.x, t.y, 64, "white"); if (typeof sfxFor === "function") sfxFor("up", t.kind);
