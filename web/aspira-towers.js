@@ -236,7 +236,7 @@ function bleed(e, st) {
   if (!st.bleedArmor || e.dead) return;
   const k = st.breach || 1; // the chart SOL: Breach stacks per hit (aspira-skills.js)
   e.armor = (e.armor || 0) - st.bleedArmor * k; // permanent, and on past zero (owner)
-  e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit * k);
+  e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit * k); e.breachN = (e.breachN || 0) + k; // stacks, for the spokes
 }
 function rayHit(t, st, e, base, from) {
   const crit = Math.random() < ((st.crit || 0) + (e.bleedCrit || 0)) * (st.critScale || 1);
