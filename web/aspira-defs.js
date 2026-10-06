@@ -327,6 +327,7 @@ function towerStats(t, noAura = false) {
     case "slower": if (hasSkills(t)) { frzSkillStats(t, s, b); break; } s.slow = LVL_SLOW[i]; s.targets = 3; break; // owner: 3 rays by default (2026-10-04; was 1 since 2026-10-02)
     // ACD levels up MODESTLY like ARC (owner): the L2 path brings the big change
     case "acid":
+      if (hasSkills(t)) { acidSkillStats(t, s, b); break; } // ACD's chart (aspira-skills.js)
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
       s.double = ACID_DOUBLE; s.cap = ACID_MAX; s.plagueR = 0; break;
   }

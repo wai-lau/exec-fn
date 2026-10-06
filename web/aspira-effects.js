@@ -32,7 +32,9 @@ function drawAims() {
 function drawAcid() {
   ctx.lineCap = "round"; ctx.strokeStyle = COL.chatsubo;
   for (const t of G.towers) {
-    if (t.kind !== "acid" || !t.lines || !t.lines.length) continue;
+    if (t.kind !== "acid") continue;
+    drawPuddles(t); // the chart ACD's puddles, under its lines (aspira-skills.js)
+    if (!t.lines || !t.lines.length) continue;
     const st = towerStats(t, true);
     if (st.allInRange) {
       gradDisc(t.x, t.y, st.range, COL.chatsubo);
@@ -43,7 +45,7 @@ function drawAcid() {
     for (const l of t.lines) {
       if (l.e.dead) continue;
       // Catalyst: the line THROBS, faster the further its burn has ramped (owner)
-      const f = acidFrac(l, st), cat = t.path != null && UPGRADES.acid[t.path].name === "Catalyst";
+      const f = acidFrac(l, st), cat = skillOf(t, "catalyst") > 0 || (t.path != null && UPGRADES.acid[t.path].name === "Catalyst");
       const k = (Math.hypot(l.e.x - t.x, l.e.y - t.y) > st.range ? 0.5 : 1) *
         (cat ? 0.7 + 0.3 * Math.sin(performance.now() / 1000 * (4 + 20 * f)) : 1);
       ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(l.e.x, l.e.y);
