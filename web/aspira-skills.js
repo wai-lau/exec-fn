@@ -15,19 +15,19 @@ const SKILL_TREES = {
   // what it catches. Base: one jump forking two ways, three enemies.
   chain: [
     { id: "cond", name: "Conductivity", tiers: [
-      { name: "Conduit", desc: "The chain jumps twice, forking two ways each time, and jumps further." },
-      { name: "Live Wire", desc: "Two jumps, forking three ways each time; longer jumps." },
-      { name: "Superconductor", desc: "Two separate bolts at once, each a three-way, two-jump tree; the longest jumps." },
+      { name: "Transfer", desc: "The bolt jumps once more, forking as it goes, and jumps further." },
+      { name: "Conduit", desc: "Wider forks at every jump." },
+      { name: "Superconductor", desc: "Two separate bolts at once, each a full forking tree." },
     ] },
     { id: "volt", name: "Voltage", tiers: [
-      { name: "Spark", desc: "Harder bolts that reach further." },
-      { name: "Arc Flash", desc: "Harder still, and further." },
-      { name: "High Voltage", desc: "The hardest bolts, the longest reach." },
+      { name: "Spark", desc: "Harder bolts with a white-hot core, reaching further." },
+      { name: "Fry", desc: "Harder and further still." },
+      { name: "Vaporize", desc: "The hardest bolts; every strike throws sparks." },
     ] },
-    { id: "static", name: "Static", tiers: [
-      { name: "Static", desc: "Hits leave charges; the next hit on that enemy sets them off in a blast." },
-      { name: "Static Field", desc: "Bigger charges, a wider blast." },
-      { name: "Thunderclap", desc: "The biggest charges, the widest blast." },
+    { id: "static", name: "Capacitance", tiers: [
+      { name: "Static", desc: "Hits leave charges; the next hit on that enemy, or its death, sets them off in a ring." },
+      { name: "Charge", desc: "Heavier charges, a wider ring." },
+      { name: "Overload", desc: "The heaviest charges, the widest ring." },
     ] },
   ],
 };
@@ -37,20 +37,20 @@ const SKILL_TREES = {
 // PERMANENT slow on all it passes; Moons = 1 / 2 / 3 orbiting copies of the
 // tower at half of everything.
 SKILL_TREES.slower = [
-  { id: "frost", name: "Frost", tiers: [
-    { name: "Hoarfrost", desc: "A wider, colder aura." },
-    { name: "Glacier", desc: "Wider and colder still." },
+  { id: "frost", name: "Temp", tiers: [
+    { name: "Chill", desc: "A wider, colder aura." },
+    { name: "Freeze", desc: "Wider and colder still." },
     { name: "Absolute Zero", desc: "The widest, coldest aura." },
   ] },
   { id: "rime", name: "Rime", tiers: [
-    { name: "Rime", desc: "Pulses leave a small slow that never wears off; they stack." },
-    { name: "Hard Rime", desc: "Each pulse's lasting slow is stronger." },
-    { name: "Ice Age", desc: "The strongest lasting slow per pulse." },
+    { name: "Frost", desc: "Rings pulse out and leave a chill that never wears off; it stacks." },
+    { name: "Glacier", desc: "Each ring's lasting chill bites deeper." },
+    { name: "Cryosphere", desc: "The deepest lasting chill per ring." },
   ] },
   { id: "moons", name: "Moons", tiers: [
-    { name: "Moon", desc: "A moon orbits the tower: a half-strength copy of it." },
+    { name: "Moon", desc: "A moon orbits the tower: a smaller copy of it." },
     { name: "Twin Moons", desc: "Two moons." },
-    { name: "Three Moons", desc: "Three moons." },
+    { name: "Desolation", desc: "Three moons." },
   ] },
 ];
 // SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
@@ -63,19 +63,19 @@ SKILL_TREES.slower = [
 // 7 beams x 4 = 28 Breaches a volley on one target.
 SKILL_TREES.reaper = [
   { id: "focus", name: "Focus", tiers: [
-    { name: "Twin Beams", desc: "Two beams converge on the target, each its own hit." },
-    { name: "Quad", desc: "Four converging beams." },
-    { name: "Horizon", desc: "Seven converging beams." },
+    { name: "Convergence", desc: "More beams converge on the target, each its own hit." },
+    { name: "Crux", desc: "Even more converging beams." },
+    { name: "Disintegration", desc: "A full volley of converging beams." },
   ] },
-  { id: "refract", name: "Refract", tiers: [
-    { name: "Refract", desc: "The beam bends on to two more enemies ahead of the shot." },
-    { name: "Prism", desc: "On to five more." },
-    { name: "Spectrum", desc: "On to nine more." },
+  { id: "refract", name: "Refraction", tiers: [
+    { name: "Lens", desc: "The beam bends on to more enemies inside its light cone." },
+    { name: "Prism", desc: "Bends on to many more." },
+    { name: "Spectrum", desc: "Bends through nearly everything in the cone." },
   ] },
-  { id: "scorch", name: "Scorch", tiers: [
-    { name: "Sear", desc: "Each hit burns a Breach into the enemy: armor down and crits up for every tower, for good." },
-    { name: "Scorch", desc: "Two Breaches per hit." },
-    { name: "Flare", desc: "Four Breaches per hit." },
+  { id: "scorch", name: "Breach", tiers: [
+    { name: "Scorch", desc: "Each hit burns a Breach into the enemy: armor down and crits up for every tower, for good." },
+    { name: "Sear", desc: "More Breaches per hit." },
+    { name: "Flare", desc: "The most Breaches per hit." },
   ] },
 ];
 // ACD (owner, 2026-10-05): its lines DRIP burning PUDDLES onto the lane by
@@ -83,20 +83,20 @@ SKILL_TREES.reaper = [
 // burn ramps faster (tier III: a line whose enemy dies hands half its ramp to
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acid = [
-  { id: "catalyst", name: "Caustic", tiers: [ // axis names (owner): Caustic, Spray, Contagion (ids unchanged)
-    { name: "Catalyst", desc: "The burn ramps up faster." },
-    { name: "Accelerant", desc: "Faster still." },
-    { name: "Chain Reaction", desc: "The fastest ramp; a line whose enemy dies hands half its heat to the next." },
+  { id: "catalyst", name: "Corrosion", tiers: [
+    { name: "Etch", desc: "The burn ramps up faster." },
+    { name: "Corrode", desc: "Faster still." },
+    { name: "Dissolve", desc: "The fastest ramp; a line whose enemy dies hands half its heat to the next." },
   ] },
   { id: "pour", name: "Spray", tiers: [
-    { name: "Pour", desc: "Two burning lines at once, each ramping on its own." },
-    { name: "Torrent", desc: "Three lines." },
-    { name: "Deluge", desc: "Five lines." },
+    { name: "Mist", desc: "More burning lines, never two on one enemy." },
+    { name: "Downpour", desc: "More lines still." },
+    { name: "Torrent", desc: "The most lines." },
   ] },
   { id: "seep", name: "Contagion", tiers: [
-    { name: "Seep", desc: "Puddles drip more often and burn longer." },
-    { name: "Pool", desc: "More, longer, wider puddles." },
-    { name: "Swamp", desc: "The most puddles, the longest, the widest." },
+    { name: "Blister", desc: "Puddles drip more often and bubble longer." },
+    { name: "Plague", desc: "More, longer, wider puddles." },
+    { name: "Pandemic", desc: "The most, longest, widest puddles." },
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];
