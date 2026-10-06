@@ -387,11 +387,13 @@ function stepEnemies(dt) {
       e.gone = true;
       if (e.dead) continue; // a ghost just fades out at the core
       e.dead = true;
+      const before = G.lives;
       G.lives -= ENEMIES[e.type].leak || 1;
       sfx("leak"); shakeScreen();
       ring(e.x, e.y, 40, "pink", 0.17);
       // a BOSS that gets through ends the game outright (owner, 2026-10-02)
       if (ENEMIES[e.type].star) G.lives = 0;
+      (G.leaks ||= {})[G.wave] = (G.leaks[G.wave] || 0) + before - Math.max(0, G.lives); // lives lost per wave, for the end screen
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }
   }
@@ -460,6 +462,7 @@ function winGame() {
   if (G.score > best.score) best.score = G.score;
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
+  if (typeof renderEndStats === "function") renderEndStats();
   showOverlay("ascendant", // the win title (owner, 2026-10-06; was "the core holds")
     "All ten bosses down with " + G.lives + " lives left.", "Play again");
 }
@@ -469,5 +472,6 @@ function gameOver() {
   if (G.score > best.score) best.score = G.score;
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
+  if (typeof renderEndStats === "function") renderEndStats(); // the end screen's tower + leak stats (aspira-endstats.js)
   showOverlay("core breached", "Reached wave " + G.wave + (G.wave >= (best.wave || 0) ? ", your best." : " (best: " + best.wave + ")."), "Play again");
 }
