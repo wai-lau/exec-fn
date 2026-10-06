@@ -1,4 +1,4 @@
-// /aspira — the CORE's POWERS (owner, 2026-10-06; replaced the Zen / Space
+// /aspira — the CORE's POWERS (shown to the player as the ASCENDANT, owner; 2026-10-06; replaced the Zen / Space
 // path tree and the repeatables). From wave CORE_UNLOCK the core buys up to
 // CORE_POINTS levels across three powers, two levels each - so you max two,
 // or take all three and level one:
@@ -14,11 +14,11 @@
 // aspira-skills.js (the simulator loads it too).
 const CORE_UNLOCK = 30, CORE_COST = [1000, 2000, 3500, 5000], CORE_POINTS = CORE_COST.length;
 const CORE_POWERS = [
-  { id: "fortify", name: "Fortifications", how: "drag a tower onto the core",
-    lv: ["The core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis."] },
-  { id: "temporal", name: "Temporal Manipulation", how: "press and hold the core",
-    lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown."] },
-  { id: "empower", name: "Empower", how: "drag the core onto a tower",
+  { id: "fortify", name: "Fortifications", how: "drag a tower onto the Ascendant",
+    lv: ["The Ascendant becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis."] },
+  { id: "temporal", name: "Temporal Manipulation", how: "press and hold the Ascendant",
+    lv: ["A ring spreads from the Ascendant and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown."] },
+  { id: "empower", name: "Empower", how: "drag the Ascendant onto a tower",
     lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown."] },
 ];
 const TEMPORAL = [null, { dur: 2, cd: 30 }, { dur: 4, cd: 20 }], TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
@@ -164,7 +164,7 @@ const coreCopyColor = () => (G.core && G.core.tower ? COL[TOWERS[G.core.tower.ki
 function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(); }
 function inspectCore(el) {
   const lvl = coreLvl(), copy = G.core && G.core.tower;
-  el.innerHTML = '<div class="name">Core · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name : "") + "</div>" +
+  el.innerHTML = '<div class="name">Ascendant · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name : "") + "</div>" +
     '<p class="asp-hint">' + (coreOpen() ? "Three powers, two levels each; buy " + CORE_POINTS + " in all." : "The heart of the chart. Its powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
     '<div id="asp-upbox"></div>';
   const box = $("asp-upbox");
