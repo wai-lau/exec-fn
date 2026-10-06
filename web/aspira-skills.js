@@ -238,7 +238,8 @@ function skillHopTo(c, node, nxt, depth) {
 // FITTED 2026-10-06 to +25 / +50 / +100% DELAY (enemy-seconds of slow bought
 // for the other towers; FRZ + L1 ARC + L1 SOL, waves 20-30) - the first
 // guesses were 2-4x too strong; range moves little so "colder" reads as colder
-const FRZ_FROST_SLOW = [0.3, 0.333, 0.364, 0.409], FRZ_FROST_RANGE = [1, 1.05, 1.1, 1.15];
+// early-game balance 2026-10-06: +0.03 on every tier (FRZ stays a pure SUPPORT tower - owner)
+const FRZ_FROST_SLOW = [0.33, 0.363, 0.394, 0.439], FRZ_FROST_RANGE = [1, 1.05, 1.1, 1.15];
 const FRZ_RIME = [0, 0.01, 0.019, 0.037]; // each pulse's permanent stacking slow
 const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 2.4, FRZ_MOON_SCALE = 0.78; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
@@ -361,7 +362,7 @@ function drawCone(f, k) {
 // FITTED 2026-10-06 to +25 / +50 / +100% (Spray to +30 / +60 / +120%, since
 // its lines can never share an enemy): Corrosion's ramp time, Spray's per-line
 // damage, Contagion's puddle heat (tier III's is below II's - its puddles are bigger)
-const ACD_DOUBLE = [1, 0.7, 0.6, 0.6], ACD_LINES = [1, 2, 3, 5], ACD_POUR_MUL = [1, 1.03, 1.39, 2.4];
+const ACD_DOUBLE = [1, 0.7, 0.6, 0.6], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_POUR_MUL = [1, 1.03, 1.39, 2.4];
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
@@ -370,7 +371,7 @@ const ACD_PUDDLE_HEAT = [0.5, 2.8, 2.3, 3.75];
 function acidSkillStats(t, s, b) {
   const c = skillOf(t, "catalyst");
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACID_MAX; s.plagueR = 0;
-  s.carry = c >= 3 ? 0.5 : 0; s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")];
+  s.carry = c >= 3 ? 0.5 : 0.4; // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06; fast waves reset it) s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")];
   s.seepHeat = ACD_PUDDLE_HEAT[skillOf(t, "seep")]; s.pourMul = ACD_POUR_MUL[skillOf(t, "pour")]; s.skill = true;
 }
 // every step (stepAcid): each line drips a puddle every seep.every s; each
