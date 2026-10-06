@@ -185,7 +185,7 @@ function drawTower(t, ghost) {
   // stroked once per level, and at max level that was by far the costliest
   // draw of a late-game frame (profiled 2026-10-05). Stamped here 1:1 with the
   // canvas's pixels, then the label on top.
-  const sp = towerSprite(t.kind, t.lvl, c0), w = sp.width / cam.k;
+  const sp = towerSprite(t.kind, shownLvl(t), c0), w = sp.width / cam.k; // a chart tower's 7 levels drawn as 4
   ctx.globalAlpha = ghost ? 0.55 : 1;
   ctx.drawImage(sp, x - w / 2, y - w / 2, w, w);
   // as BIG as fits (owner): every label is 3 monospace letters, 1.5 em wide, and

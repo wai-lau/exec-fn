@@ -8,6 +8,7 @@
 // game pauses meanwhile. Keys 1-3 pick a card.
 const chooser = { t: null, opts: [], wasPaused: false };
 function upgradeOptions(t) {
+  if (hasSkills(t)) return skillOptions(t); // a chart tower: the next tier of each open axis
   const need = pendingChoice(t);
   if (need) return (need === "path" ? UPGRADES[t.kind] : UPGRADES[t.kind][t.path].finals).map((o, i) => ({ choice: i, name: o.name, desc: o.desc }));
   if (t.lvl + 1 === MAX_LVL && t.form != null) {
@@ -28,7 +29,8 @@ function upgradeCard(t, o, i) {
   if (b.dmg) base.unshift(["Damage", Math.round(st.dmg), Math.round(nx.dmg)]);
   const spec = SPEC[t.kind](st, t).map((r, k) => [r[0], r[1], spN[k][1]]);
   const changed = rows => rows.filter(r => String(r[1]) !== String(r[2])).map(r => statRow(r[0], r[1], r[2])).join("");
-  return '<div class="name">' + (chooser.opts.length > 1 ? i + 1 + " · " : "") + towerTitle(nt) + " · L" + nt.lvl + " of " + MAX_LVL + "</div>" +
+  const title = hasSkills(t) ? o.name : towerTitle(nt) + " · L" + nt.lvl + " of " + maxLvl(nt);
+  return '<div class="name">' + (chooser.opts.length > 1 ? i + 1 + " · " : "") + title + "</div>" +
     (o.desc ? '<p class="asp-hint">' + o.desc + "</p>" : "") + // the tagline under the title (owner)
     '<div class="asp-cols"><dl>' + changed(base) + "</dl>" + (changed(spec) ? '<dl class="asp-spec">' + changed(spec) + "</dl>" : "") + "</div>";
 }
@@ -43,7 +45,7 @@ function chooserEl() {
   return el;
 }
 function openChooser(t) {
-  if (!t || t.lvl >= MAX_LVL) return;
+  if (!t || t.lvl >= maxLvl(t)) return;
   if (G.money < upCost(t)) { noFunds($("asp-up")); return; }
   const opts = upgradeOptions(t);
   const el = chooserEl();
@@ -52,9 +54,21 @@ function openChooser(t) {
   el.dataset.kind = t.kind;
   // one small solid line, not a big heading (owner, phone-first: the heading
   // overlapped the tower card behind) - the cards' own titles name the upgrade
-  el.innerHTML = '<p class="asp-chooser-cost">upgrade · ' + cr(upCost(t)) + (opts.length > 1 ? " · choose one" : "") + "</p>" + '<div class="asp-cards"></div>';
+  el.innerHTML = '<p class="asp-chooser-cost">upgrade · ' + cr(upCost(t)) + (opts.length > 1 ? (hasSkills(t) ? " · pick an axis" : " · choose one") : "") + "</p>" + '<div class="asp-cards"></div>';
   const row = el.querySelector(".asp-cards");
-  opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
+  // a chart tower: ONE Stand chart above the cards (owner), its shape now; a
+  // card under the pointer (or focused) draws what it would make, dashed
+  if (hasSkills(t)) {
+    const ch = document.createElement("div");
+    ch.className = "asp-chartbox"; ch.innerHTML = skillChart(t, null);
+    row.before(ch);
+    const show = next => { ch.innerHTML = skillChart(t, next); };
+    opts.forEach((o, i) => {
+      const card = button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i));
+      card.onpointerenter = card.onfocus = () => show(withSkill(t, o.choice));
+      card.onpointerleave = card.onblur = () => show(null);
+    });
+  } else opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
   button(el, "asp-cancel", "cancel", closeChooser); // the same as clicking off the cards (owner)
   // ONE line (owner): side by side if they all fit across, else one column
   el.hidden = false;

@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web") + "/";
-const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-positioning.js", "aspira-core.js"];
+const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-skills.js", "aspira-positioning.js", "aspira-core.js"];
 
 export function makeGame(seed, patch = "") {
   let a = seed >>> 0 || 1;
@@ -67,7 +67,7 @@ export function makeGame(seed, patch = "") {
       run(code) { return eval(code); },
       get G() { return G; },
       setG(x) { G = x; }, // restore a snapshot (buildsearch)
-      CELLS, TOWERS, UPGRADES, PATHS, CX, CY, RIM_R, MAX_LVL,
+      CELLS, TOWERS, UPGRADES, PATHS, CX, CY, RIM_R, MAX_LVL, maxLvl,
       towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell,
       place(kind, ci, mode = DEFAULT_MODE[kind]) {
         const c = CELLS[ci];
@@ -81,9 +81,15 @@ export function makeGame(seed, patch = "") {
         return t;
       },
       upgrade(t, choice) {
-        if (t.lvl >= MAX_LVL) return false;
+        if (t.lvl >= maxLvl(t)) return false;
         const c = upCost(t); if (G.money < c) return false;
         const need = pendingChoice(t);
+        // a chart tower: the named axis, else (a path / form index from an old
+        // strategy) the lowest open axis, so builds spread evenly
+        if (need === "skill") {
+          const ids = SKILL_TREES[t.kind].map(a => a.id).filter(id => skillOf(t, id) < SKILL_TIERS);
+          t.skills = withSkill(t, ids.includes(choice) ? choice : ids.sort((a, b) => skillOf(t, a) - skillOf(t, b))[0]);
+        }
         if (need === "path") t.path = choice;
         else if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; }
         G.money -= c; t.spent += c; t.lvl++;
@@ -141,7 +147,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   let next = null;
   const choose = () => {
     const G = g.G;
-    const ups = G.towers.filter(t => t.lvl < g.MAX_LVL).sort((a, b) => g.upCost(a) - g.upCost(b));
+    const ups = G.towers.filter(t => t.lvl < g.maxLvl(t)).sort((a, b) => g.upCost(a) - g.upCost(b));
     const full = G.towers.length >= (strategy.maxTowers || 99);
     const opening = strategy.opening || [];
     if (G.towers.length < opening.length) next = { kind: opening[G.towers.length] };
@@ -152,7 +158,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const act = () => {
     const G = g.G;
     for (let guard = 0; guard < 20; guard++) {
-      if (!next || (next.up && (next.up.lvl >= g.MAX_LVL || !G.towers.includes(next.up)))) choose();
+      if (!next || (next.up && (next.up.lvl >= g.maxLvl(next.up) || !G.towers.includes(next.up)))) choose();
       if (!next) return;
       if (next.up) {
         const t = next.up, [p, f] = (strategy.paths || {})[t.kind] || [0, 0];

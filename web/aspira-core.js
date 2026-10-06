@@ -75,7 +75,7 @@ const REP_BASE = 6000;
 const repN = id => (G.core && G.core.reps ? G.core.reps[id] || 0 : 0);
 const repCost = id => REP_BASE * Math.pow(2, repN(id));
 const repMul = id => Math.pow(REPS.find(r => r.id === id).step, repN(id));
-const repsOpen = () => coreLvl() >= CORE_MAX && G.towers.length === openCells() && G.towers.every(t => t.lvl >= MAX_LVL);
+const repsOpen = () => coreLvl() >= CORE_MAX && G.towers.length === openCells() && G.towers.every(t => t.lvl >= maxLvl(t));
 function buyRep(id) {
   if (!repsOpen() || G.money < repCost(id)) return false;
   G.money -= repCost(id);
