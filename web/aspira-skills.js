@@ -78,6 +78,27 @@ SKILL_TREES.reaper = [
     { name: "Flare", desc: "Four Breaches per hit." },
   ] },
 ];
+// ACD (owner, 2026-10-05): its lines DRIP burning PUDDLES onto the lane by
+// default, each burning at a share of its line's current heat. Catalyst = the
+// burn ramps faster (tier III: a line whose enemy dies hands half its ramp to
+// the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
+SKILL_TREES.acid = [
+  { id: "catalyst", name: "Catalyst", tiers: [
+    { name: "Catalyst", desc: "The burn ramps up faster." },
+    { name: "Accelerant", desc: "Faster still." },
+    { name: "Chain Reaction", desc: "The fastest ramp; a line whose enemy dies hands half its heat to the next." },
+  ] },
+  { id: "pour", name: "Pour", tiers: [
+    { name: "Pour", desc: "Two burning lines at once, each ramping on its own." },
+    { name: "Torrent", desc: "Three lines." },
+    { name: "Deluge", desc: "Five lines." },
+  ] },
+  { id: "seep", name: "Seep", tiers: [
+    { name: "Seep", desc: "Puddles drip more often and burn longer." },
+    { name: "Pool", desc: "More, longer, wider puddles." },
+    { name: "Swamp", desc: "The most puddles, the longest, the widest." },
+  ] },
+];
 const hasSkills = t => !!SKILL_TREES[t.kind];
 const maxLvl = t => (hasSkills(t) ? 1 + SKILL_POINTS : MAX_LVL);
 const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
@@ -299,6 +320,49 @@ function drawCone(f, k) {
   ctx.fillStyle = g; ctx.globalAlpha = 0.5 * k * k * k;
   ctx.beginPath(); ctx.moveTo(f.x, f.y);
   ctx.arc(f.x, f.y, f.len, f.a - f.half, f.a + f.half); ctx.closePath(); ctx.fill();
+}
+
+// ---------- ACD's chart: Catalyst ramp, Pour lines, Seep puddles ----------
+const ACD_DOUBLE = [1, 0.75, 0.55, 0.4], ACD_LINES = [1, 2, 3, 5];
+// puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
+// s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
+// line's heat when it fell (balance later)
+const ACD_SEEP = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1, life: 2, r: 25 }, { every: 0.7, life: 3, r: 32 }, { every: 0.5, life: 4.5, r: 40 }];
+const ACD_PUDDLE_HEAT = 0.5;
+function acidSkillStats(t, s, b) {
+  const c = skillOf(t, "catalyst");
+  s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACID_MAX; s.plagueR = 0;
+  s.carry = c >= 3 ? 0.5 : 0; s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")]; s.skill = true;
+}
+// every step (stepAcid): each line drips a puddle every seep.every s; each
+// puddle ticks its burn on whatever stands in it, st.rate times a second
+function stepPuddles(t, st, dt) {
+  const sp = st.seep;
+  for (const l of t.lines) {
+    if (l.e.dead) continue;
+    l.drip = (l.drip ?? sp.every) - dt;
+    if (l.drip > 0) continue;
+    l.drip += sp.every;
+    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * acidMulOf(l.held, st) * ACD_PUDDLE_HEAT });
+  }
+  if (!t.puddles) return;
+  const every = 1 / st.rate;
+  for (const p of t.puddles) {
+    p.age += dt; p.tick += dt;
+    while (p.tick >= every) {
+      p.tick -= every;
+      for (const e of G.enemies) {
+        if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
+        damage(e, p.dps * every, t); e.burnT = 0.4; // a real hit: it pops shields too
+      }
+    }
+  }
+  t.puddles = t.puddles.filter(p => p.age < p.life);
+}
+// UI (drawAcid): each puddle a soft disc in ACD's colour, fading as it dries
+function drawPuddles(t) {
+  for (const p of t.puddles || []) gradDisc(p.x, p.y, p.r, COL.chatsubo, 2.5 * (1 - p.age / p.life));
+  ctx.globalAlpha = 1;
 }
 
 // ---------- the chart (UI only; the upgrade cards draw it) ----------
