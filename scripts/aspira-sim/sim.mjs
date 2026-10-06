@@ -39,7 +39,7 @@ export function makeGame(seed, patch = "") {
   // no-ops and the fx list is emptied every tick. A beam still leaves a tiny
   // object, because ARC's tree keeps references to its beams (keepLit).
   vm.runInContext(`
-    float = function () {}; ring = function () {}; burst = function () {}; banner = function () {};
+    float = function () { fx.push({ t: 0, life: 0 }); }; ring = function () {}; // float leaves an entry: kill() marks the last fx (.shrink) burst = function () {}; banner = function () {};
     beam = function () { fx.push({ t: 0, life: 0 }); };
     // GHOSTS (dead enemies drifting on to the core) cost ~half the run. Drop
     // one once NOTHING TRACKS it (owner): a pending ARC arc launches from its
