@@ -66,7 +66,7 @@ function drawEnemy(e) {
     drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 2.5); // layers tight (owner: much thinner gap; was 5)
   }
   ctx.globalAlpha = 1;
-  if (e.charged) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
+  if (e.charged || e.charge) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
     poly(e.x, e.y, size + 4, d.sides, e.rot, false);
     ctx.strokeStyle = COL[TOWERS.chain.color]; ctx.lineWidth = 2; ctx.stroke(); // ARC's colour, whatever it is
   }

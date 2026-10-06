@@ -180,7 +180,7 @@ const SPEC = {
   chain: st => {
     const tree = [1]; for (let l = 1; l <= st.layers; l++) tree.push(st.branch ** l);
     return [["Hits", tree.join("→")], ["Arc dmg", Math.round(st.dmg * st.arcFall)],
-      ["Blast", st.blast ? "r" + st.blast.r + " · +" + Math.round((st.blast.mul - 1) * 100) + "% taken" : "—"],
+      ["Charge", st.blast ? Math.round(st.blast.frac * 100) + "% of hit · blast r" + st.blast.r : "—"],
       // a chart ARC: no reach from the tower - EACH JUMP its own, shrinking (owner)
       ...(st.skill ? [["Jumps", Array.from({ length: st.layers }, (_, j) => Math.round(st.arcRange * st.arcShrink ** j)).join("→")]]
         : [["Arc hop", Math.round(st.arcRange)], ["Reach", Math.round(chainReach(st))]]),
