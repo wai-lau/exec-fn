@@ -113,17 +113,17 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 // instead"; then: each tower through what is distinctive about IT, not generic
 // multipliers). A tier multiplies the tower's range / slide extent (SLIDE_MAX 2 = the
 // old extent) / slide speed by [range, slide, speed]; each tower buys them differently:
-//   ARC  Voltage = range (the bolt reaches out); Conductivity = a roaming ARC (the tree
-//        wants a crowd, so it chases one) - and its jumps/forks, Capacitance rings grow too
-//   FRZ  Temp = a wider aura (its range IS the aura); it stays an anchor otherwise
-//   SOL  Focus = range (a sniper lens); SOL stays put - it is the anchor, no slide bought
+//   ARC  (a long-range ANCHOR, owner) Conductivity and Voltage = RANGE; Capacitance =
+//        SLIDE extent (owner: "static should increase movement range")
+//   FRZ  Temp = a wider aura (its range IS the aura); FRZ roams by kind (aspira-towers.js)
+//   SOL  (a long-range ANCHOR) Focus and Refraction = RANGE; Breach = SLIDE extent (owner)
 //   ACD  Spray = range (more lines need more targets in reach); Contagion = a roaming
 //        plague (the puddles follow the lane): slide and speed
 const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
 const SKILL_MOVE = {
-  chain:  { cond: [[1, 1, 1], [1, 1.1, 1.1], [1, 1.2, 1.2], [1, 1.3, 1.3]], volt: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1]], static: NO_MOVE },
+  chain:  { cond: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1]], volt: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1]], static: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1]] },
   slower: { frost: [[1, 1, 1], [1.25, 1, 1], [1.5, 1, 1], [1.8, 1, 1]], rime: NO_MOVE, moons: NO_MOVE },
-  reaper: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1]], refract: NO_MOVE, scorch: NO_MOVE },
+  reaper: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1]], refract: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1]], scorch: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1]] },
   acid:   { pour: [[1, 1, 1], [1.2, 1, 1], [1.5, 1, 1], [1.9, 1, 1]], seep: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5]], catalyst: NO_MOVE },
 };
 function skillMove(t, s) {
