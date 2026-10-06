@@ -110,19 +110,20 @@ const TYPE_ORDER = Object.keys(ENEMIES);
 // a shorter pick moves on to the next lane that long (its HP scales with the
 // lane's length anyway - bossSpawn)
 const BOSS_MIN_TURNS = 5;
-// ONLY BOSSES ride COUNTER-CLOCKWISE (owner, 2026-10-05): lanes come in mirror
-// pairs, the even one of each winding counter-clockwise on screen (defs dir -1),
-// the odd one clockwise. An ordinary type landing on an even lane takes its
-// pair's odd twin - the same length, mirrored, so the wave balance holds - and
-// a boss moves on to the next even lane of BOSS_MIN_TURNS+ turns.
+// EVERYTHING rides CLOCKWISE (owner, 2026-10-05; bosses briefly had the
+// counter-clockwise lanes to themselves): lanes come in mirror pairs, the even
+// one of each winding counter-clockwise on screen (defs dir -1), the odd one
+// clockwise. A type landing on an even lane takes its pair's odd twin - the
+// same length, mirrored, so the balance holds - and a boss moves on to the next
+// clockwise lane of BOSS_MIN_TURNS+ turns.
 const isCcw = pi => pi % 2 === 0;
 function laneMap(n) {
   const out = {};
   TYPE_ORDER.forEach((type, k) => {
     const pi = (n * 5 + k * 7) % N_PATHS;
-    out[type] = type === "bonus" || !isCcw(pi) ? pi : pi + 1;
+    out[type] = isCcw(pi) ? pi + 1 : pi;
   });
-  while (!isCcw(out.bonus) || PATHS[out.bonus].turns < BOSS_MIN_TURNS) out.bonus = (out.bonus + 1) % N_PATHS;
+  while (isCcw(out.bonus) || PATHS[out.bonus].turns < BOSS_MIN_TURNS) out.bonus = (out.bonus + 1) % N_PATHS;
   return out;
 }
 
