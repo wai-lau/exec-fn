@@ -2,7 +2,9 @@
 // effects need to be extremely more visible"). Loaded after aspira-core.js.
 //   the DIAL      three thick arcs round the core, one per owned power, each
 //                 in its own colour and named: a dim track that fills as the
-//                 power recharges, a pulsing glow and READY when it is up, and
+//                 power recharges, a pulsing glow when it is up (and a "TIME
+//                 READY" pop-up floats off it the moment it comes up, like the
+//                 interest's - owner), and
 //                 while the power RUNS a white-hot arc draining with its time
 //   TIME STOP     the plain cyan ring sweeping out (owner: enough as it was)
 //   EMPOWER       a THICK pulsing beam from the core to the tower, a glowing
@@ -12,7 +14,8 @@
 // drawCoreFx goes under the towers (beams), drawCoreHud over the enemies.
 // sized for a PHONE (the board shows at ~0.54 css px per unit there): text
 // 26 units reads as ~14px
-const DIAL_R = 118, DIAL_W = 18, DIAL_GAP = 0.2, DIAL_TEXT = 26;
+// closer and thinner (owner): just outside a level-4 core's outermost ring (~75)
+const DIAL_R = 90, DIAL_W = 11, DIAL_GAP = 0.2, DIAL_TEXT = 26, READY_POP = 32;
 const DIAL = [ // clockwise from the top-left; colours are palette keys
   { id: "temporal", label: "TIME", color: "cyan", mid: -Math.PI * 0.833, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock },
   { id: "empower", label: "EMPOWER", color: "white", mid: -Math.PI * 0.167, tab: () => EMPOWER, active: () => empowerLeft() },
@@ -90,6 +93,10 @@ function drawDial(c, now) {
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     const lx = CX + Math.cos(d.mid) * DIAL_R, ly = CY + Math.sin(d.mid) * DIAL_R; // ON the segment (owner)
     const name = d.id === "fortify" && c.tower ? TOWERS[c.tower.kind].ab : d.label;
-    text(run > 0 ? name + " " + Math.ceil(run) + "s" : cd > 0 ? d.label + " " + Math.ceil(cd) + "s" : d.label + " READY", lx, ly, DIAL_TEXT, run > 0 ? "white" : d.color, true, true);
+    text(run > 0 ? name + " " + Math.ceil(run) + "s" : cd > 0 ? d.label + " " + Math.ceil(cd) + "s" : d.label, lx, ly, DIAL_TEXT, run > 0 ? "white" : d.color, true, true);
+    // READY pops up as it comes off cooldown (owner: like the interest pop-up)
+    const was = (c.cdSeen ||= {})[d.id];
+    if (was > 0 && cd <= 0) float(lx, ly - DIAL_TEXT, d.label + " READY", d.color, READY_POP, 1.6, 1, 40);
+    c.cdSeen[d.id] = cd;
   }
 }
