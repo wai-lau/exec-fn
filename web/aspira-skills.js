@@ -108,7 +108,8 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 
 // ARC's numbers by tier (index 0 = untaken). Balance later (owner: ideas first).
 // Voltage's damage FITTED to +25% / +50% / +100% dealt (owner; arcfit.mjs, waves 6-20)
-const ARC_VOLT_DMG = [1, 1.21, 1.42, 3.01], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
+// Voltage refit 2026-10-06 (drifted 4-6% low after the Static / slow / FRZ changes)
+const ARC_VOLT_DMG = [1, 1.31, 1.49, 3.27], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
@@ -116,7 +117,9 @@ const ARC_VOLT_DMG = [1, 1.21, 1.42, 3.01], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
 let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1.24 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1.53 }, { s: 2, j: 2, f: 3, r: 1.6, d: 2.8 }];
 // Static by tier: the blast's radius and its damage, x the hit that set it off
-const ARC_STATIC = [null, { r: 40, frac: 0.5 }, { r: 60, frac: 0.8 }, { r: 85, frac: 1.2 }];
+// FITTED 2026-10-06 to +25 / +50 / +100% ARC-own dealt (tier III saturates -
+// a discharge can only take the HP in reach - so it needs a big charge)
+const ARC_STATIC = [null, { r: 40, frac: 0.83 }, { r: 60, frac: 1.49 }, { r: 85, frac: 5.3 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.6, ARC_SHRINK = 0.7;
 // a jump's reach, x the tower's range, before Conductivity lengthens it (owner: longer by default)
@@ -232,9 +235,12 @@ function skillHopTo(c, node, nxt, depth) {
 
 // ---------- FRZ's chart: the aura, the Rime pulses, the moons ----------
 // numbers by tier (index 0 = untaken); balance later (owner: ideas first)
-const FRZ_FROST_SLOW = [0.3, 0.38, 0.46, 0.55], FRZ_FROST_RANGE = [1, 1.15, 1.3, 1.45];
-const FRZ_RIME = [0, 0.03, 0.05, 0.08]; // each pulse's permanent stacking slow
-const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 2.4, FRZ_MOON_SCALE = 0.5; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
+// FITTED 2026-10-06 to +25 / +50 / +100% DELAY (enemy-seconds of slow bought
+// for the other towers; FRZ + L1 ARC + L1 SOL, waves 20-30) - the first
+// guesses were 2-4x too strong; range moves little so "colder" reads as colder
+const FRZ_FROST_SLOW = [0.3, 0.333, 0.364, 0.409], FRZ_FROST_RANGE = [1, 1.05, 1.1, 1.15];
+const FRZ_RIME = [0, 0.01, 0.019, 0.037]; // each pulse's permanent stacking slow
+const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 2.4, FRZ_MOON_SCALE = 0.78; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "frost");
