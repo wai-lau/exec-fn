@@ -153,7 +153,7 @@ function fireSlower(t, st) {
   t.links = cands;
   for (const e of cands) {
     const fresh = !(e.slowT > 0);
-    if (!applySlow(e, st.slow, st.permafrost ? Infinity : SLOW_TIME, t.id)) continue; // Permafrost: forever
+    if (!applySlow(e, st.slow, st.permafrost ? Infinity : SLOW_TIME, t.id, st.permafrost ? "once" : "refresh")) continue; // Permafrost: once, forever
     if (st.shatter) e.shatter = { t, st };
     // Deep Freeze: a near-freeze (95% slow), never a stun - no stunlocking (owner)
     if (st.chillStop && fresh) applySlow(e, 0.95, st.chillStop, t.id + ":chill");
