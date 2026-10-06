@@ -228,8 +228,8 @@ function stepReaper(t, dt) {
 //   st.bleedArmor / st.bleedCrit  each hit bleeds the enemy (Impale): armor
 //                 down for good (past zero), crit chance up for every tower
 //   st.ricochet   the shot chains at full damage to this many more enemies
-//   st.beams      parallel beams, each a hit of HALF the shot (Charge 2, Quad 4,
-//                 Horizon 7) - so each pops its own shield charge
+//   st.beams      converging beams, each a FULL hit (Focus 2 / 3 / 4) - so each pops
+//                 its own shield charge
 //   st.smash      a kill bursts for frac x the shot within r (Nova)
 const BOUNCE_R = 120, BLEED_CRIT_CAP = 1; // Ricochet hop at 75%, with every range (owner)
 function bleed(e, st) {
@@ -241,7 +241,7 @@ function bleed(e, st) {
 function rayHit(t, st, e, base, from) {
   const crit = Math.random() < ((st.crit || 0) + (e.bleedCrit || 0)) * (st.critScale || 1);
   const m = crit ? st.critMul : 1, d = shotDamage(t, st, e, base) * m;
-  const n = st.beams || 1, part = n > 1 ? d * SOL_SHARE[SOL_BEAMS.indexOf(n)] : d; // Focus's fitted per-beam share (aspira-skills.js)
+  const n = st.beams || 1, part = d; // every beam is a FULL hit (owner, 2026-10-06; was a fitted share of the shot)
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
   if (n > 1 && from === t) fx[fx.length - 1].beams = n; // n converging beams from the tower; a Refract hop past the first enemy is ONE thick beam (owner)
   for (let i = 0; i < n && !e.dead; i++) {

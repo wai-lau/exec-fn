@@ -182,12 +182,12 @@ const SPEC = {
     return [["Hits", tree.join("→")], ["Arc dmg", Math.round(st.dmg * st.arcFall)],
       ["Charge", st.blast ? Math.round(st.blast.frac * 100) + "% of hit · blast r" + st.blast.r : "—"],
       // a chart ARC: no reach from the tower - EACH JUMP its own, shrinking (owner)
-      ...(st.skill ? [["Jumps", Array.from({ length: st.layers }, (_, j) => Math.round(st.arcRange * st.arcShrink ** j)).join("→")]]
+      ...(st.skill ? [["Jumps", st.layers + (st.layers > 1 ? " jumps" : " jump") + " · first " + Math.round(st.arcRange)]] // (the first jump's reach LAST: it only rises, the card reads the last number)
         : [["Arc hop", Math.round(st.arcRange)], ["Reach", Math.round(chainReach(st))]]),
       ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
   slower: st => st.skill ? [["Aura slow", Math.round(st.aura * 100) + "%"], ["Aura dmg", (st.dmg * st.rate).toFixed(1) + "/s"],
-    ["Rime", st.rime ? "+" + Math.round(st.rime * 100) + "% / " + st.rimeEvery + "s, forever" : "—"], ["Moons", st.moonN ? st.moonN + " at " + Math.round(st.moonK * 100) + "%" : "—"]]
+    ["Rime", st.rime ? "every " + st.rimeEvery + "s, +" + Math.round(st.rime * 100) + "% forever" : "—"], ["Moons", st.moonN ? st.moonN + " at " + Math.round(st.moonK * 100) + "%" : "—"]]
     : [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
     ["Shatter", st.shatter ? Math.round(st.dmg * st.shatter.mul) + " r" + st.shatter.r : "—"],
@@ -199,7 +199,7 @@ const SPEC = {
     ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"],
     ...(st.seep ? [["Puddles", "1 / " + st.seep.every + "s · " + st.seep.life + "s · r" + st.seep.r]] : [])],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
-    ["Beams", st.beams || 1], ...(st.skill ? [["Volley", Math.round(st.dmg * (st.beams || 1) * (st.beams > 1 ? SOL_SHARE[SOL_BEAMS.indexOf(st.beams)] : 1))]] : []), // a Focus beam is a share of the shot (SOL_SHARE): the volley never falls ...(st.skill ? [["Refract", st.refract ? "+" + st.refract + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
+    ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refract ? "+" + st.refract + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
     [st.skill ? "Breach" : "Bleed", st.bleedArmor ? (st.breach ? st.breach + " × (" : "") + "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit" + (st.breach ? ")" : "") + " / hit" : "—"],
     ["Armor", "ignored"], ["Form", rayForm(st)]],
 };
