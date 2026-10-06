@@ -242,6 +242,7 @@ function inspectTower(el, t) {
   el.innerHTML =
     '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + maxLvl(t) + "</div>" +
     '<p class="asp-hint">' + towerTagline(t) + "</p>" + // the CURRENT upgrade's tagline under the title (owner)
+    (hasSkills(t) ? skillChart(t, null) : "") + // a chart tower's Stand chart, on its own card (owner)
     // two columns (owner): what every tower has | what only this type has
     '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
     statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) +

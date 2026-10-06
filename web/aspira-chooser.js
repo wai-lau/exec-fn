@@ -56,19 +56,8 @@ function openChooser(t) {
   // overlapped the tower card behind) - the cards' own titles name the upgrade
   el.innerHTML = '<p class="asp-chooser-cost">upgrade · ' + cr(upCost(t)) + (opts.length > 1 ? (hasSkills(t) ? " · pick an axis" : " · choose one") : "") + "</p>" + '<div class="asp-cards"></div>';
   const row = el.querySelector(".asp-cards");
-  // a chart tower: ONE Stand chart above the cards (owner), its shape now; a
-  // card under the pointer (or focused) draws what it would make, dashed
-  if (hasSkills(t)) {
-    const ch = document.createElement("div");
-    ch.className = "asp-chartbox"; ch.innerHTML = skillChart(t, null);
-    row.before(ch);
-    const show = next => { ch.innerHTML = skillChart(t, next); };
-    opts.forEach((o, i) => {
-      const card = button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i));
-      card.onpointerenter = card.onfocus = () => show(withSkill(t, o.choice));
-      card.onpointerleave = card.onblur = () => show(null);
-    });
-  } else opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
+  // (a chart tower's Stand chart is on its TOWER card, not here - owner)
+  opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
   button(el, "asp-cancel", "cancel", closeChooser); // the same as clicking off the cards (owner)
   // ONE line (owner): side by side if they all fit across, else one column
   el.hidden = false;
