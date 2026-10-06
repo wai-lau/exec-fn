@@ -449,7 +449,17 @@ function drawPuddles(t) {
 // the build's shape filled in the tower's colour
 function boardChart(t, x, y, alpha, c0) {
   const axes = SKILL_TREES[t.kind], col = COL[TOWERS[t.kind].color];
-  const corner = i => c0.pts[(2 * i) % c0.pts.length];
+  // axis i points where the CARD's chart puts it (owner: same orientation - the
+  // first axis up, then clockwise every 120 deg), snapped to the nearest hex corner
+  const corner = i => {
+    const want = -Math.PI / 2 + i * 2 * Math.PI / axes.length;
+    let best = c0.pts[0], bd = 9;
+    for (const p of c0.pts) {
+      const d = Math.abs(Math.atan2(Math.sin(Math.atan2(p.y - c0.y, p.x - c0.x) - want), Math.cos(Math.atan2(p.y - c0.y, p.x - c0.x) - want)));
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best;
+  };
   const pt = (i, k) => {
     const p = corner(i), f = TOWER_K * k / SKILL_TIERS;
     return [x + (p.x - c0.x) * f, y + (p.y - c0.y) * f];
