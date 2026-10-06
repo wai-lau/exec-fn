@@ -1,5 +1,5 @@
 /* /aspira — the end screen's stats (aspira-endstats.js): a compact table, one
-   row per tower in its own colour, then the leak line */
+   row per tower in its own colour, then a scrolling line per wave, leaks in pink */
 .asp-end-towers {
   border-collapse: collapse;
   font-size: var(--fs-sm);
@@ -19,4 +19,17 @@
 .asp-end-towers tr[data-kind="slower"] { color: hsl(var(--cyan-hsl)); }
 .asp-end-towers tr[data-kind="reaper"] { color: hsl(var(--pink-hsl)); }
 .asp-end-towers tr[data-kind="acid"] { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
-.asp-end-leaks { font-size: var(--fs-sm); color: hsl(var(--pink-hsl)); }
+
+.asp-end-waves {
+  max-height: 30dvh;
+  overflow-y: auto;
+  font-size: var(--fs-sm);
+  background: hsl(var(--bg-hsl) / 0.45);
+}
+
+.asp-end-waves th,
+.asp-end-waves td { padding: 0 var(--space-3); text-align: left; }
+
+.asp-end-waves th { color: hsl(var(--white-hsl)); font-weight: var(--fw-normal); }
+
+.asp-end-leak { color: hsl(var(--pink-hsl)); }
