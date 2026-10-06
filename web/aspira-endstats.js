@@ -1,7 +1,7 @@
 // /aspira — the END SCREEN's stats (owner, 2026-10-06): under "core breached" /
 // "ascendant", a line for EVERY tower ranked by damage dealt (level, kills,
-// damage, share; the core's copy too if it fought; named by its build), then a
-// line for each wave that TOOK LIVES - what it was (type x count, or the boss's
+// damage, share; the core's copy too if it fought; named by its build), and ABOVE the
+// title a line for each wave that TOOK LIVES - what it was (type x count, or the boss's
 // name, from G.planLog) and how many (G.leaks, counted where an enemy reaches
 // the core) - in a box that scrolls. UI only; gameOver / winGame call renderEndStats.
 // a tower's NAME is its build (owner: "name the towers"): the tier names of its
@@ -12,8 +12,8 @@ function buildName(t) {
     .map(o => o.ax.tiers[o.n - 1].name).join(" · ");
 }
 function renderEndStats() {
-  const box = $("asp-ov-stats");
-  if (!box) return;
+  const box = $("asp-ov-stats"), top = $("asp-ov-leaks"); // the leaks sit ABOVE the title (owner)
+  if (!box || !top) return;
   const rows = [...G.towers, ...coreTowers().filter(t => t.dealt)];
   const total = rows.reduce((a, t) => a + (t.dealt || 0), 0) || 1;
   rows.sort((a, b) => (b.dealt || 0) - (a.dealt || 0));
@@ -23,14 +23,15 @@ function renderEndStats() {
       (t.kills || 0) + "</td><td>" + short(Math.round(t.dealt || 0)) + "</td><td>" + Math.round(100 * (t.dealt || 0) / total) + "%</td></tr>";
   }
   html += "</table>";
-  html += '<div class="asp-end-waves"><table><tr><th>wave</th><th>what</th><th>lives</th></tr>';
+  box.innerHTML = html;
+  html = '<div class="asp-end-waves"><table><tr><th>wave</th><th>what</th><th>lives</th></tr>';
   const leakWaves = Object.keys(G.leaks || {}).map(Number).sort((a, b) => a - b);
-  if (!leakWaves.length) { box.innerHTML = html + '<p class="asp-end-leak">no lives lost</p>'; return; }
+  if (!leakWaves.length) { top.innerHTML = '<p class="asp-end-leak">no lives lost</p>'; return; }
   for (const n of leakWaves) { // only the waves that took lives (owner)
     const p = (G.planLog || {})[n], lost = G.leaks[n];
     const what = !p ? "—" : p.type === "bonus" ? arcanaOf(n).name : p.count + " " + p.type;
     html += "<tr" + (lost ? ' class="asp-end-leak"' : "") + "><td>W" + n + "</td><td>" + what + "</td><td>" + (lost ? "−" + lost : "·") + "</td></tr>";
   }
   html += "</table></div>";
-  box.innerHTML = html;
+  top.innerHTML = html;
 }
