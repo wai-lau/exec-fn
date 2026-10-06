@@ -321,7 +321,7 @@ function rayHit(t, st, e, base, from) {
   const m = crit ? st.critMul : 1, d = shotDamage(t, st, e, base) * m;
   const n = st.beams || 1, part = n > 1 ? d / 2 : d;
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
-  if (n > 1) fx[fx.length - 1].beams = n; // drawn as n parallel beams (owner)
+  if (n > 1 && from === t) fx[fx.length - 1].beams = n; // n converging beams from the tower; a Refract hop past the first enemy is ONE thick beam (owner)
   for (let i = 0; i < n && !e.dead; i++) {
     damage(e, part, t, false, crit); onHit(e, t, st, part); bleed(e, st); // a crit shows as a PINK number (owner)
   }
