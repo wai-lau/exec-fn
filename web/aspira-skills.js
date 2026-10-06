@@ -15,9 +15,9 @@ const SKILL_TREES = {
   // what it catches. Base: one jump forking two ways, three enemies.
   chain: [
     { id: "cond", name: "Conductivity", tiers: [
-      { name: "Conduit", desc: "The chain jumps twice, forking two ways each time." },
-      { name: "Live Wire", desc: "Two jumps, forking three ways each time." },
-      { name: "Superconductor", desc: "Two strikes at once, each a three-way, two-jump tree." },
+      { name: "Conduit", desc: "The chain jumps twice, forking two ways each time, and jumps further." },
+      { name: "Live Wire", desc: "Two jumps, forking three ways each time; longer jumps." },
+      { name: "Superconductor", desc: "Two separate bolts at once, each a three-way, two-jump tree; the longest jumps." },
     ] },
     { id: "volt", name: "Voltage", tiers: [
       { name: "Spark", desc: "Harder bolts that reach further." },
@@ -41,8 +41,9 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 // ARC's numbers by tier (index 0 = untaken). Balance later (owner: ideas first).
 const ARC_VOLT_DMG = [1, 1.5, 2.2, 3.2], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
 // Conductivity's shape by tier (owner): strikes (separate first targets),
-// jumps, and forks per jump - 3, 7, 13, then 26 enemies at most
-const ARC_COND = [{ s: 1, j: 1, f: 2 }, { s: 1, j: 2, f: 2 }, { s: 1, j: 2, f: 3 }, { s: 2, j: 2, f: 3 }];
+// jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
+// and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
+const ARC_COND = [{ s: 1, j: 1, f: 2, r: 1 }, { s: 1, j: 2, f: 2, r: 1.2 }, { s: 1, j: 2, f: 3, r: 1.4 }, { s: 2, j: 2, f: 3, r: 1.6 }];
 const ARC_STATIC = [null, { r: 40, frac: 0.5, mul: 1.15 }, { r: 60, frac: 0.5, mul: 1.3 }, { r: 85, frac: 0.5, mul: 1.5 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.6, ARC_SHRINK = 0.7, STATIC_MARK_T = 3;
@@ -50,7 +51,7 @@ function arcSkillStats(t, s, b) {
   const c = skillOf(t, "cond"), v = skillOf(t, "volt"), z = skillOf(t, "static");
   s.dmg = b.dmg * ARC_VOLT_DMG[v]; s.range = b.range * RANGE_BONUS * ARC_VOLT_RANGE[v];
   const sh = ARC_COND[c]; // Conductivity: strikes, jumps AND forks
-  s.arcRange = s.range; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
+  s.arcRange = s.range * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
   s.arcFall = ARC_FALL; s.arcShrink = ARC_SHRINK; s.blast = ARC_STATIC[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
