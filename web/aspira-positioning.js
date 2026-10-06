@@ -43,8 +43,17 @@ function bestSpot(t, k, range) {
   const off = t.off || 0, r2 = range * range, first = Math.ceil(k.min / POS_STEP), steps = Math.floor(k.max / POS_STEP);
   // each enemy's hits weighed by the tower's TARGETING (owner): Biggest by its
   // HP against the biggest on the field, Fresh full for the undebuffed and
-  // POS_STALE for the rest, Near plain (the urgency weight already favours the core)
-  const f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? e.hp / pred.maxHp : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : 1) + 1 - POS_MODE_MIX);
+  // POS_STALE for the rest (WEIGHTED, owner). NEAR is ABSOLUTE (owner,
+  // 2026-10-06: "towers not respecting my priority"): only the enemy nearest
+  // the core counts - the tower goes where it can hit THAT one; only if no
+  // spot reaches it does every enemy count again
+  let f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? e.hp / pred.maxHp : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : 1) + 1 - POS_MODE_MIX);
+  const all = f;
+  if (t.mode === "close") {
+    let ni = 0;
+    pred.forEach(({ e }, i) => { if (coreD2(e) < coreD2(pred[ni].e)) ni = i; });
+    f = pred.map((_, i) => (i === ni ? 1 : 0));
+  }
   // NEAR: the same weighted hits, each worth more the CLOSER it passes - only a
   // tie-break (owner: maxed towers "stopped moving": with a range covering the
   // whole board every spot scored the same, so they never left their slot;
@@ -64,9 +73,12 @@ function bestSpot(t, k, range) {
     return n;
   };
   let best = 0, bestScore = 0, bestNear = 0;
-  for (let oi = first; oi <= steps; oi++) {
-    const sc = score(oi);
-    if (sc > bestScore || (sc === bestScore && sc > 0 && near > bestNear)) { bestScore = sc; best = oi; bestNear = near; }
+  for (let pass = 0; pass < 2 && !bestScore; pass++) {
+    if (pass) { if (f === all) break; f = all; } // Near's enemy out of reach everywhere: fall back to all of them
+    for (let oi = first; oi <= steps; oi++) {
+      const sc = score(oi);
+      if (sc > bestScore || (sc === bestScore && sc > 0 && near > bestNear)) { bestScore = sc; best = oi; bestNear = near; }
+    }
   }
   // nothing reachable in time: REST outermost (owner) - enemies enter at the rim
   if (!bestScore) return k.max;
