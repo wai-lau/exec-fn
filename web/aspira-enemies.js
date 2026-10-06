@@ -9,6 +9,7 @@
 // trail a much SHORTER one (owner); only the star adds a shadow-blur glow (a
 // whole Fast wave blurring would cost too much).
 const TRAIL = { bonus: 160, fast: 48 }, TRAIL_STEP = 6, TRAIL_ALPHA = 0.55;
+const BREACH_SPOKES = 24; // the most Breach spokes drawn on one enemy
 function drawStarTrail(e, size) {
   const tail = TRAIL[e.type], pts = [];
   for (let d = 0; d <= tail; d += TRAIL_STEP) pts.push(d ? pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0) : { x: e.x, y: e.y });
@@ -113,9 +114,16 @@ function drawStatus(e, d, size) {
     ctx.strokeStyle = COL.cyan; ctx.globalAlpha = 0.9; ctx.lineWidth = 2.5; ctx.stroke();
   }
   // BLEED (SOL's Impale): a pink outline, for good (owner)
+  // BREACH (SOL's Scorch; owner): thin spokes in SOL's colour sticking out of
+  // the shape, one per stack (BREACH_SPOKES at most drawn), turning with it
   if (e.bleedCrit > 0) {
-    poly(e.x, e.y, size + 4, d.sides, e.rot, d.pointy);
-    ctx.strokeStyle = COL.pink; ctx.globalAlpha = 0.9; ctx.lineWidth = 2; ctx.stroke();
+    const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1));
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const a = e.rot + i * 6.283 / n, c = Math.cos(a), s = Math.sin(a);
+      ctx.moveTo(e.x + c * size * 0.8, e.y + s * size * 0.8); ctx.lineTo(e.x + c * (size + 9), e.y + s * (size + 9));
+    }
+    ctx.strokeStyle = COL[TOWERS.reaper.color]; ctx.globalAlpha = 0.9; ctx.lineWidth = 1.2; ctx.stroke();
   }
   if (e.corrodeT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 3, 0, 6.283);
