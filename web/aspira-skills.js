@@ -6,8 +6,10 @@
 // this file also holds ARC's skill-chart FIRING, kept out of towers.js (cap).
 const SKILL_POINTS = 6, SKILL_TIERS = 3;
 // cost of each of the six small upgrades, x the build cost (about the old
-// three-step total, spread over six; balance later)
-const SKILL_STEP_COST = [2, 3.5, 5.5, 8, 10.5, 13];
+// three-step total, spread over six; balance later). DEARER (owner, 2026-10-06:
+// "make the levels more expensive and more powerful"): was 2 / 3.5 / 5.5 / 8 / 10.5 / 13,
+// a full chart 42.5 builds; now 62.5 (the first points stay near their old price, the last ones cost nearly double) - and every tier hits harder to match (below)
+const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22];
 const SKILL_TREES = {
   // ARC (owner): Conductivity = ALL the branching (owner, 2026-10-05) - how
   // many times the chain jumps AND how many ways each jump forks; Voltage =
@@ -16,7 +18,7 @@ const SKILL_TREES = {
   chain: [
     { id: "cond", name: "Conductivity", tiers: [
       { name: "Transfer", desc: "The bolt jumps once more, forking as it goes, and jumps further." },
-      { name: "Conduit", desc: "Wider forks at every jump." },
+      { name: "Conduit", desc: "Wider forks at every jump; the tower roams further." },
       { name: "Superconductor", desc: "Two separate bolts at once, each a full forking tree." },
     ] },
     { id: "volt", name: "Voltage", tiers: [
@@ -44,13 +46,13 @@ SKILL_TREES.slower = [
   ] },
   { id: "rime", name: "Rime", tiers: [
     { name: "Frost", desc: "Rings pulse out and leave a chill that never wears off; it stacks." },
-    { name: "Glacier", desc: "Each ring's lasting chill bites deeper." },
-    { name: "Cryosphere", desc: "The deepest lasting chill per ring." },
+    { name: "Glacier", desc: "Each ring's lasting chill bites deeper, and the rings come faster." },
+    { name: "Cryosphere", desc: "The deepest lasting chill per ring, the fastest rings." },
   ] },
   { id: "moons", name: "Moons", tiers: [
     { name: "Moon", desc: "A moon orbits the tower: a smaller copy of it." },
-    { name: "Twin Moons", desc: "Two moons." },
-    { name: "Desolation", desc: "Three moons." },
+    { name: "Twin Moons", desc: "Two moons, closer to the tower's own strength." },
+    { name: "Desolation", desc: "Three moons, each as strong as the tower." },
   ] },
 ];
 // SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
@@ -63,7 +65,7 @@ SKILL_TREES.slower = [
 // 7 beams x 4 = 28 Breaches a volley on one target.
 SKILL_TREES.reaper = [
   { id: "focus", name: "Focus", tiers: [
-    { name: "Convergence", desc: "More beams converge on the target, each its own hit." },
+    { name: "Convergence", desc: "More beams converge on the target, each its own hit, from further away." },
     { name: "Crux", desc: "Even more converging beams." },
     { name: "Disintegration", desc: "A full volley of converging beams." },
   ] },
@@ -74,8 +76,8 @@ SKILL_TREES.reaper = [
   ] },
   { id: "scorch", name: "Breach", tiers: [
     { name: "Scorch", desc: "Each hit burns a Breach into the enemy: armor down and crits up for every tower, for good." },
-    { name: "Sear", desc: "More Breaches per hit." },
-    { name: "Flare", desc: "The most Breaches per hit." },
+    { name: "Sear", desc: "More Breaches per hit, and crits hit harder." },
+    { name: "Flare", desc: "The most Breaches per hit, the hardest crits." },
   ] },
 ];
 // ACD (owner, 2026-10-05): its lines DRIP burning PUDDLES onto the lane by
@@ -89,12 +91,12 @@ SKILL_TREES.acid = [
     { name: "Dissolve", desc: "The burn never cools: a line whose enemy dies starts on the next at full heat." },
   ] },
   { id: "pour", name: "Spray", tiers: [
-    { name: "Mist", desc: "More burning lines, never two on one enemy." },
+    { name: "Mist", desc: "More burning lines, never two on one enemy, reaching further." },
     { name: "Downpour", desc: "More lines still." },
     { name: "Torrent", desc: "The most lines." },
   ] },
   { id: "seep", name: "Contagion", tiers: [
-    { name: "Blister", desc: "Puddles drip more often and bubble longer." },
+    { name: "Blister", desc: "Puddles drip more often, bubble longer and burn hotter." },
     { name: "Plague", desc: "More, longer, wider puddles." },
     { name: "Pandemic", desc: "The widest, longest puddles, and they slow what stands in them." },
   ] },
@@ -106,30 +108,58 @@ const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
 // tower's 7 levels fold onto the 4 drawn ones
 const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 + Math.floor((t.lvl - 1) / 2));
 
+// REACH BY TIER (owner, 2026-10-06: ranges and movement were HALVED, and "no upgrade
+// causes any stat to go down - balance by playing around with ranges and movement
+// instead"; then: each tower through what is distinctive about IT, not generic
+// multipliers). A tier multiplies the tower's range / slide extent (SLIDE_MAX 2 = the
+// old extent) / slide speed by [range, slide, speed]; each tower buys them differently:
+//   ARC  Voltage = range (the bolt reaches out); Conductivity = a roaming ARC (the tree
+//        wants a crowd, so it chases one) - and its jumps/forks, Capacitance rings grow too
+//   FRZ  Temp = a wider aura (its range IS the aura); it stays an anchor otherwise
+//   SOL  Focus = range (a sniper lens); SOL stays put - it is the anchor, no slide bought
+//   ACD  Spray = range (more lines need more targets in reach); Contagion = a roaming
+//        plague (the puddles follow the lane): slide and speed
+const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
+const SKILL_MOVE = {
+  chain:  { cond: [[1, 1, 1], [1, 1.1, 1.1], [1, 1.2, 1.2], [1, 1.3, 1.3]], volt: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1]], static: NO_MOVE },
+  slower: { frost: [[1, 1, 1], [1.25, 1, 1], [1.5, 1, 1], [1.8, 1, 1]], rime: NO_MOVE, moons: NO_MOVE },
+  reaper: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1]], refract: NO_MOVE, scorch: NO_MOVE },
+  acid:   { pour: [[1, 1, 1], [1.2, 1, 1], [1.5, 1, 1], [1.9, 1, 1]], seep: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5]], catalyst: NO_MOVE },
+};
+function skillMove(t, s) {
+  for (const [ax, tiers] of Object.entries(SKILL_MOVE[t.kind])) {
+    const m = tiers[skillOf(t, ax)];
+    s.range *= m[0]; s.slide *= m[1]; s.speed *= m[2];
+  }
+}
+
 // ARC's numbers by tier (index 0 = untaken). Balance later (owner: ideas first).
 // Voltage's damage FITTED to +25% / +50% / +100% dealt (owner; arcfit.mjs, waves 6-20)
 // Voltage refit 2026-10-06 (drifted 4-6% low after the Static / slow / FRZ changes)
 // REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
-const ARC_VOLT_DMG = [1, 1.28, 1.42, 1.88], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
+const ARC_VOLT_DMG = [1, 1.4, 1.8, 2.6]; // its RANGE is in SKILL_MOVE
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
 // d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
-let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 0.775 }, { s: 1, j: 2, f: 3, r: 1.4, d: 0.613 }, { s: 2, j: 2, f: 3, r: 1.6, d: 0.394 }]; // d refit 2026-10-06: the branching carries Conductivity, so its damage falls (was 1.24 / 1.53 / 2.8)
+let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1 }]; // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
 // Static by tier: the blast's radius and its damage, x the hit that set it off
 // FITTED 2026-10-06 to +25 / +50 / +100% ARC-own dealt (tier III saturates -
 // a discharge can only take the HP in reach - so it needs a big charge)
-const ARC_STATIC = [null, { r: 18, frac: 0.1 }, { r: 37.6, frac: 0.15 }, { r: 85, frac: 0.106 }]; // refit 2026-10-06 (a discharge pops a shield whatever its size, so tier I shrinks its ring)
+const ARC_STATIC = [null, { r: 18, frac: 0.22 }, { r: 37.6, frac: 0.255 }, { r: 55, frac: 0.255 }]; // owner 2026-10-06: every tier a gain (III's charge was below II's)
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
-const ARC_FALL = 0.6, ARC_SHRINK = 0.7;
-// a jump's reach, x the tower's range, before Conductivity lengthens it (owner: longer by default)
-let ARC_JUMP_REACH = 1.5;
+const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
+// a jump's reach, before Conductivity lengthens it (owner: longer by default). It
+// was 1.5 x the tower's range; the range was HALVED (owner, 2026-10-06: "not their
+// effects nor reach"), so the jump keeps its old absolute size: 1.5 x the old 156
+// range, and Voltage still lengthens it by the old x1.15 / 1.3 / 1.45
+const ARC_JUMP_BASE = 234, ARC_VOLT_JUMP = [1, 1.15, 1.3, 1.45];
 function arcSkillStats(t, s, b) {
   const c = skillOf(t, "cond"), v = skillOf(t, "volt"), z = skillOf(t, "static");
-  s.dmg = b.dmg * ARC_VOLT_DMG[v] * ARC_COND[c].d; s.range = b.range * RANGE_BONUS * ARC_VOLT_RANGE[v];
+  s.dmg = b.dmg * ARC_VOLT_DMG[v] * ARC_COND[c].d; s.range = b.range * RANGE_BONUS;
   const sh = ARC_COND[c]; // Conductivity: strikes, jumps AND forks
-  s.arcRange = s.range * ARC_JUMP_REACH * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
+  s.arcRange = ARC_JUMP_BASE * ARC_VOLT_JUMP[v] * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
   s.arcFall = ARC_FALL; s.arcShrink = ARC_SHRINK; s.blast = ARC_STATIC[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
@@ -245,21 +275,23 @@ function skillHopTo(c, node, nxt, depth) {
 // for the other towers; FRZ + L1 ARC + L1 SOL, waves 20-30) - the first
 // guesses were 2-4x too strong; range moves little so "colder" reads as colder
 // early-game balance 2026-10-06: +0.03 on every tier (FRZ stays a pure SUPPORT tower - owner)
-const FRZ_FROST_SLOW = [0.33, 0.363, 0.394, 0.439], FRZ_FROST_RANGE = [1, 1.05, 1.1, 1.15];
+const FRZ_FROST_SLOW = [0.4, 0.43, 0.46, 0.5]; // the aura's range is in SKILL_MOVE
 const FRZ_RIME = [0, 0.02, 0.035, 0.06]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
-const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 2.4, FRZ_MOON_SCALE = 0.78; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
+// FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
+const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4], FRZ_MOON_BY = [0.78, 0.9, 0.95, 1];
+const FRZ_TICK = 0.5, FRZ_RIME_GROW = 2.4; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "frost");
-  s.range = b.range * RANGE_BONUS * FRZ_FROST_RANGE[f];
+  s.range = b.range * RANGE_BONUS;
   s.aura = FRZ_FROST_SLOW[f]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TICK; // dmg / rate: a TICK
-  s.rime = FRZ_RIME[skillOf(t, "rime")]; s.moonN = skillOf(t, "moons"); s.skill = true;
+  s.rime = FRZ_RIME[skillOf(t, "rime")]; s.rimeEvery = FRZ_RIME_PERIOD[skillOf(t, "rime")]; s.moonN = skillOf(t, "moons"); s.moonK = FRZ_MOON_BY[s.moonN]; s.skill = true;
 }
 // the aura's sources: the tower, then each moon at FRZ_MOON_SCALE of everything
 function frzSources(t, st) {
   const out = [{ x: t.x, y: t.y, k: 1, id: t.id }];
-  if (st.moonN) moonSpots(t, { moons: st.moonN }).forEach((m, i) => out.push({ x: m.x, y: m.y, k: FRZ_MOON_SCALE, id: t.id + ":moon" + i }));
+  if (st.moonN) moonSpots(t, { moons: st.moonN }).forEach((m, i) => out.push({ x: m.x, y: m.y, k: st.moonK, id: t.id + ":moon" + i }));
   return out;
 }
 // every step (aspira-game.js): slow what is inside each aura, tick its damage,
@@ -286,7 +318,7 @@ function frzStep(t, dt) {
   if (st.rime) {
     t.rimeT = (t.rimeT || 0) - dt;
     if (t.rimeT <= 0) {
-      t.rimeT += FRZ_RIME_EVERY;
+      t.rimeT += st.rimeEvery;
       for (const s of srcs) (t.pulses ||= []).push({ x: s.x, y: s.y, R: st.range * s.k, v: st.rime * s.k, id: s.id + ":rime", age: 0, hit: new Set() });
     }
   }
@@ -327,14 +359,17 @@ const SOL_BEAMS = [1, 2, 4, 7], SOL_REFRACT = [0, 2, 5, 9], SOL_BREACH = [0, 1, 
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower
 const SOL_CONE = 25, BREACH_ARMOR = 1.5, BREACH_CRIT = 0.01;
+// SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
+const SOL_CRITMUL = [3, 4, 5, 7];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
 // saturates): each Focus beam's share of the shot by tier, and each Refract
 // hop's damage by tier (a hop is far weaker than the first hit)
-const SOL_SHARE = [1, 0.604, 0.355, 0.276], SOL_HOP = [1, 0.169, 0.207, 0.386];
+// (a Focus beam is a SHARE of the shot, so the per-beam hit still falls as beams are added - the one stat left that does; the VOLLEY on the card only rises)
+const SOL_SHARE = [1, 0.7, 0.487, 0.45], SOL_HOP = [1, 0.25, 0.279, 0.455];
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.crit = LVL_REAPER_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refract = SOL_REFRACT[skillOf(t, "refract")];
-  s.breach = SOL_BREACH[skillOf(t, "scorch")]; s.bleedArmor = s.breach ? BREACH_ARMOR : 0; s.bleedCrit = BREACH_CRIT; s.skill = true;
+  s.breach = SOL_BREACH[skillOf(t, "scorch")]; s.critMul = SOL_CRITMUL[skillOf(t, "scorch")]; s.bleedArmor = s.breach ? BREACH_ARMOR : 0; s.bleedCrit = BREACH_CRIT; s.skill = true;
 }
 // from fireRay: bend on from the first enemy hit to st.refract more, each the
 // nearest not yet hit to the last one, ANYWHERE inside ONE light cone from the
@@ -376,15 +411,15 @@ function drawCone(f, k) {
 // its lines can never share an enemy): Corrosion's ramp time, Spray's per-line
 // damage, Contagion's puddle heat (tier III's is below II's - its puddles are bigger)
 // REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
-const ACD_DOUBLE = [1, 0.82, 0.6, 0.24], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_POUR_MUL = [1, 1, 1.8, 3.1];
+const ACD_DOUBLE = [0.65, 0.52, 0.4, 0.22], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_POUR_MUL = [1, 1, 1.1, 1.2];
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
-const ACD_SEEP = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.8, life: 3.2, r: 30 }]; // refit 2026-10-06
-const ACD_PUDDLE_HEAT = [0.5, 1.08, 1.75, 3.2];
+const ACD_SEEP = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 2.7, r: 28 }]; // refit 2026-10-06
+const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1];
 // Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
 // the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
-const ACD_SEEP_SLOW = [0, 0, 0, 0.3];
+const ACD_SEEP_SLOW = [0, 0, 0, 0.25]; // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
 function acidSkillStats(t, s, b) {
   const c = skillOf(t, "catalyst");
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACID_MAX; s.plagueR = 0;

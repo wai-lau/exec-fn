@@ -187,7 +187,7 @@ const SPEC = {
       ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
   slower: st => st.skill ? [["Aura slow", Math.round(st.aura * 100) + "%"], ["Aura dmg", (st.dmg * st.rate).toFixed(1) + "/s"],
-    ["Rime", st.rime ? "+" + Math.round(st.rime * 100) + "% / " + FRZ_RIME_EVERY + "s, forever" : "—"], ["Moons", st.moonN ? st.moonN + " at half" : "—"]]
+    ["Rime", st.rime ? "+" + Math.round(st.rime * 100) + "% / " + st.rimeEvery + "s, forever" : "—"], ["Moons", st.moonN ? st.moonN + " at " + Math.round(st.moonK * 100) + "%" : "—"]]
     : [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
     ["Shatter", st.shatter ? Math.round(st.dmg * st.shatter.mul) + " r" + st.shatter.r : "—"],
@@ -199,7 +199,7 @@ const SPEC = {
     ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"],
     ...(st.seep ? [["Puddles", "1 / " + st.seep.every + "s · " + st.seep.life + "s · r" + st.seep.r]] : [])],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
-    ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refract ? "+" + st.refract + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
+    ["Beams", st.beams || 1], ...(st.skill ? [["Volley", Math.round(st.dmg * (st.beams || 1) * (st.beams > 1 ? SOL_SHARE[SOL_BEAMS.indexOf(st.beams)] : 1))]] : []), // a Focus beam is a share of the shot (SOL_SHARE): the volley never falls ...(st.skill ? [["Refract", st.refract ? "+" + st.refract + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
     [st.skill ? "Breach" : "Bleed", st.bleedArmor ? (st.breach ? st.breach + " × (" : "") + "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit" + (st.breach ? ")" : "") + " / hit" : "—"],
     ["Armor", "ignored"], ["Form", rayForm(st)]],
 };
@@ -253,6 +253,7 @@ function inspectTower(el, t) {
     // two columns (owner): what every tower has | what only this type has
     '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
     statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) +
+    statRow("Slide", slideSpan(t), null) + statRow("Speed", Math.round(moveSpeed(t)), null) + // movement (owner, 2026-10-06: tiers buy it back)
     // compact for the phone (owner): kills and damage dealt share ONE row, and
     // stats this tower does not have yet ("—") are left out
     '<dt>Kills</dt><dd id="asp-kills"></dd></dl>' +

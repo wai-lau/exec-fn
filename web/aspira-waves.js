@@ -70,9 +70,12 @@ function makeWave(n) {
 
 // Interest is paid on what you hold at the moment a wave is sent, so saving
 // beats spending early. Sending before the countdown ends pays the seconds left.
+const INTEREST_PER_WAVE = 4;
 function sendWave() {
   if (G.over) return;
-  const gain = Math.floor(G.money * G.interest);
+  // the payout is CAPPED at INTEREST_PER_WAVE x the wave being sent (owner, 2026-10-06, "late money is way
+  // too much"): the core's 9 powers cost up to 20000, so a saver's 5-8% was out-earning the whole field
+  const gain = Math.min(Math.floor(G.money * G.interest), INTEREST_PER_WAVE * (G.wave + 1));
   if (gain > 0) { G.money += gain; creditsFx = { gain, pct: G.interest * 100, t0: performance.now() / 1000 }; }
   G.wave++;
   // the boss is named in its HP BAR under the speed row (owner), not mid-screen
