@@ -27,7 +27,7 @@ const SKILL_TREES = {
     { id: "static", name: "Capacitance", tiers: [
       { name: "Static", desc: "Hits leave charges; the next hit on that enemy, or its death, sets them off in a ring." },
       { name: "Charge", desc: "Heavier charges, a wider ring." },
-      { name: "Overload", desc: "The heaviest charges, the widest ring." },
+      { name: "Overload", desc: "The widest ring, and it slows everything it touches." },
     ] },
   ],
 };
@@ -96,7 +96,7 @@ SKILL_TREES.acid = [
   { id: "seep", name: "Contagion", tiers: [
     { name: "Blister", desc: "Puddles drip more often and bubble longer." },
     { name: "Plague", desc: "More, longer, wider puddles." },
-    { name: "Pandemic", desc: "The most, longest, widest puddles." },
+    { name: "Pandemic", desc: "The widest, longest puddles, and they slow what stands in them." },
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];
@@ -130,7 +130,7 @@ function arcSkillStats(t, s, b) {
   s.dmg = b.dmg * ARC_VOLT_DMG[v] * ARC_COND[c].d; s.range = b.range * RANGE_BONUS * ARC_VOLT_RANGE[v];
   const sh = ARC_COND[c]; // Conductivity: strikes, jumps AND forks
   s.arcRange = s.range * ARC_JUMP_REACH * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
-  s.arcFall = ARC_FALL; s.arcShrink = ARC_SHRINK; s.blast = ARC_STATIC[z]; s.skill = true;
+  s.arcFall = ARC_FALL; s.arcShrink = ARC_SHRINK; s.blast = ARC_STATIC[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
 function skillOptions(t) {
@@ -173,9 +173,13 @@ function skillHit(c, e, d) {
   const b = c.st.blast;
   if (!b || e.dead) return;
   const ch = e.charge || (e.charge = { dmg: 0, n: 0, r: 0, t: c.t });
-  ch.dmg += d * b.frac; ch.n++; ch.r = Math.max(ch.r, b.r); ch.t = c.t;
+  ch.dmg += d * b.frac; ch.n++; ch.r = Math.max(ch.r, b.r); ch.t = c.t; ch.slow = Math.max(ch.slow || 0, c.st.statSlow || 0);
 }
 let staticQuiet = false;
+// Capacitance III (Overload) rings SLOW what they hit (owner, 2026-10-06, the
+// no-FRZ niche search): 30% for STAT_SLOW_T s - a late team without FRZ can
+// answer the fast waves (ARC + SOL + a little ACD reached ~98, was ~83)
+const ARC_STAT_SLOW = [0, 0, 0, 0.3], STAT_SLOW_T = 0.6;
 // a DISCHARGE (owner): a RAPIDLY EXPANDING orange ring from the enemy, out to
 // its radius over STATIC_RING_T, damaging each enemy once as its edge reaches
 // it. Quiet: it sets off no other charges.
@@ -183,7 +187,7 @@ const STATIC_RING_T = 0.25;
 function dischargeStatic(e) {
   const ch = e.charge;
   e.charge = null;
-  (G.staticRings ||= []).push({ x: e.x, y: e.y, R: ch.r, dmg: ch.dmg, t: ch.t, age: 0, hit: new Set() });
+  (G.staticRings ||= []).push({ x: e.x, y: e.y, R: ch.r, dmg: ch.dmg, t: ch.t, slow: ch.slow || 0, age: 0, hit: new Set() });
 }
 // every step (stepChains): grow the rings and land their damage
 function stepStaticRings(dt) {
@@ -196,6 +200,7 @@ function stepStaticRings(dt) {
       for (const o of G.enemies) {
         if (o.dead || g.hit.has(o.id) || (o.x - g.x) ** 2 + (o.y - g.y) ** 2 > r * r) continue;
         g.hit.add(o.id); damage(o, g.dmg, g.t, false, false, null);
+        if (g.slow && !o.dead) applySlow(o, g.slow, STAT_SLOW_T, g.t.id + ":stat");
       }
     }
   } finally { staticQuiet = false; }
@@ -377,13 +382,16 @@ const ACD_DOUBLE = [1, 0.82, 0.6, 0.24], ACD_LINES = [2, 3, 4, 6], /* early-game
 // line's heat when it fell, by Seep tier
 const ACD_SEEP = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.8, life: 3.2, r: 30 }]; // refit 2026-10-06
 const ACD_PUDDLE_HEAT = [0.5, 1.08, 1.75, 3.2];
+// Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
+// the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
+const ACD_SEEP_SLOW = [0, 0, 0, 0.3];
 function acidSkillStats(t, s, b) {
   const c = skillOf(t, "catalyst");
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACID_MAX; s.plagueR = 0;
   // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
   // fast waves reset it); Corrosion III, Dissolve, hands on ALL of it (owner)
   s.carry = c >= 3 ? 1 : 0.4; s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")];
-  s.seepHeat = ACD_PUDDLE_HEAT[skillOf(t, "seep")]; s.pourMul = ACD_POUR_MUL[skillOf(t, "pour")]; s.skill = true;
+  s.seepHeat = ACD_PUDDLE_HEAT[skillOf(t, "seep")]; s.seepSlow = ACD_SEEP_SLOW[skillOf(t, "seep")]; s.pourMul = ACD_POUR_MUL[skillOf(t, "pour")]; s.skill = true;
 }
 // every step (stepAcid): each line drips a puddle every seep.every s; each
 // puddle ticks its burn on whatever stands in it, st.rate times a second
@@ -405,6 +413,7 @@ function stepPuddles(t, st, dt) {
       for (const e of G.enemies) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
         damage(e, p.dps * every, t); e.burnT = 0.4; // a real hit: it pops shields too
+        if (st.seepSlow && !e.dead) applySlow(e, st.seepSlow, 0.5, t.id + ":pud");
       }
     }
   }
@@ -438,57 +447,4 @@ function drawPuddles(t) {
     }
   }
   ctx.globalAlpha = 1;
-}
-
-// ---------- the chart (UI only; the upgrade cards draw it) ----------
-// a triangle radar, an axis per corner, a ring per tier; the filled shape is
-// what the tower has, the dashed one what this pick would make (owner: JoJo)
-// the same chart drawn INSIDE the tower's hex on the board (owner): its outer
-// triangle's corners ARE three of the hex's corners (every other one, at the
-// outline), with the inner tier triangles and the three axes drawn faint, and
-// the build's shape filled in the tower's colour
-function boardChart(t, x, y, alpha, c0) {
-  const axes = SKILL_TREES[t.kind], col = COL[TOWERS[t.kind].color];
-  // axis i points where the CARD's chart puts it (owner: same orientation - the
-  // first axis up, then clockwise every 120 deg), snapped to the nearest hex corner
-  const corner = i => {
-    const want = -Math.PI / 2 + i * 2 * Math.PI / axes.length;
-    let best = c0.pts[0], bd = 9;
-    for (const p of c0.pts) {
-      const d = Math.abs(Math.atan2(Math.sin(Math.atan2(p.y - c0.y, p.x - c0.x) - want), Math.cos(Math.atan2(p.y - c0.y, p.x - c0.x) - want)));
-      if (d < bd) { bd = d; best = p; }
-    }
-    return best;
-  };
-  const pt = (i, k) => {
-    const p = corner(i), f = TOWER_K * k / SKILL_TIERS;
-    return [x + (p.x - c0.x) * f, y + (p.y - c0.y) * f];
-  };
-  const path = ks => { ctx.beginPath(); ks.forEach((k, i) => { const [px, py] = pt(i, k); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.closePath(); };
-  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineJoin = "round";
-  ctx.globalAlpha = 0.25 * alpha; ctx.lineWidth = 1.5;
-  for (let k = 1; k <= SKILL_TIERS; k++) { path(axes.map(() => k)); ctx.stroke(); }
-  axes.forEach((_, i) => { const [px, py] = pt(i, SKILL_TIERS); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(px, py); ctx.stroke(); });
-  path(axes.map(ax => skillOf(t, ax.id)));
-  ctx.globalAlpha = 0.6 * alpha; ctx.fill();
-  ctx.globalAlpha = alpha; ctx.lineWidth = 2; ctx.stroke();
-}
-function skillChart(t, next) {
-  const axes = SKILL_TREES[t.kind], R = 46, C = 60, pt = (i, k) => {
-    const a = -Math.PI / 2 + i * 2 * Math.PI / axes.length, r = 8 + (R - 8) * k / SKILL_TIERS;
-    return (C + Math.cos(a) * r).toFixed(1) + "," + (C + Math.sin(a) * r).toFixed(1);
-  };
-  const shape = sk => axes.map((ax, i) => pt(i, (sk && sk[ax.id]) || 0)).join(" ");
-  let svg = '<svg class="asp-chart" viewBox="0 0 120 120">';
-  for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => pt(i, k)).join(" ") + '"/>';
-  axes.forEach((ax, i) => {
-    svg += '<line class="grid" x1="' + C + '" y1="' + C + '" x2="' + pt(i, SKILL_TIERS).replace(",", '" y2="') + '"/>';
-  });
-  if (next) svg += '<polygon class="next" points="' + shape(next) + '"/>';
-  svg += '<polygon class="now" points="' + shape(t.skills) + '"/>';
-  axes.forEach((ax, i) => {
-    const [x, y] = pt(i, SKILL_TIERS + 0.9).split(",");
-    svg += '<text x="' + x + '" y="' + y + '">' + ax.name.slice(0, 4).toUpperCase() + " " + skillOf(t, ax.id) + "</text>";
-  });
-  return svg + "</svg>";
 }
