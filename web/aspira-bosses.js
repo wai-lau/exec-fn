@@ -49,7 +49,7 @@ const meanTravel = () => meanTravelV || (meanTravelV = PATHS.reduce((a, p, i) =>
 const BOSS_BREACH = {
   star: "eclipsed by the star", empress: "smothered by the empress", strength: "overwhelmed by strength",
   chariot: "overrun by the chariot", lovers: "undone by the lovers", temperance: "outlasted by temperance",
-  devil: "bound by the devil", justice: "sentenced by justice", judgement: "weighed by judgement", death: "taken by death",
+  devil: "bound by the devil", justice: "sentenced by justice", judgement: "weighed by judgement", death: "erased by death",
 };
 const arcanaOf = n => ARCANA[Math.min(ARCANA.length, Math.max(1, Math.round(n / STAR_EVERY))) - 1];
 // how many bosses ride a boss wave: the Lovers come as two, the Devil as six,
