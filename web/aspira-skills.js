@@ -257,24 +257,25 @@ function drawFrzSkill(t, st) {
 
 // ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
 const SOL_BEAMS = [1, 2, 4, 7], SOL_REFRACT = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 4];
-// a refraction lands within SOL_CONE degrees of the first shot's direction, at
-// most SOL_REFRACT_R from the enemy before it; one Breach = BREACH_ARMOR armor
-// off and BREACH_CRIT crit chance for every tower (balance later)
-const SOL_CONE = 25, SOL_REFRACT_R = 150, BREACH_ARMOR = 2, BREACH_CRIT = 0.01;
+// a refraction lands within SOL_CONE degrees of the first shot's direction (at
+// any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
+// chance for every tower (balance later)
+const SOL_CONE = 25, BREACH_ARMOR = 2, BREACH_CRIT = 0.01;
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.crit = LVL_REAPER_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refract = SOL_REFRACT[skillOf(t, "refract")];
   s.breach = SOL_BREACH[skillOf(t, "scorch")]; s.bleedArmor = s.breach ? BREACH_ARMOR : 0; s.bleedCrit = BREACH_CRIT; s.skill = true;
 }
 // from fireRay: bend on from the first enemy hit to st.refract more, each the
-// nearest not yet hit within SOL_REFRACT_R of the last AND inside ONE light
-// cone from the TOWER (owner), SOL_CONE degrees either side of the first shot
+// nearest not yet hit to the last one, ANYWHERE inside ONE light cone from the
+// TOWER (owner), SOL_CONE degrees either side of the first shot - no reach
+// limit between hops, nor the tower's range: the cone is the only bound
 function solRefract(t, st, e) {
   const dir = Math.atan2(e.y - t.y, e.x - t.x), half = SOL_CONE * Math.PI / 180, hit = new Set([e]);
   const inCone = o => Math.abs(((Math.atan2(o.y - t.y, o.x - t.x) - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) <= half;
   let prev = e, far = Math.hypot(e.x - t.x, e.y - t.y);
   for (let k = 0; k < st.refract; k++) {
-    let nxt = null, nd = SOL_REFRACT_R * SOL_REFRACT_R;
+    let nxt = null, nd = Infinity;
     for (const o of G.enemies) {
       if (o.dead || hit.has(o)) continue;
       const d = (o.x - prev.x) ** 2 + (o.y - prev.y) ** 2;
