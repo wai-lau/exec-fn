@@ -9,21 +9,20 @@ const SKILL_POINTS = 6, SKILL_TIERS = 3;
 // three-step total, spread over six; balance later)
 const SKILL_STEP_COST = [2, 3.5, 5.5, 8, 10.5, 13];
 const SKILL_TREES = {
-  // ARC (owner): Conductivity = how many times the chain JUMPS (and its damage),
-  // Voltage = how many ways each jump FORKS (and its range), Static = an
-  // EXPLOSION on every hit that marks what it catches. Base: one jump forking
-  // two ways, three enemies. Volt + Cond = a big leafless tree, Volt + Static
-  // short and bushy, Cond + Static a railgun with joints.
+  // ARC (owner): Conductivity = ALL the branching (owner, 2026-10-05) - how
+  // many times the chain jumps AND how many ways each jump forks; Voltage =
+  // raw power, damage and range; Static = an EXPLOSION on every hit that marks
+  // what it catches. Base: one jump forking two ways, three enemies.
   chain: [
     { id: "cond", name: "Conductivity", tiers: [
-      { name: "Conduit", desc: "The chain jumps twice, and hits harder." },
-      { name: "Live Wire", desc: "Three jumps, harder hits." },
-      { name: "Superconductor", desc: "Four jumps, the hardest hits." },
+      { name: "Conduit", desc: "The chain jumps twice, forking three ways." },
+      { name: "Live Wire", desc: "Three jumps, forking four ways." },
+      { name: "Superconductor", desc: "Four jumps, forking five ways: a whole tree of lightning." },
     ] },
     { id: "volt", name: "Voltage", tiers: [
-      { name: "Spark", desc: "Each jump forks three ways, and reaches further." },
-      { name: "Arc Flash", desc: "Four-way forks, longer reach." },
-      { name: "High Voltage", desc: "Five-way forks, the longest reach." },
+      { name: "Spark", desc: "Harder bolts that reach further." },
+      { name: "Arc Flash", desc: "Harder still, and further." },
+      { name: "High Voltage", desc: "The hardest bolts, the longest reach." },
     ] },
     { id: "static", name: "Static", tiers: [
       { name: "Static", desc: "Every hit sparks a blast; what it catches takes more damage for a while." },
@@ -40,14 +39,14 @@ const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
 const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 + Math.floor((t.lvl - 1) / 2));
 
 // ARC's numbers by tier (index 0 = untaken). Balance later (owner: ideas first).
-const ARC_COND_DMG = [1, 1.5, 2.2, 3.2], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
+const ARC_VOLT_DMG = [1, 1.5, 2.2, 3.2], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
 const ARC_STATIC = [null, { r: 40, frac: 0.5, mul: 1.15 }, { r: 60, frac: 0.5, mul: 1.3 }, { r: 85, frac: 0.5, mul: 1.5 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.6, ARC_SHRINK = 0.7, STATIC_MARK_T = 3;
 function arcSkillStats(t, s, b) {
   const c = skillOf(t, "cond"), v = skillOf(t, "volt"), z = skillOf(t, "static");
-  s.dmg = b.dmg * ARC_COND_DMG[c]; s.range = b.range * RANGE_BONUS * ARC_VOLT_RANGE[v];
-  s.arcRange = s.range; s.layers = 1 + c; s.branch = 2 + v;
+  s.dmg = b.dmg * ARC_VOLT_DMG[v]; s.range = b.range * RANGE_BONUS * ARC_VOLT_RANGE[v];
+  s.arcRange = s.range; s.layers = 1 + c; s.branch = 2 + c; // Conductivity: jumps AND forks
   s.arcFall = ARC_FALL; s.arcShrink = ARC_SHRINK; s.blast = ARC_STATIC[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
