@@ -321,6 +321,7 @@ function towerStats(t, noAura = false) {
     case "chain": arcSkillStats(t, s, b); break;
     // SOL levels up MODESTLY like ARC and ACD (owner): the L2 path brings the change
     case "reaper":
+      if (hasSkills(t)) { solSkillStats(t, s, b); break; } // SOL's chart (aspira-skills.js)
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
       s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
     case "slower": if (hasSkills(t)) { frzSkillStats(t, s, b); break; } s.slow = LVL_SLOW[i]; s.targets = 3; break; // owner: 3 rays by default (2026-10-04; was 1 since 2026-10-02)

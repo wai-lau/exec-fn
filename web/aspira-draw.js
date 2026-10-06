@@ -379,6 +379,8 @@ function drawFx(pass) {
       if (f.outline === false) continue; // Zen's pulse: the gradient wave alone
       ctx.strokeStyle = COL[f.color]; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.5), 0, 6.283); ctx.stroke();
+    } else if (f.k === "cone") {
+      drawCone(f, k); // SOL's Refract light cone (aspira-skills.js)
     } else if (f.k === "spark") {
       ctx.fillStyle = COL[f.color]; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
     } else if (f.k === "text") {
