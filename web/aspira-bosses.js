@@ -182,12 +182,13 @@ const BOSS_BAR_R = 400, BOSS_BAR_W = 21, BOSS_BAR_TRACK = 0.3; // 3x thicker (ow
 // the boss's NAME and mythic subtitle under the core: drawn LAST, over the
 // towers (owner) - so after the inverted sky, and in the colour the sky would
 // have given it: the boss red inside the inversion's circle, its own outside
-const BOSS_TITLE_PX = 46, BOSS_SUB_PX = 30;
+const BOSS_TITLE_PX = 22, BOSS_SUB_PX = 22; // the credits' size (owner, 2026-10-06; were 46 / 30)
 function drawBossTitle() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
   if (!bosses.length) return;
-  // the TITLE above the core, the haiku under it (owner)
-  const off = CORE_R + LIFE_GAP * LIFE_RINGS + 20, arc = arcanaOf(bosses[0].n), col = ENEMIES.bonus.color;
+  // the TITLE above the core, the haiku under it (owner), hugging its life rings
+  // (owner, 2026-10-06: closer to the middle; was 24 further out)
+  const off = CORE_R + LIFE_GAP * LIFE_RINGS - 4, arc = arcanaOf(bosses[0].n), col = ENEMIES.bonus.color;
   // drawn in its own colours with a dark halo: inside the inverted sky the
   // inverted palette turns that red on a white halo (render, withPalette)
   text(arc.name, CX, CY - off - BOSS_TITLE_PX * 0.5, BOSS_TITLE_PX, col, true, true); // BOLD and bigger (owner); just the name, no "x2" (owner)

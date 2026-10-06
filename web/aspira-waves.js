@@ -178,7 +178,11 @@ function drawCredits() {
   // just the NUMBER, centred on the core (owner: the CREDITS word is gone),
   // full with separators - counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
+  // a little "c" after it (owner, 2026-10-06), smaller, the number staying centred
+  ctx.font = "22px " + CANVAS_FONT;
+  const nw = ctx.measureText(n).width;
   text(n, CX, CY, 22, "bg", "white"); // BLACK with a white halo (owner)
+  text("c", CX + nw / 2 + 6, CY + 2, 14, "bg", "white");
   if (!fxOn || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "20px " + CANVAS_FONT;
