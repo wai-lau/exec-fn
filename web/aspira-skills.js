@@ -384,9 +384,33 @@ function stepPuddles(t, st, dt) {
   }
   t.puddles = t.puddles.filter(p => p.age < p.life);
 }
-// UI (drawAcid): each puddle a soft disc in ACD's colour, fading as it dries
+// UI (drawAcid): a puddle is a cluster of BUBBLES (owner): PUDDLE_BUBBLES at
+// once, each at a jittered spot within it, growing to its own jittered max
+// size over BUBBLE_T real seconds, then POPPING (a brief widening ring) and
+// starting again elsewhere; the whole cluster fades as the puddle dries
+const PUDDLE_BUBBLES = 5, BUBBLE_T = 0.6, BUBBLE_POP = 0.15;
 function drawPuddles(t) {
-  for (const p of t.puddles || []) gradDisc(p.x, p.y, p.r, COL.chatsubo, 2.5 * (1 - p.age / p.life));
+  const now = performance.now() / 1000;
+  ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
+  for (const p of t.puddles || []) {
+    const fade = 1 - p.age / p.life, seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
+    for (let i = 0; i < PUDDLE_BUBBLES; i++) {
+      const ph = now / BUBBLE_T + i / PUDDLE_BUBBLES + (seed % 97) / 97, cyc = Math.floor(ph), f = ph - cyc;
+      const h = k => fixedRand(cyc * 13 + i * 3 + k, seed); // this bubble's own jitter, fixed for its life
+      const a = h(0) * 6.283, d = Math.sqrt(h(1)) * p.r * 0.8, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+      const max = p.r * (0.2 + 0.25 * h(2));
+      ctx.beginPath();
+      if (f < 1 - BUBBLE_POP) {
+        ctx.arc(x, y, max * f / (1 - BUBBLE_POP), 0, 6.283);
+        ctx.globalAlpha = 0.2 * fade; ctx.fill();
+        ctx.globalAlpha = 0.75 * fade; ctx.stroke();
+      } else {
+        const q = (f - 1 + BUBBLE_POP) / BUBBLE_POP; // the pop: a ring widening and gone
+        ctx.arc(x, y, max * (1 + 0.5 * q), 0, 6.283);
+        ctx.globalAlpha = 0.6 * (1 - q) * fade; ctx.stroke();
+      }
+    }
+  }
   ctx.globalAlpha = 1;
 }
 
