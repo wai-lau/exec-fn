@@ -59,7 +59,7 @@ function rainChain(t, st, from) {
   return out;
 }
 function acidTick(t, st, l, every) {
-  const d = st.dmg * acidMulOf(l.held, st) * every;
+  const d = st.dmg * (st.pourMul || 1) * acidMulOf(l.held, st) * every; // Spray's fitted per-line damage (aspira-skills.js)
   const burn = o => {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh

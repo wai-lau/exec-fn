@@ -358,16 +358,20 @@ function drawCone(f, k) {
 }
 
 // ---------- ACD's chart: Catalyst ramp, Pour lines, Seep puddles ----------
-const ACD_DOUBLE = [1, 0.75, 0.55, 0.4], ACD_LINES = [1, 2, 3, 5];
+// FITTED 2026-10-06 to +25 / +50 / +100% (Spray to +30 / +60 / +120%, since
+// its lines can never share an enemy): Corrosion's ramp time, Spray's per-line
+// damage, Contagion's puddle heat (tier III's is below II's - its puddles are bigger)
+const ACD_DOUBLE = [1, 0.7, 0.6, 0.6], ACD_LINES = [1, 2, 3, 5], ACD_POUR_MUL = [1, 1.03, 1.39, 2.4];
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
-// line's heat when it fell (balance later)
+// line's heat when it fell, by Seep tier
 const ACD_SEEP = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1, life: 2, r: 25 }, { every: 0.7, life: 3, r: 32 }, { every: 0.5, life: 4.5, r: 40 }];
-const ACD_PUDDLE_HEAT = 0.5;
+const ACD_PUDDLE_HEAT = [0.5, 2.8, 2.3, 3.75];
 function acidSkillStats(t, s, b) {
   const c = skillOf(t, "catalyst");
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACID_MAX; s.plagueR = 0;
-  s.carry = c >= 3 ? 0.5 : 0; s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")]; s.skill = true;
+  s.carry = c >= 3 ? 0.5 : 0; s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")];
+  s.seepHeat = ACD_PUDDLE_HEAT[skillOf(t, "seep")]; s.pourMul = ACD_POUR_MUL[skillOf(t, "pour")]; s.skill = true;
 }
 // every step (stepAcid): each line drips a puddle every seep.every s; each
 // puddle ticks its burn on whatever stands in it, st.rate times a second
@@ -378,7 +382,7 @@ function stepPuddles(t, st, dt) {
     l.drip = (l.drip ?? sp.every) - dt;
     if (l.drip > 0) continue;
     l.drip += sp.every;
-    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * acidMulOf(l.held, st) * ACD_PUDDLE_HEAT });
+    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * acidMulOf(l.held, st) * st.seepHeat });
   }
   if (!t.puddles) return;
   const every = 1 / st.rate;
