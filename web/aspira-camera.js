@@ -10,6 +10,33 @@
 const ZOOM_MAX = 4, DRAG_PX = 6;
 const ptrs = new Map(); // pointerId -> { x, y } in device pixels
 let fitK = 0, dragged = false, downAt = null, pinch = null;
+// THE CORE'S POWER GESTURES (owner, 2026-10-06; aspira-core.js), only once the
+// power is owned - otherwise a drag pans and a press taps, as ever:
+//   press and HOLD the core HOLD_MS -> Temporal's freeze
+//   drag from the CORE onto a tower -> Empower it
+//   drag from a TOWER onto the core -> Fortifications copies it
+// ui.drag = { kind: "core" | "tower", t, from, at } while one is held (drawn by drawCoreFx)
+const HOLD_MS = 400, CORE_GRAB = 1.8; // the core grabs within CORE_GRAB x its radius
+let holdTimer = 0, holdFired = false;
+function grabPower(ev) {
+  if (!G.core || !coreOpen()) return null;
+  const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
+  if (onCore && (powerLvl("temporal") || powerLvl("empower"))) {
+    if (powerLvl("temporal")) holdTimer = setTimeout(() => {
+      if (ui.drag && ui.drag.kind === "core" && !dragged && temporalFreeze()) { holdFired = true; ui.drag = null; refreshPanels(); }
+    }, HOLD_MS);
+    return { kind: "core", from: { x: CX, y: CY }, at: null };
+  }
+  const t = !onCore && powerLvl("fortify") && towerAt(w);
+  return t ? { kind: "tower", t, from: { x: t.x, y: t.y }, at: null } : null;
+}
+// a power drag let go: Empower the tower under it, or Fortify from the tower dropped on the core
+function dropPower(d) {
+  if (!d.at) return;
+  if (d.kind === "core" && powerLvl("empower")) empower(towerAt(d.at));
+  if (d.kind === "tower" && Math.hypot(d.at.x - CX, d.at.y - CY) <= CORE_R * CORE_GRAB) fortify(d.t);
+  refreshPanels();
+}
 
 function devXY(ev) {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
@@ -41,8 +68,9 @@ cv.addEventListener("pointerdown", ev => {
   if (!fitK) fitK = cam.fit;
   cv.setPointerCapture(ev.pointerId);
   ptrs.set(ev.pointerId, devXY(ev));
-  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); }
+  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); holdFired = false; ui.drag = grabPower(ev); }
   if (ptrs.size === 2) {
+    clearTimeout(holdTimer); ui.drag = null; // a pinch is never a power gesture
     const [a, b] = [...ptrs.values()];
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
     dragged = true; // a pinch never ends in a tap
@@ -63,12 +91,18 @@ cv.addEventListener("pointermove", ev => {
   }
   const dpr = canvasDpr();
   if (!dragged && Math.hypot(now.x - downAt.x, now.y - downAt.y) > DRAG_PX * dpr) dragged = true;
+  if (ui.drag) { if (dragged) { clearTimeout(holdTimer); ui.drag.at = toWorld(ev); } return; } // a power drag: no pan
   if (dragged) panBy(now.x - prev.x, now.y - prev.y);
 });
 function endPointer(ev, tap) {
   if (!ptrs.has(ev.pointerId)) return;
   ptrs.delete(ev.pointerId);
   if (ptrs.size < 2) pinch = null;
+  clearTimeout(holdTimer);
+  const d = ui.drag;
+  ui.drag = null;
+  if (holdFired) { holdFired = false; return; } // the hold already froze: no tap
+  if (d && dragged) { if (tap) dropPower(d); return; }
   if (tap && !ptrs.size && !dragged) onTap(ev);
 }
 cv.addEventListener("pointerup", ev => endPointer(ev, true));

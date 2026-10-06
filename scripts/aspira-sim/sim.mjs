@@ -30,7 +30,9 @@ export function makeGame(seed, patch = "") {
   vm.runInContext(`
     const __ts = towerStats, __cache = new Map();
     towerStats = function (t, noAura) {
-      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + (G.core ? [G.core.l1, G.core.l2, G.core.l3, JSON.stringify(G.core.reps || {})].join() : ""); // core upgrades change stats
+      // the key covers EVERYTHING stats read: chart picks (t.skills - two
+      // towers of one kind and level can differ), Empower, and the core's powers
+      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + JSON.stringify(t.skills || {}) + "|" + (t.empowerUntil > (G.clock || 0) ? "E" : "") + "|" + (G.core ? JSON.stringify(G.core.pw || {}) : "");
       let s = __cache.get(k);
       if (!s) { s = __ts(t, true); __cache.set(k, s); }
       return s;

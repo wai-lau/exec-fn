@@ -58,7 +58,6 @@ function spawnEnemy(type, n, pi, ang = 0) {
     // swarm bounty must hold; money is shown rounded down)
     bounty: (2 + n * 0.35) * d.bounty, slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
-  if (quenching()) quench(G.enemies[G.enemies.length - 1]); // the core's Quench / Vacuum (aspira-core.js)
   if (type === "bonus") bossSpawn(G.enemies[G.enemies.length - 1], n); // which boss (aspira-bosses.js)
 }
 
@@ -138,9 +137,6 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (!quiet && !crit && e.bleedCrit > 0 && !(t && t.kind === "reaper") && Math.random() < e.bleedCrit) { crit = true; amt *= BLEED_CRIT_MUL; }
   if (e.shredT > 0) amt *= e.shredMul;
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
-  // the core (aspira-core.js): Echo / Resonance, Brittle Core, Anneal's crit
-  const [coreM, coreCrit] = coreHitMul(e, t);
-  amt *= coreM; if (coreCrit) crit = true;
   // armor takes a flat bite out of every hit (never below 10% of it)
   const raw = amt;
   // ... except from the Reaper, whose shots ignore armor (owner)
@@ -398,7 +394,7 @@ function step(dt) {
   if (G.over || !G.started) return;
   G.clock = (G.clock || 0) + dt; // game time (aspira-positioning.js paces its predictions on it)
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
-  stepCore(dt); // the core's ZEN pulse (aspira-core.js)
+  stepCore(dt); // the core's powers: cooldowns, Temporal's ring, Fortifications' copy firing (aspira-core.js)
   // the next wave goes when its timer runs out, or the moment the field
   // clears (owner): nothing alive, nothing still queued to spawn
   // ...except the BOSS holds the timer (owner): nothing new comes until it
