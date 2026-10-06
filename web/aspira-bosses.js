@@ -45,6 +45,12 @@ const TEMPERANCE_REGEN = 0.06, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_R
 const laneTravel = pi => PATHS[pi].len - entryS(pi);
 let meanTravelV = 0;
 const meanTravel = () => meanTravelV || (meanTravelV = PATHS.reduce((a, p, i) => a + laneTravel(i), 0) / PATHS.length);
+// the game-over title when a BOSS gets through (owner: "overwhelmed by strength")
+const BOSS_BREACH = {
+  star: "eclipsed by the star", empress: "smothered by the empress", strength: "overwhelmed by strength",
+  chariot: "overrun by the chariot", lovers: "undone by the lovers", temperance: "outlasted by temperance",
+  devil: "bound by the devil", justice: "sentenced by justice", judgement: "weighed by judgement", death: "taken by death",
+};
 const arcanaOf = n => ARCANA[Math.min(ARCANA.length, Math.max(1, Math.round(n / STAR_EVERY))) - 1];
 // how many bosses ride a boss wave: the Lovers come as two, the Devil as six,
 // one on each of six lane copies
