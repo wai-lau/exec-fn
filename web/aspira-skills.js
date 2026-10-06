@@ -53,6 +53,31 @@ SKILL_TREES.slower = [
     { name: "Three Moons", desc: "Three moons." },
   ] },
 ];
+// SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
+// side at the tower, CONVERGING on the target - not parallel, owner), each its
+// own hit, 2 / 4 / 7; Refract = the beam bends on to 2 / 5 / 9 more
+// enemies, each within SOL_CONE degrees of the first shot's direction (a light
+// cone shows it); Scorch (was Impale; owner: light-themed) = 1 / 2 / 4 BREACH
+// stacks per hit (the old bleed: armor down and crit up for every tower, for
+// good). Focus x Scorch multiply:
+// 7 beams x 4 = 28 Breaches a volley on one target.
+SKILL_TREES.reaper = [
+  { id: "focus", name: "Focus", tiers: [
+    { name: "Twin Beams", desc: "Two beams converge on the target, each its own hit." },
+    { name: "Quad", desc: "Four converging beams." },
+    { name: "Horizon", desc: "Seven converging beams." },
+  ] },
+  { id: "refract", name: "Refract", tiers: [
+    { name: "Refract", desc: "The beam bends on to two more enemies ahead of the shot." },
+    { name: "Prism", desc: "On to five more." },
+    { name: "Spectrum", desc: "On to nine more." },
+  ] },
+  { id: "scorch", name: "Scorch", tiers: [
+    { name: "Sear", desc: "Each hit burns a Breach into the enemy: armor down and crits up for every tower, for good." },
+    { name: "Scorch", desc: "Two Breaches per hit." },
+    { name: "Flare", desc: "Four Breaches per hit." },
+  ] },
+];
 const hasSkills = t => !!SKILL_TREES[t.kind];
 const maxLvl = t => (hasSkills(t) ? 1 + SKILL_POINTS : MAX_LVL);
 const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
@@ -228,6 +253,43 @@ function drawFrzSkill(t, st) {
     ctx.globalAlpha = 0.7 * (1 - f * 0.6); ctx.beginPath(); ctx.arc(p.x, p.y, p.R * f, 0, 6.283); ctx.stroke();
   }
   ctx.globalAlpha = 1;
+}
+
+// ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
+const SOL_BEAMS = [1, 2, 4, 7], SOL_REFRACT = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 4];
+// a refraction lands within SOL_CONE degrees of the first shot's direction, at
+// most SOL_REFRACT_R from the enemy before it; one Breach = BREACH_ARMOR armor
+// off and BREACH_CRIT crit chance for every tower (balance later)
+const SOL_CONE = 25, SOL_REFRACT_R = 150, BREACH_ARMOR = 2, BREACH_CRIT = 0.01;
+function solSkillStats(t, s, b) {
+  s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.crit = LVL_REAPER_CRIT[0]; s.rate = b.rate;
+  s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refract = SOL_REFRACT[skillOf(t, "refract")];
+  s.breach = SOL_BREACH[skillOf(t, "scorch")]; s.bleedArmor = s.breach ? BREACH_ARMOR : 0; s.bleedCrit = BREACH_CRIT; s.skill = true;
+}
+// from fireRay: bend on from the first enemy hit to st.refract more, each the
+// nearest not yet hit within SOL_REFRACT_R of the last and inside the cone
+function solRefract(t, st, e) {
+  const dir = Math.atan2(e.y - t.y, e.x - t.x), half = SOL_CONE * Math.PI / 180, hit = new Set([e]);
+  fx.push({ k: "cone", x: e.x, y: e.y, a: dir, half, len: SOL_REFRACT_R * Math.min(3, st.refract), color: TOWERS[t.kind].color, t: 0, life: 0.3 });
+  let prev = e;
+  for (let k = 0; k < st.refract; k++) {
+    let nxt = null, nd = SOL_REFRACT_R * SOL_REFRACT_R;
+    for (const o of G.enemies) {
+      if (o.dead || hit.has(o)) continue;
+      const dx = o.x - prev.x, dy = o.y - prev.y, d = dx * dx + dy * dy;
+      if (d >= nd) continue;
+      const off = Math.abs(((Math.atan2(dy, dx) - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+      if (off <= half) { nd = d; nxt = o; }
+    }
+    if (!nxt) break;
+    rayHit(t, st, nxt, st.dmg, prev); hit.add(nxt); prev = nxt;
+  }
+}
+// UI (drawFx): the Refract light cone, a faint wedge fading as it goes
+function drawCone(f, k) {
+  ctx.fillStyle = COL[f.color]; ctx.globalAlpha = 0.18 * k;
+  ctx.beginPath(); ctx.moveTo(f.x, f.y);
+  ctx.arc(f.x, f.y, f.len, f.a - f.half, f.a + f.half); ctx.closePath(); ctx.fill();
 }
 
 // ---------- the chart (UI only; the upgrade cards draw it) ----------

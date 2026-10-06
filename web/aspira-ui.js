@@ -198,7 +198,8 @@ const SPEC = {
     ["Circle", st.plagueR ? Math.round(st.plagueR) + (st.bloom ? "→" + Math.round(st.plagueR * st.bloom) : "") : "—"],
     ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"]],
   reaper: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
-    ["Beams", st.beams || 1], ["Bleed", st.bleedArmor ? "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit / hit" : "—"],
+    ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refract ? "+" + st.refract + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
+    [st.skill ? "Breach" : "Bleed", st.bleedArmor ? (st.breach ? st.breach + " × (" : "") + "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit" + (st.breach ? ")" : "") + " / hit" : "—"],
     ["Armor", "ignored"], ["Form", rayForm(st)]],
 };
 

@@ -312,8 +312,9 @@ function stepAcid(t, dt) {
 const BOUNCE_R = 120, BLEED_CRIT_CAP = 1; // Ricochet hop at 75%, with every range (owner)
 function bleed(e, st) {
   if (!st.bleedArmor || e.dead) return;
-  e.armor = (e.armor || 0) - st.bleedArmor; // permanent, and on past zero (owner)
-  e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit);
+  const k = st.breach || 1; // the chart SOL: Breach stacks per hit (aspira-skills.js)
+  e.armor = (e.armor || 0) - st.bleedArmor * k; // permanent, and on past zero (owner)
+  e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit * k);
 }
 function rayHit(t, st, e, base, from) {
   const crit = Math.random() < ((st.crit || 0) + (e.bleedCrit || 0)) * (st.critScale || 1);
@@ -335,6 +336,7 @@ function rayHit(t, st, e, base, from) {
 }
 function fireRay(t, st, e) {
   rayHit(t, st, e, st.dmg, t);
+  if (st.refract) { solRefract(t, st, e); return; } // the chart SOL's Refract (aspira-skills.js)
   if (!st.ricochet) return;
   // Ricochet / Shredder: hop to the nearest enemy not yet hit, at full damage
   const hit = new Set([e]);
