@@ -39,19 +39,24 @@ const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
 const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 + Math.floor((t.lvl - 1) / 2));
 
 // ARC's numbers by tier (index 0 = untaken). Balance later (owner: ideas first).
-const ARC_VOLT_DMG = [1, 1.5, 2.2, 3.2], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
+// Voltage's damage FITTED to +25% / +50% / +100% dealt (owner; arcfit.mjs, waves 6-20)
+const ARC_VOLT_DMG = [1, 1.21, 1.42, 3.01], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45];
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
-const ARC_COND = [{ s: 1, j: 1, f: 2, r: 1 }, { s: 1, j: 2, f: 2, r: 1.2 }, { s: 1, j: 2, f: 3, r: 1.4 }, { s: 2, j: 2, f: 3, r: 1.6 }];
+// d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
+// the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
+let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1.24 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1.53 }, { s: 2, j: 2, f: 3, r: 1.6, d: 2.8 }];
 const ARC_STATIC = [null, { r: 40, frac: 0.5, mul: 1.15 }, { r: 60, frac: 0.5, mul: 1.3 }, { r: 85, frac: 0.5, mul: 1.5 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.6, ARC_SHRINK = 0.7, STATIC_MARK_T = 3;
+// a jump's reach, x the tower's range, before Conductivity lengthens it (owner: longer by default)
+let ARC_JUMP_REACH = 1.5;
 function arcSkillStats(t, s, b) {
   const c = skillOf(t, "cond"), v = skillOf(t, "volt"), z = skillOf(t, "static");
-  s.dmg = b.dmg * ARC_VOLT_DMG[v]; s.range = b.range * RANGE_BONUS * ARC_VOLT_RANGE[v];
+  s.dmg = b.dmg * ARC_VOLT_DMG[v] * ARC_COND[c].d; s.range = b.range * RANGE_BONUS * ARC_VOLT_RANGE[v];
   const sh = ARC_COND[c]; // Conductivity: strikes, jumps AND forks
-  s.arcRange = s.range * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
+  s.arcRange = s.range * ARC_JUMP_REACH * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
   s.arcFall = ARC_FALL; s.arcShrink = ARC_SHRINK; s.blast = ARC_STATIC[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
