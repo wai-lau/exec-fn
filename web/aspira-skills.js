@@ -267,27 +267,35 @@ function solSkillStats(t, s, b) {
   s.breach = SOL_BREACH[skillOf(t, "scorch")]; s.bleedArmor = s.breach ? BREACH_ARMOR : 0; s.bleedCrit = BREACH_CRIT; s.skill = true;
 }
 // from fireRay: bend on from the first enemy hit to st.refract more, each the
-// nearest not yet hit within SOL_REFRACT_R of the last and inside the cone
+// nearest not yet hit within SOL_REFRACT_R of the last AND inside ONE light
+// cone from the TOWER (owner), SOL_CONE degrees either side of the first shot
 function solRefract(t, st, e) {
   const dir = Math.atan2(e.y - t.y, e.x - t.x), half = SOL_CONE * Math.PI / 180, hit = new Set([e]);
-  fx.push({ k: "cone", x: e.x, y: e.y, a: dir, half, len: SOL_REFRACT_R * Math.min(3, st.refract), color: TOWERS[t.kind].color, t: 0, life: 0.3 });
-  let prev = e;
+  const inCone = o => Math.abs(((Math.atan2(o.y - t.y, o.x - t.x) - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) <= half;
+  let prev = e, far = Math.hypot(e.x - t.x, e.y - t.y);
   for (let k = 0; k < st.refract; k++) {
     let nxt = null, nd = SOL_REFRACT_R * SOL_REFRACT_R;
     for (const o of G.enemies) {
       if (o.dead || hit.has(o)) continue;
-      const dx = o.x - prev.x, dy = o.y - prev.y, d = dx * dx + dy * dy;
-      if (d >= nd) continue;
-      const off = Math.abs(((Math.atan2(dy, dx) - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
-      if (off <= half) { nd = d; nxt = o; }
+      const d = (o.x - prev.x) ** 2 + (o.y - prev.y) ** 2;
+      if (d < nd && inCone(o)) { nd = d; nxt = o; }
     }
     if (!nxt) break;
     rayHit(t, st, nxt, st.dmg, prev); hit.add(nxt); prev = nxt;
+    far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
   }
+  // the cone, from the tower to just past the furthest enemy it bent to
+  fx.push({ k: "cone", x: t.x, y: t.y, a: dir, half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
 }
-// UI (drawFx): the Refract light cone, a faint wedge fading as it goes
+const SOL_CONE_LIFE = 0.6; // game seconds (1x runs 2 game s a real s): long enough to see the cubic fade
+// UI (drawFx): the Refract light cone, a faint wedge that fades FAST (owner):
+// its opacity falls with the cube of the time left, and with DISTANCE from the
+// tower - full at the source, gone by SOL_CONE_FADE of its length (owner)
+const SOL_CONE_FADE = 0.8;
 function drawCone(f, k) {
-  ctx.fillStyle = COL[f.color]; ctx.globalAlpha = 0.18 * k;
+  const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.len * SOL_CONE_FADE);
+  g.addColorStop(0, COL[f.color]); g.addColorStop(1, "transparent");
+  ctx.fillStyle = g; ctx.globalAlpha = 0.5 * k * k * k;
   ctx.beginPath(); ctx.moveTo(f.x, f.y);
   ctx.arc(f.x, f.y, f.len, f.a - f.half, f.a + f.half); ctx.closePath(); ctx.fill();
 }
