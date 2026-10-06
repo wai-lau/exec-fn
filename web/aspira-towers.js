@@ -34,8 +34,8 @@ const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start
 // from: where the strike comes from - the tower, or (Static) the spot where a
 // charged enemy died; relay: this shot was fired by Static (its hits charge
 // enemies only at L4, Thunderhead, so kills cannot chain-react below that)
-function fireChain(t, st, e, from = t, relay = false) {
-  if (st.skill) { fireSkillChain(t, st, e); return; } // the skill-chart ARC (aspira-skills.js)
+function fireChain(t, st, e, from = t, relay = false, seen = null) {
+  if (st.skill) { fireSkillChain(t, st, e, seen); return; } // the skill-chart ARC (aspira-skills.js)
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(from, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
   if (st.ignoreShield) root.fx.pierce = true; // Ion: a white core - it pierces (owner)
@@ -358,7 +358,8 @@ function fire(t, st) {
   t.shots = (t.shots || 0) + 1;
   // one chain per target: st.targets > 1 (Ion's Fork) starts several lines on
   // DIFFERENT enemies (pickTargets never repeats one)
-  if (t.kind === "chain") { for (const e of targets) fireChain(t, st, e); return true; }
+  // (a chart ARC's strikes share ONE set of enemies hit: an attack never hits one twice)
+  if (t.kind === "chain") { const seen = new Set(); for (const e of targets) fireChain(t, st, e, t, false, seen); return true; }
   if (t.kind === "reaper") { fireRay(t, st, targets[0]); return true; }
   const col = TOWERS[t.kind].color;
   for (const e of targets) {
