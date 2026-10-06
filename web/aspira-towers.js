@@ -358,8 +358,8 @@ function fire(t, st) {
   t.shots = (t.shots || 0) + 1;
   // one chain per target: st.targets > 1 (Ion's Fork) starts several lines on
   // DIFFERENT enemies (pickTargets never repeats one)
-  // (a chart ARC's strikes share ONE set of enemies hit: an attack never hits one twice)
-  if (t.kind === "chain") { const seen = new Set(); for (const e of targets) fireChain(t, st, e, t, false, seen); return true; }
+  // (a chart ARC's two strikes are two SEPARATE attacks - owner: each its own tree)
+  if (t.kind === "chain") { for (const e of targets) fireChain(t, st, e); return true; }
   if (t.kind === "reaper") { fireRay(t, st, targets[0]); return true; }
   const col = TOWERS[t.kind].color;
   for (const e of targets) {
