@@ -350,7 +350,9 @@ function towerStats(t, noAura = false) {
     for (const u of G.towers) {
       if (u === t) continue;
       const us = towerStats(u, true);
-      if (us.aura && Math.hypot(u.x - t.x, u.y - t.y) <= us.range) s.dmg *= us.aura;
+      // the old Spotter's damage aura - NOT a chart FRZ, whose `aura` is its SLOW
+      // (that clash cut every tower inside a FRZ to a third of its damage, 2026-10-06)
+      if (us.aura && !us.skill && Math.hypot(u.x - t.x, u.y - t.y) <= us.range) s.dmg *= us.aura;
     }
   }
   if (G.power.RNG > 0) s.range *= 1.3;

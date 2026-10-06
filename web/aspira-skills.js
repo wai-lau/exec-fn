@@ -244,6 +244,7 @@ const FRZ_FROST_SLOW = [0.33, 0.363, 0.394, 0.439], FRZ_FROST_RANGE = [1, 1.05, 
 const FRZ_RIME = [0, 0.02, 0.035, 0.06]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 2.4, FRZ_MOON_SCALE = 0.78; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
+const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "frost");
   s.range = b.range * RANGE_BONUS * FRZ_FROST_RANGE[f];
@@ -269,8 +270,9 @@ function frzStep(t, dt) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
       if (!tick) continue;
-      // quiet: an aura does not strip shields (or flash) - but its tick still
-      // shows a NUMBER (owner, 2026-10-06), sized by what it took off
+      // a tick POPS a shield (owner, 2026-10-06) and is never blunted by armor;
+      // otherwise it is quiet (no flash) but shows its NUMBER, sized by what it took
+      if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; }
       const hp = e.hp;
       damage(e, st.dmg * s.k, t, true);
       if (hp - e.hp > 0) dmgNumber(e, String(Math.round(hp - e.hp)), hp - e.hp, "white");
