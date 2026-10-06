@@ -17,9 +17,10 @@ function renderEndStats() {
   const rows = [...G.towers, ...coreTowers().filter(t => t.dealt)];
   const total = rows.reduce((a, t) => a + (t.dealt || 0), 0) || 1;
   rows.sort((a, b) => (b.dealt || 0) - (a.dealt || 0));
-  let html = '<table class="asp-end-towers"><tr><th>tower</th><th>lvl</th><th>kills</th><th>damage</th><th>share</th></tr>';
+  // no level and no base name (owner): the row's colour says which tower
+  let html = '<table class="asp-end-towers"><tr><th>tower</th><th>kills</th><th>damage</th><th>share</th></tr>';
   for (const t of rows) {
-    html += '<tr data-kind="' + t.kind + '"><td>' + (t.isCore ? "core · " : "") + TOWERS[t.kind].ab + (buildName(t) ? " " + buildName(t) : "") + "</td><td>" + t.lvl + "</td><td>" +
+    html += '<tr data-kind="' + t.kind + '"><td>' + (t.isCore ? "core · " : "") + (buildName(t) || TOWERS[t.kind].ab) + "</td><td>" +
       (t.kills || 0) + "</td><td>" + short(Math.round(t.dealt || 0)) + "</td><td>" + Math.round(100 * (t.dealt || 0) / total) + "%</td></tr>";
   }
   html += "</table>";

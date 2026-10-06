@@ -58,7 +58,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
   const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18, grow3 = Math.pow(HP_GROWTH, 2) + 3 * 4 / 18;
   const { shield } = shieldsOf(type, n); // fewer late shields, more HP (shieldsOf)
   G.enemies.push({
-    armor: d.armor ? d.armor * Math.pow(grow, ARMOR_EXP) : 0, shield, shieldMax: shield,
+    armor: d.armor ? d.armor * Math.pow(grow, ARMOR_EXP) : 0, shield, shieldMax: shield, wave: n, // the wave it CAME from (the end screen's leaks)
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 6 + Math.random() * 15 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved twice
@@ -403,7 +403,8 @@ function stepEnemies(dt) {
       ring(e.x, e.y, 40, "pink", 0.17);
       // a BOSS that gets through ends the game outright (owner, 2026-10-02)
       if (ENEMIES[e.type].star) G.lives = 0;
-      (G.leaks ||= {})[G.wave] = (G.leaks[G.wave] || 0) + before - Math.max(0, G.lives); // lives lost per wave, for the end screen
+      const lw = e.wave || G.wave; // lives lost per wave it CAME from (owner), for the end screen
+      (G.leaks ||= {})[lw] = (G.leaks[lw] || 0) + before - Math.max(0, G.lives);
       if (G.lives <= 0) { G.lives = 0; gameOver(); return; }
     }
   }
