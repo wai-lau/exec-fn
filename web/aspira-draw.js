@@ -195,7 +195,10 @@ function drawTower(t, ghost) {
   ctx.drawImage(sp, x - w / 2, y - w / 2, w, w);
   // as BIG as fits (owner): every label is 3 monospace letters, 1.5 em wide, and
   // the hex is ~44 across inside its outline: 28 fits, 23 sits easier (owner: "reduce a bit"; was 12)
-  text(towerAb(t), x, y + 1, TOWER_LABEL_PX, b.color, false, true);
+  // after TWO chart points the label gives way to the tower's STAT TRIANGLE
+  // (owner, 2026-10-06; boardChart, aspira-skills.js) - the build at a glance
+  if (hasSkills(t) && t.lvl >= 3) boardChart(t, x, y, ghost ? 0.55 : 1);
+  else text(towerAb(t), x, y + 1, TOWER_LABEL_PX, b.color, false, true);
   ctx.globalAlpha = 1;
 }
 // one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits

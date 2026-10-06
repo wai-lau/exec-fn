@@ -443,6 +443,24 @@ function drawPuddles(t) {
 // ---------- the chart (UI only; the upgrade cards draw it) ----------
 // a triangle radar, an axis per corner, a ring per tier; the filled shape is
 // what the tower has, the dashed one what this pick would make (owner: JoJo)
+// the same chart drawn small INSIDE the tower's hex on the board (owner): a
+// faint triangle grid and the filled build shape, in the tower's colour
+const BOARD_CHART_R = 17, BOARD_CHART_CORE = 3;
+function boardChart(t, x, y, alpha) {
+  const axes = SKILL_TREES[t.kind], col = COL[TOWERS[t.kind].color];
+  const pt = (i, k) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / axes.length, r = BOARD_CHART_CORE + (BOARD_CHART_R - BOARD_CHART_CORE) * k / SKILL_TIERS;
+    return [x + Math.cos(a) * r, y + Math.sin(a) * r];
+  };
+  const path = ks => { ctx.beginPath(); ks.forEach((k, i) => { const [px, py] = pt(i, k); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.closePath(); };
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineJoin = "round";
+  ctx.globalAlpha = 0.25 * alpha; ctx.lineWidth = 1;
+  path(axes.map(() => SKILL_TIERS)); ctx.stroke();
+  axes.forEach((_, i) => { const [px, py] = pt(i, SKILL_TIERS); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(px, py); ctx.stroke(); });
+  path(axes.map(ax => skillOf(t, ax.id)));
+  ctx.globalAlpha = 0.6 * alpha; ctx.fill();
+  ctx.globalAlpha = alpha; ctx.lineWidth = 2; ctx.stroke();
+}
 function skillChart(t, next) {
   const axes = SKILL_TREES[t.kind], R = 46, C = 60, pt = (i, k) => {
     const a = -Math.PI / 2 + i * 2 * Math.PI / axes.length, r = 8 + (R - 8) * k / SKILL_TIERS;
