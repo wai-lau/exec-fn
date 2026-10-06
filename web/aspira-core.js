@@ -1,6 +1,6 @@
 // /aspira — the CORE's POWERS (owner, 2026-10-06; replaced the Zen / Space
 // path tree and the repeatables). From wave CORE_UNLOCK the core buys up to
-// CORE_POINTS levels across three powers, two levels each - so you max two,
+// CORE_POINTS levels across three powers, CORE_TIERS each (all of them, owner),
 // or take all three and level one:
 //   Fortifications  drag a TOWER onto the core: for a while the core becomes a
 //                   full-strength COPY of it, chart picks included (owner: temporary,
@@ -12,21 +12,23 @@
 // The gestures live in aspira-camera.js; this file holds the rules, the core's
 // copy firing, and its card and drawing. Loaded after aspira-towers.js /
 // aspira-skills.js (the simulator loads it too).
-const CORE_UNLOCK = 30, CORE_COST = [1000, 2000, 3500, 5000], CORE_POINTS = CORE_COST.length;
+// every power can be bought to its top, THREE tiers each (owner, 2026-10-06;
+// was 4 buys across 2-tier powers): the price is by how many you already own
+const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_COST = [1000, 2000, 3500, 5000, 7000, 9500, 12500, 16000, 20000], CORE_POINTS = CORE_COST.length;
 const CORE_POWERS = [
   { id: "fortify", name: "Fortifications", how: "drag a tower onto the core",
-    lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis."] },
+    lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis.", "The copy gains another tier on every axis."] },
   { id: "temporal", name: "Temporal Manipulation", how: "press and hold the core",
-    lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown."] },
+    lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown.", "The longest stop, the shortest cooldown."] },
   { id: "empower", name: "Empower", how: "drag the core onto a tower",
-    lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown."] },
+    lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown.", "The longest, with the shortest cooldown."] },
 ];
-const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
+const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
 // 3x longer (owner, 2026-10-06; were 6 / 12 and 15 s); their cooldowns now
 // count from when the effect ENDS, or Empower II (36 s on, 30 s cooldown)
 // would never switch off
-const EMPOWER = [null, { dur: 18, cd: 45 }, { dur: 36, cd: 30 }];
-const FORTIFY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // L2 buys a stronger copy, not more time
+const EMPOWER = [null, { dur: 18, cd: 45 }, { dur: 36, cd: 30 }, { dur: 54, cd: 20 }];
+const FORTIFY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // L2 / L3 buy a stronger copy, not more time
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
@@ -36,7 +38,7 @@ const coreCost = () => CORE_COST[coreLvl()];
 const coreOpen = () => G.wave > CORE_UNLOCK;
 const coreState = () => (G.core ||= { pw: {}, cd: {}, clock: 0 });
 function buyPower(id) {
-  if (!coreOpen() || coreLvl() >= CORE_POINTS || powerLvl(id) >= 2 || G.money < coreCost()) return false;
+  if (!coreOpen() || coreLvl() >= CORE_POINTS || powerLvl(id) >= CORE_TIERS || G.money < coreCost()) return false;
   G.money -= coreCost();
   const c = coreState();
   c.pw[id] = powerLvl(id) + 1;
@@ -50,7 +52,8 @@ const cooldownLeft = id => Math.max(0, (G.core && G.core.cd[id]) || 0);
 // and does not raise build prices); stepCore drives it like the tower loop
 function coreCopy(src) {
   const sk = { ...src.skills };
-  if (powerLvl("fortify") >= 2 && SKILL_TREES[src.kind]) for (const ax of SKILL_TREES[src.kind]) sk[ax.id] = Math.min(SKILL_TIERS, (sk[ax.id] || 0) + 1);
+  const up = powerLvl("fortify") - 1; // +1 tier on every axis at L2, +2 at L3
+  if (up > 0 && SKILL_TREES[src.kind]) for (const ax of SKILL_TREES[src.kind]) sk[ax.id] = Math.min(SKILL_TIERS, (sk[ax.id] || 0) + up);
   const pts = Object.values(sk).reduce((a, b) => a + b, 0);
   return { id: "core", isCore: true, kind: src.kind, skills: sk, lvl: 1 + pts, x: CX, y: CY, cell: -1, cd: 0, mode: DEFAULT_MODE[src.kind], spent: 0 };
 }
@@ -144,15 +147,15 @@ function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(
 function inspectCore(el) {
   const lvl = coreLvl(), copy = G.core && G.core.tower;
   el.innerHTML = '<div class="name">Core · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name + " · " + Math.ceil(G.core.copyUntil - G.core.clock) + "s" : "") + "</div>" +
-    '<p class="asp-hint">' + (coreOpen() ? "Three powers, two levels each; buy " + CORE_POINTS + " in all." : "The heart of the chart. Its powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
+    '<p class="asp-hint">' + (coreOpen() ? "Three powers, " + CORE_TIERS + " levels each." : "The heart of the chart. Its powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
     '<div id="asp-upbox"></div>';
   const box = $("asp-upbox");
   if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
   CORE_POWERS.forEach(p => {
-    const l = powerLvl(p.id), maxed = l >= 2 || lvl >= CORE_POINTS;
+    const l = powerLvl(p.id), maxed = l >= CORE_TIERS;
     const cd = cooldownLeft(p.id), state = l ? " · L" + l + (cd ? " · " + Math.ceil(cd) + "s" : "") : "";
     const b = button(box, "asp-primary asp-choice", "<b>" + p.name + state + (maxed ? "" : " · " + cr(coreCost())) + "</b><span>" +
-      (l < 2 ? p.lv[l] : p.lv[1]) + " (" + p.how + ")</span>", () => { if (!maxed && buyPower(p.id)) coreBought(); });
+      p.lv[Math.min(l, CORE_TIERS - 1)] + " (" + p.how + ")</span>", () => { if (!maxed && buyPower(p.id)) coreBought(); });
     if (maxed) b.disabled = true; else b.dataset.cost = coreCost();
   });
 }

@@ -157,7 +157,7 @@ function drawCore() {
   // as something to click (owner: show the unlock)
   // the core's LEVEL shows like a tower's (owner): a bold white ring outside
   // it per level, LEVEL_GAP apart, under a glow that grows with the level
-  const lvl = coreLvl();
+  const lvl = Math.ceil(coreLvl() * 4 / CORE_POINTS); // nine core levels drawn as at most four rings, like a tower
   // LIVES drawn like an enemy's shield (owner): SEGMENTS of the core's own hex,
   // one per life, no number (aspira-enemies.js syncSegs / drawSegs)
   G.lifeFlash = G.lifeFlash || [];
@@ -173,7 +173,7 @@ function drawCore() {
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
-  if (coreOpen() && lvl < CORE_POINTS) {
+  if (coreOpen() && coreLvl() < CORE_POINTS) {
     poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
     ctx.strokeStyle = cw; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }
