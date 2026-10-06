@@ -241,7 +241,7 @@ function bleed(e, st) {
 function rayHit(t, st, e, base, from) {
   const crit = Math.random() < ((st.crit || 0) + (e.bleedCrit || 0)) * (st.critScale || 1);
   const m = crit ? st.critMul : 1, d = shotDamage(t, st, e, base) * m;
-  const n = st.beams || 1, part = n > 1 ? d / 2 : d;
+  const n = st.beams || 1, part = n > 1 ? d * SOL_SHARE[SOL_BEAMS.indexOf(n)] : d; // Focus's fitted per-beam share (aspira-skills.js)
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
   if (n > 1 && from === t) fx[fx.length - 1].beams = n; // n converging beams from the tower; a Refract hop past the first enemy is ONE thick beam (owner)
   for (let i = 0; i < n && !e.dead; i++) {

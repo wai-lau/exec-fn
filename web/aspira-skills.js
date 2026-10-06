@@ -308,11 +308,15 @@ function drawFrzSkill(t, st) {
 }
 
 // ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
-const SOL_BEAMS = [1, 2, 4, 7], SOL_REFRACT = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 4];
+const SOL_BEAMS = [1, 2, 4, 7], SOL_REFRACT = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 6];
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
-// chance for every tower (balance later)
-const SOL_CONE = 25, BREACH_ARMOR = 2, BREACH_CRIT = 0.01;
+// chance for every tower
+const SOL_CONE = 25, BREACH_ARMOR = 1.5, BREACH_CRIT = 0.01;
+// FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
+// saturates): each Focus beam's share of the shot by tier, and each Refract
+// hop's damage by tier (a hop is far weaker than the first hit)
+const SOL_SHARE = [1, 0.604, 0.355, 0.276], SOL_HOP = [1, 0.169, 0.207, 0.386];
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.crit = LVL_REAPER_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refract = SOL_REFRACT[skillOf(t, "refract")];
@@ -334,7 +338,7 @@ function solRefract(t, st, e) {
       if (d < nd && inCone(o)) { nd = d; nxt = o; }
     }
     if (!nxt) break;
-    rayHit(t, st, nxt, st.dmg, prev); hit.add(nxt); prev = nxt;
+    rayHit(t, st, nxt, st.dmg * SOL_HOP[SOL_REFRACT.indexOf(st.refract)], prev); hit.add(nxt); prev = nxt;
     far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
   }
   // the cone, from the tower to just past the furthest enemy it bent to
