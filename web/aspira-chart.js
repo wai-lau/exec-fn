@@ -9,6 +9,7 @@
 // triangle's corners ARE three of the hex's corners (every other one, at the
 // outline), with the inner tier triangles and the three axes drawn faint, and
 // the build's shape filled in the tower's colour
+const BOARD_CHART_MIN = 8 / 46; // skillChart's inner radius over its outer
 function boardChart(t, x, y, alpha, c0) {
   const axes = SKILL_TREES[t.kind], col = COL[TOWERS[t.kind].color];
   // axis i points where the CARD's chart puts it (owner: same orientation - the
@@ -23,7 +24,9 @@ function boardChart(t, x, y, alpha, c0) {
     return best;
   };
   const pt = (i, k) => {
-    const p = corner(i), f = TOWER_K * k / SKILL_TIERS;
+    // tier 0 sits at a small inner triangle, like the card's (8 of 46), so a
+    // one-axis build is a thin triangle, never a bare line (owner)
+    const p = corner(i), f = TOWER_K * (BOARD_CHART_MIN + (1 - BOARD_CHART_MIN) * k / SKILL_TIERS);
     return [x + (p.x - c0.x) * f, y + (p.y - c0.y) * f];
   };
   const path = ks => { ctx.beginPath(); ks.forEach((k, i) => { const [px, py] = pt(i, k); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.closePath(); };
