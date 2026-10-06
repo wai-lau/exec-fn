@@ -86,7 +86,7 @@ SKILL_TREES.acid = [
   { id: "catalyst", name: "Corrosion", tiers: [
     { name: "Etch", desc: "The burn ramps up faster." },
     { name: "Corrode", desc: "Faster still." },
-    { name: "Dissolve", desc: "The fastest ramp; a line whose enemy dies hands half its heat to the next." },
+    { name: "Dissolve", desc: "The burn never cools: a line whose enemy dies starts on the next at full heat." },
   ] },
   { id: "pour", name: "Spray", tiers: [
     { name: "Mist", desc: "More burning lines, never two on one enemy." },
@@ -371,7 +371,9 @@ const ACD_PUDDLE_HEAT = [0.5, 2.8, 2.3, 3.75];
 function acidSkillStats(t, s, b) {
   const c = skillOf(t, "catalyst");
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACID_MAX; s.plagueR = 0;
-  s.carry = c >= 3 ? 0.5 : 0.4; // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06; fast waves reset it) s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")];
+  // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
+  // fast waves reset it); Corrosion III, Dissolve, hands on ALL of it (owner)
+  s.carry = c >= 3 ? 1 : 0.4; s.targets = ACD_LINES[skillOf(t, "pour")]; s.seep = ACD_SEEP[skillOf(t, "seep")];
   s.seepHeat = ACD_PUDDLE_HEAT[skillOf(t, "seep")]; s.pourMul = ACD_POUR_MUL[skillOf(t, "pour")]; s.skill = true;
 }
 // every step (stepAcid): each line drips a puddle every seep.every s; each
