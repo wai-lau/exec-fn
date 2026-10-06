@@ -67,6 +67,9 @@
   pointer-events: none;
 }
 
+/* the list's label (owner) */
+.asp-wavelabel { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); opacity: 0.6; }
+
 .asp-wavenote {
   display: grid;
   grid-template-columns: repeat(4, auto); /* number : enemies name */
