@@ -242,10 +242,10 @@ function resolveColors() {
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
   chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 42, rate: 1.5,  range: 173.4, blurb: "Lightning that jumps and forks from enemy to enemy, never hitting the same one twice.", up: "extra arcs" },
-  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 2.5, rate: 2.4,  range: 176,  blurb: "An aura that slows and chills everything inside it, and lets go the moment they leave.", up: "slow strength" },
+  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 5, rate: 2.4, /* early-game balance 2026-10-06: was 2.5 - its aura tick is what helps against the fast waves */  range: 176,  blurb: "An aura that slows and chills everything inside it, and lets go the moment they leave.", up: "slow strength" },
   reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 140,  rate: 1.35,  range: 350, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
-  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 18,  rate: 4,    range: 230, blurb: "A burning line on one enemy that burns harder the longer it holds, dripping fire onto the lane.", up: "burn" },
+  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 26,  rate: 4, /* early-game balance 2026-10-06: was 18 */    range: 230, blurb: "A burning line on one enemy that burns harder the longer it holds, dripping fire onto the lane.", up: "burn" },
 };
 // which enemies each tower is GOOD AGAINST (owner), on its build card
 const GOOD_VS = { chain: "swarms", slower: "fast, shields", reaper: "armor, bosses", acid: "shields, bosses" };
