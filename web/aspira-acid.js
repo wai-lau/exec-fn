@@ -13,7 +13,8 @@
 //                 line's enemy (Plague); st.bloom grows it with the ramp
 //   st.corrode    armor stripped from everything a tick burns, below zero
 //   st.allInRange no lines: every enemy in range burns on its own ramp
-const ACID_DOUBLE = 1, ACID_MAX = 64;
+// ACID_MAX 64 -> 32 (overnight phase 3, 2026-10-06): ACD dealt 52-99% of a late team's damage
+const ACID_DOUBLE = 1, ACID_MAX = 32;
 const acidMulOf = (held, st) => Math.min(st.cap, 2 ** (held / st.double));
 const acidFrac = (l, st) => Math.log2(acidMulOf(l.held, st)) / Math.log2(st.cap); // 0 fresh .. 1 full burn
 function plagueRadius(l, st) {

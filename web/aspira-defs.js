@@ -241,9 +241,9 @@ function resolveColors() {
 // acid = ACD; the code
 // and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
 const TOWERS = {
-  chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 42, rate: 1.5,  range: 173.4, blurb: "Lightning that jumps and forks from enemy to enemy, never hitting the same one twice.", up: "extra arcs" },
+  chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 48, rate: 1.5, /* 2026-10-06: was 42 - the weakest full chart late */  range: 173.4, blurb: "Lightning that jumps and forks from enemy to enemy, never hitting the same one twice.", up: "extra arcs" },
   slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 5, rate: 2.4, /* early-game balance 2026-10-06: was 2.5 - its aura tick is what helps against the fast waves */  range: 176,  blurb: "An aura that slows and chills everything inside it, and lets go the moment they leave.", up: "slow strength" },
-  reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 140,  rate: 1.35,  range: 350, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
+  reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 189,  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer */  range: 350, blurb: "Huge hits, slow reload, can crit for triple.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
   acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 26,  rate: 4, /* early-game balance 2026-10-06: was 18 */    range: 230, blurb: "A burning line on one enemy that burns harder the longer it holds, dripping fire onto the lane.", up: "burn" },
 };
@@ -294,8 +294,8 @@ const POWER_FULL = 30, POWER_TIME = 10 / 3;
 const LVL_DMG = [1, 1.874, 4.108, 9.007];
 const LVL_RANGE = [1, 1.12, 1.27, 1.42];
 const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
-// no L1 half rate any more: two L1 SOLs must clear wave 1 (30 swarmers) with no
-// leak (owner, 2026-10-02); the simulator showed even full rate leaked ~10
+// (the rule "two L1 SOLs must clear wave 1" was dropped, owner 2026-10-06: SOL
+// is no longer a swarm answer; its rate fell to 1, its shot rose to 189)
 const LVL_REAPER_RATE = [1, 1, 1, 1];
 const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
 const LVL_SLOW = [0.4, 0.45, 0.5, 0.55], FRZ_SLOW_MUL = 0.8; // owner: starts at 40%, grows modestly; capped at 0.85 in towerStats
