@@ -167,7 +167,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
 
 // Side effects of a landed hit, from the tower's upgrade mods.
 function onHit(e, t, st, amt) {
-  if (st.shred) { e.shredMul = Math.max(e.shredT > 0 ? e.shredMul : 1, st.shred.mul); e.shredT = st.shred.t; }
+  if (st.shred) applyMark(e, st.shred.mul, st.shred.t, t ? t.id : "x");
   if (st.dot) { e.dotDps = Math.max(e.dotT > 0 ? e.dotDps : 0, amt * st.dot.frac / st.dot.t); e.dotT = st.dot.t; e.dotSrc = t; }
   if (st.stun && Math.random() < st.stun.p) e.stunT = Math.max(e.stunT, st.stun.t);
   if (st.hitSlow) applySlow(e, st.hitSlow.f, st.hitSlow.t, t ? t.id : "x");
@@ -187,39 +187,59 @@ function onHit(e, t, st, amt) {
 // how long a Slower's slow lasts (owner: 5x the old 2.5s)
 const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then 1/4, then 1/4)
 
-// Slow affects every enemy at full strength (owner; the earlier armor-immune
-// and shield-halves rules are gone). Returns whether any slow landed.
-// Slows STACK across sources, LOGARITHMICALLY (owner, 2026-10-02; was one
-// slow at a time). Each source (a tower id, or "id:chill" for Deep Freeze)
-// keeps ONE slow on the enemy: its stronger slow replaces its weaker, an equal
-// one refreshes the time, a weaker one is ignored while the stronger runs.
-// Across n live sources the strongest, f1, grows by 1 + STACK_K * ln(n):
-// 0.4 alone, 0.54 from two towers, 0.62 from three, 0.68 from four - never past
-// STACK_CAP by stacking (a single stronger slow, Deep Freeze's 95%, still holds).
-// FRZ hits Fast enemies twice as hard (owner, 2026-10-02): double the slow,
-// up to 90% - never past a stronger slow already asked for (Deep Freeze 95%)
-const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.96, STACK_K = 0.5, STACK_CAP = 0.9;
-function applySlow(e, f, dur, src = "x") {
+// DEBUFF SHAPES (owner, 2026-10-05). Every slow and every damage mark is held
+// PER SOURCE (a tower's id, a blast, ...) and has a SHAPE that decides what a
+// re-hit from the SAME source does:
+//   "refresh"  one per source, TIMES OUT; a re-hit resets its timer (the default)
+//   "once"     one per source, PERMANENT; a re-hit does nothing (Permafrost)
+//   "stack"    every hit adds a PERMANENT stack of its own
+// Different sources always stack, MULTIPLICATIVELY (owner): speed x (1 - s1) x
+// (1 - s2)..., so two 30% slows leave 49%; damage taken x m1 x m2 ... A slow
+// never passes SLOW_CAP by stacking (a single stronger one - Deep Freeze's 95%
+// - still holds). FRZ hits Fast enemies twice as hard (owner): double the
+// slow, up to FAST_SLOW_CAP.
+const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.96, SLOW_CAP = 0.9;
+let debuffSeq = 0;
+function addDebuff(map, src, v, dur, shape) {
+  if (shape === "stack") { map[src + "#" + ++debuffSeq] = { v, t: Infinity }; return; }
+  const d = map[src];
+  if (shape === "once") { if (!d) map[src] = { v, t: Infinity }; return; }
+  map[src] = { v: d && d.t > 0 ? Math.max(d.v, v) : v, t: d && d.t === Infinity ? Infinity : dur };
+}
+function applySlow(e, f, dur, src = "x", shape = "refresh") {
   if (e.arcana) { f *= bossSlowMul(e); if (f <= 0) return true; } // Strength / Death (aspira-bosses.js)
   if (e.type === "fast") f = Math.max(f, Math.min(FAST_SLOW_CAP, f * FAST_SLOW_MUL));
-  const slows = e.slows || (e.slows = {}), s = slows[src];
-  if (s && s.t > 0 && f < s.f) return true;
-  slows[src] = { f, t: !s || !(s.t > 0) || f > s.f ? dur : Math.max(s.t, dur) };
+  addDebuff(e.slows ||= {}, src, f, dur, shape);
   sumSlows(e);
   return true;
 }
-// age every source's slow by dt, drop the spent ones, and fold the rest into
-// e.slowF / e.slowT (what effSpeed, Brittle, Shatter and the drawing read)
+// age every slow by dt, drop the spent ones, and fold the rest into e.slowF /
+// e.slowT (what effSpeed, Brittle, Shatter and the drawing read)
 function sumSlows(e, dt = 0) {
-  let f1 = 0, n = 0, t = 0;
+  let keep = 1, top = 0, t = 0;
   for (const k in e.slows) {
     const s = e.slows[k];
     s.t -= dt;
     if (!(s.t > 0)) { delete e.slows[k]; continue; }
-    f1 = Math.max(f1, s.f); n++; t = Math.max(t, s.t);
+    keep *= 1 - s.v; top = Math.max(top, s.v); t = Math.max(t, s.t);
   }
-  e.slowF = n > 1 ? Math.max(f1, Math.min(STACK_CAP, f1 * (1 + STACK_K * Math.log(n)))) : f1;
+  e.slowF = Math.min(Math.max(SLOW_CAP, top), 1 - keep);
   e.slowT = t;
+}
+// a damage-taken MARK (SOL's shred, ARC's Static): the same shapes, x mul each
+function applyMark(e, mul, dur, src = "x", shape = "refresh") {
+  addDebuff(e.marks ||= {}, src, mul, dur, shape);
+  sumMarks(e);
+}
+function sumMarks(e, dt = 0) {
+  let m = 1, t = 0;
+  for (const k in e.marks) {
+    const d = e.marks[k];
+    d.t -= dt;
+    if (!(d.t > 0)) { delete e.marks[k]; continue; }
+    m *= d.v; t = Math.max(t, d.t);
+  }
+  e.shredMul = m; e.shredT = t; // what damage() and debuffed() read
 }
 
 // damage for one shot at one enemy: EMP's armored bonus and the every-Nth-shot charge
@@ -337,7 +357,7 @@ function stepEnemies(dt) {
       if (e.biteT > 0) e.biteT -= dt; // Frostbite tint
       if (e.corrodeT > 0) e.corrodeT -= dt; // Corrosion ring
       if (e.burnT > 0) e.burnT -= dt; // under an ACD burn (Fresh targeting)
-      if (e.shredT > 0) e.shredT -= dt;
+      if (e.marks) sumMarks(e, dt);
       if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
       e.s += effSpeed(e) * dt;
     }

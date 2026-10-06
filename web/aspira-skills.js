@@ -93,7 +93,7 @@ function skillHit(c, e, d) {
   for (const o of G.enemies) {
     if (o.dead || (o.x - e.x) ** 2 + (o.y - e.y) ** 2 > b.r * b.r) continue;
     if (o !== e) damage(o, d * b.frac, c.t, false, false, c.st);
-    o.shredMul = Math.max(o.shredT > 0 ? o.shredMul : 1, b.mul); o.shredT = STATIC_MARK_T;
+    applyMark(o, b.mul, STATIC_MARK_T, c.t.id); // refresh: one mark per ARC, timed
   }
 }
 // the nearest enemy this bolt has not hit yet, within this jump's (shrunk) reach
