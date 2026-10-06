@@ -151,6 +151,8 @@ function drawBoard() {
 // drawn LAST, over everything else (owner)
 function drawCore() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
+  // Fortifications: the core takes on the copied tower's colour, every ring of it (owner)
+  const cw = coreCopyColor() || COL.white;
   // a core upgrade is open: a slow white ring breathes around it, so it reads
   // as something to click (owner: show the unlock)
   // the core's LEVEL shows like a tower's (owner): a bold white ring outside
@@ -160,11 +162,11 @@ function drawCore() {
   // one per life, no number (aspira-enemies.js syncSegs / drawSegs)
   G.lifeFlash = G.lifeFlash || [];
   G.lifeSegs = syncSegs(G.lifeSegs || [], Math.max(0, G.lives), 6, G.lifeFlash);
-  ctx.strokeStyle = COL.white; ctx.lineWidth = 2.6; // thicker (owner; was 1.8)
+  ctx.strokeStyle = cw; ctx.lineWidth = 2.6; // thicker (owner; was 1.8)
   drawSegs(CX, CY, G.lifeSegs, 6, Math.PI / 6, CORE_R, LIFE_GAP, G.lifeFlash); // a lost life flashes red
   const out = LIFE_GAP * LIFE_RINGS / CORE_R; // the level rings sit outside the life rings
   if (lvl) {
-    ctx.strokeStyle = COL.white; ctx.shadowColor = COL.white; ctx.shadowBlur = TOWER_GLOW[lvl] * cam.k; ctx.lineWidth = 3.5;
+    ctx.strokeStyle = cw; ctx.shadowColor = cw; ctx.shadowBlur = TOWER_GLOW[lvl] * cam.k; ctx.lineWidth = 3.5;
     for (let r = 1; r <= lvl; r++) {
       ctx.globalAlpha = 1 - 0.12 * r;
       poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * r) * shieldPulse(), 6, Math.PI / 6, false); ctx.stroke(); // breathes with the life rings (owner)
@@ -173,13 +175,10 @@ function drawCore() {
   }
   if (coreOpen() && lvl < CORE_POINTS) {
     poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
-    ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = cw; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
-  ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill();
-  // Fortifications: the core wears the colour of the tower it copies (aspira-core.js)
-  const cc = coreCopyColor();
-  if (cc) { ctx.strokeStyle = cc; ctx.lineWidth = 5; ctx.stroke(); }
+  ctx.fillStyle = cw; ctx.globalAlpha = 1; ctx.fill();
 }
 const LIFE_RINGS = 5, LIFE_GAP = 5; // room kept for 5 rings of life segments (20 lives fill 3 and a bit)
 
@@ -471,6 +470,7 @@ function drawScene([sx, sy], clipR) {
   drawCredits(); // ON the core, so after it (aspira-waves.js)
   // ENEMIES over the towers and the core (owner)
   for (const e of G.enemies) drawEnemy(e);
+  drawCoreHud(); // the core powers' dial, freeze, copy and halos, over everything (aspira-core-fx.js)
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);

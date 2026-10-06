@@ -21,7 +21,7 @@ const CORE_POWERS = [
   { id: "empower", name: "Empower", how: "drag the core onto a tower",
     lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown."] },
 ];
-const TEMPORAL = [null, { dur: 2, cd: 30 }, { dur: 4, cd: 20 }], TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
+const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
 const EMPOWER = [null, { dur: 6, cd: 45 }, { dur: 12, cd: 30 }];
 const FORTIFY = [null, { dur: 15, cd: 40 }, { dur: 15, cd: 40 }]; // L2 buys a stronger copy, not more time
 
@@ -59,6 +59,7 @@ function fortify(t) {
   c.copyUntil = c.clock + lv.dur;
   c.copy = { kind: t.kind, skills: { ...t.skills } };
   c.tower = coreCopy(c.copy);
+  if (typeof banner === "function") banner("FORTIFY · " + TOWERS[t.kind].ab, TOWERS[t.kind].color, 1.5);
   ring(CX, CY, 70, TOWERS[t.kind].color); if (typeof sfxFor === "function") sfxFor("up", t.kind); // (no sound in the simulator)
   return true;
 }
@@ -81,6 +82,7 @@ function temporalFreeze() {
   const c = coreState();
   c.cd.temporal = lv.cd;
   c.freeze = { t: 0, dur: lv.dur, hit: new Set() };
+  c.frozenIds = c.freeze.hit; c.freezeUntil = c.clock + TEMPORAL_GROW + lv.dur; // for the look (aspira-core-fx.js)
   if (typeof sfx === "function") sfx("coreup");
   return true;
 }
@@ -90,6 +92,7 @@ function empower(t) {
   if (!lv || !t || t.isCore || cooldownLeft("empower") > 0) return false;
   coreState().cd.empower = lv.cd;
   t.empowerUntil = (G.clock || 0) + lv.dur;
+  if (typeof banner === "function") banner("EMPOWER", "white", 1.5);
   ring(t.x, t.y, 64, "white"); if (typeof sfxFor === "function") sfxFor("up", t.kind);
   return true;
 }
@@ -128,41 +131,8 @@ function pushCells() {
   }
 }
 
-// ---------- the core's look (UI only; aspira-draw.js calls it under the towers) ----------
-// the freeze ring, a cooldown arc per power round the core (Temporal top-left,
-// Empower top-right, Fortifications at the bottom), the empowered
-// towers' halos, and the line of a power being dragged
-const CD_R = 58;
-function drawCoreFx() {
-  if (!G.core && !ui.drag) return;
-  const now = performance.now();
-  ctx.lineCap = "round";
-  if (G.core && G.core.freeze) {
-    const f = G.core.freeze, p = Math.min(1, f.t / TEMPORAL_GROW);
-    ctx.strokeStyle = COL.cyan; ctx.lineWidth = 6; ctx.globalAlpha = 0.8 * (1 - Math.max(0, f.t - TEMPORAL_GROW) / 0.4);
-    ctx.beginPath(); ctx.arc(CX, CY, Math.max(1, TEMPORAL_R * p), 0, 6.283); ctx.stroke();
-  }
-  // cooldowns: Temporal top-left, Empower top-right, each arc emptying as it recharges
-  [["temporal", -Math.PI * 0.75, TEMPORAL], ["empower", -Math.PI * 0.25, EMPOWER], ["fortify", Math.PI / 2, FORTIFY]].forEach(([id, mid, tab]) => {
-    if (!powerLvl(id)) return;
-    const left = cooldownLeft(id), full = tab[powerLvl(id)].cd;
-    ctx.strokeStyle = COL.white; ctx.lineWidth = 4;
-    ctx.globalAlpha = left ? 0.35 : 0.85 + 0.15 * Math.sin(now / 300);
-    const span = 0.55 * (left ? 1 - left / full : 1);
-    ctx.beginPath(); ctx.arc(CX, CY, CD_R, mid - span / 2, mid + span / 2); ctx.stroke();
-  });
-  ctx.strokeStyle = COL.white; ctx.lineWidth = 3;
-  for (const t of G.towers) {
-    if (!empowered(t)) continue;
-    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(now / 120);
-    ctx.beginPath(); ctx.arc(t.x, t.y, CELL_S * 1.6, 0, 6.283); ctx.stroke();
-  }
-  if (ui.drag && ui.drag.at) {
-    ctx.strokeStyle = COL.white; ctx.lineWidth = 2; ctx.globalAlpha = 0.8; ctx.setLineDash([8, 6]);
-    ctx.beginPath(); ctx.moveTo(ui.drag.from.x, ui.drag.from.y); ctx.lineTo(ui.drag.at.x, ui.drag.at.y); ctx.stroke(); ctx.setLineDash([]);
-  }
-  ctx.globalAlpha = 1;
-}
+// the core's look (the dial, the freeze, Empower's beam, the copy) lives in
+// aspira-core-fx.js (UI only)
 // the copied tower's colour, as a ring on the core (drawCore)
 const coreCopyColor = () => (G.core && G.core.tower ? COL[TOWERS[G.core.tower.kind].color] : null);
 
