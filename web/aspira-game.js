@@ -101,22 +101,30 @@ function pickTargets(t, st, count) {
 // a floating damage number, sized RELATIVE to the biggest hit seen this game
 // (owner): the largest so far is 27px / 2s, a tiny one 11px / 0.8s, spaced by
 // sqrt(size / maxHit) - size being the hit before armor or shield
-// At most DMG_MAX on screen, a HARD cap: past it a small hit gets no number and
-// a BIG one (rel >= DMG_BIG) retires the oldest number to take its place (with
-// maxed towers nearly every hit is big). They age in REAL time while the game runs up to 20x, so late
-// waves at speed piled thousands up - drawing them was most of the frame
-// (profiled 2026-10-05, waves 80-85, 9 max towers)
-const DMG_MAX = 120, DMG_BIG = 0.6;
-let dmgLive = 0;
+// At most DMG_MAX on screen, a HARD cap (owner, 2026-10-06): every hit gets a
+// number, small ones too, and past the cap the SMALLEST number on screen is
+// culled to make room - unless the new hit is smaller still, which then goes
+// unshown. (They age in REAL time while the game runs up to 20x, so late
+// waves at speed piled thousands up - drawing them was most of the frame;
+// profiled 2026-10-05, waves 80-85, 9 max towers.)
+const DMG_MAX = 120;
+let dmgLive = []; // the live damage-number floats, each carrying its hit size `v`
 function dmgNumber(e, label, size, color) {
   G.maxHit = Math.max(G.maxHit || 1, size);
   const rel = Math.sqrt(size / G.maxHit);
-  if (dmgLive >= DMG_MAX) {
-    if (rel < DMG_BIG) return;
-    const old = fx.find(f => f.under && f.t < f.life);
-    if (old) old.t = old.life; else return;
-  } else dmgLive++;
+  if (dmgLive.length >= DMG_MAX) {
+    dmgLive = dmgLive.filter(f => f.t < f.life);
+    if (dmgLive.length >= DMG_MAX) {
+      let lo = 0;
+      for (let i = 1; i < dmgLive.length; i++) if (dmgLive[i].v < dmgLive[lo].v) lo = i;
+      if (dmgLive[lo].v >= size) return; // this hit is the smallest: no number
+      dmgLive[lo].t = dmgLive[lo].life; // cull the smallest on screen
+      dmgLive.splice(lo, 1);
+    }
+  }
   float(e.x + (Math.random() - 0.5) * 24, e.y - 14, label, color, Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
+  const f = fx[fx.length - 1];
+  f.v = size; dmgLive.push(f);
 }
 const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
@@ -441,7 +449,7 @@ function stepFx(dt) {
 function stepFloats(dt) {
   for (const f of fx) if (f.k === "text") { f.t += dt; f.y -= f.vy * dt; }
   fx = fx.filter(f => f.k !== "text" || f.t < f.life);
-  dmgLive = 0; for (const f of fx) if (f.under) dmgLive++;
+  dmgLive = dmgLive.filter(f => f.t < f.life);
 }
 
 const WIN_WAVE = 100; // the 10th boss

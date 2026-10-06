@@ -396,7 +396,7 @@ function showOverlay(title, body, btn) {
   $("asp-ov").hidden = false;
 }
 $("asp-ov-btn").onclick = () => {
-  if (G.over) { G = newGame(); fx = []; ui.sel = null; ui.build = null; refreshPanels(); }
+  if (G.over) { G = newGame(); fx = []; dmgLive = []; ui.sel = null; ui.build = null; refreshPanels(); }
   // no intro (owner): the overlay is only the game-over card; the first tower starts wave 1
   $("asp-ov").hidden = true;
 };
