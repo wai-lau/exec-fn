@@ -234,7 +234,7 @@ function skillHopTo(c, node, nxt, depth) {
 // numbers by tier (index 0 = untaken); balance later (owner: ideas first)
 const FRZ_FROST_SLOW = [0.3, 0.38, 0.46, 0.55], FRZ_FROST_RANGE = [1, 1.15, 1.3, 1.45];
 const FRZ_RIME = [0, 0.03, 0.05, 0.08]; // each pulse's permanent stacking slow
-const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 0.6, FRZ_MOON_SCALE = 0.5;
+const FRZ_TICK = 0.5, FRZ_RIME_EVERY = 2, FRZ_RIME_GROW = 2.4, FRZ_MOON_SCALE = 0.5; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "frost");
