@@ -1,23 +1,36 @@
 // /aspira — the END SCREEN's stats (owner, 2026-10-06): under "core breached" /
-// "ascendant", every tower ranked by damage dealt (its kills, level and share
-// of the damage), the core's copy if it fought, and the waves where lives
-// were lost (G.leaks, counted in aspira-game.js where an enemy reaches the
-// core). UI only; gameOver / winGame call renderEndStats.
+// "ascendant", a line for EVERY tower ranked by damage dealt (level, kills,
+// damage, share; the core's copy too if it fought; named by its build), then a
+// line for each wave that TOOK LIVES - what it was (type x count, or the boss's
+// name, from G.planLog) and how many (G.leaks, counted where an enemy reaches
+// the core) - in a box that scrolls. UI only; gameOver / winGame call renderEndStats.
+// a tower's NAME is its build (owner: "name the towers"): the tier names of its
+// two strongest axes, strongest first - "Superconductor · Charge"
+function buildName(t) {
+  const tree = SKILL_TREES[t.kind] || [];
+  return tree.map(ax => ({ n: skillOf(t, ax.id), ax })).filter(o => o.n).sort((a, b) => b.n - a.n).slice(0, 2)
+    .map(o => o.ax.tiers[o.n - 1].name).join(" · ");
+}
 function renderEndStats() {
   const box = $("asp-ov-stats");
   if (!box) return;
-  const rows = [...G.towers, ...coreTowers()].filter(t => t.dealt || t.kills);
+  const rows = [...G.towers, ...coreTowers().filter(t => t.dealt)];
   const total = rows.reduce((a, t) => a + (t.dealt || 0), 0) || 1;
   rows.sort((a, b) => (b.dealt || 0) - (a.dealt || 0));
   let html = '<table class="asp-end-towers"><tr><th>tower</th><th>lvl</th><th>kills</th><th>damage</th><th>share</th></tr>';
   for (const t of rows) {
-    html += '<tr data-kind="' + t.kind + '"><td>' + (t.isCore ? "core · " : "") + TOWERS[t.kind].ab + "</td><td>" + t.lvl + "</td><td>" +
+    html += '<tr data-kind="' + t.kind + '"><td>' + (t.isCore ? "core · " : "") + TOWERS[t.kind].ab + (buildName(t) ? " " + buildName(t) : "") + "</td><td>" + t.lvl + "</td><td>" +
       (t.kills || 0) + "</td><td>" + short(Math.round(t.dealt || 0)) + "</td><td>" + Math.round(100 * (t.dealt || 0) / total) + "%</td></tr>";
   }
   html += "</table>";
-  const leaks = Object.entries(G.leaks || {}).sort((a, b) => a[0] - b[0]);
-  html += '<p class="asp-end-leaks">' + (leaks.length
-    ? "lives lost: " + leaks.map(([w, n]) => "W" + w + "\u00a0−" + n).join(" · ")
-    : "no lives lost") + "</p>";
+  html += '<div class="asp-end-waves"><table><tr><th>wave</th><th>what</th><th>lives</th></tr>';
+  const leakWaves = Object.keys(G.leaks || {}).map(Number).sort((a, b) => a - b);
+  if (!leakWaves.length) { box.innerHTML = html + '<p class="asp-end-leak">no lives lost</p>'; return; }
+  for (const n of leakWaves) { // only the waves that took lives (owner)
+    const p = (G.planLog || {})[n], lost = G.leaks[n];
+    const what = !p ? "—" : p.type === "bonus" ? arcanaOf(n).name : p.count + " " + p.type;
+    html += "<tr" + (lost ? ' class="asp-end-leak"' : "") + "><td>W" + n + "</td><td>" + what + "</td><td>" + (lost ? "−" + lost : "·") + "</td></tr>";
+  }
+  html += "</table></div>";
   box.innerHTML = html;
 }
