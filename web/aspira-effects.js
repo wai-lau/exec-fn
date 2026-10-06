@@ -72,6 +72,7 @@ function drawTethers() {
   for (const t of G.towers) {
     if (t.kind !== "slower") continue;
     const st = towerStats(t, true), r = st.range, col = COL[TOWERS[t.kind].color];
+    if (st.skill) { ownColours(() => drawFrzSkill(t, st)); continue; } // the chart FRZ: aura, moons, Rime (aspira-skills.js)
     // Moons / Desolation: orbiting moons, always shown - in FRZ's OWN colour on a
     // boss sky, like the towers (owner)
     if (st.moons) { ownColours(() => drawMoons(t, st, COL[TOWERS[t.kind].color], shimmer)); continue; }
