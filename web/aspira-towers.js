@@ -319,13 +319,21 @@ function usePower(code) {
 // to make up for it); SOL then moves at half FRZ's speed (owner)
 // MOVEMENT HALVED (owner, 2026-10-06: "halve their movement range, halve their
 // movement speed"): TOWER_SPEED is half what it was (acid 120, chain 90, reaper
-// 30, slower 60), the outward slide is SLIDE_K x (reach - slot) and the inward
+// 30, slower 60), the outward slide is SLIDE_KIND x (reach - slot) and the inward
 // limit TOWER_IN went 0.89 -> 0.945 (half the slide in). A chart tier may buy
 // the slide back (towerStats `slide` x the extent, `speed` x the speed; SKILL_MOVE
 // in aspira-skills.js), never past the old extent (SLIDE_MAX 2).
-const TOWER_SPEED = { acid: 60, chain: 45, reaper: 15, slower: 30 };
+// ROLES (owner, 2026-10-06): FRZ and ACD are HIGH-MOVEMENT, short-range roamers;
+// ARC and SOL are LOW-MOVEMENT, long-range anchors. So FRZ/ACD keep their old
+// (un-halved) speed and slide (SLIDE_KIND 1, TOWER_IN_KIND 0.89), and ARC/SOL move
+// slowly (owner: "reduce greatly") over the halved slide; their Static / Breach
+// tiers buy slide extent back (SKILL_MOVE, aspira-skills.js)
+const TOWER_SPEED = { acid: 120, chain: 15, reaper: 6, slower: 90 };
+
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
-const SLIDE_K = 0.5, SLIDE_MAX = 2;
+const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;
+const SLIDE_KIND = { acid: 1, slower: 1, chain: SLIDE_K_HALF, reaper: SLIDE_K_HALF };
+const TOWER_IN_KIND = { acid: 0.89, slower: 0.89 }; // the rest: TOWER_IN
 const moveSpeed = t => TOWER_SPEED[t.kind] * towerStats(t, true).speed;
 // the innermost a tower slides: this share of its slot's distance from the core.
 // 0.945 = half the old 0.89's slide in (owner); the old 0.89 kept a 13.6 gap
@@ -333,14 +341,14 @@ const moveSpeed = t => TOWER_SPEED[t.kind] * towerStats(t, true).speed;
 // the gap only grows
 const TOWER_IN = 0.945;
 // a slot's own inner limit (the corner slots carry one, CORNER_IN) else TOWER_IN of its distance
-const innerR = (c, r0, slide = 1) => c.minR ?? r0 * (1 - (1 - TOWER_IN) * Math.min(slide, SLIDE_MAX));
+const innerR = (c, r0, slide = 1, kind = null) => c.minR ?? r0 * (1 - (1 - (TOWER_IN_KIND[kind] ?? TOWER_IN)) * Math.min(slide, SLIDE_MAX));
 // how far out a kind slides from a slot r0 from the core (slide = the tier's multiplier)
-const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * SLIDE_K * Math.min(slide, SLIDE_MAX);
+const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * SLIDE_KIND[kind] * Math.min(slide, SLIDE_MAX);
 // the spoke: its unit direction, the slot's radius and how far out it runs
 function spokeOf(t) {
   const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1, sl = towerStats(t, true).slide;
   // min: it may also slide IN, to TOWER_IN of its slot's distance (owner: 25% closer, now half that)
-  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, slide: sl, max: slideOut(t.kind, r0, sl), min: -(r0 - innerR(c, r0, sl)) };
+  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, slide: sl, max: slideOut(t.kind, r0, sl), min: -(r0 - innerR(c, r0, sl, t.kind)) };
 }
 // the whole travel of a tower on its spoke, out plus in (the card's Slide row)
 const slideSpan = t => { const k = spokeOf(t); return Math.round(k.max - k.min); };
@@ -385,13 +393,13 @@ function moveTower(t, dt) {
 // full reach touches the T instead of covering it (owner)
 // a tower's half-size (its L1 hex), so the T-bars mark where its EDGE can go
 const trackPast = () => CELL_S * TOWER_K;
-function spokeTrack(c, reach, slide = 1) {
+function spokeTrack(c, reach, slide = 1, kind = null) {
   // the line runs only over the range a tower can MOVE (owner: show the min):
   // from its inner limit out to its reach
   // both ends mark the tower's EDGE (owner): its reach plus a half-size out,
   // its inner limit minus a half-size in
   const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0;
-  const to = reach + trackPast(), from = innerR(c, r0, slide) - trackPast();
+  const to = reach + trackPast(), from = innerR(c, r0, slide, kind) - trackPast();
   ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
   // a T-bar at each LIMIT (owner): the outer reach, and the innermost a tower
   // slides, TOWER_IN of its slot's distance (shorter, so out and in read apart)
@@ -405,13 +413,13 @@ function drawSpokes() {
   for (const t of G.towers) {
     const k = spokeOf(t);
     ctx.strokeStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6;
-    spokeTrack(k.c, k.r0 + k.max, k.slide);
+    spokeTrack(k.c, k.r0 + k.max, k.slide, t.kind);
   }
   // while PLACING, every free slot shows the track the tower being built would
   // slide along, in its colour (owner)
   if (ui.build) {
     ctx.strokeStyle = COL[TOWERS[ui.build].color]; ctx.globalAlpha = 0.7;
-    CELLS.forEach((c, ci) => { if (canPlace(ci)) { const r0 = Math.hypot(c.x - CX, c.y - CY); spokeTrack(c, r0 + slideOut(ui.build, r0)); } });
+    CELLS.forEach((c, ci) => { if (canPlace(ci)) { const r0 = Math.hypot(c.x - CX, c.y - CY); spokeTrack(c, r0 + slideOut(ui.build, r0), 1, ui.build); } });
   }
   ctx.globalAlpha = 1;
 }
