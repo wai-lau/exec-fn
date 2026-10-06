@@ -115,12 +115,13 @@ function drawStatus(e, d, size) {
   }
   // BLEED (SOL's Impale): a pink outline, for good (owner)
   // BREACH (SOL's Scorch; owner): thin spokes in SOL's colour sticking out of
-  // the shape, one per stack (BREACH_SPOKES at most drawn), turning with it
+  // the shape, one per stack (BREACH_SPOKES at most drawn), each at a RANDOM
+  // angle (owner) fixed for that stack (a hash of the enemy and the stack), turning with it
   if (e.bleedCrit > 0) {
     const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1));
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
-      const a = e.rot + i * 6.283 / n, c = Math.cos(a), s = Math.sin(a);
+      const a = e.rot + fixedRand(e.id * 31 + i, 5) * 6.283, c = Math.cos(a), s = Math.sin(a);
       ctx.moveTo(e.x + c * size * 0.8, e.y + s * size * 0.8); ctx.lineTo(e.x + c * (size + 9), e.y + s * (size + 9));
     }
     ctx.strokeStyle = COL[TOWERS.reaper.color]; ctx.globalAlpha = 0.9; ctx.lineWidth = 1.2; ctx.stroke();
