@@ -72,7 +72,7 @@ const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS
 // FRESH (owner): an enemy carrying NO debuff - slowed, stunned, bleeding,
 // burning, corroded, frostbitten, shredded, poisoned or charged
 const debuffed = e => e.slowT > 0 || e.stunT > 0 || e.bleedCrit > 0 || e.burnT > 0 || e.corrodeT > 0 ||
-  e.biteT > 0 || e.shredT > 0 || e.dotT > 0 || !!e.charged;
+  e.biteT > 0 || e.shredT > 0 || e.dotT > 0 || !!e.charged || !!e.charge;
 const coreD2 = e => (e.x - CX) ** 2 + (e.y - CY) ** 2;
 const MODE_KEY = {
   // close = closest to the CORE (owner), not to the tower: the most urgent enemy
@@ -122,6 +122,7 @@ function dmgNumber(e, label, size, color) {
 const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
+  if (e.charge && !staticQuiet && t && t !== e.charge.t) dischargeStatic(e); // ARC Static: another tower's hit sets the charges off (aspira-skills.js)
   // a shield eats one whole HIT, whatever its size (poison/splash just bounce) -
   // SOL's included (owner: stripping shields is ACD's job, its ticks pop them)
   if (e.shield > 0 && !(st && st.ignoreShield)) {

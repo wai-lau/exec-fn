@@ -25,9 +25,9 @@ const SKILL_TREES = {
       { name: "High Voltage", desc: "The hardest bolts, the longest reach." },
     ] },
     { id: "static", name: "Static", tiers: [
-      { name: "Static", desc: "Every hit sparks a blast; what it catches takes more damage for a while." },
-      { name: "Static Field", desc: "Bigger blasts, a stronger mark." },
-      { name: "Thunderclap", desc: "The biggest blasts, the strongest mark." },
+      { name: "Static", desc: "Hits leave stacking charges; another tower's hit sets them all off in a blast." },
+      { name: "Static Field", desc: "Bigger charges, a wider blast." },
+      { name: "Thunderclap", desc: "The biggest charges, the widest blast." },
     ] },
   ],
 };
@@ -47,9 +47,10 @@ const ARC_VOLT_DMG = [1, 1.21, 1.42, 3.01], ARC_VOLT_RANGE = [1, 1.15, 1.3, 1.45
 // d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
 let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1.24 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1.53 }, { s: 2, j: 2, f: 3, r: 1.6, d: 2.8 }];
-const ARC_STATIC = [null, { r: 40, frac: 0.5, mul: 1.15 }, { r: 60, frac: 0.5, mul: 1.3 }, { r: 85, frac: 0.5, mul: 1.5 }];
+// Static by tier: the blast's radius and its damage, x the hit that set it off
+const ARC_STATIC = [null, { r: 40, frac: 0.5 }, { r: 60, frac: 0.8 }, { r: 85, frac: 1.2 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
-const ARC_FALL = 0.6, ARC_SHRINK = 0.7, STATIC_MARK_T = 3;
+const ARC_FALL = 0.6, ARC_SHRINK = 0.7;
 // a jump's reach, x the tower's range, before Conductivity lengthens it (owner: longer by default)
 let ARC_JUMP_REACH = 1.5;
 function arcSkillStats(t, s, b) {
@@ -73,8 +74,11 @@ const withSkill = (t, id) => ({ ...t.skills, [id]: skillOf(t, id) + 1 });
 // forks st.branch ways, st.layers jumps deep. A bolt NEVER hits the same
 // enemy twice (owner) - so it can never strike more enemies than are in
 // reach - and each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far.
-// Static: every hit also BLASTS (st.blast) - damage around it and a mark
-// (shred: x mul damage taken from every tower for STATIC_MARK_T s).
+// Static (owner, reworked 2026-10-05): an ARC hit does NO blast - it leaves a
+// CHARGE on the enemy it struck, worth st.blast.frac of the hit. Charges STACK.
+// The next hit on that enemy from ANOTHER tower (not the ARC that charged it)
+// discharges them all at once as ONE blast around it, and they are gone. A
+// discharge never sets off other charges (no chain reaction - staticQuiet).
 function fireSkillChain(t, st, e, seen) {
   if (seen && seen.has(e.id)) return; // a second strike never re-hits what the first took
   const col = TOWERS[t.kind].color, d = shotDamage(t, st, e, st.dmg);
@@ -86,15 +90,32 @@ function fireSkillChain(t, st, e, seen) {
   branchFrom(c, root, 1);
 }
 function skillHit(c, e, d) {
-  damage(e, d, c.t, false, false, c.st); onHit(e, c.t, c.st, d);
+  damage(e, d, c.t, false, false, c.st); onHit(e, c.t, c.st, d); // (discharges e's own charges, if any)
   const b = c.st.blast;
-  if (!b) return;
-  ring(e.x, e.y, b.r, c.col, 0.35);
-  for (const o of G.enemies) {
-    if (o.dead || (o.x - e.x) ** 2 + (o.y - e.y) ** 2 > b.r * b.r) continue;
-    if (o !== e) damage(o, d * b.frac, c.t, false, false, c.st);
-    applyMark(o, b.mul, STATIC_MARK_T, c.t.id); // refresh: one mark per ARC, timed
-  }
+  if (!b || e.dead) return;
+  const ch = e.charge || (e.charge = { dmg: 0, n: 0, r: 0, t: c.t });
+  ch.dmg += d * b.frac; ch.n++; ch.r = Math.max(ch.r, b.r); ch.t = c.t;
+}
+let staticQuiet = false;
+// one Static blast: dmg to every live enemy within r of `at` (but `skip`);
+// returns the enemies it caught. Quiet: it sets off no charges.
+function staticBlast(t, at, r, dmg, skip = null) {
+  ring(at.x, at.y, r, TOWERS.chain.color, 0.35);
+  const caught = [];
+  staticQuiet = true;
+  try {
+    for (const o of G.enemies) {
+      if (o.dead || o === skip || (o.x - at.x) ** 2 + (o.y - at.y) ** 2 > r * r) continue;
+      damage(o, dmg, t, false, false, null); caught.push(o);
+    }
+  } finally { staticQuiet = false; }
+  return caught;
+}
+// from damage(): a CHARGED enemy hit by ANOTHER tower lets all its charges go at once
+function dischargeStatic(e) {
+  const ch = e.charge;
+  e.charge = null;
+  staticBlast(ch.t, e, ch.r, ch.dmg);
 }
 // the nearest enemy this bolt has not hit yet, within this jump's (shrunk) reach
 function skillHop(c, node, depth) {
