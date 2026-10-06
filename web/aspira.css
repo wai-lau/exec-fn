@@ -7,6 +7,14 @@
   position: fixed;
   inset: 0; /* no nav bar on this page (owner); the home button replaces it */
   z-index: var(--z-raised);
+
+  /* a game, not a page: a long press or a drag must never start a text
+     selection (owner: the core's hold and drags brought one up on a phone) */
+  user-select: none;
+  /* stylelint-disable-next-line property-no-vendor-prefix --
+     WebKit (iOS) honours only the prefixed form; see rd.css #rd-calendar. */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   overflow: hidden;
   color: hsl(var(--green-hsl));
   font-family: var(--font-mono);

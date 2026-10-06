@@ -116,5 +116,9 @@ cv.addEventListener("pointerup", ev => endPointer(ev, true));
 cv.addEventListener("pointercancel", ev => endPointer(ev, false));
 cv.addEventListener("pointerleave", () => { if (!ptrs.size) ui.hover = null; });
 cv.addEventListener("dblclick", refit);
-// iOS: a long press would open the callout / magnifier and cancel the pointer
+// iOS: a long press would open the callout / magnifier / a text selection and
+// CANCEL the pointer (owner: the core's hold and drags were finicky) - so the
+// canvas swallows the touch itself; pointer events still arrive
 cv.addEventListener("contextmenu", ev => ev.preventDefault());
+cv.addEventListener("touchstart", ev => ev.preventDefault(), { passive: false });
+cv.addEventListener("selectstart", ev => ev.preventDefault());
