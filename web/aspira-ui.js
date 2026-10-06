@@ -186,7 +186,9 @@ const SPEC = {
         : [["Arc hop", Math.round(st.arcRange)], ["Reach", Math.round(chainReach(st))]]),
       ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
-  slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
+  slower: st => st.skill ? [["Aura slow", Math.round(st.aura * 100) + "%"], ["Aura dmg", (st.dmg * st.rate).toFixed(1) + "/s"],
+    ["Rime", st.rime ? "+" + Math.round(st.rime * 100) + "% / " + FRZ_RIME_EVERY + "s, forever" : "—"], ["Moons", st.moonN ? st.moonN + " at half" : "—"]]
+    : [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
     ["Shatter", st.shatter ? Math.round(st.dmg * st.shatter.mul) + " r" + st.shatter.r : "—"],
     ["Extra", st.frostbite ? "blast slows " + st.frostbite + "s" : st.brittle ? "+" + Math.round((st.brittle - 1) * 100) + "% taken"

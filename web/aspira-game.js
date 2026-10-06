@@ -266,7 +266,10 @@ function kill(e, t) {
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
   if (e.type === "bonus") { if (bossPays(e)) bonusDrop(e); bossKilled(e); } // the last Devil pays; a Lover's mate enrages (aspira-bosses.js)
   if (e.shatter && e.slowT > 0 && !shattering) shatterAt(e); // FRZ's Shatter
-  if (e.charged) staticDischarge(e); // ARC's Static
+  if (e.charged) staticDischarge(e); // ARC's Static (the old path)
+  // the chart ARC's Static: a charged enemy that DIES lets its charges go too
+  // (owner) - unless a Static blast killed it (no chain reaction)
+  if (e.charge && !staticQuiet) dischargeStatic(e);
 }
 
 // LIVES come in multiples of LIFE_STEP 6 - a ring's first side count (owner, 2026-10-04)
@@ -412,6 +415,7 @@ function step(dt) {
   for (const t of G.towers) {
     t.spin = (t.spin || 0) + dt; // game-time clock for anything that orbits (FRZ's moons)
     moveTower(t, dt); // slides along its spoke after its target (aspira-towers.js)
+    if (t.kind === "slower" && hasSkills(t)) { frzStep(t, dt); continue; } // the chart FRZ: an aura, every step (aspira-skills.js)
     if (t.kind === "reaper") { stepReaper(t, dt); continue; }
     if (t.kind === "acid") { stepAcid(t, dt); continue; }
     t.cd -= dt;
