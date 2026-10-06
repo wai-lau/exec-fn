@@ -317,9 +317,8 @@ function towerStats(t, noAura = false) {
     // arc reach = the tower's own range (owner: tripled from half the old range),
     // measured from each arc's parent enemy
     // ARC levels up MODESTLY (owner, option A): the L2 path brings the big change
-    case "chain":
-      s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
-      s.arcRange = s.range; s.branch = 2; s.layers = 1; break;
+    // ARC runs on its SKILL CHART now (aspira-skills.js; owner 2026-10-05)
+    case "chain": arcSkillStats(t, s, b); break;
     // SOL levels up MODESTLY like ARC and ACD (owner): the L2 path brings the change
     case "reaper":
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
@@ -364,7 +363,7 @@ function towerStats(t, noAura = false) {
   }
   return s;
 }
-const upCost = t => Math.round(TOWERS[t.kind].cost * STEP_COST[t.lvl - 1]);
+const upCost = t => Math.round(TOWERS[t.kind].cost * (hasSkills(t) ? SKILL_STEP_COST : STEP_COST)[t.lvl - 1]); // chart towers: six small steps
 // each tower's default targeting, its natural job (owner, 2026-10-03): ARC
 // starts its tree on whatever is nearest the core, FRZ slows what nothing has
 // touched yet (Fresh), SOL saves its big hit for the most HP, ACD holds its

@@ -180,6 +180,7 @@ const SPEC = {
   chain: st => {
     const tree = [1]; for (let l = 1; l <= st.layers; l++) tree.push(st.branch ** l);
     return [["Hits", tree.join("→")], ["Arc dmg", Math.round(st.dmg * st.arcFall)],
+      ["Blast", st.blast ? "r" + st.blast.r + " · +" + Math.round((st.blast.mul - 1) * 100) + "% taken" : "—"],
       ["Arc hop", Math.round(st.arcRange)], ["Reach", Math.round(chainReach(st))], ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
   slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
@@ -217,9 +218,10 @@ function statRow(label, now, next) {
 // choice: the path (at level 5) or final form (at level 10) being bought;
 // those two upgrades cannot happen without one
 function upgradeTower(t, choice = null) {
-  if (!t || t.lvl >= MAX_LVL || G.money < upCost(t)) return;
+  if (!t || t.lvl >= maxLvl(t) || G.money < upCost(t)) return;
   const need = pendingChoice(t);
   if (need && choice == null) return;
+  if (need === "skill") t.skills = withSkill(t, choice); // one tier up the chosen axis
   if (need === "path") t.path = choice;
   if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; } // a form may set targeting (Residue)
   const c = upCost(t);
@@ -232,12 +234,13 @@ function upgradeTower(t, choice = null) {
 // or final form applied when this step needs one.
 function nextTower(t, choice) {
   const need = pendingChoice(t);
-  return { ...t, lvl: t.lvl + 1, path: need === "path" ? choice : t.path, form: need === "form" ? choice : t.form };
+  return { ...t, lvl: t.lvl + 1, path: need === "path" ? choice : t.path, form: need === "form" ? choice : t.form,
+    skills: need === "skill" ? withSkill(t, choice) : t.skills };
 }
 function inspectTower(el, t) {
-  const b = TOWERS[t.kind], maxed = t.lvl >= MAX_LVL, st = towerStats(t);
+  const b = TOWERS[t.kind], maxed = t.lvl >= maxLvl(t), st = towerStats(t);
   el.innerHTML =
-    '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + MAX_LVL + "</div>" +
+    '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + maxLvl(t) + "</div>" +
     '<p class="asp-hint">' + towerTagline(t) + "</p>" + // the CURRENT upgrade's tagline under the title (owner)
     // two columns (owner): what every tower has | what only this type has
     '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
@@ -342,7 +345,7 @@ function updateHud() {
   }
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
-  if (up && t) up.classList.toggle("poor", t.lvl < MAX_LVL && G.money < upCost(t));
+  if (up && t) up.classList.toggle("poor", t.lvl < maxLvl(t) && G.money < upCost(t));
   // the core's one-click options follow the money too (aspira-core.js)
   for (const btn of document.querySelectorAll("#asp-pop [data-cost]")) btn.disabled = G.money < Number(btn.dataset.cost);
   // the open popup's tallies update live

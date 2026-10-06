@@ -24,7 +24,8 @@ const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
 // tree, and a longer chain reaches further (owner, 2026-10-02) - +0.5 x range
 // per layer: Storm (2) 2x, Ion (3) 2.5x, Rail (6) 4x, Railgun (10) 6x
 const CHAIN_LEASH = 1.5, LEASH_PER_LAYER = 0.5;
-const chainReach = st => st.range * (CHAIN_LEASH + LEASH_PER_LAYER * (st.layers - 1));
+const chainReach = st => (st.skill ? st.range + st.arcRange * (1 - st.arcShrink ** st.layers) / (1 - st.arcShrink) // a chart ARC: its jumps, each shorter
+  : st.range * (CHAIN_LEASH + LEASH_PER_LAYER * (st.layers - 1)));
 const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 
 // The tree is built of NODES (an enemy can appear in several once arcs
@@ -34,6 +35,7 @@ const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start
 // charged enemy died; relay: this shot was fired by Static (its hits charge
 // enemies only at L4, Thunderhead, so kills cannot chain-react below that)
 function fireChain(t, st, e, from = t, relay = false) {
+  if (st.skill) { fireSkillChain(t, st, e); return; } // the skill-chart ARC (aspira-skills.js)
   const col = TOWERS[t.kind].color, dmg = shotDamage(t, st, e, st.dmg);
   beam(from, e, col, CHAIN_BEAM_LIFE, 1.5, dmg); const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
   if (st.ignoreShield) root.fx.pierce = true; // Ion: a white core - it pierces (owner)
@@ -78,9 +80,9 @@ function stepChains(dt) {
   for (const p of pending) {
     p.wait -= dt;
     if (p.wait > 0) { G.chains.push(p); continue; }
-    const nxt = nextHop(p.c, p.node);
+    const nxt = p.c.skill ? skillHop(p.c, p.node, p.depth) : nextHop(p.c, p.node);
     if (!nxt) continue; // nothing left in reach: this arc fizzles
-    branchFrom(p.c, hopTo(p.c, p.node, nxt, p.depth), p.depth + 1);
+    branchFrom(p.c, (p.c.skill ? skillHopTo : hopTo)(p.c, p.node, nxt, p.depth), p.depth + 1);
   }
 }
 
