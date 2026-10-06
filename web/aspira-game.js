@@ -452,7 +452,8 @@ function winGame() {
   if (G.score > best.score) best.score = G.score;
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
-  showOverlay("the core holds", "All ten bosses down with " + G.lives + " lives left.", "Play again");
+  showOverlay("ascendant", // the win title (owner, 2026-10-06; was "the core holds")
+    "All ten bosses down with " + G.lives + " lives left.", "Play again");
 }
 function gameOver() {
   G.over = true;
