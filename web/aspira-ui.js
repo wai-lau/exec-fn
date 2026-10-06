@@ -181,7 +181,10 @@ const SPEC = {
     const tree = [1]; for (let l = 1; l <= st.layers; l++) tree.push(st.branch ** l);
     return [["Hits", tree.join("→")], ["Arc dmg", Math.round(st.dmg * st.arcFall)],
       ["Blast", st.blast ? "r" + st.blast.r + " · +" + Math.round((st.blast.mul - 1) * 100) + "% taken" : "—"],
-      ["Arc hop", Math.round(st.arcRange)], ["Reach", Math.round(chainReach(st))], ["Delay", hopDelay(st).toFixed(2) + "s"]];
+      // a chart ARC: no reach from the tower - EACH JUMP its own, shrinking (owner)
+      ...(st.skill ? [["Jumps", Array.from({ length: st.layers }, (_, j) => Math.round(st.arcRange * st.arcShrink ** j)).join("→")]]
+        : [["Arc hop", Math.round(st.arcRange)], ["Reach", Math.round(chainReach(st))]]),
+      ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
   slower: st => [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
