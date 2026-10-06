@@ -2,9 +2,9 @@
 // path tree and the repeatables). From wave CORE_UNLOCK the core buys up to
 // CORE_POINTS levels across three powers, two levels each - so you max two,
 // or take all three and level one:
-//   Fortifications  drag a TOWER onto the core: the core becomes a full-strength
-//                   COPY of it, chart picks included, until another is dragged
-//                   on (L2: the copy gets +1 tier on every axis)
+//   Fortifications  drag a TOWER onto the core: for a while the core becomes a
+//                   full-strength COPY of it, chart picks included (owner: temporary,
+//                   like the others; cooldown) (L2: the copy gets +1 tier on every axis)
 //   Temporal        press and HOLD the core: a ring spreads from it and stops
 //                   every enemy dead for a while; cooldown
 //   Empower         drag the CORE onto a tower: for a while it fights as if
@@ -15,7 +15,7 @@
 const CORE_UNLOCK = 30, CORE_COST = [1000, 2000, 3500, 5000], CORE_POINTS = CORE_COST.length;
 const CORE_POWERS = [
   { id: "fortify", name: "Fortifications", how: "drag a tower onto the core",
-    lv: ["The core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis."] },
+    lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis."] },
   { id: "temporal", name: "Temporal Manipulation", how: "press and hold the core",
     lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown."] },
   { id: "empower", name: "Empower", how: "drag the core onto a tower",
@@ -23,6 +23,7 @@ const CORE_POWERS = [
 ];
 const TEMPORAL = [null, { dur: 2, cd: 30 }, { dur: 4, cd: 20 }], TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
 const EMPOWER = [null, { dur: 6, cd: 45 }, { dur: 12, cd: 30 }];
+const FORTIFY = [null, { dur: 15, cd: 40 }, { dur: 15, cd: 40 }]; // L2 buys a stronger copy, not more time
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
@@ -36,7 +37,7 @@ function buyPower(id) {
   G.money -= coreCost();
   const c = coreState();
   c.pw[id] = powerLvl(id) + 1;
-  if (id === "fortify" && c.copy) c.tower = coreCopy(c.copy); // a level-2 copy grows at once
+  if (id === "fortify" && c.tower) c.tower = coreCopy(c.copy); // a copy already out grows at once
   return true;
 }
 const cooldownLeft = id => Math.max(0, (G.core && G.core.cd[id]) || 0);
@@ -51,8 +52,11 @@ function coreCopy(src) {
   return { id: "core", isCore: true, kind: src.kind, skills: sk, lvl: 1 + pts, x: CX, y: CY, cell: -1, cd: 0, mode: DEFAULT_MODE[src.kind], spent: 0 };
 }
 function fortify(t) {
-  if (!powerLvl("fortify") || !t || t.isCore) return false;
+  const lv = FORTIFY[powerLvl("fortify")];
+  if (!lv || !t || t.isCore || cooldownLeft("fortify") > 0) return false;
   const c = coreState();
+  c.cd.fortify = lv.cd;
+  c.copyUntil = c.clock + lv.dur;
   c.copy = { kind: t.kind, skills: { ...t.skills } };
   c.tower = coreCopy(c.copy);
   ring(CX, CY, 70, TOWERS[t.kind].color); if (typeof sfxFor === "function") sfxFor("up", t.kind); // (no sound in the simulator)
@@ -113,6 +117,7 @@ function stepCore(dt) {
     }
     if (f.t >= TEMPORAL_GROW + 0.4) c.freeze = null;
   }
+  if (c.tower && c.clock >= c.copyUntil) { c.tower.puddles = null; c.tower = null; } // the copy wears off
   if (c.tower) stepCoreTower(c.tower, dt);
 }
 // kept for newGame(): the slots go home (the Space push that moved them is gone)
@@ -124,7 +129,8 @@ function pushCells() {
 }
 
 // ---------- the core's look (UI only; aspira-draw.js calls it under the towers) ----------
-// the freeze ring, a cooldown arc per power round the core, the empowered
+// the freeze ring, a cooldown arc per power round the core (Temporal top-left,
+// Empower top-right, Fortifications at the bottom), the empowered
 // towers' halos, and the line of a power being dragged
 const CD_R = 58;
 function drawCoreFx() {
@@ -137,9 +143,9 @@ function drawCoreFx() {
     ctx.beginPath(); ctx.arc(CX, CY, Math.max(1, TEMPORAL_R * p), 0, 6.283); ctx.stroke();
   }
   // cooldowns: Temporal top-left, Empower top-right, each arc emptying as it recharges
-  [["temporal", -Math.PI * 0.75], ["empower", -Math.PI * 0.25]].forEach(([id, mid]) => {
+  [["temporal", -Math.PI * 0.75, TEMPORAL], ["empower", -Math.PI * 0.25, EMPOWER], ["fortify", Math.PI / 2, FORTIFY]].forEach(([id, mid, tab]) => {
     if (!powerLvl(id)) return;
-    const left = cooldownLeft(id), full = (id === "temporal" ? TEMPORAL : EMPOWER)[powerLvl(id)].cd;
+    const left = cooldownLeft(id), full = tab[powerLvl(id)].cd;
     ctx.strokeStyle = COL.white; ctx.lineWidth = 4;
     ctx.globalAlpha = left ? 0.35 : 0.85 + 0.15 * Math.sin(now / 300);
     const span = 0.55 * (left ? 1 - left / full : 1);
@@ -164,7 +170,7 @@ const coreCopyColor = () => (G.core && G.core.tower ? COL[TOWERS[G.core.tower.ki
 function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(); }
 function inspectCore(el) {
   const lvl = coreLvl(), copy = G.core && G.core.tower;
-  el.innerHTML = '<div class="name">Core · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name : "") + "</div>" +
+  el.innerHTML = '<div class="name">Core · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name + " · " + Math.ceil(G.core.copyUntil - G.core.clock) + "s" : "") + "</div>" +
     '<p class="asp-hint">' + (coreOpen() ? "Three powers, two levels each; buy " + CORE_POINTS + " in all." : "The heart of the chart. Its powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
     '<div id="asp-upbox"></div>';
   const box = $("asp-upbox");
