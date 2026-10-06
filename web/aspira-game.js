@@ -122,7 +122,7 @@ function dmgNumber(e, label, size, color) {
 const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
-  if (e.charge && !staticQuiet && t && t !== e.charge.t) dischargeStatic(e); // ARC Static: another tower's hit sets the charges off (aspira-skills.js)
+  if (e.charge && !staticQuiet && t) dischargeStatic(e); // ARC Static: ANY tower's hit sets the charges off, the charging ARC's too (aspira-skills.js)
   // a shield eats one whole HIT, whatever its size (poison/splash just bounce) -
   // SOL's included (owner: stripping shields is ACD's job, its ticks pop them)
   if (e.shield > 0 && !(st && st.ignoreShield)) {

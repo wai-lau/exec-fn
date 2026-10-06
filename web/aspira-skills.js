@@ -25,7 +25,7 @@ const SKILL_TREES = {
       { name: "High Voltage", desc: "The hardest bolts, the longest reach." },
     ] },
     { id: "static", name: "Static", tiers: [
-      { name: "Static", desc: "Hits leave stacking charges; another tower's hit sets them all off in a blast." },
+      { name: "Static", desc: "Hits leave charges; the next hit on that enemy sets them off in a blast." },
       { name: "Static Field", desc: "Bigger charges, a wider blast." },
       { name: "Thunderclap", desc: "The biggest charges, the widest blast." },
     ] },
@@ -98,8 +98,9 @@ const withSkill = (t, id) => ({ ...t.skills, [id]: skillOf(t, id) + 1 });
 // reach - and each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far.
 // Static (owner, reworked 2026-10-05): an ARC hit does NO blast - it leaves a
 // CHARGE on the enemy it struck, worth st.blast.frac of the hit. Charges STACK.
-// The next hit on that enemy from ANOTHER tower (not the ARC that charged it)
-// discharges them all at once as ONE blast around it, and they are gone; so
+// The next hit on that enemy from ANY tower - the ARC that charged it too
+// (owner: it procs itself) - discharges them all at once as ONE blast around
+// it before the new charge lands, and they are gone; so
 // does its DEATH (owner). A discharge never sets off other charges, and an
 // enemy a blast kills does not explode (no chain reaction - staticQuiet).
 function fireSkillChain(t, st, e, seen) {
@@ -134,7 +135,7 @@ function staticBlast(t, at, r, dmg, skip = null) {
   } finally { staticQuiet = false; }
   return caught;
 }
-// from damage(): a CHARGED enemy hit by ANOTHER tower lets all its charges go at once
+// from damage(): a CHARGED enemy hit by any tower lets all its charges go at once
 function dischargeStatic(e) {
   const ch = e.charge;
   e.charge = null;
