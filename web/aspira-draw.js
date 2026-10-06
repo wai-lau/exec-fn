@@ -287,6 +287,7 @@ function drawTowerRange(t, dim) {
   if (st.moons) { for (const m of moonSpots(t, st)) drawRange(m.x, m.y, r, col, dim); return; }
   drawRange(t.x, t.y, r, col, dim);
   if (t.kind !== "chain") return;
+  if (st.skill) return; // a chart ARC has no reach from the tower: each jump reaches from its own enemy (owner)
   ctx.beginPath(); ctx.arc(t.x, t.y, chainReach(st), 0, 6.283);
   ctx.strokeStyle = COL[col]; ctx.setLineDash([8, 10]); ctx.lineWidth = dim ? 1.5 : 2.5;
   ctx.globalAlpha = dim ? 0.2 : 0.5; ctx.stroke();
