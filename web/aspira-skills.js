@@ -57,12 +57,12 @@ SKILL_TREES.slower = [
 ];
 // SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
 // side at the tower, CONVERGING on the target - not parallel, owner), each its
-// own hit, 2 / 4 / 7; Refract = the beam bends on to 2 / 5 / 9 more
+// own full hit, 2 / 3 / 4; Refract = the beam bends on to 2 / 5 / 9 more
 // enemies, each within SOL_CONE degrees of the first shot's direction (a light
 // cone shows it); Scorch (was Impale; owner: light-themed) = 1 / 2 / 4 BREACH
 // stacks per hit (the old bleed: armor down and crit up for every tower, for
 // good). Focus x Scorch multiply:
-// 7 beams x 4 = 28 Breaches a volley on one target.
+// 4 beams x 6 = 24 Breaches a volley on one target.
 SKILL_TREES.reaper = [
   { id: "focus", name: "Focus", tiers: [
     { name: "Convergence", desc: "More beams converge on the target, each its own hit, from further away." },
@@ -147,7 +147,7 @@ let ARC_COND = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d:
 // Static by tier: the blast's radius and its damage, x the hit that set it off
 // FITTED 2026-10-06 to +25 / +50 / +100% ARC-own dealt (tier III saturates -
 // a discharge can only take the HP in reach - so it needs a big charge)
-const ARC_STATIC = [null, { r: 18, frac: 0.22 }, { r: 37.6, frac: 0.255 }, { r: 55, frac: 0.255 }]; // owner 2026-10-06: every tier a gain (III's charge was below II's)
+const ARC_STATIC = [null, { r: 18, frac: 0.22 }, { r: 37.6, frac: 0.255 }, { r: 55, frac: 0.32 }]; // owner 2026-10-06: every tier a gain (III's charge was below II's); III refitted to +200% with its radius held at 55
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // a jump's reach, before Conductivity lengthens it (owner: longer by default). It
@@ -354,7 +354,7 @@ function drawFrzSkill(t, st) {
 }
 
 // ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
-const SOL_BEAMS = [1, 2, 4, 7], SOL_REFRACT = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 6];
+const SOL_BEAMS = [1, 2, 3, 4], SOL_REFRACT = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 6];
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower
@@ -364,8 +364,8 @@ const SOL_CRITMUL = [3, 4, 5, 7];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
 // saturates): each Focus beam's share of the shot by tier, and each Refract
 // hop's damage by tier (a hop is far weaker than the first hit)
-// (a Focus beam is a SHARE of the shot, so the per-beam hit still falls as beams are added - the one stat left that does; the VOLLEY on the card only rises)
-const SOL_SHARE = [1, 0.7, 0.487, 0.45], SOL_HOP = [1, 0.25, 0.279, 0.455];
+// (owner 2026-10-06: every Focus beam is a FULL hit - 1 / 2 / 3 / 4 beams, no share - so no stat falls; SOL's base damage pays for it)
+const SOL_HOP = [1, 0.29, 0.3, 0.455];
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.crit = LVL_REAPER_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refract = SOL_REFRACT[skillOf(t, "refract")];
@@ -411,7 +411,7 @@ function drawCone(f, k) {
 // its lines can never share an enemy): Corrosion's ramp time, Spray's per-line
 // damage, Contagion's puddle heat (tier III's is below II's - its puddles are bigger)
 // REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
-const ACD_DOUBLE = [0.65, 0.52, 0.4, 0.22], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_POUR_MUL = [1, 1, 1.1, 1.2];
+const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_POUR_MUL = [1, 1, 1.1, 1.2];
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier

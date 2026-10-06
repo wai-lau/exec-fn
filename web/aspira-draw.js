@@ -341,8 +341,8 @@ function drawFx(pass) {
         }
       } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
       // the core's width is the DAMAGE of this hit (owner: every tower) - a
-      // multi-beam shot's beams each carry half the shot (rayHit)
-      const core = beamWidth((f.d || 0) / (f.beams > 1 ? 2 : 1));
+      // multi-beam shot's beams each carry the whole hit (rayHit)
+      const core = beamWidth(f.d || 0);
       if (f.m) {
         const a = ctx.globalAlpha;
         if (f.slim) {
