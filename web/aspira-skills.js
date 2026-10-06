@@ -268,7 +268,12 @@ function frzStep(t, dt) {
     for (const e of G.enemies) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
-      if (tick) damage(e, st.dmg * s.k, t, true); // quiet: an aura does not strip shields
+      if (!tick) continue;
+      // quiet: an aura does not strip shields (or flash) - but its tick still
+      // shows a NUMBER (owner, 2026-10-06), sized by what it took off
+      const hp = e.hp;
+      damage(e, st.dmg * s.k, t, true);
+      if (hp - e.hp > 0) dmgNumber(e, String(Math.round(hp - e.hp)), hp - e.hp, "white");
     }
   }
   if (st.rime) {
