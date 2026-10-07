@@ -111,7 +111,6 @@ const SFX = {
   // time stop a long falling freeze-sweep, Empower a rising charge, Fortify a
   // two-note lock-in
   powertemporal:    () => { tone({ f0: 1400, f1: 120, dur: 0.7, vol: 0.18 }); noise({ dur: 0.4, vol: 0.08, freq: 4000, q: 1.5 }); },
-  powerovercharge: () => tone({ type: "sawtooth", f0: 180, f1: 900, dur: 0.4, vol: 0.09 }),
   powerrelay: () => notes([330, 494], 0.09, { type: "square", dur: 0.12, vol: 0.12 }),
 };
 // minimum seconds between two plays of the same sound
@@ -128,7 +127,7 @@ const SAMPLE_DIR = "/aspira-sfx/", SAMPLES = {}; // guest-tier route (routes_asp
 let sampleMap = null, sampleGain = 0.5;
 // a sample index.json written before the 2026-10-06 id rename names sounds by the OLD ids
 // (chain / slower / reaper / acid, build.reaper, powerfortify ...): read them as the new ones
-const LEGACY_SFX = {"chain": "arc", "slower": "frz", "reaper": "sol", "acid": "acd", "powerfortify": "powerrelay", "powerempower": "powerovercharge", "powertime": "powertemporal"};
+const LEGACY_SFX = {"chain": "arc", "slower": "frz", "reaper": "sol", "acid": "acd", "powerfortify": "powerrelay", "powerempower": "powerrelay", "powerovercharge": "powerrelay", "powertime": "powertemporal"};
 const sfxKey = k => k.split(".").map(p => LEGACY_SFX[p] || p).join(".");
 const migrateSfx = m => Object.fromEntries(Object.entries(m).map(([k, v]) => [sfxKey(k), v]));
 fetch(SAMPLE_DIR + "index.json").then(r => (r.ok ? r.json() : null)).then(m => {

@@ -152,7 +152,7 @@ function drawBoard() {
 function drawCore() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
   // Fortifications: the core takes on the copied tower's colour, every ring of it (owner)
-  const cw = coreCopyColor() || COL.white;
+  const cw = COL.white;
   // a core power waits to be chosen: a slow white ring breathes around it, so it
   // reads as something to click (owner: show the unlock)
   // the core's LEVEL shows like a tower's (owner): a bold white ring outside

@@ -311,7 +311,6 @@ const STEP_COST = [2.95, 15.25, 24];
 // final form's mods (aspira-upgrades.js) stack on top. A Spotter in range
 // adds its aura; noAura stops the aura lookup recursing into other towers.
 function towerStats(t, noAura = false) {
-  if (typeof overcharged === "function" && overcharged(t)) t = overchargedView(t); // the core's Empower: every axis maxed for a while (aspira-core.js)
   const b = TOWERS[t.kind], i = t.lvl - 1;
   // RANGE_BONUS: every tower reaches 0.9x its table value (owner: 75% of the old 1.2, 2026-10-04)
   const s = {
@@ -361,6 +360,7 @@ function towerStats(t, noAura = false) {
       if (us.aura && !us.skill && Math.hypot(u.x - t.x, u.y - t.y) <= us.range) s.dmg *= us.aura;
     }
   }
+  if (typeof relayMul === "function") { const m = relayMul(t); if (m > 1) relayStats(s, t.kind, m); } // the core's Orbital Relay: the tower as three (aspira-core.js)
   if (G.power.RNG > 0) s.range *= 1.3;
   if (G.power.DAM > 0) s.dmg *= 1.6;
   return s;

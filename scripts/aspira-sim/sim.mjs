@@ -43,7 +43,7 @@ export function makeGame(seed, patch = "") {
       if (t.__skObj !== (t.skills || null)) { t.__skObj = t.skills || null; t.__skStr = JSON.stringify(t.skills || {}); }
       const pw = G.core ? G.core.pw : null;
       if (pw !== __pwObj) { __pwObj = pw; __pwStr = JSON.stringify(pw || {}); }
-      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + t.__skStr + "|" + (t.overchargeUntil > (G.clock || 0) ? "E" : "") + "|" + __pwStr;
+      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + t.__skStr + "|" + (t.relayUntil > (G.clock || 0) ? "R" : "") + "|" + __pwStr;
       let s = __cache.get(k);
       if (!s) { s = __ts(t, true); __cache.set(k, s); }
       return s;
@@ -189,10 +189,15 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     }
   };
   let time = 0, nearest = Infinity;
-  const leaks = {}, leakWave = {}, coreMem = {};
+  const leaks = {}, leakWave = {}, coreMem = {}, trace = [];
+  let lastWave = -1;
   act();
   // through wave maxWave: at 100 the 10th boss is fought and the game can be WON
   while (!g.G.over && g.G.wave <= maxWave && time < 60 * 60 * 2) {
+    if (strategy.trace && g.G.wave !== lastWave) { // the economy at each wave's send (money run): banked, spent so far, towers, interest rate
+      lastWave = g.G.wave;
+      trace.push({ wave: g.G.wave, money: Math.round(g.G.money), spent: Math.round(g.G.towers.reduce((a, t) => a + (t.spent || 0), 0)), towers: g.G.towers.length, lives: g.G.lives, interest: g.G.interest, time: Math.round(time) });
+    }
     const alive = g.G.enemies.filter(e => !e.dead);
     g.step(dt); g.clearFx(); time += dt;
     for (const e of alive) if (e.dead && e.gone && e.hp > 0) { leaks[e.type] = (leaks[e.type] || 0) + 1; leakWave[g.G.wave] = (leakWave[g.G.wave] || 0) + 1; }
@@ -215,7 +220,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     towers[key] = towers[key] || { n: 0, dealt: 0, kills: 0 };
     towers[key].n++; towers[key].dealt += t.dealt || 0; towers[key].kills += t.kills || 0;
   }
-  return { nearest: Math.round(nearest), wave: G.wave, over: G.over, won: !!G.won, lives: G.lives, core: G.core ? G.core.pw : null, fires: coreMem.fired || null, money: Math.round(G.money), time: Math.round(time), towers, leaks, leakWave };
+  return { nearest: Math.round(nearest), wave: G.wave, over: G.over, won: !!G.won, lives: G.lives, core: G.core ? G.core.pw : null, fires: coreMem.fired || null, money: Math.round(G.money), time: Math.round(time), towers, leaks, leakWave, trace: strategy.trace ? trace : undefined };
 }
 
 if (process.argv[1] && process.argv[1].endsWith("sim.mjs") && process.argv[2]) {

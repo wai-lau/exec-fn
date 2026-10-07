@@ -14,7 +14,7 @@ function buildName(t) {
 function renderEndStats() {
   const box = $("asp-ov-stats"), top = $("asp-ov-leaks"); // the leaks sit ABOVE the title (owner)
   if (!box || !top) return;
-  const rows = [...G.towers, ...coreTowers().filter(t => t.dealt)];
+  const rows = [...G.towers];
   const total = rows.reduce((a, t) => a + (t.dealt || 0), 0) || 1;
   rows.sort((a, b) => (b.dealt || 0) - (a.dealt || 0));
   // no level and no base name (owner): the row's colour says which tower
