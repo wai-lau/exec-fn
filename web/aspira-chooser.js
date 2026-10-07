@@ -122,3 +122,16 @@ function chooseBuild(i) {
   closeChooser();
   ui.build = k; placeTower({ x: CELLS[ci].x, y: CELLS[ci].y }); refreshPanels();
 }
+
+// FIRST LOAD (owner): until the first tower stands, a bobbing white ARROW points
+// down at the topmost free slot - "tap here to build"
+const ARROW_LEN = 60, ARROW_GAP = 30, ARROW_BOB = 10;
+function drawSlotArrow() {
+  let c = null;
+  CELLS.forEach((cell, ci) => { if (cellOpen(ci) && canPlace(ci) && (!c || cell.y < c.y)) c = cell; });
+  if (!c) return;
+  const bob = ARROW_BOB * Math.sin(performance.now() / 220), tip = c.y - ARROW_GAP + bob, tail = tip - ARROW_LEN;
+  ctx.strokeStyle = COL.white; ctx.fillStyle = COL.white; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(c.x, tail); ctx.lineTo(c.x, tip - 12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(c.x, tip); ctx.lineTo(c.x - 14, tip - 18); ctx.lineTo(c.x + 14, tip - 18); ctx.closePath(); ctx.fill();
+}
