@@ -9,7 +9,7 @@ const MULS = JSON.parse(process.env.WB_MULS || "{}");
 function closest(n, mul, seed) {
   const g = makeGame(seed); g.reset();
   g.run("G.money = 1e9;");
-  ["chain", "slower", "reaper", "acid"].forEach((k, i) => g.place(k, i));
+  ["arc", "frz", "sol", "acd"].forEach((k, i) => g.place(k, i));
   g.run(`Object.assign(WAVE_COUNT_MUL, ${JSON.stringify(MULS)}); WAVE_COUNT_MUL[${n}] = ${mul};
     let prev = "swarm"; for (let k = 1; k < ${n}; k++) { const w = wavePlan(k, prev); if (w.type !== "bonus") prev = w.type; }
     G.lastType = prev; G.started = true; G.wave = ${n - 1}; G.nextIn = 0;`);

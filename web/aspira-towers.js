@@ -14,7 +14,7 @@
 // its parent was hit - kills included (owner): no arc ever skips the delay.
 // Pending arcs step in stepChains on game time, so the delay scales with speed.
 // RPR fires a bright flash that is gone almost at once (owner); its reload
-// is shown by a separate charge-up line instead (stepReaper / drawAims)
+// is shown by a separate charge-up line instead (stepSol / drawAims)
 // the arc delay is a QUARTER of the tower's shot interval (owner), so it
 // follows fire-rate upgrades: 1.5 shots/s -> 0.17s per layer
 const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_FRAC = 0.25;
@@ -26,7 +26,7 @@ const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
 const CHAIN_LEASH = 1.5, LEASH_PER_LAYER = 0.5;
 const chainReach = st => (st.skill ? st.range + st.arcRange * (1 - st.arcShrink ** st.layers) / (1 - st.arcShrink) // a chart ARC: its jumps, each shorter
   : st.range * (CHAIN_LEASH + LEASH_PER_LAYER * (st.layers - 1)));
-const REAPER_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
+const SOL_HOLD = 2; // a Reaper's lock holds out to 2x the range it can start one in
 
 // The tree is built of NODES (an enemy can appear in several once arcs
 // bounce back): node = { e, fx: the beam that reached it, up: parent node,
@@ -149,7 +149,7 @@ function moonTargets(t, st) {
   });
   return out;
 }
-function fireSlower(t, st) {
+function fireFrz(t, st) {
   // unslowed enemies first, so three towers do not all chill the same three
   const cands = st.moons ? moonTargets(t, st)
     : pickTargets(t, st, 9999).sort((a, b) => (a.slowT > 0) - (b.slowT > 0)).slice(0, st.targets);
@@ -194,17 +194,17 @@ function shatterAt(e) {
 // Owner's rules: if the target dies mid-charge the charge starts over on a
 // new one; if it only leaves range the Reaper re-targets but keeps its charge;
 // with no target at all it sits uncharged, so every shot is telegraphed.
-function stepReaper(t, dt) {
+function stepSol(t, dt) {
   const st = towerStats(t);
   t.period = 1 / st.rate;
   // two ranges (owner): a lock can only START inside st.range (pickTargets),
-  // but once charging it HOLDS out to REAPER_HOLD x that range. It holds up
+  // but once charging it HOLDS out to SOL_HOLD x that range. It holds up
   // to st.targets locks - 1 at base; more are PARKED for a Reaper upgrade
   // (owner: a `targets` mod) - EACH WITH ITS OWN CHARGE TIMER (owner):
   // a new lock charges from empty, fires its own ray when full and charges
   // again; a lock whose target dies or slips away is dropped, and the slot
   // refills with a fresh lock.
-  t.locks = (t.locks || []).filter(l => !l.e.dead && Math.hypot(l.e.x - t.x, l.e.y - t.y) <= st.range * REAPER_HOLD);
+  t.locks = (t.locks || []).filter(l => !l.e.dead && Math.hypot(l.e.x - t.x, l.e.y - t.y) <= st.range * SOL_HOLD);
   if (t.locks.length < st.targets) {
     for (const e of pickTargets(t, st, st.targets + t.locks.length)) {
       if (t.locks.length >= st.targets) break;
@@ -262,7 +262,7 @@ function rayHit(t, st, e, base, from) {
 }
 function fireRay(t, st, e) {
   rayHit(t, st, e, st.dmg, t);
-  if (st.refract) { solRefract(t, st, e); return; } // the chart SOL's Refract (aspira-skills.js)
+  if (st.refraction) { solRefraction(t, st, e); return; } // the chart SOL's Refract (aspira-skills.js)
   if (!st.ricochet) return;
   // Ricochet / Shredder: hop to the nearest enemy not yet hit, at full damage
   const hit = new Set([e]);
@@ -280,15 +280,15 @@ function fireRay(t, st, e) {
 }
 
 function fire(t, st) {
-  if (t.kind === "slower") { const hit = fireSlower(t, st); if (!hit) t.links = []; return hit; }
+  if (t.kind === "frz") { const hit = fireFrz(t, st); if (!hit) t.links = []; return hit; }
   const targets = pickTargets(t, st, st.targets);
   if (!targets.length) return false;
   t.shots = (t.shots || 0) + 1;
   // one chain per target: st.targets > 1 (Ion's Fork) starts several lines on
   // DIFFERENT enemies (pickTargets never repeats one)
   // (a chart ARC's two strikes are two SEPARATE attacks - owner: each its own tree)
-  if (t.kind === "chain") { for (const e of targets) fireChain(t, st, e); return true; }
-  if (t.kind === "reaper") { fireRay(t, st, targets[0]); return true; }
+  if (t.kind === "arc") { for (const e of targets) fireChain(t, st, e); return true; }
+  if (t.kind === "sol") { fireRay(t, st, targets[0]); return true; }
   const col = TOWERS[t.kind].color;
   for (const e of targets) {
     const d = shotDamage(t, st, e, st.dmg);
@@ -332,14 +332,14 @@ function usePower(code) {
 // (un-halved) speed and slide (SLIDE_KIND 1, TOWER_IN_KIND 0.89), and ARC/SOL move
 // slowly (owner: "reduce greatly") over the halved slide; their Static / Breach
 // tiers buy slide extent back (SKILL_MOVE, aspira-skills.js)
-const TOWER_SPEED = { acid: 75, chain: 15, reaper: 6, slower: 55 }; // ACD 120 -> 75, FRZ 90 -> 55 (owner: reduce both)
+const TOWER_SPEED = { acd: 75, arc: 15, sol: 6, frz: 55 }; // ACD 120 -> 75, FRZ 90 -> 55 (owner: reduce both)
 
-const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
+const TOWER_REACH = { frz: 400, acd: 350, arc: 350, sol: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;
 // FRZ's slide HALVED (owner, 2026-10-06; Rime tiers buy it back, III = the old extent)
-const SLIDE_KIND = { acid: 1, slower: 0.5, chain: SLIDE_K_HALF, reaper: SLIDE_K_HALF };
+const SLIDE_KIND = { acd: 1, frz: 0.5, arc: SLIDE_K_HALF, sol: SLIDE_K_HALF };
 // towers may slide 50% further IN toward the core (owner, 2026-10-06; were 0.89 / 0.945)
-const TOWER_IN_KIND = { acid: 0.835, slower: 0.9175 }; // the rest: TOWER_IN (FRZ halved too)
+const TOWER_IN_KIND = { acd: 0.835, frz: 0.9175 }; // the rest: TOWER_IN (FRZ halved too)
 const moveSpeed = t => TOWER_SPEED[t.kind] * towerStats(t, true).speed;
 // the innermost a tower slides: this share of its slot's distance from the core.
 // 0.945 = half the old 0.89's slide in (owner); the old 0.89 kept a 13.6 gap

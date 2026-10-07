@@ -25,7 +25,7 @@ import os from "node:os";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 import { makeGame, cellScores } from "./sim.mjs";
 
-const KINDS = ["chain", "slower", "reaper", "acid"], AB = { chain: "ARC", slower: "FRZ", reaper: "SOL", acid: "ACD" };
+const KINDS = ["arc", "frz", "sol", "acd"], AB = { arc: "ARC", frz: "FRZ", sol: "SOL", acd: "ACD" };
 const MAX_TOWERS = 6, DT = 0.02, SNAP_PLANS = 12;
 
 // ---------------- worker: evaluates plans ----------------

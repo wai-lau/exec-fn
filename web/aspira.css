@@ -271,10 +271,10 @@
 #asp .asp-spend button { width: 12ch; }
 
 /* the button wears the colour of the card it closes (owner) */
-.asp-spend[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
-.asp-spend[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
-.asp-spend[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
-.asp-spend[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-spend[data-kind="arc"] { --green-hsl: var(--orange-hsl); }
+.asp-spend[data-kind="frz"] { --green-hsl: var(--cyan-hsl); }
+.asp-spend[data-kind="sol"] { --green-hsl: var(--pink-hsl); }
+.asp-spend[data-kind="acd"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 .asp-spend[data-kind="core"] { --green-hsl: var(--white-hsl); }
 
 /* the boss's haiku, above the title (owner; was on the board under the core) */
@@ -357,10 +357,10 @@
 
 /* the card is coloured like the tower clicked (owner): every green inside it
    (tint, borders, labels, buttons) reads --green-hsl, so swap that one token */
-.asp-pop[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
-.asp-pop[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
-.asp-pop[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
-.asp-pop[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-pop[data-kind="arc"] { --green-hsl: var(--orange-hsl); }
+.asp-pop[data-kind="frz"] { --green-hsl: var(--cyan-hsl); }
+.asp-pop[data-kind="sol"] { --green-hsl: var(--pink-hsl); }
+.asp-pop[data-kind="acd"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 .asp-pop[data-kind="core"] { --green-hsl: var(--white-hsl); } /* the core's card is white, like the core */
 .asp-pop[data-kind] { color: hsl(var(--green-hsl)); }
 
@@ -474,16 +474,16 @@
   color: hsl(var(--green-hsl));
   text-shadow: none;
 }
-.asp-chooser[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
-.asp-chooser[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
-.asp-chooser[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
-.asp-chooser[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-chooser[data-kind="arc"] { --green-hsl: var(--orange-hsl); }
+.asp-chooser[data-kind="frz"] { --green-hsl: var(--cyan-hsl); }
+.asp-chooser[data-kind="sol"] { --green-hsl: var(--pink-hsl); }
+.asp-chooser[data-kind="acd"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 
 /* the BUILD cards each wear their own tower's colour (aspira-chooser.js) */
-.asp-card[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
-.asp-card[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
-.asp-card[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
-.asp-card[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-card[data-kind="arc"] { --green-hsl: var(--orange-hsl); }
+.asp-card[data-kind="frz"] { --green-hsl: var(--cyan-hsl); }
+.asp-card[data-kind="sol"] { --green-hsl: var(--pink-hsl); }
+.asp-card[data-kind="acd"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 
 /* no build buttons (owner): free slots are tapped instead */
 #asp .asp-build { display: none; }

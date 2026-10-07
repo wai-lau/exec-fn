@@ -23,20 +23,20 @@ let holdTimer = 0, holdFired = false, holdMoved = false;
 function grabPower(ev) {
   if (!G.core || !coreOpen()) return null;
   const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
-  if (onCore && (powerLvl("temporal") || powerLvl("empower"))) {
+  if (onCore && (powerLvl("temporal") || powerLvl("overcharge"))) {
     if (powerLvl("temporal")) holdTimer = setTimeout(() => {
       if (ui.drag && ui.drag.kind === "core" && !holdMoved && temporalFreeze()) { holdFired = true; ui.drag = null; refreshPanels(); }
     }, HOLD_MS);
     return { kind: "core", from: { x: CX, y: CY }, at: null };
   }
-  const t = !onCore && powerLvl("fortify") && towerAt(w);
+  const t = !onCore && powerLvl("relay") && towerAt(w);
   return t ? { kind: "tower", t, from: { x: t.x, y: t.y }, at: null } : null;
 }
 // a power drag let go: Empower the tower under it, or Fortify from the tower dropped on the core
 function dropPower(d) {
   if (!d.at) return;
-  if (d.kind === "core" && powerLvl("empower")) empower(towerAt(d.at));
-  if (d.kind === "tower" && Math.hypot(d.at.x - CX, d.at.y - CY) <= CORE_R * CORE_GRAB) fortify(d.t);
+  if (d.kind === "core" && powerLvl("overcharge")) overcharge(towerAt(d.at));
+  if (d.kind === "tower" && Math.hypot(d.at.x - CX, d.at.y - CY) <= CORE_R * CORE_GRAB) relay(d.t);
   refreshPanels();
 }
 

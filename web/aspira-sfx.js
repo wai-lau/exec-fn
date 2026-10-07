@@ -83,16 +83,16 @@ function noise({ dur = 0.1, vol = 0.3, freq = 2000, q = 1, delay = 0 }) {
 const notes = (fs, step, opts) => fs.forEach((f, i) => tone({ f0: f, delay: i * step, ...opts }));
 
 const SFX = {
-  chain:   () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
+  arc:     () => { noise({ dur: 0.08, vol: 0.2, freq: 3200, q: 2 }); tone({ type: "sawtooth", f0: 600, f1: 1800, dur: 0.07, vol: 0.06 }); },
   // RPR fires a LASER (owner: no bass): a fast falling zap, a brighter buzz
   // under it, a high crack and a faint echo - nothing below ~350Hz
-  reaper:  () => {
+  sol:     () => {
     tone({ f0: 600, f1: 90, dur: 0.32, vol: 0.24 });
     tone({ type: "square", f0: 420, f1: 110, dur: 0.24, vol: 0.05 });
     noise({ dur: 0.07, vol: 0.12, freq: 1400, q: 1.2 });
     tone({ f0: 600, f1: 90, dur: 0.32, vol: 0.06, delay: 0.12 });
   },
-  slower:  () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
+  frz:     () => tone({ f0: 900, f1: 480, dur: 0.18, vol: 0.1 }),
   kill:    () => tone({ type: "triangle", f0: 520, f1: 1040, dur: 0.07, vol: 0.16 }),
   // the core is hit: a SHUTDOWN (owner) - a click, then the power sliding
   // away, everything falling to nothing like a machine switching off
@@ -110,12 +110,12 @@ const SFX = {
   // the CORE'S ABILITIES (owner, 2026-10-06: never the "upgrade complete" sound):
   // time stop a long falling freeze-sweep, Empower a rising charge, Fortify a
   // two-note lock-in
-  powertime:    () => { tone({ f0: 1400, f1: 120, dur: 0.7, vol: 0.18 }); noise({ dur: 0.4, vol: 0.08, freq: 4000, q: 1.5 }); },
-  powerempower: () => tone({ type: "sawtooth", f0: 180, f1: 900, dur: 0.4, vol: 0.09 }),
-  powerfortify: () => notes([330, 494], 0.09, { type: "square", dur: 0.12, vol: 0.12 }),
+  powertemporal:    () => { tone({ f0: 1400, f1: 120, dur: 0.7, vol: 0.18 }); noise({ dur: 0.4, vol: 0.08, freq: 4000, q: 1.5 }); },
+  powerovercharge: () => tone({ type: "sawtooth", f0: 180, f1: 900, dur: 0.4, vol: 0.09 }),
+  powerrelay: () => notes([330, 494], 0.09, { type: "square", dur: 0.12, vol: 0.12 }),
 };
 // minimum seconds between two plays of the same sound
-const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
+const GAP = { arc: 0.07, kill: 0.04, frz: 0.1, leak: 0.5 };
 
 // returns whatever the sound returns (a stop() handle for long sounds), or null
 // Optional SAMPLES (owner, 2026-10-02: Brood War sounds) replace a synth
@@ -126,9 +126,14 @@ const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };
 // folder, index or file: that sound stays synthesised.
 const SAMPLE_DIR = "/aspira-sfx/", SAMPLES = {}; // guest-tier route (routes_aspira.py)
 let sampleMap = null, sampleGain = 0.5;
+// a sample index.json written before the 2026-10-06 id rename names sounds by the OLD ids
+// (chain / slower / reaper / acid, build.reaper, powerfortify ...): read them as the new ones
+const LEGACY_SFX = {"chain": "arc", "slower": "frz", "reaper": "sol", "acid": "acd", "powerfortify": "powerrelay", "powerempower": "powerovercharge", "powertime": "powertemporal"};
+const sfxKey = k => k.split(".").map(p => LEGACY_SFX[p] || p).join(".");
+const migrateSfx = m => Object.fromEntries(Object.entries(m).map(([k, v]) => [sfxKey(k), v]));
 fetch(SAMPLE_DIR + "index.json").then(r => (r.ok ? r.json() : null)).then(m => {
   if (!m) return;
-  sampleMap = m;
+  sampleMap = migrateSfx(m);
   if (typeof m._gain === "number") sampleGain = m._gain;
   loadSamples();
 }).catch(() => {});
@@ -150,7 +155,7 @@ function loadSamples() {
 // Each TOWER's sound plays at most 3 copies at once (owner, 2026-10-02),
 // sample or synth alike: playing[name] counts live copies and a 4th is
 // skipped. A sample copy is also quieter by how many are already sounding.
-const SOUND_MAX = { chain: 3, slower: 3, reaper: 3, acid: 3 }, playing = {};
+const SOUND_MAX = { arc: 3, frz: 3, sol: 3, acd: 3 }, playing = {};
 let curSound = null; // the synth sound being built, so envelope() can count it
 // LOUDNESS (owner, 2026-10-02): the bosses' warnings and voices and every
 // upgrade/build sound stand well above the towers' shots - about 10 dB

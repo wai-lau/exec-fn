@@ -12,7 +12,7 @@ const BRANCH_LVL = 2, FINAL_LVL = 3; // the levels that bring the path / final f
 // Every `desc` is its card's TAGLINE (owner): a reader-friendly one-line
 // descriptor of the upgrade, with no numbers - the card's stat rows show those.
 const UPGRADES = {
-  chain: [
+  arc: [
     // ARC (owner, 2026-10-02): L2 is 2 PATHS, L3 is 3 FORMS each. branch /
     // layers reshape the arc tree. Ion's damage is matched to Storm's full
     // tree per shot: Storm = strike x (1 + 12 x 0.8) = 10.6, Ion 4 hits = 3.4
@@ -42,7 +42,7 @@ const UPGRADES = {
   // ACD (owner, 2026-10-02): L2 Catalyst or Plague, three L3 forms each, and
   // each form's own on-theme L4 super. Bloom hits harder than Contagion
   // (x1.5 vs x0.7) to make up for its smaller area (owner).
-  acid: [
+  acd: [
     // ACD buffed (owner, 2026-10-02: "ACD upgrades feel weak"; Rain and Residue
     // tested below the baseline): Catalyst +20% burn, Rain x2.5, Residue 3s and
     // x2.2 (Scar 8s), Corrosion 1.5 a tick (Dissolve 3), Contagion x1 (was x0.7)
@@ -75,7 +75,7 @@ const UPGRADES = {
   ],
   // FRZ (owner, 2026-10-02): L2 Shatter or Stasis, three forms each, each with
   // its own on-theme L4 super.
-  slower: [
+  frz: [
     // Shatter scales off the FRZ's OWN hit, never the enemy's max HP (owner,
     // 2026-10-02: max-HP effects made towers too obviously late-game picks)
     // Shatter's multipliers TRIPLED with FRZ's hit cut to a third (owner: 3 rays), so explosions are unchanged
@@ -102,7 +102,7 @@ const UPGRADES = {
   //   Impale  every hit BLEEDS the enemy (st.bleedArmor / st.bleedCrit per hit,
   //           stacking, permanent): its armor falls and EVERY tower crits it more
   //   Charge  heavier, slower twin beams (st.beams 2, each half a shot)
-  reaper: [
+  sol: [
     { name: "Impale", desc: "Every hit makes the enemy bleed: its armor falls and every tower crits it more, for good.",
       mods: { bleedArmor: 3, bleedCrit: 0.03 }, finals: [
         { name: "Pinpoint", desc: "Crits come far more often, and hit harder.", mods: { critScale: 1.5, critMul: 4 },

@@ -152,13 +152,13 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   }
   // BLEED (SOL's Impale): every OTHER tower may crit a bleeding enemy too, for
   // x BLEED_CRIT_MUL (SOL rolls the bleed into its own crit, rayHit)
-  if (!quiet && !crit && e.bleedCrit > 0 && !(t && t.kind === "reaper") && Math.random() < e.bleedCrit) { crit = true; amt *= BLEED_CRIT_MUL; }
+  if (!quiet && !crit && e.bleedCrit > 0 && !(t && t.kind === "sol") && Math.random() < e.bleedCrit) { crit = true; amt *= BLEED_CRIT_MUL; }
   if (e.shredT > 0) amt *= e.shredMul;
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
   // armor takes a flat bite out of every hit (never below 10% of it)
   const raw = amt;
   // ... except from the Reaper, whose shots ignore armor (owner)
-  const pierce = t && t.kind === "reaper" ? 1 : (st && st.armorPierce) || 0;
+  const pierce = t && t.kind === "sol" ? 1 : (st && st.armorPierce) || 0;
   if (e.armor > 0 && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - e.armor * (1 - pierce));
   // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit
   else if (e.armor < 0 && !quiet) amt -= e.armor;
@@ -435,9 +435,9 @@ function step(dt) {
   for (const t of G.towers) {
     t.spin = (t.spin || 0) + dt; // game-time clock for anything that orbits (FRZ's moons)
     moveTower(t, dt); // slides along its spoke after its target (aspira-towers.js)
-    if (t.kind === "slower" && hasSkills(t)) { frzStep(t, dt); continue; } // the chart FRZ: an aura, every step (aspira-skills.js)
-    if (t.kind === "reaper") { stepReaper(t, dt); continue; }
-    if (t.kind === "acid") { stepAcid(t, dt); continue; }
+    if (t.kind === "frz" && hasSkills(t)) { frzStep(t, dt); continue; } // the chart FRZ: an aura, every step (aspira-skills.js)
+    if (t.kind === "sol") { stepSol(t, dt); continue; }
+    if (t.kind === "acd") { stepAcd(t, dt); continue; }
     t.cd -= dt;
     if (t.cd > 0) continue;
     const st = towerStats(t);
