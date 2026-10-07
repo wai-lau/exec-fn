@@ -31,7 +31,7 @@ const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 3
 // count from when the effect ENDS, or Empower II (36 s on, 30 s cooldown)
 // would never switch off
 const OVERCHARGE = [null, { dur: 18, cd: 45 }, { dur: 36, cd: 30 }, { dur: 54, cd: 20 }];
-const RELAY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // (per tier: a higher tier is a stronger copy, not more time; only III is owned now)
+const RELAY = [null, { dur: 22.5, cd: 40 }, { dur: 22.5, cd: 40 }, { dur: 22.5, cd: 40 }]; // halved (owner, 2026-10-07; was 45 s) (per tier: a higher tier is a stronger copy, not more time; only III is owned now)
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
