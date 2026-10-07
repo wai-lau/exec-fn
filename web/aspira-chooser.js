@@ -74,13 +74,51 @@ const CARD_W = 380; // .asp-card's width (aspira.css)
 // close the cards (nothing was charged); a pick pays through upgradeTower
 function closeChooser() {
   if (!chooser.t) return;
-  chooser.t = null;
+  chooser.t = null; chooser.ci = null;
   $("asp-chooser").hidden = true; ui.paused = chooser.wasPaused;
   $("asp").classList.remove("asp-choosing");
 }
 function chooseUpgrade(i) {
+  if (chooser.ci != null) { chooseBuild(i); return; } // the BUILD cards
   const o = chooser.opts[i], t = chooser.t;
   if (!o || !t) return;
   closeChooser();
   upgradeTower(t, o.choice);
+}
+
+// BUILDING (owner, 2026-10-06): no build buttons - every free slot shows a
+// faint outline, and tapping one opens FOUR tower cards (name, price, what it
+// does, its base stats) and a cancel, the same chooser as an upgrade's. Each
+// card wears its tower's colour. chooser.t is a stand-in while it is open (the
+// loop and the keys test it); chooser.ci is the slot.
+function buildCard(k, i) {
+  const b = TOWERS[k], st = towerStats({ kind: k, lvl: 1, skills: {} }), cost = towerCost(k);
+  const rows = [["Damage", Math.round(st.dmg)], ["Range", Math.round(st.range)], ["Rate", st.rate.toFixed(2) + "/s"], ["Good vs", GOOD_VS[k]]];
+  return '<div class="name">' + (i + 1) + " · " + b.name + " · " + cr(cost) + "</div>" + '<p class="asp-hint">' + b.blurb + "</p>" +
+    '<div class="asp-cols"><dl>' + rows.map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>";
+}
+function openBuildChooser(ci) {
+  const el = chooserEl(), kinds = Object.keys(TOWERS);
+  chooser.t = { build: true }; chooser.ci = ci; chooser.opts = kinds;
+  chooser.wasPaused = ui.paused; ui.paused = true;
+  el.dataset.kind = "";
+  el.innerHTML = '<p class="asp-chooser-cost">build a tower</p><div class="asp-cards asp-build-cards"></div>';
+  const row = el.querySelector(".asp-cards");
+  kinds.forEach((k, i) => {
+    const c = button(row, "asp-card", buildCard(k, i), () => chooseBuild(i));
+    c.dataset.kind = k; c.dataset.cost = towerCost(k);
+  });
+  button(el, "asp-cancel", "cancel", closeChooser);
+  el.hidden = false;
+  row.classList.toggle("asp-cards-col", kinds.length * CARD_W + (kinds.length - 1) * 16 > el.clientWidth - 32);
+  el.style.paddingBottom = cardLift(row.offsetWidth).lift + "px";
+  el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
+  $("asp").classList.add("asp-choosing");
+}
+function chooseBuild(i) {
+  const k = chooser.opts[i], ci = chooser.ci;
+  if (!k || ci == null) return;
+  if (G.money < towerCost(k)) { noFunds(chooserEl().querySelectorAll(".asp-card")[i]); return; } // stays open: pick another
+  closeChooser();
+  ui.build = k; placeTower({ x: CELLS[ci].x, y: CELLS[ci].y }); refreshPanels();
 }
