@@ -74,7 +74,7 @@ const CARD_W = 380; // .asp-card's width (aspira.css)
 // close the cards (nothing was charged); a pick pays through upgradeTower
 function closeChooser() {
   if (!chooser.t) return;
-  chooser.t = null; chooser.ci = null;
+  chooser.t = null; chooser.ci = null; chooserEl().classList.remove("asp-building");
   $("asp-chooser").hidden = true; ui.paused = chooser.wasPaused;
   $("asp").classList.remove("asp-choosing");
   hideSpend(); refreshPanels(); // the card under it (if any) takes the spend bar back
@@ -102,7 +102,7 @@ function openBuildChooser(ci) {
   const el = chooserEl(), kinds = Object.keys(TOWERS);
   chooser.t = { build: true }; chooser.ci = ci; chooser.opts = kinds;
   chooser.wasPaused = ui.paused; ui.paused = true;
-  el.dataset.kind = "";
+  el.dataset.kind = ""; el.classList.add("asp-building"); // (never inverted on a boss sky)
   el.innerHTML = '<p class="asp-chooser-cost">build a tower</p><div class="asp-cards asp-build-cards"></div>';
   const row = el.querySelector(".asp-cards");
   kinds.forEach((k, i) => {
