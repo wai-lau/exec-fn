@@ -259,7 +259,8 @@ const RANGE_BONUS = 1.035; // +15% across the board (owner, 2026-10-06; was 0.9)
 // targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
 // Near = nearest the core (aspira-game.js MODE_KEY; the key stays "close", the
 // label is Near so it does not read as "close this card" - owner)
-const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"]];
+// Tagged = taking extra damage right now (aspira-game.js tagged; owner, 2026-10-07)
+const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"], ["tagged", "Tagged"]];
 
 // Each special enemy had ONE counter tower: swarm -> CHN, fast -> SLW,
 // armor -> RPR; shield's counter was RPD, removed (owner: three towers only).

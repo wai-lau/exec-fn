@@ -57,8 +57,9 @@ function spawnEnemy(type, n, pi, ang = 0) {
   // shields still start at exactly their base (8) on their first wave (3).
   const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18, grow3 = Math.pow(HP_GROWTH, 2) + 3 * 4 / 18;
   const { shield } = shieldsOf(type, n); // fewer late shields, more HP (shieldsOf)
+  const armor = d.armor ? d.armor * Math.pow(grow, ARMOR_EXP) : 0;
   G.enemies.push({
-    armor: d.armor ? d.armor * Math.pow(grow, ARMOR_EXP) : 0, shield, shieldMax: shield, wave: n, // the wave it CAME from (the end screen's leaks)
+    armor, armor0: armor, shield, /* armor0: what it spawned with, for Tagged */ shieldMax: shield, wave: n, // the wave it CAME from (the end screen's leaks)
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 6 + Math.random() * 15 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved twice
@@ -82,6 +83,10 @@ const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS
 // burning, corroded, frostbitten, shredded, poisoned or charged
 const debuffed = e => e.slowT > 0 || e.stunT > 0 || e.bleedCrit > 0 || e.burnT > 0 || e.corrodeT > 0 ||
   e.biteT > 0 || e.shredT > 0 || e.dotT > 0 || !!e.charged || !!e.charge;
+// TAGGED (owner, 2026-10-07): an enemy something makes take MORE damage right
+// now - a Capacitance window (or the old Static charge), a shred mark, Brittle
+// while slowed, Breach's crit, or armor stripped below what it spawned with
+const tagged = e => !!e.charge || !!e.charged || (e.shredT > 0 && e.shredMul > 1) || (e.slowT > 0 && e.brittle > 1) || e.bleedCrit > 0 || e.armor < (e.armor0 || 0);
 const coreD2 = e => (e.x - CX) ** 2 + (e.y - CY) ** 2;
 const MODE_KEY = {
   // close = closest to the CORE (owner), not to the tower: the most urgent enemy
@@ -89,6 +94,7 @@ const MODE_KEY = {
   // fresh: undebuffed first (nearest the core among them), then the rest
   fresh: a => (debuffed(a.e) ? 1e9 : 0) + coreD2(a.e),
   biggest: a => -a.e.hp, // the most HP left (owner)
+  tagged: a => (tagged(a.e) ? 0 : 1e9) + coreD2(a.e), // tagged first (nearest the core among them), then the rest
 };
 
 function pickTargets(t, st, count) {
