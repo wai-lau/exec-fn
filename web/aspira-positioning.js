@@ -50,11 +50,11 @@ function bestSpot(t, k, range) {
   const off = t.off || 0, r2 = range * range, first = Math.ceil(k.min / POS_STEP), steps = Math.floor(k.max / POS_STEP);
   // each enemy's hits weighed by the tower's TARGETING (owner): Biggest by its
   // HP against the biggest on the field, Fresh full for the undebuffed and
-  // POS_STALE for the rest (WEIGHTED, owner). NEAR is ABSOLUTE (owner,
+  // POS_STALE for the rest (WEIGHTED, owner), Tagged the same for the tagged. NEAR is ABSOLUTE (owner,
   // 2026-10-06: "towers not respecting my priority"): only the enemy nearest
   // the core counts - the tower goes where it can hit THAT one; only if no
   // spot reaches it does every enemy count again
-  let f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? e.hp / pred.maxHp : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : 1) + 1 - POS_MODE_MIX);
+  let f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? e.hp / pred.maxHp : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : t.mode === "tagged" ? (tagged(e) ? 1 : POS_STALE) : 1) + 1 - POS_MODE_MIX);
   const all = f;
   if (t.mode === "close") {
     let ni = 0;
