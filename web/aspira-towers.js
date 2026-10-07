@@ -66,7 +66,7 @@ function staticDischarge(e) {
 // seconds: a parent's beam outlives all its children's (the deepest keep
 // CHAIN_BEAM_LIFE)
 function keepLit(node, left) {
-  for (let n = node; n; n = n.up) n.fx.life = Math.max(n.fx.life, n.fx.t + left);
+  for (let n = node; n; n = n.up) n.fx.life = Math.max(n.fx.life, n.fx.t + left * BEAM_LIFE_MUL); // beams last longer (owner), the tree with them
 }
 // queue st.branch pending arcs out of `node`, one tree layer deeper
 function branchFrom(c, node, depth) {
