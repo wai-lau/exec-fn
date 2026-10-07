@@ -273,7 +273,7 @@ const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"]];
 // speeds (owner, 2026-10-02): fast doubled to 270, then eased to 220; shield and armor halved to
 // 37.5 and 30
 const ENEMIES = {
-  fast:   { sides: 3, hp: 1.0,  speed: 220, bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
+  fast:   { sides: 3, hp: 1.0,  speed: 187, /* 15% slower (owner, 2026-10-06: they were the only leaks after the range halving; was 220) */ bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
   // swarms: twice as many again and faster (owner, 2026-10-02: 95 -> 125), the
   // bounty halved so a swarm wave pays what it did
   swarm:  { sides: 4, hp: 0.07, speed: 125, bounty: 0.09, size: 6, color: "white" },
