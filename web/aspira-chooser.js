@@ -139,8 +139,8 @@ function drawSlotArrow() {
 // THE SPEND BAR (owner, 2026-10-06): on EVERY screen that spends money - the
 // build cards, the upgrade cards, the tower card, the core's card - the same
 // spot (bottom right, where the build buttons were) shows the credits and,
-// beside them, "-Xc" for what is on offer (pink when it is more than you
-// have), above the ONE cancel / close button. The HUD tick keeps it current.
+// beside them, "(-Xc)" in red for what is on offer, above the ONE cancel /
+// close button, centred on the screen (owner). The HUD tick keeps it current.
 const spend = { cost: null, onClose: null };
 function showSpend(cost, label, onClose) {
   spend.cost = cost; spend.onClose = onClose;
@@ -152,5 +152,5 @@ function hideSpend() { $("asp-spend").hidden = true; $("asp").classList.remove("
 function updateSpend() {
   if ($("asp-spend").hidden) return;
   $("asp-spend-cred").innerHTML = cr(Math.floor(G.money).toLocaleString("en-US")) +
-    (spend.cost != null ? ' <span class="asp-spend-cost' + (G.money < spend.cost ? " asp-spend-short" : "") + '">−' + cr(spend.cost) + "</span>" : "");
+    (spend.cost != null ? ' <span class="asp-spend-cost">(−' + cr(spend.cost) + ")</span>" : ""); // white credits, the cost in red brackets (owner)
 }
