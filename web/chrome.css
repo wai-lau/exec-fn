@@ -337,6 +337,12 @@
   .cyber-lines, .cyber-bg, .cyber-scan { animation: none !important; }
 }
 
+/* crt-lite.js measured this machine too slow to composite the stack: keep the
+   static scanlines + tint, drop the two backdrop-filter panes and the sweep. */
+html.crt-lite .cyber-blur,
+html.crt-lite .cyber-crt,
+html.crt-lite .cyber-scan { display: none; }
+
 /* Base */
 html {
   /* Solid base. The scrollbar gutter (classic desktop scrollbar) is covered by

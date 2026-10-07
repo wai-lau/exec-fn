@@ -49,7 +49,7 @@ def _safe_local_path(value: str, default: str = "/rd") -> str:
 
 
 _LANDING_LINK = '<link rel="stylesheet" href="/landing.css?v=21">'
-_LANDING_SCRIPT = '<script src="/landing-wheel.js?v=10"></script>'
+_LANDING_SCRIPT = '<script src="/crt-lite.js?v=2"></script><script src="/landing-wheel.js?v=10"></script>'
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> security 36° (same orange, with a blue secondary that leans it

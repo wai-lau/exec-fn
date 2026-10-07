@@ -93,7 +93,7 @@ The file/symbol map now lives in the knowledge graph (built with `/graphify`): o
 
 `/` is a public landing page — a ferris wheel of eleven sections (`_landing_html()` in routes_views, `web/landing.css`, `web/landing-wheel.js`), no auth, no exec bubble; logged-in admins 302 to `/rd`. The geometry solves itself per viewport (`wheelGeometry`) — never hard-code slot counts. **ARCHITECTURE.md §9**.
 
-Cyberpunk fx — the shared CRT stack `_CRT_FX`: five fixed `pointer-events:none` layers at `--z-modal`; **paint order `bg → lines → blur → crt → scan` is load-bearing**. **Never put a `backdrop-filter`/`mix-blend-mode` layer over anything animated** (it re-reads the whole viewport every frame, forever), never give `.cyber-scan` a blend mode. `/rd`, `/hq`, `/mtg`, `/cc` dim it to 0.75 via `web/crt-dim.css` with `opacity`, never by rescaling alphas. Both login screens carry it too. **ARCHITECTURE.md §10**.
+Cyberpunk fx — the shared CRT stack `_CRT_FX`: five fixed `pointer-events:none` layers at `--z-modal`; **paint order `bg → lines → blur → crt → scan` is load-bearing**. **Never put a `backdrop-filter`/`mix-blend-mode` layer over anything animated** (it re-reads the whole viewport every frame, forever), never give `.cyber-scan` a blend mode. `/rd`, `/hq`, `/mtg`, `/cc` dim it to 0.75 via `web/crt-dim.css` with `opacity`, never by rescaling alphas. Both login screens carry it too. `/` loads `crt-lite.js`: a machine that measures slow frames (no GPU) gets `html.crt-lite`, which drops the two backdrop panes + sweep (5fps → 60fps). **ARCHITECTURE.md §10, §10b-bis**.
 
 Two cookie auth tiers:
 - `session` cookie (set via `POST /login`, requires `API_KEY`) — full access. Login form at `GET /login` (already-authed visitors redirect to `?next=`/`/rd`).
