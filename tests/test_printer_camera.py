@@ -9,7 +9,8 @@ Regressions this pins, all measured on the live page 2026-09-26:
   - still laggy on an iPhone (Safari and Chrome): guests were capped at 5fps
     against the owner's 10, and one pull at a time capped a phone at
     1/(RTT + transfer). Guests now get the full rate with PULL_DEPTH pulls in
-    flight; the live test below runs AS A GUEST at a phone's round trip.
+    flight; the live test below runs AS A GUEST at a phone's round trip, and
+    skips (not fails) when the camera itself is delivering under the bar.
 """
 
 import asyncio
@@ -242,7 +243,7 @@ def test_guest_on_a_phone_round_trip_gets_the_full_rate(guest_cookie):
                     state["asked"] = max(state["asked"], seq)
                     if seq > state["shown"]:
                         state["shown"] = seq
-                        got.append(time.monotonic())
+                        got.append((time.monotonic(), seq))
 
         threads = [threading.Thread(target=worker) for _ in range(PULL_DEPTH)]
         for t in threads:
@@ -250,7 +251,16 @@ def test_guest_on_a_phone_round_trip_gets_the_full_rate(guest_cookie):
         for t in threads:
             t.join()
     got = got[3:]  # the first pulls both take the frame already there
-    gaps = [b - a for a, b in zip(got, got[1:])]
-    fps = len(gaps) / (got[-1] - got[0])
+    span = got[-1][0] - got[0][0]
+    # The guest seq advances once per frame the hub PROMOTED, so its span over
+    # the run is the rate the camera actually delivered. A slow home uplink or
+    # camera (measured 6.6fps for minutes on 2026-10-07) is not a regression
+    # here and must not block unrelated commits: skip, don't fail.
+    hub_fps = (got[-1][1] - got[0][1]) / span
+    if hub_fps < 1 / GUEST_FRAME_INTERVAL * 0.8:
+        pytest.skip(f"camera upstream slow ({hub_fps:.2f}fps) — nothing to measure the pull against")
+    times = [t for t, _ in got]
+    gaps = [b - a for a, b in zip(times, times[1:])]
+    fps = len(gaps) / span
     assert fps >= 1 / GUEST_FRAME_INTERVAL * 0.8, f"{fps:.2f}fps"
     assert max(gaps) < 0.3, f"max gap {max(gaps) * 1000:.0f}ms"
