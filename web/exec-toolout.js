@@ -68,7 +68,7 @@ function execToolOut(data) {
   if (tool && tool.cardTool) {
     let res = {};
     try { res = JSON.parse(data.text) || {}; } catch { /* not JSON: generic receipt */ }
-    return execAddMsg('sys', execCardReceipt(tool.cardTool, tool.input || {}, res));
+    return execAddActMsg(execCardReceipt(tool.cardTool, tool.input || {}, res));
   }
   const t = (data.text || '').trim();
   const out = execAddMsg('out' + (data.isError ? ' err' : ''), t ? execClamp(t) : '[ no output ]');
@@ -86,4 +86,21 @@ function execFinishTools() {
     execFold(tool, execAddMsg('out', '[ no result returned ]'));
   }
   _execToolQueue = [];
+}
+
+/** A replayed `action` row (api/exec_panel.py): the same line it was live --
+ *  a card receipt for Exec's own tools, else a tool line with its output
+ *  folded under it. A call with no recorded result folds that note instead. */
+function execReplayAction(m) {
+  const name = m.name || '';
+  if (name.indexOf(EXEC_CARD_TOOL) === 0) {
+    let res = {};
+    try { res = JSON.parse(m.result) || {}; } catch { /* not JSON: generic receipt */ }
+    execAddActMsg(execCardReceipt(name.slice(EXEC_CARD_TOOL.length), m.input || {}, res));
+    return;
+  }
+  const tool = execAddToolMsg(name, execSummarize(m.input));
+  const t = (m.result || '').trim();
+  const text = m.result == null ? '[ no result returned ]' : (t ? execClamp(t) : '[ no output ]');
+  execFold(tool, execAddMsg('out' + (m.isError ? ' err' : ''), text));
 }

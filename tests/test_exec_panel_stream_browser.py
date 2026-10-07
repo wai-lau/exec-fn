@@ -64,7 +64,7 @@ def panel(browser, base_url, admin_headers):
     forever (a run in flight)."""
     contexts = []
 
-    def _open(*replies):
+    def _open(*replies, history=()):
         ctx = browser.new_context(extra_http_headers=admin_headers)
         contexts.append(ctx)
         pg = ctx.new_page()
@@ -77,7 +77,7 @@ def panel(browser, base_url, admin_headers):
             body="window.marked={use(){},parse:s=>s,Renderer:function(){}};"))
         pg.route("**/hosaka-audio.js*", lambda r: r.fulfill(
             status=200, content_type="application/javascript", body=_STUB_AUDIO))
-        pg.route("**/api/cc/exec-history", _json({"messages": [], "monitorTotal": 0}))
+        pg.route("**/api/cc/exec-history", _json({"messages": list(history), "monitorTotal": 0}))
         pg.route("**/api/cc/health*", _json({"ok": True, "busy": False, "authed": True}))
         pg.route("**/api/cc/title*", _json({"sessionId": "t", "title": "test"}))
         pg.route("**/api/cc/limits*", _json({"ok": False}))
@@ -134,6 +134,38 @@ def test_card_tool_is_a_receipt_and_the_prompt_is_only_her_words(panel):
     assert sent == [{"prompt": "buy chalk", "images": [], "files": []}]
 
 
+def test_actions_are_one_line_each_and_no_turn_count(panel):
+    """A turn lists what it DID, one dense line per action; the old
+    "[ 2 turns ]" footnote counted rounds and said nothing about them."""
+    pg, _ = panel(_CARD_TURN)
+    _send(pg, "buy chalk")
+    _idle(pg)
+    assert _texts(pg, "#exec-term .msg.act") == ["[ card added: Buy chalk ]"]
+    assert not any("turns" in t for t in _texts(pg, "#exec-term .exec-receipt"))
+    one_line = pg.eval_on_selector(
+        "#exec-term .msg.act .msg-body",
+        "e => e.getBoundingClientRect().height <= parseFloat(getComputedStyle(e).lineHeight) + 1")
+    assert one_line
+
+
+def test_replay_shows_each_action(panel):
+    """A reload keeps the actions: the sidecar's /history carries `action` rows
+    (exec_panel passes them through), rendered as they were live."""
+    created = json.dumps({"ok": True, "id": "card-1", "title": "Drive Kayla to airport"})
+    pg, _ = panel(history=[
+        {"role": "user", "text": "drive kayla airport", "ts": "2026-10-07T21:00:00Z"},
+        {"role": "action", "name": "mcp__exec__create_card", "input": {"title": "x"},
+         "result": created, "isError": False, "ts": "2026-10-07T21:00:01Z"},
+        {"role": "action", "name": "Bash", "input": {"command": "ls"},
+         "result": "a\nb", "isError": False, "ts": "2026-10-07T21:00:02Z"},
+        {"role": "assistant", "text": "Logged.", "ts": "2026-10-07T21:00:03Z"},
+    ])
+    pg.wait_for_selector("#exec-term .msg.act", timeout=5000)
+    assert _texts(pg, "#exec-term .msg.act") == [
+        "[ card added: Drive Kayla to airport ]", "Bash ls"]
+    assert pg.eval_on_selector("#exec-term .msg.out", "e => e.hidden")
+
+
 def test_text_after_a_tool_call_opens_its_own_bubble(panel):
     """Appending into the same bubble ran two messages together and put the
     continuation ABOVE the tool line it came after."""
@@ -150,7 +182,7 @@ def test_text_after_a_tool_call_opens_its_own_bubble(panel):
       return {order, foldable,
               outs: [...document.querySelectorAll('#exec-term .msg.out')].map(o => o.textContent.trim())};
     }""")
-    assert got["order"][:4] == ["msg assistant", "msg tool exec-fold", "msg out", "msg assistant"]
+    assert got["order"][:4] == ["msg assistant", "msg tool act exec-fold", "msg out", "msg assistant"]
     bodies = _texts(pg, "#exec-term .msg.assistant")
     assert bodies[0].startswith("Getting real numbers.") and "HG group" not in bodies[0]
     assert all(got["foldable"])

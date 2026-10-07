@@ -32,6 +32,13 @@
 .msg.tool::before { content: "+"; opacity: 0.8; }
 .msg.tool b { color: hsl(var(--green-hsl) / 0.8); font-weight: var(--fw-bold); }
 
+/* An ACTION -- a card receipt or a tool call -- is one line per call, packed:
+   a turn that made five changes lists five lines, close enough to read as one
+   block under the question rather than five separate things said. Clipped
+   like the tool line, never wrapped. */
+.msg.act { margin-bottom: 0; line-height: var(--lh-none); }
+.msg.act .msg-body { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* Tool OUTPUT is reference material, not prose: dim, capped, independently
    scrollable so a 500-line ls cannot bury the reply under it. Hidden until the
    tool line above it is tapped (exec-toolout.js); `20lh` is 20 of THIS block's
@@ -313,7 +320,7 @@
 .exec-help-cmd { flex: 0 0 auto; min-width: 5rem; color: hsl(var(--green-hsl)); }
 .exec-help-what { color: hsl(var(--green-hsl) / 0.45); }
 
-/* The turn/time footnote, hung on the end of the reply rather than given a row
+/* The time footnote, hung on the end of the reply rather than given a row
    of its own. Same dim sys colour and size, so it reads as a margin note on the
    answer instead of another thing said.
 
