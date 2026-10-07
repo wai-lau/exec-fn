@@ -13,8 +13,7 @@ let fitK = 0, dragged = false, downAt = null, pinch = null;
 // THE CORE'S POWER GESTURES (owner, 2026-10-06; aspira-core.js), only once the
 // power is owned - otherwise a drag pans and a press taps, as ever:
 //   press and HOLD the core HOLD_MS -> Temporal's freeze
-//   drag from the CORE onto a tower -> Empower it
-//   drag from a TOWER onto the core -> Fortifications copies it
+//   drag from the CORE onto a tower -> the Orbital Relay: it acts as three
 // ui.drag = { kind: "core" | "tower", t, from, at } while one is held (drawn by drawCoreFx)
 // a held finger always wobbles: the hold survives HOLD_SLOP css px of drift
 // (owner: hold did nothing on a phone - DRAG_PX 6 was too tight for a thumb)
@@ -25,21 +24,19 @@ function grabPower(ev) {
   const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
   // only a power that is READY grabs (owner, 2026-10-07: no drag line for an
   // Overcharge still cooling down); otherwise the press pans and taps as ever
-  const ready = id => powerLvl(id) && !cooldownLeft(id), over = ready("overcharge");
-  if (onCore && (ready("temporal") || over)) {
+  const ready = id => powerLvl(id) && !cooldownLeft(id), rel = ready("relay");
+  if (onCore && (ready("temporal") || rel)) {
     if (ready("temporal")) holdTimer = setTimeout(() => {
       if (ui.drag && ui.drag.kind === "core" && !holdMoved && temporalFreeze()) { holdFired = true; ui.drag = null; refreshPanels(); }
     }, HOLD_MS);
-    return { kind: "core", from: { x: CX, y: CY }, at: null, drop: over }; // drop: the drag line shows (drawCoreFx)
+    return { kind: "core", from: { x: CX, y: CY }, at: null, drop: rel }; // drop: the drag line shows (drawCoreFx)
   }
-  const t = !onCore && ready("relay") && towerAt(w);
-  return t ? { kind: "tower", t, from: { x: t.x, y: t.y }, at: null, drop: true } : null;
+  return null;
 }
-// a power drag let go: Empower the tower under it, or Fortify from the tower dropped on the core
+// a power drag let go: the Relay on the tower under it
 function dropPower(d) {
   if (!d.at) return;
-  if (d.kind === "core" && powerLvl("overcharge")) overcharge(towerAt(d.at));
-  if (d.kind === "tower" && Math.hypot(d.at.x - CX, d.at.y - CY) <= CORE_R * CORE_GRAB) relay(d.t);
+  if (d.kind === "core" && powerLvl("relay")) relay(towerAt(d.at));
   refreshPanels();
 }
 

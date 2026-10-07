@@ -441,7 +441,8 @@ function step(dt) {
     t.cd -= dt;
     if (t.cd > 0) continue;
     const st = towerStats(t);
-    const fired = fire(t, st);
+    let fired = false;
+    for (let i = 0, n = t.kind === "arc" ? relayMul(t) : 1; i < n; i++) fired = fire(t, st) || fired; // the Orbital Relay: an ARC attacks three times (aspira-core.js)
     if (fired) sfx(t.kind);
     t.cd = fired ? 1 / st.rate : 0.05;
   }

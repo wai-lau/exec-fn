@@ -1,12 +1,11 @@
 // The scripted CORE player: picks powers in a given order as bosses hand them
 // out (free, top tier - aspira-core.js), and USES them the way a sane player would -
 //   Temporal Drive  when a boss is up or a crowd is near the core,
-//   Overcharge      on the tower that has dealt the most damage lately,
-//   Orbital Relay   a copy of that same tower.
+//   Orbital Relay   on the tower that has dealt the most damage lately (it acts as three).
 // Shared by sim.mjs's play() (strategy.core / strategy.useCore), corevalue.mjs,
 // late.mjs and curve.mjs so every script plays the core the same way.
-export const POWERS = ["relay", "temporal", "overcharge"];
-export const ALL = ["temporal", "overcharge", "relay"];
+export const POWERS = ["relay", "temporal"];
+export const ALL = ["temporal", "relay"];
 const CROWD_R = 320, CROWD_N = 6, BOSS_R = 420;
 
 // a boss handed out a pick: take the first power in `order` not yet owned
@@ -50,10 +49,7 @@ export function usePowers(g, mem) {
     }
     if ((boss || near >= CROWD_N) && g.run("temporalFreeze()")) count(mem, "temporal");
   }
-  const wantOver = pw.overcharge && !(cd.overcharge > 0), wantRelay = pw.relay && !(cd.relay > 0);
-  if (!wantOver && !wantRelay) return;
+  if (!pw.relay || cd.relay > 0) return;
   const t = hotTower(g, mem);
-  if (!t) return;
-  if (wantOver && g.run(`overcharge(G.towers.find(t => t.id === ${t.id}))`)) count(mem, "overcharge");
-  if (wantRelay && g.run(`relay(G.towers.find(t => t.id === ${t.id}))`)) count(mem, "relay");
+  if (t && g.run(`relay(G.towers.find(t => t.id === ${t.id}))`)) count(mem, "relay");
 }
