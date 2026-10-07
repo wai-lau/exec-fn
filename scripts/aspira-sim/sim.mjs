@@ -7,6 +7,7 @@ import vm from "node:vm";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buyNext, usePowers } from "./corepower.mjs";
 const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web") + "/";
 const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-acid.js", "aspira-skills.js", "aspira-positioning.js", "aspira-core.js"];
 
@@ -70,7 +71,7 @@ export function makeGame(seed, patch = "") {
       get G() { return G; },
       setG(x) { G = x; }, // restore a snapshot (buildsearch)
       CELLS, TOWERS, UPGRADES, PATHS, CX, CY, RIM_R, MAX_LVL, maxLvl,
-      towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell,
+      towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell, cellOpen,
       place(kind, ci, mode = DEFAULT_MODE[kind]) {
         const c = CELLS[ci];
         const cost = towerCost(kind);
@@ -128,7 +129,9 @@ export function cellScores(g, kind) {
 }
 
 // strategy: { mix: {kind: weight}, paths: {kind: [path, form]}, up: 0..1 (how
-// eager to upgrade vs build), maxTowers, threat }
+// eager to upgrade vs build), maxTowers, threat, core: [power ids in buy
+// order] (the player saves for the next one like any other action, picked
+// with probability coreP, default 0.5), useCore: true (corepower.mjs fires them) }
 // threat (owner, 2026-10-02: "measure the nearest an enemy got; upgrade or
 // build when units get a bit too close"): the player SAVES (earning interest)
 // and only spends once a live enemy comes within \`threat\` of the core.
@@ -152,7 +155,9 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     const ups = G.towers.filter(t => t.lvl < g.maxLvl(t)).sort((a, b) => g.upCost(a) - g.upCost(b));
     const full = G.towers.length >= (strategy.maxTowers || 99);
     const opening = strategy.opening || [];
+    const coreLeft = strategy.core && g.run("coreOpen() && coreLvl() < CORE_POINTS") && strategy.core.length > g.run("coreLvl()");
     if (G.towers.length < opening.length) next = { kind: opening[G.towers.length] };
+    else if (coreLeft && rnd() < (strategy.coreP ?? 0.5)) next = { core: true };
     else if (ups.length && (full || rnd() < (strategy.up ?? 0.5))) next = { up: ups[0] };
     else if (!full) next = { kind: pick() };
     else next = null;
@@ -162,6 +167,10 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     for (let guard = 0; guard < 20; guard++) {
       if (!next || (next.up && (next.up.lvl >= g.maxLvl(next.up) || !G.towers.includes(next.up)))) choose();
       if (!next) return;
+      if (next.core) {
+        if (G.money - g.run("coreCost()") < (strategy.reserve || 0) * G.wave) return;
+        buyNext(g, strategy.core); next = null; continue;
+      }
       if (next.up) {
         const t = next.up, [p, f] = (strategy.paths || {})[t.kind] || [0, 0];
         if (G.money - g.upCost(t) < (strategy.reserve || 0) * G.wave) return;
@@ -170,18 +179,20 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
         used[t.kind] = 1; next = null; continue;
       }
       if (G.money - g.run("towerCost('" + next.kind + "')") < (G.towers.length < 2 ? 0 : (strategy.reserve || 0) * G.wave)) return;
-      const best = order[next.kind].find(i => !g.run("occupied(" + i + ")"));
+      const best = order[next.kind].find(i => g.cellOpen(i) && !g.run("occupied(" + i + ")"));
       if (best == null) { next = null; return; }
       g.place(next.kind, best, (strategy.modes || {})[next.kind]); next = null;
     }
   };
   let time = 0, nearest = Infinity;
-  const leaks = {}, leakWave = {};
+  const leaks = {}, leakWave = {}, coreMem = {};
   act();
-  while (!g.G.over && g.G.wave < maxWave && time < 60 * 60 * 2) {
+  // through wave maxWave: at 100 the 10th boss is fought and the game can be WON
+  while (!g.G.over && g.G.wave <= maxWave && time < 60 * 60 * 2) {
     const alive = g.G.enemies.filter(e => !e.dead);
     g.step(dt); g.clearFx(); time += dt;
     for (const e of alive) if (e.dead && e.gone && e.hp > 0) { leaks[e.type] = (leaks[e.type] || 0) + 1; leakWave[g.G.wave] = (leakWave[g.G.wave] || 0) + 1; }
+    if (strategy.useCore && Math.round(time / dt) % 25 === 0) usePowers(g, coreMem);
     if (Math.round(time / dt) % 10 === 0) {
       if (!strategy.threat || g.G.towers.length < (strategy.opening || []).length) act();
       else {
@@ -199,7 +210,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     towers[key] = towers[key] || { n: 0, dealt: 0, kills: 0 };
     towers[key].n++; towers[key].dealt += t.dealt || 0; towers[key].kills += t.kills || 0;
   }
-  return { nearest: Math.round(nearest), wave: G.wave, over: G.over, lives: G.lives, money: Math.round(G.money), time: Math.round(time), towers, leaks, leakWave };
+  return { nearest: Math.round(nearest), wave: G.wave, over: G.over, won: !!G.won, lives: G.lives, core: G.core ? G.core.pw : null, fires: coreMem.fired || null, money: Math.round(G.money), time: Math.round(time), towers, leaks, leakWave };
 }
 
 if (process.argv[1] && process.argv[1].endsWith("sim.mjs") && process.argv[2]) {
