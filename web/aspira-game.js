@@ -66,7 +66,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     // fractional, so a cheap swarmer really pays its share (owner: halved
     // swarm bounty must hold; money is shown rounded down)
-    bounty: (2 + n * 0.35) * d.bounty, slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
+    bounty: bountyBase(n) * d.bounty, // (aspira-waves.js) slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
   if (type === "bonus") bossSpawn(G.enemies[G.enemies.length - 1], n); // which boss (aspira-bosses.js)
 }
