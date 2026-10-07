@@ -105,10 +105,11 @@ function updateWaveList() {
     // "next wave in" line above the list): after the name, or on a phone (names
     // hidden) just right of the icons
     const eta = n === G.wave + 1 && G.started && !bossUp() ? Math.ceil(Math.max(0, G.nextIn)) + "s" : "";
-    const etaHtml = eta ? '<span class="asp-eta">' + eta + "</span>" : "";
-    note += "<span" + c + ">" + roman(n) + "</span><span" + c + ">:</span>" +
-      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (cur ? " asp-cur" : "") + '" style="width:' + span + 'px">' + icons + (eta ? '<span class="asp-eta asp-eta-ph">' + eta + "</span>" : "") + "</span>" +
-      "<span" + c + ">" + (boss ? "<b>" + arcanaOf(n).name + "</b>" : w.type) + etaHtml + "</span>"; // boss names BOLD (owner)
+    // NO wave numbers (owner, 2026-10-06): the first column holds the incoming
+    // wave's countdown, LEFT of its row (was after its name); the ":" column is empty
+    note += "<span" + c + ">" + (eta ? '<span class="asp-eta">' + eta + "</span>" : "") + "</span><span" + c + "></span>" +
+      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (cur ? " asp-cur" : "") + '" style="width:' + span + 'px">' + icons + "</span>" +
+      "<span" + c + ">" + (boss ? "<b>" + arcanaOf(n).name + "</b>" : w.type) + "</span>"; // boss names BOLD (owner)
   }
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
 }

@@ -86,8 +86,9 @@
   filter: drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl)));
 }
 
-/* the wave numbers right-aligned against the ":", the HPs aligned too (owner) */
-.asp-wavenote > span:nth-child(4n + 1) { min-width: 8ch; justify-content: flex-end; } /* fixed: LXXXVIII is the widest numeral, so the list never shifts (owner) */
+/* the first column: the incoming wave's countdown, right-aligned (owner; the
+   wave numbers are gone), wide enough for "999s" so the list never shifts */
+.asp-wavenote > span:nth-child(4n + 1) { min-width: 4ch; justify-content: flex-end; text-align: right; }
 
 .asp-wavenote > span:nth-child(4n) { padding: 0 var(--space-2) 0 2ch; } /* a gap before the name (owner) */
 
@@ -100,10 +101,8 @@
 /* a tessellated swarm: ONE lattice band, three diamonds tall (owner; aspira-ui.js places each) */
 .asp-band { position: relative; display: block; }
 
-/* the incoming wave's countdown, "15s", right of its row (owner): after the
-   name; on a phone (names hidden) just right of the icons (.asp-eta-ph) */
-.asp-eta { margin-left: 1ch; color: hsl(var(--green-hsl)); font-variant-numeric: tabular-nums; }
-.asp-eta-ph { display: none; position: absolute; left: 100%; top: 50%; transform: translateY(-50%); white-space: nowrap; }
+/* the incoming wave's countdown, "15s", LEFT of its row (owner) */
+.asp-eta { color: hsl(var(--green-hsl)); font-variant-numeric: tabular-nums; }
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
@@ -279,7 +278,7 @@
 .asp-spend[data-kind="core"] { --green-hsl: var(--white-hsl); }
 
 /* the boss's haiku, above the title (owner; was on the board under the core) */
-.asp-bosshint { max-width: 22ch; text-align: right; font-size: var(--fs-xs); line-height: var(--lh-snug); color: hsl(var(--pink-hsl)); white-space: pre-line; }
+.asp-bosshint { text-align: right; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--pink-hsl)); white-space: pre; } /* exactly its 3 lines, never wrapped (owner) */
 
 .asp-bosshint:empty { display: none; } /* "cancel" and "close" the same width: the button never shifts */
 
@@ -554,13 +553,10 @@
    buttons, on the same bottom band */
 @media (width < 700px) {
   /* no holes (owner: "gaps"): HP right after the count, rows packed */
-  .asp-wavenote { grid-template-columns: auto; gap: var(--space-1) 0; } /* icons only */
+  .asp-wavenote { grid-template-columns: auto auto; gap: var(--space-1) 0; } /* the countdown + icons */
 
-  .asp-wavenote > span:nth-child(4n + 1),
   .asp-wavenote > span:nth-child(4n + 2),
   .asp-wavenote > span:nth-child(4n + 4) { display: none; }
-
-  .asp-wavenote .asp-eta-ph { display: block; }
 
 
 
