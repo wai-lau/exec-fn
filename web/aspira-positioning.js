@@ -16,6 +16,7 @@
 // POS_HORIZON 3 -> 5 (2026-10-06): ARC and SOL now move so slowly that within
 // 3 s no other spot was reachable, so staying put always won
 // re-planned every POS_EVERY 0.5 s (was 0.25 - jittery, owner) with a POS_DEADBAND (moveTower)
+const POS_SOON = 1; // s: a hit this far ahead counts 1/e as much
 let POS_DEADBAND = 30, POS_EVERY = 0.5, POS_HORIZON = 5, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
 const POS_HORIZON_SET = h => { POS_HORIZON = h; }; // (the simulator sweeps it)
 const POS_STALE = 0.2; // Fresh: what a debuffed enemy's hits are still worth
@@ -32,7 +33,9 @@ function predictions() {
     for (let t = 0; t <= POS_HORIZON + 1e-9; t += POS_DT) {
       const s = e.s + v * t, p = pathAt(e.pi, s, e.ang || 0);
       // URGENCY: a hit counts more the nearer that point is to the core (x1 at entry .. x7 at the core)
-      pts.push({ x: p.x, y: p.y, t, w: 1 + POS_URGENCY * Math.min(1, s / PATHS[e.pi].len) ** 2 });
+      // ... and SOONER counts more (owner, 2026-10-06: a tower sat waiting on far
+      // future passes while it could reach the action now): x exp(-t / POS_SOON)
+      pts.push({ x: p.x, y: p.y, t, w: (1 + POS_URGENCY * Math.min(1, s / PATHS[e.pi].len) ** 2) * Math.exp(-t / POS_SOON) });
     }
     posPred.push({ e, pts });
   }

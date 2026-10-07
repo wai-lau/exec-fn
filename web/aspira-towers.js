@@ -384,7 +384,14 @@ function moveTower(t, dt) {
   // a new mark within POS_DEADBAND of the one it is heading for is ignored, so a
   // tower does not twitch after every small shift of the action (owner, 2026-10-06:
   // "tower positions jitter too much")
-  if (t.posT <= 0) { t.posT = POS_EVERY; const w = bestSpot(t, k, towerStats(t).range); if (t.want == null || w == null || Math.abs(w - t.want) > POS_DEADBAND) t.want = w; }
+  // (the deadband only holds while it has something in range - an idle tower
+  // always takes the new mark)
+  if (t.posT <= 0) {
+    t.posT = POS_EVERY;
+    const r = towerStats(t).range, w = bestSpot(t, k, r);
+    const busy = G.enemies.some(e => !e.dead && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r * r);
+    if (t.want == null || w == null || !busy || Math.abs(w - t.want) > POS_DEADBAND) t.want = w;
+  }
   const want = Math.max(k.min, Math.min(max, t.want ?? max)); // nothing alive: rest OUTERMOST (owner)
   // eased: aim for the speed that still stops on the mark, then ramp to it
   const gap = want - off, vWant = Math.sign(gap) * Math.min(moveSpeed(t), Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
