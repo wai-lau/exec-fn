@@ -259,7 +259,7 @@ function drawCells() {
     if (!cellOpen(ci)) return; // a corner slot shows once its wave opens it
     const free = canPlace(ci);
     // before the first tower the free slots FLASH (owner; the build buttons used to)
-    if (!ui.build) { if (free) { cellPath(c, TOWER_K); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9; text(towerCost("chain") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
+    if (!ui.build) { if (free) { cellPath(c, TOWER_K); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9; text(towerCost("arc") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
     cellPath(c, TOWER_K);
     const col = COL[TOWERS[ui.build].color];
     if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }
@@ -295,7 +295,7 @@ function drawTowerRange(t, dim) {
   // Moons / Desolation: each moon's slowing circle INSTEAD of the tower's range (owner)
   if (st.moons) { for (const m of moonSpots(t, st)) drawRange(m.x, m.y, r, col, dim); return; }
   drawRange(t.x, t.y, r, col, dim);
-  if (t.kind !== "chain") return;
+  if (t.kind !== "arc") return;
   if (st.skill) return; // a chart ARC has no reach from the tower: each jump reaches from its own enemy (owner)
   ctx.beginPath(); ctx.arc(t.x, t.y, chainReach(st), 0, 6.283);
   ctx.strokeStyle = COL[col]; ctx.setLineDash([8, 10]); ctx.lineWidth = dim ? 1.5 : 2.5;
@@ -460,7 +460,7 @@ function drawScene([sx, sy], clipR) {
   // stars go on top of lanes and range fills, which would otherwise tint them
   drawStars();
   drawTethers();
-  drawAcid();
+  drawAcd();
   drawStaticRings(); // ARC Static's discharge rings (aspira-skills.js)
   drawAims();
   drawFx("shots");

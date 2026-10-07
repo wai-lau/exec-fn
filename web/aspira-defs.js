@@ -242,18 +242,17 @@ function resolveColors() {
 // ARC 173.4 -> 86.7, FRZ 176 -> 88, SOL 350 -> 175, ACD 230 -> 115. Effects keep their
 // absolute size (ARC's jumps ARC_JUMP_BASE, Static rings, SOL's cone, ACD puddles, the
 // moons' orbit); FRZ's aura IS its range, so it halves with it.
-// display names (owner): chain = ARC, slower = FRZ, reaper = SOL (was RAY),
-// acid = ACD; the code
-// and older comments still call them chain/slower/reaper (CHN/SLW/RPR)
+// ids = display names (owner, 2026-10-06): arc = ARC, frz = FRZ, sol = SOL (was RAY),
+// acd = ACD; older comments still call them chain/slower/reaper/acid (CHN/SLW/RPR)
 const TOWERS = {
-  chain:   { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 96, rate: 1.5, /* 2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Lightning that jumps between enemies. Long range; barely moves.", up: "extra arcs" },
-  slower:  { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 30, rate: 2.4, /* early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "Slows enemies only while they are inside its aura, and chips them. Short range; roams.", up: "slow strength" },
-  reaper:  { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 170,  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer; 170 with every Focus beam a FULL hit (4 x 170 is about the old 7 shared beams); range 200 (was 175): the fast waves 14 / 18 outran the halved range */  range: 260 /* owner 2026-10-06: 200 still felt too small (was 350, halved) */, blurb: "Big shots that ignore armor and can crit. Longest range; barely moves.", up: "crit chance" },
+  arc:     { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 96, rate: 1.5, /* 2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Lightning that jumps between enemies. Long range; barely moves.", up: "extra arcs" },
+  frz:     { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 30, rate: 2.4, /* early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "Slows enemies only while they are inside its aura, and chips them. Short range; roams.", up: "slow strength" },
+  sol:     { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 170,  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer; 170 with every Focus beam a FULL hit (4 x 170 is about the old 7 shared beams); range 200 (was 175): the fast waves 14 / 18 outran the halved range */  range: 260 /* owner 2026-10-06: 200 still felt too small (was 350, halved) */, blurb: "Big shots that ignore armor and can crit. Longest range; barely moves.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
-  acid:    { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 46,  rate: 4, /* early-game balance 2026-10-06: was 18, then 26; 46 with the range halved (and a faster base ramp, ACD_DOUBLE) */    range: 115, blurb: "A burn that grows the longer it holds one enemy, and drips burning puddles. Short range; roams.", up: "burn" },
+  acd:     { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 46,  rate: 4, /* early-game balance 2026-10-06: was 18, then 26; 46 with the range halved (and a faster base ramp, ACD_DOUBLE) */    range: 115, blurb: "A burn that grows the longer it holds one enemy, and drips burning puddles. Short range; roams.", up: "burn" },
 };
 // which enemies each tower is GOOD AGAINST (owner), on its build card
-const GOOD_VS = { chain: "swarms", slower: "fast, shields", reaper: "armor, bosses", acid: "shields, bosses" };
+const GOOD_VS = { arc: "swarms", frz: "fast, shields", sol: "armor, bosses", acd: "shields, bosses" };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
 const RANGE_BONUS = 1.035; // +15% across the board (owner, 2026-10-06; was 0.9) // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
@@ -301,8 +300,8 @@ const LVL_RANGE = [1, 1.12, 1.27, 1.42];
 const LVL_ARC_DMG = [1, 1.4, 2, 2.8], LVL_ARC_RANGE = [1, 1.1, 1.2, 1.3];
 // (the rule "two L1 SOLs must clear wave 1" was dropped, owner 2026-10-06: SOL
 // is no longer a swarm answer; its rate fell to 1, its shot rose to 189)
-const LVL_REAPER_RATE = [1, 1, 1, 1];
-const LVL_REAPER_CRIT = [0.1, 0.16, 0.235, 0.31];
+const LVL_SOL_RATE = [1, 1, 1, 1];
+const LVL_SOL_CRIT = [0.1, 0.16, 0.235, 0.31];
 const LVL_SLOW = [0.4, 0.45, 0.5, 0.55], FRZ_SLOW_MUL = 0.8; // owner: starts at 40%, grows modestly; capped at 0.85 in towerStats
 // cost to go from level i+1 to i+2, as a multiple of the tower's build cost;
 // the first upgrade HALVED (owner, 2026-10-05; was 5.9)
@@ -312,7 +311,7 @@ const STEP_COST = [2.95, 15.25, 24];
 // final form's mods (aspira-upgrades.js) stack on top. A Spotter in range
 // adds its aura; noAura stops the aura lookup recursing into other towers.
 function towerStats(t, noAura = false) {
-  if (typeof empowered === "function" && empowered(t)) t = empoweredView(t); // the core's Empower: every axis maxed for a while (aspira-core.js)
+  if (typeof overcharged === "function" && overcharged(t)) t = overchargedView(t); // the core's Empower: every axis maxed for a while (aspira-core.js)
   const b = TOWERS[t.kind], i = t.lvl - 1;
   // RANGE_BONUS: every tower reaches 0.9x its table value (owner: 75% of the old 1.2, 2026-10-04)
   const s = {
@@ -325,18 +324,18 @@ function towerStats(t, noAura = false) {
     // measured from each arc's parent enemy
     // ARC levels up MODESTLY (owner, option A): the L2 path brings the big change
     // ARC runs on its SKILL CHART now (aspira-skills.js; owner 2026-10-05)
-    case "chain": arcSkillStats(t, s, b); break;
+    case "arc": arcSkillStats(t, s, b); break;
     // SOL levels up MODESTLY like ARC and ACD (owner): the L2 path brings the change
-    case "reaper":
+    case "sol":
       if (hasSkills(t)) { solSkillStats(t, s, b); break; } // SOL's chart (aspira-skills.js)
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
-      s.crit = LVL_REAPER_CRIT[i]; s.rate = b.rate * LVL_REAPER_RATE[i]; break;
-    case "slower": if (hasSkills(t)) { frzSkillStats(t, s, b); break; } s.slow = LVL_SLOW[i]; s.targets = 3; break; // owner: 3 rays by default (2026-10-04; was 1 since 2026-10-02)
+      s.crit = LVL_SOL_CRIT[i]; s.rate = b.rate * LVL_SOL_RATE[i]; break;
+    case "frz": if (hasSkills(t)) { frzSkillStats(t, s, b); break; } s.slow = LVL_SLOW[i]; s.targets = 3; break; // owner: 3 rays by default (2026-10-04; was 1 since 2026-10-02)
     // ACD levels up MODESTLY like ARC (owner): the L2 path brings the big change
-    case "acid":
-      if (hasSkills(t)) { acidSkillStats(t, s, b); break; } // ACD's chart (aspira-skills.js)
+    case "acd":
+      if (hasSkills(t)) { acdSkillStats(t, s, b); break; } // ACD's chart (aspira-skills.js)
       s.dmg = b.dmg * LVL_ARC_DMG[i]; s.range = b.range * RANGE_BONUS * LVL_ARC_RANGE[i];
-      s.double = ACID_DOUBLE; s.cap = ACID_MAX; s.plagueR = 0; break;
+      s.double = ACD_BASE_DOUBLE; s.cap = ACD_BASE_MAX; s.plagueR = 0; break;
   }
   if (t.path != null) {
     const p = UPGRADES[t.kind][t.path];
@@ -371,7 +370,7 @@ const upCost = t => Math.round(TOWERS[t.kind].cost * (hasSkills(t) ? SKILL_STEP_
 // starts its tree on whatever is nearest the core, FRZ slows what nothing has
 // touched yet (Fresh), SOL saves its big hit for the most HP, ACD holds its
 // ramping burn on the longest-lived (Biggest)
-const DEFAULT_MODE = { chain: "close", slower: "fresh", reaper: "biggest", acid: "biggest" };
+const DEFAULT_MODE = { arc: "close", frz: "fresh", sol: "biggest", acd: "biggest" };
 // each new tower costs 1.5x the last (owner, 2026-10-04; was 2x): 40, 60, 90, 135, 203, 304
 const towerCost = k => Math.round(TOWERS[k].cost * Math.pow(1.5, G.towers.length));
 const sellValue = t => Math.floor(t.spent * 0.7);

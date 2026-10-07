@@ -13,14 +13,14 @@
 //                 line's enemy (Plague); st.bloom grows it with the ramp
 //   st.corrode    armor stripped from everything a tick burns, below zero
 //   st.allInRange no lines: every enemy in range burns on its own ramp
-// ACID_MAX 64 -> 32 (overnight phase 3, 2026-10-06): ACD dealt 52-99% of a late team's damage
-const ACID_DOUBLE = 1, ACID_MAX = 32;
-const acidMulOf = (held, st) => Math.min(st.cap, 2 ** (held / st.double));
-const acidFrac = (l, st) => Math.log2(acidMulOf(l.held, st)) / Math.log2(st.cap); // 0 fresh .. 1 full burn
+// ACD_BASE_MAX 64 -> 32 (overnight phase 3, 2026-10-06): ACD dealt 52-99% of a late team's damage
+const ACD_BASE_DOUBLE = 1, ACD_BASE_MAX = 32;
+const acdMulOf = (held, st) => Math.min(st.cap, 2 ** (held / st.double));
+const acdFrac = (l, st) => Math.log2(acdMulOf(l.held, st)) / Math.log2(st.cap); // 0 fresh .. 1 full burn
 function plagueRadius(l, st) {
-  return st.plagueR * (st.bloom ? 1 + (st.bloom - 1) * acidFrac(l, st) : 1);
+  return st.plagueR * (st.bloom ? 1 + (st.bloom - 1) * acdFrac(l, st) : 1);
 }
-function acidLines(t, st) {
+function acdLines(t, st) {
   const r2 = st.range ** 2, inRange = e => !e.dead && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r2;
   // Chain Reaction (st.carry): a line whose enemy DIED hands that share of its ramp to the next new line
   for (const l of t.lines || []) if (l.e.dead && st.carry) t.spare = Math.max(t.spare || 0, l.held * st.carry);
@@ -59,8 +59,8 @@ function rainChain(t, st, from) {
   }
   return out;
 }
-function acidTick(t, st, l, every) {
-  const d = st.dmg * (st.pourMul || 1) * acidMulOf(l.held, st) * every; // Spray's fitted per-line damage (aspira-skills.js)
+function acdTick(t, st, l, every) {
+  const d = st.dmg * (st.sprayMul || 1) * acdMulOf(l.held, st) * every; // Spray's fitted per-line damage (aspira-skills.js)
   const burn = o => {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh
@@ -72,15 +72,15 @@ function acidTick(t, st, l, every) {
   if (st.rainChain) l.chain = rainChain(t, st, center).filter(o => { burn(o); return true; });
   if (R) for (const o of G.enemies) if (o !== center && !o.dead && Math.hypot(o.x - center.x, o.y - center.y) <= R) burn(o);
 }
-function stepAcid(t, dt) {
+function stepAcd(t, dt) {
   const st = towerStats(t), every = 1 / st.rate, r2 = st.range ** 2;
-  t.lines = acidLines(t, st);
+  t.lines = acdLines(t, st);
   for (const l of t.lines) {
     if ((l.e.x - t.x) ** 2 + (l.e.y - t.y) ** 2 > r2) l.left -= dt; // Residue's countdown
     l.held += dt; l.tick += dt;
     // every tick spits (owner: Hydralisk sound); aspira-sfx.js caps it at 3
     // at once, each quieter than the last
-    while (l.tick >= every && !l.e.dead) { l.tick -= every; acidTick(t, st, l, every); sfx("acid"); }
+    while (l.tick >= every && !l.e.dead) { l.tick -= every; acdTick(t, st, l, every); sfx("acd"); }
   }
-  if (st.seep) stepPuddles(t, st, dt); // the chart ACD's puddles (aspira-skills.js)
+  if (st.contagion) stepPuddles(t, st, dt); // the chart ACD's puddles (aspira-skills.js)
 }

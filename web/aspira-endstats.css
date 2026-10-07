@@ -15,10 +15,10 @@
 
 .asp-end-towers td:first-child,
 .asp-end-towers th:first-child { text-align: left; }
-.asp-end-towers tr[data-kind="chain"] { color: hsl(var(--orange-hsl)); }
-.asp-end-towers tr[data-kind="slower"] { color: hsl(var(--cyan-hsl)); }
-.asp-end-towers tr[data-kind="reaper"] { color: hsl(var(--pink-hsl)); }
-.asp-end-towers tr[data-kind="acid"] { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
+.asp-end-towers tr[data-kind="arc"] { color: hsl(var(--orange-hsl)); }
+.asp-end-towers tr[data-kind="frz"] { color: hsl(var(--cyan-hsl)); }
+.asp-end-towers tr[data-kind="sol"] { color: hsl(var(--pink-hsl)); }
+.asp-end-towers tr[data-kind="acd"] { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
 
 .asp-end-waves {
   max-height: 30dvh;

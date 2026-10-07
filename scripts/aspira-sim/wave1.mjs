@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { makeGame, cellScores } from "./sim.mjs";
 const patch = process.argv[2] && process.argv[2] !== "-" ? fs.readFileSync(process.argv[2], "utf8") : "";
 const SEEDS = Number(process.argv[3] || 3);
-const K = ["chain", "slower", "reaper", "acid"];
+const K = ["arc", "frz", "sol", "acd"];
 const g0 = makeGame(1, patch); g0.reset();
 const cells = Object.fromEntries(K.map(k => { const sc = cellScores(g0, k); return [k, sc.map((v, i) => i).sort((a, b) => sc[b] - sc[a]).slice(0, 5)]; }));
 let fails = 0;

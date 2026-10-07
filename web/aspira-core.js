@@ -18,19 +18,19 @@
 // 6-9 were out of reach in 100 waves): 27k in all, +500 a buy
 const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_COST = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000], CORE_POINTS = CORE_COST.length;
 const CORE_POWERS = [
-  { id: "fortify", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag a tower onto the core",
+  { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag a tower onto the core",
     lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis.", "The copy gains another tier on every axis."] },
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
     lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown.", "The longest stop, the shortest cooldown."] },
-  { id: "empower", name: "Overcharge Uplink", /* (was Empower) */ how: "drag the core onto a tower",
+  { id: "overcharge", name: "Overcharge Uplink", /* (was Empower) */ how: "drag the core onto a tower",
     lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown.", "The longest, with the shortest cooldown."] },
 ];
 const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
 // 3x longer (owner, 2026-10-06; were 6 / 12 and 15 s); their cooldowns now
 // count from when the effect ENDS, or Empower II (36 s on, 30 s cooldown)
 // would never switch off
-const EMPOWER = [null, { dur: 18, cd: 45 }, { dur: 36, cd: 30 }, { dur: 54, cd: 20 }];
-const FORTIFY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // L2 / L3 buy a stronger copy, not more time
+const OVERCHARGE = [null, { dur: 18, cd: 45 }, { dur: 36, cd: 30 }, { dur: 54, cd: 20 }];
+const RELAY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // L2 / L3 buy a stronger copy, not more time
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
@@ -44,7 +44,7 @@ function buyPower(id) {
   G.money -= coreCost();
   const c = coreState();
   c.pw[id] = powerLvl(id) + 1;
-  if (id === "fortify" && c.tower) c.tower = coreCopy(c.copy); // a copy already out grows at once
+  if (id === "relay" && c.tower) c.tower = coreCopy(c.copy); // a copy already out grows at once
   return true;
 }
 const cooldownLeft = id => Math.max(0, (G.core && G.core.cd[id]) || 0);
@@ -54,29 +54,29 @@ const cooldownLeft = id => Math.max(0, (G.core && G.core.cd[id]) || 0);
 // and does not raise build prices); stepCore drives it like the tower loop
 function coreCopy(src) {
   const sk = { ...src.skills };
-  const up = powerLvl("fortify") - 1; // +1 tier on every axis at L2, +2 at L3
+  const up = powerLvl("relay") - 1; // +1 tier on every axis at L2, +2 at L3
   if (up > 0 && SKILL_TREES[src.kind]) for (const ax of SKILL_TREES[src.kind]) sk[ax.id] = Math.min(SKILL_TIERS, (sk[ax.id] || 0) + up);
   const pts = Object.values(sk).reduce((a, b) => a + b, 0);
   return { id: "core", isCore: true, kind: src.kind, skills: sk, lvl: 1 + pts, x: CX, y: CY, cell: -1, cd: 0, mode: DEFAULT_MODE[src.kind], spent: 0 };
 }
-function fortify(t) {
-  const lv = FORTIFY[powerLvl("fortify")];
-  if (!lv || !t || t.isCore || cooldownLeft("fortify") > 0) return false;
+function relay(t) {
+  const lv = RELAY[powerLvl("relay")];
+  if (!lv || !t || t.isCore || cooldownLeft("relay") > 0) return false;
   const c = coreState();
-  c.cd.fortify = lv.dur + lv.cd; // the cooldown starts when the copy wears off
+  c.cd.relay = lv.dur + lv.cd; // the cooldown starts when the copy wears off
   c.copyUntil = c.clock + lv.dur;
   c.copy = { kind: t.kind, skills: { ...t.skills } };
   c.tower = coreCopy(c.copy);
   if (typeof banner === "function") banner("ORBITAL RELAY · " + TOWERS[t.kind].ab, TOWERS[t.kind].color, 1.5);
-  ring(CX, CY, 70, TOWERS[t.kind].color); if (typeof sfx === "function") sfx("powerfortify"); // its own sound, not "upgrade complete" (owner); none in the simulator
+  ring(CX, CY, 70, TOWERS[t.kind].color); if (typeof sfx === "function") sfx("powerrelay"); // its own sound, not "upgrade complete" (owner); none in the simulator
   return true;
 }
 const coreTowers = () => (G.core && G.core.tower ? [G.core.tower] : []);
 function stepCoreTower(t, dt) {
   t.spin = (t.spin || 0) + dt;
-  if (t.kind === "reaper") { stepReaper(t, dt); return; }
-  if (t.kind === "acid") { stepAcid(t, dt); return; }
-  if (t.kind === "slower" && hasSkills(t)) { frzStep(t, dt); return; }
+  if (t.kind === "sol") { stepSol(t, dt); return; }
+  if (t.kind === "acd") { stepAcd(t, dt); return; }
+  if (t.kind === "frz" && hasSkills(t)) { frzStep(t, dt); return; }
   t.cd -= dt;
   if (t.cd > 0) return;
   const st = towerStats(t);
@@ -91,25 +91,25 @@ function temporalFreeze() {
   c.cd.temporal = lv.cd;
   c.freeze = { t: 0, dur: lv.dur, hit: new Set() };
   c.frozenIds = c.freeze.hit; c.freezeUntil = c.clock + TEMPORAL_GROW + lv.dur; // for the look (aspira-core-fx.js)
-  if (typeof sfx === "function") sfx("powertime");
+  if (typeof sfx === "function") sfx("powertemporal");
   return true;
 }
 // ---------- Empower ----------
-function empower(t) {
-  const lv = EMPOWER[powerLvl("empower")];
-  if (!lv || !t || t.isCore || cooldownLeft("empower") > 0) return false;
-  coreState().cd.empower = lv.dur + lv.cd; // the cooldown starts when it wears off
-  t.empowerUntil = (G.clock || 0) + lv.dur;
+function overcharge(t) {
+  const lv = OVERCHARGE[powerLvl("overcharge")];
+  if (!lv || !t || t.isCore || cooldownLeft("overcharge") > 0) return false;
+  coreState().cd.overcharge = lv.dur + lv.cd; // the cooldown starts when it wears off
+  t.overchargeUntil = (G.clock || 0) + lv.dur;
   if (typeof banner === "function") banner("OVERCHARGE UPLINK", "white", 1.5);
-  ring(t.x, t.y, 64, "white"); if (typeof sfx === "function") sfx("powerempower");
+  ring(t.x, t.y, 64, "white"); if (typeof sfx === "function") sfx("powerovercharge");
   return true;
 }
-const empowered = t => t.empowerUntil > (G.clock || 0);
+const overcharged = t => t.overchargeUntil > (G.clock || 0);
 // towerStats reads an EMPOWERED tower as this: every chart axis at its top tier
-function empoweredView(t) {
+function overchargedView(t) {
   const sk = {};
   for (const ax of SKILL_TREES[t.kind] || []) sk[ax.id] = SKILL_TIERS;
-  return { ...t, skills: sk, empowerUntil: 0 };
+  return { ...t, skills: sk, overchargeUntil: 0 };
 }
 
 // the core each step: cooldowns, the freeze ring, the copy firing

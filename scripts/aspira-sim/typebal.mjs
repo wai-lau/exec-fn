@@ -12,7 +12,7 @@ const METRIC = process.env.TB_METRIC || "load", LEAK_S = 30, BOUNDS = [0.5, 2]; 
 function closest(n, type, mul, seed) {
   const g = makeGame(seed); g.reset();
   g.run("G.money = 1e9;");
-  ["chain", "slower", "reaper", "acid"].forEach((k, i) => g.place(k, i));
+  ["arc", "frz", "sol", "acd"].forEach((k, i) => g.place(k, i));
   g.run(`WAVE_TYPE_FORCE[${n}] = "${type}"; TYPE_COUNT_MUL["${type}"] = ${mul};
     G.lastType = "${type === "swarm" ? "fast" : "swarm"}"; G.started = true; G.wave = ${n - 1}; G.nextIn = 0;`);
   g.step(0.02); g.run("G.nextIn = 1e9;");

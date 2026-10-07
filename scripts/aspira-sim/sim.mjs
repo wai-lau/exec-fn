@@ -32,7 +32,7 @@ export function makeGame(seed, patch = "") {
     towerStats = function (t, noAura) {
       // the key covers EVERYTHING stats read: chart picks (t.skills - two
       // towers of one kind and level can differ), Empower, and the core's powers
-      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + JSON.stringify(t.skills || {}) + "|" + (t.empowerUntil > (G.clock || 0) ? "E" : "") + "|" + (G.core ? JSON.stringify(G.core.pw || {}) : "");
+      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + JSON.stringify(t.skills || {}) + "|" + (t.overchargeUntil > (G.clock || 0) ? "E" : "") + "|" + (G.core ? JSON.stringify(G.core.pw || {}) : "");
       let s = __cache.get(k);
       if (!s) { s = __ts(t, true); __cache.set(k, s); }
       return s;

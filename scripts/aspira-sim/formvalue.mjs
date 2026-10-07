@@ -18,11 +18,11 @@ const SEEDS = Number(process.argv[2] || 2), START = Number(process.argv[3] || 60
 const MAX_WAVE = START + 150, DT = 0.02, OUT = process.argv[5] || "";
 const done = new Map();
 if (OUT && fs.existsSync(OUT)) for (const l of fs.readFileSync(OUT, "utf8").split("\n")) if (l) { const r = JSON.parse(l); done.set(r.name, r); }
-const AB = { chain: "ARC", slower: "FRZ", reaper: "SOL", acid: "ACD" };
+const AB = { arc: "ARC", frz: "FRZ", sol: "SOL", acd: "ACD" };
 // the reference team: one sensible form per kind
-const REF = { chain: [0, 0], slower: [1, 0], reaper: [1, 0], acid: [1, 1] }; // SOL ref: Charge > Grid (2026-10-03 tree)
+const REF = { arc: [0, 0], frz: [1, 0], sol: [1, 0], acd: [1, 1] }; // SOL ref: Charge > Grid (2026-10-03 tree)
 const ref = k => ({ kind: k, p: REF[k][0], f: REF[k][1] });
-const TEAM = ["chain", "slower", "reaper", "acid", "chain", "slower"]; // the reference team
+const TEAM = ["arc", "frz", "sol", "acd", "arc", "frz"]; // the reference team
 
 function run(slots, core, seed) {
   const g = makeGame(seed); g.reset();

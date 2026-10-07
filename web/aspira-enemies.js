@@ -69,7 +69,7 @@ function drawEnemy(e) {
   ctx.globalAlpha = 1;
   if (e.charged || e.charge) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
     poly(e.x, e.y, size + 4, d.sides, e.rot, false);
-    ctx.strokeStyle = COL[TOWERS.chain.color]; ctx.lineWidth = 2; ctx.stroke(); // ARC's colour, whatever it is
+    ctx.strokeStyle = COL[TOWERS.arc.color]; ctx.lineWidth = 2; ctx.stroke(); // ARC's colour, whatever it is
   }
   if (e.stunT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283);
@@ -114,7 +114,7 @@ function drawStatus(e, d, size) {
       const a = e.rot + fixedRand(e.id * 31 + i, 5) * 6.283, c = Math.cos(a), s = Math.sin(a);
       ctx.moveTo(e.x + c * size * 0.8, e.y + s * size * 0.8); ctx.lineTo(e.x + c * (size + 9), e.y + s * (size + 9));
     }
-    ctx.strokeStyle = COL[TOWERS.reaper.color]; ctx.globalAlpha = 0.9; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9; ctx.lineWidth = 1.2; ctx.stroke();
   }
   if (e.corrodeT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 3, 0, 6.283);

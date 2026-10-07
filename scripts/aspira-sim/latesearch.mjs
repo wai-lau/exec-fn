@@ -12,7 +12,7 @@ import { makeGame, cellScores } from "./sim.mjs";
 const EVALS = Number(process.argv[2] || 120), SEEDS = Number(process.argv[3] || 2);
 const START = Number(process.argv[4] || 60), MONEY = Number(process.argv[5] || 300000);
 const LOG = process.argv[6] || "", MAX_WAVE = START + 200, DT = 0.02;
-const KINDS = ["chain", "slower", "reaper", "acid"], AB = { chain: "ARC", slower: "FRZ", reaper: "SOL", acid: "ACD" };
+const KINDS = ["arc", "frz", "sol", "acd"], AB = { arc: "ARC", frz: "FRZ", sol: "SOL", acd: "ACD" };
 let rs = 777;
 const rnd = () => (rs = (rs * 1103515245 + 12345) % 2147483648) / 2147483648;
 const ri = n => Math.floor(rnd() * n);
@@ -24,7 +24,7 @@ function run(build, seed) {
   // depends on the waves before), then hand over the money
   g.run(`(() => { let prev = null; for (let n = 1; n < ${START}; n++) { const w = wavePlan(n, prev); if (w.type !== "bonus") prev = w.type; }
     G.lastType = prev; G.wave = ${START - 1}; G.money = ${MONEY}; })()`);
-  const order = cellScores(g, "chain").map((v, i) => i);
+  const order = cellScores(g, "arc").map((v, i) => i);
   build.slots.forEach((b, i) => {
     const t = g.place(b.kind, order[i]);
     for (let l = 1; l < 4; l++) { const need = g.pendingChoice(t); g.upgrade(t, need === "path" ? b.p : b.f); }

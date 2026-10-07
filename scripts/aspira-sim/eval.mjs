@@ -4,17 +4,17 @@ import fs from "node:fs";
 import { play } from "./sim.mjs";
 const patch = process.argv[2] && process.argv[2] !== "-" ? fs.readFileSync(process.argv[2], "utf8") : "";
 const SEEDS = Number(process.argv[3] || 2), MAXW = Number(process.argv[4] || 100);
-const best = { chain: [1, 1], slower: [0, 1], reaper: [0, 0], acid: [1, 0] };
+const best = { arc: [1, 1], frz: [0, 1], sol: [0, 0], acd: [1, 0] };
 const A = (o) => ({ up: 0.5, maxTowers: 20, paths: best, ...o });
 const S = [
-  A({ name: "mono ARC", mix: { chain: 1 } }),
-  A({ name: "mono SOL", mix: { reaper: 1 } }),
-  A({ name: "mono ACD", mix: { acid: 1 } }),
-  A({ name: "ARC>all4", opening: ["chain", "chain"], mix: { chain: 1, slower: 1, reaper: 1, acid: 1 } }),
-  A({ name: "ARC>all4 -FRZ", opening: ["chain", "chain"], mix: { chain: 1, reaper: 1, acid: 1 } }),
-  A({ name: "ARC>all4 -SOL", opening: ["chain", "chain"], mix: { chain: 1, slower: 1, acid: 1 } }),
-  A({ name: "ARC>all4 -ACD", opening: ["chain", "chain"], mix: { chain: 1, slower: 1, reaper: 1 } }),
-  A({ name: "ARC>all4 -ARC", opening: ["chain", "chain"], mix: { slower: 1, reaper: 1, acid: 1 } }),
+  A({ name: "mono ARC", mix: { arc: 1 } }),
+  A({ name: "mono SOL", mix: { sol: 1 } }),
+  A({ name: "mono ACD", mix: { acd: 1 } }),
+  A({ name: "ARC>all4", opening: ["arc", "arc"], mix: { arc: 1, frz: 1, sol: 1, acd: 1 } }),
+  A({ name: "ARC>all4 -FRZ", opening: ["arc", "arc"], mix: { arc: 1, sol: 1, acd: 1 } }),
+  A({ name: "ARC>all4 -SOL", opening: ["arc", "arc"], mix: { arc: 1, frz: 1, acd: 1 } }),
+  A({ name: "ARC>all4 -ACD", opening: ["arc", "arc"], mix: { arc: 1, frz: 1, sol: 1 } }),
+  A({ name: "ARC>all4 -ARC", opening: ["arc", "arc"], mix: { frz: 1, sol: 1, acd: 1 } }),
 ];
 for (const s of S) {
   const w = [], dealt = {}, leaks = {};

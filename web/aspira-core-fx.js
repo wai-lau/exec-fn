@@ -7,22 +7,22 @@
 //                 moment it comes up - owner; the dial carries no labels), and
 //                 while the power RUNS a white-hot arc draining with its time
 //   TIME STOP     the plain cyan ring sweeping out (owner: enough as it was)
-//   EMPOWER       a THICK pulsing beam from the core to the tower, a glowing
+//   OVERCHARGE       a THICK pulsing beam from the core to the tower, a glowing
 //                 halo round it and its seconds left above it
-//   FORTIFY       the core itself takes on the copied tower's colour (drawCore);
+//   RELAY       the core itself takes on the copied tower's colour (drawCore);
 //                 its dial label reads "ARC 12s"
 // drawCoreFx goes under the towers (beams), drawCoreHud over the enemies.
 // sized for a PHONE (the board shows at ~0.54 css px per unit there): text
 // 26 units reads as ~14px
 // closer and thinner (owner): just outside a level-4 core's outermost ring (~75)
 // hugging the core (owner: "much closer to the credit count"; was 90, then 118)
-const DIAL_R = 62, DIAL_W = 7, DIAL_GAP = 0.2, READY_POP = 15, EMPOWER_TEXT = 26;
+const DIAL_R = 62, DIAL_W = 7, DIAL_GAP = 0.2, READY_POP = 15, OVERCHARGE_TEXT = 26;
 const DIAL = [ // clockwise from the top-left; colours are palette keys
   { id: "temporal", label: "TEMPORAL DRIVE", color: "cyan", mid: -Math.PI * 0.833, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock },
-  { id: "empower", label: "OVERCHARGE UPLINK", color: "white", mid: -Math.PI * 0.167, tab: () => EMPOWER, active: () => empowerLeft() },
-  { id: "fortify", label: "ORBITAL RELAY", color: "orange", mid: Math.PI / 2, tab: () => FORTIFY, active: c => (c.tower ? c.copyUntil - c.clock : 0) },
+  { id: "overcharge", label: "OVERCHARGE UPLINK", color: "white", mid: -Math.PI * 0.167, tab: () => OVERCHARGE, active: () => overchargeLeft() },
+  { id: "relay", label: "ORBITAL RELAY", color: "orange", mid: Math.PI / 2, tab: () => RELAY, active: c => (c.tower ? c.copyUntil - c.clock : 0) },
 ];
-const empowerLeft = () => Math.max(0, ...G.towers.map(t => (t.empowerUntil || 0) - (G.clock || 0)));
+const overchargeLeft = () => Math.max(0, ...G.towers.map(t => (t.overchargeUntil || 0) - (G.clock || 0)));
 const glow = (col, blur) => { ctx.shadowColor = col; ctx.shadowBlur = blur * cam.k; };
 
 // under the towers: Empower's beam, a power being dragged
@@ -31,7 +31,7 @@ function drawCoreFx() {
   const now = performance.now();
   ctx.lineCap = "round";
   for (const t of G.towers) {
-    if (!empowered(t)) continue;
+    if (!overcharged(t)) continue;
     const pulse = 0.6 + 0.4 * Math.sin(now / 400);
     ctx.strokeStyle = COL.white; glow(COL.white, 18);
     ctx.globalAlpha = 0.3 * pulse; ctx.lineWidth = 44; ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(t.x, t.y); ctx.stroke();
@@ -53,13 +53,13 @@ function drawCoreHud() {
   ctx.lineCap = "round";
   drawTimeStop(c);
   for (const t of G.towers) {
-    const left = (t.empowerUntil || 0) - (G.clock || 0);
+    const left = (t.overchargeUntil || 0) - (G.clock || 0);
     if (left <= 0) continue;
     ctx.strokeStyle = COL.white; glow(COL.white, 20); ctx.lineWidth = 6;
     ctx.globalAlpha = 0.7 + 0.3 * Math.sin(now / 400);
     ctx.beginPath(); ctx.arc(t.x, t.y, CELL_S * 1.7, 0, 6.283); ctx.stroke();
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    text("OVERCHARGE " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, EMPOWER_TEXT, "white", true, true);
+    text("OVERCHARGE " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, OVERCHARGE_TEXT, "white", true, true);
   }
   drawDial(c, now);
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
