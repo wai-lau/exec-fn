@@ -107,6 +107,12 @@ const SFX = {
   sell:    () => notes([523, 330], 0.06, { type: "triangle", dur: 0.1, vol: 0.15 }),
   life:    () => notes([659, 880, 1318], 0.08, { dur: 0.16, vol: 0.18 }),
   over:    () => notes([392, 330, 262, 196], 0.18, { type: "triangle", dur: 0.32, vol: 0.25 }),
+  // the CORE'S ABILITIES (owner, 2026-10-06: never the "upgrade complete" sound):
+  // time stop a long falling freeze-sweep, Empower a rising charge, Fortify a
+  // two-note lock-in
+  powertime:    () => { tone({ f0: 1400, f1: 120, dur: 0.7, vol: 0.18 }); noise({ dur: 0.4, vol: 0.08, freq: 4000, q: 1.5 }); },
+  powerempower: () => tone({ type: "sawtooth", f0: 180, f1: 900, dur: 0.4, vol: 0.09 }),
+  powerfortify: () => notes([330, 494], 0.09, { type: "square", dur: 0.12, vol: 0.12 }),
 };
 // minimum seconds between two plays of the same sound
 const GAP = { chain: 0.07, kill: 0.04, slower: 0.1, leak: 0.5 };

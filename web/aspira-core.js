@@ -66,7 +66,7 @@ function fortify(t) {
   c.copy = { kind: t.kind, skills: { ...t.skills } };
   c.tower = coreCopy(c.copy);
   if (typeof banner === "function") banner("FORTIFY · " + TOWERS[t.kind].ab, TOWERS[t.kind].color, 1.5);
-  ring(CX, CY, 70, TOWERS[t.kind].color); if (typeof sfxFor === "function") sfxFor("up", t.kind); // (no sound in the simulator)
+  ring(CX, CY, 70, TOWERS[t.kind].color); if (typeof sfx === "function") sfx("powerfortify"); // its own sound, not "upgrade complete" (owner); none in the simulator
   return true;
 }
 const coreTowers = () => (G.core && G.core.tower ? [G.core.tower] : []);
@@ -89,7 +89,7 @@ function temporalFreeze() {
   c.cd.temporal = lv.cd;
   c.freeze = { t: 0, dur: lv.dur, hit: new Set() };
   c.frozenIds = c.freeze.hit; c.freezeUntil = c.clock + TEMPORAL_GROW + lv.dur; // for the look (aspira-core-fx.js)
-  if (typeof sfx === "function") sfx("coreup");
+  if (typeof sfx === "function") sfx("powertime");
   return true;
 }
 // ---------- Empower ----------
@@ -99,7 +99,7 @@ function empower(t) {
   coreState().cd.empower = lv.dur + lv.cd; // the cooldown starts when it wears off
   t.empowerUntil = (G.clock || 0) + lv.dur;
   if (typeof banner === "function") banner("EMPOWER", "white", 1.5);
-  ring(t.x, t.y, 64, "white"); if (typeof sfxFor === "function") sfxFor("up", t.kind);
+  ring(t.x, t.y, 64, "white"); if (typeof sfx === "function") sfx("powerempower");
   return true;
 }
 const empowered = t => t.empowerUntil > (G.clock || 0);
