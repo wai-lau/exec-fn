@@ -350,11 +350,22 @@ const TOWER_IN = 0.9175;
 const innerR = (c, r0, slide = 1, kind = null) => c.minR ?? r0 * (1 - (1 - (TOWER_IN_KIND[kind] ?? TOWER_IN)) * Math.min(slide, SLIDE_MAX));
 // how far out a kind slides from a slot r0 from the core (slide = the tier's multiplier)
 const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * SLIDE_KIND[kind] * Math.min(slide, SLIDE_MAX);
-// the spoke: its unit direction, the slot's radius and how far out it runs
+// THE TRAVEL (owner, 2026-10-07): every tower's travel is MOVE_SPAN (75%) of what
+// innerR / slideOut give, and it STARTS almost touching the core - its inner
+// end NEAR_R from the core's centre (a corner slot's CORNER_NEAR, so it clears
+// the ring towers beside it) - and runs out from there. Offsets are along the
+// spoke from the slot (negative = inward).
+const MOVE_SPAN = 0.75, NEAR_R = 68, CORNER_NEAR = 100;
+function slideLimits(c, kind, sl = 1) {
+  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
+  const span = (slideOut(kind, r0, sl) + r0 - innerR(c, r0, sl, kind)) * MOVE_SPAN;
+  const min = (c.unlock ? CORNER_NEAR : NEAR_R) - r0;
+  return { r0, min, max: min + span };
+}
+// the spoke: its unit direction, the slot's radius and how far it runs each way
 function spokeOf(t) {
-  const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY) || 1, sl = towerStats(t, true).slide;
-  // min: it may also slide IN, to TOWER_IN of its slot's distance (owner: 25% closer, now half that)
-  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, slide: sl, max: slideOut(t.kind, r0, sl), min: -(r0 - innerR(c, r0, sl, t.kind)) };
+  const c = CELLS[t.cell], sl = towerStats(t, true).slide, { r0, min, max } = slideLimits(c, t.kind, sl);
+  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, slide: sl, max, min };
 }
 // the whole travel of a tower on its spoke, out plus in (the card's Slide row)
 const slideSpan = t => { const k = spokeOf(t); return Math.round(k.max - k.min); };
@@ -409,13 +420,13 @@ function moveTower(t, dt) {
 // full reach touches the T instead of covering it (owner)
 // a tower's half-size (its L1 hex), so the T-bars mark where its EDGE can go
 const trackPast = () => CELL_S * TOWER_K;
-function spokeTrack(c, reach, slide = 1, kind = null) {
+function spokeTrack(c, kind, slide = 1) {
   // the line runs only over the range a tower can MOVE (owner: show the min):
   // from its inner limit out to its reach
   // both ends mark the tower's EDGE (owner): its reach plus a half-size out,
   // its inner limit minus a half-size in
   const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0;
-  const to = reach + trackPast(), from = innerR(c, r0, slide, kind) - trackPast();
+  const lim = slideLimits(c, kind, slide), to = r0 + lim.max + trackPast(), from = r0 + lim.min - trackPast();
   ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
   // a T-bar at each LIMIT (owner): the outer reach, and the innermost a tower
   // slides, TOWER_IN of its slot's distance (shorter, so out and in read apart)
@@ -429,13 +440,13 @@ function drawSpokes() {
   for (const t of G.towers) {
     const k = spokeOf(t);
     ctx.strokeStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6;
-    spokeTrack(k.c, k.r0 + k.max, k.slide, t.kind);
+    spokeTrack(k.c, t.kind, k.slide);
   }
   // while PLACING, every free slot shows the track the tower being built would
   // slide along, in its colour (owner)
   if (ui.build) {
     ctx.strokeStyle = COL[TOWERS[ui.build].color]; ctx.globalAlpha = 0.7;
-    CELLS.forEach((c, ci) => { if (canPlace(ci)) { const r0 = Math.hypot(c.x - CX, c.y - CY); spokeTrack(c, r0 + slideOut(ui.build, r0), 1, ui.build); } });
+    CELLS.forEach((c, ci) => { if (canPlace(ci)) { const r0 = Math.hypot(c.x - CX, c.y - CY); spokeTrack(c, ui.build); } });
   }
   ctx.globalAlpha = 1;
 }
