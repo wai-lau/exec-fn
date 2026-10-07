@@ -476,7 +476,7 @@ function drawScene([sx, sy], clipR) {
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
-    text(bannerText, CX, 70, 44, bannerCol, true);
+    text(bannerText, CX, 70, 30, bannerCol, true); // smaller (owner, 2026-10-06; was 44)
     ctx.globalAlpha = 1;
   }
   drawBossTitle(); // the boss's name + subtitle, over the towers (owner)

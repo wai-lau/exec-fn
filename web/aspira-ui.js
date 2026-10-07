@@ -323,8 +323,8 @@ function refreshPanels() {
   if (core) { inspectCore(pop); placePop(); }
   // the spend bar: the chooser owns it while open, else the open card's next buy
   if (!chooser.t) {
-    if (t) showSpend(t.lvl >= maxLvl(t) ? null : upCost(t), "close", closeCard);
-    else if (core) showSpend(coreOpen() && coreLvl() < CORE_POINTS ? coreCost() : null, "close", closeCard);
+    if (t) showSpend(t.lvl >= maxLvl(t) ? null : upCost(t), "close", closeCard, t.kind);
+    else if (core) showSpend(coreOpen() && coreLvl() < CORE_POINTS ? coreCost() : null, "close", closeCard, "core");
     else hideSpend();
   }
   // while placing, a small card above the credits (owner): the tower's name,
@@ -341,6 +341,7 @@ function refreshPanels() {
 let lastNote = "", waveListAt = 0, hudAt = 0;
 function updateHud() {
   updateSpend(); // the spend bar's credits (aspira-chooser.js)
+  { const h = bossHint(); if ($("asp-bosshint").textContent !== h) $("asp-bosshint").textContent = h; } // the boss's haiku above the title
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
   setText($("asp-wave"), G.wave); // the HUD keeps Arabic numerals (owner); the upcoming-wave list is Roman
@@ -399,7 +400,9 @@ function placePop() {
   const h = pop.offsetHeight, { x, lift } = cardLift(pop.offsetWidth);
   // ...but never up over the speed row (a short phone: it then sits over the wave list)
   const cr = cv.getBoundingClientRect(), top = document.querySelector(".asp-head").getBoundingClientRect().bottom - cr.top + CARD_GAP;
-  pop.style.left = x + "px"; pop.style.top = Math.max(top, cr.height - h - lift) + "px";
+  // and its foot clear of the SPEND BAR (owner: "close button and credits fit under")
+  const sp = $("asp-spend"), spTop = sp.hidden ? Infinity : sp.getBoundingClientRect().top - cr.top - CARD_GAP;
+  pop.style.left = x + "px"; pop.style.top = Math.max(top, Math.min(cr.height - h - lift, spTop - h)) + "px";
 }
 
 // U: open the upgrade chooser for the selected tower

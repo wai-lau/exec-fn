@@ -59,7 +59,7 @@ function openChooser(t) {
   const row = el.querySelector(".asp-cards");
   // (a chart tower's Stand chart is on its TOWER card, not here - owner)
   opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
-  showSpend(upCost(t), "cancel", closeChooser); // the spend bar's cancel: the same as clicking off the cards (owner)
+  showSpend(upCost(t), "cancel", closeChooser, t.kind); // the spend bar's cancel: the same as clicking off the cards (owner)
   // ONE line (owner): side by side if they all fit across, else one column
   el.hidden = false;
   // measured once shown (a hidden element has no width)
@@ -149,8 +149,9 @@ function drawSlotArrow() {
 // beside them, "(-Xc)" in red for what is on offer, above the ONE cancel /
 // close button, centred on the screen (owner). The HUD tick keeps it current.
 const spend = { cost: null, onClose: null };
-function showSpend(cost, label, onClose) {
+function showSpend(cost, label, onClose, kind = "") {
   spend.cost = cost; spend.onClose = onClose;
+  $("asp-spend").dataset.kind = kind; // the button wears the card's colour (owner)
   $("asp-spend").hidden = false; $("asp-spend-btn").textContent = label;
   $("asp").classList.add("asp-spending");
   updateSpend();

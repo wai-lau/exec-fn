@@ -16,7 +16,7 @@
 // 26 units reads as ~14px
 // closer and thinner (owner): just outside a level-4 core's outermost ring (~75)
 // hugging the core (owner: "much closer to the credit count"; was 90, then 118)
-const DIAL_R = 62, DIAL_W = 7, DIAL_GAP = 0.2, READY_POP = 22, EMPOWER_TEXT = 26;
+const DIAL_R = 62, DIAL_W = 7, DIAL_GAP = 0.2, READY_POP = 15, EMPOWER_TEXT = 26;
 const DIAL = [ // clockwise from the top-left; colours are palette keys
   { id: "temporal", label: "TEMPORAL DRIVE", color: "cyan", mid: -Math.PI * 0.833, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock },
   { id: "empower", label: "OVERCHARGE UPLINK", color: "white", mid: -Math.PI * 0.167, tab: () => EMPOWER, active: () => empowerLeft() },
@@ -95,7 +95,7 @@ function drawDial(c, now) {
     // NO labels on the dial (owner): a power coming off cooldown pops up
     // "<NAME> READY" in its colour WHERE THE INTEREST POPS UP, under the core
     const was = (c.cdSeen ||= {})[d.id];
-    if (was > 0 && cd <= 0) float(CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, d.label + " READY", d.color, READY_POP, 1.6, 1, 30);
+    if (was > 0 && cd <= 0) float(CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, d.label + " READY", d.color, READY_POP, 1.6, 1, 30);
     c.cdSeen[d.id] = cd;
   }
 }
