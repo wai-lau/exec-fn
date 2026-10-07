@@ -534,6 +534,15 @@
 
 .asp-goodvs { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 
+/* the BUILD cards are COMPACT so all four fit above the spend bar on a real
+   phone (owner: they overlapped it in iOS Safari) - tighter padding, gaps and
+   lines, the blurb a size smaller */
+.asp-cards.asp-build-cards { gap: var(--space-2); }
+
+#asp .asp-build-cards button.asp-card { gap: var(--space-1); padding: var(--space-2-5) var(--space-3); line-height: var(--lh-tight); }
+
+.asp-build-cards .asp-hint { font-size: var(--fs-xs); line-height: var(--lh-tight); }
+
 /* out of the header now, so it flips with the boss's inverted sky on its own
    (keeping its outline) */
 #asp.asp-boss .asp-autowait { filter: invert(1); }
