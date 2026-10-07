@@ -30,14 +30,23 @@ export function makeGame(seed, patch = "") {
   // so cache them - towerStats runs for every tower on every step
   vm.runInContext(`
     const __ts = towerStats, __cache = new Map();
+    // the key covers EVERYTHING stats read: chart picks (t.skills - two towers
+    // of one kind and level can differ), Overcharge, and the core's powers.
+    // The skills / powers strings are rebuilt only when the OBJECT changes
+    // (withSkill and buyPower replace them), not stringified per call - the
+    // stringify was 13% of a game (profiled 2026-10-07).
+    let __pwObj = null, __pwStr = "";
     towerStats = function (t, noAura) {
-      // the key covers EVERYTHING stats read: chart picks (t.skills - two
-      // towers of one kind and level can differ), Empower, and the core's powers
-      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + JSON.stringify(t.skills || {}) + "|" + (t.overchargeUntil > (G.clock || 0) ? "E" : "") + "|" + (G.core ? JSON.stringify(G.core.pw || {}) : "");
+      if (t.__skObj !== (t.skills || null)) { t.__skObj = t.skills || null; t.__skStr = JSON.stringify(t.skills || {}); }
+      const pw = G.core ? G.core.pw : null;
+      if (pw !== __pwObj) { __pwObj = pw; __pwStr = JSON.stringify(pw || {}); }
+      const k = t.kind + "|" + t.lvl + "|" + t.path + "|" + t.form + "|" + t.__skStr + "|" + (t.overchargeUntil > (G.clock || 0) ? "E" : "") + "|" + __pwStr;
       let s = __cache.get(k);
       if (!s) { s = __ts(t, true); __cache.set(k, s); }
       return s;
-    };`, ctx);
+    };
+    // buyPower mutates G.core.pw in place: give the cache a fresh object to notice
+    const __buy = buyPower; buyPower = function (id) { const ok = __buy(id); if (ok) G.core.pw = { ...G.core.pw }; return ok; };`, ctx);
   // strip visual effects: nothing draws, so floats / rings / bursts are
   // no-ops and the fx list is emptied every tick. A beam still leaves a tiny
   // object, because ARC's tree keeps references to its beams (keepLit).
