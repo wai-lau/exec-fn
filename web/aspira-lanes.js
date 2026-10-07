@@ -21,6 +21,8 @@ const GLOW_FALLOFF = 5; // harder (owner; was 3)
 // the boss sky draws the board in inverted colours too (render), and sharing
 // one set would rebuild them twice a frame while the sky spreads
 const laneSets = {};
+// lane labels much SMALLER (owner, 2026-10-06; were 30 live / 20 idle)
+const LANE_LABEL_PX = 14, LANE_IDLE_PX = 11;
 function laneSet() {
   return laneSets[COL.bg] ||= (() => {
     const mk = () => { const c = document.createElement("canvas"); return [c, c.getContext("2d")]; };
@@ -168,7 +170,7 @@ function drawLanes() {
     const rim = rotAbout(PATHS[u.pi].rim, u.ang), na = slotAng(u.pi) + u.ang;
     ctx.strokeStyle = COL.white; ctx.globalAlpha = u.a; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(rim.x, rim.y, 4, 0, 6.283); ctx.stroke();
-    items.push({ text: roman(u.n) + ":" + roman(u.pi + 1), x: CX + Math.cos(na) * LABEL_R, y: CY + Math.sin(na) * LABEL_R, size: 30, alpha: u.a, color: u.color });
+    items.push({ text: roman(u.n) + ":" + roman(u.pi + 1), x: CX + Math.cos(na) * LABEL_R, y: CY + Math.sin(na) * LABEL_R, size: LANE_LABEL_PX, alpha: u.a, color: u.color });
   }
   // idle: a small faint label + rim circle per lane
   PATHS.forEach((path, i) => {
@@ -177,7 +179,7 @@ function drawLanes() {
     ctx.strokeStyle = COL.white; ctx.globalAlpha = 0.7 * idle; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(path.rim.x, path.rim.y, 4, 0, 6.283); ctx.stroke();
     const na = slotAng(i);
-    items.push({ text: roman(Math.max(1, G.wave)) + ":" + roman(i + 1), x: CX + Math.cos(na) * LABEL_R, y: CY + Math.sin(na) * LABEL_R, size: 20, alpha: 0.3 * idle, color: "cyan" });
+    items.push({ text: roman(Math.max(1, G.wave)) + ":" + roman(i + 1), x: CX + Math.cos(na) * LABEL_R, y: CY + Math.sin(na) * LABEL_R, size: LANE_IDLE_PX, alpha: 0.3 * idle, color: "cyan" });
   });
   placeLabels(items);
   ctx.globalAlpha = 1;
