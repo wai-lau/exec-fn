@@ -489,6 +489,13 @@
 .asp-card[data-kind="sol"] { --green-hsl: var(--pink-hsl); }
 .asp-card[data-kind="acd"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 
+/* ...unless the credits cannot cover it: faint Ember red, every kind alike (owner, 2026-10-07) */
+#asp .asp-card.poor, #asp .asp-tw.poor { --green-hsl: var(--orange-glow-hsl); color: hsl(var(--orange-glow-hsl)); }
+
+/* a card stays SOLID (the wave list showed through a faded one): its text fades instead, the "need" note excepted */
+#asp button.asp-card.poor { opacity: 1; }
+#asp .asp-card.poor > :not(.asp-need) { opacity: 0.45; }
+
 /* no build buttons (owner): free slots are tapped instead */
 #asp .asp-build { display: none; }
 
@@ -608,6 +615,9 @@
 }
 
 #asp button.asp-nofunds { animation: asp-nofunds 0.4s ease-out; opacity: 1; }
+
+/* the tap's "need Nc more" (noFunds) */
+#asp .asp-need { color: hsl(var(--orange-glow-hsl)); font-weight: var(--fw-bold); font-size: var(--fs-xs); }
 
 #asp button.asp-nofunds .c,
 #asp button.asp-up-big.asp-nofunds { color: hsl(var(--orange-glow-hsl)); }
