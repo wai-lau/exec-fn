@@ -525,12 +525,14 @@
   border-radius: var(--radius-3);
 }
 .asp-card .name { font-weight: var(--fw-bold); }
-.asp-card .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
+.asp-card .asp-cols { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); align-items: start; } /* everything FITS (owner): the columns wrap under each other */
 .asp-card .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
-.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); margin: 0; font-size: calc(var(--fs-2xs) * 0.8); font-variant-numeric: tabular-nums; }
+.asp-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-0-5) var(--space-4); min-width: 0; margin: 0; font-size: calc(var(--fs-2xs) * 0.8); font-variant-numeric: tabular-nums; }
 .asp-card dt { color: hsl(var(--green-hsl) / 0.45); }
-.asp-card dd { margin: 0; white-space: nowrap; } /* "now -> next" on one line, like the tower card */
+.asp-card dd { margin: 0; white-space: normal; overflow-wrap: anywhere; } /* a long value wraps inside its row, never out of the card (owner) */
 .asp-card .asp-hint { max-width: none; } /* not the overlay's 36ch */
+
+.asp-goodvs { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 
 /* out of the header now, so it flips with the boss's inverted sky on its own
    (keeping its outline) */
