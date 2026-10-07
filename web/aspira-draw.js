@@ -144,7 +144,7 @@ function drawGraticuleLive() {
 function drawBoard() {
   drawGraticule();
   drawLanes();
-  if (ui.build) drawCells(); // the hex grid shows only while placing a tower
+  drawCells(); // free slots always show a faint outline (owner); bright while placing
 }
 
 // the core: a solid white hexagon (gently pulsing), lives in black on it -
@@ -258,6 +258,8 @@ function drawCells() {
   CELLS.forEach((c, ci) => {
     if (!cellOpen(ci)) return; // a corner slot shows once its wave opens it
     const free = canPlace(ci);
+    // before the first tower the free slots FLASH (owner; the build buttons used to)
+    if (!ui.build) { if (free) { cellPath(c, 0.94); ctx.strokeStyle = COL.white; ctx.globalAlpha = G.towers.length ? 0.25 : 0.5 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); } return; }
     cellPath(c, 0.94);
     const col = COL[TOWERS[ui.build].color];
     if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }

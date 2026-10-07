@@ -455,6 +455,15 @@
 .asp-chooser[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
 .asp-chooser[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
 
+/* the BUILD cards each wear their own tower's colour (aspira-chooser.js) */
+.asp-card[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
+.asp-card[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
+.asp-card[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
+.asp-card[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+
+/* no build buttons (owner): free slots are tapped instead */
+#asp .asp-build { display: none; }
+
 /* ONE line of cards (owner): a row, or a column when they do not all fit across
    (aspira-chooser.js). A GRID: side by side the cards share one row and so
    stretch to the SAME height (owner); stacked in a column each keeps its own

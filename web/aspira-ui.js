@@ -60,6 +60,7 @@ function onTap(ev) {
   if (hit) { ui.sel = hit.id; ui.build = null; }
   else if (!ui.build && Math.hypot(p.x - CX, p.y - CY) <= CORE_R) { ui.sel = "core"; } // the core's card (aspira-core.js)
   else if (ui.build) placeTower(p);
+  else if (ci >= 0 && canPlace(ci)) { ui.sel = null; openBuildChooser(ci); } // a free slot: the tower cards (aspira-chooser.js)
   else ui.sel = null;
   refreshPanels();
 }
@@ -412,7 +413,7 @@ document.addEventListener("keydown", ev => {
   if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
   // the chooser is open: only a card choice gets through (1-3)
   if (chooser.t) {
-    if (["1", "2", "3"].includes(ev.key)) chooseUpgrade(Number(ev.key) - 1);
+    if (["1", "2", "3", "4"].includes(ev.key)) chooseUpgrade(Number(ev.key) - 1);
     else if (ev.key === "Escape") closeChooser();
     ev.preventDefault(); return;
   }
