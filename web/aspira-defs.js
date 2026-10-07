@@ -256,7 +256,7 @@ const TOWERS = {
 const GOOD_VS = { chain: "swarms", slower: "fast, shields", reaper: "armor, bosses", acid: "shields, bosses" };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
-const RANGE_BONUS = 0.9; // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
+const RANGE_BONUS = 1.035; // +15% across the board (owner, 2026-10-06; was 0.9) // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
 // targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
 // Near = nearest the core (aspira-game.js MODE_KEY; the key stays "close", the
 // label is Near so it does not read as "close this card" - owner)
