@@ -17,13 +17,14 @@
 // a FLATTER ladder (owner, 2026-10-06; was 1000 .. 20000, 76.5k in all - tiers
 // 6-9 were out of reach in 100 waves): 27k in all, +500 a buy
 const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_COST = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000], CORE_POINTS = CORE_COST.length;
+// the card lists them in this order: the one for sale from the start first
 const CORE_POWERS = [
+  { id: "overcharge", name: "Overcharge Uplink", /* (was Empower) */ how: "drag the core onto a tower",
+    lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown.", "The longest, with the shortest cooldown."] },
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag a tower onto the core",
     lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis.", "The copy gains another tier on every axis."] },
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
     lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown.", "The longest stop, the shortest cooldown."] },
-  { id: "overcharge", name: "Overcharge Uplink", /* (was Empower) */ how: "drag the core onto a tower",
-    lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown.", "The longest, with the shortest cooldown."] },
 ];
 const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
 // 3x longer (owner, 2026-10-06; were 6 / 12 and 15 s); their cooldowns now
@@ -38,9 +39,15 @@ const coreCost = () => CORE_COST[coreLvl()];
 // open once STRENGTH (the wave-30 boss) is beaten (owner) - a boss that gets
 // through ends the game, so being past wave 30 means it fell
 const coreOpen = () => G.wave > CORE_UNLOCK;
+// OVERCHARGE is for sale from the first wave (owner, 2026-10-07: something to
+// DO during a wave long before Strength falls); Relay and Temporal still wait
+const EARLY_POWERS = ["overcharge"];
+const powerOpen = id => EARLY_POWERS.includes(id) || coreOpen();
+// the core has something to SELL: a point left, and an open power below its top
+const coreForSale = () => coreLvl() < CORE_POINTS && CORE_POWERS.some(p => powerOpen(p.id) && powerLvl(p.id) < CORE_TIERS);
 const coreState = () => (G.core ||= { pw: {}, cd: {}, clock: 0 });
 function buyPower(id) {
-  if (!coreOpen() || coreLvl() >= CORE_POINTS || powerLvl(id) >= CORE_TIERS || G.money < coreCost()) return false;
+  if (!powerOpen(id) || coreLvl() >= CORE_POINTS || powerLvl(id) >= CORE_TIERS || G.money < coreCost()) return false;
   G.money -= coreCost();
   const c = coreState();
   c.pw[id] = powerLvl(id) + 1;
@@ -149,15 +156,14 @@ function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(
 function inspectCore(el) {
   const lvl = coreLvl(), copy = G.core && G.core.tower;
   el.innerHTML = '<div class="name">Core · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name + " · " + Math.ceil(G.core.copyUntil - G.core.clock) + "s" : "") + "</div>" +
-    '<p class="asp-hint">' + (coreOpen() ? "Three powers, " + CORE_TIERS + " levels each." : "The heart of the chart. Its powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
+    '<p class="asp-hint">' + (coreOpen() ? "Three powers, " + CORE_TIERS + " levels each." : "The heart of the chart. Overcharge is for sale now; the other powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
     '<div id="asp-upbox"></div>'; // (its close is the spend bar's button)
   const box = $("asp-upbox");
-  if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
-  CORE_POWERS.forEach(p => {
-    const l = powerLvl(p.id), maxed = l >= CORE_TIERS;
+  CORE_POWERS.forEach(p => { // a power still locked shows as a dead row, so the ladder is in view from the start
+    const l = powerLvl(p.id), maxed = l >= CORE_TIERS, locked = !powerOpen(p.id);
     const cd = cooldownLeft(p.id), state = l ? " · L" + l + (cd ? " · " + Math.ceil(cd) + "s" : "") : "";
-    const b = button(box, "asp-primary asp-choice", "<b>" + p.name + state + (maxed ? "" : " · " + cr(coreCost())) + "</b><span>" +
-      p.lv[Math.min(l, CORE_TIERS - 1)] + " (" + p.how + ")</span>", () => { if (!maxed && buyPower(p.id)) coreBought(); });
-    if (maxed) b.disabled = true; else b.dataset.cost = coreCost();
+    const b = button(box, "asp-primary asp-choice", "<b>" + p.name + state + (maxed || locked ? "" : " · " + cr(coreCost())) + "</b><span>" +
+      (locked ? "unlocks when Strength falls (wave " + CORE_UNLOCK + ")" : p.lv[Math.min(l, CORE_TIERS - 1)] + " (" + p.how + ")") + "</span>", () => { if (!maxed && !locked && buyPower(p.id)) coreBought(); });
+    if (maxed || locked) b.disabled = true; else b.dataset.cost = coreCost();
   });
 }

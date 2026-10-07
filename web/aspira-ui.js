@@ -324,7 +324,7 @@ function refreshPanels() {
   // the spend bar: the chooser owns it while open, else the open card's next buy
   if (!chooser.t) {
     if (t) showSpend(t.lvl >= maxLvl(t) ? null : upCost(t), "close", closeCard, t.kind);
-    else if (core) showSpend(coreOpen() && coreLvl() < CORE_POINTS ? coreCost() : null, "close", closeCard, "core");
+    else if (core) showSpend(coreForSale() ? coreCost() : null, "close", closeCard, "core");
     else hideSpend();
   }
   // while placing, a small card above the credits (owner): the tower's name,
