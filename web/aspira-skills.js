@@ -45,9 +45,9 @@ SKILL_TREES.slower = [
     { name: "Absolute Zero", desc: "Strongest aura slow. Widest aura." },
   ] },
   { id: "rime", name: "Rime", tiers: [
-    { name: "Frost", desc: "Pulses add a permanent slow that stacks." },
-    { name: "Glacier", desc: "Stronger, faster pulses." },
-    { name: "Cryosphere", desc: "Strongest, fastest pulses." },
+    { name: "Frost", desc: "Pulses add a permanent slow that stacks. Slides further." },
+    { name: "Glacier", desc: "Stronger, faster pulses. Slides further." },
+    { name: "Cryosphere", desc: "Strongest, fastest pulses. Slides furthest." },
   ] },
   { id: "moons", name: "Moons", tiers: [
     { name: "Moon", desc: "One orbiting moon: a weaker copy of the tower." },
@@ -122,7 +122,7 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
 const SKILL_MOVE = {
   chain:  { cond: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1]], volt: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1]], static: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1]] },
-  slower: { frost: [[1, 1, 1], [1.25, 1, 1], [1.5, 1, 1], [1.8, 1, 1]], rime: NO_MOVE, moons: NO_MOVE },
+  slower: { frost: [[1, 1, 1], [1.25, 1, 1], [1.5, 1, 1], [1.8, 1, 1]], rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
   reaper: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1]], refract: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1]], scorch: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1]] },
   acid:   { pour: [[1, 1, 1], [1.2, 1, 1], [1.5, 1, 1], [1.9, 1, 1]], seep: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5]], catalyst: NO_MOVE },
 };
