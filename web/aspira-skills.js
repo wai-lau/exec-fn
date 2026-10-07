@@ -22,9 +22,9 @@ const SKILL_TREES = {
       { name: "Superconductor", desc: "Fires two bolts at once. More range." },
     ] },
     { id: "voltage", name: "Voltage", tiers: [
-      { name: "Spark", desc: "More damage and range." },
-      { name: "Fry", desc: "More damage and range." },
-      { name: "Vaporize", desc: "Most damage and range." },
+      { name: "Spark", desc: "Jumps lose less damage. More range." },
+      { name: "Fry", desc: "Jumps lose even less. More range." },
+      { name: "Vaporize", desc: "Every jump keeps full damage. Most range." },
     ] },
     { id: "capacitance", name: "Capacitance", tiers: [
       { name: "Static", desc: "Hits charge enemies; their next hit or death bursts. Slides further." },
@@ -42,7 +42,7 @@ SKILL_TREES.frz = [
   { id: "temp", name: "Temp", tiers: [
     { name: "Chill", desc: "Stronger aura slow (only while inside). Wider aura." },
     { name: "Freeze", desc: "Stronger aura slow. Wider aura." },
-    { name: "Absolute Zero", desc: "Strongest aura slow. Widest aura." },
+    { name: "Absolute Zero", desc: "Strongest aura slow. Widest aura. Slowed enemies take 15% more from every tower." },
   ] },
   { id: "rime", name: "Rime", tiers: [
     { name: "Frost", desc: "Pulses add a permanent slow that stacks. Slides further." },
@@ -71,8 +71,8 @@ SKILL_TREES.sol = [
   ] },
   { id: "refraction", name: "Refraction", tiers: [
     { name: "Lens", desc: "Shots bounce to 2 more enemies ahead. More range." },
-    { name: "Prism", desc: "Bounce to 5 more. More range." },
-    { name: "Spectrum", desc: "Bounce to 9 more. More range." },
+    { name: "Prism", desc: "Bounce to 5 more. Harder shots. More range." },
+    { name: "Spectrum", desc: "Bounce to 9 more. Hardest shots. More range." },
   ] },
   { id: "breach", name: "Breach", tiers: [
     { name: "Scorch", desc: "Hits strip armor and add crit chance for all towers, for good. Slides further." },
@@ -86,9 +86,9 @@ SKILL_TREES.sol = [
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
   { id: "corrosion", name: "Corrosion", tiers: [
-    { name: "Etch", desc: "Burn ramps up faster." },
-    { name: "Corrode", desc: "Ramps faster still." },
-    { name: "Dissolve", desc: "Fastest ramp; keeps full heat on a new target." },
+    { name: "Etch", desc: "Keeps full heat when a line moves to a new target." },
+    { name: "Corrode", desc: "Burns hotter." },
+    { name: "Dissolve", desc: "Burns hottest." },
   ] },
   { id: "spray", name: "Spray", tiers: [
     { name: "Mist", desc: "One more burn line, each on a different enemy. More range." },
@@ -137,7 +137,12 @@ function skillMove(t, s) {
 // Voltage's damage FITTED to +25% / +50% / +100% dealt (owner; arcfit.mjs, waves 6-20)
 // Voltage refit 2026-10-06 (drifted 4-6% low after the Static / slow / FRZ changes)
 // REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
-const ARC_VOLTAGE_DMG = [1, 1.4, 1.8, 2.6]; // its RANGE is in SKILL_MOVE
+// REWORKED 2026-10-07 (owner): a dud axis - team damage 142% with it at 0, 105% at
+// III; raw damage on the strike was worth less than the other axes' points. Now it
+// is what each JUMP keeps of the hit before it (ARC_FALL 0.5 at 0; III = every jump
+// at full damage), on top of its damage step; the `pierce` flag it sets is only
+// the white core drawn in its arcs (aspira-draw.js), never a rule
+const ARC_VOLTAGE_DMG = [1, 1.4, 1.9, 2.8], ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1]; // its RANGE is in SKILL_MOVE
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
@@ -160,7 +165,7 @@ function arcSkillStats(t, s, b) {
   s.dmg = b.dmg * ARC_VOLTAGE_DMG[v] * ARC_CONDUCTIVITY[c].d; s.range = b.range * RANGE_BONUS;
   const sh = ARC_CONDUCTIVITY[c]; // Conductivity: strikes, jumps AND forks
   s.arcRange = ARC_JUMP_BASE * ARC_VOLTAGE_JUMP[v] * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
-  s.arcFall = ARC_FALL; s.arcShrink = ARC_SHRINK; s.blast = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
+  s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.blast = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
 function skillOptions(t) {
@@ -276,6 +281,10 @@ function skillHopTo(c, node, nxt, depth) {
 // guesses were 2-4x too strong; range moves little so "colder" reads as colder
 // early-game balance 2026-10-06: +0.03 on every tier (FRZ stays a pure SUPPORT tower - owner)
 const FRZ_TEMP_SLOW = [0.4, 0.43, 0.46, 0.5]; // the aura's range is in SKILL_MOVE
+// Temp III's TEAM hook (owner, 2026-10-07: FRZ's chart was flat, 97-103%): an enemy
+// its aura touches turns BRITTLE - while slowed it takes x FRZ_BRITTLE from every
+// tower (damage(), which already reads e.brittle; drawStatus shows the crack)
+const FRZ_BRITTLE = [1, 1, 1, 1.15];
 const FRZ_RIME = [0, 0.02, 0.035, 0.06]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
 const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4], FRZ_MOON_BY = [0.78, 0.9, 0.95, 1];
@@ -285,7 +294,7 @@ const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor b
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "temp");
   s.range = b.range * RANGE_BONUS;
-  s.aura = FRZ_TEMP_SLOW[f]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TICK; // dmg / rate: a TICK
+  s.aura = FRZ_TEMP_SLOW[f]; s.brittle = FRZ_BRITTLE[f]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TICK; // dmg / rate: a TICK
   s.rime = FRZ_RIME[skillOf(t, "rime")]; s.rimeEvery = FRZ_RIME_PERIOD[skillOf(t, "rime")]; s.moonN = skillOf(t, "moons"); s.moonK = FRZ_MOON_BY[s.moonN]; s.skill = true;
 }
 // the aura's sources: the tower, then each moon at FRZ_MOON_SCALE of everything
@@ -307,6 +316,7 @@ function frzStep(t, dt) {
     for (const e of G.enemies) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
+      if (st.brittle > 1) e.brittle = Math.max(e.brittle || 1, st.brittle);
       if (!tick) continue;
       ticked = true;
       // a tick POPS a shield (owner, 2026-10-06) and is never blunted by armor;
@@ -371,9 +381,12 @@ const SOL_CRITMUL = [3, 4, 5, 7];
 // saturates): each Focus beam's share of the shot by tier, and each Refract
 // hop's damage by tier (a hop is far weaker than the first hit)
 // (owner 2026-10-06: every Focus beam is a FULL hit - 1 / 2 / 3 / 4 beams, no share - so no stat falls; SOL's base damage pays for it)
-const SOL_HOP = [1, 0.29, 0.3, 0.455];
+const SOL_HOP = [1, 0.29, 0.45, 0.7]; // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
+// Refraction peaked at I (107%) and fell by III (93%): range alone spread its fire
+// thin, so II / III also hit harder (owner, 2026-10-07)
+const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.6];
 function solSkillStats(t, s, b) {
-  s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
+  s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")];
   s.breach = SOL_BREACH[skillOf(t, "breach")]; s.critMul = SOL_CRITMUL[skillOf(t, "breach")]; s.bleedArmor = s.breach ? BREACH_ARMOR : 0; s.bleedCrit = BREACH_CRIT; s.skill = true;
 }
@@ -412,82 +425,4 @@ function drawCone(f, k) {
   ctx.beginPath(); ctx.moveTo(f.x, f.y);
   ctx.arc(f.x, f.y, f.len, f.a - f.half, f.a + f.half); ctx.closePath(); ctx.fill();
 }
-
-// ---------- ACD's chart: Catalyst ramp, Pour lines, Seep puddles ----------
-// FITTED 2026-10-06 to +25 / +50 / +100% (Spray to +30 / +60 / +120%, since
-// its lines can never share an enemy): Corrosion's ramp time, Spray's per-line
-// damage, Contagion's puddle heat (tier III's is below II's - its puddles are bigger)
-// REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
-const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1.1, 1.2];
-// puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
-// s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
-// line's heat when it fell, by Seep tier
-const ACD_CONTAGION = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 2.7, r: 28 }]; // refit 2026-10-06
-const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1];
-// Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
-// the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
-const ACD_CONTAGION_SLOW = [0, 0, 0, 0.25]; // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
-function acdSkillStats(t, s, b) {
-  const c = skillOf(t, "corrosion");
-  s.dmg = b.dmg; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[c]; s.cap = ACD_BASE_MAX; s.plagueR = 0;
-  // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
-  // fast waves reset it); Corrosion III, Dissolve, hands on ALL of it (owner)
-  s.carry = c >= 3 ? 1 : 0.4; s.targets = ACD_LINES[skillOf(t, "spray")]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
-  s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.contagionSlow = ACD_CONTAGION_SLOW[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
-}
-// every step (stepAcd): each line drips a puddle every seep.every s; each
-// puddle ticks its burn on whatever stands in it, st.rate times a second
-function stepPuddles(t, st, dt) {
-  const sp = st.contagion;
-  for (const l of t.lines) {
-    if (l.e.dead) continue;
-    l.drip = (l.drip ?? sp.every) - dt;
-    if (l.drip > 0) continue;
-    l.drip += sp.every;
-    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * acdMulOf(l.held, st) * st.contagionHeat });
-  }
-  if (!t.puddles) return;
-  const every = 1 / st.rate;
-  for (const p of t.puddles) {
-    p.age += dt; p.tick += dt;
-    while (p.tick >= every) {
-      p.tick -= every;
-      for (const e of G.enemies) {
-        if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
-        damage(e, p.dps * every, t); e.burnT = 0.4; // a real hit: it pops shields too
-        if (st.contagionSlow && !e.dead) applySlow(e, st.contagionSlow, 0.5, t.id + ":pud");
-      }
-    }
-  }
-  t.puddles = t.puddles.filter(p => p.age < p.life);
-}
-// UI (drawAcd): a puddle is a cluster of BUBBLES (owner): PUDDLE_BUBBLES at
-// once, each at a jittered spot within it, growing to its own jittered max
-// size over BUBBLE_T real seconds, then POPPING (a brief widening ring) and
-// starting again elsewhere; the whole cluster fades as the puddle dries
-const PUDDLE_BUBBLES = 5, BUBBLE_T = 0.6, BUBBLE_POP = 0.15;
-function drawPuddles(t) {
-  const now = performance.now() / 1000;
-  ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
-  if (lowQ) { for (const p of t.puddles || []) { ctx.globalAlpha = 0.5 * (1 - p.age / p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.6, 0, 6.283); ctx.stroke(); } ctx.globalAlpha = 1; return; } // low quality: one ring, no bubbles
-  for (const p of t.puddles || []) {
-    const fade = 1 - p.age / p.life, seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
-    for (let i = 0; i < PUDDLE_BUBBLES; i++) {
-      const ph = now / BUBBLE_T + i / PUDDLE_BUBBLES + (seed % 97) / 97, cyc = Math.floor(ph), f = ph - cyc;
-      const h = k => fixedRand(cyc * 13 + i * 3 + k, seed); // this bubble's own jitter, fixed for its life
-      const a = h(0) * 6.283, d = Math.sqrt(h(1)) * p.r * 0.8, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
-      const max = p.r * (0.2 + 0.25 * h(2));
-      ctx.beginPath();
-      if (f < 1 - BUBBLE_POP) {
-        ctx.arc(x, y, max * f / (1 - BUBBLE_POP), 0, 6.283);
-        ctx.globalAlpha = 0.2 * fade; ctx.fill();
-        ctx.globalAlpha = 0.75 * fade; ctx.stroke();
-      } else {
-        const q = (f - 1 + BUBBLE_POP) / BUBBLE_POP; // the pop: a ring widening and gone
-        ctx.arc(x, y, max * (1 + 0.5 * q), 0, 6.283);
-        ctx.globalAlpha = 0.6 * (1 - q) * fade; ctx.stroke();
-      }
-    }
-  }
-  ctx.globalAlpha = 1;
-}
+// ACD's chart numbers, stats and puddles live in aspira-acid.js
