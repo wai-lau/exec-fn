@@ -397,12 +397,12 @@ function cardLift(w) {
 function placePop() {
   const pop = $("asp-pop");
   if (pop.hidden) return;
-  const h = pop.offsetHeight, { x, lift } = cardLift(pop.offsetWidth);
+  const h = pop.offsetHeight, { x } = cardLift(pop.offsetWidth);
   // ...but never up over the speed row (a short phone: it then sits over the wave list)
   const cr = cv.getBoundingClientRect(), top = document.querySelector(".asp-head").getBoundingClientRect().bottom - cr.top + CARD_GAP + CRED_ROOM; // room for the credits above
-  // and its foot clear of the SPEND BAR (owner: "close button and credits fit under")
-  const sp = $("asp-spend"), spTop = sp.hidden ? Infinity : sp.getBoundingClientRect().top - cr.top - CARD_GAP;
-  pop.style.left = x + "px"; pop.style.top = Math.max(top, Math.min(cr.height - h - lift, spTop - h)) + "px";
+  // CENTRED between that and the bottom bar less the close button's room (owner, 2026-10-07)
+  const bottom = cr.height - spendRoom();
+  pop.style.left = x + "px"; pop.style.top = Math.max(top, (top + bottom - h) / 2) + "px";
   placeCred(); // the credits ride above the card (aspira-chooser.js)
 }
 

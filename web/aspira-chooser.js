@@ -66,17 +66,17 @@ function openChooser(t) {
   row.classList.toggle("asp-cards-col", opts.length * CARD_W + (opts.length - 1) * 16 > el.clientWidth - 32);
   // at the bottom, lifted exactly like the tower card (cardLift), and never up
   // into the HUD: the top stops below the speed row (the cards scroll instead)
-  el.style.paddingBottom = chooserLift(row) + "px";
+  el.style.paddingBottom = spendRoom() + "px";
   el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8 + CRED_ROOM) + "px"; // room for the credits ABOVE the cards
   $("asp").classList.add("asp-choosing"); placeCred(); // now the cards have their places // the board blurs and darkens beneath (aspira.css)
 }
 const CARD_W = 380; // .asp-card's width (aspira.css)
 // the cards sit clear of the SPEND BAR too (owner: on a wide screen the centred
 // bar landed on the middle card): above whichever is higher, the bar or the lift
-function chooserLift(row) {
-  const lift = cardLift(row.offsetWidth).lift, sp = $("asp-spend"), cv0 = cv.getBoundingClientRect();
-  return sp.hidden ? lift : Math.max(lift, cv0.bottom - sp.getBoundingClientRect().top + 12);
-}
+// the cards are CENTRED in the space between the HUD (plus the credits' room)
+// and the bottom bar (plus the button's room) - owner, 2026-10-07
+const BTN_ROOM = 56;
+function spendRoom() { const cv0 = cv.getBoundingClientRect(); return cv0.bottom - document.querySelector(".asp-foot").getBoundingClientRect().top + BTN_ROOM; }
 // close the cards (nothing was charged); a pick pays through upgradeTower
 function closeChooser() {
   if (!chooser.t) return;
@@ -119,7 +119,7 @@ function openBuildChooser(ci) {
   showSpend(towerCost(kinds[0]), "cancel", closeChooser); // every kind costs the same (towerCost counts towers)
   el.hidden = false;
   row.classList.toggle("asp-cards-col", kinds.length * CARD_W + (kinds.length - 1) * 16 > el.clientWidth - 32);
-  el.style.paddingBottom = chooserLift(row) + "px";
+  el.style.paddingBottom = spendRoom() + "px";
   el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8 + CRED_ROOM) + "px"; // room for the credits ABOVE the cards
   $("asp").classList.add("asp-choosing"); placeCred(); // now the cards have their places
 }
@@ -158,16 +158,19 @@ function showSpend(cost, label, onClose, kind = "") {
   updateSpend();
 }
 function hideSpend() { $("asp-spend-cred").hidden = true; $("asp-spend").hidden = true; $("asp").classList.remove("asp-spending"); spend.cost = null; spend.onClose = null; }
-// the credits sit ABOVE the cards, the cancel / close BELOW them (owner, 2026-10-07):
-// centred over the top of the open card stack (the chooser's first line, or the tower card)
+// the credits sit just ABOVE the open cards, the cancel / close just BELOW
+// them (owner, 2026-10-07): centred on the card stack (the chooser's first line
+// and its cards, or the tower card)
 const CRED_ROOM = 30;
 function placeCred() {
-  const cred = $("asp-spend-cred"), ch = $("asp-chooser"), pop = $("asp-pop");
-  const anchor = ch && !ch.hidden ? ch.querySelector(".asp-chooser-cost") : !pop.hidden ? pop : null;
-  if (!anchor) return;
-  const a = anchor.getBoundingClientRect(), root = $("asp").getBoundingClientRect();
-  cred.style.left = (a.left + a.width / 2 - root.left) + "px";
+  const cred = $("asp-spend-cred"), btn = $("asp-spend"), ch = $("asp-chooser"), pop = $("asp-pop"), open = ch && !ch.hidden;
+  const top = open ? ch.querySelector(".asp-chooser-cost") : !pop.hidden ? pop : null;
+  const bot = open ? ch.querySelector(".asp-cards") : top;
+  if (!top || !bot) return;
+  const a = top.getBoundingClientRect(), z = bot.getBoundingClientRect(), root = $("asp").getBoundingClientRect();
+  cred.style.left = btn.style.left = (a.left + a.width / 2 - root.left) + "px";
   cred.style.top = (a.top - root.top - cred.offsetHeight - 4) + "px";
+  btn.style.top = (z.bottom - root.top + 10) + "px";
 }
 function updateSpend() {
   if ($("asp-spend").hidden) return;
