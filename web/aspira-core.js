@@ -16,11 +16,11 @@
 // was 4 buys across 2-tier powers): the price is by how many you already own
 const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_COST = [1000, 2000, 3500, 5000, 7000, 9500, 12500, 16000, 20000], CORE_POINTS = CORE_COST.length;
 const CORE_POWERS = [
-  { id: "fortify", name: "Mirror Drive", /* renamed with Temporal Drive (owner, 2026-10-06; was Fortifications) */ how: "drag a tower onto the core",
+  { id: "fortify", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag a tower onto the core",
     lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis.", "The copy gains another tier on every axis."] },
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
     lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown.", "The longest stop, the shortest cooldown."] },
-  { id: "empower", name: "Surge Drive", /* (was Empower) */ how: "drag the core onto a tower",
+  { id: "empower", name: "Overcharge Uplink", /* (was Empower) */ how: "drag the core onto a tower",
     lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown.", "The longest, with the shortest cooldown."] },
 ];
 const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
@@ -65,7 +65,7 @@ function fortify(t) {
   c.copyUntil = c.clock + lv.dur;
   c.copy = { kind: t.kind, skills: { ...t.skills } };
   c.tower = coreCopy(c.copy);
-  if (typeof banner === "function") banner("MIRROR DRIVE · " + TOWERS[t.kind].ab, TOWERS[t.kind].color, 1.5);
+  if (typeof banner === "function") banner("ORBITAL RELAY · " + TOWERS[t.kind].ab, TOWERS[t.kind].color, 1.5);
   ring(CX, CY, 70, TOWERS[t.kind].color); if (typeof sfx === "function") sfx("powerfortify"); // its own sound, not "upgrade complete" (owner); none in the simulator
   return true;
 }
@@ -98,7 +98,7 @@ function empower(t) {
   if (!lv || !t || t.isCore || cooldownLeft("empower") > 0) return false;
   coreState().cd.empower = lv.dur + lv.cd; // the cooldown starts when it wears off
   t.empowerUntil = (G.clock || 0) + lv.dur;
-  if (typeof banner === "function") banner("SURGE DRIVE", "white", 1.5);
+  if (typeof banner === "function") banner("OVERCHARGE UPLINK", "white", 1.5);
   ring(t.x, t.y, 64, "white"); if (typeof sfx === "function") sfx("powerempower");
   return true;
 }
