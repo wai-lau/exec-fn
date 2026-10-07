@@ -301,12 +301,14 @@ function frzStep(t, dt) {
   t.auraT = (t.auraT || 0) - dt;
   const tick = t.auraT <= 0;
   if (tick) t.auraT += FRZ_TICK;
+  let ticked = false;
   for (const s of srcs) {
     const r2 = (st.range * s.k) ** 2;
     for (const e of G.enemies) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
       if (!tick) continue;
+      ticked = true;
       // a tick POPS a shield (owner, 2026-10-06) and is never blunted by armor;
       // otherwise it is quiet (no flash) but shows its NUMBER, sized by what it took
       if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; }
@@ -315,6 +317,7 @@ function frzStep(t, dt) {
       if (hp - e.hp > 0) dmgNumber(e, String(Math.round(hp - e.hp)), hp - e.hp, "white");
     }
   }
+  if (ticked) sfx("frz"); // a tick that touched anything is HEARD (owner, 2026-10-07; was silent)
   if (st.rime) {
     t.rimeT = (t.rimeT || 0) - dt;
     if (t.rimeT <= 0) {
@@ -361,7 +364,7 @@ const SOL_BEAMS = [1, 2, 3, 4], SOL_REFRACTION = [0, 2, 5, 9], SOL_BREACH = [0, 
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower
-const SOL_CONE = 25, BREACH_ARMOR = 1.5, BREACH_CRIT = 0.01;
+const SOL_CONE = 8, /* greatly narrowed (owner, 2026-10-07; was 25) */ BREACH_ARMOR = 1.5, BREACH_CRIT = 0.01;
 // SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
 const SOL_CRITMUL = [3, 4, 5, 7];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
