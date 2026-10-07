@@ -67,8 +67,8 @@ function openChooser(t) {
   // at the bottom, lifted exactly like the tower card (cardLift), and never up
   // into the HUD: the top stops below the speed row (the cards scroll instead)
   el.style.paddingBottom = chooserLift(row) + "px";
-  el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
-  $("asp").classList.add("asp-choosing"); // the board blurs and darkens beneath (aspira.css)
+  el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8 + CRED_ROOM) + "px"; // room for the credits ABOVE the cards
+  $("asp").classList.add("asp-choosing"); placeCred(); // now the cards have their places // the board blurs and darkens beneath (aspira.css)
 }
 const CARD_W = 380; // .asp-card's width (aspira.css)
 // the cards sit clear of the SPEND BAR too (owner: on a wide screen the centred
@@ -120,8 +120,8 @@ function openBuildChooser(ci) {
   el.hidden = false;
   row.classList.toggle("asp-cards-col", kinds.length * CARD_W + (kinds.length - 1) * 16 > el.clientWidth - 32);
   el.style.paddingBottom = chooserLift(row) + "px";
-  el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
-  $("asp").classList.add("asp-choosing");
+  el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8 + CRED_ROOM) + "px"; // room for the credits ABOVE the cards
+  $("asp").classList.add("asp-choosing"); placeCred(); // now the cards have their places
 }
 function chooseBuild(i) {
   const k = chooser.opts[i], ci = chooser.ci;
@@ -153,13 +153,25 @@ const spend = { cost: null, onClose: null };
 function showSpend(cost, label, onClose, kind = "") {
   spend.cost = cost; spend.onClose = onClose;
   $("asp-spend").dataset.kind = kind; // the button wears the card's colour (owner)
-  $("asp-spend").hidden = false; $("asp-spend-btn").textContent = label;
+  $("asp-spend").hidden = false; $("asp-spend-cred").hidden = false; $("asp-spend-btn").textContent = label;
   $("asp").classList.add("asp-spending");
   updateSpend();
 }
-function hideSpend() { $("asp-spend").hidden = true; $("asp").classList.remove("asp-spending"); spend.cost = null; spend.onClose = null; }
+function hideSpend() { $("asp-spend-cred").hidden = true; $("asp-spend").hidden = true; $("asp").classList.remove("asp-spending"); spend.cost = null; spend.onClose = null; }
+// the credits sit ABOVE the cards, the cancel / close BELOW them (owner, 2026-10-07):
+// centred over the top of the open card stack (the chooser's first line, or the tower card)
+const CRED_ROOM = 30;
+function placeCred() {
+  const cred = $("asp-spend-cred"), ch = $("asp-chooser"), pop = $("asp-pop");
+  const anchor = ch && !ch.hidden ? ch.querySelector(".asp-chooser-cost") : !pop.hidden ? pop : null;
+  if (!anchor) return;
+  const a = anchor.getBoundingClientRect(), root = $("asp").getBoundingClientRect();
+  cred.style.left = (a.left + a.width / 2 - root.left) + "px";
+  cred.style.top = (a.top - root.top - cred.offsetHeight - 4) + "px";
+}
 function updateSpend() {
   if ($("asp-spend").hidden) return;
+  placeCred();
   $("asp-spend-cred").innerHTML = cr(Math.floor(G.money).toLocaleString("en-US")) +
     (spend.cost != null ? ' <span class="asp-spend-cost">(−' + cr(spend.cost) + ")</span>" : ""); // white credits, the cost in red brackets (owner)
 }

@@ -265,7 +265,11 @@
 /* CENTRED on the screen (owner), at the bottom bar's foot */
 .asp-spend { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 .asp-spend[hidden] { display: none; }
-.asp-spend-cred { font-size: var(--fs-lg); color: hsl(var(--white-hsl)); white-space: nowrap; text-shadow: 0 0 var(--blur-sm) hsl(var(--bg-hsl)); } /* credits WHITE (owner) */
+
+/* credits WHITE (owner), ABOVE the cards (placeCred positions it) */
+.asp-spend-cred { position: absolute; z-index: var(--z-overlay); transform: translateX(-50%); font-size: var(--fs-lg); color: hsl(var(--white-hsl)); white-space: nowrap; pointer-events: none; text-shadow: 0 0 var(--blur-sm) hsl(var(--bg-hsl)); }
+
+.asp-spend-cred[hidden] { display: none; }
 .asp-spend-cost { color: hsl(var(--pink-hsl)); } /* "(-40c)" in the palette's red (owner) */
 
 #asp .asp-spend button { width: 12ch; }
