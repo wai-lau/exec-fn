@@ -122,3 +122,14 @@ function drawMoons(t, st, col, shimmer) {
   }
   ctx.globalAlpha = 1;
 }
+
+// UPGRADE READY (owner, 2026-10-07): a dot in the tower's colour just above
+// every tower the credits can upgrade right now (drawScene, with the towers)
+const UP_DOT_Y = 34, UP_DOT_R = 6;
+function drawUpDots() {
+  for (const t of G.towers) {
+    if (t.lvl >= maxLvl(t) || G.money < upCost(t)) continue;
+    ctx.fillStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(t.x, t.y - UP_DOT_Y, UP_DOT_R, 0, 6.283); ctx.fill();
+  }
+}
