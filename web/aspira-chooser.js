@@ -66,11 +66,17 @@ function openChooser(t) {
   row.classList.toggle("asp-cards-col", opts.length * CARD_W + (opts.length - 1) * 16 > el.clientWidth - 32);
   // at the bottom, lifted exactly like the tower card (cardLift), and never up
   // into the HUD: the top stops below the speed row (the cards scroll instead)
-  el.style.paddingBottom = cardLift(row.offsetWidth).lift + "px";
+  el.style.paddingBottom = chooserLift(row) + "px";
   el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
   $("asp").classList.add("asp-choosing"); // the board blurs and darkens beneath (aspira.css)
 }
 const CARD_W = 380; // .asp-card's width (aspira.css)
+// the cards sit clear of the SPEND BAR too (owner: on a wide screen the centred
+// bar landed on the middle card): above whichever is higher, the bar or the lift
+function chooserLift(row) {
+  const lift = cardLift(row.offsetWidth).lift, sp = $("asp-spend"), cv0 = cv.getBoundingClientRect();
+  return sp.hidden ? lift : Math.max(lift, cv0.bottom - sp.getBoundingClientRect().top + 12);
+}
 // close the cards (nothing was charged); a pick pays through upgradeTower
 function closeChooser() {
   if (!chooser.t) return;
@@ -112,7 +118,7 @@ function openBuildChooser(ci) {
   showSpend(towerCost(kinds[0]), "cancel", closeChooser); // every kind costs the same (towerCost counts towers)
   el.hidden = false;
   row.classList.toggle("asp-cards-col", kinds.length * CARD_W + (kinds.length - 1) * 16 > el.clientWidth - 32);
-  el.style.paddingBottom = cardLift(row.offsetWidth).lift + "px";
+  el.style.paddingBottom = chooserLift(row) + "px";
   el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8) + "px";
   $("asp").classList.add("asp-choosing");
 }

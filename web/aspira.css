@@ -491,6 +491,8 @@
    is frozen then (no redraw), so the filter is not re-run every frame */
 #asp.asp-choosing .asp-board canvas { filter: blur(var(--blur-xs)) brightness(0.5); }
 
+#asp.asp-choosing #asp-pop { visibility: hidden; } /* the tower card never peeks out from behind the cards (owner) */
+
 /* each card is laid out like the tower's own card (owner): name, the two stat
    columns, then the tagline - brighter than the tower card's hint */
 #asp button.asp-card {

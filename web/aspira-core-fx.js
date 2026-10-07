@@ -19,8 +19,8 @@
 const DIAL_R = 62, DIAL_W = 7, DIAL_GAP = 0.2, READY_POP = 22, EMPOWER_TEXT = 26;
 const DIAL = [ // clockwise from the top-left; colours are palette keys
   { id: "temporal", label: "TEMPORAL DRIVE", color: "cyan", mid: -Math.PI * 0.833, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock },
-  { id: "empower", label: "SURGE DRIVE", color: "white", mid: -Math.PI * 0.167, tab: () => EMPOWER, active: () => empowerLeft() },
-  { id: "fortify", label: "MIRROR DRIVE", color: "orange", mid: Math.PI / 2, tab: () => FORTIFY, active: c => (c.tower ? c.copyUntil - c.clock : 0) },
+  { id: "empower", label: "OVERCHARGE UPLINK", color: "white", mid: -Math.PI * 0.167, tab: () => EMPOWER, active: () => empowerLeft() },
+  { id: "fortify", label: "ORBITAL RELAY", color: "orange", mid: Math.PI / 2, tab: () => FORTIFY, active: c => (c.tower ? c.copyUntil - c.clock : 0) },
 ];
 const empowerLeft = () => Math.max(0, ...G.towers.map(t => (t.empowerUntil || 0) - (G.clock || 0)));
 const glow = (col, blur) => { ctx.shadowColor = col; ctx.shadowBlur = blur * cam.k; };
@@ -59,7 +59,7 @@ function drawCoreHud() {
     ctx.globalAlpha = 0.7 + 0.3 * Math.sin(now / 400);
     ctx.beginPath(); ctx.arc(t.x, t.y, CELL_S * 1.7, 0, 6.283); ctx.stroke();
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    text("SURGE " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, EMPOWER_TEXT, "white", true, true);
+    text("OVERCHARGE " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, EMPOWER_TEXT, "white", true, true);
   }
   drawDial(c, now);
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
