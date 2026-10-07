@@ -114,7 +114,7 @@ function openBuildChooser(ci) {
   const row = el.querySelector(".asp-cards");
   kinds.forEach((k, i) => {
     const c = button(row, "asp-card", buildCard(k, i), () => chooseBuild(i));
-    c.dataset.kind = k; c.dataset.cost = towerCost(k);
+    c.dataset.kind = k; c.dataset.cost = towerCost(k); c.classList.toggle("poor", G.money < towerCost(k)); // updateHud keeps it current
   });
   showSpend(towerCost(kinds[0]), "cancel", closeChooser); // every kind costs the same (towerCost counts towers)
   el.hidden = false;
@@ -126,7 +126,7 @@ function openBuildChooser(ci) {
 function chooseBuild(i) {
   const k = chooser.opts[i], ci = chooser.ci;
   if (!k || ci == null) return;
-  if (G.money < towerCost(k)) { noFunds(chooserEl().querySelectorAll(".asp-card")[i]); return; } // stays open: pick another
+  if (G.money < towerCost(k)) { noFunds(chooserEl().querySelectorAll(".asp-card")[i], towerCost(k)); return; } // stays open: pick another
   closeChooser();
   ui.build = k; placeTower({ x: CELLS[ci].x, y: CELLS[ci].y }); refreshPanels();
 }

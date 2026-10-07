@@ -74,7 +74,7 @@ function button(parent, cls, html, onclick, id) {
   return btn;
 }
 function selectBuild(k) {
-  if (ui.build !== k && G.money < towerCost(k)) { noFunds($("asp-tw-" + k)); return; }
+  if (ui.build !== k && G.money < towerCost(k)) { noFunds($("asp-tw-" + k), towerCost(k)); return; }
   ui.build = ui.build === k ? null : k; ui.sel = null; refreshPanels();
 }
 
@@ -291,7 +291,14 @@ const SELL_ARM_MS = 2000;
 const closeCard = () => { ui.sel = null; refreshPanels(); };
 // a tap on something the credits cannot cover flashes its cost red and shakes
 // it (owner), instead of the button just sitting greyed out
-function noFunds(btn) {
+// cost (optional): also SAY so (owner, 2026-10-07) - "need Nc more" on the
+// button for NEED_MS, long enough to read, then gone
+function noFunds(btn, cost) {
+  if (cost != null) {
+    const n = btn.querySelector(".asp-need") || btn.insertAdjacentElement("afterbegin", document.createElement("div"));
+    n.className = "asp-need"; n.innerHTML = "need " + cr(short(Math.ceil(cost - G.money))) + " more";
+    clearTimeout(btn.needT); btn.needT = setTimeout(() => n.remove(), NEED_MS);
+  }
   btn.classList.remove("asp-nofunds"); void btn.offsetWidth; // restart the animation
   btn.classList.add("asp-nofunds");
   // ...and only for the shake: the red must not stick (owner saw it stay red).
@@ -299,7 +306,7 @@ function noFunds(btn) {
   clearTimeout(btn.nofundsT);
   btn.nofundsT = setTimeout(() => btn.classList.remove("asp-nofunds"), NOFUNDS_MS);
 }
-const NOFUNDS_MS = 450; // the shake's 0.4s, and a little
+const NOFUNDS_MS = 450, NEED_MS = 1600; // the shake's 0.4s, and a little; the "need" note
 
 // the upgrade chooser lives in aspira-chooser.js
 
@@ -374,6 +381,7 @@ function updateHud() {
   if (up && t) up.classList.toggle("poor", t.lvl < maxLvl(t) && G.money < upCost(t));
   // the core's one-click options follow the money too (aspira-core.js)
   for (const btn of document.querySelectorAll("#asp-pop [data-cost]")) btn.disabled = G.money < Number(btn.dataset.cost);
+  for (const c of document.querySelectorAll(".asp-build-cards .asp-card")) c.classList.toggle("poor", G.money < Number(c.dataset.cost)); // faint red (aspira.css)
   // the open popup's tallies update live
   if (t && $("asp-kills")) setText($("asp-kills"), (t.kills || 0) + " · " + short(Math.round(t.dealt || 0)) + " dealt");
 }
