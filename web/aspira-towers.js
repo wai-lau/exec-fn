@@ -328,7 +328,7 @@ function usePower(code) {
 // (un-halved) speed and slide (SLIDE_KIND 1, TOWER_IN_KIND 0.89), and ARC/SOL move
 // slowly (owner: "reduce greatly") over the halved slide; their Static / Breach
 // tiers buy slide extent back (SKILL_MOVE, aspira-skills.js)
-const TOWER_SPEED = { acid: 75, chain: 15, reaper: 6, slower: 90 }; // ACD 120 -> 75 (owner: "reduce acd speed")
+const TOWER_SPEED = { acid: 75, chain: 15, reaper: 6, slower: 55 }; // ACD 120 -> 75, FRZ 90 -> 55 (owner: reduce both)
 
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;
