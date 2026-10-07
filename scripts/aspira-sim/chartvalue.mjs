@@ -6,12 +6,12 @@
 // slow counts through the others' hits); the tower's own damage, the leaks
 // and the boss BREACHES (a boss at the core, which would have ended a real
 // game) are printed beside it. Then per axis: the mean value at each tier.
-// usage: node chartvalue.mjs [seeds=3] [out.jsonl]   env FROM=30 TO=60
+// usage: node chartvalue.mjs [seeds=3] [out.jsonl]   env FROM=30 TO=60 CV_KINDS=arc,acd (a subset)
 import { isMainThread } from "node:worker_threads";
 import { makeGame } from "./sim.mjs";
 import { runPool } from "./pool.mjs";
 
-const KINDS = ["arc", "frz", "sol", "acd"];
+const KINDS = ["arc", "frz", "sol", "acd"], RUN_KINDS = process.env.CV_KINDS ? process.env.CV_KINDS.split(",") : KINDS;
 const FROM = Number(process.env.FROM || 30), TO = Number(process.env.TO || 60);
 export const DISTS = [];
 for (let a = 0; a <= 3; a++) for (let b = 0; b <= 3; b++) { const c = 6 - a - b; if (c >= 0 && c <= 3) DISTS.push([a, b, c]); }
@@ -39,7 +39,7 @@ export default async function task({ kind, dist, seed }) {
 if (isMainThread && process.argv[1] && process.argv[1].endsWith("chartvalue.mjs")) {
   const SEEDS = Number(process.argv[2] || 3), OUT = process.argv[3] || null;
   const jobs = [];
-  for (const kind of KINDS) for (const dist of DISTS) for (let seed = 1; seed <= SEEDS; seed++) jobs.push({ kind, dist, seed });
+  for (const kind of RUN_KINDS) for (const dist of DISTS) for (let seed = 1; seed <= SEEDS; seed++) jobs.push({ kind, dist, seed });
   const res = await runPool(new URL(import.meta.url), jobs, { out: OUT });
   const g0 = makeGame(1);
   const key = j => j.kind + ":" + j.dist.join("");
@@ -47,7 +47,7 @@ if (isMainThread && process.argv[1] && process.argv[1].endsWith("chartvalue.mjs"
   jobs.forEach((j, i) => { const k = key(j); (agg[k] = agg[k] || []).push(res[i]); });
   const mean = (rows, f) => rows.reduce((a, r) => a + f(r), 0) / rows.length;
   console.log(`waves ${FROM}-${TO}, ${SEEDS} seeds; value = team damage vs 2/2/2 (own damage, leaks)`);
-  for (const kind of KINDS) {
+  for (const kind of RUN_KINDS) {
     const axes = g0.run(`SKILL_TREES[${JSON.stringify(kind)}].map(a => a.name)`);
     const base = agg[kind + ":222"];
     const bt = mean(base, r => r.team), bo = mean(base, r => r.own);

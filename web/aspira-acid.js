@@ -84,3 +84,88 @@ function stepAcd(t, dt) {
   }
   if (st.contagion) stepPuddles(t, st, dt); // the chart ACD's puddles (aspira-skills.js)
 }
+
+// ---------- ACD's chart (moved from aspira-skills.js at its 500-line cap, 2026-10-07): Catalyst ramp, Pour lines, Seep puddles ----------
+// FITTED 2026-10-06 to +25 / +50 / +100% (Spray to +30 / +60 / +120%, since
+// its lines can never share an enemy): Corrosion's ramp time, Spray's per-line
+// damage, Contagion's puddle heat (tier III's is below II's - its puddles are bigger)
+// REFIT 2026-10-06 (overnight phase 2: standard team, waves 20-40, HP scaled so it is pressed - the earlier thin-field fits ran 3-12x over target)
+// CORROSION REWORKED 2026-10-07 (owner): a dud axis (111% at 0, 96% at III) - the
+// ramp's SPEED never mattered, enemies die or leave before it tops out. Now tier I
+// keeps full heat on a new target (it was III's), II / III burn HOTTER at every
+// heat (ACD_CORROSION_DMG x the dps, so the top heat rises with it - raising only
+// the cap did nothing, the ramp rarely reaches it); the ramp stays ACD_DOUBLE[0]
+const ACD_CORROSION_DMG = [1, 1.1, 1.5, 2.2];
+const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1.1, 1.2];
+// puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
+// s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
+// line's heat when it fell, by Seep tier
+const ACD_CONTAGION = [{ every: 1.4, life: 1.5, r: 20 }, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 2.7, r: 28 }]; // refit 2026-10-06
+const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1];
+// Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
+// the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
+const ACD_CONTAGION_SLOW = [0, 0, 0, 0.25]; // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
+function acdSkillStats(t, s, b) {
+  const c = skillOf(t, "corrosion");
+  s.dmg = b.dmg * ACD_CORROSION_DMG[c]; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[0]; s.cap = ACD_BASE_MAX; s.plagueR = 0;
+  // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
+  // fast waves reset it); from Corrosion I, Etch, ALL of it
+  s.carry = c >= 1 ? 1 : 0.4; s.targets = ACD_LINES[skillOf(t, "spray")]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
+  s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.contagionSlow = ACD_CONTAGION_SLOW[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
+}
+// every step (stepAcd): each line drips a puddle every seep.every s; each
+// puddle ticks its burn on whatever stands in it, st.rate times a second
+function stepPuddles(t, st, dt) {
+  const sp = st.contagion;
+  for (const l of t.lines) {
+    if (l.e.dead) continue;
+    l.drip = (l.drip ?? sp.every) - dt;
+    if (l.drip > 0) continue;
+    l.drip += sp.every;
+    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * acdMulOf(l.held, st) * st.contagionHeat });
+  }
+  if (!t.puddles) return;
+  const every = 1 / st.rate;
+  for (const p of t.puddles) {
+    p.age += dt; p.tick += dt;
+    while (p.tick >= every) {
+      p.tick -= every;
+      for (const e of G.enemies) {
+        if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
+        damage(e, p.dps * every, t); e.burnT = 0.4; // a real hit: it pops shields too
+        if (st.contagionSlow && !e.dead) applySlow(e, st.contagionSlow, 0.5, t.id + ":pud");
+      }
+    }
+  }
+  t.puddles = t.puddles.filter(p => p.age < p.life);
+}
+// UI (drawAcd): a puddle is a cluster of BUBBLES (owner): PUDDLE_BUBBLES at
+// once, each at a jittered spot within it, growing to its own jittered max
+// size over BUBBLE_T real seconds, then POPPING (a brief widening ring) and
+// starting again elsewhere; the whole cluster fades as the puddle dries
+const PUDDLE_BUBBLES = 5, BUBBLE_T = 0.6, BUBBLE_POP = 0.15;
+function drawPuddles(t) {
+  const now = performance.now() / 1000;
+  ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
+  if (lowQ) { for (const p of t.puddles || []) { ctx.globalAlpha = 0.5 * (1 - p.age / p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.6, 0, 6.283); ctx.stroke(); } ctx.globalAlpha = 1; return; } // low quality: one ring, no bubbles
+  for (const p of t.puddles || []) {
+    const fade = 1 - p.age / p.life, seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
+    for (let i = 0; i < PUDDLE_BUBBLES; i++) {
+      const ph = now / BUBBLE_T + i / PUDDLE_BUBBLES + (seed % 97) / 97, cyc = Math.floor(ph), f = ph - cyc;
+      const h = k => fixedRand(cyc * 13 + i * 3 + k, seed); // this bubble's own jitter, fixed for its life
+      const a = h(0) * 6.283, d = Math.sqrt(h(1)) * p.r * 0.8, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
+      const max = p.r * (0.2 + 0.25 * h(2));
+      ctx.beginPath();
+      if (f < 1 - BUBBLE_POP) {
+        ctx.arc(x, y, max * f / (1 - BUBBLE_POP), 0, 6.283);
+        ctx.globalAlpha = 0.2 * fade; ctx.fill();
+        ctx.globalAlpha = 0.75 * fade; ctx.stroke();
+      } else {
+        const q = (f - 1 + BUBBLE_POP) / BUBBLE_POP; // the pop: a ring widening and gone
+        ctx.arc(x, y, max * (1 + 0.5 * q), 0, 6.283);
+        ctx.globalAlpha = 0.6 * (1 - q) * fade; ctx.stroke();
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
