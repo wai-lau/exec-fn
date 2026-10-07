@@ -196,7 +196,7 @@ function drawTower(t, ghost) {
   // the hex is ~44 across inside its outline: 28 fits, 23 sits easier (owner: "reduce a bit"; was 12)
   // after TWO chart points the label gives way to the tower's STAT TRIANGLE
   // (owner, 2026-10-06; boardChart, aspira-skills.js) - the build at a glance
-  if (hasSkills(t) && t.lvl >= 2) boardChart(t, x, y, ghost ? 0.55 : 1, c0); // from the FIRST point (owner; was the second)
+  if (hasSkills(t)) boardChart(t, x, y, ghost ? 0.55 : 1, c0); // ALWAYS the triangle, never the label (owner; was from the first point)
   else text(towerAb(t), x, y + 1, TOWER_LABEL_PX, b.color, false, true);
   ctx.globalAlpha = 1;
 }
